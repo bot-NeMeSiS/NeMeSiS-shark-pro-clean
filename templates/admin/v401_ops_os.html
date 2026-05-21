@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NeMeSiS SHARK PRO · Admin Ops V401</title>
+  <link rel="stylesheet" href="/static/v401/global_ux_os.css">
+</head>
+<body class="v401-shell admin">
+  <main class="v401-wrap">
+    <section class="hero-card admin-hero">
+      <div class="eyebrow">V401 · Admin Operations OS</div>
+      <h1>Admin ordenado, sin panel infinito</h1>
+      <p>Separación por operaciones: usuarios, picks, live, combis, sistema y salud. Menos ruido, más control.</p>
+    </section>
+
+    <section class="focus-grid admin-grid">
+      {% for item in data.admin_sections %}
+      <a class="ux-card" href="{{ item.route }}">
+        <span class="icon">{{ item.icon }}</span>
+        <strong>{{ item.title }}</strong>
+        <small>{{ item.policy }}</small>
+        <em>Máx. {{ item.max_widgets }} widgets visibles</em>
+      </a>
+      {% endfor %}
+    </section>
+
+    <section class="simple-box">
+      <h2>Guardrails activos</h2>
+      <div class="guard-list">
+        {% for g in data.guardrails %}
+        <div class="guard"><b>{{ g.rule_name }}</b><span>{{ g.admin_effect }}</span></div>
+        {% endfor %}
+      </div>
+    </section>
+  </main>
+</body>
+</html>

@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Live Center Pro V416 · NeMeSiS SHARK</title>
+  <style>
+    :root{--bg:#07111f;--card:#0d1b2e;--card2:#10243d;--txt:#eff7ff;--muted:#8aa3bd;--accent:#24d7ff;--good:#39ffb6;--warn:#ffd166;--bad:#ff5c7a;--line:rgba(255,255,255,.1)}
+    *{box-sizing:border-box} body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;background:radial-gradient(circle at top,#12345a 0,#07111f 42%,#050914 100%);color:var(--txt);padding:18px 14px 96px}.shell{max-width:1040px;margin:auto}.top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}.badge{font-size:12px;color:#03121d;background:linear-gradient(135deg,var(--accent),var(--good));font-weight:800;border-radius:999px;padding:7px 10px}.hero{border:1px solid var(--line);border-radius:28px;padding:22px;background:linear-gradient(145deg,rgba(36,215,255,.14),rgba(57,255,182,.07)),var(--card);box-shadow:0 18px 50px rgba(0,0,0,.32)}h1{margin:0 0 8px;font-size:26px}.muted{color:var(--muted);line-height:1.45}.grid{display:grid;grid-template-columns:1.2fr .8fr;gap:14px;margin-top:14px}.card{border:1px solid var(--line);border-radius:24px;padding:16px;background:rgba(13,27,46,.82);backdrop-filter:blur(10px)}.title{font-weight:900;font-size:15px;margin-bottom:10px}.signal{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px;border-radius:18px;background:rgba(255,255,255,.05);margin-bottom:10px}.pill{font-size:11px;font-weight:900;border-radius:999px;padding:6px 9px}.hot{background:rgba(255,92,122,.15);color:#ff9daf}.watch{background:rgba(255,209,102,.14);color:#ffe09a}.ok{background:rgba(57,255,182,.13);color:#86ffd4}.bar{height:9px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden}.fill{height:100%;border-radius:999px;background:linear-gradient(90deg,var(--accent),var(--good))}.timeline{display:grid;gap:9px}.event{display:flex;gap:10px;align-items:flex-start}.min{min-width:42px;color:var(--accent);font-weight:900}.dot{width:9px;height:9px;border-radius:99px;background:var(--accent);margin-top:6px;box-shadow:0 0 16px var(--accent)}.bottom{position:fixed;left:12px;right:12px;bottom:12px;background:rgba(7,17,31,.94);border:1px solid var(--line);border-radius:22px;padding:9px;display:flex;justify-content:space-around;max-width:720px;margin:auto;backdrop-filter:blur(14px)}.bottom a{color:var(--muted);text-decoration:none;font-size:12px;font-weight:800}.bottom a.active{color:var(--accent)}@media(max-width:800px){.grid{grid-template-columns:1fr}h1{font-size:23px}.hero{padding:18px}.card{padding:14px}}
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <div class="top"><div><b>NeMeSiS SHARK PRO</b><div class="muted">Live Center tipo SofaScore · V416</div></div><span class="badge">{{ data.phase }}</span></div>
+    <section class="hero">
+      <h1>Live Center más visual, claro y vivo</h1>
+      <p class="muted">Un solo foco por partido: estado, presión, timeline y señal SHARK principal. Los detalles avanzados quedan debajo para no agobiar al cliente.</p>
+      <div class="grid">
+        <div class="card">
+          <div class="title">Partido destacado ahora</div>
+          <div class="signal"><div><b>Equipo A vs Equipo B</b><div class="muted">Dominio real con presión ofensiva sostenida</div></div><span class="pill hot">HOT</span></div>
+          <div class="muted">Radar de presión</div><div class="bar"><div class="fill" style="width:78%"></div></div>
+        </div>
+        <div class="card">
+          <div class="title">Señal SHARK</div>
+          <div class="signal"><div><b>Vigilar entrada, no precipitarse</b><div class="muted">Momentum fuerte pero con riesgo de favorito nervioso.</div></div><span class="pill watch">WATCH</span></div>
+        </div>
+      </div>
+    </section>
+    <div class="grid">
+      <section class="card"><div class="title">Timeline limpio</div><div class="timeline">{% for e in data.events %}<div class="event"><div class="min">{{ e.minute }}'</div><div class="dot"></div><div><b>{{ e.title }}</b><div class="muted">{{ e.note }}</div></div></div>{% endfor %}</div></section>
+      <section class="card"><div class="title">Modo Pro bajo demanda</div><p class="muted">Gráficos, métricas y lectura profunda aparecen solo cuando el usuario pulsa “Ver más”. La pantalla principal se mantiene ligera.</p><div class="signal"><span>Presión</span><b>{{ data.pressure_score }}/100</b></div><div class="signal"><span>Momentum</span><b>{{ data.momentum_score }}/100</b></div><div class="signal"><span>Claridad</span><b>{{ data.clarity_score }}/100</b></div></section>
+    </div>
+  </main>
+  <nav class="bottom"><a href="/cliente-dashboard">Inicio</a><a class="active" href="/cliente/v416-live-center-sofascore-pro">Live</a><a href="/picks">Picks</a><a href="/cliente/v406-combi-center-super-pro">Combi</a><a href="/cliente/v404-shark-copilot-real">SHARK</a></nav>
+</body>
+</html>

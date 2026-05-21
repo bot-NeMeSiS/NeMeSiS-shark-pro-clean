@@ -1,0 +1,77 @@
+
+<link rel="stylesheet" href="{{ url_for('static', filename='css/v346_compact_client_layout.css') }}">
+
+<section class="v346-layout-shell">
+  <div class="v346-layout-panel">
+    <div class="v346-head">
+      <div>
+        <div class="v346-badge">🧩 Layout inteligente</div>
+        <h2>Menos saturación, más claridad</h2>
+        <p>
+          La cuenta cliente queda organizada por capas: primero lo importante, después los detalles.
+          Así la app respira mejor y se siente más premium.
+        </p>
+      </div>
+    </div>
+
+    <div class="v346-tabs">
+      <button class="v346-tab active" data-v346-tab="todo">Todo</button>
+      <button class="v346-tab" data-v346-tab="home">Home</button>
+      <button class="v346-tab" data-v346-tab="live">Live</button>
+      <button class="v346-tab" data-v346-tab="combi">Combi</button>
+      <button class="v346-tab" data-v346-tab="shark">SHARK</button>
+    </div>
+
+    <div class="v346-zone-grid">
+      <div class="v346-zone" data-v346-zone="home">
+        <div class="v346-zone-top"><h3>🏠 Resumen</h3><span class="v346-mini-pill">Inicio</span></div>
+        <p>Entrada rápida con lo esencial del día, sin obligar al cliente a leer todo.</p>
+        <div class="v346-zone-actions"><a href="/cliente">Ir a inicio</a></div>
+      </div>
+
+      <div class="v346-zone" data-v346-zone="live">
+        <div class="v346-zone-top"><h3>🔥 Live</h3><span class="v346-mini-pill">HOT</span></div>
+        <p>Partidos calientes, señales rápidas y Match Center sin saturar el panel principal.</p>
+        <div class="v346-zone-actions"><a href="/cliente/live">Ver Live</a></div>
+      </div>
+
+      <div class="v346-zone" data-v346-zone="combi">
+        <div class="v346-zone-top"><h3>🎯 Combi 1X2</h3><span class="v346-mini-pill">Stake</span></div>
+        <p>Planificador, cuotas estimadas y copia rápida de combinada en una zona clara.</p>
+        <div class="v346-zone-actions"><a href="/cliente/combi-inteligente">Crear Combi</a></div>
+      </div>
+
+      <div class="v346-zone" data-v346-zone="shark">
+        <div class="v346-zone-top"><h3>🦈 SHARK</h3><span class="v346-mini-pill">AI</span></div>
+        <p>Consejo contextual y decisión 1X2 sin llenar la pantalla de texto.</p>
+        <div class="v346-zone-actions"><a href="/cliente/shark-copilot">Abrir SHARK</a></div>
+      </div>
+
+      <div class="v346-zone" data-v346-zone="home">
+        <div class="v346-zone-top"><h3>📊 Estadísticas</h3><span class="v346-mini-pill">Perfil</span></div>
+        <p>ROI, racha y datos avanzados quedan como segunda capa, no encima de todo.</p>
+        <div class="v346-zone-actions"><a class="secondary" href="/cliente/perfil">Ver perfil</a></div>
+      </div>
+
+      <div class="v346-zone" data-v346-zone="live">
+        <div class="v346-zone-top"><h3>⚡ Continuar</h3><span class="v346-mini-pill">Sesión</span></div>
+        <p>La app recuerda tu último flujo para que no empieces de cero.</p>
+        <div class="v346-zone-actions"><a class="secondary" href="/cliente">Continuar</a></div>
+      </div>
+    </div>
+
+    <div class="v346-more">
+      <details>
+        <summary>Ver detalles avanzados</summary>
+        <div class="v346-more-content">
+          <div class="v346-more-card"><b>Momentum</b><span>Visible cuando toca, no siempre.</span></div>
+          <div class="v346-more-card"><b>Timeline</b><span>Lectura rápida del partido.</span></div>
+          <div class="v346-more-card"><b>Histórico</b><span>Preparado para ROI real.</span></div>
+          <div class="v346-more-card"><b>Riesgo</b><span>Más claro y menos invasivo.</span></div>
+        </div>
+      </details>
+    </div>
+  </div>
+</section>
+
+<script src="{{ url_for('static', filename='js/v346_compact_client_layout.js') }}" defer></script>

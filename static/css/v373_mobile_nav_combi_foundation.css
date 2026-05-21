@@ -1,0 +1,35 @@
+/* V373 · Mobile Navigation + Combi Foundation Guard
+   Objetivo: una sola barra inferior, un solo botón SHARK AI y pantalla combi más ordenada. */
+:root{--v373-bottom-safe:92px;--v373-ai-bottom:104px;}
+@media (max-width: 820px){
+  body{padding-bottom:calc(var(--v373-bottom-safe) + env(safe-area-inset-bottom,0px))!important;}
+  /* Oculta barras históricas para evitar duplicados. Se conserva solo .bottom-mobile-nav-v283. */
+  .client-app-nav-v308,
+  .nms-v245-mobile-bottom,
+  .nsp-mobile-bottom,
+  .v138-bottom,
+  .v165-bottom-nav,
+  .bottom-nav,
+  .v342-bottom-nav,
+  .v329-combi-quick,
+  .v329-mobile-combi-quick,
+  .v346-compact-bottom,
+  nav[class*="bottom"]:not(.bottom-mobile-nav-v283),
+  div[class*="mobile-bottom"]:not(.bottom-mobile-nav-v283){display:none!important;visibility:hidden!important;pointer-events:none!important;}
+  .bottom-mobile-nav-v283{position:fixed!important;left:14px!important;right:14px!important;bottom:calc(12px + env(safe-area-inset-bottom,0px))!important;z-index:9996!important;display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:4px!important;padding:9px 10px!important;border-radius:24px!important;background:rgba(3,7,18,.92)!important;border:1px solid rgba(125,211,252,.22)!important;box-shadow:0 18px 60px rgba(0,0,0,.45),0 0 34px rgba(34,211,238,.10)!important;backdrop-filter:blur(16px)!important;}
+  .bottom-mobile-nav-v283 a,.bottom-mobile-nav-v283 button{min-width:0!important;text-decoration:none!important;color:#dbeafe!important;background:transparent!important;border:0!important;box-shadow:none!important;border-radius:16px!important;padding:8px 4px!important;font-size:11px!important;font-weight:900!important;text-align:center!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;}
+  .bottom-mobile-nav-v283 a:nth-child(4),.bottom-mobile-nav-v283 a:nth-child(5){display:none!important;}
+  .bottom-mobile-nav-v283 a:hover,.bottom-mobile-nav-v283 button:hover{background:rgba(34,211,238,.10)!important;}
+  .bottom-mobile-nav-v283 a:nth-child(1)::before{content:'🏠';display:block;font-size:18px;line-height:18px;margin-bottom:3px;}
+  .bottom-mobile-nav-v283 a:nth-child(2)::before{content:'🎯';display:block;font-size:18px;line-height:18px;margin-bottom:3px;}
+  .bottom-mobile-nav-v283 a:nth-child(3)::before{content:'🔥';display:block;font-size:18px;line-height:18px;margin-bottom:3px;}
+  .bottom-mobile-nav-v283 a:nth-child(6)::before{content:'⭐';display:block;font-size:18px;line-height:18px;margin-bottom:3px;}
+  .bottom-mobile-nav-v283 button::before{content:'🦈';display:block;font-size:18px;line-height:18px;margin-bottom:3px;}
+  /* Un solo acceso flotante AI: el histórico se compacta y se coloca por encima del menú. */
+  #sharkOpen.shark-float{position:fixed!important;right:18px!important;bottom:calc(var(--v373-ai-bottom) + env(safe-area-inset-bottom,0px))!important;z-index:9995!important;width:58px!important;height:58px!important;border-radius:22px!important;display:grid!important;place-items:center!important;font-size:16px!important;box-shadow:0 0 30px rgba(34,211,238,.35)!important;}
+  .shark-float:not(#sharkOpen),[id*="aiFloating"],[class*="ai-float"]:not(#sharkOpen),[class*="shark-floating"]:not(#sharkOpen){display:none!important;}
+  #sharkBox.shark-box{left:12px!important;right:12px!important;bottom:calc(86px + env(safe-area-inset-bottom,0px))!important;width:auto!important;max-height:72vh!important;z-index:9997!important;}
+}
+@media (min-width:821px){.bottom-mobile-nav-v283{display:none!important;}}
+/* Combi foundation visual helpers */
+.v373-combi-shell{max-width:1180px;margin:0 auto;padding:20px 16px 118px;color:#eaf6ff}.v373-combi-hero{border:1px solid rgba(125,211,252,.18);background:linear-gradient(135deg,rgba(34,211,238,.13),rgba(250,204,21,.07),rgba(255,255,255,.04));border-radius:28px;padding:22px;box-shadow:0 24px 70px rgba(0,0,0,.34)}.v373-combi-stepgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:16px}.v373-combi-layout{display:grid;grid-template-columns:1.25fr .75fr;gap:16px;margin-top:16px}.v373-card{border:1px solid rgba(125,211,252,.18);border-radius:24px;background:rgba(13,27,47,.82);padding:16px;backdrop-filter:blur(10px)}.v373-section-title{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}.v373-section-title h2,.v373-section-title h3{margin:0}.v373-pill{border:1px solid rgba(125,211,252,.20);background:rgba(34,211,238,.10);border-radius:999px;padding:7px 10px;color:#bff5ff;font-weight:900;font-size:12px}.v373-metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.v373-metric{background:rgba(255,255,255,.045);border:1px solid rgba(125,211,252,.16);border-radius:18px;padding:12px}.v373-metric b{font-size:22px;display:block}.v373-metric span{color:#9fb8d7;font-size:12px}.v373-pick{border:1px solid rgba(125,211,252,.17);border-radius:20px;padding:14px;margin:10px 0;background:linear-gradient(135deg,rgba(255,255,255,.055),rgba(34,211,238,.035))}.v373-copybox{white-space:pre-wrap;background:#020817;border:1px solid rgba(125,211,252,.18);border-radius:18px;padding:13px;color:#dbeafe;font-size:13px;max-height:280px;overflow:auto}.v373-warning{border-left:3px solid #facc15;padding:10px 12px;background:rgba(250,204,21,.08);border-radius:12px;margin:8px 0;color:#feeeb0}.v373-field{background:rgba(3,7,18,.42);border:1px solid rgba(125,211,252,.18);border-radius:18px;padding:12px}.v373-field label{display:block;font-size:12px;color:#9fb8d7;margin-bottom:6px}.v373-field input,.v373-field select{width:100%;background:#061427;color:#eaf6ff;border:1px solid rgba(148,163,184,.22);border-radius:12px;padding:11px}.v373-primary{cursor:pointer;border:0;border-radius:16px;padding:13px 16px;background:linear-gradient(135deg,#22d3ee,#2563eb);color:white;font-weight:900;box-shadow:0 12px 30px rgba(34,211,238,.2)}@media(max-width:900px){.v373-combi-stepgrid,.v373-combi-layout{grid-template-columns:1fr}.v373-metrics{grid-template-columns:repeat(2,1fr)}.v373-combi-shell{padding:14px 12px 120px}.v373-combi-hero,.v373-card{border-radius:22px}}

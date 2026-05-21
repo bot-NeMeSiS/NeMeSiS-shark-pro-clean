@@ -1,0 +1,37 @@
+<link rel="stylesheet" href="{{ url_for('static', filename='css/v363_shark_memory_live_context.css') }}">
+<section class="v363-shell" data-v363-client>
+  <div class="v363-hero">
+    <div>
+      <span class="v363-kicker">🧠 V363 · SHARK Memory real</span>
+      <h2>Memoria persistente + contexto live para decisiones mejores</h2>
+      <p>SHARK empieza a guardar señales, snapshots y contexto útil para que el análisis no sea una pantalla suelta: ahora aprende continuidad del cliente, picks, riesgo y partidos HOT.</p>
+    </div>
+    <div class="v363-score">
+      <b data-v363-hot>--</b>
+      <span>señales HOT</span>
+    </div>
+  </div>
+
+  <div class="v363-grid">
+    <article class="v363-card">
+      <h3>Contexto Live SHARK</h3>
+      <p>Lectura rápida de partidos con score, momentum y riesgo. No inventa datos: usa picks/partidos ya persistidos.</p>
+      <div class="v363-list" data-v363-live-list>
+        <div class="v363-skeleton"></div><div class="v363-skeleton"></div><div class="v363-skeleton"></div>
+      </div>
+    </article>
+
+    <article class="v363-card">
+      <h3>Memoria del cliente</h3>
+      <p>Base para recordar preferencias, interacciones, picks guardados y señales consultadas sin perder contexto al recargar.</p>
+      <div class="v363-metrics">
+        <div><b data-v363-memory-count>--</b><span>eventos memoria</span></div>
+        <div><b data-v363-snapshot-count>--</b><span>snapshots live</span></div>
+        <div><b data-v363-avg-score>--</b><span>score medio</span></div>
+      </div>
+      <button class="v363-btn" data-v363-save-event>Guardar interacción de prueba</button>
+      <small>Seguro para producción: si no hay datos reales todavía, muestra estado vacío premium.</small>
+    </article>
+  </div>
+</section>
+<script src="{{ url_for('static', filename='js/v363_shark_memory_live_context.js') }}" defer></script>

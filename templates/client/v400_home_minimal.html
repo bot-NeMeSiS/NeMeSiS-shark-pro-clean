@@ -1,0 +1,8 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>NeMeSiS SHARK PRO · Home Minimal</title><link rel="stylesheet" href="/static/v400/ux_anti_agobio.css"></head>
+<body class="v400-body"><main class="v400-shell">
+<section class="v400-hero"><div><p class="eyebrow">V400 · UX Anti-Agobio</p><h1>Tu app SHARK, clara y rápida</h1><p>Todo queda ordenado por centros. Menos scroll infinito, más control y una experiencia premium más cómoda.</p></div><div class="v400-pill">Modo simple activo</div></section>
+<section class="v400-actions"><h2>¿Qué quieres hacer ahora?</h2><div class="v400-grid">{% for r in data.routes %}<a class="v400-action" href="{{ r.route }}"><span>{{ r.icon }}</span><strong>{{ r.label }}</strong><small>{{ r.client_text }}</small></a>{% endfor %}</div></section>
+<section class="v400-focus"><h2>Solo lo importante</h2>{% for c in data.focus_cards if c.visible_default %}<article class="v400-card"><div><strong>{{ c.title }}</strong><p>{{ c.description }}</p></div><a href="{{ c.target_route }}">Abrir</a></article>{% endfor %}</section>
+<section class="v400-more"><details><summary>Ver análisis avanzado / Modo Pro</summary><div class="v400-pro">{% for c in data.focus_cards if not c.visible_default %}<article class="v400-card"><strong>{{ c.title }}</strong><p>{{ c.description }}</p></article>{% endfor %}</div></details></section>
+</main><script src="/static/v400/ux_anti_agobio.js"></script></body></html>

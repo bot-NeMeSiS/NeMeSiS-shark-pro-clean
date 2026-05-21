@@ -1,0 +1,111 @@
+
+/* V342 App Navigation + Smart Home */
+.v342-bottom-nav{
+position:fixed;
+bottom:12px;
+left:50%;
+transform:translateX(-50%);
+width:min(94%,720px);
+display:grid;
+grid-template-columns:repeat(5,1fr);
+gap:8px;
+padding:10px;
+border-radius:24px;
+background:rgba(4,10,18,.92);
+backdrop-filter:blur(16px);
+border:1px solid rgba(0,217,255,.16);
+box-shadow:0 12px 34px rgba(0,0,0,.35);
+z-index:9999
+}
+.v342-nav-btn{
+display:flex;
+flex-direction:column;
+align-items:center;
+justify-content:center;
+gap:4px;
+min-height:60px;
+border-radius:18px;
+text-decoration:none;
+color:#dffbff;
+background:rgba(255,255,255,.04);
+border:1px solid rgba(255,255,255,.06);
+font-size:11px;
+font-weight:700;
+transition:.22s
+}
+.v342-nav-btn:hover{
+transform:translateY(-2px);
+background:rgba(0,217,255,.1)
+}
+.v342-nav-btn span{
+font-size:18px
+}
+.v342-smart-home{
+max-width:1280px;
+margin:0 auto;
+padding:12px 12px 110px
+}
+.v342-top-flow{
+display:grid;
+grid-template-columns:1.2fr .8fr;
+gap:14px;
+margin-bottom:14px
+}
+.v342-hero{
+background:linear-gradient(135deg,#081727,#05111d);
+border:1px solid rgba(0,217,255,.12);
+border-radius:28px;
+padding:22px;
+box-shadow:0 12px 30px rgba(0,0,0,.2)
+}
+.v342-hero h2{
+margin:0 0 6px;
+color:#fff;
+font-size:34px
+}
+.v342-hero p{
+margin:0;
+color:rgba(255,255,255,.72)
+}
+.v342-live-card{
+background:linear-gradient(135deg,#15101d,#08111c);
+border:1px solid rgba(255,77,109,.16);
+border-radius:28px;
+padding:20px;
+color:#fff
+}
+.v342-hot{
+display:inline-flex;
+padding:7px 12px;
+border-radius:999px;
+background:rgba(255,77,109,.12);
+border:1px solid rgba(255,77,109,.24);
+font-size:11px;
+font-weight:800;
+margin-bottom:10px
+}
+.v342-quick-grid{
+display:grid;
+grid-template-columns:repeat(4,minmax(0,1fr));
+gap:12px
+}
+.v342-quick{
+background:rgba(255,255,255,.04);
+border:1px solid rgba(255,255,255,.08);
+border-radius:22px;
+padding:16px;
+color:#fff
+}
+.v342-quick strong{
+display:block;
+margin-bottom:6px
+}
+.v342-quick span{
+font-size:12px;
+color:rgba(255,255,255,.7)
+}
+@media(max-width:860px){
+.v342-top-flow,.v342-quick-grid{grid-template-columns:1fr}
+.v342-hero h2{font-size:28px}
+.v342-bottom-nav{bottom:8px}
+}

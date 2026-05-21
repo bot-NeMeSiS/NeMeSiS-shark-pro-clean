@@ -1,0 +1,24 @@
+
+.v353-shell{max-width:1280px;margin:0 auto;padding:14px 12px 110px;color:#f6faff}
+.v353-panel{border-radius:30px;padding:20px;background:linear-gradient(135deg,#071626,#050d19);border:1px solid rgba(0,217,255,.16);box-shadow:0 18px 54px rgba(0,0,0,.28)}
+.v353-badge{display:inline-flex;padding:7px 12px;border-radius:999px;background:rgba(65,242,168,.1);border:1px solid rgba(65,242,168,.24);font-size:11px;font-weight:900}
+.v353-head h2{margin:10px 0 6px;font-size:clamp(26px,5vw,42px)}
+.v353-head p{margin:0;color:rgba(255,255,255,.72);max-width:840px}
+.v353-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:16px}
+.v353-card{border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.04);border-radius:24px;padding:16px}
+.v353-profile{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.v353-tile{border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.04);border-radius:18px;padding:13px}
+.v353-tile b{display:block;font-size:21px;margin-bottom:4px}
+.v353-tile span{font-size:12px;color:rgba(255,255,255,.7)}
+.v353-row{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;border-bottom:1px solid rgba(255,255,255,.07);padding:11px 0}
+.v353-row:last-child{border-bottom:0}
+.v353-icon{width:36px;height:36px;border-radius:14px;display:grid;place-items:center;background:rgba(0,217,255,.1);border:1px solid rgba(0,217,255,.16)}
+.v353-row b{display:block}.v353-row span{font-size:12px;color:rgba(255,255,255,.7)}
+.v353-pill{padding:6px 9px;border-radius:999px;font-size:11px;font-weight:900}
+.v353-pill.good{background:rgba(65,242,168,.1);border:1px solid rgba(65,242,168,.24)}
+.v353-pill.mid{background:rgba(247,201,72,.1);border:1px solid rgba(247,201,72,.24)}
+.v353-pill.hot{background:rgba(255,77,109,.1);border:1px solid rgba(255,77,109,.24)}
+.v353-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.v353-actions a{text-decoration:none;border-radius:14px;padding:10px 12px;font-weight:900;color:#03101d;background:linear-gradient(135deg,#00d9ff,#f7c948)}
+.v353-actions a.secondary{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:#f6faff}
+@media(max-width:900px){.v353-grid,.v353-profile{grid-template-columns:1fr}}

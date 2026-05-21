@@ -1,0 +1,86 @@
+{# NeMeSiS SHARK PRO · V338
+   Live Match Center + Smart Home Feel
+#}
+
+<link rel="stylesheet" href="{{ url_for('static', filename='css/v338_live_match_center.css') }}">
+
+<section class="v338-match-shell">
+  <div class="v338-match-panel">
+    <div class="v338-head">
+      <div>
+        <div class="v338-badge">🔥 Live Match Center</div>
+        <h3>Partidos más vivos, decisiones más claras</h3>
+        <p>
+          Capa visual para que cada partido se sienta como un mini ecosistema:
+          presión, momentum, timeline y contexto SHARK antes de decidir.
+        </p>
+      </div>
+
+      <div class="v338-actions">
+        <a href="/cliente/live">Abrir Live</a>
+        <a class="secondary" href="/cliente/combi-inteligente">Combi 1X2</a>
+        <a class="secondary" href="/cliente/shark-copilot">SHARK</a>
+      </div>
+    </div>
+
+    <div class="v338-live-grid">
+      <div class="v338-card">
+        <div class="v338-card-title">
+          <strong>Momentum visual</strong>
+          <span class="v338-pulse"></span>
+        </div>
+
+        <div class="v338-pressure">
+          <div class="v338-pressure-row">
+            <span>Ritmo</span>
+            <div class="v338-bar"><div class="v338-fill hot" style="width:78%"></div></div>
+            <b>78</b>
+          </div>
+          <div class="v338-pressure-row">
+            <span>Presión</span>
+            <div class="v338-bar"><div class="v338-fill" style="width:66%"></div></div>
+            <b>66</b>
+          </div>
+          <div class="v338-pressure-row">
+            <span>Confianza</span>
+            <div class="v338-bar"><div class="v338-fill" style="width:71%"></div></div>
+            <b>71</b>
+          </div>
+        </div>
+
+        <div class="v338-shark">
+          <strong>🦈 Lectura SHARK</strong>
+          <span data-v338-shark-tip>Revisa el contexto antes de añadir el partido a una combinada.</span>
+        </div>
+      </div>
+
+      <div class="v338-card">
+        <div class="v338-card-title">
+          <strong>Timeline rápido</strong>
+        </div>
+
+        <div class="v338-timeline">
+          <a class="v338-event" href="/cliente/live" style="text-decoration:none;color:inherit;">
+            <div class="v338-event-icon">⚡</div>
+            <div><b>Fase caliente</b><span>El partido entra en zona de atención.</span></div>
+            <div class="v338-pill hot">HOT</div>
+          </a>
+
+          <a class="v338-event" href="/cliente/combi-inteligente" style="text-decoration:none;color:inherit;">
+            <div class="v338-event-icon">🎯</div>
+            <div><b>Revisar 1X2</b><span>Comprueba si encaja en tu combinada.</span></div>
+            <div class="v338-pill watch">1X2</div>
+          </a>
+
+          <a class="v338-event" href="/cliente/shark-copilot" style="text-decoration:none;color:inherit;">
+            <div class="v338-event-icon">🦈</div>
+            <div><b>Preguntar a SHARK</b><span>Usa contexto si dudas entre 1, X o 2.</span></div>
+            <div class="v338-pill green">AI</div>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script src="{{ url_for('static', filename='js/v338_live_match_center.js') }}" defer></script>

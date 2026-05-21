@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="es">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>Mi cuenta · NeMeSiS SHARK PRO</title><link rel="stylesheet" href="{{ url_for('static', filename='css/v430_commercial_ready_visual_polish.css') }}"></head>
+<body class="v430-app">
+  <main class="v430-shell">
+    <header class="v430-topbar"><a class="v430-brand" href="/clientes"><span class="v430-logo">🦈</span><span><b>Mi cuenta</b><small>Cuenta por centros</small></span></a><a class="v430-chip premium" href="/planes">{{ vm.plan }}</a></header>
+    <section class="v430-hero compact">
+      <div class="v430-hero-main"><span class="v430-eyebrow">Mi cuenta sin líos</span><h1>{{ user.email if user else 'Cliente' }}</h1><p>Todo lo personal está separado en botones claros para que no tengas que leer una pantalla interminable.</p></div>
+      <aside class="v430-shark-card"><span>Estado</span><b>{{ vm.telegram }}</b><p>Telegram · {{ '%.1f'|format(vm.stats.roi if vm.stats else 0) }}% ROI · {{ vm.saved_count }} guardados</p></aside>
+    </section>
+    <section class="v430-section-head"><h2>Tu cuenta organizada</h2><p>Abre solo el apartado que necesitas ahora.</p></section>
+    <section class="v430-center-grid account">
+      {% for s in sections or v430_account_sections(user) %}
+      <a class="v430-center {{ s.tone }}" href="{{ s.href }}"><span class="v430-icon">{{ s.icon }}</span><b>{{ s.title }}</b><small>{{ s.desc }}</small><em>Abrir</em></a>
+      {% endfor %}
+    </section>
+    <details class="v430-more"><summary>Ajustes rápidos</summary><div class="v430-muted"><p>Banca: {{ vm.balance }}€. Riesgo: {{ vm.risk }}. Deporte favorito: {{ vm.sport }}. Los detalles avanzados quedan aquí para no saturar la cuenta.</p></div></details>
+  </main>
+  <nav class="v430-bottom"><a href="/clientes">Inicio</a><a href="/cliente/live">Live</a><a href="/cliente/picks">Picks</a><a href="/cliente/combi">Combi</a><a class="active" href="/cuenta">Cuenta</a></nav>
+</body></html>

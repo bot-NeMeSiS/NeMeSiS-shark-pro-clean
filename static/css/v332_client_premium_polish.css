@@ -1,0 +1,210 @@
+/* NeMeSiS SHARK PRO · V332 FULL PC BUILD
+   Client Premium Polish + Combi UX + Cleanup
+*/
+
+:root{
+  --v332-bg:#06101d;
+  --v332-panel:rgba(8,20,38,.90);
+  --v332-card:rgba(12,28,52,.86);
+  --v332-border:rgba(0,217,255,.20);
+  --v332-blue:#00d9ff;
+  --v332-gold:#f7c948;
+  --v332-hot:#ff4d6d;
+  --v332-text:#f5f9ff;
+  --v332-muted:rgba(245,249,255,.72);
+}
+
+.v332-client-polish{
+  margin:16px 0 18px;
+  border:1px solid var(--v332-border);
+  border-radius:28px;
+  padding:20px;
+  color:var(--v332-text);
+  background:
+    radial-gradient(circle at 0% 0%,rgba(0,217,255,.20),transparent 28%),
+    radial-gradient(circle at 100% 0%,rgba(247,201,72,.13),transparent 30%),
+    linear-gradient(135deg,rgba(6,16,31,.98),rgba(3,8,17,.98));
+  box-shadow:0 18px 60px rgba(0,0,0,.28),0 0 34px rgba(0,217,255,.08);
+  overflow:hidden;
+  position:relative;
+}
+
+.v332-client-polish::after{
+  content:"";
+  position:absolute;
+  right:-90px;
+  top:-90px;
+  width:220px;
+  height:220px;
+  border-radius:999px;
+  background:radial-gradient(circle,rgba(0,217,255,.18),transparent 66%);
+  pointer-events:none;
+}
+
+.v332-eyebrow{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  border:1px solid rgba(247,201,72,.30);
+  background:rgba(247,201,72,.10);
+  color:var(--v332-gold);
+  border-radius:999px;
+  padding:7px 12px;
+  font-size:12px;
+  font-weight:900;
+  letter-spacing:.04em;
+  text-transform:uppercase;
+}
+
+.v332-client-polish h2{
+  margin:13px 0 8px;
+  font-size:clamp(25px,4.5vw,42px);
+  line-height:1.05;
+}
+
+.v332-client-polish p{
+  margin:0;
+  color:var(--v332-muted);
+  max-width:780px;
+  font-size:15px;
+}
+
+.v332-actions{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  margin-top:18px;
+}
+
+.v332-btn{
+  border:0;
+  text-decoration:none;
+  border-radius:16px;
+  padding:13px 16px;
+  min-height:46px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  font-weight:900;
+  transition:transform .18s ease,box-shadow .18s ease,filter .18s ease;
+}
+
+.v332-btn:active{transform:scale(.98)}
+.v332-btn-primary{
+  color:#03101d;
+  background:linear-gradient(135deg,var(--v332-blue),var(--v332-gold));
+  box-shadow:0 14px 32px rgba(0,217,255,.18);
+}
+.v332-btn-secondary{
+  color:var(--v332-text);
+  border:1px solid rgba(255,255,255,.11);
+  background:rgba(255,255,255,.06);
+}
+.v332-btn-danger-soft{
+  color:#ffe2e8;
+  border:1px solid rgba(255,77,109,.20);
+  background:rgba(255,77,109,.08);
+}
+
+.v332-grid{
+  display:grid;
+  grid-template-columns:1.05fr 1fr 1fr;
+  gap:12px;
+  margin-top:16px;
+}
+
+.v332-card{
+  border:1px solid rgba(255,255,255,.10);
+  background:var(--v332-card);
+  border-radius:21px;
+  padding:15px;
+}
+
+.v332-card strong{
+  display:block;
+  margin-bottom:6px;
+  font-size:15px;
+}
+
+.v332-card span{
+  color:var(--v332-muted);
+  font-size:13px;
+}
+
+.v332-combi-mini{
+  margin-top:15px;
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:10px;
+}
+
+.v332-mini{
+  border:1px solid rgba(0,217,255,.13);
+  background:rgba(255,255,255,.045);
+  border-radius:18px;
+  padding:12px;
+}
+
+.v332-mini b{
+  display:block;
+  font-size:19px;
+  margin-bottom:3px;
+}
+
+.v332-mini small{
+  color:var(--v332-muted);
+  font-size:11px;
+}
+
+.v332-clean-client [href*="admin"],
+.v332-clean-client [href*="review"],
+.v332-clean-client [href*="debug"],
+.v332-clean-client [href*="audit"],
+.v332-clean-client button[data-admin],
+.v332-clean-client .admin-only,
+.v332-clean-client .debug-only,
+.v332-clean-client .review-only,
+body.cliente .admin-only,
+body.cliente .debug-only,
+body.cliente .review-only{
+  display:none!important;
+}
+
+.v332-mobile-sticky{
+  display:none;
+}
+
+@media(max-width:780px){
+  .v332-client-polish{padding:16px;border-radius:23px;margin:12px 0}
+  .v332-actions{display:grid;grid-template-columns:1fr}
+  .v332-btn{width:100%}
+  .v332-grid{grid-template-columns:1fr}
+  .v332-combi-mini{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .v332-mobile-sticky{
+    position:fixed;
+    left:12px;
+    right:12px;
+    bottom:calc(82px + env(safe-area-inset-bottom));
+    z-index:9997;
+    display:flex;
+    gap:8px;
+    padding:8px;
+    border-radius:20px;
+    background:rgba(4,10,20,.88);
+    border:1px solid rgba(0,217,255,.18);
+    backdrop-filter:blur(18px);
+    box-shadow:0 16px 48px rgba(0,0,0,.35);
+  }
+  .v332-mobile-sticky a{
+    flex:1;
+    text-align:center;
+    text-decoration:none;
+    border-radius:15px;
+    padding:10px 8px;
+    color:#03101d;
+    background:linear-gradient(135deg,var(--v332-blue),var(--v332-gold));
+    font-size:12px;
+    font-weight:900;
+  }
+}

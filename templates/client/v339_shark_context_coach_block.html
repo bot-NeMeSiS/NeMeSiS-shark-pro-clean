@@ -1,0 +1,90 @@
+{# NeMeSiS SHARK PRO · V339
+   SHARK Context Coach + Decision 1X2
+#}
+
+<link rel="stylesheet" href="{{ url_for('static', filename='css/v339_shark_context_coach.css') }}">
+
+<section class="v339-coach-shell">
+  <div class="v339-coach-panel">
+    <div class="v339-head">
+      <div>
+        <div class="v339-badge">🦈 SHARK Context Coach</div>
+        <h3>Decisión 1X2 más clara</h3>
+        <p>
+          Una capa de ayuda para que el cliente entienda cuándo entrar, esperar o evitar una selección
+          antes de meterla en una combinada.
+        </p>
+      </div>
+
+      <div class="v339-actions">
+        <a href="/cliente/combi-inteligente">Crear Combi 1X2</a>
+        <a class="secondary" href="/cliente/live">Ver Live</a>
+        <a class="secondary" href="/cliente/shark-copilot">SHARK</a>
+      </div>
+    </div>
+
+    <div class="v339-grid">
+      <div class="v339-card">
+        <div class="v339-card-title">
+          <strong>Semáforo de decisión</strong>
+        </div>
+
+        <div class="v339-decision-list">
+          <div class="v339-decision">
+            <div class="v339-icon">✅</div>
+            <div><b>Entrar</b><span>Datos suficientes, cuota controlada y selección coherente.</span></div>
+            <div class="v339-pill enter">OK</div>
+          </div>
+
+          <div class="v339-decision">
+            <div class="v339-icon">⏳</div>
+            <div><b>Esperar</b><span>Duda entre 1/X/2 o faltan señales live claras.</span></div>
+            <div class="v339-pill wait">WATCH</div>
+          </div>
+
+          <div class="v339-decision">
+            <div class="v339-icon">⚠️</div>
+            <div><b>Evitar</b><span>Cuota rara, baja información o partido demasiado imprevisible.</span></div>
+            <div class="v339-pill avoid">Riesgo</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="v339-card">
+        <div class="v339-card-title">
+          <strong>Matriz 1X2 rápida</strong>
+        </div>
+
+        <div class="v339-matrix">
+          <div class="v339-outcome">
+            <b>1</b>
+            <strong>Local</strong>
+            <span>Mejor si domina ritmo y presión.</span>
+            <div class="v339-confidence"><div style="width:72%"></div></div>
+          </div>
+
+          <div class="v339-outcome">
+            <b>X</b>
+            <strong>Empate</strong>
+            <span>Útil cuando el partido está bloqueado.</span>
+            <div class="v339-confidence"><div style="width:48%"></div></div>
+          </div>
+
+          <div class="v339-outcome">
+            <b>2</b>
+            <strong>Visitante</strong>
+            <span>Mejor si hay value y contexto claro.</span>
+            <div class="v339-confidence"><div style="width:61%"></div></div>
+          </div>
+        </div>
+
+        <div class="v339-shark-note">
+          <strong>Consejo SHARK</strong>
+          <span data-v339-coach-tip>No rellenes combinadas por rellenar.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script src="{{ url_for('static', filename='js/v339_shark_context_coach.js') }}" defer></script>

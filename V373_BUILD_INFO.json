@@ -1,0 +1,12 @@
+{
+  "version": "V373.0_FOUNDATION_POLISH_NAV_COMBI_READY",
+  "base": "V372_FULL_BUILD_REAL",
+  "render_ready": true,
+  "github_ready": true,
+  "changes": [
+    "single mobile bottom nav guard",
+    "single SHARK AI float guard",
+    "Combi 1X2 section reorganization",
+    "future architecture readiness endpoint"
+  ]
+}

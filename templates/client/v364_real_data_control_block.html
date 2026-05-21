@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>V364 · Real Data Control</title>
+  <style>
+    body{margin:0;background:#07111f;color:#eef6ff;font-family:Inter,system-ui,Arial;padding:18px}.wrap{max-width:1100px;margin:auto}.hero{background:linear-gradient(135deg,#0b1f3d,#082a38);border:1px solid rgba(94,234,212,.25);border-radius:24px;padding:22px;box-shadow:0 22px 60px rgba(0,0,0,.35)}h1{margin:0 0 8px;font-size:28px}.muted{color:#9fb5cc}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;margin-top:16px}.card{background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:16px}.num{font-size:28px;font-weight:900}.ok{color:#5eead4}.warn{color:#facc15}.bad{color:#fb7185}.btn{border:0;border-radius:14px;padding:12px 14px;background:#1d4ed8;color:white;font-weight:800;cursor:pointer;margin-right:8px}.list{margin-top:16px;display:grid;gap:10px}.row{background:rgba(15,23,42,.86);border:1px solid rgba(148,163,184,.18);border-radius:16px;padding:14px}.pill{display:inline-block;border-radius:999px;padding:4px 9px;background:rgba(94,234,212,.12);border:1px solid rgba(94,234,212,.22);font-size:12px;margin-right:6px}</style>
+</head><body><div class="wrap">
+  <div class="hero">
+    <h1>Real Data Control V364</h1>
+    <p class="muted">Controla si los picks tienen datos suficientes para parecer producto real: partido, liga, cuota, pick y score SHARK.</p>
+    <button class="btn" onclick="loadQuality(0)">Analizar ahora</button>
+    <button class="btn" onclick="loadQuality(1)">Analizar y guardar snapshot</button>
+    <button class="btn" onclick="loadAuto(1)">Generar candidatos SHARK</button>
+    <div class="grid" id="metrics"></div>
+  </div>
+  <div class="list" id="list"></div>
+</div><script>
+async function j(url){const r=await fetch(url);return await r.json()}
+function metric(k,v,c='ok'){return `<div class="card"><div class="muted">${k}</div><div class="num ${c}">${v}</div></div>`}
+async function loadQuality(persist){
+ const d=await j(`/api/v364/data-quality?persist=${persist?1:0}&limit=60`);
+ document.getElementById('metrics').innerHTML=metric('Calidad media',d.avg_quality+'%')+metric('Premium real',d.premium_real)+metric('Revisar',d.usable_revisar,'warn')+metric('Incompletos',d.incompleto,'bad');
+ document.getElementById('list').innerHTML=(d.items||[]).map(x=>`<div class="row"><b>${x.title}</b><br><span class="pill">${x.status}</span><span class="pill">${x.quality_score}/100</span><span class="pill">Cuota ${x.odds||'-'}</span><p class="muted">${(x.issues||[]).length?('A revisar: '+x.issues.join(', ')):'Datos preparados para experiencia premium.'}</p></div>`).join('') || '<div class="row">Aún no hay picks para analizar.</div>'
+}
+async function loadAuto(persist){
+ const d=await j(`/api/v364/automation-candidates?persist=${persist?1:0}&limit=16`);
+ document.getElementById('metrics').innerHTML=metric('Candidatos generados',d.generated)+metric('Cola pendiente',d.pending_queue,'warn')+metric('Versión',d.version)+metric('Guardado',persist?'Sí':'No');
+ document.getElementById('list').innerHTML=(d.candidates||[]).map(x=>`<div class="row"><b>${x.title}</b><br><span class="pill">${x.league||'Liga'}</span><span class="pill">SHARK ${x.shark_score}/100</span><span class="pill">Confianza ${x.confidence}%</span><p>${x.suggested_pick}</p><p class="muted">${x.reason}</p></div>`).join('') || '<div class="row">No hay candidatos con score suficiente ahora mismo.</div>'
+}
+loadQuality(0)
+</script></body></html>

@@ -1,0 +1,40 @@
+NeMeSiS SHARK PRO — V456 CORE CLIENT ROUTER CLEANUP
+
+OBJETIVO
+- Corregir el caos de experiencia cliente detectado en el vídeo.
+- Evitar que la app parezca varias apps mezcladas.
+- Dejar una experiencia pública y cliente ordenada, reusable y entendible.
+
+CAMBIOS PRINCIPALES
+1) / ahora arranca como portada deportiva real: partidos de hoy, live, picks y próximos.
+2) /app y /clientes ya no muestran un panel antiguo mezclado: usan la misma experiencia cliente ordenada.
+3) Navegación visible reducida a 5 zonas: Inicio, Partidos, Live, Picks y Cuenta.
+4) Rutas antiguas de cliente redirigidas a la nueva experiencia para evitar pantallas legacy.
+5) /match/<id> y /partido/<id> quedan unificados en el mismo detalle de partido.
+6) Escudos sin N/A: fallback premium con iniciales cuando no haya logo real.
+7) Picks sin pantalla rota: si no hay picks activos, sale estado vacío bonito y útil.
+8) Se añade /v456-health para comprobar estado básico.
+
+RUTAS CLAVE
+- /                 Portada pública deportiva
+- /app              App cliente ordenada
+- /clientes         Alias limpio a app cliente
+- /partidos         Partidos de hoy
+- /en-directo       Live
+- /picks            Picks
+- /partido/<id>     Detalle de partido
+- /match/<id>       Alias compatible
+- /v456-health      Diagnóstico rápido
+
+PASOS AL SUBIR A GITHUB/RENDER
+1) Descomprime este ZIP.
+2) Sube TODO el contenido a GitHub reemplazando la versión anterior.
+3) En Render, redeploy del servicio.
+4) Abre /v456-health para comprobar que responde.
+5) Abre / y revisa que ya no empieza como login/panel sino como app deportiva.
+6) Prueba /partidos, /en-directo, /picks y /partido/1.
+7) Después revisamos picks reales y Telegram, pero primero la casa queda ordenada.
+
+NOTA
+Este avance NO intenta arreglar aún entrega Telegram ni generación real de picks.
+Primero ordena la experiencia cliente y las rutas para que no haya caos visual.

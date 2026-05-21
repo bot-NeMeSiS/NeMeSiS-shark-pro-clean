@@ -1,0 +1,7 @@
+NeMeSiS SHARK PRO V429.0
+
+Final Visual Harmony OS
+- Home, Cuenta y Admin con sistema visual uniforme.
+- Cliente sin textos internos.
+- Menos agobio, más jerarquía, botones y cards coherentes.
+- Full build Render/GitHub ready.

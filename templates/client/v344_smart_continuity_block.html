@@ -1,0 +1,70 @@
+
+<link rel="stylesheet" href="{{ url_for('static', filename='css/v344_smart_continuity.css') }}">
+
+<section class="v344-continuity-shell">
+  <div class="v344-continuity-panel">
+    <div class="v344-head">
+      <div>
+        <div class="v344-badge">🧠 Smart Continuity</div>
+        <h2>Continúa justo donde lo dejaste</h2>
+        <p>
+          La app recuerda tu flujo visual: Home, Live, Combi, SHARK o Perfil.
+          Menos buscar, más continuar y decidir rápido.
+        </p>
+      </div>
+
+      <div class="v344-actions">
+        <a data-v344-last-path href="/cliente">Continuar</a>
+        <a class="secondary" href="/cliente/combi-inteligente">Combi 1X2</a>
+        <a class="secondary" href="/cliente/live">Live</a>
+      </div>
+    </div>
+
+    <div class="v344-grid">
+      <div class="v344-card">
+        <div class="v344-card-title">
+          <strong>Tu flujo guardado</strong>
+          <span class="v344-pill green" data-v344-last-zone>Home</span>
+        </div>
+
+        <div class="v344-memory-list">
+          <a class="v344-memory" href="/cliente/combi-inteligente">
+            <div class="v344-icon">🎯</div>
+            <div><b>Combi 1X2</b><span>Vuelve a planificar stake, riesgo y partidos.</span></div>
+            <span class="v344-pill gold">Combi</span>
+          </a>
+
+          <a class="v344-memory" href="/cliente/live">
+            <div class="v344-icon">🔥</div>
+            <div><b>Live Focus</b><span>Retoma partidos calientes y señales rápidas.</span></div>
+            <span class="v344-pill hot">Live</span>
+          </a>
+
+          <a class="v344-memory" href="/cliente/shark-copilot">
+            <div class="v344-icon">🦈</div>
+            <div><b>SHARK Copilot</b><span>Contexto, explicación y decisión 1X2.</span></div>
+            <span class="v344-pill watch">AI</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="v344-card">
+        <div class="v344-card-title">
+          <strong>Estado de sesión</strong>
+        </div>
+
+        <div class="v344-session-stats">
+          <div class="v344-stat"><b data-v344-visits>1</b><span>Sesiones vistas</span></div>
+          <div class="v344-stat"><b data-v344-last-zone>Home</b><span>Última zona</span></div>
+        </div>
+
+        <div class="v344-note">
+          <strong>Detalle premium</strong>
+          <span>La app empieza a sentirse viva cuando no obliga al cliente a empezar de cero cada vez.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script src="{{ url_for('static', filename='js/v344_smart_continuity.js') }}" defer></script>

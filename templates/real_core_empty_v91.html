@@ -1,0 +1,38 @@
+
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>NeMeSiS SHARK PRO - Real Only</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="/static/css/v70_premium_ui.css">
+  <link rel="stylesheet" href="/static/css/v91_real_core.css">
+  <link rel="stylesheet" href="/static/css/v263_global_design_system_unification.css">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/v266_client_experience_unification.css') }}">
+</head>
+<body class="v263-global-unified v263-global-unified">
+<div class="v263-legacy-shell" aria-label="Navegación unificada V263">
+  <a class="v263-shell-brand" href="/clientes"><strong>NeMeSiS</strong><small>SHARK PRO</small></a>
+  <nav class="v263-shell-nav">
+    <a href="/clientes">Inicio</a><a href="/picks">Picks</a><a href="/fixtures/today-pro">Hoy</a><a href="/live-command-center">Live</a><a href="/match-center-unified">Match Center</a><a href="/smart-value-detection">Value</a><a href="/shark-ai">SHARK AI</a>
+  </nav>
+</div>
+
+<main class="nsp-shell" style="padding:24px 0 40px;">
+  <section class="nsp-hero">
+    <span class="nsp-eyebrow">🛡️ Real-only</span>
+    <h1 class="nsp-title">{{ title or "No disponible en feed real" }}</h1>
+    <p class="nsp-subtitle">Este contenido no existe en el núcleo real. No se muestra demo ni fallback inventado.</p>
+    <div class="v91-empty">
+      <strong>Bloqueado por Real Core Engine.</strong>
+      <p>Si The Odds API no devuelve este partido, la app no lo inventa.</p>
+    </div>
+    <div class="v91-actions">
+      <a class="nsp-btn" href="/partidos?force=true">Partidos reales</a>
+      <a class="nsp-btn secondary" href="/api/real-core/status">Check V91</a>
+    </div>
+  </section>
+</main>
+<script defer src="{{ url_for('static', filename='js/v266_client_experience_unification.js') }}"></script>
+</body>
+</html>

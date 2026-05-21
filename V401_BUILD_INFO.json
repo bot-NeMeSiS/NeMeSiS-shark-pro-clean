@@ -1,0 +1,8 @@
+{
+  "version": "V401.0_GLOBAL_UX_ORGANIZATION_RENDER_READY",
+  "base": "V400.0_UX_ANTI_AGOBIO_HOME_MINIMAL",
+  "focus": "Cliente y admin ordenados por centros para eliminar agobio y scroll infinito",
+  "render_ready": true,
+  "github_ready": true,
+  "api_extra_cost": 0
+}

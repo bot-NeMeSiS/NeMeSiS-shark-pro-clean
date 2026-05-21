@@ -1,0 +1,42 @@
+{# V340 Smart Bet Slip + Combi Planner #}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/v340_smart_bet_slip.css') }}">
+<section class="v340-slip-shell">
+  <div class="v340-slip-panel">
+    <div class="v340-head">
+      <div>
+        <div class="v340-badge">🎟️ Smart Bet Slip</div>
+        <h3>Planificador de Combi 1X2</h3>
+        <p>Calcula stake, número de partidos, riesgo, cuota estimada y retorno posible antes de copiar la combinada.</p>
+      </div>
+      <div class="v340-actions">
+        <button type="button" data-v340-copy-btn>Copiar combinada</button>
+        <a class="secondary" href="/cliente/combi-inteligente">Buscar partidos</a>
+      </div>
+    </div>
+    <div class="v340-grid">
+      <div class="v340-card">
+        <div class="v340-card-title"><strong>Configura tu combinada</strong></div>
+        <div class="v340-control-grid">
+          <div class="v340-control"><label>Stake</label><input data-v340-stake type="number" min="0.10" step="0.10" value="0.10"></div>
+          <div class="v340-control"><label>Partidos</label><input data-v340-matches type="number" min="2" max="15" step="1" value="9"></div>
+          <div class="v340-control"><label>Riesgo</label><select data-v340-risk><option value="conservador">Conservador</option><option value="balanceado" selected>Balanceado</option><option value="agresivo">Agresivo</option></select></div>
+        </div>
+        <div class="v340-summary">
+          <div class="v340-kpi"><b data-v340-total-odd>0.00</b><span>Cuota estimada</span></div>
+          <div class="v340-kpi"><b data-v340-return>0.00€</b><span>Retorno posible</span></div>
+          <div class="v340-kpi"><b data-v340-risk-label>Balanceado</b><span>Perfil de riesgo</span></div>
+        </div>
+        <div class="v340-copy-box"><pre data-v340-copy-text>Calculando combinada...</pre></div>
+      </div>
+      <div class="v340-card">
+        <div class="v340-card-title"><strong>Reglas SHARK para no liarla</strong></div>
+        <div class="v340-pick-list">
+          <div class="v340-pick"><div class="v340-pick-icon">✅</div><div><b>Menos partidos si baja confianza</b><span>No rellenar por rellenar.</span></div><div class="v340-pill good">Clave</div></div>
+          <div class="v340-pick"><div class="v340-pick-icon">🎯</div><div><b>Solo 1X2 por ahora</b><span>Local, empate o visitante. Claro y directo.</span></div><div class="v340-pill gold">1X2</div></div>
+          <div class="v340-pick"><div class="v340-pick-icon">⚠️</div><div><b>Evitar cuotas raras</b><span>Si parece demasiado bueno, revisa contexto.</span></div><div class="v340-pill hot">Riesgo</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+<script src="{{ url_for('static', filename='js/v340_smart_bet_slip.js') }}" defer></script>

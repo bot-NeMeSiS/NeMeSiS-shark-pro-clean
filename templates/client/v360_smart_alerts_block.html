@@ -1,0 +1,67 @@
+
+<link rel="stylesheet" href="{{ url_for('static', filename='css/v360_smart_alerts.css') }}">
+
+<section class="v360-shell">
+<div class="v360-panel">
+<div class="v360-badge">🚨 Smart Alerts</div>
+<div class="v360-head">
+<h2>SHARK te avisa antes de que se escape</h2>
+<p>Base preparada para alertas inteligentes: partidos HOT, combis en riesgo, cuotas sospechosas y avisos por Telegram/push.</p>
+</div>
+
+<div class="v360-grid">
+
+<div class="v360-card">
+<h3>Alertas cliente</h3>
+
+<div class="v360-alert">
+<div class="v360-icon">🔥</div>
+<div><b>Partido HOT</b><span>Momentum y presión suben rápido.</span></div>
+<div class="v360-pill hot">Live</div>
+</div>
+
+<div class="v360-alert">
+<div class="v360-icon">⚠️</div>
+<div><b>Combi en riesgo</b><span>Una selección pierde estabilidad.</span></div>
+<div class="v360-pill warn">Riesgo</div>
+</div>
+
+<div class="v360-alert">
+<div class="v360-icon">🎯</div>
+<div><b>Oportunidad 1X2</b><span>SHARK detecta perfil compatible.</span></div>
+<div class="v360-pill ok">Value</div>
+</div>
+
+<div class="v360-actions">
+<a href="/cliente/live">Ver Live</a>
+<a class="secondary" href="/cliente/combi-inteligente">Revisar Combi</a>
+</div>
+</div>
+
+<div class="v360-card">
+<h3>Canales preparados</h3>
+
+<div class="v360-alert">
+<div class="v360-icon">📱</div>
+<div><b>Push App</b><span>Preparado para avisos directos en PWA.</span></div>
+<div class="v360-pill ok">Ready</div>
+</div>
+
+<div class="v360-alert">
+<div class="v360-icon">✈️</div>
+<div><b>Telegram</b><span>Preparado para enviar señales por membresía.</span></div>
+<div class="v360-pill ok">Bot</div>
+</div>
+
+<div class="v360-alert">
+<div class="v360-icon">🦈</div>
+<div><b>SHARK Filter</b><span>Evita spam: solo alertas con sentido.</span></div>
+<div class="v360-pill ok">Smart</div>
+</div>
+</div>
+
+</div>
+</div>
+</section>
+
+<script src="{{ url_for('static', filename='js/v360_smart_alerts.js') }}" defer></script>

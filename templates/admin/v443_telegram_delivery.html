@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Telegram Delivery V443 · NeMeSiS SHARK PRO</title>
+<link rel="stylesheet" href="/static/css/v425_global_visual_identity.css">
+<style>
+body{background:#07111f;color:#eaf6ff;font-family:Inter,system-ui,Arial;margin:0}.wrap{max-width:980px;margin:0 auto;padding:22px 14px 90px}.hero{border:1px solid rgba(0,229,255,.22);background:linear-gradient(135deg,rgba(0,229,255,.14),rgba(255,211,77,.08));border-radius:24px;padding:22px;box-shadow:0 18px 55px rgba(0,0,0,.32)}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;margin-top:16px}.card{border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.055);border-radius:20px;padding:16px}.ok{color:#38ef7d}.bad{color:#ff6b6b}.btn{display:inline-flex;align-items:center;justify-content:center;border:0;border-radius:16px;padding:12px 16px;font-weight:800;background:linear-gradient(135deg,#00e5ff,#1f7aff);color:#001018;text-decoration:none;cursor:pointer;margin:4px 4px 0 0}.btn.gold{background:linear-gradient(135deg,#ffd34d,#ff9f1c)}select,input{border-radius:14px;border:1px solid rgba(255,255,255,.18);background:#0d1b2f;color:#fff;padding:11px;margin:4px}.log{font-size:12px;white-space:pre-wrap;opacity:.82;border-top:1px solid rgba(255,255,255,.08);padding-top:10px;margin-top:10px}.small{opacity:.78;font-size:13px}</style>
+</head><body><main class="wrap">
+<section class="hero"><h1>🦈 Telegram Delivery Center V443</h1><p>Si el test funciona pero no salen picks/partidos, este panel comprueba la cola real y permite enviar señales/partidos reales manualmente.</p><a class="btn" href="/admin">Volver admin</a></section>
+<div class="grid">
+<div class="card"><h3>Bot</h3><p class="{{ 'ok' if status.bot_token else 'bad' }}">{{ 'Configurado' if status.bot_token else 'Falta token' }}</p></div>
+<div class="card"><h3>Destinos</h3><p>{{ status.targets_count }} canal(es)</p><p class="small">{% for t in status.targets %}{{t.label}}: {{t.preview}}<br>{% endfor %}</p></div>
+<div class="card"><h3>Picks activos</h3><p>{{ status.active_picks }}</p></div>
+<div class="card"><h3>Partidos</h3><p>Hoy: {{ status.fixtures_today }} · Live: {{ status.fixtures_live }}</p></div>
+</div>
+<div class="grid">
+<div class="card"><h2>Enviar partidos</h2><form method="post" action="/admin/v443-telegram/send-fixtures"><select name="filter"><option value="today">Hoy</option><option value="live">Live</option><option value="upcoming">Próximos</option></select><select name="target"><option value="auto">Todos configurados</option><option value="general">General</option><option value="free">FREE</option><option value="pro">PRO</option><option value="elite">ELITE</option><option value="test">Test</option></select><input name="limit" value="8" size="3"><button class="btn gold" type="submit">Enviar partidos reales</button></form></div>
+<div class="card"><h2>Enviar mejor pick</h2><form method="post" action="/admin/v443-telegram/send-best-pick"><select name="target"><option value="auto">Todos configurados</option><option value="general">General</option><option value="free">FREE</option><option value="pro">PRO</option><option value="elite">ELITE</option><option value="test">Test</option></select><button class="btn" type="submit">Enviar señal destacada</button></form><p class="small">Usa el mejor pick activo aunque el filtro automático lo hubiese bloqueado por score/horario/duplicado.</p></div>
+</div>
+{% if status.likely_blockers %}<div class="card"><h2>Bloqueos posibles</h2>{% for b in status.likely_blockers %}<p class="bad">• {{ b }}</p>{% endfor %}</div>{% endif %}
+<div class="card"><h2>Últimos logs Telegram</h2>{% for l in logs[:20] %}<div class="log">{{ l }}</div>{% else %}<p class="small">Sin logs todavía.</p>{% endfor %}</div>
+</main></body></html>

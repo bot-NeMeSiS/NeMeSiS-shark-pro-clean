@@ -1,0 +1,22 @@
+
+.v356-shell{max-width:1280px;margin:0 auto;padding:14px 12px 110px;color:#f6faff}
+.v356-panel{border-radius:30px;padding:20px;background:linear-gradient(135deg,#071626,#050d19);border:1px solid rgba(0,217,255,.16);box-shadow:0 18px 54px rgba(0,0,0,.28)}
+.v356-badge{display:inline-flex;padding:7px 12px;border-radius:999px;background:rgba(247,201,72,.1);border:1px solid rgba(247,201,72,.24);font-size:11px;font-weight:900}
+.v356-head h2{margin:10px 0 6px;font-size:clamp(26px,5vw,42px)}
+.v356-head p{margin:0;color:rgba(255,255,255,.72)}
+.v356-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:16px}
+.v356-kpi{border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.04);border-radius:20px;padding:14px}
+.v356-kpi b{display:block;font-size:24px;margin-bottom:4px}
+.v356-kpi span{font-size:12px;color:rgba(255,255,255,.72)}
+.v356-bottom{display:grid;grid-template-columns:1.1fr .9fr;gap:14px;margin-top:14px}
+.v356-box{border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.04);border-radius:22px;padding:16px}
+.v356-row{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.07)}
+.v356-row:last-child{border-bottom:0}
+.v356-pill{padding:6px 9px;border-radius:999px;font-size:11px;font-weight:900}
+.v356-pill.good{background:rgba(65,242,168,.1);border:1px solid rgba(65,242,168,.24)}
+.v356-pill.mid{background:rgba(247,201,72,.1);border:1px solid rgba(247,201,72,.24)}
+.v356-chart{height:180px;border-radius:20px;background:linear-gradient(180deg,rgba(0,217,255,.06),rgba(255,255,255,.02));position:relative;overflow:hidden}
+.v356-line{position:absolute;left:0;right:0;bottom:24px;height:3px;background:linear-gradient(90deg,#ff4d6d,#f7c948,#41f2a8);transform:skewY(-6deg)}
+.v356-line:before{content:"";position:absolute;left:14%;bottom:18px;width:10px;height:10px;border-radius:999px;background:#ff4d6d}
+.v356-line:after{content:"";position:absolute;right:18%;top:-16px;width:12px;height:12px;border-radius:999px;background:#41f2a8}
+@media(max-width:980px){.v356-grid,.v356-bottom{grid-template-columns:1fr}}

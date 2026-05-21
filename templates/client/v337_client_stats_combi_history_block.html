@@ -1,0 +1,66 @@
+{# NeMeSiS SHARK PRO · V337
+   Client Stats + Combi History Feel
+#}
+
+<link rel="stylesheet" href="{{ url_for('static', filename='css/v337_client_stats_combi_history.css') }}">
+
+<section class="v337-stats-shell">
+  <div class="v337-stats-panel">
+    <div class="v337-head">
+      <div>
+        <small>📊 Tu progreso SHARK</small>
+        <h3>Estadísticas personales y combinadas</h3>
+        <p>
+          Más sensación de cuenta real: seguimiento visual de tu actividad, estilo de combinada y foco principal.
+          Preparado para conectar histórico real de ROI, rachas y resultados.
+        </p>
+      </div>
+
+      <div class="v337-actions">
+        <a href="/cliente/combi-inteligente">Crear Combi 1X2</a>
+        <a class="secondary" href="/cliente">Mi panel</a>
+      </div>
+    </div>
+
+    <div class="v337-kpi-grid">
+      <div class="v337-kpi good"><b data-v337-stat="visits">1</b><span>Sesiones recientes</span></div>
+      <div class="v337-kpi gold"><b data-v337-stat="stake">0,10€</b><span>Stake rápido favorito</span></div>
+      <div class="v337-kpi"><b data-v337-stat="mode">Balanceado</b><span>Modo recomendado</span></div>
+      <div class="v337-kpi hot"><b data-v337-stat="focus">1X2</b><span>Mercado principal</span></div>
+    </div>
+
+    <div class="v337-history-grid">
+      <div class="v337-history-card">
+        <strong>Último flujo recomendado</strong>
+        <div class="v337-ticket-list">
+          <a class="v337-ticket" href="/cliente/combi-inteligente" style="text-decoration:none;color:inherit;">
+            <div class="v337-ticket-icon">🎯</div>
+            <div><b>Combi 1X2 balanceada</b><span>Ideal para stake pequeño y partidos del día.</span></div>
+            <div class="v337-pill gold">0,10€</div>
+          </a>
+          <a class="v337-ticket" href="/cliente/live" style="text-decoration:none;color:inherit;">
+            <div class="v337-ticket-icon">🔥</div>
+            <div><b>Revisar Live Focus</b><span>Comprueba estados HOT/WATCH antes de decidir.</span></div>
+            <div class="v337-pill watch">Live</div>
+          </a>
+          <a class="v337-ticket" href="/cliente/shark-copilot" style="text-decoration:none;color:inherit;">
+            <div class="v337-ticket-icon">🦈</div>
+            <div><b>Preguntar a SHARK</b><span>Usa contexto si dudas entre 1, X o 2.</span></div>
+            <div class="v337-pill good">AI</div>
+          </a>
+        </div>
+      </div>
+
+      <div class="v337-history-card">
+        <strong>Preparado para histórico real</strong>
+        <p style="color:var(--v337-muted);font-size:13px;margin:0;">
+          Esta capa deja lista la experiencia visual para conectar ROI, winrate, rachas,
+          combinadas guardadas y mejores ligas cuando activemos el histórico completo.
+        </p>
+        <div class="v337-progress"><div class="v337-progress-fill"></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script src="{{ url_for('static', filename='js/v337_client_stats_combi_history.js') }}" defer></script>
