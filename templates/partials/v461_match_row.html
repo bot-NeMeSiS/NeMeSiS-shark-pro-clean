@@ -1,0 +1,19 @@
+<a class="match" href="/partido/{{ m.id }}">
+  <div class="teams">
+    <span class="crest">
+      <img src="{{ m.home_logo }}" alt="{{ m.home }}" loading="lazy" onerror="this.onerror=null;this.src='{{ m.home_fallback_logo }}';">
+    </span>
+    <div class="vs">VS</div>
+    <span class="crest">
+      <img src="{{ m.away_logo }}" alt="{{ m.away }}" loading="lazy" onerror="this.onerror=null;this.src='{{ m.away_fallback_logo }}';">
+    </span>
+    <div class="names">
+      <b>{{ m.home }} vs {{ m.away }}</b>
+      <span>{{ m.league }} · {{ m.time }}</span>
+    </div>
+  </div>
+  <div class="right">
+    <span class="badge {% if m.is_live %}live{% endif %}">{% if m.is_live %}<span class="dot"></span>LIVE{% else %}{{ m.status or 'Programado' }}{% endif %}</span>
+    <div class="score">{{ m.score if m.score else 'Ver' }}</div>
+  </div>
+</a>

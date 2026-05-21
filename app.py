@@ -20224,5 +20224,263 @@ except Exception as _v460_router_error:
     print('[V460 logo binding router warning]', _v460_router_error)
 # =================== END V460 FORCED LOGO BINDING FIX ===================
 
+
+# =================== V461 CLIENT EXPERIENCE + LOGO/COMBI FIX ===================
+# Revisión real tras vídeo: los escudos ya no dependen de que The Odds API traiga imágenes,
+# las combis dejan de estar escondidas, y todo el cliente queda en una experiencia única.
+V461_VERSION = "V461_CLIENT_EXPERIENCE_LOGO_COMBI_FIX"
+APP_VERSION = V461_VERSION
+
+_V461_TEAM_ALIASES = {
+    "man utd": "Manchester United",
+    "man united": "Manchester United",
+    "manchester utd": "Manchester United",
+    "inter milan": "Inter Milan",
+    "internazionale": "Inter Milan",
+    "inter": "Inter Milan",
+    "ac milan": "AC Milan",
+    "psg": "Paris Saint-Germain",
+    "paris sg": "Paris Saint-Germain",
+    "real sociedad": "Real Sociedad",
+    "real madrid": "Real Madrid",
+    "atletico madrid": "Atletico Madrid",
+    "atlético madrid": "Atletico Madrid",
+    "barca": "Barcelona",
+    "fc barcelona": "Barcelona",
+    "bayern munich": "Bayern Munich",
+    "bayern munchen": "Bayern Munich",
+    "borussia m'gladbach": "Borussia Monchengladbach",
+    "gladbach": "Borussia Monchengladbach",
+    "salzburg": "Red Bull Salzburg",
+    "rb salzburg": "Red Bull Salzburg",
+    "az": "AZ Alkmaar",
+    "az alkmaar": "AZ Alkmaar",
+    "wolves": "Wolverhampton Wanderers",
+    "wolverhampton": "Wolverhampton Wanderers",
+    "spurs": "Tottenham Hotspur",
+    "tottenham": "Tottenham Hotspur",
+    "sporting": "Sporting CP",
+    "sporting lisbon": "Sporting CP",
+}
+
+def _v461_canonical_team_name(name):
+    clean = _v455_clean_team_name(name, "Equipo") if '_v455_clean_team_name' in globals() else str(name or "Equipo")
+    try:
+        key = normalize_team_key(clean) if 'normalize_team_key' in globals() else clean.lower().strip()
+    except Exception:
+        key = clean.lower().strip()
+    return _V461_TEAM_ALIASES.get(key, clean)
+
+def _v461_fallback_logo(team_name):
+    name = _v455_clean_team_name(team_name, "Equipo") if '_v455_clean_team_name' in globals() else str(team_name or "Equipo")
+    return team_badge_url(name) if 'team_badge_url' in globals() else ("/team-badge.svg?name=" + urllib.parse.quote(name))
+
+def _v461_logo_url(team_name, existing_logo=""):
+    """Logo robusto para cliente.
+    - Usa logo existente si es válido.
+    - Busca oficial por nombre canónico en cache/TheSportsDB/standings.
+    - Si falla, devuelve insignia SHARK visible, nunca vacío/N/A.
+    """
+    raw = str(existing_logo or "").strip()
+    if raw and raw.upper() not in {"N/A", "NONE", "NULL", "-"} and raw.startswith(("http://", "https://", "/static/", "/team-badge.svg")):
+        return raw
+    canonical = _v461_canonical_team_name(team_name)
+    try:
+        resolved = resolve_team_logo_url(canonical, allow_remote_lookup=True) if 'resolve_team_logo_url' in globals() else ""
+        if resolved and str(resolved).upper() not in {"N/A", "NONE", "NULL", "-"}:
+            return resolved
+    except Exception:
+        pass
+    # segundo intento con nombre original por si el alias no existe en proveedor
+    try:
+        if canonical != str(team_name or "") and 'resolve_team_logo_url' in globals():
+            resolved = resolve_team_logo_url(team_name, allow_remote_lookup=True)
+            if resolved and str(resolved).upper() not in {"N/A", "NONE", "NULL", "-"}:
+                return resolved
+    except Exception:
+        pass
+    return _v461_fallback_logo(canonical)
+
+def _v461_extract_logo(match, side="home"):
+    keys = ("home_logo", "home_badge", "strHomeTeamBadge", "home_crest", "team_home_logo") if side == "home" else ("away_logo", "away_badge", "strAwayTeamBadge", "away_crest", "team_away_logo")
+    try:
+        return _v455_get(match, *keys, default="") if '_v455_get' in globals() else ""
+    except Exception:
+        return ""
+
+def _v461_match_id(match, idx=1):
+    try:
+        return _v455_match_id(match, idx)
+    except Exception:
+        return str(idx)
+
+def _v461_normalize_match(match, idx=1):
+    m = dict(match) if isinstance(match, dict) else (_v454_row_to_dict(match) if '_v454_row_to_dict' in globals() else {})
+    home = _v461_canonical_team_name(_v455_get(m, "home", "home_team", "team_home", "strHomeTeam", "local", default="Local"))
+    away = _v461_canonical_team_name(_v455_get(m, "away", "away_team", "team_away", "strAwayTeam", "visitor", default="Visitante"))
+    status = _v455_get(m, "status", "state", "match_status", default="Programado")
+    is_live = bool(_v455_get(m, "is_live", "live", default=False)) or str(status).lower() in {"live", "inplay", "en directo", "en vivo"}
+    score_home = _v455_get(m, "home_score", "score_home", "intHomeScore", default="")
+    score_away = _v455_get(m, "away_score", "score_away", "intAwayScore", default="")
+    score = _v455_get(m, "score", default="")
+    if not score and score_home != "" and score_away != "":
+        score = f"{score_home}-{score_away}"
+    home_logo = _v461_logo_url(home, _v461_extract_logo(m, "home"))
+    away_logo = _v461_logo_url(away, _v461_extract_logo(m, "away"))
+    return {
+        **m,
+        "id": _v461_match_id(m, idx),
+        "home": home,
+        "away": away,
+        "home_initials": _v455_initials(home) if '_v455_initials' in globals() else home[:2].upper(),
+        "away_initials": _v455_initials(away) if '_v455_initials' in globals() else away[:2].upper(),
+        "home_logo": home_logo,
+        "away_logo": away_logo,
+        "home_fallback_logo": _v461_fallback_logo(home),
+        "away_fallback_logo": _v461_fallback_logo(away),
+        "league": _v455_get(m, "league", "competition", "sport_key", "strLeague", default="Competición"),
+        "time": _v455_get(m, "commence_time", "kickoff_time", "date", "time", "strTime", default="Hora por confirmar"),
+        "status": "LIVE" if is_live else status,
+        "is_live": is_live,
+        "score": "" if str(score).upper() == "N/A" else score,
+    }
+
+# Fuerza que los normalizadores antiguos también devuelvan escudo visible.
+def _v455_normalize_match(match, idx=1):
+    return _v461_normalize_match(match, idx)
+
+def _v461_build_combi_from_picks(picks):
+    selections = []
+    total = 1.0
+    for p in (picks or [])[:4]:
+        try:
+            odds = safe_float(p.get("odds") or p.get("cuota") or 1.55, 1.55) if 'safe_float' in globals() else float(p.get("odds") or 1.55)
+        except Exception:
+            odds = 1.55
+        if odds <= 1:
+            odds = 1.55
+        total *= odds
+        selections.append({
+            "title": p.get("title") or "Partido SHARK",
+            "pick": p.get("pick") or "Selección",
+            "odds": round(odds, 2),
+            "score": int(float(p.get("score") or 70)),
+        })
+    return {"selections": selections, "total_odds": round(total if selections else 0, 2), "stake": 0.10, "return": round(total * 0.10, 2) if selections else 0}
+
+def _v461_context(active="inicio", logged_mode=False):
+    # Base real de V455/V457, pero renormalizada por V461.
+    base = _v455_context(active) if '_v455_context' in globals() else {}
+    ctx = dict(base)
+    ctx["active"] = active
+    ctx["logged_mode"] = logged_mode
+    ctx["version"] = V461_VERSION
+    ctx["app_title"] = "NeMeSiS SHARK PRO"
+    for bucket in ("matches", "today", "live", "upcoming"):
+        clean = []
+        for i, item in enumerate(ctx.get(bucket) or [], 1):
+            try:
+                clean.append(_v461_normalize_match(item, i))
+            except Exception:
+                clean.append(item)
+        ctx[bucket] = clean
+    matches = ctx.get("matches") or ctx.get("today") or []
+    picks = list(ctx.get("picks") or [])
+    for i, pick in enumerate(picks):
+        try:
+            if not pick.get("match_url"):
+                target = matches[i % len(matches)] if matches else None
+                pick["match_url"] = f"/partido/{target.get('id')}" if target else "/picks"
+        except Exception:
+            pick["match_url"] = "/picks"
+    ctx["picks"] = picks
+    ctx["top_picks"] = picks[:3]
+    combi = ctx.get("combi") or {}
+    if not combi or not combi.get("selections"):
+        try:
+            combi = v436_combi_summary() if 'v436_combi_summary' in globals() else {}
+        except Exception:
+            combi = {}
+    if not combi or not combi.get("selections"):
+        combi = _v461_build_combi_from_picks(picks)
+    ctx["combi"] = combi
+    counts = ctx.get("counts") or {}
+    ctx["counts"] = {
+        "today": counts.get("today", len(ctx.get("today") or [])),
+        "live": counts.get("live", len(ctx.get("live") or [])),
+        "upcoming": counts.get("upcoming", len(ctx.get("upcoming") or [])),
+    }
+    return ctx
+
+def v461_public_home():
+    return render_template("client_app_v461.html", **_v461_context("inicio", False))
+
+def v461_client_app():
+    return render_template("client_app_v461.html", **_v461_context("inicio", True))
+
+def v461_partidos():
+    return render_template("client_app_v461.html", **_v461_context("partidos", bool(current_user())))
+
+def v461_live():
+    return render_template("client_app_v461.html", **_v461_context("live", bool(current_user())))
+
+def v461_picks():
+    return render_template("client_app_v461.html", **_v461_context("picks", bool(current_user())))
+
+def v461_combis():
+    return render_template("client_app_v461.html", **_v461_context("combis", bool(current_user())))
+
+def v461_cuenta():
+    return render_template("client_app_v461.html", **_v461_context("cuenta", True))
+
+def v461_match_detail(match_id):
+    ctx = _v461_context("partidos", bool(current_user()))
+    match = next((m for m in ctx.get("matches", []) if str(m.get("id")) == str(match_id)), None)
+    if not match and ctx.get("matches"):
+        match = ctx["matches"][0]
+    return render_template("match_detail_v461.html", match=match, picks=ctx.get("picks", [])[:4], version=V461_VERSION)
+
+@app.route("/combis")
+def v461_combis_route():
+    return v461_combis()
+
+@app.route("/v461-health")
+def v461_health():
+    ctx = _v461_context("inicio", False)
+    sample = (ctx.get("today") or ctx.get("matches") or [])[:6]
+    return jsonify({
+        "ok": True,
+        "version": V461_VERSION,
+        "matches": len(ctx.get("matches") or []),
+        "today": len(ctx.get("today") or []),
+        "live": len(ctx.get("live") or []),
+        "picks": len(ctx.get("picks") or []),
+        "combi_selections": len((ctx.get("combi") or {}).get("selections") or []),
+        "logos_sample": [{"home": m.get("home"), "home_logo": m.get("home_logo"), "away": m.get("away"), "away_logo": m.get("away_logo")} for m in sample],
+        "policy": "V461: cliente unificado, combis visibles, logos oficiales si proveedor responde y fallback SHARK siempre visible"
+    })
+
+try:
+    for rule in list(app.url_map.iter_rules()):
+        rt = str(rule.rule)
+        if rt in {"/", "/free"}:
+            app.view_functions[rule.endpoint] = v461_public_home
+        elif rt in {"/app", "/clientes", "/dashboard", "/cliente/pro", "/cliente/home"}:
+            app.view_functions[rule.endpoint] = v461_client_app
+        elif rt in {"/partidos", "/fixtures"}:
+            app.view_functions[rule.endpoint] = v461_partidos
+        elif rt in {"/en-directo", "/live", "/cliente/live"}:
+            app.view_functions[rule.endpoint] = v461_live
+        elif rt in {"/picks", "/cliente/picks"}:
+            app.view_functions[rule.endpoint] = v461_picks
+        elif rt in {"/cuenta"}:
+            app.view_functions[rule.endpoint] = v461_cuenta
+        elif rt in {"/partido/<match_id>", "/match/<match_id>"}:
+            app.view_functions[rule.endpoint] = v461_match_detail
+except Exception as _v461_router_error:
+    print("[V461 router warning]", _v461_router_error)
+# =================== END V461 CLIENT EXPERIENCE + LOGO/COMBI FIX ===================
+
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", "5000")))
