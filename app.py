@@ -19826,5 +19826,153 @@ except Exception as _v456_match_override_error:
     print('[V456 match override warning]', _v456_match_override_error)
 # =================== END V456 CORE CLIENT ROUTER CLEANUP ===================
 
+
+# =================== V457 CLIENT EXPERIENCE FINAL ORDER ===================
+# Capa final de orden de cliente: una sola experiencia diaria, sin textos internos,
+# sin botones duplicados, rutas legacy redirigidas y picks/escudos con fallback limpio.
+V457_VERSION = "V457_CLIENT_EXPERIENCE_FINAL_ORDER"
+APP_VERSION = V457_VERSION
+
+
+def _v457_context(active="inicio", logged_mode=False):
+    ctx = _v455_context(active) if '_v455_context' in globals() else {}
+    ctx['active'] = active
+    ctx['logged_mode'] = logged_mode
+    ctx['version'] = V457_VERSION
+    ctx['app_title'] = 'NeMeSiS SHARK PRO'
+    ctx['daily_message'] = 'Partidos, live y picks claros para decidir rápido.'
+    # Evita N/A/None en logos y nombres antes de renderizar.
+    for bucket in ('matches', 'today', 'live', 'upcoming'):
+        clean = []
+        for i, item in enumerate(ctx.get(bucket) or [], 1):
+            try:
+                clean.append(_v455_normalize_match(item, i))
+            except Exception:
+                clean.append(item)
+        ctx[bucket] = clean
+    # Enlaza picks a partidos cuando no traigan URL propia.
+    matches = ctx.get('matches') or ctx.get('today') or []
+    for i, p in enumerate(ctx.get('picks') or []):
+        if not p.get('match_url'):
+            target = matches[i % len(matches)] if matches else None
+            p['match_url'] = f"/partido/{target.get('id')}" if target else '/picks'
+    ctx['top_picks'] = (ctx.get('picks') or [])[:3]
+    return ctx
+
+
+def v457_public_home():
+    return render_template('client_final_v457.html', **_v457_context('inicio', False))
+
+
+def v457_client_app():
+    return render_template('client_final_v457.html', **_v457_context('inicio', True))
+
+
+def v457_partidos():
+    return render_template('client_final_v457.html', **_v457_context('partidos', bool(current_user())))
+
+
+def v457_live():
+    return render_template('client_final_v457.html', **_v457_context('live', bool(current_user())))
+
+
+def v457_picks():
+    return render_template('client_final_v457.html', **_v457_context('picks', bool(current_user())))
+
+
+def v457_cuenta():
+    return render_template('client_final_v457.html', **_v457_context('cuenta', True))
+
+
+def v457_match_detail(match_id):
+    ctx = _v457_context('partidos', bool(current_user()))
+    match = next((m for m in ctx.get('matches', []) if str(m.get('id')) == str(match_id)), None)
+    if not match and ctx.get('matches'):
+        match = ctx['matches'][0]
+    return render_template('match_detail_v457.html', match=match, picks=ctx.get('picks', [])[:4], version=V457_VERSION)
+
+
+def _v457_redirect_to(target):
+    def _handler(*args, **kwargs):
+        return redirect(target)
+    return _handler
+
+
+@app.route('/v457-health')
+def v457_health():
+    ctx = _v457_context('inicio', False)
+    return jsonify({
+        'ok': True,
+        'version': V457_VERSION,
+        'matches': len(ctx.get('matches') or []),
+        'today': len(ctx.get('today') or []),
+        'live': len(ctx.get('live') or []),
+        'picks': len(ctx.get('picks') or []),
+        'policy': 'client experience final order: one public sports app, one client app, clean navigation, clean empty states'
+    })
+
+
+_V457_CANONICAL_RULES = {
+    '/': v457_public_home,
+    '/free': v457_public_home,
+    '/app': v457_client_app,
+    '/clientes': v457_client_app,
+    '/dashboard': v457_client_app,
+    '/cliente/pro': v457_client_app,
+    '/cliente/home': v457_client_app,
+    '/partidos': v457_partidos,
+    '/fixtures': v457_partidos,
+    '/cliente/live': v457_live,
+    '/en-directo': v457_live,
+    '/live': v457_live,
+    '/picks': v457_picks,
+    '/cliente/picks': v457_picks,
+    '/cuenta': v457_cuenta,
+}
+
+_V457_LEGACY_REDIRECTS = {
+    '/home-live-real': '/app',
+    '/fixtures/today-pro': '/partidos',
+    '/match-center-unified': '/partidos',
+    '/cliente/match-center-unified': '/partidos',
+    '/cliente/home-pro': '/app',
+    '/cliente/daily-command': '/app',
+    '/cliente/today-command': '/app',
+    '/cliente/live-experience': '/en-directo',
+    '/cliente/hot-match-feed': '/en-directo',
+    '/cliente/partidos-hoy-v245': '/partidos',
+    '/cliente/live-v246': '/en-directo',
+    '/cliente/live-score-crests': '/en-directo',
+    '/cliente/live-binding-integrity': '/en-directo',
+    '/cliente/value-radar': '/picks',
+    '/cliente/oportunidades': '/picks',
+    '/cliente/smart-value-detection': '/picks',
+    '/cliente/premium-flow': '/app',
+    '/cliente/clarity-layer': '/app',
+    '/cliente/claridad': '/app',
+    '/cliente/guided-experience': '/app',
+    '/cliente/experiencia-guiada': '/app',
+    '/cliente/app-feel': '/app',
+    '/cliente/premium-polish': '/app',
+    '/cliente/final-ux': '/app',
+    '/cliente/ux-polish': '/app',
+    '/cliente/dashboard': '/app',
+}
+
+try:
+    for rule in list(app.url_map.iter_rules()):
+        rule_txt = str(rule.rule)
+        if rule_txt in _V457_CANONICAL_RULES:
+            app.view_functions[rule.endpoint] = _V457_CANONICAL_RULES[rule_txt]
+        elif rule_txt in _V457_LEGACY_REDIRECTS:
+            app.view_functions[rule.endpoint] = _v457_redirect_to(_V457_LEGACY_REDIRECTS[rule_txt])
+    # Match aliases: toda la app debe entender /partido/<id> y /match/<id>.
+    for rule in list(app.url_map.iter_rules()):
+        if str(rule.rule) in {'/partido/<match_id>', '/match/<match_id>'}:
+            app.view_functions[rule.endpoint] = v457_match_detail
+except Exception as _v457_router_error:
+    print('[V457 final order warning]', _v457_router_error)
+# =================== END V457 CLIENT EXPERIENCE FINAL ORDER ===================
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", "5000")))
