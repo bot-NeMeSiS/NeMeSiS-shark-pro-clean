@@ -6,6 +6,7 @@ import re
 import sqlite3
 import hashlib
 import urllib.request
+import unicodedata
 import urllib.parse
 import requests
 try:
@@ -5003,11 +5004,41 @@ def refresh_theoddsapi(force=False, notify=True):
 
 
 
+# V459 — Logo Engine Real Fix
+# The Odds API aporta partidos/cuotas, pero no escudos. Para identidad visual usamos:
+# 1) cache local/DB, 2) TheSportsDB searchteam, 3) standings/Football-Data, 4) insignia SHARK premium.
+TEAM_NAME_ALIASES = {
+    "man united": "Manchester United", "man utd": "Manchester United", "manchester utd": "Manchester United",
+    "man city": "Manchester City", "manchester city fc": "Manchester City",
+    "inter milan": "Inter", "internazionale": "Inter", "inter de milan": "Inter",
+    "psg": "Paris Saint-Germain", "paris sg": "Paris Saint-Germain",
+    "barca": "Barcelona", "fc barcelona": "Barcelona",
+    "atleti": "Atletico Madrid", "atlético madrid": "Atletico Madrid", "atl madrid": "Atletico Madrid",
+    "real madrid cf": "Real Madrid", "bayern munich": "Bayern Munich", "fc bayern": "Bayern Munich",
+    "tottenham hotspur": "Tottenham", "wolves": "Wolverhampton Wanderers",
+}
+
+def _ascii_fold(txt):
+    txt = str(txt or "")
+    txt = unicodedata.normalize("NFKD", txt)
+    return "".join(ch for ch in txt if not unicodedata.combining(ch))
+
 def normalize_team_key(name):
-    txt = (name or "").lower()
-    txt = txt.replace("fc", "").replace("cf", "").replace("club", "")
-    txt = re.sub(r"[^a-z0-9áéíóúñü]+", " ", txt).strip()
+    txt = _ascii_fold(name).lower()
+    txt = txt.replace("&", " and ")
+    txt = re.sub(r"\b(fc|cf|club|sc|afc|cfc|the|de|del|la|el)\b", " ", txt)
+    txt = re.sub(r"[^a-z0-9]+", " ", txt).strip()
+    txt = re.sub(r"\s+", " ", txt)
     return txt
+
+def team_asset_file_key(name):
+    key = normalize_team_key(name)
+    return re.sub(r"\s+", "_", key).strip("_")
+
+def canonical_team_search_name(name):
+    raw = str(name or "").strip()
+    key = normalize_team_key(raw)
+    return TEAM_NAME_ALIASES.get(key) or raw
 
 
 def football_data_get(path):
@@ -5200,26 +5231,65 @@ def live_visual_store_event(ev):
         return False
 
 
-def team_logo_url(name):
+
+def fetch_thesportsdb_team_logo(team_name):
+    """Busca un escudo real en TheSportsDB y lo guarda en cache.
+    Uso controlado: solo se llama cuando no existe cache. No depende de The Odds API.
+    """
+    clean = canonical_team_search_name(team_name)
+    if not clean or len(clean) < 2:
+        return ""
+    try:
+        # Endpoint v1 público habitual de TheSportsDB. Si en Render hay bloqueo/timeout, no rompe la app.
+        url = "https://www.thesportsdb.com/api/v1/json/3/searchteams.php?t=" + urllib.parse.quote(clean)
+        data, _headers = http_json(url, timeout=min(HTTP_TIMEOUT_SECONDS, 6))
+        teams = []
+        if isinstance(data, dict):
+            teams = data.get("teams") or []
+        if not teams:
+            return ""
+        wanted = normalize_team_key(clean)
+        best = None
+        for t in teams:
+            tn = t.get("strTeam") or t.get("strAlternate") or ""
+            tk = normalize_team_key(tn)
+            sport = (t.get("strSport") or "").lower()
+            if wanted and (tk == wanted or wanted in tk or tk in wanted):
+                best = t; break
+            if not best and ("soccer" in sport or "football" in sport or not sport):
+                best = t
+        best = best or teams[0]
+        logo = (best.get("strTeamBadge") or best.get("strBadge") or best.get("strTeamLogo") or best.get("strTeamFanart1") or "").strip()
+        if logo:
+            store_team_asset(team_name, logo, "thesportsdb-search", str(best.get("idTeam") or ""), best.get("strLeague") or "")
+            # También cachear nombre canónico si es distinto.
+            if (best.get("strTeam") or "").strip():
+                store_team_asset(best.get("strTeam"), logo, "thesportsdb-search", str(best.get("idTeam") or ""), best.get("strLeague") or "")
+        return logo
+    except Exception:
+        return ""
+
+def resolve_team_logo_url(name, allow_remote_lookup=True):
     key=normalize_team_key(name)
     if not key:
         return ""
-    # 1) Logos locales manuales: static/team_logos/<nombre_normalizado>.svg/png/webp
-    # Puedes añadir escudos propios sin tocar código. Ej: static/team_logos/real_madrid.png
+    # 1) Logos locales manuales: static/team_logos/real_madrid.png etc.
     try:
         base_dir = os.path.join(app.root_path, LOCAL_TEAM_LOGOS_DIR)
         static_prefix = "/" + LOCAL_TEAM_LOGOS_DIR.strip("/")
-        for ext in ("svg", "png", "webp", "jpg", "jpeg"):
-            candidate = os.path.join(base_dir, f"{key}.{ext}")
-            if os.path.exists(candidate):
-                return f"{static_prefix}/{key}.{ext}"
+        file_keys = [team_asset_file_key(name), key, key.replace(" ", "_"), key.replace(" ", "-")]
+        for fk in dict.fromkeys([x for x in file_keys if x]):
+            for ext in ("svg", "png", "webp", "jpg", "jpeg"):
+                candidate = os.path.join(base_dir, f"{fk}.{ext}")
+                if os.path.exists(candidate):
+                    return f"{static_prefix}/{fk}.{ext}"
     except Exception:
         pass
-    # 2) Cache visual oficial capturado desde live/resultados.
+    # 2) Cache DB oficial capturado/buscado.
     cached_asset = get_cached_team_asset_url(name)
     if cached_asset:
         return cached_asset
-    # 3) Logos oficiales si existe proveedor de clasificación.
+    # 3) Standings/Football-Data si hay crest.
     try:
         conn=get_db(); cur=conn.cursor()
         cur.execute("SELECT team_name, crest_url FROM league_standings WHERE COALESCE(crest_url,'')!=''")
@@ -5229,9 +5299,21 @@ def team_logo_url(name):
             tk=normalize_team_key(r["team_name"])
             if tk and (tk == key or tk in key or key in tk):
                 best=r["crest_url"]; break
-        return best or ""
+        if best:
+            store_team_asset(name, best, "football-data-standings", "", "")
+            return best
     except Exception:
-        return ""
+        pass
+    # 4) TheSportsDB lookup remoto solo si hace falta.
+    if allow_remote_lookup:
+        found = fetch_thesportsdb_team_logo(name)
+        if found:
+            return found
+    return ""
+
+def team_logo_url(name):
+    return resolve_team_logo_url(name, allow_remote_lookup=True)
+
 
 
 def get_competition_context(limit=8):
@@ -5346,6 +5428,28 @@ def admin_v442_live_visual_engine():
     except Exception:
         status = {"ok": False, "events": []}
     return render_template('admin/v442_live_visual_engine.html', status=status)
+
+@app.route("/api/v459/logo-engine-status")
+def api_v459_logo_engine_status():
+    try:
+        conn = get_db(); cur = conn.cursor()
+        cur.execute("SELECT COUNT(*) AS n FROM team_assets WHERE COALESCE(logo_url,'')!=''")
+        logo_count = int((cur.fetchone() or {"n":0})["n"] or 0)
+        cur.execute("SELECT team_name, logo_url, provider, updated_at FROM team_assets WHERE COALESCE(logo_url,'')!='' ORDER BY updated_at DESC LIMIT 12")
+        rows = [dict(r) for r in cur.fetchall()]
+        conn.close()
+    except Exception:
+        logo_count, rows = 0, []
+    return jsonify({
+        "ok": True,
+        "version": "V459",
+        "engine": "LOGO ENGINE REAL FIX",
+        "the_odds_api_for_logos": False,
+        "logo_provider": "TheSportsDB + local cache + fallback SHARK",
+        "logos_cached": logo_count,
+        "fallback_badges": True,
+        "examples": rows,
+    })
 
 @app.route("/api/performance-status")
 def performance_status():
@@ -19973,6 +20077,152 @@ try:
 except Exception as _v457_router_error:
     print('[V457 final order warning]', _v457_router_error)
 # =================== END V457 CLIENT EXPERIENCE FINAL ORDER ===================
+
+
+# =================== V460 FORCED LOGO BINDING FIX ===================
+# Arreglo real de escudos: TODAS las cards cliente reciben home_logo/away_logo resueltos
+# por nombre de equipo. The Odds API no trae logos; usamos cache local + Football-Data
+# + TheSportsDB + fallback SHARK SVG. La plantilla ya no depende de que la API traiga m.home_logo.
+V460_VERSION = "V460_FORCED_LOGO_BINDING_FIX"
+APP_VERSION = V460_VERSION
+
+
+def _v460_safe_logo(team_name, existing_logo=""):
+    """Devuelve siempre una URL usable para imagen.
+    1) si ya viene logo http/static válido, lo respeta;
+    2) si no, intenta resolver oficial por nombre;
+    3) si no existe oficial, devuelve badge SHARK SVG estable.
+    """
+    raw = str(existing_logo or "").strip()
+    if raw and raw.upper() not in {"N/A", "NONE", "NULL", "-"} and raw.startswith(("http://", "https://", "/static/", "/team-badge.svg")):
+        return raw
+    name = _v455_clean_team_name(team_name, "Equipo") if '_v455_clean_team_name' in globals() else str(team_name or "Equipo")
+    try:
+        resolved = resolve_team_logo_url(name, allow_remote_lookup=True) if 'resolve_team_logo_url' in globals() else ""
+    except Exception:
+        resolved = ""
+    if resolved and str(resolved).upper() not in {"N/A", "NONE", "NULL", "-"}:
+        return resolved
+    return team_badge_url(name) if 'team_badge_url' in globals() else ("/team-badge.svg?name=" + urllib.parse.quote(name))
+
+
+def _v460_logo_from_match(match, side="home"):
+    keys = ("home_logo", "home_badge", "strHomeTeamBadge", "home_crest", "team_home_logo") if side == "home" else ("away_logo", "away_badge", "strAwayTeamBadge", "away_crest", "team_away_logo")
+    try:
+        existing = _v455_get(match, *keys, default="") if '_v455_get' in globals() else ""
+    except Exception:
+        existing = ""
+    name_keys = ("home", "home_team", "team_home", "strHomeTeam", "local") if side == "home" else ("away", "away_team", "team_away", "strAwayTeam", "visitor")
+    try:
+        team_name = _v455_get(match, *name_keys, default=("Local" if side == "home" else "Visitante")) if '_v455_get' in globals() else "Equipo"
+    except Exception:
+        team_name = "Equipo"
+    return _v460_safe_logo(team_name, existing)
+
+
+# Sobrescribe el resolver usado por V455/V457 para que nunca devuelva vacío.
+def _v455_logo(match, side="home"):
+    return _v460_logo_from_match(match, side)
+
+
+# Sobrescribe normalización para forzar binding de logos en todos los buckets.
+def _v455_normalize_match(match, idx=1):
+    m = dict(match) if isinstance(match, dict) else (_v454_row_to_dict(match) if '_v454_row_to_dict' in globals() else {})
+    home = _v455_clean_team_name(_v455_get(m, "home", "home_team", "team_home", "strHomeTeam", "local", default="Local"), "Local")
+    away = _v455_clean_team_name(_v455_get(m, "away", "away_team", "team_away", "strAwayTeam", "visitor", default="Visitante"), "Visitante")
+    status = _v455_get(m, "status", "state", "match_status", default="Programado")
+    is_live = bool(_v455_get(m, "is_live", "live", default=False)) or str(status).lower() in {"live", "inplay", "en directo", "en vivo"}
+    score_home = _v455_get(m, "home_score", "score_home", "intHomeScore", default="")
+    score_away = _v455_get(m, "away_score", "score_away", "intAwayScore", default="")
+    score = _v455_get(m, "score", default="")
+    if not score and score_home != "" and score_away != "":
+        score = f"{score_home}-{score_away}"
+    return {
+        **m,
+        "id": _v455_match_id(m, idx),
+        "home": home,
+        "away": away,
+        "home_initials": _v455_initials(home),
+        "away_initials": _v455_initials(away),
+        "home_logo": _v460_safe_logo(home, _v460_logo_from_match(m, "home")),
+        "away_logo": _v460_safe_logo(away, _v460_logo_from_match(m, "away")),
+        "league": _v455_get(m, "league", "competition", "sport_key", "strLeague", default="Competición"),
+        "time": _v455_get(m, "commence_time", "kickoff_time", "date", "time", "strTime", default="Hora por confirmar"),
+        "status": "LIVE" if is_live else status,
+        "is_live": is_live,
+        "score": "" if str(score).upper() == "N/A" else score,
+    }
+
+
+# Contexto final V457 con logos forzados. Se vuelve a declarar para que las rutas existentes lo usen en runtime.
+def _v457_context(active="inicio", logged_mode=False):
+    ctx = _v455_context(active) if '_v455_context' in globals() else {}
+    ctx['active'] = active
+    ctx['logged_mode'] = logged_mode
+    ctx['version'] = V460_VERSION
+    ctx['app_title'] = 'NeMeSiS SHARK PRO'
+    ctx['daily_message'] = 'Partidos, live y picks claros para decidir rápido.'
+    for bucket in ('matches', 'today', 'live', 'upcoming'):
+        clean = []
+        for i, item in enumerate(ctx.get(bucket) or [], 1):
+            try:
+                clean.append(_v455_normalize_match(item, i))
+            except Exception:
+                clean.append(item)
+        ctx[bucket] = clean
+    matches = ctx.get('matches') or ctx.get('today') or []
+    for i, pick in enumerate(ctx.get('picks') or []):
+        try:
+            if not pick.get('match_url'):
+                target = matches[i % len(matches)] if matches else None
+                pick['match_url'] = f"/partido/{target.get('id')}" if target else '/picks'
+            # Logos también dentro de pick si tiene equipos propios.
+            if pick.get('home') or pick.get('home_team'):
+                home = _v455_clean_team_name(pick.get('home') or pick.get('home_team'), 'Local')
+                pick['home_logo'] = _v460_safe_logo(home, pick.get('home_logo'))
+            if pick.get('away') or pick.get('away_team'):
+                away = _v455_clean_team_name(pick.get('away') or pick.get('away_team'), 'Visitante')
+                pick['away_logo'] = _v460_safe_logo(away, pick.get('away_logo'))
+        except Exception:
+            pass
+    ctx['top_picks'] = (ctx.get('picks') or [])[:3]
+    return ctx
+
+
+@app.route('/v460-health')
+def v460_health():
+    ctx = _v457_context('inicio', False)
+    sample = (ctx.get('today') or ctx.get('matches') or [])[:6]
+    return jsonify({
+        'ok': True,
+        'version': V460_VERSION,
+        'matches': len(ctx.get('matches') or []),
+        'today': len(ctx.get('today') or []),
+        'live': len(ctx.get('live') or []),
+        'picks': len(ctx.get('picks') or []),
+        'logos_sample': [{'home': m.get('home'), 'home_logo': m.get('home_logo'), 'away': m.get('away'), 'away_logo': m.get('away_logo')} for m in sample],
+        'policy': 'forced logo binding: every client match card gets official logo if available or premium SHARK fallback'
+    })
+
+try:
+    for rule in list(app.url_map.iter_rules()):
+        if str(rule.rule) in {'/', '/free'}:
+            app.view_functions[rule.endpoint] = v457_public_home
+        elif str(rule.rule) in {'/app', '/clientes', '/dashboard', '/cliente/pro', '/cliente/home'}:
+            app.view_functions[rule.endpoint] = v457_client_app
+        elif str(rule.rule) in {'/partidos', '/fixtures'}:
+            app.view_functions[rule.endpoint] = v457_partidos
+        elif str(rule.rule) in {'/en-directo', '/live', '/cliente/live'}:
+            app.view_functions[rule.endpoint] = v457_live
+        elif str(rule.rule) in {'/picks', '/cliente/picks'}:
+            app.view_functions[rule.endpoint] = v457_picks
+        elif str(rule.rule) in {'/cuenta'}:
+            app.view_functions[rule.endpoint] = v457_cuenta
+        elif str(rule.rule) in {'/partido/<match_id>', '/match/<match_id>'}:
+            app.view_functions[rule.endpoint] = v457_match_detail
+except Exception as _v460_router_error:
+    print('[V460 logo binding router warning]', _v460_router_error)
+# =================== END V460 FORCED LOGO BINDING FIX ===================
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", "5000")))
