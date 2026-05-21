@@ -6,6 +6,7 @@ import re
 import sqlite3
 import hashlib
 import urllib.request
+import unicodedata
 import urllib.parse
 import requests
 try:
@@ -5003,11 +5004,41 @@ def refresh_theoddsapi(force=False, notify=True):
 
 
 
+# V459 — Logo Engine Real Fix
+# The Odds API aporta partidos/cuotas, pero no escudos. Para identidad visual usamos:
+# 1) cache local/DB, 2) TheSportsDB searchteam, 3) standings/Football-Data, 4) insignia SHARK premium.
+TEAM_NAME_ALIASES = {
+    "man united": "Manchester United", "man utd": "Manchester United", "manchester utd": "Manchester United",
+    "man city": "Manchester City", "manchester city fc": "Manchester City",
+    "inter milan": "Inter", "internazionale": "Inter", "inter de milan": "Inter",
+    "psg": "Paris Saint-Germain", "paris sg": "Paris Saint-Germain",
+    "barca": "Barcelona", "fc barcelona": "Barcelona",
+    "atleti": "Atletico Madrid", "atlético madrid": "Atletico Madrid", "atl madrid": "Atletico Madrid",
+    "real madrid cf": "Real Madrid", "bayern munich": "Bayern Munich", "fc bayern": "Bayern Munich",
+    "tottenham hotspur": "Tottenham", "wolves": "Wolverhampton Wanderers",
+}
+
+def _ascii_fold(txt):
+    txt = str(txt or "")
+    txt = unicodedata.normalize("NFKD", txt)
+    return "".join(ch for ch in txt if not unicodedata.combining(ch))
+
 def normalize_team_key(name):
-    txt = (name or "").lower()
-    txt = txt.replace("fc", "").replace("cf", "").replace("club", "")
-    txt = re.sub(r"[^a-z0-9áéíóúñü]+", " ", txt).strip()
+    txt = _ascii_fold(name).lower()
+    txt = txt.replace("&", " and ")
+    txt = re.sub(r"\b(fc|cf|club|sc|afc|cfc|the|de|del|la|el)\b", " ", txt)
+    txt = re.sub(r"[^a-z0-9]+", " ", txt).strip()
+    txt = re.sub(r"\s+", " ", txt)
     return txt
+
+def team_asset_file_key(name):
+    key = normalize_team_key(name)
+    return re.sub(r"\s+", "_", key).strip("_")
+
+def canonical_team_search_name(name):
+    raw = str(name or "").strip()
+    key = normalize_team_key(raw)
+    return TEAM_NAME_ALIASES.get(key) or raw
 
 
 def football_data_get(path):
@@ -5200,26 +5231,65 @@ def live_visual_store_event(ev):
         return False
 
 
-def team_logo_url(name):
+
+def fetch_thesportsdb_team_logo(team_name):
+    """Busca un escudo real en TheSportsDB y lo guarda en cache.
+    Uso controlado: solo se llama cuando no existe cache. No depende de The Odds API.
+    """
+    clean = canonical_team_search_name(team_name)
+    if not clean or len(clean) < 2:
+        return ""
+    try:
+        # Endpoint v1 público habitual de TheSportsDB. Si en Render hay bloqueo/timeout, no rompe la app.
+        url = "https://www.thesportsdb.com/api/v1/json/3/searchteams.php?t=" + urllib.parse.quote(clean)
+        data, _headers = http_json(url, timeout=min(HTTP_TIMEOUT_SECONDS, 6))
+        teams = []
+        if isinstance(data, dict):
+            teams = data.get("teams") or []
+        if not teams:
+            return ""
+        wanted = normalize_team_key(clean)
+        best = None
+        for t in teams:
+            tn = t.get("strTeam") or t.get("strAlternate") or ""
+            tk = normalize_team_key(tn)
+            sport = (t.get("strSport") or "").lower()
+            if wanted and (tk == wanted or wanted in tk or tk in wanted):
+                best = t; break
+            if not best and ("soccer" in sport or "football" in sport or not sport):
+                best = t
+        best = best or teams[0]
+        logo = (best.get("strTeamBadge") or best.get("strBadge") or best.get("strTeamLogo") or best.get("strTeamFanart1") or "").strip()
+        if logo:
+            store_team_asset(team_name, logo, "thesportsdb-search", str(best.get("idTeam") or ""), best.get("strLeague") or "")
+            # También cachear nombre canónico si es distinto.
+            if (best.get("strTeam") or "").strip():
+                store_team_asset(best.get("strTeam"), logo, "thesportsdb-search", str(best.get("idTeam") or ""), best.get("strLeague") or "")
+        return logo
+    except Exception:
+        return ""
+
+def resolve_team_logo_url(name, allow_remote_lookup=True):
     key=normalize_team_key(name)
     if not key:
         return ""
-    # 1) Logos locales manuales: static/team_logos/<nombre_normalizado>.svg/png/webp
-    # Puedes añadir escudos propios sin tocar código. Ej: static/team_logos/real_madrid.png
+    # 1) Logos locales manuales: static/team_logos/real_madrid.png etc.
     try:
         base_dir = os.path.join(app.root_path, LOCAL_TEAM_LOGOS_DIR)
         static_prefix = "/" + LOCAL_TEAM_LOGOS_DIR.strip("/")
-        for ext in ("svg", "png", "webp", "jpg", "jpeg"):
-            candidate = os.path.join(base_dir, f"{key}.{ext}")
-            if os.path.exists(candidate):
-                return f"{static_prefix}/{key}.{ext}"
+        file_keys = [team_asset_file_key(name), key, key.replace(" ", "_"), key.replace(" ", "-")]
+        for fk in dict.fromkeys([x for x in file_keys if x]):
+            for ext in ("svg", "png", "webp", "jpg", "jpeg"):
+                candidate = os.path.join(base_dir, f"{fk}.{ext}")
+                if os.path.exists(candidate):
+                    return f"{static_prefix}/{fk}.{ext}"
     except Exception:
         pass
-    # 2) Cache visual oficial capturado desde live/resultados.
+    # 2) Cache DB oficial capturado/buscado.
     cached_asset = get_cached_team_asset_url(name)
     if cached_asset:
         return cached_asset
-    # 3) Logos oficiales si existe proveedor de clasificación.
+    # 3) Standings/Football-Data si hay crest.
     try:
         conn=get_db(); cur=conn.cursor()
         cur.execute("SELECT team_name, crest_url FROM league_standings WHERE COALESCE(crest_url,'')!=''")
@@ -5229,9 +5299,21 @@ def team_logo_url(name):
             tk=normalize_team_key(r["team_name"])
             if tk and (tk == key or tk in key or key in tk):
                 best=r["crest_url"]; break
-        return best or ""
+        if best:
+            store_team_asset(name, best, "football-data-standings", "", "")
+            return best
     except Exception:
-        return ""
+        pass
+    # 4) TheSportsDB lookup remoto solo si hace falta.
+    if allow_remote_lookup:
+        found = fetch_thesportsdb_team_logo(name)
+        if found:
+            return found
+    return ""
+
+def team_logo_url(name):
+    return resolve_team_logo_url(name, allow_remote_lookup=True)
+
 
 
 def get_competition_context(limit=8):
@@ -5346,6 +5428,28 @@ def admin_v442_live_visual_engine():
     except Exception:
         status = {"ok": False, "events": []}
     return render_template('admin/v442_live_visual_engine.html', status=status)
+
+@app.route("/api/v459/logo-engine-status")
+def api_v459_logo_engine_status():
+    try:
+        conn = get_db(); cur = conn.cursor()
+        cur.execute("SELECT COUNT(*) AS n FROM team_assets WHERE COALESCE(logo_url,'')!=''")
+        logo_count = int((cur.fetchone() or {"n":0})["n"] or 0)
+        cur.execute("SELECT team_name, logo_url, provider, updated_at FROM team_assets WHERE COALESCE(logo_url,'')!='' ORDER BY updated_at DESC LIMIT 12")
+        rows = [dict(r) for r in cur.fetchall()]
+        conn.close()
+    except Exception:
+        logo_count, rows = 0, []
+    return jsonify({
+        "ok": True,
+        "version": "V459",
+        "engine": "LOGO ENGINE REAL FIX",
+        "the_odds_api_for_logos": False,
+        "logo_provider": "TheSportsDB + local cache + fallback SHARK",
+        "logos_cached": logo_count,
+        "fallback_badges": True,
+        "examples": rows,
+    })
 
 @app.route("/api/performance-status")
 def performance_status():
