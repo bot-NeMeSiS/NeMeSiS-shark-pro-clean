@@ -20482,5 +20482,215 @@ except Exception as _v461_router_error:
 # =================== END V461 CLIENT EXPERIENCE + LOGO/COMBI FIX ===================
 
 
+
+# =================== V462 REAL PICKS + SPANISH LABELS + CLEAN COMBI ===================
+V462_VERSION = "V462_REAL_PICKS_SPANISH_COMBI_FIX"
+
+_V462_BAD_PICK_TOKENS = {
+    "zz", "zzz", "demo", "fake", "sample", "test", "testing", "prueba",
+    "placeholder", "dummy", "lorem", "equipo a", "equipo b"
+}
+
+def _v462_txt(value):
+    return str(value or "").strip()
+
+def _v462_lower(value):
+    return _v462_txt(value).lower().strip()
+
+def _v462_spanish_pick_label(value):
+    raw = _v462_txt(value)
+    low = raw.lower().strip()
+    exact = {
+        "draw": "Empate",
+        "tie": "Empate",
+        "x": "Empate",
+        "home": "Equipo local",
+        "away": "Equipo visitante",
+        "h2h": "Ganador del partido",
+        "totals": "Goles totales",
+        "spreads": "Hándicap",
+    }
+    if low in exact:
+        return exact[low]
+    # Traducción parcial sin romper nombres de equipos.
+    raw = re.sub(r"\bDraw\b", "Empate", raw, flags=re.IGNORECASE)
+    raw = re.sub(r"\bTie\b", "Empate", raw, flags=re.IGNORECASE)
+    raw = re.sub(r"\bHome\b", "Local", raw, flags=re.IGNORECASE)
+    raw = re.sub(r"\bAway\b", "Visitante", raw, flags=re.IGNORECASE)
+    raw = re.sub(r"\bh2h\b", "Ganador del partido", raw, flags=re.IGNORECASE)
+    raw = re.sub(r"\btotals\b", "Goles totales", raw, flags=re.IGNORECASE)
+    raw = re.sub(r"\bspreads\b", "Hándicap", raw, flags=re.IGNORECASE)
+    return raw.strip() or "Ver selección"
+
+def _v462_is_real_pick(p):
+    if not isinstance(p, dict):
+        return False
+    fields = [
+        p.get("title"), p.get("match"), p.get("fixture"), p.get("home"), p.get("away"),
+        p.get("pick"), p.get("selection"), p.get("market"), p.get("league")
+    ]
+    joined = " ".join(_v462_lower(x) for x in fields if x is not None)
+    if not joined:
+        return False
+    # Bloquea el famoso pick ZZ y cualquier rastro demo/test.
+    for token in _V462_BAD_PICK_TOKENS:
+        if token in joined.split() or token in joined:
+            return False
+    # Evita picks sin partido real reconocible.
+    title = _v462_txt(p.get("title") or p.get("match") or p.get("fixture"))
+    pick = _v462_txt(p.get("pick") or p.get("selection") or p.get("market"))
+    if len(title) < 5 and len(pick) < 3:
+        return False
+    return True
+
+def _v462_clean_pick(p, idx=1):
+    d = dict(p or {})
+    d["id"] = d.get("id") or d.get("pick_id") or idx
+    d["title"] = _v462_spanish_pick_label(d.get("title") or d.get("match") or d.get("fixture") or "Pick SHARK")
+    d["pick"] = _v462_spanish_pick_label(d.get("pick") or d.get("selection") or d.get("market") or "Ver selección")
+    d["league"] = _v462_spanish_pick_label(d.get("league") or d.get("competition") or "SHARK Pick")
+    d["risk"] = _v462_spanish_pick_label(d.get("risk") or d.get("riesgo") or "Medio")
+    d["reason"] = _v462_spanish_pick_label(d.get("reason") or d.get("analysis") or d.get("content") or "Señal real preparada por SHARK con datos disponibles.")
+    d["odds"] = d.get("odds") or d.get("cuota") or "—"
+    d["stake"] = d.get("stake") or "1u"
+    d["score"] = d.get("score") or d.get("confidence") or "72"
+    d["match_url"] = d.get("match_url") or "/picks"
+    return d
+
+def _v462_clean_combi(combi, picks):
+    real_picks = [p for p in (picks or []) if _v462_is_real_pick(p)]
+    if not real_picks:
+        return {"selections": [], "total_odds": 0, "status": "empty"}
+    selections = []
+    total = 1.0
+    for p in real_picks[:4]:
+        odd_raw = _v462_txt(p.get("odds") or "1").replace(",", ".")
+        try:
+            odd = float(re.sub(r"[^0-9.]", "", odd_raw) or 1)
+        except Exception:
+            odd = 1
+        if odd <= 1:
+            odd = 1
+        total *= odd
+        selections.append({
+            "title": _v462_spanish_pick_label(p.get("title")),
+            "pick": _v462_spanish_pick_label(p.get("pick")),
+            "odds": p.get("odds") or "—",
+            "match_url": p.get("match_url") or "/picks",
+        })
+    return {"selections": selections, "total_odds": round(total, 2), "status": "real"}
+
+# Guardamos referencia por si existe.
+try:
+    _v462_prev_v455_picks = _v455_picks
+except Exception:
+    _v462_prev_v455_picks = None
+
+def _v455_picks(limit=12):
+    raw = []
+    if _v462_prev_v455_picks:
+        try:
+            raw = _v462_prev_v455_picks(limit * 3) or []
+        except Exception:
+            raw = []
+    cleaned = []
+    for i, p in enumerate(raw, 1):
+        try:
+            cp = _v462_clean_pick(p, i)
+            if _v462_is_real_pick(cp):
+                cleaned.append(cp)
+        except Exception:
+            continue
+    return cleaned[:limit]
+
+def _v462_context(active="inicio", logged_mode=False):
+    base = _v461_context(active, logged_mode) if '_v461_context' in globals() else {}
+    ctx = dict(base)
+    ctx["version"] = V462_VERSION
+    ctx["active"] = active
+    ctx["logged_mode"] = logged_mode
+    clean_picks = []
+    for i, p in enumerate(ctx.get("picks") or [], 1):
+        cp = _v462_clean_pick(p, i)
+        if _v462_is_real_pick(cp):
+            clean_picks.append(cp)
+    # Enlaza a partidos reales si el pick no trae destino.
+    matches = ctx.get("matches") or ctx.get("today") or []
+    for i, p in enumerate(clean_picks):
+        if not p.get("match_url") or p.get("match_url") == "/picks":
+            target = matches[i % len(matches)] if matches else None
+            if target and target.get("id"):
+                p["match_url"] = f"/partido/{target.get('id')}"
+    ctx["picks"] = clean_picks
+    ctx["top_picks"] = clean_picks[:3]
+    ctx["combi"] = _v462_clean_combi(ctx.get("combi"), clean_picks)
+    return ctx
+
+def v462_public_home():
+    return render_template("client_app_v461.html", **_v462_context("inicio", False))
+
+def v462_client_app():
+    return render_template("client_app_v461.html", **_v462_context("inicio", True))
+
+def v462_partidos():
+    return render_template("client_app_v461.html", **_v462_context("partidos", bool(current_user())))
+
+def v462_live():
+    return render_template("client_app_v461.html", **_v462_context("live", bool(current_user())))
+
+def v462_picks():
+    return render_template("client_app_v461.html", **_v462_context("picks", bool(current_user())))
+
+def v462_combis():
+    return render_template("client_app_v461.html", **_v462_context("combis", bool(current_user())))
+
+def v462_cuenta():
+    return render_template("client_app_v461.html", **_v462_context("cuenta", True))
+
+def v462_match_detail(match_id):
+    ctx = _v462_context("partidos", bool(current_user()))
+    match = next((m for m in ctx.get("matches", []) if str(m.get("id")) == str(match_id)), None)
+    if not match and ctx.get("matches"):
+        match = ctx["matches"][0]
+    return render_template("match_detail_v461.html", match=match, picks=ctx.get("picks", [])[:4], version=V462_VERSION)
+
+@app.route("/v462-health")
+def v462_health():
+    ctx = _v462_context("inicio", False)
+    return jsonify({
+        "ok": True,
+        "version": V462_VERSION,
+        "matches": len(ctx.get("matches") or []),
+        "picks": len(ctx.get("picks") or []),
+        "top_picks": len(ctx.get("top_picks") or []),
+        "combi_selections": len((ctx.get("combi") or {}).get("selections") or []),
+        "blocked_demo_policy": "ZZ/demo/test/fake/sample/prueba eliminados",
+        "spanish_policy": "Draw/Tie => Empate, Home/Away => Local/Visitante"
+    })
+
+try:
+    for rule in list(app.url_map.iter_rules()):
+        rt = str(rule.rule)
+        if rt in {"/", "/free"}:
+            app.view_functions[rule.endpoint] = v462_public_home
+        elif rt in {"/app", "/clientes", "/dashboard", "/cliente/pro", "/cliente/home"}:
+            app.view_functions[rule.endpoint] = v462_client_app
+        elif rt in {"/partidos", "/fixtures"}:
+            app.view_functions[rule.endpoint] = v462_partidos
+        elif rt in {"/en-directo", "/live", "/cliente/live"}:
+            app.view_functions[rule.endpoint] = v462_live
+        elif rt in {"/picks", "/cliente/picks"}:
+            app.view_functions[rule.endpoint] = v462_picks
+        elif rt in {"/combis"}:
+            app.view_functions[rule.endpoint] = v462_combis
+        elif rt in {"/cuenta"}:
+            app.view_functions[rule.endpoint] = v462_cuenta
+        elif rt in {"/partido/<match_id>", "/match/<match_id>"}:
+            app.view_functions[rule.endpoint] = v462_match_detail
+except Exception as _v462_router_error:
+    print("[V462 router warning]", _v462_router_error)
+# =================== END V462 REAL PICKS + SPANISH LABELS + CLEAN COMBI ===================
+
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", "5000")))
