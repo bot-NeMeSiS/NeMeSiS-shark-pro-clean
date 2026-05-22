@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Mi cuenta · NeMeSiS SHARK PRO</title>
+  <style>
+    :root{--bg:#06111f;--panel:#0b1b2f;--panel2:#102640;--txt:#eaf6ff;--muted:#8aa6bd;--blue:#18a7ff;--gold:#ffd166;--good:#35e69b;--danger:#ff5d73}
+    *{box-sizing:border-box} body{margin:0;background:radial-gradient(circle at top,#0d2c4c 0,#06111f 42%,#030812 100%);font-family:Inter,system-ui,Segoe UI,Arial;color:var(--txt)}
+    a{text-decoration:none;color:inherit}.wrap{max-width:1120px;margin:auto;padding:22px 16px 92px}.top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
+    .brand{font-weight:900;letter-spacing:.3px}.chip{display:inline-flex;gap:8px;align-items:center;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);padding:8px 12px;border-radius:999px;color:var(--muted);font-size:13px}
+    .hero{border:1px solid rgba(24,167,255,.25);background:linear-gradient(135deg,rgba(24,167,255,.14),rgba(255,209,102,.08));border-radius:28px;padding:22px;box-shadow:0 18px 60px rgba(0,0,0,.28)}
+    .hero h1{margin:0 0 8px;font-size:28px}.hero p{margin:0;color:var(--muted);line-height:1.5}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:16px 0}
+    .card{background:rgba(11,27,47,.82);border:1px solid rgba(255,255,255,.09);border-radius:22px;padding:16px;box-shadow:0 12px 36px rgba(0,0,0,.22)}
+    .k{font-size:26px;font-weight:900}.label{color:var(--muted);font-size:13px;margin-top:4px}.section{margin-top:18px}.section h2{font-size:18px;margin:0 0 10px}
+    .actions{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.btn{display:flex;flex-direction:column;gap:5px;background:linear-gradient(180deg,rgba(24,167,255,.16),rgba(255,255,255,.04));border:1px solid rgba(24,167,255,.22);border-radius:20px;padding:15px}
+    .btn b{font-size:15px}.btn span{color:var(--muted);font-size:13px}.row{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:13px 0;border-bottom:1px solid rgba(255,255,255,.07)}
+    .row:last-child{border-bottom:0}.badge{border-radius:999px;padding:6px 10px;font-size:12px;font-weight:800}.pro{background:rgba(255,209,102,.15);color:var(--gold);border:1px solid rgba(255,209,102,.3)}.ok{background:rgba(53,230,155,.12);color:var(--good);border:1px solid rgba(53,230,155,.25)}
+    .bottom{position:fixed;left:50%;bottom:12px;transform:translateX(-50%);width:min(720px,calc(100% - 20px));display:grid;grid-template-columns:repeat(6,1fr);gap:6px;background:rgba(4,12,24,.9);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.12);border-radius:22px;padding:8px}
+    .nav{font-size:12px;text-align:center;padding:9px 4px;border-radius:15px;color:var(--muted)}.nav.active,.nav:hover{background:rgba(24,167,255,.16);color:var(--txt)}
+    @media(max-width:780px){.grid{grid-template-columns:repeat(2,1fr)}.actions{grid-template-columns:1fr}.bottom{grid-template-columns:repeat(3,1fr)}.hero h1{font-size:24px}}
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <div class="top">
+      <a class="chip" href="/app">← Volver</a>
+      <div class="brand">🦈 NeMeSiS SHARK PRO</div>
+      <span class="chip">Mi cuenta</span>
+    </div>
+
+    <section class="hero">
+      <h1>Tu perfil SHARK</h1>
+      <p>Controla tu membresía, tus favoritos, alertas y actividad diaria desde una zona limpia y pensada para el cliente.</p>
+      <div style="margin-top:14px"><span class="badge pro">Plan {{ membership|default('FREE') }}</span> <span class="badge ok">Cuenta activa</span></div>
+    </section>
+
+    <section class="grid">
+      <div class="card"><div class="k">{{ stats.favorites|default(0) }}</div><div class="label">Favoritos</div></div>
+      <div class="card"><div class="k">{{ stats.alerts|default(0) }}</div><div class="label">Alertas</div></div>
+      <div class="card"><div class="k">{{ stats.followed_picks|default(0) }}</div><div class="label">Picks seguidos</div></div>
+      <div class="card"><div class="k">{{ stats.streak|default(1) }}</div><div class="label">Días de actividad</div></div>
+    </section>
+
+    <section class="section">
+      <h2>Acciones rápidas</h2>
+      <div class="actions">
+        <a class="btn" href="/favoritos"><b>Mis favoritos</b><span>Partidos que sigues.</span></a>
+        <a class="btn" href="/alertas-cliente"><b>Alertas</b><span>Avisos importantes.</span></a>
+        <a class="btn" href="/combis"><b>Crear combi</b><span>Combi SHARK por calendario.</span></a>
+        <a class="btn" href="/picks"><b>Ver picks</b><span>Oportunidades disponibles.</span></a>
+        <a class="btn" href="/calendario"><b>Calendario</b><span>Próximos partidos.</span></a>
+        <a class="btn" href="/en-directo"><b>Directo</b><span>Partidos vivos.</span></a>
+      </div>
+    </section>
+
+    <section class="section card">
+      <h2>Actividad reciente</h2>
+      <div class="row"><span>Última revisión diaria</span><span class="chip">Hoy</span></div>
+      <div class="row"><span>Estado de Telegram</span><span class="chip">Pendiente de conectar</span></div>
+      <div class="row"><span>Experiencia recomendada</span><span class="chip">Partidos + Picks + Combis</span></div>
+    </section>
+
+    <section class="section card">
+      <h2>Tu plan</h2>
+      <p style="color:var(--muted);line-height:1.5;margin:0">FREE para explorar partidos y picks limitados. PRO y ELITE desbloquean más recomendaciones, alertas y análisis SHARK avanzado.</p>
+    </section>
+  </main>
+
+  <nav class="bottom">
+    <a class="nav" href="/app">Inicio</a>
+    <a class="nav" href="/partidos">Partidos</a>
+    <a class="nav" href="/calendario">Calendario</a>
+    <a class="nav" href="/picks">Picks</a>
+    <a class="nav" href="/combis">Combis</a>
+    <a class="nav active" href="/cuenta">Cuenta</a>
+  </nav>
+</body>
+</html>

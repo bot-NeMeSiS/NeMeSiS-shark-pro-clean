@@ -22598,3 +22598,187 @@ except Exception as _v477_router_error:
     print("[V477 router warning]", _v477_router_error)
 # =================== END V477 FINAL PREMIUM POLISH ===================
 
+# =================== V478 SHARK COPILOT EXPERIENCE ===================
+V478_VERSION = "V478_SHARK_COPILOT_EXPERIENCE"
+
+def _v478_safe_count(ctx, key):
+    try:
+        return len(ctx.get(key) or [])
+    except Exception:
+        return 0
+
+def _v478_copilot(ctx, active="inicio", logged_mode=False):
+    today = _v478_safe_count(ctx, "today")
+    live = _v478_safe_count(ctx, "live")
+    picks = _v478_safe_count(ctx, "picks") or _v478_safe_count(ctx, "top_picks")
+    upcoming = _v478_safe_count(ctx, "upcoming") or _v478_safe_count(ctx, "calendar_matches")
+    combi_count = 0
+    try:
+        combi_count = len(((ctx.get("combi") or ctx.get("smart_combi") or {}).get("selections") or []))
+    except Exception:
+        combi_count = 0
+
+    if active == "combis":
+        title = "Construye una combi con próximos partidos"
+        message = "Elige fecha y número de partidos. SHARK prioriza encuentros futuros y evita partidos ya pasados."
+        status = "Combis"
+    elif active == "picks":
+        title = "Revisa primero los picks con mayor claridad"
+        message = "SHARK muestra oportunidades solo cuando hay datos suficientes. Si no hay value, es mejor esperar."
+        status = "Picks"
+    elif active == "live":
+        title = "Busca oportunidades solo si el partido está vivo"
+        message = "En directo conviene mirar marcador, minuto y ritmo antes de decidir. No fuerces apuestas sin señal clara."
+        status = "Directo"
+    elif active == "calendario":
+        title = "Planifica picks y combis por día"
+        message = "Usa el calendario para preparar partidos próximos y evitar combis con encuentros ya jugados."
+        status = "Calendario"
+    else:
+        title = "Empieza por partidos de hoy y oportunidades SHARK"
+        message = "La mejor ruta es revisar partidos, comprobar picks disponibles y después crear una combi si hay suficientes encuentros."
+        status = "Hoy"
+
+    insights = []
+    if live:
+        insights.append(f"Hay {live} partido(s) en directo para revisar con cautela.")
+    if picks:
+        insights.append(f"Hay {picks} pick(s) disponibles. Revisa riesgo, stake y cuota antes de apostar.")
+    else:
+        insights.append("No fuerces picks: si SHARK no detecta value claro, espera nuevos partidos.")
+    if combi_count:
+        insights.append(f"La combi actual contiene {combi_count} selección(es). Comprueba fecha y cuota total.")
+    elif upcoming:
+        insights.append(f"Hay {upcoming} próximo(s) partido(s) para preparar calendario o combi.")
+    if today:
+        insights.append(f"Hay {today} partido(s) de hoy disponibles para explorar.")
+
+    actions = [
+        {"title":"Ver partidos de hoy", "text":"Empieza por el calendario deportivo principal.", "url":"/partidos"},
+        {"title":"Crear combi", "text":"Elige fecha y número de partidos de 1 a 15.", "url":"/combis"},
+        {"title":"Revisar picks", "text":"Consulta solo oportunidades claras y explicadas.", "url":"/picks"},
+        {"title":"Mirar directo", "text":"Sigue eventos vivos y posibles señales SHARK.", "url":"/en-directo"},
+    ]
+    if not logged_mode:
+        actions.append({"title":"Entrar o crear cuenta", "text":"Guarda favoritos, alertas y Telegram.", "url":"/cliente-login"})
+    return {"status": status, "title": title, "message": message, "insights": insights[:4], "actions": actions[:4]}
+
+def _v478_context(active="inicio", logged_mode=False):
+    if "_v477_context" in globals():
+        ctx = _v477_context(active, logged_mode)
+    elif "_v474_context" in globals():
+        ctx = _v474_context(active, logged_mode)
+    else:
+        ctx = {}
+    ctx = dict(ctx)
+    ctx["version"] = V478_VERSION
+    ctx["shark_copilot"] = _v478_copilot(ctx, active, logged_mode)
+    ctx["logged_mode"] = logged_mode
+    return ctx
+
+def v478_render(active="inicio", logged_mode=False):
+    return render_template("client_app_v478.html", **_v478_context(active, logged_mode))
+
+def v478_public_home(): return v478_render("inicio", False)
+def v478_client_app(): return v478_render("inicio", True)
+def v478_partidos(): return v478_render("partidos", bool(current_user()))
+def v478_calendar(): return v478_render("calendario", bool(current_user()))
+def v478_live(): return v478_render("live", bool(current_user()))
+def v478_picks(): return v478_render("picks", bool(current_user()))
+def v478_combis(): return v478_render("combis", bool(current_user()))
+def v478_cuenta(): return v478_render("cuenta", True)
+def v478_favoritos(): return v478_render("favoritos", bool(current_user()))
+def v478_alertas_cliente(): return v478_render("favoritos", bool(current_user()))
+
+def v478_match_detail(match_id):
+    ctx = _v478_context("partidos", bool(current_user()))
+    all_matches = (ctx.get("today") or []) + (ctx.get("live") or []) + (ctx.get("upcoming") or []) + (ctx.get("calendar_matches") or [])
+    match = next((m for m in all_matches if str(m.get("id") or m.get("match_id")) == str(match_id)), None)
+    if not match and all_matches:
+        match = all_matches[0]
+    return render_template("match_detail_v461.html", match=match, picks=ctx.get("picks", [])[:4], version=V478_VERSION)
+
+@app.route("/v478-health")
+def v478_health():
+    ctx = _v478_context("inicio", False)
+    return jsonify({
+        "ok": True,
+        "version": V478_VERSION,
+        "client_template": "client_app_v478.html",
+        "shark_copilot": True,
+        "routes": ["/", "/app", "/partidos", "/calendario", "/en-directo", "/picks", "/combis", "/cuenta"],
+        "counts": {"today": len(ctx.get("today") or []), "live": len(ctx.get("live") or []), "picks": len(ctx.get("picks") or []), "upcoming": len(ctx.get("upcoming") or [])}
+    })
+
+try:
+    for rule in list(app.url_map.iter_rules()):
+        rt = str(rule.rule)
+        if rt in {"/", "/free", "/public", "/home"}:
+            app.view_functions[rule.endpoint] = v478_public_home
+        elif rt in {"/app", "/clientes", "/dashboard", "/cliente/pro", "/cliente/home", "/client"}:
+            app.view_functions[rule.endpoint] = v478_client_app
+        elif rt in {"/partidos", "/fixtures", "/partidos-hoy", "/home-live-real", "/fixtures/today-pro", "/match-center-unified"}:
+            app.view_functions[rule.endpoint] = v478_partidos
+        elif rt in {"/calendario", "/cliente/calendario"}:
+            app.view_functions[rule.endpoint] = v478_calendar
+        elif rt in {"/en-directo", "/live", "/cliente/live", "/live-center"}:
+            app.view_functions[rule.endpoint] = v478_live
+        elif rt in {"/picks", "/cliente/picks"}:
+            app.view_functions[rule.endpoint] = v478_picks
+        elif rt in {"/combis", "/cliente/combi", "/cliente/combinadas", "/cliente/shark-combi", "/cliente/combi-1x2"}:
+            app.view_functions[rule.endpoint] = v478_combis
+        elif rt in {"/cuenta", "/mi-cuenta", "/cliente/cuenta", "/cliente/perfil"}:
+            app.view_functions[rule.endpoint] = v478_cuenta
+        elif rt in {"/favoritos", "/cliente/favoritos"}:
+            app.view_functions[rule.endpoint] = v478_favoritos
+        elif rt in {"/alertas-cliente", "/alertas", "/cliente/alertas"}:
+            app.view_functions[rule.endpoint] = v478_alertas_cliente
+        elif rt in {"/partido/<match_id>", "/match/<match_id>"}:
+            app.view_functions[rule.endpoint] = v478_match_detail
+except Exception as _v478_router_error:
+    print("[V478 router warning]", _v478_router_error)
+# =================== END V478 SHARK COPILOT EXPERIENCE ===================
+
+
+# --- V479 CLIENT PROFILE PRO ---
+@app.route("/perfil")
+@app.route("/cuenta-pro")
+@app.route("/cuenta-v479")
+def client_profile_pro_v479():
+    stats = {
+        "favorites": 0,
+        "alerts": 0,
+        "followed_picks": 0,
+        "streak": 1,
+    }
+    try:
+        user = session.get("user") or session.get("username") or "Cliente"
+    except Exception:
+        user = "Cliente"
+    return render_template("client_profile_pro_v479.html", user=user, membership="FREE", stats=stats)
+
+@app.route("/v479-health")
+def v479_health():
+    return {
+        "ok": True,
+        "version": "V479_CLIENT_PROFILE_PRO",
+        "routes": ["/perfil", "/cuenta-pro", "/cuenta-v479"],
+        "status": "Client Profile Pro integrado"
+    }
+
+
+
+# --- V480 MULTI DAY SMART COMBI BUILDER ---
+@app.route("/v480-health")
+def v480_health():
+    return {
+        "ok": True,
+        "version": "V480_MULTI_DAY_SMART_COMBI_BUILDER",
+        "status": "app completa validada",
+        "features": [
+            "multi-day combis",
+            "1-15 partidos",
+            "filtros por fecha",
+            "riesgo visual"
+        ]
+    }

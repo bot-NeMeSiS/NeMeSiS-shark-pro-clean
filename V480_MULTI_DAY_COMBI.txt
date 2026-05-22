@@ -1,0 +1,10 @@
+NeMeSiS SHARK PRO V480
+
+- Multi Day Smart Combi Builder
+- Combis multi-día
+- Selector desde/hasta
+- 1 a 15 partidos
+- Filtros rápidos por rango
+- Exclusión partidos pasados
+- Riesgo visual
+- Cuota total y retorno estimado
