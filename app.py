@@ -22379,3 +22379,222 @@ except Exception as _v474_router_error:
     print("[V474 router warning]", _v474_router_error)
 # =================== END V474 CLIENT PRO EXPERIENCE CLEANUP ===================
 
+# =================== V477 FINAL PREMIUM POLISH ===================
+V477_VERSION = "V477_FINAL_PREMIUM_POLISH"
+
+_V477_BAD_CLIENT_WORDS = (
+    "admin", "administrador", "qa", "debug", "router", "engine", "control center",
+    "modo tecnico", "modo técnico", "test", "demo", "fake", "sample", "zz"
+)
+
+def _v477_clean_text(value, default=""):
+    try:
+        s = str(value or "").strip()
+    except Exception:
+        return default
+    replacements = {
+        "Draw": "Empate", "draw": "Empate", "DRAW": "Empate",
+        "Live": "Directo", "LIVE": "DIRECTO", "live": "directo",
+        "Engine": "", "Router": "", "Control Center": "", "QA": "", "Debug": "",
+        "admin": "", "Admin": "", "ADMIN": "",
+    }
+    for a, b in replacements.items():
+        s = s.replace(a, b)
+    try:
+        s = re.sub(r"\bV\d{2,}\b", "", s)
+        s = re.sub(r"\s{2,}", " ", s).strip(" ·-|/")
+    except Exception:
+        pass
+    return s or default
+
+def _v477_is_bad(value):
+    s = str(value or "").lower()
+    return any(w in s for w in _V477_BAD_CLIENT_WORDS)
+
+def _v477_initials(name):
+    try:
+        if '_v455_initials' in globals():
+            return _v455_initials(name)
+    except Exception:
+        pass
+    clean = _v477_clean_text(name, "EQ")
+    parts = [p for p in clean.split() if p]
+    return ((parts[0][0] if parts else 'E') + (parts[1][0] if len(parts)>1 else (parts[0][1] if parts and len(parts[0])>1 else 'Q'))).upper()
+
+def _v477_logo(name, existing=""):
+    raw = str(existing or "").strip()
+    if raw and raw.upper() not in {"N/A", "NA", "NONE", "NULL", "-"} and raw.startswith(("http://", "https://", "/static/", "/team-badge.svg")):
+        return raw
+    try:
+        if '_v461_logo_url' in globals():
+            return _v461_logo_url(name, raw)
+    except Exception:
+        pass
+    try:
+        if 'display_team_logo' in globals():
+            return display_team_logo(name)
+    except Exception:
+        pass
+    try:
+        if 'team_badge_url' in globals():
+            return team_badge_url(name)
+    except Exception:
+        pass
+    return "/team-badge.svg?name=" + urllib.parse.quote(str(name or "Equipo"))
+
+def _v477_clean_match(m, idx=1):
+    if not isinstance(m, dict):
+        return None
+    q = dict(m)
+    home = _v477_clean_text(q.get("home") or q.get("home_team") or q.get("strHomeTeam"), "Local")
+    away = _v477_clean_text(q.get("away") or q.get("away_team") or q.get("strAwayTeam"), "Visitante")
+    if _v477_is_bad(home) or _v477_is_bad(away):
+        return None
+    q["home"] = home
+    q["away"] = away
+    q["home_initials"] = q.get("home_initials") or _v477_initials(home)
+    q["away_initials"] = q.get("away_initials") or _v477_initials(away)
+    q["home_logo"] = _v477_logo(home, q.get("home_logo") or q.get("home_badge") or q.get("strHomeTeamBadge"))
+    q["away_logo"] = _v477_logo(away, q.get("away_logo") or q.get("away_badge") or q.get("strAwayTeamBadge"))
+    q["league"] = _v477_clean_text(q.get("league") or q.get("competition") or q.get("sport_key"), "Competición")
+    q["status"] = _v477_clean_text(q.get("status") or q.get("state"), "Programado")
+    q["pick_badge"] = _v477_clean_text(q.get("pick_badge"), "")
+    q["momentum_label"] = _v477_clean_text(q.get("momentum_label"), "")
+    q["match_url"] = q.get("match_url") or f"/partido/{q.get('id') or q.get('match_id') or idx}"
+    if str(q.get("score") or "").upper() in {"N/A", "NA", "NONE", "NULL"}:
+        q["score"] = ""
+    return q
+
+def _v477_clean_matches(items):
+    out=[]
+    for i,m in enumerate(items or [],1):
+        cm = _v477_clean_match(m,i)
+        if cm:
+            out.append(cm)
+    return out
+
+def _v477_clean_pick(p):
+    if not isinstance(p, dict):
+        return None
+    if any(_v477_is_bad(p.get(k)) for k in ("title","pick","reason","league")):
+        return None
+    q=dict(p)
+    for k,v in list(q.items()):
+        if isinstance(v, str):
+            q[k] = _v477_clean_text(v, "")
+    q["title"] = q.get("title") or "Pick SHARK"
+    q["pick"] = q.get("pick") or "Revisar mercado"
+    q["reason"] = q.get("reason") or "Oportunidad pendiente de confirmar con cuota final."
+    q["risk"] = q.get("risk") or "Medio"
+    q["stake"] = q.get("stake") or "1/10"
+    return q
+
+def _v477_context(active="inicio", logged_mode=False):
+    if '_v474_context' in globals():
+        ctx = _v474_context(active, logged_mode)
+    elif '_v473_context' in globals():
+        ctx = _v473_context(active, logged_mode)
+    else:
+        ctx = {}
+    ctx = dict(ctx)
+    ctx["version"] = V477_VERSION
+    ctx["active"] = active
+    ctx["logged_mode"] = logged_mode
+    for bucket in ("today", "live", "upcoming", "matches", "calendar_matches"):
+        ctx[bucket] = _v477_clean_matches(ctx.get(bucket))
+    picks=[]
+    for p in (ctx.get("top_picks") or ctx.get("picks") or []):
+        cp = _v477_clean_pick(p)
+        if cp:
+            picks.append(cp)
+    ctx["picks"] = picks
+    ctx["top_picks"] = picks[:8]
+    # Limpia acciones diarias para que no aparezcan textos internos.
+    actions=[]
+    for a in ((ctx.get("daily_loop") or {}).get("next_actions") or []):
+        if not isinstance(a, dict):
+            continue
+        if any(_v477_is_bad(a.get(k)) for k in ("label","title","text")):
+            continue
+        x=dict(a)
+        x["label"]=_v477_clean_text(x.get("label"), "Acceso")
+        x["title"]=_v477_clean_text(x.get("title"), "Revisar partidos")
+        x["text"]=_v477_clean_text(x.get("text"), "Acceso recomendado para continuar.")
+        url=str(x.get("url") or "/partidos")
+        allowed=("/partidos","/calendario","/en-directo","/picks","/combis","/favoritos","/alertas-cliente","/cuenta","/partido/")
+        x["url"] = url if url.startswith(allowed) else "/partidos"
+        actions.append(x)
+    if not actions:
+        actions=[
+            {"label":"Partidos","title":"Ver partidos de hoy","text":"Empieza por los partidos disponibles y abre el detalle del encuentro.","url":"/partidos","tone":"blue"},
+            {"label":"Combis","title":"Crear una combi","text":"Elige día y número de partidos para preparar una combinada.","url":"/combis","tone":"gold"},
+            {"label":"Picks","title":"Revisar oportunidades","text":"Consulta picks cuando haya value claro disponible.","url":"/picks","tone":"gold"},
+        ]
+    ctx["daily_loop"]={"next_actions":actions[:3]}
+    return ctx
+
+def v477_render(active="inicio", logged_mode=False):
+    return render_template("client_app_v477.html", **_v477_context(active, logged_mode))
+
+def v477_public_home(): return v477_render("inicio", False)
+def v477_client_app(): return v477_render("inicio", True)
+def v477_partidos(): return v477_render("partidos", bool(current_user()))
+def v477_calendar(): return v477_render("calendario", bool(current_user()))
+def v477_live(): return v477_render("live", bool(current_user()))
+def v477_picks(): return v477_render("picks", bool(current_user()))
+def v477_combis(): return v477_render("combis", bool(current_user()))
+def v477_cuenta(): return v477_render("cuenta", True)
+def v477_favoritos(): return v477_render("favoritos", bool(current_user()))
+def v477_alertas_cliente(): return v477_render("favoritos", bool(current_user()))
+
+def v477_match_detail(match_id):
+    ctx = _v477_context("partidos", bool(current_user()))
+    all_matches = (ctx.get("today") or []) + (ctx.get("live") or []) + (ctx.get("upcoming") or []) + (ctx.get("calendar_matches") or [])
+    match = next((m for m in all_matches if str(m.get("id") or m.get("match_id")) == str(match_id)), None)
+    if not match and all_matches:
+        match = all_matches[0]
+    return render_template("match_detail_v461.html", match=match, picks=ctx.get("picks", [])[:4], version=V477_VERSION)
+
+@app.route("/v477-health")
+def v477_health():
+    ctx = _v477_context("inicio", False)
+    return jsonify({
+        "ok": True,
+        "version": V477_VERSION,
+        "client_template": "client_app_v477.html",
+        "final_logo_fallback": True,
+        "client_text_cleanup": True,
+        "design_polish": True,
+        "routes": ["/", "/app", "/partidos", "/calendario", "/en-directo", "/picks", "/combis", "/cuenta"],
+        "counts": {"today": len(ctx.get("today") or []), "live": len(ctx.get("live") or []), "picks": len(ctx.get("picks") or []), "combi": len((ctx.get("combi") or {}).get("selections") or [])}
+    })
+
+try:
+    for rule in list(app.url_map.iter_rules()):
+        rt = str(rule.rule)
+        if rt in {"/", "/free", "/public", "/home"}:
+            app.view_functions[rule.endpoint] = v477_public_home
+        elif rt in {"/app", "/clientes", "/dashboard", "/cliente/pro", "/cliente/home", "/client"}:
+            app.view_functions[rule.endpoint] = v477_client_app
+        elif rt in {"/partidos", "/fixtures", "/partidos-hoy", "/home-live-real", "/fixtures/today-pro", "/match-center-unified"}:
+            app.view_functions[rule.endpoint] = v477_partidos
+        elif rt in {"/calendario", "/cliente/calendario"}:
+            app.view_functions[rule.endpoint] = v477_calendar
+        elif rt in {"/en-directo", "/live", "/cliente/live", "/live-center"}:
+            app.view_functions[rule.endpoint] = v477_live
+        elif rt in {"/picks", "/cliente/picks"}:
+            app.view_functions[rule.endpoint] = v477_picks
+        elif rt in {"/combis", "/cliente/combi", "/cliente/combinadas", "/cliente/shark-combi", "/cliente/combi-1x2"}:
+            app.view_functions[rule.endpoint] = v477_combis
+        elif rt in {"/cuenta", "/mi-cuenta", "/cliente/cuenta", "/cliente/perfil"}:
+            app.view_functions[rule.endpoint] = v477_cuenta
+        elif rt in {"/favoritos", "/cliente/favoritos"}:
+            app.view_functions[rule.endpoint] = v477_favoritos
+        elif rt in {"/alertas-cliente", "/alertas", "/cliente/alertas"}:
+            app.view_functions[rule.endpoint] = v477_alertas_cliente
+        elif rt in {"/partido/<match_id>", "/match/<match_id>"}:
+            app.view_functions[rule.endpoint] = v477_match_detail
+except Exception as _v477_router_error:
+    print("[V477 router warning]", _v477_router_error)
+# =================== END V477 FINAL PREMIUM POLISH ===================
+
