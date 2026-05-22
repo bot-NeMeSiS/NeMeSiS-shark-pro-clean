@@ -21030,5 +21030,204 @@ except Exception as _v464_router_error:
     print("[V464 router warning]", _v464_router_error)
 # =================== END V464 FAVORITOS + ALERTAS CLIENTE ===================
 
+
+# =================== V466 PREMIUM MATCH CARDS SYSTEM ===================
+# Capa visual y de producto: tarjetas premium controladas, estados claros y
+# navegación consistente sin volver al caos legacy.
+V466_VERSION = "V466_PREMIUM_MATCH_CARDS_SYSTEM"
+APP_VERSION = V466_VERSION
+
+from datetime import datetime as _v466_datetime, timedelta as _v466_timedelta
+
+def _v466_safe_float(x, default=0.0):
+    try:
+        return float(str(x).replace(',', '.'))
+    except Exception:
+        return default
+
+
+def _v466_status_bucket(m):
+    txt = str((m or {}).get('status') or '').lower()
+    if (m or {}).get('is_live') or any(w in txt for w in ['live', 'directo', '1h', '2h', 'ht', 'min']):
+        return 'live'
+    if any(w in txt for w in ['final', 'terminado', 'ft']):
+        return 'final'
+    return 'soon'
+
+
+def _v466_match_time_label(m, fallback_hours=0):
+    try:
+        dt = _v464_match_datetime(m, fallback_hours) if '_v464_match_datetime' in globals() else _v466_datetime.now() + _v466_timedelta(hours=fallback_hours)
+        now = _v466_datetime.now()
+        mins = int((dt - now).total_seconds() // 60)
+        if _v466_status_bucket(m) == 'live':
+            return 'En directo'
+        if mins < -120:
+            return str((m or {}).get('time') or 'Finalizado')
+        if mins < 0:
+            return 'Empieza pronto'
+        if mins < 60:
+            return f'En {max(1, mins)} min'
+        if dt.date() == now.date():
+            return f'Hoy {dt.strftime("%H:%M")}'
+        if dt.date() == (now + _v466_timedelta(days=1)).date():
+            return f'Mañana {dt.strftime("%H:%M")}'
+        return dt.strftime('%d/%m · %H:%M')
+    except Exception:
+        return str((m or {}).get('time') or 'Horario')
+
+
+def _v466_enrich_matches(matches, picks=None):
+    picks = list(picks or [])
+    enriched = []
+    for i, m in enumerate(list(matches or [])):
+        if not isinstance(m, dict):
+            continue
+        d = dict(m)
+        home = str(d.get('home') or d.get('home_team') or 'Local').strip()
+        away = str(d.get('away') or d.get('away_team') or 'Visitante').strip()
+        d['home'] = home
+        d['away'] = away
+        d['card_state'] = _v466_status_bucket(d)
+        d['time_label'] = _v466_match_time_label(d, i+1)
+        d['premium_tone'] = ['cyan','blue','gold','green'][i % 4]
+        d['match_url'] = f"/partido/{d.get('id') or d.get('match_id') or i}"
+        # Escudos: fuerza resolver final si las versiones anteriores dejaron vacío o N/A.
+        try:
+            if not d.get('home_logo') or str(d.get('home_logo')).lower() in {'n/a','none','null'}:
+                d['home_logo'] = display_team_logo(home) if 'display_team_logo' in globals() else d.get('home_fallback_logo','')
+            if not d.get('away_logo') or str(d.get('away_logo')).lower() in {'n/a','none','null'}:
+                d['away_logo'] = display_team_logo(away) if 'display_team_logo' in globals() else d.get('away_fallback_logo','')
+        except Exception:
+            pass
+        d['home_fallback_logo'] = d.get('home_fallback_logo') or _v461_fallback_logo(home) if '_v461_fallback_logo' in globals() else d.get('home_logo','')
+        d['away_fallback_logo'] = d.get('away_fallback_logo') or _v461_fallback_logo(away) if '_v461_fallback_logo' in globals() else d.get('away_logo','')
+        related = []
+        for p in picks:
+            hay = ' '.join([str(p.get(k,'')) for k in ('title','match','home','away','league')]).lower()
+            if home.lower() in hay or away.lower() in hay:
+                related.append(p)
+        d['has_pick'] = bool(related) or i < max(1, min(3, len(picks)))
+        d['pick_badge'] = 'Pick SHARK' if d['has_pick'] else 'Sin pick'
+        d['momentum_label'] = 'Presión alta' if d['card_state']=='live' else ('Value posible' if d['has_pick'] else 'Seguimiento')
+        d['quick_odds'] = d.get('odds') or d.get('best_odds') or ('--' if not d['has_pick'] else 'Ver cuota')
+        enriched.append(d)
+    return enriched
+
+
+def _v466_context(active='inicio', logged_mode=False):
+    base = _v464_context(active, logged_mode) if '_v464_context' in globals() else (_v463_context(active, logged_mode) if '_v463_context' in globals() else {})
+    ctx = dict(base)
+    ctx['version'] = V466_VERSION
+    ctx['active'] = active
+    ctx['logged_mode'] = logged_mode
+    picks = list(ctx.get('picks') or [])
+    # Traducción de mercados y texto de picks para que no aparezca Draw ni rarezas.
+    for p in picks:
+        if isinstance(p, dict):
+            for k in ('pick','title','market'):
+                if k in p and isinstance(p[k], str):
+                    p[k] = p[k].replace('Draw', 'Empate').replace('draw', 'Empate')
+            p['visual_tone'] = 'gold' if _v466_safe_float(p.get('score'), 0) >= 80 else 'cyan'
+    ctx['picks'] = picks
+    ctx['top_picks'] = picks[:3]
+    for key in ['matches','today','live','upcoming','favorite_matches']:
+        ctx[key] = _v466_enrich_matches(ctx.get(key) or [], picks)
+    # Reconstruye alertas con partidos ya enriquecidos si existen.
+    if ctx.get('client_alerts'):
+        alerts=[]
+        all_by_id={str(m.get('id') or m.get('match_id')):m for m in ctx.get('matches',[])}
+        for a in ctx.get('client_alerts') or []:
+            try:
+                m=a.get('match') or {}
+                mid=str(m.get('id') or m.get('match_id'))
+                alerts.append({'match': all_by_id.get(mid, m), 'label': a.get('label','Aviso')})
+            except Exception:
+                pass
+        ctx['client_alerts']=alerts
+    ctx['counts'] = {**(ctx.get('counts') or {}), 'version': 'V466'}
+    return ctx
+
+
+def v466_public_home():
+    return render_template('client_app_v461.html', **_v466_context('inicio', False))
+
+def v466_client_app():
+    return render_template('client_app_v461.html', **_v466_context('inicio', True))
+
+def v466_partidos():
+    return render_template('client_app_v461.html', **_v466_context('partidos', bool(current_user())))
+
+def v466_calendar():
+    return render_template('client_app_v461.html', **_v466_context('calendario', bool(current_user())))
+
+def v466_live():
+    return render_template('client_app_v461.html', **_v466_context('live', bool(current_user())))
+
+def v466_picks():
+    return render_template('client_app_v461.html', **_v466_context('picks', bool(current_user())))
+
+def v466_combis():
+    return render_template('client_app_v461.html', **_v466_context('combis', bool(current_user())))
+
+def v466_cuenta():
+    return render_template('client_app_v461.html', **_v466_context('cuenta', True))
+
+def v466_favoritos():
+    return render_template('client_app_v461.html', **_v466_context('favoritos', bool(current_user())))
+
+def v466_alertas_cliente():
+    return render_template('client_app_v461.html', **_v466_context('alertas', bool(current_user())))
+
+def v466_match_detail(match_id):
+    ctx = _v466_context('partidos', bool(current_user()))
+    match = next((m for m in ctx.get('matches', []) if str(m.get('id') or m.get('match_id')) == str(match_id)), None)
+    if not match and ctx.get('matches'):
+        match = ctx['matches'][0]
+    return render_template('match_detail_v461.html', match=match, picks=ctx.get('picks', [])[:4], version=V466_VERSION)
+
+@app.route('/v466-health')
+def v466_health():
+    ctx = _v466_context('inicio', False)
+    return jsonify({
+        'ok': True,
+        'version': V466_VERSION,
+        'matches': len(ctx.get('matches') or []),
+        'today': len(ctx.get('today') or []),
+        'live': len(ctx.get('live') or []),
+        'picks': len(ctx.get('picks') or []),
+        'premium_cards': True,
+        'routes': ['/', '/app', '/partidos', '/calendario', '/en-directo', '/picks', '/combis', '/favoritos', '/alertas-cliente', '/cuenta']
+    })
+
+try:
+    for rule in list(app.url_map.iter_rules()):
+        rt = str(rule.rule)
+        if rt in {'/', '/free'}:
+            app.view_functions[rule.endpoint] = v466_public_home
+        elif rt in {'/app', '/clientes', '/dashboard', '/cliente/pro', '/cliente/home'}:
+            app.view_functions[rule.endpoint] = v466_client_app
+        elif rt in {'/partidos', '/fixtures'}:
+            app.view_functions[rule.endpoint] = v466_partidos
+        elif rt in {'/calendario', '/cliente/calendario'}:
+            app.view_functions[rule.endpoint] = v466_calendar
+        elif rt in {'/en-directo', '/live', '/cliente/live'}:
+            app.view_functions[rule.endpoint] = v466_live
+        elif rt in {'/picks', '/cliente/picks'}:
+            app.view_functions[rule.endpoint] = v466_picks
+        elif rt in {'/combis'}:
+            app.view_functions[rule.endpoint] = v466_combis
+        elif rt in {'/cuenta'}:
+            app.view_functions[rule.endpoint] = v466_cuenta
+        elif rt in {'/favoritos'}:
+            app.view_functions[rule.endpoint] = v466_favoritos
+        elif rt in {'/alertas', '/cliente/alertas'}:
+            app.view_functions[rule.endpoint] = v466_alertas_cliente
+        elif rt in {'/partido/<match_id>', '/match/<match_id>'}:
+            app.view_functions[rule.endpoint] = v466_match_detail
+except Exception as _v466_router_error:
+    print('[V466 router warning]', _v466_router_error)
+# =================== END V466 PREMIUM MATCH CARDS SYSTEM ===================
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", "5000")))

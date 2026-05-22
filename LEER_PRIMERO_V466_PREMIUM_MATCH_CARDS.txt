@@ -1,0 +1,17 @@
+NeMeSiS SHARK PRO — V466 PREMIUM MATCH CARDS SYSTEM
+
+Avance aplicado:
+- Tarjetas de partido premium controladas.
+- Colores/glow por estado sin saturar la app.
+- Live cards con estado visual más vivo.
+- Badges: Pick SHARK, seguimiento, presión/value.
+- Cuotas rápidas visibles cuando existen.
+- Escudos reforzados con fallback SHARK.
+- Navegación y rutas cliente mantienen la base limpia V456+.
+- Healthcheck: /v466-health
+
+Subida:
+1. Descomprime este ZIP.
+2. Sube todo a GitHub reemplazando la versión anterior.
+3. Redeploy en Render.
+4. Prueba /v466-health, /, /partidos, /en-directo, /picks, /combis.

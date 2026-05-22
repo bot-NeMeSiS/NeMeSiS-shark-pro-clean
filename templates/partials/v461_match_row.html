@@ -1,4 +1,4 @@
-<a class="match" href="/partido/{{ m.id }}">
+<a class="match tone-{{ m.premium_tone or 'cyan' }} {% if m.card_state == 'live' or m.is_live %}live-card{% endif %}" href="{{ m.match_url or ('/partido/' ~ m.id) }}">
   <div class="teams">
     <span class="crest">
       <img src="{{ m.home_logo }}" alt="{{ m.home }}" loading="lazy" onerror="this.onerror=null;this.src='{{ m.home_fallback_logo }}';">
@@ -9,13 +9,18 @@
     </span>
     <div class="names">
       <b>{{ m.home }} vs {{ m.away }}</b>
-      <span>{{ m.league }} · {{ m.time }}</span>
+      <span>{{ m.league }} · {{ m.time_label or m.time }}</span>
+      <div class="match-meta">
+        <span class="mini {% if m.card_state == 'live' or m.is_live %}live{% endif %}">{% if m.card_state == 'live' or m.is_live %}● LIVE{% else %}{{ m.status or 'Programado' }}{% endif %}</span>
+        <span class="mini gold">{{ m.pick_badge or 'Seguimiento SHARK' }}</span>
+        <span class="mini">{{ m.momentum_label or 'Previa' }}</span>
+      </div>
     </div>
   </div>
   <div class="right">
-    <span class="badge fav">{{ "★" if m.is_favorite else "☆" }}</span>
-    <span class="badge {% if m.is_live %}live{% endif %}">{% if m.is_live %}<span class="dot"></span>LIVE{% else %}{{ m.status or 'Programado' }}{% endif %}</span>
+    <span class="badge fav favorite-hit">{{ "★" if m.is_favorite else "☆" }}</span>
+    <span class="badge {% if m.card_state == 'live' or m.is_live %}live{% endif %}">{% if m.card_state == 'live' or m.is_live %}<span class="dot"></span>Directo{% else %}{{ m.time_label or 'Ver' }}{% endif %}</span>
     <div class="score">{{ m.score if m.score else 'Ver' }}</div>
+    <span class="odds-pill">Cuota {{ m.quick_odds or '--' }}</span>
   </div>
-  <span class="subtle">Pulsa para abrir · favorito desde /favoritos</span>
 </a>
