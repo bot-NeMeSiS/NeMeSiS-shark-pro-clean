@@ -13,7 +13,9 @@
     </div>
   </div>
   <div class="right">
+    <span class="badge fav">{{ "★" if m.is_favorite else "☆" }}</span>
     <span class="badge {% if m.is_live %}live{% endif %}">{% if m.is_live %}<span class="dot"></span>LIVE{% else %}{{ m.status or 'Programado' }}{% endif %}</span>
     <div class="score">{{ m.score if m.score else 'Ver' }}</div>
   </div>
+  <span class="subtle">Pulsa para abrir · favorito desde /favoritos</span>
 </a>
