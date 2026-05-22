@@ -1,0 +1,20 @@
+NeMeSiS SHARK PRO — V474 CLIENT PRO EXPERIENCE CLEANUP
+
+Objetivo:
+- Experiencia cliente más limpia y tipo app pro.
+- Sin textos raros/admin/técnicos en flujo cliente.
+- Botones principales apuntando a rutas reales.
+- Picks falsos/ZZ/demo filtrados.
+- Draw traducido a Empate.
+- Estados vacíos bonitos para partidos, directo, picks y combis.
+- Combi visible con selector día + 1 a 15 partidos.
+
+Prueba después del deploy:
+/v474-health
+/
+/partidos
+/calendario
+/en-directo
+/picks
+/combis
+/cuenta

@@ -1,0 +1,9 @@
+<a class="match {% if m.card_state == 'live' or m.is_live %}live{% endif %}" href="{{ m.match_url or ('/partido/' ~ (m.id or m.match_id or '1')) }}">
+  <div class="teams">
+    <span class="crest">{% if m.home_logo %}<img src="{{ m.home_logo }}" alt="{{ m.home }}" loading="lazy" onerror="this.remove();">{% else %}{{ (m.home or 'L')[:2]|upper }}{% endif %}</span>
+    <div class="vs">VS</div>
+    <span class="crest">{% if m.away_logo %}<img src="{{ m.away_logo }}" alt="{{ m.away }}" loading="lazy" onerror="this.remove();">{% else %}{{ (m.away or 'V')[:2]|upper }}{% endif %}</span>
+    <div class="names"><b>{{ m.home or 'Local' }} vs {{ m.away or 'Visitante' }}</b><span>{{ m.league or 'Competición' }} · {{ m.time_label or m.time or 'Hora por confirmar' }}</span><div class="meta"><span class="badge {% if m.card_state == 'live' or m.is_live %}live{% endif %}">{% if m.card_state == 'live' or m.is_live %}● Directo{% else %}{{ m.status or 'Programado' }}{% endif %}</span>{% if m.pick_badge %}<span class="badge gold">{{ m.pick_badge }}</span>{% endif %}{% if m.momentum_label %}<span class="badge">{{ m.momentum_label }}</span>{% endif %}</div></div>
+  </div>
+  <div class="right"><span class="badge">Ver</span><div class="score">{{ m.score if m.score else (m.time_label or 'Abrir') }}</div>{% if m.quick_odds %}<span class="badge gold">Cuota {{ m.quick_odds }}</span>{% endif %}</div>
+</a>
