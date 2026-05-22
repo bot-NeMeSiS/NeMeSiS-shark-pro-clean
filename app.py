@@ -21231,3 +21231,87 @@ except Exception as _v466_router_error:
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", "5000")))
+
+
+# =================== V467 CLIENT CLEAN EXPERIENCE SYSTEM ===================
+V467_VERSION = "V467_CLIENT_CLEAN_EXPERIENCE_SYSTEM"
+APP_VERSION = V467_VERSION
+
+def _v467_context(active='inicio', logged_mode=False):
+    ctx = _v466_context(active, logged_mode) if '_v466_context' in globals() else (_v464_context(active, logged_mode) if '_v464_context' in globals() else {})
+    ctx['version'] = V467_VERSION
+    ctx['public_label'] = 'NeMeSiS SHARK PRO'
+    counts = dict(ctx.get('counts') or {})
+    counts.pop('version', None)
+    ctx['counts'] = counts
+    return ctx
+
+def v467_public_home():
+    return render_template('client_app_v461.html', **_v467_context('inicio', False))
+
+def v467_client_app():
+    return render_template('client_app_v461.html', **_v467_context('inicio', True))
+
+def v467_partidos():
+    return render_template('client_app_v461.html', **_v467_context('partidos', bool(current_user())))
+
+def v467_calendar():
+    return render_template('client_app_v461.html', **_v467_context('calendario', bool(current_user())))
+
+def v467_live():
+    return render_template('client_app_v461.html', **_v467_context('live', bool(current_user())))
+
+def v467_picks():
+    return render_template('client_app_v461.html', **_v467_context('picks', bool(current_user())))
+
+def v467_combis():
+    return render_template('client_app_v461.html', **_v467_context('combis', bool(current_user())))
+
+def v467_cuenta():
+    return render_template('client_app_v461.html', **_v467_context('cuenta', True))
+
+def v467_favoritos():
+    return render_template('client_app_v461.html', **_v467_context('favoritos', bool(current_user())))
+
+def v467_alertas_cliente():
+    return render_template('client_app_v461.html', **_v467_context('alertas', bool(current_user())))
+
+def v467_match_detail(match_id):
+    ctx = _v467_context('partidos', bool(current_user()))
+    match = next((m for m in (ctx.get('today_matches', []) + ctx.get('live_matches', []) + ctx.get('upcoming', [])) if str(m.get('id')) == str(match_id)), None)
+    if not match and ctx.get('today_matches'):
+        match = ctx.get('today_matches')[0]
+    return render_template('match_detail_v461.html', match=match, picks=ctx.get('picks', [])[:4], version=V467_VERSION)
+
+@app.route('/v467-health')
+def v467_health():
+    ctx = _v467_context('inicio', False)
+    return jsonify({'ok': True, 'version': V467_VERSION, 'matches': len(ctx.get('today_matches') or []), 'picks': len(ctx.get('picks') or []), 'client_clean': True})
+
+try:
+    for rule in list(app.url_map.iter_rules()):
+        if rule.rule == '/':
+            app.view_functions[rule.endpoint] = v467_public_home
+        elif rule.rule == '/app':
+            app.view_functions[rule.endpoint] = v467_client_app
+        elif rule.rule == '/partidos':
+            app.view_functions[rule.endpoint] = v467_partidos
+        elif rule.rule == '/calendario':
+            app.view_functions[rule.endpoint] = v467_calendar
+        elif rule.rule == '/en-directo':
+            app.view_functions[rule.endpoint] = v467_live
+        elif rule.rule == '/picks':
+            app.view_functions[rule.endpoint] = v467_picks
+        elif rule.rule == '/combis':
+            app.view_functions[rule.endpoint] = v467_combis
+        elif rule.rule == '/cuenta':
+            app.view_functions[rule.endpoint] = v467_cuenta
+        elif rule.rule == '/favoritos':
+            app.view_functions[rule.endpoint] = v467_favoritos
+        elif rule.rule == '/alertas-cliente':
+            app.view_functions[rule.endpoint] = v467_alertas_cliente
+        elif rule.rule == '/partido/<match_id>':
+            app.view_functions[rule.endpoint] = v467_match_detail
+except Exception as _v467_router_error:
+    print('[V467 warning]', _v467_router_error)
+# =================== END V467 CLIENT CLEAN EXPERIENCE SYSTEM ===================

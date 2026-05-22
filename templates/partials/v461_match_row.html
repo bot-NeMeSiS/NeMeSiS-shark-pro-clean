@@ -11,8 +11,8 @@
       <b>{{ m.home }} vs {{ m.away }}</b>
       <span>{{ m.league }} · {{ m.time_label or m.time }}</span>
       <div class="match-meta">
-        <span class="mini {% if m.card_state == 'live' or m.is_live %}live{% endif %}">{% if m.card_state == 'live' or m.is_live %}● LIVE{% else %}{{ m.status or 'Programado' }}{% endif %}</span>
-        <span class="mini gold">{{ m.pick_badge or 'Seguimiento SHARK' }}</span>
+        <span class="mini {% if m.card_state == 'live' or m.is_live %}live{% endif %}">{% if m.card_state == 'live' or m.is_live %}● Directo{% else %}{{ m.status or 'Programado' }}{% endif %}</span>
+        <span class="mini gold">{{ m.pick_badge or 'SHARK' }}</span>
         <span class="mini">{{ m.momentum_label or 'Previa' }}</span>
       </div>
     </div>
