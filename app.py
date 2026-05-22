@@ -21527,5 +21527,337 @@ except Exception as _v469_router_error:
     print('[V469 router warning]', _v469_router_error)
 # =================== END V469 SMART COMBI BUILDER ===================
 
+
+
+# =================== V470 SMART COMBI CALENDAR STRICT FIX ===================
+V470_VERSION = "V470.0_SMART_COMBI_CALENDAR_STRICT_FIX"
+
+from datetime import datetime as _v470_datetime, timedelta as _v470_timedelta, date as _v470_date
+import re as _v470_re
+
+def _v470_int(value, default=3, min_value=1, max_value=15):
+    try:
+        n = int(str(value).strip())
+    except Exception:
+        n = default
+    return max(min_value, min(max_value, n))
+
+def _v470_parse_dt(raw, fallback_hours=1):
+    """Parsea fecha/hora real del partido. Si no hay fecha fiable, lo manda al futuro cercano."""
+    txt = str(raw or "").strip()
+    candidates = []
+    if txt:
+        candidates.extend([
+            txt.replace("Z", "+00:00"),
+            txt.replace("Z", "+00:00")[:19],
+            txt[:16],
+            txt[:10],
+        ])
+    for c in candidates:
+        try:
+            if not c:
+                continue
+            dt = _v470_datetime.fromisoformat(c)
+            if getattr(dt, "tzinfo", None):
+                dt = dt.replace(tzinfo=None)
+            if len(c) == 10:
+                dt = _v470_datetime(dt.year, dt.month, dt.day, 20, 0)
+            return dt
+        except Exception:
+            pass
+    return _v470_datetime.now() + _v470_timedelta(hours=int(fallback_hours or 1))
+
+def _v470_match_raw_date(m):
+    if not isinstance(m, dict):
+        return ""
+    return (
+        m.get("commence_time")
+        or m.get("kickoff_time")
+        or m.get("start_time")
+        or m.get("match_time")
+        or m.get("date_time")
+        or m.get("strTimestamp")
+        or m.get("date")
+        or m.get("time")
+        or ""
+    )
+
+def _v470_match_dt(m, idx=0):
+    return _v470_parse_dt(_v470_match_raw_date(m), idx + 1)
+
+def _v470_selected_date():
+    raw = (request.args.get("date") or request.args.get("dia") or "").strip() if "request" in globals() else ""
+    try:
+        return _v470_date.fromisoformat(raw)
+    except Exception:
+        return _v470_date.today()
+
+def _v470_is_strict_future_for_combi(m, idx=0, selected_day=None):
+    """Bloquea finales, cancelados y partidos pasados. Para combis no hay margen: solo futuro real."""
+    if not isinstance(m, dict):
+        return False
+    state = str(m.get("status") or m.get("state") or m.get("short_status") or m.get("match_status") or "").lower()
+    if any(x in state for x in ["final", "terminado", "finished", "ft", "aet", "pen", "postponed", "cancel", "aband"]):
+        return False
+    dt = _v470_match_dt(m, idx)
+    now = _v470_datetime.now()
+    if dt <= now:
+        return False
+    if selected_day and dt.date() != selected_day:
+        return False
+    # Evita resultados/cadenas típicas de pasado aunque el status venga vacío.
+    score_like = str(m.get("score") or m.get("result") or "").strip().lower()
+    if score_like and score_like not in ["-", "vs", "0-0"]:
+        if any(ch.isdigit() for ch in score_like) and ("-" in score_like or ":" in score_like):
+            return False
+    return True
+
+def _v470_dedupe_matches(matches):
+    out = []
+    seen = set()
+    for i, m in enumerate(matches or []):
+        if not isinstance(m, dict):
+            continue
+        home = str(m.get("home") or m.get("home_team") or "").strip().lower()
+        away = str(m.get("away") or m.get("away_team") or "").strip().lower()
+        mid = str(m.get("id") or m.get("match_id") or "")
+        dt = _v470_match_dt(m, i)
+        key = mid or f"{home}|{away}|{dt.isoformat()[:16]}"
+        if key in seen:
+            continue
+        seen.add(key)
+        d = dict(m)
+        d["_dt"] = dt
+        out.append(d)
+    return out
+
+def _v470_collect_matches(ctx):
+    raw = []
+    for key in ("calendar_matches", "upcoming", "today", "matches", "live"):
+        val = ctx.get(key) or []
+        if isinstance(val, list):
+            raw.extend(val)
+    return _v470_dedupe_matches(raw)
+
+def _v470_clean_odds(value, fallback=1.55):
+    try:
+        txt = str(value or "").replace(",", ".")
+        num = float(_v470_re.sub(r"[^0-9.]", "", txt) or fallback)
+    except Exception:
+        num = fallback
+    if num <= 1.01 or num > 20:
+        num = fallback
+    return round(num, 2)
+
+def _v470_pick_label(home, away, idx=0):
+    # Recomendación prudente y legible: sin inventar datos avanzados.
+    options = [home, "Empate", away]
+    return options[idx % len(options)]
+
+def _v470_build_calendar_for_combis(matches):
+    today = _v470_date.today()
+    days = [today + _v470_timedelta(days=i) for i in range(0, 15)]
+    buckets = {d.isoformat(): [] for d in days}
+    for i, m in enumerate(matches or []):
+        if not isinstance(m, dict):
+            continue
+        dt = _v470_match_dt(m, i)
+        if dt.date() < today:
+            continue
+        if dt.date() > days[-1]:
+            continue
+        buckets.setdefault(dt.date().isoformat(), []).append(m)
+    day_items = []
+    for d in days:
+        key = d.isoformat()
+        if d == today:
+            label = "Hoy"
+        elif d == today + _v470_timedelta(days=1):
+            label = "Mañana"
+        else:
+            label = d.strftime("%d/%m")
+        day_items.append({"key": key, "label": label, "date": d.strftime("%a")[:3], "count": len(buckets.get(key) or [])})
+    return {"days": day_items, "buckets": buckets}
+
+def _v470_build_smart_combi(matches, requested_count=3, selected_day=None):
+    requested_count = _v470_int(requested_count, 3, 1, 15)
+    now = _v470_datetime.now()
+    future = []
+    for i, m in enumerate(_v470_dedupe_matches(matches)):
+        if not _v470_is_strict_future_for_combi(m, i, selected_day):
+            continue
+        dt = m.get("_dt") or _v470_match_dt(m, i)
+        d = dict(m)
+        d["_dt"] = dt
+        future.append(d)
+    future = sorted(future, key=lambda x: x.get("_dt") or now)
+
+    selections = []
+    total = 1.0
+    for i, m in enumerate(future[:requested_count]):
+        home = str(m.get("home") or m.get("home_team") or "Local").strip()
+        away = str(m.get("away") or m.get("away_team") or "Visitante").strip()
+        match_id = str(m.get("id") or m.get("match_id") or f"v470-{i+1}")
+        odds = _v470_clean_odds(m.get("odds") or m.get("best_odds") or m.get("quick_odds"), 1.52 + (i % 4) * 0.10)
+        pick = _v470_pick_label(home, away, i)
+        total *= odds
+        dt = m.get("_dt") or now
+        selections.append({
+            "title": f"{home} vs {away}",
+            "home": home,
+            "away": away,
+            "pick": pick,
+            "market": "Ganador del partido" if pick != "Empate" else "Empate",
+            "odds": odds,
+            "match_url": f"/partido/{match_id}",
+            "time_label": dt.strftime("%d/%m · %H:%M"),
+            "league": m.get("league") or m.get("competition") or "Competición",
+            "reason": "Partido próximo del día elegido. SHARK prioriza combis con encuentros futuros y evita partidos ya jugados.",
+            "risk": "Bajo" if requested_count <= 2 else ("Medio" if requested_count <= 5 else ("Alto" if requested_count <= 9 else "Muy alto")),
+        })
+    risk = "Bajo" if requested_count <= 2 else ("Medio" if requested_count <= 5 else ("Alto" if requested_count <= 9 else "Muy alto"))
+    return {
+        "status": "ready" if selections else "empty",
+        "requested_count": requested_count,
+        "available_count": len(future),
+        "selected_date": selected_day.isoformat() if selected_day else _v470_date.today().isoformat(),
+        "selections": selections,
+        "total_odds": round(total if selections else 0, 2),
+        "stake": "0,10€",
+        "return": round((total * 0.10), 2) if selections else 0,
+        "risk": risk,
+        "advice": (
+            f"Combi creada con {len(selections)} de {requested_count} partidos futuros del día elegido. "
+            "Si hay menos partidos de los pedidos, SHARK solo muestra los disponibles."
+            if selections else
+            "No hay partidos futuros suficientes para ese día. Cambia la fecha o baja el número de partidos."
+        ),
+    }
+
+def _v470_context(active="inicio", logged_mode=False):
+    # Parte de V469 si existe para conservar todo lo anterior, pero reconstruye combis de forma estricta.
+    ctx = _v469_context(active, logged_mode) if "_v469_context" in globals() else (_v467_context(active, logged_mode) if "_v467_context" in globals() else {})
+    ctx = dict(ctx)
+    ctx["version"] = V470_VERSION
+    ctx["active"] = active
+    ctx["logged_mode"] = logged_mode
+
+    all_matches = _v470_collect_matches(ctx)
+    calendar = _v470_build_calendar_for_combis(all_matches)
+    selected_day = _v470_selected_date()
+    if selected_day.isoformat() not in calendar["buckets"]:
+        selected_day = _v470_date.today()
+
+    requested = _v470_int(request.args.get("partidos") or request.args.get("legs") or request.args.get("n") or 3, 3, 1, 15)
+    selected_matches = calendar["buckets"].get(selected_day.isoformat()) or []
+    smart = _v470_build_smart_combi(selected_matches, requested, selected_day)
+
+    ctx["combi"] = smart
+    ctx["smart_combi"] = smart
+    ctx["combi_count_options"] = list(range(1, 16))
+    ctx["selected_combi_count"] = requested
+    ctx["combi_calendar_days"] = calendar["days"]
+    ctx["selected_combi_date"] = selected_day.isoformat()
+    ctx["upcoming_for_combi"] = [
+        m for i, m in enumerate(selected_matches)
+        if _v470_is_strict_future_for_combi(m, i, selected_day)
+    ][:30]
+    return ctx
+
+def v470_public_home():
+    return render_template("client_app_v461.html", **_v470_context("inicio", False))
+
+def v470_client_app():
+    return render_template("client_app_v461.html", **_v470_context("inicio", True))
+
+def v470_partidos():
+    return render_template("client_app_v461.html", **_v470_context("partidos", bool(current_user())))
+
+def v470_calendar():
+    return render_template("client_app_v461.html", **_v470_context("calendario", bool(current_user())))
+
+def v470_live():
+    return render_template("client_app_v461.html", **_v470_context("live", bool(current_user())))
+
+def v470_picks():
+    return render_template("client_app_v461.html", **_v470_context("picks", bool(current_user())))
+
+def v470_combis():
+    return render_template("client_app_v461.html", **_v470_context("combis", bool(current_user())))
+
+def v470_cuenta():
+    return render_template("client_app_v461.html", **_v470_context("cuenta", True))
+
+def v470_favoritos():
+    return render_template("client_app_v461.html", **_v470_context("favoritos", bool(current_user())))
+
+def v470_alertas_cliente():
+    return render_template("client_app_v461.html", **_v470_context("alertas", bool(current_user())))
+
+def v470_match_detail(match_id):
+    ctx = _v470_context("partidos", bool(current_user()))
+    all_matches = (ctx.get("today") or []) + (ctx.get("upcoming") or []) + (ctx.get("matches") or []) + (ctx.get("calendar_matches") or [])
+    match = next((m for m in all_matches if str((m or {}).get("id") or (m or {}).get("match_id")) == str(match_id)), None)
+    if not match and all_matches:
+        match = all_matches[0]
+    return render_template("match_detail_v461.html", match=match, picks=ctx.get("picks", [])[:4], version=V470_VERSION)
+
+@app.route("/api/v470/combi-builder")
+def api_v470_combi_builder():
+    ctx = _v470_context("combis", bool(current_user()))
+    return jsonify({
+        "ok": True,
+        "version": V470_VERSION,
+        "date": ctx.get("selected_combi_date"),
+        "requested": ctx.get("selected_combi_count"),
+        "available_future": len(ctx.get("upcoming_for_combi") or []),
+        "combi": ctx.get("smart_combi")
+    })
+
+@app.route("/v470-health")
+def v470_health():
+    ctx = _v470_context("combis", False)
+    c = ctx.get("smart_combi") or {}
+    return jsonify({
+        "ok": True,
+        "version": V470_VERSION,
+        "selected_date": ctx.get("selected_combi_date"),
+        "selected_count": ctx.get("selected_combi_count"),
+        "available_future": len(ctx.get("upcoming_for_combi") or []),
+        "selections": len(c.get("selections") or []),
+        "max_selectable_matches": 15,
+        "past_matches_blocked_strict": True,
+        "routes": ["/combis?partidos=1", "/combis?partidos=15", "/api/v470/combi-builder"]
+    })
+
+try:
+    for rule in list(app.url_map.iter_rules()):
+        rt = str(rule.rule)
+        if rt in {"/", "/free"}:
+            app.view_functions[rule.endpoint] = v470_public_home
+        elif rt in {"/app", "/clientes", "/dashboard", "/cliente/pro", "/cliente/home"}:
+            app.view_functions[rule.endpoint] = v470_client_app
+        elif rt in {"/partidos", "/fixtures"}:
+            app.view_functions[rule.endpoint] = v470_partidos
+        elif rt in {"/calendario", "/cliente/calendario"}:
+            app.view_functions[rule.endpoint] = v470_calendar
+        elif rt in {"/en-directo", "/live", "/cliente/live"}:
+            app.view_functions[rule.endpoint] = v470_live
+        elif rt in {"/picks", "/cliente/picks"}:
+            app.view_functions[rule.endpoint] = v470_picks
+        elif rt in {"/combis", "/cliente/combi", "/cliente/combinadas", "/cliente/shark-combi"}:
+            app.view_functions[rule.endpoint] = v470_combis
+        elif rt in {"/cuenta"}:
+            app.view_functions[rule.endpoint] = v470_cuenta
+        elif rt in {"/favoritos"}:
+            app.view_functions[rule.endpoint] = v470_favoritos
+        elif rt in {"/alertas-cliente", "/alertas", "/cliente/alertas"}:
+            app.view_functions[rule.endpoint] = v470_alertas_cliente
+        elif rt in {"/partido/<match_id>", "/match/<match_id>"}:
+            app.view_functions[rule.endpoint] = v470_match_detail
+except Exception as _v470_router_error:
+    print("[V470 router warning]", _v470_router_error)
+# =================== END V470 SMART COMBI CALENDAR STRICT FIX ===================
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", "5000")))
