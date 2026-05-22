@@ -1,0 +1,12 @@
+NeMeSiS SHARK PRO — V463 MATCH CALENDAR SYSTEM
+
+Incluye:
+- Ruta /calendario
+- Calendario deportivo visible en navegación
+- Selector por días Hoy/Mañana/semana
+- Partidos agrupados por competición
+- Enlaces a detalle de partido
+- Integrado en app cliente completa
+- Healthcheck /v463-health
+
+Render/GitHub Ready

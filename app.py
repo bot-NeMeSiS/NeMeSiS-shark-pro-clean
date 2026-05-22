@@ -20692,5 +20692,343 @@ except Exception as _v462_router_error:
 # =================== END V462 REAL PICKS + SPANISH LABELS + CLEAN COMBI ===================
 
 
+
+# =================== V463 MATCH CALENDAR SYSTEM ===================
+# Calendario deportivo integrado: el cliente puede navegar por día, ver partidos
+# por fecha, detectar LIVE y volver al detalle del partido sin perderse.
+V463_VERSION = "V463_MATCH_CALENDAR_SYSTEM"
+APP_VERSION = V463_VERSION
+
+from datetime import datetime as _v463_datetime, timedelta as _v463_timedelta, date as _v463_date
+
+_V463_DAYS_ES = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"]
+_V463_MONTHS_ES = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"]
+
+def _v463_parse_match_date(value, fallback_index=0):
+    raw = str(value or "").strip()
+    if raw:
+        cleaned = raw.replace("Z", "+00:00")
+        for candidate in (cleaned, cleaned[:19], cleaned[:16]):
+            try:
+                return _v463_datetime.fromisoformat(candidate).date()
+            except Exception:
+                pass
+        for fmt in ("%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y"):
+            try:
+                return _v463_datetime.strptime(raw[:10], fmt).date()
+            except Exception:
+                pass
+    return _v463_date.today() + _v463_timedelta(days=max(0, int(fallback_index or 0)))
+
+def _v463_day_label(day):
+    today = _v463_date.today()
+    if day == today:
+        main = "Hoy"
+    elif day == today + _v463_timedelta(days=1):
+        main = "Mañana"
+    else:
+        main = _V463_DAYS_ES[day.weekday()]
+    return {"key": day.isoformat(), "label": main, "date": f"{day.day} {_V463_MONTHS_ES[day.month-1]}", "iso": day.isoformat()}
+
+def _v463_build_calendar(matches):
+    today = _v463_date.today()
+    days = [today + _v463_timedelta(days=i) for i in range(0, 8)]
+    buckets = {d.isoformat(): [] for d in days}
+    for i, m in enumerate(matches or []):
+        date_raw = None
+        if isinstance(m, dict):
+            date_raw = m.get("commence_time") or m.get("kickoff_time") or m.get("date") or m.get("time") or m.get("strTimestamp")
+        day = _v463_parse_match_date(date_raw, i // 4)
+        if day < today:
+            day = today
+        if day > days[-1]:
+            day = days[-1]
+        key = day.isoformat()
+        buckets.setdefault(key, []).append(m)
+    return {"days": [_v463_day_label(d) for d in days], "buckets": buckets}
+
+def _v463_context(active="inicio", logged_mode=False):
+    base = _v462_context(active, logged_mode) if '_v462_context' in globals() else (_v461_context(active, logged_mode) if '_v461_context' in globals() else {})
+    ctx = dict(base)
+    ctx["version"] = V463_VERSION
+    ctx["active"] = active
+    ctx["logged_mode"] = logged_mode
+    matches = list(ctx.get("matches") or [])
+    if not matches:
+        matches = list(ctx.get("today") or []) + list(ctx.get("upcoming") or []) + list(ctx.get("live") or [])
+    calendar = _v463_build_calendar(matches)
+    selected = (request.args.get("date") or _v463_date.today().isoformat()) if 'request' in globals() else _v463_date.today().isoformat()
+    if selected not in calendar["buckets"]:
+        selected = _v463_date.today().isoformat()
+    selected_matches = calendar["buckets"].get(selected) or []
+    # Agrupa por liga para dar sensación Flashscore/SofaScore.
+    grouped = []
+    leagues = {}
+    for m in selected_matches:
+        league = (m.get("league") if isinstance(m, dict) else None) or "Competición"
+        leagues.setdefault(league, []).append(m)
+    for league, rows in leagues.items():
+        grouped.append({"league": league, "matches": rows})
+    ctx["calendar_days"] = calendar["days"]
+    ctx["calendar_selected"] = selected
+    ctx["calendar_matches"] = selected_matches
+    ctx["calendar_groups"] = grouped
+    ctx["counts"] = {**(ctx.get("counts") or {}), "calendar": len(selected_matches)}
+    return ctx
+
+def v463_public_home():
+    return render_template("client_app_v461.html", **_v463_context("inicio", False))
+
+def v463_client_app():
+    return render_template("client_app_v461.html", **_v463_context("inicio", True))
+
+def v463_partidos():
+    return render_template("client_app_v461.html", **_v463_context("partidos", bool(current_user())))
+
+def v463_calendar():
+    return render_template("client_app_v461.html", **_v463_context("calendario", bool(current_user())))
+
+def v463_live():
+    return render_template("client_app_v461.html", **_v463_context("live", bool(current_user())))
+
+def v463_picks():
+    return render_template("client_app_v461.html", **_v463_context("picks", bool(current_user())))
+
+def v463_combis():
+    return render_template("client_app_v461.html", **_v463_context("combis", bool(current_user())))
+
+def v463_cuenta():
+    return render_template("client_app_v461.html", **_v463_context("cuenta", True))
+
+def v463_match_detail(match_id):
+    ctx = _v463_context("partidos", bool(current_user()))
+    match = next((m for m in ctx.get("matches", []) if str(m.get("id")) == str(match_id)), None)
+    if not match and ctx.get("matches"):
+        match = ctx["matches"][0]
+    return render_template("match_detail_v461.html", match=match, picks=ctx.get("picks", [])[:4], version=V463_VERSION)
+
+@app.route("/calendario")
+@app.route("/cliente/calendario")
+def v463_calendar_route():
+    return v463_calendar()
+
+@app.route("/v463-health")
+def v463_health():
+    ctx = _v463_context("calendario", False)
+    return jsonify({
+        "ok": True,
+        "version": V463_VERSION,
+        "matches": len(ctx.get("matches") or []),
+        "calendar_days": len(ctx.get("calendar_days") or []),
+        "calendar_selected_matches": len(ctx.get("calendar_matches") or []),
+        "routes": ["/", "/app", "/partidos", "/calendario", "/en-directo", "/picks", "/combis", "/cuenta"]
+    })
+
+try:
+    for rule in list(app.url_map.iter_rules()):
+        rt = str(rule.rule)
+        if rt in {"/", "/free"}:
+            app.view_functions[rule.endpoint] = v463_public_home
+        elif rt in {"/app", "/clientes", "/dashboard", "/cliente/pro", "/cliente/home"}:
+            app.view_functions[rule.endpoint] = v463_client_app
+        elif rt in {"/partidos", "/fixtures"}:
+            app.view_functions[rule.endpoint] = v463_partidos
+        elif rt in {"/en-directo", "/live", "/cliente/live"}:
+            app.view_functions[rule.endpoint] = v463_live
+        elif rt in {"/picks", "/cliente/picks"}:
+            app.view_functions[rule.endpoint] = v463_picks
+        elif rt in {"/combis"}:
+            app.view_functions[rule.endpoint] = v463_combis
+        elif rt in {"/cuenta"}:
+            app.view_functions[rule.endpoint] = v463_cuenta
+        elif rt in {"/partido/<match_id>", "/match/<match_id>"}:
+            app.view_functions[rule.endpoint] = v463_match_detail
+except Exception as _v463_router_error:
+    print("[V463 router warning]", _v463_router_error)
+# =================== END V463 MATCH CALENDAR SYSTEM ===================
+
+
+
+# =================== V464 FAVORITOS + ALERTAS CLIENTE ===================
+# Objetivo: retención diaria. Partidos favoritos visibles, alertas visuales y
+# flujo cliente más útil sin esconder funciones en pantallas antiguas.
+V464_VERSION = "V464_FAVORITOS_ALERTAS_CLIENTE"
+APP_VERSION = V464_VERSION
+
+from datetime import datetime as _v464_datetime, timedelta as _v464_timedelta, date as _v464_date
+
+def _v464_session_favorites():
+    try:
+        ids = session.get("favorite_matches", [])
+        if not isinstance(ids, list):
+            ids = []
+        return {str(x) for x in ids if str(x).strip()}
+    except Exception:
+        return set()
+
+def _v464_save_session_favorites(ids):
+    try:
+        session["favorite_matches"] = sorted({str(x) for x in ids if str(x).strip()})
+        session.modified = True
+    except Exception:
+        pass
+
+def _v464_match_datetime(m, fallback_hours=0):
+    raw = ""
+    if isinstance(m, dict):
+        raw = str(m.get("commence_time") or m.get("kickoff_time") or m.get("date") or m.get("time") or "")
+    for candidate in [raw.replace("Z", "+00:00"), raw[:19], raw[:16]]:
+        try:
+            if candidate:
+                return _v464_datetime.fromisoformat(candidate.replace("Z", "+00:00")).replace(tzinfo=None)
+        except Exception:
+            pass
+    return _v464_datetime.now() + _v464_timedelta(hours=int(fallback_hours or 0))
+
+def _v464_context(active="inicio", logged_mode=False):
+    base = _v463_context(active, logged_mode) if '_v463_context' in globals() else (_v462_context(active, logged_mode) if '_v462_context' in globals() else {})
+    ctx = dict(base)
+    ctx["version"] = V464_VERSION
+    ctx["active"] = active
+    ctx["logged_mode"] = logged_mode
+    favs = _v464_session_favorites()
+    matches = list(ctx.get("matches") or [])
+    if not matches:
+        matches = list(ctx.get("today") or []) + list(ctx.get("live") or []) + list(ctx.get("upcoming") or [])
+    # Marca favoritos y crea CTA persistente por sesión para que el cliente entienda la función.
+    for m in matches:
+        if isinstance(m, dict):
+            mid = str(m.get("id") or m.get("match_id") or "")
+            m["is_favorite"] = mid in favs
+            m["favorite_url"] = f"/favorito/{mid}?next={request.path}" if mid else "/favoritos"
+    favorite_matches = [m for m in matches if isinstance(m, dict) and str(m.get("id") or m.get("match_id") or "") in favs]
+    # Alertas visuales: próximos partidos y picks disponibles. No prometen Telegram aún.
+    now = _v464_datetime.now()
+    upcoming_alerts = []
+    ordered = []
+    for i, m in enumerate(matches):
+        dt = _v464_match_datetime(m, i+1)
+        if dt >= now:
+            ordered.append((dt, m))
+    for dt, m in sorted(ordered, key=lambda x: x[0])[:5]:
+        minutes = int((dt - now).total_seconds() // 60)
+        if minutes < 0:
+            label = "En juego o pendiente"
+        elif minutes < 60:
+            label = f"Empieza en {max(1, minutes)} min"
+        elif minutes < 24*60:
+            label = f"Hoy a las {dt.strftime('%H:%M')}"
+        else:
+            label = f"{dt.strftime('%d/%m')} · {dt.strftime('%H:%M')}"
+        upcoming_alerts.append({"match": m, "label": label})
+    ctx["favorite_matches"] = favorite_matches
+    ctx["favorite_count"] = len(favorite_matches)
+    ctx["client_alerts"] = upcoming_alerts
+    ctx["alert_count"] = len(upcoming_alerts)
+    ctx["counts"] = {**(ctx.get("counts") or {}), "favoritos": len(favorite_matches), "alertas": len(upcoming_alerts)}
+    return ctx
+
+def v464_public_home():
+    return render_template("client_app_v461.html", **_v464_context("inicio", False))
+
+def v464_client_app():
+    return render_template("client_app_v461.html", **_v464_context("inicio", True))
+
+def v464_partidos():
+    return render_template("client_app_v461.html", **_v464_context("partidos", bool(current_user())))
+
+def v464_calendar():
+    return render_template("client_app_v461.html", **_v464_context("calendario", bool(current_user())))
+
+def v464_live():
+    return render_template("client_app_v461.html", **_v464_context("live", bool(current_user())))
+
+def v464_picks():
+    return render_template("client_app_v461.html", **_v464_context("picks", bool(current_user())))
+
+def v464_combis():
+    return render_template("client_app_v461.html", **_v464_context("combis", bool(current_user())))
+
+def v464_cuenta():
+    return render_template("client_app_v461.html", **_v464_context("cuenta", True))
+
+def v464_favoritos():
+    return render_template("client_app_v461.html", **_v464_context("favoritos", bool(current_user())))
+
+def v464_alertas_cliente():
+    return render_template("client_app_v461.html", **_v464_context("alertas", bool(current_user())))
+
+def v464_match_detail(match_id):
+    ctx = _v464_context("partidos", bool(current_user()))
+    match = next((m for m in ctx.get("matches", []) if str(m.get("id") or m.get("match_id")) == str(match_id)), None)
+    if not match and ctx.get("matches"):
+        match = ctx["matches"][0]
+    return render_template("match_detail_v461.html", match=match, picks=ctx.get("picks", [])[:4], version=V464_VERSION)
+
+@app.route("/favorito/<match_id>")
+def v464_toggle_favorite(match_id):
+    favs = _v464_session_favorites()
+    mid = str(match_id or "").strip()
+    if mid:
+        if mid in favs:
+            favs.remove(mid)
+        else:
+            favs.add(mid)
+    _v464_save_session_favorites(favs)
+    nxt = request.args.get("next") or "/favoritos"
+    if not str(nxt).startswith("/"):
+        nxt = "/favoritos"
+    return redirect(nxt)
+
+@app.route("/favoritos")
+def v464_favoritos_route():
+    return v464_favoritos()
+
+@app.route("/alertas-cliente")
+@app.route("/mis-alertas")
+def v464_alertas_route():
+    return v464_alertas_cliente()
+
+@app.route("/v464-health")
+def v464_health():
+    ctx = _v464_context("inicio", False)
+    return jsonify({
+        "ok": True,
+        "version": V464_VERSION,
+        "matches": len(ctx.get("matches") or []),
+        "favorites": ctx.get("favorite_count", 0),
+        "alerts": ctx.get("alert_count", 0),
+        "routes": ["/", "/app", "/partidos", "/calendario", "/en-directo", "/picks", "/combis", "/favoritos", "/alertas-cliente", "/cuenta"]
+    })
+
+try:
+    for rule in list(app.url_map.iter_rules()):
+        rt = str(rule.rule)
+        if rt in {"/", "/free"}:
+            app.view_functions[rule.endpoint] = v464_public_home
+        elif rt in {"/app", "/clientes", "/dashboard", "/cliente/pro", "/cliente/home"}:
+            app.view_functions[rule.endpoint] = v464_client_app
+        elif rt in {"/partidos", "/fixtures"}:
+            app.view_functions[rule.endpoint] = v464_partidos
+        elif rt in {"/calendario", "/cliente/calendario"}:
+            app.view_functions[rule.endpoint] = v464_calendar
+        elif rt in {"/en-directo", "/live", "/cliente/live"}:
+            app.view_functions[rule.endpoint] = v464_live
+        elif rt in {"/picks", "/cliente/picks"}:
+            app.view_functions[rule.endpoint] = v464_picks
+        elif rt in {"/combis"}:
+            app.view_functions[rule.endpoint] = v464_combis
+        elif rt in {"/cuenta"}:
+            app.view_functions[rule.endpoint] = v464_cuenta
+        elif rt in {"/favoritos"}:
+            app.view_functions[rule.endpoint] = v464_favoritos
+        elif rt in {"/alertas", "/cliente/alertas"}:
+            app.view_functions[rule.endpoint] = v464_alertas_cliente
+        elif rt in {"/partido/<match_id>", "/match/<match_id>"}:
+            app.view_functions[rule.endpoint] = v464_match_detail
+except Exception as _v464_router_error:
+    print("[V464 router warning]", _v464_router_error)
+# =================== END V464 FAVORITOS + ALERTAS CLIENTE ===================
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", "5000")))
