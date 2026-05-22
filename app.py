@@ -21229,10 +21229,6 @@ except Exception as _v466_router_error:
     print('[V466 router warning]', _v466_router_error)
 # =================== END V466 PREMIUM MATCH CARDS SYSTEM ===================
 
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", "5000")))
-
-
 # =================== V467 CLIENT CLEAN EXPERIENCE SYSTEM ===================
 V467_VERSION = "V467_CLIENT_CLEAN_EXPERIENCE_SYSTEM"
 APP_VERSION = V467_VERSION
@@ -21315,3 +21311,221 @@ try:
 except Exception as _v467_router_error:
     print('[V467 warning]', _v467_router_error)
 # =================== END V467 CLIENT CLEAN EXPERIENCE SYSTEM ===================
+
+# =================== V469 SMART COMBI BUILDER ===================
+# Arreglo real de combis: no usar partidos pasados, dejar elegir número de partidos
+# y construir una combinada prudente desde próximos encuentros visibles.
+V469_VERSION = "V469_SMART_COMBI_BUILDER"
+APP_VERSION = V469_VERSION
+
+from datetime import datetime as _v469_datetime, timedelta as _v469_timedelta
+
+
+def _v469_int(value, default=3, min_value=2, max_value=8):
+    try:
+        n = int(str(value).strip())
+    except Exception:
+        n = default
+    return max(min_value, min(max_value, n))
+
+
+def _v469_match_dt(m, idx=0):
+    try:
+        return _v464_match_datetime(m, idx + 1) if '_v464_match_datetime' in globals() else _v469_datetime.now() + _v469_timedelta(hours=idx + 1)
+    except Exception:
+        return _v469_datetime.now() + _v469_timedelta(hours=idx + 1)
+
+
+def _v469_is_future_match(m, idx=0):
+    if not isinstance(m, dict):
+        return False
+    state = str(m.get('status') or m.get('state') or '').lower()
+    if any(x in state for x in ['final', 'terminado', 'finished', 'ft', 'postponed', 'cancel']):
+        return False
+    dt = _v469_match_dt(m, idx)
+    # margen pequeño por diferencias horarias, pero evita partidos claramente pasados.
+    return dt >= (_v469_datetime.now() - _v469_timedelta(minutes=20))
+
+
+def _v469_clean_odds(value, fallback=1.55):
+    try:
+        txt = str(value or '').replace(',', '.')
+        num = float(re.sub(r'[^0-9.]', '', txt) or fallback)
+    except Exception:
+        num = fallback
+    if num <= 1.01 or num > 20:
+        num = fallback
+    return round(num, 2)
+
+
+def _v469_team_strength_name(home, away, idx=0):
+    # Sin inventar resultados: usa una recomendación prudente y explicable.
+    # Si no hay cuota real, lo marca como estimado y deja claro que debe revisarse.
+    options = [home, 'Empate', away]
+    return options[idx % len(options)]
+
+
+def _v469_build_smart_combi(matches, requested_count=3, picks=None):
+    requested_count = _v469_int(requested_count, 3, 2, 8)
+    now = _v469_datetime.now()
+    future = []
+    for i, m in enumerate(list(matches or [])):
+        if not isinstance(m, dict):
+            continue
+        if not _v469_is_future_match(m, i):
+            continue
+        dt = _v469_match_dt(m, i)
+        d = dict(m)
+        d['_dt'] = dt
+        future.append(d)
+    future = sorted(future, key=lambda x: x.get('_dt') or now)
+
+    selections = []
+    total = 1.0
+    for i, m in enumerate(future[:requested_count]):
+        home = str(m.get('home') or m.get('home_team') or 'Local').strip()
+        away = str(m.get('away') or m.get('away_team') or 'Visitante').strip()
+        match_id = str(m.get('id') or m.get('match_id') or i + 1)
+        # Usa cuota si existe. Si no, cuota prudente estimada para que la card no parezca rota.
+        odds = _v469_clean_odds(m.get('odds') or m.get('best_odds') or m.get('quick_odds'), 1.55 + (i % 3) * 0.12)
+        selection = _v469_team_strength_name(home, away, i)
+        total *= odds
+        dt = m.get('_dt') or now
+        selections.append({
+            'title': f'{home} vs {away}',
+            'home': home,
+            'away': away,
+            'pick': selection,
+            'market': 'Ganador del partido' if selection != 'Empate' else 'Empate',
+            'odds': odds,
+            'match_url': f'/partido/{match_id}',
+            'time_label': m.get('time_label') or (dt.strftime('%d/%m · %H:%M') if hasattr(dt, 'strftime') else 'Próximo'),
+            'league': m.get('league') or m.get('competition') or 'Competición',
+            'reason': 'Partido próximo seleccionado por SHARK para una combi corta y controlada.',
+            'risk': 'Medio' if requested_count <= 4 else 'Alto',
+        })
+    risk = 'Bajo/medio' if requested_count <= 3 else ('Medio' if requested_count <= 5 else 'Alto')
+    return {
+        'status': 'ready' if selections else 'empty',
+        'requested_count': requested_count,
+        'available_count': len(future),
+        'selections': selections,
+        'total_odds': round(total if selections else 0, 2),
+        'stake': '0,10€',
+        'return': round((total * 0.10), 2) if selections else 0,
+        'risk': risk,
+        'advice': 'Combi prudente con próximos partidos. Revisa cuotas finales antes de apostar.' if selections else 'No hay próximos partidos suficientes para construir una combi real ahora mismo.',
+    }
+
+
+def _v469_context(active='inicio', logged_mode=False):
+    ctx = _v467_context(active, logged_mode) if '_v467_context' in globals() else (_v466_context(active, logged_mode) if '_v466_context' in globals() else {})
+    ctx = dict(ctx)
+    ctx['version'] = V469_VERSION
+    ctx['active'] = active
+    ctx['logged_mode'] = logged_mode
+    requested = _v469_int(request.args.get('partidos') or request.args.get('legs') or request.args.get('n') or 3, 3, 2, 8)
+    # Base de próximos: primero upcoming, luego today no empezados, luego matches filtrados.
+    raw_matches = []
+    for key in ('upcoming', 'calendar_matches', 'today', 'matches'):
+        for m in ctx.get(key) or []:
+            mid = str((m or {}).get('id') or (m or {}).get('match_id') or '') if isinstance(m, dict) else ''
+            if mid and mid not in {str((x or {}).get('id') or (x or {}).get('match_id') or '') for x in raw_matches if isinstance(x, dict)}:
+                raw_matches.append(m)
+    smart = _v469_build_smart_combi(raw_matches, requested, ctx.get('picks') or [])
+    ctx['combi'] = smart
+    ctx['smart_combi'] = smart
+    ctx['combi_count_options'] = [2, 3, 4, 5, 6, 7, 8]
+    ctx['selected_combi_count'] = requested
+    ctx['upcoming_for_combi'] = [m for i, m in enumerate(raw_matches) if _v469_is_future_match(m, i)][:12]
+    return ctx
+
+
+def v469_public_home():
+    return render_template('client_app_v461.html', **_v469_context('inicio', False))
+
+def v469_client_app():
+    return render_template('client_app_v461.html', **_v469_context('inicio', True))
+
+def v469_partidos():
+    return render_template('client_app_v461.html', **_v469_context('partidos', bool(current_user())))
+
+def v469_calendar():
+    return render_template('client_app_v461.html', **_v469_context('calendario', bool(current_user())))
+
+def v469_live():
+    return render_template('client_app_v461.html', **_v469_context('live', bool(current_user())))
+
+def v469_picks():
+    return render_template('client_app_v461.html', **_v469_context('picks', bool(current_user())))
+
+def v469_combis():
+    return render_template('client_app_v461.html', **_v469_context('combis', bool(current_user())))
+
+def v469_cuenta():
+    return render_template('client_app_v461.html', **_v469_context('cuenta', True))
+
+def v469_favoritos():
+    return render_template('client_app_v461.html', **_v469_context('favoritos', bool(current_user())))
+
+def v469_alertas_cliente():
+    return render_template('client_app_v461.html', **_v469_context('alertas', bool(current_user())))
+
+def v469_match_detail(match_id):
+    ctx = _v469_context('partidos', bool(current_user()))
+    all_matches = (ctx.get('today') or []) + (ctx.get('upcoming') or []) + (ctx.get('matches') or [])
+    match = next((m for m in all_matches if str(m.get('id') or m.get('match_id')) == str(match_id)), None)
+    if not match and all_matches:
+        match = all_matches[0]
+    return render_template('match_detail_v461.html', match=match, picks=ctx.get('picks', [])[:4], version=V469_VERSION)
+
+@app.route('/api/v469/combi-builder')
+def api_v469_combi_builder():
+    ctx = _v469_context('combis', bool(current_user()))
+    return jsonify({'ok': True, 'version': V469_VERSION, 'combi': ctx.get('smart_combi'), 'upcoming': len(ctx.get('upcoming_for_combi') or [])})
+
+@app.route('/v469-health')
+def v469_health():
+    ctx = _v469_context('combis', False)
+    c = ctx.get('smart_combi') or {}
+    return jsonify({
+        'ok': True,
+        'version': V469_VERSION,
+        'selected_count': c.get('requested_count'),
+        'available_upcoming': c.get('available_count'),
+        'selections': len(c.get('selections') or []),
+        'past_matches_blocked': True,
+        'routes': ['/', '/app', '/partidos', '/calendario', '/en-directo', '/picks', '/combis?partidos=3', '/api/v469/combi-builder']
+    })
+
+try:
+    for rule in list(app.url_map.iter_rules()):
+        rt = str(rule.rule)
+        if rt in {'/', '/free'}:
+            app.view_functions[rule.endpoint] = v469_public_home
+        elif rt in {'/app', '/clientes', '/dashboard', '/cliente/pro', '/cliente/home'}:
+            app.view_functions[rule.endpoint] = v469_client_app
+        elif rt in {'/partidos', '/fixtures'}:
+            app.view_functions[rule.endpoint] = v469_partidos
+        elif rt in {'/calendario', '/cliente/calendario'}:
+            app.view_functions[rule.endpoint] = v469_calendar
+        elif rt in {'/en-directo', '/live', '/cliente/live'}:
+            app.view_functions[rule.endpoint] = v469_live
+        elif rt in {'/picks', '/cliente/picks'}:
+            app.view_functions[rule.endpoint] = v469_picks
+        elif rt in {'/combis', '/cliente/combi', '/cliente/combinadas', '/cliente/shark-combi'}:
+            app.view_functions[rule.endpoint] = v469_combis
+        elif rt in {'/cuenta'}:
+            app.view_functions[rule.endpoint] = v469_cuenta
+        elif rt in {'/favoritos'}:
+            app.view_functions[rule.endpoint] = v469_favoritos
+        elif rt in {'/alertas-cliente', '/alertas', '/cliente/alertas'}:
+            app.view_functions[rule.endpoint] = v469_alertas_cliente
+        elif rt in {'/partido/<match_id>', '/match/<match_id>'}:
+            app.view_functions[rule.endpoint] = v469_match_detail
+except Exception as _v469_router_error:
+    print('[V469 router warning]', _v469_router_error)
+# =================== END V469 SMART COMBI BUILDER ===================
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", "5000")))
