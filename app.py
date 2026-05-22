@@ -21861,3 +21861,521 @@ except Exception as _v470_router_error:
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", "5000")))
+
+# =================== V471 DAILY CLIENT HUB ===================
+V471_VERSION = "V471_DAILY_CLIENT_HUB"
+
+def _v471_first_match(ctx):
+    for key in ("live", "today", "upcoming", "matches", "calendar_matches"):
+        items = ctx.get(key) or []
+        if items:
+            return items[0]
+    return None
+
+def _v471_match_title(m):
+    if not m:
+        return "Partidos de hoy"
+    return f"{m.get('home') or m.get('home_team') or 'Local'} vs {m.get('away') or m.get('away_team') or 'Visitante'}"
+
+def _v471_match_url(m):
+    if not m:
+        return "/partidos"
+    mid = m.get("id") or m.get("match_id") or "1"
+    return f"/partido/{mid}"
+
+def _v471_context(active="inicio", logged_mode=False):
+    ctx = _v470_context(active, logged_mode) if "_v470_context" in globals() else {}
+    ctx = dict(ctx)
+    ctx["version"] = V471_VERSION
+    highlight = _v471_first_match(ctx)
+    picks_count = len(ctx.get("top_picks") or ctx.get("picks") or [])
+    combi = ctx.get("smart_combi") or ctx.get("combi") or {}
+    combi_count = len(combi.get("selections") or []) if isinstance(combi, dict) else 0
+    alerts_count = len(ctx.get("client_alerts") or [])
+    ctx["daily_plan"] = [
+        {
+            "badge": "Partido clave",
+            "time": "Hoy",
+            "title": _v471_match_title(highlight),
+            "text": "Empieza por el partido más relevante y revisa si tiene pick, directo o alerta asociada.",
+            "url": _v471_match_url(highlight),
+        },
+        {
+            "badge": "Picks",
+            "time": f"{picks_count} activos",
+            "title": "Revisar picks SHARK",
+            "text": "Mira solo las oportunidades disponibles. Si no hay valor, la app no inventa picks.",
+            "url": "/picks",
+        },
+        {
+            "badge": "Combi",
+            "time": f"{combi_count} partidos",
+            "title": "Crear combi del día",
+            "text": "Elige fecha y entre 1 y 15 partidos. Solo se usan próximos partidos reales.",
+            "url": "/combis",
+        },
+    ]
+    ctx["daily_status"] = {
+        "alerts": alerts_count,
+        "picks": picks_count,
+        "combi_matches": combi_count,
+        "highlight": _v471_match_title(highlight),
+    }
+    return ctx
+
+def v471_public_home():
+    return render_template("client_app_v461.html", **_v471_context("inicio", False))
+
+def v471_client_app():
+    return render_template("client_app_v461.html", **_v471_context("inicio", True))
+
+def v471_partidos():
+    return render_template("client_app_v461.html", **_v471_context("partidos", bool(current_user())))
+
+def v471_calendar():
+    return render_template("client_app_v461.html", **_v471_context("calendario", bool(current_user())))
+
+def v471_live():
+    return render_template("client_app_v461.html", **_v471_context("live", bool(current_user())))
+
+def v471_picks():
+    return render_template("client_app_v461.html", **_v471_context("picks", bool(current_user())))
+
+def v471_combis():
+    return render_template("client_app_v461.html", **_v471_context("combis", bool(current_user())))
+
+def v471_cuenta():
+    return render_template("client_app_v461.html", **_v471_context("cuenta", True))
+
+def v471_favoritos():
+    return render_template("client_app_v461.html", **_v471_context("favoritos", bool(current_user())))
+
+def v471_alertas_cliente():
+    return render_template("client_app_v461.html", **_v471_context("alertas", bool(current_user())))
+
+@app.route("/v471-health")
+def v471_health():
+    ctx = _v471_context("inicio", False)
+    return jsonify({
+        "ok": True,
+        "version": V471_VERSION,
+        "daily_plan_items": len(ctx.get("daily_plan") or []),
+        "daily_status": ctx.get("daily_status"),
+        "routes": ["/", "/app", "/partidos", "/calendario", "/picks", "/combis", "/v471-health"]
+    })
+
+try:
+    for rule in list(app.url_map.iter_rules()):
+        rt = str(rule.rule)
+        if rt in {"/", "/free"}:
+            app.view_functions[rule.endpoint] = v471_public_home
+        elif rt in {"/app", "/clientes", "/dashboard", "/cliente/pro", "/cliente/home"}:
+            app.view_functions[rule.endpoint] = v471_client_app
+        elif rt in {"/partidos", "/fixtures"}:
+            app.view_functions[rule.endpoint] = v471_partidos
+        elif rt in {"/calendario", "/cliente/calendario"}:
+            app.view_functions[rule.endpoint] = v471_calendar
+        elif rt in {"/en-directo", "/live", "/cliente/live"}:
+            app.view_functions[rule.endpoint] = v471_live
+        elif rt in {"/picks", "/cliente/picks"}:
+            app.view_functions[rule.endpoint] = v471_picks
+        elif rt in {"/combis", "/cliente/combi", "/cliente/combinadas", "/cliente/shark-combi"}:
+            app.view_functions[rule.endpoint] = v471_combis
+        elif rt in {"/cuenta"}:
+            app.view_functions[rule.endpoint] = v471_cuenta
+        elif rt in {"/favoritos"}:
+            app.view_functions[rule.endpoint] = v471_favoritos
+        elif rt in {"/alertas-cliente", "/alertas", "/cliente/alertas"}:
+            app.view_functions[rule.endpoint] = v471_alertas_cliente
+except Exception as _v471_router_error:
+    print("[V471 router warning]", _v471_router_error)
+# =================== END V471 DAILY CLIENT HUB ===================
+
+# --- V472 PREMIUM EXPERIENCE EVOLUTION HEALTHCHECK ---
+@app.route("/v472-health")
+def v472_health():
+    return {
+        "ok": True,
+        "version": "V472_PREMIUM_EXPERIENCE_EVOLUTION_FULL_APP_VALIDATED_REAL",
+        "status": "app completa validada",
+        "includes": [
+            "cliente limpio",
+            "calendario",
+            "favoritos",
+            "alertas",
+            "combis",
+            "picks",
+            "live",
+            "partidos",
+            "cuenta"
+        ]
+    }
+
+# =================== V473 USER RETENTION & DAILY LOOP ===================
+V473_VERSION = "V473_USER_RETENTION_DAILY_LOOP"
+
+def _v473_safe_count(x):
+    try:
+        return len(x or [])
+    except Exception:
+        return 0
+
+def _v473_context(active="inicio", logged_mode=False):
+    # V473 se apoya en la base V471/V470 ya limpiada, pero añade una capa real de retención diaria.
+    if "_v471_context" in globals():
+        ctx = _v471_context(active, logged_mode)
+    elif "_v470_context" in globals():
+        ctx = _v470_context(active, logged_mode)
+    else:
+        ctx = {}
+    ctx = dict(ctx)
+    ctx["version"] = V473_VERSION
+
+    today = ctx.get("today") or []
+    live = ctx.get("live") or []
+    upcoming = ctx.get("upcoming") or []
+    picks = ctx.get("top_picks") or ctx.get("picks") or []
+    alerts = ctx.get("client_alerts") or []
+    favs = ctx.get("favorites") or []
+    combi = ctx.get("smart_combi") or ctx.get("combi") or {}
+    combi_items = combi.get("selections") if isinstance(combi, dict) else []
+
+    # Próxima acción clara para que el cliente no se pierda al entrar.
+    actions = []
+    if live:
+        actions.append({
+            "label": "Directo ahora",
+            "title": "Revisar partidos en vivo",
+            "text": "Hay partidos activos. Mira marcador, minuto y posibles oportunidades live.",
+            "url": "/en-directo",
+            "tone": "green"
+        })
+    if picks:
+        actions.append({
+            "label": "Picks del día",
+            "title": "Ver oportunidades SHARK",
+            "text": "Revisa los picks disponibles con cuota, stake y riesgo antes de decidir.",
+            "url": "/picks",
+            "tone": "gold"
+        })
+    if upcoming:
+        first = upcoming[0]
+        mid = first.get("id") or first.get("match_id") or "1"
+        actions.append({
+            "label": "Próximo partido",
+            "title": f"{first.get('home') or first.get('home_team') or 'Local'} vs {first.get('away') or first.get('away_team') or 'Visitante'}",
+            "text": "Entra al detalle del partido y prepara alertas, picks o combi.",
+            "url": f"/partido/{mid}",
+            "tone": "blue"
+        })
+    if not actions:
+        actions.append({
+            "label": "Calendario",
+            "title": "Buscar próximos partidos",
+            "text": "Elige un día del calendario para planificar picks y combis.",
+            "url": "/calendario",
+            "tone": "blue"
+        })
+
+    ctx["daily_loop"] = {
+        "title": "Hoy para ti",
+        "subtitle": "Tu resumen diario para saber qué mirar primero sin perderte.",
+        "matches_today": _v473_safe_count(today),
+        "live_now": _v473_safe_count(live),
+        "picks_today": _v473_safe_count(picks),
+        "alerts": _v473_safe_count(alerts),
+        "favorites": _v473_safe_count(favs),
+        "combi_matches": _v473_safe_count(combi_items),
+        "streak": max(1, min(7, 1 + _v473_safe_count(favs) + (1 if picks else 0) + (1 if live else 0))),
+        "next_actions": actions[:3],
+    }
+
+    ctx["retention_cards"] = [
+        {"title":"Partidos que revisar", "value": str(_v473_safe_count(today) + _v473_safe_count(upcoming)), "text":"Hoy y próximos", "url":"/partidos"},
+        {"title":"Picks activos", "value": str(_v473_safe_count(picks)), "text":"Oportunidades SHARK", "url":"/picks"},
+        {"title":"Combi preparada", "value": str(_v473_safe_count(combi_items)), "text":"Partidos futuros", "url":"/combis"},
+        {"title":"Alertas", "value": str(_v473_safe_count(alerts)), "text":"Avisos visibles", "url":"/alertas-cliente"},
+    ]
+    return ctx
+
+def v473_public_home():
+    return render_template("client_app_v461.html", **_v473_context("inicio", False))
+
+def v473_client_app():
+    return render_template("client_app_v461.html", **_v473_context("inicio", True))
+
+def v473_partidos():
+    return render_template("client_app_v461.html", **_v473_context("partidos", bool(current_user())))
+
+def v473_calendar():
+    return render_template("client_app_v461.html", **_v473_context("calendario", bool(current_user())))
+
+def v473_live():
+    return render_template("client_app_v461.html", **_v473_context("live", bool(current_user())))
+
+def v473_picks():
+    return render_template("client_app_v461.html", **_v473_context("picks", bool(current_user())))
+
+def v473_combis():
+    return render_template("client_app_v461.html", **_v473_context("combis", bool(current_user())))
+
+def v473_cuenta():
+    return render_template("client_app_v461.html", **_v473_context("cuenta", True))
+
+def v473_favoritos():
+    return render_template("client_app_v461.html", **_v473_context("favoritos", bool(current_user())))
+
+def v473_alertas_cliente():
+    return render_template("client_app_v461.html", **_v473_context("alertas", bool(current_user())))
+
+@app.route("/v473-health")
+def v473_health():
+    ctx = _v473_context("inicio", False)
+    return jsonify({
+        "ok": True,
+        "version": V473_VERSION,
+        "daily_loop": ctx.get("daily_loop"),
+        "routes": ["/", "/app", "/partidos", "/calendario", "/en-directo", "/picks", "/combis", "/favoritos", "/alertas-cliente", "/cuenta"],
+    })
+
+try:
+    for rule in list(app.url_map.iter_rules()):
+        rt = str(rule.rule)
+        if rt in {"/", "/free"}:
+            app.view_functions[rule.endpoint] = v473_public_home
+        elif rt in {"/app", "/clientes", "/dashboard", "/cliente/pro", "/cliente/home"}:
+            app.view_functions[rule.endpoint] = v473_client_app
+        elif rt in {"/partidos", "/fixtures"}:
+            app.view_functions[rule.endpoint] = v473_partidos
+        elif rt in {"/calendario", "/cliente/calendario"}:
+            app.view_functions[rule.endpoint] = v473_calendar
+        elif rt in {"/en-directo", "/live", "/cliente/live"}:
+            app.view_functions[rule.endpoint] = v473_live
+        elif rt in {"/picks", "/cliente/picks"}:
+            app.view_functions[rule.endpoint] = v473_picks
+        elif rt in {"/combis", "/cliente/combi", "/cliente/combinadas", "/cliente/shark-combi"}:
+            app.view_functions[rule.endpoint] = v473_combis
+        elif rt in {"/cuenta"}:
+            app.view_functions[rule.endpoint] = v473_cuenta
+        elif rt in {"/favoritos"}:
+            app.view_functions[rule.endpoint] = v473_favoritos
+        elif rt in {"/alertas-cliente", "/alertas", "/cliente/alertas"}:
+            app.view_functions[rule.endpoint] = v473_alertas_cliente
+except Exception as _v473_router_error:
+    print("[V473 router warning]", _v473_router_error)
+# =================== END V473 USER RETENTION & DAILY LOOP ===================
+
+# =================== V474 CLIENT PRO EXPERIENCE CLEANUP ===================
+V474_VERSION = "V474_CLIENT_PRO_EXPERIENCE_CLEANUP"
+
+_V474_BAD_WORDS = ("zz", "demo", "fake", "sample", "test", "prueba", "admin", "qa", "debug", "router", "engine", "control center")
+
+def _v474_text(value):
+    try:
+        s = str(value or "").strip()
+    except Exception:
+        return ""
+    replacements = {
+        "Draw": "Empate", "draw": "Empate", "DRAW": "Empate",
+        "Live": "Directo", "LIVE": "DIRECTO", "live": "directo",
+        "Engine": "", "Router": "", "Control Center": "", "QA": "", "Debug": "",
+    }
+    for a,b in replacements.items():
+        s = s.replace(a,b)
+    s = re.sub(r"\bV\d{2,}\b", "", s)
+    s = re.sub(r"\s{2,}", " ", s).strip()
+    return s
+
+def _v474_is_bad_text(value):
+    s = str(value or "").lower()
+    if not s.strip():
+        return False
+    return any(w in s for w in _V474_BAD_WORDS)
+
+def _v474_clean_pick(p):
+    if not isinstance(p, dict):
+        return None
+    fields = [p.get("title"), p.get("pick"), p.get("reason"), p.get("league")]
+    if any(_v474_is_bad_text(x) for x in fields):
+        return None
+    q = dict(p)
+    for k in list(q.keys()):
+        if isinstance(q.get(k), str):
+            q[k] = _v474_text(q.get(k))
+    if not q.get("title"):
+        q["title"] = "Pick SHARK"
+    if not q.get("pick"):
+        q["pick"] = "Revisar mercado"
+    if not q.get("risk"):
+        q["risk"] = "Medio"
+    if not q.get("stake"):
+        q["stake"] = "1/10"
+    return q
+
+def _v474_clean_match(m, idx=0):
+    if not isinstance(m, dict):
+        return None
+    q = dict(m)
+    home = _v474_text(q.get("home") or q.get("home_team") or "Local")
+    away = _v474_text(q.get("away") or q.get("away_team") or "Visitante")
+    if _v474_is_bad_text(home) or _v474_is_bad_text(away):
+        return None
+    q["home"] = home or "Local"
+    q["away"] = away or "Visitante"
+    q["league"] = _v474_text(q.get("league") or q.get("competition") or "Competición") or "Competición"
+    q["status"] = _v474_text(q.get("status") or "Programado") or "Programado"
+    q["pick_badge"] = _v474_text(q.get("pick_badge") or "")
+    q["momentum_label"] = _v474_text(q.get("momentum_label") or "")
+    q["match_url"] = q.get("match_url") or f"/partido/{q.get('id') or q.get('match_id') or idx+1}"
+    # Evita mostrar N/A o imágenes rotas como texto.
+    for key in ("home_logo", "away_logo"):
+        val = str(q.get(key) or "").strip()
+        if val.lower() in ("n/a", "na", "none", "null", "-"):
+            q[key] = ""
+    return q
+
+def _v474_list_matches(items):
+    out=[]
+    for i,m in enumerate(items or []):
+        cm = _v474_clean_match(m, i)
+        if cm:
+            out.append(cm)
+    return out
+
+def _v474_clean_combi(combi):
+    if not isinstance(combi, dict):
+        return {}
+    q = dict(combi)
+    selections=[]
+    for s in q.get("selections") or []:
+        if not isinstance(s, dict):
+            continue
+        if any(_v474_is_bad_text(s.get(k)) for k in ("title","pick","league")):
+            continue
+        x=dict(s)
+        for k in list(x.keys()):
+            if isinstance(x.get(k), str):
+                x[k] = _v474_text(x.get(k))
+        selections.append(x)
+    q["selections"] = selections[:15]
+    q["advice"] = _v474_text(q.get("advice") or "Combi creada con próximos partidos. Revisa cuotas finales antes de apostar.")
+    return q if selections else {}
+
+def _v474_context(active="inicio", logged_mode=False):
+    if "_v473_context" in globals():
+        ctx = _v473_context(active, logged_mode)
+    elif "_v471_context" in globals():
+        ctx = _v471_context(active, logged_mode)
+    elif "_v470_context" in globals():
+        ctx = _v470_context(active, logged_mode)
+    else:
+        ctx = {}
+    ctx = dict(ctx)
+    ctx["version"] = V474_VERSION
+    ctx["today"] = _v474_list_matches(ctx.get("today"))
+    ctx["live"] = _v474_list_matches(ctx.get("live"))
+    ctx["upcoming"] = _v474_list_matches(ctx.get("upcoming"))
+    ctx["matches"] = _v474_list_matches(ctx.get("matches"))
+    ctx["calendar_matches"] = _v474_list_matches(ctx.get("calendar_matches"))
+    picks=[]
+    for p in (ctx.get("top_picks") or ctx.get("picks") or []):
+        cp = _v474_clean_pick(p)
+        if cp:
+            picks.append(cp)
+    ctx["top_picks"] = picks[:12]
+    ctx["picks"] = picks
+    ctx["combi"] = _v474_clean_combi(ctx.get("smart_combi") or ctx.get("combi") or {})
+    ctx["smart_combi"] = ctx["combi"]
+    # Si el daily loop heredado apuntaba a algo raro, se normaliza a rutas seguras.
+    safe_actions=[]
+    for a in ((ctx.get("daily_loop") or {}).get("next_actions") or []):
+        if not isinstance(a, dict):
+            continue
+        if any(_v474_is_bad_text(a.get(k)) for k in ("title","text","label")):
+            continue
+        x=dict(a)
+        x["label"]=_v474_text(x.get("label") or "Acción")
+        x["title"]=_v474_text(x.get("title") or "Revisar app")
+        x["text"]=_v474_text(x.get("text") or "Acceso recomendado para continuar.")
+        url=str(x.get("url") or "/partidos")
+        allowed=("/partidos","/calendario","/en-directo","/picks","/combis","/favoritos","/alertas-cliente","/cuenta","/partido/")
+        if not url.startswith(allowed):
+            url="/partidos"
+        x["url"]=url
+        safe_actions.append(x)
+    if not safe_actions:
+        safe_actions=[
+            {"label":"Partidos","title":"Ver partidos de hoy","text":"Empieza por los partidos disponibles y revisa si hay valor.","url":"/partidos","tone":"blue"},
+            {"label":"Combis","title":"Crear combi","text":"Elige fecha y número de partidos para construir una combinada.","url":"/combis","tone":"gold"},
+            {"label":"Picks","title":"Revisar picks","text":"Solo se muestran oportunidades cuando hay criterio real.","url":"/picks","tone":"gold"},
+        ]
+    ctx["daily_loop"]={"next_actions":safe_actions[:3]}
+    ctx["logged_mode"] = logged_mode
+    return ctx
+
+def v474_render(active="inicio", logged_mode=False):
+    return render_template("client_app_v474.html", **_v474_context(active, logged_mode))
+
+def v474_public_home(): return v474_render("inicio", False)
+def v474_client_app(): return v474_render("inicio", True)
+def v474_partidos(): return v474_render("partidos", bool(current_user()))
+def v474_calendar(): return v474_render("calendario", bool(current_user()))
+def v474_live(): return v474_render("live", bool(current_user()))
+def v474_picks(): return v474_render("picks", bool(current_user()))
+def v474_combis(): return v474_render("combis", bool(current_user()))
+def v474_cuenta(): return v474_render("cuenta", True)
+def v474_favoritos(): return v474_render("favoritos", bool(current_user()))
+def v474_alertas_cliente(): return v474_render("favoritos", bool(current_user()))
+
+def v474_match_detail(match_id):
+    ctx = _v474_context("partidos", bool(current_user()))
+    all_matches = (ctx.get("today") or []) + (ctx.get("live") or []) + (ctx.get("upcoming") or []) + (ctx.get("calendar_matches") or [])
+    match = next((m for m in all_matches if str(m.get("id") or m.get("match_id")) == str(match_id)), None)
+    if not match and all_matches:
+        match = all_matches[0]
+    return render_template("match_detail_v461.html", match=match, picks=ctx.get("picks", [])[:4], version=V474_VERSION)
+
+@app.route("/v474-health")
+def v474_health():
+    ctx = _v474_context("inicio", False)
+    return jsonify({
+        "ok": True,
+        "version": V474_VERSION,
+        "client_template": "client_app_v474.html",
+        "weird_client_text_cleanup": True,
+        "dead_buttons_guard": True,
+        "fake_pick_filter": True,
+        "draw_translated": True,
+        "routes": ["/", "/app", "/partidos", "/calendario", "/en-directo", "/picks", "/combis", "/cuenta"],
+        "counts": {"today": len(ctx.get("today") or []), "live": len(ctx.get("live") or []), "picks": len(ctx.get("picks") or []), "upcoming": len(ctx.get("upcoming") or [])}
+    })
+
+try:
+    for rule in list(app.url_map.iter_rules()):
+        rt = str(rule.rule)
+        if rt in {"/", "/free", "/public", "/home"}:
+            app.view_functions[rule.endpoint] = v474_public_home
+        elif rt in {"/app", "/clientes", "/dashboard", "/cliente/pro", "/cliente/home", "/client"}:
+            app.view_functions[rule.endpoint] = v474_client_app
+        elif rt in {"/partidos", "/fixtures", "/partidos-hoy", "/home-live-real", "/fixtures/today-pro", "/match-center-unified"}:
+            app.view_functions[rule.endpoint] = v474_partidos
+        elif rt in {"/calendario", "/cliente/calendario"}:
+            app.view_functions[rule.endpoint] = v474_calendar
+        elif rt in {"/en-directo", "/live", "/cliente/live", "/live-center"}:
+            app.view_functions[rule.endpoint] = v474_live
+        elif rt in {"/picks", "/cliente/picks"}:
+            app.view_functions[rule.endpoint] = v474_picks
+        elif rt in {"/combis", "/cliente/combi", "/cliente/combinadas", "/cliente/shark-combi", "/cliente/combi-1x2"}:
+            app.view_functions[rule.endpoint] = v474_combis
+        elif rt in {"/cuenta", "/mi-cuenta", "/cliente/cuenta", "/cliente/perfil"}:
+            app.view_functions[rule.endpoint] = v474_cuenta
+        elif rt in {"/favoritos", "/cliente/favoritos"}:
+            app.view_functions[rule.endpoint] = v474_favoritos
+        elif rt in {"/alertas-cliente", "/alertas", "/cliente/alertas"}:
+            app.view_functions[rule.endpoint] = v474_alertas_cliente
+        elif rt in {"/partido/<match_id>", "/match/<match_id>"}:
+            app.view_functions[rule.endpoint] = v474_match_detail
+except Exception as _v474_router_error:
+    print("[V474 router warning]", _v474_router_error)
+# =================== END V474 CLIENT PRO EXPERIENCE CLEANUP ===================
+

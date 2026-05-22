@@ -1,0 +1,11 @@
+NeMeSiS SHARK PRO — V473 USER RETENTION & DAILY LOOP
+
+Incluye:
+- Hoy para ti
+- Próximas acciones claras
+- Seguimiento rápido
+- Racha SHARK visual
+- Accesos a partidos, picks, combis, alertas
+- Healthcheck /v473-health
+
+App completa Render/GitHub Ready.
