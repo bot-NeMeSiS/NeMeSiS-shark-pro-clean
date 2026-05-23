@@ -22782,3 +22782,14 @@ def v480_health():
             "riesgo visual"
         ]
     }
+
+
+# --- V481 CLIENT USABILITY MEMBERSHIP SYSTEM ---
+@app.route("/v481-health")
+def v481_health():
+    return {
+        "ok": True,
+        "version": "V481_CLIENT_USABILITY_MEMBERSHIP_SYSTEM",
+        "status": "client experience upgraded",
+        "memberships": ["FREE", "PRO", "ELITE"]
+    }
