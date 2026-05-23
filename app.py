@@ -23380,3 +23380,80 @@ def v487_health():
         "routes": ["/picks", "/api/v487/picks"]
     }
 
+
+# --- V488 COMBI PRO EXPERIENCE ---
+def _v488_today_iso():
+    import datetime
+    return datetime.date.today().isoformat()
+
+def _v488_plus_days_iso(days):
+    import datetime
+    return (datetime.date.today() + datetime.timedelta(days=days)).isoformat()
+
+def _v488_field(m, *keys, default=""):
+    if isinstance(m, dict):
+        for k in keys:
+            if m.get(k) not in (None, ""):
+                return m.get(k)
+    return default
+
+def _v488_collect_upcoming_matches():
+    matches = []
+    for fn_name in ("get_upcoming_matches", "get_today_matches", "get_matches", "get_fixtures", "build_matches_feed", "get_client_matches"):
+        fn = globals().get(fn_name)
+        if callable(fn):
+            try:
+                data = fn()
+                if isinstance(data, dict):
+                    for key in ("matches", "events", "fixtures", "data"):
+                        if isinstance(data.get(key), list):
+                            data = data.get(key)
+                            break
+                if isinstance(data, list):
+                    matches.extend([m for m in data if isinstance(m, dict)])
+            except Exception:
+                pass
+    return matches
+
+def _v488_build_legs(count=3, modo="equilibrada"):
+    count = max(1, min(15, int(count or 3)))
+    raw = _v488_collect_upcoming_matches()
+    legs = []
+    for m in raw[:count]:
+        home = _v488_field(m, "home", "home_team", "homeTeam", "local", default="Local")
+        away = _v488_field(m, "away", "away_team", "awayTeam", "visitor", default="Visitante")
+        league = _v488_field(m, "league", "competition", "sport_title", default="Competición")
+        date = str(_v488_field(m, "date", "commence_time", "start_time", "time", default="Próximo"))[:16]
+        market = "Doble oportunidad" if modo == "segura" else ("Empate no apuesta" if modo == "equilibrada" else "Ganador del partido")
+        odd = "1.35" if modo == "segura" else ("1.62" if modo == "equilibrada" else "2.05")
+        legs.append({"match": f"{home} vs {away}", "league": league, "date": date, "market": market, "odd": odd})
+    return legs
+
+@app.before_request
+def _v488_combis_override():
+    try:
+        if request.path != "/combis":
+            return None
+        modo = request.args.get("modo", "equilibrada")
+        partidos = max(1, min(15, int(request.args.get("partidos", "3") or 3)))
+        desde = request.args.get("desde") or _v488_today_iso()
+        hasta = request.args.get("hasta") or _v488_plus_days_iso(7)
+        legs = _v488_build_legs(partidos, modo)
+        factor = 1.0
+        for leg in legs:
+            try: factor *= float(str(leg.get("odd", "1")).replace(",", "."))
+            except Exception: pass
+        return render_template("combi_pro_v488.html", legs=legs, modo=modo, partidos=partidos, desde=desde, hasta=hasta, cuota_total=(f"{factor:.2f}" if legs else "—"), stake=("0.5u" if modo=="agresiva" else ("1u" if modo=="equilibrada" else "1.5u")), riesgo=("Alto" if modo=="agresiva" else ("Medio" if modo=="equilibrada" else "Bajo")), retorno=(f"{factor*10:.2f}€ por 10€" if legs else "—"), lectura="Combi generada priorizando próximos partidos. Revisa cuotas antes de entrar.")
+    except Exception:
+        return render_template("combi_pro_v488.html", legs=[], modo="equilibrada", partidos=3, desde=_v488_today_iso(), hasta=_v488_plus_days_iso(7), cuota_total="—", stake="—", riesgo="—", retorno="—", lectura="No se pudo generar la combi.")
+
+@app.route("/api/v488/combi")
+def v488_combi_api():
+    modo = request.args.get("modo", "equilibrada")
+    partidos = int(request.args.get("partidos", "3") or 3)
+    return {"ok": True, "modo": modo, "partidos": partidos, "legs": _v488_build_legs(partidos, modo)}
+
+@app.route("/v488-health")
+def v488_health():
+    return {"ok": True, "version": "V488_COMBI_PRO_EXPERIENCE", "status": "combi pro integrada"}
+
