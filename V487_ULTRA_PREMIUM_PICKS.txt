@@ -1,0 +1,8 @@
+NeMeSiS SHARK PRO V487 — Ultra Premium Picks
+- /picks renovado
+- filtros Top/Seguro/Value/Directo
+- elimina picks demo/test/zz
+- traduce Draw a Empate
+- estado vacío premium
+- /api/v487/picks
+- /v487-health

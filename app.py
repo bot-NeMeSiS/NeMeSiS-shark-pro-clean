@@ -23306,3 +23306,77 @@ def v486_health():
         "status": "telegram delivery integrado"
     }
 
+
+# --- V487 ULTRA PREMIUM PICKS ---
+def _v487_clean_pick_text(value):
+    text = str(value or "").strip()
+    bad = ("zz", "test", "demo", "sample", "prueba", "fake")
+    if text.lower() in bad:
+        return ""
+    return text.replace("Draw", "Empate")
+
+def _v487_collect_real_picks(mode="top"):
+    picks = []
+    # Intentar usar motores existentes si devuelven picks reales
+    for fn_name in ("get_real_picks", "get_picks", "build_picks", "get_today_picks", "shark_picks_engine"):
+        fn = globals().get(fn_name)
+        if callable(fn):
+            try:
+                data = fn()
+                if isinstance(data, dict):
+                    for key in ("picks", "data", "items"):
+                        if isinstance(data.get(key), list):
+                            data = data.get(key)
+                            break
+                if isinstance(data, list):
+                    for i, p in enumerate(data[:12]):
+                        if not isinstance(p, dict):
+                            continue
+                        raw_pick = _v487_clean_pick_text(p.get("pick") or p.get("market") or p.get("selection"))
+                        if not raw_pick:
+                            continue
+                        match = _v487_clean_pick_text(p.get("match") or f"{p.get('home','Local')} vs {p.get('away','Visitante')}")
+                        picks.append({
+                            "match": match,
+                            "league": _v487_clean_pick_text(p.get("league") or p.get("competition") or "Partido destacado"),
+                            "time": _v487_clean_pick_text(p.get("time") or p.get("date") or "Próximo"),
+                            "market": raw_pick,
+                            "odds": _v487_clean_pick_text(p.get("odds") or p.get("cuota") or "—"),
+                            "stake": _v487_clean_pick_text(p.get("stake") or "1u"),
+                            "risk": _v487_clean_pick_text(p.get("risk") or "Medio"),
+                            "risk_class": "medium",
+                            "reason": _v487_clean_pick_text(p.get("reason") or p.get("motivo") or "La oportunidad encaja con el contexto del partido y las cuotas disponibles."),
+                            "avoid": _v487_clean_pick_text(p.get("avoid") or "Evitar si la cuota baja demasiado o hay cambios importantes antes del inicio."),
+                            "badge": "SHARK",
+                            "match_url": "/partido/" + str(p.get("match_id") or p.get("id") or i),
+                        })
+            except Exception:
+                pass
+    # Sin inventar picks: si no hay reales, estado vacío premium.
+    return picks
+
+@app.before_request
+def _v487_picks_override():
+    try:
+        if request.path != "/picks":
+            return None
+        mode = request.args.get("mode", "top")
+        picks = _v487_collect_real_picks(mode)
+        return render_template("picks_ultra_v487.html", picks=picks, mode=mode)
+    except Exception:
+        return render_template("picks_ultra_v487.html", picks=[], mode=request.args.get("mode", "top"))
+
+@app.route("/api/v487/picks")
+def v487_picks_api():
+    mode = request.args.get("mode", "top")
+    return {"ok": True, "mode": mode, "picks": _v487_collect_real_picks(mode)}
+
+@app.route("/v487-health")
+def v487_health():
+    return {
+        "ok": True,
+        "version": "V487_ULTRA_PREMIUM_PICKS",
+        "status": "picks ultra premium integrados",
+        "routes": ["/picks", "/api/v487/picks"]
+    }
+
