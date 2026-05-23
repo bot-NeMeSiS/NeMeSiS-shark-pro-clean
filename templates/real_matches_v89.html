@@ -3,6 +3,9 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='css/v266_client_experience_unification.css') }}">
 <link rel="stylesheet" href="/static/css/v482_premium_identity.css">
 <link rel="stylesheet" href="/static/css/v485_crest_engine.css">
+<link rel="stylesheet" href="/static/css/v490_performance_skeletons.css">
+<link rel="stylesheet" href="/static/css/v491_final_design_system.css">
+<link rel="stylesheet" href="/static/css/v492_live_score.css">
 </head><body class="v263-global-unified v263-global-unified">
 <div class="v263-legacy-shell" aria-label="Navegación unificada V263">
   <a class="v263-shell-brand" href="/clientes"><strong>NeMeSiS</strong><small>SHARK PRO</small></a>
@@ -17,4 +20,5 @@
 {% if not feed.ok %}<div class="v89-feed-alert"><strong>No hay partidos reales para mostrar.</strong><br>La app no va a inventar partidos ni usar demos. Si la API real no devuelve datos, esta pantalla queda vacía por seguridad.{% if feed.error %}<br><small>{{ feed.error }}</small>{% endif %}</div>{% endif %}
 <section class="nsp-card" style="margin-top:18px;"><h2>Feed real</h2><div class="v89-match-list">{% for m in feed.matches %}<article class="v89-match" data-v89-real="true"><div class="v89-time"><div class="v89-date">{{ m.date }}</div><div class="v89-hour">{{ m.time }}</div><div class="v89-source">{{ m.relative }}</div></div><div><div class="v89-league">{{ m.league }}</div><div class="v89-teams">{{ m.home_team }} vs {{ m.away_team }}</div><div class="v89-market">{{ m.market }}{% if m.odds %} · cuota {{ m.odds }}{% endif %}</div></div><div class="v89-quality"><span class="v89-pill">{{ m.status }}</span><div class="v89-source">Real · {{ m.source }}</div></div></article>{% endfor %}</div></section>
 </main><nav class="nsp-mobile-bottom"><a href="/">Inicio</a><a href="/real-matches">Reales</a><a href="/picks">Picks</a><a href="/admin/real-match-engine">V89</a></nav><script src="/static/js/v70_premium_ui.js"></script><script src="/static/js/v89_real_match_engine.js"></script><script defer src="{{ url_for('static', filename='js/v266_client_experience_unification.js') }}"></script>
+<script defer src="/static/js/v490_app_speed.js"></script>
 </body></html>

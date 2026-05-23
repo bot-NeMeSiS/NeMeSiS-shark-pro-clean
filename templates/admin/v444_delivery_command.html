@@ -4,6 +4,9 @@
 <link rel="stylesheet" href="/static/v444_delivery_reliability.css">
 <link rel="stylesheet" href="/static/css/v482_premium_identity.css">
 <link rel="stylesheet" href="/static/css/v485_crest_engine.css">
+<link rel="stylesheet" href="/static/css/v490_performance_skeletons.css">
+<link rel="stylesheet" href="/static/css/v491_final_design_system.css">
+<link rel="stylesheet" href="/static/css/v492_live_score.css">
 </head><body class="v444-body">
 <main class="v444-shell">
   <section class="v444-hero">
@@ -24,4 +27,5 @@
   </section>
   <section class="v444-panel"><h2>Destinos detectados</h2><div class="v444-tags">{% for t in health.targets %}<span>{{ t.label }} · {{ t.preview }}</span>{% else %}<span>No hay destinos configurados</span>{% endfor %}</div></section>
   <section class="v444-panel"><h2>Últimos logs</h2>{% for l in health.recent_alerts %}<div class="v444-log"><b>{{ l.title }}</b><span>{{ l.kind }} · {{ l.channel }} · {{ l.status }} · {{ l.created_at }}</span></div>{% else %}<p>No hay logs todavía.</p>{% endfor %}</section>
-</main></body></html>
+</main><script defer src="/static/js/v490_app_speed.js"></script>
+</body></html>

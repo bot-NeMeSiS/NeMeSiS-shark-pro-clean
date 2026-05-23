@@ -14,6 +14,9 @@ body{margin:0;background:#06111f;color:#eef8ff;font-family:Inter,system-ui,Segoe
 .bottom{position:fixed;left:50%;bottom:12px;transform:translateX(-50%);width:min(760px,calc(100% - 20px));display:grid;grid-template-columns:repeat(6,1fr);gap:6px;background:rgba(3,9,20,.88);border:1px solid rgba(255,255,255,.12);border-radius:22px;padding:8px}.nav{text-align:center;font-size:12px;color:#8aa8bd;padding:9px 4px;border-radius:15px}.nav.active,.nav:hover{background:rgba(0,229,255,.13);color:#eef8ff}
 @media(max-width:900px){.grid{grid-template-columns:repeat(2,1fr)}.layout{grid-template-columns:1fr}.bottom{grid-template-columns:repeat(3,1fr)}}
 </style>
+<link rel="stylesheet" href="/static/css/v490_performance_skeletons.css">
+<link rel="stylesheet" href="/static/css/v491_final_design_system.css">
+<link rel="stylesheet" href="/static/css/v492_live_score.css">
 </head>
 <body>
 <main class="wrap">
@@ -63,5 +66,6 @@ body{margin:0;background:#06111f;color:#eef8ff;font-family:Inter,system-ui,Segoe
 <a class="nav" href="/combis">Combis</a>
 <a class="nav active" href="/perfil">Cuenta</a>
 </nav>
+<script defer src="/static/js/v490_app_speed.js"></script>
 </body>
 </html>

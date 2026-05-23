@@ -1,0 +1,5 @@
+NeMeSiS SHARK PRO V492 — Live Score + Minute Fix
+/en-directo
+/live
+/api/v492/live-score
+/v492-health

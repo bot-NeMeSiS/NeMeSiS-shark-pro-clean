@@ -1,0 +1,83 @@
+
+/* NeMeSiS SHARK PRO — V491 Final Design System */
+:root{
+  --v491-bg:#030914;
+  --v491-panel:#07182b;
+  --v491-panel-2:#0b223b;
+  --v491-line:rgba(255,255,255,.10);
+  --v491-text:#eef8ff;
+  --v491-muted:#8aa8bd;
+  --v491-blue:#00e5ff;
+  --v491-blue2:#1877ff;
+  --v491-gold:#ffd166;
+  --v491-green:#35e69b;
+  --v491-red:#ff5d73;
+  --v491-radius:24px;
+  --v491-shadow:0 18px 58px rgba(0,0,0,.30);
+}
+.v491-card,.shark-card,.match-card,.pick-card,.combi-card,.panel,.ticket,.hero{
+  border:1px solid var(--v491-line)!important;
+  background:linear-gradient(180deg,rgba(11,34,59,.92),rgba(5,16,31,.96))!important;
+  border-radius:var(--v491-radius)!important;
+  box-shadow:var(--v491-shadow)!important;
+}
+.v491-title{font-size:clamp(24px,4vw,38px);font-weight:950;letter-spacing:-.03em;margin:0 0 8px}
+.v491-subtitle{color:var(--v491-muted);line-height:1.5;margin:0}
+.v491-btn,.btn,.button,.cta-primary{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  border:0!important;border-radius:16px!important;
+  background:linear-gradient(135deg,var(--v491-blue),var(--v491-blue2))!important;
+  color:#03111f!important;font-weight:950!important;
+  padding:10px 14px!important;text-decoration:none!important;
+  box-shadow:0 12px 32px rgba(0,229,255,.18)!important;
+}
+.v491-btn-secondary,.ghost,.btn-ghost{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  border:1px solid rgba(255,255,255,.12)!important;
+  background:rgba(255,255,255,.06)!important;
+  color:var(--v491-text)!important;
+  border-radius:16px!important;padding:9px 13px!important;
+  font-weight:850!important;text-decoration:none!important;
+}
+.v491-badge,.badge,.shark-badge{
+  display:inline-flex;align-items:center;gap:6px;
+  border:1px solid rgba(255,255,255,.12);
+  background:rgba(255,255,255,.06);
+  color:var(--v491-text);border-radius:999px;
+  padding:7px 10px;font-size:12px;font-weight:900;
+}
+.v491-live,.live,.live-badge{background:linear-gradient(90deg,var(--v491-green),var(--v491-blue))!important;color:#03111f!important;border:0!important}
+.v491-premium,.elite,.badge-elite{color:#1a1000!important;background:linear-gradient(135deg,var(--v491-gold),#ff9f1c)!important;border:0!important}
+.v491-empty,.empty,.empty-state,.no-data{
+  border:1px dashed rgba(0,229,255,.26)!important;
+  background:rgba(0,229,255,.06)!important;
+  color:var(--v491-muted)!important;
+  border-radius:22px!important;
+  padding:18px!important;
+}
+.v491-grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+.v491-grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.v491-grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.v491-section{margin:18px 0}
+.v491-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.v491-muted{color:var(--v491-muted)}
+.v491-bottom-nav,.bottom,.bottom-nav{
+  background:rgba(3,9,20,.90)!important;
+  border:1px solid rgba(255,255,255,.12)!important;
+  backdrop-filter:blur(18px)!important;
+  box-shadow:0 16px 48px rgba(0,0,0,.42)!important;
+}
+.v491-nav-item,.nav{transition:.16s ease}
+.v491-nav-item:hover,.nav:hover,.nav.active{
+  background:rgba(0,229,255,.13)!important;
+  color:var(--v491-text)!important;
+}
+.v491-card:hover,.match-card:hover,.pick-card:hover,.combi-card:hover{
+  transform:translateY(-1px);
+  border-color:rgba(0,229,255,.26)!important;
+  transition:.18s ease;
+}
+@media(max-width:900px){
+  .v491-grid-2,.v491-grid-3,.v491-grid-4{grid-template-columns:1fr}
+  .v491-row{align-items:flex-start;flex-direction:column}
+}

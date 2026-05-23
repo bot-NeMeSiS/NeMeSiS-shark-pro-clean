@@ -13,6 +13,9 @@
   </style>
 <link rel="stylesheet" href="/static/css/v482_premium_identity.css">
 <link rel="stylesheet" href="/static/css/v485_crest_engine.css">
+<link rel="stylesheet" href="/static/css/v490_performance_skeletons.css">
+<link rel="stylesheet" href="/static/css/v491_final_design_system.css">
+<link rel="stylesheet" href="/static/css/v492_live_score.css">
 </head>
 <body>
 <header class="top"><div class="topin"><a class="brand" href="/"><span class="logo">🦈</span><span>NeMeSiS SHARK PRO</span></a><span class="live-pill"><span class="dot"></span> {{ counts.live }} live · {{ counts.today }} hoy</span><div class="top-actions"><a class="btn gold" href="/picks">Picks</a><a class="btn" href="/cliente-login">Entrar</a><a class="btn primary" href="/registro">Crear cuenta</a></div></div></header>
@@ -71,5 +74,6 @@
 </main>
 <a class="shark-float" href="/cliente-login" title="SHARK AI">🦈</a>
 <nav class="bottom"><a class="{% if active=='inicio' %}active{% endif %}" href="/">Inicio</a><a class="{% if active=='partidos' %}active{% endif %}" href="/partidos">Partidos</a><a class="{% if active=='live' %}active{% endif %}" href="/en-directo">Live</a><a class="{% if active=='picks' %}active{% endif %}" href="/picks">Picks</a><a href="/cliente-login">Cuenta</a></nav>
+<script defer src="/static/js/v490_app_speed.js"></script>
 </body>
 </html>

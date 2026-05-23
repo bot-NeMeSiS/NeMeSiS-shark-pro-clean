@@ -3,6 +3,9 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='css/v266_client_experience_unification.css') }}">
 <link rel="stylesheet" href="/static/css/v482_premium_identity.css">
 <link rel="stylesheet" href="/static/css/v485_crest_engine.css">
+<link rel="stylesheet" href="/static/css/v490_performance_skeletons.css">
+<link rel="stylesheet" href="/static/css/v491_final_design_system.css">
+<link rel="stylesheet" href="/static/css/v492_live_score.css">
 </head><body class="v263-global-unified v263-global-unified">
 <div class="v263-legacy-shell" aria-label="Navegación unificada V263">
   <a class="v263-shell-brand" href="/clientes"><strong>NeMeSiS</strong><small>SHARK PRO</small></a>
@@ -20,4 +23,5 @@
 <section class="v92-hero compact"><div><span class="v92-pill">PICKS PROFESIONALES · DATOS REALES</span><h1>Apuesta clara, score, cuota y riesgo</h1><p>Todos los picks se calculan con datos reales disponibles. No son garantía de acierto.</p></div><div class="v92-hero-actions"><a href="/cliente/picks?force=true">Actualizar</a></div></section>
 <section class="v92-card-grid">{% for p in vm.recommended %}<article class="v92-match-card"><div class="v92-card-top"><span>{{ p.league }}</span><strong>{{ p.date }} · {{ p.time }}</strong></div><h2>{{ p.home }}<small>vs</small>{{ p.away }}</h2><div class="v92-betbox"><small>Apuesta a</small><strong>{{ p.market }}</strong><p>{{ p.bookmaker }} · datos reales</p></div><div class="v92-card-metrics"><div><strong>{{ p.score }}</strong><span>Confianza</span></div><div><strong>{{ p.odds }}</strong><span>Cuota</span></div><div><strong>{{ p.risk }}</strong><span>Riesgo</span></div><div><strong>{{ p.stake }}</strong><span>Stake</span></div></div><a class="v92-button" href="{{ p.detail_url }}">Abrir análisis</a></article>{% else %}<section class="v92-empty">No hay picks reales ahora mismo. Sin demos.</section>{% endfor %}</section>
 </main></div><script defer src="{{ url_for('static', filename='js/v266_client_experience_unification.js') }}"></script>
+<script defer src="/static/js/v490_app_speed.js"></script>
 </body></html>

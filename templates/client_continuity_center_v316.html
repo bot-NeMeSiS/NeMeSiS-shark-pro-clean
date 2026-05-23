@@ -15,6 +15,9 @@
   </style>
 <link rel="stylesheet" href="/static/css/v482_premium_identity.css">
 <link rel="stylesheet" href="/static/css/v485_crest_engine.css">
+<link rel="stylesheet" href="/static/css/v490_performance_skeletons.css">
+<link rel="stylesheet" href="/static/css/v491_final_design_system.css">
+<link rel="stylesheet" href="/static/css/v492_live_score.css">
 </head>
 <body>
 <div class="wrap">
@@ -44,5 +47,6 @@ fetch('/api/v316/client-continuity').then(r=>r.json()).then(d=>{
   el('actions').innerHTML=(d.recommended_actions||[]).map(a=>`<div class="act">${a}</div>`).join('');
 }).catch(()=>{el('headline').textContent='Continuity Center seguro activo'; el('watch').innerHTML='<div class="loading">No se pudo leer la API V316, pero la pantalla no rompe la app.</div>'});
 </script>
+<script defer src="/static/js/v490_app_speed.js"></script>
 </body>
 </html>

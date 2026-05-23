@@ -10,6 +10,9 @@
   </style>
 <link rel="stylesheet" href="/static/css/v482_premium_identity.css">
 <link rel="stylesheet" href="/static/css/v485_crest_engine.css">
+<link rel="stylesheet" href="/static/css/v490_performance_skeletons.css">
+<link rel="stylesheet" href="/static/css/v491_final_design_system.css">
+<link rel="stylesheet" href="/static/css/v492_live_score.css">
 </head>
 <body>
 <header class="top"><div class="topin"><a class="brand" href="{{ '/app' if logged_mode else '/' }}"><span class="logo">🦈</span><span>NeMeSiS SHARK PRO</span></a><div class="actions"><span class="livepill"><span class="dot"></span> {{ live|length if live else 0 }} en directo</span>{% if logged_mode %}<a class="btn" href="/cuenta">Mi cuenta</a>{% else %}<a class="btn hide-mobile" href="/cliente-login">Entrar</a><a class="btn primary" href="/registro">Crear cuenta</a>{% endif %}</div></div></header>
@@ -50,4 +53,5 @@
 </main>
 <a class="shark" href="{{ '/cliente/shark' if logged_mode else '/cliente-login' }}" title="SHARK AI">🦈</a>
 <nav class="bottom"><a class="{% if active=='inicio' %}active{% endif %}" href="{{ '/app' if logged_mode else '/' }}">Inicio</a><a class="{% if active=='partidos' %}active{% endif %}" href="/partidos">Partidos</a><a class="{% if active=='calendario' %}active{% endif %}" href="/calendario">Calendario</a><a class="{% if active=='live' %}active{% endif %}" href="/en-directo">Directo</a><a class="{% if active=='picks' %}active{% endif %}" href="/picks">Picks</a><a class="{% if active=='combis' %}active{% endif %}" href="/combis">Combis</a><a class="{% if active=='cuenta' %}active{% endif %}" href="{{ '/cuenta' if logged_mode else '/cliente-login' }}">Cuenta</a></nav>
+<script defer src="/static/js/v490_app_speed.js"></script>
 </body></html>

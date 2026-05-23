@@ -3,6 +3,9 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='css/v266_client_experience_unification.css') }}">
 <link rel="stylesheet" href="/static/css/v482_premium_identity.css">
 <link rel="stylesheet" href="/static/css/v485_crest_engine.css">
+<link rel="stylesheet" href="/static/css/v490_performance_skeletons.css">
+<link rel="stylesheet" href="/static/css/v491_final_design_system.css">
+<link rel="stylesheet" href="/static/css/v492_live_score.css">
 </head><body class="v263-global-unified v263-global-unified">
 <div class="v263-legacy-shell" aria-label="Navegación unificada V263">
   <a class="v263-shell-brand" href="/clientes"><strong>NeMeSiS</strong><small>SHARK PRO</small></a>
@@ -20,4 +23,5 @@
 <section class="v92-hero compact"><div><span class="v92-pill">CALENDARIO REAL</span><h1>Partidos disponibles</h1><p>Fecha, hora, liga y estado salen del Real Core.</p></div><div class="v92-hero-actions"><a href="/cliente/partidos?force=true">Actualizar</a></div></section>
 <section class="v92-pick-list">{% for p in vm.all_matches %}<a class="v92-pick-row" href="{{ p.detail_url }}"><div class="v92-rank">{{ p.status }}<strong>{{ p.time }}</strong></div><div class="v92-teams"><small>{{ p.league }} · {{ p.date }} {{ p.date_full }}</small><strong>{{ p.home }}</strong><span>{{ p.away }}</span></div><div class="v92-market"><small>Mercado</small><strong>{{ p.market }}</strong><span>{{ p.bookmaker }}</span></div><div class="v92-mini"><small>Cuota</small><strong>{{ p.odds }}</strong></div><div class="v92-mini"><small>SHARK</small><strong>{{ p.score }}</strong></div></a>{% else %}<section class="v92-empty">No hay partidos reales ahora mismo. Sin demos.</section>{% endfor %}</section>
 </main></div><script defer src="{{ url_for('static', filename='js/v266_client_experience_unification.js') }}"></script>
+<script defer src="/static/js/v490_app_speed.js"></script>
 </body></html>

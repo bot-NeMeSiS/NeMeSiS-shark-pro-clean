@@ -9,6 +9,9 @@
   </style>
 <link rel="stylesheet" href="/static/css/v482_premium_identity.css">
 <link rel="stylesheet" href="/static/css/v485_crest_engine.css">
+<link rel="stylesheet" href="/static/css/v490_performance_skeletons.css">
+<link rel="stylesheet" href="/static/css/v491_final_design_system.css">
+<link rel="stylesheet" href="/static/css/v492_live_score.css">
 </head>
 <body><div class="wrap"><div class="top"><div class="brand"><div class="logo">🦈</div><div><b>NeMeSiS SHARK PRO</b><div class="muted">Command Center Cliente</div></div></div><div class="nav"><a href="/cliente/experiencia">Mi día</a><a href="/cliente/live-visual">Live</a><a href="/cliente/match-center-premium">Match Center</a><a href="/cliente/dashboard">Mi cuenta</a></div></div><main id="app" class="loading">Cargando centro de mando premium…</main></div>
 <script>
@@ -21,4 +24,5 @@ fetch('/api/v320/client-command-center').then(r=>r.json()).then(d=>{
  const principles=(d.experience_principles||[]).map(p=>`<li>${p}</li>`).join('');
  app.className=''; app.innerHTML=`<section class="hero"><div class="eyebrow">${d.name||'V320'}</div><h1>${d.headline||''}</h1><p>${d.subheadline||''}</p><div class="score">Score experiencia: ${d.command_score||0}/100 · API 0</div></section><section class="strip">${strip}</section><section class="grid"><div class="cards">${cards}</div><aside class="card"><h2>Acciones inteligentes</h2><div class="actions">${actions}</div><h3>Principios V320</h3><ul class="muted">${principles}</ul></aside></section>`;
 }).catch(e=>{app.innerHTML='<div class="card"><h1>Command Center seguro</h1><p class="muted">La vista carga en modo seguro sin consumir API.</p><a class="btn" href="/cliente/dashboard">Volver a mi cuenta</a></div>'});
-</script></body></html>
+</script><script defer src="/static/js/v490_app_speed.js"></script>
+</body></html>

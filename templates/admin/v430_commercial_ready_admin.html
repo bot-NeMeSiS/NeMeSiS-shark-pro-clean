@@ -1,6 +1,9 @@
 <!doctype html>
 <html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>Admin OS · V430</title><link rel="stylesheet" href="{{ url_for('static', filename='css/v430_commercial_ready_visual_polish.css') }}"><link rel="stylesheet" href="/static/css/v482_premium_identity.css">
 <link rel="stylesheet" href="/static/css/v485_crest_engine.css">
+<link rel="stylesheet" href="/static/css/v490_performance_skeletons.css">
+<link rel="stylesheet" href="/static/css/v491_final_design_system.css">
+<link rel="stylesheet" href="/static/css/v492_live_score.css">
 </head>
 <body class="v430-app admin">
 <main class="v430-shell">
@@ -10,4 +13,5 @@
 <section class="v430-section-head"><h2>Centros admin</h2><p>Control sin mezclar responsabilidades.</p></section>
 <section class="v430-center-grid admin-grid">{% for c in centers or sections or v430_admin_sections() %}<a class="v430-center {{ c.tone if c.tone is defined else 'premium' }}" href="{{ c.href }}"><span class="v430-icon">{{ c.icon }}</span><b>{{ c.title }}</b><small>{{ c.desc if c.desc is defined else c.subtitle }}</small><em>Abrir centro</em></a>{% endfor %}</section>
 <details class="v430-more"><summary>Herramientas técnicas internas</summary><div class="v430-more-grid"><a href="/admin/production-check">Production Check</a><a href="/storage-check-v2">Storage</a><a href="/db-check">DB</a><a href="/admin/activity">Actividad</a><a href="/api/v430/commercial-ready-visual-polish">API V429</a></div></details>
-</main></body></html>
+</main><script defer src="/static/js/v490_app_speed.js"></script>
+</body></html>

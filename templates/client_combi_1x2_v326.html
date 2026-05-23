@@ -10,6 +10,9 @@
   </style>
 <link rel="stylesheet" href="/static/css/v482_premium_identity.css">
 <link rel="stylesheet" href="/static/css/v485_crest_engine.css">
+<link rel="stylesheet" href="/static/css/v490_performance_skeletons.css">
+<link rel="stylesheet" href="/static/css/v491_final_design_system.css">
+<link rel="stylesheet" href="/static/css/v492_live_score.css">
 </head>
 <body>
 <div class="v373-combi-shell">
@@ -104,5 +107,6 @@ async function loadCombi(){
 async function copyCombi(){ if(!lastCopy) return alert('No hay combinada disponible.'); await navigator.clipboard.writeText(lastCopy); alert('Combinada copiada'); }
 loadCombi();
 </script>
+<script defer src="/static/js/v490_app_speed.js"></script>
 </body>
 </html>

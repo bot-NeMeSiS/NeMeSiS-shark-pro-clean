@@ -1,0 +1,4 @@
+V490 Performance + Cache + Skeleton UX
+/performance-check
+/api/v490/cache-status
+/v490-health

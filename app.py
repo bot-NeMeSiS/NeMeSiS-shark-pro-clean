@@ -23505,3 +23505,175 @@ def v489_health():
         "routes": ["/perfil", "/mi-perfil", "/api/v489/profile"]
     }
 
+
+# --- V490 PERFORMANCE CACHE SKELETONS ---
+_V490_RUNTIME_CACHE = {}
+
+@app.after_request
+def v490_add_cache_headers(response):
+    try:
+        if request.path.startswith("/static/"):
+            response.headers["Cache-Control"] = "public, max-age=604800, immutable"
+        elif request.path.startswith("/api/"):
+            response.headers["Cache-Control"] = "private, max-age=30"
+    except Exception:
+        pass
+    return response
+
+@app.route("/performance-check")
+@app.route("/admin/performance-check")
+def v490_performance_check():
+    return render_template("performance_check_v490.html", cache_items=len(_V490_RUNTIME_CACHE))
+
+@app.route("/api/v490/cache-status")
+def v490_cache_status():
+    return {"ok": True, "cache_items": len(_V490_RUNTIME_CACHE), "version": "V490_PERFORMANCE_CACHE_SKELETONS"}
+
+@app.route("/v490-health")
+def v490_health():
+    return {"ok": True, "version": "V490_PERFORMANCE_CACHE_SKELETONS", "status": "performance y skeleton UX integrados"}
+
+# --- V491 FINAL DESIGN SYSTEM ---
+@app.route("/design-system")
+@app.route("/admin/design-system")
+def v491_design_system():
+    return render_template("design_system_v491.html")
+
+@app.route("/v491-health")
+def v491_health():
+    return {
+        "ok": True,
+        "version": "V491_FINAL_DESIGN_SYSTEM",
+        "status": "design system final integrado",
+        "routes": ["/design-system", "/admin/design-system"]
+    }
+
+
+# --- V492 LIVE SCORE MINUTE FIX ---
+def _v492_field(obj, *keys, default=None):
+    if isinstance(obj, dict):
+        for k in keys:
+            if k in obj and obj.get(k) not in (None, ""):
+                return obj.get(k)
+    else:
+        for k in keys:
+            if hasattr(obj, k):
+                v = getattr(obj, k)
+                if v not in (None, ""):
+                    return v
+    return default
+
+def _v492_initials(name):
+    parts = [p for p in str(name or "SH").replace("-", " ").split() if p]
+    return "".join(p[0].upper() for p in parts[:2]) or "SH"
+
+def _v492_parse_score(m):
+    # Soporta varias estructuras habituales
+    hs = _v492_field(m, "home_score", "score_home", "homeScore", "home_goals", "goals_home", default=None)
+    aw = _v492_field(m, "away_score", "score_away", "awayScore", "away_goals", "goals_away", default=None)
+
+    score = _v492_field(m, "score", "result", "scores", default=None)
+    if (hs is None or aw is None) and isinstance(score, str):
+        import re
+        nums = re.findall(r"\d+", score)
+        if len(nums) >= 2:
+            hs, aw = nums[0], nums[1]
+    if (hs is None or aw is None) and isinstance(score, dict):
+        hs = score.get("home") or score.get("home_score") or score.get("homeScore") or hs
+        aw = score.get("away") or score.get("away_score") or score.get("awayScore") or aw
+
+    # TheSportsDB/event style
+    if hs is None:
+        hs = _v492_field(m, "intHomeScore", default=None)
+    if aw is None:
+        aw = _v492_field(m, "intAwayScore", default=None)
+
+    return ("0" if hs is None else str(hs), "0" if aw is None else str(aw))
+
+def _v492_parse_minute(m):
+    minute = _v492_field(m, "minute", "elapsed", "time_elapsed", "match_minute", "current_minute", default=None)
+    status = str(_v492_field(m, "status", "state", "match_status", "strStatus", default="")).strip()
+    if minute is None:
+        # buscar minuto en status tipo "63'" o "63 min"
+        import re
+        found = re.search(r"(\d{1,3})\s*('?|min)", status.lower())
+        if found:
+            minute = found.group(1)
+    if minute is None:
+        if any(x in status.lower() for x in ("half", "descanso", "ht")):
+            return "DESC"
+        if any(x in status.lower() for x in ("full", "final", "ft")):
+            return "FIN"
+        return "LIVE"
+    s = str(minute).replace("'", "").strip()
+    return s + "'" if s.isdigit() else s
+
+def _v492_is_live(m):
+    status = str(_v492_field(m, "status", "state", "match_status", "strStatus", default="")).lower()
+    if any(x in status for x in ("live", "inplay", "in_play", "1h", "2h", "directo", "halftime", "ht")):
+        return True
+    minute = _v492_field(m, "minute", "elapsed", "time_elapsed", "match_minute", default=None)
+    return minute not in (None, "", 0)
+
+def _v492_collect_live_matches():
+    matches = []
+    for fn_name in ("get_live_matches", "get_live_events", "fetch_live_matches", "build_live_feed", "get_matches", "get_today_matches"):
+        fn = globals().get(fn_name)
+        if callable(fn):
+            try:
+                data = fn()
+                if isinstance(data, dict):
+                    for key in ("matches", "events", "fixtures", "data", "games"):
+                        if isinstance(data.get(key), list):
+                            data = data.get(key)
+                            break
+                if isinstance(data, list):
+                    for m in data:
+                        if isinstance(m, dict) and _v492_is_live(m):
+                            matches.append(m)
+            except Exception:
+                pass
+    return matches
+
+def _v492_normalize_live_match(m, idx=0):
+    home = _v492_field(m, "home", "home_team", "homeTeam", "strHomeTeam", "local", default="Local")
+    away = _v492_field(m, "away", "away_team", "awayTeam", "strAwayTeam", "visitor", default="Visitante")
+    hs, aw = _v492_parse_score(m)
+    status = _v492_field(m, "status", "state", "match_status", "strStatus", default="En directo")
+    return {
+        "id": _v492_field(m, "id", "event_id", "match_id", "idEvent", default=f"live-{idx}"),
+        "home": str(home),
+        "away": str(away),
+        "home_score": hs,
+        "away_score": aw,
+        "minute": _v492_parse_minute(m),
+        "status": str(status or "En directo").replace("LIVE", "En directo"),
+        "home_initials": _v492_initials(home),
+        "away_initials": _v492_initials(away),
+    }
+
+@app.before_request
+def _v492_live_override():
+    try:
+        if request.path not in ("/en-directo", "/live"):
+            return None
+        raw = _v492_collect_live_matches()
+        matches = [_v492_normalize_live_match(m, i) for i, m in enumerate(raw)]
+        return render_template("live_score_v492.html", matches=matches)
+    except Exception:
+        return render_template("live_score_v492.html", matches=[])
+
+@app.route("/api/v492/live-score")
+def v492_live_score_api():
+    raw = _v492_collect_live_matches()
+    return {"ok": True, "matches": [_v492_normalize_live_match(m, i) for i, m in enumerate(raw)]}
+
+@app.route("/v492-health")
+def v492_health():
+    return {
+        "ok": True,
+        "version": "V492_LIVE_SCORE_MINUTE_FIX",
+        "status": "live score/minute integrado",
+        "routes": ["/en-directo", "/api/v492/live-score"]
+    }
+

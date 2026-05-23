@@ -1,0 +1,5 @@
+NeMeSiS SHARK PRO V491 — Final Design System
+/design-system
+/admin/design-system
+/v491-health
+CSS global: static/css/v491_final_design_system.css
