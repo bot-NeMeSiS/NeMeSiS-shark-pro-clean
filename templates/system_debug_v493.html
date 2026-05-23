@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>System Debug · NeMeSiS SHARK PRO</title>
+<link rel="stylesheet" href="/static/css/v482_premium_identity.css">
+<link rel="stylesheet" href="/static/css/v491_final_design_system.css">
+<style>
+body{margin:0;background:#06111f;color:#eef8ff;font-family:Inter,system-ui,Segoe UI,Arial}.wrap{max-width:1180px;margin:auto;padding:22px 16px 90px}.top{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px}.btn{display:inline-flex;padding:10px 13px;border-radius:14px;background:linear-gradient(135deg,#00e5ff,#1877ff);color:#03111f;font-weight:900;text-decoration:none}.ghost{display:inline-flex;padding:9px 12px;border-radius:14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);font-weight:800;text-decoration:none;color:#eef8ff}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.card{border:1px solid rgba(255,255,255,.10);background:linear-gradient(180deg,rgba(11,34,59,.92),rgba(5,16,31,.96));border-radius:24px;padding:16px;box-shadow:0 18px 58px rgba(0,0,0,.30);margin-bottom:12px}.ok{color:#35e69b}.bad{color:#ff5d73}.warn{color:#ffd166}.muted{color:#8aa8bd}.pill{display:inline-flex;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);border-radius:999px;padding:7px 10px;font-size:12px;font-weight:900;margin:3px}table{width:100%;border-collapse:collapse}td,th{padding:10px;border-bottom:1px solid rgba(255,255,255,.08);text-align:left;font-size:14px}th{color:#8aa8bd}@media(max-width:900px){.grid{grid-template-columns:1fr}.top{align-items:flex-start;flex-direction:column}}
+</style>
+</head>
+<body>
+<main class="wrap">
+<div class="top"><div><h1>Panel de diagnóstico SHARK</h1><p class="muted">APIs, Telegram, escudos, live, variables y sistemas automáticos.</p></div><div><a class="btn" href="/app">Volver app</a> <a class="ghost" href="/config-check">Config</a></div></div>
+<section class="grid">
+<div class="card"><b>Estado general</b><h2 class="{{ 'ok' if summary.ok else 'warn' }}">{{ summary.status }}</h2><p class="muted">{{ summary.message }}</p></div>
+<div class="card"><b>Variables críticas</b><h2>{{ summary.env_ok }}/{{ summary.env_total }}</h2><p class="muted">Detectadas</p></div>
+<div class="card"><b>Alertas</b><h2 class="{{ 'ok' if summary.issues == 0 else 'warn' }}">{{ summary.issues }}</h2><p class="muted">A revisar</p></div>
+</section>
+<section class="card"><h2>APIs y servicios</h2><table><tr><th>Sistema</th><th>Estado</th><th>Detalle</th></tr>{% for s in services %}<tr><td>{{ s.name }}</td><td class="{{ s.class }}">{{ s.status }}</td><td class="muted">{{ s.detail }}</td></tr>{% endfor %}</table></section>
+<section class="grid">
+<div class="card"><h2>Live / marcador</h2><p><span class="pill">Partidos: {{ live.count }}</span></p><p><span class="pill">Con marcador: {{ live.with_score }}</span></p><p><span class="pill">Con minuto: {{ live.with_minute }}</span></p><p class="muted">{{ live.message }}</p><a class="ghost" href="/api/v493/live-diagnostics">JSON</a></div>
+<div class="card"><h2>Escudos</h2><p><span class="pill">Equipos: {{ crests.total }}</span></p><p><span class="pill">Con logo: {{ crests.with_logo }}</span></p><p><span class="pill">Fallback: {{ crests.fallback }}</span></p><p class="muted">{{ crests.message }}</p><a class="ghost" href="/crest-check">Crest-check</a></div>
+<div class="card"><h2>Telegram</h2><p><span class="pill">Bot: {{ 'OK' if telegram.bot_token else 'Falta' }}</span></p><p><span class="pill">Chat: {{ 'OK' if telegram.chat_id else 'Falta' }}</span></p><p><span class="pill">Auto: {{ telegram.auto_status }}</span></p><p class="muted">{{ telegram.message }}</p><a class="ghost" href="/telegram-delivery">Telegram</a></div>
+</section>
+<section class="card"><h2>Variables detectadas</h2><table><tr><th>Variable</th><th>Estado</th><th>Uso</th></tr>{% for e in env %}<tr><td><code>{{ e.name }}</code></td><td class="{{ 'ok' if e.present else 'bad' }}">{{ 'OK' if e.present else 'FALTA' }}</td><td class="muted">{{ e.note }}</td></tr>{% endfor %}</table></section>
+<section class="card"><h2>Duplicadas / conflictos</h2>{% if duplicates %}{% for d in duplicates %}<span class="pill warn">{{ d }}</span>{% endfor %}{% else %}<span class="pill ok">Sin duplicadas graves detectadas</span>{% endif %}</section>
+<section class="card"><h2>Pruebas rápidas</h2><a class="btn" href="/api/v493/system-debug">Todo JSON</a> <a class="ghost" href="/api/v493/live-diagnostics">Live</a> <a class="ghost" href="/api/v493/telegram-diagnostics">Telegram</a> <a class="ghost" href="/api/v493/crest-diagnostics">Escudos</a></section>
+</main></body></html>

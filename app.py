@@ -23677,3 +23677,121 @@ def v492_health():
         "routes": ["/en-directo", "/api/v492/live-score"]
     }
 
+
+# --- V493 FULL SYSTEM DEBUG PANEL ---
+def _v493_env_present(*names):
+    import os
+    return any(bool(os.getenv(n, "").strip()) for n in names)
+
+def _v493_env_report():
+    items = [
+        {"name":"SECRET_KEY","present":_v493_env_present("SECRET_KEY"),"note":"Sesiones Flask"},
+        {"name":"DB_PATH","present":_v493_env_present("DB_PATH"),"note":"Persistencia Render"},
+        {"name":"THE_ODDS_API_KEY","present":_v493_env_present("THE_ODDS_API_KEY","ODDS_API_KEY"),"note":"Partidos/cuotas"},
+        {"name":"THESPORTSDB_KEY","present":_v493_env_present("THESPORTSDB_KEY","THESPORTSDB_API_KEY"),"note":"Escudos/datos"},
+        {"name":"ENABLE_LIVE_API","present":_v493_env_present("ENABLE_LIVE_API"),"note":"Activación live"},
+        {"name":"TELEGRAM_BOT_TOKEN","present":_v493_env_present("TELEGRAM_BOT_TOKEN"),"note":"Bot Telegram"},
+        {"name":"TELEGRAM_CHAT_ID","present":_v493_env_present("TELEGRAM_CHAT_ID","TELEGRAM_CHANNEL_ID"),"note":"Canal Telegram"},
+        {"name":"OPENAI_API_KEY","present":_v493_env_present("OPENAI_API_KEY"),"note":"SHARK AI"},
+    ]
+    import os
+    groups=[("THE_ODDS_API_KEY / ODDS_API_KEY",("THE_ODDS_API_KEY","ODDS_API_KEY")),("THESPORTSDB_KEY / THESPORTSDB_API_KEY",("THESPORTSDB_KEY","THESPORTSDB_API_KEY")),("TELEGRAM_CHAT_ID / TELEGRAM_CHANNEL_ID",("TELEGRAM_CHAT_ID","TELEGRAM_CHANNEL_ID"))]
+    duplicates=[]
+    for label, keys in groups:
+        active=[k for k in keys if os.getenv(k,"").strip()]
+        if len(active)>1: duplicates.append(label+" activas: "+", ".join(active))
+    return items, duplicates
+
+def _v493_field(obj,*keys):
+    if isinstance(obj,dict):
+        for k in keys:
+            if obj.get(k) not in (None,""): return obj.get(k)
+    return None
+
+def _v493_as_list(data):
+    if isinstance(data,list): return data
+    if isinstance(data,dict):
+        for k in ("matches","events","fixtures","data","games"):
+            if isinstance(data.get(k),list): return data.get(k)
+    return []
+
+def _v493_live_diagnostics():
+    rows=[]; calls=[]
+    for fn_name in ("get_live_matches","get_live_events","fetch_live_matches","build_live_feed","get_matches","get_today_matches"):
+        fn=globals().get(fn_name)
+        if callable(fn):
+            calls.append(fn_name)
+            try: rows += _v493_as_list(fn())
+            except Exception: pass
+    live=[]
+    for m in rows:
+        status=str(_v493_field(m,"status","state","match_status","strStatus") or "").lower()
+        minute=_v493_field(m,"minute","elapsed","time_elapsed","match_minute")
+        if any(x in status for x in ("live","inplay","in_play","directo","1h","2h","ht")) or minute not in (None,"",0):
+            live.append(m)
+    with_score=0; with_minute=0; sample=[]
+    for m in live[:10]:
+        hs=_v493_field(m,"home_score","score_home","homeScore","intHomeScore")
+        aw=_v493_field(m,"away_score","score_away","awayScore","intAwayScore")
+        score=_v493_field(m,"score","result","scores")
+        minute=_v493_field(m,"minute","elapsed","time_elapsed","match_minute")
+        if (hs is not None and aw is not None) or score: with_score += 1
+        if minute: with_minute += 1
+        sample.append({"keys":list(m.keys())[:25] if isinstance(m,dict) else [],"score":score or f"{hs}-{aw}","minute":minute})
+    return {"count":len(live),"with_score":with_score,"with_minute":with_minute,"message":"No llegan partidos live desde funciones actuales." if not live else "Llegan partidos live; revisar campos.","sample":sample,"calls":calls}
+
+def _v493_crest_diagnostics():
+    teams=[]; collector=globals().get("_v485_collect_teams")
+    if callable(collector):
+        try: teams=collector()
+        except Exception: teams=[]
+    resolver=globals().get("v485_resolve_crest")
+    checked=[]
+    if callable(resolver):
+        for t in teams[:80]:
+            try: checked.append(resolver(t))
+            except Exception: pass
+    total=len(checked); with_logo=sum(1 for x in checked if x.get("logo")); fallback=total-with_logo
+    return {"total":total,"with_logo":with_logo,"fallback":fallback,"message":"Todo fallback; revisar TheSportsDB/mapping." if total and not with_logo else "Escudos revisados.","sample":checked[:10]}
+
+def _v493_telegram_diagnostics():
+    import os
+    token=bool(os.getenv("TELEGRAM_BOT_TOKEN","").strip())
+    chat=bool(os.getenv("TELEGRAM_CHAT_ID","").strip() or os.getenv("TELEGRAM_CHANNEL_ID","").strip())
+    funcs=[n for n in ("send_daily_picks","telegram_auto_send","scheduled_telegram_delivery","run_telegram_jobs","delivery_center_send") if callable(globals().get(n))]
+    return {"bot_token":token,"chat_id":chat,"auto_status":"Detectado" if funcs else "No detectado","auto_functions":funcs,"message":"Test manual OK no garantiza automático; falta scheduler/triggers." if token and chat and not funcs else ("Telegram incompleto." if not(token and chat) else "Telegram preparado.")}
+
+def _v493_services():
+    env,dups=_v493_env_report(); live=_v493_live_diagnostics(); crests=_v493_crest_diagnostics(); tg=_v493_telegram_diagnostics()
+    services=[
+        {"name":"The Odds API","status":"OK" if _v493_env_present("THE_ODDS_API_KEY","ODDS_API_KEY") else "FALTA","class":"ok" if _v493_env_present("THE_ODDS_API_KEY","ODDS_API_KEY") else "bad","detail":"Cuotas/partidos"},
+        {"name":"TheSportsDB","status":"OK" if _v493_env_present("THESPORTSDB_KEY","THESPORTSDB_API_KEY") else "FALTA","class":"ok" if _v493_env_present("THESPORTSDB_KEY","THESPORTSDB_API_KEY") else "bad","detail":"Escudos/datos"},
+        {"name":"Live Score","status":"OK" if live["with_score"] or live["with_minute"] else "REVISAR","class":"ok" if live["with_score"] or live["with_minute"] else "warn","detail":live["message"]},
+        {"name":"Telegram","status":"OK" if tg["bot_token"] and tg["chat_id"] else "FALTA","class":"ok" if tg["bot_token"] and tg["chat_id"] else "bad","detail":tg["message"]},
+    ]
+    present=sum(1 for e in env if e["present"]); issues=sum(1 for e in env[:7] if not e["present"])+len(dups)
+    return {"ok":issues==0,"status":"Correcto" if issues==0 else "Revisar","message":"Diagnóstico cargado.","env_ok":present,"env_total":len(env),"issues":issues},services,env,dups,live,crests,tg
+
+@app.route("/system-debug")
+@app.route("/admin/system-debug")
+def v493_system_debug():
+    summary,services,env,duplicates,live,crests,telegram=_v493_services()
+    return render_template("system_debug_v493.html",summary=summary,services=services,env=env,duplicates=duplicates,live=live,crests=crests,telegram=telegram)
+
+@app.route("/api/v493/system-debug")
+def v493_system_debug_api():
+    summary,services,env,duplicates,live,crests,telegram=_v493_services()
+    return {"ok":True,"summary":summary,"services":services,"env":env,"duplicates":duplicates,"live":live,"crests":crests,"telegram":telegram}
+
+@app.route("/api/v493/live-diagnostics")
+def v493_live_diagnostics_api(): return {"ok":True,"live":_v493_live_diagnostics()}
+@app.route("/api/v493/crest-diagnostics")
+def v493_crest_diagnostics_api(): return {"ok":True,"crests":_v493_crest_diagnostics()}
+@app.route("/api/v493/telegram-diagnostics")
+def v493_telegram_diagnostics_api(): return {"ok":True,"telegram":_v493_telegram_diagnostics()}
+@app.route("/api/v493/env-diagnostics")
+def v493_env_diagnostics_api():
+    env,duplicates=_v493_env_report(); return {"ok":True,"env":env,"duplicates":duplicates}
+@app.route("/v493-health")
+def v493_health(): return {"ok":True,"version":"V493_FULL_SYSTEM_DEBUG_PANEL","status":"system debug integrado"}
+
