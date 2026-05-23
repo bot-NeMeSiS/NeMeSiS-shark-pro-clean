@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NeMeSiS SHARK PRO · Calendario Andalucía V496</title>
+  <style>
+    :root{--bg:#07111f;--panel:#0d1b2f;--panel2:#10243d;--text:#eaf4ff;--muted:#8fa9c8;--blue:#22d3ee;--gold:#f5c542;--ok:#2ee59d}
+    *{box-sizing:border-box} body{margin:0;background:radial-gradient(circle at top,#12345a 0,#07111f 45%,#030711 100%);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+    .wrap{max-width:1180px;margin:0 auto;padding:28px 16px 60px}.hero{border:1px solid rgba(34,211,238,.25);background:linear-gradient(135deg,rgba(13,27,47,.92),rgba(16,36,61,.82));border-radius:28px;padding:28px;box-shadow:0 20px 70px rgba(0,0,0,.32)}
+    .kicker{color:var(--blue);font-weight:800;letter-spacing:.12em;font-size:12px;text-transform:uppercase}.hero h1{font-size:clamp(30px,5vw,56px);line-height:1;margin:10px 0}.hero p{color:var(--muted);font-size:17px;max-width:850px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px;margin-top:18px}.card{background:rgba(13,27,47,.82);border:1px solid rgba(143,169,200,.18);border-radius:22px;padding:18px;box-shadow:0 12px 40px rgba(0,0,0,.18)}
+    .card h3{margin:0 0 8px;font-size:18px}.muted{color:var(--muted)}.badge{display:inline-flex;align-items:center;gap:6px;padding:7px 10px;border-radius:999px;background:rgba(34,211,238,.12);border:1px solid rgba(34,211,238,.25);color:#b8f7ff;font-weight:700;font-size:12px;margin:4px 4px 0 0}.gold{background:rgba(245,197,66,.12);border-color:rgba(245,197,66,.28);color:#ffe49a}.ok{color:var(--ok)}
+    table{width:100%;border-collapse:collapse;overflow:hidden;border-radius:18px} th,td{text-align:left;padding:12px;border-bottom:1px solid rgba(143,169,200,.13);font-size:14px} th{color:#bfefff;background:rgba(34,211,238,.08)}tr:hover td{background:rgba(34,211,238,.04)}.section{margin-top:22px}.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}.btn{color:var(--text);text-decoration:none;border:1px solid rgba(34,211,238,.28);background:rgba(34,211,238,.10);padding:11px 14px;border-radius:14px;font-weight:800}.btn:hover{transform:translateY(-1px)}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <section class="hero">
+    <div class="kicker">V496 · Andalucía Deep Calendar Foundation</div>
+    <h1>Calendario profundo de Andalucía</h1>
+    <p>Base legal y escalable para meter jornadas, resultados, clasificaciones y fútbol base sin scraping ilegal. Primero Cádiz y Andalucía, luego España completa y ligas internacionales top.</p>
+    <div class="actions">
+      <a class="btn" href="/api/v496/andalucia-structure">API estructura</a>
+      <a class="btn" href="/api/v496/regional-diagnostics">Diagnóstico regional</a>
+      <a class="btn" href="/system-debug">System debug</a>
+    </div>
+  </section>
+
+  <section class="grid section">
+    {% for p in data.structure.provinces %}
+    <div class="card"><h3>{{ p.name }}</h3><div class="muted">{{ p.focus }}</div><span class="badge">Prioridad {{ p.priority }}</span></div>
+    {% endfor %}
+  </section>
+
+  <section class="card section"><h3>Categorías preparadas</h3>{% for c in data.structure.categories %}<span class="badge gold">{{ c.name }}</span>{% endfor %}</section>
+
+  <section class="card section"><h3>Fuentes legales</h3><div class="grid">{% for s in data.structure.legal_sources %}<div class="card"><h3>{{ s.name }}</h3><div class="muted">{{ s.use }}</div><span class="badge ok">Scraping: {{ s.scraping }}</span></div>{% endfor %}</div></section>
+
+  <section class="card section"><h3>Matriz provincia / categoría</h3><table><thead><tr><th>Provincia</th><th>Categoría</th><th>Partidos cargados</th><th>Estado</th></tr></thead><tbody>{% for row in data.matrix %}<tr><td>{{ row.province }}</td><td>{{ row.category }}</td><td>{{ row.matches_loaded }}</td><td>{{ row.status }}</td></tr>{% endfor %}</tbody></table></section>
+
+  <section class="card section"><h3>Próximo paso real</h3><p class="muted">Conectar importador CSV/admin y después clasificaciones regionales. Así puedes cargar jornadas verificadas mientras se valida la fuente oficial/API legal más estable.</p></section>
+</div>
+</body>
+</html>
