@@ -23793,5 +23793,36 @@ def v493_telegram_diagnostics_api(): return {"ok":True,"telegram":_v493_telegram
 def v493_env_diagnostics_api():
     env,duplicates=_v493_env_report(); return {"ok":True,"env":env,"duplicates":duplicates}
 @app.route("/v493-health")
-def v493_health(): return {"ok":True,"version":"V493_FULL_SYSTEM_DEBUG_PANEL","status":"system debug integrado"}
+def v493_health(): return {"ok":True,"version":"V493_FULL_SYSTEM_DEBUG_PANEL","status":"system debug integrado"}\n\n
+# --- V494 GLOBAL FOOTBALL STRUCTURE SYSTEM ---
+GLOBAL_STRUCTURE_V494 = {
+    "andalucia": {
+        "provinces": ["Cadiz","Sevilla","Malaga","Granada","Cordoba","Jaen","Huelva","Almeria"],
+        "levels": ["Senior","Juvenil","Cadete","Infantil","Alevin","Benjamin"]
+    },
+    "spain": {
+        "competitions": ["LaLiga","Segunda","Primera RFEF","Segunda RFEF","Tercera RFEF"]
+    },
+    "international": {
+        "top": ["Premier League","Ligue 1","Primeira Liga","Serie A","Bundesliga"]
+    }
+}
 
+@app.route("/global-structure")
+@app.route("/football-structure")
+def v494_global_structure():
+    return render_template("global_structure_v494.html")
+
+@app.route("/api/v494/global-structure")
+def v494_global_structure_api():
+    return {"ok": True, "structure": GLOBAL_STRUCTURE_V494}
+
+@app.route("/v494-health")
+def v494_health():
+    return {
+        "ok": True,
+        "version": "V494_GLOBAL_FOOTBALL_STRUCTURE_SYSTEM",
+        "status": "estructura global integrada",
+        "routes": ["/global-structure","/api/v494/global-structure"]
+    }
+\n

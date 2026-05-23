@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Global Football Structure</title>
+<link rel="stylesheet" href="/static/css/v491_final_design_system.css">
+<style>
+body{margin:0;background:#06111f;color:#eef8ff;font-family:Inter,Arial}
+.wrap{max-width:1200px;margin:auto;padding:24px}
+.hero,.card{border:1px solid rgba(255,255,255,.1);background:linear-gradient(180deg,rgba(11,34,59,.92),rgba(5,16,31,.96));border-radius:26px;padding:18px;margin-bottom:16px}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.badge{display:inline-flex;padding:6px 10px;border-radius:999px;background:rgba(0,229,255,.1);border:1px solid rgba(0,229,255,.25);font-size:12px;font-weight:900}
+.row{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.08)}
+.row:last-child{border-bottom:0}
+.muted{color:#8aa8bd}
+@media(max-width:900px){.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<main class="wrap">
+<section class="hero">
+<h1>Global Football Structure</h1>
+<p class="muted">Sistema legal y escalable para Andalucía, España e internacional premium.</p>
+<div style="display:flex;gap:8px;flex-wrap:wrap">
+<span class="badge">Andalucía profunda</span>
+<span class="badge">España completa</span>
+<span class="badge">Internacional premium</span>
+</div>
+</section>
+
+<section class="grid">
+<div class="card">
+<h2>Andalucía</h2>
+<div class="row"><span>Cádiz</span><span class="badge">Activo</span></div>
+<div class="row"><span>Sevilla</span><span class="badge">Activo</span></div>
+<div class="row"><span>Málaga</span><span class="badge">Activo</span></div>
+<div class="row"><span>Granada</span><span class="badge">Activo</span></div>
+<div class="row"><span>Categorías inferiores</span><span class="badge">Preparado</span></div>
+</div>
+
+<div class="card">
+<h2>España</h2>
+<div class="row"><span>LaLiga</span><span class="badge">Premium</span></div>
+<div class="row"><span>Segunda</span><span class="badge">Premium</span></div>
+<div class="row"><span>Primera RFEF</span><span class="badge">Activo</span></div>
+<div class="row"><span>Segunda RFEF</span><span class="badge">Activo</span></div>
+<div class="row"><span>Tercera RFEF</span><span class="badge">Activo</span></div>
+</div>
+
+<div class="card">
+<h2>Internacional</h2>
+<div class="row"><span>Premier League</span><span class="badge">Live</span></div>
+<div class="row"><span>Ligue 1</span><span class="badge">Live</span></div>
+<div class="row"><span>Primeira Liga</span><span class="badge">Live</span></div>
+<div class="row"><span>Serie A</span><span class="badge">Live</span></div>
+<div class="row"><span>Bundesliga</span><span class="badge">Live</span></div>
+</div>
+</section>
+
+<section class="card">
+<h2>Fuentes legales integradas</h2>
+<div class="row"><span>RFAF</span><span class="muted">Federación Andaluza</span></div>
+<div class="row"><span>RFEF</span><span class="muted">Competiciones nacionales</span></div>
+<div class="row"><span>TheSportsDB</span><span class="muted">Datos deportivos y escudos</span></div>
+<div class="row"><span>OpenFootball</span><span class="muted">Datasets abiertos</span></div>
+</section>
+</main>
+</body>
+</html>
