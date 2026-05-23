@@ -20,7 +20,7 @@ from zoneinfo import ZoneInfo
 
 from flask import Flask, render_template, request, redirect, session, jsonify, send_from_directory, Response
 
-APP_VERSION = "NeMeSiS_SHARK_PRO_V444_0_DELIVERY_RELIABILITY_COMMAND_CENTER"
+APP_VERSION = "NeMeSiS_SHARK_PRO_V495_LIVE_TELEGRAM_AUTOMATION_FIX"
 APP_NAME = "NeMeSiS SHARK PRO"
 
 
@@ -23793,7 +23793,8 @@ def v493_telegram_diagnostics_api(): return {"ok":True,"telegram":_v493_telegram
 def v493_env_diagnostics_api():
     env,duplicates=_v493_env_report(); return {"ok":True,"env":env,"duplicates":duplicates}
 @app.route("/v493-health")
-def v493_health(): return {"ok":True,"version":"V493_FULL_SYSTEM_DEBUG_PANEL","status":"system debug integrado"}\n\n
+def v493_health(): return {"ok":True,"version":"V493_FULL_SYSTEM_DEBUG_PANEL","status":"system debug integrado"}
+
 # --- V494 GLOBAL FOOTBALL STRUCTURE SYSTEM ---
 GLOBAL_STRUCTURE_V494 = {
     "andalucia": {
@@ -23825,4 +23826,130 @@ def v494_health():
         "status": "estructura global integrada",
         "routes": ["/global-structure","/api/v494/global-structure"]
     }
-\n
+
+# --- V496 ANDALUCIA DEEP FOOTBALL CALENDAR FOUNDATION ---
+# Capa legal y escalable para futbol profundo de Andalucia: provincias, categorias,
+# fuentes oficiales y estructura preparada para jornadas/clasificaciones sin scraping ilegal.
+V496_VERSION = "V496_ANDALUCIA_DEEP_CALENDAR_FOUNDATION"
+
+ANDALUCIA_V496 = {
+    "provinces": [
+        {"key":"cadiz","name":"Cádiz","priority":100,"focus":"Campo de Gibraltar, provincial, cantera y sénior"},
+        {"key":"sevilla","name":"Sevilla","priority":95,"focus":"capital, provincial, cantera y sénior"},
+        {"key":"malaga","name":"Málaga","priority":92,"focus":"Costa del Sol, provincial y base"},
+        {"key":"granada","name":"Granada","priority":88,"focus":"provincial y cantera"},
+        {"key":"cordoba","name":"Córdoba","priority":86,"focus":"provincial y cantera"},
+        {"key":"jaen","name":"Jaén","priority":84,"focus":"provincial y cantera"},
+        {"key":"huelva","name":"Huelva","priority":82,"focus":"provincial y cantera"},
+        {"key":"almeria","name":"Almería","priority":80,"focus":"provincial y cantera"},
+    ],
+    "categories": [
+        {"key":"senior","name":"Sénior","tier":"competición adulta","commercial":True},
+        {"key":"juvenil","name":"Juvenil","tier":"fútbol base alto","commercial":True},
+        {"key":"cadete","name":"Cadete","tier":"cantera","commercial":False},
+        {"key":"infantil","name":"Infantil","tier":"cantera","commercial":False},
+        {"key":"alevin","name":"Alevín","tier":"cantera","commercial":False},
+        {"key":"benjamin","name":"Benjamín","tier":"cantera","commercial":False},
+    ],
+    "legal_sources": [
+        {"key":"rfaf","name":"RFAF / Delegaciones provinciales","type":"oficial","use":"calendarios, resultados y clasificaciones cuando exista vía legal/autorizada","scraping":"NO"},
+        {"key":"rfef","name":"RFEF","type":"oficial","use":"categorías nacionales y federadas","scraping":"NO"},
+        {"key":"manual_admin","name":"Carga manual admin","type":"propia","use":"jornadas regionales verificadas por el admin","scraping":"NO"},
+        {"key":"open_data","name":"Datasets abiertos","type":"abierta","use":"histórico y estructuras permitidas","scraping":"NO"},
+    ]
+}
+
+def _v496_db_path():
+    import os
+    return os.getenv("DB_PATH") or os.getenv("DATABASE_PATH") or "/data/database.db"
+
+def _v496_connect():
+    import sqlite3, os
+    path=_v496_db_path()
+    try:
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+    except Exception:
+        path="database.db"
+    con=sqlite3.connect(path)
+    con.row_factory=sqlite3.Row
+    return con
+
+def _v496_init():
+    import json, datetime
+    con=_v496_connect(); cur=con.cursor()
+    cur.execute("""CREATE TABLE IF NOT EXISTS regional_sources_v496(
+        source_key TEXT PRIMARY KEY,
+        name TEXT,
+        source_type TEXT,
+        legal_use TEXT,
+        scraping_policy TEXT,
+        payload TEXT,
+        updated_at TEXT
+    )""")
+    cur.execute("""CREATE TABLE IF NOT EXISTS regional_calendar_intake_v496(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        province_key TEXT,
+        category_key TEXT,
+        competition_name TEXT,
+        matchday TEXT,
+        home_team TEXT,
+        away_team TEXT,
+        match_date TEXT,
+        match_time TEXT,
+        venue TEXT,
+        status TEXT DEFAULT 'pendiente',
+        source_key TEXT DEFAULT 'manual_admin',
+        payload TEXT,
+        created_at TEXT,
+        updated_at TEXT
+    )""")
+    now=datetime.datetime.utcnow().isoformat()
+    for src in ANDALUCIA_V496["legal_sources"]:
+        cur.execute("""INSERT OR REPLACE INTO regional_sources_v496(source_key,name,source_type,legal_use,scraping_policy,payload,updated_at)
+                       VALUES(?,?,?,?,?,?,?)""", (src["key"],src["name"],src["type"],src["use"],src["scraping"],json.dumps(src,ensure_ascii=False),now))
+    con.commit(); con.close()
+
+def _v496_rows():
+    try:
+        _v496_init()
+        con=_v496_connect(); cur=con.cursor()
+        cur.execute("SELECT * FROM regional_calendar_intake_v496 ORDER BY COALESCE(match_date,''), COALESCE(match_time,''), id DESC LIMIT 80")
+        rows=[dict(r) for r in cur.fetchall()]
+        con.close(); return rows
+    except Exception:
+        return []
+
+def _v496_matrix():
+    rows=_v496_rows()
+    matrix=[]
+    for p in ANDALUCIA_V496["provinces"]:
+        for c in ANDALUCIA_V496["categories"]:
+            count=sum(1 for r in rows if r.get("province_key")==p["key"] and r.get("category_key")==c["key"])
+            matrix.append({"province":p["name"],"province_key":p["key"],"category":c["name"],"category_key":c["key"],"matches_loaded":count,"status":"con datos" if count else "preparado"})
+    return matrix
+
+@app.route("/andalucia")
+@app.route("/calendario-andalucia")
+@app.route("/regional-andalucia")
+def v496_andalucia_calendar():
+    data={"version":V496_VERSION,"structure":ANDALUCIA_V496,"rows":_v496_rows(),"matrix":_v496_matrix()}
+    return render_template("andalucia_calendar_v496.html", data=data)
+
+@app.route("/api/v496/andalucia-structure")
+def api_v496_andalucia_structure():
+    return {"ok":True,"version":V496_VERSION,"structure":ANDALUCIA_V496,"matrix":_v496_matrix()}
+
+@app.route("/api/v496/calendar-candidates")
+def api_v496_calendar_candidates():
+    return {"ok":True,"version":V496_VERSION,"matches":_v496_rows(),"message":"Sistema preparado para carga legal: admin/manual, fuente oficial autorizada o dataset abierto."}
+
+@app.route("/api/v496/regional-diagnostics")
+def api_v496_regional_diagnostics():
+    rows=_v496_rows(); matrix=_v496_matrix()
+    loaded=sum(1 for x in matrix if x["matches_loaded"])
+    return {"ok":True,"version":V496_VERSION,"db_path":_v496_db_path(),"sources":ANDALUCIA_V496["legal_sources"],"matches_count":len(rows),"coverage_cells":len(matrix),"coverage_with_data":loaded,"next_steps":["conectar fuente oficial/autorizada", "añadir importador CSV admin", "activar clasificaciones regionales", "mapear escudos regionales"]}
+
+@app.route("/v496-health")
+def v496_health():
+    return {"ok":True,"version":V496_VERSION,"status":"calendario profundo Andalucía preparado","routes":["/calendario-andalucia","/api/v496/andalucia-structure","/api/v496/calendar-candidates","/api/v496/regional-diagnostics"]}
+
