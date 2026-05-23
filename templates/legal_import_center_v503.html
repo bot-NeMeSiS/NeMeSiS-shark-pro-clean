@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NeMeSiS SHARK PRO | Import Center V503</title>
+  <style>
+    :root{--bg:#05070d;--panel:#101827;--line:#26354d;--txt:#eef6ff;--muted:#9dafc8;--cyan:#20d7ff;--green:#39d98a;--gold:#f7c65d}
+    *{box-sizing:border-box} body{margin:0;background:linear-gradient(180deg,#0a1322,#05070d 48%,#020308);color:var(--txt);font-family:Inter,system-ui,Segoe UI,Arial,sans-serif} a{color:inherit;text-decoration:none}
+    .shell{max-width:1050px;margin:auto;padding:24px 16px 80px}.top{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:24px}.brand{font-weight:950}.btn,button{border:1px solid var(--line);border-radius:8px;background:#101827;color:#dcecff;padding:10px 12px;font-weight:850}button{background:linear-gradient(135deg,var(--cyan),var(--green));color:#04111b;border-color:var(--cyan);cursor:pointer}
+    .hero{border-bottom:1px solid #16233a;padding-bottom:22px}.kicker{color:var(--cyan);font-size:12px;letter-spacing:.14em;text-transform:uppercase;font-weight:950}h1{font-size:clamp(32px,6vw,58px);line-height:1;margin:10px 0 12px}.lead{color:#c4d4eb;line-height:1.5;max-width:780px}.grid{display:grid;grid-template-columns:1.2fr .8fr;gap:14px;margin-top:18px}.card{border:1px solid var(--line);background:linear-gradient(180deg,#101827,#0b111d);border-radius:8px;padding:14px}.field{display:grid;gap:6px;margin-bottom:10px}label{font-size:12px;color:var(--muted);font-weight:850}input,textarea{width:100%;border:1px solid #33445f;background:#070d18;color:var(--txt);border-radius:8px;padding:10px;font-family:inherit}textarea{min-height:220px;font-family:Consolas,monospace;font-size:13px}.small{font-size:12px;color:var(--muted);line-height:1.45}.import{border-top:1px solid #223149;padding-top:10px;margin-top:10px}.ok{color:var(--green);font-weight:900}
+    @media(max-width:800px){.grid{grid-template-columns:1fr}.top{align-items:flex-start}}
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <div class="top"><div class="brand">NeMeSiS SHARK PRO</div><a class="btn" href="/calendario-global">Ver calendario</a></div>
+    <section class="hero">
+      <div class="kicker">{{ data.version }}</div>
+      <h1>Centro de importacion legal</h1>
+      <p class="lead">Carga partidos por JSON o CSV autorizado. El sistema guarda fuente, nota legal y trazabilidad en SQLite para alimentar el calendario global sin scraping ilegal.</p>
+    </section>
+    <section class="grid">
+      <form class="card" method="post" action="/api/v503/import-matches">
+        <div class="field"><label>Fuente</label><input name="source_name" value="manual autorizado"></div>
+        <div class="field"><label>URL o referencia legal</label><input name="source_url" placeholder="https://... o referencia interna"></div>
+        <div class="field"><label>Nota legal</label><input name="legal_note" value="Carga autorizada por administrador"></div>
+        <div class="field"><label>Payload JSON o CSV</label><textarea name="payload">match_date,kickoff_time,competition_key,competition_name,country,home_team,away_team,status
+{{ data.date }},21:00,uefa-champions-league,UEFA Champions League,Europe,Equipo A,Equipo B,PROGRAMADO
+{{ data.date }},18:30,laliga,LaLiga EA Sports,Spain,Club Local,Club Visitante,PROGRAMADO</textarea></div>
+        <button type="submit">Importar partidos</button>
+        <p class="small">Para API usa POST JSON en `/api/v503/import-matches` con `rows` o `payload`.</p>
+      </form>
+      <aside class="card">
+        <h2>Importaciones recientes</h2>
+        {% if data.imports %}
+          {% for i in data.imports %}
+          <div class="import">
+            <div class="ok">{{ i.status }} · {{ i.rows_count }} filas</div>
+            <div class="small">{{ i.source_name }} · {{ i.created_at }}</div>
+            <div class="small">{{ i.legal_note }}</div>
+          </div>
+          {% endfor %}
+        {% else %}
+          <p class="small">Aun no hay importaciones manuales. El calendario muestra semillas estructurales hasta que cargues datos reales/autorizados.</p>
+        {% endif %}
+      </aside>
+    </section>
+  </main>
+</body>
+</html>

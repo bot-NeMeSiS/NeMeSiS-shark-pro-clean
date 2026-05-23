@@ -1,0 +1,20 @@
+{
+  "version": "V503_GLOBAL_MATCH_CALENDAR_IMPORT_CENTER",
+  "app_version": "NeMeSiS_SHARK_PRO_V503_GLOBAL_MATCH_CALENDAR_IMPORT_CENTER",
+  "base": "V502_GLOBAL_FOOTBALL_INTELLIGENCE_LAYER",
+  "focus": "Calendario global inteligente e importacion legal de partidos",
+  "render_ready": true,
+  "routes": [
+    "/calendario-global",
+    "/global-calendar",
+    "/partidos-global",
+    "/admin/import-center",
+    "/admin/legal-import",
+    "/api/v503/calendar",
+    "/api/v503/import-matches",
+    "/api/v503/imports",
+    "/api/v503/diagnostics",
+    "/v503-health"
+  ],
+  "legal_policy": "No scraping ilegal. Solo datos propios, APIs permitidas, CSV/JSON autorizado o carga editorial trazable."
+}

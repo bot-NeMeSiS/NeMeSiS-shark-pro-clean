@@ -24499,3 +24499,257 @@ def v502_global_diagnostics_api():
 @app.route('/v502-health')
 def v502_health():
     return {"ok": True, "version": V502_VERSION, "app_version": APP_VERSION, "routes": ["/global-football", "/futbol-global", "/api/v502/global-football-hub"]}
+
+
+# --- V503 GLOBAL MATCH CALENDAR + LEGAL IMPORT CENTER ---
+V503_VERSION = "V503_GLOBAL_MATCH_CALENDAR_IMPORT_CENTER"
+APP_VERSION = "NeMeSiS_SHARK_PRO_" + V503_VERSION
+
+def _v503_tables():
+    conn = get_db() if 'get_db' in globals() else sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    cur.execute("""CREATE TABLE IF NOT EXISTS global_matches_v503(
+        match_id TEXT PRIMARY KEY,
+        match_date TEXT,
+        kickoff_time TEXT,
+        competition_key TEXT,
+        competition_name TEXT,
+        country TEXT,
+        home_team TEXT,
+        away_team TEXT,
+        status TEXT,
+        minute TEXT,
+        score TEXT,
+        source TEXT,
+        legal_note TEXT,
+        priority INTEGER DEFAULT 50,
+        imported_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        raw_json TEXT
+    )""")
+    cur.execute("""CREATE TABLE IF NOT EXISTS legal_imports_v503(
+        import_id TEXT PRIMARY KEY,
+        import_type TEXT,
+        source_name TEXT,
+        source_url TEXT,
+        legal_note TEXT,
+        rows_count INTEGER DEFAULT 0,
+        status TEXT,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        payload_preview TEXT
+    )""")
+    conn.commit()
+    conn.close()
+
+def _v503_today():
+    try:
+        return datetime.now(ZoneInfo("Europe/Madrid")).date().isoformat()
+    except Exception:
+        return datetime.utcnow().date().isoformat()
+
+def _v503_match_priority(competition_key, status="", favorite=False, has_pick=False):
+    base = 50
+    try:
+        comps = {c.get("competition_key"): c for c in _v502_competitions()}
+        base = int(comps.get(competition_key, {}).get("tier") or 55)
+    except Exception:
+        pass
+    st = str(status or "").lower()
+    if any(x in st for x in ["live", "directo", "1h", "2h", "ht"]):
+        base += 12
+    if favorite:
+        base += 9
+    if has_pick:
+        base += 7
+    return min(base, 100)
+
+def _v503_seed_matches():
+    _v503_tables()
+    today = _v503_today()
+    samples = [
+        ("v503-ucl-tonight", today, "21:00", "uefa-champions-league", "UEFA Champions League", "Europe", "Equipo Champions A", "Equipo Champions B", "PROGRAMADO", "", "", "seed premium calendar"),
+        ("v503-premier-focus", today, "18:30", "premier-league", "Premier League", "England", "Premier Home", "Premier Away", "PROGRAMADO", "", "", "seed premium calendar"),
+        ("v503-laliga-focus", today, "20:45", "laliga", "LaLiga EA Sports", "Spain", "Club LaLiga Local", "Club LaLiga Visitante", "PROGRAMADO", "", "", "seed premium calendar"),
+        ("v503-world-slot", today, "19:00", "fifa-world-cup", "FIFA World Cup", "Global", "Seleccion Local", "Seleccion Visitante", "ESTRUCTURA", "", "", "seed premium calendar"),
+        ("v503-andalucia-slot", today, "12:00", "andalucia-regional", "Andalucia Regional Football", "Spain", "Club Andaluz", "Rival Provincial", "PROGRAMADO", "", "", "seed premium calendar"),
+    ]
+    conn = get_db() if 'get_db' in globals() else sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    legal = "Fila semilla propia para estructura visual. Sustituible por API legal, CSV autorizado o carga editorial."
+    for match_id, date, time_, key, comp, country, home, away, status, minute, score, source in samples:
+        cur.execute("""INSERT OR IGNORE INTO global_matches_v503
+            (match_id, match_date, kickoff_time, competition_key, competition_name, country, home_team, away_team, status, minute, score, source, legal_note, priority, raw_json, imported_at)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP)""",
+            (match_id, date, time_, key, comp, country, home, away, status, minute, score, source, legal, _v503_match_priority(key, status), json.dumps({"seed": True})))
+    conn.commit()
+    conn.close()
+
+def _v503_parse_payload(payload_text):
+    text = str(payload_text or "").strip()
+    if not text:
+        return []
+    rows = []
+    if text.startswith("[") or text.startswith("{"):
+        data = json.loads(text)
+        if isinstance(data, dict):
+            data = data.get("matches") or data.get("rows") or [data]
+        for item in data:
+            if isinstance(item, dict):
+                rows.append(item)
+        return rows
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+    if not lines:
+        return []
+    headers = [h.strip() for h in lines[0].replace(";", ",").split(",")]
+    for line in lines[1:]:
+        values = [v.strip() for v in line.replace(";", ",").split(",")]
+        rows.append({headers[i]: values[i] if i < len(values) else "" for i in range(len(headers))})
+    return rows
+
+def _v503_import_rows(rows, source_name="manual", source_url="", legal_note="Carga manual autorizada"):
+    _v503_tables()
+    conn = get_db() if 'get_db' in globals() else sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    imported = 0
+    for row in rows:
+        home = row.get("home_team") or row.get("home") or row.get("local") or row.get("equipo_local") or ""
+        away = row.get("away_team") or row.get("away") or row.get("visitante") or row.get("equipo_visitante") or ""
+        comp_key = row.get("competition_key") or row.get("competition") or row.get("liga") or "manual-competition"
+        comp_name = row.get("competition_name") or row.get("competition") or row.get("league") or row.get("liga") or comp_key
+        date = row.get("match_date") or row.get("date") or row.get("fecha") or _v503_today()
+        time_ = row.get("kickoff_time") or row.get("time") or row.get("hora") or ""
+        status = row.get("status") or row.get("estado") or "PROGRAMADO"
+        raw_id = row.get("match_id") or row.get("id") or ("%s-%s-%s-%s" % (date, comp_key, home, away))
+        match_id = hashlib.md5(str(raw_id).encode("utf-8")).hexdigest()[:18]
+        country = row.get("country") or row.get("pais") or ""
+        minute = row.get("minute") or row.get("minuto") or ""
+        score = row.get("score") or row.get("marcador") or ""
+        priority = int(row.get("priority") or _v503_match_priority(comp_key, status))
+        cur.execute("""INSERT OR REPLACE INTO global_matches_v503
+            (match_id, match_date, kickoff_time, competition_key, competition_name, country, home_team, away_team, status, minute, score, source, legal_note, priority, raw_json, imported_at)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP)""",
+            (match_id, date, time_, comp_key, comp_name, country, home, away, status, minute, score, source_name, legal_note, priority, json.dumps(row, ensure_ascii=False)[:5000]))
+        imported += 1
+    import_id = hashlib.md5(("%s-%s-%s" % (source_name, _v503_today(), len(rows))).encode("utf-8")).hexdigest()[:18]
+    cur.execute("""INSERT OR REPLACE INTO legal_imports_v503
+        (import_id, import_type, source_name, source_url, legal_note, rows_count, status, payload_preview, created_at)
+        VALUES (?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP)""",
+        (import_id, "matches", source_name, source_url, legal_note, imported, "IMPORTED", json.dumps(rows[:3], ensure_ascii=False)[:2000]))
+    conn.commit()
+    conn.close()
+    return {"ok": True, "imported": imported, "import_id": import_id}
+
+def _v503_matches(date="", lane="", competition=""):
+    _v503_seed_matches()
+    conn = get_db() if 'get_db' in globals() else sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+    clauses = []
+    params = []
+    if date:
+        clauses.append("match_date=?")
+        params.append(date)
+    if competition:
+        clauses.append("competition_key=?")
+        params.append(competition)
+    if lane == "live":
+        clauses.append("(lower(status) LIKE '%live%' OR lower(status) LIKE '%directo%' OR minute!='')")
+    elif lane == "top":
+        clauses.append("priority>=90")
+    elif lane == "spain":
+        clauses.append("(lower(country)='spain' OR lower(competition_key) LIKE '%laliga%' OR lower(competition_key) LIKE '%copa-del-rey%')")
+    elif lane == "andalucia":
+        clauses.append("lower(competition_key) LIKE '%andalucia%'")
+    where = (" WHERE " + " AND ".join(clauses)) if clauses else ""
+    cur.execute("SELECT * FROM global_matches_v503" + where + " ORDER BY match_date, CASE WHEN kickoff_time='' THEN '99:99' ELSE kickoff_time END, priority DESC LIMIT 120", params)
+    rows = [dict(r) for r in cur.fetchall()]
+    conn.close()
+    for r in rows:
+        r["home_identity"] = _v500_resolve_team_identity(r.get("home_team", ""))
+        r["away_identity"] = _v500_resolve_team_identity(r.get("away_team", ""))
+    return rows
+
+def _v503_imports():
+    _v503_tables()
+    conn = get_db() if 'get_db' in globals() else sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM legal_imports_v503 ORDER BY created_at DESC LIMIT 30")
+    rows = [dict(r) for r in cur.fetchall()]
+    conn.close()
+    return rows
+
+def _v503_calendar_hub(date="", lane="today"):
+    date = date or _v503_today()
+    selected_lane = lane or "today"
+    match_lane = "" if selected_lane == "today" else selected_lane
+    matches = _v503_matches(date=date, lane=match_lane)
+    competitions = _v502_competitions() if "_v502_competitions" in globals() else []
+    lanes = _v502_calendar_lanes() if "_v502_calendar_lanes" in globals() else []
+    counts = {}
+    for m in matches:
+        counts[m.get("competition_name") or "Sin competicion"] = counts.get(m.get("competition_name") or "Sin competicion", 0) + 1
+    return {
+        "ok": True,
+        "version": V503_VERSION,
+        "app_version": APP_VERSION,
+        "date": date,
+        "lane": selected_lane,
+        "matches": matches,
+        "competitions": competitions,
+        "lanes": lanes,
+        "competition_counts": counts,
+        "imports": _v503_imports(),
+        "legal_policy": "Solo datos propios, APIs permitidas, CSV/JSON autorizado o carga editorial. No scraping ilegal.",
+        "routes": ["/calendario-global", "/admin/import-center", "/api/v503/calendar", "/api/v503/import-matches", "/api/v503/imports", "/api/v503/diagnostics", "/v503-health"],
+    }
+
+@app.route('/calendario-global')
+@app.route('/global-calendar')
+@app.route('/partidos-global')
+def v503_global_calendar_page():
+    return render_template('global_calendar_v503.html', data=_v503_calendar_hub(request.args.get("date", ""), request.args.get("lane", "today")))
+
+@app.route('/admin/import-center')
+@app.route('/admin/legal-import')
+def v503_import_center_page():
+    return render_template('legal_import_center_v503.html', data=_v503_calendar_hub())
+
+@app.route('/api/v503/calendar')
+def v503_calendar_api():
+    return jsonify(_v503_calendar_hub(request.args.get("date", ""), request.args.get("lane", "today")))
+
+@app.route('/api/v503/imports')
+def v503_imports_api():
+    return jsonify({"ok": True, "version": V503_VERSION, "imports": _v503_imports()})
+
+@app.route('/api/v503/import-matches', methods=["POST"])
+def v503_import_matches_api():
+    payload = request.get_json(silent=True) or {}
+    if not payload and request.form:
+        payload = dict(request.form)
+    source_name = payload.get("source_name") or "manual"
+    source_url = payload.get("source_url") or ""
+    legal_note = payload.get("legal_note") or "Carga autorizada por el administrador"
+    rows = payload.get("rows")
+    if rows is None:
+        rows = _v503_parse_payload(payload.get("payload") or "")
+    if not isinstance(rows, list):
+        return jsonify({"ok": False, "error": "rows debe ser una lista o payload debe contener JSON/CSV valido"}), 400
+    result = _v503_import_rows(rows, source_name, source_url, legal_note)
+    return jsonify({"ok": True, "version": V503_VERSION, **result})
+
+@app.route('/api/v503/diagnostics')
+def v503_diagnostics_api():
+    hub = _v503_calendar_hub()
+    checks = [
+        {"name": "Calendario global", "status": "READY", "detail": "%s partidos disponibles para la fecha base." % len(hub["matches"])},
+        {"name": "Import center", "status": "READY", "detail": "Acepta POST JSON y carga manual desde panel admin."},
+        {"name": "Legal policy", "status": "READY", "detail": hub["legal_policy"]},
+        {"name": "Competition intelligence", "status": "READY", "detail": "Reutiliza V502 para prioridad y carriles."},
+        {"name": "Identity engine", "status": "READY", "detail": "Reutiliza V500 para escudos/fallback por equipo."},
+    ]
+    return jsonify({"ok": True, "version": V503_VERSION, "checks": checks, "routes": hub["routes"]})
+
+@app.route('/v503-health')
+def v503_health():
+    return {"ok": True, "version": V503_VERSION, "app_version": APP_VERSION, "routes": ["/calendario-global", "/admin/import-center", "/api/v503/calendar"]}
