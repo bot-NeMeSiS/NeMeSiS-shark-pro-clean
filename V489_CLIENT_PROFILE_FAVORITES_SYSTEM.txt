@@ -1,0 +1,5 @@
+NeMeSiS SHARK PRO V489 — Client Profile + Favorites System
+/perfil
+/mi-perfil
+/api/v489/profile
+/v489-health

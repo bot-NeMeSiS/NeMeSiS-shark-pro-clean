@@ -23457,3 +23457,51 @@ def v488_combi_api():
 def v488_health():
     return {"ok": True, "version": "V488_COMBI_PRO_EXPERIENCE", "status": "combi pro integrada"}
 
+
+# --- V489 CLIENT PROFILE FAVORITES SYSTEM ---
+def _v489_demo_profile():
+    return {
+        "membership": "PRO",
+        "stats": {
+            "favorites": 3,
+            "followed": 5,
+            "combis": 2,
+            "alerts": 1,
+        },
+        "recent": [
+            "Abriste un pick destacado",
+            "Creaste una combi equilibrada",
+            "Revisaste el calendario de próximos partidos",
+        ],
+        "favorites": [
+            "Real Madrid",
+            "Premier League",
+            "Barcelona vs Atlético",
+        ],
+    }
+
+@app.route("/perfil")
+@app.route("/mi-perfil")
+def v489_profile():
+    data = _v489_demo_profile()
+    return render_template(
+        "client_profile_v489.html",
+        membership=data["membership"],
+        stats=data["stats"],
+        recent=data["recent"],
+        favorites=data["favorites"],
+    )
+
+@app.route("/api/v489/profile")
+def v489_profile_api():
+    return {"ok": True, "profile": _v489_demo_profile()}
+
+@app.route("/v489-health")
+def v489_health():
+    return {
+        "ok": True,
+        "version": "V489_CLIENT_PROFILE_FAVORITES_SYSTEM",
+        "status": "perfil y favoritos integrados",
+        "routes": ["/perfil", "/mi-perfil", "/api/v489/profile"]
+    }
+
