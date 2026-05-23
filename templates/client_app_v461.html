@@ -19,6 +19,7 @@ body{background:radial-gradient(circle at 12% -8%,rgba(36,217,255,.20),transpare
 @media(max-width:820px){.daily-summary{grid-template-columns:repeat(2,1fr)}.next-actions,.retention-grid{grid-template-columns:1fr}.daily-loop{padding:14px}}
 
 </style>
+<link rel="stylesheet" href="/static/css/v482_premium_identity.css">
 </head>
 <body>
 <header class="top"><div class="topin"><a class="brand" href="{% if logged_mode %}/app{% else %}/{% endif %}"><span class="logo">🦈</span><span>NeMeSiS SHARK PRO</span></a><span class="livepill"><span class="dot"></span> {{ counts.live }} live · {{ counts.today }} hoy</span><div class="actions">{% if logged_mode %}<a class="btn" href="/cuenta">Cuenta</a>{% else %}<a class="btn hide-mobile" href="/cliente-login">Entrar</a><a class="btn primary" href="/registro">Crear cuenta</a>{% endif %}</div></div></header>

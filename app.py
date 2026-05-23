@@ -22793,3 +22793,150 @@ def v481_health():
         "status": "client experience upgraded",
         "memberships": ["FREE", "PRO", "ELITE"]
     }
+
+
+# --- V482 PREMIUM VISUAL IDENTITY SYSTEM ---
+@app.route("/v482-health")
+def v482_health():
+    return {
+        "ok": True,
+        "version": "V482_PREMIUM_VISUAL_IDENTITY_SYSTEM",
+        "status": "premium visual identity applied",
+        "features": [
+            "membership colors",
+            "premium cards",
+            "controlled glow",
+            "better CTA buttons",
+            "risk/live badges",
+            "global visual CSS"
+        ]
+    }
+
+
+# --- V483 RENDER ENV CONFIG CHECK ---
+def _v483_env_bool(name, default=False):
+    import os
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return str(value).strip().lower() in ("1", "true", "yes", "on", "si", "sí")
+
+def _v483_config_report():
+    import os
+    required = [
+        ("SECRET_KEY", "Seguridad de sesiones Flask"),
+        ("DB_PATH", "Base de datos persistente en Render, recomendado /data/database.db"),
+        ("THE_ODDS_API_KEY", "Partidos/cuotas reales desde The Odds API"),
+        ("THESPORTSDB_KEY", "Escudos/logos y datos deportivos externos"),
+        ("TELEGRAM_BOT_TOKEN", "Bot de Telegram"),
+        ("TELEGRAM_CHAT_ID", "Canal/grupo principal de Telegram"),
+        ("ADMIN_USER", "Usuario admin"),
+        ("ADMIN_PASSWORD", "Contraseña admin"),
+    ]
+    optional = [
+        ("OPENAI_API_KEY", "SHARK AI avanzada"),
+        ("OPENAI_MODEL", "Modelo IA"),
+        ("TELEGRAM_PRO_CHAT_ID", "Canal PRO"),
+        ("TELEGRAM_ELITE_CHAT_ID", "Canal ELITE"),
+        ("ODDS_REGIONS", "Regiones de cuotas"),
+        ("ODDS_MARKETS", "Mercados de cuotas"),
+        ("ODDS_CACHE_MINUTES", "Cache de cuotas"),
+        ("LIVE_CACHE_MINUTES", "Cache live"),
+    ]
+
+    items = []
+    present_count = 0
+    for name, note in required:
+        aliases = []
+        if name == "THE_ODDS_API_KEY":
+            aliases = ["ODDS_API_KEY"]
+        if name == "THESPORTSDB_KEY":
+            aliases = ["THESPORTSDB_API_KEY"]
+        present = bool(os.getenv(name) or any(os.getenv(a) for a in aliases))
+        present_count += 1 if present else 0
+        items.append({"name": name, "present": present, "note": note})
+
+    alias_groups = [
+        ("THE_ODDS_API_KEY / ODDS_API_KEY", ["THE_ODDS_API_KEY", "ODDS_API_KEY"]),
+        ("THESPORTSDB_KEY / THESPORTSDB_API_KEY", ["THESPORTSDB_KEY", "THESPORTSDB_API_KEY"]),
+        ("FOOTBALL_DATA_KEY / FOOTBALLDATA_KEY", ["FOOTBALL_DATA_KEY", "FOOTBALLDATA_KEY"]),
+        ("TELEGRAM_CHAT_ID / TELEGRAM_CHANNEL_ID", ["TELEGRAM_CHAT_ID", "TELEGRAM_CHANNEL_ID"]),
+    ]
+    duplicates = []
+    for label, keys in alias_groups:
+        active = [k for k in keys if os.getenv(k)]
+        if len(active) > 1:
+            duplicates.append(label + " → tienes varias activas: " + ", ".join(active))
+
+    impact = []
+    if not (os.getenv("THE_ODDS_API_KEY") or os.getenv("ODDS_API_KEY")):
+        impact.append("Sin The Odds API: picks/cuotas reales pueden quedar vacíos.")
+    else:
+        impact.append("The Odds API detectada: partidos/cuotas preparados.")
+
+    if not (os.getenv("THESPORTSDB_KEY") or os.getenv("THESPORTSDB_API_KEY")):
+        impact.append("Sin TheSportsDB: escudos pueden depender de fallback.")
+    else:
+        impact.append("TheSportsDB detectada: escudos/logos preparados.")
+
+    if not os.getenv("TELEGRAM_BOT_TOKEN") or not os.getenv("TELEGRAM_CHAT_ID"):
+        impact.append("Telegram incompleto: no enviará picks/canales correctamente.")
+    else:
+        impact.append("Telegram detectado: delivery preparado.")
+
+    if not os.getenv("DB_PATH"):
+        impact.append("DB_PATH no definido: riesgo de perder datos en Render.")
+    else:
+        impact.append("DB_PATH definido: persistencia preparada.")
+
+    clean_env = """SECRET_KEY=...
+DB_PATH=/data/database.db
+ENABLE_ODDS_API=true
+ENABLE_LIVE_API=true
+THE_ODDS_API_KEY=...
+THESPORTSDB_KEY=...
+TELEGRAM_BOT_TOKEN=...
+TELEGRAM_CHAT_ID=...
+ADMIN_USER=...
+ADMIN_PASSWORD=...
+OPENAI_API_KEY=...
+OPENAI_MODEL=gpt-4o-mini
+ODDS_REGIONS=eu
+ODDS_MARKETS=h2h,totals
+ODDS_CACHE_MINUTES=20
+LIVE_CACHE_MINUTES=2"""
+
+    issues = (len(required) - present_count) + len(duplicates)
+    return {
+        "required": items,
+        "duplicates": duplicates,
+        "impact": impact,
+        "clean_env": clean_env,
+        "summary": {
+            "ok": issues == 0,
+            "status": "Correcto" if issues == 0 else "Revisar",
+            "present": present_count,
+            "total": len(required),
+            "issues": issues,
+        },
+    }
+
+@app.route("/config-check")
+@app.route("/admin/config-check")
+def v483_config_check():
+    data = _v483_config_report()
+    return render_template("config_check_v483.html", **data)
+
+@app.route("/api/config-check")
+def v483_config_check_api():
+    return _v483_config_report()
+
+@app.route("/v483-health")
+def v483_health():
+    return {
+        "ok": True,
+        "version": "V483_RENDER_ENV_CONFIG_CHECK",
+        "routes": ["/config-check", "/admin/config-check", "/api/config-check"],
+        "status": "config check integrado"
+    }
+

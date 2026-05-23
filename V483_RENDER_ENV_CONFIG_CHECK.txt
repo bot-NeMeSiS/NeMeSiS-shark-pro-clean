@@ -1,0 +1,15 @@
+NeMeSiS SHARK PRO V483 — Render Env Config Check
+
+Incluye:
+- /config-check
+- /admin/config-check
+- /api/config-check
+- /v483-health
+
+Sirve para revisar:
+- The Odds API
+- TheSportsDB
+- Telegram
+- DB_PATH persistente
+- variables duplicadas
+- configuración limpia recomendada para Render
