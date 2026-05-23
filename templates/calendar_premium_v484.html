@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Calendario · NeMeSiS SHARK PRO</title>
+  <link rel="stylesheet" href="/static/css/v482_premium_identity.css">
+  <style>
+    :root{--bg:#030914;--panel:#07182b;--panel2:#0b223b;--txt:#eef8ff;--muted:#8aa8bd;--blue:#00e5ff;--gold:#ffd166;--good:#35e69b;--warn:#ffb020}
+    *{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,Segoe UI,Arial;background:radial-gradient(circle at 20% 0%,rgba(0,229,255,.18),transparent 35%),linear-gradient(180deg,#061426,#030914);color:var(--txt)}
+    a{text-decoration:none;color:inherit}.wrap{max-width:1180px;margin:auto;padding:18px 14px 96px}.top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+    .brand{font-weight:900}.chip{display:inline-flex;gap:7px;align-items:center;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);padding:8px 11px;border-radius:999px;color:var(--muted);font-size:13px}
+    .hero{border:1px solid rgba(0,229,255,.22);background:linear-gradient(135deg,rgba(0,229,255,.12),rgba(255,209,102,.06));border-radius:28px;padding:18px;box-shadow:0 18px 58px rgba(0,0,0,.28)}
+    .hero h1{margin:0 0 6px;font-size:26px}.hero p{margin:0;color:var(--muted);line-height:1.45}.filters{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0}
+    .filter{border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);padding:9px 12px;border-radius:14px;color:var(--txt);font-weight:800;font-size:13px}
+    .filter.active{background:linear-gradient(135deg,#00e5ff,#1877ff);color:#03111f;border:0}.layout{display:grid;grid-template-columns:260px 1fr;gap:14px;margin-top:14px}
+    .side,.content{border:1px solid rgba(255,255,255,.10);background:rgba(7,24,43,.78);border-radius:24px;padding:14px;box-shadow:0 16px 48px rgba(0,0,0,.24)}
+    .side h3,.league h3{margin:0 0 10px}.league{margin-bottom:14px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.035);border-radius:22px;overflow:hidden}
+    .league-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px 14px;border-bottom:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.035)}
+    .league-title{display:flex;flex-direction:column;gap:2px}.league-title b{font-size:15px}.league-title span{font-size:12px;color:var(--muted)}
+    .match{display:grid;grid-template-columns:72px 1fr auto;gap:12px;align-items:center;padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.06)}
+    .match:last-child{border-bottom:0}.time{color:var(--muted);font-size:13px;font-weight:800}.teams{display:flex;flex-direction:column;gap:5px}.team{display:flex;align-items:center;gap:8px}
+    .crest{width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.10);font-size:11px;font-weight:900;color:#cfeeff;overflow:hidden}
+    .crest img{width:100%;height:100%;object-fit:contain}.badges{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}.badge{border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);border-radius:999px;padding:6px 9px;font-size:11px;font-weight:900;color:var(--muted)}
+    .live{background:linear-gradient(90deg,#35e69b,#00e5ff);color:#03111f;border:0}.pick{color:var(--gold);border-color:rgba(255,209,102,.28)}.btn{padding:9px 12px;border-radius:13px;background:rgba(0,229,255,.12);border:1px solid rgba(0,229,255,.20);font-size:12px;font-weight:900}
+    .side-item{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.07);color:var(--muted);font-size:13px}.side-item:last-child{border-bottom:0}
+    .empty{border:1px dashed rgba(0,229,255,.25);background:rgba(0,229,255,.06);border-radius:22px;padding:18px;color:var(--muted);text-align:center}.bottom{position:fixed;left:50%;bottom:12px;transform:translateX(-50%);width:min(760px,calc(100% - 20px));display:grid;grid-template-columns:repeat(6,1fr);gap:6px;background:rgba(3,9,20,.88);backdrop-filter:blur(18px);border:1px solid rgba(255,255,255,.12);border-radius:22px;padding:8px}.nav{text-align:center;font-size:12px;color:var(--muted);padding:9px 4px;border-radius:15px}.nav.active,.nav:hover{background:rgba(0,229,255,.13);color:var(--txt)}
+    @media(max-width:840px){.layout{grid-template-columns:1fr}.match{grid-template-columns:56px 1fr}.badges{grid-column:1/-1;justify-content:flex-start}.bottom{grid-template-columns:repeat(3,1fr)}}
+  </style>
+<link rel="stylesheet" href="/static/css/v485_crest_engine.css">
+</head>
+<body>
+<main class="wrap">
+  <div class="top">
+    <a class="chip" href="/app">← Inicio</a>
+    <div class="brand">🦈 NeMeSiS SHARK PRO</div>
+    <a class="chip" href="/combis">Crear combi</a>
+  </div>
+
+  <section class="hero">
+    <h1>Calendario deportivo</h1>
+    <p>Partidos ordenados por día, país y competición. Encuentra rápido qué se juega, qué está en directo y dónde puede haber pick SHARK.</p>
+  </section>
+
+  <div class="filters">
+    <a class="filter {{ 'active' if active_range=='today' else '' }}" href="/calendario?range=today">Hoy</a>
+    <a class="filter {{ 'active' if active_range=='tomorrow' else '' }}" href="/calendario?range=tomorrow">Mañana</a>
+    <a class="filter {{ 'active' if active_range=='3d' else '' }}" href="/calendario?range=3d">3 días</a>
+    <a class="filter {{ 'active' if active_range=='7d' else '' }}" href="/calendario?range=7d">7 días</a>
+    <a class="filter {{ 'active' if active_range=='weekend' else '' }}" href="/calendario?range=weekend">Fin de semana</a>
+    <a class="filter" href="/en-directo">Directo</a>
+  </div>
+
+  <section class="layout">
+    <aside class="side">
+      <h3>Resumen</h3>
+      <div class="side-item"><span>Partidos</span><b>{{ total_matches }}</b></div>
+      <div class="side-item"><span>Competiciones</span><b>{{ total_leagues }}</b></div>
+      <div class="side-item"><span>En directo</span><b>{{ live_count }}</b></div>
+      <div class="side-item"><span>Con pick</span><b>{{ pick_count }}</b></div>
+      <div style="height:12px"></div>
+      <h3>Ligas</h3>
+      {% for league in league_names %}
+        <div class="side-item"><span>{{ league.name }}</span><b>{{ league.count }}</b></div>
+      {% else %}
+        <div class="empty">No hay ligas para este rango.</div>
+      {% endfor %}
+    </aside>
+
+    <section class="content">
+      {% if grouped %}
+        {% for league in grouped %}
+          <div class="league">
+            <div class="league-head">
+              <div class="league-title">
+                <b>{{ league.name }}</b>
+                <span>{{ league.country }} · {{ league.matches|length }} partido{{ '' if league.matches|length == 1 else 's' }}</span>
+              </div>
+              <span class="badge">{{ league.date_label }}</span>
+            </div>
+            {% for m in league.matches %}
+              <div class="match">
+                <div class="time">{{ m.time }}</div>
+                <div class="teams">
+                  <div class="team"><span class="crest">{{ m.home_initials }}</span><b>{{ m.home }}</b></div>
+                  <div class="team"><span class="crest">{{ m.away_initials }}</span><b>{{ m.away }}</b></div>
+                </div>
+                <div class="badges">
+                  {% if m.is_live %}<span class="badge live">LIVE</span>{% endif %}
+                  {% if m.has_pick %}<span class="badge pick">Pick SHARK</span>{% endif %}
+                  <a class="btn" href="/partido/{{ m.id }}">Ver partido</a>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% endfor %}
+      {% else %}
+        <div class="empty">
+          SHARK no encuentra partidos para este rango. Prueba otro día, revisa próximos 7 días o crea una combi multi-día.
+          <div style="margin-top:12px"><a class="btn" href="/combis">Crear combi</a></div>
+        </div>
+      {% endif %}
+    </section>
+  </section>
+</main>
+
+<nav class="bottom">
+  <a class="nav" href="/app">Inicio</a>
+  <a class="nav" href="/partidos">Partidos</a>
+  <a class="nav active" href="/calendario">Calendario</a>
+  <a class="nav" href="/picks">Picks</a>
+  <a class="nav" href="/combis">Combis</a>
+  <a class="nav" href="/cuenta">Cuenta</a>
+</nav>
+</body>
+</html>

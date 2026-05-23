@@ -1,0 +1,6 @@
+NeMeSiS SHARK PRO V485 — Smart Crest Engine
+- normalización
+- fallback premium sin N/A
+- /crest-check
+- /api/v485/crest?team=
+- /v485-health

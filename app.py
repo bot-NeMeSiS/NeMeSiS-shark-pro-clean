@@ -22940,3 +22940,267 @@ def v483_health():
         "status": "config check integrado"
     }
 
+
+# --- V484 PREMIUM CALENDAR LEAGUE ORDER ---
+def _v484_initials(name):
+    try:
+        parts = [p for p in str(name).replace("-", " ").split() if p]
+        return "".join(p[0].upper() for p in parts[:2]) or "SH"
+    except Exception:
+        return "SH"
+
+def _v484_as_list(obj):
+    if obj is None:
+        return []
+    if isinstance(obj, list):
+        return obj
+    if isinstance(obj, dict):
+        for key in ("matches", "events", "fixtures", "data", "games"):
+            if isinstance(obj.get(key), list):
+                return obj.get(key)
+    return []
+
+def _v484_get_matches_for_calendar():
+    """Toma datos existentes sin gastar API extra cuando sea posible."""
+    candidates = []
+    for fn_name in (
+        "get_today_matches", "get_matches", "load_matches", "fetch_matches",
+        "get_fixtures", "get_upcoming_matches", "get_real_matches",
+        "build_matches_feed", "get_client_matches"
+    ):
+        fn = globals().get(fn_name)
+        if callable(fn):
+            try:
+                data = fn()
+                lst = _v484_as_list(data)
+                if lst:
+                    candidates.extend(lst)
+            except Exception:
+                pass
+    # Fallback demo-safe vacío: no inventamos partidos.
+    return candidates
+
+def _v484_match_value(m, *keys, default=""):
+    if isinstance(m, dict):
+        for k in keys:
+            if k in m and m.get(k) not in (None, ""):
+                return m.get(k)
+    else:
+        for k in keys:
+            if hasattr(m, k):
+                v = getattr(m, k)
+                if v not in (None, ""):
+                    return v
+    return default
+
+def _v484_normalize_calendar_match(m, idx=0):
+    import datetime
+    home = _v484_match_value(m, "home", "home_team", "homeTeam", "team_home", "local", default="Local")
+    away = _v484_match_value(m, "away", "away_team", "awayTeam", "team_away", "visitor", default="Visitante")
+    league = _v484_match_value(m, "league", "competition", "sport_title", "league_name", default="Otros partidos")
+    country = _v484_match_value(m, "country", "region", "area", default="Fútbol")
+    raw_time = _v484_match_value(m, "time", "commence_time", "start_time", "date", "datetime", default="")
+    status = str(_v484_match_value(m, "status", "state", "match_status", default="")).lower()
+    match_id = _v484_match_value(m, "id", "event_id", "match_id", default=f"cal-{idx}")
+    has_pick = bool(_v484_match_value(m, "has_pick", "pick", "recommended_pick", default=False))
+    # hora legible
+    time_label = "Hora por confirmar"
+    date_label = "Próximos"
+    try:
+        if raw_time:
+            s = str(raw_time).replace("Z", "+00:00")
+            dt = datetime.datetime.fromisoformat(s)
+            time_label = dt.strftime("%H:%M")
+            date_label = dt.strftime("%d/%m/%Y")
+    except Exception:
+        if raw_time:
+            time_label = str(raw_time)[:5] if len(str(raw_time)) >= 5 else str(raw_time)
+    return {
+        "id": match_id,
+        "home": str(home),
+        "away": str(away),
+        "league": str(league),
+        "country": str(country),
+        "time": time_label,
+        "date_label": date_label,
+        "is_live": any(x in status for x in ("live", "inplay", "1h", "2h", "directo")),
+        "has_pick": has_pick,
+        "home_initials": _v484_initials(home),
+        "away_initials": _v484_initials(away),
+    }
+
+def _v484_group_calendar(matches):
+    grouped_map = {}
+    for i, m in enumerate(matches):
+        nm = _v484_normalize_calendar_match(m, i)
+        key = (nm["country"], nm["league"], nm["date_label"])
+        grouped_map.setdefault(key, []).append(nm)
+    groups = []
+    for (country, league, date_label), items in grouped_map.items():
+        groups.append({
+            "country": country,
+            "name": league,
+            "date_label": date_label,
+            "matches": sorted(items, key=lambda x: x.get("time", "")),
+        })
+    return sorted(groups, key=lambda g: (g["country"], g["name"], g["date_label"]))
+
+@app.before_request
+def _v484_calendar_override():
+    try:
+        if request.path != "/calendario":
+            return None
+        active_range = request.args.get("range", "today")
+        raw = _v484_get_matches_for_calendar()
+        grouped = _v484_group_calendar(raw)
+        total_matches = sum(len(g["matches"]) for g in grouped)
+        live_count = sum(1 for g in grouped for m in g["matches"] if m["is_live"])
+        pick_count = sum(1 for g in grouped for m in g["matches"] if m["has_pick"])
+        league_names = [{"name": g["name"], "count": len(g["matches"])} for g in grouped[:20]]
+        return render_template(
+            "calendar_premium_v484.html",
+            grouped=grouped,
+            total_matches=total_matches,
+            total_leagues=len(grouped),
+            live_count=live_count,
+            pick_count=pick_count,
+            league_names=league_names,
+            active_range=active_range,
+        )
+    except Exception as e:
+        return render_template(
+            "calendar_premium_v484.html",
+            grouped=[],
+            total_matches=0,
+            total_leagues=0,
+            live_count=0,
+            pick_count=0,
+            league_names=[],
+            active_range=request.args.get("range", "today"),
+        )
+
+@app.route("/v484-health")
+def v484_health():
+    return {
+        "ok": True,
+        "version": "V484_PREMIUM_CALENDAR_LEAGUE_ORDER",
+        "status": "calendario premium integrado",
+        "features": [
+            "orden por liga",
+            "orden por país",
+            "resumen de calendario",
+            "filtros de rango",
+            "estado vacío premium"
+        ]
+    }
+
+
+# --- V485 SMART CREST ENGINE ---
+import re as _v485_re
+
+_V485_TEAM_ALIASES = {
+    "man united": "manchester united",
+    "man utd": "manchester united",
+    "man city": "manchester city",
+    "spurs": "tottenham hotspur",
+    "psg": "paris saint germain",
+    "barca": "barcelona",
+    "fc barcelona": "barcelona",
+    "real madrid cf": "real madrid",
+    "atleti": "atletico madrid",
+}
+
+def v485_normalize_team_name(name):
+    s = str(name or "").strip().lower()
+    s = s.replace("&", " and ")
+    s = _v485_re.sub(r"[^a-z0-9áéíóúñü\s\-]", " ", s)
+    s = " " + _v485_re.sub(r"\s+", " ", s).strip() + " "
+    for token in (" fc ", " cf ", " afc ", " sc ", " club ", " sad ", " cd ", " ud ", " ac ", " ss "):
+        s = s.replace(token, " ")
+    s = _v485_re.sub(r"\s+", " ", s).strip()
+    return _V485_TEAM_ALIASES.get(s, s)
+
+def v485_team_initials(name):
+    parts = [p for p in str(name or "SH").replace("-", " ").split() if p]
+    return "".join(p[0].upper() for p in parts[:2]) or "SH"
+
+def v485_find_cached_logo(name):
+    normalized = v485_normalize_team_name(name)
+    for fn_name in ("display_team_logo", "team_logo_url", "get_team_logo", "resolve_team_logo", "get_logo_for_team"):
+        fn = globals().get(fn_name)
+        if callable(fn):
+            for value in (name, normalized):
+                try:
+                    url = fn(value)
+                    if url and isinstance(url, str) and url.lower() not in ("n/a", "none", "null"):
+                        return url
+                except Exception:
+                    pass
+    for dict_name in ("TEAM_LOGOS", "team_logos", "LOGO_CACHE", "logo_cache", "team_assets"):
+        d = globals().get(dict_name)
+        if isinstance(d, dict):
+            for key in (name, normalized, str(name).lower()):
+                if d.get(key):
+                    return d.get(key)
+    return ""
+
+def v485_resolve_crest(name):
+    logo = v485_find_cached_logo(name)
+    return {"name": str(name or "Equipo"), "normalized": v485_normalize_team_name(name), "logo": logo or "", "initials": v485_team_initials(name), "fallback": not bool(logo)}
+
+@app.template_filter("crest_v485")
+def crest_v485_filter(name):
+    return v485_resolve_crest(name)
+
+@app.context_processor
+def v485_crest_context():
+    return {"crest_v485": v485_resolve_crest, "crest_initials_v485": v485_team_initials}
+
+@app.route("/api/v485/crest")
+def v485_crest_api():
+    team = request.args.get("team", "")
+    return v485_resolve_crest(team)
+
+def _v485_collect_teams():
+    teams = []
+    for fn_name in ("get_today_matches", "get_matches", "get_upcoming_matches", "get_fixtures", "build_matches_feed", "get_client_matches"):
+        fn = globals().get(fn_name)
+        if callable(fn):
+            try:
+                data = fn()
+                if isinstance(data, dict):
+                    for key in ("matches", "events", "fixtures", "data"):
+                        if isinstance(data.get(key), list):
+                            data = data.get(key)
+                            break
+                if isinstance(data, list):
+                    for m in data[:80]:
+                        if isinstance(m, dict):
+                            for k in ("home", "home_team", "homeTeam", "local"):
+                                if m.get(k): teams.append(m.get(k))
+                            for k in ("away", "away_team", "awayTeam", "visitor"):
+                                if m.get(k): teams.append(m.get(k))
+            except Exception:
+                pass
+    seen, out = set(), []
+    for t in teams:
+        n = str(t)
+        if n.lower() not in seen:
+            seen.add(n.lower())
+            out.append(n)
+    return out[:100]
+
+@app.route("/crest-check")
+@app.route("/admin/crest-check")
+def v485_crest_check():
+    raw_teams = _v485_collect_teams()
+    teams = [v485_resolve_crest(t) for t in raw_teams]
+    total = len(teams)
+    with_logo = sum(1 for t in teams if t.get("logo"))
+    fallback = total - with_logo
+    return render_template("crest_check_v485.html", teams=teams, total=total, with_logo=with_logo, fallback=fallback)
+
+@app.route("/v485-health")
+def v485_health():
+    return {"ok": True, "version": "V485_SMART_CREST_ENGINE", "status": "smart crest engine integrado", "routes": ["/crest-check", "/api/v485/crest?team=Barcelona"]}
+

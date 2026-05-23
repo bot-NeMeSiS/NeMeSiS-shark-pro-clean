@@ -13,13 +13,13 @@
 <p>{{ data.message }}</p>
 {% endif %}
 </div>
-<div class="v147-score">{{ data.fixture.score if data.fixture else "N/A" }}</div>
+<div class="v147-score">{{ data.fixture.score if data.fixture else "SH" }}</div>
 </section>
 
 {% if data.fixture %}
 <section class="v147-grid">
 <article><span>Estado</span><strong>{{ data.fixture.status }}</strong></article>
-<article><span>Minuto</span><strong>{{ data.fixture.minute or "N/A" }}</strong></article>
+<article><span>Minuto</span><strong>{{ data.fixture.minute or "SH" }}</strong></article>
 <article><span>Eventos</span><strong>{{ data.events|length }}</strong></article>
 <article><span>Stats</span><strong>{{ data.stats|length }}</strong></article>
 </section>
