@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NeMeSiS SHARK PRO · Fuentes legales V497</title>
+  <style>
+    :root{--bg:#050914;--card:#0b1224;--card2:#101a33;--line:#22345f;--txt:#edf4ff;--muted:#9fb0d1;--gold:#f7c948;--blue:#35a7ff;--green:#3ee28a;--red:#ff6678}
+    *{box-sizing:border-box} body{margin:0;background:radial-gradient(circle at top,#10224b 0,#050914 42%,#03050b 100%);font-family:Inter,system-ui,Arial,sans-serif;color:var(--txt)}
+    .wrap{max-width:1180px;margin:0 auto;padding:26px 16px 46px}.top{display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:18px}.brand{display:flex;flex-direction:column;gap:5px}.kicker{color:var(--gold);font-size:12px;text-transform:uppercase;letter-spacing:.15em;font-weight:800}.title{font-size:clamp(28px,5vw,48px);font-weight:950;line-height:1;margin:0}.sub{color:var(--muted);font-size:15px;max-width:780px}.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:14px}.card{grid-column:span 12;background:linear-gradient(180deg,rgba(16,26,51,.96),rgba(7,12,25,.96));border:1px solid var(--line);border-radius:22px;padding:18px;box-shadow:0 18px 50px rgba(0,0,0,.32)}@media(min-width:880px){.half{grid-column:span 6}.third{grid-column:span 4}.two{grid-column:span 8}}
+    .badge{display:inline-flex;align-items:center;gap:7px;border:1px solid rgba(53,167,255,.35);background:rgba(53,167,255,.09);color:#cfeaff;border-radius:999px;padding:7px 10px;font-size:12px;font-weight:800;margin:4px 6px 4px 0}.ok{border-color:rgba(62,226,138,.35);background:rgba(62,226,138,.09);color:#caffe3}.warn{border-color:rgba(247,201,72,.4);background:rgba(247,201,72,.1);color:#ffeaa5}.no{border-color:rgba(255,102,120,.38);background:rgba(255,102,120,.1);color:#ffd4da}
+    h2{margin:0 0 10px;font-size:20px}.list{display:flex;flex-direction:column;gap:8px}.item{padding:12px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.035);border-radius:14px}.muted{color:var(--muted)}code,pre{background:#050914;border:1px solid var(--line);border-radius:12px;color:#dce9ff}code{padding:3px 6px}pre{padding:12px;overflow:auto}.btn{display:inline-flex;text-decoration:none;color:#06101f;background:linear-gradient(135deg,var(--gold),#fff0a8);font-weight:950;border-radius:14px;padding:12px 14px;margin:6px 8px 6px 0}.btn.secondary{background:linear-gradient(135deg,#35a7ff,#8bd3ff)}table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:10px;border-bottom:1px solid rgba(255,255,255,.08);text-align:left}th{color:#cfeaff}.mini{font-size:12px}.pulse{height:10px;width:10px;border-radius:50%;background:var(--green);display:inline-block;box-shadow:0 0 20px var(--green)}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div class="brand">
+      <div class="kicker">{{ data.version }}</div>
+      <h1 class="title">Hub legal de datos futbolísticos</h1>
+      <div class="sub">Carga calendarios regionales, jornadas y partidos desde fuentes propias, autorizadas u open data. Diseñado para crecer Andalucía sin scraping ilegal.</div>
+    </div>
+    <div><span class="badge ok"><span class="pulse"></span> Legal first</span><span class="badge warn">Trazabilidad</span><span class="badge">Andalucía profunda</span></div>
+  </div>
+  <div class="grid">
+    <section class="card two"><h2>Reglas del sistema</h2><div class="list">{% for p in data.policy.principles %}<div class="item">✅ {{ p }}</div>{% endfor %}</div></section>
+    <section class="card third"><h2>Bloqueado</h2>{% for x in data.policy.blocked %}<span class="badge no">{{ x }}</span>{% endfor %}</section>
+    <section class="card half"><h2>Fuentes permitidas</h2><div class="list">{% for s in data.policy.allowed_sources %}<div class="item"><b>{{ s.name }}</b><br><span class="muted mini">{{ s.key }} · {{ s.status }}</span></div>{% endfor %}</div></section>
+    <section class="card half"><h2>Plantilla CSV oficial</h2><p class="muted">Campos aceptados para importar partidos sin depender de scraping. La app valida provincia, categoría, equipos y fuente.</p><a class="btn" href="/api/v497/import-template.csv">Descargar plantilla CSV</a><a class="btn secondary" href="/api/v497/legal-diagnostics">Ver diagnóstico</a><pre>{{ data.headers|join(', ') }}</pre></section>
+    <section class="card"><h2>Últimas importaciones</h2>{% if data.batches %}<table><thead><tr><th>ID</th><th>Fuente</th><th>Recibidas</th><th>Insertadas</th><th>Rechazadas</th><th>Fecha</th></tr></thead><tbody>{% for b in data.batches %}<tr><td>{{ b.id }}</td><td>{{ b.source_key }}</td><td>{{ b.rows_received }}</td><td>{{ b.rows_inserted }}</td><td>{{ b.rows_rejected }}</td><td>{{ b.created_at }}</td></tr>{% endfor %}</tbody></table>{% else %}<div class="item muted">Aún no hay cargas. El sistema está preparado para importar datos legales desde CSV/JSON.</div>{% endif %}</section>
+  </div>
+</div>
+</body>
+</html>
