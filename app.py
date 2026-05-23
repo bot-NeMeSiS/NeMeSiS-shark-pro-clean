@@ -23204,3 +23204,105 @@ def v485_crest_check():
 def v485_health():
     return {"ok": True, "version": "V485_SMART_CREST_ENGINE", "status": "smart crest engine integrado", "routes": ["/crest-check", "/api/v485/crest?team=Barcelona"]}
 
+
+# --- V486 TELEGRAM REAL DELIVERY SYSTEM ---
+def v486_telegram_status():
+    import os
+    token = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
+    chat_id = os.getenv("TELEGRAM_CHAT_ID", "").strip() or os.getenv("TELEGRAM_CHANNEL_ID", "").strip()
+    return {
+        "bot_token": bool(token),
+        "chat_id": bool(chat_id),
+        "ready": bool(token and chat_id),
+        "pro_chat": bool(os.getenv("TELEGRAM_PRO_CHAT_ID", "").strip()),
+        "elite_chat": bool(os.getenv("TELEGRAM_ELITE_CHAT_ID", "").strip()),
+    }
+
+def v486_build_telegram_message(kind="resumen"):
+    kind = (kind or "resumen").lower()
+    if kind == "pick":
+        return """🦈 PICK SHARK DEL DÍA
+
+Partido: Próximo partido destacado
+Mercado: Empate no apuesta
+Riesgo: Medio
+Stake recomendado: 1 unidad
+
+Motivo SHARK:
+Buscamos valor solo si la cuota acompaña y el partido sigue dentro del rango esperado.
+
+Abre la app para ver el análisis completo."""
+    if kind == "combi":
+        return """🦈 COMBI SHARK
+
+Tipo: Equilibrada
+Partidos: seleccionados desde calendario
+Riesgo: Medio
+Recomendación: revisar cuotas antes de entrar
+
+La combi se genera evitando partidos pasados y priorizando próximos encuentros."""
+    return """🦈 RESUMEN SHARK DE HOY
+
+• Revisa partidos del calendario
+• Mira picks disponibles
+• Crea una combi según tu rango de días
+• Sigue partidos favoritos en directo
+
+NeMeSiS SHARK PRO está listo para buscar oportunidades."""
+
+def v486_send_telegram_message(text, chat_id=None):
+    import os, json, urllib.request, urllib.parse
+    token = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
+    chat = chat_id or os.getenv("TELEGRAM_CHAT_ID", "").strip() or os.getenv("TELEGRAM_CHANNEL_ID", "").strip()
+    if not token or not chat:
+        return {"ok": False, "error": "Faltan TELEGRAM_BOT_TOKEN o TELEGRAM_CHAT_ID"}
+    url = f"https://api.telegram.org/bot{token}/sendMessage"
+    payload = urllib.parse.urlencode({
+        "chat_id": chat,
+        "text": text,
+        "parse_mode": "HTML",
+        "disable_web_page_preview": "true",
+    }).encode("utf-8")
+    try:
+        req = urllib.request.Request(url, data=payload, method="POST")
+        with urllib.request.urlopen(req, timeout=12) as resp:
+            body = resp.read().decode("utf-8", errors="ignore")
+            try:
+                return json.loads(body)
+            except Exception:
+                return {"ok": True, "raw": body}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+@app.route("/telegram-delivery")
+@app.route("/admin/telegram-delivery")
+def v486_telegram_delivery_panel():
+    status = v486_telegram_status()
+    sample = v486_build_telegram_message("resumen")
+    return render_template("telegram_delivery_v486.html", status=status, sample=sample)
+
+@app.route("/telegram/test-delivery")
+def v486_telegram_test_delivery():
+    kind = request.args.get("kind", "resumen")
+    message = v486_build_telegram_message(kind)
+    result = v486_send_telegram_message(message)
+    return {
+        "ok": bool(result.get("ok")),
+        "kind": kind,
+        "telegram": result,
+        "message_preview": message,
+    }
+
+@app.route("/api/v486/telegram-status")
+def v486_telegram_status_api():
+    return v486_telegram_status()
+
+@app.route("/v486-health")
+def v486_health():
+    return {
+        "ok": True,
+        "version": "V486_TELEGRAM_REAL_DELIVERY_SYSTEM",
+        "routes": ["/telegram-delivery", "/telegram/test-delivery?kind=resumen", "/api/v486/telegram-status"],
+        "status": "telegram delivery integrado"
+    }
+

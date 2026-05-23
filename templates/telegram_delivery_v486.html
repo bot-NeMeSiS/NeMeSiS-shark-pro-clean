@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Telegram Delivery · NeMeSiS SHARK PRO</title>
+<link rel="stylesheet" href="/static/css/v482_premium_identity.css">
+<style>
+body{margin:0;background:#06111f;color:#eef8ff;font-family:Inter,system-ui,Segoe UI,Arial}.wrap{max-width:1050px;margin:auto;padding:22px 16px 80px}.top{display:flex;justify-content:space-between;align-items:center;gap:12px}.card{border:1px solid rgba(255,255,255,.1);background:rgba(7,24,43,.84);border-radius:22px;padding:16px;margin:12px 0}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.btn{display:inline-flex;padding:10px 13px;border-radius:14px;background:linear-gradient(135deg,#00e5ff,#1877ff);color:#03111f;font-weight:900;text-decoration:none;border:0}.muted{color:#8aa8bd}.ok{color:#35e69b}.bad{color:#ff5d73}.warn{color:#ffd166}pre{white-space:pre-wrap;background:rgba(0,0,0,.22);border-radius:16px;padding:14px;color:#dff8ff}@media(max-width:800px){.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<main class="wrap">
+<div class="top"><div><h1>Telegram Delivery</h1><p class="muted">Prueba y estado del envío de picks, combis y resumen SHARK.</p></div><a class="btn" href="/admin">Volver</a></div>
+<section class="grid">
+<div class="card"><b>Bot token</b><h2 class="{{ 'ok' if status.bot_token else 'bad' }}">{{ 'OK' if status.bot_token else 'Falta' }}</h2></div>
+<div class="card"><b>Canal principal</b><h2 class="{{ 'ok' if status.chat_id else 'bad' }}">{{ 'OK' if status.chat_id else 'Falta' }}</h2></div>
+<div class="card"><b>Delivery</b><h2 class="{{ 'ok' if status.ready else 'warn' }}">{{ 'Listo' if status.ready else 'Revisar' }}</h2></div>
+</section>
+<section class="card">
+<h2>Acciones de prueba</h2>
+<p class="muted">Usa estos botones después de tener TELEGRAM_BOT_TOKEN y TELEGRAM_CHAT_ID en Render.</p>
+<a class="btn" href="/telegram/test-delivery?kind=resumen">Enviar resumen</a>
+<a class="btn" href="/telegram/test-delivery?kind=pick">Enviar pick</a>
+<a class="btn" href="/telegram/test-delivery?kind=combi">Enviar combi</a>
+</section>
+<section class="card">
+<h2>Mensaje ejemplo</h2>
+<pre>{{ sample }}</pre>
+</section>
+<section class="card">
+<h2>Variables necesarias</h2>
+<pre>TELEGRAM_BOT_TOKEN=...
+TELEGRAM_CHAT_ID=...
+TELEGRAM_PRO_CHAT_ID=...      opcional
+TELEGRAM_ELITE_CHAT_ID=...    opcional</pre>
+</section>
+</main>
+</body>
+</html>
