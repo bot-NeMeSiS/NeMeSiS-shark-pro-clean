@@ -22,7 +22,7 @@
         <a href="/escudos">Escudos</a>
         {% if current_user %}
           <a href="/perfil">Mi perfil</a>
-          {% if current_user.role == 'ADMIN' %}<a href="/admin/users">Admin</a><a href="/admin/telegram">Telegram Admin</a>{% endif %}
+          {% if current_user.role == 'ADMIN' %}<a href="/admin/users">Admin</a><a href="/admin/sportsdb-sync">SportsDB</a><a href="/admin/telegram">Telegram Admin</a>{% endif %}
           <a href="/logout">Salir</a>
         {% else %}
           <a href="/cliente-login">Entrar</a>

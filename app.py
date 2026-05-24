@@ -24,8 +24,8 @@ from engines.shark_engine import build_shark_context, explain_pick_risk
 from engines.telegram_engine import build_alert_queue, dispatch_signature, should_skip_duplicate
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V519_LIVE_EXPERIENCE_2_MATCH_DETAIL_SYSTEM"
-SEED_VERSION = "v518-telegram-automatic-delivery-seed"
+APP_VERSION = "V520_SPORTSDB_CREST_SYNC_FIX"
+SEED_VERSION = "v520-sportsdb-crest-sync-fix-seed"
 DB_PATH = os.getenv("DB_PATH", os.path.join(os.path.dirname(__file__), "database.db"))
 TZ = ZoneInfo("Europe/Madrid")
 
@@ -416,11 +416,26 @@ TEAM_SEEDS = [
     ("atletico-madrid", "Atletico de Madrid", "Spain", "Europe", "", "133729"),
     ("sevilla", "Sevilla FC", "Spain", "Andalucia", "", "133745"),
     ("real-betis", "Real Betis", "Spain", "Andalucia", "", "133741"),
-    ("malaga", "Malaga CF", "Spain", "Andalucia", "", ""),
-    ("cadiz", "Cadiz CF", "Spain", "Andalucia", "", ""),
-    ("granada", "Granada CF", "Spain", "Andalucia", "", ""),
-    ("cordoba", "Cordoba CF", "Spain", "Andalucia", "", ""),
+    ("malaga", "Malaga CF", "Spain", "Andalucia", "", "133733"),
+    ("cadiz", "Cadiz CF", "Spain", "Andalucia", "", "134189"),
+    ("granada", "Granada CF", "Spain", "Andalucia", "", "133727"),
+    ("cordoba", "Cordoba CF", "Spain", "Andalucia", "", "134155"),
     ("recreativo-huelva", "Recreativo de Huelva", "Spain", "Andalucia", "", ""),
+    ("arsenal", "Arsenal", "England", "Europe", "", "133604"),
+    ("manchester-city", "Manchester City", "England", "Europe", "", "133613"),
+    ("liverpool", "Liverpool", "England", "Europe", "", "133602"),
+    ("chelsea", "Chelsea", "England", "Europe", "", "133610"),
+    ("manchester-united", "Manchester United", "England", "Europe", "", "133612"),
+    ("tottenham", "Tottenham Hotspur", "England", "Europe", "", "133616"),
+    ("psg", "Paris SG", "France", "Europe", "", "133714"),
+    ("bayern-munich", "Bayern Munich", "Germany", "Europe", "", "133664"),
+    ("borussia-dortmund", "Borussia Dortmund", "Germany", "Europe", "", "133650"),
+    ("juventus", "Juventus", "Italy", "Europe", "", "133676"),
+    ("inter", "Inter Milan", "Italy", "Europe", "", "133685"),
+    ("ac-milan", "AC Milan", "Italy", "Europe", "", "133677"),
+    ("benfica", "Benfica", "Portugal", "Europe", "", "134363"),
+    ("porto", "FC Porto", "Portugal", "Europe", "", "134364"),
+    ("sporting-cp", "Sporting CP", "Portugal", "Europe", "", "134365"),
 ]
 
 TEAM_ALIASES = {
@@ -428,6 +443,7 @@ TEAM_ALIASES = {
     "fc-barcelona": "barcelona",
     "barca": "barcelona",
     "real-madrid-cf": "real-madrid",
+    "real-madrid": "real-madrid",
     "madrid": "real-madrid",
     "atletico": "atletico-madrid",
     "atletico-de-madrid": "atletico-madrid",
@@ -435,11 +451,34 @@ TEAM_ALIASES = {
     "sevilla-fc": "sevilla",
     "betis": "real-betis",
     "real-betis-balompie": "real-betis",
+    "real-betis": "real-betis",
     "malaga-cf": "malaga",
     "cadiz-cf": "cadiz",
     "granada-cf": "granada",
     "cordoba-cf": "cordoba",
     "recreativo": "recreativo-huelva",
+    "recreativo-de-huelva": "recreativo-huelva",
+    "arsenal-fc": "arsenal",
+    "man-city": "manchester-city",
+    "manchester-city-fc": "manchester-city",
+    "liverpool-fc": "liverpool",
+    "chelsea-fc": "chelsea",
+    "man-united": "manchester-united",
+    "manchester-united-fc": "manchester-united",
+    "tottenham-hotspur": "tottenham",
+    "paris-saint-germain": "psg",
+    "paris-sg": "psg",
+    "psg": "psg",
+    "fc-bayern-munich": "bayern-munich",
+    "bayern": "bayern-munich",
+    "bvb": "borussia-dortmund",
+    "inter-milan": "inter",
+    "internazionale": "inter",
+    "milan": "ac-milan",
+    "sl-benfica": "benfica",
+    "fc-porto": "porto",
+    "sporting": "sporting-cp",
+    "sporting-lisbon": "sporting-cp",
 }
 
 
@@ -461,12 +500,21 @@ def _seed_core_unlocked():
                VALUES (?,?,?,?,?,?,?,?,?,?)""",
             (key, name, country, region, logo_url, external_id, "premium-blue", "seed propio", "Sin scraping. Logo externo solo si hay licencia/API permitida.", now_iso()),
         )
+        cur.execute(
+            """UPDATE teams
+               SET name=COALESCE(NULLIF(name,''),?), country=COALESCE(NULLIF(country,''),?), region=COALESCE(NULLIF(region,''),?),
+                   external_id=CASE WHEN COALESCE(external_id,'')='' THEN ? ELSE external_id END,
+                   updated_at=?
+               WHERE key=?""",
+            (name, country, region, external_id, now_iso(), key),
+        )
     seed_matches = [
-        ("ucl", 0, "21:00", "uefa-champions-league", "UEFA Champions League", "Europe", "Equipo Champions A", "Equipo Champions B", "PROGRAMADO"),
-        ("premier", 0, "18:30", "premier-league", "Premier League", "England", "Premier Home", "Premier Away", "PROGRAMADO"),
-        ("laliga", 0, "20:45", "laliga", "LaLiga EA Sports", "Spain", "Club LaLiga Local", "Club LaLiga Visitante", "PROGRAMADO"),
-        ("world", 0, "19:00", "fifa-world-cup", "FIFA World Cup", "Global", "Seleccion Local", "Seleccion Visitante", "ESTRUCTURA"),
-        ("andalucia", 0, "12:00", "andalucia-regional", "Andalucia Regional Football", "Spain", "Club Andaluz", "Rival Provincial", "PROGRAMADO"),
+        ("ucl", 0, "21:00", "uefa-champions-league", "UEFA Champions League", "Europe", "Real Madrid", "Bayern Munich", "PROGRAMADO"),
+        ("premier", 0, "18:30", "premier-league", "Premier League", "England", "Arsenal", "Manchester City", "PROGRAMADO"),
+        ("laliga", 0, "20:45", "laliga", "LaLiga EA Sports", "Spain", "FC Barcelona", "Atletico de Madrid", "PROGRAMADO"),
+        ("andalucia-1", 0, "12:00", "andalucia-regional", "Andalucia Regional Football", "Spain", "Sevilla FC", "Real Betis", "PROGRAMADO"),
+        ("andalucia-2", 0, "17:00", "andalucia-regional", "Andalucia Regional Football", "Spain", "Cadiz CF", "Malaga CF", "PROGRAMADO"),
+        ("portugal", 0, "21:15", "primeira-liga", "Primeira Liga", "Portugal", "Benfica", "FC Porto", "PROGRAMADO"),
     ]
     for raw_id, day, time, comp_key, comp_name, country, home, away, status in seed_matches:
         match_id = "seed-" + raw_id + "-" + today_iso(day)
@@ -572,32 +620,86 @@ def thesportsdb_key():
     return os.getenv("THESPORTSDB_KEY") or os.getenv("THESPORTSDB_API_KEY") or ""
 
 
-def fetch_thesportsdb_team(team_name):
-    api_key = thesportsdb_key()
-    if not api_key:
+def _read_json_url(url, timeout=10):
+    req = urllib.request.Request(url, headers={"User-Agent": "NeMeSiS-SHARK-PRO/1.0"})
+    with urllib.request.urlopen(req, timeout=timeout) as res:
+        return json.loads(res.read().decode("utf-8", errors="replace"))
+
+
+def _identity_from_sportsdb_payload(team_name, first):
+    if not first:
         return None
-    url = "https://www.thesportsdb.com/api/v1/json/%s/searchteams.php?%s" % (
+    logo = first.get("strBadge") or first.get("strLogo") or first.get("strTeamBadge") or ""
+    return {
+        "external_id": first.get("idTeam") or "",
+        "name": first.get("strTeam") or team_name,
+        "country": first.get("strCountry") or "",
+        "region": first.get("strLeague") or first.get("strSport") or "",
+        "logo_url": logo,
+        "source": "TheSportsDB API",
+        "legal_note": "Escudo obtenido desde API permitida TheSportsDB; cache SQLite propio, sin scraping.",
+    }
+
+
+def fetch_thesportsdb_team_by_id(team_id):
+    api_key = thesportsdb_key()
+    team_id = str(team_id or "").strip()
+    if not api_key or not team_id:
+        return None
+    url = "https://www.thesportsdb.com/api/v1/json/%s/lookupteam.php?%s" % (
         urllib.parse.quote(api_key),
-        urllib.parse.urlencode({"t": team_name}),
+        urllib.parse.urlencode({"id": team_id}),
     )
     try:
-        with urllib.request.urlopen(url, timeout=8) as res:
-            payload = json.loads(res.read().decode("utf-8", errors="replace"))
+        payload = _read_json_url(url, timeout=10)
         teams = payload.get("teams") or []
-        if not teams:
-            return None
-        first = teams[0]
-        logo = first.get("strBadge") or first.get("strLogo") or ""
-        return {
-            "external_id": first.get("idTeam") or "",
-            "name": first.get("strTeam") or team_name,
-            "country": first.get("strCountry") or "",
-            "logo_url": logo,
-            "source": "TheSportsDB API",
-            "legal_note": "Escudo obtenido desde API permitida TheSportsDB; respetar condiciones de uso de la fuente.",
-        }
+        return _identity_from_sportsdb_payload(team_id, teams[0] if teams else None)
     except Exception:
         return None
+
+
+def fetch_thesportsdb_team(team_name):
+    api_key = thesportsdb_key()
+    if not api_key or not str(team_name or "").strip():
+        return None
+    candidates = []
+    clean_name = str(team_name or "").strip()
+    candidates.append(clean_name)
+    key = canonical_team_key(clean_name)
+    seeded = next((t for t in TEAM_SEEDS if t[0] == key), None)
+    if seeded:
+        if seeded[5]:
+            by_id = fetch_thesportsdb_team_by_id(seeded[5])
+            if by_id and by_id.get("logo_url"):
+                return by_id
+        candidates.append(seeded[1])
+    # Normalizaciones habituales para mejorar coincidencias.
+    candidates += [
+        clean_name.replace("Atletico", "Atlético"),
+        clean_name.replace("CF", "").replace("FC", "").strip(),
+        clean_name.replace("Paris SG", "Paris Saint-Germain"),
+    ]
+    seen = set()
+    for candidate in candidates:
+        candidate = str(candidate or "").strip()
+        if not candidate or candidate.lower() in seen:
+            continue
+        seen.add(candidate.lower())
+        url = "https://www.thesportsdb.com/api/v1/json/%s/searchteams.php?%s" % (
+            urllib.parse.quote(api_key),
+            urllib.parse.urlencode({"t": candidate}),
+        )
+        try:
+            payload = _read_json_url(url, timeout=10)
+            teams = payload.get("teams") or []
+            if not teams:
+                continue
+            identity = _identity_from_sportsdb_payload(team_name, teams[0])
+            if identity and identity.get("logo_url"):
+                return identity
+        except Exception:
+            continue
+    return None
 
 
 def cache_team_identity(name, identity):
@@ -647,6 +749,79 @@ def resolve_team(name, refresh=False):
     team["crest_source"] = status["source"]
     return team
 
+
+
+
+def sportsdb_sync_crests(limit=80, refresh=False):
+    seed_core()
+    key_present = bool(thesportsdb_key())
+    if not key_present:
+        return {"ok": False, "sin_key": True, "processed": 0, "updated": 0, "failed": 0, "errors": ["Falta THESPORTSDB_API_KEY o THESPORTSDB_KEY en Render."]}
+    teams = rows("SELECT * FROM teams ORDER BY CASE WHEN COALESCE(logo_url,'')='' THEN 0 ELSE 1 END, name LIMIT ?", (int(limit or 80),))
+    processed = updated = failed = 0
+    errors = []
+    for team in teams:
+        if team.get("logo_url") and not refresh:
+            continue
+        processed += 1
+        identity = None
+        if team.get("external_id"):
+            identity = fetch_thesportsdb_team_by_id(team.get("external_id"))
+        if not identity or not identity.get("logo_url"):
+            identity = fetch_thesportsdb_team(team.get("name") or team.get("key"))
+        if identity and identity.get("logo_url"):
+            cache_team_identity(team.get("name") or identity.get("name"), identity)
+            # Mantener la key canónica del seed aunque TheSportsDB devuelva otro nombre.
+            conn = db()
+            conn.execute(
+                """UPDATE teams SET name=?, country=COALESCE(NULLIF(?,''),country), region=COALESCE(NULLIF(?,''),region),
+                   logo_url=?, external_id=COALESCE(NULLIF(?,''),external_id), source=?, legal_note=?, updated_at=? WHERE key=?""",
+                (
+                    identity.get("name") or team.get("name"),
+                    identity.get("country") or "",
+                    identity.get("region") or "",
+                    identity.get("logo_url") or "",
+                    identity.get("external_id") or "",
+                    identity.get("source") or "TheSportsDB API",
+                    identity.get("legal_note") or "Escudo obtenido desde API permitida TheSportsDB.",
+                    now_iso(),
+                    team.get("key"),
+                ),
+            )
+            conn.commit(); conn.close()
+            updated += 1
+        else:
+            failed += 1
+            if len(errors) < 12:
+                errors.append(team.get("name") or team.get("key"))
+    conn = db()
+    conn.execute(
+        "INSERT OR REPLACE INTO persistent_cache(key,value_json,expires_at,updated_at) VALUES (?,?,?,?)",
+        ("sportsdb_crest_sync_last", json.dumps({"processed": processed, "updated": updated, "failed": failed, "errors": errors, "at": now_iso()}, ensure_ascii=False), now_iso(), now_iso()),
+    )
+    conn.commit(); conn.close()
+    return {"ok": True, "sin_key": False, "processed": processed, "updated": updated, "failed": failed, "errors": errors}
+
+
+def crest_summary():
+    seed_core()
+    teams = rows("SELECT * FROM teams ORDER BY name")
+    with_logo = [t for t in teams if t.get("logo_url")]
+    without_logo = [t for t in teams if not t.get("logo_url")]
+    last = one("SELECT value_json FROM persistent_cache WHERE key='sportsdb_crest_sync_last'")
+    last_sync = {}
+    try:
+        last_sync = json.loads((last or {}).get("value_json") or "{}")
+    except Exception:
+        last_sync = {}
+    return {
+        "total_teams": len(teams),
+        "with_logo": len(with_logo),
+        "fallback": len(without_logo),
+        "sample_with_logo": [t.get("name") for t in with_logo[:10]],
+        "sample_missing": [t.get("name") for t in without_logo[:20]],
+        "last_sync": last_sync,
+    }
 
 def priority_for(competition_key, status="", favorite=False, has_pick=False):
     comp = {key: tier for key, _, _, _, _, tier, _, _ in COMPETITION_SEEDS}.get(competition_key, 55)
@@ -1929,6 +2104,7 @@ def thesportsdb_diagnostics():
             sample = fetch_thesportsdb_team("Real Madrid")
         except Exception as exc:
             error = str(exc)[:300]
+    summary = crest_summary()
     return {
         "ok": bool(key),
         "version": APP_VERSION,
@@ -1937,9 +2113,10 @@ def thesportsdb_diagnostics():
         "env_names_checked": ["THESPORTSDB_API_KEY", "THESPORTSDB_KEY"],
         "live_enabled": enabled,
         "team_resolve_ok": bool(sample and sample.get("logo_url")),
-        "sample_team": {k: sample.get(k) for k in ["name", "external_id", "country", "source"]} if sample else None,
+        "sample_team": {k: sample.get(k) for k in ["name", "external_id", "country", "source", "logo_url"]} if sample else None,
+        "crest_summary": summary,
         "last_error": error,
-        "policy": "API TheSportsDB permitida + cache SQLite; sin scraping ilegal.",
+        "policy": "API TheSportsDB permitida + cache SQLite; sin scraping ilegal. No se expone la key completa.",
     }
 
 @app.route("/service-worker.js")
@@ -2440,23 +2617,33 @@ def api_import_teams():
 
 @app.route("/api/crest-diagnostics")
 def api_crest_diagnostics():
-    seed_core()
-    teams = rows("SELECT * FROM teams ORDER BY name")
-    with_logo = [t for t in teams if t.get("logo_url")]
-    without_logo = [t for t in teams if not t.get("logo_url")]
-    return jsonify(
-        {
-            "ok": True,
-            "version": APP_VERSION,
-            "provider": "TheSportsDB",
-            "provider_key_present": bool(thesportsdb_key()),
-            "total_teams": len(teams),
-            "with_logo": len(with_logo),
-            "fallback": len(without_logo),
-            "sample_missing": [t.get("name") for t in without_logo[:20]],
-            "legal_policy": "Escudos desde API permitida, carga manual autorizada o fallback SVG propio. No scraping ilegal.",
-        }
-    )
+    summary = crest_summary()
+    return jsonify({
+        "ok": True,
+        "version": APP_VERSION,
+        "provider": "TheSportsDB",
+        "provider_key_present": bool(thesportsdb_key()),
+        **summary,
+        "legal_policy": "Escudos desde API permitida, carga manual autorizada o fallback SVG propio. No scraping ilegal.",
+    })
+
+
+@app.route("/api/sportsdb/sync-crests", methods=["GET", "POST"])
+def api_sportsdb_sync_crests():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    payload = request.get_json(silent=True) or {}
+    limit = request.args.get("limit") or payload.get("limit") or 80
+    refresh = request.args.get("refresh") in {"1", "true", "yes"} or payload.get("refresh") is True
+    result = sportsdb_sync_crests(limit=limit, refresh=refresh)
+    return jsonify({"version": APP_VERSION, **result, "summary": crest_summary()})
+
+
+@app.route("/admin/sportsdb-sync")
+def admin_sportsdb_sync_page():
+    if not is_admin_session():
+        return redirect("/admin-login")
+    return render_template("admin_sportsdb_sync.html", diagnostics=thesportsdb_diagnostics(), summary=crest_summary())
 
 
 @app.route("/api/import-matches", methods=["POST"])

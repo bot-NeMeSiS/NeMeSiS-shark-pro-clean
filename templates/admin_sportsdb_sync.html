@@ -1,49 +1,61 @@
 {% extends "base.html" %}
 {% block content %}
 <section class="hero compact">
-  <div class="kicker">SportsDB Sync</div>
-  <h1>Sincronizar escudos</h1>
-  <p class="lead">Actualiza escudos desde TheSportsDB solo bajo control admin y guarda el resultado en SQLite para no llamar la API en cada carga.</p>
-  <div class="admin-menu">
-    <a class="btn" href="/admin/users">Usuarios</a>
-    <a class="btn" href="/admin/import-center">Import Center</a>
-    <a class="btn primary" href="/admin/sportsdb-sync">SportsDB Sync</a>
-    <a class="btn" href="/api/thesportsdb/diagnostics">Diagnosticos</a>
+  <div class="eyebrow">ADMIN · TheSportsDB Premium</div>
+  <h1>Sincronización de escudos</h1>
+  <p>Rellena escudos reales desde TheSportsDB y guarda el resultado en SQLite para que la app no dependa de llamadas en cada carga.</p>
+</section>
+
+<section class="grid two">
+  <article class="card premium-card">
+    <h2>Estado SportsDB</h2>
+    <p><strong>Key presente:</strong> {{ 'Sí' if diagnostics.key_present else 'No' }}</p>
+    <p><strong>Preview:</strong> {{ diagnostics.key_preview or 'Sin configurar' }}</p>
+    <p><strong>Live activo:</strong> {{ 'Sí' if diagnostics.live_enabled else 'No' }}</p>
+    <p><strong>Prueba Real Madrid:</strong> {{ 'OK' if diagnostics.team_resolve_ok else 'Pendiente' }}</p>
+    {% if diagnostics.last_error %}<p class="danger">{{ diagnostics.last_error }}</p>{% endif %}
+  </article>
+  <article class="card premium-card">
+    <h2>Resumen de escudos</h2>
+    <p><strong>Total equipos:</strong> {{ summary.total_teams }}</p>
+    <p><strong>Con escudo:</strong> {{ summary.with_logo }}</p>
+    <p><strong>Fallback:</strong> {{ summary.fallback }}</p>
+    <p><strong>Último sync:</strong> {{ summary.last_sync.at or 'Sin ejecutar' }}</p>
+  </article>
+</section>
+
+<section class="card premium-card">
+  <h2>Acciones</h2>
+  <p>Usa primero sincronización normal. El refresh fuerza revisión incluso si ya hay escudo guardado.</p>
+  <div class="actions">
+    <button class="btn primary" onclick="runSync(false)">Sincronizar escudos faltantes</button>
+    <button class="btn ghost" onclick="runSync(true)">Forzar refresh</button>
   </div>
+  <pre id="sync-result" class="codebox">Esperando acción...</pre>
 </section>
-<section class="band">
-  <div class="grid">
-    <div class="card"><div class="metric">{% if data.sportsdb.key_present %}OK{% else %}NO{% endif %}</div><div class="muted">key presente {{ data.sportsdb.key_masked }}</div></div>
-    <div class="card"><div class="metric">{{ data.sportsdb.total_teams }}</div><div class="muted">equipos</div></div>
-    <div class="card"><div class="metric">{{ data.sportsdb.with_logo }}</div><div class="muted">con escudo</div></div>
-    <div class="card"><div class="metric">{{ data.sportsdb.fallback }}</div><div class="muted">fallback SVG</div></div>
-  </div>
+
+<section class="grid two">
+  <article class="card premium-card">
+    <h2>Ejemplos con escudo</h2>
+    <ul>{% for name in summary.sample_with_logo %}<li>{{ name }}</li>{% else %}<li>Aún sin escudos sincronizados.</li>{% endfor %}</ul>
+  </article>
+  <article class="card premium-card">
+    <h2>Faltan por resolver</h2>
+    <ul>{% for name in summary.sample_missing %}<li>{{ name }}</li>{% else %}<li>Todo lo principal tiene escudo.</li>{% endfor %}</ul>
+  </article>
 </section>
-<section class="band two-col">
-  {% if message %}<div class="notice">{{ message }}</div>{% endif %}
-  <form class="card" method="post" action="/admin/sportsdb-sync">
-    <h2>Sincronizar escudos</h2>
-    <p class="small">Usa TheSportsDB con la key de entorno y actualiza solo la cache SQLite.</p>
-    <div class="field"><label>Limite por ejecucion</label><input name="limit" value="40"></div>
-    <input type="hidden" name="refresh" value="1">
-    <button type="submit">Sincronizar escudos</button>
-  </form>
-  <aside class="card">
-    <h2>Estado</h2>
-    <p class="small">Live API: {% if data.sportsdb.live_enabled %}activo{% else %}inactivo{% endif %}</p>
-    <p class="small">Ultimo sync: {{ data.sportsdb.last_sync.time or '-' }}</p>
-    <p class="small">Actualizados: {{ data.sportsdb.last_sync.updated or 0 }} · Fallidos: {{ data.sportsdb.last_sync.failed or 0 }}</p>
-    <p class="small">Ultimo error: {{ data.sportsdb.last_error or '-' }}</p>
-  </aside>
-</section>
-<section class="band">
-  <div class="section-head"><h2>Pendientes</h2><span class="pill">{{ data.sportsdb.missing_examples|length }}</span></div>
-  <div class="stack">
-    {% for name in data.sportsdb.missing_examples %}
-    <div class="list-row"><span>{{ name }}</span><strong>fallback</strong></div>
-    {% else %}
-    <div class="empty">Todos los equipos cacheados tienen escudo.</div>
-    {% endfor %}
-  </div>
-</section>
+
+<script>
+async function runSync(refresh){
+  const box = document.getElementById('sync-result');
+  box.textContent = 'Sincronizando con TheSportsDB...';
+  try {
+    const res = await fetch('/api/sportsdb/sync-crests?limit=120' + (refresh ? '&refresh=1' : ''), {method:'POST'});
+    const data = await res.json();
+    box.textContent = JSON.stringify(data, null, 2);
+  } catch(e){
+    box.textContent = 'Error: ' + e;
+  }
+}
+</script>
 {% endblock %}
