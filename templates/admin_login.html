@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="hero auth-hero">
+  <div class="kicker">Acceso privado</div>
+  <h1>Admin SHARK</h1>
+  <p class="lead">Entrada discreta para gestionar importaciones legales, Telegram y datos autorizados.</p>
+</section>
+<section class="band auth-grid">
+  <form class="card auth-card" method="post" action="/admin-login{% if request.args.get('next') %}?next={{ request.args.get('next') }}{% endif %}">
+    <h2>Admin login</h2>
+    {% if error %}<p class="notice danger">{{ error }}</p>{% endif %}
+    {% if not configured %}<p class="notice">Configura ADMIN_EMAIL y ADMIN_PASSWORD en Render, o entra con un usuario ADMIN existente.</p>{% endif %}
+    <div class="field"><label>Email admin</label><input type="email" name="email" autocomplete="email" required></div>
+    <div class="field"><label>Contrasena</label><input type="password" name="password" autocomplete="current-password" required></div>
+    <button type="submit">Entrar como admin</button>
+  </form>
+  <aside class="card auth-side">
+    <h2>Cliente</h2>
+    <p class="small">Si no eres admin, vuelve al acceso normal de cliente.</p>
+    <a class="btn" href="/cliente-login">Login cliente</a>
+  </aside>
+</section>
+{% endblock %}
