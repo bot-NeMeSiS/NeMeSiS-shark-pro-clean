@@ -1,7 +1,0 @@
-<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Admin V409</title><style>body{margin:0;background:#080d17;color:#edf6ff;font-family:Inter,Arial,sans-serif}.wrap{max-width:1100px;margin:auto;padding:24px}.panel{background:#0d1b2e;border:1px solid rgba(120,180,255,.22);border-radius:22px;padding:18px;margin:14px 0}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}.tag{display:inline-block;padding:6px 10px;border-radius:999px;background:#123b5c;color:#8de3ff;font-weight:800;font-size:12px}.muted{color:#9fb0c8}</style><link rel="stylesheet" href="/static/css/v482_premium_identity.css">
-<link rel="stylesheet" href="/static/css/v485_crest_engine.css">
-<link rel="stylesheet" href="/static/css/v490_performance_skeletons.css">
-<link rel="stylesheet" href="/static/css/v491_final_design_system.css">
-<link rel="stylesheet" href="/static/css/v492_live_score.css">
-</head><body><main class="wrap"><section class="panel"><span class="tag">V409 Admin User Insights</span><h1>Profile / Gamification controlado</h1><p class="muted">Resumen, riesgo, evolución y gamification ligera organizados para no saturar ni al cliente ni al admin.</p></section><section class="grid">{% for item in data.items %}<article class="panel"><h3>{{ item.title }}</h3><p>{{ item.short_message }}</p><p class="muted">{{ item.pro_detail }}</p></article>{% endfor %}</section></main><script defer src="/static/js/v490_app_speed.js"></script>
-</body></html>

@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="hero">
+  <div class="kicker">{{ data.version }} · Clean Winner Core</div>
+  <h1>Futbol global premium, limpio y listo para crecer</h1>
+  <p class="lead">Esta es la base ganadora: calendario mundial, competiciones top, live center, importacion legal, escudos por identidad y Andalucia como diferencial dentro de una app global.</p>
+  <div class="actions">
+    <a class="btn primary" href="/calendario">Abrir calendario</a>
+    <a class="btn" href="/live">Live Center</a>
+    <a class="btn" href="/admin/import-center">Importar datos</a>
+  </div>
+</section>
+<section class="band">
+  <div class="grid">
+    <div class="card"><div class="metric">{{ data.competitions|length }}</div><div class="muted">competiciones globales</div></div>
+    <div class="card"><div class="metric">{{ data.matches|length }}</div><div class="muted">partidos de hoy</div></div>
+    <div class="card"><div class="metric">{{ data.imports|length }}</div><div class="muted">importaciones recientes</div></div>
+    <div class="card"><div class="metric">{{ data.readiness.clean_core }}%</div><div class="muted">core limpio</div></div>
+  </div>
+</section>
+<section class="band">
+  <div class="section-head"><h2>Prioridad de producto</h2><span class="pill">Sin versiones antiguas acumuladas</span></div>
+  <div class="grid">
+    <div class="card"><div class="name">Global primero</div><p class="small">Mundial, Champions, Eurocopa, ligas top, Espana y America como estructura principal.</p></div>
+    <div class="card"><div class="name">Andalucia diferencial</div><p class="small">Regional e inferior se mantiene como ventaja propia, no como limite del producto.</p></div>
+    <div class="card"><div class="name">Datos legales</div><p class="small">{{ data.legal_policy }}</p></div>
+    <div class="card"><div class="name">Listo para APIs</div><p class="small">El siguiente paso es conectar fuentes legales y guardar snapshots en SQLite.</p></div>
+  </div>
+</section>
+{% endblock %}

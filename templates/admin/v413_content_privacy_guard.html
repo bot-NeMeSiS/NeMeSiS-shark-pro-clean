@@ -1,7 +1,0 @@
-<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Admin V413 Content Privacy Guard</title><link rel="stylesheet" href="/static/v413/shark_human_copilot.css"><link rel="stylesheet" href="/static/css/v482_premium_identity.css">
-<link rel="stylesheet" href="/static/css/v485_crest_engine.css">
-<link rel="stylesheet" href="/static/css/v490_performance_skeletons.css">
-<link rel="stylesheet" href="/static/css/v491_final_design_system.css">
-<link rel="stylesheet" href="/static/css/v492_live_score.css">
-</head><body class="v413-admin"><main class="v413-shell"><section class="v413-hero"><span class="v413-kicker">Admin · V413</span><h1>Content Privacy Guard</h1><p>{{ data.admin_goal }}</p><div class="v413-actions"><a href="/admin">Admin</a><a href="/cliente/v413-shark-human-copilot">Vista cliente V413</a></div></section><section class="v413-grid">{% for rule in data.rules %}<article class="v413-card"><small>{{ rule.audience }} · {{ rule.status }}</small><h2>{{ rule.rule_key }}</h2><p><b>Oculta/mueve:</b> {{ rule.forbidden_terms }}</p><p><b>Cliente ve:</b> {{ rule.client_replacement }}</p><p><b>Destino admin:</b> {{ rule.admin_destination }}</p></article>{% endfor %}</section><section class="v413-grid">{% for item in data.audit %}<article class="v413-card"><small>{{ item.area }} · {{ item.status }}</small><h2>{{ item.finding }}</h2><p>{{ item.action_taken }}</p></article>{% endfor %}</section></main><script defer src="/static/js/v490_app_speed.js"></script>
-</body></html>

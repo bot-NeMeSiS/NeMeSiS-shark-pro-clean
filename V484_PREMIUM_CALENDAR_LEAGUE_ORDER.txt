@@ -1,9 +1,0 @@
-NeMeSiS SHARK PRO V484 — Premium Calendar League Order
-
-- Calendario más profesional
-- Agrupado por país/liga/fecha
-- Filtros: hoy, mañana, 3 días, 7 días, fin de semana
-- Resumen lateral
-- Botón a detalle de partido
-- Estado vacío premium
-- Healthcheck /v484-health

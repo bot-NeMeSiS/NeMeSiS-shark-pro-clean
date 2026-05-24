@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="hero">
+  <div class="kicker">Admin · importacion legal</div>
+  <h1>Cargar datos sin arrastrar ruido</h1>
+  <p class="lead">Pega CSV o JSON autorizado. Cada importacion guarda fuente, nota legal y trazabilidad. Este es el puente para convertir la app limpia en producto vivo.</p>
+</section>
+<section class="band form-grid">
+  <form class="card" method="post" action="/api/import-matches">
+    <div class="field"><label>Fuente</label><input name="source_name" value="manual autorizado"></div>
+    <div class="field"><label>URL o referencia legal</label><input name="source_url" placeholder="https://... o referencia interna"></div>
+    <div class="field"><label>Nota legal</label><input name="legal_note" value="Carga autorizada por administrador"></div>
+    <div class="field"><label>Payload CSV o JSON</label><textarea name="payload">match_date,kickoff_time,competition_key,competition_name,country,home_team,away_team,status
+{{ data.date }},21:00,uefa-champions-league,UEFA Champions League,Europe,Equipo A,Equipo B,PROGRAMADO
+{{ data.date }},18:30,laliga,LaLiga EA Sports,Spain,Club Local,Club Visitante,PROGRAMADO</textarea></div>
+    <button type="submit">Importar partidos</button>
+    <p class="small">Tambien puedes usar POST JSON en `/api/import-matches` con `rows` o `payload`.</p>
+  </form>
+  <aside class="card">
+    <h2>Importaciones recientes</h2>
+    {% if data.imports %}
+      {% for i in data.imports %}
+      <div class="import-row">
+        <div class="ok">{{ i.status }} · {{ i.rows_count }} filas</div>
+        <div class="small">{{ i.source_name }} · {{ i.created_at }}</div>
+        <div class="small">{{ i.legal_note }}</div>
+      </div>
+      {% endfor %}
+    {% else %}
+      <p class="small">Aun no hay importaciones manuales. La app muestra semillas limpias hasta cargar datos reales/autorizados.</p>
+    {% endif %}
+  </aside>
+</section>
+{% endblock %}

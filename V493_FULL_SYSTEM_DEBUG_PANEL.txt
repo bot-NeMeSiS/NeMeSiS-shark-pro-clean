@@ -1,4 +1,0 @@
-V493 Full System Debug Panel
-/system-debug
-/api/v493/system-debug
-/v493-health

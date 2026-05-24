@@ -1,9 +1,0 @@
-NeMeSiS SHARK PRO — V477 FINAL PREMIUM POLISH
-
-Incluye:
-- Pulido visual premium del cliente.
-- Fallback de escudos reforzado para evitar imágenes rotas.
-- Limpieza de textos internos/demo/admin en el flujo cliente.
-- Rutas cliente unificadas.
-- Botones principales a rutas reales.
-- Healthcheck: /v477-health

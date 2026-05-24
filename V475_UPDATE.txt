@@ -1,9 +1,0 @@
-NEMESIS SHARK PRO V475
-
-- Client Flow Polish
-- navegación cliente más coherente
-- mejor flujo entre pantallas
-- CTA más claros
-- estados vacíos premium
-- mobile flow mejorado
-- Render Ready

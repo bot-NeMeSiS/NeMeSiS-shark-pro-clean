@@ -1,1 +1,0 @@
-(function(){document.documentElement.dataset.v411='visual-hierarchy-pro';document.querySelectorAll('details').forEach(d=>d.addEventListener('toggle',()=>{if(d.open){d.closest('.v411-card')?.classList.add('is-open')}}));})();

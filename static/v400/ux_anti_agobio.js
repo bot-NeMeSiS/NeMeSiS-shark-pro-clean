@@ -1,1 +1,0 @@
-(() => { document.documentElement.dataset.v400Ux = 'anti-agobio'; const dupes=[...document.querySelectorAll('[data-bottom-nav], .bottom-nav, .mobile-bottom-nav')]; if(dupes.length>1){dupes.slice(1).forEach(n=>n.classList.add('v400-hidden-duplicate'))} })();
