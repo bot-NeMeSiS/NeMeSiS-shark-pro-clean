@@ -6,6 +6,9 @@
   <p class="lead">SHARK responde sobre calendario, live, favoritos, picks, combis y riesgo. Si faltan datos reales, lo deja claro antes de recomendar nada.</p>
   <div class="actions"><a class="btn primary" href="/api/shark/briefing">API briefing</a><a class="btn" href="/api/shark/ask">Ask endpoint</a></div>
 </section>
+{% if not current_user or current_user.role not in ['ELITE','ADMIN'] %}
+<section class="band"><div class="notice">SHARK premium queda reservado para ELITE. En FREE/PRO se mantiene briefing claro sin inventar datos ni picks.</div></section>
+{% endif %}
 <section class="band">
   <div class="grid">
     <div class="card"><div class="metric">{{ data.briefing.summary.matches_today }}</div><div class="muted">partidos hoy</div></div>

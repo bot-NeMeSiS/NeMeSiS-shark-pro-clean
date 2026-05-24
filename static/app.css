@@ -72,9 +72,17 @@ h2{font-size:24px;margin:0;letter-spacing:0}
 .field{display:grid;gap:6px;margin-bottom:10px}
 label{font-size:12px;color:var(--muted);font-weight:850}
 input,textarea{width:100%;border:1px solid #33445f;background:#070d18;color:var(--txt);border-radius:8px;padding:10px;font-family:inherit}
+select{width:100%;border:1px solid #33445f;background:#070d18;color:var(--txt);border-radius:8px;padding:10px;font-family:inherit}
 textarea{min-height:230px;font-family:Consolas,monospace;font-size:13px}
 .import-row{border-top:1px solid #223149;padding-top:10px;margin-top:10px}
 .ok{color:var(--green);font-weight:950}
 .bad{color:var(--bad);font-weight:950}
+.auth-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(250px,.55fr);gap:14px;align-items:start}
+.auth-card{min-height:auto}
+.auth-side{min-height:auto}
+.notice{border:1px solid #33445f;background:#111f31;border-radius:8px;padding:10px;color:#cfe4ff;font-size:13px;line-height:1.4}
+.notice.danger{border-color:#7c2940;background:#2a111b;color:#ffd1dc}
+.user-row{display:grid;grid-template-columns:minmax(0,1fr) 260px;gap:12px;align-items:center}
+.inline-form{display:grid;grid-template-columns:1fr;gap:7px}
 @media(max-width:900px){.app-hero,.two-col{grid-template-columns:1fr}.quick-actions{grid-template-columns:repeat(2,minmax(118px,1fr))}.live-strip{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:760px){.nav{display:none}.bottom-nav{display:grid}.section-head,.comp-top,.match-top{display:block}.form-grid{grid-template-columns:1fr}.hero{padding-top:34px}.quick-actions{grid-template-columns:1fr 1fr}.quick{min-height:54px;touch-action:manipulation}.quick strong{font-size:20px}.card,.list-row,.btn,button{transition:transform .16s ease,border-color .16s ease}.card:active,.list-row:active,.quick:active,.btn:active,button:active{transform:scale(.985)}}
+@media(max-width:760px){.nav{display:none}.bottom-nav{display:grid}.section-head,.comp-top,.match-top{display:block}.form-grid,.auth-grid,.user-row{grid-template-columns:1fr}.hero{padding-top:34px}.quick-actions{grid-template-columns:1fr 1fr}.quick{min-height:54px;touch-action:manipulation}.quick strong{font-size:20px}.card,.list-row,.btn,button{transition:transform .16s ease,border-color .16s ease}.card:active,.list-row:active,.quick:active,.btn:active,button:active{transform:scale(.985)}}

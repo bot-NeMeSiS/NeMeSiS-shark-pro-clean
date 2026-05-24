@@ -7,13 +7,18 @@
   <div class="actions">
     {% if data.picks %}
     <form method="post" action="/api/combis/build"><button type="submit">Construir combi</button></form>
-    {% else %}
+    {% elif current_user and current_user.role == 'ADMIN' %}
     <a class="btn primary" href="/admin/import-center">Importar picks</a>
+    {% else %}
+    <a class="btn primary" href="/membresias">Ver PRO</a>
     {% endif %}
     <a class="btn" href="/api/combis">API combis</a>
     <a class="btn" href="/picks">Ver picks</a>
   </div>
 </section>
+{% if not current_user or current_user.role == 'FREE' %}
+<section class="band"><div class="notice">Combis es una capa PRO. Se muestra sin bloquear la navegacion, pero necesita picks reales/autorizados para construir combinadas.</div></section>
+{% endif %}
 <section class="band">
   <div class="section-head"><h2>{{ data.combis|length }} combis guardadas</h2><span class="pill">Draft seguro</span></div>
   {% if data.combis %}

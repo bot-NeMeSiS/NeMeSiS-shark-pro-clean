@@ -18,10 +18,16 @@
         <a href="/combis">Combis</a>
         <a href="/shark-ai">SHARK</a>
         <a href="/favoritos">Favoritos</a>
-        <a href="/perfil">Perfil</a>
         <a href="/telegram">Telegram</a>
         <a href="/escudos">Escudos</a>
-        <a href="/admin/import-center">Importar</a>
+        {% if current_user %}
+          <a href="/perfil">Mi perfil</a>
+          {% if current_user.role == 'ADMIN' %}<a href="/admin/users">Admin</a>{% endif %}
+          <a href="/logout">Salir</a>
+        {% else %}
+          <a href="/cliente-login">Entrar</a>
+          <a href="/registro">Crear cuenta</a>
+        {% endif %}
       </nav>
     </div>
   </header>
@@ -33,7 +39,7 @@
     <a href="/live">Live</a>
     <a href="/picks">Picks</a>
     <a href="/favoritos">Fav</a>
-    <a href="/perfil">Perfil</a>
+    {% if current_user %}<a href="/perfil">Perfil</a>{% else %}<a href="/cliente-login">Entrar</a>{% endif %}
   </nav>
 </body>
 </html>

@@ -10,6 +10,9 @@
     <a class="btn" href="/api/telegram/auto-posts">Auto posts</a>
   </div>
 </section>
+{% if not current_user or current_user.role not in ['ELITE','ADMIN'] %}
+<section class="band"><div class="notice">Telegram premium queda preparado. ELITE activa alertas avanzadas; la configuracion real depende de variables de entorno.</div></section>
+{% endif %}
 <section class="band">
   <div class="grid">
     <div class="card"><div class="metric">{% if data.telegram.configured %}ON{% else %}CFG{% endif %}</div><div class="muted">configuracion</div></div>

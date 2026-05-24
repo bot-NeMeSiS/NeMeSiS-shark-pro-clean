@@ -11,9 +11,7 @@
     <div class="field"><label>Fuente</label><input name="source_name" value="manual autorizado"></div>
     <div class="field"><label>URL o referencia legal</label><input name="source_url" placeholder="https://... o referencia interna"></div>
     <div class="field"><label>Nota legal</label><input name="legal_note" value="Carga autorizada por administrador"></div>
-    <div class="field"><label>Payload CSV o JSON</label><textarea name="payload">match_date,kickoff_time,competition_key,competition_name,country,home_team,away_team,status
-{{ data.date }},21:00,uefa-champions-league,UEFA Champions League,Europe,Equipo A,Equipo B,PROGRAMADO
-{{ data.date }},18:30,laliga,LaLiga EA Sports,Spain,Club Local,Club Visitante,PROGRAMADO</textarea></div>
+    <div class="field"><label>Payload CSV o JSON autorizado</label><textarea name="payload">match_date,kickoff_time,competition_key,competition_name,country,home_team,away_team,status</textarea></div>
     <button type="submit">Importar partidos</button>
     <p class="small">Tambien puedes usar POST JSON en /api/import-matches con rows o payload.</p>
   </form>
@@ -38,8 +36,7 @@
     <p class="small">Solo picks propios, editoriales o de fuente autorizada. No se inventan cuotas.</p>
     <div class="field"><label>Fuente</label><input name="source_name" value="manual picks autorizado"></div>
     <div class="field"><label>Nota legal</label><input name="legal_note" value="Pick cargado por administrador desde fuente autorizada"></div>
-    <div class="field"><label>Payload CSV o JSON</label><textarea name="payload">match_date,competition_key,competition_name,home_team,away_team,selection,odds,confidence,stake_units,reasoning
-{{ data.date }},laliga,LaLiga EA Sports,Club Local,Club Visitante,Local gana o empata,1.45,68,1.0,Ejemplo editable: sustituir por pick real/autorizado</textarea></div>
+    <div class="field"><label>Payload CSV o JSON autorizado</label><textarea name="payload">match_date,competition_key,competition_name,home_team,away_team,selection,odds,confidence,stake_units,reasoning</textarea></div>
     <button type="submit">Importar picks</button>
   </form>
   <aside class="card">
@@ -58,9 +55,7 @@
     <p class="small">Usa URLs de logos solo si vienen de API/fuente permitida o tienes derecho a usarlas.</p>
     <div class="field"><label>Fuente</label><input name="source_name" value="manual escudos autorizado"></div>
     <div class="field"><label>Nota legal</label><input name="legal_note" value="Escudos cargados desde fuente autorizada"></div>
-    <div class="field"><label>Payload CSV o JSON</label><textarea name="payload">name,country,region,logo_url
-Real Madrid,Spain,Europe,
-Sevilla FC,Spain,Andalucia,</textarea></div>
+    <div class="field"><label>Payload CSV o JSON autorizado</label><textarea name="payload">name,country,region,logo_url</textarea></div>
     <button type="submit">Importar escudos</button>
     <p class="small">Tambien puedes usar /api/team/resolve?team=Sevilla%20FC&refresh=1 para intentar resolver por TheSportsDB.</p>
   </form>

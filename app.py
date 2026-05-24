@@ -12,7 +12,8 @@ import urllib.request
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
-from flask import Flask, Response, jsonify, redirect, render_template, request
+from flask import Flask, Response, jsonify, redirect, render_template, request, session
+from werkzeug.security import check_password_hash, generate_password_hash
 
 from database_manager import connect as sqlite_connect, retry_locked
 from engines.cache_engine import cache_health
@@ -23,12 +24,13 @@ from engines.shark_engine import build_shark_context, explain_pick_risk
 from engines.telegram_engine import build_alert_queue, dispatch_signature, should_skip_duplicate
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V512_PRODUCT_QA_POLISH_PASS"
-SEED_VERSION = "v512-product-qa-polish-seed"
+APP_VERSION = "V514_FINAL_CLIENT_EXPERIENCE_SPORTSDB_ACTIVATION"
+SEED_VERSION = "v514-client-experience-seed"
 DB_PATH = os.getenv("DB_PATH", os.path.join(os.path.dirname(__file__), "database.db"))
 TZ = ZoneInfo("Europe/Madrid")
 
 app = Flask(__name__)
+app.secret_key = os.getenv("SECRET_KEY") or os.getenv("FLASK_SECRET_KEY") or "nemesis-shark-pro-local-session-key"
 _SEED_LOCK = threading.Lock()
 _SEEDED_DB_PATH = None
 
@@ -108,6 +110,14 @@ def run_schema_migrations(conn):
         ("live_sync_state", "updated_at", "TEXT"),
         ("auto_alerts", "status", "TEXT DEFAULT 'READY'"),
         ("auto_alerts", "updated_at", "TEXT"),
+        ("users", "name", "TEXT"),
+        ("users", "email", "TEXT"),
+        ("users", "password_hash", "TEXT"),
+        ("users", "role", "TEXT DEFAULT 'FREE'"),
+        ("users", "membership", "TEXT DEFAULT 'FREE'"),
+        ("users", "created_at", "TEXT"),
+        ("users", "last_login", "TEXT"),
+        ("favorites", "user_id", "TEXT"),
     ]
     for table, column, definition in migrations:
         try:
@@ -124,6 +134,14 @@ def run_schema_migrations(conn):
         "INSERT OR IGNORE INTO schema_migrations(version, applied_at) VALUES (?,?)",
         (APP_VERSION, now_iso()),
     )
+    try:
+        conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email_unique ON users(email)")
+    except sqlite3.OperationalError:
+        pass
+    try:
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_favorites_user_kind ON favorites(user_id, kind)")
+    except sqlite3.OperationalError:
+        pass
 
 
 def init_db():
@@ -196,6 +214,7 @@ def init_db():
     cur.execute(
         """CREATE TABLE IF NOT EXISTS favorites(
             id TEXT PRIMARY KEY,
+            user_id TEXT,
             kind TEXT,
             value TEXT,
             label TEXT,
@@ -249,6 +268,18 @@ def init_db():
             preferences_json TEXT,
             created_at TEXT,
             updated_at TEXT
+        )"""
+    )
+    cur.execute(
+        """CREATE TABLE IF NOT EXISTS users(
+            id TEXT PRIMARY KEY,
+            name TEXT,
+            email TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL,
+            role TEXT DEFAULT 'FREE',
+            membership TEXT DEFAULT 'FREE',
+            created_at TEXT,
+            last_login TEXT
         )"""
     )
     cur.execute(
@@ -528,6 +559,36 @@ def thesportsdb_key():
     return os.getenv("THESPORTSDB_KEY") or os.getenv("THESPORTSDB_API_KEY") or ""
 
 
+def masked_key(value):
+    value = str(value or "")
+    if not value:
+        return ""
+    if len(value) <= 6:
+        return "***"
+    return value[:2] + "***" + value[-4:]
+
+
+def save_thesportsdb_error(error):
+    conn = db()
+    conn.execute(
+        """INSERT OR REPLACE INTO automation_state(key,value_json,updated_at)
+           VALUES (?,?,?)""",
+        ("thesportsdb_last_error", json.dumps({"error": str(error), "time": now_iso()}), now_iso()),
+    )
+    conn.commit()
+    conn.close()
+
+
+def get_thesportsdb_last_error():
+    item = one("SELECT * FROM automation_state WHERE key='thesportsdb_last_error'")
+    if not item:
+        return ""
+    try:
+        return (json.loads(item.get("value_json") or "{}") or {}).get("error", "")
+    except json.JSONDecodeError:
+        return item.get("value_json") or ""
+
+
 def fetch_thesportsdb_team(team_name):
     api_key = thesportsdb_key()
     if not api_key:
@@ -552,8 +613,37 @@ def fetch_thesportsdb_team(team_name):
             "source": "TheSportsDB API",
             "legal_note": "Escudo obtenido desde API permitida TheSportsDB; respetar condiciones de uso de la fuente.",
         }
-    except Exception:
+    except Exception as exc:
+        save_thesportsdb_error(exc)
         return None
+
+
+def thesportsdb_diagnostics(team_name="Real Madrid"):
+    api_key = thesportsdb_key()
+    live_enabled = str(os.getenv("ENABLE_LIVE_API", "")).strip().lower() in {"1", "true", "yes", "on"}
+    can_resolve = False
+    can_load_crest = False
+    resolved = None
+    if api_key:
+        resolved = fetch_thesportsdb_team(team_name)
+        can_resolve = bool(resolved)
+        can_load_crest = bool((resolved or {}).get("logo_url"))
+    return {
+        "key_present": bool(api_key),
+        "key_masked": masked_key(api_key),
+        "live_enabled": live_enabled,
+        "team_checked": team_name,
+        "can_resolve_teams": can_resolve,
+        "can_load_crests": can_load_crest,
+        "resolved_team": {
+            "name": (resolved or {}).get("name"),
+            "external_id": (resolved or {}).get("external_id"),
+            "crest_mode": "logo" if can_load_crest else "fallback",
+        },
+        "last_error": get_thesportsdb_last_error(),
+        "fallback_available": True,
+        "legal_policy": "TheSportsDB solo mediante API permitida y variables de entorno; sin scraping ilegal.",
+    }
 
 
 def cache_team_identity(name, identity):
@@ -864,46 +954,54 @@ def get_combis(limit=20):
     return data
 
 
-def favorite_id(kind, value):
-    return hashlib.md5(f"{kind}:{value}".lower().encode("utf-8")).hexdigest()[:18]
+def favorite_id(kind, value, user_id=None):
+    owner = user_id or current_user_id() or "anonymous"
+    return hashlib.md5(f"{owner}:{kind}:{value}".lower().encode("utf-8")).hexdigest()[:18]
 
 
-def add_favorite(kind, value, label=None):
+def add_favorite(kind, value, label=None, user_id=None):
     kind = str(kind or "").strip().lower()
     value = str(value or "").strip()
+    user_id = user_id or current_user_id()
     if kind not in {"team", "league", "match"} or not value:
         return None
-    fav_id = favorite_id(kind, value)
+    if not user_id:
+        return None
+    fav_id = favorite_id(kind, value, user_id)
     conn = db()
     cur = conn.cursor()
     cur.execute(
-        """INSERT OR REPLACE INTO favorites(id,kind,value,label,created_at)
-           VALUES (?,?,?,?,?)""",
-        (fav_id, kind, value, label or value, now_iso()),
+        """INSERT OR REPLACE INTO favorites(id,user_id,kind,value,label,created_at)
+           VALUES (?,?,?,?,?,?)""",
+        (fav_id, user_id, kind, value, label or value, now_iso()),
     )
     conn.commit()
     conn.close()
     return one("SELECT * FROM favorites WHERE id=?", (fav_id,))
 
 
-def remove_favorite(kind, value):
-    fav_id = favorite_id(kind, value)
+def remove_favorite(kind, value, user_id=None):
+    user_id = user_id or current_user_id()
+    fav_id = favorite_id(kind, value, user_id)
     conn = db()
     cur = conn.cursor()
-    cur.execute("DELETE FROM favorites WHERE id=?", (fav_id,))
+    cur.execute("DELETE FROM favorites WHERE id=? AND user_id=?", (fav_id, user_id))
     conn.commit()
     conn.close()
     return {"ok": True, "removed": fav_id}
 
 
-def get_favorites(kind=None):
+def get_favorites(kind=None, user_id=None):
+    user_id = user_id if user_id is not None else current_user_id()
+    if not user_id:
+        return []
     if kind:
-        return rows("SELECT * FROM favorites WHERE kind=? ORDER BY created_at DESC", (kind,))
-    return rows("SELECT * FROM favorites ORDER BY created_at DESC")
+        return rows("SELECT * FROM favorites WHERE user_id=? AND kind=? ORDER BY created_at DESC", (user_id, kind))
+    return rows("SELECT * FROM favorites WHERE user_id=? ORDER BY created_at DESC", (user_id,))
 
 
-def favorite_sets():
-    favs = get_favorites()
+def favorite_sets(user_id=None):
+    favs = get_favorites(user_id=user_id)
     return {
         "team": {f["value"].lower() for f in favs if f.get("kind") == "team"},
         "league": {f["value"].lower() for f in favs if f.get("kind") == "league"},
@@ -943,8 +1041,10 @@ def live_depth(match):
     return build_live_depth(match)
 
 
-def favorite_feed(limit=80):
-    favs = favorite_sets()
+def favorite_feed(limit=80, user_id=None):
+    favs = favorite_sets(user_id=user_id)
+    if not favs["all"]:
+        return []
     data = get_matches(today_iso(), "today")
     feed = []
     for match in data:
@@ -973,8 +1073,8 @@ def related_picks_for_match(match, limit=8):
     return related[: int(limit)]
 
 
-def favorite_feed_full(limit=80):
-    matches = favorite_feed(limit)
+def favorite_feed_full(limit=80, user_id=None):
+    matches = favorite_feed(limit, user_id=user_id)
     match_ids = {str(m.get("id") or "").lower() for m in matches}
     teams = {str(m.get("home_team") or "").lower() for m in matches} | {str(m.get("away_team") or "").lower() for m in matches}
     comps = {str(m.get("competition_key") or "").lower() for m in matches}
@@ -1108,6 +1208,169 @@ MEMBERSHIP_PLANS = [
     {"key": "pro", "name": "PRO", "price": "Premium", "features": ["Picks premium", "Combis", "Perfil favorito", "Alertas Telegram"]},
     {"key": "elite", "name": "ELITE", "price": "Top", "features": ["IA SHARK", "Briefings", "Prioridad live", "Control avanzado"]},
 ]
+
+
+VALID_ROLES = {"FREE", "PRO", "ELITE", "ADMIN"}
+
+
+def normalize_email(email):
+    return str(email or "").strip().lower()
+
+
+def normalize_role(role):
+    role = str(role or "FREE").strip().upper()
+    return role if role in VALID_ROLES else "FREE"
+
+
+def user_public(row):
+    if not row:
+        return None
+    return {
+        "id": row.get("id"),
+        "name": row.get("name") or "Cliente SHARK",
+        "email": row.get("email"),
+        "role": normalize_role(row.get("role")),
+        "membership": normalize_role(row.get("membership")),
+        "created_at": row.get("created_at"),
+        "last_login": row.get("last_login"),
+    }
+
+
+def current_session_user():
+    if not session.get("user_id"):
+        return None
+    return {
+        "id": session.get("user_id"),
+        "name": session.get("user_name") or "Cliente SHARK",
+        "email": session.get("user_email"),
+        "role": normalize_role(session.get("user_role")),
+        "membership": normalize_role(session.get("user_membership") or session.get("user_role")),
+    }
+
+
+def current_user_id():
+    return session.get("user_id") or ""
+
+
+@app.context_processor
+def inject_session_user():
+    return {"current_user": current_session_user()}
+
+
+def get_user_by_email(email):
+    email = normalize_email(email)
+    if not email:
+        return None
+    return one("SELECT * FROM users WHERE email=?", (email,))
+
+
+def get_user_by_id(user_id):
+    if not user_id:
+        return None
+    return one("SELECT * FROM users WHERE id=?", (user_id,))
+
+
+def set_login_session(user):
+    public = user_public(user)
+    session.clear()
+    session["user_id"] = public["id"]
+    session["user_name"] = public["name"]
+    session["user_email"] = public["email"]
+    session["user_role"] = public["role"]
+    session["user_membership"] = public["membership"]
+    return public
+
+
+def create_user(name, email, password, role="FREE", membership="FREE"):
+    seed_core()
+    name = str(name or "").strip()
+    email = normalize_email(email)
+    password = str(password or "")
+    if not name or not email or not password:
+        raise ValueError("Completa nombre, email y contrasena.")
+    role = normalize_role(role)
+    membership = normalize_role(membership)
+    user_id = "usr_" + hashlib.sha256(f"{email}:{now_iso()}".encode("utf-8")).hexdigest()[:18]
+    conn = db()
+    cur = conn.cursor()
+    try:
+        cur.execute(
+            """INSERT INTO users(id,name,email,password_hash,role,membership,created_at,last_login)
+               VALUES (?,?,?,?,?,?,?,?)""",
+            (user_id, name, email, generate_password_hash(password), role, membership, now_iso(), None),
+        )
+        conn.commit()
+    except sqlite3.IntegrityError as exc:
+        raise ValueError("Ese email ya esta registrado.") from exc
+    finally:
+        conn.close()
+    return get_user_by_email(email)
+
+
+def authenticate_user(email, password, admin_only=False):
+    user = get_user_by_email(email)
+    if not user or not check_password_hash(user.get("password_hash") or "", str(password or "")):
+        return None
+    if admin_only and normalize_role(user.get("role")) != "ADMIN":
+        return None
+    conn = db()
+    conn.execute("UPDATE users SET last_login=? WHERE id=?", (now_iso(), user["id"]))
+    conn.commit()
+    conn.close()
+    return get_user_by_email(email)
+
+
+def authenticate_env_admin(email, password):
+    admin_email = normalize_email(os.getenv("ADMIN_EMAIL"))
+    admin_password = os.getenv("ADMIN_PASSWORD", "")
+    if not admin_email or not admin_password:
+        return None
+    if normalize_email(email) != admin_email or str(password or "") != admin_password:
+        return None
+    existing = get_user_by_email(admin_email)
+    if not existing:
+        return create_user(os.getenv("ADMIN_NAME", "Admin SHARK"), admin_email, admin_password, role="ADMIN", membership="ELITE")
+    conn = db()
+    conn.execute(
+        """UPDATE users
+           SET role='ADMIN', membership='ELITE', password_hash=?, last_login=?
+           WHERE email=?""",
+        (generate_password_hash(admin_password), now_iso(), admin_email),
+    )
+    conn.commit()
+    conn.close()
+    return get_user_by_email(admin_email)
+
+
+def is_admin_session():
+    return normalize_role(session.get("user_role")) == "ADMIN"
+
+
+def admin_json_forbidden():
+    return jsonify({"ok": False, "version": APP_VERSION, "error": "Acceso admin requerido."}), 403
+
+
+def list_users():
+    seed_core()
+    return rows(
+        """SELECT id,name,email,role,membership,created_at,last_login
+           FROM users ORDER BY created_at DESC"""
+    )
+
+
+def update_user_membership(user_id, membership):
+    membership = normalize_role(membership)
+    if membership not in VALID_ROLES or not user_id:
+        return None
+    role = "ADMIN" if membership == "ADMIN" else membership
+    conn = db()
+    conn.execute(
+        "UPDATE users SET role=?, membership=? WHERE id=?",
+        (role, membership, user_id),
+    )
+    conn.commit()
+    conn.close()
+    return get_user_by_id(user_id)
 
 
 def default_profile():
@@ -1497,6 +1760,7 @@ def dashboard_data(lane="today", date=None):
         "picks": picks,
         "combis": combis,
         "profile": profile,
+        "session_user": current_session_user(),
         "favorites": favorites,
         "favorite_feed": favorite_bundle["matches"],
         "favorite_bundle": favorite_bundle,
@@ -1575,17 +1839,88 @@ def match_hub_page():
 @app.route("/favoritos")
 @app.route("/favorites")
 def favorites_page():
+    if not current_session_user():
+        return redirect("/cliente-login")
     return render_template("favorites.html", data=dashboard_data())
+
+
+@app.route("/registro", methods=["GET", "POST"])
+def register_page():
+    if current_session_user():
+        return redirect("/perfil")
+    error = ""
+    if request.method == "POST":
+        try:
+            user = create_user(request.form.get("name"), request.form.get("email"), request.form.get("password"))
+            set_login_session(user)
+            return redirect("/perfil")
+        except ValueError as exc:
+            error = str(exc)
+    return render_template("register.html", data=dashboard_data(), error=error)
+
+
+@app.route("/cliente-login", methods=["GET", "POST"])
+def client_login_page():
+    if current_session_user():
+        return redirect("/perfil")
+    error = ""
+    if request.method == "POST":
+        user = authenticate_user(request.form.get("email"), request.form.get("password"))
+        if user:
+            set_login_session(user)
+            return redirect("/perfil")
+        error = "Email o contrasena incorrectos."
+    return render_template("client_login.html", data=dashboard_data(), error=error)
+
+
+@app.route("/admin-login", methods=["GET", "POST"])
+def admin_login_page():
+    if is_admin_session():
+        return redirect(request.args.get("next") or "/admin/import-center")
+    error = ""
+    configured = bool(os.getenv("ADMIN_EMAIL") and os.getenv("ADMIN_PASSWORD"))
+    if request.method == "POST":
+        user = authenticate_env_admin(request.form.get("email"), request.form.get("password"))
+        if not user:
+            user = authenticate_user(request.form.get("email"), request.form.get("password"), admin_only=True)
+        if user:
+            set_login_session(user)
+            return redirect(request.args.get("next") or "/admin/import-center")
+        error = "Acceso admin no valido."
+    return render_template("admin_login.html", data=dashboard_data(), error=error, configured=configured)
+
+
+@app.route("/logout")
+def logout_page():
+    session.clear()
+    return redirect("/")
 
 
 @app.route("/admin")
 def admin_redirect():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/import-center")
     return redirect("/admin/import-center")
 
 
 @app.route("/admin/import-center")
 def import_center():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/import-center")
     return render_template("import_center.html", data=dashboard_data())
+
+
+@app.route("/admin/users", methods=["GET", "POST"])
+def admin_users_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/users")
+    message = ""
+    if request.method == "POST":
+        updated = update_user_membership(request.form.get("user_id"), request.form.get("membership"))
+        message = "Membresia actualizada." if updated else "No se pudo actualizar ese usuario."
+    data = dashboard_data()
+    data["users"] = list_users()
+    return render_template("admin_users.html", data=data, message=message)
 
 
 @app.route("/picks")
@@ -1601,7 +1936,12 @@ def combis_page():
 @app.route("/perfil")
 @app.route("/profile")
 def profile_page():
-    return render_template("profile.html", data=dashboard_data())
+    user = current_session_user()
+    if not user:
+        return redirect("/cliente-login")
+    data = dashboard_data()
+    data["session_user"] = user
+    return render_template("profile.html", data=data)
 
 
 @app.route("/membresias")
@@ -1637,6 +1977,7 @@ def crests_page():
 @app.route("/v508-health")
 @app.route("/v509-health")
 @app.route("/v512-health")
+@app.route("/v513-health")
 def health():
     return jsonify({"ok": True, "app": APP_NAME, "version": APP_VERSION, "time": now_iso()})
 
@@ -1684,6 +2025,8 @@ def api_real_time_state():
 
 @app.route("/api/favorites", methods=["GET", "POST", "DELETE"])
 def api_favorites():
+    if not current_session_user():
+        return jsonify({"ok": False, "version": APP_VERSION, "error": "Login requerido para favoritos por usuario."}), 401
     if request.method == "GET":
         return jsonify({"ok": True, "version": APP_VERSION, "favorites": get_favorites(request.args.get("kind"))})
     payload = request.get_json(silent=True) or dict(request.form or {})
@@ -1754,6 +2097,8 @@ def api_teams():
 
 @app.route("/api/import-teams", methods=["POST"])
 def api_import_teams():
+    if not is_admin_session():
+        return admin_json_forbidden()
     payload = request.get_json(silent=True) or dict(request.form or {})
     rows_payload = payload.get("rows")
     if rows_payload is None:
@@ -1789,8 +2134,16 @@ def api_crest_diagnostics():
     )
 
 
+@app.route("/api/thesportsdb/diagnostics")
+def api_thesportsdb_diagnostics():
+    team = request.args.get("team") or "Real Madrid"
+    return jsonify({"ok": True, "version": APP_VERSION, "diagnostics": thesportsdb_diagnostics(team)})
+
+
 @app.route("/api/import-matches", methods=["POST"])
 def api_import_matches():
+    if not is_admin_session():
+        return admin_json_forbidden()
     payload = request.get_json(silent=True) or dict(request.form or {})
     rows_payload = payload.get("rows")
     if rows_payload is None:
@@ -1813,6 +2166,8 @@ def api_picks():
 
 @app.route("/api/import-picks", methods=["POST"])
 def api_import_picks():
+    if not is_admin_session():
+        return admin_json_forbidden()
     payload = request.get_json(silent=True) or dict(request.form or {})
     rows_payload = payload.get("rows")
     if rows_payload is None:
@@ -1847,7 +2202,7 @@ def api_combis_build():
 
 @app.route("/api/profile")
 def api_profile():
-    return jsonify({"ok": True, "version": APP_VERSION, "profile": default_profile()})
+    return jsonify({"ok": True, "version": APP_VERSION, "profile": default_profile(), "session_user": current_session_user()})
 
 
 @app.route("/api/membership")
