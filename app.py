@@ -24,7 +24,7 @@ from engines.shark_engine import build_shark_context, explain_pick_risk
 from engines.telegram_engine import build_alert_queue, dispatch_signature, should_skip_duplicate
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V518_TELEGRAM_AUTOMATIC_DELIVERY_ENGINE"
+APP_VERSION = "V519_LIVE_EXPERIENCE_2_MATCH_DETAIL_SYSTEM"
 SEED_VERSION = "v518-telegram-automatic-delivery-seed"
 DB_PATH = os.getenv("DB_PATH", os.path.join(os.path.dirname(__file__), "database.db"))
 TZ = ZoneInfo("Europe/Madrid")
@@ -996,6 +996,25 @@ def live_depth(match):
     return build_live_depth(match)
 
 
+def match_statistics(match):
+    depth = build_live_depth(match)
+    priority = int(match.get("priority") or 50)
+    momentum = int(depth.get("momentum") or priority)
+    state = depth.get("state")
+    # Estadisticas visuales seguras: no inventan eventos reales, solo expresan intensidad/estado cuando no hay proveedor detallado.
+    items = [
+        {"label": "Momentum", "home": momentum, "away": max(0, 100 - momentum)},
+        {"label": "Prioridad SHARK", "home": priority, "away": max(20, 100 - min(priority, 90))},
+        {"label": "Actividad live", "home": 78 if state in {"LIVE", "HT"} else 32, "away": 22 if state in {"LIVE", "HT"} else 68},
+    ]
+    return {
+        "status": "visual_fallback_ready",
+        "source": match.get("source") or "cache",
+        "note": "Estructura preparada para estadisticas/eventos de fuente legal. No sustituye dato oficial si la API no lo entrega.",
+        "items": items,
+    }
+
+
 def favorite_feed(limit=80):
     favs = favorite_sets()
     data = get_matches(today_iso(), "today")
@@ -1050,12 +1069,19 @@ def match_detail(match_id):
     if not match:
         return None
     annotated = annotate_match(match)
-    return build_match_detail(
+    detail = build_match_detail(
         annotated,
         timeline=match_timeline(annotated),
         related_picks=related_picks_for_match(annotated),
         favorite=annotated.get("is_favorite"),
     )
+    detail["statistics"] = match_statistics(annotated)
+    detail["quick_actions"] = [
+        {"label": "Guardar favorito", "href": f"/favorites?match={annotated.get('id')}", "type": "favorite"},
+        {"label": "Ver picks relacionados", "href": "/picks", "type": "picks"},
+        {"label": "Preguntar a SHARK", "href": f"/shark?match={annotated.get('id')}", "type": "shark"},
+    ]
+    return detail
 
 
 def match_hub(date=None):
@@ -2071,6 +2097,17 @@ def match_hub_page():
     return render_template("match_hub.html", data=data)
 
 
+@app.route("/partido/<match_id>")
+@app.route("/match/<match_id>")
+def match_detail_page(match_id):
+    detail = match_detail(match_id)
+    if not detail:
+        return render_template("match_detail.html", detail=None, match_id=match_id), 404
+    context = build_shark_context(match=detail["match"], league=detail["match"].get("competition_name"), favorites=get_favorites(), picks=detail["related_picks"], profile=default_profile())
+    save_shark_context("match_detail_page", match_id, context)
+    return render_template("match_detail.html", detail=detail, shark_context=context)
+
+
 @app.route("/favoritos")
 @app.route("/favorites")
 def favorites_page():
@@ -2251,6 +2288,7 @@ def crests_page():
 @app.route("/v513-health")
 @app.route("/v514-health")
 @app.route("/v518-health")
+@app.route("/v519-health")
 def health():
     return jsonify({"ok": True, "app": APP_NAME, "version": APP_VERSION, "time": now_iso()})
 
@@ -2333,6 +2371,14 @@ def api_match_detail(match_id):
     context = build_shark_context(match=detail["match"], league=detail["match"].get("competition_name"), favorites=get_favorites(), picks=detail["related_picks"], profile=default_profile())
     save_shark_context("match_detail", match_id, context)
     return jsonify({"ok": True, "version": APP_VERSION, "detail": detail, "shark_context": context})
+
+
+@app.route("/api/matches/<match_id>/statistics")
+def api_match_statistics(match_id):
+    detail = match_detail(match_id)
+    if not detail:
+        return jsonify({"ok": False, "version": APP_VERSION, "error": "Partido no encontrado"}), 404
+    return jsonify({"ok": True, "version": APP_VERSION, "match": detail["match"], "statistics": detail["statistics"], "momentum": detail["momentum"]})
 
 
 @app.route("/team-crest.svg")

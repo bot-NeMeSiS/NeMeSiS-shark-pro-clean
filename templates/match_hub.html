@@ -36,7 +36,7 @@
       <div class="status"><span class="state-badge {{ m.live_depth.badge }}">{{ m.live_depth.label }}</span><span>{{ m.live_depth.score }}</span><span class="priority">{{ m.real_time_score or m.live_depth.momentum }}</span></div>
       <div class="momentum"><i style="width:{{ m.live_depth.momentum }}%"></i></div>
       <p class="small">{{ m.timeline[0].title }} - {{ m.timeline[0].detail }}</p>
-      <a class="mini-link" href="/api/matches/{{ m.id }}/detail">Detalle vivo</a>
+      <a class="mini-link" href="/partido/{{ m.id }}">Detalle vivo</a>
     </article>
     {% endfor %}
   </div>

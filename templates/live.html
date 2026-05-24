@@ -20,6 +20,7 @@
       </div>
       <div class="status"><span class="state-badge {{ m.live_depth.badge }}">{{ m.live_depth.label }}</span><span class="priority">{{ m.score or m.priority }}</span></div>
       <div class="momentum"><i style="width:{{ m.live_depth.momentum }}%"></i></div>
+    <a class="mini-link" href="/partido/{{ m.id }}">Detalle vivo</a>
     </article>
     {% endfor %}
   </div>

@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block content %}
+{% if not detail %}
+<section class="hero compact">
+  <div class="kicker">Partido no encontrado</div>
+  <h1>No hemos encontrado este partido</h1>
+  <p class="lead">Puede haber cambiado la fuente o haberse limpiado el calendario. Vuelve al centro de partidos.</p>
+  <div class="actions"><a class="btn primary" href="/match-hub">Volver a partidos</a></div>
+</section>
+{% else %}
+{% set m = detail.match %}
+<section class="match-hero">
+  <div class="match-hero-top">
+    <div>
+      <div class="kicker">{{ m.competition_name }} · {{ m.country }}</div>
+      <h1>{{ m.home_team }} vs {{ m.away_team }}</h1>
+      <p class="lead">Centro de partido con estado live, timeline, momentum, picks relacionados y contexto SHARK.</p>
+    </div>
+    <div class="match-scorebox">
+      <span class="state-badge {{ detail.state.badge }}">{{ detail.state.label }}</span>
+      <strong>{{ detail.state.score }}</strong>
+      <small>{{ detail.state.minute }}</small>
+    </div>
+  </div>
+  <div class="match-versus">
+    <div class="match-side">
+      <div class="crest xl"><img loading="lazy" src="{{ m.home_identity.crest_url }}" alt="{{ m.home_team }}"></div>
+      <h2>{{ m.home_team }}</h2>
+    </div>
+    <div class="versus-center">
+      <div class="score-main">{{ detail.state.score }}</div>
+      <div class="small">{{ m.match_date }} · {{ m.kickoff_time or detail.state.minute }}</div>
+    </div>
+    <div class="match-side">
+      <div class="crest xl"><img loading="lazy" src="{{ m.away_identity.crest_url }}" alt="{{ m.away_team }}"></div>
+      <h2>{{ m.away_team }}</h2>
+    </div>
+  </div>
+  <div class="momentum big"><i style="width:{{ detail.momentum.value }}%"></i></div>
+</section>
+
+<section class="band">
+  <div class="section-head"><h2>Timeline del partido</h2><span class="pill">{{ detail.timeline|length }}</span></div>
+  <div class="timeline">
+    {% for ev in detail.timeline %}
+    <div class="timeline-item">
+      <div class="timeline-minute">{{ ev.minute or '-' }}</div>
+      <div><strong>{{ ev.title }}</strong><p>{{ ev.detail }}</p><span class="small">{{ ev.source or m.source }}</span></div>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="band two-col">
+  <div class="card">
+    <div class="section-head"><h2>Estadísticas visuales</h2><span class="pill">{{ detail.statistics.status }}</span></div>
+    {% for st in detail.statistics.items %}
+    <div class="stat-row">
+      <span>{{ st.home }}</span>
+      <div><strong>{{ st.label }}</strong><div class="stat-bar"><i style="width:{{ st.home }}%"></i></div></div>
+      <span>{{ st.away }}</span>
+    </div>
+    {% endfor %}
+    <p class="small">{{ detail.statistics.note }}</p>
+  </div>
+  <div class="card">
+    <div class="section-head"><h2>Acciones rápidas</h2></div>
+    <div class="quick-grid">
+      {% for action in detail.quick_actions %}<a class="btn" href="{{ action.href }}">{{ action.label }}</a>{% endfor %}
+      <a class="btn primary" href="/api/matches/{{ m.id }}/detail">API detalle</a>
+      <a class="btn" href="/api/matches/{{ m.id }}/statistics">API estadísticas</a>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="section-head"><h2>Picks relacionados</h2><span class="pill">{{ detail.related_picks|length }}</span></div>
+  {% if detail.related_picks %}
+  <div class="grid">
+    {% for p in detail.related_picks[:6] %}
+    <article class="card pick-card"><div class="kicker">{{ p.competition_name }}</div><h3>{{ p.selection }}</h3><p>{{ p.reasoning }}</p><div class="status"><span>Cuota {{ p.odds }}</span><span>Confianza {{ p.confidence }}%</span></div></article>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty">Aún no hay picks vinculados a este partido. SHARK lo tendrá preparado cuando haya datos suficientes.</div>
+  {% endif %}
+</section>
+{% endif %}
+{% endblock %}
