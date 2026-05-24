@@ -24,8 +24,8 @@ from engines.shark_engine import build_shark_context, explain_pick_risk
 from engines.telegram_engine import build_alert_queue, dispatch_signature, should_skip_duplicate
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V516_CLIENT_DASHBOARD_FINAL_PRO"
-SEED_VERSION = "v516-client-dashboard-seed"
+APP_VERSION = "V517_USER_DATABASE_RECOVERY_ADMIN_BOOTSTRAP_SAFE_ACCESS"
+SEED_VERSION = "v517-user-recovery-bootstrap-seed"
 DB_PATH = os.getenv("DB_PATH", os.path.join(os.path.dirname(__file__), "database.db"))
 TZ = ZoneInfo("Europe/Madrid")
 
@@ -377,6 +377,7 @@ def init_db():
         )"""
     )
     run_schema_migrations(conn)
+    bootstrap_admin_from_env(conn)
     conn.commit()
     conn.close()
 
@@ -1455,6 +1456,73 @@ def get_user_by_username(username):
     return one("SELECT * FROM users WHERE username=?", (username,))
 
 
+def admin_exists(conn=None):
+    close = False
+    if conn is None:
+        seed_core()
+        conn = db()
+        close = True
+    row = conn.execute("SELECT id FROM users WHERE role='ADMIN' OR membership='ADMIN' LIMIT 1").fetchone()
+    if close:
+        conn.close()
+    return row is not None
+
+
+def create_admin_record(conn, name, username, email, password):
+    name = str(name or "Admin SHARK").strip() or "Admin SHARK"
+    email = normalize_email(email)
+    username = unique_username(conn, username or username_from_email(email))
+    password = str(password or "")
+    if not email or not password:
+        raise ValueError("ADMIN_EMAIL y ADMIN_PASSWORD son obligatorios.")
+    existing = conn.execute("SELECT id FROM users WHERE email=?", (email,)).fetchone()
+    if existing:
+        conn.execute(
+            """UPDATE users
+               SET name=?, username=?, password_hash=?, role='ADMIN', membership='ADMIN', last_login=COALESCE(last_login, ?)
+               WHERE email=?""",
+            (name, username, generate_password_hash(password), now_iso(), email),
+        )
+        return existing["id"]
+    user_id = "adm_" + hashlib.sha256(f"{email}:{now_iso()}".encode("utf-8")).hexdigest()[:18]
+    conn.execute(
+        """INSERT INTO users(id,name,username,email,password_hash,role,membership,created_at,last_login)
+           VALUES (?,?,?,?,?,?,?,?,?)""",
+        (user_id, name, username, email, generate_password_hash(password), "ADMIN", "ADMIN", now_iso(), None),
+    )
+    return user_id
+
+
+def bootstrap_admin_from_env(conn=None):
+    close = False
+    if conn is None:
+        seed_core()
+        conn = db()
+        close = True
+    try:
+        if admin_exists(conn):
+            return {"ok": True, "created": False, "blocked": True, "reason": "admin_exists"}
+        email = normalize_email(os.getenv("ADMIN_EMAIL"))
+        username = normalize_username(os.getenv("ADMIN_USERNAME") or username_from_email(email))
+        password = os.getenv("ADMIN_PASSWORD", "")
+        name = os.getenv("ADMIN_NAME", "Admin SHARK")
+        if not email or not username or not password:
+            print("NeMeSiS SHARK PRO: no ADMIN user found and ADMIN_EMAIL/ADMIN_USERNAME/ADMIN_PASSWORD are incomplete.")
+            return {"ok": False, "created": False, "missing_env": True}
+        user_id = create_admin_record(conn, name, username, email, password)
+        conn.execute(
+            """INSERT OR REPLACE INTO automation_state(key,value_json,updated_at)
+               VALUES (?,?,?)""",
+            ("admin_bootstrap", json.dumps({"created": True, "user_id": user_id, "time": now_iso()}), now_iso()),
+        )
+        if close:
+            conn.commit()
+        return {"ok": True, "created": True, "user_id": user_id}
+    finally:
+        if close:
+            conn.close()
+
+
 def get_user_by_login(identifier):
     identifier = str(identifier or "").strip()
     if "@" in identifier:
@@ -1528,12 +1596,15 @@ def authenticate_user(identifier, password, admin_only=False):
     return get_user_by_id(user["id"])
 
 
-def authenticate_env_admin(email, password):
+def authenticate_env_admin(identifier, password):
     admin_email = normalize_email(os.getenv("ADMIN_EMAIL"))
+    admin_username = normalize_username(os.getenv("ADMIN_USERNAME") or username_from_email(admin_email))
     admin_password = os.getenv("ADMIN_PASSWORD", "")
     if not admin_email or not admin_password:
         return None
-    if normalize_email(email) != admin_email or str(password or "") != admin_password:
+    identifier = str(identifier or "").strip()
+    identifier_ok = normalize_email(identifier) == admin_email if "@" in identifier else normalize_username(identifier) == admin_username
+    if not identifier_ok or str(password or "") != admin_password:
         return None
     existing = get_user_by_email(admin_email)
     if not existing:
@@ -1580,6 +1651,98 @@ def update_user_membership(user_id, membership):
     conn.commit()
     conn.close()
     return get_user_by_id(user_id)
+
+
+LEGACY_USER_TABLES = ("users", "clientes", "clients", "usuarios")
+
+
+def legacy_column(columns, *names):
+    lowered = {c.lower(): c for c in columns}
+    for name in names:
+        if name.lower() in lowered:
+            return lowered[name.lower()]
+    return None
+
+
+def looks_like_password_hash(value):
+    value = str(value or "")
+    return value.startswith(("pbkdf2:", "scrypt:", "sha256$")) or (":" in value and "$" in value)
+
+
+def import_users_from_old_database(path=None):
+    seed_core()
+    path = path or os.path.join(os.path.dirname(__file__), "old_database.db")
+    result = {"ok": False, "path": os.path.basename(path), "imported": 0, "skipped": 0, "errors": []}
+    if not os.path.exists(path):
+        result["errors"].append("No existe old_database.db en la raiz del proyecto.")
+        return result
+    old_conn = sqlite3.connect(path)
+    old_conn.row_factory = sqlite3.Row
+    new_conn = db()
+    try:
+        tables = {row["name"] for row in old_conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()}
+        source_table = next((table for table in LEGACY_USER_TABLES if table in tables), None)
+        if not source_table:
+            result["errors"].append("No se encontro tabla users/clientes/clients/usuarios.")
+            return result
+        info = old_conn.execute(f"PRAGMA table_info({source_table})").fetchall()
+        columns = [row["name"] for row in info]
+        email_col = legacy_column(columns, "email", "correo", "mail")
+        password_hash_col = legacy_column(columns, "password_hash", "pass_hash", "hash")
+        password_col = legacy_column(columns, "password", "contrasena", "contraseña", "clave")
+        name_col = legacy_column(columns, "name", "nombre", "display_name")
+        username_col = legacy_column(columns, "username", "user", "usuario")
+        role_col = legacy_column(columns, "role", "rol")
+        membership_col = legacy_column(columns, "membership", "membresia", "plan")
+        created_col = legacy_column(columns, "created_at", "alta", "created")
+        last_login_col = legacy_column(columns, "last_login", "ultimo_login")
+        if not email_col or not (password_hash_col or password_col):
+            result["errors"].append("La tabla antigua no tiene email y password/password_hash suficientes.")
+            return result
+        for row in old_conn.execute(f"SELECT * FROM {source_table}").fetchall():
+            try:
+                email = normalize_email(row[email_col])
+                if not email:
+                    result["skipped"] += 1
+                    continue
+                if new_conn.execute("SELECT id FROM users WHERE email=?", (email,)).fetchone():
+                    result["skipped"] += 1
+                    continue
+                raw_username = row[username_col] if username_col else username_from_email(email)
+                username = unique_username(new_conn, raw_username or username_from_email(email))
+                password_value = row[password_hash_col] if password_hash_col else row[password_col]
+                if not password_value:
+                    result["skipped"] += 1
+                    continue
+                password_hash = str(password_value) if looks_like_password_hash(password_value) else generate_password_hash(str(password_value))
+                role = normalize_role(row[role_col] if role_col else "FREE")
+                membership = normalize_role(row[membership_col] if membership_col else role)
+                name = str(row[name_col] if name_col else username).strip() or username
+                user_id = "imp_" + hashlib.sha256(f"{email}:{now_iso()}".encode("utf-8")).hexdigest()[:18]
+                new_conn.execute(
+                    """INSERT INTO users(id,name,username,email,password_hash,role,membership,created_at,last_login)
+                       VALUES (?,?,?,?,?,?,?,?,?)""",
+                    (
+                        user_id,
+                        name,
+                        username,
+                        email,
+                        password_hash,
+                        role,
+                        membership,
+                        row[created_col] if created_col else now_iso(),
+                        row[last_login_col] if last_login_col else None,
+                    ),
+                )
+                result["imported"] += 1
+            except Exception as exc:
+                result["errors"].append(str(exc)[:160])
+        new_conn.commit()
+        result["ok"] = True
+        return result
+    finally:
+        old_conn.close()
+        new_conn.close()
 
 
 def default_profile():
@@ -2097,14 +2260,41 @@ def admin_login_page():
     error = ""
     configured = bool(os.getenv("ADMIN_EMAIL") and os.getenv("ADMIN_PASSWORD"))
     if request.method == "POST":
-        user = authenticate_env_admin(request.form.get("email"), request.form.get("password"))
+        user = authenticate_env_admin(request.form.get("login"), request.form.get("password"))
         if not user:
-            user = authenticate_user(request.form.get("email"), request.form.get("password"), admin_only=True)
+            user = authenticate_user(request.form.get("login"), request.form.get("password"), admin_only=True)
         if user:
             set_login_session(user)
             return redirect(request.args.get("next") or "/admin/import-center")
         error = "Acceso admin no valido."
     return render_template("admin_login.html", data=dashboard_data(), error=error, configured=configured)
+
+
+@app.route("/admin-bootstrap", methods=["GET", "POST"])
+def admin_bootstrap_page():
+    if admin_exists():
+        return render_template("admin_bootstrap.html", data=dashboard_data(), blocked=True, result=None, error="")
+    result = None
+    error = ""
+    if request.method == "POST":
+        email = request.form.get("email") or os.getenv("ADMIN_EMAIL")
+        username = request.form.get("username") or os.getenv("ADMIN_USERNAME") or username_from_email(email)
+        password = request.form.get("password") or os.getenv("ADMIN_PASSWORD")
+        name = request.form.get("name") or os.getenv("ADMIN_NAME") or "Admin SHARK"
+        conn = None
+        try:
+            conn = db()
+            create_admin_record(conn, name, username, email, password)
+            conn.commit()
+            result = {"created": True, "email": normalize_email(email), "username": normalize_username(username)}
+        except ValueError as exc:
+            error = str(exc)
+        except sqlite3.IntegrityError:
+            error = "No se pudo crear el admin: email o usuario ya existe."
+        finally:
+            if conn:
+                conn.close()
+    return render_template("admin_bootstrap.html", data=dashboard_data(), blocked=False, result=result, error=error)
 
 
 @app.route("/logout")
@@ -2137,7 +2327,20 @@ def admin_users_page():
         message = "Membresia actualizada." if updated else "No se pudo actualizar ese usuario."
     data = dashboard_data()
     data["users"] = list_users()
+    data["admin_exists"] = admin_exists()
     return render_template("admin_users.html", data=data, message=message)
+
+
+@app.route("/admin/user-import", methods=["GET", "POST"])
+def admin_user_import_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/user-import")
+    result = None
+    if request.method == "POST":
+        result = import_users_from_old_database()
+    data = dashboard_data()
+    data["old_db_present"] = os.path.exists(os.path.join(os.path.dirname(__file__), "old_database.db"))
+    return render_template("admin_user_import.html", data=data, result=result)
 
 
 @app.route("/admin/sportsdb-sync", methods=["GET", "POST"])
