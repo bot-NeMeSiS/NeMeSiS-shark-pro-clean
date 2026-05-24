@@ -1,9 +1,4 @@
-"""SQLite hardening helpers for NeMeSiS SHARK PRO.
-
-Centraliza conexiones con timeout, WAL y retry corto para evitar
-`sqlite3.OperationalError: database is locked` en Render cuando varios
-engines arrancan a la vez.
-"""
+"""SQLite hardening helpers for NeMeSiS SHARK PRO."""
 
 import os
 import sqlite3
@@ -30,9 +25,6 @@ def connect(db_path: str) -> sqlite3.Connection:
         conn.execute("PRAGMA temp_store=MEMORY")
         conn.execute("PRAGMA foreign_keys=ON")
     except sqlite3.OperationalError:
-        # Si otro proceso está cambiando PRAGMAs justo al arrancar,
-        # mantenemos la conexión con timeout/busy_timeout y reintentamos
-        # en la operación superior.
         pass
     return conn
 

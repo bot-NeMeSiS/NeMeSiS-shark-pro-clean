@@ -5,7 +5,11 @@
   <h1>Combis construidas sobre picks reales</h1>
   <p class="lead">El motor combina picks ya cargados, calcula cuota total y marca riesgo. Si no hay picks, no fabrica una combinada falsa.</p>
   <div class="actions">
+    {% if data.picks %}
     <form method="post" action="/api/combis/build"><button type="submit">Construir combi</button></form>
+    {% else %}
+    <a class="btn primary" href="/admin/import-center">Importar picks</a>
+    {% endif %}
     <a class="btn" href="/api/combis">API combis</a>
     <a class="btn" href="/picks">Ver picks</a>
   </div>

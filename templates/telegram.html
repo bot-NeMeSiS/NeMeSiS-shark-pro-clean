@@ -1,5 +1,34 @@
 {% extends "base.html" %}
 {% block content %}
-<section class="hero"><div class="kicker">Telegram automático</div><h1>Cola y automatización preparada</h1><p class="lead">Base para auto picks, partidos del día, alertas live y anti duplicados. No envía datos inventados ni rompe legalidad.</p><div class="actions"><a class="btn primary" href="/api/v506/telegram">API Telegram</a><a class="btn" href="/admin/import-center">Cargar datos</a></div></section>
-<section class="band"><div class="section-head"><h2>Cola de envíos</h2><span class="pill">{{ data.telegram_queue|length }}</span></div>{% if data.telegram_queue %}<div class="grid">{% for q in data.telegram_queue %}<article class="card"><div class="name">{{ q.title }}</div><div class="small">{{ q.kind }} · {{ q.status }} · {{ q.created_at }}</div><p class="small">{{ q.body }}</p></article>{% endfor %}</div>{% else %}<div class="empty">Sin envíos pendientes. La cola está preparada para conectar scheduler/cron.</div>{% endif %}</section>
+<section class="hero compact">
+  <div class="kicker">Telegram Auto Engine</div>
+  <h1>Automatizacion preparada y controlada</h1>
+  <p class="lead">Cola, scheduler, triggers, logs y anti duplicados listos para envios reales cuando las variables de entorno esten configuradas.</p>
+  <div class="actions">
+    <a class="btn primary" href="/api/telegram/status">Estado</a>
+    <a class="btn" href="/api/telegram/queue">Queue</a>
+    <a class="btn" href="/api/telegram/auto-posts">Auto posts</a>
+  </div>
+</section>
+<section class="band">
+  <div class="grid">
+    <div class="card"><div class="metric">{% if data.telegram.configured %}ON{% else %}CFG{% endif %}</div><div class="muted">configuracion</div></div>
+    <div class="card"><div class="metric">{% if data.telegram.enabled %}AUTO{% else %}OFF{% endif %}</div><div class="muted">scheduler</div></div>
+    <div class="card"><div class="metric">{{ data.match_hub.counts.live }}</div><div class="muted">live alertables</div></div>
+    <div class="card"><div class="metric">{{ data.picks|length }}</div><div class="muted">picks disponibles</div></div>
+  </div>
+</section>
+<section class="band two-col">
+  <div class="card">
+    <h2>Variables</h2>
+    <p class="small">TELEGRAM_BOT_TOKEN: {% if data.telegram.token_present %}presente{% else %}pendiente{% endif %}</p>
+    <p class="small">TELEGRAM_CHAT_ID: {% if data.telegram.chat_id_present %}presente{% else %}pendiente{% endif %}</p>
+    <p class="small">ENABLE_TELEGRAM_AUTO: {% if data.telegram.enabled %}activo{% else %}desactivado{% endif %}</p>
+  </div>
+  <div class="card">
+    <h2>Proteccion</h2>
+    <p class="small">La cola evita duplicados por firma diaria y reintenta sin bloquear la app.</p>
+    <p class="small">No envia marcadores, cuotas o eventos inventados.</p>
+  </div>
+</section>
 {% endblock %}

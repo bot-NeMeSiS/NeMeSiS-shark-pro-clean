@@ -15,7 +15,6 @@ from zoneinfo import ZoneInfo
 from flask import Flask, Response, jsonify, redirect, render_template, request
 
 from database_manager import connect as sqlite_connect, retry_locked
-
 from engines.cache_engine import cache_health
 from engines.crest_engine import crest_status
 from engines.live_engine import build_live_depth, build_live_flow, build_match_detail, fallback_timeline, normalize_live_state
@@ -24,15 +23,14 @@ from engines.shark_engine import build_shark_context, explain_pick_risk
 from engines.telegram_engine import build_alert_queue, dispatch_signature, should_skip_duplicate
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V511_AUTO_DATABASE_MIGRATION_SAFE_STARTUP"
+APP_VERSION = "V512_PRODUCT_QA_POLISH_PASS"
+SEED_VERSION = "v512-product-qa-polish-seed"
 DB_PATH = os.getenv("DB_PATH", os.path.join(os.path.dirname(__file__), "database.db"))
 TZ = ZoneInfo("Europe/Madrid")
 
 app = Flask(__name__)
-
-SEED_VERSION = "v511-core-seed"
 _SEED_LOCK = threading.Lock()
-_SEED_DONE = False
+_SEEDED_DB_PATH = None
 
 
 def now_iso():
@@ -63,115 +61,70 @@ def initials(name):
     return "".join(letters[:3]) or "NS"
 
 
-
-
-def table_columns(cur, table_name):
-    """Devuelve columnas existentes de una tabla SQLite."""
+def table_columns(conn, table):
     try:
-        return {row[1] for row in cur.execute(f"PRAGMA table_info({table_name})").fetchall()}
+        return {row["name"] for row in conn.execute(f"PRAGMA table_info({table})").fetchall()}
     except sqlite3.OperationalError:
         return set()
 
 
-def add_column_if_missing(cur, table_name, column_name, column_sql):
-    """Añade columnas nuevas sin romper bases antiguas persistentes de Render."""
-    if column_name not in table_columns(cur, table_name):
-        cur.execute(f"ALTER TABLE {table_name} ADD COLUMN {column_sql}")
+def add_column_if_missing(conn, table, column, definition):
+    if column not in table_columns(conn, table):
+        conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition}")
 
 
 def run_schema_migrations(conn):
-    """Migraciones defensivas para que una DB antigua no rompa versiones nuevas.
-
-    Render conserva /data/database.db entre despliegues. Si una versión antigua
-    creó tablas con menos columnas, CREATE TABLE IF NOT EXISTS no las actualiza.
-    Esta capa añade las columnas que V511 necesita sin borrar datos.
-    """
-    cur = conn.cursor()
-
-    match_columns = {
-        "match_date": "match_date TEXT",
-        "kickoff_time": "kickoff_time TEXT",
-        "competition_key": "competition_key TEXT",
-        "competition_name": "competition_name TEXT",
-        "country": "country TEXT",
-        "home_team": "home_team TEXT",
-        "away_team": "away_team TEXT",
-        "status": "status TEXT",
-        "minute": "minute TEXT",
-        "score": "score TEXT",
-        "priority": "priority INTEGER DEFAULT 50",
-        "source": "source TEXT",
-        "legal_note": "legal_note TEXT",
-        "raw_json": "raw_json TEXT",
-        "updated_at": "updated_at TEXT",
-    }
-    for name, ddl in match_columns.items():
-        add_column_if_missing(cur, "matches", name, ddl)
-
-    team_columns = {
-        "country": "country TEXT",
-        "region": "region TEXT",
-        "logo_url": "logo_url TEXT",
-        "external_id": "external_id TEXT",
-        "color_hint": "color_hint TEXT",
-        "source": "source TEXT",
-        "legal_note": "legal_note TEXT",
-        "updated_at": "updated_at TEXT",
-    }
-    for name, ddl in team_columns.items():
-        add_column_if_missing(cur, "teams", name, ddl)
-
-    competition_columns = {
-        "scope": "scope TEXT",
-        "country": "country TEXT",
-        "region": "region TEXT",
-        "tier": "tier INTEGER DEFAULT 50",
-        "source_strategy": "source_strategy TEXT",
-        "tags_json": "tags_json TEXT",
-        "updated_at": "updated_at TEXT",
-    }
-    for name, ddl in competition_columns.items():
-        add_column_if_missing(cur, "competitions", name, ddl)
-
-    favorite_columns = {
-        "kind": "kind TEXT",
-        "value": "value TEXT",
-        "label": "label TEXT",
-        "created_at": "created_at TEXT",
-    }
-    for name, ddl in favorite_columns.items():
-        add_column_if_missing(cur, "favorites", name, ddl)
-
-    pick_columns = {
-        "match_id": "match_id TEXT",
-        "match_date": "match_date TEXT",
-        "competition_key": "competition_key TEXT",
-        "competition_name": "competition_name TEXT",
-        "home_team": "home_team TEXT",
-        "away_team": "away_team TEXT",
-        "pick_type": "pick_type TEXT",
-        "selection": "selection TEXT",
-        "odds": "odds REAL",
-        "confidence": "confidence INTEGER DEFAULT 50",
-        "stake_units": "stake_units REAL DEFAULT 1",
-        "status": "status TEXT DEFAULT 'PENDING'",
-        "source": "source TEXT",
-        "legal_note": "legal_note TEXT",
-        "reasoning": "reasoning TEXT",
-        "raw_json": "raw_json TEXT",
-        "created_at": "created_at TEXT",
-        "updated_at": "updated_at TEXT",
-    }
-    for name, ddl in pick_columns.items():
-        add_column_if_missing(cur, "picks", name, ddl)
-
-    # Estado de migración visible para diagnósticos.
-    cur.execute(
-        """INSERT OR REPLACE INTO automation_state(key,value_json,updated_at)
-           VALUES (?,?,?)""",
-        ("schema_version", json.dumps({"version": "v511", "migrated_at": now_iso()}), now_iso()),
+    migrations = [
+        ("teams", "external_id", "TEXT"),
+        ("teams", "color_hint", "TEXT"),
+        ("teams", "source", "TEXT"),
+        ("teams", "legal_note", "TEXT"),
+        ("teams", "updated_at", "TEXT"),
+        ("matches", "priority", "INTEGER DEFAULT 50"),
+        ("matches", "source", "TEXT"),
+        ("matches", "legal_note", "TEXT"),
+        ("matches", "raw_json", "TEXT"),
+        ("matches", "updated_at", "TEXT"),
+        ("picks", "stake_units", "REAL DEFAULT 1"),
+        ("picks", "status", "TEXT DEFAULT 'PENDING'"),
+        ("picks", "source", "TEXT"),
+        ("picks", "legal_note", "TEXT"),
+        ("picks", "reasoning", "TEXT"),
+        ("picks", "raw_json", "TEXT"),
+        ("picks", "updated_at", "TEXT"),
+        ("combis", "status", "TEXT DEFAULT 'DRAFT'"),
+        ("combis", "source", "TEXT"),
+        ("combis", "updated_at", "TEXT"),
+        ("client_profiles", "preferences_json", "TEXT"),
+        ("client_profiles", "updated_at", "TEXT"),
+        ("telegram_queue", "signature", "TEXT"),
+        ("telegram_queue", "priority", "INTEGER DEFAULT 50"),
+        ("telegram_queue", "payload_json", "TEXT"),
+        ("telegram_queue", "status", "TEXT DEFAULT 'PENDING'"),
+        ("telegram_queue", "attempts", "INTEGER DEFAULT 0"),
+        ("telegram_queue", "updated_at", "TEXT"),
+        ("live_sync_state", "sync_status", "TEXT"),
+        ("live_sync_state", "next_refresh_at", "TEXT"),
+        ("live_sync_state", "updated_at", "TEXT"),
+        ("auto_alerts", "status", "TEXT DEFAULT 'READY'"),
+        ("auto_alerts", "updated_at", "TEXT"),
+    ]
+    for table, column, definition in migrations:
+        try:
+            add_column_if_missing(conn, table, column, definition)
+        except sqlite3.OperationalError:
+            pass
+    conn.execute(
+        """CREATE TABLE IF NOT EXISTS schema_migrations(
+            version TEXT PRIMARY KEY,
+            applied_at TEXT
+        )"""
     )
-    conn.commit()
+    conn.execute(
+        "INSERT OR IGNORE INTO schema_migrations(version, applied_at) VALUES (?,?)",
+        (APP_VERSION, now_iso()),
+    )
+
 
 def init_db():
     conn = db()
@@ -370,13 +323,6 @@ def init_db():
         )"""
     )
     cur.execute(
-        """CREATE TABLE IF NOT EXISTS schema_migrations(
-            version TEXT PRIMARY KEY,
-            applied_at TEXT,
-            notes TEXT
-        )"""
-    )
-    cur.execute(
         """CREATE TABLE IF NOT EXISTS auto_alerts(
             id TEXT PRIMARY KEY,
             alert_type TEXT,
@@ -387,12 +333,13 @@ def init_db():
             updated_at TEXT
         )"""
     )
-    run_schema_migrations(conn)
     cur.execute(
-        """INSERT OR REPLACE INTO schema_migrations(version,applied_at,notes)
-           VALUES (?,?,?)""",
-        ("v511", now_iso(), "Auto database migration safe startup: columnas V509/V510/V511 garantizadas"),
+        """CREATE TABLE IF NOT EXISTS schema_migrations(
+            version TEXT PRIMARY KEY,
+            applied_at TEXT
+        )"""
     )
+    run_schema_migrations(conn)
     conn.commit()
     conn.close()
 
@@ -452,88 +399,70 @@ TEAM_ALIASES = {
 }
 
 
+def _seed_core_unlocked():
+    init_db()
+    conn = db()
+    cur = conn.cursor()
+    for key, name, scope, country, region, tier, strategy, tags in COMPETITION_SEEDS:
+        cur.execute(
+            """INSERT OR IGNORE INTO competitions
+               (key,name,scope,country,region,tier,source_strategy,tags_json,updated_at)
+               VALUES (?,?,?,?,?,?,?,?,?)""",
+            (key, name, scope, country, region, tier, strategy, json.dumps(tags), now_iso()),
+        )
+    for key, name, country, region, logo_url, external_id in TEAM_SEEDS:
+        cur.execute(
+            """INSERT OR IGNORE INTO teams
+               (key,name,country,region,logo_url,external_id,color_hint,source,legal_note,updated_at)
+               VALUES (?,?,?,?,?,?,?,?,?,?)""",
+            (key, name, country, region, logo_url, external_id, "premium-blue", "seed propio", "Sin scraping. Logo externo solo si hay licencia/API permitida.", now_iso()),
+        )
+    seed_matches = [
+        ("ucl", 0, "21:00", "uefa-champions-league", "UEFA Champions League", "Europe", "Equipo Champions A", "Equipo Champions B", "PROGRAMADO"),
+        ("premier", 0, "18:30", "premier-league", "Premier League", "England", "Premier Home", "Premier Away", "PROGRAMADO"),
+        ("laliga", 0, "20:45", "laliga", "LaLiga EA Sports", "Spain", "Club LaLiga Local", "Club LaLiga Visitante", "PROGRAMADO"),
+        ("world", 0, "19:00", "fifa-world-cup", "FIFA World Cup", "Global", "Seleccion Local", "Seleccion Visitante", "ESTRUCTURA"),
+        ("andalucia", 0, "12:00", "andalucia-regional", "Andalucia Regional Football", "Spain", "Club Andaluz", "Rival Provincial", "PROGRAMADO"),
+    ]
+    for raw_id, day, time, comp_key, comp_name, country, home, away, status in seed_matches:
+        match_id = "seed-" + raw_id + "-" + today_iso(day)
+        cur.execute(
+            """INSERT OR IGNORE INTO matches
+               (id,match_date,kickoff_time,competition_key,competition_name,country,home_team,away_team,status,minute,score,priority,source,legal_note,raw_json,updated_at)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            (
+                match_id,
+                today_iso(day),
+                time,
+                comp_key,
+                comp_name,
+                country,
+                home,
+                away,
+                status,
+                "",
+                "",
+                priority_for(comp_key, status),
+                "seed estructural",
+                "Dato semilla propio para experiencia visual. Sustituir por API legal o carga autorizada.",
+                json.dumps({"seed": True}),
+                now_iso(),
+            ),
+        )
+    conn.commit()
+    conn.close()
+
+
 def seed_core():
-    """Seed estructural seguro.
-
-    En V509 el seed se ejecutaba en muchas lecturas y podía chocar con
-    varios procesos/engines al arrancar en Render. En V510 se protege con:
-    - lock de proceso
-    - marcador persistente en SQLite
-    - retry si la base está bloqueada
-    """
-    global _SEED_DONE
-    if _SEED_DONE:
+    global _SEEDED_DB_PATH
+    if _SEEDED_DB_PATH == DB_PATH:
         return
-
     with _SEED_LOCK:
-        if _SEED_DONE:
+        if _SEEDED_DB_PATH == DB_PATH:
             return
+        retry_locked(_seed_core_unlocked)
+        _SEEDED_DB_PATH = DB_PATH
 
-        def _run_seed_once():
-            init_db()
-            conn = db()
-            cur = conn.cursor()
-            marker = cur.execute("SELECT value_json FROM automation_state WHERE key=?", ("core_seed_version",)).fetchone()
-            if marker and SEED_VERSION in str(marker["value_json"] or ""):
-                conn.close()
-                return
-
-            for key, name, scope, country, region, tier, strategy, tags in COMPETITION_SEEDS:
-                cur.execute(
-                    """INSERT OR IGNORE INTO competitions
-                       (key,name,scope,country,region,tier,source_strategy,tags_json,updated_at)
-                       VALUES (?,?,?,?,?,?,?,?,?)""",
-                    (key, name, scope, country, region, tier, strategy, json.dumps(tags), now_iso()),
-                )
-            for key, name, country, region, logo_url, external_id in TEAM_SEEDS:
-                cur.execute(
-                    """INSERT OR IGNORE INTO teams
-                       (key,name,country,region,logo_url,external_id,color_hint,source,legal_note,updated_at)
-                       VALUES (?,?,?,?,?,?,?,?,?,?)""",
-                    (key, name, country, region, logo_url, external_id, "premium-blue", "seed propio", "Sin scraping. Logo externo solo si hay licencia/API permitida.", now_iso()),
-                )
-            seed_matches = [
-                ("ucl", 0, "21:00", "uefa-champions-league", "UEFA Champions League", "Europe", "Equipo Champions A", "Equipo Champions B", "PROGRAMADO"),
-                ("premier", 0, "18:30", "premier-league", "Premier League", "England", "Premier Home", "Premier Away", "PROGRAMADO"),
-                ("laliga", 0, "20:45", "laliga", "LaLiga EA Sports", "Spain", "Club LaLiga Local", "Club LaLiga Visitante", "PROGRAMADO"),
-                ("world", 0, "19:00", "fifa-world-cup", "FIFA World Cup", "Global", "Seleccion Local", "Seleccion Visitante", "ESTRUCTURA"),
-                ("andalucia", 0, "12:00", "andalucia-regional", "Andalucia Regional Football", "Spain", "Club Andaluz", "Rival Provincial", "PROGRAMADO"),
-            ]
-            for raw_id, day, time, comp_key, comp_name, country, home, away, status in seed_matches:
-                match_id = "seed-" + raw_id + "-" + today_iso(day)
-                cur.execute(
-                    """INSERT OR IGNORE INTO matches
-                       (id,match_date,kickoff_time,competition_key,competition_name,country,home_team,away_team,status,minute,score,priority,source,legal_note,raw_json,updated_at)
-                       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
-                    (
-                        match_id,
-                        today_iso(day),
-                        time,
-                        comp_key,
-                        comp_name,
-                        country,
-                        home,
-                        away,
-                        status,
-                        "",
-                        "",
-                        priority_for(comp_key, status),
-                        "seed estructural",
-                        "Dato semilla propio para experiencia visual. Sustituir por API legal o carga autorizada.",
-                        json.dumps({"seed": True}),
-                        now_iso(),
-                    ),
-                )
-            cur.execute(
-                """INSERT OR REPLACE INTO automation_state(key,value_json,updated_at)
-                   VALUES (?,?,?)""",
-                ("core_seed_version", json.dumps({"version": SEED_VERSION, "seeded_at": now_iso()}), now_iso()),
-            )
-            conn.commit()
-            conn.close()
-
-        retry_locked(_run_seed_once)
-        _SEED_DONE = True
 
 def rows(query, params=()):
     seed_core()
@@ -1603,6 +1532,15 @@ def dashboard_data(lane="today", date=None):
     }
 
 
+@app.route("/service-worker.js")
+def service_worker():
+    body = (
+        "self.addEventListener('install',event=>self.skipWaiting());\n"
+        "self.addEventListener('activate',event=>event.waitUntil(self.clients.claim()));\n"
+    )
+    return Response(body, mimetype="application/javascript")
+
+
 @app.route("/")
 def home():
     return render_template("home.html", data=dashboard_data())
@@ -1680,6 +1618,17 @@ def shark_page():
     return render_template("shark.html", data=data)
 
 
+@app.route("/telegram")
+def telegram_page():
+    return render_template("telegram.html", data=dashboard_data())
+
+
+@app.route("/escudos")
+@app.route("/crests")
+def crests_page():
+    return render_template("crests.html", data=dashboard_data())
+
+
 @app.route("/api/health")
 @app.route("/v504-health")
 @app.route("/v505-health")
@@ -1687,6 +1636,7 @@ def shark_page():
 @app.route("/v507-health")
 @app.route("/v508-health")
 @app.route("/v509-health")
+@app.route("/v512-health")
 def health():
     return jsonify({"ok": True, "app": APP_NAME, "version": APP_VERSION, "time": now_iso()})
 
@@ -2025,15 +1975,6 @@ def api_diagnostics():
         {"name": "Render", "status": "READY", "detail": "Procfile, render.yaml y requirements incluidos."},
     ]
     return jsonify({"ok": True, "version": APP_VERSION, "checks": checks, "readiness": data["readiness"]})
-
-
-@app.route("/service-worker.js")
-def service_worker():
-    body = """self.addEventListener('install', event => self.skipWaiting());
-self.addEventListener('activate', event => event.waitUntil(self.clients.claim()));
-self.addEventListener('fetch', event => {});
-"""
-    return Response(body, mimetype="application/javascript", headers={"Cache-Control": "no-cache"})
 
 
 if __name__ == "__main__":
