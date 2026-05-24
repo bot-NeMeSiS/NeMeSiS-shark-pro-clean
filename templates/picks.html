@@ -1,22 +1,30 @@
 {% extends "base.html" %}
 {% block content %}
-<section class="hero">
-  <div class="kicker">Picks premium</div>
-  <h1>Picks con trazabilidad</h1>
-  <p class="lead">Centro para picks propios o importados legalmente. La app no inventa cuotas ni pronosticos: guarda fuente, nota legal, confianza y razonamiento.</p>
+<section class="hero compact">
+  <div class="kicker">Picks</div>
+  <h1>Picks preparados para fuentes reales</h1>
+  <p class="lead">Pronosticos, confianza y razonamiento en una vista clara. La app no inventa cuotas ni recomendaciones cuando no hay picks cargados.</p>
   <div class="actions">
-    <a class="btn primary" href="/admin/import-center">Importar picks</a>
-    <a class="btn" href="/api/picks">API picks</a>
-    <a class="btn" href="/combis">Crear combi</a>
+    <a class="btn primary" href="/match-hub">Ver partidos</a>
+    <a class="btn" href="/telegram">Activar Telegram</a>
+    <a class="btn" href="/favorites">Anadir favoritos</a>
+    {% if current_user and current_user.role == 'ADMIN' %}
+    <a class="btn" href="/admin/import-center">Importar picks</a>
+    {% endif %}
   </div>
 </section>
+{% if current_user and current_user.role == 'FREE' %}
+<section class="band"><div class="notice">Plan FREE activo: ves picks disponibles. PRO desbloquea mas profundidad, combinadas y analisis de riesgo mejorado.</div></section>
+{% elif current_user and current_user.role in ['PRO','ELITE','ADMIN'] %}
+<section class="band"><div class="notice">Acceso {{ current_user.role }} activo: picks, combinadas y contexto SHARK preparados para fuentes autorizadas.</div></section>
+{% endif %}
 <section class="band">
-  <div class="section-head"><h2>{{ data.picks|length }} picks visibles</h2><span class="pill">SQLite persistente</span></div>
+  <div class="section-head"><h2>Picks destacados</h2><span class="pill">{{ data.picks|length }}</span></div>
   {% if data.picks %}
   <div class="grid">
     {% for p in data.picks %}
     <article class="card">
-      <div class="match-top"><div><div class="comp-name">{{ p.competition_name or p.competition_key }}</div><div class="small">{{ p.match_date }} - {{ p.source }}</div></div><div class="time">{{ p.odds }}</div></div>
+      <div class="match-top"><div><div class="comp-name">{{ p.competition_name or p.competition_key }}</div><div class="small">{{ p.match_date }}</div></div><div class="time">{{ p.odds }}</div></div>
       <div class="name">{{ p.home_team }}{% if p.away_team %} vs {{ p.away_team }}{% endif %}</div>
       <p>{{ p.selection }}</p>
       <div class="status"><span>{{ p.status }}</span><span class="priority">{{ p.confidence }}%</span></div>
@@ -25,7 +33,10 @@
     {% endfor %}
   </div>
   {% else %}
-  <div class="empty">Aun no hay picks reales cargados. Importalos desde el centro admin con CSV/JSON autorizado.</div>
+  <div class="empty">
+    Aun no hay picks disponibles. Puedes revisar partidos, activar Telegram o anadir favoritos para preparar tu feed cuando entren pronosticos autorizados.
+    <div class="actions"><a class="btn primary" href="/match-hub">Ver partidos</a><a class="btn" href="/telegram">Activar Telegram</a><a class="btn" href="/favorites">Anadir favoritos</a></div>
+  </div>
   {% endif %}
 </section>
 {% endblock %}

@@ -1,10 +1,13 @@
 {% extends "base.html" %}
 {% block content %}
-<section class="hero">
-  <div class="kicker">Live Center</div>
-  <h1>Directo limpio, sin inventar datos</h1>
-  <p class="lead">El Live Center usa el calendario y las importaciones: separa directos, proximos y finalizados. Cuando entren APIs legales, se actualiza sobre esta misma base.</p>
-  <div class="actions"><a class="btn primary" href="/api/live">API live</a><a class="btn" href="/calendario">Calendario</a></div>
+<section class="hero compact">
+  <div class="kicker">Live</div>
+  <h1>Directo claro y real</h1>
+  <p class="lead">Partidos en directo, programados y finalizados con estados limpios. Si no hay datos autorizados ahora mismo, la app lo muestra sin inventar equipos ni marcadores.</p>
+  <div class="actions">
+    <a class="btn primary" href="/match-hub">Ver partidos</a>
+    <a class="btn" href="/favorites">Mis favoritos</a>
+  </div>
 </section>
 {% for title, items in [('En directo', data.live.live), ('Proximos', data.live.scheduled), ('Finalizados', data.live.finished)] %}
 <section class="band">
@@ -12,20 +15,26 @@
   {% if items %}
   <div class="grid">
     {% for m in items %}
-    <article class="card">
-      <div class="match-top"><div><div class="comp-name">{{ m.competition_name }}</div><div class="small">{{ m.match_date }} - {{ m.source }}</div></div><div class="time">{{ m.minute or m.kickoff_time or '-' }}</div></div>
-      <div class="teams">
-        <div class="team"><div class="crest"><img loading="lazy" src="{{ m.home_identity.crest_url }}" alt="{{ m.home_team }}"></div><strong>{{ m.home_team }}</strong></div>
-        <div class="team"><div class="crest"><img loading="lazy" src="{{ m.away_identity.crest_url }}" alt="{{ m.away_team }}"></div><strong>{{ m.away_team }}</strong></div>
+    <article class="card match-card">
+      <div class="match-top">
+        <div>
+          <div class="comp-name">{{ m.competition_name }}</div>
+          <div class="small">{{ m.match_date }} - {{ m.kickoff_time or m.minute or 'hora por confirmar' }}</div>
+        </div>
+        <div class="time">{{ m.live_depth.minute }}</div>
       </div>
-      <div class="status"><span class="state-badge {{ m.live_depth.badge }}">{{ m.live_depth.label }}</span><span class="priority">{{ m.score or m.priority }}</span></div>
+      <div class="teams">
+        <div class="team"><div class="crest"><img loading="lazy" src="{{ m.home_identity.crest_url }}" alt="{{ m.home_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ m.home_identity.initials }}'"></div><strong>{{ m.home_team }}</strong></div>
+        <div class="team"><div class="crest"><img loading="lazy" src="{{ m.away_identity.crest_url }}" alt="{{ m.away_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ m.away_identity.initials }}'"></div><strong>{{ m.away_team }}</strong></div>
+      </div>
+      <div class="status"><span class="state-badge {{ m.live_depth.badge }}">{{ m.live_depth.label }}</span><span>{{ m.live_depth.score or 'Sin marcador' }}</span></div>
       <div class="momentum"><i style="width:{{ m.live_depth.momentum }}%"></i></div>
-    <a class="mini-link" href="/partido/{{ m.id }}">Detalle vivo</a>
+      <a class="mini-link" href="/match-hub">Ver partido</a>
     </article>
     {% endfor %}
   </div>
   {% else %}
-  <div class="empty">Sin partidos en esta seccion.</div>
+  <div class="empty">Sin partidos disponibles ahora mismo. Cuando entren datos autorizados, apareceran aqui con marcador, minuto y estado.</div>
   {% endif %}
 </section>
 {% endfor %}

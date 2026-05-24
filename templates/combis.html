@@ -1,21 +1,23 @@
 {% extends "base.html" %}
 {% block content %}
-<section class="hero">
-  <div class="kicker">Combi center</div>
-  <h1>Combis construidas sobre picks reales</h1>
-  <p class="lead">El motor combina picks ya cargados, calcula cuota total y marca riesgo. Si no hay picks, no fabrica una combinada falsa.</p>
+<section class="hero compact">
+  <div class="kicker">Combinadas</div>
+  <h1>Combis sobre picks reales</h1>
+  <p class="lead">El motor solo combina picks disponibles y autorizados. Si no hay base real, la app espera y no fabrica combinadas falsas.</p>
   <div class="actions">
-    {% if data.picks %}
-    <form method="post" action="/api/combis/build"><button type="submit">Construir combi</button></form>
-    {% else %}
-    <a class="btn primary" href="/admin/import-center">Importar picks</a>
+    <a class="btn primary" href="/picks">Ver picks</a>
+    <a class="btn" href="/match-hub">Ver partidos</a>
+    <a class="btn" href="/telegram">Activar Telegram</a>
+    {% if current_user and current_user.role == 'ADMIN' %}
+    <a class="btn" href="/admin/import-center">Importar picks</a>
     {% endif %}
-    <a class="btn" href="/api/combis">API combis</a>
-    <a class="btn" href="/picks">Ver picks</a>
   </div>
 </section>
+{% if not current_user or current_user.role == 'FREE' %}
+<section class="band"><div class="notice">Combinadas es una capa PRO. Puedes explorar la seccion y subir de plan cuando haya picks autorizados para construir jugadas con mas profundidad.</div></section>
+{% endif %}
 <section class="band">
-  <div class="section-head"><h2>{{ data.combis|length }} combis guardadas</h2><span class="pill">Draft seguro</span></div>
+  <div class="section-head"><h2>Combinadas guardadas</h2><span class="pill">{{ data.combis|length }}</span></div>
   {% if data.combis %}
   <div class="grid">
     {% for c in data.combis %}
@@ -29,7 +31,10 @@
     {% endfor %}
   </div>
   {% else %}
-  <div class="empty">No hay combis todavia. Primero carga picks autorizados y luego genera una combi.</div>
+  <div class="empty">
+    No hay combinadas disponibles ahora mismo. Cuando existan picks reales, esta zona mostrara combinadas con cuota total y nivel de riesgo.
+    <div class="actions"><a class="btn primary" href="/match-hub">Ver partidos</a><a class="btn" href="/telegram">Activar Telegram</a><a class="btn" href="/favorites">Anadir favoritos</a></div>
+  </div>
   {% endif %}
 </section>
 {% endblock %}

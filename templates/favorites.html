@@ -3,16 +3,23 @@
 <section class="hero compact">
   <div class="kicker">Favoritos reales</div>
   <h1>Tu feed personalizado</h1>
-  <p class="lead">Guarda equipos, ligas o partidos. El feed se construye sobre SQLite y se cruza con calendario/live sin duplicar sistemas.</p>
+  <p class="lead">Guarda equipos, ligas o partidos para crear tu feed personal y tenerlos siempre a mano.</p>
 </section>
 <section class="band form-grid">
-  <form class="card" method="post" action="/favorites/add">
+  <form class="card" method="post" action="/favorites">
     <h2>Guardar favorito</h2>
-    <div class="field"><label>Tipo</label><input name="kind" value="team" placeholder="team, league o match"></div>
-    <div class="field"><label>Valor</label><input name="value" placeholder="Real Madrid, laliga o id de partido"></div>
+    <div class="field">
+      <label>Tipo</label>
+      <select name="kind">
+        <option value="team">Equipo</option>
+        <option value="league">Liga</option>
+        <option value="match">Partido</option>
+      </select>
+    </div>
+    <div class="field"><label>Valor</label><input name="value" placeholder="Real Madrid, LaLiga o partido favorito"></div>
     <div class="field"><label>Etiqueta</label><input name="label" placeholder="Nombre visible"></div>
     <button type="submit">Guardar favorito</button>
-    <p class="small">Los favoritos se guardan en tu usuario, no de forma global.</p>
+    <p class="small">Queda guardado en tu cuenta y se usa para personalizar el feed.</p>
   </form>
   <aside class="card">
     <h2>Guardados</h2>
@@ -21,33 +28,40 @@
       <div class="import-row"><div class="ok">{{ f.kind }}</div><div>{{ f.label }}</div><div class="small">{{ f.value }}</div></div>
       {% endfor %}
     {% else %}
-      <p class="small">Todavia no hay favoritos guardados.</p>
+      <p class="small">Todavia no hay favoritos guardados. Anade tu primer equipo para que el feed empiece a tomar forma.</p>
     {% endif %}
   </aside>
 </section>
 <section class="band">
-  <div class="section-head"><h2>Feed personalizado</h2><a class="pill" href="/api/favorites/feed">API feed</a></div>
+  <div class="section-head"><h2>Feed personalizado</h2><span class="pill">{{ data.favorite_feed|length }}</span></div>
   {% if data.favorite_feed %}
   <div class="grid">
     {% for m in data.favorite_feed %}
     <article class="card">
       <div class="comp-name">{{ m.competition_name }}</div>
-      <div class="name">{{ m.home_team }} vs {{ m.away_team }}</div>
+      <div class="teams">
+        <div class="team"><div class="crest"><img loading="lazy" src="{{ m.home_identity.crest_url }}" alt="{{ m.home_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ m.home_identity.initials }}'"></div><strong>{{ m.home_team }}</strong></div>
+        <div class="team"><div class="crest"><img loading="lazy" src="{{ m.away_identity.crest_url }}" alt="{{ m.away_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ m.away_identity.initials }}'"></div><strong>{{ m.away_team }}</strong></div>
+      </div>
       <div class="status"><span>{{ m.status }}</span><span class="priority">{{ m.kickoff_time or m.minute or '-' }}</span></div>
+      <a class="mini-link" href="/match-hub">Ver partido</a>
     </article>
     {% endfor %}
   </div>
   {% else %}
-  <div class="empty">Tu feed aparecera aqui cuando algun favorito coincida con partidos del dia.</div>
+  <div class="empty">
+    Tu feed aparecera aqui cuando algun favorito coincida con partidos del dia.
+    <div class="actions"><a class="btn primary" href="/match-hub">Ver partidos</a><a class="btn" href="/picks">Ver picks</a></div>
+  </div>
   {% endif %}
 </section>
 <section class="band">
   <div class="section-head"><h2>Prioridad inteligente</h2><span class="pill">{{ data.favorite_bundle.priority|length }}</span></div>
   <div class="stack">
     {% for m in data.favorite_bundle.priority %}
-    <a class="list-row" href="/api/matches/{{ m.id }}/detail"><span>{{ m.home_team }} vs {{ m.away_team }}</span><strong>{{ m.live_depth.label }}</strong></a>
+    <a class="list-row" href="/match-hub"><span>{{ m.home_team }} vs {{ m.away_team }}</span><strong>{{ m.live_depth.label }}</strong></a>
     {% else %}
-    <div class="empty">Cuando guardes favoritos, aqui apareceran ordenados por live, importancia y picks.</div>
+    <div class="empty">Cuando guardes favoritos, aqui apareceran ordenados por directo, importancia y picks.</div>
     {% endfor %}
   </div>
 </section>
@@ -58,7 +72,7 @@
       {% for m in data.favorite_bundle.live %}
       <div class="list-row"><span>{{ m.home_team }} vs {{ m.away_team }}</span><strong>{{ m.live_depth.label }}</strong></div>
       {% else %}
-      <div class="empty">Sin live favorito relacionado ahora mismo.</div>
+      <div class="empty">Sin directos relacionados con tus favoritos ahora mismo.</div>
       {% endfor %}
     </div>
   </div>
@@ -68,7 +82,7 @@
       {% for p in data.favorite_bundle.picks %}
       <div class="list-row"><span>{{ p.selection }}</span><strong>{{ p.confidence }}%</strong></div>
       {% else %}
-      <div class="empty">Sin picks conectados a favoritos todavia.</div>
+      <div class="empty">Sin picks conectados a tus favoritos todavia.</div>
       {% endfor %}
     </div>
   </div>

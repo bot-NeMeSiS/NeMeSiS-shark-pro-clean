@@ -1,64 +1,29 @@
-# NeMeSiS SHARK PRO V517 — User Database Recovery + Admin Bootstrap Safe Access
+# NeMeSiS SHARK PRO - V517 USER DATABASE RECOVERY + ADMIN BOOTSTRAP SAFE ACCESS
 
-Versión completa Render-ready con:
+V517 protege el acceso admin y añade recuperacion segura de usuarios desde bases antiguas.
 
-- Login cliente con email o username.
-- Registro con nombre visible, username único, email y contraseña.
-- Migración segura de `users.username` y backfill automático para usuarios antiguos.
-- Acceso admin con email o username.
-- Bootstrap seguro de admin inicial desde variables Render.
-- Ruta `/admin-bootstrap` bloqueada automáticamente cuando ya existe un admin.
-- Ruta `/admin/user-import` para importar usuarios desde `old_database.db` si existe una copia antigua.
-- Conversión de contraseña en texto plano a hash cuando se importa desde DB antigua.
-- Conservación de `password_hash` si la DB antigua ya lo trae.
-- Panel admin con acceso a importación de usuarios.
-- SQLite endurecido con DB_PATH=/data/database.db.
-- Sin scraping ilegal.
+## Incluye
 
-## Variables Render recomendadas
+- Bootstrap admin automatico si no existe ningun ADMIN y estan configuradas las variables Render.
+- Ruta temporal `/admin-bootstrap`, bloqueada automaticamente cuando ya existe un ADMIN.
+- `/admin-login` permite email o username.
+- `/admin/user-import` protegido para importar usuarios desde `old_database.db`.
+- Compatibilidad con tablas antiguas `users`, `clientes`, `clients` y `usuarios`.
+- Compatibilidad de columnas: email/correo, password_hash/password, name/nombre, username/user, role/rol y membership/membresia.
+- Password en texto plano de DB antigua se convierte a hash antes de guardar.
+- No sobrescribe usuarios existentes si el email ya esta registrado.
+- Genera usernames faltantes desde email con sufijo seguro si hay duplicados.
 
-```txt
-ADMIN_EMAIL=tuemail@email.com
-ADMIN_USERNAME=admin
-ADMIN_PASSWORD=tu_contraseña_segura
-ADMIN_NAME=Administrador
-DB_PATH=/data/database.db
-SECRET_KEY=una_clave_segura
-THESPORTSDB_API_KEY=tu_key
-THESPORTSDB_KEY=tu_key
-ENABLE_LIVE_API=true
-```
+## Variables Render
 
-## Rutas nuevas
+- `ADMIN_EMAIL`
+- `ADMIN_USERNAME`
+- `ADMIN_PASSWORD`
+- `ADMIN_NAME`
 
-- `/admin-bootstrap`
-- `/admin/user-import`
-- `/api/admin/bootstrap-status`
+## Seguridad
 
-## Importar usuarios antiguos
-
-Si tienes una base antigua, súbela temporalmente como:
-
-```txt
-old_database.db
-```
-
-en la raíz del proyecto y entra como ADMIN a:
-
-```txt
-/admin/user-import
-```
-
-No se muestran contraseñas ni hashes completos.
-
-## QA realizado
-
-- `app.py` compila.
-- `/api/health` responde.
-- Registro con username probado.
-- Login con username probado.
-- Login con email probado.
-- Login admin con username probado.
-- `/admin/users` probado.
-- `/admin/user-import` probado.
-- `/api/admin/bootstrap-status` probado.
+- No se guardan contrasenas en texto plano.
+- No se muestran hashes.
+- No se exponen variables Render.
+- Importacion solo disponible para ADMIN.

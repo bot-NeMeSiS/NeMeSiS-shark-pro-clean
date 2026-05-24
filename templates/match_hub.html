@@ -1,47 +1,38 @@
 {% extends "base.html" %}
 {% block content %}
 <section class="hero compact">
-  <div class="kicker">Match Hub Global</div>
-  <h1>Centro deportivo premium en tiempo real</h1>
-  <p class="lead">Live, hoy, proximos, favoritos, top leagues y picks relacionados comparten el mismo estado realtime.</p>
-  <div class="actions"><a class="btn primary" href="/api/match-hub">API hub</a><a class="btn" href="/api/realtime/state">Estado realtime</a><a class="btn" href="/admin/import-center">Importar datos</a></div>
-</section>
-<section class="live-strip">
-  <div><span>Sync</span><strong>{{ data.match_hub.sync.sync_status }}</strong></div>
-  <div><span>Refresh</span><strong>{{ data.match_hub.sync.refresh_seconds }}s</strong></div>
-  <div><span>Proximo</span><strong>{{ data.match_hub.sync.next_refresh_at[-8:] }}</strong></div>
-  <div><span>Fallback</span><strong>{{ data.match_hub.sync.fallback }}</strong></div>
+  <div class="kicker">Partidos</div>
+  <h1>Centro de partidos</h1>
+  <p class="lead">Directos, partidos de hoy, favoritos y competiciones importantes en una vista clara.</p>
+  <div class="actions"><a class="btn primary" href="/live">Ver live</a><a class="btn" href="/favorites">Mis favoritos</a></div>
 </section>
 <section class="band">
-  <div class="grid">
-    <div class="card"><div class="metric">{{ data.match_hub.counts.live }}</div><div class="muted">live</div></div>
-    <div class="card"><div class="metric">{{ data.match_hub.counts.upcoming }}</div><div class="muted">proximos</div></div>
-    <div class="card"><div class="metric">{{ data.match_hub.counts.popular }}</div><div class="muted">populares</div></div>
+  <div class="grid compact-grid">
+    <div class="card"><div class="metric">{{ data.match_hub.counts.live }}</div><div class="muted">en directo</div></div>
+    <div class="card"><div class="metric">{{ data.match_hub.counts.upcoming }}</div><div class="muted">programados</div></div>
     <div class="card"><div class="metric">{{ data.match_hub.counts.favorites }}</div><div class="muted">favoritos</div></div>
     <div class="card"><div class="metric">{{ data.match_hub.counts.with_picks }}</div><div class="muted">con picks</div></div>
   </div>
 </section>
-{% for title, items in [('En directo', data.match_hub.live), ('Hoy', data.match_hub.today), ('Proximos', data.match_hub.upcoming), ('Populares', data.match_hub.popular), ('Favoritos', data.match_hub.favorites), ('Con picks', data.match_hub.with_picks)] %}
+{% for title, items in [('En directo', data.match_hub.live), ('Hoy', data.match_hub.today), ('Proximos', data.match_hub.upcoming), ('Favoritos', data.match_hub.favorites), ('Con picks', data.match_hub.with_picks)] %}
 <section class="band">
   <div class="section-head"><h2>{{ title }}</h2><span class="pill">{{ items|length }}</span></div>
   {% if items %}
   <div class="grid">
     {% for m in items[:12] %}
     <article class="card match-card">
-      <div class="match-top"><div><div class="comp-name">{{ m.competition_name }}</div><div class="small">{{ m.country }} - {{ m.source }}</div></div><div class="time">{{ m.live_depth.minute }}</div></div>
+      <div class="match-top"><div><div class="comp-name">{{ m.competition_name }}</div><div class="small">{{ m.match_date }} - {{ m.kickoff_time or m.minute or 'hora por confirmar' }}</div></div><div class="time">{{ m.live_depth.minute }}</div></div>
       <div class="teams">
-        <div class="team"><div class="crest"><img loading="lazy" src="{{ m.home_identity.crest_url }}" alt="{{ m.home_team }}"></div><strong>{{ m.home_team }}</strong></div>
-        <div class="team"><div class="crest"><img loading="lazy" src="{{ m.away_identity.crest_url }}" alt="{{ m.away_team }}"></div><strong>{{ m.away_team }}</strong></div>
+        <div class="team"><div class="crest"><img loading="lazy" src="{{ m.home_identity.crest_url }}" alt="{{ m.home_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ m.home_identity.initials }}'"></div><strong>{{ m.home_team }}</strong></div>
+        <div class="team"><div class="crest"><img loading="lazy" src="{{ m.away_identity.crest_url }}" alt="{{ m.away_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ m.away_identity.initials }}'"></div><strong>{{ m.away_team }}</strong></div>
       </div>
-      <div class="status"><span class="state-badge {{ m.live_depth.badge }}">{{ m.live_depth.label }}</span><span>{{ m.live_depth.score }}</span><span class="priority">{{ m.real_time_score or m.live_depth.momentum }}</span></div>
-      <div class="momentum"><i style="width:{{ m.live_depth.momentum }}%"></i></div>
-      <p class="small">{{ m.timeline[0].title }} - {{ m.timeline[0].detail }}</p>
-      <a class="mini-link" href="/partido/{{ m.id }}">Detalle vivo</a>
+      <div class="status"><span class="state-badge {{ m.live_depth.badge }}">{{ m.live_depth.label }}</span><span>{{ m.live_depth.score or 'Sin marcador' }}</span></div>
+      <a class="mini-link" href="/live">Ver partido</a>
     </article>
     {% endfor %}
   </div>
   {% else %}
-  <div class="empty">Sin partidos en esta seccion.</div>
+  <div class="empty">Sin partidos disponibles ahora mismo. Cuando entren datos autorizados, esta seccion se llenara sola.</div>
   {% endif %}
 </section>
 {% endfor %}

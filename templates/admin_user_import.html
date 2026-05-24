@@ -1,36 +1,32 @@
 {% extends "base.html" %}
 {% block content %}
 <section class="hero compact">
-  <div class="kicker">Admin · Recuperación</div>
+  <div class="kicker">Recuperacion usuarios</div>
   <h1>Importar usuarios antiguos</h1>
-  <p class="lead">Recupera usuarios desde una SQLite antigua llamada <strong>old_database.db</strong> colocada en la raíz del proyecto.</p>
-  <div class="actions"><a class="btn" href="/admin/users">Usuarios</a><a class="btn" href="/admin/import-center">Import Center</a></div>
-</section>
-<section class="band auth-grid">
-  <form class="card auth-card" method="post" action="/admin/user-import">
-    <h2>Importador seguro</h2>
-    <p class="small">Archivo esperado: {{ old_path }}</p>
-    {% if old_exists %}<p class="notice ok">old_database.db detectada.</p>{% else %}<p class="notice">No hay old_database.db aún. Súbela solo si tienes una copia antigua.</p>{% endif %}
-    <button type="submit" {% if not old_exists %}disabled{% endif %}>Importar usuarios</button>
-  </form>
-  <aside class="card auth-side">
-    <h2>Qué importa</h2>
-    <p class="small">name, username, email, password_hash/password, role, membership, created_at y last_login.</p>
-    <p class="small">Si encuentra contraseña en texto plano, la convierte a hash antes de guardarla.</p>
-  </aside>
-</section>
-{% if result %}
-<section class="band"><div class="card">
-  <h2>Resultado</h2>
-  <p>Importados: <strong>{{ result.imported }}</strong></p>
-  <p>Saltados: <strong>{{ result.skipped }}</strong></p>
-  {% if result.errors %}<pre>{{ result.errors }}</pre>{% endif %}
-</div></section>
-{% endif %}
-<section class="band">
-  <div class="section-head"><h2>Últimas importaciones</h2><span class="pill">{{ logs|length }}</span></div>
-  <div class="stack">
-    {% for log in logs %}<article class="card"><strong>{{ log.source_file }}</strong><p class="small">Importados {{ log.imported }} · Saltados {{ log.skipped }} · {{ log.created_at }}</p></article>{% else %}<div class="empty">Sin importaciones todavía.</div>{% endfor %}
+  <p class="lead">Lee una base SQLite antigua llamada old_database.db y recupera usuarios sin sobrescribir emails existentes.</p>
+  <div class="admin-menu">
+    <a class="btn" href="/admin/users">Usuarios</a>
+    <a class="btn primary" href="/admin/user-import">Importar usuarios</a>
+    <a class="btn" href="/admin/import-center">Import Center</a>
   </div>
+</section>
+<section class="band two-col">
+  <form class="card" method="post" action="/admin/user-import">
+    <h2>old_database.db</h2>
+    <p class="small">Estado: {% if data.old_db_present %}archivo detectado{% else %}archivo no encontrado{% endif %}</p>
+    <button type="submit">Importar usuarios</button>
+    <p class="small">Compatible con tablas users, clientes, clients y usuarios.</p>
+  </form>
+  <aside class="card">
+    <h2>Resultado</h2>
+    {% if result %}
+      <p class="small">Importados: {{ result.imported }}</p>
+      <p class="small">Saltados: {{ result.skipped }}</p>
+      <p class="small">Errores: {{ result.errors|length }}</p>
+      {% for err in result.errors[:6] %}<p class="small bad">{{ err }}</p>{% endfor %}
+    {% else %}
+      <p class="small">Ejecuta la importacion para ver el resumen.</p>
+    {% endif %}
+  </aside>
 </section>
 {% endblock %}
