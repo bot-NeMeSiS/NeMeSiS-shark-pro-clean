@@ -24,8 +24,8 @@ from engines.shark_engine import build_shark_context, explain_pick_risk
 from engines.telegram_engine import build_alert_queue, dispatch_signature, should_skip_duplicate
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V521_FINAL_PRODUCT_CLEANUP_REAL_DATA_UX_PASS"
-SEED_VERSION = "v521-product-cleanup-seed"
+APP_VERSION = "V522_PORTABLE_CLEAN_BUILD_REAL_DATA_FEED_ACTIVATION"
+SEED_VERSION = "v522-portable-real-data-feed-seed"
 DB_PATH = os.getenv("DB_PATH", os.path.join(os.path.dirname(__file__), "database.db"))
 TZ = ZoneInfo("Europe/Madrid")
 
@@ -654,6 +654,17 @@ SPORTSDB_SEARCH_ALIASES = {
 }
 
 
+SPORTSDB_FEED_LEAGUES = [
+    {"id": "4328", "key": "premier-league", "name": "Premier League", "country": "England"},
+    {"id": "4335", "key": "laliga", "name": "LaLiga EA Sports", "country": "Spain"},
+    {"id": "4480", "key": "uefa-champions-league", "name": "UEFA Champions League", "country": "Europe"},
+    {"id": "4332", "key": "serie-a", "name": "Serie A", "country": "Italy"},
+    {"id": "4331", "key": "bundesliga", "name": "Bundesliga", "country": "Germany"},
+    {"id": "4334", "key": "ligue-1", "name": "Ligue 1", "country": "France"},
+    {"id": "4344", "key": "primeira-liga", "name": "Primeira Liga", "country": "Portugal"},
+]
+
+
 def sportsdb_name_variants(name):
     key = canonical_team_key(name)
     variants = [name]
@@ -698,6 +709,41 @@ def get_thesportsdb_last_error():
         return item.get("value_json") or ""
 
 
+def sportsdb_live_enabled():
+    return str(os.getenv("ENABLE_LIVE_API", "")).strip().lower() in {"1", "true", "yes", "on"}
+
+
+def fetch_json_url(url, headers=None, timeout=10):
+    req = urllib.request.Request(url, headers=headers or {"User-Agent": "NeMeSiS-SHARK-PRO/1.0"})
+    with urllib.request.urlopen(req, timeout=timeout) as res:
+        return json.loads(res.read().decode("utf-8", errors="replace"))
+
+
+def sportsdb_v1(endpoint, params=None):
+    api_key = thesportsdb_key()
+    if not api_key:
+        return {}
+    url = "https://www.thesportsdb.com/api/v1/json/%s/%s" % (
+        urllib.parse.quote(api_key),
+        endpoint.lstrip("/"),
+    )
+    if params:
+        url += "?" + urllib.parse.urlencode(params)
+    return fetch_json_url(url, timeout=12)
+
+
+def sportsdb_v2(path):
+    api_key = thesportsdb_key()
+    if not api_key:
+        return {}
+    url = "https://www.thesportsdb.com/api/v2/json/" + path.strip("/")
+    return fetch_json_url(
+        url,
+        headers={"User-Agent": "NeMeSiS-SHARK-PRO/1.0", "X-API-KEY": api_key},
+        timeout=12,
+    )
+
+
 def fetch_thesportsdb_team(team_name):
     api_key = thesportsdb_key()
     if not api_key:
@@ -707,8 +753,7 @@ def fetch_thesportsdb_team(team_name):
         urllib.parse.urlencode({"t": team_name}),
     )
     try:
-        with urllib.request.urlopen(url, timeout=8) as res:
-            payload = json.loads(res.read().decode("utf-8", errors="replace"))
+        payload = fetch_json_url(url, timeout=8)
         teams = payload.get("teams") or []
         if not teams:
             return None
@@ -738,8 +783,7 @@ def fetch_thesportsdb_team_by_id(external_id):
         urllib.parse.urlencode({"id": external_id}),
     )
     try:
-        with urllib.request.urlopen(url, timeout=8) as res:
-            payload = json.loads(res.read().decode("utf-8", errors="replace"))
+        payload = fetch_json_url(url, timeout=8)
         teams = payload.get("teams") or []
         if not teams:
             return None
@@ -774,7 +818,7 @@ def crest_sync_status():
     return {
         "key_present": bool(thesportsdb_key()),
         "key_masked": masked_key(thesportsdb_key()),
-        "live_enabled": str(os.getenv("ENABLE_LIVE_API", "")).strip().lower() in {"1", "true", "yes", "on"},
+        "live_enabled": sportsdb_live_enabled(),
         "total_teams": len(teams),
         "with_logo": len(with_logo),
         "fallback": len(without_logo),
@@ -833,6 +877,252 @@ def sync_sportsdb_crests(refresh=False, limit=40):
     return summary
 
 
+def sportsdb_score(home_score, away_score):
+    home = str(home_score or "").strip()
+    away = str(away_score or "").strip()
+    if home == "" and away == "":
+        return ""
+    return f"{home or 0}-{away or 0}"
+
+
+def sportsdb_match_status(event):
+    status = str(event.get("strStatus") or event.get("status") or "").strip()
+    progress = str(event.get("strProgress") or event.get("progress") or "").strip()
+    status_lower = (status or progress).lower()
+    if status_lower in {"ns", "not started"}:
+        return "PROGRAMADO"
+    if status_lower in {"ft", "final", "finished"} or "final" in status_lower:
+        return "FINALIZADO"
+    if status_lower in {"ht", "halftime", "half time"} or "half" in status_lower:
+        return "DESCANSO"
+    if status_lower in {"canc", "pst", "post", "postponed", "cancelled", "suspended", "abd"}:
+        return "SUSPENDIDO"
+    if status or progress:
+        return "LIVE"
+    return "PROGRAMADO"
+
+
+def sportsdb_event_time(event):
+    raw_time = str(event.get("strTime") or event.get("strEventTime") or event.get("timeEvent") or "").strip()
+    if raw_time and len(raw_time) >= 5:
+        return raw_time[:5]
+    timestamp = str(event.get("strTimestamp") or "").strip()
+    if "T" in timestamp:
+        return timestamp.split("T", 1)[1][:5]
+    return raw_time
+
+
+def sportsdb_event_id(event):
+    raw = event.get("idEvent") or event.get("idLiveScore") or event.get("strEvent") or json.dumps(event, sort_keys=True)[:200]
+    return "sportsdb-" + hashlib.md5(str(raw).encode("utf-8")).hexdigest()[:18]
+
+
+def cache_sportsdb_event_team(name, external_id="", logo_url="", country="", league=""):
+    name = str(name or "").strip()
+    if not name:
+        return
+    identity = {
+        "external_id": external_id or "",
+        "name": name,
+        "country": country or "",
+        "league": league or "",
+        "logo_url": logo_url or "",
+        "source": "TheSportsDB Event Feed",
+        "legal_note": "Equipo/escudo obtenido desde API permitida TheSportsDB; cache SQLite propio, sin scraping.",
+    }
+    current = one("SELECT * FROM teams WHERE key=?", (canonical_team_key(name),))
+    if logo_url or not current:
+        cache_team_identity(name, identity)
+
+
+def sportsdb_event_to_match(event, fallback=None):
+    fallback = fallback or {}
+    sport = str(event.get("strSport") or event.get("sport") or "Soccer").lower()
+    if sport and sport not in {"soccer", "football"}:
+        return None
+    home = event.get("strHomeTeam") or event.get("homeTeam") or event.get("strHome") or ""
+    away = event.get("strAwayTeam") or event.get("awayTeam") or event.get("strAway") or ""
+    if not home or not away or is_fake_team_name(home) or is_fake_team_name(away):
+        return None
+    comp_name = event.get("strLeague") or fallback.get("name") or "TheSportsDB"
+    comp_key = fallback.get("key") or slug(comp_name)
+    status = sportsdb_match_status(event)
+    score = sportsdb_score(event.get("intHomeScore"), event.get("intAwayScore"))
+    home_badge = event.get("strHomeTeamBadge") or event.get("strHomeTeamLogo") or ""
+    away_badge = event.get("strAwayTeamBadge") or event.get("strAwayTeamLogo") or ""
+    cache_sportsdb_event_team(home, event.get("idHomeTeam") or "", home_badge, event.get("strCountry") or fallback.get("country") or "", comp_name)
+    cache_sportsdb_event_team(away, event.get("idAwayTeam") or "", away_badge, event.get("strCountry") or fallback.get("country") or "", comp_name)
+    return {
+        "id": sportsdb_event_id(event),
+        "match_date": event.get("dateEvent") or today_iso(),
+        "kickoff_time": sportsdb_event_time(event),
+        "competition_key": comp_key,
+        "competition_name": comp_name,
+        "country": event.get("strCountry") or fallback.get("country") or "",
+        "home_team": home,
+        "away_team": away,
+        "status": status,
+        "minute": event.get("strProgress") or event.get("strStatus") or "",
+        "score": score,
+        "priority": priority_for(comp_key, status),
+        "source": "TheSportsDB API",
+        "legal_note": "Partido obtenido desde API permitida TheSportsDB y guardado en SQLite; sin scraping.",
+        "raw_json": json.dumps(event, ensure_ascii=False)[:5000],
+    }
+
+
+def sportsdb_event_collection(payload):
+    if not isinstance(payload, dict):
+        return []
+    for key in ("events", "event", "livescores", "livescore", "results"):
+        value = payload.get(key)
+        if isinstance(value, list):
+            return [item for item in value if isinstance(item, dict)]
+    return []
+
+
+def fetch_sportsdb_feed_events(limit=80):
+    events = []
+    errors = []
+    try:
+        payload = sportsdb_v1("eventsday.php", {"d": today_iso(), "s": "Soccer"})
+        events.extend([(item, {"key": slug(item.get("strLeague") or "sportsdb-day"), "name": item.get("strLeague") or "Soccer", "country": item.get("strCountry") or ""}) for item in sportsdb_event_collection(payload)])
+    except Exception as exc:
+        save_thesportsdb_error(exc)
+        errors.append("eventsday: " + str(exc)[:160])
+    for league in SPORTSDB_FEED_LEAGUES:
+        if len(events) >= int(limit):
+            break
+        try:
+            payload = sportsdb_v1("eventsnextleague.php", {"id": league["id"]})
+            events.extend([(item, league) for item in sportsdb_event_collection(payload)])
+        except Exception as exc:
+            save_thesportsdb_error(exc)
+            errors.append(f"{league['name']}: {str(exc)[:160]}")
+    if sportsdb_live_enabled():
+        try:
+            payload = sportsdb_v2("livescore/soccer")
+            events.extend([(item, {"key": slug(item.get("strLeague") or "sportsdb-live"), "name": item.get("strLeague") or "Live Soccer", "country": item.get("strCountry") or ""}) for item in sportsdb_event_collection(payload)])
+        except Exception as exc:
+            save_thesportsdb_error(exc)
+            errors.append("livescore: " + str(exc)[:160])
+    return events[: int(limit)], errors
+
+
+def upsert_sportsdb_matches(match_rows):
+    conn = db()
+    cur = conn.cursor()
+    imported = 0
+    updated = 0
+    skipped = 0
+    for item in match_rows:
+        if not item or is_fake_team_name(item.get("home_team")) or is_fake_team_name(item.get("away_team")):
+            skipped += 1
+            continue
+        exists = cur.execute("SELECT id FROM matches WHERE id=?", (item["id"],)).fetchone()
+        cur.execute(
+            """INSERT OR REPLACE INTO matches
+               (id,match_date,kickoff_time,competition_key,competition_name,country,home_team,away_team,status,minute,score,priority,source,legal_note,raw_json,updated_at)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            (
+                item["id"],
+                item.get("match_date") or today_iso(),
+                item.get("kickoff_time") or "",
+                item.get("competition_key") or "sportsdb",
+                item.get("competition_name") or "TheSportsDB",
+                item.get("country") or "",
+                item.get("home_team") or "",
+                item.get("away_team") or "",
+                item.get("status") or "PROGRAMADO",
+                item.get("minute") or "",
+                item.get("score") or "",
+                as_int(item.get("priority"), 70),
+                item.get("source") or "TheSportsDB API",
+                item.get("legal_note") or "API autorizada TheSportsDB",
+                item.get("raw_json") or "{}",
+                now_iso(),
+            ),
+        )
+        if exists:
+            updated += 1
+        else:
+            imported += 1
+    conn.execute("DELETE FROM persistent_cache WHERE key LIKE 'match-hub:%'")
+    summary = {
+        "ok": True,
+        "imported": imported,
+        "updated": updated,
+        "skipped": skipped,
+        "processed": len(match_rows),
+        "time": now_iso(),
+    }
+    conn.execute(
+        """INSERT OR REPLACE INTO automation_state(key,value_json,updated_at)
+           VALUES (?,?,?)""",
+        ("sportsdb_feed_sync", json.dumps(summary, ensure_ascii=False), now_iso()),
+    )
+    conn.commit()
+    conn.close()
+    return summary
+
+
+def sync_sportsdb_feed(limit=80):
+    seed_core()
+    if not thesportsdb_key():
+        result = {"ok": False, "sin_key": True, "imported": 0, "updated": 0, "processed": 0, "errors": ["Falta THESPORTSDB_API_KEY o THESPORTSDB_KEY."]}
+        return result
+    fetched, errors = fetch_sportsdb_feed_events(limit=limit)
+    match_rows = []
+    seen = set()
+    for event, fallback in fetched:
+        match = sportsdb_event_to_match(event, fallback=fallback)
+        if not match or match["id"] in seen:
+            continue
+        seen.add(match["id"])
+        match_rows.append(match)
+    result = upsert_sportsdb_matches(match_rows)
+    result["errors"] = errors[:12]
+    result["live_enabled"] = sportsdb_live_enabled()
+    result["sin_key"] = False
+    conn = db()
+    conn.execute(
+        """INSERT OR REPLACE INTO automation_state(key,value_json,updated_at)
+           VALUES (?,?,?)""",
+        ("sportsdb_feed_sync", json.dumps(result, ensure_ascii=False), now_iso()),
+    )
+    import_id = hashlib.md5(f"sportsdb-feed-{now_iso()}-{result.get('processed')}".encode("utf-8")).hexdigest()[:18]
+    conn.execute(
+        """INSERT INTO imports(id,kind,source_name,source_url,legal_note,rows_count,status,payload_preview,created_at)
+           VALUES (?,?,?,?,?,?,?,?,?)""",
+        (import_id, "matches", "TheSportsDB API", "https://www.thesportsdb.com/documentation", "API permitida TheSportsDB; cache SQLite sin scraping.", result.get("processed", 0), "IMPORTED", json.dumps(match_rows[:3], ensure_ascii=False)[:2000], now_iso()),
+    )
+    conn.commit()
+    conn.close()
+    return result
+
+
+def sportsdb_feed_status():
+    seed_core()
+    state = one("SELECT * FROM automation_state WHERE key='sportsdb_feed_sync'")
+    last_sync = {}
+    if state:
+        try:
+            last_sync = json.loads(state.get("value_json") or "{}")
+        except json.JSONDecodeError:
+            last_sync = {"raw": state.get("value_json")}
+    cached = (one("SELECT COUNT(*) AS total FROM matches WHERE source LIKE 'TheSportsDB%'") or {}).get("total", 0)
+    updated = (one("SELECT MAX(updated_at) AS updated_at FROM matches WHERE source LIKE 'TheSportsDB%'") or {}).get("updated_at", "")
+    return {
+        "key_present": bool(thesportsdb_key()),
+        "key_masked": masked_key(thesportsdb_key()),
+        "live_enabled": sportsdb_live_enabled(),
+        "cached_matches": cached,
+        "last_cached_update": updated,
+        "last_sync": last_sync,
+        "last_error": get_thesportsdb_last_error(),
+    }
+
+
 def thesportsdb_diagnostics(team_name="Real Madrid"):
     api_key = thesportsdb_key()
     live_enabled = str(os.getenv("ENABLE_LIVE_API", "")).strip().lower() in {"1", "true", "yes", "on"}
@@ -847,6 +1137,7 @@ def thesportsdb_diagnostics(team_name="Real Madrid"):
         can_resolve = bool(resolved)
         can_load_crest = bool((resolved or {}).get("logo_url"))
     status = crest_sync_status()
+    feed = sportsdb_feed_status()
     return {
         "key_present": bool(api_key),
         "key_masked": masked_key(api_key),
@@ -854,6 +1145,8 @@ def thesportsdb_diagnostics(team_name="Real Madrid"):
         "total_teams": status["total_teams"],
         "teams_with_logo": status["with_logo"],
         "teams_fallback": status["fallback"],
+        "cached_matches": feed["cached_matches"],
+        "last_feed_sync": feed["last_sync"],
         "last_sync": status["last_sync"],
         "missing_examples": status["missing_examples"],
         "team_checked": team_name,
@@ -2453,6 +2746,22 @@ def admin_sportsdb_sync_page():
     return render_template("admin_sportsdb_sync.html", data=data, message=message)
 
 
+@app.route("/admin/sportsdb-feed", methods=["GET", "POST"])
+def admin_sportsdb_feed_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/sportsdb-feed")
+    message = ""
+    if request.method == "POST":
+        result = sync_sportsdb_feed(limit=as_int(request.form.get("limit"), 80))
+        if result.get("sin_key"):
+            message = "Falta configurar THESPORTSDB_API_KEY o THESPORTSDB_KEY."
+        else:
+            message = "Feed sincronizado: %s importados, %s actualizados." % (result.get("imported", 0), result.get("updated", 0))
+    data = dashboard_data()
+    data["sportsdb_feed"] = sportsdb_feed_status()
+    return render_template("admin_sportsdb_feed.html", data=data, message=message)
+
+
 @app.route("/admin/system")
 def admin_system_page():
     if not is_admin_session():
@@ -2465,6 +2774,9 @@ def admin_system_page():
         "matches": (one("SELECT COUNT(*) AS total FROM matches") or {}).get("total", 0),
         "picks": (one("SELECT COUNT(*) AS total FROM picks") or {}).get("total", 0),
         "telegram": "Listo" if data.get("telegram", {}).get("configured") else "Pendiente",
+        "admin_exists": admin_exists(),
+        "users_count": (one("SELECT COUNT(*) AS total FROM users") or {}).get("total", 0),
+        "sportsdb_feed": sportsdb_feed_status(),
     }
     return render_template("admin_system.html", data=data)
 
@@ -2528,7 +2840,17 @@ def crests_page():
 @app.route("/v513-health")
 @app.route("/v516-health")
 def health():
-    return jsonify({"ok": True, "app": APP_NAME, "version": APP_VERSION, "time": now_iso()})
+    return jsonify(
+        {
+            "ok": True,
+            "app": APP_NAME,
+            "version": APP_VERSION,
+            "time": now_iso(),
+            "admin_exists": admin_exists(),
+            "users_count": (one("SELECT COUNT(*) AS total FROM users") or {}).get("total", 0),
+            "sportsdb_cached_matches": sportsdb_feed_status().get("cached_matches", 0),
+        }
+    )
 
 
 @app.route("/api/competitions")
@@ -2701,6 +3023,15 @@ def api_sportsdb_sync_crests():
     limit = as_int(request.args.get("limit") or request.form.get("limit"), 40)
     result = sync_sportsdb_crests(refresh=refresh, limit=limit)
     return jsonify({"version": APP_VERSION, **result})
+
+
+@app.route("/api/sportsdb/sync-feed", methods=["POST", "GET"])
+def api_sportsdb_sync_feed():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    limit = as_int(request.args.get("limit") or request.form.get("limit"), 80)
+    result = sync_sportsdb_feed(limit=limit)
+    return jsonify({"version": APP_VERSION, **result, "status": sportsdb_feed_status()})
 
 
 @app.route("/api/import-matches", methods=["POST"])

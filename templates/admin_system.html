@@ -7,6 +7,7 @@
   <div class="admin-menu">
     <a class="btn" href="/admin/users">Usuarios</a>
     <a class="btn" href="/admin/sportsdb-sync">SportsDB Sync</a>
+    <a class="btn" href="/admin/sportsdb-feed">SportsDB Feed</a>
     <a class="btn" href="/admin/import-center">Import Center</a>
     <a class="btn primary" href="/admin/system">Sistema</a>
   </div>
@@ -17,6 +18,7 @@
     <div class="card"><div class="metric">{{ data.system.teams }}</div><div class="muted">equipos</div></div>
     <div class="card"><div class="metric">{{ data.system.matches }}</div><div class="muted">partidos</div></div>
     <div class="card"><div class="metric">{{ data.system.picks }}</div><div class="muted">picks</div></div>
+    <div class="card"><div class="metric">{{ data.system.users_count }}</div><div class="muted">usuarios</div></div>
   </div>
 </section>
 <section class="band two-col">
@@ -28,6 +30,8 @@
     <h2>Servicios</h2>
     <p class="small">Telegram: {{ data.system.telegram }}</p>
     <p class="small">Escudos guardados: {{ data.sportsdb.with_logo }}</p>
+    <p class="small">Admin existe: {% if data.system.admin_exists %}si{% else %}no{% endif %}</p>
+    <p class="small">Partidos SportsDB cacheados: {{ data.system.sportsdb_feed.cached_matches }}</p>
   </div>
 </section>
 {% endblock %}
