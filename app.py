@@ -5,6 +5,7 @@ import json
 import os
 import re
 import sqlite3
+import threading
 import unicodedata
 import urllib.parse
 import urllib.request
@@ -12,6 +13,8 @@ from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from flask import Flask, Response, jsonify, redirect, render_template, request
+
+from database_manager import connect as sqlite_connect, retry_locked
 
 from engines.cache_engine import cache_health
 from engines.crest_engine import crest_status
@@ -21,11 +24,15 @@ from engines.shark_engine import build_shark_context, explain_pick_risk
 from engines.telegram_engine import build_alert_queue, dispatch_signature, should_skip_duplicate
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V509_REAL_TIME_PREMIUM_SPORTS_ENGINE"
+APP_VERSION = "V510_STABILITY_SQLITE_HARDENING"
 DB_PATH = os.getenv("DB_PATH", os.path.join(os.path.dirname(__file__), "database.db"))
 TZ = ZoneInfo("Europe/Madrid")
 
 app = Flask(__name__)
+
+SEED_VERSION = "v510-core-seed"
+_SEED_LOCK = threading.Lock()
+_SEED_DONE = False
 
 
 def now_iso():
@@ -37,10 +44,7 @@ def today_iso(offset=0):
 
 
 def db():
-    os.makedirs(os.path.dirname(DB_PATH) or ".", exist_ok=True)
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
+    return sqlite_connect(DB_PATH)
 
 
 def slug(text):
@@ -326,58 +330,87 @@ TEAM_ALIASES = {
 
 
 def seed_core():
-    init_db()
-    conn = db()
-    cur = conn.cursor()
-    for key, name, scope, country, region, tier, strategy, tags in COMPETITION_SEEDS:
-        cur.execute(
-            """INSERT OR IGNORE INTO competitions
-               (key,name,scope,country,region,tier,source_strategy,tags_json,updated_at)
-               VALUES (?,?,?,?,?,?,?,?,?)""",
-            (key, name, scope, country, region, tier, strategy, json.dumps(tags), now_iso()),
-        )
-    for key, name, country, region, logo_url, external_id in TEAM_SEEDS:
-        cur.execute(
-            """INSERT OR IGNORE INTO teams
-               (key,name,country,region,logo_url,external_id,color_hint,source,legal_note,updated_at)
-               VALUES (?,?,?,?,?,?,?,?,?,?)""",
-            (key, name, country, region, logo_url, external_id, "premium-blue", "seed propio", "Sin scraping. Logo externo solo si hay licencia/API permitida.", now_iso()),
-        )
-    seed_matches = [
-        ("ucl", 0, "21:00", "uefa-champions-league", "UEFA Champions League", "Europe", "Equipo Champions A", "Equipo Champions B", "PROGRAMADO"),
-        ("premier", 0, "18:30", "premier-league", "Premier League", "England", "Premier Home", "Premier Away", "PROGRAMADO"),
-        ("laliga", 0, "20:45", "laliga", "LaLiga EA Sports", "Spain", "Club LaLiga Local", "Club LaLiga Visitante", "PROGRAMADO"),
-        ("world", 0, "19:00", "fifa-world-cup", "FIFA World Cup", "Global", "Seleccion Local", "Seleccion Visitante", "ESTRUCTURA"),
-        ("andalucia", 0, "12:00", "andalucia-regional", "Andalucia Regional Football", "Spain", "Club Andaluz", "Rival Provincial", "PROGRAMADO"),
-    ]
-    for raw_id, day, time, comp_key, comp_name, country, home, away, status in seed_matches:
-        match_id = "seed-" + raw_id + "-" + today_iso(day)
-        cur.execute(
-            """INSERT OR IGNORE INTO matches
-               (id,match_date,kickoff_time,competition_key,competition_name,country,home_team,away_team,status,minute,score,priority,source,legal_note,raw_json,updated_at)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
-            (
-                match_id,
-                today_iso(day),
-                time,
-                comp_key,
-                comp_name,
-                country,
-                home,
-                away,
-                status,
-                "",
-                "",
-                priority_for(comp_key, status),
-                "seed estructural",
-                "Dato semilla propio para experiencia visual. Sustituir por API legal o carga autorizada.",
-                json.dumps({"seed": True}),
-                now_iso(),
-            ),
-        )
-    conn.commit()
-    conn.close()
+    """Seed estructural seguro.
 
+    En V509 el seed se ejecutaba en muchas lecturas y podía chocar con
+    varios procesos/engines al arrancar en Render. En V510 se protege con:
+    - lock de proceso
+    - marcador persistente en SQLite
+    - retry si la base está bloqueada
+    """
+    global _SEED_DONE
+    if _SEED_DONE:
+        return
+
+    with _SEED_LOCK:
+        if _SEED_DONE:
+            return
+
+        def _run_seed_once():
+            init_db()
+            conn = db()
+            cur = conn.cursor()
+            marker = cur.execute("SELECT value_json FROM automation_state WHERE key=?", ("core_seed_version",)).fetchone()
+            if marker and SEED_VERSION in str(marker["value_json"] or ""):
+                conn.close()
+                return
+
+            for key, name, scope, country, region, tier, strategy, tags in COMPETITION_SEEDS:
+                cur.execute(
+                    """INSERT OR IGNORE INTO competitions
+                       (key,name,scope,country,region,tier,source_strategy,tags_json,updated_at)
+                       VALUES (?,?,?,?,?,?,?,?,?)""",
+                    (key, name, scope, country, region, tier, strategy, json.dumps(tags), now_iso()),
+                )
+            for key, name, country, region, logo_url, external_id in TEAM_SEEDS:
+                cur.execute(
+                    """INSERT OR IGNORE INTO teams
+                       (key,name,country,region,logo_url,external_id,color_hint,source,legal_note,updated_at)
+                       VALUES (?,?,?,?,?,?,?,?,?,?)""",
+                    (key, name, country, region, logo_url, external_id, "premium-blue", "seed propio", "Sin scraping. Logo externo solo si hay licencia/API permitida.", now_iso()),
+                )
+            seed_matches = [
+                ("ucl", 0, "21:00", "uefa-champions-league", "UEFA Champions League", "Europe", "Equipo Champions A", "Equipo Champions B", "PROGRAMADO"),
+                ("premier", 0, "18:30", "premier-league", "Premier League", "England", "Premier Home", "Premier Away", "PROGRAMADO"),
+                ("laliga", 0, "20:45", "laliga", "LaLiga EA Sports", "Spain", "Club LaLiga Local", "Club LaLiga Visitante", "PROGRAMADO"),
+                ("world", 0, "19:00", "fifa-world-cup", "FIFA World Cup", "Global", "Seleccion Local", "Seleccion Visitante", "ESTRUCTURA"),
+                ("andalucia", 0, "12:00", "andalucia-regional", "Andalucia Regional Football", "Spain", "Club Andaluz", "Rival Provincial", "PROGRAMADO"),
+            ]
+            for raw_id, day, time, comp_key, comp_name, country, home, away, status in seed_matches:
+                match_id = "seed-" + raw_id + "-" + today_iso(day)
+                cur.execute(
+                    """INSERT OR IGNORE INTO matches
+                       (id,match_date,kickoff_time,competition_key,competition_name,country,home_team,away_team,status,minute,score,priority,source,legal_note,raw_json,updated_at)
+                       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                    (
+                        match_id,
+                        today_iso(day),
+                        time,
+                        comp_key,
+                        comp_name,
+                        country,
+                        home,
+                        away,
+                        status,
+                        "",
+                        "",
+                        priority_for(comp_key, status),
+                        "seed estructural",
+                        "Dato semilla propio para experiencia visual. Sustituir por API legal o carga autorizada.",
+                        json.dumps({"seed": True}),
+                        now_iso(),
+                    ),
+                )
+            cur.execute(
+                """INSERT OR REPLACE INTO automation_state(key,value_json,updated_at)
+                   VALUES (?,?,?)""",
+                ("core_seed_version", json.dumps({"version": SEED_VERSION, "seeded_at": now_iso()}), now_iso()),
+            )
+            conn.commit()
+            conn.close()
+
+        retry_locked(_run_seed_once)
+        _SEED_DONE = True
 
 def rows(query, params=()):
     seed_core()
@@ -1869,6 +1902,15 @@ def api_diagnostics():
         {"name": "Render", "status": "READY", "detail": "Procfile, render.yaml y requirements incluidos."},
     ]
     return jsonify({"ok": True, "version": APP_VERSION, "checks": checks, "readiness": data["readiness"]})
+
+
+@app.route("/service-worker.js")
+def service_worker():
+    body = """self.addEventListener('install', event => self.skipWaiting());
+self.addEventListener('activate', event => event.waitUntil(self.clients.claim()));
+self.addEventListener('fetch', event => {});
+"""
+    return Response(body, mimetype="application/javascript", headers={"Cache-Control": "no-cache"})
 
 
 if __name__ == "__main__":
