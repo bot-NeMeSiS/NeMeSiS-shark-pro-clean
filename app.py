@@ -6,14 +6,16 @@ import os
 import re
 import sqlite3
 import unicodedata
+import urllib.parse
+import urllib.request
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
-from flask import Flask, jsonify, redirect, render_template, request
+from flask import Flask, Response, jsonify, redirect, render_template, request
 
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V504_CLEAN_WINNER_CORE"
+APP_VERSION = "V505_SMART_CREST_FIX"
 DB_PATH = os.getenv("DB_PATH", os.path.join(os.path.dirname(__file__), "database.db"))
 TZ = ZoneInfo("Europe/Madrid")
 
@@ -74,12 +76,17 @@ def init_db():
             country TEXT,
             region TEXT,
             logo_url TEXT,
+            external_id TEXT,
             color_hint TEXT,
             source TEXT,
             legal_note TEXT,
             updated_at TEXT
         )"""
     )
+    try:
+        cur.execute("ALTER TABLE teams ADD COLUMN external_id TEXT")
+    except sqlite3.OperationalError:
+        pass
     cur.execute(
         """CREATE TABLE IF NOT EXISTS matches(
             id TEXT PRIMARY KEY,
@@ -149,17 +156,36 @@ COMPETITION_SEEDS = [
 
 
 TEAM_SEEDS = [
-    ("real-madrid", "Real Madrid", "Spain", "Europe", ""),
-    ("barcelona", "FC Barcelona", "Spain", "Europe", ""),
-    ("atletico-madrid", "Atletico de Madrid", "Spain", "Europe", ""),
-    ("sevilla", "Sevilla FC", "Spain", "Andalucia", ""),
-    ("real-betis", "Real Betis", "Spain", "Andalucia", ""),
-    ("malaga", "Malaga CF", "Spain", "Andalucia", ""),
-    ("cadiz", "Cadiz CF", "Spain", "Andalucia", ""),
-    ("granada", "Granada CF", "Spain", "Andalucia", ""),
-    ("cordoba", "Cordoba CF", "Spain", "Andalucia", ""),
-    ("recreativo-huelva", "Recreativo de Huelva", "Spain", "Andalucia", ""),
+    ("real-madrid", "Real Madrid", "Spain", "Europe", "", "133738"),
+    ("barcelona", "FC Barcelona", "Spain", "Europe", "", "133739"),
+    ("atletico-madrid", "Atletico de Madrid", "Spain", "Europe", "", "133729"),
+    ("sevilla", "Sevilla FC", "Spain", "Andalucia", "", "133745"),
+    ("real-betis", "Real Betis", "Spain", "Andalucia", "", "133741"),
+    ("malaga", "Malaga CF", "Spain", "Andalucia", "", ""),
+    ("cadiz", "Cadiz CF", "Spain", "Andalucia", "", ""),
+    ("granada", "Granada CF", "Spain", "Andalucia", "", ""),
+    ("cordoba", "Cordoba CF", "Spain", "Andalucia", "", ""),
+    ("recreativo-huelva", "Recreativo de Huelva", "Spain", "Andalucia", "", ""),
 ]
+
+TEAM_ALIASES = {
+    "barcelona": "barcelona",
+    "fc-barcelona": "barcelona",
+    "barca": "barcelona",
+    "real-madrid-cf": "real-madrid",
+    "madrid": "real-madrid",
+    "atletico": "atletico-madrid",
+    "atletico-de-madrid": "atletico-madrid",
+    "atl-madrid": "atletico-madrid",
+    "sevilla-fc": "sevilla",
+    "betis": "real-betis",
+    "real-betis-balompie": "real-betis",
+    "malaga-cf": "malaga",
+    "cadiz-cf": "cadiz",
+    "granada-cf": "granada",
+    "cordoba-cf": "cordoba",
+    "recreativo": "recreativo-huelva",
+}
 
 
 def seed_core():
@@ -173,12 +199,12 @@ def seed_core():
                VALUES (?,?,?,?,?,?,?,?,?)""",
             (key, name, scope, country, region, tier, strategy, json.dumps(tags), now_iso()),
         )
-    for key, name, country, region, logo_url in TEAM_SEEDS:
+    for key, name, country, region, logo_url, external_id in TEAM_SEEDS:
         cur.execute(
             """INSERT OR IGNORE INTO teams
-               (key,name,country,region,logo_url,color_hint,source,legal_note,updated_at)
-               VALUES (?,?,?,?,?,?,?,?,?)""",
-            (key, name, country, region, logo_url, "premium-blue", "seed propio", "Sin scraping. Logo externo solo si hay licencia/API permitida.", now_iso()),
+               (key,name,country,region,logo_url,external_id,color_hint,source,legal_note,updated_at)
+               VALUES (?,?,?,?,?,?,?,?,?,?)""",
+            (key, name, country, region, logo_url, external_id, "premium-blue", "seed propio", "Sin scraping. Logo externo solo si hay licencia/API permitida.", now_iso()),
         )
     seed_matches = [
         ("ucl", 0, "21:00", "uefa-champions-league", "UEFA Champions League", "Europe", "Equipo Champions A", "Equipo Champions B", "PROGRAMADO"),
@@ -242,12 +268,90 @@ def competition_map():
     return {c["key"]: c for c in competitions()}
 
 
-def resolve_team(name):
+def canonical_team_key(name):
     key = slug(name)
+    return TEAM_ALIASES.get(key, key)
+
+
+def fallback_crest_url(name):
+    return "/team-crest.svg?" + urllib.parse.urlencode({"name": name or "Equipo"})
+
+
+def thesportsdb_key():
+    return os.getenv("THESPORTSDB_KEY") or os.getenv("THESPORTSDB_API_KEY") or "3"
+
+
+def fetch_thesportsdb_team(team_name):
+    api_key = thesportsdb_key()
+    if not api_key:
+        return None
+    url = "https://www.thesportsdb.com/api/v1/json/%s/searchteams.php?%s" % (
+        urllib.parse.quote(api_key),
+        urllib.parse.urlencode({"t": team_name}),
+    )
+    try:
+        with urllib.request.urlopen(url, timeout=8) as res:
+            payload = json.loads(res.read().decode("utf-8", errors="replace"))
+        teams = payload.get("teams") or []
+        if not teams:
+            return None
+        first = teams[0]
+        logo = first.get("strBadge") or first.get("strLogo") or ""
+        return {
+            "external_id": first.get("idTeam") or "",
+            "name": first.get("strTeam") or team_name,
+            "country": first.get("strCountry") or "",
+            "logo_url": logo,
+            "source": "TheSportsDB API",
+            "legal_note": "Escudo obtenido desde API permitida TheSportsDB; respetar condiciones de uso de la fuente.",
+        }
+    except Exception:
+        return None
+
+
+def cache_team_identity(name, identity):
+    key = canonical_team_key(name)
+    conn = db()
+    cur = conn.cursor()
+    cur.execute(
+        """INSERT OR REPLACE INTO teams
+           (key,name,country,region,logo_url,external_id,color_hint,source,legal_note,updated_at)
+           VALUES (?,?,?,?,?,?,?,?,?,?)""",
+        (
+            key,
+            identity.get("name") or name,
+            identity.get("country") or "",
+            identity.get("region") or "",
+            identity.get("logo_url") or "",
+            identity.get("external_id") or "",
+            identity.get("color_hint") or "premium-blue",
+            identity.get("source") or "manual/API",
+            identity.get("legal_note") or "Identidad cargada por fuente permitida.",
+            now_iso(),
+        ),
+    )
+    conn.commit()
+    conn.close()
+
+
+def resolve_team(name, refresh=False):
+    key = canonical_team_key(name)
     team = one("SELECT * FROM teams WHERE key=?", (key,))
+    if team and team.get("logo_url") and not refresh:
+        team["initials"] = initials(team.get("name") or name)
+        team["crest_url"] = team.get("logo_url")
+        team["crest_mode"] = "logo"
+        return team
+    if refresh or not team or not team.get("logo_url"):
+        found = fetch_thesportsdb_team((team or {}).get("name") or name)
+        if found and found.get("logo_url"):
+            cache_team_identity(name, found)
+            team = one("SELECT * FROM teams WHERE key=?", (key,))
     if not team:
         team = {"key": key, "name": name or "Equipo", "logo_url": "", "country": "", "region": "", "source": "fallback propio", "legal_note": "Iniciales generadas por la app."}
     team["initials"] = initials(team.get("name") or name)
+    team["crest_url"] = team.get("logo_url") or fallback_crest_url(team.get("name") or name)
+    team["crest_mode"] = "logo" if team.get("logo_url") else "fallback"
     return team
 
 
