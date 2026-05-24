@@ -431,6 +431,46 @@ def import_matches(import_rows, source_name="manual", source_url="", legal_note=
     return {"ok": True, "imported": count, "import_id": import_id}
 
 
+def import_teams(team_rows, source_name="manual", legal_note="Carga autorizada"):
+    seed_core()
+    conn = db()
+    cur = conn.cursor()
+    count = 0
+    for item in team_rows:
+        name = item.get("name") or item.get("team") or item.get("equipo") or item.get("display_name") or ""
+        if not name:
+            continue
+        key = canonical_team_key(item.get("key") or name)
+        cur.execute(
+            """INSERT OR REPLACE INTO teams
+               (key,name,country,region,logo_url,external_id,color_hint,source,legal_note,updated_at)
+               VALUES (?,?,?,?,?,?,?,?,?,?)""",
+            (
+                key,
+                name,
+                item.get("country") or item.get("pais") or "",
+                item.get("region") or item.get("provincia") or "",
+                item.get("logo_url") or item.get("crest_url") or item.get("escudo") or "",
+                item.get("external_id") or item.get("idTeam") or "",
+                item.get("color_hint") or "premium-blue",
+                source_name,
+                legal_note,
+                now_iso(),
+            ),
+        )
+        count += 1
+    import_id = hashlib.md5(f"teams-{source_name}-{now_iso()}-{count}".encode("utf-8")).hexdigest()[:18]
+    cur.execute(
+        """INSERT INTO imports
+           (id,kind,source_name,source_url,legal_note,rows_count,status,payload_preview,created_at)
+           VALUES (?,?,?,?,?,?,?,?,?)""",
+        (import_id, "teams", source_name, "", legal_note, count, "IMPORTED", json.dumps(team_rows[:3], ensure_ascii=False)[:2000], now_iso()),
+    )
+    conn.commit()
+    conn.close()
+    return {"ok": True, "imported": count, "import_id": import_id}
+
+
 def get_matches(date=None, lane="today"):
     date = date or today_iso()
     clauses = ["match_date=?"]
@@ -530,6 +570,7 @@ def import_center():
 
 @app.route("/api/health")
 @app.route("/v504-health")
+@app.route("/v505-health")
 def health():
     return jsonify({"ok": True, "app": APP_NAME, "version": APP_VERSION, "time": now_iso()})
 
@@ -550,6 +591,77 @@ def api_calendar():
 def api_live():
     date = request.args.get("date") or today_iso()
     return jsonify({"ok": True, "version": APP_VERSION, "date": date, "matches": split_live(get_matches(date, "today"))})
+
+
+@app.route("/team-crest.svg")
+def team_crest_svg():
+    name = request.args.get("name") or "Equipo"
+    text = initials(name)
+    hue = int(hashlib.md5(name.encode("utf-8")).hexdigest()[:2], 16)
+    color_a = "#%02x%02x%02x" % (20 + hue % 60, 80 + hue % 110, 130 + hue % 90)
+    color_b = "#07111f"
+    svg = f"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="{name}">
+  <defs><linearGradient id="g" x1="0" x2="1" y1="0" y2="1"><stop stop-color="{color_a}"/><stop offset="1" stop-color="{color_b}"/></linearGradient></defs>
+  <rect width="96" height="96" rx="22" fill="url(#g)"/>
+  <path d="M48 10 78 22v22c0 20-12 34-30 42-18-8-30-22-30-42V22Z" fill="rgba(255,255,255,.08)" stroke="rgba(255,255,255,.35)" stroke-width="2"/>
+  <text x="48" y="57" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="24" font-weight="900" fill="#eef6ff">{text}</text>
+</svg>"""
+    return Response(svg, mimetype="image/svg+xml")
+
+
+@app.route("/api/team/resolve")
+def api_team_resolve():
+    team = request.args.get("team") or request.args.get("name") or ""
+    refresh = request.args.get("refresh") in {"1", "true", "yes"}
+    return jsonify({"ok": True, "version": APP_VERSION, "team": resolve_team(team, refresh=refresh)})
+
+
+@app.route("/api/teams")
+def api_teams():
+    seed_core()
+    teams = rows("SELECT * FROM teams ORDER BY name")
+    for team in teams:
+        team["initials"] = initials(team.get("name"))
+        team["crest_url"] = team.get("logo_url") or fallback_crest_url(team.get("name"))
+        team["crest_mode"] = "logo" if team.get("logo_url") else "fallback"
+    return jsonify({"ok": True, "version": APP_VERSION, "teams": teams})
+
+
+@app.route("/api/import-teams", methods=["POST"])
+def api_import_teams():
+    payload = request.get_json(silent=True) or dict(request.form or {})
+    rows_payload = payload.get("rows")
+    if rows_payload is None:
+        rows_payload = parse_payload(payload.get("payload") or "")
+    if not isinstance(rows_payload, list):
+        return jsonify({"ok": False, "error": "Payload invalido. Usa rows o payload JSON/CSV."}), 400
+    result = import_teams(
+        rows_payload,
+        payload.get("source_name") or "manual autorizado",
+        payload.get("legal_note") or "Carga autorizada por administrador",
+    )
+    return jsonify({"version": APP_VERSION, **result})
+
+
+@app.route("/api/crest-diagnostics")
+def api_crest_diagnostics():
+    seed_core()
+    teams = rows("SELECT * FROM teams ORDER BY name")
+    with_logo = [t for t in teams if t.get("logo_url")]
+    without_logo = [t for t in teams if not t.get("logo_url")]
+    return jsonify(
+        {
+            "ok": True,
+            "version": APP_VERSION,
+            "provider": "TheSportsDB",
+            "provider_key_present": bool(thesportsdb_key()),
+            "total_teams": len(teams),
+            "with_logo": len(with_logo),
+            "fallback": len(without_logo),
+            "sample_missing": [t.get("name") for t in without_logo[:20]],
+            "legal_policy": "Escudos desde API permitida, carga manual autorizada o fallback SVG propio. No scraping ilegal.",
+        }
+    )
 
 
 @app.route("/api/import-matches", methods=["POST"])
@@ -583,6 +695,7 @@ def api_diagnostics():
         {"name": "Calendario global", "status": "READY", "detail": f"{len(data['matches'])} partidos para la fecha base."},
         {"name": "Live center", "status": "READY", "detail": "Usa partidos reales/importados y separa directo, proximos y finalizados."},
         {"name": "Importacion legal", "status": "READY", "detail": "Acepta CSV/JSON autorizado con trazabilidad de fuente."},
+        {"name": "Escudos", "status": "READY", "detail": "Resuelve por cache, TheSportsDB, importacion legal o fallback SVG premium."},
         {"name": "Render", "status": "READY", "detail": "Procfile, render.yaml y requirements incluidos."},
     ]
     return jsonify({"ok": True, "version": APP_VERSION, "checks": checks, "readiness": data["readiness"]})
