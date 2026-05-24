@@ -1,12 +1,31 @@
 {% extends "base.html" %}
 {% block content %}
 <section class="hero">
-  <div class="kicker">Picks / combis</div>
-  <h1>Motor premium de picks sin inventar cuotas</h1>
-  <p class="lead">Base para picks reales, combis, stake, confianza y explicación. Los picks se marcan como borrador si la cuota/dato no está verificado.</p>
-  <div class="actions"><a class="btn primary" href="/api/v506/picks">API picks</a><a class="btn" href="/live">Ver live</a></div>
+  <div class="kicker">Picks premium</div>
+  <h1>Picks con trazabilidad</h1>
+  <p class="lead">Centro para picks propios o importados legalmente. La app no inventa cuotas ni pronosticos: guarda fuente, nota legal, confianza y razonamiento.</p>
+  <div class="actions">
+    <a class="btn primary" href="/admin/import-center">Importar picks</a>
+    <a class="btn" href="/api/picks">API picks</a>
+    <a class="btn" href="/combis">Crear combi</a>
+  </div>
 </section>
-<section class="band"><div class="grid">
-{% for p in data.picks %}<article class="card"><div class="comp-top"><div><div class="name">{{ p.title }}</div><div class="small">{{ p.market }} · {{ p.selection }} · {{ p.mode }}</div></div><div class="tier">{{ p.confidence }}%</div></div><div class="status"><span>Cuota {{ p.odd }} · Stake {{ p.stake }}</span><span class="pill">{{ p.status }}</span></div><p class="small">{{ p.reason }}</p></article>{% endfor %}
-</div></section>
+<section class="band">
+  <div class="section-head"><h2>{{ data.picks|length }} picks visibles</h2><span class="pill">SQLite persistente</span></div>
+  {% if data.picks %}
+  <div class="grid">
+    {% for p in data.picks %}
+    <article class="card">
+      <div class="match-top"><div><div class="comp-name">{{ p.competition_name or p.competition_key }}</div><div class="small">{{ p.match_date }} - {{ p.source }}</div></div><div class="time">{{ p.odds }}</div></div>
+      <div class="name">{{ p.home_team }}{% if p.away_team %} vs {{ p.away_team }}{% endif %}</div>
+      <p>{{ p.selection }}</p>
+      <div class="status"><span>{{ p.status }}</span><span class="priority">{{ p.confidence }}%</span></div>
+      <p class="small">{{ p.reasoning or p.legal_note }}</p>
+    </article>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty">Aun no hay picks reales cargados. Importalos desde el centro admin con CSV/JSON autorizado.</div>
+  {% endif %}
+</section>
 {% endblock %}

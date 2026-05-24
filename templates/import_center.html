@@ -1,12 +1,13 @@
 {% extends "base.html" %}
 {% block content %}
 <section class="hero">
-  <div class="kicker">Admin · importacion legal</div>
+  <div class="kicker">Admin - importacion legal</div>
   <h1>Cargar datos sin arrastrar ruido</h1>
   <p class="lead">Pega CSV o JSON autorizado. Cada importacion guarda fuente, nota legal y trazabilidad. Este es el puente para convertir la app limpia en producto vivo.</p>
 </section>
 <section class="band form-grid">
   <form class="card" method="post" action="/api/import-matches">
+    <h2>Partidos y live</h2>
     <div class="field"><label>Fuente</label><input name="source_name" value="manual autorizado"></div>
     <div class="field"><label>URL o referencia legal</label><input name="source_url" placeholder="https://... o referencia interna"></div>
     <div class="field"><label>Nota legal</label><input name="legal_note" value="Carga autorizada por administrador"></div>
@@ -14,21 +15,41 @@
 {{ data.date }},21:00,uefa-champions-league,UEFA Champions League,Europe,Equipo A,Equipo B,PROGRAMADO
 {{ data.date }},18:30,laliga,LaLiga EA Sports,Spain,Club Local,Club Visitante,PROGRAMADO</textarea></div>
     <button type="submit">Importar partidos</button>
-    <p class="small">Tambien puedes usar POST JSON en `/api/import-matches` con `rows` o `payload`.</p>
+    <p class="small">Tambien puedes usar POST JSON en /api/import-matches con rows o payload.</p>
   </form>
   <aside class="card">
     <h2>Importaciones recientes</h2>
     {% if data.imports %}
       {% for i in data.imports %}
       <div class="import-row">
-        <div class="ok">{{ i.status }} · {{ i.rows_count }} filas</div>
-        <div class="small">{{ i.source_name }} · {{ i.created_at }}</div>
+        <div class="ok">{{ i.status }} - {{ i.rows_count }} filas</div>
+        <div class="small">{{ i.kind }} - {{ i.source_name }} - {{ i.created_at }}</div>
         <div class="small">{{ i.legal_note }}</div>
       </div>
       {% endfor %}
     {% else %}
       <p class="small">Aun no hay importaciones manuales. La app muestra semillas limpias hasta cargar datos reales/autorizados.</p>
     {% endif %}
+  </aside>
+</section>
+<section class="band form-grid">
+  <form class="card" method="post" action="/api/import-picks">
+    <h2>Importar picks</h2>
+    <p class="small">Solo picks propios, editoriales o de fuente autorizada. No se inventan cuotas.</p>
+    <div class="field"><label>Fuente</label><input name="source_name" value="manual picks autorizado"></div>
+    <div class="field"><label>Nota legal</label><input name="legal_note" value="Pick cargado por administrador desde fuente autorizada"></div>
+    <div class="field"><label>Payload CSV o JSON</label><textarea name="payload">match_date,competition_key,competition_name,home_team,away_team,selection,odds,confidence,stake_units,reasoning
+{{ data.date }},laliga,LaLiga EA Sports,Club Local,Club Visitante,Local gana o empata,1.45,68,1.0,Ejemplo editable: sustituir por pick real/autorizado</textarea></div>
+    <button type="submit">Importar picks</button>
+  </form>
+  <aside class="card">
+    <h2>Telegram</h2>
+    <p class="small">Estado: {% if data.telegram.configured %}configurado{% else %}faltan variables{% endif %}</p>
+    <p class="small">Variables necesarias: TELEGRAM_BOT_TOKEN y TELEGRAM_CHAT_ID. Auto: ENABLE_TELEGRAM_AUTO=true.</p>
+    <form method="post" action="/api/telegram/send"><button type="submit">Enviar briefing</button></form>
+    <p class="small">Endpoint auto compatible V495: /api/v495/telegram-auto-run</p>
+    <p class="small">Scheduler V507: /api/telegram/scheduler-tick, /api/telegram/triggers y /api/telegram/logs.</p>
+    <p class="small">V509: /api/telegram/scheduler-manager, /api/telegram/queue y /api/telegram/auto-posts.</p>
   </aside>
 </section>
 <section class="band form-grid">
@@ -41,13 +62,13 @@
 Real Madrid,Spain,Europe,
 Sevilla FC,Spain,Andalucia,</textarea></div>
     <button type="submit">Importar escudos</button>
-    <p class="small">Tambien puedes usar `/api/team/resolve?team=Sevilla%20FC&refresh=1` para intentar resolver por TheSportsDB.</p>
+    <p class="small">Tambien puedes usar /api/team/resolve?team=Sevilla%20FC&refresh=1 para intentar resolver por TheSportsDB.</p>
   </form>
   <aside class="card">
     <h2>Diagnostico de escudos</h2>
-    <p class="small">Endpoint: `/api/crest-diagnostics`</p>
-    <p class="small">Resolver equipo: `/api/team/resolve?team=Real%20Madrid`</p>
-    <p class="small">Fallback visual: `/team-crest.svg?name=Equipo`</p>
+    <p class="small">Endpoint: /api/crest-diagnostics</p>
+    <p class="small">Resolver equipo: /api/team/resolve?team=Real%20Madrid</p>
+    <p class="small">Fallback visual: /team-crest.svg?name=Equipo</p>
   </aside>
 </section>
 {% endblock %}

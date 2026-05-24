@@ -1,48 +1,52 @@
 # NeMeSiS SHARK PRO V506 - Progressive System Fusion
 
-V506 fusiona progresivamente sistemas del proyecto historico sobre el core limpio V505 sin romper rutas actuales.
+Base: V505 Smart Crest Fix.
 
-## Conserva rutas actuales
-- `/`
-- `/global`
-- `/calendario`
-- `/live`
-- `/admin/import-center`
-- `/api/health`
-- `/api/calendar`
-- `/api/live`
-- `/api/crest-diagnostics`
-- `/api/diagnostics`
+Objetivo: fusionar progresivamente sistemas anteriores sin romper la base limpia.
 
-## Sistemas reintroducidos de forma segura
-- Telegram automatico/manual con variables de entorno y antduplicados SQLite.
-- Picks importados por CSV/JSON legal.
-- Combis generadas solo desde picks existentes.
-- Perfil cliente premium persistente.
-- Membresias Free/Pro/Elite.
-- SHARK AI briefing sin inventar datos.
-- Live basado en calendario/importaciones.
-- Escudos persistentes V505.
+Incluye:
+- Telegram automatico seguro, sin enviar nada si faltan variables de entorno.
+- Picks premium importables por CSV/JSON autorizado.
+- Combis construidas solo sobre picks existentes.
+- Perfil cliente premium persistente en SQLite.
+- IA SHARK con briefing interno basado en datos reales/importados disponibles.
+- Membresias Free, PRO y ELITE preparadas para capa comercial.
+- Live real multi-fuente por importacion legal/API permitida.
+- Escudos persistentes por cache SQLite, TheSportsDB o fallback SVG propio.
 
-## Nuevas rutas
-- `/picks`
-- `/combis`
-- `/perfil`
-- `/membresias`
-- `/shark-ai`
-- `/api/picks`
-- `/api/import-picks`
-- `/api/combis`
-- `/api/combis/build`
-- `/api/profile`
-- `/api/membership`
-- `/api/shark/briefing`
-- `/api/telegram/status`
-- `/api/telegram/send`
-- `/api/telegram/auto-run`
-- `/api/v495/telegram-auto-run`
-- `/api/automation-status`
-- `/v506-health`
+Rutas existentes preservadas:
+- /
+- /global
+- /calendario
+- /live
+- /admin/import-center
+- /api/health
+- /api/calendar
+- /api/live
+- /api/crest-diagnostics
+- /api/diagnostics
 
-## Legalidad
-No scraping ilegal. Solo APIs permitidas, datos propios, CSV/JSON autorizado, cache persistente y revision editorial.
+Nuevas rutas:
+- /picks
+- /combis
+- /perfil
+- /membresias
+- /shark-ai
+- /api/picks
+- /api/import-picks
+- /api/combis
+- /api/combis/build
+- /api/profile
+- /api/membership
+- /api/shark/briefing
+- /api/telegram/status
+- /api/telegram/send
+- /api/telegram/auto-run
+- /api/v495/telegram-auto-run
+- /v506-health
+
+Legalidad:
+No scraping ilegal. Solo APIs permitidas, datos propios, importaciones autorizadas, cache persistente y revision editorial.
+
+Produccion:
+Mantener DB_PATH=/data/database.db en Render para SQLite persistente.

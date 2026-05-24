@@ -1,31 +1,60 @@
 {% extends "base.html" %}
 {% block content %}
-<section class="hero">
-  <div class="kicker">{{ data.version }} · Ecosistema Recuperado</div>
-  <h1>Fútbol global premium, app completa y lista para crecer</h1>
-  <p class="lead">Esta es la base ganadora: calendario mundial, competiciones top, live center, importacion legal, escudos por identidad y Andalucia como diferencial dentro de una app global.</p>
-  <div class="actions">
-    <a class="btn primary" href="/ecosistema">Abrir ecosistema</a>
-    <a class="btn" href="/calendario">Calendario</a>
-    <a class="btn" href="/live">Live Center</a>
-    <a class="btn" href="/admin/import-center">Importar datos</a>
+<section class="app-hero">
+  <div>
+    <div class="kicker">{{ data.version }} - Premium Core</div>
+    <h1>Tu centro inteligente de futbol global</h1>
+    <p class="lead">Live, partidos de hoy, picks, combis, favoritos, IA SHARK y escudos persistentes sobre una base limpia, legal y preparada para Render.</p>
+    <div class="quick-actions">
+      <a class="quick primary" href="/match-hub"><span>Match Hub</span><strong>{{ data.match_hub.counts.popular }}</strong></a>
+      <a class="quick" href="/live"><span>Live</span><strong>{{ data.match_hub.counts.live }}</strong></a>
+      <a class="quick" href="/calendario"><span>Hoy</span><strong>{{ data.matches|length }}</strong></a>
+      <a class="quick" href="/picks"><span>Picks</span><strong>{{ data.picks|length }}</strong></a>
+      <a class="quick" href="/combis"><span>Combis</span><strong>{{ data.combis|length }}</strong></a>
+      <a class="quick" href="/favoritos"><span>Favoritos</span><strong>{{ data.favorites|length }}</strong></a>
+    </div>
   </div>
+  <aside class="hero-panel">
+    <div class="panel-top"><span>Realtime</span><strong>{{ data.match_hub.sync.refresh_seconds }}s</strong></div>
+    <div class="small">Sync {{ data.match_hub.sync.sync_status }} - proximo {{ data.match_hub.sync.next_refresh_at[-8:] }}</div>
+    <div class="signal"><span>Global</span><i style="width:{{ data.readiness.global_football }}%"></i></div>
+    <div class="signal"><span>Live</span><i style="width:{{ data.readiness.live_foundation }}%"></i></div>
+    <div class="signal"><span>SHARK</span><i style="width:{{ data.readiness.shark_ai }}%"></i></div>
+    <div class="signal"><span>Realtime</span><i style="width:{{ data.readiness.real_time_engine }}%"></i></div>
+  </aside>
 </section>
 <section class="band">
+  <div class="section-head"><h2>Ahora mismo</h2><span class="pill">App real</span></div>
   <div class="grid">
-    <div class="card"><div class="metric">{{ data.competitions|length }}</div><div class="muted">competiciones globales</div></div>
-    <div class="card"><div class="metric">{{ data.matches|length }}</div><div class="muted">partidos de hoy</div></div>
-    <div class="card"><div class="metric">{{ data.imports|length }}</div><div class="muted">importaciones recientes</div></div>
-    <div class="card"><div class="metric">{{ data.readiness.clean_core }}%</div><div class="muted">core limpio</div></div>
+    <div class="card"><div class="metric">{{ data.match_hub.counts.live }}</div><div class="muted">partidos en directo</div></div>
+    <div class="card"><div class="metric">{{ data.match_hub.counts.upcoming }}</div><div class="muted">proximos</div></div>
+    <div class="card"><div class="metric">{{ data.favorite_feed|length }}</div><div class="muted">en tu feed</div></div>
+    <div class="card"><div class="metric">{{ data.imports|length }}</div><div class="muted">importaciones trazadas</div></div>
   </div>
 </section>
-<section class="band">
-  <div class="section-head"><h2>Prioridad de producto</h2><span class="pill">Sin versiones antiguas acumuladas</span></div>
-  <div class="grid">
-    <div class="card"><div class="name">Global primero</div><p class="small">Mundial, Champions, Eurocopa, ligas top, Espana y America como estructura principal.</p></div>
-    <div class="card"><div class="name">Andalucia diferencial</div><p class="small">Regional e inferior se mantiene como ventaja propia, no como limite del producto.</p></div>
-    <div class="card"><div class="name">Datos legales</div><p class="small">{{ data.legal_policy }}</p></div>
-    <div class="card"><div class="name">Listo para APIs</div><p class="small">El siguiente paso es conectar fuentes legales y guardar snapshots en SQLite.</p></div>
+<section class="band two-col">
+  <div>
+    <div class="section-head"><h2>Populares</h2><a class="pill" href="/match-hub">Abrir hub</a></div>
+    <div class="stack">
+      {% for m in data.match_hub.popular[:5] %}
+      <a class="list-row" href="/api/matches/{{ m.id }}/detail">
+        <span>{{ m.home_team }} vs {{ m.away_team }}</span>
+        <strong>{{ m.live_depth.label }}</strong>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+  <div>
+    <div class="section-head"><h2>Favoritos</h2><a class="pill" href="/favoritos">Gestionar</a></div>
+    <div class="stack">
+      {% if data.favorite_feed %}
+        {% for m in data.favorite_feed[:5] %}
+        <a class="list-row" href="/match-hub"><span>{{ m.home_team }} vs {{ m.away_team }}</span><strong>{{ m.kickoff_time or m.minute or '-' }}</strong></a>
+        {% endfor %}
+      {% else %}
+        <div class="empty">Guarda equipos, ligas o partidos para crear tu feed premium.</div>
+      {% endif %}
+    </div>
   </div>
 </section>
 {% endblock %}

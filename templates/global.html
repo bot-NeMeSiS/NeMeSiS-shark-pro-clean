@@ -10,7 +10,7 @@
   <div class="grid">
     {% for c in data.competitions %}
     <article class="card">
-      <div class="comp-top"><div><div class="name">{{ c.name }}</div><div class="small">{{ c.scope }} · {{ c.country }} · {{ c.region }}</div></div><div class="tier">{{ c.tier }}</div></div>
+      <div class="comp-top"><div><div class="name">{{ c.name }}</div><div class="small">{{ c.scope }} - {{ c.country }} - {{ c.region }}</div></div><div class="tier">{{ c.tier }}</div></div>
       <p class="small">{{ c.source_strategy }}</p>
     </article>
     {% endfor %}

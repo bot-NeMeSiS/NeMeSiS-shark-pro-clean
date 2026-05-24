@@ -1,21 +1,31 @@
 {% extends "base.html" %}
 {% block content %}
 <section class="hero">
-  <div class="kicker">Combis</div>
-  <h1>Combis construidas desde picks existentes</h1>
-  <p class="lead">No se inventan selecciones. Las combis solo se generan cuando ya hay picks reales/importados en SQLite.</p>
-  <div class="actions"><a class="btn primary" href="/api/combis">API combis</a></div>
+  <div class="kicker">Combi center</div>
+  <h1>Combis construidas sobre picks reales</h1>
+  <p class="lead">El motor combina picks ya cargados, calcula cuota total y marca riesgo. Si no hay picks, no fabrica una combinada falsa.</p>
+  <div class="actions">
+    <form method="post" action="/api/combis/build"><button type="submit">Construir combi</button></form>
+    <a class="btn" href="/api/combis">API combis</a>
+    <a class="btn" href="/picks">Ver picks</a>
+  </div>
 </section>
 <section class="band">
-  <div class="section-head"><h2>{{ data.combis|length }} combis</h2><span class="pill">Control de riesgo</span></div>
+  <div class="section-head"><h2>{{ data.combis|length }} combis guardadas</h2><span class="pill">Draft seguro</span></div>
   {% if data.combis %}
   <div class="grid">
     {% for c in data.combis %}
-    <article class="card"><div class="name">{{ c.title }}</div><p class="small">{{ c.risk }} · {{ c.status }} · {{ c.source }}</p><p class="small">{{ c.legal_note }}</p></article>
+    <article class="card">
+      <div class="match-top"><div><div class="name">{{ c.name }}</div><div class="small">{{ c.created_at }}</div></div><div class="time">{{ c.total_odds }}</div></div>
+      <div class="status"><span>{{ c.status }}</span><span class="priority">{{ c.risk_level }}</span></div>
+      {% for p in c.picks %}
+      <p class="small">{{ p.match }} - {{ p.selection }} - {{ p.odds }}</p>
+      {% endfor %}
+    </article>
     {% endfor %}
   </div>
   {% else %}
-  <div class="empty">No hay combis. Primero importa picks y luego usa `/api/combis/build`.</div>
+  <div class="empty">No hay combis todavia. Primero carga picks autorizados y luego genera una combi.</div>
   {% endif %}
 </section>
 {% endblock %}
