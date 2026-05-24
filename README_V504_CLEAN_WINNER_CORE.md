@@ -37,5 +37,5 @@ Esta version limpia sustituye la acumulacion historica de versiones por un nucle
 ## Politica de datos
 No scraping ilegal. Solo APIs permitidas, datos propios, CSV/JSON autorizado, cache persistente y revision editorial.
 
-## Siguiente avance recomendado
-V505: conectar TheSportsDB/The Odds API con este core limpio y guardar snapshots reales en `matches`.
+## Avance aplicado
+V505 añade resolucion de escudos por cache, TheSportsDB, importacion legal y fallback SVG premium.

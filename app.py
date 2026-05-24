@@ -278,7 +278,7 @@ def fallback_crest_url(name):
 
 
 def thesportsdb_key():
-    return os.getenv("THESPORTSDB_KEY") or os.getenv("THESPORTSDB_API_KEY") or "3"
+    return os.getenv("THESPORTSDB_KEY") or os.getenv("THESPORTSDB_API_KEY") or ""
 
 
 def fetch_thesportsdb_team(team_name):
