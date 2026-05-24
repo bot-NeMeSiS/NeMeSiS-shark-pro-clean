@@ -24,13 +24,13 @@ from engines.shark_engine import build_shark_context, explain_pick_risk
 from engines.telegram_engine import build_alert_queue, dispatch_signature, should_skip_duplicate
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V510_STABILITY_SQLITE_HARDENING"
+APP_VERSION = "V511_AUTO_DATABASE_MIGRATION_SAFE_STARTUP"
 DB_PATH = os.getenv("DB_PATH", os.path.join(os.path.dirname(__file__), "database.db"))
 TZ = ZoneInfo("Europe/Madrid")
 
 app = Flask(__name__)
 
-SEED_VERSION = "v510-core-seed"
+SEED_VERSION = "v511-core-seed"
 _SEED_LOCK = threading.Lock()
 _SEED_DONE = False
 
@@ -62,6 +62,116 @@ def initials(name):
         letters = [words[0][0].upper()]
     return "".join(letters[:3]) or "NS"
 
+
+
+
+def table_columns(cur, table_name):
+    """Devuelve columnas existentes de una tabla SQLite."""
+    try:
+        return {row[1] for row in cur.execute(f"PRAGMA table_info({table_name})").fetchall()}
+    except sqlite3.OperationalError:
+        return set()
+
+
+def add_column_if_missing(cur, table_name, column_name, column_sql):
+    """Añade columnas nuevas sin romper bases antiguas persistentes de Render."""
+    if column_name not in table_columns(cur, table_name):
+        cur.execute(f"ALTER TABLE {table_name} ADD COLUMN {column_sql}")
+
+
+def run_schema_migrations(conn):
+    """Migraciones defensivas para que una DB antigua no rompa versiones nuevas.
+
+    Render conserva /data/database.db entre despliegues. Si una versión antigua
+    creó tablas con menos columnas, CREATE TABLE IF NOT EXISTS no las actualiza.
+    Esta capa añade las columnas que V511 necesita sin borrar datos.
+    """
+    cur = conn.cursor()
+
+    match_columns = {
+        "match_date": "match_date TEXT",
+        "kickoff_time": "kickoff_time TEXT",
+        "competition_key": "competition_key TEXT",
+        "competition_name": "competition_name TEXT",
+        "country": "country TEXT",
+        "home_team": "home_team TEXT",
+        "away_team": "away_team TEXT",
+        "status": "status TEXT",
+        "minute": "minute TEXT",
+        "score": "score TEXT",
+        "priority": "priority INTEGER DEFAULT 50",
+        "source": "source TEXT",
+        "legal_note": "legal_note TEXT",
+        "raw_json": "raw_json TEXT",
+        "updated_at": "updated_at TEXT",
+    }
+    for name, ddl in match_columns.items():
+        add_column_if_missing(cur, "matches", name, ddl)
+
+    team_columns = {
+        "country": "country TEXT",
+        "region": "region TEXT",
+        "logo_url": "logo_url TEXT",
+        "external_id": "external_id TEXT",
+        "color_hint": "color_hint TEXT",
+        "source": "source TEXT",
+        "legal_note": "legal_note TEXT",
+        "updated_at": "updated_at TEXT",
+    }
+    for name, ddl in team_columns.items():
+        add_column_if_missing(cur, "teams", name, ddl)
+
+    competition_columns = {
+        "scope": "scope TEXT",
+        "country": "country TEXT",
+        "region": "region TEXT",
+        "tier": "tier INTEGER DEFAULT 50",
+        "source_strategy": "source_strategy TEXT",
+        "tags_json": "tags_json TEXT",
+        "updated_at": "updated_at TEXT",
+    }
+    for name, ddl in competition_columns.items():
+        add_column_if_missing(cur, "competitions", name, ddl)
+
+    favorite_columns = {
+        "kind": "kind TEXT",
+        "value": "value TEXT",
+        "label": "label TEXT",
+        "created_at": "created_at TEXT",
+    }
+    for name, ddl in favorite_columns.items():
+        add_column_if_missing(cur, "favorites", name, ddl)
+
+    pick_columns = {
+        "match_id": "match_id TEXT",
+        "match_date": "match_date TEXT",
+        "competition_key": "competition_key TEXT",
+        "competition_name": "competition_name TEXT",
+        "home_team": "home_team TEXT",
+        "away_team": "away_team TEXT",
+        "pick_type": "pick_type TEXT",
+        "selection": "selection TEXT",
+        "odds": "odds REAL",
+        "confidence": "confidence INTEGER DEFAULT 50",
+        "stake_units": "stake_units REAL DEFAULT 1",
+        "status": "status TEXT DEFAULT 'PENDING'",
+        "source": "source TEXT",
+        "legal_note": "legal_note TEXT",
+        "reasoning": "reasoning TEXT",
+        "raw_json": "raw_json TEXT",
+        "created_at": "created_at TEXT",
+        "updated_at": "updated_at TEXT",
+    }
+    for name, ddl in pick_columns.items():
+        add_column_if_missing(cur, "picks", name, ddl)
+
+    # Estado de migración visible para diagnósticos.
+    cur.execute(
+        """INSERT OR REPLACE INTO automation_state(key,value_json,updated_at)
+           VALUES (?,?,?)""",
+        ("schema_version", json.dumps({"version": "v511", "migrated_at": now_iso()}), now_iso()),
+    )
+    conn.commit()
 
 def init_db():
     conn = db()
@@ -260,6 +370,13 @@ def init_db():
         )"""
     )
     cur.execute(
+        """CREATE TABLE IF NOT EXISTS schema_migrations(
+            version TEXT PRIMARY KEY,
+            applied_at TEXT,
+            notes TEXT
+        )"""
+    )
+    cur.execute(
         """CREATE TABLE IF NOT EXISTS auto_alerts(
             id TEXT PRIMARY KEY,
             alert_type TEXT,
@@ -269,6 +386,12 @@ def init_db():
             created_at TEXT,
             updated_at TEXT
         )"""
+    )
+    run_schema_migrations(conn)
+    cur.execute(
+        """INSERT OR REPLACE INTO schema_migrations(version,applied_at,notes)
+           VALUES (?,?,?)""",
+        ("v511", now_iso(), "Auto database migration safe startup: columnas V509/V510/V511 garantizadas"),
     )
     conn.commit()
     conn.close()
