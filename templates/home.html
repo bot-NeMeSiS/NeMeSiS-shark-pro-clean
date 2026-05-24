@@ -2,16 +2,9 @@
 {% block content %}
 <section class="app-hero">
   <div>
-    <div class="kicker">Premium football app</div>
+    <div class="kicker">{{ data.version }} - Premium Core</div>
     <h1>Tu centro inteligente de futbol global</h1>
-    <p class="lead">Partidos, directos, picks, combinadas, favoritos, SHARK IA y escudos persistentes en una experiencia pensada para cliente.</p>
-    <div class="actions">
-      {% if current_user %}
-      <a class="btn primary" href="/perfil">Mi perfil</a><a class="btn" href="/logout">Salir</a>
-      {% else %}
-      <a class="btn primary" href="/registro">Crear cuenta</a><a class="btn" href="/cliente-login">Entrar</a>
-      {% endif %}
-    </div>
+    <p class="lead">Live, partidos de hoy, picks, combis, favoritos, IA SHARK y escudos persistentes sobre una base limpia, legal y preparada para Render.</p>
     <div class="quick-actions">
       <a class="quick primary" href="/match-hub"><span>Match Hub</span><strong>{{ data.match_hub.counts.popular }}</strong></a>
       <a class="quick" href="/live"><span>Live</span><strong>{{ data.match_hub.counts.live }}</strong></a>
@@ -22,11 +15,12 @@
     </div>
   </div>
   <aside class="hero-panel">
-    <div class="panel-top"><span>Hoy</span><strong>{{ data.matches|length }}</strong></div>
-    <div class="small">Tu panel se actualiza con partidos, favoritos y picks cargados.</div>
+    <div class="panel-top"><span>Realtime</span><strong>{{ data.match_hub.sync.refresh_seconds }}s</strong></div>
+    <div class="small">Sync {{ data.match_hub.sync.sync_status }} - proximo {{ data.match_hub.sync.next_refresh_at[-8:] }}</div>
     <div class="signal"><span>Global</span><i style="width:{{ data.readiness.global_football }}%"></i></div>
     <div class="signal"><span>Live</span><i style="width:{{ data.readiness.live_foundation }}%"></i></div>
-    <div class="signal"><span>SHARK IA</span><i style="width:{{ data.readiness.shark_ai }}%"></i></div>
+    <div class="signal"><span>SHARK</span><i style="width:{{ data.readiness.shark_ai }}%"></i></div>
+    <div class="signal"><span>Realtime</span><i style="width:{{ data.readiness.real_time_engine }}%"></i></div>
   </aside>
 </section>
 <section class="band">
@@ -35,7 +29,7 @@
     <div class="card"><div class="metric">{{ data.match_hub.counts.live }}</div><div class="muted">partidos en directo</div></div>
     <div class="card"><div class="metric">{{ data.match_hub.counts.upcoming }}</div><div class="muted">proximos</div></div>
     <div class="card"><div class="metric">{{ data.favorite_feed|length }}</div><div class="muted">en tu feed</div></div>
-    <div class="card"><div class="metric">{{ data.picks|length }}</div><div class="muted">picks disponibles</div></div>
+    <div class="card"><div class="metric">{{ data.imports|length }}</div><div class="muted">importaciones trazadas</div></div>
   </div>
 </section>
 <section class="band two-col">
@@ -43,7 +37,7 @@
     <div class="section-head"><h2>Populares</h2><a class="pill" href="/match-hub">Abrir hub</a></div>
     <div class="stack">
       {% for m in data.match_hub.popular[:5] %}
-      <a class="list-row" href="/match-hub">
+      <a class="list-row" href="/api/matches/{{ m.id }}/detail">
         <span>{{ m.home_team }} vs {{ m.away_team }}</span>
         <strong>{{ m.live_depth.label }}</strong>
       </a>

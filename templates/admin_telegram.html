@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="hero compact">
+  <div class="kicker">Admin · Telegram Automatic Delivery Engine</div>
+  <h1>Centro de automatización Telegram</h1>
+  <p class="lead">Controla cola, scheduler, triggers, logs, pruebas y envíos automáticos sin duplicados.</p>
+  <div class="actions">
+    <a class="btn" href="/api/telegram/status">API estado</a>
+    <a class="btn" href="/api/telegram/queue">API cola</a>
+    <a class="btn" href="/api/telegram/logs">API logs</a>
+  </div>
+</section>
+
+{% if data.telegram_action_result %}
+<section class="band">
+  <div class="card success-card">
+    <h2>Resultado</h2>
+    <pre class="codeblock">{{ data.telegram_action_result }}</pre>
+  </div>
+</section>
+{% endif %}
+
+<section class="band">
+  <div class="grid">
+    <div class="card"><div class="metric">{% if data.telegram.configured %}OK{% else %}CFG{% endif %}</div><div class="muted">bot/chat</div></div>
+    <div class="card"><div class="metric">{% if data.telegram.enabled %}AUTO{% else %}OFF{% endif %}</div><div class="muted">scheduler</div></div>
+    <div class="card"><div class="metric">{{ data.telegram_queue|length }}</div><div class="muted">cola</div></div>
+    <div class="card"><div class="metric">{{ data.telegram_logs|length }}</div><div class="muted">logs</div></div>
+  </div>
+</section>
+
+<section class="band two-col">
+  <div class="card">
+    <h2>Acciones</h2>
+    <form method="post" class="stacked-form">
+      <button class="btn" name="action" value="enqueue">Preparar cola</button>
+      <button class="btn" name="action" value="process">Procesar cola ahora</button>
+      <button class="btn primary" name="action" value="tick">Forzar scheduler</button>
+    </form>
+    <form method="post" class="stacked-form mt">
+      <label>Mensaje de prueba</label>
+      <textarea name="text" rows="4">🦈 NeMeSiS SHARK PRO · prueba Telegram OK</textarea>
+      <button class="btn" name="action" value="send_test">Enviar prueba</button>
+    </form>
+  </div>
+  <div class="card">
+    <h2>Configuración Render</h2>
+    <p class="small">TELEGRAM_BOT_TOKEN: {% if data.telegram.token_present %}presente{% else %}pendiente{% endif %}</p>
+    <p class="small">TELEGRAM_CHAT_ID: {% if data.telegram.chat_id_present %}presente{% else %}pendiente{% endif %}</p>
+    <p class="small">ENABLE_TELEGRAM_AUTO: {% if data.telegram.enabled %}activo{% else %}desactivado{% endif %}</p>
+    <p class="small">TELEGRAM_AUTO_MINUTES: {{ data.telegram.auto_minutes }}</p>
+    <p class="small">Último dispatch: {{ data.telegram_last_dispatch.time or 'sin ejecutar' }}</p>
+  </div>
+</section>
+
+<section class="band two-col">
+  <div class="card">
+    <h2>Triggers</h2>
+    {% for t in data.telegram_triggers %}
+      <div class="list-row"><strong>{{ t.label }}</strong><span class="pill">{{ t.priority }}</span></div>
+    {% else %}
+      <p class="muted">No hay triggers preparados.</p>
+    {% endfor %}
+  </div>
+  <div class="card">
+    <h2>Cola</h2>
+    {% for q in data.telegram_queue[:12] %}
+      <div class="list-row"><strong>{{ q.alert_type }}</strong><span class="pill">{{ q.status }} · {{ q.attempts }}</span></div>
+    {% else %}
+      <p class="muted">Cola vacía.</p>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="band">
+  <div class="card">
+    <h2>Últimos logs</h2>
+    {% for log in data.telegram_logs[:12] %}
+      <div class="list-row"><strong>{{ log.message_type }}</strong><span class="pill">{{ log.status }}</span></div>
+      <p class="small muted">{{ log.created_at }} · {{ log.payload_preview[:140] }}</p>
+    {% else %}
+      <p class="muted">Todavía no hay envíos registrados.</p>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

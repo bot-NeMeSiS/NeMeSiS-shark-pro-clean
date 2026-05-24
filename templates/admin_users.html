@@ -1,47 +1,37 @@
 {% extends "base.html" %}
 {% block content %}
 <section class="hero compact">
-  <div class="kicker">Panel admin</div>
-  <h1>Usuarios y membresias</h1>
-  <p class="lead">Gestiona clientes registrados, rol y membresia desde una zona separada de la experiencia cliente.</p>
-  <div class="admin-menu">
-    <a class="btn primary" href="/admin/users">Usuarios</a>
-    <a class="btn" href="/admin/user-import">Importar usuarios</a>
-    <a class="btn" href="/admin-bootstrap">Bootstrap admin</a>
-    <a class="btn" href="/admin/import-center">Import Center</a>
-    <a class="btn" href="/admin/sportsdb-sync">SportsDB Sync</a>
-    <a class="btn" href="/api/diagnostics">Diagnosticos</a>
-    <a class="btn" href="/telegram">Telegram</a>
-    <a class="btn" href="/api/health">Sistema</a>
-  </div>
+  <div class="kicker">Admin premium</div>
+  <h1>Usuarios y membresías</h1>
+  <p class="lead">Gestiona cuentas reales de clientes: FREE, PRO, ELITE y ADMIN. Panel protegido solo para administradores.</p>
+  <div class="actions"><a class="btn" href="/admin/import-center">Import Center</a><a class="btn" href="/admin/user-import">Importar usuarios</a><a class="btn" href="/admin-bootstrap">Bootstrap admin</a><a class="btn" href="/api/thesportsdb/diagnostics">Diagnóstico TheSportsDB</a></div>
 </section>
+{% if message %}<section class="band"><div class="card ok">{{ message }}</div></section>{% endif %}
 <section class="band">
-  {% if message %}<p class="notice">{{ message }}</p>{% endif %}
-  <div class="section-head"><h2>{{ data.users|length }} usuarios</h2><span class="pill">ADMIN</span></div>
+  <div class="section-head"><h2>Usuarios registrados</h2><span class="pill">{{ data.users|length }}</span></div>
   <div class="stack">
-    {% for user in data.users %}
-    <article class="card user-row">
-      <div>
-        <div class="name">{{ user.name }} <span class="pill">@{{ user.username }}</span></div>
-        <p class="small">ID: {{ user.id }}</p>
-        <p class="small">{{ user.email }}</p>
-        <p class="small">Rol: {{ user.role }} - Membresia: {{ user.membership }}</p>
-        <p class="small">Alta: {{ user.created_at or '-' }} - Ultimo login: {{ user.last_login or '-' }}</p>
+  {% for u in data.users %}
+    <article class="card admin-user-card">
+      <div class="section-head">
+        <div><div class="name">{{ u.name or 'Cliente SHARK' }}</div><div class="small">@{{ u.username or 'sin_usuario' }} · {{ u.email }}</div></div>
+        <span class="pill">{{ u.membership or u.role }}</span>
       </div>
-      <form method="post" action="/admin/users" class="inline-form">
-        <input type="hidden" name="user_id" value="{{ user.id }}">
-        <label>Membresia / rol</label>
+      <div class="grid mini">
+        <div><strong>Rol</strong><br><span class="muted">{{ u.role }}</span></div>
+        <div><strong>Alta</strong><br><span class="muted">{{ u.created_at or '-' }}</span></div>
+        <div><strong>Último login</strong><br><span class="muted">{{ u.last_login or '-' }}</span></div>
+      </div>
+      <form class="inline-form" method="post" action="/admin/users">
+        <input type="hidden" name="user_id" value="{{ u.id }}">
         <select name="membership">
-          {% for role in ['FREE','PRO','ELITE','ADMIN'] %}
-          <option value="{{ role }}" {% if user.membership == role or user.role == role %}selected{% endif %}>{{ role }}</option>
-          {% endfor %}
+          {% for m in ['FREE','PRO','ELITE','ADMIN'] %}<option value="{{ m }}" {% if (u.membership or u.role)==m %}selected{% endif %}>{{ m }}</option>{% endfor %}
         </select>
-        <button type="submit">Guardar</button>
+        <button type="submit">Actualizar membresía</button>
       </form>
     </article>
-    {% else %}
-    <div class="empty">Aun no hay usuarios registrados.</div>
-    {% endfor %}
+  {% else %}
+    <div class="empty">Todavía no hay usuarios registrados.</div>
+  {% endfor %}
   </div>
 </section>
 {% endblock %}

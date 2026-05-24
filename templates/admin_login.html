@@ -9,7 +9,7 @@
   <form class="card auth-card" method="post" action="/admin-login{% if request.args.get('next') %}?next={{ request.args.get('next') }}{% endif %}">
     <h2>Admin login</h2>
     {% if error %}<p class="notice danger">{{ error }}</p>{% endif %}
-    {% if not configured %}<p class="notice">Configura ADMIN_EMAIL y ADMIN_PASSWORD en Render, o entra con un usuario ADMIN existente.</p>{% endif %}
+    {% if not configured %}<p class="notice">Configura ADMIN_EMAIL, ADMIN_USERNAME y ADMIN_PASSWORD en Render, o usa /admin-bootstrap si aún no existe ningún admin.</p>{% endif %}
     <div class="field"><label>Email o usuario admin</label><input name="login" autocomplete="username" required></div>
     <div class="field"><label>Contrasena</label><input type="password" name="password" autocomplete="current-password" required></div>
     <button type="submit">Entrar como admin</button>

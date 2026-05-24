@@ -1,32 +1,30 @@
 {% extends "base.html" %}
 {% block content %}
 <section class="hero compact">
-  <div class="kicker">Bootstrap seguro</div>
-  <h1>Crear primer admin</h1>
-  <p class="lead">Esta ruta solo funciona mientras no exista ningun usuario ADMIN.</p>
+  <div class="kicker">Recuperación segura</div>
+  <h1>Admin bootstrap</h1>
+  <p class="lead">Crea el primer administrador solo cuando la base de datos no tiene ningún ADMIN.</p>
+  <div class="actions"><a class="btn" href="/admin-login">Admin login</a><a class="btn" href="/api/admin/bootstrap-status">Estado bootstrap</a></div>
 </section>
-{% if blocked %}
-<section class="band">
-  <div class="notice">Ya existe un administrador. Bootstrap queda bloqueado.</div>
-  <div class="actions"><a class="btn primary" href="/admin-login">Entrar como admin</a></div>
-</section>
-{% else %}
 <section class="band auth-grid">
-  <form class="card auth-card" method="post" action="/admin-bootstrap">
-    <h2>Admin inicial</h2>
+  <div class="card auth-card">
+    {% if message %}<p class="notice ok">{{ message }}</p>{% endif %}
     {% if error %}<p class="notice danger">{{ error }}</p>{% endif %}
-    {% if result %}<p class="notice">Admin creado: {{ result.email }} / @{{ result.username }}</p>{% endif %}
-    <div class="field"><label>Nombre</label><input name="name" autocomplete="name"></div>
-    <div class="field"><label>Usuario admin</label><input name="username" autocomplete="username"></div>
-    <div class="field"><label>Email admin</label><input type="email" name="email" autocomplete="email"></div>
-    <div class="field"><label>Contrasena</label><input type="password" name="password" autocomplete="new-password"></div>
-    <button type="submit">Crear admin</button>
-    <p class="small">Tambien puede usar ADMIN_EMAIL, ADMIN_USERNAME, ADMIN_PASSWORD y ADMIN_NAME desde Render.</p>
-  </form>
+    {% if locked %}
+      <h2>Ruta bloqueada</h2>
+      <p class="small">Ya existe un administrador. Por seguridad no se puede crear otro desde esta ruta.</p>
+    {% else %}
+      <h2>Crear admin inicial</h2>
+      <p class="small">Usará las variables de Render ADMIN_EMAIL, ADMIN_USERNAME, ADMIN_PASSWORD y ADMIN_NAME.</p>
+      <form method="post" action="/admin-bootstrap">
+        <button type="submit">Crear admin inicial</button>
+      </form>
+    {% endif %}
+  </div>
   <aside class="card auth-side">
-    <h2>Seguridad</h2>
-    <p class="small">La contrasena se guarda con hash. Cuando exista un admin, esta ruta queda bloqueada.</p>
+    <h2>Variables necesarias</h2>
+    <p class="small">ADMIN_EMAIL, ADMIN_USERNAME, ADMIN_PASSWORD, ADMIN_NAME.</p>
+    <p class="small">Nunca se muestra la contraseña ni se guardan claves en texto plano.</p>
   </aside>
 </section>
-{% endif %}
 {% endblock %}

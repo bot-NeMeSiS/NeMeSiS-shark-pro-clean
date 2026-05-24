@@ -3,16 +3,16 @@
 <section class="hero compact">
   <div class="kicker">Favoritos reales</div>
   <h1>Tu feed personalizado</h1>
-  <p class="lead">Guarda equipos, ligas o partidos para crear tu feed personal y tenerlos siempre a mano.</p>
+  <p class="lead">Guarda equipos, ligas o partidos. El feed se construye sobre SQLite y se cruza con calendario/live sin duplicar sistemas.</p>
 </section>
 <section class="band form-grid">
-  <form class="card" method="post" action="/favorites">
+  <form class="card" method="post" action="/favorites/add">
     <h2>Guardar favorito</h2>
     <div class="field"><label>Tipo</label><input name="kind" value="team" placeholder="team, league o match"></div>
     <div class="field"><label>Valor</label><input name="value" placeholder="Real Madrid, laliga o id de partido"></div>
     <div class="field"><label>Etiqueta</label><input name="label" placeholder="Nombre visible"></div>
     <button type="submit">Guardar favorito</button>
-    <p class="small">Queda guardado en tu cuenta y se usa para personalizar el feed.</p>
+    <p class="small">Los favoritos se guardan en tu usuario, no de forma global.</p>
   </form>
   <aside class="card">
     <h2>Guardados</h2>
@@ -26,7 +26,7 @@
   </aside>
 </section>
 <section class="band">
-  <div class="section-head"><h2>Feed personalizado</h2><span class="pill">{{ data.favorite_feed|length }}</span></div>
+  <div class="section-head"><h2>Feed personalizado</h2><a class="pill" href="/api/favorites/feed">API feed</a></div>
   {% if data.favorite_feed %}
   <div class="grid">
     {% for m in data.favorite_feed %}
@@ -45,7 +45,7 @@
   <div class="section-head"><h2>Prioridad inteligente</h2><span class="pill">{{ data.favorite_bundle.priority|length }}</span></div>
   <div class="stack">
     {% for m in data.favorite_bundle.priority %}
-    <a class="list-row" href="/match-hub"><span>{{ m.home_team }} vs {{ m.away_team }}</span><strong>{{ m.live_depth.label }}</strong></a>
+    <a class="list-row" href="/api/matches/{{ m.id }}/detail"><span>{{ m.home_team }} vs {{ m.away_team }}</span><strong>{{ m.live_depth.label }}</strong></a>
     {% else %}
     <div class="empty">Cuando guardes favoritos, aqui apareceran ordenados por live, importancia y picks.</div>
     {% endfor %}

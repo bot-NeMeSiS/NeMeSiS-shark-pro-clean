@@ -5,22 +5,13 @@
   <h1>Picks con trazabilidad</h1>
   <p class="lead">Centro para picks propios o importados legalmente. La app no inventa cuotas ni pronosticos: guarda fuente, nota legal, confianza y razonamiento.</p>
   <div class="actions">
-    {% if current_user and current_user.role == 'ADMIN' %}
     <a class="btn primary" href="/admin/import-center">Importar picks</a>
-    {% else %}
-    <a class="btn primary" href="/registro">Activar perfil</a>
-    {% endif %}
-    {% if current_user and current_user.role == 'ADMIN' %}<a class="btn" href="/api/picks">API picks</a>{% endif %}
+    <a class="btn" href="/api/picks">API picks</a>
     <a class="btn" href="/combis">Crear combi</a>
   </div>
 </section>
-{% if current_user and current_user.role == 'FREE' %}
-<section class="band"><div class="notice">Plan FREE activo: ves picks disponibles. PRO desbloquea mas profundidad, combis y analisis de riesgo mejorado.</div></section>
-{% elif current_user and current_user.role in ['PRO','ELITE','ADMIN'] %}
-<section class="band"><div class="notice">Acceso {{ current_user.role }} activo: picks, combis y contexto SHARK preparados para fuentes autorizadas.</div></section>
-{% endif %}
 <section class="band">
-  <div class="section-head"><h2>{{ data.picks|length }} picks visibles</h2><span class="pill">Picks</span></div>
+  <div class="section-head"><h2>{{ data.picks|length }} picks visibles</h2><span class="pill">SQLite persistente</span></div>
   {% if data.picks %}
   <div class="grid">
     {% for p in data.picks %}
@@ -34,7 +25,7 @@
     {% endfor %}
   </div>
   {% else %}
-  <div class="empty">Aun no hay picks cargados. Cuando el equipo añada picks autorizados, apareceran aqui.</div>
+  <div class="empty">Aun no hay picks reales cargados. Importalos desde el centro admin con CSV/JSON autorizado.</div>
   {% endif %}
 </section>
 {% endblock %}
