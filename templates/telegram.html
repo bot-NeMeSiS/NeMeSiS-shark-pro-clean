@@ -2,16 +2,15 @@
 {% block content %}
 <section class="hero compact">
   <div class="kicker">Telegram Auto Engine</div>
-  <h1>Automatizacion preparada y controlada</h1>
-  <p class="lead">Cola, scheduler, triggers, logs y anti duplicados listos para envios reales cuando las variables de entorno esten configuradas.</p>
+  <h1>Alertas Telegram</h1>
+  <p class="lead">Recibe avisos premium cuando Telegram este activado para tu cuenta.</p>
   <div class="actions">
-    <a class="btn primary" href="/api/telegram/status">Estado</a>
-    <a class="btn" href="/api/telegram/queue">Queue</a>
-    <a class="btn" href="/api/telegram/auto-posts">Auto posts</a>
+    <a class="btn primary" href="/perfil">Mi perfil</a>
+    {% if current_user and current_user.role == 'ADMIN' %}<a class="btn" href="/api/telegram/status">Estado admin</a>{% endif %}
   </div>
 </section>
 {% if not current_user or current_user.role not in ['ELITE','ADMIN'] %}
-<section class="band"><div class="notice">Telegram premium queda preparado. ELITE activa alertas avanzadas; la configuracion real depende de variables de entorno.</div></section>
+<section class="band"><div class="notice">Telegram premium queda preparado. ELITE activa alertas avanzadas cuando el servicio este disponible.</div></section>
 {% endif %}
 <section class="band">
   <div class="grid">
@@ -21,6 +20,7 @@
     <div class="card"><div class="metric">{{ data.picks|length }}</div><div class="muted">picks disponibles</div></div>
   </div>
 </section>
+{% if current_user and current_user.role == 'ADMIN' %}
 <section class="band two-col">
   <div class="card">
     <h2>Variables</h2>
@@ -34,4 +34,5 @@
     <p class="small">No envia marcadores, cuotas o eventos inventados.</p>
   </div>
 </section>
+{% endif %}
 {% endblock %}

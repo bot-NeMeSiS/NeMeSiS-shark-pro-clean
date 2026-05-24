@@ -12,7 +12,7 @@
     {% else %}
     <a class="btn primary" href="/membresias">Ver PRO</a>
     {% endif %}
-    <a class="btn" href="/api/combis">API combis</a>
+    {% if current_user and current_user.role == 'ADMIN' %}<a class="btn" href="/api/combis">API combis</a>{% endif %}
     <a class="btn" href="/picks">Ver picks</a>
   </div>
 </section>
@@ -20,7 +20,7 @@
 <section class="band"><div class="notice">Combis es una capa PRO. Se muestra sin bloquear la navegacion, pero necesita picks reales/autorizados para construir combinadas.</div></section>
 {% endif %}
 <section class="band">
-  <div class="section-head"><h2>{{ data.combis|length }} combis guardadas</h2><span class="pill">Draft seguro</span></div>
+  <div class="section-head"><h2>{{ data.combis|length }} combinadas guardadas</h2><span class="pill">Combinadas</span></div>
   {% if data.combis %}
   <div class="grid">
     {% for c in data.combis %}
@@ -34,7 +34,7 @@
     {% endfor %}
   </div>
   {% else %}
-  <div class="empty">No hay combis todavia. Primero carga picks autorizados y luego genera una combi.</div>
+  <div class="empty">No hay combinadas todavia. Cuando haya picks disponibles podras verlas aqui.</div>
   {% endif %}
 </section>
 {% endblock %}

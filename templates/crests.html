@@ -5,10 +5,10 @@
   <h1>Identidad visual sin tarjetas vacias</h1>
   <p class="lead">Cache SQLite, aliases, TheSportsDB si hay clave y fallback SVG propio. Todo sin scraping ilegal.</p>
   <div class="actions">
-    <a class="btn primary" href="/api/crest-diagnostics">Diagnostico</a>
-    <a class="btn" href="/api/thesportsdb/diagnostics">TheSportsDB</a>
     <a class="btn" href="/api/teams">Equipos</a>
     {% if current_user and current_user.role == 'ADMIN' %}
+    <a class="btn primary" href="/admin/sportsdb-sync">SportsDB Sync</a>
+    <a class="btn" href="/api/crest-diagnostics">Diagnostico</a>
     <a class="btn" href="/admin/import-center">Importar escudos</a>
     {% endif %}
   </div>

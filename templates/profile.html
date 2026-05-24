@@ -1,44 +1,93 @@
 {% extends "base.html" %}
 {% block content %}
-<section class="hero">
-  <div class="kicker">Mi perfil</div>
-  <h1>{{ data.session_user.name }}</h1>
-  <p class="lead">{{ data.session_user.email }} · Cuenta conectada a favoritos, live, picks, combis, SHARK AI y alertas segun tu membresia.</p>
-  <div class="actions"><a class="btn primary" href="/favorites">Gestionar favoritos</a><a class="btn" href="/membresias">Ver membresias</a><a class="btn" href="/logout">Salir</a></div>
+{% set plan = data.session_user.membership|lower %}
+<section class="client-hero plan-{{ plan }}">
+  <div>
+    <div class="kicker">Hola, {{ data.session_user.name }}</div>
+    <h1>Tu panel SHARK</h1>
+    <p class="lead">@{{ data.session_user.username }} - {{ data.session_user.email }}</p>
+    <div class="actions">
+      <a class="btn primary" href="/match-hub">Ver partidos</a>
+      <a class="btn" href="/favorites">Favoritos</a>
+      <a class="btn" href="/logout">Cerrar sesion</a>
+    </div>
+  </div>
+  <aside class="membership-card plan-{{ plan }}">
+    <span>MEMBRESIA</span>
+    <strong>{{ data.session_user.membership }}</strong>
+    {% if data.session_user.membership == 'FREE' %}
+    <p>Acceso base activo. PRO desbloquea mas picks y combinadas.</p>
+    {% elif data.session_user.membership == 'PRO' %}
+    <p>Picks ampliados, combinadas y mejor contexto de partido.</p>
+    {% else %}
+    <p>SHARK IA premium, Telegram avanzado y experiencia completa.</p>
+    {% endif %}
+  </aside>
 </section>
+
 <section class="band">
-  <div class="grid">
-    <div class="card"><div class="metric">{{ data.session_user.membership }}</div><div class="muted">membresia</div></div>
-    <div class="card"><div class="metric">{{ data.session_user.role }}</div><div class="muted">rol</div></div>
-    <div class="card"><div class="metric">{{ data.favorites|length }}</div><div class="muted">favoritos guardados</div></div>
-    <div class="card"><div class="metric">{% if data.telegram.configured %}ON{% else %}CFG{% endif %}</div><div class="muted">Telegram</div></div>
+  <div class="quick-actions client-actions">
+    <a class="quick primary" href="/match-hub"><span>Partidos</span><strong>{{ data.matches|length }}</strong></a>
+    <a class="quick" href="/live"><span>Live</span><strong>{{ data.match_hub.counts.live }}</strong></a>
+    <a class="quick" href="/picks"><span>Picks</span><strong>{{ data.picks|length }}</strong></a>
+    <a class="quick" href="/combis"><span>Combinadas</span><strong>{{ data.combis|length }}</strong></a>
+    <a class="quick" href="/favorites"><span>Favoritos</span><strong>{{ data.favorites|length }}</strong></a>
+    <a class="quick" href="/telegram"><span>Telegram</span><strong>{% if data.telegram.configured %}ON{% else %}CFG{% endif %}</strong></a>
+    <a class="quick" href="/shark"><span>SHARK IA</span><strong>{% if data.session_user.membership in ['ELITE','ADMIN'] %}PRO{% else %}BASE{% endif %}</strong></a>
   </div>
 </section>
+
 <section class="band">
-  <div class="section-head"><h2>Accesos premium</h2><span class="pill">{{ data.session_user.email }}</span></div>
-  <div class="grid">
-    <a class="card" href="/favorites"><div class="name">Favoritos</div><p class="small">Equipos, ligas y partidos guardados.</p></a>
-    <a class="card" href="/picks"><div class="name">Picks</div><p class="small">{% if data.session_user.role in ['PRO','ELITE','ADMIN'] %}Acceso premium activo.{% else %}Vista Free disponible; PRO desbloquea mas profundidad.{% endif %}</p></a>
-    <a class="card" href="/combis"><div class="name">Combis</div><p class="small">{% if data.session_user.role in ['PRO','ELITE','ADMIN'] %}Constructor preparado para picks importados.{% else %}Disponible al subir a PRO.{% endif %}</p></a>
-    <a class="card" href="/shark"><div class="name">IA SHARK</div><p class="small">{% if data.session_user.role in ['ELITE','ADMIN'] %}Contexto deportivo avanzado activo.{% else %}Briefing base disponible; ELITE activa contexto avanzado.{% endif %}</p></a>
+  <div class="section-head"><h2>Resumen de hoy</h2><span class="pill">{{ data.date }}</span></div>
+  <div class="grid compact-grid">
+    <div class="card"><div class="metric">{{ data.match_hub.counts.upcoming }}</div><div class="muted">partidos programados</div></div>
+    <div class="card"><div class="metric">{{ data.match_hub.counts.live }}</div><div class="muted">en directo</div></div>
+    <div class="card"><div class="metric">{{ data.favorite_feed|length }}</div><div class="muted">en tu feed</div></div>
+    <div class="card"><div class="metric">{{ data.sportsdb.with_logo }}</div><div class="muted">escudos cacheados</div></div>
   </div>
 </section>
+
 <section class="band two-col">
   <div>
-    <div class="section-head"><h2>Favoritos</h2><span class="pill">{{ data.favorites|length }}</span></div>
+    <div class="section-head"><h2>Favoritos</h2><a class="pill" href="/favorites">Gestionar</a></div>
     <div class="stack">
-      {% for f in data.favorites[:6] %}
+      {% for f in data.favorites[:5] %}
       <div class="list-row"><span>{{ f.label }}</span><strong>{{ f.kind }}</strong></div>
       {% else %}
-      <div class="empty">Guarda equipos, ligas o partidos para personalizar tu feed.</div>
+      <div class="empty">Guarda tus equipos, ligas o partidos para crear un feed personal.</div>
       {% endfor %}
     </div>
   </div>
   <div>
-    <div class="section-head"><h2>Live y picks</h2><span class="pill">{{ data.match_hub.counts.live }} live</span></div>
-    <div class="grid">
-      <a class="card" href="/live"><div class="metric">{{ data.match_hub.counts.live }}</div><div class="muted">partidos en directo</div></a>
-      <a class="card" href="/picks"><div class="metric">{{ data.picks|length }}</div><div class="muted">picks destacados</div></a>
+    <div class="section-head"><h2>Picks destacados</h2><a class="pill" href="/picks">Ver picks</a></div>
+    <div class="stack">
+      {% for p in data.picks[:4] %}
+      <div class="list-row"><span>{{ p.selection }}</span><strong>{{ p.confidence }}%</strong></div>
+      {% else %}
+      <div class="empty">Cuando haya picks cargados desde una fuente autorizada apareceran aqui.</div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<section class="band two-col">
+  <div>
+    <div class="section-head"><h2>Partidos de hoy</h2><a class="pill" href="/match-hub">Abrir</a></div>
+    <div class="stack">
+      {% for m in data.matches[:5] %}
+      <div class="list-row"><span>{{ m.home_team }} vs {{ m.away_team }}</span><strong>{{ m.kickoff_time or m.minute or m.status }}</strong></div>
+      {% else %}
+      <div class="empty">No hay partidos cargados para hoy. Al importar datos autorizados se mostraran en tu panel.</div>
+      {% endfor %}
+    </div>
+  </div>
+  <div>
+    <div class="section-head"><h2>Servicios premium</h2><span class="pill">{{ data.session_user.membership }}</span></div>
+    <div class="grid compact-grid">
+      <a class="card service-card" href="/telegram"><div class="name">Telegram</div><p class="small">{% if data.telegram.configured %}Listo para alertas.{% else %}Pendiente de activar.{% endif %}</p></a>
+      <a class="card service-card" href="/shark"><div class="name">SHARK IA</div><p class="small">{% if data.session_user.membership in ['ELITE','ADMIN'] %}Premium activo.{% else %}Briefing base activo.{% endif %}</p></a>
+      <a class="card service-card" href="/escudos"><div class="name">SportsDB</div><p class="small">{{ data.sportsdb.with_logo }} escudos guardados.</p></a>
+      <a class="card service-card" href="/combis"><div class="name">Combinadas</div><p class="small">{% if data.session_user.membership in ['PRO','ELITE','ADMIN'] %}Acceso ampliado.{% else %}Disponible en PRO.{% endif %}</p></a>
     </div>
   </div>
 </section>

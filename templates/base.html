@@ -11,18 +11,23 @@
     <div class="topin">
       <a class="brand" href="/"><span class="mark">NS</span><span>NeMeSiS SHARK PRO</span></a>
       <nav class="nav">
-        <a href="/global">Global</a>
-        <a href="/match-hub">Match Hub</a>
-        <a href="/live">Live</a>
-        <a href="/picks">Picks</a>
-        <a href="/combis">Combis</a>
-        <a href="/shark-ai">SHARK</a>
-        <a href="/favoritos">Favoritos</a>
-        <a href="/telegram">Telegram</a>
-        <a href="/escudos">Escudos</a>
-        {% if current_user %}
+        {% if current_user and current_user.role == 'ADMIN' %}
+          <a href="/">Inicio</a>
+          <a href="/admin/users">Panel admin</a>
+          <a href="/admin/users">Usuarios</a>
+          <a href="/admin/import-center">Import Center</a>
+          <a href="/admin/sportsdb-sync">SportsDB Sync</a>
+          <a href="/api/diagnostics">Diagnosticos</a>
+          <a href="/telegram">Telegram</a>
+          <a href="/api/health">Sistema</a>
+          <a href="/logout">Salir</a>
+        {% elif current_user %}
+          <a href="/">Inicio</a>
+          <a href="/match-hub">Partidos</a>
+          <a href="/live">Live</a>
+          <a href="/picks">Picks</a>
+          <a href="/favoritos">Favoritos</a>
           <a href="/perfil">Mi perfil</a>
-          {% if current_user.role == 'ADMIN' %}<a href="/admin/users">Admin</a>{% endif %}
           <a href="/logout">Salir</a>
         {% else %}
           <a href="/cliente-login">Entrar</a>
@@ -35,11 +40,19 @@
     {% block content %}{% endblock %}
   </main>
   <nav class="bottom-nav" aria-label="Navegacion rapida">
-    <a href="/match-hub">Hub</a>
-    <a href="/live">Live</a>
-    <a href="/picks">Picks</a>
-    <a href="/favoritos">Fav</a>
-    {% if current_user %}<a href="/perfil">Perfil</a>{% else %}<a href="/cliente-login">Entrar</a>{% endif %}
+    {% if current_user and current_user.role == 'ADMIN' %}
+      <a href="/">Inicio</a>
+      <a href="/admin/users">Users</a>
+      <a href="/admin/import-center">Import</a>
+      <a href="/admin/sportsdb-sync">Sync</a>
+      <a href="/logout">Salir</a>
+    {% else %}
+      <a href="/match-hub">Hub</a>
+      <a href="/live">Live</a>
+      <a href="/picks">Picks</a>
+      <a href="/favoritos">Fav</a>
+      {% if current_user %}<a href="/perfil">Perfil</a>{% else %}<a href="/cliente-login">Entrar</a>{% endif %}
+    {% endif %}
   </nav>
 </body>
 </html>

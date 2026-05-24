@@ -24,8 +24,8 @@ from engines.shark_engine import build_shark_context, explain_pick_risk
 from engines.telegram_engine import build_alert_queue, dispatch_signature, should_skip_duplicate
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V514_FINAL_CLIENT_EXPERIENCE_SPORTSDB_ACTIVATION"
-SEED_VERSION = "v514-client-experience-seed"
+APP_VERSION = "V516_CLIENT_DASHBOARD_FINAL_PRO"
+SEED_VERSION = "v516-client-dashboard-seed"
 DB_PATH = os.getenv("DB_PATH", os.path.join(os.path.dirname(__file__), "database.db"))
 TZ = ZoneInfo("Europe/Madrid")
 
@@ -78,6 +78,7 @@ def add_column_if_missing(conn, table, column, definition):
 def run_schema_migrations(conn):
     migrations = [
         ("teams", "external_id", "TEXT"),
+        ("teams", "league", "TEXT"),
         ("teams", "color_hint", "TEXT"),
         ("teams", "source", "TEXT"),
         ("teams", "legal_note", "TEXT"),
@@ -111,6 +112,7 @@ def run_schema_migrations(conn):
         ("auto_alerts", "status", "TEXT DEFAULT 'READY'"),
         ("auto_alerts", "updated_at", "TEXT"),
         ("users", "name", "TEXT"),
+        ("users", "username", "TEXT"),
         ("users", "email", "TEXT"),
         ("users", "password_hash", "TEXT"),
         ("users", "role", "TEXT DEFAULT 'FREE'"),
@@ -135,7 +137,9 @@ def run_schema_migrations(conn):
         (APP_VERSION, now_iso()),
     )
     try:
+        migrate_missing_usernames(conn)
         conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email_unique ON users(email)")
+        conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username_unique ON users(username) WHERE username IS NOT NULL AND username!=''")
     except sqlite3.OperationalError:
         pass
     try:
@@ -166,6 +170,7 @@ def init_db():
             name TEXT NOT NULL,
             country TEXT,
             region TEXT,
+            league TEXT,
             logo_url TEXT,
             external_id TEXT,
             color_hint TEXT,
@@ -274,6 +279,7 @@ def init_db():
         """CREATE TABLE IF NOT EXISTS users(
             id TEXT PRIMARY KEY,
             name TEXT,
+            username TEXT UNIQUE,
             email TEXT UNIQUE NOT NULL,
             password_hash TEXT NOT NULL,
             role TEXT DEFAULT 'FREE',
@@ -408,6 +414,20 @@ TEAM_SEEDS = [
     ("granada", "Granada CF", "Spain", "Andalucia", "", ""),
     ("cordoba", "Cordoba CF", "Spain", "Andalucia", "", ""),
     ("recreativo-huelva", "Recreativo de Huelva", "Spain", "Andalucia", "", ""),
+    ("arsenal", "Arsenal", "England", "Europe", "", "133604"),
+    ("manchester-city", "Manchester City", "England", "Europe", "", "133613"),
+    ("liverpool", "Liverpool", "England", "Europe", "", "133602"),
+    ("chelsea", "Chelsea", "England", "Europe", "", "133610"),
+    ("manchester-united", "Manchester United", "England", "Europe", "", "133612"),
+    ("psg", "Paris Saint-Germain", "France", "Europe", "", "133714"),
+    ("bayern-munich", "Bayern Munich", "Germany", "Europe", "", "133664"),
+    ("borussia-dortmund", "Borussia Dortmund", "Germany", "Europe", "", "133650"),
+    ("juventus", "Juventus", "Italy", "Europe", "", "133676"),
+    ("inter", "Inter Milan", "Italy", "Europe", "", "133668"),
+    ("ac-milan", "AC Milan", "Italy", "Europe", "", "133667"),
+    ("benfica", "Benfica", "Portugal", "Europe", "", "133713"),
+    ("porto", "FC Porto", "Portugal", "Europe", "", "133721"),
+    ("sporting-cp", "Sporting CP", "Portugal", "Europe", "", "134513"),
 ]
 
 TEAM_ALIASES = {
@@ -427,6 +447,16 @@ TEAM_ALIASES = {
     "granada-cf": "granada",
     "cordoba-cf": "cordoba",
     "recreativo": "recreativo-huelva",
+    "paris-saint-germain": "psg",
+    "paris-sg": "psg",
+    "fc-bayern": "bayern-munich",
+    "bayern": "bayern-munich",
+    "inter-milan": "inter",
+    "internazionale": "inter",
+    "milan": "ac-milan",
+    "sl-benfica": "benfica",
+    "fc-porto": "porto",
+    "sporting": "sporting-cp",
 }
 
 
@@ -448,13 +478,8 @@ def _seed_core_unlocked():
                VALUES (?,?,?,?,?,?,?,?,?,?)""",
             (key, name, country, region, logo_url, external_id, "premium-blue", "seed propio", "Sin scraping. Logo externo solo si hay licencia/API permitida.", now_iso()),
         )
-    seed_matches = [
-        ("ucl", 0, "21:00", "uefa-champions-league", "UEFA Champions League", "Europe", "Equipo Champions A", "Equipo Champions B", "PROGRAMADO"),
-        ("premier", 0, "18:30", "premier-league", "Premier League", "England", "Premier Home", "Premier Away", "PROGRAMADO"),
-        ("laliga", 0, "20:45", "laliga", "LaLiga EA Sports", "Spain", "Club LaLiga Local", "Club LaLiga Visitante", "PROGRAMADO"),
-        ("world", 0, "19:00", "fifa-world-cup", "FIFA World Cup", "Global", "Seleccion Local", "Seleccion Visitante", "ESTRUCTURA"),
-        ("andalucia", 0, "12:00", "andalucia-regional", "Andalucia Regional Football", "Spain", "Club Andaluz", "Rival Provincial", "PROGRAMADO"),
-    ]
+    cur.execute("DELETE FROM matches WHERE source='seed estructural'")
+    seed_matches = []
     for raw_id, day, time, comp_key, comp_name, country, home, away, status in seed_matches:
         match_id = "seed-" + raw_id + "-" + today_iso(day)
         cur.execute(
@@ -609,6 +634,7 @@ def fetch_thesportsdb_team(team_name):
             "external_id": first.get("idTeam") or "",
             "name": first.get("strTeam") or team_name,
             "country": first.get("strCountry") or "",
+            "league": first.get("strLeague") or "",
             "logo_url": logo,
             "source": "TheSportsDB API",
             "legal_note": "Escudo obtenido desde API permitida TheSportsDB; respetar condiciones de uso de la fuente.",
@@ -616,6 +642,108 @@ def fetch_thesportsdb_team(team_name):
     except Exception as exc:
         save_thesportsdb_error(exc)
         return None
+
+
+def fetch_thesportsdb_team_by_id(external_id):
+    api_key = thesportsdb_key()
+    external_id = str(external_id or "").strip()
+    if not api_key or not external_id:
+        return None
+    url = "https://www.thesportsdb.com/api/v1/json/%s/lookupteam.php?%s" % (
+        urllib.parse.quote(api_key),
+        urllib.parse.urlencode({"id": external_id}),
+    )
+    try:
+        with urllib.request.urlopen(url, timeout=8) as res:
+            payload = json.loads(res.read().decode("utf-8", errors="replace"))
+        teams = payload.get("teams") or []
+        if not teams:
+            return None
+        first = teams[0]
+        logo = first.get("strBadge") or first.get("strLogo") or ""
+        return {
+            "external_id": first.get("idTeam") or external_id,
+            "name": first.get("strTeam") or "",
+            "country": first.get("strCountry") or "",
+            "league": first.get("strLeague") or "",
+            "logo_url": logo,
+            "source": "TheSportsDB API",
+            "legal_note": "Escudo obtenido desde API permitida TheSportsDB; respetar condiciones de uso de la fuente.",
+        }
+    except Exception as exc:
+        save_thesportsdb_error(exc)
+        return None
+
+
+def crest_sync_status():
+    seed_core()
+    teams = rows("SELECT * FROM teams ORDER BY name")
+    with_logo = [t for t in teams if t.get("logo_url")]
+    without_logo = [t for t in teams if not t.get("logo_url")]
+    state = one("SELECT * FROM automation_state WHERE key='sportsdb_crest_sync'")
+    last_sync = {}
+    if state:
+        try:
+            last_sync = json.loads(state.get("value_json") or "{}")
+        except json.JSONDecodeError:
+            last_sync = {"raw": state.get("value_json")}
+    return {
+        "key_present": bool(thesportsdb_key()),
+        "key_masked": masked_key(thesportsdb_key()),
+        "live_enabled": str(os.getenv("ENABLE_LIVE_API", "")).strip().lower() in {"1", "true", "yes", "on"},
+        "total_teams": len(teams),
+        "with_logo": len(with_logo),
+        "fallback": len(without_logo),
+        "missing_examples": [t.get("name") for t in without_logo[:8]],
+        "last_sync": last_sync,
+        "last_error": get_thesportsdb_last_error(),
+    }
+
+
+def sync_sportsdb_crests(refresh=False, limit=40):
+    seed_core()
+    if not thesportsdb_key():
+        return {"ok": False, "sin_key": True, "processed": 0, "updated": 0, "failed": 0, "errors": ["Falta THESPORTSDB_API_KEY o THESPORTSDB_KEY."]}
+    teams = rows("SELECT * FROM teams ORDER BY name")
+    processed = 0
+    updated = 0
+    failed = 0
+    errors = []
+    for team in teams:
+        if processed >= int(limit):
+            break
+        if team.get("logo_url") and not refresh:
+            continue
+        processed += 1
+        identity = None
+        if team.get("external_id"):
+            identity = fetch_thesportsdb_team_by_id(team.get("external_id"))
+        if not identity:
+            identity = fetch_thesportsdb_team(team.get("name"))
+        if identity and identity.get("logo_url"):
+            cache_team_identity(team.get("name"), identity)
+            updated += 1
+        else:
+            failed += 1
+            errors.append(team.get("name"))
+    summary = {
+        "ok": True,
+        "sin_key": False,
+        "processed": processed,
+        "updated": updated,
+        "failed": failed,
+        "errors": errors[:12],
+        "time": now_iso(),
+    }
+    conn = db()
+    conn.execute(
+        """INSERT OR REPLACE INTO automation_state(key,value_json,updated_at)
+           VALUES (?,?,?)""",
+        ("sportsdb_crest_sync", json.dumps(summary, ensure_ascii=False), now_iso()),
+    )
+    conn.commit()
+    conn.close()
+    return summary
 
 
 def thesportsdb_diagnostics(team_name="Real Madrid"):
@@ -628,10 +756,16 @@ def thesportsdb_diagnostics(team_name="Real Madrid"):
         resolved = fetch_thesportsdb_team(team_name)
         can_resolve = bool(resolved)
         can_load_crest = bool((resolved or {}).get("logo_url"))
+    status = crest_sync_status()
     return {
         "key_present": bool(api_key),
         "key_masked": masked_key(api_key),
         "live_enabled": live_enabled,
+        "total_teams": status["total_teams"],
+        "teams_with_logo": status["with_logo"],
+        "teams_fallback": status["fallback"],
+        "last_sync": status["last_sync"],
+        "missing_examples": status["missing_examples"],
         "team_checked": team_name,
         "can_resolve_teams": can_resolve,
         "can_load_crests": can_load_crest,
@@ -652,13 +786,14 @@ def cache_team_identity(name, identity):
     cur = conn.cursor()
     cur.execute(
         """INSERT OR REPLACE INTO teams
-           (key,name,country,region,logo_url,external_id,color_hint,source,legal_note,updated_at)
-           VALUES (?,?,?,?,?,?,?,?,?,?)""",
+           (key,name,country,region,league,logo_url,external_id,color_hint,source,legal_note,updated_at)
+           VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
         (
             key,
             identity.get("name") or name,
             identity.get("country") or "",
             identity.get("region") or "",
+            identity.get("league") or "",
             identity.get("logo_url") or "",
             identity.get("external_id") or "",
             identity.get("color_hint") or "premium-blue",
@@ -679,8 +814,12 @@ def resolve_team(name, refresh=False):
         team["crest_url"] = team.get("logo_url")
         team["crest_mode"] = "logo"
         return team
-    if refresh or not team or not team.get("logo_url"):
-        found = fetch_thesportsdb_team((team or {}).get("name") or name)
+    if refresh:
+        found = None
+        if (team or {}).get("external_id"):
+            found = fetch_thesportsdb_team_by_id(team.get("external_id"))
+        if not found:
+            found = fetch_thesportsdb_team((team or {}).get("name") or name)
         if found and found.get("logo_url"):
             cache_team_identity(name, found)
             team = one("SELECT * FROM teams WHERE key=?", (key,))
@@ -782,13 +921,14 @@ def import_teams(team_rows, source_name="manual", legal_note="Carga autorizada")
         key = canonical_team_key(item.get("key") or name)
         cur.execute(
             """INSERT OR REPLACE INTO teams
-               (key,name,country,region,logo_url,external_id,color_hint,source,legal_note,updated_at)
-               VALUES (?,?,?,?,?,?,?,?,?,?)""",
+               (key,name,country,region,league,logo_url,external_id,color_hint,source,legal_note,updated_at)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
             (
                 key,
                 name,
                 item.get("country") or item.get("pais") or "",
                 item.get("region") or item.get("provincia") or "",
+                item.get("league") or item.get("liga") or "",
                 item.get("logo_url") or item.get("crest_url") or item.get("escudo") or "",
                 item.get("external_id") or item.get("idTeam") or "",
                 item.get("color_hint") or "premium-blue",
@@ -1217,6 +1357,48 @@ def normalize_email(email):
     return str(email or "").strip().lower()
 
 
+def normalize_username(username):
+    username = str(username or "").strip().lower()
+    username = re.sub(r"\s+", "", username)
+    username = re.sub(r"[^a-z0-9_-]", "", username)
+    return username
+
+
+def username_from_email(email):
+    base = normalize_username(str(email or "").split("@", 1)[0]) or "cliente"
+    return base[:32]
+
+
+def username_available(conn, username, exclude_user_id=None):
+    if not username:
+        return False
+    if exclude_user_id:
+        row = conn.execute("SELECT id FROM users WHERE username=? AND id!=?", (username, exclude_user_id)).fetchone()
+    else:
+        row = conn.execute("SELECT id FROM users WHERE username=?", (username,)).fetchone()
+    return row is None
+
+
+def unique_username(conn, preferred, user_id=None):
+    base = normalize_username(preferred)[:32] or "cliente"
+    candidate = base
+    suffix = 2
+    while not username_available(conn, candidate, exclude_user_id=user_id):
+        tail = f"-{suffix}"
+        candidate = (base[: 32 - len(tail)] + tail) if len(base) + len(tail) > 32 else base + tail
+        suffix += 1
+    return candidate
+
+
+def migrate_missing_usernames(conn):
+    if "username" not in table_columns(conn, "users"):
+        return
+    users = conn.execute("SELECT id,email,username FROM users WHERE username IS NULL OR username=''").fetchall()
+    for user in users:
+        username = unique_username(conn, username_from_email(user["email"]), user["id"])
+        conn.execute("UPDATE users SET username=? WHERE id=?", (username, user["id"]))
+
+
 def normalize_role(role):
     role = str(role or "FREE").strip().upper()
     return role if role in VALID_ROLES else "FREE"
@@ -1228,6 +1410,7 @@ def user_public(row):
     return {
         "id": row.get("id"),
         "name": row.get("name") or "Cliente SHARK",
+        "username": row.get("username") or username_from_email(row.get("email")),
         "email": row.get("email"),
         "role": normalize_role(row.get("role")),
         "membership": normalize_role(row.get("membership")),
@@ -1242,9 +1425,10 @@ def current_session_user():
     return {
         "id": session.get("user_id"),
         "name": session.get("user_name") or "Cliente SHARK",
+        "username": session.get("username") or session.get("user_name") or "",
         "email": session.get("user_email"),
         "role": normalize_role(session.get("user_role")),
-        "membership": normalize_role(session.get("user_membership") or session.get("user_role")),
+        "membership": normalize_role(session.get("membership") or session.get("user_membership") or session.get("user_role")),
     }
 
 
@@ -1264,6 +1448,20 @@ def get_user_by_email(email):
     return one("SELECT * FROM users WHERE email=?", (email,))
 
 
+def get_user_by_username(username):
+    username = normalize_username(username)
+    if not username:
+        return None
+    return one("SELECT * FROM users WHERE username=?", (username,))
+
+
+def get_user_by_login(identifier):
+    identifier = str(identifier or "").strip()
+    if "@" in identifier:
+        return get_user_by_email(identifier)
+    return get_user_by_username(identifier)
+
+
 def get_user_by_id(user_id):
     if not user_id:
         return None
@@ -1275,40 +1473,50 @@ def set_login_session(user):
     session.clear()
     session["user_id"] = public["id"]
     session["user_name"] = public["name"]
+    session["username"] = public["username"]
     session["user_email"] = public["email"]
     session["user_role"] = public["role"]
     session["user_membership"] = public["membership"]
+    session["membership"] = public["membership"]
     return public
 
 
-def create_user(name, email, password, role="FREE", membership="FREE"):
+def create_user(name, username, email, password, role="FREE", membership="FREE"):
     seed_core()
     name = str(name or "").strip()
+    username = normalize_username(username)
     email = normalize_email(email)
     password = str(password or "")
-    if not name or not email or not password:
-        raise ValueError("Completa nombre, email y contrasena.")
+    if not name or not username or not email or not password:
+        raise ValueError("Completa nombre, usuario, email y contrasena.")
+    if len(username) < 3:
+        raise ValueError("El nombre de usuario debe tener al menos 3 caracteres.")
     role = normalize_role(role)
     membership = normalize_role(membership)
     user_id = "usr_" + hashlib.sha256(f"{email}:{now_iso()}".encode("utf-8")).hexdigest()[:18]
     conn = db()
     cur = conn.cursor()
     try:
+        if not username_available(conn, username):
+            raise ValueError("Ese nombre de usuario ya esta registrado.")
         cur.execute(
-            """INSERT INTO users(id,name,email,password_hash,role,membership,created_at,last_login)
-               VALUES (?,?,?,?,?,?,?,?)""",
-            (user_id, name, email, generate_password_hash(password), role, membership, now_iso(), None),
+            """INSERT INTO users(id,name,username,email,password_hash,role,membership,created_at,last_login)
+               VALUES (?,?,?,?,?,?,?,?,?)""",
+            (user_id, name, username, email, generate_password_hash(password), role, membership, now_iso(), None),
         )
         conn.commit()
     except sqlite3.IntegrityError as exc:
+        message = str(exc).lower()
+        if "username" in message:
+            raise ValueError("Ese nombre de usuario ya esta registrado.") from exc
         raise ValueError("Ese email ya esta registrado.") from exc
     finally:
         conn.close()
     return get_user_by_email(email)
 
 
-def authenticate_user(email, password, admin_only=False):
-    user = get_user_by_email(email)
+def authenticate_user(identifier, password, admin_only=False):
+    user = get_user_by_login(identifier)
     if not user or not check_password_hash(user.get("password_hash") or "", str(password or "")):
         return None
     if admin_only and normalize_role(user.get("role")) != "ADMIN":
@@ -1317,7 +1525,7 @@ def authenticate_user(email, password, admin_only=False):
     conn.execute("UPDATE users SET last_login=? WHERE id=?", (now_iso(), user["id"]))
     conn.commit()
     conn.close()
-    return get_user_by_email(email)
+    return get_user_by_id(user["id"])
 
 
 def authenticate_env_admin(email, password):
@@ -1329,11 +1537,12 @@ def authenticate_env_admin(email, password):
         return None
     existing = get_user_by_email(admin_email)
     if not existing:
-        return create_user(os.getenv("ADMIN_NAME", "Admin SHARK"), admin_email, admin_password, role="ADMIN", membership="ELITE")
+        admin_username = normalize_username(os.getenv("ADMIN_USERNAME") or username_from_email(admin_email))
+        return create_user(os.getenv("ADMIN_NAME", "Admin SHARK"), admin_username, admin_email, admin_password, role="ADMIN", membership="ADMIN")
     conn = db()
     conn.execute(
         """UPDATE users
-           SET role='ADMIN', membership='ELITE', password_hash=?, last_login=?
+           SET role='ADMIN', membership='ADMIN', password_hash=?, last_login=?
            WHERE email=?""",
         (generate_password_hash(admin_password), now_iso(), admin_email),
     )
@@ -1353,7 +1562,7 @@ def admin_json_forbidden():
 def list_users():
     seed_core()
     return rows(
-        """SELECT id,name,email,role,membership,created_at,last_login
+        """SELECT id,name,username,email,role,membership,created_at,last_login
            FROM users ORDER BY created_at DESC"""
     )
 
@@ -1836,11 +2045,14 @@ def match_hub_page():
     return render_template("match_hub.html", data=data)
 
 
-@app.route("/favoritos")
-@app.route("/favorites")
+@app.route("/favoritos", methods=["GET", "POST"])
+@app.route("/favorites", methods=["GET", "POST"])
 def favorites_page():
     if not current_session_user():
         return redirect("/cliente-login")
+    if request.method == "POST":
+        add_favorite(request.form.get("kind"), request.form.get("value"), request.form.get("label"))
+        return redirect("/favorites")
     return render_template("favorites.html", data=dashboard_data())
 
 
@@ -1851,7 +2063,12 @@ def register_page():
     error = ""
     if request.method == "POST":
         try:
-            user = create_user(request.form.get("name"), request.form.get("email"), request.form.get("password"))
+            user = create_user(
+                request.form.get("name"),
+                request.form.get("username"),
+                request.form.get("email"),
+                request.form.get("password"),
+            )
             set_login_session(user)
             return redirect("/perfil")
         except ValueError as exc:
@@ -1865,11 +2082,11 @@ def client_login_page():
         return redirect("/perfil")
     error = ""
     if request.method == "POST":
-        user = authenticate_user(request.form.get("email"), request.form.get("password"))
+        user = authenticate_user(request.form.get("login"), request.form.get("password"))
         if user:
             set_login_session(user)
             return redirect("/perfil")
-        error = "Email o contrasena incorrectos."
+        error = "Email, usuario o contrasena incorrectos."
     return render_template("client_login.html", data=dashboard_data(), error=error)
 
 
@@ -1923,6 +2140,24 @@ def admin_users_page():
     return render_template("admin_users.html", data=data, message=message)
 
 
+@app.route("/admin/sportsdb-sync", methods=["GET", "POST"])
+def admin_sportsdb_sync_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/sportsdb-sync")
+    message = ""
+    if request.method == "POST":
+        result = sync_sportsdb_crests(
+            refresh=request.form.get("refresh") in {"1", "true", "yes"},
+            limit=as_int(request.form.get("limit"), 40),
+        )
+        message = "Sincronizacion ejecutada: %s actualizados, %s fallidos." % (result.get("updated", 0), result.get("failed", 0))
+        if result.get("sin_key"):
+            message = "Falta configurar THESPORTSDB_API_KEY o THESPORTSDB_KEY."
+    data = dashboard_data()
+    data["sportsdb"] = crest_sync_status()
+    return render_template("admin_sportsdb_sync.html", data=data, message=message)
+
+
 @app.route("/picks")
 def picks_page():
     return render_template("picks.html", data=dashboard_data())
@@ -1941,6 +2176,8 @@ def profile_page():
         return redirect("/cliente-login")
     data = dashboard_data()
     data["session_user"] = user
+    data["sportsdb"] = crest_sync_status()
+    data["briefing"] = shark_briefing()
     return render_template("profile.html", data=data)
 
 
@@ -1978,6 +2215,7 @@ def crests_page():
 @app.route("/v509-health")
 @app.route("/v512-health")
 @app.route("/v513-health")
+@app.route("/v516-health")
 def health():
     return jsonify({"ok": True, "app": APP_NAME, "version": APP_VERSION, "time": now_iso()})
 
@@ -2119,15 +2357,19 @@ def api_crest_diagnostics():
     teams = rows("SELECT * FROM teams ORDER BY name")
     with_logo = [t for t in teams if t.get("logo_url")]
     without_logo = [t for t in teams if not t.get("logo_url")]
+    status = crest_sync_status()
     return jsonify(
         {
             "ok": True,
             "version": APP_VERSION,
             "provider": "TheSportsDB",
             "provider_key_present": bool(thesportsdb_key()),
+            "provider_key_masked": masked_key(thesportsdb_key()),
             "total_teams": len(teams),
             "with_logo": len(with_logo),
             "fallback": len(without_logo),
+            "last_sync": status["last_sync"],
+            "last_error": status["last_error"],
             "sample_missing": [t.get("name") for t in without_logo[:20]],
             "legal_policy": "Escudos desde API permitida, carga manual autorizada o fallback SVG propio. No scraping ilegal.",
         }
@@ -2138,6 +2380,16 @@ def api_crest_diagnostics():
 def api_thesportsdb_diagnostics():
     team = request.args.get("team") or "Real Madrid"
     return jsonify({"ok": True, "version": APP_VERSION, "diagnostics": thesportsdb_diagnostics(team)})
+
+
+@app.route("/api/sportsdb/sync-crests", methods=["POST", "GET"])
+def api_sportsdb_sync_crests():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    refresh = request.args.get("refresh") in {"1", "true", "yes"} or request.form.get("refresh") in {"1", "true", "yes"}
+    limit = as_int(request.args.get("limit") or request.form.get("limit"), 40)
+    result = sync_sportsdb_crests(refresh=refresh, limit=limit)
+    return jsonify({"version": APP_VERSION, **result})
 
 
 @app.route("/api/import-matches", methods=["POST"])

@@ -9,7 +9,8 @@
   <form class="card auth-card" method="post" action="/registro">
     <h2>Registro</h2>
     {% if error %}<p class="notice danger">{{ error }}</p>{% endif %}
-    <div class="field"><label>Nombre</label><input name="name" autocomplete="name" required></div>
+    <div class="field"><label>Nombre visible</label><input name="name" autocomplete="name" required></div>
+    <div class="field"><label>Nombre de usuario</label><input name="username" autocomplete="username" pattern="[A-Za-z0-9_-]{3,32}" required></div>
     <div class="field"><label>Email</label><input type="email" name="email" autocomplete="email" required></div>
     <div class="field"><label>Contrasena</label><input type="password" name="password" autocomplete="new-password" required></div>
     <button type="submit">Crear cuenta</button>

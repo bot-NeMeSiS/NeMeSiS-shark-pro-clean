@@ -4,7 +4,7 @@
   <div class="kicker">IA SHARK 2.0</div>
   <h1>Analisis premium con contexto</h1>
   <p class="lead">SHARK responde sobre calendario, live, favoritos, picks, combis y riesgo. Si faltan datos reales, lo deja claro antes de recomendar nada.</p>
-  <div class="actions"><a class="btn primary" href="/api/shark/briefing">API briefing</a><a class="btn" href="/api/shark/ask">Ask endpoint</a></div>
+  <div class="actions"><a class="btn primary" href="/perfil">Mi perfil</a><a class="btn" href="/picks">Ver picks</a></div>
 </section>
 {% if not current_user or current_user.role not in ['ELITE','ADMIN'] %}
 <section class="band"><div class="notice">SHARK premium queda reservado para ELITE. En FREE/PRO se mantiene briefing claro sin inventar datos ni picks.</div></section>
@@ -36,7 +36,7 @@
       {% for item in data.briefing.priority %}
       <div class="list-row"><span>{{ item }}</span><strong>OK</strong></div>
       {% endfor %}
-      <div class="card"><div class="name">Politica</div><p class="small">{{ data.briefing.legal_policy }}</p></div>
+      <div class="card"><div class="name">Transparencia</div><p class="small">SHARK no inventa cuotas ni partidos. Trabaja con datos cargados y fuentes permitidas.</p></div>
     </div>
   </div>
 </section>

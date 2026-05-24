@@ -1,10 +1,17 @@
 {% extends "base.html" %}
 {% block content %}
 <section class="hero compact">
-  <div class="kicker">Admin usuarios</div>
-  <h1>Clientes y membresias</h1>
-  <p class="lead">Gestiona cuentas registradas, rol y membresia sin tocar datos deportivos ni sesiones activas.</p>
-  <div class="actions"><a class="btn primary" href="/admin/import-center">Importaciones</a><a class="btn" href="/api/health">Health</a></div>
+  <div class="kicker">Panel admin</div>
+  <h1>Usuarios y membresias</h1>
+  <p class="lead">Gestiona clientes registrados, rol y membresia desde una zona separada de la experiencia cliente.</p>
+  <div class="admin-menu">
+    <a class="btn primary" href="/admin/users">Usuarios</a>
+    <a class="btn" href="/admin/import-center">Import Center</a>
+    <a class="btn" href="/admin/sportsdb-sync">SportsDB Sync</a>
+    <a class="btn" href="/api/diagnostics">Diagnosticos</a>
+    <a class="btn" href="/telegram">Telegram</a>
+    <a class="btn" href="/api/health">Sistema</a>
+  </div>
 </section>
 <section class="band">
   {% if message %}<p class="notice">{{ message }}</p>{% endif %}
@@ -13,13 +20,15 @@
     {% for user in data.users %}
     <article class="card user-row">
       <div>
-        <div class="name">{{ user.name }}</div>
+        <div class="name">{{ user.name }} <span class="pill">@{{ user.username }}</span></div>
+        <p class="small">ID: {{ user.id }}</p>
         <p class="small">{{ user.email }}</p>
-        <p class="small">Alta: {{ user.created_at or '-' }} · Ultimo login: {{ user.last_login or '-' }}</p>
+        <p class="small">Rol: {{ user.role }} - Membresia: {{ user.membership }}</p>
+        <p class="small">Alta: {{ user.created_at or '-' }} - Ultimo login: {{ user.last_login or '-' }}</p>
       </div>
       <form method="post" action="/admin/users" class="inline-form">
         <input type="hidden" name="user_id" value="{{ user.id }}">
-        <label>Membresia</label>
+        <label>Membresia / rol</label>
         <select name="membership">
           {% for role in ['FREE','PRO','ELITE','ADMIN'] %}
           <option value="{{ role }}" {% if user.membership == role or user.role == role %}selected{% endif %}>{{ role }}</option>

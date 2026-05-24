@@ -9,7 +9,7 @@
   <form class="card auth-card" method="post" action="/cliente-login">
     <h2>Acceso</h2>
     {% if error %}<p class="notice danger">{{ error }}</p>{% endif %}
-    <div class="field"><label>Email</label><input type="email" name="email" autocomplete="email" required></div>
+    <div class="field"><label>Email o nombre de usuario</label><input name="login" autocomplete="username" required></div>
     <div class="field"><label>Contrasena</label><input type="password" name="password" autocomplete="current-password" required></div>
     <button type="submit">Entrar</button>
   </form>
