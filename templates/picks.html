@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="hero">
+  <div class="kicker">Picks / combis</div>
+  <h1>Motor premium de picks sin inventar cuotas</h1>
+  <p class="lead">Base para picks reales, combis, stake, confianza y explicación. Los picks se marcan como borrador si la cuota/dato no está verificado.</p>
+  <div class="actions"><a class="btn primary" href="/api/v506/picks">API picks</a><a class="btn" href="/live">Ver live</a></div>
+</section>
+<section class="band"><div class="grid">
+{% for p in data.picks %}<article class="card"><div class="comp-top"><div><div class="name">{{ p.title }}</div><div class="small">{{ p.market }} · {{ p.selection }} · {{ p.mode }}</div></div><div class="tier">{{ p.confidence }}%</div></div><div class="status"><span>Cuota {{ p.odd }} · Stake {{ p.stake }}</span><span class="pill">{{ p.status }}</span></div><p class="small">{{ p.reason }}</p></article>{% endfor %}
+</div></section>
+{% endblock %}

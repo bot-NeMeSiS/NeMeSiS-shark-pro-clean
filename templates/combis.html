@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="hero">
+  <div class="kicker">Combis</div>
+  <h1>Combis construidas desde picks existentes</h1>
+  <p class="lead">No se inventan selecciones. Las combis solo se generan cuando ya hay picks reales/importados en SQLite.</p>
+  <div class="actions"><a class="btn primary" href="/api/combis">API combis</a></div>
+</section>
+<section class="band">
+  <div class="section-head"><h2>{{ data.combis|length }} combis</h2><span class="pill">Control de riesgo</span></div>
+  {% if data.combis %}
+  <div class="grid">
+    {% for c in data.combis %}
+    <article class="card"><div class="name">{{ c.title }}</div><p class="small">{{ c.risk }} · {{ c.status }} · {{ c.source }}</p><p class="small">{{ c.legal_note }}</p></article>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty">No hay combis. Primero importa picks y luego usa `/api/combis/build`.</div>
+  {% endif %}
+</section>
+{% endblock %}

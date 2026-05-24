@@ -1,0 +1,5 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="hero"><div class="kicker">Escudos / identidad</div><h1>Resolver visual inteligente</h1><p class="lead">Escudos desde fuente legal/autorizada, aliases y fallback SVG propio para que ninguna tarjeta quede vacía.</p><div class="actions"><a class="btn primary" href="/api/crest-diagnostics">Diagnóstico</a><a class="btn" href="/api/teams">Equipos</a></div></section>
+<section class="band"><div class="grid">{% for t in data.matches %}<article class="card"><div class="team"><div class="crest"><img src="{{ t.home_identity.crest_url }}"></div><strong>{{ t.home_team }}</strong></div><div class="team"><div class="crest"><img src="{{ t.away_identity.crest_url }}"></div><strong>{{ t.away_team }}</strong></div><p class="small">{{ t.competition_name }}</p></article>{% endfor %}</div></section>
+{% endblock %}

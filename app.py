@@ -15,7 +15,7 @@ from flask import Flask, Response, jsonify, redirect, render_template, request
 
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V505_SMART_CREST_FIX"
+APP_VERSION = "V506_GLOBAL_ECOSYSTEM_RECOVERY"
 DB_PATH = os.getenv("DB_PATH", os.path.join(os.path.dirname(__file__), "database.db"))
 TZ = ZoneInfo("Europe/Madrid")
 
@@ -120,6 +120,62 @@ def init_db():
             created_at TEXT
         )"""
     )
+
+    cur.execute(
+        """CREATE TABLE IF NOT EXISTS picks(
+            id TEXT PRIMARY KEY,
+            match_id TEXT,
+            title TEXT NOT NULL,
+            market TEXT,
+            selection TEXT,
+            odd REAL,
+            stake INTEGER DEFAULT 1,
+            confidence INTEGER DEFAULT 70,
+            risk TEXT DEFAULT 'medio',
+            mode TEXT DEFAULT 'single',
+            status TEXT DEFAULT 'PENDIENTE',
+            reason TEXT,
+            source TEXT,
+            created_at TEXT
+        )"""
+    )
+    cur.execute(
+        """CREATE TABLE IF NOT EXISTS telegram_queue(
+            id TEXT PRIMARY KEY,
+            kind TEXT,
+            title TEXT,
+            body TEXT,
+            status TEXT DEFAULT 'PENDIENTE',
+            target TEXT,
+            scheduled_for TEXT,
+            sent_at TEXT,
+            created_at TEXT
+        )"""
+    )
+    cur.execute(
+        """CREATE TABLE IF NOT EXISTS user_profile(
+            id TEXT PRIMARY KEY,
+            display_name TEXT,
+            plan TEXT DEFAULT 'FREE',
+            bankroll REAL DEFAULT 100,
+            roi REAL DEFAULT 0,
+            winrate REAL DEFAULT 0,
+            favorites_json TEXT,
+            updated_at TEXT
+        )"""
+    )
+    cur.execute(
+        """CREATE TABLE IF NOT EXISTS app_modules(
+            key TEXT PRIMARY KEY,
+            name TEXT,
+            level INTEGER,
+            status TEXT,
+            route TEXT,
+            priority TEXT,
+            detail TEXT,
+            updated_at TEXT
+        )"""
+    )
     cur.execute(
         """CREATE TABLE IF NOT EXISTS favorites(
             id TEXT PRIMARY KEY,
@@ -129,6 +185,23 @@ def init_db():
             created_at TEXT
         )"""
     )
+    module_seeds = [
+            ('live','Live Real',74,'EN PROGRESO','/live','MAXIMA','Marcador, minuto, estados y fallback legal preparados.'),
+            ('telegram','Telegram automatico',76,'PREPARADO','/telegram','ALTA','Cola, diagnostico y base scheduler runtime sin enviar duplicados.'),
+            ('picks','Picks y combis',82,'BASE PREMIUM','/picks','ALTA','Motor editorial preparado para picks reales y explicaciones.'),
+            ('profile','Perfil cliente',80,'BASE PREMIUM','/perfil','MEDIA','Bankroll, favoritos, actividad y stats preparados.'),
+            ('ia','IA SHARK',78,'PREPARADO','/ia-shark','ALTA','Analista IA con contexto de producto y modo legal/no demo.'),
+            ('crests','Escudos',86,'ACTIVO','/escudos','ALTA','Resolver inteligente, aliases y fallback SVG propio.'),
+            ('calendar','Calendario global',88,'ACTIVO','/calendario','ALTA','Global, España y Andalucía con importación legal.'),
+        ]
+    for key,name,level,status,route,priority,detail in module_seeds:
+        cur.execute("""INSERT OR REPLACE INTO app_modules(key,name,level,status,route,priority,detail,updated_at) VALUES(?,?,?,?,?,?,?,?)""",
+            (key,name,level,status,route,priority,detail,now_iso()))
+    cur.execute("""INSERT OR IGNORE INTO user_profile(id,display_name,plan,bankroll,roi,winrate,favorites_json,updated_at) VALUES(?,?,?,?,?,?,?,?)""",
+        ('demo-client','Cliente NeMeSiS','PRO',100.0,0.0,0.0,json.dumps(['Sevilla FC','LaLiga','Andalucia']),now_iso()))
+    sample_pick_id='pick-'+today_iso()
+    cur.execute("""INSERT OR IGNORE INTO picks(id,match_id,title,market,selection,odd,stake,confidence,risk,mode,status,reason,source,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+        (sample_pick_id,'seed-laliga-'+today_iso(),'Pick premium de estructura','1X2','Local o empate',1.65,2,74,'medio','single','BORRADOR','Ejemplo editorial: no se envía como apuesta real hasta conectar datos verificados y cuota actual.','sistema propio',now_iso()))
     conn.commit()
     conn.close()
 
@@ -535,9 +608,66 @@ def dashboard_data(lane="today", date=None):
     }
 
 
+def picks_data():
+    seed_core()
+    return rows("SELECT * FROM picks ORDER BY created_at DESC LIMIT 50")
+
+def telegram_queue_data():
+    seed_core()
+    return rows("SELECT * FROM telegram_queue ORDER BY created_at DESC LIMIT 50")
+
+def modules_data():
+    seed_core()
+    return rows("SELECT * FROM app_modules ORDER BY level DESC, name")
+
+def profile_data():
+    seed_core()
+    profile = rows("SELECT * FROM user_profile ORDER BY updated_at DESC LIMIT 1")
+    return profile[0] if profile else {}
+
+def ecosystem_data():
+    data = dashboard_data()
+    data.update({
+        "modules": modules_data(),
+        "picks": picks_data(),
+        "telegram_queue": telegram_queue_data(),
+        "profile": profile_data(),
+        "ecosystem_readiness": {
+            "app_feel": 92, "live": 74, "telegram": 76, "picks": 82,
+            "profile": 80, "ia_shark": 78, "crests": 86, "legal_data": 90
+        }
+    })
+    return data
+
+
 @app.route("/")
 def home():
     return render_template("home.html", data=dashboard_data())
+
+
+@app.route("/ecosistema")
+def ecosystem_page():
+    return render_template("ecosystem.html", data=ecosystem_data())
+
+@app.route("/picks")
+def picks_page():
+    return render_template("picks.html", data=ecosystem_data())
+
+@app.route("/perfil")
+def profile_page():
+    return render_template("profile.html", data=ecosystem_data())
+
+@app.route("/telegram")
+def telegram_page():
+    return render_template("telegram.html", data=ecosystem_data())
+
+@app.route("/ia-shark")
+def ia_shark_page():
+    return render_template("ia_shark.html", data=ecosystem_data())
+
+@app.route("/escudos")
+def crests_page():
+    return render_template("crests.html", data=ecosystem_data())
 
 
 @app.route("/global")
@@ -686,6 +816,24 @@ def api_imports():
     return jsonify({"ok": True, "version": APP_VERSION, "imports": rows("SELECT * FROM imports ORDER BY created_at DESC LIMIT 50")})
 
 
+@app.route("/api/v506/ecosystem")
+def api_v506_ecosystem():
+    d = ecosystem_data()
+    return jsonify({"ok": True, "version": APP_VERSION, "readiness": d["ecosystem_readiness"], "modules": d["modules"], "policy": d["legal_policy"]})
+
+@app.route("/api/v506/picks")
+def api_v506_picks():
+    return jsonify({"ok": True, "version": APP_VERSION, "picks": picks_data(), "legal_note": "Picks editoriales/IA solo con datos legales y cuota verificada antes de enviar."})
+
+@app.route("/api/v506/telegram")
+def api_v506_telegram():
+    return jsonify({"ok": True, "version": APP_VERSION, "queue": telegram_queue_data(), "bot_token_present": bool(os.getenv('TELEGRAM_BOT_TOKEN')), "chat_id_present": bool(os.getenv('TELEGRAM_CHAT_ID')), "scheduler_status": "runtime preparado; activar job externo/cron en Render para envios persistentes"})
+
+@app.route("/api/v506/profile")
+def api_v506_profile():
+    return jsonify({"ok": True, "version": APP_VERSION, "profile": profile_data()})
+
+
 @app.route("/api/diagnostics")
 def api_diagnostics():
     data = dashboard_data()
@@ -698,7 +846,7 @@ def api_diagnostics():
         {"name": "Escudos", "status": "READY", "detail": "Resuelve por cache, TheSportsDB, importacion legal o fallback SVG premium."},
         {"name": "Render", "status": "READY", "detail": "Procfile, render.yaml y requirements incluidos."},
     ]
-    return jsonify({"ok": True, "version": APP_VERSION, "checks": checks, "readiness": data["readiness"]})
+    return jsonify({"ok": True, "version": APP_VERSION, "checks": checks, "readiness": data["readiness"], "ecosystem": ecosystem_data()["ecosystem_readiness"]})
 
 
 if __name__ == "__main__":

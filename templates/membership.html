@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="hero">
+  <div class="kicker">Membresias</div>
+  <h1>Modelo premium claro</h1>
+  <p class="lead">Base de planes para separar funciones Free, Pro y Elite sin mezclar experiencia cliente con administracion.</p>
+</section>
+<section class="band">
+  <div class="grid">
+    {% for plan in data.plans %}
+    <article class="card"><div class="name">{{ plan.name }}</div>{% for f in plan.features %}<p class="small">- {{ f }}</p>{% endfor %}</article>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="hero">
+  <div class="kicker">SHARK AI</div>
+  <h1>Briefing inteligente sin inventar datos</h1>
+  <p class="lead">{{ data.briefing.summary }}</p>
+  <div class="actions"><a class="btn primary" href="/api/shark/briefing">API briefing</a></div>
+</section>
+<section class="band">
+  <div class="grid">
+    <div class="card"><div class="metric">{{ data.briefing.matches_count }}</div><div class="muted">partidos reales/importados</div></div>
+    <div class="card"><div class="metric">{{ data.briefing.picks_count }}</div><div class="muted">picks disponibles</div></div>
+    <div class="card"><div class="name">Politica</div><p class="small">{{ data.briefing.policy }}</p></div>
+  </div>
+</section>
+{% endblock %}

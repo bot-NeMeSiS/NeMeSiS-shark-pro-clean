@@ -1,0 +1,5 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="hero"><div class="kicker">Telegram automático</div><h1>Cola y automatización preparada</h1><p class="lead">Base para auto picks, partidos del día, alertas live y anti duplicados. No envía datos inventados ni rompe legalidad.</p><div class="actions"><a class="btn primary" href="/api/v506/telegram">API Telegram</a><a class="btn" href="/admin/import-center">Cargar datos</a></div></section>
+<section class="band"><div class="section-head"><h2>Cola de envíos</h2><span class="pill">{{ data.telegram_queue|length }}</span></div>{% if data.telegram_queue %}<div class="grid">{% for q in data.telegram_queue %}<article class="card"><div class="name">{{ q.title }}</div><div class="small">{{ q.kind }} · {{ q.status }} · {{ q.created_at }}</div><p class="small">{{ q.body }}</p></article>{% endfor %}</div>{% else %}<div class="empty">Sin envíos pendientes. La cola está preparada para conectar scheduler/cron.</div>{% endif %}</section>
+{% endblock %}

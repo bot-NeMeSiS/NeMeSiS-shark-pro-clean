@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="hero"><div class="kicker">Perfil cliente premium</div><h1>Cuenta, favoritos y rendimiento</h1><p class="lead">Base persistente para bankroll, ROI, favoritos, actividad y futuras estadísticas reales del cliente.</p><div class="actions"><a class="btn primary" href="/api/v506/profile">API perfil</a><a class="btn" href="/picks">Mis picks</a></div></section>
+<section class="band"><div class="grid"><div class="card"><div class="metric">{{ data.profile.plan }}</div><div class="muted">plan actual</div></div><div class="card"><div class="metric">{{ data.profile.bankroll }}€</div><div class="muted">bankroll base</div></div><div class="card"><div class="metric">{{ data.profile.roi }}%</div><div class="muted">ROI</div></div><div class="card"><div class="metric">{{ data.profile.winrate }}%</div><div class="muted">winrate</div></div></div></section>
+<section class="band"><article class="card"><h2>{{ data.profile.display_name }}</h2><p class="small">Favoritos preparados: {{ data.profile.favorites_json }}</p></article></section>
+{% endblock %}
