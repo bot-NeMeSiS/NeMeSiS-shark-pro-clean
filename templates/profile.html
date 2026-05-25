@@ -88,7 +88,7 @@
       <a class="card service-card" href="/telegram"><div class="name">Telegram</div><p class="small">{% if data.telegram.configured %}Listo para alertas.{% else %}Pendiente de activar.{% endif %}</p></a>
       <a class="card service-card" href="/shark"><div class="name">SHARK IA</div><p class="small">{% if data.session_user.membership in ['ELITE','ADMIN'] %}Premium activo.{% else %}Briefing base activo.{% endif %}</p></a>
       <a class="card service-card" href="/escudos"><div class="name">Escudos</div><p class="small">{{ data.sportsdb.with_logo }} escudos guardados.</p></a>
-      <a class="card service-card" href="/match-hub"><div class="name">Calendario</div><p class="small">{{ data.matches_diagnostics.active_data_source }}.</p></a>
+      <a class="card service-card" href="/match-hub"><div class="name">Calendario</div><p class="small">{{ data.client_source_label }}.</p></a>
       <a class="card service-card" href="/combis"><div class="name">Combinadas</div><p class="small">{% if data.session_user.membership in ['PRO','ELITE','ADMIN'] %}Acceso ampliado.{% else %}Disponible en PRO.{% endif %}</p></a>
     </div>
   </div>

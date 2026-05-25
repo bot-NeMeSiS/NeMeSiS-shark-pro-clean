@@ -10,20 +10,35 @@
   <a class="btn" href="/match-hub?lane=today">Hoy</a>
   <a class="btn" href="/match-hub?lane=tomorrow">Manana</a>
   <a class="btn" href="/match-hub?lane=week">Semana</a>
+  <a class="btn" href="/match-hub?lane=live">Live</a>
   <a class="btn" href="/match-hub?lane=spain">Espana</a>
   <a class="btn" href="/match-hub?lane=international">Internacional</a>
   <a class="btn" href="/match-hub?lane=andalucia">Andalucia</a>
-  <a class="btn" href="/match-hub?lane=national">Mundial/Selecciones</a>
+  <a class="btn" href="/match-hub?lane=uefa">UEFA</a>
+  <a class="btn" href="/match-hub?lane=national">Selecciones</a>
 </section>
 <section class="band">
   <div class="grid compact-grid">
     <div class="card"><div class="metric">{{ data.match_hub.counts.live }}</div><div class="muted">en directo</div></div>
     <div class="card"><div class="metric">{{ data.match_hub.counts.upcoming }}</div><div class="muted">programados</div></div>
     <div class="card"><div class="metric">{{ data.match_hub.counts.favorites }}</div><div class="muted">favoritos</div></div>
-    <div class="card"><div class="metric">{{ data.match_hub.counts.with_picks }}</div><div class="muted">con picks</div></div>
+    <div class="card"><div class="metric">{{ data.match_hub.counts.with_odds }}</div><div class="muted">con cuotas</div></div>
   </div>
 </section>
-{% for title, items in [('En directo', data.match_hub.live), ('Hoy', data.match_hub.today), ('Proximos', data.match_hub.upcoming), ('Favoritos', data.match_hub.favorites), ('Con picks', data.match_hub.with_picks)] %}
+<section class="band">
+  <div class="section-head"><h2>Competiciones destacadas</h2><span class="pill">{{ data.match_hub.top_leagues|length }}</span></div>
+  <div class="grid compact-grid">
+    {% for comp in data.match_hub.top_leagues[:8] %}
+    <a class="card service-card" href="/match-hub?lane={{ 'spain' if comp.country == 'Spain' else 'uefa' if comp.region == 'UEFA' else 'international' }}">
+      <div class="name">{{ comp.name }}</div>
+      <p class="small">{{ comp.country }} - calendario preparado</p>
+    </a>
+    {% else %}
+    <div class="empty">Las competiciones prioritarias quedan preparadas para sincronizacion legal.</div>
+    {% endfor %}
+  </div>
+</section>
+{% for title, items in [('En directo', data.match_hub.live), ('Hoy', data.match_hub.today), ('Proximos', data.match_hub.upcoming), ('Con cuotas', data.match_hub.with_odds), ('Favoritos', data.match_hub.favorites), ('Con picks', data.match_hub.with_picks)] %}
 <section class="band">
   <div class="section-head"><h2>{{ title }}</h2><span class="pill">{{ items|length }}</span></div>
   {% if items %}
@@ -47,7 +62,7 @@
   <div class="empty">
     {{ data.match_hub.empty_state }}
     {% if current_user and current_user.role == 'ADMIN' %}
-    <div class="actions"><a class="btn primary" href="/admin/matches-sync">Sincronizar calendario</a><a class="btn" href="/admin/import-center">Import legal</a></div>
+    <div class="actions"><a class="btn primary" href="/admin/data-center">Sincronizar desde Data Center</a><a class="btn" href="/admin/import-center">Import legal</a></div>
     {% endif %}
   </div>
   {% endif %}

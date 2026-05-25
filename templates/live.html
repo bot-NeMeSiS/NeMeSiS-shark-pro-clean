@@ -50,7 +50,7 @@
   <div class="empty">
     No hay partidos sincronizados todavia. Cuando el administrador sincronice SportsDB/Odds o importe un calendario legal, apareceran aqui.
     {% if current_user and current_user.role == 'ADMIN' %}
-    <div class="actions"><a class="btn primary" href="/admin/matches-sync">Sincronizar calendario</a></div>
+    <div class="actions"><a class="btn primary" href="/admin/data-center">Sincronizar desde Data Center</a></div>
     {% endif %}
   </div>
   {% endif %}

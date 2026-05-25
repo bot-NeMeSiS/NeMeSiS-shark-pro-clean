@@ -18,6 +18,18 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from database_manager import connect as sqlite_connect, retry_locked
 from engines.cache_engine import cache_health
 from engines.crest_engine import crest_status
+from engines.football_population_engine import (
+    PRIORITY_COMPETITIONS,
+    STRUCTURAL_TEAMS,
+    competition_payload,
+    empty_sync,
+    odds_competitions,
+    price_map_from_outcomes,
+    should_run_interval,
+    sportsdb_competitions,
+    success_sync,
+    team_payload,
+)
 from engines.live_engine import build_live_depth, build_live_flow, build_match_detail, fallback_timeline, normalize_live_state
 from engines.match_engine import hub_sections, real_time_state, sync_plan
 from engines.match_sync_engine import IMPORTANT_COMPETITIONS, h2h_price_snapshot, normalize_status as sync_normalize_status, odds_sports, sportsdb_leagues
@@ -25,8 +37,8 @@ from engines.shark_engine import build_shark_context, explain_pick_risk
 from engines.telegram_engine import build_alert_queue, dispatch_signature, should_skip_duplicate
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V517_REAL_MATCH_CALENDAR_ENGINE_FIX"
-SEED_VERSION = "v517-real-match-calendar-engine-fix-seed"
+APP_VERSION = "V518_MASSIVE_FOOTBALL_DATA_POPULATION_ENGINE"
+SEED_VERSION = "v518-massive-football-data-population-engine-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
 
@@ -126,12 +138,18 @@ def add_column_if_missing(conn, table, column, definition):
 
 def run_schema_migrations(conn):
     migrations = [
+        ("competitions", "external_id", "TEXT"),
+        ("competitions", "source", "TEXT"),
+        ("competitions", "sync_status", "TEXT"),
+        ("competitions", "last_sync_at", "TEXT"),
         ("teams", "external_id", "TEXT"),
         ("teams", "league", "TEXT"),
         ("teams", "color_hint", "TEXT"),
         ("teams", "source", "TEXT"),
         ("teams", "legal_note", "TEXT"),
         ("teams", "updated_at", "TEXT"),
+        ("teams", "sync_status", "TEXT"),
+        ("teams", "last_sync_at", "TEXT"),
         ("matches", "priority", "INTEGER DEFAULT 50"),
         ("matches", "source", "TEXT"),
         ("matches", "legal_note", "TEXT"),
@@ -154,6 +172,7 @@ def run_schema_migrations(conn):
         ("matches", "bookmaker", "TEXT"),
         ("matches", "odds_h2h_json", "TEXT"),
         ("matches", "odds_updated_at", "TEXT"),
+        ("matches", "sync_status", "TEXT"),
         ("picks", "stake_units", "REAL DEFAULT 1"),
         ("picks", "status", "TEXT DEFAULT 'PENDING'"),
         ("picks", "source", "TEXT"),
@@ -216,6 +235,14 @@ def run_schema_migrations(conn):
         conn.execute("CREATE INDEX IF NOT EXISTS idx_matches_date_status ON matches(match_date, status)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_matches_source_external ON matches(source, external_id)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_matches_competition ON matches(competition_key, match_date)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_matches_kickoff_iso ON matches(kickoff_iso)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_matches_league_name ON matches(league_name)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_matches_status ON matches(status)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_teams_name ON teams(name)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_teams_external_id ON teams(external_id)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_competitions_name ON competitions(name)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_api_sync_logs_source ON api_sync_logs(source, sync_type, started_at)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_odds_snapshots_match ON odds_snapshots(match_id, created_at)")
     except sqlite3.OperationalError:
         pass
 
@@ -233,6 +260,10 @@ def init_db():
             tier INTEGER DEFAULT 50,
             source_strategy TEXT,
             tags_json TEXT,
+            external_id TEXT,
+            source TEXT,
+            sync_status TEXT,
+            last_sync_at TEXT,
             updated_at TEXT
         )"""
     )
@@ -248,6 +279,8 @@ def init_db():
             color_hint TEXT,
             source TEXT,
             legal_note TEXT,
+            sync_status TEXT,
+            last_sync_at TEXT,
             updated_at TEXT
         )"""
     )
@@ -289,6 +322,7 @@ def init_db():
             source TEXT,
             legal_note TEXT,
             raw_json TEXT,
+            sync_status TEXT,
             updated_at TEXT
         )"""
     )
@@ -418,6 +452,26 @@ def init_db():
             status TEXT,
             total_items INTEGER DEFAULT 0,
             error_message TEXT
+        )"""
+    )
+    cur.execute(
+        """CREATE TABLE IF NOT EXISTS odds_snapshots(
+            id TEXT PRIMARY KEY,
+            match_id TEXT,
+            external_id TEXT,
+            source TEXT,
+            sport_key TEXT,
+            league_name TEXT,
+            bookmaker TEXT,
+            market TEXT,
+            home_team TEXT,
+            away_team TEXT,
+            home_price TEXT,
+            draw_price TEXT,
+            away_price TEXT,
+            commence_time TEXT,
+            payload_json TEXT,
+            created_at TEXT
         )"""
     )
     cur.execute(
@@ -587,12 +641,73 @@ def _seed_core_unlocked():
                VALUES (?,?,?,?,?,?,?,?,?)""",
             (key, name, scope, country, region, tier, strategy, json.dumps(tags), now_iso()),
         )
+    for item in PRIORITY_COMPETITIONS:
+        comp = competition_payload(item)
+        cur.execute(
+            """INSERT OR IGNORE INTO competitions
+               (key,name,scope,country,region,tier,source_strategy,tags_json,external_id,source,sync_status,last_sync_at,updated_at)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            (
+                comp["key"],
+                comp["name"],
+                comp["scope"],
+                comp["country"],
+                comp["region"],
+                comp["tier"],
+                comp["source_strategy"],
+                json.dumps(comp["tags"]),
+                comp["external_id"],
+                comp["source"],
+                comp["sync_status"],
+                "",
+                now_iso(),
+            ),
+        )
+        cur.execute(
+            """UPDATE competitions
+               SET external_id=COALESCE(NULLIF(external_id,''), ?),
+                   source=COALESCE(NULLIF(source,''), ?),
+                   sync_status=COALESCE(NULLIF(sync_status,''), ?)
+               WHERE key=?""",
+            (comp["external_id"], comp["source"], comp["sync_status"], comp["key"]),
+        )
     for key, name, country, region, logo_url, external_id in TEAM_SEEDS:
         cur.execute(
             """INSERT OR IGNORE INTO teams
                (key,name,country,region,logo_url,external_id,color_hint,source,legal_note,updated_at)
                VALUES (?,?,?,?,?,?,?,?,?,?)""",
             (key, name, country, region, logo_url, external_id, "premium-blue", "seed propio", "Sin scraping. Logo externo solo si hay licencia/API permitida.", now_iso()),
+        )
+    for item in STRUCTURAL_TEAMS:
+        team = team_payload(item)
+        cur.execute(
+            """INSERT OR IGNORE INTO teams
+               (key,name,country,region,league,logo_url,external_id,color_hint,source,legal_note,sync_status,last_sync_at,updated_at)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            (
+                team["key"],
+                team["name"],
+                team.get("country", ""),
+                team.get("region", ""),
+                team.get("league", ""),
+                team.get("logo_url", ""),
+                team.get("external_id", ""),
+                team.get("color_hint", "premium-blue"),
+                team.get("source", "population_engine"),
+                team.get("legal_note", "Equipo real preparado como seed estructural; partidos solo desde API o import legal."),
+                "prepared",
+                "",
+                now_iso(),
+            ),
+        )
+        cur.execute(
+            """UPDATE teams
+               SET league=COALESCE(NULLIF(league,''), ?),
+                   external_id=COALESCE(NULLIF(external_id,''), ?),
+                   source=COALESCE(NULLIF(source,''), 'population_engine'),
+                   sync_status=COALESCE(NULLIF(sync_status,''), 'prepared')
+               WHERE key=?""",
+            (team.get("league", ""), team.get("external_id", ""), team["key"]),
         )
     cleanup_fake_matches(cur)
     seed_matches = []
@@ -721,8 +836,8 @@ SPORTSDB_SEARCH_ALIASES = {
 
 
 SPORTSDB_FEED_LEAGUES = [
-    {"id": item["sportsdb_id"], "key": item["key"], "name": item["name"], "country": item["country"]}
-    for item in sportsdb_leagues()
+    {"id": item["sportsdb_id"], "key": item["key"], "name": item["name"], "country": item["country"], "group": item.get("group", "")}
+    for item in sportsdb_competitions()
 ]
 
 
@@ -935,6 +1050,7 @@ def sync_sportsdb_crests(refresh=False, limit=40):
     seed_core()
     if not thesportsdb_key():
         return {"ok": False, "sin_key": True, "processed": 0, "updated": 0, "failed": 0, "errors": ["Falta THESPORTSDB_API_KEY o THESPORTSDB_KEY."]}
+    log_id = sync_log_start("sportsdb", "crests")
     teams = rows("SELECT * FROM teams ORDER BY name")
     processed = 0
     updated = 0
@@ -962,11 +1078,16 @@ def sync_sportsdb_crests(refresh=False, limit=40):
             errors.append(team.get("name"))
     summary = {
         "ok": True,
+        "source": "sportsdb",
+        "sync_type": "crests",
         "sin_key": False,
         "processed": processed,
+        "inserted": 0,
         "updated": updated,
+        "skipped": failed,
         "failed": failed,
         "errors": errors[:12],
+        "last_sync": now_iso(),
         "time": now_iso(),
     }
     conn = db()
@@ -977,6 +1098,7 @@ def sync_sportsdb_crests(refresh=False, limit=40):
     )
     conn.commit()
     conn.close()
+    sync_log_finish(log_id, "OK" if not errors else "PARTIAL", processed, "; ".join(errors[:3]))
     return summary
 
 
@@ -1220,10 +1342,15 @@ def upsert_sportsdb_matches(match_rows):
     conn.execute("DELETE FROM persistent_cache WHERE key LIKE 'match-hub:%'")
     summary = {
         "ok": True,
+        "source": "sportsdb",
+        "sync_type": "matches",
+        "inserted": imported,
         "imported": imported,
         "updated": updated,
         "skipped": skipped,
         "processed": len(match_rows),
+        "errors": [],
+        "last_sync": now_iso(),
         "time": now_iso(),
     }
     conn.execute(
@@ -1298,6 +1425,378 @@ def sportsdb_feed_status():
         "last_sync": last_sync,
         "last_error": get_thesportsdb_last_error(),
     }
+
+
+def latest_sync_log(source=None, sync_type=None):
+    query = "SELECT * FROM api_sync_logs"
+    params = []
+    clauses = []
+    if source:
+        clauses.append("source=?")
+        params.append(source)
+    if sync_type:
+        clauses.append("sync_type=?")
+        params.append(sync_type)
+    if clauses:
+        query += " WHERE " + " AND ".join(clauses)
+    query += " ORDER BY started_at DESC LIMIT 1"
+    return one(query, tuple(params)) or {}
+
+
+def sync_sportsdb_competitions():
+    seed_core()
+    log_id = sync_log_start("sportsdb", "competitions")
+    conn = db()
+    cur = conn.cursor()
+    inserted = updated = skipped = 0
+    errors = []
+    try:
+        for item in PRIORITY_COMPETITIONS:
+            comp = competition_payload(item)
+            exists = cur.execute("SELECT key FROM competitions WHERE key=?", (comp["key"],)).fetchone()
+            cur.execute(
+                """INSERT OR REPLACE INTO competitions
+                   (key,name,scope,country,region,tier,source_strategy,tags_json,external_id,source,sync_status,last_sync_at,updated_at)
+                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                (
+                    comp["key"],
+                    comp["name"],
+                    comp["scope"],
+                    comp["country"],
+                    comp["region"],
+                    comp["tier"],
+                    comp["source_strategy"],
+                    json.dumps(comp["tags"]),
+                    comp["external_id"],
+                    comp["source"],
+                    comp["sync_status"],
+                    now_iso(),
+                    now_iso(),
+                ),
+            )
+            if comp["sync_status"] == "no_data":
+                skipped += 1
+            elif exists:
+                updated += 1
+            else:
+                inserted += 1
+        conn.commit()
+        result = success_sync("sportsdb", "competitions", len(PRIORITY_COMPETITIONS), inserted, updated, skipped, errors)
+        result["last_sync"] = now_iso()
+        sync_log_finish(log_id, "OK", result["processed"], "")
+        return result
+    except Exception as exc:
+        conn.rollback()
+        errors.append(str(exc)[:200])
+        sync_log_finish(log_id, "ERROR", 0, errors[0])
+        return empty_sync("sportsdb", "competitions", errors[0])
+    finally:
+        conn.close()
+
+
+def sportsdb_team_from_payload(item, league_name=""):
+    name = item.get("strTeam") or item.get("name") or item.get("team") or ""
+    if not name:
+        return None
+    return {
+        "key": canonical_team_key(name),
+        "name": name,
+        "country": item.get("strCountry") or "",
+        "region": item.get("strRegion") or "",
+        "league": league_name or item.get("strLeague") or "",
+        "logo_url": item.get("strBadge") or item.get("strTeamBadge") or item.get("strLogo") or "",
+        "external_id": item.get("idTeam") or "",
+        "color_hint": "premium-blue",
+        "source": "sportsdb",
+        "legal_note": "Equipo/escudo obtenido desde TheSportsDB mediante API permitida; sin scraping.",
+        "sync_status": "synced",
+    }
+
+
+def upsert_team_payloads(team_rows, source="sportsdb"):
+    conn = db()
+    cur = conn.cursor()
+    inserted = updated = skipped = 0
+    for item in team_rows:
+        name = item.get("name") or ""
+        if not name:
+            skipped += 1
+            continue
+        key = canonical_team_key(item.get("key") or name)
+        exists = cur.execute("SELECT key FROM teams WHERE key=?", (key,)).fetchone()
+        cur.execute(
+            """INSERT OR REPLACE INTO teams
+               (key,name,country,region,league,logo_url,external_id,color_hint,source,legal_note,sync_status,last_sync_at,updated_at)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            (
+                key,
+                name,
+                item.get("country") or "",
+                item.get("region") or "",
+                item.get("league") or "",
+                item.get("logo_url") or "",
+                item.get("external_id") or "",
+                item.get("color_hint") or "premium-blue",
+                item.get("source") or source,
+                item.get("legal_note") or "Equipo real guardado desde fuente autorizada.",
+                item.get("sync_status") or "synced",
+                now_iso(),
+                now_iso(),
+            ),
+        )
+        if exists:
+            updated += 1
+        else:
+            inserted += 1
+    conn.commit()
+    conn.close()
+    return {"inserted": inserted, "updated": updated, "skipped": skipped, "processed": len(team_rows)}
+
+
+def sync_sportsdb_teams(limit=240):
+    seed_core()
+    log_id = sync_log_start("sportsdb", "teams")
+    prepared = [team_payload(item) for item in STRUCTURAL_TEAMS]
+    base = upsert_team_payloads(prepared, source="population_engine")
+    errors = []
+    fetched = []
+    if not thesportsdb_key():
+        errors.append("Falta THESPORTSDB_API_KEY o THESPORTSDB_KEY. Se mantienen equipos estructurales.")
+        sync_log_finish(log_id, "PARTIAL", base["processed"], errors[0])
+        return {
+            "ok": False,
+            "source": "sportsdb",
+            "sync_type": "teams",
+            "processed": base["processed"],
+            "inserted": base["inserted"],
+            "updated": base["updated"],
+            "skipped": base["skipped"],
+            "errors": errors,
+            "last_sync": now_iso(),
+        }
+    for league in sportsdb_competitions():
+        if len(fetched) >= int(limit):
+            break
+        league_id = league.get("sportsdb_id")
+        if not league_id:
+            continue
+        try:
+            payload = sportsdb_v1("lookup_all_teams.php", {"id": league_id})
+            for item in payload.get("teams") or []:
+                team = sportsdb_team_from_payload(item, league.get("name", ""))
+                if team:
+                    fetched.append(team)
+        except Exception as exc:
+            errors.append(f"{league.get('name')}: {str(exc)[:160]}")
+    result = upsert_team_payloads(fetched[: int(limit)], source="sportsdb") if fetched else {"processed": 0, "inserted": 0, "updated": 0, "skipped": 0}
+    processed = base["processed"] + result["processed"]
+    inserted = base["inserted"] + result["inserted"]
+    updated = base["updated"] + result["updated"]
+    skipped = base["skipped"] + result["skipped"]
+    sync_log_finish(log_id, "OK" if not errors else "PARTIAL", processed, "; ".join(errors[:3]))
+    return {
+        "ok": not errors,
+        "source": "sportsdb",
+        "sync_type": "teams",
+        "processed": processed,
+        "inserted": inserted,
+        "updated": updated,
+        "skipped": skipped,
+        "errors": errors[:12],
+        "last_sync": now_iso(),
+    }
+
+
+def fetch_sportsdb_results(limit=80):
+    events = []
+    errors = []
+    if not thesportsdb_key():
+        return [], ["Falta THESPORTSDB_API_KEY o THESPORTSDB_KEY."]
+    for league in sportsdb_competitions():
+        if len(events) >= int(limit):
+            break
+        league_id = league.get("sportsdb_id")
+        if not league_id:
+            continue
+        try:
+            payload = sportsdb_v1("eventspastleague.php", {"id": league_id})
+            for item in sportsdb_event_collection(payload):
+                events.append((item, {"key": league["key"], "name": league["name"], "country": league["country"], "id": league_id}))
+        except Exception as exc:
+            errors.append(f"{league.get('name')}: {str(exc)[:160]}")
+    return events[: int(limit)], errors
+
+
+def sync_sportsdb_results(limit=80):
+    seed_core()
+    log_id = sync_log_start("sportsdb", "results")
+    try:
+        fetched, errors = fetch_sportsdb_results(limit=limit)
+        matches = []
+        seen = set()
+        for event, fallback in fetched:
+            match = sportsdb_event_to_match(event, fallback=fallback)
+            if not match or match["id"] in seen:
+                continue
+            match["status"] = "FINALIZADO" if match.get("score") else match.get("status", "FINALIZADO")
+            match["source"] = "TheSportsDB Results API"
+            seen.add(match["id"])
+            matches.append(match)
+        result = upsert_sportsdb_matches(matches)
+        result.update({"source": "sportsdb", "sync_type": "results", "errors": errors[:12], "last_sync": now_iso()})
+        sync_log_finish(log_id, "OK" if not errors else "PARTIAL", result.get("processed", 0), "; ".join(errors[:3]))
+        return result
+    except Exception as exc:
+        save_thesportsdb_error(exc)
+        sync_log_finish(log_id, "ERROR", 0, str(exc))
+        return empty_sync("sportsdb", "results", str(exc)[:200])
+
+
+def sync_sportsdb_calendar(limit=160):
+    result = sync_sportsdb_feed(limit=limit)
+    result.setdefault("source", "sportsdb")
+    result["sync_type"] = "calendar"
+    result["inserted"] = result.get("inserted", result.get("imported", 0))
+    result["last_sync"] = now_iso()
+    return result
+
+
+def upsert_odds_snapshots(events):
+    conn = db()
+    cur = conn.cursor()
+    inserted = updated = skipped = 0
+    for sport, event in events:
+        snapshot = h2h_price_snapshot(event)
+        bookmaker = snapshot.get("bookmaker") or ""
+        outcomes = snapshot.get("outcomes") or []
+        if not outcomes:
+            skipped += 1
+            continue
+        home = event.get("home_team") or ""
+        away = event.get("away_team") or ""
+        prices = price_map_from_outcomes(outcomes, home, away)
+        match_id = odds_event_id(sport.get("odds_key") or sport.get("key"), event)
+        snap_id = hashlib.md5(f"{match_id}:{bookmaker}:{snapshot.get('last_update') or now_iso()}".encode("utf-8")).hexdigest()[:18]
+        exists = cur.execute("SELECT id FROM odds_snapshots WHERE id=?", (snap_id,)).fetchone()
+        cur.execute(
+            """INSERT OR REPLACE INTO odds_snapshots
+               (id,match_id,external_id,source,sport_key,league_name,bookmaker,market,home_team,away_team,home_price,draw_price,away_price,commence_time,payload_json,created_at)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            (
+                snap_id,
+                match_id,
+                event.get("id") or "",
+                "The Odds API",
+                sport.get("odds_key") or event.get("sport_key") or "",
+                sport.get("name") or event.get("sport_title") or "",
+                bookmaker,
+                "h2h",
+                home,
+                away,
+                str(prices.get("home") or ""),
+                str(prices.get("draw") or ""),
+                str(prices.get("away") or ""),
+                event.get("commence_time") or "",
+                json.dumps(event, ensure_ascii=False)[:5000],
+                now_iso(),
+            ),
+        )
+        if exists:
+            updated += 1
+        else:
+            inserted += 1
+    conn.commit()
+    conn.close()
+    return {"processed": len(events), "inserted": inserted, "updated": updated, "skipped": skipped}
+
+
+def sync_odds_snapshots(limit=80, force=False):
+    seed_core()
+    if not os.getenv("THE_ODDS_API_KEY"):
+        return empty_sync("odds", "odds", "Falta THE_ODDS_API_KEY.")
+    if not odds_enabled():
+        result = empty_sync("odds", "odds", "ENABLE_ODDS_API no esta activo.")
+        result["disabled"] = True
+        return result
+    if odds_recently_synced() and not force:
+        last = odds_last_sync()
+        return {"ok": True, "source": "odds", "sync_type": "odds", "skipped": True, "processed": 0, "inserted": 0, "updated": 0, "errors": [], "last_sync": last}
+    log_id = sync_log_start("odds", "odds")
+    try:
+        fetched, errors = fetch_odds_events(limit=limit)
+        result = upsert_odds_snapshots(fetched)
+        result.update(success_sync("odds", "odds", result["processed"], result["inserted"], result["updated"], result["skipped"], errors[:12]))
+        result["last_sync"] = now_iso()
+        sync_log_finish(log_id, "OK" if not errors else "PARTIAL", result["processed"], "; ".join(errors[:3]))
+        return result
+    except Exception as exc:
+        sync_log_finish(log_id, "ERROR", 0, str(exc))
+        return empty_sync("odds", "odds", str(exc)[:200])
+
+
+def data_center_summary():
+    seed_core()
+    summary = match_calendar_diagnostics()
+    summary.update(
+        {
+            "teams_with_crests": (one("SELECT COUNT(*) AS total FROM teams WHERE logo_url IS NOT NULL AND logo_url!=''") or {}).get("total", 0),
+            "teams_without_crests": (one("SELECT COUNT(*) AS total FROM teams WHERE logo_url IS NULL OR logo_url=''") or {}).get("total", 0),
+            "odds_snapshots": (one("SELECT COUNT(*) AS total FROM odds_snapshots") or {}).get("total", 0),
+            "last_sportsdb_sync": latest_sync_log("sportsdb") or latest_sync_log("TheSportsDB"),
+            "last_odds_sync": latest_sync_log("odds") or latest_sync_log("The Odds API"),
+            "recent_logs": rows("SELECT * FROM api_sync_logs ORDER BY started_at DESC LIMIT 12"),
+            "population": {
+                "competitions_prepared": len(PRIORITY_COMPETITIONS),
+                "sportsdb_competitions": len(sportsdb_competitions()),
+                "odds_competitions": len(odds_competitions()),
+                "structural_teams": len(STRUCTURAL_TEAMS),
+            },
+        }
+    )
+    return summary
+
+
+def client_source_label(diagnostics):
+    source = str((diagnostics or {}).get("active_data_source") or "")
+    if (diagnostics or {}).get("total_matches", 0) <= 0:
+        return "Pendiente de sincronizacion"
+    if "Odds" in source or "SportsDB" in source:
+        return "Calendario real sincronizado"
+    if "import" in source.lower():
+        return "Calendario importado"
+    return "Calendario activo"
+
+
+def population_warmup(force=False, limit=120):
+    seed_core()
+    state = one("SELECT * FROM automation_state WHERE key='population_warmup'")
+    last_iso = state.get("updated_at") if state else ""
+    hours = as_int(os.getenv("POPULATION_WARMUP_HOURS", "6"), 6)
+    if not force and not should_run_interval(last_iso, hours, now_iso()):
+        return {"ok": True, "source": "population", "sync_type": "warmup", "skipped": True, "reason": "intervalo_activo", "last_sync": last_iso}
+    log_id = sync_log_start("population", "warmup")
+    results = {
+        "competitions": sync_sportsdb_competitions(),
+        "teams": sync_sportsdb_teams(limit=limit),
+        "calendar": sync_sportsdb_calendar(limit=limit),
+        "odds": sync_odds_events(limit=limit, force=force),
+    }
+    errors = []
+    processed = 0
+    for item in results.values():
+        processed += as_int(item.get("processed"), 0)
+        errors.extend(item.get("errors") or [])
+    payload = {"ok": not errors, "source": "population", "sync_type": "warmup", "processed": processed, "results": results, "errors": errors[:12], "last_sync": now_iso()}
+    conn = db()
+    conn.execute(
+        """INSERT OR REPLACE INTO automation_state(key,value_json,updated_at)
+           VALUES (?,?,?)""",
+        ("population_warmup", json.dumps(payload, ensure_ascii=False)[:12000], now_iso()),
+    )
+    conn.commit()
+    conn.close()
+    sync_log_finish(log_id, "OK" if not errors else "PARTIAL", processed, "; ".join(errors[:3]))
+    return payload
 
 
 def odds_last_sync():
@@ -1378,7 +1877,7 @@ def odds_event_to_match(sport, event):
 def fetch_odds_events(limit=80):
     events = []
     errors = []
-    for sport in odds_sports():
+    for sport in odds_competitions():
         if len(events) >= int(limit):
             break
         try:
@@ -1386,7 +1885,7 @@ def fetch_odds_events(limit=80):
                 f"sports/{sport['odds_key']}/odds",
                 {
                     "regions": os.getenv("ODDS_REGIONS", "eu,uk"),
-                    "markets": "h2h",
+                    "markets": os.getenv("ODDS_MARKETS", "h2h"),
                     "oddsFormat": "decimal",
                     "dateFormat": "iso",
                 },
@@ -1419,9 +1918,14 @@ def sync_odds_events(limit=80, force=False):
             seen.add(match["id"])
             match_rows.append(match)
         result = upsert_sportsdb_matches(match_rows)
+        odds_snapshot_result = upsert_odds_snapshots(fetched)
         result["errors"] = errors[:12]
         result["source"] = "The Odds API"
+        result["sync_type"] = "events"
+        result["inserted"] = result.get("inserted", result.get("imported", 0))
+        result["odds_snapshots"] = odds_snapshot_result
         result["skipped"] = False
+        result["last_sync"] = now_iso()
         conn = db()
         conn.execute(
             """INSERT OR REPLACE INTO automation_state(key,value_json,updated_at)
@@ -1439,14 +1943,18 @@ def sync_odds_events(limit=80, force=False):
 
 def odds_diagnostics():
     cached = (one("SELECT COUNT(*) AS total FROM matches WHERE source='The Odds API'") or {}).get("total", 0)
+    snapshots = (one("SELECT COUNT(*) AS total FROM odds_snapshots") or {}).get("total", 0)
     return {
         "key_present": bool(os.getenv("THE_ODDS_API_KEY")),
         "key_masked": masked_key(os.getenv("THE_ODDS_API_KEY", "")),
         "enabled": odds_enabled(),
         "cache_minutes": odds_cache_minutes(),
         "cached_matches": cached,
+        "odds_snapshots": snapshots,
         "last_sync": odds_last_sync(),
-        "sports_configured": len(odds_sports()),
+        "sports_configured": len(odds_competitions()),
+        "regions": os.getenv("ODDS_REGIONS", "eu,uk"),
+        "markets": os.getenv("ODDS_MARKETS", "h2h"),
         "legal_policy": "The Odds API solo mediante API permitida y cache persistente; sin scraping.",
     }
 
@@ -1476,6 +1984,8 @@ def match_calendar_diagnostics():
         "upcoming_matches": upcoming,
         "live_matches": live_count,
         "live_table_rows": live_table,
+        "odds_snapshots": (one("SELECT COUNT(*) AS total FROM odds_snapshots") or {}).get("total", 0),
+        "competitions_no_data": rows("SELECT key,name,country,region FROM competitions WHERE sync_status='no_data' ORDER BY tier DESC LIMIT 20"),
         "latest_sync": latest_log,
         "active_data_source": active_source,
         "sportsdb_key_present": bool(thesportsdb_key()),
@@ -1679,6 +2189,7 @@ def import_matches(import_rows, source_name="manual", source_url="", legal_note=
     )
     conn.commit()
     conn.close()
+    sync_log_finish(sync_log_start("import", "matches"), "OK", count, "")
     return {"ok": True, "imported": count, "import_id": import_id}
 
 
@@ -1720,7 +2231,114 @@ def import_teams(team_rows, source_name="manual", legal_note="Carga autorizada")
     )
     conn.commit()
     conn.close()
+    sync_log_finish(sync_log_start("import", "teams"), "OK", count, "")
     return {"ok": True, "imported": count, "import_id": import_id}
+
+
+def import_competitions(import_rows, source_name="manual autorizado", legal_note="Carga autorizada"):
+    seed_core()
+    conn = db()
+    cur = conn.cursor()
+    count = 0
+    for item in import_rows:
+        name = item.get("name") or item.get("competition_name") or item.get("league_name") or item.get("liga") or ""
+        if not name:
+            continue
+        key = item.get("key") or slug(name)
+        cur.execute(
+            """INSERT OR REPLACE INTO competitions
+               (key,name,scope,country,region,tier,source_strategy,tags_json,external_id,source,sync_status,last_sync_at,updated_at)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            (
+                key,
+                name,
+                item.get("scope") or "import",
+                item.get("country") or item.get("pais") or "",
+                item.get("region") or "",
+                as_int(item.get("tier"), 60),
+                item.get("source_strategy") or "Import legal",
+                json.dumps([item.get("tag") or "import"]),
+                item.get("external_id") or "",
+                source_name,
+                item.get("sync_status") or "imported",
+                now_iso(),
+                now_iso(),
+            ),
+        )
+        count += 1
+    import_id = hashlib.md5(f"competitions-{source_name}-{now_iso()}-{count}".encode("utf-8")).hexdigest()[:18]
+    cur.execute(
+        """INSERT INTO imports
+           (id,kind,source_name,source_url,legal_note,rows_count,status,payload_preview,created_at)
+           VALUES (?,?,?,?,?,?,?,?,?)""",
+        (import_id, "competitions", source_name, "", legal_note, count, "IMPORTED", json.dumps(import_rows[:3], ensure_ascii=False)[:2000], now_iso()),
+    )
+    conn.commit()
+    conn.close()
+    sync_log_finish(sync_log_start("import", "competitions"), "OK", count, "")
+    return {"ok": True, "imported": count, "inserted": count, "updated": 0, "skipped": 0, "processed": len(import_rows), "import_id": import_id}
+
+
+def import_odds_snapshots(import_rows, source_name="manual odds autorizado", legal_note="Carga autorizada"):
+    seed_core()
+    conn = db()
+    cur = conn.cursor()
+    inserted = updated = skipped = 0
+    for item in import_rows:
+        home = item.get("home_team") or item.get("home") or item.get("local") or ""
+        away = item.get("away_team") or item.get("away") or item.get("visitante") or ""
+        if not home or not away:
+            skipped += 1
+            continue
+        match_id = item.get("match_id") or hashlib.md5(str(f"{item.get('commence_time') or item.get('match_date')}-{home}-{away}").encode("utf-8")).hexdigest()[:18]
+        snap_id = item.get("id") or hashlib.md5(f"manual-odds-{match_id}-{item.get('bookmaker')}-{now_iso()}".encode("utf-8")).hexdigest()[:18]
+        exists = cur.execute("SELECT id FROM odds_snapshots WHERE id=?", (snap_id,)).fetchone()
+        cur.execute(
+            """INSERT OR REPLACE INTO odds_snapshots
+               (id,match_id,external_id,source,sport_key,league_name,bookmaker,market,home_team,away_team,home_price,draw_price,away_price,commence_time,payload_json,created_at)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            (
+                snap_id,
+                match_id,
+                item.get("external_id") or "",
+                source_name,
+                item.get("sport_key") or "",
+                item.get("league_name") or item.get("competition_name") or "",
+                item.get("bookmaker") or "",
+                item.get("market") or "h2h",
+                home,
+                away,
+                str(item.get("home_price") or item.get("cuota_local") or ""),
+                str(item.get("draw_price") or item.get("cuota_empate") or ""),
+                str(item.get("away_price") or item.get("cuota_visitante") or ""),
+                item.get("commence_time") or item.get("kickoff_iso") or "",
+                json.dumps(item, ensure_ascii=False)[:5000],
+                now_iso(),
+            ),
+        )
+        if exists:
+            updated += 1
+        else:
+            inserted += 1
+    import_id = hashlib.md5(f"odds-{source_name}-{now_iso()}-{inserted}".encode("utf-8")).hexdigest()[:18]
+    cur.execute(
+        """INSERT INTO imports
+           (id,kind,source_name,source_url,legal_note,rows_count,status,payload_preview,created_at)
+           VALUES (?,?,?,?,?,?,?,?,?)""",
+        (import_id, "odds", source_name, "", legal_note, inserted + updated, "IMPORTED", json.dumps(import_rows[:3], ensure_ascii=False)[:2000], now_iso()),
+    )
+    conn.commit()
+    conn.close()
+    sync_log_finish(sync_log_start("import", "odds"), "OK", inserted + updated, "")
+    return {"ok": True, "imported": inserted, "inserted": inserted, "updated": updated, "skipped": skipped, "processed": len(import_rows), "import_id": import_id}
+
+
+def import_results(result_rows, source_name="manual results autorizado", legal_note="Carga autorizada"):
+    for item in result_rows:
+        item.setdefault("status", "FINALIZADO")
+    result = import_matches(result_rows, source_name=source_name, source_url="", legal_note=legal_note)
+    result["sync_type"] = "results"
+    return result
 
 
 def as_float(value, default=0.0):
@@ -2023,14 +2641,19 @@ def match_lane_filter(match, lane):
     comp = str(match.get("competition_key") or "").lower()
     comp_name = str(match.get("competition_name") or "").lower()
     country = str(match.get("country") or "").lower()
+    state = ((match.get("live_depth") or {}).get("state") or "").upper()
     if lane in {"today", "week", "tomorrow"}:
         return True
+    if lane == "live":
+        return state in {"LIVE", "HT"} or str(match.get("status") or "").lower() in {"live", "descanso"} or bool(match.get("minute"))
     if lane == "spain":
         return country == "spain" or "laliga" in comp or "rfef" in comp or "copa-del-rey" in comp
     if lane == "andalucia":
         return "andalucia" in comp or "andalucia" in comp_name or any(x in comp for x in ["cadiz", "sevilla", "malaga", "granada", "cordoba", "huelva", "jaen", "almeria"])
     if lane == "international":
         return country not in {"spain", ""} or any(x in comp for x in ["premier", "serie-a", "bundesliga", "ligue", "primeira", "uefa"])
+    if lane == "uefa":
+        return "uefa" in comp or "champions" in comp_name or "europa league" in comp_name or "conference" in comp_name
     if lane in {"national", "world"}:
         return any(x in comp for x in ["world", "euro", "copa-america", "nations"]) or any(x in comp_name for x in ["world", "euro", "copa america", "nations"])
     return True
@@ -2060,6 +2683,12 @@ def match_hub(date=None, lane="today"):
     live_state = split_live(combined)
     sync = sync_plan(sections["today"], now_iso())
     top_leagues = [c for c in competitions() if c.get("tier", 0) >= 90][:10]
+    with_odds = [m for m in combined if m.get("bookmaker") or m.get("odds_h2h_json")]
+    by_country = {}
+    for match in combined:
+        key = match.get("country") or "Global"
+        by_country.setdefault(key, 0)
+        by_country[key] += 1
     hub = {
         "date": date,
         "lane": lane,
@@ -2071,6 +2700,8 @@ def match_hub(date=None, lane="today"):
         "popular": sections["top"][:20],
         "favorites": sections["favorites"][:20],
         "with_picks": sections["with_picks"][:20],
+        "with_odds": with_odds[:20],
+        "by_country": by_country,
         "top_leagues": top_leagues,
         "empty_state": "No hay partidos sincronizados todavia. El administrador puede sincronizar SportsDB/Odds o importar CSV/JSON legal.",
         "counts": {
@@ -2078,6 +2709,7 @@ def match_hub(date=None, lane="today"):
             "upcoming": len(live_state["scheduled"]),
             "favorites": len(sections["favorites"]),
             "with_picks": len(sections["with_picks"]),
+            "with_odds": len(with_odds),
             "popular": len(combined),
         },
     }
@@ -2952,6 +3584,7 @@ def dashboard_data(lane="today", date=None):
     hub = match_hub(date)
     favorite_bundle = favorite_feed_full()
     flow = build_live_flow(hub, favorites=favorites, picks=picks, profile=profile)
+    matches_diag = match_calendar_diagnostics()
     groups = {}
     for match in matches:
         groups.setdefault(match.get("competition_name") or "Sin competicion", []).append(match)
@@ -2979,7 +3612,9 @@ def dashboard_data(lane="today", date=None):
         "sportsdb": crest_sync_status(),
         "sportsdb_feed": sportsdb_feed_status(),
         "odds": odds_diagnostics(),
-        "matches_diagnostics": match_calendar_diagnostics(),
+        "matches_diagnostics": matches_diag,
+        "client_source_label": client_source_label(matches_diag),
+        "data_center": data_center_summary(),
         "live": split_live([annotate_match(m) for m in get_matches(date, "today")]),
         "legal_policy": "No scraping ilegal. Solo APIs permitidas, datos propios, CSV/JSON autorizado, cache persistente y revision editorial.",
         "readiness": {
@@ -3243,6 +3878,36 @@ def admin_matches_sync_page():
     return render_template("admin_matches_sync.html", data=data, message=message, result=result)
 
 
+@app.route("/admin/data-center", methods=["GET", "POST"])
+def admin_data_center_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/data-center")
+    message = ""
+    result = None
+    if request.method == "POST":
+        action = request.form.get("action") or "summary"
+        limit = as_int(request.form.get("limit"), 120)
+        force = request.form.get("force") in {"1", "true", "yes"}
+        if action == "competitions":
+            result = sync_sportsdb_competitions()
+        elif action == "teams":
+            result = sync_sportsdb_teams(limit=limit)
+        elif action == "calendar":
+            result = sync_sportsdb_calendar(limit=limit)
+        elif action == "results":
+            result = sync_sportsdb_results(limit=limit)
+        elif action == "odds":
+            result = sync_odds_events(limit=limit, force=True)
+        elif action == "crests":
+            result = sync_sportsdb_crests(refresh=True, limit=limit)
+        elif action == "warmup":
+            result = population_warmup(force=force, limit=limit)
+        message = "Accion ejecutada desde Data Center."
+    data = dashboard_data()
+    data["data_center"] = data_center_summary()
+    return render_template("admin_data_center.html", data=data, message=message, result=result)
+
+
 @app.route("/admin/system")
 def admin_system_page():
     if not is_admin_session():
@@ -3320,6 +3985,7 @@ def crests_page():
 @app.route("/v512-health")
 @app.route("/v513-health")
 @app.route("/v516-health")
+@app.route("/v518-health")
 def health():
     return jsonify(
         {
@@ -3342,6 +4008,22 @@ def api_competitions():
 @app.route("/api/matches/diagnostics")
 def api_matches_diagnostics():
     return jsonify({"ok": True, "version": APP_VERSION, "diagnostics": match_calendar_diagnostics()})
+
+
+@app.route("/api/data-center/summary")
+def api_data_center_summary():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "version": APP_VERSION, "summary": data_center_summary()})
+
+
+@app.route("/api/data-center/warmup", methods=["POST", "GET"])
+def api_data_center_warmup():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    limit = as_int(request.args.get("limit") or request.form.get("limit"), 120)
+    force = request.args.get("force") in {"1", "true", "yes"} or request.form.get("force") in {"1", "true", "yes"}
+    return jsonify({"version": APP_VERSION, **population_warmup(force=force, limit=limit)})
 
 
 @app.route("/api/calendar")
@@ -3471,6 +4153,24 @@ def api_import_teams():
     return jsonify({"version": APP_VERSION, **result})
 
 
+@app.route("/api/import-competitions", methods=["POST"])
+def api_import_competitions():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    payload = request.get_json(silent=True) or dict(request.form or {})
+    rows_payload = payload.get("rows")
+    if rows_payload is None:
+        rows_payload = parse_payload(payload.get("payload") or "")
+    if not isinstance(rows_payload, list):
+        return jsonify({"ok": False, "error": "Payload invalido. Usa rows o payload JSON/CSV."}), 400
+    result = import_competitions(
+        rows_payload,
+        payload.get("source_name") or "manual competiciones autorizado",
+        payload.get("legal_note") or "Competicion cargada por administrador desde fuente autorizada",
+    )
+    return jsonify({"version": APP_VERSION, **result})
+
+
 @app.route("/api/crest-diagnostics")
 def api_crest_diagnostics():
     seed_core()
@@ -3512,6 +4212,21 @@ def api_sportsdb_sync_crests():
     return jsonify({"version": APP_VERSION, **result})
 
 
+@app.route("/api/sportsdb/sync-competitions", methods=["POST", "GET"])
+def api_sportsdb_sync_competitions():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({"version": APP_VERSION, **sync_sportsdb_competitions()})
+
+
+@app.route("/api/sportsdb/sync-teams", methods=["POST", "GET"])
+def api_sportsdb_sync_teams():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    limit = as_int(request.args.get("limit") or request.form.get("limit"), 240)
+    return jsonify({"version": APP_VERSION, **sync_sportsdb_teams(limit=limit)})
+
+
 @app.route("/api/sportsdb/sync-feed", methods=["POST", "GET"])
 @app.route("/api/sportsdb/sync-matches", methods=["POST", "GET"])
 @app.route("/api/sportsdb/sync-calendar", methods=["POST", "GET"])
@@ -3519,8 +4234,16 @@ def api_sportsdb_sync_feed():
     if not is_admin_session():
         return admin_json_forbidden()
     limit = as_int(request.args.get("limit") or request.form.get("limit"), 80)
-    result = sync_sportsdb_feed(limit=limit)
+    result = sync_sportsdb_calendar(limit=limit)
     return jsonify({"version": APP_VERSION, **result, "status": sportsdb_feed_status()})
+
+
+@app.route("/api/sportsdb/sync-results", methods=["POST", "GET"])
+def api_sportsdb_sync_results():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    limit = as_int(request.args.get("limit") or request.form.get("limit"), 80)
+    return jsonify({"version": APP_VERSION, **sync_sportsdb_results(limit=limit)})
 
 
 @app.route("/api/matches/sync-now", methods=["POST", "GET"])
@@ -3534,6 +4257,7 @@ def api_matches_sync_now():
 
 
 @app.route("/api/odds/sync-events", methods=["POST", "GET"])
+@app.route("/api/odds/sync-odds", methods=["POST", "GET"])
 def api_odds_sync_events():
     if not is_admin_session():
         return admin_json_forbidden()
@@ -3562,6 +4286,42 @@ def api_import_matches():
         payload.get("source_name") or "manual autorizado",
         payload.get("source_url") or "",
         payload.get("legal_note") or "Carga autorizada por administrador",
+    )
+    return jsonify({"version": APP_VERSION, **result})
+
+
+@app.route("/api/import-results", methods=["POST"])
+def api_import_results():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    payload = request.get_json(silent=True) or dict(request.form or {})
+    rows_payload = payload.get("rows")
+    if rows_payload is None:
+        rows_payload = parse_payload(payload.get("payload") or "")
+    if not isinstance(rows_payload, list):
+        return jsonify({"ok": False, "error": "Payload invalido. Usa rows o payload JSON/CSV."}), 400
+    result = import_results(
+        rows_payload,
+        payload.get("source_name") or "manual results autorizado",
+        payload.get("legal_note") or "Resultado cargado por administrador desde fuente autorizada",
+    )
+    return jsonify({"version": APP_VERSION, **result})
+
+
+@app.route("/api/import-odds", methods=["POST"])
+def api_import_odds():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    payload = request.get_json(silent=True) or dict(request.form or {})
+    rows_payload = payload.get("rows")
+    if rows_payload is None:
+        rows_payload = parse_payload(payload.get("payload") or "")
+    if not isinstance(rows_payload, list):
+        return jsonify({"ok": False, "error": "Payload invalido. Usa rows o payload JSON/CSV."}), 400
+    result = import_odds_snapshots(
+        rows_payload,
+        payload.get("source_name") or "manual odds autorizado",
+        payload.get("legal_note") or "Cuota cargada por administrador desde fuente autorizada",
     )
     return jsonify({"version": APP_VERSION, **result})
 
@@ -3733,10 +4493,36 @@ def api_diagnostics():
         {"name": "Membresias", "status": "READY", "detail": "Planes Free, PRO y ELITE preparados para capa comercial."},
         {"name": "Performance cache", "status": "READY", "detail": "Cache persistente para hub, live flow y navegacion rapida."},
         {"name": "Premium mobile feel", "status": "READY", "detail": "Interacciones tactiles, spacing y tarjetas afinadas para sensacion app nativa."},
-        {"name": "Arquitectura limpia", "status": "READY", "detail": "Motores separados: live, match, telegram, shark, crest y cache."},
+        {"name": "Arquitectura limpia", "status": "READY", "detail": "Motores separados: football population, live, match, telegram, shark, crest y cache."},
         {"name": "Render", "status": "READY", "detail": "Procfile, render.yaml y requirements incluidos."},
     ]
     return jsonify({"ok": True, "version": APP_VERSION, "checks": checks, "readiness": data["readiness"]})
+
+
+_STARTUP_WARMUP_SCHEDULED = False
+
+
+def schedule_population_warmup_if_needed():
+    global _STARTUP_WARMUP_SCHEDULED
+    if _STARTUP_WARMUP_SCHEDULED:
+        return
+    if str(os.getenv("DISABLE_POPULATION_WARMUP", "")).strip().lower() in {"1", "true", "yes"}:
+        return
+    _STARTUP_WARMUP_SCHEDULED = True
+
+    def _worker():
+        try:
+            seed_core()
+            total = (one("SELECT COUNT(*) AS total FROM matches") or {}).get("total", 0)
+            force = total == 0
+            population_warmup(force=force, limit=as_int(os.getenv("POPULATION_WARMUP_LIMIT", "80"), 80))
+        except Exception as exc:
+            print("NeMeSiS SHARK PRO: population warmup skipped:", str(exc)[:220])
+
+    threading.Thread(target=_worker, name="population-warmup", daemon=True).start()
+
+
+schedule_population_warmup_if_needed()
 
 
 if __name__ == "__main__":

@@ -15,6 +15,7 @@
           <a href="/">Inicio</a>
           <a href="/admin/users">Panel admin</a>
           <a href="/admin/users">Usuarios</a>
+          <a href="/admin/data-center">Data Center</a>
           <a href="/admin/matches-sync">Partidos</a>
           <a href="/admin/sportsdb-sync">SportsDB Sync</a>
           <a href="/admin/sportsdb-feed">SportsDB Feed</a>
@@ -43,6 +44,7 @@
   <nav class="bottom-nav" aria-label="Navegacion rapida">
     {% if current_user and current_user.role == 'ADMIN' %}
       <a href="/">Inicio</a>
+      <a href="/admin/data-center">Datos</a>
       <a href="/admin/users">Usuarios</a>
       <a href="/admin/matches-sync">Partidos</a>
       <a href="/admin/sportsdb-feed">Feed</a>
