@@ -12,7 +12,7 @@ TASKS = [
     {"name": "odds", "label": "Cuotas Odds", "kind": "odds", "env": "ODDS_CACHE_MINUTES", "unit": "minutes", "default": 20},
     {"name": "live", "label": "Live basico", "kind": "live", "env": "LIVE_CACHE_MINUTES", "unit": "minutes", "default": 2},
     {"name": "cleanup", "label": "Limpieza logs", "kind": "maintenance", "env": "SCHEDULER_LOG_CLEANUP_HOURS", "unit": "hours", "default": 24},
-    {"name": "telegram", "label": "Telegram futuro", "kind": "telegram", "env": "TELEGRAM_PREPARE_HOURS", "unit": "hours", "default": 6},
+    {"name": "telegram", "label": "Telegram Premium", "kind": "telegram", "env": "TELEGRAM_PREPARE_HOURS", "unit": "hours", "default": 6},
 ]
 
 

@@ -35,11 +35,26 @@ from engines.match_engine import hub_sections, real_time_state, sync_plan
 from engines.match_sync_engine import IMPORTANT_COMPETITIONS, h2h_price_snapshot, normalize_status as sync_normalize_status, odds_sports, sportsdb_leagues
 from engines.scheduler_engine import is_due, is_stale_running, next_run_iso, normalize_result, scheduler_config, task_definition
 from engines.shark_engine import build_shark_context, explain_pick_risk
+from engines.telegram_delivery_engine import (
+    DEFAULT_SETTINGS as TELEGRAM_DEFAULT_SETTINGS,
+    QUEUE_FAILED,
+    QUEUE_PENDING,
+    QUEUE_SENT,
+    QUEUE_SENDING,
+    build_daily_matches_message as format_daily_matches_message,
+    build_daily_picks_message as format_daily_picks_message,
+    build_live_alert_message as format_live_alert_message,
+    build_system_test_message as format_system_test_message,
+    normalize_settings,
+    queue_summary,
+    subscriber_payload,
+    telegram_dedupe_key,
+)
 from engines.telegram_engine import build_alert_queue, dispatch_signature, should_skip_duplicate
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V519_AUTO_SYNC_SCHEDULER_REAL_CONTENT_ACTIVATION"
-SEED_VERSION = "v519-auto-sync-scheduler-real-content-activation-seed"
+APP_VERSION = "V520_TELEGRAM_AUTOMATIC_PREMIUM_DELIVERY_ENGINE"
+SEED_VERSION = "v520-telegram-automatic-premium-delivery-engine-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
 
@@ -191,7 +206,39 @@ def run_schema_migrations(conn):
         ("telegram_queue", "payload_json", "TEXT"),
         ("telegram_queue", "status", "TEXT DEFAULT 'PENDING'"),
         ("telegram_queue", "attempts", "INTEGER DEFAULT 0"),
+        ("telegram_queue", "chat_id", "TEXT"),
+        ("telegram_queue", "user_id", "TEXT"),
+        ("telegram_queue", "message_type", "TEXT"),
+        ("telegram_queue", "title", "TEXT"),
+        ("telegram_queue", "body", "TEXT"),
+        ("telegram_queue", "max_attempts", "INTEGER DEFAULT 3"),
+        ("telegram_queue", "dedupe_key", "TEXT"),
+        ("telegram_queue", "scheduled_at", "TEXT"),
+        ("telegram_queue", "sent_at", "TEXT"),
+        ("telegram_queue", "error_message", "TEXT"),
         ("telegram_queue", "updated_at", "TEXT"),
+        ("telegram_logs", "event_type", "TEXT"),
+        ("telegram_logs", "status", "TEXT"),
+        ("telegram_logs", "message", "TEXT"),
+        ("telegram_logs", "payload_json", "TEXT"),
+        ("telegram_logs", "created_at", "TEXT"),
+        ("telegram_subscribers", "user_id", "TEXT"),
+        ("telegram_subscribers", "chat_id", "TEXT"),
+        ("telegram_subscribers", "username", "TEXT"),
+        ("telegram_subscribers", "first_name", "TEXT"),
+        ("telegram_subscribers", "membership", "TEXT"),
+        ("telegram_subscribers", "is_active", "INTEGER DEFAULT 1"),
+        ("telegram_subscribers", "created_at", "TEXT"),
+        ("telegram_subscribers", "last_seen", "TEXT"),
+        ("telegram_subscribers", "last_message_sent_at", "TEXT"),
+        ("telegram_settings", "auto_daily_matches", "INTEGER DEFAULT 1"),
+        ("telegram_settings", "auto_daily_picks", "INTEGER DEFAULT 0"),
+        ("telegram_settings", "auto_live_alerts", "INTEGER DEFAULT 0"),
+        ("telegram_settings", "daily_matches_time", "TEXT DEFAULT '09:00'"),
+        ("telegram_settings", "daily_picks_time", "TEXT DEFAULT '11:00'"),
+        ("telegram_settings", "max_messages_per_hour", "INTEGER DEFAULT 10"),
+        ("telegram_settings", "enabled", "INTEGER DEFAULT 0"),
+        ("telegram_settings", "updated_at", "TEXT"),
         ("live_sync_state", "sync_status", "TEXT"),
         ("live_sync_state", "next_refresh_at", "TEXT"),
         ("live_sync_state", "updated_at", "TEXT"),
@@ -251,6 +298,10 @@ def run_schema_migrations(conn):
         conn.execute("CREATE INDEX IF NOT EXISTS idx_api_sync_logs_source ON api_sync_logs(source, sync_type, started_at)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_odds_snapshots_match ON odds_snapshots(match_id, created_at)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_scheduler_locks_status ON scheduler_locks(status, next_run)")
+        conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_telegram_queue_dedupe ON telegram_queue(dedupe_key) WHERE dedupe_key IS NOT NULL AND dedupe_key!=''")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_telegram_queue_status ON telegram_queue(status, scheduled_at)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_telegram_logs_created ON telegram_logs(created_at)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_telegram_subscribers_active ON telegram_subscribers(is_active, membership)")
     except sqlite3.OperationalError:
         pass
 
@@ -444,6 +495,43 @@ def init_db():
         )"""
     )
     cur.execute(
+        """CREATE TABLE IF NOT EXISTS telegram_logs(
+            id TEXT PRIMARY KEY,
+            event_type TEXT,
+            status TEXT,
+            message TEXT,
+            payload_json TEXT,
+            created_at TEXT
+        )"""
+    )
+    cur.execute(
+        """CREATE TABLE IF NOT EXISTS telegram_subscribers(
+            id TEXT PRIMARY KEY,
+            user_id TEXT,
+            chat_id TEXT,
+            username TEXT,
+            first_name TEXT,
+            membership TEXT,
+            is_active INTEGER DEFAULT 1,
+            created_at TEXT,
+            last_seen TEXT,
+            last_message_sent_at TEXT
+        )"""
+    )
+    cur.execute(
+        """CREATE TABLE IF NOT EXISTS telegram_settings(
+            id TEXT PRIMARY KEY,
+            auto_daily_matches INTEGER DEFAULT 1,
+            auto_daily_picks INTEGER DEFAULT 0,
+            auto_live_alerts INTEGER DEFAULT 0,
+            daily_matches_time TEXT DEFAULT '09:00',
+            daily_picks_time TEXT DEFAULT '11:00',
+            max_messages_per_hour INTEGER DEFAULT 10,
+            enabled INTEGER DEFAULT 0,
+            updated_at TEXT
+        )"""
+    )
+    cur.execute(
         """CREATE TABLE IF NOT EXISTS automation_state(
             key TEXT PRIMARY KEY,
             value_json TEXT,
@@ -519,10 +607,20 @@ def init_db():
             signature TEXT UNIQUE,
             alert_type TEXT,
             target_key TEXT,
+            chat_id TEXT,
+            user_id TEXT,
+            message_type TEXT,
+            title TEXT,
+            body TEXT,
             priority INTEGER DEFAULT 50,
             payload_json TEXT,
             status TEXT DEFAULT 'PENDING',
             attempts INTEGER DEFAULT 0,
+            max_attempts INTEGER DEFAULT 3,
+            dedupe_key TEXT,
+            scheduled_at TEXT,
+            sent_at TEXT,
+            error_message TEXT,
             created_at TEXT,
             updated_at TEXT
         )"""
@@ -564,6 +662,22 @@ def init_db():
     )
     run_schema_migrations(conn)
     cleanup_fake_matches(cur)
+    cur.execute(
+        """INSERT OR IGNORE INTO telegram_settings
+           (id,auto_daily_matches,auto_daily_picks,auto_live_alerts,daily_matches_time,daily_picks_time,max_messages_per_hour,enabled,updated_at)
+           VALUES (?,?,?,?,?,?,?,?,?)""",
+        (
+            TELEGRAM_DEFAULT_SETTINGS["id"],
+            1 if TELEGRAM_DEFAULT_SETTINGS["auto_daily_matches"] else 0,
+            1 if TELEGRAM_DEFAULT_SETTINGS["auto_daily_picks"] else 0,
+            1 if TELEGRAM_DEFAULT_SETTINGS["auto_live_alerts"] else 0,
+            TELEGRAM_DEFAULT_SETTINGS["daily_matches_time"],
+            TELEGRAM_DEFAULT_SETTINGS["daily_picks_time"],
+            TELEGRAM_DEFAULT_SETTINGS["max_messages_per_hour"],
+            1 if TELEGRAM_DEFAULT_SETTINGS["enabled"] else 0,
+            now_iso(),
+        ),
+    )
     bootstrap_admin_from_env(conn)
     conn.commit()
     conn.close()
@@ -1944,8 +2058,7 @@ def run_scheduler_task(task_name, force=False, limit=None):
         elif task_name == "cleanup":
             result = cleanup_scheduler_logs(max_rows=as_int(os.getenv("SCHEDULER_LOG_MAX_ROWS", "300"), 300))
         elif task_name == "telegram":
-            posts = prepare_auto_posts()
-            result = {"ok": True, "processed": len(posts), "inserted": 0, "updated": 0, "skipped": 0, "errors": [], "prepared": posts}
+            result = telegram_scheduler_delivery(force=force)
         else:
             result = empty_sync("scheduler", task_name, "Tarea no reconocida.")
         normalized = scheduler_release(task_name, result, started_at)
@@ -1961,11 +2074,11 @@ def run_scheduler_task(task_name, force=False, limit=None):
 def run_due_scheduler_tasks(force=False, startup=False):
     if not force and not scheduler_enabled():
         return {"ok": True, "skipped": True, "reason": "auto_sync_disabled", "tasks": []}
-    tasks = ["calendar", "crests", "odds", "live", "cleanup"]
+    tasks = ["calendar", "crests", "odds", "live", "telegram", "cleanup"]
     if startup:
         total_matches = (one("SELECT COUNT(*) AS total FROM matches") or {}).get("total", 0)
         teams_with_crests = (one("SELECT COUNT(*) AS total FROM teams WHERE logo_url IS NOT NULL AND logo_url!=''") or {}).get("total", 0)
-        tasks = ["calendar", "live", "odds", "cleanup"]
+        tasks = ["calendar", "live", "odds", "telegram", "cleanup"]
         if not total_matches:
             tasks.insert(0, "calendar")
         if not teams_with_crests:
@@ -3514,12 +3627,389 @@ def shark_answer(question):
 def telegram_config():
     token = os.getenv("TELEGRAM_BOT_TOKEN", "")
     chat_id = os.getenv("TELEGRAM_CHAT_ID", "")
+    settings = get_telegram_settings()
     return {
         "configured": bool(token and chat_id),
         "token_present": bool(token),
+        "token_masked": masked_key(token),
         "chat_id_present": bool(chat_id),
-        "enabled": os.getenv("ENABLE_TELEGRAM_AUTO", "false").lower() in {"1", "true", "yes", "on"},
+        "chat_id_masked": masked_key(chat_id),
+        "enabled": bool(settings.get("enabled")),
+        "legacy_enabled": os.getenv("ENABLE_TELEGRAM_AUTO", "false").lower() in {"1", "true", "yes", "on"},
         "auto_minutes": as_int(os.getenv("TELEGRAM_AUTO_MINUTES", "360"), 360),
+        "settings": settings,
+    }
+
+
+def get_telegram_settings():
+    seed_core()
+    row = one("SELECT * FROM telegram_settings WHERE id='default'")
+    if not row:
+        conn = db()
+        conn.execute(
+            """INSERT OR IGNORE INTO telegram_settings
+               (id,auto_daily_matches,auto_daily_picks,auto_live_alerts,daily_matches_time,daily_picks_time,max_messages_per_hour,enabled,updated_at)
+               VALUES (?,?,?,?,?,?,?,?,?)""",
+            ("default", 1, 0, 0, "09:00", "11:00", 10, 0, now_iso()),
+        )
+        conn.commit()
+        conn.close()
+        row = one("SELECT * FROM telegram_settings WHERE id='default'")
+    return normalize_settings(row)
+
+
+def update_telegram_settings(payload):
+    current = get_telegram_settings()
+    merged = dict(current)
+    for key in ("auto_daily_matches", "auto_daily_picks", "auto_live_alerts", "enabled"):
+        if key in payload:
+            merged[key] = str(payload.get(key)).lower() in {"1", "true", "yes", "on"} or payload.get(key) is True
+    for key in ("daily_matches_time", "daily_picks_time"):
+        if key in payload and str(payload.get(key) or "").strip():
+            merged[key] = str(payload.get(key)).strip()[:5]
+    if "max_messages_per_hour" in payload:
+        merged["max_messages_per_hour"] = max(1, as_int(payload.get("max_messages_per_hour"), 10))
+    conn = db()
+    conn.execute(
+        """INSERT OR REPLACE INTO telegram_settings
+           (id,auto_daily_matches,auto_daily_picks,auto_live_alerts,daily_matches_time,daily_picks_time,max_messages_per_hour,enabled,updated_at)
+           VALUES (?,?,?,?,?,?,?,?,?)""",
+        (
+            "default",
+            1 if merged["auto_daily_matches"] else 0,
+            1 if merged["auto_daily_picks"] else 0,
+            1 if merged["auto_live_alerts"] else 0,
+            merged["daily_matches_time"],
+            merged["daily_picks_time"],
+            merged["max_messages_per_hour"],
+            1 if merged["enabled"] else 0,
+            now_iso(),
+        ),
+    )
+    conn.commit()
+    conn.close()
+    telegram_log("settings", "updated", "Configuracion Telegram actualizada.", merged)
+    return get_telegram_settings()
+
+
+def telegram_log(event_type, status, message, payload=None):
+    seed_core()
+    log_id = hashlib.md5(f"telegram-log-{event_type}-{status}-{datetime.now(TZ).isoformat(timespec='microseconds')}".encode("utf-8")).hexdigest()[:18]
+    conn = db()
+    conn.execute(
+        """INSERT INTO telegram_logs(id,event_type,status,message,payload_json,created_at)
+           VALUES (?,?,?,?,?,?)""",
+        (log_id, event_type, status, str(message or "")[:1000], json.dumps(payload or {}, ensure_ascii=False)[:5000], now_iso()),
+    )
+    conn.commit()
+    conn.close()
+    return log_id
+
+
+def ensure_default_telegram_subscriber():
+    chat_id = os.getenv("TELEGRAM_CHAT_ID", "").strip()
+    if not chat_id:
+        return None
+    existing = one("SELECT * FROM telegram_subscribers WHERE chat_id=?", (chat_id,))
+    if existing:
+        return existing
+    sub = subscriber_payload(chat_id=chat_id, username="admin", first_name="Canal SHARK", membership="ADMIN")
+    sub_id = hashlib.md5(f"telegram-sub-{chat_id}".encode("utf-8")).hexdigest()[:18]
+    conn = db()
+    conn.execute(
+        """INSERT OR IGNORE INTO telegram_subscribers(id,user_id,chat_id,username,first_name,membership,is_active,created_at,last_seen,last_message_sent_at)
+           VALUES (?,?,?,?,?,?,?,?,?,?)""",
+        (sub_id, sub["user_id"], sub["chat_id"], sub["username"], sub["first_name"], sub["membership"], 1, now_iso(), now_iso(), ""),
+    )
+    conn.commit()
+    conn.close()
+    return one("SELECT * FROM telegram_subscribers WHERE id=?", (sub_id,))
+
+
+def telegram_subscribers(active_only=True):
+    ensure_default_telegram_subscriber()
+    if active_only:
+        return rows("SELECT * FROM telegram_subscribers WHERE is_active=1 AND chat_id IS NOT NULL AND chat_id!='' ORDER BY membership DESC, created_at")
+    return rows("SELECT * FROM telegram_subscribers ORDER BY created_at DESC")
+
+
+def telegram_sent_last_hour(chat_id=None):
+    since = (datetime.now(TZ) - timedelta(hours=1)).isoformat(timespec="seconds")
+    if chat_id:
+        return (one("SELECT COUNT(*) AS total FROM telegram_queue WHERE chat_id=? AND status=? AND sent_at>=?", (chat_id, QUEUE_SENT, since)) or {}).get("total", 0)
+    return (one("SELECT COUNT(*) AS total FROM telegram_queue WHERE status=? AND sent_at>=?", (QUEUE_SENT, since)) or {}).get("total", 0)
+
+
+def enqueue_telegram_message(message_type, title, body, chat_id="", user_id="", payload=None, scheduled_at=None, dedupe_key="", force=False, max_attempts=3):
+    seed_core()
+    scheduled_at = scheduled_at or now_iso()
+    payload = payload or {}
+    dedupe_key = dedupe_key or telegram_dedupe_key(message_type, today_iso(), chat_id or user_id or "global")
+    existing = one("SELECT * FROM telegram_queue WHERE dedupe_key=?", (dedupe_key,))
+    if existing and not force:
+        telegram_log("queue", "skipped", "Mensaje duplicado omitido.", {"dedupe_key": dedupe_key, "message_type": message_type})
+        return {"ok": True, "queued": False, "skipped": 1, "reason": "duplicate", "item": existing}
+    queue_id = hashlib.md5(f"telegram-queue-{dedupe_key}-{datetime.now(TZ).isoformat(timespec='microseconds')}".encode("utf-8")).hexdigest()[:18]
+    conn = db()
+    try:
+        conn.execute(
+            """INSERT OR REPLACE INTO telegram_queue
+               (id,signature,alert_type,target_key,chat_id,user_id,message_type,title,body,priority,payload_json,status,attempts,max_attempts,dedupe_key,scheduled_at,sent_at,error_message,created_at,updated_at)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            (
+                queue_id,
+                dedupe_key[:18],
+                message_type,
+                payload.get("target_key") or "",
+                chat_id,
+                user_id,
+                message_type,
+                title,
+                body,
+                as_int(payload.get("priority"), 70),
+                json.dumps(payload, ensure_ascii=False)[:5000],
+                QUEUE_PENDING,
+                0,
+                max(1, as_int(max_attempts, 3)),
+                dedupe_key,
+                scheduled_at,
+                "",
+                "",
+                now_iso(),
+                now_iso(),
+            ),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+    telegram_log("queue", "pending", f"Mensaje encolado: {title}", {"id": queue_id, "type": message_type})
+    return {"ok": True, "queued": True, "inserted": 1, "item": one("SELECT * FROM telegram_queue WHERE id=?", (queue_id,))}
+
+
+def build_daily_matches_message():
+    matches = match_hub(today_iso(), "today").get("today") or get_matches(today_iso(), "today")
+    if not matches:
+        matches = get_upcoming_matches(today_iso(), days=2, limit=10)
+    return format_daily_matches_message(matches, today_iso(), APP_NAME)
+
+
+def build_daily_picks_message(force_empty=False):
+    picks = get_picks(limit=8)
+    return format_daily_picks_message(picks, force_empty=force_empty, premium_name=APP_NAME)
+
+
+def build_live_alert_message(match=None):
+    match = match or (match_hub(today_iso(), "live").get("live") or [None])[0]
+    if not match:
+        return ""
+    return format_live_alert_message(match, internal_url="/live")
+
+
+def build_system_test_message():
+    return format_system_test_message(now_iso(), APP_NAME)
+
+
+def enqueue_daily_matches(force=False, forced_chat_id=""):
+    subscribers = telegram_subscribers()
+    if forced_chat_id and not subscribers:
+        subscribers = [{"chat_id": forced_chat_id, "user_id": "", "membership": "ADMIN"}]
+    if not subscribers:
+        return {"ok": False, "message": "No hay chat_id ni suscriptores activos.", "processed": 0, "sent": 0, "failed": 0, "skipped": 0, "errors": ["sin_destinatarios"]}
+    body = build_daily_matches_message()
+    inserted = skipped = 0
+    for sub in subscribers:
+        result = enqueue_telegram_message(
+            "daily_matches",
+            "Partidos del dia",
+            body,
+            chat_id=sub.get("chat_id"),
+            user_id=sub.get("user_id"),
+            payload={"membership": sub.get("membership"), "target_key": today_iso()},
+            dedupe_key=telegram_dedupe_key("daily_matches", today_iso(), sub.get("chat_id")),
+            force=force,
+        )
+        inserted += 1 if result.get("queued") else 0
+        skipped += 1 if result.get("skipped") else 0
+    return {"ok": True, "message": "Resumen de partidos encolado.", "processed": len(subscribers), "inserted": inserted, "updated": 0, "sent": 0, "failed": 0, "skipped": skipped, "errors": []}
+
+
+def enqueue_daily_picks(force=False, force_empty=False, forced_chat_id=""):
+    body = build_daily_picks_message(force_empty=force_empty)
+    if not body:
+        return {"ok": True, "message": "No hay picks publicados; no se encola nada.", "processed": 0, "inserted": 0, "sent": 0, "failed": 0, "skipped": 1, "errors": []}
+    subscribers = [s for s in telegram_subscribers() if str(s.get("membership") or "FREE").upper() in {"PRO", "ELITE", "ADMIN"}]
+    if forced_chat_id and not subscribers:
+        subscribers = [{"chat_id": forced_chat_id, "user_id": "", "membership": "ADMIN"}]
+    if not subscribers:
+        return {"ok": False, "message": "No hay suscriptores PRO/ELITE activos.", "processed": 0, "sent": 0, "failed": 0, "skipped": 0, "errors": ["sin_destinatarios"]}
+    inserted = skipped = 0
+    for sub in subscribers:
+        result = enqueue_telegram_message(
+            "daily_picks",
+            "Picks destacados",
+            body,
+            chat_id=sub.get("chat_id"),
+            user_id=sub.get("user_id"),
+            payload={"membership": sub.get("membership"), "target_key": today_iso()},
+            dedupe_key=telegram_dedupe_key("daily_picks", today_iso(), sub.get("chat_id")),
+            force=force,
+        )
+        inserted += 1 if result.get("queued") else 0
+        skipped += 1 if result.get("skipped") else 0
+    return {"ok": True, "message": "Picks destacados encolados.", "processed": len(subscribers), "inserted": inserted, "updated": 0, "sent": 0, "failed": 0, "skipped": skipped, "errors": []}
+
+
+def enqueue_live_alerts(force=False):
+    settings = get_telegram_settings()
+    if not settings.get("auto_live_alerts") and not force:
+        return {"ok": True, "message": "Alertas live desactivadas.", "processed": 0, "inserted": 0, "sent": 0, "failed": 0, "skipped": 1, "errors": []}
+    live_matches = match_hub(today_iso(), "live").get("live") or []
+    subscribers = [s for s in telegram_subscribers() if str(s.get("membership") or "FREE").upper() in {"ELITE", "ADMIN"}]
+    inserted = skipped = 0
+    for match in live_matches[:8]:
+        body = format_live_alert_message(match, internal_url="/live")
+        for sub in subscribers:
+            result = enqueue_telegram_message(
+                "live_alert",
+                "Alerta live",
+                body,
+                chat_id=sub.get("chat_id"),
+                user_id=sub.get("user_id"),
+                payload={"membership": sub.get("membership"), "target_key": match.get("id"), "match_id": match.get("id")},
+                dedupe_key=telegram_dedupe_key("live_alert", today_iso(), f"{sub.get('chat_id')}:{match.get('id')}:{match.get('minute') or match.get('score')}"),
+                force=force,
+            )
+            inserted += 1 if result.get("queued") else 0
+            skipped += 1 if result.get("skipped") else 0
+    return {"ok": True, "message": "Alertas live revisadas.", "processed": len(live_matches), "inserted": inserted, "updated": 0, "sent": 0, "failed": 0, "skipped": skipped, "errors": []}
+
+
+def telegram_send_http(chat_id, text, message_type="manual"):
+    token = os.getenv("TELEGRAM_BOT_TOKEN", "")
+    if not token or not chat_id:
+        return {"ok": False, "sent": False, "status": "CONFIG_MISSING", "error": "Falta TELEGRAM_BOT_TOKEN o chat_id."}
+    url = f"https://api.telegram.org/bot{token}/sendMessage"
+    payload = urllib.parse.urlencode({"chat_id": chat_id, "text": text, "parse_mode": "HTML", "disable_web_page_preview": "true"}).encode("utf-8")
+    try:
+        req = urllib.request.Request(url, data=payload, method="POST")
+        with urllib.request.urlopen(req, timeout=10) as res:
+            response = json.loads(res.read().decode("utf-8", errors="replace"))
+        return {"ok": True, "sent": True, "status": "SENT", "telegram": response}
+    except Exception as exc:
+        return {"ok": False, "sent": False, "status": "ERROR", "error": str(exc)}
+
+
+def process_premium_telegram_queue(limit=5, force=False):
+    settings = get_telegram_settings()
+    if not settings.get("enabled") and not force:
+        return {"ok": True, "message": "Telegram automatico desactivado.", "processed": 0, "sent": 0, "failed": 0, "skipped": 1, "errors": []}
+    pending = rows(
+        """SELECT * FROM telegram_queue
+           WHERE lower(status) IN ('pending','failed')
+             AND attempts < COALESCE(max_attempts,3)
+             AND (scheduled_at IS NULL OR scheduled_at='' OR scheduled_at<=?)
+           ORDER BY scheduled_at ASC, priority DESC, created_at ASC
+           LIMIT ?""",
+        (now_iso(), int(limit)),
+    )
+    processed = sent = failed = skipped = 0
+    errors = []
+    for item in pending:
+        chat_id = item.get("chat_id") or os.getenv("TELEGRAM_CHAT_ID", "")
+        if telegram_sent_last_hour(chat_id) >= settings["max_messages_per_hour"] and not force:
+            conn = db()
+            conn.execute("UPDATE telegram_queue SET status=?, error_message=?, updated_at=? WHERE id=?", (QUEUE_SKIPPED, "limite_hora", now_iso(), item.get("id")))
+            conn.commit()
+            conn.close()
+            skipped += 1
+            continue
+        conn = db()
+        conn.execute("UPDATE telegram_queue SET status=?, attempts=attempts+1, updated_at=? WHERE id=?", (QUEUE_SENDING, now_iso(), item.get("id")))
+        conn.commit()
+        conn.close()
+        result = telegram_send_http(chat_id, item.get("body") or item.get("title") or "", message_type=item.get("message_type") or "queue")
+        processed += 1
+        new_status = QUEUE_SENT if result.get("sent") else QUEUE_FAILED
+        error = result.get("error") or ""
+        conn = db()
+        conn.execute(
+            "UPDATE telegram_queue SET status=?, sent_at=?, error_message=?, updated_at=? WHERE id=?",
+            (new_status, now_iso() if result.get("sent") else "", error[:500], now_iso(), item.get("id")),
+        )
+        if result.get("sent"):
+            conn.execute("UPDATE telegram_subscribers SET last_message_sent_at=? WHERE chat_id=?", (now_iso(), chat_id))
+            sent += 1
+        else:
+            failed += 1
+            errors.append(error[:160] or result.get("status"))
+        conn.commit()
+        conn.close()
+        telegram_log("send", new_status, item.get("title") or item.get("message_type"), {"queue_id": item.get("id"), "result": result})
+        log_telegram_delivery(chat_id, item.get("message_type") or "queue", item.get("body"), new_status.upper(), result)
+    return {"ok": failed == 0, "message": "Cola procesada.", "processed": processed, "sent": sent, "failed": failed, "skipped": skipped, "errors": errors[:12]}
+
+
+def telegram_diagnostics():
+    settings = get_telegram_settings()
+    today = today_iso()
+    pending = (one("SELECT COUNT(*) AS total FROM telegram_queue WHERE lower(status)=?", (QUEUE_PENDING,)) or {}).get("total", 0)
+    sent_today = (one("SELECT COUNT(*) AS total FROM telegram_queue WHERE lower(status)=? AND sent_at LIKE ?", (QUEUE_SENT, today + "%")) or {}).get("total", 0)
+    failed_today = (one("SELECT COUNT(*) AS total FROM telegram_queue WHERE lower(status)=? AND updated_at LIKE ?", (QUEUE_FAILED, today + "%")) or {}).get("total", 0)
+    last_error = one("SELECT * FROM telegram_logs WHERE lower(status) IN ('failed','error') ORDER BY created_at DESC LIMIT 1")
+    return {
+        "token_present": bool(os.getenv("TELEGRAM_BOT_TOKEN")),
+        "token_masked": masked_key(os.getenv("TELEGRAM_BOT_TOKEN", "")),
+        "chat_id_present": bool(os.getenv("TELEGRAM_CHAT_ID")),
+        "chat_id_masked": masked_key(os.getenv("TELEGRAM_CHAT_ID", "")),
+        "settings_enabled": settings.get("enabled"),
+        "settings": settings,
+        "subscribers": (one("SELECT COUNT(*) AS total FROM telegram_subscribers WHERE is_active=1") or {}).get("total", 0),
+        "pending": pending,
+        "sent_today": sent_today,
+        "failed_today": failed_today,
+        "last_error": (last_error or {}).get("message", ""),
+        "queue_summary": queue_summary(rows("SELECT status FROM telegram_queue ORDER BY created_at DESC LIMIT 500")),
+    }
+
+
+def telegram_time_due(time_value, force=False):
+    if force:
+        return True
+    value = str(time_value or "00:00")[:5]
+    current = datetime.now(TZ).strftime("%H:%M")
+    return current >= value
+
+
+def telegram_scheduler_delivery(force=False):
+    settings = get_telegram_settings()
+    if not settings.get("enabled") and not force:
+        return {"ok": True, "message": "Telegram automatico desactivado.", "processed": 0, "inserted": 0, "sent": 0, "failed": 0, "skipped": 1, "errors": []}
+    results = []
+    if settings.get("auto_daily_matches") and telegram_time_due(settings.get("daily_matches_time"), force=force):
+        results.append(enqueue_daily_matches(force=force))
+    if settings.get("auto_daily_picks") and telegram_time_due(settings.get("daily_picks_time"), force=force):
+        results.append(enqueue_daily_picks(force=force, force_empty=False))
+    if settings.get("auto_live_alerts"):
+        results.append(enqueue_live_alerts(force=force))
+    processed_queue = process_premium_telegram_queue(limit=5, force=force)
+    processed = sum(as_int(r.get("processed"), 0) for r in results) + as_int(processed_queue.get("processed"), 0)
+    inserted = sum(as_int(r.get("inserted"), 0) for r in results)
+    skipped = sum(as_int(r.get("skipped"), 0) for r in results) + as_int(processed_queue.get("skipped"), 0)
+    sent = as_int(processed_queue.get("sent"), 0)
+    failed = as_int(processed_queue.get("failed"), 0)
+    errors = [e for r in results + [processed_queue] for e in (r.get("errors") or [])]
+    return {
+        "ok": failed == 0 and not errors,
+        "message": "Telegram scheduler ejecutado.",
+        "processed": processed,
+        "inserted": inserted,
+        "updated": 0,
+        "sent": sent,
+        "failed": failed,
+        "skipped": skipped,
+        "errors": errors[:12],
+        "queue": processed_queue,
+        "results": results,
     }
 
 
@@ -3654,30 +4144,25 @@ def telegram_scheduler_tick(force=False):
     cfg = telegram_config()
     if not cfg["enabled"] and not force:
         return {"ok": False, "sent": False, "status": "AUTO_DISABLED", "telegram": cfg}
-    triggers = telegram_triggers()
-    trigger_key = "-".join(t["key"] for t in triggers)
-    duplicate_key = hashlib.md5((today_iso() + trigger_key).encode("utf-8")).hexdigest()
-    last = automation_get("telegram_last_dispatch", {})
-    if not force and last.get("duplicate_key") == duplicate_key:
-        return {"ok": True, "sent": False, "status": "DUPLICATE_SKIPPED", "triggers": triggers, "last": last}
-    result = process_telegram_queue(force=force)
-    sent = any((item.get("result") or {}).get("sent") for item in result.get("processed", []))
-    automation_set("telegram_last_dispatch", {"duplicate_key": duplicate_key, "time": now_iso(), "triggers": triggers, "result": result})
-    return {"ok": True, "sent": sent, "status": "QUEUE_PROCESSED", "triggers": triggers, "result": result}
+    result = telegram_scheduler_delivery(force=force)
+    automation_set("telegram_last_dispatch", {"time": now_iso(), "result": result})
+    return {"ok": result.get("ok"), "sent": result.get("sent", 0) > 0, "status": "QUEUE_PROCESSED", "result": result}
 
 
 def log_telegram_delivery(chat_id, message_type, text, status, response=None):
     conn = db()
-    cur = conn.cursor()
-    delivery_id = hashlib.md5(f"telegram-{chat_id}-{now_iso()}-{message_type}".encode("utf-8")).hexdigest()[:18]
-    cur.execute(
-        """INSERT INTO telegram_deliveries
-           (id,chat_id,message_type,payload_preview,status,response_json,created_at)
-           VALUES (?,?,?,?,?,?,?)""",
-        (delivery_id, chat_id or "", message_type, str(text or "")[:1500], status, json.dumps(response or {}, ensure_ascii=False)[:3000], now_iso()),
-    )
-    conn.commit()
-    conn.close()
+    try:
+        cur = conn.cursor()
+        delivery_id = hashlib.md5(f"telegram-{chat_id}-{datetime.now(TZ).isoformat(timespec='microseconds')}-{message_type}".encode("utf-8")).hexdigest()[:18]
+        cur.execute(
+            """INSERT INTO telegram_deliveries
+               (id,chat_id,message_type,payload_preview,status,response_json,created_at)
+               VALUES (?,?,?,?,?,?,?)""",
+            (delivery_id, chat_id or "", message_type, str(text or "")[:1500], status, json.dumps(response or {}, ensure_ascii=False)[:3000], now_iso()),
+        )
+        conn.commit()
+    finally:
+        conn.close()
     return delivery_id
 
 
@@ -4086,6 +4571,44 @@ def admin_matches_sync_page():
     return render_template("admin_matches_sync.html", data=data, message=message, result=result)
 
 
+@app.route("/admin/telegram", methods=["GET", "POST"])
+def admin_telegram_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/telegram")
+    message = ""
+    result = None
+    if request.method == "POST":
+        action = request.form.get("action") or "diagnostics"
+        if action == "toggle":
+            current = get_telegram_settings()
+            result = {"ok": True, "settings": update_telegram_settings({"enabled": not current.get("enabled")})}
+        elif action == "test":
+            result = enqueue_telegram_message(
+                "system_test",
+                "Prueba Telegram",
+                build_system_test_message(),
+                chat_id=os.getenv("TELEGRAM_CHAT_ID", ""),
+                payload={"target_key": "admin-test", "priority": 95},
+                dedupe_key=telegram_dedupe_key("system_test", now_iso(), os.getenv("TELEGRAM_CHAT_ID", "")),
+                force=True,
+            )
+            if result.get("queued"):
+                result["process"] = process_premium_telegram_queue(limit=1, force=True)
+        elif action == "daily_matches":
+            result = enqueue_daily_matches(force=True, forced_chat_id=os.getenv("TELEGRAM_CHAT_ID", ""))
+        elif action == "daily_picks":
+            result = enqueue_daily_picks(force=True, force_empty=True, forced_chat_id=os.getenv("TELEGRAM_CHAT_ID", ""))
+        elif action == "process":
+            result = process_premium_telegram_queue(limit=as_int(request.form.get("limit"), 5), force=True)
+        message = "Accion Telegram ejecutada."
+    data = dashboard_data()
+    data["telegram_delivery"] = telegram_diagnostics()
+    data["telegram_queue"] = rows("SELECT * FROM telegram_queue ORDER BY created_at DESC LIMIT 30")
+    data["telegram_logs"] = rows("SELECT * FROM telegram_logs ORDER BY created_at DESC LIMIT 30")
+    data["telegram_subscribers"] = telegram_subscribers(active_only=False)
+    return render_template("admin_telegram.html", data=data, message=message, result=result)
+
+
 @app.route("/admin/data-center", methods=["GET", "POST"])
 def admin_data_center_page():
     if not is_admin_session():
@@ -4196,6 +4719,7 @@ def crests_page():
 @app.route("/v513-health")
 @app.route("/v516-health")
 @app.route("/v518-health")
+@app.route("/v520-health")
 def health():
     return jsonify(
         {
@@ -4660,16 +5184,87 @@ def api_shark_context():
 @app.route("/api/telegram/status")
 @app.route("/api/automation-status")
 def api_telegram_status():
+    if not is_admin_session():
+        return admin_json_forbidden()
     deliveries = rows("SELECT * FROM telegram_deliveries ORDER BY created_at DESC LIMIT 20")
-    return jsonify({"ok": True, "version": APP_VERSION, "telegram": telegram_config(), "recent_deliveries": deliveries, "queue": telegram_queue(limit=20)})
+    return jsonify({"ok": True, "version": APP_VERSION, "telegram": telegram_config(), "diagnostics": telegram_diagnostics(), "recent_deliveries": deliveries, "queue": telegram_queue(limit=20)})
+
+
+@app.route("/api/telegram/diagnostics")
+def api_telegram_diagnostics():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "version": APP_VERSION, "diagnostics": telegram_diagnostics()})
+
+
+@app.route("/api/telegram/settings")
+def api_telegram_settings():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "version": APP_VERSION, "settings": get_telegram_settings()})
+
+
+@app.route("/api/telegram/settings/update", methods=["POST", "GET"])
+def api_telegram_settings_update():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    payload = request.get_json(silent=True) or dict(request.form or request.args or {})
+    return jsonify({"ok": True, "version": APP_VERSION, "settings": update_telegram_settings(payload)})
+
+
+@app.route("/api/telegram/send-test", methods=["POST", "GET"])
+def api_telegram_send_test():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    chat_id = request.args.get("chat_id") or request.form.get("chat_id") or os.getenv("TELEGRAM_CHAT_ID", "")
+    queued = enqueue_telegram_message(
+        "system_test",
+        "Prueba Telegram",
+        build_system_test_message(),
+        chat_id=chat_id,
+        payload={"target_key": "admin-test", "priority": 95},
+        dedupe_key=telegram_dedupe_key("system_test", now_iso(), chat_id),
+        force=True,
+    )
+    processed = process_premium_telegram_queue(limit=1, force=True) if queued.get("queued") else {"processed": 0, "sent": 0, "failed": 0, "skipped": 1, "errors": []}
+    return jsonify({"ok": processed.get("failed", 0) == 0, "version": APP_VERSION, "message": "Test Telegram procesado.", "queued": queued, **processed})
+
+
+@app.route("/api/telegram/enqueue-daily-matches", methods=["POST", "GET"])
+def api_telegram_enqueue_daily_matches():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    force = request.args.get("force") in {"1", "true", "yes"} or request.form.get("force") in {"1", "true", "yes"}
+    return jsonify({"version": APP_VERSION, **enqueue_daily_matches(force=force, forced_chat_id=os.getenv("TELEGRAM_CHAT_ID", ""))})
+
+
+@app.route("/api/telegram/enqueue-daily-picks", methods=["POST", "GET"])
+def api_telegram_enqueue_daily_picks():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    force = request.args.get("force") in {"1", "true", "yes"} or request.form.get("force") in {"1", "true", "yes"}
+    force_empty = request.args.get("force_empty") in {"1", "true", "yes"} or request.form.get("force_empty") in {"1", "true", "yes"}
+    return jsonify({"version": APP_VERSION, **enqueue_daily_picks(force=force, force_empty=force_empty, forced_chat_id=os.getenv("TELEGRAM_CHAT_ID", ""))})
+
+
+@app.route("/api/telegram/process-queue", methods=["POST", "GET"])
+def api_telegram_process_queue():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    limit = as_int(request.args.get("limit") or request.form.get("limit"), 5)
+    force = request.args.get("force") in {"1", "true", "yes"} or request.form.get("force") in {"1", "true", "yes"}
+    return jsonify({"version": APP_VERSION, **process_premium_telegram_queue(limit=limit, force=force)})
 
 
 @app.route("/api/telegram/send", methods=["POST"])
 def api_telegram_send():
+    if not is_admin_session():
+        return admin_json_forbidden()
     payload = request.get_json(silent=True) or dict(request.form or {})
-    text = payload.get("text") or telegram_daily_message()
-    result = send_telegram_message(text, payload.get("chat_id"), payload.get("message_type") or "manual")
-    return jsonify({"version": APP_VERSION, **result})
+    text = payload.get("text") or build_system_test_message()
+    queued = enqueue_telegram_message(payload.get("message_type") or "manual", payload.get("title") or "Mensaje manual", text, chat_id=payload.get("chat_id") or os.getenv("TELEGRAM_CHAT_ID", ""), payload={"target_key": "manual"}, force=True)
+    result = process_premium_telegram_queue(limit=1, force=True)
+    return jsonify({"version": APP_VERSION, "queued": queued, **result})
 
 
 @app.route("/api/telegram/auto-run", methods=["POST", "GET"])
@@ -4678,7 +5273,7 @@ def api_telegram_auto_run():
     cfg = telegram_config()
     if not cfg["enabled"]:
         return jsonify({"ok": False, "version": APP_VERSION, "sent": False, "status": "AUTO_DISABLED", "telegram": cfg})
-    result = send_telegram_message(telegram_daily_message(), message_type="auto_daily")
+    result = telegram_scheduler_delivery(force=request.args.get("force") in {"1", "true", "yes"})
     return jsonify({"version": APP_VERSION, "telegram": cfg, **result})
 
 
@@ -4690,29 +5285,41 @@ def api_telegram_scheduler_tick():
 
 @app.route("/api/telegram/triggers")
 def api_telegram_triggers():
+    if not is_admin_session():
+        return admin_json_forbidden()
     return jsonify({"ok": True, "version": APP_VERSION, "triggers": telegram_triggers(), "last": automation_get("telegram_last_dispatch", {})})
 
 
 @app.route("/api/telegram/logs")
 def api_telegram_logs():
+    if not is_admin_session():
+        return admin_json_forbidden()
     deliveries = rows("SELECT * FROM telegram_deliveries ORDER BY created_at DESC LIMIT 100")
-    return jsonify({"ok": True, "version": APP_VERSION, "logs": deliveries})
+    logs = rows("SELECT * FROM telegram_logs ORDER BY created_at DESC LIMIT 100")
+    return jsonify({"ok": True, "version": APP_VERSION, "logs": logs, "deliveries": deliveries})
 
 
 @app.route("/api/telegram/queue")
 def api_telegram_queue():
-    return jsonify({"ok": True, "version": APP_VERSION, "queue": telegram_queue(limit=request.args.get("limit", 50))})
+    if not is_admin_session():
+        return admin_json_forbidden()
+    queue = telegram_queue(limit=request.args.get("limit", 50))
+    return jsonify({"ok": True, "version": APP_VERSION, "summary": queue_summary(queue), "queue": queue})
 
 
 @app.route("/api/telegram/scheduler-manager", methods=["GET", "POST"])
 def api_telegram_scheduler_manager():
+    if not is_admin_session():
+        return admin_json_forbidden()
     force = request.args.get("force") in {"1", "true", "yes"} or (request.get_json(silent=True) or {}).get("force") is True
     posts = prepare_auto_posts()
-    return jsonify({"ok": True, "version": APP_VERSION, "auto_posts": posts, "manager": process_telegram_queue(force=force)})
+    return jsonify({"ok": True, "version": APP_VERSION, "auto_posts": posts, "manager": telegram_scheduler_delivery(force=force)})
 
 
 @app.route("/api/telegram/auto-posts")
 def api_telegram_auto_posts():
+    if not is_admin_session():
+        return admin_json_forbidden()
     posts = prepare_auto_posts()
     saved = rows("SELECT * FROM auto_alerts ORDER BY updated_at DESC LIMIT 50")
     return jsonify({"ok": True, "version": APP_VERSION, "prepared": posts, "saved": saved})
@@ -4747,11 +5354,11 @@ def api_diagnostics():
         {"name": "Picks/Combis", "status": "READY", "detail": f"{len(data['picks'])} picks visibles y {len(data['combis'])} combis guardadas."},
         {"name": "Perfil premium", "status": "READY", "detail": f"Perfil activo: {data['profile']['name']} / plan {data['profile']['membership_plan']}."},
         {"name": "IA SHARK Context", "status": "READY", "detail": "Contexto persistente para partido, liga, favoritos y picks recientes."},
-        {"name": "Telegram Auto Core", "status": "READY" if data["telegram"]["configured"] else "CONFIG", "detail": "Scheduler manager, queue, triggers, logs y anti duplicados preparados."},
+        {"name": "Telegram Premium Delivery", "status": "READY" if data["telegram"]["configured"] else "CONFIG", "detail": "Settings, subscribers, queue, retries, logs y anti duplicados preparados."},
         {"name": "Membresias", "status": "READY", "detail": "Planes Free, PRO y ELITE preparados para capa comercial."},
         {"name": "Performance cache", "status": "READY", "detail": "Cache persistente para hub, live flow y navegacion rapida."},
         {"name": "Premium mobile feel", "status": "READY", "detail": "Interacciones tactiles, spacing y tarjetas afinadas para sensacion app nativa."},
-        {"name": "Arquitectura limpia", "status": "READY", "detail": "Motores separados: football population, live, match, telegram, shark, crest y cache."},
+        {"name": "Arquitectura limpia", "status": "READY", "detail": "Motores separados: football population, scheduler, telegram delivery, live, match, shark, crest y cache."},
         {"name": "Render", "status": "READY", "detail": "Procfile, render.yaml y requirements incluidos."},
     ]
     return jsonify({"ok": True, "version": APP_VERSION, "checks": checks, "readiness": data["readiness"]})
