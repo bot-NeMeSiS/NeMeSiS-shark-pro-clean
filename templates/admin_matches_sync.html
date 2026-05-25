@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="hero compact">
+  <div class="kicker">Calendario real</div>
+  <h1>Sincronizar partidos</h1>
+  <p class="lead">Control admin para cargar calendario real desde SportsDB, Odds API o importaciones legales. No inventa partidos si una fuente no devuelve datos.</p>
+  <div class="admin-menu">
+    <a class="btn primary" href="/admin/matches-sync">Partidos</a>
+    <a class="btn" href="/admin/sportsdb-feed">SportsDB Feed</a>
+    <a class="btn" href="/admin/sportsdb-sync">Escudos</a>
+    <a class="btn" href="/admin/import-center">Import Center</a>
+  </div>
+</section>
+<section class="band">
+  <div class="grid compact-grid">
+    <div class="card"><div class="metric">{{ data.matches_diagnostics.total_matches }}</div><div class="muted">partidos guardados</div></div>
+    <div class="card"><div class="metric">{{ data.matches_diagnostics.upcoming_matches }}</div><div class="muted">proximos</div></div>
+    <div class="card"><div class="metric">{{ data.matches_diagnostics.live_matches }}</div><div class="muted">en directo</div></div>
+    <div class="card"><div class="metric">{{ data.matches_diagnostics.total_competitions }}</div><div class="muted">competiciones</div></div>
+  </div>
+</section>
+<section class="band two-col">
+  {% if message %}<div class="notice">{{ message }}</div>{% endif %}
+  <form class="card" method="post" action="/admin/matches-sync">
+    <h2>SportsDB</h2>
+    <p class="small">Proximos eventos por liga y live si la API premium lo permite.</p>
+    <input type="hidden" name="action" value="sportsdb">
+    <div class="field"><label>Limite</label><input name="limit" value="80"></div>
+    <button type="submit">Sincronizar SportsDB</button>
+  </form>
+  <form class="card" method="post" action="/admin/matches-sync">
+    <h2>Odds API</h2>
+    <p class="small">Eventos con cuotas H2H usando cache para no gastar llamadas innecesarias.</p>
+    <input type="hidden" name="action" value="odds">
+    <div class="field"><label>Limite</label><input name="limit" value="80"></div>
+    <button type="submit">Sincronizar Odds</button>
+  </form>
+</section>
+<section class="band two-col">
+  <form class="card" method="post" action="/admin/matches-sync">
+    <h2>Escudos</h2>
+    <p class="small">Refresca escudos para equipos cacheados desde partidos.</p>
+    <input type="hidden" name="action" value="crests">
+    <div class="field"><label>Limite</label><input name="limit" value="40"></div>
+    <button type="submit">Sincronizar equipos/escudos</button>
+  </form>
+  <aside class="card">
+    <h2>Fuentes</h2>
+    <p class="small">Activa: {{ data.matches_diagnostics.active_data_source }}</p>
+    <p class="small">SportsDB key: {{ data.matches_diagnostics.sportsdb_key_masked or 'sin configurar' }}</p>
+    <p class="small">Odds key: {{ data.matches_diagnostics.odds_key_masked or 'sin configurar' }}</p>
+    <p class="small">Ultima sincronizacion: {{ data.matches_diagnostics.latest_sync.started_at or '-' }}</p>
+  </aside>
+</section>
+<section class="band">
+  <div class="section-head"><h2>Errores recientes</h2><span class="pill">{{ data.matches_diagnostics.errors_recent|length }}</span></div>
+  <div class="stack">
+    {% for error in data.matches_diagnostics.errors_recent %}
+    <div class="list-row"><span>{{ error }}</span><strong>revisar</strong></div>
+    {% else %}
+    <div class="empty">Sin errores recientes.</div>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

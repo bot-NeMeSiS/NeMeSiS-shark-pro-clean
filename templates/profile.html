@@ -27,7 +27,7 @@
 
 <section class="band">
   <div class="quick-actions client-actions">
-    <a class="quick primary" href="/match-hub"><span>Partidos</span><strong>{{ data.matches|length }}</strong></a>
+    <a class="quick primary" href="/match-hub"><span>Partidos</span><strong>{{ data.upcoming_matches|length }}</strong></a>
     <a class="quick" href="/live"><span>Live</span><strong>{{ data.match_hub.counts.live }}</strong></a>
     <a class="quick" href="/picks"><span>Picks</span><strong>{{ data.picks|length }}</strong></a>
     <a class="quick" href="/combis"><span>Combinadas</span><strong>{{ data.combis|length }}</strong></a>
@@ -74,10 +74,11 @@
   <div>
     <div class="section-head"><h2>Partidos de hoy</h2><a class="pill" href="/match-hub">Abrir</a></div>
     <div class="stack">
-      {% for m in data.matches[:5] %}
+      {% set profile_matches = data.matches if data.matches else data.upcoming_matches %}
+      {% for m in profile_matches[:5] %}
       <div class="list-row"><span>{{ m.home_team }} vs {{ m.away_team }}</span><strong>{{ m.kickoff_time or m.minute or m.status }}</strong></div>
       {% else %}
-      <div class="empty">No hay partidos cargados para hoy. Cuando entren datos autorizados se mostraran en tu panel.</div>
+      <div class="empty">No hay partidos sincronizados todavia. Cuando entren SportsDB, Odds o una importacion legal, se mostraran en tu panel.</div>
       {% endfor %}
     </div>
   </div>
@@ -87,6 +88,7 @@
       <a class="card service-card" href="/telegram"><div class="name">Telegram</div><p class="small">{% if data.telegram.configured %}Listo para alertas.{% else %}Pendiente de activar.{% endif %}</p></a>
       <a class="card service-card" href="/shark"><div class="name">SHARK IA</div><p class="small">{% if data.session_user.membership in ['ELITE','ADMIN'] %}Premium activo.{% else %}Briefing base activo.{% endif %}</p></a>
       <a class="card service-card" href="/escudos"><div class="name">Escudos</div><p class="small">{{ data.sportsdb.with_logo }} escudos guardados.</p></a>
+      <a class="card service-card" href="/match-hub"><div class="name">Calendario</div><p class="small">{{ data.matches_diagnostics.active_data_source }}.</p></a>
       <a class="card service-card" href="/combis"><div class="name">Combinadas</div><p class="small">{% if data.session_user.membership in ['PRO','ELITE','ADMIN'] %}Acceso ampliado.{% else %}Disponible en PRO.{% endif %}</p></a>
     </div>
   </div>

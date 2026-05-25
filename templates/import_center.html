@@ -6,6 +6,7 @@
   <p class="lead">Pega CSV o JSON autorizado. Cada importacion guarda fuente, nota legal y trazabilidad. Este es el puente para convertir la app limpia en producto vivo.</p>
   <div class="admin-menu">
     <a class="btn" href="/admin/users">Usuarios</a>
+    <a class="btn" href="/admin/matches-sync">Partidos</a>
     <a class="btn primary" href="/admin/import-center">Import Center</a>
     <a class="btn" href="/admin/sportsdb-sync">SportsDB Sync</a>
     <a class="btn" href="/api/diagnostics">Diagnosticos</a>
@@ -17,7 +18,8 @@
     <div class="field"><label>Fuente</label><input name="source_name" value="manual autorizado"></div>
     <div class="field"><label>URL o referencia legal</label><input name="source_url" placeholder="https://... o referencia interna"></div>
     <div class="field"><label>Nota legal</label><input name="legal_note" value="Carga autorizada por administrador"></div>
-    <div class="field"><label>Payload CSV o JSON autorizado</label><textarea name="payload">match_date,kickoff_time,competition_key,competition_name,country,home_team,away_team,status</textarea></div>
+    <div class="field"><label>Payload CSV o JSON autorizado</label><textarea name="payload">league_name,home_team,away_team,match_date,match_time,country,status
+LaLiga EA Sports,Real Madrid,FC Barcelona,2026-05-30,21:00,Spain,PROGRAMADO</textarea></div>
     <button type="submit">Importar partidos</button>
     <p class="small">Tambien puedes usar POST JSON en /api/import-matches con rows o payload.</p>
   </form>

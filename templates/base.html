@@ -15,6 +15,7 @@
           <a href="/">Inicio</a>
           <a href="/admin/users">Panel admin</a>
           <a href="/admin/users">Usuarios</a>
+          <a href="/admin/matches-sync">Partidos</a>
           <a href="/admin/sportsdb-sync">SportsDB Sync</a>
           <a href="/admin/sportsdb-feed">SportsDB Feed</a>
           <a href="/telegram">Telegram</a>
@@ -43,7 +44,7 @@
     {% if current_user and current_user.role == 'ADMIN' %}
       <a href="/">Inicio</a>
       <a href="/admin/users">Usuarios</a>
-      <a href="/admin/import-center">Importar</a>
+      <a href="/admin/matches-sync">Partidos</a>
       <a href="/admin/sportsdb-feed">Feed</a>
       <a href="/logout">Salir</a>
     {% else %}

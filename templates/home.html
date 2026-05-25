@@ -15,15 +15,15 @@
     <div class="quick-actions">
       <a class="quick primary" href="/match-hub"><span>Partidos</span><strong>{{ data.match_hub.counts.popular }}</strong></a>
       <a class="quick" href="/live"><span>Live</span><strong>{{ data.match_hub.counts.live }}</strong></a>
-      <a class="quick" href="/match-hub"><span>Hoy</span><strong>{{ data.matches|length }}</strong></a>
+      <a class="quick" href="/match-hub"><span>Semana</span><strong>{{ data.upcoming_matches|length }}</strong></a>
       <a class="quick" href="/picks"><span>Picks</span><strong>{{ data.picks|length }}</strong></a>
       <a class="quick" href="/combis"><span>Combis</span><strong>{{ data.combis|length }}</strong></a>
       <a class="quick" href="/favorites"><span>Favoritos</span><strong>{{ data.favorites|length }}</strong></a>
     </div>
   </div>
   <aside class="hero-panel">
-    <div class="panel-top"><span>Hoy</span><strong>{{ data.matches|length }}</strong></div>
-    <div class="small">Tu panel se actualiza con partidos, favoritos y picks cargados.</div>
+    <div class="panel-top"><span>Calendario</span><strong>{{ data.match_hub.counts.popular }}</strong></div>
+    <div class="small">SportsDB/Odds: {{ data.matches_diagnostics.active_data_source }}</div>
     <div class="signal"><span>Global</span><i style="width:{{ data.readiness.global_football }}%"></i></div>
     <div class="signal"><span>Live</span><i style="width:{{ data.readiness.live_foundation }}%"></i></div>
     <div class="signal"><span>SHARK IA</span><i style="width:{{ data.readiness.shark_ai }}%"></i></div>
@@ -47,6 +47,8 @@
         <span>{{ m.home_team }} vs {{ m.away_team }}</span>
         <strong>{{ m.live_depth.label }}</strong>
       </a>
+      {% else %}
+      <div class="empty">No hay partidos sincronizados todavia. Cuando entren SportsDB, Odds o import legal, apareceran aqui.</div>
       {% endfor %}
     </div>
   </div>
