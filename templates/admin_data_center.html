@@ -28,10 +28,43 @@
 </section>
 
 <section class="band form-grid">
+  <aside class="card">
+    <h2>Auto Sync</h2>
+    <p class="small">Estado: {% if data.data_center.scheduler.enabled %}activado{% else %}desactivado{% endif %}</p>
+    <p class="small">Arranque automatico: {% if data.data_center.scheduler.startup %}activo{% else %}desactivado{% endif %}</p>
+    <p class="small">Ultimo scheduler: {{ data.data_center.scheduler.last_scheduler_log.started_at or '-' }}</p>
+  </aside>
+  <aside class="card">
+    <h2>Errores scheduler</h2>
+    {% for error in data.data_center.scheduler.recent_errors[:4] %}
+    <p class="small">{{ error }}</p>
+    {% else %}
+    <p class="small">Sin errores recientes.</p>
+    {% endfor %}
+  </aside>
+</section>
+
+<section class="band">
+  <div class="section-head"><h2>Tareas automaticas</h2><span class="pill">{{ data.data_center.scheduler.tasks|length }}</span></div>
+  <div class="grid">
+    {% for task in data.data_center.scheduler.tasks %}
+    <article class="card">
+      <div class="section-head"><h2>{{ task.label }}</h2><span class="state-badge {{ 'live' if task.status == 'OK' else 'half' if task.status == 'RUNNING' else 'upcoming' }}">{{ task.status }}</span></div>
+      <p class="small">Ultima: {{ task.last_run or '-' }}</p>
+      <p class="small">Proxima: {{ task.next_run or '-' }}</p>
+      <p class="small">Intervalo: {{ task.interval_seconds }}s</p>
+      {% if task.error_message %}<p class="small">{{ task.error_message }}</p>{% endif %}
+    </article>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="band form-grid">
   {% for action,label,detail in [
     ('competitions','Sincronizar competiciones','Prepara las ligas prioritarias sin inventar partidos.'),
     ('teams','Sincronizar equipos/escudos','Carga equipos reales y escudos si SportsDB devuelve datos.'),
     ('calendar','Sincronizar calendario','Trae proximos eventos y live permitidos por SportsDB.'),
+    ('live','Refresh live','Actualiza live basico y proximos destacados.'),
     ('results','Sincronizar resultados','Guarda resultados recientes si la API los ofrece.'),
     ('odds','Sincronizar cuotas','Trae eventos/cuotas H2H respetando cache.'),
     ('warmup','Warmup general','Ejecuta competiciones, equipos, calendario y cuotas con control de intervalo.')

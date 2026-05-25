@@ -33,12 +33,13 @@ from engines.football_population_engine import (
 from engines.live_engine import build_live_depth, build_live_flow, build_match_detail, fallback_timeline, normalize_live_state
 from engines.match_engine import hub_sections, real_time_state, sync_plan
 from engines.match_sync_engine import IMPORTANT_COMPETITIONS, h2h_price_snapshot, normalize_status as sync_normalize_status, odds_sports, sportsdb_leagues
+from engines.scheduler_engine import is_due, is_stale_running, next_run_iso, normalize_result, scheduler_config, task_definition
 from engines.shark_engine import build_shark_context, explain_pick_risk
 from engines.telegram_engine import build_alert_queue, dispatch_signature, should_skip_duplicate
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V518_MASSIVE_FOOTBALL_DATA_POPULATION_ENGINE"
-SEED_VERSION = "v518-massive-football-data-population-engine-seed"
+APP_VERSION = "V519_AUTO_SYNC_SCHEDULER_REAL_CONTENT_ACTIVATION"
+SEED_VERSION = "v519-auto-sync-scheduler-real-content-activation-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
 
@@ -194,6 +195,12 @@ def run_schema_migrations(conn):
         ("live_sync_state", "sync_status", "TEXT"),
         ("live_sync_state", "next_refresh_at", "TEXT"),
         ("live_sync_state", "updated_at", "TEXT"),
+        ("scheduler_locks", "task_name", "TEXT"),
+        ("scheduler_locks", "locked_at", "TEXT"),
+        ("scheduler_locks", "status", "TEXT"),
+        ("scheduler_locks", "last_run", "TEXT"),
+        ("scheduler_locks", "next_run", "TEXT"),
+        ("scheduler_locks", "error_message", "TEXT"),
         ("auto_alerts", "status", "TEXT DEFAULT 'READY'"),
         ("auto_alerts", "updated_at", "TEXT"),
         ("users", "name", "TEXT"),
@@ -243,6 +250,7 @@ def run_schema_migrations(conn):
         conn.execute("CREATE INDEX IF NOT EXISTS idx_competitions_name ON competitions(name)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_api_sync_logs_source ON api_sync_logs(source, sync_type, started_at)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_odds_snapshots_match ON odds_snapshots(match_id, created_at)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_scheduler_locks_status ON scheduler_locks(status, next_run)")
     except sqlite3.OperationalError:
         pass
 
@@ -472,6 +480,16 @@ def init_db():
             commence_time TEXT,
             payload_json TEXT,
             created_at TEXT
+        )"""
+    )
+    cur.execute(
+        """CREATE TABLE IF NOT EXISTS scheduler_locks(
+            task_name TEXT PRIMARY KEY,
+            locked_at TEXT,
+            status TEXT,
+            last_run TEXT,
+            next_run TEXT,
+            error_message TEXT
         )"""
     )
     cur.execute(
@@ -1751,6 +1769,7 @@ def data_center_summary():
                 "odds_competitions": len(odds_competitions()),
                 "structural_teams": len(STRUCTURAL_TEAMS),
             },
+            "scheduler": scheduler_status(),
         }
     )
     return summary
@@ -1797,6 +1816,195 @@ def population_warmup(force=False, limit=120):
     conn.close()
     sync_log_finish(log_id, "OK" if not errors else "PARTIAL", processed, "; ".join(errors[:3]))
     return payload
+
+
+def scheduler_env_config():
+    return scheduler_config(os.environ)
+
+
+def scheduler_enabled():
+    return scheduler_env_config().get("enabled", True)
+
+
+def scheduler_startup_enabled():
+    return scheduler_env_config().get("startup", True)
+
+
+def scheduler_lock_row(task_name):
+    return one("SELECT * FROM scheduler_locks WHERE task_name=?", (task_name,)) or {}
+
+
+def scheduler_acquire(task_name, force=False):
+    seed_core()
+    now = now_iso()
+    row = scheduler_lock_row(task_name)
+    if row and str(row.get("status") or "").upper() == "RUNNING" and not is_stale_running(row, now):
+        return False, {"ok": True, "task": task_name, "skipped": True, "reason": "running", "started_at": row.get("locked_at"), "errors": []}
+    if row and not is_due(row, task_name, os.environ, now, force=force):
+        return False, {"ok": True, "task": task_name, "skipped": True, "reason": "intervalo_activo", "next_run": row.get("next_run"), "errors": []}
+    conn = db()
+    conn.execute(
+        """INSERT OR REPLACE INTO scheduler_locks(task_name,locked_at,status,last_run,next_run,error_message)
+           VALUES (?,?,?,?,?,?)""",
+        (task_name, now, "RUNNING", row.get("last_run") or "", row.get("next_run") or "", ""),
+    )
+    conn.commit()
+    conn.close()
+    return True, {"task": task_name, "started_at": now}
+
+
+def scheduler_release(task_name, result, started_at):
+    finished_at = now_iso()
+    normalized = normalize_result(task_name, result, started_at=started_at, finished_at=finished_at)
+    errors = normalized.get("errors") or []
+    status = "OK" if normalized.get("ok") and not errors else ("PARTIAL" if errors and normalized.get("processed", 0) else "ERROR")
+    conn = db()
+    conn.execute(
+        """INSERT OR REPLACE INTO scheduler_locks(task_name,locked_at,status,last_run,next_run,error_message)
+           VALUES (?,?,?,?,?,?)""",
+        (
+            task_name,
+            "",
+            status,
+            finished_at,
+            next_run_iso(finished_at, task_name, os.environ),
+            "; ".join([str(e) for e in errors[:3]])[:500],
+        ),
+    )
+    conn.commit()
+    conn.close()
+    return normalized
+
+
+def cleanup_scheduler_logs(max_rows=300):
+    seed_core()
+    log_id = sync_log_start("scheduler", "cleanup")
+    conn = db()
+    before = (conn.execute("SELECT COUNT(*) AS total FROM api_sync_logs").fetchone() or {"total": 0})["total"]
+    conn.execute(
+        """DELETE FROM api_sync_logs
+           WHERE id NOT IN (
+             SELECT id FROM api_sync_logs ORDER BY started_at DESC LIMIT ?
+           )""",
+        (max(50, int(max_rows)),),
+    )
+    conn.commit()
+    after = (conn.execute("SELECT COUNT(*) AS total FROM api_sync_logs").fetchone() or {"total": 0})["total"]
+    conn.close()
+    removed = max(0, int(before or 0) - int(after or 0))
+    sync_log_finish(log_id, "OK", removed, "")
+    return {"ok": True, "source": "scheduler", "sync_type": "cleanup", "processed": removed, "inserted": 0, "updated": 0, "skipped": 0, "errors": [], "last_sync": now_iso()}
+
+
+def refresh_live_basic(limit=80):
+    result = sync_sportsdb_calendar(limit=limit)
+    save_live_sync_state(
+        "scheduler-live",
+        {
+            "sync": {"sync_status": "live_refresh", "refresh_seconds": as_int(os.getenv("LIVE_CACHE_MINUTES", "2"), 2) * 60, "next_refresh_at": next_run_iso(now_iso(), "live", os.environ)},
+            "result": result,
+        },
+    )
+    result["source"] = "live"
+    result["sync_type"] = "live"
+    return result
+
+
+def run_scheduler_task(task_name, force=False, limit=None):
+    task_name = str(task_name or "").strip().lower()
+    if task_name == "warmup":
+        started_at = now_iso()
+        result = population_warmup(force=True, limit=limit or as_int(os.getenv("POPULATION_WARMUP_LIMIT", "80"), 80))
+        return normalize_result("warmup", result, started_at=started_at, finished_at=now_iso())
+    acquired, meta = scheduler_acquire(task_name, force=force)
+    if not acquired:
+        return meta
+    started_at = meta.get("started_at") or now_iso()
+    log_id = sync_log_start("scheduler", task_name)
+    try:
+        if task_name == "calendar":
+            result = sync_sportsdb_calendar(limit=limit or 120)
+        elif task_name == "crests":
+            teams_result = sync_sportsdb_teams(limit=limit or 120)
+            crest_result = sync_sportsdb_crests(refresh=False, limit=limit or 80)
+            result = {
+                "ok": not (teams_result.get("errors") or crest_result.get("errors")),
+                "processed": as_int(teams_result.get("processed"), 0) + as_int(crest_result.get("processed"), 0),
+                "inserted": as_int(teams_result.get("inserted"), 0),
+                "updated": as_int(teams_result.get("updated"), 0) + as_int(crest_result.get("updated"), 0),
+                "skipped": as_int(teams_result.get("skipped"), 0) + as_int(crest_result.get("skipped"), 0),
+                "errors": (teams_result.get("errors") or []) + (crest_result.get("errors") or []),
+                "teams": teams_result,
+                "crests": crest_result,
+            }
+        elif task_name == "odds":
+            result = sync_odds_events(limit=limit or 80, force=force)
+        elif task_name == "live":
+            result = refresh_live_basic(limit=limit or 80)
+        elif task_name == "cleanup":
+            result = cleanup_scheduler_logs(max_rows=as_int(os.getenv("SCHEDULER_LOG_MAX_ROWS", "300"), 300))
+        elif task_name == "telegram":
+            posts = prepare_auto_posts()
+            result = {"ok": True, "processed": len(posts), "inserted": 0, "updated": 0, "skipped": 0, "errors": [], "prepared": posts}
+        else:
+            result = empty_sync("scheduler", task_name, "Tarea no reconocida.")
+        normalized = scheduler_release(task_name, result, started_at)
+        sync_log_finish(log_id, "OK" if normalized.get("ok") and not normalized.get("errors") else "PARTIAL", normalized.get("processed", 0), "; ".join(normalized.get("errors", [])[:3]))
+        return normalized
+    except Exception as exc:
+        result = {"ok": False, "processed": 0, "inserted": 0, "updated": 0, "skipped": 0, "errors": [str(exc)[:220]]}
+        normalized = scheduler_release(task_name, result, started_at)
+        sync_log_finish(log_id, "ERROR", 0, str(exc)[:220])
+        return normalized
+
+
+def run_due_scheduler_tasks(force=False, startup=False):
+    if not force and not scheduler_enabled():
+        return {"ok": True, "skipped": True, "reason": "auto_sync_disabled", "tasks": []}
+    tasks = ["calendar", "crests", "odds", "live", "cleanup"]
+    if startup:
+        total_matches = (one("SELECT COUNT(*) AS total FROM matches") or {}).get("total", 0)
+        teams_with_crests = (one("SELECT COUNT(*) AS total FROM teams WHERE logo_url IS NOT NULL AND logo_url!=''") or {}).get("total", 0)
+        tasks = ["calendar", "live", "odds", "cleanup"]
+        if not total_matches:
+            tasks.insert(0, "calendar")
+        if not teams_with_crests:
+            tasks.insert(1, "crests")
+    results = []
+    seen = set()
+    for task in tasks:
+        if task in seen:
+            continue
+        seen.add(task)
+        results.append(run_scheduler_task(task, force=force, limit=as_int(os.getenv("POPULATION_WARMUP_LIMIT", "80"), 80)))
+    return {"ok": True, "startup": startup, "tasks": results, "errors": [e for r in results for e in (r.get("errors") or [])]}
+
+
+def scheduler_status():
+    seed_core()
+    config = scheduler_env_config()
+    locks = {row["task_name"]: row for row in rows("SELECT * FROM scheduler_locks ORDER BY task_name")}
+    tasks = []
+    for task in config["tasks"]:
+        row = locks.get(task["name"], {})
+        tasks.append(
+            {
+                **task,
+                "status": row.get("status") or "PENDING",
+                "last_run": row.get("last_run") or "",
+                "next_run": row.get("next_run") or "",
+                "locked_at": row.get("locked_at") or "",
+                "error_message": row.get("error_message") or "",
+                "due": is_due(row, task["name"], os.environ, now_iso(), force=False),
+            }
+        )
+    return {
+        "enabled": config["enabled"],
+        "startup": config["startup"],
+        "tasks": tasks,
+        "recent_errors": [log.get("error_message") for log in rows("SELECT * FROM api_sync_logs WHERE error_message IS NOT NULL AND error_message!='' ORDER BY started_at DESC LIMIT 8")],
+        "last_scheduler_log": latest_sync_log("scheduler"),
+    }
 
 
 def odds_last_sync():
@@ -3893,15 +4101,17 @@ def admin_data_center_page():
         elif action == "teams":
             result = sync_sportsdb_teams(limit=limit)
         elif action == "calendar":
-            result = sync_sportsdb_calendar(limit=limit)
+            result = run_scheduler_task("calendar", force=True, limit=limit)
         elif action == "results":
             result = sync_sportsdb_results(limit=limit)
         elif action == "odds":
-            result = sync_odds_events(limit=limit, force=True)
+            result = run_scheduler_task("odds", force=True, limit=limit)
         elif action == "crests":
-            result = sync_sportsdb_crests(refresh=True, limit=limit)
+            result = run_scheduler_task("crests", force=True, limit=limit)
+        elif action == "live":
+            result = run_scheduler_task("live", force=True, limit=limit)
         elif action == "warmup":
-            result = population_warmup(force=force, limit=limit)
+            result = run_scheduler_task("warmup", force=True, limit=limit)
         message = "Accion ejecutada desde Data Center."
     data = dashboard_data()
     data["data_center"] = data_center_summary()
@@ -3996,6 +4206,8 @@ def health():
             "admin_exists": admin_exists(),
             "users_count": (one("SELECT COUNT(*) AS total FROM users") or {}).get("total", 0),
             "sportsdb_cached_matches": sportsdb_feed_status().get("cached_matches", 0),
+            "auto_sync_enabled": scheduler_enabled(),
+            "scheduler_tasks": len(scheduler_env_config().get("tasks", [])),
         }
     )
 
@@ -4023,7 +4235,53 @@ def api_data_center_warmup():
         return admin_json_forbidden()
     limit = as_int(request.args.get("limit") or request.form.get("limit"), 120)
     force = request.args.get("force") in {"1", "true", "yes"} or request.form.get("force") in {"1", "true", "yes"}
-    return jsonify({"version": APP_VERSION, **population_warmup(force=force, limit=limit)})
+    return jsonify({"version": APP_VERSION, **run_scheduler_task("warmup", force=True, limit=limit)})
+
+
+@app.route("/api/scheduler/status")
+def api_scheduler_status():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "version": APP_VERSION, "scheduler": scheduler_status()})
+
+
+@app.route("/api/scheduler/run-now", methods=["POST", "GET"])
+def api_scheduler_run_now():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({"version": APP_VERSION, **run_due_scheduler_tasks(force=True)})
+
+
+@app.route("/api/scheduler/run-calendar", methods=["POST", "GET"])
+def api_scheduler_run_calendar():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    limit = as_int(request.args.get("limit") or request.form.get("limit"), 120)
+    return jsonify({"version": APP_VERSION, **run_scheduler_task("calendar", force=True, limit=limit)})
+
+
+@app.route("/api/scheduler/run-crests", methods=["POST", "GET"])
+def api_scheduler_run_crests():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    limit = as_int(request.args.get("limit") or request.form.get("limit"), 120)
+    return jsonify({"version": APP_VERSION, **run_scheduler_task("crests", force=True, limit=limit)})
+
+
+@app.route("/api/scheduler/run-odds", methods=["POST", "GET"])
+def api_scheduler_run_odds():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    limit = as_int(request.args.get("limit") or request.form.get("limit"), 80)
+    return jsonify({"version": APP_VERSION, **run_scheduler_task("odds", force=True, limit=limit)})
+
+
+@app.route("/api/scheduler/run-live", methods=["POST", "GET"])
+def api_scheduler_run_live():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    limit = as_int(request.args.get("limit") or request.form.get("limit"), 80)
+    return jsonify({"version": APP_VERSION, **run_scheduler_task("live", force=True, limit=limit)})
 
 
 @app.route("/api/calendar")
@@ -4499,30 +4757,28 @@ def api_diagnostics():
     return jsonify({"ok": True, "version": APP_VERSION, "checks": checks, "readiness": data["readiness"]})
 
 
-_STARTUP_WARMUP_SCHEDULED = False
+_STARTUP_AUTO_SYNC_SCHEDULED = False
 
 
-def schedule_population_warmup_if_needed():
-    global _STARTUP_WARMUP_SCHEDULED
-    if _STARTUP_WARMUP_SCHEDULED:
+def schedule_auto_sync_if_needed():
+    global _STARTUP_AUTO_SYNC_SCHEDULED
+    if _STARTUP_AUTO_SYNC_SCHEDULED:
         return
-    if str(os.getenv("DISABLE_POPULATION_WARMUP", "")).strip().lower() in {"1", "true", "yes"}:
+    if not scheduler_enabled() or not scheduler_startup_enabled():
         return
-    _STARTUP_WARMUP_SCHEDULED = True
+    _STARTUP_AUTO_SYNC_SCHEDULED = True
 
     def _worker():
         try:
             seed_core()
-            total = (one("SELECT COUNT(*) AS total FROM matches") or {}).get("total", 0)
-            force = total == 0
-            population_warmup(force=force, limit=as_int(os.getenv("POPULATION_WARMUP_LIMIT", "80"), 80))
+            run_due_scheduler_tasks(force=False, startup=True)
         except Exception as exc:
-            print("NeMeSiS SHARK PRO: population warmup skipped:", str(exc)[:220])
+            print("NeMeSiS SHARK PRO: auto sync skipped:", str(exc)[:220])
 
-    threading.Thread(target=_worker, name="population-warmup", daemon=True).start()
+    threading.Thread(target=_worker, name="auto-sync-scheduler", daemon=True).start()
 
 
-schedule_population_warmup_if_needed()
+schedule_auto_sync_if_needed()
 
 
 if __name__ == "__main__":
