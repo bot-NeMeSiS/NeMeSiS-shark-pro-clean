@@ -1,67 +1,62 @@
 {% extends "base.html" %}
 {% block content %}
-<section class="app-hero">
+<section class="app-hero landing-hero">
   <div>
-    <div class="kicker">App futbol premium</div>
-    <h1>Tu centro inteligente de futbol global</h1>
-    <p class="lead">Partidos, directos, picks, combinadas, favoritos, SHARK IA y escudos persistentes en una experiencia pensada para cliente.</p>
+    <div class="kicker">NeMeSiS SHARK PRO</div>
+    <h1>Fútbol, picks, directos y SHARK IA en una sola app</h1>
+    <p class="lead">Una experiencia premium para seguir partidos, guardar favoritos, preparar combinadas y recibir análisis deportivo sin mezclar pantallas de admin con el área cliente.</p>
     <div class="actions">
       {% if current_user %}
-      <a class="btn primary" href="/perfil">Mi perfil</a><a class="btn" href="/logout">Salir</a>
+      <a class="btn primary" href="/perfil">Entrar a mi cuenta</a><a class="btn" href="/match-hub">Ver calendario</a>
       {% else %}
       <a class="btn primary" href="/registro">Crear cuenta</a><a class="btn" href="/cliente-login">Entrar</a>
       {% endif %}
     </div>
     <div class="quick-actions">
-      <a class="quick primary" href="/match-hub"><span>Partidos</span><strong>{{ data.match_hub.counts.popular }}</strong></a>
+      <a class="quick primary" href="/match-hub"><span>Partidos</span><strong>{{ data.match_hub.counts.upcoming }}</strong></a>
       <a class="quick" href="/live"><span>Live</span><strong>{{ data.match_hub.counts.live }}</strong></a>
-      <a class="quick" href="/match-hub"><span>Semana</span><strong>{{ data.upcoming_matches|length }}</strong></a>
       <a class="quick" href="/picks"><span>Picks</span><strong>{{ data.picks|length }}</strong></a>
       <a class="quick" href="/combis"><span>Combis</span><strong>{{ data.combis|length }}</strong></a>
       <a class="quick" href="/favorites"><span>Favoritos</span><strong>{{ data.favorites|length }}</strong></a>
+      <a class="quick" href="/shark"><span>SHARK IA</span><strong>ON</strong></a>
     </div>
   </div>
   <aside class="hero-panel">
-    <div class="panel-top"><span>Calendario</span><strong>{{ data.match_hub.counts.popular }}</strong></div>
-    <div class="small">{{ data.client_source_label }}</div>
-    <div class="signal"><span>Global</span><i style="width:{{ data.readiness.global_football }}%"></i></div>
+    <div class="panel-top"><span>App feel</span><strong>Premium</strong></div>
+    <div class="small">Calendario por ligas, resultados, picks, combinadas, favoritos y Telegram.</div>
+    <div class="signal"><span>Calendario</span><i style="width:{{ data.readiness.calendar }}%"></i></div>
     <div class="signal"><span>Live</span><i style="width:{{ data.readiness.live_foundation }}%"></i></div>
     <div class="signal"><span>SHARK IA</span><i style="width:{{ data.readiness.shark_ai }}%"></i></div>
   </aside>
 </section>
+
 <section class="band">
-  <div class="section-head"><h2>Ahora mismo</h2><span class="pill">App real</span></div>
-  <div class="grid">
-    <div class="card"><div class="metric">{{ data.match_hub.counts.live }}</div><div class="muted">partidos en directo</div></div>
-    <div class="card"><div class="metric">{{ data.match_hub.counts.upcoming }}</div><div class="muted">proximos</div></div>
-    <div class="card"><div class="metric">{{ data.favorite_feed|length }}</div><div class="muted">en tu feed</div></div>
-    <div class="card"><div class="metric">{{ data.picks|length }}</div><div class="muted">picks disponibles</div></div>
+  <div class="section-head"><h2>Membresías</h2><span class="pill">Elige tu nivel</span></div>
+  <div class="grid membership-grid">
+    <article class="card plan-card plan-free"><div class="kicker">FREE</div><h2>Inicio</h2><p class="small">Calendario, favoritos básicos y vista general de partidos.</p><ul><li>Partidos y resultados</li><li>Favoritos básicos</li><li>SHARK IA base</li></ul></article>
+    <article class="card plan-card plan-pro"><div class="kicker">PRO</div><h2>Premium</h2><p class="small">Picks ampliados, combinadas y análisis más profundo.</p><ul><li>Picks PRO</li><li>Combinadas</li><li>Telegram premium</li></ul></article>
+    <article class="card plan-card plan-elite"><div class="kicker">ELITE</div><h2>Máximo</h2><p class="small">Acceso completo al ecosistema SHARK con prioridad y análisis avanzado.</p><ul><li>SHARK IA premium</li><li>Alertas live</li><li>Picks y combis élite</li></ul></article>
   </div>
 </section>
+
 <section class="band two-col">
   <div>
-    <div class="section-head"><h2>Populares</h2><a class="pill" href="/match-hub">Abrir hub</a></div>
+    <div class="section-head"><h2>Próximos destacados</h2><a class="pill" href="/match-hub">Abrir calendario</a></div>
     <div class="stack">
-      {% for m in data.match_hub.popular[:5] %}
-      <a class="list-row" href="/match-hub">
-        <span>{{ m.home_team }} vs {{ m.away_team }}</span>
-        <strong>{{ m.live_depth.label }}</strong>
-      </a>
+      {% for m in data.upcoming_matches[:5] %}
+      <a class="list-row" href="/match/{{ m.id }}"><span>{{ m.home_team }} vs {{ m.away_team }}</span><strong>{{ m.kickoff_time or m.live_depth.label }}</strong></a>
       {% else %}
-      <div class="empty">No hay partidos sincronizados todavia. Cuando entren SportsDB, Odds o import legal, apareceran aqui.</div>
+      <div class="empty">Todavía no hay partidos sincronizados. Cuando entren SportsDB, Odds o import legal aparecerán aquí.</div>
       {% endfor %}
     </div>
   </div>
   <div>
-    <div class="section-head"><h2>Favoritos</h2><a class="pill" href="/favorites">Gestionar</a></div>
+    <div class="section-head"><h2>Qué ofrece la app</h2><span class="pill">Cliente</span></div>
     <div class="stack">
-      {% if data.favorite_feed %}
-        {% for m in data.favorite_feed[:5] %}
-        <a class="list-row" href="/match-hub"><span>{{ m.home_team }} vs {{ m.away_team }}</span><strong>{{ m.kickoff_time or m.minute or '-' }}</strong></a>
-        {% endfor %}
-      {% else %}
-        <div class="empty">Guarda equipos, ligas o partidos para crear tu feed premium.</div>
-      {% endif %}
+      <div class="list-row"><span>Calendario por día y liga</span><strong>OK</strong></div>
+      <div class="list-row"><span>Favoritos personalizados</span><strong>OK</strong></div>
+      <div class="list-row"><span>Picks y combinadas</span><strong>OK</strong></div>
+      <div class="list-row"><span>SHARK IA conversacional</span><strong>OK</strong></div>
     </div>
   </div>
 </section>

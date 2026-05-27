@@ -3,20 +3,21 @@
 {% set plan = data.session_user.membership|lower %}
 <section class="client-hero plan-{{ plan }}">
   <div>
-    <div class="kicker">Hola, {{ data.session_user.name }}</div>
+    <div class="kicker">Área cliente</div>
     <h1>Tu panel SHARK</h1>
-    <p class="lead">@{{ data.session_user.username }} - {{ data.session_user.email }}</p>
+    <p class="lead">Hola, {{ data.session_user.name }} · @{{ data.session_user.username }} · plan {{ data.session_user.membership }}</p>
     <div class="actions">
       <a class="btn primary" href="/match-hub">Ver partidos</a>
       <a class="btn" href="/favorites">Favoritos</a>
-      <a class="btn" href="/logout">Cerrar sesion</a>
+      <a class="btn" href="/shark">Preguntar a SHARK</a>
+      <a class="btn" href="/logout">Cerrar sesión</a>
     </div>
   </div>
   <aside class="membership-card plan-{{ plan }}">
-    <span>MEMBRESIA</span>
+    <span>MEMBRESÍA</span>
     <strong>{{ data.session_user.membership }}</strong>
     {% if data.session_user.membership == 'FREE' %}
-    <p>Acceso base activo. PRO desbloquea mas picks y combinadas.</p>
+    <p>Acceso base activo. PRO desbloquea más picks, combinadas y avisos.</p>
     {% elif data.session_user.membership == 'PRO' %}
     <p>Picks ampliados, combinadas y mejor contexto de partido.</p>
     {% else %}
@@ -43,7 +44,7 @@
     <div class="card"><div class="metric">{{ data.match_hub.counts.upcoming }}</div><div class="muted">partidos programados</div></div>
     <div class="card"><div class="metric">{{ data.match_hub.counts.live }}</div><div class="muted">en directo</div></div>
     <div class="card"><div class="metric">{{ data.favorite_feed|length }}</div><div class="muted">en tu feed</div></div>
-    <div class="card"><div class="metric">{{ data.sportsdb.with_logo }}</div><div class="muted">escudos guardados</div></div>
+    <div class="card"><div class="metric">{{ data.combis|length }}</div><div class="muted">combinadas preparadas</div></div>
   </div>
 </section>
 
@@ -52,7 +53,7 @@
     <div class="section-head"><h2>Favoritos</h2><a class="pill" href="/favorites">Gestionar</a></div>
     <div class="stack">
       {% for f in data.favorites[:5] %}
-      <div class="list-row"><span>{{ f.label }}</span><strong>{{ f.kind }}</strong></div>
+      <div class="list-row"><span>{{ f.label }}</span><strong>{% if f.kind == 'team' %}Equipo{% elif f.kind == 'league' %}Liga{% else %}Partido{% endif %}</strong></div>
       {% else %}
       <div class="empty">Guarda tus equipos, ligas o partidos para crear un feed personal.</div>
       {% endfor %}
@@ -64,7 +65,7 @@
       {% for p in data.picks[:4] %}
       <div class="list-row"><span>{{ p.selection }}</span><strong>{{ p.confidence }}%</strong></div>
       {% else %}
-      <div class="empty">Cuando haya picks cargados desde una fuente autorizada apareceran aqui.</div>
+      <div class="empty">Cuando haya picks publicados aparecerán aquí.</div>
       {% endfor %}
     </div>
   </div>
@@ -76,20 +77,19 @@
     <div class="stack">
       {% set profile_matches = data.matches if data.matches else data.upcoming_matches %}
       {% for m in profile_matches[:5] %}
-      <div class="list-row"><span>{{ m.home_team }} vs {{ m.away_team }}</span><strong>{{ m.kickoff_time or m.minute or m.status }}</strong></div>
+      <a class="list-row" href="/match/{{ m.id }}"><span>{{ m.home_team }} vs {{ m.away_team }}</span><strong>{{ m.live_depth.label }}</strong></a>
       {% else %}
-      <div class="empty">No hay partidos sincronizados todavia. Cuando entren SportsDB, Odds o una importacion legal, se mostraran en tu panel.</div>
+      <div class="empty">No hay partidos sincronizados todavía. El calendario se completará cuando entren SportsDB, Odds o importación legal.</div>
       {% endfor %}
     </div>
   </div>
   <div>
     <div class="section-head"><h2>Servicios premium</h2><span class="pill">{{ data.session_user.membership }}</span></div>
     <div class="grid compact-grid">
-      <a class="card service-card" href="/telegram"><div class="name">Telegram</div><p class="small">{% if data.telegram.configured %}Listo para alertas.{% else %}Pendiente de activar.{% endif %}</p></a>
-      <a class="card service-card" href="/shark"><div class="name">SHARK IA</div><p class="small">{% if data.session_user.membership in ['ELITE','ADMIN'] %}Premium activo.{% else %}Briefing base activo.{% endif %}</p></a>
-      <a class="card service-card" href="/escudos"><div class="name">Escudos</div><p class="small">{{ data.sportsdb.with_logo }} escudos guardados.</p></a>
+      <a class="card service-card" href="/telegram"><div class="name">Telegram</div><p class="small">Partidos del día, picks y alertas según tu plan.</p></a>
+      <a class="card service-card" href="/shark"><div class="name">SHARK IA</div><p class="small">Pregunta por partidos, picks, combinadas, cuotas y favoritos.</p></a>
       <a class="card service-card" href="/match-hub"><div class="name">Calendario</div><p class="small">{{ data.client_source_label }}.</p></a>
-      <a class="card service-card" href="/combis"><div class="name">Combinadas</div><p class="small">{% if data.session_user.membership in ['PRO','ELITE','ADMIN'] %}Acceso ampliado.{% else %}Disponible en PRO.{% endif %}</p></a>
+      <a class="card service-card" href="/combis"><div class="name">Combinadas</div><p class="small">Elige número de partidos y modo de riesgo.</p></a>
     </div>
   </div>
 </section>

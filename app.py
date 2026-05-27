@@ -3174,6 +3174,34 @@ def favorite_feed_full(limit=80, user_id=None):
     return {"matches": prioritized, "live": live_related, "picks": picks_related[:20], "priority": prioritized[:10]}
 
 
+
+
+def favorite_insights(user_id=None):
+    favs = get_favorites(user_id=user_id)
+    bundle = favorite_feed_full(user_id=user_id)
+    by_kind = {"team": [], "league": [], "match": []}
+    for fav in favs:
+        by_kind.setdefault(fav.get("kind") or "other", []).append(fav)
+    next_matches = bundle.get("matches", [])[:8]
+    live_matches = bundle.get("live", [])[:6]
+    picks = bundle.get("picks", [])[:6]
+    summary = []
+    if by_kind.get("team"):
+        summary.append(f"{len(by_kind['team'])} equipos seguidos")
+    if by_kind.get("league"):
+        summary.append(f"{len(by_kind['league'])} ligas seguidas")
+    if by_kind.get("match"):
+        summary.append(f"{len(by_kind['match'])} partidos guardados")
+    return {
+        "favorites": favs,
+        "by_kind": by_kind,
+        "matches": next_matches,
+        "live": live_matches,
+        "picks": picks,
+        "summary": " · ".join(summary) if summary else "Sin favoritos todavía",
+        "total": len(favs),
+    }
+
 def match_detail(match_id):
     match = one("SELECT * FROM matches WHERE id=?", (match_id,))
     if not match:
@@ -4661,6 +4689,7 @@ def dashboard_data(lane="today", date=None):
         "favorites": favorites,
         "favorite_feed": favorite_bundle["matches"],
         "favorite_bundle": favorite_bundle,
+        "favorite_insights": favorite_insights(),
         "match_hub": hub,
         "past_results": past_results,
         "candidate_matches": candidate_matches,
@@ -4744,13 +4773,30 @@ def match_hub_page():
     return render_template("match_hub.html", data=data)
 
 
+
+
+@app.route("/match/<match_id>")
+@app.route("/partido/<match_id>")
+def match_detail_page(match_id):
+    detail = match_detail(match_id)
+    if not detail:
+        return redirect("/match-hub")
+    data = dashboard_data()
+    data["match_detail"] = detail
+    return render_template("match_detail.html", data=data, detail=detail)
+
+
 @app.route("/favoritos", methods=["GET", "POST"])
 @app.route("/favorites", methods=["GET", "POST"])
 def favorites_page():
     if not current_session_user():
         return redirect("/cliente-login")
     if request.method == "POST":
-        add_favorite(request.form.get("kind"), request.form.get("value"), request.form.get("label"))
+        action = str(request.form.get("action") or "add").lower()
+        if action == "remove":
+            remove_favorite(request.form.get("kind"), request.form.get("value"))
+        else:
+            add_favorite(request.form.get("kind"), request.form.get("value"), request.form.get("label"))
         return redirect("/favorites")
     return render_template("favorites.html", data=dashboard_data())
 
@@ -5107,6 +5153,8 @@ def telegram_page():
 @app.route("/escudos")
 @app.route("/crests")
 def crests_page():
+    if not is_admin_session():
+        return redirect("/perfil" if current_session_user() else "/cliente-login")
     return render_template("crests.html", data=dashboard_data())
 
 
