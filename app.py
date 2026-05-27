@@ -53,8 +53,8 @@ from engines.telegram_delivery_engine import (
 from engines.telegram_engine import build_alert_queue, dispatch_signature, should_skip_duplicate
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V522_GLOBAL_APP_RESTRUCTURE_PICKS_COMMAND_CENTER"
-SEED_VERSION = "v522-global-app-restructure-picks-command-center-seed"
+APP_VERSION = "V523_CALENDAR_DAY_LEAGUE_GROUPING"
+SEED_VERSION = "v523-calendar-day-league-grouping-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
 
@@ -2345,6 +2345,10 @@ def match_calendar_diagnostics():
         "odds": odds,
         "errors_recent": [log.get("error_message") for log in logs if log.get("error_message")],
         "competitions_ready": IMPORTANT_COMPETITIONS,
+        "matches_by_day": rows("SELECT match_date, COUNT(*) AS total FROM matches GROUP BY match_date ORDER BY match_date LIMIT 14"),
+        "matches_by_league": rows("SELECT COALESCE(competition_name, league_name, competition_key) AS league, country, COUNT(*) AS total FROM matches GROUP BY COALESCE(competition_name, league_name, competition_key), country ORDER BY total DESC LIMIT 25"),
+        "next_7_days": rows("SELECT match_date, COALESCE(competition_name, league_name, competition_key) AS league, COUNT(*) AS total FROM matches WHERE match_date>=? AND match_date<=? GROUP BY match_date, COALESCE(competition_name, league_name, competition_key) ORDER BY match_date, league LIMIT 80", (today_iso(), today_iso(7))),
+        "grouping_policy": "Calendario agrupado por día, liga y hora.",
     }
 
 
@@ -3132,7 +3136,7 @@ def match_detail(match_id):
 def match_lane_filter(match, lane):
     lane = str(lane or "today").lower()
     comp = str(match.get("competition_key") or "").lower()
-    comp_name = str(match.get("competition_name") or "").lower()
+    comp_name = str(match.get("competition_name") or match.get("league_name") or "").lower()
     country = str(match.get("country") or "").lower()
     state = ((match.get("live_depth") or {}).get("state") or "").upper()
     if lane in {"today", "week", "tomorrow"}:
@@ -3150,6 +3154,80 @@ def match_lane_filter(match, lane):
     if lane in {"national", "world"}:
         return any(x in comp for x in ["world", "euro", "copa-america", "nations"]) or any(x in comp_name for x in ["world", "euro", "copa america", "nations"])
     return True
+
+
+def league_category(match):
+    comp = str(match.get("competition_key") or "").lower()
+    comp_name = str(match.get("competition_name") or match.get("league_name") or "").lower()
+    country = str(match.get("country") or "").lower()
+    text = f"{comp} {comp_name}"
+    if any(x in text for x in ["andalucia", "cadiz", "sevilla", "malaga", "granada", "cordoba", "huelva", "jaen", "almeria"]):
+        return "Andalucía"
+    if any(x in text for x in ["champions", "europa league", "conference", "uefa"]):
+        return "UEFA"
+    if any(x in text for x in ["world", "euro", "copa america", "copa-america", "nations league"]):
+        return "Selecciones"
+    if country == "spain" or any(x in text for x in ["laliga", "rfef", "segunda", "tercera"]):
+        return "España"
+    return "Internacional"
+
+
+def league_display_name(match):
+    return match.get("competition_name") or match.get("league_name") or match.get("competition_key") or "Competición"
+
+
+def date_display_label(date_value):
+    try:
+        target = datetime.fromisoformat(str(date_value)).date()
+        today = datetime.now(TZ).date()
+        if target == today:
+            prefix = "Hoy"
+        elif target == today + timedelta(days=1):
+            prefix = "Mañana"
+        else:
+            prefix = target.strftime("%A")
+        return f"{prefix} · {target.strftime('%d/%m/%Y')}"
+    except Exception:
+        return str(date_value or "Fecha por confirmar")
+
+
+def match_sort_tuple(match):
+    kickoff = match.get("kickoff_iso") or ""
+    hour = match.get("kickoff_time") or match.get("match_time") or "99:99"
+    priority = 999 - int(match.get("priority") or 0)
+    return (kickoff or f"{match.get('match_date') or ''}T{hour}", hour, priority, str(match.get("home_team") or ""))
+
+
+def grouped_match_calendar(matches):
+    days_map = {}
+    for raw in matches or []:
+        match = dict(raw)
+        day_key = match.get("match_date") or (str(match.get("kickoff_iso") or "")[:10] if match.get("kickoff_iso") else "sin-fecha")
+        league_name = league_display_name(match)
+        league_key = slug(league_name)
+        day = days_map.setdefault(day_key, {"date": day_key, "label": date_display_label(day_key), "total": 0, "leagues": {}})
+        league = day["leagues"].setdefault(
+            league_key,
+            {
+                "key": league_key,
+                "name": league_name,
+                "country": match.get("country") or "Global",
+                "category": league_category(match),
+                "matches": [],
+            },
+        )
+        league["matches"].append(match)
+        day["total"] += 1
+    grouped_days = []
+    for day_key in sorted(days_map.keys()):
+        day = days_map[day_key]
+        league_list = list(day["leagues"].values())
+        league_list.sort(key=lambda item: (item["category"], item["name"]))
+        for league in league_list:
+            league["matches"].sort(key=match_sort_tuple)
+            league["count"] = len(league["matches"])
+        grouped_days.append({"date": day["date"], "label": day["label"], "total": day["total"], "leagues": league_list})
+    return grouped_days
 
 
 def match_hub(date=None, lane="today"):
@@ -3196,7 +3274,9 @@ def match_hub(date=None, lane="today"):
         "with_odds": with_odds[:20],
         "by_country": by_country,
         "top_leagues": top_leagues,
-        "empty_state": "No hay partidos sincronizados todavia. El administrador puede sincronizar SportsDB/Odds o importar CSV/JSON legal.",
+        "calendar_grouped": grouped_match_calendar(combined),
+        "grouping_policy": "Partidos ordenados por día, liga y hora.",
+        "empty_state": "No hay partidos sincronizados todavía. El administrador puede sincronizar SportsDB/Odds o importar CSV/JSON legal.",
         "counts": {
             "live": len(live_state["live"]),
             "upcoming": len(live_state["scheduled"]),
