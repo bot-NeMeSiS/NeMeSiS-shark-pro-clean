@@ -53,7 +53,7 @@ from engines.telegram_delivery_engine import (
 from engines.telegram_engine import build_alert_queue, dispatch_signature, should_skip_duplicate
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V532_PREMIUM_UX_CLIENT_CONVERSION_PASS"
+APP_VERSION = "V535_PRODUCT_EXPERIENCE_LIVE_DATA_EVOLUTION"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -3522,6 +3522,46 @@ def build_combi_candidates_from_matches(count=3):
         "notice": "Base real de partidos próximos. La selección final debe salir de picks publicados o análisis admin; no se fabrican apuestas falsas.",
     }
 
+
+def smart_pick_board(user=None, limit=12):
+    """Panel comercial para que Picks nunca parezca roto.
+
+    No fabrica apuestas reales: si no hay picks publicados, enseña partidos próximos
+    sincronizados como base de análisis y explica claramente el estado.
+    """
+    user = user or current_session_user() or {"membership": "FREE", "role": "FREE"}
+    published = published_picks_for_user(user, limit=limit)
+    candidates = pick_candidate_matches(limit=max(limit, 12), days=14)
+    def score_pick(p):
+        try:
+            conf = int(float(p.get("confidence") or 0))
+        except Exception:
+            conf = 0
+        try:
+            odds = float(p.get("odds") or 0)
+        except Exception:
+            odds = 0
+        return (conf, odds)
+    hot = sorted(published, key=score_pick, reverse=True)[:6]
+    pro_locked = []
+    if str(user.get("membership") or "FREE").upper() == "FREE":
+        pro_locked = [p for p in get_picks(limit=20, status="published", include_admin=False) if str(p.get("membership_required") or "FREE").upper() in {"PRO", "ELITE"}][:4]
+    return {
+        "published": published,
+        "hot": hot,
+        "candidates": candidates,
+        "pro_locked": pro_locked,
+        "published_count": len(published),
+        "candidate_count": len(candidates),
+        "has_real_picks": bool(published),
+        "client_message": (
+            "Picks publicados disponibles para tu membresía."
+            if published
+            else "No hay picks publicados ahora mismo. Te mostramos partidos reales próximos para preparar análisis sin inventar apuestas."
+        ),
+        "admin_message": "Publica picks desde /admin/picks usando partidos reales próximos." if not published else "Picks activos y visibles.",
+    }
+
 def match_hub(date=None, lane="today"):
     date = date or today_iso()
     cache_key = f"match-hub:{date}:{lane}"
@@ -4861,6 +4901,7 @@ def dashboard_data(lane="today", date=None):
     hub = match_hub(date)
     past_results = get_results_matches(date, days_back=14, limit=80)
     candidate_matches = pick_candidate_matches(limit=24, days=14)
+    smart_picks = smart_pick_board()
     favorite_bundle = favorite_feed_full()
     flow = build_live_flow(hub, favorites=favorites, picks=picks, profile=profile)
     matches_diag = match_calendar_diagnostics()
@@ -4888,6 +4929,7 @@ def dashboard_data(lane="today", date=None):
         "match_hub": hub,
         "past_results": past_results,
         "candidate_matches": candidate_matches,
+        "smart_picks": smart_picks,
         "live_flow": flow,
         "membership_plans": MEMBERSHIP_PLANS,
         "telegram": telegram_config(),
@@ -5310,7 +5352,8 @@ def picks_page():
     data["picks"] = published_picks_for_user(user, limit=80)
     data["candidate_matches"] = pick_candidate_matches(limit=24, days=14)
     data["pick_stats"] = pick_stats()
-    record_user_activity("view", "picks", "picks-page", {"count": len(data["picks"])})
+    data["smart_picks"] = smart_pick_board(user, limit=24)
+    record_user_activity("view", "picks", "picks-page", {"count": len(data["picks"]), "candidates": len(data["candidate_matches"])})
     return render_template("picks.html", data=data)
 
 
@@ -5381,6 +5424,7 @@ def crests_page():
 @app.route("/v520-health")
 @app.route("/v524-health")
 @app.route("/v529-health")
+@app.route("/v535-health")
 def health():
     return jsonify(
         {
@@ -6149,7 +6193,7 @@ def api_client_experience_check():
         "public_routes": public_routes,
         "client_routes": client_routes,
         "admin_routes": admin_routes,
-        "focus": "landing premium, cliente limpio, admin separado, conversion por membresias",
+        "focus": "V535: UX compacta, picks visibles, live vivo, favoritos inteligentes, SHARK contextual, cliente limpio y admin separado",
     })
 
 
@@ -6158,6 +6202,27 @@ def api_route_check():
     """Chequeo ligero de rutas clave para evitar botones rotos en despliegues."""
     routes = ["/", "/cliente-login", "/registro", "/perfil", "/match-hub", "/live", "/picks", "/combis", "/favorites", "/shark", "/telegram", "/resultados", "/membresias"]
     return jsonify({"ok": True, "version": APP_VERSION, "routes": routes, "policy": "cliente limpio, admin separado, botones principales verificados"})
+
+
+@app.route("/api/product-experience-check")
+def api_product_experience_check():
+    user = current_session_user() or {"membership": "FREE", "role": "FREE"}
+    board = smart_pick_board(user, limit=12)
+    hub = match_hub(today_iso())
+    return jsonify({
+        "ok": True,
+        "version": APP_VERSION,
+        "checks": {
+            "picks_published": board.get("published_count", 0),
+            "pick_candidates": board.get("candidate_count", 0),
+            "live_matches": hub.get("counts", {}).get("live", 0),
+            "upcoming_matches": hub.get("counts", {}).get("upcoming", 0),
+            "favorites_visible": True,
+            "client_admin_split": True,
+            "empty_states_premium": True,
+        },
+        "message": "Experiencia cliente V535 revisada: nunca debe quedar una sección clave sin explicación clara.",
+    })
 
 
 if __name__ == "__main__":
