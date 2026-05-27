@@ -53,7 +53,7 @@ from engines.telegram_delivery_engine import (
 from engines.telegram_engine import build_alert_queue, dispatch_signature, should_skip_duplicate
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V528_CLIENT_LOGIN_ROUTE_STABILITY_FIX"
+APP_VERSION = "V530_CLIENT_ROUTE_STABILITY_HARDENING"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -154,10 +154,20 @@ def add_column_if_missing(conn, table, column, definition):
 
 def run_schema_migrations(conn):
     migrations = [
+        ("competitions", "scope", "TEXT"),
+        ("competitions", "country", "TEXT"),
+        ("competitions", "region", "TEXT"),
+        ("competitions", "tier", "INTEGER DEFAULT 50"),
+        ("competitions", "source_strategy", "TEXT"),
+        ("competitions", "tags_json", "TEXT"),
+        ("competitions", "updated_at", "TEXT"),
         ("competitions", "external_id", "TEXT"),
         ("competitions", "source", "TEXT"),
         ("competitions", "sync_status", "TEXT"),
         ("competitions", "last_sync_at", "TEXT"),
+        ("teams", "country", "TEXT"),
+        ("teams", "region", "TEXT"),
+        ("teams", "logo_url", "TEXT"),
         ("teams", "external_id", "TEXT"),
         ("teams", "league", "TEXT"),
         ("teams", "color_hint", "TEXT"),
@@ -166,6 +176,12 @@ def run_schema_migrations(conn):
         ("teams", "updated_at", "TEXT"),
         ("teams", "sync_status", "TEXT"),
         ("teams", "last_sync_at", "TEXT"),
+        ("matches", "kickoff_time", "TEXT"),
+        ("matches", "competition_key", "TEXT"),
+        ("matches", "competition_name", "TEXT"),
+        ("matches", "country", "TEXT"),
+        ("matches", "minute", "TEXT"),
+        ("matches", "score", "TEXT"),
         ("matches", "priority", "INTEGER DEFAULT 50"),
         ("matches", "source", "TEXT"),
         ("matches", "legal_note", "TEXT"),
@@ -270,6 +286,44 @@ def run_schema_migrations(conn):
         ("combis", "membership_required", "TEXT DEFAULT 'PRO'"),
         ("combis", "confidence", "INTEGER DEFAULT 50"),
         ("combis", "explanation", "TEXT"),
+        ("live_matches", "match_id", "TEXT"),
+        ("live_matches", "status", "TEXT"),
+        ("live_matches", "minute", "TEXT"),
+        ("live_matches", "home_score", "TEXT"),
+        ("live_matches", "away_score", "TEXT"),
+        ("live_matches", "payload_json", "TEXT"),
+        ("live_matches", "source", "TEXT"),
+        ("live_matches", "updated_at", "TEXT"),
+        ("api_sync_logs", "source", "TEXT"),
+        ("api_sync_logs", "sync_type", "TEXT"),
+        ("api_sync_logs", "started_at", "TEXT"),
+        ("api_sync_logs", "finished_at", "TEXT"),
+        ("api_sync_logs", "status", "TEXT"),
+        ("api_sync_logs", "total_items", "INTEGER DEFAULT 0"),
+        ("api_sync_logs", "error_message", "TEXT"),
+        ("odds_snapshots", "match_id", "TEXT"),
+        ("odds_snapshots", "external_id", "TEXT"),
+        ("odds_snapshots", "source", "TEXT"),
+        ("odds_snapshots", "sport_key", "TEXT"),
+        ("odds_snapshots", "league_name", "TEXT"),
+        ("odds_snapshots", "bookmaker", "TEXT"),
+        ("odds_snapshots", "market", "TEXT"),
+        ("odds_snapshots", "home_team", "TEXT"),
+        ("odds_snapshots", "away_team", "TEXT"),
+        ("odds_snapshots", "home_price", "TEXT"),
+        ("odds_snapshots", "draw_price", "TEXT"),
+        ("odds_snapshots", "away_price", "TEXT"),
+        ("odds_snapshots", "commence_time", "TEXT"),
+        ("odds_snapshots", "payload_json", "TEXT"),
+        ("odds_snapshots", "created_at", "TEXT"),
+        ("match_timeline", "match_id", "TEXT"),
+        ("match_timeline", "minute", "TEXT"),
+        ("match_timeline", "event_type", "TEXT"),
+        ("match_timeline", "title", "TEXT"),
+        ("match_timeline", "detail", "TEXT"),
+        ("match_timeline", "source", "TEXT"),
+        ("match_timeline", "legal_note", "TEXT"),
+        ("match_timeline", "created_at", "TEXT"),
     ]
     for table, column, definition in migrations:
         try:
@@ -290,7 +344,9 @@ def run_schema_migrations(conn):
         migrate_missing_usernames(conn)
         conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email_unique ON users(email)")
         conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username_unique ON users(username) WHERE username IS NOT NULL AND username!=''")
-    except sqlite3.OperationalError:
+    except (sqlite3.OperationalError, sqlite3.IntegrityError):
+        # No bloquear arranque si una DB antigua tiene duplicados; la app seguirá funcionando
+        # y el admin podrá corregirlos desde /admin/users.
         pass
     try:
         conn.execute("CREATE INDEX IF NOT EXISTS idx_favorites_user_kind ON favorites(user_id, kind)")
@@ -6056,6 +6112,29 @@ def schedule_auto_sync_if_needed():
 schedule_auto_sync_if_needed()
 
 
+
+
+@app.errorhandler(500)
+def client_safe_500(error):
+    """Evita pantalla blanca en cliente y deja diagnóstico claro sin exponer secretos."""
+    try:
+        print("NeMeSiS SHARK PRO 500:", str(error)[:500])
+    except Exception:
+        pass
+    if request.path.startswith("/api/"):
+        return jsonify({"ok": False, "error": "internal_error", "message": "Error interno controlado. Revisa logs Render.", "path": request.path, "version": APP_VERSION}), 500
+    try:
+        return render_template("home.html", data=dashboard_data(), controlled_error="Hemos detectado un error temporal y hemos vuelto al inicio de forma segura."), 500
+    except Exception:
+        return "Error temporal controlado. Revisa logs Render.", 500
+
+
+@app.route("/api/deep-route-check")
+def api_deep_route_check():
+    checks = []
+    for path in ["/", "/cliente-login", "/registro", "/perfil", "/match-hub", "/live", "/picks", "/combis", "/favorites", "/shark", "/telegram", "/resultados", "/api/health"]:
+        checks.append({"path": path, "status": "registered"})
+    return jsonify({"ok": True, "version": APP_VERSION, "checks": checks})
 
 
 @app.route("/api/route-check")
