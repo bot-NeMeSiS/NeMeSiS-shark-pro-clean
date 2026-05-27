@@ -12,7 +12,7 @@ import urllib.request
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
-from flask import Flask, Response, jsonify, redirect, render_template, request, session
+from flask import Flask, Response, jsonify, redirect, render_template, request, session, url_for
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from database_manager import connect as sqlite_connect, retry_locked
@@ -53,7 +53,7 @@ from engines.telegram_delivery_engine import (
 from engines.telegram_engine import build_alert_queue, dispatch_signature, should_skip_duplicate
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V536_CLIENT_RETENTION_ALERTS_ACTIVITY_CENTER"
+APP_VERSION = "V539_MEMBERSHIP_REVENUE_ONBOARDING_PASS"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -6512,6 +6512,223 @@ def api_product_experience_check():
         },
         "message": "Experiencia cliente V535 revisada: nunca debe quedar una sección clave sin explicación clara.",
     })
+
+
+# -----------------------------
+# V538 — Quality Center + Data Health Polish
+# -----------------------------
+
+def safe_count(table, where="1=1", params=()):
+    try:
+        item = one(f"SELECT COUNT(*) AS total FROM {table} WHERE {where}", params)
+        return int((item or {}).get("total") or 0)
+    except Exception:
+        return 0
+
+
+def quality_center_summary():
+    """Resumen defensivo de calidad del ecosistema.
+    No expone secretos al cliente y no rompe si una tabla antigua no existe.
+    """
+    total_matches = safe_count("matches")
+    today_matches = safe_count("matches", "match_date=?", (today_iso(),))
+    upcoming = safe_count("matches", "match_date>=?", (today_iso(),))
+    finished = safe_count("matches", "lower(coalesce(status,'')) IN ('finished','finalizado','ft','final') OR (home_score IS NOT NULL AND away_score IS NOT NULL AND match_date<?)", (today_iso(),))
+    live = safe_count("matches", "lower(coalesce(status,'')) LIKE '%live%' OR lower(coalesce(status,'')) LIKE '%directo%' OR coalesce(minute,'')!=''")
+    teams = safe_count("teams")
+    teams_with_logo = safe_count("teams", "coalesce(logo_url,'')!=''")
+    competitions_total = safe_count("competitions")
+    picks_total = safe_count("picks")
+    published_picks = safe_count("picks", "lower(coalesce(status,''))='published'")
+    users_total = safe_count("users")
+    telegram_pending = safe_count("telegram_queue", "lower(coalesce(status,''))='pending'")
+    recent_logs = []
+    try:
+        recent_logs = rows("SELECT source, sync_type, status, total_items, error_message, created_at FROM api_sync_logs ORDER BY created_at DESC LIMIT 8")
+    except Exception:
+        recent_logs = []
+    score_parts = [
+        1 if total_matches > 0 else 0,
+        1 if upcoming > 0 else 0,
+        1 if teams > 0 else 0,
+        1 if teams_with_logo > 0 else 0,
+        1 if competitions_total > 0 else 0,
+        1 if users_total > 0 else 0,
+        1 if published_picks > 0 else 0,
+        1 if recent_logs else 0,
+    ]
+    score = round((sum(score_parts) / len(score_parts)) * 100)
+    recommendations = []
+    if total_matches == 0:
+        recommendations.append("Sincroniza calendario desde Data Center para poblar partidos reales.")
+    if teams and teams_with_logo < max(1, teams // 3):
+        recommendations.append("Ejecuta SportsDB Sync para mejorar escudos e identidad visual.")
+    if published_picks == 0:
+        recommendations.append("Publica picks reales desde Admin Picks para que cliente y Telegram tengan contenido premium.")
+    if telegram_pending > 20:
+        recommendations.append("Revisa la cola de Telegram: hay muchos mensajes pendientes.")
+    if not recommendations:
+        recommendations.append("Ecosistema estable. Siguiente paso: densidad de datos, live profundo y automatización.")
+    return {
+        "score": score,
+        "version": APP_VERSION,
+        "matches": {"total": total_matches, "today": today_matches, "upcoming": upcoming, "finished": finished, "live": live},
+        "teams": {"total": teams, "with_logo": teams_with_logo, "fallback": max(0, teams - teams_with_logo)},
+        "competitions": {"total": competitions_total},
+        "picks": {"total": picks_total, "published": published_picks, "draft_or_empty": max(0, picks_total - published_picks)},
+        "users": {"total": users_total},
+        "telegram": {"pending": telegram_pending},
+        "recent_logs": recent_logs,
+        "recommendations": recommendations,
+    }
+
+
+@app.route("/admin/quality-center")
+def admin_quality_center():
+    if not is_admin_session():
+        return redirect(url_for("admin_login", next=request.path))
+    return render_template("admin_quality_center.html", title="Centro de calidad", q=quality_center_summary())
+
+
+@app.route("/api/quality-center/summary")
+def api_quality_center_summary():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "summary": quality_center_summary()})
+
+
+@app.route("/api/client/app-pulse")
+def api_client_app_pulse():
+    """Pulso comercial seguro para cliente: no muestra detalles técnicos ni secretos."""
+    q = quality_center_summary()
+    return jsonify({
+        "ok": True,
+        "version": APP_VERSION,
+        "pulse": {
+            "upcoming_matches": q["matches"]["upcoming"],
+            "live_matches": q["matches"]["live"],
+            "published_picks": q["picks"]["published"],
+            "teams_with_identity": q["teams"]["with_logo"],
+            "experience": "Premium" if q["score"] >= 70 else "Preparando datos premium",
+        },
+    })
+
+
+# -----------------------------
+# V539 — Membership Revenue + Onboarding Polish
+# -----------------------------
+
+def membership_distribution():
+    buckets = {"FREE": 0, "PRO": 0, "ELITE": 0, "ADMIN": 0}
+    try:
+        for r in rows("SELECT upper(coalesce(membership, role, 'FREE')) AS plan, COUNT(*) AS total FROM users GROUP BY upper(coalesce(membership, role, 'FREE'))"):
+            plan = normalize_role(r.get("plan"))
+            buckets[plan] = int(r.get("total") or 0)
+    except Exception:
+        pass
+    return buckets
+
+
+def onboarding_status(user=None):
+    user = user or current_session_user() or {"membership": "FREE", "role": "FREE", "id": ""}
+    fav_count = len(get_favorites(user_id=user.get("id") or "")) if user.get("id") else 0
+    activity_count = safe_count("user_activity", "user_id=?", (user.get("id") or "",)) if user.get("id") else 0
+    picks_visible = len(published_picks_for_user(user, limit=12))
+    alerts_ready = len(build_client_alerts(limit=5))
+    steps = [
+        {"key": "account", "label": "Cuenta creada", "done": bool(user.get("id")), "href": "/perfil"},
+        {"key": "favorites", "label": "Añadir favoritos", "done": fav_count > 0, "href": "/favorites"},
+        {"key": "matches", "label": "Revisar partidos", "done": safe_count("matches") > 0, "href": "/match-hub"},
+        {"key": "picks", "label": "Ver picks", "done": picks_visible > 0, "href": "/picks"},
+        {"key": "telegram", "label": "Preparar Telegram", "done": bool((telegram_config() or {}).get("configured")), "href": "/telegram"},
+        {"key": "shark", "label": "Preguntar a SHARK", "done": activity_count > 0, "href": "/shark"},
+    ]
+    done = sum(1 for step in steps if step["done"])
+    score = round(done / len(steps) * 100)
+    next_step = next((step for step in steps if not step["done"]), steps[-1])
+    return {
+        "score": score,
+        "done": done,
+        "total": len(steps),
+        "steps": steps,
+        "next_step": next_step,
+        "favorites_count": fav_count,
+        "picks_visible": picks_visible,
+        "alerts_ready": alerts_ready,
+        "membership": normalize_role(user.get("membership") or user.get("role")),
+    }
+
+
+def membership_revenue_summary():
+    distribution = membership_distribution()
+    # Valores orientativos internos, no cobran ni activan Stripe todavía.
+    estimated_prices = {"FREE": 0, "PRO": 19, "ELITE": 49, "ADMIN": 0}
+    estimated_mrr = sum(distribution.get(plan, 0) * estimated_prices.get(plan, 0) for plan in distribution)
+    total_clients = distribution.get("FREE", 0) + distribution.get("PRO", 0) + distribution.get("ELITE", 0)
+    paid_clients = distribution.get("PRO", 0) + distribution.get("ELITE", 0)
+    conversion = round((paid_clients / total_clients * 100), 1) if total_clients else 0
+    return {
+        "distribution": distribution,
+        "estimated_mrr": estimated_mrr,
+        "total_clients": total_clients,
+        "paid_clients": paid_clients,
+        "conversion": conversion,
+        "plans": MEMBERSHIP_PLANS,
+        "recommendations": [
+            "Mantener FREE como puerta de entrada con calendario, favoritos y SHARK base.",
+            "Empujar PRO con picks, combinadas y Telegram premium.",
+            "Reservar ELITE para SHARK contextual, alertas live y prioridad de análisis.",
+        ],
+    }
+
+
+@app.route("/onboarding")
+def onboarding_page():
+    user = current_session_user()
+    if not user:
+        return redirect("/cliente-login")
+    data = dashboard_data()
+    data["onboarding"] = onboarding_status(user)
+    return render_template("onboarding.html", data=data)
+
+
+@app.route("/mi-cuenta")
+def account_center_page():
+    user = current_session_user()
+    if not user:
+        return redirect("/cliente-login")
+    data = dashboard_data()
+    data["onboarding"] = onboarding_status(user)
+    data["account_center"] = {
+        "user": user,
+        "plan": normalize_role(user.get("membership") or user.get("role")),
+        "favorites": len(data.get("favorites") or []),
+        "alerts": len(data.get("client_alerts") or []),
+        "activity": len(data.get("client_activity") or []),
+    }
+    return render_template("account_center.html", data=data)
+
+
+@app.route("/admin/memberships")
+def admin_memberships_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/memberships")
+    data = dashboard_data()
+    data["membership_revenue"] = membership_revenue_summary()
+    return render_template("admin_memberships.html", data=data)
+
+
+@app.route("/api/client/onboarding-check")
+def api_client_onboarding_check():
+    user = current_session_user() or {"membership": "FREE", "role": "FREE", "id": ""}
+    return jsonify({"ok": True, "version": APP_VERSION, "onboarding": onboarding_status(user)})
+
+
+@app.route("/api/admin/membership-summary")
+def api_admin_membership_summary():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "version": APP_VERSION, "summary": membership_revenue_summary()})
 
 
 if __name__ == "__main__":
