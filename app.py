@@ -3591,17 +3591,127 @@ def group_matches_by_league(matches):
     result.sort(key=lambda x: (x["category"], x["name"]))
     return result
 
+
+def recent_team_form(team_name, limit=5):
+    """Return compact recent form based only on persisted legal match results."""
+    team_name = str(team_name or "").strip()
+    if not team_name:
+        return {"team": "", "matches": [], "form": [], "summary": "Sin datos recientes."}
+    recent = []
+    for m in rows(
+        """SELECT * FROM matches
+           WHERE (lower(home_team)=lower(?) OR lower(away_team)=lower(?))
+             AND (status IN ('FT','finished','finalizado','Finalizado','FINAL') OR match_date < ?)
+           ORDER BY match_date DESC, kickoff_time DESC LIMIT ?""",
+        (team_name, team_name, today_iso(), int(limit)),
+    ):
+        if is_fake_match(m):
+            continue
+        item = annotate_match(m)
+        score = str(item.get("score") or "").replace(" ", "")
+        result = "D"
+        try:
+            import re
+            nums = [int(x) for x in re.findall(r"\d+", score)[:2]]
+            if len(nums) >= 2:
+                home_goals, away_goals = nums[0], nums[1]
+                is_home = str(item.get("home_team") or "").lower() == team_name.lower()
+                team_goals = home_goals if is_home else away_goals
+                rival_goals = away_goals if is_home else home_goals
+                result = "W" if team_goals > rival_goals else "L" if team_goals < rival_goals else "D"
+        except Exception:
+            result = "D"
+        item["form_result"] = result
+        recent.append(item)
+    wins = sum(1 for x in recent if x.get("form_result") == "W")
+    draws = sum(1 for x in recent if x.get("form_result") == "D")
+    losses = sum(1 for x in recent if x.get("form_result") == "L")
+    summary = f"{wins} victorias · {draws} empates · {losses} derrotas" if recent else "Sin resultados recientes guardados."
+    return {"team": team_name, "matches": recent, "form": [x.get("form_result") for x in recent], "summary": summary}
+
+
+def head_to_head_matches(home_team, away_team, limit=5):
+    """Return recent direct duels from SQLite without inventing data."""
+    home_team = str(home_team or "").strip()
+    away_team = str(away_team or "").strip()
+    if not home_team or not away_team:
+        return []
+    found = []
+    for m in rows(
+        """SELECT * FROM matches
+           WHERE ((lower(home_team)=lower(?) AND lower(away_team)=lower(?))
+              OR  (lower(home_team)=lower(?) AND lower(away_team)=lower(?)))
+           ORDER BY match_date DESC, kickoff_time DESC LIMIT ?""",
+        (home_team, away_team, away_team, home_team, int(limit)),
+    ):
+        if not is_fake_match(m):
+            found.append(annotate_match(m))
+    return found
+
+
+def match_depth_payload(match):
+    """Build V540 match intelligence using persisted legal data only."""
+    annotated = annotate_match(match)
+    home = annotated.get("home_team") or ""
+    away = annotated.get("away_team") or ""
+    home_form = recent_team_form(home)
+    away_form = recent_team_form(away)
+    h2h = head_to_head_matches(home, away)
+    live_depth = annotated.get("live_depth") or build_live_depth(annotated)
+    timeline = match_timeline(annotated) or fallback_timeline(annotated)
+    picks = related_picks_for_match(annotated)
+    shark_notes = []
+    if h2h:
+        shark_notes.append(f"Hay {len(h2h)} enfrentamientos directos guardados para comparar contexto.")
+    else:
+        shark_notes.append("Aún no hay histórico directo suficiente guardado para este cruce.")
+    if picks:
+        shark_notes.append(f"Hay {len(picks)} picks relacionados publicados o preparados para este partido.")
+    else:
+        shark_notes.append("SHARK no publicará pick real hasta tener cuota, mercado y contexto suficientes.")
+    if live_depth.get("state") in {"LIVE", "HT"}:
+        shark_notes.append("Partido activo: priorizar lectura live y evitar decisiones tardías sin revisar marcador/minuto.")
+    elif live_depth.get("state") == "FT":
+        shark_notes.append("Partido finalizado: útil para histórico, forma y aprendizaje futuro.")
+    else:
+        shark_notes.append("Partido próximo: contexto preparado para picks, favoritos y alertas.")
+    return {
+        "match": annotated,
+        "live_depth": live_depth,
+        "timeline": timeline,
+        "home_form": home_form,
+        "away_form": away_form,
+        "head_to_head": h2h,
+        "related_picks": picks,
+        "shark_notes": shark_notes,
+        "data_quality": {
+            "has_score": bool(annotated.get("score")),
+            "has_time": bool(annotated.get("kickoff_time") or annotated.get("kickoff_iso")),
+            "has_crests": bool((annotated.get("home_identity") or {}).get("crest_url") and (annotated.get("away_identity") or {}).get("crest_url")),
+            "has_picks": bool(picks),
+            "has_h2h": bool(h2h),
+        },
+    }
+
 def match_detail(match_id):
     match = one("SELECT * FROM matches WHERE id=?", (match_id,))
     if not match:
         return None
     annotated = annotate_match(match)
-    return build_match_detail(
+    base = build_match_detail(
         annotated,
         timeline=match_timeline(annotated),
         related_picks=related_picks_for_match(annotated),
         favorite=annotated.get("is_favorite"),
     )
+    depth = match_depth_payload(annotated)
+    base["v540_depth"] = depth
+    base["home_form"] = depth["home_form"]
+    base["away_form"] = depth["away_form"]
+    base["head_to_head"] = depth["head_to_head"]
+    base["shark_notes"] = depth["shark_notes"]
+    base["data_quality"] = depth["data_quality"]
+    return base
 
 
 def match_lane_filter(match, lane):
@@ -5714,6 +5824,7 @@ def api_client_command_center():
 @app.route("/v535-health")
 @app.route("/v536-health")
 @app.route("/v537-health")
+@app.route("/v540-health")
 def health():
     return jsonify(
         {
@@ -5876,6 +5987,13 @@ def api_match_detail(match_id):
     save_shark_context("match_detail", match_id, context)
     return jsonify({"ok": True, "version": APP_VERSION, "detail": detail, "shark_context": context})
 
+
+@app.route("/api/matches/<match_id>/depth")
+def api_match_depth(match_id):
+    match = one("SELECT * FROM matches WHERE id=?", (match_id,))
+    if not match:
+        return jsonify({"ok": False, "error": "match_not_found"}), 404
+    return jsonify({"ok": True, "depth": match_depth_payload(match)})
 
 @app.route("/api/matches/<match_id>/statistics")
 def api_match_statistics(match_id):
