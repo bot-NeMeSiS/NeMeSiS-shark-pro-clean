@@ -53,8 +53,8 @@ from engines.telegram_delivery_engine import (
 from engines.telegram_engine import build_alert_queue, dispatch_signature, should_skip_duplicate
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V520_TELEGRAM_AUTOMATIC_PREMIUM_DELIVERY_ENGINE"
-SEED_VERSION = "v520-telegram-automatic-premium-delivery-engine-seed"
+APP_VERSION = "V522_GLOBAL_APP_RESTRUCTURE_PICKS_COMMAND_CENTER"
+SEED_VERSION = "v522-global-app-restructure-picks-command-center-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
 
@@ -259,6 +259,17 @@ def run_schema_migrations(conn):
         ("users", "created_at", "TEXT"),
         ("users", "last_login", "TEXT"),
         ("favorites", "user_id", "TEXT"),
+        ("picks", "market", "TEXT"),
+        ("picks", "bookmaker", "TEXT"),
+        ("picks", "stake_euros_example", "REAL DEFAULT 0"),
+        ("picks", "risk_level", "TEXT DEFAULT 'MEDIO'"),
+        ("picks", "warning_reason", "TEXT"),
+        ("picks", "membership_required", "TEXT DEFAULT 'FREE'"),
+        ("picks", "result_status", "TEXT DEFAULT 'pending'"),
+        ("picks", "published_at", "TEXT"),
+        ("combis", "membership_required", "TEXT DEFAULT 'PRO'"),
+        ("combis", "confidence", "INTEGER DEFAULT 50"),
+        ("combis", "explanation", "TEXT"),
     ]
     for table, column, definition in migrations:
         try:
@@ -302,6 +313,10 @@ def run_schema_migrations(conn):
         conn.execute("CREATE INDEX IF NOT EXISTS idx_telegram_queue_status ON telegram_queue(status, scheduled_at)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_telegram_logs_created ON telegram_logs(created_at)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_telegram_subscribers_active ON telegram_subscribers(is_active, membership)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_picks_status_membership ON picks(status, membership_required)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_picks_match_status ON picks(match_id, status)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_picks_published ON picks(published_at, confidence)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_user_activity_user_type ON user_activity(user_id, activity_type, created_at)")
     except sqlite3.OperationalError:
         pass
 
@@ -566,6 +581,17 @@ def init_db():
             draw_price TEXT,
             away_price TEXT,
             commence_time TEXT,
+            payload_json TEXT,
+            created_at TEXT
+        )"""
+    )
+    cur.execute(
+        """CREATE TABLE IF NOT EXISTS user_activity(
+            id TEXT PRIMARY KEY,
+            user_id TEXT,
+            activity_type TEXT,
+            target_type TEXT,
+            target_id TEXT,
             payload_json TEXT,
             created_at TEXT
         )"""
@@ -2732,21 +2758,167 @@ def import_picks(pick_rows, source_name="manual autorizado", legal_note="Carga a
     return {"ok": True, "imported": count, "import_id": import_id}
 
 
-def get_picks(limit=50, status=None):
+def normalize_pick_status(value):
+    value = str(value or "draft").strip().lower()
+    aliases = {"pending": "published", "publicado": "published", "pendiente": "published", "borrador": "draft", "archivado": "archived", "ganado": "won", "perdido": "lost", "nulo": "void"}
+    return aliases.get(value, value if value in {"draft", "published", "archived", "won", "lost", "void", "pending"} else "draft")
+
+
+def normalize_risk(value):
+    value = str(value or "MEDIO").strip().upper()
+    if value in {"LOW", "BAJO", "CONTROLADO", "SEGURO"}:
+        return "BAJO"
+    if value in {"HIGH", "ALTO", "AGRESIVO"}:
+        return "ALTO"
+    return "MEDIO"
+
+
+def membership_rank(plan):
+    plan = normalize_role(plan)
+    return {"FREE": 0, "PRO": 1, "ELITE": 2, "ADMIN": 3}.get(plan, 0)
+
+
+def membership_allows(user_membership, required):
+    return membership_rank(user_membership or "FREE") >= membership_rank(required or "FREE")
+
+
+def normalize_pick_row(pick):
+    pick = dict(pick or {})
+    pick["odds"] = as_float(pick.get("odds"), 0.0)
+    pick["confidence"] = max(1, min(100, as_int(pick.get("confidence"), 50)))
+    pick["stake_units"] = as_float(pick.get("stake_units"), 1.0)
+    pick["stake_euros_example"] = as_float(pick.get("stake_euros_example"), round(pick["stake_units"] * 10, 2))
+    pick["status"] = normalize_pick_status(pick.get("status"))
+    pick["risk_level"] = normalize_risk(pick.get("risk_level"))
+    pick["membership_required"] = normalize_role(pick.get("membership_required") or "FREE")
+    pick["market"] = pick.get("market") or pick.get("pick_type") or "Principal"
+    pick["bookmaker"] = pick.get("bookmaker") or ""
+    pick["warning_reason"] = pick.get("warning_reason") or "Gestiona stake y evita perseguir perdidas."
+    pick["result_status"] = str(pick.get("result_status") or "pending").lower()
+    return pick
+
+
+def get_picks(limit=50, status=None, membership=None, include_admin=False):
     clauses = []
     params = []
     if status:
-        clauses.append("lower(status)=?")
-        params.append(str(status).lower())
+        statuses = status if isinstance(status, (list, tuple, set)) else [status]
+        placeholders = ",".join("?" for _ in statuses)
+        clauses.append(f"lower(status) IN ({placeholders})")
+        params.extend([normalize_pick_status(x) for x in statuses])
+    if membership and not include_admin:
+        allowed = [plan for plan, rank in {"FREE": 0, "PRO": 1, "ELITE": 2, "ADMIN": 3}.items() if rank <= membership_rank(membership)]
+        placeholders = ",".join("?" for _ in allowed)
+        clauses.append(f"upper(COALESCE(membership_required,'FREE')) IN ({placeholders})")
+        params.extend(allowed)
     where = (" WHERE " + " AND ".join(clauses)) if clauses else ""
-    query = f"SELECT * FROM picks{where} ORDER BY match_date DESC, confidence DESC, updated_at DESC LIMIT ?"
+    query = f"SELECT * FROM picks{where} ORDER BY COALESCE(published_at, updated_at, created_at) DESC, confidence DESC LIMIT ?"
     params.append(int(limit))
-    data = rows(query, params)
-    for pick in data:
-        pick["odds"] = as_float(pick.get("odds"), 0.0)
-        pick["confidence"] = as_int(pick.get("confidence"), 50)
-        pick["stake_units"] = as_float(pick.get("stake_units"), 1.0)
-    return data
+    return [normalize_pick_row(pick) for pick in rows(query, params)]
+
+
+def published_picks_for_user(user=None, limit=50):
+    user = user or current_session_user() or {"membership": "FREE", "role": "FREE"}
+    membership = user.get("membership") or user.get("role") or "FREE"
+    include_admin = normalize_role(user.get("role")) == "ADMIN"
+    return get_picks(limit=limit, status=["published", "won", "lost", "void"], membership=membership, include_admin=include_admin)
+
+
+def create_or_update_pick(payload, pick_id=None, publish=False):
+    seed_core()
+    payload = dict(payload or {})
+    match_id = payload.get("match_id") or ""
+    selected_match = one("SELECT * FROM matches WHERE id=?", (match_id,)) if match_id else None
+    home = payload.get("home_team") or (selected_match or {}).get("home_team") or ""
+    away = payload.get("away_team") or (selected_match or {}).get("away_team") or ""
+    league = payload.get("league_name") or payload.get("competition_name") or (selected_match or {}).get("league_name") or (selected_match or {}).get("competition_name") or ""
+    match_date = payload.get("match_date") or (selected_match or {}).get("match_date") or today_iso()
+    pick_id = pick_id or payload.get("id") or hashlib.md5(f"pick-{match_id}-{home}-{away}-{payload.get('selection')}-{now_iso()}".encode("utf-8")).hexdigest()[:18]
+    status = normalize_pick_status(payload.get("status") or ("published" if publish else "draft"))
+    published_at = now_iso() if status == "published" else payload.get("published_at")
+    conn = db()
+    conn.execute(
+        """INSERT OR REPLACE INTO picks
+           (id,match_id,match_date,competition_key,competition_name,home_team,away_team,pick_type,market,selection,odds,bookmaker,confidence,stake_units,stake_euros_example,risk_level,status,result_status,source,legal_note,reasoning,warning_reason,membership_required,raw_json,created_at,updated_at,published_at)
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+        (
+            pick_id,
+            match_id,
+            match_date,
+            payload.get("competition_key") or slug(league),
+            league,
+            home,
+            away,
+            payload.get("pick_type") or payload.get("market") or "principal",
+            payload.get("market") or payload.get("pick_type") or "Principal",
+            payload.get("selection") or "",
+            as_float(payload.get("odds") or payload.get("cuota"), 0.0),
+            payload.get("bookmaker") or "",
+            max(1, min(100, as_int(payload.get("confidence") or payload.get("confianza"), 60))),
+            as_float(payload.get("stake_units") or payload.get("stake"), 1.0),
+            as_float(payload.get("stake_euros_example") or payload.get("stake_euros"), 10.0),
+            normalize_risk(payload.get("risk_level") or payload.get("riesgo")),
+            status,
+            str(payload.get("result_status") or "pending").lower(),
+            payload.get("source") or "admin",
+            payload.get("legal_note") or "Pick creado/revisado manualmente por administrador.",
+            payload.get("reasoning") or payload.get("motivo") or "",
+            payload.get("warning_reason") or payload.get("precaucion") or "El stake debe adaptarse a la banca del usuario.",
+            normalize_role(payload.get("membership_required") or payload.get("membership") or "FREE"),
+            json.dumps(payload, ensure_ascii=False)[:5000],
+            payload.get("created_at") or now_iso(),
+            now_iso(),
+            published_at,
+        ),
+    )
+    conn.commit()
+    conn.close()
+    return normalize_pick_row(one("SELECT * FROM picks WHERE id=?", (pick_id,)))
+
+
+def update_pick_status(pick_id, status):
+    status = normalize_pick_status(status)
+    conn = db()
+    conn.execute("UPDATE picks SET status=?, published_at=COALESCE(published_at, ?), updated_at=? WHERE id=?", (status, now_iso() if status == "published" else None, now_iso(), pick_id))
+    conn.commit()
+    conn.close()
+    return normalize_pick_row(one("SELECT * FROM picks WHERE id=?", (pick_id,)))
+
+
+def pick_stats():
+    seed_core()
+    totals = {"total": 0, "published": 0, "draft": 0, "archived": 0, "won": 0, "lost": 0, "void": 0, "pending_result": 0, "avg_odds": 0, "avg_confidence": 0, "winrate": 0}
+    all_rows = [normalize_pick_row(x) for x in rows("SELECT * FROM picks")]
+    totals["total"] = len(all_rows)
+    if not all_rows:
+        return totals
+    for p in all_rows:
+        totals[p.get("status") if p.get("status") in totals else "draft"] = totals.get(p.get("status"), 0) + 1
+        rs = p.get("result_status") or "pending"
+        if rs == "pending":
+            totals["pending_result"] += 1
+    totals["avg_odds"] = round(sum(p.get("odds", 0) for p in all_rows) / len(all_rows), 2)
+    totals["avg_confidence"] = round(sum(p.get("confidence", 0) for p in all_rows) / len(all_rows), 1)
+    resolved = [p for p in all_rows if p.get("result_status") in {"won", "lost"}]
+    if resolved:
+        totals["winrate"] = round(100 * len([p for p in resolved if p.get("result_status") == "won"]) / len(resolved), 1)
+    return totals
+
+
+def record_user_activity(activity_type, target_type="", target_id="", payload=None, user_id=None):
+    user_id = user_id or current_user_id()
+    if not user_id:
+        return None
+    activity_id = hashlib.md5(f"act-{user_id}-{activity_type}-{target_type}-{target_id}-{now_iso()}".encode("utf-8")).hexdigest()[:18]
+    conn = db()
+    conn.execute(
+        """INSERT INTO user_activity(id,user_id,activity_type,target_type,target_id,payload_json,created_at)
+           VALUES (?,?,?,?,?,?,?)""",
+        (activity_id, user_id, activity_type, target_type, target_id, json.dumps(payload or {}, ensure_ascii=False)[:3000], now_iso()),
+    )
+    conn.commit()
+    conn.close()
+    return activity_id
 
 
 def combi_risk(picks):
@@ -2767,9 +2939,9 @@ def build_combi_from_picks(pick_ids=None, limit=3):
         placeholders = ",".join("?" for _ in pick_ids)
         picks = rows(f"SELECT * FROM picks WHERE id IN ({placeholders}) ORDER BY confidence DESC", pick_ids)
     else:
-        picks = get_picks(limit=limit, status="PENDING")
+        picks = get_picks(limit=limit, status=["published", "won", "lost", "void"], membership=(current_session_user() or {}).get("membership", "FREE"))
     picks = picks[: max(1, min(6, int(limit or len(picks) or 3)))]
-    if not picks:
+    if len(picks) < 2:
         return None
     total = 1.0
     for pick in picks:
@@ -2792,7 +2964,7 @@ def build_combi_from_picks(pick_ids=None, limit=3):
         """INSERT OR REPLACE INTO combis
            (id,name,picks_json,total_odds,risk_level,status,source,created_at,updated_at)
            VALUES (?,?,?,?,?,?,?,?,?)""",
-        (combi_id, "Combi SHARK " + today_iso(), json.dumps(payload, ensure_ascii=False), round(total, 2), combi_risk(picks), "DRAFT", "motor interno V506", now_iso(), now_iso()),
+        (combi_id, "Combi SHARK " + today_iso(), json.dumps(payload, ensure_ascii=False), round(total, 2), combi_risk(picks), "DRAFT", "motor interno V522", now_iso(), now_iso()),
     )
     conn.commit()
     conn.close()
@@ -3794,7 +3966,7 @@ def build_daily_matches_message():
 
 
 def build_daily_picks_message(force_empty=False):
-    picks = get_picks(limit=8)
+    picks = get_picks(limit=8, status=["published", "won", "lost", "void"], membership="ELITE")
     return format_daily_picks_message(picks, force_empty=force_empty, premium_name=APP_NAME)
 
 
@@ -4476,8 +4648,8 @@ def logout_page():
 @app.route("/admin")
 def admin_redirect():
     if not is_admin_session():
-        return redirect("/admin-login?next=/admin/import-center")
-    return redirect("/admin/import-center")
+        return redirect("/admin-login?next=/admin/data-center")
+    return redirect("/admin/data-center")
 
 
 @app.route("/admin/import-center")
@@ -4609,6 +4781,28 @@ def admin_telegram_page():
     return render_template("admin_telegram.html", data=data, message=message, result=result)
 
 
+@app.route("/admin/picks", methods=["GET", "POST"])
+def admin_picks_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/picks")
+    message = ""
+    result = None
+    if request.method == "POST":
+        action = request.form.get("action") or "create"
+        if action in {"create", "publish"}:
+            payload = dict(request.form)
+            result = create_or_update_pick(payload, publish=action == "publish")
+            message = "Pick publicado." if action == "publish" else "Pick guardado como borrador."
+        elif action in {"archive", "published", "draft"}:
+            result = update_pick_status(request.form.get("pick_id"), "archived" if action == "archive" else action)
+            message = "Estado del pick actualizado."
+    data = dashboard_data()
+    data["admin_picks"] = get_picks(limit=120, include_admin=True)
+    data["pick_stats"] = pick_stats()
+    data["matches_for_pick"] = get_upcoming_matches(today_iso(), days=14, limit=80)
+    return render_template("admin_picks.html", data=data, message=message, result=result)
+
+
 @app.route("/admin/data-center", methods=["GET", "POST"])
 def admin_data_center_page():
     if not is_admin_session():
@@ -4662,12 +4856,22 @@ def admin_system_page():
 
 @app.route("/picks")
 def picks_page():
-    return render_template("picks.html", data=dashboard_data())
+    data = dashboard_data()
+    user = current_session_user() or {"membership": "FREE", "role": "FREE"}
+    data["picks"] = published_picks_for_user(user, limit=80)
+    data["pick_stats"] = pick_stats()
+    record_user_activity("view", "picks", "picks-page", {"count": len(data["picks"])})
+    return render_template("picks.html", data=data)
 
 
 @app.route("/combis")
 def combis_page():
-    return render_template("combis.html", data=dashboard_data())
+    data = dashboard_data()
+    user = current_session_user() or {"membership": "FREE", "role": "FREE"}
+    data["picks"] = published_picks_for_user(user, limit=30)
+    data["combis"] = get_combis(limit=20)
+    record_user_activity("view", "combis", "combis-page", {"picks_available": len(data["picks"])})
+    return render_template("combis.html", data=data)
 
 
 @app.route("/perfil")
@@ -5110,7 +5314,54 @@ def api_import_odds():
 
 @app.route("/api/picks")
 def api_picks():
-    return jsonify({"ok": True, "version": APP_VERSION, "picks": get_picks(limit=request.args.get("limit", 50))})
+    user = current_session_user() or {"membership": "FREE", "role": "FREE"}
+    include_admin = normalize_role(user.get("role")) == "ADMIN" and request.args.get("admin") in {"1", "true", "yes"}
+    if include_admin:
+        picks = get_picks(limit=request.args.get("limit", 50), include_admin=True)
+    else:
+        picks = published_picks_for_user(user, limit=as_int(request.args.get("limit"), 50))
+    return jsonify({"ok": True, "version": APP_VERSION, "picks": picks, "stats": pick_stats()})
+
+
+@app.route("/api/picks/create", methods=["POST"])
+def api_picks_create():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    payload = request.get_json(silent=True) or dict(request.form or {})
+    pick = create_or_update_pick(payload, publish=False)
+    return jsonify({"ok": True, "version": APP_VERSION, "pick": pick})
+
+
+@app.route("/api/picks/update", methods=["POST"])
+def api_picks_update():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    payload = request.get_json(silent=True) or dict(request.form or {})
+    pick = create_or_update_pick(payload, pick_id=payload.get("id") or payload.get("pick_id"), publish=normalize_pick_status(payload.get("status")) == "published")
+    return jsonify({"ok": True, "version": APP_VERSION, "pick": pick})
+
+
+@app.route("/api/picks/publish", methods=["POST", "GET"])
+def api_picks_publish():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    pick_id = request.args.get("pick_id") or request.form.get("pick_id") or (request.get_json(silent=True) or {}).get("pick_id")
+    pick = update_pick_status(pick_id, "published")
+    return jsonify({"ok": bool(pick), "version": APP_VERSION, "pick": pick})
+
+
+@app.route("/api/picks/archive", methods=["POST", "GET"])
+def api_picks_archive():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    pick_id = request.args.get("pick_id") or request.form.get("pick_id") or (request.get_json(silent=True) or {}).get("pick_id")
+    pick = update_pick_status(pick_id, "archived")
+    return jsonify({"ok": bool(pick), "version": APP_VERSION, "pick": pick})
+
+
+@app.route("/api/picks/stats")
+def api_picks_stats():
+    return jsonify({"ok": True, "version": APP_VERSION, "stats": pick_stats()})
 
 
 @app.route("/api/import-picks", methods=["POST"])
