@@ -53,7 +53,7 @@ from engines.telegram_delivery_engine import (
 from engines.telegram_engine import build_alert_queue, dispatch_signature, should_skip_duplicate
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V535_PRODUCT_EXPERIENCE_LIVE_DATA_EVOLUTION"
+APP_VERSION = "V536_CLIENT_RETENTION_ALERTS_ACTIVITY_CENTER"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -3024,6 +3024,142 @@ def record_user_activity(activity_type, target_type="", target_id="", payload=No
     return activity_id
 
 
+
+def parse_payload_json(value, default=None):
+    try:
+        return json.loads(value or "{}")
+    except Exception:
+        return default if default is not None else {}
+
+
+def client_activity_feed(limit=20, user_id=None):
+    user_id = user_id or current_user_id()
+    if not user_id:
+        return []
+    data = rows(
+        """SELECT * FROM user_activity
+           WHERE user_id=?
+           ORDER BY created_at DESC
+           LIMIT ?""",
+        (user_id, int(limit)),
+    )
+    for item in data:
+        item["payload"] = parse_payload_json(item.get("payload_json"), {})
+        item["label"] = activity_label(item)
+    return data
+
+
+def activity_label(item):
+    kind = str(item.get("activity_type") or "").lower()
+    target = str(item.get("target_type") or "").lower()
+    if kind == "view" and target == "picks":
+        return "Has revisado la zona de picks."
+    if kind == "view" and target == "combis":
+        return "Has abierto el constructor de combinadas."
+    if kind == "favorite" or target == "favorite":
+        return "Favorito actualizado."
+    if target == "match":
+        return "Partido consultado."
+    if target == "team":
+        return "Equipo consultado."
+    return "Actividad registrada en tu cuenta."
+
+
+def build_client_alerts(limit=12, user_id=None):
+    """Alertas visuales para cliente sin inventar datos reales.
+    Mezcla favoritos, partidos próximos, live, picks publicados y estado Telegram.
+    """
+    user_id = user_id or current_user_id()
+    hub = match_hub(today_iso())
+    favs = get_favorites(user_id=user_id) if user_id else []
+    picks = published_picks_for_user(current_session_user() or {"membership": "FREE"}, limit=6)
+    upcoming = get_upcoming_matches(today_iso(), days=3, limit=12)
+    alerts = []
+
+    if hub.get("counts", {}).get("live", 0):
+        alerts.append({
+            "type": "live",
+            "priority": 95,
+            "title": "Partidos en directo ahora",
+            "body": f"Hay {hub['counts']['live']} partido(s) en directo. Revisa marcador, estado y favoritos.",
+            "href": "/live",
+            "badge": "LIVE",
+        })
+    if picks:
+        alerts.append({
+            "type": "picks",
+            "priority": 90,
+            "title": "Picks publicados disponibles",
+            "body": f"Tienes {len(picks)} pick(s) visibles según tu membresía.",
+            "href": "/picks",
+            "badge": "PICKS",
+        })
+    elif upcoming:
+        alerts.append({
+            "type": "analysis",
+            "priority": 74,
+            "title": "Partidos próximos listos para análisis",
+            "body": "Aún no hay picks publicados, pero SHARK ya puede ayudarte a revisar próximos partidos reales.",
+            "href": "/picks",
+            "badge": "ANÁLISIS",
+        })
+    if favs:
+        alerts.append({
+            "type": "favorites",
+            "priority": 82,
+            "title": "Feed de favoritos activo",
+            "body": f"Tus {len(favs)} favorito(s) alimentan partidos, equipos, ligas y alertas futuras.",
+            "href": "/favorites",
+            "badge": "FAV",
+        })
+    else:
+        alerts.append({
+            "type": "favorites",
+            "priority": 58,
+            "title": "Personaliza tu experiencia",
+            "body": "Guarda equipos, ligas o partidos para que tu inicio, SHARK y Telegram sean más útiles.",
+            "href": "/favorites",
+            "badge": "PERSONALIZA",
+        })
+    if not telegram_config().get("configured"):
+        alerts.append({
+            "type": "telegram",
+            "priority": 52,
+            "title": "Telegram pendiente de configurar",
+            "body": "Cuando esté conectado podrás recibir partidos del día, picks y alertas premium.",
+            "href": "/telegram",
+            "badge": "TELEGRAM",
+        })
+    if upcoming:
+        first = upcoming[0]
+        alerts.append({
+            "type": "match",
+            "priority": 70,
+            "title": "Próximo partido destacado",
+            "body": f"{first.get('home_team')} vs {first.get('away_team')} · {first.get('competition_name') or first.get('league_name') or 'Competición'}",
+            "href": f"/match/{first.get('id')}",
+            "badge": "PRÓXIMO",
+        })
+    alerts = sorted(alerts, key=lambda x: x.get("priority", 0), reverse=True)
+    return alerts[: int(limit)]
+
+
+def client_retention_summary():
+    user = current_session_user() or {}
+    alerts = build_client_alerts(limit=8, user_id=user.get("id"))
+    activity = client_activity_feed(limit=8, user_id=user.get("id")) if user else []
+    upcoming = get_upcoming_matches(today_iso(), days=7, limit=20)
+    picks = published_picks_for_user(user or {"membership": "FREE"}, limit=10)
+    return {
+        "alerts": alerts,
+        "activity": activity,
+        "upcoming_count": len(upcoming),
+        "picks_count": len(picks),
+        "favorites_count": len(get_favorites(user_id=user.get("id")) if user else []),
+        "telegram_ready": telegram_config().get("configured"),
+        "next_best_action": alerts[0] if alerts else None,
+    }
+
 def combi_risk(picks):
     if not picks:
         return "EMPTY"
@@ -4926,6 +5062,9 @@ def dashboard_data(lane="today", date=None):
         "favorite_feed": favorite_bundle["matches"],
         "favorite_bundle": favorite_bundle,
         "favorite_insights": favorite_insights(),
+        "client_alerts": build_client_alerts(limit=8),
+        "client_activity": client_activity_feed(limit=8),
+        "retention": client_retention_summary(),
         "match_hub": hub,
         "past_results": past_results,
         "candidate_matches": candidate_matches,
@@ -5383,6 +5522,24 @@ def profile_page():
     return render_template("profile.html", data=data)
 
 
+@app.route("/alertas")
+def alerts_page():
+    if not current_session_user():
+        return redirect("/cliente-login")
+    data = dashboard_data()
+    record_user_activity("view", "alerts", "client-alerts", {"count": len(data.get("client_alerts") or [])})
+    return render_template("alerts.html", data=data)
+
+
+@app.route("/actividad")
+def activity_page():
+    if not current_session_user():
+        return redirect("/cliente-login")
+    data = dashboard_data()
+    record_user_activity("view", "activity", "client-activity", {"count": len(data.get("client_activity") or [])})
+    return render_template("activity.html", data=data)
+
+
 @app.route("/membresias")
 @app.route("/membership")
 def membership_page():
@@ -5408,6 +5565,16 @@ def crests_page():
     if not is_admin_session():
         return redirect("/perfil" if current_session_user() else "/cliente-login")
     return render_template("crests.html", data=dashboard_data())
+
+
+@app.route("/api/client/alerts")
+def api_client_alerts():
+    return jsonify({"ok": True, "version": APP_VERSION, "alerts": build_client_alerts(limit=12), "summary": client_retention_summary()})
+
+
+@app.route("/api/client/activity")
+def api_client_activity():
+    return jsonify({"ok": True, "version": APP_VERSION, "activity": client_activity_feed(limit=30)})
 
 
 @app.route("/api/health")
@@ -6176,7 +6343,7 @@ def client_safe_500(error):
 @app.route("/api/deep-route-check")
 def api_deep_route_check():
     checks = []
-    for path in ["/", "/cliente-login", "/registro", "/perfil", "/match-hub", "/live", "/picks", "/combis", "/favorites", "/shark", "/telegram", "/resultados", "/api/health", "/api/client-experience-check"]:
+    for path in ["/", "/cliente-login", "/registro", "/perfil", "/match-hub", "/live", "/picks", "/combis", "/favorites", "/alertas", "/actividad", "/shark", "/telegram", "/resultados", "/api/health", "/api/client-experience-check"]:
         checks.append({"path": path, "status": "registered"})
     return jsonify({"ok": True, "version": APP_VERSION, "checks": checks})
 
@@ -6200,7 +6367,7 @@ def api_client_experience_check():
 @app.route("/api/route-check")
 def api_route_check():
     """Chequeo ligero de rutas clave para evitar botones rotos en despliegues."""
-    routes = ["/", "/cliente-login", "/registro", "/perfil", "/match-hub", "/live", "/picks", "/combis", "/favorites", "/shark", "/telegram", "/resultados", "/membresias"]
+    routes = ["/", "/cliente-login", "/registro", "/perfil", "/match-hub", "/live", "/picks", "/combis", "/favorites", "/alertas", "/actividad", "/shark", "/telegram", "/resultados", "/membresias"]
     return jsonify({"ok": True, "version": APP_VERSION, "routes": routes, "policy": "cliente limpio, admin separado, botones principales verificados"})
 
 

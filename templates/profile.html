@@ -38,6 +38,21 @@
   </div>
 </section>
 
+<section class="band compact-band retention-band">
+  <div class="section-head"><h2>Centro de alertas</h2><a class="pill" href="/alertas">Ver todas</a></div>
+  <div class="grid dense-grid">
+    {% for alert in data.client_alerts[:4] %}
+    <a class="card alert-card alert-{{ alert.type }}" href="{{ alert.href }}">
+      <span class="badge">{{ alert.badge }}</span>
+      <strong>{{ alert.title }}</strong>
+      <p class="small">{{ alert.body }}</p>
+    </a>
+    {% else %}
+    <div class="empty premium-empty"><strong>Sin alertas pendientes</strong><p>Tu panel se activará cuando haya favoritos, picks, partidos o Telegram conectado.</p></div>
+    {% endfor %}
+  </div>
+</section>
+
 <section class="band compact-band">
   <div class="section-head"><h2>Resumen de hoy</h2><span class="pill">{{ data.date }}</span></div>
   <div class="grid compact-grid">
