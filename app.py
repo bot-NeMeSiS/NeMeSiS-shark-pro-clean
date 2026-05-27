@@ -3202,6 +3202,108 @@ def favorite_insights(user_id=None):
         "total": len(favs),
     }
 
+
+
+def team_lookup(team_id):
+    key = canonical_team_key(team_id)
+    team = one("SELECT * FROM teams WHERE key=? OR external_id=? OR lower(name)=lower(?) LIMIT 1", (key, str(team_id or ""), str(team_id or "")))
+    if team:
+        return team
+    # Crear vista virtual mínima si el equipo aparece en partidos pero todavía no existe en teams.
+    sample = one("""SELECT home_team AS name, home_logo AS logo_url, country, competition_name AS league FROM matches WHERE lower(home_team)=lower(?)
+                    UNION ALL
+                    SELECT away_team AS name, away_logo AS logo_url, country, competition_name AS league FROM matches WHERE lower(away_team)=lower(?) LIMIT 1""", (str(team_id or ""), str(team_id or "")))
+    if sample:
+        sample["key"] = key
+        sample["id"] = key
+        sample["key"] = key
+        sample["source"] = "matches"
+        return sample
+    return None
+
+
+def team_page_data(team_id, limit=80):
+    team = team_lookup(team_id)
+    if not team:
+        return None
+    name = team.get("name") or team_id
+    key = canonical_team_key(name)
+    identity = resolve_team(name)
+    if team.get("logo_url"):
+        identity["crest_url"] = team.get("logo_url")
+        identity["crest_mode"] = "logo"
+    upcoming = [annotate_match(m) for m in rows(
+        """SELECT * FROM matches
+           WHERE (lower(home_team)=lower(?) OR lower(away_team)=lower(?))
+             AND match_date>=?
+           ORDER BY match_date, kickoff_time LIMIT ?""",
+        (name, name, today_iso(), int(limit)),
+    ) if not is_fake_match(m)]
+    recent = [annotate_match(m) for m in rows(
+        """SELECT * FROM matches
+           WHERE (lower(home_team)=lower(?) OR lower(away_team)=lower(?))
+             AND match_date<?
+           ORDER BY match_date DESC, kickoff_time DESC LIMIT ?""",
+        (name, name, today_iso(), int(limit//2)),
+    ) if not is_fake_match(m)]
+    live = [m for m in upcoming if (m.get("status_info") or {}).get("is_live")]
+    related = []
+    for pick in get_picks(limit=120):
+        if str(pick.get("home_team") or "").lower() == name.lower() or str(pick.get("away_team") or "").lower() == name.lower():
+            related.append(pick)
+    favorites = favorite_sets()
+    is_favorite = name.lower() in favorites.get("team", set()) or key.lower() in favorites.get("team", set())
+    return {
+        "team": team,
+        "key": key,
+        "name": name,
+        "identity": identity,
+        "upcoming": upcoming,
+        "recent": recent,
+        "live": live,
+        "picks": related[:8],
+        "is_favorite": is_favorite,
+        "stats": {
+            "upcoming": len(upcoming),
+            "recent": len(recent),
+            "live": len(live),
+            "picks": len(related),
+        },
+        "shark_context": shark_context_summary({"team": name, "upcoming": upcoming[:5], "picks": related[:5]}),
+    }
+
+
+def shark_context_summary(context):
+    team = context.get("team") or "este equipo"
+    upcoming = context.get("upcoming") or []
+    picks = context.get("picks") or []
+    pieces = [f"Contexto SHARK para {team} preparado con datos cacheados reales."]
+    if upcoming:
+        first = upcoming[0]
+        pieces.append(f"Próximo partido: {first.get('home_team')} vs {first.get('away_team')} ({first.get('match_date')} {first.get('kickoff_time') or ''}).")
+    else:
+        pieces.append("No hay próximos partidos sincronizados para este equipo todavía.")
+    if picks:
+        pieces.append(f"Hay {len(picks)} picks relacionados publicados o preparados.")
+    else:
+        pieces.append("Aún no hay picks relacionados publicados.")
+    return " ".join(pieces)
+
+
+def group_matches_by_league(matches):
+    grouped = {}
+    for item in matches or []:
+        league = league_display_name(item)
+        key = slug(league)
+        bucket = grouped.setdefault(key, {"key": key, "name": league, "country": item.get("country") or "Global", "category": league_category(item), "matches": []})
+        bucket["matches"].append(item)
+    result = list(grouped.values())
+    for bucket in result:
+        bucket["matches"].sort(key=match_sort_tuple)
+        bucket["count"] = len(bucket["matches"])
+    result.sort(key=lambda x: (x["category"], x["name"]))
+    return result
+
 def match_detail(match_id):
     match = one("SELECT * FROM matches WHERE id=?", (match_id,))
     if not match:
@@ -3412,6 +3514,8 @@ def match_hub(date=None, lane="today"):
         "by_country": by_country,
         "top_leagues": top_leagues,
         "calendar_grouped": grouped_match_calendar(combined),
+        "live_grouped": group_matches_by_league(live_state["live"]),
+        "favorites_grouped": group_matches_by_league(sections["favorites"][:40]),
         "grouping_policy": "Partidos ordenados por día, liga y hora.",
         "empty_state": "No hay partidos sincronizados todavía. El administrador puede sincronizar SportsDB/Odds o importar CSV/JSON legal.",
         "counts": {
@@ -4821,6 +4925,17 @@ def match_detail_page(match_id):
     return render_template("match_detail.html", data=data, detail=detail)
 
 
+
+@app.route("/team/<team_id>")
+@app.route("/equipo/<team_id>")
+def team_page(team_id):
+    detail = team_page_data(team_id)
+    if not detail:
+        return redirect("/match-hub")
+    data = dashboard_data()
+    data["team_detail"] = detail
+    return render_template("team_detail.html", data=data, detail=detail)
+
 @app.route("/favoritos", methods=["GET", "POST"])
 @app.route("/favorites", methods=["GET", "POST"])
 def favorites_page():
@@ -5209,6 +5324,7 @@ def crests_page():
 @app.route("/v518-health")
 @app.route("/v520-health")
 @app.route("/v524-health")
+@app.route("/v529-health")
 def health():
     return jsonify(
         {
@@ -5413,6 +5529,14 @@ def api_teams():
         team["crest_mode"] = "logo" if team.get("logo_url") else "fallback"
     return jsonify({"ok": True, "version": APP_VERSION, "teams": teams})
 
+
+
+@app.route("/api/teams/<team_id>/detail")
+def api_team_detail(team_id):
+    detail = team_page_data(team_id)
+    if not detail:
+        return jsonify({"ok": False, "error": "Equipo no encontrado"}), 404
+    return jsonify({"ok": True, "team": detail})
 
 @app.route("/api/import-teams", methods=["POST"])
 def api_import_teams():

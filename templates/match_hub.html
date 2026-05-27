@@ -63,12 +63,12 @@
                   {% for m in league.matches %}
                     <article class="match-row premium-row">
                       <div class="match-hour">{{ m.kickoff_time or m.match_time or m.minute or 'Hora por confirmar' }}</div>
-                      <div class="team mini-team"><div class="crest small-crest"><img loading="lazy" src="{{ m.home_identity.crest_url }}" alt="{{ m.home_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ m.home_identity.initials }}'"></div><strong>{{ m.home_team }}</strong></div>
+                      <a class="team mini-team team-link" href="/team/{{ m.home_team|urlencode }}"><div class="crest small-crest"><img loading="lazy" src="{{ m.home_identity.crest_url }}" alt="{{ m.home_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ m.home_identity.initials }}'"></div><strong>{{ m.home_team }}</strong></a>
                       <div class="scoreline"><span class="state-badge {{ m.live_depth.badge }}">{{ m.live_depth.label }}</span><span>{{ m.live_depth.score or 'vs' }}</span></div>
-                      <div class="team mini-team away"><div class="crest small-crest"><img loading="lazy" src="{{ m.away_identity.crest_url }}" alt="{{ m.away_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ m.away_identity.initials }}'"></div><strong>{{ m.away_team }}</strong></div>
+                      <a class="team mini-team away team-link" href="/team/{{ m.away_team|urlencode }}"><div class="crest small-crest"><img loading="lazy" src="{{ m.away_identity.crest_url }}" alt="{{ m.away_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ m.away_identity.initials }}'"></div><strong>{{ m.away_team }}</strong></a>
                       <div class="row-actions">
                         {% if m.bookmaker %}<span class="tag">Cuotas</span>{% endif %}
-                        <a class="mini-link" href="/match-hub?lane={{ data.match_hub.lane }}&date={{ day.date }}">Ver</a>
+                        <a class="mini-link" href="/match/{{ m.id }}">Detalle</a>
                       </div>
                     </article>
                   {% endfor %}
@@ -109,7 +109,7 @@
   {% if items %}
   <div class="grid">
     {% for m in items[:12] %}
-    <article class="card match-card">
+    <a class="card match-card" href="/match/{{ m.id }}">
       <div class="match-top"><div><div class="comp-name">{{ m.competition_name or m.league_name }}</div><div class="small">{{ m.match_date }} · {{ m.kickoff_time or m.minute or 'hora por confirmar' }}</div></div><div class="time">{{ m.live_depth.minute }}</div></div>
       <div class="teams">
         <div class="team"><div class="crest"><img loading="lazy" src="{{ m.home_identity.crest_url }}" alt="{{ m.home_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ m.home_identity.initials }}'"></div><strong>{{ m.home_team }}</strong></div>
@@ -117,7 +117,7 @@
       </div>
       <div class="status"><span class="state-badge {{ m.live_depth.badge }}">{{ m.live_depth.label }}</span><span>{{ m.live_depth.score or 'Sin marcador' }}</span></div>
       {% if m.bookmaker %}<p class="small">Cuotas H2H: {{ m.bookmaker }}</p>{% endif %}
-    </article>
+    </a>
     {% endfor %}
   </div>
   {% else %}
