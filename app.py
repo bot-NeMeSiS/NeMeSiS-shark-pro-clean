@@ -5334,6 +5334,14 @@ def api_match_detail(match_id):
     return jsonify({"ok": True, "version": APP_VERSION, "detail": detail, "shark_context": context})
 
 
+@app.route("/api/matches/<match_id>/statistics")
+def api_match_statistics(match_id):
+    detail = match_detail(match_id)
+    if not detail:
+        return jsonify({"ok": False, "version": APP_VERSION, "error": "Partido no encontrado"}), 404
+    return jsonify({"ok": True, "version": APP_VERSION, "match": detail["match"], "statistics": detail.get("statistics"), "momentum": detail.get("momentum"), "state": detail.get("state")})
+
+
 @app.route("/team-crest.svg")
 def team_crest_svg():
     name = request.args.get("name") or "Equipo"
