@@ -40,4 +40,27 @@
   <div class="empty">No hay picks publicados para tu membresía ahora mismo. Revisa partidos o activa Telegram para recibir avisos cuando se publiquen.</div>
   {% endif %}
 </section>
+
+<section class="band">
+  <div class="section-head"><h2>Partidos próximos reales para estudiar picks</h2><span class="pill">{{ data.candidate_matches|length }}</span></div>
+  <p class="small">Base real del calendario próximo. Sirve para preparar picks; no se muestran apuestas inventadas como reales.</p>
+  {% if data.candidate_matches %}
+  <div class="grid">
+    {% for m in data.candidate_matches[:12] %}
+    <article class="card match-card">
+      <div class="match-top"><div><div class="comp-name">{{ m.competition_name or m.league_name }}</div><div class="small">{{ m.match_date }} · {{ m.kickoff_time or m.match_time or 'hora por confirmar' }}</div></div><span class="tag">{{ m.pick_readiness }}</span></div>
+      <div class="teams">
+        <div class="team"><div class="crest"><img loading="lazy" src="{{ m.home_identity.crest_url }}" alt="{{ m.home_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ m.home_identity.initials }}'"></div><strong>{{ m.home_team }}</strong></div>
+        <div class="team"><div class="crest"><img loading="lazy" src="{{ m.away_identity.crest_url }}" alt="{{ m.away_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ m.away_identity.initials }}'"></div><strong>{{ m.away_team }}</strong></div>
+      </div>
+      <div class="status"><span class="state-badge {{ m.live_depth.badge }}">{{ m.live_depth.label }}</span><span>{{ m.live_depth.minute }}</span>{% if m.bookmaker %}<span>{{ m.bookmaker }}</span>{% endif %}</div>
+      {% if current_user and current_user.role == 'ADMIN' %}<div class="actions"><a class="btn" href="/admin/picks">Crear pick desde admin</a></div>{% endif %}
+    </article>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty">No hay partidos próximos sincronizados todavía. Sincroniza SportsDB/Odds o importa calendario legal.</div>
+  {% endif %}
+</section>
+
 {% endblock %}

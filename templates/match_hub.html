@@ -12,6 +12,7 @@
   <a class="btn {% if data.match_hub.lane == 'tomorrow' %}active{% endif %}" href="/match-hub?lane=tomorrow">Mañana</a>
   <a class="btn {% if data.match_hub.lane == 'week' %}active{% endif %}" href="/match-hub?lane=week">Semana</a>
   <a class="btn {% if data.match_hub.lane == 'live' %}active{% endif %}" href="/match-hub?lane=live">Live</a>
+  <a class="btn {% if data.match_hub.lane == 'results' %}active{% endif %}" href="/match-hub?lane=results">Resultados</a>
   <a class="btn {% if data.match_hub.lane == 'spain' %}active{% endif %}" href="/match-hub?lane=spain">España</a>
   <a class="btn {% if data.match_hub.lane == 'international' %}active{% endif %}" href="/match-hub?lane=international">Internacional</a>
   <a class="btn {% if data.match_hub.lane == 'andalucia' %}active{% endif %}" href="/match-hub?lane=andalucia">Andalucía</a>
@@ -25,6 +26,7 @@
     <div class="card"><div class="metric">{{ data.match_hub.counts.upcoming }}</div><div class="muted">programados</div></div>
     <div class="card"><div class="metric">{{ data.match_hub.counts.favorites }}</div><div class="muted">favoritos</div></div>
     <div class="card"><div class="metric">{{ data.match_hub.counts.with_odds }}</div><div class="muted">con cuotas</div></div>
+    <div class="card"><div class="metric">{{ data.match_hub.counts.finished }}</div><div class="muted">resultados</div></div>
   </div>
 </section>
 
@@ -101,7 +103,7 @@
   </div>
 </section>
 
-{% for title, items in [('En directo', data.match_hub.live), ('Con cuotas', data.match_hub.with_odds), ('Favoritos', data.match_hub.favorites), ('Con picks', data.match_hub.with_picks)] %}
+{% for title, items in [('En directo', data.match_hub.live), ('Resultados recientes', data.match_hub.finished), ('Con cuotas', data.match_hub.with_odds), ('Favoritos', data.match_hub.favorites), ('Con picks', data.match_hub.with_picks)] %}
 <section class="band">
   <div class="section-head"><h2>{{ title }}</h2><span class="pill">{{ items|length }}</span></div>
   {% if items %}

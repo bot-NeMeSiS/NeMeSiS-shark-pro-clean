@@ -53,7 +53,7 @@ from engines.telegram_delivery_engine import (
 from engines.telegram_engine import build_alert_queue, dispatch_signature, should_skip_duplicate
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V523_CALENDAR_DAY_LEAGUE_GROUPING"
+APP_VERSION = "V524_RESULTS_PICKS_COMBIS_FIX"
 SEED_VERSION = "v523-calendar-day-league-grouping-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -1285,6 +1285,45 @@ def sportsdb_match_status(event):
     return "PROGRAMADO"
 
 
+
+
+FINISHED_STATUS_WORDS = {"ft", "final", "finalizado", "finished", "match finished", "aet", "pen", "after penalties"}
+LIVE_STATUS_WORDS = {"live", "directo", "1h", "2h", "ht", "descanso", "halftime", "half time", "in play", "inplay"}
+SCHEDULED_STATUS_WORDS = {"programado", "scheduled", "not started", "ns", "fixture", "upcoming"}
+
+
+def status_text_for(match):
+    return str((match or {}).get("status") or "").strip().lower()
+
+
+def is_finished_status_value(status):
+    text = str(status or "").strip().lower()
+    return text in FINISHED_STATUS_WORDS or any(x in text for x in ["final", "finished", "terminado", "full time"])
+
+
+def is_live_status_value(status):
+    text = str(status or "").strip().lower()
+    return text in LIVE_STATUS_WORDS or any(x in text for x in ["live", "directo", "1h", "2h", "half"])
+
+
+def canonical_match_status(match):
+    status = str((match or {}).get("status") or "").strip()
+    minute = str((match or {}).get("minute") or "").strip()
+    score = str((match or {}).get("score") or "").strip()
+    date_value = str((match or {}).get("match_date") or "").strip()
+    if is_finished_status_value(status):
+        return {"key": "FT", "label": "Finalizado", "badge": "finished", "is_live": False, "is_finished": True, "is_upcoming": False}
+    if is_live_status_value(status):
+        if "half" in status.lower() or "descanso" in status.lower() or status.lower() == "ht":
+            return {"key": "HT", "label": "Descanso", "badge": "halftime", "is_live": True, "is_finished": False, "is_upcoming": False}
+        return {"key": "LIVE", "label": "En directo", "badge": "live", "is_live": True, "is_finished": False, "is_upcoming": False}
+    if minute and not is_finished_status_value(status):
+        # Solo tratar minuto como live si el estado no indica finalizado.
+        return {"key": "LIVE", "label": "En directo", "badge": "live", "is_live": True, "is_finished": False, "is_upcoming": False}
+    if score and date_value and date_value < today_iso():
+        return {"key": "FT", "label": "Finalizado", "badge": "finished", "is_live": False, "is_finished": True, "is_upcoming": False}
+    return {"key": "UPCOMING", "label": "Próximo", "badge": "upcoming", "is_live": False, "is_finished": False, "is_upcoming": True}
+
 def sportsdb_event_time(event):
     raw_time = str(event.get("strTime") or event.get("strEventTime") or event.get("timeEvent") or "").strip()
     if raw_time and len(raw_time) >= 5:
@@ -1372,7 +1411,7 @@ def sportsdb_event_to_match(event, fallback=None):
         "home_logo": home_badge,
         "away_logo": away_badge,
         "status": status,
-        "minute": event.get("strProgress") or event.get("strStatus") or "",
+        "minute": (event.get("strProgress") or "") if not is_finished_status_value(status) else "",
         "score": score,
         "home_score": home_score,
         "away_score": away_score,
@@ -1477,7 +1516,8 @@ def upsert_sportsdb_matches(match_rows):
                 item.get("odds_updated_at") or "",
             ),
         )
-        if str(item.get("status") or "").upper() in {"LIVE", "DESCANSO"} or item.get("minute"):
+        status_info = canonical_match_status(item)
+        if status_info.get("is_live"):
             cur.execute(
                 """INSERT OR REPLACE INTO live_matches(id,match_id,status,minute,home_score,away_score,payload_json,source,updated_at)
                    VALUES (?,?,?,?,?,?,?,?,?)""",
@@ -2309,8 +2349,9 @@ def odds_diagnostics():
 def match_calendar_diagnostics():
     seed_core()
     total_matches = (one("SELECT COUNT(*) AS total FROM matches") or {}).get("total", 0)
-    upcoming = (one("SELECT COUNT(*) AS total FROM matches WHERE match_date>=? AND lower(status) NOT IN ('finalizado','ft','finished')", (today_iso(),)) or {}).get("total", 0)
-    live_count = (one("SELECT COUNT(*) AS total FROM matches WHERE lower(status) IN ('live','descanso') OR minute!=''") or {}).get("total", 0)
+    upcoming = (one("SELECT COUNT(*) AS total FROM matches WHERE match_date>=? AND lower(COALESCE(status,'')) NOT IN ('finalizado','ft','finished','final','match finished')", (today_iso(),)) or {}).get("total", 0)
+    finished_count = (one("SELECT COUNT(*) AS total FROM matches WHERE lower(COALESCE(status,'')) IN ('finalizado','ft','finished','final','match finished') OR (match_date<? AND COALESCE(score,'')!='')", (today_iso(),)) or {}).get("total", 0)
+    live_count = (one("SELECT COUNT(*) AS total FROM matches WHERE lower(COALESCE(status,'')) IN ('live','directo','descanso','ht','1h','2h')") or {}).get("total", 0)
     live_table = (one("SELECT COUNT(*) AS total FROM live_matches") or {}).get("total", 0)
     logs = rows("SELECT * FROM api_sync_logs ORDER BY started_at DESC LIMIT 8")
     latest_log = logs[0] if logs else {}
@@ -2330,6 +2371,7 @@ def match_calendar_diagnostics():
         "total_matches": total_matches,
         "upcoming_matches": upcoming,
         "live_matches": live_count,
+        "finished_matches": finished_count,
         "live_table_rows": live_table,
         "odds_snapshots": (one("SELECT COUNT(*) AS total FROM odds_snapshots") or {}).get("total", 0),
         "competitions_no_data": rows("SELECT key,name,country,region FROM competitions WHERE sync_status='no_data' ORDER BY tier DESC LIMIT 20"),
@@ -2347,6 +2389,7 @@ def match_calendar_diagnostics():
         "competitions_ready": IMPORTANT_COMPETITIONS,
         "matches_by_day": rows("SELECT match_date, COUNT(*) AS total FROM matches GROUP BY match_date ORDER BY match_date LIMIT 14"),
         "matches_by_league": rows("SELECT COALESCE(competition_name, league_name, competition_key) AS league, country, COUNT(*) AS total FROM matches GROUP BY COALESCE(competition_name, league_name, competition_key), country ORDER BY total DESC LIMIT 25"),
+        "results_by_league": rows("SELECT COALESCE(competition_name, league_name, competition_key) AS league, country, COUNT(*) AS total FROM matches WHERE lower(COALESCE(status,'')) IN ('finalizado','ft','finished','final','match finished') OR (match_date<? AND COALESCE(score,'')!='') GROUP BY COALESCE(competition_name, league_name, competition_key), country ORDER BY total DESC LIMIT 25", (today_iso(),)),
         "next_7_days": rows("SELECT match_date, COALESCE(competition_name, league_name, competition_key) AS league, COUNT(*) AS total FROM matches WHERE match_date>=? AND match_date<=? GROUP BY match_date, COALESCE(competition_name, league_name, competition_key) ORDER BY match_date, league LIMIT 80", (today_iso(), today_iso(7))),
         "grouping_policy": "Calendario agrupado por día, liga y hora.",
     }
@@ -3052,9 +3095,20 @@ def annotate_match(match, favs=None):
         or home in favs["team"]
         or away in favs["team"]
     )
+    match["status_info"] = canonical_match_status(match)
     match["real_time_state"] = real_time_state(match)
     match["timeline"] = match_timeline(match)
     match["live_depth"] = live_depth(match)
+    if match["status_info"].get("is_finished"):
+        match["live_depth"]["state"] = "FT"
+        match["live_depth"]["label"] = "Finalizado"
+        match["live_depth"]["badge"] = "finished"
+        match["live_depth"]["minute"] = "FT"
+    elif match["status_info"].get("is_upcoming"):
+        match["live_depth"]["state"] = "UPCOMING"
+        match["live_depth"]["label"] = "Próximo"
+        match["live_depth"]["badge"] = "upcoming"
+        match["live_depth"]["minute"] = match.get("kickoff_time") or match.get("match_time") or "Hora"
     return match
 
 
@@ -3141,6 +3195,8 @@ def match_lane_filter(match, lane):
     state = ((match.get("live_depth") or {}).get("state") or "").upper()
     if lane in {"today", "week", "tomorrow"}:
         return True
+    if lane in {"results", "finished"}:
+        return (match.get("status_info") or canonical_match_status(match)).get("is_finished") or str(match.get("match_date") or "") < today_iso()
     if lane == "live":
         return state in {"LIVE", "HT"} or str(match.get("status") or "").lower() in {"live", "descanso"} or bool(match.get("minute"))
     if lane == "spain":
@@ -3230,6 +3286,56 @@ def grouped_match_calendar(matches):
     return grouped_days
 
 
+
+
+def get_results_matches(start_date=None, days_back=14, limit=150):
+    start_date = start_date or today_iso()
+    start = (datetime.fromisoformat(start_date).date() - timedelta(days=int(days_back))).isoformat()
+    query = """SELECT * FROM matches
+               WHERE match_date>=? AND match_date<?
+               ORDER BY match_date DESC, kickoff_time, competition_name
+               LIMIT ?"""
+    data = [item for item in rows(query, (start, start_date, int(limit))) if not is_fake_match(item)]
+    enriched = []
+    for item in data:
+        item["kickoff_time"] = item.get("kickoff_time") or item.get("match_time") or ""
+        if not item.get("score") and (item.get("home_score") or item.get("away_score")):
+            item["score"] = sportsdb_score(item.get("home_score"), item.get("away_score"))
+        item["home_identity"] = resolve_team(item.get("home_team"))
+        item["away_identity"] = resolve_team(item.get("away_team"))
+        item = annotate_match(item)
+        item["live_depth"]["state"] = "FT"
+        item["live_depth"]["label"] = "Finalizado"
+        item["live_depth"]["badge"] = "finished"
+        item["live_depth"]["minute"] = "FT"
+        enriched.append(item)
+    return enriched
+
+
+def pick_candidate_matches(limit=24, days=14):
+    candidates = []
+    for match in get_upcoming_matches(today_iso(), days=days, limit=limit * 2):
+        info = canonical_match_status(match)
+        if info.get("is_upcoming") and match.get("home_team") and match.get("away_team"):
+            annotated = annotate_match(match)
+            annotated["pick_readiness"] = "Listo para análisis" if (match.get("bookmaker") or match.get("odds_h2h_json")) else "Sin cuota todavía"
+            candidates.append(annotated)
+        if len(candidates) >= limit:
+            break
+    return candidates
+
+
+def build_combi_candidates_from_matches(count=3):
+    count = max(2, min(int(count or 3), 8))
+    matches = pick_candidate_matches(limit=max(count, 8), days=14)
+    return {
+        "requested_count": count,
+        "matches": matches[:count],
+        "available": len(matches),
+        "mode": "partidos_reales_proximos",
+        "notice": "Base real de partidos próximos. La selección final debe salir de picks publicados o análisis admin; no se fabrican apuestas falsas.",
+    }
+
 def match_hub(date=None, lane="today"):
     date = date or today_iso()
     cache_key = f"match-hub:{date}:{lane}"
@@ -3241,9 +3347,11 @@ def match_hub(date=None, lane="today"):
     picks = get_picks(limit=80)
     today_matches = [annotate_match(m, favs) for m in get_matches(date, "today")]
     window_matches = [annotate_match(m, favs) for m in get_upcoming_matches(date, days=7)]
+    result_matches = get_results_matches(date, days_back=14, limit=120)
     combined = []
     seen = set()
-    for match in today_matches + window_matches:
+    source_matches = result_matches if lane in {"results", "finished"} else today_matches + window_matches + (result_matches[:40] if lane == "week" else [])
+    for match in source_matches:
         if match.get("id") in seen:
             continue
         if not match_lane_filter(match, lane):
@@ -3267,7 +3375,8 @@ def match_hub(date=None, lane="today"):
         "live": sections["live"][:30],
         "today": [m for m in combined if m.get("match_date") == date][:80],
         "upcoming": [m for m in combined if m.get("match_date") >= date and m.get("match_date") != date][:40] or sections["upcoming"][:30],
-        "finished": sections["finished"][:20],
+        "finished": (result_matches if lane in {"results", "finished"} else sections["finished"])[:40],
+        "results": grouped_match_calendar(result_matches),
         "popular": sections["top"][:20],
         "favorites": sections["favorites"][:20],
         "with_picks": sections["with_picks"][:20],
@@ -3283,6 +3392,7 @@ def match_hub(date=None, lane="today"):
             "favorites": len(sections["favorites"]),
             "with_picks": len(sections["with_picks"]),
             "with_odds": len(with_odds),
+            "finished": len(result_matches),
             "popular": len(combined),
         },
     }
@@ -4505,11 +4615,10 @@ def get_upcoming_matches(start_date=None, days=7, limit=150):
 def split_live(matches):
     live, scheduled, finished = [], [], []
     for item in matches:
-        state = (item.get("live_depth") or {}).get("state") or normalize_live_state(item)["key"]
-        status = str(item.get("status") or "").lower()
-        if state == "FT" or status in {"ft", "finalizado", "finished"}:
+        info = item.get("status_info") or canonical_match_status(item)
+        if info.get("is_finished"):
             finished.append(item)
-        elif state in {"LIVE", "HT"} or item.get("minute") or any(x in status for x in ["live", "directo", "1h", "2h", "ht"]):
+        elif info.get("is_live"):
             live.append(item)
         else:
             scheduled.append(item)
@@ -4527,6 +4636,8 @@ def dashboard_data(lane="today", date=None):
     profile = default_profile()
     favorites = get_favorites()
     hub = match_hub(date)
+    past_results = get_results_matches(date, days_back=14, limit=80)
+    candidate_matches = pick_candidate_matches(limit=24, days=14)
     favorite_bundle = favorite_feed_full()
     flow = build_live_flow(hub, favorites=favorites, picks=picks, profile=profile)
     matches_diag = match_calendar_diagnostics()
@@ -4551,6 +4662,8 @@ def dashboard_data(lane="today", date=None):
         "favorite_feed": favorite_bundle["matches"],
         "favorite_bundle": favorite_bundle,
         "match_hub": hub,
+        "past_results": past_results,
+        "candidate_matches": candidate_matches,
         "live_flow": flow,
         "membership_plans": MEMBERSHIP_PLANS,
         "telegram": telegram_config(),
@@ -4623,6 +4736,7 @@ def live_page():
 @app.route("/match-hub")
 @app.route("/partidos")
 @app.route("/partidos-hoy")
+@app.route("/resultados")
 def match_hub_page():
     lane = request.args.get("lane", "today")
     date = request.args.get("date") or (today_iso(1) if lane == "tomorrow" else today_iso())
@@ -4939,6 +5053,7 @@ def picks_page():
     data = dashboard_data()
     user = current_session_user() or {"membership": "FREE", "role": "FREE"}
     data["picks"] = published_picks_for_user(user, limit=80)
+    data["candidate_matches"] = pick_candidate_matches(limit=24, days=14)
     data["pick_stats"] = pick_stats()
     record_user_activity("view", "picks", "picks-page", {"count": len(data["picks"])})
     return render_template("picks.html", data=data)
@@ -4948,8 +5063,11 @@ def picks_page():
 def combis_page():
     data = dashboard_data()
     user = current_session_user() or {"membership": "FREE", "role": "FREE"}
+    requested_count = max(2, min(as_int(request.args.get("partidos"), 3), 8))
     data["picks"] = published_picks_for_user(user, limit=30)
     data["combis"] = get_combis(limit=20)
+    data["combi_builder"] = build_combi_candidates_from_matches(requested_count)
+    data["requested_combi_count"] = requested_count
     record_user_activity("view", "combis", "combis-page", {"picks_available": len(data["picks"])})
     return render_template("combis.html", data=data)
 
@@ -5004,6 +5122,7 @@ def crests_page():
 @app.route("/v516-health")
 @app.route("/v518-health")
 @app.route("/v520-health")
+@app.route("/v524-health")
 def health():
     return jsonify(
         {
