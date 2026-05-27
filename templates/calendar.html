@@ -4,10 +4,7 @@
   <div class="kicker">Calendario global</div>
   <h1>Partidos importantes primero</h1>
   <p class="lead">Vista limpia para hoy, directos, top mundial, Espana y Andalucia. Alimentada por datos propios, CSV/JSON legal o futuras APIs permitidas.</p>
-  <div class="actions">
-    <a class="btn primary" href="/api/calendar">API calendario</a>
-    {% if current_user and current_user.role == 'ADMIN' %}<a class="btn" href="/admin/import-center">Importar partidos</a>{% endif %}
-  </div>
+  <div class="actions"><a class="btn primary" href="/api/calendar">API calendario</a><a class="btn" href="/admin/import-center">Importar partidos</a></div>
 </section>
 <div class="filters">
   <a class="btn" href="/calendario?lane=today">Hoy</a>

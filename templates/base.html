@@ -30,13 +30,14 @@
           <a href="/live">Live</a>
           <a href="/picks">Picks</a>
           <a href="/combis">Combinadas</a>
-          <a href="/favoritos">Favoritos</a>
+          <a href="/favorites">Favoritos</a>
           <a href="/shark">SHARK IA</a>
           <a href="/perfil">Mi perfil</a>
           <a href="/logout">Salir</a>
         {% else %}
+          <a href="/membresias">Membresías</a>
           <a href="/cliente-login">Entrar</a>
-          <a href="/registro">Crear cuenta</a>
+          <a class="nav-cta" href="/registro">Crear cuenta</a>
         {% endif %}
       </nav>
     </div>
@@ -55,10 +56,11 @@
       <a href="/logout">Salir</a>
     {% else %}
       <a href="/match-hub">Hub</a>
+      <a href="/resultados">Resultados</a>
       <a href="/live">Live</a>
       <a href="/picks">Picks</a>
       <a href="/combis">Combis</a>
-      <a href="/favoritos">Fav</a>
+      <a href="/favorites">Fav</a>
       <a href="/shark">SHARK</a>
       {% if current_user %}<a href="/perfil">Perfil</a>{% else %}<a href="/cliente-login">Entrar</a>{% endif %}
     {% endif %}
