@@ -53,8 +53,8 @@ from engines.telegram_delivery_engine import (
 from engines.telegram_engine import build_alert_queue, dispatch_signature, should_skip_duplicate
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V530_CLIENT_ROUTE_STABILITY_HARDENING"
-SEED_VERSION = "v528-client-login-route-stability-seed"
+APP_VERSION = "V531_FULL_ROUTE_QA_CLIENT_STABILITY_PASS"
+SEED_VERSION = "v531-full-route-qa-client-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
 
@@ -3108,14 +3108,19 @@ def add_favorite(kind, value, label=None, user_id=None):
 
 
 def remove_favorite(kind, value, user_id=None):
+    kind = str(kind or "").strip().lower()
+    value = str(value or "").strip()
     user_id = user_id or current_user_id()
+    if kind not in {"team", "league", "match"} or not value or not user_id:
+        return {"ok": False, "removed": "", "error": "Favorito invalido o login requerido."}
     fav_id = favorite_id(kind, value, user_id)
     conn = db()
     cur = conn.cursor()
     cur.execute("DELETE FROM favorites WHERE id=? AND user_id=?", (fav_id, user_id))
+    removed = cur.rowcount
     conn.commit()
     conn.close()
-    return {"ok": True, "removed": fav_id}
+    return {"ok": True, "removed": fav_id, "removed_count": removed}
 
 
 def get_favorites(kind=None, user_id=None):
@@ -3165,6 +3170,14 @@ def annotate_match(match, favs=None):
         match["live_depth"]["label"] = "Próximo"
         match["live_depth"]["badge"] = "upcoming"
         match["live_depth"]["minute"] = match.get("kickoff_time") or match.get("match_time") or "Hora"
+    match["home_identity"] = match.get("home_identity") or resolve_team(match.get("home_team"))
+    match["away_identity"] = match.get("away_identity") or resolve_team(match.get("away_team"))
+    if match.get("home_logo"):
+        match["home_identity"]["crest_url"] = match.get("home_logo")
+        match["home_identity"]["crest_mode"] = "logo"
+    if match.get("away_logo"):
+        match["away_identity"]["crest_url"] = match.get("away_logo")
+        match["away_identity"]["crest_mode"] = "logo"
     return match
 
 
@@ -3264,6 +3277,8 @@ def team_lookup(team_id):
     key = canonical_team_key(team_id)
     team = one("SELECT * FROM teams WHERE key=? OR external_id=? OR lower(name)=lower(?) LIMIT 1", (key, str(team_id or ""), str(team_id or "")))
     if team:
+        team["id"] = team.get("key") or key
+        team["key"] = team.get("key") or key
         return team
     # Crear vista virtual mínima si el equipo aparece en partidos pero todavía no existe en teams.
     sample = one("""SELECT home_team AS name, home_logo AS logo_url, country, competition_name AS league FROM matches WHERE lower(home_team)=lower(?)
@@ -4809,6 +4824,7 @@ def get_matches(date=None, lane="today"):
         if item.get("away_logo"):
             item["away_identity"]["crest_url"] = item.get("away_logo")
             item["away_identity"]["crest_mode"] = "logo"
+        annotate_match(item)
     return data
 
 
@@ -4832,6 +4848,7 @@ def get_upcoming_matches(start_date=None, days=7, limit=150):
         if item.get("away_logo"):
             item["away_identity"]["crest_url"] = item.get("away_logo")
             item["away_identity"]["crest_mode"] = "logo"
+        annotate_match(item)
     return data
 
 
@@ -5580,6 +5597,7 @@ def api_teams():
     seed_core()
     teams = rows("SELECT * FROM teams ORDER BY name")
     for team in teams:
+        team["id"] = team.get("key")
         team["initials"] = initials(team.get("name"))
         team["crest_url"] = team.get("logo_url") or fallback_crest_url(team.get("name"))
         team["crest_mode"] = "logo" if team.get("logo_url") else "fallback"
@@ -6132,7 +6150,15 @@ def client_safe_500(error):
 @app.route("/api/deep-route-check")
 def api_deep_route_check():
     checks = []
-    for path in ["/", "/cliente-login", "/registro", "/perfil", "/match-hub", "/live", "/picks", "/combis", "/favorites", "/shark", "/telegram", "/resultados", "/api/health"]:
+    paths = [
+        "/", "/cliente-login", "/registro", "/logout", "/perfil", "/profile", "/match-hub", "/live",
+        "/resultados", "/picks", "/combis", "/favorites", "/telegram", "/shark", "/admin-login",
+        "/admin", "/admin/users", "/admin/picks", "/admin/data-center", "/admin/telegram",
+        "/admin/import-center", "/admin/sportsdb-sync", "/api/health", "/api/route-check",
+        "/api/deep-route-check", "/api/matches/diagnostics", "/api/picks", "/api/picks/stats",
+        "/api/favorites", "/api/profile", "/api/telegram/diagnostics", "/api/thesportsdb/diagnostics",
+    ]
+    for path in paths:
         checks.append({"path": path, "status": "registered"})
     return jsonify({"ok": True, "version": APP_VERSION, "checks": checks})
 
@@ -6140,7 +6166,7 @@ def api_deep_route_check():
 @app.route("/api/route-check")
 def api_route_check():
     """Chequeo ligero de rutas clave para evitar botones rotos en despliegues."""
-    routes = ["/", "/cliente-login", "/registro", "/perfil", "/match-hub", "/live", "/picks", "/combis", "/favorites", "/shark", "/telegram", "/resultados"]
+    routes = ["/", "/cliente-login", "/registro", "/perfil", "/profile", "/match-hub", "/live", "/resultados", "/picks", "/combis", "/favorites", "/telegram", "/shark"]
     return jsonify({"ok": True, "version": APP_VERSION, "routes": routes, "policy": "cliente limpio, admin separado, botones principales verificados"})
 
 

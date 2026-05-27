@@ -54,7 +54,7 @@
 <section class="band two-col">
   <div class="card">
     <div class="section-head"><h2>Estadísticas visuales</h2><span class="pill">{{ detail.statistics.status }}</span></div>
-    {% for st in detail.statistics.items %}
+    {% for st in detail.statistics['items'] %}
     <div class="stat-row">
       <span>{{ st.home }}</span>
       <div><strong>{{ st.label }}</strong><div class="stat-bar"><i style="width:{{ st.home }}%"></i></div></div>
