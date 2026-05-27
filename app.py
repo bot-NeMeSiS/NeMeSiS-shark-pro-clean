@@ -3160,6 +3160,101 @@ def client_retention_summary():
         "next_best_action": alerts[0] if alerts else None,
     }
 
+
+# ===================== V537 DAILY BRIEFING + CLIENT COMMAND CENTER =====================
+def client_progress_score(user=None):
+    user = user or current_session_user() or {}
+    score = 25
+    favs = get_favorites(user_id=user.get("id")) if user.get("id") else []
+    if favs:
+        score += min(20, len(favs) * 5)
+    if telegram_config().get("configured"):
+        score += 15
+    if published_picks_for_user(user or {"membership": "FREE"}, limit=3):
+        score += 15
+    if get_upcoming_matches(today_iso(), days=7, limit=5):
+        score += 15
+    if client_activity_feed(limit=3, user_id=user.get("id")):
+        score += 10
+    return max(0, min(100, score))
+
+
+def build_daily_briefing(user=None):
+    """Briefing comercial para cliente: resume qué mirar hoy sin inventar datos."""
+    user = user or current_session_user() or {"membership": "FREE", "role": "FREE"}
+    hub = match_hub(today_iso())
+    upcoming = get_upcoming_matches(today_iso(), days=7, limit=12)
+    today_matches = get_matches(today_iso(), "today")
+    favs = get_favorites(user_id=user.get("id")) if user.get("id") else []
+    picks = published_picks_for_user(user, limit=8)
+    smart = smart_pick_board(user, limit=8)
+    alerts = build_client_alerts(limit=6, user_id=user.get("id"))
+    activity = client_activity_feed(limit=6, user_id=user.get("id")) if user.get("id") else []
+    next_action = alerts[0] if alerts else {
+        "title": "Explora el calendario",
+        "body": "Revisa partidos por liga y guarda tus favoritos para personalizar la experiencia.",
+        "href": "/match-hub",
+        "badge": "HOY",
+    }
+    priorities = []
+    if hub.get("counts", {}).get("live", 0):
+        priorities.append({"label": "Directos activos", "value": hub["counts"]["live"], "href": "/live", "tone": "live"})
+    if picks:
+        priorities.append({"label": "Picks visibles", "value": len(picks), "href": "/picks", "tone": "picks"})
+    if favs:
+        priorities.append({"label": "Favoritos", "value": len(favs), "href": "/favorites", "tone": "favorites"})
+    if upcoming:
+        priorities.append({"label": "Próximos 7 días", "value": len(upcoming), "href": "/match-hub", "tone": "matches"})
+    if not priorities:
+        priorities.append({"label": "Sincronización pendiente", "value": "OK", "href": "/match-hub", "tone": "empty"})
+    return {
+        "date": today_iso(),
+        "score": client_progress_score(user),
+        "next_action": next_action,
+        "priorities": priorities[:4],
+        "alerts": alerts,
+        "activity": activity,
+        "favorites": favs,
+        "picks": picks,
+        "smart_picks": smart,
+        "upcoming": upcoming,
+        "today_matches": today_matches,
+        "live": hub.get("live", [])[:8],
+        "counts": {
+            "today": len(today_matches),
+            "upcoming": len(upcoming),
+            "live": hub.get("counts", {}).get("live", 0),
+            "favorites": len(favs),
+            "picks": len(picks),
+        },
+        "message": (
+            "Tienes contenido listo para revisar hoy."
+            if (today_matches or upcoming or picks or favs)
+            else "Aún faltan datos sincronizados; la app mostrará contenido real cuando entren SportsDB, Odds o import legal."
+        ),
+    }
+
+
+def client_command_center_data(user=None):
+    user = user or current_session_user() or {}
+    briefing = build_daily_briefing(user)
+    return {
+        "briefing": briefing,
+        "readiness": {
+            "perfil": 100 if user else 0,
+            "favoritos": min(100, briefing["counts"]["favorites"] * 25),
+            "partidos": 100 if briefing["counts"]["upcoming"] else 35,
+            "picks": 100 if briefing["counts"]["picks"] else 45,
+            "telegram": 100 if telegram_config().get("configured") else 40,
+        },
+        "recommended_tabs": [
+            {"label": "Mi día", "href": "/mi-dia", "text": "Briefing personalizado"},
+            {"label": "Partidos", "href": "/match-hub", "text": "Calendario por ligas"},
+            {"label": "Picks", "href": "/picks", "text": "Apuestas publicadas o candidatos"},
+            {"label": "Combis", "href": "/combis", "text": "Constructor con próximos partidos"},
+        ],
+    }
+
 def combi_risk(picks):
     if not picks:
         return "EMPTY"
@@ -5065,6 +5160,8 @@ def dashboard_data(lane="today", date=None):
         "client_alerts": build_client_alerts(limit=8),
         "client_activity": client_activity_feed(limit=8),
         "retention": client_retention_summary(),
+        "daily_briefing": build_daily_briefing(current_session_user() or {"membership": "FREE", "role": "FREE"}),
+        "client_command": client_command_center_data(current_session_user() or {"membership": "FREE", "role": "FREE"}),
         "match_hub": hub,
         "past_results": past_results,
         "candidate_matches": candidate_matches,
@@ -5540,6 +5637,18 @@ def activity_page():
     return render_template("activity.html", data=data)
 
 
+@app.route("/mi-dia")
+@app.route("/briefing")
+def daily_briefing_page():
+    if not current_session_user():
+        return redirect("/cliente-login")
+    data = dashboard_data()
+    data["briefing"] = build_daily_briefing(current_session_user())
+    data["client_command"] = client_command_center_data(current_session_user())
+    record_user_activity("view", "briefing", "daily-briefing", {"score": data["briefing"].get("score")})
+    return render_template("daily_briefing.html", data=data)
+
+
 @app.route("/membresias")
 @app.route("/membership")
 def membership_page():
@@ -5577,6 +5686,17 @@ def api_client_activity():
     return jsonify({"ok": True, "version": APP_VERSION, "activity": client_activity_feed(limit=30)})
 
 
+@app.route("/api/client/daily-briefing")
+def api_client_daily_briefing():
+    user = current_session_user() or {"membership": "FREE", "role": "FREE"}
+    return jsonify({"ok": True, "version": APP_VERSION, "briefing": build_daily_briefing(user), "command": client_command_center_data(user)})
+
+@app.route("/api/client/command-center")
+def api_client_command_center():
+    user = current_session_user() or {"membership": "FREE", "role": "FREE"}
+    return jsonify({"ok": True, "version": APP_VERSION, "command": client_command_center_data(user)})
+
+
 @app.route("/api/health")
 @app.route("/v504-health")
 @app.route("/v505-health")
@@ -5592,6 +5712,8 @@ def api_client_activity():
 @app.route("/v524-health")
 @app.route("/v529-health")
 @app.route("/v535-health")
+@app.route("/v536-health")
+@app.route("/v537-health")
 def health():
     return jsonify(
         {

@@ -10,7 +10,8 @@
     <p class="lead">Calendario, picks, live, favoritos e IA en una experiencia más compacta, clara y preparada para cliente real.</p>
     <div class="actions">
       {% if current_user %}
-        <a class="btn primary" href="/perfil">Ir a mi dashboard</a>
+        <a class="btn primary" href="/mi-dia">Mi día SHARK</a>
+        <a class="btn" href="/perfil">Ir a mi dashboard</a>
         <a class="btn" href="/match-hub">Ver partidos</a>
         <a class="btn" href="/picks">Picks</a>
       {% else %}
@@ -60,7 +61,8 @@
   <div>
     <div class="section-head"><h2>Accesos rápidos</h2><span class="pill">Cliente</span></div>
     <div class="quick-actions quick-actions-polish">
-      <a class="quick primary" href="/match-hub"><span>Calendario</span><strong>Ver</strong></a>
+      <a class="quick primary" href="/mi-dia"><span>Mi día</span><strong>{{ data.daily_briefing.score }}%</strong></a>
+      <a class="quick" href="/match-hub"><span>Calendario</span><strong>Ver</strong></a>
       <a class="quick" href="/resultados"><span>Resultados</span><strong>FT</strong></a>
       <a class="quick" href="/live"><span>Directos</span><strong>Live</strong></a>
       <a class="quick" href="/picks"><span>Picks</span><strong>Pro</strong></a>

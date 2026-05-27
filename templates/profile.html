@@ -7,7 +7,8 @@
     <h1>Tu panel SHARK</h1>
     <p class="lead">Hola, {{ data.session_user.name }} · @{{ data.session_user.username }} · plan {{ data.session_user.membership }}</p>
     <div class="actions">
-      <a class="btn primary" href="/match-hub">Ver partidos</a>
+      <a class="btn primary" href="/mi-dia">Mi día SHARK</a>
+      <a class="btn" href="/match-hub">Ver partidos</a>
       <a class="btn" href="/favorites">Favoritos</a>
       <a class="btn" href="/shark">Preguntar a SHARK</a>
       <a class="btn" href="/logout">Cerrar sesión</a>
@@ -28,7 +29,8 @@
 
 <section class="band compact-band">
   <div class="quick-actions client-actions">
-    <a class="quick primary" href="/match-hub"><span>Partidos</span><strong>{{ data.upcoming_matches|length }}</strong></a>
+    <a class="quick primary" href="/mi-dia"><span>Mi día</span><strong>{{ data.daily_briefing.score }}%</strong></a>
+    <a class="quick" href="/match-hub"><span>Partidos</span><strong>{{ data.upcoming_matches|length }}</strong></a>
     <a class="quick" href="/live"><span>Live</span><strong>{{ data.match_hub.counts.live }}</strong></a>
     <a class="quick" href="/picks"><span>Picks</span><strong>{{ data.picks|length }}</strong></a>
     <a class="quick" href="/combis"><span>Combinadas</span><strong>{{ data.combis|length }}</strong></a>

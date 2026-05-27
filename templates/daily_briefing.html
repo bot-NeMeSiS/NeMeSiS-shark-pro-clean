@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block content %}
+{% set briefing = data.briefing %}
+<section class="app-hero daily-hero product-hero">
+  <div>
+    <div class="kicker">Centro cliente</div>
+    <h1>Mi día SHARK</h1>
+    <p class="lead">Resumen personalizado para saber qué mirar, dónde actuar y qué falta por activar sin perderte entre pantallas.</p>
+    <div class="actions">
+      <a class="btn primary" href="{{ briefing.next_action.href }}">{{ briefing.next_action.title }}</a>
+      <a class="btn" href="/match-hub">Partidos</a>
+      <a class="btn" href="/picks">Picks</a>
+      <a class="btn" href="/favorites">Favoritos</a>
+    </div>
+  </div>
+  <aside class="hero-panel command-score">
+    <span class="badge">Puntuación cliente</span>
+    <strong class="giant-score">{{ briefing.score }}%</strong>
+    <p class="small">{{ briefing.message }}</p>
+    <div class="signal"><span>Personalización</span><i style="width:{{ briefing.score }}%"></i></div>
+  </aside>
+</section>
+
+<section class="band compact-band">
+  <div class="section-head"><h2>Prioridades de hoy</h2><span class="pill">{{ briefing.date }}</span></div>
+  <div class="grid dense-grid">
+    {% for item in briefing.priorities %}
+    <a class="card priority-card priority-{{ item.tone }}" href="{{ item.href }}">
+      <span class="badge">{{ item.label }}</span>
+      <strong class="metric">{{ item.value }}</strong>
+      <p class="small">Abrir sección relacionada</p>
+    </a>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="band two-col compact-band">
+  <div>
+    <div class="section-head"><h2>Siguiente mejor acción</h2><span class="pill">SHARK</span></div>
+    <a class="card next-action-card" href="{{ briefing.next_action.href }}">
+      <span class="badge">{{ briefing.next_action.badge }}</span>
+      <strong>{{ briefing.next_action.title }}</strong>
+      <p class="small">{{ briefing.next_action.body }}</p>
+    </a>
+  </div>
+  <div>
+    <div class="section-head"><h2>Estado rápido</h2><span class="pill">Cliente</span></div>
+    <div class="grid compact-grid">
+      <div class="card metric-card"><div class="metric">{{ briefing.counts.today }}</div><div class="muted">hoy</div></div>
+      <div class="card metric-card"><div class="metric">{{ briefing.counts.live }}</div><div class="muted">live</div></div>
+      <div class="card metric-card"><div class="metric">{{ briefing.counts.picks }}</div><div class="muted">picks</div></div>
+      <div class="card metric-card"><div class="metric">{{ briefing.counts.favorites }}</div><div class="muted">favoritos</div></div>
+    </div>
+  </div>
+</section>
+
+<section class="band two-col compact-band">
+  <div>
+    <div class="section-head"><h2>Partidos para revisar</h2><a class="pill" href="/match-hub">Calendario</a></div>
+    <div class="stack">
+      {% for m in briefing.today_matches[:5] or briefing.upcoming[:5] %}
+      <a class="list-row" href="/match/{{ m.id }}"><span>{{ m.home_team }} vs {{ m.away_team }}<small>{{ m.competition_name or m.league_name or 'Competición' }}</small></span><strong>{{ m.kickoff_time or m.live_depth.label }}</strong></a>
+      {% else %}
+      <div class="empty premium-empty"><strong>Sin partidos sincronizados</strong><p>Cuando el admin sincronice SportsDB, Odds o import legal, aparecerán aquí.</p></div>
+      {% endfor %}
+    </div>
+  </div>
+  <div>
+    <div class="section-head"><h2>Picks y análisis</h2><a class="pill" href="/picks">Abrir</a></div>
+    <div class="stack">
+      {% for p in briefing.picks[:5] %}
+      <a class="list-row" href="/picks"><span>{{ p.home_team }} vs {{ p.away_team }}<small>{{ p.selection }}</small></span><strong>{{ p.confidence }}%</strong></a>
+      {% else %}
+      <div class="empty premium-empty"><strong>No hay picks publicados</strong><p>Te mostraremos candidatos reales en Picks sin inventar apuestas.</p></div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<section class="band compact-band">
+  <div class="section-head"><h2>Actividad reciente</h2><a class="pill" href="/actividad">Ver todo</a></div>
+  <div class="stack activity-stack">
+    {% for a in briefing.activity[:6] %}
+    <div class="list-row"><span>{{ a.label }}</span><strong>{{ a.created_at[:16] }}</strong></div>
+    {% else %}
+    <div class="empty">Tu actividad aparecerá al revisar partidos, picks, combinadas y favoritos.</div>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}
