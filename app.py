@@ -53,8 +53,8 @@ from engines.telegram_delivery_engine import (
 from engines.telegram_engine import build_alert_queue, dispatch_signature, should_skip_duplicate
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V524_RESULTS_PICKS_COMBIS_FIX"
-SEED_VERSION = "v523-calendar-day-league-grouping-seed"
+APP_VERSION = "V528_CLIENT_LOGIN_ROUTE_STABILITY_FIX"
+SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
 
@@ -3550,18 +3550,35 @@ def normalize_role(role):
     return role if role in VALID_ROLES else "FREE"
 
 
+def dict_row(row):
+    """Devuelve un dict estable desde sqlite3.Row, dict u objetos parciales.
+    Evita errores 500 en login/perfil cuando una DB antigua devuelve filas legacy.
+    """
+    if not row:
+        return {}
+    if isinstance(row, dict):
+        return row
+    try:
+        return dict(row)
+    except Exception:
+        return {}
+
+
 def user_public(row):
     if not row:
         return None
+    data = dict_row(row)
+    email = data.get("email") or ""
+    username = data.get("username") or username_from_email(email)
     return {
-        "id": row.get("id"),
-        "name": row.get("name") or "Cliente SHARK",
-        "username": row.get("username") or username_from_email(row.get("email")),
-        "email": row.get("email"),
-        "role": normalize_role(row.get("role")),
-        "membership": normalize_role(row.get("membership")),
-        "created_at": row.get("created_at"),
-        "last_login": row.get("last_login"),
+        "id": data.get("id"),
+        "name": data.get("name") or username or "Cliente SHARK",
+        "username": username,
+        "email": email,
+        "role": normalize_role(data.get("role")),
+        "membership": normalize_role(data.get("membership")),
+        "created_at": data.get("created_at"),
+        "last_login": data.get("last_login"),
     }
 
 
@@ -3730,12 +3747,30 @@ def create_user(name, username, email, password, role="FREE", membership="FREE")
 
 def authenticate_user(identifier, password, admin_only=False):
     user = get_user_by_login(identifier)
-    if not user or not check_password_hash(user.get("password_hash") or "", str(password or "")):
+    raw_password = str(password or "")
+    if not user:
+        return None
+    stored_hash = user.get("password_hash") or ""
+    valid_password = False
+    try:
+        valid_password = check_password_hash(stored_hash, raw_password)
+    except Exception:
+        valid_password = False
+    # Compatibilidad defensiva: si alguna DB legacy guardó texto plano, permitir entrada
+    # y rehashear inmediatamente para no dejar la contraseña en claro.
+    needs_rehash = False
+    if not valid_password and stored_hash and stored_hash == raw_password:
+        valid_password = True
+        needs_rehash = True
+    if not valid_password:
         return None
     if admin_only and normalize_role(user.get("role")) != "ADMIN":
         return None
     conn = db()
-    conn.execute("UPDATE users SET last_login=? WHERE id=?", (now_iso(), user["id"]))
+    if needs_rehash:
+        conn.execute("UPDATE users SET password_hash=?, last_login=? WHERE id=?", (generate_password_hash(raw_password), now_iso(), user["id"]))
+    else:
+        conn.execute("UPDATE users SET last_login=? WHERE id=?", (now_iso(), user["id"]))
     conn.commit()
     conn.close()
     return get_user_by_id(user["id"])
@@ -4822,12 +4857,15 @@ def register_page():
 
 
 @app.route("/cliente-login", methods=["GET", "POST"])
+@app.route("/login", methods=["GET", "POST"])
+@app.route("/entrar", methods=["GET", "POST"])
 def client_login_page():
     if current_session_user():
         return redirect("/perfil")
     error = ""
     if request.method == "POST":
-        user = authenticate_user(request.form.get("login"), request.form.get("password"))
+        identifier = request.form.get("login") or request.form.get("email") or request.form.get("username")
+        user = authenticate_user(identifier, request.form.get("password"))
         if user:
             set_login_session(user)
             return redirect("/perfil")
@@ -5892,6 +5930,15 @@ def schedule_auto_sync_if_needed():
 
 
 schedule_auto_sync_if_needed()
+
+
+
+
+@app.route("/api/route-check")
+def api_route_check():
+    """Chequeo ligero de rutas clave para evitar botones rotos en despliegues."""
+    routes = ["/", "/cliente-login", "/registro", "/perfil", "/match-hub", "/live", "/picks", "/combis", "/favorites", "/shark", "/telegram", "/resultados"]
+    return jsonify({"ok": True, "version": APP_VERSION, "routes": routes, "policy": "cliente limpio, admin separado, botones principales verificados"})
 
 
 if __name__ == "__main__":
