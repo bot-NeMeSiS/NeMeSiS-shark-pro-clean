@@ -3263,6 +3263,54 @@ def client_command_center_data(user=None):
         ],
     }
 
+
+def smart_dashboard_summary(user=None):
+    """Zero-click dashboard: lo importante para el cliente en una sola respuesta."""
+    user = user or current_session_user() or {"membership": "FREE", "role": "FREE"}
+    briefing = build_daily_briefing(user)
+    hub = match_hub(today_iso())
+    recommendations = []
+    try:
+        recommendations = list_betting_recommendations(limit=6, refresh=False)
+    except Exception:
+        recommendations = []
+    focus = []
+    counts = briefing.get("counts", {})
+    if hub.get("counts", {}).get("live", 0):
+        focus.append({"title": "Directos ahora", "value": hub["counts"]["live"], "href": "/live", "tone": "live", "text": "Partidos activos agrupados por liga."})
+    if counts.get("picks", 0):
+        focus.append({"title": "Picks publicados", "value": counts.get("picks"), "href": "/picks", "tone": "picks", "text": "Picks disponibles según tu membresía."})
+    if recommendations:
+        focus.append({"title": "Recomendaciones SHARK", "value": len(recommendations), "href": "/recomendaciones", "tone": "shark", "text": "Análisis previo antes de publicar pick."})
+    if counts.get("favorites", 0):
+        focus.append({"title": "Favoritos activos", "value": counts.get("favorites"), "href": "/favorites", "tone": "favorites", "text": "Tu feed personalizado está preparado."})
+    if counts.get("upcoming", 0):
+        focus.append({"title": "Próximos partidos", "value": counts.get("upcoming"), "href": "/match-hub", "tone": "matches", "text": "Calendario por día, liga y hora."})
+    if not focus:
+        focus.append({"title": "Activa datos deportivos", "value": "0", "href": "/match-hub", "tone": "empty", "text": "Cuando entren SportsDB/Odds verás contenido real aquí."})
+    shark_message = "Revisa favoritos y picks antes de apostar. Si falta cuota real, SHARK lo marcará como análisis pendiente."
+    if recommendations:
+        best = recommendations[0]
+        shark_message = f"SHARK detecta análisis disponible para {best.get('home_team','Local')} vs {best.get('away_team','Visitante')}. Revisa riesgo y cuota antes de publicar pick."
+    elif briefing.get("picks"):
+        best = briefing["picks"][0]
+        shark_message = f"Hay picks publicados. Empieza por {best.get('home_team','Local')} vs {best.get('away_team','Visitante')} y revisa stake/riesgo."
+    return {
+        "score": briefing.get("score", 0),
+        "message": briefing.get("message"),
+        "focus": focus[:5],
+        "briefing": briefing,
+        "recommendations": recommendations,
+        "shark_message": shark_message,
+        "quick_actions": [
+            {"label": "Live", "href": "/live", "icon": "🔴"},
+            {"label": "Picks", "href": "/picks", "icon": "🎯"},
+            {"label": "Recomendaciones", "href": "/recomendaciones", "icon": "🦈"},
+            {"label": "Combis", "href": "/combis", "icon": "🧩"},
+            {"label": "Favoritos", "href": "/favorites", "icon": "⭐"},
+        ],
+    }
+
 def combi_risk(picks):
     if not picks:
         return "EMPTY"
@@ -5280,6 +5328,7 @@ def dashboard_data(lane="today", date=None):
         "retention": client_retention_summary(),
         "daily_briefing": build_daily_briefing(current_session_user() or {"membership": "FREE", "role": "FREE"}),
         "client_command": client_command_center_data(current_session_user() or {"membership": "FREE", "role": "FREE"}),
+        "smart_dashboard": smart_dashboard_summary(current_session_user() or {"membership": "FREE", "role": "FREE"}),
         "match_hub": hub,
         "past_results": past_results,
         "candidate_matches": candidate_matches,
@@ -5332,7 +5381,19 @@ def service_worker():
 
 @app.route("/")
 def home():
-    return render_template("home.html", data=dashboard_data())
+    data = dashboard_data()
+    if current_session_user() and request.args.get("landing") != "1":
+        return render_template("smart_dashboard.html", data=data, dashboard=data.get("smart_dashboard"))
+    return render_template("home.html", data=data)
+
+
+@app.route("/dashboard")
+@app.route("/inicio")
+def smart_dashboard_page():
+    if not current_session_user():
+        return redirect("/cliente-login")
+    data = dashboard_data()
+    return render_template("smart_dashboard.html", data=data, dashboard=data.get("smart_dashboard"))
 
 
 @app.route("/global")
@@ -5814,6 +5875,19 @@ def api_client_daily_briefing():
 def api_client_command_center():
     user = current_session_user() or {"membership": "FREE", "role": "FREE"}
     return jsonify({"ok": True, "version": APP_VERSION, "command": client_command_center_data(user)})
+
+
+@app.route("/api/dashboard/smart-summary")
+def api_dashboard_smart_summary():
+    user = current_session_user() or {"membership": "FREE", "role": "FREE"}
+    return jsonify({"ok": True, "version": APP_VERSION, "dashboard": smart_dashboard_summary(user)})
+
+
+@app.route("/api/client/today-focus")
+def api_client_today_focus():
+    user = current_session_user() or {"membership": "FREE", "role": "FREE"}
+    summary = smart_dashboard_summary(user)
+    return jsonify({"ok": True, "version": APP_VERSION, "focus": summary.get("focus", []), "shark": summary.get("shark_message")})
 
 
 @app.route("/api/health")
