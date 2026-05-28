@@ -186,3 +186,12 @@ textarea{min-height:230px;font-family:Consolas,monospace;font-size:13px}
 
 /* V545 commercial launch order */
 .launch-hero .hero-panel strong{font-size:2.2rem}.launch-card.is-ok{border-color:rgba(55,214,122,.35)}.launch-card.is-warning{border-color:rgba(255,194,87,.45)}.mini-stat{background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.09);border-radius:18px;padding:14px}.mini-stat span{display:block;color:var(--muted);font-size:.82rem}.mini-stat strong{font-size:1.45rem}.compact-hero{padding-block:28px}.launch-card h3{margin:.5rem 0 .3rem}
+
+/* V547 Real Sports Intelligence Core */
+.compact-hero{padding-top:22px;padding-bottom:22px}
+.cards-3{grid-template-columns:repeat(auto-fit,minmax(210px,1fr))}
+.notice{border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.045);border-radius:18px;padding:14px 16px}
+.mini-match{display:flex;justify-content:space-between;gap:12px;align-items:center;border-bottom:1px solid rgba(255,255,255,.08);padding:10px 0}
+.mini-match span{color:var(--muted);font-size:.9rem;text-align:right}
+.stack{display:grid;gap:10px}
+@media(max-width:720px){.mini-match{display:block}.mini-match span{display:block;text-align:left;margin-top:4px}.compact-hero h1{font-size:1.7rem}}

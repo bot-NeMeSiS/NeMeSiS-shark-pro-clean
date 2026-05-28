@@ -7594,6 +7594,96 @@ def api_admin_support_summary():
     return jsonify({'ok': True, 'version': APP_VERSION, 'support': support_summary()})
 
 
+def sports_intelligence_summary():
+    ensure_betting_tables()
+    ensure_pick_tracking_tables()
+    upcoming = rows("""SELECT id, league_name, home_team, away_team, kickoff_iso, status, home_score, away_score, bookmaker, odds_home, odds_draw, odds_away
+                       FROM matches
+                       WHERE LOWER(COALESCE(status,'')) NOT IN ('finished','finalizado','ft')
+                       ORDER BY kickoff_iso ASC LIMIT 12""")
+    live_items = rows("""SELECT id, league_name, home_team, away_team, minute, status, home_score, away_score
+                         FROM matches
+                         WHERE LOWER(COALESCE(status,'')) IN ('live','en_directo','1h','2h','ht','halftime')
+                         ORDER BY league_name, kickoff_iso LIMIT 12""")
+    results = rows("""SELECT id, league_name, home_team, away_team, kickoff_iso, status, home_score, away_score
+                       FROM matches
+                       WHERE LOWER(COALESCE(status,'')) IN ('finished','finalizado','ft')
+                       ORDER BY kickoff_iso DESC LIMIT 10""")
+    recs = list_betting_recommendations(limit=10, refresh=False)
+    picks = list_published_picks(limit=10)
+    tracked = _safe_total("SELECT COUNT(*) AS total FROM user_pick_tracking")
+    matches_total = _safe_total("SELECT COUNT(*) AS total FROM matches")
+    odds_total = _safe_total("SELECT COUNT(*) AS total FROM odds_snapshots")
+    with_logo = _safe_total("SELECT COUNT(*) AS total FROM teams WHERE COALESCE(logo_url,'')<>''")
+    insights = []
+    if not upcoming:
+        insights.append({'level':'warning','title':'Calendario sin próximos partidos', 'body':'Sincroniza SportsDB/Odds o importa calendario legal desde admin.'})
+    if not recs:
+        insights.append({'level':'warning','title':'Recomendaciones pendientes', 'body':'Genera recomendaciones SHARK desde próximos partidos y cuotas.'})
+    if not picks:
+        insights.append({'level':'info','title':'Sin picks publicados', 'body':'Publica picks revisados para activar cliente y Telegram.'})
+    if not live_items:
+        insights.append({'level':'info','title':'Sin directos ahora', 'body':'El Live Center mostrará próximos destacados hasta que haya partidos en vivo.'})
+    score = 50
+    score += min(15, matches_total // 5)
+    score += 10 if recs else 0
+    score += 10 if picks else 0
+    score += 8 if odds_total else 0
+    score += 7 if with_logo else 0
+    score = max(0, min(100, score))
+    return {
+        'score': score,
+        'upcoming': upcoming,
+        'live': live_items,
+        'recent_results': results,
+        'recommendations': recs,
+        'published_picks': picks,
+        'tracked_picks': tracked,
+        'totals': {
+            'matches': matches_total,
+            'odds_snapshots': odds_total,
+            'teams_with_logo': with_logo,
+            'recommendations': len(recs),
+            'published_picks': len(picks),
+        },
+        'insights': insights,
+        'next_actions': [
+            'Sincronizar calendario y cuotas desde Data Center.',
+            'Generar recomendaciones SHARK y convertir las mejores en picks.',
+            'Publicar picks revisados para Telegram y cliente.',
+            'Revisar Live Center y resultados para evitar estados incorrectos.',
+        ]
+    }
+
+
+@app.route('/inteligencia')
+def client_sports_intelligence_page():
+    data = context_base('Inteligencia SHARK')
+    data['intel'] = sports_intelligence_summary()
+    return render_template('sports_intelligence.html', data=data)
+
+
+@app.route('/admin/intelligence-center')
+def admin_intelligence_center_page():
+    if not is_admin_session():
+        return redirect('/admin-login?next=/admin/intelligence-center')
+    data = context_base('Intelligence Center')
+    data['intel'] = sports_intelligence_summary()
+    return render_template('admin_intelligence_center.html', data=data)
+
+
+@app.route('/api/sports-intelligence/summary')
+def api_sports_intelligence_summary():
+    return jsonify({'ok': True, 'version': APP_VERSION, 'intelligence': sports_intelligence_summary()})
+
+
+@app.route('/api/admin/intelligence-check')
+def api_admin_intelligence_check():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({'ok': True, 'version': APP_VERSION, 'intelligence': sports_intelligence_summary()})
+
+
 @app.route('/api/client/readiness-map')
 def api_client_readiness_map():
     user = current_session_user() or {'membership': 'FREE', 'role': 'FREE'}
