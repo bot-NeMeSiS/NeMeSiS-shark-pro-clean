@@ -7414,6 +7414,203 @@ def api_client_commercial_experience():
     })
 
 
+# ==================================================
+# V546 — Support, Feedback & Commercial Confidence Center
+# ==================================================
+
+def ensure_support_tables():
+    """Create lightweight support/feedback tables without breaking old DBs."""
+    seed_core()
+    conn = db()
+    conn.execute(
+        """CREATE TABLE IF NOT EXISTS client_feedback(
+            id TEXT PRIMARY KEY,
+            user_id TEXT,
+            username TEXT,
+            email TEXT,
+            category TEXT DEFAULT 'general',
+            priority TEXT DEFAULT 'normal',
+            status TEXT DEFAULT 'open',
+            subject TEXT,
+            message TEXT,
+            source_route TEXT,
+            admin_notes TEXT,
+            created_at TEXT,
+            updated_at TEXT
+        )"""
+    )
+    conn.execute(
+        """CREATE TABLE IF NOT EXISTS support_tickets(
+            id TEXT PRIMARY KEY,
+            user_id TEXT,
+            username TEXT,
+            email TEXT,
+            ticket_type TEXT DEFAULT 'soporte',
+            status TEXT DEFAULT 'open',
+            title TEXT,
+            body TEXT,
+            resolution TEXT,
+            created_at TEXT,
+            updated_at TEXT
+        )"""
+    )
+    for ddl in [
+        "CREATE INDEX IF NOT EXISTS idx_client_feedback_status ON client_feedback(status)",
+        "CREATE INDEX IF NOT EXISTS idx_client_feedback_user ON client_feedback(user_id)",
+        "CREATE INDEX IF NOT EXISTS idx_client_feedback_created ON client_feedback(created_at)",
+        "CREATE INDEX IF NOT EXISTS idx_support_tickets_status ON support_tickets(status)",
+        "CREATE INDEX IF NOT EXISTS idx_support_tickets_user ON support_tickets(user_id)",
+    ]:
+        try:
+            conn.execute(ddl)
+        except Exception:
+            pass
+    conn.commit()
+    conn.close()
+
+
+def support_summary():
+    ensure_support_tables()
+    def total(sql, params=()):
+        try:
+            conn = db(); row = conn.execute(sql, params).fetchone(); conn.close()
+            return int((dict(row) if row else {}).get('total') or 0)
+        except Exception:
+            return 0
+    open_feedback = total("SELECT COUNT(*) AS total FROM client_feedback WHERE lower(COALESCE(status,'')) IN ('open','abierto','pending','pendiente')")
+    open_tickets = total("SELECT COUNT(*) AS total FROM support_tickets WHERE lower(COALESCE(status,'')) IN ('open','abierto','pending','pendiente')")
+    total_feedback = total("SELECT COUNT(*) AS total FROM client_feedback")
+    total_tickets = total("SELECT COUNT(*) AS total FROM support_tickets")
+    recent = []
+    try:
+        conn = db()
+        rows = conn.execute(
+            "SELECT id, username, email, category, priority, status, subject, message, created_at FROM client_feedback ORDER BY created_at DESC LIMIT 8"
+        ).fetchall()
+        conn.close()
+        recent = [dict(r) for r in rows]
+    except Exception:
+        recent = []
+    health = 100
+    if open_feedback + open_tickets > 10:
+        health = 65
+    elif open_feedback + open_tickets > 3:
+        health = 80
+    return {
+        'open_feedback': open_feedback,
+        'open_tickets': open_tickets,
+        'total_feedback': total_feedback,
+        'total_tickets': total_tickets,
+        'health': health,
+        'recent': recent,
+        'actions': [
+            {'title': 'Responder incidencias abiertas', 'body': 'Prioriza mensajes de clientes con prioridad alta o relacionados con pagos/picks.'},
+            {'title': 'Detectar fricción comercial', 'body': 'Revisa si se repiten dudas sobre membresías, picks, Telegram o login.'},
+            {'title': 'Convertir feedback en mejoras', 'body': 'Las peticiones frecuentes deben pasar a backlog de producto antes de añadir nuevas pantallas.'},
+        ]
+    }
+
+
+@app.route('/soporte', methods=['GET', 'POST'])
+def support_page():
+    user = current_session_user()
+    data = context_base('Soporte')
+    data['sent'] = False
+    data['error'] = ''
+    if request.method == 'POST':
+        ensure_support_tables()
+        subject = (request.form.get('subject') or '').strip()[:160]
+        message = (request.form.get('message') or '').strip()[:3000]
+        category = (request.form.get('category') or 'general').strip()[:60]
+        priority = (request.form.get('priority') or 'normal').strip()[:40]
+        if not subject or not message:
+            data['error'] = 'Cuéntanos el asunto y el mensaje para poder ayudarte.'
+        else:
+            feedback_id = 'fb-' + hashlib.sha1(f"{now_iso()}-{subject}-{message}".encode('utf-8')).hexdigest()[:14]
+            conn = db()
+            conn.execute(
+                """INSERT INTO client_feedback(id,user_id,username,email,category,priority,status,subject,message,source_route,created_at,updated_at)
+                   VALUES(?,?,?,?,?,?,?,?,?,?,?,?)""",
+                (
+                    feedback_id,
+                    str((user or {}).get('id') or ''),
+                    (user or {}).get('username') or (user or {}).get('name') or '',
+                    (user or {}).get('email') or '',
+                    category,
+                    priority,
+                    'open',
+                    subject,
+                    message,
+                    request.form.get('source_route') or request.referrer or '/soporte',
+                    now_iso(),
+                    now_iso(),
+                ),
+            )
+            conn.commit(); conn.close()
+            data['sent'] = True
+    data['support_tips'] = [
+        {'title': 'Partidos o live', 'body': 'Indica liga, equipo y hora aproximada para revisar sincronización.'},
+        {'title': 'Picks o combinadas', 'body': 'Dinos si falta pick, cuota, riesgo o explicación.'},
+        {'title': 'Telegram', 'body': 'Indica si falla el test, la cola o el mensaje automático.'},
+    ]
+    return render_template('support.html', data=data)
+
+
+@app.route('/admin/support-center')
+def admin_support_center_page():
+    if not is_admin_session():
+        return redirect('/admin-login?next=/admin/support-center')
+    data = context_base('Centro de soporte')
+    data['support'] = support_summary()
+    return render_template('admin_support_center.html', data=data)
+
+
+@app.route('/api/support/submit', methods=['POST'])
+def api_support_submit():
+    user = current_session_user()
+    payload = request.get_json(silent=True) or request.form or {}
+    subject = str(payload.get('subject') or '').strip()[:160]
+    message = str(payload.get('message') or '').strip()[:3000]
+    category = str(payload.get('category') or 'general').strip()[:60]
+    priority = str(payload.get('priority') or 'normal').strip()[:40]
+    if not subject or not message:
+        return jsonify({'ok': False, 'error': 'subject_and_message_required'}), 400
+    ensure_support_tables()
+    feedback_id = 'fb-' + hashlib.sha1(f"{now_iso()}-{subject}-{message}".encode('utf-8')).hexdigest()[:14]
+    conn = db()
+    conn.execute(
+        """INSERT INTO client_feedback(id,user_id,username,email,category,priority,status,subject,message,source_route,created_at,updated_at)
+           VALUES(?,?,?,?,?,?,?,?,?,?,?,?)""",
+        (feedback_id, str((user or {}).get('id') or ''), (user or {}).get('username') or '', (user or {}).get('email') or '', category, priority, 'open', subject, message, str(payload.get('source_route') or ''), now_iso(), now_iso()),
+    )
+    conn.commit(); conn.close()
+    return jsonify({'ok': True, 'id': feedback_id, 'message': 'Feedback recibido correctamente.'})
+
+
+@app.route('/api/admin/support-summary')
+def api_admin_support_summary():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({'ok': True, 'version': APP_VERSION, 'support': support_summary()})
+
+
+@app.route('/api/client/readiness-map')
+def api_client_readiness_map():
+    user = current_session_user() or {'membership': 'FREE', 'role': 'FREE'}
+    launch = commercial_launch_readiness()
+    support = {'available': True, 'route': '/soporte'}
+    return jsonify({
+        'ok': True,
+        'version': APP_VERSION,
+        'readiness': {
+            'membership': user.get('membership') or user.get('role') or 'FREE',
+            'commercial_score': launch.get('score'),
+            'support': support,
+            'next_actions': launch.get('actions', [])[:3],
+        }
+    })
+
+
 if __name__ == "__main__":
     seed_core()
     app.run(host="0.0.0.0", port=int(os.getenv("PORT", "5000")), debug=os.getenv("FLASK_DEBUG") == "1")
