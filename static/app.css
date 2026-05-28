@@ -168,3 +168,13 @@ textarea{min-height:230px;font-family:Consolas,monospace;font-size:13px}
 .mini-stat strong{display:block;font-size:2rem;margin:8px 0}
 .mini-stat small{opacity:.7}
 @media (max-width:720px){.v540-depth .form-grid{grid-template-columns:1fr}.mini-stat{min-height:auto}.mini-stat strong{font-size:1.5rem}}
+
+
+/* V542 — Smart Discovery + Commercial Readiness */
+.hero.compact.hero-v542{padding-top:28px;padding-bottom:24px}
+.searchbar{display:grid;grid-template-columns:1fr minmax(130px,190px) auto;gap:10px;margin-top:18px}
+.searchbar input,.searchbar select{background:#0f1b2d;border:1px solid rgba(255,255,255,.12);color:#eef7ff;border-radius:14px;padding:13px 14px;outline:none}
+.searchbar button,.btn{background:linear-gradient(135deg,#19d3ff,#2cff9a);color:#06111f;border:0;border-radius:14px;padding:13px 16px;font-weight:800;text-decoration:none;display:inline-flex;align-items:center;justify-content:center}
+.quick-grid.small{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}.chip{padding:8px 11px;border-radius:999px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);color:#dff7ff;text-decoration:none;font-size:.9rem}
+.cards-4{grid-template-columns:repeat(4,minmax(0,1fr))}.compact-grid .card{min-height:auto}.compact-list{display:grid;gap:10px}.match-card.mini{display:grid;grid-template-columns:1fr auto;gap:4px 12px;align-items:center;text-decoration:none;color:inherit;padding:12px;border-radius:16px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.08)}.match-card.mini div{display:flex;gap:8px;flex-wrap:wrap}.match-card.mini small{color:#9fb3c8}.status{justify-self:end;padding:5px 8px;border-radius:999px;background:rgba(25,211,255,.12);font-size:.75rem}.team-list,.league-list,.checklist{display:grid;gap:10px}.team-row,.league-row,.check-row{display:flex;gap:12px;align-items:center;padding:12px;border-radius:16px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.08);text-decoration:none;color:inherit}.team-row small,.league-row small,.check-row small{display:block;color:#9fb3c8;margin-top:3px}.crest-fallback{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,#152a47,#1ccfff);font-weight:900}.big-score strong{font-size:3.2rem;display:block;margin:6px 0}.check-row.ok{border-color:rgba(44,255,154,.25)}.check-row.warn{border-color:rgba(255,198,86,.25)}
+@media(max-width:760px){.searchbar{grid-template-columns:1fr}.cards-4{grid-template-columns:repeat(2,minmax(0,1fr))}.match-card.mini{grid-template-columns:1fr}.status{justify-self:start}}

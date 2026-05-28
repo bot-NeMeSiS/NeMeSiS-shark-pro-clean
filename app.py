@@ -6849,6 +6849,150 @@ def api_admin_membership_summary():
     return jsonify({"ok": True, "version": APP_VERSION, "summary": membership_revenue_summary()})
 
 
+# -----------------------------
+# V542 — Smart Discovery + Commercial Readiness Layer
+# -----------------------------
+
+def _safe_like(value):
+    return f"%{(value or '').strip().lower()}%"
+
+
+def smart_discovery_data(query="", scope="all", limit=12):
+    """Discovery layer for client-facing navigation using persisted legal data only."""
+    query = (query or "").strip()
+    scope = (scope or "all").lower()
+    limit = max(3, min(int(limit or 12), 30))
+    like = _safe_like(query)
+    data = {"query": query, "scope": scope, "matches": [], "teams": [], "competitions": [], "picks": [], "quick_filters": []}
+    try:
+        if scope in ("all", "matches", "partidos"):
+            if query:
+                data["matches"] = rows(
+                    """SELECT * FROM matches
+                       WHERE lower(home_team) LIKE ? OR lower(away_team) LIKE ? OR lower(competition_name) LIKE ? OR lower(country) LIKE ?
+                       ORDER BY match_date, kickoff_time, priority DESC LIMIT ?""",
+                    (like, like, like, like, limit),
+                )
+            else:
+                data["matches"] = get_upcoming_matches(days=10, limit=limit)
+            data["matches"] = [annotate_match(m) for m in data["matches"] if not is_fake_match(m)]
+    except Exception as exc:
+        data["matches_error"] = str(exc)
+    try:
+        if scope in ("all", "teams", "equipos"):
+            if query:
+                data["teams"] = rows(
+                    """SELECT * FROM teams
+                       WHERE lower(name) LIKE ? OR lower(league) LIKE ? OR lower(country) LIKE ?
+                       ORDER BY CASE WHEN logo_url!='' THEN 0 ELSE 1 END, name LIMIT ?""",
+                    (like, like, like, limit),
+                )
+            else:
+                data["teams"] = rows(
+                    """SELECT * FROM teams
+                       ORDER BY CASE WHEN logo_url!='' THEN 0 ELSE 1 END, updated_at DESC, name LIMIT ?""",
+                    (limit,),
+                )
+            for team in data["teams"]:
+                team["identity"] = resolve_team(team.get("name"))
+    except Exception as exc:
+        data["teams_error"] = str(exc)
+    try:
+        if scope in ("all", "competitions", "ligas"):
+            if query:
+                data["competitions"] = rows(
+                    """SELECT * FROM competitions
+                       WHERE lower(name) LIKE ? OR lower(country) LIKE ? OR lower(scope) LIKE ?
+                       ORDER BY tier DESC, name LIMIT ?""",
+                    (like, like, like, limit),
+                )
+            else:
+                data["competitions"] = rows("SELECT * FROM competitions ORDER BY tier DESC, name LIMIT ?", (limit,))
+    except Exception as exc:
+        data["competitions_error"] = str(exc)
+    try:
+        if scope in ("all", "picks"):
+            user = current_session_user() or {"membership": "FREE", "role": "FREE"}
+            data["picks"] = published_picks_for_user(user, limit=limit)
+            if query:
+                q = query.lower()
+                data["picks"] = [pck for pck in data["picks"] if q in (pck.get("home_team", "") + " " + pck.get("away_team", "") + " " + pck.get("league_name", "") + " " + pck.get("selection", "")).lower()]
+    except Exception as exc:
+        data["picks_error"] = str(exc)
+    data["quick_filters"] = [
+        {"label": "Partidos de hoy", "href": "/match-hub?filter=today", "kind": "matches"},
+        {"label": "Live", "href": "/live", "kind": "live"},
+        {"label": "Picks", "href": "/picks", "kind": "picks"},
+        {"label": "Combinadas", "href": "/combis", "kind": "combis"},
+        {"label": "Favoritos", "href": "/favorites", "kind": "favorites"},
+        {"label": "Resultados", "href": "/resultados", "kind": "results"},
+    ]
+    data["counts"] = {k: len(data.get(k) or []) for k in ("matches", "teams", "competitions", "picks")}
+    return data
+
+
+def commercial_readiness_summary():
+    """Admin-only readiness score for productization without exposing secrets to clients."""
+    checks = []
+    def add(key, label, ok, detail, href=""):
+        checks.append({"key": key, "label": label, "ok": bool(ok), "detail": detail, "href": href})
+    matches_total = safe_count("matches")
+    teams_total = safe_count("teams")
+    users_total = safe_count("users")
+    picks_total = safe_count("picks")
+    logos_total = safe_count("teams", "coalesce(logo_url,'')!=''")
+    upcoming_total = safe_count("matches", "match_date>=?", (today_iso(),))
+    add("routes", "Rutas principales", True, "Route-check y deep-check disponibles para revisar la app.", "/api/deep-route-check")
+    add("matches", "Calendario con contenido", matches_total > 0, f"{matches_total} partidos guardados, {upcoming_total} próximos.", "/admin/data-center")
+    add("teams", "Equipos y escudos", teams_total > 0 and logos_total > 0, f"{teams_total} equipos, {logos_total} con escudo.", "/admin/sportsdb-sync")
+    add("picks", "Picks publicados", picks_total > 0, f"{picks_total} picks en base de datos.", "/admin/picks")
+    add("users", "Usuarios", users_total > 0, f"{users_total} usuarios registrados.", "/admin/users")
+    tg = telegram_config()
+    add("telegram", "Telegram configurado", bool(tg.get("configured")), "Canal listo." if tg.get("configured") else "Falta revisar token/chat id.", "/admin/telegram")
+    sports = crest_sync_status()
+    add("sportsdb", "SportsDB", bool(sports.get("has_key") or sports.get("key_present")), "API key detectada." if (sports.get("has_key") or sports.get("key_present")) else "Falta key o diagnóstico.", "/admin/sportsdb-sync")
+    ok_count = sum(1 for c in checks if c["ok"])
+    score = round(ok_count / len(checks) * 100) if checks else 0
+    return {
+        "score": score,
+        "checks": checks,
+        "recommendations": [
+            "Subir densidad de datos reales: próximos 7-14 días, resultados recientes y escudos.",
+            "Publicar picks reales desde admin antes de activar envíos automáticos a Telegram.",
+            "Mantener estados vacíos premium para cliente y diagnósticos solo en admin.",
+            "Revisar /api/deep-route-check después de cada deploy.",
+        ],
+    }
+
+
+@app.route("/explorar")
+def discovery_page():
+    data = dashboard_data()
+    data["discovery"] = smart_discovery_data(request.args.get("q", ""), request.args.get("scope", "all"), limit=18)
+    return render_template("discovery.html", data=data)
+
+
+@app.route("/api/discovery/search")
+def api_discovery_search():
+    return jsonify({"ok": True, "version": APP_VERSION, "discovery": smart_discovery_data(request.args.get("q", ""), request.args.get("scope", "all"), limit=request.args.get("limit", 12))})
+
+
+@app.route("/admin/commercial-readiness")
+def admin_commercial_readiness_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/commercial-readiness")
+    data = dashboard_data()
+    data["commercial_readiness"] = commercial_readiness_summary()
+    return render_template("admin_commercial_readiness.html", data=data)
+
+
+@app.route("/api/admin/commercial-readiness")
+def api_admin_commercial_readiness():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "version": APP_VERSION, "readiness": commercial_readiness_summary()})
+
+
 if __name__ == "__main__":
     seed_core()
     app.run(host="0.0.0.0", port=int(os.getenv("PORT", "5000")), debug=os.getenv("FLASK_DEBUG") == "1")
