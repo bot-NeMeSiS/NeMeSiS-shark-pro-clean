@@ -54,7 +54,7 @@ from engines.telegram_engine import build_alert_queue, dispatch_signature, shoul
 from engines.betting_recommendation_engine import recommendation_payload
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V544_PICK_TRACKING_BANKROLL_PERFORMANCE"
+APP_VERSION = "V545_COMMERCIAL_APP_ORDER_LAUNCH_READINESS"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -979,6 +979,13 @@ def rows(query, params=()):
 def one(query, params=()):
     data = rows(query, params)
     return data[0] if data else None
+
+
+def context_base(title=None):
+    data = dashboard_data()
+    if title:
+        data["page_title"] = title
+    return data
 
 
 def cache_get(key):
@@ -7319,6 +7326,92 @@ def api_admin_pick_performance():
         'lost': (one("SELECT COUNT(*) AS total FROM picks WHERE lower(result_status)='lost'") or {}).get('total', 0),
     }
     return jsonify({'ok': True, 'version': APP_VERSION, 'summary': summary})
+
+
+def _safe_total(query, params=()):
+    try:
+        return int((one(query, params) or {}).get("total", 0) or 0)
+    except Exception:
+        return 0
+
+
+def commercial_launch_readiness():
+    """Commercial checklist for the real app without exposing secrets to clients."""
+    users = _safe_total("SELECT COUNT(*) AS total FROM users")
+    matches = _safe_total("SELECT COUNT(*) AS total FROM matches")
+    upcoming = _safe_total("SELECT COUNT(*) AS total FROM matches WHERE COALESCE(kickoff_iso, match_date, '') >= ?", (today_iso(),))
+    finished = _safe_total("SELECT COUNT(*) AS total FROM matches WHERE lower(COALESCE(status,'')) IN ('ft','finished','finalizado')")
+    teams = _safe_total("SELECT COUNT(*) AS total FROM teams")
+    logos = _safe_total("SELECT COUNT(*) AS total FROM teams WHERE COALESCE(logo_url,'')<>''")
+    picks = _safe_total("SELECT COUNT(*) AS total FROM picks WHERE lower(COALESCE(status,''))='published'")
+    recommendations = _safe_total("SELECT COUNT(*) AS total FROM betting_recommendations")
+    telegram_pending = _safe_total("SELECT COUNT(*) AS total FROM telegram_queue WHERE lower(COALESCE(status,''))='pending'")
+    telegram_sent = _safe_total("SELECT COUNT(*) AS total FROM telegram_queue WHERE lower(COALESCE(status,''))='sent'")
+
+    items = [
+        {"area": "Acceso cliente", "ok": users > 0 or admin_exists(), "detail": "Login, registro y sesiones preparados."},
+        {"area": "Calendario", "ok": matches > 0, "detail": f"{matches} partidos guardados, {upcoming} próximos."},
+        {"area": "Resultados", "ok": finished > 0 or matches > 0, "detail": f"{finished} finalizados detectados."},
+        {"area": "Equipos y escudos", "ok": teams > 0, "detail": f"{teams} equipos, {logos} con escudo real."},
+        {"area": "Picks publicados", "ok": picks > 0, "detail": f"{picks} picks publicados."},
+        {"area": "Recomendaciones", "ok": recommendations > 0 or matches > 0, "detail": f"{recommendations} recomendaciones cacheadas."},
+        {"area": "Telegram", "ok": bool(telegram_config().get("configured")) or telegram_pending > 0 or telegram_sent > 0, "detail": f"{telegram_pending} pendientes, {telegram_sent} enviados."},
+        {"area": "Admin", "ok": admin_exists(), "detail": "Paneles de usuarios, datos, picks, calidad y rendimiento protegidos."},
+    ]
+    score = round(sum(1 for item in items if item["ok"]) / max(len(items), 1) * 100)
+    actions = []
+    if matches == 0:
+        actions.append({"priority": "Alta", "title": "Sincronizar calendario", "body": "Entrar en Data Center y ejecutar warmup/calendario."})
+    if picks == 0:
+        actions.append({"priority": "Alta", "title": "Publicar primeros picks", "body": "Crear picks desde recomendaciones o próximos partidos."})
+    if logos < max(3, teams // 3) and teams > 0:
+        actions.append({"priority": "Media", "title": "Sincronizar escudos", "body": "Ejecutar SportsDB Sync para mejorar identidad visual."})
+    if not telegram_config().get("configured"):
+        actions.append({"priority": "Media", "title": "Completar Telegram", "body": "Configurar TELEGRAM_BOT_TOKEN y TELEGRAM_CHAT_ID en Render."})
+    if not actions:
+        actions.append({"priority": "OK", "title": "Base comercial lista para pruebas", "body": "Realizar recorrido cliente/admin y validar datos reales en Render."})
+
+    return {
+        "score": score,
+        "items": items,
+        "actions": actions,
+        "metrics": {
+            "users": users, "matches": matches, "upcoming": upcoming, "finished": finished,
+            "teams": teams, "logos": logos, "picks": picks, "recommendations": recommendations,
+            "telegram_pending": telegram_pending, "telegram_sent": telegram_sent,
+        },
+    }
+
+
+@app.route('/admin/launch-center')
+def admin_launch_center_page():
+    if not is_admin_session():
+        return redirect('/admin-login?next=/admin/launch-center')
+    data = context_base('Centro de lanzamiento comercial')
+    data['launch'] = commercial_launch_readiness()
+    return render_template('admin_launch_center.html', data=data)
+
+
+@app.route('/api/admin/launch-readiness')
+def api_admin_launch_readiness():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({'ok': True, 'version': APP_VERSION, 'launch': commercial_launch_readiness()})
+
+
+@app.route('/api/client/commercial-experience')
+def api_client_commercial_experience():
+    user = current_session_user() or {'membership': 'FREE', 'role': 'FREE'}
+    return jsonify({
+        'ok': True,
+        'version': APP_VERSION,
+        'client': {
+            'membership': user.get('membership') or user.get('role') or 'FREE',
+            'next_steps': build_client_alerts(limit=5),
+            'briefing': build_daily_briefing(user),
+            'command': client_command_center_data(user),
+        }
+    })
 
 
 if __name__ == "__main__":
