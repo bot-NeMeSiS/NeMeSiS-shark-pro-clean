@@ -54,7 +54,7 @@ from engines.telegram_engine import build_alert_queue, dispatch_signature, shoul
 from engines.betting_recommendation_engine import recommendation_payload
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V545_COMMERCIAL_APP_ORDER_LAUNCH_READINESS"
+APP_VERSION = "V548_USER_JOURNEY_AUTOMATION_RETENTION_INTELLIGENCE"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -7704,3 +7704,139 @@ def api_client_readiness_map():
 if __name__ == "__main__":
     seed_core()
     app.run(host="0.0.0.0", port=int(os.getenv("PORT", "5000")), debug=os.getenv("FLASK_DEBUG") == "1")
+
+
+# ==========================================================
+# V548 — User Journey Automation + Retention Intelligence
+# ==========================================================
+
+def _safe_count(table, where="", params=()):
+    try:
+        q = f"SELECT COUNT(*) AS n FROM {table} " + (where or "")
+        row = one(q, params)
+        return int((row or {}).get("n") or 0)
+    except Exception:
+        return 0
+
+
+def _safe_latest(table, date_col="created_at"):
+    try:
+        row = one(f"SELECT {date_col} AS value FROM {table} ORDER BY {date_col} DESC LIMIT 1")
+        return (row or {}).get("value")
+    except Exception:
+        return None
+
+
+def build_client_progress(user_id=None):
+    user_id = user_id or current_user_id() or "anonymous"
+    favorites_count = _safe_count("favorites", "WHERE user_id=?", (user_id,))
+    tracked_count = _safe_count("user_activity", "WHERE user_id=?", (user_id,))
+    published_picks = _safe_count("picks", "WHERE lower(status)='published'")
+    upcoming_matches = _safe_count("matches", "WHERE lower(coalesce(status,'')) NOT IN ('finished','finalizado','ft')")
+    alerts_ready = 1 if upcoming_matches or published_picks else 0
+    steps = [
+        {"title": "Completa tu perfil", "done": bool(current_session_user()), "hint": "Nombre, email y membresía quedan listos al iniciar sesión."},
+        {"title": "Añade favoritos", "done": favorites_count > 0, "hint": "Guarda equipos, ligas o partidos para personalizar la app."},
+        {"title": "Revisa partidos de hoy", "done": upcoming_matches > 0, "hint": "El calendario se alimenta desde fuentes legales y cache persistente."},
+        {"title": "Consulta picks/recomendaciones", "done": published_picks > 0, "hint": "Cuando no haya picks publicados, SHARK muestra análisis y próximos partidos."},
+        {"title": "Activa Telegram", "done": alerts_ready > 0, "hint": "Recibirás resúmenes, alertas y picks si el admin lo activa."},
+    ]
+    done = sum(1 for s in steps if s["done"])
+    score = round(done / len(steps) * 100)
+    return {
+        "score": score,
+        "steps_done": done,
+        "steps_total": len(steps),
+        "steps": steps,
+        "favorites_count": favorites_count,
+        "activity_count": tracked_count,
+        "published_picks": published_picks,
+        "upcoming_matches": upcoming_matches,
+        "next_best_action": next((s["title"] for s in steps if not s["done"]), "Sigue usando SHARK para afinar tu perfil deportivo"),
+    }
+
+
+def build_retention_summary():
+    users = _safe_count("users")
+    favorites = _safe_count("favorites")
+    picks = _safe_count("picks", "WHERE lower(status)='published'")
+    matches = _safe_count("matches")
+    live = _safe_count("live_matches", "WHERE lower(coalesce(status,'')) IN ('live','en directo','1h','2h')")
+    tickets = _safe_count("support_tickets")
+    feedback = _safe_count("client_feedback")
+    queue = _safe_count("telegram_queue", "WHERE lower(coalesce(status,'')) IN ('pending','sending')")
+    data_score = min(100, (matches * 2) + (live * 8) + (picks * 7))
+    usage_score = min(100, (users * 8) + (favorites * 3) + (feedback * 5))
+    ops_score = 100 - min(40, queue * 2) - min(30, tickets * 3)
+    global_score = max(0, round((data_score + usage_score + max(0, ops_score)) / 3))
+    actions = []
+    if matches < 20:
+        actions.append("Sincronizar calendario y resultados desde Data Center.")
+    if picks < 3:
+        actions.append("Publicar al menos 3 picks/recomendaciones revisadas para que el cliente vea valor real.")
+    if favorites < max(1, users):
+        actions.append("Impulsar favoritos en onboarding y perfil para personalizar la experiencia.")
+    if queue > 0:
+        actions.append("Procesar cola Telegram y revisar errores de entrega.")
+    if not actions:
+        actions.append("Base de retención correcta: revisar feedback real de usuarios y mejorar densidad live.")
+    return {
+        "global_score": global_score,
+        "data_score": data_score,
+        "usage_score": usage_score,
+        "operations_score": max(0, ops_score),
+        "users": users,
+        "favorites": favorites,
+        "published_picks": picks,
+        "matches": matches,
+        "live_matches": live,
+        "support_tickets": tickets,
+        "feedback_items": feedback,
+        "telegram_pending": queue,
+        "last_activity": _safe_latest("user_activity") or _safe_latest("api_sync_logs", "started_at"),
+        "recommended_actions": actions,
+    }
+
+
+@app.route('/progreso')
+def client_progress_page():
+    if not current_session_user():
+        return redirect(url_for('client_login'))
+    data = context_base('Progreso SHARK')
+    data['progress'] = build_client_progress()
+    return render_template('client_progress.html', **data)
+
+
+@app.route('/api/client/progress')
+def api_client_progress():
+    if not current_session_user():
+        return jsonify({'ok': False, 'error': 'login_required'}), 401
+    return jsonify({'ok': True, 'progress': build_client_progress()})
+
+
+@app.route('/admin/retention-center')
+def admin_retention_center():
+    if not is_admin_session():
+        return redirect(url_for('admin_login'))
+    data = context_base('Centro de retención')
+    data['retention'] = build_retention_summary()
+    return render_template('admin_retention_center.html', **data)
+
+
+@app.route('/api/admin/retention-summary')
+def api_admin_retention_summary():
+    if not is_admin_session():
+        return jsonify({'ok': False, 'error': 'admin_required'}), 403
+    return jsonify({'ok': True, 'retention': build_retention_summary()})
+
+
+@app.route('/api/system/v548-check')
+def api_v548_check():
+    return jsonify({
+        'ok': True,
+        'version': 'V548_USER_JOURNEY_AUTOMATION_RETENTION_INTELLIGENCE',
+        'client_routes': ['/progreso', '/mi-dia', '/alertas', '/seguimiento', '/recomendaciones'],
+        'admin_routes': ['/admin/retention-center', '/admin/quality-center', '/admin/launch-center'],
+        'client_progress_available': True,
+        'retention_summary_available': True,
+    })

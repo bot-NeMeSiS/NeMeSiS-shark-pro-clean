@@ -195,3 +195,11 @@ textarea{min-height:230px;font-family:Consolas,monospace;font-size:13px}
 .mini-match span{color:var(--muted);font-size:.9rem;text-align:right}
 .stack{display:grid;gap:10px}
 @media(max-width:720px){.mini-match{display:block}.mini-match span{display:block;text-align:left;margin-top:4px}.compact-hero h1{font-size:1.7rem}}
+
+/* V548 User Journey + Retention Intelligence */
+.compact-hero{padding-top:28px;padding-bottom:24px}
+.progress-line{height:10px;background:rgba(255,255,255,.09);border-radius:999px;overflow:hidden;margin:14px 0}
+.progress-line span{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,#18e0ff,#36ff9b,#ffd166)}
+.checklist{display:grid;gap:12px}.check-row{display:flex;gap:12px;align-items:flex-start;padding:14px;border:1px solid rgba(255,255,255,.08);border-radius:18px;background:rgba(255,255,255,.035)}
+.check-row.done{border-color:rgba(54,255,155,.28);background:rgba(54,255,155,.06)}.status-dot{width:28px;height:28px;display:grid;place-items:center;border-radius:999px;background:rgba(24,224,255,.12);font-weight:900}.check-row.done .status-dot{background:rgba(54,255,155,.18)}
+.metric-card{min-height:110px;display:flex;flex-direction:column;justify-content:center}.metric-card span{color:var(--muted)}.metric-card strong{font-size:34px;line-height:1.05}.mini-stats.stacked{display:grid;gap:10px}.admin-hero{border-color:rgba(255,209,102,.18)}
