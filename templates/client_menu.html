@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="hero compact-hero nav-order-hero">
+  <div>
+    <p class="eyebrow">Centro de navegación</p>
+    <h1>Todo ordenado en un solo sitio.</h1>
+    <p class="muted">Accesos avanzados del cliente sin llenar la barra inferior. Live, picks y perfil quedan siempre a mano.</p>
+  </div>
+  <div class="hero-panel">
+    <strong>5</strong>
+    <span>botones principales</span>
+    <small>Inicio · Live · Picks · Favoritos · Perfil</small>
+  </div>
+</section>
+
+<section class="grid menu-grid">
+  <a class="card menu-card" href="/mi-dia"><span>📅</span><strong>Mi día</strong><small>Resumen diario personalizado.</small></a>
+  <a class="card menu-card" href="/match-hub"><span>⚽</span><strong>Partidos</strong><small>Calendario, ligas y próximos encuentros.</small></a>
+  <a class="card menu-card" href="/resultados"><span>🏁</span><strong>Resultados</strong><small>Partidos finalizados por liga.</small></a>
+  <a class="card menu-card" href="/recomendaciones"><span>🧠</span><strong>Recomendaciones</strong><small>Análisis SHARK basado en partidos reales.</small></a>
+  <a class="card menu-card" href="/combis"><span>🎯</span><strong>Combinadas</strong><small>Constructor con picks publicados.</small></a>
+  <a class="card menu-card" href="/seguimiento"><span>📈</span><strong>Seguimiento</strong><small>Banca, ROI y picks guardados.</small></a>
+  <a class="card menu-card" href="/alertas"><span>🔔</span><strong>Alertas</strong><small>Notificaciones inteligentes.</small></a>
+  <a class="card menu-card" href="/actividad"><span>🕘</span><strong>Actividad</strong><small>Últimos movimientos del usuario.</small></a>
+  <a class="card menu-card" href="/inteligencia"><span>🦈</span><strong>Inteligencia</strong><small>Resumen deportivo avanzado.</small></a>
+  <a class="card menu-card" href="/telegram"><span>📲</span><strong>Telegram</strong><small>Canal premium y avisos.</small></a>
+  <a class="card menu-card" href="/mi-cuenta"><span>👤</span><strong>Mi cuenta</strong><small>Membresía y datos personales.</small></a>
+  <a class="card menu-card" href="/soporte"><span>🛟</span><strong>Soporte</strong><small>Enviar incidencias y mejoras.</small></a>
+</section>
+{% endblock %}

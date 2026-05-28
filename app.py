@@ -7840,3 +7840,35 @@ def api_v548_check():
         'client_progress_available': True,
         'retention_summary_available': True,
     })
+
+
+# V549 — Navigation Cleanup + Premium UX Order
+@app.route('/menu')
+def client_menu_page():
+    if not current_session_user():
+        return redirect('/cliente-login?next=/menu')
+    if is_admin_session():
+        return redirect('/admin/command-center')
+    data = context_base('Centro de navegación')
+    return render_template('client_menu.html', **data)
+
+
+@app.route('/admin/command-center')
+def admin_command_center_page():
+    if not is_admin_session():
+        return redirect('/admin-login?next=/admin/command-center')
+    data = context_base('Centro de mando')
+    return render_template('admin_command_center.html', data=data)
+
+
+@app.route('/api/navigation-check')
+def api_navigation_check():
+    return jsonify({
+        'ok': True,
+        'version': 'V549_NAVIGATION_CLEANUP_PREMIUM_UX_ORDER',
+        'client_bottom_nav': ['Inicio', 'Live', 'Picks', 'Favoritos', 'Perfil'],
+        'client_more_route': '/menu',
+        'admin_more_route': '/admin/command-center',
+        'client_admin_separation': True,
+        'shark_floating': True,
+    })
