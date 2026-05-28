@@ -54,7 +54,7 @@ from engines.telegram_engine import build_alert_queue, dispatch_signature, shoul
 from engines.betting_recommendation_engine import recommendation_payload
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V543_BETTING_RECOMMENDATION_LIVE_TELEGRAM_QA"
+APP_VERSION = "V544_PICK_TRACKING_BANKROLL_PERFORMANCE"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -7116,6 +7116,209 @@ def api_telegram_enqueue_recommendations():
         force=request.args.get('force') in {'1','true','yes'},
     )
     return jsonify({'ok': True, 'version': APP_VERSION, 'queued': queued, 'preview': recs[:5]})
+
+
+# ============================================================
+# V544 — Pick Tracking + Bankroll Performance Center
+# ============================================================
+
+def ensure_pick_tracking_tables():
+    seed_core()
+    conn = db()
+    conn.execute("""CREATE TABLE IF NOT EXISTS user_pick_tracking(
+        id TEXT PRIMARY KEY,
+        user_id TEXT,
+        pick_id TEXT,
+        action TEXT DEFAULT 'saved',
+        stake_euros REAL DEFAULT 0,
+        notes TEXT DEFAULT '',
+        created_at TEXT,
+        updated_at TEXT
+    )""")
+    conn.execute("""CREATE TABLE IF NOT EXISTS user_bankroll(
+        user_id TEXT PRIMARY KEY,
+        starting_bankroll REAL DEFAULT 0,
+        current_bankroll REAL DEFAULT 0,
+        preferred_stake REAL DEFAULT 10,
+        risk_profile TEXT DEFAULT 'equilibrado',
+        updated_at TEXT
+    )""")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_user_pick_tracking_user ON user_pick_tracking(user_id, updated_at)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_user_pick_tracking_pick ON user_pick_tracking(pick_id)")
+    conn.commit()
+    conn.close()
+
+
+def get_user_bankroll(user_id=None):
+    ensure_pick_tracking_tables()
+    user_id = user_id or current_user_id() or 'anonymous'
+    data = one("SELECT * FROM user_bankroll WHERE user_id=?", (user_id,))
+    if not data:
+        conn = db()
+        conn.execute("INSERT OR IGNORE INTO user_bankroll(user_id,starting_bankroll,current_bankroll,preferred_stake,risk_profile,updated_at) VALUES (?,?,?,?,?,?)", (user_id, 100.0, 100.0, 10.0, 'equilibrado', now_iso()))
+        conn.commit(); conn.close()
+        data = one("SELECT * FROM user_bankroll WHERE user_id=?", (user_id,))
+    return dict(data or {})
+
+
+def save_user_bankroll(payload, user_id=None):
+    ensure_pick_tracking_tables()
+    user_id = user_id or current_user_id() or 'anonymous'
+    starting = max(0, as_float(payload.get('starting_bankroll') or payload.get('bankroll') or 100, 100))
+    current = max(0, as_float(payload.get('current_bankroll') or starting, starting))
+    preferred = max(1, as_float(payload.get('preferred_stake') or payload.get('stake') or 10, 10))
+    risk = str(payload.get('risk_profile') or 'equilibrado').lower()
+    if risk not in {'conservador','equilibrado','agresivo'}:
+        risk = 'equilibrado'
+    conn = db()
+    conn.execute("""INSERT OR REPLACE INTO user_bankroll(user_id,starting_bankroll,current_bankroll,preferred_stake,risk_profile,updated_at)
+                    VALUES (?,?,?,?,?,?)""", (user_id, starting, current, preferred, risk, now_iso()))
+    conn.commit(); conn.close()
+    return get_user_bankroll(user_id)
+
+
+def track_pick_for_user(pick_id, action='saved', stake_euros=None, notes='', user_id=None):
+    ensure_pick_tracking_tables()
+    user_id = user_id or current_user_id()
+    if not user_id or not pick_id:
+        return None
+    pick = one("SELECT * FROM picks WHERE id=?", (pick_id,))
+    if not pick:
+        return None
+    action = str(action or 'saved').lower()
+    if action not in {'saved','planned','placed','watched','removed'}:
+        action = 'saved'
+    if action == 'removed':
+        conn = db()
+        conn.execute("DELETE FROM user_pick_tracking WHERE user_id=? AND pick_id=?", (user_id, pick_id))
+        conn.commit(); conn.close()
+        return {'removed': True, 'pick_id': pick_id}
+    row_id = hashlib.md5(f"track-{user_id}-{pick_id}".encode('utf-8')).hexdigest()[:22]
+    if stake_euros is None:
+        stake_euros = as_float((pick or {}).get('stake_euros_example'), 0) or as_float(get_user_bankroll(user_id).get('preferred_stake'), 10)
+    conn = db()
+    conn.execute("""INSERT OR REPLACE INTO user_pick_tracking(id,user_id,pick_id,action,stake_euros,notes,created_at,updated_at)
+                    VALUES (?,?,?,?,?,?,COALESCE((SELECT created_at FROM user_pick_tracking WHERE id=?),?),?)""",
+                 (row_id, user_id, pick_id, action, as_float(stake_euros, 0), notes or '', row_id, now_iso(), now_iso()))
+    conn.commit(); conn.close()
+    return one("SELECT * FROM user_pick_tracking WHERE id=?", (row_id,))
+
+
+def user_tracked_picks(user_id=None, limit=50):
+    ensure_pick_tracking_tables()
+    user_id = user_id or current_user_id()
+    if not user_id:
+        return []
+    items = rows("""SELECT t.*, p.home_team, p.away_team, p.league_name, p.market, p.selection, p.odds, p.confidence,
+                          p.risk_level, p.result_status, p.status, p.membership_required, p.reasoning, p.warning_reason
+                   FROM user_pick_tracking t
+                   LEFT JOIN picks p ON p.id=t.pick_id
+                   WHERE t.user_id=?
+                   ORDER BY t.updated_at DESC LIMIT ?""", (user_id, int(limit)))
+    return [dict(x) for x in items]
+
+
+def pick_performance_summary(user_id=None):
+    ensure_pick_tracking_tables()
+    user_id = user_id or current_user_id()
+    bankroll = get_user_bankroll(user_id or 'anonymous')
+    tracked = user_tracked_picks(user_id, limit=200) if user_id else []
+    total = len(tracked)
+    won = sum(1 for x in tracked if str(x.get('result_status')).lower() == 'won')
+    lost = sum(1 for x in tracked if str(x.get('result_status')).lower() == 'lost')
+    pending = sum(1 for x in tracked if str(x.get('result_status')).lower() in {'pending','draft','published','none',''})
+    stake_total = sum(as_float(x.get('stake_euros'), 0) for x in tracked)
+    estimated_profit = 0.0
+    for x in tracked:
+        stake = as_float(x.get('stake_euros'), 0)
+        odds = as_float(x.get('odds'), 0)
+        status = str(x.get('result_status') or '').lower()
+        if status == 'won':
+            estimated_profit += max(0, (odds - 1) * stake)
+        elif status == 'lost':
+            estimated_profit -= stake
+    decided = won + lost
+    return {
+        'bankroll': bankroll,
+        'tracked_total': total,
+        'won': won,
+        'lost': lost,
+        'pending': pending,
+        'winrate': round((won / decided) * 100, 1) if decided else 0,
+        'stake_total': round(stake_total, 2),
+        'estimated_profit': round(estimated_profit, 2),
+        'roi': round((estimated_profit / stake_total) * 100, 1) if stake_total else 0,
+        'tracked': tracked[:20],
+    }
+
+
+@app.route('/seguimiento')
+def pick_tracking_page():
+    user = current_session_user()
+    if not user:
+        return redirect('/cliente-login?next=/seguimiento')
+    data = context_base('Seguimiento de picks')
+    data['performance'] = pick_performance_summary(user.get('id'))
+    data['published_picks'] = published_picks_for_user(user, limit=20)
+    return render_template('pick_tracking.html', data=data)
+
+
+@app.route('/api/client/pick-tracking')
+def api_client_pick_tracking():
+    user = current_session_user()
+    if not user:
+        return jsonify({'ok': False, 'version': APP_VERSION, 'error': 'login_required'}), 401
+    return jsonify({'ok': True, 'version': APP_VERSION, 'performance': pick_performance_summary(user.get('id'))})
+
+
+@app.route('/api/client/bankroll', methods=['GET','POST'])
+def api_client_bankroll():
+    user = current_session_user()
+    if not user:
+        return jsonify({'ok': False, 'version': APP_VERSION, 'error': 'login_required'}), 401
+    if request.method == 'POST':
+        payload = request.get_json(silent=True) or dict(request.form or {})
+        return jsonify({'ok': True, 'version': APP_VERSION, 'bankroll': save_user_bankroll(payload, user.get('id'))})
+    return jsonify({'ok': True, 'version': APP_VERSION, 'bankroll': get_user_bankroll(user.get('id'))})
+
+
+@app.route('/api/client/track-pick', methods=['POST','GET'])
+def api_client_track_pick():
+    user = current_session_user()
+    if not user:
+        return jsonify({'ok': False, 'version': APP_VERSION, 'error': 'login_required'}), 401
+    payload = request.get_json(silent=True) or dict(request.form or request.args or {})
+    item = track_pick_for_user(payload.get('pick_id') or payload.get('id'), payload.get('action') or 'saved', payload.get('stake_euros'), payload.get('notes') or '', user.get('id'))
+    return jsonify({'ok': bool(item), 'version': APP_VERSION, 'item': item})
+
+
+@app.route('/admin/pick-performance')
+def admin_pick_performance_page():
+    if not is_admin_session():
+        return redirect('/admin-login?next=/admin/pick-performance')
+    data = context_base('Rendimiento picks')
+    ensure_pick_tracking_tables()
+    data['pick_stats'] = pick_stats()
+    data['global_tracking'] = rows("""SELECT p.id, p.home_team, p.away_team, p.selection, p.result_status, COUNT(t.id) AS followers, SUM(t.stake_euros) AS tracked_stake
+                                      FROM picks p LEFT JOIN user_pick_tracking t ON t.pick_id=p.id
+                                      GROUP BY p.id ORDER BY followers DESC, p.updated_at DESC LIMIT 50""")
+    data['bankroll_users'] = rows("SELECT * FROM user_bankroll ORDER BY updated_at DESC LIMIT 50")
+    return render_template('admin_pick_performance.html', data=data)
+
+
+@app.route('/api/admin/pick-performance')
+def api_admin_pick_performance():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    ensure_pick_tracking_tables()
+    summary = {
+        'tracked_rows': (one('SELECT COUNT(*) AS total FROM user_pick_tracking') or {}).get('total', 0),
+        'bankroll_users': (one('SELECT COUNT(*) AS total FROM user_bankroll') or {}).get('total', 0),
+        'published_picks': (one("SELECT COUNT(*) AS total FROM picks WHERE lower(status)='published'") or {}).get('total', 0),
+        'won': (one("SELECT COUNT(*) AS total FROM picks WHERE lower(result_status)='won'") or {}).get('total', 0),
+        'lost': (one("SELECT COUNT(*) AS total FROM picks WHERE lower(result_status)='lost'") or {}).get('total', 0),
+    }
+    return jsonify({'ok': True, 'version': APP_VERSION, 'summary': summary})
 
 
 if __name__ == "__main__":
