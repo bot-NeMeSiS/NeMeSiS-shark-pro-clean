@@ -51,9 +51,10 @@ from engines.telegram_delivery_engine import (
     telegram_dedupe_key,
 )
 from engines.telegram_engine import build_alert_queue, dispatch_signature, should_skip_duplicate
+from engines.betting_recommendation_engine import recommendation_payload
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V539_MEMBERSHIP_REVENUE_ONBOARDING_PASS"
+APP_VERSION = "V543_BETTING_RECOMMENDATION_LIVE_TELEGRAM_QA"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -5699,6 +5700,7 @@ def picks_page():
     data["candidate_matches"] = pick_candidate_matches(limit=24, days=14)
     data["pick_stats"] = pick_stats()
     data["smart_picks"] = smart_pick_board(user, limit=24)
+    data["betting_recommendations"] = list_betting_recommendations(limit=20, refresh=False)
     record_user_activity("view", "picks", "picks-page", {"count": len(data["picks"]), "candidates": len(data["candidate_matches"])})
     return render_template("picks.html", data=data)
 
@@ -6244,7 +6246,7 @@ def api_picks():
         picks = get_picks(limit=request.args.get("limit", 50), include_admin=True)
     else:
         picks = published_picks_for_user(user, limit=as_int(request.args.get("limit"), 50))
-    return jsonify({"ok": True, "version": APP_VERSION, "picks": picks, "stats": pick_stats()})
+    return jsonify({"ok": True, "version": APP_VERSION, "picks": picks, "stats": pick_stats(), "recommendations": list_betting_recommendations(limit=10, refresh=False)})
 
 
 @app.route("/api/picks/create", methods=["POST"])
@@ -6849,148 +6851,271 @@ def api_admin_membership_summary():
     return jsonify({"ok": True, "version": APP_VERSION, "summary": membership_revenue_summary()})
 
 
-# -----------------------------
-# V542 — Smart Discovery + Commercial Readiness Layer
-# -----------------------------
+# ==================================================
+# V543 — Betting Recommendation + Live Telegram QA
+# ==================================================
 
-def _safe_like(value):
-    return f"%{(value or '').strip().lower()}%"
-
-
-def smart_discovery_data(query="", scope="all", limit=12):
-    """Discovery layer for client-facing navigation using persisted legal data only."""
-    query = (query or "").strip()
-    scope = (scope or "all").lower()
-    limit = max(3, min(int(limit or 12), 30))
-    like = _safe_like(query)
-    data = {"query": query, "scope": scope, "matches": [], "teams": [], "competitions": [], "picks": [], "quick_filters": []}
-    try:
-        if scope in ("all", "matches", "partidos"):
-            if query:
-                data["matches"] = rows(
-                    """SELECT * FROM matches
-                       WHERE lower(home_team) LIKE ? OR lower(away_team) LIKE ? OR lower(competition_name) LIKE ? OR lower(country) LIKE ?
-                       ORDER BY match_date, kickoff_time, priority DESC LIMIT ?""",
-                    (like, like, like, like, limit),
-                )
-            else:
-                data["matches"] = get_upcoming_matches(days=10, limit=limit)
-            data["matches"] = [annotate_match(m) for m in data["matches"] if not is_fake_match(m)]
-    except Exception as exc:
-        data["matches_error"] = str(exc)
-    try:
-        if scope in ("all", "teams", "equipos"):
-            if query:
-                data["teams"] = rows(
-                    """SELECT * FROM teams
-                       WHERE lower(name) LIKE ? OR lower(league) LIKE ? OR lower(country) LIKE ?
-                       ORDER BY CASE WHEN logo_url!='' THEN 0 ELSE 1 END, name LIMIT ?""",
-                    (like, like, like, limit),
-                )
-            else:
-                data["teams"] = rows(
-                    """SELECT * FROM teams
-                       ORDER BY CASE WHEN logo_url!='' THEN 0 ELSE 1 END, updated_at DESC, name LIMIT ?""",
-                    (limit,),
-                )
-            for team in data["teams"]:
-                team["identity"] = resolve_team(team.get("name"))
-    except Exception as exc:
-        data["teams_error"] = str(exc)
-    try:
-        if scope in ("all", "competitions", "ligas"):
-            if query:
-                data["competitions"] = rows(
-                    """SELECT * FROM competitions
-                       WHERE lower(name) LIKE ? OR lower(country) LIKE ? OR lower(scope) LIKE ?
-                       ORDER BY tier DESC, name LIMIT ?""",
-                    (like, like, like, limit),
-                )
-            else:
-                data["competitions"] = rows("SELECT * FROM competitions ORDER BY tier DESC, name LIMIT ?", (limit,))
-    except Exception as exc:
-        data["competitions_error"] = str(exc)
-    try:
-        if scope in ("all", "picks"):
-            user = current_session_user() or {"membership": "FREE", "role": "FREE"}
-            data["picks"] = published_picks_for_user(user, limit=limit)
-            if query:
-                q = query.lower()
-                data["picks"] = [pck for pck in data["picks"] if q in (pck.get("home_team", "") + " " + pck.get("away_team", "") + " " + pck.get("league_name", "") + " " + pck.get("selection", "")).lower()]
-    except Exception as exc:
-        data["picks_error"] = str(exc)
-    data["quick_filters"] = [
-        {"label": "Partidos de hoy", "href": "/match-hub?filter=today", "kind": "matches"},
-        {"label": "Live", "href": "/live", "kind": "live"},
-        {"label": "Picks", "href": "/picks", "kind": "picks"},
-        {"label": "Combinadas", "href": "/combis", "kind": "combis"},
-        {"label": "Favoritos", "href": "/favorites", "kind": "favorites"},
-        {"label": "Resultados", "href": "/resultados", "kind": "results"},
-    ]
-    data["counts"] = {k: len(data.get(k) or []) for k in ("matches", "teams", "competitions", "picks")}
-    return data
+def ensure_betting_tables():
+    seed_core()
+    conn = db()
+    conn.execute(
+        """CREATE TABLE IF NOT EXISTS betting_recommendations(
+            id TEXT PRIMARY KEY,
+            match_id TEXT,
+            league_name TEXT,
+            home_team TEXT,
+            away_team TEXT,
+            match_date TEXT,
+            kickoff_time TEXT,
+            status TEXT,
+            market TEXT,
+            selection TEXT,
+            odds REAL DEFAULT 0,
+            bookmaker TEXT,
+            confidence INTEGER DEFAULT 50,
+            score INTEGER DEFAULT 50,
+            risk_level TEXT DEFAULT 'MEDIO',
+            badge TEXT,
+            reasoning TEXT,
+            warning_reason TEXT,
+            membership_required TEXT DEFAULT 'FREE',
+            source TEXT,
+            has_real_odds INTEGER DEFAULT 0,
+            converted_pick_id TEXT,
+            state TEXT DEFAULT 'analysis',
+            payload_json TEXT,
+            created_at TEXT,
+            updated_at TEXT
+        )"""
+    )
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_betting_recs_match ON betting_recommendations(match_id, created_at)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_betting_recs_date_score ON betting_recommendations(match_date, score)")
+    conn.commit()
+    conn.close()
 
 
-def commercial_readiness_summary():
-    """Admin-only readiness score for productization without exposing secrets to clients."""
-    checks = []
-    def add(key, label, ok, detail, href=""):
-        checks.append({"key": key, "label": label, "ok": bool(ok), "detail": detail, "href": href})
-    matches_total = safe_count("matches")
-    teams_total = safe_count("teams")
-    users_total = safe_count("users")
-    picks_total = safe_count("picks")
-    logos_total = safe_count("teams", "coalesce(logo_url,'')!=''")
-    upcoming_total = safe_count("matches", "match_date>=?", (today_iso(),))
-    add("routes", "Rutas principales", True, "Route-check y deep-check disponibles para revisar la app.", "/api/deep-route-check")
-    add("matches", "Calendario con contenido", matches_total > 0, f"{matches_total} partidos guardados, {upcoming_total} próximos.", "/admin/data-center")
-    add("teams", "Equipos y escudos", teams_total > 0 and logos_total > 0, f"{teams_total} equipos, {logos_total} con escudo.", "/admin/sportsdb-sync")
-    add("picks", "Picks publicados", picks_total > 0, f"{picks_total} picks en base de datos.", "/admin/picks")
-    add("users", "Usuarios", users_total > 0, f"{users_total} usuarios registrados.", "/admin/users")
-    tg = telegram_config()
-    add("telegram", "Telegram configurado", bool(tg.get("configured")), "Canal listo." if tg.get("configured") else "Falta revisar token/chat id.", "/admin/telegram")
-    sports = crest_sync_status()
-    add("sportsdb", "SportsDB", bool(sports.get("has_key") or sports.get("key_present")), "API key detectada." if (sports.get("has_key") or sports.get("key_present")) else "Falta key o diagnóstico.", "/admin/sportsdb-sync")
-    ok_count = sum(1 for c in checks if c["ok"])
-    score = round(ok_count / len(checks) * 100) if checks else 0
+def latest_odds_for_match(match):
+    match_id = match.get('id') or ''
+    home = match.get('home_team') or ''
+    away = match.get('away_team') or ''
+    item = None
+    if match_id:
+        item = one("SELECT * FROM odds_snapshots WHERE match_id=? ORDER BY created_at DESC LIMIT 1", (match_id,))
+    if not item and home and away:
+        item = one(
+            """SELECT * FROM odds_snapshots
+               WHERE lower(home_team)=lower(?) AND lower(away_team)=lower(?)
+               ORDER BY created_at DESC LIMIT 1""",
+            (home, away),
+        )
+    return item or {}
+
+
+def is_recommendable_match(match):
+    info = canonical_match_status(match)
+    if info.get('is_finished'):
+        return False
+    if is_fake_match(match):
+        return False
+    return bool(match.get('home_team') and match.get('away_team'))
+
+
+def generate_betting_recommendations(limit=50, days=7, persist=True):
+    ensure_betting_tables()
+    matches = get_upcoming_matches(today_iso(), days=days, limit=max(50, int(limit) * 2))
+    generated = []
+    for match in matches:
+        if len(generated) >= int(limit):
+            break
+        if not is_recommendable_match(match):
+            continue
+        info = canonical_match_status(match)
+        odds = latest_odds_for_match(match)
+        rec = recommendation_payload(match, odds, live_state=info.get('key') or 'UPCOMING')
+        rec_id = hashlib.md5(f"rec-{rec['match_id']}-{rec['selection']}-{rec['match_date']}".encode('utf-8')).hexdigest()[:18]
+        rec['id'] = rec_id
+        rec['state'] = 'analysis'
+        rec['updated_at'] = now_iso()
+        generated.append(rec)
+    generated.sort(key=lambda r: (as_int(r.get('score'), 0), 1 if r.get('has_real_odds') else 0), reverse=True)
+    if persist:
+        conn = db()
+        for rec in generated:
+            conn.execute(
+                """INSERT OR REPLACE INTO betting_recommendations
+                   (id,match_id,league_name,home_team,away_team,match_date,kickoff_time,status,market,selection,odds,bookmaker,confidence,score,risk_level,badge,reasoning,warning_reason,membership_required,source,has_real_odds,converted_pick_id,state,payload_json,created_at,updated_at)
+                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                (
+                    rec['id'], rec.get('match_id'), rec.get('league_name'), rec.get('home_team'), rec.get('away_team'), rec.get('match_date'), rec.get('kickoff_time'), rec.get('status'),
+                    rec.get('market'), rec.get('selection'), as_float(rec.get('odds'), 0), rec.get('bookmaker'), as_int(rec.get('confidence'), 50), as_int(rec.get('score'), 50), rec.get('risk_level'), rec.get('badge'),
+                    rec.get('reasoning'), rec.get('warning_reason'), rec.get('membership_required'), rec.get('source'), 1 if rec.get('has_real_odds') else 0, rec.get('converted_pick_id') or '', rec.get('state') or 'analysis',
+                    json.dumps(rec, ensure_ascii=False)[:5000], rec.get('created_at') or now_iso(), now_iso(),
+                ),
+            )
+        conn.commit()
+        conn.close()
+    return generated
+
+
+def list_betting_recommendations(limit=50, refresh=False):
+    ensure_betting_tables()
+    if refresh or (one("SELECT COUNT(*) AS total FROM betting_recommendations") or {}).get('total', 0) == 0:
+        return generate_betting_recommendations(limit=limit, persist=True)
+    items = rows("SELECT * FROM betting_recommendations ORDER BY score DESC, has_real_odds DESC, updated_at DESC LIMIT ?", (int(limit),))
+    for item in items:
+        item['has_real_odds'] = bool(item.get('has_real_odds'))
+        item['odds'] = as_float(item.get('odds'), 0)
+    return items
+
+
+def convert_recommendation_to_pick(rec_id, publish=False):
+    ensure_betting_tables()
+    rec = one("SELECT * FROM betting_recommendations WHERE id=?", (rec_id,))
+    if not rec:
+        return None
+    pick = create_or_update_pick(
+        {
+            'match_id': rec.get('match_id'),
+            'league_name': rec.get('league_name'),
+            'home_team': rec.get('home_team'),
+            'away_team': rec.get('away_team'),
+            'match_date': rec.get('match_date'),
+            'market': rec.get('market'),
+            'selection': rec.get('selection'),
+            'odds': rec.get('odds'),
+            'bookmaker': rec.get('bookmaker'),
+            'confidence': rec.get('confidence'),
+            'stake_units': 1.0 if normalize_risk(rec.get('risk_level')) != 'ALTO' else 0.5,
+            'stake_euros_example': 10 if normalize_risk(rec.get('risk_level')) != 'ALTO' else 5,
+            'risk_level': rec.get('risk_level'),
+            'reasoning': rec.get('reasoning'),
+            'warning_reason': rec.get('warning_reason'),
+            'membership_required': rec.get('membership_required') or 'FREE',
+            'source': 'betting_recommendation_engine',
+            'legal_note': 'Recomendación generada desde datos reales persistidos y revisable por admin.',
+        },
+        publish=publish,
+    )
+    conn = db()
+    conn.execute("UPDATE betting_recommendations SET converted_pick_id=?, state=?, updated_at=? WHERE id=?", (pick.get('id'), 'converted', now_iso(), rec_id))
+    conn.commit()
+    conn.close()
+    return pick
+
+
+def full_betting_system_check():
+    ensure_betting_tables()
+    diag = match_calendar_diagnostics()
+    picks_stats = pick_stats()
+    recs = list_betting_recommendations(limit=12, refresh=False)
+    live_items = real_time_global_state().get('live', []) if isinstance(real_time_global_state(), dict) else []
+    telegram = telegram_config()
+    odds = odds_diagnostics()
+    issues = []
+    if diag.get('total_matches', 0) <= 0:
+        issues.append('No hay partidos persistidos: ejecutar Data Center / sync calendario.')
+    if diag.get('upcoming_matches', 0) <= 0:
+        issues.append('No hay próximos partidos: revisar SportsDB/Odds/import legal.')
+    if odds.get('odds_snapshots', 0) <= 0:
+        issues.append('No hay cuotas cacheadas: las recomendaciones serán watchlist, no picks de valor.')
+    if picks_stats.get('published', 0) <= 0:
+        issues.append('No hay picks publicados: Telegram daily picks no enviará picks reales.')
+    if not telegram.get('configured'):
+        issues.append('Telegram no tiene token/chat_id configurados.')
+    score = 100 - len(issues) * 12
     return {
-        "score": score,
-        "checks": checks,
-        "recommendations": [
-            "Subir densidad de datos reales: próximos 7-14 días, resultados recientes y escudos.",
-            "Publicar picks reales desde admin antes de activar envíos automáticos a Telegram.",
-            "Mantener estados vacíos premium para cliente y diagnósticos solo en admin.",
-            "Revisar /api/deep-route-check después de cada deploy.",
+        'ok': True,
+        'score': max(0, score),
+        'version': APP_VERSION,
+        'matches': diag,
+        'odds': odds,
+        'picks': picks_stats,
+        'recommendations_count': len(recs),
+        'recommendations_preview': recs[:5],
+        'live_count': len(live_items),
+        'telegram': telegram,
+        'issues': issues,
+        'next_actions': [
+            'Sincronizar calendario y cuotas desde Data Center.',
+            'Revisar recomendaciones SHARK en /admin/betting-center.',
+            'Convertir solo recomendaciones verificadas en picks publicados.',
+            'Probar /api/telegram/enqueue-daily-picks cuando existan picks published.',
         ],
     }
 
 
-@app.route("/explorar")
-def discovery_page():
+@app.route('/recomendaciones')
+def recommendations_page():
     data = dashboard_data()
-    data["discovery"] = smart_discovery_data(request.args.get("q", ""), request.args.get("scope", "all"), limit=18)
-    return render_template("discovery.html", data=data)
+    data['betting_recommendations'] = list_betting_recommendations(limit=30, refresh=request.args.get('refresh') in {'1','true','yes'})
+    return render_template('betting_recommendations.html', data=data)
 
 
-@app.route("/api/discovery/search")
-def api_discovery_search():
-    return jsonify({"ok": True, "version": APP_VERSION, "discovery": smart_discovery_data(request.args.get("q", ""), request.args.get("scope", "all"), limit=request.args.get("limit", 12))})
-
-
-@app.route("/admin/commercial-readiness")
-def admin_commercial_readiness_page():
+@app.route('/admin/betting-center')
+def admin_betting_center_page():
     if not is_admin_session():
-        return redirect("/admin-login?next=/admin/commercial-readiness")
+        return redirect('/admin-login?next=/admin/betting-center')
     data = dashboard_data()
-    data["commercial_readiness"] = commercial_readiness_summary()
-    return render_template("admin_commercial_readiness.html", data=data)
+    data['betting_check'] = full_betting_system_check()
+    data['betting_recommendations'] = list_betting_recommendations(limit=40, refresh=request.args.get('refresh') in {'1','true','yes'})
+    return render_template('admin_betting_center.html', data=data)
 
 
-@app.route("/api/admin/commercial-readiness")
-def api_admin_commercial_readiness():
+@app.route('/api/betting/recommendations')
+def api_betting_recommendations():
+    limit = as_int(request.args.get('limit'), 30)
+    refresh = request.args.get('refresh') in {'1','true','yes'}
+    return jsonify({'ok': True, 'version': APP_VERSION, 'recommendations': list_betting_recommendations(limit=limit, refresh=refresh)})
+
+
+@app.route('/api/betting/generate', methods=['GET','POST'])
+def api_betting_generate():
     if not is_admin_session():
         return admin_json_forbidden()
-    return jsonify({"ok": True, "version": APP_VERSION, "readiness": commercial_readiness_summary()})
+    limit = as_int(request.args.get('limit') or request.form.get('limit'), 40)
+    days = as_int(request.args.get('days') or request.form.get('days'), 7)
+    recs = generate_betting_recommendations(limit=limit, days=days, persist=True)
+    return jsonify({'ok': True, 'version': APP_VERSION, 'generated': len(recs), 'recommendations': recs[:20]})
+
+
+@app.route('/api/betting/convert-to-pick', methods=['GET','POST'])
+def api_betting_convert_to_pick():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    payload = request.get_json(silent=True) or dict(request.form or {})
+    rec_id = request.args.get('id') or payload.get('id') or payload.get('rec_id')
+    publish = request.args.get('publish') in {'1','true','yes'} or str(payload.get('publish')).lower() in {'1','true','yes'}
+    pick = convert_recommendation_to_pick(rec_id, publish=publish)
+    return jsonify({'ok': bool(pick), 'version': APP_VERSION, 'pick': pick})
+
+
+@app.route('/api/system/full-betting-check')
+def api_system_full_betting_check():
+    return jsonify(full_betting_system_check())
+
+
+@app.route('/api/telegram/enqueue-recommendations', methods=['GET','POST'])
+def api_telegram_enqueue_recommendations():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    recs = list_betting_recommendations(limit=8, refresh=request.args.get('refresh') in {'1','true','yes'})
+    if not recs:
+        return jsonify({'ok': False, 'version': APP_VERSION, 'message': 'No hay recomendaciones disponibles para enviar.'})
+    lines = ['<b>SHARK Recomendaciones de seguimiento</b>']
+    for rec in recs[:5]:
+        odd = f" @ {rec.get('odds')}" if as_float(rec.get('odds'), 0) else ''
+        lines.append(f"• {rec.get('home_team')} vs {rec.get('away_team')} — {rec.get('selection')}{odd} ({rec.get('risk_level')}, {rec.get('confidence')}%)")
+    body = '\n'.join(lines)
+    queued = enqueue_telegram_message(
+        'betting_recommendations',
+        'SHARK recomendaciones',
+        body,
+        chat_id=os.getenv('TELEGRAM_CHAT_ID',''),
+        payload={'count': len(recs), 'target_key': 'betting-recommendations'},
+        dedupe_key=telegram_dedupe_key('betting_recommendations', today_iso(), os.getenv('TELEGRAM_CHAT_ID','') or 'global'),
+        force=request.args.get('force') in {'1','true','yes'},
+    )
+    return jsonify({'ok': True, 'version': APP_VERSION, 'queued': queued, 'preview': recs[:5]})
 
 
 if __name__ == "__main__":
