@@ -53,7 +53,7 @@ from engines.telegram_delivery_engine import (
 from engines.telegram_engine import build_alert_queue, dispatch_signature, should_skip_duplicate
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V553_PICKS_RECOMMENDATIONS_REBUILD"
+APP_VERSION = "V554_LIVE_DATA_DEEPENING_MATCH_TIMELINE"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -7292,6 +7292,176 @@ def admin_product_audit():
 def api_product_consolidation_check():
     user = current_session_user() or {"id":"", "role":"FREE", "membership":"FREE"}
     return jsonify({"ok": True, "version": APP_VERSION, "summary": v552_product_summary(user), "audit": v552_product_audit()})
+
+
+# -----------------------------
+# V554 — Live Data Deepening & Match Timeline QA
+# -----------------------------
+
+def _v554_status_bucket(match):
+    status = str((match or {}).get("status") or "").strip().lower()
+    minute = str((match or {}).get("minute") or "").strip()
+    score = str((match or {}).get("score") or "").strip()
+    if any(x in status for x in ["final", "ft", "finished", "terminado", "finalizado"]):
+        return "finished"
+    if any(x in status for x in ["half", "ht", "descanso"]):
+        return "halftime"
+    if any(x in status for x in ["live", "directo", "1h", "2h", "en juego"]):
+        return "live"
+    if minute and minute not in {"0", "-"}:
+        return "live"
+    if score and score not in {"-", "0-0"} and not any(x in status for x in ["sched", "program", "upcoming", "próximo", "proximo"]):
+        return "live" if not any(x in status for x in ["final", "ft"]) else "finished"
+    return "upcoming"
+
+
+def _v554_status_label(match):
+    bucket = _v554_status_bucket(match)
+    return {
+        "upcoming": "Próximo",
+        "live": "En directo",
+        "halftime": "Descanso",
+        "finished": "Finalizado",
+    }.get(bucket, "Programado")
+
+
+def _v554_parse_score(score):
+    raw = str(score or "").replace(" ", "")
+    for sep in ["-", ":"]:
+        if sep in raw:
+            left, right = raw.split(sep, 1)
+            try:
+                return int(left), int(right)
+            except Exception:
+                return None, None
+    return None, None
+
+
+def v554_match_events(match_id):
+    seed_core()
+    events = []
+    try:
+        events = rows("SELECT * FROM match_events WHERE match_id=? ORDER BY CAST(coalesce(minute,'0') AS INTEGER) ASC, created_at ASC", (match_id,))
+    except Exception:
+        events = []
+    if events:
+        for ev in events:
+            ev["official"] = True
+            ev["display_minute"] = str(ev.get("minute") or "") + ("'" if str(ev.get("minute") or "").isdigit() else "")
+        return events
+    match = one("SELECT * FROM matches WHERE id=?", (match_id,)) or {}
+    bucket = _v554_status_bucket(match)
+    home_score, away_score = _v554_parse_score(match.get("score") or f"{match.get('home_score','')}-{match.get('away_score','')}")
+    timeline = []
+    if bucket == "upcoming":
+        timeline.append({"minute":"", "display_minute":"PRE", "event_type":"preview", "title":"Previa preparada", "description":"Aún no hay eventos oficiales. SHARK mostrará datos cuando la fuente live los entregue.", "official":False})
+    else:
+        timeline.append({"minute":"0", "display_minute":"0'", "event_type":"kickoff", "title":"Inicio detectado", "description":"Estado live detectado desde fuente/cache. Eventos oficiales aparecerán si SportsDB/API los devuelve.", "official":False})
+        if home_score is not None and away_score is not None and (home_score + away_score) > 0:
+            goals = home_score + away_score
+            base_minutes = [18, 33, 52, 67, 78, 86]
+            for i in range(min(goals, len(base_minutes))):
+                team = match.get("home_team") if i < home_score else match.get("away_team")
+                timeline.append({"minute":str(base_minutes[i]), "display_minute":f"{base_minutes[i]}'", "event_type":"goal", "title":"Gol registrado en marcador", "description":f"Marcador acumulado detectado. Equipo relacionado: {team or 'equipo'}.", "team": team, "official":False})
+        if bucket == "halftime":
+            timeline.append({"minute":"45", "display_minute":"45'", "event_type":"halftime", "title":"Descanso", "description":"Partido marcado como descanso.", "official":False})
+        if bucket == "finished":
+            timeline.append({"minute":"90", "display_minute":"90'", "event_type":"finished", "title":"Finalizado", "description":"Partido marcado como finalizado. No debe aparecer como live.", "official":False})
+    return timeline
+
+
+def v554_live_statistics(match):
+    match = dict(match or {})
+    bucket = _v554_status_bucket(match)
+    score_home, score_away = _v554_parse_score(match.get("score") or f"{match.get('home_score','')}-{match.get('away_score','')}")
+    score_home = score_home if score_home is not None else int(match.get("home_score") or 0) if str(match.get("home_score") or "").isdigit() else 0
+    score_away = score_away if score_away is not None else int(match.get("away_score") or 0) if str(match.get("away_score") or "").isdigit() else 0
+    has_real_events = False
+    try:
+        has_real_events = safe_count("match_events", "match_id=?", (match.get("id") or "",)) > 0
+    except Exception:
+        has_real_events = False
+    intensity = 15
+    if bucket == "live": intensity += 45
+    if bucket == "halftime": intensity += 35
+    if bucket == "finished": intensity += 25
+    intensity += min(25, (score_home + score_away) * 8)
+    if has_real_events: intensity += 15
+    intensity = max(8, min(100, intensity))
+    return {
+        "bucket": bucket,
+        "label": _v554_status_label(match),
+        "home_score": score_home,
+        "away_score": score_away,
+        "goals_total": score_home + score_away,
+        "intensity": intensity,
+        "has_real_events": has_real_events,
+        "data_quality": "oficial" if has_real_events else ("parcial" if bucket != "upcoming" else "previa"),
+        "message": "Eventos oficiales disponibles." if has_real_events else "Sin timeline oficial completo: mostrando lectura segura de marcador/estado sin inventar eventos como reales.",
+    }
+
+
+def v554_live_depth_summary(limit=20):
+    seed_core()
+    live_matches = rows("SELECT * FROM matches WHERE lower(coalesce(status,'')) LIKE '%live%' OR lower(coalesce(status,'')) LIKE '%directo%' OR coalesce(minute,'')!='' ORDER BY updated_at DESC LIMIT ?", (int(limit),))
+    upcoming = rows("SELECT * FROM matches WHERE coalesce(match_date, date(kickoff_iso))>=? ORDER BY coalesce(kickoff_iso, match_date || ' ' || coalesce(match_time,'')) ASC LIMIT 8", (today_iso(),))
+    finished = rows("SELECT * FROM matches WHERE lower(coalesce(status,'')) LIKE '%final%' OR lower(coalesce(status,'')) LIKE '%finished%' OR lower(coalesce(status,''))='ft' ORDER BY coalesce(kickoff_iso, match_date || ' ' || coalesce(match_time,'')) DESC LIMIT 8")
+    enriched = []
+    for m in live_matches:
+        mm = annotate_match(dict(m)) if "annotate_match" in globals() else dict(m)
+        mm["v554_stats"] = v554_live_statistics(mm)
+        enriched.append(mm)
+    return {
+        "version": APP_VERSION,
+        "live_count": len(enriched),
+        "upcoming_count": len(upcoming),
+        "finished_count": len(finished),
+        "with_events": safe_count("match_events") if "safe_count" in globals() else 0,
+        "live": enriched,
+        "upcoming": upcoming,
+        "finished": finished,
+        "recommendations": [
+            "Sincronizar live desde Data Center si no hay minuto/marcador real.",
+            "Importar eventos oficiales por CSV/JSON o API legal para mejorar timeline.",
+            "Los finalizados se separan de LIVE por bucket de estado V554.",
+        ],
+    }
+
+
+@app.route("/admin/live-depth")
+def admin_live_depth_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/live-depth")
+    return render_template("admin_live_depth.html", title="Live depth", summary=v554_live_depth_summary(limit=30))
+
+
+@app.route("/api/live/depth-summary")
+def api_live_depth_summary():
+    return jsonify({"ok": True, "summary": v554_live_depth_summary(limit=30)})
+
+
+@app.route("/api/matches/<match_id>/live-report")
+def api_match_live_report(match_id):
+    match = one("SELECT * FROM matches WHERE id=?", (match_id,))
+    if not match:
+        return jsonify({"ok": False, "error": "Partido no encontrado", "match_id": match_id}), 404
+    match = annotate_match(dict(match)) if "annotate_match" in globals() else dict(match)
+    return jsonify({"ok": True, "version": APP_VERSION, "match": match, "status": v554_live_statistics(match), "timeline": v554_match_events(match_id)})
+
+
+@app.route("/api/live/timeline")
+def api_live_timeline():
+    match_id = request.args.get("match_id") or ""
+    if not match_id:
+        return jsonify({"ok": False, "error": "match_id requerido"}), 400
+    return jsonify({"ok": True, "match_id": match_id, "timeline": v554_match_events(match_id)})
+
+
+@app.route("/live-depth")
+def client_live_depth_page():
+    data = dashboard_data() if "dashboard_data" in globals() else {}
+    data["live_depth"] = v554_live_depth_summary(limit=20)
+    return render_template("live_depth.html", data=data)
 
 
 if __name__ == "__main__":
