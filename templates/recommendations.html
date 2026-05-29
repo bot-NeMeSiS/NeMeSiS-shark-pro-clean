@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="hero compact-hero">
+  <span class="eyebrow">SHARK Betting Intelligence</span>
+  <h1>Recomendaciones de apuestas</h1>
+  <p class="muted">Análisis automático sobre partidos próximos reales. No son picks oficiales hasta que el admin los revise y publique.</p>
+</section>
+
+<section class="grid3 premium-stats">
+  <article class="card"><span class="muted">Recomendaciones</span><strong>{{ data.recommendation_stats.total }}</strong></article>
+  <article class="card"><span class="muted">HOT</span><strong>{{ data.recommendation_stats.hot }}</strong></article>
+  <article class="card"><span class="muted">Score medio</span><strong>{{ data.recommendation_stats.avg_score }}</strong></article>
+</section>
+
+<section class="section-head"><h2>Top oportunidades de hoy</h2><p>Ordenadas por score SHARK, confianza y datos cacheados.</p></section>
+<div class="cards compact-cards">
+  {% for r in data.recommendations %}
+  <article class="card pick-card rec-card">
+    <div class="card-topline"><span class="badge badge-{{ (r.value_label or 'ANALISIS')|lower }}">{{ r.value_label or 'ANÁLISIS' }}</span><span class="muted">{{ r.league_name }}</span></div>
+    <h3>{{ r.home_team }} vs {{ r.away_team }}</h3>
+    <div class="metric-row">
+      <span>Score <strong>{{ r.shark_score }}/100</strong></span>
+      <span>Confianza <strong>{{ r.confidence }}%</strong></span>
+      <span>Riesgo <strong>{{ r.risk_level }}</strong></span>
+    </div>
+    <p><strong>{{ r.market }}:</strong> {{ r.selection }} {% if r.odds %}<span class="chip">Cuota {{ '%.2f'|format(r.odds|float) }}</span>{% endif %}</p>
+    <p class="muted">{{ r.reason }}</p>
+    <p class="warning">{{ r.caution }}</p>
+    {% if r.match_id %}<a class="btn ghost" href="/match/{{ r.match_id }}">Ver partido</a>{% endif %}
+  </article>
+  {% else %}
+  <article class="card empty-state"><h3>Sin recomendaciones todavía</h3><p>Sincroniza calendario/cuotas desde admin para activar análisis SHARK con más datos.</p></article>
+  {% endfor %}
+</div>
+
+{% if data.locked_recommendations %}
+<section class="section-head"><h2>Premium bloqueado</h2><p>Recomendaciones avanzadas disponibles según membresía.</p></section>
+<div class="cards compact-cards">
+{% for r in data.locked_recommendations %}
+  <article class="card locked-card"><span class="badge elite">{{ r.membership_required }}</span><h3>{{ r.home_team }} vs {{ r.away_team }}</h3><p class="muted">Sube de plan para ver el análisis completo.</p></article>
+{% endfor %}
+</div>
+{% endif %}
+{% endblock %}

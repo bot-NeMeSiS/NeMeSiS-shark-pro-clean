@@ -53,7 +53,7 @@ from engines.telegram_delivery_engine import (
 from engines.telegram_engine import build_alert_queue, dispatch_signature, should_skip_duplicate
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V539_MEMBERSHIP_REVENUE_ONBOARDING_PASS"
+APP_VERSION = "V553_PICKS_RECOMMENDATIONS_REBUILD"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -286,6 +286,26 @@ def run_schema_migrations(conn):
         ("combis", "membership_required", "TEXT DEFAULT 'PRO'"),
         ("combis", "confidence", "INTEGER DEFAULT 50"),
         ("combis", "explanation", "TEXT"),
+        ("betting_recommendations", "match_id", "TEXT"),
+        ("betting_recommendations", "league_name", "TEXT"),
+        ("betting_recommendations", "home_team", "TEXT"),
+        ("betting_recommendations", "away_team", "TEXT"),
+        ("betting_recommendations", "market", "TEXT"),
+        ("betting_recommendations", "selection", "TEXT"),
+        ("betting_recommendations", "odds", "REAL"),
+        ("betting_recommendations", "bookmaker", "TEXT"),
+        ("betting_recommendations", "shark_score", "INTEGER DEFAULT 50"),
+        ("betting_recommendations", "confidence", "INTEGER DEFAULT 50"),
+        ("betting_recommendations", "risk_level", "TEXT DEFAULT 'MEDIO'"),
+        ("betting_recommendations", "value_label", "TEXT"),
+        ("betting_recommendations", "reason", "TEXT"),
+        ("betting_recommendations", "caution", "TEXT"),
+        ("betting_recommendations", "membership_required", "TEXT DEFAULT 'FREE'"),
+        ("betting_recommendations", "source", "TEXT"),
+        ("betting_recommendations", "status", "TEXT DEFAULT 'generated'"),
+        ("betting_recommendations", "payload_json", "TEXT"),
+        ("betting_recommendations", "created_at", "TEXT"),
+        ("betting_recommendations", "updated_at", "TEXT"),
         ("live_matches", "match_id", "TEXT"),
         ("live_matches", "status", "TEXT"),
         ("live_matches", "minute", "TEXT"),
@@ -511,6 +531,31 @@ def init_db():
             legal_note TEXT,
             reasoning TEXT,
             raw_json TEXT,
+            created_at TEXT,
+            updated_at TEXT
+        )"""
+    )
+    cur.execute(
+        """CREATE TABLE IF NOT EXISTS betting_recommendations(
+            id TEXT PRIMARY KEY,
+            match_id TEXT,
+            league_name TEXT,
+            home_team TEXT,
+            away_team TEXT,
+            market TEXT,
+            selection TEXT,
+            odds REAL,
+            bookmaker TEXT,
+            shark_score INTEGER DEFAULT 50,
+            confidence INTEGER DEFAULT 50,
+            risk_level TEXT DEFAULT 'MEDIO',
+            value_label TEXT,
+            reason TEXT,
+            caution TEXT,
+            membership_required TEXT DEFAULT 'FREE',
+            source TEXT,
+            status TEXT DEFAULT 'generated',
+            payload_json TEXT,
             created_at TEXT,
             updated_at TEXT
         )"""
@@ -5618,6 +5663,211 @@ def admin_telegram_page():
     return render_template("admin_telegram.html", data=data, message=message, result=result)
 
 
+
+
+# -----------------------------
+# V553 Picks & Recommendations Rebuild
+# -----------------------------
+def _safe_json(value, default=None):
+    try:
+        return json.loads(value or "{}")
+    except Exception:
+        return default if default is not None else {}
+
+
+def _odds_candidates_from_match(match):
+    odds = []
+    raw = match.get("odds_h2h_json") or ""
+    parsed = _safe_json(raw, {})
+    # The Odds API cache can arrive in several shapes. Keep this permissive.
+    if isinstance(parsed, dict):
+        for key in ("outcomes", "prices", "h2h"):
+            val = parsed.get(key)
+            if isinstance(val, list):
+                for item in val:
+                    if isinstance(item, dict):
+                        odds.append((item.get("name") or item.get("selection") or item.get("team"), as_float(item.get("price") or item.get("odds"), 0)))
+            elif isinstance(val, dict):
+                for name, price in val.items():
+                    odds.append((name, as_float(price, 0)))
+        for side in ("home", "draw", "away"):
+            price = parsed.get(f"{side}_price") or parsed.get(side)
+            if price:
+                label = {"home": match.get("home_team"), "draw": "Empate", "away": match.get("away_team")}.get(side)
+                odds.append((label, as_float(price, 0)))
+    # Legacy fields from odds_snapshots/matches
+    for field, label in (("home_price", match.get("home_team")), ("draw_price", "Empate"), ("away_price", match.get("away_team"))):
+        if match.get(field):
+            odds.append((label, as_float(match.get(field), 0)))
+    cleaned = [(str(name or "").strip(), price) for name, price in odds if str(name or "").strip() and price > 1]
+    return cleaned[:6]
+
+
+def _league_strength(match):
+    league = normalized_label(match.get("league_name") or match.get("competition_name") or "")
+    if any(x in league for x in ["champions", "laliga", "premier", "serie a", "bundesliga", "ligue 1", "europa league"]):
+        return 10
+    if any(x in league for x in ["segunda", "primeira", "nations", "world cup", "euro"]):
+        return 7
+    return 4
+
+
+def build_betting_recommendation(match, index=0):
+    match = annotate_match(dict(match or {}))
+    odds_options = _odds_candidates_from_match(match)
+    home = match.get("home_team") or "Local"
+    away = match.get("away_team") or "Visitante"
+    selection = home
+    odds = 0.0
+    if odds_options:
+        # Prefer balanced value, not extreme longshots.
+        odds_options.sort(key=lambda item: (abs(float(item[1]) - 1.95), -float(item[1])))
+        selection, odds = odds_options[0]
+    else:
+        selection = f"{home} o empate" if home else "Mercado principal"
+    has_odds = odds > 1
+    deterministic = int(hashlib.sha256(str(match.get("id") or f'{home}-{away}-{index}').encode("utf-8")).hexdigest()[:4], 16) % 18
+    base = 54 + _league_strength(match) + deterministic
+    if has_odds:
+        if 1.55 <= odds <= 2.35:
+            base += 9
+        elif odds > 3.2:
+            base -= 5
+        else:
+            base += 3
+    if match.get("home_logo") or match.get("away_logo"):
+        base += 2
+    score = max(35, min(94, base))
+    confidence = max(40, min(92, score - 5 if not has_odds else score - 1))
+    if score >= 78:
+        risk = "BAJO" if has_odds and odds <= 2.1 else "MEDIO"
+        value_label = "HOT" if score >= 84 else "VALUE"
+        membership = "PRO" if score >= 84 else "FREE"
+    elif score >= 64:
+        risk = "MEDIO"
+        value_label = "VALUE" if has_odds else "ANÁLISIS"
+        membership = "FREE"
+    else:
+        risk = "ALTO"
+        value_label = "RISK"
+        membership = "ELITE"
+    league = match.get("league_name") or match.get("competition_name") or "Competición"
+    reason_bits = [f"Partido próximo real en {league}", "prioridad por calendario y contexto SHARK"]
+    if has_odds:
+        reason_bits.append(f"cuota detectada {odds:.2f}")
+    else:
+        reason_bits.append("sin cuota cacheada todavía: pendiente de Odds/API")
+    caution = "No publicar como pick hasta validar alineaciones, noticias y movimiento de cuota."
+    if risk == "ALTO":
+        caution = "Riesgo alto: usar solo como observación o combinada agresiva tras revisión admin."
+    rec_id = "rec_" + hashlib.sha256(f"{match.get('id')}-{selection}-{today_iso()}".encode("utf-8")).hexdigest()[:18]
+    return {
+        "id": rec_id,
+        "match_id": match.get("id"),
+        "league_name": league,
+        "home_team": home,
+        "away_team": away,
+        "market": "1X2 / Principal",
+        "selection": selection,
+        "odds": round(float(odds or 0), 2),
+        "bookmaker": match.get("bookmaker") or ("Odds cache" if has_odds else "Pendiente"),
+        "shark_score": score,
+        "confidence": confidence,
+        "risk_level": risk,
+        "value_label": value_label,
+        "reason": "; ".join(reason_bits) + ".",
+        "caution": caution,
+        "membership_required": membership,
+        "source": "shark_recommendation_engine_v553",
+        "status": "generated",
+        "payload_json": json.dumps({"match": match, "has_odds": has_odds}, ensure_ascii=False)[:6000],
+        "created_at": now_iso(),
+        "updated_at": now_iso(),
+    }
+
+
+def generate_betting_recommendations(limit=20, persist=True):
+    seed_core()
+    matches = pick_candidate_matches(limit=max(int(limit), 12), days=14)
+    recs = [build_betting_recommendation(match, idx) for idx, match in enumerate(matches)]
+    recs.sort(key=lambda r: (int(r.get("shark_score") or 0), int(r.get("confidence") or 0)), reverse=True)
+    recs = recs[:int(limit)]
+    if persist and recs:
+        conn = db()
+        for rec in recs:
+            conn.execute(
+                """INSERT OR REPLACE INTO betting_recommendations
+                   (id,match_id,league_name,home_team,away_team,market,selection,odds,bookmaker,shark_score,confidence,risk_level,value_label,reason,caution,membership_required,source,status,payload_json,created_at,updated_at)
+                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                (rec["id"], rec["match_id"], rec["league_name"], rec["home_team"], rec["away_team"], rec["market"], rec["selection"], rec["odds"], rec["bookmaker"], rec["shark_score"], rec["confidence"], rec["risk_level"], rec["value_label"], rec["reason"], rec["caution"], rec["membership_required"], rec["source"], rec["status"], rec["payload_json"], rec["created_at"], rec["updated_at"])
+            )
+        conn.commit()
+        conn.close()
+    return recs
+
+
+def latest_betting_recommendations(limit=20):
+    seed_core()
+    data = rows("SELECT * FROM betting_recommendations ORDER BY shark_score DESC, updated_at DESC LIMIT ?", (int(limit),))
+    if not data:
+        data = generate_betting_recommendations(limit=limit, persist=True)
+    return data
+
+
+def recommendation_stats():
+    recs = latest_betting_recommendations(limit=50)
+    if not recs:
+        return {"total": 0, "hot": 0, "value": 0, "risk": 0, "avg_score": 0}
+    return {
+        "total": len(recs),
+        "hot": len([r for r in recs if str(r.get("value_label") or "").upper() == "HOT"]),
+        "value": len([r for r in recs if str(r.get("value_label") or "").upper() == "VALUE"]),
+        "risk": len([r for r in recs if str(r.get("risk_level") or "").upper() == "ALTO"]),
+        "avg_score": round(sum(int(r.get("shark_score") or 0) for r in recs) / len(recs), 1),
+    }
+
+
+def convert_recommendation_to_pick(rec_id, publish=False):
+    rec = one("SELECT * FROM betting_recommendations WHERE id=?", (rec_id,))
+    if not rec:
+        return {"ok": False, "error": "Recomendación no encontrada"}
+    payload = {
+        "match_id": rec.get("match_id"),
+        "league_name": rec.get("league_name"),
+        "home_team": rec.get("home_team"),
+        "away_team": rec.get("away_team"),
+        "market": rec.get("market"),
+        "selection": rec.get("selection"),
+        "odds": rec.get("odds"),
+        "bookmaker": rec.get("bookmaker"),
+        "confidence": rec.get("confidence"),
+        "risk_level": rec.get("risk_level"),
+        "reasoning": rec.get("reason"),
+        "warning_reason": rec.get("caution"),
+        "membership_required": rec.get("membership_required"),
+        "source": "recomendacion_shark_revisada",
+        "legal_note": "Pick creado desde recomendación SHARK; requiere revisión/responsabilidad admin antes de publicarse.",
+    }
+    pick = create_or_update_pick(payload, publish=publish)
+    conn = db()
+    conn.execute("UPDATE betting_recommendations SET status=?, updated_at=? WHERE id=?", ("converted_published" if publish else "converted_draft", now_iso(), rec_id))
+    conn.commit()
+    conn.close()
+    return {"ok": True, "pick": pick, "recommendation": rec}
+
+
+def betting_intelligence_summary():
+    recs = latest_betting_recommendations(limit=12)
+    return {
+        "version": APP_VERSION,
+        "recommendations": recs,
+        "top": recs[:5],
+        "stats": recommendation_stats(),
+        "picks": pick_stats(),
+        "message": "Motor V553 activo: analiza partidos próximos reales y cuotas cacheadas si existen; no publica picks sin validación admin.",
+    }
+
+
 @app.route("/admin/picks", methods=["GET", "POST"])
 def admin_picks_page():
     if not is_admin_session():
@@ -5699,6 +5949,7 @@ def picks_page():
     data["candidate_matches"] = pick_candidate_matches(limit=24, days=14)
     data["pick_stats"] = pick_stats()
     data["smart_picks"] = smart_pick_board(user, limit=24)
+    data["recommendations"] = latest_betting_recommendations(limit=12)
     record_user_activity("view", "picks", "picks-page", {"count": len(data["picks"]), "candidates": len(data["candidate_matches"])})
     return render_template("picks.html", data=data)
 
@@ -5712,6 +5963,7 @@ def combis_page():
     data["combis"] = get_combis(limit=20)
     data["combi_builder"] = build_combi_candidates_from_matches(requested_count)
     data["requested_combi_count"] = requested_count
+    data["recommendations"] = latest_betting_recommendations(limit=max(8, requested_count * 2))
     record_user_activity("view", "combis", "combis-page", {"picks_available": len(data["picks"])})
     return render_template("combis.html", data=data)
 
@@ -5784,6 +6036,87 @@ def crests_page():
     if not is_admin_session():
         return redirect("/perfil" if current_session_user() else "/cliente-login")
     return render_template("crests.html", data=dashboard_data())
+
+
+
+
+@app.route("/recomendaciones")
+def recommendations_page():
+    data = dashboard_data()
+    user = current_session_user() or {"membership": "FREE", "role": "FREE"}
+    all_recs = latest_betting_recommendations(limit=30)
+    allowed = []
+    locked = []
+    for rec in all_recs:
+        if membership_allows(user.get("membership") or user.get("role"), rec.get("membership_required") or "FREE"):
+            allowed.append(rec)
+        else:
+            locked.append(rec)
+    data["recommendations"] = allowed
+    data["locked_recommendations"] = locked[:6]
+    data["recommendation_stats"] = recommendation_stats()
+    record_user_activity("view", "recommendations", "recommendations-page", {"count": len(allowed)})
+    return render_template("recommendations.html", data=data)
+
+
+@app.route("/admin/recommendations", methods=["GET", "POST"])
+def admin_recommendations_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/recommendations")
+    message = ""
+    result = None
+    if request.method == "POST":
+        action = request.form.get("action") or "generate"
+        if action == "generate":
+            result = {"ok": True, "recommendations": generate_betting_recommendations(limit=as_int(request.form.get("limit"), 24), persist=True)}
+            message = "Recomendaciones regeneradas desde partidos próximos."
+        elif action in {"convert", "publish"}:
+            result = convert_recommendation_to_pick(request.form.get("recommendation_id"), publish=action == "publish")
+            message = "Recomendación convertida en pick." if result.get("ok") else result.get("error", "No se pudo convertir.")
+    data = dashboard_data()
+    data["recommendations"] = latest_betting_recommendations(limit=80)
+    data["recommendation_stats"] = recommendation_stats()
+    return render_template("admin_recommendations.html", data=data, message=message, result=result)
+
+
+@app.route("/api/recommendations")
+def api_recommendations():
+    limit = as_int(request.args.get("limit"), 20)
+    return jsonify({"ok": True, "version": APP_VERSION, "recommendations": latest_betting_recommendations(limit=limit), "stats": recommendation_stats()})
+
+
+@app.route("/api/recommendations/top")
+def api_recommendations_top():
+    return jsonify({"ok": True, "version": APP_VERSION, "top": latest_betting_recommendations(limit=10)[:10]})
+
+
+@app.route("/api/admin/intelligence-status")
+def api_admin_intelligence_status():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "summary": betting_intelligence_summary()})
+
+
+@app.route("/api/admin/recommendations/generate", methods=["POST", "GET"])
+def api_admin_recommendations_generate():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    limit = as_int(request.args.get("limit") or request.form.get("limit"), 24)
+    return jsonify({"ok": True, "version": APP_VERSION, "recommendations": generate_betting_recommendations(limit=limit, persist=True), "stats": recommendation_stats()})
+
+
+@app.route("/api/admin/recommendations/convert", methods=["POST", "GET"])
+def api_admin_recommendations_convert():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    rec_id = request.args.get("id") or request.form.get("recommendation_id") or request.form.get("id")
+    publish = (request.args.get("publish") or request.form.get("publish")) in {"1", "true", "yes", "on"}
+    return jsonify({"version": APP_VERSION, **convert_recommendation_to_pick(rec_id, publish=publish)})
+
+
+@app.route("/api/betting-intelligence-check")
+def api_betting_intelligence_check():
+    return jsonify({"ok": True, "version": APP_VERSION, "summary": betting_intelligence_summary()})
 
 
 @app.route("/api/client/alerts")
