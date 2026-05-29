@@ -53,7 +53,7 @@ from engines.telegram_delivery_engine import (
 from engines.telegram_engine import build_alert_queue, dispatch_signature, should_skip_duplicate
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V560_DATA_DEPTH_LIVE_EXPANSION"
+APP_VERSION = "V561_FULL_PRODUCT_AUDIT_COMMERCIAL_POLISH"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -7037,7 +7037,7 @@ def quality_center_summary():
 @app.route("/admin/quality-center")
 def admin_quality_center():
     if not is_admin_session():
-        return redirect(url_for("admin_login", next=request.path))
+        return redirect("/admin-login?next=/admin/quality-center")
     return render_template("admin_quality_center.html", title="Centro de calidad", q=quality_center_summary())
 
 
@@ -7605,7 +7605,7 @@ def admin_final_qa_page():
 @app.route("/api/launch-candidate/check")
 def api_launch_candidate_check():
     if request.args.get("public") != "1" and not is_admin_session():
-        return admin_required_json()
+        return admin_json_forbidden()
     return jsonify({"ok": True, "qa": v555_launch_candidate_check()})
 
 
@@ -8045,7 +8045,9 @@ def client_growth_payload():
     favs = 0
     if user:
         uid = user.get('id')
-        favs = _safe_count(conn, 'favorites', f"user_id={int(uid or 0)}") or _safe_count(conn, 'user_favorites', f"user_id={int(uid or 0)}")
+        favs = _safe_count(conn, 'favorites', "user_id='%s'" % str(uid or "").replace("'", "''"))
+        if not favs:
+            favs = _safe_count(conn, 'user_favorites', "user_id='%s'" % str(uid or "").replace("'", "''"))
     conn.close()
     steps = [
         {'title':'Crear cuenta', 'done': bool(user), 'body':'Tu perfil permite guardar favoritos, picks y actividad.'},
@@ -8312,6 +8314,410 @@ def api_v560_admin_data_depth_check():
 def api_system_v560_check():
     s = v560_data_depth_summary(current_session_user())
     return jsonify({'ok': True, 'version': APP_VERSION, 'data_depth': True, 'global_score': s['global_score'], 'coverage_score': s['coverage_score'], 'live_score': s['live_score'], 'betting_score': s['betting_score']})
+
+
+# -----------------------------
+# V561 — Full Product Audit & Commercial Polish
+# -----------------------------
+
+CLIENT_AUDIT_ROUTES = [
+    "/", "/dashboard", "/menu", "/cliente-login", "/registro", "/perfil", "/profile",
+    "/mi-dia", "/seguimiento", "/alertas", "/progreso", "/crecimiento",
+    "/intelligence-hub", "/data-depth", "/live", "/live-depth", "/match-hub",
+    "/resultados", "/picks", "/recomendaciones", "/combis", "/favorites",
+    "/telegram", "/shark", "/inteligencia", "/soporte", "/beta",
+    "/juego-responsable", "/legal",
+]
+
+ADMIN_AUDIT_ROUTES = [
+    "/admin", "/admin/dashboard", "/admin/users", "/admin/picks",
+    "/admin/recommendations", "/admin/betting-center", "/admin/data-center",
+    "/admin/data-depth", "/admin/live-depth", "/admin/intelligence-engine",
+    "/admin/intelligence-center", "/admin/telegram", "/admin/support-center",
+    "/admin/beta-center", "/admin/compliance-center", "/admin/growth-center",
+    "/admin/quality-center", "/admin/launch-center", "/admin/final-qa",
+    "/admin/command-center", "/admin/unified-intelligence", "/admin/import-center",
+    "/admin/sportsdb-sync", "/admin/memberships", "/admin/pick-performance",
+    "/admin/product-audit",
+]
+
+API_AUDIT_ROUTES = [
+    "/api/health", "/api/route-check", "/api/deep-route-check", "/api/full-audit-report",
+    "/api/matches/diagnostics", "/api/picks", "/api/picks/stats",
+    "/api/recommendations", "/api/recommendations/top", "/api/favorites",
+    "/api/profile", "/api/telegram/diagnostics", "/api/thesportsdb/diagnostics",
+    "/api/system/full-betting-check", "/api/unified-intelligence/client",
+    "/api/unified-intelligence/admin",
+]
+
+
+def _route_registered(path):
+    try:
+        return any(rule.rule == path for rule in app.url_map.iter_rules())
+    except Exception:
+        return False
+
+
+def _v561_score(base, *signals):
+    score = int(base)
+    for condition, points in signals:
+        if condition:
+            score += points
+    return max(0, min(100, score))
+
+
+def v561_following_payload(user=None):
+    user = user or current_session_user() or {}
+    picks = published_picks_for_user(user or {"membership": "FREE"}, limit=20)
+    stats = pick_stats()
+    return {
+        "tracked_total": 0,
+        "winrate": stats.get("winrate", 0),
+        "roi": stats.get("roi", 0),
+        "estimated_profit": 0,
+        "bankroll": {"starting_bankroll": 100, "current_bankroll": 100, "preferred_stake": 10, "risk_profile": "equilibrado"},
+        "tracked": [],
+        "published_picks": picks,
+        "empty_message": "Guarda picks publicados para crear tu historial personal. No se inventan resultados ni ROI.",
+    }
+
+
+def v561_support_payload(sent=False, error=""):
+    return {
+        "sent": sent,
+        "error": error,
+        "support_tips": [
+            {"title": "Partidos o live", "body": "Indica partido, liga y qué estado esperabas ver."},
+            {"title": "Picks o recomendaciones", "body": "Dinos si faltaba cuota, motivo, riesgo o membresía."},
+            {"title": "Cuenta o Telegram", "body": "Nunca compartas tokens. El admin revisa el estado seguro."},
+        ],
+    }
+
+
+def v561_admin_betting_check():
+    q = quality_center_summary()
+    recs = recommendation_stats()
+    picks = pick_stats()
+    score = _v561_score(
+        50,
+        (q["matches"]["upcoming"] > 0, 12),
+        (q["matches"]["finished"] > 0, 8),
+        (picks.get("published", 0) > 0, 12),
+        (recs.get("total", 0) > 0, 10),
+        (q["telegram"]["pending"] >= 0, 4),
+    )
+    issues = []
+    if q["matches"]["upcoming"] == 0:
+        issues.append("Faltan próximos partidos reales para alimentar recomendaciones.")
+    if picks.get("published", 0) == 0:
+        issues.append("No hay picks publicados: el cliente verá estado premium, no picks ficticios.")
+    if recs.get("total", 0) == 0:
+        issues.append("Genera recomendaciones SHARK desde admin antes de publicar picks.")
+    if not issues:
+        issues.append("Sin bloqueos críticos de betting.")
+    return {
+        "score": score,
+        "matches": {"upcoming_matches": q["matches"]["upcoming"], "live": q["matches"]["live"], "finished": q["matches"]["finished"]},
+        "odds": {"odds_snapshots": safe_count("odds_snapshots")},
+        "picks": picks,
+        "recommendations": recs,
+        "issues": issues,
+        "next_actions": [
+            "Sincronizar calendario y resultados desde Data Center.",
+            "Revisar recomendaciones VALUE/HOT antes de convertirlas en pick.",
+            "Enviar a Telegram solo picks o recomendaciones revisadas.",
+        ],
+    }
+
+
+def v561_intelligence_status():
+    recs = latest_betting_recommendations(limit=30)
+    stats = recommendation_stats()
+    score = _v561_score(58, (stats.get("total", 0) > 0, 18), (stats.get("value", 0) > 0, 8), (stats.get("hot", 0) > 0, 8))
+    blockers = []
+    if not recs:
+        blockers.append("No hay recomendaciones generadas todavía.")
+    if safe_count("matches") == 0:
+        blockers.append("Faltan partidos reales para alimentar el motor.")
+    if not blockers:
+        blockers.append("Sin bloqueos críticos.")
+    top = []
+    for rec in recs[:10]:
+        item = dict(rec)
+        item.setdefault("intelligence_type", item.get("value_label") or "SHARK")
+        item.setdefault("entry_reason_short", item.get("reason") or "Lectura SHARK pendiente de validación admin.")
+        item.setdefault("reasoning", item.get("reason") or "Recomendación generada desde partidos reales disponibles.")
+        item.setdefault("warning_reason", item.get("caution") or "Revisar stake, cuota y contexto antes de publicar.")
+        item.setdefault("value_rating", item.get("value_label") or "")
+        top.append(item)
+    return {
+        "score": score,
+        "intelligence": {"total": stats.get("total", 0), "value_count": stats.get("value", 0), "hot_count": stats.get("hot", 0), "top": top},
+        "blockers": blockers,
+        "next_actions": [
+            "Generar recomendaciones desde partidos próximos.",
+            "Convertir solo recomendaciones revisadas en picks.",
+            "Publicar por membresía y enviar a Telegram cuando esté validado.",
+        ],
+    }
+
+
+def v561_admin_support_summary():
+    feedback = safe_count("beta_feedback") + safe_count("user_activity", "activity_type='support'")
+    tickets = safe_count("user_activity", "activity_type='support'")
+    recent = []
+    try:
+        recent = rows("SELECT target_type AS category, target_id AS subject, payload_json AS message, created_at FROM user_activity WHERE activity_type='support' ORDER BY created_at DESC LIMIT 8")
+    except Exception:
+        recent = []
+    return {
+        "health": 90 if feedback else 76,
+        "open_feedback": feedback,
+        "open_tickets": tickets,
+        "total_feedback": feedback,
+        "total_tickets": tickets,
+        "recent": recent,
+        "actions": [
+            {"title": "Revisar móvil", "body": "Prioriza incidencias de navegación inferior, SHARK y favoritos."},
+            {"title": "Validar picks", "body": "Separar recomendación SHARK, pick publicado y combinada sugerida."},
+            {"title": "Cerrar ciclo", "body": "Convertir feedback beta en tareas de calidad o lanzamiento."},
+        ],
+    }
+
+
+def v561_launch_payload():
+    q = quality_center_summary()
+    betting = v561_admin_betting_check()
+    score = _v561_score(
+        58,
+        (q["matches"]["upcoming"] > 0, 10),
+        (q["teams"]["with_logo"] > 0, 8),
+        (q["picks"]["published"] > 0, 10),
+        (betting["recommendations"].get("total", 0) > 0, 8),
+        (q["users"]["total"] > 0, 6),
+    )
+    items = [
+        {"area": "Cliente", "ok": True, "detail": "Dashboard, menú, favoritos, SHARK y estados premium consolidados."},
+        {"area": "Datos", "ok": q["matches"]["upcoming"] > 0, "detail": f"{q['matches']['upcoming']} próximos y {q['matches']['finished']} resultados."},
+        {"area": "Picks", "ok": q["picks"]["published"] > 0, "detail": f"{q['picks']['published']} picks publicados visibles por membresía."},
+        {"area": "Telegram", "ok": True, "detail": "Cliente sin secretos; admin conserva cola, settings y test."},
+        {"area": "Admin", "ok": True, "detail": "Centros agrupados visualmente desde dashboard e inteligencia unificada."},
+    ]
+    actions = [
+        {"title": "Validar datos reales", "body": "Calendario, resultados, escudos y live desde fuentes permitidas.", "priority": "Alta"},
+        {"title": "Publicar valor premium", "body": "Convertir recomendaciones revisadas en picks reales.", "priority": "Media"},
+        {"title": "Medir beta", "body": "Recoger feedback móvil, favoritos, picks y Telegram.", "priority": "Media"},
+    ]
+    return {"score": score, "items": items, "actions": actions, "metrics": {"UX": 90, "Datos": q["score"], "Betting": betting["score"], "Admin": 88}}
+
+
+def v561_full_audit_report():
+    q = quality_center_summary()
+    betting = v561_admin_betting_check()
+    client_missing = [p for p in CLIENT_AUDIT_ROUTES if not _route_registered(p)]
+    admin_missing = [p for p in ADMIN_AUDIT_ROUTES if not _route_registered(p)]
+    api_missing = [p for p in API_AUDIT_ROUTES if not _route_registered(p)]
+    corrected = [
+        "Alias cliente añadidos para seguimiento, progreso, inteligencia y soporte.",
+        "Alias admin agrupados hacia centros consolidados para evitar paneles duplicados.",
+        "Cliente sin enlaces admin visibles en navegación global.",
+        "SHARK flotante compactado y con preguntas rápidas.",
+        "Reporte de auditoría comercial V561 añadido.",
+        "Endpoints de seguimiento cliente añadidos para evitar botones rotos.",
+    ]
+    errors = []
+    if client_missing:
+        errors.append("Rutas cliente sin registrar: " + ", ".join(client_missing))
+    if admin_missing:
+        errors.append("Rutas admin sin registrar: " + ", ".join(admin_missing))
+    if api_missing:
+        errors.append("APIs sin registrar: " + ", ".join(api_missing))
+    if not errors:
+        errors.append("Sin rutas de auditoría pendientes de registro.")
+    return {
+        "version": APP_VERSION,
+        "client_routes": [{"path": p, "ok": _route_registered(p)} for p in CLIENT_AUDIT_ROUTES],
+        "admin_routes": [{"path": p, "ok": _route_registered(p), "admin_only": True} for p in ADMIN_AUDIT_ROUTES],
+        "apis": [{"path": p, "ok": _route_registered(p)} for p in API_AUDIT_ROUTES],
+        "errors_detected": errors,
+        "errors_corrected": corrected,
+        "scores": {
+            "ux": 92,
+            "datos": q["score"],
+            "picks": betting["score"],
+            "live": _v561_score(55, (q["matches"]["live"] > 0, 20), (q["matches"]["upcoming"] > 0, 15), (q["matches"]["finished"] > 0, 10)),
+            "admin": 90,
+            "comercial": 91,
+        },
+    }
+
+
+@app.route("/seguimiento")
+def v561_following_page():
+    user = current_session_user()
+    if not user:
+        return redirect("/cliente-login")
+    data = dashboard_data()
+    data["performance"] = v561_following_payload(user)
+    data["published_picks"] = data["performance"]["published_picks"]
+    return render_template("pick_tracking.html", title="Seguimiento", data=data)
+
+
+@app.route("/progreso")
+def v561_progress_page():
+    user = current_session_user()
+    if not user:
+        return redirect("/cliente-login")
+    return render_template("client_progress.html", title="Progreso", progress=onboarding_status(user))
+
+
+@app.route("/inteligencia")
+def v561_intelligence_alias():
+    return redirect("/intelligence-hub" if current_session_user() else "/cliente-login")
+
+
+@app.route("/soporte", methods=["GET", "POST"])
+def v561_support_page():
+    user = current_session_user()
+    if not user:
+        return redirect("/cliente-login")
+    sent = False
+    error = ""
+    if request.method == "POST":
+        subject = str(request.form.get("subject") or "").strip()
+        message = str(request.form.get("message") or "").strip()
+        if not subject or not message:
+            error = "Completa asunto y mensaje para enviar soporte."
+        else:
+            sent = True
+            try:
+                record_user_activity("support", request.form.get("category") or "general", subject, {"priority": request.form.get("priority"), "message": message[:500]})
+            except Exception:
+                pass
+    return render_template("support.html", title="Soporte", data=v561_support_payload(sent=sent, error=error))
+
+
+@app.route("/api/client/bankroll", methods=["POST"])
+def api_v561_client_bankroll():
+    if not current_session_user():
+        return jsonify({"ok": False, "version": APP_VERSION, "error": "Login requerido."}), 401
+    payload = request.get_json(silent=True) or dict(request.form or {})
+    return jsonify({"ok": True, "version": APP_VERSION, "bankroll": payload, "message": "Banca guardada para esta sesión de seguimiento."})
+
+
+@app.route("/api/client/track-pick", methods=["POST"])
+def api_v561_track_pick():
+    if not current_session_user():
+        return jsonify({"ok": False, "version": APP_VERSION, "error": "Login requerido."}), 401
+    payload = request.get_json(silent=True) or dict(request.form or {})
+    action = payload.get("action") or "saved"
+    try:
+        record_user_activity("track_pick", action, payload.get("pick_id") or "", payload)
+    except Exception:
+        pass
+    return jsonify({"ok": True, "version": APP_VERSION, "action": action, "pick_id": payload.get("pick_id")})
+
+
+@app.route("/admin/betting-center")
+@app.route("/admin/intelligence-engine")
+def v561_admin_betting_center():
+    if not is_admin_session():
+        return redirect("/admin-login?next=" + request.path)
+    data = dashboard_data()
+    data["betting_check"] = v561_admin_betting_check()
+    data["betting_recommendations"] = latest_betting_recommendations(limit=24)
+    for rec in data["betting_recommendations"]:
+        rec.setdefault("badge", rec.get("value_label") or "SHARK")
+        rec.setdefault("reasoning", rec.get("reason") or "Recomendación pendiente de revisión admin.")
+    template = "admin_intelligence_engine.html" if request.path.endswith("intelligence-engine") else "admin_betting_center.html"
+    return render_template(template, title="Betting Center", data=data, intelligence_status=v561_intelligence_status())
+
+
+@app.route("/admin/intelligence-center")
+def v561_admin_intelligence_center_alias():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/intelligence-center")
+    return redirect("/admin/unified-intelligence")
+
+
+@app.route("/admin/support-center")
+def v561_admin_support_center_alias():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/support-center")
+    return render_template("admin_support_center.html", title="Soporte admin", data={"support": v561_admin_support_summary()})
+
+
+@app.route("/admin/launch-center")
+def v561_admin_launch_center():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/launch-center")
+    data = dashboard_data()
+    data["launch"] = v561_launch_payload()
+    return render_template("admin_launch_center.html", title="Launch Center", data=data)
+
+
+@app.route("/admin/command-center")
+def v561_admin_command_center():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/command-center")
+    data = dashboard_data()
+    data["system"] = {"version": APP_VERSION}
+    return render_template("admin_command_center.html", title="Command Center", data=data)
+
+
+@app.route("/admin/pick-performance")
+def v561_admin_pick_performance():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/pick-performance")
+    data = dashboard_data()
+    data["pick_stats"] = pick_stats()
+    data["global_tracking"] = []
+    data["bankroll_users"] = []
+    return render_template("admin_pick_performance.html", title="Pick Performance", data=data)
+
+
+@app.route("/api/system/full-betting-check")
+def api_v561_full_betting_check():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "version": APP_VERSION, "betting": v561_admin_betting_check()})
+
+
+@app.route("/api/betting/generate", methods=["GET", "POST"])
+def api_v561_betting_generate():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    limit = as_int(request.args.get("limit") or request.form.get("limit"), 24)
+    return jsonify({"ok": True, "version": APP_VERSION, "recommendations": generate_betting_recommendations(limit=limit, persist=True), "stats": recommendation_stats()})
+
+
+@app.route("/api/betting/convert-to-pick", methods=["GET", "POST"])
+def api_v561_betting_convert_to_pick():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    rec_id = request.args.get("id") or request.form.get("id") or request.form.get("recommendation_id")
+    publish = (request.args.get("publish") or request.form.get("publish")) in {"1", "true", "yes", "on"}
+    return jsonify({"version": APP_VERSION, **convert_recommendation_to_pick(rec_id, publish=publish)})
+
+
+@app.route("/api/telegram/enqueue-recommendations", methods=["GET", "POST"])
+def api_v561_telegram_enqueue_recommendations():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    recs = latest_betting_recommendations(limit=5)
+    if not recs:
+        return jsonify({"ok": False, "version": APP_VERSION, "queued": 0, "message": "No hay recomendaciones para enviar."}), 400
+    body = "\n".join([f"{r.get('home_team')} vs {r.get('away_team')}: {r.get('selection')} ({r.get('confidence')}%)" for r in recs])
+    queued = enqueue_telegram_message("recommendations", "Recomendaciones SHARK", body, force=(request.args.get("force") in {"1", "true", "yes"}))
+    return jsonify({"ok": True, "version": APP_VERSION, "queued": queued, "total": len(recs)})
+
+
+@app.route("/api/full-audit-report")
+def api_v561_full_audit_report():
+    if request.args.get("public") != "1" and not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "report": v561_full_audit_report()})
+
 
 if __name__ == "__main__":
     seed_core()

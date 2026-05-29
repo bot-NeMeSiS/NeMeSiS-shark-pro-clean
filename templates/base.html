@@ -35,10 +35,12 @@
       </nav>
     </div>
   </header>
+
   <main class="shell">
     {% block content %}{% endblock %}
   </main>
-  <nav class="bottom-nav bottom-nav-clean" aria-label="Navegacion rapida">
+
+  <nav class="bottom-nav bottom-nav-clean" aria-label="Navegación rápida">
     {% if current_user and current_user.role == 'ADMIN' %}
       <a href="/admin/dashboard">Admin</a>
       <a href="/admin/users">Usuarios</a>
@@ -55,13 +57,21 @@
   </nav>
 
   {% if current_user and current_user.role != 'ADMIN' %}
-  <a class="shark-floating-link" href="/shark" aria-label="Abrir SHARK IA">🦈</a>
   <div class="shark-widget" id="sharkWidget">
-    <button class="shark-fab" id="sharkFab" type="button" aria-label="Abrir SHARK IA">🦈</button>
+    <button class="shark-fab" id="sharkFab" type="button" aria-label="Abrir SHARK IA">SH</button>
     <div class="shark-panel" id="sharkPanel" hidden>
-      <div class="shark-panel-head"><strong>SHARK IA</strong><button type="button" id="sharkClose">×</button></div>
+      <div class="shark-panel-head">
+        <strong>SHARK IA</strong>
+        <button type="button" id="sharkClose" aria-label="Cerrar SHARK">×</button>
+      </div>
       <div class="shark-messages" id="sharkMessages">
         <div class="shark-msg bot">Pregúntame por partidos, picks, combinadas, favoritos o riesgo. Si falta dato real, te lo diré claro.</div>
+        <div class="shark-quick">
+          <button type="button" data-q="Qué pick ves mejor hoy">Pick de hoy</button>
+          <button type="button" data-q="Qué partidos de mis favoritos juegan">Mis favoritos</button>
+          <button type="button" data-q="Hazme una combinada segura">Combinada segura</button>
+          <button type="button" data-q="Resume el live">Resumen live</button>
+        </div>
       </div>
       <form id="sharkForm" class="shark-form">
         <input id="sharkInput" name="q" placeholder="Ej: ¿Qué partido mirar hoy?" autocomplete="off">
@@ -71,16 +81,37 @@
   </div>
   <script>
   (function(){
-    const fab=document.getElementById('sharkFab'), panel=document.getElementById('sharkPanel'), close=document.getElementById('sharkClose'), form=document.getElementById('sharkForm'), input=document.getElementById('sharkInput'), msgs=document.getElementById('sharkMessages');
-    if(!fab||!panel) return;
-    function add(text, cls){ const d=document.createElement('div'); d.className='shark-msg '+cls; d.textContent=text; msgs.appendChild(d); msgs.scrollTop=msgs.scrollHeight; }
-    fab.addEventListener('click',()=>{panel.hidden=!panel.hidden; if(!panel.hidden) input.focus();});
+    const fab=document.getElementById('sharkFab');
+    const panel=document.getElementById('sharkPanel');
+    const close=document.getElementById('sharkClose');
+    const form=document.getElementById('sharkForm');
+    const input=document.getElementById('sharkInput');
+    const msgs=document.getElementById('sharkMessages');
+    if(!fab||!panel||!msgs) return;
+    function add(text, cls){
+      const d=document.createElement('div');
+      d.className='shark-msg '+cls;
+      d.textContent=text;
+      msgs.appendChild(d);
+      msgs.scrollTop=msgs.scrollHeight;
+    }
+    async function ask(q){
+      q=(q||'').trim();
+      if(!q) return;
+      add(q,'user');
+      if(input) input.value='';
+      try{
+        const r=await fetch('/api/shark/ask',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:q})});
+        const j=await r.json();
+        add((j.shark&&j.shark.answer)||j.message||'SHARK no pudo responder ahora mismo.','bot');
+      }catch(err){
+        add('No puedo conectar con SHARK ahora mismo. Prueba de nuevo en unos segundos.','bot');
+      }
+    }
+    fab.addEventListener('click',()=>{panel.hidden=!panel.hidden; if(!panel.hidden&&input) input.focus();});
     close&&close.addEventListener('click',()=>panel.hidden=true);
-    form&&form.addEventListener('submit',async(e)=>{
-      e.preventDefault(); const q=(input.value||'').trim(); if(!q) return; add(q,'user'); input.value='';
-      try{ const r=await fetch('/api/shark/ask',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:q})}); const j=await r.json(); add((j.shark&&j.shark.answer)||j.message||'SHARK no pudo responder ahora mismo.','bot'); }
-      catch(err){ add('No puedo conectar con SHARK ahora mismo. Prueba de nuevo en unos segundos.','bot'); }
-    });
+    msgs.querySelectorAll('.shark-quick button').forEach(btn=>btn.addEventListener('click',()=>ask(btn.dataset.q)));
+    form&&form.addEventListener('submit',(e)=>{e.preventDefault(); ask(input&&input.value);});
   })();
   </script>
   {% endif %}

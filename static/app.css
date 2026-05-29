@@ -205,3 +205,48 @@ textarea{min-height:230px;font-family:Consolas,monospace;font-size:13px}
 .row-between{display:flex;align-items:center;justify-content:space-between;gap:12px;}
 .two-col{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
 @media(max-width:780px){.two-col{grid-template-columns:1fr}.data-depth-hero h1,.admin-depth-hero h1{font-size:1.8rem}.wide-strip{grid-template-columns:repeat(2,1fr)}}
+
+/* V561 Full Product Audit + Commercial Polish */
+h1{font-size:clamp(28px,4.2vw,48px);line-height:1.04}
+h2{font-size:clamp(20px,2.8vw,28px);line-height:1.15}
+.lead{font-size:15px;max-width:760px}
+.hero,.app-hero,.client-hero{padding-top:24px;padding-bottom:18px}
+.compact-hero{padding:22px!important}
+.card,.list-row,.hero-panel,.membership-card{min-height:unset}
+.grid{gap:10px}.band{padding:18px 0}.section-head{margin-bottom:10px}
+.empty,.empty-state{border-color:rgba(56,189,248,.28);background:rgba(56,189,248,.06);color:#cfe6ff}
+.empty strong,.empty-state strong{color:#fff}
+.nav-clean a{font-size:12px;padding:8px 10px}
+.bottom-nav-clean{grid-template-columns:repeat(5,1fr)}
+.bottom-nav-clean a{min-height:42px;font-size:11px}
+.admin-menu{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+.shark-floating-link{display:none!important}
+.shark-widget{right:16px;bottom:82px}
+.shark-fab{width:54px;height:54px;border-radius:16px;font-size:16px;font-weight:950;letter-spacing:0;animation:sharkPulse 3s ease-in-out infinite}
+.shark-panel{width:min(340px,calc(100vw - 24px));bottom:64px;border-radius:14px}
+.shark-panel-head{padding:10px 12px}
+.shark-messages{max-height:250px}
+.shark-quick{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px}
+.shark-quick button{font-size:11px;padding:7px 8px;background:#0d1728;color:#dcecff;border-color:#263b5c}
+.shark-form{grid-template-columns:minmax(0,1fr) auto}
+.shark-form input{font-size:13px}
+.menu-card h3{font-size:18px;margin:8px 0 4px}
+.focus-card strong,.menu-card strong{display:block;line-height:1.25}
+.metric{font-size:26px}
+.state-badge,.badge,.pill{letter-spacing:0}
+@media(max-width:760px){
+  .topin{min-height:52px}.brand span:last-child{font-size:13px}
+  .shell{padding:14px 12px 86px}
+  .hero,.app-hero,.client-hero{padding-top:18px;padding-bottom:14px}
+  .compact-hero{padding:16px!important;border-radius:16px}
+  h1{font-size:28px!important;line-height:1.06}
+  h2{font-size:20px}.lead{font-size:14px}
+  .quick-actions,.client-actions{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .quick{padding:10px;min-height:52px}.quick strong{font-size:18px}
+  .list-row{align-items:flex-start}
+  .shark-widget{right:10px;bottom:68px}
+  .shark-fab{width:50px;height:50px;border-radius:15px}
+  .shark-panel{right:0;bottom:58px;max-height:70vh}
+  .shark-messages{max-height:210px}
+  .bottom-nav-clean{left:0;right:0;bottom:0;border-radius:0;border-left:0;border-right:0;border-bottom:0}
+}
