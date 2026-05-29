@@ -7780,6 +7780,171 @@ def api_system_v556_check():
     return jsonify({"ok": True, "version": APP_VERSION, "beta": beta_client_payload(), "admin_beta_enabled": True})
 
 
+
+# -----------------------------
+# V557 — Responsible Betting + Trust Compliance Layer
+# -----------------------------
+
+def ensure_v557_tables():
+    try:
+        conn = db()
+        conn.execute("""CREATE TABLE IF NOT EXISTS compliance_acknowledgements (
+            id TEXT PRIMARY KEY,
+            user_id TEXT,
+            ack_type TEXT,
+            version TEXT,
+            ip_hint TEXT,
+            created_at TEXT
+        )""")
+        conn.execute("""CREATE TABLE IF NOT EXISTS responsible_limits (
+            user_id TEXT PRIMARY KEY,
+            monthly_bankroll_limit REAL DEFAULT 0,
+            max_stake_per_pick REAL DEFAULT 0,
+            risk_profile TEXT DEFAULT 'moderado',
+            cooling_off_enabled INTEGER DEFAULT 0,
+            updated_at TEXT
+        )""")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_compliance_ack_user ON compliance_acknowledgements(user_id, ack_type)")
+        conn.commit(); conn.close()
+    except Exception:
+        pass
+
+def responsible_betting_payload():
+    user = current_session_user()
+    ensure_v557_tables()
+    user_id = (user or {}).get('id') or ''
+    limits = {}
+    acknowledged = False
+    if user_id:
+        limits = one("SELECT * FROM responsible_limits WHERE user_id=?", (user_id,)) or {}
+        acknowledged = bool(one("SELECT id FROM compliance_acknowledgements WHERE user_id=? AND ack_type='responsible_betting' LIMIT 1", (user_id,)))
+    principles = [
+        {"title":"Información, no promesa", "body":"Las recomendaciones son análisis deportivo. Nunca garantizan beneficios ni resultados."},
+        {"title":"Control de banca", "body":"Usa stake bajo, límites personales y evita perseguir pérdidas."},
+        {"title":"Mayoría de edad", "body":"El servicio está orientado exclusivamente a usuarios mayores de edad donde las apuestas sean legales."},
+        {"title":"Transparencia", "body":"Si faltan datos reales de live, cuotas o eventos, SHARK debe indicarlo claramente."},
+    ]
+    checklist = [
+        {"ok": True, "label":"Avisos de uso responsable visibles"},
+        {"ok": True, "label":"Recomendaciones marcadas como análisis, no garantía"},
+        {"ok": bool(user_id), "label":"Sesión de usuario activa"},
+        {"ok": acknowledged, "label":"Usuario ha aceptado el aviso responsable"},
+    ]
+    score = 70 + (10 if acknowledged else 0) + (10 if user_id else 0)
+    return {
+        "user": user,
+        "acknowledged": acknowledged,
+        "limits": limits,
+        "principles": principles,
+        "checklist": checklist,
+        "score": min(score, 95),
+        "disclaimer": "NeMeSiS SHARK PRO ofrece información y análisis deportivo. Apuesta solo si eres mayor de edad, de forma legal y responsable.",
+    }
+
+def compliance_summary_payload():
+    ensure_v557_tables()
+    users = safe_count('users')
+    acknowledgements = safe_count('compliance_acknowledgements')
+    limits = safe_count('responsible_limits')
+    picks = safe_count('picks')
+    recs = safe_count('matches')
+    actions = []
+    if acknowledgements == 0:
+        actions.append('Pedir aceptación del aviso responsable a los primeros testers/clientes.')
+    if limits == 0:
+        actions.append('Animar a usuarios beta a configurar límite de banca y stake máximo.')
+    if picks == 0:
+        actions.append('Publicar picks revisados por admin antes de activar envíos comerciales.')
+    if not actions:
+        actions.append('Capa de confianza lista para beta comercial controlada.')
+    score = 60
+    if users: score += 10
+    if acknowledgements: score += 15
+    if limits: score += 10
+    if picks: score += 5
+    return {
+        "users": users,
+        "acknowledgements": acknowledgements,
+        "limits": limits,
+        "picks": picks,
+        "matches": recs,
+        "score": min(score, 96),
+        "actions": actions,
+        "cards": [
+            {"title":"Confianza", "value": f"{min(score,96)}%", "body":"Preparación de comunicación responsable y transparente."},
+            {"title":"Aceptaciones", "value": acknowledgements, "body":"Usuarios que han aceptado el aviso responsable."},
+            {"title":"Límites", "value": limits, "body":"Usuarios con configuración de banca/riesgo."},
+        ]
+    }
+
+@app.route('/juego-responsable')
+def responsible_betting_page():
+    return render_template('responsible_betting.html', title='Juego responsable', rb=responsible_betting_payload())
+
+@app.route('/legal')
+def legal_trust_page():
+    return render_template('legal_trust.html', title='Legal y confianza', rb=responsible_betting_payload())
+
+@app.route('/api/responsible-betting/status')
+def api_responsible_betting_status():
+    return jsonify({"ok": True, "version": APP_VERSION, "responsible_betting": responsible_betting_payload()})
+
+@app.route('/api/responsible-betting/ack', methods=['POST'])
+def api_responsible_betting_ack():
+    ensure_v557_tables()
+    user = current_session_user()
+    if not user:
+        return jsonify({"ok": False, "error": "Debes iniciar sesión para aceptar el aviso."}), 401
+    ack_id = 'ack_' + hashlib.sha256(f"{user.get('id')}:{now_iso()}:responsible".encode('utf-8')).hexdigest()[:18]
+    conn = db()
+    existing = conn.execute("SELECT id FROM compliance_acknowledgements WHERE user_id=? AND ack_type='responsible_betting' LIMIT 1", (user.get('id'),)).fetchone()
+    if not existing:
+        conn.execute("INSERT INTO compliance_acknowledgements(id,user_id,ack_type,version,ip_hint,created_at) VALUES (?,?,?,?,?,?)", (ack_id, user.get('id'), 'responsible_betting', APP_VERSION, request.remote_addr or '', now_iso()))
+        conn.commit()
+    conn.close()
+    if request.form:
+        return redirect('/juego-responsable?ok=1')
+    return jsonify({"ok": True, "message": "Aviso responsable aceptado."})
+
+@app.route('/api/responsible-betting/limits', methods=['POST'])
+def api_responsible_betting_limits():
+    ensure_v557_tables()
+    user = current_session_user()
+    if not user:
+        return jsonify({"ok": False, "error": "Debes iniciar sesión."}), 401
+    payload = request.form if request.form else (request.get_json(silent=True) or {})
+    def to_float(v):
+        try: return max(0.0, float(str(v or '0').replace(',', '.')))
+        except Exception: return 0.0
+    monthly = to_float(payload.get('monthly_bankroll_limit'))
+    stake = to_float(payload.get('max_stake_per_pick'))
+    risk = str(payload.get('risk_profile') or 'moderado').strip().lower()[:30]
+    cooling = 1 if str(payload.get('cooling_off_enabled') or '').lower() in ('1','true','on','si','sí') else 0
+    conn = db()
+    conn.execute("""INSERT INTO responsible_limits(user_id,monthly_bankroll_limit,max_stake_per_pick,risk_profile,cooling_off_enabled,updated_at)
+        VALUES (?,?,?,?,?,?) ON CONFLICT(user_id) DO UPDATE SET monthly_bankroll_limit=excluded.monthly_bankroll_limit,max_stake_per_pick=excluded.max_stake_per_pick,risk_profile=excluded.risk_profile,cooling_off_enabled=excluded.cooling_off_enabled,updated_at=excluded.updated_at""",
+        (user.get('id'), monthly, stake, risk, cooling, now_iso()))
+    conn.commit(); conn.close()
+    if request.form:
+        return redirect('/juego-responsable?limits=1')
+    return jsonify({"ok": True, "message": "Límites guardados."})
+
+@app.route('/admin/compliance-center')
+def admin_compliance_center():
+    if not is_admin_session():
+        return redirect('/admin-login?next=/admin/compliance-center')
+    return render_template('admin_compliance_center.html', title='Compliance Center', compliance=compliance_summary_payload())
+
+@app.route('/api/admin/compliance-summary')
+def api_admin_compliance_summary():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "version": APP_VERSION, "compliance": compliance_summary_payload()})
+
+@app.route('/api/system/v557-check')
+def api_system_v557_check():
+    return jsonify({"ok": True, "version": APP_VERSION, "responsible_betting": True, "compliance_center": True})
+
 if __name__ == "__main__":
     seed_core()
     app.run(host="0.0.0.0", port=int(os.getenv("PORT", "5000")), debug=os.getenv("FLASK_DEBUG") == "1")
