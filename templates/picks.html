@@ -7,6 +7,7 @@
   <div class="actions">
     <a class="btn primary" href="/match-hub">Partidos reales</a>
     <a class="btn" href="/combis">Combinadas</a>
+    <a class="btn" href="/auto-picks">Auto picks</a>
     <a class="btn" href="/telegram">Telegram</a>
     {% if current_user and current_user.role == 'ADMIN' %}<a class="btn" href="/admin/picks">Admin picks</a>{% endif %}
   </div>
@@ -15,6 +16,7 @@
 <section class="band compact-band">
   <div class="grid compact-grid metric-row">
     <div class="card metric-card"><div class="metric">{{ data.pick_stats.published }}</div><div class="muted">picks publicados</div></div>
+    <div class="card metric-card"><div class="metric">{{ data.autonomous_picks.with_odds }}</div><div class="muted">auto con cuota</div></div>
     <div class="card metric-card"><div class="metric">{{ data.smart_picks.candidate_count }}</div><div class="muted">partidos analizables</div></div>
     <div class="card metric-card"><div class="metric">{{ data.pick_stats.avg_odds }}</div><div class="muted">cuota media</div></div>
     <div class="card metric-card"><div class="metric">{{ data.pick_stats.winrate }}%</div><div class="muted">winrate real</div></div>
