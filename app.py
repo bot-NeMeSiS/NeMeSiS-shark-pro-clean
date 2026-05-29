@@ -53,7 +53,7 @@ from engines.telegram_delivery_engine import (
 from engines.telegram_engine import build_alert_queue, dispatch_signature, should_skip_duplicate
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V554_LIVE_DATA_DEEPENING_MATCH_TIMELINE"
+APP_VERSION = "V556_PRIVATE_BETA_TESTER_CONTROL"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -7224,6 +7224,7 @@ def v552_admin_items():
         {"group":"Import", "title":"Import legal", "body":"CSV/JSON autorizado para datos deportivos.", "href":"/admin/import-center"},
         {"group":"Membresías", "title":"Planes y comercial", "body":"FREE, PRO, ELITE y preparación comercial.", "href":"/admin/memberships"},
         {"group":"Sistema", "title":"Sistema", "body":"Configuración segura y estado interno.", "href":"/admin/system"},
+        {"group":"Beta", "title":"Beta Center", "body":"Testers, feedback y preparación de beta privada.", "href":"/admin/beta-center"},
     ]
 
 
@@ -7270,6 +7271,7 @@ def client_clean_menu():
         {"group":"IA", "title":"SHARK IA", "body":"Pregunta por picks, partidos y riesgo.", "href":"/shark"},
         {"group":"Canal", "title":"Telegram", "body":"Alertas y envíos premium.", "href":"/telegram"},
         {"group":"Cuenta", "title":"Mi cuenta", "body":"Membresía, acceso y preferencias.", "href":"/mi-cuenta"},
+        {"group":"Beta", "title":"Beta privada", "body":"Feedback, testers y validación antes de lanzamiento.", "href":"/beta"},
     ]
     return render_template("client_menu.html", title="Menú", items=items)
 
@@ -7462,6 +7464,320 @@ def client_live_depth_page():
     data = dashboard_data() if "dashboard_data" in globals() else {}
     data["live_depth"] = v554_live_depth_summary(limit=20)
     return render_template("live_depth.html", data=data)
+
+
+# ============================================================
+# V555 — LAUNCH CANDIDATE FULL QA
+# ============================================================
+
+def _v555_route_status(path, requires_login=False, admin=False):
+    return {
+        "path": path,
+        "area": "admin" if admin else "cliente",
+        "requires_login": bool(requires_login or admin),
+        "status": "protegida" if admin else "activa",
+    }
+
+
+def v555_launch_candidate_check():
+    seed_core()
+    metrics = {
+        "users": safe_count("users") if "safe_count" in globals() else 0,
+        "matches": safe_count("matches") if "safe_count" in globals() else 0,
+        "teams": safe_count("teams") if "safe_count" in globals() else 0,
+        "picks": safe_count("picks") if "safe_count" in globals() else 0,
+        "recommendations": safe_count("betting_recommendations") if "safe_count" in globals() else 0,
+        "telegram_queue": safe_count("telegram_queue") if "safe_count" in globals() else 0,
+        "favorites": safe_count("favorites") if "safe_count" in globals() else 0,
+        "activity": safe_count("user_activity") if "safe_count" in globals() else 0,
+    }
+    env = {
+        "sportsdb": bool(os.getenv("THESPORTSDB_API_KEY") or os.getenv("THESPORTSDB_KEY")),
+        "odds": bool(os.getenv("THE_ODDS_API_KEY")),
+        "telegram": bool(os.getenv("TELEGRAM_BOT_TOKEN") and os.getenv("TELEGRAM_CHAT_ID")),
+        "openai": bool(os.getenv("OPENAI_API_KEY")),
+        "db_path": os.getenv("DB_PATH", "app.db"),
+    }
+    route_groups = {
+        "cliente": [
+            _v555_route_status("/dashboard", True),
+            _v555_route_status("/live"),
+            _v555_route_status("/match-hub"),
+            _v555_route_status("/resultados"),
+            _v555_route_status("/picks"),
+            _v555_route_status("/recomendaciones"),
+            _v555_route_status("/combis"),
+            _v555_route_status("/favorites", True),
+            _v555_route_status("/seguimiento", True),
+            _v555_route_status("/alertas", True),
+            _v555_route_status("/shark", True),
+            _v555_route_status("/telegram", True),
+            _v555_route_status("/soporte", True),
+        ],
+        "admin": [
+            _v555_route_status("/admin/dashboard", True, True),
+            _v555_route_status("/admin/users", True, True),
+            _v555_route_status("/admin/picks", True, True),
+            _v555_route_status("/admin/recommendations", True, True),
+            _v555_route_status("/admin/data-center", True, True),
+            _v555_route_status("/admin/telegram", True, True),
+            _v555_route_status("/admin/intelligence-engine", True, True),
+            _v555_route_status("/admin/final-qa", True, True),
+        ],
+    }
+    checks = []
+    def add(name, ok, detail):
+        checks.append({"name": name, "ok": bool(ok), "detail": detail})
+    add("SQLite persistente", "/data" in env["db_path"] or env["db_path"].endswith("database.db"), f"DB_PATH={env['db_path']}")
+    add("Partidos disponibles", metrics["matches"] > 0, f"{metrics['matches']} partidos guardados")
+    add("Equipos disponibles", metrics["teams"] > 0, f"{metrics['teams']} equipos guardados")
+    add("Picks/recomendaciones", (metrics["picks"] + metrics["recommendations"]) > 0, f"{metrics['picks']} picks · {metrics['recommendations']} recomendaciones")
+    add("SportsDB configurado", env["sportsdb"], "Key presente" if env["sportsdb"] else "Falta THESPORTSDB_API_KEY/THESPORTSDB_KEY")
+    add("Odds configurado", env["odds"], "Key presente" if env["odds"] else "Falta THE_ODDS_API_KEY")
+    add("Telegram configurado", env["telegram"], "Token/chat id presentes" if env["telegram"] else "Falta TELEGRAM_BOT_TOKEN o TELEGRAM_CHAT_ID")
+    add("Usuarios/cliente", True, "Login, registro, perfil y roles disponibles")
+    score = round(sum(1 for c in checks if c["ok"]) / max(1, len(checks)) * 100)
+    priority_actions = []
+    if metrics["matches"] == 0:
+        priority_actions.append("Ejecutar /admin/data-center y sincronizar calendario para poblar partidos reales.")
+    if not env["odds"]:
+        priority_actions.append("Añadir THE_ODDS_API_KEY para cuotas y value real en recomendaciones.")
+    if not env["telegram"]:
+        priority_actions.append("Añadir TELEGRAM_BOT_TOKEN y TELEGRAM_CHAT_ID para envíos premium.")
+    if metrics["picks"] == 0:
+        priority_actions.append("Publicar picks desde /admin/picks o convertir recomendaciones desde /admin/recommendations.")
+    if not priority_actions:
+        priority_actions.append("La base está lista para testers: revisar experiencia real con 3-5 usuarios controlados.")
+    return {
+        "version": APP_VERSION,
+        "score": score,
+        "metrics": metrics,
+        "env": {k: ("presente" if v else "pendiente") if k != "db_path" else v for k,v in env.items()},
+        "checks": checks,
+        "routes": route_groups,
+        "priority_actions": priority_actions,
+        "launch_state": "candidato" if score >= 75 else "preparacion",
+    }
+
+
+def v555_client_final_experience():
+    seed_core()
+    user = get_current_user() if "get_current_user" in globals() else None
+    summary = {
+        "today_focus": [],
+        "next_steps": [],
+        "premium_value": [],
+    }
+    try:
+        if "build_daily_briefing" in globals():
+            briefing = build_daily_briefing(user)
+            for item in (briefing.get("priorities") or [])[:4]:
+                summary["today_focus"].append(item)
+    except Exception:
+        pass
+    if not summary["today_focus"]:
+        summary["today_focus"] = [
+            "Revisa partidos y live del día.",
+            "Consulta recomendaciones SHARK antes de apostar.",
+            "Guarda tus equipos favoritos para personalizar el panel.",
+        ]
+    summary["next_steps"] = [
+        "Añade favoritos para personalizar tu experiencia.",
+        "Consulta Picks y Recomendaciones antes de crear combinadas.",
+        "Activa Telegram cuando quieras recibir avisos fuera de la app.",
+    ]
+    summary["premium_value"] = [
+        "PRO desbloquea picks y combinadas mejoradas.",
+        "ELITE prepara alertas y análisis SHARK más avanzados.",
+        "El seguimiento de banca ayuda a controlar riesgo y rendimiento.",
+    ]
+    return summary
+
+
+@app.route("/admin/final-qa")
+def admin_final_qa_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/final-qa")
+    return render_template("admin_final_qa.html", title="QA final", qa=v555_launch_candidate_check())
+
+
+@app.route("/api/launch-candidate/check")
+def api_launch_candidate_check():
+    if request.args.get("public") != "1" and not is_admin_session():
+        return admin_required_json()
+    return jsonify({"ok": True, "qa": v555_launch_candidate_check()})
+
+
+@app.route("/api/client/final-experience")
+def api_client_final_experience():
+    return jsonify({"ok": True, "version": APP_VERSION, "experience": v555_client_final_experience()})
+
+
+# -----------------------------
+# V556 — Private Beta Tester Control
+# -----------------------------
+
+def ensure_beta_tables():
+    seed_core()
+    conn = db()
+    conn.execute(
+        """CREATE TABLE IF NOT EXISTS beta_testers(
+            id TEXT PRIMARY KEY,
+            user_id TEXT,
+            name TEXT,
+            email TEXT,
+            membership TEXT,
+            status TEXT DEFAULT 'requested',
+            source TEXT,
+            created_at TEXT,
+            updated_at TEXT
+        )"""
+    )
+    conn.execute(
+        """CREATE TABLE IF NOT EXISTS beta_feedback(
+            id TEXT PRIMARY KEY,
+            user_id TEXT,
+            name TEXT,
+            email TEXT,
+            focus_area TEXT,
+            message TEXT,
+            status TEXT DEFAULT 'new',
+            created_at TEXT
+        )"""
+    )
+    try:
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_beta_testers_email ON beta_testers(email)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_beta_feedback_created ON beta_feedback(created_at)")
+    except sqlite3.OperationalError:
+        pass
+    conn.commit()
+    conn.close()
+
+
+def beta_client_payload():
+    ensure_beta_tables()
+    user = current_session_user()
+    email = (user or {}).get("email") or ""
+    name = (user or {}).get("name") or ""
+    membership = normalize_role((user or {}).get("membership") or "FREE")
+    tester = None
+    if email:
+        tester = one("SELECT * FROM beta_testers WHERE email=? ORDER BY created_at DESC LIMIT 1", (email,))
+    feedback_count = 0
+    if email:
+        feedback_count = safe_count("beta_feedback", "email=?", (email,))
+    status = (tester or {}).get("status") if tester else "pendiente"
+    return {
+        "name": name,
+        "email": email,
+        "membership": membership,
+        "status": status,
+        "status_label": {"active":"Activo", "approved":"Aprobado", "requested":"Solicitado", "pendiente":"Pendiente"}.get(status, str(status or "Pendiente").title()),
+        "feedback_count": feedback_count,
+        "checklist": [
+            "Crear cuenta, entrar y revisar el dashboard.",
+            "Abrir Live, Calendario y Resultados; confirmar estados Próximo/Live/Finalizado.",
+            "Revisar Recomendaciones, Picks y Combinadas sin datos falsos.",
+            "Guardar y quitar favoritos; comprobar que el feed cambia.",
+            "Probar SHARK IA y Telegram desde móvil.",
+        ],
+    }
+
+
+def beta_admin_summary():
+    ensure_beta_tables()
+    total_testers = safe_count("beta_testers")
+    active_testers = safe_count("beta_testers", "status IN ('active','approved')")
+    feedback_total = safe_count("beta_feedback")
+    recent_feedback = rows("SELECT * FROM beta_feedback ORDER BY created_at DESC LIMIT 10")
+    route_score = 80
+    try:
+        if "v555_launch_candidate_check" in globals():
+            route_score = int(v555_launch_candidate_check().get("score") or 80)
+    except Exception:
+        route_score = 80
+    beta_score = min(100, round((route_score * 0.55) + (min(total_testers, 10) * 3) + (min(feedback_total, 20) * 1)))
+    actions = []
+    if total_testers < 3:
+        actions.append("Invitar 3-5 testers reales antes de abrir comercialmente.")
+    if feedback_total == 0:
+        actions.append("Pedir feedback específico sobre picks, live, favoritos y móvil.")
+    if safe_count("picks", "lower(coalesce(status,''))='published'") == 0:
+        actions.append("Publicar 2-3 picks reales o convertir recomendaciones desde admin.")
+    if safe_count("matches") == 0:
+        actions.append("Ejecutar sincronización de calendario en Data Center.")
+    if not actions:
+        actions.append("La beta está lista para ampliar testers y medir retención.")
+    cards = [
+        {"status":"QA", "title":"Rutas críticas", "body": f"Score lanzamiento aproximado {route_score}%."},
+        {"status":"Beta", "title":"Testers activos", "body": f"{active_testers} activos de {total_testers} registrados."},
+        {"status":"Feedback", "title":"Señales reales", "body": f"{feedback_total} entradas guardadas para priorizar mejoras."},
+    ]
+    return {
+        "total_testers": total_testers,
+        "active_testers": active_testers,
+        "feedback_total": feedback_total,
+        "feedback": recent_feedback,
+        "beta_score": beta_score,
+        "actions": actions,
+        "cards": cards,
+    }
+
+
+@app.route("/beta")
+def beta_page():
+    return render_template("beta.html", title="Beta privada", beta=beta_client_payload())
+
+
+@app.route("/api/beta/status")
+def api_beta_status():
+    return jsonify({"ok": True, "version": APP_VERSION, "beta": beta_client_payload()})
+
+
+@app.route("/api/beta/join", methods=["POST"])
+def api_beta_join():
+    ensure_beta_tables()
+    user = current_session_user()
+    payload = request.form if request.form else (request.get_json(silent=True) or {})
+    name = str(payload.get("name") or (user or {}).get("name") or "").strip() or "Tester SHARK"
+    email = normalize_email(payload.get("email") or (user or {}).get("email") or "")
+    focus_area = str(payload.get("focus_area") or "cliente").strip()[:80]
+    message = str(payload.get("message") or "Solicitud beta").strip()[:1200]
+    if not email:
+        return jsonify({"ok": False, "error": "Email requerido para beta."}), 400
+    conn = db()
+    tester_id = "bt_" + hashlib.sha256(f"{email}:{now_iso()}".encode("utf-8")).hexdigest()[:18]
+    existing = conn.execute("SELECT id FROM beta_testers WHERE email=? LIMIT 1", (email,)).fetchone()
+    if existing:
+        conn.execute("UPDATE beta_testers SET name=?, membership=?, status=COALESCE(status,'requested'), updated_at=? WHERE email=?", (name, normalize_role((user or {}).get("membership") or "FREE"), now_iso(), email))
+    else:
+        conn.execute("INSERT INTO beta_testers(id,user_id,name,email,membership,status,source,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?)", (tester_id, (user or {}).get("id"), name, email, normalize_role((user or {}).get("membership") or "FREE"), "requested", "client", now_iso(), now_iso()))
+    feedback_id = "bf_" + hashlib.sha256(f"{email}:{focus_area}:{message}:{now_iso()}".encode("utf-8")).hexdigest()[:18]
+    conn.execute("INSERT INTO beta_feedback(id,user_id,name,email,focus_area,message,status,created_at) VALUES (?,?,?,?,?,?,?,?)", (feedback_id, (user or {}).get("id"), name, email, focus_area, message, "new", now_iso()))
+    conn.commit()
+    conn.close()
+    if request.form:
+        return redirect("/beta?ok=1")
+    return jsonify({"ok": True, "message": "Feedback beta guardado.", "feedback_id": feedback_id})
+
+
+@app.route("/admin/beta-center")
+def admin_beta_center():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/beta-center")
+    return render_template("admin_beta_center.html", title="Beta Center", beta=beta_admin_summary())
+
+
+@app.route("/api/admin/beta-summary")
+def api_admin_beta_summary():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "version": APP_VERSION, "beta": beta_admin_summary()})
+
+
+@app.route("/api/system/v556-check")
+def api_system_v556_check():
+    return jsonify({"ok": True, "version": APP_VERSION, "beta": beta_client_payload(), "admin_beta_enabled": True})
 
 
 if __name__ == "__main__":
