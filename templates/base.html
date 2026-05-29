@@ -7,26 +7,25 @@
   <link rel="stylesheet" href="/static/app.css">
 </head>
 <body>
-  <header class="top nav-clean">
+  <header class="top">
     <div class="topin">
       <a class="brand" href="/"><span class="mark">NS</span><span>NeMeSiS SHARK PRO</span></a>
-      <nav class="nav nav-primary" aria-label="Navegación principal">
+      <nav class="nav nav-clean">
         {% if current_user and current_user.role == 'ADMIN' %}
-          <a href="/">Inicio</a>
-          <a href="/admin">Admin</a>
-          <a href="/admin/data-center">Datos</a>
+          <a href="/admin/dashboard">Admin</a>
+          <a href="/admin/users">Usuarios</a>
           <a href="/admin/picks">Picks</a>
+          <a href="/admin/data-center">Datos</a>
           <a href="/admin/telegram">Telegram</a>
-          <a href="/admin/command-center">Más</a>
+          <a href="/admin/system">Sistema</a>
           <a href="/logout">Salir</a>
         {% elif current_user %}
-          <a href="/">Inicio</a>
-          <a href="/match-hub">Partidos</a>
+          <a href="/dashboard">Inicio</a>
           <a href="/live">Live</a>
           <a href="/picks">Picks</a>
           <a href="/favorites">Favoritos</a>
           <a href="/menu">Más</a>
-          <a class="nav-cta" href="/perfil">Perfil</a>
+          <a href="/logout">Salir</a>
         {% else %}
           <a href="/membresias">Membresías</a>
           <a href="/cliente-login">Entrar</a>
@@ -38,28 +37,24 @@
   <main class="shell">
     {% block content %}{% endblock %}
   </main>
-  <nav class="bottom-nav bottom-nav-clean" aria-label="Navegación rápida">
+  <nav class="bottom-nav bottom-nav-clean" aria-label="Navegacion rapida">
     {% if current_user and current_user.role == 'ADMIN' %}
-      <a href="/admin/data-center">Datos</a>
+      <a href="/admin/dashboard">Admin</a>
       <a href="/admin/users">Usuarios</a>
       <a href="/admin/picks">Picks</a>
-      <a href="/admin/quality-center">Calidad</a>
-      <a href="/admin/command-center">Más</a>
-    {% elif current_user %}
-      <a href="/">Inicio</a>
+      <a href="/admin/data-center">Datos</a>
+      <a href="/logout">Salir</a>
+    {% else %}
+      <a href="/dashboard">Inicio</a>
       <a href="/live">Live</a>
       <a href="/picks">Picks</a>
-      <a href="/favorites">Fav</a>
-      <a href="/perfil">Perfil</a>
-    {% else %}
-      <a href="/">Inicio</a>
-      <a href="/membresias">Planes</a>
-      <a href="/cliente-login">Entrar</a>
-      <a href="/registro">Registro</a>
+      <a href="/favorites">Favoritos</a>
+      {% if current_user %}<a href="/perfil">Perfil</a>{% else %}<a href="/cliente-login">Entrar</a>{% endif %}
     {% endif %}
   </nav>
 
   {% if current_user and current_user.role != 'ADMIN' %}
+  <a class="shark-floating-link" href="/shark" aria-label="Abrir SHARK IA">🦈</a>
   <div class="shark-widget" id="sharkWidget">
     <button class="shark-fab" id="sharkFab" type="button" aria-label="Abrir SHARK IA">🦈</button>
     <div class="shark-panel" id="sharkPanel" hidden>
@@ -88,6 +83,5 @@
   })();
   </script>
   {% endif %}
-
 </body>
 </html>
