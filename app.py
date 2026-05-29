@@ -53,7 +53,7 @@ from engines.telegram_delivery_engine import (
 from engines.telegram_engine import build_alert_queue, dispatch_signature, should_skip_duplicate
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V556_PRIVATE_BETA_TESTER_CONTROL"
+APP_VERSION = "V558_GROWTH_METRICS_REVENUE_OPERATIONS"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -7944,6 +7944,140 @@ def api_admin_compliance_summary():
 @app.route('/api/system/v557-check')
 def api_system_v557_check():
     return jsonify({"ok": True, "version": APP_VERSION, "responsible_betting": True, "compliance_center": True})
+
+
+# =========================================================
+# V558 — Growth Metrics + Revenue Operations Layer
+# Commercial growth, conversion funnel and operational clarity
+# =========================================================
+
+def ensure_v558_tables():
+    ensure_v557_tables()
+    conn = db()
+    conn.execute("""CREATE TABLE IF NOT EXISTS growth_events (
+        id TEXT PRIMARY KEY,
+        user_id INTEGER,
+        event_type TEXT,
+        area TEXT,
+        value TEXT,
+        payload_json TEXT,
+        created_at TEXT
+    )""")
+    conn.execute("""CREATE TABLE IF NOT EXISTS revenue_notes (
+        id TEXT PRIMARY KEY,
+        note_type TEXT,
+        title TEXT,
+        body TEXT,
+        status TEXT DEFAULT 'open',
+        priority TEXT DEFAULT 'medium',
+        created_at TEXT,
+        updated_at TEXT
+    )""")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_growth_events_user ON growth_events(user_id)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_growth_events_type ON growth_events(event_type)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_revenue_notes_status ON revenue_notes(status)")
+    conn.commit(); conn.close()
+
+def _safe_count(conn, table, where='1=1'):
+    try:
+        return int(conn.execute(f"SELECT COUNT(*) AS c FROM {table} WHERE {where}").fetchone()['c'])
+    except Exception:
+        return 0
+
+def growth_summary_payload():
+    ensure_v558_tables()
+    conn = db()
+    users = _safe_count(conn, 'users')
+    pro_users = _safe_count(conn, 'users', "UPPER(COALESCE(membership, role, 'FREE')) IN ('PRO','ELITE','ADMIN')")
+    picks = _safe_count(conn, 'picks')
+    published_picks = _safe_count(conn, 'picks', "status='published'")
+    matches = _safe_count(conn, 'matches')
+    upcoming = _safe_count(conn, 'matches', "LOWER(COALESCE(status,'')) IN ('scheduled','upcoming','not_started','pre','próximo','proximo')")
+    live = _safe_count(conn, 'matches', "LOWER(COALESCE(status,'')) IN ('live','in_play','1h','2h','ht','en directo')")
+    favs = _safe_count(conn, 'favorites') or _safe_count(conn, 'user_favorites')
+    feedback = _safe_count(conn, 'client_feedback') + _safe_count(conn, 'support_tickets')
+    telegram_pending = _safe_count(conn, 'telegram_queue', "status='pending'")
+    conn.close()
+    score = 45
+    if users: score += 8
+    if pro_users: score += 8
+    if matches: score += 10
+    if upcoming or live: score += 10
+    if published_picks: score += 12
+    if favs: score += 6
+    if feedback: score += 4
+    if telegram_pending >= 0: score += 4
+    score = min(score, 96)
+    actions = []
+    if not users: actions.append('Crear usuarios testers para validar onboarding, navegación y retención.')
+    if not matches: actions.append('Sincronizar calendario desde Data Center para alimentar Live, Picks y Recomendaciones.')
+    if not published_picks: actions.append('Publicar al menos 3 picks reales revisados para validar el valor premium.')
+    if not favs: actions.append('Probar favoritos con equipos/ligas reales para activar personalización.')
+    if not feedback: actions.append('Invitar testers beta y recoger feedback real desde Soporte/Beta.')
+    if not actions: actions.append('Preparado para prueba comercial controlada con usuarios reales.')
+    return {
+        'score': score,
+        'users': users,
+        'pro_users': pro_users,
+        'picks': picks,
+        'published_picks': published_picks,
+        'matches': matches,
+        'upcoming': upcoming,
+        'live': live,
+        'favorites': favs,
+        'feedback': feedback,
+        'telegram_pending': telegram_pending,
+        'actions': actions,
+        'cards': [
+            {'title':'Usuarios', 'value': users, 'body':'Cuentas registradas para validar conversión y retención.'},
+            {'title':'Partidos', 'value': matches, 'body':'Base deportiva disponible para calendario, live y picks.'},
+            {'title':'Picks publicados', 'value': published_picks, 'body':'Valor premium visible para clientes.'},
+            {'title':'Favoritos', 'value': favs, 'body':'Señal de personalización y uso recurrente.'},
+        ]
+    }
+
+def client_growth_payload():
+    user = current_session_user()
+    conn = db()
+    matches = _safe_count(conn, 'matches')
+    picks = _safe_count(conn, 'picks', "status='published'")
+    favs = 0
+    if user:
+        uid = user.get('id')
+        favs = _safe_count(conn, 'favorites', f"user_id={int(uid or 0)}") or _safe_count(conn, 'user_favorites', f"user_id={int(uid or 0)}")
+    conn.close()
+    steps = [
+        {'title':'Crear cuenta', 'done': bool(user), 'body':'Tu perfil permite guardar favoritos, picks y actividad.'},
+        {'title':'Elegir favoritos', 'done': favs > 0, 'body':'Activa partidos, alertas y recomendaciones personalizadas.'},
+        {'title':'Ver picks publicados', 'done': picks > 0, 'body':'Consulta picks reales revisados y publicados.'},
+        {'title':'Explorar partidos', 'done': matches > 0, 'body':'Calendario, live y resultados alimentan la experiencia.'},
+    ]
+    activation = int(sum(1 for s in steps if s['done']) / len(steps) * 100)
+    return {'activation': activation, 'steps': steps, 'matches': matches, 'published_picks': picks, 'favorites': favs}
+
+@app.route('/crecimiento')
+def client_growth_page():
+    return render_template('growth_client.html', title='Crecimiento personal', growth=client_growth_payload())
+
+@app.route('/admin/growth-center')
+def admin_growth_center():
+    if not is_admin_session():
+        return redirect('/admin-login?next=/admin/growth-center')
+    return render_template('admin_growth_center.html', title='Growth Center', growth=growth_summary_payload())
+
+@app.route('/api/client/growth-score')
+def api_client_growth_score():
+    return jsonify({'ok': True, 'version': APP_VERSION, 'growth': client_growth_payload()})
+
+@app.route('/api/admin/growth-summary')
+def api_admin_growth_summary():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({'ok': True, 'version': APP_VERSION, 'growth': growth_summary_payload()})
+
+@app.route('/api/system/v558-check')
+def api_system_v558_check():
+    return jsonify({'ok': True, 'version': APP_VERSION, 'growth_center': True, 'client_growth_score': True})
 
 if __name__ == "__main__":
     seed_core()
