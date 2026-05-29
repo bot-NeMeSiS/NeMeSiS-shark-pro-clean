@@ -13,23 +13,18 @@
       <nav class="nav nav-clean">
         {% if current_user and current_user.role == 'ADMIN' %}
           <a href="/admin/dashboard">Admin</a>
+          <a href="/admin/unified-intelligence">Intelligence</a>
           <a href="/admin/users">Usuarios</a>
           <a href="/admin/picks">Picks</a>
           <a href="/admin/data-center">Datos</a>
-          <a href="/admin/telegram">Telegram</a>
-          <a href="/admin/system">Sistema</a>
-          <a href="/admin/final-qa">QA final</a>
-          <a href="/admin/compliance-center">Compliance</a>
-          <a href="/admin/growth-center">Growth</a>
           <a href="/logout">Salir</a>
         {% elif current_user %}
           <a href="/dashboard">Inicio</a>
+          <a href="/intelligence-hub">Intelligence</a>
           <a href="/live">Live</a>
           <a href="/picks">Picks</a>
           <a href="/favorites">Favoritos</a>
           <a href="/menu">Más</a>
-          <a href="/crecimiento">Progreso</a>
-          <a href="/juego-responsable">Responsable</a>
           <a href="/logout">Salir</a>
         {% else %}
           <a href="/membresias">Membresías</a>

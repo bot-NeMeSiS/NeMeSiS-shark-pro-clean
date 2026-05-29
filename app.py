@@ -53,7 +53,7 @@ from engines.telegram_delivery_engine import (
 from engines.telegram_engine import build_alert_queue, dispatch_signature, should_skip_duplicate
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V558_GROWTH_METRICS_REVENUE_OPERATIONS"
+APP_VERSION = "V560_DATA_DEPTH_LIVE_EXPANSION"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -7261,6 +7261,7 @@ def client_clean_menu():
     items = [
         {"group":"Fútbol", "title":"Calendario", "body":"Partidos por día, liga y hora.", "href":"/match-hub"},
         {"group":"Fútbol", "title":"Resultados", "body":"Finalizados y resultados pasados.", "href":"/resultados"},
+        {"group":"Fútbol", "title":"Data Depth", "body":"Calidad de datos, históricos, live y oportunidades.", "href":"/data-depth"},
         {"group":"Live", "title":"En directo", "body":"Marcadores, estados y próximos si no hay live.", "href":"/live"},
         {"group":"Apuestas", "title":"Picks", "body":"Picks publicados según membresía.", "href":"/picks"},
         {"group":"Apuestas", "title":"Recomendaciones", "body":"Análisis SHARK antes de convertir a pick.", "href":"/recomendaciones"},
@@ -8078,6 +8079,239 @@ def api_admin_growth_summary():
 @app.route('/api/system/v558-check')
 def api_system_v558_check():
     return jsonify({'ok': True, 'version': APP_VERSION, 'growth_center': True, 'client_growth_score': True})
+
+
+# -----------------------------
+# V559 — Unified Intelligence Hub
+# -----------------------------
+
+def table_exists(conn, table_name):
+    try:
+        return bool(conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?", (table_name,)).fetchone())
+    except Exception:
+        return False
+
+
+def v559_unified_client_hub(user=None):
+    user = user or current_session_user()
+    conn = db()
+    try:
+        matches_total = _safe_count(conn, 'matches')
+        live_total = _safe_count(conn, 'matches', "lower(coalesce(status,'')) LIKE '%live%' OR lower(coalesce(status,'')) LIKE '%directo%' OR coalesce(minute,'')!=''")
+        upcoming_total = _safe_count(conn, 'matches', "coalesce(match_date, date(kickoff_iso)) >= date('now')")
+        results_total = _safe_count(conn, 'matches', "lower(coalesce(status,'')) LIKE '%final%' OR lower(coalesce(status,'')) LIKE '%finished%' OR lower(coalesce(status,''))='ft'")
+        picks_published = _safe_count(conn, 'picks', "lower(coalesce(status,''))='published'")
+        rec_total = _safe_count(conn, 'betting_recommendations') if table_exists(conn, 'betting_recommendations') else 0
+        telegram_pending = _safe_count(conn, 'telegram_queue', "lower(coalesce(status,''))='pending'") if table_exists(conn, 'telegram_queue') else 0
+        favs = 0
+        if user:
+            uid = int(user.get('id') or 0)
+            favs = (_safe_count(conn, 'favorites', f'user_id={uid}') if table_exists(conn, 'favorites') else 0) or (_safe_count(conn, 'user_favorites', f'user_id={uid}') if table_exists(conn, 'user_favorites') else 0)
+    finally:
+        conn.close()
+    score = 50
+    score += 12 if matches_total else 0
+    score += 10 if upcoming_total else 0
+    score += 8 if live_total else 0
+    score += 10 if picks_published else 0
+    score += 8 if rec_total else 0
+    score += 6 if favs else 0
+    score = min(score, 98)
+    lanes = [
+        {'key':'live', 'title':'Live ahora', 'value':live_total, 'body':'Partidos en directo o lectura live disponible.', 'href':'/live', 'priority': 1 if live_total else 5},
+        {'key':'picks', 'title':'Picks publicados', 'value':picks_published, 'body':'Picks reales visibles según membresía.', 'href':'/picks', 'priority': 2 if picks_published else 7},
+        {'key':'recommendations', 'title':'Recomendaciones SHARK', 'value':rec_total, 'body':'Oportunidades analizadas antes de publicar pick.', 'href':'/recomendaciones', 'priority': 3 if rec_total else 6},
+        {'key':'favorites', 'title':'Favoritos activos', 'value':favs, 'body':'Personalización por equipos, ligas y partidos.', 'href':'/favorites', 'priority': 4 if favs else 8},
+        {'key':'calendar', 'title':'Próximos partidos', 'value':upcoming_total, 'body':'Calendario agrupado por día, liga y hora.', 'href':'/match-hub', 'priority': 5 if upcoming_total else 9},
+    ]
+    lanes = sorted(lanes, key=lambda x: x['priority'])
+    shark_message = 'SHARK prioriza datos reales: live, picks publicados, recomendaciones y favoritos.'
+    if not picks_published and upcoming_total:
+        shark_message = 'Hay partidos próximos, pero faltan picks publicados. Revisa recomendaciones y convierte las mejores en pick.'
+    elif picks_published:
+        shark_message = 'Hay picks publicados. Revisa riesgo, confianza y stake antes de enviar a Telegram.'
+    return {'score':score, 'lanes':lanes, 'matches_total':matches_total, 'live_total':live_total, 'upcoming_total':upcoming_total, 'results_total':results_total, 'picks_published':picks_published, 'recommendations':rec_total, 'favorites':favs, 'telegram_pending':telegram_pending, 'shark_message':shark_message}
+
+def v559_unified_admin_hub():
+    conn = db()
+    try:
+        users = _safe_count(conn, 'users')
+        matches = _safe_count(conn, 'matches')
+        teams = _safe_count(conn, 'teams')
+        picks = _safe_count(conn, 'picks')
+        published = _safe_count(conn, 'picks', "lower(coalesce(status,''))='published'")
+        recs = _safe_count(conn, 'betting_recommendations') if table_exists(conn, 'betting_recommendations') else 0
+        telegram = _safe_count(conn, 'telegram_queue') if table_exists(conn, 'telegram_queue') else 0
+        feedback = _safe_count(conn, 'client_feedback') if table_exists(conn, 'client_feedback') else 0
+    finally:
+        conn.close()
+    data_score = 35 + (15 if matches else 0) + (10 if teams else 0) + (10 if recs else 0)
+    betting_score = 45 + (20 if published else 0) + (10 if recs else 0)
+    operation_score = 55 + (10 if users else 0) + (8 if telegram else 0) + (5 if feedback else 0)
+    global_score = min(96, round((data_score + betting_score + operation_score) / 3))
+    tabs = [
+        {'tab':'Clientes', 'title':'Usuarios', 'value':users, 'href':'/admin/users', 'body':'Cuentas, roles, membresías y acceso.'},
+        {'tab':'Datos', 'title':'Data Center', 'value':matches, 'href':'/admin/data-center', 'body':'Partidos, equipos, SportsDB, Odds e imports legales.'},
+        {'tab':'Apuestas', 'title':'Picks', 'value':published, 'href':'/admin/picks', 'body':'Picks publicados, borradores y rendimiento.'},
+        {'tab':'Inteligencia', 'title':'Recomendaciones', 'value':recs, 'href':'/admin/intelligence-engine', 'body':'Score SHARK, value, riesgo y conversión a pick.'},
+        {'tab':'Canal', 'title':'Telegram', 'value':telegram, 'href':'/admin/telegram', 'body':'Cola, tests, logs y automatización.'},
+        {'tab':'Datos+', 'title':'Data Depth', 'value':matches, 'href':'/admin/data-depth', 'body':'Profundidad de datos, live, históricos y cobertura.'},
+        {'tab':'Sistema', 'title':'QA final', 'value':global_score, 'href':'/admin/final-qa', 'body':'Lanzamiento, compliance, growth y estabilidad.'},
+    ]
+    actions=[]
+    if not matches: actions.append('Sincronizar calendario desde Data Center para dar vida a la app.')
+    if not published: actions.append('Publicar picks reales revisados para que cliente y Telegram tengan valor.')
+    if not recs: actions.append('Generar recomendaciones SHARK desde partidos próximos y odds cacheadas.')
+    if not users: actions.append('Crear usuarios testers y validar flujo completo cliente.')
+    if not actions: actions.append('Base lista para beta privada/comercial controlada. Prioriza datos live y feedback real.')
+    return {'global_score':global_score, 'data_score':min(data_score,96), 'betting_score':min(betting_score,96), 'operation_score':min(operation_score,96), 'users':users, 'matches':matches, 'teams':teams, 'picks':picks, 'published':published, 'recommendations':recs, 'telegram':telegram, 'feedback':feedback, 'tabs':tabs, 'actions':actions}
+
+@app.route('/intelligence-hub')
+def v559_client_intelligence_hub():
+    user = current_session_user()
+    if not user:
+        return redirect('/cliente-login')
+    hub = v559_unified_client_hub(user)
+    upcoming = rows("SELECT * FROM matches WHERE coalesce(match_date, date(kickoff_iso))>=date('now') ORDER BY coalesce(kickoff_iso, match_date || ' ' || coalesce(match_time,'')) ASC LIMIT 8")
+    picks = published_picks_for_user(user, limit=5)
+    return render_template('unified_intelligence_hub.html', title='Intelligence Hub', hub=hub, upcoming=upcoming, picks=picks)
+
+@app.route('/admin/unified-intelligence')
+def v559_admin_unified_intelligence():
+    if not is_admin_session():
+        return redirect('/admin-login?next=/admin/unified-intelligence')
+    return render_template('admin_unified_intelligence.html', title='Inteligencia Unificada', hub=v559_unified_admin_hub())
+
+@app.route('/api/unified-intelligence/client')
+def api_v559_unified_client():
+    user = current_session_user() or {'id':0, 'role':'FREE', 'membership':'FREE'}
+    return jsonify({'ok': True, 'version': APP_VERSION, 'hub': v559_unified_client_hub(user)})
+
+@app.route('/api/unified-intelligence/admin')
+def api_v559_unified_admin():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({'ok': True, 'version': APP_VERSION, 'hub': v559_unified_admin_hub()})
+
+@app.route('/api/system/v559-check')
+def api_system_v559_check():
+    return jsonify({'ok': True, 'version': APP_VERSION, 'unified_intelligence_hub': True, 'client_dashboard': '/intelligence-hub', 'admin_dashboard': '/admin/unified-intelligence'})
+
+
+# -----------------------------
+# V560 — Data Depth & Live Expansion
+# -----------------------------
+
+def _v560_pct(value, target):
+    try:
+        value = int(value or 0)
+        target = max(int(target or 1), 1)
+        return max(0, min(100, round((value / target) * 100)))
+    except Exception:
+        return 0
+
+
+def v560_data_depth_summary(user=None):
+    conn = db()
+    try:
+        matches_total = _safe_count(conn, 'matches')
+        teams_total = _safe_count(conn, 'teams')
+        competitions_total = _safe_count(conn, 'competitions')
+        upcoming = _safe_count(conn, 'matches', "coalesce(match_date, date(kickoff_iso)) >= date('now')")
+        results = _safe_count(conn, 'matches', "lower(coalesce(status,'')) LIKE '%final%' OR lower(coalesce(status,'')) LIKE '%finished%' OR lower(coalesce(status,''))='ft'")
+        live = _safe_count(conn, 'matches', "lower(coalesce(status,'')) LIKE '%live%' OR lower(coalesce(status,'')) LIKE '%directo%' OR lower(coalesce(status,'')) LIKE '%1h%' OR lower(coalesce(status,'')) LIKE '%2h%' OR coalesce(minute,'')!=''")
+        with_logo = _safe_count(conn, 'teams', "coalesce(logo_url,'')!=''") if table_exists(conn, 'teams') else 0
+        picks = _safe_count(conn, 'picks', "lower(coalesce(status,''))='published'") if table_exists(conn, 'picks') else 0
+        recommendations = _safe_count(conn, 'betting_recommendations') if table_exists(conn, 'betting_recommendations') else 0
+        odds = _safe_count(conn, 'odds_snapshots') if table_exists(conn, 'odds_snapshots') else 0
+        events = _safe_count(conn, 'match_events') if table_exists(conn, 'match_events') else 0
+        sync_logs = rows("SELECT * FROM api_sync_logs ORDER BY coalesce(finished_at, started_at, created_at) DESC LIMIT 8") if table_exists(conn, 'api_sync_logs') else []
+    finally:
+        conn.close()
+    coverage_score = round((
+        _v560_pct(matches_total, 120) * 0.24 +
+        _v560_pct(teams_total, 60) * 0.14 +
+        _v560_pct(competitions_total, 20) * 0.10 +
+        _v560_pct(upcoming, 30) * 0.18 +
+        _v560_pct(results, 30) * 0.10 +
+        _v560_pct(with_logo, 40) * 0.10 +
+        _v560_pct(picks + recommendations, 20) * 0.09 +
+        _v560_pct(odds, 30) * 0.05
+    ))
+    live_score = round((_v560_pct(live, 8) * 0.45) + (_v560_pct(events, 25) * 0.35) + (_v560_pct(upcoming, 20) * 0.20))
+    betting_score = round((_v560_pct(recommendations, 12) * 0.45) + (_v560_pct(picks, 8) * 0.35) + (_v560_pct(odds, 20) * 0.20))
+    global_score = min(98, round((coverage_score + live_score + betting_score) / 3))
+    layers = [
+        {'name':'Cobertura de partidos', 'value':matches_total, 'score':_v560_pct(matches_total, 120), 'body':'Volumen total persistido para calendario, resultados, picks e IA.'},
+        {'name':'Próximos partidos', 'value':upcoming, 'score':_v560_pct(upcoming, 30), 'body':'Base para recomendaciones, combinadas y avisos Telegram.'},
+        {'name':'Resultados históricos', 'value':results, 'score':_v560_pct(results, 30), 'body':'Necesarios para forma, comparativas y lectura SHARK.'},
+        {'name':'Live y eventos', 'value':live + events, 'score':live_score, 'body':'Profundidad real de directo: minuto, marcador, timeline y lectura contextual.'},
+        {'name':'Equipos con escudo', 'value':with_logo, 'score':_v560_pct(with_logo, 40), 'body':'Identidad visual deportiva y confianza premium.'},
+        {'name':'Picks + recomendaciones', 'value':picks + recommendations, 'score':betting_score, 'body':'Valor principal del producto para apuestas responsables.'},
+    ]
+    actions = []
+    if upcoming < 10: actions.append('Sincronizar calendario de próximos 7 días desde Data Center para alimentar picks y Telegram.')
+    if results < 10: actions.append('Importar/sincronizar resultados recientes para mejorar forma, histórico y SHARK IA.')
+    if with_logo < max(5, teams_total // 3): actions.append('Ejecutar sync de escudos SportsDB para subir percepción premium.')
+    if recommendations < 5: actions.append('Generar recomendaciones SHARK desde partidos próximos y odds cacheadas.')
+    if picks < 3: actions.append('Publicar picks revisados por admin para que cliente y Telegram tengan valor real.')
+    if not actions: actions.append('Base de datos con buena densidad. Siguiente paso: más live profundo y feedback real de testers.')
+    return {
+        'global_score': global_score,
+        'coverage_score': coverage_score,
+        'live_score': live_score,
+        'betting_score': betting_score,
+        'matches_total': matches_total,
+        'teams_total': teams_total,
+        'competitions_total': competitions_total,
+        'upcoming': upcoming,
+        'results': results,
+        'live': live,
+        'with_logo': with_logo,
+        'picks': picks,
+        'recommendations': recommendations,
+        'odds': odds,
+        'events': events,
+        'layers': layers,
+        'actions': actions,
+        'sync_logs': sync_logs,
+    }
+
+
+@app.route('/data-depth')
+def v560_client_data_depth():
+    user = current_session_user()
+    if not user:
+        return redirect('/cliente-login')
+    summary = v560_data_depth_summary(user)
+    upcoming = rows("SELECT * FROM matches WHERE coalesce(match_date, date(kickoff_iso))>=date('now') ORDER BY coalesce(kickoff_iso, match_date || ' ' || coalesce(match_time,'')) ASC LIMIT 10")
+    recent = rows("SELECT * FROM matches WHERE lower(coalesce(status,'')) LIKE '%final%' OR lower(coalesce(status,'')) LIKE '%finished%' OR lower(coalesce(status,''))='ft' ORDER BY coalesce(kickoff_iso, match_date || ' ' || coalesce(match_time,'')) DESC LIMIT 8")
+    return render_template('data_depth.html', title='Data Depth', summary=summary, upcoming=upcoming, recent=recent)
+
+
+@app.route('/admin/data-depth')
+def v560_admin_data_depth():
+    if not is_admin_session():
+        return redirect('/admin-login?next=/admin/data-depth')
+    return render_template('admin_data_depth.html', title='Data Depth Admin', summary=v560_data_depth_summary())
+
+
+@app.route('/api/data-depth/summary')
+def api_v560_data_depth_summary():
+    return jsonify({'ok': True, 'version': APP_VERSION, 'summary': v560_data_depth_summary(current_session_user())})
+
+
+@app.route('/api/admin/data-depth-check')
+def api_v560_admin_data_depth_check():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({'ok': True, 'version': APP_VERSION, 'summary': v560_data_depth_summary()})
+
+
+@app.route('/api/system/v560-check')
+def api_system_v560_check():
+    s = v560_data_depth_summary(current_session_user())
+    return jsonify({'ok': True, 'version': APP_VERSION, 'data_depth': True, 'global_score': s['global_score'], 'coverage_score': s['coverage_score'], 'live_score': s['live_score'], 'betting_score': s['betting_score']})
 
 if __name__ == "__main__":
     seed_core()
