@@ -1,45 +1,26 @@
 {% extends "base.html" %}
 {% block content %}
 <section class="hero compact product-hero auto-picks-hero">
-  <div class="kicker">Picks automáticos</div>
-  <h1>SHARK analiza partidos y cuotas por ti</h1>
-  <p class="lead">El motor autónomo usa partidos próximos reales y cuotas cacheadas cuando existen. Si falta cuota, lo marca como análisis pendiente y no inventa datos.</p>
-  <div class="actions">
-    <a class="btn primary" href="/picks">Ver picks publicados</a>
-    <a class="btn" href="/recomendaciones">Recomendaciones</a>
-    <a class="btn" href="/combis">Combinadas</a>
-  </div>
+  <div class="kicker">Auto Picks</div>
+  <h1>Motor automático reservado para ELITE</h1>
+  <p class="lead">Auto Picks usa partidos próximos reales y cuotas cacheadas cuando existen. Si falta cuota, lo marca como pendiente; no inventa datos.</p>
+  <div class="actions"><a class="btn primary" href="/picks">Picks publicados</a><a class="btn" href="/membresias">{{ data.membership.next_cta }}</a></div>
 </section>
+
+{% if data.locked_auto_picks %}
+<section class="band compact-band"><div class="card locked-feature elite-lock"><span class="badge badge-elite">Disponible en ELITE</span><h2>{{ data.locked_auto_picks.label }}</h2><p class="small">{{ data.locked_auto_picks.message }}</p></div></section>
+{% endif %}
 
 <section class="band compact-band">
   <div class="grid compact-grid metric-row">
     <div class="card metric-card"><div class="metric">{{ data.autonomous_picks.published }}</div><div class="muted">picks visibles</div></div>
     <div class="card metric-card"><div class="metric">{{ data.autonomous_picks.recommendations }}</div><div class="muted">analizados</div></div>
     <div class="card metric-card"><div class="metric">{{ data.autonomous_picks.with_odds }}</div><div class="muted">con cuota</div></div>
-    <div class="card metric-card"><div class="metric">{{ data.autonomous_picks.auto_total }}</div><div class="muted">auto generados</div></div>
+    <div class="card metric-card"><div class="metric">{{ data.membership.membership }}</div><div class="muted">plan activo</div></div>
   </div>
 </section>
 
-<section class="band compact-band">
-  <div class="section-head"><h2>Top oportunidades SHARK</h2><span class="pill">Automático</span></div>
-  {% if data.recommendations %}
-  <div class="grid dense-grid">
-    {% for r in data.recommendations %}
-    <article class="card pick-card auto-pick-card">
-      <div class="match-top">
-        <div><div class="comp-name">{{ r.league_name }}</div><div class="small">{{ r.match_date }} · {{ r.market }}</div></div>
-        <span class="badge badge-{{ r.membership_required|lower }}">{{ r.membership_required }}</span>
-      </div>
-      <h3>{{ r.home_team }} vs {{ r.away_team }}</h3>
-      <p class="selection">{{ r.selection }}{% if r.odds %} · cuota {{ r.odds }}{% else %} · cuota pendiente{% endif %}</p>
-      <div class="status"><span>SHARK {{ r.shark_score }}/100</span><span>{{ r.confidence }}%</span><span>{{ r.risk_level }}</span><span>{{ r.value_rating }}</span></div>
-      <p class="small"><strong>Motivo:</strong> {{ r.reasoning }}</p>
-      <p class="small"><strong>Precaución:</strong> {{ r.warning_reason }}</p>
-    </article>
-    {% endfor %}
-  </div>
-  {% else %}
-  <div class="empty premium-empty">No hay partidos próximos suficientes para analizar. Sincroniza calendario/Odds desde Data Center.</div>
-  {% endif %}
-</section>
+{% if data.recommendations %}
+<section class="band compact-band"><div class="section-head"><h2>Top oportunidades SHARK</h2><span class="pill">ELITE</span></div><div class="grid dense-grid">{% for r in data.recommendations %}<article class="card pick-card auto-pick-card"><span class="badge badge-{{ r.membership_required|lower }}">{{ r.membership_required }}</span><h3>{{ r.home_team }} vs {{ r.away_team }}</h3><p class="selection">{{ r.selection }}{% if r.odds %} · cuota {{ r.odds }}{% endif %}</p><p class="small">{{ r.reasoning }}</p></article>{% endfor %}</div></section>
+{% endif %}
 {% endblock %}

@@ -2,45 +2,46 @@
 {% block content %}
 <section class="hero compact">
   <div class="kicker">Panel admin</div>
-  <h1>Usuarios y membresias</h1>
-  <p class="lead">Gestiona clientes registrados, rol y membresia desde una zona separada de la experiencia cliente.</p>
+  <h1>Usuarios y membresías</h1>
+  <p class="lead">Cambia FREE / PRO / ELITE / ADMIN y revisa qué plan tiene cada cliente.</p>
   <div class="admin-menu">
     <a class="btn primary" href="/admin/users">Usuarios</a>
-    <a class="btn" href="/admin/user-import">Importar usuarios</a>
-    <a class="btn" href="/admin-bootstrap">Bootstrap admin</a>
-    <a class="btn" href="/admin/import-center">Import Center</a>
-    <a class="btn" href="/admin/sportsdb-sync">SportsDB Sync</a>
-    <a class="btn" href="/api/diagnostics">Diagnosticos</a>
+    <a class="btn" href="/admin/memberships">Membresías</a>
+    <a class="btn" href="/admin/picks">Picks</a>
     <a class="btn" href="/admin/telegram">Telegram</a>
-    <a class="btn" href="/api/health">Sistema</a>
+    <a class="btn" href="/api/admin/membership-summary">API summary</a>
   </div>
 </section>
+
+<section class="band compact-band">
+  <div class="grid compact-grid">
+    <div class="card"><span class="badge badge-free">FREE</span><div class="metric">{{ data.membership_summary.free }}</div></div>
+    <div class="card"><span class="badge badge-pro">PRO</span><div class="metric">{{ data.membership_summary.pro }}</div></div>
+    <div class="card"><span class="badge badge-elite">ELITE</span><div class="metric">{{ data.membership_summary.elite }}</div></div>
+    <div class="card"><span class="badge badge-admin">ADMIN</span><div class="metric">{{ data.membership_summary.admin }}</div></div>
+  </div>
+</section>
+
 <section class="band">
   {% if message %}<p class="notice">{{ message }}</p>{% endif %}
-  <div class="section-head"><h2>{{ data.users|length }} usuarios</h2><span class="pill">ADMIN</span></div>
+  <div class="section-head"><h2>{{ data.users|length }} usuarios</h2><span class="pill">Cambiar plan</span></div>
   <div class="stack">
     {% for user in data.users %}
     <article class="card user-row">
       <div>
-        <div class="name">{{ user.name }} <span class="pill">@{{ user.username }}</span></div>
-        <p class="small">ID: {{ user.id }}</p>
+        <div class="name">{{ user.name }} <span class="pill">@{{ user.username }}</span> <span class="badge badge-{{ user.membership|lower }}">{{ user.membership }}</span></div>
         <p class="small">{{ user.email }}</p>
-        <p class="small">Rol: {{ user.role }} - Membresia: {{ user.membership }}</p>
-        <p class="small">Alta: {{ user.created_at or '-' }} - Ultimo login: {{ user.last_login or '-' }}</p>
+        <p class="small">Rol: {{ user.role }} · Alta: {{ user.created_at or '-' }} · Último login: {{ user.last_login or '-' }}</p>
       </div>
       <form method="post" action="/admin/users" class="inline-form">
         <input type="hidden" name="user_id" value="{{ user.id }}">
-        <label>Membresia / rol</label>
-        <select name="membership">
-          {% for role in ['FREE','PRO','ELITE','ADMIN'] %}
-          <option value="{{ role }}" {% if user.membership == role or user.role == role %}selected{% endif %}>{{ role }}</option>
-          {% endfor %}
-        </select>
+        <label>Membresía / rol</label>
+        <select name="membership">{% for role in ['FREE','PRO','ELITE','ADMIN'] %}<option value="{{ role }}" {% if user.membership == role or user.role == role %}selected{% endif %}>{{ role }}</option>{% endfor %}</select>
         <button type="submit">Guardar</button>
       </form>
     </article>
     {% else %}
-    <div class="empty">Aun no hay usuarios registrados.</div>
+    <div class="empty">Aún no hay usuarios registrados.</div>
     {% endfor %}
   </div>
 </section>

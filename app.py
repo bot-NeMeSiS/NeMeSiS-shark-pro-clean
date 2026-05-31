@@ -33,6 +33,15 @@ from engines.football_population_engine import (
 from engines.live_engine import build_live_depth, build_live_flow, build_match_detail, fallback_timeline, normalize_live_state
 from engines.match_engine import hub_sections, real_time_state, sync_plan
 from engines.match_sync_engine import IMPORTANT_COMPETITIONS, h2h_price_snapshot, normalize_status as sync_normalize_status, odds_sports, sportsdb_leagues
+from engines.membership_engine import (
+    can_access_feature,
+    get_membership_badge,
+    get_membership_limits,
+    get_upgrade_message,
+    get_user_membership,
+    locked_feature,
+    membership_context,
+)
 from engines.scheduler_engine import is_due, is_stale_running, next_run_iso, normalize_result, scheduler_config, task_definition
 from engines.shark_engine import build_shark_context, explain_pick_risk
 from engines.telegram_delivery_engine import (
@@ -53,7 +62,7 @@ from engines.telegram_delivery_engine import (
 from engines.telegram_engine import build_alert_queue, dispatch_signature, should_skip_duplicate
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V563_MADRID_TIMEZONE_FIX"
+APP_VERSION = "V564_MEMBERSHIP_VALUE_REWORK"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -3018,6 +3027,75 @@ def published_picks_for_user(user=None, limit=50):
     return get_picks(limit=limit, status=["published", "won", "lost", "void"], membership=membership, include_admin=include_admin)
 
 
+def membership_ui(user=None):
+    ctx = membership_context(user or current_session_user() or {"membership": "FREE", "role": "FREE"})
+    membership = ctx["membership"]
+    if membership == "FREE":
+        ctx["headline"] = "Estás en FREE"
+        ctx["next_cta"] = "Mejorar a PRO"
+        ctx["next_href"] = "/membresias?plan=PRO"
+        ctx["upgrade_cards"] = [
+            {"plan": "PRO", "title": "Desbloquea PRO", "items": ["Recomendaciones SHARK", "Picks PRO", "Telegram PRO"]},
+            {"plan": "ELITE", "title": "Salta a ELITE", "items": ["Auto Picks", "Combinadas automáticas", "SHARK completo"]},
+        ]
+    elif membership == "PRO":
+        ctx["headline"] = "Estás en PRO"
+        ctx["next_cta"] = "Mejorar a ELITE"
+        ctx["next_href"] = "/membresias?plan=ELITE"
+        ctx["upgrade_cards"] = [
+            {"plan": "ELITE", "title": "Desbloquea ELITE", "items": ["Auto Picks completo", "Combinadas automáticas", "SHARK completo", "Value avanzado"]},
+        ]
+    else:
+        ctx["headline"] = "Plan ELITE activo" if membership == "ELITE" else "Plan ADMIN activo"
+        ctx["next_cta"] = "Experiencia completa"
+        ctx["next_href"] = "/picks"
+        ctx["upgrade_cards"] = []
+    return ctx
+
+
+def visible_picks_for_membership(user=None, limit=50):
+    user = user or current_session_user() or {"membership": "FREE", "role": "FREE"}
+    limits = get_membership_limits(get_user_membership(user))
+    return published_picks_for_user(user, limit=min(int(limit), int(limits.get("daily_picks", limit))))
+
+
+def locked_pick_teasers(user=None, limit=4):
+    user = user or current_session_user() or {"membership": "FREE", "role": "FREE"}
+    membership = get_user_membership(user)
+    all_picks = get_picks(limit=50, status=["published", "won", "lost", "void"], include_admin=False)
+    locked = []
+    for pick in all_picks:
+        required = normalize_role(pick.get("membership_required") or "FREE")
+        if membership_rank(required) > membership_rank(membership):
+            teaser = dict(pick)
+            teaser["upgrade_message"] = get_upgrade_message("picks_" + required.lower(), membership)
+            locked.append(teaser)
+    return locked[:limit]
+
+
+def membership_summary_payload():
+    distribution = membership_distribution()
+    total = sum(distribution.values())
+    free = distribution.get("FREE", 0)
+    pro = distribution.get("PRO", 0)
+    elite = distribution.get("ELITE", 0)
+    conversion_potential = max(0, free) + max(0, pro // 2)
+    return {
+        "total_users": total,
+        "free": free,
+        "pro": pro,
+        "elite": elite,
+        "admin": distribution.get("ADMIN", 0),
+        "conversion_potential": conversion_potential,
+        "locked_feature_demand": {
+            "auto_picks": safe_count("user_activity", "target_type='auto-picks'") if "safe_count" in globals() else 0,
+            "combis": safe_count("user_activity", "target_type='combis'") if "safe_count" in globals() else 0,
+            "telegram": safe_count("user_activity", "target_type='telegram'") if "safe_count" in globals() else 0,
+        },
+        "plans": MEMBERSHIP_PLANS,
+    }
+
+
 def create_or_update_pick(payload, pick_id=None, publish=False):
     seed_core()
     payload = dict(payload or {})
@@ -4214,13 +4292,7 @@ def smart_pick_board(user=None, limit=12):
     sincronizados como base de análisis y explica claramente el estado.
     """
     user = user or current_session_user() or {"membership": "FREE", "role": "FREE"}
-    published = published_picks_for_user(user, limit=limit)
-    if not published:
-        try:
-            generate_autonomous_picks(limit=8, publish=True, force=False, require_odds=False)
-            published = published_picks_for_user(user, limit=limit)
-        except Exception:
-            published = []
+    published = visible_picks_for_membership(user, limit=limit)
     candidates = pick_candidate_matches(limit=max(limit, 12), days=14)
     def score_pick(p):
         try:
@@ -4233,14 +4305,13 @@ def smart_pick_board(user=None, limit=12):
             odds = 0
         return (conf, odds)
     hot = sorted(published, key=score_pick, reverse=True)[:6]
-    pro_locked = []
-    if str(user.get("membership") or "FREE").upper() == "FREE":
-        pro_locked = [p for p in get_picks(limit=20, status="published", include_admin=False) if str(p.get("membership_required") or "FREE").upper() in {"PRO", "ELITE"}][:4]
+    pro_locked = locked_pick_teasers(user, limit=4)
     return {
         "published": published,
         "hot": hot,
         "candidates": candidates,
         "pro_locked": pro_locked,
+        "membership": membership_ui(user),
         "published_count": len(published),
         "candidate_count": len(candidates),
         "has_real_picks": bool(published),
@@ -4380,9 +4451,33 @@ def live_data_flow(date=None):
 
 
 MEMBERSHIP_PLANS = [
-    {"key": "free", "name": "Free", "price": "0 EUR", "features": ["Calendario global", "Live basico", "Escudos persistentes"]},
-    {"key": "pro", "name": "PRO", "price": "Premium", "features": ["Picks premium", "Combis", "Perfil favorito", "Alertas Telegram"]},
-    {"key": "elite", "name": "ELITE", "price": "Top", "features": ["IA SHARK", "Briefings", "Prioridad live", "Control avanzado"]},
+    {
+        "key": "FREE",
+        "name": "FREE",
+        "price": "0 EUR",
+        "tagline": "Para probar la plataforma",
+        "features": ["Calendario", "Resultados", "Live básico", "Favoritos básicos", "Picks limitados"],
+        "cta": "Crear cuenta",
+        "href": "/registro",
+    },
+    {
+        "key": "PRO",
+        "name": "PRO",
+        "price": "Premium",
+        "tagline": "Para seguir picks serios",
+        "features": ["Picks PRO", "Recomendaciones SHARK", "Riesgo, confianza y value", "Telegram PRO", "Banca y seguimiento"],
+        "cta": "Mejorar a PRO",
+        "href": "/membresias?plan=PRO",
+    },
+    {
+        "key": "ELITE",
+        "name": "ELITE",
+        "price": "Máximo",
+        "tagline": "Para máximo rendimiento",
+        "features": ["SHARK completo", "Auto Picks completo", "Combinadas automáticas", "Top picks", "Value bets avanzadas", "Prioridad Telegram"],
+        "cta": "Mejorar a ELITE",
+        "href": "/membresias?plan=ELITE",
+    },
 ]
 
 
@@ -5865,6 +5960,7 @@ def admin_users_page():
     data = dashboard_data()
     data["users"] = list_users()
     data["admin_exists"] = admin_exists()
+    data["membership_summary"] = membership_summary_payload()
     return render_template("admin_users.html", data=data, message=message)
 
 
@@ -6054,7 +6150,8 @@ def admin_system_page():
 def picks_page():
     data = dashboard_data()
     user = current_session_user() or {"membership": "FREE", "role": "FREE"}
-    data["picks"] = published_picks_for_user(user, limit=80)
+    data["membership"] = membership_ui(user)
+    data["picks"] = visible_picks_for_membership(user, limit=80)
     data["candidate_matches"] = pick_candidate_matches(limit=24, days=14)
     data["pick_stats"] = pick_stats()
     data["smart_picks"] = smart_pick_board(user, limit=24)
@@ -6066,13 +6163,25 @@ def picks_page():
 def combis_page():
     data = dashboard_data()
     user = current_session_user() or {"membership": "FREE", "role": "FREE"}
+    data["membership"] = membership_ui(user)
+    limits = get_membership_limits(get_user_membership(user))
+    max_matches = int(limits.get("combi_matches", 0))
     requested_count = max(2, min(as_int(request.args.get("partidos"), 3), 8))
-    data["picks"] = published_picks_for_user(user, limit=30)
+    if max_matches:
+        requested_count = min(requested_count, max_matches)
+    data["picks"] = visible_picks_for_membership(user, limit=30)
     data["combis"] = get_combis(limit=20)
-    data["combi_builder"] = build_combi_candidates_from_matches(requested_count)
+    data["combi_builder"] = build_combi_candidates_from_matches(requested_count) if max_matches else {"requested_count": 0, "matches": [], "notice": get_upgrade_message("combis_basic", get_user_membership(user))}
     data["requested_combi_count"] = requested_count
     record_user_activity("view", "combis", "combis-page", {"picks_available": len(data["picks"])})
     return render_template("combis.html", data=data)
+
+
+@app.route("/dashboard")
+def dashboard_page():
+    if not current_session_user():
+        return redirect("/cliente-login")
+    return profile_page()
 
 
 @app.route("/perfil")
@@ -6083,6 +6192,7 @@ def profile_page():
         return redirect("/cliente-login")
     data = dashboard_data()
     data["session_user"] = user
+    data["membership"] = membership_ui(user)
     data["sportsdb"] = crest_sync_status()
     data["briefing"] = shark_briefing()
     return render_template("profile.html", data=data)
@@ -6121,7 +6231,55 @@ def daily_briefing_page():
 @app.route("/membresias")
 @app.route("/membership")
 def membership_page():
-    return render_template("membership.html", data=dashboard_data())
+    data = dashboard_data()
+    data["membership"] = membership_ui(current_session_user())
+    return render_template("membership.html", data=data)
+
+
+@app.route("/intelligence-hub")
+def intelligence_hub_page():
+    user = current_session_user() or {"membership": "FREE", "role": "FREE"}
+    data = dashboard_data()
+    data["membership"] = membership_ui(user)
+    upcoming = pick_candidate_matches(limit=8, days=7)
+    picks = visible_picks_for_membership(user, limit=8)
+    hub = {
+        "score": 82 if get_user_membership(user) == "FREE" else 90 if get_user_membership(user) == "PRO" else 96,
+        "shark_message": data["membership"]["headline"],
+        "favorites": len(data.get("favorites") or []),
+        "results_total": len(data.get("results") or []),
+        "telegram_pending": "PRO" if get_user_membership(user) == "FREE" else "OK",
+        "lanes": [
+            {"key": "live", "title": "Live básico", "value": data.get("match_hub", {}).get("counts", {}).get("live", 0), "body": "Partidos en directo sin inventar minuto.", "href": "/live"},
+            {"key": "picks", "title": "Picks visibles", "value": len(picks), "body": "Filtrados por FREE / PRO / ELITE.", "href": "/picks"},
+            {"key": "shark", "title": "SHARK IA", "value": get_user_membership(user), "body": "Análisis según tu plan activo.", "href": "/shark"},
+        ],
+    }
+    return render_template("unified_intelligence_hub.html", data=data, hub=hub, upcoming=upcoming, picks=picks)
+
+
+@app.route("/recomendaciones")
+@app.route("/recommendations")
+def recommendations_page():
+    data = dashboard_data()
+    user = current_session_user() or {"membership": "FREE", "role": "FREE"}
+    limits = get_membership_limits(get_user_membership(user))
+    recommendations = autonomous_pick_recommendations(limit=int(limits.get("recommendations", 3)), days=7)
+    if not can_access_feature(user, "recommendations_pro"):
+        recommendations = recommendations[: int(limits.get("recommendations", 3))]
+    data["membership"] = membership_ui(user)
+    data["recommendations"] = recommendations
+    data["recommendation_stats"] = {
+        "total": len(recommendations),
+        "hot": len([r for r in recommendations if str(r.get("value_label") or "").upper() in {"HOT", "VALUE"}]),
+        "avg_score": round(sum(as_int(r.get("shark_score"), 0) for r in recommendations) / len(recommendations), 1) if recommendations else 0,
+    }
+    data["locked_recommendations"] = []
+    if not can_access_feature(user, "recommendations_pro"):
+        data["locked_recommendations"].append(locked_feature("recommendations_pro", get_user_membership(user)))
+    if not can_access_feature(user, "advanced_stats"):
+        data["locked_recommendations"].append(locked_feature("advanced_stats", get_user_membership(user)))
+    return render_template("recommendations.html", data=data)
 
 
 @app.route("/shark-ai")
@@ -6129,12 +6287,15 @@ def membership_page():
 def shark_page():
     data = dashboard_data()
     data["briefing"] = shark_briefing()
+    data["membership"] = membership_ui(current_session_user())
     return render_template("shark.html", data=data)
 
 
 @app.route("/telegram")
 def telegram_page():
-    return render_template("telegram.html", data=dashboard_data())
+    data = dashboard_data()
+    data["membership"] = membership_ui(current_session_user())
+    return render_template("telegram.html", data=data)
 
 
 @app.route("/escudos")
@@ -6701,7 +6862,12 @@ def api_shark_briefing():
 @app.route("/api/shark/ask", methods=["GET", "POST"])
 def api_shark_ask():
     payload = request.get_json(silent=True) or dict(request.form or request.args or {})
+    user = current_session_user() or {"membership": "FREE", "role": "FREE"}
     answer = shark_answer(payload.get("question") or payload.get("q") or "")
+    if not can_access_feature(user, "shark_elite"):
+        answer["premium_teaser"] = get_upgrade_message("shark_elite", get_user_membership(user))
+        if not can_access_feature(user, "shark_pro"):
+            answer["answer"] = (answer.get("answer") or "") + " Para análisis de picks, combinadas y contexto completo, mejora a PRO o ELITE."
     save_shark_context("ask", answer.get("focus"), answer.get("context") or {})
     return jsonify({"ok": True, "version": APP_VERSION, "shark": answer})
 
@@ -6752,9 +6918,14 @@ def api_telegram_settings_update():
 def auto_picks_page():
     data = dashboard_data()
     user = current_session_user() or {"membership": "FREE", "role": "FREE"}
+    data["membership"] = membership_ui(user)
     data["auto_picks"] = autonomous_picks_status()
-    data["recommendations"] = autonomous_pick_recommendations(limit=18, days=7)
-    data["picks"] = published_picks_for_user(user, limit=40)
+    if can_access_feature(user, "auto_picks"):
+        data["recommendations"] = autonomous_pick_recommendations(limit=18, days=7)
+    else:
+        data["recommendations"] = []
+        data["locked_auto_picks"] = locked_feature("auto_picks", get_user_membership(user))
+    data["picks"] = visible_picks_for_membership(user, limit=40)
     return render_template("auto_picks.html", data=data)
 
 
@@ -7196,6 +7367,17 @@ def membership_revenue_summary():
     conversion = round((paid_clients / total_clients * 100), 1) if total_clients else 0
     return {
         "distribution": distribution,
+        "total_users": sum(distribution.values()),
+        "free": distribution.get("FREE", 0),
+        "pro": distribution.get("PRO", 0),
+        "elite": distribution.get("ELITE", 0),
+        "admin": distribution.get("ADMIN", 0),
+        "conversion_potential": distribution.get("FREE", 0) + max(0, distribution.get("PRO", 0) // 2),
+        "locked_feature_demand": {
+            "auto_picks": safe_count("user_activity", "target_type='auto-picks'"),
+            "combis": safe_count("user_activity", "target_type='combis'"),
+            "telegram": safe_count("user_activity", "target_type='telegram'"),
+        },
         "estimated_mrr": estimated_mrr,
         "total_clients": total_clients,
         "paid_clients": paid_clients,
@@ -7226,6 +7408,7 @@ def account_center_page():
         return redirect("/cliente-login")
     data = dashboard_data()
     data["onboarding"] = onboarding_status(user)
+    data["membership"] = membership_ui(user)
     data["account_center"] = {
         "user": user,
         "plan": normalize_role(user.get("membership") or user.get("role")),
@@ -7242,6 +7425,7 @@ def admin_memberships_page():
         return redirect("/admin-login?next=/admin/memberships")
     data = dashboard_data()
     data["membership_revenue"] = membership_revenue_summary()
+    data["membership_summary"] = membership_summary_payload()
     return render_template("admin_memberships.html", data=data)
 
 
@@ -7255,7 +7439,7 @@ def api_client_onboarding_check():
 def api_admin_membership_summary():
     if not is_admin_session():
         return admin_json_forbidden()
-    return jsonify({"ok": True, "version": APP_VERSION, "summary": membership_revenue_summary()})
+    return jsonify({"ok": True, "version": APP_VERSION, "summary": membership_summary_payload()})
 
 
 

@@ -1,43 +1,44 @@
 {% extends "base.html" %}
 {% block content %}
 <section class="hero compact">
-  <div class="kicker">IA SHARK 2.0</div>
-  <h1>Analisis premium con contexto</h1>
-  <p class="lead">SHARK responde sobre calendario, live, favoritos, picks, combis y riesgo. Si faltan datos reales, lo deja claro antes de recomendar nada.</p>
-  <div class="actions"><a class="btn primary" href="/perfil">Mi perfil</a><a class="btn" href="/picks">Ver picks</a></div>
+  <div class="kicker">SHARK IA</div>
+  <h1>SHARK responde según tu plan</h1>
+  <p class="lead">FREE tiene preguntas básicas. PRO analiza picks, favoritos y recomendaciones. ELITE abre combinadas, Auto Picks, value avanzado y contexto completo.</p>
+  <div class="actions"><a class="btn primary" href="/picks">Ver picks</a><a class="btn" href="/membresias">{{ data.membership.next_cta }}</a></div>
 </section>
-{% if not current_user or current_user.role not in ['ELITE','ADMIN'] %}
-<section class="band"><div class="notice">SHARK premium queda reservado para ELITE. En FREE/PRO se mantiene briefing claro sin inventar datos ni picks.</div></section>
+
+{% if not data.membership.is_elite %}
+<section class="band compact-band">
+  <div class="card locked-feature {% if data.membership.is_pro %}elite-lock{% endif %}">
+    <span class="badge {% if data.membership.is_pro %}badge-elite{% else %}badge-pro{% endif %}">Disponible en {% if data.membership.is_pro %}ELITE{% else %}PRO / ELITE{% endif %}</span>
+    <h2>SHARK completo bloqueado</h2>
+    <p class="small">{% if data.membership.is_pro %}ELITE desbloquea combinadas, Auto Picks y análisis avanzado.{% else %}PRO desbloquea análisis de picks y favoritos. ELITE añade lectura contextual total.{% endif %}</p>
+  </div>
+</section>
 {% endif %}
+
 <section class="band">
   <div class="grid">
     <div class="card"><div class="metric">{{ data.briefing.summary.matches_today }}</div><div class="muted">partidos hoy</div></div>
     <div class="card"><div class="metric">{{ data.briefing.summary.live_now }}</div><div class="muted">en directo</div></div>
     <div class="card"><div class="metric">{{ data.briefing.summary.picks_ready }}</div><div class="muted">picks listos</div></div>
-    <div class="card"><div class="metric">{{ data.briefing.risk.level }}</div><div class="muted">riesgo general</div></div>
+    <div class="card"><div class="metric">{{ data.membership.membership }}</div><div class="muted">plan activo</div></div>
   </div>
 </section>
+
 <section class="band two-col">
   <div>
-    <div class="section-head"><h2>Picks explicados</h2><span class="pill">{{ data.briefing.explained_picks|length }}</span></div>
+    <div class="section-head"><h2>Preguntas rápidas</h2><span class="pill">SHARK</span></div>
     <div class="stack">
-      {% if data.briefing.explained_picks %}
-        {% for p in data.briefing.explained_picks %}
-        <div class="card"><div class="match-top"><div class="name">{{ p.selection }}</div><div class="time">{{ p.odds }}</div></div><p class="small">{{ p.match }}</p><p>{{ p.explanation }}</p><div class="status"><span>Riesgo {{ p.risk }}</span><span class="priority">{{ p.confidence }}%</span></div></div>
-        {% endfor %}
-      {% else %}
-        <div class="empty">Carga picks autorizados para que SHARK pueda explicarlos.</div>
-      {% endif %}
+      <div class="list-row"><span>Qué pick ves mejor hoy</span><strong>FREE</strong></div>
+      <div class="list-row"><span>Qué partidos de mis favoritos juegan</span><strong>PRO</strong></div>
+      <div class="list-row"><span>Hazme una combinada segura</span><strong>ELITE</strong></div>
+      <div class="list-row"><span>Resume el live</span><strong>FREE</strong></div>
     </div>
   </div>
   <div>
-    <div class="section-head"><h2>Prioridades</h2><span class="pill">Contexto futbol</span></div>
-    <div class="stack">
-      {% for item in data.briefing.priority %}
-      <div class="list-row"><span>{{ item }}</span><strong>OK</strong></div>
-      {% endfor %}
-      <div class="card"><div class="name">Transparencia</div><p class="small">SHARK no inventa cuotas ni partidos. Trabaja con datos cargados y fuentes permitidas.</p></div>
-    </div>
+    <div class="section-head"><h2>Transparencia</h2><span class="pill">Datos reales</span></div>
+    <div class="card"><p class="small">SHARK no inventa cuotas, resultados ni picks. Trabaja con partidos cargados, picks publicados y datos permitidos.</p></div>
   </div>
 </section>
 {% endblock %}
