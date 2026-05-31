@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="premium-hero compact-hero">
+  <div>
+    <p class="eyebrow">SHARK Betting Intelligence</p>
+    <h1>Oportunidades del día</h1>
+    <p>Partidos próximos ordenados por prioridad, valor, riesgo y confianza. No son picks oficiales hasta que se publiquen.</p>
+  </div>
+  <div class="hero-metric"><strong>{{ data.v565.health.score }}</strong><span>Score datos/picks</span></div>
+</section>
+
+<div class="grid-3 compact-grid">
+  <div class="premium-card"><span class="muted">Próximos</span><strong>{{ data.v565.health.upcoming_matches }}</strong></div>
+  <div class="premium-card"><span class="muted">Cuotas cacheadas</span><strong>{{ data.v565.health.odds_snapshots }}</strong></div>
+  <div class="premium-card"><span class="muted">Recomendaciones</span><strong>{{ data.v565.health.recommendations }}</strong></div>
+</div>
+
+<section class="premium-section">
+  <h2>Disponibles para tu plan {{ data.v565.membership }}</h2>
+  {% if data.v565.allowed %}
+    <div class="cards-list compact-list">
+      {% for r in data.v565.allowed %}
+      <article class="match-card pick-card">
+        <div class="match-main">
+          <span class="league-badge">{{ r.league_name }}</span>
+          <h3>{{ r.home_team }} vs {{ r.away_team }}</h3>
+          <p>{{ r.match_date }} · {{ r.kickoff_time or 'Hora pendiente' }} · {{ r.status.label }}</p>
+          <p>{{ r.reason }}</p>
+          <small class="muted">Precaución: {{ r.warning }}</small>
+        </div>
+        <div class="pick-score">
+          <strong>{{ r.score }}/100</strong>
+          <span>{{ r.confidence }} · Riesgo {{ r.risk }}</span>
+          <span>{{ r.value_label }}{% if r.odds_value %} · {{ r.odds_value }}{% endif %}</span>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-state premium-card">SHARK está esperando partidos/cuotas suficientes. Cuando entren datos reales aparecerán oportunidades aquí.</div>
+  {% endif %}
+</section>
+
+{% if data.v565.locked %}
+<section class="premium-section">
+  <h2>Bloqueadas por plan</h2>
+  <div class="cards-list compact-list">
+    {% for r in data.v565.locked %}
+    <article class="match-card locked-card">
+      <div><strong>{{ r.home_team }} vs {{ r.away_team }}</strong><p>{{ r.league_name }}</p></div>
+      <span class="lock-badge">Disponible en {{ r.membership_required }}</span>
+    </article>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+{% endblock %}

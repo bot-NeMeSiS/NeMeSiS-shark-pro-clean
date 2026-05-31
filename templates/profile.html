@@ -28,19 +28,6 @@
   </aside>
 </section>
 
-{% if data.membership.upgrade_cards %}
-<section class="band compact-band">
-  <div class="section-head"><h2>{{ data.membership.headline }}</h2><a class="pill" href="/membresias">{{ data.membership.next_cta }}</a></div>
-  <div class="grid dense-grid">
-    {% for card in data.membership.upgrade_cards %}
-    <article class="card locked-feature {% if card.plan == 'ELITE' %}elite-lock{% endif %}"><span class="badge badge-{{ card.plan|lower }}">Disponible en {{ card.plan }}</span><h3>{{ card.title }}</h3><p class="small">{{ card.items|join(' · ') }}</p></article>
-    {% endfor %}
-  </div>
-</section>
-{% else %}
-<section class="band compact-band"><div class="notice">Plan ELITE activo: experiencia completa sin bloqueos comerciales.</div></section>
-{% endif %}
-
 <section class="band compact-band">
   <div class="quick-actions client-actions">
     <a class="quick primary" href="/mi-dia"><span>Mi día</span><strong>{{ data.daily_briefing.score }}%</strong></a>
