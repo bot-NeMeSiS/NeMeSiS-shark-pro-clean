@@ -3816,7 +3816,7 @@ def grouped_match_calendar(matches):
     for day_key in sorted(days_map.keys()):
         day = days_map[day_key]
         league_list = list(day["leagues"].values())
-        league_list.sort(key=lambda item: (item["category"], item["name"]))
+        league_list.sort(key=lambda item: (v565_league_rank(item["matches"][0]) if item.get("matches") else 80, item["name"]))
         for league in league_list:
             league["matches"].sort(key=match_sort_tuple)
             league["count"] = len(league["matches"])
