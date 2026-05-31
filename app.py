@@ -3736,7 +3736,8 @@ def match_lane_filter(match, lane):
     if lane in {"results", "finished"}:
         return (match.get("status_info") or canonical_match_status(match)).get("is_finished") or str(match.get("match_date") or "") < today_iso()
     if lane == "live":
-        return state in {"LIVE", "HT"} or str(match.get("status") or "").lower() in {"live", "descanso"} or bool(match.get("minute"))
+        info = match.get("status_info") or canonical_match_status(match)
+        return bool(info.get("is_live")) and not info.get("is_finished") and not info.get("is_upcoming")
     if lane == "spain":
         return country == "spain" or "laliga" in comp or "rfef" in comp or "copa-del-rey" in comp
     if lane == "andalucia":
