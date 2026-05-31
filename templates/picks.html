@@ -3,7 +3,7 @@
 <section class="hero compact product-hero">
   <div class="kicker">Picks premium</div>
   <h1>Centro de picks SHARK</h1>
-  <p class="lead">Picks publicados, partidos prÃ³ximos reales para anÃ¡lisis y estados claros. Si no hay pick real, no se inventa: se muestra la base disponible para prepararlo.</p>
+  <p class="lead">Picks publicados, partidos próximos reales para análisis y estados claros. Si no hay pick real, no se inventa: se muestra la base disponible para prepararlo.</p>
   <div class="actions">
     <a class="btn primary" href="/match-hub">Partidos reales</a>
     <a class="btn" href="/combis">Combinadas</a>
@@ -22,7 +22,7 @@
 </section>
 
 {% if current_user and current_user.membership == 'FREE' %}
-<section class="band compact-band"><div class="notice">Plan FREE activo: ves picks FREE y una vista previa de valor PRO/ELITE. PRO desbloquea mÃ¡s picks, combinadas y avisos Telegram.</div></section>
+<section class="band compact-band"><div class="notice">Plan FREE activo: ves picks FREE y una vista previa de valor PRO/ELITE. PRO desbloquea más picks, combinadas y avisos Telegram.</div></section>
 {% endif %}
 
 <section class="band compact-band">
@@ -31,33 +31,33 @@
   <div class="grid dense-grid">
     {% for p in data.smart_picks.hot %}
     <article class="card pick-card hot-pick">
-      <div class="match-top"><div><div class="comp-name">{{ p.competition_name or p.league_name or p.competition_key }}</div><div class="small">{{ p.match_date }} Â· {{ p.market }}</div></div><span class="badge badge-{{ p.membership_required|lower }}">{{ p.membership_required }}</span></div>
+      <div class="match-top"><div><div class="comp-name">{{ p.competition_name or p.league_name or p.competition_key }}</div><div class="small">{{ p.match_date }} · {{ p.market }}</div></div><span class="badge badge-{{ p.membership_required|lower }}">{{ p.membership_required }}</span></div>
       <h3>{{ p.home_team }}{% if p.away_team %} vs {{ p.away_team }}{% endif %}</h3>
       <p class="selection">{{ p.selection }}</p>
       <div class="status"><span>Cuota {{ p.odds }}</span><span>{{ p.confidence }}%</span><span>{{ p.risk_level }}</span></div>
       <p class="small"><strong>Motivo:</strong> {{ p.reasoning or 'Pick publicado por el equipo SHARK.' }}</p>
-      <p class="small"><strong>PrecauciÃ³n:</strong> {{ p.warning_reason or 'Gestiona stake y banca; ningÃºn pick es seguro.' }}</p>
-      <div class="small">Stake sugerido: {{ p.stake_units }}u Â· ejemplo {{ p.stake_euros_example }}â‚¬</div>
+      <p class="small"><strong>Precaución:</strong> {{ p.warning_reason or 'Gestiona stake y banca; ningún pick es seguro.' }}</p>
+      <div class="small">Stake sugerido: {{ p.stake_units }}u · ejemplo {{ p.stake_euros_example }}â‚¬</div>
     </article>
     {% endfor %}
   </div>
   {% else %}
   <div class="empty premium-empty">
     <strong>No hay picks publicados ahora mismo.</strong>
-    <p>SHARK no va a inventar apuestas. Debajo tienes partidos prÃ³ximos reales para publicar picks con datos reales.</p>
+    <p>SHARK no va a inventar apuestas. Debajo tienes partidos próximos reales para publicar picks con datos reales.</p>
     <div class="actions"><a class="btn primary" href="/match-hub">Ver calendario</a>{% if current_user and current_user.role == 'ADMIN' %}<a class="btn" href="/admin/picks">Publicar pick</a>{% endif %}</div>
   </div>
   {% endif %}
 </section>
 
 <section class="band compact-band">
-  <div class="section-head"><h2>Partidos prÃ³ximos reales para estudiar picks</h2><span class="pill">{{ data.candidate_matches|length }}</span></div>
-  <p class="small">Estos partidos salen del calendario sincronizado/importado. Sirven como base de anÃ¡lisis; no son picks hasta que se publiquen.</p>
+  <div class="section-head"><h2>Partidos próximos reales para estudiar picks</h2><span class="pill">{{ data.candidate_matches|length }}</span></div>
+  <p class="small">Estos partidos salen del calendario sincronizado/importado. Sirven como base de análisis; no son picks hasta que se publiquen.</p>
   {% if data.candidate_matches %}
   <div class="grid dense-grid">
     {% for m in data.candidate_matches[:12] %}
     <article class="card match-card analysis-card">
-      <div class="match-top"><div><div class="comp-name">{{ m.competition_name or m.league_name }}</div><div class="small">{{ m.match_date }} Â· {{ m.kickoff_time or m.match_time or 'hora por confirmar' }}</div></div><span class="tag">{{ m.pick_readiness }}</span></div>
+      <div class="match-top"><div><div class="comp-name">{{ m.competition_name or m.league_name }}</div><div class="small">{{ m.match_date }} · {{ m.kickoff_time or m.match_time or 'hora por confirmar' }}</div></div><span class="tag">{{ m.pick_readiness }}</span></div>
       <div class="teams compact-teams">
         <div class="team"><div class="crest"><img loading="lazy" src="{{ m.home_identity.crest_url }}" alt="{{ m.home_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ m.home_identity.initials }}'"></div><strong>{{ m.home_team }}</strong></div>
         <div class="team"><div class="crest"><img loading="lazy" src="{{ m.away_identity.crest_url }}" alt="{{ m.away_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ m.away_identity.initials }}'"></div><strong>{{ m.away_team }}</strong></div>

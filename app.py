@@ -6725,7 +6725,7 @@ def quality_center_summary():
 @app.route("/admin/quality-center")
 def admin_quality_center():
     if not is_admin_session():
-        return redirect(url_for("admin_login", next=request.path))
+        return redirect(url_for("admin_login_page", next=request.path))
     return render_template("admin_quality_center.html", title="Centro de calidad", q=quality_center_summary())
 
 

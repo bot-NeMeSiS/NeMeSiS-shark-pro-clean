@@ -3,14 +3,14 @@
 <section class="hero compact-hero">
   <div class="eyebrow">Centro de seguimiento</div>
   <h1>Tu rendimiento con picks</h1>
-  <p>Guarda picks, controla stake y revisa el resultado real sin mezclar anÃ¡lisis con picks publicados.</p>
+  <p>Guarda picks, controla stake y revisa el resultado real sin mezclar análisis con picks publicados.</p>
 </section>
 
 <section class="grid cards-4">
   <article class="card stat-card"><span>Seguimiento</span><strong>{{ data.performance.tracked_total }}</strong><small>picks guardados</small></article>
   <article class="card stat-card"><span>Winrate</span><strong>{{ data.performance.winrate }}%</strong><small>solo decididos</small></article>
-  <article class="card stat-card"><span>ROI estimado</span><strong>{{ data.performance.roi }}%</strong><small>segÃºn stakes marcados</small></article>
-  <article class="card stat-card"><span>Beneficio</span><strong>{{ data.performance.estimated_profit }}â‚¬</strong><small>estimaciÃ³n</small></article>
+  <article class="card stat-card"><span>ROI estimado</span><strong>{{ data.performance.roi }}%</strong><small>según stakes marcados</small></article>
+  <article class="card stat-card"><span>Beneficio</span><strong>{{ data.performance.estimated_profit }}â‚¬</strong><small>estimación</small></article>
 </section>
 
 <section class="grid two-col">
@@ -36,7 +36,7 @@
       <div class="stack compact-list">
       {% for pick in data.published_picks[:8] %}
         <div class="mini-row">
-          <div><strong>{{ pick.home_team }} vs {{ pick.away_team }}</strong><span>{{ pick.selection }} Â· {{ pick.odds }} Â· {{ pick.risk_level }}</span></div>
+          <div><strong>{{ pick.home_team }} vs {{ pick.away_team }}</strong><span>{{ pick.selection }} · {{ pick.odds }} · {{ pick.risk_level }}</span></div>
           <button class="btn tiny track-pick" data-pick="{{ pick.id }}">Seguir</button>
         </div>
       {% endfor %}
@@ -52,12 +52,12 @@
   {% if data.performance.tracked %}
     <div class="table-wrap">
       <table class="premium-table">
-        <thead><tr><th>Partido</th><th>Pick</th><th>Stake</th><th>Resultado</th><th>AcciÃ³n</th></tr></thead>
+        <thead><tr><th>Partido</th><th>Pick</th><th>Stake</th><th>Resultado</th><th>Acción</th></tr></thead>
         <tbody>
         {% for item in data.performance.tracked %}
           <tr>
             <td>{{ item.home_team }} vs {{ item.away_team }}<br><small>{{ item.league_name }}</small></td>
-            <td>{{ item.selection }}<br><small>{{ item.odds }} Â· {{ item.risk_level }}</small></td>
+            <td>{{ item.selection }}<br><small>{{ item.odds }} · {{ item.risk_level }}</small></td>
             <td>{{ item.stake_euros }}â‚¬</td>
             <td><span class="badge status-{{ item.result_status }}">{{ item.result_status or 'pending' }}</span></td>
             <td><button class="btn tiny remove-pick" data-pick="{{ item.pick_id }}">Quitar</button></td>
@@ -67,7 +67,7 @@
       </table>
     </div>
   {% else %}
-    <div class="empty-state">AÃºn no sigues ningÃºn pick. Guarda picks publicados para construir tu histÃ³rico personal.</div>
+    <div class="empty-state">Aún no sigues ningún pick. Guarda picks publicados para construir tu histórico personal.</div>
   {% endif %}
 </section>
 
