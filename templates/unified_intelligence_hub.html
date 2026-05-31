@@ -1,10 +1,10 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 {% block content %}
 <section class="app-hero compact-hero unified-hero">
   <div>
     <div class="kicker">Intelligence Hub</div>
     <h1>Todo lo importante, en una sola pantalla.</h1>
-    <p class="lead">SHARK resume live, picks, favoritos, recomendaciones y próximos partidos para que el cliente no tenga que buscar.</p>
+    <p class="lead">SHARK resume live, picks, favoritos, recomendaciones y prÃ³ximos partidos para que el cliente no tenga que buscar.</p>
     <div class="actions">
       <a class="btn primary" href="/recomendaciones">Ver recomendaciones</a>
       <a class="btn" href="/picks">Picks</a>
@@ -35,11 +35,11 @@
 
 <section class="band two-col compact-band">
   <div>
-    <div class="section-head"><h2>Próximos relevantes</h2><a class="pill" href="/match-hub">Calendario</a></div>
+    <div class="section-head"><h2>PrÃ³ximos relevantes</h2><a class="pill" href="/match-hub">Calendario</a></div>
     <div class="stack">
       {% for m in upcoming[:6] %}
-      <a class="list-row" href="/match/{{ m.id }}"><span>{{ m.home_team }} vs {{ m.away_team }}<small>{{ m.league_name or m.competition_name or 'Competición' }}</small></span><strong>{{ m.match_time or m.kickoff_time or 'Hora' }}</strong></a>
-      {% else %}<div class="empty">No hay partidos próximos guardados. El admin debe sincronizar calendario desde Data Center.</div>{% endfor %}
+      <a class="list-row" href="/match/{{ m.id }}"><span>{{ m.home_team }} vs {{ m.away_team }}<small>{{ m.league_name or m.competition_name or 'CompeticiÃ³n' }}</small></span><strong>{{ m.match_time or m.kickoff_time or 'Hora' }}</strong></a>
+      {% else %}<div class="empty">No hay proximos partidos disponibles todavia. SHARK los mostrara cuando haya datos suficientes.</div>{% endfor %}
     </div>
   </div>
   <div>
@@ -60,7 +60,9 @@
     <a class="quick" href="/combis"><span>Combis</span><strong>Builder</strong></a>
     <a class="quick" href="/telegram"><span>Telegram</span><strong>{{ hub.telegram_pending }}</strong></a>
     <a class="quick" href="/seguimiento"><span>Seguimiento</span><strong>ROI</strong></a>
-    <a class="quick" href="/menu"><span>Más</span><strong>Ordenado</strong></a>
+    <a class="quick" href="/menu"><span>MÃ¡s</span><strong>Ordenado</strong></a>
   </div>
 </section>
 {% endblock %}
+
+

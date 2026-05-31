@@ -1,11 +1,11 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 {% block content %}
 <section class="hero compact hero-v542">
   <span class="eyebrow">Explorar</span>
   <h1>Encuentra partidos, equipos, ligas y picks en segundos.</h1>
-  <p class="lead">Buscador premium conectado a los datos guardados de NeMeSiS SHARK PRO. Si no hay datos reales, te mostramos estados claros sin inventar información.</p>
+  <p class="lead">Buscador premium conectado a los datos guardados de NeMeSiS SHARK PRO. Si no hay datos reales, te mostramos estados claros sin inventar informaciÃ³n.</p>
   <form class="searchbar" method="get" action="/explorar">
-    <input name="q" value="{{ data.discovery.query }}" placeholder="Buscar Arsenal, LaLiga, Cádiz, Champions...">
+    <input name="q" value="{{ data.discovery.query }}" placeholder="Buscar Arsenal, LaLiga, CÃ¡diz, Champions...">
     <select name="scope">
       {% for key,label in [('all','Todo'),('matches','Partidos'),('teams','Equipos'),('competitions','Ligas'),('picks','Picks')] %}
       <option value="{{ key }}" {% if data.discovery.scope==key %}selected{% endif %}>{{ label }}</option>
@@ -26,18 +26,18 @@
 </section>
 
 <section class="section-card">
-  <div class="section-head"><h2>Partidos encontrados</h2><span class="pill">Próximos / reales guardados</span></div>
+  <div class="section-head"><h2>Partidos encontrados</h2><span class="pill">PrÃ³ximos / reales guardados</span></div>
   {% if data.discovery.matches %}
   <div class="match-list compact-list">
     {% for m in data.discovery.matches %}
       <a class="match-card mini" href="/match/{{ m.id }}">
         <div><strong>{{ m.home_team }}</strong><span>vs</span><strong>{{ m.away_team }}</strong></div>
-        <small>{{ m.competition_name or m.league_name }} · {{ m.match_date }} {{ m.kickoff_time }}</small>
+        <small>{{ m.competition_name or m.league_name }} Â· {{ m.match_date }} {{ m.kickoff_time }}</small>
         <span class="status {{ m.status_info.css if m.status_info else '' }}">{{ m.status_info.label if m.status_info else m.status }}</span>
       </a>
     {% endfor %}
   </div>
-  {% else %}<div class="empty premium-empty">No hay partidos para esta búsqueda todavía. Revisa Data Center o importa calendario legal.</div>{% endif %}
+  {% else %}<div class="empty premium-empty">No hay partidos para esta bÃºsqueda todavÃ­a. SHARK mostrara opciones cuando haya datos suficientes.</div>{% endif %}
 </section>
 
 <section class="grid two">
@@ -49,7 +49,7 @@
         <a class="team-row" href="/team/{{ t.id or t.key }}"><span class="crest-fallback">{{ (t.name or '?')[:2] }}</span><div><strong>{{ t.name }}</strong><small>{{ t.league or t.country or 'Equipo' }}</small></div></a>
       {% endfor %}
       </div>
-    {% else %}<div class="empty">Sin equipos para esta búsqueda.</div>{% endif %}
+    {% else %}<div class="empty">Sin equipos para esta bÃºsqueda.</div>{% endif %}
   </div>
   <div class="section-card">
     <div class="section-head"><h2>Ligas y competiciones</h2><span class="pill">Preparadas</span></div>
@@ -57,18 +57,20 @@
       <div class="league-list">
       {% for c in data.discovery.competitions %}<div class="league-row"><strong>{{ c.name }}</strong><small>{{ c.country or c.scope or 'Global' }}</small></div>{% endfor %}
       </div>
-    {% else %}<div class="empty">Sin competiciones para esta búsqueda.</div>{% endif %}
+    {% else %}<div class="empty">Sin competiciones para esta bÃºsqueda.</div>{% endif %}
   </div>
 </section>
 
 <section class="section-card">
-  <div class="section-head"><h2>Picks relacionados</h2><span class="pill">Según membresía</span></div>
+  <div class="section-head"><h2>Picks relacionados</h2><span class="pill">SegÃºn membresÃ­a</span></div>
   {% if data.discovery.picks %}
     <div class="grid cards-3">
     {% for p in data.discovery.picks %}
-      <article class="card pick-card"><span class="tag">{{ p.membership_required or 'FREE' }}</span><h3>{{ p.selection }}</h3><p>{{ p.home_team }} vs {{ p.away_team }}</p><small>{{ p.reasoning or 'Análisis guardado.' }}</small></article>
+      <article class="card pick-card"><span class="tag">{{ p.membership_required or 'FREE' }}</span><h3>{{ p.selection }}</h3><p>{{ p.home_team }} vs {{ p.away_team }}</p><small>{{ p.reasoning or 'AnÃ¡lisis guardado.' }}</small></article>
     {% endfor %}
     </div>
-  {% else %}<div class="empty premium-empty">No hay picks publicados para esta búsqueda. SHARK puede ayudarte a revisar partidos próximos.</div>{% endif %}
+  {% else %}<div class="empty premium-empty">No hay picks publicados para esta bÃºsqueda. SHARK puede ayudarte a revisar partidos prÃ³ximos.</div>{% endif %}
 </section>
 {% endblock %}
+
+

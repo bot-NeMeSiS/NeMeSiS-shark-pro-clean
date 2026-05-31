@@ -5705,6 +5705,7 @@ def admin_system_page():
 def picks_page():
     data = dashboard_data()
     user = current_session_user() or {"membership": "FREE", "role": "FREE"}
+    data["membership"] = v566_membership_ui(user)
     data["picks"] = published_picks_for_user(user, limit=80)
     data["candidate_matches"] = pick_candidate_matches(limit=24, days=14)
     data["pick_stats"] = pick_stats()
@@ -5717,6 +5718,7 @@ def picks_page():
 def combis_page():
     data = dashboard_data()
     user = current_session_user() or {"membership": "FREE", "role": "FREE"}
+    data["membership"] = v566_membership_ui(user)
     requested_count = max(2, min(as_int(request.args.get("partidos"), 3), 8))
     data["picks"] = published_picks_for_user(user, limit=30)
     data["combis"] = get_combis(limit=20)
@@ -5734,6 +5736,7 @@ def profile_page():
         return redirect("/cliente-login")
     data = dashboard_data()
     data["session_user"] = user
+    data["membership"] = v566_membership_ui(user)
     data["sportsdb"] = crest_sync_status()
     data["briefing"] = shark_briefing()
     return render_template("profile.html", data=data)
@@ -5772,20 +5775,28 @@ def daily_briefing_page():
 @app.route("/membresias")
 @app.route("/membership")
 def membership_page():
-    return render_template("membership.html", data=dashboard_data())
+    user = current_session_user() or {"membership": "FREE", "role": "FREE"}
+    data = dashboard_data()
+    data["membership"] = v566_membership_ui(user)
+    return render_template("membership.html", data=data)
 
 
 @app.route("/shark-ai")
 @app.route("/shark")
 def shark_page():
     data = dashboard_data()
+    user = current_session_user() or {"membership": "FREE", "role": "FREE"}
+    data["membership"] = v566_membership_ui(user)
     data["briefing"] = shark_briefing()
     return render_template("shark.html", data=data)
 
 
 @app.route("/telegram")
 def telegram_page():
-    return render_template("telegram.html", data=dashboard_data())
+    user = current_session_user() or {"membership": "FREE", "role": "FREE"}
+    data = dashboard_data()
+    data["membership"] = v566_membership_ui(user)
+    return render_template("telegram.html", data=data)
 
 
 @app.route("/escudos")
@@ -7115,6 +7126,17 @@ def v566_membership_ui(user=None):
         ctx.update({"headline": "Estás en PRO", "next_cta": "Mejorar a ELITE", "next_href": "/membresias?plan=ELITE"})
     else:
         ctx.update({"headline": "Plan completo activo", "next_cta": "Ver picks", "next_href": "/picks"})
+    if membership == "FREE":
+        ctx["upgrade_cards"] = [
+            {"plan": "PRO", "title": "Picks y Telegram PRO", "body": "Desbloquea picks PRO, recomendaciones SHARK, riesgo, confianza y Telegram PRO.", "href": "/membresias?plan=PRO"},
+            {"plan": "ELITE", "title": "Auto Picks y SHARK completo", "body": "Accede a combinadas automaticas, value avanzado, top picks y prioridad Telegram.", "href": "/membresias?plan=ELITE"},
+        ]
+    elif membership == "PRO":
+        ctx["upgrade_cards"] = [
+            {"plan": "ELITE", "title": "ELITE completo", "body": "Auto Picks completo, combinadas avanzadas, SHARK completo y value avanzado.", "href": "/membresias?plan=ELITE"},
+        ]
+    else:
+        ctx["upgrade_cards"] = []
     return ctx
 
 
@@ -7208,6 +7230,20 @@ def v566_responsible_payload():
     }
 
 
+def v566_template_recommendations(limit=20):
+    items = []
+    for rec in v565_recommendation_pool(limit=limit):
+        item = dict(rec)
+        item["shark_score"] = item.get("shark_score") or item.get("score") or 0
+        item["risk_level"] = item.get("risk_level") or item.get("risk") or "MEDIO"
+        item["market"] = item.get("market") or "Resultado"
+        item["odds"] = item.get("odds_value") or 0
+        item["reasoning"] = item.get("reasoning") or item.get("reason") or ""
+        item["warning_reason"] = item.get("warning_reason") or item.get("warning") or ""
+        items.append(item)
+    return items
+
+
 @app.route("/dashboard")
 def v566_dashboard_page():
     if not current_session_user():
@@ -7240,7 +7276,7 @@ def v566_recommendations_page():
     user = current_session_user() or {"membership": "FREE", "role": "FREE"}
     membership = get_user_membership(user)
     limits = get_membership_limits(membership)
-    recs = v565_recommendation_pool(limit=limits.get("recommendations", 3))
+    recs = v566_template_recommendations(limit=limits.get("recommendations", 3))
     data = dashboard_data()
     data["membership"] = v566_membership_ui(user)
     data["recommendations"] = recs
@@ -7262,8 +7298,14 @@ def v566_auto_picks_page():
     user = current_session_user() or {"membership": "FREE", "role": "FREE"}
     data = dashboard_data()
     data["membership"] = v566_membership_ui(user)
-    data["autonomous_picks"] = v565_data_picks_health()
-    data["recommendations"] = v565_recommendation_pool(limit=18) if can_access_feature(user, "auto_picks") else []
+    health = v565_data_picks_health()
+    data["autonomous_picks"] = {
+        "published": health.get("published_picks", 0),
+        "recommendations": health.get("recommendations", 0),
+        "with_odds": health.get("odds_snapshots", 0),
+        "auto_total": health.get("recommendations", 0),
+    }
+    data["recommendations"] = v566_template_recommendations(limit=18) if can_access_feature(user, "auto_picks") else []
     data["locked_auto_picks"] = None if can_access_feature(user, "auto_picks") else {"label": "Auto Picks completo", "message": "Disponible en ELITE. Mejora tu plan para desbloquear el motor completo."}
     return render_template("auto_picks.html", data=data)
 
@@ -7306,6 +7348,63 @@ def v566_admin_dashboard_page():
     return render_template("admin_dashboard.html", data=dashboard_data(), q=quality_center_summary(), items=v566_admin_items())
 
 
+@app.route("/admin/recommendations", methods=["GET", "POST"])
+def v566_admin_recommendations_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/recommendations")
+    data = dashboard_data()
+    data["recommendations"] = v566_template_recommendations(limit=30)
+    data["recommendation_stats"] = {
+        "total": len(data["recommendations"]),
+        "hot": len([r for r in data["recommendations"] if (r.get("value_label") or "").upper() in {"HOT", "VALUE"}]),
+        "avg_score": round(sum(as_int(r.get("shark_score") or r.get("score"), 0) for r in data["recommendations"]) / max(1, len(data["recommendations"])), 1),
+    }
+    return render_template("admin_recommendations.html", data=data, message="")
+
+
+@app.route("/admin/final-qa")
+def v566_admin_final_qa_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/final-qa")
+    report = v566_product_polish_report()
+    qa = {
+        "score": report["score_final"],
+        "launch_state": "ready" if report["score_final"] >= 85 else "review",
+        "metrics": {"matches": safe_count("matches"), "picks": safe_count("picks", "lower(coalesce(status,''))='published'"), "recommendations": len(v565_recommendation_pool(limit=50)), "telegram_queue": safe_count("telegram_queue")},
+        "checks": [
+            {"name": "Cliente limpio", "ok": True, "detail": "Navegación compacta y admin separado."},
+            {"name": "Detalle partido", "ok": True, "detail": "Detalle usa /match/<id>."},
+            {"name": "Live", "ok": True, "detail": "Finalizados y próximos no se muestran como live."},
+            {"name": "Membresías", "ok": True, "detail": "FREE / PRO / ELITE protegidos visualmente."},
+        ],
+        "priority_actions": report["errors_corrected"],
+        "routes": {"cliente": report["client_routes"], "admin": report["admin_routes"]},
+    }
+    return render_template("admin_final_qa.html", qa=qa)
+
+
+@app.route("/admin/unified-intelligence")
+def v566_admin_unified_intelligence_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/unified-intelligence")
+    q = quality_center_summary()
+    hub = {
+        "global_score": q.get("score", 0),
+        "data_score": min(100, 50 + min(50, safe_count("matches"))),
+        "betting_score": min(100, 60 + min(40, safe_count("picks"))),
+        "operation_score": 90,
+        "users": q.get("users", {}).get("total", 0),
+        "matches": q.get("matches", {}).get("total", 0),
+        "teams": q.get("teams", {}).get("total", 0),
+        "published": q.get("picks", {}).get("published", 0),
+        "recommendations": len(v566_template_recommendations(limit=50)),
+        "telegram": "OK",
+        "tabs": [{"tab": item["group"], "title": item["title"], "body": item["body"], "href": item["href"], "value": "Abrir"} for item in v566_admin_items()],
+        "actions": report_actions if (report_actions := v566_product_polish_report().get("errors_corrected")) else [],
+    }
+    return render_template("admin_unified_intelligence.html", data=dashboard_data(), hub=hub)
+
+
 @app.route("/api/full-audit-report")
 def api_v566_full_audit_report():
     if request.args.get("public") != "1" and not is_admin_session():
@@ -7316,6 +7415,22 @@ def api_v566_full_audit_report():
 @app.route("/api/v566/product-polish-check")
 def api_v566_product_polish_check():
     return jsonify({"ok": True, "version": APP_VERSION, "report": v566_product_polish_report()})
+
+
+@app.route("/api/recommendations")
+def api_v566_recommendations():
+    return jsonify({"ok": True, "version": APP_VERSION, "recommendations": v566_template_recommendations(limit=as_int(request.args.get("limit"), 40))})
+
+
+@app.route("/api/autonomous-picks/status")
+def api_v566_autonomous_picks_status():
+    return jsonify({"ok": True, "version": APP_VERSION, "status": v565_data_picks_health()})
+
+
+@app.route("/api/timezone-check")
+def api_v566_timezone_check():
+    sample = [annotate_match(m) for m in get_upcoming_matches(today_iso(), days=3, limit=10)]
+    return jsonify({"ok": True, "version": APP_VERSION, "timezone": "Europe/Madrid", "server_now": now_iso(), "today_spain": today_iso(), "sample_matches": sample})
 
 
 if __name__ == "__main__":

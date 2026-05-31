@@ -9,12 +9,12 @@
   <aside class="hero-panel hub-score-panel">
     <span class="small muted">Score global</span>
     <strong class="mega-score">{{ summary.global_score }}%</strong>
-    <p>Datos {{ summary.coverage_score }} · Live {{ summary.live_score }} · Apuestas {{ summary.betting_score }}</p>
+    <p>Datos {{ summary.coverage_score }} · Live {{ summary.live_score }} · Picks {{ summary.betting_score }}</p>
   </aside>
 </section>
 
 <section class="band compact-band">
-  <div class="section-head"><h2>Capas deportivas</h2><span class="pill">V560</span></div>
+  <div class="section-head"><h2>Capas deportivas</h2><span class="pill">V566</span></div>
   <div class="grid menu-grid">
     {% for layer in summary.layers %}
     <article class="card compact-card data-layer-card">
@@ -36,19 +36,19 @@
 
 <section class="band compact-band two-col">
   <div>
-    <div class="section-head"><h2>Próximos partidos</h2><a class="btn small" href="/match-hub">Calendario</a></div>
+    <div class="section-head"><h2>Proximos partidos</h2><a class="btn small" href="/match-hub">Calendario</a></div>
     <div class="stack">
       {% for m in upcoming %}
-      <a class="list-row" href="/match/{{ m.id }}"><span>{{ m.home_team }} vs {{ m.away_team }}<small>{{ m.league_name or 'Competición' }}</small></span><strong>{{ m.match_time or m.kickoff_iso or 'Hora' }}</strong></a>
-      {% else %}<div class="empty">No hay próximos sincronizados. El admin puede lanzar sync desde Data Center.</div>{% endfor %}
+      <a class="list-row" href="/match/{{ m.id }}"><span>{{ m.home_team }} vs {{ m.away_team }}<small>{{ m.league_name or 'Competicion' }}</small></span><strong>{{ m.match_time or m.kickoff_iso or 'Hora' }}</strong></a>
+      {% else %}<div class="empty">No hay proximos partidos disponibles todavia. SHARK los mostrara cuando haya datos suficientes.</div>{% endfor %}
     </div>
   </div>
   <div>
     <div class="section-head"><h2>Resultados recientes</h2><a class="btn small" href="/resultados">Resultados</a></div>
     <div class="stack">
       {% for m in recent %}
-      <a class="list-row" href="/match/{{ m.id }}"><span>{{ m.home_team }} vs {{ m.away_team }}<small>{{ m.league_name or 'Competición' }}</small></span><strong>{{ m.home_score or 0 }}-{{ m.away_score or 0 }}</strong></a>
-      {% else %}<div class="empty">Aún no hay resultados recientes persistidos.</div>{% endfor %}
+      <a class="list-row" href="/match/{{ m.id }}"><span>{{ m.home_team }} vs {{ m.away_team }}<small>{{ m.league_name or 'Competicion' }}</small></span><strong>{{ m.home_score or 0 }}-{{ m.away_score or 0 }}</strong></a>
+      {% else %}<div class="empty">Aun no hay resultados recientes publicados.</div>{% endfor %}
     </div>
   </div>
 </section>
