@@ -53,7 +53,7 @@ from engines.telegram_delivery_engine import (
 from engines.telegram_engine import build_alert_queue, dispatch_signature, should_skip_duplicate
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V562_AUTONOMOUS_PICKS_ENGINE"
+APP_VERSION = "V563_MADRID_TIMEZONE_FIX"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -85,6 +85,70 @@ def now_iso():
 
 def today_iso(offset=0):
     return (datetime.now(TZ).date() + timedelta(days=offset)).isoformat()
+
+
+def parse_external_datetime(value, fallback_date=None, fallback_time=None):
+    """Convierte timestamps externos a Europe/Madrid sin asumir que ya vienen en hora española.
+
+    The Odds API suele devolver UTC con Z. TheSportsDB puede devolver strTimestamp UTC/offset
+    o dateEvent+strTime. Esta función centraliza la conversión para evitar que en España
+    se muestren horarios desfasados.
+    """
+    raw = str(value or "").strip()
+    dt = None
+    if raw:
+        try:
+            normalized = raw.replace("Z", "+00:00")
+            dt = datetime.fromisoformat(normalized)
+            if dt.tzinfo is None:
+                # Si el proveedor no incluye zona, lo tratamos como UTC para evitar mostrarlo sin convertir.
+                dt = dt.replace(tzinfo=ZoneInfo("UTC"))
+        except Exception:
+            dt = None
+    if dt is None and fallback_date:
+        time_text = str(fallback_time or "00:00").strip()[:5] or "00:00"
+        try:
+            dt = datetime.fromisoformat(f"{str(fallback_date)[:10]}T{time_text}:00").replace(tzinfo=ZoneInfo("UTC"))
+        except Exception:
+            dt = None
+    if dt is None:
+        return None
+    return dt.astimezone(TZ)
+
+
+def madrid_datetime_payload(timestamp=None, fallback_date=None, fallback_time=None):
+    dt = parse_external_datetime(timestamp, fallback_date, fallback_time)
+    if not dt:
+        date_text = str(fallback_date or "").strip()[:10]
+        time_text = str(fallback_time or "").strip()[:5]
+        return {"date": date_text, "time": time_text, "iso": kickoff_iso_value(date_text, time_text), "label": time_text or "Hora por confirmar"}
+    return {
+        "date": dt.date().isoformat(),
+        "time": dt.strftime("%H:%M"),
+        "iso": dt.isoformat(timespec="seconds"),
+        "label": dt.strftime("%H:%M"),
+    }
+
+
+def apply_madrid_time(match):
+    """Normaliza en memoria fecha/hora de partido a hora española para templates y orden visual."""
+    if not match:
+        return match
+    payload = madrid_datetime_payload(
+        match.get("kickoff_iso") or match.get("commence_time") or "",
+        match.get("match_date"),
+        match.get("kickoff_time") or match.get("match_time"),
+    )
+    if payload.get("date"):
+        match["match_date"] = payload["date"]
+        match["display_date"] = payload["date"]
+    if payload.get("time"):
+        match["kickoff_time"] = payload["time"]
+        match["match_time"] = payload["time"]
+        match["display_time"] = payload["time"]
+    match["display_timezone"] = "España"
+    match["display_timezone_name"] = "Europe/Madrid"
+    return match
 
 
 def db():
@@ -379,6 +443,29 @@ def run_schema_migrations(conn):
         conn.execute("CREATE INDEX IF NOT EXISTS idx_user_activity_user_type ON user_activity(user_id, activity_type, created_at)")
     except sqlite3.OperationalError:
         pass
+
+
+def normalize_existing_match_times(cur):
+    """Migra partidos existentes a hora española cuando tienen kickoff_iso/UTC.
+
+    Es idempotente y ligera: solo toca filas con kickoff_iso suficiente. Evita que Render
+    siga mostrando horas antiguas en UTC después de actualizar el código.
+    """
+    try:
+        data = cur.execute("SELECT id, match_date, kickoff_time, match_time, kickoff_iso FROM matches WHERE kickoff_iso IS NOT NULL AND kickoff_iso!='' LIMIT 5000").fetchall()
+    except sqlite3.OperationalError:
+        return
+    for row in data:
+        item = dict(row)
+        payload = madrid_datetime_payload(item.get("kickoff_iso"), item.get("match_date"), item.get("kickoff_time") or item.get("match_time"))
+        if not payload.get("date") or not payload.get("time"):
+            continue
+        if payload["date"] == item.get("match_date") and payload["time"] == (item.get("kickoff_time") or item.get("match_time")):
+            continue
+        cur.execute(
+            "UPDATE matches SET match_date=?, kickoff_time=?, match_time=?, kickoff_iso=COALESCE(NULLIF(kickoff_iso,''), ?), updated_at=? WHERE id=?",
+            (payload["date"], payload["time"], payload["time"], payload["iso"], now_iso(), item.get("id")),
+        )
 
 
 def init_db():
@@ -748,6 +835,7 @@ def init_db():
     )
     run_schema_migrations(conn)
     cleanup_fake_matches(cur)
+    normalize_existing_match_times(cur)
     cur.execute(
         """INSERT OR IGNORE INTO telegram_settings
            (id,auto_daily_matches,auto_daily_picks,auto_live_alerts,daily_matches_time,daily_picks_time,max_messages_per_hour,enabled,updated_at)
@@ -1385,13 +1473,10 @@ def canonical_match_status(match):
     return {"key": "UPCOMING", "label": "Próximo", "badge": "upcoming", "is_live": False, "is_finished": False, "is_upcoming": True}
 
 def sportsdb_event_time(event):
-    raw_time = str(event.get("strTime") or event.get("strEventTime") or event.get("timeEvent") or "").strip()
-    if raw_time and len(raw_time) >= 5:
-        return raw_time[:5]
     timestamp = str(event.get("strTimestamp") or "").strip()
-    if "T" in timestamp:
-        return timestamp.split("T", 1)[1][:5]
-    return raw_time
+    raw_time = str(event.get("strTime") or event.get("strEventTime") or event.get("timeEvent") or "").strip()
+    payload = madrid_datetime_payload(timestamp, event.get("dateEvent"), raw_time)
+    return (payload.get("time") or raw_time or "")[:5]
 
 
 def kickoff_iso_value(match_date, match_time):
@@ -1441,8 +1526,9 @@ def sportsdb_event_to_match(event, fallback=None):
     comp_id = event.get("idLeague") or fallback.get("id") or ""
     status = sportsdb_match_status(event)
     score = sportsdb_score(event.get("intHomeScore"), event.get("intAwayScore"))
-    match_date = event.get("dateEvent") or today_iso()
-    match_time = sportsdb_event_time(event)
+    time_payload = madrid_datetime_payload(event.get("strTimestamp"), event.get("dateEvent") or today_iso(), event.get("strTime") or event.get("strEventTime") or event.get("timeEvent") or "")
+    match_date = time_payload.get("date") or event.get("dateEvent") or today_iso()
+    match_time = time_payload.get("time") or sportsdb_event_time(event)
     home_badge = event.get("strHomeTeamBadge") or event.get("strHomeTeamLogo") or ""
     away_badge = event.get("strAwayTeamBadge") or event.get("strAwayTeamLogo") or ""
     home_id = event.get("idHomeTeam") or ""
@@ -1458,7 +1544,7 @@ def sportsdb_event_to_match(event, fallback=None):
         "match_date": match_date,
         "kickoff_time": match_time,
         "match_time": match_time,
-        "kickoff_iso": event.get("strTimestamp") or kickoff_iso_value(match_date, match_time),
+        "kickoff_iso": time_payload.get("iso") or event.get("strTimestamp") or kickoff_iso_value(match_date, match_time),
         "competition_id": comp_id,
         "competition_key": comp_key,
         "competition_name": comp_name,
@@ -2279,8 +2365,9 @@ def odds_event_to_match(sport, event):
     if not home or not away or is_fake_team_name(home) or is_fake_team_name(away):
         return None
     commence = str(event.get("commence_time") or "")
-    match_date = commence[:10] if len(commence) >= 10 else today_iso()
-    match_time = commence[11:16] if "T" in commence else ""
+    time_payload = madrid_datetime_payload(commence)
+    match_date = time_payload.get("date") or (commence[:10] if len(commence) >= 10 else today_iso())
+    match_time = time_payload.get("time") or (commence[11:16] if "T" in commence else "")
     odds_snapshot = h2h_price_snapshot(event)
     comp_key = sport.get("key") or slug(event.get("sport_key") or "odds")
     comp_name = sport.get("name") or event.get("sport_title") or comp_key
@@ -2291,7 +2378,7 @@ def odds_event_to_match(sport, event):
         "match_date": match_date,
         "kickoff_time": match_time,
         "match_time": match_time,
-        "kickoff_iso": commence or kickoff_iso_value(match_date, match_time),
+        "kickoff_iso": time_payload.get("iso") or commence or kickoff_iso_value(match_date, match_time),
         "competition_id": event.get("sport_key") or sport.get("odds_key") or "",
         "competition_key": comp_key,
         "competition_name": comp_name,
@@ -3373,6 +3460,7 @@ def favorite_sets(user_id=None):
 
 
 def annotate_match(match, favs=None):
+    match = apply_madrid_time(match)
     favs = favs or favorite_sets()
     match_key = str(match.get("id") or "").lower()
     comp_key = str(match.get("competition_key") or "").lower()
@@ -3829,6 +3917,7 @@ def get_results_matches(start_date=None, days_back=14, limit=150):
     data = [item for item in rows(query, (start, start_date, int(limit))) if not is_fake_match(item)]
     enriched = []
     for item in data:
+        item = apply_madrid_time(item)
         item["kickoff_time"] = item.get("kickoff_time") or item.get("match_time") or ""
         if not item.get("score") and (item.get("home_score") or item.get("away_score")):
             item["score"] = sportsdb_score(item.get("home_score"), item.get("away_score"))
@@ -5445,6 +5534,7 @@ def get_matches(date=None, lane="today"):
     query = "SELECT * FROM matches WHERE " + " AND ".join(clauses) + " ORDER BY priority DESC, kickoff_time, competition_name LIMIT 150"
     data = [item for item in rows(query, params) if not is_fake_match(item)]
     for item in data:
+        item = apply_madrid_time(item)
         item["kickoff_time"] = item.get("kickoff_time") or item.get("match_time") or ""
         if not item.get("score") and (item.get("home_score") or item.get("away_score")):
             item["score"] = sportsdb_score(item.get("home_score"), item.get("away_score"))
@@ -5468,6 +5558,7 @@ def get_upcoming_matches(start_date=None, days=7, limit=150):
                LIMIT ?"""
     data = [item for item in rows(query, (start_date, end_date, int(limit))) if not is_fake_match(item)]
     for item in data:
+        item = apply_madrid_time(item)
         item["kickoff_time"] = item.get("kickoff_time") or item.get("match_time") or ""
         if not item.get("score") and (item.get("home_score") or item.get("away_score")):
             item["score"] = sportsdb_score(item.get("home_score"), item.get("away_score"))
@@ -7166,6 +7257,22 @@ def api_admin_membership_summary():
         return admin_json_forbidden()
     return jsonify({"ok": True, "version": APP_VERSION, "summary": membership_revenue_summary()})
 
+
+
+@app.get("/api/timezone-check")
+def api_timezone_check():
+    seed_core()
+    sample = rows("SELECT id, home_team, away_team, match_date, kickoff_time, match_time, kickoff_iso, source FROM matches ORDER BY match_date DESC, kickoff_time DESC LIMIT 10")
+    normalized = [apply_madrid_time(dict(item)) for item in sample]
+    return jsonify({
+        "ok": True,
+        "timezone": "Europe/Madrid",
+        "label": "Hora española",
+        "server_now": now_iso(),
+        "today_spain": today_iso(),
+        "sample_matches": normalized,
+        "message": "Todas las horas de partidos se normalizan a Europe/Madrid para cliente/admin.",
+    })
 
 if __name__ == "__main__":
     seed_core()
