@@ -1,4 +1,4 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 {% block content %}
 <section class="hero compact product-hero">
   <div class="kicker">Picks premium</div>
@@ -21,6 +21,25 @@
   </div>
 </section>
 
+
+<section class="band compact-band">
+  <div class="section-head"><h2>Auto Picks SHARK</h2><span class="pill">{{ data.auto_picks_status.generated }}</span></div>
+  <p class="small">Motor automático sobre partidos próximos reales. Si falta cuota, lo marca como pendiente y no inventa apuestas.</p>
+  {% if data.auto_picks_status.top %}
+  <div class="grid dense-grid">
+    {% for r in data.auto_picks_status.top[:4] %}
+    <article class="card pick-card auto-pick-card">
+      <div class="match-top"><div><div class="comp-name">{{ r.league_name }}</div><div class="small">{{ r.match_date }} · {{ r.kickoff_time or 'hora por confirmar' }}</div></div><span class="badge badge-{{ r.membership_required|lower }}">{{ r.membership_required }}</span></div>
+      <h3>{{ r.home_team }} vs {{ r.away_team }}</h3>
+      <p class="selection">{{ r.selection }} {% if r.has_odds %}· cuota {{ r.odds }}{% else %}· cuota pendiente{% endif %}</p>
+      <div class="status"><span>Score {{ r.score }}/100</span><span>{{ r.confidence }}%</span><span>{{ r.risk_level }}</span></div>
+      <a class="mini-link" href="/auto-picks">Ver auto picks</a>
+    </article>
+    {% endfor %}
+  </div>
+  {% else %}<div class="empty premium-empty">SHARK está esperando partidos próximos reales para analizar.</div>{% endif %}
+</section>
+
 {% if current_user and current_user.membership == 'FREE' %}
 <section class="band compact-band"><div class="notice">Plan FREE activo: ves picks FREE y una vista previa de valor PRO/ELITE. PRO desbloquea más picks, combinadas y avisos Telegram.</div></section>
 {% endif %}
@@ -37,14 +56,14 @@
       <div class="status"><span>Cuota {{ p.odds }}</span><span>{{ p.confidence }}%</span><span>{{ p.risk_level }}</span></div>
       <p class="small"><strong>Motivo:</strong> {{ p.reasoning or 'Pick publicado por el equipo SHARK.' }}</p>
       <p class="small"><strong>Precaución:</strong> {{ p.warning_reason or 'Gestiona stake y banca; ningún pick es seguro.' }}</p>
-      <div class="small">Stake sugerido: {{ p.stake_units }}u · ejemplo {{ p.stake_euros_example }}â‚¬</div>
+      <div class="small">Stake sugerido: {{ p.stake_units }}u · ejemplo {{ p.stake_euros_example }}€</div>
     </article>
     {% endfor %}
   </div>
   {% else %}
   <div class="empty premium-empty">
     <strong>No hay picks publicados ahora mismo.</strong>
-    <p>SHARK no va a inventar apuestas. Debajo tienes partidos próximos reales para publicar picks con datos reales.</p>
+    <p>SHARK no va a inventar apuestas. Debajo tienes partidos próximos reales para que el admin publique picks con datos reales.</p>
     <div class="actions"><a class="btn primary" href="/match-hub">Ver calendario</a>{% if current_user and current_user.role == 'ADMIN' %}<a class="btn" href="/admin/picks">Publicar pick</a>{% endif %}</div>
   </div>
   {% endif %}
@@ -68,7 +87,7 @@
     {% endfor %}
   </div>
   {% else %}
-  <div class="empty premium-empty">SHARK esta analizando los proximos partidos. Las recomendaciones apareceran automaticamente cuando haya datos suficientes.</div>
+  <div class="empty premium-empty">No hay partidos próximos sincronizados todavía. {% if current_user and current_user.role == 'ADMIN' %}<a class="mini-link" href="/admin/data-center">Sincronizar desde Data Center</a>{% endif %}</div>
   {% endif %}
 </section>
 
@@ -83,4 +102,3 @@
 </section>
 {% endif %}
 {% endblock %}
-

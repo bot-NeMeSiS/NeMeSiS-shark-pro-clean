@@ -1,4 +1,4 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 {% block content %}
 <section class="hero compact live-hero product-hero">
   <div class="kicker">Live Center Pro</div>
@@ -61,7 +61,7 @@
     {% endfor %}
   </div>
   {% else %}
-  <div class="empty">No hay partidos en directo ahora mismo. SHARK mostrara el live cuando haya datos suficientes.</div>
+  <div class="empty">No hay partidos sincronizados todavía.{% if current_user and current_user.role == 'ADMIN' %}<div class="actions"><a class="btn primary" href="/admin/data-center">Sincronizar desde Data Center</a></div>{% endif %}</div>
   {% endif %}
 </section>
 
@@ -80,5 +80,3 @@
   {% else %}<div class="empty">Aún no hay resultados pasados guardados para las competiciones sincronizadas.</div>{% endif %}
 </section>
 {% endblock %}
-
-

@@ -6,8 +6,8 @@
   <p class="lead">SHARK responde sobre calendario, live, favoritos, picks, combis y riesgo. Si faltan datos reales, lo deja claro antes de recomendar nada.</p>
   <div class="actions"><a class="btn primary" href="/perfil">Mi perfil</a><a class="btn" href="/picks">Ver picks</a></div>
 </section>
-{% if not current_user or current_user.membership not in ['ELITE','ADMIN'] %}
-<section class="band"><div class="notice">SHARK completo queda reservado para ELITE. En FREE/PRO tienes preguntas basicas, favoritos, live y picks disponibles sin inventar datos.</div></section>
+{% if not current_user or current_user.role not in ['ELITE','ADMIN'] %}
+<section class="band"><div class="notice">SHARK premium queda reservado para ELITE. En FREE/PRO se mantiene briefing claro sin inventar datos ni picks.</div></section>
 {% endif %}
 <section class="band">
   <div class="grid">

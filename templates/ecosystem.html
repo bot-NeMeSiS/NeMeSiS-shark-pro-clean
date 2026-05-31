@@ -1,10 +1,10 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 {% block content %}
 <section class="hero">
   <div class="kicker">{{ data.version }} · control global</div>
   <h1>Centro de mando del ecosistema</h1>
   <p class="lead">Vista general para no avanzar pieza por pieza: Live, Telegram, picks, perfil, IA, escudos, calendario y datos legales unidos en una sola app.</p>
-  <div class="actions"><a class="btn primary" href="/dashboard">Abrir inicio</a><a class="btn" href="/picks">Ver picks</a></div>
+  <div class="actions"><a class="btn primary" href="/api/v506/ecosystem">API V506</a><a class="btn" href="/api/diagnostics">Diagnóstico</a></div>
 </section>
 <section class="band">
   <div class="section-head"><h2>Niveles del producto</h2><span class="pill">global</span></div>
@@ -23,4 +23,3 @@
   </div>
 </section>
 {% endblock %}
-

@@ -1,4 +1,4 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 {% block content %}
 {% set briefing = data.briefing %}
 <section class="app-hero daily-hero product-hero">
@@ -61,7 +61,7 @@
       {% for m in briefing.today_matches[:5] or briefing.upcoming[:5] %}
       <a class="list-row" href="/match/{{ m.id }}"><span>{{ m.home_team }} vs {{ m.away_team }}<small>{{ m.competition_name or m.league_name or 'Competición' }}</small></span><strong>{{ m.kickoff_time or m.live_depth.label }}</strong></a>
       {% else %}
-      <div class="empty premium-empty"><strong>Sin partidos sincronizados</strong><p>Cuando haya datos suficientes, apareceran aqui automaticamente.</p></div>
+      <div class="empty premium-empty"><strong>Sin partidos sincronizados</strong><p>Cuando el admin sincronice SportsDB, Odds o import legal, aparecerán aquí.</p></div>
       {% endfor %}
     </div>
   </div>
@@ -88,5 +88,3 @@
   </div>
 </section>
 {% endblock %}
-
-

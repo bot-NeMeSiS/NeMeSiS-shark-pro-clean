@@ -168,7 +168,3 @@ textarea{min-height:230px;font-family:Consolas,monospace;font-size:13px}
 .mini-stat strong{display:block;font-size:2rem;margin:8px 0}
 .mini-stat small{opacity:.7}
 @media (max-width:720px){.v540-depth .form-grid{grid-template-columns:1fr}.mini-stat{min-height:auto}.mini-stat strong{font-size:1.5rem}}
-
-
-/* V565 Sports Data & Picks Perfection */
-.compact-hero{padding:22px!important;min-height:auto!important;display:flex;align-items:center;justify-content:space-between;gap:18px}.compact-hero h1{font-size:clamp(1.6rem,4vw,2.5rem);margin:.2rem 0}.hero-metric{border:1px solid rgba(255,255,255,.15);border-radius:18px;padding:16px 20px;text-align:center;background:rgba(255,255,255,.06)}.hero-metric strong{display:block;font-size:2rem}.compact-grid{margin:14px 0;gap:12px}.grid-4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.cards-list.compact-list{display:grid;gap:10px}.pick-card{display:flex;justify-content:space-between;gap:14px;align-items:center}.pick-score{text-align:right;min-width:110px}.pick-score strong{display:block;font-size:1.35rem}.league-badge,.lock-badge{display:inline-flex;border-radius:999px;padding:4px 9px;background:rgba(0,150,255,.12);border:1px solid rgba(0,150,255,.25);font-size:.78rem}.locked-card{opacity:.78}.premium-list{display:grid;gap:8px}.premium-list li{padding:10px 12px;border-radius:14px;background:rgba(255,255,255,.06)}@media(max-width:760px){.compact-hero{display:block}.grid-4{grid-template-columns:repeat(2,minmax(0,1fr))}.pick-card{display:block}.pick-score{text-align:left;margin-top:10px}}
