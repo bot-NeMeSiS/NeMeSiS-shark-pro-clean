@@ -33,6 +33,7 @@ from engines.football_population_engine import (
 from engines.live_engine import build_live_depth, build_live_flow, build_match_detail, fallback_timeline, normalize_live_state
 from engines.match_engine import hub_sections, real_time_state, sync_plan
 from engines.match_sync_engine import IMPORTANT_COMPETITIONS, h2h_price_snapshot, normalize_status as sync_normalize_status, odds_sports, sportsdb_leagues
+from engines.membership_engine import can_access_feature, get_membership_limits, get_user_membership, membership_context
 from engines.scheduler_engine import is_due, is_stale_running, next_run_iso, normalize_result, scheduler_config, task_definition
 from engines.shark_engine import build_shark_context, explain_pick_risk
 from engines.telegram_delivery_engine import (
@@ -53,7 +54,7 @@ from engines.telegram_delivery_engine import (
 from engines.telegram_engine import build_alert_queue, dispatch_signature, should_skip_duplicate
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V565_SPORTS_DATA_PICKS_PERFECTION"
+APP_VERSION = "V566_FINAL_CLIENT_ADMIN_PRODUCT_POLISH"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -1369,6 +1370,8 @@ def canonical_match_status(match):
     date_value = str((match or {}).get("match_date") or "").strip()
     if is_finished_status_value(status):
         return {"key": "FT", "label": "Finalizado", "badge": "finished", "is_live": False, "is_finished": True, "is_upcoming": False}
+    if date_value and date_value > today_iso() and not is_live_status_value(status):
+        return {"key": "UPCOMING", "label": "Próximo", "badge": "upcoming", "is_live": False, "is_finished": False, "is_upcoming": True}
     if is_live_status_value(status):
         if "half" in status.lower() or "descanso" in status.lower() or status.lower() == "ht":
             return {"key": "HT", "label": "Descanso", "badge": "halftime", "is_live": True, "is_finished": False, "is_upcoming": False}
@@ -3396,6 +3399,14 @@ def annotate_match(match, favs=None):
         match["live_depth"]["label"] = "Próximo"
         match["live_depth"]["badge"] = "upcoming"
         match["live_depth"]["minute"] = match.get("kickoff_time") or match.get("match_time") or "Hora"
+        if not (match.get("home_score") or match.get("away_score") or match.get("score")):
+            match["live_depth"]["score"] = ""
+    elif match["status_info"].get("is_live"):
+        match["live_depth"]["state"] = "HT" if match["status_info"].get("key") == "HT" else "LIVE"
+        match["live_depth"]["label"] = match["status_info"].get("label") or "En directo"
+        match["live_depth"]["badge"] = match["status_info"].get("badge") or "live"
+        real_minute = str(match.get("minute") or "").strip()
+        match["live_depth"]["minute"] = f"{real_minute}'" if real_minute.isdigit() else "En directo"
     return match
 
 
@@ -5362,8 +5373,6 @@ def match_hub_page():
 @app.route("/partido/<match_id>")
 def match_detail_page(match_id):
     detail = match_detail(match_id)
-    if not detail:
-        return redirect("/match-hub")
     data = dashboard_data()
     data["match_detail"] = detail
     return render_template("match_detail.html", data=data, detail=detail)
@@ -6850,7 +6859,7 @@ def api_admin_membership_summary():
 
 
 # ===================== V565 SPORTS DATA & PICKS PERFECTION =====================
-APP_VERSION = "V565_SPORTS_DATA_PICKS_PERFECTION"
+APP_VERSION = "V566_FINAL_CLIENT_ADMIN_PRODUCT_POLISH"
 
 PRIORITY_LEAGUE_ORDER = [
     "UEFA Champions League", "Champions League", "LaLiga", "Spanish La Liga", "Premier League",
