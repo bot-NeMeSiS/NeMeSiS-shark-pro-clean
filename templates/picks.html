@@ -34,10 +34,14 @@
       <div class="match-top"><div><div class="comp-name">{{ p.competition_name or p.league_name or p.competition_key }}</div><div class="small">{{ p.match_date }} Â· {{ p.market }}</div></div><span class="badge badge-{{ p.membership_required|lower }}">{{ p.membership_required }}</span></div>
       <h3>{{ p.home_team }}{% if p.away_team %} vs {{ p.away_team }}{% endif %}</h3>
       <p class="selection">{{ p.selection }}</p>
-      <div class="status"><span>Cuota {{ p.odds }}</span><span>{{ p.confidence }}%</span><span>{{ p.risk_level }}</span></div>
-      <p class="small"><strong>Motivo:</strong> {{ p.reasoning or 'Pick publicado por el equipo SHARK.' }}</p>
-      <p class="small"><strong>PrecauciÃ³n:</strong> {{ p.warning_reason or 'Gestiona stake y banca; ningÃºn pick es seguro.' }}</p>
-      <div class="small">Stake sugerido: {{ p.stake_units }}u Â· ejemplo {{ p.stake_euros_example }}â‚¬</div>
+      <div class="status"><span>Cuota {{ p.odds }}</span><span>Confianza SHARK {{ p.confidence }}%</span><span>{{ p.risk_level }}</span></div>
+      <p class="small"><strong>Por que entrar:</strong> {{ p.reasoning or 'Pick publicado por el equipo SHARK.' }}</p>
+      <p class="small"><strong>Riesgos detectados:</strong> {{ p.warning_reason or 'Gestiona stake y banca; ningun pick es seguro.' }}</p>
+      <div class="metric-row mini-metrics">
+        <span>Stake sugerido <strong>{{ p.stake_units }}u</strong></span>
+        <span>Value detectado <strong>{% if p.odds and p.confidence %}{{ p.confidence }}%{% else %}Contextual{% endif %}</strong></span>
+        <span>Ejemplo <strong>{{ p.stake_euros_example }} EUR</strong></span>
+      </div>
     </article>
     {% endfor %}
   </div>

@@ -55,7 +55,7 @@ from engines.telegram_delivery_engine import (
 from engines.telegram_engine import build_alert_queue, dispatch_signature, should_skip_duplicate
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V600_CLEAN_CORE_V601_LIVE_INTELLIGENCE"
+APP_VERSION = "V602_SHARK_VISIBILITY_LAYER"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -7043,7 +7043,7 @@ def api_admin_membership_summary():
 
 
 # ===================== V565 SPORTS DATA & PICKS PERFECTION =====================
-APP_VERSION = "V600_CLEAN_CORE_V601_LIVE_INTELLIGENCE"
+APP_VERSION = "V602_SHARK_VISIBILITY_LAYER"
 
 PRIORITY_LEAGUE_ORDER = [
     "UEFA Champions League", "Champions League", "LaLiga", "Spanish La Liga", "Premier League",
@@ -7544,7 +7544,15 @@ def v566_admin_final_qa_page():
     qa = {
         "score": report["score_final"],
         "launch_state": "ready" if report["score_final"] >= 85 else "review",
-        "metrics": {"matches": safe_count("matches"), "picks": safe_count("picks", "lower(coalesce(status,''))='published'"), "recommendations": len(v565_recommendation_pool(limit=50)), "telegram_queue": safe_count("telegram_queue")},
+        "metrics": {
+            "matches": safe_count("matches"),
+            "picks": safe_count("picks", "lower(coalesce(status,''))='published'"),
+            "recommendations": len(v565_recommendation_pool(limit=50)),
+            "telegram_queue": safe_count("telegram_queue"),
+            "historical_matches": safe_count("historical_matches"),
+            "historical_picks": safe_count("historical_picks"),
+            "historical_recommendations": safe_count("historical_recommendations"),
+        },
         "checks": [
             {"name": "Cliente limpio", "ok": True, "detail": "Navegación compacta y admin separado."},
             {"name": "Detalle partido", "ok": True, "detail": "Detalle usa /match/<id>."},

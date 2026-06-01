@@ -37,6 +37,18 @@
             </div>
             <div class="status"><span class="state-badge {{ m.live_depth.badge }}">{{ m.live_depth.label }}</span><span>{{ m.live_depth.score or 'Sin marcador' }}</span></div>
             <div class="momentum"><i style="width:{{ m.live_depth.momentum }}%"></i></div>
+            <div class="metric-row mini-metrics">
+              <span>Local <strong>{{ m.live_depth.shark_momentum.momentum_local or 0 }}</strong></span>
+              <span>Visitante <strong>{{ m.live_depth.shark_momentum.momentum_visitante or 0 }}</strong></span>
+              <span>Riesgo <strong>{{ m.live_depth.shark_momentum.riesgo or 0 }}</strong></span>
+            </div>
+            {% if m.live_depth.alerts %}
+            <div class="stack compact-alerts">
+              {% for alert in m.live_depth.alerts[:2] %}
+              <div class="list-row"><span>{{ alert.title }}</span><strong>{{ alert.level|upper }}</strong></div>
+              {% endfor %}
+            </div>
+            {% endif %}
           </a>
         {% endfor %}
         </div>
