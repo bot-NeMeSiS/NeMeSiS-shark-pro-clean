@@ -1,48 +1,26 @@
 {% extends "base.html" %}
 {% block content %}
-<section class="hero compact product-hero">
-  <div class="kicker">Auto Picks SHARK</div>
-  <h1>Oportunidades automáticas del día</h1>
-  <p class="lead">SHARK analiza partidos próximos reales, prioriza ligas importantes y usa cuotas cacheadas cuando existen. Si no hay cuota real, lo marca como pendiente.</p>
-  <div class="actions">
-    <a class="btn primary" href="/picks">Picks publicados</a>
-    <a class="btn" href="/recomendaciones">Recomendaciones</a>
-    <a class="btn" href="/combis">Combinadas</a>
-    {% if current_user and current_user.role == 'ADMIN' %}<a class="btn" href="/admin/autonomous-picks">Admin Auto Picks</a>{% endif %}
-  </div>
+<section class="hero compact product-hero auto-picks-hero">
+  <div class="kicker">Auto Picks</div>
+  <h1>Motor automático reservado para ELITE</h1>
+  <p class="lead">Auto Picks usa partidos próximos reales y cuotas cacheadas cuando existen. Si falta cuota, lo marca como pendiente; no inventa datos.</p>
+  <div class="actions"><a class="btn primary" href="/picks">Picks publicados</a><a class="btn" href="/membresias">{{ data.membership.next_cta }}</a></div>
 </section>
+
+{% if data.locked_auto_picks %}
+<section class="band compact-band"><div class="card locked-feature elite-lock"><span class="badge badge-elite">Disponible en ELITE</span><h2>{{ data.locked_auto_picks.label }}</h2><p class="small">{{ data.locked_auto_picks.message }}</p></div></section>
+{% endif %}
 
 <section class="band compact-band">
   <div class="grid compact-grid metric-row">
-    <div class="card metric-card"><div class="metric">{{ data.auto_picks_status.generated }}</div><div class="muted">analizadas</div></div>
-    <div class="card metric-card"><div class="metric">{{ data.auto_picks_status.with_odds }}</div><div class="muted">con cuota</div></div>
-    <div class="card metric-card"><div class="metric">{{ data.auto_picks_status.published_picks }}</div><div class="muted">picks publicados</div></div>
-    <div class="card metric-card"><div class="metric">{{ current_user.membership if current_user else 'FREE' }}</div><div class="muted">membresía</div></div>
+    <div class="card metric-card"><div class="metric">{{ data.autonomous_picks.published }}</div><div class="muted">picks visibles</div></div>
+    <div class="card metric-card"><div class="metric">{{ data.autonomous_picks.recommendations }}</div><div class="muted">analizados</div></div>
+    <div class="card metric-card"><div class="metric">{{ data.autonomous_picks.with_odds }}</div><div class="muted">con cuota</div></div>
+    <div class="card metric-card"><div class="metric">{{ data.membership.membership }}</div><div class="muted">plan activo</div></div>
   </div>
 </section>
 
-<section class="band compact-band">
-  <div class="section-head"><h2>Top oportunidades SHARK</h2><span class="pill">{{ data.auto_picks_status.recommendations|length }}</span></div>
-  {% if data.auto_picks_status.recommendations %}
-  <div class="grid dense-grid">
-    {% for r in data.auto_picks_status.recommendations[:18] %}
-    <article class="card pick-card auto-pick-card">
-      <div class="match-top">
-        <div><div class="comp-name">{{ r.league_name }}</div><div class="small">{{ r.match_date }} · {{ r.kickoff_time or 'hora por confirmar' }}</div></div>
-        <span class="badge badge-{{ r.membership_required|lower }}">{{ r.membership_required }}</span>
-      </div>
-      <h3>{{ r.home_team }} vs {{ r.away_team }}</h3>
-      <p class="selection">{{ r.selection }}</p>
-      <div class="status"><span>Score {{ r.score }}/100</span><span>{{ r.confidence }}%</span><span>{{ r.risk_level }}</span></div>
-      <div class="status"><span>{{ r.value_label }}</span>{% if r.has_odds %}<span>Cuota {{ r.odds }}</span>{% else %}<span>Cuota pendiente</span>{% endif %}</div>
-      <p class="small"><strong>Motivo:</strong> {{ r.reasoning }}</p>
-      <p class="small"><strong>Precaución:</strong> {{ r.warning_reason }}</p>
-      <div class="inline-actions"><a class="mini-link" href="{{ r.detail_url }}">Detalle</a>{% if current_user and current_user.role == 'ADMIN' %}<form method="post" action="/admin/autonomous-picks" style="display:inline"><input type="hidden" name="action" value="convert"><input type="hidden" name="recommendation_id" value="{{ r.id }}"><button class="mini-link as-button" type="submit">Convertir en pick</button></form>{% endif %}</div>
-    </article>
-    {% endfor %}
-  </div>
-  {% else %}
-  <div class="empty premium-empty"><strong>SHARK está esperando datos reales.</strong><p>Sin partidos próximos o calendario sincronizado no se generan oportunidades. No se inventan picks.</p></div>
-  {% endif %}
-</section>
+{% if data.recommendations %}
+<section class="band compact-band"><div class="section-head"><h2>Top oportunidades SHARK</h2><span class="pill">ELITE</span></div><div class="grid dense-grid">{% for r in data.recommendations %}<article class="card pick-card auto-pick-card"><span class="badge badge-{{ r.membership_required|lower }}">{{ r.membership_required }}</span><h3>{{ r.home_team }} vs {{ r.away_team }}</h3><p class="selection">{{ r.selection }}{% if r.odds %} · cuota {{ r.odds }}{% endif %}</p><p class="small">{{ r.reasoning }}</p></article>{% endfor %}</div></section>
+{% endif %}
 {% endblock %}

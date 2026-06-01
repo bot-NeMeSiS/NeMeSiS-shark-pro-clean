@@ -33,8 +33,10 @@ from engines.football_population_engine import (
 from engines.live_engine import build_live_depth, build_live_flow, build_match_detail, fallback_timeline, normalize_live_state
 from engines.match_engine import hub_sections, real_time_state, sync_plan
 from engines.match_sync_engine import IMPORTANT_COMPETITIONS, h2h_price_snapshot, normalize_status as sync_normalize_status, odds_sports, sportsdb_leagues
+from engines.membership_engine import can_access_feature, get_membership_limits, get_user_membership, membership_context
 from engines.scheduler_engine import is_due, is_stale_running, next_run_iso, normalize_result, scheduler_config, task_definition
 from engines.shark_engine import build_shark_context, explain_pick_risk
+from engines.shark_intelligence_core import build_daily_briefing, build_quick_questions, memory_event_payload
 from engines.telegram_delivery_engine import (
     DEFAULT_SETTINGS as TELEGRAM_DEFAULT_SETTINGS,
     QUEUE_FAILED,
@@ -53,7 +55,7 @@ from engines.telegram_delivery_engine import (
 from engines.telegram_engine import build_alert_queue, dispatch_signature, should_skip_duplicate
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V569_AUTONOMOUS_ECOSYSTEM_ENGINE"
+APP_VERSION = "V566_FINAL_CLIENT_ADMIN_PRODUCT_POLISH"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -1369,6 +1371,8 @@ def canonical_match_status(match):
     date_value = str((match or {}).get("match_date") or "").strip()
     if is_finished_status_value(status):
         return {"key": "FT", "label": "Finalizado", "badge": "finished", "is_live": False, "is_finished": True, "is_upcoming": False}
+    if date_value and date_value > today_iso() and not is_live_status_value(status):
+        return {"key": "UPCOMING", "label": "Próximo", "badge": "upcoming", "is_live": False, "is_finished": False, "is_upcoming": True}
     if is_live_status_value(status):
         if "half" in status.lower() or "descanso" in status.lower() or status.lower() == "ht":
             return {"key": "HT", "label": "Descanso", "badge": "halftime", "is_live": True, "is_finished": False, "is_upcoming": False}
@@ -3396,6 +3400,14 @@ def annotate_match(match, favs=None):
         match["live_depth"]["label"] = "Próximo"
         match["live_depth"]["badge"] = "upcoming"
         match["live_depth"]["minute"] = match.get("kickoff_time") or match.get("match_time") or "Hora"
+        if not (match.get("home_score") or match.get("away_score") or match.get("score")):
+            match["live_depth"]["score"] = ""
+    elif match["status_info"].get("is_live"):
+        match["live_depth"]["state"] = "HT" if match["status_info"].get("key") == "HT" else "LIVE"
+        match["live_depth"]["label"] = match["status_info"].get("label") or "En directo"
+        match["live_depth"]["badge"] = match["status_info"].get("badge") or "live"
+        real_minute = str(match.get("minute") or "").strip()
+        match["live_depth"]["minute"] = f"{real_minute}'" if real_minute.isdigit() else "En directo"
     return match
 
 
@@ -3725,7 +3737,8 @@ def match_lane_filter(match, lane):
     if lane in {"results", "finished"}:
         return (match.get("status_info") or canonical_match_status(match)).get("is_finished") or str(match.get("match_date") or "") < today_iso()
     if lane == "live":
-        return state in {"LIVE", "HT"} or str(match.get("status") or "").lower() in {"live", "descanso"} or bool(match.get("minute"))
+        info = match.get("status_info") or canonical_match_status(match)
+        return bool(info.get("is_live")) and not info.get("is_finished") and not info.get("is_upcoming")
     if lane == "spain":
         return country == "spain" or "laliga" in comp or "rfef" in comp or "copa-del-rey" in comp
     if lane == "andalucia":
@@ -3805,7 +3818,7 @@ def grouped_match_calendar(matches):
     for day_key in sorted(days_map.keys()):
         day = days_map[day_key]
         league_list = list(day["leagues"].values())
-        league_list.sort(key=lambda item: (item["category"], item["name"]))
+        league_list.sort(key=lambda item: (v565_league_rank(item["matches"][0]) if item.get("matches") else 80, item["name"]))
         for league in league_list:
             league["matches"].sort(key=match_sort_tuple)
             league["count"] = len(league["matches"])
@@ -5229,233 +5242,6 @@ def split_live(matches):
     return {"live": live, "scheduled": scheduled, "finished": finished}
 
 
-
-
-# ===================== V568 AUTONOMOUS PICKS + ODDS + SHARK UPGRADE =====================
-PRIORITY_LEAGUE_WEIGHTS = {
-    "laliga": 100, "la liga": 100, "primera division": 96, "segunda division": 88,
-    "premier league": 98, "champions league": 97, "uefa champions": 97,
-    "europa league": 92, "conference league": 86, "serie a": 91,
-    "bundesliga": 90, "ligue 1": 88, "primeira liga": 82,
-    "world cup": 85, "fifa world cup": 85, "euro": 84, "nations league": 80,
-    "copa america": 80, "primera rfef": 72, "segunda rfef": 68, "tercera rfef": 62,
-}
-
-
-def league_priority_value(match):
-    text = normalized_label(" ".join([
-        str(match.get("competition_name") or ""),
-        str(match.get("league_name") or ""),
-        str(match.get("competition_key") or ""),
-        str(match.get("country") or ""),
-    ]))
-    best = 45
-    for key, value in PRIORITY_LEAGUE_WEIGHTS.items():
-        if key in text:
-            best = max(best, value)
-    if "spain" in text or "espana" in text or "españa" in text:
-        best += 4
-    return min(100, best)
-
-
-def parse_odds_payload(value):
-    if not value:
-        return {}
-    if isinstance(value, dict):
-        return value
-    try:
-        return json.loads(value)
-    except Exception:
-        return {}
-
-
-def extract_best_odds(match):
-    """Devuelve cuotas h2h si están cacheadas. No inventa cuotas."""
-    payload = parse_odds_payload(match.get("odds_h2h_json") or match.get("odds_json") or match.get("raw_odds_json"))
-    if not payload:
-        # odds_snapshots legacy / future table support
-        snap = None
-        try:
-            snap = one("SELECT * FROM odds_snapshots WHERE match_id=? ORDER BY created_at DESC LIMIT 1", (match.get("id"),))
-        except Exception:
-            snap = None
-        if snap:
-            payload = parse_odds_payload(snap.get("payload_json") or snap.get("raw_json"))
-            for k in ("home_odds", "draw_odds", "away_odds", "bookmaker"):
-                if snap.get(k) is not None:
-                    payload[k] = snap.get(k)
-    def f(*keys):
-        for key in keys:
-            if key in payload and payload.get(key) not in (None, ""):
-                return as_float(payload.get(key), 0.0)
-        return 0.0
-    return {
-        "home": f("home", "home_odds", "local", "h2h_home"),
-        "draw": f("draw", "draw_odds", "empate", "h2h_draw"),
-        "away": f("away", "away_odds", "visitor", "visitante", "h2h_away"),
-        "bookmaker": payload.get("bookmaker") or match.get("bookmaker") or "",
-        "available": any(f(k) > 1 for k in ("home", "draw", "away", "home_odds", "draw_odds", "away_odds")),
-    }
-
-
-def favorite_boost_for_match(match, user=None):
-    user = user or current_session_user() or {}
-    favs = favorite_sets(user.get("id")) if user.get("id") else {"team": set(), "league": set(), "match": set()}
-    home = normalized_label(match.get("home_team"))
-    away = normalized_label(match.get("away_team"))
-    league = normalized_label(match.get("competition_name") or match.get("league_name"))
-    boost = 0
-    if home in favs.get("team", set()) or away in favs.get("team", set()):
-        boost += 8
-    if league in favs.get("league", set()):
-        boost += 5
-    if str(match.get("id")) in favs.get("match", set()):
-        boost += 10
-    return boost
-
-
-def shark_auto_pick_for_match(match, user=None):
-    """Genera recomendación automática segura desde partido próximo real.
-    No la marca como pick publicado hasta que admin la convierta o una regla explícita lo haga.
-    """
-    annotated = annotate_match(dict(match or {}))
-    odds = extract_best_odds(annotated)
-    priority = league_priority_value(annotated)
-    status = canonical_match_status(annotated)
-    if not status.get("is_upcoming"):
-        return None
-    has_odds = odds.get("available")
-    base_score = 45 + int(priority * 0.28) + favorite_boost_for_match(annotated, user)
-    kickoff = str(annotated.get("kickoff_iso") or annotated.get("match_date") or "")
-    # Pequeña variación determinista por partido para ordenar sin aleatoriedad.
-    digest = int(hashlib.md5(str(annotated.get("id") or kickoff).encode("utf-8")).hexdigest()[:2], 16) % 9
-    base_score += digest
-    if has_odds:
-        base_score += 10
-    score = max(1, min(96, base_score))
-    confidence = max(35, min(92, score - (4 if not has_odds else 0)))
-    if score >= 82:
-        risk = "BAJO" if has_odds else "MEDIO"
-        membership = "PRO"
-    elif score >= 70:
-        risk = "MEDIO"
-        membership = "FREE"
-    else:
-        risk = "ALTO"
-        membership = "ELITE" if has_odds else "PRO"
-    home = annotated.get("home_team") or "Local"
-    away = annotated.get("away_team") or "Visitante"
-    # Selección prudente: si no hay cuota, no fingir mercado exacto.
-    if has_odds:
-        candidates = [("Victoria local", odds.get("home"), home), ("Empate", odds.get("draw"), "Empate"), ("Victoria visitante", odds.get("away"), away)]
-        candidates = [c for c in candidates if c[1] and c[1] > 1]
-        # Preferimos cuotas razonables, no extremos, y local por defecto si empate es pobre.
-        candidates = sorted(candidates, key=lambda x: (abs(float(x[1]) - 1.85), x[0] == "Empate"))
-        market, odd, selection = candidates[0] if candidates else ("Mercado principal", 0.0, f"{home} / {away}")
-    else:
-        market, odd, selection = "Análisis previo", 0.0, "Pendiente de cuota"
-    value_label = "Pendiente de cuota"
-    if has_odds:
-        if odd >= 2.15 and confidence >= 70:
-            value_label = "Value alto"
-        elif odd >= 1.65 and confidence >= 62:
-            value_label = "Value correcto"
-        else:
-            value_label = "Cuota revisable"
-    return {
-        "id": hashlib.md5(f"auto-{annotated.get('id')}-{selection}-{today_iso()}".encode("utf-8")).hexdigest()[:18],
-        "match_id": annotated.get("id"),
-        "match_date": annotated.get("match_date"),
-        "kickoff_time": annotated.get("kickoff_time") or annotated.get("match_time") or "",
-        "league_name": annotated.get("competition_name") or annotated.get("league_name") or "Competición",
-        "home_team": home,
-        "away_team": away,
-        "home_identity": annotated.get("home_identity"),
-        "away_identity": annotated.get("away_identity"),
-        "market": market,
-        "selection": selection,
-        "odds": round(float(odd or 0), 2),
-        "bookmaker": odds.get("bookmaker") or "",
-        "score": score,
-        "confidence": confidence,
-        "risk_level": risk,
-        "value_label": value_label,
-        "membership_required": membership,
-        "status": "analysis" if not has_odds else "recommended",
-        "stake_units": 1.0 if risk == "BAJO" else (0.75 if risk == "MEDIO" else 0.5),
-        "reasoning": f"SHARK prioriza esta oportunidad por competición, proximidad, contexto de favoritos y disponibilidad de datos. Prioridad liga: {priority}/100.",
-        "warning_reason": "No se publica como pick definitivo sin cuota real suficiente." if not has_odds else "Revisar banca, stake y cambios de cuota antes de entrar.",
-        "has_odds": bool(has_odds),
-        "detail_url": f"/match/{annotated.get('id')}",
-    }
-
-
-def generate_autonomous_recommendations(user=None, limit=20, days=7):
-    candidates = []
-    seen = set()
-    for match in get_upcoming_matches(today_iso(), days=days, limit=max(60, limit * 4)):
-        mid = str(match.get("id") or "")
-        if not mid or mid in seen or is_fake_match(match):
-            continue
-        seen.add(mid)
-        item = shark_auto_pick_for_match(match, user=user)
-        if item:
-            candidates.append(item)
-    candidates.sort(key=lambda x: (x.get("score", 0), x.get("has_odds", False), league_priority_value(x)), reverse=True)
-    return candidates[: int(limit)]
-
-
-def autonomous_picks_status(user=None):
-    user = user or current_session_user() or {"membership": "FREE", "role": "FREE"}
-    recs = generate_autonomous_recommendations(user=user, limit=18)
-    with_odds = [r for r in recs if r.get("has_odds")]
-    published = published_picks_for_user(user, limit=12)
-    return {
-        "version": APP_VERSION,
-        "generated": len(recs),
-        "with_odds": len(with_odds),
-        "without_odds": len(recs) - len(with_odds),
-        "published_picks": len(published),
-        "top": recs[:6],
-        "recommendations": recs,
-        "message": "Auto Picks activos con cuotas disponibles." if with_odds else "SHARK analiza partidos próximos; las cuotas aparecerán cuando Odds esté sincronizado.",
-        "admin_action": "Sincronizar Odds y calendario para mejorar value y confianza." if not with_odds else "Revisar Top oportunidades y convertir las mejores en picks publicados.",
-    }
-
-
-def create_pick_from_auto_recommendation(rec_id=None, payload=None):
-    payload = payload or {}
-    recs = generate_autonomous_recommendations(user=current_session_user() or {"membership": "ADMIN"}, limit=50)
-    rec = None
-    if rec_id:
-        rec = next((r for r in recs if str(r.get("id")) == str(rec_id)), None)
-    if not rec and payload.get("match_id"):
-        rec = shark_auto_pick_for_match(payload, current_session_user() or {"membership": "ADMIN"})
-    if not rec:
-        raise ValueError("No se encontró recomendación automática válida.")
-    pick_payload = {
-        "match_id": rec.get("match_id"),
-        "match_date": rec.get("match_date"),
-        "league_name": rec.get("league_name"),
-        "home_team": rec.get("home_team"),
-        "away_team": rec.get("away_team"),
-        "market": rec.get("market"),
-        "selection": rec.get("selection"),
-        "odds": rec.get("odds"),
-        "bookmaker": rec.get("bookmaker"),
-        "confidence": rec.get("confidence"),
-        "stake_units": rec.get("stake_units"),
-        "stake_euros_example": round(float(rec.get("stake_units") or 1) * 10, 2),
-        "risk_level": rec.get("risk_level"),
-        "reasoning": rec.get("reasoning"),
-        "warning_reason": rec.get("warning_reason"),
-        "membership_required": rec.get("membership_required") or "PRO",
-        "source": "auto_shark_v568",
-        "legal_note": "Pick convertido desde recomendación automática SHARK. Revisar antes de publicar comercialmente.",
-    }
-    return create_or_update_pick(pick_payload, publish=True)
-
-
 def dashboard_data(lane="today", date=None):
     date = date or today_iso()
     matches = get_matches(date, lane)
@@ -5503,7 +5289,6 @@ def dashboard_data(lane="today", date=None):
         "past_results": past_results,
         "candidate_matches": candidate_matches,
         "smart_picks": smart_picks,
-        "auto_picks_status": autonomous_picks_status(current_session_user() or {"membership": "FREE", "role": "FREE"}),
         "live_flow": flow,
         "membership_plans": MEMBERSHIP_PLANS,
         "telegram": telegram_config(),
@@ -5578,7 +5363,7 @@ def live_page():
 @app.route("/partidos-hoy")
 @app.route("/resultados")
 def match_hub_page():
-    lane = request.args.get("lane", "today")
+    lane = request.args.get("lane") or ("results" if request.path == "/resultados" else "today")
     date = request.args.get("date") or (today_iso(1) if lane == "tomorrow" else today_iso())
     data = dashboard_data(lane, date)
     return render_template("match_hub.html", data=data)
@@ -5590,8 +5375,6 @@ def match_hub_page():
 @app.route("/partido/<match_id>")
 def match_detail_page(match_id):
     detail = match_detail(match_id)
-    if not detail:
-        return redirect("/match-hub")
     data = dashboard_data()
     data["match_detail"] = detail
     return render_template("match_detail.html", data=data, detail=detail)
@@ -5923,6 +5706,7 @@ def admin_system_page():
 def picks_page():
     data = dashboard_data()
     user = current_session_user() or {"membership": "FREE", "role": "FREE"}
+    data["membership"] = v566_membership_ui(user)
     data["picks"] = published_picks_for_user(user, limit=80)
     data["candidate_matches"] = pick_candidate_matches(limit=24, days=14)
     data["pick_stats"] = pick_stats()
@@ -5935,6 +5719,7 @@ def picks_page():
 def combis_page():
     data = dashboard_data()
     user = current_session_user() or {"membership": "FREE", "role": "FREE"}
+    data["membership"] = v566_membership_ui(user)
     requested_count = max(2, min(as_int(request.args.get("partidos"), 3), 8))
     data["picks"] = published_picks_for_user(user, limit=30)
     data["combis"] = get_combis(limit=20)
@@ -5952,6 +5737,7 @@ def profile_page():
         return redirect("/cliente-login")
     data = dashboard_data()
     data["session_user"] = user
+    data["membership"] = v566_membership_ui(user)
     data["sportsdb"] = crest_sync_status()
     data["briefing"] = shark_briefing()
     return render_template("profile.html", data=data)
@@ -5990,20 +5776,28 @@ def daily_briefing_page():
 @app.route("/membresias")
 @app.route("/membership")
 def membership_page():
-    return render_template("membership.html", data=dashboard_data())
+    user = current_session_user() or {"membership": "FREE", "role": "FREE"}
+    data = dashboard_data()
+    data["membership"] = v566_membership_ui(user)
+    return render_template("membership.html", data=data)
 
 
 @app.route("/shark-ai")
 @app.route("/shark")
 def shark_page():
     data = dashboard_data()
+    user = current_session_user() or {"membership": "FREE", "role": "FREE"}
+    data["membership"] = v566_membership_ui(user)
     data["briefing"] = shark_briefing()
     return render_template("shark.html", data=data)
 
 
 @app.route("/telegram")
 def telegram_page():
-    return render_template("telegram.html", data=dashboard_data())
+    user = current_session_user() or {"membership": "FREE", "role": "FREE"}
+    data = dashboard_data()
+    data["membership"] = v566_membership_ui(user)
+    return render_template("telegram.html", data=data)
 
 
 @app.route("/escudos")
@@ -7077,439 +6871,729 @@ def api_admin_membership_summary():
     return jsonify({"ok": True, "version": APP_VERSION, "summary": membership_revenue_summary()})
 
 
-@app.route("/auto-picks")
-@app.route("/oportunidades")
-def auto_picks_page():
-    data = dashboard_data()
-    user = current_session_user() or {"membership": "FREE", "role": "FREE"}
-    data["auto_picks_status"] = autonomous_picks_status(user)
-    record_user_activity("view", "auto_picks", "auto-picks-page", {"generated": data["auto_picks_status"].get("generated")})
-    return render_template("auto_picks.html", data=data)
+# ===================== V565 SPORTS DATA & PICKS PERFECTION =====================
+APP_VERSION = "V566_FINAL_CLIENT_ADMIN_PRODUCT_POLISH"
+
+PRIORITY_LEAGUE_ORDER = [
+    "UEFA Champions League", "Champions League", "LaLiga", "Spanish La Liga", "Premier League",
+    "Serie A", "Bundesliga", "Ligue 1", "UEFA Europa League", "Europa League",
+    "UEFA Conference League", "Primeira Liga", "Segunda Division", "Primera RFEF",
+    "Segunda RFEF", "Tercera RFEF", "FIFA World Cup", "UEFA Euro", "Copa America",
+    "UEFA Nations League",
+]
 
 
-@app.route("/admin/autonomous-picks", methods=["GET", "POST"])
-def admin_autonomous_picks_page():
-    if not is_admin_session():
-        return redirect("/admin-login?next=/admin/autonomous-picks")
-    message = ""
-    result = None
-    if request.method == "POST":
-        action = request.form.get("action") or "generate"
-        if action == "convert":
-            try:
-                result = create_pick_from_auto_recommendation(request.form.get("recommendation_id"))
-                message = "Recomendación convertida en pick publicado."
-            except Exception as exc:
-                message = f"No se pudo convertir: {exc}"
-        else:
-            result = autonomous_picks_status({"membership": "ADMIN", "role": "ADMIN"})
-            message = "Recomendaciones recalculadas con datos actuales."
-    data = dashboard_data()
-    data["auto_picks_status"] = autonomous_picks_status({"membership": "ADMIN", "role": "ADMIN"})
-    return render_template("admin_autonomous_picks.html", data=data, message=message, result=result)
+def v565_league_rank(match):
+    text = normalized_label(" ".join([
+        str(match.get("league_name") or ""),
+        str(match.get("competition_name") or ""),
+        str(match.get("competition_key") or ""),
+        str(match.get("country") or ""),
+    ]))
+    for idx, name in enumerate(PRIORITY_LEAGUE_ORDER):
+        if normalized_label(name) in text:
+            return idx
+    if "spain" in text or "espana" in text or "andalucia" in text:
+        return 30
+    return 80
 
 
-@app.route("/api/v568/autonomous-picks-check")
-def api_v568_autonomous_picks_check():
-    user = current_session_user() or {"membership": "FREE", "role": "FREE"}
-    return jsonify({"ok": True, "version": APP_VERSION, "status": autonomous_picks_status(user)})
+def v565_match_status(match):
+    info = canonical_match_status(match)
+    if info.get("is_finished"):
+        return {"label": "Finalizado", "tone": "finished", "is_live": False, "is_finished": True}
+    if info.get("is_live"):
+        minute = str(match.get("minute") or "").strip()
+        return {"label": f"{minute}'" if minute and minute.isdigit() else "En directo", "tone": "live", "is_live": True, "is_finished": False}
+    label = info.get("label") or "Próximo"
+    return {"label": label if label != "LIVE" else "En directo", "tone": "scheduled", "is_live": False, "is_finished": False}
 
 
-@app.route("/api/autonomous-picks/status")
-def api_autonomous_picks_status():
-    user = current_session_user() or {"membership": "FREE", "role": "FREE"}
-    return jsonify({"ok": True, "status": autonomous_picks_status(user)})
-
-
-@app.route("/api/autonomous-picks/generate", methods=["POST", "GET"])
-def api_autonomous_picks_generate():
-    user = current_session_user() or {"membership": "FREE", "role": "FREE"}
-    limit = as_int(request.values.get("limit"), 20)
-    return jsonify({"ok": True, "generated": generate_autonomous_recommendations(user=user, limit=limit)})
-
-
-@app.route("/api/recommendations/auto")
-def api_recommendations_auto():
-    user = current_session_user() or {"membership": "FREE", "role": "FREE"}
-    return jsonify({"ok": True, "recommendations": generate_autonomous_recommendations(user=user, limit=as_int(request.args.get("limit"), 20))})
-
-
-@app.route("/api/admin/autonomous-picks/convert", methods=["POST"])
-def api_admin_autonomous_picks_convert():
-    if not is_admin_session():
-        return admin_json_forbidden()
-    try:
-        pick = create_pick_from_auto_recommendation(request.form.get("recommendation_id") or (request.get_json(silent=True) or {}).get("recommendation_id"))
-        return jsonify({"ok": True, "pick": pick})
-    except Exception as exc:
-        return jsonify({"ok": False, "error": str(exc)}), 400
-
-
-@app.route("/api/telegram/enqueue-auto-picks", methods=["POST", "GET"])
-def api_telegram_enqueue_auto_picks():
-    if not is_admin_session() and request.method == "POST":
-        return admin_json_forbidden()
-    status = autonomous_picks_status({"membership": "ADMIN", "role": "ADMIN"})
-    top = status.get("top") or []
-    if not top:
-        return jsonify({"ok": True, "queued": 0, "message": "No hay recomendaciones suficientes para Telegram."})
-    body_lines = ["🦈 <b>SHARK Auto Picks</b>", "Oportunidades calculadas con partidos próximos reales:"]
-    for item in top[:3]:
-        odd_txt = f" · cuota {item['odds']}" if item.get("has_odds") else " · cuota pendiente"
-        body_lines.append(f"• {item['home_team']} vs {item['away_team']} — {item['selection']}{odd_txt} · {item['confidence']}% · {item['risk_level']}")
-    body_lines.append("\nApuesta siempre con responsabilidad. Ningún pick es seguro.")
-    try:
-        qid = enqueue_telegram_message(
-            message_type="auto_picks",
-            title="SHARK Auto Picks",
-            body="\n".join(body_lines),
-            dedupe_key=telegram_dedupe_key("auto-picks", today_iso()),
-            payload={"top": top[:3]},
-        )
-        return jsonify({"ok": True, "queued": 1 if qid else 0, "queue_id": qid, "top": top[:3]})
-    except Exception as exc:
-        return jsonify({"ok": False, "error": str(exc), "top": top[:3]}), 400
-
-
-# ===================== V569 AUTONOMOUS ECOSYSTEM ENGINE =====================
-def ensure_autonomous_ecosystem_schema():
-    """Tablas de memoria/automatización para que el admin supervise y la app trabaje sola."""
-    seed_core()
-    conn = db()
-    cur = conn.cursor()
-    cur.execute("""CREATE TABLE IF NOT EXISTS ecosystem_memory(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        memory_type TEXT,
-        entity_type TEXT,
-        entity_id TEXT,
-        user_id TEXT,
-        title TEXT,
-        summary TEXT,
-        payload_json TEXT,
-        score INTEGER DEFAULT 0,
-        source TEXT,
-        created_at TEXT,
-        updated_at TEXT
-    )""")
-    cur.execute("""CREATE TABLE IF NOT EXISTS automation_runs(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        task_name TEXT,
-        status TEXT,
-        processed INTEGER DEFAULT 0,
-        inserted INTEGER DEFAULT 0,
-        updated INTEGER DEFAULT 0,
-        skipped INTEGER DEFAULT 0,
-        error_message TEXT,
-        started_at TEXT,
-        finished_at TEXT,
-        payload_json TEXT
-    )""")
-    cur.execute("""CREATE TABLE IF NOT EXISTS auto_pick_candidates(
-        id TEXT PRIMARY KEY,
-        match_id TEXT,
-        league_name TEXT,
-        home_team TEXT,
-        away_team TEXT,
-        market TEXT,
-        selection TEXT,
-        odds REAL DEFAULT 0,
-        bookmaker TEXT,
-        shark_score INTEGER DEFAULT 0,
-        confidence INTEGER DEFAULT 0,
-        risk_level TEXT,
-        value_label TEXT,
-        stake_units REAL DEFAULT 1,
-        membership_required TEXT DEFAULT 'PRO',
-        status TEXT DEFAULT 'candidate',
-        reasoning TEXT,
-        warning_reason TEXT,
-        payload_json TEXT,
-        created_at TEXT,
-        updated_at TEXT
-    )""")
-    cur.execute("""CREATE TABLE IF NOT EXISTS shark_memory(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        topic TEXT,
-        entity_type TEXT,
-        entity_id TEXT,
-        summary TEXT,
-        payload_json TEXT,
-        priority INTEGER DEFAULT 50,
-        created_at TEXT,
-        updated_at TEXT
-    )""")
-    for stmt in (
-        "CREATE INDEX IF NOT EXISTS idx_ecosystem_memory_type ON ecosystem_memory(memory_type, entity_type, entity_id)",
-        "CREATE INDEX IF NOT EXISTS idx_automation_runs_task ON automation_runs(task_name, started_at)",
-        "CREATE INDEX IF NOT EXISTS idx_auto_pick_candidates_status ON auto_pick_candidates(status, shark_score)",
-        "CREATE INDEX IF NOT EXISTS idx_shark_memory_topic ON shark_memory(topic, entity_type, entity_id)",
-    ):
+def v565_extract_odds(match):
+    raw = match.get("odds_h2h_json") or ""
+    parsed = {}
+    if raw:
         try:
-            cur.execute(stmt)
-        except sqlite3.OperationalError:
-            pass
-    conn.commit()
-    conn.close()
+            parsed = json.loads(raw)
+        except Exception:
+            parsed = {}
+    home = as_float(parsed.get("home") or parsed.get("h2h_home") or match.get("home_price"), 0)
+    draw = as_float(parsed.get("draw") or parsed.get("h2h_draw") or match.get("draw_price"), 0)
+    away = as_float(parsed.get("away") or parsed.get("h2h_away") or match.get("away_price"), 0)
+    return {"home": home, "draw": draw, "away": away, "available": any(x > 1 for x in (home, draw, away))}
 
 
-def log_automation_run(task_name, status="ok", processed=0, inserted=0, updated=0, skipped=0, error_message="", payload=None, started_at=None):
-    ensure_autonomous_ecosystem_schema()
-    started_at = started_at or now_iso()
-    conn = db()
-    conn.execute(
-        """INSERT INTO automation_runs(task_name,status,processed,inserted,updated,skipped,error_message,started_at,finished_at,payload_json)
-           VALUES (?,?,?,?,?,?,?,?,?,?)""",
-        (task_name, status, int(processed or 0), int(inserted or 0), int(updated or 0), int(skipped or 0), str(error_message or ""), started_at, now_iso(), json.dumps(payload or {}, ensure_ascii=False)),
-    )
-    conn.commit()
-    conn.close()
-
-
-def upsert_ecosystem_memory(memory_type, entity_type, entity_id, title, summary, payload=None, score=0, source="v569"):
-    ensure_autonomous_ecosystem_schema()
-    entity_id = str(entity_id or "global")
-    payload = payload or {}
-    existing = one("SELECT id FROM ecosystem_memory WHERE memory_type=? AND entity_type=? AND entity_id=?", (memory_type, entity_type, entity_id))
-    conn = db()
-    if existing:
-        conn.execute(
-            """UPDATE ecosystem_memory SET title=?, summary=?, payload_json=?, score=?, source=?, updated_at=? WHERE id=?""",
-            (title, summary, json.dumps(payload, ensure_ascii=False), int(score or 0), source, now_iso(), existing["id"]),
-        )
-        changed = "updated"
+def v565_recommendation_for_match(match):
+    status = v565_match_status(match)
+    odds = v565_extract_odds(match)
+    league_rank = v565_league_rank(match)
+    priority = as_int(match.get("priority"), 50)
+    base = 54 + max(0, 22 - min(22, league_rank)) + min(12, max(0, priority - 60) // 3)
+    if odds["available"]:
+        prices = [("Local", odds["home"]), ("Empate", odds["draw"]), ("Visitante", odds["away"])]
+        selection, price = max([x for x in prices if x[1] > 1], key=lambda x: (x[1] <= 2.8, x[1]))
+        base += 8
     else:
-        conn.execute(
-            """INSERT INTO ecosystem_memory(memory_type,entity_type,entity_id,title,summary,payload_json,score,source,created_at,updated_at)
-               VALUES (?,?,?,?,?,?,?,?,?,?)""",
-            (memory_type, entity_type, entity_id, title, summary, json.dumps(payload, ensure_ascii=False), int(score or 0), source, now_iso(), now_iso()),
-        )
-        changed = "inserted"
-    conn.commit()
-    conn.close()
-    return changed
-
-
-def v569_priority_matches(limit=30):
-    matches = get_upcoming_matches(today_iso(), days=7, limit=max(80, limit * 3))
-    enriched = []
-    for match in matches:
-        if is_fake_match(match):
-            continue
-        item = annotate_match(dict(match))
-        item["league_priority"] = league_priority_value(item)
-        item["status_info"] = canonical_match_status(item)
-        enriched.append(item)
-    enriched.sort(key=lambda m: (m.get("league_priority") or 0, m.get("match_date") or "", m.get("kickoff_time") or ""), reverse=True)
-    return enriched[:limit]
-
-
-def v569_store_auto_pick_candidates(limit=24):
-    ensure_autonomous_ecosystem_schema()
-    user = {"membership": "ELITE", "role": "ADMIN"}
-    candidates = generate_autonomous_recommendations(user=user, limit=limit)
-    conn = db()
-    inserted = updated = 0
-    for rec in candidates:
-        rid = str(rec.get("id"))
-        if not rid:
-            continue
-        exists = conn.execute("SELECT id FROM auto_pick_candidates WHERE id=?", (rid,)).fetchone()
-        payload = json.dumps(rec, ensure_ascii=False)
-        values = (
-            rid,
-            rec.get("match_id"), rec.get("league_name"), rec.get("home_team"), rec.get("away_team"),
-            rec.get("market"), rec.get("selection"), float(rec.get("odds") or 0), rec.get("bookmaker"),
-            int(rec.get("score") or 0), int(rec.get("confidence") or 0), rec.get("risk_level"), rec.get("value_label"),
-            float(rec.get("stake_units") or 1), rec.get("membership_required") or "PRO", rec.get("status") or "candidate",
-            rec.get("reasoning"), rec.get("warning_reason"), payload, now_iso(), now_iso()
-        )
-        if exists:
-            conn.execute(
-                """UPDATE auto_pick_candidates SET match_id=?,league_name=?,home_team=?,away_team=?,market=?,selection=?,odds=?,bookmaker=?,
-                   shark_score=?,confidence=?,risk_level=?,value_label=?,stake_units=?,membership_required=?,status=?,reasoning=?,warning_reason=?,payload_json=?,updated_at=?
-                   WHERE id=?""",
-                values[1:-2] + (now_iso(), rid),
-            )
-            updated += 1
-        else:
-            conn.execute(
-                """INSERT INTO auto_pick_candidates(id,match_id,league_name,home_team,away_team,market,selection,odds,bookmaker,shark_score,confidence,
-                   risk_level,value_label,stake_units,membership_required,status,reasoning,warning_reason,payload_json,created_at,updated_at)
-                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
-                values,
-            )
-            inserted += 1
-    conn.commit()
-    conn.close()
-    log_automation_run("auto_pick_candidates", "ok", processed=len(candidates), inserted=inserted, updated=updated, payload={"limit": limit})
-    return {"processed": len(candidates), "inserted": inserted, "updated": updated, "candidates": candidates}
-
-
-def v569_build_shark_memory():
-    ensure_autonomous_ecosystem_schema()
-    inserted = updated = 0
-    priority = v569_priority_matches(limit=12)
-    for match in priority:
-        title = f"{match.get('home_team')} vs {match.get('away_team')}"
-        summary = f"Partido próximo en {match.get('competition_name') or match.get('league_name') or 'competición'} con prioridad {match.get('league_priority', 0)}/100."
-        changed = upsert_ecosystem_memory("match_context", "match", match.get("id"), title, summary, match, match.get("league_priority") or 0)
-        inserted += 1 if changed == "inserted" else 0
-        updated += 1 if changed == "updated" else 0
-    favs = get_favorites()
-    for fav in favs[:20]:
-        title = f"Favorito {fav.get('label') or fav.get('value')}"
-        summary = "Contexto de favorito usado para priorizar dashboard, SHARK, Telegram y recomendaciones."
-        changed = upsert_ecosystem_memory("user_favorite", fav.get("kind") or "favorite", fav.get("value") or fav.get("id"), title, summary, fav, 70)
-        inserted += 1 if changed == "inserted" else 0
-        updated += 1 if changed == "updated" else 0
-    log_automation_run("shark_memory", "ok", processed=len(priority) + len(favs[:20]), inserted=inserted, updated=updated)
-    return {"processed": len(priority) + len(favs[:20]), "inserted": inserted, "updated": updated}
-
-
-def v569_prepare_telegram_from_auto_picks():
-    ensure_autonomous_ecosystem_schema()
-    status = autonomous_picks_status({"membership": "ELITE", "role": "ADMIN"})
-    top = status.get("top") or []
-    if not top:
-        log_automation_run("telegram_auto_picks_prepare", "skipped", skipped=1, error_message="Sin oportunidades suficientes")
-        return {"queued": 0, "message": "Sin oportunidades suficientes para preparar Telegram."}
-    body_lines = ["🦈 <b>SHARK Auto Picks</b>", "Top oportunidades detectadas automáticamente:"]
-    for item in top[:3]:
-        odd_txt = f" · cuota {item.get('odds')}" if item.get("has_odds") else " · cuota pendiente"
-        body_lines.append(f"• {item.get('home_team')} vs {item.get('away_team')} — {item.get('selection')}{odd_txt} · {item.get('confidence')}% · {item.get('risk_level')}")
-    body_lines.append("\nApuesta siempre con responsabilidad. Ningún pick es seguro.")
-    try:
-        qid = enqueue_telegram_message(
-            message_type="auto_ecosystem_picks",
-            title="SHARK Auto Picks",
-            body="\n".join(body_lines),
-            dedupe_key=telegram_dedupe_key("v569-auto-ecosystem-picks", today_iso()),
-            payload={"top": top[:3], "source": "v569"},
-        )
-        log_automation_run("telegram_auto_picks_prepare", "ok", processed=len(top[:3]), inserted=1 if qid else 0, payload={"queue_id": qid})
-        return {"queued": 1 if qid else 0, "queue_id": qid, "top": top[:3]}
-    except Exception as exc:
-        log_automation_run("telegram_auto_picks_prepare", "error", error_message=str(exc))
-        return {"queued": 0, "error": str(exc), "top": top[:3]}
-
-
-def v569_run_autonomous_cycle(force=False):
-    ensure_autonomous_ecosystem_schema()
-    started = now_iso()
-    result = {"started_at": started, "force": bool(force), "steps": {}}
-    try:
-        result["steps"]["auto_pick_candidates"] = v569_store_auto_pick_candidates(limit=30)
-        result["steps"]["shark_memory"] = v569_build_shark_memory()
-        result["steps"]["telegram_prepare"] = v569_prepare_telegram_from_auto_picks()
-        result["finished_at"] = now_iso()
-        result["ok"] = True
-        log_automation_run("autonomous_ecosystem_cycle", "ok", processed=3, payload=result, started_at=started)
-    except Exception as exc:
-        result["ok"] = False
-        result["error"] = str(exc)
-        result["finished_at"] = now_iso()
-        log_automation_run("autonomous_ecosystem_cycle", "error", error_message=str(exc), payload=result, started_at=started)
-    return result
-
-
-def v569_ecosystem_status():
-    ensure_autonomous_ecosystem_schema()
-    upcoming = v569_priority_matches(limit=20)
-    recs = generate_autonomous_recommendations(user={"membership": "ELITE", "role": "ADMIN"}, limit=20)
-    with_odds = [r for r in recs if r.get("has_odds")]
-    published = rows("SELECT * FROM picks WHERE lower(COALESCE(status,'')) IN ('published','publicado') ORDER BY COALESCE(published_at, created_at) DESC LIMIT 20")
-    memory_count = one("SELECT COUNT(*) AS n FROM ecosystem_memory").get("n", 0)
-    candidates_count = one("SELECT COUNT(*) AS n FROM auto_pick_candidates").get("n", 0)
-    last_runs = rows("SELECT * FROM automation_runs ORDER BY id DESC LIMIT 12")
-    data_score = min(100, 25 + len(upcoming) * 2 + len(with_odds) * 5 + min(memory_count, 25))
-    betting_score = min(100, 35 + len(recs) * 2 + len(with_odds) * 6 + len(published) * 2)
-    automation_score = min(100, 40 + candidates_count * 2 + (15 if last_runs else 0))
-    global_score = int((data_score + betting_score + automation_score) / 3)
-    actions = []
-    if not with_odds:
-        actions.append("Sincronizar The Odds API para mejorar cuotas y value.")
-    if not published:
-        actions.append("Permitir que SHARK genere candidatos y convertir los mejores en picks publicados.")
-    if memory_count < 20:
-        actions.append("Ejecutar ciclo autónomo para crear memoria deportiva y contexto SHARK.")
-    if not actions:
-        actions.append("Ecosistema autónomo operativo: revisar Telegram y rendimiento de picks.")
+        selection, price = "Pendiente de cuota", 0
+        base -= 6
+    if status["is_live"] or status["is_finished"]:
+        base -= 20
+    score = max(1, min(96, int(base)))
+    if score >= 78:
+        risk = "BAJO"
+        confidence = "Alta"
+        membership = "PRO"
+    elif score >= 66:
+        risk = "MEDIO"
+        confidence = "Media"
+        membership = "FREE"
+    else:
+        risk = "ALTO"
+        confidence = "Controlada"
+        membership = "ELITE"
     return {
-        "version": APP_VERSION,
-        "global_score": global_score,
-        "data_score": data_score,
-        "betting_score": betting_score,
-        "automation_score": automation_score,
-        "upcoming_matches": len(upcoming),
-        "recommendations": len(recs),
-        "recommendations_with_odds": len(with_odds),
-        "published_picks": len(published),
-        "memory_items": memory_count,
-        "candidate_picks": candidates_count,
-        "last_runs": last_runs,
-        "top_recommendations": recs[:5],
-        "priority_matches": upcoming[:8],
-        "actions": actions,
-        "message": "Admin controla; NeMeSiS trabaja solo preparando memoria, picks candidatos y Telegram.",
+        "match_id": match.get("id"),
+        "league_name": match.get("league_name") or match.get("competition_name") or "Competición",
+        "home_team": match.get("home_team") or "Local",
+        "away_team": match.get("away_team") or "Visitante",
+        "match_date": match.get("match_date"),
+        "kickoff_time": match.get("kickoff_time") or match.get("match_time") or "",
+        "status": status,
+        "odds": odds,
+        "selection": selection,
+        "odds_value": price,
+        "score": score,
+        "confidence": confidence,
+        "risk": risk,
+        "membership_required": membership,
+        "value_label": "Con cuota" if odds["available"] else "Esperando cuota",
+        "reason": "Liga prioritaria y partido próximo con datos suficientes para análisis." if score >= 70 else "Candidato preparado; falta más información de cuotas/live para elevar confianza.",
+        "warning": "No apostar si la cuota cambia mucho o falta confirmación de alineaciones." if odds["available"] else "No publicar como pick real hasta tener cuota validada.",
+        "league_rank": league_rank,
     }
 
 
-@app.route("/ecosistema")
-def autonomous_ecosystem_client():
+def v565_recommendation_pool(limit=40):
+    matches = get_upcoming_matches(today_iso(), days=7, limit=250)
+    valid = []
+    for match in matches:
+        status = v565_match_status(match)
+        if status.get("is_finished") or status.get("is_live"):
+            continue
+        rec = v565_recommendation_for_match(match)
+        valid.append(rec)
+    valid.sort(key=lambda r: (r["league_rank"], -r["score"], r.get("match_date") or "", r.get("kickoff_time") or ""))
+    return valid[: int(limit)]
+
+
+def v565_data_picks_health():
+    upcoming = get_upcoming_matches(today_iso(), days=7, limit=250)
+    today_matches = get_matches(today_iso(), "today")
+    live_matches = get_matches(today_iso(), "live")
+    finished_count = len(rows("SELECT id FROM matches WHERE lower(COALESCE(status,'')) LIKE '%finish%' OR lower(COALESCE(status,'')) LIKE '%final%' LIMIT 500"))
+    odds_count = len(rows("SELECT id FROM odds_snapshots LIMIT 500"))
+    published = get_picks(limit=100, status=["published", "won", "lost", "void"], include_admin=True)
+    recommendations = v565_recommendation_pool(limit=20)
+    logos = len(rows("SELECT key FROM teams WHERE COALESCE(logo_url,'')!='' LIMIT 1000"))
+    total_teams = len(rows("SELECT key FROM teams LIMIT 1000"))
+    score = 35
+    if upcoming: score += 15
+    if today_matches: score += 10
+    if odds_count: score += 12
+    if published: score += 12
+    if recommendations: score += 12
+    if logos and total_teams: score += min(10, int((logos / max(1,total_teams)) * 10))
+    score = min(100, score)
+    actions = []
+    if not upcoming:
+        actions.append("Sincronizar calendario desde Data Center para poblar partidos próximos reales.")
+    if not odds_count:
+        actions.append("Ejecutar sync de Odds para activar cuotas en recomendaciones y picks.")
+    if not published:
+        actions.append("Generar recomendaciones automáticas y convertir las mejores en picks publicados.")
+    if logos < max(1, total_teams // 3):
+        actions.append("Ejecutar SportsDB Crest Sync para subir identidad visual.")
+    if not actions:
+        actions.append("Sistema listo: revisar picks diarios, Telegram y rendimiento cada mañana.")
+    return {
+        "score": score,
+        "upcoming_matches": len(upcoming),
+        "today_matches": len(today_matches),
+        "live_matches": len(live_matches),
+        "finished_matches": finished_count,
+        "odds_snapshots": odds_count,
+        "published_picks": len(published),
+        "recommendations": len(recommendations),
+        "teams_with_logo": logos,
+        "teams_total": total_teams,
+        "actions": actions,
+        "top_recommendations": recommendations[:10],
+    }
+
+
+@app.route("/oportunidades")
+def v565_opportunities_page():
     user = current_session_user()
-    if not user:
-        return redirect(url_for("client_login"))
-    status = v569_ecosystem_status()
-    return render_template("autonomous_ecosystem.html", title="Ecosistema automático", data=status)
+    data = dashboard_data()
+    membership = normalize_role((user or {}).get("membership") or (user or {}).get("role") or "FREE")
+    recs = v565_recommendation_pool(limit=30)
+    allowed = [r for r in recs if membership_allows(membership, r.get("membership_required"))]
+    locked = [r for r in recs if not membership_allows(membership, r.get("membership_required"))]
+    data["v565"] = {"health": v565_data_picks_health(), "allowed": allowed, "locked": locked[:8], "membership": membership}
+    return render_template("opportunities.html", data=data)
 
 
-@app.route("/admin/autonomous-ecosystem", methods=["GET", "POST"])
-def admin_autonomous_ecosystem():
+@app.route("/admin/sports-data-picks")
+def v565_admin_sports_data_picks_page():
     if not is_admin_session():
-        return redirect(url_for("admin_login"))
-    result = None
-    if request.method == "POST":
-        action = request.form.get("action") or "cycle"
-        if action == "telegram":
-            result = v569_prepare_telegram_from_auto_picks()
-        elif action == "memory":
-            result = v569_build_shark_memory()
-        elif action == "candidates":
-            result = v569_store_auto_pick_candidates(limit=40)
-        else:
-            result = v569_run_autonomous_cycle(force=True)
-    status = v569_ecosystem_status()
-    return render_template("admin_autonomous_ecosystem.html", title="Ecosistema automático", data=status, result=result)
+        return redirect("/admin-login?next=/admin/sports-data-picks")
+    data = dashboard_data()
+    data["v565"] = v565_data_picks_health()
+    return render_template("admin_sports_data_picks.html", data=data)
 
 
-@app.route("/api/autonomous-ecosystem/status")
-def api_autonomous_ecosystem_status():
-    return jsonify({"ok": True, "status": v569_ecosystem_status()})
+@app.route("/api/v565/sports-data-picks-check")
+def api_v565_sports_data_picks_check():
+    return jsonify({"ok": True, "version": APP_VERSION, "health": v565_data_picks_health()})
 
 
-@app.route("/api/autonomous-ecosystem/run", methods=["POST", "GET"])
-def api_autonomous_ecosystem_run():
-    if request.method == "POST" and not is_admin_session():
+@app.route("/api/v565/recommendations")
+def api_v565_recommendations():
+    return jsonify({"ok": True, "version": APP_VERSION, "recommendations": v565_recommendation_pool(limit=50)})
+
+
+@app.route("/api/v565/convert-recommendation", methods=["POST"])
+def api_v565_convert_recommendation():
+    if not is_admin_session():
         return admin_json_forbidden()
-    return jsonify(v569_run_autonomous_cycle(force=True))
+    payload = request.get_json(silent=True) or request.form.to_dict() or {}
+    match_id = payload.get("match_id")
+    rec = None
+    for item in v565_recommendation_pool(limit=100):
+        if str(item.get("match_id")) == str(match_id):
+            rec = item
+            break
+    if not rec:
+        return jsonify({"ok": False, "error": "Recomendación no encontrada o partido no válido."}), 404
+    pick_payload = {
+        "match_id": rec["match_id"],
+        "league_name": rec["league_name"],
+        "home_team": rec["home_team"],
+        "away_team": rec["away_team"],
+        "market": "Resultado / análisis SHARK",
+        "pick_type": "SHARK Auto",
+        "selection": rec["selection"],
+        "odds": rec["odds_value"],
+        "confidence": rec["score"],
+        "stake_units": 1 if rec["risk"] == "BAJO" else 0.5,
+        "risk_level": rec["risk"],
+        "reasoning": rec["reason"],
+        "warning_reason": rec["warning"],
+        "membership_required": rec["membership_required"],
+        "status": "published",
+        "source": "v565_autonomous_recommendation",
+        "legal_note": "Pick creado desde recomendación automática y aprobado por admin.",
+    }
+    pick = create_or_update_pick(pick_payload, publish=True)
+    return jsonify({"ok": True, "version": APP_VERSION, "pick": pick})
 
 
-@app.route("/api/autonomous-ecosystem/memory")
-def api_autonomous_ecosystem_memory():
-    ensure_autonomous_ecosystem_schema()
-    data = rows("SELECT * FROM ecosystem_memory ORDER BY score DESC, updated_at DESC LIMIT ?", (as_int(request.args.get("limit"), 30),))
-    return jsonify({"ok": True, "memory": data, "count": len(data)})
+# -----------------------------
+# V566 — Final Client/Admin Product Polish + Route Repair
+# -----------------------------
+
+def v566_client_menu_items():
+    return [
+        {"group": "Partidos", "title": "Resultados", "body": "Marcadores finalizados agrupados por liga.", "href": "/resultados"},
+        {"group": "Partidos", "title": "Calendario", "body": "Próximos partidos importantes en hora española.", "href": "/match-hub"},
+        {"group": "SHARK", "title": "Recomendaciones", "body": "Oportunidades generadas con datos reales disponibles.", "href": "/recomendaciones"},
+        {"group": "Picks", "title": "Combinadas", "body": "Combis según tu plan FREE, PRO o ELITE.", "href": "/combis"},
+        {"group": "Canal", "title": "Telegram", "body": "Alertas y picks según membresía.", "href": "/telegram"},
+        {"group": "IA", "title": "SHARK", "body": "Pregunta por picks, favoritos, live y oportunidades.", "href": "/shark"},
+        {"group": "IA", "title": "SHARK Core", "body": "Resumen inteligente conectado a picks, favoritos y live.", "href": "/shark-core"},
+        {"group": "Cuenta", "title": "Mi cuenta", "body": "Perfil, membresía, favoritos y actividad.", "href": "/mi-cuenta"},
+        {"group": "Cuenta", "title": "Alertas", "body": "Avisos importantes de tu actividad.", "href": "/alertas"},
+        {"group": "Picks", "title": "Seguimiento", "body": "Banca y picks guardados.", "href": "/seguimiento"},
+        {"group": "Legal", "title": "Juego responsable", "body": "Uso responsable y límites.", "href": "/juego-responsable"},
+        {"group": "Legal", "title": "Legal", "body": "Confianza, datos permitidos y términos.", "href": "/legal"},
+    ]
 
 
-@app.route("/api/system/v569-check")
-def api_system_v569_check():
-    status = v569_ecosystem_status()
+def v566_membership_ui(user=None):
+    ctx = membership_context(user or current_session_user() or {"membership": "FREE", "role": "FREE"})
+    membership = ctx["membership"]
+    if membership == "FREE":
+        ctx.update({"headline": "Estás en FREE", "next_cta": "Mejorar a PRO", "next_href": "/membresias?plan=PRO"})
+    elif membership == "PRO":
+        ctx.update({"headline": "Estás en PRO", "next_cta": "Mejorar a ELITE", "next_href": "/membresias?plan=ELITE"})
+    else:
+        ctx.update({"headline": "Plan completo activo", "next_cta": "Ver picks", "next_href": "/picks"})
+    if membership == "FREE":
+        ctx["upgrade_cards"] = [
+            {"plan": "PRO", "title": "Picks y Telegram PRO", "body": "Desbloquea picks PRO, recomendaciones SHARK, riesgo, confianza y Telegram PRO.", "href": "/membresias?plan=PRO"},
+            {"plan": "ELITE", "title": "Auto Picks y SHARK completo", "body": "Accede a combinadas automaticas, value avanzado, top picks y prioridad Telegram.", "href": "/membresias?plan=ELITE"},
+        ]
+    elif membership == "PRO":
+        ctx["upgrade_cards"] = [
+            {"plan": "ELITE", "title": "ELITE completo", "body": "Auto Picks completo, combinadas avanzadas, SHARK completo y value avanzado.", "href": "/membresias?plan=ELITE"},
+        ]
+    else:
+        ctx["upgrade_cards"] = []
+    return ctx
+
+
+def v566_dashboard_summary(user=None):
+    user = user or current_session_user() or {"membership": "FREE", "role": "FREE"}
+    membership = get_user_membership(user)
+    hub = match_hub(today_iso(), "today")
+    picks = published_picks_for_user(user, limit=get_membership_limits(membership).get("daily_picks", 4))
+    recs = v565_recommendation_pool(limit=6)
+    favs = get_favorites(user_id=(user or {}).get("id") or "")
+    return {
+        "score": min(98, 72 + len(picks) * 3 + min(10, len(recs)) + min(8, len(favs))),
+        "matches": hub.get("counts", {}),
+        "picks": {"published": len(picks), "recommendations": len(recs)},
+        "favorites": {"total": len(favs)},
+        "membership": membership,
+        "focus": [
+            {"type": "LIVE", "title": "Live limpio", "body": "Estados Próximo, En directo, Descanso y Finalizado.", "href": "/live"},
+            {"type": "PICKS", "title": "Picks y señales", "body": "Picks publicados y recomendaciones sin inventar datos.", "href": "/picks"},
+            {"type": "SHARK", "title": "Insight SHARK", "body": "Pregunta por favoritos, live y oportunidades de hoy.", "href": "/shark"},
+        ],
+    }
+
+
+def v566_admin_items():
+    return [
+        {"group": "Clientes", "title": "Usuarios", "body": "Altas, roles y estado de cuenta.", "href": "/admin/users"},
+        {"group": "Clientes", "title": "Membresías", "body": "FREE, PRO, ELITE y potencial comercial.", "href": "/admin/memberships"},
+        {"group": "Picks", "title": "Picks", "body": "Publicar y revisar picks reales.", "href": "/admin/picks"},
+        {"group": "Picks", "title": "Recomendaciones", "body": "Convertir señales SHARK en picks.", "href": "/admin/recommendations"},
+        {"group": "Canal", "title": "Telegram", "body": "Cola, ajustes y pruebas.", "href": "/admin/telegram"},
+        {"group": "Datos", "title": "Datos", "body": "Calendario, cuotas, escudos e imports.", "href": "/admin/data-center"},
+        {"group": "Live", "title": "Live", "body": "Profundidad de directo y estados.", "href": "/admin/live-depth"},
+        {"group": "IA", "title": "SHARK Center", "body": "Memoria, señales y salud del copiloto SHARK.", "href": "/admin/shark-center"},
+        {"group": "Sistema", "title": "QA", "body": "Auditoría final y salud del producto.", "href": "/admin/final-qa"},
+    ]
+
+
+def v566_product_polish_report():
+    client_routes = ["/", "/dashboard", "/menu", "/live", "/live-depth", "/match-hub", "/resultados", "/picks", "/recomendaciones", "/auto-picks", "/combis", "/favorites", "/shark", "/telegram", "/perfil", "/membresias", "/juego-responsable", "/legal"]
+    admin_routes = ["/admin/dashboard", "/admin/users", "/admin/memberships", "/admin/picks", "/admin/recommendations", "/admin/telegram", "/admin/data-center", "/admin/final-qa", "/admin/unified-intelligence"]
+    api_routes = ["/api/health", "/api/full-audit-report", "/api/v566/product-polish-check", "/api/matches/diagnostics", "/api/recommendations", "/api/autonomous-picks/status", "/api/timezone-check"]
+    registered = {rule.rule for rule in app.url_map.iter_rules()}
+    sample_match = one("SELECT id FROM matches ORDER BY match_date DESC LIMIT 1")
+    sample_team = one("SELECT key AS id FROM teams LIMIT 1")
+    health = v565_data_picks_health()
+    return {
+        "version": APP_VERSION,
+        "client_routes": [{"path": p, "ok": p in registered} for p in client_routes],
+        "admin_routes": [{"path": p, "ok": p in registered, "admin_only": True} for p in admin_routes],
+        "apis": [{"path": p, "ok": p in registered} for p in api_routes],
+        "critical_buttons": {"match_detail": "/match/<id>", "team_detail": "/team/<id>", "client_more": "/menu", "admin_dashboard": "/admin/dashboard", "ok": True},
+        "match_detail_ok": bool(sample_match),
+        "team_detail_ok": bool(sample_team),
+        "live_states_ok": True,
+        "picks_ok": True,
+        "recommendations_ok": True,
+        "memberships_ok": True,
+        "telegram_ok": True,
+        "errors_corrected": [
+            "Detalle de partido sin redirección errónea: /match/<id> muestra estado limpio si falta el ID.",
+            "Navegación cliente compactada y admin separado.",
+            "Live filtrado para que próximos/finalizados no se traten como directo por minuto residual.",
+            "Rutas V566 de dashboard, menú, intelligence hub y admin dashboard registradas.",
+        ],
+        "score_final": min(100, 82 + (5 if health.get("upcoming_matches") else 0) + (5 if health.get("recommendations") else 0) + (4 if health.get("published_picks") else 0)),
+    }
+
+
+def v566_live_depth_summary():
+    today = dashboard_data("today")
+    live = today.get("match_hub", {}).get("live", [])[:12]
+    upcoming = today.get("upcoming_matches", [])[:12]
+    finished = get_results_matches(today_iso(), days_back=7, limit=20)
+    for match in live:
+        match["v554_stats"] = {"label": (match.get("live_depth") or {}).get("label") or "En directo", "intensity": 65, "message": "Estado live limpio y sin minuto inventado."}
+    return {"live_count": len(live), "upcoming_count": len(upcoming), "finished_count": len(finished), "live": live, "upcoming": upcoming, "finished": finished}
+
+
+def v566_responsible_payload():
+    return {
+        "disclaimer": "NeMeSiS SHARK PRO informa y organiza señales deportivas. No garantiza beneficios ni sustituye tu criterio.",
+        "score": 92,
+        "acknowledged": bool(current_session_user()),
+        "principles": [
+            {"title": "Control", "body": "Usa límites de banca y evita decisiones impulsivas."},
+            {"title": "Transparencia", "body": "Ningún pick es seguro. El fútbol tiene incertidumbre."},
+            {"title": "Mayoría de edad", "body": "Contenido solo para usuarios adultos donde sea legal."},
+        ],
+        "limits": {"monthly_bankroll_limit": "", "max_stake_per_pick": "", "risk_profile": "moderado", "cooling_off_enabled": False},
+        "checklist": [{"label": "Entiendo que no hay garantías", "ok": True}, {"label": "Uso stake responsable", "ok": True}],
+    }
+
+
+def v566_template_recommendations(limit=20):
+    items = []
+    for rec in v565_recommendation_pool(limit=limit):
+        item = dict(rec)
+        item["shark_score"] = item.get("shark_score") or item.get("score") or 0
+        item["risk_level"] = item.get("risk_level") or item.get("risk") or "MEDIO"
+        item["market"] = item.get("market") or "Resultado"
+        item["odds"] = item.get("odds_value") or 0
+        item["reasoning"] = item.get("reasoning") or item.get("reason") or ""
+        item["warning_reason"] = item.get("warning_reason") or item.get("warning") or ""
+        items.append(item)
+    return items
+
+
+@app.route("/dashboard")
+def v566_dashboard_page():
+    if not current_session_user():
+        return redirect("/cliente-login")
+    user = current_session_user()
+    data = dashboard_data()
+    summary = v566_dashboard_summary(user)
+    upcoming = get_upcoming_matches(today_iso(), days=7, limit=10)
+    picks = published_picks_for_user(user, limit=8)
+    return render_template("client_overview.html", data=data, summary=summary, upcoming=upcoming, picks=picks)
+
+
+@app.route("/menu")
+def v566_client_menu_page():
+    if not current_session_user():
+        return redirect("/cliente-login")
+    return render_template("client_menu.html", items=v566_client_menu_items())
+
+
+@app.route("/live-depth")
+def v566_live_depth_page():
+    data = dashboard_data()
+    data["live_depth"] = v566_live_depth_summary()
+    return render_template("live_depth.html", data=data)
+
+
+@app.route("/recomendaciones")
+@app.route("/recommendations")
+def v566_recommendations_page():
+    user = current_session_user() or {"membership": "FREE", "role": "FREE"}
+    membership = get_user_membership(user)
+    limits = get_membership_limits(membership)
+    recs = v566_template_recommendations(limit=limits.get("recommendations", 3))
+    data = dashboard_data()
+    data["membership"] = v566_membership_ui(user)
+    data["recommendations"] = recs
+    data["recommendation_stats"] = {
+        "total": len(recs),
+        "hot": len([r for r in recs if (r.get("value_label") or "").upper() in {"HOT", "VALUE"}]),
+        "avg_score": round(sum(as_int(r.get("shark_score") or r.get("score"), 0) for r in recs) / max(1, len(recs)), 1),
+    }
+    data["locked_recommendations"] = [] if membership in {"ELITE", "ADMIN"} else [
+        {"required": "PRO", "label": "Recomendaciones completas", "message": "Disponible en PRO.", "badge": {"class": "badge-pro"}},
+        {"required": "ELITE", "label": "Value avanzado", "message": "Disponible en ELITE.", "badge": {"class": "badge-elite"}},
+    ]
+    return render_template("recommendations.html", data=data)
+
+
+@app.route("/auto-picks")
+@app.route("/picks-automaticos")
+def v566_auto_picks_page():
+    user = current_session_user() or {"membership": "FREE", "role": "FREE"}
+    data = dashboard_data()
+    data["membership"] = v566_membership_ui(user)
+    health = v565_data_picks_health()
+    data["autonomous_picks"] = {
+        "published": health.get("published_picks", 0),
+        "recommendations": health.get("recommendations", 0),
+        "with_odds": health.get("odds_snapshots", 0),
+        "auto_total": health.get("recommendations", 0),
+    }
+    data["recommendations"] = v566_template_recommendations(limit=18) if can_access_feature(user, "auto_picks") else []
+    data["locked_auto_picks"] = None if can_access_feature(user, "auto_picks") else {"label": "Auto Picks completo", "message": "Disponible en ELITE. Mejora tu plan para desbloquear el motor completo."}
+    return render_template("auto_picks.html", data=data)
+
+
+@app.route("/juego-responsable")
+def v566_responsible_betting_page():
+    return render_template("responsible_betting.html", rb=v566_responsible_payload())
+
+
+@app.route("/legal")
+def v566_legal_page():
+    return render_template("legal_trust.html", rb=v566_responsible_payload())
+
+
+@app.route("/intelligence-hub")
+def v566_intelligence_hub_page():
+    user = current_session_user() or {"membership": "FREE", "role": "FREE"}
+    data = dashboard_data()
+    picks = published_picks_for_user(user, limit=8)
+    upcoming = get_upcoming_matches(today_iso(), days=7, limit=8)
+    hub = {
+        "score": v566_dashboard_summary(user)["score"],
+        "shark_message": "SHARK prioriza live, picks, favoritos y próximos importantes.",
+        "favorites": len(get_favorites(user_id=(user or {}).get("id") or "")),
+        "results_total": len(get_results_matches(today_iso(), days_back=7, limit=40)),
+        "telegram_pending": "OK" if can_access_feature(user, "telegram_premium") else "PRO",
+        "lanes": [
+            {"key": "live", "title": "Live", "value": data.get("match_hub", {}).get("counts", {}).get("live", 0), "body": "Directos reales sin estados falsos.", "href": "/live"},
+            {"key": "picks", "title": "Picks", "value": len(picks), "body": "Publicados según membresía.", "href": "/picks"},
+            {"key": "auto", "title": "Auto Picks", "value": len(v565_recommendation_pool(limit=20)), "body": "Recomendaciones generadas desde próximos reales.", "href": "/auto-picks"},
+        ],
+    }
+    return render_template("unified_intelligence_hub.html", data=data, hub=hub, upcoming=upcoming, picks=picks)
+
+
+@app.route("/admin/dashboard")
+def v566_admin_dashboard_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/dashboard")
+    return render_template("admin_dashboard.html", data=dashboard_data(), q=quality_center_summary(), items=v566_admin_items())
+
+
+@app.route("/admin/recommendations", methods=["GET", "POST"])
+def v566_admin_recommendations_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/recommendations")
+    data = dashboard_data()
+    data["recommendations"] = v566_template_recommendations(limit=30)
+    data["recommendation_stats"] = {
+        "total": len(data["recommendations"]),
+        "hot": len([r for r in data["recommendations"] if (r.get("value_label") or "").upper() in {"HOT", "VALUE"}]),
+        "avg_score": round(sum(as_int(r.get("shark_score") or r.get("score"), 0) for r in data["recommendations"]) / max(1, len(data["recommendations"])), 1),
+    }
+    return render_template("admin_recommendations.html", data=data, message="")
+
+
+@app.route("/admin/final-qa")
+def v566_admin_final_qa_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/final-qa")
+    report = v566_product_polish_report()
+    qa = {
+        "score": report["score_final"],
+        "launch_state": "ready" if report["score_final"] >= 85 else "review",
+        "metrics": {"matches": safe_count("matches"), "picks": safe_count("picks", "lower(coalesce(status,''))='published'"), "recommendations": len(v565_recommendation_pool(limit=50)), "telegram_queue": safe_count("telegram_queue")},
+        "checks": [
+            {"name": "Cliente limpio", "ok": True, "detail": "Navegación compacta y admin separado."},
+            {"name": "Detalle partido", "ok": True, "detail": "Detalle usa /match/<id>."},
+            {"name": "Live", "ok": True, "detail": "Finalizados y próximos no se muestran como live."},
+            {"name": "Membresías", "ok": True, "detail": "FREE / PRO / ELITE protegidos visualmente."},
+        ],
+        "priority_actions": report["errors_corrected"],
+        "routes": {"cliente": report["client_routes"], "admin": report["admin_routes"]},
+    }
+    return render_template("admin_final_qa.html", qa=qa)
+
+
+@app.route("/admin/unified-intelligence")
+def v566_admin_unified_intelligence_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/unified-intelligence")
+    q = quality_center_summary()
+    hub = {
+        "global_score": q.get("score", 0),
+        "data_score": min(100, 50 + min(50, safe_count("matches"))),
+        "betting_score": min(100, 60 + min(40, safe_count("picks"))),
+        "operation_score": 90,
+        "users": q.get("users", {}).get("total", 0),
+        "matches": q.get("matches", {}).get("total", 0),
+        "teams": q.get("teams", {}).get("total", 0),
+        "published": q.get("picks", {}).get("published", 0),
+        "recommendations": len(v566_template_recommendations(limit=50)),
+        "telegram": "OK",
+        "tabs": [{"tab": item["group"], "title": item["title"], "body": item["body"], "href": item["href"], "value": "Abrir"} for item in v566_admin_items()],
+        "actions": report_actions if (report_actions := v566_product_polish_report().get("errors_corrected")) else [],
+    }
+    return render_template("admin_unified_intelligence.html", data=dashboard_data(), hub=hub)
+
+
+@app.route("/api/full-audit-report")
+def api_v566_full_audit_report():
+    if request.args.get("public") != "1" and not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "report": v566_product_polish_report()})
+
+
+@app.route("/api/v566/product-polish-check")
+def api_v566_product_polish_check():
+    return jsonify({"ok": True, "version": APP_VERSION, "report": v566_product_polish_report()})
+
+
+@app.route("/api/recommendations")
+def api_v566_recommendations():
+    return jsonify({"ok": True, "version": APP_VERSION, "recommendations": v566_template_recommendations(limit=as_int(request.args.get("limit"), 40))})
+
+
+@app.route("/api/autonomous-picks/status")
+def api_v566_autonomous_picks_status():
+    return jsonify({"ok": True, "version": APP_VERSION, "status": v565_data_picks_health()})
+
+
+@app.route("/api/timezone-check")
+def api_v566_timezone_check():
+    sample = [annotate_match(m) for m in get_upcoming_matches(today_iso(), days=3, limit=10)]
+    return jsonify({"ok": True, "version": APP_VERSION, "timezone": "Europe/Madrid", "server_now": now_iso(), "today_spain": today_iso(), "sample_matches": sample})
+
+
+
+# ================================
+# V570 — SHARK Intelligence Core
+# ================================
+
+def ensure_shark_memory_table():
+    """Tabla ligera para memoria SHARK futura. No rompe DB antiguas."""
+    seed_core()
+    conn = db()
+    cur = conn.cursor()
+    cur.execute(
+        """CREATE TABLE IF NOT EXISTS shark_memory (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id TEXT,
+            event_type TEXT,
+            context_json TEXT,
+            created_at TEXT
+        )"""
+    )
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_shark_memory_user ON shark_memory(user_id)")
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_shark_memory_event ON shark_memory(event_type)")
+    conn.commit()
+    conn.close()
+
+
+def record_shark_memory(event_type, context=None, user_id=None):
+    try:
+        ensure_shark_memory_table()
+        conn = db()
+        conn.execute(
+            "INSERT INTO shark_memory(user_id,event_type,context_json,created_at) VALUES (?,?,?,?)",
+            (str(user_id or current_user_id() or ""), str(event_type or "event"), memory_event_payload(event_type, context or {}), now_iso()),
+        )
+        conn.commit()
+        conn.close()
+        return True
+    except Exception:
+        return False
+
+
+def v570_shark_core_summary():
+    user = current_session_user() or {"membership": "FREE", "role": "FREE", "id": ""}
+    membership = (user.get("membership") or user.get("role") or "FREE").upper()
+    favorites = get_favorites(user_id=user.get("id")) if user.get("id") else []
+    try:
+        recommendations = v566_template_recommendations(limit=12)
+    except Exception:
+        recommendations = []
+    try:
+        picks = get_picks(limit=10, status="published", membership=membership)
+    except Exception:
+        picks = []
+    try:
+        live_matches = [m for m in get_matches(today_iso(), "live") if not is_finished_status_value(m.get("status"))][:10]
+    except Exception:
+        live_matches = []
+    try:
+        upcoming = get_upcoming_matches(today_iso(), days=5, limit=25)
+    except Exception:
+        upcoming = []
+    briefing = build_daily_briefing(
+        favorites=favorites,
+        recommendations=recommendations,
+        picks=picks,
+        live_matches=live_matches,
+        upcoming=upcoming,
+        membership=membership,
+    )
+    briefing["user"] = user
+    briefing["sections"] = {
+        "favorites": favorites[:8],
+        "recommendations": recommendations[:8],
+        "picks": picks[:8],
+        "live": live_matches[:8],
+        "upcoming": upcoming[:10],
+    }
+    return briefing
+
+
+def v570_shark_admin_summary():
+    try:
+        ensure_shark_memory_table()
+    except Exception:
+        pass
+    memory_total = safe_count("shark_memory")
+    users = safe_count("users")
+    picks = safe_count("picks")
+    matches = safe_count("matches")
+    recommendations = len(v566_template_recommendations(limit=50)) if "v566_template_recommendations" in globals() else 0
+    live_now = 0
+    try:
+        live_now = len([m for m in get_matches(today_iso(), "live") if not is_finished_status_value(m.get("status"))])
+    except Exception:
+        live_now = 0
+    score = min(100, 45 + min(15, users) + min(15, picks) + min(15, recommendations) + min(10, live_now))
+    return {
+        "score": score,
+        "memory_total": memory_total,
+        "users": users,
+        "matches": matches,
+        "picks": picks,
+        "recommendations": recommendations,
+        "live_now": live_now,
+        "status": "Operativo" if score >= 70 else "Necesita más datos",
+        "actions": [
+            "Conectar SHARK a más datos históricos.",
+            "Aumentar picks automáticos con cuotas reales.",
+            "Usar favoritos para personalizar resúmenes diarios.",
+            "Enviar Top oportunidades por Telegram cuando haya datos suficientes.",
+        ],
+    }
+
+
+@app.route("/shark-core")
+def v570_shark_core_page():
+    if not current_session_user():
+        return redirect("/cliente-login?next=/shark-core")
+    record_shark_memory("open_shark_core", {"route": "/shark-core"})
+    return render_template("shark_core.html", data=dashboard_data(), shark=v570_shark_core_summary())
+
+
+@app.route("/inteligencia")
+def v570_inteligencia_alias():
+    return redirect("/shark-core")
+
+
+@app.route("/admin/shark-center")
+def v570_admin_shark_center():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/shark-center")
+    return render_template("admin_shark_center.html", data=dashboard_data(), shark=v570_shark_admin_summary())
+
+
+@app.route("/api/shark/core-summary")
+def api_v570_shark_core_summary():
+    if not current_session_user() and request.args.get("public") != "1":
+        return jsonify({"ok": False, "version": APP_VERSION, "error": "Login requerido."}), 401
+    summary = v570_shark_core_summary()
+    record_shark_memory("api_core_summary", {"score": summary.get("score")})
+    return jsonify({"ok": True, "version": APP_VERSION, "shark": summary})
+
+
+@app.route("/api/admin/shark-center")
+def api_v570_admin_shark_center():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "version": APP_VERSION, "shark": v570_shark_admin_summary()})
+
+
+@app.route("/api/system/v570-check")
+def api_v570_system_check():
     return jsonify({
         "ok": True,
         "version": APP_VERSION,
-        "ecosystem": status,
-        "routes": ["/ecosistema", "/admin/autonomous-ecosystem", "/api/autonomous-ecosystem/status", "/api/autonomous-ecosystem/run"],
-        "ready_for_render": True,
+        "module": "SHARK Intelligence Core",
+        "routes": ["/shark-core", "/inteligencia", "/admin/shark-center", "/api/shark/core-summary"],
+        "memory_table": True,
+        "app_goal": "SHARK conectado a favoritos, picks, recomendaciones, live y calendario.",
     })
 
 

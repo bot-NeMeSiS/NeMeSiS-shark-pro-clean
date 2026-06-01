@@ -1,37 +1,60 @@
 {% extends "base.html" %}
 {% block content %}
-<section class="hero compact product-hero">
-  <div class="kicker">Admin · Auto Picks</div>
-  <h1>Motor autónomo de picks SHARK</h1>
-  <p class="lead">Supervisa oportunidades generadas desde partidos próximos reales. El admin revisa y convierte; el sistema no inventa picks.</p>
-  <div class="actions"><a class="btn primary" href="/admin/picks">Picks publicados</a><a class="btn" href="/admin/data-center">Data Center</a><a class="btn" href="/api/v568/autonomous-picks-check">API check</a></div>
-</section>
-{% if message %}<section class="band"><div class="notice">{{ message }}</div></section>{% endif %}
-<section class="band compact-band">
-  <div class="grid compact-grid metric-row">
-    <div class="card metric-card"><div class="metric">{{ data.auto_picks_status.generated }}</div><div class="muted">generadas</div></div>
-    <div class="card metric-card"><div class="metric">{{ data.auto_picks_status.with_odds }}</div><div class="muted">con cuota</div></div>
-    <div class="card metric-card"><div class="metric">{{ data.auto_picks_status.published_picks }}</div><div class="muted">publicadas</div></div>
-    <div class="card metric-card"><div class="metric">{{ data.auto_picks_status.without_odds }}</div><div class="muted">sin cuota</div></div>
+<section class="hero compact admin-hero">
+  <div class="kicker">Admin · Motor autónomo</div>
+  <h1>Picks automáticos SHARK</h1>
+  <p class="lead">Genera picks/recomendaciones desde partidos reales, cuotas cacheadas y prioridad de ligas. No inventa cuotas: si faltan, marca análisis pendiente.</p>
+  <div class="admin-menu">
+    <a class="btn primary" href="/admin/autonomous-picks">Auto Picks</a>
+    <a class="btn" href="/admin/picks">Picks</a>
+    <a class="btn" href="/admin/data-center">Data Center</a>
+    <a class="btn" href="/admin/telegram">Telegram</a>
   </div>
 </section>
+
+{% if message %}<section class="band"><div class="notice">{{ message }}</div></section>{% endif %}
+{% if result %}<section class="band"><pre class="card code-card">{{ result|tojson(indent=2) }}</pre></section>{% endif %}
+
 <section class="band compact-band">
-  <div class="section-head"><h2>Acciones</h2><span class="pill">V568</span></div>
-  <form method="post" class="actions"><button class="btn primary" name="action" value="generate">Recalcular oportunidades</button><a class="btn" href="/api/telegram/enqueue-auto-picks">Preparar Telegram</a><a class="btn" href="/api/autonomous-picks/status">Estado JSON</a></form>
+  <div class="grid compact-grid metric-row">
+    <div class="card"><div class="metric">{{ data.autonomous_picks.published }}</div><div class="muted">picks publicados</div></div>
+    <div class="card"><div class="metric">{{ data.autonomous_picks.auto_total }}</div><div class="muted">auto generados</div></div>
+    <div class="card"><div class="metric">{{ data.autonomous_picks.with_odds }}</div><div class="muted">oportunidades con cuota</div></div>
+    <div class="card"><div class="metric">{{ data.autonomous_picks.without_odds }}</div><div class="muted">análisis sin cuota</div></div>
+  </div>
 </section>
+
+<section class="band form-grid">
+  <form class="card" method="post" action="/admin/autonomous-picks">
+    <h2>Ejecutar motor ahora</h2>
+    <p class="small">Usa partidos próximos reales y cuotas cacheadas. Recomendado después de sincronizar calendario/Odds.</p>
+    <div class="field"><label>Límite</label><input name="limit" value="8"></div>
+    <label class="check"><input type="checkbox" name="force" value="1"> Forzar aunque se haya ejecutado hace poco</label>
+    <label class="check"><input type="checkbox" name="require_odds" value="1"> Solo publicar picks con cuota real disponible</label>
+    <button class="primary" type="submit">Generar picks automáticos</button>
+  </form>
+  <aside class="card">
+    <h2>Reglas</h2>
+    <p class="small">Primero ligas top: LaLiga, Premier, Champions, Serie A, Bundesliga y Ligue 1.</p>
+    <p class="small">Sin cuota: análisis visible, pero nunca cuota inventada.</p>
+    <p class="small">Telegram daily picks leerá picks publicados automáticamente.</p>
+  </aside>
+</section>
+
 <section class="band compact-band">
-  <div class="section-head"><h2>Oportunidades para revisar</h2><span class="pill">{{ data.auto_picks_status.recommendations|length }}</span></div>
-  {% if data.auto_picks_status.recommendations %}<div class="grid dense-grid">
-  {% for r in data.auto_picks_status.recommendations %}
+  <div class="section-head"><h2>Ranking actual</h2><span class="pill">{{ data.recommendations|length }}</span></div>
+  <div class="stack">
+    {% for r in data.recommendations %}
     <article class="card pick-card">
-      <div class="match-top"><div><div class="comp-name">{{ r.league_name }}</div><div class="small">{{ r.match_date }} · {{ r.kickoff_time or 'hora por confirmar' }}</div></div><span class="badge badge-{{ r.membership_required|lower }}">{{ r.membership_required }}</span></div>
+      <div class="match-top"><div><div class="comp-name">{{ r.league_name }}</div><div class="small">{{ r.match_date }} · {{ r.market }}</div></div><span class="pill">SHARK {{ r.shark_score }}</span></div>
       <h3>{{ r.home_team }} vs {{ r.away_team }}</h3>
-      <p class="selection">{{ r.selection }} {% if r.has_odds %}· {{ r.odds }}{% else %}· cuota pendiente{% endif %}</p>
-      <div class="status"><span>Score {{ r.score }}</span><span>{{ r.confidence }}%</span><span>{{ r.risk_level }}</span><span>{{ r.value_label }}</span></div>
+      <p><strong>{{ r.selection }}</strong>{% if r.odds %} · cuota {{ r.odds }}{% else %} · pendiente de cuota{% endif %}</p>
+      <div class="status"><span>{{ r.confidence }}%</span><span>{{ r.risk_level }}</span><span>{{ r.value_rating }}</span><span>{{ r.membership_required }}</span></div>
       <p class="small">{{ r.reasoning }}</p>
-      <form method="post" class="actions"><input type="hidden" name="action" value="convert"><input type="hidden" name="recommendation_id" value="{{ r.id }}"><button class="btn primary" type="submit">Convertir en pick publicado</button><a class="btn" href="{{ r.detail_url }}">Ver partido</a></form>
     </article>
-  {% endfor %}
-  </div>{% else %}<div class="empty">No hay oportunidades ahora mismo. Revisa Data Center, calendario y Odds.</div>{% endif %}
+    {% else %}
+    <div class="empty">Sin recomendaciones todavía. Sincroniza calendario/Odds.</div>
+    {% endfor %}
+  </div>
 </section>
 {% endblock %}
