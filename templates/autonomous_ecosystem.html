@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+{% block content %}
+<section class="hero compact-hero">
+  <p class="eyebrow">Ecosistema automático</p>
+  <h1>NeMeSiS trabaja solo. Tú decides mejor.</h1>
+  <p class="muted">Datos, recomendaciones, picks candidatos, memoria SHARK y Telegram preparados para que el admin supervise, no para hacerlo todo manualmente.</p>
+  <div class="hero-actions">
+    <a class="btn primary" href="/auto-picks">Ver Auto Picks</a>
+    <a class="btn ghost" href="/recomendaciones">Recomendaciones</a>
+    <a class="btn ghost" href="/picks">Picks publicados</a>
+  </div>
+</section>
+
+<section class="grid cards-4">
+  <article class="card metric-card"><span class="metric">{{ data.global_score }}%</span><small>Score ecosistema</small></article>
+  <article class="card metric-card"><span class="metric">{{ data.upcoming_matches }}</span><small>Partidos próximos priorizados</small></article>
+  <article class="card metric-card"><span class="metric">{{ data.recommendations }}</span><small>Recomendaciones SHARK</small></article>
+  <article class="card metric-card"><span class="metric">{{ data.recommendations_with_odds }}</span><small>Con cuota disponible</small></article>
+</section>
+
+<section class="panel-block">
+  <div class="section-head"><h2>Top oportunidades automáticas</h2><p>Generadas desde partidos próximos reales y cuotas cacheadas si existen.</p></div>
+  {% if data.top_recommendations %}
+    <div class="stack">
+      {% for item in data.top_recommendations %}
+      <article class="card pick-card compact-card">
+        <div class="row between"><strong>{{ item.home_team }} vs {{ item.away_team }}</strong><span class="badge">{{ item.score }}/100</span></div>
+        <p class="muted small">{{ item.league_name }} · {{ item.kickoff_time or 'hora pendiente' }} · {{ item.value_label }}</p>
+        <p><strong>{{ item.selection }}</strong>{% if item.has_odds %} · cuota {{ item.odds }}{% else %} · cuota pendiente{% endif %}</p>
+        <div class="chips"><span>Confianza {{ item.confidence }}%</span><span>Riesgo {{ item.risk_level }}</span><span>{{ item.membership_required }}</span></div>
+        <p class="muted small">{{ item.reasoning }}</p>
+        <a class="btn small" href="{{ item.detail_url }}">Detalle</a>
+      </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-premium">SHARK está esperando partidos próximos suficientes para generar oportunidades automáticas.</div>
+  {% endif %}
+</section>
+
+<section class="panel-block">
+  <div class="section-head"><h2>Memoria deportiva</h2><p>Base para análisis futuro, favoritos, Telegram y SHARK contextual.</p></div>
+  <div class="grid cards-3">
+    <article class="card metric-card"><span class="metric">{{ data.memory_items }}</span><small>Memorias guardadas</small></article>
+    <article class="card metric-card"><span class="metric">{{ data.candidate_picks }}</span><small>Picks candidatos</small></article>
+    <article class="card metric-card"><span class="metric">{{ data.automation_score }}%</span><small>Automatización</small></article>
+  </div>
+</section>
+{% endblock %}

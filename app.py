@@ -53,7 +53,7 @@ from engines.telegram_delivery_engine import (
 from engines.telegram_engine import build_alert_queue, dispatch_signature, should_skip_duplicate
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V568_AUTONOMOUS_PICKS_ODDS_SHARK_UPGRADE"
+APP_VERSION = "V569_AUTONOMOUS_ECOSYSTEM_ENGINE"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -7169,6 +7169,348 @@ def api_telegram_enqueue_auto_picks():
         return jsonify({"ok": True, "queued": 1 if qid else 0, "queue_id": qid, "top": top[:3]})
     except Exception as exc:
         return jsonify({"ok": False, "error": str(exc), "top": top[:3]}), 400
+
+
+# ===================== V569 AUTONOMOUS ECOSYSTEM ENGINE =====================
+def ensure_autonomous_ecosystem_schema():
+    """Tablas de memoria/automatización para que el admin supervise y la app trabaje sola."""
+    seed_core()
+    conn = db()
+    cur = conn.cursor()
+    cur.execute("""CREATE TABLE IF NOT EXISTS ecosystem_memory(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        memory_type TEXT,
+        entity_type TEXT,
+        entity_id TEXT,
+        user_id TEXT,
+        title TEXT,
+        summary TEXT,
+        payload_json TEXT,
+        score INTEGER DEFAULT 0,
+        source TEXT,
+        created_at TEXT,
+        updated_at TEXT
+    )""")
+    cur.execute("""CREATE TABLE IF NOT EXISTS automation_runs(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        task_name TEXT,
+        status TEXT,
+        processed INTEGER DEFAULT 0,
+        inserted INTEGER DEFAULT 0,
+        updated INTEGER DEFAULT 0,
+        skipped INTEGER DEFAULT 0,
+        error_message TEXT,
+        started_at TEXT,
+        finished_at TEXT,
+        payload_json TEXT
+    )""")
+    cur.execute("""CREATE TABLE IF NOT EXISTS auto_pick_candidates(
+        id TEXT PRIMARY KEY,
+        match_id TEXT,
+        league_name TEXT,
+        home_team TEXT,
+        away_team TEXT,
+        market TEXT,
+        selection TEXT,
+        odds REAL DEFAULT 0,
+        bookmaker TEXT,
+        shark_score INTEGER DEFAULT 0,
+        confidence INTEGER DEFAULT 0,
+        risk_level TEXT,
+        value_label TEXT,
+        stake_units REAL DEFAULT 1,
+        membership_required TEXT DEFAULT 'PRO',
+        status TEXT DEFAULT 'candidate',
+        reasoning TEXT,
+        warning_reason TEXT,
+        payload_json TEXT,
+        created_at TEXT,
+        updated_at TEXT
+    )""")
+    cur.execute("""CREATE TABLE IF NOT EXISTS shark_memory(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        topic TEXT,
+        entity_type TEXT,
+        entity_id TEXT,
+        summary TEXT,
+        payload_json TEXT,
+        priority INTEGER DEFAULT 50,
+        created_at TEXT,
+        updated_at TEXT
+    )""")
+    for stmt in (
+        "CREATE INDEX IF NOT EXISTS idx_ecosystem_memory_type ON ecosystem_memory(memory_type, entity_type, entity_id)",
+        "CREATE INDEX IF NOT EXISTS idx_automation_runs_task ON automation_runs(task_name, started_at)",
+        "CREATE INDEX IF NOT EXISTS idx_auto_pick_candidates_status ON auto_pick_candidates(status, shark_score)",
+        "CREATE INDEX IF NOT EXISTS idx_shark_memory_topic ON shark_memory(topic, entity_type, entity_id)",
+    ):
+        try:
+            cur.execute(stmt)
+        except sqlite3.OperationalError:
+            pass
+    conn.commit()
+    conn.close()
+
+
+def log_automation_run(task_name, status="ok", processed=0, inserted=0, updated=0, skipped=0, error_message="", payload=None, started_at=None):
+    ensure_autonomous_ecosystem_schema()
+    started_at = started_at or now_iso()
+    conn = db()
+    conn.execute(
+        """INSERT INTO automation_runs(task_name,status,processed,inserted,updated,skipped,error_message,started_at,finished_at,payload_json)
+           VALUES (?,?,?,?,?,?,?,?,?,?)""",
+        (task_name, status, int(processed or 0), int(inserted or 0), int(updated or 0), int(skipped or 0), str(error_message or ""), started_at, now_iso(), json.dumps(payload or {}, ensure_ascii=False)),
+    )
+    conn.commit()
+    conn.close()
+
+
+def upsert_ecosystem_memory(memory_type, entity_type, entity_id, title, summary, payload=None, score=0, source="v569"):
+    ensure_autonomous_ecosystem_schema()
+    entity_id = str(entity_id or "global")
+    payload = payload or {}
+    existing = one("SELECT id FROM ecosystem_memory WHERE memory_type=? AND entity_type=? AND entity_id=?", (memory_type, entity_type, entity_id))
+    conn = db()
+    if existing:
+        conn.execute(
+            """UPDATE ecosystem_memory SET title=?, summary=?, payload_json=?, score=?, source=?, updated_at=? WHERE id=?""",
+            (title, summary, json.dumps(payload, ensure_ascii=False), int(score or 0), source, now_iso(), existing["id"]),
+        )
+        changed = "updated"
+    else:
+        conn.execute(
+            """INSERT INTO ecosystem_memory(memory_type,entity_type,entity_id,title,summary,payload_json,score,source,created_at,updated_at)
+               VALUES (?,?,?,?,?,?,?,?,?,?)""",
+            (memory_type, entity_type, entity_id, title, summary, json.dumps(payload, ensure_ascii=False), int(score or 0), source, now_iso(), now_iso()),
+        )
+        changed = "inserted"
+    conn.commit()
+    conn.close()
+    return changed
+
+
+def v569_priority_matches(limit=30):
+    matches = get_upcoming_matches(today_iso(), days=7, limit=max(80, limit * 3))
+    enriched = []
+    for match in matches:
+        if is_fake_match(match):
+            continue
+        item = annotate_match(dict(match))
+        item["league_priority"] = league_priority_value(item)
+        item["status_info"] = canonical_match_status(item)
+        enriched.append(item)
+    enriched.sort(key=lambda m: (m.get("league_priority") or 0, m.get("match_date") or "", m.get("kickoff_time") or ""), reverse=True)
+    return enriched[:limit]
+
+
+def v569_store_auto_pick_candidates(limit=24):
+    ensure_autonomous_ecosystem_schema()
+    user = {"membership": "ELITE", "role": "ADMIN"}
+    candidates = generate_autonomous_recommendations(user=user, limit=limit)
+    conn = db()
+    inserted = updated = 0
+    for rec in candidates:
+        rid = str(rec.get("id"))
+        if not rid:
+            continue
+        exists = conn.execute("SELECT id FROM auto_pick_candidates WHERE id=?", (rid,)).fetchone()
+        payload = json.dumps(rec, ensure_ascii=False)
+        values = (
+            rid,
+            rec.get("match_id"), rec.get("league_name"), rec.get("home_team"), rec.get("away_team"),
+            rec.get("market"), rec.get("selection"), float(rec.get("odds") or 0), rec.get("bookmaker"),
+            int(rec.get("score") or 0), int(rec.get("confidence") or 0), rec.get("risk_level"), rec.get("value_label"),
+            float(rec.get("stake_units") or 1), rec.get("membership_required") or "PRO", rec.get("status") or "candidate",
+            rec.get("reasoning"), rec.get("warning_reason"), payload, now_iso(), now_iso()
+        )
+        if exists:
+            conn.execute(
+                """UPDATE auto_pick_candidates SET match_id=?,league_name=?,home_team=?,away_team=?,market=?,selection=?,odds=?,bookmaker=?,
+                   shark_score=?,confidence=?,risk_level=?,value_label=?,stake_units=?,membership_required=?,status=?,reasoning=?,warning_reason=?,payload_json=?,updated_at=?
+                   WHERE id=?""",
+                values[1:-2] + (now_iso(), rid),
+            )
+            updated += 1
+        else:
+            conn.execute(
+                """INSERT INTO auto_pick_candidates(id,match_id,league_name,home_team,away_team,market,selection,odds,bookmaker,shark_score,confidence,
+                   risk_level,value_label,stake_units,membership_required,status,reasoning,warning_reason,payload_json,created_at,updated_at)
+                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                values,
+            )
+            inserted += 1
+    conn.commit()
+    conn.close()
+    log_automation_run("auto_pick_candidates", "ok", processed=len(candidates), inserted=inserted, updated=updated, payload={"limit": limit})
+    return {"processed": len(candidates), "inserted": inserted, "updated": updated, "candidates": candidates}
+
+
+def v569_build_shark_memory():
+    ensure_autonomous_ecosystem_schema()
+    inserted = updated = 0
+    priority = v569_priority_matches(limit=12)
+    for match in priority:
+        title = f"{match.get('home_team')} vs {match.get('away_team')}"
+        summary = f"Partido próximo en {match.get('competition_name') or match.get('league_name') or 'competición'} con prioridad {match.get('league_priority', 0)}/100."
+        changed = upsert_ecosystem_memory("match_context", "match", match.get("id"), title, summary, match, match.get("league_priority") or 0)
+        inserted += 1 if changed == "inserted" else 0
+        updated += 1 if changed == "updated" else 0
+    favs = get_favorites()
+    for fav in favs[:20]:
+        title = f"Favorito {fav.get('label') or fav.get('value')}"
+        summary = "Contexto de favorito usado para priorizar dashboard, SHARK, Telegram y recomendaciones."
+        changed = upsert_ecosystem_memory("user_favorite", fav.get("kind") or "favorite", fav.get("value") or fav.get("id"), title, summary, fav, 70)
+        inserted += 1 if changed == "inserted" else 0
+        updated += 1 if changed == "updated" else 0
+    log_automation_run("shark_memory", "ok", processed=len(priority) + len(favs[:20]), inserted=inserted, updated=updated)
+    return {"processed": len(priority) + len(favs[:20]), "inserted": inserted, "updated": updated}
+
+
+def v569_prepare_telegram_from_auto_picks():
+    ensure_autonomous_ecosystem_schema()
+    status = autonomous_picks_status({"membership": "ELITE", "role": "ADMIN"})
+    top = status.get("top") or []
+    if not top:
+        log_automation_run("telegram_auto_picks_prepare", "skipped", skipped=1, error_message="Sin oportunidades suficientes")
+        return {"queued": 0, "message": "Sin oportunidades suficientes para preparar Telegram."}
+    body_lines = ["🦈 <b>SHARK Auto Picks</b>", "Top oportunidades detectadas automáticamente:"]
+    for item in top[:3]:
+        odd_txt = f" · cuota {item.get('odds')}" if item.get("has_odds") else " · cuota pendiente"
+        body_lines.append(f"• {item.get('home_team')} vs {item.get('away_team')} — {item.get('selection')}{odd_txt} · {item.get('confidence')}% · {item.get('risk_level')}")
+    body_lines.append("\nApuesta siempre con responsabilidad. Ningún pick es seguro.")
+    try:
+        qid = enqueue_telegram_message(
+            message_type="auto_ecosystem_picks",
+            title="SHARK Auto Picks",
+            body="\n".join(body_lines),
+            dedupe_key=telegram_dedupe_key("v569-auto-ecosystem-picks", today_iso()),
+            payload={"top": top[:3], "source": "v569"},
+        )
+        log_automation_run("telegram_auto_picks_prepare", "ok", processed=len(top[:3]), inserted=1 if qid else 0, payload={"queue_id": qid})
+        return {"queued": 1 if qid else 0, "queue_id": qid, "top": top[:3]}
+    except Exception as exc:
+        log_automation_run("telegram_auto_picks_prepare", "error", error_message=str(exc))
+        return {"queued": 0, "error": str(exc), "top": top[:3]}
+
+
+def v569_run_autonomous_cycle(force=False):
+    ensure_autonomous_ecosystem_schema()
+    started = now_iso()
+    result = {"started_at": started, "force": bool(force), "steps": {}}
+    try:
+        result["steps"]["auto_pick_candidates"] = v569_store_auto_pick_candidates(limit=30)
+        result["steps"]["shark_memory"] = v569_build_shark_memory()
+        result["steps"]["telegram_prepare"] = v569_prepare_telegram_from_auto_picks()
+        result["finished_at"] = now_iso()
+        result["ok"] = True
+        log_automation_run("autonomous_ecosystem_cycle", "ok", processed=3, payload=result, started_at=started)
+    except Exception as exc:
+        result["ok"] = False
+        result["error"] = str(exc)
+        result["finished_at"] = now_iso()
+        log_automation_run("autonomous_ecosystem_cycle", "error", error_message=str(exc), payload=result, started_at=started)
+    return result
+
+
+def v569_ecosystem_status():
+    ensure_autonomous_ecosystem_schema()
+    upcoming = v569_priority_matches(limit=20)
+    recs = generate_autonomous_recommendations(user={"membership": "ELITE", "role": "ADMIN"}, limit=20)
+    with_odds = [r for r in recs if r.get("has_odds")]
+    published = rows("SELECT * FROM picks WHERE lower(COALESCE(status,'')) IN ('published','publicado') ORDER BY COALESCE(published_at, created_at) DESC LIMIT 20")
+    memory_count = one("SELECT COUNT(*) AS n FROM ecosystem_memory").get("n", 0)
+    candidates_count = one("SELECT COUNT(*) AS n FROM auto_pick_candidates").get("n", 0)
+    last_runs = rows("SELECT * FROM automation_runs ORDER BY id DESC LIMIT 12")
+    data_score = min(100, 25 + len(upcoming) * 2 + len(with_odds) * 5 + min(memory_count, 25))
+    betting_score = min(100, 35 + len(recs) * 2 + len(with_odds) * 6 + len(published) * 2)
+    automation_score = min(100, 40 + candidates_count * 2 + (15 if last_runs else 0))
+    global_score = int((data_score + betting_score + automation_score) / 3)
+    actions = []
+    if not with_odds:
+        actions.append("Sincronizar The Odds API para mejorar cuotas y value.")
+    if not published:
+        actions.append("Permitir que SHARK genere candidatos y convertir los mejores en picks publicados.")
+    if memory_count < 20:
+        actions.append("Ejecutar ciclo autónomo para crear memoria deportiva y contexto SHARK.")
+    if not actions:
+        actions.append("Ecosistema autónomo operativo: revisar Telegram y rendimiento de picks.")
+    return {
+        "version": APP_VERSION,
+        "global_score": global_score,
+        "data_score": data_score,
+        "betting_score": betting_score,
+        "automation_score": automation_score,
+        "upcoming_matches": len(upcoming),
+        "recommendations": len(recs),
+        "recommendations_with_odds": len(with_odds),
+        "published_picks": len(published),
+        "memory_items": memory_count,
+        "candidate_picks": candidates_count,
+        "last_runs": last_runs,
+        "top_recommendations": recs[:5],
+        "priority_matches": upcoming[:8],
+        "actions": actions,
+        "message": "Admin controla; NeMeSiS trabaja solo preparando memoria, picks candidatos y Telegram.",
+    }
+
+
+@app.route("/ecosistema")
+def autonomous_ecosystem_client():
+    user = current_session_user()
+    if not user:
+        return redirect(url_for("client_login"))
+    status = v569_ecosystem_status()
+    return render_template("autonomous_ecosystem.html", title="Ecosistema automático", data=status)
+
+
+@app.route("/admin/autonomous-ecosystem", methods=["GET", "POST"])
+def admin_autonomous_ecosystem():
+    if not is_admin_session():
+        return redirect(url_for("admin_login"))
+    result = None
+    if request.method == "POST":
+        action = request.form.get("action") or "cycle"
+        if action == "telegram":
+            result = v569_prepare_telegram_from_auto_picks()
+        elif action == "memory":
+            result = v569_build_shark_memory()
+        elif action == "candidates":
+            result = v569_store_auto_pick_candidates(limit=40)
+        else:
+            result = v569_run_autonomous_cycle(force=True)
+    status = v569_ecosystem_status()
+    return render_template("admin_autonomous_ecosystem.html", title="Ecosistema automático", data=status, result=result)
+
+
+@app.route("/api/autonomous-ecosystem/status")
+def api_autonomous_ecosystem_status():
+    return jsonify({"ok": True, "status": v569_ecosystem_status()})
+
+
+@app.route("/api/autonomous-ecosystem/run", methods=["POST", "GET"])
+def api_autonomous_ecosystem_run():
+    if request.method == "POST" and not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify(v569_run_autonomous_cycle(force=True))
+
+
+@app.route("/api/autonomous-ecosystem/memory")
+def api_autonomous_ecosystem_memory():
+    ensure_autonomous_ecosystem_schema()
+    data = rows("SELECT * FROM ecosystem_memory ORDER BY score DESC, updated_at DESC LIMIT ?", (as_int(request.args.get("limit"), 30),))
+    return jsonify({"ok": True, "memory": data, "count": len(data)})
+
+
+@app.route("/api/system/v569-check")
+def api_system_v569_check():
+    status = v569_ecosystem_status()
+    return jsonify({
+        "ok": True,
+        "version": APP_VERSION,
+        "ecosystem": status,
+        "routes": ["/ecosistema", "/admin/autonomous-ecosystem", "/api/autonomous-ecosystem/status", "/api/autonomous-ecosystem/run"],
+        "ready_for_render": True,
+    })
 
 
 if __name__ == "__main__":
