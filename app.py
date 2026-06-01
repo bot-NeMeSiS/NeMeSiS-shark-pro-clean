@@ -30,7 +30,7 @@ from engines.football_population_engine import (
     success_sync,
     team_payload,
 )
-from engines.live_engine import build_live_depth, build_live_flow, build_match_detail, fallback_timeline, normalize_live_state
+from engines.live_engine import build_live_depth, build_live_flow, build_match_detail, fallback_timeline, normalize_live_state, shark_live_alerts, shark_momentum
 from engines.match_engine import hub_sections, real_time_state, sync_plan
 from engines.match_sync_engine import IMPORTANT_COMPETITIONS, h2h_price_snapshot, normalize_status as sync_normalize_status, odds_sports, sportsdb_leagues
 from engines.membership_engine import can_access_feature, get_membership_limits, get_user_membership, membership_context
@@ -55,7 +55,7 @@ from engines.telegram_delivery_engine import (
 from engines.telegram_engine import build_alert_queue, dispatch_signature, should_skip_duplicate
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V566_FINAL_CLIENT_ADMIN_PRODUCT_POLISH"
+APP_VERSION = "V600_CLEAN_CORE_V601_LIVE_INTELLIGENCE"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -326,6 +326,33 @@ def run_schema_migrations(conn):
         ("match_timeline", "source", "TEXT"),
         ("match_timeline", "legal_note", "TEXT"),
         ("match_timeline", "created_at", "TEXT"),
+        ("historical_matches", "match_id", "TEXT"),
+        ("historical_matches", "match_date", "TEXT"),
+        ("historical_matches", "home_team", "TEXT"),
+        ("historical_matches", "away_team", "TEXT"),
+        ("historical_matches", "league_name", "TEXT"),
+        ("historical_matches", "status", "TEXT"),
+        ("historical_matches", "score", "TEXT"),
+        ("historical_matches", "payload_json", "TEXT"),
+        ("historical_matches", "created_at", "TEXT"),
+        ("historical_picks", "pick_id", "TEXT"),
+        ("historical_picks", "match_id", "TEXT"),
+        ("historical_picks", "selection", "TEXT"),
+        ("historical_picks", "market", "TEXT"),
+        ("historical_picks", "odds", "REAL"),
+        ("historical_picks", "stake", "REAL"),
+        ("historical_picks", "result_status", "TEXT"),
+        ("historical_picks", "profit", "REAL"),
+        ("historical_picks", "payload_json", "TEXT"),
+        ("historical_picks", "created_at", "TEXT"),
+        ("historical_recommendations", "recommendation_id", "TEXT"),
+        ("historical_recommendations", "match_id", "TEXT"),
+        ("historical_recommendations", "selection", "TEXT"),
+        ("historical_recommendations", "score", "INTEGER"),
+        ("historical_recommendations", "risk_level", "TEXT"),
+        ("historical_recommendations", "value_label", "TEXT"),
+        ("historical_recommendations", "payload_json", "TEXT"),
+        ("historical_recommendations", "created_at", "TEXT"),
     ]
     for table, column, definition in migrations:
         try:
@@ -375,6 +402,9 @@ def run_schema_migrations(conn):
         conn.execute("CREATE INDEX IF NOT EXISTS idx_picks_match_status ON picks(match_id, status)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_picks_published ON picks(published_at, confidence)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_user_activity_user_type ON user_activity(user_id, activity_type, created_at)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_historical_matches_match ON historical_matches(match_id, match_date)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_historical_picks_pick ON historical_picks(pick_id, match_id)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_historical_recommendations_match ON historical_recommendations(match_id, created_at)")
     except sqlite3.OperationalError:
         pass
 
@@ -650,6 +680,48 @@ def init_db():
             activity_type TEXT,
             target_type TEXT,
             target_id TEXT,
+            payload_json TEXT,
+            created_at TEXT
+        )"""
+    )
+    cur.execute(
+        """CREATE TABLE IF NOT EXISTS historical_matches(
+            id TEXT PRIMARY KEY,
+            match_id TEXT,
+            match_date TEXT,
+            home_team TEXT,
+            away_team TEXT,
+            league_name TEXT,
+            status TEXT,
+            score TEXT,
+            payload_json TEXT,
+            created_at TEXT
+        )"""
+    )
+    cur.execute(
+        """CREATE TABLE IF NOT EXISTS historical_picks(
+            id TEXT PRIMARY KEY,
+            pick_id TEXT,
+            match_id TEXT,
+            selection TEXT,
+            market TEXT,
+            odds REAL,
+            stake REAL,
+            result_status TEXT,
+            profit REAL,
+            payload_json TEXT,
+            created_at TEXT
+        )"""
+    )
+    cur.execute(
+        """CREATE TABLE IF NOT EXISTS historical_recommendations(
+            id TEXT PRIMARY KEY,
+            recommendation_id TEXT,
+            match_id TEXT,
+            selection TEXT,
+            score INTEGER,
+            risk_level TEXT,
+            value_label TEXT,
             payload_json TEXT,
             created_at TEXT
         )"""
@@ -2150,6 +2222,26 @@ def refresh_live_basic(limit=80):
     return result
 
 
+def refresh_recommendations_basic(limit=40):
+    recs = v565_recommendation_pool(limit=limit)
+    return {"ok": True, "processed": len(recs), "inserted": 0, "updated": len(recs), "skipped": 0, "recommendations": len(recs)}
+
+
+def refresh_auto_picks_basic(limit=40):
+    recs = v565_recommendation_pool(limit=limit)
+    candidates = [r for r in recs if as_int(r.get("score"), 0) >= as_int(os.getenv("AUTO_PICKS_MIN_SCORE", "78"), 78)]
+    return {"ok": True, "processed": len(recs), "inserted": 0, "updated": len(candidates), "skipped": max(0, len(recs) - len(candidates)), "auto_candidates": len(candidates)}
+
+
+def refresh_live_alerts_basic(limit=40):
+    hub = match_hub(today_iso(), "live")
+    live_matches = hub.get("live", [])[: int(limit)]
+    alerts = []
+    for match in live_matches:
+        alerts.extend(shark_live_alerts(match, shark_momentum(match)))
+    return {"ok": True, "processed": len(live_matches), "inserted": 0, "updated": len(alerts), "skipped": 0, "alerts": alerts[:20], "telegram_ready": True}
+
+
 def run_scheduler_task(task_name, force=False, limit=None):
     task_name = str(task_name or "").strip().lower()
     if task_name == "warmup":
@@ -2181,6 +2273,14 @@ def run_scheduler_task(task_name, force=False, limit=None):
             result = sync_odds_events(limit=limit or 80, force=force)
         elif task_name == "live":
             result = refresh_live_basic(limit=limit or 80)
+        elif task_name == "recommendations":
+            result = refresh_recommendations_basic(limit=limit or 40)
+        elif task_name == "auto_picks":
+            result = refresh_auto_picks_basic(limit=limit or 40)
+        elif task_name == "live_alerts":
+            result = refresh_live_alerts_basic(limit=limit or 40)
+        elif task_name == "warehouse":
+            result = historical_snapshot(limit=limit or 120)
         elif task_name == "cleanup":
             result = cleanup_scheduler_logs(max_rows=as_int(os.getenv("SCHEDULER_LOG_MAX_ROWS", "300"), 300))
         elif task_name == "telegram":
@@ -2200,11 +2300,11 @@ def run_scheduler_task(task_name, force=False, limit=None):
 def run_due_scheduler_tasks(force=False, startup=False):
     if not force and not scheduler_enabled():
         return {"ok": True, "skipped": True, "reason": "auto_sync_disabled", "tasks": []}
-    tasks = ["calendar", "crests", "odds", "live", "telegram", "cleanup"]
+    tasks = ["calendar", "crests", "odds", "live", "recommendations", "auto_picks", "live_alerts", "warehouse", "telegram", "cleanup"]
     if startup:
         total_matches = (one("SELECT COUNT(*) AS total FROM matches") or {}).get("total", 0)
         teams_with_crests = (one("SELECT COUNT(*) AS total FROM teams WHERE logo_url IS NOT NULL AND logo_url!=''") or {}).get("total", 0)
-        tasks = ["calendar", "live", "odds", "telegram", "cleanup"]
+        tasks = ["calendar", "live", "odds", "recommendations", "auto_picks", "live_alerts", "warehouse", "telegram", "cleanup"]
         if not total_matches:
             tasks.insert(0, "calendar")
         if not teams_with_crests:
@@ -3026,6 +3126,77 @@ def record_user_activity(activity_type, target_type="", target_id="", payload=No
     conn.commit()
     conn.close()
     return activity_id
+
+
+def historical_snapshot(limit=120):
+    """Persist compact historical data for future SHARK learning."""
+    created_at = now_iso()
+    conn = db()
+    cur = conn.cursor()
+    inserted = {"matches": 0, "picks": 0, "recommendations": 0}
+    for match in rows(
+        """SELECT * FROM matches
+           WHERE lower(coalesce(status,'')) IN ('ft','final','finished','finalizado')
+              OR (coalesce(home_score,'')!='' AND coalesce(away_score,'')!='')
+           ORDER BY match_date DESC, kickoff_time DESC LIMIT ?""",
+        (int(limit),),
+    ):
+        payload = dict(match)
+        item_id = hashlib.sha1(f"hm:{match.get('id')}:{match.get('status')}:{match.get('score')}".encode()).hexdigest()
+        cur.execute(
+            """INSERT OR IGNORE INTO historical_matches
+               (id,match_id,match_date,home_team,away_team,league_name,status,score,payload_json,created_at)
+               VALUES (?,?,?,?,?,?,?,?,?,?)""",
+            (
+                item_id,
+                match.get("id"),
+                match.get("match_date"),
+                match.get("home_team"),
+                match.get("away_team"),
+                match.get("league_name") or match.get("competition_name"),
+                match.get("status"),
+                match.get("score") or f"{match.get('home_score') or ''}-{match.get('away_score') or ''}".strip("-"),
+                json.dumps(payload, ensure_ascii=False),
+                created_at,
+            ),
+        )
+        inserted["matches"] += 1 if cur.rowcount else 0
+    for pick in rows("SELECT * FROM picks ORDER BY COALESCE(published_at, updated_at, '') DESC LIMIT ?", (int(limit),)):
+        payload = dict(pick)
+        odds = as_float(pick.get("odds"), 0.0)
+        stake = as_float(pick.get("stake_units"), 1.0)
+        result = str(pick.get("result_status") or pick.get("status") or "").lower()
+        profit = round((odds - 1) * stake, 2) if result in {"won", "win"} and odds else -stake if result in {"lost", "loss"} else 0.0
+        item_id = hashlib.sha1(f"hp:{pick.get('id')}:{result}:{odds}:{stake}".encode()).hexdigest()
+        cur.execute(
+            """INSERT OR IGNORE INTO historical_picks
+               (id,pick_id,match_id,selection,market,odds,stake,result_status,profit,payload_json,created_at)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+            (item_id, pick.get("id"), pick.get("match_id"), pick.get("selection"), pick.get("market"), odds, stake, result, profit, json.dumps(payload, ensure_ascii=False), created_at),
+        )
+        inserted["picks"] += 1 if cur.rowcount else 0
+    for rec in v565_recommendation_pool(limit=min(int(limit), 80)):
+        item_id = hashlib.sha1(f"hr:{rec.get('match_id')}:{rec.get('selection')}:{rec.get('score')}".encode()).hexdigest()
+        cur.execute(
+            """INSERT OR IGNORE INTO historical_recommendations
+               (id,recommendation_id,match_id,selection,score,risk_level,value_label,payload_json,created_at)
+               VALUES (?,?,?,?,?,?,?,?,?)""",
+            (
+                item_id,
+                rec.get("id") or rec.get("match_id"),
+                rec.get("match_id"),
+                rec.get("selection"),
+                as_int(rec.get("score"), 0),
+                rec.get("risk_level") or rec.get("risk"),
+                rec.get("value_label"),
+                json.dumps(rec, ensure_ascii=False),
+                created_at,
+            ),
+        )
+        inserted["recommendations"] += 1 if cur.rowcount else 0
+    conn.commit()
+    conn.close()
+    return {"ok": True, "processed": sum(inserted.values()), "inserted": sum(inserted.values()), "updated": 0, "skipped": 0, "warehouse": inserted}
 
 
 
@@ -6872,7 +7043,7 @@ def api_admin_membership_summary():
 
 
 # ===================== V565 SPORTS DATA & PICKS PERFECTION =====================
-APP_VERSION = "V566_FINAL_CLIENT_ADMIN_PRODUCT_POLISH"
+APP_VERSION = "V600_CLEAN_CORE_V601_LIVE_INTELLIGENCE"
 
 PRIORITY_LEAGUE_ORDER = [
     "UEFA Champions League", "Champions League", "LaLiga", "Spanish La Liga", "Premier League",

@@ -11,6 +11,10 @@ TASKS = [
     {"name": "crests", "label": "Equipos y escudos", "kind": "crests", "env": "CREST_SYNC_HOURS", "unit": "hours", "default": 24},
     {"name": "odds", "label": "Cuotas Odds", "kind": "odds", "env": "ODDS_CACHE_MINUTES", "unit": "minutes", "default": 20},
     {"name": "live", "label": "Live basico", "kind": "live", "env": "LIVE_CACHE_MINUTES", "unit": "minutes", "default": 2},
+    {"name": "recommendations", "label": "Recomendaciones SHARK", "kind": "intelligence", "env": "RECOMMENDATIONS_REFRESH_MINUTES", "unit": "minutes", "default": 30},
+    {"name": "auto_picks", "label": "Auto Picks Engine", "kind": "picks", "env": "AUTO_PICKS_REFRESH_MINUTES", "unit": "minutes", "default": 45},
+    {"name": "live_alerts", "label": "Alertas Live SHARK", "kind": "telegram", "env": "LIVE_ALERTS_REFRESH_MINUTES", "unit": "minutes", "default": 5},
+    {"name": "warehouse", "label": "Warehouse historico", "kind": "maintenance", "env": "WAREHOUSE_REFRESH_HOURS", "unit": "hours", "default": 12},
     {"name": "cleanup", "label": "Limpieza logs", "kind": "maintenance", "env": "SCHEDULER_LOG_CLEANUP_HOURS", "unit": "hours", "default": 24},
     {"name": "telegram", "label": "Telegram Premium", "kind": "telegram", "env": "TELEGRAM_PREPARE_HOURS", "unit": "hours", "default": 6},
 ]
