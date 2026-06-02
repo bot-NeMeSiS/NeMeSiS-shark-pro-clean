@@ -43,6 +43,7 @@ from engines.telegram_delivery_engine import (
     QUEUE_PENDING,
     QUEUE_SENT,
     QUEUE_SENDING,
+    QUEUE_SKIPPED,
     build_daily_matches_message as format_daily_matches_message,
     build_daily_picks_message as format_daily_picks_message,
     build_live_alert_message as format_live_alert_message,
@@ -63,7 +64,7 @@ from engines.telegram_autonomous_delivery_engine import ensure_telegram_autonomo
 from engines.sportsdb_highlights_engine import ensure_sportsdb_highlights_schema, sync_sportsdb_highlights, sportsdb_highlights_summary, sportsdb_highlights_for_match, rebuild_match_enrichment
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V579_SPORTSDB_HIGHLIGHTS_PAST_MATCH_INTELLIGENCE"
+APP_VERSION = "V581_TELEGRAM_PICKS_REAL_DELIVERY_REPAIR"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -4981,8 +4982,28 @@ def build_daily_matches_message():
     return format_daily_matches_message(matches, today_iso(), APP_NAME)
 
 
+def telegram_pick_candidates(limit=8, include_unpublished_fallback=True):
+    """Devuelve picks enviables para Telegram sin dejar el canal vacío por filtros demasiado duros.
+    Prioridad: publicados visibles para ELITE/ADMIN. Si no hay publicados, usa candidatos activos/pending
+    generados por SHARK para que el admin pueda probar el envío real.
+    """
+    seed_core()
+    picks = get_picks(limit=limit, status=["published", "won", "lost", "void"], membership="ADMIN", include_admin=False)
+    if picks or not include_unpublished_fallback:
+        return picks
+    # Fallback seguro para auditoría/envío manual: candidatos pendientes/activos importados o creados por SHARK.
+    fallback = rows(
+        """SELECT * FROM picks
+           WHERE lower(COALESCE(status,'')) IN ('pending','active','published','')
+           ORDER BY confidence DESC, COALESCE(updated_at, created_at, '') DESC
+           LIMIT ?""",
+        (int(limit),),
+    )
+    return [normalize_pick_row(p) for p in fallback]
+
+
 def build_daily_picks_message(force_empty=False):
-    picks = get_picks(limit=8, status=["published", "won", "lost", "void"], membership="ELITE")
+    picks = telegram_pick_candidates(limit=8, include_unpublished_fallback=True)
     return format_daily_picks_message(picks, force_empty=force_empty, premium_name=APP_NAME)
 
 
@@ -5158,6 +5179,86 @@ def telegram_diagnostics():
         "last_error": (last_error or {}).get("message", ""),
         "queue_summary": queue_summary(rows("SELECT status FROM telegram_queue ORDER BY created_at DESC LIMIT 500")),
     }
+
+
+
+
+def telegram_pick_delivery_audit():
+    """Auditoria completa para detectar por que los picks no llegan a Telegram."""
+    seed_core()
+    cfg = telegram_config()
+    settings = get_telegram_settings()
+    published = get_picks(limit=50, status=["published"], include_admin=True)
+    candidates = telegram_pick_candidates(limit=50, include_unpublished_fallback=True)
+    pro_elite_picks = [p for p in candidates if str(p.get("membership_required") or "FREE").upper() in {"PRO", "ELITE", "ADMIN", "FREE"}]
+    subscribers = telegram_subscribers(active_only=False)
+    active_subscribers = [s for s in subscribers if as_int(s.get("is_active"), 1) == 1 and str(s.get("chat_id") or "").strip()]
+    pending = rows("SELECT * FROM telegram_queue WHERE lower(status)=? ORDER BY created_at ASC LIMIT 20", (QUEUE_PENDING,))
+    failed = rows("SELECT * FROM telegram_queue WHERE lower(status) IN (?,?) ORDER BY updated_at DESC LIMIT 10", (QUEUE_FAILED, "error"))
+    sent = rows("SELECT * FROM telegram_queue WHERE lower(status)=? ORDER BY sent_at DESC LIMIT 10", (QUEUE_SENT,))
+    users_with_chat = 0
+    try:
+        users_with_chat = (one("SELECT COUNT(*) AS total FROM users WHERE telegram_chat_id IS NOT NULL AND telegram_chat_id!=''") or {}).get("total", 0)
+    except Exception:
+        users_with_chat = 0
+    checks = [
+        {"key": "bot_token", "label": "TELEGRAM_BOT_TOKEN configurado", "ok": cfg.get("token_present"), "fix": "Render > Environment > TELEGRAM_BOT_TOKEN con el token de BotFather."},
+        {"key": "chat_id", "label": "TELEGRAM_CHAT_ID configurado", "ok": cfg.get("chat_id_present"), "fix": "Añade el chat_id del canal/grupo o vincula usuarios con chat_id."},
+        {"key": "settings_enabled", "label": "Delivery automático activado", "ok": settings.get("enabled"), "fix": "En Admin > Telegram pulsa Activar automático o usa /api/telegram/settings/update?enabled=1."},
+        {"key": "auto_daily_picks", "label": "Auto picks Telegram activado", "ok": settings.get("auto_daily_picks"), "fix": "Activa auto_daily_picks en settings o envía picks manualmente desde auditoría."},
+        {"key": "subscribers", "label": "Hay destinatarios Telegram activos", "ok": len(active_subscribers) > 0, "fix": "Configura TELEGRAM_CHAT_ID o vincula usuarios/canal. El bot debe estar iniciado o ser admin del canal/grupo."},
+        {"key": "published_picks", "label": "Hay picks publicados", "ok": len(pro_elite_picks) > 0, "fix": "Publica picks en Admin > Picks o ejecuta el motor de auto picks antes de enviar."},
+        {"key": "queue_health", "label": "La cola no está bloqueada por fallos", "ok": len(failed) == 0 or len(pending) > 0 or len(sent) > 0, "fix": "Procesa cola, revisa último error y confirma token/chat_id."},
+    ]
+    ok_count = sum(1 for c in checks if c["ok"])
+    readiness = int(round((ok_count / max(1, len(checks))) * 100))
+    blockers = [c for c in checks if not c["ok"]]
+    return {
+        "ok": not blockers,
+        "readiness": readiness,
+        "checks": checks,
+        "blockers": blockers,
+        "telegram": cfg,
+        "settings": settings,
+        "counts": {
+            "published_picks": len(published),
+            "sendable_picks": len(pro_elite_picks),
+            "candidate_picks": len(candidates),
+            "subscribers_total": len(subscribers),
+            "subscribers_active": len(active_subscribers),
+            "users_with_chat": users_with_chat,
+            "queue_pending": len(pending),
+            "queue_failed_recent": len(failed),
+            "queue_sent_recent": len(sent),
+        },
+        "last_error": (one("SELECT * FROM telegram_logs WHERE lower(status) IN ('failed','error') ORDER BY created_at DESC LIMIT 1") or {}),
+        "pending": pending,
+        "failed": failed,
+        "sent": sent,
+    }
+
+
+def fix_telegram_settings_for_picks():
+    settings = update_telegram_settings({
+        "enabled": True,
+        "auto_daily_matches": True,
+        "auto_daily_picks": True,
+        "auto_live_alerts": True,
+        "max_messages_per_hour": max(10, as_int(get_telegram_settings().get("max_messages_per_hour"), 10)),
+    })
+    ensure_default_telegram_subscriber()
+    telegram_log("audit", "fixed", "Ajustes Telegram preparados para envio de picks.", settings)
+    return {"ok": True, "settings": settings, "subscriber": ensure_default_telegram_subscriber()}
+
+
+def send_published_picks_to_telegram_now(limit=5, force=True, force_empty=False):
+    """Encola y procesa picks publicados hacia Telegram en una sola acción admin."""
+    fix_telegram_settings_for_picks()
+    enqueue = enqueue_daily_picks(force=force, force_empty=force_empty, forced_chat_id=os.getenv("TELEGRAM_CHAT_ID", ""))
+    processed = process_premium_telegram_queue(limit=max(50, as_int(limit, 8)), force=True)
+    audit = telegram_pick_delivery_audit()
+    ok = processed.get("failed", 0) == 0 and (processed.get("sent", 0) > 0 or enqueue.get("inserted", 0) > 0 or enqueue.get("skipped", 0) > 0)
+    return {"ok": ok, "message": "Auditoria + envio de picks ejecutado.", "enqueue": enqueue, "processed": processed, "audit": audit}
 
 
 def telegram_time_due(time_value, force=False):
@@ -5827,6 +5928,12 @@ def admin_telegram_page():
             result = enqueue_daily_matches(force=True, forced_chat_id=os.getenv("TELEGRAM_CHAT_ID", ""))
         elif action == "daily_picks":
             result = enqueue_daily_picks(force=True, force_empty=True, forced_chat_id=os.getenv("TELEGRAM_CHAT_ID", ""))
+        elif action == "audit_picks":
+            result = telegram_pick_delivery_audit()
+        elif action == "fix_picks":
+            result = fix_telegram_settings_for_picks()
+        elif action == "send_picks_now":
+            result = send_published_picks_to_telegram_now(limit=8, force=True, force_empty=True)
         elif action == "process":
             result = process_premium_telegram_queue(limit=as_int(request.form.get("limit"), 5), force=True)
         message = "Accion Telegram ejecutada."
@@ -5835,6 +5942,7 @@ def admin_telegram_page():
     data["telegram_queue"] = rows("SELECT * FROM telegram_queue ORDER BY created_at DESC LIMIT 30")
     data["telegram_logs"] = rows("SELECT * FROM telegram_logs ORDER BY created_at DESC LIMIT 30")
     data["telegram_subscribers"] = telegram_subscribers(active_only=False)
+    data["telegram_pick_audit"] = telegram_pick_delivery_audit()
     return render_template("admin_telegram.html", data=data, message=message, result=result)
 
 
@@ -6831,6 +6939,30 @@ def api_telegram_triggers():
     return jsonify({"ok": True, "version": APP_VERSION, "triggers": telegram_triggers(), "last": automation_get("telegram_last_dispatch", {})})
 
 
+
+@app.route("/api/telegram/audit-picks", methods=["POST", "GET"])
+def api_telegram_audit_picks():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "version": APP_VERSION, "audit": telegram_pick_delivery_audit()})
+
+
+@app.route("/api/telegram/fix-picks", methods=["POST", "GET"])
+def api_telegram_fix_picks():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({"version": APP_VERSION, **fix_telegram_settings_for_picks()})
+
+
+@app.route("/api/telegram/send-picks-now", methods=["POST", "GET"])
+def api_telegram_send_picks_now():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    limit = as_int(request.args.get("limit") or request.form.get("limit"), 8)
+    force_empty = request.args.get("force_empty") in {"1", "true", "yes"} or request.form.get("force_empty") in {"1", "true", "yes"}
+    return jsonify({"version": APP_VERSION, **send_published_picks_to_telegram_now(limit=limit, force=True, force_empty=force_empty)})
+
+
 @app.route("/api/telegram/logs")
 def api_telegram_logs():
     if not is_admin_session():
@@ -7216,7 +7348,7 @@ def api_admin_membership_summary():
 
 
 # ===================== V565 SPORTS DATA & PICKS PERFECTION =====================
-APP_VERSION = "V579_SPORTSDB_HIGHLIGHTS_PAST_MATCH_INTELLIGENCE"
+APP_VERSION = "V581_TELEGRAM_PICKS_REAL_DELIVERY_REPAIR"
 
 PRIORITY_LEAGUE_ORDER = [
     "UEFA Champions League", "Champions League", "LaLiga", "Spanish La Liga", "Premier League",

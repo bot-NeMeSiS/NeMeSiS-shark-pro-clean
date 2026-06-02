@@ -44,7 +44,32 @@
     <form method="post" action="/admin/telegram"><input type="hidden" name="action" value="daily_matches"><button type="submit">Generar resumen partidos hoy</button></form>
     <form method="post" action="/admin/telegram"><input type="hidden" name="action" value="daily_picks"><button type="submit">Generar picks destacados</button></form>
     <form method="post" action="/admin/telegram"><input type="hidden" name="action" value="process"><button type="submit">Procesar cola ahora</button></form>
+    <hr>
+    <form method="post" action="/admin/telegram"><input type="hidden" name="action" value="audit_picks"><button type="submit">Auditar picks Telegram</button></form>
+    <form method="post" action="/admin/telegram"><input type="hidden" name="action" value="fix_picks"><button type="submit">Preparar envios picks</button></form>
+    <form method="post" action="/admin/telegram"><input type="hidden" name="action" value="send_picks_now"><button class="primary" type="submit">Enviar picks ahora</button></form>
   </div>
+</section>
+
+<section class="band">
+  <div class="section-head"><h2>Auditoria picks Telegram</h2><span class="pill">{{ data.telegram_pick_audit.readiness }}%</span></div>
+  <div class="grid compact-grid">
+    <div class="card"><div class="metric">{{ data.telegram_pick_audit.counts.published_picks }}</div><div class="muted">picks publicados</div></div>
+    <div class="card"><div class="metric">{{ data.telegram_pick_audit.counts.subscribers_active }}</div><div class="muted">destinatarios activos</div></div>
+    <div class="card"><div class="metric">{{ data.telegram_pick_audit.counts.queue_pending }}</div><div class="muted">cola pendiente</div></div>
+    <div class="card"><div class="metric">{{ data.telegram_pick_audit.counts.queue_failed_recent }}</div><div class="muted">fallos recientes</div></div>
+  </div>
+  <div class="stack">
+    {% for check in data.telegram_pick_audit.checks %}
+    <div class="list-row">
+      <span>{% if check.ok %}✅{% else %}⚠️{% endif %} {{ check.label }}<br><small>{{ check.fix }}</small></span>
+      <strong>{% if check.ok %}OK{% else %}REVISAR{% endif %}</strong>
+    </div>
+    {% endfor %}
+  </div>
+  {% if data.telegram_pick_audit.last_error.message %}
+  <div class="notice danger">Último error: {{ data.telegram_pick_audit.last_error.message }}</div>
+  {% endif %}
 </section>
 
 <section class="band two-col">
