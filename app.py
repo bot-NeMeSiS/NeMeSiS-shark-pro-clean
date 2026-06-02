@@ -64,7 +64,7 @@ from engines.telegram_autonomous_delivery_engine import ensure_telegram_autonomo
 from engines.sportsdb_highlights_engine import ensure_sportsdb_highlights_schema, sync_sportsdb_highlights, sportsdb_highlights_summary, sportsdb_highlights_for_match, rebuild_match_enrichment
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V581_TELEGRAM_PICKS_REAL_DELIVERY_REPAIR"
+APP_VERSION = "V582_TELEGRAM_PICKS_HARD_FIX_AUDIT_READY"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -229,6 +229,8 @@ def run_schema_migrations(conn):
         ("client_profiles", "preferences_json", "TEXT"),
         ("client_profiles", "updated_at", "TEXT"),
         ("telegram_queue", "signature", "TEXT"),
+        ("telegram_queue", "alert_type", "TEXT"),
+        ("telegram_queue", "target_key", "TEXT"),
         ("telegram_queue", "priority", "INTEGER DEFAULT 50"),
         ("telegram_queue", "payload_json", "TEXT"),
         ("telegram_queue", "status", "TEXT DEFAULT 'PENDING'"),
@@ -243,6 +245,7 @@ def run_schema_migrations(conn):
         ("telegram_queue", "scheduled_at", "TEXT"),
         ("telegram_queue", "sent_at", "TEXT"),
         ("telegram_queue", "error_message", "TEXT"),
+        ("telegram_queue", "created_at", "TEXT"),
         ("telegram_queue", "updated_at", "TEXT"),
         ("telegram_logs", "event_type", "TEXT"),
         ("telegram_logs", "status", "TEXT"),
@@ -4817,11 +4820,18 @@ def telegram_config():
     token = os.getenv("TELEGRAM_BOT_TOKEN", "")
     chat_id = os.getenv("TELEGRAM_CHAT_ID", "")
     settings = get_telegram_settings()
+    # Telegram puede funcionar con TELEGRAM_CHAT_ID global o con usuarios/suscriptores vinculados.
+    destination_present = bool(chat_id)
+    try:
+        destination_present = destination_present or bool(one("SELECT id FROM telegram_subscribers WHERE is_active=1 AND chat_id IS NOT NULL AND chat_id!='' LIMIT 1"))
+    except Exception:
+        pass
     return {
-        "configured": bool(token and chat_id),
+        "configured": bool(token and destination_present),
         "token_present": bool(token),
         "token_masked": masked_key(token),
         "chat_id_present": bool(chat_id),
+        "destination_present": bool(destination_present),
         "chat_id_masked": masked_key(chat_id),
         "enabled": bool(settings.get("enabled")),
         "legacy_enabled": os.getenv("ENABLE_TELEGRAM_AUTO", "false").lower() in {"1", "true", "yes", "on"},
@@ -7348,7 +7358,7 @@ def api_admin_membership_summary():
 
 
 # ===================== V565 SPORTS DATA & PICKS PERFECTION =====================
-APP_VERSION = "V581_TELEGRAM_PICKS_REAL_DELIVERY_REPAIR"
+APP_VERSION = "V582_TELEGRAM_PICKS_HARD_FIX_AUDIT_READY"
 
 PRIORITY_LEAGUE_ORDER = [
     "UEFA Champions League", "Champions League", "LaLiga", "Spanish La Liga", "Premier League",
