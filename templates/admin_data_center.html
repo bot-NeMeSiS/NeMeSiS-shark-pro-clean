@@ -17,6 +17,25 @@
 
 <section class="band two-col">
   <aside class="card elite-card">
+    <div class="section-head"><h2>SHARK Accuracy Engine V600</h2><span class="pill">SQI {{ data.shark_accuracy.sqi or data.data_center.shark_accuracy.sqi or 0 }}</span></div>
+    <p class="small">Mide precisión real, calibración de confianza, ROI y ranking de mercados para que SHARK mejore sus pronósticos con datos propios.</p>
+    <p class="small">Picks analizados: {{ data.shark_accuracy.picks_analyzed or data.data_center.shark_accuracy.picks_analyzed or 0 }} · Cerrados: {{ data.shark_accuracy.settled_picks or data.data_center.shark_accuracy.settled_picks or 0 }} · ROI: {{ data.shark_accuracy.roi or data.data_center.shark_accuracy.roi or 0 }}% · Acierto: {{ data.shark_accuracy.winrate or data.data_center.shark_accuracy.winrate or 0 }}%.</p>
+    <form method="post" action="/admin/data-center"><input type="hidden" name="action" value="shark_accuracy"><input name="limit" value="1500"><button type="submit">Reconstruir precisión SHARK</button></form>
+  </aside>
+  <aside class="card pro-card">
+    <div class="section-head"><h2>Mercados con mejor precisión</h2><span class="pill">V600</span></div>
+    {% for item in (data.shark_accuracy.top_markets or data.data_center.shark_accuracy.top_markets or [])[:4] %}
+    <div class="list-row"><span>{{ item.market }}<br><small>Acierto {{ item.winrate }}% · ROI {{ item.roi }}% · muestra {{ item.sample_size }}</small></span><strong>{{ item.accuracy_score }}</strong></div>
+    {% else %}
+    <p class="small">Todavía no hay muestra suficiente. SHARK empezará a calibrarse cuando haya picks validados.</p>
+    {% endfor %}
+  </aside>
+</section>
+
+
+
+<section class="band two-col">
+  <aside class="card elite-card">
     <div class="section-head"><h2>V599 · Auditoría consolidada</h2><span class="pill">{{ data.version }}</span></div>
     <p class="small">Esta versión consolida los motores V591-V598, corrige la versión interna, expone endpoints de auditoría y deja el paquete limpio para Render/GitHub.</p>
     <p class="small">Proveedor activo: {{ data.data_provider.active_provider or data.data_center.data_provider.active_provider or 'TheSportsDB' }} · Warehouse fútbol: {{ data.football_warehouse.readiness_score or data.data_center.football_warehouse.readiness_score or 0 }}% · Inteligencia histórica: {{ data.historical_intelligence.readiness_score or data.data_center.historical_intelligence.readiness_score or 0 }}%.</p>

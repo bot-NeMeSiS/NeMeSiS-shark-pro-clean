@@ -78,9 +78,10 @@ from engines.sportsdb_enrichment_engine import ensure_sportsdb_enrichment_schema
 from engines.data_provider_engine import ensure_data_provider_schema, data_provider_summary, provider_check
 from engines.football_data_warehouse_engine import ensure_football_warehouse_schema, football_warehouse_summary, sync_football_data_warehouse, rebuild_derived_assets
 from engines.shark_historical_intelligence_engine import ensure_historical_intelligence_schema, historical_intelligence_summary, rebuild_historical_intelligence
+from engines.shark_accuracy_engine import ensure_shark_accuracy_schema, shark_accuracy_summary, rebuild_shark_accuracy_engine
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V599_FULL_APP_AUDIT_CONSOLIDATED_REPAIR"
+APP_VERSION = "V600_SHARK_ACCURACY_ENGINE"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -1016,6 +1017,7 @@ def init_db():
         ensure_data_provider_schema(DB_PATH)
         ensure_football_warehouse_schema(DB_PATH)
         ensure_historical_intelligence_schema(DB_PATH)
+        ensure_shark_accuracy_schema(DB_PATH)
     except Exception:
         pass
     cleanup_fake_matches(cur)
@@ -2452,6 +2454,7 @@ def data_center_summary():
             "data_provider": safe_engine_payload(lambda: data_provider_summary(DB_PATH), {"active_provider": "thesportsdb"}),
             "football_warehouse": safe_engine_payload(lambda: football_warehouse_summary(DB_PATH), {"readiness_score": 0}),
             "historical_intelligence": safe_engine_payload(lambda: historical_intelligence_summary(DB_PATH), {"readiness_score": 0}),
+            "shark_accuracy": safe_engine_payload(lambda: shark_accuracy_summary(DB_PATH), {"sqi": 0, "status": "sin datos"}),
             "beta": beta_readiness_summary(),
         }
     )
@@ -6929,6 +6932,9 @@ def admin_data_center_page():
         elif action == "historical_intelligence":
             result = rebuild_historical_intelligence(DB_PATH, limit=limit)
             result["historical_intelligence"] = historical_intelligence_summary(DB_PATH)
+        elif action == "shark_accuracy":
+            result = rebuild_shark_accuracy_engine(DB_PATH, limit=limit)
+            result["shark_accuracy"] = shark_accuracy_summary(DB_PATH)
         message = "Acción ejecutada desde Data Center."
     data = dashboard_data()
     data["data_center"] = data_center_summary()
@@ -9322,6 +9328,27 @@ def api_v597_football_warehouse_check():
 @app.route("/api/v598/historical-intelligence-check")
 def api_v598_historical_intelligence_check():
     return jsonify({"ok": True, "version": APP_VERSION, "module": "SHARK Historical Intelligence Platform", "summary": safe_engine_payload(lambda: historical_intelligence_summary(DB_PATH))})
+
+
+@app.route("/api/shark-accuracy/summary")
+def api_shark_accuracy_summary():
+    if not is_admin_session() and request.args.get("public") != "1":
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "version": APP_VERSION, "shark_accuracy": shark_accuracy_summary(DB_PATH)})
+
+
+@app.route("/api/shark-accuracy/rebuild", methods=["GET", "POST"])
+def api_shark_accuracy_rebuild():
+    if not is_admin_session() and request.args.get("token") != os.getenv("AUTONOMOUS_CRON_TOKEN", ""):
+        return jsonify({"ok": False, "version": APP_VERSION, "error": "Admin o token requerido."}), 403
+    limit = as_int(request.args.get("limit") or request.form.get("limit"), 1500)
+    result = rebuild_shark_accuracy_engine(DB_PATH, limit=limit)
+    return jsonify({"version": APP_VERSION, **result, "shark_accuracy": shark_accuracy_summary(DB_PATH)})
+
+
+@app.route("/api/v600/shark-accuracy-check")
+def api_v600_shark_accuracy_check():
+    return jsonify({"ok": True, "version": APP_VERSION, "module": "SHARK Accuracy Engine", "summary": safe_engine_payload(lambda: shark_accuracy_summary(DB_PATH))})
 
 
 if __name__ == "__main__":
