@@ -31,7 +31,47 @@
 </section>
 
 
+<section class="band two-col v598-historical-intelligence">
+  <aside class="card elite-card">
+    <div class="section-head"><h2>SHARK Historical Intelligence V598</h2><span class="pill">{{ data.historical_intelligence.readiness_score or 0 }}%</span></div>
+    <p class="small">Hechos históricos: {{ data.historical_intelligence.matches_total or 0 }} · equipos perfilados: {{ data.historical_intelligence.teams_total or 0 }} · ligas: {{ data.historical_intelligence.leagues_total or 0 }} · mercados: {{ data.historical_intelligence.markets_total or 0 }}.</p>
+    <p class="small">Profundidad de datos: {{ data.historical_intelligence.data_depth_score or 0 }}% · fuentes registradas: {{ data.historical_intelligence.sources_total or 0 }}.</p>
+    <form method="post" action="/admin/data-center">
+      <input type="hidden" name="action" value="historical_intelligence">
+      <div class="field"><label>Límite de hechos a reconstruir</label><input name="limit" value="1000"></div>
+      <button type="submit">Reconstruir inteligencia histórica</button>
+    </form>
+  </aside>
+  <aside class="card pro-card">
+    <h2>Activo propio acumulativo</h2>
+    <p class="small">Convierte datos autorizados en ratings, perfiles de liga, perfiles de mercado, forma de equipos y trazabilidad legal para SHARK.</p>
+    <p class="small">{{ data.historical_intelligence.legal_note }}</p>
+    {% for run in data.historical_intelligence.recent_runs[:3] %}
+    <div class="list-row"><span>{{ run.started_at }} · {{ run.status }}<br><small>Procesados {{ run.processed }} · insertados {{ run.inserted }} · actualizados {{ run.updated }}</small></span><strong>{{ run.errors_count }}</strong></div>
+    {% else %}
+    <p class="small">Aún no hay reconstrucciones V598. Ejecuta una desde este panel o espera al scheduler de warehouse.</p>
+    {% endfor %}
+  </aside>
+</section>
 
+<section class="band two-col">
+  <aside class="card">
+    <div class="section-head"><h2>Ratings históricos por equipo</h2><span class="pill">V598</span></div>
+    {% for item in data.historical_intelligence.top_teams[:6] %}
+    <div class="list-row"><span>{{ item.team_name }}<br><small>{{ item.league_name }} · {{ item.matches_played }} partidos · forma {{ item.form_code }}</small></span><strong>{{ item.rating|round(1) }}</strong></div>
+    {% else %}
+    <p class="small">Cuando el warehouse tenga resultados, aquí aparecerán los ratings propios por equipo.</p>
+    {% endfor %}
+  </aside>
+  <aside class="card">
+    <div class="section-head"><h2>Perfiles históricos de competición</h2><span class="pill">legal</span></div>
+    {% for item in data.historical_intelligence.top_leagues[:6] %}
+    <div class="list-row"><span>{{ item.league_name }}<br><small>{{ item.matches_total }} partidos · media goles {{ item.avg_goals }}</small></span><strong>{{ item.data_depth_score }}</strong></div>
+    {% else %}
+    <p class="small">Aquí se mostrará la profundidad de datos por liga para mejorar el análisis SHARK.</p>
+    {% endfor %}
+  </aside>
+</section>
 
 <section class="band two-col v597-football-warehouse">
   <aside class="card elite-card">

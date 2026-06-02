@@ -77,9 +77,10 @@ from engines.shark_prediction_engine import ensure_shark_prediction_schema, rebu
 from engines.sportsdb_enrichment_engine import ensure_sportsdb_enrichment_schema, sync_sportsdb_max_enrichment, sportsdb_enrichment_summary, sportsdb_enrichment_for_match
 from engines.data_provider_engine import ensure_data_provider_schema, data_provider_summary, provider_check
 from engines.football_data_warehouse_engine import ensure_football_warehouse_schema, sync_football_data_warehouse, football_warehouse_summary
+from engines.shark_historical_intelligence_engine import ensure_historical_intelligence_schema, rebuild_historical_intelligence, historical_intelligence_summary
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V597_FOOTBALL_DATA_WAREHOUSE_PRO"
+APP_VERSION = "V598_SHARK_HISTORICAL_INTELLIGENCE_PLATFORM"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -2859,6 +2860,12 @@ def run_scheduler_task(task_name, force=False, limit=None):
                 result["inserted"] = as_int(result.get("inserted"), 0) + as_int(football_dw.get("inserted"), 0)
                 result["updated"] = as_int(result.get("updated"), 0) + as_int(football_dw.get("updated"), 0)
                 result["errors"] = (result.get("errors") or []) + (football_dw.get("errors") or [])
+                historical_ai = rebuild_historical_intelligence(DB_PATH, limit=limit or 1000, scope="scheduler_warehouse")
+                result["historical_intelligence"] = historical_ai
+                result["processed"] = as_int(result.get("processed"), 0) + as_int(historical_ai.get("processed"), 0)
+                result["inserted"] = as_int(result.get("inserted"), 0) + as_int(historical_ai.get("inserted"), 0)
+                result["updated"] = as_int(result.get("updated"), 0) + as_int(historical_ai.get("updated"), 0)
+                result["errors"] = (result.get("errors") or []) + (historical_ai.get("errors") or [])
             except Exception as exc:
                 result.setdefault("errors", []).append("Football Warehouse: " + str(exc)[:180])
         elif task_name == "cleanup":
@@ -7183,8 +7190,14 @@ def admin_data_center_page():
             days_ahead = as_int(request.form.get("days_ahead"), 7)
             include_api = request.form.get("include_api_football", "1") in {"1", "true", "yes", "on"}
             result = sync_football_data_warehouse(DB_PATH, limit=limit, days_back=days_back, days_ahead=days_ahead, include_api_football=include_api)
+            historical_ai = rebuild_historical_intelligence(DB_PATH, limit=max(limit, 1000), scope="data_center_after_warehouse")
+            result["historical_intelligence"] = historical_ai
             result["football_warehouse"] = football_warehouse_summary(DB_PATH)
             telegram_flow_log("FOOTBALL_WAREHOUSE", "synced", "Football Data Warehouse Pro sincronizado desde Data Center.", result)
+        elif action == "historical_intelligence":
+            result = rebuild_historical_intelligence(DB_PATH, limit=max(limit, 1000), scope="data_center_manual")
+            result["historical_intelligence"] = historical_intelligence_summary(DB_PATH)
+            telegram_flow_log("HISTORICAL_INTELLIGENCE", "rebuilt", "SHARK Historical Intelligence reconstruido desde Data Center.", result)
         message = "Accion ejecutada desde Data Center."
     data = dashboard_data()
     data["data_center"] = data_center_summary()
@@ -7203,6 +7216,7 @@ def admin_data_center_page():
     data["beta_readiness"] = beta_readiness_summary()
     data["data_provider"] = data_provider_summary(DB_PATH)
     data["football_warehouse"] = football_warehouse_summary(DB_PATH)
+    data["historical_intelligence"] = historical_intelligence_summary(DB_PATH)
     return render_template("admin_data_center.html", data=data, message=message, result=result)
 
 
@@ -8697,7 +8711,7 @@ def api_admin_membership_summary():
 
 
 # ===================== V565 SPORTS DATA & PICKS PERFECTION =====================
-APP_VERSION = "V597_FOOTBALL_DATA_WAREHOUSE_PRO"
+APP_VERSION = "V598_SHARK_HISTORICAL_INTELLIGENCE_PLATFORM"
 
 PRIORITY_LEAGUE_ORDER = [
     "UEFA Champions League", "Champions League", "LaLiga", "Spanish La Liga", "Premier League",
@@ -9556,6 +9570,34 @@ def api_v597_football_warehouse_check():
         "env": ["API_FOOTBALL_KEY", "ENABLE_API_FOOTBALL_PROVIDER", "ENABLE_FOOTBALL_WAREHOUSE_API_PULL", "FOOTBALL_WAREHOUSE_DAYS_BACK", "FOOTBALL_WAREHOUSE_DAYS_AHEAD"],
         "goal": "Guardar desde hoy histórico operativo propio para SHARK, picks, ratings, value, ROI y evolución futura sin redistribuir datos crudos de terceros."
     })
+
+@app.route("/api/historical-intelligence/summary")
+def api_historical_intelligence_summary():
+    if not is_admin_session() and request.args.get("public") != "1":
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "version": APP_VERSION, "historical_intelligence": historical_intelligence_summary(DB_PATH)})
+
+
+@app.route("/api/historical-intelligence/rebuild", methods=["POST", "GET"])
+def api_historical_intelligence_rebuild():
+    if not is_admin_session() and request.args.get("token") != os.getenv("AUTONOMOUS_CRON_TOKEN", ""):
+        return jsonify({"ok": False, "version": APP_VERSION, "error": "Admin o token requerido."}), 403
+    limit = as_int(request.args.get("limit") or request.form.get("limit") or 1000, 1000)
+    result = rebuild_historical_intelligence(DB_PATH, limit=limit, scope="api_rebuild")
+    return jsonify({"version": APP_VERSION, **result, "historical_intelligence": historical_intelligence_summary(DB_PATH)})
+
+
+@app.route("/api/v598/historical-intelligence-check")
+def api_v598_historical_intelligence_check():
+    return jsonify({
+        "ok": True,
+        "version": APP_VERSION,
+        "module": "SHARK Historical Intelligence Platform",
+        "routes": ["/api/historical-intelligence/summary", "/api/historical-intelligence/rebuild", "/api/v598/historical-intelligence-check"],
+        "goal": "Convertir datos autorizados en memoria historica propia, ratings, perfiles de liga, perfiles de mercado y trazabilidad legal para SHARK.",
+        "legal_note": "Uso interno y metricas derivadas propias. No redistribuir datos crudos de terceros sin licencia."
+    })
+
 
 @app.route("/api/data-provider/summary")
 def api_data_provider_summary():
