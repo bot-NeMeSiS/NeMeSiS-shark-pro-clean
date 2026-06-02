@@ -86,7 +86,7 @@ from engines.observability_engine import ensure_observability_schema, observabil
 from blueprints.architecture import create_architecture_blueprint
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V609_RENDER_STARTUP_REPAIR_ARCHITECTURE_CENTER"
+APP_VERSION = "V610_RENDER_STARTUP_HARD_FIX_ARCHITECTURE_CENTER"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -155,34 +155,14 @@ def is_fake_match(match):
 
 
 def cleanup_fake_matches(cur):
-    """Limpieza segura de datos demo.
+    """Compatibilidad: limpieza demo desactivada en arranque.
 
-    En producción no debe bloquear el arranque. Antes cargaba toda la tabla
-    matches con fetchall(), y en Render podía provocar timeout del worker si la
-    base crecía. Por defecto queda desactivada en arranque y solo se ejecuta
-    si CLEANUP_FAKE_MATCHES_ON_STARTUP=true.
+    En Render no debe ejecutarse ninguna limpieza pesada durante init_db(),
+    porque Gunicorn puede abortar el worker y dejar la app en 500/pantalla negra.
+    La limpieza de datos demo debe hacerse desde una tarea/admin dedicado, nunca
+    en el primer HEAD/GET de producción.
     """
-    if not env_flag("CLEANUP_FAKE_MATCHES_ON_STARTUP", False):
-        return 0
-    try:
-        columns = table_columns(cur.connection, "matches")
-        required = {"id", "home_team", "away_team"}
-        if not required.issubset(columns):
-            return 0
-        fake_names = tuple(FAKE_TEAM_NAMES)
-        if not fake_names:
-            return 0
-        placeholders = ",".join("?" for _ in fake_names)
-        where = [f"LOWER(TRIM(home_team)) IN ({placeholders})", f"LOWER(TRIM(away_team)) IN ({placeholders})"]
-        params = list(fake_names) + list(fake_names)
-        if "source" in columns:
-            where.append("LOWER(TRIM(source)) = ?")
-            params.append("seed estructural")
-        sql = "DELETE FROM matches WHERE " + " OR ".join(where)
-        cur.execute(sql, tuple(params))
-        return cur.rowcount or 0
-    except Exception:
-        return 0
+    return 0
 
 
 def table_columns(conn, table):
@@ -1041,7 +1021,8 @@ def init_db():
         ensure_observability_schema(DB_PATH)
     except Exception:
         pass
-    cleanup_fake_matches(cur)
+    # V610: no ejecutar limpieza demo durante init_db en Render.
+    # cleanup_fake_matches(cur)
     cur.execute(
         """INSERT OR IGNORE INTO telegram_settings
            (id,auto_daily_matches,auto_daily_picks,auto_live_alerts,daily_matches_time,daily_picks_time,max_messages_per_hour,enabled,updated_at)
@@ -1221,7 +1202,8 @@ def _seed_core_unlocked():
                WHERE key=?""",
             (team.get("league", ""), team.get("external_id", ""), team["key"]),
         )
-    cleanup_fake_matches(cur)
+    # V610: no ejecutar limpieza demo durante init_db en Render.
+    # cleanup_fake_matches(cur)
     seed_matches = []
     for raw_id, day, time, comp_key, comp_name, country, home, away, status in seed_matches:
         match_id = "seed-" + raw_id + "-" + today_iso(day)
@@ -8479,7 +8461,7 @@ def api_admin_membership_summary():
 
 
 # ===================== V565 SPORTS DATA & PICKS PERFECTION =====================
-APP_VERSION = "V609_RENDER_STARTUP_REPAIR_ARCHITECTURE_CENTER"
+APP_VERSION = "V610_RENDER_STARTUP_HARD_FIX_ARCHITECTURE_CENTER"
 
 PRIORITY_LEAGUE_ORDER = [
     "UEFA Champions League", "Champions League", "LaLiga", "Spanish La Liga", "Premier League",
