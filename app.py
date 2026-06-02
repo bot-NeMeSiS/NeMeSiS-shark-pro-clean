@@ -79,9 +79,10 @@ from engines.data_provider_engine import ensure_data_provider_schema, data_provi
 from engines.football_data_warehouse_engine import ensure_football_warehouse_schema, football_warehouse_summary, sync_football_data_warehouse, rebuild_derived_assets
 from engines.shark_historical_intelligence_engine import ensure_historical_intelligence_schema, historical_intelligence_summary, rebuild_historical_intelligence
 from engines.shark_accuracy_engine import ensure_shark_accuracy_schema, shark_accuracy_summary, rebuild_shark_accuracy_engine
+from engines.api_exploitation_engine import ensure_api_exploitation_schema, run_api_exploitation_cycle, api_exploitation_summary, rebuild_api_exploitation_signals
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V600_SHARK_ACCURACY_ENGINE"
+APP_VERSION = "V601_API_EXPLOITATION_ENGINE"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -1018,6 +1019,7 @@ def init_db():
         ensure_football_warehouse_schema(DB_PATH)
         ensure_historical_intelligence_schema(DB_PATH)
         ensure_shark_accuracy_schema(DB_PATH)
+        ensure_api_exploitation_schema(DB_PATH)
     except Exception:
         pass
     cleanup_fake_matches(cur)
@@ -2455,6 +2457,7 @@ def data_center_summary():
             "football_warehouse": safe_engine_payload(lambda: football_warehouse_summary(DB_PATH), {"readiness_score": 0}),
             "historical_intelligence": safe_engine_payload(lambda: historical_intelligence_summary(DB_PATH), {"readiness_score": 0}),
             "shark_accuracy": safe_engine_payload(lambda: shark_accuracy_summary(DB_PATH), {"sqi": 0, "status": "sin datos"}),
+            "api_exploitation": safe_engine_payload(lambda: api_exploitation_summary(DB_PATH), {"readiness_score": 0, "status": "pendiente"}),
             "beta": beta_readiness_summary(),
         }
     )
@@ -2917,6 +2920,10 @@ def run_scheduler_task(task_name, force=False, limit=None):
             legacy = historical_snapshot(limit=limit or 120)
             result = snapshot_warehouse(DB_PATH, limit=limit or 250)
             result["legacy_historical"] = legacy.get("warehouse", legacy) if isinstance(legacy, dict) else legacy
+            try:
+                result["api_exploitation"] = run_api_exploitation_cycle(DB_PATH, limit=min(limit or 80, 120), days_back=2, days_ahead=3)
+            except Exception as exc:
+                result["api_exploitation"] = {"ok": False, "error": str(exc)[:220]}
         elif task_name == "cleanup":
             result = cleanup_scheduler_logs(max_rows=as_int(os.getenv("SCHEDULER_LOG_MAX_ROWS", "300"), 300))
         elif task_name == "telegram":
@@ -6935,6 +6942,9 @@ def admin_data_center_page():
         elif action == "shark_accuracy":
             result = rebuild_shark_accuracy_engine(DB_PATH, limit=limit)
             result["shark_accuracy"] = shark_accuracy_summary(DB_PATH)
+        elif action == "api_exploitation":
+            result = run_api_exploitation_cycle(DB_PATH, limit=limit or 80, days_back=as_int(request.form.get("days_back"), 2), days_ahead=as_int(request.form.get("days_ahead"), 3))
+            result["api_exploitation"] = api_exploitation_summary(DB_PATH)
         message = "Acción ejecutada desde Data Center."
     data = dashboard_data()
     data["data_center"] = data_center_summary()
@@ -6954,6 +6964,7 @@ def admin_data_center_page():
     data["football_warehouse"] = data["data_center"].get("football_warehouse") or safe_engine_payload(lambda: football_warehouse_summary(DB_PATH))
     data["historical_intelligence"] = data["data_center"].get("historical_intelligence") or safe_engine_payload(lambda: historical_intelligence_summary(DB_PATH))
     data["beta"] = data["data_center"].get("beta") or beta_readiness_summary()
+    data["api_exploitation"] = data["data_center"].get("api_exploitation") or safe_engine_payload(lambda: api_exploitation_summary(DB_PATH))
     return render_template("admin_data_center.html", data=data, message=message, result=result)
 
 
@@ -9349,6 +9360,37 @@ def api_shark_accuracy_rebuild():
 @app.route("/api/v600/shark-accuracy-check")
 def api_v600_shark_accuracy_check():
     return jsonify({"ok": True, "version": APP_VERSION, "module": "SHARK Accuracy Engine", "summary": safe_engine_payload(lambda: shark_accuracy_summary(DB_PATH))})
+
+
+@app.route("/api/api-exploitation/summary")
+def api_api_exploitation_summary():
+    if not is_admin_session() and request.args.get("public") != "1":
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "version": APP_VERSION, "api_exploitation": api_exploitation_summary(DB_PATH)})
+
+
+@app.route("/api/api-exploitation/sync", methods=["GET", "POST"])
+def api_api_exploitation_sync():
+    if not is_admin_session() and request.args.get("token") != os.getenv("AUTONOMOUS_CRON_TOKEN", ""):
+        return jsonify({"ok": False, "version": APP_VERSION, "error": "Admin o token requerido."}), 403
+    limit = as_int(request.args.get("limit") or request.form.get("limit"), 80)
+    days_back = as_int(request.args.get("days_back") or request.form.get("days_back"), 2)
+    days_ahead = as_int(request.args.get("days_ahead") or request.form.get("days_ahead"), 3)
+    result = run_api_exploitation_cycle(DB_PATH, limit=limit, days_back=days_back, days_ahead=days_ahead)
+    return jsonify({"version": APP_VERSION, **result, "api_exploitation": api_exploitation_summary(DB_PATH)})
+
+
+@app.route("/api/api-exploitation/rebuild-signals", methods=["GET", "POST"])
+def api_api_exploitation_rebuild_signals():
+    if not is_admin_session() and request.args.get("token") != os.getenv("AUTONOMOUS_CRON_TOKEN", ""):
+        return jsonify({"ok": False, "version": APP_VERSION, "error": "Admin o token requerido."}), 403
+    result = rebuild_api_exploitation_signals(DB_PATH)
+    return jsonify({"version": APP_VERSION, **result, "api_exploitation": api_exploitation_summary(DB_PATH)})
+
+
+@app.route("/api/v601/api-exploitation-check")
+def api_v601_api_exploitation_check():
+    return jsonify({"ok": True, "version": APP_VERSION, "module": "API Exploitation Engine", "summary": safe_engine_payload(lambda: api_exploitation_summary(DB_PATH))})
 
 
 if __name__ == "__main__":

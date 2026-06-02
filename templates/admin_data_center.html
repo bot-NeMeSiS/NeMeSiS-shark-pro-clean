@@ -33,6 +33,28 @@
 </section>
 
 
+<section class="band two-col">
+  <aside class="card elite-card">
+    <div class="section-head"><h2>API Exploitation Engine V601</h2><span class="pill">{{ data.api_exploitation.readiness_score or data.data_center.api_exploitation.readiness_score or 0 }}%</span></div>
+    <p class="small">Exprime API-Football Pro y las fuentes contratadas: alineaciones, lesiones, estadísticas live, H2H, forma, clasificaciones y movimientos de cuota.</p>
+    <p class="small">Alineaciones: {{ data.api_exploitation.lineups_total or data.data_center.api_exploitation.lineups_total or 0 }} · Lesiones: {{ data.api_exploitation.injuries_total or data.data_center.api_exploitation.injuries_total or 0 }} · Estadísticas: {{ data.api_exploitation.stats_total or data.data_center.api_exploitation.stats_total or 0 }} · H2H: {{ data.api_exploitation.h2h_total or data.data_center.api_exploitation.h2h_total or 0 }}.</p>
+    <form method="post" action="/admin/data-center">
+      <input type="hidden" name="action" value="api_exploitation">
+      <div class="field"><label>Límite de partidos</label><input name="limit" value="80"></div>
+      <div class="field"><label>Días hacia atrás</label><input name="days_back" value="2"></div>
+      <div class="field"><label>Días hacia delante</label><input name="days_ahead" value="3"></div>
+      <button type="submit">Sincronizar datos profundos</button>
+    </form>
+  </aside>
+  <aside class="card pro-card">
+    <div class="section-head"><h2>Activos propios derivados</h2><span class="pill">Legal</span></div>
+    <p class="small">No revende datos crudos: conserva información autorizada para operar NeMeSiS, mejorar SHARK y crear señales propias.</p>
+    <p class="small">Forma equipos: {{ data.api_exploitation.form_snapshots_total or data.data_center.api_exploitation.form_snapshots_total or 0 }} · Clasificaciones: {{ data.api_exploitation.standings_total or data.data_center.api_exploitation.standings_total or 0 }} · Movimientos cuota: {{ data.api_exploitation.odds_movements_total or data.data_center.api_exploitation.odds_movements_total or 0 }}.</p>
+    <a class="btn" href="/api/v601/api-exploitation-check?public=1">Comprobar V601</a>
+  </aside>
+</section>
+
+
 
 <section class="band two-col">
   <aside class="card elite-card">
