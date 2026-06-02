@@ -1,0 +1,16 @@
+INSTALACIÓN V605 — TESTING FOUNDATION & SMOKE CHECKS
+
+1. Descomprime este ZIP.
+2. Copia todo su contenido encima de la carpeta actual de NeMeSiS SHARK PRO.
+3. No borres tu base de datos ni variables Render.
+4. En local, desde la raíz del proyecto, ejecuta:
+
+   pip install -r requirements.txt
+   pip install -r requirements-dev.txt
+   python tools/smoke_check.py
+   pytest
+
+5. Si todo pasa, sube a GitHub y despliega en Render.
+
+Esta actualización no cambia app.py ni la lógica de la aplicación.
+Solo añade pruebas, smoke checks y workflow opcional de GitHub Actions.
