@@ -37,6 +37,7 @@
   <div class="card">
     <h2>Acciones de verificacion</h2>
     <form method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
       <input type="hidden" name="action" value="run">
       <label>Limite de candidatos</label>
       <input name="limit" value="40">
@@ -44,6 +45,7 @@
       <button class="primary" type="submit">Ejecutar ciclo ahora</button>
     </form>
     <form method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
       <input type="hidden" name="action" value="process_queue">
       <button type="submit">Procesar cola Telegram</button>
     </form>

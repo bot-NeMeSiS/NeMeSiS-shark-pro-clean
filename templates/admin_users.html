@@ -29,6 +29,7 @@
         <p class="small">Alta: {{ user.created_at or '-' }} - Último login: {{ user.last_login or '-' }}</p>
       </div>
       <form method="post" action="/admin/users" class="inline-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
         <input type="hidden" name="user_id" value="{{ user.id }}">
         <label>Membresia / rol</label>
         <select name="membership">

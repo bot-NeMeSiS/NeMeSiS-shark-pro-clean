@@ -7,6 +7,7 @@
 </section>
 <section class="band auth-grid">
   <form class="card auth-card" method="post" action="/registro">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
     <h2>Registro</h2>
     {% if error %}<p class="notice danger">{{ error }}</p>{% endif %}
     <div class="field"><label>Nombre visible</label><input name="name" autocomplete="name" required></div>

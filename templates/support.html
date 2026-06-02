@@ -23,6 +23,7 @@
   <div class="card">
     <h2>Enviar incidencia o sugerencia</h2>
     <form method="post" class="form-grid">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
       <label>Tipo
         <select name="category">
           <option value="partidos">Partidos / calendario</option>

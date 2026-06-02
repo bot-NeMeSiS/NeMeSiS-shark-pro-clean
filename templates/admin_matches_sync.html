@@ -23,6 +23,7 @@
 <section class="band two-col">
   {% if message %}<div class="notice">{{ message }}</div>{% endif %}
   <form class="card" method="post" action="/admin/matches-sync">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
     <h2>SportsDB</h2>
     <p class="small">Proximos eventos por liga y directo si la API premium lo permite.</p>
     <input type="hidden" name="action" value="sportsdb">
@@ -30,6 +31,7 @@
     <button type="submit">Sincronizar SportsDB</button>
   </form>
   <form class="card" method="post" action="/admin/matches-sync">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
     <h2>Odds API</h2>
     <p class="small">Eventos con cuotas H2H usando cache para no gastar llamadas innecesarias.</p>
     <input type="hidden" name="action" value="odds">
@@ -39,6 +41,7 @@
 </section>
 <section class="band two-col">
   <form class="card" method="post" action="/admin/matches-sync">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
     <h2>Escudos</h2>
     <p class="small">Refresca escudos para equipos cacheados desde partidos.</p>
     <input type="hidden" name="action" value="crests">

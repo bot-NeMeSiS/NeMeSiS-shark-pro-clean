@@ -7,6 +7,7 @@
 </section>
 <section class="band auth-grid">
   <form class="card auth-card" method="post" action="/cliente-login">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
     <h2>Acceso</h2>
     {% if error %}<p class="notice danger">{{ error }}</p>{% endif %}
     <div class="field"><label>Email o nombre de usuario</label><input name="login" autocomplete="username" required></div>

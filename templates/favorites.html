@@ -8,6 +8,7 @@
 
 <section class="band form-grid">
   <form class="card" method="post" action="/favorites">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
     <h2>Guardar favorito</h2>
     <input type="hidden" name="action" value="add">
     <div class="field">
@@ -35,6 +36,7 @@
           <div class="small">{{ f.value }}</div>
         </div>
         <form method="post" action="/favorites">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
           <input type="hidden" name="action" value="remove">
           <input type="hidden" name="kind" value="{{ f.kind }}">
           <input type="hidden" name="value" value="{{ f.value }}">

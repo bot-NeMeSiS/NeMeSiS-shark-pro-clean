@@ -20,6 +20,7 @@
 <section class="panel-block">
   <div class="section-head"><h2>Acciones automáticas</h2><p>Ejecuta ciclos sin tocar picks manualmente.</p></div>
   <form method="post" class="actions-row">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
     <button class="btn primary" name="action" value="cycle">Ejecutar ciclo completo</button>
     <button class="btn" name="action" value="candidates">Generar candidatos</button>
     <button class="btn" name="action" value="memory">Actualizar memoria SHARK</button>

@@ -20,7 +20,8 @@
     <div class="section-head"><h2>SHARK Accuracy Engine V600</h2><span class="pill">SQI {{ data.shark_accuracy.sqi or data.data_center.shark_accuracy.sqi or 0 }}</span></div>
     <p class="small">Mide precisión real, calibración de confianza, ROI y ranking de mercados para que SHARK mejore sus pronósticos con datos propios.</p>
     <p class="small">Picks analizados: {{ data.shark_accuracy.picks_analyzed or data.data_center.shark_accuracy.picks_analyzed or 0 }} · Cerrados: {{ data.shark_accuracy.settled_picks or data.data_center.shark_accuracy.settled_picks or 0 }} · ROI: {{ data.shark_accuracy.roi or data.data_center.shark_accuracy.roi or 0 }}% · Acierto: {{ data.shark_accuracy.winrate or data.data_center.shark_accuracy.winrate or 0 }}%.</p>
-    <form method="post" action="/admin/data-center"><input type="hidden" name="action" value="shark_accuracy"><input name="limit" value="1500"><button type="submit">Reconstruir precisión SHARK</button></form>
+    <form method="post" action="/admin/data-center">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="action" value="shark_accuracy"><input name="limit" value="1500"><button type="submit">Reconstruir precisión SHARK</button></form>
   </aside>
   <aside class="card pro-card">
     <div class="section-head"><h2>Mercados con mejor precisión</h2><span class="pill">V600</span></div>
@@ -40,6 +41,7 @@
     <p class="small">Convierte alineaciones, bajas, sanciones y jugadores clave en señales propias para mejorar la lectura SHARK de cada partido.</p>
     <p class="small">Jugadores: {{ data.player_intelligence.profiles_total or data.data_center.player_intelligence.profiles_total or 0 }} · Bajas/dudas: {{ data.player_intelligence.availability_total or data.data_center.player_intelligence.availability_total or 0 }} · Señales: {{ data.player_intelligence.impact_signals_total or data.data_center.player_intelligence.impact_signals_total or 0 }}.</p>
     <form method="post" action="/admin/data-center">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
       <input type="hidden" name="action" value="player_intelligence">
       <div class="field"><label>Límite de registros</label><input name="limit" value="1000"></div>
       <button type="submit">Reconstruir inteligencia de jugadores</button>
@@ -62,6 +64,7 @@
     <p class="small">Exprime API-Football Pro y las fuentes contratadas: alineaciones, lesiones, estadísticas live, H2H, forma, clasificaciones y movimientos de cuota.</p>
     <p class="small">Alineaciones: {{ data.api_exploitation.lineups_total or data.data_center.api_exploitation.lineups_total or 0 }} · Lesiones: {{ data.api_exploitation.injuries_total or data.data_center.api_exploitation.injuries_total or 0 }} · Estadísticas: {{ data.api_exploitation.stats_total or data.data_center.api_exploitation.stats_total or 0 }} · H2H: {{ data.api_exploitation.h2h_total or data.data_center.api_exploitation.h2h_total or 0 }}.</p>
     <form method="post" action="/admin/data-center">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
       <input type="hidden" name="action" value="api_exploitation">
       <div class="field"><label>Límite de partidos</label><input name="limit" value="80"></div>
       <div class="field"><label>Días hacia atrás</label><input name="days_back" value="2"></div>
@@ -96,12 +99,14 @@
   <aside class="card">
     <div class="section-head"><h2>Cuotas y Value V591</h2><span class="pill">{{ data.odds_value.status or data.data_center.odds_value.status or 'activo' }}</span></div>
     <p class="small">Señales guardadas: {{ data.odds_value.signals_total or data.data_center.odds_value.signals_total or 0 }} · Value fuerte: {{ data.odds_value.strong_value or data.data_center.odds_value.strong_value or 0 }} · Preparación: {{ data.odds_value.readiness_score or data.data_center.odds_value.readiness_score or 0 }}%.</p>
-    <form method="post" action="/admin/data-center"><input type="hidden" name="action" value="odds_value"><input name="limit" value="500"><button type="submit">Reconstruir value</button></form>
+    <form method="post" action="/admin/data-center">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="action" value="odds_value"><input name="limit" value="500"><button type="submit">Reconstruir value</button></form>
   </aside>
   <aside class="card">
     <div class="section-head"><h2>Predicción SHARK V592</h2><span class="pill">{{ data.shark_prediction.status or data.data_center.shark_prediction.status or 'activo' }}</span></div>
     <p class="small">Rating de equipos, fuerza de ligas, selección de mercado y desglose de confianza para mejorar pronósticos.</p>
-    <form method="post" action="/admin/data-center"><input type="hidden" name="action" value="shark_prediction"><input name="limit" value="1000"><button type="submit">Reconstruir predicción</button></form>
+    <form method="post" action="/admin/data-center">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="action" value="shark_prediction"><input name="limit" value="1000"><button type="submit">Reconstruir predicción</button></form>
   </aside>
 </section>
 
@@ -109,12 +114,14 @@
   <aside class="card">
     <div class="section-head"><h2>TheSportsDB enriquecido V593</h2><span class="pill">{{ data.sportsdb_enrichment.readiness_score or data.data_center.sportsdb_enrichment.readiness_score or 0 }}%</span></div>
     <p class="small">Perfiles de ligas, equipos, estadios, escudos, eventos pasados/futuros y contexto histórico cacheado legalmente.</p>
-    <form method="post" action="/admin/data-center"><input type="hidden" name="action" value="sportsdb_enrichment"><input name="limit" value="30"><button type="submit">Sincronizar enriquecimiento</button></form>
+    <form method="post" action="/admin/data-center">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="action" value="sportsdb_enrichment"><input name="limit" value="30"><button type="submit">Sincronizar enriquecimiento</button></form>
   </aside>
   <aside class="card">
     <div class="section-head"><h2>Proveedor de datos V596</h2><span class="pill">{{ data.data_provider.active_provider or data.data_center.data_provider.active_provider or 'TheSportsDB' }}</span></div>
     <p class="small">Capa preparada para TheSportsDB, API-Football, Sportmonks y Sportradar sin rehacer la app.</p>
-    <form method="post" action="/admin/data-center"><input type="hidden" name="action" value="data_provider"><button type="submit">Comprobar proveedores</button></form>
+    <form method="post" action="/admin/data-center">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="action" value="data_provider"><button type="submit">Comprobar proveedores</button></form>
   </aside>
 </section>
 
@@ -122,12 +129,14 @@
   <aside class="card elite-card">
     <div class="section-head"><h2>Football Warehouse Pro V597</h2><span class="pill">{{ data.football_warehouse.readiness_score or data.data_center.football_warehouse.readiness_score or 0 }}%</span></div>
     <p class="small">Guarda histórico propio de partidos, equipos, eventos, cuotas y señales SHARK desde fuentes autorizadas.</p>
-    <form method="post" action="/admin/data-center"><input type="hidden" name="action" value="football_warehouse"><input name="limit" value="500"><button type="submit">Sincronizar warehouse fútbol</button></form>
+    <form method="post" action="/admin/data-center">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="action" value="football_warehouse"><input name="limit" value="500"><button type="submit">Sincronizar warehouse fútbol</button></form>
   </aside>
   <aside class="card elite-card">
     <div class="section-head"><h2>Inteligencia histórica V598</h2><span class="pill">{{ data.historical_intelligence.readiness_score or data.data_center.historical_intelligence.readiness_score or 0 }}%</span></div>
     <p class="small">Construye memoria propia: hechos históricos, perfiles de liga, mercados, calidad de datos y activos derivados de NeMeSiS.</p>
-    <form method="post" action="/admin/data-center"><input type="hidden" name="action" value="historical_intelligence"><input name="limit" value="1000"><button type="submit">Reconstruir inteligencia histórica</button></form>
+    <form method="post" action="/admin/data-center">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="action" value="historical_intelligence"><input name="limit" value="1000"><button type="submit">Reconstruir inteligencia histórica</button></form>
   </aside>
 </section>
 
@@ -138,6 +147,7 @@
     <p class="small">Preparación: {{ data.sportsdb_highlights.readiness_score }}% · Highlights guardados: {{ data.sportsdb_highlights.highlights_total }} · Vídeos: {{ data.sportsdb_highlights.with_video }}</p>
     <p class="small">Partidos enlazados: {{ data.sportsdb_highlights.linked_matches }} · Fichas enriquecidas: {{ data.sportsdb_highlights.enriched_matches }}</p>
     <form method="post" action="/admin/data-center">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
       <input type="hidden" name="action" value="sportsdb_highlights">
       <div class="field"><label>Días hacia atrás para buscar resúmenes</label><input name="days_back" value="5"></div>
       <div class="field"><label>Límite</label><input name="limit" value="250"></div>
@@ -158,6 +168,7 @@
     <p class="small">Muestra: {{ data.shark_learning.profile.sample_size or 0 }} picks · ROI {{ data.shark_learning.profile.roi or 0 }}% · acierto {{ data.shark_learning.profile.winrate or 0 }}% · yield {{ data.shark_learning.profile.yield_pct or 0 }}%.</p>
     <p class="small">Ajuste global: {{ data.shark_learning.profile.confidence_adjustment or 0 }} puntos. Se aplica por mercado, liga y rango de cuota cuando hay muestra suficiente.</p>
     <form method="post" action="/admin/data-center">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
       <input type="hidden" name="action" value="shark_learning">
       <div class="field"><label>Límite de picks históricos</label><input name="limit" value="1000"></div>
       <button type="submit">Reconstruir learning SHARK</button>
@@ -232,6 +243,7 @@
     <p class="small">Score: {{ data.telegram_autonomous.score }}% · Suscriptores activos: {{ data.telegram_autonomous.subscribers }} · Campañas: {{ data.telegram_autonomous.campaigns_total }}</p>
     <p class="small">Cola total: {{ data.telegram_autonomous.queue_total }} · Pendientes: {{ data.telegram_autonomous.queue_pending }} · Memoria anti-duplicados: {{ data.telegram_autonomous.dedupe_memory_total }}</p>
     <form method="post" action="/admin/data-center">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
       <input type="hidden" name="action" value="telegram_autonomous">
       <div class="field"><label>Límite de suscriptores por ejecución</label><input name="limit" value="30"></div>
       <label class="check"><input type="checkbox" name="force" value="1"> Forzar aunque la confianza sea baja</label>
@@ -271,6 +283,7 @@
     <p class="small">Preparación: {{ data.pick_grading.readiness_score }}% · Picks graduados: {{ data.pick_grading.graded_total }} · Auto validados: {{ data.pick_grading.auto_validated }}</p>
     <p class="small">Ganados: {{ data.pick_grading.won }} · Perdidos: {{ data.pick_grading.lost }} · Revisión pendiente: {{ data.pick_grading.pending_review }} · Beneficio estimado: {{ data.pick_grading.beneficio }}u</p>
     <form method="post" action="/admin/data-center">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
       <input type="hidden" name="action" value="pick_grading">
       <div class="field"><label>Límite de picks a validar</label><input name="limit" value="500"></div>
       <label class="check"><input type="checkbox" name="apply" value="1"> Aplicar solo resultados seguros al pick</label>
@@ -310,6 +323,7 @@
     <p class="small">Preparación: {{ data.shark_memory.readiness_score }}% · Patrones: {{ data.shark_memory.groups_total }} · Picks leídos: {{ data.shark_memory.picks_read }}</p>
     <p class="small">Fiabilidad media: {{ data.shark_memory.avg_reliability }}% · Ajuste automático de confianza por mercado, liga, selección y rango de confianza.</p>
     <form method="post" action="/admin/data-center">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
       <input type="hidden" name="action" value="shark_memory">
       <div class="field"><label>Límite de picks para aprender</label><input name="limit" value="500"></div>
       <button type="submit">Reconstruir memoria SHARK</button>
@@ -349,6 +363,7 @@
     <p class="small">Pagados activos: {{ data.subscriptions.active_paid }} · Vencidos/gracia: {{ data.subscriptions.past_due }} · Bloqueos suaves: {{ data.subscriptions.soft_blocked }}</p>
     <p class="small">MRR controlado: {{ data.subscriptions.estimated_mrr }}€ · Stripe: {% if data.subscriptions.stripe_configured %}configurado{% else %}pendiente sin bloquear beta{% endif %}</p>
     <form method="post" action="/admin/data-center">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
       <input type="hidden" name="action" value="subscriptions">
       <button type="submit">Aplicar reglas de suscripción</button>
     </form>
@@ -380,6 +395,7 @@
     <p class="small">Usuarios: {{ data.commercial.users_total }} · Pagados: {{ data.commercial.paid_users }} · MRR estimado: {{ data.commercial.estimated_mrr }}€</p>
     <p class="small">FREE: {{ data.commercial.membership_counts.FREE }} · PRO: {{ data.commercial.membership_counts.PRO }} · ELITE: {{ data.commercial.membership_counts.ELITE }}</p>
     <form method="post" action="/admin/data-center">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
       <input type="hidden" name="action" value="commercial">
       <button type="submit">Recalcular lanzamiento comercial</button>
     </form>
@@ -411,6 +427,7 @@
     <p class="small">Runs 24h: {{ data.autonomous.runs_24h }} · OK: {{ data.autonomous.tasks_ok_24h }} · Errores: {{ data.autonomous.tasks_error_24h }}</p>
     <p class="small">Telegram pendiente: {{ data.autonomous.telegram_pending }} · Warehouse días: {{ data.autonomous.warehouse_days }}</p>
     <form method="post" action="/admin/data-center">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
       <input type="hidden" name="action" value="autonomous">
       <input type="hidden" name="force" value="1">
       <button type="submit">Ejecutar ciclo autónomo ahora</button>
@@ -472,6 +489,7 @@
     ('telegram_autonomous','Telegram autónomo','Prepara campañas por membresía con anti-duplicados y cola segura.')
   ] %}
   <form class="card" method="post" action="/admin/data-center">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
     <h2>{{ label }}</h2>
     <p class="small">{{ detail }}</p>
     <input type="hidden" name="action" value="{{ action }}">

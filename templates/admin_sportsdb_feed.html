@@ -22,6 +22,7 @@
 <section class="band two-col">
   {% if message %}<div class="notice">{{ message }}</div>{% endif %}
   <form class="card" method="post" action="/admin/sportsdb-feed">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
     <h2>Sincronizar partidos reales</h2>
     <p class="small">Usa eventos de día, próximos partidos por liga y marcadores en directo si `ENABLE_LIVE_API=true` está activo.</p>
     <div class="field"><label>Limite por ejecucion</label><input name="limit" value="80"></div>

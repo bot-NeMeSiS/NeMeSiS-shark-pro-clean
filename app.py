@@ -12,7 +12,7 @@ import urllib.request
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
-from flask import Flask, Response, jsonify, redirect, render_template, request, session, url_for
+from flask import Flask, Response, abort, jsonify, redirect, render_template, request, session, url_for
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from database_manager import connect as sqlite_connect, retry_locked
@@ -81,15 +81,16 @@ from engines.shark_historical_intelligence_engine import ensure_historical_intel
 from engines.shark_accuracy_engine import ensure_shark_accuracy_schema, shark_accuracy_summary, rebuild_shark_accuracy_engine
 from engines.api_exploitation_engine import ensure_api_exploitation_schema, run_api_exploitation_cycle, api_exploitation_summary, rebuild_api_exploitation_signals
 from engines.player_intelligence_engine import ensure_player_intelligence_schema, player_intelligence_summary, rebuild_player_intelligence, player_intelligence_for_fixture
+from engines.security_engine import ensure_security_schema, secure_secret_key, generate_csrf_token, validate_csrf, record_security_event, rate_limit_status, security_summary
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V603_STARTUP_BLACK_SCREEN_FULL_REPAIR"
+APP_VERSION = "V604_SECURITY_HARDENING_PRODUCTION_READINESS"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
 
 app = Flask(__name__)
-app.secret_key = os.getenv("SECRET_KEY") or os.getenv("FLASK_SECRET_KEY") or "nemesis-shark-pro-local-session-key"
+app.secret_key = secure_secret_key()
 _SEED_LOCK = threading.Lock()
 _SEEDED_DB_PATH = None
 
@@ -1004,11 +1005,6 @@ def init_db():
         )"""
     )
     run_schema_migrations(conn)
-    # V603 emergency stability fix:
-    # Commit core schema before calling engine schema helpers. Those helpers open
-    # their own SQLite connections; without this commit, the first public request
-    # can wait on a database lock and the app may look like a black screen.
-    conn.commit()
     try:
         ensure_warehouse_schema(DB_PATH)
         ensure_autonomous_schema(DB_PATH)
@@ -1027,6 +1023,7 @@ def init_db():
         ensure_shark_accuracy_schema(DB_PATH)
         ensure_api_exploitation_schema(DB_PATH)
         ensure_player_intelligence_schema(DB_PATH)
+        ensure_security_schema(DB_PATH)
     except Exception:
         pass
     cleanup_fake_matches(cur)
@@ -2524,7 +2521,7 @@ def scheduler_enabled():
 
 
 def scheduler_startup_enabled():
-    return scheduler_env_config().get("startup", False)
+    return scheduler_env_config().get("startup", True)
 
 
 def scheduler_lock_row(task_name):
@@ -5041,7 +5038,73 @@ def current_user_id():
 
 @app.context_processor
 def inject_session_user():
-    return {"current_user": current_session_user()}
+    return {"current_user": current_session_user(), "csrf_token": generate_csrf_token(session)}
+
+
+def client_ip():
+    forwarded = request.headers.get("X-Forwarded-For", "")
+    if forwarded:
+        return forwarded.split(",", 1)[0].strip()
+    return request.headers.get("X-Real-IP") or request.remote_addr or ""
+
+
+def csrf_exempt_path(path):
+    path = str(path or "")
+    # JSON/API endpoints are protected by auth/session checks where needed and may be called by JS.
+    # HTML form POSTs remain protected with hidden csrf_token.
+    return path.startswith("/api/") or path.startswith("/telegram/webhook") or path.startswith("/service-worker")
+
+
+@app.before_request
+def security_before_request():
+    if request.method in {"POST", "PUT", "PATCH", "DELETE"} and not csrf_exempt_path(request.path):
+        supplied = request.form.get("csrf_token") or request.headers.get("X-CSRFToken") or request.headers.get("X-CSRF-Token")
+        if not validate_csrf(session, supplied):
+            record_security_event(
+                DB_PATH,
+                event_type="csrf_block",
+                severity="HIGH",
+                ip_address=client_ip(),
+                user_id=current_user_id(),
+                username=session.get("username") or request.form.get("login") or request.form.get("email") or "",
+                path=request.path,
+                method=request.method,
+                success=False,
+                reason="csrf_token_missing_or_invalid",
+            )
+            abort(400, description="Solicitud de seguridad no válida. Recarga la página e inténtalo de nuevo.")
+
+    if request.method == "POST" and request.path in {"/cliente-login", "/login", "/entrar", "/admin-login", "/registro", "/admin-bootstrap"}:
+        ip = client_ip()
+        if request.path == "/admin-login":
+            status = rate_limit_status(DB_PATH, event_type="login_attempt", ip_address=ip, path_like="/admin-login%", limit=3, minutes=15)
+        elif request.path == "/registro":
+            status = rate_limit_status(DB_PATH, event_type="register_attempt", ip_address=ip, path_like="/registro%", limit=10, minutes=60)
+        else:
+            status = rate_limit_status(DB_PATH, event_type="login_attempt", ip_address=ip, path_like="%login%", limit=5, minutes=15)
+        if status.get("blocked"):
+            record_security_event(
+                DB_PATH,
+                event_type="rate_limit_block",
+                severity="HIGH",
+                ip_address=ip,
+                path=request.path,
+                method=request.method,
+                success=False,
+                reason="too_many_failed_attempts",
+                payload=status,
+            )
+            abort(429, description="Demasiados intentos. Espera unos minutos antes de volver a probar.")
+
+
+@app.after_request
+def security_after_request(response):
+    response.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+    response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+    response.headers.setdefault("Content-Security-Policy", "default-src 'self' https: data: blob: 'unsafe-inline' 'unsafe-eval'; img-src 'self' https: data:; connect-src 'self' https:; frame-ancestors 'self'")
+    return response
 
 
 def get_user_by_email(email):
@@ -6589,9 +6652,11 @@ def register_page():
                 request.form.get("password"),
             )
             set_login_session(user)
+            record_security_event(DB_PATH, event_type="register_attempt", severity="INFO", ip_address=client_ip(), user_id=user.get("id"), username=user.get("username") or request.form.get("username"), path=request.path, method=request.method, success=True, reason="register_ok")
             return redirect("/perfil")
         except ValueError as exc:
             error = str(exc)
+            record_security_event(DB_PATH, event_type="register_attempt", severity="MEDIUM", ip_address=client_ip(), username=request.form.get("username") or request.form.get("email") or "", path=request.path, method=request.method, success=False, reason=error)
     return render_template("register.html", data=dashboard_data(), error=error)
 
 
@@ -6607,8 +6672,10 @@ def client_login_page():
         user = authenticate_user(identifier, request.form.get("password"))
         if user:
             set_login_session(user)
+            record_security_event(DB_PATH, event_type="login_attempt", severity="INFO", ip_address=client_ip(), user_id=user.get("id"), username=identifier, path=request.path, method=request.method, success=True, reason="client_login_ok")
             return redirect("/perfil")
-        error = "Email, usuario o contrasena incorrectos."
+        error = "Email, usuario o contraseña incorrectos."
+        record_security_event(DB_PATH, event_type="login_attempt", severity="MEDIUM", ip_address=client_ip(), username=identifier, path=request.path, method=request.method, success=False, reason="client_login_failed")
     return render_template("client_login.html", data=dashboard_data(), error=error)
 
 
@@ -6624,8 +6691,10 @@ def admin_login_page():
             user = authenticate_user(request.form.get("login"), request.form.get("password"), admin_only=True)
         if user:
             set_login_session(user)
+            record_security_event(DB_PATH, event_type="login_attempt", severity="INFO", ip_address=client_ip(), user_id=user.get("id"), username=request.form.get("login") or "", path=request.path, method=request.method, success=True, reason="admin_login_ok")
             return redirect(request.args.get("next") or "/admin/import-center")
-        error = "Acceso admin no valido."
+        error = "Acceso admin no válido."
+        record_security_event(DB_PATH, event_type="login_attempt", severity="HIGH", ip_address=client_ip(), username=request.form.get("login") or "", path=request.path, method=request.method, success=False, reason="admin_login_failed")
     return render_template("admin_login.html", data=dashboard_data(), error=error, configured=configured)
 
 
@@ -7462,7 +7531,7 @@ def api_favorites():
         return jsonify({"version": APP_VERSION, **remove_favorite(payload.get("kind"), payload.get("value"))})
     favorite = add_favorite(payload.get("kind"), payload.get("value"), payload.get("label"))
     if not favorite:
-        return jsonify({"ok": False, "version": APP_VERSION, "error": "Favorito inválido. Usa kind team, league o match con value."}), 400
+        return jsonify({"ok": False, "version": APP_VERSION, "error": "Favorito invalido. Usa kind team, league o match con value."}), 400
     return jsonify({"ok": True, "version": APP_VERSION, "favorite": favorite})
 
 
@@ -8386,6 +8455,7 @@ def api_admin_membership_summary():
 
 
 # ===================== V565 SPORTS DATA & PICKS PERFECTION =====================
+APP_VERSION = "V582_TELEGRAM_PICKS_HARD_FIX_AUDIT_READY"
 
 PRIORITY_LEAGUE_ORDER = [
     "UEFA Champions League", "Champions League", "LaLiga", "Spanish La Liga", "Premier League",
@@ -9431,6 +9501,19 @@ def api_player_intelligence_fixture():
 @app.route("/api/v602/player-intelligence-check")
 def api_v602_player_intelligence_check():
     return jsonify({"ok": True, "version": APP_VERSION, "module": "Player Intelligence Engine", "summary": safe_engine_payload(lambda: player_intelligence_summary(DB_PATH))})
+
+
+@app.route("/api/security/summary")
+def api_security_summary():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify(security_summary(DB_PATH))
+
+@app.route("/api/v604/security-check")
+def api_v604_security_check():
+    payload = security_summary(DB_PATH, limit=5)
+    payload.update({"version": APP_VERSION, "secret_key_configured": bool(os.getenv("SECRET_KEY") or os.getenv("FLASK_SECRET_KEY"))})
+    return jsonify(payload)
 
 
 if __name__ == "__main__":

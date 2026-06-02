@@ -13,6 +13,7 @@
 {% else %}
 <section class="band auth-grid">
   <form class="card auth-card" method="post" action="/admin-bootstrap">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
     <h2>Admin inicial</h2>
     {% if error %}<p class="notice danger">{{ error }}</p>{% endif %}
     {% if result %}<p class="notice">Admin creado: {{ result.email }} / @{{ result.username }}</p>{% endif %}

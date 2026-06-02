@@ -22,6 +22,7 @@
 </section>
 <section class="band form-grid">
   <form class="card" method="post" action="/admin/picks">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
     <h2>Crear pick</h2>
     <input type="hidden" name="action" value="create">
     <div class="field"><label>Partido existente</label><select name="match_id"><option value="">Manual / sin partido enlazado</option>{% for m in data.matches_for_pick %}<option value="{{ m.id }}">{{ m.match_date }} · {{ m.home_team }} vs {{ m.away_team }}</option>{% endfor %}</select></div>
@@ -59,6 +60,7 @@
       <p class="small">{{ p.reasoning or 'Sin razonamiento añadido todavía.' }}</p>
       <div class="status"><span>{{ p.status }}</span><span>{{ p.risk_level }}</span><span>{{ p.result_status }}</span></div>
       <form class="inline-actions" method="post" action="/admin/picks">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
         <input type="hidden" name="pick_id" value="{{ p.id }}">
         <button name="action" value="published">Publicar</button>
         <button name="action" value="draft">Borrador</button>

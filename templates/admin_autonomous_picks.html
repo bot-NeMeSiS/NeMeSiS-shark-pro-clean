@@ -26,6 +26,7 @@
 
 <section class="band form-grid">
   <form class="card" method="post" action="/admin/autonomous-picks">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
     <h2>Ejecutar motor ahora</h2>
     <p class="small">Usa partidos próximos reales y cuotas cacheadas. Recomendado después de sincronizar calendario/Odds.</p>
     <div class="field"><label>Límite</label><input name="limit" value="8"></div>

@@ -12,6 +12,7 @@
 </section>
 <section class="band two-col">
   <form class="card" method="post" action="/admin/user-import">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
     <h2>old_database.db</h2>
     <p class="small">Estado: {% if data.old_db_present %}archivo detectado{% else %}archivo no encontrado{% endif %}</p>
     <button type="submit">Importar usuarios</button>

@@ -14,6 +14,7 @@
 </section>
 
 <form method="post" class="card form-inline">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
   <input type="hidden" name="action" value="generate">
   <label>Límite <input name="limit" value="24" type="number" min="5" max="80"></label>
   <button class="btn" type="submit">Regenerar recomendaciones</button>
@@ -29,8 +30,10 @@
     <p class="muted">{{ r.reason }}</p>
     <p class="warning">{{ r.caution }}</p>
     <div class="actions-row">
-      <form method="post"><input type="hidden" name="action" value="convert"><input type="hidden" name="recommendation_id" value="{{ r.id }}"><button class="btn ghost" type="submit">A borrador</button></form>
-      <form method="post"><input type="hidden" name="action" value="publish"><input type="hidden" name="recommendation_id" value="{{ r.id }}"><button class="btn" type="submit">Publicar pick</button></form>
+      <form method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="action" value="convert"><input type="hidden" name="recommendation_id" value="{{ r.id }}"><button class="btn ghost" type="submit">A borrador</button></form>
+      <form method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="action" value="publish"><input type="hidden" name="recommendation_id" value="{{ r.id }}"><button class="btn" type="submit">Publicar pick</button></form>
     </div>
   </article>
 {% else %}

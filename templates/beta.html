@@ -27,6 +27,7 @@
 <section class="band compact-band">
   <div class="section-head"><h2>Solicitar acceso / enviar comentarios</h2><span class="pill">V556</span></div>
   <form class="card form-card" method="post" action="/api/beta/join">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
     <label>Nombre visible</label>
     <input name="name" value="{{ beta.name }}" placeholder="Tu nombre">
     <label>Email</label>

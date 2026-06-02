@@ -29,6 +29,7 @@
 
 <section class="band form-grid">
   <form class="card" method="post" action="/admin/telegram">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
     <h2>Configuración</h2>
     <p class="small">Token: {{ data.telegram_delivery.token_masked or 'sin configurar' }}</p>
     <p class="small">Chat: {% if data.telegram_delivery.chat_id_present %}presente{% else %}pendiente{% endif %}</p>
@@ -41,14 +42,21 @@
   </form>
   <div class="card">
     <h2>Acciones</h2>
-    <form method="post" action="/admin/telegram"><input type="hidden" name="action" value="test"><button type="submit">Enviar test</button></form>
-    <form method="post" action="/admin/telegram"><input type="hidden" name="action" value="daily_matches"><button type="submit">Generar resumen partidos hoy</button></form>
-    <form method="post" action="/admin/telegram"><input type="hidden" name="action" value="daily_picks"><button type="submit">Generar picks destacados</button></form>
-    <form method="post" action="/admin/telegram"><input type="hidden" name="action" value="process"><button type="submit">Procesar cola ahora</button></form>
+    <form method="post" action="/admin/telegram">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="action" value="test"><button type="submit">Enviar test</button></form>
+    <form method="post" action="/admin/telegram">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="action" value="daily_matches"><button type="submit">Generar resumen partidos hoy</button></form>
+    <form method="post" action="/admin/telegram">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="action" value="daily_picks"><button type="submit">Generar picks destacados</button></form>
+    <form method="post" action="/admin/telegram">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="action" value="process"><button type="submit">Procesar cola ahora</button></form>
     <hr>
-    <form method="post" action="/admin/telegram"><input type="hidden" name="action" value="audit_picks"><button type="submit">Auditar picks Telegram</button></form>
-    <form method="post" action="/admin/telegram"><input type="hidden" name="action" value="fix_picks"><button type="submit">Preparar envíos picks</button></form>
-    <form method="post" action="/admin/telegram"><input type="hidden" name="action" value="send_picks_now"><button class="primary" type="submit">Enviar picks ahora</button></form>
+    <form method="post" action="/admin/telegram">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="action" value="audit_picks"><button type="submit">Auditar picks Telegram</button></form>
+    <form method="post" action="/admin/telegram">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="action" value="fix_picks"><button type="submit">Preparar envíos picks</button></form>
+    <form method="post" action="/admin/telegram">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="action" value="send_picks_now"><button class="primary" type="submit">Enviar picks ahora</button></form>
   </div>
 </section>
 
