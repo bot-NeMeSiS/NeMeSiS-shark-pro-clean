@@ -32,6 +32,76 @@
 
 
 
+
+<section class="band two-col v597-football-warehouse">
+  <aside class="card elite-card">
+    <div class="section-head"><h2>Football Data Warehouse Pro V597</h2><span class="pill">{{ data.football_warehouse.readiness_score or 0 }}%</span></div>
+    <p class="small">Partidos históricos: {{ data.football_warehouse.matches_total or 0 }} · eventos: {{ data.football_warehouse.events_total or 0 }} · cuotas: {{ data.football_warehouse.odds_total or 0 }} · señales SHARK: {{ data.football_warehouse.signals_total or 0 }}.</p>
+    <p class="small">API-Football: {{ 'configurada' if data.football_warehouse.api_football_configured else 'pendiente' }} · activos derivados: {{ data.football_warehouse.derived_assets_total or 0 }}.</p>
+    <form method="post" action="/admin/data-center">
+      <input type="hidden" name="action" value="football_warehouse">
+      <div class="field"><label>Límite de registros</label><input name="limit" value="500"></div>
+      <div class="field"><label>Días hacia atrás</label><input name="days_back" value="3"></div>
+      <div class="field"><label>Días hacia delante</label><input name="days_ahead" value="7"></div>
+      <label class="check"><input type="checkbox" name="include_api_football" value="1" checked> Incluir API-Football si hay clave</label>
+      <button type="submit">Sincronizar warehouse fútbol</button>
+    </form>
+  </aside>
+  <aside class="card pro-card">
+    <h2>Activo propio NeMeSiS</h2>
+    <p class="small">Guarda snapshots internos de partidos, eventos, equipos, cuotas y señales SHARK para que el ecosistema aprenda desde hoy y no dependa solo de consultas puntuales.</p>
+    <p class="small">{{ data.football_warehouse.legal_note }}</p>
+    {% for run in data.football_warehouse.recent_runs[:3] %}
+    <div class="list-row"><span>{{ run.started_at }} · {{ run.status }}<br><small>Partidos {{ run.matches_inserted + run.matches_updated }} · eventos {{ run.events_inserted }} · señales {{ run.signals_inserted }}</small></span><strong>{{ run.errors_count }}</strong></div>
+    {% else %}
+    <p class="small">Aún no hay sincronizaciones V597. Ejecuta la primera desde este panel o espera al scheduler de warehouse.</p>
+    {% endfor %}
+  </aside>
+</section>
+
+<section class="band two-col">
+  <aside class="card">
+    <div class="section-head"><h2>Profundidad por liga</h2><span class="pill">V597</span></div>
+    {% for item in data.football_warehouse.top_leagues[:6] %}
+    <div class="list-row"><span>{{ item.entity_key }}<br><small>{{ item.title }} · muestra {{ item.sample_size }}</small></span><strong>{{ item.metric_value|round(0) }}</strong></div>
+    {% else %}
+    <p class="small">Cuando entren partidos, aquí aparecerán las ligas con más histórico guardado.</p>
+    {% endfor %}
+  </aside>
+  <aside class="card">
+    <div class="section-head"><h2>Señales SHARK por mercado</h2><span class="pill">derivado</span></div>
+    {% for item in data.football_warehouse.market_assets[:6] %}
+    <div class="list-row"><span>{{ item.entity_key }}<br><small>{{ item.title }} · muestra {{ item.sample_size }}</small></span><strong>{{ item.confidence }}</strong></div>
+    {% else %}
+    <p class="small">Cuando haya picks validados, se crearán métricas propias por mercado.</p>
+    {% endfor %}
+  </aside>
+</section>
+
+<section class="band two-col v596-provider-layer">
+  <aside class="card elite-card">
+    <div class="section-head"><h2>Provider Adapter & Live Data Upgrade V596</h2><span class="pill">{{ data.data_provider.ready_score or 0 }}%</span></div>
+    <p class="small">Proveedor principal: {{ data.data_provider.primary_provider }} · configurados: {{ data.data_provider.configured_providers }} · activos: {{ data.data_provider.enabled_providers }}.</p>
+    <p class="small">Live profesional: {{ 'OK' if data.data_provider.live_ready else 'pendiente' }} · TheSportsDB: {{ 'OK' if data.data_provider.sportsdb_ready else 'pendiente' }} · Cuotas: {{ 'OK' if data.data_provider.odds_ready else 'pendiente' }}.</p>
+    <p class="small">{{ data.data_provider.recommendation }}</p>
+    <form method="post" action="/admin/data-center">
+      <input type="hidden" name="action" value="data_provider">
+      <button type="submit">Revisar capa de proveedores</button>
+    </form>
+  </aside>
+  <aside class="card pro-card">
+    <h2>Fuentes preparadas</h2>
+    {% for provider in data.data_provider.providers %}
+    <div class="list-row">
+      <span>{{ provider.name }}<br><small>{{ provider.features[:3]|join(', ') }}{% if provider.features|length > 3 %}...{% endif %}</small></span>
+      <strong>{% if provider.configured %}CONFIG{% elif provider.enabled %}ACTIVO{% else %}PENDIENTE{% endif %}</strong>
+    </div>
+    {% endfor %}
+    <p class="small">{{ data.data_provider.legal_note }}</p>
+  </aside>
+</section>
+
+
 <section class="band two-col">
   <aside class="card elite-card">
     <div class="section-head"><h2>TheSportsDB Maximum Enrichment V593</h2><span class="pill">{{ data.sportsdb_enrichment.readiness_score or 0 }}%</span></div>

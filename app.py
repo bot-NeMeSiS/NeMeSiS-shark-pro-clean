@@ -75,9 +75,11 @@ from engines.sportsdb_highlights_engine import ensure_sportsdb_highlights_schema
 from engines.odds_value_engine import ensure_odds_value_schema, odds_value_summary, rebuild_odds_value_engine, value_for_pick_like
 from engines.shark_prediction_engine import ensure_shark_prediction_schema, rebuild_shark_prediction_engine, shark_prediction_summary, prediction_for_match, apply_shark_prediction_adjustment
 from engines.sportsdb_enrichment_engine import ensure_sportsdb_enrichment_schema, sync_sportsdb_max_enrichment, sportsdb_enrichment_summary, sportsdb_enrichment_for_match
+from engines.data_provider_engine import ensure_data_provider_schema, data_provider_summary, provider_check
+from engines.football_data_warehouse_engine import ensure_football_warehouse_schema, sync_football_data_warehouse, football_warehouse_summary
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V595_TELEGRAM_VISUAL_PREMIUM"
+APP_VERSION = "V597_FOOTBALL_DATA_WAREHOUSE_PRO"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -2850,6 +2852,15 @@ def run_scheduler_task(task_name, force=False, limit=None):
             legacy = historical_snapshot(limit=limit or 120)
             result = snapshot_warehouse(DB_PATH, limit=limit or 250)
             result["legacy_historical"] = legacy.get("warehouse", legacy) if isinstance(legacy, dict) else legacy
+            try:
+                football_dw = sync_football_data_warehouse(DB_PATH, limit=limit or 300, days_back=as_int(os.getenv("FOOTBALL_WAREHOUSE_DAYS_BACK", "3"), 3), days_ahead=as_int(os.getenv("FOOTBALL_WAREHOUSE_DAYS_AHEAD", "7"), 7), include_api_football=env_flag("ENABLE_FOOTBALL_WAREHOUSE_API_PULL", True))
+                result["football_warehouse"] = football_dw
+                result["processed"] = as_int(result.get("processed"), 0) + as_int(football_dw.get("processed"), 0)
+                result["inserted"] = as_int(result.get("inserted"), 0) + as_int(football_dw.get("inserted"), 0)
+                result["updated"] = as_int(result.get("updated"), 0) + as_int(football_dw.get("updated"), 0)
+                result["errors"] = (result.get("errors") or []) + (football_dw.get("errors") or [])
+            except Exception as exc:
+                result.setdefault("errors", []).append("Football Warehouse: " + str(exc)[:180])
         elif task_name == "cleanup":
             result = cleanup_scheduler_logs(max_rows=as_int(os.getenv("SCHEDULER_LOG_MAX_ROWS", "300"), 300))
         elif task_name == "telegram":
@@ -7164,6 +7175,16 @@ def admin_data_center_page():
             result = sync_sportsdb_max_enrichment(DB_PATH, limit=limit, include_past=True, include_next=True)
             result["sportsdb_enrichment"] = sportsdb_enrichment_summary(DB_PATH)
             telegram_flow_log("SPORTSDB_ENRICHMENT", "synced", "Enriquecimiento máximo TheSportsDB ejecutado desde Data Center.", result)
+        elif action == "data_provider":
+            result = provider_check(DB_PATH)
+            telegram_flow_log("DATA_PROVIDER", "checked", "Capa profesional de proveedores revisada desde Data Center.", result)
+        elif action == "football_warehouse":
+            days_back = as_int(request.form.get("days_back"), 3)
+            days_ahead = as_int(request.form.get("days_ahead"), 7)
+            include_api = request.form.get("include_api_football", "1") in {"1", "true", "yes", "on"}
+            result = sync_football_data_warehouse(DB_PATH, limit=limit, days_back=days_back, days_ahead=days_ahead, include_api_football=include_api)
+            result["football_warehouse"] = football_warehouse_summary(DB_PATH)
+            telegram_flow_log("FOOTBALL_WAREHOUSE", "synced", "Football Data Warehouse Pro sincronizado desde Data Center.", result)
         message = "Accion ejecutada desde Data Center."
     data = dashboard_data()
     data["data_center"] = data_center_summary()
@@ -7180,6 +7201,8 @@ def admin_data_center_page():
     data["odds_value"] = odds_value_summary(DB_PATH, auto_rebuild=False)
     data["shark_prediction"] = shark_prediction_summary(DB_PATH, auto_rebuild=False)
     data["beta_readiness"] = beta_readiness_summary()
+    data["data_provider"] = data_provider_summary(DB_PATH)
+    data["football_warehouse"] = football_warehouse_summary(DB_PATH)
     return render_template("admin_data_center.html", data=data, message=message, result=result)
 
 
@@ -8674,7 +8697,7 @@ def api_admin_membership_summary():
 
 
 # ===================== V565 SPORTS DATA & PICKS PERFECTION =====================
-APP_VERSION = "V595_TELEGRAM_VISUAL_PREMIUM"
+APP_VERSION = "V597_FOOTBALL_DATA_WAREHOUSE_PRO"
 
 PRIORITY_LEAGUE_ORDER = [
     "UEFA Champions League", "Champions League", "LaLiga", "Spanish La Liga", "Premier League",
@@ -9499,6 +9522,72 @@ def api_v578_system_check():
         "module": "Telegram Autonomous Delivery",
         "routes": ["/api/telegram-autonomous/summary", "/api/telegram-autonomous/run"],
         "goal": "Automatizar resúmenes, picks PRO/ELITE y alertas Telegram con deduplicación y reglas por membresía.",
+    })
+
+
+
+
+@app.route("/api/football-warehouse/summary")
+def api_football_warehouse_summary():
+    if not is_admin_session() and request.args.get("public") != "1":
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "version": APP_VERSION, "football_warehouse": football_warehouse_summary(DB_PATH)})
+
+
+@app.route("/api/football-warehouse/sync", methods=["POST", "GET"])
+def api_football_warehouse_sync():
+    if not is_admin_session() and request.args.get("token") != os.getenv("AUTONOMOUS_CRON_TOKEN", ""):
+        return jsonify({"ok": False, "version": APP_VERSION, "error": "Admin o token requerido."}), 403
+    limit = as_int(request.args.get("limit") or request.form.get("limit"), 500)
+    days_back = as_int(request.args.get("days_back") or request.form.get("days_back"), 3)
+    days_ahead = as_int(request.args.get("days_ahead") or request.form.get("days_ahead"), 7)
+    include_api = str(request.args.get("include_api_football") or request.form.get("include_api_football") or "1").lower() in {"1", "true", "yes", "on"}
+    result = sync_football_data_warehouse(DB_PATH, limit=limit, days_back=days_back, days_ahead=days_ahead, include_api_football=include_api)
+    return jsonify({"version": APP_VERSION, **result, "football_warehouse": football_warehouse_summary(DB_PATH)})
+
+
+@app.route("/api/v597/football-warehouse-check")
+def api_v597_football_warehouse_check():
+    return jsonify({
+        "ok": True,
+        "version": APP_VERSION,
+        "module": "Football Data Warehouse Pro",
+        "routes": ["/api/football-warehouse/summary", "/api/football-warehouse/sync", "/api/v597/football-warehouse-check"],
+        "env": ["API_FOOTBALL_KEY", "ENABLE_API_FOOTBALL_PROVIDER", "ENABLE_FOOTBALL_WAREHOUSE_API_PULL", "FOOTBALL_WAREHOUSE_DAYS_BACK", "FOOTBALL_WAREHOUSE_DAYS_AHEAD"],
+        "goal": "Guardar desde hoy histórico operativo propio para SHARK, picks, ratings, value, ROI y evolución futura sin redistribuir datos crudos de terceros."
+    })
+
+@app.route("/api/data-provider/summary")
+def api_data_provider_summary():
+    if not is_admin_session() and request.args.get("public") != "1":
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "version": APP_VERSION, "data_provider": data_provider_summary(DB_PATH)})
+
+
+@app.route("/api/data-provider/check", methods=["POST", "GET"])
+def api_data_provider_check():
+    if not is_admin_session() and request.args.get("token") != os.getenv("AUTONOMOUS_CRON_TOKEN", ""):
+        return jsonify({"ok": False, "version": APP_VERSION, "error": "Admin o token requerido."}), 403
+    return jsonify({"ok": True, "version": APP_VERSION, "data_provider": provider_check(DB_PATH)})
+
+
+@app.route("/api/v596/provider-adapter-check")
+def api_v596_provider_adapter_check():
+    return jsonify({
+        "ok": True,
+        "version": APP_VERSION,
+        "module": "Provider Adapter & Live Data Upgrade",
+        "routes": ["/api/data-provider/summary", "/api/data-provider/check", "/api/v596/provider-adapter-check"],
+        "env": [
+            "PRIMARY_FOOTBALL_DATA_PROVIDER",
+            "FOOTBALL_DATA_PROVIDER_ORDER",
+            "API_FOOTBALL_KEY",
+            "SPORTMONKS_API_KEY",
+            "SPORTRADAR_API_KEY",
+            "THESPORTSDB_KEY",
+            "THE_ODDS_API_KEY",
+        ],
+        "goal": "Preparar NeMeSiS para datos live profesionales con adaptadores, fallback y contrato común sin rehacer la app.",
     })
 
 
