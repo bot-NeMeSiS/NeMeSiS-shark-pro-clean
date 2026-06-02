@@ -9,6 +9,7 @@
     <a class="btn" href="/admin/autopilot-audit">Piloto automático de picks</a>
     <a class="btn" href="/admin/picks">Picks</a>
     <a class="btn" href="/api/telegram/audit-picks">Auditoría JSON</a>
+    <a class="btn" href="/api/telegram/visual-summary">Visual JSON</a>
   </div>
 </section>
 
@@ -26,12 +27,13 @@
     <div class="card"><div class="metric">{{ audit.counts.blocked_by_membership }}</div><div class="muted">bloqueados por plan</div></div>
     <div class="card"><div class="metric">{{ audit.counts.badge_errors }}</div><div class="muted">sin escudo</div></div>
     <div class="card"><div class="metric">{{ audit.counts.messages_text_only }}</div><div class="muted">solo texto</div></div>
+    <div class="card"><div class="metric">{{ audit.counts.messages_with_image }}</div><div class="muted">con identidad visual</div></div>
   </div>
 </section>
 
 <section class="band form-grid">
   <form class="card" method="post">
-    <h2>Acciones de auditora</h2>
+    <h2>Acciones de auditoría</h2>
     <input type="hidden" name="action" value="send_now">
     <label><input type="checkbox" name="force_empty" value="1"> Enviar aviso aunque no haya picks publicados</label>
     <button class="primary" type="submit">Enviar picks ahora</button>
@@ -41,7 +43,7 @@
     <form method="post"><input type="hidden" name="action" value="fix"><button type="submit">Preparar ajustes picks</button></form>
     <form method="post"><input type="hidden" name="action" value="enqueue"><button type="submit">Encolar picks</button></form>
     <form method="post"><input type="hidden" name="action" value="process"><button type="submit">Procesar cola</button></form>
-    <form method="post"><input type="hidden" name="action" value="audit"><button type="submit">Actualizar auditora</button></form>
+    <form method="post"><input type="hidden" name="action" value="audit"><button type="submit">Actualizar auditoría</button></form>
   </div>
 </section>
 

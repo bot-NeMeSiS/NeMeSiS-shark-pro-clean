@@ -77,7 +77,7 @@ from engines.shark_prediction_engine import ensure_shark_prediction_schema, rebu
 from engines.sportsdb_enrichment_engine import ensure_sportsdb_enrichment_schema, sync_sportsdb_max_enrichment, sportsdb_enrichment_summary, sportsdb_enrichment_for_match
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V593_SPORTSDB_MAXIMUM_ENRICHMENT"
+APP_VERSION = "V595_TELEGRAM_VISUAL_PREMIUM"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -7179,6 +7179,7 @@ def admin_data_center_page():
     data["sportsdb_enrichment"] = sportsdb_enrichment_summary(DB_PATH)
     data["odds_value"] = odds_value_summary(DB_PATH, auto_rebuild=False)
     data["shark_prediction"] = shark_prediction_summary(DB_PATH, auto_rebuild=False)
+    data["beta_readiness"] = beta_readiness_summary()
     return render_template("admin_data_center.html", data=data, message=message, result=result)
 
 
@@ -8673,7 +8674,7 @@ def api_admin_membership_summary():
 
 
 # ===================== V565 SPORTS DATA & PICKS PERFECTION =====================
-APP_VERSION = "V593_SPORTSDB_MAXIMUM_ENRICHMENT"
+APP_VERSION = "V595_TELEGRAM_VISUAL_PREMIUM"
 
 PRIORITY_LEAGUE_ORDER = [
     "UEFA Champions League", "Champions League", "LaLiga", "Spanish La Liga", "Premier League",
@@ -9498,6 +9499,45 @@ def api_v578_system_check():
         "module": "Telegram Autonomous Delivery",
         "routes": ["/api/telegram-autonomous/summary", "/api/telegram-autonomous/run"],
         "goal": "Automatizar resúmenes, picks PRO/ELITE y alertas Telegram con deduplicación y reglas por membresía.",
+    })
+
+
+@app.route("/api/telegram/visual-summary")
+def api_telegram_visual_summary():
+    if not is_admin_session() and request.args.get("public") != "1":
+        return admin_json_forbidden()
+    audit = telegram_pick_delivery_audit()
+    return jsonify({
+        "ok": True,
+        "version": APP_VERSION,
+        "module": "Telegram Visual Premium",
+        "visual": {
+            "messages_with_image": audit.get("counts", {}).get("messages_with_image", 0),
+            "messages_text_only": audit.get("counts", {}).get("messages_text_only", 0),
+            "badge_errors": audit.get("counts", {}).get("badge_errors", 0),
+            "sendable_free": audit.get("counts", {}).get("sendable_free", 0),
+            "sendable_pro": audit.get("counts", {}).get("sendable_pro", 0),
+            "sendable_elite": audit.get("counts", {}).get("sendable_elite", 0),
+            "blocked_by_membership": audit.get("counts", {}).get("blocked_by_membership", 0),
+        },
+        "membership_delivery": audit.get("membership_delivery", {}),
+    })
+
+
+@app.route("/api/v595/telegram-visual-check")
+def api_v595_telegram_visual_check():
+    return jsonify({
+        "ok": True,
+        "version": APP_VERSION,
+        "module": "Telegram Visual Premium",
+        "features": [
+            "formatos FREE / PRO / ELITE",
+            "mensajes premium con SHARK V2, value, stake y learning",
+            "contexto de escudos con fallback seguro",
+            "auditoría de envíos por plan",
+            "compatibilidad con telegram_queue y Auto Picks",
+        ],
+        "routes": ["/admin/telegram-audit", "/api/telegram/visual-summary", "/api/v595/telegram-visual-check"],
     })
 
 

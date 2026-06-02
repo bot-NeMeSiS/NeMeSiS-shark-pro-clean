@@ -17,6 +17,23 @@
 
 <section class="band two-col">
   <aside class="card elite-card">
+    <div class="section-head"><h2>Beta Readiness Center V594</h2><span class="pill">{{ data.beta_readiness.readiness_score or 0 }}%</span></div>
+    <p class="small">Telegram: {{ 'OK' if data.beta_readiness.telegram.ready else 'pendiente' }} · Auto Picks: {{ 'OK' if data.beta_readiness.settings.auto_generate_picks else 'pendiente' }} · Envío automático: {{ 'OK' if data.beta_readiness.settings.auto_send_telegram_picks else 'pendiente' }}.</p>
+    <p class="small">Usuarios pagados: {{ data.beta_readiness.users.paid }} · MRR estimado: {{ data.beta_readiness.users.mrr_estimated }}€ · picks: {{ data.beta_readiness.picks.total }}.</p>
+    <a class="btn primary" href="/admin/beta-center">Abrir Centro Beta</a>
+  </aside>
+  <aside class="card pro-card">
+    <h2>Alertas beta</h2>
+    {% for alert in data.beta_readiness.alerts[:4] %}
+    <div class="list-row"><span>{{ alert }}</span><strong>Beta</strong></div>
+    {% endfor %}
+  </aside>
+</section>
+
+
+
+<section class="band two-col">
+  <aside class="card elite-card">
     <div class="section-head"><h2>TheSportsDB Maximum Enrichment V593</h2><span class="pill">{{ data.sportsdb_enrichment.readiness_score or 0 }}%</span></div>
     <p class="small">Ligas: {{ data.sportsdb_enrichment.leagues_total or 0 }} · Equipos: {{ data.sportsdb_enrichment.teams_total or 0 }} · Eventos: {{ data.sportsdb_enrichment.events_total or 0 }}.</p>
     <p class="small">Escudos guardados: {{ data.sportsdb_enrichment.badges_total or 0 }} · Estadios: {{ data.sportsdb_enrichment.stadiums_total or 0 }} · Partidos enlazados: {{ data.sportsdb_enrichment.linked_matches or 0 }}.</p>
