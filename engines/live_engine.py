@@ -8,11 +8,11 @@ import re
 
 
 LIVE_STATES = {
-    "LIVE": {"label": "LIVE", "badge": "live", "priority": 100},
-    "HT": {"label": "DESCANSO", "badge": "half", "priority": 92},
-    "FT": {"label": "FINAL", "badge": "done", "priority": 35},
-    "UPCOMING": {"label": "PROXIMO", "badge": "upcoming", "priority": 65},
-    "SUSPENDED": {"label": "SUSPENDIDO", "badge": "suspended", "priority": 20},
+    "LIVE": {"label": "En directo", "badge": "live", "priority": 100},
+    "HT": {"label": "Descanso", "badge": "half", "priority": 92},
+    "FT": {"label": "Finalizado", "badge": "done", "priority": 35},
+    "UPCOMING": {"label": "Próximo", "badge": "upcoming", "priority": 65},
+    "SUSPENDED": {"label": "Suspendido", "badge": "suspended", "priority": 20},
 }
 
 SUPPORTED_EVENT_TYPES = {"goal", "yellow", "red", "substitution", "penalty", "var", "state"}
@@ -127,7 +127,7 @@ def normalize_timeline_events(events):
             "player": event.get("player") or "",
             "source": event.get("source") or "",
         })
-    return normalized
+    return sorted(normalized, key=lambda item: _minute_number(item.get("minute")), reverse=True)
 
 
 def shark_live_alerts(match, momentum=None):
@@ -137,7 +137,7 @@ def shark_live_alerts(match, momentum=None):
     if max(momentum["momentum_local"], momentum["momentum_visitante"]) > 85:
         alerts.append({"type": "momentum", "level": "high", "title": "Momentum SHARK alto", "body": f"El {leader} supera 85 de momentum.", "telegram_ready": True})
     if momentum["presion"] >= 88:
-        alerts.append({"type": "pressure", "level": "critical", "title": "Presion extrema", "body": "El partido muestra presion elevada con los datos disponibles.", "telegram_ready": True})
+        alerts.append({"type": "pressure", "level": "critical", "title": "Presión extrema", "body": "El partido muestra presión elevada con los datos disponibles.", "telegram_ready": True})
     if momentum["riesgo"] >= 90:
         alerts.append({"type": "possible_goal", "level": "watch", "title": "Posible gol", "body": "Riesgo alto de evento importante. Revisar live antes de actuar.", "telegram_ready": True})
     return alerts
@@ -182,7 +182,7 @@ def fallback_timeline(match):
         detail = f"Resultado {depth['score']}"
     elif depth["state"] == "SUSPENDED":
         title = "Partido suspendido"
-        detail = "Estado pendiente de actualizacion oficial"
+        detail = "Estado pendiente de actualización oficial"
     else:
         title = "Partido preparado"
         detail = str(match.get("status") or "PROGRAMADO")
@@ -190,7 +190,7 @@ def fallback_timeline(match):
 
 
 def build_match_detail(match, timeline=None, related_picks=None, favorite=False):
-    depth = build_live_depth(match)
+    depth = match.get("live_depth") or build_live_depth(match)
     events = normalize_timeline_events(timeline) or fallback_timeline(match)
     momentum = depth["shark_momentum"]
     return {

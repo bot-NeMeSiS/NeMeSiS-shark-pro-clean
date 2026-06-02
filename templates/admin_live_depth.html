@@ -13,7 +13,7 @@
 </section>
 
 <section class="metric-grid">
-  <article class="metric-card"><span>Directo detectados</span><strong>{{ summary.directo_count }}</strong></article>
+  <article class="metric-card"><span>Directos detectados</span><strong>{{ summary.directo_count }}</strong></article>
   <article class="metric-card"><span>Próximos</span><strong>{{ summary.upcoming_count }}</strong></article>
   <article class="metric-card"><span>Finalizados</span><strong>{{ summary.finished_count }}</strong></article>
   <article class="metric-card"><span>Eventos guardados</span><strong>{{ summary.with_events }}</strong></article>
@@ -28,7 +28,7 @@
         <a class="match-row" href="/match/{{ match.id }}">
           <span class="badge directo">{{ match.v554_stats.label }}</span>
           <strong>{{ match.home_team }} vs {{ match.away_team }}</strong>
-          <small>{{ match.league_name or match.competition_name }} · intensidad {{ match.v554_stats.intensity }}%</small>
+          <small>{{ match.league_name or match.competition_name }} · momentum {{ match.v554_stats.intensity }}% · eventos {{ match.live_depth.event_count or match.timeline|length }}</small>
         </a>
       {% endfor %}
       </div>

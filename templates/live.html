@@ -5,7 +5,7 @@
   <h1>Directos, próximos y resultados sin falsos LIVE</h1>
   <p class="lead">Centro compacto con estados claros: Próximo, En directo, Descanso o Finalizado. Si no hay directo real, mostramos próximos destacados.</p>
   <div class="actions">
-    <a class="btn primary" href="/match-hublane=live">Solo directos</a>
+    <a class="btn primary" href="/match-hub?lane=live">Solo directos</a>
     <a class="btn" href="/resultados">Resultados</a>
     <a class="btn" href="/favorites">Favoritos</a>
   </div>
@@ -42,6 +42,17 @@
               <span>Visitante <strong>{{ m.live_depth.shark_momentum.momentum_visitante or 0 }}</strong></span>
               <span>Riesgo <strong>{{ m.live_depth.shark_momentum.riesgo or 0 }}</strong></span>
             </div>
+            <div class="status">
+              <span>Eventos {{ m.live_depth.event_count or m.timeline|length }}</span>
+              <span>{{ m.live_depth.cache_status or 'Live Intelligence Pro' }}</span>
+            </div>
+            {% if m.timeline %}
+            <div class="stack compact-alerts">
+              {% for ev in m.timeline[:2] %}
+              <div class="list-row"><span>{{ ev.minute or '-' }} · {{ ev.title }}</span><strong>{{ ev.event_type|upper }}</strong></div>
+              {% endfor %}
+            </div>
+            {% endif %}
             {% if m.live_depth.alerts %}
             <div class="stack compact-alerts">
               {% for alert in m.live_depth.alerts[:2] %}

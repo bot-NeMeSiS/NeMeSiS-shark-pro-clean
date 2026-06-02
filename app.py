@@ -30,7 +30,7 @@ from engines.football_population_engine import (
     success_sync,
     team_payload,
 )
-from engines.live_engine import build_live_depth, build_live_flow, build_match_detail, fallback_timeline, normalize_live_state, shark_live_alerts, shark_momentum, build_deep_live_intelligence
+from engines.live_engine import build_live_depth, build_live_flow, build_match_detail, extract_live_events, fallback_timeline, normalize_live_state, shark_live_alerts, shark_momentum, build_deep_live_intelligence
 from engines.match_engine import hub_sections, real_time_state, sync_plan
 from engines.match_sync_engine import IMPORTANT_COMPETITIONS, h2h_price_snapshot, normalize_status as sync_normalize_status, odds_sports, sportsdb_leagues
 from engines.membership_engine import can_access_feature, get_membership_limits, get_user_membership, membership_context
@@ -64,7 +64,7 @@ from engines.telegram_autonomous_delivery_engine import ensure_telegram_autonomo
 from engines.sportsdb_highlights_engine import ensure_sportsdb_highlights_schema, sync_sportsdb_highlights, sportsdb_highlights_summary, sportsdb_highlights_for_match, rebuild_match_enrichment
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V582_TELEGRAM_PICKS_HARD_FIX_AUDIT_READY"
+APP_VERSION = "V584_LIVE_INTELLIGENCE_PRO"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -308,6 +308,14 @@ def run_schema_migrations(conn):
         ("live_matches", "payload_json", "TEXT"),
         ("live_matches", "source", "TEXT"),
         ("live_matches", "updated_at", "TEXT"),
+        ("live_matches", "state_key", "TEXT"),
+        ("live_matches", "state_label", "TEXT"),
+        ("live_matches", "score", "TEXT"),
+        ("live_matches", "momentum_json", "TEXT"),
+        ("live_matches", "alerts_json", "TEXT"),
+        ("live_matches", "timeline_json", "TEXT"),
+        ("live_matches", "event_count", "INTEGER DEFAULT 0"),
+        ("live_matches", "cache_status", "TEXT"),
         ("api_sync_logs", "source", "TEXT"),
         ("api_sync_logs", "sync_type", "TEXT"),
         ("api_sync_logs", "started_at", "TEXT"),
@@ -338,6 +346,17 @@ def run_schema_migrations(conn):
         ("match_timeline", "source", "TEXT"),
         ("match_timeline", "legal_note", "TEXT"),
         ("match_timeline", "created_at", "TEXT"),
+        ("live_event_history", "match_id", "TEXT"),
+        ("live_event_history", "minute", "TEXT"),
+        ("live_event_history", "event_type", "TEXT"),
+        ("live_event_history", "title", "TEXT"),
+        ("live_event_history", "detail", "TEXT"),
+        ("live_event_history", "home_score", "TEXT"),
+        ("live_event_history", "away_score", "TEXT"),
+        ("live_event_history", "momentum_json", "TEXT"),
+        ("live_event_history", "source", "TEXT"),
+        ("live_event_history", "payload_json", "TEXT"),
+        ("live_event_history", "created_at", "TEXT"),
         ("historical_matches", "match_id", "TEXT"),
         ("historical_matches", "match_date", "TEXT"),
         ("historical_matches", "home_team", "TEXT"),
@@ -785,6 +804,22 @@ def init_db():
             detail TEXT,
             source TEXT,
             legal_note TEXT,
+            created_at TEXT
+        )"""
+    )
+    cur.execute(
+        """CREATE TABLE IF NOT EXISTS live_event_history(
+            id TEXT PRIMARY KEY,
+            match_id TEXT,
+            minute TEXT,
+            event_type TEXT,
+            title TEXT,
+            detail TEXT,
+            home_score TEXT,
+            away_score TEXT,
+            momentum_json TEXT,
+            source TEXT,
+            payload_json TEXT,
             created_at TEXT
         )"""
     )
@@ -1678,6 +1713,126 @@ def fetch_sportsdb_feed_events(limit=80):
     return events[: int(limit)], errors
 
 
+def _live_event_signature(match_id, event):
+    raw = "|".join(
+        [
+            str(match_id or ""),
+            str(event.get("minute") or ""),
+            str(event.get("event_type") or ""),
+            str(event.get("title") or ""),
+            str(event.get("detail") or ""),
+        ]
+    )
+    return hashlib.sha1(raw.encode("utf-8")).hexdigest()[:22]
+
+
+def _score_changed_event(item, previous_live):
+    if not previous_live:
+        return None
+    old_home = str(previous_live.get("home_score") or "")
+    old_away = str(previous_live.get("away_score") or "")
+    new_home = str(item.get("home_score") or "")
+    new_away = str(item.get("away_score") or "")
+    if not (new_home or new_away) or (old_home == new_home and old_away == new_away):
+        return None
+    return {
+        "minute": item.get("minute") or "",
+        "event_type": "goal",
+        "title": "Cambio de marcador",
+        "detail": f"{item.get('home_team')} {new_home or '-'} - {new_away or '-'} {item.get('away_team')}",
+        "source": item.get("source") or "SQLite live cache",
+    }
+
+
+def persist_live_intelligence(cur, item, previous_live=None):
+    """Persist V584 live cache, timeline and event history without inventing data."""
+    status_info = canonical_match_status(item)
+    if not status_info.get("is_live"):
+        return {"events": 0, "alerts": 0}
+    depth = build_live_depth(item)
+    timeline = extract_live_events(item)
+    score_event = _score_changed_event(item, previous_live)
+    if score_event:
+        timeline.append(score_event)
+    if not timeline:
+        timeline = fallback_timeline(item)
+    momentum = depth.get("shark_momentum") or shark_momentum(item)
+    alerts = depth.get("alerts") or shark_live_alerts(item, momentum)
+    score = item.get("score") or (
+        f"{item.get('home_score')}-{item.get('away_score')}" if item.get("home_score") or item.get("away_score") else ""
+    )
+    cur.execute(
+        """INSERT OR REPLACE INTO live_matches
+           (id,match_id,status,minute,home_score,away_score,payload_json,source,updated_at,state_key,state_label,score,momentum_json,alerts_json,timeline_json,event_count,cache_status)
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+        (
+            "live-" + item["id"],
+            item["id"],
+            item.get("status") or "LIVE",
+            item.get("minute") or "",
+            item.get("home_score") or "",
+            item.get("away_score") or "",
+            item.get("raw_json") or "{}",
+            item.get("source") or "TheSportsDB API",
+            now_iso(),
+            depth.get("state") or status_info.get("key") or "LIVE",
+            depth.get("label") or status_info.get("label") or "En directo",
+            score,
+            json.dumps(momentum, ensure_ascii=False)[:4000],
+            json.dumps(alerts, ensure_ascii=False)[:4000],
+            json.dumps(timeline, ensure_ascii=False)[:8000],
+            len(timeline),
+            "V584_LIVE_INTELLIGENCE_PRO",
+        ),
+    )
+    for event in timeline:
+        event_id = _live_event_signature(item["id"], event)
+        payload = {
+            "match_id": item["id"],
+            "home_team": item.get("home_team"),
+            "away_team": item.get("away_team"),
+            "score": score,
+            "event": event,
+        }
+        values = (
+            event_id,
+            item["id"],
+            event.get("minute") or "",
+            event.get("event_type") or "state",
+            event.get("title") or "Evento live",
+            event.get("detail") or "",
+            item.get("home_score") or "",
+            item.get("away_score") or "",
+            json.dumps(momentum, ensure_ascii=False)[:4000],
+            event.get("source") or item.get("source") or "SQLite live cache",
+            json.dumps(payload, ensure_ascii=False)[:5000],
+            now_iso(),
+        )
+        cur.execute(
+            """INSERT OR IGNORE INTO live_event_history
+               (id,match_id,minute,event_type,title,detail,home_score,away_score,momentum_json,source,payload_json,created_at)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
+            values,
+        )
+        cur.execute(
+            """INSERT OR IGNORE INTO match_timeline
+               (id,match_id,minute,event_type,title,detail,source,legal_note,created_at)
+               VALUES (?,?,?,?,?,?,?,?,?)""",
+            (
+                "tl-" + event_id,
+                item["id"],
+                event.get("minute") or "",
+                event.get("event_type") or "state",
+                event.get("title") or "Evento live",
+                event.get("detail") or "",
+                event.get("source") or item.get("source") or "SQLite live cache",
+                "Evento guardado desde fuente permitida o estado editorial del cache Live; sin scraping.",
+                now_iso(),
+            ),
+        )
+    return {"events": len(timeline), "alerts": len(alerts)}
+
+
 def upsert_sportsdb_matches(match_rows):
     conn = db()
     cur = conn.cursor()
@@ -1733,21 +1888,8 @@ def upsert_sportsdb_matches(match_rows):
         )
         status_info = canonical_match_status(item)
         if status_info.get("is_live"):
-            cur.execute(
-                """INSERT OR REPLACE INTO live_matches(id,match_id,status,minute,home_score,away_score,payload_json,source,updated_at)
-                   VALUES (?,?,?,?,?,?,?,?,?)""",
-                (
-                    "live-" + item["id"],
-                    item["id"],
-                    item.get("status") or "LIVE",
-                    item.get("minute") or "",
-                    item.get("home_score") or "",
-                    item.get("away_score") or "",
-                    item.get("raw_json") or "{}",
-                    item.get("source") or "TheSportsDB API",
-                    now_iso(),
-                ),
-            )
+            previous_live = cur.execute("SELECT * FROM live_matches WHERE match_id=?", (item["id"],)).fetchone()
+            persist_live_intelligence(cur, item, dict(previous_live) if previous_live else None)
         if exists:
             updated += 1
         else:
@@ -2554,8 +2696,29 @@ def refresh_live_alerts_basic(limit=40):
     live_matches = hub.get("live", [])[: int(limit)]
     alerts = []
     for match in live_matches:
-        alerts.extend(shark_live_alerts(match, shark_momentum(match)))
-    return {"ok": True, "processed": len(live_matches), "inserted": 0, "updated": len(alerts), "skipped": 0, "alerts": alerts[:20], "telegram_ready": True}
+        match_alerts = shark_live_alerts(match, shark_momentum(match))
+        alerts.extend(match_alerts)
+        for alert in match_alerts:
+            alert_id = hashlib.sha1(f"live-alert-{match.get('id')}-{alert.get('type')}-{match.get('minute')}-{match.get('score')}".encode("utf-8")).hexdigest()[:22]
+            conn = db()
+            try:
+                conn.execute(
+                    """INSERT OR IGNORE INTO auto_alerts(id,alert_type,target_key,payload_json,status,created_at,updated_at)
+                       VALUES (?,?,?,?,?,?,?)""",
+                    (
+                        alert_id,
+                        "live_alert",
+                        match.get("id"),
+                        json.dumps({"match": match, "alert": alert}, ensure_ascii=False)[:5000],
+                        "READY",
+                        now_iso(),
+                        now_iso(),
+                    ),
+                )
+                conn.commit()
+            finally:
+                conn.close()
+    return {"ok": True, "processed": len(live_matches), "inserted": len(alerts), "updated": len(alerts), "skipped": 0, "alerts": alerts[:20], "telegram_ready": True}
 
 
 def run_scheduler_task(task_name, force=False, limit=None):
@@ -3912,15 +4075,50 @@ def annotate_match(match, favs=None):
     return match
 
 
+def live_cache_for_match(match_id):
+    return one("SELECT * FROM live_matches WHERE match_id=? ORDER BY updated_at DESC LIMIT 1", (match_id,))
+
+
 def match_timeline(match):
+    cached = live_cache_for_match(match.get("id"))
+    if cached and cached.get("timeline_json"):
+        try:
+            parsed = json.loads(cached.get("timeline_json") or "[]")
+            if parsed:
+                return parsed[:20]
+        except (TypeError, ValueError):
+            pass
     existing = rows("SELECT * FROM match_timeline WHERE match_id=? ORDER BY created_at DESC LIMIT 20", (match.get("id"),))
     if existing:
         return existing
+    history = rows("SELECT * FROM live_event_history WHERE match_id=? ORDER BY created_at DESC LIMIT 20", (match.get("id"),))
+    if history:
+        return history
     return fallback_timeline(match)
 
 
 def live_depth(match):
-    return build_live_depth(match)
+    depth = build_live_depth(match)
+    cached = live_cache_for_match(match.get("id"))
+    if not cached:
+        return depth
+    if cached.get("state_key"):
+        depth["state"] = cached.get("state_key")
+    if cached.get("state_label"):
+        depth["label"] = cached.get("state_label")
+    if cached.get("score"):
+        depth["score"] = cached.get("score")
+    if cached.get("minute"):
+        depth["minute"] = cached.get("minute")
+    for key, target in (("momentum_json", "shark_momentum"), ("alerts_json", "alerts")):
+        if cached.get(key):
+            try:
+                depth[target] = json.loads(cached.get(key) or "{}")
+            except (TypeError, ValueError):
+                pass
+    depth["event_count"] = as_int(cached.get("event_count"), 0)
+    depth["cache_status"] = cached.get("cache_status") or "SQLite live cache"
+    return depth
 
 
 def favorite_feed(limit=80, user_id=None):
@@ -6874,7 +7072,37 @@ def api_live_deep():
     lane = request.args.get("lane", "today")
     matches = [annotate_match(m) for m in get_matches(date, lane)]
     deep = build_deep_live_intelligence(matches)
-    return jsonify({"ok": True, "version": APP_VERSION, "date": date, "lane": lane, "deep_live": deep})
+    cache = {
+        "live_matches": (one("SELECT COUNT(*) AS total FROM live_matches") or {}).get("total", 0),
+        "event_history": (one("SELECT COUNT(*) AS total FROM live_event_history") or {}).get("total", 0),
+        "timeline": (one("SELECT COUNT(*) AS total FROM match_timeline") or {}).get("total", 0),
+        "alerts_ready": (one("SELECT COUNT(*) AS total FROM auto_alerts WHERE alert_type='live_alert'") or {}).get("total", 0),
+    }
+    return jsonify({"ok": True, "version": APP_VERSION, "date": date, "lane": lane, "deep_live": deep, "cache": cache})
+
+
+@app.route("/api/v584/live-intelligence-check")
+def api_v584_live_intelligence_check():
+    hub = match_hub(today_iso(), "live")
+    live = hub.get("live", [])
+    cache = {
+        "live_matches": (one("SELECT COUNT(*) AS total FROM live_matches") or {}).get("total", 0),
+        "event_history": (one("SELECT COUNT(*) AS total FROM live_event_history") or {}).get("total", 0),
+        "timeline": (one("SELECT COUNT(*) AS total FROM match_timeline") or {}).get("total", 0),
+        "alerts_ready": (one("SELECT COUNT(*) AS total FROM auto_alerts WHERE alert_type='live_alert'") or {}).get("total", 0),
+    }
+    return jsonify(
+        {
+            "ok": True,
+            "version": "V584_LIVE_INTELLIGENCE_PRO",
+            "live_matches_visible": len(live),
+            "states": sorted({(m.get("live_depth") or {}).get("state") for m in live if m.get("live_depth")}),
+            "momentum_ready": all(bool((m.get("live_depth") or {}).get("shark_momentum")) for m in live) if live else True,
+            "alerts_ready": sum(len((m.get("live_depth") or {}).get("alerts") or []) for m in live),
+            "cache": cache,
+            "compatibility": ["TheSportsDB", "The Odds API", "SHARK", "Render", "SQLite"],
+        }
+    )
 
 
 @app.route("/api/match-hub")
@@ -8176,8 +8404,33 @@ def v566_live_depth_summary():
     upcoming = today.get("upcoming_matches", [])[:12]
     finished = get_results_matches(today_iso(), days_back=7, limit=20)
     for match in live:
-        match["v554_stats"] = {"label": (match.get("live_depth") or {}).get("label") or "En directo", "intensity": 65, "message": "Estado live limpio y sin minuto inventado."}
-    return {"live_count": len(live), "upcoming_count": len(upcoming), "finished_count": len(finished), "live": live, "upcoming": upcoming, "finished": finished}
+        depth = match.get("live_depth") or {}
+        momentum = depth.get("shark_momentum") or {}
+        match["v554_stats"] = {
+            "label": depth.get("label") or "En directo",
+            "intensity": depth.get("momentum") or momentum.get("presion") or 65,
+            "message": "Estado live enriquecido con momentum, alertas y cache SQLite.",
+        }
+    deep = build_deep_live_intelligence(live + upcoming + finished[:8])
+    with_events = (one("SELECT COUNT(*) AS total FROM live_event_history") or {}).get("total", 0)
+    summary = {
+        "live_count": len(live),
+        "directo_count": len(live),
+        "upcoming_count": len(upcoming),
+        "finished_count": len(finished),
+        "with_events": with_events,
+        "live": live,
+        "directo": live,
+        "upcoming": upcoming,
+        "finished": finished,
+        "deep": deep,
+        "recommendations": [
+            "Revisar alertas SHARK antes de enviar Telegram.",
+            "Priorizar partidos con momentum superior a 85.",
+            "Mantener cache Live activo para evitar pantallas vacías.",
+        ],
+    }
+    return summary
 
 
 def v566_responsible_payload():

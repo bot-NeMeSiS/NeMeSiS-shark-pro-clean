@@ -7,11 +7,11 @@
   <div class="actions"><a class="btn primary" href="/match-hub">Ver destacados</a>{% if current_user and current_user.role == 'ADMIN' %}<a class="btn" href="/admin/import-center">Importar partidos</a>{% endif %}</div>
 </section>
 <div class="filters">
-  <a class="btn" href="/calendariolane=today">Hoy</a>
-  <a class="btn" href="/calendariolane=live">Directo</a>
-  <a class="btn" href="/calendariolane=top">Top mundal</a>
-  <a class="btn" href="/calendariolane=spain">Espaa</a>
-  <a class="btn" href="/calendariolane=andalucia">Andaluca</a>
+  <a class="btn" href="/calendario?lane=today">Hoy</a>
+  <a class="btn" href="/calendario?lane=live">Directo</a>
+  <a class="btn" href="/calendario?lane=top">Top mundial</a>
+  <a class="btn" href="/calendario?lane=spain">España</a>
+  <a class="btn" href="/calendario?lane=andalucia">Andalucía</a>
 </div>
 <section class="band">
   <div class="section-head"><h2>{{ data.matches|length }} partidos - {{ data.date }}</h2><span class="pill">{{ data.lane }}</span></div>

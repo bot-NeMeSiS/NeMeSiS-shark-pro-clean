@@ -14,10 +14,11 @@
   <article class="metric-card"><span>En directo</span><strong>{{ summary.directo_count }}</strong></article>
   <article class="metric-card"><span>Próximos</span><strong>{{ summary.upcoming_count }}</strong></article>
   <article class="metric-card"><span>Finalizados</span><strong>{{ summary.finished_count }}</strong></article>
+  <article class="metric-card"><span>Eventos Live</span><strong>{{ summary.with_events }}</strong></article>
 </section>
 
 <section class="panel-card">
-  <h2>Directo ahora</h2>
+  <h2>En directo ahora</h2>
   {% if summary.directo %}
     <div class="match-grid compact-matches">
     {% for match in summary.directo %}
@@ -27,6 +28,7 @@
         <p>{{ match.league_name or match.competition_name }}</p>
         <div class="momentum-bar"><span style="width: {{ match.v554_stats.intensity }}%"></span></div>
         <small>{{ match.v554_stats.message }}</small>
+        <small>Momentum {{ match.live_depth.shark_momentum.presion or 0 }} · eventos {{ match.live_depth.event_count or match.timeline|length }}</small>
       </a>
     {% endfor %}
     </div>
