@@ -86,7 +86,7 @@ from engines.observability_engine import ensure_observability_schema, observabil
 from blueprints.architecture import create_architecture_blueprint
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V608_BLUEPRINT_MIGRATION_PHASE_2_ARCHITECTURE_CENTER"
+APP_VERSION = "V609_RENDER_STARTUP_REPAIR_ARCHITECTURE_CENTER"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -155,22 +155,34 @@ def is_fake_match(match):
 
 
 def cleanup_fake_matches(cur):
-    try:
-        match_rows = cur.execute("SELECT id, home_team, away_team, source FROM matches").fetchall()
-    except sqlite3.OperationalError:
+    """Limpieza segura de datos demo.
+
+    En producción no debe bloquear el arranque. Antes cargaba toda la tabla
+    matches con fetchall(), y en Render podía provocar timeout del worker si la
+    base crecía. Por defecto queda desactivada en arranque y solo se ejecuta
+    si CLEANUP_FAKE_MATCHES_ON_STARTUP=true.
+    """
+    if not env_flag("CLEANUP_FAKE_MATCHES_ON_STARTUP", False):
         return 0
-    delete_ids = []
-    for row in match_rows:
-        row_id = row["id"] if hasattr(row, "keys") else row[0]
-        home_team = row["home_team"] if hasattr(row, "keys") else row[1]
-        away_team = row["away_team"] if hasattr(row, "keys") else row[2]
-        source = row["source"] if hasattr(row, "keys") else row[3]
-        if is_fake_team_name(home_team) or is_fake_team_name(away_team) or normalized_label(source) == "seed estructural":
-            delete_ids.append(row_id)
-    if delete_ids:
-        placeholders = ",".join("?" for _ in delete_ids)
-        cur.execute(f"DELETE FROM matches WHERE id IN ({placeholders})", tuple(delete_ids))
-    return len(delete_ids)
+    try:
+        columns = table_columns(cur.connection, "matches")
+        required = {"id", "home_team", "away_team"}
+        if not required.issubset(columns):
+            return 0
+        fake_names = tuple(FAKE_TEAM_NAMES)
+        if not fake_names:
+            return 0
+        placeholders = ",".join("?" for _ in fake_names)
+        where = [f"LOWER(TRIM(home_team)) IN ({placeholders})", f"LOWER(TRIM(away_team)) IN ({placeholders})"]
+        params = list(fake_names) + list(fake_names)
+        if "source" in columns:
+            where.append("LOWER(TRIM(source)) = ?")
+            params.append("seed estructural")
+        sql = "DELETE FROM matches WHERE " + " OR ".join(where)
+        cur.execute(sql, tuple(params))
+        return cur.rowcount or 0
+    except Exception:
+        return 0
 
 
 def table_columns(conn, table):
@@ -8467,7 +8479,7 @@ def api_admin_membership_summary():
 
 
 # ===================== V565 SPORTS DATA & PICKS PERFECTION =====================
-APP_VERSION = "V608_BLUEPRINT_MIGRATION_PHASE_2_ARCHITECTURE_CENTER"
+APP_VERSION = "V609_RENDER_STARTUP_REPAIR_ARCHITECTURE_CENTER"
 
 PRIORITY_LEAGUE_ORDER = [
     "UEFA Champions League", "Champions League", "LaLiga", "Spanish La Liga", "Premier League",
