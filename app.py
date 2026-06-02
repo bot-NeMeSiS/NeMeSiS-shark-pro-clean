@@ -82,9 +82,10 @@ from engines.shark_accuracy_engine import ensure_shark_accuracy_schema, shark_ac
 from engines.api_exploitation_engine import ensure_api_exploitation_schema, run_api_exploitation_cycle, api_exploitation_summary, rebuild_api_exploitation_signals
 from engines.player_intelligence_engine import ensure_player_intelligence_schema, player_intelligence_summary, rebuild_player_intelligence, player_intelligence_for_fixture
 from engines.security_engine import ensure_security_schema, secure_secret_key, generate_csrf_token, validate_csrf, record_security_event, rate_limit_status, security_summary
+from engines.observability_engine import ensure_observability_schema, observability_summary, record_observability_event, mark_route_check
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V604_SECURITY_HARDENING_PRODUCTION_READINESS"
+APP_VERSION = "V607_FULL_APP_SECURITY_TESTING_OBSERVABILITY_CONSOLIDATED"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -1024,6 +1025,7 @@ def init_db():
         ensure_api_exploitation_schema(DB_PATH)
         ensure_player_intelligence_schema(DB_PATH)
         ensure_security_schema(DB_PATH)
+        ensure_observability_schema(DB_PATH)
     except Exception:
         pass
     cleanup_fake_matches(cur)
@@ -8455,7 +8457,7 @@ def api_admin_membership_summary():
 
 
 # ===================== V565 SPORTS DATA & PICKS PERFECTION =====================
-APP_VERSION = "V582_TELEGRAM_PICKS_HARD_FIX_AUDIT_READY"
+APP_VERSION = "V607_FULL_APP_SECURITY_TESTING_OBSERVABILITY_CONSOLIDATED"
 
 PRIORITY_LEAGUE_ORDER = [
     "UEFA Champions League", "Champions League", "LaLiga", "Spanish La Liga", "Premier League",
@@ -9515,6 +9517,124 @@ def api_v604_security_check():
     payload.update({"version": APP_VERSION, "secret_key_configured": bool(os.getenv("SECRET_KEY") or os.getenv("FLASK_SECRET_KEY"))})
     return jsonify(payload)
 
+
+
+# -----------------------------------------------------------------------------
+# V607 - Error Handling & Observability Center
+# -----------------------------------------------------------------------------
+
+def _observability_user_id():
+    try:
+        return str(session.get("user_id") or session.get("email") or session.get("admin_email") or "")
+    except Exception:
+        return ""
+
+
+def _observability_ip():
+    try:
+        forwarded = request.headers.get("X-Forwarded-For", "")
+        if forwarded:
+            return forwarded.split(",")[0].strip()
+        return request.remote_addr or ""
+    except Exception:
+        return ""
+
+
+def _wants_json_response():
+    try:
+        return request.path.startswith("/api/") or "application/json" in (request.headers.get("Accept") or "")
+    except Exception:
+        return False
+
+
+def _record_http_problem(status_code, event_type, message, detail=""):
+    try:
+        record_observability_event(
+            DB_PATH,
+            level="ERROR" if int(status_code) >= 500 else "WARNING",
+            event_type=event_type,
+            path=request.path,
+            method=request.method,
+            status_code=int(status_code),
+            message=message,
+            detail=detail,
+            user_id=_observability_user_id(),
+            ip=_observability_ip(),
+            user_agent=request.headers.get("User-Agent", ""),
+            request_id=request.headers.get("X-Request-Id", ""),
+            app_version=APP_VERSION,
+        )
+    except Exception:
+        pass
+
+
+@app.errorhandler(404)
+def v607_controlled_404(error):
+    _record_http_problem(404, "not_found", "Ruta no encontrada", str(error)[:500])
+    if _wants_json_response():
+        return jsonify({"ok": False, "version": APP_VERSION, "error": "not_found", "message": "Ruta no encontrada.", "path": request.path}), 404
+    return render_template(
+        "error_controlled.html",
+        title="Página no encontrada",
+        message="Esta ruta no existe o ha cambiado. Puedes volver al inicio y continuar usando la aplicación con normalidad.",
+    ), 404
+
+
+@app.errorhandler(500)
+def v607_controlled_500(error):
+    _record_http_problem(500, "internal_error", "Error interno controlado", str(error)[:1500])
+    if _wants_json_response():
+        return jsonify({"ok": False, "version": APP_VERSION, "error": "internal_error", "message": "Error interno controlado. Revisa Observabilidad o los logs de Render.", "path": request.path}), 500
+    return render_template(
+        "error_controlled.html",
+        title="Error temporal controlado",
+        message="Hemos registrado el error para revisión interna. La aplicación sigue protegida y puedes volver al inicio.",
+    ), 500
+
+
+@app.errorhandler(Exception)
+def v607_controlled_exception(error):
+    code = getattr(error, "code", 500) or 500
+    if int(code) == 404:
+        return v607_controlled_404(error)
+    _record_http_problem(code, "unhandled_exception", "Excepción controlada", str(error)[:1500])
+    if _wants_json_response():
+        return jsonify({"ok": False, "version": APP_VERSION, "error": "controlled_exception", "message": "Error controlado por Observabilidad.", "path": request.path}), int(code)
+    return render_template(
+        "error_controlled.html",
+        title="Incidencia controlada",
+        message="SHARK ha protegido la sesión ante una incidencia temporal. Puedes volver al inicio y continuar.",
+    ), int(code)
+
+
+@app.route("/admin/observability")
+def admin_observability_page():
+    if not is_admin_session():
+        return redirect(url_for("admin_login"))
+    summary = observability_summary(DB_PATH, APP_VERSION)
+    return render_template("admin_observability.html", summary=summary)
+
+
+@app.route("/api/observability/summary")
+def api_observability_summary():
+    if not is_admin_session() and request.args.get("public") != "1":
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "version": APP_VERSION, "observability": observability_summary(DB_PATH, APP_VERSION)})
+
+
+@app.route("/api/v607/observability-check")
+def api_v607_observability_check():
+    critical_routes = ["/", "/live", "/picks", "/admin/data-center", "/api/health"]
+    for route in critical_routes:
+        mark_route_check(DB_PATH, route, "registered", "Ruta crítica registrada para smoke check V607")
+    return jsonify({
+        "ok": True,
+        "version": APP_VERSION,
+        "module": "Error Handling & Observability Center",
+        "routes": ["/admin/observability", "/api/observability/summary", "/api/v607/observability-check"],
+        "features": ["404 controlado", "500 controlado", "registro de eventos", "salud DB", "cola Telegram", "alertas internas"],
+        "summary": observability_summary(DB_PATH, APP_VERSION),
+    })
 
 if __name__ == "__main__":
     seed_core()
