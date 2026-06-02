@@ -1,10 +1,9 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="recommendations-page">
 <section class="hero compact-hero">
   <div class="kicker">Recomendaciones SHARK</div>
   <h1>Oportunidades explicadas por membresía</h1>
-  <p class="lead">FREE recibe una vista limitada. PRO ve confianza, riesgo y value básico. ELITE desbloquea valor avanzado, picks automáticos y mejores oportunidades.</p>
+  <p class="lead">FREE recibe una vista limitada. PRO ve confianza, riesgo y value básico. ELITE desbloquea valor avanzado, Picks automáticos y mejores oportunidades.</p>
   <div class="actions"><a class="btn primary" href="/picks">Picks publicados</a><a class="btn" href="/membresias">{{ data.membership.next_cta }}</a></div>
 </section>
 
@@ -24,9 +23,9 @@
     <article class="card pick-card rec-card">
       <div class="card-topline"><span class="badge">{{ r.value_label or 'SHARK' }}</span><span class="muted">{{ r.league_name }}</span></div>
       <h3>{{ r.home_team }} vs {{ r.away_team }}</h3>
-      <div class="metric-row"><span>Puntuación SHARK <strong>{{ r.shark_score }}/100</strong></span><span>Nivel de confianza <strong>{{ r.confidence }}%</strong></span><span>Riesgo <strong>{{ r.risk_level }}</strong></span></div>
+      <div class="metric-row"><span>Puntuacin SHARK <strong>{{ r.shark_score }}/100</strong></span><span>Nivel de confianza <strong>{{ r.confidence }}%</strong></span><span>Riesgo <strong>{{ r.risk_level }}</strong></span></div>
       <p><strong>{{ r.market }}:</strong> {{ r.selection }}{% if r.odds %} <span class="chip">Cuota {{ '%.2f'|format(r.odds|float) }}</span>{% endif %}</p>
-      <p class="small"><strong>Motivo principal:</strong> {{ r.reason or r.reasoning or 'Análisis SHARK pendiente de revisión.' }}</p>
+      <p class="small"><strong>Motivo principal:</strong> {{ r.reason or r.reasoning or 'Anlisis SHARK pendiente de revisin.' }}</p>
       {% if r.learning_explanation %}<p class="small"><strong>Ajuste histórico:</strong> {{ r.learning_explanation }}</p>{% endif %}
       {% if data.membership.is_elite %}<p class="warning">{{ r.caution or r.warning_reason }}</p>{% endif %}
     </article>
@@ -47,5 +46,4 @@
   </div>
 </section>
 {% endif %}
-</div>
 {% endblock %}

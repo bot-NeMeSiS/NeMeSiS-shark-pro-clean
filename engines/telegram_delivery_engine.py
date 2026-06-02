@@ -126,80 +126,53 @@ def pick_line_common(pick):
     return selection, market, odds, confidence, risk, pick_match_name(pick)
 
 
-def _pick_header(pick, plan_label="SHARK"):
-    pick = dict(pick or {})
-    league = safe_html(pick.get("league_name") or pick.get("competition_name") or pick.get("league") or "Competición")
-    kickoff = safe_html(pick.get("kickoff_time") or pick.get("match_time") or pick.get("date") or "hora por confirmar")
-    badge = pick_badge_context(pick)
-    visual = "🛡️ Identidad visual disponible" if badge.get("has_badge") else "🛡️ Escudos pendientes · formato texto premium"
-    return [
-        f"<b>🦈 {safe_html(plan_label)} · NeMeSiS SHARK PRO</b>",
-        f"🏆 {league}",
-        f"⚽ <b>{pick_match_name(pick)}</b>",
-        f"⏰ {kickoff}",
-        visual,
-        "",
-    ]
-
-
 def format_telegram_pick_free(pick):
     selection, market, odds, confidence, risk, match = pick_line_common(pick)
-    lines = _pick_header(pick, "PICK FREE")
-    lines.extend([
-        f"🎯 <b>Recomendación:</b> {selection}",
-        f"📌 <b>Mercado:</b> {market}",
-        f"📊 <b>Confianza:</b> {confidence}%",
-        "",
-        "🔒 Vista FREE: análisis resumido.",
-        "PRO desbloquea cuota, stake, riesgo y motivo SHARK.",
-    ])
-    return "\n".join(lines)
+    return "\n".join(
+        [
+            f"<b>{selection}</b>",
+            match,
+            f"{market} · cuota {odds}",
+            f"Confianza SHARK: {confidence}% · riesgo {risk}",
+            "Vista FREE: análisis resumido. PRO desbloquea stake, motivo y value.",
+        ]
+    )
 
 
 def format_telegram_pick_pro(pick):
     selection, market, odds, confidence, risk, match = pick_line_common(pick)
-    stake = safe_html((pick or {}).get("stake_units") or (pick or {}).get("stake") or "1")
+    stake = safe_html((pick or {}).get("stake_units") or "1")
     reason = safe_html((pick or {}).get("reasoning") or (pick or {}).get("reason") or "SHARK detecta valor con los datos disponibles.")
-    value = safe_html((pick or {}).get("value_label") or (pick or {}).get("value_signal") or "Value contextual")
-    lines = _pick_header(pick, "PICK PRO")
-    lines.extend([
-        f"🎯 <b>Recomendación:</b> {selection}",
-        f"📌 <b>Mercado:</b> {market}",
-        f"💰 <b>Cuota:</b> {odds}",
-        f"📈 <b>Lectura de valor:</b> {value}",
-        f"🦈 <b>Confianza SHARK:</b> {confidence}%",
-        f"⚠️ <b>Riesgo:</b> {risk}",
-        f"💵 <b>Stake sugerido:</b> {stake}/5",
-        "",
-        f"🧠 <b>Motivo:</b> {reason}",
-    ])
-    return "\n".join(lines)
+    return "\n".join(
+        [
+            f"<b>{selection}</b>",
+            match,
+            f"{market} · cuota {odds}",
+            f"Confianza SHARK: {confidence}% · riesgo {risk} · stake sugerido {stake}u",
+            f"Motivo: {reason}",
+        ]
+    )
 
 
 def format_telegram_pick_elite(pick):
     selection, market, odds, confidence, risk, match = pick_line_common(pick)
-    stake = safe_html((pick or {}).get("stake_units") or (pick or {}).get("stake") or "1")
-    value = safe_html((pick or {}).get("value_label") or (pick or {}).get("value_signal") or (pick or {}).get("value") or "Value contextual")
+    stake = safe_html((pick or {}).get("stake_units") or "1")
+    value = safe_html((pick or {}).get("value_label") or (pick or {}).get("value") or "Value contextual")
     reason = safe_html((pick or {}).get("reasoning") or (pick or {}).get("reason") or "SHARK detecta valor con los datos disponibles.")
-    learning = safe_html((pick or {}).get("learning_explanation") or (pick or {}).get("learning_note") or "Histórico en evaluación continua.")
-    shark_v2 = safe_html((pick or {}).get("shark_score_v2") or (pick or {}).get("shark_score") or confidence)
-    warning = safe_html((pick or {}).get("warning_reason") or (pick or {}).get("warning") or "Oportunidad válida mientras la cuota y el contexto no cambien de forma importante.")
-    lines = _pick_header(pick, "PICK ELITE · ALTA PRIORIDAD")
-    lines.extend([
-        f"🎯 <b>Mercado recomendado:</b> {market}",
-        f"✅ <b>Selección:</b> {selection}",
-        f"💰 <b>Cuota:</b> {odds}",
-        f"📈 <b>Value:</b> {value}",
-        f"🦈 <b>Score SHARK V2:</b> {shark_v2}",
-        f"📊 <b>Confianza:</b> {confidence}%",
-        f"⚠️ <b>Riesgo:</b> {risk}",
-        f"💵 <b>Stake sugerido:</b> {stake}/5",
-        "",
-        f"🧠 <b>Análisis SHARK:</b> {reason}",
-        f"📚 <b>Learning:</b> {learning}",
-        f"🚨 <b>Nota ELITE:</b> {warning}",
-    ])
+    learning = safe_html((pick or {}).get("learning_explanation") or "")
+    warning = safe_html((pick or {}).get("warning_reason") or (pick or {}).get("warning") or "Gestiona banca y confirma cambios de cuota.")
+    lines = [
+        f"<b>{selection}</b>",
+        match,
+        f"{market} · cuota {odds} · {value}",
+        f"Confianza SHARK: {confidence}% · riesgo {risk} · stake sugerido {stake}u",
+        f"Análisis: {reason}",
+    ]
+    if learning:
+        lines.append(f"Learning: {learning}")
+    lines.append(f"Precaución: {warning}")
     return "\n".join(lines)
+
 
 def format_telegram_pick_by_membership(pick, membership="ADMIN"):
     membership = membership_label(membership)

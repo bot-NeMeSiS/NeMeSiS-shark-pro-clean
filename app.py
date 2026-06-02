@@ -72,15 +72,9 @@ from engines.shark_learning_engine import (
 from engines.pick_grading_engine import ensure_pick_grading_schema, pick_grading_summary, run_pick_grading
 from engines.telegram_autonomous_delivery_engine import ensure_telegram_autonomous_schema, telegram_autonomous_summary, run_telegram_autonomous_delivery
 from engines.sportsdb_highlights_engine import ensure_sportsdb_highlights_schema, sync_sportsdb_highlights, sportsdb_highlights_summary, sportsdb_highlights_for_match, rebuild_match_enrichment
-from engines.odds_value_engine import ensure_odds_value_schema, odds_value_summary, rebuild_odds_value_engine, value_for_pick_like
-from engines.shark_prediction_engine import ensure_shark_prediction_schema, rebuild_shark_prediction_engine, shark_prediction_summary, prediction_for_match, apply_shark_prediction_adjustment
-from engines.sportsdb_enrichment_engine import ensure_sportsdb_enrichment_schema, sync_sportsdb_max_enrichment, sportsdb_enrichment_summary, sportsdb_enrichment_for_match
-from engines.data_provider_engine import ensure_data_provider_schema, data_provider_summary, provider_check
-from engines.football_data_warehouse_engine import ensure_football_warehouse_schema, sync_football_data_warehouse, football_warehouse_summary
-from engines.shark_historical_intelligence_engine import ensure_historical_intelligence_schema, rebuild_historical_intelligence, historical_intelligence_summary
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V598_SHARK_HISTORICAL_INTELLIGENCE_PLATFORM"
+APP_VERSION = "V586_TELEGRAM_PICKS_PREMIUM_MEMBERSHIP_BADGES"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -1010,9 +1004,6 @@ def init_db():
         ensure_shark_learning_schema(DB_PATH)
         ensure_telegram_autonomous_schema(DB_PATH)
         ensure_sportsdb_highlights_schema(DB_PATH)
-        ensure_odds_value_schema(DB_PATH)
-        ensure_shark_prediction_schema(DB_PATH)
-        ensure_sportsdb_enrichment_schema(DB_PATH)
     except Exception:
         pass
     cleanup_fake_matches(cur)
@@ -2676,16 +2667,12 @@ def run_autonomous_pick_cycle(limit=40, force=False):
         remaining_today = cfg["max_auto_picks_per_day"] if force else max(0, cfg["max_auto_picks_per_day"] - sent_or_saved_today)
         for rec in recs:
             rec = apply_shark_learning_adjustment(rec, DB_PATH)
-            try:
-                rec = apply_shark_prediction_adjustment(rec, DB_PATH)
-            except Exception:
-                rec.setdefault("prediction_explanation", "SHARK Prediction V2 pendiente de más datos.")
             signature = autopilot_pick_signature(rec)
             score = as_int(rec.get("score") or rec.get("confidence"), 0)
             odds = as_float(rec.get("odds_value") or rec.get("odds"), 0.0)
             result["candidates"] += 1
-            telegram_flow_log("SHARK_LEARNING", "adjusted", "Aprendizaje SHARK aplicado a candidato.", {"cycle_id": cycle_id, "match_id": rec.get("match_id"), "score": score, "adjustment": rec.get("learning_adjustment"), "prediction_adjustment": rec.get("prediction_adjustment"), "explanation": rec.get("learning_explanation")})
-            telegram_flow_log("SHARK", "candidate", "Candidato SHARK V2 evaluado para autopilot.", {"cycle_id": cycle_id, "match_id": rec.get("match_id"), "score": score, "prediction_score_v2": rec.get("prediction_score_v2"), "odds": odds, "selection": rec.get("selection")})
+            telegram_flow_log("SHARK_LEARNING", "adjusted", "Aprendizaje SHARK aplicado a candidato.", {"cycle_id": cycle_id, "match_id": rec.get("match_id"), "score": score, "adjustment": rec.get("learning_adjustment"), "explanation": rec.get("learning_explanation")})
+            telegram_flow_log("SHARK", "candidate", "Candidato SHARK evaluado para autopilot.", {"cycle_id": cycle_id, "match_id": rec.get("match_id"), "score": score, "odds": odds, "selection": rec.get("selection")})
             discard_reason = ""
             if remaining_today <= 0:
                 discard_reason = "limite_diario_alcanzado"
@@ -2853,21 +2840,6 @@ def run_scheduler_task(task_name, force=False, limit=None):
             legacy = historical_snapshot(limit=limit or 120)
             result = snapshot_warehouse(DB_PATH, limit=limit or 250)
             result["legacy_historical"] = legacy.get("warehouse", legacy) if isinstance(legacy, dict) else legacy
-            try:
-                football_dw = sync_football_data_warehouse(DB_PATH, limit=limit or 300, days_back=as_int(os.getenv("FOOTBALL_WAREHOUSE_DAYS_BACK", "3"), 3), days_ahead=as_int(os.getenv("FOOTBALL_WAREHOUSE_DAYS_AHEAD", "7"), 7), include_api_football=env_flag("ENABLE_FOOTBALL_WAREHOUSE_API_PULL", True))
-                result["football_warehouse"] = football_dw
-                result["processed"] = as_int(result.get("processed"), 0) + as_int(football_dw.get("processed"), 0)
-                result["inserted"] = as_int(result.get("inserted"), 0) + as_int(football_dw.get("inserted"), 0)
-                result["updated"] = as_int(result.get("updated"), 0) + as_int(football_dw.get("updated"), 0)
-                result["errors"] = (result.get("errors") or []) + (football_dw.get("errors") or [])
-                historical_ai = rebuild_historical_intelligence(DB_PATH, limit=limit or 1000, scope="scheduler_warehouse")
-                result["historical_intelligence"] = historical_ai
-                result["processed"] = as_int(result.get("processed"), 0) + as_int(historical_ai.get("processed"), 0)
-                result["inserted"] = as_int(result.get("inserted"), 0) + as_int(historical_ai.get("inserted"), 0)
-                result["updated"] = as_int(result.get("updated"), 0) + as_int(historical_ai.get("updated"), 0)
-                result["errors"] = (result.get("errors") or []) + (historical_ai.get("errors") or [])
-            except Exception as exc:
-                result.setdefault("errors", []).append("Football Warehouse: " + str(exc)[:180])
         elif task_name == "cleanup":
             result = cleanup_scheduler_logs(max_rows=as_int(os.getenv("SCHEDULER_LOG_MAX_ROWS", "300"), 300))
         elif task_name == "telegram":
@@ -3609,16 +3581,6 @@ def normalize_pick_row(pick):
         pick["learning_signals"] = learned.get("learning_signals", [])
         pick["confidence"] = learned.get("confidence", pick["confidence"])
         pick["shark_score"] = learned.get("shark_score", pick["confidence"])
-        try:
-            predicted = apply_shark_prediction_adjustment(pick, DB_PATH)
-            pick["prediction_score_v2"] = predicted.get("prediction_score_v2", pick.get("shark_score"))
-            pick["prediction_adjustment"] = predicted.get("prediction_adjustment", 0)
-            pick["prediction_explanation"] = predicted.get("prediction_explanation", "")
-            pick["confidence"] = predicted.get("confidence", pick["confidence"])
-            pick["shark_score"] = predicted.get("score", pick["shark_score"])
-        except Exception:
-            pick["prediction_adjustment"] = 0
-            pick["prediction_explanation"] = "SHARK Prediction V2 pendiente de más datos."
     except Exception:
         pick["learning_adjustment"] = 0
         pick["learning_explanation"] = "Histórico insuficiente: confianza sin ajuste avanzado."
@@ -4531,161 +4493,6 @@ def match_depth_payload(match):
         },
     }
 
-
-
-
-def _safe_float(value, default=0.0):
-    try:
-        if value in (None, ""):
-            return default
-        return float(str(value).replace(",", "."))
-    except Exception:
-        return default
-
-
-def v590_match_odds(match):
-    """Build a premium odds block using persisted odds only, without forcing API calls."""
-    match_id = str((match or {}).get("id") or "")
-    snapshot = None
-    try:
-        snapshot = one("SELECT * FROM odds_snapshots WHERE match_id=? ORDER BY created_at DESC LIMIT 1", (match_id,))
-    except Exception:
-        snapshot = None
-    odds = {
-        "home": _safe_float((snapshot or {}).get("home_price") or (match or {}).get("home_odds") or (match or {}).get("odds_home"), 0),
-        "draw": _safe_float((snapshot or {}).get("draw_price") or (match or {}).get("draw_odds") or (match or {}).get("odds_draw"), 0),
-        "away": _safe_float((snapshot or {}).get("away_price") or (match or {}).get("away_odds") or (match or {}).get("odds_away"), 0),
-    }
-    available = any(v > 0 for v in odds.values())
-    best_value = max(odds.values()) if available else 0
-    market_label = (snapshot or {}).get("market") or "1X2"
-    bookmaker = (snapshot or {}).get("bookmaker") or "Cuotas guardadas"
-    value_signal = "Sin cuotas guardadas"
-    if available:
-        if best_value >= 2.20:
-            value_signal = "Cuota alta: revisar riesgo y contexto SHARK"
-        elif best_value >= 1.70:
-            value_signal = "Cuota útil para análisis de value"
-        else:
-            value_signal = "Cuota conservadora"
-    return {
-        "available": available,
-        "home": odds["home"],
-        "draw": odds["draw"],
-        "away": odds["away"],
-        "market": market_label,
-        "bookmaker": bookmaker,
-        "updated_at": (snapshot or {}).get("created_at") or (match or {}).get("odds_updated_at") or "",
-        "value_signal": value_signal,
-        "source": (snapshot or {}).get("source") or "SQLite",
-    }
-
-
-def v591_match_value_profile(premium, match):
-    """V591 match-detail value analysis from persisted V590 odds and SHARK score."""
-    premium = premium or {}
-    match = match or {}
-    odds = premium.get("odds") or {}
-    score = premium.get("shark_score") or match.get("shark_score") or 0
-    choices = [
-        {"label": "1", "selection": match.get("home_team") or "Local", "odds": odds.get("home")},
-        {"label": "X", "selection": "Empate", "odds": odds.get("draw")},
-        {"label": "2", "selection": match.get("away_team") or "Visitante", "odds": odds.get("away")},
-    ]
-    analysed = []
-    for item in choices:
-        if _safe_float(item.get("odds"), 0) > 1:
-            signal = value_for_pick_like({"odds": item.get("odds"), "confidence": score})
-            analysed.append({**item, **signal})
-    best = sorted(analysed, key=lambda x: _safe_float(x.get("value_pct"), -999), reverse=True)[:1]
-    best = best[0] if best else {}
-    return {
-        "available": bool(analysed),
-        "market": odds.get("market") or "1X2",
-        "bookmaker": odds.get("bookmaker") or "Cuotas guardadas",
-        "items": analysed,
-        "best": best,
-        "summary": (best.get("edge_label") if best else "Sin value calculable"),
-        "note": (best.get("note") if best else "Aún no hay cuotas suficientes para calcular value."),
-    }
-
-
-def v590_match_premium_profile(match, depth):
-    """Premium match-detail bundle for V590. Uses only persisted data/fallbacks."""
-    match = match or {}
-    depth = depth or {}
-    status = match.get("status_info") or canonical_match_status(match)
-    home_form = depth.get("home_form") or recent_team_form(match.get("home_team"))
-    away_form = depth.get("away_form") or recent_team_form(match.get("away_team"))
-    h2h = depth.get("head_to_head") or head_to_head_matches(match.get("home_team"), match.get("away_team"))
-    picks = depth.get("related_picks") or related_picks_for_match(match)
-    odds = v590_match_odds(match)
-    timeline = depth.get("timeline") or match_timeline(match)
-    live_depth_data = depth.get("live_depth") or live_depth(match)
-    media = {}
-    try:
-        media = sportsdb_highlights_for_match(DB_PATH, match.get("id")) or {}
-    except Exception:
-        media = {"highlights": [], "summary_text": ""}
-    home_score = _safe_float((home_form or {}).get("form", []).count("W") * 3 + (home_form or {}).get("form", []).count("D"), 0)
-    away_score = _safe_float((away_form or {}).get("form", []).count("W") * 3 + (away_form or {}).get("form", []).count("D"), 0)
-    shark_score = as_int((live_depth_data.get("shark_momentum") or {}).get("value") or match.get("shark_score") or 0, 0)
-    if not shark_score:
-        shark_score = 55
-        if picks:
-            shark_score += 10
-        if h2h:
-            shark_score += 5
-        if odds.get("available"):
-            shark_score += 8
-        if status.get("is_live"):
-            shark_score += 7
-        shark_score = min(shark_score, 92)
-    context_notes = []
-    if status.get("is_upcoming"):
-        context_notes.append("Partido preparado para previa, cuotas, forma reciente y recomendaciones SHARK.")
-    if status.get("is_live"):
-        context_notes.append("Partido en directo: priorizar minuto, marcador, momentum y alertas antes de entrar.")
-    if status.get("is_finished"):
-        context_notes.append("Partido finalizado: útil para resumen, aprendizaje, histórico y evaluación de picks.")
-    if odds.get("available"):
-        context_notes.append(f"Cuotas disponibles en mercado {odds.get('market')}: SHARK puede comparar precio, riesgo y contexto.")
-    else:
-        context_notes.append("Cuotas no guardadas todavía: SHARK mantiene lectura contextual sin forzar apuestas.")
-    if home_score > away_score:
-        context_notes.append(f"Forma reciente favorable para {match.get('home_team')} según resultados guardados.")
-    elif away_score > home_score:
-        context_notes.append(f"Forma reciente favorable para {match.get('away_team')} según resultados guardados.")
-    else:
-        context_notes.append("Forma reciente equilibrada o con muestra insuficiente.")
-    return {
-        "ready": True,
-        "shark_score": shark_score,
-        "confidence_label": "Alta" if shark_score >= 80 else "Media" if shark_score >= 65 else "Contextual",
-        "risk_label": "Bajo" if shark_score >= 82 else "Medio" if shark_score >= 65 else "Alto",
-        "odds": odds,
-        "home_form": home_form,
-        "away_form": away_form,
-        "h2h": h2h[:5],
-        "timeline": timeline[:12],
-        "picks": picks[:6],
-        "media": media,
-        "context_notes": context_notes,
-        "sections": {
-            "pre_match": bool(status.get("is_upcoming")),
-            "live": bool(status.get("is_live")),
-            "post_match": bool(status.get("is_finished")),
-        },
-        "quality": {
-            "has_form": bool((home_form or {}).get("matches") or (away_form or {}).get("matches")),
-            "has_h2h": bool(h2h),
-            "has_odds": bool(odds.get("available")),
-            "has_timeline": bool(timeline),
-            "has_highlights": bool((media or {}).get("highlights")),
-            "has_picks": bool(picks),
-        },
-    }
-
 def match_detail(match_id):
     match = one("SELECT * FROM matches WHERE id=?", (match_id,))
     if not match:
@@ -4709,19 +4516,6 @@ def match_detail(match_id):
     except Exception:
         media = {"highlights": [], "enrichment": {}, "summary_text": ""}
     base["sportsdb_media"] = media
-    try:
-        base["v593_sportsdb"] = sportsdb_enrichment_for_match(DB_PATH, annotated)
-    except Exception:
-        base["v593_sportsdb"] = {"available": False, "summary": "Enriquecimiento TheSportsDB pendiente."}
-    base["v590_premium"] = v590_match_premium_profile(annotated, depth)
-    try:
-        base["v591_value"] = v591_match_value_profile(base["v590_premium"], annotated)
-    except Exception:
-        base["v591_value"] = {"available": False, "note": "Value no disponible todavía."}
-    try:
-        base["v592_prediction"] = prediction_for_match(DB_PATH, annotated, base.get("v591_value"), base.get("v590_premium"))
-    except Exception:
-        base["v592_prediction"] = {"available": False, "summary": "SHARK Prediction V2 pendiente de más datos."}
     return base
 
 
@@ -4823,128 +4617,6 @@ def grouped_match_calendar(matches):
             league["count"] = len(league["matches"])
         grouped_days.append({"date": day["date"], "label": day["label"], "total": day["total"], "leagues": league_list})
     return grouped_days
-
-
-
-def calendar_query_matches(date=None, mode="today", days_before=7, days_after=14, limit=450):
-    """Calendario Pro: partidos pasados y próximos desde cache SQLite real.
-
-    No inventa encuentros: usa la tabla matches ya alimentada por SportsDB/Odds/importaciones.
-    """
-    date = date or today_iso()
-    mode = str(mode or "today").lower()
-    try:
-        base = datetime.fromisoformat(str(date)).date()
-    except Exception:
-        base = datetime.now(TZ).date()
-        date = base.isoformat()
-    clauses = []
-    params = []
-    if mode in {"past", "results", "finished"}:
-        start = (base - timedelta(days=int(days_before or 7))).isoformat()
-        end = date
-        clauses.append("match_date>=? AND match_date<=?")
-        params.extend([start, end])
-    elif mode in {"future", "upcoming", "next"}:
-        end = (base + timedelta(days=int(days_after or 14))).isoformat()
-        clauses.append("match_date>=? AND match_date<=?")
-        params.extend([date, end])
-    elif mode == "week":
-        start = (base - timedelta(days=3)).isoformat()
-        end = (base + timedelta(days=7)).isoformat()
-        clauses.append("match_date>=? AND match_date<=?")
-        params.extend([start, end])
-    else:
-        clauses.append("match_date=?")
-        params.append(date)
-    if mode == "live":
-        clauses.append("(lower(status) LIKE '%live%' OR lower(status) LIKE '%directo%' OR minute!='')")
-    elif mode == "spain":
-        clauses.append("(lower(country)='spain' OR lower(country)='españa' OR lower(competition_key) LIKE '%laliga%' OR lower(competition_key)='copa-del-rey')")
-    elif mode == "andalucia":
-        clauses.append("lower(competition_key)='andalucia-regional'")
-    elif mode == "top":
-        clauses.append("priority>=85")
-    query = """SELECT * FROM matches
-               WHERE {where}
-               ORDER BY match_date, kickoff_time, priority DESC, competition_name
-               LIMIT ?""".format(where=" AND ".join(clauses))
-    params.append(int(limit or 450))
-    data = [item for item in rows(query, tuple(params)) if not is_fake_match(item)]
-    enriched = []
-    for item in data:
-        item["kickoff_time"] = item.get("kickoff_time") or item.get("match_time") or ""
-        if not item.get("score") and (item.get("home_score") or item.get("away_score")):
-            item["score"] = sportsdb_score(item.get("home_score"), item.get("away_score"))
-        item["home_identity"] = resolve_team(item.get("home_team"))
-        item["away_identity"] = resolve_team(item.get("away_team"))
-        if item.get("home_logo"):
-            item["home_identity"]["crest_url"] = item.get("home_logo")
-            item["home_identity"]["crest_mode"] = "logo"
-        if item.get("away_logo"):
-            item["away_identity"]["crest_url"] = item.get("away_logo")
-            item["away_identity"]["crest_mode"] = "logo"
-        enriched.append(annotate_match(item))
-    return enriched
-
-
-def calendar_navigation_days(date=None, radius=3):
-    try:
-        base = datetime.fromisoformat(str(date or today_iso())).date()
-    except Exception:
-        base = datetime.now(TZ).date()
-    days = []
-    for offset in range(-int(radius), int(radius) + 1):
-        value = base + timedelta(days=offset)
-        iso = value.isoformat()
-        days.append({
-            "date": iso,
-            "label": "Hoy" if iso == today_iso() else ("Mañana" if iso == today_iso(1) else value.strftime("%d/%m")),
-            "active": iso == str(date or today_iso()),
-        })
-    return days
-
-
-def calendar_pro_center(date=None, mode="today"):
-    date = date or today_iso()
-    mode = str(mode or "today").lower()
-    matches = calendar_query_matches(date, mode)
-    grouped = grouped_match_calendar(matches)
-    live = [m for m in matches if (m.get("status_info") or {}).get("is_live")]
-    finished = [m for m in matches if (m.get("status_info") or {}).get("is_finished")]
-    upcoming = [m for m in matches if (m.get("status_info") or {}).get("is_upcoming")]
-    with_score = [m for m in matches if m.get("score") or m.get("home_score") or m.get("away_score")]
-    with_badges = [m for m in matches if ((m.get("home_identity") or {}).get("crest_url") or (m.get("away_identity") or {}).get("crest_url"))]
-    counts_by_day = {day["date"]: day["total"] for day in grouped}
-    return {
-        "date": date,
-        "mode": mode,
-        "matches": matches,
-        "grouped": grouped,
-        "days": calendar_navigation_days(date, radius=3),
-        "counts": {
-            "total": len(matches),
-            "live": len(live),
-            "upcoming": len(upcoming),
-            "finished": len(finished),
-            "with_score": len(with_score),
-            "with_badges": len(with_badges),
-            "days": len(grouped),
-        },
-        "counts_by_day": counts_by_day,
-        "empty_state": "No hay partidos para este filtro. Sincroniza calendario desde el Centro de datos o cambia de fecha.",
-        "mode_labels": {
-            "today": "Hoy",
-            "week": "Semana",
-            "future": "Próximos",
-            "past": "Pasados",
-            "live": "En directo",
-            "top": "Top mundial",
-            "spain": "España",
-            "andalucia": "Andalucía",
-        },
-        "quality_note": "Calendario construido con datos guardados en SQLite desde fuentes permitidas. No inventa partidos.",
-    }
 
 
 
@@ -6753,11 +6425,7 @@ def global_football():
 @app.route("/calendario")
 @app.route("/calendario-global")
 def calendar_page():
-    mode = request.args.get("mode") or request.args.get("lane") or "today"
-    date = request.args.get("date") or today_iso()
-    data = dashboard_data("today" if mode in {"past", "future", "week"} else mode, date)
-    data["calendar_pro"] = calendar_pro_center(date, mode)
-    return render_template("calendar.html", data=data)
+    return render_template("calendar.html", data=dashboard_data(request.args.get("lane", "today"), request.args.get("date") or today_iso()))
 
 
 @app.route("/live")
@@ -7166,38 +6834,10 @@ def admin_data_center_page():
         elif action == "telegram_autonomous":
             result = run_telegram_autonomous_delivery(DB_PATH, limit=limit, force=force)
             result["telegram_autonomous"] = telegram_autonomous_summary(DB_PATH)
-        elif action == "odds_value":
-            result = rebuild_odds_value_engine(DB_PATH, limit=limit)
-            result["odds_value"] = odds_value_summary(DB_PATH)
-            telegram_flow_log("ODDS_VALUE", "rebuilt", "Inteligencia de cuotas y value reconstruida desde Data Center.", result)
-        elif action == "shark_prediction":
-            result = rebuild_shark_prediction_engine(DB_PATH, limit=limit)
-            result["shark_prediction"] = shark_prediction_summary(DB_PATH)
-            telegram_flow_log("SHARK_PREDICTION", "rebuilt", "SHARK Prediction Evolution reconstruido desde Data Center.", result)
         elif action == "sportsdb_highlights":
             days_back = as_int(request.form.get("days_back"), 5)
             result = sync_sportsdb_highlights(DB_PATH, days_back=days_back, limit=limit, force=force)
             result["sportsdb_highlights"] = sportsdb_highlights_summary(DB_PATH)
-        elif action == "sportsdb_enrichment":
-            result = sync_sportsdb_max_enrichment(DB_PATH, limit=limit, include_past=True, include_next=True)
-            result["sportsdb_enrichment"] = sportsdb_enrichment_summary(DB_PATH)
-            telegram_flow_log("SPORTSDB_ENRICHMENT", "synced", "Enriquecimiento máximo TheSportsDB ejecutado desde Data Center.", result)
-        elif action == "data_provider":
-            result = provider_check(DB_PATH)
-            telegram_flow_log("DATA_PROVIDER", "checked", "Capa profesional de proveedores revisada desde Data Center.", result)
-        elif action == "football_warehouse":
-            days_back = as_int(request.form.get("days_back"), 3)
-            days_ahead = as_int(request.form.get("days_ahead"), 7)
-            include_api = request.form.get("include_api_football", "1") in {"1", "true", "yes", "on"}
-            result = sync_football_data_warehouse(DB_PATH, limit=limit, days_back=days_back, days_ahead=days_ahead, include_api_football=include_api)
-            historical_ai = rebuild_historical_intelligence(DB_PATH, limit=max(limit, 1000), scope="data_center_after_warehouse")
-            result["historical_intelligence"] = historical_ai
-            result["football_warehouse"] = football_warehouse_summary(DB_PATH)
-            telegram_flow_log("FOOTBALL_WAREHOUSE", "synced", "Football Data Warehouse Pro sincronizado desde Data Center.", result)
-        elif action == "historical_intelligence":
-            result = rebuild_historical_intelligence(DB_PATH, limit=max(limit, 1000), scope="data_center_manual")
-            result["historical_intelligence"] = historical_intelligence_summary(DB_PATH)
-            telegram_flow_log("HISTORICAL_INTELLIGENCE", "rebuilt", "SHARK Historical Intelligence reconstruido desde Data Center.", result)
         message = "Accion ejecutada desde Data Center."
     data = dashboard_data()
     data["data_center"] = data_center_summary()
@@ -7210,13 +6850,6 @@ def admin_data_center_page():
     data["pick_grading"] = pick_grading_summary(DB_PATH)
     data["telegram_autonomous"] = telegram_autonomous_summary(DB_PATH)
     data["sportsdb_highlights"] = sportsdb_highlights_summary(DB_PATH)
-    data["sportsdb_enrichment"] = sportsdb_enrichment_summary(DB_PATH)
-    data["odds_value"] = odds_value_summary(DB_PATH, auto_rebuild=False)
-    data["shark_prediction"] = shark_prediction_summary(DB_PATH, auto_rebuild=False)
-    data["beta_readiness"] = beta_readiness_summary()
-    data["data_provider"] = data_provider_summary(DB_PATH)
-    data["football_warehouse"] = football_warehouse_summary(DB_PATH)
-    data["historical_intelligence"] = historical_intelligence_summary(DB_PATH)
     return render_template("admin_data_center.html", data=data, message=message, result=result)
 
 
@@ -7496,85 +7129,6 @@ def api_shark_learning_rebuild():
     return jsonify({"version": APP_VERSION, **result, "shark_learning": build_shark_learning_profile(DB_PATH)})
 
 
-@app.route("/api/odds-value/summary")
-def api_odds_value_summary():
-    if not is_admin_session():
-        return admin_json_forbidden()
-    return jsonify({"ok": True, "version": APP_VERSION, "odds_value": odds_value_summary(DB_PATH, auto_rebuild=True)})
-
-
-@app.route("/api/odds-value/rebuild", methods=["POST", "GET"])
-def api_odds_value_rebuild():
-    if not is_admin_session():
-        return admin_json_forbidden()
-    limit = as_int(request.args.get("limit") or request.form.get("limit"), 500)
-    result = rebuild_odds_value_engine(DB_PATH, limit=limit)
-    telegram_flow_log("ODDS_VALUE", "rebuilt", "Motor Odds & Value reconstruido.", result)
-    return jsonify({"version": APP_VERSION, **result, "odds_value": odds_value_summary(DB_PATH)})
-
-
-@app.route("/api/v591/odds-value-check")
-def api_v591_odds_value_check():
-    return jsonify({"ok": True, "version": APP_VERSION, "odds_value": odds_value_summary(DB_PATH, auto_rebuild=True)})
-
-
-@app.route("/api/shark-prediction/summary")
-def api_shark_prediction_summary():
-    if not is_admin_session():
-        return admin_json_forbidden()
-    return jsonify({"ok": True, "version": APP_VERSION, "shark_prediction": shark_prediction_summary(DB_PATH, auto_rebuild=True)})
-
-
-@app.route("/api/shark-prediction/rebuild", methods=["POST", "GET"])
-def api_shark_prediction_rebuild():
-    if not is_admin_session():
-        return admin_json_forbidden()
-    limit = as_int(request.args.get("limit") or request.form.get("limit"), 1000)
-    result = rebuild_shark_prediction_engine(DB_PATH, limit=limit)
-    telegram_flow_log("SHARK_PREDICTION", "rebuilt", "Motor SHARK Prediction V2 reconstruido.", result)
-    return jsonify({"version": APP_VERSION, **result, "shark_prediction": shark_prediction_summary(DB_PATH)})
-
-
-
-
-@app.route("/api/sportsdb-enrichment/summary")
-def api_sportsdb_enrichment_summary():
-    if not is_admin_session():
-        return admin_json_forbidden()
-    return jsonify({"ok": True, "version": APP_VERSION, "sportsdb_enrichment": sportsdb_enrichment_summary(DB_PATH)})
-
-
-@app.route("/api/sportsdb-enrichment/sync", methods=["POST", "GET"])
-def api_sportsdb_enrichment_sync():
-    if not is_admin_session():
-        return admin_json_forbidden()
-    limit = as_int(request.args.get("limit") or request.form.get("limit"), 30)
-    result = sync_sportsdb_max_enrichment(DB_PATH, limit=limit, include_past=True, include_next=True)
-    return jsonify({"version": APP_VERSION, **result, "sportsdb_enrichment": sportsdb_enrichment_summary(DB_PATH)})
-
-
-@app.route("/api/v593/sportsdb-enrichment-check")
-def api_v593_sportsdb_enrichment_check():
-    return jsonify({"ok": True, "version": APP_VERSION, "sportsdb_enrichment": sportsdb_enrichment_summary(DB_PATH), "routes": ["/api/sportsdb-enrichment/summary", "/api/sportsdb-enrichment/sync", "/api/v593/sportsdb-enrichment-check"]})
-
-@app.route("/api/v592/shark-prediction-check")
-def api_v592_shark_prediction_check():
-    sample = None
-    try:
-        sample = one("SELECT id FROM matches ORDER BY match_date DESC, kickoff_time DESC LIMIT 1")
-    except Exception:
-        sample = None
-    detail = match_detail(sample.get("id")) if sample else None
-    return jsonify({
-        "ok": True,
-        "version": "V592_SHARK_PREDICTION_EVOLUTION",
-        "summary": shark_prediction_summary(DB_PATH, auto_rebuild=True),
-        "sample_match_id": (sample or {}).get("id"),
-        "sample_prediction": (detail or {}).get("v592_prediction") or {},
-        "routes": ["/api/shark-prediction/summary", "/api/shark-prediction/rebuild", "/api/v592/shark-prediction-check"],
-    })
-
-
 @app.route("/api/pick-grading/summary")
 def api_pick_grading_summary():
     if not is_admin_session():
@@ -7665,24 +7219,9 @@ def api_scheduler_run_live():
 
 @app.route("/api/calendar")
 def api_calendar():
-    mode = request.args.get("mode") or request.args.get("lane") or "today"
+    lane = request.args.get("lane", "today")
     date = request.args.get("date") or today_iso()
-    center = calendar_pro_center(date, mode)
-    return jsonify({"ok": True, "version": APP_VERSION, "date": date, "mode": mode, "calendar": center})
-
-
-@app.route("/api/v589/calendar-check")
-def api_v589_calendar_check():
-    center = calendar_pro_center(request.args.get("date") or today_iso(), request.args.get("mode") or "week")
-    return jsonify({
-        "ok": True,
-        "version": "V589_CALENDARIO_PRO_MATCH_CENTER",
-        "date": center.get("date"),
-        "mode": center.get("mode"),
-        "counts": center.get("counts"),
-        "grouped_days": len(center.get("grouped") or []),
-        "features": ["pasados", "proximos", "directo", "agrupacion_por_dia", "agrupacion_por_liga", "enlaces_a_partido", "escudos", "resultados"],
-    })
+    return jsonify({"ok": True, "version": APP_VERSION, "date": date, "lane": lane, "matches": get_matches(date, lane)})
 
 
 @app.route("/api/live")
@@ -7798,28 +7337,6 @@ def api_match_depth(match_id):
     if not match:
         return jsonify({"ok": False, "error": "match_not_found"}), 404
     return jsonify({"ok": True, "depth": match_depth_payload(match)})
-
-
-
-@app.route("/api/v590/match-detail-check")
-def api_v590_match_detail_check():
-    sample = None
-    try:
-        sample = one("SELECT id FROM matches ORDER BY match_date DESC, kickoff_time DESC LIMIT 1")
-    except Exception:
-        sample = None
-    detail = match_detail(sample.get("id")) if sample else None
-    premium = (detail or {}).get("v590_premium") or {}
-    return jsonify({
-        "ok": True,
-        "version": "V590_MATCH_DETAIL_PREMIUM",
-        "sample_match_id": (sample or {}).get("id"),
-        "premium_ready": bool(premium.get("ready")),
-        "sections": premium.get("sections") or {},
-        "quality": premium.get("quality") or {},
-        "shark_score": premium.get("shark_score"),
-    })
-
 
 @app.route("/api/matches/<match_id>/statistics")
 def api_match_statistics(match_id):
@@ -8711,7 +8228,7 @@ def api_admin_membership_summary():
 
 
 # ===================== V565 SPORTS DATA & PICKS PERFECTION =====================
-APP_VERSION = "V598_SHARK_HISTORICAL_INTELLIGENCE_PLATFORM"
+APP_VERSION = "V582_TELEGRAM_PICKS_HARD_FIX_AUDIT_READY"
 
 PRIORITY_LEAGUE_ORDER = [
     "UEFA Champions League", "Champions League", "LaLiga", "Spanish La Liga", "Premier League",
@@ -9536,139 +9053,6 @@ def api_v578_system_check():
         "module": "Telegram Autonomous Delivery",
         "routes": ["/api/telegram-autonomous/summary", "/api/telegram-autonomous/run"],
         "goal": "Automatizar resúmenes, picks PRO/ELITE y alertas Telegram con deduplicación y reglas por membresía.",
-    })
-
-
-
-
-@app.route("/api/football-warehouse/summary")
-def api_football_warehouse_summary():
-    if not is_admin_session() and request.args.get("public") != "1":
-        return admin_json_forbidden()
-    return jsonify({"ok": True, "version": APP_VERSION, "football_warehouse": football_warehouse_summary(DB_PATH)})
-
-
-@app.route("/api/football-warehouse/sync", methods=["POST", "GET"])
-def api_football_warehouse_sync():
-    if not is_admin_session() and request.args.get("token") != os.getenv("AUTONOMOUS_CRON_TOKEN", ""):
-        return jsonify({"ok": False, "version": APP_VERSION, "error": "Admin o token requerido."}), 403
-    limit = as_int(request.args.get("limit") or request.form.get("limit"), 500)
-    days_back = as_int(request.args.get("days_back") or request.form.get("days_back"), 3)
-    days_ahead = as_int(request.args.get("days_ahead") or request.form.get("days_ahead"), 7)
-    include_api = str(request.args.get("include_api_football") or request.form.get("include_api_football") or "1").lower() in {"1", "true", "yes", "on"}
-    result = sync_football_data_warehouse(DB_PATH, limit=limit, days_back=days_back, days_ahead=days_ahead, include_api_football=include_api)
-    return jsonify({"version": APP_VERSION, **result, "football_warehouse": football_warehouse_summary(DB_PATH)})
-
-
-@app.route("/api/v597/football-warehouse-check")
-def api_v597_football_warehouse_check():
-    return jsonify({
-        "ok": True,
-        "version": APP_VERSION,
-        "module": "Football Data Warehouse Pro",
-        "routes": ["/api/football-warehouse/summary", "/api/football-warehouse/sync", "/api/v597/football-warehouse-check"],
-        "env": ["API_FOOTBALL_KEY", "ENABLE_API_FOOTBALL_PROVIDER", "ENABLE_FOOTBALL_WAREHOUSE_API_PULL", "FOOTBALL_WAREHOUSE_DAYS_BACK", "FOOTBALL_WAREHOUSE_DAYS_AHEAD"],
-        "goal": "Guardar desde hoy histórico operativo propio para SHARK, picks, ratings, value, ROI y evolución futura sin redistribuir datos crudos de terceros."
-    })
-
-@app.route("/api/historical-intelligence/summary")
-def api_historical_intelligence_summary():
-    if not is_admin_session() and request.args.get("public") != "1":
-        return admin_json_forbidden()
-    return jsonify({"ok": True, "version": APP_VERSION, "historical_intelligence": historical_intelligence_summary(DB_PATH)})
-
-
-@app.route("/api/historical-intelligence/rebuild", methods=["POST", "GET"])
-def api_historical_intelligence_rebuild():
-    if not is_admin_session() and request.args.get("token") != os.getenv("AUTONOMOUS_CRON_TOKEN", ""):
-        return jsonify({"ok": False, "version": APP_VERSION, "error": "Admin o token requerido."}), 403
-    limit = as_int(request.args.get("limit") or request.form.get("limit") or 1000, 1000)
-    result = rebuild_historical_intelligence(DB_PATH, limit=limit, scope="api_rebuild")
-    return jsonify({"version": APP_VERSION, **result, "historical_intelligence": historical_intelligence_summary(DB_PATH)})
-
-
-@app.route("/api/v598/historical-intelligence-check")
-def api_v598_historical_intelligence_check():
-    return jsonify({
-        "ok": True,
-        "version": APP_VERSION,
-        "module": "SHARK Historical Intelligence Platform",
-        "routes": ["/api/historical-intelligence/summary", "/api/historical-intelligence/rebuild", "/api/v598/historical-intelligence-check"],
-        "goal": "Convertir datos autorizados en memoria historica propia, ratings, perfiles de liga, perfiles de mercado y trazabilidad legal para SHARK.",
-        "legal_note": "Uso interno y metricas derivadas propias. No redistribuir datos crudos de terceros sin licencia."
-    })
-
-
-@app.route("/api/data-provider/summary")
-def api_data_provider_summary():
-    if not is_admin_session() and request.args.get("public") != "1":
-        return admin_json_forbidden()
-    return jsonify({"ok": True, "version": APP_VERSION, "data_provider": data_provider_summary(DB_PATH)})
-
-
-@app.route("/api/data-provider/check", methods=["POST", "GET"])
-def api_data_provider_check():
-    if not is_admin_session() and request.args.get("token") != os.getenv("AUTONOMOUS_CRON_TOKEN", ""):
-        return jsonify({"ok": False, "version": APP_VERSION, "error": "Admin o token requerido."}), 403
-    return jsonify({"ok": True, "version": APP_VERSION, "data_provider": provider_check(DB_PATH)})
-
-
-@app.route("/api/v596/provider-adapter-check")
-def api_v596_provider_adapter_check():
-    return jsonify({
-        "ok": True,
-        "version": APP_VERSION,
-        "module": "Provider Adapter & Live Data Upgrade",
-        "routes": ["/api/data-provider/summary", "/api/data-provider/check", "/api/v596/provider-adapter-check"],
-        "env": [
-            "PRIMARY_FOOTBALL_DATA_PROVIDER",
-            "FOOTBALL_DATA_PROVIDER_ORDER",
-            "API_FOOTBALL_KEY",
-            "SPORTMONKS_API_KEY",
-            "SPORTRADAR_API_KEY",
-            "THESPORTSDB_KEY",
-            "THE_ODDS_API_KEY",
-        ],
-        "goal": "Preparar NeMeSiS para datos live profesionales con adaptadores, fallback y contrato común sin rehacer la app.",
-    })
-
-
-@app.route("/api/telegram/visual-summary")
-def api_telegram_visual_summary():
-    if not is_admin_session() and request.args.get("public") != "1":
-        return admin_json_forbidden()
-    audit = telegram_pick_delivery_audit()
-    return jsonify({
-        "ok": True,
-        "version": APP_VERSION,
-        "module": "Telegram Visual Premium",
-        "visual": {
-            "messages_with_image": audit.get("counts", {}).get("messages_with_image", 0),
-            "messages_text_only": audit.get("counts", {}).get("messages_text_only", 0),
-            "badge_errors": audit.get("counts", {}).get("badge_errors", 0),
-            "sendable_free": audit.get("counts", {}).get("sendable_free", 0),
-            "sendable_pro": audit.get("counts", {}).get("sendable_pro", 0),
-            "sendable_elite": audit.get("counts", {}).get("sendable_elite", 0),
-            "blocked_by_membership": audit.get("counts", {}).get("blocked_by_membership", 0),
-        },
-        "membership_delivery": audit.get("membership_delivery", {}),
-    })
-
-
-@app.route("/api/v595/telegram-visual-check")
-def api_v595_telegram_visual_check():
-    return jsonify({
-        "ok": True,
-        "version": APP_VERSION,
-        "module": "Telegram Visual Premium",
-        "features": [
-            "formatos FREE / PRO / ELITE",
-            "mensajes premium con SHARK V2, value, stake y learning",
-            "contexto de escudos con fallback seguro",
-            "auditoría de envíos por plan",
-            "compatibilidad con telegram_queue y Auto Picks",
-        ],
-        "routes": ["/admin/telegram-audit", "/api/telegram/visual-summary", "/api/v595/telegram-visual-check"],
     })
 
 

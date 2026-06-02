@@ -2,87 +2,44 @@
 {% block content %}
 <section class="app-hero compact-hero">
   <div>
-    <div class="kicker">Beta comercial · V594</div>
-    <h1>Centro de preparación beta</h1>
-    <p class="lead">Control interno para saber si NeMeSiS SHARK PRO está preparado para usuarios reales: sistema, picks, Telegram, APIs, datos, usuarios y rendimiento.</p>
-    <div class="admin-menu">
-      <a class="btn primary" href="/admin/beta-center">Centro beta</a>
-      <a class="btn" href="/admin/telegram-audit">Auditoría Telegram</a>
-      <a class="btn" href="/admin/autopilot-audit">Piloto automático</a>
-      <a class="btn" href="/admin/data-center">Centro de datos</a>
-    </div>
+    <div class="kicker">Beta controlada</div>
+    <h1>Centro beta</h1>
+    <p class="lead">Gestiona probadores, comentarios y preparación real antes de abrir NeMeSiS SHARK PRO a clientes.</p>
   </div>
   <aside class="hero-panel">
     <div class="directo-strip">
-      <div><span>Preparación</span><strong>{{ beta.readiness_score }}%</strong></div>
-      <div><span>OK</span><strong>{{ beta.counts.ok }}</strong></div>
-      <div><span>Revisar</span><strong>{{ beta.counts.warn }}</strong></div>
-      <div><span>Alertas</span><strong>{{ beta.counts.alert }}</strong></div>
+      <div><span>Testers</span><strong>{{ beta.total_probadores }}</strong></div>
+      <div><span>Activos</span><strong>{{ beta.active_probadores }}</strong></div>
+      <div><span>Feedback</span><strong>{{ beta.comentarios_total }}</strong></div>
+      <div><span>Score</span><strong>{{ beta.beta_score }}%</strong></div>
     </div>
   </aside>
 </section>
 
 <section class="band compact-band">
-  <div class="section-head"><h2>Salud del sistema</h2><span class="pill">{{ beta.generated_at }}</span></div>
+  <div class="section-head"><h2>Estado beta</h2><span class="pill">Admin</span></div>
   <div class="grid cards-3">
-    {% for check in beta.checks %}
-    <div class="card {% if check.status == 'OK' %}pro-card{% elif check.status == 'ALERTA' %}elite-card{% endif %}">
-      <span class="badge">{{ check.status }}</span>
-      <h3>{{ check.name }}</h3>
-      <p class="small">{{ check.detail }}</p>
-    </div>
+    {% for card in beta.cards %}
+    <div class="card"><span class="badge">{{ card.status }}</span><h3>{{ card.title }}</h3><p class="small">{{ card.body }}</p></div>
     {% endfor %}
   </div>
 </section>
 
 <section class="band compact-band">
-  <div class="section-head"><h2>Indicadores beta</h2><span class="pill">Operaciones</span></div>
-  <div class="grid compact-grid">
-    <div class="card"><div class="metric">{{ beta.users.total }}</div><div class="muted">usuarios</div></div>
-    <div class="card"><div class="metric">{{ beta.users.free }}</div><div class="muted">FREE</div></div>
-    <div class="card"><div class="metric">{{ beta.users.pro }}</div><div class="muted">PRO</div></div>
-    <div class="card"><div class="metric">{{ beta.users.elite }}</div><div class="muted">ELITE</div></div>
-    <div class="card"><div class="metric">{{ beta.users.conversion_paid }}%</div><div class="muted">conversión pagada</div></div>
-    <div class="card"><div class="metric">{{ beta.users.mrr_estimated }}€</div><div class="muted">MRR estimado</div></div>
-    <div class="card"><div class="metric">{{ beta.picks.total }}</div><div class="muted">picks</div></div>
-    <div class="card"><div class="metric">{{ beta.picks.winrate }}%</div><div class="muted">winrate</div></div>
-    <div class="card"><div class="metric">{{ beta.telegram.sent }}</div><div class="muted">Telegram enviados</div></div>
-    <div class="card"><div class="metric">{{ beta.telegram.pending }}</div><div class="muted">cola pendiente</div></div>
-    <div class="card"><div class="metric">{{ beta.autopilot.cycles }}</div><div class="muted">ciclos auto</div></div>
-    <div class="card"><div class="metric">{{ beta.data.matches }}</div><div class="muted">partidos guardados</div></div>
-  </div>
-</section>
-
-<section class="band two-col">
-  <aside class="card elite-card">
-    <div class="section-head"><h2>Piloto automático</h2><span class="pill">Auto Picks</span></div>
-    <p class="small">Generación: {{ 'Activa' if beta.settings.auto_generate_picks else 'Desactivada' }} · Envío Telegram: {{ 'Activo' if beta.settings.auto_send_telegram_picks else 'Desactivado' }}</p>
-    <p class="small">Score mínimo: {{ beta.settings.min_score }} · Máximo diario: {{ beta.settings.max_auto_picks_per_day }} · Ventana: {{ beta.settings.window_hours }} horas.</p>
-    <p class="small">Picks guardados por ciclos: {{ beta.autopilot.saved }} · enviados: {{ beta.autopilot.sent }} · errores: {{ beta.autopilot.errors }}.</p>
-  </aside>
-  <aside class="card pro-card">
-    <div class="section-head"><h2>Telegram</h2><span class="pill">{{ 'OK' if beta.telegram.ready else 'Pendiente' }}</span></div>
-    <p class="small">Cola total: {{ beta.telegram.queue_total }} · enviados: {{ beta.telegram.sent }} · pendientes: {{ beta.telegram.pending }} · fallidos: {{ beta.telegram.failed }}.</p>
-    <p class="small">Último envío: {{ beta.telegram.last_sent or 'Sin envíos registrados' }}</p>
-    {% if beta.telegram.last_error %}<p class="small">Último error: {{ beta.telegram.last_error }}</p>{% endif %}
-  </aside>
-</section>
-
-<section class="band compact-band">
-  <div class="section-head"><h2>Alertas y recomendaciones</h2><span class="pill">Beta</span></div>
+  <div class="section-head"><h2>Feedback reciente</h2><span class="pill">Últimos 10</span></div>
   <div class="stack">
-    {% for alert in beta.alerts %}
-    <div class="list-row"><span>{{ alert }}</span><strong>Revisar</strong></div>
+    {% for item in beta.comentarios %}
+    <div class="list-row"><span><strong>{{ item.name or item.email }}</strong><br><small>{{ item.focus_area }} · {{ item.message }}</small></span><strong>{{ item.created_at }}</strong></div>
+    {% else %}
+    <div class="empty-state"><h3>Aún no hay comentarios beta</h3><p>Comparte /beta con probadores reales para empezar a recoger señales.</p></div>
     {% endfor %}
   </div>
 </section>
 
 <section class="band compact-band">
-  <div class="section-head"><h2>Checklist antes de vender</h2><span class="pill">30 días</span></div>
-  <div class="grid cards-3">
-    <div class="card"><h3>Telegram estable</h3><p class="small">Confirmar que los picks automáticos llegan por plan FREE/PRO/ELITE sin intervención manual.</p></div>
-    <div class="card"><h3>Datos suficientes</h3><p class="small">Mantener calendario, live, resultados, escudos, cuotas y TheSportsDB sincronizados con caché.</p></div>
-    <div class="card"><h3>Rendimiento visible</h3><p class="small">Revisar ROI, winrate, rachas y picks validados para poder mostrar pruebas reales.</p></div>
+  <div class="section-head"><h2>Acciones recomendadas</h2><span class="pill">Prioridad</span></div>
+  <div class="stack">
+    {% for action in beta.actions %}<div class="list-row"><span>{{ action }}</span><strong>Hacer</strong></div>{% endfor %}
   </div>
 </section>
 {% endblock %}
