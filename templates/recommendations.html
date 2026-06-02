@@ -26,6 +26,7 @@
       <div class="metric-row"><span>Puntuacin SHARK <strong>{{ r.shark_score }}/100</strong></span><span>Nivel de confianza <strong>{{ r.confidence }}%</strong></span><span>Riesgo <strong>{{ r.risk_level }}</strong></span></div>
       <p><strong>{{ r.market }}:</strong> {{ r.selection }}{% if r.odds %} <span class="chip">Cuota {{ '%.2f'|format(r.odds|float) }}</span>{% endif %}</p>
       <p class="small"><strong>Motivo principal:</strong> {{ r.reason or r.reasoning or 'Anlisis SHARK pendiente de revisin.' }}</p>
+      {% if r.learning_explanation %}<p class="small"><strong>Ajuste histórico:</strong> {{ r.learning_explanation }}</p>{% endif %}
       {% if data.membership.is_elite %}<p class="warning">{{ r.caution or r.warning_reason }}</p>{% endif %}
     </article>
     {% endfor %}

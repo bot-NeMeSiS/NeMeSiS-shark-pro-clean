@@ -36,6 +36,30 @@
 </section>
 
 <section class="band two-col">
+  <aside class="card elite-card">
+    <div class="section-head"><h2>SHARK Learning Engine V585</h2><span class="pill">{{ data.shark_learning.status or 'learning' }}</span></div>
+    <p class="small">Muestra: {{ data.shark_learning.profile.sample_size or 0 }} picks · ROI {{ data.shark_learning.profile.roi or 0 }}% · acierto {{ data.shark_learning.profile.winrate or 0 }}% · yield {{ data.shark_learning.profile.yield_pct or 0 }}%.</p>
+    <p class="small">Ajuste global: {{ data.shark_learning.profile.confidence_adjustment or 0 }} puntos. Se aplica por mercado, liga y rango de cuota cuando hay muestra suficiente.</p>
+    <form method="post" action="/admin/data-center">
+      <input type="hidden" name="action" value="shark_learning">
+      <div class="field"><label>Límite de picks históricos</label><input name="limit" value="1000"></div>
+      <button type="submit">Reconstruir learning SHARK</button>
+    </form>
+  </aside>
+  <aside class="card pro-card">
+    <h2>Señales aprendidas</h2>
+    {% for item in data.shark_learning.best_markets[:4] %}
+    <div class="list-row"><span>{{ item.market }}<br><small>ROI {{ item.roi }}% · acierto {{ item.winrate }}% · muestra {{ item.sample_size }}</small></span><strong>{{ item.confidence_adjustment }}</strong></div>
+    {% else %}
+    <p class="small">Histórico insuficiente: confianza sin ajuste avanzado.</p>
+    {% endfor %}
+    {% for item in data.shark_learning.risk_leagues[:3] %}
+    <div class="list-row"><span>{{ item.league_name }}<br><small>{{ item.explanation }}</small></span><strong>{{ item.confidence_adjustment }}</strong></div>
+    {% endfor %}
+  </aside>
+</section>
+
+<section class="band two-col">
   <aside class="card">
     <div class="section-head"><h2>Últimos resúmenes guardados</h2><span class="pill">TheSportsDB</span></div>
     {% for h in data.sportsdb_highlights.latest_highlights[:6] %}
@@ -75,6 +99,8 @@
     <div class="card"><div class="metric">{{ data.subscriptions.active_paid }}</div><div class="muted">pagados activos</div></div>
     <div class="card"><div class="metric">{{ data.shark_memory.readiness_score }}%</div><div class="muted">memoria SHARK</div></div>
     <div class="card"><div class="metric">{{ data.shark_memory.groups_total }}</div><div class="muted">patrones aprendidos</div></div>
+    <div class="card"><div class="metric">{{ data.shark_learning.readiness_score or data.shark_learning.profile.reliability_score or 0 }}%</div><div class="muted">learning SHARK</div></div>
+    <div class="card"><div class="metric">{{ data.shark_learning.profile.sample_size or 0 }}</div><div class="muted">muestra real</div></div>
     <div class="card"><div class="metric">{{ data.pick_grading.readiness_score }}%</div><div class="muted">validación picks</div></div>
     <div class="card"><div class="metric">{{ data.pick_grading.auto_validated }}</div><div class="muted">auto validados</div></div>
     <div class="card"><div class="metric">{{ data.telegram_autonomous.score }}%</div><div class="muted">telegram auto</div></div>

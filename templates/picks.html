@@ -36,6 +36,7 @@
       <p class="selection">{{ p.selection }}</p>
       <div class="status"><span>Cuota {{ p.odds }}</span><span>Confianza SHARK {{ p.confidence }}%</span><span>{{ p.risk_level }}</span></div>
       <p class="small"><strong>Por qu entrar:</strong> {{ p.reasoning or 'Pick publicado por el equipo SHARK.' }}</p>
+      {% if p.learning_explanation %}<p class="small"><strong>Ajuste histórico:</strong> {{ p.learning_explanation }}</p>{% endif %}
       <p class="small"><strong>Riesgos detectados:</strong> {{ p.warning_reason or 'Gestiona importe y banca; ningun pick es seguro.' }}</p>
       <div class="metric-row mini-metrics">
         <span>Importe sugerido <strong>{{ p.stake_units }}u</strong></span>

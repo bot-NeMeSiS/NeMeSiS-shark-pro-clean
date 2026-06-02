@@ -22,6 +22,10 @@
     <div class="card"><div class="metric">{{ audit.counts.pick_queue_sent }}</div><div class="muted">picks enviados</div></div>
     <div class="card"><div class="metric">{{ audit.counts.pick_queue_failed }}</div><div class="muted">errores picks</div></div>
     <div class="card"><div class="metric">{{ audit.counts.subscribers_active }}</div><div class="muted">destinatarios</div></div>
+    <div class="card"><div class="metric">{{ audit.counts.subscribers_free }}/{{ audit.counts.subscribers_pro }}/{{ audit.counts.subscribers_elite }}</div><div class="muted">FREE / PRO / ELITE</div></div>
+    <div class="card"><div class="metric">{{ audit.counts.blocked_by_membership }}</div><div class="muted">bloqueados por plan</div></div>
+    <div class="card"><div class="metric">{{ audit.counts.badge_errors }}</div><div class="muted">sin escudo</div></div>
+    <div class="card"><div class="metric">{{ audit.counts.messages_text_only }}</div><div class="muted">solo texto</div></div>
   </div>
 </section>
 
@@ -54,6 +58,7 @@
     <h2>Últimos eventos</h2>
     <p class="small">Envío automático: {% if audit.settings.enabled %}activo{% else %}desactivado{% endif %}</p>
     <p class="small">Auto picks diarios: {% if audit.settings.auto_daily_picks %}activo{% else %}desactivado{% endif %} · hora {{ audit.settings.daily_picks_time }}</p>
+    <p class="small">Enviables por plan: FREE {{ audit.membership_delivery.sendable['FREE'] }} · PRO {{ audit.membership_delivery.sendable['PRO'] }} · ELITE {{ audit.membership_delivery.sendable['ELITE'] }}</p>
     <p class="small">Último envío: {{ audit.last_sent.sent_at or 'sin envío registrado' }}</p>
     <p class="small">Último error app: {{ audit.last_error.message or 'sin error registrado' }}</p>
     <p class="small">Último error Telegram: {{ audit.last_telegram_error.response_json or audit.last_telegram_error.payload_preview or 'sin error Telegram registrado' }}</p>

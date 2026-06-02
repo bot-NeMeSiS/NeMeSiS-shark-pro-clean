@@ -48,10 +48,14 @@ from engines.telegram_delivery_engine import (
     build_daily_picks_message as format_daily_picks_message,
     build_live_alert_message as format_live_alert_message,
     build_system_test_message as format_system_test_message,
+    format_telegram_pick_by_membership,
     normalize_settings,
+    pick_badge_context,
+    pick_required_membership,
     queue_summary,
     subscriber_payload,
     telegram_dedupe_key,
+    telegram_plan_allows,
 )
 from engines.telegram_engine import build_alert_queue, dispatch_signature, should_skip_duplicate
 from engines.historical_warehouse_engine import ensure_warehouse_schema, snapshot_warehouse, warehouse_summary
@@ -59,12 +63,18 @@ from engines.autonomous_operations_engine import ensure_autonomous_schema, recor
 from engines.commercial_launch_engine import ensure_commercial_schema, commercial_summary, rebuild_launch_checks
 from engines.subscription_control_engine import ensure_subscription_schema, subscription_summary, apply_subscription_rules
 from engines.shark_performance_memory_engine import ensure_shark_memory_schema, shark_memory_summary, rebuild_shark_performance_memory
+from engines.shark_learning_engine import (
+    apply_shark_learning_adjustment,
+    build_shark_learning_profile,
+    ensure_shark_learning_schema,
+    rebuild_shark_learning_engine,
+)
 from engines.pick_grading_engine import ensure_pick_grading_schema, pick_grading_summary, run_pick_grading
 from engines.telegram_autonomous_delivery_engine import ensure_telegram_autonomous_schema, telegram_autonomous_summary, run_telegram_autonomous_delivery
 from engines.sportsdb_highlights_engine import ensure_sportsdb_highlights_schema, sync_sportsdb_highlights, sportsdb_highlights_summary, sportsdb_highlights_for_match, rebuild_match_enrichment
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V584_LIVE_INTELLIGENCE_PRO"
+APP_VERSION = "V586_TELEGRAM_PICKS_PREMIUM_MEMBERSHIP_BADGES"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -408,6 +418,66 @@ def run_schema_migrations(conn):
         ("autopilot_pick_decisions", "telegram_json", "TEXT"),
         ("autopilot_pick_decisions", "payload_json", "TEXT"),
         ("autopilot_pick_decisions", "created_at", "TEXT"),
+        ("shark_learning_profiles", "profile_key", "TEXT"),
+        ("shark_learning_profiles", "sample_size", "INTEGER DEFAULT 0"),
+        ("shark_learning_profiles", "wins", "INTEGER DEFAULT 0"),
+        ("shark_learning_profiles", "losses", "INTEGER DEFAULT 0"),
+        ("shark_learning_profiles", "voids", "INTEGER DEFAULT 0"),
+        ("shark_learning_profiles", "pending", "INTEGER DEFAULT 0"),
+        ("shark_learning_profiles", "winrate", "REAL DEFAULT 0"),
+        ("shark_learning_profiles", "roi", "REAL DEFAULT 0"),
+        ("shark_learning_profiles", "yield_pct", "REAL DEFAULT 0"),
+        ("shark_learning_profiles", "reliability_score", "INTEGER DEFAULT 0"),
+        ("shark_learning_profiles", "confidence_adjustment", "INTEGER DEFAULT 0"),
+        ("shark_learning_profiles", "favorable_patterns", "TEXT"),
+        ("shark_learning_profiles", "unfavorable_patterns", "TEXT"),
+        ("shark_learning_profiles", "payload_json", "TEXT"),
+        ("shark_learning_profiles", "rebuilt_at", "TEXT"),
+        ("shark_learning_market_stats", "market", "TEXT"),
+        ("shark_learning_market_stats", "sample_size", "INTEGER DEFAULT 0"),
+        ("shark_learning_market_stats", "wins", "INTEGER DEFAULT 0"),
+        ("shark_learning_market_stats", "losses", "INTEGER DEFAULT 0"),
+        ("shark_learning_market_stats", "voids", "INTEGER DEFAULT 0"),
+        ("shark_learning_market_stats", "pending", "INTEGER DEFAULT 0"),
+        ("shark_learning_market_stats", "winrate", "REAL DEFAULT 0"),
+        ("shark_learning_market_stats", "roi", "REAL DEFAULT 0"),
+        ("shark_learning_market_stats", "yield_pct", "REAL DEFAULT 0"),
+        ("shark_learning_market_stats", "reliability_score", "INTEGER DEFAULT 0"),
+        ("shark_learning_market_stats", "confidence_adjustment", "INTEGER DEFAULT 0"),
+        ("shark_learning_market_stats", "pattern_label", "TEXT"),
+        ("shark_learning_market_stats", "explanation", "TEXT"),
+        ("shark_learning_market_stats", "payload_json", "TEXT"),
+        ("shark_learning_market_stats", "rebuilt_at", "TEXT"),
+        ("shark_learning_league_stats", "league_name", "TEXT"),
+        ("shark_learning_league_stats", "sample_size", "INTEGER DEFAULT 0"),
+        ("shark_learning_league_stats", "wins", "INTEGER DEFAULT 0"),
+        ("shark_learning_league_stats", "losses", "INTEGER DEFAULT 0"),
+        ("shark_learning_league_stats", "voids", "INTEGER DEFAULT 0"),
+        ("shark_learning_league_stats", "pending", "INTEGER DEFAULT 0"),
+        ("shark_learning_league_stats", "winrate", "REAL DEFAULT 0"),
+        ("shark_learning_league_stats", "roi", "REAL DEFAULT 0"),
+        ("shark_learning_league_stats", "yield_pct", "REAL DEFAULT 0"),
+        ("shark_learning_league_stats", "reliability_score", "INTEGER DEFAULT 0"),
+        ("shark_learning_league_stats", "confidence_adjustment", "INTEGER DEFAULT 0"),
+        ("shark_learning_league_stats", "pattern_label", "TEXT"),
+        ("shark_learning_league_stats", "explanation", "TEXT"),
+        ("shark_learning_league_stats", "payload_json", "TEXT"),
+        ("shark_learning_league_stats", "rebuilt_at", "TEXT"),
+        ("shark_learning_odds_ranges", "odds_range", "TEXT"),
+        ("shark_learning_odds_ranges", "sample_size", "INTEGER DEFAULT 0"),
+        ("shark_learning_odds_ranges", "wins", "INTEGER DEFAULT 0"),
+        ("shark_learning_odds_ranges", "losses", "INTEGER DEFAULT 0"),
+        ("shark_learning_odds_ranges", "voids", "INTEGER DEFAULT 0"),
+        ("shark_learning_odds_ranges", "pending", "INTEGER DEFAULT 0"),
+        ("shark_learning_odds_ranges", "winrate", "REAL DEFAULT 0"),
+        ("shark_learning_odds_ranges", "roi", "REAL DEFAULT 0"),
+        ("shark_learning_odds_ranges", "yield_pct", "REAL DEFAULT 0"),
+        ("shark_learning_odds_ranges", "reliability_score", "INTEGER DEFAULT 0"),
+        ("shark_learning_odds_ranges", "confidence_adjustment", "INTEGER DEFAULT 0"),
+        ("shark_learning_odds_ranges", "pattern_label", "TEXT"),
+        ("shark_learning_odds_ranges", "explanation", "TEXT"),
+        ("shark_learning_odds_ranges", "payload_json", "TEXT"),
+        ("shark_learning_odds_ranges", "rebuilt_at", "TEXT"),
     ]
     for table, column, definition in migrations:
         try:
@@ -931,6 +1001,7 @@ def init_db():
         ensure_commercial_schema(DB_PATH)
         ensure_subscription_schema(DB_PATH)
         ensure_shark_memory_schema(DB_PATH)
+        ensure_shark_learning_schema(DB_PATH)
         ensure_telegram_autonomous_schema(DB_PATH)
         ensure_sportsdb_highlights_schema(DB_PATH)
     except Exception:
@@ -2450,6 +2521,11 @@ def refresh_live_basic(limit=80):
 
 def refresh_recommendations_basic(limit=40):
     recs = v565_recommendation_pool(limit=limit)
+    try:
+        profile = build_shark_learning_profile(DB_PATH, limit=500)
+        telegram_flow_log("SHARK_LEARNING", "summary", "Perfil de aprendizaje consultado durante recomendaciones.", {"readiness": profile.get("readiness_score") or (profile.get("global") or {}).get("reliability_score")})
+    except Exception as exc:
+        telegram_flow_log("SHARK_LEARNING", "warning", "No se pudo consultar aprendizaje durante recomendaciones.", {"error": str(exc)[:200]})
     return {"ok": True, "processed": len(recs), "inserted": 0, "updated": len(recs), "skipped": 0, "recommendations": len(recs)}
 
 
@@ -2590,10 +2666,12 @@ def run_autonomous_pick_cycle(limit=40, force=False):
         )
         remaining_today = cfg["max_auto_picks_per_day"] if force else max(0, cfg["max_auto_picks_per_day"] - sent_or_saved_today)
         for rec in recs:
+            rec = apply_shark_learning_adjustment(rec, DB_PATH)
             signature = autopilot_pick_signature(rec)
             score = as_int(rec.get("score") or rec.get("confidence"), 0)
             odds = as_float(rec.get("odds_value") or rec.get("odds"), 0.0)
             result["candidates"] += 1
+            telegram_flow_log("SHARK_LEARNING", "adjusted", "Aprendizaje SHARK aplicado a candidato.", {"cycle_id": cycle_id, "match_id": rec.get("match_id"), "score": score, "adjustment": rec.get("learning_adjustment"), "explanation": rec.get("learning_explanation")})
             telegram_flow_log("SHARK", "candidate", "Candidato SHARK evaluado para autopilot.", {"cycle_id": cycle_id, "match_id": rec.get("match_id"), "score": score, "odds": odds, "selection": rec.get("selection")})
             discard_reason = ""
             if remaining_today <= 0:
@@ -2628,7 +2706,7 @@ def run_autonomous_pick_cycle(limit=40, force=False):
                 "confidence": score,
                 "stake_units": 1.0 if str(rec.get("risk") or "").upper() == "BAJO" else 0.5,
                 "risk_level": rec.get("risk") or "MEDIO",
-                "reasoning": rec.get("reason") or "SHARK detecta valor suficiente con los datos disponibles.",
+                "reasoning": (rec.get("reason") or "SHARK detecta valor suficiente con los datos disponibles.") + (" " + rec.get("learning_explanation") if rec.get("learning_explanation") else ""),
                 "warning_reason": rec.get("warning") or "No apostar si la cuota cambia de forma fuerte antes del inicio.",
                 "membership_required": rec.get("membership_required") or "PRO",
                 "status": "published",
@@ -3495,6 +3573,17 @@ def normalize_pick_row(pick):
     pick["bookmaker"] = pick.get("bookmaker") or ""
     pick["warning_reason"] = pick.get("warning_reason") or "Gestiona stake y evita perseguir perdidas."
     pick["result_status"] = str(pick.get("result_status") or "pending").lower()
+    try:
+        learned = apply_shark_learning_adjustment(pick, DB_PATH)
+        pick["confidence_original"] = learned.get("confidence_original", pick["confidence"])
+        pick["learning_adjustment"] = learned.get("learning_adjustment", 0)
+        pick["learning_explanation"] = learned.get("learning_explanation", "")
+        pick["learning_signals"] = learned.get("learning_signals", [])
+        pick["confidence"] = learned.get("confidence", pick["confidence"])
+        pick["shark_score"] = learned.get("shark_score", pick["confidence"])
+    except Exception:
+        pick["learning_adjustment"] = 0
+        pick["learning_explanation"] = "Histórico insuficiente: confianza sin ajuste avanzado."
     return pick
 
 
@@ -5398,7 +5487,7 @@ def telegram_log(event_type, status, message, payload=None):
 
 def telegram_flow_log(tag, status, message, payload=None):
     tag = str(tag or "TELEGRAM").strip().upper()
-    if tag not in {"TELEGRAM", "PICKS", "QUEUE", "SEND", "AUTO_PICKS", "SHARK"}:
+    if tag not in {"TELEGRAM", "PICKS", "QUEUE", "SEND", "AUTO_PICKS", "SHARK", "SHARK_LEARNING", "SHARK_MEMORY", "WAREHOUSE", "TELEGRAM_PLAN", "TELEGRAM_FORMAT", "TELEGRAM_BADGES", "MEMBERSHIP_FILTER"}:
         tag = "TELEGRAM"
     return telegram_log(tag.lower(), status, f"[{tag}] {message}", payload or {})
 
@@ -5521,13 +5610,13 @@ def telegram_pick_candidates(limit=8, include_unpublished_fallback=True):
     return [normalize_pick_row(p) for p in fallback]
 
 
-def build_daily_picks_message(force_empty=False):
+def build_daily_picks_message(force_empty=False, membership="ADMIN"):
     picks = telegram_pick_candidates(limit=8, include_unpublished_fallback=True)
-    return format_daily_picks_message(picks, force_empty=force_empty, premium_name=APP_NAME)
+    return format_daily_picks_message(picks, force_empty=force_empty, premium_name=APP_NAME, membership=membership)
 
 
-def build_single_pick_message(pick):
-    return format_daily_picks_message([pick], force_empty=False, premium_name=APP_NAME)
+def build_single_pick_message(pick, membership="ADMIN"):
+    return format_telegram_pick_by_membership(pick, membership)
 
 
 def enqueue_single_pick_to_telegram(pick, force=True, forced_chat_id=""):
@@ -5535,30 +5624,43 @@ def enqueue_single_pick_to_telegram(pick, force=True, forced_chat_id=""):
     if not pick or not pick.get("id"):
         telegram_flow_log("PICKS", "failed", "No se puede encolar pick individual: pick invalido.", {})
         return {"ok": False, "message": "Pick invalido.", "processed": 0, "inserted": 0, "sent": 0, "failed": 1, "skipped": 0, "errors": ["pick_invalido"]}
-    body = build_single_pick_message(pick)
     forced_chat_id = forced_chat_id or os.getenv("TELEGRAM_CHAT_ID", "")
-    subscribers = [s for s in telegram_subscribers() if str(s.get("membership") or "FREE").upper() in {"PRO", "ELITE", "ADMIN"}]
+    subscribers = [s for s in telegram_subscribers() if str(s.get("membership") or "FREE").upper() in {"FREE", "PRO", "ELITE", "ADMIN"}]
     if forced_chat_id and not subscribers:
         subscribers = [{"chat_id": forced_chat_id, "user_id": "", "membership": "ADMIN"}]
     if not subscribers:
         telegram_flow_log("PICKS", "failed", "Pick publicado sin destinatarios Telegram validos.", {"pick_id": pick.get("id")})
         return {"ok": False, "message": "No hay destinatarios Telegram validos.", "processed": 0, "inserted": 0, "sent": 0, "failed": 0, "skipped": 0, "errors": ["sin_destinatarios"]}
-    inserted = skipped = 0
+    inserted = skipped = blocked = badge_errors = text_only = with_image = 0
+    required = pick_required_membership(pick)
     for sub in subscribers:
+        membership = normalize_role(sub.get("membership") or "FREE")
+        if not telegram_plan_allows(membership, required):
+            blocked += 1
+            telegram_flow_log("MEMBERSHIP_FILTER", "blocked", "Pick Telegram bloqueado por membresía.", {"pick_id": pick.get("id"), "subscriber": sub.get("chat_id"), "membership": membership, "required": required})
+            continue
+        badge = pick_badge_context(pick)
+        badge_errors += 0 if badge.get("has_badge") else 1
+        text_only += 1 if badge.get("delivery_mode") == "text_only" else 0
+        with_image += 1 if badge.get("delivery_mode") != "text_only" else 0
+        if not badge.get("has_badge"):
+            telegram_flow_log("TELEGRAM_BADGES", "fallback", "Pick Telegram sin escudo; se usará texto premium.", {"pick_id": pick.get("id"), "membership": membership})
+        body = build_single_pick_message(pick, membership=membership)
+        telegram_flow_log("TELEGRAM_FORMAT", "formatted", "Pick formateado para Telegram por plan.", {"pick_id": pick.get("id"), "membership": membership, "required": required, "delivery_mode": badge.get("delivery_mode")})
         result = enqueue_telegram_message(
             "published_pick",
-            "Pick publicado",
+            f"Pick publicado {membership}",
             body,
             chat_id=sub.get("chat_id"),
             user_id=sub.get("user_id"),
-            payload={"membership": sub.get("membership"), "target_key": pick.get("id"), "pick_id": pick.get("id"), "priority": 90},
+            payload={"membership": membership, "membership_required": required, "target_key": pick.get("id"), "pick_id": pick.get("id"), "priority": 90, "badge": badge},
             dedupe_key=telegram_dedupe_key("published_pick", today_iso(), f"{sub.get('chat_id')}:{pick.get('id')}"),
             force=force,
         )
         inserted += 1 if result.get("queued") else 0
         skipped += 1 if result.get("skipped") else 0
-    telegram_flow_log("PICKS", "queued", "Pick publicado encolado para Telegram.", {"pick_id": pick.get("id"), "inserted": inserted, "skipped": skipped})
-    return {"ok": True, "message": "Pick publicado encolado.", "processed": len(subscribers), "inserted": inserted, "sent": 0, "failed": 0, "skipped": skipped, "errors": []}
+    telegram_flow_log("TELEGRAM_PLAN", "queued", "Pick publicado segmentado por membresía.", {"pick_id": pick.get("id"), "inserted": inserted, "skipped": skipped, "blocked": blocked, "badge_errors": badge_errors, "text_only": text_only, "with_image": with_image})
+    return {"ok": True, "message": "Pick publicado encolado.", "processed": len(subscribers), "inserted": inserted, "sent": 0, "failed": 0, "skipped": skipped, "blocked": blocked, "badge_errors": badge_errors, "messages_text_only": text_only, "messages_with_image": with_image, "errors": []}
 
 
 def build_live_alert_message(match=None):
@@ -5597,34 +5699,53 @@ def enqueue_daily_matches(force=False, forced_chat_id=""):
 
 
 def enqueue_daily_picks(force=False, force_empty=False, forced_chat_id=""):
-    body = build_daily_picks_message(force_empty=force_empty)
-    if not body:
+    picks = telegram_pick_candidates(limit=8, include_unpublished_fallback=True)
+    if not picks and not force_empty:
         telegram_flow_log("PICKS", "skipped", "No hay picks publicados/candidatos; no se encola mensaje de picks.", {"force_empty": force_empty})
         return {"ok": True, "message": "No hay picks publicados; no se encola nada.", "processed": 0, "inserted": 0, "sent": 0, "failed": 0, "skipped": 1, "errors": []}
     forced_chat_id = forced_chat_id or os.getenv("TELEGRAM_CHAT_ID", "")
-    subscribers = [s for s in telegram_subscribers() if str(s.get("membership") or "FREE").upper() in {"PRO", "ELITE", "ADMIN"}]
+    subscribers = [s for s in telegram_subscribers() if str(s.get("membership") or "FREE").upper() in {"FREE", "PRO", "ELITE", "ADMIN"}]
     if forced_chat_id and not subscribers:
         subscribers = [{"chat_id": forced_chat_id, "user_id": "", "membership": "ADMIN"}]
     if not subscribers:
-        telegram_flow_log("PICKS", "failed", "Hay mensaje de picks pero no hay destinatarios PRO/ELITE/ADMIN ni TELEGRAM_CHAT_ID.", {"body_len": len(body)})
-        return {"ok": False, "message": "No hay suscriptores PRO/ELITE activos.", "processed": 0, "sent": 0, "failed": 0, "skipped": 0, "errors": ["sin_destinatarios"]}
-    telegram_flow_log("PICKS", "found", "Picks encontrados para Telegram; preparando cola.", {"subscribers": len(subscribers), "body_len": len(body)})
-    inserted = skipped = 0
+        telegram_flow_log("PICKS", "failed", "Hay picks pero no hay destinatarios Telegram ni TELEGRAM_CHAT_ID.", {"picks": len(picks)})
+        return {"ok": False, "message": "No hay suscriptores Telegram activos.", "processed": 0, "sent": 0, "failed": 0, "skipped": 0, "errors": ["sin_destinatarios"]}
+    telegram_flow_log("PICKS", "found", "Picks encontrados para Telegram; preparando cola por membresía.", {"subscribers": len(subscribers), "picks": len(picks)})
+    inserted = skipped = blocked = badge_errors = text_only = with_image = 0
     for sub in subscribers:
+        membership = normalize_role(sub.get("membership") or "FREE")
+        allowed = [p for p in picks if telegram_plan_allows(membership, pick_required_membership(p))]
+        blocked += max(0, len(picks) - len(allowed))
+        if not allowed and not force_empty:
+            telegram_flow_log("MEMBERSHIP_FILTER", "blocked", "Resumen de picks sin contenido para este plan.", {"membership": membership, "chat_id": sub.get("chat_id"), "blocked": len(picks)})
+            skipped += 1
+            continue
+        for pick in allowed:
+            badge = pick_badge_context(pick)
+            badge_errors += 0 if badge.get("has_badge") else 1
+            text_only += 1 if badge.get("delivery_mode") == "text_only" else 0
+            with_image += 1 if badge.get("delivery_mode") != "text_only" else 0
+            if not badge.get("has_badge"):
+                telegram_flow_log("TELEGRAM_BADGES", "fallback", "Resumen de picks sin escudo; se usará texto premium.", {"pick_id": pick.get("id"), "membership": membership})
+        body = format_daily_picks_message(allowed, force_empty=force_empty, premium_name=APP_NAME, membership=membership)
+        if not body:
+            skipped += 1
+            continue
+        telegram_flow_log("TELEGRAM_FORMAT", "formatted", "Resumen de picks formateado por membresía.", {"membership": membership, "allowed": len(allowed), "blocked": max(0, len(picks) - len(allowed))})
         result = enqueue_telegram_message(
             "daily_picks",
-            "Picks destacados",
+            f"Picks destacados {membership}",
             body,
             chat_id=sub.get("chat_id"),
             user_id=sub.get("user_id"),
-            payload={"membership": sub.get("membership"), "target_key": today_iso()},
+            payload={"membership": membership, "target_key": today_iso(), "allowed_picks": len(allowed), "blocked_by_membership": max(0, len(picks) - len(allowed)), "delivery_mode": "text_only"},
             dedupe_key=telegram_dedupe_key("daily_picks", today_iso(), sub.get("chat_id")),
             force=force,
         )
         inserted += 1 if result.get("queued") else 0
         skipped += 1 if result.get("skipped") else 0
-    telegram_flow_log("QUEUE", "pending", "Resultado encolado de picks diarios.", {"processed": len(subscribers), "inserted": inserted, "skipped": skipped})
-    return {"ok": True, "message": "Picks destacados encolados.", "processed": len(subscribers), "inserted": inserted, "updated": 0, "sent": 0, "failed": 0, "skipped": skipped, "errors": []}
+    telegram_flow_log("TELEGRAM_PLAN", "queued", "Resultado encolado de picks diarios por plan.", {"processed": len(subscribers), "inserted": inserted, "skipped": skipped, "blocked": blocked, "badge_errors": badge_errors, "text_only": text_only, "with_image": with_image})
+    return {"ok": True, "message": "Picks destacados encolados.", "processed": len(subscribers), "inserted": inserted, "updated": 0, "sent": 0, "failed": 0, "skipped": skipped, "blocked": blocked, "badge_errors": badge_errors, "messages_text_only": text_only, "messages_with_image": with_image, "errors": []}
 
 
 def enqueue_live_alerts(force=False):
@@ -5764,6 +5885,17 @@ def telegram_pick_delivery_audit():
     pro_elite_picks = [p for p in candidates if str(p.get("membership_required") or "FREE").upper() in {"PRO", "ELITE", "ADMIN", "FREE"}]
     subscribers = telegram_subscribers(active_only=False)
     active_subscribers = [s for s in subscribers if as_int(s.get("is_active"), 1) == 1 and str(s.get("chat_id") or "").strip()]
+    subscribers_by_plan = {plan: len([s for s in active_subscribers if normalize_role(s.get("membership") or "FREE") == plan]) for plan in ["FREE", "PRO", "ELITE", "ADMIN"]}
+    sendable_by_plan = {
+        plan: len([p for p in candidates if telegram_plan_allows(plan, pick_required_membership(p))])
+        for plan in ["FREE", "PRO", "ELITE", "ADMIN"]
+    }
+    blocked_by_plan = {
+        plan: max(0, len(candidates) - sendable_by_plan.get(plan, 0))
+        for plan in ["FREE", "PRO", "ELITE", "ADMIN"]
+    }
+    badge_contexts = [pick_badge_context(p) for p in candidates]
+    badge_errors = len([b for b in badge_contexts if not b.get("has_badge")])
     pending = rows("SELECT * FROM telegram_queue WHERE lower(status)=? ORDER BY created_at ASC LIMIT 20", (QUEUE_PENDING,))
     failed = rows("SELECT * FROM telegram_queue WHERE lower(status) IN (?,?) ORDER BY updated_at DESC LIMIT 10", (QUEUE_FAILED, "error"))
     sent = rows("SELECT * FROM telegram_queue WHERE lower(status)=? ORDER BY sent_at DESC LIMIT 10", (QUEUE_SENT,))
@@ -5807,6 +5939,17 @@ def telegram_pick_delivery_audit():
             "pick_queue_pending": len([q for q in pick_queue if str(q.get("status") or "").lower() == QUEUE_PENDING]),
             "pick_queue_sent": len([q for q in pick_queue if str(q.get("status") or "").lower() == QUEUE_SENT]),
             "pick_queue_failed": len([q for q in pick_queue if str(q.get("status") or "").lower() == QUEUE_FAILED]),
+            "subscribers_free": subscribers_by_plan["FREE"],
+            "subscribers_pro": subscribers_by_plan["PRO"],
+            "subscribers_elite": subscribers_by_plan["ELITE"],
+            "subscribers_admin": subscribers_by_plan["ADMIN"],
+            "sendable_free": sendable_by_plan["FREE"],
+            "sendable_pro": sendable_by_plan["PRO"],
+            "sendable_elite": sendable_by_plan["ELITE"],
+            "blocked_by_membership": sum(blocked_by_plan.values()),
+            "badge_errors": badge_errors,
+            "messages_with_image": 0,
+            "messages_text_only": len(pick_queue),
         },
         "scheduler": scheduler_rows,
         "last_sent": (one("SELECT * FROM telegram_queue WHERE lower(status)=? ORDER BY sent_at DESC LIMIT 1", (QUEUE_SENT,)) or {}),
@@ -5816,7 +5959,8 @@ def telegram_pick_delivery_audit():
         "failed": failed,
         "sent": sent,
         "pick_queue": pick_queue,
-        "recent_logs": rows("SELECT * FROM telegram_logs WHERE message LIKE '[TELEGRAM]%' OR message LIKE '[PICKS]%' OR message LIKE '[QUEUE]%' OR message LIKE '[SEND]%' ORDER BY created_at DESC LIMIT 40"),
+        "membership_delivery": {"subscribers": subscribers_by_plan, "sendable": sendable_by_plan, "blocked": blocked_by_plan},
+        "recent_logs": rows("SELECT * FROM telegram_logs WHERE message LIKE '[TELEGRAM]%' OR message LIKE '[PICKS]%' OR message LIKE '[QUEUE]%' OR message LIKE '[SEND]%' OR message LIKE '[TELEGRAM_PLAN]%' OR message LIKE '[TELEGRAM_FORMAT]%' OR message LIKE '[TELEGRAM_BADGES]%' OR message LIKE '[MEMBERSHIP_FILTER]%' ORDER BY created_at DESC LIMIT 40"),
     }
 
 
@@ -6680,6 +6824,10 @@ def admin_data_center_page():
             result["subscriptions"] = subscription_summary(DB_PATH, apply_rules=False)
         elif action == "shark_memory":
             result = rebuild_shark_performance_memory(DB_PATH, limit=limit)
+        elif action == "shark_learning":
+            result = rebuild_shark_learning_engine(DB_PATH, limit=limit)
+            result["shark_learning"] = build_shark_learning_profile(DB_PATH)
+            telegram_flow_log("SHARK_LEARNING", "rebuilt", "Aprendizaje SHARK reconstruido desde Data Center.", result)
         elif action == "pick_grading":
             result = run_pick_grading(DB_PATH, limit=limit, apply=request.form.get("apply") in {"1", "true", "yes"})
             result["shark_memory"] = shark_memory_summary(DB_PATH)
@@ -6698,6 +6846,7 @@ def admin_data_center_page():
     data["commercial"] = commercial_summary(DB_PATH)
     data["subscriptions"] = subscription_summary(DB_PATH)
     data["shark_memory"] = shark_memory_summary(DB_PATH)
+    data["shark_learning"] = build_shark_learning_profile(DB_PATH)
     data["pick_grading"] = pick_grading_summary(DB_PATH)
     data["telegram_autonomous"] = telegram_autonomous_summary(DB_PATH)
     data["sportsdb_highlights"] = sportsdb_highlights_summary(DB_PATH)
@@ -6961,6 +7110,23 @@ def api_shark_memory_rebuild():
     limit = as_int(request.args.get("limit") or request.form.get("limit"), 500)
     result = rebuild_shark_performance_memory(DB_PATH, limit=limit)
     return jsonify({"version": APP_VERSION, **result, "shark_memory": shark_memory_summary(DB_PATH)})
+
+
+@app.route("/api/shark-learning/summary")
+def api_shark_learning_summary():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "version": APP_VERSION, "shark_learning": build_shark_learning_profile(DB_PATH)})
+
+
+@app.route("/api/shark-learning/rebuild", methods=["POST", "GET"])
+def api_shark_learning_rebuild():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    limit = as_int(request.args.get("limit") or request.form.get("limit"), 1000)
+    result = rebuild_shark_learning_engine(DB_PATH, limit=limit)
+    telegram_flow_log("SHARK_LEARNING", "rebuilt", "Motor de aprendizaje SHARK reconstruido.", result)
+    return jsonify({"version": APP_VERSION, **result, "shark_learning": build_shark_learning_profile(DB_PATH)})
 
 
 @app.route("/api/pick-grading/summary")
@@ -8141,7 +8307,7 @@ def v565_recommendation_for_match(match):
         risk = "ALTO"
         confidence = "Controlada"
         membership = "ELITE"
-    return {
+    rec = {
         "match_id": match.get("id"),
         "league_name": match.get("league_name") or match.get("competition_name") or "Competición",
         "home_team": match.get("home_team") or "Local",
@@ -8149,19 +8315,22 @@ def v565_recommendation_for_match(match):
         "match_date": match.get("match_date"),
         "kickoff_time": match.get("kickoff_time") or match.get("match_time") or "",
         "status": status,
-        "odds": odds,
+        "market": "Resultado",
         "selection": selection,
         "odds_value": price,
+        "odds": price,
         "score": score,
-        "confidence": confidence,
+        "confidence": score,
+        "confidence_label": confidence,
         "risk": risk,
+        "risk_level": risk,
         "membership_required": membership,
         "value_label": "Con cuota" if odds["available"] else "Esperando cuota",
         "reason": "Liga prioritaria y partido próximo con datos suficientes para análisis." if score >= 70 else "Candidato preparado; falta más información de cuotas/live para elevar confianza.",
         "warning": "No apostar si la cuota cambia mucho o falta confirmación de alineaciones." if odds["available"] else "No publicar como pick real hasta tener cuota validada.",
         "league_rank": league_rank,
     }
-
+    return apply_shark_learning_adjustment(rec, DB_PATH)
 
 def v565_recommendation_pool(limit=40):
     matches = get_upcoming_matches(today_iso(), days=7, limit=250)
@@ -8458,6 +8627,8 @@ def v566_template_recommendations(limit=20):
         item["odds"] = item.get("odds_value") or 0
         item["reasoning"] = item.get("reasoning") or item.get("reason") or ""
         item["warning_reason"] = item.get("warning_reason") or item.get("warning") or ""
+        if item.get("learning_explanation"):
+            item["reasoning"] = (item["reasoning"] + " " + item["learning_explanation"]).strip()
         items.append(item)
     return items
 
