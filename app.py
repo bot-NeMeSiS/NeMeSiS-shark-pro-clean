@@ -54,9 +54,13 @@ from engines.telegram_delivery_engine import (
 )
 from engines.telegram_engine import build_alert_queue, dispatch_signature, should_skip_duplicate
 from engines.historical_warehouse_engine import ensure_warehouse_schema, snapshot_warehouse, warehouse_summary
+from engines.autonomous_operations_engine import ensure_autonomous_schema, record_autonomous_run, autonomous_summary, generate_autonomous_actions
+from engines.commercial_launch_engine import ensure_commercial_schema, commercial_summary, rebuild_launch_checks
+from engines.subscription_control_engine import ensure_subscription_schema, subscription_summary, apply_subscription_rules
+from engines.shark_performance_memory_engine import ensure_shark_memory_schema, shark_memory_summary, rebuild_shark_performance_memory
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V572_HISTORICAL_DATA_WAREHOUSE"
+APP_VERSION = "V576_SHARK_PERFORMANCE_MEMORY"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -820,6 +824,10 @@ def init_db():
     run_schema_migrations(conn)
     try:
         ensure_warehouse_schema(DB_PATH)
+        ensure_autonomous_schema(DB_PATH)
+        ensure_commercial_schema(DB_PATH)
+        ensure_subscription_schema(DB_PATH)
+        ensure_shark_memory_schema(DB_PATH)
     except Exception:
         pass
     cleanup_fake_matches(cur)
@@ -2087,6 +2095,7 @@ def data_center_summary():
                 "structural_teams": len(STRUCTURAL_TEAMS),
             },
             "scheduler": scheduler_status(),
+            "autonomous": autonomous_summary(DB_PATH, scheduler_status()),
         }
     )
     return summary
@@ -2295,11 +2304,19 @@ def run_scheduler_task(task_name, force=False, limit=None):
         else:
             result = empty_sync("scheduler", task_name, "Tarea no reconocida.")
         normalized = scheduler_release(task_name, result, started_at)
+        try:
+            record_autonomous_run(DB_PATH, task_name, normalized)
+        except Exception:
+            pass
         sync_log_finish(log_id, "OK" if normalized.get("ok") and not normalized.get("errors") else "PARTIAL", normalized.get("processed", 0), "; ".join(normalized.get("errors", [])[:3]))
         return normalized
     except Exception as exc:
         result = {"ok": False, "processed": 0, "inserted": 0, "updated": 0, "skipped": 0, "errors": [str(exc)[:220]]}
         normalized = scheduler_release(task_name, result, started_at)
+        try:
+            record_autonomous_run(DB_PATH, task_name, normalized)
+        except Exception:
+            pass
         sync_log_finish(log_id, "ERROR", 0, str(exc)[:220])
         return normalized
 
@@ -2323,6 +2340,10 @@ def run_due_scheduler_tasks(force=False, startup=False):
             continue
         seen.add(task)
         results.append(run_scheduler_task(task, force=force, limit=as_int(os.getenv("POPULATION_WARMUP_LIMIT", "80"), 80)))
+    try:
+        generate_autonomous_actions(DB_PATH, scheduler_status())
+    except Exception:
+        pass
     return {"ok": True, "startup": startup, "tasks": results, "errors": [e for r in results for e in (r.get("errors") or [])]}
 
 
@@ -5857,10 +5878,26 @@ def admin_data_center_page():
             result = run_scheduler_task("warmup", force=True, limit=limit)
         elif action == "warehouse":
             result = snapshot_warehouse(DB_PATH, limit=limit)
+        elif action == "autonomous":
+            result = run_due_scheduler_tasks(force=force)
+            result["autonomous"] = autonomous_summary(DB_PATH, scheduler_status())
+        elif action == "commercial":
+            result = rebuild_launch_checks(DB_PATH)
+            result["commercial"] = commercial_summary(DB_PATH)
+        elif action == "subscriptions":
+            result = apply_subscription_rules(DB_PATH)
+            result["subscriptions"] = subscription_summary(DB_PATH, apply_rules=False)
+        elif action == "shark_memory":
+            result = rebuild_shark_performance_memory(DB_PATH, limit=limit)
+            result["shark_memory"] = shark_memory_summary(DB_PATH)
         message = "Accion ejecutada desde Data Center."
     data = dashboard_data()
     data["data_center"] = data_center_summary()
     data["warehouse"] = warehouse_summary(DB_PATH)
+    data["autonomous"] = autonomous_summary(DB_PATH, data["data_center"].get("scheduler"))
+    data["commercial"] = commercial_summary(DB_PATH)
+    data["subscriptions"] = subscription_summary(DB_PATH)
+    data["shark_memory"] = shark_memory_summary(DB_PATH)
     return render_template("admin_data_center.html", data=data, message=message, result=result)
 
 
@@ -6088,7 +6125,71 @@ def api_data_center_warmup():
 def api_scheduler_status():
     if not is_admin_session():
         return admin_json_forbidden()
-    return jsonify({"ok": True, "version": APP_VERSION, "scheduler": scheduler_status()})
+    status = scheduler_status()
+    return jsonify({"ok": True, "version": APP_VERSION, "scheduler": status, "autonomous": autonomous_summary(DB_PATH, status)})
+
+
+@app.route("/api/subscriptions/summary")
+def api_subscriptions_summary():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "version": APP_VERSION, "subscriptions": subscription_summary(DB_PATH)})
+
+
+@app.route("/api/subscriptions/apply-rules", methods=["POST", "GET"])
+def api_subscriptions_apply_rules():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    result = apply_subscription_rules(DB_PATH)
+    return jsonify({"version": APP_VERSION, **result, "subscriptions": subscription_summary(DB_PATH, apply_rules=False)})
+
+
+@app.route("/api/shark-memory/summary")
+def api_shark_memory_summary():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "version": APP_VERSION, "shark_memory": shark_memory_summary(DB_PATH)})
+
+
+@app.route("/api/shark-memory/rebuild", methods=["POST", "GET"])
+def api_shark_memory_rebuild():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    limit = as_int(request.args.get("limit") or request.form.get("limit"), 500)
+    result = rebuild_shark_performance_memory(DB_PATH, limit=limit)
+    return jsonify({"version": APP_VERSION, **result, "shark_memory": shark_memory_summary(DB_PATH)})
+
+
+@app.route("/api/commercial/summary")
+def api_commercial_summary():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "version": APP_VERSION, "commercial": commercial_summary(DB_PATH)})
+
+
+@app.route("/api/commercial/rebuild", methods=["POST", "GET"])
+def api_commercial_rebuild():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    result = rebuild_launch_checks(DB_PATH)
+    return jsonify({"version": APP_VERSION, **result, "commercial": commercial_summary(DB_PATH, rebuild=False)})
+
+
+@app.route("/api/autonomous/summary")
+def api_autonomous_summary():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    status = scheduler_status()
+    return jsonify({"ok": True, "version": APP_VERSION, "autonomous": autonomous_summary(DB_PATH, status)})
+
+
+@app.route("/api/autonomous/run", methods=["POST", "GET"])
+def api_autonomous_run():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    force = request.args.get("force") in {"1", "true", "yes"} or request.form.get("force") in {"1", "true", "yes"}
+    result = run_due_scheduler_tasks(force=force)
+    return jsonify({"version": APP_VERSION, **result, "autonomous": autonomous_summary(DB_PATH, scheduler_status())})
 
 
 @app.route("/api/scheduler/run-now", methods=["POST", "GET"])
@@ -7076,7 +7177,7 @@ def api_admin_membership_summary():
 
 
 # ===================== V565 SPORTS DATA & PICKS PERFECTION =====================
-APP_VERSION = "V572_HISTORICAL_DATA_WAREHOUSE"
+APP_VERSION = "V576_SHARK_PERFORMANCE_MEMORY"
 
 PRIORITY_LEAGUE_ORDER = [
     "UEFA Champions League", "Champions League", "LaLiga", "Spanish La Liga", "Premier League",

@@ -26,10 +26,129 @@
     <div class="card"><div class="metric">{{ data.data_center.population.competitions_prepared }}</div><div class="muted">preparadas</div></div>
     <div class="card"><div class="metric">{{ data.warehouse.match_facts }}</div><div class="muted">warehouse partidos</div></div>
     <div class="card"><div class="metric">{{ data.warehouse.quality_score }}%</div><div class="muted">calidad historica</div></div>
+    <div class="card"><div class="metric">{{ data.autonomous.health_score }}%</div><div class="muted">autonomia</div></div>
+    <div class="card"><div class="metric">{{ data.autonomous.actions_open }}</div><div class="muted">acciones abiertas</div></div>
+    <div class="card"><div class="metric">{{ data.commercial.readiness_score }}%</div><div class="muted">lanzamiento</div></div>
+    <div class="card"><div class="metric">{{ data.commercial.estimated_mrr }}€</div><div class="muted">MRR estimado</div></div>
+    <div class="card"><div class="metric">{{ data.subscriptions.readiness_score }}%</div><div class="muted">suscripciones</div></div>
+    <div class="card"><div class="metric">{{ data.subscriptions.active_paid }}</div><div class="muted">pagados activos</div></div>
+    <div class="card"><div class="metric">{{ data.shark_memory.readiness_score }}%</div><div class="muted">memoria SHARK</div></div>
+    <div class="card"><div class="metric">{{ data.shark_memory.groups_total }}</div><div class="muted">patrones aprendidos</div></div>
+  </div>
+</section>
+
+<section class="band two-col">
+  <aside class="card elite-card">
+    <div class="section-head"><h2>Memoria de rendimiento SHARK V576</h2><span class="pill">{{ data.shark_memory.status }}</span></div>
+    <p class="small">Preparación: {{ data.shark_memory.readiness_score }}% · Patrones: {{ data.shark_memory.groups_total }} · Picks leídos: {{ data.shark_memory.picks_read }}</p>
+    <p class="small">Fiabilidad media: {{ data.shark_memory.avg_reliability }}% · Ajuste automático de confianza por mercado, liga, selección y rango de confianza.</p>
+    <form method="post" action="/admin/data-center">
+      <input type="hidden" name="action" value="shark_memory">
+      <div class="field"><label>Límite de picks para aprender</label><input name="limit" value="500"></div>
+      <button type="submit">Reconstruir memoria SHARK</button>
+    </form>
+  </aside>
+  <aside class="card pro-card">
+    <h2>Cómo ayuda a los picks</h2>
+    <p class="small">SHARK no inventa: revisa qué mercados, ligas y rangos de confianza han funcionado o fallado.</p>
+    <p class="small">Los grupos con ROI positivo suben confianza; los grupos con pérdidas generan aviso de riesgo antes de publicar picks.</p>
+    <p class="small">{{ data.shark_memory.note }}</p>
+  </aside>
+</section>
+
+<section class="band two-col">
+  <aside class="card">
+    <div class="section-head"><h2>Mejores patrones SHARK</h2><span class="pill">edge</span></div>
+    {% for edge in data.shark_memory.best_edges[:6] %}
+    <div class="list-row"><span>{{ edge.dimension_type }} · {{ edge.dimension_value }}<br><small>ROI {{ edge.roi }}% · Winrate {{ edge.win_rate }}% · muestra {{ edge.sample_size }}</small></span><strong>{{ edge.reliability_score }}%</strong></div>
+    {% else %}
+    <p class="small">Aún faltan picks resueltos para detectar patrones buenos.</p>
+    {% endfor %}
+  </aside>
+  <aside class="card">
+    <div class="section-head"><h2>Riesgos aprendidos</h2><span class="pill">control</span></div>
+    {% for edge in data.shark_memory.risk_edges[:6] %}
+    <div class="list-row"><span>{{ edge.dimension_type }} · {{ edge.dimension_value }}<br><small>ROI {{ edge.roi }}% · Winrate {{ edge.win_rate }}% · muestra {{ edge.sample_size }}</small></span><strong>{{ edge.shark_adjustment }}</strong></div>
+    {% else %}
+    <p class="small">Sin riesgos históricos claros todavía.</p>
+    {% endfor %}
+  </aside>
+</section>
+
+<section class="band two-col">
+  <aside class="card elite-card">
+    <div class="section-head"><h2>Control de ingresos V575</h2><span class="pill">{{ data.subscriptions.status }}</span></div>
+    <p class="small">Preparación suscripciones: {{ data.subscriptions.readiness_score }}% · Conversión pagada: {{ data.subscriptions.conversion_rate }}%</p>
+    <p class="small">Pagados activos: {{ data.subscriptions.active_paid }} · Vencidos/gracia: {{ data.subscriptions.past_due }} · Bloqueos suaves: {{ data.subscriptions.soft_blocked }}</p>
+    <p class="small">MRR controlado: {{ data.subscriptions.estimated_mrr }}€ · Stripe: {% if data.subscriptions.stripe_configured %}configurado{% else %}pendiente sin bloquear beta{% endif %}</p>
+    <form method="post" action="/admin/data-center">
+      <input type="hidden" name="action" value="subscriptions">
+      <button type="submit">Aplicar reglas de suscripción</button>
+    </form>
+  </aside>
+  <aside class="card pro-card">
+    <h2>Planes operativos</h2>
+    <p class="small">FREE: {{ data.subscriptions.by_tier.FREE }} usuarios · {{ data.subscriptions.plan_prices.FREE }}€/mes</p>
+    <p class="small">PRO: {{ data.subscriptions.by_tier.PRO }} usuarios · {{ data.subscriptions.plan_prices.PRO }}€/mes</p>
+    <p class="small">ELITE: {{ data.subscriptions.by_tier.ELITE }} usuarios · {{ data.subscriptions.plan_prices.ELITE }}€/mes</p>
+    <p class="small">Esta versión prepara cobros, renovaciones, gracia y bloqueos suaves sin cobrar todavía.</p>
+  </aside>
+</section>
+
+<section class="band">
+  <div class="section-head"><h2>Acciones de ingresos</h2><span class="pill">{{ data.subscriptions.actions|length }}</span></div>
+  <div class="stack">
+    {% for action in data.subscriptions.actions[:8] %}
+    <div class="list-row"><span>{{ action.title }}<br><small>{{ action.detail }}</small></span><strong>{{ action.priority }}</strong></div>
+    {% else %}
+    <div class="empty">Sin bloqueos comerciales importantes. Suscripciones listas para supervisión.</div>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="band two-col">
+  <aside class="card pro-card">
+    <div class="section-head"><h2>Preparación comercial V574</h2><span class="pill">{{ data.commercial.status }}</span></div>
+    <p class="small">Readiness: {{ data.commercial.readiness_score }}% · Conversión: {{ data.commercial.conversion_rate }}%</p>
+    <p class="small">Usuarios: {{ data.commercial.users_total }} · Pagados: {{ data.commercial.paid_users }} · MRR estimado: {{ data.commercial.estimated_mrr }}€</p>
+    <p class="small">FREE: {{ data.commercial.membership_counts.FREE }} · PRO: {{ data.commercial.membership_counts.PRO }} · ELITE: {{ data.commercial.membership_counts.ELITE }}</p>
+    <form method="post" action="/admin/data-center">
+      <input type="hidden" name="action" value="commercial">
+      <button type="submit">Recalcular lanzamiento comercial</button>
+    </form>
+  </aside>
+  <aside class="card elite-card">
+    <h2>Pricing preparado</h2>
+    <p class="small">FREE: {{ data.commercial.pricing.FREE.headline }}</p>
+    <p class="small">PRO: {{ data.commercial.pricing.PRO.price }}€/mes · {{ data.commercial.pricing.PRO.headline }}</p>
+    <p class="small">ELITE: {{ data.commercial.pricing.ELITE.price }}€/mes · {{ data.commercial.pricing.ELITE.headline }}</p>
+    <p class="small">Stripe queda preparado como siguiente paso cuando activemos cobros reales, sin bloquear la beta comercial.</p>
+  </aside>
+</section>
+
+<section class="band">
+  <div class="section-head"><h2>Checklist comercial</h2><span class="pill">{{ data.commercial.checks_ok }}/{{ data.commercial.checks_total }}</span></div>
+  <div class="stack">
+    {% for check in data.commercial.checks[:10] %}
+    <div class="list-row"><span>{{ check.area }} / {{ check.title }}<br><small>{{ check.detail }}</small></span><strong>{{ check.status }}</strong></div>
+    {% else %}
+    <div class="empty">Sin checklist comercial generado todavía.</div>
+    {% endfor %}
   </div>
 </section>
 
 <section class="band form-grid">
+  <aside class="card">
+    <h2>Operaciones autonomas V573</h2>
+    <p class="small">Estado: {{ data.autonomous.status }}</p>
+    <p class="small">Runs 24h: {{ data.autonomous.runs_24h }} · OK: {{ data.autonomous.tasks_ok_24h }} · Errores: {{ data.autonomous.tasks_error_24h }}</p>
+    <p class="small">Telegram pendiente: {{ data.autonomous.telegram_pending }} · Warehouse dias: {{ data.autonomous.warehouse_days }}</p>
+    <form method="post" action="/admin/data-center">
+      <input type="hidden" name="action" value="autonomous">
+      <input type="hidden" name="force" value="1">
+      <button type="submit">Ejecutar ciclo autonomo ahora</button>
+    </form>
+  </aside>
   <aside class="card">
     <h2>Auto Sync</h2>
     <p class="small">Estado: {% if data.data_center.scheduler.enabled %}activado{% else %}desactivado{% endif %}</p>
@@ -44,6 +163,17 @@
     <p class="small">Sin errores recientes.</p>
     {% endfor %}
   </aside>
+</section>
+
+<section class="band">
+  <div class="section-head"><h2>Acciones autonomas pendientes</h2><span class="pill">{{ data.autonomous.actions_open }}</span></div>
+  <div class="stack">
+    {% for action in data.autonomous.actions[:8] %}
+    <div class="list-row"><span>{{ action.title }}<br><small>{{ action.detail }}</small></span><strong>{{ action.priority }}</strong></div>
+    {% else %}
+    <div class="empty">Sin acciones criticas. El ecosistema puede trabajar solo.</div>
+    {% endfor %}
+  </div>
 </section>
 
 <section class="band">
