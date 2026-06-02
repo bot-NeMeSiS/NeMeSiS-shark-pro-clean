@@ -53,7 +53,7 @@ def interval_seconds(task_name, env):
 def scheduler_config(env):
     return {
         "enabled": env_bool(env, "ENABLE_AUTO_SYNC", True),
-        "startup": env_bool(env, "AUTO_SYNC_ON_STARTUP", True),
+        "startup": env_bool(env, "AUTO_SYNC_ON_STARTUP", False),
         "tasks": [
             {
                 **task,

@@ -83,7 +83,7 @@ from engines.api_exploitation_engine import ensure_api_exploitation_schema, run_
 from engines.player_intelligence_engine import ensure_player_intelligence_schema, player_intelligence_summary, rebuild_player_intelligence, player_intelligence_for_fixture
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V602_PLAYER_INTELLIGENCE_ENGINE"
+APP_VERSION = "V603_STARTUP_BLACK_SCREEN_FULL_REPAIR"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -1004,6 +1004,11 @@ def init_db():
         )"""
     )
     run_schema_migrations(conn)
+    # V603 emergency stability fix:
+    # Commit core schema before calling engine schema helpers. Those helpers open
+    # their own SQLite connections; without this commit, the first public request
+    # can wait on a database lock and the app may look like a black screen.
+    conn.commit()
     try:
         ensure_warehouse_schema(DB_PATH)
         ensure_autonomous_schema(DB_PATH)
@@ -2519,7 +2524,7 @@ def scheduler_enabled():
 
 
 def scheduler_startup_enabled():
-    return scheduler_env_config().get("startup", True)
+    return scheduler_env_config().get("startup", False)
 
 
 def scheduler_lock_row(task_name):
@@ -7457,7 +7462,7 @@ def api_favorites():
         return jsonify({"version": APP_VERSION, **remove_favorite(payload.get("kind"), payload.get("value"))})
     favorite = add_favorite(payload.get("kind"), payload.get("value"), payload.get("label"))
     if not favorite:
-        return jsonify({"ok": False, "version": APP_VERSION, "error": "Favorito invalido. Usa kind team, league o match con value."}), 400
+        return jsonify({"ok": False, "version": APP_VERSION, "error": "Favorito inválido. Usa kind team, league o match con value."}), 400
     return jsonify({"ok": True, "version": APP_VERSION, "favorite": favorite})
 
 
@@ -8381,7 +8386,6 @@ def api_admin_membership_summary():
 
 
 # ===================== V565 SPORTS DATA & PICKS PERFECTION =====================
-APP_VERSION = "V582_TELEGRAM_PICKS_HARD_FIX_AUDIT_READY"
 
 PRIORITY_LEAGUE_ORDER = [
     "UEFA Champions League", "Champions League", "LaLiga", "Spanish La Liga", "Premier League",
