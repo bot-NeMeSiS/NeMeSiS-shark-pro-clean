@@ -30,7 +30,7 @@ from engines.football_population_engine import (
     success_sync,
     team_payload,
 )
-from engines.live_engine import build_live_depth, build_live_flow, build_match_detail, fallback_timeline, normalize_live_state, shark_live_alerts, shark_momentum
+from engines.live_engine import build_live_depth, build_live_flow, build_match_detail, fallback_timeline, normalize_live_state, shark_live_alerts, shark_momentum, build_deep_live_intelligence
 from engines.match_engine import hub_sections, real_time_state, sync_plan
 from engines.match_sync_engine import IMPORTANT_COMPETITIONS, h2h_price_snapshot, normalize_status as sync_normalize_status, odds_sports, sportsdb_leagues
 from engines.membership_engine import can_access_feature, get_membership_limits, get_user_membership, membership_context
@@ -53,9 +53,10 @@ from engines.telegram_delivery_engine import (
     telegram_dedupe_key,
 )
 from engines.telegram_engine import build_alert_queue, dispatch_signature, should_skip_duplicate
+from engines.historical_warehouse_engine import ensure_warehouse_schema, snapshot_warehouse, warehouse_summary
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V602_SHARK_VISIBILITY_LAYER"
+APP_VERSION = "V572_HISTORICAL_DATA_WAREHOUSE"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -817,6 +818,10 @@ def init_db():
         )"""
     )
     run_schema_migrations(conn)
+    try:
+        ensure_warehouse_schema(DB_PATH)
+    except Exception:
+        pass
     cleanup_fake_matches(cur)
     cur.execute(
         """INSERT OR IGNORE INTO telegram_settings
@@ -2280,7 +2285,9 @@ def run_scheduler_task(task_name, force=False, limit=None):
         elif task_name == "live_alerts":
             result = refresh_live_alerts_basic(limit=limit or 40)
         elif task_name == "warehouse":
-            result = historical_snapshot(limit=limit or 120)
+            legacy = historical_snapshot(limit=limit or 120)
+            result = snapshot_warehouse(DB_PATH, limit=limit or 250)
+            result["legacy_historical"] = legacy.get("warehouse", legacy) if isinstance(legacy, dict) else legacy
         elif task_name == "cleanup":
             result = cleanup_scheduler_logs(max_rows=as_int(os.getenv("SCHEDULER_LOG_MAX_ROWS", "300"), 300))
         elif task_name == "telegram":
@@ -5848,9 +5855,12 @@ def admin_data_center_page():
             result = run_scheduler_task("live", force=True, limit=limit)
         elif action == "warmup":
             result = run_scheduler_task("warmup", force=True, limit=limit)
+        elif action == "warehouse":
+            result = snapshot_warehouse(DB_PATH, limit=limit)
         message = "Accion ejecutada desde Data Center."
     data = dashboard_data()
     data["data_center"] = data_center_summary()
+    data["warehouse"] = warehouse_summary(DB_PATH)
     return render_template("admin_data_center.html", data=data, message=message, result=result)
 
 
@@ -6050,6 +6060,20 @@ def api_data_center_summary():
         return admin_json_forbidden()
     return jsonify({"ok": True, "version": APP_VERSION, "summary": data_center_summary()})
 
+@app.route("/api/warehouse/summary")
+def api_warehouse_summary():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "version": APP_VERSION, "warehouse": warehouse_summary(DB_PATH)})
+
+
+@app.route("/api/warehouse/snapshot", methods=["POST", "GET"])
+def api_warehouse_snapshot():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    limit = as_int(request.args.get("limit") or request.form.get("limit"), 250)
+    return jsonify({"version": APP_VERSION, **snapshot_warehouse(DB_PATH, limit=limit)})
+
 
 @app.route("/api/data-center/warmup", methods=["POST", "GET"])
 def api_data_center_warmup():
@@ -6119,6 +6143,15 @@ def api_live():
     matches = get_matches(date, "today")
     enriched = [annotate_match(m) for m in matches]
     return jsonify({"ok": True, "version": APP_VERSION, "date": date, "matches": split_live(enriched), "state_engine": ["LIVE", "HT", "FT", "UPCOMING", "SUSPENDED"]})
+
+
+@app.route("/api/live/deep")
+def api_live_deep():
+    date = request.args.get("date") or today_iso()
+    lane = request.args.get("lane", "today")
+    matches = [annotate_match(m) for m in get_matches(date, lane)]
+    deep = build_deep_live_intelligence(matches)
+    return jsonify({"ok": True, "version": APP_VERSION, "date": date, "lane": lane, "deep_live": deep})
 
 
 @app.route("/api/match-hub")
@@ -7043,7 +7076,7 @@ def api_admin_membership_summary():
 
 
 # ===================== V565 SPORTS DATA & PICKS PERFECTION =====================
-APP_VERSION = "V602_SHARK_VISIBILITY_LAYER"
+APP_VERSION = "V572_HISTORICAL_DATA_WAREHOUSE"
 
 PRIORITY_LEAGUE_ORDER = [
     "UEFA Champions League", "Champions League", "LaLiga", "Spanish La Liga", "Premier League",

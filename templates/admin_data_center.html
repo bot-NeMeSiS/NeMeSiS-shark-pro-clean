@@ -24,6 +24,8 @@
     <div class="card"><div class="metric">{{ data.data_center.teams_with_crests }}</div><div class="muted">con escudo</div></div>
     <div class="card"><div class="metric">{{ data.data_center.odds_snapshots }}</div><div class="muted">cuotas</div></div>
     <div class="card"><div class="metric">{{ data.data_center.population.competitions_prepared }}</div><div class="muted">preparadas</div></div>
+    <div class="card"><div class="metric">{{ data.warehouse.match_facts }}</div><div class="muted">warehouse partidos</div></div>
+    <div class="card"><div class="metric">{{ data.warehouse.quality_score }}%</div><div class="muted">calidad historica</div></div>
   </div>
 </section>
 
@@ -67,7 +69,8 @@
     ('live','Refresh live','Actualiza live basico y proximos destacados.'),
     ('results','Sincronizar resultados','Guarda resultados recientes si la API los ofrece.'),
     ('odds','Sincronizar cuotas','Trae eventos/cuotas H2H respetando cache.'),
-    ('warmup','Warmup general','Ejecuta competiciones, equipos, calendario y cuotas con control de intervalo.')
+    ('warmup','Warmup general','Ejecuta competiciones, equipos, calendario y cuotas con control de intervalo.'),
+    ('warehouse','Warehouse historico','Guarda snapshot de partidos, cuotas, picks, usuarios y metricas para SHARK/ML.')
   ] %}
   <form class="card" method="post" action="/admin/data-center">
     <h2>{{ label }}</h2>
@@ -78,6 +81,26 @@
     <button type="submit">{{ label }}</button>
   </form>
   {% endfor %}
+</section>
+
+
+<section class="band two-col">
+  <aside class="card">
+    <h2>Warehouse historico V572</h2>
+    <p class="small">Partidos fact: {{ data.warehouse.match_facts }}</p>
+    <p class="small">Cuotas fact: {{ data.warehouse.odds_facts }}</p>
+    <p class="small">Picks fact: {{ data.warehouse.pick_facts }}</p>
+    <p class="small">Usuarios fact: {{ data.warehouse.user_facts }}</p>
+    <p class="small">Metricas diarias: {{ data.warehouse.daily_metrics }}</p>
+  </aside>
+  <aside class="card">
+    <h2>Ultimos snapshots</h2>
+    {% for run in data.warehouse.recent_runs[:5] %}
+    <div class="list-row"><span>{{ run.started_at }} / {{ run.status }}</span><strong>{{ run.inserted }}</strong></div>
+    {% else %}
+    <p class="small">Aun no hay snapshots historicos. Ejecuta Warehouse historico.</p>
+    {% endfor %}
+  </aside>
 </section>
 
 <section class="band two-col">
