@@ -8,7 +8,7 @@
   </div>
   <div class="score-card">
     <span class="score-number">{{ shark.score }}</span>
-    <span class="muted">Score SHARK</span>
+    <span class="muted">Puntuacin SHARK</span>
     <strong>{{ shark.priority }}</strong>
   </div>
 </section>
@@ -40,9 +40,9 @@
   </article>
 
   <article class="card">
-    <p class="eyebrow">Live y favoritos</p>
-    <h3>{{ shark.counts.live }} live · {{ shark.counts.favorites }} favoritos</h3>
-    <p class="muted">SHARK cruza favoritos, live, picks y calendario para priorizar lo importante.</p>
+    <p class="eyebrow">Directo y favoritos</p>
+    <h3>{{ shark.counts.live }} directo · {{ shark.counts.favorites }} favoritos</h3>
+    <p class="muted">SHARK cruza favoritos, directo, picks y calendario para priorizar lo importante.</p>
     <a class="btn ghost" href="/favorites">Mis favoritos</a>
   </article>
 </section>
@@ -56,7 +56,7 @@
   </div>
   <div class="quick-grid">
     {% for q in shark.quick_questions %}
-      <a class="chip" href="/shark?q={{ q.question|urlencode }}">{{ q.label }} · {{ q.question }}</a>
+      <a class="chip" href="/sharkq={{ q.question|urlencode }}">{{ q.label }} · {{ q.question }}</a>
     {% endfor %}
   </div>
 </section>
@@ -82,7 +82,7 @@
     <ul class="clean-list">
       <li>Favoritos consultados</li>
       <li>Picks y recomendaciones abiertas</li>
-      <li>Resumen diario y contexto live</li>
+      <li>Resumen diario y contexto directo</li>
     </ul>
   </article>
 </section>

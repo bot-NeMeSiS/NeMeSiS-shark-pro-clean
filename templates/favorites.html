@@ -85,9 +85,9 @@
 
 <section class="band two-col">
   <div>
-    <div class="section-head"><h2>Live relacionados</h2><span class="pill">{{ data.favorite_bundle.live|length }}</span></div>
+    <div class="section-head"><h2>Directo relacionados</h2><span class="pill">{{ data.favorite_bundle.directo|length }}</span></div>
     <div class="stack">
-      {% for m in data.favorite_bundle.live %}
+      {% for m in data.favorite_bundle.directo %}
       <a class="list-row" href="/match/{{ m.id }}"><span>{{ m.home_team }} vs {{ m.away_team }}</span><strong>{{ m.live_depth.label }}</strong></a>
       {% else %}
       <div class="empty">Sin directos relacionados con tus favoritos ahora mismo.</div>

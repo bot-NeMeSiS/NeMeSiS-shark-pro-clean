@@ -5,12 +5,12 @@
     <div class="kicker">Mi cuenta</div>
     <h1>{{ data.session_user.name }} · {{ data.account_center.plan }}</h1>
     <p class="lead">Centro simple para controlar perfil, favoritos, alertas, Telegram y SHARK sin ver herramientas de admin.</p>
-    <div class="actions"><a class="btn primary" href="/onboarding">Completar configuración</a><a class="btn" href="/perfil">Dashboard</a><a class="btn" href="/logout">Salir</a></div>
+    <div class="actions"><a class="btn primary" href="/onboarding">Completar configuración</a><a class="btn" href="/perfil">Panel</a><a class="btn" href="/logout">Salir</a></div>
   </div>
   <aside class="hero-panel">
     <span class="pill">Personalización</span>
     <div class="big-score">{{ data.onboarding.score }}%</div>
-    <div class="live-strip mini-live-strip"><div><span>Favs</span><strong>{{ data.account_center.favorites }}</strong></div><div><span>Alertas</span><strong>{{ data.account_center.alerts }}</strong></div><div><span>Actividad</span><strong>{{ data.account_center.activity }}</strong></div></div>
+    <div class="directo-strip mini-directo-strip"><div><span>Favs</span><strong>{{ data.account_center.favorites }}</strong></div><div><span>Alertas</span><strong>{{ data.account_center.alerts }}</strong></div><div><span>Actividad</span><strong>{{ data.account_center.activity }}</strong></div></div>
   </aside>
 </section>
 <section class="band compact-band">

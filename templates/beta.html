@@ -4,12 +4,12 @@
   <div>
     <div class="kicker">Beta privada</div>
     <h1>Acceso tester NeMeSiS SHARK PRO</h1>
-    <p class="lead">Únete al grupo de prueba para validar picks, live, Telegram y experiencia premium antes del lanzamiento comercial.</p>
+    <p class="lead">Únete al grupo de prueba para validar picks, directo, Telegram y experiencia premium antes del lanzamiento comercial.</p>
   </div>
   <aside class="hero-panel">
-    <div class="live-strip">
+    <div class="directo-strip">
       <div><span>Estado</span><strong>{{ beta.status_label }}</strong></div>
-      <div><span>Feedback</span><strong>{{ beta.feedback_count }}</strong></div>
+      <div><span>Feedback</span><strong>{{ beta.comentarios_count }}</strong></div>
       <div><span>Plan</span><strong>{{ beta.membership }}</strong></div>
     </div>
   </aside>
@@ -18,14 +18,14 @@
 <section class="band compact-band">
   <div class="section-head"><h2>Tu acceso beta</h2><span class="pill">Cliente</span></div>
   <div class="grid cards-3">
-    <div class="card"><span class="badge">1</span><h3>Prueba la app real</h3><p class="small">Live, calendario, picks, recomendaciones, favoritos, SHARK y Telegram.</p></div>
+    <div class="card"><span class="badge">1</span><h3>Prueba la app real</h3><p class="small">Directo, calendario, picks, recomendaciones, favoritos, SHARK y Telegram.</p></div>
     <div class="card"><span class="badge">2</span><h3>Detecta lo incómodo</h3><p class="small">Botones confusos, pantallas vacías, textos largos o datos que no encajan.</p></div>
-    <div class="card"><span class="badge">3</span><h3>Ayuda a cerrar lanzamiento</h3><p class="small">Tu feedback se guarda para priorizar mejoras reales antes de vender.</p></div>
+    <div class="card"><span class="badge">3</span><h3>Ayuda a cerrar lanzamiento</h3><p class="small">Tu comentarios se guarda para priorizar mejoras reales antes de vender.</p></div>
   </div>
 </section>
 
 <section class="band compact-band">
-  <div class="section-head"><h2>Solicitar acceso / enviar feedback</h2><span class="pill">V556</span></div>
+  <div class="section-head"><h2>Solicitar acceso / enviar comentarios</h2><span class="pill">V556</span></div>
   <form class="card form-card" method="post" action="/api/beta/join">
     <label>Nombre visible</label>
     <input name="name" value="{{ beta.name }}" placeholder="Tu nombre">
@@ -35,13 +35,13 @@
     <select name="focus_area">
       <option value="cliente">Experiencia cliente</option>
       <option value="picks">Picks y recomendaciones</option>
-      <option value="live">Live y resultados</option>
+      <option value="directo">Directo y resultados</option>
       <option value="telegram">Telegram</option>
       <option value="mobile">Móvil / app feel</option>
     </select>
     <label>Mensaje</label>
     <textarea name="message" rows="4" placeholder="Cuenta qué has visto, qué falla o qué mejorarías"></textarea>
-    <button class="btn primary" type="submit">Enviar feedback beta</button>
+    <button class="btn primary" type="submit">Enviar comentarios beta</button>
   </form>
 </section>
 

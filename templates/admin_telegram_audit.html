@@ -1,14 +1,14 @@
 {% extends "base.html" %}
 {% block content %}
 <section class="hero compact">
-  <div class="kicker">Admin - Auditoria Telegram</div>
+  <div class="kicker">Admin - Auditoría Telegram</div>
   <h1>Flujo picks a Telegram</h1>
-  <p class="lead">Verifica picks encontrados, cola, procesador, envios y errores reales sin exponer tokens.</p>
+  <p class="lead">Verifica picks encontrados, cola, procesador, envíos y errores reales sin exponer tokens.</p>
   <div class="actions">
     <a class="btn" href="/admin/telegram">Telegram</a>
-    <a class="btn" href="/admin/autopilot-audit">Autopilot picks</a>
+    <a class="btn" href="/admin/autopilot-audit">Piloto automático de picks</a>
     <a class="btn" href="/admin/picks">Picks</a>
-    <a class="btn" href="/api/telegram/audit-picks">JSON audit</a>
+    <a class="btn" href="/api/telegram/audit-picks">Auditoría JSON</a>
   </div>
 </section>
 
@@ -27,7 +27,7 @@
 
 <section class="band form-grid">
   <form class="card" method="post">
-    <h2>Acciones de auditoria</h2>
+    <h2>Acciones de auditora</h2>
     <input type="hidden" name="action" value="send_now">
     <label><input type="checkbox" name="force_empty" value="1"> Enviar aviso aunque no haya picks publicados</label>
     <button class="primary" type="submit">Enviar picks ahora</button>
@@ -37,7 +37,7 @@
     <form method="post"><input type="hidden" name="action" value="fix"><button type="submit">Preparar ajustes picks</button></form>
     <form method="post"><input type="hidden" name="action" value="enqueue"><button type="submit">Encolar picks</button></form>
     <form method="post"><input type="hidden" name="action" value="process"><button type="submit">Procesar cola</button></form>
-    <form method="post"><input type="hidden" name="action" value="audit"><button type="submit">Actualizar auditoria</button></form>
+    <form method="post"><input type="hidden" name="action" value="audit"><button type="submit">Actualizar auditora</button></form>
   </div>
 </section>
 
@@ -51,22 +51,22 @@
     </div>
   </div>
   <div class="card">
-    <h2>Ultimos eventos</h2>
-    <p class="small">Auto delivery: {% if audit.settings.enabled %}activo{% else %}off{% endif %}</p>
-    <p class="small">Auto daily picks: {% if audit.settings.auto_daily_picks %}activo{% else %}off{% endif %} · hora {{ audit.settings.daily_picks_time }}</p>
-    <p class="small">Ultimo envio: {{ audit.last_sent.sent_at or 'sin envio registrado' }}</p>
-    <p class="small">Ultimo error app: {{ audit.last_error.message or 'sin error registrado' }}</p>
-    <p class="small">Ultimo error Telegram: {{ audit.last_telegram_error.response_json or audit.last_telegram_error.payload_preview or 'sin error Telegram registrado' }}</p>
+    <h2>Últimos eventos</h2>
+    <p class="small">Envío automático: {% if audit.settings.enabled %}activo{% else %}desactivado{% endif %}</p>
+    <p class="small">Auto picks diarios: {% if audit.settings.auto_daily_picks %}activo{% else %}desactivado{% endif %} · hora {{ audit.settings.daily_picks_time }}</p>
+    <p class="small">Último envío: {{ audit.last_sent.sent_at or 'sin envío registrado' }}</p>
+    <p class="small">Último error app: {{ audit.last_error.message or 'sin error registrado' }}</p>
+    <p class="small">Último error Telegram: {{ audit.last_telegram_error.response_json or audit.last_telegram_error.payload_preview or 'sin error Telegram registrado' }}</p>
   </div>
 </section>
 
 <section class="band">
-  <div class="section-head"><h2>Jobs automaticos</h2><span class="pill">{{ audit.scheduler|length }}</span></div>
+  <div class="section-head"><h2>Trabajos automáticos</h2><span class="pill">{{ audit.scheduler|length }}</span></div>
   <div class="stack">
     {% for job in audit.scheduler %}
-    <div class="list-row"><span>{{ job.task_name }}<br><small>last {{ job.last_run or '-' }} · next {{ job.next_run or '-' }} · {{ job.error_message or '' }}</small></span><strong>{{ job.status or 'sin estado' }}</strong></div>
+    <div class="list-row"><span>{{ job.task_name }}<br><small>Última ejecución {{ job.last_run or '-' }} · próxima ejecución {{ job.next_run or '-' }} · {{ job.error_message or '' }}</small></span><strong>{{ job.status or 'sin estado' }}</strong></div>
     {% else %}
-    <div class="empty">No hay locks de scheduler para telegram/auto_picks/recommendations.</div>
+    <div class="empty">No hay bloqueos del programador para telegram/auto_picks/recommendations.</div>
     {% endfor %}
   </div>
 </section>
@@ -88,7 +88,7 @@
       {% for log in audit.recent_logs[:20] %}
       <div class="list-row"><span>{{ log.message }}<br><small>{{ log.created_at }}</small></span><strong>{{ log.status }}</strong></div>
       {% else %}
-      <div class="empty">Aun no hay logs [TELEGRAM]/[PICKS]/[QUEUE]/[SEND].</div>
+      <div class="empty">Aún no hay logs [TELEGRAM]/[PICKS]/[QUEUE]/[SEND].</div>
       {% endfor %}
     </div>
   </div>
@@ -97,7 +97,7 @@
 {% if result %}
 <section class="band">
   <div class="card">
-    <h2>Resultado de la ultima accion</h2>
+    <h2>Resultado de la Última acción</h2>
     <pre class="small">{{ result }}</pre>
   </div>
 </section>

@@ -17,7 +17,7 @@
           <button class="{{ 'danger' if t.is_favorite else 'primary' }}" type="submit">{{ 'Quitar favorito' if t.is_favorite else 'Guardar equipo' }}</button>
         </form>
         <a class="btn" href="/match-hub">Calendario</a>
-        <a class="btn" href="/shark?team={{ t.name|urlencode }}">Preguntar a SHARK</a>
+        <a class="btn" href="/sharkteam={{ t.name|urlencode }}">Preguntar a SHARK</a>
       </div>
     </div>
   </div>
@@ -35,7 +35,7 @@
   <div class="grid stats-grid">
     <div class="card mini-stat"><span>Próximos</span><strong>{{ t.stats.upcoming }}</strong><small>Partidos sincronizados</small></div>
     <div class="card mini-stat"><span>Resultados</span><strong>{{ t.stats.recent }}</strong><small>Histórico guardado</small></div>
-    <div class="card mini-stat"><span>Live</span><strong>{{ t.stats.live }}</strong><small>Ahora mismo</small></div>
+    <div class="card mini-stat"><span>Directo</span><strong>{{ t.stats.directo }}</strong><small>Ahora mismo</small></div>
     <div class="card mini-stat"><span>Picks</span><strong>{{ t.stats.picks }}</strong><small>Relacionados</small></div>
   </div>
 </section>
@@ -44,14 +44,14 @@
   <div class="card">
     <div class="section-head"><h2>Contexto SHARK</h2><span class="pill">IA</span></div>
     <p>{{ t.shark_context }}</p>
-    <div class="actions"><a class="btn primary" href="/shark?team={{ t.name|urlencode }}">Abrir SHARK IA</a></div>
+    <div class="actions"><a class="btn primary" href="/sharkteam={{ t.name|urlencode }}">Abrir SHARK IA</a></div>
   </div>
   <div class="card">
     <div class="section-head"><h2>Resumen</h2><span class="pill">Equipo</span></div>
     <div class="stack">
       <div class="list-row"><span>Próximos partidos</span><strong>{{ t.stats.upcoming }}</strong></div>
       <div class="list-row"><span>Resultados guardados</span><strong>{{ t.stats.recent }}</strong></div>
-      <div class="list-row"><span>En directo ahora</span><strong>{{ t.stats.live }}</strong></div>
+      <div class="list-row"><span>En directo ahora</span><strong>{{ t.stats.directo }}</strong></div>
       <div class="list-row"><span>Picks relacionados</span><strong>{{ t.stats.picks }}</strong></div>
     </div>
   </div>

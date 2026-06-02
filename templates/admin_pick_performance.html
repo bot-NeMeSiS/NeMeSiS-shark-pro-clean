@@ -3,12 +3,12 @@
 <section class="hero compact-hero admin-hero">
   <div class="eyebrow">Admin · Rendimiento</div>
   <h1>Pick Performance Center</h1>
-  <p>Controla qué picks siguen los clientes, stakes marcados y salud comercial del sistema de pronósticos.</p>
+  <p>Controla qué picks siguen los clientes, importes marcados y salud comercial del sistema de pronósticos.</p>
 </section>
 
 <section class="grid cards-3">
   <article class="card stat-card"><span>Picks publicados</span><strong>{{ data.pick_stats.published or 0 }}</strong><small>visibles para clientes</small></article>
-  <article class="card stat-card"><span>Winrate</span><strong>{{ data.pick_stats.winrate or 0 }}%</strong><small>según resultados reales</small></article>
+  <article class="card stat-card"><span>Acierto</span><strong>{{ data.pick_stats.winrate or 0 }}%</strong><small>según resultados reales</small></article>
   <article class="card stat-card"><span>ROI</span><strong>{{ data.pick_stats.roi or 0 }}%</strong><small>no inventa resultados</small></article>
 </section>
 
@@ -16,9 +16,9 @@
   <h2>Picks más seguidos</h2>
   {% if data.global_tracking %}
   <div class="table-wrap"><table class="premium-table">
-    <thead><tr><th>Partido</th><th>Selección</th><th>Resultado</th><th>Seguidores</th><th>Stake seguido</th></tr></thead>
+    <thead><tr><th>Partido</th><th>Selección</th><th>Resultado</th><th>Seguidores</th><th>Importe seguido</th></tr></thead>
     <tbody>{% for row in data.global_tracking %}<tr>
-      <td>{{ row.home_team }} vs {{ row.away_team }}</td><td>{{ row.selection }}</td><td>{{ row.result_status }}</td><td>{{ row.followers or 0 }}</td><td>{{ row.tracked_stake or 0 }}€</td>
+      <td>{{ row.home_team }} vs {{ row.away_team }}</td><td>{{ row.selection }}</td><td>{{ row.result_status }}</td><td>{{ row.followers or 0 }}</td><td>{{ row.tracked_importe or 0 }}€</td>
     </tr>{% endfor %}</tbody>
   </table></div>
   {% else %}<div class="empty-state">Todavía no hay picks seguidos por usuarios.</div>{% endif %}
@@ -27,7 +27,7 @@
 <section class="card">
   <h2>Usuarios con banca configurada</h2>
   {% if data.bankroll_users %}
-  <div class="grid cards-3">{% for u in data.bankroll_users %}<article class="mini-card"><strong>{{ u.user_id }}</strong><span>Banca: {{ u.current_bankroll }}€</span><span>Stake: {{ u.preferred_stake }}€ · {{ u.risk_profile }}</span></article>{% endfor %}</div>
+  <div class="grid cards-3">{% for u in data.bankroll_users %}<article class="mini-card"><strong>{{ u.user_id }}</strong><span>Banca: {{ u.current_bankroll }}€</span><span>Importe: {{ u.preferred_stake }}€ · {{ u.risk_profile }}</span></article>{% endfor %}</div>
   {% else %}<div class="empty-state">Aún no hay bancas configuradas.</div>{% endif %}
 </section>
 {% endblock %}

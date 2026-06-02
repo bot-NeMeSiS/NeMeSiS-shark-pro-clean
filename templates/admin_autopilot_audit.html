@@ -1,13 +1,13 @@
 {% extends "base.html" %}
 {% block content %}
 <section class="hero compact">
-  <div class="kicker">Admin - Autopilot picks</div>
-  <h1>Piloto automatico SHARK</h1>
-  <p class="lead">Auditoria del ciclo que genera picks, evita duplicados, encola Telegram y procesa el envio sin intervencion manual.</p>
+  <div class="kicker">Admin - Piloto automático de picks</div>
+  <h1>Piloto automático SHARK</h1>
+  <p class="lead">Auditoría del ciclo que genera picks, evita duplicados, encola Telegram y procesa el envío sin intervención manual.</p>
   <div class="actions">
-    <a class="btn" href="/admin/telegram-audit">Auditoria Telegram</a>
+    <a class="btn" href="/admin/telegram-audit">Auditoría Telegram</a>
     <a class="btn" href="/admin/picks">Picks</a>
-    <a class="btn" href="/api/scheduler/status">Scheduler JSON</a>
+    <a class="btn" href="/api/scheduler/status">Estado del programador</a>
   </div>
 </section>
 
@@ -27,10 +27,10 @@
 <section class="band two-col">
   <div class="card">
     <h2>Configuracion</h2>
-    <p class="small">Generar picks: {% if audit.config.auto_generate_picks %}activo{% else %}off{% endif %}</p>
-    <p class="small">Enviar Telegram: {% if audit.config.auto_send_telegram_picks %}activo{% else %}off{% endif %}</p>
-    <p class="small">Score minimo: {{ audit.config.min_shark_score_for_auto_send }}</p>
-    <p class="small">Maximo diario: {{ audit.config.max_auto_picks_per_day }}</p>
+    <p class="small">Generar picks: {% if audit.config.auto_generate_picks %}activo{% else %}desactivado{% endif %}</p>
+    <p class="small">Enviar Telegram: {% if audit.config.auto_send_telegram_picks %}activo{% else %}desactivado{% endif %}</p>
+    <p class="small">Score mnimo: {{ audit.config.min_shark_score_for_auto_send }}</p>
+    <p class="small">Mximo diario: {{ audit.config.max_auto_picks_per_day }}</p>
     <p class="small">Ventana Telegram: {{ audit.config.telegram_auto_send_window_hours }} h</p>
     <p class="small">Proximo ciclo estimado: {{ audit.next_cycle_estimated or 'pendiente' }}</p>
   </div>
@@ -52,7 +52,7 @@
 
 <section class="band two-col">
   <div>
-    <div class="section-head"><h2>Ultimos ciclos</h2><span class="pill">{{ audit.cycles|length }}</span></div>
+    <div class="section-head"><h2>Últimos ciclos</h2><span class="pill">{{ audit.cycles|length }}</span></div>
     <div class="stack">
       {% for cycle in audit.cycles %}
       <div class="list-row">
@@ -60,7 +60,7 @@
         <strong>{{ cycle.status }}</strong>
       </div>
       {% else %}
-      <div class="empty">Aun no hay ciclos automaticos registrados.</div>
+      <div class="empty">Aún no hay ciclos automáticos registrados.</div>
       {% endfor %}
     </div>
   </div>
@@ -85,19 +85,19 @@
       <strong>{{ item.status }}</strong>
     </div>
     {% else %}
-    <div class="empty">Aun no hay candidatos evaluados.</div>
+    <div class="empty">Aún no hay candidatos evaluados.</div>
     {% endfor %}
   </div>
 </section>
 
 <section class="band two-col">
   <div>
-    <div class="section-head"><h2>Cola published_pick</h2><span class="pill">{{ audit.queue|length }}</span></div>
+    <div class="section-head"><h2>Cola pick publicado</h2><span class="pill">{{ audit.queue|length }}</span></div>
     <div class="stack">
       {% for q in audit.queue[:20] %}
       <div class="list-row"><span>{{ q.title }}<br><small>{{ q.created_at }} - {{ q.error_message }}</small></span><strong>{{ q.status }}</strong></div>
       {% else %}
-      <div class="empty">Sin mensajes published_pick recientes.</div>
+      <div class="empty">Sin mensajes de pick publicado recientes.</div>
       {% endfor %}
     </div>
   </div>
@@ -107,7 +107,7 @@
       {% for log in audit.recent_logs[:20] %}
       <div class="list-row"><span>{{ log.message }}<br><small>{{ log.created_at }}</small></span><strong>{{ log.status }}</strong></div>
       {% else %}
-      <div class="empty">Sin logs autopilot todavia.</div>
+      <div class="empty">Sin registros del piloto automático todavía.</div>
       {% endfor %}
     </div>
   </div>

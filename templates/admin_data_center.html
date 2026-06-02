@@ -1,14 +1,14 @@
 {% extends "base.html" %}
 {% block content %}
 <section class="hero compact">
-  <div class="kicker">Admin - Data Center</div>
+  <div class="kicker">Admin - Centro de datos</div>
   <h1>Poblacion masiva de futbol</h1>
   <p class="lead">Centro seguro para poblar competiciones, equipos, escudos, calendario, resultados y cuotas desde fuentes legales y cache SQLite.</p>
   <div class="admin-menu">
-    <a class="btn primary" href="/admin/data-center">Data Center</a>
+    <a class="btn primary" href="/admin/data-center">Centro de datos</a>
     <a class="btn" href="/admin/matches-sync">Partidos</a>
     <a class="btn" href="/admin/sportsdb-sync">Escudos</a>
-    <a class="btn" href="/admin/import-center">Import Center</a>
+    <a class="btn" href="/admin/import-center">Centro de importacin</a>
   </div>
 </section>
 
@@ -17,7 +17,7 @@
 
 <section class="band two-col">
   <aside class="card elite-card">
-    <div class="section-head"><h2>SportsDB Highlights V579</h2><span class="pill">{{ data.sportsdb_highlights.status }}</span></div>
+    <div class="section-head"><h2>Resmenes SportsDB V579</h2><span class="pill">{{ data.sportsdb_highlights.status }}</span></div>
     <p class="small">Preparación: {{ data.sportsdb_highlights.readiness_score }}% · Highlights guardados: {{ data.sportsdb_highlights.highlights_total }} · Vídeos: {{ data.sportsdb_highlights.with_video }}</p>
     <p class="small">Partidos enlazados: {{ data.sportsdb_highlights.linked_matches }} · Fichas enriquecidas: {{ data.sportsdb_highlights.enriched_matches }}</p>
     <form method="post" action="/admin/data-center">
@@ -60,8 +60,8 @@
     <div class="card"><div class="metric">{{ data.data_center.total_competitions }}</div><div class="muted">competiciones</div></div>
     <div class="card"><div class="metric">{{ data.data_center.total_teams }}</div><div class="muted">equipos</div></div>
     <div class="card"><div class="metric">{{ data.data_center.total_matches }}</div><div class="muted">partidos</div></div>
-    <div class="card"><div class="metric">{{ data.data_center.upcoming_matches }}</div><div class="muted">proximos</div></div>
-    <div class="card"><div class="metric">{{ data.data_center.live_matches }}</div><div class="muted">live</div></div>
+    <div class="card"><div class="metric">{{ data.data_center.upcoming_matches }}</div><div class="muted">próximos</div></div>
+    <div class="card"><div class="metric">{{ data.data_center.directo_matches }}</div><div class="muted">directo</div></div>
     <div class="card"><div class="metric">{{ data.data_center.teams_with_crests }}</div><div class="muted">con escudo</div></div>
     <div class="card"><div class="metric">{{ data.data_center.odds_snapshots }}</div><div class="muted">cuotas</div></div>
     <div class="card"><div class="metric">{{ data.data_center.population.competitions_prepared }}</div><div class="muted">preparadas</div></div>
@@ -85,9 +85,9 @@
 
 <section class="band two-col">
   <aside class="card elite-card">
-    <div class="section-head"><h2>Telegram Autonomous Delivery V578</h2><span class="pill">{{ data.telegram_autonomous.status }}</span></div>
+    <div class="section-head"><h2>Entrega autnoma por Telegram V578</h2><span class="pill">{{ data.telegram_autonomous.status }}</span></div>
     <p class="small">Score: {{ data.telegram_autonomous.score }}% · Suscriptores activos: {{ data.telegram_autonomous.subscribers }} · Campañas: {{ data.telegram_autonomous.campaigns_total }}</p>
-    <p class="small">Cola total: {{ data.telegram_autonomous.queue_total }} · Pendientes: {{ data.telegram_autonomous.queue_pending }} · Memoria anti-duplicados: {{ data.telegram_autonomous.delivery_memory_total }}</p>
+    <p class="small">Cola total: {{ data.telegram_autonomous.queue_total }} · Pendientes: {{ data.telegram_autonomous.queue_pending }} · Memoria anti-duplicados: {{ data.telegram_autonomous.dedupe_memory_total }}</p>
     <form method="post" action="/admin/data-center">
       <input type="hidden" name="action" value="telegram_autonomous">
       <div class="field"><label>Límite de suscriptores por ejecución</label><input name="limit" value="30"></div>
@@ -114,7 +114,7 @@
   <aside class="card">
     <div class="section-head"><h2>Reglas activas</h2><span class="pill">membresías</span></div>
     {% for rule in data.telegram_autonomous.rules[:6] %}
-    <div class="list-row"><span>{{ rule.rule_key }} · {{ rule.membership_target }}<br><small>Confianza mínima {{ rule.min_confidence }} · cooldown {{ rule.cooldown_minutes }} min</small></span><strong>{{ 'ON' if rule.enabled else 'OFF' }}</strong></div>
+    <div class="list-row"><span>{{ rule.rule_key }} · {{ rule.membership_target }}<br><small>Confianza mínima {{ rule.min_confidence }} · cooldown {{ rule.cooldown_minutes }} min</small></span><strong>{{ 'ACTIVO' if rule.enabled else 'INACTIVO' }}</strong></div>
     {% else %}
     <p class="small">Sin reglas automáticas.</p>
     {% endfor %}
@@ -124,9 +124,9 @@
 
 <section class="band two-col">
   <aside class="card elite-card">
-    <div class="section-head"><h2>Smart Pick Grading V577</h2><span class="pill">{{ data.pick_grading.status }}</span></div>
+    <div class="section-head"><h2>Validacin inteligente de picks V577</h2><span class="pill">{{ data.pick_grading.status }}</span></div>
     <p class="small">Preparación: {{ data.pick_grading.readiness_score }}% · Picks graduados: {{ data.pick_grading.graded_total }} · Auto validados: {{ data.pick_grading.auto_validated }}</p>
-    <p class="small">Ganados: {{ data.pick_grading.won }} · Perdidos: {{ data.pick_grading.lost }} · Revisión pendiente: {{ data.pick_grading.pending_review }} · Profit estimado: {{ data.pick_grading.profit }}u</p>
+    <p class="small">Ganados: {{ data.pick_grading.won }} · Perdidos: {{ data.pick_grading.lost }} · Revisión pendiente: {{ data.pick_grading.pending_review }} · Beneficio estimado: {{ data.pick_grading.beneficio }}u</p>
     <form method="post" action="/admin/data-center">
       <input type="hidden" name="action" value="pick_grading">
       <div class="field"><label>Límite de picks a validar</label><input name="limit" value="500"></div>
@@ -146,7 +146,7 @@
   <aside class="card">
     <div class="section-head"><h2>Últimas validaciones</h2><span class="pill">control</span></div>
     {% for item in data.pick_grading.recent_results[:6] %}
-    <div class="list-row"><span>{{ item.result_status }} · {{ item.reason }}<br><small>Pick {{ item.pick_id }} · score {{ item.grading_score }} · profit {{ item.profit }}</small></span><strong>{{ item.grading_status }}</strong></div>
+    <div class="list-row"><span>{{ item.result_status }} · {{ item.reason }}<br><small>Pick {{ item.pick_id }} · score {{ item.grading_score }} · beneficio {{ item.beneficio }}</small></span><strong>{{ item.grading_status }}</strong></div>
     {% else %}
     <p class="small">Aún no hay validaciones. Ejecuta la validación inteligente cuando haya picks y resultados.</p>
     {% endfor %}
@@ -154,7 +154,7 @@
   <aside class="card">
     <div class="section-head"><h2>Runs de validación</h2><span class="pill">auditoría</span></div>
     {% for run in data.pick_grading.recent_runs[:6] %}
-    <div class="list-row"><span>{{ run.started_at }} · {{ run.status }}<br><small>Checked {{ run.picks_checked }} · auto {{ run.auto_validated }} · pendiente {{ run.pending }}</small></span><strong>{{ run.profit }}</strong></div>
+    <div class="list-row"><span>{{ run.started_at }} · {{ run.status }}<br><small>Checked {{ run.picks_checked }} · auto {{ run.auto_validated }} · pendiente {{ run.pending }}</small></span><strong>{{ run.beneficio }}</strong></div>
     {% else %}
     <p class="small">Sin ejecuciones registradas todavía.</p>
     {% endfor %}
@@ -182,17 +182,17 @@
 
 <section class="band two-col">
   <aside class="card">
-    <div class="section-head"><h2>Mejores patrones SHARK</h2><span class="pill">edge</span></div>
-    {% for edge in data.shark_memory.best_edges[:6] %}
-    <div class="list-row"><span>{{ edge.dimension_type }} · {{ edge.dimension_value }}<br><small>ROI {{ edge.roi }}% · Winrate {{ edge.win_rate }}% · muestra {{ edge.sample_size }}</small></span><strong>{{ edge.reliability_score }}%</strong></div>
+    <div class="section-head"><h2>Mejores patrones SHARK</h2><span class="pill">ventaja</span></div>
+    {% for ventaja in data.shark_memory.best_ventajas[:6] %}
+    <div class="list-row"><span>{{ ventaja.dimension_type }} · {{ ventaja.dimension_value }}<br><small>ROI {{ ventaja.roi }}% · Acierto {{ ventaja.win_rate }}% · muestra {{ ventaja.sample_size }}</small></span><strong>{{ ventaja.reliability_score }}%</strong></div>
     {% else %}
     <p class="small">Aún faltan picks resueltos para detectar patrones buenos.</p>
     {% endfor %}
   </aside>
   <aside class="card">
     <div class="section-head"><h2>Riesgos aprendidos</h2><span class="pill">control</span></div>
-    {% for edge in data.shark_memory.risk_edges[:6] %}
-    <div class="list-row"><span>{{ edge.dimension_type }} · {{ edge.dimension_value }}<br><small>ROI {{ edge.roi }}% · Winrate {{ edge.win_rate }}% · muestra {{ edge.sample_size }}</small></span><strong>{{ edge.shark_adjustment }}</strong></div>
+    {% for ventaja in data.shark_memory.risk_ventajas[:6] %}
+    <div class="list-row"><span>{{ ventaja.dimension_type }} · {{ ventaja.dimension_value }}<br><small>ROI {{ ventaja.roi }}% · Acierto {{ ventaja.win_rate }}% · muestra {{ ventaja.sample_size }}</small></span><strong>{{ ventaja.shark_adjustment }}</strong></div>
     {% else %}
     <p class="small">Sin riesgos históricos claros todavía.</p>
     {% endfor %}
@@ -266,7 +266,7 @@
     <h2>Operaciones autonomas V573</h2>
     <p class="small">Estado: {{ data.autonomous.status }}</p>
     <p class="small">Runs 24h: {{ data.autonomous.runs_24h }} · OK: {{ data.autonomous.tasks_ok_24h }} · Errores: {{ data.autonomous.tasks_error_24h }}</p>
-    <p class="small">Telegram pendiente: {{ data.autonomous.telegram_pending }} · Warehouse dias: {{ data.autonomous.warehouse_days }}</p>
+    <p class="small">Telegram pendiente: {{ data.autonomous.telegram_pending }} · Warehouse das: {{ data.autonomous.warehouse_days }}</p>
     <form method="post" action="/admin/data-center">
       <input type="hidden" name="action" value="autonomous">
       <input type="hidden" name="force" value="1">
@@ -274,10 +274,10 @@
     </form>
   </aside>
   <aside class="card">
-    <h2>Auto Sync</h2>
+    <h2>Sincronización automática</h2>
     <p class="small">Estado: {% if data.data_center.scheduler.enabled %}activado{% else %}desactivado{% endif %}</p>
-    <p class="small">Arranque automatico: {% if data.data_center.scheduler.startup %}activo{% else %}desactivado{% endif %}</p>
-    <p class="small">Ultimo scheduler: {{ data.data_center.scheduler.last_scheduler_log.started_at or '-' }}</p>
+    <p class="small">Arranque automático: {% if data.data_center.scheduler.startup %}activo{% else %}desactivado{% endif %}</p>
+    <p class="small">Última ejecución del programador: {{ data.data_center.scheduler.last_scheduler_log.started_at or '-' }}</p>
   </aside>
   <aside class="card">
     <h2>Errores scheduler</h2>
@@ -295,18 +295,18 @@
     {% for action in data.autonomous.actions[:8] %}
     <div class="list-row"><span>{{ action.title }}<br><small>{{ action.detail }}</small></span><strong>{{ action.priority }}</strong></div>
     {% else %}
-    <div class="empty">Sin acciones criticas. El ecosistema puede trabajar solo.</div>
+    <div class="empty">Sin acciones críticas. El ecosistema puede trabajar solo.</div>
     {% endfor %}
   </div>
 </section>
 
 <section class="band">
-  <div class="section-head"><h2>Tareas automaticas</h2><span class="pill">{{ data.data_center.scheduler.tasks|length }}</span></div>
+  <div class="section-head"><h2>Tareas automáticas</h2><span class="pill">{{ data.data_center.scheduler.tasks|length }}</span></div>
   <div class="grid">
     {% for task in data.data_center.scheduler.tasks %}
     <article class="card">
-      <div class="section-head"><h2>{{ task.label }}</h2><span class="state-badge {{ 'live' if task.status == 'OK' else 'half' if task.status == 'RUNNING' else 'upcoming' }}">{{ task.status }}</span></div>
-      <p class="small">Ultima: {{ task.last_run or '-' }}</p>
+      <div class="section-head"><h2>{{ task.label }}</h2><span class="state-badge {{ 'directo' if task.status == 'OK' else 'half' if task.status == 'RUNNING' else 'upcoming' }}">{{ task.status }}</span></div>
+      <p class="small">Última: {{ task.last_run or '-' }}</p>
       <p class="small">Proxima: {{ task.next_run or '-' }}</p>
       <p class="small">Intervalo: {{ task.interval_seconds }}s</p>
       {% if task.error_message %}<p class="small">{{ task.error_message }}</p>{% endif %}
@@ -319,12 +319,12 @@
   {% for action,label,detail in [
     ('competitions','Sincronizar competiciones','Prepara las ligas prioritarias sin inventar partidos.'),
     ('teams','Sincronizar equipos/escudos','Carga equipos reales y escudos si SportsDB devuelve datos.'),
-    ('calendar','Sincronizar calendario','Trae proximos eventos y live permitidos por SportsDB.'),
-    ('live','Refresh live','Actualiza live basico y proximos destacados.'),
+    ('calendar','Sincronizar calendario','Trae próximos eventos y directo permitidos por SportsDB.'),
+    ('live','Actualizar live','Actualiza live básico y próximos destacados.'),
     ('results','Sincronizar resultados','Guarda resultados recientes si la API los ofrece.'),
     ('odds','Sincronizar cuotas','Trae eventos/cuotas H2H respetando cache.'),
     ('warmup','Warmup general','Ejecuta competiciones, equipos, calendario y cuotas con control de intervalo.'),
-    ('warehouse','Warehouse historico','Guarda snapshot de partidos, cuotas, picks, usuarios y metricas para SHARK/ML.'),
+    ('warehouse','Histórico de datos','Guarda snapshot de partidos, cuotas, picks, usuarios y métricas para SHARK/ML.'),
     ('pick_grading','Validar picks','Gradua picks con resultados disponibles y prepara aprendizaje SHARK limpio.'),
     ('telegram_autonomous','Telegram autónomo','Prepara campañas por membresía con anti-duplicados y cola segura.')
   ] %}
@@ -342,19 +342,19 @@
 
 <section class="band two-col">
   <aside class="card">
-    <h2>Warehouse historico V572</h2>
+    <h2>Histórico de datos V572</h2>
     <p class="small">Partidos fact: {{ data.warehouse.match_facts }}</p>
     <p class="small">Cuotas fact: {{ data.warehouse.odds_facts }}</p>
     <p class="small">Picks fact: {{ data.warehouse.pick_facts }}</p>
     <p class="small">Usuarios fact: {{ data.warehouse.user_facts }}</p>
-    <p class="small">Metricas diarias: {{ data.warehouse.daily_metrics }}</p>
+    <p class="small">Mtricas diarias: {{ data.warehouse.daily_metrics }}</p>
   </aside>
   <aside class="card">
-    <h2>Ultimos snapshots</h2>
+    <h2>Últimos snapshots</h2>
     {% for run in data.warehouse.recent_runs[:5] %}
     <div class="list-row"><span>{{ run.started_at }} / {{ run.status }}</span><strong>{{ run.inserted }}</strong></div>
     {% else %}
-    <p class="small">Aun no hay snapshots historicos. Ejecuta Warehouse historico.</p>
+    <p class="small">Aún no hay snapshots históricos. Ejecuta Histórico de datos.</p>
     {% endfor %}
   </aside>
 </section>
@@ -367,10 +367,10 @@
     <p class="small">Fuente activa: {{ data.matches_diagnostics.active_data_source }}</p>
   </aside>
   <aside class="card">
-    <h2>Ultima actividad</h2>
+    <h2>Última actividad</h2>
     <p class="small">SportsDB: {{ data.data_center.last_sportsdb_sync.started_at or '-' }}</p>
     <p class="small">Odds: {{ data.data_center.last_odds_sync.started_at or '-' }}</p>
-    <p class="small">No data: {{ data.matches_diagnostics.competitions_no_data|length }} competiciones preparadas para import legal.</p>
+    <p class="small">Sin datos: {{ data.matches_diagnostics.competitions_no_data|length }} competiciones preparadas para import legal.</p>
   </aside>
 </section>
 
@@ -380,7 +380,7 @@
     {% for log in data.data_center.recent_logs %}
     <div class="list-row"><span>{{ log.source }} / {{ log.sync_type }} / {{ log.status }}</span><strong>{{ log.total_items }}</strong></div>
     {% else %}
-    <div class="empty">Aun no hay sincronizaciones registradas.</div>
+    <div class="empty">Aún no hay sincronizaciones registradas.</div>
     {% endfor %}
   </div>
 </section>

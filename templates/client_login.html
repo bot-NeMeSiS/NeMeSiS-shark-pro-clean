@@ -2,7 +2,7 @@
 {% block content %}
 <section class="hero auth-hero">
   <div class="kicker">Entrar</div>
-  <h1>Login cliente</h1>
+  <h1>Acceso cliente</h1>
   <p class="lead">Accede a tu perfil para continuar con tu feed, favoritos, picks y experiencia premium.</p>
 </section>
 <section class="band auth-grid">
@@ -10,7 +10,7 @@
     <h2>Acceso</h2>
     {% if error %}<p class="notice danger">{{ error }}</p>{% endif %}
     <div class="field"><label>Email o nombre de usuario</label><input name="login" autocomplete="username" required></div>
-    <div class="field"><label>Contrasena</label><input type="password" name="password" autocomplete="current-password" required></div>
+    <div class="field"><label>Contraseña</label><input type="password" name="password" autocomplete="current-password" required></div>
     <button type="submit">Entrar</button>
   </form>
   <aside class="card auth-side">

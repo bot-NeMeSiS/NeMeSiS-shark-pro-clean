@@ -3,7 +3,7 @@
 <section class="hero compact">
   <div class="kicker">Telegram Premium</div>
   <h1>Alertas SHARK en tu bolsillo</h1>
-  <p class="lead">Recibe partidos del dia, picks premium y avisos live segun tu membresia cuando la vinculacion este activa.</p>
+  <p class="lead">Recibe partidos del día, picks premium y avisos directo según tu membresía cuando la vinculación esté activa.</p>
   <div class="actions">
     <a class="btn primary" href="/perfil">Mi perfil</a>
     <a class="btn" href="/match-hub">Ver partidos</a>
@@ -12,10 +12,10 @@
 
 <section class="band">
   <div class="grid compact-grid">
-    <div class="card"><div class="metric">{% if data.telegram.configured %}ON{% else %}PROX{% endif %}</div><div class="muted">canal</div></div>
+    <div class="card"><div class="metric">{% if data.telegram.configured %}ACTIVO{% else %}PROX{% endif %}</div><div class="muted">canal</div></div>
     <div class="card"><div class="metric">FREE</div><div class="muted">resumen limitado</div></div>
     <div class="card"><div class="metric">PRO</div><div class="muted">picks y recomendaciones</div></div>
-    <div class="card"><div class="metric">ELITE</div><div class="muted">alertas live premium</div></div>
+    <div class="card"><div class="metric">ELITE</div><div class="muted">alertas directo premium</div></div>
   </div>
 </section>
 
@@ -23,19 +23,19 @@
   <div class="card">
     <h2>Que recibiras</h2>
     <div class="stack">
-      <div class="list-row"><span>Partidos del dia y proximos destacados</span><strong>FREE</strong></div>
+      <div class="list-row"><span>Partidos del día y próximos destacados</span><strong>FREE</strong></div>
       <div class="list-row"><span>Picks publicados y recomendaciones</span><strong>PRO</strong></div>
-      <div class="list-row"><span>Alertas live, combinadas y prioridad</span><strong>ELITE</strong></div>
+      <div class="list-row"><span>Alertas directo, combinadas y prioridad</span><strong>ELITE</strong></div>
     </div>
   </div>
   <div class="card">
     <h2>Vinculacion</h2>
-    <p class="small">La vinculacion automatica de Telegram estara disponible proximamente. Mientras tanto, el equipo SHARK puede activar el canal premium para tu cuenta.</p>
+    <p class="small">La vinculación automática de Telegram estar disponible próximamente. Mientras tanto, el equipo SHARK puede activar el canal premium para tu cuenta.</p>
     <p class="small">No recibiras mensajes duplicados ni avisos sin datos reales publicados.</p>
   </div>
 </section>
 
 {% if not current_user or current_user.membership not in ['PRO','ELITE','ADMIN'] %}
-<section class="band"><div class="notice">Tu cuenta esta preparada para Telegram basico. PRO y ELITE desbloquean picks y alertas avanzadas.</div></section>
+<section class="band"><div class="notice">Tu cuenta está preparada para Telegram básico. PRO y ELITE desbloquean picks y alertas avanzadas.</div></section>
 {% endif %}
 {% endblock %}

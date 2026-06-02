@@ -6,9 +6,9 @@
   <p class="lead">Crea, publica y archiva picks reales revisados. No se publican pronósticos falsos: todo queda trazado en SQLite y preparado para Telegram.</p>
   <div class="admin-menu">
     <a class="btn primary" href="/admin/picks">Picks</a>
-    <a class="btn" href="/admin/data-center">Data Center</a>
+    <a class="btn" href="/admin/data-center">Centro de datos</a>
     <a class="btn" href="/admin/telegram">Telegram</a>
-    <a class="btn" href="/match-hub">Match Hub</a>
+    <a class="btn" href="/match-hub">Centro de partidos</a>
   </div>
 </section>
 {% if message %}<section class="band"><div class="notice">{{ message }}</div></section>{% endif %}
@@ -17,7 +17,7 @@
     <div class="card"><div class="metric">{{ data.pick_stats.total }}</div><div class="muted">picks totales</div></div>
     <div class="card"><div class="metric">{{ data.pick_stats.published }}</div><div class="muted">publicados</div></div>
     <div class="card"><div class="metric">{{ data.pick_stats.draft }}</div><div class="muted">borradores</div></div>
-    <div class="card"><div class="metric">{{ data.pick_stats.winrate }}%</div><div class="muted">winrate real</div></div>
+    <div class="card"><div class="metric">{{ data.pick_stats.winrate }}%</div><div class="muted">acierto real</div></div>
   </div>
 </section>
 <section class="band form-grid">
@@ -31,9 +31,9 @@
     <div class="field"><label>Mercado</label><input name="market" placeholder="1X2, DNB, over/under..."></div>
     <div class="field"><label>Selección</label><input name="selection" required placeholder="Qué se apuesta exactamente"></div>
     <div class="field"><label>Cuota</label><input name="odds" inputmode="decimal" placeholder="1.85"></div>
-    <div class="field"><label>Bookmaker</label><input name="bookmaker" placeholder="Casa / fuente"></div>
-    <div class="field"><label>Stake unidades</label><input name="stake_units" value="1"></div>
-    <div class="field"><label>Stake ejemplo €</label><input name="stake_euros_example" value="10"></div>
+    <div class="field"><label>Casa/fuente</label><input name="bookmaker" placeholder="Casa / fuente"></div>
+    <div class="field"><label>Unidades sugeridas</label><input name="stake_units" value="1"></div>
+    <div class="field"><label>Importe ejemplo €</label><input name="stake_euros_example" value="10"></div>
     <div class="field"><label>Confianza %</label><input name="confidence" value="60"></div>
     <div class="field"><label>Riesgo</label><select name="risk_level"><option>BAJO</option><option selected>MEDIO</option><option>ALTO</option></select></div>
     <div class="field"><label>Membresía</label><select name="membership_required"><option>FREE</option><option>PRO</option><option>ELITE</option></select></div>
@@ -44,7 +44,7 @@
   <aside class="card">
     <h2>Reglas del sistema</h2>
     <p class="small">Solo se muestran al cliente picks publicados y permitidos por su membresía.</p>
-    <p class="small">Telegram daily picks usa solo picks publicados. Borradores y archivados quedan fuera.</p>
+    <p class="small">Telegram de picks diarios usa solo picks publicados. Borradores y archivados quedan fuera.</p>
     <p class="small">Las combinadas se construyen desde picks publicados; si no hay base real, no se inventa nada.</p>
   </aside>
 </section>

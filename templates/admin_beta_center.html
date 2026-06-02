@@ -3,14 +3,14 @@
 <section class="app-hero compact-hero">
   <div>
     <div class="kicker">Beta controlada</div>
-    <h1>Beta Center</h1>
-    <p class="lead">Gestiona testers, feedback y preparación real antes de abrir NeMeSiS SHARK PRO a clientes.</p>
+    <h1>Centro beta</h1>
+    <p class="lead">Gestiona probadores, comentarios y preparación real antes de abrir NeMeSiS SHARK PRO a clientes.</p>
   </div>
   <aside class="hero-panel">
-    <div class="live-strip">
-      <div><span>Testers</span><strong>{{ beta.total_testers }}</strong></div>
-      <div><span>Activos</span><strong>{{ beta.active_testers }}</strong></div>
-      <div><span>Feedback</span><strong>{{ beta.feedback_total }}</strong></div>
+    <div class="directo-strip">
+      <div><span>Testers</span><strong>{{ beta.total_probadores }}</strong></div>
+      <div><span>Activos</span><strong>{{ beta.active_probadores }}</strong></div>
+      <div><span>Feedback</span><strong>{{ beta.comentarios_total }}</strong></div>
       <div><span>Score</span><strong>{{ beta.beta_score }}%</strong></div>
     </div>
   </aside>
@@ -28,10 +28,10 @@
 <section class="band compact-band">
   <div class="section-head"><h2>Feedback reciente</h2><span class="pill">Últimos 10</span></div>
   <div class="stack">
-    {% for item in beta.feedback %}
+    {% for item in beta.comentarios %}
     <div class="list-row"><span><strong>{{ item.name or item.email }}</strong><br><small>{{ item.focus_area }} · {{ item.message }}</small></span><strong>{{ item.created_at }}</strong></div>
     {% else %}
-    <div class="empty-state"><h3>Aún no hay feedback beta</h3><p>Comparte /beta con testers reales para empezar a recoger señales.</p></div>
+    <div class="empty-state"><h3>Aún no hay comentarios beta</h3><p>Comparte /beta con probadores reales para empezar a recoger señales.</p></div>
     {% endfor %}
   </div>
 </section>

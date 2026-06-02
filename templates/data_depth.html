@@ -4,12 +4,12 @@
   <div>
     <div class="kicker">Data Depth</div>
     <h1>Calidad de datos para tomar mejores decisiones.</h1>
-    <p class="lead">Un resumen claro de partidos, resultados, live, escudos, picks y recomendaciones. Si falta dato real, la app lo muestra sin inventar.</p>
+    <p class="lead">Un resumen claro de partidos, resultados, directo, escudos, picks y recomendaciones. Si falta dato real, la app lo muestra sin inventar.</p>
   </div>
   <aside class="hero-panel hub-score-panel">
-    <span class="small muted">Score global</span>
+    <span class="small muted">Nivel global</span>
     <strong class="mega-score">{{ summary.global_score }}%</strong>
-    <p>Datos {{ summary.coverage_score }} · Live {{ summary.live_score }} · Picks {{ summary.betting_score }}</p>
+    <p>Datos {{ summary.coverage_score }} · Directo {{ summary.directo_score }} · Picks {{ summary.betting_score }}</p>
   </aside>
 </section>
 
@@ -40,7 +40,7 @@
     <div class="stack">
       {% for m in upcoming %}
       <a class="list-row" href="/match/{{ m.id }}"><span>{{ m.home_team }} vs {{ m.away_team }}<small>{{ m.league_name or 'Competicion' }}</small></span><strong>{{ m.match_time or m.kickoff_iso or 'Hora' }}</strong></a>
-      {% else %}<div class="empty">No hay proximos partidos disponibles todavia. SHARK los mostrara cuando haya datos suficientes.</div>{% endfor %}
+      {% else %}<div class="empty">No hay próximos partidos disponibles todavía. SHARK los mostrará cuando haya datos suficientes.</div>{% endfor %}
     </div>
   </div>
   <div>
@@ -48,7 +48,7 @@
     <div class="stack">
       {% for m in recent %}
       <a class="list-row" href="/match/{{ m.id }}"><span>{{ m.home_team }} vs {{ m.away_team }}<small>{{ m.league_name or 'Competicion' }}</small></span><strong>{{ m.home_score or 0 }}-{{ m.away_score or 0 }}</strong></a>
-      {% else %}<div class="empty">Aun no hay resultados recientes publicados.</div>{% endfor %}
+      {% else %}<div class="empty">Aún no hay resultados recientes publicados.</div>{% endfor %}
     </div>
   </div>
 </section>

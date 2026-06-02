@@ -24,7 +24,7 @@
         {% elif current_user %}
           <a href="/dashboard">Inicio</a>
           <a href="/intelligence-hub">Intelligence</a>
-          <a href="/live">Live</a>
+          <a href="/live">Directo</a>
           <a href="/picks">Picks</a>
           <a href="/favorites">Favoritos</a>
           <a href="/menu">Más</a>
@@ -52,7 +52,7 @@
       <a href="/logout">Salir</a>
     {% else %}
       <a href="/dashboard">Inicio</a>
-      <a href="/live">Live</a>
+      <a href="/live">Directo</a>
       <a href="/picks">Picks</a>
       <a href="/favorites">Favoritos</a>
       {% if current_user %}<a href="/menu">Más</a>{% else %}<a href="/cliente-login">Entrar</a>{% endif %}
@@ -68,17 +68,17 @@
         <button type="button" id="sharkClose" aria-label="Cerrar SHARK">×</button>
       </div>
       <div class="shark-messages" id="sharkMessages">
-        <div class="shark-msg bot">Pregúntame por partidos, picks, combinadas, favoritos o live. Si falta dato real, te lo diré claro.</div>
+        <div class="shark-msg bot">Pregúntame por partidos, picks, combinadas, favoritos o directo. Si falta dato real, te lo diré claro.</div>
         <div class="shark-quick">
-          <button type="button" data-q="¿Qué pick ves mejor hoy?">Pick de hoy</button>
-          <button type="button" data-q="¿Qué partidos de mis favoritos juegan?">Favoritos</button>
+          <button type="button" data-q="¿Qué pick ves mejor hoy">Pick de hoy</button>
+          <button type="button" data-q="¿Qué partidos de mis favoritos juegan">Favoritos</button>
           <button type="button" data-q="Hazme una combinada segura">Combinada</button>
-          <button type="button" data-q="Resume el live">Live</button>
+          <button type="button" data-q="Resume el directo">Directo</button>
           <button type="button" data-q="Dime oportunidades de hoy">Oportunidades</button>
         </div>
       </div>
       <form id="sharkForm" class="shark-form">
-        <input id="sharkInput" name="q" placeholder="Pregunta a SHARK" autocomplete="off">
+        <input id="sharkInput" name="q" placeholder="Pregunta a SHARK" autocomplete="desactivado">
         <button type="submit">Enviar</button>
       </form>
     </div>

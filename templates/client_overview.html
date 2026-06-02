@@ -4,19 +4,19 @@
   <div>
     <div class="kicker">Inicio</div>
     <h1>Lo importante de hoy</h1>
-    <p class="lead">Picks, live, favoritos, próximos importantes y SHARK en una pantalla limpia.</p>
+    <p class="lead">Picks, directo, favoritos, próximos importantes y SHARK en una pantalla limpia.</p>
     <div class="actions">
       <a class="btn primary" href="/picks">Ver picks</a>
       <a class="btn" href="/recomendaciones">Recomendaciones</a>
-      <a class="btn" href="/live">Live</a>
+      <a class="btn" href="/live">Directo</a>
       <a class="btn" href="/shark">SHARK</a>
     </div>
   </div>
   <aside class="hero-panel">
     <span class="pill">{{ summary.membership }}</span>
-    <div class="live-strip">
+    <div class="directo-strip">
       <div><span>Próximos</span><strong>{{ summary.matches.upcoming }}</strong></div>
-      <div><span>Live</span><strong>{{ summary.matches.live }}</strong></div>
+      <div><span>Directo</span><strong>{{ summary.matches.directo }}</strong></div>
       <div><span>Picks</span><strong>{{ summary.picks.published }}</strong></div>
       <div><span>Favs</span><strong>{{ summary.favorites.total }}</strong></div>
     </div>
@@ -58,7 +58,7 @@
     <a class="quick" href="/combis"><span>Combis</span><strong>PRO</strong></a>
     <a class="quick" href="/favorites"><span>Favoritos</span><strong>Feed</strong></a>
     <a class="quick" href="/telegram"><span>Telegram</span><strong>Plan</strong></a>
-    <a class="quick" href="/auto-picks"><span>Auto Picks</span><strong>ELITE</strong></a>
+    <a class="quick" href="/auto-picks"><span>Picks automáticos</span><strong>ELITE</strong></a>
     <a class="quick" href="/mi-cuenta"><span>Cuenta</span><strong>Yo</strong></a>
   </div>
 </section>

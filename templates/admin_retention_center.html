@@ -7,7 +7,7 @@
 </section>
 
 <section class="grid four">
-  <article class="card metric-card"><span>Score global</span><strong>{{ retention.global_score }}%</strong></article>
+  <article class="card metric-card"><span>Nivel global</span><strong>{{ retention.global_score }}%</strong></article>
   <article class="card metric-card"><span>Datos</span><strong>{{ retention.data_score }}%</strong></article>
   <article class="card metric-card"><span>Uso</span><strong>{{ retention.usage_score }}%</strong></article>
   <article class="card metric-card"><span>Operación</span><strong>{{ retention.operations_score }}%</strong></article>
@@ -21,7 +21,7 @@
       <span>Favoritos: <strong>{{ retention.favorites }}</strong></span>
       <span>Picks publicados: <strong>{{ retention.published_picks }}</strong></span>
       <span>Partidos guardados: <strong>{{ retention.matches }}</strong></span>
-      <span>Live activos: <strong>{{ retention.live_matches }}</strong></span>
+      <span>Directo activos: <strong>{{ retention.directo_matches }}</strong></span>
       <span>Telegram pendiente: <strong>{{ retention.telegram_pending }}</strong></span>
       <span>Soporte abierto: <strong>{{ retention.support_tickets }}</strong></span>
     </div>
@@ -34,7 +34,7 @@
       {% endfor %}
     </ul>
     <div class="actions">
-      <a class="btn" href="/admin/data-center">Data Center</a>
+      <a class="btn" href="/admin/data-center">Centro de datos</a>
       <a class="btn secondary" href="/admin/picks">Picks</a>
       <a class="btn secondary" href="/admin/telegram">Telegram</a>
     </div>
