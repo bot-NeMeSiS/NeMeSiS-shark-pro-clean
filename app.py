@@ -74,7 +74,7 @@ from engines.telegram_autonomous_delivery_engine import ensure_telegram_autonomo
 from engines.sportsdb_highlights_engine import ensure_sportsdb_highlights_schema, sync_sportsdb_highlights, sportsdb_highlights_summary, sportsdb_highlights_for_match, rebuild_match_enrichment
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V586_TELEGRAM_PICKS_PREMIUM_MEMBERSHIP_BADGES"
+APP_VERSION = "V589_CALENDARIO_PRO_MATCH_CENTER"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -4620,6 +4620,128 @@ def grouped_match_calendar(matches):
 
 
 
+def calendar_query_matches(date=None, mode="today", days_before=7, days_after=14, limit=450):
+    """Calendario Pro: partidos pasados y próximos desde cache SQLite real.
+
+    No inventa encuentros: usa la tabla matches ya alimentada por SportsDB/Odds/importaciones.
+    """
+    date = date or today_iso()
+    mode = str(mode or "today").lower()
+    try:
+        base = datetime.fromisoformat(str(date)).date()
+    except Exception:
+        base = datetime.now(TZ).date()
+        date = base.isoformat()
+    clauses = []
+    params = []
+    if mode in {"past", "results", "finished"}:
+        start = (base - timedelta(days=int(days_before or 7))).isoformat()
+        end = date
+        clauses.append("match_date>=? AND match_date<=?")
+        params.extend([start, end])
+    elif mode in {"future", "upcoming", "next"}:
+        end = (base + timedelta(days=int(days_after or 14))).isoformat()
+        clauses.append("match_date>=? AND match_date<=?")
+        params.extend([date, end])
+    elif mode == "week":
+        start = (base - timedelta(days=3)).isoformat()
+        end = (base + timedelta(days=7)).isoformat()
+        clauses.append("match_date>=? AND match_date<=?")
+        params.extend([start, end])
+    else:
+        clauses.append("match_date=?")
+        params.append(date)
+    if mode == "live":
+        clauses.append("(lower(status) LIKE '%live%' OR lower(status) LIKE '%directo%' OR minute!='')")
+    elif mode == "spain":
+        clauses.append("(lower(country)='spain' OR lower(country)='españa' OR lower(competition_key) LIKE '%laliga%' OR lower(competition_key)='copa-del-rey')")
+    elif mode == "andalucia":
+        clauses.append("lower(competition_key)='andalucia-regional'")
+    elif mode == "top":
+        clauses.append("priority>=85")
+    query = """SELECT * FROM matches
+               WHERE {where}
+               ORDER BY match_date, kickoff_time, priority DESC, competition_name
+               LIMIT ?""".format(where=" AND ".join(clauses))
+    params.append(int(limit or 450))
+    data = [item for item in rows(query, tuple(params)) if not is_fake_match(item)]
+    enriched = []
+    for item in data:
+        item["kickoff_time"] = item.get("kickoff_time") or item.get("match_time") or ""
+        if not item.get("score") and (item.get("home_score") or item.get("away_score")):
+            item["score"] = sportsdb_score(item.get("home_score"), item.get("away_score"))
+        item["home_identity"] = resolve_team(item.get("home_team"))
+        item["away_identity"] = resolve_team(item.get("away_team"))
+        if item.get("home_logo"):
+            item["home_identity"]["crest_url"] = item.get("home_logo")
+            item["home_identity"]["crest_mode"] = "logo"
+        if item.get("away_logo"):
+            item["away_identity"]["crest_url"] = item.get("away_logo")
+            item["away_identity"]["crest_mode"] = "logo"
+        enriched.append(annotate_match(item))
+    return enriched
+
+
+def calendar_navigation_days(date=None, radius=3):
+    try:
+        base = datetime.fromisoformat(str(date or today_iso())).date()
+    except Exception:
+        base = datetime.now(TZ).date()
+    days = []
+    for offset in range(-int(radius), int(radius) + 1):
+        value = base + timedelta(days=offset)
+        iso = value.isoformat()
+        days.append({
+            "date": iso,
+            "label": "Hoy" if iso == today_iso() else ("Mañana" if iso == today_iso(1) else value.strftime("%d/%m")),
+            "active": iso == str(date or today_iso()),
+        })
+    return days
+
+
+def calendar_pro_center(date=None, mode="today"):
+    date = date or today_iso()
+    mode = str(mode or "today").lower()
+    matches = calendar_query_matches(date, mode)
+    grouped = grouped_match_calendar(matches)
+    live = [m for m in matches if (m.get("status_info") or {}).get("is_live")]
+    finished = [m for m in matches if (m.get("status_info") or {}).get("is_finished")]
+    upcoming = [m for m in matches if (m.get("status_info") or {}).get("is_upcoming")]
+    with_score = [m for m in matches if m.get("score") or m.get("home_score") or m.get("away_score")]
+    with_badges = [m for m in matches if ((m.get("home_identity") or {}).get("crest_url") or (m.get("away_identity") or {}).get("crest_url"))]
+    counts_by_day = {day["date"]: day["total"] for day in grouped}
+    return {
+        "date": date,
+        "mode": mode,
+        "matches": matches,
+        "grouped": grouped,
+        "days": calendar_navigation_days(date, radius=3),
+        "counts": {
+            "total": len(matches),
+            "live": len(live),
+            "upcoming": len(upcoming),
+            "finished": len(finished),
+            "with_score": len(with_score),
+            "with_badges": len(with_badges),
+            "days": len(grouped),
+        },
+        "counts_by_day": counts_by_day,
+        "empty_state": "No hay partidos para este filtro. Sincroniza calendario desde el Centro de datos o cambia de fecha.",
+        "mode_labels": {
+            "today": "Hoy",
+            "week": "Semana",
+            "future": "Próximos",
+            "past": "Pasados",
+            "live": "En directo",
+            "top": "Top mundial",
+            "spain": "España",
+            "andalucia": "Andalucía",
+        },
+        "quality_note": "Calendario construido con datos guardados en SQLite desde fuentes permitidas. No inventa partidos.",
+    }
+
+
+
 
 def get_results_matches(start_date=None, days_back=14, limit=150):
     start_date = start_date or today_iso()
@@ -6425,7 +6547,11 @@ def global_football():
 @app.route("/calendario")
 @app.route("/calendario-global")
 def calendar_page():
-    return render_template("calendar.html", data=dashboard_data(request.args.get("lane", "today"), request.args.get("date") or today_iso()))
+    mode = request.args.get("mode") or request.args.get("lane") or "today"
+    date = request.args.get("date") or today_iso()
+    data = dashboard_data("today" if mode in {"past", "future", "week"} else mode, date)
+    data["calendar_pro"] = calendar_pro_center(date, mode)
+    return render_template("calendar.html", data=data)
 
 
 @app.route("/live")
@@ -7219,9 +7345,24 @@ def api_scheduler_run_live():
 
 @app.route("/api/calendar")
 def api_calendar():
-    lane = request.args.get("lane", "today")
+    mode = request.args.get("mode") or request.args.get("lane") or "today"
     date = request.args.get("date") or today_iso()
-    return jsonify({"ok": True, "version": APP_VERSION, "date": date, "lane": lane, "matches": get_matches(date, lane)})
+    center = calendar_pro_center(date, mode)
+    return jsonify({"ok": True, "version": APP_VERSION, "date": date, "mode": mode, "calendar": center})
+
+
+@app.route("/api/v589/calendar-check")
+def api_v589_calendar_check():
+    center = calendar_pro_center(request.args.get("date") or today_iso(), request.args.get("mode") or "week")
+    return jsonify({
+        "ok": True,
+        "version": "V589_CALENDARIO_PRO_MATCH_CENTER",
+        "date": center.get("date"),
+        "mode": center.get("mode"),
+        "counts": center.get("counts"),
+        "grouped_days": len(center.get("grouped") or []),
+        "features": ["pasados", "proximos", "directo", "agrupacion_por_dia", "agrupacion_por_liga", "enlaces_a_partido", "escudos", "resultados"],
+    })
 
 
 @app.route("/api/live")

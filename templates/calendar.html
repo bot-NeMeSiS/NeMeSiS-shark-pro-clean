@@ -1,36 +1,144 @@
 {% extends "base.html" %}
 {% block content %}
-<section class="hero">
-  <div class="kicker">Calendario global</div>
-  <h1>Partidos importantes primero</h1>
-  <p class="lead">Vista limpia para hoy, directos, top mundal, Espaa y Andaluca. Siempre priorizando competiciones importantes y hora espaola.</p>
-  <div class="actions"><a class="btn primary" href="/match-hub">Ver destacados</a>{% if current_user and current_user.role == 'ADMIN' %}<a class="btn" href="/admin/import-center">Importar partidos</a>{% endif %}</div>
+{% set cal = data.calendar_pro %}
+<section class="hero calendar-pro-hero">
+  <div class="kicker">Calendario Pro</div>
+  <h1>Partidos próximos, pasados y en directo en una vista premium.</h1>
+  <p class="lead">Calendario completo por fecha, competición y estado. Pensado para moverse como en una app deportiva seria: próximos partidos, resultados pasados, escudos, marcador, hora y acceso directo a cada ficha.</p>
+  <div class="actions">
+    <a class="btn primary" href="/calendario?mode=today">Hoy</a>
+    <a class="btn" href="/calendario?mode=future">Próximos</a>
+    <a class="btn" href="/calendario?mode=past">Pasados</a>
+    <a class="btn" href="/calendario?mode=live">En directo</a>
+    {% if current_user and current_user.role == 'ADMIN' %}<a class="btn" href="/admin/data-center">Sincronizar datos</a>{% endif %}
+  </div>
 </section>
-<div class="filters">
-  <a class="btn" href="/calendario?lane=today">Hoy</a>
-  <a class="btn" href="/calendario?lane=live">Directo</a>
-  <a class="btn" href="/calendario?lane=top">Top mundial</a>
-  <a class="btn" href="/calendario?lane=spain">España</a>
-  <a class="btn" href="/calendario?lane=andalucia">Andalucía</a>
-</div>
-<section class="band">
-  <div class="section-head"><h2>{{ data.matches|length }} partidos - {{ data.date }}</h2><span class="pill">{{ data.lane }}</span></div>
-  {% if data.matches %}
-  <div class="grid">
-    {% for m in data.matches %}
-    <article class="card">
-      <div class="match-top"><div><div class="comp-name">{{ m.competition_name }}</div><div class="small">{{ m.country }}</div></div><div class="time">{{ m.kickoff_time or 'Sin hora' }}</div></div>
-      <div class="teams">
-        <div class="team"><div class="crest"><img loading="lazy" src="{{ m.home_identity.crest_url }}" alt="{{ m.home_team }}"></div><strong>{{ m.home_team }}</strong></div>
-        <div class="team"><div class="crest"><img loading="lazy" src="{{ m.away_identity.crest_url }}" alt="{{ m.away_team }}"></div><strong>{{ m.away_team }}</strong></div>
-      </div>
-      <div class="status"><span>{{ m.status }}{% if m.minute %} - {{ m.minute }}{% endif %}{% if m.score %} - {{ m.score }}{% endif %}</span><span class="priority">{{ m.priority }}</span></div>
-      {% if current_user and current_user.role == 'ADMIN' %}<p class="small">{{ m.legal_note }}</p>{% endif %}
-    </article>
+
+<section class="band compact-band">
+  <div class="calendar-pro-toolbar card soft-card">
+    <div>
+      <div class="kicker">Fecha seleccionada</div>
+      <h2>{{ cal.date }}</h2>
+      <p class="small">{{ cal.quality_note }}</p>
+    </div>
+    <form class="calendar-date-form" method="get" action="/calendario">
+      <input type="hidden" name="mode" value="{{ cal.mode }}">
+      <label class="small" for="calendar-date">Cambiar fecha</label>
+      <input id="calendar-date" type="date" name="date" value="{{ cal.date }}">
+      <button class="btn primary" type="submit">Ver día</button>
+    </form>
+  </div>
+
+  <div class="filters calendar-mode-filters">
+    {% for key,label in cal.mode_labels.items() %}
+      <a class="btn {% if cal.mode == key %}active{% endif %}" href="/calendario?mode={{ key }}&date={{ cal.date }}">{{ label }}</a>
     {% endfor %}
   </div>
+
+  <div class="calendar-days-strip">
+    {% for day in cal.days %}
+      <a class="day-chip {% if day.active %}active{% endif %}" href="/calendario?mode={{ cal.mode }}&date={{ day.date }}">
+        <strong>{{ day.label }}</strong>
+        <span>{{ day.date }}</span>
+      </a>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="band">
+  <div class="grid metric-row">
+    <article class="card metric-card"><span class="label">Total</span><div class="metric">{{ cal.counts.total }}</div><small>partidos encontrados</small></article>
+    <article class="card metric-card"><span class="label">Próximos</span><div class="metric">{{ cal.counts.upcoming }}</div><small>programados</small></article>
+    <article class="card metric-card"><span class="label">Pasados</span><div class="metric">{{ cal.counts.finished }}</div><small>con resultado o finalizados</small></article>
+    <article class="card metric-card"><span class="label">Escudos</span><div class="metric">{{ cal.counts.with_badges }}</div><small>con identidad visual</small></article>
+  </div>
+</section>
+
+<section class="band">
+  <div class="section-head">
+    <div>
+      <h2>Calendario de partidos</h2>
+      <p class="small">Agrupado por día, competición y hora. Pulsa cualquier partido para abrir su ficha completa.</p>
+    </div>
+    <span class="pill">{{ cal.counts.days }} días</span>
+  </div>
+
+  {% if cal.grouped %}
+    <div class="calendar-stack calendar-pro-stack">
+      {% for day in cal.grouped %}
+        <article class="calendar-day card soft-card">
+          <div class="calendar-day-head">
+            <div>
+              <h3>{{ day.label }}</h3>
+              <p class="small">{{ day.total }} partidos</p>
+            </div>
+            <a class="btn" href="/calendario?mode=today&date={{ day.date }}">Ver día</a>
+          </div>
+
+          <div class="league-stack">
+            {% for league in day.leagues %}
+              <div class="league-block">
+                <div class="league-head">
+                  <div>
+                    <strong>{{ league.name }}</strong>
+                    <p class="small">{{ league.country }} · {{ league.category }}</p>
+                  </div>
+                  <span class="tag">{{ league.count }} partidos</span>
+                </div>
+
+                <div class="match-list calendar-pro-list">
+                  {% for m in league.matches %}
+                    {% set info = m.status_info or {} %}
+                    {% set depth = m.live_depth or {} %}
+                    <a class="match-row calendar-pro-row" href="/partido/{{ m.id }}">
+                      <div class="match-hour">
+                        <strong>{{ m.kickoff_time or m.match_time or depth.minute or 'Sin hora' }}</strong>
+                        <small>{{ info.label or m.status or 'Próximo' }}</small>
+                      </div>
+
+                      <div class="mini-team home-team">
+                        <span class="crest small-crest">
+                          {% if m.home_identity and m.home_identity.crest_url %}<img loading="lazy" src="{{ m.home_identity.crest_url }}" alt="{{ m.home_team }}">{% else %}{{ (m.home_team or '?')[:1] }}{% endif %}
+                        </span>
+                        <strong>{{ m.home_team }}</strong>
+                      </div>
+
+                      <div class="scoreline {% if info.is_live %}live-score{% endif %}">
+                        {% if m.score or depth.score %}
+                          <span>{{ m.score or depth.score }}</span>
+                        {% elif m.home_score is not none and m.away_score is not none %}
+                          <span>{{ m.home_score }} - {{ m.away_score }}</span>
+                        {% else %}
+                          <span>vs</span>
+                        {% endif %}
+                      </div>
+
+                      <div class="mini-team away-team">
+                        <span class="crest small-crest">
+                          {% if m.away_identity and m.away_identity.crest_url %}<img loading="lazy" src="{{ m.away_identity.crest_url }}" alt="{{ m.away_team }}">{% else %}{{ (m.away_team or '?')[:1] }}{% endif %}
+                        </span>
+                        <strong>{{ m.away_team }}</strong>
+                      </div>
+
+                      <div class="row-actions">
+                        <span class="status-pill {{ info.badge or depth.badge or 'upcoming' }}">{{ info.label or depth.label or 'Próximo' }}</span>
+                        {% if m.bookmaker or m.odds_h2h_json %}<span class="tag odds-tag">Cuotas</span>{% endif %}
+                      </div>
+                    </a>
+                  {% endfor %}
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        </article>
+      {% endfor %}
+    </div>
   {% else %}
-  <div class="empty">No hay partidos para este filtro. SHARK mostrará nuevos partidos cuando haya datos suficientes.</div>
+    <div class="empty premium-empty">
+      <strong>Calendario sin partidos para este filtro.</strong>
+      <p>{{ cal.empty_state }}</p>
+      <div class="actions"><a class="btn primary" href="/calendario?mode=future">Ver próximos</a>{% if current_user and current_user.role == 'ADMIN' %}<a class="btn" href="/admin/data-center">Sincronizar calendario</a>{% endif %}</div>
+    </div>
   {% endif %}
 </section>
 {% endblock %}

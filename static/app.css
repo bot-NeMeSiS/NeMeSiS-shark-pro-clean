@@ -266,3 +266,20 @@ textarea{min-height:230px;font-family:Consolas,monospace;font-size:13px}
     justify-content:space-between;
   }
 }
+
+/* V589 Calendario Pro */
+.calendar-pro-toolbar{display:flex;justify-content:space-between;align-items:end;gap:18px;margin-bottom:14px}
+.calendar-date-form{display:flex;align-items:end;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+.calendar-date-form input[type=date]{background:#0d1524;border:1px solid var(--line);color:#eaf6ff;border-radius:12px;padding:11px 12px;min-height:42px}
+.calendar-days-strip{display:flex;gap:8px;overflow:auto;padding:4px 2px 8px;margin-top:10px}
+.day-chip{min-width:96px;text-decoration:none;color:inherit;border:1px solid var(--line);background:#0d1524;border-radius:14px;padding:10px 12px;display:grid;gap:2px}
+.day-chip span{font-size:11px;color:var(--muted)}
+.day-chip.active{border-color:rgba(32,215,255,.75);box-shadow:0 0 0 1px rgba(32,215,255,.18),0 12px 26px rgba(32,215,255,.08)}
+.calendar-pro-row{text-decoration:none;color:inherit;transition:.16s ease}
+.calendar-pro-row:hover{border-color:rgba(32,215,255,.35);background:rgba(18,35,58,.72);transform:translateY(-1px)}
+.calendar-pro-row .match-hour{display:grid;gap:2px}.calendar-pro-row .match-hour small{font-size:11px;color:var(--muted);font-weight:700}
+.status-pill{font-size:11px;font-weight:900;border-radius:999px;padding:5px 8px;background:#17243a;color:#dce9ff;border:1px solid var(--line);white-space:nowrap}
+.status-pill.live,.status-pill.halftime{background:rgba(20,210,140,.13);border-color:rgba(20,210,140,.45);color:#8fffd4}
+.status-pill.finished{background:rgba(255,255,255,.08);color:#c9d7ea}.status-pill.upcoming{background:rgba(32,215,255,.10);border-color:rgba(32,215,255,.32);color:#9eefff}
+.live-score{color:#8fffd4}.odds-tag{font-size:10px;padding:4px 6px}
+@media(max-width:850px){.calendar-pro-toolbar{display:grid}.calendar-date-form{justify-content:flex-start}.calendar-pro-row{grid-template-columns:64px 1fr 62px;grid-template-areas:"time home score" "time away action"}.calendar-pro-row .match-hour{grid-area:time}.calendar-pro-row .home-team{grid-area:home}.calendar-pro-row .away-team{grid-area:away}.calendar-pro-row .scoreline{grid-area:score}.calendar-pro-row .row-actions{grid-area:action;justify-content:flex-start}.calendar-pro-row .row-actions .odds-tag{display:none}.calendar-pro-row .mini-team strong{max-width:170px}}
