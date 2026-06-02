@@ -74,7 +74,7 @@ from engines.telegram_autonomous_delivery_engine import ensure_telegram_autonomo
 from engines.sportsdb_highlights_engine import ensure_sportsdb_highlights_schema, sync_sportsdb_highlights, sportsdb_highlights_summary, sportsdb_highlights_for_match, rebuild_match_enrichment
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V587_PERFORMANCE_PROOF_ROI_DASHBOARD"
+APP_VERSION = "V586_TELEGRAM_PICKS_PREMIUM_MEMBERSHIP_BADGES"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -3613,240 +3613,6 @@ def published_picks_for_user(user=None, limit=50):
     return get_picks(limit=limit, status=["published", "won", "lost", "void"], membership=membership, include_admin=include_admin)
 
 
-
-
-# ============================================================
-# V587 - Performance Proof & ROI Dashboard
-# ============================================================
-
-def ensure_performance_schema():
-    """Crea tablas ligeras de rendimiento sin depender de migraciones externas."""
-    seed_core()
-    conn = db()
-    cur = conn.cursor()
-    cur.execute(
-        """CREATE TABLE IF NOT EXISTS shark_performance_summary(
-            id TEXT PRIMARY KEY,
-            scope TEXT,
-            period_label TEXT,
-            total_picks INTEGER DEFAULT 0,
-            won INTEGER DEFAULT 0,
-            lost INTEGER DEFAULT 0,
-            void INTEGER DEFAULT 0,
-            pending INTEGER DEFAULT 0,
-            winrate REAL DEFAULT 0,
-            roi REAL DEFAULT 0,
-            profit_units REAL DEFAULT 0,
-            stake_units REAL DEFAULT 0,
-            streak_label TEXT,
-            payload_json TEXT,
-            rebuilt_at TEXT
-        )"""
-    )
-    cur.execute(
-        """CREATE TABLE IF NOT EXISTS shark_performance_daily(
-            id TEXT PRIMARY KEY,
-            day TEXT,
-            total_picks INTEGER DEFAULT 0,
-            won INTEGER DEFAULT 0,
-            lost INTEGER DEFAULT 0,
-            void INTEGER DEFAULT 0,
-            pending INTEGER DEFAULT 0,
-            roi REAL DEFAULT 0,
-            profit_units REAL DEFAULT 0,
-            payload_json TEXT,
-            created_at TEXT
-        )"""
-    )
-    cur.execute("CREATE INDEX IF NOT EXISTS idx_shark_perf_summary_scope ON shark_performance_summary(scope, period_label)")
-    cur.execute("CREATE INDEX IF NOT EXISTS idx_shark_perf_daily_day ON shark_performance_daily(day)")
-    conn.commit()
-    conn.close()
-
-
-def _pick_result_label(pick):
-    status = str((pick or {}).get("result_status") or (pick or {}).get("status") or "").strip().lower()
-    if status in {"won", "win", "ganado", "acertado"}:
-        return "won"
-    if status in {"lost", "lose", "perdido", "fallado"}:
-        return "lost"
-    if status in {"void", "push", "nulo", "cancelado"}:
-        return "void"
-    return "pending"
-
-
-def _pick_profit_units(pick):
-    result = _pick_result_label(pick)
-    stake = max(0.0, as_float((pick or {}).get("stake_units"), 1.0))
-    odds = as_float((pick or {}).get("odds"), 0.0)
-    if result == "won":
-        return round(stake * max(0.0, odds - 1), 2)
-    if result == "lost":
-        return round(-stake, 2)
-    return 0.0
-
-
-def _pick_date_value(pick):
-    return str((pick or {}).get("published_at") or (pick or {}).get("match_date") or (pick or {}).get("created_at") or "")[:10]
-
-
-def _period_cutoff(days):
-    try:
-        return (datetime.now(TZ) - timedelta(days=int(days))).date().isoformat()
-    except Exception:
-        return ""
-
-
-def _performance_base_picks(limit=5000):
-    ensure_performance_schema()
-    try:
-        data = rows(
-            """SELECT * FROM picks
-               WHERE lower(COALESCE(status,'')) IN ('published','won','lost','void','pending')
-                  OR lower(COALESCE(result_status,'')) IN ('won','lost','void','pending')
-               ORDER BY COALESCE(published_at, updated_at, created_at) DESC
-               LIMIT ?""",
-            (int(limit),),
-        )
-    except sqlite3.OperationalError:
-        data = []
-    return [normalize_pick_row(p) for p in data]
-
-
-def _performance_stats(picks):
-    total = len(picks)
-    won = sum(1 for p in picks if _pick_result_label(p) == "won")
-    lost = sum(1 for p in picks if _pick_result_label(p) == "lost")
-    void = sum(1 for p in picks if _pick_result_label(p) == "void")
-    pending = sum(1 for p in picks if _pick_result_label(p) == "pending")
-    settled = max(1, won + lost)
-    stake = round(sum(max(0.0, as_float(p.get("stake_units"), 1.0)) for p in picks if _pick_result_label(p) in {"won", "lost"}), 2)
-    profit = round(sum(_pick_profit_units(p) for p in picks), 2)
-    roi = round((profit / stake) * 100, 2) if stake else 0.0
-    winrate = round((won / settled) * 100, 2) if (won + lost) else 0.0
-    return {
-        "total_picks": total,
-        "won": won,
-        "lost": lost,
-        "void": void,
-        "pending": pending,
-        "settled": won + lost,
-        "winrate": winrate,
-        "roi": roi,
-        "profit_units": profit,
-        "stake_units": stake,
-    }
-
-
-def _performance_streak(picks):
-    settled = [p for p in picks if _pick_result_label(p) in {"won", "lost"}]
-    if not settled:
-        return {"type": "neutral", "count": 0, "label": "Sin racha cerrada"}
-    first = _pick_result_label(settled[0])
-    count = 0
-    for p in settled:
-        if _pick_result_label(p) == first:
-            count += 1
-        else:
-            break
-    if first == "won":
-        return {"type": "won", "count": count, "label": f"Racha positiva: {count} ganados"}
-    return {"type": "lost", "count": count, "label": f"Racha a vigilar: {count} perdidos"}
-
-
-def _group_performance(picks, key, limit=8):
-    buckets = {}
-    for p in picks:
-        label = str(p.get(key) or p.get("competition_name") if key == "league_name" else p.get(key) or "").strip()
-        if not label:
-            label = "Sin clasificar"
-        buckets.setdefault(label, []).append(p)
-    out = []
-    for label, items in buckets.items():
-        stats = _performance_stats(items)
-        if stats["settled"] == 0 and stats["total_picks"] < 2:
-            continue
-        stats["label"] = label
-        stats["sample_size"] = stats["total_picks"]
-        out.append(stats)
-    out.sort(key=lambda x: (x.get("roi", 0), x.get("winrate", 0), x.get("sample_size", 0)), reverse=True)
-    return out[:limit]
-
-
-def performance_summary(days=30, limit=5000):
-    """Resumen comercial de rendimiento: transparente, con ROI, acierto y beneficio."""
-    picks = _performance_base_picks(limit=limit)
-    cutoff = _period_cutoff(days)
-    if cutoff:
-        period_picks = [p for p in picks if (_pick_date_value(p) or "0000-00-00") >= cutoff]
-    else:
-        period_picks = picks
-    stats_30 = _performance_stats(period_picks)
-    stats_all = _performance_stats(picks)
-    recent_7 = [p for p in picks if (_pick_date_value(p) or "0000-00-00") >= _period_cutoff(7)]
-    stats_7 = _performance_stats(recent_7)
-    latest = []
-    for p in period_picks[:12]:
-        latest.append({
-            "id": p.get("id"),
-            "match": f"{p.get('home_team') or ''} vs {p.get('away_team') or ''}".strip(" vs"),
-            "league": p.get("competition_name") or p.get("league_name") or "Competición",
-            "selection": p.get("selection") or p.get("pick_type") or "Pick",
-            "odds": p.get("odds") or 0,
-            "stake_units": p.get("stake_units") or 1,
-            "confidence": p.get("confidence") or p.get("shark_score") or 0,
-            "result": _pick_result_label(p),
-            "profit_units": _pick_profit_units(p),
-            "date": _pick_date_value(p),
-        })
-    return {
-        "status": "ok",
-        "period_days": int(days),
-        "summary": stats_30,
-        "last_7_days": stats_7,
-        "all_time": stats_all,
-        "streak": _performance_streak(period_picks),
-        "by_league": _group_performance(period_picks, "competition_name", limit=8),
-        "by_market": _group_performance(period_picks, "market", limit=8),
-        "latest_picks": latest,
-        "proof_message": "Rendimiento calculado desde picks reales guardados. No oculta picks perdidos.",
-        "rebuilt_at": now_iso(),
-    }
-
-
-def rebuild_performance_summary(days=30, limit=5000):
-    ensure_performance_schema()
-    payload = performance_summary(days=days, limit=limit)
-    summary = payload.get("summary", {})
-    conn = db()
-    conn.execute(
-        """INSERT OR REPLACE INTO shark_performance_summary
-           (id,scope,period_label,total_picks,won,lost,void,pending,winrate,roi,profit_units,stake_units,streak_label,payload_json,rebuilt_at)
-           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
-        (
-            f"global_{int(days)}d",
-            "global",
-            f"{int(days)}d",
-            summary.get("total_picks", 0),
-            summary.get("won", 0),
-            summary.get("lost", 0),
-            summary.get("void", 0),
-            summary.get("pending", 0),
-            summary.get("winrate", 0),
-            summary.get("roi", 0),
-            summary.get("profit_units", 0),
-            summary.get("stake_units", 0),
-            payload.get("streak", {}).get("label", ""),
-            json.dumps(payload, ensure_ascii=False)[:8000],
-            now_iso(),
-        ),
-    )
-    conn.commit()
-    conn.close()
-    return payload
-
-
-
 def create_or_update_pick(payload, pick_id=None, publish=False):
     seed_core()
     payload = dict(payload or {})
@@ -7062,9 +6828,6 @@ def admin_data_center_page():
             result = rebuild_shark_learning_engine(DB_PATH, limit=limit)
             result["shark_learning"] = build_shark_learning_profile(DB_PATH)
             telegram_flow_log("SHARK_LEARNING", "rebuilt", "Aprendizaje SHARK reconstruido desde Data Center.", result)
-        elif action == "performance":
-            result = rebuild_performance_summary(days=as_int(request.form.get("days"), 30), limit=limit)
-            telegram_flow_log("PERFORMANCE", "rebuilt", "Rendimiento SHARK reconstruido desde Data Center.", result)
         elif action == "pick_grading":
             result = run_pick_grading(DB_PATH, limit=limit, apply=request.form.get("apply") in {"1", "true", "yes"})
             result["shark_memory"] = shark_memory_summary(DB_PATH)
@@ -7084,27 +6847,10 @@ def admin_data_center_page():
     data["subscriptions"] = subscription_summary(DB_PATH)
     data["shark_memory"] = shark_memory_summary(DB_PATH)
     data["shark_learning"] = build_shark_learning_profile(DB_PATH)
-    data["performance"] = performance_summary(days=30, limit=3000)
     data["pick_grading"] = pick_grading_summary(DB_PATH)
     data["telegram_autonomous"] = telegram_autonomous_summary(DB_PATH)
     data["sportsdb_highlights"] = sportsdb_highlights_summary(DB_PATH)
     return render_template("admin_data_center.html", data=data, message=message, result=result)
-
-
-
-@app.route("/api/performance/summary")
-def api_performance_summary():
-    days = as_int(request.args.get("days"), 30)
-    return jsonify(performance_summary(days=days, limit=as_int(request.args.get("limit"), 5000)))
-
-
-@app.route("/api/performance/rebuild", methods=["POST", "GET"])
-def api_performance_rebuild():
-    if request.method == "POST" and not is_admin_session():
-        return jsonify({"ok": False, "error": "Admin requerido"}), 403
-    days = as_int(request.values.get("days"), 30)
-    limit = as_int(request.values.get("limit"), 5000)
-    return jsonify(rebuild_performance_summary(days=days, limit=limit))
 
 
 @app.route("/admin/system")
@@ -8894,10 +8640,9 @@ def v566_dashboard_page():
     user = current_session_user()
     data = dashboard_data()
     summary = v566_dashboard_summary(user)
-    performance = performance_summary(days=30, limit=3000)
     upcoming = get_upcoming_matches(today_iso(), days=7, limit=10)
     picks = published_picks_for_user(user, limit=8)
-    return render_template("client_overview.html", data=data, summary=summary, performance=performance, upcoming=upcoming, picks=picks)
+    return render_template("client_overview.html", data=data, summary=summary, upcoming=upcoming, picks=picks)
 
 
 @app.route("/menu")

@@ -185,3 +185,84 @@ textarea{min-height:230px;font-family:Consolas,monospace;font-size:13px}
 .cards-4{grid-template-columns:repeat(4,minmax(0,1fr))}
 @media(max-width:900px){.cards-4{grid-template-columns:repeat(2,minmax(0,1fr))}.score-number{font-size:34px}}
 @media(max-width:640px){.cards-4,.cards-3,.cards-2{grid-template-columns:1fr}.score-card{width:100%}}
+
+
+/* V588 — reparación visual de cartas de picks y recomendaciones */
+.picks-page .dense-grid,
+.recommendations-page .dense-grid{
+  align-items:stretch;
+}
+.picks-page .pick-card,
+.recommendations-page .pick-card,
+.grid .pick-card.hot-pick,
+.grid .pick-card.rec-card,
+.grid .pick-card.auto-pick-card{
+  display:block;
+  align-items:initial;
+  justify-content:initial;
+  min-height:100%;
+}
+.picks-page .pick-card h3,
+.recommendations-page .pick-card h3{
+  margin:.65rem 0 .45rem;
+  line-height:1.16;
+}
+.picks-page .pick-card .selection,
+.recommendations-page .pick-card .selection{
+  display:block;
+  margin:.55rem 0;
+  line-height:1.3;
+}
+.picks-page .pick-card .match-top,
+.recommendations-page .pick-card .card-topline{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:10px;
+  flex-wrap:wrap;
+}
+.picks-page .pick-card .status,
+.recommendations-page .pick-card .metric-row{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+  margin:10px 0;
+}
+.picks-page .pick-card .status span,
+.recommendations-page .pick-card .metric-row span,
+.picks-page .mini-metrics span{
+  display:inline-flex;
+  align-items:center;
+  gap:4px;
+  padding:6px 9px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.10);
+  background:rgba(255,255,255,.045);
+  color:#dbeafe;
+  font-size:.84rem;
+}
+.picks-page .mini-metrics{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+  margin-top:12px;
+}
+.picks-page .team .crest{
+  color:#dbeafe;
+  text-align:center;
+}
+@media(max-width:760px){
+  .picks-page .pick-card .status,
+  .recommendations-page .pick-card .metric-row,
+  .picks-page .mini-metrics{
+    align-items:flex-start;
+  }
+  .picks-page .pick-card .status span,
+  .recommendations-page .pick-card .metric-row span,
+  .picks-page .mini-metrics span{
+    width:100%;
+    justify-content:space-between;
+  }
+}
