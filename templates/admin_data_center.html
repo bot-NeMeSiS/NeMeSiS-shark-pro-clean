@@ -17,6 +17,44 @@
 
 <section class="band two-col">
   <aside class="card elite-card">
+    <div class="section-head"><h2>TheSportsDB Maximum Enrichment V593</h2><span class="pill">{{ data.sportsdb_enrichment.readiness_score or 0 }}%</span></div>
+    <p class="small">Ligas: {{ data.sportsdb_enrichment.leagues_total or 0 }} · Equipos: {{ data.sportsdb_enrichment.teams_total or 0 }} · Eventos: {{ data.sportsdb_enrichment.events_total or 0 }}.</p>
+    <p class="small">Escudos guardados: {{ data.sportsdb_enrichment.badges_total or 0 }} · Estadios: {{ data.sportsdb_enrichment.stadiums_total or 0 }} · Partidos enlazados: {{ data.sportsdb_enrichment.linked_matches or 0 }}.</p>
+    <form method="post" action="/admin/data-center">
+      <input type="hidden" name="action" value="sportsdb_enrichment">
+      <div class="field"><label>Ligas principales a enriquecer</label><input name="limit" value="30"></div>
+      <button type="submit">Enriquecer ecosistema TheSportsDB</button>
+    </form>
+  </aside>
+  <aside class="card pro-card">
+    <h2>Qué añade a NeMeSiS</h2>
+    <p class="small">Guarda perfiles de ligas, equipos, estadios, escudos, eventos pasados/futuros y enlaces con partidos internos. Todo con API autorizada y caché SQLite propia.</p>
+    <p class="small">{{ data.sportsdb_enrichment.legal_note }}</p>
+  </aside>
+</section>
+
+<section class="band two-col">
+  <aside class="card">
+    <div class="section-head"><h2>Equipos enriquecidos</h2><span class="pill">TheSportsDB</span></div>
+    {% for team in data.sportsdb_enrichment.top_teams[:6] %}
+    <div class="list-row"><span>{{ team.team_name }}<br><small>{{ team.league_name or 'Liga' }} · {{ team.country or 'País' }}{% if team.stadium_name %} · {{ team.stadium_name }}{% endif %}</small></span><strong>{{ 'ESCUDO' if team.badge_url else 'INFO' }}</strong></div>
+    {% else %}
+    <p class="small">Ejecuta el enriquecimiento cuando tengas configurada THESPORTSDB_KEY.</p>
+    {% endfor %}
+  </aside>
+  <aside class="card">
+    <div class="section-head"><h2>Eventos guardados</h2><span class="pill">pasados/futuros</span></div>
+    {% for ev in data.sportsdb_enrichment.latest_events[:6] %}
+    <div class="list-row"><span>{{ ev.home_team }} vs {{ ev.away_team }}<br><small>{{ ev.league_name or 'Competición' }} · {{ ev.event_date }}{% if ev.match_id %} · enlazado{% endif %}</small></span><strong>{{ 'OK' if ev.match_id else 'CACHE' }}</strong></div>
+    {% else %}
+    <p class="small">Aún no hay eventos enriquecidos.</p>
+    {% endfor %}
+  </aside>
+</section>
+
+
+<section class="band two-col">
+  <aside class="card elite-card">
     <div class="section-head"><h2>Resmenes SportsDB V579</h2><span class="pill">{{ data.sportsdb_highlights.status }}</span></div>
     <p class="small">Preparación: {{ data.sportsdb_highlights.readiness_score }}% · Highlights guardados: {{ data.sportsdb_highlights.highlights_total }} · Vídeos: {{ data.sportsdb_highlights.with_video }}</p>
     <p class="small">Partidos enlazados: {{ data.sportsdb_highlights.linked_matches }} · Fichas enriquecidas: {{ data.sportsdb_highlights.enriched_matches }}</p>
@@ -88,6 +126,9 @@
     <div class="card"><div class="metric">{{ data.data_center.directo_matches }}</div><div class="muted">directo</div></div>
     <div class="card"><div class="metric">{{ data.data_center.teams_with_crests }}</div><div class="muted">con escudo</div></div>
     <div class="card"><div class="metric">{{ data.data_center.odds_snapshots }}</div><div class="muted">cuotas</div></div>
+    <div class="card"><div class="metric">{{ data.odds_value.readiness_score or 0 }}%</div><div class="muted">value SHARK</div></div>
+    <div class="card"><div class="metric">{{ data.odds_value.strong_value or 0 }}</div><div class="muted">value fuerte</div></div>
+    <div class="card"><div class="metric">{{ data.shark_prediction.prediction_readiness or 0 }}%</div><div class="muted">Prediction V2</div></div>
     <div class="card"><div class="metric">{{ data.data_center.population.competitions_prepared }}</div><div class="muted">preparadas</div></div>
     <div class="card"><div class="metric">{{ data.warehouse.match_facts }}</div><div class="muted">warehouse partidos</div></div>
     <div class="card"><div class="metric">{{ data.warehouse.quality_score }}%</div><div class="muted">calidad historica</div></div>
@@ -108,6 +149,86 @@
   </div>
 </section>
 
+
+
+
+<section class="band two-col">
+  <aside class="card elite-card">
+    <div class="section-head"><h2>SHARK Prediction Evolution V592</h2><span class="pill">{{ data.shark_prediction.prediction_readiness or 0 }}%</span></div>
+    <p class="small">Equipos valorados: {{ data.shark_prediction.teams_rated or 0 }} · Ligas: {{ data.shark_prediction.leagues_rated or 0 }} · Mercados: {{ data.shark_prediction.markets_rated or 0 }}.</p>
+    <p class="small">Equipo mejor valorado: {{ data.shark_prediction.top_team or 'Sin datos suficientes' }} · Rating medio: {{ data.shark_prediction.avg_team_rating or 70 }}.</p>
+    <form method="post" action="/admin/data-center">
+      <input type="hidden" name="action" value="shark_prediction">
+      <div class="field"><label>Límite de partidos históricos</label><input name="limit" value="1000"></div>
+      <button type="submit">Reconstruir Prediction V2</button>
+    </form>
+  </aside>
+  <aside class="card pro-card">
+    <h2>Qué mejora en pronósticos</h2>
+    <p class="small">Crea rating interno de equipos, fuerza de liga, selección de mercado y desglose de confianza para que SHARK no solo recomiende: explique y priorice mejor.</p>
+    {% for item in data.shark_prediction.market_scores[:4] %}
+    <div class="list-row"><span>{{ item.market }}<br><small>{{ item.explanation }}</small></span><strong>{{ item.score }}</strong></div>
+    {% else %}
+    <p class="small">Ejecuta la reconstrucción cuando haya resultados y picks históricos.</p>
+    {% endfor %}
+  </aside>
+</section>
+
+<section class="band two-col">
+  <aside class="card">
+    <div class="section-head"><h2>Top ratings SHARK</h2><span class="pill">equipos</span></div>
+    {% for team in data.shark_prediction.top_teams[:6] %}
+    <div class="list-row"><span>{{ team.team_name }}<br><small>Partidos {{ team.matches_played }} · fiabilidad {{ team.reliability_score }}%</small></span><strong>{{ team.rating }}</strong></div>
+    {% else %}
+    <p class="small">Aún no hay ratings calculados.</p>
+    {% endfor %}
+  </aside>
+  <aside class="card">
+    <div class="section-head"><h2>Fuerza de competiciones</h2><span class="pill">ligas</span></div>
+    {% for league in data.shark_prediction.strong_leagues[:6] %}
+    <div class="list-row"><span>{{ league.league_name }}<br><small>Muestra {{ league.sample_size }} · goles medios {{ league.avg_goals }}</small></span><strong>{{ league.strength_score }}</strong></div>
+    {% else %}
+    <p class="small">Sin ligas valoradas todavía.</p>
+    {% endfor %}
+  </aside>
+</section>
+
+<section class="band two-col">
+  <aside class="card elite-card">
+    <div class="section-head"><h2>Odds & Value Intelligence V591</h2><span class="pill">{{ data.odds_value.readiness_score or 0 }}%</span></div>
+    <p class="small">Señales: {{ data.odds_value.total_signals or 0 }} · Value fuerte: {{ data.odds_value.strong_value or 0 }} · Value moderado: {{ data.odds_value.medium_value or 0 }} · En observación: {{ data.odds_value.watchlist or 0 }}</p>
+    <p class="small">Mejor value detectado: {{ data.odds_value.best_value_pct or 0 }}% · Media: {{ data.odds_value.avg_value_pct or 0 }}%</p>
+    <form method="post" action="/admin/data-center">
+      <input type="hidden" name="action" value="odds_value">
+      <div class="field"><label>Límite de cuotas/picks a analizar</label><input name="limit" value="500"></div>
+      <button type="submit">Reconstruir value SHARK</button>
+    </form>
+  </aside>
+  <aside class="card pro-card">
+    <h2>Qué mejora ahora</h2>
+    <p class="small">Compara cuota, probabilidad implícita y confianza SHARK para detectar si hay margen real antes de enviar o publicar un pick.</p>
+    <p class="small">No inventa cuotas: usa snapshots guardados, picks y recomendaciones existentes.</p>
+  </aside>
+</section>
+
+<section class="band two-col">
+  <aside class="card">
+    <div class="section-head"><h2>Mejores señales de value</h2><span class="pill">ventaja</span></div>
+    {% for item in data.odds_value.best_signals[:6] %}
+    <div class="list-row"><span>{{ item.market }} · {{ item.selection }}<br><small>{{ item.league_name or 'Competición' }} · cuota {{ item.odds }} · implícita {{ item.implied_probability }}% · SHARK {{ item.shark_probability }}%</small></span><strong>{{ item.value_pct }}%</strong></div>
+    {% else %}
+    <p class="small">Aún no hay señales. Reconstruye el motor cuando haya cuotas o picks con cuota.</p>
+    {% endfor %}
+  </aside>
+  <aside class="card">
+    <div class="section-head"><h2>Precios sin ventaja</h2><span class="pill">control</span></div>
+    {% for item in data.odds_value.risk_signals[:6] %}
+    <div class="list-row"><span>{{ item.market }} · {{ item.selection }}<br><small>{{ item.edge_label }} · riesgo {{ item.risk_label }}</small></span><strong>{{ item.value_pct }}%</strong></div>
+    {% else %}
+    <p class="small">Sin señales negativas registradas todavía.</p>
+    {% endfor %}
+  </aside>
+</section>
 
 <section class="band two-col">
   <aside class="card elite-card">

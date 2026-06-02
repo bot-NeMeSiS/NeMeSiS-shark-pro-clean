@@ -72,9 +72,12 @@ from engines.shark_learning_engine import (
 from engines.pick_grading_engine import ensure_pick_grading_schema, pick_grading_summary, run_pick_grading
 from engines.telegram_autonomous_delivery_engine import ensure_telegram_autonomous_schema, telegram_autonomous_summary, run_telegram_autonomous_delivery
 from engines.sportsdb_highlights_engine import ensure_sportsdb_highlights_schema, sync_sportsdb_highlights, sportsdb_highlights_summary, sportsdb_highlights_for_match, rebuild_match_enrichment
+from engines.odds_value_engine import ensure_odds_value_schema, odds_value_summary, rebuild_odds_value_engine, value_for_pick_like
+from engines.shark_prediction_engine import ensure_shark_prediction_schema, rebuild_shark_prediction_engine, shark_prediction_summary, prediction_for_match, apply_shark_prediction_adjustment
+from engines.sportsdb_enrichment_engine import ensure_sportsdb_enrichment_schema, sync_sportsdb_max_enrichment, sportsdb_enrichment_summary, sportsdb_enrichment_for_match
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V589_CALENDARIO_PRO_MATCH_CENTER"
+APP_VERSION = "V593_SPORTSDB_MAXIMUM_ENRICHMENT"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -1004,6 +1007,9 @@ def init_db():
         ensure_shark_learning_schema(DB_PATH)
         ensure_telegram_autonomous_schema(DB_PATH)
         ensure_sportsdb_highlights_schema(DB_PATH)
+        ensure_odds_value_schema(DB_PATH)
+        ensure_shark_prediction_schema(DB_PATH)
+        ensure_sportsdb_enrichment_schema(DB_PATH)
     except Exception:
         pass
     cleanup_fake_matches(cur)
@@ -2667,12 +2673,16 @@ def run_autonomous_pick_cycle(limit=40, force=False):
         remaining_today = cfg["max_auto_picks_per_day"] if force else max(0, cfg["max_auto_picks_per_day"] - sent_or_saved_today)
         for rec in recs:
             rec = apply_shark_learning_adjustment(rec, DB_PATH)
+            try:
+                rec = apply_shark_prediction_adjustment(rec, DB_PATH)
+            except Exception:
+                rec.setdefault("prediction_explanation", "SHARK Prediction V2 pendiente de más datos.")
             signature = autopilot_pick_signature(rec)
             score = as_int(rec.get("score") or rec.get("confidence"), 0)
             odds = as_float(rec.get("odds_value") or rec.get("odds"), 0.0)
             result["candidates"] += 1
-            telegram_flow_log("SHARK_LEARNING", "adjusted", "Aprendizaje SHARK aplicado a candidato.", {"cycle_id": cycle_id, "match_id": rec.get("match_id"), "score": score, "adjustment": rec.get("learning_adjustment"), "explanation": rec.get("learning_explanation")})
-            telegram_flow_log("SHARK", "candidate", "Candidato SHARK evaluado para autopilot.", {"cycle_id": cycle_id, "match_id": rec.get("match_id"), "score": score, "odds": odds, "selection": rec.get("selection")})
+            telegram_flow_log("SHARK_LEARNING", "adjusted", "Aprendizaje SHARK aplicado a candidato.", {"cycle_id": cycle_id, "match_id": rec.get("match_id"), "score": score, "adjustment": rec.get("learning_adjustment"), "prediction_adjustment": rec.get("prediction_adjustment"), "explanation": rec.get("learning_explanation")})
+            telegram_flow_log("SHARK", "candidate", "Candidato SHARK V2 evaluado para autopilot.", {"cycle_id": cycle_id, "match_id": rec.get("match_id"), "score": score, "prediction_score_v2": rec.get("prediction_score_v2"), "odds": odds, "selection": rec.get("selection")})
             discard_reason = ""
             if remaining_today <= 0:
                 discard_reason = "limite_diario_alcanzado"
@@ -3581,6 +3591,16 @@ def normalize_pick_row(pick):
         pick["learning_signals"] = learned.get("learning_signals", [])
         pick["confidence"] = learned.get("confidence", pick["confidence"])
         pick["shark_score"] = learned.get("shark_score", pick["confidence"])
+        try:
+            predicted = apply_shark_prediction_adjustment(pick, DB_PATH)
+            pick["prediction_score_v2"] = predicted.get("prediction_score_v2", pick.get("shark_score"))
+            pick["prediction_adjustment"] = predicted.get("prediction_adjustment", 0)
+            pick["prediction_explanation"] = predicted.get("prediction_explanation", "")
+            pick["confidence"] = predicted.get("confidence", pick["confidence"])
+            pick["shark_score"] = predicted.get("score", pick["shark_score"])
+        except Exception:
+            pick["prediction_adjustment"] = 0
+            pick["prediction_explanation"] = "SHARK Prediction V2 pendiente de más datos."
     except Exception:
         pick["learning_adjustment"] = 0
         pick["learning_explanation"] = "Histórico insuficiente: confianza sin ajuste avanzado."
@@ -4493,6 +4513,161 @@ def match_depth_payload(match):
         },
     }
 
+
+
+
+def _safe_float(value, default=0.0):
+    try:
+        if value in (None, ""):
+            return default
+        return float(str(value).replace(",", "."))
+    except Exception:
+        return default
+
+
+def v590_match_odds(match):
+    """Build a premium odds block using persisted odds only, without forcing API calls."""
+    match_id = str((match or {}).get("id") or "")
+    snapshot = None
+    try:
+        snapshot = one("SELECT * FROM odds_snapshots WHERE match_id=? ORDER BY created_at DESC LIMIT 1", (match_id,))
+    except Exception:
+        snapshot = None
+    odds = {
+        "home": _safe_float((snapshot or {}).get("home_price") or (match or {}).get("home_odds") or (match or {}).get("odds_home"), 0),
+        "draw": _safe_float((snapshot or {}).get("draw_price") or (match or {}).get("draw_odds") or (match or {}).get("odds_draw"), 0),
+        "away": _safe_float((snapshot or {}).get("away_price") or (match or {}).get("away_odds") or (match or {}).get("odds_away"), 0),
+    }
+    available = any(v > 0 for v in odds.values())
+    best_value = max(odds.values()) if available else 0
+    market_label = (snapshot or {}).get("market") or "1X2"
+    bookmaker = (snapshot or {}).get("bookmaker") or "Cuotas guardadas"
+    value_signal = "Sin cuotas guardadas"
+    if available:
+        if best_value >= 2.20:
+            value_signal = "Cuota alta: revisar riesgo y contexto SHARK"
+        elif best_value >= 1.70:
+            value_signal = "Cuota útil para análisis de value"
+        else:
+            value_signal = "Cuota conservadora"
+    return {
+        "available": available,
+        "home": odds["home"],
+        "draw": odds["draw"],
+        "away": odds["away"],
+        "market": market_label,
+        "bookmaker": bookmaker,
+        "updated_at": (snapshot or {}).get("created_at") or (match or {}).get("odds_updated_at") or "",
+        "value_signal": value_signal,
+        "source": (snapshot or {}).get("source") or "SQLite",
+    }
+
+
+def v591_match_value_profile(premium, match):
+    """V591 match-detail value analysis from persisted V590 odds and SHARK score."""
+    premium = premium or {}
+    match = match or {}
+    odds = premium.get("odds") or {}
+    score = premium.get("shark_score") or match.get("shark_score") or 0
+    choices = [
+        {"label": "1", "selection": match.get("home_team") or "Local", "odds": odds.get("home")},
+        {"label": "X", "selection": "Empate", "odds": odds.get("draw")},
+        {"label": "2", "selection": match.get("away_team") or "Visitante", "odds": odds.get("away")},
+    ]
+    analysed = []
+    for item in choices:
+        if _safe_float(item.get("odds"), 0) > 1:
+            signal = value_for_pick_like({"odds": item.get("odds"), "confidence": score})
+            analysed.append({**item, **signal})
+    best = sorted(analysed, key=lambda x: _safe_float(x.get("value_pct"), -999), reverse=True)[:1]
+    best = best[0] if best else {}
+    return {
+        "available": bool(analysed),
+        "market": odds.get("market") or "1X2",
+        "bookmaker": odds.get("bookmaker") or "Cuotas guardadas",
+        "items": analysed,
+        "best": best,
+        "summary": (best.get("edge_label") if best else "Sin value calculable"),
+        "note": (best.get("note") if best else "Aún no hay cuotas suficientes para calcular value."),
+    }
+
+
+def v590_match_premium_profile(match, depth):
+    """Premium match-detail bundle for V590. Uses only persisted data/fallbacks."""
+    match = match or {}
+    depth = depth or {}
+    status = match.get("status_info") or canonical_match_status(match)
+    home_form = depth.get("home_form") or recent_team_form(match.get("home_team"))
+    away_form = depth.get("away_form") or recent_team_form(match.get("away_team"))
+    h2h = depth.get("head_to_head") or head_to_head_matches(match.get("home_team"), match.get("away_team"))
+    picks = depth.get("related_picks") or related_picks_for_match(match)
+    odds = v590_match_odds(match)
+    timeline = depth.get("timeline") or match_timeline(match)
+    live_depth_data = depth.get("live_depth") or live_depth(match)
+    media = {}
+    try:
+        media = sportsdb_highlights_for_match(DB_PATH, match.get("id")) or {}
+    except Exception:
+        media = {"highlights": [], "summary_text": ""}
+    home_score = _safe_float((home_form or {}).get("form", []).count("W") * 3 + (home_form or {}).get("form", []).count("D"), 0)
+    away_score = _safe_float((away_form or {}).get("form", []).count("W") * 3 + (away_form or {}).get("form", []).count("D"), 0)
+    shark_score = as_int((live_depth_data.get("shark_momentum") or {}).get("value") or match.get("shark_score") or 0, 0)
+    if not shark_score:
+        shark_score = 55
+        if picks:
+            shark_score += 10
+        if h2h:
+            shark_score += 5
+        if odds.get("available"):
+            shark_score += 8
+        if status.get("is_live"):
+            shark_score += 7
+        shark_score = min(shark_score, 92)
+    context_notes = []
+    if status.get("is_upcoming"):
+        context_notes.append("Partido preparado para previa, cuotas, forma reciente y recomendaciones SHARK.")
+    if status.get("is_live"):
+        context_notes.append("Partido en directo: priorizar minuto, marcador, momentum y alertas antes de entrar.")
+    if status.get("is_finished"):
+        context_notes.append("Partido finalizado: útil para resumen, aprendizaje, histórico y evaluación de picks.")
+    if odds.get("available"):
+        context_notes.append(f"Cuotas disponibles en mercado {odds.get('market')}: SHARK puede comparar precio, riesgo y contexto.")
+    else:
+        context_notes.append("Cuotas no guardadas todavía: SHARK mantiene lectura contextual sin forzar apuestas.")
+    if home_score > away_score:
+        context_notes.append(f"Forma reciente favorable para {match.get('home_team')} según resultados guardados.")
+    elif away_score > home_score:
+        context_notes.append(f"Forma reciente favorable para {match.get('away_team')} según resultados guardados.")
+    else:
+        context_notes.append("Forma reciente equilibrada o con muestra insuficiente.")
+    return {
+        "ready": True,
+        "shark_score": shark_score,
+        "confidence_label": "Alta" if shark_score >= 80 else "Media" if shark_score >= 65 else "Contextual",
+        "risk_label": "Bajo" if shark_score >= 82 else "Medio" if shark_score >= 65 else "Alto",
+        "odds": odds,
+        "home_form": home_form,
+        "away_form": away_form,
+        "h2h": h2h[:5],
+        "timeline": timeline[:12],
+        "picks": picks[:6],
+        "media": media,
+        "context_notes": context_notes,
+        "sections": {
+            "pre_match": bool(status.get("is_upcoming")),
+            "live": bool(status.get("is_live")),
+            "post_match": bool(status.get("is_finished")),
+        },
+        "quality": {
+            "has_form": bool((home_form or {}).get("matches") or (away_form or {}).get("matches")),
+            "has_h2h": bool(h2h),
+            "has_odds": bool(odds.get("available")),
+            "has_timeline": bool(timeline),
+            "has_highlights": bool((media or {}).get("highlights")),
+            "has_picks": bool(picks),
+        },
+    }
+
 def match_detail(match_id):
     match = one("SELECT * FROM matches WHERE id=?", (match_id,))
     if not match:
@@ -4516,6 +4691,19 @@ def match_detail(match_id):
     except Exception:
         media = {"highlights": [], "enrichment": {}, "summary_text": ""}
     base["sportsdb_media"] = media
+    try:
+        base["v593_sportsdb"] = sportsdb_enrichment_for_match(DB_PATH, annotated)
+    except Exception:
+        base["v593_sportsdb"] = {"available": False, "summary": "Enriquecimiento TheSportsDB pendiente."}
+    base["v590_premium"] = v590_match_premium_profile(annotated, depth)
+    try:
+        base["v591_value"] = v591_match_value_profile(base["v590_premium"], annotated)
+    except Exception:
+        base["v591_value"] = {"available": False, "note": "Value no disponible todavía."}
+    try:
+        base["v592_prediction"] = prediction_for_match(DB_PATH, annotated, base.get("v591_value"), base.get("v590_premium"))
+    except Exception:
+        base["v592_prediction"] = {"available": False, "summary": "SHARK Prediction V2 pendiente de más datos."}
     return base
 
 
@@ -6960,10 +7148,22 @@ def admin_data_center_page():
         elif action == "telegram_autonomous":
             result = run_telegram_autonomous_delivery(DB_PATH, limit=limit, force=force)
             result["telegram_autonomous"] = telegram_autonomous_summary(DB_PATH)
+        elif action == "odds_value":
+            result = rebuild_odds_value_engine(DB_PATH, limit=limit)
+            result["odds_value"] = odds_value_summary(DB_PATH)
+            telegram_flow_log("ODDS_VALUE", "rebuilt", "Inteligencia de cuotas y value reconstruida desde Data Center.", result)
+        elif action == "shark_prediction":
+            result = rebuild_shark_prediction_engine(DB_PATH, limit=limit)
+            result["shark_prediction"] = shark_prediction_summary(DB_PATH)
+            telegram_flow_log("SHARK_PREDICTION", "rebuilt", "SHARK Prediction Evolution reconstruido desde Data Center.", result)
         elif action == "sportsdb_highlights":
             days_back = as_int(request.form.get("days_back"), 5)
             result = sync_sportsdb_highlights(DB_PATH, days_back=days_back, limit=limit, force=force)
             result["sportsdb_highlights"] = sportsdb_highlights_summary(DB_PATH)
+        elif action == "sportsdb_enrichment":
+            result = sync_sportsdb_max_enrichment(DB_PATH, limit=limit, include_past=True, include_next=True)
+            result["sportsdb_enrichment"] = sportsdb_enrichment_summary(DB_PATH)
+            telegram_flow_log("SPORTSDB_ENRICHMENT", "synced", "Enriquecimiento máximo TheSportsDB ejecutado desde Data Center.", result)
         message = "Accion ejecutada desde Data Center."
     data = dashboard_data()
     data["data_center"] = data_center_summary()
@@ -6976,6 +7176,9 @@ def admin_data_center_page():
     data["pick_grading"] = pick_grading_summary(DB_PATH)
     data["telegram_autonomous"] = telegram_autonomous_summary(DB_PATH)
     data["sportsdb_highlights"] = sportsdb_highlights_summary(DB_PATH)
+    data["sportsdb_enrichment"] = sportsdb_enrichment_summary(DB_PATH)
+    data["odds_value"] = odds_value_summary(DB_PATH, auto_rebuild=False)
+    data["shark_prediction"] = shark_prediction_summary(DB_PATH, auto_rebuild=False)
     return render_template("admin_data_center.html", data=data, message=message, result=result)
 
 
@@ -7255,6 +7458,85 @@ def api_shark_learning_rebuild():
     return jsonify({"version": APP_VERSION, **result, "shark_learning": build_shark_learning_profile(DB_PATH)})
 
 
+@app.route("/api/odds-value/summary")
+def api_odds_value_summary():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "version": APP_VERSION, "odds_value": odds_value_summary(DB_PATH, auto_rebuild=True)})
+
+
+@app.route("/api/odds-value/rebuild", methods=["POST", "GET"])
+def api_odds_value_rebuild():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    limit = as_int(request.args.get("limit") or request.form.get("limit"), 500)
+    result = rebuild_odds_value_engine(DB_PATH, limit=limit)
+    telegram_flow_log("ODDS_VALUE", "rebuilt", "Motor Odds & Value reconstruido.", result)
+    return jsonify({"version": APP_VERSION, **result, "odds_value": odds_value_summary(DB_PATH)})
+
+
+@app.route("/api/v591/odds-value-check")
+def api_v591_odds_value_check():
+    return jsonify({"ok": True, "version": APP_VERSION, "odds_value": odds_value_summary(DB_PATH, auto_rebuild=True)})
+
+
+@app.route("/api/shark-prediction/summary")
+def api_shark_prediction_summary():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "version": APP_VERSION, "shark_prediction": shark_prediction_summary(DB_PATH, auto_rebuild=True)})
+
+
+@app.route("/api/shark-prediction/rebuild", methods=["POST", "GET"])
+def api_shark_prediction_rebuild():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    limit = as_int(request.args.get("limit") or request.form.get("limit"), 1000)
+    result = rebuild_shark_prediction_engine(DB_PATH, limit=limit)
+    telegram_flow_log("SHARK_PREDICTION", "rebuilt", "Motor SHARK Prediction V2 reconstruido.", result)
+    return jsonify({"version": APP_VERSION, **result, "shark_prediction": shark_prediction_summary(DB_PATH)})
+
+
+
+
+@app.route("/api/sportsdb-enrichment/summary")
+def api_sportsdb_enrichment_summary():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "version": APP_VERSION, "sportsdb_enrichment": sportsdb_enrichment_summary(DB_PATH)})
+
+
+@app.route("/api/sportsdb-enrichment/sync", methods=["POST", "GET"])
+def api_sportsdb_enrichment_sync():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    limit = as_int(request.args.get("limit") or request.form.get("limit"), 30)
+    result = sync_sportsdb_max_enrichment(DB_PATH, limit=limit, include_past=True, include_next=True)
+    return jsonify({"version": APP_VERSION, **result, "sportsdb_enrichment": sportsdb_enrichment_summary(DB_PATH)})
+
+
+@app.route("/api/v593/sportsdb-enrichment-check")
+def api_v593_sportsdb_enrichment_check():
+    return jsonify({"ok": True, "version": APP_VERSION, "sportsdb_enrichment": sportsdb_enrichment_summary(DB_PATH), "routes": ["/api/sportsdb-enrichment/summary", "/api/sportsdb-enrichment/sync", "/api/v593/sportsdb-enrichment-check"]})
+
+@app.route("/api/v592/shark-prediction-check")
+def api_v592_shark_prediction_check():
+    sample = None
+    try:
+        sample = one("SELECT id FROM matches ORDER BY match_date DESC, kickoff_time DESC LIMIT 1")
+    except Exception:
+        sample = None
+    detail = match_detail(sample.get("id")) if sample else None
+    return jsonify({
+        "ok": True,
+        "version": "V592_SHARK_PREDICTION_EVOLUTION",
+        "summary": shark_prediction_summary(DB_PATH, auto_rebuild=True),
+        "sample_match_id": (sample or {}).get("id"),
+        "sample_prediction": (detail or {}).get("v592_prediction") or {},
+        "routes": ["/api/shark-prediction/summary", "/api/shark-prediction/rebuild", "/api/v592/shark-prediction-check"],
+    })
+
+
 @app.route("/api/pick-grading/summary")
 def api_pick_grading_summary():
     if not is_admin_session():
@@ -7478,6 +7760,28 @@ def api_match_depth(match_id):
     if not match:
         return jsonify({"ok": False, "error": "match_not_found"}), 404
     return jsonify({"ok": True, "depth": match_depth_payload(match)})
+
+
+
+@app.route("/api/v590/match-detail-check")
+def api_v590_match_detail_check():
+    sample = None
+    try:
+        sample = one("SELECT id FROM matches ORDER BY match_date DESC, kickoff_time DESC LIMIT 1")
+    except Exception:
+        sample = None
+    detail = match_detail(sample.get("id")) if sample else None
+    premium = (detail or {}).get("v590_premium") or {}
+    return jsonify({
+        "ok": True,
+        "version": "V590_MATCH_DETAIL_PREMIUM",
+        "sample_match_id": (sample or {}).get("id"),
+        "premium_ready": bool(premium.get("ready")),
+        "sections": premium.get("sections") or {},
+        "quality": premium.get("quality") or {},
+        "shark_score": premium.get("shark_score"),
+    })
+
 
 @app.route("/api/matches/<match_id>/statistics")
 def api_match_statistics(match_id):
@@ -8369,7 +8673,7 @@ def api_admin_membership_summary():
 
 
 # ===================== V565 SPORTS DATA & PICKS PERFECTION =====================
-APP_VERSION = "V582_TELEGRAM_PICKS_HARD_FIX_AUDIT_READY"
+APP_VERSION = "V593_SPORTSDB_MAXIMUM_ENRICHMENT"
 
 PRIORITY_LEAGUE_ORDER = [
     "UEFA Champions League", "Champions League", "LaLiga", "Spanish La Liga", "Premier League",

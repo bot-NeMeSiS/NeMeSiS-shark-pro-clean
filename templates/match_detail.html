@@ -9,13 +9,17 @@
 </section>
 {% else %}
 {% set m = detail.match %}
+{% set premium = detail.v590_premium or {} %}
+{% set odds = premium.odds or {} %}
+{% set value = detail.v591_value or {} %}
+{% set prediction = detail.v592_prediction or {} %}
 {% set momentum = detail.momentum or {} %}
 <section class="match-hero">
   <div class="match-hero-top">
     <div>
       <div class="kicker">{{ m.competition_name or m.league_name or 'Competición' }}</div>
       <h1>{{ m.home_team }} vs {{ m.away_team }}</h1>
-      <p class="lead">Detalle del partido con estado, marcador, equipos, picks relacionados y lectura SHARK.</p>
+      <p class="lead">Ficha premium con previa, directo, histórico, cuotas, timeline, picks relacionados y lectura SHARK.</p>
     </div>
     <div class="match-scorebox">
       <span class="state-badge {{ detail.state.badge }}">{{ detail.state.label }}</span>
@@ -38,6 +42,172 @@
     </div>
   </div>
 </section>
+
+<section class="band compact-band v592-prediction-evolution">
+  <div class="section-head">
+    <h2>SHARK Prediction V2</h2>
+    <span class="pill">V592</span>
+  </div>
+  <div class="grid compact-grid metric-row">
+    <article class="card metric-card elite-card">
+      <div class="metric">{{ prediction.score_v2 or premium.shark_score or 0 }}</div>
+      <div class="muted">Score SHARK V2</div>
+      <small>{{ prediction.confidence_label or premium.confidence_label or 'Contextual' }} · Riesgo {{ prediction.risk_label or premium.risk_label or 'Medio' }}</small>
+    </article>
+    <article class="card metric-card">
+      <div class="metric">{{ prediction.home_rating.rating or 70 }}</div>
+      <div class="muted">rating local</div>
+      <small>{{ m.home_team }}</small>
+    </article>
+    <article class="card metric-card">
+      <div class="metric">{{ prediction.away_rating.rating or 70 }}</div>
+      <div class="muted">rating visitante</div>
+      <small>{{ m.away_team }}</small>
+    </article>
+    <article class="card metric-card">
+      <div class="metric">{{ prediction.reliability_score or 0 }}%</div>
+      <div class="muted">fiabilidad</div>
+      <small>muestra histórica disponible</small>
+    </article>
+  </div>
+  <div class="grid compact-grid">
+    <article class="card">
+      <div class="section-head"><h3>Mercado recomendado</h3><span class="pill">predicción</span></div>
+      <p class="small"><strong>{{ prediction.recommended_market or 'Contextual' }}</strong> · {{ prediction.recommended_selection or 'Pendiente de datos' }}</p>
+      <p class="small">{{ prediction.reason or prediction.summary or 'SHARK está esperando más datos para explicar la predicción.' }}</p>
+    </article>
+    <article class="card">
+      <div class="section-head"><h3>Desglose de confianza</h3><span class="pill">explicación</span></div>
+      {% for item in prediction.confidence_breakdown[:6] %}
+      <div class="list-row"><span>{{ item.label }}<br><small>{{ item.detail }}</small></span><strong>{{ item.impact }}</strong></div>
+      {% else %}
+      <p class="small">Histórico insuficiente: confianza sin desglose avanzado.</p>
+      {% endfor %}
+    </article>
+  </div>
+  {% if prediction.warnings %}
+  <div class="notice soft-warning">{% for warning in prediction.warnings %}<span>{{ warning }}</span>{% if not loop.last %}<br>{% endif %}{% endfor %}</div>
+  {% endif %}
+</section>
+
+
+{% set sportsdb = detail.v593_sportsdb or {} %}
+{% if sportsdb.available %}
+<section class="band compact-band v593-sportsdb-enrichment">
+  <div class="section-head"><h2>Contexto oficial TheSportsDB</h2><span class="pill">V593</span></div>
+  <p class="small">{{ sportsdb.summary }} · {{ sportsdb.legal_note }}</p>
+  <div class="grid compact-grid">
+    <article class="card">
+      <div class="section-head"><h3>{{ m.home_team }}</h3><span class="pill">local</span></div>
+      {% if sportsdb.home_team.badge_url %}<img loading="lazy" src="{{ sportsdb.home_team.badge_url }}" alt="{{ m.home_team }}" style="width:64px;height:64px;object-fit:contain;margin-bottom:8px;">{% endif %}
+      <p class="small">{{ sportsdb.home_team.league_name or m.competition_name or 'Competición' }}{% if sportsdb.home_team.stadium_name %} · {{ sportsdb.home_team.stadium_name }}{% endif %}</p>
+      {% if sportsdb.home_team.description_es %}<p class="small">{{ sportsdb.home_team.description_es[:220] }}{% if sportsdb.home_team.description_es|length > 220 %}...{% endif %}</p>{% endif %}
+    </article>
+    <article class="card">
+      <div class="section-head"><h3>{{ m.away_team }}</h3><span class="pill">visitante</span></div>
+      {% if sportsdb.away_team.badge_url %}<img loading="lazy" src="{{ sportsdb.away_team.badge_url }}" alt="{{ m.away_team }}" style="width:64px;height:64px;object-fit:contain;margin-bottom:8px;">{% endif %}
+      <p class="small">{{ sportsdb.away_team.league_name or m.competition_name or 'Competición' }}{% if sportsdb.away_team.stadium_name %} · {{ sportsdb.away_team.stadium_name }}{% endif %}</p>
+      {% if sportsdb.away_team.description_es %}<p class="small">{{ sportsdb.away_team.description_es[:220] }}{% if sportsdb.away_team.description_es|length > 220 %}...{% endif %}</p>{% endif %}
+    </article>
+    <article class="card">
+      <div class="section-head"><h3>Señales añadidas</h3><span class="pill">SHARK</span></div>
+      {% for note in sportsdb.notes[:5] %}<div class="list-row"><span>{{ note }}</span></div>{% else %}<p class="small">TheSportsDB ha enriquecido la ficha, pero aún falta contexto avanzado para este partido.</p>{% endfor %}
+    </article>
+  </div>
+</section>
+{% endif %}
+
+<section class="band compact-band v590-premium-detail">
+  <div class="section-head">
+    <h2>Centro premium del partido</h2>
+    <span class="pill">V590</span>
+  </div>
+  <div class="grid compact-grid metric-row">
+    <article class="card metric-card v590-score-card">
+      <div class="metric">{{ premium.shark_score or momentum.value or 0 }}</div>
+      <div class="muted">Puntuación SHARK</div>
+      <small>{{ premium.confidence_label or 'Contextual' }} · Riesgo {{ premium.risk_label or 'Medio' }}</small>
+    </article>
+    <article class="card metric-card">
+      <div class="metric">{{ detail.home_form.form|length if detail.home_form else 0 }}</div>
+      <div class="muted">Partidos de forma local</div>
+      <small>{{ detail.home_form.summary if detail.home_form else 'Sin datos recientes' }}</small>
+    </article>
+    <article class="card metric-card">
+      <div class="metric">{{ detail.away_form.form|length if detail.away_form else 0 }}</div>
+      <div class="muted">Partidos de forma visitante</div>
+      <small>{{ detail.away_form.summary if detail.away_form else 'Sin datos recientes' }}</small>
+    </article>
+    <article class="card metric-card">
+      <div class="metric">{{ premium.h2h|length }}</div>
+      <div class="muted">Cara a cara guardados</div>
+      <small>{{ odds.value_signal or 'Contexto preparado' }}</small>
+    </article>
+  </div>
+</section>
+
+<section class="band two-col v590-context-grid">
+  <article class="card">
+    <div class="section-head"><h2>Forma reciente</h2><span class="pill">Últimos 5</span></div>
+    <div class="form-row">
+      <strong>{{ m.home_team }}</strong>
+      <div class="form-badges">
+        {% for r in detail.home_form.form %}<span class="form-badge {{ r|lower }}">{{ 'G' if r == 'W' else 'E' if r == 'D' else 'P' }}</span>{% else %}<span class="muted">Sin muestra suficiente</span>{% endfor %}
+      </div>
+      <small>{{ detail.home_form.summary }}</small>
+    </div>
+    <div class="form-row">
+      <strong>{{ m.away_team }}</strong>
+      <div class="form-badges">
+        {% for r in detail.away_form.form %}<span class="form-badge {{ r|lower }}">{{ 'G' if r == 'W' else 'E' if r == 'D' else 'P' }}</span>{% else %}<span class="muted">Sin muestra suficiente</span>{% endfor %}
+      </div>
+      <small>{{ detail.away_form.summary }}</small>
+    </div>
+  </article>
+
+  <article class="card">
+    <div class="section-head"><h2>Cuotas y value</h2><span class="pill">{{ odds.market or '1X2' }}</span></div>
+    {% if odds.available %}
+    <div class="odds-grid">
+      <div><span>1</span><strong>{{ '%.2f'|format(odds.home) if odds.home else '-' }}</strong><small>{{ m.home_team }}</small></div>
+      <div><span>X</span><strong>{{ '%.2f'|format(odds.draw) if odds.draw else '-' }}</strong><small>Empate</small></div>
+      <div><span>2</span><strong>{{ '%.2f'|format(odds.away) if odds.away else '-' }}</strong><small>{{ m.away_team }}</small></div>
+    </div>
+    <p class="small premium-note">{{ odds.value_signal }} · {{ odds.bookmaker }}</p>
+    {% if value.available %}
+    <div class="value-panel v591-value-panel">
+      <div class="section-head"><h3>Lectura value SHARK</h3><span class="pill">V591</span></div>
+      <p class="small"><strong>{{ value.summary }}</strong> · {{ value.note }}</p>
+      {% if value.best %}
+      <div class="list-row"><span>{{ value.best.label }} · {{ value.best.selection }}<br><small>Cuota {{ '%.2f'|format(value.best.odds) }} · Probabilidad implícita {{ value.best.implied_probability }}% · Lectura SHARK {{ value.best.shark_probability }}%</small></span><strong>{{ value.best.value_pct }}%</strong></div>
+      {% endif %}
+    </div>
+    {% endif %}
+    {% else %}
+    <div class="empty">Aún no hay cuotas guardadas para este partido. SHARK mantiene la lectura contextual sin inventar value.</div>
+    {% endif %}
+  </article>
+</section>
+
+<section class="band two-col v590-context-grid">
+  <article class="card">
+    <div class="section-head"><h2>Cara a cara</h2><span class="pill">H2H</span></div>
+    <div class="stack compact-stack">
+      {% for h in premium.h2h %}
+      <div class="list-row h2h-row"><span><strong>{{ h.home_team }} {{ h.score or '' }} {{ h.away_team }}</strong><small>{{ h.match_date }} · {{ h.competition_name or h.league_name or 'Competición' }}</small></span><a href="/match/{{ h.id }}">Ver</a></div>
+      {% else %}
+      <div class="empty">No hay enfrentamientos directos guardados todavía.</div>
+      {% endfor %}
+    </div>
+  </article>
+  <article class="card">
+    <div class="section-head"><h2>Lectura premium SHARK</h2><span class="pill">Contexto</span></div>
+    <div class="stack compact-stack">
+      {% for note in premium.context_notes %}<div class="list-row"><span>{{ note }}</span></div>{% else %}<div class="empty">SHARK está preparando contexto avanzado.</div>{% endfor %}
+    </div>
+  </article>
+</section>
+
 
 <section class="band compact-band">
   <div class="section-head"><h2>SHARK Score</h2><span class="pill">{{ detail.state.label }}</span></div>
@@ -119,12 +289,12 @@
 {% endif %}
 
 <section class="band">
-  <div class="section-head"><h2>Timeline Live</h2><span class="pill">{{ detail.timeline|length }}</span></div>
+  <div class="section-head"><h2>Timeline del partido</h2><span class="pill">{{ detail.timeline|length }}</span></div>
   <div class="timeline">
     {% for ev in detail.timeline %}
     <div class="timeline-item"><div class="timeline-minute">{{ ev.minute or '-' }}</div><div><strong>{{ ev.title }}</strong><p>{{ ev.detail }}</p><small>{{ ev.event_type|upper }} · {{ ev.source or 'SQLite Live' }}</small></div></div>
     {% else %}
-    <div class="empty">Aún no hay eventos suficientes para este partido.</div>
+    <div class="empty">Aún no hay eventos suficientes para este partido. Si está próximo, el timeline se completará cuando haya datos live o finalizados.</div>
     {% endfor %}
   </div>
 </section>
