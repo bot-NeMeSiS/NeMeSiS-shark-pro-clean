@@ -33,6 +33,29 @@
 </section>
 
 
+
+<section class="band two-col">
+  <aside class="card elite-card">
+    <div class="section-head"><h2>Player Intelligence Engine V602</h2><span class="pill">{{ data.player_intelligence.readiness_score or data.data_center.player_intelligence.readiness_score or 0 }}%</span></div>
+    <p class="small">Convierte alineaciones, bajas, sanciones y jugadores clave en señales propias para mejorar la lectura SHARK de cada partido.</p>
+    <p class="small">Jugadores: {{ data.player_intelligence.profiles_total or data.data_center.player_intelligence.profiles_total or 0 }} · Bajas/dudas: {{ data.player_intelligence.availability_total or data.data_center.player_intelligence.availability_total or 0 }} · Señales: {{ data.player_intelligence.impact_signals_total or data.data_center.player_intelligence.impact_signals_total or 0 }}.</p>
+    <form method="post" action="/admin/data-center">
+      <input type="hidden" name="action" value="player_intelligence">
+      <div class="field"><label>Límite de registros</label><input name="limit" value="1000"></div>
+      <button type="submit">Reconstruir inteligencia de jugadores</button>
+    </form>
+  </aside>
+  <aside class="card pro-card">
+    <div class="section-head"><h2>Impacto de jugadores</h2><span class="pill">SHARK</span></div>
+    {% for item in (data.player_intelligence.top_signals or data.data_center.player_intelligence.top_signals or [])[:4] %}
+    <div class="list-row"><span>{{ item.team_name or 'Equipo' }}<br><small>{{ item.title }} · confianza {{ item.confidence or 0 }}%</small></span><strong>{{ item.impact_score or 0 }}</strong></div>
+    {% else %}
+    <p class="small">Todavía no hay señales suficientes. Se generarán cuando V601 tenga alineaciones, lesiones o bajas almacenadas.</p>
+    {% endfor %}
+    <a class="btn" href="/api/v602/player-intelligence-check?public=1">Comprobar V602</a>
+  </aside>
+</section>
+
 <section class="band two-col">
   <aside class="card elite-card">
     <div class="section-head"><h2>API Exploitation Engine V601</h2><span class="pill">{{ data.api_exploitation.readiness_score or data.data_center.api_exploitation.readiness_score or 0 }}%</span></div>

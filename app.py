@@ -80,9 +80,10 @@ from engines.football_data_warehouse_engine import ensure_football_warehouse_sch
 from engines.shark_historical_intelligence_engine import ensure_historical_intelligence_schema, historical_intelligence_summary, rebuild_historical_intelligence
 from engines.shark_accuracy_engine import ensure_shark_accuracy_schema, shark_accuracy_summary, rebuild_shark_accuracy_engine
 from engines.api_exploitation_engine import ensure_api_exploitation_schema, run_api_exploitation_cycle, api_exploitation_summary, rebuild_api_exploitation_signals
+from engines.player_intelligence_engine import ensure_player_intelligence_schema, player_intelligence_summary, rebuild_player_intelligence, player_intelligence_for_fixture
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V601_API_EXPLOITATION_ENGINE"
+APP_VERSION = "V602_PLAYER_INTELLIGENCE_ENGINE"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -1020,6 +1021,7 @@ def init_db():
         ensure_historical_intelligence_schema(DB_PATH)
         ensure_shark_accuracy_schema(DB_PATH)
         ensure_api_exploitation_schema(DB_PATH)
+        ensure_player_intelligence_schema(DB_PATH)
     except Exception:
         pass
     cleanup_fake_matches(cur)
@@ -2458,6 +2460,7 @@ def data_center_summary():
             "historical_intelligence": safe_engine_payload(lambda: historical_intelligence_summary(DB_PATH), {"readiness_score": 0}),
             "shark_accuracy": safe_engine_payload(lambda: shark_accuracy_summary(DB_PATH), {"sqi": 0, "status": "sin datos"}),
             "api_exploitation": safe_engine_payload(lambda: api_exploitation_summary(DB_PATH), {"readiness_score": 0, "status": "pendiente"}),
+            "player_intelligence": safe_engine_payload(lambda: player_intelligence_summary(DB_PATH), {"readiness_score": 0, "status": "pendiente"}),
             "beta": beta_readiness_summary(),
         }
     )
@@ -2922,6 +2925,7 @@ def run_scheduler_task(task_name, force=False, limit=None):
             result["legacy_historical"] = legacy.get("warehouse", legacy) if isinstance(legacy, dict) else legacy
             try:
                 result["api_exploitation"] = run_api_exploitation_cycle(DB_PATH, limit=min(limit or 80, 120), days_back=2, days_ahead=3)
+                result["player_intelligence"] = rebuild_player_intelligence(DB_PATH, limit=min(limit or 1000, 2000))
             except Exception as exc:
                 result["api_exploitation"] = {"ok": False, "error": str(exc)[:220]}
         elif task_name == "cleanup":
@@ -6945,6 +6949,9 @@ def admin_data_center_page():
         elif action == "api_exploitation":
             result = run_api_exploitation_cycle(DB_PATH, limit=limit or 80, days_back=as_int(request.form.get("days_back"), 2), days_ahead=as_int(request.form.get("days_ahead"), 3))
             result["api_exploitation"] = api_exploitation_summary(DB_PATH)
+        elif action == "player_intelligence":
+            result = rebuild_player_intelligence(DB_PATH, limit=limit or 1000)
+            result["player_intelligence"] = player_intelligence_summary(DB_PATH)
         message = "Acción ejecutada desde Data Center."
     data = dashboard_data()
     data["data_center"] = data_center_summary()
@@ -6965,6 +6972,7 @@ def admin_data_center_page():
     data["historical_intelligence"] = data["data_center"].get("historical_intelligence") or safe_engine_payload(lambda: historical_intelligence_summary(DB_PATH))
     data["beta"] = data["data_center"].get("beta") or beta_readiness_summary()
     data["api_exploitation"] = data["data_center"].get("api_exploitation") or safe_engine_payload(lambda: api_exploitation_summary(DB_PATH))
+    data["player_intelligence"] = data["data_center"].get("player_intelligence") or safe_engine_payload(lambda: player_intelligence_summary(DB_PATH))
     return render_template("admin_data_center.html", data=data, message=message, result=result)
 
 
@@ -9391,6 +9399,34 @@ def api_api_exploitation_rebuild_signals():
 @app.route("/api/v601/api-exploitation-check")
 def api_v601_api_exploitation_check():
     return jsonify({"ok": True, "version": APP_VERSION, "module": "API Exploitation Engine", "summary": safe_engine_payload(lambda: api_exploitation_summary(DB_PATH))})
+
+
+@app.route("/api/player-intelligence/summary")
+def api_player_intelligence_summary():
+    if not is_admin_session() and request.args.get("public") != "1":
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "version": APP_VERSION, "player_intelligence": player_intelligence_summary(DB_PATH)})
+
+
+@app.route("/api/player-intelligence/rebuild", methods=["GET", "POST"])
+def api_player_intelligence_rebuild():
+    if not is_admin_session() and request.args.get("token") != os.getenv("AUTONOMOUS_CRON_TOKEN", ""):
+        return jsonify({"ok": False, "version": APP_VERSION, "error": "Admin o token requerido."}), 403
+    limit = as_int(request.args.get("limit") or request.form.get("limit"), 1000)
+    result = rebuild_player_intelligence(DB_PATH, limit=limit)
+    return jsonify({"version": APP_VERSION, **result, "player_intelligence": player_intelligence_summary(DB_PATH)})
+
+
+@app.route("/api/player-intelligence/fixture")
+def api_player_intelligence_fixture():
+    fixture_id = request.args.get("fixture_id") or request.args.get("match_id") or ""
+    team_id = request.args.get("team_id") or ""
+    return jsonify({"ok": True, "version": APP_VERSION, "player_intelligence": player_intelligence_for_fixture(DB_PATH, fixture_id=fixture_id, team_id=team_id)})
+
+
+@app.route("/api/v602/player-intelligence-check")
+def api_v602_player_intelligence_check():
+    return jsonify({"ok": True, "version": APP_VERSION, "module": "Player Intelligence Engine", "summary": safe_engine_payload(lambda: player_intelligence_summary(DB_PATH))})
 
 
 if __name__ == "__main__":
