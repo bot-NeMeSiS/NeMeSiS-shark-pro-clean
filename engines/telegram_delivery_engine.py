@@ -11,7 +11,7 @@ DEFAULT_SETTINGS = {
     "id": "default",
     "enabled": False,
     "auto_daily_matches": True,
-    "auto_daily_picks": False,
+    "auto_daily_picks": True,
     "auto_live_alerts": False,
     "daily_matches_time": "09:00",
     "daily_picks_time": "11:00",

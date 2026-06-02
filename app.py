@@ -262,7 +262,7 @@ def run_schema_migrations(conn):
         ("telegram_subscribers", "last_seen", "TEXT"),
         ("telegram_subscribers", "last_message_sent_at", "TEXT"),
         ("telegram_settings", "auto_daily_matches", "INTEGER DEFAULT 1"),
-        ("telegram_settings", "auto_daily_picks", "INTEGER DEFAULT 0"),
+        ("telegram_settings", "auto_daily_picks", "INTEGER DEFAULT 1"),
         ("telegram_settings", "auto_live_alerts", "INTEGER DEFAULT 0"),
         ("telegram_settings", "daily_matches_time", "TEXT DEFAULT '09:00'"),
         ("telegram_settings", "daily_picks_time", "TEXT DEFAULT '11:00'"),
@@ -637,7 +637,7 @@ def init_db():
         """CREATE TABLE IF NOT EXISTS telegram_settings(
             id TEXT PRIMARY KEY,
             auto_daily_matches INTEGER DEFAULT 1,
-            auto_daily_picks INTEGER DEFAULT 0,
+            auto_daily_picks INTEGER DEFAULT 1,
             auto_live_alerts INTEGER DEFAULT 0,
             daily_matches_time TEXT DEFAULT '09:00',
             daily_picks_time TEXT DEFAULT '11:00',
@@ -4849,7 +4849,7 @@ def get_telegram_settings():
             """INSERT OR IGNORE INTO telegram_settings
                (id,auto_daily_matches,auto_daily_picks,auto_live_alerts,daily_matches_time,daily_picks_time,max_messages_per_hour,enabled,updated_at)
                VALUES (?,?,?,?,?,?,?,?,?)""",
-            ("default", 1, 0, 0, "09:00", "11:00", 10, 0, now_iso()),
+            ("default", 1, 1, 0, "09:00", "11:00", 10, 0, now_iso()),
         )
         conn.commit()
         conn.close()
@@ -4905,12 +4905,30 @@ def telegram_log(event_type, status, message, payload=None):
     return log_id
 
 
+def telegram_flow_log(tag, status, message, payload=None):
+    tag = str(tag or "TELEGRAM").strip().upper()
+    if tag not in {"TELEGRAM", "PICKS", "QUEUE", "SEND"}:
+        tag = "TELEGRAM"
+    return telegram_log(tag.lower(), status, f"[{tag}] {message}", payload or {})
+
+
 def ensure_default_telegram_subscriber():
     chat_id = os.getenv("TELEGRAM_CHAT_ID", "").strip()
     if not chat_id:
         return None
     existing = one("SELECT * FROM telegram_subscribers WHERE chat_id=?", (chat_id,))
     if existing:
+        membership = str(existing.get("membership") or "").upper()
+        if membership not in {"PRO", "ELITE", "ADMIN"} or not as_int(existing.get("is_active"), 1):
+            conn = db()
+            conn.execute(
+                "UPDATE telegram_subscribers SET membership=?, is_active=1, last_seen=? WHERE id=?",
+                ("ADMIN", now_iso(), existing.get("id")),
+            )
+            conn.commit()
+            conn.close()
+            telegram_flow_log("TELEGRAM", "fixed", "TELEGRAM_CHAT_ID global actualizado como destinatario ADMIN activo.", {"chat_id": masked_key(chat_id)})
+            existing = one("SELECT * FROM telegram_subscribers WHERE chat_id=?", (chat_id,))
         return existing
     sub = subscriber_payload(chat_id=chat_id, username="admin", first_name="Canal SHARK", membership="ADMIN")
     sub_id = hashlib.md5(f"telegram-sub-{chat_id}".encode("utf-8")).hexdigest()[:18]
@@ -4946,7 +4964,7 @@ def enqueue_telegram_message(message_type, title, body, chat_id="", user_id="", 
     dedupe_key = dedupe_key or telegram_dedupe_key(message_type, today_iso(), chat_id or user_id or "global")
     existing = one("SELECT * FROM telegram_queue WHERE dedupe_key=?", (dedupe_key,))
     if existing and not force:
-        telegram_log("queue", "skipped", "Mensaje duplicado omitido.", {"dedupe_key": dedupe_key, "message_type": message_type})
+        telegram_flow_log("QUEUE", "skipped", "Mensaje duplicado omitido.", {"dedupe_key": dedupe_key, "message_type": message_type, "existing_status": existing.get("status")})
         return {"ok": True, "queued": False, "skipped": 1, "reason": "duplicate", "item": existing}
     queue_id = hashlib.md5(f"telegram-queue-{dedupe_key}-{datetime.now(TZ).isoformat(timespec='microseconds')}".encode("utf-8")).hexdigest()[:18]
     conn = db()
@@ -4981,7 +4999,7 @@ def enqueue_telegram_message(message_type, title, body, chat_id="", user_id="", 
         conn.commit()
     finally:
         conn.close()
-    telegram_log("queue", "pending", f"Mensaje encolado: {title}", {"id": queue_id, "type": message_type})
+    telegram_flow_log("QUEUE", "pending", f"Mensaje encolado: {title}", {"id": queue_id, "type": message_type, "chat_id_present": bool(chat_id), "body_len": len(body or "")})
     return {"ok": True, "queued": True, "inserted": 1, "item": one("SELECT * FROM telegram_queue WHERE id=?", (queue_id,))}
 
 
@@ -5015,6 +5033,41 @@ def telegram_pick_candidates(limit=8, include_unpublished_fallback=True):
 def build_daily_picks_message(force_empty=False):
     picks = telegram_pick_candidates(limit=8, include_unpublished_fallback=True)
     return format_daily_picks_message(picks, force_empty=force_empty, premium_name=APP_NAME)
+
+
+def build_single_pick_message(pick):
+    return format_daily_picks_message([pick], force_empty=False, premium_name=APP_NAME)
+
+
+def enqueue_single_pick_to_telegram(pick, force=True, forced_chat_id=""):
+    pick = normalize_pick_row(pick or {})
+    if not pick or not pick.get("id"):
+        telegram_flow_log("PICKS", "failed", "No se puede encolar pick individual: pick invalido.", {})
+        return {"ok": False, "message": "Pick invalido.", "processed": 0, "inserted": 0, "sent": 0, "failed": 1, "skipped": 0, "errors": ["pick_invalido"]}
+    body = build_single_pick_message(pick)
+    forced_chat_id = forced_chat_id or os.getenv("TELEGRAM_CHAT_ID", "")
+    subscribers = [s for s in telegram_subscribers() if str(s.get("membership") or "FREE").upper() in {"PRO", "ELITE", "ADMIN"}]
+    if forced_chat_id and not subscribers:
+        subscribers = [{"chat_id": forced_chat_id, "user_id": "", "membership": "ADMIN"}]
+    if not subscribers:
+        telegram_flow_log("PICKS", "failed", "Pick publicado sin destinatarios Telegram validos.", {"pick_id": pick.get("id")})
+        return {"ok": False, "message": "No hay destinatarios Telegram validos.", "processed": 0, "inserted": 0, "sent": 0, "failed": 0, "skipped": 0, "errors": ["sin_destinatarios"]}
+    inserted = skipped = 0
+    for sub in subscribers:
+        result = enqueue_telegram_message(
+            "published_pick",
+            "Pick publicado",
+            body,
+            chat_id=sub.get("chat_id"),
+            user_id=sub.get("user_id"),
+            payload={"membership": sub.get("membership"), "target_key": pick.get("id"), "pick_id": pick.get("id"), "priority": 90},
+            dedupe_key=telegram_dedupe_key("published_pick", today_iso(), f"{sub.get('chat_id')}:{pick.get('id')}"),
+            force=force,
+        )
+        inserted += 1 if result.get("queued") else 0
+        skipped += 1 if result.get("skipped") else 0
+    telegram_flow_log("PICKS", "queued", "Pick publicado encolado para Telegram.", {"pick_id": pick.get("id"), "inserted": inserted, "skipped": skipped})
+    return {"ok": True, "message": "Pick publicado encolado.", "processed": len(subscribers), "inserted": inserted, "sent": 0, "failed": 0, "skipped": skipped, "errors": []}
 
 
 def build_live_alert_message(match=None):
@@ -5055,12 +5108,16 @@ def enqueue_daily_matches(force=False, forced_chat_id=""):
 def enqueue_daily_picks(force=False, force_empty=False, forced_chat_id=""):
     body = build_daily_picks_message(force_empty=force_empty)
     if not body:
+        telegram_flow_log("PICKS", "skipped", "No hay picks publicados/candidatos; no se encola mensaje de picks.", {"force_empty": force_empty})
         return {"ok": True, "message": "No hay picks publicados; no se encola nada.", "processed": 0, "inserted": 0, "sent": 0, "failed": 0, "skipped": 1, "errors": []}
+    forced_chat_id = forced_chat_id or os.getenv("TELEGRAM_CHAT_ID", "")
     subscribers = [s for s in telegram_subscribers() if str(s.get("membership") or "FREE").upper() in {"PRO", "ELITE", "ADMIN"}]
     if forced_chat_id and not subscribers:
         subscribers = [{"chat_id": forced_chat_id, "user_id": "", "membership": "ADMIN"}]
     if not subscribers:
+        telegram_flow_log("PICKS", "failed", "Hay mensaje de picks pero no hay destinatarios PRO/ELITE/ADMIN ni TELEGRAM_CHAT_ID.", {"body_len": len(body)})
         return {"ok": False, "message": "No hay suscriptores PRO/ELITE activos.", "processed": 0, "sent": 0, "failed": 0, "skipped": 0, "errors": ["sin_destinatarios"]}
+    telegram_flow_log("PICKS", "found", "Picks encontrados para Telegram; preparando cola.", {"subscribers": len(subscribers), "body_len": len(body)})
     inserted = skipped = 0
     for sub in subscribers:
         result = enqueue_telegram_message(
@@ -5075,6 +5132,7 @@ def enqueue_daily_picks(force=False, force_empty=False, forced_chat_id=""):
         )
         inserted += 1 if result.get("queued") else 0
         skipped += 1 if result.get("skipped") else 0
+    telegram_flow_log("QUEUE", "pending", "Resultado encolado de picks diarios.", {"processed": len(subscribers), "inserted": inserted, "skipped": skipped})
     return {"ok": True, "message": "Picks destacados encolados.", "processed": len(subscribers), "inserted": inserted, "updated": 0, "sent": 0, "failed": 0, "skipped": skipped, "errors": []}
 
 
@@ -5106,6 +5164,7 @@ def enqueue_live_alerts(force=False):
 def telegram_send_http(chat_id, text, message_type="manual"):
     token = os.getenv("TELEGRAM_BOT_TOKEN", "")
     if not token or not chat_id:
+        telegram_flow_log("SEND", "failed", "No se puede enviar: falta token o chat_id.", {"token_present": bool(token), "chat_id_present": bool(chat_id), "message_type": message_type})
         return {"ok": False, "sent": False, "status": "CONFIG_MISSING", "error": "Falta TELEGRAM_BOT_TOKEN o chat_id."}
     url = f"https://api.telegram.org/bot{token}/sendMessage"
     payload = urllib.parse.urlencode({"chat_id": chat_id, "text": text, "parse_mode": "HTML", "disable_web_page_preview": "true"}).encode("utf-8")
@@ -5113,14 +5172,21 @@ def telegram_send_http(chat_id, text, message_type="manual"):
         req = urllib.request.Request(url, data=payload, method="POST")
         with urllib.request.urlopen(req, timeout=10) as res:
             response = json.loads(res.read().decode("utf-8", errors="replace"))
+        if not response.get("ok", False):
+            error = response.get("description") or "Telegram API ok=false"
+            telegram_flow_log("SEND", "error", "Telegram API respondio ok=false.", {"message_type": message_type, "chat_id": masked_key(chat_id), "telegram": response})
+            return {"ok": False, "sent": False, "status": "ERROR", "error": error, "telegram": response}
+        telegram_flow_log("SEND", "sent", "Telegram API acepto el mensaje.", {"message_type": message_type, "chat_id": masked_key(chat_id), "response_ok": response.get("ok")})
         return {"ok": True, "sent": True, "status": "SENT", "telegram": response}
     except Exception as exc:
+        telegram_flow_log("SEND", "error", "Telegram API devolvio error.", {"message_type": message_type, "chat_id": masked_key(chat_id), "error": str(exc)[:500]})
         return {"ok": False, "sent": False, "status": "ERROR", "error": str(exc)}
 
 
 def process_premium_telegram_queue(limit=5, force=False):
     settings = get_telegram_settings()
     if not settings.get("enabled") and not force:
+        telegram_flow_log("QUEUE", "skipped", "Procesador no ejecutado: Telegram automatico desactivado.", {"force": force})
         return {"ok": True, "message": "Telegram automatico desactivado.", "processed": 0, "sent": 0, "failed": 0, "skipped": 1, "errors": []}
     pending = rows(
         """SELECT * FROM telegram_queue
@@ -5133,6 +5199,7 @@ def process_premium_telegram_queue(limit=5, force=False):
     )
     processed = sent = failed = skipped = 0
     errors = []
+    telegram_flow_log("QUEUE", "processing", "Procesador revisando cola Telegram.", {"pending_found": len(pending), "force": force, "limit": limit})
     for item in pending:
         chat_id = item.get("chat_id") or os.getenv("TELEGRAM_CHAT_ID", "")
         if telegram_sent_last_hour(chat_id) >= settings["max_messages_per_hour"] and not force:
@@ -5141,6 +5208,7 @@ def process_premium_telegram_queue(limit=5, force=False):
             conn.commit()
             conn.close()
             skipped += 1
+            telegram_flow_log("QUEUE", "skipped", "Mensaje omitido por limite horario.", {"queue_id": item.get("id"), "chat_id": masked_key(chat_id)})
             continue
         conn = db()
         conn.execute("UPDATE telegram_queue SET status=?, attempts=attempts+1, updated_at=? WHERE id=?", (QUEUE_SENDING, now_iso(), item.get("id")))
@@ -5158,9 +5226,11 @@ def process_premium_telegram_queue(limit=5, force=False):
         if result.get("sent"):
             conn.execute("UPDATE telegram_subscribers SET last_message_sent_at=? WHERE chat_id=?", (now_iso(), chat_id))
             sent += 1
+            telegram_flow_log("SEND", "sent", "Mensaje de cola enviado correctamente.", {"queue_id": item.get("id"), "message_type": item.get("message_type"), "chat_id": masked_key(chat_id)})
         else:
             failed += 1
             errors.append(error[:160] or result.get("status"))
+            telegram_flow_log("SEND", "failed", "Mensaje de cola fallido.", {"queue_id": item.get("id"), "message_type": item.get("message_type"), "error": error[:500] or result.get("status")})
         conn.commit()
         conn.close()
         telegram_log("send", new_status, item.get("title") or item.get("message_type"), {"queue_id": item.get("id"), "result": result})
@@ -5206,6 +5276,8 @@ def telegram_pick_delivery_audit():
     pending = rows("SELECT * FROM telegram_queue WHERE lower(status)=? ORDER BY created_at ASC LIMIT 20", (QUEUE_PENDING,))
     failed = rows("SELECT * FROM telegram_queue WHERE lower(status) IN (?,?) ORDER BY updated_at DESC LIMIT 10", (QUEUE_FAILED, "error"))
     sent = rows("SELECT * FROM telegram_queue WHERE lower(status)=? ORDER BY sent_at DESC LIMIT 10", (QUEUE_SENT,))
+    pick_queue = rows("SELECT * FROM telegram_queue WHERE lower(coalesce(message_type,'')) IN ('daily_picks','published_pick') ORDER BY created_at DESC LIMIT 30")
+    scheduler_rows = rows("SELECT * FROM scheduler_locks WHERE task_name IN ('telegram','auto_picks','recommendations') ORDER BY task_name")
     users_with_chat = 0
     try:
         users_with_chat = (one("SELECT COUNT(*) AS total FROM users WHERE telegram_chat_id IS NOT NULL AND telegram_chat_id!=''") or {}).get("total", 0)
@@ -5240,11 +5312,20 @@ def telegram_pick_delivery_audit():
             "queue_pending": len(pending),
             "queue_failed_recent": len(failed),
             "queue_sent_recent": len(sent),
+            "pick_queue_total": len(pick_queue),
+            "pick_queue_pending": len([q for q in pick_queue if str(q.get("status") or "").lower() == QUEUE_PENDING]),
+            "pick_queue_sent": len([q for q in pick_queue if str(q.get("status") or "").lower() == QUEUE_SENT]),
+            "pick_queue_failed": len([q for q in pick_queue if str(q.get("status") or "").lower() == QUEUE_FAILED]),
         },
+        "scheduler": scheduler_rows,
+        "last_sent": (one("SELECT * FROM telegram_queue WHERE lower(status)=? ORDER BY sent_at DESC LIMIT 1", (QUEUE_SENT,)) or {}),
         "last_error": (one("SELECT * FROM telegram_logs WHERE lower(status) IN ('failed','error') ORDER BY created_at DESC LIMIT 1") or {}),
+        "last_telegram_error": (one("SELECT * FROM telegram_deliveries WHERE lower(status) IN ('failed','error') ORDER BY created_at DESC LIMIT 1") or {}),
         "pending": pending,
         "failed": failed,
         "sent": sent,
+        "pick_queue": pick_queue,
+        "recent_logs": rows("SELECT * FROM telegram_logs WHERE message LIKE '[TELEGRAM]%' OR message LIKE '[PICKS]%' OR message LIKE '[QUEUE]%' OR message LIKE '[SEND]%' ORDER BY created_at DESC LIMIT 40"),
     }
 
 
@@ -5288,6 +5369,8 @@ def telegram_scheduler_delivery(force=False):
         results.append(enqueue_daily_matches(force=force))
     if settings.get("auto_daily_picks") and telegram_time_due(settings.get("daily_picks_time"), force=force):
         results.append(enqueue_daily_picks(force=force, force_empty=False))
+    elif not settings.get("auto_daily_picks"):
+        telegram_flow_log("PICKS", "skipped", "Scheduler no envio picks: auto_daily_picks desactivado.", {"force": force, "settings": settings})
     if settings.get("auto_live_alerts"):
         results.append(enqueue_live_alerts(force=force))
     processed_queue = process_premium_telegram_queue(limit=5, force=force)
@@ -5956,6 +6039,33 @@ def admin_telegram_page():
     return render_template("admin_telegram.html", data=data, message=message, result=result)
 
 
+@app.route("/admin/telegram-audit", methods=["GET", "POST"])
+def admin_telegram_audit_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/telegram-audit")
+    message = ""
+    result = None
+    if request.method == "POST":
+        action = request.form.get("action") or "audit"
+        if action == "fix":
+            result = fix_telegram_settings_for_picks()
+            message = "Ajustes Telegram preparados para picks."
+        elif action == "enqueue":
+            result = enqueue_daily_picks(force=True, force_empty=request.form.get("force_empty") in {"1", "true", "yes"}, forced_chat_id=os.getenv("TELEGRAM_CHAT_ID", ""))
+            message = "Picks revisados y encolados."
+        elif action == "process":
+            result = process_premium_telegram_queue(limit=as_int(request.form.get("limit"), 20), force=True)
+            message = "Cola procesada."
+        elif action == "send_now":
+            result = send_published_picks_to_telegram_now(limit=8, force=True, force_empty=request.form.get("force_empty") in {"1", "true", "yes"})
+            message = "Envio inmediato de picks ejecutado."
+        else:
+            result = telegram_pick_delivery_audit()
+            message = "Auditoria actualizada."
+    audit = telegram_pick_delivery_audit()
+    return render_template("admin_telegram_audit.html", data=dashboard_data(), audit=audit, message=message, result=result)
+
+
 @app.route("/admin/picks", methods=["GET", "POST"])
 def admin_picks_page():
     if not is_admin_session():
@@ -5967,6 +6077,10 @@ def admin_picks_page():
         if action in {"create", "publish"}:
             payload = dict(request.form)
             result = create_or_update_pick(payload, publish=action == "publish")
+            if action == "publish" and result:
+                queued = enqueue_single_pick_to_telegram(result, force=True, forced_chat_id=os.getenv("TELEGRAM_CHAT_ID", ""))
+                processed = process_premium_telegram_queue(limit=max(5, queued.get("inserted", 0) + 2), force=True) if queued.get("inserted", 0) else {"processed": 0, "sent": 0, "failed": 0, "skipped": queued.get("skipped", 0), "errors": queued.get("errors", [])}
+                result["telegram"] = {"queued": queued, "processed": processed}
             message = "Pick publicado." if action == "publish" else "Pick guardado como borrador."
         elif action in {"archive", "published", "draft"}:
             result = update_pick_status(request.form.get("pick_id"), "archived" if action == "archive" else action)
@@ -6745,8 +6859,14 @@ def api_picks_update():
     if not is_admin_session():
         return admin_json_forbidden()
     payload = request.get_json(silent=True) or dict(request.form or {})
-    pick = create_or_update_pick(payload, pick_id=payload.get("id") or payload.get("pick_id"), publish=normalize_pick_status(payload.get("status")) == "published")
-    return jsonify({"ok": True, "version": APP_VERSION, "pick": pick})
+    publish = normalize_pick_status(payload.get("status")) == "published"
+    pick = create_or_update_pick(payload, pick_id=payload.get("id") or payload.get("pick_id"), publish=publish)
+    telegram = {}
+    if publish and pick:
+        queued = enqueue_single_pick_to_telegram(pick, force=True, forced_chat_id=os.getenv("TELEGRAM_CHAT_ID", ""))
+        processed = process_premium_telegram_queue(limit=max(5, queued.get("inserted", 0) + 2), force=True) if queued.get("inserted", 0) else {"processed": 0, "sent": 0, "failed": 0, "skipped": queued.get("skipped", 0), "errors": queued.get("errors", [])}
+        telegram = {"queued": queued, "processed": processed}
+    return jsonify({"ok": True, "version": APP_VERSION, "pick": pick, "telegram": telegram})
 
 
 @app.route("/api/picks/publish", methods=["POST", "GET"])
@@ -6755,7 +6875,12 @@ def api_picks_publish():
         return admin_json_forbidden()
     pick_id = request.args.get("pick_id") or request.form.get("pick_id") or (request.get_json(silent=True) or {}).get("pick_id")
     pick = update_pick_status(pick_id, "published")
-    return jsonify({"ok": bool(pick), "version": APP_VERSION, "pick": pick})
+    telegram = {}
+    if pick:
+        queued = enqueue_single_pick_to_telegram(pick, force=True, forced_chat_id=os.getenv("TELEGRAM_CHAT_ID", ""))
+        processed = process_premium_telegram_queue(limit=max(5, queued.get("inserted", 0) + 2), force=True) if queued.get("inserted", 0) else {"processed": 0, "sent": 0, "failed": 0, "skipped": queued.get("skipped", 0), "errors": queued.get("errors", [])}
+        telegram = {"queued": queued, "processed": processed}
+    return jsonify({"ok": bool(pick), "version": APP_VERSION, "pick": pick, "telegram": telegram})
 
 
 @app.route("/api/picks/archive", methods=["POST", "GET"])
