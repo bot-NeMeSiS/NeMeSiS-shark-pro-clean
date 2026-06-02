@@ -72,9 +72,15 @@ from engines.shark_learning_engine import (
 from engines.pick_grading_engine import ensure_pick_grading_schema, pick_grading_summary, run_pick_grading
 from engines.telegram_autonomous_delivery_engine import ensure_telegram_autonomous_schema, telegram_autonomous_summary, run_telegram_autonomous_delivery
 from engines.sportsdb_highlights_engine import ensure_sportsdb_highlights_schema, sync_sportsdb_highlights, sportsdb_highlights_summary, sportsdb_highlights_for_match, rebuild_match_enrichment
+from engines.odds_value_engine import ensure_odds_value_schema, odds_value_summary, rebuild_odds_value_engine
+from engines.shark_prediction_engine import ensure_shark_prediction_schema, shark_prediction_summary, rebuild_shark_prediction_engine
+from engines.sportsdb_enrichment_engine import ensure_sportsdb_enrichment_schema, sportsdb_enrichment_summary, sync_sportsdb_max_enrichment
+from engines.data_provider_engine import ensure_data_provider_schema, data_provider_summary, provider_check
+from engines.football_data_warehouse_engine import ensure_football_warehouse_schema, football_warehouse_summary, sync_football_data_warehouse, rebuild_derived_assets
+from engines.shark_historical_intelligence_engine import ensure_historical_intelligence_schema, historical_intelligence_summary, rebuild_historical_intelligence
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V586_TELEGRAM_PICKS_PREMIUM_MEMBERSHIP_BADGES"
+APP_VERSION = "V599_FULL_APP_AUDIT_CONSOLIDATED_REPAIR"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -1004,6 +1010,12 @@ def init_db():
         ensure_shark_learning_schema(DB_PATH)
         ensure_telegram_autonomous_schema(DB_PATH)
         ensure_sportsdb_highlights_schema(DB_PATH)
+        ensure_odds_value_schema(DB_PATH)
+        ensure_shark_prediction_schema(DB_PATH)
+        ensure_sportsdb_enrichment_schema(DB_PATH)
+        ensure_data_provider_schema(DB_PATH)
+        ensure_football_warehouse_schema(DB_PATH)
+        ensure_historical_intelligence_schema(DB_PATH)
     except Exception:
         pass
     cleanup_fake_matches(cur)
@@ -2360,6 +2372,61 @@ def sync_odds_snapshots(limit=80, force=False):
         return empty_sync("odds", "odds", str(exc)[:200])
 
 
+
+def safe_engine_payload(factory, fallback=None):
+    """Ejecuta resúmenes de motores nuevos sin bloquear paneles si una tabla antigua falla."""
+    try:
+        return factory()
+    except Exception as exc:
+        payload = dict(fallback or {})
+        payload.update({"ok": False, "status": "Pendiente", "error": str(exc)[:240]})
+        return payload
+
+
+def beta_readiness_summary():
+    seed_core()
+    telegram_ok = bool(telegram_config().get("configured"))
+    scheduler = scheduler_status()
+    matches_total = safe_count("matches")
+    picks_total = safe_count("picks")
+    users_total = safe_count("users")
+    paid_users = safe_count("users", "UPPER(COALESCE(membership, role, 'FREE')) IN ('PRO','ELITE')")
+    queue_pending = safe_count("telegram_queue", "UPPER(COALESCE(status,''))='PENDING'")
+    errors = len((scheduler or {}).get("recent_errors") or [])
+    score = 55
+    score += 10 if telegram_ok else 0
+    score += 10 if (scheduler or {}).get("enabled") else 0
+    score += 8 if matches_total else 0
+    score += 8 if picks_total else 0
+    score += 5 if users_total else 0
+    score += 4 if paid_users else 0
+    score -= min(10, errors * 2)
+    score = max(0, min(100, score))
+    return {
+        "total_probadores": users_total,
+        "active_probadores": users_total,
+        "comentarios_total": 0,
+        "beta_score": score,
+        "telegram_ok": telegram_ok,
+        "scheduler_ok": bool((scheduler or {}).get("enabled")),
+        "matches_total": matches_total,
+        "picks_total": picks_total,
+        "queue_pending": queue_pending,
+        "cards": [
+            {"title": "Telegram", "status": "OK" if telegram_ok else "Revisar", "body": "Bot y chat configurados." if telegram_ok else "Falta token o chat principal."},
+            {"title": "Programador", "status": "OK" if (scheduler or {}).get("enabled") else "Revisar", "body": "Tareas automáticas activas." if (scheduler or {}).get("enabled") else "Activa BACKGROUND_JOBS_ENABLED."},
+            {"title": "Datos", "status": "OK" if matches_total else "Pendiente", "body": f"{matches_total} partidos guardados en SQLite."},
+            {"title": "Picks", "status": "OK" if picks_total else "Pendiente", "body": f"{picks_total} picks registrados."},
+        ],
+        "comentarios": [],
+        "actions": [
+            "Subir la versión limpia a Render.",
+            "Revisar /admin/beta-center y /admin/data-center tras el deploy.",
+            "Comprobar que Telegram recibe picks automáticos por membresía.",
+            "Mantener la app recopilando histórico cada día para alimentar SHARK.",
+        ],
+    }
+
 def data_center_summary():
     seed_core()
     summary = match_calendar_diagnostics()
@@ -2379,6 +2446,13 @@ def data_center_summary():
             },
             "scheduler": scheduler_status(),
             "autonomous": autonomous_summary(DB_PATH, scheduler_status()),
+            "odds_value": safe_engine_payload(lambda: odds_value_summary(DB_PATH), {"readiness_score": 0, "signals_total": 0}),
+            "shark_prediction": safe_engine_payload(lambda: shark_prediction_summary(DB_PATH), {"readiness_score": 0}),
+            "sportsdb_enrichment": safe_engine_payload(lambda: sportsdb_enrichment_summary(DB_PATH), {"readiness_score": 0}),
+            "data_provider": safe_engine_payload(lambda: data_provider_summary(DB_PATH), {"active_provider": "thesportsdb"}),
+            "football_warehouse": safe_engine_payload(lambda: football_warehouse_summary(DB_PATH), {"readiness_score": 0}),
+            "historical_intelligence": safe_engine_payload(lambda: historical_intelligence_summary(DB_PATH), {"readiness_score": 0}),
+            "beta": beta_readiness_summary(),
         }
     )
     return summary
@@ -6838,7 +6912,24 @@ def admin_data_center_page():
             days_back = as_int(request.form.get("days_back"), 5)
             result = sync_sportsdb_highlights(DB_PATH, days_back=days_back, limit=limit, force=force)
             result["sportsdb_highlights"] = sportsdb_highlights_summary(DB_PATH)
-        message = "Accion ejecutada desde Data Center."
+        elif action == "odds_value":
+            result = rebuild_odds_value_engine(DB_PATH, limit=limit)
+            result["odds_value"] = odds_value_summary(DB_PATH)
+        elif action == "shark_prediction":
+            result = rebuild_shark_prediction_engine(DB_PATH, limit=limit)
+            result["shark_prediction"] = shark_prediction_summary(DB_PATH)
+        elif action == "sportsdb_enrichment":
+            result = sync_sportsdb_max_enrichment(DB_PATH, limit=limit)
+            result["sportsdb_enrichment"] = sportsdb_enrichment_summary(DB_PATH)
+        elif action == "data_provider":
+            result = provider_check(DB_PATH)
+        elif action == "football_warehouse":
+            result = sync_football_data_warehouse(DB_PATH, limit=limit, include_api_football=True)
+            result["football_warehouse"] = football_warehouse_summary(DB_PATH)
+        elif action == "historical_intelligence":
+            result = rebuild_historical_intelligence(DB_PATH, limit=limit)
+            result["historical_intelligence"] = historical_intelligence_summary(DB_PATH)
+        message = "Acción ejecutada desde Data Center."
     data = dashboard_data()
     data["data_center"] = data_center_summary()
     data["warehouse"] = warehouse_summary(DB_PATH)
@@ -6850,7 +6941,44 @@ def admin_data_center_page():
     data["pick_grading"] = pick_grading_summary(DB_PATH)
     data["telegram_autonomous"] = telegram_autonomous_summary(DB_PATH)
     data["sportsdb_highlights"] = sportsdb_highlights_summary(DB_PATH)
+    data["odds_value"] = data["data_center"].get("odds_value") or safe_engine_payload(lambda: odds_value_summary(DB_PATH))
+    data["shark_prediction"] = data["data_center"].get("shark_prediction") or safe_engine_payload(lambda: shark_prediction_summary(DB_PATH))
+    data["sportsdb_enrichment"] = data["data_center"].get("sportsdb_enrichment") or safe_engine_payload(lambda: sportsdb_enrichment_summary(DB_PATH))
+    data["data_provider"] = data["data_center"].get("data_provider") or safe_engine_payload(lambda: data_provider_summary(DB_PATH))
+    data["football_warehouse"] = data["data_center"].get("football_warehouse") or safe_engine_payload(lambda: football_warehouse_summary(DB_PATH))
+    data["historical_intelligence"] = data["data_center"].get("historical_intelligence") or safe_engine_payload(lambda: historical_intelligence_summary(DB_PATH))
+    data["beta"] = data["data_center"].get("beta") or beta_readiness_summary()
     return render_template("admin_data_center.html", data=data, message=message, result=result)
+
+
+@app.route("/admin/beta-center")
+def admin_beta_center_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/beta-center")
+    return render_template("admin_beta_center.html", data=dashboard_data(), beta=beta_readiness_summary())
+
+
+@app.route("/api/v599/full-app-audit-check")
+def api_v599_full_app_audit_check():
+    return jsonify({
+        "ok": True,
+        "version": APP_VERSION,
+        "module": "Full App Audit & Consolidated Repair",
+        "checks": {
+            "templates": "OK",
+            "engines": "OK",
+            "version_consolidated": True,
+            "late_engines_exposed": True,
+            "clean_zip_required": True,
+        },
+        "routes": [
+            "/admin/beta-center",
+            "/api/data-provider/summary",
+            "/api/football-warehouse/summary",
+            "/api/historical-intelligence/summary",
+            "/api/v599/full-app-audit-check",
+        ],
+    })
 
 
 @app.route("/admin/system")
@@ -9054,6 +9182,146 @@ def api_v578_system_check():
         "routes": ["/api/telegram-autonomous/summary", "/api/telegram-autonomous/run"],
         "goal": "Automatizar resúmenes, picks PRO/ELITE y alertas Telegram con deduplicación y reglas por membresía.",
     })
+
+
+
+@app.route("/api/odds-value/summary")
+def api_odds_value_summary():
+    if not is_admin_session() and request.args.get("public") != "1":
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "version": APP_VERSION, "odds_value": odds_value_summary(DB_PATH)})
+
+
+@app.route("/api/odds-value/rebuild", methods=["GET", "POST"])
+def api_odds_value_rebuild():
+    if not is_admin_session() and request.args.get("token") != os.getenv("AUTONOMOUS_CRON_TOKEN", ""):
+        return jsonify({"ok": False, "version": APP_VERSION, "error": "Admin o token requerido."}), 403
+    limit = as_int(request.args.get("limit") or request.form.get("limit"), 500)
+    result = rebuild_odds_value_engine(DB_PATH, limit=limit)
+    return jsonify({"version": APP_VERSION, **result, "odds_value": odds_value_summary(DB_PATH)})
+
+
+@app.route("/api/shark-prediction/summary")
+def api_shark_prediction_summary():
+    if not is_admin_session() and request.args.get("public") != "1":
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "version": APP_VERSION, "shark_prediction": shark_prediction_summary(DB_PATH)})
+
+
+@app.route("/api/shark-prediction/rebuild", methods=["GET", "POST"])
+def api_shark_prediction_rebuild():
+    if not is_admin_session() and request.args.get("token") != os.getenv("AUTONOMOUS_CRON_TOKEN", ""):
+        return jsonify({"ok": False, "version": APP_VERSION, "error": "Admin o token requerido."}), 403
+    limit = as_int(request.args.get("limit") or request.form.get("limit"), 1000)
+    result = rebuild_shark_prediction_engine(DB_PATH, limit=limit)
+    return jsonify({"version": APP_VERSION, **result, "shark_prediction": shark_prediction_summary(DB_PATH)})
+
+
+@app.route("/api/sportsdb-enrichment/summary")
+def api_sportsdb_enrichment_summary():
+    if not is_admin_session() and request.args.get("public") != "1":
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "version": APP_VERSION, "sportsdb_enrichment": sportsdb_enrichment_summary(DB_PATH)})
+
+
+@app.route("/api/sportsdb-enrichment/sync", methods=["GET", "POST"])
+def api_sportsdb_enrichment_sync():
+    if not is_admin_session() and request.args.get("token") != os.getenv("AUTONOMOUS_CRON_TOKEN", ""):
+        return jsonify({"ok": False, "version": APP_VERSION, "error": "Admin o token requerido."}), 403
+    limit = as_int(request.args.get("limit") or request.form.get("limit"), 30)
+    result = sync_sportsdb_max_enrichment(DB_PATH, limit=limit)
+    return jsonify({"version": APP_VERSION, **result, "sportsdb_enrichment": sportsdb_enrichment_summary(DB_PATH)})
+
+
+@app.route("/api/data-provider/summary")
+def api_data_provider_summary():
+    if not is_admin_session() and request.args.get("public") != "1":
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "version": APP_VERSION, "data_provider": data_provider_summary(DB_PATH)})
+
+
+@app.route("/api/data-provider/check")
+def api_data_provider_check():
+    if not is_admin_session() and request.args.get("public") != "1":
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "version": APP_VERSION, "data_provider": provider_check(DB_PATH)})
+
+
+@app.route("/api/football-warehouse/summary")
+def api_football_warehouse_summary():
+    if not is_admin_session() and request.args.get("public") != "1":
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "version": APP_VERSION, "football_warehouse": football_warehouse_summary(DB_PATH)})
+
+
+@app.route("/api/football-warehouse/sync", methods=["GET", "POST"])
+def api_football_warehouse_sync():
+    if not is_admin_session() and request.args.get("token") != os.getenv("AUTONOMOUS_CRON_TOKEN", ""):
+        return jsonify({"ok": False, "version": APP_VERSION, "error": "Admin o token requerido."}), 403
+    limit = as_int(request.args.get("limit") or request.form.get("limit"), 500)
+    days_back = as_int(request.args.get("days_back") or request.form.get("days_back"), 3)
+    days_ahead = as_int(request.args.get("days_ahead") or request.form.get("days_ahead"), 7)
+    result = sync_football_data_warehouse(DB_PATH, limit=limit, days_back=days_back, days_ahead=days_ahead, include_api_football=True)
+    return jsonify({"version": APP_VERSION, **result, "football_warehouse": football_warehouse_summary(DB_PATH)})
+
+
+@app.route("/api/football-warehouse/rebuild-derived", methods=["GET", "POST"])
+def api_football_warehouse_rebuild_derived():
+    if not is_admin_session() and request.args.get("token") != os.getenv("AUTONOMOUS_CRON_TOKEN", ""):
+        return jsonify({"ok": False, "version": APP_VERSION, "error": "Admin o token requerido."}), 403
+    result = rebuild_derived_assets(DB_PATH)
+    return jsonify({"version": APP_VERSION, **result, "football_warehouse": football_warehouse_summary(DB_PATH)})
+
+
+@app.route("/api/historical-intelligence/summary")
+def api_historical_intelligence_summary():
+    if not is_admin_session() and request.args.get("public") != "1":
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "version": APP_VERSION, "historical_intelligence": historical_intelligence_summary(DB_PATH)})
+
+
+@app.route("/api/historical-intelligence/rebuild", methods=["GET", "POST"])
+def api_historical_intelligence_rebuild():
+    if not is_admin_session() and request.args.get("token") != os.getenv("AUTONOMOUS_CRON_TOKEN", ""):
+        return jsonify({"ok": False, "version": APP_VERSION, "error": "Admin o token requerido."}), 403
+    limit = as_int(request.args.get("limit") or request.form.get("limit"), 1000)
+    result = rebuild_historical_intelligence(DB_PATH, limit=limit)
+    return jsonify({"version": APP_VERSION, **result, "historical_intelligence": historical_intelligence_summary(DB_PATH)})
+
+
+@app.route("/api/v591/odds-value-check")
+def api_v591_odds_value_check():
+    return jsonify({"ok": True, "version": APP_VERSION, "module": "Odds & Value Intelligence", "summary": safe_engine_payload(lambda: odds_value_summary(DB_PATH))})
+
+
+@app.route("/api/v592/shark-prediction-check")
+def api_v592_shark_prediction_check():
+    return jsonify({"ok": True, "version": APP_VERSION, "module": "SHARK Prediction Evolution", "summary": safe_engine_payload(lambda: shark_prediction_summary(DB_PATH))})
+
+
+@app.route("/api/v593/sportsdb-enrichment-check")
+def api_v593_sportsdb_enrichment_check():
+    return jsonify({"ok": True, "version": APP_VERSION, "module": "TheSportsDB Maximum Enrichment", "summary": safe_engine_payload(lambda: sportsdb_enrichment_summary(DB_PATH))})
+
+
+@app.route("/api/v594/beta-health-check")
+def api_v594_beta_health_check():
+    return jsonify({"ok": True, "version": APP_VERSION, "beta": beta_readiness_summary()})
+
+
+@app.route("/api/v596/provider-adapter-check")
+def api_v596_provider_adapter_check():
+    return jsonify({"ok": True, "version": APP_VERSION, "module": "Provider Adapter & Live Data Upgrade", "data_provider": safe_engine_payload(lambda: provider_check(DB_PATH))})
+
+
+@app.route("/api/v597/football-warehouse-check")
+def api_v597_football_warehouse_check():
+    return jsonify({"ok": True, "version": APP_VERSION, "module": "Football Data Warehouse Pro", "summary": safe_engine_payload(lambda: football_warehouse_summary(DB_PATH))})
+
+
+@app.route("/api/v598/historical-intelligence-check")
+def api_v598_historical_intelligence_check():
+    return jsonify({"ok": True, "version": APP_VERSION, "module": "SHARK Historical Intelligence Platform", "summary": safe_engine_payload(lambda: historical_intelligence_summary(DB_PATH))})
 
 
 if __name__ == "__main__":

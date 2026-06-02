@@ -2,13 +2,13 @@
 {% block content %}
 <section class="hero compact">
   <div class="kicker">Admin - Centro de datos</div>
-  <h1>Poblacion masiva de futbol</h1>
+  <h1>Población masiva de fútbol</h1>
   <p class="lead">Centro seguro para poblar competiciones, equipos, escudos, calendario, resultados y cuotas desde fuentes legales y cache SQLite.</p>
   <div class="admin-menu">
     <a class="btn primary" href="/admin/data-center">Centro de datos</a>
     <a class="btn" href="/admin/matches-sync">Partidos</a>
     <a class="btn" href="/admin/sportsdb-sync">Escudos</a>
-    <a class="btn" href="/admin/import-center">Centro de importacin</a>
+    <a class="btn" href="/admin/import-center">Centro de importación</a>
   </div>
 </section>
 
@@ -17,7 +17,60 @@
 
 <section class="band two-col">
   <aside class="card elite-card">
-    <div class="section-head"><h2>Resmenes SportsDB V579</h2><span class="pill">{{ data.sportsdb_highlights.status }}</span></div>
+    <div class="section-head"><h2>V599 · Auditoría consolidada</h2><span class="pill">{{ data.version }}</span></div>
+    <p class="small">Esta versión consolida los motores V591-V598, corrige la versión interna, expone endpoints de auditoría y deja el paquete limpio para Render/GitHub.</p>
+    <p class="small">Proveedor activo: {{ data.data_provider.active_provider or data.data_center.data_provider.active_provider or 'TheSportsDB' }} · Warehouse fútbol: {{ data.football_warehouse.readiness_score or data.data_center.football_warehouse.readiness_score or 0 }}% · Inteligencia histórica: {{ data.historical_intelligence.readiness_score or data.data_center.historical_intelligence.readiness_score or 0 }}%.</p>
+  </aside>
+  <aside class="card pro-card">
+    <div class="section-head"><h2>Centro beta</h2><span class="pill">{{ data.beta.beta_score or data.data_center.beta.beta_score or 0 }}%</span></div>
+    <p class="small">Telegram: {% if data.beta.telegram_ok or data.data_center.beta.telegram_ok %}OK{% else %}Pendiente{% endif %} · Programador: {% if data.beta.scheduler_ok or data.data_center.beta.scheduler_ok %}OK{% else %}Revisar{% endif %} · Cola pendiente: {{ data.beta.queue_pending or data.data_center.beta.queue_pending or 0 }}.</p>
+    <a class="btn" href="/admin/beta-center">Abrir centro beta</a>
+  </aside>
+</section>
+
+<section class="band two-col">
+  <aside class="card">
+    <div class="section-head"><h2>Cuotas y Value V591</h2><span class="pill">{{ data.odds_value.status or data.data_center.odds_value.status or 'activo' }}</span></div>
+    <p class="small">Señales guardadas: {{ data.odds_value.signals_total or data.data_center.odds_value.signals_total or 0 }} · Value fuerte: {{ data.odds_value.strong_value or data.data_center.odds_value.strong_value or 0 }} · Preparación: {{ data.odds_value.readiness_score or data.data_center.odds_value.readiness_score or 0 }}%.</p>
+    <form method="post" action="/admin/data-center"><input type="hidden" name="action" value="odds_value"><input name="limit" value="500"><button type="submit">Reconstruir value</button></form>
+  </aside>
+  <aside class="card">
+    <div class="section-head"><h2>Predicción SHARK V592</h2><span class="pill">{{ data.shark_prediction.status or data.data_center.shark_prediction.status or 'activo' }}</span></div>
+    <p class="small">Rating de equipos, fuerza de ligas, selección de mercado y desglose de confianza para mejorar pronósticos.</p>
+    <form method="post" action="/admin/data-center"><input type="hidden" name="action" value="shark_prediction"><input name="limit" value="1000"><button type="submit">Reconstruir predicción</button></form>
+  </aside>
+</section>
+
+<section class="band two-col">
+  <aside class="card">
+    <div class="section-head"><h2>TheSportsDB enriquecido V593</h2><span class="pill">{{ data.sportsdb_enrichment.readiness_score or data.data_center.sportsdb_enrichment.readiness_score or 0 }}%</span></div>
+    <p class="small">Perfiles de ligas, equipos, estadios, escudos, eventos pasados/futuros y contexto histórico cacheado legalmente.</p>
+    <form method="post" action="/admin/data-center"><input type="hidden" name="action" value="sportsdb_enrichment"><input name="limit" value="30"><button type="submit">Sincronizar enriquecimiento</button></form>
+  </aside>
+  <aside class="card">
+    <div class="section-head"><h2>Proveedor de datos V596</h2><span class="pill">{{ data.data_provider.active_provider or data.data_center.data_provider.active_provider or 'TheSportsDB' }}</span></div>
+    <p class="small">Capa preparada para TheSportsDB, API-Football, Sportmonks y Sportradar sin rehacer la app.</p>
+    <form method="post" action="/admin/data-center"><input type="hidden" name="action" value="data_provider"><button type="submit">Comprobar proveedores</button></form>
+  </aside>
+</section>
+
+<section class="band two-col">
+  <aside class="card elite-card">
+    <div class="section-head"><h2>Football Warehouse Pro V597</h2><span class="pill">{{ data.football_warehouse.readiness_score or data.data_center.football_warehouse.readiness_score or 0 }}%</span></div>
+    <p class="small">Guarda histórico propio de partidos, equipos, eventos, cuotas y señales SHARK desde fuentes autorizadas.</p>
+    <form method="post" action="/admin/data-center"><input type="hidden" name="action" value="football_warehouse"><input name="limit" value="500"><button type="submit">Sincronizar warehouse fútbol</button></form>
+  </aside>
+  <aside class="card elite-card">
+    <div class="section-head"><h2>Inteligencia histórica V598</h2><span class="pill">{{ data.historical_intelligence.readiness_score or data.data_center.historical_intelligence.readiness_score or 0 }}%</span></div>
+    <p class="small">Construye memoria propia: hechos históricos, perfiles de liga, mercados, calidad de datos y activos derivados de NeMeSiS.</p>
+    <form method="post" action="/admin/data-center"><input type="hidden" name="action" value="historical_intelligence"><input name="limit" value="1000"><button type="submit">Reconstruir inteligencia histórica</button></form>
+  </aside>
+</section>
+
+
+<section class="band two-col">
+  <aside class="card elite-card">
+    <div class="section-head"><h2>Resúmenes SportsDB V579</h2><span class="pill">{{ data.sportsdb_highlights.status }}</span></div>
     <p class="small">Preparación: {{ data.sportsdb_highlights.readiness_score }}% · Highlights guardados: {{ data.sportsdb_highlights.highlights_total }} · Vídeos: {{ data.sportsdb_highlights.with_video }}</p>
     <p class="small">Partidos enlazados: {{ data.sportsdb_highlights.linked_matches }} · Fichas enriquecidas: {{ data.sportsdb_highlights.enriched_matches }}</p>
     <form method="post" action="/admin/data-center">
@@ -111,7 +164,7 @@
 
 <section class="band two-col">
   <aside class="card elite-card">
-    <div class="section-head"><h2>Entrega autnoma por Telegram V578</h2><span class="pill">{{ data.telegram_autonomous.status }}</span></div>
+    <div class="section-head"><h2>Entrega autónoma por Telegram V578</h2><span class="pill">{{ data.telegram_autonomous.status }}</span></div>
     <p class="small">Score: {{ data.telegram_autonomous.score }}% · Suscriptores activos: {{ data.telegram_autonomous.subscribers }} · Campañas: {{ data.telegram_autonomous.campaigns_total }}</p>
     <p class="small">Cola total: {{ data.telegram_autonomous.queue_total }} · Pendientes: {{ data.telegram_autonomous.queue_pending }} · Memoria anti-duplicados: {{ data.telegram_autonomous.dedupe_memory_total }}</p>
     <form method="post" action="/admin/data-center">
@@ -289,14 +342,14 @@
 
 <section class="band form-grid">
   <aside class="card">
-    <h2>Operaciones autonomas V573</h2>
+    <h2>Operaciones autónomas V573</h2>
     <p class="small">Estado: {{ data.autonomous.status }}</p>
     <p class="small">Runs 24h: {{ data.autonomous.runs_24h }} · OK: {{ data.autonomous.tasks_ok_24h }} · Errores: {{ data.autonomous.tasks_error_24h }}</p>
-    <p class="small">Telegram pendiente: {{ data.autonomous.telegram_pending }} · Warehouse das: {{ data.autonomous.warehouse_days }}</p>
+    <p class="small">Telegram pendiente: {{ data.autonomous.telegram_pending }} · Warehouse días: {{ data.autonomous.warehouse_days }}</p>
     <form method="post" action="/admin/data-center">
       <input type="hidden" name="action" value="autonomous">
       <input type="hidden" name="force" value="1">
-      <button type="submit">Ejecutar ciclo autonomo ahora</button>
+      <button type="submit">Ejecutar ciclo autónomo ahora</button>
     </form>
   </aside>
   <aside class="card">
@@ -316,7 +369,7 @@
 </section>
 
 <section class="band">
-  <div class="section-head"><h2>Acciones autonomas pendientes</h2><span class="pill">{{ data.autonomous.actions_open }}</span></div>
+  <div class="section-head"><h2>Acciones autónomas pendientes</h2><span class="pill">{{ data.autonomous.actions_open }}</span></div>
   <div class="stack">
     {% for action in data.autonomous.actions[:8] %}
     <div class="list-row"><span>{{ action.title }}<br><small>{{ action.detail }}</small></span><strong>{{ action.priority }}</strong></div>
@@ -333,7 +386,7 @@
     <article class="card">
       <div class="section-head"><h2>{{ task.label }}</h2><span class="state-badge {{ 'directo' if task.status == 'OK' else 'half' if task.status == 'RUNNING' else 'upcoming' }}">{{ task.status }}</span></div>
       <p class="small">Última: {{ task.last_run or '-' }}</p>
-      <p class="small">Proxima: {{ task.next_run or '-' }}</p>
+      <p class="small">Próxima: {{ task.next_run or '-' }}</p>
       <p class="small">Intervalo: {{ task.interval_seconds }}s</p>
       {% if task.error_message %}<p class="small">{{ task.error_message }}</p>{% endif %}
     </article>
