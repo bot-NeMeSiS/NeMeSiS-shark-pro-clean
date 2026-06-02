@@ -90,6 +90,30 @@
 </section>
 {% endif %}
 
+
+{% if detail.sportsdb_media and detail.sportsdb_media.highlights %}
+<section class="band compact-band">
+  <div class="section-head"><h2>Resumen del partido</h2><span class="pill">TheSportsDB</span></div>
+  <p class="small">{{ detail.sportsdb_media.summary_text }}</p>
+  <div class="grid">
+    {% for h in detail.sportsdb_media.highlights[:4] %}
+    <article class="card">
+      <div class="kicker">{{ h.provider or 'Video' }}</div>
+      <h3>{{ h.title }}</h3>
+      <p class="small">{{ h.league_name or m.competition_name }} · {{ h.event_date }}</p>
+      {% if h.thumbnail_url %}<img loading="lazy" src="{{ h.thumbnail_url }}" alt="{{ h.title }}" style="width:100%;border-radius:14px;margin:8px 0;">{% endif %}
+      {% if h.video_url %}<a class="btn primary" href="{{ h.video_url }}" target="_blank" rel="noopener">Ver resumen</a>{% endif %}
+    </article>
+    {% endfor %}
+  </div>
+</section>
+{% elif detail.sportsdb_media and detail.sportsdb_media.summary_text %}
+<section class="band compact-band">
+  <div class="section-head"><h2>Resumen del partido</h2><span class="pill">pendiente</span></div>
+  <p class="small">{{ detail.sportsdb_media.summary_text }}</p>
+</section>
+{% endif %}
+
 <section class="band">
   <div class="section-head"><h2>Timeline</h2><span class="pill">{{ detail.timeline|length }}</span></div>
   <div class="timeline">

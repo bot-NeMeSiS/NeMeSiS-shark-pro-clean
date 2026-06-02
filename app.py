@@ -60,9 +60,10 @@ from engines.subscription_control_engine import ensure_subscription_schema, subs
 from engines.shark_performance_memory_engine import ensure_shark_memory_schema, shark_memory_summary, rebuild_shark_performance_memory
 from engines.pick_grading_engine import ensure_pick_grading_schema, pick_grading_summary, run_pick_grading
 from engines.telegram_autonomous_delivery_engine import ensure_telegram_autonomous_schema, telegram_autonomous_summary, run_telegram_autonomous_delivery
+from engines.sportsdb_highlights_engine import ensure_sportsdb_highlights_schema, sync_sportsdb_highlights, sportsdb_highlights_summary, sportsdb_highlights_for_match, rebuild_match_enrichment
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V578_TELEGRAM_AUTONOMOUS_DELIVERY"
+APP_VERSION = "V579_SPORTSDB_HIGHLIGHTS_PAST_MATCH_INTELLIGENCE"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -831,6 +832,7 @@ def init_db():
         ensure_subscription_schema(DB_PATH)
         ensure_shark_memory_schema(DB_PATH)
         ensure_telegram_autonomous_schema(DB_PATH)
+        ensure_sportsdb_highlights_schema(DB_PATH)
     except Exception:
         pass
     cleanup_fake_matches(cur)
@@ -3925,6 +3927,11 @@ def match_detail(match_id):
     base["head_to_head"] = depth["head_to_head"]
     base["shark_notes"] = depth["shark_notes"]
     base["data_quality"] = depth["data_quality"]
+    try:
+        media = sportsdb_highlights_for_match(DB_PATH, match_id)
+    except Exception:
+        media = {"highlights": [], "enrichment": {}, "summary_text": ""}
+    base["sportsdb_media"] = media
     return base
 
 
@@ -5898,6 +5905,10 @@ def admin_data_center_page():
         elif action == "telegram_autonomous":
             result = run_telegram_autonomous_delivery(DB_PATH, limit=limit, force=force)
             result["telegram_autonomous"] = telegram_autonomous_summary(DB_PATH)
+        elif action == "sportsdb_highlights":
+            days_back = as_int(request.form.get("days_back"), 5)
+            result = sync_sportsdb_highlights(DB_PATH, days_back=days_back, limit=limit, force=force)
+            result["sportsdb_highlights"] = sportsdb_highlights_summary(DB_PATH)
         message = "Accion ejecutada desde Data Center."
     data = dashboard_data()
     data["data_center"] = data_center_summary()
@@ -5908,6 +5919,7 @@ def admin_data_center_page():
     data["shark_memory"] = shark_memory_summary(DB_PATH)
     data["pick_grading"] = pick_grading_summary(DB_PATH)
     data["telegram_autonomous"] = telegram_autonomous_summary(DB_PATH)
+    data["sportsdb_highlights"] = sportsdb_highlights_summary(DB_PATH)
     return render_template("admin_data_center.html", data=data, message=message, result=result)
 
 
@@ -7204,7 +7216,7 @@ def api_admin_membership_summary():
 
 
 # ===================== V565 SPORTS DATA & PICKS PERFECTION =====================
-APP_VERSION = "V578_TELEGRAM_AUTONOMOUS_DELIVERY"
+APP_VERSION = "V579_SPORTSDB_HIGHLIGHTS_PAST_MATCH_INTELLIGENCE"
 
 PRIORITY_LEAGUE_ORDER = [
     "UEFA Champions League", "Champions League", "LaLiga", "Spanish La Liga", "Premier League",
@@ -7934,6 +7946,43 @@ def api_v570_system_check():
         "routes": ["/shark-core", "/inteligencia", "/admin/shark-center", "/api/shark/core-summary"],
         "memory_table": True,
         "app_goal": "SHARK conectado a favoritos, picks, recomendaciones, live y calendario.",
+    })
+
+
+@app.route("/api/sportsdb-highlights/summary")
+def api_sportsdb_highlights_summary():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "version": APP_VERSION, "sportsdb_highlights": sportsdb_highlights_summary(DB_PATH)})
+
+
+@app.route("/api/sportsdb-highlights/sync", methods=["POST", "GET"])
+def api_sportsdb_highlights_sync():
+    if not is_admin_session() and request.args.get("token") != os.getenv("AUTONOMOUS_CRON_TOKEN", ""):
+        return jsonify({"ok": False, "version": APP_VERSION, "error": "Admin o token requerido."}), 403
+    days_back = as_int(request.args.get("days_back") or request.form.get("days_back"), 5)
+    limit = as_int(request.args.get("limit") or request.form.get("limit"), 250)
+    result = sync_sportsdb_highlights(DB_PATH, days_back=days_back, limit=limit)
+    return jsonify({"version": APP_VERSION, **result, "sportsdb_highlights": sportsdb_highlights_summary(DB_PATH)})
+
+
+@app.route("/api/sportsdb-highlights/rebuild", methods=["POST", "GET"])
+def api_sportsdb_highlights_rebuild():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    limit = as_int(request.args.get("limit") or request.form.get("limit"), 300)
+    result = rebuild_match_enrichment(DB_PATH, limit=limit)
+    return jsonify({"version": APP_VERSION, **result, "sportsdb_highlights": sportsdb_highlights_summary(DB_PATH)})
+
+
+@app.route("/api/system/v579-check")
+def api_v579_system_check():
+    return jsonify({
+        "ok": True,
+        "version": APP_VERSION,
+        "module": "SportsDB Highlights & Past Match Intelligence",
+        "routes": ["/api/sportsdb-highlights/summary", "/api/sportsdb-highlights/sync", "/api/sportsdb-highlights/rebuild"],
+        "goal": "Aprovechar TheSportsDB Premium para resúmenes/highlights, fichas de partido pasado y memoria visual para SHARK."
     })
 
 

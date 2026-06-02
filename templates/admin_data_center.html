@@ -14,6 +14,47 @@
 
 {% if message %}<section class="band"><div class="notice">{{ message }}</div></section>{% endif %}
 
+
+<section class="band two-col">
+  <aside class="card elite-card">
+    <div class="section-head"><h2>SportsDB Highlights V579</h2><span class="pill">{{ data.sportsdb_highlights.status }}</span></div>
+    <p class="small">Preparación: {{ data.sportsdb_highlights.readiness_score }}% · Highlights guardados: {{ data.sportsdb_highlights.highlights_total }} · Vídeos: {{ data.sportsdb_highlights.with_video }}</p>
+    <p class="small">Partidos enlazados: {{ data.sportsdb_highlights.linked_matches }} · Fichas enriquecidas: {{ data.sportsdb_highlights.enriched_matches }}</p>
+    <form method="post" action="/admin/data-center">
+      <input type="hidden" name="action" value="sportsdb_highlights">
+      <div class="field"><label>Días hacia atrás para buscar resúmenes</label><input name="days_back" value="5"></div>
+      <div class="field"><label>Límite</label><input name="limit" value="250"></div>
+      <button type="submit">Sincronizar resúmenes TheSportsDB</button>
+    </form>
+  </aside>
+  <aside class="card pro-card">
+    <h2>Qué aporta al producto</h2>
+    <p class="small">Cada partido finalizado puede mostrar resumen/highlight, quedar guardado en SQLite y alimentar la inteligencia post-partido de SHARK.</p>
+    <p class="small">{{ data.sportsdb_highlights.note }}</p>
+    <p class="small">No se repiten llamadas si el resumen ya está guardado; se conserva histórico para Render en /data/database.db.</p>
+  </aside>
+</section>
+
+<section class="band two-col">
+  <aside class="card">
+    <div class="section-head"><h2>Últimos resúmenes guardados</h2><span class="pill">TheSportsDB</span></div>
+    {% for h in data.sportsdb_highlights.latest_highlights[:6] %}
+    <div class="list-row"><span>{{ h.title }}<br><small>{{ h.event_date }} · {{ h.league_name or 'Competición' }} · {{ h.home_team }} vs {{ h.away_team }}</small></span><strong>{{ 'OK' if h.video_url else 'SIN VIDEO' }}</strong></div>
+    {% else %}
+    <p class="small">Aún no hay resúmenes guardados. Ejecuta la sincronización cuando haya partidos finalizados.</p>
+    {% endfor %}
+  </aside>
+  <aside class="card">
+    <div class="section-head"><h2>Runs SportsDB</h2><span class="pill">auditoría</span></div>
+    {% for run in data.sportsdb_highlights.recent_runs[:6] %}
+    <div class="list-row"><span>{{ run.started_at }} · {{ run.status }}<br><small>Días {{ run.days_back }} · encontrados {{ run.highlights_found }} · enlazados {{ run.linked_matches }}</small></span><strong>{{ run.highlights_found }}</strong></div>
+    {% else %}
+    <p class="small">Sin ejecuciones registradas todavía.</p>
+    {% endfor %}
+  </aside>
+</section>
+
+
 <section class="band">
   <div class="grid compact-grid">
     <div class="card"><div class="metric">{{ data.data_center.total_competitions }}</div><div class="muted">competiciones</div></div>
