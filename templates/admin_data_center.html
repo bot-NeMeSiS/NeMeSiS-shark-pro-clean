@@ -37,6 +37,30 @@
 
 <section class="band two-col">
   <aside class="card elite-card">
+    <div class="section-head"><h2>Performance Proof V587</h2><span class="pill">ROI</span></div>
+    {% set perf = data.performance.summary if data.performance is defined and data.performance.summary is defined else {} %}
+    <p class="small">Últimos 30 días: {{ perf.total_picks|default(0) }} picks · acierto {{ perf.winrate|default(0) }}% · ROI {{ perf.roi|default(0) }}% · beneficio {{ perf.profit_units|default(0) }}u.</p>
+    <p class="small">{{ data.performance.streak.label if data.performance is defined and data.performance.streak is defined else 'Sin racha cerrada' }}</p>
+    <form method="post" action="/admin/data-center">
+      <input type="hidden" name="action" value="performance">
+      <div class="field"><label>Días de análisis</label><input name="days" value="30"></div>
+      <div class="field"><label>Límite de picks</label><input name="limit" value="3000"></div>
+      <button type="submit">Reconstruir rendimiento SHARK</button>
+    </form>
+  </aside>
+  <aside class="card pro-card">
+    <h2>Prueba comercial</h2>
+    <p class="small">Este bloque convierte resultados reales en métricas claras para clientes: ROI, acierto, beneficio, racha y rendimiento por liga/mercado.</p>
+    {% for item in data.performance.by_market[:4] if data.performance is defined %}
+    <div class="list-row"><span>{{ item.label }}<br><small>ROI {{ item.roi }}% · acierto {{ item.winrate }}% · muestra {{ item.sample_size }}</small></span><strong>{{ item.profit_units }}u</strong></div>
+    {% else %}
+    <p class="small">Aún no hay suficientes picks cerrados para mostrar mercados destacados.</p>
+    {% endfor %}
+  </aside>
+</section>
+
+<section class="band two-col">
+  <aside class="card elite-card">
     <div class="section-head"><h2>SHARK Learning Engine V585</h2><span class="pill">{{ data.shark_learning.status or 'learning' }}</span></div>
     <p class="small">Muestra: {{ data.shark_learning.profile.sample_size or 0 }} picks · ROI {{ data.shark_learning.profile.roi or 0 }}% · acierto {{ data.shark_learning.profile.winrate or 0 }}% · yield {{ data.shark_learning.profile.yield_pct or 0 }}%.</p>
     <p class="small">Ajuste global: {{ data.shark_learning.profile.confidence_adjustment or 0 }} puntos. Se aplica por mercado, liga y rango de cuota cuando hay muestra suficiente.</p>

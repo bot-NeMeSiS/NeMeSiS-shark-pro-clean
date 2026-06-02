@@ -30,6 +30,37 @@
     <a class="card focus-card" href="{{ item.href }}"><span class="badge">{{ item.type }}</span><strong>{{ item.title }}</strong><p class="small">{{ item.body }}</p></a>
     {% endfor %}
   </div>
+
+</section>
+
+<section class="band compact-band">
+  <div class="section-head">
+    <h2>Rendimiento SHARK</h2>
+    <a class="pill" href="/api/performance/summary" title="Resumen transparente calculado desde picks reales">30 días</a>
+  </div>
+  {% set perf = performance.summary if performance is defined and performance.summary is defined else {} %}
+  <div class="grid dense-grid">
+    <article class="card focus-card">
+      <span class="badge">ROI</span>
+      <strong>{{ perf.roi|default(0) }}%</strong>
+      <p class="small">Retorno sobre stake calculado con picks cerrados. {{ performance.proof_message if performance is defined else '' }}</p>
+    </article>
+    <article class="card focus-card">
+      <span class="badge">Acierto</span>
+      <strong>{{ perf.winrate|default(0) }}%</strong>
+      <p class="small">{{ perf.won|default(0) }} ganados · {{ perf.lost|default(0) }} perdidos · {{ perf.pending|default(0) }} pendientes.</p>
+    </article>
+    <article class="card focus-card">
+      <span class="badge">Beneficio</span>
+      <strong>{{ perf.profit_units|default(0) }}u</strong>
+      <p class="small">Beneficio neto en unidades. Stake total: {{ perf.stake_units|default(0) }}u.</p>
+    </article>
+    <article class="card focus-card">
+      <span class="badge">Racha</span>
+      <strong>{{ performance.streak.label if performance is defined and performance.streak is defined else 'Sin racha cerrada' }}</strong>
+      <p class="small">Transparencia completa: SHARK muestra resultados buenos y malos.</p>
+    </article>
+  </div>
 </section>
 
 <section class="band two-col compact-band">
