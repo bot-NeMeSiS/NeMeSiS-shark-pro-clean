@@ -17,6 +17,20 @@
 
 <section class="band two-col">
   <aside class="card elite-card">
+    <div class="section-head"><h2>Arquitectura V608</h2><span class="pill">Blueprints</span></div>
+    <p class="small">Centro técnico para reducir deuda de <code>app.py</code>, inventariar rutas, agrupar dominios y planificar migraciones sin romper producción.</p>
+    <a class="btn" href="/admin/architecture">Abrir centro de arquitectura</a>
+  </aside>
+  <aside class="card pro-card">
+    <div class="section-head"><h2>Blueprint Migration Phase 2</h2><span class="pill">Seguro</span></div>
+    <p class="small">Añade visibilidad y rutas Blueprint nuevas, manteniendo intactas las rutas legacy hasta que cada bloque tenga tests y tráfico verificado.</p>
+    <a class="btn" href="/api/v608/blueprint-migration-check?public=1">Comprobar V608</a>
+  </aside>
+</section>
+
+
+<section class="band two-col">
+  <aside class="card elite-card">
     <div class="section-head"><h2>SHARK Accuracy Engine V600</h2><span class="pill">SQI {{ data.shark_accuracy.sqi or data.data_center.shark_accuracy.sqi or 0 }}</span></div>
     <p class="small">Mide precisión real, calibración de confianza, ROI y ranking de mercados para que SHARK mejore sus pronósticos con datos propios.</p>
     <p class="small">Picks analizados: {{ data.shark_accuracy.picks_analyzed or data.data_center.shark_accuracy.picks_analyzed or 0 }} · Cerrados: {{ data.shark_accuracy.settled_picks or data.data_center.shark_accuracy.settled_picks or 0 }} · ROI: {{ data.shark_accuracy.roi or data.data_center.shark_accuracy.roi or 0 }}% · Acierto: {{ data.shark_accuracy.winrate or data.data_center.shark_accuracy.winrate or 0 }}%.</p>

@@ -117,3 +117,128 @@ def write_route_map(output_path: str | Path = "ROUTE_MAP_V606.md", app_py: str |
         lines.append(f"- `{r['rule']}` → `{r['endpoint']}` · {','.join(r['methods'])} · línea {r['line']} · grupo `{r['group']}`")
     out.write_text("\n".join(lines) + "\n", encoding="utf-8")
     return out
+
+
+# ---------------------------------------------------------------------------
+# V608 - runtime architecture scoring and migration plan
+# ---------------------------------------------------------------------------
+
+def runtime_url_map(app) -> List[Dict[str, Any]]:
+    """Return a safe runtime inventory from Flask's url_map."""
+    routes: List[Dict[str, Any]] = []
+    try:
+        rules = sorted(app.url_map.iter_rules(), key=lambda r: (r.rule, r.endpoint))
+    except Exception:
+        return routes
+    for rule in rules:
+        methods = sorted(m for m in getattr(rule, "methods", set()) if m not in {"HEAD", "OPTIONS"}) or ["GET"]
+        routes.append({
+            "rule": rule.rule,
+            "endpoint": rule.endpoint,
+            "methods": methods,
+            "blueprint": rule.endpoint.split(".")[0] if "." in rule.endpoint else "legacy_app",
+            "group": guess_route_group(rule.rule, rule.endpoint),
+        })
+    return routes
+
+
+def blueprint_runtime_summary(app) -> Dict[str, Any]:
+    routes = runtime_url_map(app)
+    by_blueprint: Dict[str, int] = {}
+    by_group: Dict[str, int] = {}
+    duplicated: Dict[str, int] = {}
+    for route in routes:
+        by_blueprint[route["blueprint"]] = by_blueprint.get(route["blueprint"], 0) + 1
+        by_group[route["group"]] = by_group.get(route["group"], 0) + 1
+        duplicated[route["rule"]] = duplicated.get(route["rule"], 0) + 1
+    return {
+        "total_routes": len(routes),
+        "by_blueprint": dict(sorted(by_blueprint.items(), key=lambda x: (-x[1], x[0]))),
+        "by_group": dict(sorted(by_group.items(), key=lambda x: (-x[1], x[0]))),
+        "duplicated_rules": {k: v for k, v in duplicated.items() if v > 1},
+        "routes": routes,
+    }
+
+
+def architecture_quality_score(runtime_summary: Dict[str, Any], app_py: str | Path = "app.py") -> Dict[str, Any]:
+    app_path = Path(app_py)
+    try:
+        lines = len(app_path.read_text(encoding="utf-8", errors="ignore").splitlines())
+    except Exception:
+        lines = 0
+    total_routes = int(runtime_summary.get("total_routes") or 0)
+    legacy_routes = int(runtime_summary.get("by_blueprint", {}).get("legacy_app", 0))
+    blueprint_routes = max(total_routes - legacy_routes, 0)
+    duplicated = len(runtime_summary.get("duplicated_rules", {}) or {})
+
+    # Conservative score: rewards having blueprints and clean routes, penalizes giant app.py.
+    score = 100
+    if lines > 9000:
+        score -= 22
+    elif lines > 6000:
+        score -= 16
+    elif lines > 3000:
+        score -= 8
+    if total_routes > 240:
+        score -= 14
+    elif total_routes > 160:
+        score -= 8
+    if legacy_routes > 180:
+        score -= 12
+    elif legacy_routes > 100:
+        score -= 7
+    if duplicated:
+        score -= min(duplicated * 4, 16)
+    if blueprint_routes:
+        score += min(blueprint_routes * 2, 8)
+    score = max(0, min(100, score))
+
+    status = "crítico" if score < 50 else "mejorable" if score < 75 else "sólido" if score < 90 else "excelente"
+    return {
+        "score": score,
+        "status": status,
+        "app_py_lines": lines,
+        "total_routes": total_routes,
+        "legacy_routes": legacy_routes,
+        "blueprint_routes": blueprint_routes,
+        "duplicated_route_count": duplicated,
+    }
+
+
+def migration_batches(runtime_summary: Dict[str, Any]) -> List[Dict[str, Any]]:
+    groups = runtime_summary.get("by_group", {}) or {}
+    order = [
+        ("auth", "Autenticación y cuentas", "Rutas de login, registro, perfil y sesión."),
+        ("telegram", "Telegram", "Webhook, cola, auditoría y entregas."),
+        ("api_system", "APIs de sistema", "Health, versionado, storage y diagnósticos."),
+        ("football", "Fútbol y live", "Calendario, partidos, resultados, live y match detail."),
+        ("shark_picks", "SHARK y picks", "Pronósticos, value, learning, accuracy y auto picks."),
+        ("admin", "Admin", "Data Center, beta, observabilidad y gestión."),
+        ("main", "Landing y páginas generales", "Inicio, páginas públicas y enlaces."),
+    ]
+    batches: List[Dict[str, Any]] = []
+    for idx, (group, title, description) in enumerate(order, start=1):
+        count = int(groups.get(group, 0) or 0)
+        batches.append({
+            "phase": idx,
+            "group": group,
+            "title": title,
+            "description": description,
+            "routes": count,
+            "priority": "alta" if group in {"auth", "telegram", "api_system"} else "media",
+            "risk": "medio" if group in {"auth", "telegram"} else "bajo" if group == "api_system" else "medio-alto",
+        })
+    return batches
+
+
+def build_runtime_architecture_summary(app, app_py: str | Path = "app.py") -> Dict[str, Any]:
+    runtime = blueprint_runtime_summary(app)
+    score = architecture_quality_score(runtime, app_py=app_py)
+    return {
+        "ok": True,
+        "runtime": runtime,
+        "quality": score,
+        "migration_batches": migration_batches(runtime),
+        "next_recommendation": "Migrar auth y telegram en fases pequeñas, manteniendo URLs actuales y tests de humo antes de cada deploy.",
+        "safety_rule": "No eliminar rutas legacy hasta que el blueprint equivalente tenga test y tráfico verificado.",
+    }

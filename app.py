@@ -83,9 +83,10 @@ from engines.api_exploitation_engine import ensure_api_exploitation_schema, run_
 from engines.player_intelligence_engine import ensure_player_intelligence_schema, player_intelligence_summary, rebuild_player_intelligence, player_intelligence_for_fixture
 from engines.security_engine import ensure_security_schema, secure_secret_key, generate_csrf_token, validate_csrf, record_security_event, rate_limit_status, security_summary
 from engines.observability_engine import ensure_observability_schema, observability_summary, record_observability_event, mark_route_check
+from blueprints.architecture import create_architecture_blueprint
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V607_FULL_APP_SECURITY_TESTING_OBSERVABILITY_CONSOLIDATED"
+APP_VERSION = "V608_BLUEPRINT_MIGRATION_PHASE_2_ARCHITECTURE_CENTER"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -5315,6 +5316,15 @@ def admin_json_forbidden():
     return jsonify({"ok": False, "version": APP_VERSION, "error": "Acceso admin requerido."}), 403
 
 
+# V608 - Blueprint Migration Phase 2
+# Registro no invasivo: añade Centro de Arquitectura sin mover rutas legacy aún.
+try:
+    app.register_blueprint(create_architecture_blueprint(APP_VERSION, DB_PATH, is_admin_callback=is_admin_session))
+except Exception:
+    # En producción preferimos no romper el arranque por una herramienta de arquitectura.
+    pass
+
+
 def list_users():
     seed_core()
     return rows(
@@ -8457,7 +8467,7 @@ def api_admin_membership_summary():
 
 
 # ===================== V565 SPORTS DATA & PICKS PERFECTION =====================
-APP_VERSION = "V607_FULL_APP_SECURITY_TESTING_OBSERVABILITY_CONSOLIDATED"
+APP_VERSION = "V608_BLUEPRINT_MIGRATION_PHASE_2_ARCHITECTURE_CENTER"
 
 PRIORITY_LEAGUE_ORDER = [
     "UEFA Champions League", "Champions League", "LaLiga", "Spanish La Liga", "Premier League",
