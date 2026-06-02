@@ -34,7 +34,90 @@
     <div class="card"><div class="metric">{{ data.subscriptions.active_paid }}</div><div class="muted">pagados activos</div></div>
     <div class="card"><div class="metric">{{ data.shark_memory.readiness_score }}%</div><div class="muted">memoria SHARK</div></div>
     <div class="card"><div class="metric">{{ data.shark_memory.groups_total }}</div><div class="muted">patrones aprendidos</div></div>
+    <div class="card"><div class="metric">{{ data.pick_grading.readiness_score }}%</div><div class="muted">validación picks</div></div>
+    <div class="card"><div class="metric">{{ data.pick_grading.auto_validated }}</div><div class="muted">auto validados</div></div>
+    <div class="card"><div class="metric">{{ data.telegram_autonomous.score }}%</div><div class="muted">telegram auto</div></div>
+    <div class="card"><div class="metric">{{ data.telegram_autonomous.queue_pending }}</div><div class="muted">cola pendiente</div></div>
   </div>
+</section>
+
+
+<section class="band two-col">
+  <aside class="card elite-card">
+    <div class="section-head"><h2>Telegram Autonomous Delivery V578</h2><span class="pill">{{ data.telegram_autonomous.status }}</span></div>
+    <p class="small">Score: {{ data.telegram_autonomous.score }}% · Suscriptores activos: {{ data.telegram_autonomous.subscribers }} · Campañas: {{ data.telegram_autonomous.campaigns_total }}</p>
+    <p class="small">Cola total: {{ data.telegram_autonomous.queue_total }} · Pendientes: {{ data.telegram_autonomous.queue_pending }} · Memoria anti-duplicados: {{ data.telegram_autonomous.delivery_memory_total }}</p>
+    <form method="post" action="/admin/data-center">
+      <input type="hidden" name="action" value="telegram_autonomous">
+      <div class="field"><label>Límite de suscriptores por ejecución</label><input name="limit" value="30"></div>
+      <label class="check"><input type="checkbox" name="force" value="1"> Forzar aunque la confianza sea baja</label>
+      <button type="submit">Preparar campañas Telegram</button>
+    </form>
+  </aside>
+  <aside class="card pro-card">
+    <h2>Qué automatiza</h2>
+    <p class="small">Crea mensajes en cola para resumen diario, picks PRO y alertas ELITE según membresía. No dispara spam: usa memoria anti-duplicados por día, usuario, chat y pick.</p>
+    <p class="small">El envío final sigue pasando por la cola Telegram existente para mantener control, logs y reintentos.</p>
+  </aside>
+</section>
+
+<section class="band two-col">
+  <aside class="card">
+    <div class="section-head"><h2>Últimas campañas Telegram</h2><span class="pill">auditoría</span></div>
+    {% for campaign in data.telegram_autonomous.latest_campaigns[:6] %}
+    <div class="list-row"><span>{{ campaign.campaign_type }} · {{ campaign.membership_target }}<br><small>{{ campaign.title }} · queued {{ campaign.queued_count }} · skipped {{ campaign.skipped_count }}</small></span><strong>{{ campaign.priority }}</strong></div>
+    {% else %}
+    <p class="small">Todavía no hay campañas automáticas creadas.</p>
+    {% endfor %}
+  </aside>
+  <aside class="card">
+    <div class="section-head"><h2>Reglas activas</h2><span class="pill">membresías</span></div>
+    {% for rule in data.telegram_autonomous.rules[:6] %}
+    <div class="list-row"><span>{{ rule.rule_key }} · {{ rule.membership_target }}<br><small>Confianza mínima {{ rule.min_confidence }} · cooldown {{ rule.cooldown_minutes }} min</small></span><strong>{{ 'ON' if rule.enabled else 'OFF' }}</strong></div>
+    {% else %}
+    <p class="small">Sin reglas automáticas.</p>
+    {% endfor %}
+  </aside>
+</section>
+
+
+<section class="band two-col">
+  <aside class="card elite-card">
+    <div class="section-head"><h2>Smart Pick Grading V577</h2><span class="pill">{{ data.pick_grading.status }}</span></div>
+    <p class="small">Preparación: {{ data.pick_grading.readiness_score }}% · Picks graduados: {{ data.pick_grading.graded_total }} · Auto validados: {{ data.pick_grading.auto_validated }}</p>
+    <p class="small">Ganados: {{ data.pick_grading.won }} · Perdidos: {{ data.pick_grading.lost }} · Revisión pendiente: {{ data.pick_grading.pending_review }} · Profit estimado: {{ data.pick_grading.profit }}u</p>
+    <form method="post" action="/admin/data-center">
+      <input type="hidden" name="action" value="pick_grading">
+      <div class="field"><label>Límite de picks a validar</label><input name="limit" value="500"></div>
+      <label class="check"><input type="checkbox" name="apply" value="1"> Aplicar solo resultados seguros al pick</label>
+      <button type="submit">Ejecutar validación inteligente</button>
+    </form>
+  </aside>
+  <aside class="card pro-card">
+    <h2>Qué mejora ahora</h2>
+    <p class="small">{{ data.pick_grading.note }}</p>
+    <p class="small">Cuando el mercado es claro y el marcador final es fiable, SHARK puede cerrar el pick. Si no hay seguridad, lo deja para revisión del admin.</p>
+    <p class="small">Esto sube la calidad del aprendizaje V576 porque la memoria recibe resultados más limpios.</p>
+  </aside>
+</section>
+
+<section class="band two-col">
+  <aside class="card">
+    <div class="section-head"><h2>Últimas validaciones</h2><span class="pill">control</span></div>
+    {% for item in data.pick_grading.recent_results[:6] %}
+    <div class="list-row"><span>{{ item.result_status }} · {{ item.reason }}<br><small>Pick {{ item.pick_id }} · score {{ item.grading_score }} · profit {{ item.profit }}</small></span><strong>{{ item.grading_status }}</strong></div>
+    {% else %}
+    <p class="small">Aún no hay validaciones. Ejecuta la validación inteligente cuando haya picks y resultados.</p>
+    {% endfor %}
+  </aside>
+  <aside class="card">
+    <div class="section-head"><h2>Runs de validación</h2><span class="pill">auditoría</span></div>
+    {% for run in data.pick_grading.recent_runs[:6] %}
+    <div class="list-row"><span>{{ run.started_at }} · {{ run.status }}<br><small>Checked {{ run.picks_checked }} · auto {{ run.auto_validated }} · pendiente {{ run.pending }}</small></span><strong>{{ run.profit }}</strong></div>
+    {% else %}
+    <p class="small">Sin ejecuciones registradas todavía.</p>
+    {% endfor %}
+  </aside>
 </section>
 
 <section class="band two-col">
@@ -200,14 +283,16 @@
     ('results','Sincronizar resultados','Guarda resultados recientes si la API los ofrece.'),
     ('odds','Sincronizar cuotas','Trae eventos/cuotas H2H respetando cache.'),
     ('warmup','Warmup general','Ejecuta competiciones, equipos, calendario y cuotas con control de intervalo.'),
-    ('warehouse','Warehouse historico','Guarda snapshot de partidos, cuotas, picks, usuarios y metricas para SHARK/ML.')
+    ('warehouse','Warehouse historico','Guarda snapshot de partidos, cuotas, picks, usuarios y metricas para SHARK/ML.'),
+    ('pick_grading','Validar picks','Gradua picks con resultados disponibles y prepara aprendizaje SHARK limpio.'),
+    ('telegram_autonomous','Telegram autónomo','Prepara campañas por membresía con anti-duplicados y cola segura.')
   ] %}
   <form class="card" method="post" action="/admin/data-center">
     <h2>{{ label }}</h2>
     <p class="small">{{ detail }}</p>
     <input type="hidden" name="action" value="{{ action }}">
     <div class="field"><label>Limite</label><input name="limit" value="120"></div>
-    {% if action == 'warmup' %}<label class="check"><input type="checkbox" name="force" value="1"> Forzar ahora</label>{% endif %}
+    {% if action in ['warmup','telegram_autonomous'] %}<label class="check"><input type="checkbox" name="force" value="1"> Forzar ahora</label>{% endif %}
     <button type="submit">{{ label }}</button>
   </form>
   {% endfor %}

@@ -58,9 +58,11 @@ from engines.autonomous_operations_engine import ensure_autonomous_schema, recor
 from engines.commercial_launch_engine import ensure_commercial_schema, commercial_summary, rebuild_launch_checks
 from engines.subscription_control_engine import ensure_subscription_schema, subscription_summary, apply_subscription_rules
 from engines.shark_performance_memory_engine import ensure_shark_memory_schema, shark_memory_summary, rebuild_shark_performance_memory
+from engines.pick_grading_engine import ensure_pick_grading_schema, pick_grading_summary, run_pick_grading
+from engines.telegram_autonomous_delivery_engine import ensure_telegram_autonomous_schema, telegram_autonomous_summary, run_telegram_autonomous_delivery
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V576_SHARK_PERFORMANCE_MEMORY"
+APP_VERSION = "V578_TELEGRAM_AUTONOMOUS_DELIVERY"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -828,6 +830,7 @@ def init_db():
         ensure_commercial_schema(DB_PATH)
         ensure_subscription_schema(DB_PATH)
         ensure_shark_memory_schema(DB_PATH)
+        ensure_telegram_autonomous_schema(DB_PATH)
     except Exception:
         pass
     cleanup_fake_matches(cur)
@@ -5889,7 +5892,12 @@ def admin_data_center_page():
             result["subscriptions"] = subscription_summary(DB_PATH, apply_rules=False)
         elif action == "shark_memory":
             result = rebuild_shark_performance_memory(DB_PATH, limit=limit)
+        elif action == "pick_grading":
+            result = run_pick_grading(DB_PATH, limit=limit, apply=request.form.get("apply") in {"1", "true", "yes"})
             result["shark_memory"] = shark_memory_summary(DB_PATH)
+        elif action == "telegram_autonomous":
+            result = run_telegram_autonomous_delivery(DB_PATH, limit=limit, force=force)
+            result["telegram_autonomous"] = telegram_autonomous_summary(DB_PATH)
         message = "Accion ejecutada desde Data Center."
     data = dashboard_data()
     data["data_center"] = data_center_summary()
@@ -5898,6 +5906,8 @@ def admin_data_center_page():
     data["commercial"] = commercial_summary(DB_PATH)
     data["subscriptions"] = subscription_summary(DB_PATH)
     data["shark_memory"] = shark_memory_summary(DB_PATH)
+    data["pick_grading"] = pick_grading_summary(DB_PATH)
+    data["telegram_autonomous"] = telegram_autonomous_summary(DB_PATH)
     return render_template("admin_data_center.html", data=data, message=message, result=result)
 
 
@@ -6158,6 +6168,23 @@ def api_shark_memory_rebuild():
     limit = as_int(request.args.get("limit") or request.form.get("limit"), 500)
     result = rebuild_shark_performance_memory(DB_PATH, limit=limit)
     return jsonify({"version": APP_VERSION, **result, "shark_memory": shark_memory_summary(DB_PATH)})
+
+
+@app.route("/api/pick-grading/summary")
+def api_pick_grading_summary():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "version": APP_VERSION, "pick_grading": pick_grading_summary(DB_PATH)})
+
+
+@app.route("/api/pick-grading/run", methods=["POST", "GET"])
+def api_pick_grading_run():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    limit = as_int(request.args.get("limit") or request.form.get("limit"), 500)
+    apply = request.args.get("apply") in {"1", "true", "yes"} or request.form.get("apply") in {"1", "true", "yes"}
+    result = run_pick_grading(DB_PATH, limit=limit, apply=apply)
+    return jsonify({"version": APP_VERSION, **result, "pick_grading": pick_grading_summary(DB_PATH)})
 
 
 @app.route("/api/commercial/summary")
@@ -7177,7 +7204,7 @@ def api_admin_membership_summary():
 
 
 # ===================== V565 SPORTS DATA & PICKS PERFECTION =====================
-APP_VERSION = "V576_SHARK_PERFORMANCE_MEMORY"
+APP_VERSION = "V578_TELEGRAM_AUTONOMOUS_DELIVERY"
 
 PRIORITY_LEAGUE_ORDER = [
     "UEFA Champions League", "Champions League", "LaLiga", "Spanish La Liga", "Premier League",
@@ -7907,6 +7934,34 @@ def api_v570_system_check():
         "routes": ["/shark-core", "/inteligencia", "/admin/shark-center", "/api/shark/core-summary"],
         "memory_table": True,
         "app_goal": "SHARK conectado a favoritos, picks, recomendaciones, live y calendario.",
+    })
+
+
+@app.route("/api/telegram-autonomous/summary")
+def api_telegram_autonomous_summary():
+    if not is_admin_session() and request.args.get("public") != "1":
+        return jsonify({"ok": False, "version": APP_VERSION, "error": "Admin requerido."}), 403
+    return jsonify({"ok": True, "version": APP_VERSION, "telegram_autonomous": telegram_autonomous_summary(DB_PATH)})
+
+
+@app.route("/api/telegram-autonomous/run", methods=["POST", "GET"])
+def api_telegram_autonomous_run():
+    if not is_admin_session() and request.args.get("token") != os.getenv("AUTONOMOUS_CRON_TOKEN", ""):
+        return jsonify({"ok": False, "version": APP_VERSION, "error": "Admin o token requerido."}), 403
+    limit = as_int(request.args.get("limit") or request.form.get("limit"), 30)
+    force = request.args.get("force") in {"1", "true", "yes"} or request.form.get("force") in {"1", "true", "yes"}
+    result = run_telegram_autonomous_delivery(DB_PATH, limit=limit, force=force)
+    return jsonify({"version": APP_VERSION, **result})
+
+
+@app.route("/api/system/v578-check")
+def api_v578_system_check():
+    return jsonify({
+        "ok": True,
+        "version": APP_VERSION,
+        "module": "Telegram Autonomous Delivery",
+        "routes": ["/api/telegram-autonomous/summary", "/api/telegram-autonomous/run"],
+        "goal": "Automatizar resúmenes, picks PRO/ELITE y alertas Telegram con deduplicación y reglas por membresía.",
     })
 
 
