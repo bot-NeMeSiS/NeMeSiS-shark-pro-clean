@@ -365,6 +365,30 @@ def run_schema_migrations(conn):
         ("historical_recommendations", "value_label", "TEXT"),
         ("historical_recommendations", "payload_json", "TEXT"),
         ("historical_recommendations", "created_at", "TEXT"),
+        ("autopilot_pick_cycles", "status", "TEXT"),
+        ("autopilot_pick_cycles", "matches_analyzed", "INTEGER DEFAULT 0"),
+        ("autopilot_pick_cycles", "candidates", "INTEGER DEFAULT 0"),
+        ("autopilot_pick_cycles", "saved", "INTEGER DEFAULT 0"),
+        ("autopilot_pick_cycles", "queued", "INTEGER DEFAULT 0"),
+        ("autopilot_pick_cycles", "sent", "INTEGER DEFAULT 0"),
+        ("autopilot_pick_cycles", "discarded", "INTEGER DEFAULT 0"),
+        ("autopilot_pick_cycles", "errors_count", "INTEGER DEFAULT 0"),
+        ("autopilot_pick_cycles", "payload_json", "TEXT"),
+        ("autopilot_pick_cycles", "started_at", "TEXT"),
+        ("autopilot_pick_cycles", "finished_at", "TEXT"),
+        ("autopilot_pick_cycles", "created_at", "TEXT"),
+        ("autopilot_pick_decisions", "cycle_id", "TEXT"),
+        ("autopilot_pick_decisions", "match_id", "TEXT"),
+        ("autopilot_pick_decisions", "market", "TEXT"),
+        ("autopilot_pick_decisions", "selection", "TEXT"),
+        ("autopilot_pick_decisions", "signature", "TEXT"),
+        ("autopilot_pick_decisions", "score", "INTEGER DEFAULT 0"),
+        ("autopilot_pick_decisions", "status", "TEXT"),
+        ("autopilot_pick_decisions", "reason", "TEXT"),
+        ("autopilot_pick_decisions", "pick_id", "TEXT"),
+        ("autopilot_pick_decisions", "telegram_json", "TEXT"),
+        ("autopilot_pick_decisions", "payload_json", "TEXT"),
+        ("autopilot_pick_decisions", "created_at", "TEXT"),
     ]
     for table, column, definition in migrations:
         try:
@@ -417,6 +441,9 @@ def run_schema_migrations(conn):
         conn.execute("CREATE INDEX IF NOT EXISTS idx_historical_matches_match ON historical_matches(match_id, match_date)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_historical_picks_pick ON historical_picks(pick_id, match_id)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_historical_recommendations_match ON historical_recommendations(match_id, created_at)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_autopilot_cycles_created ON autopilot_pick_cycles(created_at)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_autopilot_decisions_signature ON autopilot_pick_decisions(signature, status)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_autopilot_decisions_cycle ON autopilot_pick_decisions(cycle_id, created_at)")
     except sqlite3.OperationalError:
         pass
 
@@ -820,6 +847,40 @@ def init_db():
             status TEXT DEFAULT 'READY',
             created_at TEXT,
             updated_at TEXT
+        )"""
+    )
+    cur.execute(
+        """CREATE TABLE IF NOT EXISTS autopilot_pick_cycles(
+            id TEXT PRIMARY KEY,
+            status TEXT,
+            matches_analyzed INTEGER DEFAULT 0,
+            candidates INTEGER DEFAULT 0,
+            saved INTEGER DEFAULT 0,
+            queued INTEGER DEFAULT 0,
+            sent INTEGER DEFAULT 0,
+            discarded INTEGER DEFAULT 0,
+            errors_count INTEGER DEFAULT 0,
+            payload_json TEXT,
+            started_at TEXT,
+            finished_at TEXT,
+            created_at TEXT
+        )"""
+    )
+    cur.execute(
+        """CREATE TABLE IF NOT EXISTS autopilot_pick_decisions(
+            id TEXT PRIMARY KEY,
+            cycle_id TEXT,
+            match_id TEXT,
+            market TEXT,
+            selection TEXT,
+            signature TEXT,
+            score INTEGER DEFAULT 0,
+            status TEXT,
+            reason TEXT,
+            pick_id TEXT,
+            telegram_json TEXT,
+            payload_json TEXT,
+            created_at TEXT
         )"""
     )
     cur.execute(
@@ -2250,10 +2311,242 @@ def refresh_recommendations_basic(limit=40):
     return {"ok": True, "processed": len(recs), "inserted": 0, "updated": len(recs), "skipped": 0, "recommendations": len(recs)}
 
 
-def refresh_auto_picks_basic(limit=40):
-    recs = v565_recommendation_pool(limit=limit)
-    candidates = [r for r in recs if as_int(r.get("score"), 0) >= as_int(os.getenv("AUTO_PICKS_MIN_SCORE", "78"), 78)]
-    return {"ok": True, "processed": len(recs), "inserted": 0, "updated": len(candidates), "skipped": max(0, len(recs) - len(candidates)), "auto_candidates": len(candidates)}
+def env_flag(name, default=True):
+    raw = os.getenv(name)
+    if raw is None:
+        return bool(default)
+    return str(raw).strip().lower() in {"1", "true", "yes", "on", "si", "sí"}
+
+
+def autopilot_config():
+    return {
+        "auto_generate_picks": env_flag("AUTO_GENERATE_PICKS", env_flag("auto_generate_picks", True)),
+        "auto_send_telegram_picks": env_flag("AUTO_SEND_TELEGRAM_PICKS", env_flag("auto_send_telegram_picks", True)),
+        "min_shark_score_for_auto_send": as_int(os.getenv("MIN_SHARK_SCORE_FOR_AUTO_SEND") or os.getenv("min_shark_score_for_auto_send") or os.getenv("AUTO_PICKS_MIN_SCORE"), 78),
+        "max_auto_picks_per_day": max(1, as_int(os.getenv("MAX_AUTO_PICKS_PER_DAY") or os.getenv("max_auto_picks_per_day"), 3)),
+        "telegram_auto_send_window_hours": max(1, as_int(os.getenv("TELEGRAM_AUTO_SEND_WINDOW_HOURS") or os.getenv("telegram_auto_send_window_hours"), 24)),
+    }
+
+
+def autopilot_pick_signature(rec):
+    base = "|".join(
+        [
+            str(rec.get("match_id") or ""),
+            str(rec.get("market") or "Resultado / analisis SHARK").lower().strip(),
+            str(rec.get("selection") or "").lower().strip(),
+        ]
+    )
+    return hashlib.sha1(base.encode("utf-8")).hexdigest()
+
+
+def autopilot_rec_in_window(rec, cfg):
+    match_date = str(rec.get("match_date") or today_iso())[:10]
+    if match_date < today_iso():
+        return False
+    kickoff = str(rec.get("kickoff_time") or "").strip()
+    if not kickoff:
+        return match_date == today_iso()
+    try:
+        hhmm = kickoff[:5]
+        dt = datetime.fromisoformat(f"{match_date}T{hhmm}:00").replace(tzinfo=TZ)
+        now = datetime.now(TZ)
+        return now <= dt <= now + timedelta(hours=cfg["telegram_auto_send_window_hours"])
+    except Exception:
+        return match_date == today_iso()
+
+
+def autopilot_already_handled(signature, rec):
+    existing_decision = one(
+        """SELECT id,status,pick_id FROM autopilot_pick_decisions
+           WHERE signature=? AND lower(status) IN ('saved','queued','sent')
+           ORDER BY created_at DESC LIMIT 1""",
+        (signature,),
+    )
+    if existing_decision:
+        return "autopilot_duplicate"
+    existing_pick = one(
+        """SELECT id FROM picks
+           WHERE match_id=?
+             AND lower(COALESCE(market,''))=lower(?)
+             AND lower(COALESCE(selection,''))=lower(?)
+             AND lower(COALESCE(status,'')) IN ('published','won','lost','void')
+           LIMIT 1""",
+        (rec.get("match_id") or "", rec.get("market") or "Resultado / analisis SHARK", rec.get("selection") or ""),
+    )
+    if existing_pick:
+        return "pick_already_published"
+    return ""
+
+
+def autopilot_record_decision(cycle_id, rec, signature, status, reason="", pick_id="", telegram=None):
+    decision_id = hashlib.md5(f"autopilot-decision-{cycle_id}-{signature}-{status}-{now_iso()}".encode("utf-8")).hexdigest()[:18]
+    conn = db()
+    conn.execute(
+        """INSERT INTO autopilot_pick_decisions
+           (id,cycle_id,match_id,market,selection,signature,score,status,reason,pick_id,telegram_json,payload_json,created_at)
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+        (
+            decision_id,
+            cycle_id,
+            rec.get("match_id") or "",
+            rec.get("market") or "Resultado / analisis SHARK",
+            rec.get("selection") or "",
+            signature,
+            as_int(rec.get("score") or rec.get("confidence"), 0),
+            status,
+            reason,
+            pick_id,
+            json.dumps(telegram or {}, ensure_ascii=False)[:5000],
+            json.dumps(rec or {}, ensure_ascii=False)[:5000],
+            now_iso(),
+        ),
+    )
+    conn.commit()
+    conn.close()
+    return decision_id
+
+
+def run_autonomous_pick_cycle(limit=40, force=False):
+    seed_core()
+    cfg = autopilot_config()
+    started_at = now_iso()
+    cycle_id = hashlib.md5(f"autopilot-cycle-{started_at}-{datetime.now(TZ).isoformat(timespec='microseconds')}".encode("utf-8")).hexdigest()[:18]
+    result = {
+        "ok": True,
+        "source": "auto_picks",
+        "sync_type": "autonomous_pick_cycle",
+        "cycle_id": cycle_id,
+        "processed": 0,
+        "inserted": 0,
+        "updated": 0,
+        "skipped": 0,
+        "matches_analyzed": 0,
+        "candidates": 0,
+        "saved": 0,
+        "queued": 0,
+        "sent": 0,
+        "discarded": 0,
+        "errors": [],
+        "config": cfg,
+    }
+    telegram_flow_log("AUTO_PICKS", "started", "Ciclo automatico de picks iniciado.", {"cycle_id": cycle_id, "config": cfg, "force": force})
+    if not cfg["auto_generate_picks"] and not force:
+        result.update({"skipped": 1, "message": "auto_generate_picks desactivado."})
+        telegram_flow_log("AUTO_PICKS", "skipped", "Generacion automatica desactivada por configuracion.", {"cycle_id": cycle_id})
+        return result
+    try:
+        recs = v565_recommendation_pool(limit=max(int(limit or 40), cfg["max_auto_picks_per_day"] * 8))
+        result["processed"] = len(recs)
+        result["matches_analyzed"] = len({str(r.get("match_id") or "") for r in recs if r.get("match_id")})
+        sent_or_saved_today = as_int(
+            (one(
+                """SELECT COUNT(DISTINCT pick_id) AS total FROM autopilot_pick_decisions
+                   WHERE lower(status) IN ('saved','queued','sent') AND created_at LIKE ?""",
+                (today_iso() + "%",),
+            ) or {}).get("total"),
+            0,
+        )
+        remaining_today = cfg["max_auto_picks_per_day"] if force else max(0, cfg["max_auto_picks_per_day"] - sent_or_saved_today)
+        for rec in recs:
+            signature = autopilot_pick_signature(rec)
+            score = as_int(rec.get("score") or rec.get("confidence"), 0)
+            odds = as_float(rec.get("odds_value") or rec.get("odds"), 0.0)
+            result["candidates"] += 1
+            telegram_flow_log("SHARK", "candidate", "Candidato SHARK evaluado para autopilot.", {"cycle_id": cycle_id, "match_id": rec.get("match_id"), "score": score, "odds": odds, "selection": rec.get("selection")})
+            discard_reason = ""
+            if remaining_today <= 0:
+                discard_reason = "limite_diario_alcanzado"
+            elif not autopilot_rec_in_window(rec, cfg) and not force:
+                discard_reason = "fuera_de_ventana"
+            elif score < cfg["min_shark_score_for_auto_send"]:
+                discard_reason = "score_bajo"
+            elif odds <= 1.01:
+                discard_reason = "sin_cuota_real"
+            else:
+                discard_reason = autopilot_already_handled(signature, rec)
+            if discard_reason:
+                result["discarded"] += 1
+                result["skipped"] += 1
+                autopilot_record_decision(cycle_id, rec, signature, "discarded", discard_reason)
+                telegram_flow_log("AUTO_PICKS", "discarded", "Candidato descartado por autopilot.", {"cycle_id": cycle_id, "reason": discard_reason, "match_id": rec.get("match_id"), "score": score})
+                continue
+            pick_id = "auto_" + signature[:16]
+            pick_payload = {
+                "id": pick_id,
+                "match_id": rec.get("match_id"),
+                "league_name": rec.get("league_name"),
+                "competition_name": rec.get("league_name"),
+                "home_team": rec.get("home_team"),
+                "away_team": rec.get("away_team"),
+                "match_date": rec.get("match_date"),
+                "market": rec.get("market") or "Resultado / analisis SHARK",
+                "pick_type": "SHARK Auto Pick",
+                "selection": rec.get("selection"),
+                "odds": odds,
+                "confidence": score,
+                "stake_units": 1.0 if str(rec.get("risk") or "").upper() == "BAJO" else 0.5,
+                "risk_level": rec.get("risk") or "MEDIO",
+                "reasoning": rec.get("reason") or "SHARK detecta valor suficiente con los datos disponibles.",
+                "warning_reason": rec.get("warning") or "No apostar si la cuota cambia de forma fuerte antes del inicio.",
+                "membership_required": rec.get("membership_required") or "PRO",
+                "status": "published",
+                "source": "autopilot_shark",
+                "legal_note": "Pick generado automaticamente por SHARK con datos disponibles y filtros de valor.",
+            }
+            pick = create_or_update_pick(pick_payload, pick_id=pick_id, publish=True)
+            result["saved"] += 1
+            result["inserted"] += 1
+            result["updated"] += 1
+            remaining_today -= 1
+            queue_result = {"inserted": 0, "skipped": 0, "errors": []}
+            decision_status = "saved"
+            if cfg["auto_send_telegram_picks"] or force:
+                queue_result = enqueue_single_pick_to_telegram(pick, force=False, forced_chat_id=os.getenv("TELEGRAM_CHAT_ID", ""))
+                result["queued"] += as_int(queue_result.get("inserted"), 0)
+                decision_status = "queued" if queue_result.get("inserted") else "saved"
+            autopilot_record_decision(cycle_id, rec, signature, decision_status, "pick_generado", pick_id=pick.get("id"), telegram=queue_result)
+            telegram_flow_log("AUTO_PICKS", "saved", "Pick automatico generado.", {"cycle_id": cycle_id, "pick_id": pick.get("id"), "queued": queue_result.get("inserted", 0), "score": score})
+        if result["queued"] and (cfg["auto_send_telegram_picks"] or force):
+            send_result = process_premium_telegram_queue(limit=max(5, result["queued"] + 2), force=True)
+            result["sent"] = as_int(send_result.get("sent"), 0)
+            result["errors"].extend(send_result.get("errors") or [])
+            telegram_flow_log("TELEGRAM", "autopilot_processed", "Cola Telegram procesada tras autopilot.", {"cycle_id": cycle_id, "send_result": send_result})
+        result["ok"] = not bool(result["errors"])
+    except Exception as exc:
+        result["ok"] = False
+        result["errors"].append(str(exc)[:300])
+        telegram_flow_log("AUTO_PICKS", "error", "Error en ciclo automatico de picks.", {"cycle_id": cycle_id, "error": str(exc)[:500]})
+    finally:
+        finished_at = now_iso()
+        conn = db()
+        conn.execute(
+            """INSERT OR REPLACE INTO autopilot_pick_cycles
+               (id,status,matches_analyzed,candidates,saved,queued,sent,discarded,errors_count,payload_json,started_at,finished_at,created_at)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            (
+                cycle_id,
+                "OK" if result.get("ok") else "ERROR",
+                result["matches_analyzed"],
+                result["candidates"],
+                result["saved"],
+                result["queued"],
+                result["sent"],
+                result["discarded"],
+                len(result["errors"]),
+                json.dumps(result, ensure_ascii=False)[:8000],
+                started_at,
+                finished_at,
+                started_at,
+            ),
+        )
+        conn.commit()
+        conn.close()
+    result["message"] = "Ciclo automatico de picks completado."
+    return result
+
+
+def refresh_auto_picks_basic(limit=40, force=False):
+    return run_autonomous_pick_cycle(limit=limit, force=force)
 
 
 def refresh_live_alerts_basic(limit=40):
@@ -2299,7 +2592,7 @@ def run_scheduler_task(task_name, force=False, limit=None):
         elif task_name == "recommendations":
             result = refresh_recommendations_basic(limit=limit or 40)
         elif task_name == "auto_picks":
-            result = refresh_auto_picks_basic(limit=limit or 40)
+            result = refresh_auto_picks_basic(limit=limit or 40, force=force)
         elif task_name == "live_alerts":
             result = refresh_live_alerts_basic(limit=limit or 40)
         elif task_name == "warehouse":
@@ -4907,7 +5200,7 @@ def telegram_log(event_type, status, message, payload=None):
 
 def telegram_flow_log(tag, status, message, payload=None):
     tag = str(tag or "TELEGRAM").strip().upper()
-    if tag not in {"TELEGRAM", "PICKS", "QUEUE", "SEND"}:
+    if tag not in {"TELEGRAM", "PICKS", "QUEUE", "SEND", "AUTO_PICKS", "SHARK"}:
         tag = "TELEGRAM"
     return telegram_log(tag.lower(), status, f"[{tag}] {message}", payload or {})
 
@@ -5326,6 +5619,44 @@ def telegram_pick_delivery_audit():
         "sent": sent,
         "pick_queue": pick_queue,
         "recent_logs": rows("SELECT * FROM telegram_logs WHERE message LIKE '[TELEGRAM]%' OR message LIKE '[PICKS]%' OR message LIKE '[QUEUE]%' OR message LIKE '[SEND]%' ORDER BY created_at DESC LIMIT 40"),
+    }
+
+
+def autopilot_audit():
+    seed_core()
+    cfg = autopilot_config()
+    cycles = rows("SELECT * FROM autopilot_pick_cycles ORDER BY created_at DESC LIMIT 20")
+    decisions = rows("SELECT * FROM autopilot_pick_decisions ORDER BY created_at DESC LIMIT 80")
+    latest = cycles[0] if cycles else {}
+    counts = {
+        "cycles": len(cycles),
+        "matches_analyzed": as_int((latest or {}).get("matches_analyzed"), 0),
+        "candidates": as_int((latest or {}).get("candidates"), 0),
+        "discarded": as_int((latest or {}).get("discarded"), 0),
+        "saved": as_int((latest or {}).get("saved"), 0),
+        "queued": as_int((latest or {}).get("queued"), 0),
+        "sent": as_int((latest or {}).get("sent"), 0),
+        "auto_picks_today": as_int((one("SELECT COUNT(*) AS total FROM picks WHERE source='autopilot_shark' AND created_at LIKE ?", (today_iso() + "%",)) or {}).get("total"), 0),
+        "pending_queue": as_int((one("SELECT COUNT(*) AS total FROM telegram_queue WHERE lower(status)=? AND message_type='published_pick'", (QUEUE_PENDING,)) or {}).get("total"), 0),
+    }
+    discard_reasons = rows(
+        """SELECT reason, COUNT(*) AS total
+           FROM autopilot_pick_decisions
+           WHERE lower(status)='discarded'
+           GROUP BY reason
+           ORDER BY total DESC LIMIT 12"""
+    )
+    return {
+        "config": cfg,
+        "counts": counts,
+        "latest_cycle": latest,
+        "cycles": cycles,
+        "decisions": decisions,
+        "discard_reasons": discard_reasons,
+        "queue": rows("SELECT * FROM telegram_queue WHERE message_type='published_pick' ORDER BY created_at DESC LIMIT 40"),
+        "scheduler": scheduler_lock_row("auto_picks"),
+        "next_cycle_estimated": (scheduler_lock_row("auto_picks") or {}).get("next_run") or next_run_iso(now_iso(), "auto_picks", os.environ),
+        "recent_logs": rows("SELECT * FROM telegram_logs WHERE message LIKE '[AUTO_PICKS]%' OR message LIKE '[SHARK]%' OR message LIKE '[QUEUE]%' OR message LIKE '[TELEGRAM]%' ORDER BY created_at DESC LIMIT 60"),
     }
 
 
@@ -6064,6 +6395,26 @@ def admin_telegram_audit_page():
             message = "Auditoria actualizada."
     audit = telegram_pick_delivery_audit()
     return render_template("admin_telegram_audit.html", data=dashboard_data(), audit=audit, message=message, result=result)
+
+
+@app.route("/admin/autopilot-audit", methods=["GET", "POST"])
+def admin_autopilot_audit_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/autopilot-audit")
+    message = ""
+    result = None
+    if request.method == "POST":
+        action = request.form.get("action") or "audit"
+        if action == "run":
+            result = run_autonomous_pick_cycle(limit=as_int(request.form.get("limit"), 40), force=request.form.get("force") in {"1", "true", "yes"})
+            message = "Ciclo autopilot ejecutado."
+        elif action == "process_queue":
+            result = process_premium_telegram_queue(limit=as_int(request.form.get("limit"), 20), force=True)
+            message = "Cola Telegram procesada."
+        else:
+            result = autopilot_audit()
+            message = "Auditoria actualizada."
+    return render_template("admin_autopilot_audit.html", data=dashboard_data(), audit=autopilot_audit(), message=message, result=result)
 
 
 @app.route("/admin/picks", methods=["GET", "POST"])
