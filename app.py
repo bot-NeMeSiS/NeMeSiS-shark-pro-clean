@@ -69,6 +69,7 @@ from engines.shark_learning_engine import (
     ensure_shark_learning_schema,
     rebuild_shark_learning_engine,
 )
+from engines.shark_performance_engine import ensure_shark_performance_schema, rebuild_shark_performance, shark_performance_summary
 from engines.pick_grading_engine import ensure_pick_grading_schema, pick_grading_summary, run_pick_grading
 from engines.telegram_autonomous_delivery_engine import ensure_telegram_autonomous_schema, telegram_autonomous_summary, run_telegram_autonomous_delivery
 from engines.sportsdb_highlights_engine import ensure_sportsdb_highlights_schema, sync_sportsdb_highlights, sportsdb_highlights_summary, sportsdb_highlights_for_match, rebuild_match_enrichment
@@ -86,7 +87,7 @@ from engines.observability_engine import ensure_observability_schema, observabil
 from blueprints.architecture import create_architecture_blueprint
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V610_RENDER_STARTUP_HARD_FIX_ARCHITECTURE_CENTER"
+APP_VERSION = "V587_PERFORMANCE_PROOF_ROI_DASHBOARD"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -1006,6 +1007,7 @@ def init_db():
         ensure_subscription_schema(DB_PATH)
         ensure_shark_memory_schema(DB_PATH)
         ensure_shark_learning_schema(DB_PATH)
+        ensure_shark_performance_schema(DB_PATH)
         ensure_telegram_autonomous_schema(DB_PATH)
         ensure_sportsdb_highlights_schema(DB_PATH)
         ensure_odds_value_schema(DB_PATH)
@@ -6494,6 +6496,7 @@ def dashboard_data(lane="today", date=None):
     past_results = get_results_matches(date, days_back=14, limit=80)
     candidate_matches = pick_candidate_matches(limit=24, days=14)
     smart_picks = smart_pick_board()
+    performance = shark_performance_summary(DB_PATH)
     favorite_bundle = favorite_feed_full()
     flow = build_live_flow(hub, favorites=favorites, picks=picks, profile=profile)
     matches_diag = match_calendar_diagnostics()
@@ -6527,6 +6530,7 @@ def dashboard_data(lane="today", date=None):
         "past_results": past_results,
         "candidate_matches": candidate_matches,
         "smart_picks": smart_picks,
+        "performance": performance,
         "live_flow": flow,
         "membership_plans": MEMBERSHIP_PLANS,
         "telegram": telegram_config(),
@@ -6996,6 +7000,9 @@ def admin_data_center_page():
             result = rebuild_shark_learning_engine(DB_PATH, limit=limit)
             result["shark_learning"] = build_shark_learning_profile(DB_PATH)
             telegram_flow_log("SHARK_LEARNING", "rebuilt", "Aprendizaje SHARK reconstruido desde Data Center.", result)
+        elif action == "shark_performance":
+            result = rebuild_shark_performance(DB_PATH, limit=limit)
+            result["performance"] = shark_performance_summary(DB_PATH)
         elif action == "pick_grading":
             result = run_pick_grading(DB_PATH, limit=limit, apply=request.form.get("apply") in {"1", "true", "yes"})
             result["shark_memory"] = shark_memory_summary(DB_PATH)
@@ -7041,6 +7048,7 @@ def admin_data_center_page():
     data["subscriptions"] = subscription_summary(DB_PATH)
     data["shark_memory"] = shark_memory_summary(DB_PATH)
     data["shark_learning"] = build_shark_learning_profile(DB_PATH)
+    data["performance"] = shark_performance_summary(DB_PATH)
     data["pick_grading"] = pick_grading_summary(DB_PATH)
     data["telegram_autonomous"] = telegram_autonomous_summary(DB_PATH)
     data["sportsdb_highlights"] = sportsdb_highlights_summary(DB_PATH)
@@ -7349,7 +7357,7 @@ def api_shark_memory_rebuild():
 def api_shark_learning_summary():
     if not is_admin_session():
         return admin_json_forbidden()
-    return jsonify({"ok": True, "version": APP_VERSION, "shark_learning": build_shark_learning_profile(DB_PATH)})
+    return jsonify({"ok": True, "version": APP_VERSION, "shark_learning": build_shark_learning_profile(DB_PATH), "performance": shark_performance_summary(DB_PATH)})
 
 
 @app.route("/api/shark-learning/rebuild", methods=["POST", "GET"])
@@ -7359,7 +7367,21 @@ def api_shark_learning_rebuild():
     limit = as_int(request.args.get("limit") or request.form.get("limit"), 1000)
     result = rebuild_shark_learning_engine(DB_PATH, limit=limit)
     telegram_flow_log("SHARK_LEARNING", "rebuilt", "Motor de aprendizaje SHARK reconstruido.", result)
-    return jsonify({"version": APP_VERSION, **result, "shark_learning": build_shark_learning_profile(DB_PATH)})
+    return jsonify({"version": APP_VERSION, **result, "shark_learning": build_shark_learning_profile(DB_PATH), "performance": shark_performance_summary(DB_PATH)})
+
+
+@app.route("/api/performance/summary")
+def api_performance_summary():
+    return jsonify({"ok": True, "version": APP_VERSION, "performance": shark_performance_summary(DB_PATH), "shark_learning": build_shark_learning_profile(DB_PATH)})
+
+
+@app.route("/api/performance/rebuild", methods=["POST", "GET"])
+def api_performance_rebuild():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    limit = as_int(request.args.get("limit") or request.form.get("limit"), 2000)
+    result = rebuild_shark_performance(DB_PATH, limit=limit)
+    return jsonify({"version": APP_VERSION, **result, "performance": shark_performance_summary(DB_PATH), "shark_learning": build_shark_learning_profile(DB_PATH)})
 
 
 @app.route("/api/pick-grading/summary")
@@ -8461,7 +8483,7 @@ def api_admin_membership_summary():
 
 
 # ===================== V565 SPORTS DATA & PICKS PERFECTION =====================
-APP_VERSION = "V610_RENDER_STARTUP_HARD_FIX_ARCHITECTURE_CENTER"
+APP_VERSION = "V587_PERFORMANCE_PROOF_ROI_DASHBOARD"
 
 PRIORITY_LEAGUE_ORDER = [
     "UEFA Champions League", "Champions League", "LaLiga", "Spanish La Liga", "Premier League",

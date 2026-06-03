@@ -32,6 +32,23 @@
   </div>
 </section>
 
+<section class="band compact-band">
+  <div class="section-head"><h2>Rendimiento SHARK</h2><a class="pill" href="/api/performance/summary">Transparencia</a></div>
+  <div class="grid compact-grid metric-row">
+    <div class="card metric-card"><div class="metric">{{ data.performance.summary.roi or 0 }}%</div><div class="muted">ROI histórico</div></div>
+    <div class="card metric-card"><div class="metric">{{ data.performance.summary.winrate or 0 }}%</div><div class="muted">acierto histórico</div></div>
+    <div class="card metric-card"><div class="metric">{{ data.performance.summary.profit_units or 0 }}u</div><div class="muted">beneficio acumulado</div></div>
+    <div class="card metric-card"><div class="metric">{{ data.performance.summary.current_streak_count or 0 }}</div><div class="muted">racha actual</div></div>
+  </div>
+  <div class="stack">
+    {% for p in data.performance.recent_picks[:4] %}
+    <div class="list-row"><span>{{ p.selection }}<small>{{ p.league_name }} · {{ p.market }}</small></span><strong>{{ p.result_status }} · {{ p.profit_units }}u</strong></div>
+    {% else %}
+    <div class="empty premium-empty">Aún falta histórico cerrado para mostrar rendimiento real. SHARK no inventa resultados.</div>
+    {% endfor %}
+  </div>
+</section>
+
 <section class="band two-col compact-band">
   <div>
     <div class="section-head"><h2>Próximos importantes</h2><a class="pill" href="/match-hub">Todos</a></div>
