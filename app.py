@@ -88,7 +88,7 @@ from engines.observability_engine import ensure_observability_schema, observabil
 from blueprints.architecture import create_architecture_blueprint
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V611_RENDER_STARTUP_DEFINITIVE_REPAIR"
+APP_VERSION = "V612_TOTAL_RENDER_STABILITY_CONSOLIDATION"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -5296,7 +5296,6 @@ def set_login_session(user):
 
 
 def create_user(name, username, email, password, role="FREE", membership="FREE"):
-    seed_core()
     name = str(name or "").strip()
     username = normalize_username(username)
     email = normalize_email(email)
@@ -5518,31 +5517,22 @@ def import_users_from_old_database(path=None):
         new_conn.close()
 
 
+def default_profile_minimal():
+    return {
+        "id": "default",
+        "name": "Cliente SHARK",
+        "membership_plan": "FREE",
+        "favorite_teams": [],
+        "favorite_competitions": [],
+        "preferences": {"tone": "premium"},
+        "telegram_chat_id": os.getenv("TELEGRAM_CHAT_ID", ""),
+    }
+
+
 def default_profile():
-    seed_core()
     profile = one("SELECT * FROM client_profiles WHERE id='default'")
     if not profile:
-        conn = db()
-        cur = conn.cursor()
-        cur.execute(
-            """INSERT INTO client_profiles
-               (id,name,membership_plan,favorite_teams_json,favorite_competitions_json,telegram_chat_id,preferences_json,created_at,updated_at)
-               VALUES (?,?,?,?,?,?,?,?,?)""",
-            (
-                "default",
-                "Cliente SHARK",
-                "pro",
-                json.dumps(["Real Madrid", "Sevilla FC", "Real Betis"]),
-                json.dumps(["UEFA Champions League", "LaLiga EA Sports", "Andalucia Regional Football"]),
-                os.getenv("TELEGRAM_CHAT_ID", ""),
-                json.dumps({"tone": "premium", "focus": "global+spain+andalucia"}),
-                now_iso(),
-                now_iso(),
-            ),
-        )
-        conn.commit()
-        conn.close()
-        profile = one("SELECT * FROM client_profiles WHERE id='default'")
+        return default_profile_minimal()
     profile["favorite_teams"] = json.loads(profile.get("favorite_teams_json") or "[]")
     profile["favorite_competitions"] = json.loads(profile.get("favorite_competitions_json") or "[]")
     profile["preferences"] = json.loads(profile.get("preferences_json") or "{}")
@@ -6564,7 +6554,7 @@ def split_live(matches):
     return {"live": live, "scheduled": scheduled, "finished": finished}
 
 
-def dashboard_data(lane="today", date=None):
+def _dashboard_data_full(lane="today", date=None):
     date = date or today_iso()
     matches = get_matches(date, lane)
     upcoming_matches = get_upcoming_matches(date, days=7)
@@ -6648,6 +6638,48 @@ def dashboard_data(lane="today", date=None):
             "mobile_feel": 84,
         },
     }
+
+
+def dashboard_data(lane="today", date=None):
+    try:
+        return _dashboard_data_full(lane, date)
+    except Exception as exc:
+        startup_log("RENDER", "dashboard_data fallback", {"error": str(exc)[:250], "lane": lane, "date": date})
+        data = light_home_data()
+        data.update(
+            {
+                "lane": lane or "today",
+                "date": date or today_iso(),
+                "matches": [],
+                "groups": {},
+                "competitions": [],
+                "imports": [],
+                "combis": [],
+                "profile": default_profile_minimal(),
+                "session_user": current_session_user(),
+                "favorite_feed": [],
+                "favorite_bundle": {"matches": [], "favorites": []},
+                "favorite_insights": [],
+                "client_activity": [],
+                "retention": {},
+                "client_command": {},
+                "past_results": [],
+                "candidate_matches": [],
+                "smart_picks": {"hot": [], "pro_locked": [], "candidate_count": 0},
+                "performance": {"summary": {}, "recent_picks": [], "by_league": [], "by_market": []},
+                "live_flow": {"shared_state": "fallback"},
+                "membership_plans": MEMBERSHIP_PLANS,
+                "telegram": {"configured": bool(os.getenv("TELEGRAM_BOT_TOKEN"))},
+                "sportsdb": {},
+                "sportsdb_feed": {},
+                "odds": {},
+                "matches_diagnostics": {},
+                "client_source_label": "Datos preparando",
+                "data_center": {},
+                "live": {"live": [], "scheduled": [], "finished": []},
+            }
+        )
+        return data
 
 
 @app.route("/service-worker.js")
@@ -8616,7 +8648,7 @@ def api_admin_membership_summary():
 
 
 # ===================== V565 SPORTS DATA & PICKS PERFECTION =====================
-APP_VERSION = "V611_RENDER_STARTUP_DEFINITIVE_REPAIR"
+APP_VERSION = "V612_TOTAL_RENDER_STABILITY_CONSOLIDATION"
 
 PRIORITY_LEAGUE_ORDER = [
     "UEFA Champions League", "Champions League", "LaLiga", "Spanish La Liga", "Premier League",
@@ -9769,7 +9801,7 @@ def v607_controlled_exception(error):
 @app.route("/admin/observability")
 def admin_observability_page():
     if not is_admin_session():
-        return redirect(url_for("admin_login"))
+        return redirect("/admin-login?next=/admin/observability")
     summary = observability_summary(DB_PATH, APP_VERSION)
     return render_template("admin_observability.html", summary=summary)
 

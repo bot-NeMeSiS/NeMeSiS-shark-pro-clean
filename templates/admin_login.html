@@ -6,7 +6,7 @@
   <p class="lead">Entrada discreta para gestionar importaciones legales, Telegram y datos autorizados.</p>
 </section>
 <section class="band auth-grid">
-  <form class="card auth-card" method="post" action="/admin-login{% if request.args.get('next') %}next={{ request.args.get('next') }}{% endif %}">
+  <form class="card auth-card" method="post" action="/admin-login{% if request.args.get('next') %}?next={{ request.args.get('next') }}{% endif %}">
     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
     <h2>Acceso de administración</h2>
     {% if error %}<p class="notice danger">{{ error }}</p>{% endif %}
