@@ -5,6 +5,7 @@ import json
 import os
 import re
 import sqlite3
+import sys
 import threading
 import unicodedata
 import urllib.parse
@@ -87,7 +88,7 @@ from engines.observability_engine import ensure_observability_schema, observabil
 from blueprints.architecture import create_architecture_blueprint
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V587_PERFORMANCE_PROOF_ROI_DASHBOARD"
+APP_VERSION = "V611_RENDER_STARTUP_DEFINITIVE_REPAIR"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -96,6 +97,10 @@ app = Flask(__name__)
 app.secret_key = secure_secret_key()
 _SEED_LOCK = threading.Lock()
 _SEEDED_DB_PATH = None
+_INIT_LOCK = threading.Lock()
+APP_INITIALIZED = False
+APP_INIT_ERROR = ""
+APP_INIT_AT = ""
 
 FAKE_TEAM_NAMES = {
     "premier home",
@@ -1247,14 +1252,81 @@ def seed_core():
         _SEEDED_DB_PATH = DB_PATH
 
 
-def rows(query, params=()):
+def startup_log(tag, message, payload=None):
+    try:
+        print(f"[{tag}] {message} {json.dumps(payload or {}, ensure_ascii=False)[:500]}")
+    except Exception:
+        print(f"[{tag}] {message}")
+
+
+def init_db_schema():
+    startup_log("DB_INIT", "init_db_schema started", {"db_path": DB_PATH})
+    init_db()
+    startup_log("DB_INIT", "init_db_schema finished", {"db_path": DB_PATH})
+
+
+def seed_core_data():
+    startup_log("SEED", "seed_core_data started", {"db_path": DB_PATH})
     seed_core()
+    startup_log("SEED", "seed_core_data finished", {"db_path": DB_PATH})
+
+
+def initialize_once(seed=False):
+    global APP_INITIALIZED, APP_INIT_ERROR, APP_INIT_AT
+    if APP_INITIALIZED:
+        return {"ok": True, "initialized": True, "already": True, "error": APP_INIT_ERROR, "at": APP_INIT_AT}
+    with _INIT_LOCK:
+        if APP_INITIALIZED:
+            return {"ok": True, "initialized": True, "already": True, "error": APP_INIT_ERROR, "at": APP_INIT_AT}
+        try:
+            startup_log("STARTUP", "initialize_once started", {"seed": bool(seed)})
+            init_db_schema()
+            if seed:
+                seed_core_data()
+            APP_INITIALIZED = True
+            APP_INIT_ERROR = ""
+            APP_INIT_AT = now_iso()
+            startup_log("STARTUP", "initialize_once finished", {"initialized_at": APP_INIT_AT})
+            return {"ok": True, "initialized": True, "already": False, "error": "", "at": APP_INIT_AT}
+        except Exception as exc:
+            APP_INIT_ERROR = str(exc)[:500]
+            APP_INITIALIZED = False
+            startup_log("STARTUP", "initialize_once failed", {"error": APP_INIT_ERROR})
+            return {"ok": False, "initialized": False, "already": False, "error": APP_INIT_ERROR, "at": APP_INIT_AT}
+
+
+def start_background_jobs():
+    startup_log("SCHEDULER", "background jobs requested", {"enabled": scheduler_enabled(), "startup": scheduler_startup_enabled()})
+    schedule_auto_sync_if_needed()
+
+
+def rows(query, params=()):
     conn = db()
     cur = conn.cursor()
-    cur.execute(query, params)
-    out = [dict(r) for r in cur.fetchall()]
-    conn.close()
-    return out
+    try:
+        cur.execute(query, params)
+        out = [dict(r) for r in cur.fetchall()]
+        return out
+    except sqlite3.OperationalError as exc:
+        startup_log("ROWS", "select failed", {"error": str(exc)[:200], "query": str(query)[:160]})
+        return []
+    finally:
+        conn.close()
+
+
+def execute(query, params=()):
+    conn = db()
+    cur = conn.cursor()
+    try:
+        cur.execute(query, params)
+        conn.commit()
+        return {"ok": True, "rowcount": cur.rowcount}
+    except sqlite3.Error as exc:
+        conn.rollback()
+        startup_log("ROWS", "execute failed", {"error": str(exc)[:200], "query": str(query)[:160]})
+        return {"ok": False, "error": str(exc)[:200], "rowcount": 0}
+    finally:
+        conn.close()
 
 
 def one(query, params=()):
@@ -5056,6 +5128,13 @@ def csrf_exempt_path(path):
 
 @app.before_request
 def security_before_request():
+    light_paths = {"/", "/api/health", "/api/startup-check", "/api/runtime-version", "/service-worker.js"}
+    public_get_paths = {"/cliente-login", "/login", "/entrar", "/registro", "/admin-login"}
+    should_skip_init = request.path in light_paths or request.method == "HEAD" or (request.method == "GET" and request.path in public_get_paths)
+    if not should_skip_init:
+        init_state = initialize_once(seed=False)
+        if not init_state.get("ok") and request.path.startswith("/api/"):
+            return jsonify({"ok": False, "version": APP_VERSION, "error": "startup_init_failed", "message": init_state.get("error")}), 503
     if request.method in {"POST", "PUT", "PATCH", "DELETE"} and not csrf_exempt_path(request.path):
         supplied = request.form.get("csrf_token") or request.headers.get("X-CSRFToken") or request.headers.get("X-CSRF-Token")
         if not validate_csrf(session, supplied):
@@ -5123,13 +5202,16 @@ def get_user_by_username(username):
 def admin_exists(conn=None):
     close = False
     if conn is None:
-        seed_core()
         conn = db()
         close = True
-    row = conn.execute("SELECT id FROM users WHERE role='ADMIN' OR membership='ADMIN' LIMIT 1").fetchone()
-    if close:
-        conn.close()
-    return row is not None
+    try:
+        row = conn.execute("SELECT id FROM users WHERE role='ADMIN' OR membership='ADMIN' LIMIT 1").fetchone()
+        return row is not None
+    except sqlite3.Error:
+        return False
+    finally:
+        if close:
+            conn.close()
 
 
 def create_admin_record(conn, name, username, email, password):
@@ -6577,9 +6659,30 @@ def service_worker():
     return Response(body, mimetype="application/javascript")
 
 
+def light_home_data():
+    """Datos mínimos para que / responda rápido en Render sin disparar dashboard pesado."""
+    return {
+        "app_name": APP_NAME,
+        "version": APP_VERSION,
+        "date": today_iso(),
+        "client_alerts": [],
+        "match_hub": {"counts": {"upcoming": 0, "live": 0, "today": 0, "finished": 0}},
+        "picks": [],
+        "favorites": [],
+        "upcoming_matches": [],
+        "daily_briefing": {"score": 0},
+        "readiness": {
+            "calendar": 95,
+            "directo_foundation": 92,
+            "shark_ai": 86,
+        },
+        "startup": {"initialized": APP_INITIALIZED, "error": APP_INIT_ERROR, "at": APP_INIT_AT},
+    }
+
+
 @app.route("/")
 def home():
-    return render_template("home.html", data=dashboard_data())
+    return render_template("home.html", data=light_home_data())
 
 
 @app.route("/global")
@@ -6588,6 +6691,7 @@ def global_football():
     return render_template("global.html", data=dashboard_data())
 
 
+@app.route("/calendar")
 @app.route("/calendario")
 @app.route("/calendario-global")
 def calendar_page():
@@ -6667,7 +6771,7 @@ def register_page():
         except ValueError as exc:
             error = str(exc)
             record_security_event(DB_PATH, event_type="register_attempt", severity="MEDIUM", ip_address=client_ip(), username=request.form.get("username") or request.form.get("email") or "", path=request.path, method=request.method, success=False, reason=error)
-    return render_template("register.html", data=dashboard_data(), error=error)
+    return render_template("register.html", data=light_home_data(), error=error)
 
 
 @app.route("/cliente-login", methods=["GET", "POST"])
@@ -6686,7 +6790,7 @@ def client_login_page():
             return redirect("/perfil")
         error = "Email, usuario o contraseña incorrectos."
         record_security_event(DB_PATH, event_type="login_attempt", severity="MEDIUM", ip_address=client_ip(), username=identifier, path=request.path, method=request.method, success=False, reason="client_login_failed")
-    return render_template("client_login.html", data=dashboard_data(), error=error)
+    return render_template("client_login.html", data=light_home_data(), error=error)
 
 
 @app.route("/admin-login", methods=["GET", "POST"])
@@ -6705,7 +6809,7 @@ def admin_login_page():
             return redirect(request.args.get("next") or "/admin/import-center")
         error = "Acceso admin no válido."
         record_security_event(DB_PATH, event_type="login_attempt", severity="HIGH", ip_address=client_ip(), username=request.form.get("login") or "", path=request.path, method=request.method, success=False, reason="admin_login_failed")
-    return render_template("admin_login.html", data=dashboard_data(), error=error, configured=configured)
+    return render_template("admin_login.html", data=light_home_data(), error=error, configured=configured)
 
 
 @app.route("/admin-bootstrap", methods=["GET", "POST"])
@@ -7259,19 +7363,41 @@ def api_client_command_center():
 @app.route("/v537-health")
 @app.route("/v540-health")
 def health():
+    startup_log("HEALTH", "health check", {"initialized": APP_INITIALIZED})
     return jsonify(
         {
             "ok": True,
             "app": APP_NAME,
             "version": APP_VERSION,
             "time": now_iso(),
-            "admin_exists": admin_exists(),
-            "users_count": (one("SELECT COUNT(*) AS total FROM users") or {}).get("total", 0),
-            "sportsdb_cached_matches": sportsdb_feed_status().get("cached_matches", 0),
-            "auto_sync_enabled": scheduler_enabled(),
-            "scheduler_tasks": len(scheduler_env_config().get("tasks", [])),
+            "initialized": APP_INITIALIZED,
+            "init_error": APP_INIT_ERROR,
+            "db_path": DB_PATH,
+            "render_ready": True,
         }
     )
+
+
+@app.route("/api/startup-check")
+def api_startup_check():
+    startup_log("RENDER", "startup check", {"initialized": APP_INITIALIZED, "error": APP_INIT_ERROR})
+    return jsonify(
+        {
+            "ok": True,
+            "version": APP_VERSION,
+            "initialized": APP_INITIALIZED,
+            "init_error": APP_INIT_ERROR,
+            "initialized_at": APP_INIT_AT,
+            "db_path": DB_PATH,
+            "notes": ["health ultraligero", "home ligero", "rows sin seed_core", "scheduler diferido"],
+        }
+    )
+
+
+@app.route("/api/runtime-version")
+def api_runtime_version():
+    startup_log("RENDER", "runtime version", {"version": APP_VERSION})
+    return jsonify({"ok": True, "app": APP_NAME, "version": APP_VERSION, "time": now_iso(), "python": sys.version.split()[0]})
 
 
 @app.route("/api/competitions")
@@ -8193,7 +8319,14 @@ def schedule_auto_sync_if_needed():
     threading.Thread(target=_worker, name="auto-sync-scheduler", daemon=True).start()
 
 
-schedule_auto_sync_if_needed()
+@app.after_request
+def startup_after_request(response):
+    if response.status_code < 500 and APP_INITIALIZED and request.path not in {"/", "/api/health", "/api/startup-check", "/api/runtime-version"}:
+        try:
+            start_background_jobs()
+        except Exception as exc:
+            startup_log("SCHEDULER", "deferred scheduler skipped", {"error": str(exc)[:200]})
+    return response
 
 
 
@@ -8208,7 +8341,7 @@ def client_safe_500(error):
     if request.path.startswith("/api/"):
         return jsonify({"ok": False, "error": "internal_error", "message": "Error interno controlado. Revisa logs Render.", "path": request.path, "version": APP_VERSION}), 500
     try:
-        return render_template("home.html", data=dashboard_data(), controlled_error="Hemos detectado un error temporal y hemos vuelto al inicio de forma segura."), 500
+        return render_template("home.html", data=light_home_data(), controlled_error="Hemos detectado un error temporal y hemos vuelto al inicio de forma segura."), 500
     except Exception:
         return "Error temporal controlado. Revisa logs Render.", 500
 
@@ -8483,7 +8616,7 @@ def api_admin_membership_summary():
 
 
 # ===================== V565 SPORTS DATA & PICKS PERFECTION =====================
-APP_VERSION = "V587_PERFORMANCE_PROOF_ROI_DASHBOARD"
+APP_VERSION = "V611_RENDER_STARTUP_DEFINITIVE_REPAIR"
 
 PRIORITY_LEAGUE_ORDER = [
     "UEFA Champions League", "Champions League", "LaLiga", "Spanish La Liga", "Premier League",
