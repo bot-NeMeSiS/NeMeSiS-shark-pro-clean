@@ -1,0 +1,562 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="hero compact">
+  <div class="kicker">Admin - Centro de datos</div>
+  <h1>Población masiva de fútbol</h1>
+  <p class="lead">Centro seguro para poblar competiciones, equipos, escudos, calendario, resultados y cuotas desde fuentes legales y cache SQLite.</p>
+  <div class="admin-menu">
+    <a class="btn primary" href="/admin/data-center">Centro de datos</a>
+    <a class="btn" href="/admin/matches-sync">Partidos</a>
+    <a class="btn" href="/admin/sportsdb-sync">Escudos</a>
+    <a class="btn" href="/admin/import-center">Centro de importación</a>
+  </div>
+</section>
+
+{% if message %}<section class="band"><div class="notice">{{ message }}</div></section>{% endif %}
+
+
+<section class="band two-col">
+  <aside class="card elite-card">
+    <div class="section-head"><h2>Arquitectura V608</h2><span class="pill">Blueprints</span></div>
+    <p class="small">Centro técnico para reducir deuda de <code>app.py</code>, inventariar rutas, agrupar dominios y planificar migraciones sin romper producción.</p>
+    <a class="btn" href="/admin/architecture">Abrir centro de arquitectura</a>
+  </aside>
+  <aside class="card pro-card">
+    <div class="section-head"><h2>Blueprint Migration Phase 2</h2><span class="pill">Seguro</span></div>
+    <p class="small">Añade visibilidad y rutas Blueprint nuevas, manteniendo intactas las rutas legacy hasta que cada bloque tenga tests y tráfico verificado.</p>
+    <a class="btn" href="/api/v608/blueprint-migration-check?public=1">Comprobar V608</a>
+  </aside>
+</section>
+
+
+<section class="band two-col">
+  <aside class="card elite-card">
+    <div class="section-head"><h2>SHARK Accuracy Engine V600</h2><span class="pill">SQI {{ data.shark_accuracy.sqi or data.data_center.shark_accuracy.sqi or 0 }}</span></div>
+    <p class="small">Mide precisión real, calibración de confianza, ROI y ranking de mercados para que SHARK mejore sus pronósticos con datos propios.</p>
+    <p class="small">Picks analizados: {{ data.shark_accuracy.picks_analyzed or data.data_center.shark_accuracy.picks_analyzed or 0 }} · Cerrados: {{ data.shark_accuracy.settled_picks or data.data_center.shark_accuracy.settled_picks or 0 }} · ROI: {{ data.shark_accuracy.roi or data.data_center.shark_accuracy.roi or 0 }}% · Acierto: {{ data.shark_accuracy.winrate or data.data_center.shark_accuracy.winrate or 0 }}%.</p>
+    <form method="post" action="/admin/data-center">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="action" value="shark_accuracy"><input name="limit" value="1500"><button type="submit">Reconstruir precisión SHARK</button></form>
+  </aside>
+  <aside class="card pro-card">
+    <div class="section-head"><h2>Mercados con mejor precisión</h2><span class="pill">V600</span></div>
+    {% for item in (data.shark_accuracy.top_markets or data.data_center.shark_accuracy.top_markets or [])[:4] %}
+    <div class="list-row"><span>{{ item.market }}<br><small>Acierto {{ item.winrate }}% · ROI {{ item.roi }}% · muestra {{ item.sample_size }}</small></span><strong>{{ item.accuracy_score }}</strong></div>
+    {% else %}
+    <p class="small">Todavía no hay muestra suficiente. SHARK empezará a calibrarse cuando haya picks validados.</p>
+    {% endfor %}
+  </aside>
+</section>
+
+
+
+<section class="band two-col">
+  <aside class="card elite-card">
+    <div class="section-head"><h2>Player Intelligence Engine V602</h2><span class="pill">{{ data.player_intelligence.readiness_score or data.data_center.player_intelligence.readiness_score or 0 }}%</span></div>
+    <p class="small">Convierte alineaciones, bajas, sanciones y jugadores clave en señales propias para mejorar la lectura SHARK de cada partido.</p>
+    <p class="small">Jugadores: {{ data.player_intelligence.profiles_total or data.data_center.player_intelligence.profiles_total or 0 }} · Bajas/dudas: {{ data.player_intelligence.availability_total or data.data_center.player_intelligence.availability_total or 0 }} · Señales: {{ data.player_intelligence.impact_signals_total or data.data_center.player_intelligence.impact_signals_total or 0 }}.</p>
+    <form method="post" action="/admin/data-center">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <input type="hidden" name="action" value="player_intelligence">
+      <div class="field"><label>Límite de registros</label><input name="limit" value="1000"></div>
+      <button type="submit">Reconstruir inteligencia de jugadores</button>
+    </form>
+  </aside>
+  <aside class="card pro-card">
+    <div class="section-head"><h2>Impacto de jugadores</h2><span class="pill">SHARK</span></div>
+    {% for item in (data.player_intelligence.top_signals or data.data_center.player_intelligence.top_signals or [])[:4] %}
+    <div class="list-row"><span>{{ item.team_name or 'Equipo' }}<br><small>{{ item.title }} · confianza {{ item.confidence or 0 }}%</small></span><strong>{{ item.impact_score or 0 }}</strong></div>
+    {% else %}
+    <p class="small">Todavía no hay señales suficientes. Se generarán cuando V601 tenga alineaciones, lesiones o bajas almacenadas.</p>
+    {% endfor %}
+    <a class="btn" href="/api/v602/player-intelligence-check?public=1">Comprobar V602</a>
+  </aside>
+</section>
+
+<section class="band two-col">
+  <aside class="card elite-card">
+    <div class="section-head"><h2>API Exploitation Engine V601</h2><span class="pill">{{ data.api_exploitation.readiness_score or data.data_center.api_exploitation.readiness_score or 0 }}%</span></div>
+    <p class="small">Exprime API-Football Pro y las fuentes contratadas: alineaciones, lesiones, estadísticas live, H2H, forma, clasificaciones y movimientos de cuota.</p>
+    <p class="small">Alineaciones: {{ data.api_exploitation.lineups_total or data.data_center.api_exploitation.lineups_total or 0 }} · Lesiones: {{ data.api_exploitation.injuries_total or data.data_center.api_exploitation.injuries_total or 0 }} · Estadísticas: {{ data.api_exploitation.stats_total or data.data_center.api_exploitation.stats_total or 0 }} · H2H: {{ data.api_exploitation.h2h_total or data.data_center.api_exploitation.h2h_total or 0 }}.</p>
+    <form method="post" action="/admin/data-center">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <input type="hidden" name="action" value="api_exploitation">
+      <div class="field"><label>Límite de partidos</label><input name="limit" value="80"></div>
+      <div class="field"><label>Días hacia atrás</label><input name="days_back" value="2"></div>
+      <div class="field"><label>Días hacia delante</label><input name="days_ahead" value="3"></div>
+      <button type="submit">Sincronizar datos profundos</button>
+    </form>
+  </aside>
+  <aside class="card pro-card">
+    <div class="section-head"><h2>Activos propios derivados</h2><span class="pill">Legal</span></div>
+    <p class="small">No revende datos crudos: conserva información autorizada para operar NeMeSiS, mejorar SHARK y crear señales propias.</p>
+    <p class="small">Forma equipos: {{ data.api_exploitation.form_snapshots_total or data.data_center.api_exploitation.form_snapshots_total or 0 }} · Clasificaciones: {{ data.api_exploitation.standings_total or data.data_center.api_exploitation.standings_total or 0 }} · Movimientos cuota: {{ data.api_exploitation.odds_movements_total or data.data_center.api_exploitation.odds_movements_total or 0 }}.</p>
+    <a class="btn" href="/api/v601/api-exploitation-check?public=1">Comprobar V601</a>
+  </aside>
+</section>
+
+
+
+<section class="band two-col">
+  <aside class="card elite-card">
+    <div class="section-head"><h2>V599 · Auditoría consolidada</h2><span class="pill">{{ data.version }}</span></div>
+    <p class="small">Esta versión consolida los motores V591-V598, corrige la versión interna, expone endpoints de auditoría y deja el paquete limpio para Render/GitHub.</p>
+    <p class="small">Proveedor activo: {{ data.data_provider.active_provider or data.data_center.data_provider.active_provider or 'TheSportsDB' }} · Warehouse fútbol: {{ data.football_warehouse.readiness_score or data.data_center.football_warehouse.readiness_score or 0 }}% · Inteligencia histórica: {{ data.historical_intelligence.readiness_score or data.data_center.historical_intelligence.readiness_score or 0 }}%.</p>
+  </aside>
+  <aside class="card pro-card">
+    <div class="section-head"><h2>Centro beta</h2><span class="pill">{{ data.beta.beta_score or data.data_center.beta.beta_score or 0 }}%</span></div>
+    <p class="small">Telegram: {% if data.beta.telegram_ok or data.data_center.beta.telegram_ok %}OK{% else %}Pendiente{% endif %} · Programador: {% if data.beta.scheduler_ok or data.data_center.beta.scheduler_ok %}OK{% else %}Revisar{% endif %} · Cola pendiente: {{ data.beta.queue_pending or data.data_center.beta.queue_pending or 0 }}.</p>
+    <a class="btn" href="/admin/beta-center">Abrir centro beta</a>
+  </aside>
+</section>
+
+<section class="band two-col">
+  <aside class="card">
+    <div class="section-head"><h2>Cuotas y Value V591</h2><span class="pill">{{ data.odds_value.status or data.data_center.odds_value.status or 'activo' }}</span></div>
+    <p class="small">Señales guardadas: {{ data.odds_value.signals_total or data.data_center.odds_value.signals_total or 0 }} · Value fuerte: {{ data.odds_value.strong_value or data.data_center.odds_value.strong_value or 0 }} · Preparación: {{ data.odds_value.readiness_score or data.data_center.odds_value.readiness_score or 0 }}%.</p>
+    <form method="post" action="/admin/data-center">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="action" value="odds_value"><input name="limit" value="500"><button type="submit">Reconstruir value</button></form>
+  </aside>
+  <aside class="card">
+    <div class="section-head"><h2>Predicción SHARK V592</h2><span class="pill">{{ data.shark_prediction.status or data.data_center.shark_prediction.status or 'activo' }}</span></div>
+    <p class="small">Rating de equipos, fuerza de ligas, selección de mercado y desglose de confianza para mejorar pronósticos.</p>
+    <form method="post" action="/admin/data-center">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="action" value="shark_prediction"><input name="limit" value="1000"><button type="submit">Reconstruir predicción</button></form>
+  </aside>
+</section>
+
+<section class="band two-col">
+  <aside class="card">
+    <div class="section-head"><h2>TheSportsDB enriquecido V593</h2><span class="pill">{{ data.sportsdb_enrichment.readiness_score or data.data_center.sportsdb_enrichment.readiness_score or 0 }}%</span></div>
+    <p class="small">Perfiles de ligas, equipos, estadios, escudos, eventos pasados/futuros y contexto histórico cacheado legalmente.</p>
+    <form method="post" action="/admin/data-center">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="action" value="sportsdb_enrichment"><input name="limit" value="30"><button type="submit">Sincronizar enriquecimiento</button></form>
+  </aside>
+  <aside class="card">
+    <div class="section-head"><h2>Proveedor de datos V596</h2><span class="pill">{{ data.data_provider.active_provider or data.data_center.data_provider.active_provider or 'TheSportsDB' }}</span></div>
+    <p class="small">Capa preparada para TheSportsDB, API-Football, Sportmonks y Sportradar sin rehacer la app.</p>
+    <form method="post" action="/admin/data-center">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="action" value="data_provider"><button type="submit">Comprobar proveedores</button></form>
+  </aside>
+</section>
+
+<section class="band two-col">
+  <aside class="card elite-card">
+    <div class="section-head"><h2>Football Warehouse Pro V597</h2><span class="pill">{{ data.football_warehouse.readiness_score or data.data_center.football_warehouse.readiness_score or 0 }}%</span></div>
+    <p class="small">Guarda histórico propio de partidos, equipos, eventos, cuotas y señales SHARK desde fuentes autorizadas.</p>
+    <form method="post" action="/admin/data-center">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="action" value="football_warehouse"><input name="limit" value="500"><button type="submit">Sincronizar warehouse fútbol</button></form>
+  </aside>
+  <aside class="card elite-card">
+    <div class="section-head"><h2>Inteligencia histórica V598</h2><span class="pill">{{ data.historical_intelligence.readiness_score or data.data_center.historical_intelligence.readiness_score or 0 }}%</span></div>
+    <p class="small">Construye memoria propia: hechos históricos, perfiles de liga, mercados, calidad de datos y activos derivados de NeMeSiS.</p>
+    <form method="post" action="/admin/data-center">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="action" value="historical_intelligence"><input name="limit" value="1000"><button type="submit">Reconstruir inteligencia histórica</button></form>
+  </aside>
+</section>
+
+
+<section class="band two-col">
+  <aside class="card elite-card">
+    <div class="section-head"><h2>Resúmenes SportsDB V579</h2><span class="pill">{{ data.sportsdb_highlights.status }}</span></div>
+    <p class="small">Preparación: {{ data.sportsdb_highlights.readiness_score }}% · Highlights guardados: {{ data.sportsdb_highlights.highlights_total }} · Vídeos: {{ data.sportsdb_highlights.with_video }}</p>
+    <p class="small">Partidos enlazados: {{ data.sportsdb_highlights.linked_matches }} · Fichas enriquecidas: {{ data.sportsdb_highlights.enriched_matches }}</p>
+    <form method="post" action="/admin/data-center">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <input type="hidden" name="action" value="sportsdb_highlights">
+      <div class="field"><label>Días hacia atrás para buscar resúmenes</label><input name="days_back" value="5"></div>
+      <div class="field"><label>Límite</label><input name="limit" value="250"></div>
+      <button type="submit">Sincronizar resúmenes TheSportsDB</button>
+    </form>
+  </aside>
+  <aside class="card pro-card">
+    <h2>Qué aporta al producto</h2>
+    <p class="small">Cada partido finalizado puede mostrar resumen/highlight, quedar guardado en SQLite y alimentar la inteligencia post-partido de SHARK.</p>
+    <p class="small">{{ data.sportsdb_highlights.note }}</p>
+    <p class="small">No se repiten llamadas si el resumen ya está guardado; se conserva histórico para Render en /data/database.db.</p>
+  </aside>
+</section>
+
+<section class="band two-col">
+  <aside class="card elite-card">
+    <div class="section-head"><h2>SHARK Learning Engine V585</h2><span class="pill">{{ data.shark_learning.status or 'learning' }}</span></div>
+    <p class="small">Muestra: {{ data.shark_learning.profile.sample_size or 0 }} picks · ROI {{ data.shark_learning.profile.roi or 0 }}% · acierto {{ data.shark_learning.profile.winrate or 0 }}% · yield {{ data.shark_learning.profile.yield_pct or 0 }}%.</p>
+    <p class="small">Ajuste global: {{ data.shark_learning.profile.confidence_adjustment or 0 }} puntos. Se aplica por mercado, liga y rango de cuota cuando hay muestra suficiente.</p>
+    <form method="post" action="/admin/data-center">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <input type="hidden" name="action" value="shark_learning">
+      <div class="field"><label>Límite de picks históricos</label><input name="limit" value="1000"></div>
+      <button type="submit">Reconstruir learning SHARK</button>
+    </form>
+  </aside>
+  <aside class="card pro-card">
+    <h2>Señales aprendidas</h2>
+    {% for item in data.shark_learning.best_markets[:4] %}
+    <div class="list-row"><span>{{ item.market }}<br><small>ROI {{ item.roi }}% · acierto {{ item.winrate }}% · muestra {{ item.sample_size }}</small></span><strong>{{ item.confidence_adjustment }}</strong></div>
+    {% else %}
+    <p class="small">Histórico insuficiente: confianza sin ajuste avanzado.</p>
+    {% endfor %}
+    {% for item in data.shark_learning.risk_leagues[:3] %}
+    <div class="list-row"><span>{{ item.league_name }}<br><small>{{ item.explanation }}</small></span><strong>{{ item.confidence_adjustment }}</strong></div>
+    {% endfor %}
+  </aside>
+</section>
+
+<section class="band two-col">
+  <aside class="card">
+    <div class="section-head"><h2>Últimos resúmenes guardados</h2><span class="pill">TheSportsDB</span></div>
+    {% for h in data.sportsdb_highlights.latest_highlights[:6] %}
+    <div class="list-row"><span>{{ h.title }}<br><small>{{ h.event_date }} · {{ h.league_name or 'Competición' }} · {{ h.home_team }} vs {{ h.away_team }}</small></span><strong>{{ 'OK' if h.video_url else 'SIN VIDEO' }}</strong></div>
+    {% else %}
+    <p class="small">Aún no hay resúmenes guardados. Ejecuta la sincronización cuando haya partidos finalizados.</p>
+    {% endfor %}
+  </aside>
+  <aside class="card">
+    <div class="section-head"><h2>Runs SportsDB</h2><span class="pill">auditoría</span></div>
+    {% for run in data.sportsdb_highlights.recent_runs[:6] %}
+    <div class="list-row"><span>{{ run.started_at }} · {{ run.status }}<br><small>Días {{ run.days_back }} · encontrados {{ run.highlights_found }} · enlazados {{ run.linked_matches }}</small></span><strong>{{ run.highlights_found }}</strong></div>
+    {% else %}
+    <p class="small">Sin ejecuciones registradas todavía.</p>
+    {% endfor %}
+  </aside>
+</section>
+
+
+<section class="band">
+  <div class="grid compact-grid">
+    <div class="card"><div class="metric">{{ data.data_center.total_competitions }}</div><div class="muted">competiciones</div></div>
+    <div class="card"><div class="metric">{{ data.data_center.total_teams }}</div><div class="muted">equipos</div></div>
+    <div class="card"><div class="metric">{{ data.data_center.total_matches }}</div><div class="muted">partidos</div></div>
+    <div class="card"><div class="metric">{{ data.data_center.upcoming_matches }}</div><div class="muted">próximos</div></div>
+    <div class="card"><div class="metric">{{ data.data_center.directo_matches }}</div><div class="muted">directo</div></div>
+    <div class="card"><div class="metric">{{ data.data_center.teams_with_crests }}</div><div class="muted">con escudo</div></div>
+    <div class="card"><div class="metric">{{ data.data_center.odds_snapshots }}</div><div class="muted">cuotas</div></div>
+    <div class="card"><div class="metric">{{ data.data_center.population.competitions_prepared }}</div><div class="muted">preparadas</div></div>
+    <div class="card"><div class="metric">{{ data.warehouse.match_facts }}</div><div class="muted">warehouse partidos</div></div>
+    <div class="card"><div class="metric">{{ data.warehouse.quality_score }}%</div><div class="muted">calidad historica</div></div>
+    <div class="card"><div class="metric">{{ data.autonomous.health_score }}%</div><div class="muted">autonomia</div></div>
+    <div class="card"><div class="metric">{{ data.autonomous.actions_open }}</div><div class="muted">acciones abiertas</div></div>
+    <div class="card"><div class="metric">{{ data.commercial.readiness_score }}%</div><div class="muted">lanzamiento</div></div>
+    <div class="card"><div class="metric">{{ data.commercial.estimated_mrr }}€</div><div class="muted">MRR estimado</div></div>
+    <div class="card"><div class="metric">{{ data.subscriptions.readiness_score }}%</div><div class="muted">suscripciones</div></div>
+    <div class="card"><div class="metric">{{ data.subscriptions.active_paid }}</div><div class="muted">pagados activos</div></div>
+    <div class="card"><div class="metric">{{ data.shark_memory.readiness_score }}%</div><div class="muted">memoria SHARK</div></div>
+    <div class="card"><div class="metric">{{ data.shark_memory.groups_total }}</div><div class="muted">patrones aprendidos</div></div>
+    <div class="card"><div class="metric">{{ data.shark_learning.readiness_score or data.shark_learning.profile.reliability_score or 0 }}%</div><div class="muted">learning SHARK</div></div>
+    <div class="card"><div class="metric">{{ data.shark_learning.profile.sample_size or 0 }}</div><div class="muted">muestra real</div></div>
+    <div class="card"><div class="metric">{{ data.pick_grading.readiness_score }}%</div><div class="muted">validación picks</div></div>
+    <div class="card"><div class="metric">{{ data.pick_grading.auto_validated }}</div><div class="muted">auto validados</div></div>
+    <div class="card"><div class="metric">{{ data.telegram_autonomous.score }}%</div><div class="muted">telegram auto</div></div>
+    <div class="card"><div class="metric">{{ data.telegram_autonomous.queue_pending }}</div><div class="muted">cola pendiente</div></div>
+  </div>
+</section>
+
+
+<section class="band two-col">
+  <aside class="card elite-card">
+    <div class="section-head"><h2>Entrega autónoma por Telegram V578</h2><span class="pill">{{ data.telegram_autonomous.status }}</span></div>
+    <p class="small">Score: {{ data.telegram_autonomous.score }}% · Suscriptores activos: {{ data.telegram_autonomous.subscribers }} · Campañas: {{ data.telegram_autonomous.campaigns_total }}</p>
+    <p class="small">Cola total: {{ data.telegram_autonomous.queue_total }} · Pendientes: {{ data.telegram_autonomous.queue_pending }} · Memoria anti-duplicados: {{ data.telegram_autonomous.dedupe_memory_total }}</p>
+    <form method="post" action="/admin/data-center">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <input type="hidden" name="action" value="telegram_autonomous">
+      <div class="field"><label>Límite de suscriptores por ejecución</label><input name="limit" value="30"></div>
+      <label class="check"><input type="checkbox" name="force" value="1"> Forzar aunque la confianza sea baja</label>
+      <button type="submit">Preparar campañas Telegram</button>
+    </form>
+  </aside>
+  <aside class="card pro-card">
+    <h2>Qué automatiza</h2>
+    <p class="small">Crea mensajes en cola para resumen diario, picks PRO y alertas ELITE según membresía. No dispara spam: usa memoria anti-duplicados por día, usuario, chat y pick.</p>
+    <p class="small">El envío final sigue pasando por la cola Telegram existente para mantener control, logs y reintentos.</p>
+  </aside>
+</section>
+
+<section class="band two-col">
+  <aside class="card">
+    <div class="section-head"><h2>Últimas campañas Telegram</h2><span class="pill">auditoría</span></div>
+    {% for campaign in data.telegram_autonomous.latest_campaigns[:6] %}
+    <div class="list-row"><span>{{ campaign.campaign_type }} · {{ campaign.membership_target }}<br><small>{{ campaign.title }} · queued {{ campaign.queued_count }} · skipped {{ campaign.skipped_count }}</small></span><strong>{{ campaign.priority }}</strong></div>
+    {% else %}
+    <p class="small">Todavía no hay campañas automáticas creadas.</p>
+    {% endfor %}
+  </aside>
+  <aside class="card">
+    <div class="section-head"><h2>Reglas activas</h2><span class="pill">membresías</span></div>
+    {% for rule in data.telegram_autonomous.rules[:6] %}
+    <div class="list-row"><span>{{ rule.rule_key }} · {{ rule.membership_target }}<br><small>Confianza mínima {{ rule.min_confidence }} · cooldown {{ rule.cooldown_minutes }} min</small></span><strong>{{ 'ACTIVO' if rule.enabled else 'INACTIVO' }}</strong></div>
+    {% else %}
+    <p class="small">Sin reglas automáticas.</p>
+    {% endfor %}
+  </aside>
+</section>
+
+
+<section class="band two-col">
+  <aside class="card elite-card">
+    <div class="section-head"><h2>Validacin inteligente de picks V577</h2><span class="pill">{{ data.pick_grading.status }}</span></div>
+    <p class="small">Preparación: {{ data.pick_grading.readiness_score }}% · Picks graduados: {{ data.pick_grading.graded_total }} · Auto validados: {{ data.pick_grading.auto_validated }}</p>
+    <p class="small">Ganados: {{ data.pick_grading.won }} · Perdidos: {{ data.pick_grading.lost }} · Revisión pendiente: {{ data.pick_grading.pending_review }} · Beneficio estimado: {{ data.pick_grading.beneficio }}u</p>
+    <form method="post" action="/admin/data-center">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <input type="hidden" name="action" value="pick_grading">
+      <div class="field"><label>Límite de picks a validar</label><input name="limit" value="500"></div>
+      <label class="check"><input type="checkbox" name="apply" value="1"> Aplicar solo resultados seguros al pick</label>
+      <button type="submit">Ejecutar validación inteligente</button>
+    </form>
+  </aside>
+  <aside class="card pro-card">
+    <h2>Qué mejora ahora</h2>
+    <p class="small">{{ data.pick_grading.note }}</p>
+    <p class="small">Cuando el mercado es claro y el marcador final es fiable, SHARK puede cerrar el pick. Si no hay seguridad, lo deja para revisión del admin.</p>
+    <p class="small">Esto sube la calidad del aprendizaje V576 porque la memoria recibe resultados más limpios.</p>
+  </aside>
+</section>
+
+<section class="band two-col">
+  <aside class="card">
+    <div class="section-head"><h2>Últimas validaciones</h2><span class="pill">control</span></div>
+    {% for item in data.pick_grading.recent_results[:6] %}
+    <div class="list-row"><span>{{ item.result_status }} · {{ item.reason }}<br><small>Pick {{ item.pick_id }} · score {{ item.grading_score }} · beneficio {{ item.beneficio }}</small></span><strong>{{ item.grading_status }}</strong></div>
+    {% else %}
+    <p class="small">Aún no hay validaciones. Ejecuta la validación inteligente cuando haya picks y resultados.</p>
+    {% endfor %}
+  </aside>
+  <aside class="card">
+    <div class="section-head"><h2>Runs de validación</h2><span class="pill">auditoría</span></div>
+    {% for run in data.pick_grading.recent_runs[:6] %}
+    <div class="list-row"><span>{{ run.started_at }} · {{ run.status }}<br><small>Checked {{ run.picks_checked }} · auto {{ run.auto_validated }} · pendiente {{ run.pending }}</small></span><strong>{{ run.beneficio }}</strong></div>
+    {% else %}
+    <p class="small">Sin ejecuciones registradas todavía.</p>
+    {% endfor %}
+  </aside>
+</section>
+
+<section class="band two-col">
+  <aside class="card elite-card">
+    <div class="section-head"><h2>Memoria de rendimiento SHARK V576</h2><span class="pill">{{ data.shark_memory.status }}</span></div>
+    <p class="small">Preparación: {{ data.shark_memory.readiness_score }}% · Patrones: {{ data.shark_memory.groups_total }} · Picks leídos: {{ data.shark_memory.picks_read }}</p>
+    <p class="small">Fiabilidad media: {{ data.shark_memory.avg_reliability }}% · Ajuste automático de confianza por mercado, liga, selección y rango de confianza.</p>
+    <form method="post" action="/admin/data-center">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <input type="hidden" name="action" value="shark_memory">
+      <div class="field"><label>Límite de picks para aprender</label><input name="limit" value="500"></div>
+      <button type="submit">Reconstruir memoria SHARK</button>
+    </form>
+  </aside>
+  <aside class="card pro-card">
+    <h2>Cómo ayuda a los picks</h2>
+    <p class="small">SHARK no inventa: revisa qué mercados, ligas y rangos de confianza han funcionado o fallado.</p>
+    <p class="small">Los grupos con ROI positivo suben confianza; los grupos con pérdidas generan aviso de riesgo antes de publicar picks.</p>
+    <p class="small">{{ data.shark_memory.note }}</p>
+  </aside>
+</section>
+
+<section class="band two-col">
+  <aside class="card">
+    <div class="section-head"><h2>Mejores patrones SHARK</h2><span class="pill">ventaja</span></div>
+    {% for ventaja in data.shark_memory.best_ventajas[:6] %}
+    <div class="list-row"><span>{{ ventaja.dimension_type }} · {{ ventaja.dimension_value }}<br><small>ROI {{ ventaja.roi }}% · Acierto {{ ventaja.win_rate }}% · muestra {{ ventaja.sample_size }}</small></span><strong>{{ ventaja.reliability_score }}%</strong></div>
+    {% else %}
+    <p class="small">Aún faltan picks resueltos para detectar patrones buenos.</p>
+    {% endfor %}
+  </aside>
+  <aside class="card">
+    <div class="section-head"><h2>Riesgos aprendidos</h2><span class="pill">control</span></div>
+    {% for ventaja in data.shark_memory.risk_ventajas[:6] %}
+    <div class="list-row"><span>{{ ventaja.dimension_type }} · {{ ventaja.dimension_value }}<br><small>ROI {{ ventaja.roi }}% · Acierto {{ ventaja.win_rate }}% · muestra {{ ventaja.sample_size }}</small></span><strong>{{ ventaja.shark_adjustment }}</strong></div>
+    {% else %}
+    <p class="small">Sin riesgos históricos claros todavía.</p>
+    {% endfor %}
+  </aside>
+</section>
+
+<section class="band two-col">
+  <aside class="card elite-card">
+    <div class="section-head"><h2>Control de ingresos V575</h2><span class="pill">{{ data.subscriptions.status }}</span></div>
+    <p class="small">Preparación suscripciones: {{ data.subscriptions.readiness_score }}% · Conversión pagada: {{ data.subscriptions.conversion_rate }}%</p>
+    <p class="small">Pagados activos: {{ data.subscriptions.active_paid }} · Vencidos/gracia: {{ data.subscriptions.past_due }} · Bloqueos suaves: {{ data.subscriptions.soft_blocked }}</p>
+    <p class="small">MRR controlado: {{ data.subscriptions.estimated_mrr }}€ · Stripe: {% if data.subscriptions.stripe_configured %}configurado{% else %}pendiente sin bloquear beta{% endif %}</p>
+    <form method="post" action="/admin/data-center">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <input type="hidden" name="action" value="subscriptions">
+      <button type="submit">Aplicar reglas de suscripción</button>
+    </form>
+  </aside>
+  <aside class="card pro-card">
+    <h2>Planes operativos</h2>
+    <p class="small">FREE: {{ data.subscriptions.by_tier.FREE }} usuarios · {{ data.subscriptions.plan_prices.FREE }}€/mes</p>
+    <p class="small">PRO: {{ data.subscriptions.by_tier.PRO }} usuarios · {{ data.subscriptions.plan_prices.PRO }}€/mes</p>
+    <p class="small">ELITE: {{ data.subscriptions.by_tier.ELITE }} usuarios · {{ data.subscriptions.plan_prices.ELITE }}€/mes</p>
+    <p class="small">Esta versión prepara cobros, renovaciones, gracia y bloqueos suaves sin cobrar todavía.</p>
+  </aside>
+</section>
+
+<section class="band">
+  <div class="section-head"><h2>Acciones de ingresos</h2><span class="pill">{{ data.subscriptions.actions|length }}</span></div>
+  <div class="stack">
+    {% for action in data.subscriptions.actions[:8] %}
+    <div class="list-row"><span>{{ action.title }}<br><small>{{ action.detail }}</small></span><strong>{{ action.priority }}</strong></div>
+    {% else %}
+    <div class="empty">Sin bloqueos comerciales importantes. Suscripciones listas para supervisión.</div>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="band two-col">
+  <aside class="card pro-card">
+    <div class="section-head"><h2>Preparación comercial V574</h2><span class="pill">{{ data.commercial.status }}</span></div>
+    <p class="small">Readiness: {{ data.commercial.readiness_score }}% · Conversión: {{ data.commercial.conversion_rate }}%</p>
+    <p class="small">Usuarios: {{ data.commercial.users_total }} · Pagados: {{ data.commercial.paid_users }} · MRR estimado: {{ data.commercial.estimated_mrr }}€</p>
+    <p class="small">FREE: {{ data.commercial.membership_counts.FREE }} · PRO: {{ data.commercial.membership_counts.PRO }} · ELITE: {{ data.commercial.membership_counts.ELITE }}</p>
+    <form method="post" action="/admin/data-center">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <input type="hidden" name="action" value="commercial">
+      <button type="submit">Recalcular lanzamiento comercial</button>
+    </form>
+  </aside>
+  <aside class="card elite-card">
+    <h2>Pricing preparado</h2>
+    <p class="small">FREE: {{ data.commercial.pricing.FREE.headline }}</p>
+    <p class="small">PRO: {{ data.commercial.pricing.PRO.price }}€/mes · {{ data.commercial.pricing.PRO.headline }}</p>
+    <p class="small">ELITE: {{ data.commercial.pricing.ELITE.price }}€/mes · {{ data.commercial.pricing.ELITE.headline }}</p>
+    <p class="small">Stripe queda preparado como siguiente paso cuando activemos cobros reales, sin bloquear la beta comercial.</p>
+  </aside>
+</section>
+
+<section class="band">
+  <div class="section-head"><h2>Checklist comercial</h2><span class="pill">{{ data.commercial.checks_ok }}/{{ data.commercial.checks_total }}</span></div>
+  <div class="stack">
+    {% for check in data.commercial.checks[:10] %}
+    <div class="list-row"><span>{{ check.area }} / {{ check.title }}<br><small>{{ check.detail }}</small></span><strong>{{ check.status }}</strong></div>
+    {% else %}
+    <div class="empty">Sin checklist comercial generado todavía.</div>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="band form-grid">
+  <aside class="card">
+    <h2>Operaciones autónomas V573</h2>
+    <p class="small">Estado: {{ data.autonomous.status }}</p>
+    <p class="small">Runs 24h: {{ data.autonomous.runs_24h }} · OK: {{ data.autonomous.tasks_ok_24h }} · Errores: {{ data.autonomous.tasks_error_24h }}</p>
+    <p class="small">Telegram pendiente: {{ data.autonomous.telegram_pending }} · Warehouse días: {{ data.autonomous.warehouse_days }}</p>
+    <form method="post" action="/admin/data-center">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <input type="hidden" name="action" value="autonomous">
+      <input type="hidden" name="force" value="1">
+      <button type="submit">Ejecutar ciclo autónomo ahora</button>
+    </form>
+  </aside>
+  <aside class="card">
+    <h2>Sincronización automática</h2>
+    <p class="small">Estado: {% if data.data_center.scheduler.enabled %}activado{% else %}desactivado{% endif %}</p>
+    <p class="small">Arranque automático: {% if data.data_center.scheduler.startup %}activo{% else %}desactivado{% endif %}</p>
+    <p class="small">Última ejecución del programador: {{ data.data_center.scheduler.last_scheduler_log.started_at or '-' }}</p>
+  </aside>
+  <aside class="card">
+    <h2>Errores scheduler</h2>
+    {% for error in data.data_center.scheduler.recent_errors[:4] %}
+    <p class="small">{{ error }}</p>
+    {% else %}
+    <p class="small">Sin errores recientes.</p>
+    {% endfor %}
+  </aside>
+</section>
+
+<section class="band">
+  <div class="section-head"><h2>Acciones autónomas pendientes</h2><span class="pill">{{ data.autonomous.actions_open }}</span></div>
+  <div class="stack">
+    {% for action in data.autonomous.actions[:8] %}
+    <div class="list-row"><span>{{ action.title }}<br><small>{{ action.detail }}</small></span><strong>{{ action.priority }}</strong></div>
+    {% else %}
+    <div class="empty">Sin acciones críticas. El ecosistema puede trabajar solo.</div>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="band">
+  <div class="section-head"><h2>Tareas automáticas</h2><span class="pill">{{ data.data_center.scheduler.tasks|length }}</span></div>
+  <div class="grid">
+    {% for task in data.data_center.scheduler.tasks %}
+    <article class="card">
+      <div class="section-head"><h2>{{ task.label }}</h2><span class="state-badge {{ 'directo' if task.status == 'OK' else 'half' if task.status == 'RUNNING' else 'upcoming' }}">{{ task.status }}</span></div>
+      <p class="small">Última: {{ task.last_run or '-' }}</p>
+      <p class="small">Próxima: {{ task.next_run or '-' }}</p>
+      <p class="small">Intervalo: {{ task.interval_seconds }}s</p>
+      {% if task.error_message %}<p class="small">{{ task.error_message }}</p>{% endif %}
+    </article>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="band form-grid">
+  {% for action,label,detail in [
+    ('competitions','Sincronizar competiciones','Prepara las ligas prioritarias sin inventar partidos.'),
+    ('teams','Sincronizar equipos/escudos','Carga equipos reales y escudos si SportsDB devuelve datos.'),
+    ('calendar','Sincronizar calendario','Trae próximos eventos y directo permitidos por SportsDB.'),
+    ('live','Actualizar live','Actualiza live básico y próximos destacados.'),
+    ('results','Sincronizar resultados','Guarda resultados recientes si la API los ofrece.'),
+    ('odds','Sincronizar cuotas','Trae eventos/cuotas H2H respetando cache.'),
+    ('warmup','Warmup general','Ejecuta competiciones, equipos, calendario y cuotas con control de intervalo.'),
+    ('warehouse','Histórico de datos','Guarda snapshot de partidos, cuotas, picks, usuarios y métricas para SHARK/ML.'),
+    ('pick_grading','Validar picks','Gradua picks con resultados disponibles y prepara aprendizaje SHARK limpio.'),
+    ('telegram_autonomous','Telegram autónomo','Prepara campañas por membresía con anti-duplicados y cola segura.')
+  ] %}
+  <form class="card" method="post" action="/admin/data-center">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <h2>{{ label }}</h2>
+    <p class="small">{{ detail }}</p>
+    <input type="hidden" name="action" value="{{ action }}">
+    <div class="field"><label>Limite</label><input name="limit" value="120"></div>
+    {% if action in ['warmup','telegram_autonomous'] %}<label class="check"><input type="checkbox" name="force" value="1"> Forzar ahora</label>{% endif %}
+    <button type="submit">{{ label }}</button>
+  </form>
+  {% endfor %}
+</section>
+
+
+<section class="band two-col">
+  <aside class="card">
+    <h2>Histórico de datos V572</h2>
+    <p class="small">Partidos fact: {{ data.warehouse.match_facts }}</p>
+    <p class="small">Cuotas fact: {{ data.warehouse.odds_facts }}</p>
+    <p class="small">Picks fact: {{ data.warehouse.pick_facts }}</p>
+    <p class="small">Usuarios fact: {{ data.warehouse.user_facts }}</p>
+    <p class="small">Mtricas diarias: {{ data.warehouse.daily_metrics }}</p>
+  </aside>
+  <aside class="card">
+    <h2>Últimos snapshots</h2>
+    {% for run in data.warehouse.recent_runs[:5] %}
+    <div class="list-row"><span>{{ run.started_at }} / {{ run.status }}</span><strong>{{ run.inserted }}</strong></div>
+    {% else %}
+    <p class="small">Aún no hay snapshots históricos. Ejecuta Histórico de datos.</p>
+    {% endfor %}
+  </aside>
+</section>
+
+<section class="band two-col">
+  <aside class="card">
+    <h2>Fuentes</h2>
+    <p class="small">SportsDB: {{ data.matches_diagnostics.sportsdb_key_masked or 'sin key' }}</p>
+    <p class="small">Odds: {{ data.matches_diagnostics.odds_key_masked or 'sin key' }}</p>
+    <p class="small">Fuente activa: {{ data.matches_diagnostics.active_data_source }}</p>
+  </aside>
+  <aside class="card">
+    <h2>Última actividad</h2>
+    <p class="small">SportsDB: {{ data.data_center.last_sportsdb_sync.started_at or '-' }}</p>
+    <p class="small">Odds: {{ data.data_center.last_odds_sync.started_at or '-' }}</p>
+    <p class="small">Sin datos: {{ data.matches_diagnostics.competitions_no_data|length }} competiciones preparadas para import legal.</p>
+  </aside>
+</section>
+
+<section class="band">
+  <div class="section-head"><h2>Logs recientes</h2><span class="pill">{{ data.data_center.recent_logs|length }}</span></div>
+  <div class="stack">
+    {% for log in data.data_center.recent_logs %}
+    <div class="list-row"><span>{{ log.source }} / {{ log.sync_type }} / {{ log.status }}</span><strong>{{ log.total_items }}</strong></div>
+    {% else %}
+    <div class="empty">Aún no hay sincronizaciones registradas.</div>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

@@ -90,7 +90,7 @@ from engines.observability_engine import ensure_observability_schema, observabil
 from blueprints.architecture import create_architecture_blueprint
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V614_QUALITY_SPEED_STABILITY"
+APP_VERSION = "V613_OMEGA_PRIME_CONSOLIDATION"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -2517,85 +2517,83 @@ def safe_engine_payload(factory, fallback=None):
 
 
 def beta_readiness_summary():
-    def _build():
-        seed_core()
-        telegram_ok = bool(telegram_config().get("configured"))
-        scheduler = scheduler_status()
-        matches_total = safe_count("matches")
-        picks_total = safe_count("picks")
-        users_total = safe_count("users")
-        paid_users = safe_count("users", "UPPER(COALESCE(membership, role, 'FREE')) IN ('PRO','ELITE')")
-        queue_pending = safe_count("telegram_queue", "UPPER(COALESCE(status,''))='PENDING'")
-        errors = len((scheduler or {}).get("recent_errors") or [])
-        score = 55
-        score += 10 if telegram_ok else 0
-        score += 10 if (scheduler or {}).get("enabled") else 0
-        score += 8 if matches_total else 0
-        score += 8 if picks_total else 0
-        score += 5 if users_total else 0
-        score += 4 if paid_users else 0
-        score -= min(10, errors * 2)
-        score = max(0, min(100, score))
-        return {
-            "total_probadores": users_total,
-            "active_probadores": users_total,
-            "comentarios_total": 0,
-            "beta_score": score,
-            "telegram_ok": telegram_ok,
-            "scheduler_ok": bool((scheduler or {}).get("enabled")),
-            "matches_total": matches_total,
-            "picks_total": picks_total,
-            "queue_pending": queue_pending,
-            "cards": [
-                {"title": "Telegram", "status": "OK" if telegram_ok else "Revisar", "body": "Bot y chat configurados." if telegram_ok else "Falta token o chat principal."},
-                {"title": "Programador", "status": "OK" if (scheduler or {}).get("enabled") else "Revisar", "body": "Tareas automáticas activas." if (scheduler or {}).get("enabled") else "Activa BACKGROUND_JOBS_ENABLED."},
-                {"title": "Datos", "status": "OK" if matches_total else "Pendiente", "body": f"{matches_total} partidos guardados en SQLite."},
-                {"title": "Picks", "status": "OK" if picks_total else "Pendiente", "body": f"{picks_total} picks registrados."},
-            ],
-            "comentarios": [],
-            "actions": [
-                "Subir la versión limpia a Render.",
-                "Revisar /admin/beta-center y /admin/data-center tras el deploy.",
-                "Comprobar que Telegram recibe picks automáticos por membresía.",
-                "Mantener la app recopilando histórico cada día para alimentar SHARK.",
-            ],
-        }
-    return memory_cached("beta-readiness-summary", 30, _build)
+    seed_core()
+    telegram_ok = bool(telegram_config().get("configured"))
+    scheduler = scheduler_status()
+    matches_total = safe_count("matches")
+    picks_total = safe_count("picks")
+    users_total = safe_count("users")
+    paid_users = safe_count("users", "UPPER(COALESCE(membership, role, 'FREE')) IN ('PRO','ELITE')")
+    queue_pending = safe_count("telegram_queue", "UPPER(COALESCE(status,''))='PENDING'")
+    errors = len((scheduler or {}).get("recent_errors") or [])
+    score = 55
+    score += 10 if telegram_ok else 0
+    score += 10 if (scheduler or {}).get("enabled") else 0
+    score += 8 if matches_total else 0
+    score += 8 if picks_total else 0
+    score += 5 if users_total else 0
+    score += 4 if paid_users else 0
+    score -= min(10, errors * 2)
+    score = max(0, min(100, score))
+    return {
+        "total_probadores": users_total,
+        "active_probadores": users_total,
+        "comentarios_total": 0,
+        "beta_score": score,
+        "telegram_ok": telegram_ok,
+        "scheduler_ok": bool((scheduler or {}).get("enabled")),
+        "matches_total": matches_total,
+        "picks_total": picks_total,
+        "queue_pending": queue_pending,
+        "cards": [
+            {"title": "Telegram", "status": "OK" if telegram_ok else "Revisar", "body": "Bot y chat configurados." if telegram_ok else "Falta token o chat principal."},
+            {"title": "Programador", "status": "OK" if (scheduler or {}).get("enabled") else "Revisar", "body": "Tareas automáticas activas." if (scheduler or {}).get("enabled") else "Activa BACKGROUND_JOBS_ENABLED."},
+            {"title": "Datos", "status": "OK" if matches_total else "Pendiente", "body": f"{matches_total} partidos guardados en SQLite."},
+            {"title": "Picks", "status": "OK" if picks_total else "Pendiente", "body": f"{picks_total} picks registrados."},
+        ],
+        "comentarios": [],
+        "actions": [
+            "Subir la versión limpia a Render.",
+            "Revisar /admin/beta-center y /admin/data-center tras el deploy.",
+            "Comprobar que Telegram recibe picks automáticos por membresía.",
+            "Mantener la app recopilando histórico cada día para alimentar SHARK.",
+        ],
+    }
+
 def data_center_summary():
-    def _build():
-        seed_core()
-        summary = match_calendar_diagnostics()
-        scheduler = scheduler_status()
-        summary.update(
-            {
-                "teams_with_crests": (one("SELECT COUNT(*) AS total FROM teams WHERE logo_url IS NOT NULL AND logo_url!=''") or {}).get("total", 0),
-                "teams_without_crests": (one("SELECT COUNT(*) AS total FROM teams WHERE logo_url IS NULL OR logo_url=''") or {}).get("total", 0),
-                "odds_snapshots": (one("SELECT COUNT(*) AS total FROM odds_snapshots") or {}).get("total", 0),
-                "last_sportsdb_sync": latest_sync_log("sportsdb") or latest_sync_log("TheSportsDB"),
-                "last_odds_sync": latest_sync_log("odds") or latest_sync_log("The Odds API"),
-                "recent_logs": rows("SELECT * FROM api_sync_logs ORDER BY started_at DESC LIMIT 12"),
-                "population": {
-                    "competitions_prepared": len(PRIORITY_COMPETITIONS),
-                    "sportsdb_competitions": len(sportsdb_competitions()),
-                    "odds_competitions": len(odds_competitions()),
-                    "structural_teams": len(STRUCTURAL_TEAMS),
-                },
-                "scheduler": scheduler,
-                "autonomous": autonomous_summary(DB_PATH, scheduler),
-                "odds_value": safe_engine_payload(lambda: odds_value_summary(DB_PATH), {"readiness_score": 0, "signals_total": 0}),
-                "shark_prediction": safe_engine_payload(lambda: shark_prediction_summary(DB_PATH), {"readiness_score": 0}),
-                "sportsdb_enrichment": safe_engine_payload(lambda: sportsdb_enrichment_summary(DB_PATH), {"readiness_score": 0}),
-                "data_provider": safe_engine_payload(lambda: data_provider_summary(DB_PATH), {"active_provider": "thesportsdb"}),
-                "football_warehouse": safe_engine_payload(lambda: football_warehouse_summary(DB_PATH), {"readiness_score": 0}),
-                "historical_intelligence": safe_engine_payload(lambda: historical_intelligence_summary(DB_PATH), {"readiness_score": 0}),
-                "shark_accuracy": safe_engine_payload(lambda: shark_accuracy_summary(DB_PATH), {"sqi": 0, "status": "sin datos"}),
-                "api_exploitation": safe_engine_payload(lambda: api_exploitation_summary(DB_PATH), {"readiness_score": 0, "status": "pendiente"}),
-                "player_intelligence": safe_engine_payload(lambda: player_intelligence_summary(DB_PATH), {"readiness_score": 0, "status": "pendiente"}),
-                "beta": beta_readiness_summary(),
-            }
-        )
-        return summary
-    return memory_cached("data-center-summary", 20, _build)
+    seed_core()
+    summary = match_calendar_diagnostics()
+    summary.update(
+        {
+            "teams_with_crests": (one("SELECT COUNT(*) AS total FROM teams WHERE logo_url IS NOT NULL AND logo_url!=''") or {}).get("total", 0),
+            "teams_without_crests": (one("SELECT COUNT(*) AS total FROM teams WHERE logo_url IS NULL OR logo_url=''") or {}).get("total", 0),
+            "odds_snapshots": (one("SELECT COUNT(*) AS total FROM odds_snapshots") or {}).get("total", 0),
+            "last_sportsdb_sync": latest_sync_log("sportsdb") or latest_sync_log("TheSportsDB"),
+            "last_odds_sync": latest_sync_log("odds") or latest_sync_log("The Odds API"),
+            "recent_logs": rows("SELECT * FROM api_sync_logs ORDER BY started_at DESC LIMIT 12"),
+            "population": {
+                "competitions_prepared": len(PRIORITY_COMPETITIONS),
+                "sportsdb_competitions": len(sportsdb_competitions()),
+                "odds_competitions": len(odds_competitions()),
+                "structural_teams": len(STRUCTURAL_TEAMS),
+            },
+            "scheduler": scheduler_status(),
+            "autonomous": autonomous_summary(DB_PATH, scheduler_status()),
+            "odds_value": safe_engine_payload(lambda: odds_value_summary(DB_PATH), {"readiness_score": 0, "signals_total": 0}),
+            "shark_prediction": safe_engine_payload(lambda: shark_prediction_summary(DB_PATH), {"readiness_score": 0}),
+            "sportsdb_enrichment": safe_engine_payload(lambda: sportsdb_enrichment_summary(DB_PATH), {"readiness_score": 0}),
+            "data_provider": safe_engine_payload(lambda: data_provider_summary(DB_PATH), {"active_provider": "thesportsdb"}),
+            "football_warehouse": safe_engine_payload(lambda: football_warehouse_summary(DB_PATH), {"readiness_score": 0}),
+            "historical_intelligence": safe_engine_payload(lambda: historical_intelligence_summary(DB_PATH), {"readiness_score": 0}),
+            "shark_accuracy": safe_engine_payload(lambda: shark_accuracy_summary(DB_PATH), {"sqi": 0, "status": "sin datos"}),
+            "api_exploitation": safe_engine_payload(lambda: api_exploitation_summary(DB_PATH), {"readiness_score": 0, "status": "pendiente"}),
+            "player_intelligence": safe_engine_payload(lambda: player_intelligence_summary(DB_PATH), {"readiness_score": 0, "status": "pendiente"}),
+            "beta": beta_readiness_summary(),
+        }
+    )
+    return summary
+
+
 def client_source_label(diagnostics):
     source = str((diagnostics or {}).get("active_data_source") or "")
     if (diagnostics or {}).get("total_matches", 0) <= 0:
@@ -7202,98 +7200,94 @@ def admin_data_center_page():
     message = ""
     result = None
     if request.method == "POST":
-        try:
-            action = request.form.get("action") or "summary"
-            limit = as_int(request.form.get("limit"), 120)
-            force = request.form.get("force") in {"1", "true", "yes"}
-            if action == "competitions":
-                result = sync_sportsdb_competitions()
-            elif action == "teams":
-                result = sync_sportsdb_teams(limit=limit)
-            elif action == "calendar":
-                result = run_scheduler_task("calendar", force=True, limit=limit)
-            elif action == "results":
-                result = sync_sportsdb_results(limit=limit)
-            elif action == "odds":
-                result = run_scheduler_task("odds", force=True, limit=limit)
-            elif action == "crests":
-                result = run_scheduler_task("crests", force=True, limit=limit)
-            elif action == "live":
-                result = run_scheduler_task("live", force=True, limit=limit)
-            elif action == "warmup":
-                result = run_scheduler_task("warmup", force=True, limit=limit)
-            elif action == "warehouse":
-                result = snapshot_warehouse(DB_PATH, limit=limit)
-            elif action == "autonomous":
-                result = run_due_scheduler_tasks(force=force)
-                result["autonomous"] = autonomous_summary(DB_PATH, scheduler_status())
-            elif action == "commercial":
-                result = rebuild_launch_checks(DB_PATH)
-                result["commercial"] = commercial_summary(DB_PATH)
-            elif action == "subscriptions":
-                result = apply_subscription_rules(DB_PATH)
-                result["subscriptions"] = subscription_summary(DB_PATH, apply_rules=False)
-            elif action == "shark_memory":
-                result = rebuild_shark_performance_memory(DB_PATH, limit=limit)
-            elif action == "shark_learning":
-                result = rebuild_shark_learning_engine(DB_PATH, limit=limit)
-                result["shark_learning"] = build_shark_learning_profile(DB_PATH)
-                telegram_flow_log("SHARK_LEARNING", "rebuilt", "Aprendizaje SHARK reconstruido desde Data Center.", result)
-            elif action == "shark_performance":
-                result = rebuild_shark_performance(DB_PATH, limit=limit)
-                result["performance"] = shark_performance_summary(DB_PATH)
-            elif action == "pick_grading":
-                result = run_pick_grading(DB_PATH, limit=limit, apply=request.form.get("apply") in {"1", "true", "yes"})
-                result["shark_memory"] = shark_memory_summary(DB_PATH)
-            elif action == "telegram_autonomous":
-                result = run_telegram_autonomous_delivery(DB_PATH, limit=limit, force=force)
-                result["telegram_autonomous"] = telegram_autonomous_summary(DB_PATH)
-            elif action == "sportsdb_highlights":
-                days_back = as_int(request.form.get("days_back"), 5)
-                result = sync_sportsdb_highlights(DB_PATH, days_back=days_back, limit=limit, force=force)
-                result["sportsdb_highlights"] = sportsdb_highlights_summary(DB_PATH)
-            elif action == "odds_value":
-                result = rebuild_odds_value_engine(DB_PATH, limit=limit)
-                result["odds_value"] = odds_value_summary(DB_PATH)
-            elif action == "shark_prediction":
-                result = rebuild_shark_prediction_engine(DB_PATH, limit=limit)
-                result["shark_prediction"] = shark_prediction_summary(DB_PATH)
-            elif action == "sportsdb_enrichment":
-                result = sync_sportsdb_max_enrichment(DB_PATH, limit=limit)
-                result["sportsdb_enrichment"] = sportsdb_enrichment_summary(DB_PATH)
-            elif action == "data_provider":
-                result = provider_check(DB_PATH)
-            elif action == "football_warehouse":
-                result = sync_football_data_warehouse(DB_PATH, limit=limit, include_api_football=True)
-                result["football_warehouse"] = football_warehouse_summary(DB_PATH)
-            elif action == "historical_intelligence":
-                result = rebuild_historical_intelligence(DB_PATH, limit=limit)
-                result["historical_intelligence"] = historical_intelligence_summary(DB_PATH)
-            elif action == "shark_accuracy":
-                result = rebuild_shark_accuracy_engine(DB_PATH, limit=limit)
-                result["shark_accuracy"] = shark_accuracy_summary(DB_PATH)
-            elif action == "api_exploitation":
-                result = run_api_exploitation_cycle(DB_PATH, limit=limit or 80, days_back=as_int(request.form.get("days_back"), 2), days_ahead=as_int(request.form.get("days_ahead"), 3))
-                result["api_exploitation"] = api_exploitation_summary(DB_PATH)
-            elif action == "player_intelligence":
-                result = rebuild_player_intelligence(DB_PATH, limit=limit or 1000)
-                result["player_intelligence"] = player_intelligence_summary(DB_PATH)
-            message = "Acción ejecutada desde Data Center."
-        except Exception as exc:
-            result = {"ok": False, "error": str(exc)[:240]}
-            message = "Acción con error controlado en Data Center."
+        action = request.form.get("action") or "summary"
+        limit = as_int(request.form.get("limit"), 120)
+        force = request.form.get("force") in {"1", "true", "yes"}
+        if action == "competitions":
+            result = sync_sportsdb_competitions()
+        elif action == "teams":
+            result = sync_sportsdb_teams(limit=limit)
+        elif action == "calendar":
+            result = run_scheduler_task("calendar", force=True, limit=limit)
+        elif action == "results":
+            result = sync_sportsdb_results(limit=limit)
+        elif action == "odds":
+            result = run_scheduler_task("odds", force=True, limit=limit)
+        elif action == "crests":
+            result = run_scheduler_task("crests", force=True, limit=limit)
+        elif action == "live":
+            result = run_scheduler_task("live", force=True, limit=limit)
+        elif action == "warmup":
+            result = run_scheduler_task("warmup", force=True, limit=limit)
+        elif action == "warehouse":
+            result = snapshot_warehouse(DB_PATH, limit=limit)
+        elif action == "autonomous":
+            result = run_due_scheduler_tasks(force=force)
+            result["autonomous"] = autonomous_summary(DB_PATH, scheduler_status())
+        elif action == "commercial":
+            result = rebuild_launch_checks(DB_PATH)
+            result["commercial"] = commercial_summary(DB_PATH)
+        elif action == "subscriptions":
+            result = apply_subscription_rules(DB_PATH)
+            result["subscriptions"] = subscription_summary(DB_PATH, apply_rules=False)
+        elif action == "shark_memory":
+            result = rebuild_shark_performance_memory(DB_PATH, limit=limit)
+        elif action == "shark_learning":
+            result = rebuild_shark_learning_engine(DB_PATH, limit=limit)
+            result["shark_learning"] = build_shark_learning_profile(DB_PATH)
+            telegram_flow_log("SHARK_LEARNING", "rebuilt", "Aprendizaje SHARK reconstruido desde Data Center.", result)
+        elif action == "shark_performance":
+            result = rebuild_shark_performance(DB_PATH, limit=limit)
+            result["performance"] = shark_performance_summary(DB_PATH)
+        elif action == "pick_grading":
+            result = run_pick_grading(DB_PATH, limit=limit, apply=request.form.get("apply") in {"1", "true", "yes"})
+            result["shark_memory"] = shark_memory_summary(DB_PATH)
+        elif action == "telegram_autonomous":
+            result = run_telegram_autonomous_delivery(DB_PATH, limit=limit, force=force)
+            result["telegram_autonomous"] = telegram_autonomous_summary(DB_PATH)
+        elif action == "sportsdb_highlights":
+            days_back = as_int(request.form.get("days_back"), 5)
+            result = sync_sportsdb_highlights(DB_PATH, days_back=days_back, limit=limit, force=force)
+            result["sportsdb_highlights"] = sportsdb_highlights_summary(DB_PATH)
+        elif action == "odds_value":
+            result = rebuild_odds_value_engine(DB_PATH, limit=limit)
+            result["odds_value"] = odds_value_summary(DB_PATH)
+        elif action == "shark_prediction":
+            result = rebuild_shark_prediction_engine(DB_PATH, limit=limit)
+            result["shark_prediction"] = shark_prediction_summary(DB_PATH)
+        elif action == "sportsdb_enrichment":
+            result = sync_sportsdb_max_enrichment(DB_PATH, limit=limit)
+            result["sportsdb_enrichment"] = sportsdb_enrichment_summary(DB_PATH)
+        elif action == "data_provider":
+            result = provider_check(DB_PATH)
+        elif action == "football_warehouse":
+            result = sync_football_data_warehouse(DB_PATH, limit=limit, include_api_football=True)
+            result["football_warehouse"] = football_warehouse_summary(DB_PATH)
+        elif action == "historical_intelligence":
+            result = rebuild_historical_intelligence(DB_PATH, limit=limit)
+            result["historical_intelligence"] = historical_intelligence_summary(DB_PATH)
+        elif action == "shark_accuracy":
+            result = rebuild_shark_accuracy_engine(DB_PATH, limit=limit)
+            result["shark_accuracy"] = shark_accuracy_summary(DB_PATH)
+        elif action == "api_exploitation":
+            result = run_api_exploitation_cycle(DB_PATH, limit=limit or 80, days_back=as_int(request.form.get("days_back"), 2), days_ahead=as_int(request.form.get("days_ahead"), 3))
+            result["api_exploitation"] = api_exploitation_summary(DB_PATH)
+        elif action == "player_intelligence":
+            result = rebuild_player_intelligence(DB_PATH, limit=limit or 1000)
+            result["player_intelligence"] = player_intelligence_summary(DB_PATH)
+        message = "Acción ejecutada desde Data Center."
     data = dashboard_data()
     data["data_center"] = data_center_summary()
-    data["warehouse"] = safe_engine_payload(lambda: warehouse_summary(DB_PATH), {"ok": False, "status": "pendiente"})
-    data["autonomous"] = safe_engine_payload(lambda: autonomous_summary(DB_PATH, data["data_center"].get("scheduler")), {"ok": False, "status": "pendiente"})
-    data["commercial"] = safe_engine_payload(lambda: commercial_summary(DB_PATH), {"ok": False, "status": "pendiente"})
-    data["subscriptions"] = safe_engine_payload(lambda: subscription_summary(DB_PATH), {"ok": False, "status": "pendiente"})
-    data["shark_memory"] = safe_engine_payload(lambda: shark_memory_summary(DB_PATH), {"ok": False, "status": "pendiente"})
-    data["shark_learning"] = safe_engine_payload(lambda: build_shark_learning_profile(DB_PATH), {"ok": False, "status": "pendiente"})
-    data["performance"] = safe_engine_payload(lambda: shark_performance_summary(DB_PATH), {"summary": {}, "recent_picks": [], "by_league": [], "by_market": []})
-    data["pick_grading"] = safe_engine_payload(lambda: pick_grading_summary(DB_PATH), {"ok": False, "status": "pendiente"})
-    data["telegram_autonomous"] = safe_engine_payload(lambda: telegram_autonomous_summary(DB_PATH), {"ok": False, "status": "pendiente"})
-    data["sportsdb_highlights"] = safe_engine_payload(lambda: sportsdb_highlights_summary(DB_PATH), {"ok": False, "status": "pendiente"})
+    data["warehouse"] = warehouse_summary(DB_PATH)
+    data["autonomous"] = autonomous_summary(DB_PATH, data["data_center"].get("scheduler"))
+    data["commercial"] = commercial_summary(DB_PATH)
+    data["subscriptions"] = subscription_summary(DB_PATH)
+    data["shark_memory"] = shark_memory_summary(DB_PATH)
+    data["shark_learning"] = build_shark_learning_profile(DB_PATH)
+    data["performance"] = shark_performance_summary(DB_PATH)
+    data["pick_grading"] = pick_grading_summary(DB_PATH)
+    data["telegram_autonomous"] = telegram_autonomous_summary(DB_PATH)
+    data["sportsdb_highlights"] = sportsdb_highlights_summary(DB_PATH)
     data["odds_value"] = data["data_center"].get("odds_value") or safe_engine_payload(lambda: odds_value_summary(DB_PATH))
     data["shark_prediction"] = data["data_center"].get("shark_prediction") or safe_engine_payload(lambda: shark_prediction_summary(DB_PATH))
     data["sportsdb_enrichment"] = data["data_center"].get("sportsdb_enrichment") or safe_engine_payload(lambda: sportsdb_enrichment_summary(DB_PATH))
@@ -7304,6 +7298,8 @@ def admin_data_center_page():
     data["api_exploitation"] = data["data_center"].get("api_exploitation") or safe_engine_payload(lambda: api_exploitation_summary(DB_PATH))
     data["player_intelligence"] = data["data_center"].get("player_intelligence") or safe_engine_payload(lambda: player_intelligence_summary(DB_PATH))
     return render_template("admin_data_center.html", data=data, message=message, result=result)
+
+
 @app.route("/admin/beta-center")
 def admin_beta_center_page():
     if not is_admin_session():
@@ -8458,19 +8454,7 @@ def schedule_auto_sync_if_needed():
 
 @app.after_request
 def startup_after_request(response):
-    scheduler_skip_paths = {
-        "/",
-        "/api/health",
-        "/api/startup-check",
-        "/api/runtime-version",
-        "/cliente-login",
-        "/login",
-        "/entrar",
-        "/registro",
-        "/admin-login",
-        "/admin-bootstrap",
-    }
-    if response.status_code < 500 and APP_INITIALIZED and request.method != "HEAD" and request.path not in scheduler_skip_paths:
+    if response.status_code < 500 and APP_INITIALIZED and request.path not in {"/", "/api/health", "/api/startup-check", "/api/runtime-version"}:
         try:
             start_background_jobs()
         except Exception as exc:
@@ -8480,9 +8464,20 @@ def startup_after_request(response):
 
 
 
+@app.errorhandler(500)
 def client_safe_500(error):
-    """Compatibilidad con referencias legacy: delega al handler V607."""
-    return v607_controlled_500(error)
+    """Evita pantalla blanca en cliente y deja diagnóstico claro sin exponer secretos."""
+    try:
+        print("NeMeSiS SHARK PRO 500:", str(error)[:500])
+    except Exception:
+        pass
+    if request.path.startswith("/api/"):
+        return jsonify({"ok": False, "error": "internal_error", "message": "Error interno controlado. Revisa logs Render.", "path": request.path, "version": APP_VERSION}), 500
+    try:
+        return render_template("home.html", data=light_home_data(), controlled_error="Hemos detectado un error temporal y hemos vuelto al inicio de forma segura."), 500
+    except Exception:
+        return "Error temporal controlado. Revisa logs Render.", 500
+
 
 @app.route("/api/deep-route-check")
 def api_deep_route_check():
@@ -8754,7 +8749,7 @@ def api_admin_membership_summary():
 
 
 # ===================== V565 SPORTS DATA & PICKS PERFECTION =====================
-APP_VERSION = "V614_QUALITY_SPEED_STABILITY"
+APP_VERSION = "V613_OMEGA_PRIME_CONSOLIDATION"
 
 PRIORITY_LEAGUE_ORDER = [
     "UEFA Champions League", "Champions League", "LaLiga", "Spanish La Liga", "Premier League",
