@@ -100,7 +100,7 @@ from engines.observability_engine import (
 from blueprints.architecture import create_architecture_blueprint
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V619_BETA_RELEASE_PREPARATION"
+APP_VERSION = "V620_RUNTIME_LOGIN_REPAIR"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -1033,29 +1033,44 @@ def init_db():
         )"""
     )
     run_schema_migrations(conn)
-    try:
-        ensure_warehouse_schema(DB_PATH)
-        ensure_autonomous_schema(DB_PATH)
-        ensure_commercial_schema(DB_PATH)
-        ensure_subscription_schema(DB_PATH)
-        ensure_shark_memory_schema(DB_PATH)
-        ensure_shark_learning_schema(DB_PATH)
-        ensure_shark_performance_schema(DB_PATH)
-        ensure_telegram_autonomous_schema(DB_PATH)
-        ensure_sportsdb_highlights_schema(DB_PATH)
-        ensure_odds_value_schema(DB_PATH)
-        ensure_shark_prediction_schema(DB_PATH)
-        ensure_sportsdb_enrichment_schema(DB_PATH)
-        ensure_data_provider_schema(DB_PATH)
-        ensure_football_warehouse_schema(DB_PATH)
-        ensure_historical_intelligence_schema(DB_PATH)
-        ensure_shark_accuracy_schema(DB_PATH)
-        ensure_api_exploitation_schema(DB_PATH)
-        ensure_player_intelligence_schema(DB_PATH)
-        ensure_security_schema(DB_PATH)
-        ensure_observability_schema(DB_PATH)
-    except Exception:
-        pass
+    conn.commit()
+    conn.close()
+
+    # V620: las migraciones de engines abren sus propias conexiones.
+    # Ejecutarlas con la conexión principal ya cerrada evita bloqueos SQLite en
+    # Render durante la primera ruta protegida (/picks, /live, /admin...).
+    engine_schema_errors = []
+    for ensure_fn in (
+        ensure_warehouse_schema,
+        ensure_autonomous_schema,
+        ensure_commercial_schema,
+        ensure_subscription_schema,
+        ensure_shark_memory_schema,
+        ensure_shark_learning_schema,
+        ensure_shark_performance_schema,
+        ensure_telegram_autonomous_schema,
+        ensure_sportsdb_highlights_schema,
+        ensure_odds_value_schema,
+        ensure_shark_prediction_schema,
+        ensure_sportsdb_enrichment_schema,
+        ensure_data_provider_schema,
+        ensure_football_warehouse_schema,
+        ensure_historical_intelligence_schema,
+        ensure_shark_accuracy_schema,
+        ensure_api_exploitation_schema,
+        ensure_player_intelligence_schema,
+        ensure_security_schema,
+        ensure_observability_schema,
+    ):
+        try:
+            ensure_fn(DB_PATH)
+        except Exception as exc:
+            engine_schema_errors.append(f"{getattr(ensure_fn, '__name__', 'ensure_schema')}: {exc}")
+    if engine_schema_errors:
+        startup_log("DB_INIT", "engine schema warnings", {"errors": engine_schema_errors[:8]})
+
+    conn = db()
+    cur = conn.cursor()
     # V610: no ejecutar limpieza demo durante init_db en Render.
     # cleanup_fake_matches(cur)
     cur.execute(
@@ -7347,7 +7362,19 @@ def admin_data_center_page():
     data["autonomous"] = safe_engine_payload(lambda: autonomous_summary(DB_PATH, data["data_center"].get("scheduler")), {"ok": False, "status": "pendiente"})
     data["commercial"] = safe_engine_payload(lambda: commercial_summary(DB_PATH), {"ok": False, "status": "pendiente"})
     data["subscriptions"] = safe_engine_payload(lambda: subscription_summary(DB_PATH), {"ok": False, "status": "pendiente"})
-    data["shark_memory"] = safe_engine_payload(lambda: shark_memory_summary(DB_PATH), {"ok": False, "status": "pendiente"})
+    data["shark_memory"] = safe_engine_payload(lambda: shark_memory_summary(DB_PATH), {
+        "ok": False,
+        "status": "pendiente",
+        "readiness_score": 0,
+        "groups_total": 0,
+        "picks_read": 0,
+        "avg_reliability": 0,
+        "note": "Memoria SHARK pendiente de datos suficientes.",
+        "best_ventajas": [],
+        "risk_ventajas": [],
+    })
+    data["shark_memory"].setdefault("best_ventajas", [])
+    data["shark_memory"].setdefault("risk_ventajas", [])
     data["shark_learning"] = safe_engine_payload(lambda: build_shark_learning_profile(DB_PATH), {"ok": False, "status": "pendiente"})
     data["performance"] = safe_engine_payload(lambda: shark_performance_summary(DB_PATH), {"summary": {}, "recent_picks": [], "by_league": [], "by_market": []})
     data["pick_grading"] = safe_engine_payload(lambda: pick_grading_summary(DB_PATH), {"ok": False, "status": "pendiente"})
@@ -7359,6 +7386,7 @@ def admin_data_center_page():
     data["data_provider"] = data["data_center"].get("data_provider") or safe_engine_payload(lambda: data_provider_summary(DB_PATH))
     data["football_warehouse"] = data["data_center"].get("football_warehouse") or safe_engine_payload(lambda: football_warehouse_summary(DB_PATH))
     data["historical_intelligence"] = data["data_center"].get("historical_intelligence") or safe_engine_payload(lambda: historical_intelligence_summary(DB_PATH))
+    data["shark_accuracy"] = data["data_center"].get("shark_accuracy") or safe_engine_payload(lambda: shark_accuracy_summary(DB_PATH), {"sqi": 0, "picks_analyzed": 0, "settled_picks": 0, "roi": 0, "winrate": 0, "top_markets": []})
     data["beta"] = data["data_center"].get("beta") or beta_readiness_summary()
     data["api_exploitation"] = data["data_center"].get("api_exploitation") or safe_engine_payload(lambda: api_exploitation_summary(DB_PATH))
     data["player_intelligence"] = data["data_center"].get("player_intelligence") or safe_engine_payload(lambda: player_intelligence_summary(DB_PATH))
@@ -8550,7 +8578,14 @@ def startup_after_request(response):
         "/admin-login",
         "/admin-bootstrap",
     }
-    if response.status_code < 500 and APP_INITIALIZED and request.method != "HEAD" and request.path not in scheduler_skip_paths:
+    if (
+        response.status_code < 500
+        and APP_INITIALIZED
+        and request.method != "HEAD"
+        and request.path not in scheduler_skip_paths
+        and scheduler_enabled()
+        and scheduler_startup_enabled()
+    ):
         try:
             start_background_jobs()
         except Exception as exc:
@@ -8646,7 +8681,7 @@ def quality_center_summary():
     telegram_pending = safe_count("telegram_queue", "lower(coalesce(status,''))='pending'")
     recent_logs = []
     try:
-        recent_logs = rows("SELECT source, sync_type, status, total_items, error_message, created_at FROM api_sync_logs ORDER BY created_at DESC LIMIT 8")
+        recent_logs = rows("SELECT source, sync_type, status, total_items, error_message, started_at AS created_at FROM api_sync_logs ORDER BY started_at DESC LIMIT 8")
     except Exception:
         recent_logs = []
     score_parts = [
@@ -8834,7 +8869,7 @@ def api_admin_membership_summary():
 
 
 # ===================== V565 SPORTS DATA & PICKS PERFECTION =====================
-APP_VERSION = "V619_BETA_RELEASE_PREPARATION"
+APP_VERSION = "V620_RUNTIME_LOGIN_REPAIR"
 
 PRIORITY_LEAGUE_ORDER = [
     "UEFA Champions League", "Champions League", "LaLiga", "Spanish La Liga", "Premier League",
