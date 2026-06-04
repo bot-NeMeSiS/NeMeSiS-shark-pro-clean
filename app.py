@@ -100,7 +100,7 @@ from engines.observability_engine import (
 from blueprints.architecture import create_architecture_blueprint
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V616_FINAL_STABILITY_RENDER_SMOKE_READY"
+APP_VERSION = "V618_FINAL_VALIDATION_PRODUCTION_POLISH"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -5199,6 +5199,13 @@ def inject_session_user():
     return {"current_user": current_session_user(), "csrf_token": generate_csrf_token(session)}
 
 
+def safe_next_path(default_path="/"):
+    target = str(request.args.get("next") or request.form.get("next") or "").strip()
+    if target.startswith("/") and not target.startswith("//") and not target.startswith("/\\"):
+        return target
+    return default_path
+
+
 def client_ip():
     forwarded = request.headers.get("X-Forwarded-For", "")
     if forwarded:
@@ -6941,7 +6948,7 @@ def favorites_page():
 @app.route("/registro", methods=["GET", "POST"])
 def register_page():
     if current_session_user():
-        return redirect("/perfil")
+        return redirect(safe_next_path("/perfil"))
     error = ""
     if request.method == "POST":
         try:
@@ -6953,7 +6960,7 @@ def register_page():
             )
             set_login_session(user)
             record_security_event(DB_PATH, event_type="register_attempt", severity="INFO", ip_address=client_ip(), user_id=user.get("id"), username=user.get("username") or request.form.get("username"), path=request.path, method=request.method, success=True, reason="register_ok")
-            return redirect("/perfil")
+            return redirect(safe_next_path("/perfil"))
         except ValueError as exc:
             error = str(exc)
             record_security_event(DB_PATH, event_type="register_attempt", severity="MEDIUM", ip_address=client_ip(), username=request.form.get("username") or request.form.get("email") or "", path=request.path, method=request.method, success=False, reason=error)
@@ -6965,7 +6972,7 @@ def register_page():
 @app.route("/entrar", methods=["GET", "POST"])
 def client_login_page():
     if current_session_user():
-        return redirect("/perfil")
+        return redirect(safe_next_path("/perfil"))
     error = ""
     if request.method == "POST":
         identifier = request.form.get("login") or request.form.get("email") or request.form.get("username")
@@ -6973,7 +6980,7 @@ def client_login_page():
         if user:
             set_login_session(user)
             record_security_event(DB_PATH, event_type="login_attempt", severity="INFO", ip_address=client_ip(), user_id=user.get("id"), username=identifier, path=request.path, method=request.method, success=True, reason="client_login_ok")
-            return redirect("/perfil")
+            return redirect(safe_next_path("/perfil"))
         error = "Email, usuario o contraseña incorrectos."
         record_security_event(DB_PATH, event_type="login_attempt", severity="MEDIUM", ip_address=client_ip(), username=identifier, path=request.path, method=request.method, success=False, reason="client_login_failed")
     return render_template("client_login.html", data=light_home_data(), error=error)
@@ -6982,7 +6989,7 @@ def client_login_page():
 @app.route("/admin-login", methods=["GET", "POST"])
 def admin_login_page():
     if is_admin_session():
-        return redirect(request.args.get("next") or "/admin/import-center")
+        return redirect(safe_next_path("/admin/import-center"))
     error = ""
     configured = bool(os.getenv("ADMIN_EMAIL") and os.getenv("ADMIN_PASSWORD"))
     if request.method == "POST":
@@ -6992,7 +6999,7 @@ def admin_login_page():
         if user:
             set_login_session(user)
             record_security_event(DB_PATH, event_type="login_attempt", severity="INFO", ip_address=client_ip(), user_id=user.get("id"), username=request.form.get("login") or "", path=request.path, method=request.method, success=True, reason="admin_login_ok")
-            return redirect(request.args.get("next") or "/admin/import-center")
+            return redirect(safe_next_path("/admin/import-center"))
         error = "Acceso admin no válido."
         record_security_event(DB_PATH, event_type="login_attempt", severity="HIGH", ip_address=client_ip(), username=request.form.get("login") or "", path=request.path, method=request.method, success=False, reason="admin_login_failed")
     return render_template("admin_login.html", data=light_home_data(), error=error, configured=configured)
@@ -8681,7 +8688,7 @@ def quality_center_summary():
 @app.route("/admin/quality-center")
 def admin_quality_center():
     if not is_admin_session():
-        return redirect(url_for("admin_login", next=request.path))
+        return redirect(url_for("admin_login_page", next=request.path))
     return render_template("admin_quality_center.html", title="Centro de calidad", q=quality_center_summary())
 
 
@@ -8827,7 +8834,7 @@ def api_admin_membership_summary():
 
 
 # ===================== V565 SPORTS DATA & PICKS PERFECTION =====================
-APP_VERSION = "V616_FINAL_STABILITY_RENDER_SMOKE_READY"
+APP_VERSION = "V618_FINAL_VALIDATION_PRODUCTION_POLISH"
 
 PRIORITY_LEAGUE_ORDER = [
     "UEFA Champions League", "Champions League", "LaLiga", "Spanish La Liga", "Premier League",

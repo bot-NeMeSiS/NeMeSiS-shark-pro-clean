@@ -1,0 +1,71 @@
+*** Begin Patch
+*** Update File: app.py
+@@
+-APP_VERSION = "V616_FINAL_STABILITY_RENDER_SMOKE_READY"
++APP_VERSION = "V618_FINAL_VALIDATION_PRODUCTION_POLISH"
++
++def safe_next_path(default_path="/"):
++    ...
++
+ def register_page():
+-    return redirect("/perfil")
++    return redirect(safe_next_path("/perfil"))
+
+ def client_login_page():
+-    return redirect("/perfil")
++    return redirect(safe_next_path("/perfil"))
+
+ def admin_login_page():
+-    return redirect(request.args.get("next") or "/admin/import-center")
++    return redirect(safe_next_path("/admin/import-center"))
+
+ def admin_quality_center():
+-    return redirect(url_for("admin_login", next=request.path))
++    return redirect(url_for("admin_login_page", next=request.path))
+
+*** Update File: VERSION.txt
+@@
+-V616_FINAL_STABILITY_RENDER_SMOKE_READY
++V618_FINAL_VALIDATION_PRODUCTION_POLISH
+
+*** Update File: templates/register.html
+@@
++- texto UTF-8 corregido
++- campo oculto `next`
++- navegación a cliente-login preservando `next`
+
+*** Update File: templates/client_login.html
+@@
++- texto UTF-8 corregido
++- campo oculto `next`
++- navegación a registro preservando `next`
+
+*** Update File: templates/admin_login.html
+@@
++- texto UTF-8 corregido
++- campo oculto `next`
++- login admin consistente con redirect seguro
+
+*** Update File: templates/base.html
+@@
++- menú y navegación rápida saneados en castellano profesional
++- widget SHARK con textos corregidos
++- eliminación de mojibake visible transversal
+
+*** Update File: templates/home.html
+@@
++- portada reescrita en UTF-8 correcto
++- misma estructura, enlaces y bloques
++- sin cambios de lógica ni de producto
+
+*** Update File: templates/admin_observability.html
+@@
++- panel de observabilidad saneado
++- listas y separadores legibles
++- textos profesionales
+
+*** Update File: templates/admin_observability_errors.html
+@@
++- detalle de errores saneado
++- ruta, usuario, membresía y traceback mostrados de forma consistente
+*** End Patch

@@ -8,6 +8,7 @@
 <section class="band auth-grid">
   <form class="card auth-card" method="post" action="/registro">
     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    {% if request.args.get('next') %}<input type="hidden" name="next" value="{{ request.args.get('next') }}">{% endif %}
     <h2>Registro</h2>
     {% if error %}<p class="notice danger">{{ error }}</p>{% endif %}
     <div class="field"><label>Nombre visible</label><input name="name" autocomplete="name" required></div>
@@ -19,8 +20,8 @@
   </form>
   <aside class="card auth-side">
     <h2>Ya tengo cuenta</h2>
-    <p class="small">Entra para volver a tu perfil y recuperar tu sesin premium.</p>
-    <a class="btn" href="/cliente-login">Entrar</a>
+    <p class="small">Entra para volver a tu perfil y recuperar tu sesión premium.</p>
+    <a class="btn" href="/cliente-login{% if request.args.get('next') %}?next={{ request.args.get('next') }}{% endif %}">Entrar</a>
   </aside>
 </section>
 {% endblock %}

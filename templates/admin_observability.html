@@ -1,9 +1,9 @@
 {% extends "base.html" %}
 {% block content %}
 <section class="hero compact">
-  <div class="kicker">Admin · Observabilidad</div>
+  <div class="kicker">Admin - Observabilidad</div>
   <h1>Centro de errores y salud del sistema</h1>
-  <p class="lead">Control rapido de errores, cola Telegram, base de datos y senales criticas antes de que afecten al cliente.</p>
+  <p class="lead">Control rápido de errores, cola Telegram, base de datos y señales críticas antes de que afecten al cliente.</p>
   <div class="admin-menu">
     <a class="btn primary" href="/admin/observability">Observabilidad</a>
     <a class="btn" href="/admin/observability/errors">Errores</a>
@@ -35,7 +35,7 @@
   </aside>
   <aside class="card pro-card">
     <h2>Entorno</h2>
-    <p class="small">Version: {{ summary.app_version }}</p>
+    <p class="small">Versión: {{ summary.app_version }}</p>
     <p class="small">Python: {{ summary.python }}</p>
     <p class="small">DB: {{ summary.db_path }}</p>
     <p class="small">Latencia check: {{ summary.latency_ms }} ms</p>
@@ -45,28 +45,28 @@
 
 <section class="band">
   <div class="card">
-    <div class="section-head"><h2>Ultimos errores trazados</h2><span class="pill">error_id</span></div>
+    <div class="section-head"><h2>Últimos errores trazados</h2><span class="pill">error_id</span></div>
     {% for event in summary.latest_errors %}
       <div class="list-row">
-        <span>{{ event.created_at }} · {{ event.error_id }}<br><small>{{ event.path }} · {{ event.exception_type }} · {{ event.exception_message }}</small></span>
+        <span>{{ event.created_at }} - {{ event.error_id }}<br><small>{{ event.path }} - {{ event.exception_type }} - {{ event.exception_message }}</small></span>
         <a class="mini-link" href="/admin/observability/errors?error_id={{ event.error_id }}">Ver detalle</a>
       </div>
     {% else %}
-      <p class="small">Sin errores trazados todavia.</p>
+      <p class="small">Sin errores trazados todavía.</p>
     {% endfor %}
   </div>
 </section>
 
 <section class="band">
   <div class="card">
-    <div class="section-head"><h2>Ultimos eventos registrados</h2><span class="pill">logs seguros</span></div>
+    <div class="section-head"><h2>Últimos eventos registrados</h2><span class="pill">logs seguros</span></div>
     {% for event in summary.latest_events %}
       <div class="list-row">
-        <span>{{ event.created_at }} · {{ event.level }} · {{ event.event_type }}<br><small>{{ event.method }} {{ event.path }} · {{ event.message }}</small></span>
+        <span>{{ event.created_at }} - {{ event.level }} - {{ event.event_type }}<br><small>{{ event.method }} {{ event.path }} - {{ event.message }}</small></span>
         <strong>{{ event.status_code or '-' }}</strong>
       </div>
     {% else %}
-      <p class="small">Sin eventos registrados todavia.</p>
+      <p class="small">Sin eventos registrados todavía.</p>
     {% endfor %}
   </div>
 </section>
