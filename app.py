@@ -9964,7 +9964,7 @@ def _record_observability_exception(error, *, status_code=500):
     traceback_full = traceback.format_exc()
     if traceback_full.strip() in {"", "NoneType: None"}:
         traceback_full = "".join(traceback.format_exception(type(error), error, getattr(error, "__traceback__", None)))
-    _record_http_problem(status_code, "unhandled_exception", "Excepcion controlada", f"{type(error).__name__}: {str(error)[:1500]}")
+    _record_http_problem(status_code, "unhandled_exception", "Excepción controlada", f"{type(error).__name__}: {str(error)[:1500]}")
     try:
         record_observability_error(
             DB_PATH,
@@ -10008,8 +10008,8 @@ def v607_controlled_404(error):
         return jsonify({"ok": False, "version": APP_VERSION, "error": "not_found", "message": "Ruta no encontrada.", "path": request.path}), 404
     return render_template(
         "error_controlled.html",
-        title="Pagina no encontrada",
-        message="Esta ruta no existe o ha cambiado. Puedes volver al inicio y continuar usando la aplicacion con normalidad.",
+        title="Página no encontrada",
+        message="Esta ruta no existe o ha cambiado. Puedes volver al inicio y continuar usando la aplicación con normalidad.",
         error_id="HTTP-404",
         is_admin=is_admin_session(),
     ), 404
@@ -10023,7 +10023,7 @@ def v607_controlled_500(error):
     return render_template(
         "error_controlled.html",
         title="Error temporal controlado",
-        message="Hemos registrado el error para revision interna. La aplicacion sigue protegida y puedes volver al inicio.",
+        message="Hemos registrado el error para revisión interna. La aplicación sigue protegida y puedes volver al inicio.",
         error_id=error_id,
         is_admin=user_ctx.get("is_admin"),
     ), 500
@@ -10040,7 +10040,7 @@ def v607_controlled_exception(error):
     return render_template(
         "error_controlled.html",
         title="Incidencia controlada",
-        message="SHARK ha protegido la sesion ante una incidencia temporal. Puedes volver al inicio y continuar.",
+        message="SHARK ha protegido la sesión ante una incidencia temporal. Puedes volver al inicio y continuar.",
         error_id=error_id,
         is_admin=user_ctx.get("is_admin"),
     ), int(code)
