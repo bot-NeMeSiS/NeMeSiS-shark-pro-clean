@@ -100,7 +100,7 @@ from engines.observability_engine import (
 from blueprints.architecture import create_architecture_blueprint
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V618_FINAL_VALIDATION_PRODUCTION_POLISH"
+APP_VERSION = "V619_BETA_RELEASE_PREPARATION"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -8834,7 +8834,7 @@ def api_admin_membership_summary():
 
 
 # ===================== V565 SPORTS DATA & PICKS PERFECTION =====================
-APP_VERSION = "V618_FINAL_VALIDATION_PRODUCTION_POLISH"
+APP_VERSION = "V619_BETA_RELEASE_PREPARATION"
 
 PRIORITY_LEAGUE_ORDER = [
     "UEFA Champions League", "Champions League", "LaLiga", "Spanish La Liga", "Premier League",
