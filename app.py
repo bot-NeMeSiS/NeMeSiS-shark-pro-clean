@@ -9,6 +9,7 @@ import sqlite3
 import sys
 import threading
 import time
+import traceback
 import unicodedata
 import urllib.parse
 import urllib.request
@@ -86,7 +87,16 @@ from engines.shark_accuracy_engine import ensure_shark_accuracy_schema, shark_ac
 from engines.api_exploitation_engine import ensure_api_exploitation_schema, run_api_exploitation_cycle, api_exploitation_summary, rebuild_api_exploitation_signals
 from engines.player_intelligence_engine import ensure_player_intelligence_schema, player_intelligence_summary, rebuild_player_intelligence, player_intelligence_for_fixture
 from engines.security_engine import ensure_security_schema, secure_secret_key, generate_csrf_token, validate_csrf, record_security_event, rate_limit_status, security_summary
-from engines.observability_engine import ensure_observability_schema, observability_summary, record_observability_event, mark_route_check
+from engines.observability_engine import (
+    build_error_id,
+    ensure_observability_schema,
+    latest_observability_errors,
+    mark_route_check,
+    observability_error_detail,
+    observability_summary,
+    record_observability_error,
+    record_observability_event,
+)
 from blueprints.architecture import create_architecture_blueprint
 
 APP_NAME = "NeMeSiS SHARK PRO"
@@ -9890,6 +9900,19 @@ def _observability_user_id():
         return ""
 
 
+def _observability_user_context():
+    try:
+        user = current_session_user() or {}
+        return {
+            "user_id": str(user.get("id") or session.get("user_id") or ""),
+            "email": str(user.get("email") or session.get("user_email") or session.get("admin_email") or ""),
+            "membership": str(user.get("membership") or session.get("membership") or session.get("user_membership") or ""),
+            "is_admin": normalize_role(user.get("role") or session.get("user_role")) == "ADMIN",
+        }
+    except Exception:
+        return {"user_id": "", "email": "", "membership": "", "is_admin": False}
+
+
 def _observability_ip():
     try:
         forwarded = request.headers.get("X-Forwarded-For", "")
@@ -9928,6 +9951,49 @@ def _record_http_problem(status_code, event_type, message, detail=""):
         pass
 
 
+def _record_observability_exception(error, *, status_code=500):
+    user_ctx = _observability_user_context()
+    error_id = build_error_id(f"{request.path}|{request.method}|{type(error).__name__}|{user_ctx.get('user_id')}")
+    traceback_full = traceback.format_exc()
+    if traceback_full.strip() in {"", "NoneType: None"}:
+        traceback_full = "".join(traceback.format_exception(type(error), error, getattr(error, "__traceback__", None)))
+    _record_http_problem(status_code, "unhandled_exception", "Excepcion controlada", f"{type(error).__name__}: {str(error)[:1500]}")
+    try:
+        record_observability_error(
+            DB_PATH,
+            error_id=error_id,
+            path=request.path,
+            method=request.method,
+            endpoint=request.endpoint or "",
+            user_id=user_ctx.get("user_id") or "",
+            email=user_ctx.get("email") or "",
+            membership=user_ctx.get("membership") or "",
+            exception_type=type(error).__name__,
+            exception_message=str(error)[:2000],
+            traceback_full=traceback_full,
+            user_agent=request.headers.get("User-Agent", ""),
+            ip=_observability_ip(),
+            referrer=request.referrer or "",
+            request_id=request.headers.get("X-Request-Id", ""),
+            app_version=APP_VERSION,
+        )
+    except Exception:
+        pass
+    startup_log(
+        "RENDER",
+        "observability_exception",
+        {
+            "error_id": error_id,
+            "path": request.path,
+            "method": request.method,
+            "endpoint": request.endpoint or "",
+            "type": type(error).__name__,
+            "message": str(error)[:300],
+        },
+    )
+    return error_id, user_ctx
+
+
 @app.errorhandler(404)
 def v607_controlled_404(error):
     _record_http_problem(404, "not_found", "Ruta no encontrada", str(error)[:500])
@@ -9935,20 +10001,24 @@ def v607_controlled_404(error):
         return jsonify({"ok": False, "version": APP_VERSION, "error": "not_found", "message": "Ruta no encontrada.", "path": request.path}), 404
     return render_template(
         "error_controlled.html",
-        title="Página no encontrada",
-        message="Esta ruta no existe o ha cambiado. Puedes volver al inicio y continuar usando la aplicación con normalidad.",
+        title="Pagina no encontrada",
+        message="Esta ruta no existe o ha cambiado. Puedes volver al inicio y continuar usando la aplicacion con normalidad.",
+        error_id="HTTP-404",
+        is_admin=is_admin_session(),
     ), 404
 
 
 @app.errorhandler(500)
 def v607_controlled_500(error):
-    _record_http_problem(500, "internal_error", "Error interno controlado", str(error)[:1500])
+    error_id, user_ctx = _record_observability_exception(error, status_code=500)
     if _wants_json_response():
-        return jsonify({"ok": False, "version": APP_VERSION, "error": "internal_error", "message": "Error interno controlado. Revisa Observabilidad o los logs de Render.", "path": request.path}), 500
+        return jsonify({"ok": False, "version": APP_VERSION, "error": "internal_error", "error_id": error_id, "message": "Error interno controlado. Revisa Observabilidad o los logs de Render.", "path": request.path}), 500
     return render_template(
         "error_controlled.html",
         title="Error temporal controlado",
-        message="Hemos registrado el error para revisión interna. La aplicación sigue protegida y puedes volver al inicio.",
+        message="Hemos registrado el error para revision interna. La aplicacion sigue protegida y puedes volver al inicio.",
+        error_id=error_id,
+        is_admin=user_ctx.get("is_admin"),
     ), 500
 
 
@@ -9957,13 +10027,15 @@ def v607_controlled_exception(error):
     code = getattr(error, "code", 500) or 500
     if int(code) == 404:
         return v607_controlled_404(error)
-    _record_http_problem(code, "unhandled_exception", "Excepción controlada", str(error)[:1500])
+    error_id, user_ctx = _record_observability_exception(error, status_code=int(code))
     if _wants_json_response():
-        return jsonify({"ok": False, "version": APP_VERSION, "error": "controlled_exception", "message": "Error controlado por Observabilidad.", "path": request.path}), int(code)
+        return jsonify({"ok": False, "version": APP_VERSION, "error": "controlled_exception", "error_id": error_id, "message": "Error controlado por Observabilidad.", "path": request.path}), int(code)
     return render_template(
         "error_controlled.html",
         title="Incidencia controlada",
-        message="SHARK ha protegido la sesión ante una incidencia temporal. Puedes volver al inicio y continuar.",
+        message="SHARK ha protegido la sesion ante una incidencia temporal. Puedes volver al inicio y continuar.",
+        error_id=error_id,
+        is_admin=user_ctx.get("is_admin"),
     ), int(code)
 
 
@@ -9975,6 +10047,16 @@ def admin_observability_page():
     return render_template("admin_observability.html", summary=summary)
 
 
+@app.route("/admin/observability/errors")
+def admin_observability_errors_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/observability/errors")
+    error_id = (request.args.get("error_id") or "").strip()
+    errors = latest_observability_errors(DB_PATH, limit=100)
+    detail = observability_error_detail(DB_PATH, error_id) if error_id else {}
+    return render_template("admin_observability_errors.html", errors=errors, detail=detail, selected_error_id=error_id)
+
+
 @app.route("/api/observability/summary")
 def api_observability_summary():
     if not is_admin_session() and request.args.get("public") != "1":
@@ -9982,17 +10064,27 @@ def api_observability_summary():
     return jsonify({"ok": True, "version": APP_VERSION, "observability": observability_summary(DB_PATH, APP_VERSION)})
 
 
+@app.route("/api/observability/errors")
+def api_observability_errors():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    error_id = (request.args.get("error_id") or "").strip()
+    if error_id:
+        return jsonify({"ok": True, "version": APP_VERSION, "error": observability_error_detail(DB_PATH, error_id)})
+    return jsonify({"ok": True, "version": APP_VERSION, "errors": latest_observability_errors(DB_PATH, limit=100)})
+
+
 @app.route("/api/v607/observability-check")
 def api_v607_observability_check():
     critical_routes = ["/", "/live", "/picks", "/admin/data-center", "/api/health"]
     for route in critical_routes:
-        mark_route_check(DB_PATH, route, "registered", "Ruta crítica registrada para smoke check V607")
+        mark_route_check(DB_PATH, route, "registered", "Ruta critica registrada para smoke check V607")
     return jsonify({
         "ok": True,
         "version": APP_VERSION,
         "module": "Error Handling & Observability Center",
-        "routes": ["/admin/observability", "/api/observability/summary", "/api/v607/observability-check"],
-        "features": ["404 controlado", "500 controlado", "registro de eventos", "salud DB", "cola Telegram", "alertas internas"],
+        "routes": ["/admin/observability", "/admin/observability/errors", "/api/observability/summary", "/api/observability/errors", "/api/v607/observability-check"],
+        "features": ["404 controlado", "500 controlado", "registro de eventos", "errores con traceback", "salud DB", "cola Telegram", "alertas internas"],
         "summary": observability_summary(DB_PATH, APP_VERSION),
     })
 

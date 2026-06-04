@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="hero compact">
+  <div class="kicker">Admin · Observabilidad</div>
+  <h1>Errores trazados</h1>
+  <p class="lead">Ultimos errores controlados con ruta, usuario, tipo, mensaje y traceback completo.</p>
+  <div class="admin-menu">
+    <a class="btn primary" href="/admin/observability">Resumen</a>
+    <a class="btn" href="/api/observability/errors" target="_blank">API errores</a>
+    <a class="btn" href="/admin/data-center">Data Center</a>
+  </div>
+</section>
+
+<section class="band two-col">
+  <div class="card">
+    <div class="section-head"><h2>Ultimos 100 errores</h2><span class="pill">{{ errors|length }}</span></div>
+    {% for item in errors %}
+    <div class="list-row">
+      <span>
+        {{ item.created_at }} · {{ item.path or '-' }}<br>
+        <small>{{ item.error_id }} · {{ item.exception_type or 'Error' }} · {{ item.exception_message or 'Sin mensaje' }}</small><br>
+        <small>{{ item.email or item.user_id or 'anonimo' }} · {{ item.membership or '-' }}</small>
+      </span>
+      <a class="mini-link" href="/admin/observability/errors?error_id={{ item.error_id }}">Ver detalle</a>
+    </div>
+    {% else %}
+    <p class="small">Sin errores trazados todavia.</p>
+    {% endfor %}
+  </div>
+
+  <div class="card">
+    <div class="section-head"><h2>Detalle</h2><span class="pill">{{ selected_error_id or 'sin seleccion' }}</span></div>
+    {% if detail %}
+      <p class="small"><strong>ID:</strong> {{ detail.error_id }}</p>
+      <p class="small"><strong>Fecha:</strong> {{ detail.created_at }}</p>
+      <p class="small"><strong>Ruta:</strong> {{ detail.method }} {{ detail.path }}</p>
+      <p class="small"><strong>Endpoint:</strong> {{ detail.endpoint or '-' }}</p>
+      <p class="small"><strong>Usuario:</strong> {{ detail.email or detail.user_id or 'anonimo' }}</p>
+      <p class="small"><strong>Membresia:</strong> {{ detail.membership or '-' }}</p>
+      <p class="small"><strong>IP:</strong> {{ detail.ip or '-' }}</p>
+      <p class="small"><strong>Referrer:</strong> {{ detail.referrer or '-' }}</p>
+      <p class="small"><strong>User-Agent:</strong> {{ detail.user_agent or '-' }}</p>
+      <p class="small"><strong>Tipo:</strong> {{ detail.exception_type or '-' }}</p>
+      <p class="small"><strong>Mensaje:</strong> {{ detail.exception_message or '-' }}</p>
+      <pre style="white-space:pre-wrap;overflow:auto;max-height:28rem">{{ detail.traceback_full or 'Sin traceback.' }}</pre>
+    {% else %}
+      <p class="small">Selecciona un error para ver el traceback completo.</p>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

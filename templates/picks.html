@@ -61,13 +61,16 @@
   {% if data.candidate_matches %}
   <div class="grid dense-grid">
     {% for m in data.candidate_matches[:12] %}
+    {% set home_identity = m.home_identity|default({}) %}
+    {% set away_identity = m.away_identity|default({}) %}
+    {% set live_depth = m.live_depth|default({}) %}
     <article class="card match-card analysis-card">
       <div class="match-top"><div><div class="comp-name">{{ m.competition_name or m.league_name }}</div><div class="small">{{ m.match_date }} · {{ m.kickoff_time or m.match_time or 'hora por confirmar' }}</div></div><span class="tag">{{ m.pick_readiness }}</span></div>
       <div class="teams compact-teams">
-        <div class="team"><div class="crest"><img loading="lazy" src="{{ m.home_identity.crest_url }}" alt="{{ m.home_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ m.home_identity.initials }}'"></div><strong>{{ m.home_team }}</strong></div>
-        <div class="team"><div class="crest"><img loading="lazy" src="{{ m.away_identity.crest_url }}" alt="{{ m.away_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ m.away_identity.initials }}'"></div><strong>{{ m.away_team }}</strong></div>
+        <div class="team"><div class="crest"><img loading="lazy" src="{{ home_identity.get('crest_url', '') }}" alt="{{ m.home_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ home_identity.get('initials', (m.home_team or 'L')[:1]) }}'"></div><strong>{{ m.home_team }}</strong></div>
+        <div class="team"><div class="crest"><img loading="lazy" src="{{ away_identity.get('crest_url', '') }}" alt="{{ m.away_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ away_identity.get('initials', (m.away_team or 'V')[:1]) }}'"></div><strong>{{ m.away_team }}</strong></div>
       </div>
-      <div class="status"><span class="state-badge {{ m.live_depth.badge }}">{{ m.live_depth.label }}</span><span>{{ m.live_depth.minute }}</span>{% if m.bookmaker %}<span>{{ m.bookmaker }}</span>{% endif %}</div>
+      <div class="status"><span class="state-badge {{ live_depth.get('badge', 'scheduled') }}">{{ live_depth.get('label', 'Pendiente') }}</span><span>{{ live_depth.get('minute', '-') }}</span>{% if m.bookmaker %}<span>{{ m.bookmaker }}</span>{% endif %}</div>
       <div class="inline-actions"><a class="mini-link" href="/match/{{ m.id }}">Ver partido</a>{% if current_user and current_user.role == 'ADMIN' %}<a class="mini-link" href="/admin/picks">Crear pick</a>{% endif %}</div>
     </article>
     {% endfor %}
