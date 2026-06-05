@@ -364,6 +364,7 @@ def run_schema_migrations(conn):
         ("users", "membership", "TEXT DEFAULT 'FREE'"),
         ("users", "created_at", "TEXT"),
         ("users", "last_login", "TEXT"),
+        ("users", "telegram_chat_id", "TEXT"),
         ("favorites", "user_id", "TEXT"),
         ("picks", "market", "TEXT"),
         ("picks", "bookmaker", "TEXT"),
