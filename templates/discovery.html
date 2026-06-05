@@ -52,12 +52,12 @@
     {% else %}<div class="empty">Sin equipos para esta búsqueda.</div>{% endif %}
   </div>
   <div class="section-card">
-    <div class="section-head"><h2>Ligas y competiciones</h2><span class="pill">Preparadas</span></div>
+    <div class="section-head"><h2>Ligas y competici?nes</h2><span class="pill">Preparadas</span></div>
     {% if data.discovery.competitions %}
       <div class="league-list">
       {% for c in data.discovery.competitions %}<div class="league-row"><strong>{{ c.name }}</strong><small>{{ c.country or c.scope or 'Global' }}</small></div>{% endfor %}
       </div>
-    {% else %}<div class="empty">Sin competiciones para esta búsqueda.</div>{% endif %}
+    {% else %}<div class="empty">Sin competici?nes para esta búsqueda.</div>{% endif %}
   </div>
 </section>
 

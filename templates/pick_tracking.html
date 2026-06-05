@@ -59,7 +59,8 @@
             <td>{{ item.home_team }} vs {{ item.away_team }}<br><small>{{ item.league_name }}</small></td>
             <td>{{ item.selection }}<br><small>{{ item.odds }} · {{ item.risk_level }}</small></td>
             <td>{{ item.stake_euros }}€</td>
-            <td><span class="badge status-{{ item.result_status }}">{{ item.result_status or 'pending' }}</span></td>
+            {% set result_label = {'pending':'Pendiente','won':'Ganado','lost':'Perdido','void':'Nulo','saved':'Guardado','removed':'Quitado'}.get(item.result_status, item.result_status or 'Pendiente') %}
+            <td><span class="badge status-{{ item.result_status or 'pending' }}">{{ result_label }}</span></td>
             <td><button class="btn tiny remove-pick" data-pick="{{ item.pick_id }}">Quitar</button></td>
           </tr>
         {% endfor %}
@@ -78,4 +79,3 @@ document.querySelectorAll('.track-pick').forEach(btn=>btn.addEventListener('clic
 document.querySelectorAll('.remove-pick').forEach(btn=>btn.addEventListener('click', async()=>{const j=await postJson('/api/client/track-pick',{pick_id:btn.dataset.pick,action:'removed'}); if(j.ok) location.reload();}));
 </script>
 {% endblock %}
-

@@ -39,7 +39,7 @@
     <div class="section-head"><h2>Proximos partidos</h2><a class="btn small" href="/match-hub">Calendario</a></div>
     <div class="stack">
       {% for m in upcoming %}
-      <a class="list-row" href="/match/{{ m.id }}"><span>{{ m.home_team }} vs {{ m.away_team }}<small>{{ m.league_name or 'Competicion' }}</small></span><strong>{{ m.match_time or m.kickoff_iso or 'Hora' }}</strong></a>
+      <a class="list-row" href="/match/{{ m.id }}"><span>{{ m.home_team }} vs {{ m.away_team }}<small>{{ m.league_name or 'Competici?n' }}</small></span><strong>{{ m.match_time or m.kickoff_iso or 'Hora' }}</strong></a>
       {% else %}<div class="empty">No hay próximos partidos disponibles todavía. SHARK los mostrará cuando haya datos suficientes.</div>{% endfor %}
     </div>
   </div>
@@ -47,7 +47,7 @@
     <div class="section-head"><h2>Resultados recientes</h2><a class="btn small" href="/resultados">Resultados</a></div>
     <div class="stack">
       {% for m in recent %}
-      <a class="list-row" href="/match/{{ m.id }}"><span>{{ m.home_team }} vs {{ m.away_team }}<small>{{ m.league_name or 'Competicion' }}</small></span><strong>{{ m.home_score or 0 }}-{{ m.away_score or 0 }}</strong></a>
+      <a class="list-row" href="/match/{{ m.id }}"><span>{{ m.home_team }} vs {{ m.away_team }}<small>{{ m.league_name or 'Competici?n' }}</small></span><strong>{{ m.home_score or 0 }}-{{ m.away_score or 0 }}</strong></a>
       {% else %}<div class="empty">Aún no hay resultados recientes publicados.</div>{% endfor %}
     </div>
   </div>

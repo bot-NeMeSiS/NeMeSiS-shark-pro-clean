@@ -513,7 +513,7 @@ def _update_quality_metrics(conn: sqlite3.Connection) -> int:
         ("odds", odds, "OK" if odds else "PENDIENTE", "Snapshots de cuotas disponibles para value y closing line futuro."),
         ("signals", signals, "OK" if signals else "PENDIENTE", "Señales SHARK guardadas para aprendizaje propio."),
         ("team_forms", teams, "OK" if teams else "PENDIENTE", "Forma y rating historico por equipo."),
-        ("league_profiles", leagues, "OK" if leagues else "PENDIENTE", "Perfiles historicos por competicion."),
+        ("league_profiles", leagues, "OK" if leagues else "PENDIENTE", "Perfiles historicos por competici?n."),
         ("market_profiles", markets, "OK" if markets else "PENDIENTE", "Perfiles derivados por mercado de apuesta."),
         ("registered_sources", sources, "OK", "Registro legal y operativo de fuentes."),
         ("data_depth_score", coverage, "OK" if coverage >= 40 else "MEJORABLE", "Profundidad combinada eventos + cuotas + senales SHARK."),

@@ -174,6 +174,40 @@ def normalized_label(value):
     return re.sub(r"\s+", " ", text)
 
 
+def unique_by_key(items, key_func):
+    seen = set()
+    unique = []
+    for item in items or []:
+        key = key_func(item)
+        if not key or key in seen:
+            continue
+        seen.add(key)
+        unique.append(item)
+    return unique
+
+
+def competition_dedupe_key(item):
+    return (
+        str(item.get("key") or item.get("id") or "").strip().lower()
+        or slug(f"{item.get('name') or item.get('competition_name') or item.get('league_name')}:{item.get('country') or item.get('region') or item.get('scope')}")
+    )
+
+
+def unique_competitions(items):
+    return unique_by_key(items, competition_dedupe_key)
+
+
+def team_dedupe_key(item):
+    return (
+        str(item.get("key") or item.get("id") or item.get("external_id") or "").strip().lower()
+        or slug(f"{item.get('name') or item.get('team_name')}:{item.get('country') or ''}:{item.get('league') or ''}")
+    )
+
+
+def unique_teams(items):
+    return unique_by_key(items, team_dedupe_key)
+
+
 def is_fake_team_name(value):
     return normalized_label(value) in FAKE_TEAM_NAMES
 
@@ -1446,7 +1480,7 @@ def competitions():
     cached = memory_cache_get("competitions:all")
     if cached is not None:
         return cached
-    data = rows("SELECT * FROM competitions ORDER BY tier DESC, name")
+    data = unique_competitions(rows("SELECT * FROM competitions ORDER BY tier DESC, name"))
     for item in data:
         item["tags"] = json.loads(item.get("tags_json") or "[]")
     memory_cache_set("competitions:all", data, seconds=60)
@@ -1678,7 +1712,7 @@ def fetch_thesportsdb_team_by_id(external_id):
 
 def crest_sync_status():
     seed_core()
-    teams = rows("SELECT * FROM teams ORDER BY name")
+    teams = unique_teams(rows("SELECT * FROM teams ORDER BY name"))
     with_logo = [t for t in teams if t.get("logo_url")]
     without_logo = [t for t in teams if not t.get("logo_url")]
     state = one("SELECT * FROM automation_state WHERE key='sportsdb_crest_sync'")
@@ -1706,7 +1740,7 @@ def sync_sportsdb_crests(refresh=False, limit=40):
     if not thesportsdb_key():
         return {"ok": False, "sin_key": True, "processed": 0, "updated": 0, "failed": 0, "errors": ["Falta THESPORTSDB_API_KEY o THESPORTSDB_KEY."]}
     log_id = sync_log_start("sportsdb", "crests")
-    teams = rows("SELECT * FROM teams ORDER BY name")
+    teams = unique_teams(rows("SELECT * FROM teams ORDER BY name"))
     processed = 0
     updated = 0
     failed = 0
@@ -5769,7 +5803,7 @@ def shark_answer(question):
         body = f"Tu feed favorito tiene {hub['counts']['favorites']} partidos destacados para hoy."
     else:
         focus = "contexto"
-        body = "Prioridad global: competiciones top mundiales y europeas, Espana como eje fuerte y Andalucia como diferencial propio."
+        body = "Prioridad global: competici?nes top mundiales y europeas, Espana como eje fuerte y Andalucia como diferencial propio."
     return {
         "question": q,
         "focus": focus,
@@ -6772,7 +6806,7 @@ def _dashboard_data_full(lane="today", date=None):
     matches_diag = match_calendar_diagnostics()
     groups = {}
     for match in matches:
-        groups.setdefault(match.get("competition_name") or "Sin competicion", []).append(match)
+        groups.setdefault(match.get("competition_name") or "Sin competici?n", []).append(match)
     live_matches = matches if lane == "today" else get_matches(date, "today")
     return {
         "app_name": APP_NAME,
@@ -6812,7 +6846,7 @@ def _dashboard_data_full(lane="today", date=None):
         "client_source_label": client_source_label(matches_diag),
         "data_center": data_center_summary() if needs_data_center else {},
         "live": split_live([annotate_match(m) for m in live_matches]),
-        "legal_policy": "No scraping ilegal. Solo APIs permitidas, datos propios, CSV/JSON autorizado, cache persistente y revision editorial.",
+        "legal_policy": "No scraping ilegal. Solo APIs permitidas, datos propios, CSV/JSON autorizado, cache persistente y revisi?n editorial.",
         "readiness": {
             "clean_core": 100,
             "render_ready": 98,
@@ -6949,7 +6983,7 @@ def home():
 
 
 @app.route("/global")
-@app.route("/competiciones")
+@app.route("/competici?nes")
 def global_football():
     return render_template("global.html", data=dashboard_data())
 
@@ -7204,11 +7238,11 @@ def discovery_page_data():
     except Exception:
         found_matches = []
     try:
-        found_teams = rows(team_sql, ("", "", "", "", "") if not query else (query, like, like, like, like))
+        found_teams = unique_teams(rows(team_sql, ("", "", "", "", "") if not query else (query, like, like, like, like)))
     except Exception:
         found_teams = []
     try:
-        found_competitions = rows(comp_sql, ("", "", "", "") if not query else (query, like, like, like))
+        found_competitions = unique_competitions(rows(comp_sql, ("", "", "", "") if not query else (query, like, like, like)))
     except Exception:
         found_competitions = []
     try:
@@ -7264,7 +7298,7 @@ def admin_users_page():
     message = ""
     if request.method == "POST":
         updated = update_user_membership(request.form.get("user_id"), request.form.get("membership"))
-        message = "Membresia actualizada." if updated else "No se pudo actualizar ese usuario."
+        message = "Membresía actualizada." if updated else "No se pudo actualizar ese usuario."
     data = dashboard_data()
     data["users"] = list_users()
     data["admin_exists"] = admin_exists()
@@ -8167,7 +8201,7 @@ def api_team_resolve():
 @app.route("/api/teams")
 def api_teams():
     seed_core()
-    teams = rows("SELECT * FROM teams ORDER BY name")
+    teams = unique_teams(rows("SELECT * FROM teams ORDER BY name"))
     for team in teams:
         team["initials"] = initials(team.get("name"))
         team["crest_url"] = team.get("logo_url") or fallback_crest_url(team.get("name"))
@@ -8192,7 +8226,7 @@ def api_import_teams():
     if rows_payload is None:
         rows_payload = parse_payload(payload.get("payload") or "")
     if not isinstance(rows_payload, list):
-        return jsonify({"ok": False, "error": "Payload invalido. Usa rows o payload JSON/CSV."}), 400
+        return jsonify({"ok": False, "error": "Payload inv?lido. Usa rows o payload JSON/CSV."}), 400
     result = import_teams(
         rows_payload,
         payload.get("source_name") or "manual autorizado",
@@ -8210,11 +8244,11 @@ def api_import_competitions():
     if rows_payload is None:
         rows_payload = parse_payload(payload.get("payload") or "")
     if not isinstance(rows_payload, list):
-        return jsonify({"ok": False, "error": "Payload invalido. Usa rows o payload JSON/CSV."}), 400
+        return jsonify({"ok": False, "error": "Payload inv?lido. Usa rows o payload JSON/CSV."}), 400
     result = import_competitions(
         rows_payload,
-        payload.get("source_name") or "manual competiciones autorizado",
-        payload.get("legal_note") or "Competicion cargada por administrador desde fuente autorizada",
+        payload.get("source_name") or "manual competici?nes autorizado",
+        payload.get("legal_note") or "Competici?n cargada por administrador desde fuente autorizada",
     )
     return jsonify({"version": APP_VERSION, **result})
 
@@ -8222,7 +8256,7 @@ def api_import_competitions():
 @app.route("/api/crest-diagnostics")
 def api_crest_diagnostics():
     seed_core()
-    teams = rows("SELECT * FROM teams ORDER BY name")
+    teams = unique_teams(rows("SELECT * FROM teams ORDER BY name"))
     with_logo = [t for t in teams if t.get("logo_url")]
     without_logo = [t for t in teams if not t.get("logo_url")]
     status = crest_sync_status()
@@ -8328,7 +8362,7 @@ def api_import_matches():
     if rows_payload is None:
         rows_payload = parse_payload(payload.get("payload") or "")
     if not isinstance(rows_payload, list):
-        return jsonify({"ok": False, "error": "Payload invalido. Usa rows o payload JSON/CSV."}), 400
+        return jsonify({"ok": False, "error": "Payload inv?lido. Usa rows o payload JSON/CSV."}), 400
     result = import_matches(
         rows_payload,
         payload.get("source_name") or "manual autorizado",
@@ -8347,7 +8381,7 @@ def api_import_results():
     if rows_payload is None:
         rows_payload = parse_payload(payload.get("payload") or "")
     if not isinstance(rows_payload, list):
-        return jsonify({"ok": False, "error": "Payload invalido. Usa rows o payload JSON/CSV."}), 400
+        return jsonify({"ok": False, "error": "Payload inv?lido. Usa rows o payload JSON/CSV."}), 400
     result = import_results(
         rows_payload,
         payload.get("source_name") or "manual results autorizado",
@@ -8365,7 +8399,7 @@ def api_import_odds():
     if rows_payload is None:
         rows_payload = parse_payload(payload.get("payload") or "")
     if not isinstance(rows_payload, list):
-        return jsonify({"ok": False, "error": "Payload invalido. Usa rows o payload JSON/CSV."}), 400
+        return jsonify({"ok": False, "error": "Payload inv?lido. Usa rows o payload JSON/CSV."}), 400
     result = import_odds_snapshots(
         rows_payload,
         payload.get("source_name") or "manual odds autorizado",
@@ -8446,7 +8480,7 @@ def api_import_picks():
     if rows_payload is None:
         rows_payload = parse_payload(payload.get("payload") or "")
     if not isinstance(rows_payload, list):
-        return jsonify({"ok": False, "error": "Payload invalido. Usa rows o payload JSON/CSV."}), 400
+        return jsonify({"ok": False, "error": "Payload inv?lido. Usa rows o payload JSON/CSV."}), 400
     result = import_picks(
         rows_payload,
         payload.get("source_name") or "manual autorizado",
@@ -8724,7 +8758,7 @@ def api_diagnostics():
         {"name": "Perfil premium", "status": "READY", "detail": f"Perfil activo: {data['profile']['name']} / plan {data['profile']['membership_plan']}."},
         {"name": "IA SHARK Context", "status": "READY", "detail": "Contexto persistente para partido, liga, favoritos y picks recientes."},
         {"name": "Telegram Premium Delivery", "status": "READY" if data["telegram"]["configured"] else "CONFIG", "detail": "Settings, subscribers, queue, retries, logs y anti duplicados preparados."},
-        {"name": "Membresias", "status": "READY", "detail": "Planes Free, PRO y ELITE preparados para capa comercial."},
+        {"name": "Membresías", "status": "READY", "detail": "Planes Free, PRO y ELITE preparados para capa comercial."},
         {"name": "Performance cache", "status": "READY", "detail": "Cache persistente para hub, live flow y navegacion rapida."},
         {"name": "Premium mobile feel", "status": "READY", "detail": "Interacciones tactiles, spacing y tarjetas afinadas para sensacion app nativa."},
         {"name": "Arquitectura limpia", "status": "READY", "detail": "Motores separados: football population, scheduler, telegram delivery, live, match, shark, crest y cache."},
@@ -9321,7 +9355,7 @@ def v566_membership_ui(user=None):
     if membership == "FREE":
         ctx["upgrade_cards"] = [
             {"plan": "PRO", "title": "Picks y Telegram PRO", "body": "Desbloquea picks PRO, recomendaciones SHARK, riesgo, confianza y Telegram PRO.", "href": "/membresias?plan=PRO"},
-            {"plan": "ELITE", "title": "Auto Picks y SHARK completo", "body": "Accede a combinadas automaticas, value avanzado, top picks y prioridad Telegram.", "href": "/membresias?plan=ELITE"},
+            {"plan": "ELITE", "title": "Auto Picks y SHARK completo", "body": "Accede a combinadas automíticas, value avanzado, top picks y prioridad Telegram.", "href": "/membresias?plan=ELITE"},
         ]
     elif membership == "PRO":
         ctx["upgrade_cards"] = [
