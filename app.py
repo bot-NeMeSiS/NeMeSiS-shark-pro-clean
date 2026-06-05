@@ -100,7 +100,7 @@ from engines.observability_engine import (
 from blueprints.architecture import create_architecture_blueprint
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V624_ADMIN_UX_CLIENT_EXPERIENCE_POLISH"
+APP_VERSION = "V625_ELITE_PRODUCT_EXPERIENCE"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -1147,7 +1147,7 @@ COMPETITION_SEEDS = [
     ("argentina-primera", "Argentina Primera Division", "domestic", "Argentina", "South America", 85, "API legal + cache", ["america"]),
     ("mls", "Major League Soccer", "domestic", "United States", "North America", 78, "API legal + cache", ["america"]),
     ("copa-del-rey", "Copa del Rey", "domestic-cup", "Spain", "Europe", 86, "API legal + cache", ["spain", "cup"]),
-    ("andalucia-regional", "Andalucia Regional Football", "regional", "Spain", "Andalucia", 72, "Carga legal + editorial", ["regional", "andalucia"]),
+    ("andalucia-regional", "Andalucía Regional Football", "regional", "Spain", "Andalucía", 72, "Carga legal + editorial", ["regional", "andalucia"]),
 ]
 
 
@@ -1155,13 +1155,13 @@ TEAM_SEEDS = [
     ("real-madrid", "Real Madrid", "Spain", "Europe", "", "133738"),
     ("barcelona", "FC Barcelona", "Spain", "Europe", "", "133739"),
     ("atletico-madrid", "Atletico de Madrid", "Spain", "Europe", "", "133729"),
-    ("sevilla", "Sevilla FC", "Spain", "Andalucia", "", "133745"),
-    ("real-betis", "Real Betis", "Spain", "Andalucia", "", "133741"),
-    ("malaga", "Malaga CF", "Spain", "Andalucia", "", ""),
-    ("cadiz", "Cadiz CF", "Spain", "Andalucia", "", ""),
-    ("granada", "Granada CF", "Spain", "Andalucia", "", ""),
-    ("cordoba", "Cordoba CF", "Spain", "Andalucia", "", ""),
-    ("recreativo-huelva", "Recreativo de Huelva", "Spain", "Andalucia", "", ""),
+    ("sevilla", "Sevilla FC", "Spain", "Andalucía", "", "133745"),
+    ("real-betis", "Real Betis", "Spain", "Andalucía", "", "133741"),
+    ("malaga", "Malaga CF", "Spain", "Andalucía", "", ""),
+    ("cadiz", "Cadiz CF", "Spain", "Andalucía", "", ""),
+    ("granada", "Granada CF", "Spain", "Andalucía", "", ""),
+    ("cordoba", "Cordoba CF", "Spain", "Andalucía", "", ""),
+    ("recreativo-huelva", "Recreativo de Huelva", "Spain", "Andalucía", "", ""),
     ("arsenal", "Arsenal", "England", "Europe", "", "133604"),
     ("manchester-city", "Manchester City", "England", "Europe", "", "133613"),
     ("liverpool", "Liverpool", "England", "Europe", "", "133602"),
@@ -5764,7 +5764,7 @@ def shark_briefing():
         "priority": [
             "Conectar o importar fuentes legales para calendario/live.",
             "Usar picks solo cuando vengan de carga autorizada o motor propio.",
-            "Mantener Andalucia como capa diferencial dentro de cobertura mundial.",
+            "Mantener Andalucía como capa diferencial dentro de cobertura mundial.",
         ],
         "picks": picks,
         "explained_picks": explained,
@@ -5804,7 +5804,7 @@ def shark_answer(question):
         body = f"Tu feed favorito tiene {hub['counts']['favorites']} partidos destacados para hoy."
     else:
         focus = "contexto"
-        body = "Prioridad global: competici?nes top mundiales y europeas, Espana como eje fuerte y Andalucia como diferencial propio."
+        body = "Prioridad global: competiciones top mundiales y europeas, España como eje fuerte y Andalucía como diferencial propio."
     return {
         "question": q,
         "focus": focus,
@@ -6678,7 +6678,7 @@ def telegram_daily_message():
         "<b>NeMeSiS SHARK PRO</b>\n"
         f"Version: {APP_VERSION}\n"
         f"Partidos hoy: {summary['matches_today']} | Live: {summary['live_now']} | Picks: {summary['picks_ready']}\n"
-        "Cobertura: mundial primero, Espana y Andalucia como diferencial.\n"
+        "Cobertura: mundial primero, España y Andalucía como diferencial.\n"
         "Legal: solo APIs permitidas, importaciones autorizadas y cache propio."
     )
 
@@ -6807,7 +6807,7 @@ def _dashboard_data_full(lane="today", date=None):
     matches_diag = match_calendar_diagnostics()
     groups = {}
     for match in matches:
-        groups.setdefault(match.get("competition_name") or "Sin competici?n", []).append(match)
+        groups.setdefault(match.get("competition_name") or "Sin competición", []).append(match)
     live_matches = matches if lane == "today" else get_matches(date, "today")
     return {
         "app_name": APP_NAME,
@@ -6847,7 +6847,7 @@ def _dashboard_data_full(lane="today", date=None):
         "client_source_label": client_source_label(matches_diag),
         "data_center": data_center_summary() if needs_data_center else {},
         "live": split_live([annotate_match(m) for m in live_matches]),
-        "legal_policy": "No scraping ilegal. Solo APIs permitidas, datos propios, CSV/JSON autorizado, cache persistente y revisi?n editorial.",
+        "legal_policy": "No scraping ilegal. Solo APIs permitidas, datos propios, CSV/JSON autorizado, cache persistente y revisión editorial.",
         "readiness": {
             "clean_core": 100,
             "render_ready": 98,
@@ -6984,7 +6984,7 @@ def home():
 
 
 @app.route("/global")
-@app.route("/competici?nes")
+@app.route("/competiciones")
 def global_football():
     return render_template("global.html", data=dashboard_data())
 
@@ -8248,7 +8248,7 @@ def api_import_competitions():
         return jsonify({"ok": False, "error": "Payload inv?lido. Usa rows o payload JSON/CSV."}), 400
     result = import_competitions(
         rows_payload,
-        payload.get("source_name") or "manual competici?nes autorizado",
+        payload.get("source_name") or "manual competiciones autorizado",
         payload.get("legal_note") or "Competici?n cargada por administrador desde fuente autorizada",
     )
     return jsonify({"version": APP_VERSION, **result})
@@ -9094,7 +9094,7 @@ def api_admin_membership_summary():
 
 
 # ===================== V565 SPORTS DATA & PICKS PERFECTION =====================
-APP_VERSION = "V624_ADMIN_UX_CLIENT_EXPERIENCE_POLISH"
+APP_VERSION = "V625_ELITE_PRODUCT_EXPERIENCE"
 
 PRIORITY_LEAGUE_ORDER = [
     "UEFA Champions League", "Champions League", "LaLiga", "Spanish La Liga", "Premier League",

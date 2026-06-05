@@ -16,11 +16,11 @@
   <form class="card" method="post" action="/api/import-competitions">
     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
     <h2>Competici?nes</h2>
-    <div class="field"><label>Fuente</label><input name="source_name" value="manual competici?nes autorizado"></div>
+    <div class="field"><label>Fuente</label><input name="source_name" value="manual competiciones autorizado"></div>
     <div class="field"><label>Nota legal</label><input name="legal_note" value="Competici?n cargada desde fuente autorizada"></div>
     <div class="field"><label>Contenido CSV o JSON autorizado</label><textarea name="payload">name,country,region,tier,external_id,sync_status
 Primera RFEF,Spain,Spain,78,,no_data</textarea></div>
-    <button type="submit">Importar competici?nes</button>
+    <button type="submit">Importar competiciones</button>
   </form>
   <form class="card" method="post" action="/api/import-results">
     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">

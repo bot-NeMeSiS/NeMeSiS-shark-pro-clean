@@ -208,3 +208,16 @@ textarea{min-height:230px;font-family:Consolas,monospace;font-size:13px}
 .premium-empty{background:rgba(255,255,255,.025)}
 @media(max-width:1050px){.admin-groups{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:680px){.admin-groups{grid-template-columns:1fr}.admin-executive-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.executive-card{min-height:76px}}
+
+/* V625 Elite Product Experience */
+.premium-fixture-card,.directo-card,.rec-card{border-color:rgba(32,215,255,.18);box-shadow:0 14px 38px rgba(0,0,0,.18)}
+.premium-fixture-card:hover,.directo-card:hover,.rec-card:hover{border-color:rgba(32,215,255,.42);transform:translateY(-1px)}
+.mini-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px}
+.mini-metrics span{border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.035);border-radius:8px;padding:8px;font-size:11px;color:var(--muted)}
+.mini-metrics strong{display:block;color:#fff;font-size:15px;margin-top:2px}
+.compact-alerts .list-row{min-height:auto;padding:8px 10px;font-size:12px}
+.rec-card .metric-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:12px 0}
+.rec-card .metric-row span{border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:8px;background:rgba(255,255,255,.035);font-size:12px;color:var(--muted)}
+.rec-card .metric-row strong{display:block;color:#fff;margin-top:2px}
+.metric-card .metric{word-break:normal;overflow-wrap:normal}
+@media(max-width:760px){.mini-metrics,.rec-card .metric-row{grid-template-columns:1fr}.premium-fixture-card,.directo-card,.rec-card{box-shadow:none}}

@@ -3,7 +3,7 @@
 <section class="hero compact">
   <div class="kicker">Admin - Centro de datos</div>
   <h1>Población masiva de fútbol</h1>
-  <p class="lead">Centro seguro para poblar competici?nes, equipos, escudos, calendario, resultados y cuotas desde fuentes legales y cache SQLite.</p>
+  <p class="lead">Centro seguro para poblar competiciones, equipos, escudos, calendario, resultados y cuotas desde fuentes legales y cache SQLite.</p>
   <div class="admin-menu">
     <a class="btn primary" href="/admin/data-center">Centro de datos</a>
     <a class="btn" href="/admin/matches-sync">Partidos</a>
@@ -223,7 +223,7 @@
 
 <section class="band">
   <div class="grid compact-grid">
-    <div class="card"><div class="metric">{{ data.data_center.total_competitions }}</div><div class="muted">competici?nes</div></div>
+    <div class="card"><div class="metric">{{ data.data_center.total_competitions }}</div><div class="muted">competiciones</div></div>
     <div class="card"><div class="metric">{{ data.data_center.total_teams }}</div><div class="muted">equipos</div></div>
     <div class="card"><div class="metric">{{ data.data_center.total_matches }}</div><div class="muted">partidos</div></div>
     <div class="card"><div class="metric">{{ data.data_center.upcoming_matches }}</div><div class="muted">próximos</div></div>
@@ -491,13 +491,13 @@
 
 <section class="band form-grid">
   {% for action,label,detail in [
-    ('competitions','Sincronizar competici?nes','Prepara las ligas prioritarias sin inventar partidos.'),
+    ('competitions','Sincronizar competiciones','Prepara las ligas prioritarias sin inventar partidos.'),
     ('teams','Sincronizar equipos/escudos','Carga equipos reales y escudos si SportsDB devuelve datos.'),
     ('calendar','Sincronizar calendario','Trae próximos eventos y directo permitidos por SportsDB.'),
     ('live','Actualizar live','Actualiza live básico y próximos destacados.'),
     ('results','Sincronizar resultados','Guarda resultados recientes si la API los ofrece.'),
     ('odds','Sincronizar cuotas','Trae eventos/cuotas H2H respetando cache.'),
-    ('warmup','Warmup general','Ejecuta competici?nes, equipos, calendario y cuotas con control de intervalo.'),
+    ('warmup','Warmup general','Ejecuta competiciones, equipos, calendario y cuotas con control de intervalo.'),
     ('warehouse','Histórico de datos','Guarda snapshot de partidos, cuotas, picks, usuarios y métricas para SHARK/ML.'),
     ('pick_grading','Validar picks','Gradua picks con resultados disponibles y prepara aprendizaje SHARK limpio.'),
     ('telegram_autonomous','Telegram autónomo','Prepara campañas por membresía con anti-duplicados y cola segura.')
@@ -545,7 +545,7 @@
     <h2>Última actividad</h2>
     <p class="small">SportsDB: {{ data.data_center.last_sportsdb_sync.started_at or '-' }}</p>
     <p class="small">Odds: {{ data.data_center.last_odds_sync.started_at or '-' }}</p>
-    <p class="small">Sin datos: {{ data.matches_diagnostics.competitions_no_data|length }} competici?nes preparadas para import legal.</p>
+    <p class="small">Sin datos: {{ data.matches_diagnostics.competitions_no_data|length }} competiciones preparadas para import legal.</p>
   </aside>
 </section>
 

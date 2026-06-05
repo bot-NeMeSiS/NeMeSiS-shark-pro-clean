@@ -46,7 +46,7 @@
       {% endfor %}
       </div>
     {% else %}
-      <p class="small">Todavía no tienes favoritos. Añade un equipo o liga para que tu feed empiece a personalizarse.</p>
+      <div class="empty premium-empty">Sin favoritos todavía. Añade un equipo o liga para que tu feed empiece a personalizarse.</div>
     {% endif %}
   </aside>
 </section>
@@ -54,10 +54,10 @@
 <section class="band">
   <div class="section-head"><h2>Información de tus favoritos</h2><span class="pill">{{ data.favorite_insights.summary }}</span></div>
   <div class="grid compact-grid">
-    <div class="card"><div class="metric">{{ data.favorite_insights.by_kind.team|length }}</div><div class="muted">equipos favoritos</div></div>
-    <div class="card"><div class="metric">{{ data.favorite_insights.by_kind.league|length }}</div><div class="muted">ligas favoritas</div></div>
-    <div class="card"><div class="metric">{{ data.favorite_insights.by_kind.match|length }}</div><div class="muted">partidos guardados</div></div>
-    <div class="card"><div class="metric">{{ data.favorite_feed|length }}</div><div class="muted">coincidencias en calendario</div></div>
+    <div class="card"><div class="metric">{{ data.favorite_insights.by_kind.team|length or 'Sin equipos' }}</div><div class="muted">equipos favoritos</div></div>
+    <div class="card"><div class="metric">{{ data.favorite_insights.by_kind.league|length or 'Sin ligas' }}</div><div class="muted">ligas favoritas</div></div>
+    <div class="card"><div class="metric">{{ data.favorite_insights.by_kind.match|length or 'Sin partidos' }}</div><div class="muted">partidos guardados</div></div>
+    <div class="card"><div class="metric">{{ data.favorite_feed|length or 'Esperando' }}</div><div class="muted">coincidencias en calendario</div></div>
   </div>
 </section>
 
@@ -78,7 +78,7 @@
     {% endfor %}
   </div>
   {% else %}
-  <div class="empty">
+  <div class="empty premium-empty">
     Aún no hay partidos relacionados con tus favoritos. Cuando se sincronice el calendario aparecerán aquí automáticamente.
     <div class="actions"><a class="btn primary" href="/match-hub">Ver calendario</a><a class="btn" href="/picks">Ver picks</a></div>
   </div>
@@ -92,7 +92,7 @@
       {% for m in data.favorite_bundle.directo %}
       <a class="list-row" href="/match/{{ m.id }}"><span>{{ m.home_team }} vs {{ m.away_team }}</span><strong>{{ m.get('live_depth', {}).get('label', 'Programado') }}</strong></a>
       {% else %}
-      <div class="empty">Sin directos relacionados con tus favoritos ahora mismo.</div>
+      <div class="empty premium-empty">Sin directos relacionados con tus favoritos ahora mismo.</div>
       {% endfor %}
     </div>
   </div>
@@ -102,7 +102,7 @@
       {% for p in data.favorite_bundle.picks %}
       <a class="list-row" href="/picks"><span>{{ p.selection }}</span><strong>{{ p.confidence }}%</strong></a>
       {% else %}
-      <div class="empty">Sin picks conectados a tus favoritos todavía.</div>
+      <div class="empty premium-empty">Sin picks conectados a tus favoritos todavía.</div>
       {% endfor %}
     </div>
   </div>

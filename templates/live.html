@@ -13,10 +13,10 @@
 
 <section class="band compact-band">
   <div class="grid compact-grid metric-row">
-    <div class="card metric-card"><div class="metric">{{ data.match_hub.counts.live }}</div><div class="muted">en directo</div></div>
-    <div class="card metric-card"><div class="metric">{{ data.match_hub.counts.upcoming }}</div><div class="muted">próximos</div></div>
-    <div class="card metric-card"><div class="metric">{{ data.match_hub.counts.finished }}</div><div class="muted">resultados</div></div>
-    <div class="card metric-card"><div class="metric">{{ data.match_hub.counts.with_odds }}</div><div class="muted">con cuotas</div></div>
+    <div class="card metric-card"><div class="metric">{{ data.match_hub.counts.live or 'Sin directo' }}</div><div class="muted">en directo</div></div>
+    <div class="card metric-card"><div class="metric">{{ data.match_hub.counts.upcoming or 'Esperando' }}</div><div class="muted">próximos</div></div>
+    <div class="card metric-card"><div class="metric">{{ data.match_hub.counts.finished or 'Sin resultados' }}</div><div class="muted">resultados</div></div>
+    <div class="card metric-card"><div class="metric">{{ data.match_hub.counts.with_odds or 'Sin cuotas' }}</div><div class="muted">con cuotas</div></div>
   </div>
 </section>
 
@@ -90,7 +90,7 @@
     {% endfor %}
   </div>
   {% else %}
-  <div class="empty">No hay partidos en directo ahora mismo. SHARK mostrar el directo cuando haya datos suficientes.</div>
+  <div class="empty premium-empty">No hay próximos destacados ahora mismo. SHARK los mostrará cuando haya datos suficientes.</div>
   {% endif %}
 </section>
 
@@ -109,8 +109,7 @@
     </a>
     {% endfor %}
   </div>
-  {% else %}<div class="empty">Aún no hay resultados pasados guardados para las competici?nes sincronizadas.</div>{% endif %}
+  {% else %}<div class="empty premium-empty">Aún no hay resultados pasados guardados para las competiciones sincronizadas.</div>{% endif %}
 </section>
 {% endblock %}
-
 
