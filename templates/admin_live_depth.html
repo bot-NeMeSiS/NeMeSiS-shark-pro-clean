@@ -28,7 +28,7 @@
         <a class="match-row" href="/match/{{ match.id }}">
           <span class="badge directo">{{ match.v554_stats.label }}</span>
           <strong>{{ match.home_team }} vs {{ match.away_team }}</strong>
-          <small>{{ match.league_name or match.competition_name }} · momentum {{ match.v554_stats.intensity }}% · eventos {{ match.live_depth.event_count or match.timeline|length }}</small>
+          <small>{{ match.league_name or match.competition_name }} · momentum {{ match.get('v554_stats', {}).get('intensity', 0) }}% · eventos {{ match.get('live_depth', {}).get('event_count') or (match.get('timeline', [])|length) }}</small>
         </a>
       {% endfor %}
       </div>

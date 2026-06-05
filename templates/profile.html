@@ -95,7 +95,7 @@
     <div class="stack">
       {% set profile_matches = data.matches if data.matches else data.upcoming_matches %}
       {% for m in profile_matches[:5] %}
-      <a class="list-row" href="/match/{{ m.id }}"><span>{{ m.home_team }} vs {{ m.away_team }}</span><strong>{{ m.live_depth.label }}</strong></a>
+      <a class="list-row" href="/match/{{ m.id }}"><span>{{ m.home_team }} vs {{ m.away_team }}</span><strong>{{ m.get('live_depth', {}).get('label', 'Programado') }}</strong></a>
       {% else %}
       <div class="empty">No hay partidos disponibles todavía.El calendario se completará cuando haya datos suficientes.</div>
       {% endfor %}
