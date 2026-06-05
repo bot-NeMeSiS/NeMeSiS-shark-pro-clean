@@ -43,6 +43,11 @@
       <p class="small"><strong>Tipo:</strong> {{ detail.exception_type or '-' }}</p>
       <p class="small"><strong>Mensaje:</strong> {{ detail.exception_message or '-' }}</p>
       <pre style="white-space:pre-wrap;overflow:auto;max-height:28rem">{{ detail.traceback_full or 'Sin traceback.' }}</pre>
+    {% elif detail_missing %}
+      <div class="empty">
+        <strong>Error ID no encontrado en esta base local.</strong>
+        <p class="small">Si el ID procede de Render, consulta la base persistente de producción o los logs de Render. La API devuelve <code>found=false</code> para este caso.</p>
+      </div>
     {% else %}
       <p class="small">Selecciona un error para ver el traceback completo.</p>
     {% endif %}

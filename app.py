@@ -100,7 +100,7 @@ from engines.observability_engine import (
 from blueprints.architecture import create_architecture_blueprint
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V620_RUNTIME_LOGIN_REPAIR"
+APP_VERSION = "V622_COMMERCIAL_PRODUCT_HARDENING"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -4850,9 +4850,39 @@ def match_sort_tuple(match):
     return (kickoff or f"{match.get('match_date') or ''}T{hour}", hour, priority, str(match.get("home_team") or ""))
 
 
+def match_dedupe_key(match):
+    external = str(match.get("external_id") or "").strip().lower()
+    source = str(match.get("source") or "").strip().lower()
+    if external:
+        return f"external:{source}:{external}"
+    return "|".join(
+        [
+            normalized_label(match.get("match_date") or str(match.get("kickoff_iso") or "")[:10]),
+            normalized_label(match.get("kickoff_time") or match.get("match_time") or ""),
+            normalized_label(match.get("competition_name") or match.get("league_name") or match.get("competition_key") or ""),
+            normalized_label(match.get("home_team") or ""),
+            normalized_label(match.get("away_team") or ""),
+        ]
+    )
+
+
+def unique_matches(matches):
+    unique = []
+    seen = set()
+    for raw in matches or []:
+        if not raw:
+            continue
+        key = match_dedupe_key(raw)
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(raw)
+    return unique
+
+
 def grouped_match_calendar(matches):
     days_map = {}
-    for raw in matches or []:
+    for raw in unique_matches(matches):
         match = dict(raw)
         day_key = match.get("match_date") or (str(match.get("kickoff_iso") or "")[:10] if match.get("kickoff_iso") else "sin-fecha")
         league_name = league_display_name(match)
@@ -4891,7 +4921,7 @@ def get_results_matches(start_date=None, days_back=14, limit=150):
                WHERE match_date>=? AND match_date<?
                ORDER BY match_date DESC, kickoff_time, competition_name
                LIMIT ?"""
-    data = [item for item in rows(query, (start, start_date, int(limit))) if not is_fake_match(item)]
+    data = unique_matches([item for item in rows(query, (start, start_date, int(limit))) if not is_fake_match(item)])
     enriched = []
     for item in data:
         item["kickoff_time"] = item.get("kickoff_time") or item.get("match_time") or ""
@@ -6635,7 +6665,7 @@ def get_matches(date=None, lane="today"):
     elif lane == "andalucia":
         clauses.append("lower(competition_key)='andalucia-regional'")
     query = "SELECT * FROM matches WHERE " + " AND ".join(clauses) + " ORDER BY priority DESC, kickoff_time, competition_name LIMIT 150"
-    data = [item for item in rows(query, params) if not is_fake_match(item)]
+    data = unique_matches([item for item in rows(query, params) if not is_fake_match(item)])
     identity_cache = {}
 
     def cached_identity(team_name):
@@ -6671,7 +6701,7 @@ def get_upcoming_matches(start_date=None, days=7, limit=150):
                WHERE match_date>=? AND match_date<=?
                ORDER BY match_date, kickoff_time, priority DESC, competition_name
                LIMIT ?"""
-    data = [item for item in rows(query, (start_date, end_date, int(limit))) if not is_fake_match(item)]
+    data = unique_matches([item for item in rows(query, (start_date, end_date, int(limit))) if not is_fake_match(item)])
     identity_cache = {}
 
     def cached_identity(team_name):
@@ -6717,7 +6747,7 @@ def _dashboard_data_full(lane="today", date=None):
         request_path = ""
     is_admin_view = request_path.startswith("/admin") and request_path not in {"/admin-login", "/admin-bootstrap"}
     needs_data_center = is_admin_view
-    needs_performance = is_admin_view or request_path in {"/dashboard", "/pick-tracking"}
+    needs_performance = is_admin_view or request_path in {"/dashboard", "/pick-tracking", "/seguimiento"}
     needs_pick_discovery = request_path in {"/picks", "/combis", "/auto-picks", "/picks-automaticos"}
     needs_favorite_bundle = request_path in {"/favorites", "/favoritos", "/dashboard", "/perfil", "/profile"}
     needs_client_activity = request_path in {"/actividad", "/alertas", "/dashboard", "/perfil", "/profile", "/mi-dia", "/briefing"}
@@ -6867,6 +6897,31 @@ def service_worker():
     return Response(body, mimetype="application/javascript")
 
 
+def empty_match_hub(lane="today", date=None):
+    return {
+        "date": date or today_iso(),
+        "lane": lane or "today",
+        "sync": {},
+        "live": [],
+        "today": [],
+        "upcoming": [],
+        "finished": [],
+        "results": [],
+        "popular": [],
+        "favorites": [],
+        "with_picks": [],
+        "with_odds": [],
+        "by_country": {},
+        "top_leagues": [],
+        "calendar_grouped": [],
+        "live_grouped": [],
+        "favorites_grouped": [],
+        "grouping_policy": "Datos preparando.",
+        "empty_state": "SHARK mostrará nuevos partidos cuando haya datos suficientes.",
+        "counts": {"live": 0, "today": 0, "upcoming": 0, "finished": 0, "favorites": 0, "with_picks": 0, "with_odds": 0},
+    }
+
+
 def light_home_data():
     """Datos mínimos para que / responda rápido en Render sin disparar dashboard pesado."""
     return {
@@ -6874,7 +6929,7 @@ def light_home_data():
         "version": APP_VERSION,
         "date": today_iso(),
         "client_alerts": [],
-        "match_hub": {"counts": {"upcoming": 0, "live": 0, "today": 0, "finished": 0}},
+        "match_hub": empty_match_hub(),
         "picks": [],
         "favorites": [],
         "upcoming_matches": [],
@@ -7058,6 +7113,141 @@ def admin_redirect():
     if not is_admin_session():
         return redirect("/admin-login?next=/admin/data-center")
     return redirect("/admin/data-center")
+
+
+@app.route("/admin/architecture")
+@app.route("/admin/betting-center")
+@app.route("/admin/intelligence-center")
+@app.route("/admin/intelligence-engine")
+@app.route("/admin/launch-center")
+@app.route("/admin/pick-performance")
+@app.route("/admin/retention-center")
+@app.route("/admin/support-center")
+@app.route("/admin/autonomous-picks")
+def admin_legacy_center_aliases():
+    if not is_admin_session():
+        return redirect(f"/admin-login?next={request.path}")
+    target_map = {
+        "/admin/architecture": "/admin/data-center",
+        "/admin/betting-center": "/admin/picks",
+        "/admin/intelligence-center": "/admin/unified-intelligence",
+        "/admin/intelligence-engine": "/admin/unified-intelligence",
+        "/admin/launch-center": "/admin/beta-center",
+        "/admin/pick-performance": "/admin/data-center",
+        "/admin/retention-center": "/admin/users",
+        "/admin/support-center": "/admin/data-center",
+        "/admin/autonomous-picks": "/admin/picks",
+    }
+    return redirect(target_map.get(request.path, "/admin/data-center"))
+
+
+def support_page_data(sent=False, error=""):
+    return {
+        "app_name": APP_NAME,
+        "version": APP_VERSION,
+        "session_user": current_session_user(),
+        "sent": sent,
+        "error": error,
+        "support_tips": [
+            {"title": "Partidos y directo", "body": "Indica el partido, la liga y la pantalla donde viste el problema."},
+            {"title": "Picks y Telegram", "body": "Añade si era un pick publicado, una recomendación o un aviso de Telegram."},
+            {"title": "Cuenta y membresía", "body": "Describe qué plan tienes activo y qué esperabas desbloquear."},
+        ],
+    }
+
+
+@app.route("/soporte", methods=["GET", "POST"])
+def soporte_alias_page():
+    sent = False
+    error = ""
+    if request.method == "POST":
+        subject = (request.form.get("subject") or "").strip()
+        message = (request.form.get("message") or "").strip()
+        if not subject or not message:
+            error = "Escribe un asunto y un mensaje para que podamos revisarlo."
+        else:
+            record_user_activity(
+                "support_request",
+                request.form.get("category") or "general",
+                hashlib.sha1(f"{subject}:{now_iso()}".encode("utf-8")).hexdigest()[:12],
+                {
+                    "priority": request.form.get("priority") or "normal",
+                    "subject": subject[:180],
+                    "message": message[:1200],
+                },
+            )
+            sent = True
+    return render_template("support.html", data=support_page_data(sent=sent, error=error))
+
+
+def discovery_page_data():
+    query = (request.args.get("q") or "").strip()
+    scope = request.args.get("scope") or "all"
+    like = f"%{query}%"
+    params = (like, like, like)
+    match_sql = """SELECT * FROM matches
+                   WHERE (?='' OR home_team LIKE ? OR away_team LIKE ? OR competition_name LIKE ? OR league_name LIKE ?)
+                   ORDER BY match_date DESC, kickoff_time DESC LIMIT 20"""
+    match_params = ("", "", "", "", "") if not query else (query, like, like, like, like)
+    team_sql = """SELECT * FROM teams
+                  WHERE (?='' OR name LIKE ? OR key LIKE ? OR league LIKE ? OR country LIKE ?)
+                  ORDER BY name LIMIT 16"""
+    comp_sql = """SELECT * FROM competitions
+                  WHERE (?='' OR name LIKE ? OR country LIKE ? OR scope LIKE ?)
+                  ORDER BY priority DESC, name LIMIT 16"""
+    pick_sql = """SELECT * FROM picks
+                  WHERE lower(coalesce(status,''))='published'
+                    AND (?='' OR home_team LIKE ? OR away_team LIKE ? OR selection LIKE ? OR league_name LIKE ?)
+                  ORDER BY COALESCE(published_at, updated_at, created_at, '') DESC LIMIT 12"""
+    try:
+        found_matches = [annotate_match(m) for m in unique_matches(rows(match_sql, match_params))]
+    except Exception:
+        found_matches = []
+    try:
+        found_teams = rows(team_sql, ("", "", "", "", "") if not query else (query, like, like, like, like))
+    except Exception:
+        found_teams = []
+    try:
+        found_competitions = rows(comp_sql, ("", "", "", "") if not query else (query, like, like, like))
+    except Exception:
+        found_competitions = []
+    try:
+        found_picks = [normalize_pick_row(p) for p in rows(pick_sql, ("", "", "", "", "") if not query else (query, like, like, like, like))]
+    except Exception:
+        found_picks = []
+    return {
+        "query": query,
+        "scope": scope,
+        "matches": [] if scope not in {"all", "matches"} else found_matches,
+        "teams": [] if scope not in {"all", "teams"} else found_teams,
+        "competitions": [] if scope not in {"all", "competitions"} else found_competitions,
+        "picks": [] if scope not in {"all", "picks"} else found_picks,
+        "counts": {
+            "matches": len(found_matches),
+            "teams": len(found_teams),
+            "competitions": len(found_competitions),
+            "picks": len(found_picks),
+        },
+        "quick_filters": [
+            {"label": "Partidos de hoy", "href": "/explorar?scope=matches"},
+            {"label": "Picks publicados", "href": "/explorar?scope=picks"},
+            {"label": "Ligas", "href": "/explorar?scope=competitions"},
+        ],
+    }
+
+
+@app.route("/explorar")
+def discovery_page():
+    data = light_home_data()
+    data["discovery"] = discovery_page_data()
+    return render_template("discovery.html", data=data)
+
+
+@app.route("/seguimiento")
+def seguimiento_alias_page():
+    if not current_session_user():
+        return redirect("/cliente-login?next=/seguimiento")
+    return render_template("pick_tracking.html", data=dashboard_data())
 
 
 @app.route("/admin/import-center")
@@ -8869,7 +9059,7 @@ def api_admin_membership_summary():
 
 
 # ===================== V565 SPORTS DATA & PICKS PERFECTION =====================
-APP_VERSION = "V620_RUNTIME_LOGIN_REPAIR"
+APP_VERSION = "V622_COMMERCIAL_PRODUCT_HARDENING"
 
 PRIORITY_LEAGUE_ORDER = [
     "UEFA Champions League", "Champions League", "LaLiga", "Spanish La Liga", "Premier League",
@@ -10096,7 +10286,13 @@ def admin_observability_errors_page():
     error_id = (request.args.get("error_id") or "").strip()
     errors = latest_observability_errors(DB_PATH, limit=100)
     detail = observability_error_detail(DB_PATH, error_id) if error_id else {}
-    return render_template("admin_observability_errors.html", errors=errors, detail=detail, selected_error_id=error_id)
+    return render_template(
+        "admin_observability_errors.html",
+        errors=errors,
+        detail=detail,
+        selected_error_id=error_id,
+        detail_missing=bool(error_id and not detail),
+    )
 
 
 @app.route("/api/observability/summary")
@@ -10112,7 +10308,15 @@ def api_observability_errors():
         return admin_json_forbidden()
     error_id = (request.args.get("error_id") or "").strip()
     if error_id:
-        return jsonify({"ok": True, "version": APP_VERSION, "error": observability_error_detail(DB_PATH, error_id)})
+        detail = observability_error_detail(DB_PATH, error_id)
+        return jsonify({
+            "ok": True,
+            "version": APP_VERSION,
+            "found": bool(detail),
+            "error_id": error_id,
+            "error": detail,
+            "message": "" if detail else "Error ID no encontrado en esta base de datos. Revisa la DB persistente de Render o los logs de producción.",
+        })
     return jsonify({"ok": True, "version": APP_VERSION, "errors": latest_observability_errors(DB_PATH, limit=100)})
 
 

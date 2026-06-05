@@ -1,1 +1,0 @@
-- 2026-06-04T11:01:16: V614 aplicado. Cambios: version a V614, cache TTL en beta/data-center, scheduler no arranca tras auth/HEAD, handler 500 legacy consolidado con V607, admin/data-center blindado con safe_engine_payload, compileall OK, diff/report/zip generados. Limitacion: sin smoke HTTP real por falta de Flask en el runtime local.
