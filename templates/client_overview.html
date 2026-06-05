@@ -4,7 +4,7 @@
   <div>
     <div class="kicker">Inicio</div>
     <h1>Lo importante de hoy</h1>
-    <p class="lead">Picks, directo, favoritos, próximos importantes y SHARK en una pantalla limpia.</p>
+    <p class="lead">Picks, directo, favoritos, próximos importantes y SHARK en una pantalla limpia y accionable.</p>
     <div class="actions">
       <a class="btn primary" href="/picks">Ver picks</a>
       <a class="btn" href="/recomendaciones">Recomendaciones</a>
@@ -15,10 +15,10 @@
   <aside class="hero-panel">
     <span class="pill">{{ summary.membership }}</span>
     <div class="directo-strip">
-      <div><span>Próximos</span><strong>{{ summary.matches.upcoming }}</strong></div>
-      <div><span>Directo</span><strong>{{ summary.matches.directo }}</strong></div>
-      <div><span>Picks</span><strong>{{ summary.picks.published }}</strong></div>
-      <div><span>Favs</span><strong>{{ summary.favorites.total }}</strong></div>
+      <div><span>Próximos</span><strong>{{ summary.matches.upcoming or 'Sin agenda' }}</strong></div>
+      <div><span>Directo</span><strong>{{ summary.matches.directo or 'Sin directo' }}</strong></div>
+      <div><span>Picks</span><strong>{{ summary.picks.published or 'Sin picks' }}</strong></div>
+      <div><span>Favoritos</span><strong>{{ summary.favorites.total or 'Sin favoritos' }}</strong></div>
     </div>
   </aside>
 </section>
@@ -55,7 +55,7 @@
     <div class="stack">
       {% for m in upcoming[:6] %}
       <a class="list-row" href="/match/{{ m.id }}"><span>{{ m.home_team }} vs {{ m.away_team }}<small>{{ m.league_name or m.competition_name or 'Competición' }}</small></span><strong>{{ m.kickoff_time or m.match_time or 'Hora' }}</strong></a>
-      {% else %}<div class="empty premium-empty">Aún no hay partidos listos. Cuando haya datos suficientes aparecerán aquí.</div>{% endfor %}
+      {% else %}<div class="empty premium-empty">Esperando sincronización deportiva. Cuando haya partidos fiables aparecerán aquí.</div>{% endfor %}
     </div>
   </div>
   <div>

@@ -185,3 +185,26 @@ textarea{min-height:230px;font-family:Consolas,monospace;font-size:13px}
 .cards-4{grid-template-columns:repeat(4,minmax(0,1fr))}
 @media(max-width:900px){.cards-4{grid-template-columns:repeat(2,minmax(0,1fr))}.score-number{font-size:34px}}
 @media(max-width:640px){.cards-4,.cards-3,.cards-2{grid-template-columns:1fr}.score-card{width:100%}}
+
+/* V624 Admin UX & Client Experience Polish */
+.admin-executive-hero h1{font-size:clamp(30px,4.4vw,52px)}
+.executive-status-panel{display:grid;gap:10px;align-self:stretch}
+.status-stack{display:grid;gap:8px}
+.status-stack div{display:flex;justify-content:space-between;gap:10px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.04);border-radius:8px;padding:10px}
+.status-stack span,.executive-card span{font-size:11px;color:var(--muted);font-weight:950;text-transform:uppercase}
+.status-stack strong.ok{color:var(--green)}.status-stack strong.warn{color:var(--gold)}
+.admin-executive-grid{grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:10px}
+.executive-card{min-height:86px;display:grid;align-content:space-between;gap:10px;text-decoration:none}
+.executive-card strong{font-size:clamp(18px,2.4vw,30px);line-height:1.05;color:#fff}
+.executive-card.tone-success{border-color:rgba(57,217,138,.32)}.executive-card.tone-warning{border-color:rgba(247,198,93,.38)}.executive-card.tone-pro{border-color:rgba(96,165,250,.35)}.executive-card.tone-elite{border-color:rgba(247,198,93,.45)}
+.admin-groups{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.admin-group{min-height:auto;padding:12px}
+.group-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.group-head h3{margin:0;font-size:17px}.group-head span{color:var(--muted);font-size:12px}
+.admin-tool-list{display:grid;gap:8px}
+.admin-tool{display:grid;gap:2px;border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:10px;background:rgba(255,255,255,.035)}
+.admin-tool:hover{border-color:rgba(32,215,255,.38);background:rgba(32,215,255,.07)}
+.admin-tool small{color:var(--muted);line-height:1.35}
+.premium-empty{background:rgba(255,255,255,.025)}
+@media(max-width:1050px){.admin-groups{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:680px){.admin-groups{grid-template-columns:1fr}.admin-executive-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.executive-card{min-height:76px}}

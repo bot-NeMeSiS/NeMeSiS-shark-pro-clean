@@ -100,7 +100,7 @@ from engines.observability_engine import (
 from blueprints.architecture import create_architecture_blueprint
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V623_RUNTIME_TEMPLATE_HARDENING"
+APP_VERSION = "V624_ADMIN_UX_CLIENT_EXPERIENCE_POLISH"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -9094,7 +9094,7 @@ def api_admin_membership_summary():
 
 
 # ===================== V565 SPORTS DATA & PICKS PERFECTION =====================
-APP_VERSION = "V623_RUNTIME_TEMPLATE_HARDENING"
+APP_VERSION = "V624_ADMIN_UX_CLIENT_EXPERIENCE_POLISH"
 
 PRIORITY_LEAGUE_ORDER = [
     "UEFA Champions League", "Champions League", "LaLiga", "Spanish La Liga", "Premier League",
@@ -9402,6 +9402,71 @@ def v566_admin_items():
     ]
 
 
+def v624_admin_executive_summary():
+    performance = safe_engine_payload(lambda: shark_performance_summary(DB_PATH), {"summary": {}})
+    perf_summary = performance.get("summary") or {}
+    telegram = safe_engine_payload(telegram_diagnostics, {"token_present": False, "chat_id_present": False, "pending": 0, "failed_today": 0})
+    odds = safe_engine_payload(odds_diagnostics, {"enabled": False, "key_present": False, "odds_snapshots": 0})
+    shark_learning = safe_engine_payload(lambda: build_shark_learning_profile(DB_PATH), {"sample_size": 0, "reliability": 0})
+    users_total = safe_count("users")
+    users_pro = safe_count("users", "upper(coalesce(membership, role, 'FREE'))='PRO'")
+    users_elite = safe_count("users", "upper(coalesce(membership, role, 'FREE'))='ELITE'")
+    users_connected = safe_count("users", "coalesce(last_login,'')>=?", (today_iso(),))
+    picks_active = safe_count("picks", "lower(coalesce(status,''))='published'")
+    matches_today = safe_count("matches", "match_date=?", (today_iso(),))
+    api_ready = bool(odds.get("enabled") or odds.get("key_present") or thesportsdb_key())
+    telegram_ready = bool((telegram.get("token_present") and telegram.get("chat_id_present")) or telegram.get("subscribers"))
+    shark_ready = bool((perf_summary.get("sample_size") or 0) or (shark_learning.get("sample_size") or 0) or picks_active)
+    return {
+        "cards": [
+            {"label": "Usuarios totales", "value": users_total, "empty": "Sin usuarios todavía", "href": "/admin/users", "tone": "neutral"},
+            {"label": "Usuarios PRO", "value": users_pro, "empty": "Sin usuarios PRO", "href": "/admin/memberships", "tone": "pro"},
+            {"label": "Usuarios ELITE", "value": users_elite, "empty": "Sin usuarios ELITE", "href": "/admin/memberships", "tone": "elite"},
+            {"label": "Conectados hoy", "value": users_connected, "empty": "Sin usuarios conectados", "href": "/admin/users", "tone": "neutral"},
+            {"label": "Picks activos", "value": picks_active, "empty": "Sin picks activos", "href": "/admin/picks", "tone": "success"},
+            {"label": "Partidos hoy", "value": matches_today, "empty": "Esperando sincronización", "href": "/match-hub", "tone": "neutral"},
+            {"label": "ROI global", "value": f"{perf_summary.get('roi') or 0}%", "empty": "Sin histórico cerrado", "href": "/admin/data-center", "tone": "success"},
+            {"label": "Telegram", "value": "OK" if telegram_ready else "Pendiente", "empty": "Pendiente", "href": "/admin/telegram", "tone": "success" if telegram_ready else "warning"},
+            {"label": "SHARK", "value": "Activo" if shark_ready else "Preparado", "empty": "Preparado", "href": "/admin/shark-center", "tone": "success"},
+            {"label": "APIs", "value": "OK" if api_ready else "Configurar", "empty": "Configurar", "href": "/admin/data-center", "tone": "success" if api_ready else "warning"},
+        ],
+        "status": {
+            "telegram": telegram,
+            "odds": odds,
+            "performance": perf_summary,
+            "api_ready": api_ready,
+            "telegram_ready": telegram_ready,
+            "shark_ready": shark_ready,
+        },
+        "groups": [
+            {"name": "Operaciones", "items": [
+                {"title": "Usuarios", "body": "Altas, roles, actividad y acceso.", "href": "/admin/users"},
+                {"title": "Membresías", "body": "FREE, PRO, ELITE y conversión.", "href": "/admin/memberships"},
+                {"title": "Picks", "body": "Publicación, edición y señales.", "href": "/admin/picks"},
+                {"title": "Telegram", "body": "Cola, pruebas y entregas.", "href": "/admin/telegram"},
+            ]},
+            {"name": "Inteligencia", "items": [
+                {"title": "SHARK", "body": "Centro IA y memoria.", "href": "/admin/shark-center"},
+                {"title": "Accuracy", "body": "Precisión y calibración.", "href": "/admin/unified-intelligence"},
+                {"title": "ROI", "body": "Rendimiento histórico.", "href": "/admin/data-center"},
+                {"title": "Learning", "body": "Aprendizaje por liga y mercado.", "href": "/admin/unified-intelligence"},
+            ]},
+            {"name": "Datos", "items": [
+                {"title": "Warehouse", "body": "Histórico y persistencia.", "href": "/admin/data-center"},
+                {"title": "APIs", "body": "Fuentes, cuotas y escudos.", "href": "/admin/data-center"},
+                {"title": "Live", "body": "Directo, estados y eventos.", "href": "/admin/live-depth"},
+                {"title": "Calendario", "body": "Partidos y resultados.", "href": "/match-hub"},
+            ]},
+            {"name": "Sistema", "items": [
+                {"title": "Observabilidad", "body": "Errores recientes y salud.", "href": "/admin/observability"},
+                {"title": "Runtime", "body": "Versión y arranque.", "href": "/api/runtime-version"},
+                {"title": "Scheduler", "body": "Ciclos automáticos.", "href": "/api/scheduler/status"},
+                {"title": "Data Center", "body": "Operación avanzada.", "href": "/admin/data-center"},
+            ]},
+        ],
+    }
+
+
 def v566_product_polish_report():
     client_routes = ["/", "/dashboard", "/menu", "/live", "/live-depth", "/match-hub", "/resultados", "/picks", "/recomendaciones", "/auto-picks", "/combis", "/favorites", "/shark", "/telegram", "/perfil", "/membresias", "/juego-responsable", "/legal"]
     admin_routes = ["/admin/dashboard", "/admin/users", "/admin/memberships", "/admin/picks", "/admin/recommendations", "/admin/telegram", "/admin/data-center", "/admin/final-qa", "/admin/unified-intelligence"]
@@ -9600,7 +9665,7 @@ def v566_intelligence_hub_page():
 def v566_admin_dashboard_page():
     if not is_admin_session():
         return redirect("/admin-login?next=/admin/dashboard")
-    return render_template("admin_dashboard.html", data=dashboard_data(), q=quality_center_summary(), items=v566_admin_items())
+    return render_template("admin_dashboard.html", data=dashboard_data(), q=quality_center_summary(), executive=v624_admin_executive_summary())
 
 
 @app.route("/admin/recommendations", methods=["GET", "POST"])

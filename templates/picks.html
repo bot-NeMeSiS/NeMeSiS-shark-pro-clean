@@ -26,7 +26,7 @@
 {% endif %}
 
 <section class="band compact-band">
-  <div class="section-head"><h2>Picks DESTACADO disponibles</h2><span class="pill">{{ data.smart_picks.hot|length }}</span></div>
+  <div class="section-head"><h2>Picks destacados disponibles</h2><span class="pill">{{ data.smart_picks.hot|length or 'Sin picks activos' }}</span></div>
   {% if data.smart_picks.hot %}
   <div class="grid dense-grid">
     {% for p in data.smart_picks.hot %}
@@ -35,9 +35,9 @@
       <h3>{{ p.home_team }}{% if p.away_team %} vs {{ p.away_team }}{% endif %}</h3>
       <p class="selection">{{ p.selection }}</p>
       <div class="status"><span>Cuota {{ p.odds }}</span><span>Confianza SHARK {{ p.confidence }}%</span><span>{{ p.risk_level }}</span></div>
-      <p class="small"><strong>Por qu entrar:</strong> {{ p.reasoning or 'Pick publicado por el equipo SHARK.' }}</p>
+      <p class="small"><strong>Por qué entrar:</strong> {{ p.reasoning or 'Pick publicado por el equipo SHARK.' }}</p>
       {% if p.learning_explanation %}<p class="small"><strong>Ajuste histórico:</strong> {{ p.learning_explanation }}</p>{% endif %}
-      <p class="small"><strong>Riesgos detectados:</strong> {{ p.warning_reason or 'Gestiona importe y banca; ningun pick es seguro.' }}</p>
+      <p class="small"><strong>Riesgos detectados:</strong> {{ p.warning_reason or 'Gestiona importe y banca; ningún pick es seguro.' }}</p>
       <div class="metric-row mini-metrics">
         <span>Importe sugerido <strong>{{ p.stake_units }}u</strong></span>
         <span>Valor detectado <strong>{% if p.odds and p.confidence %}{{ p.confidence }}%{% else %}Contextual{% endif %}</strong></span>
@@ -76,7 +76,7 @@
     {% endfor %}
   </div>
   {% else %}
-  <div class="empty premium-empty">SHARK está analizando los próximos partidos. Las recomendaciones aparecerán automáticamente cuando haya datos suficientes.</div>
+      <div class="empty premium-empty">SHARK está analizando los próximos partidos. Las recomendaciones aparecerán automáticamente cuando haya datos suficientes.</div>
   {% endif %}
 </section>
 
@@ -91,4 +91,3 @@
 </section>
 {% endif %}
 {% endblock %}
-
