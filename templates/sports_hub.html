@@ -2,89 +2,101 @@
 {% block content %}
 {% set hub = data.sports_hub %}
 {% set shark = data.shark_product %}
-<section class="hero product-hero v626-hero">
-  <div class="kicker">Sports Hub</div>
-  <h1>Todo lo importante en segundos</h1>
-  <p class="lead">Partidos de hoy, directos, picks, SHARK, favoritos y competiciones principales en una pantalla compacta.</p>
-  <div class="actions">
-    <a class="btn primary" href="/live">Directo</a>
-    <a class="btn" href="/calendar">Calendario</a>
-    <a class="btn" href="/picks">Picks</a>
-    <a class="btn" href="/favorites">Favoritos</a>
-  </div>
-</section>
-
-<section class="band compact-band">
-  <div class="grid compact-grid metric-row v626-kpis">
-    <div class="card metric-card"><div class="metric">{{ hub.counts.today or hub.today|length }}</div><div class="muted">partidos hoy</div></div>
-    <div class="card metric-card"><div class="metric">{{ hub.live|length or 'Sin directo' }}</div><div class="muted">directos</div></div>
-    <div class="card metric-card"><div class="metric">{{ hub.picks|length }}</div><div class="muted">picks visibles</div></div>
-    <div class="card metric-card"><div class="metric">{{ shark.score or 'SHARK' }}</div><div class="muted">score destacado</div></div>
-  </div>
-</section>
-
-<section class="band compact-band v626-sports-band">
-  <div class="section-head"><h2>Partidos de hoy</h2><a class="pill" href="/calendar">Abrir calendario</a></div>
-  <div class="sports-list">
-    {% for m in hub.today[:14] %}
-    {% set home_identity = m.home_identity|default({}) %}
-    {% set away_identity = m.away_identity|default({}) %}
-    {% set live_depth = m.live_depth|default({}) %}
-    <a class="sports-row" href="/match/{{ m.id }}">
-      <div class="sports-time"><strong>{{ live_depth.get('minute') or m.kickoff_time or m.match_time or '--:--' }}</strong><span>{{ live_depth.get('label') or 'Próximo' }}</span></div>
-      <div class="sports-team home"><span class="crest compact-crest"><img loading="lazy" src="{{ home_identity.get('crest_url','') }}" alt="{{ m.home_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ home_identity.get('initials', (m.home_team or 'L')[:1]) }}'"></span><strong>{{ m.home_team }}</strong></div>
-      <div class="sports-score"><strong>{{ live_depth.get('score') or m.score or 'vs' }}</strong><span>{{ m.competition_name or m.league_name }}</span></div>
-      <div class="sports-team away"><span class="crest compact-crest"><img loading="lazy" src="{{ away_identity.get('crest_url','') }}" alt="{{ m.away_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ away_identity.get('initials', (m.away_team or 'V')[:1]) }}'"></span><strong>{{ m.away_team }}</strong></div>
-      <div class="sports-meta"><span class="state-badge {{ live_depth.get('badge', 'upcoming') }}">{{ live_depth.get('label') or 'Detalle' }}</span></div>
-    </a>
-    {% else %}
-    <div class="empty premium-empty">No hay partidos cargados para hoy. El calendario se completará cuando haya datos suficientes.</div>
-    {% endfor %}
-  </div>
-</section>
-
-<section class="band two-col compact-band">
+<section class="hero product-hero v626-hero v633-command-hero">
   <div>
-    <div class="section-head"><h2>Picks destacados</h2><a class="pill" href="/picks">Ver picks</a></div>
+    <div class="kicker">Sports Hub</div>
+    <h1>Tu central deportiva de hoy</h1>
+    <p class="lead">Directos, partidos importantes, picks SHARK, favoritos y competiciones principales en una vista rápida para abrir NeMeSiS antes que cualquier otra app.</p>
+    <div class="actions">
+      <a class="btn primary" href="/live">🔴 Directos</a>
+      <a class="btn" href="/calendar">⚽ Hoy</a>
+      <a class="btn" href="/picks">🦈 Picks</a>
+      <a class="btn" href="/favorites">⭐ Favoritos</a>
+    </div>
+  </div>
+  <aside class="hero-panel v633-shark-panel">
+    <span class="pill">Pick SHARK del día</span>
+    <div class="big-score">{{ shark.score or '—' }}</div>
+    <p class="small"><strong>Confianza:</strong> {{ shark.confidence or 0 }}% · <strong>Riesgo:</strong> {{ shark.risk or 'Medio' }}</p>
+    <p class="small">{{ shark.reason or 'SHARK está esperando datos suficientes para recomendar con responsabilidad.' }}</p>
+  </aside>
+</section>
+
+<section class="band compact-band v633-pulse-band">
+  <div class="grid compact-grid metric-row v633-kpis">
+    <a class="card metric-card v633-kpi" href="/calendar"><span>⚽</span><div class="metric">{{ hub.counts.today or hub.today|length or 0 }}</div><div class="muted">partidos hoy</div></a>
+    <a class="card metric-card v633-kpi hot" href="/live"><span>🔴</span><div class="metric">{{ hub.live|length or 0 }}</div><div class="muted">directos ahora</div></a>
+    <a class="card metric-card v633-kpi" href="/picks"><span>🦈</span><div class="metric">{{ hub.picks|length or 0 }}</div><div class="muted">picks activos</div></a>
+    <a class="card metric-card v633-kpi" href="/favorites"><span>⭐</span><div class="metric">{{ hub.favorites|length or 0 }}</div><div class="muted">favoritos</div></a>
+  </div>
+</section>
+
+<section class="band compact-band v633-priority-grid">
+  <div class="v633-main-feed">
+    <div class="section-head"><h2>🔴 Directos ahora</h2><a class="pill" href="/live">Abrir live</a></div>
+    <div class="sports-list v633-ultra-list">
+      {% for m in hub.live[:8] %}
+      {% set home_identity = m.home_identity|default({}) %}
+      {% set away_identity = m.away_identity|default({}) %}
+      {% set live_depth = m.live_depth|default({}) %}
+      <a class="sports-row live-sports-row v633-live-row" href="/match/{{ m.id }}">
+        <div class="sports-time live-time"><strong>{{ live_depth.get('minute') or 'LIVE' }}</strong><span>{{ live_depth.get('label', 'En directo') }}</span></div>
+        <div class="sports-team home"><span class="crest compact-crest">{% if home_identity.get('crest_url') %}<img loading="lazy" src="{{ home_identity.get('crest_url') }}" alt="{{ m.home_team }}">{% else %}{{ home_identity.get('initials', (m.home_team or 'L')[:1]) }}{% endif %}</span><strong>{{ m.home_team or 'Local' }}</strong></div>
+        <div class="sports-score"><strong>{{ live_depth.get('score') or m.score or '0 - 0' }}</strong><span>SHARK {{ live_depth.get('momentum', shark.score or 0) }}</span></div>
+        <div class="sports-team away"><span class="crest compact-crest">{% if away_identity.get('crest_url') %}<img loading="lazy" src="{{ away_identity.get('crest_url') }}" alt="{{ m.away_team }}">{% else %}{{ away_identity.get('initials', (m.away_team or 'V')[:1]) }}{% endif %}</span><strong>{{ m.away_team or 'Visitante' }}</strong></div>
+        <div class="sports-meta"><span class="state-badge live">{{ live_depth.get('label', 'Live') }}</span></div>
+      </a>
+      {% else %}
+      <div class="empty premium-empty"><strong>No hay directos ahora.</strong><p>Cuando empiecen partidos aparecerán aquí sin que tengas que buscar.</p></div>
+      {% endfor %}
+    </div>
+
+    <div class="section-head mt-soft"><h2>⚽ Partidos importantes de hoy</h2><a class="pill" href="/calendar">Calendario</a></div>
+    <div class="sports-list v633-ultra-list">
+      {% for m in hub.today[:12] %}
+      {% set home_identity = m.home_identity|default({}) %}
+      {% set away_identity = m.away_identity|default({}) %}
+      {% set live_depth = m.live_depth|default({}) %}
+      <a class="sports-row v633-match-row" href="/match/{{ m.id }}">
+        <div class="sports-time"><strong>{{ m.kickoff_time or m.match_time or live_depth.get('minute') or '--:--' }}</strong><span>{{ live_depth.get('label') or 'Hoy' }}</span></div>
+        <div class="sports-team home"><span class="crest compact-crest">{% if home_identity.get('crest_url') %}<img loading="lazy" src="{{ home_identity.get('crest_url') }}" alt="{{ m.home_team }}">{% else %}{{ home_identity.get('initials', (m.home_team or 'L')[:1]) }}{% endif %}</span><strong>{{ m.home_team or 'Local' }}</strong></div>
+        <div class="sports-score"><strong>{{ live_depth.get('score') or m.score or 'vs' }}</strong><span>{{ m.competition_name or m.league_name or 'Competición' }}</span></div>
+        <div class="sports-team away"><span class="crest compact-crest">{% if away_identity.get('crest_url') %}<img loading="lazy" src="{{ away_identity.get('crest_url') }}" alt="{{ m.away_team }}">{% else %}{{ away_identity.get('initials', (m.away_team or 'V')[:1]) }}{% endif %}</span><strong>{{ m.away_team or 'Visitante' }}</strong></div>
+        <div class="sports-meta"><span class="state-badge upcoming">Detalle</span></div>
+      </a>
+      {% else %}
+      <div class="empty premium-empty">Esperando sincronización deportiva. Los partidos aparecerán aquí cuando haya datos fiables.</div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <aside class="v633-side-feed">
+    <div class="section-head"><h2>🦈 Picks destacados</h2><a class="pill" href="/picks">Ver todos</a></div>
     <div class="stack">
       {% for p in hub.picks[:5] %}
-      <a class="list-row" href="/picks"><span>{{ p.selection }}<small>{{ p.home_team }} vs {{ p.away_team }} · {{ p.reasoning or 'Pick SHARK publicado.' }}</small></span><strong>{{ p.confidence }}%</strong></a>
+      <a class="list-row v633-pick-mini" href="/picks"><span>{{ p.selection or p.title or 'Pick SHARK' }}<small>{{ p.home_team }}{% if p.away_team %} vs {{ p.away_team }}{% endif %} · {{ p.reasoning or p.reason or 'Valor detectado por SHARK.' }}</small></span><strong>{{ p.confidence or p.score or 0 }}%</strong></a>
       {% else %}
-      <div class="empty premium-empty">Sin picks publicados ahora mismo. SHARK no inventa apuestas.</div>
+      <div class="empty premium-empty">Sin picks activos. SHARK no fuerza recomendaciones si no ve valor.</div>
       {% endfor %}
     </div>
-  </div>
-  <div>
-    <div class="section-head"><h2>SHARK destacado</h2><a class="pill" href="/shark">Preguntar</a></div>
-    <article class="card shark-product-card">
-      <div class="shark-scoreline"><strong>{{ shark.score or 0 }}</strong><span>Score SHARK</span></div>
-      <p><strong>Confianza:</strong> {{ shark.confidence or 0 }}% · <strong>Riesgo:</strong> {{ shark.risk }}</p>
-      <p class="small"><strong>Motivo:</strong> {{ shark.reason }}</p>
-      <p class="small"><strong>Value:</strong> {{ shark.value }}</p>
-    </article>
-  </div>
-</section>
 
-<section class="band two-col compact-band">
-  <div>
-    <div class="section-head"><h2>Favoritos</h2><a class="pill" href="/favorites">Gestionar</a></div>
+    <div class="section-head mt-soft"><h2>⭐ Favoritos</h2><a class="pill" href="/favorites">Gestionar</a></div>
     <div class="stack">
-      {% for m in hub.favorites[:6] %}
-      <a class="list-row" href="/match/{{ m.id }}"><span>{{ m.home_team }} vs {{ m.away_team }}<small>{{ m.competition_name or m.league_name }}</small></span><strong>{{ m.get('live_depth', {}).get('label', 'Próximo') }}</strong></a>
+      {% for m in hub.favorites[:5] %}
+      <a class="list-row" href="/match/{{ m.id }}"><span>{{ m.home_team }} vs {{ m.away_team }}<small>{{ m.competition_name or m.league_name or 'Competición' }}</small></span><strong>{{ m.get('live_depth', {}).get('label', 'Hoy') }}</strong></a>
       {% else %}
-      <div class="empty premium-empty">Añade equipos o ligas para activar tu feed deportivo personal.</div>
+      <div class="empty premium-empty">Añade favoritos para crear tu feed personal.</div>
       {% endfor %}
     </div>
-  </div>
-  <div>
-    <div class="section-head"><h2>Competiciones principales</h2><a class="pill" href="/match-hub">Todas</a></div>
+
+    <div class="section-head mt-soft"><h2>🌍 Competiciones</h2><a class="pill" href="/match-hub">Todas</a></div>
     <div class="stack">
-      {% for c in hub.top_leagues[:6] %}
+      {% for c in hub.top_leagues[:5] %}
       <a class="list-row" href="/match-hub"><span>{{ c.name or c.competition_name }}<small>{{ c.country or 'Global' }}</small></span><strong>Top</strong></a>
       {% else %}
-      <div class="empty premium-empty">Las competiciones aparecerán tras la sincronización.</div>
+      <div class="empty premium-empty">Las competiciones se completarán tras sincronizar datos.</div>
       {% endfor %}
     </div>
-  </div>
+  </aside>
 </section>
 {% endblock %}

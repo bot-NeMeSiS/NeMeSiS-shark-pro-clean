@@ -1,58 +1,58 @@
 {% extends "base.html" %}
 {% block content %}
 {% set shark = data.shark_product %}
-<section class="hero compact product-hero v626-hero">
-  <div class="kicker">SHARK Product Experience</div>
-  <h1>SHARK explicado claro</h1>
-  <p class="lead">Score, confianza, riesgo, motivo y value en lenguaje simple. Si faltan datos reales, SHARK lo dice antes de recomendar.</p>
-  <div class="actions"><a class="btn primary" href="/sports-hub">Sports Hub</a><a class="btn" href="/picks">Picks</a><a class="btn" href="/favorites">Favoritos</a></div>
+<section class="hero product-hero v626-hero v633-command-hero">
+  <div>
+    <div class="kicker">SHARK Product Experience</div>
+    <h1>SHARK explicado en lenguaje humano</h1>
+    <p class="lead">Score, confianza, riesgo, value y motivo principal sin ruido técnico. El objetivo es que entiendas rápido por qué SHARK ve o no ve valor.</p>
+    <div class="actions"><a class="btn primary" href="/sports-hub">Sports Hub</a><a class="btn" href="/picks">Picks</a><a class="btn" href="/recomendaciones">Recomendaciones</a></div>
+  </div>
+  <aside class="hero-panel v633-shark-panel">
+    <span class="pill">Score SHARK</span>
+    <div class="big-score">{{ shark.score or 0 }}</div>
+    <p class="small"><strong>Confianza:</strong> {{ shark.confidence or 0 }}% · <strong>Riesgo:</strong> {{ shark.risk or 'Medio' }}</p>
+  </aside>
 </section>
 
-{% if not current_user or current_user.membership not in ['ELITE','ADMIN'] %}
-<section class="band compact-band"><div class="notice">SHARK completo queda reservado para ELITE. FREE/PRO mantienen preguntas básicas, favoritos, directo y picks disponibles sin inventar datos.</div></section>
-{% endif %}
-
 <section class="band compact-band">
-  <div class="grid compact-grid shark-product-grid">
-    <article class="card shark-product-card"><span>SHARK Score</span><strong>{{ shark.score or 0 }}</strong><p class="small">Lectura rápida del valor detectado.</p></article>
-    <article class="card shark-product-card"><span>Confianza</span><strong>{{ shark.confidence or 0 }}%</strong><p class="small">Qué tan sólida parece la señal.</p></article>
-    <article class="card shark-product-card"><span>Riesgo</span><strong>{{ shark.risk }}</strong><p class="small">Precaución antes de entrar.</p></article>
-    <article class="card shark-product-card"><span>Value</span><strong>{{ shark.value }}</strong><p class="small">Si hay cuota o contexto interesante.</p></article>
+  <div class="grid shark-product-grid v633-shark-grid">
+    <article class="card shark-product-card"><span>SHARK Score</span><strong>{{ shark.score or 0 }}</strong><p class="small">Puntuación global de la oportunidad detectada.</p></article>
+    <article class="card shark-product-card"><span>Confianza</span><strong>{{ shark.confidence or 0 }}%</strong><p class="small">Nivel de seguridad estimado con los datos actuales.</p></article>
+    <article class="card shark-product-card"><span>Riesgo</span><strong>{{ shark.risk or 'Medio' }}</strong><p class="small">Lectura rápida del peligro de entrada.</p></article>
+    <article class="card shark-product-card"><span>Value</span><strong>{{ shark.value or 'Pendiente' }}</strong><p class="small">Indica si la cuota o señal merece atención.</p></article>
   </div>
 </section>
 
 <section class="band two-col compact-band">
-  <div>
-    <div class="section-head"><h2>Motivo principal</h2><span class="pill">explicado</span></div>
-    <article class="card">
-      <p>{{ shark.reason }}</p>
-      <p class="small">{{ shark.summary }}</p>
-    </article>
-  </div>
-  <div>
-    <div class="section-head"><h2>Contexto rápido</h2><span class="pill">{{ data.briefing.risk.level }}</span></div>
-    <div class="grid compact-grid">
-      <div class="card"><div class="metric">{{ data.briefing.summary.matches_today }}</div><div class="muted">partidos hoy</div></div>
-      <div class="card"><div class="metric">{{ data.briefing.summary.directo_now }}</div><div class="muted">en directo</div></div>
-      <div class="card"><div class="metric">{{ data.briefing.summary.picks_ready }}</div><div class="muted">picks listos</div></div>
-      <div class="card"><div class="metric">{{ data.briefing.risk.level }}</div><div class="muted">riesgo general</div></div>
-    </div>
-  </div>
+  <article class="card v633-explain-card">
+    <div class="section-head"><h2>Por qué lo dice SHARK</h2><span class="pill">Resumen</span></div>
+    <p>{{ shark.reason or shark.summary or 'SHARK espera datos suficientes antes de recomendar. No se inventan picks.' }}</p>
+    <p class="small">{{ shark.summary or 'Combina calendario, forma disponible, picks, cuotas, favoritos e histórico para explicar oportunidades.' }}</p>
+  </article>
+  <article class="card v633-explain-card">
+    <div class="section-head"><h2>Cómo leerlo</h2><span class="pill">Simple</span></div>
+    <ul class="clean-list">
+      <li><strong>Score alto:</strong> oportunidad más interesante.</li>
+      <li><strong>Confianza alta:</strong> mejor encaje con los datos.</li>
+      <li><strong>Riesgo bajo:</strong> menos señales en contra.</li>
+      <li><strong>Value detectado:</strong> posible ventaja sobre la cuota.</li>
+    </ul>
+  </article>
 </section>
 
 <section class="band compact-band">
-  <div class="section-head"><h2>Oportunidades explicadas</h2><span class="pill">{{ shark['items']|length }}</span></div>
+  <div class="section-head"><h2>Señales SHARK disponibles</h2><a class="pill" href="/picks">Picks</a></div>
   <div class="grid dense-grid">
-    {% for p in shark['items'] %}
-    <article class="card pick-card rec-card">
-      <div class="card-topline"><span class="badge">{{ p.membership_required or p.value_label or 'SHARK' }}</span><span class="muted">{{ p.league_name or p.competition_name }}</span></div>
-      <h3>{{ p.home_team }}{% if p.away_team %} vs {{ p.away_team }}{% endif %}</h3>
-      <div class="metric-row"><span>Score <strong>{{ p.score or p.confidence or 0 }}</strong></span><span>Confianza <strong>{{ p.confidence or p.score or 0 }}%</strong></span><span>Riesgo <strong>{{ p.risk_level or p.risk or 'Medio' }}</strong></span></div>
-      <p><strong>{{ p.selection }}</strong>{% if p.odds %} <span class="chip">Cuota {{ p.odds }}</span>{% endif %}</p>
-      <p class="small"><strong>Motivo:</strong> {{ p.reasoning or p.reason or 'SHARK espera más datos antes de concluir.' }}</p>
+    {% for item in shark.items[:6] %}
+    <article class="card rec-card v633-signal-card">
+      <div class="card-topline"><span class="badge">SHARK</span><span class="muted">{{ item.league_name or item.market or 'Señal' }}</span></div>
+      <h3>{{ item.home_team or item.title or 'Oportunidad' }}{% if item.away_team %} vs {{ item.away_team }}{% endif %}</h3>
+      <div class="metric-row"><span>Score <strong>{{ item.shark_score or item.score or item.confidence or 0 }}/100</strong></span><span>Confianza <strong>{{ item.confidence or item.score or 0 }}%</strong></span><span>Riesgo <strong>{{ item.risk_level or item.risk or 'Medio' }}</strong></span></div>
+      <p class="small"><strong>Motivo:</strong> {{ item.reasoning or item.reason or 'Análisis pendiente de datos suficientes.' }}</p>
     </article>
     {% else %}
-    <div class="empty premium-empty">No hay oportunidades listas. SHARK esperará datos suficientes antes de mostrar señales.</div>
+    <div class="empty premium-empty">SHARK no tiene señales activas ahora mismo. Cuando haya valor real aparecerá aquí.</div>
     {% endfor %}
   </div>
 </section>

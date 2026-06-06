@@ -102,7 +102,7 @@ from engines.observability_engine import (
 from blueprints.architecture import create_architecture_blueprint
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V631_ELITE_COMMERCIAL_EVOLUTION"
+APP_VERSION = "V633_USER_DOMINANCE_EXPERIENCE"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -8740,7 +8740,7 @@ def api_import_competitions():
     result = import_competitions(
         rows_payload,
         payload.get("source_name") or "manual competiciones autorizado",
-        payload.get("legal_note") or "Competici?n cargada por administrador desde fuente autorizada",
+        payload.get("legal_note") or "Competición cargada por administrador desde fuente autorizada",
     )
     return jsonify({"version": APP_VERSION, **result})
 

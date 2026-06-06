@@ -3,8 +3,8 @@
 {% set view_mode = request.args.get('view', 'compact') %}
 <section class="hero compact directo-hero product-hero v626-hero">
   <div class="kicker">Live Center</div>
-  <h1>Directo tipo marcador profesional</h1>
-  <p class="lead">Escudos, marcador, minuto y estado en una lectura rápida. La vista detallada conserva momentum, timeline y alertas SHARK.</p>
+  <h1>Directo premium en lectura rápida</h1>
+  <p class="lead">Marcador protagonista, minuto visible, escudos y SHARK resumido. La vista detallada mantiene momentum y alertas.</p>
   <div class="actions">
     <a class="btn primary" href="/match-hub?lane=live">Solo directos</a>
     <a class="btn {% if view_mode == 'compact' %}active{% endif %}" href="/live?view=compact">Compacta</a>
@@ -22,8 +22,8 @@
   </div>
 </section>
 
-<section class="band compact-band v626-sports-band">
-  <div class="section-head"><h2>En directo por liga</h2><span class="pill">{{ data.match_hub.counts.live }}</span></div>
+<section class="band compact-band v626-sports-band v633-live-band">
+  <div class="section-head"><h2>🔴 En directo por liga</h2><span class="pill">{{ data.match_hub.counts.live }}</span></div>
   {% if data.match_hub.live_grouped %}
     <div class="league-stack compact-leagues">
       {% for league in data.match_hub.live_grouped %}
