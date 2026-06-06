@@ -102,7 +102,7 @@ from engines.observability_engine import (
 from blueprints.architecture import create_architecture_blueprint
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V626_COMPACT_SPORTS_EXPERIENCE"
+APP_VERSION = "V631_ELITE_COMMERCIAL_EVOLUTION"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -3334,6 +3334,160 @@ def run_due_scheduler_tasks(force=False, startup=False):
     except Exception:
         pass
     return {"ok": True, "startup": startup, "tasks": results, "errors": [e for r in results for e in (r.get("errors") or [])]}
+
+
+def daily_automation_due(force=False):
+    if force:
+        return True
+    now = datetime.now(TZ)
+    if now.hour < 10:
+        return False
+    last = automation_get("daily_autonomous_system", {}) or {}
+    return str(last.get("date") or "") != today_iso()
+
+
+def expire_memberships_job():
+    checked = 0
+    expired = 0
+    for user in rows("SELECT * FROM users ORDER BY created_at DESC LIMIT 500"):
+        before = normalize_role(user.get("membership"))
+        after = user_public(user) or {}
+        checked += 1
+        if before not in {"FREE", "ADMIN"} and normalize_role(after.get("membership")) == "FREE":
+            expired += 1
+            try:
+                record_security_event(DB_PATH, event_type="membership_expired", severity="INFO", ip_address="", user_id=user.get("id"), username=user.get("username"), path="", method="SYSTEM", success=True, reason="Membresía temporal caducada automáticamente.")
+            except Exception:
+                pass
+    return {"ok": True, "processed": checked, "expired": expired}
+
+
+def run_daily_autonomous_system(force=False):
+    if not daily_automation_due(force=force):
+        return {"ok": True, "skipped": True, "reason": "waiting_for_10_madrid_or_already_ran", "date": today_iso()}
+    started = time.time()
+    started_at = now_iso()
+    result = {
+        "ok": True,
+        "date": today_iso(),
+        "started_at": started_at,
+        "finished_at": "",
+        "duration_seconds": 0,
+        "status": "RUNNING",
+        "errors": [],
+        "tasks": {},
+        "matches_synced": 0,
+        "picks_generated": 0,
+        "picks_sent": 0,
+        "backups_created": 0,
+    }
+    startup_log("SCHEDULER", "daily autonomous system started", {"force": force, "date": result["date"]})
+    task_map = [
+        ("competitions", lambda: sync_sportsdb_competitions()),
+        ("calendar", lambda: run_scheduler_task("calendar", force=force, limit=120)),
+        ("live", lambda: run_scheduler_task("live", force=force, limit=80)),
+        ("results", lambda: sync_sportsdb_results(limit=80)),
+        ("recommendations", lambda: run_scheduler_task("recommendations", force=force, limit=40)),
+        ("auto_picks", lambda: run_autonomous_pick_cycle(limit=40, force=force)),
+        ("telegram", lambda: telegram_scheduler_delivery(force=force)),
+        ("memberships", expire_memberships_job),
+        ("backup", lambda: create_database_backup(reason="daily_autonomous_system")),
+        ("warehouse", lambda: run_scheduler_task("warehouse", force=force, limit=160)),
+        ("roi", lambda: rebuild_shark_performance(DB_PATH, limit=500)),
+    ]
+    for name, factory in task_map:
+        try:
+            item = factory() or {"ok": True}
+            result["tasks"][name] = item
+            if not item.get("ok", True):
+                result["errors"].extend([str(e) for e in item.get("errors") or [item.get("error") or name] if e])
+        except Exception as exc:
+            result["tasks"][name] = {"ok": False, "error": str(exc)[:220]}
+            result["errors"].append(f"{name}: {str(exc)[:160]}")
+    result["matches_synced"] = sum(as_int((result["tasks"].get(k) or {}).get("processed"), 0) for k in ["calendar", "live", "results", "competitions"])
+    result["picks_generated"] = as_int((result["tasks"].get("auto_picks") or {}).get("saved"), 0)
+    result["picks_sent"] = as_int((result["tasks"].get("auto_picks") or {}).get("sent"), 0) + as_int((result["tasks"].get("telegram") or {}).get("sent"), 0)
+    result["backups_created"] = 1 if (result["tasks"].get("backup") or {}).get("ok") else 0
+    result["finished_at"] = now_iso()
+    result["duration_seconds"] = round(time.time() - started, 2)
+    result["status"] = "OK" if not result["errors"] else "PARTIAL"
+    result["ok"] = not result["errors"]
+    automation_set("daily_autonomous_system", result)
+    try:
+        record_security_event(DB_PATH, event_type="daily_automation", severity="INFO", ip_address=client_ip() if has_request_context() else "", user_id=(current_session_user() or {}).get("id") if has_request_context() else "", username=(current_session_user() or {}).get("username") if has_request_context() else "system", path=request.path if has_request_context() else "", method=request.method if has_request_context() else "SYSTEM", success=result["ok"], reason=f"Automatización diaria {result['status']} en {result['duration_seconds']}s")
+    except Exception:
+        pass
+    startup_log("SCHEDULER", "daily autonomous system finished", {"status": result["status"], "duration": result["duration_seconds"], "errors": len(result["errors"])})
+    return result
+
+
+def daily_automation_summary():
+    last = automation_get("daily_autonomous_system", {}) or {}
+    return {
+        "last": last,
+        "next_run_label": "Hoy 10:00 Europe/Madrid" if str(last.get("date") or "") != today_iso() else "Mañana 10:00 Europe/Madrid",
+        "enabled": scheduler_enabled(),
+        "due_now": daily_automation_due(force=False),
+    }
+
+
+def sports_hub_data():
+    data = dashboard_data()
+    hub = data.get("match_hub") or empty_match_hub()
+    picks = published_picks_for_user(current_session_user() or {"membership": "FREE"}, limit=6)
+    recs = v565_recommendation_pool(limit=8)
+    return {
+        "date": today_iso(),
+        "today": hub.get("today") or data.get("matches", [])[:14],
+        "live": hub.get("live", [])[:10],
+        "picks": picks[:6],
+        "recommendations": recs[:6],
+        "favorites": favorite_feed(limit=8),
+        "top_leagues": (hub.get("top_leagues") or competitions())[:8],
+        "counts": hub.get("counts") or {},
+    }
+
+
+def shark_product_context():
+    picks = published_picks_for_user(current_session_user() or {"membership": "FREE"}, limit=5)
+    recs = v565_recommendation_pool(limit=5)
+    best = picks[0] if picks else (recs[0] if recs else {})
+    score = as_int(best.get("confidence") or best.get("score"), 0)
+    return {
+        "score": score,
+        "confidence": score,
+        "risk": best.get("risk_level") or best.get("risk") or "Medio",
+        "reason": best.get("reasoning") or best.get("reason") or "SHARK espera datos suficientes antes de recomendar.",
+        "value": best.get("value_label") or ("Detectado" if best.get("odds") else "Pendiente"),
+        "summary": "SHARK combina calendario, picks, cuotas disponibles, favoritos e histórico para explicar oportunidades sin inventar datos.",
+        "items": picks or recs,
+    }
+
+
+def commercial_intelligence_data():
+    today = today_iso()
+    soon = (datetime.now(TZ).date() + timedelta(days=7)).isoformat()
+    free_active = safe_count("users", "upper(coalesce(membership, role, 'FREE'))='FREE' AND coalesce(last_login,'')>=?", (today,))
+    expiring = safe_count("users", "membership_end_date IS NOT NULL AND membership_end_date!='' AND membership_end_date>=? AND membership_end_date<=?", (today, soon))
+    no_telegram = safe_count("users", "coalesce(telegram_chat_id,'')=''", ())
+    pro = safe_count("users", "upper(coalesce(membership, role, 'FREE'))='PRO'")
+    elite = safe_count("users", "upper(coalesce(membership, role, 'FREE'))='ELITE'")
+    inactive = safe_count("users", "coalesce(last_login,'')='' OR last_login<?", ((datetime.now(TZ).date() - timedelta(days=14)).isoformat(),))
+    users = list_users()
+    return {
+        "cards": [
+            {"label": "FREE activos", "value": free_active, "body": "Potencial de upgrade a PRO."},
+            {"label": "Próximos a expirar", "value": expiring, "body": "Contactar antes de perder valor."},
+            {"label": "Sin Telegram", "value": no_telegram, "body": "Oportunidad de activación."},
+            {"label": "Usuarios PRO", "value": pro, "body": "Base comercial intermedia."},
+            {"label": "Usuarios ELITE", "value": elite, "body": "Clientes VIP."},
+            {"label": "Inactivos", "value": inactive, "body": "Recuperables con mensaje simple."},
+        ],
+        "upgrade_opportunities": [u for u in users if u.get("membership") == "FREE"][:10],
+        "expiring_users": [u for u in users if u.get("membership_end_date") and (u.get("membership_days_left") is not None and u.get("membership_days_left") <= 7)][:10],
+        "vip_users": [u for u in users if u.get("membership") in {"ELITE", "ADMIN"}][:10],
+        "recent_activity": client_activity_feed(limit=12),
+    }
 
 
 def scheduler_status():
@@ -9070,6 +9224,7 @@ def schedule_auto_sync_if_needed():
     def _worker():
         try:
             seed_core()
+            run_daily_autonomous_system(force=False)
             run_due_scheduler_tasks(force=False, startup=True)
         except Exception as exc:
             print("NeMeSiS SHARK PRO: auto sync skipped:", str(exc)[:220])
@@ -9382,7 +9537,7 @@ def api_admin_membership_summary():
 
 
 # ===================== V565 SPORTS DATA & PICKS PERFECTION =====================
-APP_VERSION = "V626_COMPACT_SPORTS_EXPERIENCE"
+APP_VERSION = "V631_ELITE_COMMERCIAL_EVOLUTION"
 
 PRIORITY_LEAGUE_ORDER = [
     "UEFA Champions League", "Champions League", "LaLiga", "Spanish La Liga", "Premier League",
