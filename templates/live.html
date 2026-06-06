@@ -1,18 +1,20 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 {% block content %}
-<section class="hero compact directo-hero product-hero">
-  <div class="kicker">Directo Center Pro</div>
-  <h1>Directos, próximos y resultados sin falsos LIVE</h1>
-  <p class="lead">Centro compacto con estados claros: Próximo, En directo, Descanso o Finalizado. Si no hay directo real, mostramos próximos destacados.</p>
+{% set view_mode = request.args.get('view', 'compact') %}
+<section class="hero compact directo-hero product-hero v626-hero">
+  <div class="kicker">Live Center</div>
+  <h1>Directo tipo marcador profesional</h1>
+  <p class="lead">Escudos, marcador, minuto y estado en una lectura rápida. La vista detallada conserva momentum, timeline y alertas SHARK.</p>
   <div class="actions">
     <a class="btn primary" href="/match-hub?lane=live">Solo directos</a>
+    <a class="btn {% if view_mode == 'compact' %}active{% endif %}" href="/live?view=compact">Compacta</a>
+    <a class="btn {% if view_mode == 'detailed' %}active{% endif %}" href="/live?view=detailed">Detallada</a>
     <a class="btn" href="/resultados">Resultados</a>
-    <a class="btn" href="/favorites">Favoritos</a>
   </div>
 </section>
 
 <section class="band compact-band">
-  <div class="grid compact-grid metric-row">
+  <div class="grid compact-grid metric-row v626-kpis">
     <div class="card metric-card"><div class="metric">{{ data.match_hub.counts.live or 'Sin directo' }}</div><div class="muted">en directo</div></div>
     <div class="card metric-card"><div class="metric">{{ data.match_hub.counts.upcoming or 'Esperando' }}</div><div class="muted">próximos</div></div>
     <div class="card metric-card"><div class="metric">{{ data.match_hub.counts.finished or 'Sin resultados' }}</div><div class="muted">resultados</div></div>
@@ -20,47 +22,39 @@
   </div>
 </section>
 
-<section class="band compact-band">
+<section class="band compact-band v626-sports-band">
   <div class="section-head"><h2>En directo por liga</h2><span class="pill">{{ data.match_hub.counts.live }}</span></div>
   {% if data.match_hub.live_grouped %}
     <div class="league-stack compact-leagues">
       {% for league in data.match_hub.live_grouped %}
-      <div class="league-block directo-league-block">
+      <div class="league-block v626-league-block">
         <div class="league-head"><div><strong>{{ league.name }}</strong><div class="small">{{ league.country }} · {{ league.category }}</div></div><span class="pill">{{ league.count }}</span></div>
-        <div class="grid dense-grid">
+        <div class="sports-list {% if view_mode == 'detailed' %}sports-list-detailed{% endif %}">
         {% for m in league.matches %}
           {% set home_identity = m.home_identity|default({}) %}
           {% set away_identity = m.away_identity|default({}) %}
           {% set live_depth = m.live_depth|default({}) %}
-          <a class="card match-card directo-card" href="/match/{{ m.id }}">
-            <div class="match-top"><div><div class="comp-name">{{ m.competition_name or m.league_name }}</div><div class="small">{{ m.match_date }} · {{ m.kickoff_time or 'hora por confirmar' }}</div></div><div class="time">{{ live_depth.get('minute', '-') }}</div></div>
-            <div class="teams compact-teams">
-              <div class="team"><div class="crest"><img loading="lazy" src="{{ home_identity.get('crest_url', '') }}" alt="{{ m.home_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ home_identity.get('initials', (m.home_team or 'L')[:1]) }}'"></div><strong>{{ m.home_team }}</strong></div>
-              <div class="team"><div class="crest"><img loading="lazy" src="{{ away_identity.get('crest_url', '') }}" alt="{{ m.away_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ away_identity.get('initials', (m.away_team or 'V')[:1]) }}'"></div><strong>{{ m.away_team }}</strong></div>
-            </div>
-            <div class="status"><span class="state-badge {{ live_depth.get('badge', 'scheduled') }}">{{ live_depth.get('label', 'Pendiente') }}</span><span>{{ live_depth.get('score') or 'Sin marcador' }}</span></div>
-            <div class="momentum"><i style="width:{{ live_depth.get('momentum', 0) }}%"></i></div>
-            <div class="metric-row mini-metrics">
-              <span>Local <strong>{{ live_depth.get('shark_momentum', {}).get('momentum_local', 0) }}</strong></span>
-              <span>Visitante <strong>{{ live_depth.get('shark_momentum', {}).get('momentum_visitante', 0) }}</strong></span>
-              <span>Riesgo <strong>{{ live_depth.get('shark_momentum', {}).get('riesgo', 0) }}</strong></span>
-            </div>
-            <div class="status">
-              <span>Eventos {{ live_depth.get('event_count') or m.timeline|length }}</span>
-              <span>{{ live_depth.get('cache_status') or 'Live Intelligence Pro' }}</span>
-            </div>
-            {% if m.timeline %}
-            <div class="stack compact-alerts">
-              {% for ev in m.timeline[:2] %}
-              <div class="list-row"><span>{{ ev.minute or '-' }} · {{ ev.title }}</span><strong>{{ ev.event_type|upper }}</strong></div>
-              {% endfor %}
-            </div>
-            {% endif %}
-            {% if live_depth.get('alerts') %}
-            <div class="stack compact-alerts">
-              {% for alert in live_depth.get('alerts', [])[:2] %}
-              <div class="list-row"><span>{{ alert.title }}</span><strong>{{ alert.level|upper }}</strong></div>
-              {% endfor %}
+          <a class="sports-row live-sports-row" href="/match/{{ m.id }}">
+            <div class="sports-time live-time"><strong>{{ live_depth.get('minute') or 'LIVE' }}</strong><span>{{ live_depth.get('label', 'En directo') }}</span></div>
+            <div class="sports-team home"><span class="crest compact-crest"><img loading="lazy" src="{{ home_identity.get('crest_url', '') }}" alt="{{ m.home_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ home_identity.get('initials', (m.home_team or 'L')[:1]) }}'"></span><strong>{{ m.home_team }}</strong></div>
+            <div class="sports-score"><strong>{{ live_depth.get('score') or '0 - 0' }}</strong><span>SHARK {{ live_depth.get('momentum', 0) }}</span></div>
+            <div class="sports-team away"><span class="crest compact-crest"><img loading="lazy" src="{{ away_identity.get('crest_url', '') }}" alt="{{ m.away_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ away_identity.get('initials', (m.away_team or 'V')[:1]) }}'"></span><strong>{{ m.away_team }}</strong></div>
+            <div class="sports-meta"><span class="state-badge {{ live_depth.get('badge', 'live') }}">{{ live_depth.get('label', 'Live') }}</span><small>{{ live_depth.get('event_count') or m.timeline|length }} eventos</small></div>
+            {% if view_mode == 'detailed' %}
+            <div class="sports-detail">
+              <div class="momentum"><i style="width:{{ live_depth.get('momentum', 0) }}%"></i></div>
+              <div class="metric-row mini-metrics">
+                <span>Local <strong>{{ live_depth.get('shark_momentum', {}).get('momentum_local', 0) }}</strong></span>
+                <span>Visitante <strong>{{ live_depth.get('shark_momentum', {}).get('momentum_visitante', 0) }}</strong></span>
+                <span>Riesgo <strong>{{ live_depth.get('shark_momentum', {}).get('riesgo', 0) }}</strong></span>
+              </div>
+              {% if live_depth.get('alerts') %}
+              <div class="stack compact-alerts">
+                {% for alert in live_depth.get('alerts', [])[:2] %}
+                <div class="list-row"><span>{{ alert.title }}</span><strong>{{ alert.level|upper }}</strong></div>
+                {% endfor %}
+              </div>
+              {% endif %}
             </div>
             {% endif %}
           </a>
@@ -70,22 +64,24 @@
       {% endfor %}
     </div>
   {% else %}
-    <div class="empty premium-empty"><strong>No hay partidos en directo ahora mismo.</strong><p>La pantalla no queda vacía: abajo tienes próximos destacados y resultados recientes.</p></div>
+    <div class="empty premium-empty"><strong>No hay partidos en directo ahora mismo.</strong><p>Abajo tienes próximos destacados y resultados recientes.</p></div>
   {% endif %}
 </section>
 
-<section class="band compact-band">
+<section class="band compact-band v626-sports-band">
   <div class="section-head"><h2>Próximos destacados</h2><span class="pill">{{ data.match_hub.upcoming|length }}</span></div>
   {% if data.match_hub.upcoming %}
-  <div class="grid dense-grid">
-    {% for m in data.match_hub.upcoming[:12] %}
+  <div class="sports-list">
+    {% for m in data.match_hub.upcoming[:16] %}
     {% set home_identity = m.home_identity|default({}) %}
     {% set away_identity = m.away_identity|default({}) %}
     {% set live_depth = m.live_depth|default({}) %}
-    <a class="card match-card" href="/match/{{ m.id }}">
-      <div class="match-top"><div><div class="comp-name">{{ m.competition_name }}</div><div class="small">{{ m.match_date }} · {{ m.kickoff_time or 'hora por confirmar' }}</div></div><div class="time">{{ live_depth.get('minute', '-') }}</div></div>
-      <div class="teams compact-teams"><div class="team"><div class="crest"><img loading="lazy" src="{{ home_identity.get('crest_url', '') }}" alt="{{ m.home_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ home_identity.get('initials', (m.home_team or 'L')[:1]) }}'"></div><strong>{{ m.home_team }}</strong></div><div class="team"><div class="crest"><img loading="lazy" src="{{ away_identity.get('crest_url', '') }}" alt="{{ m.away_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ away_identity.get('initials', (m.away_team or 'V')[:1]) }}'"></div><strong>{{ m.away_team }}</strong></div></div>
-      <div class="status"><span class="state-badge {{ live_depth.get('badge', 'scheduled') }}">{{ live_depth.get('label', 'Pendiente') }}</span><span>{{ live_depth.get('score') or 'vs' }}</span></div>
+    <a class="sports-row" href="/match/{{ m.id }}">
+      <div class="sports-time"><strong>{{ m.kickoff_time or m.match_time or '--:--' }}</strong><span>{{ m.match_date }}</span></div>
+      <div class="sports-team home"><span class="crest compact-crest"><img loading="lazy" src="{{ home_identity.get('crest_url', '') }}" alt="{{ m.home_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ home_identity.get('initials', (m.home_team or 'L')[:1]) }}'"></span><strong>{{ m.home_team }}</strong></div>
+      <div class="sports-score"><strong>{{ live_depth.get('score') or 'vs' }}</strong><span>{{ m.competition_name or m.league_name }}</span></div>
+      <div class="sports-team away"><span class="crest compact-crest"><img loading="lazy" src="{{ away_identity.get('crest_url', '') }}" alt="{{ m.away_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ away_identity.get('initials', (m.away_team or 'V')[:1]) }}'"></span><strong>{{ m.away_team }}</strong></div>
+      <div class="sports-meta"><span class="state-badge {{ live_depth.get('badge', 'upcoming') }}">{{ live_depth.get('label', 'Próximo') }}</span></div>
     </a>
     {% endfor %}
   </div>
@@ -94,22 +90,23 @@
   {% endif %}
 </section>
 
-<section class="band compact-band">
+<section class="band compact-band v626-sports-band">
   <div class="section-head"><h2>Resultados recientes</h2><span class="pill">{{ data.past_results|length }}</span></div>
   {% if data.past_results %}
-  <div class="grid dense-grid">
-    {% for m in data.past_results[:12] %}
+  <div class="sports-list">
+    {% for m in data.past_results[:16] %}
     {% set home_identity = m.home_identity|default({}) %}
     {% set away_identity = m.away_identity|default({}) %}
     {% set live_depth = m.live_depth|default({}) %}
-    <a class="card match-card" href="/match/{{ m.id }}">
-      <div class="match-top"><div><div class="comp-name">{{ m.competition_name or m.league_name }}</div><div class="small">{{ m.match_date }}</div></div><div class="time">FT</div></div>
-      <div class="teams compact-teams"><div class="team"><div class="crest"><img loading="lazy" src="{{ home_identity.get('crest_url', '') }}" alt="{{ m.home_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ home_identity.get('initials', (m.home_team or 'L')[:1]) }}'"></div><strong>{{ m.home_team }}</strong></div><div class="team"><div class="crest"><img loading="lazy" src="{{ away_identity.get('crest_url', '') }}" alt="{{ m.away_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ away_identity.get('initials', (m.away_team or 'V')[:1]) }}'"></div><strong>{{ m.away_team }}</strong></div></div>
-      <div class="status"><span class="state-badge finished">Finalizado</span><span>{{ live_depth.get('score') or m.score or 'Resultado pendiente' }}</span></div>
+    <a class="sports-row result-sports-row" href="/match/{{ m.id }}">
+      <div class="sports-time"><strong>FT</strong><span>{{ m.match_date }}</span></div>
+      <div class="sports-team home"><span class="crest compact-crest"><img loading="lazy" src="{{ home_identity.get('crest_url', '') }}" alt="{{ m.home_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ home_identity.get('initials', (m.home_team or 'L')[:1]) }}'"></span><strong>{{ m.home_team }}</strong></div>
+      <div class="sports-score"><strong>{{ live_depth.get('score') or m.score or '-' }}</strong><span>{{ m.competition_name or m.league_name }}</span></div>
+      <div class="sports-team away"><span class="crest compact-crest"><img loading="lazy" src="{{ away_identity.get('crest_url', '') }}" alt="{{ m.away_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ away_identity.get('initials', (m.away_team or 'V')[:1]) }}'"></span><strong>{{ m.away_team }}</strong></div>
+      <div class="sports-meta"><span class="state-badge finished">Finalizado</span></div>
     </a>
     {% endfor %}
   </div>
   {% else %}<div class="empty premium-empty">Aún no hay resultados pasados guardados para las competiciones sincronizadas.</div>{% endif %}
 </section>
 {% endblock %}
-

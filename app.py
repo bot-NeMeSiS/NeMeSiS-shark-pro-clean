@@ -100,7 +100,7 @@ from engines.observability_engine import (
 from blueprints.architecture import create_architecture_blueprint
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V625_ELITE_PRODUCT_EXPERIENCE"
+APP_VERSION = "V626_COMPACT_SPORTS_EXPERIENCE"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -362,6 +362,9 @@ def run_schema_migrations(conn):
         ("users", "password_hash", "TEXT"),
         ("users", "role", "TEXT DEFAULT 'FREE'"),
         ("users", "membership", "TEXT DEFAULT 'FREE'"),
+        ("users", "membership_source", "TEXT DEFAULT 'manual'"),
+        ("users", "membership_start_date", "TEXT"),
+        ("users", "membership_end_date", "TEXT"),
         ("users", "created_at", "TEXT"),
         ("users", "last_login", "TEXT"),
         ("users", "telegram_chat_id", "TEXT"),
@@ -783,6 +786,9 @@ def init_db():
             password_hash TEXT NOT NULL,
             role TEXT DEFAULT 'FREE',
             membership TEXT DEFAULT 'FREE',
+            membership_source TEXT DEFAULT 'manual',
+            membership_start_date TEXT,
+            membership_end_date TEXT,
             created_at TEXT,
             last_login TEXT
         )"""
@@ -5239,12 +5245,77 @@ def dict_row(row):
         return {}
 
 
+def parse_iso_date(value):
+    if not value:
+        return None
+    try:
+        return datetime.fromisoformat(str(value)[:10]).date()
+    except Exception:
+        return None
+
+
+def membership_status_meta(user):
+    membership = normalize_role((user or {}).get("membership"))
+    end_date = parse_iso_date((user or {}).get("membership_end_date"))
+    if membership in {"FREE", "ADMIN"}:
+        return {"status": "permanent", "days_left": None, "expired": False}
+    if not end_date:
+        return {"status": "permanent", "days_left": None, "expired": False}
+    today = datetime.now(TZ).date()
+    days_left = (end_date - today).days
+    if days_left < 0:
+        return {"status": "expired", "days_left": 0, "expired": True}
+    return {"status": "active_until", "days_left": days_left, "expired": False}
+
+
+def apply_membership_expiry(user):
+    data = dict(user or {})
+    meta = membership_status_meta(data)
+    if not meta["expired"] or not data.get("id"):
+        return data
+    try:
+        conn = db()
+        conn.execute(
+            """UPDATE users
+               SET role='FREE', membership='FREE', membership_source='expired',
+                   membership_start_date=COALESCE(membership_start_date, ?),
+                   membership_end_date=?
+               WHERE id=?""",
+            (today_iso(), data.get("membership_end_date") or "", data.get("id")),
+        )
+        conn.commit()
+        conn.close()
+    except Exception as exc:
+        startup_log("DB_INIT", "membership expiry update skipped", {"user_id": data.get("id"), "error": str(exc)})
+    data["role"] = "FREE"
+    data["membership"] = "FREE"
+    data["membership_source"] = "expired"
+    return data
+
+
+def membership_end_from_duration(duration, custom_end=""):
+    duration = str(duration or "permanent").strip().lower()
+    if duration in {"", "permanent", "manual"}:
+        return ""
+    if duration == "custom":
+        return str(custom_end or "").strip()[:10]
+    try:
+        days = int(duration)
+    except Exception:
+        return ""
+    if days <= 0:
+        return ""
+    return (datetime.now(TZ).date() + timedelta(days=days)).isoformat()
+
+
 def user_public(row):
     if not row:
         return None
     data = dict_row(row)
+    data = apply_membership_expiry(data)
     email = data.get("email") or ""
     username = data.get("username") or username_from_email(email)
+    membership_meta = membership_status_meta(data)
     return {
         "id": data.get("id"),
         "name": data.get("name") or username or "Cliente SHARK",
@@ -5252,6 +5323,11 @@ def user_public(row):
         "email": email,
         "role": normalize_role(data.get("role")),
         "membership": normalize_role(data.get("membership")),
+        "membership_source": data.get("membership_source") or "manual",
+        "membership_start_date": data.get("membership_start_date") or "",
+        "membership_end_date": data.get("membership_end_date") or "",
+        "membership_days_left": membership_meta["days_left"],
+        "membership_status": membership_meta["status"],
         "created_at": data.get("created_at"),
         "last_login": data.get("last_login"),
     }
@@ -5260,14 +5336,14 @@ def user_public(row):
 def current_session_user():
     if not session.get("user_id"):
         return None
-    return {
-        "id": session.get("user_id"),
-        "name": session.get("user_name") or "Cliente SHARK",
-        "username": session.get("username") or session.get("user_name") or "",
-        "email": session.get("user_email"),
-        "role": normalize_role(session.get("user_role")),
-        "membership": normalize_role(session.get("membership") or session.get("user_membership") or session.get("user_role")),
-    }
+    fresh = get_user_by_id(session.get("user_id"))
+    if fresh:
+        public = user_public(fresh)
+        session["user_role"] = public["role"]
+        session["user_membership"] = public["membership"]
+        session["membership"] = public["membership"]
+        return public
+    return None
 
 
 def current_user_id():
@@ -5588,21 +5664,29 @@ except Exception:
 
 def list_users():
     seed_core()
-    return rows(
-        """SELECT id,name,username,email,role,membership,created_at,last_login
+    users = rows(
+        """SELECT id,name,username,email,role,membership,membership_source,
+                  membership_start_date,membership_end_date,created_at,last_login
            FROM users ORDER BY created_at DESC"""
     )
+    return [user_public(user) for user in users]
 
 
-def update_user_membership(user_id, membership):
+def update_user_membership(user_id, membership, duration="permanent", custom_end="", source="admin"):
     membership = normalize_role(membership)
     if membership not in VALID_ROLES or not user_id:
         return None
     role = "ADMIN" if membership == "ADMIN" else membership
+    start_date = today_iso()
+    end_date = "" if membership in {"FREE", "ADMIN"} else membership_end_from_duration(duration, custom_end)
+    membership_source = str(source or "admin").strip()[:40] or "admin"
     conn = db()
     conn.execute(
-        "UPDATE users SET role=?, membership=? WHERE id=?",
-        (role, membership, user_id),
+        """UPDATE users
+           SET role=?, membership=?, membership_source=?,
+               membership_start_date=?, membership_end_date=?
+           WHERE id=?""",
+        (role, membership, membership_source, start_date, end_date, user_id),
     )
     conn.commit()
     conn.close()
@@ -7298,8 +7382,14 @@ def admin_users_page():
         return redirect("/admin-login?next=/admin/users")
     message = ""
     if request.method == "POST":
-        updated = update_user_membership(request.form.get("user_id"), request.form.get("membership"))
-        message = "Membresía actualizada." if updated else "No se pudo actualizar ese usuario."
+        updated = update_user_membership(
+            request.form.get("user_id"),
+            request.form.get("membership"),
+            request.form.get("membership_duration"),
+            request.form.get("membership_custom_end"),
+            request.form.get("membership_source") or "admin",
+        )
+        message = "Membresía temporal actualizada." if updated else "No se pudo actualizar ese usuario."
     data = dashboard_data()
     data["users"] = list_users()
     data["admin_exists"] = admin_exists()
@@ -9094,7 +9184,7 @@ def api_admin_membership_summary():
 
 
 # ===================== V565 SPORTS DATA & PICKS PERFECTION =====================
-APP_VERSION = "V625_ELITE_PRODUCT_EXPERIENCE"
+APP_VERSION = "V626_COMPACT_SPORTS_EXPERIENCE"
 
 PRIORITY_LEAGUE_ORDER = [
     "UEFA Champions League", "Champions League", "LaLiga", "Spanish La Liga", "Premier League",

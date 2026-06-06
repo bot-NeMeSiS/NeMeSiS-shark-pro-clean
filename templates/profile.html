@@ -27,6 +27,15 @@
     {% else %}
     <p>SHARK IA premium, Telegram avanzado y experiencia completa.</p>
     {% endif %}
+    <div class="membership-expiry">
+      <span>ORIGEN</span>
+      <strong>{{ data.session_user.membership_source or 'manual' }}</strong>
+      {% if data.session_user.membership_end_date %}
+      <small>Activo hasta {{ data.session_user.membership_end_date }}{% if data.session_user.membership_days_left is not none %} · {{ data.session_user.membership_days_left }} días restantes{% endif %}</small>
+      {% else %}
+      <small>Plan sin caducidad configurada.</small>
+      {% endif %}
+    </div>
   </aside>
 </section>
 

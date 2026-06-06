@@ -3,19 +3,19 @@
 <section class="hero">
   <div class="kicker">Admin - importacion legal</div>
   <h1>Cargar datos sin arrastrar ruido</h1>
-  <p class="lead">Pega CSV o JSON autorizado. Cada importacin guarda fuente, nota legal y trazabilidad. Este es el puente para convertir la app limpia en producto vivo.</p>
+  <p class="lead">Pega CSV o JSON autorizado. Cada importaci?n guarda fuente, nota legal y trazabilidad. Este es el puente para convertir la app limpia en producto vivo.</p>
   <div class="admin-menu">
     <a class="btn" href="/admin/users">Usuarios</a>
     <a class="btn" href="/admin/data-center">Centro de datos</a>
     <a class="btn" href="/admin/matches-sync">Partidos</a>
-    <a class="btn primary" href="/admin/import-center">Centro de importacin</a>
+    <a class="btn primary" href="/admin/import-center">Centro de importaci?n</a>
     <a class="btn" href="/admin/sportsdb-sync">SportsDB Sync</a>
   </div>
 </section>
 <section class="band form-grid">
   <form class="card" method="post" action="/api/import-competitions">
     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-    <h2>Competici?nes</h2>
+    <h2>Competiciones</h2>
     <div class="field"><label>Fuente</label><input name="source_name" value="manual competiciones autorizado"></div>
     <div class="field"><label>Nota legal</label><input name="legal_note" value="Competici?n cargada desde fuente autorizada"></div>
     <div class="field"><label>Contenido CSV o JSON autorizado</label><textarea name="payload">name,country,region,tier,external_id,sync_status
