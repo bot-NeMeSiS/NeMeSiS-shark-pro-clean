@@ -245,3 +245,8 @@ textarea{min-height:230px;font-family:Consolas,monospace;font-size:13px}
 @media(max-width:860px){.sports-row{grid-template-columns:58px minmax(0,1fr) 70px minmax(0,1fr);grid-template-areas:"time home score away" "meta meta meta meta";gap:6px;padding:7px;min-height:58px}.sports-time{grid-area:time}.sports-team.home{grid-area:home}.sports-score{grid-area:score}.sports-team.away{grid-area:away}.sports-meta{grid-area:meta;display:flex;justify-content:space-between;align-items:center;justify-items:stretch}.sports-detail{grid-column:1 / -1}.sports-meta small{display:none}.compact-crest{width:28px;height:28px;min-width:28px}.sports-team strong{font-size:12px}.sports-score strong{font-size:14px}}
 @media(max-width:620px){.sports-row{grid-template-columns:50px minmax(0,1fr) 58px minmax(0,1fr)}.sports-score span{display:none}.sports-time span{font-size:10px}.v626-favorites-grid{grid-template-columns:1fr}}
 
+/* V626 Backup & Recovery Center */
+.backup-row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px;min-height:auto;padding:12px}
+.backup-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end}.backup-actions form{margin:0}.backup-actions .btn,.backup-actions button{padding:7px 9px;font-size:12px}
+@media(max-width:760px){.backup-row{grid-template-columns:1fr}.backup-actions{justify-content:flex-start}.backup-actions .btn,.backup-actions button{flex:1}}
+

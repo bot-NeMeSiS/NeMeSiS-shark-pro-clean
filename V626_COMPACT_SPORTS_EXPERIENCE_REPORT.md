@@ -17,6 +17,13 @@ Compactar la experiencia deportiva para mostrar más partidos, resultados y dire
 - Si una membresía temporal caduca, el sistema la rebaja automáticamente a FREE.
 - Añadidas columnas SQLite seguras: `membership_source`, `membership_start_date`, `membership_end_date`.
 - Limpieza de textos corruptos visibles en las plantillas tocadas.
+- Centro admin de copias de seguridad en `/admin/backups`.
+- Backup automático diario mediante scheduler existente.
+- Backup previo automático antes de inicialización/migraciones de esquema.
+- Retención automática de 30 backups.
+- Acciones admin: crear, descargar, eliminar y restaurar backup.
+- Restauración segura con backup previo de la base actual.
+- Registro de operaciones de backup en auditoría interna.
 
 ## Reducción visual conseguida
 
@@ -32,6 +39,16 @@ Compactar la experiencia deportiva para mostrar más partidos, resultados y dire
 - `/favorites`
 - `/perfil`
 - `/admin/users`
+- `/admin/backups`
+
+## Backup & Recovery Center
+
+- Carpeta Render: `/data/backups`.
+- Formato: `database_YYYYMMDD_HHMMSS.db`.
+- Retención máxima: 30 backups.
+- Protege toda la base SQLite: usuarios, membresías, Telegram, picks, favoritos, Warehouse, ROI, SHARK, históricos y configuración.
+- Solo visible para ADMIN.
+- La tarea `backup` queda añadida al scheduler con intervalo por defecto de 24 horas (`BACKUP_REFRESH_HOURS`).
 
 ## Pruebas
 
@@ -45,6 +62,11 @@ Compactar la experiencia deportiva para mostrar más partidos, resultados y dire
   - Login admin: 302 esperado.
   - `/admin/dashboard`, `/admin/users` con admin: 200.
   - Cambio temporal a PRO 7 días: OK.
+  - Crear backup manual: OK.
+  - Descargar backup: OK.
+  - Restaurar backup: OK.
+  - Backup de seguridad previo a restore: OK.
+  - `/api/health` después de restore: 200.
   - Observability errors: 0.
 
 ## Pendiente real

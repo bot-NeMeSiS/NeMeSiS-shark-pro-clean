@@ -17,6 +17,7 @@ TASKS = [
     {"name": "warehouse", "label": "Warehouse historico", "kind": "maintenance", "env": "WAREHOUSE_REFRESH_HOURS", "unit": "hours", "default": 12},
     {"name": "cleanup", "label": "Limpieza logs", "kind": "maintenance", "env": "SCHEDULER_LOG_CLEANUP_HOURS", "unit": "hours", "default": 24},
     {"name": "telegram", "label": "Telegram Premium", "kind": "telegram", "env": "TELEGRAM_PREPARE_HOURS", "unit": "hours", "default": 6},
+    {"name": "backup", "label": "Backup diario", "kind": "maintenance", "env": "BACKUP_REFRESH_HOURS", "unit": "hours", "default": 24},
 ]
 
 

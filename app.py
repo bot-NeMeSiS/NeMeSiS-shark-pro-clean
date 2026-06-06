@@ -5,6 +5,7 @@ import io
 import json
 import os
 import re
+import shutil
 import sqlite3
 import sys
 import threading
@@ -14,9 +15,10 @@ import unicodedata
 import urllib.parse
 import urllib.request
 from datetime import datetime, timedelta
+from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from flask import Flask, Response, abort, g, jsonify, redirect, render_template, request, session, url_for
+from flask import Flask, Response, abort, g, has_request_context, jsonify, redirect, render_template, request, send_file, session, url_for
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from database_manager import connect as sqlite_connect, retry_locked
@@ -237,6 +239,149 @@ def table_columns(conn, table):
 def add_column_if_missing(conn, table, column, definition):
     if column not in table_columns(conn, table):
         conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition}")
+
+
+BACKUP_RETENTION_MAX = 30
+
+
+def backup_dir():
+    base = os.getenv("BACKUP_DIR")
+    if base:
+        return os.path.abspath(base)
+    db_path = os.path.abspath(DB_PATH)
+    if db_path.startswith(os.path.abspath("/data") + os.sep) or db_path == os.path.abspath("/data/database.db"):
+        return "/data/backups"
+    return os.path.join(os.path.dirname(db_path) or os.getcwd(), "data", "backups")
+
+
+def ensure_backup_dir():
+    path = backup_dir()
+    os.makedirs(path, exist_ok=True)
+    return path
+
+
+def backup_filename(prefix="database"):
+    return f"{prefix}_{datetime.now(TZ).strftime('%Y%m%d_%H%M%S')}.db"
+
+
+def next_available_backup_path(prefix="database"):
+    ensure_backup_dir()
+    for _ in range(4):
+        candidate = os.path.join(backup_dir(), backup_filename(prefix))
+        if not os.path.exists(candidate):
+            return candidate
+        time.sleep(1.05)
+    return os.path.join(backup_dir(), backup_filename(prefix))
+
+
+def backup_path_is_safe(name):
+    name = os.path.basename(str(name or ""))
+    return bool(re.fullmatch(r"[A-Za-z0-9_.-]+\.db", name))
+
+
+def log_backup_event(action, message, payload=None):
+    payload = payload or {}
+    in_request = has_request_context()
+    user = current_session_user() if in_request else None
+    payload.setdefault("admin", (user or {}).get("email") or (user or {}).get("username") or "system")
+    startup_log("BACKUP", f"{action}: {message}", payload)
+    try:
+        record_security_event(
+            DB_PATH,
+            event_type=f"backup_{action}",
+            severity="INFO",
+            ip_address=client_ip() if in_request else "",
+            user_id=(user or {}).get("id"),
+            username=(user or {}).get("username") or payload.get("admin"),
+            path=request.path if in_request else "",
+            method=request.method if in_request else "SYSTEM",
+            success=True,
+            reason=message,
+        )
+    except Exception:
+        pass
+
+
+def list_backups():
+    folder = ensure_backup_dir()
+    items = []
+    for p in sorted(Path(folder).glob("database_*.db"), key=lambda item: item.stat().st_mtime, reverse=True):
+        try:
+            stat = p.stat()
+            items.append({
+                "name": p.name,
+                "path": str(p),
+                "created_at": datetime.fromtimestamp(stat.st_mtime, TZ).isoformat(timespec="seconds"),
+                "size": stat.st_size,
+                "size_mb": round(stat.st_size / (1024 * 1024), 2),
+            })
+        except OSError:
+            continue
+    return items
+
+
+def prune_old_backups(max_backups=BACKUP_RETENTION_MAX):
+    backups = list_backups()
+    removed = []
+    for item in backups[int(max_backups):]:
+        try:
+            os.remove(item["path"])
+            removed.append(item["name"])
+        except OSError:
+            pass
+    if removed:
+        log_backup_event("retention", "Backups antiguos eliminados por retención.", {"removed": removed})
+    return removed
+
+
+def create_database_backup(reason="manual", prefix="database"):
+    source = os.path.abspath(DB_PATH)
+    if not os.path.exists(source) or os.path.getsize(source) <= 0:
+        return {"ok": False, "error": "database_missing", "message": "No existe una base de datos que copiar."}
+    target = next_available_backup_path(prefix)
+    src = sqlite3.connect(source)
+    dst = sqlite3.connect(target)
+    try:
+        src.backup(dst)
+    finally:
+        dst.close()
+        src.close()
+    removed = prune_old_backups()
+    result = {"ok": True, "name": os.path.basename(target), "path": target, "size": os.path.getsize(target), "reason": reason, "removed": removed}
+    log_backup_event("created", f"Backup creado: {result['name']}", {"reason": reason, "size": result["size"], "removed": removed})
+    return result
+
+
+def ensure_daily_backup():
+    today_prefix = f"database_{datetime.now(TZ).strftime('%Y%m%d')}_"
+    if any(item["name"].startswith(today_prefix) for item in list_backups()):
+        return {"ok": True, "skipped": True, "reason": "already_created_today"}
+    return create_database_backup(reason="daily_auto")
+
+
+def backup_file_path(name):
+    if not backup_path_is_safe(name):
+        return ""
+    path = os.path.abspath(os.path.join(backup_dir(), os.path.basename(name)))
+    folder = os.path.abspath(backup_dir())
+    if os.path.dirname(path) != folder or not os.path.exists(path):
+        return ""
+    return path
+
+
+def restore_database_backup(name):
+    path = backup_file_path(name)
+    if not path:
+        return {"ok": False, "error": "backup_not_found"}
+    safety = create_database_backup(reason=f"pre_restore_{os.path.basename(name)}", prefix="database")
+    if not safety.get("ok"):
+        return {"ok": False, "error": "safety_backup_failed", "safety": safety}
+    target = os.path.abspath(DB_PATH)
+    tmp_target = f"{target}.restore_tmp"
+    shutil.copy2(path, tmp_target)
+    os.replace(tmp_target, target)
+    log_backup_event("restored", f"Backup restaurado: {os.path.basename(name)}", {"backup": os.path.basename(name), "safety_backup": safety.get("name")})
+    return {"ok": True, "restored": os.path.basename(name), "safety_backup": safety.get("name")}
 
 
 def run_schema_migrations(conn):
@@ -1345,7 +1490,15 @@ def startup_log(tag, message, payload=None):
 
 def init_db_schema():
     startup_log("DB_INIT", "init_db_schema started", {"db_path": DB_PATH})
+    try:
+        create_database_backup(reason="pre_schema_migration")
+    except Exception as exc:
+        startup_log("BACKUP", "pre schema backup skipped", {"error": str(exc)[:220]})
     init_db()
+    try:
+        ensure_daily_backup()
+    except Exception as exc:
+        startup_log("BACKUP", "daily backup skipped", {"error": str(exc)[:220]})
     startup_log("DB_INIT", "init_db_schema finished", {"db_path": DB_PATH})
 
 
@@ -3135,6 +3288,8 @@ def run_scheduler_task(task_name, force=False, limit=None):
             result = cleanup_scheduler_logs(max_rows=as_int(os.getenv("SCHEDULER_LOG_MAX_ROWS", "300"), 300))
         elif task_name == "telegram":
             result = telegram_scheduler_delivery(force=force)
+        elif task_name == "backup":
+            result = ensure_daily_backup() if not force else create_database_backup(reason="scheduler_forced")
         else:
             result = empty_sync("scheduler", task_name, "Tarea no reconocida.")
         normalized = scheduler_release(task_name, result, started_at)
@@ -3158,11 +3313,11 @@ def run_scheduler_task(task_name, force=False, limit=None):
 def run_due_scheduler_tasks(force=False, startup=False):
     if not force and not scheduler_enabled():
         return {"ok": True, "skipped": True, "reason": "auto_sync_disabled", "tasks": []}
-    tasks = ["calendar", "crests", "odds", "live", "recommendations", "auto_picks", "live_alerts", "warehouse", "telegram", "cleanup"]
+    tasks = ["calendar", "crests", "odds", "live", "recommendations", "auto_picks", "live_alerts", "warehouse", "telegram", "backup", "cleanup"]
     if startup:
         total_matches = (one("SELECT COUNT(*) AS total FROM matches") or {}).get("total", 0)
         teams_with_crests = (one("SELECT COUNT(*) AS total FROM teams WHERE logo_url IS NOT NULL AND logo_url!=''") or {}).get("total", 0)
-        tasks = ["calendar", "live", "odds", "recommendations", "auto_picks", "live_alerts", "warehouse", "telegram", "cleanup"]
+        tasks = ["calendar", "live", "odds", "recommendations", "auto_picks", "live_alerts", "warehouse", "telegram", "backup", "cleanup"]
         if not total_matches:
             tasks.insert(0, "calendar")
         if not teams_with_crests:
@@ -7396,6 +7551,49 @@ def admin_users_page():
     return render_template("admin_users.html", data=data, message=message)
 
 
+@app.route("/admin/backups", methods=["GET", "POST"])
+def admin_backups_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/backups")
+    message = ""
+    if request.method == "POST":
+        action = str(request.form.get("action") or "").strip().lower()
+        name = request.form.get("name") or ""
+        if action == "create":
+            result = create_database_backup(reason="admin_manual")
+            message = f"Backup creado: {result.get('name')}" if result.get("ok") else f"No se pudo crear backup: {result.get('message') or result.get('error')}"
+        elif action == "delete":
+            path = backup_file_path(name)
+            if path:
+                os.remove(path)
+                log_backup_event("deleted", f"Backup eliminado: {os.path.basename(path)}", {"backup": os.path.basename(path)})
+                message = "Backup eliminado."
+            else:
+                message = "Backup no encontrado."
+        elif action == "restore":
+            result = restore_database_backup(name)
+            message = f"Backup restaurado: {result.get('restored')}. Seguridad previa: {result.get('safety_backup')}" if result.get("ok") else f"No se pudo restaurar: {result.get('error')}"
+        else:
+            message = "Acción no reconocida."
+    data = dashboard_data()
+    data["backups"] = list_backups()
+    data["backup_dir"] = backup_dir()
+    data["backup_retention"] = BACKUP_RETENTION_MAX
+    data["backup_events"] = rows("SELECT * FROM security_events WHERE event_type LIKE 'backup_%' ORDER BY created_at DESC LIMIT 20")
+    return render_template("admin_backups.html", data=data, message=message)
+
+
+@app.route("/admin/backups/download/<name>")
+def admin_backup_download(name):
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/backups")
+    path = backup_file_path(name)
+    if not path:
+        abort(404)
+    log_backup_event("downloaded", f"Backup descargado: {os.path.basename(path)}", {"backup": os.path.basename(path)})
+    return send_file(path, as_attachment=True, download_name=os.path.basename(path), mimetype="application/octet-stream")
+
+
 @app.route("/admin/user-import", methods=["GET", "POST"])
 def admin_user_import_page():
     if not is_admin_session():
@@ -9551,6 +9749,7 @@ def v624_admin_executive_summary():
                 {"title": "Observabilidad", "body": "Errores recientes y salud.", "href": "/admin/observability"},
                 {"title": "Runtime", "body": "Versión y arranque.", "href": "/api/runtime-version"},
                 {"title": "Scheduler", "body": "Ciclos automáticos.", "href": "/api/scheduler/status"},
+                {"title": "Backups", "body": "Copias, descargas y restauración segura.", "href": "/admin/backups"},
                 {"title": "Data Center", "body": "Operación avanzada.", "href": "/admin/data-center"},
             ]},
         ],
