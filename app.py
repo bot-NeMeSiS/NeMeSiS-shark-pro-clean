@@ -1,11 +1,10 @@
-import csv
+﻿import csv
 import copy
 import hashlib
 import io
 import json
 import os
 import re
-import shutil
 import sqlite3
 import sys
 import threading
@@ -15,7 +14,6 @@ import unicodedata
 import urllib.parse
 import urllib.request
 from datetime import datetime, timedelta
-from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from flask import Flask, Response, abort, g, has_request_context, jsonify, redirect, render_template, request, send_file, session, url_for
@@ -100,9 +98,10 @@ from engines.observability_engine import (
     record_observability_event,
 )
 from blueprints.architecture import create_architecture_blueprint
+from services import backup_service, membership_service, shark_service, sports_service
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V631_ELITE_COMMERCIAL_EVOLUTION"
+APP_VERSION = "V632_ARCHITECTURE_EXCELLENCE"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -224,7 +223,7 @@ def cleanup_fake_matches(cur):
     En Render no debe ejecutarse ninguna limpieza pesada durante init_db(),
     porque Gunicorn puede abortar el worker y dejar la app en 500/pantalla negra.
     La limpieza de datos demo debe hacerse desde una tarea/admin dedicado, nunca
-    en el primer HEAD/GET de producción.
+    en el primer HEAD/GET de producciÃ³n.
     """
     return 0
 
@@ -241,42 +240,27 @@ def add_column_if_missing(conn, table, column, definition):
         conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition}")
 
 
-BACKUP_RETENTION_MAX = 30
+BACKUP_RETENTION_MAX = backup_service.BACKUP_RETENTION_MAX
 
 
 def backup_dir():
-    base = os.getenv("BACKUP_DIR")
-    if base:
-        return os.path.abspath(base)
-    db_path = os.path.abspath(DB_PATH)
-    if db_path.startswith(os.path.abspath("/data") + os.sep) or db_path == os.path.abspath("/data/database.db"):
-        return "/data/backups"
-    return os.path.join(os.path.dirname(db_path) or os.getcwd(), "data", "backups")
+    return backup_service.default_backup_dir(DB_PATH, os.getenv("BACKUP_DIR"))
 
 
 def ensure_backup_dir():
-    path = backup_dir()
-    os.makedirs(path, exist_ok=True)
-    return path
+    return backup_service.ensure_backup_dir(backup_dir())
 
 
 def backup_filename(prefix="database"):
-    return f"{prefix}_{datetime.now(TZ).strftime('%Y%m%d_%H%M%S')}.db"
+    return backup_service.backup_filename(datetime.now(TZ), prefix)
 
 
 def next_available_backup_path(prefix="database"):
-    ensure_backup_dir()
-    for _ in range(4):
-        candidate = os.path.join(backup_dir(), backup_filename(prefix))
-        if not os.path.exists(candidate):
-            return candidate
-        time.sleep(1.05)
-    return os.path.join(backup_dir(), backup_filename(prefix))
+    return backup_service.next_available_backup_path(backup_dir(), lambda: datetime.now(TZ), prefix)
 
 
 def backup_path_is_safe(name):
-    name = os.path.basename(str(name or ""))
-    return bool(re.fullmatch(r"[A-Za-z0-9_.-]+\.db", name))
+    return backup_service.backup_name_is_safe(name)
 
 
 def log_backup_event(action, message, payload=None):
@@ -303,51 +287,22 @@ def log_backup_event(action, message, payload=None):
 
 
 def list_backups():
-    folder = ensure_backup_dir()
-    items = []
-    for p in sorted(Path(folder).glob("database_*.db"), key=lambda item: item.stat().st_mtime, reverse=True):
-        try:
-            stat = p.stat()
-            items.append({
-                "name": p.name,
-                "path": str(p),
-                "created_at": datetime.fromtimestamp(stat.st_mtime, TZ).isoformat(timespec="seconds"),
-                "size": stat.st_size,
-                "size_mb": round(stat.st_size / (1024 * 1024), 2),
-            })
-        except OSError:
-            continue
-    return items
+    return backup_service.list_database_backups(ensure_backup_dir(), tz=TZ)
 
 
 def prune_old_backups(max_backups=BACKUP_RETENTION_MAX):
-    backups = list_backups()
-    removed = []
-    for item in backups[int(max_backups):]:
-        try:
-            os.remove(item["path"])
-            removed.append(item["name"])
-        except OSError:
-            pass
+    removed = backup_service.prune_old_backups(ensure_backup_dir(), max_backups=max_backups, tz=TZ)
     if removed:
-        log_backup_event("retention", "Backups antiguos eliminados por retención.", {"removed": removed})
+        log_backup_event("retention", "Backups antiguos eliminados por retenciÃ³n.", {"removed": removed})
     return removed
 
 
 def create_database_backup(reason="manual", prefix="database"):
-    source = os.path.abspath(DB_PATH)
-    if not os.path.exists(source) or os.path.getsize(source) <= 0:
-        return {"ok": False, "error": "database_missing", "message": "No existe una base de datos que copiar."}
-    target = next_available_backup_path(prefix)
-    src = sqlite3.connect(source)
-    dst = sqlite3.connect(target)
-    try:
-        src.backup(dst)
-    finally:
-        dst.close()
-        src.close()
-    removed = prune_old_backups()
-    result = {"ok": True, "name": os.path.basename(target), "path": target, "size": os.path.getsize(target), "reason": reason, "removed": removed}
+    result = backup_service.create_database_backup(DB_PATH, ensure_backup_dir(), lambda: datetime.now(TZ), prefix=prefix, max_backups=BACKUP_RETENTION_MAX, tz=TZ)
+    if not result.get("ok"):
+        return result
+    result["reason"] = reason
+    removed = result.get("removed") or []
     log_backup_event("created", f"Backup creado: {result['name']}", {"reason": reason, "size": result["size"], "removed": removed})
     return result
 
@@ -360,13 +315,7 @@ def ensure_daily_backup():
 
 
 def backup_file_path(name):
-    if not backup_path_is_safe(name):
-        return ""
-    path = os.path.abspath(os.path.join(backup_dir(), os.path.basename(name)))
-    folder = os.path.abspath(backup_dir())
-    if os.path.dirname(path) != folder or not os.path.exists(path):
-        return ""
-    return path
+    return backup_service.safe_backup_file_path(backup_dir(), name)
 
 
 def restore_database_backup(name):
@@ -376,10 +325,7 @@ def restore_database_backup(name):
     safety = create_database_backup(reason=f"pre_restore_{os.path.basename(name)}", prefix="database")
     if not safety.get("ok"):
         return {"ok": False, "error": "safety_backup_failed", "safety": safety}
-    target = os.path.abspath(DB_PATH)
-    tmp_target = f"{target}.restore_tmp"
-    shutil.copy2(path, tmp_target)
-    os.replace(tmp_target, target)
+    backup_service.restore_database_backup(DB_PATH, path)
     log_backup_event("restored", f"Backup restaurado: {os.path.basename(name)}", {"backup": os.path.basename(name), "safety_backup": safety.get("name")})
     return {"ok": True, "restored": os.path.basename(name), "safety_backup": safety.get("name")}
 
@@ -714,8 +660,8 @@ def run_schema_migrations(conn):
         conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email_unique ON users(email)")
         conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username_unique ON users(username) WHERE username IS NOT NULL AND username!=''")
     except (sqlite3.OperationalError, sqlite3.IntegrityError):
-        # No bloquear arranque si una DB antigua tiene duplicados; la app seguirá funcionando
-        # y el admin podrá corregirlos desde /admin/users.
+        # No bloquear arranque si una DB antigua tiene duplicados; la app seguirÃ¡ funcionando
+        # y el admin podrÃ¡ corregirlos desde /admin/users.
         pass
     try:
         conn.execute("CREATE INDEX IF NOT EXISTS idx_favorites_user_kind ON favorites(user_id, kind)")
@@ -1223,7 +1169,7 @@ def init_db():
     conn.close()
 
     # V620: las migraciones de engines abren sus propias conexiones.
-    # Ejecutarlas con la conexión principal ya cerrada evita bloqueos SQLite en
+    # Ejecutarlas con la conexiÃ³n principal ya cerrada evita bloqueos SQLite en
     # Render durante la primera ruta protegida (/picks, /live, /admin...).
     engine_schema_errors = []
     for ensure_fn in (
@@ -1298,7 +1244,7 @@ COMPETITION_SEEDS = [
     ("argentina-primera", "Argentina Primera Division", "domestic", "Argentina", "South America", 85, "API legal + cache", ["america"]),
     ("mls", "Major League Soccer", "domestic", "United States", "North America", 78, "API legal + cache", ["america"]),
     ("copa-del-rey", "Copa del Rey", "domestic-cup", "Spain", "Europe", 86, "API legal + cache", ["spain", "cup"]),
-    ("andalucia-regional", "Andalucía Regional Football", "regional", "Spain", "Andalucía", 72, "Carga legal + editorial", ["regional", "andalucia"]),
+    ("andalucia-regional", "AndalucÃ­a Regional Football", "regional", "Spain", "AndalucÃ­a", 72, "Carga legal + editorial", ["regional", "andalucia"]),
 ]
 
 
@@ -1306,13 +1252,13 @@ TEAM_SEEDS = [
     ("real-madrid", "Real Madrid", "Spain", "Europe", "", "133738"),
     ("barcelona", "FC Barcelona", "Spain", "Europe", "", "133739"),
     ("atletico-madrid", "Atletico de Madrid", "Spain", "Europe", "", "133729"),
-    ("sevilla", "Sevilla FC", "Spain", "Andalucía", "", "133745"),
-    ("real-betis", "Real Betis", "Spain", "Andalucía", "", "133741"),
-    ("malaga", "Malaga CF", "Spain", "Andalucía", "", ""),
-    ("cadiz", "Cadiz CF", "Spain", "Andalucía", "", ""),
-    ("granada", "Granada CF", "Spain", "Andalucía", "", ""),
-    ("cordoba", "Cordoba CF", "Spain", "Andalucía", "", ""),
-    ("recreativo-huelva", "Recreativo de Huelva", "Spain", "Andalucía", "", ""),
+    ("sevilla", "Sevilla FC", "Spain", "AndalucÃ­a", "", "133745"),
+    ("real-betis", "Real Betis", "Spain", "AndalucÃ­a", "", "133741"),
+    ("malaga", "Malaga CF", "Spain", "AndalucÃ­a", "", ""),
+    ("cadiz", "Cadiz CF", "Spain", "AndalucÃ­a", "", ""),
+    ("granada", "Granada CF", "Spain", "AndalucÃ­a", "", ""),
+    ("cordoba", "Cordoba CF", "Spain", "AndalucÃ­a", "", ""),
+    ("recreativo-huelva", "Recreativo de Huelva", "Spain", "AndalucÃ­a", "", ""),
     ("arsenal", "Arsenal", "England", "Europe", "", "133604"),
     ("manchester-city", "Manchester City", "England", "Europe", "", "133613"),
     ("liverpool", "Liverpool", "England", "Europe", "", "133602"),
@@ -1665,7 +1611,7 @@ def thesportsdb_key():
 
 
 SPORTSDB_SEARCH_ALIASES = {
-    "atletico-de-madrid": ["Atletico Madrid", "Atlético Madrid"],
+    "atletico-de-madrid": ["Atletico Madrid", "AtlÃ©tico Madrid"],
     "barcelona": ["Barcelona", "FC Barcelona"],
     "real-betis": ["Real Betis", "Real Betis Balompie"],
     "cadiz": ["Cadiz", "Cadiz CF"],
@@ -2005,7 +1951,7 @@ def canonical_match_status(match):
     if is_finished_status_value(status):
         return {"key": "FT", "label": "Finalizado", "badge": "finished", "is_live": False, "is_finished": True, "is_upcoming": False}
     if date_value and date_value > today_iso() and not is_live_status_value(status):
-        return {"key": "UPCOMING", "label": "Próximo", "badge": "upcoming", "is_live": False, "is_finished": False, "is_upcoming": True}
+        return {"key": "UPCOMING", "label": "PrÃ³ximo", "badge": "upcoming", "is_live": False, "is_finished": False, "is_upcoming": True}
     if is_live_status_value(status):
         if "half" in status.lower() or "descanso" in status.lower() or status.lower() == "ht":
             return {"key": "HT", "label": "Descanso", "badge": "halftime", "is_live": True, "is_finished": False, "is_upcoming": False}
@@ -2015,7 +1961,7 @@ def canonical_match_status(match):
         return {"key": "LIVE", "label": "En directo", "badge": "live", "is_live": True, "is_finished": False, "is_upcoming": False}
     if score and date_value and date_value < today_iso():
         return {"key": "FT", "label": "Finalizado", "badge": "finished", "is_live": False, "is_finished": True, "is_upcoming": False}
-    return {"key": "UPCOMING", "label": "Próximo", "badge": "upcoming", "is_live": False, "is_finished": False, "is_upcoming": True}
+    return {"key": "UPCOMING", "label": "PrÃ³ximo", "badge": "upcoming", "is_live": False, "is_finished": False, "is_upcoming": True}
 
 def sportsdb_event_time(event):
     raw_time = str(event.get("strTime") or event.get("strEventTime") or event.get("timeEvent") or "").strip()
@@ -2734,7 +2680,7 @@ def sync_odds_snapshots(limit=80, force=False):
 
 
 def safe_engine_payload(factory, fallback=None):
-    """Ejecuta resúmenes de motores nuevos sin bloquear paneles si una tabla antigua falla."""
+    """Ejecuta resÃºmenes de motores nuevos sin bloquear paneles si una tabla antigua falla."""
     try:
         return factory()
     except Exception as exc:
@@ -2775,16 +2721,16 @@ def beta_readiness_summary():
             "queue_pending": queue_pending,
             "cards": [
                 {"title": "Telegram", "status": "OK" if telegram_ok else "Revisar", "body": "Bot y chat configurados." if telegram_ok else "Falta token o chat principal."},
-                {"title": "Programador", "status": "OK" if (scheduler or {}).get("enabled") else "Revisar", "body": "Tareas automáticas activas." if (scheduler or {}).get("enabled") else "Activa BACKGROUND_JOBS_ENABLED."},
+                {"title": "Programador", "status": "OK" if (scheduler or {}).get("enabled") else "Revisar", "body": "Tareas automÃ¡ticas activas." if (scheduler or {}).get("enabled") else "Activa BACKGROUND_JOBS_ENABLED."},
                 {"title": "Datos", "status": "OK" if matches_total else "Pendiente", "body": f"{matches_total} partidos guardados en SQLite."},
                 {"title": "Picks", "status": "OK" if picks_total else "Pendiente", "body": f"{picks_total} picks registrados."},
             ],
             "comentarios": [],
             "actions": [
-                "Subir la versión limpia a Render.",
+                "Subir la versiÃ³n limpia a Render.",
                 "Revisar /admin/beta-center y /admin/data-center tras el deploy.",
-                "Comprobar que Telegram recibe picks automáticos por membresía.",
-                "Mantener la app recopilando histórico cada día para alimentar SHARK.",
+                "Comprobar que Telegram recibe picks automÃ¡ticos por membresÃ­a.",
+                "Mantener la app recopilando histÃ³rico cada dÃ­a para alimentar SHARK.",
             ],
         }
     return memory_cached("beta-readiness-summary", 30, _build)
@@ -2972,7 +2918,7 @@ def env_flag(name, default=True):
     raw = os.getenv(name)
     if raw is None:
         return bool(default)
-    return str(raw).strip().lower() in {"1", "true", "yes", "on", "si", "sí"}
+    return str(raw).strip().lower() in {"1", "true", "yes", "on", "si", "sÃ­"}
 
 
 def autopilot_config():
@@ -3356,7 +3302,7 @@ def expire_memberships_job():
         if before not in {"FREE", "ADMIN"} and normalize_role(after.get("membership")) == "FREE":
             expired += 1
             try:
-                record_security_event(DB_PATH, event_type="membership_expired", severity="INFO", ip_address="", user_id=user.get("id"), username=user.get("username"), path="", method="SYSTEM", success=True, reason="Membresía temporal caducada automáticamente.")
+                record_security_event(DB_PATH, event_type="membership_expired", severity="INFO", ip_address="", user_id=user.get("id"), username=user.get("username"), path="", method="SYSTEM", success=True, reason="MembresÃ­a temporal caducada automÃ¡ticamente.")
             except Exception:
                 pass
     return {"ok": True, "processed": checked, "expired": expired}
@@ -3396,13 +3342,16 @@ def run_daily_autonomous_system(force=False):
         ("roi", lambda: rebuild_shark_performance(DB_PATH, limit=500)),
     ]
     for name, factory in task_map:
+        task_started = time.time()
         try:
             item = factory() or {"ok": True}
+            if isinstance(item, dict):
+                item.setdefault("duration_seconds", round(time.time() - task_started, 2))
             result["tasks"][name] = item
             if not item.get("ok", True):
                 result["errors"].extend([str(e) for e in item.get("errors") or [item.get("error") or name] if e])
         except Exception as exc:
-            result["tasks"][name] = {"ok": False, "error": str(exc)[:220]}
+            result["tasks"][name] = {"ok": False, "error": str(exc)[:220], "duration_seconds": round(time.time() - task_started, 2)}
             result["errors"].append(f"{name}: {str(exc)[:160]}")
     result["matches_synced"] = sum(as_int((result["tasks"].get(k) or {}).get("processed"), 0) for k in ["calendar", "live", "results", "competitions"])
     result["picks_generated"] = as_int((result["tasks"].get("auto_picks") or {}).get("saved"), 0)
@@ -3414,7 +3363,7 @@ def run_daily_autonomous_system(force=False):
     result["ok"] = not result["errors"]
     automation_set("daily_autonomous_system", result)
     try:
-        record_security_event(DB_PATH, event_type="daily_automation", severity="INFO", ip_address=client_ip() if has_request_context() else "", user_id=(current_session_user() or {}).get("id") if has_request_context() else "", username=(current_session_user() or {}).get("username") if has_request_context() else "system", path=request.path if has_request_context() else "", method=request.method if has_request_context() else "SYSTEM", success=result["ok"], reason=f"Automatización diaria {result['status']} en {result['duration_seconds']}s")
+        record_security_event(DB_PATH, event_type="daily_automation", severity="INFO", ip_address=client_ip() if has_request_context() else "", user_id=(current_session_user() or {}).get("id") if has_request_context() else "", username=(current_session_user() or {}).get("username") if has_request_context() else "system", path=request.path if has_request_context() else "", method=request.method if has_request_context() else "SYSTEM", success=result["ok"], reason=f"AutomatizaciÃ³n diaria {result['status']} en {result['duration_seconds']}s")
     except Exception:
         pass
     startup_log("SCHEDULER", "daily autonomous system finished", {"status": result["status"], "duration": result["duration_seconds"], "errors": len(result["errors"])})
@@ -3425,7 +3374,7 @@ def daily_automation_summary():
     last = automation_get("daily_autonomous_system", {}) or {}
     return {
         "last": last,
-        "next_run_label": "Hoy 10:00 Europe/Madrid" if str(last.get("date") or "") != today_iso() else "Mañana 10:00 Europe/Madrid",
+        "next_run_label": "Hoy 10:00 Europe/Madrid" if str(last.get("date") or "") != today_iso() else "MaÃ±ana 10:00 Europe/Madrid",
         "enabled": scheduler_enabled(),
         "due_now": daily_automation_due(force=False),
     }
@@ -3436,32 +3385,21 @@ def sports_hub_data():
     hub = data.get("match_hub") or empty_match_hub()
     picks = published_picks_for_user(current_session_user() or {"membership": "FREE"}, limit=6)
     recs = v565_recommendation_pool(limit=8)
-    return {
-        "date": today_iso(),
-        "today": hub.get("today") or data.get("matches", [])[:14],
-        "live": hub.get("live", [])[:10],
-        "picks": picks[:6],
-        "recommendations": recs[:6],
-        "favorites": favorite_feed(limit=8),
-        "top_leagues": (hub.get("top_leagues") or competitions())[:8],
-        "counts": hub.get("counts") or {},
-    }
+    return sports_service.build_sports_hub_payload(
+        today_iso(),
+        hub,
+        data.get("matches", []),
+        picks,
+        recs,
+        favorite_feed(limit=8),
+        competitions(),
+    )
 
 
 def shark_product_context():
     picks = published_picks_for_user(current_session_user() or {"membership": "FREE"}, limit=5)
     recs = v565_recommendation_pool(limit=5)
-    best = picks[0] if picks else (recs[0] if recs else {})
-    score = as_int(best.get("confidence") or best.get("score"), 0)
-    return {
-        "score": score,
-        "confidence": score,
-        "risk": best.get("risk_level") or best.get("risk") or "Medio",
-        "reason": best.get("reasoning") or best.get("reason") or "SHARK espera datos suficientes antes de recomendar.",
-        "value": best.get("value_label") or ("Detectado" if best.get("odds") else "Pendiente"),
-        "summary": "SHARK combina calendario, picks, cuotas disponibles, favoritos e histórico para explicar oportunidades sin inventar datos.",
-        "items": picks or recs,
-    }
+    return shark_service.build_product_context(picks, recs, as_int_func=as_int)
 
 
 def commercial_intelligence_data():
@@ -3477,8 +3415,8 @@ def commercial_intelligence_data():
     return {
         "cards": [
             {"label": "FREE activos", "value": free_active, "body": "Potencial de upgrade a PRO."},
-            {"label": "Próximos a expirar", "value": expiring, "body": "Contactar antes de perder valor."},
-            {"label": "Sin Telegram", "value": no_telegram, "body": "Oportunidad de activación."},
+            {"label": "PrÃ³ximos a expirar", "value": expiring, "body": "Contactar antes de perder valor."},
+            {"label": "Sin Telegram", "value": no_telegram, "body": "Oportunidad de activaciÃ³n."},
             {"label": "Usuarios PRO", "value": pro, "body": "Base comercial intermedia."},
             {"label": "Usuarios ELITE", "value": elite, "body": "Clientes VIP."},
             {"label": "Inactivos", "value": inactive, "body": "Recuperables con mensaje simple."},
@@ -3722,7 +3660,7 @@ def match_calendar_diagnostics():
         "matches_by_league": rows("SELECT COALESCE(competition_name, league_name, competition_key) AS league, country, COUNT(*) AS total FROM matches GROUP BY COALESCE(competition_name, league_name, competition_key), country ORDER BY total DESC LIMIT 25"),
         "results_by_league": rows("SELECT COALESCE(competition_name, league_name, competition_key) AS league, country, COUNT(*) AS total FROM matches WHERE lower(COALESCE(status,'')) IN ('finalizado','ft','finished','final','match finished') OR (match_date<? AND COALESCE(score,'')!='') GROUP BY COALESCE(competition_name, league_name, competition_key), country ORDER BY total DESC LIMIT 25", (today_iso(),)),
         "next_7_days": rows("SELECT match_date, COALESCE(competition_name, league_name, competition_key) AS league, COUNT(*) AS total FROM matches WHERE match_date>=? AND match_date<=? GROUP BY match_date, COALESCE(competition_name, league_name, competition_key) ORDER BY match_date, league LIMIT 80", (today_iso(), today_iso(7))),
-        "grouping_policy": "Calendario agrupado por día, liga y hora.",
+        "grouping_policy": "Calendario agrupado por dÃ­a, liga y hora.",
     }
 
 
@@ -4190,7 +4128,7 @@ def normalize_pick_row(pick):
         pick["shark_score"] = learned.get("shark_score", pick["confidence"])
     except Exception:
         pick["learning_adjustment"] = 0
-        pick["learning_explanation"] = "Histórico insuficiente: confianza sin ajuste avanzado."
+        pick["learning_explanation"] = "HistÃ³rico insuficiente: confianza sin ajuste avanzado."
     return pick
 
 
@@ -4437,7 +4375,7 @@ def activity_label(item):
 
 def build_client_alerts(limit=12, user_id=None):
     """Alertas visuales para cliente sin inventar datos reales.
-    Mezcla favoritos, partidos próximos, live, picks publicados y estado Telegram.
+    Mezcla favoritos, partidos prÃ³ximos, live, picks publicados y estado Telegram.
     """
     user_id = user_id or current_user_id()
     hub = match_hub(today_iso())
@@ -4460,7 +4398,7 @@ def build_client_alerts(limit=12, user_id=None):
             "type": "picks",
             "priority": 90,
             "title": "Picks publicados disponibles",
-            "body": f"Tienes {len(picks)} pick(s) visibles según tu membresía.",
+            "body": f"Tienes {len(picks)} pick(s) visibles segÃºn tu membresÃ­a.",
             "href": "/picks",
             "badge": "PICKS",
         })
@@ -4468,10 +4406,10 @@ def build_client_alerts(limit=12, user_id=None):
         alerts.append({
             "type": "analysis",
             "priority": 74,
-            "title": "Partidos próximos listos para análisis",
-            "body": "Aún no hay picks publicados, pero SHARK ya puede ayudarte a revisar próximos partidos reales.",
+            "title": "Partidos prÃ³ximos listos para anÃ¡lisis",
+            "body": "AÃºn no hay picks publicados, pero SHARK ya puede ayudarte a revisar prÃ³ximos partidos reales.",
             "href": "/picks",
-            "badge": "ANÁLISIS",
+            "badge": "ANÃLISIS",
         })
     if favs:
         alerts.append({
@@ -4487,7 +4425,7 @@ def build_client_alerts(limit=12, user_id=None):
             "type": "favorites",
             "priority": 58,
             "title": "Personaliza tu experiencia",
-            "body": "Guarda equipos, ligas o partidos para que tu inicio, SHARK y Telegram sean más útiles.",
+            "body": "Guarda equipos, ligas o partidos para que tu inicio, SHARK y Telegram sean mÃ¡s Ãºtiles.",
             "href": "/favorites",
             "badge": "PERSONALIZA",
         })
@@ -4496,7 +4434,7 @@ def build_client_alerts(limit=12, user_id=None):
             "type": "telegram",
             "priority": 52,
             "title": "Telegram pendiente de configurar",
-            "body": "Cuando esté conectado podrás recibir partidos del día, picks y alertas premium.",
+            "body": "Cuando estÃ© conectado podrÃ¡s recibir partidos del dÃ­a, picks y alertas premium.",
             "href": "/telegram",
             "badge": "TELEGRAM",
         })
@@ -4505,10 +4443,10 @@ def build_client_alerts(limit=12, user_id=None):
         alerts.append({
             "type": "match",
             "priority": 70,
-            "title": "Próximo partido destacado",
-            "body": f"{first.get('home_team')} vs {first.get('away_team')} · {first.get('competition_name') or first.get('league_name') or 'Competición'}",
+            "title": "PrÃ³ximo partido destacado",
+            "body": f"{first.get('home_team')} vs {first.get('away_team')} Â· {first.get('competition_name') or first.get('league_name') or 'CompeticiÃ³n'}",
             "href": f"/match/{first.get('id')}",
-            "badge": "PRÓXIMO",
+            "badge": "PRÃ“XIMO",
         })
     alerts = sorted(alerts, key=lambda x: x.get("priority", 0), reverse=True)
     return alerts[: int(limit)]
@@ -4550,7 +4488,7 @@ def client_progress_score(user=None):
 
 
 def build_daily_briefing(user=None):
-    """Briefing comercial para cliente: resume qué mirar hoy sin inventar datos."""
+    """Briefing comercial para cliente: resume quÃ© mirar hoy sin inventar datos."""
     user = user or current_session_user() or {"membership": "FREE", "role": "FREE"}
     hub = match_hub(today_iso())
     upcoming = get_upcoming_matches(today_iso(), days=7, limit=12)
@@ -4574,9 +4512,9 @@ def build_daily_briefing(user=None):
     if favs:
         priorities.append({"label": "Favoritos", "value": len(favs), "href": "/favorites", "tone": "favorites"})
     if upcoming:
-        priorities.append({"label": "Próximos 7 días", "value": len(upcoming), "href": "/match-hub", "tone": "matches"})
+        priorities.append({"label": "PrÃ³ximos 7 dÃ­as", "value": len(upcoming), "href": "/match-hub", "tone": "matches"})
     if not priorities:
-        priorities.append({"label": "Sincronización pendiente", "value": "OK", "href": "/match-hub", "tone": "empty"})
+        priorities.append({"label": "SincronizaciÃ³n pendiente", "value": "OK", "href": "/match-hub", "tone": "empty"})
     return {
         "date": today_iso(),
         "score": client_progress_score(user),
@@ -4600,7 +4538,7 @@ def build_daily_briefing(user=None):
         "message": (
             "Tienes contenido listo para revisar hoy."
             if (today_matches or upcoming or picks or favs)
-            else "Aún faltan datos sincronizados; la app mostrará contenido real cuando entren SportsDB, Odds o import legal."
+            else "AÃºn faltan datos sincronizados; la app mostrarÃ¡ contenido real cuando entren SportsDB, Odds o import legal."
         ),
     }
 
@@ -4618,10 +4556,10 @@ def client_command_center_data(user=None):
             "telegram": 100 if telegram_config().get("configured") else 40,
         },
         "recommended_tabs": [
-            {"label": "Mi día", "href": "/mi-dia", "text": "Briefing personalizado"},
+            {"label": "Mi dÃ­a", "href": "/mi-dia", "text": "Briefing personalizado"},
             {"label": "Partidos", "href": "/match-hub", "text": "Calendario por ligas"},
             {"label": "Picks", "href": "/picks", "text": "Apuestas publicadas o candidatos"},
-            {"label": "Combis", "href": "/combis", "text": "Constructor con próximos partidos"},
+            {"label": "Combis", "href": "/combis", "text": "Constructor con prÃ³ximos partidos"},
         ],
     }
 
@@ -4763,7 +4701,7 @@ def annotate_match(match, favs=None):
         match["live_depth"]["minute"] = "FT"
     elif match["status_info"].get("is_upcoming"):
         match["live_depth"]["state"] = "UPCOMING"
-        match["live_depth"]["label"] = "Próximo"
+        match["live_depth"]["label"] = "PrÃ³ximo"
         match["live_depth"]["badge"] = "upcoming"
         match["live_depth"]["minute"] = match.get("kickoff_time") or match.get("match_time") or "Hora"
         if not (match.get("home_score") or match.get("away_score") or match.get("score")):
@@ -4898,7 +4836,7 @@ def favorite_insights(user_id=None):
         "matches": next_matches,
         "live": live_matches,
         "picks": picks,
-        "summary": " · ".join(summary) if summary else "Sin favoritos todavía",
+        "summary": " Â· ".join(summary) if summary else "Sin favoritos todavÃ­a",
         "total": len(favs),
     }
 
@@ -4909,7 +4847,7 @@ def team_lookup(team_id):
     team = one("SELECT * FROM teams WHERE key=? OR external_id=? OR lower(name)=lower(?) LIMIT 1", (key, str(team_id or ""), str(team_id or "")))
     if team:
         return team
-    # Crear vista virtual mínima si el equipo aparece en partidos pero todavía no existe en teams.
+    # Crear vista virtual mÃ­nima si el equipo aparece en partidos pero todavÃ­a no existe en teams.
     sample = one("""SELECT home_team AS name, home_logo AS logo_url, country, competition_name AS league FROM matches WHERE lower(home_team)=lower(?)
                     UNION ALL
                     SELECT away_team AS name, away_logo AS logo_url, country, competition_name AS league FROM matches WHERE lower(away_team)=lower(?) LIMIT 1""", (str(team_id or ""), str(team_id or "")))
@@ -4980,13 +4918,13 @@ def shark_context_summary(context):
     pieces = [f"Contexto SHARK para {team} preparado con datos cacheados reales."]
     if upcoming:
         first = upcoming[0]
-        pieces.append(f"Próximo partido: {first.get('home_team')} vs {first.get('away_team')} ({first.get('match_date')} {first.get('kickoff_time') or ''}).")
+        pieces.append(f"PrÃ³ximo partido: {first.get('home_team')} vs {first.get('away_team')} ({first.get('match_date')} {first.get('kickoff_time') or ''}).")
     else:
-        pieces.append("No hay próximos partidos sincronizados para este equipo todavía.")
+        pieces.append("No hay prÃ³ximos partidos sincronizados para este equipo todavÃ­a.")
     if picks:
         pieces.append(f"Hay {len(picks)} picks relacionados publicados o preparados.")
     else:
-        pieces.append("Aún no hay picks relacionados publicados.")
+        pieces.append("AÃºn no hay picks relacionados publicados.")
     return " ".join(pieces)
 
 
@@ -5039,7 +4977,7 @@ def recent_team_form(team_name, limit=5):
     wins = sum(1 for x in recent if x.get("form_result") == "W")
     draws = sum(1 for x in recent if x.get("form_result") == "D")
     losses = sum(1 for x in recent if x.get("form_result") == "L")
-    summary = f"{wins} victorias · {draws} empates · {losses} derrotas" if recent else "Sin resultados recientes guardados."
+    summary = f"{wins} victorias Â· {draws} empates Â· {losses} derrotas" if recent else "Sin resultados recientes guardados."
     return {"team": team_name, "matches": recent, "form": [x.get("form_result") for x in recent], "summary": summary}
 
 
@@ -5077,17 +5015,17 @@ def match_depth_payload(match):
     if h2h:
         shark_notes.append(f"Hay {len(h2h)} enfrentamientos directos guardados para comparar contexto.")
     else:
-        shark_notes.append("Aún no hay histórico directo suficiente guardado para este cruce.")
+        shark_notes.append("AÃºn no hay histÃ³rico directo suficiente guardado para este cruce.")
     if picks:
         shark_notes.append(f"Hay {len(picks)} picks relacionados publicados o preparados para este partido.")
     else:
-        shark_notes.append("SHARK no publicará pick real hasta tener cuota, mercado y contexto suficientes.")
+        shark_notes.append("SHARK no publicarÃ¡ pick real hasta tener cuota, mercado y contexto suficientes.")
     if live_depth.get("state") in {"LIVE", "HT"}:
-        shark_notes.append("Partido activo: priorizar lectura live y evitar decisiones tardías sin revisar marcador/minuto.")
+        shark_notes.append("Partido activo: priorizar lectura live y evitar decisiones tardÃ­as sin revisar marcador/minuto.")
     elif live_depth.get("state") == "FT":
-        shark_notes.append("Partido finalizado: útil para histórico, forma y aprendizaje futuro.")
+        shark_notes.append("Partido finalizado: Ãºtil para histÃ³rico, forma y aprendizaje futuro.")
     else:
-        shark_notes.append("Partido próximo: contexto preparado para picks, favoritos y alertas.")
+        shark_notes.append("Partido prÃ³ximo: contexto preparado para picks, favoritos y alertas.")
     return {
         "match": annotated,
         "live_depth": live_depth,
@@ -5164,18 +5102,18 @@ def league_category(match):
     country = str(match.get("country") or "").lower()
     text = f"{comp} {comp_name}"
     if any(x in text for x in ["andalucia", "cadiz", "sevilla", "malaga", "granada", "cordoba", "huelva", "jaen", "almeria"]):
-        return "Andalucía"
+        return "AndalucÃ­a"
     if any(x in text for x in ["champions", "europa league", "conference", "uefa"]):
         return "UEFA"
     if any(x in text for x in ["world", "euro", "copa america", "copa-america", "nations league"]):
         return "Selecciones"
     if country == "spain" or any(x in text for x in ["laliga", "rfef", "segunda", "tercera"]):
-        return "España"
+        return "EspaÃ±a"
     return "Internacional"
 
 
 def league_display_name(match):
-    return match.get("competition_name") or match.get("league_name") or match.get("competition_key") or "Competición"
+    return match.get("competition_name") or match.get("league_name") or match.get("competition_key") or "CompeticiÃ³n"
 
 
 def date_display_label(date_value):
@@ -5185,10 +5123,10 @@ def date_display_label(date_value):
         if target == today:
             prefix = "Hoy"
         elif target == today + timedelta(days=1):
-            prefix = "Mañana"
+            prefix = "MaÃ±ana"
         else:
             prefix = target.strftime("%A")
-        return f"{prefix} · {target.strftime('%d/%m/%Y')}"
+        return f"{prefix} Â· {target.strftime('%d/%m/%Y')}"
     except Exception:
         return str(date_value or "Fecha por confirmar")
 
@@ -5294,7 +5232,7 @@ def pick_candidate_matches(limit=24, days=14):
         info = canonical_match_status(match)
         if info.get("is_upcoming") and match.get("home_team") and match.get("away_team"):
             annotated = annotate_match(match)
-            annotated["pick_readiness"] = "Listo para análisis" if (match.get("bookmaker") or match.get("odds_h2h_json")) else "Sin cuota todavía"
+            annotated["pick_readiness"] = "Listo para anÃ¡lisis" if (match.get("bookmaker") or match.get("odds_h2h_json")) else "Sin cuota todavÃ­a"
             candidates.append(annotated)
         if len(candidates) >= limit:
             break
@@ -5309,15 +5247,15 @@ def build_combi_candidates_from_matches(count=3):
         "matches": matches[:count],
         "available": len(matches),
         "mode": "partidos_reales_proximos",
-        "notice": "Base real de partidos próximos. La selección final debe salir de picks publicados o análisis admin; no se fabrican apuestas falsas.",
+        "notice": "Base real de partidos prÃ³ximos. La selecciÃ³n final debe salir de picks publicados o anÃ¡lisis admin; no se fabrican apuestas falsas.",
     }
 
 
 def smart_pick_board(user=None, limit=12):
     """Panel comercial para que Picks nunca parezca roto.
 
-    No fabrica apuestas reales: si no hay picks publicados, enseña partidos próximos
-    sincronizados como base de análisis y explica claramente el estado.
+    No fabrica apuestas reales: si no hay picks publicados, enseÃ±a partidos prÃ³ximos
+    sincronizados como base de anÃ¡lisis y explica claramente el estado.
     """
     user = user or current_session_user() or {"membership": "FREE", "role": "FREE"}
     published = published_picks_for_user(user, limit=limit)
@@ -5345,11 +5283,11 @@ def smart_pick_board(user=None, limit=12):
         "candidate_count": len(candidates),
         "has_real_picks": bool(published),
         "client_message": (
-            "Picks publicados disponibles para tu membresía."
+            "Picks publicados disponibles para tu membresÃ­a."
             if published
-            else "No hay picks publicados ahora mismo. Te mostramos partidos reales próximos para preparar análisis sin inventar apuestas."
+            else "No hay picks publicados ahora mismo. Te mostramos partidos reales prÃ³ximos para preparar anÃ¡lisis sin inventar apuestas."
         ),
-        "admin_message": "Publica picks desde /admin/picks usando partidos reales próximos." if not published else "Picks activos y visibles.",
+        "admin_message": "Publica picks desde /admin/picks usando partidos reales prÃ³ximos." if not published else "Picks activos y visibles.",
     }
 
 def match_hub(date=None, lane="today"):
@@ -5402,8 +5340,8 @@ def match_hub(date=None, lane="today"):
         "calendar_grouped": grouped_match_calendar(combined),
         "live_grouped": group_matches_by_league(live_state["live"]),
         "favorites_grouped": group_matches_by_league(sections["favorites"][:40]),
-        "grouping_policy": "Partidos ordenados por día, liga y hora.",
-        "empty_state": "No hay partidos sincronizados todavía. El administrador puede sincronizar SportsDB/Odds o importar CSV/JSON legal.",
+        "grouping_policy": "Partidos ordenados por dÃ­a, liga y hora.",
+        "empty_state": "No hay partidos sincronizados todavÃ­a. El administrador puede sincronizar SportsDB/Odds o importar CSV/JSON legal.",
         "counts": {
             "live": len(live_state["live"]),
             "upcoming": len(live_state["scheduled"]),
@@ -5536,8 +5474,7 @@ def migrate_missing_usernames(conn):
 
 
 def normalize_role(role):
-    role = str(role or "FREE").strip().upper()
-    return role if role in VALID_ROLES else "FREE"
+    return membership_service.normalize_role(role)
 
 
 def dict_row(row):
@@ -5555,26 +5492,11 @@ def dict_row(row):
 
 
 def parse_iso_date(value):
-    if not value:
-        return None
-    try:
-        return datetime.fromisoformat(str(value)[:10]).date()
-    except Exception:
-        return None
+    return membership_service.parse_iso_date(value)
 
 
 def membership_status_meta(user):
-    membership = normalize_role((user or {}).get("membership"))
-    end_date = parse_iso_date((user or {}).get("membership_end_date"))
-    if membership in {"FREE", "ADMIN"}:
-        return {"status": "permanent", "days_left": None, "expired": False}
-    if not end_date:
-        return {"status": "permanent", "days_left": None, "expired": False}
-    today = datetime.now(TZ).date()
-    days_left = (end_date - today).days
-    if days_left < 0:
-        return {"status": "expired", "days_left": 0, "expired": True}
-    return {"status": "active_until", "days_left": days_left, "expired": False}
+    return membership_service.membership_status_meta(user, datetime.now(TZ).date())
 
 
 def apply_membership_expiry(user):
@@ -5603,18 +5525,7 @@ def apply_membership_expiry(user):
 
 
 def membership_end_from_duration(duration, custom_end=""):
-    duration = str(duration or "permanent").strip().lower()
-    if duration in {"", "permanent", "manual"}:
-        return ""
-    if duration == "custom":
-        return str(custom_end or "").strip()[:10]
-    try:
-        days = int(duration)
-    except Exception:
-        return ""
-    if days <= 0:
-        return ""
-    return (datetime.now(TZ).date() + timedelta(days=days)).isoformat()
+    return membership_service.membership_end_from_duration(duration, custom_end, today=datetime.now(TZ).date())
 
 
 def user_public(row):
@@ -5710,7 +5621,7 @@ def security_before_request():
                 success=False,
                 reason="csrf_token_missing_or_invalid",
             )
-            abort(400, description="Solicitud de seguridad no válida. Recarga la página e inténtalo de nuevo.")
+            abort(400, description="Solicitud de seguridad no vÃ¡lida. Recarga la pÃ¡gina e intÃ©ntalo de nuevo.")
 
     if request.method == "POST" and request.path in {"/cliente-login", "/login", "/entrar", "/admin-login", "/registro", "/admin-bootstrap"}:
         ip = client_ip()
@@ -5908,8 +5819,8 @@ def authenticate_user(identifier, password, admin_only=False):
         valid_password = check_password_hash(stored_hash, raw_password)
     except Exception:
         valid_password = False
-    # Compatibilidad defensiva: si alguna DB legacy guardó texto plano, permitir entrada
-    # y rehashear inmediatamente para no dejar la contraseña en claro.
+    # Compatibilidad defensiva: si alguna DB legacy guardÃ³ texto plano, permitir entrada
+    # y rehashear inmediatamente para no dejar la contraseÃ±a en claro.
     needs_rehash = False
     if not valid_password and stored_hash and stored_hash == raw_password:
         valid_password = True
@@ -5963,11 +5874,11 @@ def admin_json_forbidden():
 
 
 # V608 - Blueprint Migration Phase 2
-# Registro no invasivo: añade Centro de Arquitectura sin mover rutas legacy aún.
+# Registro no invasivo: aÃ±ade Centro de Arquitectura sin mover rutas legacy aÃºn.
 try:
     app.register_blueprint(create_architecture_blueprint(APP_VERSION, DB_PATH, is_admin_callback=is_admin_session))
 except Exception:
-    # En producción preferimos no romper el arranque por una herramienta de arquitectura.
+    # En producciÃ³n preferimos no romper el arranque por una herramienta de arquitectura.
     pass
 
 
@@ -6038,7 +5949,7 @@ def import_users_from_old_database(path=None):
         columns = [row["name"] for row in info]
         email_col = legacy_column(columns, "email", "correo", "mail")
         password_hash_col = legacy_column(columns, "password_hash", "pass_hash", "hash")
-        password_col = legacy_column(columns, "password", "contrasena", "contraseña", "clave")
+        password_col = legacy_column(columns, "password", "contrasena", "contraseÃ±a", "clave")
         name_col = legacy_column(columns, "name", "nombre", "display_name")
         username_col = legacy_column(columns, "username", "user", "usuario")
         role_col = legacy_column(columns, "role", "rol")
@@ -6157,7 +6068,7 @@ def shark_briefing():
         "priority": [
             "Conectar o importar fuentes legales para calendario/live.",
             "Usar picks solo cuando vengan de carga autorizada o motor propio.",
-            "Mantener Andalucía como capa diferencial dentro de cobertura mundial.",
+            "Mantener AndalucÃ­a como capa diferencial dentro de cobertura mundial.",
         ],
         "picks": picks,
         "explained_picks": explained,
@@ -6197,7 +6108,7 @@ def shark_answer(question):
         body = f"Tu feed favorito tiene {hub['counts']['favorites']} partidos destacados para hoy."
     else:
         focus = "contexto"
-        body = "Prioridad global: competiciones top mundiales y europeas, España como eje fuerte y Andalucía como diferencial propio."
+        body = "Prioridad global: competiciones top mundiales y europeas, EspaÃ±a como eje fuerte y AndalucÃ­a como diferencial propio."
     return {
         "question": q,
         "focus": focus,
@@ -6404,15 +6315,15 @@ def build_daily_matches_message():
 
 
 def telegram_pick_candidates(limit=8, include_unpublished_fallback=True):
-    """Devuelve picks enviables para Telegram sin dejar el canal vacío por filtros demasiado duros.
+    """Devuelve picks enviables para Telegram sin dejar el canal vacÃ­o por filtros demasiado duros.
     Prioridad: publicados visibles para ELITE/ADMIN. Si no hay publicados, usa candidatos activos/pending
-    generados por SHARK para que el admin pueda probar el envío real.
+    generados por SHARK para que el admin pueda probar el envÃ­o real.
     """
     seed_core()
     picks = get_picks(limit=limit, status=["published", "won", "lost", "void"], membership="ADMIN", include_admin=False)
     if picks or not include_unpublished_fallback:
         return picks
-    # Fallback seguro para auditoría/envío manual: candidatos pendientes/activos importados o creados por SHARK.
+    # Fallback seguro para auditorÃ­a/envÃ­o manual: candidatos pendientes/activos importados o creados por SHARK.
     fallback = rows(
         """SELECT * FROM picks
            WHERE lower(COALESCE(status,'')) IN ('pending','active','published','')
@@ -6450,14 +6361,14 @@ def enqueue_single_pick_to_telegram(pick, force=True, forced_chat_id=""):
         membership = normalize_role(sub.get("membership") or "FREE")
         if not telegram_plan_allows(membership, required):
             blocked += 1
-            telegram_flow_log("MEMBERSHIP_FILTER", "blocked", "Pick Telegram bloqueado por membresía.", {"pick_id": pick.get("id"), "subscriber": sub.get("chat_id"), "membership": membership, "required": required})
+            telegram_flow_log("MEMBERSHIP_FILTER", "blocked", "Pick Telegram bloqueado por membresÃ­a.", {"pick_id": pick.get("id"), "subscriber": sub.get("chat_id"), "membership": membership, "required": required})
             continue
         badge = pick_badge_context(pick)
         badge_errors += 0 if badge.get("has_badge") else 1
         text_only += 1 if badge.get("delivery_mode") == "text_only" else 0
         with_image += 1 if badge.get("delivery_mode") != "text_only" else 0
         if not badge.get("has_badge"):
-            telegram_flow_log("TELEGRAM_BADGES", "fallback", "Pick Telegram sin escudo; se usará texto premium.", {"pick_id": pick.get("id"), "membership": membership})
+            telegram_flow_log("TELEGRAM_BADGES", "fallback", "Pick Telegram sin escudo; se usarÃ¡ texto premium.", {"pick_id": pick.get("id"), "membership": membership})
         body = build_single_pick_message(pick, membership=membership)
         telegram_flow_log("TELEGRAM_FORMAT", "formatted", "Pick formateado para Telegram por plan.", {"pick_id": pick.get("id"), "membership": membership, "required": required, "delivery_mode": badge.get("delivery_mode")})
         result = enqueue_telegram_message(
@@ -6472,7 +6383,7 @@ def enqueue_single_pick_to_telegram(pick, force=True, forced_chat_id=""):
         )
         inserted += 1 if result.get("queued") else 0
         skipped += 1 if result.get("skipped") else 0
-    telegram_flow_log("TELEGRAM_PLAN", "queued", "Pick publicado segmentado por membresía.", {"pick_id": pick.get("id"), "inserted": inserted, "skipped": skipped, "blocked": blocked, "badge_errors": badge_errors, "text_only": text_only, "with_image": with_image})
+    telegram_flow_log("TELEGRAM_PLAN", "queued", "Pick publicado segmentado por membresÃ­a.", {"pick_id": pick.get("id"), "inserted": inserted, "skipped": skipped, "blocked": blocked, "badge_errors": badge_errors, "text_only": text_only, "with_image": with_image})
     return {"ok": True, "message": "Pick publicado encolado.", "processed": len(subscribers), "inserted": inserted, "sent": 0, "failed": 0, "skipped": skipped, "blocked": blocked, "badge_errors": badge_errors, "messages_text_only": text_only, "messages_with_image": with_image, "errors": []}
 
 
@@ -6523,7 +6434,7 @@ def enqueue_daily_picks(force=False, force_empty=False, forced_chat_id=""):
     if not subscribers:
         telegram_flow_log("PICKS", "failed", "Hay picks pero no hay destinatarios Telegram ni TELEGRAM_CHAT_ID.", {"picks": len(picks)})
         return {"ok": False, "message": "No hay suscriptores Telegram activos.", "processed": 0, "sent": 0, "failed": 0, "skipped": 0, "errors": ["sin_destinatarios"]}
-    telegram_flow_log("PICKS", "found", "Picks encontrados para Telegram; preparando cola por membresía.", {"subscribers": len(subscribers), "picks": len(picks)})
+    telegram_flow_log("PICKS", "found", "Picks encontrados para Telegram; preparando cola por membresÃ­a.", {"subscribers": len(subscribers), "picks": len(picks)})
     inserted = skipped = blocked = badge_errors = text_only = with_image = 0
     for sub in subscribers:
         membership = normalize_role(sub.get("membership") or "FREE")
@@ -6539,12 +6450,12 @@ def enqueue_daily_picks(force=False, force_empty=False, forced_chat_id=""):
             text_only += 1 if badge.get("delivery_mode") == "text_only" else 0
             with_image += 1 if badge.get("delivery_mode") != "text_only" else 0
             if not badge.get("has_badge"):
-                telegram_flow_log("TELEGRAM_BADGES", "fallback", "Resumen de picks sin escudo; se usará texto premium.", {"pick_id": pick.get("id"), "membership": membership})
+                telegram_flow_log("TELEGRAM_BADGES", "fallback", "Resumen de picks sin escudo; se usarÃ¡ texto premium.", {"pick_id": pick.get("id"), "membership": membership})
         body = format_daily_picks_message(allowed, force_empty=force_empty, premium_name=APP_NAME, membership=membership)
         if not body:
             skipped += 1
             continue
-        telegram_flow_log("TELEGRAM_FORMAT", "formatted", "Resumen de picks formateado por membresía.", {"membership": membership, "allowed": len(allowed), "blocked": max(0, len(picks) - len(allowed))})
+        telegram_flow_log("TELEGRAM_FORMAT", "formatted", "Resumen de picks formateado por membresÃ­a.", {"membership": membership, "allowed": len(allowed), "blocked": max(0, len(picks) - len(allowed))})
         result = enqueue_telegram_message(
             "daily_picks",
             f"Picks destacados {membership}",
@@ -6731,12 +6642,12 @@ def telegram_pick_delivery_audit():
         users_with_chat = 0
     checks = [
         {"key": "bot_token", "label": "TELEGRAM_BOT_TOKEN configurado", "ok": cfg.get("token_present"), "fix": "Render > Environment > TELEGRAM_BOT_TOKEN con el token de BotFather."},
-        {"key": "chat_id", "label": "TELEGRAM_CHAT_ID configurado", "ok": cfg.get("chat_id_present"), "fix": "Añade el chat_id del canal/grupo o vincula usuarios con chat_id."},
-        {"key": "settings_enabled", "label": "Delivery automático activado", "ok": settings.get("enabled"), "fix": "En Admin > Telegram pulsa Activar automático o usa /api/telegram/settings/update?enabled=1."},
-        {"key": "auto_daily_picks", "label": "Auto picks Telegram activado", "ok": settings.get("auto_daily_picks"), "fix": "Activa auto_daily_picks en settings o envía picks manualmente desde auditoría."},
+        {"key": "chat_id", "label": "TELEGRAM_CHAT_ID configurado", "ok": cfg.get("chat_id_present"), "fix": "AÃ±ade el chat_id del canal/grupo o vincula usuarios con chat_id."},
+        {"key": "settings_enabled", "label": "Delivery automÃ¡tico activado", "ok": settings.get("enabled"), "fix": "En Admin > Telegram pulsa Activar automÃ¡tico o usa /api/telegram/settings/update?enabled=1."},
+        {"key": "auto_daily_picks", "label": "Auto picks Telegram activado", "ok": settings.get("auto_daily_picks"), "fix": "Activa auto_daily_picks en settings o envÃ­a picks manualmente desde auditorÃ­a."},
         {"key": "subscribers", "label": "Hay destinatarios Telegram activos", "ok": len(active_subscribers) > 0, "fix": "Configura TELEGRAM_CHAT_ID o vincula usuarios/canal. El bot debe estar iniciado o ser admin del canal/grupo."},
         {"key": "published_picks", "label": "Hay picks publicados", "ok": len(pro_elite_picks) > 0, "fix": "Publica picks en Admin > Picks o ejecuta el motor de auto picks antes de enviar."},
-        {"key": "queue_health", "label": "La cola no está bloqueada por fallos", "ok": len(failed) == 0 or len(pending) > 0 or len(sent) > 0, "fix": "Procesa cola, revisa último error y confirma token/chat_id."},
+        {"key": "queue_health", "label": "La cola no estÃ¡ bloqueada por fallos", "ok": len(failed) == 0 or len(pending) > 0 or len(sent) > 0, "fix": "Procesa cola, revisa Ãºltimo error y confirma token/chat_id."},
     ]
     ok_count = sum(1 for c in checks if c["ok"])
     readiness = int(round((ok_count / max(1, len(checks))) * 100))
@@ -6839,7 +6750,7 @@ def fix_telegram_settings_for_picks():
 
 
 def send_published_picks_to_telegram_now(limit=5, force=True, force_empty=False):
-    """Encola y procesa picks publicados hacia Telegram en una sola acción admin."""
+    """Encola y procesa picks publicados hacia Telegram en una sola acciÃ³n admin."""
     fix_telegram_settings_for_picks()
     enqueue = enqueue_daily_picks(force=force, force_empty=force_empty, forced_chat_id=os.getenv("TELEGRAM_CHAT_ID", ""))
     processed = process_premium_telegram_queue(limit=max(50, as_int(limit, 8)), force=True)
@@ -7071,7 +6982,7 @@ def telegram_daily_message():
         "<b>NeMeSiS SHARK PRO</b>\n"
         f"Version: {APP_VERSION}\n"
         f"Partidos hoy: {summary['matches_today']} | Live: {summary['live_now']} | Picks: {summary['picks_ready']}\n"
-        "Cobertura: mundial primero, España y Andalucía como diferencial.\n"
+        "Cobertura: mundial primero, EspaÃ±a y AndalucÃ­a como diferencial.\n"
         "Legal: solo APIs permitidas, importaciones autorizadas y cache propio."
     )
 
@@ -7200,7 +7111,7 @@ def _dashboard_data_full(lane="today", date=None):
     matches_diag = match_calendar_diagnostics()
     groups = {}
     for match in matches:
-        groups.setdefault(match.get("competition_name") or "Sin competición", []).append(match)
+        groups.setdefault(match.get("competition_name") or "Sin competiciÃ³n", []).append(match)
     live_matches = matches if lane == "today" else get_matches(date, "today")
     return {
         "app_name": APP_NAME,
@@ -7240,7 +7151,7 @@ def _dashboard_data_full(lane="today", date=None):
         "client_source_label": client_source_label(matches_diag),
         "data_center": data_center_summary() if needs_data_center else {},
         "live": split_live([annotate_match(m) for m in live_matches]),
-        "legal_policy": "No scraping ilegal. Solo APIs permitidas, datos propios, CSV/JSON autorizado, cache persistente y revisión editorial.",
+        "legal_policy": "No scraping ilegal. Solo APIs permitidas, datos propios, CSV/JSON autorizado, cache persistente y revisiÃ³n editorial.",
         "readiness": {
             "clean_core": 100,
             "render_ready": 98,
@@ -7345,13 +7256,13 @@ def empty_match_hub(lane="today", date=None):
         "live_grouped": [],
         "favorites_grouped": [],
         "grouping_policy": "Datos preparando.",
-        "empty_state": "SHARK mostrará nuevos partidos cuando haya datos suficientes.",
+        "empty_state": "SHARK mostrarÃ¡ nuevos partidos cuando haya datos suficientes.",
         "counts": {"live": 0, "today": 0, "upcoming": 0, "finished": 0, "favorites": 0, "with_picks": 0, "with_odds": 0},
     }
 
 
 def light_home_data():
-    """Datos mínimos para que / responda rápido en Render sin disparar dashboard pesado."""
+    """Datos mÃ­nimos para que / responda rÃ¡pido en Render sin disparar dashboard pesado."""
     return {
         "app_name": APP_NAME,
         "version": APP_VERSION,
@@ -7387,6 +7298,15 @@ def global_football():
 @app.route("/calendario-global")
 def calendar_page():
     return render_template("calendar.html", data=dashboard_data(request.args.get("lane", "today"), request.args.get("date") or today_iso()))
+
+
+@app.route("/sports")
+@app.route("/sports-hub")
+def sports_hub_page():
+    data = dashboard_data()
+    data["sports_hub"] = sports_hub_data()
+    data["shark_product"] = shark_product_context()
+    return render_template("sports_hub.html", data=data)
 
 
 @app.route("/live")
@@ -7479,7 +7399,7 @@ def client_login_page():
             set_login_session(user)
             record_security_event(DB_PATH, event_type="login_attempt", severity="INFO", ip_address=client_ip(), user_id=user.get("id"), username=identifier, path=request.path, method=request.method, success=True, reason="client_login_ok")
             return redirect(safe_next_path("/perfil"))
-        error = "Email, usuario o contraseña incorrectos."
+        error = "Email, usuario o contraseÃ±a incorrectos."
         record_security_event(DB_PATH, event_type="login_attempt", severity="MEDIUM", ip_address=client_ip(), username=identifier, path=request.path, method=request.method, success=False, reason="client_login_failed")
     return render_template("client_login.html", data=light_home_data(), error=error)
 
@@ -7498,7 +7418,7 @@ def admin_login_page():
             set_login_session(user)
             record_security_event(DB_PATH, event_type="login_attempt", severity="INFO", ip_address=client_ip(), user_id=user.get("id"), username=request.form.get("login") or "", path=request.path, method=request.method, success=True, reason="admin_login_ok")
             return redirect(safe_next_path("/admin/import-center"))
-        error = "Acceso admin no válido."
+        error = "Acceso admin no vÃ¡lido."
         record_security_event(DB_PATH, event_type="login_attempt", severity="HIGH", ip_address=client_ip(), username=request.form.get("login") or "", path=request.path, method=request.method, success=False, reason="admin_login_failed")
     return render_template("admin_login.html", data=light_home_data(), error=error, configured=configured)
 
@@ -7578,8 +7498,8 @@ def support_page_data(sent=False, error=""):
         "error": error,
         "support_tips": [
             {"title": "Partidos y directo", "body": "Indica el partido, la liga y la pantalla donde viste el problema."},
-            {"title": "Picks y Telegram", "body": "Añade si era un pick publicado, una recomendación o un aviso de Telegram."},
-            {"title": "Cuenta y membresía", "body": "Describe qué plan tienes activo y qué esperabas desbloquear."},
+            {"title": "Picks y Telegram", "body": "AÃ±ade si era un pick publicado, una recomendaciÃ³n o un aviso de Telegram."},
+            {"title": "Cuenta y membresÃ­a", "body": "Describe quÃ© plan tienes activo y quÃ© esperabas desbloquear."},
         ],
     }
 
@@ -7698,7 +7618,7 @@ def admin_users_page():
             request.form.get("membership_custom_end"),
             request.form.get("membership_source") or "admin",
         )
-        message = "Membresía temporal actualizada." if updated else "No se pudo actualizar ese usuario."
+        message = "MembresÃ­a temporal actualizada." if updated else "No se pudo actualizar ese usuario."
     data = dashboard_data()
     data["users"] = list_users()
     data["admin_exists"] = admin_exists()
@@ -7728,13 +7648,37 @@ def admin_backups_page():
             result = restore_database_backup(name)
             message = f"Backup restaurado: {result.get('restored')}. Seguridad previa: {result.get('safety_backup')}" if result.get("ok") else f"No se pudo restaurar: {result.get('error')}"
         else:
-            message = "Acción no reconocida."
+            message = "AcciÃ³n no reconocida."
     data = dashboard_data()
     data["backups"] = list_backups()
     data["backup_dir"] = backup_dir()
     data["backup_retention"] = BACKUP_RETENTION_MAX
     data["backup_events"] = rows("SELECT * FROM security_events WHERE event_type LIKE 'backup_%' ORDER BY created_at DESC LIMIT 20")
     return render_template("admin_backups.html", data=data, message=message)
+
+
+@app.route("/admin/automation", methods=["GET", "POST"])
+def admin_automation_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/automation")
+    result = None
+    message = ""
+    if request.method == "POST":
+        result = run_daily_autonomous_system(force=True)
+        message = "AutomatizaciÃ³n diaria ejecutada."
+    data = dashboard_data()
+    data["automation"] = daily_automation_summary()
+    data["scheduler"] = scheduler_status()
+    return render_template("admin_automation.html", data=data, result=result, message=message)
+
+
+@app.route("/admin/intelligence")
+def admin_commercial_intelligence_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/intelligence")
+    data = dashboard_data()
+    data["commercial_intelligence"] = commercial_intelligence_data()
+    return render_template("admin_intelligence.html", data=data)
 
 
 @app.route("/admin/backups/download/<name>")
@@ -8019,10 +7963,10 @@ def admin_data_center_page():
             elif action == "player_intelligence":
                 result = rebuild_player_intelligence(DB_PATH, limit=limit or 1000)
                 result["player_intelligence"] = player_intelligence_summary(DB_PATH)
-            message = "Acción ejecutada desde Data Center."
+            message = "AcciÃ³n ejecutada desde Data Center."
         except Exception as exc:
             result = {"ok": False, "error": str(exc)[:240]}
-            message = "Acción con error controlado en Data Center."
+            message = "AcciÃ³n con error controlado en Data Center."
     data = dashboard_data()
     data["data_center"] = data_center_summary()
     data["warehouse"] = safe_engine_payload(lambda: warehouse_summary(DB_PATH), {"ok": False, "status": "pendiente"})
@@ -8194,6 +8138,7 @@ def shark_page():
     user = current_session_user() or {"membership": "FREE", "role": "FREE"}
     data["membership"] = v566_membership_ui(user)
     data["briefing"] = shark_briefing()
+    data["shark_product"] = shark_product_context()
     return render_template("shark.html", data=data)
 
 
@@ -8337,6 +8282,21 @@ def api_scheduler_status():
         return admin_json_forbidden()
     status = scheduler_status()
     return jsonify({"ok": True, "version": APP_VERSION, "scheduler": status, "autonomous": autonomous_summary(DB_PATH, status)})
+
+
+@app.route("/api/automation/daily")
+def api_daily_automation_status():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "version": APP_VERSION, "automation": daily_automation_summary()})
+
+
+@app.route("/api/automation/daily/run", methods=["POST", "GET"])
+def api_daily_automation_run():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    force = request.args.get("force") in {"1", "true", "yes"} or request.method == "POST"
+    return jsonify({"version": APP_VERSION, **run_daily_autonomous_system(force=force)})
 
 
 @app.route("/api/subscriptions/summary")
@@ -9072,8 +9032,8 @@ def api_telegram_send():
 def telegram_webhook():
     """Webhook no intrusivo para despliegues Render.
 
-    La automatización principal sigue usando cola y scheduler. Este endpoint evita
-    404 ruidosos si Telegram o un tercero lo consulta por configuración heredada.
+    La automatizaciÃ³n principal sigue usando cola y scheduler. Este endpoint evita
+    404 ruidosos si Telegram o un tercero lo consulta por configuraciÃ³n heredada.
     """
     payload = request.get_json(silent=True) or {}
     telegram_flow_log(
@@ -9201,7 +9161,7 @@ def api_diagnostics():
         {"name": "Perfil premium", "status": "READY", "detail": f"Perfil activo: {data['profile']['name']} / plan {data['profile']['membership_plan']}."},
         {"name": "IA SHARK Context", "status": "READY", "detail": "Contexto persistente para partido, liga, favoritos y picks recientes."},
         {"name": "Telegram Premium Delivery", "status": "READY" if data["telegram"]["configured"] else "CONFIG", "detail": "Settings, subscribers, queue, retries, logs y anti duplicados preparados."},
-        {"name": "Membresías", "status": "READY", "detail": "Planes Free, PRO y ELITE preparados para capa comercial."},
+        {"name": "MembresÃ­as", "status": "READY", "detail": "Planes Free, PRO y ELITE preparados para capa comercial."},
         {"name": "Performance cache", "status": "READY", "detail": "Cache persistente para hub, live flow y navegacion rapida."},
         {"name": "Premium mobile feel", "status": "READY", "detail": "Interacciones tactiles, spacing y tarjetas afinadas para sensacion app nativa."},
         {"name": "Arquitectura limpia", "status": "READY", "detail": "Motores separados: football population, scheduler, telegram delivery, live, match, shark, crest y cache."},
@@ -9277,7 +9237,7 @@ def api_deep_route_check():
 
 @app.route("/api/client-experience-check")
 def api_client_experience_check():
-    """Chequeo de experiencia cliente: rutas públicas, cliente y admin separadas."""
+    """Chequeo de experiencia cliente: rutas pÃºblicas, cliente y admin separadas."""
     public_routes = ["/", "/membresias", "/cliente-login", "/registro"]
     client_routes = ["/perfil", "/match-hub", "/live", "/resultados", "/picks", "/combis", "/favorites", "/shark", "/telegram"]
     admin_routes = ["/admin", "/admin/users", "/admin/data-center", "/admin/picks", "/admin/telegram", "/admin/import-center"]
@@ -9315,12 +9275,12 @@ def api_product_experience_check():
             "client_admin_split": True,
             "empty_states_premium": True,
         },
-        "message": "Experiencia cliente V535 revisada: nunca debe quedar una sección clave sin explicación clara.",
+        "message": "Experiencia cliente V535 revisada: nunca debe quedar una secciÃ³n clave sin explicaciÃ³n clara.",
     })
 
 
 # -----------------------------
-# V538 — Quality Center + Data Health Polish
+# V538 â€” Quality Center + Data Health Polish
 # -----------------------------
 
 def safe_count(table, where="1=1", params=()):
@@ -9373,7 +9333,7 @@ def quality_center_summary():
     if telegram_pending > 20:
         recommendations.append("Revisa la cola de Telegram: hay muchos mensajes pendientes.")
     if not recommendations:
-        recommendations.append("Ecosistema estable. Siguiente paso: densidad de datos, live profundo y automatización.")
+        recommendations.append("Ecosistema estable. Siguiente paso: densidad de datos, live profundo y automatizaciÃ³n.")
     return {
         "score": score,
         "version": APP_VERSION,
@@ -9404,7 +9364,7 @@ def api_quality_center_summary():
 
 @app.route("/api/client/app-pulse")
 def api_client_app_pulse():
-    """Pulso comercial seguro para cliente: no muestra detalles técnicos ni secretos."""
+    """Pulso comercial seguro para cliente: no muestra detalles tÃ©cnicos ni secretos."""
     q = quality_center_summary()
     return jsonify({
         "ok": True,
@@ -9420,7 +9380,7 @@ def api_client_app_pulse():
 
 
 # -----------------------------
-# V539 — Membership Revenue + Onboarding Polish
+# V539 â€” Membership Revenue + Onboarding Polish
 # -----------------------------
 
 def membership_distribution():
@@ -9442,7 +9402,7 @@ def onboarding_status(user=None):
     alerts_ready = len(build_client_alerts(limit=5))
     steps = [
         {"key": "account", "label": "Cuenta creada", "done": bool(user.get("id")), "href": "/perfil"},
-        {"key": "favorites", "label": "Añadir favoritos", "done": fav_count > 0, "href": "/favorites"},
+        {"key": "favorites", "label": "AÃ±adir favoritos", "done": fav_count > 0, "href": "/favorites"},
         {"key": "matches", "label": "Revisar partidos", "done": safe_count("matches") > 0, "href": "/match-hub"},
         {"key": "picks", "label": "Ver picks", "done": picks_visible > 0, "href": "/picks"},
         {"key": "telegram", "label": "Preparar Telegram", "done": bool((telegram_config() or {}).get("configured")), "href": "/telegram"},
@@ -9466,7 +9426,7 @@ def onboarding_status(user=None):
 
 def membership_revenue_summary():
     distribution = membership_distribution()
-    # Valores orientativos internos, no cobran ni activan Stripe todavía.
+    # Valores orientativos internos, no cobran ni activan Stripe todavÃ­a.
     estimated_prices = {"FREE": 0, "PRO": 19, "ELITE": 49, "ADMIN": 0}
     estimated_mrr = sum(distribution.get(plan, 0) * estimated_prices.get(plan, 0) for plan in distribution)
     total_clients = distribution.get("FREE", 0) + distribution.get("PRO", 0) + distribution.get("ELITE", 0)
@@ -9482,7 +9442,7 @@ def membership_revenue_summary():
         "recommendations": [
             "Mantener FREE como puerta de entrada con calendario, favoritos y SHARK base.",
             "Empujar PRO con picks, combinadas y Telegram premium.",
-            "Reservar ELITE para SHARK contextual, alertas live y prioridad de análisis.",
+            "Reservar ELITE para SHARK contextual, alertas live y prioridad de anÃ¡lisis.",
         ],
     }
 
@@ -9537,7 +9497,6 @@ def api_admin_membership_summary():
 
 
 # ===================== V565 SPORTS DATA & PICKS PERFECTION =====================
-APP_VERSION = "V631_ELITE_COMMERCIAL_EVOLUTION"
 
 PRIORITY_LEAGUE_ORDER = [
     "UEFA Champions League", "Champions League", "LaLiga", "Spanish La Liga", "Premier League",
@@ -9570,7 +9529,7 @@ def v565_match_status(match):
     if info.get("is_live"):
         minute = str(match.get("minute") or "").strip()
         return {"label": f"{minute}'" if minute and minute.isdigit() else "En directo", "tone": "live", "is_live": True, "is_finished": False}
-    label = info.get("label") or "Próximo"
+    label = info.get("label") or "PrÃ³ximo"
     return {"label": label if label != "LIVE" else "En directo", "tone": "scheduled", "is_live": False, "is_finished": False}
 
 
@@ -9618,7 +9577,7 @@ def v565_recommendation_for_match(match):
         membership = "ELITE"
     rec = {
         "match_id": match.get("id"),
-        "league_name": match.get("league_name") or match.get("competition_name") or "Competición",
+        "league_name": match.get("league_name") or match.get("competition_name") or "CompeticiÃ³n",
         "home_team": match.get("home_team") or "Local",
         "away_team": match.get("away_team") or "Visitante",
         "match_date": match.get("match_date"),
@@ -9635,8 +9594,8 @@ def v565_recommendation_for_match(match):
         "risk_level": risk,
         "membership_required": membership,
         "value_label": "Con cuota" if odds["available"] else "Esperando cuota",
-        "reason": "Liga prioritaria y partido próximo con datos suficientes para análisis." if score >= 70 else "Candidato preparado; falta más información de cuotas/live para elevar confianza.",
-        "warning": "No apostar si la cuota cambia mucho o falta confirmación de alineaciones." if odds["available"] else "No publicar como pick real hasta tener cuota validada.",
+        "reason": "Liga prioritaria y partido prÃ³ximo con datos suficientes para anÃ¡lisis." if score >= 70 else "Candidato preparado; falta mÃ¡s informaciÃ³n de cuotas/live para elevar confianza.",
+        "warning": "No apostar si la cuota cambia mucho o falta confirmaciÃ³n de alineaciones." if odds["available"] else "No publicar como pick real hasta tener cuota validada.",
         "league_rank": league_rank,
     }
     return apply_shark_learning_adjustment(rec, DB_PATH)
@@ -9674,15 +9633,15 @@ def v565_data_picks_health():
     score = min(100, score)
     actions = []
     if not upcoming:
-        actions.append("Sincronizar calendario desde Data Center para poblar partidos próximos reales.")
+        actions.append("Sincronizar calendario desde Data Center para poblar partidos prÃ³ximos reales.")
     if not odds_count:
         actions.append("Ejecutar sync de Odds para activar cuotas en recomendaciones y picks.")
     if not published:
-        actions.append("Generar recomendaciones automáticas y convertir las mejores en picks publicados.")
+        actions.append("Generar recomendaciones automÃ¡ticas y convertir las mejores en picks publicados.")
     if logos < max(1, total_teams // 3):
         actions.append("Ejecutar SportsDB Crest Sync para subir identidad visual.")
     if not actions:
-        actions.append("Sistema listo: revisar picks diarios, Telegram y rendimiento cada mañana.")
+        actions.append("Sistema listo: revisar picks diarios, Telegram y rendimiento cada maÃ±ana.")
     return {
         "score": score,
         "upcoming_matches": len(upcoming),
@@ -9742,13 +9701,13 @@ def api_v565_convert_recommendation():
             rec = item
             break
     if not rec:
-        return jsonify({"ok": False, "error": "Recomendación no encontrada o partido no válido."}), 404
+        return jsonify({"ok": False, "error": "RecomendaciÃ³n no encontrada o partido no vÃ¡lido."}), 404
     pick_payload = {
         "match_id": rec["match_id"],
         "league_name": rec["league_name"],
         "home_team": rec["home_team"],
         "away_team": rec["away_team"],
-        "market": "Resultado / análisis SHARK",
+        "market": "Resultado / anÃ¡lisis SHARK",
         "pick_type": "SHARK Auto",
         "selection": rec["selection"],
         "odds": rec["odds_value"],
@@ -9760,30 +9719,30 @@ def api_v565_convert_recommendation():
         "membership_required": rec["membership_required"],
         "status": "published",
         "source": "v565_autonomous_recommendation",
-        "legal_note": "Pick creado desde recomendación automática y aprobado por admin.",
+        "legal_note": "Pick creado desde recomendaciÃ³n automÃ¡tica y aprobado por admin.",
     }
     pick = create_or_update_pick(pick_payload, publish=True)
     return jsonify({"ok": True, "version": APP_VERSION, "pick": pick})
 
 
 # -----------------------------
-# V566 — Final Client/Admin Product Polish + Route Repair
+# V566 â€” Final Client/Admin Product Polish + Route Repair
 # -----------------------------
 
 def v566_client_menu_items():
     return [
         {"group": "Partidos", "title": "Resultados", "body": "Marcadores finalizados agrupados por liga.", "href": "/resultados"},
-        {"group": "Partidos", "title": "Calendario", "body": "Próximos partidos importantes en hora española.", "href": "/match-hub"},
+        {"group": "Partidos", "title": "Calendario", "body": "PrÃ³ximos partidos importantes en hora espaÃ±ola.", "href": "/match-hub"},
         {"group": "SHARK", "title": "Recomendaciones", "body": "Oportunidades generadas con datos reales disponibles.", "href": "/recomendaciones"},
-        {"group": "Picks", "title": "Combinadas", "body": "Combis según tu plan FREE, PRO o ELITE.", "href": "/combis"},
-        {"group": "Canal", "title": "Telegram", "body": "Alertas y picks según membresía.", "href": "/telegram"},
+        {"group": "Picks", "title": "Combinadas", "body": "Combis segÃºn tu plan FREE, PRO o ELITE.", "href": "/combis"},
+        {"group": "Canal", "title": "Telegram", "body": "Alertas y picks segÃºn membresÃ­a.", "href": "/telegram"},
         {"group": "IA", "title": "SHARK", "body": "Pregunta por picks, favoritos, live y oportunidades.", "href": "/shark"},
         {"group": "IA", "title": "SHARK Core", "body": "Resumen inteligente conectado a picks, favoritos y live.", "href": "/shark-core"},
-        {"group": "Cuenta", "title": "Mi cuenta", "body": "Perfil, membresía, favoritos y actividad.", "href": "/mi-cuenta"},
+        {"group": "Cuenta", "title": "Mi cuenta", "body": "Perfil, membresÃ­a, favoritos y actividad.", "href": "/mi-cuenta"},
         {"group": "Cuenta", "title": "Alertas", "body": "Avisos importantes de tu actividad.", "href": "/alertas"},
         {"group": "Picks", "title": "Seguimiento", "body": "Banca y picks guardados.", "href": "/seguimiento"},
-        {"group": "Legal", "title": "Juego responsable", "body": "Uso responsable y límites.", "href": "/juego-responsable"},
-        {"group": "Legal", "title": "Legal", "body": "Confianza, datos permitidos y términos.", "href": "/legal"},
+        {"group": "Legal", "title": "Juego responsable", "body": "Uso responsable y lÃ­mites.", "href": "/juego-responsable"},
+        {"group": "Legal", "title": "Legal", "body": "Confianza, datos permitidos y tÃ©rminos.", "href": "/legal"},
     ]
 
 
@@ -9791,15 +9750,15 @@ def v566_membership_ui(user=None):
     ctx = membership_context(user or current_session_user() or {"membership": "FREE", "role": "FREE"})
     membership = ctx["membership"]
     if membership == "FREE":
-        ctx.update({"headline": "Estás en FREE", "next_cta": "Mejorar a PRO", "next_href": "/membresias?plan=PRO"})
+        ctx.update({"headline": "EstÃ¡s en FREE", "next_cta": "Mejorar a PRO", "next_href": "/membresias?plan=PRO"})
     elif membership == "PRO":
-        ctx.update({"headline": "Estás en PRO", "next_cta": "Mejorar a ELITE", "next_href": "/membresias?plan=ELITE"})
+        ctx.update({"headline": "EstÃ¡s en PRO", "next_cta": "Mejorar a ELITE", "next_href": "/membresias?plan=ELITE"})
     else:
         ctx.update({"headline": "Plan completo activo", "next_cta": "Ver picks", "next_href": "/picks"})
     if membership == "FREE":
         ctx["upgrade_cards"] = [
             {"plan": "PRO", "title": "Picks y Telegram PRO", "body": "Desbloquea picks PRO, recomendaciones SHARK, riesgo, confianza y Telegram PRO.", "href": "/membresias?plan=PRO"},
-            {"plan": "ELITE", "title": "Auto Picks y SHARK completo", "body": "Accede a combinadas automíticas, value avanzado, top picks y prioridad Telegram.", "href": "/membresias?plan=ELITE"},
+            {"plan": "ELITE", "title": "Auto Picks y SHARK completo", "body": "Accede a combinadas automÃ­ticas, value avanzado, top picks y prioridad Telegram.", "href": "/membresias?plan=ELITE"},
         ]
     elif membership == "PRO":
         ctx["upgrade_cards"] = [
@@ -9824,8 +9783,8 @@ def v566_dashboard_summary(user=None):
         "favorites": {"total": len(favs)},
         "membership": membership,
         "focus": [
-            {"type": "LIVE", "title": "Live limpio", "body": "Estados Próximo, En directo, Descanso y Finalizado.", "href": "/live"},
-            {"type": "PICKS", "title": "Picks y señales", "body": "Picks publicados y recomendaciones sin inventar datos.", "href": "/picks"},
+            {"type": "LIVE", "title": "Live limpio", "body": "Estados PrÃ³ximo, En directo, Descanso y Finalizado.", "href": "/live"},
+            {"type": "PICKS", "title": "Picks y seÃ±ales", "body": "Picks publicados y recomendaciones sin inventar datos.", "href": "/picks"},
             {"type": "SHARK", "title": "Insight SHARK", "body": "Pregunta por favoritos, live y oportunidades de hoy.", "href": "/shark"},
         ],
     }
@@ -9834,14 +9793,14 @@ def v566_dashboard_summary(user=None):
 def v566_admin_items():
     return [
         {"group": "Clientes", "title": "Usuarios", "body": "Altas, roles y estado de cuenta.", "href": "/admin/users"},
-        {"group": "Clientes", "title": "Membresías", "body": "FREE, PRO, ELITE y potencial comercial.", "href": "/admin/memberships"},
+        {"group": "Clientes", "title": "MembresÃ­as", "body": "FREE, PRO, ELITE y potencial comercial.", "href": "/admin/memberships"},
         {"group": "Picks", "title": "Picks", "body": "Publicar y revisar picks reales.", "href": "/admin/picks"},
-        {"group": "Picks", "title": "Recomendaciones", "body": "Convertir señales SHARK en picks.", "href": "/admin/recommendations"},
+        {"group": "Picks", "title": "Recomendaciones", "body": "Convertir seÃ±ales SHARK en picks.", "href": "/admin/recommendations"},
         {"group": "Canal", "title": "Telegram", "body": "Cola, ajustes y pruebas.", "href": "/admin/telegram"},
         {"group": "Datos", "title": "Datos", "body": "Calendario, cuotas, escudos e imports.", "href": "/admin/data-center"},
         {"group": "Live", "title": "Live", "body": "Profundidad de directo y estados.", "href": "/admin/live-depth"},
-        {"group": "IA", "title": "SHARK Center", "body": "Memoria, señales y salud del copiloto SHARK.", "href": "/admin/shark-center"},
-        {"group": "Sistema", "title": "QA", "body": "Auditoría final y salud del producto.", "href": "/admin/final-qa"},
+        {"group": "IA", "title": "SHARK Center", "body": "Memoria, seÃ±ales y salud del copiloto SHARK.", "href": "/admin/shark-center"},
+        {"group": "Sistema", "title": "QA", "body": "AuditorÃ­a final y salud del producto.", "href": "/admin/final-qa"},
     ]
 
 
@@ -9859,17 +9818,18 @@ def v624_admin_executive_summary():
     matches_today = safe_count("matches", "match_date=?", (today_iso(),))
     api_ready = bool(odds.get("enabled") or odds.get("key_present") or thesportsdb_key())
     telegram_ready = bool((telegram.get("token_present") and telegram.get("chat_id_present")) or telegram.get("subscribers"))
+    telegram_label = telegram_service.delivery_health_label({**telegram, "configured": telegram_ready})
     shark_ready = bool((perf_summary.get("sample_size") or 0) or (shark_learning.get("sample_size") or 0) or picks_active)
     return {
         "cards": [
-            {"label": "Usuarios totales", "value": users_total, "empty": "Sin usuarios todavía", "href": "/admin/users", "tone": "neutral"},
+            {"label": "Usuarios totales", "value": users_total, "empty": "Sin usuarios todavÃ­a", "href": "/admin/users", "tone": "neutral"},
             {"label": "Usuarios PRO", "value": users_pro, "empty": "Sin usuarios PRO", "href": "/admin/memberships", "tone": "pro"},
             {"label": "Usuarios ELITE", "value": users_elite, "empty": "Sin usuarios ELITE", "href": "/admin/memberships", "tone": "elite"},
             {"label": "Conectados hoy", "value": users_connected, "empty": "Sin usuarios conectados", "href": "/admin/users", "tone": "neutral"},
             {"label": "Picks activos", "value": picks_active, "empty": "Sin picks activos", "href": "/admin/picks", "tone": "success"},
-            {"label": "Partidos hoy", "value": matches_today, "empty": "Esperando sincronización", "href": "/match-hub", "tone": "neutral"},
-            {"label": "ROI global", "value": f"{perf_summary.get('roi') or 0}%", "empty": "Sin histórico cerrado", "href": "/admin/data-center", "tone": "success"},
-            {"label": "Telegram", "value": "OK" if telegram_ready else "Pendiente", "empty": "Pendiente", "href": "/admin/telegram", "tone": "success" if telegram_ready else "warning"},
+            {"label": "Partidos hoy", "value": matches_today, "empty": "Esperando sincronizaciÃ³n", "href": "/match-hub", "tone": "neutral"},
+            {"label": "ROI global", "value": f"{perf_summary.get('roi') or 0}%", "empty": "Sin histÃ³rico cerrado", "href": "/admin/data-center", "tone": "success"},
+            {"label": "Telegram", "value": telegram_label, "empty": "Pendiente", "href": "/admin/telegram", "tone": "success" if telegram_ready else "warning"},
             {"label": "SHARK", "value": "Activo" if shark_ready else "Preparado", "empty": "Preparado", "href": "/admin/shark-center", "tone": "success"},
             {"label": "APIs", "value": "OK" if api_ready else "Configurar", "empty": "Configurar", "href": "/admin/data-center", "tone": "success" if api_ready else "warning"},
         ],
@@ -9884,28 +9844,28 @@ def v624_admin_executive_summary():
         "groups": [
             {"name": "Operaciones", "items": [
                 {"title": "Usuarios", "body": "Altas, roles, actividad y acceso.", "href": "/admin/users"},
-                {"title": "Membresías", "body": "FREE, PRO, ELITE y conversión.", "href": "/admin/memberships"},
-                {"title": "Picks", "body": "Publicación, edición y señales.", "href": "/admin/picks"},
+                {"title": "MembresÃ­as", "body": "FREE, PRO, ELITE y conversiÃ³n.", "href": "/admin/memberships"},
+                {"title": "Picks", "body": "PublicaciÃ³n, ediciÃ³n y seÃ±ales.", "href": "/admin/picks"},
                 {"title": "Telegram", "body": "Cola, pruebas y entregas.", "href": "/admin/telegram"},
             ]},
             {"name": "Inteligencia", "items": [
                 {"title": "SHARK", "body": "Centro IA y memoria.", "href": "/admin/shark-center"},
-                {"title": "Accuracy", "body": "Precisión y calibración.", "href": "/admin/unified-intelligence"},
-                {"title": "ROI", "body": "Rendimiento histórico.", "href": "/admin/data-center"},
+                {"title": "Accuracy", "body": "PrecisiÃ³n y calibraciÃ³n.", "href": "/admin/unified-intelligence"},
+                {"title": "ROI", "body": "Rendimiento histÃ³rico.", "href": "/admin/data-center"},
                 {"title": "Learning", "body": "Aprendizaje por liga y mercado.", "href": "/admin/unified-intelligence"},
             ]},
             {"name": "Datos", "items": [
-                {"title": "Warehouse", "body": "Histórico y persistencia.", "href": "/admin/data-center"},
+                {"title": "Warehouse", "body": "HistÃ³rico y persistencia.", "href": "/admin/data-center"},
                 {"title": "APIs", "body": "Fuentes, cuotas y escudos.", "href": "/admin/data-center"},
                 {"title": "Live", "body": "Directo, estados y eventos.", "href": "/admin/live-depth"},
                 {"title": "Calendario", "body": "Partidos y resultados.", "href": "/match-hub"},
             ]},
             {"name": "Sistema", "items": [
                 {"title": "Observabilidad", "body": "Errores recientes y salud.", "href": "/admin/observability"},
-                {"title": "Runtime", "body": "Versión y arranque.", "href": "/api/runtime-version"},
-                {"title": "Scheduler", "body": "Ciclos automáticos.", "href": "/api/scheduler/status"},
-                {"title": "Backups", "body": "Copias, descargas y restauración segura.", "href": "/admin/backups"},
-                {"title": "Data Center", "body": "Operación avanzada.", "href": "/admin/data-center"},
+                {"title": "Runtime", "body": "VersiÃ³n y arranque.", "href": "/api/runtime-version"},
+                {"title": "Scheduler", "body": "Ciclos automÃ¡ticos.", "href": "/api/scheduler/status"},
+                {"title": "Backups", "body": "Copias, descargas y restauraciÃ³n segura.", "href": "/admin/backups"},
+                {"title": "Data Center", "body": "OperaciÃ³n avanzada.", "href": "/admin/data-center"},
             ]},
         ],
     }
@@ -9933,10 +9893,10 @@ def v566_product_polish_report():
         "memberships_ok": True,
         "telegram_ok": True,
         "errors_corrected": [
-            "Detalle de partido sin redirección errónea: /match/<id> muestra estado limpio si falta el ID.",
-            "Navegación cliente compactada y admin separado.",
-            "Live filtrado para que próximos/finalizados no se traten como directo por minuto residual.",
-            "Rutas V566 de dashboard, menú, intelligence hub y admin dashboard registradas.",
+            "Detalle de partido sin redirecciÃ³n errÃ³nea: /match/<id> muestra estado limpio si falta el ID.",
+            "NavegaciÃ³n cliente compactada y admin separado.",
+            "Live filtrado para que prÃ³ximos/finalizados no se traten como directo por minuto residual.",
+            "Rutas V566 de dashboard, menÃº, intelligence hub y admin dashboard registradas.",
         ],
         "score_final": min(100, 82 + (5 if health.get("upcoming_matches") else 0) + (5 if health.get("recommendations") else 0) + (4 if health.get("published_picks") else 0)),
     }
@@ -9971,7 +9931,7 @@ def v566_live_depth_summary():
         "recommendations": [
             "Revisar alertas SHARK antes de enviar Telegram.",
             "Priorizar partidos con momentum superior a 85.",
-            "Mantener cache Live activo para evitar pantallas vacías.",
+            "Mantener cache Live activo para evitar pantallas vacÃ­as.",
         ],
     }
     return summary
@@ -9979,16 +9939,16 @@ def v566_live_depth_summary():
 
 def v566_responsible_payload():
     return {
-        "disclaimer": "NeMeSiS SHARK PRO informa y organiza señales deportivas. No garantiza beneficios ni sustituye tu criterio.",
+        "disclaimer": "NeMeSiS SHARK PRO informa y organiza seÃ±ales deportivas. No garantiza beneficios ni sustituye tu criterio.",
         "score": 92,
         "acknowledged": bool(current_session_user()),
         "principles": [
-            {"title": "Control", "body": "Usa límites de banca y evita decisiones impulsivas."},
-            {"title": "Transparencia", "body": "Ningún pick es seguro. El fútbol tiene incertidumbre."},
-            {"title": "Mayoría de edad", "body": "Contenido solo para usuarios adultos donde sea legal."},
+            {"title": "Control", "body": "Usa lÃ­mites de banca y evita decisiones impulsivas."},
+            {"title": "Transparencia", "body": "NingÃºn pick es seguro. El fÃºtbol tiene incertidumbre."},
+            {"title": "MayorÃ­a de edad", "body": "Contenido solo para usuarios adultos donde sea legal."},
         ],
         "limits": {"monthly_bankroll_limit": "", "max_stake_per_pick": "", "risk_profile": "moderado", "cooling_off_enabled": False},
-        "checklist": [{"label": "Entiendo que no hay garantías", "ok": True}, {"label": "Uso stake responsable", "ok": True}],
+        "checklist": [{"label": "Entiendo que no hay garantÃ­as", "ok": True}, {"label": "Uso stake responsable", "ok": True}],
     }
 
 
@@ -10092,14 +10052,14 @@ def v566_intelligence_hub_page():
     upcoming = get_upcoming_matches(today_iso(), days=7, limit=8)
     hub = {
         "score": v566_dashboard_summary(user)["score"],
-        "shark_message": "SHARK prioriza live, picks, favoritos y próximos importantes.",
+        "shark_message": "SHARK prioriza live, picks, favoritos y prÃ³ximos importantes.",
         "favorites": len(get_favorites(user_id=(user or {}).get("id") or "")),
         "results_total": len(get_results_matches(today_iso(), days_back=7, limit=40)),
         "telegram_pending": "OK" if can_access_feature(user, "telegram_premium") else "PRO",
         "lanes": [
             {"key": "live", "title": "Live", "value": data.get("match_hub", {}).get("counts", {}).get("live", 0), "body": "Directos reales sin estados falsos.", "href": "/live"},
-            {"key": "picks", "title": "Picks", "value": len(picks), "body": "Publicados según membresía.", "href": "/picks"},
-            {"key": "auto", "title": "Auto Picks", "value": len(v565_recommendation_pool(limit=20)), "body": "Recomendaciones generadas desde próximos reales.", "href": "/auto-picks"},
+            {"key": "picks", "title": "Picks", "value": len(picks), "body": "Publicados segÃºn membresÃ­a.", "href": "/picks"},
+            {"key": "auto", "title": "Auto Picks", "value": len(v565_recommendation_pool(limit=20)), "body": "Recomendaciones generadas desde prÃ³ximos reales.", "href": "/auto-picks"},
         ],
     }
     return render_template("unified_intelligence_hub.html", data=data, hub=hub, upcoming=upcoming, picks=picks)
@@ -10144,10 +10104,10 @@ def v566_admin_final_qa_page():
             "historical_recommendations": safe_count("historical_recommendations"),
         },
         "checks": [
-            {"name": "Cliente limpio", "ok": True, "detail": "Navegación compacta y admin separado."},
+            {"name": "Cliente limpio", "ok": True, "detail": "NavegaciÃ³n compacta y admin separado."},
             {"name": "Detalle partido", "ok": True, "detail": "Detalle usa /match/<id>."},
-            {"name": "Live", "ok": True, "detail": "Finalizados y próximos no se muestran como live."},
-            {"name": "Membresías", "ok": True, "detail": "FREE / PRO / ELITE protegidos visualmente."},
+            {"name": "Live", "ok": True, "detail": "Finalizados y prÃ³ximos no se muestran como live."},
+            {"name": "MembresÃ­as", "ok": True, "detail": "FREE / PRO / ELITE protegidos visualmente."},
         ],
         "priority_actions": report["errors_corrected"],
         "routes": {"cliente": report["client_routes"], "admin": report["admin_routes"]},
@@ -10207,7 +10167,7 @@ def api_v566_timezone_check():
 
 
 # ================================
-# V570 — SHARK Intelligence Core
+# V570 â€” SHARK Intelligence Core
 # ================================
 
 def ensure_shark_memory_table():
@@ -10308,11 +10268,11 @@ def v570_shark_admin_summary():
         "picks": picks,
         "recommendations": recommendations,
         "live_now": live_now,
-        "status": "Operativo" if score >= 70 else "Necesita más datos",
+        "status": "Operativo" if score >= 70 else "Necesita mÃ¡s datos",
         "actions": [
-            "Conectar SHARK a más datos históricos.",
-            "Aumentar picks automáticos con cuotas reales.",
-            "Usar favoritos para personalizar resúmenes diarios.",
+            "Conectar SHARK a mÃ¡s datos histÃ³ricos.",
+            "Aumentar picks automÃ¡ticos con cuotas reales.",
+            "Usar favoritos para personalizar resÃºmenes diarios.",
             "Enviar Top oportunidades por Telegram cuando haya datos suficientes.",
         ],
     }
@@ -10399,7 +10359,7 @@ def api_v579_system_check():
         "version": APP_VERSION,
         "module": "SportsDB Highlights & Past Match Intelligence",
         "routes": ["/api/sportsdb-highlights/summary", "/api/sportsdb-highlights/sync", "/api/sportsdb-highlights/rebuild"],
-        "goal": "Aprovechar TheSportsDB Premium para resúmenes/highlights, fichas de partido pasado y memoria visual para SHARK."
+        "goal": "Aprovechar TheSportsDB Premium para resÃºmenes/highlights, fichas de partido pasado y memoria visual para SHARK."
     })
 
 
@@ -10427,7 +10387,7 @@ def api_v578_system_check():
         "version": APP_VERSION,
         "module": "Telegram Autonomous Delivery",
         "routes": ["/api/telegram-autonomous/summary", "/api/telegram-autonomous/run"],
-        "goal": "Automatizar resúmenes, picks PRO/ELITE y alertas Telegram con deduplicación y reglas por membresía.",
+        "goal": "Automatizar resÃºmenes, picks PRO/ELITE y alertas Telegram con deduplicaciÃ³n y reglas por membresÃ­a.",
     })
 
 
@@ -10733,7 +10693,7 @@ def _record_observability_exception(error, *, status_code=500):
     traceback_full = traceback.format_exc()
     if traceback_full.strip() in {"", "NoneType: None"}:
         traceback_full = "".join(traceback.format_exception(type(error), error, getattr(error, "__traceback__", None)))
-    _record_http_problem(status_code, "unhandled_exception", "Excepción controlada", f"{type(error).__name__}: {str(error)[:1500]}")
+    _record_http_problem(status_code, "unhandled_exception", "ExcepciÃ³n controlada", f"{type(error).__name__}: {str(error)[:1500]}")
     try:
         record_observability_error(
             DB_PATH,
@@ -10777,8 +10737,8 @@ def v607_controlled_404(error):
         return jsonify({"ok": False, "version": APP_VERSION, "error": "not_found", "message": "Ruta no encontrada.", "path": request.path}), 404
     return render_template(
         "error_controlled.html",
-        title="Página no encontrada",
-        message="Esta ruta no existe o ha cambiado. Puedes volver al inicio y continuar usando la aplicación con normalidad.",
+        title="PÃ¡gina no encontrada",
+        message="Esta ruta no existe o ha cambiado. Puedes volver al inicio y continuar usando la aplicaciÃ³n con normalidad.",
         error_id="HTTP-404",
         is_admin=is_admin_session(),
     ), 404
@@ -10792,7 +10752,7 @@ def v607_controlled_500(error):
     return render_template(
         "error_controlled.html",
         title="Error temporal controlado",
-        message="Hemos registrado el error para revisión interna. La aplicación sigue protegida y puedes volver al inicio.",
+        message="Hemos registrado el error para revisiÃ³n interna. La aplicaciÃ³n sigue protegida y puedes volver al inicio.",
         error_id=error_id,
         is_admin=user_ctx.get("is_admin"),
     ), 500
@@ -10809,7 +10769,7 @@ def v607_controlled_exception(error):
     return render_template(
         "error_controlled.html",
         title="Incidencia controlada",
-        message="SHARK ha protegido la sesión ante una incidencia temporal. Puedes volver al inicio y continuar.",
+        message="SHARK ha protegido la sesiÃ³n ante una incidencia temporal. Puedes volver al inicio y continuar.",
         error_id=error_id,
         is_admin=user_ctx.get("is_admin"),
     ), int(code)
@@ -10859,7 +10819,7 @@ def api_observability_errors():
             "found": bool(detail),
             "error_id": error_id,
             "error": detail,
-            "message": "" if detail else "Error ID no encontrado en esta base de datos. Revisa la DB persistente de Render o los logs de producción.",
+            "message": "" if detail else "Error ID no encontrado en esta base de datos. Revisa la DB persistente de Render o los logs de producciÃ³n.",
         })
     return jsonify({"ok": True, "version": APP_VERSION, "errors": latest_observability_errors(DB_PATH, limit=100)})
 
@@ -10881,3 +10841,4 @@ def api_v607_observability_check():
 if __name__ == "__main__":
     seed_core()
     app.run(host="0.0.0.0", port=int(os.getenv("PORT", "5000")), debug=os.getenv("FLASK_DEBUG") == "1")
+

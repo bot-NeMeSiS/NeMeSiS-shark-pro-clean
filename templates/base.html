@@ -14,6 +14,8 @@
         {% if current_user and current_user.role == 'ADMIN' %}
           <a href="/admin/dashboard">Admin</a>
           <a href="/admin/users">Usuarios</a>
+          <a href="/admin/automation">Automatizaci?n</a>
+          <a href="/admin/intelligence">Comercial</a>
           <a href="/admin/memberships">Membresías</a>
           <a href="/admin/picks">Picks</a>
           <a href="/admin/recommendations">Recomendaciones</a>
@@ -24,6 +26,7 @@
           <a href="/logout">Salir</a>
         {% elif current_user %}
           <a href="/dashboard">Inicio</a>
+          <a href="/sports-hub">Sports Hub</a>
           <a href="/intelligence-hub">Intelligence</a>
           <a href="/live">Directo</a>
           <a href="/picks">Picks</a>
@@ -48,12 +51,14 @@
     {% if current_user and current_user.role == 'ADMIN' %}
       <a href="/admin/dashboard">Admin</a>
       <a href="/admin/users">Usuarios</a>
+      <a href="/admin/automation">Auto</a>
       <a href="/admin/picks">Picks</a>
       <a href="/admin/backups">Backups</a>
       <a href="/admin/data-center">Datos</a>
       <a href="/logout">Salir</a>
     {% else %}
       <a href="/dashboard">Inicio</a>
+      <a href="/sports-hub">Sports</a>
       <a href="/live">Directo</a>
       <a href="/picks">Picks</a>
       <a href="/favorites">Favoritos</a>

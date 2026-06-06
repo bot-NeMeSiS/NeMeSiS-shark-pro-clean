@@ -250,3 +250,7 @@ textarea{min-height:230px;font-family:Consolas,monospace;font-size:13px}
 .backup-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end}.backup-actions form{margin:0}.backup-actions .btn,.backup-actions button{padding:7px 9px;font-size:12px}
 @media(max-width:760px){.backup-row{grid-template-columns:1fr}.backup-actions{justify-content:flex-start}.backup-actions .btn,.backup-actions button{flex:1}}
 
+/* V631 Elite Commercial Evolution */
+.shark-product-grid{grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}.shark-product-card{min-height:108px}.shark-product-card span{display:block;color:var(--muted);font-size:11px;font-weight:950;text-transform:uppercase}.shark-product-card strong{display:block;font-size:clamp(24px,4vw,42px);line-height:1.05;color:#fff;margin:6px 0}.shark-scoreline{display:flex;align-items:center;gap:12px}.shark-scoreline strong{font-size:46px;color:var(--cyan);line-height:1}.shark-scoreline span{color:var(--muted);font-weight:900;text-transform:uppercase;font-size:12px}.live-sports-row .compact-crest{width:34px;height:34px;min-width:34px}.live-sports-row .sports-score strong{font-size:18px}.admin-executive-grid .executive-card small{color:var(--muted);line-height:1.35}.hero-panel .big-score{font-size:clamp(24px,4vw,44px);letter-spacing:0}.sports-list .empty{grid-column:1 / -1}
+@media(max-width:760px){.live-sports-row .compact-crest{width:30px;height:30px;min-width:30px}.shark-scoreline strong{font-size:36px}}
+
