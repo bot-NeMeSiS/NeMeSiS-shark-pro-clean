@@ -102,7 +102,7 @@ from engines.observability_engine import (
 from blueprints.architecture import create_architecture_blueprint
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V633_USER_DOMINANCE_EXPERIENCE"
+APP_VERSION = "V634_RESPONSIVE_CLIENT_POLISH"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -5187,7 +5187,16 @@ def date_display_label(date_value):
         elif target == today + timedelta(days=1):
             prefix = "Mañana"
         else:
-            prefix = target.strftime("%A")
+            weekday_es = {
+                0: "Lunes",
+                1: "Martes",
+                2: "Miércoles",
+                3: "Jueves",
+                4: "Viernes",
+                5: "Sábado",
+                6: "Domingo",
+            }
+            prefix = weekday_es.get(target.weekday(), target.strftime("%A"))
         return f"{prefix} · {target.strftime('%d/%m/%Y')}"
     except Exception:
         return str(date_value or "Fecha por confirmar")
@@ -8628,6 +8637,24 @@ def api_favorites():
         return jsonify({"ok": False, "version": APP_VERSION, "error": "Favorito invalido. Usa kind team, league o match con value."}), 400
     return jsonify({"ok": True, "version": APP_VERSION, "favorite": favorite})
 
+
+@app.route("/api/favorites/toggle", methods=["POST"])
+def api_favorites_toggle():
+    user = current_session_user()
+    if not user:
+        return jsonify({"ok": False, "version": APP_VERSION, "error": "Login requerido para favoritos."}), 401
+    payload = request.get_json(silent=True) or dict(request.form or {})
+    kind = str(payload.get("kind") or "match").strip().lower()
+    value = str(payload.get("value") or "").strip()
+    label = str(payload.get("label") or value).strip()
+    if kind not in {"team", "league", "match"} or not value:
+        return jsonify({"ok": False, "version": APP_VERSION, "error": "Favorito inválido."}), 400
+    existing = one("SELECT * FROM favorites WHERE id=? AND user_id=?", (favorite_id(kind, value, user.get("id")), user.get("id")))
+    if existing:
+        remove_favorite(kind, value, user_id=user.get("id"))
+        return jsonify({"ok": True, "version": APP_VERSION, "favorite": False, "kind": kind, "value": value})
+    favorite = add_favorite(kind, value, label, user_id=user.get("id"))
+    return jsonify({"ok": True, "version": APP_VERSION, "favorite": True, "item": favorite, "kind": kind, "value": value})
 
 @app.route("/api/favorites/feed")
 def api_favorites_feed():

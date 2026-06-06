@@ -44,7 +44,7 @@
         <div class="sports-team home"><span class="crest compact-crest">{% if home_identity.get('crest_url') %}<img loading="lazy" src="{{ home_identity.get('crest_url') }}" alt="{{ m.home_team }}">{% else %}{{ home_identity.get('initials', (m.home_team or 'L')[:1]) }}{% endif %}</span><strong>{{ m.home_team or 'Local' }}</strong></div>
         <div class="sports-score"><strong>{{ live_depth.get('score') or m.score or '0 - 0' }}</strong><span>SHARK {{ live_depth.get('momentum', shark.score or 0) }}</span></div>
         <div class="sports-team away"><span class="crest compact-crest">{% if away_identity.get('crest_url') %}<img loading="lazy" src="{{ away_identity.get('crest_url') }}" alt="{{ m.away_team }}">{% else %}{{ away_identity.get('initials', (m.away_team or 'V')[:1]) }}{% endif %}</span><strong>{{ m.away_team or 'Visitante' }}</strong></div>
-        <div class="sports-meta"><span class="state-badge live">{{ live_depth.get('label', 'Live') }}</span></div>
+        <div class="sports-meta"><span class="fav-star" role="button" tabindex="0" data-kind="match" data-value="{{ m.id }}" data-label="{{ (m.home_team ~ ' vs ' ~ m.away_team)|e }}" aria-label="Añadir a favoritos">☆</span><span class="state-badge live">{{ live_depth.get('label', 'Live') }}</span></div>
       </a>
       {% else %}
       <div class="empty premium-empty"><strong>No hay directos ahora.</strong><p>Cuando empiecen partidos aparecerán aquí sin que tengas que buscar.</p></div>
@@ -62,7 +62,7 @@
         <div class="sports-team home"><span class="crest compact-crest">{% if home_identity.get('crest_url') %}<img loading="lazy" src="{{ home_identity.get('crest_url') }}" alt="{{ m.home_team }}">{% else %}{{ home_identity.get('initials', (m.home_team or 'L')[:1]) }}{% endif %}</span><strong>{{ m.home_team or 'Local' }}</strong></div>
         <div class="sports-score"><strong>{{ live_depth.get('score') or m.score or 'vs' }}</strong><span>{{ m.competition_name or m.league_name or 'Competición' }}</span></div>
         <div class="sports-team away"><span class="crest compact-crest">{% if away_identity.get('crest_url') %}<img loading="lazy" src="{{ away_identity.get('crest_url') }}" alt="{{ m.away_team }}">{% else %}{{ away_identity.get('initials', (m.away_team or 'V')[:1]) }}{% endif %}</span><strong>{{ m.away_team or 'Visitante' }}</strong></div>
-        <div class="sports-meta"><span class="state-badge upcoming">Detalle</span></div>
+        <div class="sports-meta"><span class="fav-star" role="button" tabindex="0" data-kind="match" data-value="{{ m.id }}" data-label="{{ (m.home_team ~ ' vs ' ~ m.away_team)|e }}" aria-label="Añadir a favoritos">☆</span><span class="state-badge upcoming">Detalle</span></div>
       </a>
       {% else %}
       <div class="empty premium-empty">Esperando sincronización deportiva. Los partidos aparecerán aquí cuando haya datos fiables.</div>
