@@ -2,57 +2,45 @@
 {% block content %}
 {% set state = data.telegram_state or {} %}
 {% set tier = (current_user.membership if current_user else 'FREE')|upper %}
-<section class="hero compact telegram-hero-v637">
-  <div class="kicker">Telegram Premium</div>
-  <h1>Alertas SHARK en Telegram</h1>
-  <p class="lead">Conecta tu cuenta para recibir avisos según tu membresía. Canal global y mensajes privados quedan separados y controlados.</p>
+<section class="hero compact telegram-hero-v638 v638-tight-hero">
+  <div class="kicker">Telegram</div>
+  <h1>{% if state.linked %}Telegram conectado{% else %}Conecta tus alertas{% endif %}</h1>
+  <p class="lead">Recibe avisos según tu plan: partidos, picks, recomendaciones y alertas SHARK.</p>
   <div class="actions">
-    <a class="btn primary" href="/perfil">Mi perfil</a>
-    <a class="btn" href="/sports-hub">Sports Hub</a>
+    {% if state.deep_link %}<a class="btn primary" href="{{ state.deep_link }}" target="_blank" rel="noopener">Abrir bot</a>{% endif %}
+    <a class="btn" href="/perfil">Perfil</a>
+    <a class="btn" href="/picks">Picks</a>
   </div>
 </section>
 
-<section class="band telegram-status-grid-v637">
+<section class="band compact-band telegram-status-grid-v637">
   <div class="card telegram-status-card-v637 {% if state.linked %}ok{% else %}pending{% endif %}">
-    <div class="kicker">Estado privado</div>
-    <h2>{% if state.linked %}Telegram conectado{% else %}Telegram no conectado{% endif %}</h2>
+    <div class="section-head"><h2>{% if state.linked %}Cuenta vinculada{% else %}Código de vinculación{% endif %}</h2><span class="pill">{{ tier }}</span></div>
     {% if state.linked %}
-      <p class="small">Tu cuenta está vinculada. Chat: <strong>{{ state.chat_id_masked }}</strong>{% if state.username %} · @{{ state.username }}{% endif %}</p>
+      <p class="small">Chat: <strong>{{ state.chat_id_masked }}</strong>{% if state.username %} · @{{ state.username }}{% endif %}</p>
+      <p class="small muted">Vinculado: {{ state.linked_at or 'activo' }}</p>
       <form method="post" action="/telegram/desvincular"><button class="btn danger" type="submit">Desvincular</button></form>
     {% else %}
-      <p class="small">Envía este código al bot para activar mensajes privados.</p>
       <div class="telegram-code-v637">{{ state.code }}</div>
-      <div class="stack compact-actions-v637">
+      <p class="small">Envía <strong>{{ state.command }}</strong> al bot. Caduca en 24 horas.</p>
+      <div class="actions compact-actions-v637">
         {% if state.deep_link %}<a class="btn primary" href="{{ state.deep_link }}" target="_blank" rel="noopener">Abrir bot y vincular</a>{% endif %}
-        <form method="post" action="/telegram/regenerar-codigo"><button class="btn" type="submit">Generar nuevo código</button></form>
+        <form method="post" action="/telegram/regenerar-codigo"><button class="btn" type="submit">Nuevo código</button></form>
       </div>
-      <p class="small muted">También puedes escribir al bot: <strong>{{ state.command }}</strong>. El código caduca en 24 horas.</p>
     {% endif %}
   </div>
   <div class="card telegram-status-card-v637">
-    <div class="kicker">Canal global</div>
-    <h2>{% if data.telegram.configured %}Canal configurado{% else %}Canal pendiente{% endif %}</h2>
-    <p class="small">El canal recibe comunicados generales. Los avisos privados necesitan la vinculación de arriba.</p>
+    <div class="section-head"><h2>Qué recibirás</h2><span class="pill">{{ tier }}</span></div>
+    <div class="stack">
+      <div class="list-row"><span>Partidos del día</span><strong>FREE</strong></div>
+      <div class="list-row"><span>Picks y recomendaciones SHARK</span><strong>PRO</strong></div>
+      <div class="list-row"><span>Alertas live y prioridad</span><strong>ELITE</strong></div>
+    </div>
     <div class="mini-grid-v637">
       <span>Bot</span><strong>{% if data.telegram.token_present %}OK{% else %}Pendiente{% endif %}</strong>
       <span>Canal</span><strong>{% if data.telegram.chat_id_present %}OK{% else %}Pendiente{% endif %}</strong>
-      <span>Auto</span><strong>{% if data.telegram.enabled or data.telegram.legacy_enabled %}Activo{% else %}Off{% endif %}</strong>
+      <span>Automático</span><strong>{% if data.telegram.enabled or data.telegram.legacy_enabled %}Activo{% else %}Inactivo{% endif %}</strong>
     </div>
   </div>
-</section>
-
-<section class="band">
-  <div class="card compact-benefits-v637">
-    <div class="section-head"><h2>Qué recibes</h2><span class="pill">{{ tier }}</span></div>
-    <div class="stack">
-      <div class="list-row"><span>Partidos del día y próximos destacados</span><strong>FREE</strong></div>
-      <div class="list-row"><span>Picks publicados y recomendaciones SHARK</span><strong>PRO</strong></div>
-      <div class="list-row"><span>Alertas live, combinadas y prioridad premium</span><strong>ELITE</strong></div>
-    </div>
-  </div>
-</section>
-
-<section class="band">
-  <div class="notice">Para comprobarlo: conecta Telegram, crea o publica un pick y procesa la cola desde Admin &gt; Telegram si quieres forzarlo al momento.</div>
 </section>
 {% endblock %}

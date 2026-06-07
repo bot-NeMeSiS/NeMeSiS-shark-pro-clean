@@ -6,7 +6,7 @@
   <p class="lead">Picks publicados, partidos próximos reales para análisis y estados claros. Si no hay pick real, no se inventa: se muestra la base disponible para prepararlo.</p>
   <div class="actions">
     <a class="btn primary" href="/match-hub">Partidos reales</a>
-    <a class="btn" href="/combis">Combinadas</a>
+    <a class="btn" href="/combis">Combis</a>
     <a class="btn" href="/telegram">Telegram</a>
     {% if current_user and current_user.role == 'ADMIN' %}<a class="btn" href="/admin/picks">Admin picks</a>{% endif %}
   </div>
@@ -87,4 +87,3 @@
 </section>
 {% endif %}
 {% endblock %}
-
