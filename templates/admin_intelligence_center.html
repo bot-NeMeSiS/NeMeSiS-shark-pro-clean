@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 {% block content %}
 <section class="hero compact-hero admin-hero">
-  <p class="eyebrow">Admin · Centro de inteligencia</p>
+  <p class="eyebrow">Admin · Intelligence Center</p>
   <h1>Control de inteligencia deportiva</h1>
   <p>Comprueba si el ecosistema tiene suficiente vida: partidos, cuotas, recomendaciones, picks y Telegram.</p>
-  <div class="hero-actions"><a class="btn" href="/admin/data-center">Centro de datos</a><a class="btn ghost" href="/admin/betting-center">Centro de apuestas</a><a class="btn ghost" href="/admin/picks">Picks</a></div>
+  <div class="hero-actions"><a class="btn" href="/admin/data-center">Data Center</a><a class="btn ghost" href="/admin/betting-center">Betting Center</a><a class="btn ghost" href="/admin/picks">Picks</a></div>
 </section>
 <section class="grid cards-3">
   <article class="card"><span class="kicker">Score</span><h2>{{ data.intel.score }}/100</h2><p>Salud de inteligencia deportiva.</p></article>
@@ -14,6 +14,6 @@
 <section class="panel"><h2>Acciones recomendadas</h2><div class="stack">{% for a in data.intel.next_actions %}<div class="notice"><strong>{{ loop.index }}.</strong> {{ a }}</div>{% endfor %}</div></section>
 <section class="grid two">
   <article class="panel"><h2>Últimos resultados</h2>{% for m in data.intel.recent_results %}<div class="mini-match"><strong>{{ m.home_team }} {{ m.home_score }} - {{ m.away_score }} {{ m.away_team }}</strong><span>{{ m.league_name }} · {{ m.kickoff_iso }}</span></div>{% else %}<p class="muted">Sin resultados recientes persistidos.</p>{% endfor %}</article>
-  <article class="panel"><h2>Directos actuales</h2>{% for m in data.intel.directo %}<div class="mini-match"><strong>{{ m.home_team }} {{ m.home_score }} - {{ m.away_score }} {{ m.away_team }}</strong><span>{{ m.league_name }} · {{ m.minute or '' }} · {{ m.status }}</span></div>{% else %}<p class="muted">No hay partidos directo ahora.</p>{% endfor %}</article>
+  <article class="panel"><h2>Directos actuales</h2>{% for m in data.intel.live %}<div class="mini-match"><strong>{{ m.home_team }} {{ m.home_score }} - {{ m.away_score }} {{ m.away_team }}</strong><span>{{ m.league_name }} · {{ m.minute or '' }} · {{ m.status }}</span></div>{% else %}<p class="muted">No hay partidos live ahora.</p>{% endfor %}</article>
 </section>
 {% endblock %}

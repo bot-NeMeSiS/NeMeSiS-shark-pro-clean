@@ -8,11 +8,11 @@ import re
 
 
 LIVE_STATES = {
-    "LIVE": {"label": "En directo", "badge": "live", "priority": 100},
-    "HT": {"label": "Descanso", "badge": "half", "priority": 92},
-    "FT": {"label": "Finalizado", "badge": "done", "priority": 35},
-    "UPCOMING": {"label": "Próximo", "badge": "upcoming", "priority": 65},
-    "SUSPENDED": {"label": "Suspendido", "badge": "suspended", "priority": 20},
+    "LIVE": {"label": "LIVE", "badge": "live", "priority": 100},
+    "HT": {"label": "DESCANSO", "badge": "half", "priority": 92},
+    "FT": {"label": "FINAL", "badge": "done", "priority": 35},
+    "UPCOMING": {"label": "PROXIMO", "badge": "upcoming", "priority": 65},
+    "SUSPENDED": {"label": "SUSPENDIDO", "badge": "suspended", "priority": 20},
 }
 
 SUPPORTED_EVENT_TYPES = {"goal", "yellow", "red", "substitution", "penalty", "var", "state"}
@@ -127,7 +127,7 @@ def normalize_timeline_events(events):
             "player": event.get("player") or "",
             "source": event.get("source") or "",
         })
-    return sorted(normalized, key=lambda item: _minute_number(item.get("minute")), reverse=True)
+    return normalized
 
 
 def shark_live_alerts(match, momentum=None):
@@ -137,7 +137,7 @@ def shark_live_alerts(match, momentum=None):
     if max(momentum["momentum_local"], momentum["momentum_visitante"]) > 85:
         alerts.append({"type": "momentum", "level": "high", "title": "Momentum SHARK alto", "body": f"El {leader} supera 85 de momentum.", "telegram_ready": True})
     if momentum["presion"] >= 88:
-        alerts.append({"type": "pressure", "level": "critical", "title": "Presión extrema", "body": "El partido muestra presión elevada con los datos disponibles.", "telegram_ready": True})
+        alerts.append({"type": "pressure", "level": "critical", "title": "Presion extrema", "body": "El partido muestra presion elevada con los datos disponibles.", "telegram_ready": True})
     if momentum["riesgo"] >= 90:
         alerts.append({"type": "possible_goal", "level": "watch", "title": "Posible gol", "body": "Riesgo alto de evento importante. Revisar live antes de actuar.", "telegram_ready": True})
     return alerts
@@ -182,7 +182,7 @@ def fallback_timeline(match):
         detail = f"Resultado {depth['score']}"
     elif depth["state"] == "SUSPENDED":
         title = "Partido suspendido"
-        detail = "Estado pendiente de actualización oficial"
+        detail = "Estado pendiente de actualizacion oficial"
     else:
         title = "Partido preparado"
         detail = str(match.get("status") or "PROGRAMADO")
@@ -190,7 +190,7 @@ def fallback_timeline(match):
 
 
 def build_match_detail(match, timeline=None, related_picks=None, favorite=False):
-    depth = match.get("live_depth") or build_live_depth(match)
+    depth = build_live_depth(match)
     events = normalize_timeline_events(timeline) or fallback_timeline(match)
     momentum = depth["shark_momentum"]
     return {
@@ -229,112 +229,4 @@ def build_live_flow(hub, favorites=None, picks=None, profile=None):
         "pick_count": len(picks),
         "profile_plan": profile.get("membership_plan", "free"),
         "shared_state": "CONNECTED",
-    }
-
-
-def _as_list(value):
-    if isinstance(value, list):
-        return value
-    if isinstance(value, dict):
-        for key in ("events", "timeline", "data", "items"):
-            if isinstance(value.get(key), list):
-                return value.get(key)
-    return []
-
-
-def extract_live_events(match):
-    """Extract legal event/timeline rows from persisted payloads only."""
-    payload = _payload(match)
-    candidates = []
-    for key in ("events", "timeline", "match_events", "event"):
-        candidates.extend(_as_list(payload.get(key)))
-    # TheSportsDB-like payloads sometimes keep a single descriptive event field.
-    if payload.get("strEvent") and (payload.get("intHomeScore") or payload.get("intAwayScore")):
-        candidates.append({
-            "minute": payload.get("strProgress") or match.get("minute") or "",
-            "event_type": "state",
-            "title": "Estado live",
-            "detail": f"{payload.get('strEvent')} · {payload.get('intHomeScore', '')}-{payload.get('intAwayScore', '')}",
-            "source": match.get("source") or payload.get("source") or "persisted_payload",
-        })
-    return normalize_timeline_events(candidates)
-
-
-def extract_live_statistics(match):
-    """Return a compact stat pack without inventing missing figures."""
-    payload = _payload(match)
-    data = {**payload, **dict(match)}
-    stat_defs = [
-        ("posesion", "Posesión", ("home_possession", "home_possession_pct", "possession_home", "strHomePossession"), ("away_possession", "away_possession_pct", "possession_away", "strAwayPossession"), "%"),
-        ("tiros", "Tiros", ("home_shots", "shots_home", "home_total_shots"), ("away_shots", "shots_away", "away_total_shots"), ""),
-        ("tiros_puerta", "Tiros a puerta", ("home_shots_on_target", "shots_on_target_home", "home_sot"), ("away_shots_on_target", "shots_on_target_away", "away_sot"), ""),
-        ("corners", "Córners", ("home_corners", "corners_home"), ("away_corners", "corners_away"), ""),
-        ("amarillas", "Amarillas", ("home_yellow_cards", "yellow_home"), ("away_yellow_cards", "yellow_away"), ""),
-        ("rojas", "Rojas", ("home_red_cards", "red_home"), ("away_red_cards", "red_away"), ""),
-    ]
-    items = []
-    for key, label, hkeys, akeys, suffix in stat_defs:
-        home = _number(data, *hkeys, default=None)
-        away = _number(data, *akeys, default=None)
-        if home is None and away is None:
-            continue
-        if key == "posesion":
-            if home and not away:
-                away = max(0, 100 - home)
-            if away and not home:
-                home = max(0, 100 - away)
-        items.append({"key": key, "label": label, "home": home or 0, "away": away or 0, "suffix": suffix})
-    return {"available": bool(items), "items": items, "source": match.get("source") or payload.get("source") or "sqlite"}
-
-
-def build_live_intelligence_card(match):
-    depth = build_live_depth(match)
-    events = extract_live_events(match) or fallback_timeline(match)
-    stats = extract_live_statistics(match)
-    momentum = depth.get("shark_momentum") or shark_momentum(match)
-    state = depth.get("state")
-    score_pressure = momentum.get("presion", 0)
-    if state in {"LIVE", "HT"} and score_pressure >= 88:
-        action = "Vigilar ahora"
-    elif state in {"LIVE", "HT"}:
-        action = "Seguir evolución"
-    elif state == "FT":
-        action = "Guardar para histórico"
-    else:
-        action = "Preparar seguimiento"
-    quality_score = 25
-    quality_score += 25 if str(depth.get("minute") or "").strip() not in {"", "-", "Hora"} else 0
-    quality_score += 25 if stats.get("available") else 0
-    quality_score += 15 if events else 0
-    quality_score += 10 if match.get("score") or depth.get("score") else 0
-    return {
-        "match_id": match.get("id"),
-        "home_team": match.get("home_team"),
-        "away_team": match.get("away_team"),
-        "league_name": match.get("league_name") or match.get("competition_name"),
-        "state": depth,
-        "timeline": events[:12],
-        "statistics": stats,
-        "momentum": momentum,
-        "alerts": depth.get("alerts") or [],
-        "action": action,
-        "data_quality_score": min(100, quality_score),
-        "legal_note": match.get("legal_note") or "Datos construidos desde fuentes y payloads persistidos en SQLite.",
-    }
-
-
-def build_deep_live_intelligence(matches):
-    cards = [build_live_intelligence_card(m) for m in matches or []]
-    live_cards = [c for c in cards if (c.get("state") or {}).get("state") in {"LIVE", "HT"}]
-    alerts = [a for c in live_cards for a in (c.get("alerts") or [])]
-    return {
-        "summary": {
-            "total_matches": len(cards),
-            "live_matches": len(live_cards),
-            "alerts": len(alerts),
-            "avg_data_quality": round(sum(c.get("data_quality_score", 0) for c in cards) / max(1, len(cards))),
-        },
-        "live": live_cards,
-        "all": cards,
-        "alerts": alerts[:30],
     }

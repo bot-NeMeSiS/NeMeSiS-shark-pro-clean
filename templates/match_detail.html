@@ -43,7 +43,7 @@
   <div class="section-head"><h2>SHARK Score</h2><span class="pill">{{ detail.state.label }}</span></div>
   <div class="grid compact-grid metric-row">
     <div class="card metric-card"><div class="metric">{{ momentum.value or detail.state.momentum or 0 }}</div><div class="muted">SHARK Score</div></div>
-    <div class="card metric-card"><div class="metric">{{ momentum.presion or 0 }}</div><div class="muted">presión</div></div>
+    <div class="card metric-card"><div class="metric">{{ momentum.presion or 0 }}</div><div class="muted">presion</div></div>
     <div class="card metric-card"><div class="metric">{{ momentum.riesgo or 0 }}</div><div class="muted">riesgo</div></div>
     <div class="card metric-card"><div class="metric">{{ momentum.dominancia or 'equilibrado' }}</div><div class="muted">dominancia</div></div>
   </div>
@@ -59,10 +59,6 @@
     <article class="card">
       <div class="match-top"><strong>Confianza SHARK</strong><span>{{ detail.data_quality.has_picks and 'Alta' or 'Contextual' }}</span></div>
       <p class="small">Basada en estado, marcador, minuto, picks relacionados y datos disponibles.</p>
-    </article>
-    <article class="card">
-      <div class="match-top"><strong>Cache Live</strong><span>{{ detail.state.cache_status or 'Live Intelligence Pro' }}</span></div>
-      <p class="small">{{ detail.state.event_count or detail.timeline|length }} eventos guardados para timeline e histórico.</p>
     </article>
   </div>
 </section>
@@ -94,35 +90,11 @@
 </section>
 {% endif %}
 
-
-{% if detail.sportsdb_media and detail.sportsdb_media.highlights %}
-<section class="band compact-band">
-  <div class="section-head"><h2>Resumen del partido</h2><span class="pill">TheSportsDB</span></div>
-  <p class="small">{{ detail.sportsdb_media.summary_text }}</p>
-  <div class="grid">
-    {% for h in detail.sportsdb_media.highlights[:4] %}
-    <article class="card">
-      <div class="kicker">{{ h.provider or 'Video' }}</div>
-      <h3>{{ h.title }}</h3>
-      <p class="small">{{ h.league_name or m.competition_name }} · {{ h.event_date }}</p>
-      {% if h.thumbnail_url %}<img loading="lazy" src="{{ h.thumbnail_url }}" alt="{{ h.title }}" style="width:100%;border-radius:14px;margin:8px 0;">{% endif %}
-      {% if h.video_url %}<a class="btn primary" href="{{ h.video_url }}" target="_blank" rel="noopener">Ver resumen</a>{% endif %}
-    </article>
-    {% endfor %}
-  </div>
-</section>
-{% elif detail.sportsdb_media and detail.sportsdb_media.summary_text %}
-<section class="band compact-band">
-  <div class="section-head"><h2>Resumen del partido</h2><span class="pill">pendiente</span></div>
-  <p class="small">{{ detail.sportsdb_media.summary_text }}</p>
-</section>
-{% endif %}
-
 <section class="band">
-  <div class="section-head"><h2>Timeline Live</h2><span class="pill">{{ detail.timeline|length }}</span></div>
+  <div class="section-head"><h2>Timeline</h2><span class="pill">{{ detail.timeline|length }}</span></div>
   <div class="timeline">
     {% for ev in detail.timeline %}
-    <div class="timeline-item"><div class="timeline-minute">{{ ev.minute or '-' }}</div><div><strong>{{ ev.title }}</strong><p>{{ ev.detail }}</p><small>{{ ev.event_type|upper }} · {{ ev.source or 'SQLite Live' }}</small></div></div>
+    <div class="timeline-item"><div class="timeline-minute">{{ ev.minute or '-' }}</div><div><strong>{{ ev.title }}</strong><p>{{ ev.detail }}</p></div></div>
     {% else %}
     <div class="empty">Aún no hay eventos suficientes para este partido.</div>
     {% endfor %}

@@ -3,14 +3,14 @@
 <section class="hero compact-hero">
   <div class="eyebrow">Centro de seguimiento</div>
   <h1>Tu rendimiento con picks</h1>
-  <p>Guarda picks, controla importe y revisa el resultado real sin mezclar análisis con picks publicados.</p>
+  <p>Guarda picks, controla stake y revisa el resultado real sin mezclar análisis con picks publicados.</p>
 </section>
 
 <section class="grid cards-4">
   <article class="card stat-card"><span>Seguimiento</span><strong>{{ data.performance.tracked_total }}</strong><small>picks guardados</small></article>
-  <article class="card stat-card"><span>Acierto</span><strong>{{ data.performance.winrate }}%</strong><small>solo decididos</small></article>
-  <article class="card stat-card"><span>ROI estimado</span><strong>{{ data.performance.roi }}%</strong><small>según importes marcados</small></article>
-  <article class="card stat-card"><span>Beneficio</span><strong>{{ data.performance.estimated_profit }}€</strong><small>estimación</small></article>
+  <article class="card stat-card"><span>Winrate</span><strong>{{ data.performance.winrate }}%</strong><small>solo decididos</small></article>
+  <article class="card stat-card"><span>ROI estimado</span><strong>{{ data.performance.roi }}%</strong><small>según stakes marcados</small></article>
+  <article class="card stat-card"><span>Beneficio</span><strong>{{ data.performance.estimated_profit }}â‚¬</strong><small>estimación</small></article>
 </section>
 
 <section class="grid two-col">
@@ -19,7 +19,7 @@
     <form class="form premium-form" id="bankrollForm">
       <label>Banca inicial<input name="starting_bankroll" type="number" step="0.01" value="{{ data.performance.bankroll.starting_bankroll or 100 }}"></label>
       <label>Banca actual<input name="current_bankroll" type="number" step="0.01" value="{{ data.performance.bankroll.current_bankroll or 100 }}"></label>
-      <label>Importe preferido<input name="preferred_stake" type="number" step="0.01" value="{{ data.performance.bankroll.preferred_stake or 10 }}"></label>
+      <label>Stake preferido<input name="preferred_stake" type="number" step="0.01" value="{{ data.performance.bankroll.preferred_stake or 10 }}"></label>
       <label>Perfil de riesgo
         <select name="risk_profile">
           {% for risk in ['conservador','equilibrado','agresivo'] %}<option value="{{ risk }}" {% if data.performance.bankroll.risk_profile==risk %}selected{% endif %}>{{ risk|title }}</option>{% endfor %}
@@ -27,7 +27,7 @@
       </label>
       <button class="btn primary" type="submit">Guardar banca</button>
     </form>
-    <p class="muted" id="bankrollStatus">Estos datos ayudan a personalizar importes y combinadas.</p>
+    <p class="muted" id="bankrollStatus">Estos datos ayudan a personalizar stakes y combinadas.</p>
   </article>
 
   <article class="card">
@@ -42,7 +42,7 @@
       {% endfor %}
       </div>
     {% else %}
-      <div class="empty-state">No hay picks publicados ahora mismo. Cuando haya picks reales publicados aparecerán aquí.</div>
+      <div class="empty-state">No hay picks publicados ahora mismo. Cuando haya picks reales publicados apareceran aqui.</div>
     {% endif %}
   </article>
 </section>
@@ -52,15 +52,14 @@
   {% if data.performance.tracked %}
     <div class="table-wrap">
       <table class="premium-table">
-        <thead><tr><th>Partido</th><th>Pick</th><th>Importe</th><th>Resultado</th><th>Acción</th></tr></thead>
+        <thead><tr><th>Partido</th><th>Pick</th><th>Stake</th><th>Resultado</th><th>Acción</th></tr></thead>
         <tbody>
         {% for item in data.performance.tracked %}
           <tr>
             <td>{{ item.home_team }} vs {{ item.away_team }}<br><small>{{ item.league_name }}</small></td>
             <td>{{ item.selection }}<br><small>{{ item.odds }} · {{ item.risk_level }}</small></td>
-            <td>{{ item.stake_euros }}€</td>
-            {% set result_label = {'pending':'Pendiente','won':'Ganado','lost':'Perdido','void':'Nulo','saved':'Guardado','removed':'Quitado'}.get(item.result_status, item.result_status or 'Pendiente') %}
-            <td><span class="badge status-{{ item.result_status or 'pending' }}">{{ result_label }}</span></td>
+            <td>{{ item.stake_euros }}â‚¬</td>
+            <td><span class="badge status-{{ item.result_status }}">{{ item.result_status or 'pending' }}</span></td>
             <td><button class="btn tiny remove-pick" data-pick="{{ item.pick_id }}">Quitar</button></td>
           </tr>
         {% endfor %}
@@ -74,8 +73,9 @@
 
 <script>
 async function postJson(url, payload){ const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}); return r.json(); }
-document.getElementById('bankrollForm').addEventListener('submit', async (e)=>{e.preventDefault(); const payload=Object.fromEntries(new FormData(e.currentTarget).entries()); const j=await postJson('/api/client/bankroll', payload); document.getElementById('bankrollStatus').textContent=j.ok ? 'Banca guardada correctamente.' : 'No se pudo guardar ahora.';});
-document.querySelectorAll('.track-pick').forEach(btn=>btn.addEventListener('click', async()=>{const j=await postJson('/api/client/track-pick',{pick_id:btn.dataset.pick,action:'saved'}); btn.textContent=j.ok ? 'Guardado' : 'Error';}));
+document.getElementById('bankrollForm')?.addEventListener('submit', async (e)=>{e.preventDefault(); const payload=Object.fromEntries(new FormData(e.currentTarget).entries()); const j=await postJson('/api/client/bankroll', payload); document.getElementById('bankrollStatus').textContent=j.ok?'Banca guardada correctamente.':'No se pudo guardar ahora.';});
+document.querySelectorAll('.track-pick').forEach(btn=>btn.addEventListener('click', async()=>{const j=await postJson('/api/client/track-pick',{pick_id:btn.dataset.pick,action:'saved'}); btn.textContent=j.ok?'Guardado':'Error';}));
 document.querySelectorAll('.remove-pick').forEach(btn=>btn.addEventListener('click', async()=>{const j=await postJson('/api/client/track-pick',{pick_id:btn.dataset.pick,action:'removed'}); if(j.ok) location.reload();}));
 </script>
 {% endblock %}
+

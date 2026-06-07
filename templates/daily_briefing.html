@@ -47,7 +47,7 @@
     <div class="section-head"><h2>Estado rápido</h2><span class="pill">Cliente</span></div>
     <div class="grid compact-grid">
       <div class="card metric-card"><div class="metric">{{ briefing.counts.today }}</div><div class="muted">hoy</div></div>
-      <div class="card metric-card"><div class="metric">{{ briefing.counts.live }}</div><div class="muted">directo</div></div>
+      <div class="card metric-card"><div class="metric">{{ briefing.counts.live }}</div><div class="muted">live</div></div>
       <div class="card metric-card"><div class="metric">{{ briefing.counts.picks }}</div><div class="muted">picks</div></div>
       <div class="card metric-card"><div class="metric">{{ briefing.counts.favorites }}</div><div class="muted">favoritos</div></div>
     </div>
@@ -61,7 +61,7 @@
       {% for m in briefing.today_matches[:5] or briefing.upcoming[:5] %}
       <a class="list-row" href="/match/{{ m.id }}"><span>{{ m.home_team }} vs {{ m.away_team }}<small>{{ m.competition_name or m.league_name or 'Competición' }}</small></span><strong>{{ m.kickoff_time or m.live_depth.label }}</strong></a>
       {% else %}
-      <div class="empty premium-empty"><strong>Sin partidos sincronizados</strong><p>Cuando haya datos suficientes, aparecerán aquí automáticamente.</p></div>
+      <div class="empty premium-empty"><strong>Sin partidos sincronizados</strong><p>Cuando haya datos suficientes, apareceran aqui automaticamente.</p></div>
       {% endfor %}
     </div>
   </div>

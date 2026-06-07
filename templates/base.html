@@ -14,21 +14,17 @@
         {% if current_user and current_user.role == 'ADMIN' %}
           <a href="/admin/dashboard">Admin</a>
           <a href="/admin/users">Usuarios</a>
-          <a href="/admin/automation">Automatizaci?n</a>
-          <a href="/admin/intelligence">Comercial</a>
           <a href="/admin/memberships">Membresías</a>
           <a href="/admin/picks">Picks</a>
           <a href="/admin/recommendations">Recomendaciones</a>
           <a href="/admin/telegram">Telegram</a>
-          <a href="/admin/backups">Backups</a>
           <a href="/admin/data-center">Datos</a>
           <a href="/admin/final-qa">QA</a>
           <a href="/logout">Salir</a>
         {% elif current_user %}
           <a href="/dashboard">Inicio</a>
-          <a href="/sports-hub">Sports Hub</a>
           <a href="/intelligence-hub">Intelligence</a>
-          <a href="/live">Directo</a>
+          <a href="/live">Live</a>
           <a href="/picks">Picks</a>
           <a href="/favorites">Favoritos</a>
           <a href="/menu">Más</a>
@@ -51,15 +47,12 @@
     {% if current_user and current_user.role == 'ADMIN' %}
       <a href="/admin/dashboard">Admin</a>
       <a href="/admin/users">Usuarios</a>
-      <a href="/admin/automation">Auto</a>
       <a href="/admin/picks">Picks</a>
-      <a href="/admin/backups">Backups</a>
       <a href="/admin/data-center">Datos</a>
       <a href="/logout">Salir</a>
     {% else %}
       <a href="/dashboard">Inicio</a>
-      <a href="/sports-hub">Sports</a>
-      <a href="/live">Directo</a>
+      <a href="/live">Live</a>
       <a href="/picks">Picks</a>
       <a href="/favorites">Favoritos</a>
       {% if current_user %}<a href="/menu">Más</a>{% else %}<a href="/cliente-login">Entrar</a>{% endif %}
@@ -75,12 +68,12 @@
         <button type="button" id="sharkClose" aria-label="Cerrar SHARK">×</button>
       </div>
       <div class="shark-messages" id="sharkMessages">
-        <div class="shark-msg bot">Pregúntame por partidos, picks, combinadas, favoritos o directo. Si falta dato real, te lo diré claro.</div>
+        <div class="shark-msg bot">Pregúntame por partidos, picks, combinadas, favoritos o live. Si falta dato real, te lo diré claro.</div>
         <div class="shark-quick">
           <button type="button" data-q="¿Qué pick ves mejor hoy?">Pick de hoy</button>
           <button type="button" data-q="¿Qué partidos de mis favoritos juegan?">Favoritos</button>
           <button type="button" data-q="Hazme una combinada segura">Combinada</button>
-          <button type="button" data-q="Resume el directo">Directo</button>
+          <button type="button" data-q="Resume el live">Live</button>
           <button type="button" data-q="Dime oportunidades de hoy">Oportunidades</button>
         </div>
       </div>

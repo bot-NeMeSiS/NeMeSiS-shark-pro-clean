@@ -2,8 +2,8 @@
 {% block content %}
 <section class="page-hero compact-hero">
   <div>
-    <p class="eyebrow">Directo premium</p>
-    <h1>Centro directo profundo</h1>
+    <p class="eyebrow">Live premium</p>
+    <h1>Centro live profundo</h1>
     <p>Directos, próximos destacados y lectura SHARK del estado real del partido.</p>
   </div>
   <a class="btn" href="/live">Volver al directo</a>
@@ -11,24 +11,22 @@
 
 {% set summary = data.live_depth %}
 <section class="metric-grid">
-  <article class="metric-card"><span>En directo</span><strong>{{ summary.directo_count }}</strong></article>
+  <article class="metric-card"><span>En directo</span><strong>{{ summary.live_count }}</strong></article>
   <article class="metric-card"><span>Próximos</span><strong>{{ summary.upcoming_count }}</strong></article>
   <article class="metric-card"><span>Finalizados</span><strong>{{ summary.finished_count }}</strong></article>
-  <article class="metric-card"><span>Eventos Live</span><strong>{{ summary.with_events }}</strong></article>
 </section>
 
 <section class="panel-card">
-  <h2>En directo ahora</h2>
-  {% if summary.directo %}
+  <h2>Directo ahora</h2>
+  {% if summary.live %}
     <div class="match-grid compact-matches">
-    {% for match in summary.directo %}
+    {% for match in summary.live %}
       <a class="match-card compact-card" href="/match/{{ match.id }}">
-        <div class="match-card-top"><span class="badge directo">{{ match.v554_stats.label }}</span><span>{{ match.minute or '' }}</span></div>
+        <div class="match-card-top"><span class="badge live">{{ match.v554_stats.label }}</span><span>{{ match.minute or '' }}</span></div>
         <h3>{{ match.home_team }} vs {{ match.away_team }}</h3>
         <p>{{ match.league_name or match.competition_name }}</p>
-        <div class="momentum-bar"><span style="width: {{ match.get('v554_stats', {}).get('intensity', 0) }}%"></span></div>
+        <div class="momentum-bar"><span style="width: {{ match.v554_stats.intensity }}%"></span></div>
         <small>{{ match.v554_stats.message }}</small>
-        <small>Momentum {{ match.get('live_depth', {}).get('shark_momentum', {}).get('presion', 0) }} · eventos {{ match.get('live_depth', {}).get('event_count') or (match.get('timeline', [])|length) }}</small>
       </a>
     {% endfor %}
     </div>

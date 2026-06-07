@@ -4,7 +4,7 @@
   <div>
     <p class="eyebrow">Centro de ayuda</p>
     <h1>Soporte NeMeSiS SHARK PRO</h1>
-    <p>Cuéntanos cualquier fallo de partidos, picks, directo, Telegram o cuenta. Lo guardamos para revisarlo y mejorar la app.</p>
+    <p>Cuéntanos cualquier fallo de partidos, picks, live, Telegram o cuenta. Lo guardamos para revisarlo y mejorar la app.</p>
   </div>
   <div class="hero-actions">
     <a class="btn" href="/mi-dia">Volver a Mi día</a>
@@ -23,11 +23,10 @@
   <div class="card">
     <h2>Enviar incidencia o sugerencia</h2>
     <form method="post" class="form-grid">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
       <label>Tipo
         <select name="category">
           <option value="partidos">Partidos / calendario</option>
-          <option value="directo">Directo / resultados</option>
+          <option value="live">Live / resultados</option>
           <option value="picks">Picks / combinadas</option>
           <option value="telegram">Telegram</option>
           <option value="cuenta">Cuenta / membresía</option>

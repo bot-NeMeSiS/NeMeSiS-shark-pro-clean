@@ -37,7 +37,7 @@
       </a>
     {% endfor %}
   </div>
-  {% else %}<div class="empty premium-empty">No hay partidos para esta búsqueda todavía. SHARK mostrar opciones cuando haya datos suficientes.</div>{% endif %}
+  {% else %}<div class="empty premium-empty">No hay partidos para esta búsqueda todavía. SHARK mostrara opciones cuando haya datos suficientes.</div>{% endif %}
 </section>
 
 <section class="grid two">
@@ -46,7 +46,7 @@
     {% if data.discovery.teams %}
       <div class="team-list">
       {% for t in data.discovery.teams %}
-        <a class="team-row" href="/team/{{ t.id or t.key }}"><span class="crest-fallback">{{ (t.name or '')[:2] }}</span><div><strong>{{ t.name }}</strong><small>{{ t.league or t.country or 'Equipo' }}</small></div></a>
+        <a class="team-row" href="/team/{{ t.id or t.key }}"><span class="crest-fallback">{{ (t.name or '?')[:2] }}</span><div><strong>{{ t.name }}</strong><small>{{ t.league or t.country or 'Equipo' }}</small></div></a>
       {% endfor %}
       </div>
     {% else %}<div class="empty">Sin equipos para esta búsqueda.</div>{% endif %}

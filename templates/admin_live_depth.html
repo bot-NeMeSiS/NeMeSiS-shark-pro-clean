@@ -2,18 +2,18 @@
 {% block content %}
 <section class="page-hero compact-hero">
   <div>
-    <p class="eyebrow">Admin · Profundidad directo</p>
-    <h1>Profundidad Directo V554</h1>
-    <p>Controla si el directo tiene minuto, marcador, eventos y separación correcta entre próximo, directo y finalizado.</p>
+    <p class="eyebrow">Admin · Live depth</p>
+    <h1>Profundidad Live V554</h1>
+    <p>Controla si el directo tiene minuto, marcador, eventos y separación correcta entre próximo, live y finalizado.</p>
   </div>
   <div class="hero-actions">
-    <a class="btn" href="/admin/data-center">Centro de datos</a>
-    <a class="btn ghost" href="/api/live/depth-summary">API profundidad directo</a>
+    <a class="btn" href="/admin/data-center">Data Center</a>
+    <a class="btn ghost" href="/api/live/depth-summary">API Live Depth</a>
   </div>
 </section>
 
 <section class="metric-grid">
-  <article class="metric-card"><span>Directos detectados</span><strong>{{ summary.directo_count }}</strong></article>
+  <article class="metric-card"><span>Live detectados</span><strong>{{ summary.live_count }}</strong></article>
   <article class="metric-card"><span>Próximos</span><strong>{{ summary.upcoming_count }}</strong></article>
   <article class="metric-card"><span>Finalizados</span><strong>{{ summary.finished_count }}</strong></article>
   <article class="metric-card"><span>Eventos guardados</span><strong>{{ summary.with_events }}</strong></article>
@@ -22,18 +22,18 @@
 <section class="panel-grid two">
   <article class="panel-card">
     <h2>Partidos en directo</h2>
-    {% if summary.directo %}
+    {% if summary.live %}
       <div class="match-list compact-list">
-      {% for match in summary.directo %}
+      {% for match in summary.live %}
         <a class="match-row" href="/match/{{ match.id }}">
-          <span class="badge directo">{{ match.v554_stats.label }}</span>
+          <span class="badge live">{{ match.v554_stats.label }}</span>
           <strong>{{ match.home_team }} vs {{ match.away_team }}</strong>
-          <small>{{ match.league_name or match.competition_name }} · momentum {{ match.get('v554_stats', {}).get('intensity', 0) }}% · eventos {{ match.get('live_depth', {}).get('event_count') or (match.get('timeline', [])|length) }}</small>
+          <small>{{ match.league_name or match.competition_name }} · intensidad {{ match.v554_stats.intensity }}%</small>
         </a>
       {% endfor %}
       </div>
     {% else %}
-      <div class="empty-state">No hay directo real detectado ahora mismo. Sincroniza directo o revisa la fuente SportsDB.</div>
+      <div class="empty-state">No hay live real detectado ahora mismo. Sincroniza live o revisa la fuente SportsDB.</div>
     {% endif %}
   </article>
 

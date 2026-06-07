@@ -1,7 +1,7 @@
 ﻿{% extends "base.html" %}
 {% block content %}
 <section class="hero compact product-hero">
-  <div class="kicker">SHARK Apuestas Radar</div>
+  <div class="kicker">SHARK Betting Radar</div>
   <h1>Recomendaciones de apuestas</h1>
   <p class="lead">Análisis generado desde partidos próximos reales, cuotas cacheadas y control de riesgo. No son picks oficiales hasta que el equipo SHARK los publica.</p>
   <div class="actions">
@@ -23,7 +23,7 @@
       <div class="status"><span>{{ r.confidence }}% confianza</span><span>{{ r.risk_level }}</span><span>{% if r.has_real_odds %}Cuota real{% else %}Watchlist{% endif %}</span></div>
       <p class="small"><strong>Motivo:</strong> {{ r.reasoning }}</p>
       <p class="small"><strong>Precaución:</strong> {{ r.warning_reason }}</p>
-      <div class="inline-actions"><a class="mini-link" href="/match/{{ r.match_id }}">Ver partido</a>{% if current_user and current_user.role == 'ADMIN' %}<a class="mini-link" href="/api/betting/convert-to-pickid={{ r.id }}&publish=1">Publicar pick</a>{% endif %}</div>
+      <div class="inline-actions"><a class="mini-link" href="/match/{{ r.match_id }}">Ver partido</a>{% if current_user and current_user.role == 'ADMIN' %}<a class="mini-link" href="/api/betting/convert-to-pick?id={{ r.id }}&publish=1">Publicar pick</a>{% endif %}</div>
     </article>
     {% endfor %}
   </div>

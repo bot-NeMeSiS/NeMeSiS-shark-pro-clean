@@ -1,76 +1,21 @@
 {% extends "base.html" %}
 {% block content %}
-<section class="app-hero compact-hero admin-executive-hero">
+<section class="app-hero compact-hero">
   <div>
-    <div class="kicker">Centro ejecutivo</div>
-    <h1>Panel de administración</h1>
-    <p class="lead">Vista rápida de negocio, operación deportiva, Telegram, SHARK y sistema. Lo importante primero; las herramientas quedan agrupadas abajo.</p>
-    <div class="actions">
-      <a class="btn primary" href="/admin/picks">Gestionar picks</a>
-      <a class="btn" href="/admin/telegram">Telegram</a>
-      <a class="btn" href="/admin/observability">Observabilidad</a>
-    </div>
+    <div class="kicker">Centro de mando</div>
+    <h1>Admin dashboard</h1>
+    <p class="lead">Usuarios, membresías, picks, recomendaciones, Telegram, datos, live, sistema y QA en un solo sitio.</p>
+    <div class="actions"><a class="btn primary" href="/admin/unified-intelligence">Intelligence</a><a class="btn" href="/admin/final-qa">QA final</a></div>
   </div>
-  <aside class="hero-panel executive-status-panel">
-    <div class="panel-top"><span>Salud comercial</span><strong>{{ q.score|default(0) }}%</strong></div>
-    <div class="status-stack">
-      <div><span>Telegram</span><strong class="{{ 'ok' if executive.status.telegram_ready else 'warn' }}">{{ 'Listo' if executive.status.telegram_ready else 'Pendiente' }}</strong></div>
-      <div><span>SHARK</span><strong class="ok">{{ 'Activo' if executive.status.shark_ready else 'Preparado' }}</strong></div>
-      <div><span>APIs</span><strong class="{{ 'ok' if executive.status.api_ready else 'warn' }}">{{ 'OK' if executive.status.api_ready else 'Configurar' }}</strong></div>
-    </div>
-  </aside>
+  <aside class="hero-panel"><div class="live-strip"><div><span>Salud</span><strong>{{ q.score }}%</strong></div><div><span>Partidos</span><strong>{{ q.matches.total }}</strong></div><div><span>Picks</span><strong>{{ q.picks.published }}</strong></div><div><span>Usuarios</span><strong>{{ q.users.total }}</strong></div></div></aside>
 </section>
-
 <section class="band compact-band">
-  <div class="section-head"><h2>Resumen ejecutivo</h2><span class="pill">Hoy</span></div>
-  <div class="grid admin-executive-grid">
-    {% for card in executive.cards %}
-    <a class="card executive-card tone-{{ card.tone }}" href="{{ card.href }}">
-      <span>{{ card.label }}</span>
-      <strong>{{ card.value if card.value not in [0, '0', '0%'] else card.empty }}</strong>
-    </a>
+  <div class="section-head"><h2>Acciones principales</h2><span class="pill">Protegido</span></div>
+  <div class="grid menu-grid">
+    {% for item in items %}
+    <a class="card menu-card" href="{{ item.href }}"><span class="badge">{{ item.group }}</span><h3>{{ item.title }}</h3><p class="small">{{ item.body }}</p></a>
     {% endfor %}
   </div>
 </section>
-
-<section class="band compact-band">
-  <div class="section-head"><h2>Herramientas organizadas</h2><span class="pill">Admin</span></div>
-  <div class="admin-groups">
-    {% for group in executive.groups %}
-    <article class="card admin-group">
-      <div class="group-head"><h3>{{ group.name }}</h3><span>{{ group['items']|length }}</span></div>
-      <div class="admin-tool-list">
-        {% for item in group['items'] %}
-        <a class="admin-tool" href="{{ item.href }}">
-          <strong>{{ item.title }}</strong>
-          <small>{{ item.body }}</small>
-        </a>
-        {% endfor %}
-      </div>
-    </article>
-    {% endfor %}
-  </div>
-</section>
-
-<section class="band two-col compact-band">
-  <div>
-    <div class="section-head"><h2>Rendimiento SHARK</h2><a class="pill" href="/api/performance/summary">API</a></div>
-    <div class="grid compact-grid metric-row">
-      <div class="card metric-card"><div class="metric">{{ data.performance.summary.sample_size|default(0) }}</div><div class="muted">picks con histórico</div></div>
-      <div class="card metric-card"><div class="metric">{{ data.performance.summary.roi|default(0) }}%</div><div class="muted">ROI global</div></div>
-      <div class="card metric-card"><div class="metric">{{ data.performance.summary.winrate|default(0) }}%</div><div class="muted">acierto</div></div>
-      <div class="card metric-card"><div class="metric">{{ data.performance.summary.profit_units|default(0) }}u</div><div class="muted">beneficio</div></div>
-    </div>
-  </div>
-  <div>
-    <div class="section-head"><h2>Siguientes acciones</h2><a class="pill" href="/admin/final-qa">QA</a></div>
-    <div class="stack compact-list">
-      {% for rec in q.recommendations[:4] %}
-      <div class="list-row"><span>{{ rec }}</span><strong>Revisar</strong></div>
-      {% else %}
-      <div class="empty premium-empty">Sin acciones críticas. El panel está listo para operación diaria.</div>
-      {% endfor %}
-    </div>
-  </div>
-</section>
+<section class="band compact-band"><div class="section-head"><h2>Siguiente paso</h2><span class="pill">Sistema</span></div><div class="stack">{% for rec in q.recommendations %}<div class="list-row"><span>{{ rec }}</span><strong>Acción</strong></div>{% endfor %}</div></section>
 {% endblock %}

@@ -5,9 +5,9 @@
   <h1>Motor real de inteligencia de apuestas</h1>
   <p class="lead">Analiza partidos próximos, cuotas cacheadas, riesgo y confianza. Las recomendaciones son análisis SHARK: solo se convierten en picks cuando el admin las valida.</p>
   <div class="actions">
-    <a class="btn primary" href="/api/recommendationsrefresh=1&limit=40">Regenerar inteligencia</a>
+    <a class="btn primary" href="/api/recommendations?refresh=1&limit=40">Regenerar inteligencia</a>
     <a class="btn" href="/api/admin/intelligence-status">Ver estado JSON</a>
-    <a class="btn" href="/admin/betting-center">Centro de apuestas</a>
+    <a class="btn" href="/admin/betting-center">Betting Center</a>
     <a class="btn" href="/admin/picks">Publicar picks</a>
   </div>
 </section>
@@ -17,15 +17,15 @@
   <div class="grid compact-grid metric-row">
     <div class="card metric-card"><div class="metric">{{ status.score }}</div><div class="muted">score inteligencia</div></div>
     <div class="card metric-card"><div class="metric">{{ status.intelligence.total }}</div><div class="muted">recomendaciones</div></div>
-    <div class="card metric-card"><div class="metric">{{ status.intelligence.value_count }}</div><div class="muted">VALOR</div></div>
-    <div class="card metric-card"><div class="metric">{{ status.intelligence.hot_count }}</div><div class="muted">DESTACADO</div></div>
+    <div class="card metric-card"><div class="metric">{{ status.intelligence.value_count }}</div><div class="muted">VALUE</div></div>
+    <div class="card metric-card"><div class="metric">{{ status.intelligence.hot_count }}</div><div class="muted">HOT</div></div>
   </div>
 </section>
 
 <section class="band two-col compact-band">
   <article class="card">
     <h2>Bloqueos actuales</h2>
-    {% for b in status.blockers %}<p class="small">⚠️ {{ b }}</p>{% else %}<p class="small good">Sin bloqueos críticos. Revisar recomendaciones VALOR/DESTACADO antes de publicar.</p>{% endfor %}
+    {% for b in status.blockers %}<p class="small">⚠️ {{ b }}</p>{% else %}<p class="small good">Sin bloqueos críticos. Revisar recomendaciones VALUE/HOT antes de publicar.</p>{% endfor %}
   </article>
   <article class="card">
     <h2>Siguientes acciones</h2>
@@ -50,12 +50,12 @@
       <p class="small muted"><strong>Precaución:</strong> {{ r.warning_reason }}</p>
       <div class="inline-actions">
         <a class="mini-link" href="/match/{{ r.match_id }}">Ver partido</a>
-        <a class="mini-link" href="/api/betting/convert-to-pickid={{ r.id }}">Guardar borrador</a>
-        <a class="mini-link" href="/api/betting/convert-to-pickid={{ r.id }}&publish=1">Publicar pick</a>
+        <a class="mini-link" href="/api/betting/convert-to-pick?id={{ r.id }}">Guardar borrador</a>
+        <a class="mini-link" href="/api/betting/convert-to-pick?id={{ r.id }}&publish=1">Publicar pick</a>
       </div>
     </article>
     {% else %}
-    <div class="empty premium-empty"><strong>Sin recomendaciones.</strong><p>Sincroniza calendario/cuotas desde Centro de datos. SHARK no inventa apuestas.</p></div>
+    <div class="empty premium-empty"><strong>Sin recomendaciones.</strong><p>Sincroniza calendario/cuotas desde Data Center. SHARK no inventa apuestas.</p></div>
     {% endfor %}
   </div>
 </section>

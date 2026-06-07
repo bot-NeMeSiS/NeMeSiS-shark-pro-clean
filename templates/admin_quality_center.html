@@ -14,7 +14,7 @@
 
 <section class="grid stats-grid">
   <article class="card"><span class="label">Partidos totales</span><strong>{{ q.matches.total }}</strong><small>Hoy: {{ q.matches.today }} · Próximos: {{ q.matches.upcoming }}</small></article>
-  <article class="card"><span class="label">Directo / finalizados</span><strong>{{ q.matches.directo }} / {{ q.matches.finished }}</strong><small>Estados normalizados para cliente</small></article>
+  <article class="card"><span class="label">Live / finalizados</span><strong>{{ q.matches.live }} / {{ q.matches.finished }}</strong><small>Estados normalizados para cliente</small></article>
   <article class="card"><span class="label">Equipos con escudo</span><strong>{{ q.teams.with_logo }}</strong><small>Fallback: {{ q.teams.fallback }} · Total: {{ q.teams.total }}</small></article>
   <article class="card"><span class="label">Picks publicados</span><strong>{{ q.picks.published }}</strong><small>Total picks: {{ q.picks.total }}</small></article>
 </section>
@@ -31,7 +31,7 @@
   <article class="card">
     <h2>Acciones rápidas</h2>
     <div class="quick-grid">
-      <a class="btn" href="/admin/data-center">Centro de datos</a>
+      <a class="btn" href="/admin/data-center">Data Center</a>
       <a class="btn" href="/admin/matches-sync">Sincronizar partidos</a>
       <a class="btn" href="/admin/sportsdb-sync">Escudos SportsDB</a>
       <a class="btn" href="/admin/picks">Gestionar picks</a>
@@ -51,7 +51,7 @@
     {% endfor %}
   </div>
   {% else %}
-  <p class="empty">Todavía no hay logs. Ejecuta una sincronización desde Centro de datos para poblar el historial.</p>
+  <p class="empty">Todavía no hay logs. Ejecuta una sincronización desde Data Center para poblar el historial.</p>
   {% endif %}
 </section>
 {% endblock %}

@@ -1,13 +1,13 @@
 {% extends "base.html" %}
 {% block content %}
 <section class="hero compact product-hero">
-  <div class="kicker">Admin · Apuestas QA</div>
+  <div class="kicker">Admin · Betting QA</div>
   <h1>Centro de recomendaciones y control de apuestas</h1>
-  <p class="lead">Une calendario, directo, cuotas, picks y Telegram. Detecta qué falta para que el flujo de apuestas esté listo.</p>
+  <p class="lead">Une calendario, live, cuotas, picks y Telegram. Detecta qué falta para que el flujo de apuestas esté listo.</p>
   <div class="actions">
-    <a class="btn primary" href="/api/betting/generatelimit=40">Generar recomendaciones</a>
+    <a class="btn primary" href="/api/betting/generate?limit=40">Generar recomendaciones</a>
     <a class="btn" href="/api/system/full-betting-check">Full betting check</a>
-    <a class="btn" href="/api/telegram/enqueue-recommendationsforce=1">Enviar recomendaciones a Telegram</a>
+    <a class="btn" href="/api/telegram/enqueue-recommendations?force=1">Enviar recomendaciones a Telegram</a>
     <a class="btn" href="/admin/picks">Admin picks</a>
   </div>
 </section>
@@ -32,7 +32,7 @@
       <h3>{{ r.home_team }} vs {{ r.away_team }}</h3>
       <p><strong>{{ r.selection }}</strong>{% if r.odds %} · cuota {{ r.odds }}{% endif %} · {{ r.confidence }}%</p>
       <p class="small">{{ r.reasoning }}</p>
-      <div class="inline-actions"><a class="mini-link" href="/api/betting/convert-to-pickid={{ r.id }}">Guardar como borrador</a><a class="mini-link" href="/api/betting/convert-to-pickid={{ r.id }}&publish=1">Publicar pick</a><a class="mini-link" href="/match/{{ r.match_id }}">Ver partido</a></div>
+      <div class="inline-actions"><a class="mini-link" href="/api/betting/convert-to-pick?id={{ r.id }}">Guardar como borrador</a><a class="mini-link" href="/api/betting/convert-to-pick?id={{ r.id }}&publish=1">Publicar pick</a><a class="mini-link" href="/match/{{ r.match_id }}">Ver partido</a></div>
     </article>
     {% else %}<div class="empty">Pulsa generar recomendaciones para analizar próximos partidos reales.</div>{% endfor %}
   </div>
