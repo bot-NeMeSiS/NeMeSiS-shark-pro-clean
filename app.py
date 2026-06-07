@@ -12,7 +12,7 @@ import urllib.request
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
-from flask import Flask, Response, jsonify, redirect, render_template, request, session, url_for
+from flask import Flask, Response, abort, jsonify, redirect, render_template, request, send_file, session, url_for
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from database_manager import connect as sqlite_connect, retry_locked
@@ -55,7 +55,7 @@ from engines.telegram_delivery_engine import (
 from engines.telegram_engine import build_alert_queue, dispatch_signature, should_skip_duplicate
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V637_TELEGRAM_COMPLETE_DELIVERY_LINKING"
+APP_VERSION = "V638_CLIENT_FINAL_POLISH_TELEGRAM_AUTO_VERIFY"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -2363,6 +2363,122 @@ def scheduler_status():
         "recent_errors": [log.get("error_message") for log in rows("SELECT * FROM api_sync_logs WHERE error_message IS NOT NULL AND error_message!='' ORDER BY started_at DESC LIMIT 8")],
         "last_scheduler_log": latest_sync_log("scheduler"),
     }
+
+
+BACKUP_RETENTION_MAX = 30
+
+
+def backup_dir():
+    configured = os.getenv("BACKUP_DIR", "").strip()
+    if configured:
+        return os.path.abspath(configured)
+    db_path = os.path.abspath(DB_PATH)
+    if db_path.startswith(os.path.abspath("/data") + os.sep) or db_path == os.path.abspath("/data/database.db"):
+        return "/data/backups"
+    return os.path.join(os.path.dirname(db_path) or os.getcwd(), "data", "backups")
+
+
+def ensure_backup_dir():
+    folder = backup_dir()
+    os.makedirs(folder, exist_ok=True)
+    return folder
+
+
+def backup_file_path(name):
+    safe = os.path.basename(str(name or ""))
+    if not re.fullmatch(r"[A-Za-z0-9_.-]+\.db", safe):
+        return ""
+    folder = os.path.abspath(backup_dir())
+    path = os.path.abspath(os.path.join(folder, safe))
+    return path if os.path.dirname(path) == folder and os.path.exists(path) else ""
+
+
+def list_backups():
+    folder = ensure_backup_dir()
+    items = []
+    for path in sorted([p for p in os.listdir(folder) if p.startswith("database_") and p.endswith(".db")], reverse=True):
+        full = os.path.join(folder, path)
+        try:
+            stat = os.stat(full)
+            items.append({"name": path, "path": full, "created_at": datetime.fromtimestamp(stat.st_mtime, TZ).isoformat(timespec="seconds"), "size": stat.st_size, "size_mb": round(stat.st_size / (1024 * 1024), 2)})
+        except OSError:
+            pass
+    return items
+
+
+def prune_old_backups(max_backups=BACKUP_RETENTION_MAX):
+    removed = []
+    for item in list_backups()[int(max_backups):]:
+        try:
+            os.remove(item["path"])
+            removed.append(item["name"])
+        except OSError:
+            pass
+    return removed
+
+
+def create_database_backup(reason="manual"):
+    source = os.path.abspath(DB_PATH)
+    if not os.path.exists(source):
+        return {"ok": False, "error": "database_missing", "message": "No existe base de datos que copiar."}
+    target = os.path.join(ensure_backup_dir(), f"database_{datetime.now(TZ).strftime('%Y%m%d_%H%M%S')}.db")
+    src = sqlite3.connect(source)
+    dst = sqlite3.connect(target)
+    try:
+        src.backup(dst)
+    finally:
+        dst.close()
+        src.close()
+    removed = prune_old_backups()
+    return {"ok": True, "name": os.path.basename(target), "path": target, "size": os.path.getsize(target), "reason": reason, "removed": removed}
+
+
+def restore_database_backup(name):
+    path = backup_file_path(name)
+    if not path:
+        return {"ok": False, "error": "backup_not_found"}
+    safety = create_database_backup(reason=f"pre_restore_{os.path.basename(name)}")
+    if not safety.get("ok"):
+        return {"ok": False, "error": "safety_backup_failed", "safety": safety}
+    tmp = os.path.abspath(DB_PATH) + ".restore_tmp"
+    with open(path, "rb") as src, open(tmp, "wb") as dst:
+        dst.write(src.read())
+    os.replace(tmp, os.path.abspath(DB_PATH))
+    return {"ok": True, "restored": os.path.basename(name), "safety_backup": safety.get("name")}
+
+
+def daily_automation_summary():
+    last = automation_get("daily_autonomous_system", {}) or {}
+    return {"last": last, "next_run_label": "Hoy 10:00 Europe/Madrid" if str(last.get("date") or "") != today_iso() else "Mañana 10:00 Europe/Madrid", "enabled": scheduler_enabled(), "due_now": not bool(last.get("date") == today_iso())}
+
+
+def run_daily_autonomous_system(force=False):
+    started = datetime.now(TZ)
+    tasks = {
+        "calendar": run_scheduler_task("calendar", force=force, limit=80),
+        "live": run_scheduler_task("live", force=force, limit=60),
+        "recommendations": run_scheduler_task("recommendations", force=force, limit=30),
+        "auto_picks": run_scheduler_task("auto_picks", force=force, limit=30),
+        "telegram": telegram_scheduler_delivery(force=force),
+        "backup": create_database_backup(reason="daily_autonomous_system"),
+    }
+    errors = [f"{name}: {item.get('error') or item.get('message')}" for name, item in tasks.items() if isinstance(item, dict) and item.get("ok") is False]
+    result = {
+        "ok": not errors,
+        "date": today_iso(),
+        "started_at": started.isoformat(timespec="seconds"),
+        "finished_at": now_iso(),
+        "duration_seconds": round((datetime.now(TZ) - started).total_seconds(), 2),
+        "status": "OK" if not errors else "PARTIAL",
+        "errors": errors,
+        "tasks": tasks,
+        "matches_synced": as_int((tasks.get("calendar") or {}).get("processed"), 0) + as_int((tasks.get("live") or {}).get("processed"), 0),
+        "picks_generated": as_int((tasks.get("auto_picks") or {}).get("saved"), 0),
+        "picks_sent": as_int((tasks.get("telegram") or {}).get("sent"), 0),
+        "backups_created": 1 if (tasks.get("backup") or {}).get("ok") else 0,
+    }
+    automation_set("daily_autonomous_system", result)
+    return result
 
 
 def odds_last_sync():
@@ -5247,6 +5363,10 @@ def telegram_diagnostics():
     sent_today = (one("SELECT COUNT(*) AS total FROM telegram_queue WHERE lower(status)=? AND sent_at LIKE ?", (QUEUE_SENT, today + "%")) or {}).get("total", 0)
     failed_today = (one("SELECT COUNT(*) AS total FROM telegram_queue WHERE lower(status)=? AND updated_at LIKE ?", (QUEUE_FAILED, today + "%")) or {}).get("total", 0)
     last_error = one("SELECT * FROM telegram_logs WHERE lower(status) IN ('failed','error') ORDER BY created_at DESC LIMIT 1")
+    last_sent = one("SELECT * FROM telegram_queue WHERE lower(status)=? ORDER BY sent_at DESC LIMIT 1", (QUEUE_SENT,))
+    last_auto = one("SELECT * FROM telegram_logs WHERE event_type IN ('scheduler','queue','send') OR message LIKE '%automatic%' OR message LIKE '%auto%' ORDER BY created_at DESC LIMIT 1")
+    last_pick = one("SELECT * FROM telegram_queue WHERE lower(status)=? AND lower(coalesce(message_type,'')) LIKE '%pick%' ORDER BY sent_at DESC LIMIT 1", (QUEUE_SENT,))
+    duplicate_logs = (one("SELECT COUNT(*) AS total FROM telegram_logs WHERE lower(status)='skipped' OR lower(message) LIKE '%duplicado%'") or {}).get("total", 0)
     return {
         "token_present": bool(os.getenv("TELEGRAM_BOT_TOKEN")),
         "token_masked": masked_key(os.getenv("TELEGRAM_BOT_TOKEN", "")),
@@ -5260,6 +5380,13 @@ def telegram_diagnostics():
         "sent_today": sent_today,
         "failed_today": failed_today,
         "last_error": (last_error or {}).get("message", ""),
+        "last_error_item": last_error or {},
+        "last_sent": last_sent or {},
+        "last_auto": last_auto or {},
+        "last_pick": last_pick or {},
+        "duplicates_avoided": duplicate_logs,
+        "recent_sent": rows("SELECT * FROM telegram_queue WHERE lower(status)=? ORDER BY sent_at DESC LIMIT 8", (QUEUE_SENT,)),
+        "recent_errors": rows("SELECT * FROM telegram_logs WHERE lower(status) IN ('failed','error') ORDER BY created_at DESC LIMIT 8"),
         "queue_summary": queue_summary(rows("SELECT status FROM telegram_queue ORDER BY created_at DESC LIMIT 500")),
     }
 
@@ -5659,10 +5786,40 @@ def global_football():
     return render_template("global.html", data=dashboard_data())
 
 
+@app.route("/calendar")
 @app.route("/calendario")
 @app.route("/calendario-global")
 def calendar_page():
     return render_template("calendar.html", data=dashboard_data(request.args.get("lane", "today"), request.args.get("date") or today_iso()))
+
+
+@app.route("/sports-hub")
+@app.route("/sports")
+def sports_hub_page():
+    data = dashboard_data()
+    hub = data.get("match_hub") or {}
+    picks = published_picks_for_user(current_session_user() or {"membership": "FREE"}, limit=6)
+    recs = v565_recommendation_pool(limit=6)
+    best = picks[0] if picks else (recs[0] if recs else {})
+    score = as_int(best.get("confidence") or best.get("score"), 0)
+    data["sports_hub"] = {
+        "date": today_iso(),
+        "today": (hub.get("today") or data.get("matches") or [])[:14],
+        "live": (hub.get("live") or [])[:10],
+        "picks": picks,
+        "recommendations": recs,
+        "favorites": (data.get("favorite_feed") or [])[:8],
+        "top_leagues": (hub.get("top_leagues") or data.get("competitions") or [])[:8],
+        "counts": hub.get("counts") or {},
+    }
+    data["shark_product"] = {
+        "score": score,
+        "confidence": score,
+        "risk": best.get("risk_level") or best.get("risk") or "Medio",
+        "reason": best.get("reasoning") or best.get("reason") or "SHARK espera datos suficientes antes de recomendar.",
+        "value": best.get("value_label") or ("Detectado" if best.get("odds") else "Pendiente"),
+    }
+    return render_template("sports_hub.html", data=data)
 
 
 @app.route("/live")
@@ -5927,12 +6084,44 @@ def admin_telegram_page():
             )
             if result.get("queued"):
                 result["process"] = process_premium_telegram_queue(limit=1, force=True)
+        elif action == "test_private":
+            sub = one("SELECT * FROM telegram_subscribers WHERE is_active=1 AND user_id IS NOT NULL AND user_id!='' AND chat_id IS NOT NULL AND chat_id!='' ORDER BY last_seen DESC, created_at DESC LIMIT 1")
+            result = enqueue_telegram_message(
+                "private_test",
+                "Prueba privada Telegram",
+                "Prueba privada NeMeSiS SHARK PRO: tu vinculación funciona.",
+                chat_id=(sub or {}).get("chat_id") or "",
+                user_id=(sub or {}).get("user_id") or "",
+                payload={"target_key": "private-test", "priority": 96},
+                dedupe_key=telegram_dedupe_key("private_test", now_iso(), (sub or {}).get("chat_id") or "none"),
+                force=True,
+            ) if sub else {"ok": False, "message": "No hay usuarios vinculados para prueba privada.", "errors": ["sin_usuario_vinculado"]}
+            if result.get("queued"):
+                result["process"] = process_premium_telegram_queue(limit=1, force=True)
+        elif action == "test_channel":
+            result = enqueue_telegram_message(
+                "channel_test",
+                "Prueba canal Telegram",
+                "Prueba de canal NeMeSiS SHARK PRO: el canal global sigue operativo.",
+                chat_id=os.getenv("TELEGRAM_CHAT_ID", ""),
+                payload={"target_key": "channel-test", "priority": 96},
+                dedupe_key=telegram_dedupe_key("channel_test", now_iso(), os.getenv("TELEGRAM_CHAT_ID", "")),
+                force=True,
+            )
+            if result.get("queued"):
+                result["process"] = process_premium_telegram_queue(limit=1, force=True)
         elif action == "daily_matches":
             result = enqueue_daily_matches(force=True, forced_chat_id=os.getenv("TELEGRAM_CHAT_ID", ""))
         elif action == "daily_picks":
             result = enqueue_daily_picks(force=True, force_empty=True, forced_chat_id=os.getenv("TELEGRAM_CHAT_ID", ""))
         elif action == "process":
             result = process_premium_telegram_queue(limit=as_int(request.form.get("limit"), 5), force=True)
+        elif action == "retry_failed":
+            conn = db()
+            conn.execute("UPDATE telegram_queue SET status=?, updated_at=? WHERE lower(status)=?", (QUEUE_PENDING, now_iso(), QUEUE_FAILED))
+            conn.commit()
+            conn.close()
+            result = process_premium_telegram_queue(limit=as_int(request.form.get("limit"), 10), force=True)
         elif action == "repair":
             update_telegram_settings({"enabled": True, "auto_daily_matches": True, "auto_daily_picks": True})
             synced = sync_telegram_subscribers_from_users()
@@ -5947,6 +6136,60 @@ def admin_telegram_page():
     data["telegram_logs"] = rows("SELECT * FROM telegram_logs ORDER BY created_at DESC LIMIT 30")
     data["telegram_subscribers"] = telegram_subscribers(active_only=False)
     return render_template("admin_telegram.html", data=data, message=message, result=result)
+
+
+@app.route("/admin/automation", methods=["GET", "POST"])
+def admin_automation_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/automation")
+    result = None
+    message = ""
+    if request.method == "POST":
+        result = run_daily_autonomous_system(force=True)
+        message = "Automatización diaria ejecutada."
+    data = dashboard_data()
+    data["automation"] = daily_automation_summary()
+    data["scheduler"] = scheduler_status()
+    return render_template("admin_automation.html", data=data, result=result, message=message)
+
+
+@app.route("/admin/backups", methods=["GET", "POST"])
+def admin_backups_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/backups")
+    message = ""
+    if request.method == "POST":
+        action = str(request.form.get("action") or "").lower()
+        name = request.form.get("name") or ""
+        if action == "create":
+            result = create_database_backup(reason="admin_manual")
+            message = f"Backup creado: {result.get('name')}" if result.get("ok") else f"No se pudo crear backup: {result.get('message') or result.get('error')}"
+        elif action == "delete":
+            path = backup_file_path(name)
+            if path:
+                os.remove(path)
+                message = "Backup eliminado."
+            else:
+                message = "Backup no encontrado."
+        elif action == "restore":
+            result = restore_database_backup(name)
+            message = f"Backup restaurado: {result.get('restored')}" if result.get("ok") else f"No se pudo restaurar: {result.get('error')}"
+    data = dashboard_data()
+    data["backups"] = list_backups()
+    data["backup_dir"] = backup_dir()
+    data["backup_retention"] = BACKUP_RETENTION_MAX
+    data["backup_events"] = []
+    return render_template("admin_backups.html", data=data, message=message)
+
+
+@app.route("/admin/backups/download/<name>")
+def admin_backup_download(name):
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/backups")
+    path = backup_file_path(name)
+    if not path:
+        abort(404)
+    return send_file(path, as_attachment=True, download_name=os.path.basename(path))
 
 
 @app.route("/admin/picks", methods=["GET", "POST"])
@@ -6290,6 +6533,11 @@ def health():
             "scheduler_tasks": len(scheduler_env_config().get("tasks", [])),
         }
     )
+
+
+@app.route("/api/runtime-version")
+def api_runtime_version():
+    return jsonify({"ok": True, "app": APP_NAME, "version": APP_VERSION, "time": now_iso()})
 
 
 @app.route("/api/competitions")
@@ -7301,7 +7549,7 @@ def api_admin_membership_summary():
 
 
 # ===================== V565 SPORTS DATA & PICKS PERFECTION =====================
-APP_VERSION = "V637_TELEGRAM_COMPLETE_DELIVERY_LINKING"
+APP_VERSION = "V638_CLIENT_FINAL_POLISH_TELEGRAM_AUTO_VERIFY"
 
 PRIORITY_LEAGUE_ORDER = [
     "UEFA Champions League", "Champions League", "LaLiga", "Spanish La Liga", "Premier League",

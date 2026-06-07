@@ -10,6 +10,7 @@
     <a class="btn primary" href="/live">Directo</a>
     <a class="btn" href="/calendar">Calendario</a>
     <a class="btn" href="/picks">Picks</a>
+    <a class="btn" href="/combis">Combis</a>
     <a class="btn" href="/favorites">Favoritos</a>
   </div>
 </section>
@@ -30,7 +31,8 @@
     {% set home_identity = m.home_identity|default({}) %}
     {% set away_identity = m.away_identity|default({}) %}
     {% set live_depth = m.live_depth|default({}) %}
-    <a class="sports-row" href="/match/{{ m.id }}">
+    <a class="sports-row favorite-scope" href="/match/{{ m.id }}">
+      <button class="fav-star {% if m.is_favorite %}active{% endif %}" type="button" data-kind="match" data-value="{{ m.id }}" data-label="{{ m.home_team }} vs {{ m.away_team }}" aria-label="Favorito">★</button>
       <div class="sports-time"><strong>{{ live_depth.get('minute') or m.kickoff_time or m.match_time or '--:--' }}</strong><span>{{ live_depth.get('label') or 'Próximo' }}</span></div>
       <div class="sports-team home"><span class="crest compact-crest"><img loading="lazy" src="{{ home_identity.get('crest_url','') }}" alt="{{ m.home_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ home_identity.get('initials', (m.home_team or 'L')[:1]) }}'"></span><strong>{{ m.home_team }}</strong></div>
       <div class="sports-score"><strong>{{ live_depth.get('score') or m.score or 'vs' }}</strong><span>{{ m.competition_name or m.league_name }}</span></div>

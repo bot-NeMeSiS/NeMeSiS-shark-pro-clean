@@ -26,6 +26,7 @@
           <a href="/intelligence-hub">Intelligence</a>
           <a href="/live">Live</a>
           <a href="/picks">Picks</a>
+          <a href="/combis">Combis</a>
           <a href="/favorites">Favoritos</a>
           <a href="/menu">Más</a>
           <a href="/logout">Salir</a>
@@ -54,6 +55,7 @@
       <a href="/dashboard">Inicio</a>
       <a href="/live">Live</a>
       <a href="/picks">Picks</a>
+      <a href="/combis">Combis</a>
       <a href="/favorites">Favoritos</a>
       {% if current_user %}<a href="/menu">Más</a>{% else %}<a href="/cliente-login">Entrar</a>{% endif %}
     {% endif %}
@@ -102,6 +104,30 @@
     close&&close.addEventListener('click',()=>panel.hidden=true);
     msgs.querySelectorAll('.shark-quick button').forEach(btn=>btn.addEventListener('click',()=>ask(btn.dataset.q)));
     form&&form.addEventListener('submit',(e)=>{e.preventDefault(); ask(input&&input.value);});
+  })();
+  </script>
+  <script>
+  (function(){
+    async function toggle(btn){
+      const active=btn.classList.contains('active');
+      const payload={kind:btn.dataset.kind||'match',value:btn.dataset.value||'',label:btn.dataset.label||''};
+      if(!payload.value) return;
+      btn.disabled=true;
+      try{
+        const res=await fetch('/api/favorites',{method:active?'DELETE':'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+        const data=await res.json();
+        if(data.ok!==false){
+          btn.classList.toggle('active',!active);
+          btn.setAttribute('aria-pressed',(!active).toString());
+        }
+      }catch(e){}
+      btn.disabled=false;
+    }
+    document.addEventListener('click',function(e){
+      const btn=e.target.closest&&e.target.closest('.fav-star');
+      if(!btn) return;
+      e.preventDefault(); e.stopPropagation(); toggle(btn);
+    });
   })();
   </script>
   {% endif %}
