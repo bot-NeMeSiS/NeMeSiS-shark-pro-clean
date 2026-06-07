@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="hero compact-hero">
+  <p class="eyebrow">SHARK Intelligence</p>
+  <h1>Centro inteligente del día</h1>
+  <p>Resumen claro de partidos, directo, recomendaciones, picks y señales importantes sin mostrar datos técnicos.</p>
+  <div class="hero-actions"><a class="btn" href="/recomendaciones">Ver recomendaciones</a><a class="btn ghost" href="/picks">Picks publicados</a></div>
+</section>
+<section class="grid cards-3">
+  <article class="card"><span class="kicker">Puntuacin SHARK</span><h2>{{ data.intel.score }}/100</h2><p>Preparación deportiva actual basada en partidos, cuotas, picks y actividad.</p></article>
+  <article class="card"><span class="kicker">Partidos</span><h2>{{ data.intel.totals.matches }}</h2><p>Partidos persistidos para analizar y preparar picks.</p></article>
+  <article class="card"><span class="kicker">Picks</span><h2>{{ data.intel.totals.published_picks }}</h2><p>Picks publicados disponibles para cliente y Telegram.</p></article>
+</section>
+<section class="panel">
+  <h2>Señales importantes</h2>
+  {% if data.intel.insights %}<div class="stack">{% for i in data.intel.insights %}<div class="notice"><strong>{{ i.title }}</strong><p>{{ i.body }}</p></div>{% endfor %}</div>{% else %}<p class="muted">Todo está en buen estado. Revisa recomendaciones y picks destacados.</p>{% endif %}
+</section>
+<section class="grid two">
+  <article class="panel"><h2>Recomendaciones SHARK</h2>{% for r in data.intel.recommendations[:6] %}<div class="mini-match"><strong>{{ r.home_team }} vs {{ r.away_team }}</strong><span>{{ r.selection }} · {{ r.risk_level }} · {{ r.confidence }}%</span></div>{% else %}<p class="muted">No hay recomendaciones generadas todavía.</p>{% endfor %}</article>
+  <article class="panel"><h2>Próximos partidos</h2>{% for m in data.intel.upcoming[:6] %}<div class="mini-match"><strong>{{ m.home_team }} vs {{ m.away_team }}</strong><span>{{ m.league_name }} · {{ m.kickoff_iso }}</span></div>{% else %}<p class="muted">No hay próximos partidos cargados.</p>{% endfor %}</article>
+</section>
+{% endblock %}

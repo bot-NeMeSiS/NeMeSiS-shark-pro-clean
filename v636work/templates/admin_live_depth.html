@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="page-hero compact-hero">
+  <div>
+    <p class="eyebrow">Admin · Profundidad directo</p>
+    <h1>Profundidad Directo V554</h1>
+    <p>Controla si el directo tiene minuto, marcador, eventos y separación correcta entre próximo, directo y finalizado.</p>
+  </div>
+  <div class="hero-actions">
+    <a class="btn" href="/admin/data-center">Centro de datos</a>
+    <a class="btn ghost" href="/api/live/depth-summary">API profundidad directo</a>
+  </div>
+</section>
+
+<section class="metric-grid">
+  <article class="metric-card"><span>Directos detectados</span><strong>{{ summary.directo_count }}</strong></article>
+  <article class="metric-card"><span>Próximos</span><strong>{{ summary.upcoming_count }}</strong></article>
+  <article class="metric-card"><span>Finalizados</span><strong>{{ summary.finished_count }}</strong></article>
+  <article class="metric-card"><span>Eventos guardados</span><strong>{{ summary.with_events }}</strong></article>
+</section>
+
+<section class="panel-grid two">
+  <article class="panel-card">
+    <h2>Partidos en directo</h2>
+    {% if summary.directo %}
+      <div class="match-list compact-list">
+      {% for match in summary.directo %}
+        <a class="match-row" href="/match/{{ match.id }}">
+          <span class="badge directo">{{ match.v554_stats.label }}</span>
+          <strong>{{ match.home_team }} vs {{ match.away_team }}</strong>
+          <small>{{ match.league_name or match.competition_name }} · momentum {{ match.get('v554_stats', {}).get('intensity', 0) }}% · eventos {{ match.get('live_depth', {}).get('event_count') or (match.get('timeline', [])|length) }}</small>
+        </a>
+      {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty-state">No hay directo real detectado ahora mismo. Sincroniza directo o revisa la fuente SportsDB.</div>
+    {% endif %}
+  </article>
+
+  <article class="panel-card">
+    <h2>Acciones recomendadas</h2>
+    <ul class="clean-list">
+      {% for item in summary.recommendations %}<li>{{ item }}</li>{% endfor %}
+    </ul>
+  </article>
+</section>
+
+<section class="panel-card">
+  <h2>Próximos y finalizados</h2>
+  <div class="split-list">
+    <div>
+      <h3>Próximos</h3>
+      {% for m in summary.upcoming %}<p class="soft-row">{{ m.match_date or m.kickoff_iso }} · {{ m.home_team }} vs {{ m.away_team }}</p>{% else %}<p class="muted">Sin próximos.</p>{% endfor %}
+    </div>
+    <div>
+      <h3>Finalizados</h3>
+      {% for m in summary.finished %}<p class="soft-row">{{ m.match_date or m.kickoff_iso }} · {{ m.home_team }} {{ m.score or '' }} {{ m.away_team }}</p>{% else %}<p class="muted">Sin finalizados.</p>{% endfor %}
+    </div>
+  </div>
+</section>
+{% endblock %}

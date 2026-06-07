@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="hero compact">
+  <div class="kicker">Combinadas</div>
+  <h1>Combis creadas desde picks publicados</h1>
+  <p class="lead">El motor solo combina picks reales publicados. Sin picks suficientes, no inventa combinadas.</p>
+  <div class="actions"><a class="btn primary" href="/picks">Ver picks</a><a class="btn" href="/match-hub">Partidos</a><a class="btn" href="/telegram">Telegram</a></div>
+  <form class="filters" method="get" action="/combis"><span class="small">Número de partidos:</span>{% for n in [2,3,4,5,6,7,8] %}<button class="btn {% if data.requested_combi_count == n %}active{% endif %}" name="partidos" value="{{ n }}">{{ n }}</button>{% endfor %}</form>
+</section>
+{% if not current_user or current_user.membership == 'FREE' %}<section class="band"><div class="notice">Combinadas avanzadas es capa PRO/ELITE. FREE puede ver la estructura y picks básicos.</div></section>{% endif %}
+<section class="band">
+  <div class="section-head"><h2>Combis guardadas</h2><span class="pill">{{ data.combis|length }}</span></div>
+  {% if data.combis %}<div class="grid">{% for c in data.combis %}<article class="card"><div class="match-top"><div><div class="name">{{ c.name }}</div><div class="small">{{ c.created_at }}</div></div><div class="time">{{ c.total_odds }}</div></div><div class="status"><span>{{ c.status }}</span><span>{{ c.risk_level }}</span></div>{% for p in c.picks %}<p class="small">{{ p.match }} · {{ p.selection }} · {{ p.odds }}</p>{% endfor %}</article>{% endfor %}</div>{% else %}<div class="empty">No hay combinadas guardadas todavía.</div>{% endif %}
+</section>
+
+<section class="band">
+  <div class="section-head"><h2>Constructor con partidos próximos reales</h2><span class="pill">{{ data.combi_builder.requested_count }} partidos</span></div>
+  <p class="small">{{ data.combi_builder.notice }}</p>
+  {% if data.combi_builder.matches %}
+  <div class="grid">
+    {% for m in data.combi_builder.matches %}
+    <article class="card match-card">
+      <div class="match-top"><div><div class="comp-name">{{ m.competition_name or m.league_name }}</div><div class="small">{{ m.match_date }} · {{ m.kickoff_time or m.match_time or 'hora por confirmar' }}</div></div><span class="state-badge {{ m.get('live_depth', {}).get('badge', 'upcoming') }}">{{ m.get('live_depth', {}).get('label', 'Programado') }}</span></div>
+      <div class="teams">
+        <div class="team"><div class="crest"><img loading="lazy" src="{{ m.get('home_identity', {}).get('crest_url','') }}" alt="{{ m.home_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ m.get('home_identity', {}).get('initials') or (m.get('home_team','?')[:2]|upper) }}'"></div><strong>{{ m.home_team }}</strong></div>
+        <div class="team"><div class="crest"><img loading="lazy" src="{{ m.get('away_identity', {}).get('crest_url','') }}" alt="{{ m.away_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ m.get('away_identity', {}).get('initials') or (m.get('away_team','?')[:2]|upper) }}'"></div><strong>{{ m.away_team }}</strong></div>
+      </div>
+      <p class="small">Base real para análisis. {% if m.bookmaker %}Cuotas disponibles: {{ m.bookmaker }}{% else %}Esperando cuotas.{% endif %}</p>
+    </article>
+    {% endfor %}
+  </div>
+  {% else %}<div class="empty">No hay partidos próximos reales suficientes para preparar combinada.</div>{% endif %}
+</section>
+
+<section class="band">
+  <div class="section-head"><h2>Base desde picks publicados</h2><span class="pill">{{ data.picks|length }}</span></div>
+  {% if data.picks|length >= 2 %}<div class="grid">{% for p in data.picks[:6] %}<article class="card"><div class="comp-name">{{ p.competition_name }}</div><h3>{{ p.selection }}</h3><p class="small">{{ p.home_team }}{% if p.away_team %} vs {{ p.away_team }}{% endif %} · {{ p.odds }} · {{ p.confidence }}%</p></article>{% endfor %}</div>{% else %}<div class="empty">Faltan picks publicados suficientes para crear combinadas serias.</div>{% endif %}
+</section>
+{% endblock %}

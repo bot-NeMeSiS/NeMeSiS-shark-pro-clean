@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ title or 'NeMeSiS SHARK PRO' }}</title>
+  <link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+  <header class="top">
+    <div class="topin">
+      <a class="brand" href="/"><span class="mark">NS</span><span>NeMeSiS SHARK PRO</span></a>
+      <nav class="nav nav-clean">
+        {% if current_user and current_user.role == 'ADMIN' %}
+          <a href="/admin/dashboard">Admin</a>
+          <a href="/admin/users">Usuarios</a>
+          <a href="/admin/automation">Automatizaci?n</a>
+          <a href="/admin/intelligence">Comercial</a>
+          <a href="/admin/memberships">Membresías</a>
+          <a href="/admin/picks">Picks</a>
+          <a href="/admin/recommendations">Recomendaciones</a>
+          <a href="/admin/telegram">Telegram</a>
+          <a href="/admin/backups">Backups</a>
+          <a href="/admin/data-center">Datos</a>
+          <a href="/admin/final-qa">QA</a>
+          <a href="/logout">Salir</a>
+        {% elif current_user %}
+          <a href="/dashboard">Inicio</a>
+          <a href="/sports-hub">Sports Hub</a>
+          <a href="/intelligence-hub">Intelligence</a>
+          <a href="/live">Directo</a>
+          <a href="/picks">Picks</a>
+          <a href="/favorites">Favoritos</a>
+          <a href="/menu">Más</a>
+          <a href="/logout">Salir</a>
+        {% else %}
+          <a href="/membresias">Membresías</a>
+          <a href="/legal">Confianza</a>
+          <a href="/cliente-login">Entrar</a>
+          <a class="nav-cta" href="/registro">Crear cuenta</a>
+        {% endif %}
+      </nav>
+    </div>
+  </header>
+
+  <main class="shell">
+    {% block content %}{% endblock %}
+  </main>
+
+  <nav class="bottom-nav bottom-nav-clean" aria-label="Navegación rápida">
+    {% if current_user and current_user.role == 'ADMIN' %}
+      <a href="/admin/dashboard">Admin</a>
+      <a href="/admin/users">Usuarios</a>
+      <a href="/admin/automation">Auto</a>
+      <a href="/admin/picks">Picks</a>
+      <a href="/admin/backups">Backups</a>
+      <a href="/admin/data-center">Datos</a>
+      <a href="/logout">Salir</a>
+    {% else %}
+      <a href="/dashboard">Inicio</a>
+      <a href="/sports-hub">Sports</a>
+      <a href="/live">Directo</a>
+      <a href="/picks">Picks</a>
+      <a href="/favorites">Favoritos</a>
+      {% if current_user %}<a href="/menu">Más</a>{% else %}<a href="/cliente-login">Entrar</a>{% endif %}
+    {% endif %}
+  </nav>
+
+  {% if current_user and current_user.role != 'ADMIN' %}
+  <div class="shark-widget" id="sharkWidget">
+    <button class="shark-fab" id="sharkFab" type="button" aria-label="Abrir SHARK IA">SH</button>
+    <div class="shark-panel" id="sharkPanel" hidden>
+      <div class="shark-panel-head">
+        <strong>SHARK IA</strong>
+        <button type="button" id="sharkClose" aria-label="Cerrar SHARK">×</button>
+      </div>
+      <div class="shark-messages" id="sharkMessages">
+        <div class="shark-msg bot">Pregúntame por partidos, picks, combinadas, favoritos o directo. Si falta dato real, te lo diré claro.</div>
+        <div class="shark-quick">
+          <button type="button" data-q="¿Qué pick ves mejor hoy?">Pick de hoy</button>
+          <button type="button" data-q="¿Qué partidos de mis favoritos juegan?">Favoritos</button>
+          <button type="button" data-q="Hazme una combinada segura">Combinada</button>
+          <button type="button" data-q="Resume el directo">Directo</button>
+          <button type="button" data-q="Dime oportunidades de hoy">Oportunidades</button>
+        </div>
+      </div>
+      <form id="sharkForm" class="shark-form">
+        <input id="sharkInput" name="q" placeholder="Pregunta a SHARK" autocomplete="off">
+        <button type="submit">Enviar</button>
+      </form>
+    </div>
+  </div>
+  <script>
+  (function(){
+    const fab=document.getElementById('sharkFab');
+    const panel=document.getElementById('sharkPanel');
+    const close=document.getElementById('sharkClose');
+    const form=document.getElementById('sharkForm');
+    const input=document.getElementById('sharkInput');
+    const msgs=document.getElementById('sharkMessages');
+    if(!fab||!panel||!msgs) return;
+    function add(text, cls){ const d=document.createElement('div'); d.className='shark-msg '+cls; d.textContent=text; msgs.appendChild(d); msgs.scrollTop=msgs.scrollHeight; }
+    async function ask(q){
+      q=(q||'').trim(); if(!q) return; add(q,'user'); if(input) input.value='';
+      try{ const r=await fetch('/api/shark/ask',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:q})}); const j=await r.json(); add((j.shark&&j.shark.answer)||j.message||'SHARK no pudo responder ahora mismo.','bot'); }
+      catch(err){ add('No puedo conectar con SHARK ahora mismo. Prueba de nuevo en unos segundos.','bot'); }
+    }
+    fab.addEventListener('click',()=>{panel.hidden=!panel.hidden; if(!panel.hidden&&input) input.focus();});
+    close&&close.addEventListener('click',()=>panel.hidden=true);
+    msgs.querySelectorAll('.shark-quick button').forEach(btn=>btn.addEventListener('click',()=>ask(btn.dataset.q)));
+    form&&form.addEventListener('submit',(e)=>{e.preventDefault(); ask(input&&input.value);});
+  })();
+  </script>
+  {% endif %}
+</body>
+</html>

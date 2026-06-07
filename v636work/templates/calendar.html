@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block content %}
+{% set view_mode = request.args.get('view', 'compact') %}
+<section class="hero product-hero v626-hero">
+  <div class="kicker">Calendario global</div>
+  <h1>Más partidos, menos scroll</h1>
+  <p class="lead">Vista compacta con escudos, hora, estado y marcador. Siempre priorizando competiciones importantes y hora española.</p>
+  <div class="actions">
+    <a class="btn primary" href="/match-hub">Destacados</a>
+    <a class="btn {% if view_mode == 'compact' %}active{% endif %}" href="/calendar?lane={{ data.lane }}&view=compact">Vista compacta</a>
+    <a class="btn {% if view_mode == 'detailed' %}active{% endif %}" href="/calendar?lane={{ data.lane }}&view=detailed">Vista detallada</a>
+    {% if current_user and current_user.role == 'ADMIN' %}<a class="btn" href="/admin/import-center">Importar</a>{% endif %}
+  </div>
+</section>
+
+<section class="filters v626-filters">
+  <a class="btn" href="/calendar?lane=today&view={{ view_mode }}">Hoy</a>
+  <a class="btn" href="/calendar?lane=live&view={{ view_mode }}">Directo</a>
+  <a class="btn" href="/calendar?lane=top&view={{ view_mode }}">Top mundial</a>
+  <a class="btn" href="/calendar?lane=spain&view={{ view_mode }}">España</a>
+  <a class="btn" href="/calendar?lane=andalucia&view={{ view_mode }}">Andalucía</a>
+</section>
+
+<section class="band compact-band v626-sports-band">
+  <div class="section-head">
+    <h2>{{ data.matches|length or 'Sin partidos' }} · {{ data.date }}</h2>
+    <span class="pill">{{ data.lane }}</span>
+  </div>
+  {% if data.matches %}
+  <div class="sports-list {% if view_mode == 'detailed' %}sports-list-detailed{% endif %}">
+    {% for m in data.matches %}
+    {% set home_identity = m.home_identity|default({}) %}
+    {% set away_identity = m.away_identity|default({}) %}
+    {% set live_depth = m.live_depth|default({}) %}
+    <a class="sports-row" href="/match/{{ m.id }}">
+      <div class="sports-time">
+        <strong>{{ live_depth.get('minute') or m.kickoff_time or m.match_time or '--:--' }}</strong>
+        <span>{{ live_depth.get('label') or m.status or 'Próximo' }}</span>
+      </div>
+      <div class="sports-team home">
+        <span class="crest compact-crest"><img loading="lazy" src="{{ home_identity.get('crest_url', '') }}" alt="{{ m.home_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ home_identity.get('initials', (m.home_team or 'L')[:1]) }}'"></span>
+        <strong>{{ m.home_team or 'Local' }}</strong>
+      </div>
+      <div class="sports-score">
+        <strong>{{ live_depth.get('score') or m.score or 'vs' }}</strong>
+        <span>{{ m.competition_name or m.league_name or 'Competición' }}</span>
+      </div>
+      <div class="sports-team away">
+        <span class="crest compact-crest"><img loading="lazy" src="{{ away_identity.get('crest_url', '') }}" alt="{{ m.away_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ away_identity.get('initials', (m.away_team or 'V')[:1]) }}'"></span>
+        <strong>{{ m.away_team or 'Visitante' }}</strong>
+      </div>
+      <div class="sports-meta">
+        <span class="state-badge {{ live_depth.get('badge', 'upcoming') }}">{{ live_depth.get('label') or 'Detalle' }}</span>
+        {% if view_mode == 'detailed' %}<small>{{ m.country or 'Global' }}</small>{% endif %}
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty premium-empty">No hay partidos para este filtro. SHARK mostrará nuevos partidos cuando haya datos suficientes.</div>
+  {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="hero compact">
+  <div class="kicker">Admin - Auditoría Telegram</div>
+  <h1>Flujo picks a Telegram</h1>
+  <p class="lead">Verifica picks encontrados, cola, procesador, envíos y errores reales sin exponer tokens.</p>
+  <div class="actions">
+    <a class="btn" href="/admin/telegram">Telegram</a>
+    <a class="btn" href="/admin/autopilot-audit">Piloto automático de picks</a>
+    <a class="btn" href="/admin/picks">Picks</a>
+    <a class="btn" href="/api/telegram/audit-picks">Auditoría JSON</a>
+  </div>
+</section>
+
+{% if message %}<section class="band"><div class="notice">{{ message }}</div></section>{% endif %}
+
+<section class="band">
+  <div class="grid compact-grid">
+    <div class="card"><div class="metric">{{ audit.counts.published_picks }}</div><div class="muted">picks publicados</div></div>
+    <div class="card"><div class="metric">{{ audit.counts.sendable_picks }}</div><div class="muted">picks enviables</div></div>
+    <div class="card"><div class="metric">{{ audit.counts.pick_queue_pending }}</div><div class="muted">pendientes picks</div></div>
+    <div class="card"><div class="metric">{{ audit.counts.pick_queue_sent }}</div><div class="muted">picks enviados</div></div>
+    <div class="card"><div class="metric">{{ audit.counts.pick_queue_failed }}</div><div class="muted">errores picks</div></div>
+    <div class="card"><div class="metric">{{ audit.counts.subscribers_active }}</div><div class="muted">destinatarios</div></div>
+    <div class="card"><div class="metric">{{ audit.counts.subscribers_free }}/{{ audit.counts.subscribers_pro }}/{{ audit.counts.subscribers_elite }}</div><div class="muted">FREE / PRO / ELITE</div></div>
+    <div class="card"><div class="metric">{{ audit.counts.blocked_by_membership }}</div><div class="muted">bloqueados por plan</div></div>
+    <div class="card"><div class="metric">{{ audit.counts.badge_errors }}</div><div class="muted">sin escudo</div></div>
+    <div class="card"><div class="metric">{{ audit.counts.messages_text_only }}</div><div class="muted">solo texto</div></div>
+  </div>
+</section>
+
+<section class="band form-grid">
+  <form class="card" method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <h2>Acciones de auditora</h2>
+    <input type="hidden" name="action" value="send_now">
+    <label><input type="checkbox" name="force_empty" value="1"> Enviar aviso aunque no haya picks publicados</label>
+    <button class="primary" type="submit">Enviar picks ahora</button>
+  </form>
+  <div class="card">
+    <h2>Herramientas</h2>
+    <form method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="action" value="fix"><button type="submit">Preparar ajustes picks</button></form>
+    <form method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="action" value="enqueue"><button type="submit">Encolar picks</button></form>
+    <form method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="action" value="process"><button type="submit">Procesar cola</button></form>
+    <form method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="action" value="audit"><button type="submit">Actualizar auditora</button></form>
+  </div>
+</section>
+
+<section class="band two-col">
+  <div class="card">
+    <h2>Checks</h2>
+    <div class="stack">
+      {% for check in audit.checks %}
+      <div class="list-row"><span>{{ check.label }}<br><small>{{ check.fix }}</small></span><strong>{% if check.ok %}OK{% else %}FALLO{% endif %}</strong></div>
+      {% endfor %}
+    </div>
+  </div>
+  <div class="card">
+    <h2>Últimos eventos</h2>
+    <p class="small">Envío automático: {% if audit.settings.enabled %}activo{% else %}desactivado{% endif %}</p>
+    <p class="small">Auto picks diarios: {% if audit.settings.auto_daily_picks %}activo{% else %}desactivado{% endif %} · hora {{ audit.settings.daily_picks_time }}</p>
+    <p class="small">Enviables por plan: FREE {{ audit.membership_delivery.sendable['FREE'] }} · PRO {{ audit.membership_delivery.sendable['PRO'] }} · ELITE {{ audit.membership_delivery.sendable['ELITE'] }}</p>
+    <p class="small">Último envío: {{ audit.last_sent.sent_at or 'sin envío registrado' }}</p>
+    <p class="small">Último error app: {{ audit.last_error.message or 'sin error registrado' }}</p>
+    <p class="small">Último error Telegram: {{ audit.last_telegram_error.response_json or audit.last_telegram_error.payload_preview or 'sin error Telegram registrado' }}</p>
+  </div>
+</section>
+
+<section class="band">
+  <div class="section-head"><h2>Trabajos automáticos</h2><span class="pill">{{ audit.scheduler|length }}</span></div>
+  <div class="stack">
+    {% for job in audit.scheduler %}
+    <div class="list-row"><span>{{ job.task_name }}<br><small>Última ejecución {{ job.last_run or '-' }} · próxima ejecución {{ job.next_run or '-' }} · {{ job.error_message or '' }}</small></span><strong>{{ job.status or 'sin estado' }}</strong></div>
+    {% else %}
+    <div class="empty">No hay bloqueos del programador para telegram/auto_picks/recommendations.</div>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="band two-col">
+  <div>
+    <div class="section-head"><h2>Cola picks</h2><span class="pill">{{ audit.pick_queue|length }}</span></div>
+    <div class="stack">
+      {% for item in audit.pick_queue[:20] %}
+      <div class="list-row"><span>{{ item.message_type }} - {{ item.title }}<br><small>{{ item.created_at }} · {{ item.error_message }}</small></span><strong>{{ item.status }}</strong></div>
+      {% else %}
+      <div class="empty">No hay mensajes de picks en cola.</div>
+      {% endfor %}
+    </div>
+  </div>
+  <div>
+    <div class="section-head"><h2>Logs de flujo</h2><span class="pill">{{ audit.recent_logs|length }}</span></div>
+    <div class="stack">
+      {% for log in audit.recent_logs[:20] %}
+      <div class="list-row"><span>{{ log.message }}<br><small>{{ log.created_at }}</small></span><strong>{{ log.status }}</strong></div>
+      {% else %}
+      <div class="empty">Aún no hay logs [TELEGRAM]/[PICKS]/[QUEUE]/[SEND].</div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+{% if result %}
+<section class="band">
+  <div class="card">
+    <h2>Resultado de la Última acción</h2>
+    <pre class="small">{{ result }}</pre>
+  </div>
+</section>
+{% endif %}
+{% endblock %}

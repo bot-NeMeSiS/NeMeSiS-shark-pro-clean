@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="hero compact-hero">
+  <div>
+    <p class="eyebrow">ADMIN · CALIDAD DEL ECOSISTEMA</p>
+    <h1>Centro de calidad NeMeSiS</h1>
+    <p class="muted">Control rápido de datos, picks, escudos, calendario y automatización para evitar pantallas vacías y detectar qué falta antes de seguir avanzando.</p>
+  </div>
+  <div class="score-ring">
+    <strong>{{ q.score }}%</strong>
+    <span>salud global</span>
+  </div>
+</section>
+
+<section class="grid stats-grid">
+  <article class="card"><span class="label">Partidos totales</span><strong>{{ q.matches.total }}</strong><small>Hoy: {{ q.matches.today }} · Próximos: {{ q.matches.upcoming }}</small></article>
+  <article class="card"><span class="label">Directo / finalizados</span><strong>{{ q.matches.directo }} / {{ q.matches.finished }}</strong><small>Estados normalizados para cliente</small></article>
+  <article class="card"><span class="label">Equipos con escudo</span><strong>{{ q.teams.with_logo }}</strong><small>Fallback: {{ q.teams.fallback }} · Total: {{ q.teams.total }}</small></article>
+  <article class="card"><span class="label">Picks publicados</span><strong>{{ q.picks.published }}</strong><small>Total picks: {{ q.picks.total }}</small></article>
+</section>
+
+<section class="grid two-cols">
+  <article class="card">
+    <h2>Recomendaciones</h2>
+    <div class="stack-list">
+      {% for item in q.recommendations %}
+      <div class="mini-row"><span class="dot hot"></span><span>{{ item }}</span></div>
+      {% endfor %}
+    </div>
+  </article>
+  <article class="card">
+    <h2>Acciones rápidas</h2>
+    <div class="quick-grid">
+      <a class="btn" href="/admin/data-center">Centro de datos</a>
+      <a class="btn" href="/admin/matches-sync">Sincronizar partidos</a>
+      <a class="btn" href="/admin/sportsdb-sync">Escudos SportsDB</a>
+      <a class="btn" href="/admin/picks">Gestionar picks</a>
+      <a class="btn" href="/admin/telegram">Telegram</a>
+      <a class="btn ghost" href="/api/quality-center/summary">JSON calidad</a>
+    </div>
+  </article>
+</section>
+
+<section class="card">
+  <h2>Últimos logs de sincronización</h2>
+  {% if q.recent_logs %}
+  <div class="table-lite">
+    <div class="table-head"><span>Fuente</span><span>Tipo</span><span>Estado</span><span>Total</span><span>Fecha</span></div>
+    {% for log in q.recent_logs %}
+    <div class="table-row"><span>{{ log.source or '-' }}</span><span>{{ log.sync_type or '-' }}</span><span>{{ log.status or '-' }}</span><span>{{ log.total_items or 0 }}</span><span>{{ log.created_at or '-' }}</span></div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="empty">Todavía no hay logs. Ejecuta una sincronización desde Centro de datos para poblar el historial.</p>
+  {% endif %}
+</section>
+{% endblock %}

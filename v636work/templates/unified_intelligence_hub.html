@@ -1,0 +1,68 @@
+﻿{% extends "base.html" %}
+{% block content %}
+<section class="app-hero compact-hero unified-hero">
+  <div>
+    <div class="kicker">Intelligence Hub</div>
+    <h1>Todo lo importante, en una sola pantalla.</h1>
+    <p class="lead">SHARK resume directo, picks, favoritos, recomendaciones y próximos partidos para que el cliente no tenga que buscar.</p>
+    <div class="actions">
+      <a class="btn primary" href="/recomendaciones">Ver recomendaciones</a>
+      <a class="btn" href="/picks">Picks</a>
+      <a class="btn" href="/live">Directo</a>
+      <a class="btn" href="/shark">Preguntar a SHARK</a>
+    </div>
+  </div>
+  <aside class="hero-panel hub-score-panel">
+    <span class="small muted">Score personal</span>
+    <strong class="mega-score">{{ hub.score }}%</strong>
+    <p>{{ hub.shark_message }}</p>
+  </aside>
+</section>
+
+<section class="band compact-band">
+  <div class="section-head"><h2>Prioridades de hoy</h2><span class="pill">Zero click</span></div>
+  <div class="grid dense-grid">
+    {% for lane in hub.lanes %}
+    <a class="card focus-card compact-card" href="{{ lane.href }}">
+      <span class="badge">{{ lane.key|upper }}</span>
+      <strong>{{ lane.title }}</strong>
+      <div class="stat-number">{{ lane.value }}</div>
+      <p class="small">{{ lane.body }}</p>
+    </a>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="band two-col compact-band">
+  <div>
+    <div class="section-head"><h2>Próximos relevantes</h2><a class="pill" href="/match-hub">Calendario</a></div>
+    <div class="stack">
+      {% for m in upcoming[:6] %}
+      <a class="list-row" href="/match/{{ m.id }}"><span>{{ m.home_team }} vs {{ m.away_team }}<small>{{ m.league_name or m.competition_name or 'Competición' }}</small></span><strong>{{ m.match_time or m.kickoff_time or 'Hora' }}</strong></a>
+      {% else %}<div class="empty">No hay próximos partidos disponibles todavía. SHARK los mostrará cuando haya datos suficientes.</div>{% endfor %}
+    </div>
+  </div>
+  <div>
+    <div class="section-head"><h2>Picks visibles</h2><a class="pill" href="/picks">Picks</a></div>
+    <div class="stack">
+      {% for p in picks[:5] %}
+      <a class="list-row" href="/picks"><span>{{ p.selection or p.title or 'Pick publicado' }}<small>{{ p.home_team }} {{ p.away_team and 'vs ' ~ p.away_team }}</small></span><strong>{{ p.confidence or p.score or 70 }}%</strong></a>
+      {% else %}<div class="empty">No hay picks publicados. Revisa recomendaciones SHARK antes de publicar picks reales.</div>{% endfor %}
+    </div>
+  </div>
+</section>
+
+<section class="band compact-band">
+  <div class="section-head"><h2>Accesos inteligentes</h2><span class="pill">Cliente</span></div>
+  <div class="quick-actions">
+    <a class="quick" href="/favorites"><span>Favoritos</span><strong>{{ hub.favorites }}</strong></a>
+    <a class="quick" href="/resultados"><span>Resultados</span><strong>{{ hub.results_total }}</strong></a>
+    <a class="quick" href="/combis"><span>Combis</span><strong>Builder</strong></a>
+    <a class="quick" href="/telegram"><span>Telegram</span><strong>{{ hub.telegram_pending }}</strong></a>
+    <a class="quick" href="/seguimiento"><span>Seguimiento</span><strong>ROI</strong></a>
+    <a class="quick" href="/menu"><span>Más</span><strong>Ordenado</strong></a>
+  </div>
+</section>
+{% endblock %}
+
+

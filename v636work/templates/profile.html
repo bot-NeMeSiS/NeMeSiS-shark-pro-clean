@@ -1,0 +1,125 @@
+﻿{% extends "base.html" %}
+{% block content %}
+<section class="band compact-band data-onboarding-v539"><div class="section-head"><h2>Progreso de tu cuenta</h2><a class="pill" href="/onboarding">Completar guía</a></div><div class="card progress-card"><div class="big-score">{{ data.daily_briefing.score if data.daily_briefing else 0 }}%</div><p class="small">Usa favoritos, picks, alertas y SHARK para que la experiencia sea cada vez más personal.</p><div class="actions"><a class="btn primary" href="/onboarding">Ver guía</a><a class="btn" href="/mi-cuenta">Mi cuenta</a></div></div></section>
+{% set plan = data.session_user.membership|default('FREE')|lower %}
+{% set briefing = data.daily_briefing|default({}) %}
+{% set counts = data.match_hub.counts|default({}) %}
+<section class="client-hero plan-{{ plan }}">
+  <div>
+    <div class="kicker">Área cliente</div>
+    <h1>Tu panel SHARK</h1>
+    <p class="lead">Hola, {{ data.session_user.name }} · @{{ data.session_user.username }} · plan {{ data.session_user.membership }}</p>
+    <div class="actions">
+      <a class="btn primary" href="/mi-dia">Mi día SHARK</a>
+      <a class="btn" href="/match-hub">Ver partidos</a>
+      <a class="btn" href="/favorites">Favoritos</a>
+      <a class="btn" href="/shark">Preguntar a SHARK</a>
+      <a class="btn" href="/logout">Cerrar sesión</a>
+    </div>
+  </div>
+  <aside class="membership-card plan-{{ plan }}">
+    <span>MEMBRESÍA</span>
+    <strong>{{ data.session_user.membership }}</strong>
+    {% if data.session_user.membership == 'FREE' %}
+    <p>Acceso base activo. PRO desbloquea más picks, combinadas y avisos.</p>
+    {% elif data.session_user.membership == 'PRO' %}
+    <p>Picks ampliados, combinadas y mejor contexto de partido.</p>
+    {% else %}
+    <p>SHARK IA premium, Telegram avanzado y experiencia completa.</p>
+    {% endif %}
+    <div class="membership-expiry">
+      <span>ORIGEN</span>
+      <strong>{{ data.session_user.membership_source or 'manual' }}</strong>
+      {% if data.session_user.membership_end_date %}
+      <small>Activo hasta {{ data.session_user.membership_end_date }}{% if data.session_user.membership_days_left is not none %} · {{ data.session_user.membership_days_left }} días restantes{% endif %}</small>
+      {% else %}
+      <small>Plan sin caducidad configurada.</small>
+      {% endif %}
+    </div>
+  </aside>
+</section>
+
+<section class="band compact-band">
+  <div class="quick-actions client-actions">
+    <a class="quick primary" href="/mi-dia"><span>Mi día</span><strong>{{ briefing.score|default(0) }}%</strong></a>
+    <a class="quick" href="/match-hub"><span>Partidos</span><strong>{{ data.upcoming_matches|length }}</strong></a>
+    <a class="quick" href="/live"><span>Directo</span><strong>{{ counts.live|default('Sin directo') }}</strong></a>
+    <a class="quick" href="/picks"><span>Picks</span><strong>{{ data.picks|length }}</strong></a>
+    <a class="quick" href="/combis"><span>Combinadas</span><strong>{{ data.combis|length }}</strong></a>
+    <a class="quick" href="/favorites"><span>Favoritos</span><strong>{{ data.favorites|length }}</strong></a>
+    <a class="quick" href="/telegram"><span>Telegram</span><strong>{% if data.telegram.configured|default(false) %}ACTIVO{% else %}NO{% endif %}</strong></a>
+    <a class="quick" href="/shark"><span>SHARK IA</span><strong>{% if data.session_user.membership in ['ELITE','ADMIN'] %}PRO{% else %}BASE{% endif %}</strong></a>
+  </div>
+</section>
+
+<section class="band compact-band retention-band">
+  <div class="section-head"><h2>Centro de alertas</h2><a class="pill" href="/alertas">Ver todas</a></div>
+  <div class="grid dense-grid">
+    {% for alert in data.client_alerts[:4] %}
+    <a class="card alert-card alert-{{ alert.type }}" href="{{ alert.href }}">
+      <span class="badge">{{ alert.badge }}</span>
+      <strong>{{ alert.title }}</strong>
+      <p class="small">{{ alert.body }}</p>
+    </a>
+    {% else %}
+    <div class="empty premium-empty"><strong>Sin alertas pendientes</strong><p>Tu panel se activará cuando haya favoritos, picks, partidos o Telegram conectado.</p></div>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="band compact-band">
+  <div class="section-head"><h2>Resumen de hoy</h2><span class="pill">{{ data.date }}</span></div>
+  <div class="grid compact-grid">
+    <div class="card"><div class="metric">{{ counts.upcoming|default(0) }}</div><div class="muted">partidos programados</div></div>
+    <div class="card"><div class="metric">{{ counts.live|default(0) }}</div><div class="muted">en directo</div></div>
+    <div class="card"><div class="metric">{{ data.favorite_feed|length }}</div><div class="muted">en tu feed</div></div>
+    <div class="card"><div class="metric">{{ data.combis|length }}</div><div class="muted">combinadas preparadas</div></div>
+  </div>
+</section>
+
+<section class="band two-col compact-band">
+  <div>
+    <div class="section-head"><h2>Favoritos</h2><a class="pill" href="/favorites">Gestionar</a></div>
+    <div class="stack">
+      {% for f in data.favorites[:5] %}
+      <div class="list-row"><span>{{ f.label }}</span><strong>{% if f.kind == 'team' %}Equipo{% elif f.kind == 'league' %}Liga{% else %}Partido{% endif %}</strong></div>
+      {% else %}
+      <div class="empty">Guarda tus equipos, ligas o partidos para crear un feed personal.</div>
+      {% endfor %}
+    </div>
+  </div>
+  <div>
+    <div class="section-head"><h2>Picks destacados</h2><a class="pill" href="/picks">Ver picks</a></div>
+    <div class="stack">
+      {% for p in data.picks[:4] %}
+      <div class="list-row"><span>{{ p.selection }}</span><strong>{{ p.confidence }}%</strong></div>
+      {% else %}
+      <div class="empty">No hay picks publicados ahora mismo; SHARK mostrará partidos próximos reales para análisis en la sección Picks.</div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<section class="band two-col compact-band">
+  <div>
+    <div class="section-head"><h2>Partidos de hoy</h2><a class="pill" href="/match-hub">Abrir</a></div>
+    <div class="stack">
+      {% set profile_matches = data.matches if data.matches else data.upcoming_matches %}
+      {% for m in profile_matches[:5] %}
+      <a class="list-row" href="/match/{{ m.id }}"><span>{{ m.home_team }} vs {{ m.away_team }}</span><strong>{{ m.get('live_depth', {}).get('label', 'Programado') }}</strong></a>
+      {% else %}
+      <div class="empty">No hay partidos disponibles todavía. El calendario se completará cuando haya datos suficientes.</div>
+      {% endfor %}
+    </div>
+  </div>
+  <div>
+    <div class="section-head"><h2>Servicios premium</h2><span class="pill">{{ data.session_user.membership }}</span></div>
+    <div class="grid compact-grid">
+      <a class="card service-card" href="/telegram"><div class="name">Telegram</div><p class="small">Partidos del día, picks y alertas según tu plan.</p></a>
+      <a class="card service-card" href="/shark"><div class="name">SHARK IA</div><p class="small">Pregunta por partidos, picks, combinadas, cuotas y favoritos.</p></a>
+      <a class="card service-card" href="/match-hub"><div class="name">Calendario</div><p class="small">{{ data.client_source_label }}.</p></a>
+      <a class="card service-card" href="/combis"><div class="name">Combinadas</div><p class="small">Elige número de partidos y modo de riesgo.</p></a>
+    </div>
+  </div>
+</section>
+{% endblock %}

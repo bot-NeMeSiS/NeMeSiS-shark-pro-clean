@@ -1,0 +1,35 @@
+﻿{% extends "base.html" %}
+{% block content %}
+<section class="hero compact product-hero">
+  <div class="kicker">SHARK Apuestas Radar</div>
+  <h1>Recomendaciones de apuestas</h1>
+  <p class="lead">Análisis generado desde partidos próximos reales, cuotas cacheadas y control de riesgo. No son picks oficiales hasta que el equipo SHARK los publica.</p>
+  <div class="actions">
+    <a class="btn primary" href="/picks">Picks publicados</a>
+    <a class="btn" href="/combis">Combinadas</a>
+    <a class="btn" href="/match-hub">Calendario</a>
+    {% if current_user and current_user.role == 'ADMIN' %}<a class="btn" href="/admin/betting-center">Admin recomendaciones</a>{% endif %}
+  </div>
+</section>
+<section class="band compact-band">
+  <div class="section-head"><h2>Radar de valor</h2><span class="pill">{{ data.betting_recommendations|length }}</span></div>
+  {% if data.betting_recommendations %}
+  <div class="grid dense-grid">
+    {% for r in data.betting_recommendations %}
+    <article class="card rec-card badge-{{ r.badge|lower }}">
+      <div class="match-top"><div><div class="comp-name">{{ r.league_name or 'Competición' }}</div><div class="small">{{ r.match_date }} · {{ r.kickoff_time or 'hora pendiente' }}</div></div><span class="badge">{{ r.badge }}</span></div>
+      <h3>{{ r.home_team }} vs {{ r.away_team }}</h3>
+      <p class="selection">{{ r.market }} · <strong>{{ r.selection }}</strong>{% if r.odds %} · cuota {{ r.odds }}{% endif %}</p>
+      <div class="status"><span>{{ r.confidence }}% confianza</span><span>{{ r.risk_level }}</span><span>{% if r.has_real_odds %}Cuota real{% else %}Watchlist{% endif %}</span></div>
+      <p class="small"><strong>Motivo:</strong> {{ r.reasoning }}</p>
+      <p class="small"><strong>Precaución:</strong> {{ r.warning_reason }}</p>
+      <div class="inline-actions"><a class="mini-link" href="/match/{{ r.match_id }}">Ver partido</a>{% if current_user and current_user.role == 'ADMIN' %}<a class="mini-link" href="/api/betting/convert-to-pickid={{ r.id }}&publish=1">Publicar pick</a>{% endif %}</div>
+    </article>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty premium-empty"><strong>No hay recomendaciones todavía.</strong><p>Sincroniza calendario/cuotas o espera a que haya partidos próximos reales. SHARK no inventa apuestas.</p></div>
+  {% endif %}
+</section>
+{% endblock %}
+

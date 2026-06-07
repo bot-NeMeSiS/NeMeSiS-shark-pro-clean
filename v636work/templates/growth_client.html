@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="hero compact-hero">
+  <div>
+    <span class="eyebrow">Tu progreso</span>
+    <h1>Activa todo el potencial de NeMeSiS SHARK PRO</h1>
+    <p>Un resumen claro de lo que ya tienes conectado y lo que puedes activar para mejorar tu experiencia.</p>
+  </div>
+  <div class="score-ring">{{ growth.activation }}%</div>
+</section>
+
+<section class="grid cards-2">
+  {% for step in growth.steps %}
+  <article class="card {{ 'card-ok' if step.done else '' }}">
+    <div class="card-head">
+      <strong>{{ '✅' if step.done else '○' }} {{ step.title }}</strong>
+      <span class="badge">{{ 'Activo' if step.done else 'Pendiente' }}</span>
+    </div>
+    <p>{{ step.body }}</p>
+  </article>
+  {% endfor %}
+</section>
+
+<section class="panel premium-panel">
+  <h2>Resumen útil</h2>
+  <div class="metric-row">
+    <div><strong>{{ growth.matches }}</strong><span>Partidos disponibles</span></div>
+    <div><strong>{{ growth.published_picks }}</strong><span>Picks publicados</span></div>
+    <div><strong>{{ growth.favorites }}</strong><span>Favoritos activos</span></div>
+  </div>
+  <div class="quick-actions">
+    <a class="btn" href="/match-hub">Ver partidos</a>
+    <a class="btn" href="/picks">Ver picks</a>
+    <a class="btn" href="/favorites">Configurar favoritos</a>
+  </div>
+</section>
+{% endblock %}

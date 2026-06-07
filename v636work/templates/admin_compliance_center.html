@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+{% block content %}
+<section class="hero compact-hero">
+  <div>
+    <p class="eyebrow">Admin · confianza comercial</p>
+    <h1>Centro de confianza</h1>
+    <p>Control de juego responsable, aceptación de avisos y preparación comercial ética.</p>
+  </div>
+  <div class="score-card"><span>Nivel de cumplimiento</span><strong>{{ compliance.score }}%</strong><small>V557</small></div>
+</section>
+<section class="grid cards-grid compact-grid">
+  {% for card in compliance.cards %}
+  <article class="card compact-card"><h3>{{ card.title }}</h3><strong class="metric">{{ card.value }}</strong><p>{{ card.body }}</p></article>
+  {% endfor %}
+</section>
+<section class="card">
+  <h2>Acciones prioritarias</h2>
+  <ul class="clean-list">{% for a in compliance.actions %}<li>{{ a }}</li>{% endfor %}</ul>
+</section>
+<section class="grid two-col">
+  <article class="card"><h3>Enlaces rápidos</h3><div class="actions"><a class="btn" href="/legal">Legal público</a><a class="btn" href="/juego-responsable">Juego responsable</a><a class="btn" href="/admin/final-qa">QA final</a></div></article>
+  <article class="card"><h3>API</h3><p class="muted">Resumen JSON: <code>/api/admin/compliance-summary</code></p></article>
+</section>
+{% endblock %}

@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="app-hero compact-hero data-depth-hero">
+  <div>
+    <div class="kicker">Data Depth</div>
+    <h1>Calidad de datos para tomar mejores decisiones.</h1>
+    <p class="lead">Un resumen claro de partidos, resultados, directo, escudos, picks y recomendaciones. Si falta dato real, la app lo muestra sin inventar.</p>
+  </div>
+  <aside class="hero-panel hub-score-panel">
+    <span class="small muted">Nivel global</span>
+    <strong class="mega-score">{{ summary.global_score }}%</strong>
+    <p>Datos {{ summary.coverage_score }} · Directo {{ summary.directo_score }} · Picks {{ summary.betting_score }}</p>
+  </aside>
+</section>
+
+<section class="band compact-band">
+  <div class="section-head"><h2>Capas deportivas</h2><span class="pill">V566</span></div>
+  <div class="grid menu-grid">
+    {% for layer in summary.layers %}
+    <article class="card compact-card data-layer-card">
+      <div class="row-between"><span class="badge">{{ layer.score }}%</span><strong>{{ layer.value }}</strong></div>
+      <h3>{{ layer.name }}</h3>
+      <p class="small">{{ layer.body }}</p>
+      <div class="progress"><span style="width: {{ layer.score }}%"></span></div>
+    </article>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="band compact-band">
+  <div class="section-head"><h2>Acciones recomendadas</h2><span class="pill">SHARK</span></div>
+  <div class="stack">
+    {% for action in summary.actions %}<div class="list-row"><span>{{ action }}</span><strong>Prioridad</strong></div>{% endfor %}
+  </div>
+</section>
+
+<section class="band compact-band two-col">
+  <div>
+    <div class="section-head"><h2>Proximos partidos</h2><a class="btn small" href="/match-hub">Calendario</a></div>
+    <div class="stack">
+      {% for m in upcoming %}
+      <a class="list-row" href="/match/{{ m.id }}"><span>{{ m.home_team }} vs {{ m.away_team }}<small>{{ m.league_name or 'Competici?n' }}</small></span><strong>{{ m.match_time or m.kickoff_iso or 'Hora' }}</strong></a>
+      {% else %}<div class="empty">No hay próximos partidos disponibles todavía. SHARK los mostrará cuando haya datos suficientes.</div>{% endfor %}
+    </div>
+  </div>
+  <div>
+    <div class="section-head"><h2>Resultados recientes</h2><a class="btn small" href="/resultados">Resultados</a></div>
+    <div class="stack">
+      {% for m in recent %}
+      <a class="list-row" href="/match/{{ m.id }}"><span>{{ m.home_team }} vs {{ m.away_team }}<small>{{ m.league_name or 'Competici?n' }}</small></span><strong>{{ m.home_score or 0 }}-{{ m.away_score or 0 }}</strong></a>
+      {% else %}<div class="empty">Aún no hay resultados recientes publicados.</div>{% endfor %}
+    </div>
+  </div>
+</section>
+{% endblock %}

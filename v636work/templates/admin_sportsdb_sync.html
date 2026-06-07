@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="hero compact">
+  <div class="kicker">SportsDB Sync</div>
+  <h1>Sincronizar escudos</h1>
+  <p class="lead">Actualiza escudos desde TheSportsDB solo bajo control admin y guarda el resultado en cache persistente para no llamar el servicio en cada carga.</p>
+  <div class="admin-menu">
+    <a class="btn" href="/admin/users">Usuarios</a>
+    <a class="btn" href="/admin/sportsdb-feed">SportsDB Feed</a>
+    <a class="btn" href="/admin/import-center">Centro de importaci?n</a>
+    <a class="btn primary" href="/admin/sportsdb-sync">SportsDB Sync</a>
+    <a class="btn" href="/api/thesportsdb/diagnostics">Diagn?sticos</a>
+  </div>
+</section>
+<section class="band">
+  <div class="grid">
+    <div class="card"><div class="metric">{% if data.sportsdb.key_present %}OK{% else %}NO{% endif %}</div><div class="muted">key presente {{ data.sportsdb.key_masked }}</div></div>
+    <div class="card"><div class="metric">{{ data.sportsdb.total_teams }}</div><div class="muted">equipos</div></div>
+    <div class="card"><div class="metric">{{ data.sportsdb.with_logo }}</div><div class="muted">con escudo</div></div>
+    <div class="card"><div class="metric">{{ data.sportsdb.fallback }}</div><div class="muted">fallback visual</div></div>
+  </div>
+</section>
+<section class="band two-col">
+  {% if message %}<div class="notice">{{ message }}</div>{% endif %}
+  <form class="card" method="post" action="/admin/sportsdb-sync">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <h2>Forzar sincronización</h2>
+    <p class="small">Usa TheSportsDB con la key configurada y actualiza solo equipos sin escudo o marcados para refresco.</p>
+    <div class="field"><label>Limite por ejecucion</label><input name="limit" value="40"></div>
+    <input type="hidden" name="refresh" value="1">
+    <button type="submit">Forzar sincronización</button>
+  </form>
+  <aside class="card">
+    <h2>Estado</h2>
+    <p class="small">Directo API: {% if data.sportsdb.directo_enabled %}activo{% else %}inactivo{% endif %}</p>
+    <p class="small">Última sincronización: {{ data.sportsdb.last_sync.time or '-' }}</p>
+    <p class="small">Actualizados: {{ data.sportsdb.last_sync.updated or 0 }} - Fallidos: {{ data.sportsdb.last_sync.failed or 0 }}</p>
+    <p class="small">Último error: {{ data.sportsdb.last_error or '-' }}</p>
+  </aside>
+</section>
+<section class="band">
+  <div class="section-head"><h2>Pendientes</h2><span class="pill">{{ data.sportsdb.missing_examples|length }}</span></div>
+  <div class="stack">
+    {% for name in data.sportsdb.missing_examples %}
+    <div class="list-row"><span>{{ name }}</span><strong>fallback</strong></div>
+    {% else %}
+    <div class="empty">Todos los equipos cacheados tienen escudo.</div>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

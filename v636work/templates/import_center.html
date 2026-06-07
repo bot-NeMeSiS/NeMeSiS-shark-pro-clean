@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="hero">
+  <div class="kicker">Admin - importacion legal</div>
+  <h1>Cargar datos sin arrastrar ruido</h1>
+  <p class="lead">Pega CSV o JSON autorizado. Cada importaci?n guarda fuente, nota legal y trazabilidad. Este es el puente para convertir la app limpia en producto vivo.</p>
+  <div class="admin-menu">
+    <a class="btn" href="/admin/users">Usuarios</a>
+    <a class="btn" href="/admin/data-center">Centro de datos</a>
+    <a class="btn" href="/admin/matches-sync">Partidos</a>
+    <a class="btn primary" href="/admin/import-center">Centro de importaci?n</a>
+    <a class="btn" href="/admin/sportsdb-sync">SportsDB Sync</a>
+  </div>
+</section>
+<section class="band form-grid">
+  <form class="card" method="post" action="/api/import-competitions">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <h2>Competiciones</h2>
+    <div class="field"><label>Fuente</label><input name="source_name" value="manual competiciones autorizado"></div>
+    <div class="field"><label>Nota legal</label><input name="legal_note" value="Competici?n cargada desde fuente autorizada"></div>
+    <div class="field"><label>Contenido CSV o JSON autorizado</label><textarea name="payload">name,country,region,tier,external_id,sync_status
+Primera RFEF,Spain,Spain,78,,no_data</textarea></div>
+    <button type="submit">Importar competiciones</button>
+  </form>
+  <form class="card" method="post" action="/api/import-results">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <h2>Resultados</h2>
+    <div class="field"><label>Fuente</label><input name="source_name" value="manual results autorizado"></div>
+    <div class="field"><label>Nota legal</label><input name="legal_note" value="Resultado cargado desde fuente autorizada"></div>
+    <div class="field"><label>Contenido CSV o JSON autorizado</label><textarea name="payload">league_name,home_team,away_team,match_date,match_time,country,status,home_score,away_score
+LaLiga,Sevilla FC,Real Betis,2026-05-20,21:00,Spain,FINALIZADO,1,1</textarea></div>
+    <button type="submit">Importar resultados</button>
+  </form>
+</section>
+<section class="band form-grid">
+  <form class="card" method="post" action="/api/import-matches">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <h2>Partidos y directo</h2>
+    <div class="field"><label>Fuente</label><input name="source_name" value="manual autorizado"></div>
+    <div class="field"><label>URL o referencia legal</label><input name="source_url" placeholder="https://... o referencia interna"></div>
+    <div class="field"><label>Nota legal</label><input name="legal_note" value="Carga autorizada por administrador"></div>
+    <div class="field"><label>Contenido CSV o JSON autorizado</label><textarea name="payload">league_name,home_team,away_team,match_date,match_time,country,status
+LaLiga EA Sports,Real Madrid,FC Barcelona,2026-05-30,21:00,Spain,PROGRAMADO</textarea></div>
+    <button type="submit">Importar partidos</button>
+    <p class="small">Tambin puedes usar POST JSON en /api/import-matches con rows o payload.</p>
+  </form>
+  <aside class="card">
+    <h2>Importaciones recientes</h2>
+    {% if data.imports %}
+      {% for i in data.imports %}
+      <div class="import-row">
+        <div class="ok">{{ i.status }} - {{ i.rows_count }} filas</div>
+        <div class="small">{{ i.kind }} - {{ i.source_name }} - {{ i.created_at }}</div>
+        <div class="small">{{ i.legal_note }}</div>
+      </div>
+      {% endfor %}
+    {% else %}
+      <p class="small">Aún no hay importaciones manuales. La app muestra semillas limpias hasta cargar datos reales/autorizados.</p>
+    {% endif %}
+  </aside>
+</section>
+<section class="band form-grid">
+  <form class="card" method="post" action="/api/import-odds">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <h2>Cuotas</h2>
+    <p class="small">Solo cuotas de fuente autorizada o propia.</p>
+    <div class="field"><label>Fuente</label><input name="source_name" value="manual odds autorizado"></div>
+    <div class="field"><label>Nota legal</label><input name="legal_note" value="Cuota cargada por administrador desde fuente autorizada"></div>
+    <div class="field"><label>Contenido CSV o JSON autorizado</label><textarea name="payload">league_name,home_team,away_team,bookmaker,market,home_price,draw_price,away_price,commence_time</textarea></div>
+    <button type="submit">Importar cuotas</button>
+  </form>
+  <aside class="card">
+    <h2>Centro de datos</h2>
+    <p class="small">Para sincronización masiva usa el panel Centro de datos.</p>
+    <a class="btn primary" href="/admin/data-center">Abrir Centro de datos</a>
+  </aside>
+</section>
+<section class="band form-grid">
+  <form class="card" method="post" action="/api/import-picks">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <h2>Importar picks</h2>
+    <p class="small">Solo picks propios, editoriales o de fuente autorizada. No se inventan cuotas.</p>
+    <div class="field"><label>Fuente</label><input name="source_name" value="manual picks autorizado"></div>
+    <div class="field"><label>Nota legal</label><input name="legal_note" value="Pick cargado por administrador desde fuente autorizada"></div>
+    <div class="field"><label>Contenido CSV o JSON autorizado</label><textarea name="payload">match_date,competition_key,competition_name,home_team,away_team,selection,odds,confidence,stake_units,reasoning</textarea></div>
+    <button type="submit">Importar picks</button>
+  </form>
+  <aside class="card">
+    <h2>Telegram</h2>
+    <p class="small">Estado: {% if data.telegram.configured %}configurado{% else %}faltan variables{% endif %}</p>
+    <p class="small">Variables necesarias: TELEGRAM_BOT_TOKEN y TELEGRAM_CHAT_ID. Auto: ENABLE_TELEGRAM_AUTO=true.</p>
+    <form method="post" action="/api/telegram/send">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button type="submit">Enviar briefing</button></form>
+    <p class="small">Endpoint auto compatible V495: /api/v495/telegram-auto-run</p>
+    <p class="small">Scheduler V507: /api/telegram/scheduler-tick, /api/telegram/triggers y /api/telegram/logs.</p>
+    <p class="small">V509: /api/telegram/scheduler-manager, /api/telegram/queue y /api/telegram/auto-posts.</p>
+  </aside>
+</section>
+<section class="band form-grid">
+  <form class="card" method="post" action="/api/import-teams">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <h2>Importar equipos y escudos</h2>
+    <p class="small">Usa URLs de logos solo si vienen de API/fuente permitida o tienes derecho a usarlas.</p>
+    <div class="field"><label>Fuente</label><input name="source_name" value="manual escudos autorizado"></div>
+    <div class="field"><label>Nota legal</label><input name="legal_note" value="Escudos cargados desde fuente autorizada"></div>
+    <div class="field"><label>Contenido CSV o JSON autorizado</label><textarea name="payload">name,country,region,logo_url</textarea></div>
+    <button type="submit">Importar escudos</button>
+    <p class="small">Tambin puedes usar /api/team/resolveteam=Sevilla%20FC&refresh=1 para intentar resolver por TheSportsDB.</p>
+  </form>
+  <aside class="card">
+    <h2>Diagnostico de escudos</h2>
+    <p class="small">Ruta: /api/crest-diagnostics</p>
+    <p class="small">Resolver equipo: /api/team/resolveteam=Real%20Madrid</p>
+    <p class="small">Recurso visual alternativo: /team-crest.svgname=Equipo</p>
+  </aside>
+</section>
+{% endblock %}

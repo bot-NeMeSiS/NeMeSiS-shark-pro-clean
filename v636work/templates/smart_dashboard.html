@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="smart-hero zero-dashboard">
+  <div>
+    <p class="eyebrow">Tu centro SHARK</p>
+    <h1>Lo importante de hoy, sin buscar.</h1>
+    <p class="lead">Directo, picks, recomendaciones, favoritos y próximos partidos reunidos en una sola pantalla.</p>
+    <div class="actions compact-actions">
+      {% for action in dashboard.quick_actions %}
+        <a class="btn" href="{{ action.href }}"><span>{{ action.icon }}</span> {{ action.label }}</a>
+      {% endfor %}
+    </div>
+  </div>
+  <aside class="card smart-score-card">
+    <span class="small">Activación de tu cuenta</span>
+    <strong class="mega-score">{{ dashboard.score }}%</strong>
+    <p class="small">{{ dashboard.message }}</p>
+  </aside>
+</section>
+
+<section class="band compact-band">
+  <div class="section-head"><h2>Lo importante hoy</h2><a class="pill" href="/mi-dia">Briefing completo</a></div>
+  <div class="grid focus-grid">
+    {% for item in dashboard.focus %}
+    <a class="card focus-card tone-{{ item.tone }}" href="{{ item.href }}">
+      <span class="focus-value">{{ item.value }}</span>
+      <h3>{{ item.title }}</h3>
+      <p class="small">{{ item.text }}</p>
+    </a>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="band two-col compact-band">
+  <div class="card shark-insight-card">
+    <div class="section-head"><h2>SHARK dice</h2><span class="pill">IA contextual</span></div>
+    <p>{{ dashboard.shark_message }}</p>
+    <div class="actions compact-actions"><a class="btn primary" href="/shark">Preguntar a SHARK</a><a class="btn" href="/recomendaciones">Ver recomendaciones</a></div>
+  </div>
+  <div class="card">
+    <div class="section-head"><h2>Partidos próximos</h2><a class="pill" href="/match-hub">Calendario</a></div>
+    <div class="stack compact-stack">
+      {% for m in dashboard.briefing.upcoming[:5] %}
+      <a class="list-row" href="/match/{{ m.id }}"><span>{{ m.home_team }} vs {{ m.away_team }}<small>{{ m.competition_name or m.league_name or 'Competición' }}</small></span><strong>{{ m.kickoff_time or m.match_time or 'Hora' }}</strong></a>
+      {% else %}
+      <div class="empty">Aún no hay partidos próximos sincronizados.</div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<section class="band two-col compact-band">
+  <div class="card">
+    <div class="section-head"><h2>Picks destacados</h2><a class="pill" href="/picks">Abrir picks</a></div>
+    <div class="stack compact-stack">
+      {% for p in dashboard.briefing.picks[:4] %}
+      <a class="list-row" href="/picks"><span>{{ p.home_team }} vs {{ p.away_team }}<small>{{ p.selection or p.market or 'Pick publicado' }}</small></span><strong>{{ p.odds or '—' }}</strong></a>
+      {% else %}
+      <div class="empty">No hay picks publicados ahora. Revisa recomendaciones SHARK o próximos partidos.</div>
+      {% endfor %}
+    </div>
+  </div>
+  <div class="card">
+    <div class="section-head"><h2>Favoritos activos</h2><a class="pill" href="/favorites">Gestionar</a></div>
+    <div class="stack compact-stack">
+      {% for f in dashboard.briefing.favorites[:5] %}
+      <a class="list-row" href="/favorites"><span>{{ f.label or f.value }}<small>{{ f.kind }}</small></span><strong>⭐</strong></a>
+      {% else %}
+      <div class="empty">Guarda equipos, ligas o partidos para personalizar esta pantalla.</div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endblock %}

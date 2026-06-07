@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="hero compact">
+  <div class="kicker">Sistema</div>
+  <h1>Estado interno</h1>
+  <p class="lead">Vista privada para revisar que la app está lista para Render y que los módulos principales siguen conectados.</p>
+  <div class="admin-menu">
+    <a class="btn" href="/admin/users">Usuarios</a>
+    <a class="btn" href="/admin/sportsdb-sync">SportsDB Sync</a>
+    <a class="btn" href="/admin/sportsdb-feed">SportsDB Feed</a>
+    <a class="btn" href="/admin/import-center">Centro de importaci?n</a>
+    <a class="btn primary" href="/admin/system">Sistema</a>
+  </div>
+</section>
+<section class="band">
+  <div class="grid compact-grid">
+    <div class="card"><div class="metric">OK</div><div class="muted">SQLite</div></div>
+    <div class="card"><div class="metric">{{ data.system.teams }}</div><div class="muted">equipos</div></div>
+    <div class="card"><div class="metric">{{ data.system.matches }}</div><div class="muted">partidos</div></div>
+    <div class="card"><div class="metric">{{ data.system.picks }}</div><div class="muted">picks</div></div>
+    <div class="card"><div class="metric">{{ data.system.users_count }}</div><div class="muted">usuarios</div></div>
+  </div>
+</section>
+<section class="band two-col">
+  <div class="card">
+    <h2>Version</h2>
+    <p class="small">{{ data.system.version }}</p>
+  </div>
+  <div class="card">
+    <h2>Servicios</h2>
+    <p class="small">Telegram: {{ data.system.telegram }}</p>
+    <p class="small">Escudos guardados: {{ data.sportsdb.with_logo }}</p>
+    <p class="small">Admin existe: {% if data.system.admin_exists %}si{% else %}no{% endif %}</p>
+    <p class="small">Partidos SportsDB cacheados: {{ data.system.sportsdb_feed.cached_matches }}</p>
+  </div>
+</section>
+{% endblock %}

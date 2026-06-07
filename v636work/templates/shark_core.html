@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="hero compact-hero">
+  <div>
+    <p class="eyebrow">SHARK Intelligence Core</p>
+    <h1>Tu cerebro deportivo del día</h1>
+    <p class="muted">{{ shark.main_message }}</p>
+  </div>
+  <div class="score-card">
+    <span class="score-number">{{ shark.score }}</span>
+    <span class="muted">Puntuacin SHARK</span>
+    <strong>{{ shark.priority }}</strong>
+  </div>
+</section>
+
+<section class="grid cards-3">
+  <article class="card">
+    <p class="eyebrow">Pick destacado</p>
+    {% if shark.top_pick %}
+      <h3>{{ shark.top_pick.home_team or shark.top_pick.title }} vs {{ shark.top_pick.away_team or '' }}</h3>
+      <p>{{ shark.top_pick.selection or shark.top_pick.market or 'Pick publicado' }}</p>
+      <a class="btn" href="/picks">Ver picks</a>
+    {% else %}
+      <h3>Sin pick publicado ahora</h3>
+      <p class="muted">SHARK mostrará picks cuando existan datos y picks publicados.</p>
+      <a class="btn ghost" href="/auto-picks">Ver auto picks</a>
+    {% endif %}
+  </article>
+
+  <article class="card">
+    <p class="eyebrow">Mejor oportunidad</p>
+    {% if shark.top_recommendation %}
+      <h3>{{ shark.top_recommendation.home_team }} vs {{ shark.top_recommendation.away_team }}</h3>
+      <p>Score {{ shark.top_recommendation.shark_score or shark.top_recommendation.score or '-' }} · Riesgo {{ shark.top_recommendation.risk_level or shark.top_recommendation.risk or 'MEDIO' }}</p>
+      <a class="btn" href="/recomendaciones">Ver recomendaciones</a>
+    {% else %}
+      <h3>Analizando próximos partidos</h3>
+      <p class="muted">No se inventan recomendaciones si faltan datos reales.</p>
+    {% endif %}
+  </article>
+
+  <article class="card">
+    <p class="eyebrow">Directo y favoritos</p>
+    <h3>{{ shark.counts.live }} directo · {{ shark.counts.favorites }} favoritos</h3>
+    <p class="muted">SHARK cruza favoritos, directo, picks y calendario para priorizar lo importante.</p>
+    <a class="btn ghost" href="/favorites">Mis favoritos</a>
+  </article>
+</section>
+
+<section class="card">
+  <div class="section-head">
+    <div>
+      <p class="eyebrow">Preguntas rápidas</p>
+      <h2>Qué puedes pedirle a SHARK</h2>
+    </div>
+  </div>
+  <div class="quick-grid">
+    {% for q in shark.quick_questions %}
+      <a class="chip" href="/sharkq={{ q.question|urlencode }}">{{ q.label }} · {{ q.question }}</a>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="grid cards-2">
+  <article class="card">
+    <h2>Próximos importantes</h2>
+    {% if shark.sections.upcoming %}
+      {% for m in shark.sections.upcoming[:6] %}
+        <div class="mini-row">
+          <span>{{ m.home_team }} vs {{ m.away_team }}</span>
+          <small>{{ m.competition_name or m.league_name }} · {{ m.match_date }} {{ m.kickoff_time or '' }}</small>
+        </div>
+      {% endfor %}
+    {% else %}
+      <p class="muted">No hay próximos partidos cacheados todavía.</p>
+    {% endif %}
+  </article>
+
+  <article class="card">
+    <h2>Memoria preparada</h2>
+    <p class="muted">SHARK ya guarda actividad básica para personalizar favoritos, picks y recomendaciones futuras.</p>
+    <ul class="clean-list">
+      <li>Favoritos consultados</li>
+      <li>Picks y recomendaciones abiertas</li>
+      <li>Resumen diario y contexto directo</li>
+    </ul>
+  </article>
+</section>
+{% endblock %}

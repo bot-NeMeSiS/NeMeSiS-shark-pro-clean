@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="product-hero compact-band">
+  <div class="kicker">Tu historial</div>
+  <h1>Actividad reciente</h1>
+  <p class="lead">Lo que vas consultando ayuda a SHARK a preparar una experiencia más personalizada con favoritos, picks y partidos.</p>
+  <div class="actions"><a class="btn primary" href="/perfil">Mi perfil</a><a class="btn" href="/alertas">Alertas</a></div>
+</section>
+<section class="band compact-band">
+  <div class="section-head"><h2>Últimos movimientos</h2><span class="pill">Privado</span></div>
+  <div class="stack activity-stack">
+    {% for act in data.client_activity %}
+    <div class="card activity-card">
+      <div class="comp-top"><strong>{{ act.label }}</strong><span class="pill">{{ act.activity_type }}</span></div>
+      <p class="small">{{ act.target_type }} · {{ act.target_id }}</p>
+      <p class="muted">{{ act.created_at }}</p>
+    </div>
+    {% else %}
+    <div class="empty premium-empty"><strong>Sin actividad aún</strong><p>Cuando consultes partidos, picks, combinadas o favoritos, quedará registrado para mejorar tu experiencia.</p></div>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

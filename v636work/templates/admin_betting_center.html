@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="hero compact product-hero">
+  <div class="kicker">Admin · Apuestas QA</div>
+  <h1>Centro de recomendaciones y control de apuestas</h1>
+  <p class="lead">Une calendario, directo, cuotas, picks y Telegram. Detecta qué falta para que el flujo de apuestas esté listo.</p>
+  <div class="actions">
+    <a class="btn primary" href="/api/betting/generatelimit=40">Generar recomendaciones</a>
+    <a class="btn" href="/api/system/full-betting-check">Full betting check</a>
+    <a class="btn" href="/api/telegram/enqueue-recommendationsforce=1">Enviar recomendaciones a Telegram</a>
+    <a class="btn" href="/admin/picks">Admin picks</a>
+  </div>
+</section>
+<section class="band compact-band">
+  <div class="grid compact-grid metric-row">
+    <div class="card metric-card"><div class="metric">{{ data.betting_check.score }}</div><div class="muted">score betting</div></div>
+    <div class="card metric-card"><div class="metric">{{ data.betting_check.matches.upcoming_matches }}</div><div class="muted">próximos</div></div>
+    <div class="card metric-card"><div class="metric">{{ data.betting_check.odds.odds_snapshots }}</div><div class="muted">cuotas</div></div>
+    <div class="card metric-card"><div class="metric">{{ data.betting_check.picks.published }}</div><div class="muted">picks publicados</div></div>
+  </div>
+</section>
+<section class="band two-col compact-band">
+  <aside class="card"><h2>Problemas detectados</h2>{% for issue in data.betting_check.issues %}<p class="small">⚠️ {{ issue }}</p>{% else %}<p class="small">Sin bloqueos críticos detectados.</p>{% endfor %}</aside>
+  <aside class="card"><h2>Siguientes acciones</h2>{% for action in data.betting_check.next_actions %}<p class="small">• {{ action }}</p>{% endfor %}</aside>
+</section>
+<section class="band compact-band">
+  <div class="section-head"><h2>Recomendaciones generadas</h2><span class="pill">{{ data.betting_recommendations|length }}</span></div>
+  <div class="grid dense-grid">
+    {% for r in data.betting_recommendations %}
+    <article class="card rec-card">
+      <div class="match-top"><div><div class="comp-name">{{ r.league_name or 'Competición' }}</div><div class="small">{{ r.match_date }} · {{ r.kickoff_time }}</div></div><span class="badge">{{ r.badge }}</span></div>
+      <h3>{{ r.home_team }} vs {{ r.away_team }}</h3>
+      <p><strong>{{ r.selection }}</strong>{% if r.odds %} · cuota {{ r.odds }}{% endif %} · {{ r.confidence }}%</p>
+      <p class="small">{{ r.reasoning }}</p>
+      <div class="inline-actions"><a class="mini-link" href="/api/betting/convert-to-pickid={{ r.id }}">Guardar como borrador</a><a class="mini-link" href="/api/betting/convert-to-pickid={{ r.id }}&publish=1">Publicar pick</a><a class="mini-link" href="/match/{{ r.match_id }}">Ver partido</a></div>
+    </article>
+    {% else %}<div class="empty">Pulsa generar recomendaciones para analizar próximos partidos reales.</div>{% endfor %}
+  </div>
+</section>
+{% endblock %}

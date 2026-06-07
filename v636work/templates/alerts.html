@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="product-hero compact-band">
+  <div class="kicker">Centro cliente</div>
+  <h1>Alertas inteligentes</h1>
+  <p class="lead">Resumen claro de lo importante para ti: directo, picks, favoritos, próximos partidos y Telegram. Sin textos técnicos.</p>
+  <div class="actions"><a class="btn primary" href="/perfil">Volver al perfil</a><a class="btn" href="/match-hub">Partidos</a><a class="btn" href="/picks">Picks</a></div>
+</section>
+<section class="band compact-band">
+  <div class="section-head"><h2>Prioridad de hoy</h2><span class="pill">{{ data.date }}</span></div>
+  <div class="grid dense-grid">
+    {% for alert in data.client_alerts %}
+    <a class="card alert-card alert-{{ alert.type }}" href="{{ alert.href }}">
+      <span class="badge">{{ alert.badge }}</span>
+      <strong>{{ alert.title }}</strong>
+      <p class="small">{{ alert.body }}</p>
+    </a>
+    {% else %}
+    <div class="empty premium-empty"><strong>Todo tranquilo</strong><p>No hay alertas activas. Guarda favoritos o revisa partidos para personalizar tu feed.</p></div>
+    {% endfor %}
+  </div>
+</section>
+<section class="band compact-band two-col">
+  <div>
+    <div class="section-head"><h2>Siguiente mejor acción</h2></div>
+    {% if data.retention.next_best_action %}
+    <a class="card next-action" href="{{ data.retention.next_best_action.href }}"><span class="badge">{{ data.retention.next_best_action.badge }}</span><strong>{{ data.retention.next_best_action.title }}</strong><p class="small">{{ data.retention.next_best_action.body }}</p></a>
+    {% else %}<div class="empty">No hay acción prioritaria ahora mismo.</div>{% endif %}
+  </div>
+  <div>
+    <div class="section-head"><h2>Actividad reciente</h2><a class="pill" href="/actividad">Ver actividad</a></div>
+    <div class="stack">{% for act in data.client_activity[:5] %}<div class="list-row"><span>{{ act.label }}</span><strong>{{ act.created_at[:10] }}</strong></div>{% else %}<div class="empty">Aún no hay actividad registrada.</div>{% endfor %}</div>
+  </div>
+</section>
+{% endblock %}

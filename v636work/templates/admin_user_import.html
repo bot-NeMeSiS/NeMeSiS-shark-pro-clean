@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="hero compact">
+  <div class="kicker">Recuperacion usuarios</div>
+  <h1>Importar usuarios antiguos</h1>
+  <p class="lead">Lee una base SQLite antigua llamada old_database.db y recupera usuarios sin sobrescribir emails existentes.</p>
+  <div class="admin-menu">
+    <a class="btn" href="/admin/users">Usuarios</a>
+    <a class="btn primary" href="/admin/user-import">Importar usuarios</a>
+    <a class="btn" href="/admin/import-center">Centro de importaci?n</a>
+  </div>
+</section>
+<section class="band two-col">
+  <form class="card" method="post" action="/admin/user-import">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <h2>old_database.db</h2>
+    <p class="small">Estado: {% if data.old_db_present %}archivo detectado{% else %}archivo no encontrado{% endif %}</p>
+    <button type="submit">Importar usuarios</button>
+    <p class="small">Compatible con tablas users, clientes, clients y usuarios.</p>
+  </form>
+  <aside class="card">
+    <h2>Resultado</h2>
+    {% if result %}
+      <p class="small">Importados: {{ result.imported }}</p>
+      <p class="small">Saltados: {{ result.skipped }}</p>
+      <p class="small">Errores: {{ result.errors|length }}</p>
+      {% for err in result.errors[:6] %}<p class="small bad">{{ err }}</p>{% endfor %}
+    {% else %}
+      <p class="small">Ejecuta la importacion para ver el resumen.</p>
+    {% endif %}
+  </aside>
+</section>
+{% endblock %}
