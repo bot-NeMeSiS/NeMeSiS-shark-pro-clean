@@ -13,7 +13,6 @@ from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from flask import Flask, Response, abort, jsonify, redirect, render_template, request, send_file, session, url_for
-from jinja2 import ChainableUndefined
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from database_manager import connect as sqlite_connect, retry_locked
@@ -56,13 +55,12 @@ from engines.telegram_delivery_engine import (
 from engines.telegram_engine import build_alert_queue, dispatch_signature, should_skip_duplicate
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V639_RENDER_STARTUP_BLACKSCREEN_REPAIR"
+APP_VERSION = "V638_CLIENT_FINAL_POLISH_TELEGRAM_AUTO_VERIFY"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
 
 app = Flask(__name__)
-app.jinja_env.undefined = ChainableUndefined
 app.secret_key = os.getenv("SECRET_KEY") or os.getenv("FLASK_SECRET_KEY") or "nemesis-shark-pro-local-session-key"
 SEED_LOCK = threading.RLock()
 _SEED_LOCK = SEED_LOCK
@@ -1073,6 +1071,7 @@ def seed_core():
 
 
 def rows(query, params=()):
+    seed_core()
     conn = db()
     cur = conn.cursor()
     cur.execute(query, params)
@@ -5781,111 +5780,6 @@ def dashboard_data(lane="today", date=None):
     }
 
 
-
-LIGHT_STARTUP_PATHS = {
-    "/api/health",
-    "/api/runtime-version",
-    "/api/startup-check",
-    "/service-worker.js",
-}
-
-
-@app.before_request
-def v639_safe_startup_guard():
-    """Keep Render health checks and static assets ultra-light, while ensuring DB schema exists for real pages."""
-    path = request.path or "/"
-    if request.method == "HEAD":
-        return None
-    if path.startswith("/static/") or path in LIGHT_STARTUP_PATHS:
-        return None
-    try:
-        seed_core()
-    except Exception as exc:
-        # Do not produce a black/blank page: record a controlled error and show a safe page.
-        try:
-            print(f"[STARTUP] seed_core_failed path={path} error={exc}")
-        except Exception:
-            pass
-        raise
-    return None
-
-
-@app.after_request
-def v639_response_headers(response):
-    response.headers.setdefault("X-Nemesis-Version", APP_VERSION)
-    response.headers.setdefault("Cache-Control", "no-store" if request.path.startswith(("/admin", "/api")) else "no-cache")
-    return response
-
-
-def _safe_count_table(table, where="1=1", params=()):
-    try:
-        row = one(f"SELECT COUNT(*) AS total FROM {table} WHERE {where}", params)
-        return int((row or {}).get("total") or 0)
-    except Exception:
-        return 0
-
-
-def light_home_data():
-    """Fast home payload: avoids dashboard_data() heavy fan-out on / and prevents blank/black first loads."""
-    date = today_iso()
-    try:
-        upcoming = get_upcoming_matches(date, days=5, limit=8)
-    except Exception:
-        upcoming = []
-    try:
-        picks = get_picks(limit=6)
-    except Exception:
-        picks = []
-    try:
-        favorites = get_favorites()
-    except Exception:
-        favorites = []
-    upcoming_count = _safe_count_table("matches", "match_date>=?", (date,))
-    live_count = _safe_count_table("matches", "lower(COALESCE(status,'')) IN ('live','directo','descanso','ht','1h','2h')")
-    daily = {"score": 0, "items": [], "summary": "Resumen pendiente"}
-    try:
-        daily = build_daily_briefing(current_session_user() or {"membership": "FREE", "role": "FREE"})
-    except Exception:
-        pass
-    return {
-        "app_name": APP_NAME,
-        "version": APP_VERSION,
-        "date": date,
-        "lane": "today",
-        "matches": upcoming,
-        "upcoming_matches": upcoming,
-        "groups": {},
-        "competitions": [],
-        "imports": [],
-        "picks": picks,
-        "combis": [],
-        "profile": default_profile() if current_session_user() else {"membership": "FREE", "role": "FREE"},
-        "session_user": current_session_user(),
-        "favorites": favorites,
-        "favorite_feed": [],
-        "favorite_bundle": {"matches": [], "teams": [], "competitions": []},
-        "client_alerts": [],
-        "client_activity": [],
-        "daily_briefing": daily,
-        "match_hub": {"counts": {"upcoming": upcoming_count, "live": live_count}, "today": upcoming, "live": []},
-        "membership_plans": MEMBERSHIP_PLANS,
-        "telegram": telegram_config(),
-        "readiness": {"calendar": 95, "live_foundation": 92, "shark_ai": 88},
-    }
-
-
-@app.route("/api/startup-check")
-def api_startup_check():
-    return jsonify({
-        "ok": True,
-        "version": APP_VERSION,
-        "db_path": DB_PATH,
-        "seeded": _SEEDED_DB_PATH == DB_PATH,
-        "scheduler_startup": scheduler_startup_enabled(),
-        "message": "startup ligero operativo",
-    })
-
-
 @app.route("/service-worker.js")
 def service_worker():
     body = (
@@ -5897,9 +5791,7 @@ def service_worker():
 
 @app.route("/")
 def home():
-    if request.method == "HEAD":
-        return Response(status=200)
-    return render_template("home.html", data=light_home_data())
+    return render_template("home.html", data=dashboard_data())
 
 
 @app.route("/global")
@@ -7672,7 +7564,7 @@ def api_admin_membership_summary():
 
 
 # ===================== V565 SPORTS DATA & PICKS PERFECTION =====================
-APP_VERSION = "V639_RENDER_STARTUP_BLACKSCREEN_REPAIR"
+APP_VERSION = "V638_CLIENT_FINAL_POLISH_TELEGRAM_AUTO_VERIFY"
 
 PRIORITY_LEAGUE_ORDER = [
     "UEFA Champions League", "Champions League", "LaLiga", "Spanish La Liga", "Premier League",

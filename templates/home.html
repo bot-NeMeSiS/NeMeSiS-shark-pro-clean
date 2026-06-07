@@ -52,9 +52,9 @@
     <div class="section-head"><h2>Partidos destacados reales</h2><a class="pill" href="/match-hub">Calendario completo</a></div>
     <div class="stack">
       {% for m in data.upcoming_matches[:6] %}
-      <a class="list-row match-teaser" href="/match/{{ m.id }}"><span>{{ m.home_team }} vs {{ m.away_team }}<small>{{ m.competition_name or m.league_name or 'Competición' }}</small></span><strong>{{ m.kickoff_time or (m.live_depth.label|default('hora por confirmar')) }}</strong></a>
+      <a class="list-row match-teaser" href="/match/{{ m.id }}"><span>{{ m.home_team }} vs {{ m.away_team }}<small>{{ m.competition_name or m.league_name or 'Competición' }}</small></span><strong>{{ m.kickoff_time or m.live_depth.label }}</strong></a>
       {% else %}
-      <div class="empty">No hay partidos disponibles todavía. SHARK mostrará nuevos encuentros cuando haya datos suficientes.</div>
+      <div class="empty">No hay partidos disponibles todavia. SHARK mostrara nuevos encuentros cuando haya datos suficientes.</div>
       {% endfor %}
     </div>
   </div>
@@ -69,7 +69,7 @@
       <a class="quick" href="/combis"><span>Combis</span><strong>2-8</strong></a>
       <a class="quick" href="/favorites"><span>Favoritos</span><strong>Mi feed</strong></a>
       <a class="quick" href="/telegram"><span>Telegram</span><strong>Auto</strong></a>
-      <a class="quick" href="/shark"><span>SHARK IA</span><strong>🦈</strong></a>
+      <a class="quick" href="/shark"><span>SHARK IA</span><strong>ðŸ¦ˆ</strong></a>
     </div>
   </div>
 </section>
@@ -78,9 +78,9 @@
   <div class="section-head"><h2>Qué lo hace diferente</h2><span class="pill">Producto real</span></div>
   <div class="grid compact-grid">
     <article class="card service-card"><h3>Todo guardado</h3><p class="small">Favoritos, picks y seguimiento preparados para crecer contigo.</p></article>
-    <article class="card service-card"><h3>Datos responsables</h3><p class="small">Partidos y cuotas se muestran solo cuando hay información permitida.</p></article>
+    <article class="card service-card"><h3>Datos responsables</h3><p class="small">Partidos y cuotas se muestran solo cuando hay informacion permitida.</p></article>
     <article class="card service-card"><h3>App limpia</h3><p class="small">Inicio, live, picks, favoritos y perfil sin ruido tecnico.</p></article>
-    <article class="card service-card"><h3>Experiencia ordenada</h3><p class="small">Navegación simple, favoritos, live, picks y SHARK en una app compacta.</p></article>
+    <article class="card service-card"><h3>Experiencia ordenada</h3><p class="small">Navegacion simple, favoritos, live, picks y SHARK en una app compacta.</p></article>
   </div>
 </section>
 {% endblock %}

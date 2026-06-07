@@ -25,7 +25,7 @@
       <h3>{{ r.home_team }} vs {{ r.away_team }}</h3>
       <div class="metric-row"><span>Score SHARK <strong>{{ r.shark_score }}/100</strong></span><span>Nivel de confianza <strong>{{ r.confidence }}%</strong></span><span>Riesgo <strong>{{ r.risk_level }}</strong></span></div>
       <p><strong>{{ r.market }}:</strong> {{ r.selection }}{% if r.odds %} <span class="chip">Cuota {{ '%.2f'|format(r.odds|float) }}</span>{% endif %}</p>
-      <p class="small"><strong>Motivo principal:</strong> {{ r.reason or r.reasoning or 'Analisis SHARK pendiente de revisión.' }}</p>
+      <p class="small"><strong>Motivo principal:</strong> {{ r.reason or r.reasoning or 'Analisis SHARK pendiente de revision.' }}</p>
       {% if data.membership.is_elite %}<p class="warning">{{ r.caution or r.warning_reason }}</p>{% endif %}
     </article>
     {% endfor %}

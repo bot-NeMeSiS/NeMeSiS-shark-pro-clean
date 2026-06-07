@@ -31,21 +31,21 @@
         {% for m in league.matches %}
           <a class="card match-card live-card favorite-scope" href="/match/{{ m.id }}">
             <button class="fav-star {% if m.is_favorite %}active{% endif %}" type="button" data-kind="match" data-value="{{ m.id }}" data-label="{{ m.home_team }} vs {{ m.away_team }}" aria-label="Favorito">★</button>
-            <div class="match-top"><div><div class="comp-name">{{ m.competition_name or m.league_name }}</div><div class="small">{{ m.match_date }} · {{ m.kickoff_time or 'hora por confirmar' }}</div></div><div class="time">{{ m.live_depth.minute|default(m.minute|default('-')) }}</div></div>
+            <div class="match-top"><div><div class="comp-name">{{ m.competition_name or m.league_name }}</div><div class="small">{{ m.match_date }} · {{ m.kickoff_time or 'hora por confirmar' }}</div></div><div class="time">{{ m.live_depth.minute }}</div></div>
             <div class="teams compact-teams">
-              <div class="team"><div class="crest"><img loading="lazy" src="{{ m.home_identity.crest_url|default('') }}" alt="{{ m.home_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ m.home_identity.initials|default((m.home_team or 'L')[:2]) }}'"></div><strong>{{ m.home_team }}</strong></div>
-              <div class="team"><div class="crest"><img loading="lazy" src="{{ m.away_identity.crest_url|default('') }}" alt="{{ m.away_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ m.away_identity.initials|default((m.away_team or 'V')[:2]) }}'"></div><strong>{{ m.away_team }}</strong></div>
+              <div class="team"><div class="crest"><img loading="lazy" src="{{ m.home_identity.crest_url }}" alt="{{ m.home_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ m.home_identity.initials }}'"></div><strong>{{ m.home_team }}</strong></div>
+              <div class="team"><div class="crest"><img loading="lazy" src="{{ m.away_identity.crest_url }}" alt="{{ m.away_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ m.away_identity.initials }}'"></div><strong>{{ m.away_team }}</strong></div>
             </div>
-            <div class="status"><span class="state-badge {{ m.live_depth.badge|default('upcoming') }}">{{ m.live_depth.label|default('Estado pendiente') }}</span><span>{{ m.live_depth.score|default(m.score|default('Sin marcador')) }}</span></div>
-            <div class="momentum"><i style="width:{{ m.live_depth.momentum|default(0) }}%"></i></div>
+            <div class="status"><span class="state-badge {{ m.live_depth.badge }}">{{ m.live_depth.label }}</span><span>{{ m.live_depth.score or 'Sin marcador' }}</span></div>
+            <div class="momentum"><i style="width:{{ m.live_depth.momentum }}%"></i></div>
             <div class="metric-row mini-metrics">
-              <span>Local <strong>{{ m.live_depth.shark_momentum.momentum_local|default(0) }}</strong></span>
-              <span>Visitante <strong>{{ m.live_depth.shark_momentum.momentum_visitante|default(0) }}</strong></span>
-              <span>Riesgo <strong>{{ m.live_depth.shark_momentum.riesgo|default(0) }}</strong></span>
+              <span>Local <strong>{{ m.live_depth.shark_momentum.momentum_local or 0 }}</strong></span>
+              <span>Visitante <strong>{{ m.live_depth.shark_momentum.momentum_visitante or 0 }}</strong></span>
+              <span>Riesgo <strong>{{ m.live_depth.shark_momentum.riesgo or 0 }}</strong></span>
             </div>
-            {% if m.live_depth.alerts|default([]) %}
+            {% if m.live_depth.alerts %}
             <div class="stack compact-alerts">
-              {% for alert in (m.live_depth.alerts|default([]))[:2] %}
+              {% for alert in m.live_depth.alerts[:2] %}
               <div class="list-row"><span>{{ alert.title }}</span><strong>{{ alert.level|upper }}</strong></div>
               {% endfor %}
             </div>
@@ -68,14 +68,14 @@
     {% for m in data.match_hub.upcoming[:12] %}
     <a class="card match-card favorite-scope" href="/match/{{ m.id }}">
       <button class="fav-star {% if m.is_favorite %}active{% endif %}" type="button" data-kind="match" data-value="{{ m.id }}" data-label="{{ m.home_team }} vs {{ m.away_team }}" aria-label="Favorito">★</button>
-      <div class="match-top"><div><div class="comp-name">{{ m.competition_name }}</div><div class="small">{{ m.match_date }} · {{ m.kickoff_time or 'hora por confirmar' }}</div></div><div class="time">{{ m.live_depth.minute|default(m.minute|default('-')) }}</div></div>
-      <div class="teams compact-teams"><div class="team"><div class="crest"><img loading="lazy" src="{{ m.home_identity.crest_url|default('') }}" alt="{{ m.home_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ m.home_identity.initials|default((m.home_team or 'L')[:2]) }}'"></div><strong>{{ m.home_team }}</strong></div><div class="team"><div class="crest"><img loading="lazy" src="{{ m.away_identity.crest_url|default('') }}" alt="{{ m.away_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ m.away_identity.initials|default((m.away_team or 'V')[:2]) }}'"></div><strong>{{ m.away_team }}</strong></div></div>
-      <div class="status"><span class="state-badge {{ m.live_depth.badge|default('upcoming') }}">{{ m.live_depth.label|default('Estado pendiente') }}</span><span>{{ m.live_depth.score|default(m.score|default('vs')) }}</span></div>
+      <div class="match-top"><div><div class="comp-name">{{ m.competition_name }}</div><div class="small">{{ m.match_date }} · {{ m.kickoff_time or 'hora por confirmar' }}</div></div><div class="time">{{ m.live_depth.minute }}</div></div>
+      <div class="teams compact-teams"><div class="team"><div class="crest"><img loading="lazy" src="{{ m.home_identity.crest_url }}" alt="{{ m.home_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ m.home_identity.initials }}'"></div><strong>{{ m.home_team }}</strong></div><div class="team"><div class="crest"><img loading="lazy" src="{{ m.away_identity.crest_url }}" alt="{{ m.away_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ m.away_identity.initials }}'"></div><strong>{{ m.away_team }}</strong></div></div>
+      <div class="status"><span class="state-badge {{ m.live_depth.badge }}">{{ m.live_depth.label }}</span><span>{{ m.live_depth.score or 'vs' }}</span></div>
     </a>
     {% endfor %}
   </div>
   {% else %}
-  <div class="empty">No hay partidos en directo ahora mismo. SHARK mostrará el live cuando haya datos suficientes.</div>
+  <div class="empty">No hay partidos en directo ahora mismo. SHARK mostrara el live cuando haya datos suficientes.</div>
   {% endif %}
 </section>
 
@@ -87,7 +87,7 @@
     <a class="card match-card favorite-scope" href="/match/{{ m.id }}">
       <button class="fav-star {% if m.is_favorite %}active{% endif %}" type="button" data-kind="match" data-value="{{ m.id }}" data-label="{{ m.home_team }} vs {{ m.away_team }}" aria-label="Favorito">★</button>
       <div class="match-top"><div><div class="comp-name">{{ m.competition_name or m.league_name }}</div><div class="small">{{ m.match_date }}</div></div><div class="time">FT</div></div>
-      <div class="teams compact-teams"><div class="team"><div class="crest"><img loading="lazy" src="{{ m.home_identity.crest_url|default('') }}" alt="{{ m.home_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ m.home_identity.initials|default((m.home_team or 'L')[:2]) }}'"></div><strong>{{ m.home_team }}</strong></div><div class="team"><div class="crest"><img loading="lazy" src="{{ m.away_identity.crest_url|default('') }}" alt="{{ m.away_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ m.away_identity.initials|default((m.away_team or 'V')[:2]) }}'"></div><strong>{{ m.away_team }}</strong></div></div>
+      <div class="teams compact-teams"><div class="team"><div class="crest"><img loading="lazy" src="{{ m.home_identity.crest_url }}" alt="{{ m.home_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ m.home_identity.initials }}'"></div><strong>{{ m.home_team }}</strong></div><div class="team"><div class="crest"><img loading="lazy" src="{{ m.away_identity.crest_url }}" alt="{{ m.away_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ m.away_identity.initials }}'"></div><strong>{{ m.away_team }}</strong></div></div>
       <div class="status"><span class="state-badge finished">Finalizado</span><span>{{ m.live_depth.score or m.score or 'Resultado pendiente' }}</span></div>
     </a>
     {% endfor %}

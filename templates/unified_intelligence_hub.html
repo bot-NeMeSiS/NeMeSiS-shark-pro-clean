@@ -39,7 +39,7 @@
     <div class="stack">
       {% for m in upcoming[:6] %}
       <a class="list-row" href="/match/{{ m.id }}"><span>{{ m.home_team }} vs {{ m.away_team }}<small>{{ m.league_name or m.competition_name or 'Competición' }}</small></span><strong>{{ m.match_time or m.kickoff_time or 'Hora' }}</strong></a>
-      {% else %}<div class="empty">No hay proximos partidos disponibles todavía. SHARK los mostrará cuando haya datos suficientes.</div>{% endfor %}
+      {% else %}<div class="empty">No hay proximos partidos disponibles todavia. SHARK los mostrara cuando haya datos suficientes.</div>{% endfor %}
     </div>
   </div>
   <div>
