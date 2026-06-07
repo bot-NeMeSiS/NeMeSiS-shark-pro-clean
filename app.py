@@ -279,6 +279,7 @@ def run_schema_migrations(conn):
         ("users", "telegram_chat_id", "TEXT"),
         ("users", "telegram_username", "TEXT"),
         ("users", "telegram_link_code", "TEXT"),
+        ("users", "telegram_link_expires", "TEXT"),
         ("users", "telegram_link_expires_at", "TEXT"),
         ("users", "telegram_linked_at", "TEXT"),
         ("favorites", "user_id", "TEXT"),
@@ -364,6 +365,19 @@ def run_schema_migrations(conn):
             add_column_if_missing(conn, table, column, definition)
         except sqlite3.OperationalError:
             pass
+    try:
+        conn.execute(
+            """UPDATE users
+               SET telegram_link_expires_at=COALESCE(NULLIF(telegram_link_expires_at,''), telegram_link_expires)
+               WHERE COALESCE(telegram_link_expires_at,'')='' AND COALESCE(telegram_link_expires,'')!=''"""
+        )
+        conn.execute(
+            """UPDATE users
+               SET telegram_link_expires=COALESCE(NULLIF(telegram_link_expires,''), telegram_link_expires_at)
+               WHERE COALESCE(telegram_link_expires,'')='' AND COALESCE(telegram_link_expires_at,'')!=''"""
+        )
+    except sqlite3.OperationalError:
+        pass
     conn.execute(
         """CREATE TABLE IF NOT EXISTS schema_migrations(
             version TEXT PRIMARY KEY,
@@ -4881,15 +4895,16 @@ def generate_telegram_link_code(user_id):
     if not user:
         return None
     current_code = str(user.get("telegram_link_code") or "").strip()
-    if current_code and not telegram_code_expired(user.get("telegram_link_expires_at")):
+    current_expires = user.get("telegram_link_expires_at") or user.get("telegram_link_expires")
+    if current_code and not telegram_code_expired(current_expires):
         return current_code
     raw = f"{user_id}-{datetime.now(TZ).isoformat(timespec='microseconds')}-{os.urandom(8).hex()}"
     code = "NS" + hashlib.sha256(raw.encode("utf-8")).hexdigest()[:8].upper()
     expires_at = (datetime.now(TZ) + timedelta(hours=24)).isoformat(timespec="seconds")
     conn = db()
     conn.execute(
-        "UPDATE users SET telegram_link_code=?, telegram_link_expires_at=? WHERE id=?",
-        (code, expires_at, user_id),
+        "UPDATE users SET telegram_link_code=?, telegram_link_expires_at=?, telegram_link_expires=? WHERE id=?",
+        (code, expires_at, expires_at, user_id),
     )
     conn.commit()
     conn.close()
@@ -4936,13 +4951,14 @@ def link_telegram_chat_by_code(code, chat_id, username="", first_name=""):
     if not user:
         telegram_log("link", "failed", "Codigo Telegram no encontrado.", {"code": clean, "chat_id": str(chat_id)})
         return {"ok": False, "status": "NOT_FOUND", "message": "Codigo no encontrado o ya usado."}
-    if telegram_code_expired(user.get("telegram_link_expires_at")):
+    expires_at = user.get("telegram_link_expires_at") or user.get("telegram_link_expires")
+    if telegram_code_expired(expires_at):
         telegram_log("link", "failed", "Codigo Telegram expirado.", {"user_id": user.get("id"), "chat_id": str(chat_id)})
         return {"ok": False, "status": "EXPIRED", "message": "Codigo expirado. Genera uno nuevo desde NeMeSiS."}
     conn = db()
     conn.execute(
         """UPDATE users
-           SET telegram_chat_id=?, telegram_username=?, telegram_linked_at=?, telegram_link_code='', telegram_link_expires_at=''
+           SET telegram_chat_id=?, telegram_username=?, telegram_linked_at=?, telegram_link_code='', telegram_link_expires_at='', telegram_link_expires=''
            WHERE id=?""",
         (str(chat_id), username or "", now_iso(), user.get("id")),
     )
@@ -4971,7 +4987,7 @@ def telegram_user_state(user):
         "username": full.get("telegram_username") or "",
         "linked_at": full.get("telegram_linked_at") or "",
         "code": code,
-        "expires_at": full.get("telegram_link_expires_at") or "",
+        "expires_at": full.get("telegram_link_expires_at") or full.get("telegram_link_expires") or "",
         "bot_username": bot,
         "deep_link": deep_link,
         "command": f"/link {code}" if code else "",
@@ -6117,7 +6133,7 @@ def telegram_regenerate_code():
     if not user:
         return redirect("/cliente-login?next=/telegram")
     conn = db()
-    conn.execute("UPDATE users SET telegram_link_code='', telegram_link_expires_at='' WHERE id=?", (user.get("id"),))
+    conn.execute("UPDATE users SET telegram_link_code='', telegram_link_expires_at='', telegram_link_expires='' WHERE id=?", (user.get("id"),))
     conn.commit()
     conn.close()
     generate_telegram_link_code(user.get("id"))
@@ -6177,7 +6193,17 @@ def api_telegram_link_status():
 def admin_telegram_diagnostics_page():
     if not is_admin_session():
         return redirect("/admin-login?next=/admin/telegram/diagnostics")
-    return redirect("/admin/telegram")
+    return jsonify({
+        "ok": True,
+        "version": APP_VERSION,
+        "diagnostics": telegram_diagnostics(),
+        "linking": {
+            "linked_users": (one("SELECT COUNT(*) AS total FROM users WHERE telegram_chat_id IS NOT NULL AND telegram_chat_id!=''") or {}).get("total", 0),
+            "pending_codes": (one("SELECT COUNT(*) AS total FROM users WHERE telegram_link_code IS NOT NULL AND telegram_link_code!=''") or {}).get("total", 0),
+            "expires_column": "telegram_link_expires_at",
+            "legacy_expires_column": "telegram_link_expires",
+        },
+    })
 
 
 @app.route("/api/telegram/repair-automatic", methods=["POST", "GET"])
