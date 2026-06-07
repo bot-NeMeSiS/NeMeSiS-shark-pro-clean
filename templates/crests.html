@@ -20,8 +20,8 @@
     <article class="card match-card">
       <div class="comp-name">{{ m.competition_name }}</div>
       <div class="teams">
-        <div class="team"><div class="crest"><img loading="lazy" src="{{ m.home_identity.crest_url }}" alt="{{ m.home_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ m.home_identity.initials }}'"></div><strong>{{ m.home_team }}</strong></div>
-        <div class="team"><div class="crest"><img loading="lazy" src="{{ m.away_identity.crest_url }}" alt="{{ m.away_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ m.away_identity.initials }}'"></div><strong>{{ m.away_team }}</strong></div>
+        <div class="team"><div class="crest"><img loading="lazy" src="{{ m.home_identity.crest_url|default('') }}" alt="{{ m.home_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ m.home_identity.initials|default((m.home_team or 'L')[:2]) }}'"></div><strong>{{ m.home_team }}</strong></div>
+        <div class="team"><div class="crest"><img loading="lazy" src="{{ m.away_identity.crest_url|default('') }}" alt="{{ m.away_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ m.away_identity.initials|default((m.away_team or 'V')[:2]) }}'"></div><strong>{{ m.away_team }}</strong></div>
       </div>
       <a class="mini-link" href="/match-hub">Ver partido</a>
     </article>

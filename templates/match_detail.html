@@ -25,7 +25,7 @@
   </div>
   <div class="match-versus">
     <div class="match-side">
-      <div class="crest xl"><img loading="lazy" src="{{ m.home_identity.crest_url }}" alt="{{ m.home_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ m.home_identity.initials }}'"></div>
+      <div class="crest xl"><img loading="lazy" src="{{ m.home_identity.crest_url|default('') }}" alt="{{ m.home_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ m.home_identity.initials|default((m.home_team or 'L')[:2]) }}'"></div>
       <h2><a class="team-title-link" href="/team/{{ m.home_team|urlencode }}">{{ m.home_team }}</a></h2>
     </div>
     <div class="versus-center">
@@ -33,7 +33,7 @@
       <div class="small">{{ m.match_date }} · {{ m.kickoff_time or m.match_time or detail.state.minute }}</div>
     </div>
     <div class="match-side">
-      <div class="crest xl"><img loading="lazy" src="{{ m.away_identity.crest_url }}" alt="{{ m.away_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ m.away_identity.initials }}'"></div>
+      <div class="crest xl"><img loading="lazy" src="{{ m.away_identity.crest_url|default('') }}" alt="{{ m.away_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ m.away_identity.initials|default((m.away_team or 'V')[:2]) }}'"></div>
       <h2><a class="team-title-link" href="/team/{{ m.away_team|urlencode }}">{{ m.away_team }}</a></h2>
     </div>
   </div>
