@@ -62,8 +62,10 @@ TZ = ZoneInfo("Europe/Madrid")
 
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY") or os.getenv("FLASK_SECRET_KEY") or "nemesis-shark-pro-local-session-key"
-_SEED_LOCK = threading.Lock()
+SEED_LOCK = threading.RLock()
+_SEED_LOCK = SEED_LOCK
 _SEEDED_DB_PATH = None
+_SEEDING_DB_PATH = None
 
 FAKE_TEAM_NAMES = {
     "premier home",
@@ -1048,14 +1050,24 @@ def _seed_core_unlocked():
 
 
 def seed_core():
-    global _SEEDED_DB_PATH
+    global SEED_LOCK, _SEED_LOCK, _SEEDED_DB_PATH, _SEEDING_DB_PATH
+    if "SEED_LOCK" not in globals() or SEED_LOCK is None:
+        SEED_LOCK = threading.RLock()
+    if "_SEED_LOCK" not in globals() or _SEED_LOCK is None:
+        _SEED_LOCK = SEED_LOCK
     if _SEEDED_DB_PATH == DB_PATH:
         return
-    with _SEED_LOCK:
+    with SEED_LOCK:
         if _SEEDED_DB_PATH == DB_PATH:
             return
-        retry_locked(_seed_core_unlocked)
-        _SEEDED_DB_PATH = DB_PATH
+        if _SEEDING_DB_PATH == DB_PATH:
+            return
+        _SEEDING_DB_PATH = DB_PATH
+        try:
+            retry_locked(_seed_core_unlocked)
+            _SEEDED_DB_PATH = DB_PATH
+        finally:
+            _SEEDING_DB_PATH = None
 
 
 def rows(query, params=()):
@@ -2158,7 +2170,9 @@ def scheduler_enabled():
 
 
 def scheduler_startup_enabled():
-    return scheduler_env_config().get("startup", True)
+    if os.getenv("RENDER") or os.getenv("RENDER_SERVICE_ID") or os.getenv("GUNICORN_CMD_ARGS"):
+        return str(os.getenv("AUTO_SYNC_ON_STARTUP", "")).strip().lower() in {"1", "true", "yes", "on"}
+    return scheduler_env_config().get("startup", False)
 
 
 def scheduler_lock_row(task_name):
@@ -7259,7 +7273,8 @@ def schedule_auto_sync_if_needed():
     threading.Thread(target=_worker, name="auto-sync-scheduler", daemon=True).start()
 
 
-schedule_auto_sync_if_needed()
+if os.getenv("RUN_STARTUP_SCHEDULER_NOW", "").strip().lower() in {"1", "true", "yes", "on"}:
+    schedule_auto_sync_if_needed()
 
 
 
