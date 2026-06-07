@@ -102,7 +102,7 @@ from engines.observability_engine import (
 from blueprints.architecture import create_architecture_blueprint
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V634_RESPONSIVE_CLIENT_POLISH"
+APP_VERSION = "V635_TELEGRAM_AUTOMATIC_DELIVERY_REPAIR"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -5187,16 +5187,7 @@ def date_display_label(date_value):
         elif target == today + timedelta(days=1):
             prefix = "Mañana"
         else:
-            weekday_es = {
-                0: "Lunes",
-                1: "Martes",
-                2: "Miércoles",
-                3: "Jueves",
-                4: "Viernes",
-                5: "Sábado",
-                6: "Domingo",
-            }
-            prefix = weekday_es.get(target.weekday(), target.strftime("%A"))
+            prefix = target.strftime("%A")
         return f"{prefix} · {target.strftime('%d/%m/%Y')}"
     except Exception:
         return str(date_value or "Fecha por confirmar")
@@ -6242,21 +6233,53 @@ def telegram_config():
     }
 
 
+def telegram_auto_enabled_by_default():
+    """Devuelve si Telegram automático debe estar activo por defecto.
+
+    En la app el envío manual puede funcionar aunque el automático esté desactivado.
+    Para evitar ese falso positivo en producción, por defecto activamos el flujo
+    automático siempre que no se desactive expresamente con TELEGRAM_AUTO_ENABLED=false
+    o DISABLE_TELEGRAM_AUTO=true.
+    """
+    if env_flag("DISABLE_TELEGRAM_AUTO", False):
+        return False
+    return env_flag("TELEGRAM_AUTO_ENABLED", env_flag("ENABLE_TELEGRAM_AUTO", True))
+
+
 def get_telegram_settings():
     seed_core()
     row = one("SELECT * FROM telegram_settings WHERE id='default'")
     if not row:
+        default_enabled = 1 if telegram_auto_enabled_by_default() else 0
         conn = db()
         conn.execute(
             """INSERT OR IGNORE INTO telegram_settings
                (id,auto_daily_matches,auto_daily_picks,auto_live_alerts,daily_matches_time,daily_picks_time,max_messages_per_hour,enabled,updated_at)
                VALUES (?,?,?,?,?,?,?,?,?)""",
-            ("default", 1, 1, 0, "09:00", "11:00", 10, 0, now_iso()),
+            ("default", 1, 1, 0, "09:00", "11:00", 25, default_enabled, now_iso()),
         )
         conn.commit()
         conn.close()
         row = one("SELECT * FROM telegram_settings WHERE id='default'")
-    return normalize_settings(row)
+    settings = normalize_settings(row)
+    # Si el manual funciona pero el automático quedó apagado por una versión anterior,
+    # permitimos que Render lo reactive por configuración segura.
+    if telegram_auto_enabled_by_default() and not settings.get("enabled"):
+        token_present = bool(os.getenv("TELEGRAM_BOT_TOKEN", ""))
+        destination_present = bool(os.getenv("TELEGRAM_CHAT_ID", ""))
+        try:
+            destination_present = destination_present or bool(one("SELECT id FROM telegram_subscribers WHERE is_active=1 AND chat_id IS NOT NULL AND chat_id!='' LIMIT 1"))
+            destination_present = destination_present or bool(one("SELECT id FROM users WHERE telegram_chat_id IS NOT NULL AND telegram_chat_id!='' LIMIT 1"))
+        except Exception:
+            pass
+        if token_present and destination_present:
+            conn = db()
+            conn.execute("UPDATE telegram_settings SET enabled=1, auto_daily_picks=1, auto_daily_matches=1, updated_at=? WHERE id='default'", (now_iso(),))
+            conn.commit()
+            conn.close()
+            settings = normalize_settings(one("SELECT * FROM telegram_settings WHERE id='default'"))
+            telegram_flow_log("TELEGRAM", "fixed", "Telegram automático reactivado porque hay token y destinatarios válidos.", {"enabled": True})
+    return settings
 
 
 def update_telegram_settings(payload):
@@ -6314,6 +6337,54 @@ def telegram_flow_log(tag, status, message, payload=None):
     return telegram_log(tag.lower(), status, f"[{tag}] {message}", payload or {})
 
 
+def sync_telegram_subscribers_from_users():
+    """Sincroniza usuarios con telegram_chat_id hacia telegram_subscribers.
+
+    El envío manual usa TELEGRAM_CHAT_ID global, pero el envío automático por cliente
+    necesita destinatarios reales. Si un usuario tiene telegram_chat_id en users y no
+    existe en telegram_subscribers, lo damos de alta sin duplicar ni perder membresía.
+    """
+    try:
+        users = rows(
+            """SELECT id, username, email, membership, role, telegram_chat_id
+               FROM users
+               WHERE telegram_chat_id IS NOT NULL AND telegram_chat_id!=''
+               LIMIT 500"""
+        )
+    except Exception as exc:
+        telegram_flow_log("TELEGRAM", "warning", "No se pudo sincronizar usuarios Telegram desde users.", {"error": str(exc)[:250]})
+        return {"ok": False, "synced": 0, "error": str(exc)[:250]}
+    synced = 0
+    conn = db()
+    try:
+        for user in users:
+            chat_id = str(user.get("telegram_chat_id") or "").strip()
+            if not chat_id:
+                continue
+            membership = normalize_role(user.get("membership") or user.get("role") or "FREE")
+            sub_id = hashlib.md5(f"telegram-user-{user.get('id')}-{chat_id}".encode("utf-8")).hexdigest()[:18]
+            existing = one("SELECT * FROM telegram_subscribers WHERE chat_id=?", (chat_id,))
+            if existing:
+                conn.execute(
+                    "UPDATE telegram_subscribers SET user_id=?, username=?, first_name=?, membership=?, is_active=1, last_seen=? WHERE chat_id=?",
+                    (str(user.get("id") or ""), str(user.get("username") or user.get("email") or "cliente")[:120], str(user.get("username") or user.get("email") or "Cliente")[:120], membership, now_iso(), chat_id),
+                )
+            else:
+                conn.execute(
+                    """INSERT OR IGNORE INTO telegram_subscribers
+                       (id,user_id,chat_id,username,first_name,membership,is_active,created_at,last_seen,last_message_sent_at)
+                       VALUES (?,?,?,?,?,?,?,?,?,?)""",
+                    (sub_id, str(user.get("id") or ""), chat_id, str(user.get("username") or user.get("email") or "cliente")[:120], str(user.get("username") or user.get("email") or "Cliente")[:120], membership, 1, now_iso(), now_iso(), ""),
+                )
+            synced += 1
+        conn.commit()
+    finally:
+        conn.close()
+    if synced:
+        telegram_flow_log("TELEGRAM", "synced", "Usuarios con telegram_chat_id sincronizados como suscriptores.", {"synced": synced})
+    return {"ok": True, "synced": synced}
+
+
 def ensure_default_telegram_subscriber():
     chat_id = os.getenv("TELEGRAM_CHAT_ID", "").strip()
     if not chat_id:
@@ -6347,6 +6418,7 @@ def ensure_default_telegram_subscriber():
 
 def telegram_subscribers(active_only=True):
     ensure_default_telegram_subscriber()
+    sync_telegram_subscribers_from_users()
     if active_only:
         return rows("SELECT * FROM telegram_subscribers WHERE is_active=1 AND chat_id IS NOT NULL AND chat_id!='' ORDER BY membership DESC, created_at")
     return rows("SELECT * FROM telegram_subscribers ORDER BY created_at DESC")
@@ -6619,7 +6691,8 @@ def telegram_send_http(chat_id, text, message_type="manual"):
 
 def process_premium_telegram_queue(limit=5, force=False):
     settings = get_telegram_settings()
-    if not settings.get("enabled") and not force:
+    auto_allowed = bool(settings.get("enabled")) or telegram_auto_enabled_by_default()
+    if not auto_allowed and not force:
         telegram_flow_log("QUEUE", "skipped", "Procesador no ejecutado: Telegram automatico desactivado.", {"force": force})
         return {"ok": True, "message": "Telegram automatico desactivado.", "processed": 0, "sent": 0, "failed": 0, "skipped": 1, "errors": []}
     pending = rows(
@@ -6847,6 +6920,47 @@ def fix_telegram_settings_for_picks():
     return {"ok": True, "settings": settings, "subscriber": ensure_default_telegram_subscriber()}
 
 
+def repair_telegram_automatic_delivery():
+    """Reparación operativa del flujo automático Telegram.
+
+    Ejecuta los pasos que normalmente fallan cuando el manual funciona pero el
+    automático no: settings, destinatarios, encolado y procesado. No envía duplicados
+    gracias a las dedupe_key existentes.
+    """
+    fixed = fix_telegram_settings_for_picks()
+    synced = sync_telegram_subscribers_from_users()
+    ensure_default_telegram_subscriber()
+    audit_before = telegram_pick_delivery_audit()
+    enqueue_matches = enqueue_daily_matches(force=False, forced_chat_id=os.getenv("TELEGRAM_CHAT_ID", ""))
+    enqueue_picks = enqueue_daily_picks(force=False, force_empty=False, forced_chat_id=os.getenv("TELEGRAM_CHAT_ID", ""))
+    processed = process_premium_telegram_queue(limit=50, force=False)
+    audit_after = telegram_pick_delivery_audit()
+    ok = (processed.get("failed", 0) == 0) and (audit_after.get("counts", {}).get("subscribers_active", 0) > 0 or bool(os.getenv("TELEGRAM_CHAT_ID", "")))
+    telegram_flow_log(
+        "TELEGRAM",
+        "auto_repair",
+        "Reparación de envío automático Telegram ejecutada.",
+        {
+            "ok": ok,
+            "synced": synced,
+            "enqueue_matches": enqueue_matches,
+            "enqueue_picks": enqueue_picks,
+            "processed": processed,
+        },
+    )
+    return {
+        "ok": ok,
+        "message": "Reparación automática Telegram ejecutada.",
+        "fixed": fixed,
+        "synced": synced,
+        "enqueue_matches": enqueue_matches,
+        "enqueue_picks": enqueue_picks,
+        "processed": processed,
+        "audit_before": audit_before,
+        "audit_after": audit_after,
+    }
+
+
 def send_published_picks_to_telegram_now(limit=5, force=True, force_empty=False):
     """Encola y procesa picks publicados hacia Telegram en una sola acción admin."""
     fix_telegram_settings_for_picks()
@@ -6867,8 +6981,12 @@ def telegram_time_due(time_value, force=False):
 
 def telegram_scheduler_delivery(force=False):
     settings = get_telegram_settings()
-    if not settings.get("enabled") and not force:
+    auto_allowed = bool(settings.get("enabled")) or telegram_auto_enabled_by_default()
+    if not auto_allowed and not force:
+        telegram_flow_log("TELEGRAM", "skipped", "Scheduler Telegram omitido: automático desactivado.", {"force": force})
         return {"ok": True, "message": "Telegram automatico desactivado.", "processed": 0, "inserted": 0, "sent": 0, "failed": 0, "skipped": 1, "errors": []}
+    if auto_allowed and not settings.get("enabled"):
+        settings = update_telegram_settings({"enabled": True, "auto_daily_matches": True, "auto_daily_picks": True})
     results = []
     if settings.get("auto_daily_matches") and telegram_time_due(settings.get("daily_matches_time"), force=force):
         results.append(enqueue_daily_matches(force=force))
@@ -7895,6 +8013,8 @@ def admin_telegram_page():
             result = send_published_picks_to_telegram_now(limit=8, force=True, force_empty=True)
         elif action == "process":
             result = process_premium_telegram_queue(limit=as_int(request.form.get("limit"), 5), force=True)
+        elif action == "repair_auto":
+            result = repair_telegram_automatic_delivery()
         message = "Accion Telegram ejecutada."
     data = dashboard_data()
     data["telegram_delivery"] = telegram_diagnostics()
@@ -8638,24 +8758,6 @@ def api_favorites():
     return jsonify({"ok": True, "version": APP_VERSION, "favorite": favorite})
 
 
-@app.route("/api/favorites/toggle", methods=["POST"])
-def api_favorites_toggle():
-    user = current_session_user()
-    if not user:
-        return jsonify({"ok": False, "version": APP_VERSION, "error": "Login requerido para favoritos."}), 401
-    payload = request.get_json(silent=True) or dict(request.form or {})
-    kind = str(payload.get("kind") or "match").strip().lower()
-    value = str(payload.get("value") or "").strip()
-    label = str(payload.get("label") or value).strip()
-    if kind not in {"team", "league", "match"} or not value:
-        return jsonify({"ok": False, "version": APP_VERSION, "error": "Favorito inválido."}), 400
-    existing = one("SELECT * FROM favorites WHERE id=? AND user_id=?", (favorite_id(kind, value, user.get("id")), user.get("id")))
-    if existing:
-        remove_favorite(kind, value, user_id=user.get("id"))
-        return jsonify({"ok": True, "version": APP_VERSION, "favorite": False, "kind": kind, "value": value})
-    favorite = add_favorite(kind, value, label, user_id=user.get("id"))
-    return jsonify({"ok": True, "version": APP_VERSION, "favorite": True, "item": favorite, "kind": kind, "value": value})
-
 @app.route("/api/favorites/feed")
 def api_favorites_feed():
     return jsonify({"ok": True, "version": APP_VERSION, "feed": favorite_feed_full()})
@@ -8767,7 +8869,7 @@ def api_import_competitions():
     result = import_competitions(
         rows_payload,
         payload.get("source_name") or "manual competiciones autorizado",
-        payload.get("legal_note") or "Competición cargada por administrador desde fuente autorizada",
+        payload.get("legal_note") or "Competici?n cargada por administrador desde fuente autorizada",
     )
     return jsonify({"version": APP_VERSION, **result})
 
@@ -9212,6 +9314,39 @@ def api_telegram_send_picks_now():
     return jsonify({"version": APP_VERSION, **send_published_picks_to_telegram_now(limit=limit, force=True, force_empty=force_empty)})
 
 
+@app.route("/api/telegram/repair-automatic", methods=["POST", "GET"])
+def api_telegram_repair_automatic():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({"version": APP_VERSION, **repair_telegram_automatic_delivery()})
+
+
+@app.route("/admin/telegram/diagnostics", methods=["GET", "POST"])
+def admin_telegram_diagnostics_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/telegram/diagnostics")
+    message = ""
+    result = None
+    if request.method == "POST":
+        action = request.form.get("action") or "audit"
+        if action == "repair_auto":
+            result = repair_telegram_automatic_delivery()
+            message = "Reparación automática ejecutada."
+        elif action == "process":
+            result = process_premium_telegram_queue(limit=50, force=True)
+            message = "Cola procesada."
+        else:
+            result = telegram_pick_delivery_audit()
+            message = "Diagnóstico actualizado."
+    data = dashboard_data()
+    data["telegram_delivery"] = telegram_diagnostics()
+    data["telegram_pick_audit"] = telegram_pick_delivery_audit()
+    data["telegram_queue"] = rows("SELECT * FROM telegram_queue ORDER BY created_at DESC LIMIT 50")
+    data["telegram_logs"] = rows("SELECT * FROM telegram_logs ORDER BY created_at DESC LIMIT 50")
+    data["telegram_subscribers"] = telegram_subscribers(active_only=False)
+    return render_template("admin_telegram.html", data=data, message=message, result=result)
+
+
 @app.route("/api/telegram/logs")
 def api_telegram_logs():
     if not is_admin_session():
@@ -9613,7 +9748,7 @@ def api_admin_membership_summary():
 
 
 # ===================== V565 SPORTS DATA & PICKS PERFECTION =====================
-APP_VERSION = "V631_ELITE_COMMERCIAL_EVOLUTION"
+APP_VERSION = "V635_TELEGRAM_AUTOMATIC_DELIVERY_REPAIR"
 
 PRIORITY_LEAGUE_ORDER = [
     "UEFA Champions League", "Champions League", "LaLiga", "Spanish La Liga", "Premier League",

@@ -14,7 +14,7 @@
         {% if current_user and current_user.role == 'ADMIN' %}
           <a href="/admin/dashboard">Admin</a>
           <a href="/admin/users">Usuarios</a>
-          <a href="/admin/automation">Automatización</a>
+          <a href="/admin/automation">Automatizaci?n</a>
           <a href="/admin/intelligence">Comercial</a>
           <a href="/admin/memberships">Membresías</a>
           <a href="/admin/picks">Picks</a>
@@ -30,7 +30,6 @@
           <a href="/intelligence-hub">Intelligence</a>
           <a href="/live">Directo</a>
           <a href="/picks">Picks</a>
-          <a href="/combis">Combis</a>
           <a href="/favorites">Favoritos</a>
           <a href="/menu">Más</a>
           <a href="/logout">Salir</a>
@@ -62,7 +61,6 @@
       <a href="/sports-hub">Sports</a>
       <a href="/live">Directo</a>
       <a href="/picks">Picks</a>
-      <a href="/combis">Combis</a>
       <a href="/favorites">Favoritos</a>
       {% if current_user %}<a href="/menu">Más</a>{% else %}<a href="/cliente-login">Entrar</a>{% endif %}
     {% endif %}
@@ -114,37 +112,5 @@
   })();
   </script>
   {% endif %}
-
-  <script>
-  (function(){
-    async function toggleFavorite(btn){
-      if(!btn || btn.dataset.busy==='1') return;
-      const kind=btn.dataset.kind||'match';
-      const value=btn.dataset.value||'';
-      const label=btn.dataset.label||value;
-      if(!value) return;
-      btn.dataset.busy='1';
-      try{
-        const r=await fetch('/api/favorites/toggle',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind,value,label})});
-        const j=await r.json();
-        if(j && j.ok){
-          btn.classList.toggle('active', !!j.favorite);
-          btn.textContent = j.favorite ? '★' : '☆';
-          btn.setAttribute('aria-label', j.favorite ? 'Quitar de favoritos' : 'Añadir a favoritos');
-        }else if(r.status===401){
-          window.location.href='/cliente-login?next='+encodeURIComponent(location.pathname+location.search);
-        }
-      }catch(e){ console.warn('favorite toggle failed', e); }
-      finally{ btn.dataset.busy='0'; }
-    }
-    document.addEventListener('click', function(ev){
-      const btn=ev.target.closest('.fav-star');
-      if(!btn) return;
-      ev.preventDefault();
-      ev.stopPropagation();
-      toggleFavorite(btn);
-    });
-  })();
-  </script>
 </body>
 </html>

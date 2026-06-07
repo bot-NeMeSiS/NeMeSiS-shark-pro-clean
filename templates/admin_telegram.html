@@ -7,9 +7,10 @@
   <div class="admin-menu">
     <a class="btn primary" href="/admin/telegram">Telegram</a>
     <a class="btn" href="/admin/telegram-audit">Auditoría picks</a>
+    <a class="btn" href="/admin/telegram/diagnostics">Diagnóstico automático</a>
     <a class="btn" href="/admin/data-center">Centro de datos</a>
     <a class="btn" href="/admin/matches-sync">Partidos</a>
-    <a class="btn" href="/admin/import-center">Centro de importación</a>
+    <a class="btn" href="/admin/import-center">Centro de importaci?n</a>
   </div>
 </section>
 
@@ -35,7 +36,7 @@
     <p class="small">Chat: {% if data.telegram_delivery.chat_id_present %}presente{% else %}pendiente{% endif %}</p>
     <p class="small">Partidos: {% if data.telegram_delivery.settings.auto_daily_matches %}activo{% else %}desactivado{% endif %} · {{ data.telegram_delivery.settings.daily_matches_time }}</p>
     <p class="small">Picks: {% if data.telegram_delivery.settings.auto_daily_picks %}activo{% else %}desactivado{% endif %} · {{ data.telegram_delivery.settings.daily_picks_time }}</p>
-    <p class="small">Directo: {% if data.telegram_delivery.settings.auto_directo_alerts %}activo{% else %}desactivado{% endif %}</p>
+    <p class="small">Directo: {% if data.telegram_delivery.settings.auto_live_alerts %}activo{% else %}desactivado{% endif %}</p>
     <p class="small">Máx./hora: {{ data.telegram_delivery.settings.max_messages_per_hour }}</p>
     <input type="hidden" name="action" value="toggle">
     <button type="submit">{% if data.telegram_delivery.settings_enabled %}Desactivar automático{% else %}Activar automático{% endif %}</button>
@@ -57,6 +58,9 @@
     <input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="action" value="fix_picks"><button type="submit">Preparar envíos picks</button></form>
     <form method="post" action="/admin/telegram">
     <input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="action" value="send_picks_now"><button class="primary" type="submit">Enviar picks ahora</button></form>
+    <form method="post" action="/admin/telegram">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="action" value="repair_auto"><button class="primary" type="submit">Reparar automático</button></form>
+    <p class="small muted">Este botón activa ajustes seguros, sincroniza usuarios con Telegram, encola picks/partidos y procesa la cola.</p>
   </div>
 </section>
 

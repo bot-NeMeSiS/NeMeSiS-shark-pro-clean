@@ -3,8 +3,8 @@
 {% set view_mode = request.args.get('view', 'compact') %}
 <section class="hero product-hero v626-hero">
   <div class="kicker">Calendario global</div>
-  <h1>Calendario</h1>
-  <p class="lead">Partidos próximos, directos y resultados en vista compacta.</p>
+  <h1>Más partidos, menos scroll</h1>
+  <p class="lead">Vista compacta con escudos, hora, estado y marcador. Siempre priorizando competiciones importantes y hora española.</p>
   <div class="actions">
     <a class="btn primary" href="/match-hub">Destacados</a>
     <a class="btn {% if view_mode == 'compact' %}active{% endif %}" href="/calendar?lane={{ data.lane }}&view=compact">Vista compacta</a>
@@ -50,7 +50,6 @@
         <strong>{{ m.away_team or 'Visitante' }}</strong>
       </div>
       <div class="sports-meta">
-        <span class="fav-star" role="button" tabindex="0" data-kind="match" data-value="{{ m.id }}" data-label="{{ (m.home_team ~ ' vs ' ~ m.away_team)|e }}" aria-label="Añadir a favoritos">☆</span>
         <span class="state-badge {{ live_depth.get('badge', 'upcoming') }}">{{ live_depth.get('label') or 'Detalle' }}</span>
         {% if view_mode == 'detailed' %}<small>{{ m.country or 'Global' }}</small>{% endif %}
       </div>
@@ -61,42 +60,4 @@
   <div class="empty premium-empty">No hay partidos para este filtro. SHARK mostrará nuevos partidos cuando haya datos suficientes.</div>
   {% endif %}
 </section>
-
-
-<section class="band compact-band v634-upcoming-days">
-  <div class="section-head">
-    <h2>Próximos días</h2>
-    <span class="pill">Agenda extendida</span>
-  </div>
-  {% set grouped_days = data.match_hub.calendar_grouped|default([]) %}
-  {% if grouped_days %}
-  <div class="calendar-days-compact">
-    {% for day in grouped_days[:5] %}
-    <article class="league-block v626-league-block v634-day-block">
-      <div class="league-head"><div><strong>{{ day.label }}</strong><div class="small">{{ day.total }} partidos</div></div><span class="pill">{{ day.total }}</span></div>
-      {% for league in day.leagues[:4] %}
-      <div class="v634-league-title">{{ league.name }} <small>{{ league.country }}</small></div>
-      <div class="sports-list v634-mini-list">
-        {% for m in league.matches[:6] %}
-        {% set home_identity = m.home_identity|default({}) %}
-        {% set away_identity = m.away_identity|default({}) %}
-        {% set live_depth = m.live_depth|default({}) %}
-        <a class="sports-row v634-mini-row" href="/match/{{ m.id }}">
-          <div class="sports-time"><strong>{{ live_depth.get('minute') or m.kickoff_time or m.match_time or '--:--' }}</strong><span>{{ live_depth.get('label') or 'Próximo' }}</span></div>
-          <div class="sports-team home"><span class="crest compact-crest">{% if home_identity.get('crest_url') %}<img loading="lazy" src="{{ home_identity.get('crest_url') }}" alt="{{ m.home_team }}">{% else %}{{ home_identity.get('initials', (m.home_team or 'L')[:1]) }}{% endif %}</span><strong>{{ m.home_team or 'Local' }}</strong></div>
-          <div class="sports-score"><strong>{{ live_depth.get('score') or m.score or 'vs' }}</strong><span>{{ league.name }}</span></div>
-          <div class="sports-team away"><span class="crest compact-crest">{% if away_identity.get('crest_url') %}<img loading="lazy" src="{{ away_identity.get('crest_url') }}" alt="{{ m.away_team }}">{% else %}{{ away_identity.get('initials', (m.away_team or 'V')[:1]) }}{% endif %}</span><strong>{{ m.away_team or 'Visitante' }}</strong></div>
-          <div class="sports-meta"><span class="fav-star" role="button" tabindex="0" data-kind="match" data-value="{{ m.id }}" data-label="{{ (m.home_team ~ ' vs ' ~ m.away_team)|e }}" aria-label="Añadir a favoritos">☆</span></div>
-        </a>
-        {% endfor %}
-      </div>
-      {% endfor %}
-    </article>
-    {% endfor %}
-  </div>
-  {% else %}
-  <div class="empty premium-empty">No hay agenda extendida disponible todavía.</div>
-  {% endif %}
-</section>
-
 {% endblock %}
