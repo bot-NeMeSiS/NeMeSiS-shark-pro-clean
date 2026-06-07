@@ -55,7 +55,7 @@ from engines.telegram_delivery_engine import (
 from engines.telegram_engine import build_alert_queue, dispatch_signature, should_skip_duplicate
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V638_CLIENT_FINAL_POLISH_TELEGRAM_AUTO_VERIFY"
+APP_VERSION = "V640_TELEGRAM_AUTO_ENV_SYNC_FIX"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -89,6 +89,29 @@ def now_iso():
 
 def today_iso(offset=0):
     return (datetime.now(TZ).date() + timedelta(days=offset)).isoformat()
+
+
+def env_bool(name, default=False):
+    value = os.getenv(name)
+    if value is None:
+        return bool(default)
+    return str(value).strip().lower() in {"1", "true", "yes", "on", "y", "si", "sí"}
+
+
+def env_present(name):
+    return bool(str(os.getenv(name) or "").strip())
+
+
+def telegram_env_auto_enabled():
+    return env_bool("ENABLE_TELEGRAM_AUTO", False) or env_bool("AUTO_SEND_TELEGRAM_PICKS", False)
+
+
+def telegram_env_ready():
+    return env_present("TELEGRAM_BOT_TOKEN") and env_present("TELEGRAM_CHAT_ID")
+
+
+def telegram_env_should_enable():
+    return telegram_env_ready() and telegram_env_auto_enabled()
 
 
 def db():
@@ -1066,6 +1089,15 @@ def seed_core():
         try:
             retry_locked(_seed_core_unlocked)
             _SEEDED_DB_PATH = DB_PATH
+            try:
+                syncer = globals().get("_telegram_sync_env_on_startup")
+                if callable(syncer):
+                    syncer()
+            except Exception as exc:
+                try:
+                    print("[TELEGRAM] startup env sync skipped:", str(exc)[:220])
+                except Exception:
+                    pass
         finally:
             _SEEDING_DB_PATH = None
 
@@ -4933,8 +4965,10 @@ def telegram_config():
         "token_masked": masked_key(token),
         "chat_id_present": bool(chat_id),
         "chat_id_masked": masked_key(chat_id),
-        "enabled": bool(settings.get("enabled")),
-        "legacy_enabled": os.getenv("ENABLE_TELEGRAM_AUTO", "false").lower() in {"1", "true", "yes", "on"},
+        "enabled": bool(settings.get("enabled") or telegram_env_should_enable()),
+        "legacy_enabled": telegram_env_auto_enabled(),
+        "env_auto_enabled": telegram_env_auto_enabled(),
+        "env_ready": telegram_env_ready(),
         "auto_minutes": as_int(os.getenv("TELEGRAM_AUTO_MINUTES", "360"), 360),
         "settings": settings,
     }
@@ -4942,6 +4976,7 @@ def telegram_config():
 
 def get_telegram_settings():
     seed_core()
+    env_enable = telegram_env_should_enable()
     row = one("SELECT * FROM telegram_settings WHERE id='default'")
     if not row:
         conn = db()
@@ -4949,13 +4984,87 @@ def get_telegram_settings():
             """INSERT OR IGNORE INTO telegram_settings
                (id,auto_daily_matches,auto_daily_picks,auto_live_alerts,daily_matches_time,daily_picks_time,max_messages_per_hour,enabled,updated_at)
                VALUES (?,?,?,?,?,?,?,?,?)""",
-            ("default", 1, 0, 0, "09:00", "11:00", 10, 0, now_iso()),
+            (
+                "default",
+                1,
+                1 if env_enable or env_bool("AUTO_SEND_TELEGRAM_PICKS", False) else 0,
+                0,
+                "09:00",
+                "11:00",
+                10,
+                1 if env_enable else 0,
+                now_iso(),
+            ),
         )
         conn.commit()
         conn.close()
         row = one("SELECT * FROM telegram_settings WHERE id='default'")
-    return normalize_settings(row)
+    settings = normalize_settings(row)
+    if env_enable and (not settings.get("enabled") or not settings.get("auto_daily_picks")):
+        conn = db()
+        conn.execute(
+            """UPDATE telegram_settings
+               SET enabled=1,
+                   auto_daily_matches=1,
+                   auto_daily_picks=1,
+                   updated_at=?
+               WHERE id='default'""",
+            (now_iso(),),
+        )
+        conn.commit()
+        conn.close()
+        row = one("SELECT * FROM telegram_settings WHERE id='default'")
+        settings = normalize_settings(row)
+        try:
+            telegram_log("settings", "healed", "Telegram automatico activado desde variables Render.", {
+                "ENABLE_TELEGRAM_AUTO": os.getenv("ENABLE_TELEGRAM_AUTO", ""),
+                "AUTO_SEND_TELEGRAM_PICKS": os.getenv("AUTO_SEND_TELEGRAM_PICKS", ""),
+                "token_present": env_present("TELEGRAM_BOT_TOKEN"),
+                "chat_id_present": env_present("TELEGRAM_CHAT_ID"),
+            })
+        except Exception:
+            pass
+    return settings
 
+
+
+
+def _telegram_sync_env_on_startup():
+    """Sincroniza la BD con Render para que el automático no quede apagado por una fila legacy."""
+    if not telegram_env_should_enable():
+        return {"ok": True, "changed": False, "reason": "env_auto_disabled_or_missing_config"}
+    try:
+        seed_core()
+        current = one("SELECT * FROM telegram_settings WHERE id='default'")
+        settings = normalize_settings(current)
+        if settings.get("enabled") and settings.get("auto_daily_picks"):
+            return {"ok": True, "changed": False, "settings": settings}
+        conn = db()
+        conn.execute(
+            """INSERT OR REPLACE INTO telegram_settings
+               (id,auto_daily_matches,auto_daily_picks,auto_live_alerts,daily_matches_time,daily_picks_time,max_messages_per_hour,enabled,updated_at)
+               VALUES (?,?,?,?,?,?,?,?,?)""",
+            (
+                "default",
+                1,
+                1,
+                1 if settings.get("auto_live_alerts") else 0,
+                settings.get("daily_matches_time") or "09:00",
+                settings.get("daily_picks_time") or "11:00",
+                settings.get("max_messages_per_hour") or 10,
+                1,
+                now_iso(),
+            ),
+        )
+        conn.commit()
+        conn.close()
+        return {"ok": True, "changed": True, "settings": get_telegram_settings()}
+    except Exception as exc:
+        try:
+            print("[TELEGRAM] env startup sync skipped:", str(exc)[:220])
+        except Exception:
+            pass
+        return {"ok": False, "changed": False, "error": str(exc)[:220]}
 
 def update_telegram_settings(payload):
     current = get_telegram_settings()
@@ -5322,7 +5431,7 @@ def telegram_send_http(chat_id, text, message_type="manual"):
 
 def process_premium_telegram_queue(limit=5, force=False):
     settings = get_telegram_settings()
-    if not settings.get("enabled") and not force:
+    if not (settings.get("enabled") or telegram_env_should_enable()) and not force:
         return {"ok": True, "message": "Telegram automatico desactivado.", "processed": 0, "sent": 0, "failed": 0, "skipped": 1, "errors": []}
     pending = rows(
         """SELECT * FROM telegram_queue
@@ -5387,6 +5496,9 @@ def telegram_diagnostics():
         "chat_id_present": bool(os.getenv("TELEGRAM_CHAT_ID")),
         "chat_id_masked": masked_key(os.getenv("TELEGRAM_CHAT_ID", "")),
         "settings_enabled": settings.get("enabled"),
+        "effective_enabled": bool(settings.get("enabled") or telegram_env_should_enable()),
+        "env_auto_enabled": telegram_env_auto_enabled(),
+        "env_ready": telegram_env_ready(),
         "settings": settings,
         "subscribers": (one("SELECT COUNT(*) AS total FROM telegram_subscribers WHERE is_active=1") or {}).get("total", 0),
         "linked_users": (one("SELECT COUNT(*) AS total FROM users WHERE telegram_chat_id IS NOT NULL AND telegram_chat_id!=''") or {}).get("total", 0),
@@ -5415,7 +5527,7 @@ def telegram_time_due(time_value, force=False):
 
 def telegram_scheduler_delivery(force=False):
     settings = get_telegram_settings()
-    if not settings.get("enabled") and not force:
+    if not (settings.get("enabled") or telegram_env_should_enable()) and not force:
         return {"ok": True, "message": "Telegram automatico desactivado.", "processed": 0, "inserted": 0, "sent": 0, "failed": 0, "skipped": 1, "errors": []}
     results = []
     if settings.get("auto_daily_matches") and telegram_time_due(settings.get("daily_matches_time"), force=force):
@@ -5575,7 +5687,7 @@ def prepare_auto_posts():
 
 def telegram_scheduler_tick(force=False):
     cfg = telegram_config()
-    if not cfg["enabled"] and not force:
+    if not (cfg["enabled"] or telegram_env_should_enable()) and not force:
         return {"ok": False, "sent": False, "status": "AUTO_DISABLED", "telegram": cfg}
     result = telegram_scheduler_delivery(force=force)
     automation_set("telegram_last_dispatch", {"time": now_iso(), "result": result})
@@ -7564,7 +7676,7 @@ def api_admin_membership_summary():
 
 
 # ===================== V565 SPORTS DATA & PICKS PERFECTION =====================
-APP_VERSION = "V638_CLIENT_FINAL_POLISH_TELEGRAM_AUTO_VERIFY"
+APP_VERSION = "V640_TELEGRAM_AUTO_ENV_SYNC_FIX"
 
 PRIORITY_LEAGUE_ORDER = [
     "UEFA Champions League", "Champions League", "LaLiga", "Spanish La Liga", "Premier League",
