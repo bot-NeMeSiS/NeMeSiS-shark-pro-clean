@@ -1,0 +1,33 @@
+*** V701_CLIENT_EXPERIENCE_DIFF.patch ***
+
+Resumen de cambios:
+
+- app.py
+  - APP_VERSION actualizado a V701_CLIENT_EXPERIENCE_LAUNCH_EDITION.
+  - A?adidos helpers dedupe_matches_list(), sports_hub_groups() y annotate_sports_hub_matches().
+  - /sports-hub recibe tabs, grupos, listas deduplicadas y se?ales SHARK/pick.
+  - /today a?adido como alias hacia Sports Hub.
+  - /dashboard cliente redirige a /sports-hub.
+
+- VERSION.txt
+  - V701_CLIENT_EXPERIENCE_LAUNCH_EDITION.
+
+- templates/base.html
+  - Navegaci?n cliente reorganizada.
+  - Textos corruptos corregidos.
+  - SHARK quick questions corregidas en espa?ol.
+
+- templates/sports_hub.html
+  - Reescrito como marcador deportivo central con tabs, ligas, filas compactas, favoritos, pick badge y SHARK Score.
+
+- templates/live.html
+  - Reescrito como marcador live compacto.
+
+- templates/calendar.html
+  - Reescrito con filtros en espa?ol y filas deportivas compactas.
+
+- templates/picks.html
+  - Reescrito como pantalla premium de picks con cuota, stake, confianza, riesgo, value y explicaci?n.
+
+- static/app.css
+  - A?adido bloque V701 para scoreboard, tabs, filas deportivas, picks premium y m?vil.

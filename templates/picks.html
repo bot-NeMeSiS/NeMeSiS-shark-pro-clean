@@ -1,84 +1,91 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 {% block content %}
-<section class="hero compact product-hero">
-  <div class="kicker">Picks premium</div>
-  <h1>Centro de picks SHARK</h1>
-  <p class="lead">Picks publicados, partidos próximos reales para análisis y estados claros. Si no hay pick real, no se inventa: se muestra la base disponible para prepararlo.</p>
-  <div class="actions">
-    <a class="btn primary" href="/match-hub">Partidos reales</a>
-    <a class="btn" href="/combis">Combis</a>
-    <a class="btn" href="/telegram">Telegram</a>
-    {% if current_user and current_user.role == 'ADMIN' %}<a class="btn" href="/admin/picks">Admin picks</a>{% endif %}
+<section class="scoreboard-hero v701-scoreboard picks-board">
+  <div>
+    <div class="kicker">Picks SHARK</div>
+    <h1>Qué apostar y por qué</h1>
+    <p class="lead">Picks publicados, cuota, stake, confianza, riesgo y motivo en formato claro de producto premium.</p>
+  </div>
+  <div class="scoreboard-kpis">
+    <div><strong>{{ data.pick_stats.published }}</strong><span>Publicados</span></div>
+    <div><strong>{{ data.smart_picks.candidate_count }}</strong><span>Analizables</span></div>
+    <div><strong>{{ data.pick_stats.avg_odds }}</strong><span>Cuota media</span></div>
+    <div><strong>{{ data.pick_stats.winrate }}%</strong><span>Winrate</span></div>
   </div>
 </section>
 
-<section class="band compact-band">
-  <div class="grid compact-grid metric-row">
-    <div class="card metric-card"><div class="metric">{{ data.pick_stats.published }}</div><div class="muted">picks publicados</div></div>
-    <div class="card metric-card"><div class="metric">{{ data.smart_picks.candidate_count }}</div><div class="muted">partidos analizables</div></div>
-    <div class="card metric-card"><div class="metric">{{ data.pick_stats.avg_odds }}</div><div class="muted">cuota media</div></div>
-    <div class="card metric-card"><div class="metric">{{ data.pick_stats.winrate }}%</div><div class="muted">winrate real</div></div>
-  </div>
+<section class="sports-tabs v701-tabs">
+  <a class="tab-link active" href="/picks">Picks</a>
+  <a class="tab-link" href="/recomendaciones">Recomendaciones</a>
+  <a class="tab-link" href="/combis">Combis</a>
+  <a class="tab-link" href="/sports-hub">Partidos</a>
+  <a class="tab-link" href="/telegram">Telegram</a>
 </section>
 
 {% if current_user and current_user.membership == 'FREE' %}
-<section class="band compact-band"><div class="notice">Plan FREE activo: ves picks FREE y una vista previa de valor PRO/ELITE. PRO desbloquea más picks, combinadas y avisos Telegram.</div></section>
+<section class="band compact-band"><div class="notice">Plan FREE activo: verás picks gratuitos y vista previa PRO/ELITE. PRO desbloquea más picks, Telegram premium y combinadas.</div></section>
 {% endif %}
 
 <section class="band compact-band">
-  <div class="section-head"><h2>Picks HOT disponibles</h2><span class="pill">{{ data.smart_picks.hot|length }}</span></div>
+  <div class="section-head"><h2>Picks disponibles</h2><span class="pill">{{ data.smart_picks.hot|length }}</span></div>
   {% if data.smart_picks.hot %}
-  <div class="grid dense-grid">
+  <div class="grid dense-grid v701-pick-grid">
     {% for p in data.smart_picks.hot %}
-    <article class="card pick-card hot-pick">
-      <div class="match-top"><div><div class="comp-name">{{ p.competition_name or p.league_name or p.competition_key }}</div><div class="small">{{ p.match_date }} · {{ p.market }}</div></div><span class="badge badge-{{ p.membership_required|lower }}">{{ p.membership_required }}</span></div>
-      <h3>{{ p.home_team }}{% if p.away_team %} vs {{ p.away_team }}{% endif %}</h3>
-      <p class="selection">{{ p.selection }}</p>
-      <div class="status"><span>Cuota {{ p.odds }}</span><span>Confianza SHARK {{ p.confidence }}%</span><span>{{ p.risk_level }}</span></div>
-      <p class="small"><strong>Por que entrar:</strong> {{ p.reasoning or 'Pick publicado por el equipo SHARK.' }}</p>
-      <p class="small"><strong>Riesgos detectados:</strong> {{ p.warning_reason or 'Gestiona stake y banca; ningun pick es seguro.' }}</p>
-      <div class="metric-row mini-metrics">
-        <span>Stake sugerido <strong>{{ p.stake_units }}u</strong></span>
-        <span>Value detectado <strong>{% if p.odds and p.confidence %}{{ p.confidence }}%{% else %}Contextual{% endif %}</strong></span>
-        <span>Ejemplo <strong>{{ p.stake_euros_example }} EUR</strong></span>
+    <article class="card pick-card v701-premium-pick">
+      <div class="match-top">
+        <div><div class="comp-name">{{ p.competition_name or p.league_name or p.competition_key or 'Competición' }}</div><div class="small">{{ p.match_date or 'Fecha pendiente' }} · {{ p.market or 'Mercado' }}</div></div>
+        <span class="badge badge-{{ p.membership_required|lower }}">{{ p.membership_required or 'FREE' }}</span>
       </div>
+      <h3>{{ p.home_team or 'Equipo local' }}{% if p.away_team %} vs {{ p.away_team }}{% endif %}</h3>
+      <div class="pick-mainline">
+        <div><span>Pick SHARK</span><strong>{{ p.selection or 'Selección pendiente' }}</strong></div>
+        <div><span>Cuota</span><strong>{{ p.odds or 'Pendiente' }}</strong></div>
+        <div><span>Stake</span><strong>{{ p.stake_units or 1 }}u</strong></div>
+      </div>
+      <div class="pick-signals">
+        <span>SHARK {{ p.confidence or p.shark_score or 0 }}/100</span>
+        <span>Confianza {{ p.confidence or 0 }}%</span>
+        <span>Riesgo {{ p.risk_level or 'Medio' }}</span>
+        <span>Value {% if p.odds and p.confidence %}Detectado{% else %}En cálculo{% endif %}</span>
+      </div>
+      <p class="small"><strong>Por qué entrar:</strong> {{ p.reasoning or 'Pick publicado por SHARK con datos disponibles.' }}</p>
+      <p class="small"><strong>Por qué no entrar:</strong> {{ p.warning_reason or 'Ningún pick es seguro. Ajusta stake y banca.' }}</p>
+      <div class="inline-actions"><a class="mini-link" href="/match/{{ p.match_id }}">Detalle partido</a><a class="mini-link" href="/telegram">Recibir en Telegram</a></div>
     </article>
     {% endfor %}
   </div>
   {% else %}
   <div class="empty premium-empty">
-    <strong>No hay picks publicados ahora mismo.</strong>
-    <p>SHARK no va a inventar apuestas. Debajo tienes partidos próximos reales para publicar picks con datos reales.</p>
-    <div class="actions"><a class="btn primary" href="/match-hub">Ver calendario</a>{% if current_user and current_user.role == 'ADMIN' %}<a class="btn" href="/admin/picks">Publicar pick</a>{% endif %}</div>
+    <strong>SHARK está analizando los próximos partidos.</strong>
+    <p>Las recomendaciones aparecerán automáticamente cuando haya datos suficientes. No se muestran picks inventados.</p>
+    <div class="actions"><a class="btn primary" href="/sports-hub">Ver partidos</a><a class="btn" href="/combis">Combis</a></div>
   </div>
   {% endif %}
 </section>
 
 <section class="band compact-band">
-  <div class="section-head"><h2>Partidos próximos reales para estudiar picks</h2><span class="pill">{{ data.candidate_matches|length }}</span></div>
-  <p class="small">Estos partidos salen del calendario sincronizado/importado. Sirven como base de análisis; no son picks hasta que se publiquen.</p>
+  <div class="section-head"><h2>Partidos para estudiar</h2><span class="pill">{{ data.candidate_matches|length }}</span></div>
   {% if data.candidate_matches %}
-  <div class="grid dense-grid">
-    {% for m in data.candidate_matches[:12] %}
-    <article class="card match-card analysis-card">
-      <div class="match-top"><div><div class="comp-name">{{ m.competition_name or m.league_name }}</div><div class="small">{{ m.match_date }} · {{ m.kickoff_time or m.match_time or 'hora por confirmar' }}</div></div><span class="tag">{{ m.pick_readiness }}</span></div>
-      <div class="teams compact-teams">
-        <div class="team"><div class="crest"><img loading="lazy" src="{{ m.home_identity.crest_url }}" alt="{{ m.home_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ m.home_identity.initials }}'"></div><strong>{{ m.home_team }}</strong></div>
-        <div class="team"><div class="crest"><img loading="lazy" src="{{ m.away_identity.crest_url }}" alt="{{ m.away_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ m.away_identity.initials }}'"></div><strong>{{ m.away_team }}</strong></div>
-      </div>
-      <div class="status"><span class="state-badge {{ m.live_depth.badge }}">{{ m.live_depth.label }}</span><span>{{ m.live_depth.minute }}</span>{% if m.bookmaker %}<span>{{ m.bookmaker }}</span>{% endif %}</div>
-      <div class="inline-actions"><a class="mini-link" href="/match/{{ m.id }}">Ver partido</a>{% if current_user and current_user.role == 'ADMIN' %}<a class="mini-link" href="/admin/picks">Crear pick</a>{% endif %}</div>
-    </article>
+  <div class="sports-list v701-match-list">
+    {% for m in data.candidate_matches[:14] %}
+    <a class="sports-row v701-row favorite-scope" href="/match/{{ m.id }}">
+      <button class="fav-star {% if m.is_favorite %}active{% endif %}" type="button" data-kind="match" data-value="{{ m.id }}" data-label="{{ m.home_team }} vs {{ m.away_team }}" aria-label="Favorito">★</button>
+      <div class="sports-time"><strong>{{ m.kickoff_time or m.match_time or 'Hora' }}</strong><span>{{ m.match_date }}</span></div>
+      <div class="sports-team home"><span class="crest compact-crest"><img loading="lazy" src="{{ m.home_identity.crest_url }}" alt="{{ m.home_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ m.home_identity.initials }}'"></span><strong>{{ m.home_team or 'Equipo local' }}</strong></div>
+      <div class="sports-score"><strong>vs</strong><span>{{ m.competition_name or m.league_name or 'Competición' }}</span></div>
+      <div class="sports-team away"><span class="crest compact-crest"><img loading="lazy" src="{{ m.away_identity.crest_url }}" alt="{{ m.away_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ m.away_identity.initials }}'"></span><strong>{{ m.away_team or 'Equipo visitante' }}</strong></div>
+      <div class="sports-meta v701-meta"><span class="shark-pill">{{ m.pick_readiness or 'SHARK' }}</span></div>
+    </a>
     {% endfor %}
   </div>
   {% else %}
-  <div class="empty premium-empty">SHARK esta analizando los proximos partidos. Las recomendaciones apareceran automaticamente cuando haya datos suficientes.</div>
+  <div class="empty premium-empty">No hay partidos analizables ahora mismo. El calendario se completará cuando haya datos autorizados.</div>
   {% endif %}
 </section>
 
 {% if data.smart_picks.pro_locked %}
 <section class="band compact-band">
-  <div class="section-head"><h2>Vista premium bloqueada</h2><span class="pill">PRO / ELITE</span></div>
+  <div class="section-head"><h2>Vista premium</h2><span class="pill">PRO / ELITE</span></div>
   <div class="grid dense-grid">
     {% for p in data.smart_picks.pro_locked %}
     <article class="card locked-card"><div class="badge badge-{{ p.membership_required|lower }}">{{ p.membership_required }}</div><h3>{{ p.selection }}</h3><p class="small">Pick premium disponible al subir de plan.</p></article>

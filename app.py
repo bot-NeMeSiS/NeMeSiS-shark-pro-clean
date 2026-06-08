@@ -59,7 +59,7 @@ from engines.telegram_delivery_engine import (
 from engines.telegram_engine import build_alert_queue, dispatch_signature, should_skip_duplicate
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V700_ULTIMATE_LAUNCH_EDITION"
+APP_VERSION = "V701_CLIENT_EXPERIENCE_LAUNCH_EDITION"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -5960,6 +5960,61 @@ def split_live(matches):
     return {"live": live, "scheduled": scheduled, "finished": finished}
 
 
+def dedupe_matches_list(matches):
+    seen = set()
+    out = []
+    for match in matches or []:
+        key = str(match.get("id") or "").strip()
+        if not key:
+            key = "|".join([
+                str(match.get("match_date") or ""),
+                normalized_label(match.get("home_team") or ""),
+                normalized_label(match.get("away_team") or ""),
+                normalized_label(match.get("competition_name") or match.get("league_name") or ""),
+            ])
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(match)
+    return out
+
+
+def sports_hub_groups(matches):
+    buckets = {}
+    for match in dedupe_matches_list(matches):
+        name = match.get("competition_name") or match.get("league_name") or "Competición"
+        country = match.get("country") or ""
+        key = (name, country)
+        buckets.setdefault(key, {"name": name, "country": country, "matches": []})
+        buckets[key]["matches"].append(match)
+    groups = list(buckets.values())
+    groups.sort(key=lambda g: v565_league_rank({"competition_name": g["name"], "league_name": g["name"]}))
+    return groups
+
+
+def annotate_sports_hub_matches(matches, picks=None):
+    pick_map = {}
+    for pick in picks or []:
+        mid = str(pick.get("match_id") or "").strip()
+        if mid and mid not in pick_map:
+            pick_map[mid] = pick
+    out = []
+    for match in dedupe_matches_list(matches):
+        pick = pick_map.get(str(match.get("id") or ""))
+        live_depth = match.get("live_depth") or {}
+        match["has_pick"] = bool(pick)
+        match["pick_label"] = (pick or {}).get("selection") or ""
+        match["shark_score"] = as_int((pick or {}).get("confidence") or live_depth.get("momentum") or match.get("shark_score"), 0)
+        match["safe_home"] = match.get("home_team") or "Equipo por confirmar"
+        match["safe_away"] = match.get("away_team") or "Equipo por confirmar"
+        match["safe_competition"] = match.get("competition_name") or match.get("league_name") or "Competición"
+        match["safe_time"] = match.get("kickoff_time") or match.get("match_time") or live_depth.get("minute") or "Hora pendiente"
+        match["safe_score"] = live_depth.get("score") or match.get("score") or "vs"
+        match["safe_status"] = live_depth.get("label") or match.get("status") or "Próximo"
+        out.append(match)
+    return out
+
+
 def dashboard_data(lane="today", date=None):
     date = date or today_iso()
     matches = get_matches(date, lane)
@@ -6092,22 +6147,54 @@ def calendar_page():
 
 @app.route("/sports-hub")
 @app.route("/sports")
+@app.route("/today")
 def sports_hub_page():
+    tab = (request.args.get("tab") or "today").strip().lower()
     data = dashboard_data()
     hub = data.get("match_hub") or {}
-    picks = published_picks_for_user(current_session_user() or {"membership": "FREE"}, limit=6)
+    picks = published_picks_for_user(current_session_user() or {"membership": "FREE"}, limit=12)
     recs = v565_recommendation_pool(limit=6)
     best = picks[0] if picks else (recs[0] if recs else {})
     score = as_int(best.get("confidence") or best.get("score"), 0)
+    today_matches = annotate_sports_hub_matches((hub.get("today") or data.get("matches") or []), picks)
+    live_matches = annotate_sports_hub_matches((hub.get("live") or []), picks)
+    tomorrow_matches = annotate_sports_hub_matches(get_matches(today_iso(1), "today"), picks)
+    week_matches = annotate_sports_hub_matches(get_upcoming_matches(today_iso(), days=7, limit=80), picks)
+    favorites_feed = annotate_sports_hub_matches((data.get("favorite_feed") or []), picks)
+    if tab == "live":
+        selected_matches = live_matches or today_matches
+    elif tab == "tomorrow":
+        selected_matches = tomorrow_matches
+    elif tab == "week":
+        selected_matches = week_matches
+    elif tab == "favorites":
+        selected_matches = favorites_feed
+    else:
+        selected_matches = today_matches
     data["sports_hub"] = {
+        "tab": tab,
         "date": today_iso(),
-        "today": (hub.get("today") or data.get("matches") or [])[:14],
-        "live": (hub.get("live") or [])[:10],
+        "tabs": [
+            {"key": "today", "label": "Hoy", "href": "/sports-hub?tab=today"},
+            {"key": "live", "label": "Directo", "href": "/sports-hub?tab=live"},
+            {"key": "tomorrow", "label": "Mañana", "href": "/sports-hub?tab=tomorrow"},
+            {"key": "week", "label": "Semana", "href": "/sports-hub?tab=week"},
+            {"key": "picks", "label": "Picks", "href": "/picks"},
+            {"key": "favorites", "label": "Favoritos", "href": "/sports-hub?tab=favorites"},
+            {"key": "combis", "label": "Combis", "href": "/combis"},
+        ],
+        "selected": selected_matches[:80],
+        "selected_groups": sports_hub_groups(selected_matches),
+        "today": today_matches[:30],
+        "live": live_matches[:20],
+        "tomorrow": tomorrow_matches[:30],
+        "week": week_matches[:80],
         "picks": picks,
         "recommendations": recs,
-        "favorites": (data.get("favorite_feed") or [])[:8],
+        "favorites": favorites_feed[:20],
         "top_leagues": (hub.get("top_leagues") or data.get("competitions") or [])[:8],
         "counts": hub.get("counts") or {},
+        "combis": get_combis(limit=4),
     }
     data["shark_product"] = {
         "score": score,
@@ -8352,6 +8439,7 @@ def v566_template_recommendations(limit=20):
 def v566_dashboard_page():
     if not current_session_user():
         return redirect("/cliente-login")
+    return redirect("/sports-hub")
     user = current_session_user()
     data = dashboard_data()
     summary = v566_dashboard_summary(user)
