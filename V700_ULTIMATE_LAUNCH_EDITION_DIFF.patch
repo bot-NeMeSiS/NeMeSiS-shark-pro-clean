@@ -1,0 +1,42 @@
+*** V700_ULTIMATE_LAUNCH_EDITION_DIFF.patch ***
+
+Resumen de diff aplicado:
+
+- app.py
+  - APP_VERSION cambiado a V700_ULTIMATE_LAUNCH_EDITION.
+  - Eliminada segunda asignaci?n duplicada de APP_VERSION V640.
+  - A?adidas importaciones secrets, smtplib y EmailMessage.
+  - A?adido APP_INITIALIZED / APP_INIT_ERROR.
+  - A?adida tabla password_reset_tokens e ?ndice idx_password_reset_user.
+  - seed_core marca inicializaci?n correcta y guarda ?ltimo error.
+  - rows() deja de llamar a seed_core().
+  - A?adida initialize_once() y before_request defensivo.
+  - A?adida home_light_data(); / deja de cargar dashboard_data().
+  - Registro, login y admin-login usan datos ligeros.
+  - A?adido password reset cliente/admin.
+  - A?adidas rutas admin observability y APIs observability.
+  - /admin/intelligence redirige a /admin/unified-intelligence.
+  - /api/health deja de tocar DB.
+  - /api/startup-check a?adido.
+
+- VERSION.txt
+  - V700_ULTIMATE_LAUNCH_EDITION
+
+- templates/client_login.html
+  - Contrase?a con tilde.
+  - Enlace a recuperaci?n cliente.
+
+- templates/admin_login.html
+  - Contrase?a con tilde.
+  - Enlace a recuperaci?n admin.
+
+- templates/password_reset_request.html
+  - Nuevo template para solicitar recuperaci?n.
+
+- templates/password_reset_form.html
+  - Nuevo template para guardar nueva contrase?a.
+
+- Informes
+  - LAUNCH_AUDIT_REPORT.md
+  - PRODUCT_SCORECARD.md
+  - FINAL_RELEASE_NOTES.md

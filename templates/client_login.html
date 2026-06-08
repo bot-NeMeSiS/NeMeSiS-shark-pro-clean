@@ -10,8 +10,9 @@
     <h2>Acceso</h2>
     {% if error %}<p class="notice danger">{{ error }}</p>{% endif %}
     <div class="field"><label>Email o nombre de usuario</label><input name="login" autocomplete="username" required></div>
-    <div class="field"><label>Contrasena</label><input type="password" name="password" autocomplete="current-password" required></div>
+    <div class="field"><label>Contraseña</label><input type="password" name="password" autocomplete="current-password" required></div>
     <button type="submit">Entrar</button>
+    <a class="small" href="/forgot-password">He olvidado mi contraseña</a>
   </form>
   <aside class="card auth-side">
     <h2>Nuevo cliente</h2>

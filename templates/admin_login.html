@@ -11,8 +11,9 @@
     {% if error %}<p class="notice danger">{{ error }}</p>{% endif %}
     {% if not configured %}<p class="notice">Configura ADMIN_EMAIL y ADMIN_PASSWORD en Render, o entra con un usuario ADMIN existente.</p>{% endif %}
     <div class="field"><label>Email o usuario admin</label><input name="login" autocomplete="username" required></div>
-    <div class="field"><label>Contrasena</label><input type="password" name="password" autocomplete="current-password" required></div>
+    <div class="field"><label>Contraseña</label><input type="password" name="password" autocomplete="current-password" required></div>
     <button type="submit">Entrar como admin</button>
+    <a class="small" href="/admin-forgot-password">Recuperar acceso admin</a>
   </form>
   <aside class="card auth-side">
     <h2>Cliente</h2>

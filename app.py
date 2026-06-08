@@ -4,12 +4,15 @@ import io
 import json
 import os
 import re
+import secrets
 import sqlite3
+import smtplib
 import threading
 import unicodedata
 import urllib.parse
 import urllib.request
 from datetime import datetime, timedelta
+from email.message import EmailMessage
 from zoneinfo import ZoneInfo
 
 from flask import Flask, Response, abort, jsonify, redirect, render_template, request, send_file, session, url_for
@@ -34,6 +37,7 @@ from engines.live_engine import build_live_depth, build_live_flow, build_match_d
 from engines.match_engine import hub_sections, real_time_state, sync_plan
 from engines.match_sync_engine import IMPORTANT_COMPETITIONS, h2h_price_snapshot, normalize_status as sync_normalize_status, odds_sports, sportsdb_leagues
 from engines.membership_engine import can_access_feature, get_membership_limits, get_user_membership, membership_context
+from engines.observability_engine import latest_observability_errors, observability_error_detail, observability_summary
 from engines.scheduler_engine import is_due, is_stale_running, next_run_iso, normalize_result, scheduler_config, task_definition
 from engines.shark_engine import build_shark_context, explain_pick_risk
 from engines.shark_intelligence_core import build_daily_briefing, build_quick_questions, memory_event_payload
@@ -55,7 +59,7 @@ from engines.telegram_delivery_engine import (
 from engines.telegram_engine import build_alert_queue, dispatch_signature, should_skip_duplicate
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V640_TELEGRAM_AUTO_ENV_SYNC_FIX"
+APP_VERSION = "V700_ULTIMATE_LAUNCH_EDITION"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -66,6 +70,8 @@ SEED_LOCK = threading.RLock()
 _SEED_LOCK = SEED_LOCK
 _SEEDED_DB_PATH = None
 _SEEDING_DB_PATH = None
+APP_INITIALIZED = False
+APP_INIT_ERROR = ""
 
 FAKE_TEAM_NAMES = {
     "premier home",
@@ -446,6 +452,7 @@ def run_schema_migrations(conn):
         conn.execute("CREATE INDEX IF NOT EXISTS idx_picks_match_status ON picks(match_id, status)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_picks_published ON picks(published_at, confidence)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_user_activity_user_type ON user_activity(user_id, activity_type, created_at)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_password_reset_user ON password_reset_tokens(user_id, expires_at)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_historical_matches_match ON historical_matches(match_id, match_date)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_historical_picks_pick ON historical_picks(pick_id, match_id)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_historical_recommendations_match ON historical_recommendations(match_id, created_at)")
@@ -725,6 +732,16 @@ def init_db():
             target_type TEXT,
             target_id TEXT,
             payload_json TEXT,
+            created_at TEXT
+        )"""
+    )
+    cur.execute(
+        """CREATE TABLE IF NOT EXISTS password_reset_tokens(
+            token TEXT PRIMARY KEY,
+            user_id TEXT NOT NULL,
+            scope TEXT DEFAULT 'client',
+            expires_at TEXT NOT NULL,
+            used_at TEXT,
             created_at TEXT
         )"""
     )
@@ -1073,7 +1090,7 @@ def _seed_core_unlocked():
 
 
 def seed_core():
-    global SEED_LOCK, _SEED_LOCK, _SEEDED_DB_PATH, _SEEDING_DB_PATH
+    global SEED_LOCK, _SEED_LOCK, _SEEDED_DB_PATH, _SEEDING_DB_PATH, APP_INITIALIZED, APP_INIT_ERROR
     if "SEED_LOCK" not in globals() or SEED_LOCK is None:
         SEED_LOCK = threading.RLock()
     if "_SEED_LOCK" not in globals() or _SEED_LOCK is None:
@@ -1089,6 +1106,8 @@ def seed_core():
         try:
             retry_locked(_seed_core_unlocked)
             _SEEDED_DB_PATH = DB_PATH
+            APP_INITIALIZED = True
+            APP_INIT_ERROR = ""
             try:
                 syncer = globals().get("_telegram_sync_env_on_startup")
                 if callable(syncer):
@@ -1098,18 +1117,56 @@ def seed_core():
                     print("[TELEGRAM] startup env sync skipped:", str(exc)[:220])
                 except Exception:
                     pass
+        except Exception as exc:
+            APP_INIT_ERROR = str(exc)[:500]
+            raise
         finally:
             _SEEDING_DB_PATH = None
 
 
 def rows(query, params=()):
-    seed_core()
     conn = db()
     cur = conn.cursor()
     cur.execute(query, params)
     out = [dict(r) for r in cur.fetchall()]
     conn.close()
     return out
+
+
+def initialize_once():
+    """Inicializacion idempotente para rutas normales.
+    Las consultas SQL no disparan seed ni migraciones; Render health y runtime quedan ultraligeros.
+    """
+    if _SEEDED_DB_PATH == DB_PATH and APP_INITIALIZED:
+        return True
+    seed_core()
+    return True
+
+
+LIGHT_STARTUP_ENDPOINTS = {
+    "health",
+    "api_runtime_version",
+    "api_startup_check",
+    "service_worker",
+    "static",
+    "home",
+}
+
+
+@app.before_request
+def ensure_runtime_ready_for_request():
+    if request.method == "HEAD" and request.path == "/":
+        return None
+    if request.endpoint in LIGHT_STARTUP_ENDPOINTS:
+        return None
+    try:
+        initialize_once()
+    except Exception as exc:
+        try:
+            print("[STARTUP] initialize_once failed:", str(exc)[:240])
+        except Exception:
+            pass
+    return None
 
 
 def one(query, params=()):
@@ -4708,6 +4765,101 @@ def authenticate_env_admin(identifier, password):
     return get_user_by_email(admin_email)
 
 
+def smtp_configured():
+    return all(env_present(name) for name in ("SMTP_HOST", "SMTP_USERNAME", "SMTP_PASSWORD", "SMTP_FROM"))
+
+
+def send_email_message(to_email, subject, body):
+    if not smtp_configured():
+        return {"ok": False, "mode": "diagnostic", "reason": "SMTP no configurado"}
+    msg = EmailMessage()
+    msg["From"] = os.getenv("SMTP_FROM")
+    msg["To"] = to_email
+    msg["Subject"] = subject
+    msg.set_content(body)
+    host = os.getenv("SMTP_HOST")
+    port = as_int(os.getenv("SMTP_PORT"), 587)
+    try:
+        with smtplib.SMTP(host, port, timeout=12) as server:
+            server.starttls()
+            server.login(os.getenv("SMTP_USERNAME"), os.getenv("SMTP_PASSWORD"))
+            server.send_message(msg)
+        return {"ok": True, "mode": "smtp"}
+    except Exception as exc:
+        return {"ok": False, "mode": "smtp", "error": str(exc)[:220]}
+
+
+def create_password_reset_token(user, scope="client"):
+    token = secrets.token_urlsafe(32)
+    expires = (datetime.now(TZ) + timedelta(minutes=30)).isoformat(timespec="seconds")
+    conn = db()
+    conn.execute(
+        """INSERT INTO password_reset_tokens(token,user_id,scope,expires_at,used_at,created_at)
+           VALUES (?,?,?,?,?,?)""",
+        (token, user["id"], scope, expires, "", now_iso()),
+    )
+    conn.commit()
+    conn.close()
+    return token
+
+
+def load_password_reset_token(token, scope="client"):
+    token = str(token or "").strip()
+    if not token:
+        return None
+    row = one("SELECT * FROM password_reset_tokens WHERE token=? AND scope=?", (token, scope))
+    if not row or row.get("used_at"):
+        return None
+    if str(row.get("expires_at") or "") < now_iso():
+        return None
+    return row
+
+
+def mark_password_reset_used(token):
+    conn = db()
+    conn.execute("UPDATE password_reset_tokens SET used_at=? WHERE token=?", (now_iso(), token))
+    conn.commit()
+    conn.close()
+
+
+def reset_user_password(user_id, password):
+    password = str(password or "")
+    if len(password) < 8:
+        raise ValueError("La contraseña debe tener al menos 8 caracteres.")
+    conn = db()
+    conn.execute("UPDATE users SET password_hash=? WHERE id=?", (generate_password_hash(password), user_id))
+    conn.commit()
+    conn.close()
+
+
+def password_reset_request(identifier, scope="client"):
+    user = get_user_by_login(identifier)
+    delivery = {"ok": True, "sent": False, "mode": "silent"}
+    reset_url = ""
+    if user and (scope != "admin" or normalize_role(user.get("role")) == "ADMIN"):
+        token = create_password_reset_token(user, scope)
+        endpoint = "admin_reset_password_page" if scope == "admin" else "reset_password_page"
+        reset_url = url_for(endpoint, token=token, _external=True)
+        body = (
+            "Hola,\n\n"
+            "Hemos recibido una solicitud para restablecer tu contraseña de NeMeSiS SHARK PRO.\n"
+            "El enlace caduca en 30 minutos y solo puede usarse una vez:\n\n"
+            f"{reset_url}\n\n"
+            "Si no has solicitado este cambio, ignora este mensaje."
+        )
+        delivery = send_email_message(user.get("email"), "Restablecer contraseña - NeMeSiS SHARK PRO", body)
+    try:
+        telegram_log("security", "password_reset_requested", "Solicitud de recuperación registrada.", {
+            "scope": scope,
+            "has_user": bool(user),
+            "smtp_mode": delivery.get("mode"),
+            "smtp_ok": delivery.get("ok"),
+        })
+    except Exception:
+        pass
+    return {"ok": True, "delivery": delivery, "diagnostic_reset_url": reset_url if not smtp_configured() else ""}
+
+
 def is_admin_session():
     return normalize_role(session.get("user_role")) == "ADMIN"
 
@@ -5901,9 +6053,28 @@ def service_worker():
     return Response(body, mimetype="application/javascript")
 
 
+def home_light_data():
+    """Datos minimos para que / responda rapido en Render sin cargar dashboard_data()."""
+    return {
+        "app_name": APP_NAME,
+        "version": APP_VERSION,
+        "date": today_iso(),
+        "client_alerts": [],
+        "match_hub": {"counts": {"upcoming": 0, "live": 0, "finished": 0}, "today": [], "live": [], "upcoming": []},
+        "picks": [],
+        "favorites": [],
+        "upcoming_matches": [],
+        "daily_briefing": {"score": 0},
+        "readiness": {"calendar": 95, "live_foundation": 92, "shark_ai": 94},
+    }
+
+
 @app.route("/")
 def home():
-    return render_template("home.html", data=dashboard_data())
+    if request.method == "HEAD":
+        return Response("", status=200)
+    return render_template("home.html", data=home_light_data())
+
 
 
 @app.route("/global")
@@ -6019,7 +6190,7 @@ def register_page():
             return redirect("/perfil")
         except ValueError as exc:
             error = str(exc)
-    return render_template("register.html", data=dashboard_data(), error=error)
+    return render_template("register.html", data=home_light_data(), error=error)
 
 
 @app.route("/cliente-login", methods=["GET", "POST"])
@@ -6036,7 +6207,32 @@ def client_login_page():
             set_login_session(user)
             return redirect("/perfil")
         error = "Email, usuario o contrasena incorrectos."
-    return render_template("client_login.html", data=dashboard_data(), error=error)
+    return render_template("client_login.html", data=home_light_data(), error=error)
+
+
+@app.route("/forgot-password", methods=["GET", "POST"])
+def forgot_password_page():
+    message = ""
+    diagnostic_url = ""
+    if request.method == "POST":
+        result = password_reset_request(request.form.get("login") or request.form.get("email"), scope="client")
+        diagnostic_url = result.get("diagnostic_reset_url") or ""
+        message = "Si existe una cuenta con esos datos, recibirás un enlace para restablecer la contraseña."
+    return render_template("password_reset_request.html", data=home_light_data(), message=message, diagnostic_url=diagnostic_url, admin=False)
+
+
+@app.route("/reset-password/<token>", methods=["GET", "POST"])
+def reset_password_page(token):
+    row = load_password_reset_token(token, scope="client")
+    error = "" if row else "El enlace ha caducado o ya fue usado."
+    if request.method == "POST" and row:
+        try:
+            reset_user_password(row["user_id"], request.form.get("password"))
+            mark_password_reset_used(token)
+            return redirect("/cliente-login")
+        except ValueError as exc:
+            error = str(exc)
+    return render_template("password_reset_form.html", data=home_light_data(), token=token, error=error, admin=False)
 
 
 @app.route("/admin-login", methods=["GET", "POST"])
@@ -6053,7 +6249,32 @@ def admin_login_page():
             set_login_session(user)
             return redirect(request.args.get("next") or "/admin/import-center")
         error = "Acceso admin no valido."
-    return render_template("admin_login.html", data=dashboard_data(), error=error, configured=configured)
+    return render_template("admin_login.html", data=home_light_data(), error=error, configured=configured)
+
+
+@app.route("/admin-forgot-password", methods=["GET", "POST"])
+def admin_forgot_password_page():
+    message = ""
+    diagnostic_url = ""
+    if request.method == "POST":
+        result = password_reset_request(request.form.get("login") or request.form.get("email"), scope="admin")
+        diagnostic_url = result.get("diagnostic_reset_url") or ""
+        message = "Si existe una cuenta admin con esos datos, recibirás un enlace para restablecer la contraseña."
+    return render_template("password_reset_request.html", data=home_light_data(), message=message, diagnostic_url=diagnostic_url, admin=True)
+
+
+@app.route("/admin-reset-password/<token>", methods=["GET", "POST"])
+def admin_reset_password_page(token):
+    row = load_password_reset_token(token, scope="admin")
+    error = "" if row else "El enlace ha caducado o ya fue usado."
+    if request.method == "POST" and row:
+        try:
+            reset_user_password(row["user_id"], request.form.get("password"))
+            mark_password_reset_used(token)
+            return redirect("/admin-login")
+        except ValueError as exc:
+            error = str(exc)
+    return render_template("password_reset_form.html", data=home_light_data(), token=token, error=error, admin=True)
 
 
 @app.route("/admin-bootstrap", methods=["GET", "POST"])
@@ -6094,6 +6315,35 @@ def admin_redirect():
     if not is_admin_session():
         return redirect("/admin-login?next=/admin/data-center")
     return redirect("/admin/data-center")
+
+
+@app.route("/admin/intelligence")
+def admin_intelligence_alias():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/intelligence")
+    return redirect("/admin/unified-intelligence")
+
+
+@app.route("/admin/observability")
+def admin_observability_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/observability")
+    return render_template("admin_observability.html", summary=observability_summary(DB_PATH, APP_VERSION))
+
+
+@app.route("/admin/observability/errors")
+def admin_observability_errors_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/observability/errors")
+    selected = request.args.get("error_id") or ""
+    detail = observability_error_detail(DB_PATH, selected) if selected else {}
+    return render_template(
+        "admin_observability_errors.html",
+        errors=latest_observability_errors(DB_PATH, limit=100),
+        detail=detail,
+        selected_error_id=selected,
+        detail_missing=bool(selected and not detail),
+    )
 
 
 @app.route("/admin/import-center")
@@ -6652,11 +6902,8 @@ def health():
             "app": APP_NAME,
             "version": APP_VERSION,
             "time": now_iso(),
-            "admin_exists": admin_exists(),
-            "users_count": (one("SELECT COUNT(*) AS total FROM users") or {}).get("total", 0),
-            "sportsdb_cached_matches": sportsdb_feed_status().get("cached_matches", 0),
-            "auto_sync_enabled": scheduler_enabled(),
-            "scheduler_tasks": len(scheduler_env_config().get("tasks", [])),
+            "initialized": bool(APP_INITIALIZED),
+            "db_path_configured": bool(DB_PATH),
         }
     )
 
@@ -6664,6 +6911,57 @@ def health():
 @app.route("/api/runtime-version")
 def api_runtime_version():
     return jsonify({"ok": True, "app": APP_NAME, "version": APP_VERSION, "time": now_iso()})
+
+
+@app.route("/api/startup-check")
+def api_startup_check():
+    payload = {
+        "ok": True,
+        "app": APP_NAME,
+        "version": APP_VERSION,
+        "time": now_iso(),
+        "initialized": bool(APP_INITIALIZED),
+        "seeded_db_path": bool(_SEEDED_DB_PATH == DB_PATH),
+        "seed_lock": "ready" if globals().get("SEED_LOCK") is not None else "missing",
+        "scheduler_import_safe": True,
+        "db": {"ok": False, "users": 0, "admin_exists": False},
+        "error": APP_INIT_ERROR,
+    }
+    try:
+        initialize_once()
+        payload["initialized"] = bool(APP_INITIALIZED)
+        payload["seeded_db_path"] = bool(_SEEDED_DB_PATH == DB_PATH)
+        payload["db"] = {
+            "ok": True,
+            "users": (one("SELECT COUNT(*) AS total FROM users") or {}).get("total", 0),
+            "admin_exists": admin_exists(),
+        }
+        payload["error"] = ""
+    except Exception as exc:
+        payload["ok"] = False
+        payload["error"] = str(exc)[:500]
+    return jsonify(payload), (200 if payload["ok"] else 503)
+
+
+@app.route("/api/observability/summary")
+def api_observability_summary():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "version": APP_VERSION, "summary": observability_summary(DB_PATH, APP_VERSION)})
+
+
+@app.route("/api/observability/errors")
+def api_observability_errors():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    error_id = request.args.get("error_id") or ""
+    return jsonify({
+        "ok": True,
+        "version": APP_VERSION,
+        "errors": latest_observability_errors(DB_PATH, limit=100),
+        "detail": observability_error_detail(DB_PATH, error_id) if error_id else {},
+        "found": bool(observability_error_detail(DB_PATH, error_id)) if error_id else False,
+    })
 
 
 @app.route("/api/competitions")
@@ -7676,7 +7974,6 @@ def api_admin_membership_summary():
 
 
 # ===================== V565 SPORTS DATA & PICKS PERFECTION =====================
-APP_VERSION = "V640_TELEGRAM_AUTO_ENV_SYNC_FIX"
 
 PRIORITY_LEAGUE_ORDER = [
     "UEFA Champions League", "Champions League", "LaLiga", "Spanish La Liga", "Premier League",
