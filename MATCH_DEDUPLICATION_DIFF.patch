@@ -1,0 +1,48 @@
+diff --git a/app.py b/app.py
+--- a/app.py
++++ b/app.py
+@@
++Added global logical match deduplication.
++
++New helpers:
++- match_logical_key(match)
++- match_quality_score(match)
++- merge_match_payload(primary, duplicate)
++- dedupe_matches_list(matches)
++- match_deduplication_metrics(sample_limit=5000)
++- cleanup_duplicate_matches(cur=None)
++
++Logical key:
++competition | home_team | away_team | kickoff
++
++Presentation dedupe applied to:
++- get_matches()
++- get_upcoming_matches()
++- get_results_matches()
++- match_hub()
++- Sports Hub lists
++- favorites feed
++- recommendations/pick candidates through get_upcoming_matches()
++
++Database cleanup applied after:
++- upsert_sportsdb_matches()
++- import_matches()
++
++Cleanup behavior:
++- keeps best-quality row
++- merges useful fields from duplicates
++- rewires picks.match_id
++- rewires live_matches.match_id
++- deletes duplicate match rows
++- clears match-hub cache
++
++Diagnostics:
++- total_matches
++- unique_matches
++- duplicates_detected
++- duplicate_groups
++- duplicate_examples
++
++Stability fixes found during mandatory repeated scheduler testing:
++- sync_log_start() now uses random suffix in id and closes DB in finally
++- current_user_id() returns empty outside request context

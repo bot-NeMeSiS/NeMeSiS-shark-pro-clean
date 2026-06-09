@@ -1360,15 +1360,17 @@ def odds_api_get(path, params=None):
 
 
 def sync_log_start(source, sync_type):
-    log_id = hashlib.md5(f"{source}:{sync_type}:{datetime.now(TZ).isoformat(timespec='microseconds')}".encode("utf-8")).hexdigest()[:18]
+    log_id = hashlib.md5(f"{source}:{sync_type}:{datetime.now(TZ).isoformat(timespec='microseconds')}:{secrets.token_hex(4)}".encode("utf-8")).hexdigest()[:18]
     conn = db()
-    conn.execute(
-        """INSERT INTO api_sync_logs(id,source,sync_type,started_at,finished_at,status,total_items,error_message)
-           VALUES (?,?,?,?,?,?,?,?)""",
-        (log_id, source, sync_type, now_iso(), "", "RUNNING", 0, ""),
-    )
-    conn.commit()
-    conn.close()
+    try:
+        conn.execute(
+            """INSERT INTO api_sync_logs(id,source,sync_type,started_at,finished_at,status,total_items,error_message)
+               VALUES (?,?,?,?,?,?,?,?)""",
+            (log_id, source, sync_type, now_iso(), "", "RUNNING", 0, ""),
+        )
+        conn.commit()
+    finally:
+        conn.close()
     return log_id
 
 
@@ -1801,6 +1803,7 @@ def upsert_sportsdb_matches(match_rows):
             updated += 1
         else:
             imported += 1
+    dedupe_result = cleanup_duplicate_matches(cur)
     conn.execute("DELETE FROM persistent_cache WHERE key LIKE 'match-hub:%'")
     summary = {
         "ok": True,
@@ -1810,6 +1813,8 @@ def upsert_sportsdb_matches(match_rows):
         "imported": imported,
         "updated": updated,
         "skipped": skipped,
+        "duplicates_removed": dedupe_result.get("duplicates_removed", 0),
+        "duplicate_groups": dedupe_result.get("groups", 0),
         "processed": len(match_rows),
         "errors": [],
         "last_sync": now_iso(),
@@ -2759,6 +2764,7 @@ def odds_diagnostics():
 def match_calendar_diagnostics():
     seed_core()
     total_matches = (one("SELECT COUNT(*) AS total FROM matches") or {}).get("total", 0)
+    dedupe_metrics = match_deduplication_metrics()
     upcoming = (one("SELECT COUNT(*) AS total FROM matches WHERE match_date>=? AND lower(COALESCE(status,'')) NOT IN ('finalizado','ft','finished','final','match finished')", (today_iso(),)) or {}).get("total", 0)
     finished_count = (one("SELECT COUNT(*) AS total FROM matches WHERE lower(COALESCE(status,'')) IN ('finalizado','ft','finished','final','match finished') OR (match_date<? AND COALESCE(score,'')!='')", (today_iso(),)) or {}).get("total", 0)
     live_count = (one("SELECT COUNT(*) AS total FROM matches WHERE lower(COALESCE(status,'')) IN ('live','directo','descanso','ht','1h','2h')") or {}).get("total", 0)
@@ -2779,6 +2785,10 @@ def match_calendar_diagnostics():
         "total_competitions": (one("SELECT COUNT(*) AS total FROM competitions") or {}).get("total", 0),
         "total_teams": (one("SELECT COUNT(*) AS total FROM teams") or {}).get("total", 0),
         "total_matches": total_matches,
+        "unique_matches": dedupe_metrics["unique_matches"],
+        "duplicates_detected": dedupe_metrics["duplicates_detected"],
+        "duplicate_groups": dedupe_metrics["duplicate_groups"],
+        "duplicate_examples": dedupe_metrics["examples"],
         "upcoming_matches": upcoming,
         "live_matches": live_count,
         "finished_matches": finished_count,
@@ -2989,6 +2999,8 @@ def import_matches(import_rows, source_name="manual", source_url="", legal_note=
             ),
         )
         count += 1
+    dedupe_result = cleanup_duplicate_matches(cur)
+    cur.execute("DELETE FROM persistent_cache WHERE key LIKE 'match-hub:%'")
     import_id = hashlib.md5(f"{source_name}-{now_iso()}-{count}".encode("utf-8")).hexdigest()[:18]
     cur.execute(
         """INSERT INTO imports
@@ -2999,7 +3011,7 @@ def import_matches(import_rows, source_name="manual", source_url="", legal_note=
     conn.commit()
     conn.close()
     sync_log_finish(sync_log_start("import", "matches"), "OK", count, "")
-    return {"ok": True, "imported": count, "import_id": import_id}
+    return {"ok": True, "imported": count, "import_id": import_id, "duplicates_removed": dedupe_result.get("duplicates_removed", 0), "duplicate_groups": dedupe_result.get("groups", 0)}
 
 
 def import_teams(team_rows, source_name="manual", legal_note="Carga autorizada"):
@@ -3852,13 +3864,13 @@ def favorite_feed(limit=80, user_id=None):
     favs = favorite_sets(user_id=user_id)
     if not favs["all"]:
         return []
-    data = get_matches(today_iso(), "today")
+    data = dedupe_matches_list(get_matches(today_iso(), "today"))
     feed = []
     for match in data:
         annotated = annotate_match(match, favs)
         if annotated.get("is_favorite"):
             feed.append(annotated)
-    return feed[: int(limit)]
+    return dedupe_matches_list(feed)[: int(limit)]
 
 
 def related_picks_for_match(match, limit=8):
@@ -3881,7 +3893,7 @@ def related_picks_for_match(match, limit=8):
 
 
 def favorite_feed_full(limit=80, user_id=None):
-    matches = favorite_feed(limit, user_id=user_id)
+    matches = dedupe_matches_list(favorite_feed(limit, user_id=user_id))
     match_ids = {str(m.get("id") or "").lower() for m in matches}
     teams = {str(m.get("home_team") or "").lower() for m in matches} | {str(m.get("away_team") or "").lower() for m in matches}
     comps = {str(m.get("competition_key") or "").lower() for m in matches}
@@ -3895,7 +3907,7 @@ def favorite_feed_full(limit=80, user_id=None):
             or str(pick.get("competition_key") or "").lower() in comps
         ):
             picks_related.append(pick)
-    prioritized = sorted(matches, key=lambda m: (1 if (m.get("live_depth") or {}).get("state") in {"LIVE", "HT"} else 0, m.get("real_time_score", m.get("priority", 0))), reverse=True)
+    prioritized = sorted(dedupe_matches_list(matches), key=lambda m: (1 if (m.get("live_depth") or {}).get("state") in {"LIVE", "HT"} else 0, m.get("real_time_score", m.get("priority", 0))), reverse=True)
     return {"matches": prioritized, "live": live_related, "picks": picks_related[:20], "priority": prioritized[:10]}
 
 
@@ -4261,7 +4273,7 @@ def get_results_matches(start_date=None, days_back=14, limit=150):
                WHERE match_date>=? AND match_date<?
                ORDER BY match_date DESC, kickoff_time, competition_name
                LIMIT ?"""
-    data = [item for item in rows(query, (start, start_date, int(limit))) if not is_fake_match(item)]
+    data = dedupe_matches_list([item for item in rows(query, (start, start_date, int(limit))) if not is_fake_match(item)])
     enriched = []
     for item in data:
         item["kickoff_time"] = item.get("kickoff_time") or item.get("match_time") or ""
@@ -4351,18 +4363,19 @@ def match_hub(date=None, lane="today"):
     favs = favorite_sets()
     favorites = get_favorites()
     picks = get_picks(limit=200)
-    today_matches = [annotate_match(m, favs) for m in get_matches(date, "today")]
-    window_matches = [annotate_match(m, favs) for m in get_upcoming_matches(date, days=10, limit=500)]
-    result_matches = get_results_matches(date, days_back=21, limit=250)
+    today_matches = dedupe_matches_list([annotate_match(m, favs) for m in get_matches(date, "today")])
+    window_matches = dedupe_matches_list([annotate_match(m, favs) for m in get_upcoming_matches(date, days=10, limit=500)])
+    result_matches = dedupe_matches_list(get_results_matches(date, days_back=21, limit=250))
     combined = []
     seen = set()
-    source_matches = result_matches if lane in {"results", "finished"} else today_matches + window_matches + (result_matches[:120] if lane == "week" else [])
+    source_matches = result_matches if lane in {"results", "finished"} else dedupe_matches_list(today_matches + window_matches + (result_matches[:120] if lane == "week" else []))
     for match in source_matches:
-        if match.get("id") in seen:
+        logical_key = match_logical_key(match)
+        if logical_key in seen:
             continue
         if not match_lane_filter(match, lane):
             continue
-        seen.add(match.get("id"))
+        seen.add(logical_key)
         combined.append(match)
     sections = hub_sections(combined, favorites=favorites, picks=picks)
     live_state = split_live(combined)
@@ -4576,6 +4589,8 @@ def current_session_user():
 
 
 def current_user_id():
+    if not has_request_context():
+        return ""
     return session.get("user_id") or ""
 
 
@@ -5925,7 +5940,7 @@ def get_matches(date=None, lane="today"):
     elif lane == "andalucia":
         clauses.append("lower(competition_key)='andalucia-regional'")
     query = "SELECT * FROM matches WHERE " + " AND ".join(clauses) + " ORDER BY priority DESC, kickoff_time, competition_name LIMIT 300"
-    data = [item for item in rows(query, params) if not is_fake_match(item)]
+    data = dedupe_matches_list([item for item in rows(query, params) if not is_fake_match(item)])
     for item in data:
         item["kickoff_time"] = item.get("kickoff_time") or item.get("match_time") or ""
         if not item.get("score") and (item.get("home_score") or item.get("away_score")):
@@ -5948,7 +5963,7 @@ def get_upcoming_matches(start_date=None, days=7, limit=300):
                WHERE match_date>=? AND match_date<=?
                ORDER BY match_date, kickoff_time, priority DESC, competition_name
                LIMIT ?"""
-    data = [item for item in rows(query, (start_date, end_date, int(limit))) if not is_fake_match(item)]
+    data = dedupe_matches_list([item for item in rows(query, (start_date, end_date, int(limit))) if not is_fake_match(item)])
     for item in data:
         item["kickoff_time"] = item.get("kickoff_time") or item.get("match_time") or ""
         if not item.get("score") and (item.get("home_score") or item.get("away_score")):
@@ -5977,23 +5992,184 @@ def split_live(matches):
     return {"live": live, "scheduled": scheduled, "finished": finished}
 
 
+def match_logical_key(match):
+    match = match or {}
+    competition = normalized_label(match.get("competition_name") or match.get("league_name") or match.get("competition_key") or "")
+    home = normalized_label(match.get("home_team") or "")
+    away = normalized_label(match.get("away_team") or "")
+    date_value = str(match.get("match_date") or "").strip()[:10]
+    time_value = str(match.get("kickoff_time") or match.get("match_time") or "").strip()[:5]
+    kickoff = str(match.get("kickoff_iso") or "").strip()
+    if "T" in kickoff:
+        kickoff = kickoff[:16]
+    elif date_value:
+        kickoff = f"{date_value}T{time_value or '00:00'}"
+    else:
+        kickoff = time_value or "sin-hora"
+    return "|".join([competition or "sin-competicion", home or "local", away or "visitante", kickoff])
+
+
+def match_quality_score(match):
+    match = match or {}
+    info = canonical_match_status(match)
+    score = as_int(match.get("priority"), 0)
+    if info.get("is_live"):
+        score += 60
+    if info.get("is_finished"):
+        score += 20
+    if match.get("score") or match.get("home_score") or match.get("away_score"):
+        score += 25
+    if match.get("bookmaker") or match.get("odds_h2h_json"):
+        score += 20
+    if match.get("home_logo"):
+        score += 8
+    if match.get("away_logo"):
+        score += 8
+    if match.get("external_id"):
+        score += 5
+    if "sportsdb" in str(match.get("source") or "").lower():
+        score += 4
+    return score
+
+
+def merge_match_payload(primary, duplicate):
+    merged = dict(primary or {})
+    for key in (
+        "external_id", "kickoff_time", "match_time", "kickoff_iso", "competition_id", "competition_key",
+        "competition_name", "league_name", "country", "home_team_id", "away_team_id", "home_logo", "away_logo",
+        "status", "minute", "score", "home_score", "away_score", "venue", "season", "round", "bookmaker",
+        "odds_h2h_json", "odds_updated_at", "raw_json",
+    ):
+        if not merged.get(key) and (duplicate or {}).get(key):
+            merged[key] = duplicate.get(key)
+    if match_quality_score(duplicate) > match_quality_score(merged):
+        better = dict(duplicate or {})
+        for key, value in merged.items():
+            if not better.get(key) and value:
+                better[key] = value
+        return better
+    return merged
+
+
 def dedupe_matches_list(matches):
-    seen = set()
-    out = []
+    seen = {}
     for match in matches or []:
-        key = str(match.get("id") or "").strip()
-        if not key:
-            key = "|".join([
-                str(match.get("match_date") or ""),
-                normalized_label(match.get("home_team") or ""),
-                normalized_label(match.get("away_team") or ""),
-                normalized_label(match.get("competition_name") or match.get("league_name") or ""),
-            ])
-        if key in seen:
+        key = match_logical_key(match)
+        current = seen.get(key)
+        if not current:
+            seen[key] = match
             continue
-        seen.add(key)
-        out.append(match)
-    return out
+        seen[key] = merge_match_payload(current, match)
+    return list(seen.values())
+
+
+def match_deduplication_metrics(sample_limit=5000):
+    all_matches = [m for m in rows("SELECT * FROM matches ORDER BY match_date DESC, kickoff_time DESC LIMIT ?", (int(sample_limit),)) if not is_fake_match(m)]
+    unique = dedupe_matches_list(all_matches)
+    duplicate_total = max(0, len(all_matches) - len(unique))
+    groups = {}
+    for match in all_matches:
+        groups.setdefault(match_logical_key(match), []).append(match)
+    duplicate_groups = [
+        {
+            "key": key,
+            "count": len(items),
+            "keeper": max(items, key=match_quality_score).get("id"),
+            "ids": [item.get("id") for item in items],
+            "label": f"{items[0].get('home_team')} vs {items[0].get('away_team')}",
+            "competition": items[0].get("competition_name") or items[0].get("league_name") or items[0].get("competition_key"),
+            "kickoff": items[0].get("kickoff_iso") or f"{items[0].get('match_date')} {items[0].get('kickoff_time') or items[0].get('match_time') or ''}".strip(),
+        }
+        for key, items in groups.items()
+        if len(items) > 1
+    ]
+    duplicate_groups.sort(key=lambda item: item["count"], reverse=True)
+    return {
+        "total_matches": len(all_matches),
+        "unique_matches": len(unique),
+        "duplicates_detected": duplicate_total,
+        "duplicate_groups": len(duplicate_groups),
+        "examples": duplicate_groups[:20],
+    }
+
+
+def cleanup_duplicate_matches(cur=None):
+    own_conn = None
+    if cur is None:
+        own_conn = db()
+        cur = own_conn.cursor()
+    try:
+        raw = cur.execute("SELECT * FROM matches ORDER BY match_date DESC, kickoff_time DESC").fetchall()
+    except sqlite3.OperationalError:
+        if own_conn:
+            own_conn.close()
+        return {"duplicates_removed": 0, "groups": 0}
+    by_key = {}
+    for row in raw:
+        item = dict(row)
+        if is_fake_match(item):
+            continue
+        by_key.setdefault(match_logical_key(item), []).append(item)
+    removed = 0
+    groups = 0
+    for items in by_key.values():
+        if len(items) <= 1:
+            continue
+        groups += 1
+        keeper = max(items, key=match_quality_score)
+        merged = dict(keeper)
+        for item in items:
+            if item.get("id") == keeper.get("id"):
+                continue
+            merged = merge_match_payload(merged, item)
+        cur.execute(
+            """UPDATE matches
+               SET external_id=?, kickoff_time=?, match_time=?, kickoff_iso=?, competition_id=?, competition_key=?,
+                   competition_name=?, league_name=?, country=?, home_team_id=?, away_team_id=?, home_logo=?, away_logo=?,
+                   status=?, minute=?, score=?, home_score=?, away_score=?, venue=?, season=?, round=?, bookmaker=?,
+                   odds_h2h_json=?, odds_updated_at=?, raw_json=?, updated_at=?
+               WHERE id=?""",
+            (
+                merged.get("external_id") or "",
+                merged.get("kickoff_time") or "",
+                merged.get("match_time") or merged.get("kickoff_time") or "",
+                merged.get("kickoff_iso") or "",
+                merged.get("competition_id") or "",
+                merged.get("competition_key") or "",
+                merged.get("competition_name") or "",
+                merged.get("league_name") or "",
+                merged.get("country") or "",
+                merged.get("home_team_id") or "",
+                merged.get("away_team_id") or "",
+                merged.get("home_logo") or "",
+                merged.get("away_logo") or "",
+                merged.get("status") or "",
+                merged.get("minute") or "",
+                merged.get("score") or "",
+                merged.get("home_score") or "",
+                merged.get("away_score") or "",
+                merged.get("venue") or "",
+                merged.get("season") or "",
+                merged.get("round") or "",
+                merged.get("bookmaker") or "",
+                merged.get("odds_h2h_json") or "",
+                merged.get("odds_updated_at") or "",
+                merged.get("raw_json") or "{}",
+                now_iso(),
+                keeper.get("id"),
+            ),
+        )
+        delete_ids = [item.get("id") for item in items if item.get("id") != keeper.get("id")]
+        for duplicate_id in delete_ids:
+            cur.execute("UPDATE picks SET match_id=? WHERE match_id=?", (keeper.get("id"), duplicate_id))
+            cur.execute("UPDATE live_matches SET match_id=? WHERE match_id=?", (keeper.get("id"), duplicate_id))
+            cur.execute("DELETE FROM matches WHERE id=?", (duplicate_id,))
+            removed += 1
+    if own_conn:
+        own_conn.commit()
+        own_conn.close()
+    return {"duplicates_removed": removed, "groups": groups}
+
 
 
 def sports_hub_groups(matches):
