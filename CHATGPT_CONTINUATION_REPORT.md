@@ -1,146 +1,79 @@
 # CHATGPT CONTINUATION REPORT
 
-## 1. Estado Inicial
+## 1. Estado inicial
 
-El proyecto esta en `V705_SPORTS_DATA_DOMINATION_LAUNCH_CERTIFICATION`. V705 dejo el codigo preparado para mayor cobertura deportiva, pero V706 se pidio sin tocar codigo: solo certificar la realidad de produccion.
+Antes de V705, V704 ya habia ampliado limites visuales, competiciones y lectura de cuotas outcomes. El problema pendiente era certificar la verdad: saber si la app parece vacia por codigo o por falta de datos reales en Render.
 
-## 2. Realidad Detectada
+## 2. Que limitaba cobertura
 
-La carpeta local no contiene base de datos real. La app usa:
+- Limites restantes en SportsDB feed/resultados: 80.
+- Daily automation con limites bajos.
+- Admin Picks con solo 80 partidos.
+- No hay DB real local para medir produccion.
+- Las APIs requieren claves reales.
 
-- `DB_PATH=/data/database.db`
+## 3. Que se corrigio
 
-Ese archivo pertenece al Persistent Disk de Render, no a la carpeta local. Por eso no se pueden saber desde aqui los numeros reales de produccion.
+- SportsDB feed/resultados suben a 220.
+- Scheduler odds sube a 250.
+- Scheduler live sube a 160.
+- Scheduler recommendations sube a 120.
+- Daily automation sube calendar/live/recommendations/auto_picks.
+- Admin Picks sube a 220 partidos y 21 dias.
+- Version V705 actualizada.
 
-## 3. Cobertura Real
+## 4. Numero estimado de ligas visibles
 
-Estado:
+En smoke controlado: 10 ligas. En produccion: no verificable sin DB Render.
 
-- Partidos reales: NO VERIFICABLE desde local.
-- Ligas reales: NO VERIFICABLE desde local.
-- Picks reales: NO VERIFICABLE desde local.
-- Cuotas reales: NO VERIFICABLE desde local.
-- Live real: NO VERIFICABLE desde local.
+## 5. Numero estimado de partidos visibles
 
-## 4. Que Si Se Sabe
+En smoke controlado: 28 totales, 18 hoy, 10 manana, 28 semana. En produccion: no verificable localmente.
 
-El codigo integra:
+## 6. Numero estimado de picks visibles
 
-- TheSportsDB.
-- The Odds API.
-- SQLite persistente.
-- Scheduler.
-- Telegram.
-- Picks.
-- SHARK.
-- Sports Hub.
-- Backups.
-- Observabilidad.
+En smoke controlado: 12 picks publicados y 22 candidatos.
 
-Pero integracion no equivale a produccion certificada.
+## 7. Numero estimado de cuotas visibles
 
-## 5. Telegram
+En smoke controlado: 28 partidos con cuotas reconocidas.
 
-Estado real:
+## 8. Estado Telegram real
 
-- Codigo: LISTO.
-- Canal real: PENDIENTE.
-- Privado real: PENDIENTE.
-- Automatico real: PENDIENTE.
-- Manual real: PENDIENTE.
+Rutas y codigo: LISTO. Envio real privado/canal: PENDIENTE. Certificacion completa: NO VERIFICABLE sin Render/token/canal/usuario real.
 
-No debe considerarse Telegram certificado hasta probar envio real en Render.
+## 9. Estado SHARK real
 
-## 6. SHARK
+SHARK funciona sobre datos disponibles. En smoke: 22 recomendaciones/partidos con SHARK. Para valor real necesita datos historicos y cuotas reales constantes.
 
-SHARK esta preparado para trabajar sobre partidos, picks, cuotas y recomendaciones. Su valor real depende de tener datos reales suficientes.
+## 10. Que falta para competir con Flashscore
 
-Estado:
+- Cobertura real diaria de muchas ligas.
+- Live real con eventos, minuto y marcador fiable.
+- Alineaciones, estadisticas, timeline y clasificaciones.
+- Mas deportes si se quiere competir fuera de futbol.
+- Cache caliente y sincronizaciones programadas estables.
 
-- Codigo: LISTO.
-- Valor real en produccion: NO VERIFICABLE sin datos Render.
+## 11. Que falta para lanzamiento
 
-## 7. Render
+- Probar sync real en Render.
+- Confirmar volumen en `/data/database.db`.
+- Probar Telegram real.
+- Monitorizar varios dias.
+- Revisar que las cuotas entran con mercados suficientes.
 
-Estado:
+## 12. Puntuacion real de producto
 
-- Configuracion local lista.
-- `render.yaml` apunta a `DB_PATH=/data/database.db`.
-- No hay acceso Render MCP/CLI activo en esta sesion.
+- Arquitectura: 8.9/10
+- Estabilidad: 9.1/10
+- Cobertura potencial: 8.7/10
+- Cobertura real certificada localmente: 5.5/10 por falta de DB/API productiva local
+- Sports Hub: 9.0/10
+- Picks: 8.8/10
+- Odds: 8.4/10
+- SHARK: 8.6/10
+- Telegram: 8.3/10
+- Launch beta: 8.6/10
+- Launch venta abierta: 7.4/10 hasta validar Render real
 
-Por tanto:
-
-- Logs reales: NO VERIFICABLE.
-- Metricas reales: NO VERIFICABLE.
-- Persistent Disk real: NO VERIFICABLE.
-- DB productiva: NO VERIFICABLE.
-
-## 8. Launch Readiness
-
-Beta controlada:
-
-- SI, si antes se valida Render.
-
-Usuarios reales:
-
-- SI, con cupo reducido y monitorizacion.
-
-Clientes PRO:
-
-- CASI, si hay picks/cuotas reales recurrentes.
-
-Clientes ELITE:
-
-- AUN NO para venta abierta sin demostrar mas valor real.
-
-Ventas manana:
-
-- No recomendadas hasta validar datos reales y Telegram real.
-
-## 9. Que Falta Para Competir Con Flashscore
-
-1. Volumen real de partidos diario.
-2. Live real fiable.
-3. Cuotas reales frecuentes.
-4. Eventos/timeline.
-5. Estadisticas de partido.
-6. Alineaciones.
-7. Clasificaciones.
-8. Resultados historicos.
-9. Cobertura de mas competiciones.
-10. Monitorizacion diaria.
-
-## 10. Puntuacion Real
-
-- Codigo base: 8.9/10
-- UX actual: 8.8/10
-- Preparacion tecnica: 8.7/10
-- Cobertura potencial: 8.8/10
-- Cobertura real certificada: 0/10 desde local, porque no hay acceso a DB Render
-- Telegram codigo: 8.5/10
-- Telegram certificado real: 0/10 desde local
-- Launch beta: 8.0/10 condicionado a validar Render
-- Launch venta abierta: 6.8/10 hasta certificar datos reales
-
-## 11. Recomendacion Para El Siguiente Paso
-
-No hacer mas codigo ahora.
-
-El siguiente paso debe ser entrar a Render y medir:
-
-- conteo de partidos,
-- conteo de ligas,
-- conteo de picks,
-- conteo de cuotas,
-- scheduler,
-- Telegram,
-- errores,
-- tiempos de carga.
-
-## 12. Conclusion
-
-La app esta preparada tecnicamente para beta, pero la realidad de produccion aun no esta certificada desde esta sesion.
-
-La pregunta importante ya no es si el codigo puede mostrar mucha cobertura. Puede.
-
-La pregunta real es si Render esta recibiendo y guardando suficientes datos reales cada dia.
+Conclusion: V705 deja el codigo preparado para cobertura mucho mayor. La verdad final depende de alimentar Render con datos reales y verificar Telegram real. No hace falta mas arquitectura; hace falta certificacion operativa en produccion.
