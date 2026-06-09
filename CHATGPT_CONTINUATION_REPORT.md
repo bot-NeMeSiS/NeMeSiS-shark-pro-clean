@@ -1,56 +1,146 @@
 # CHATGPT CONTINUATION REPORT
 
-## Estado actual tras V704
+## 1. Estado Inicial
 
-NeMeSiS SHARK PRO esta en `V704_DATA_EXPANSION_REAL_SPORTS_COVERAGE`.
+El proyecto esta en `V705_SPORTS_DATA_DOMINATION_LAUNCH_CERTIFICATION`. V705 dejo el codigo preparado para mayor cobertura deportiva, pero V706 se pidio sin tocar codigo: solo certificar la realidad de produccion.
 
-V703 dejo la app mas bonita, compacta y premium. V704 se centro en el problema real siguiente: poca sensacion de cobertura deportiva. No se han inventado datos ni creado contenido demo en produccion. Se ampliaron limites, competiciones configuradas, candidatos, recomendaciones y lectura de cuotas reales cacheadas.
+## 2. Realidad Detectada
 
-## Cambios tecnicos clave
+La carpeta local no contiene base de datos real. La app usa:
 
-- `get_matches()` sube limite a 300.
-- `get_upcoming_matches()` sube limite por defecto a 300.
-- Sports Hub puede mostrar muchos mas partidos por seccion.
-- Picks candidatos suben a 80 y ventana 21 dias.
-- Smart Pick Board analiza mas candidatos y muestra mas hot picks.
-- The Odds API sync sube limite por defecto a 250.
-- `v565_extract_odds()` ahora entiende `outcomes` de The Odds API.
-- Se amplian competiciones configuradas: Segunda, Championship, FA Cup, Serie B, Bundesliga 2, Ligue 2, Libertadores, Sudamericana, etc.
-- `resolve_team()` tiene cache en memoria.
-- `annotate_match()` ya no rompe fuera de request context.
+- `DB_PATH=/data/database.db`
 
-## Validacion
+Ese archivo pertenece al Persistent Disk de Render, no a la carpeta local. Por eso no se pueden saber desde aqui los numeros reales de produccion.
 
-- Compileall OK.
-- Smoke local V704: 29 rutas, 0 errores, 0 respuestas 4xx/5xx.
-- Cobertura smoke: 16 partidos, 8 ligas, 6 picks, 16 partidos con cuotas reconocidas.
+## 3. Cobertura Real
 
-## Estado de Telegram
+Estado:
 
-Telegram no se ha roto. Se validaron pantallas y diagnosticos sin envio real. El envio real sigue pendiente de Render con credenciales reales.
+- Partidos reales: NO VERIFICABLE desde local.
+- Ligas reales: NO VERIFICABLE desde local.
+- Picks reales: NO VERIFICABLE desde local.
+- Cuotas reales: NO VERIFICABLE desde local.
+- Live real: NO VERIFICABLE desde local.
 
-## Estado de SHARK
+## 4. Que Si Se Sabe
 
-SHARK recibe mas candidatos y mas cuotas reconocidas. Sigue siendo honesto: si faltan datos, no inventa picks.
+El codigo integra:
 
-## Estado de experiencia tipo Flashscore/Sofascore
+- TheSportsDB.
+- The Odds API.
+- SQLite persistente.
+- Scheduler.
+- Telegram.
+- Picks.
+- SHARK.
+- Sports Hub.
+- Backups.
+- Observabilidad.
 
-La app esta mas cerca porque puede mostrar mas partidos, ligas y cuotas. Aun falta para igualar Flashscore: datos live profundos, alineaciones, eventos, estadisticas detalladas, cobertura multisport real y mayor volumen confirmado desde APIs en Render.
+Pero integracion no equivale a produccion certificada.
 
-## Limitacion principal
+## 5. Telegram
 
-No se pudo medir la cobertura real de produccion porque esta sesion no tiene acceso a la DB persistente de Render ni a red/API real. Las cifras locales son de smoke controlado para validar capacidad, no volumen real de usuarios.
+Estado real:
 
-## Siguiente paso recomendado
+- Codigo: LISTO.
+- Canal real: PENDIENTE.
+- Privado real: PENDIENTE.
+- Automatico real: PENDIENTE.
+- Manual real: PENDIENTE.
 
-Ejecutar en Render:
+No debe considerarse Telegram certificado hasta probar envio real en Render.
 
-- Sync SportsDB.
-- Sync Odds con `ENABLE_ODDS_API=true`.
-- Revisar `/api/matches/diagnostics`.
-- Revisar `/api/odds/diagnostics`.
-- Abrir Sports Hub/Calendar/Picks con datos reales y medir volumen.
+## 6. SHARK
 
-## Conclusion
+SHARK esta preparado para trabajar sobre partidos, picks, cuotas y recomendaciones. Su valor real depende de tener datos reales suficientes.
 
-V704 elimina recortes artificiales y mejora el aprovechamiento de datos reales. Si Render tiene datos suficientes, NeMeSiS ya deberia transmitir mucha mas cobertura deportiva. El siguiente cuello de botella no es tanto UI, sino alimentar la DB con fuentes reales y validar volumen en produccion.
+Estado:
+
+- Codigo: LISTO.
+- Valor real en produccion: NO VERIFICABLE sin datos Render.
+
+## 7. Render
+
+Estado:
+
+- Configuracion local lista.
+- `render.yaml` apunta a `DB_PATH=/data/database.db`.
+- No hay acceso Render MCP/CLI activo en esta sesion.
+
+Por tanto:
+
+- Logs reales: NO VERIFICABLE.
+- Metricas reales: NO VERIFICABLE.
+- Persistent Disk real: NO VERIFICABLE.
+- DB productiva: NO VERIFICABLE.
+
+## 8. Launch Readiness
+
+Beta controlada:
+
+- SI, si antes se valida Render.
+
+Usuarios reales:
+
+- SI, con cupo reducido y monitorizacion.
+
+Clientes PRO:
+
+- CASI, si hay picks/cuotas reales recurrentes.
+
+Clientes ELITE:
+
+- AUN NO para venta abierta sin demostrar mas valor real.
+
+Ventas manana:
+
+- No recomendadas hasta validar datos reales y Telegram real.
+
+## 9. Que Falta Para Competir Con Flashscore
+
+1. Volumen real de partidos diario.
+2. Live real fiable.
+3. Cuotas reales frecuentes.
+4. Eventos/timeline.
+5. Estadisticas de partido.
+6. Alineaciones.
+7. Clasificaciones.
+8. Resultados historicos.
+9. Cobertura de mas competiciones.
+10. Monitorizacion diaria.
+
+## 10. Puntuacion Real
+
+- Codigo base: 8.9/10
+- UX actual: 8.8/10
+- Preparacion tecnica: 8.7/10
+- Cobertura potencial: 8.8/10
+- Cobertura real certificada: 0/10 desde local, porque no hay acceso a DB Render
+- Telegram codigo: 8.5/10
+- Telegram certificado real: 0/10 desde local
+- Launch beta: 8.0/10 condicionado a validar Render
+- Launch venta abierta: 6.8/10 hasta certificar datos reales
+
+## 11. Recomendacion Para El Siguiente Paso
+
+No hacer mas codigo ahora.
+
+El siguiente paso debe ser entrar a Render y medir:
+
+- conteo de partidos,
+- conteo de ligas,
+- conteo de picks,
+- conteo de cuotas,
+- scheduler,
+- Telegram,
+- errores,
+- tiempos de carga.
+
+## 12. Conclusion
+
+La app esta preparada tecnicamente para beta, pero la realidad de produccion aun no esta certificada desde esta sesion.
+
+La pregunta importante ya no es si el codigo puede mostrar mucha cobertura. Puede.
+
+La pregunta real es si Render esta recibiendo y guardando suficientes datos reales cada dia.

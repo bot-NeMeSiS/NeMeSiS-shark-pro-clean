@@ -59,7 +59,7 @@ from engines.telegram_delivery_engine import (
 from engines.telegram_engine import build_alert_queue, dispatch_signature, should_skip_duplicate
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V704_DATA_EXPANSION_REAL_SPORTS_COVERAGE"
+APP_VERSION = "V705_SPORTS_DATA_DOMINATION_LAUNCH_CERTIFICATION"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -1699,7 +1699,7 @@ def sportsdb_event_collection(payload):
     return []
 
 
-def fetch_sportsdb_feed_events(limit=80):
+def fetch_sportsdb_feed_events(limit=220):
     events = []
     errors = []
     try:
@@ -1825,7 +1825,7 @@ def upsert_sportsdb_matches(match_rows):
     return summary
 
 
-def sync_sportsdb_feed(limit=80):
+def sync_sportsdb_feed(limit=220):
     seed_core()
     if not thesportsdb_key():
         result = {"ok": False, "sin_key": True, "imported": 0, "updated": 0, "processed": 0, "errors": ["Falta THESPORTSDB_API_KEY o THESPORTSDB_KEY."]}
@@ -2069,7 +2069,7 @@ def sync_sportsdb_teams(limit=240):
     }
 
 
-def fetch_sportsdb_results(limit=80):
+def fetch_sportsdb_results(limit=220):
     events = []
     errors = []
     if not thesportsdb_key():
@@ -2089,7 +2089,7 @@ def fetch_sportsdb_results(limit=80):
     return events[: int(limit)], errors
 
 
-def sync_sportsdb_results(limit=80):
+def sync_sportsdb_results(limit=220):
     seed_core()
     log_id = sync_log_start("sportsdb", "results")
     try:
@@ -2404,11 +2404,11 @@ def run_scheduler_task(task_name, force=False, limit=None):
                 "crests": crest_result,
             }
         elif task_name == "odds":
-            result = sync_odds_events(limit=limit or 80, force=force)
+            result = sync_odds_events(limit=limit or 250, force=force)
         elif task_name == "live":
-            result = refresh_live_basic(limit=limit or 80)
+            result = refresh_live_basic(limit=limit or 160)
         elif task_name == "recommendations":
-            result = refresh_recommendations_basic(limit=limit or 40)
+            result = refresh_recommendations_basic(limit=limit or 120)
         elif task_name == "auto_picks":
             result = refresh_auto_picks_basic(limit=limit or 40)
         elif task_name == "live_alerts":
@@ -2570,10 +2570,10 @@ def daily_automation_summary():
 def run_daily_autonomous_system(force=False):
     started = datetime.now(TZ)
     tasks = {
-        "calendar": run_scheduler_task("calendar", force=force, limit=80),
-        "live": run_scheduler_task("live", force=force, limit=60),
-        "recommendations": run_scheduler_task("recommendations", force=force, limit=30),
-        "auto_picks": run_scheduler_task("auto_picks", force=force, limit=30),
+        "calendar": run_scheduler_task("calendar", force=force, limit=220),
+        "live": run_scheduler_task("live", force=force, limit=160),
+        "recommendations": run_scheduler_task("recommendations", force=force, limit=120),
+        "auto_picks": run_scheduler_task("auto_picks", force=force, limit=80),
         "telegram": telegram_scheduler_delivery(force=force),
         "backup": create_database_backup(reason="daily_autonomous_system"),
     }
@@ -6690,7 +6690,7 @@ def admin_picks_page():
     data = dashboard_data()
     data["admin_picks"] = get_picks(limit=120, include_admin=True)
     data["pick_stats"] = pick_stats()
-    data["matches_for_pick"] = get_upcoming_matches(today_iso(), days=14, limit=80)
+    data["matches_for_pick"] = get_upcoming_matches(today_iso(), days=21, limit=220)
     return render_template("admin_picks.html", data=data, message=message, result=result)
 
 
