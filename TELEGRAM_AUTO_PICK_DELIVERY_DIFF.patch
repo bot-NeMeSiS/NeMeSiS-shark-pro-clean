@@ -1,0 +1,58 @@
+diff --git a/app.py b/app.py
+--- a/app.py
++++ b/app.py
+@@
++# Telegram automatic pick delivery fix
++# - auto picks now persist high-score SHARK recommendations as published picks
++# - automatic Telegram destinations always include TELEGRAM_CHAT_ID as global channel
++# - private linked users are added by FREE/PRO/ELITE membership eligibility
++# - auto_pick messages use pick_id + destination dedupe keys
++# - diagnostics expose last_auto_pick and pending auto_pick queue
++
+@@ refresh_auto_picks_basic
++MIN_SHARK_SCORE_FOR_AUTO_SEND / AUTO_PICKS_MIN_SCORE now control candidate score.
++MAX_AUTO_PICKS_PER_DAY now limits persisted automatic picks.
++Candidates are persisted through ensure_auto_pick_from_recommendation().
++Duplicate match/market/selection/source combinations are skipped safely.
++
+@@ create_or_update_pick
++Added ensure_auto_pick_from_recommendation(rec).
++Creates deterministic pick_id from match_id + market + selection.
++Checks existing picks before insert.
++Logs [AUTO_PICKS] created/skipped events.
++
+@@ telegram_subscribers
++Added telegram_auto_destinations(required_membership, include_global=True).
++Always adds TELEGRAM_CHAT_ID as channel destination when configured.
++Adds linked private subscribers only when their membership allows the pick.
++Deduplicates destinations by chat_id.
++
+@@ enqueue_daily_picks
+-Automatic daily picks depended on PRO/ELITE subscribers only.
++Automatic daily picks now use telegram_auto_destinations("PRO").
++The global channel receives picks even if there are no private linked users.
++
+@@ telegram delivery
++Added enqueue_auto_pick_alerts(force=False, limit=6).
++Finds eligible published auto picks.
++Filters by MIN_SHARK_SCORE_FOR_AUTO_SEND.
++Enqueues message_type=auto_pick per destination.
++Uses telegram_dedupe_key("auto_pick", pick_id, chat_id) so the first send is allowed and real duplicates are skipped.
++Logs [QUEUE] decisions.
++
+@@ process_premium_telegram_queue
+-Delivery logs used generic "send".
++Delivery logs now use [TELEGRAM] with masked chat_id, queue_id and result.
++
+@@ telegram_diagnostics
++Adds last_auto_pick.
++Adds auto_pick_pending.
++last_auto now includes [AUTO_PICKS], [QUEUE] and [TELEGRAM] events.
++
+@@ telegram_scheduler_delivery
++When auto_daily_picks is due, scheduler now runs enqueue_auto_pick_alerts() before the daily summary.
++The queue is processed afterwards by the existing process_premium_telegram_queue().
++
+@@ admin repair actions
++Admin repair now queues auto picks as well as daily matches and daily picks.
++API /api/telegram/repair-automatic also returns queued_auto_picks.
