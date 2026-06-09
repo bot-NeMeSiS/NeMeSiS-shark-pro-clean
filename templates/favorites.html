@@ -1,96 +1,55 @@
 {% extends "base.html" %}
 {% block content %}
-<section class="hero compact">
-  <div class="kicker">Favoritos inteligentes</div>
-  <h1>Tu feed personalizado</h1>
-  <p class="lead">Guarda equipos, ligas o partidos y la app te enseñará partidos, directos y picks relacionados. También puedes quitarlos cuando quieras.</p>
-</section>
-
-<section class="band form-grid">
-  <form class="card" method="post" action="/favorites">
-    <h2>Guardar favorito</h2>
-    <input type="hidden" name="action" value="add">
-    <div class="field">
-      <label>Tipo</label>
-      <select name="kind">
-        <option value="team">Equipo</option>
-        <option value="league">Liga / competición</option>
-        <option value="match">Partido</option>
-      </select>
-    </div>
-    <div class="field"><label>Nombre o ID</label><input name="value" placeholder="Real Madrid, LaLiga, Premier League..."></div>
-    <div class="field"><label>Etiqueta visible</label><input name="label" placeholder="Mi equipo, Liga favorita..."></div>
-    <button type="submit">Guardar favorito</button>
-    <p class="small">Queda guardado solo en tu cuenta y se usa para personalizar tu experiencia.</p>
-  </form>
-  <aside class="card">
-    <h2>Guardados</h2>
-    {% if data.favorites %}
-      <div class="stack">
-      {% for f in data.favorites %}
-      <div class="favorite-item">
-        <div>
-          <div class="ok">{% if f.kind == 'team' %}Equipo{% elif f.kind == 'league' %}Liga{% else %}Partido{% endif %}</div>
-          <strong>{{ f.label or f.value }}</strong>
-          <div class="small">{{ f.value }}</div>
-        </div>
-        <form method="post" action="/favorites">
-          <input type="hidden" name="action" value="remove">
-          <input type="hidden" name="kind" value="{{ f.kind }}">
-          <input type="hidden" name="value" value="{{ f.value }}">
-          <button class="danger small-btn" type="submit">Quitar</button>
-        </form>
-      </div>
-      {% endfor %}
-      </div>
-    {% else %}
-      <p class="small">Todavía no tienes favoritos. Añade un equipo o liga para que tu feed empiece a personalizarse.</p>
-    {% endif %}
-  </aside>
-</section>
-
-<section class="band">
-  <div class="section-head"><h2>Información de tus favoritos</h2><span class="pill">{{ data.favorite_insights.summary }}</span></div>
-  <div class="grid compact-grid">
-    <div class="card"><div class="metric">{{ data.favorite_insights.by_kind.team|length }}</div><div class="muted">equipos favoritos</div></div>
-    <div class="card"><div class="metric">{{ data.favorite_insights.by_kind.league|length }}</div><div class="muted">ligas favoritas</div></div>
-    <div class="card"><div class="metric">{{ data.favorite_insights.by_kind.match|length }}</div><div class="muted">partidos guardados</div></div>
-    <div class="card"><div class="metric">{{ data.favorite_feed|length }}</div><div class="muted">coincidencias en calendario</div></div>
+<section class="scoreboard-hero v701-scoreboard">
+  <div>
+    <div class="kicker">Favoritos</div>
+    <h1>Tu radar personal</h1>
+    <p class="lead">Equipos, ligas y partidos guardados para ver próximos, live, picks y señales SHARK relacionadas.</p>
+  </div>
+  <div class="scoreboard-kpis">
+    <div><strong>{{ data.favorite_insights.by_kind.team|length }}</strong><span>Equipos</span></div>
+    <div><strong>{{ data.favorite_insights.by_kind.league|length }}</strong><span>Ligas</span></div>
+    <div><strong>{{ data.favorite_insights.by_kind.match|length }}</strong><span>Partidos</span></div>
+    <div><strong>{{ data.favorite_feed|length }}</strong><span>Feed</span></div>
   </div>
 </section>
 
-<section class="band">
+<section class="band compact-band">
   <div class="section-head"><h2>Partidos relacionados</h2><span class="pill">{{ data.favorite_feed|length }}</span></div>
   {% if data.favorite_feed %}
-  <div class="grid">
+  <div class="sports-list v701-match-list">
     {% for m in data.favorite_feed %}
-    <article class="card match-card">
-      <div class="comp-name">{{ m.competition_name }}</div>
-      <div class="teams">
-        <div class="team"><div class="crest"><img loading="lazy" src="{{ m.home_identity.crest_url }}" alt="{{ m.home_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ m.home_identity.initials }}'"></div><strong>{{ m.home_team }}</strong></div>
-        <div class="team"><div class="crest"><img loading="lazy" src="{{ m.away_identity.crest_url }}" alt="{{ m.away_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ m.away_identity.initials }}'"></div><strong>{{ m.away_team }}</strong></div>
-      </div>
-      <div class="status"><span>{{ m.live_depth.label }}</span><span class="priority">{{ m.kickoff_time or m.minute or '-' }}</span></div>
-      <a class="mini-link" href="/match/{{ m.id }}">Ver partido</a>
-    </article>
+    {% set home_identity = m.home_identity|default({}) %}
+    {% set away_identity = m.away_identity|default({}) %}
+    {% set live_depth = m.live_depth|default({}) %}
+    <a class="sports-row v701-row favorite-scope" href="/match/{{ m.id }}">
+      <button class="fav-star active" type="button" data-kind="match" data-value="{{ m.id }}" data-label="{{ m.home_team }} vs {{ m.away_team }}" aria-label="Favorito">★</button>
+      <div class="sports-time"><strong>{{ m.kickoff_time or m.minute or live_depth.get('minute') or 'Hora' }}</strong><span>{{ live_depth.get('label') or m.match_date }}</span></div>
+      <div class="sports-team home"><span class="crest compact-crest"><img loading="lazy" src="{{ home_identity.get('crest_url','') }}" alt="{{ m.home_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ home_identity.get('initials', (m.home_team or 'L')[:1]) }}'"></span><strong>{{ m.home_team or 'Equipo local' }}</strong></div>
+      <div class="sports-score"><strong>{{ live_depth.get('score') or m.score or 'vs' }}</strong><span>{{ m.competition_name or m.league_name or 'Competición' }}</span></div>
+      <div class="sports-team away"><span class="crest compact-crest"><img loading="lazy" src="{{ away_identity.get('crest_url','') }}" alt="{{ m.away_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ away_identity.get('initials', (m.away_team or 'V')[:1]) }}'"></span><strong>{{ m.away_team or 'Equipo visitante' }}</strong></div>
+      <div class="sports-meta v701-meta"><span class="shark-pill">SHARK</span></div>
+    </a>
     {% endfor %}
   </div>
   {% else %}
-  <div class="empty">
-    Aún no hay partidos relacionados con tus favoritos. Cuando se sincronice el calendario aparecerán aquí automáticamente.
-    <div class="actions"><a class="btn primary" href="/match-hub">Ver calendario</a><a class="btn" href="/picks">Ver picks</a></div>
+  <div class="empty premium-empty">
+    <strong>Aún no hay partidos relacionados con tus favoritos.</strong>
+    <p>Marca estrellas desde Sports Hub, Live, Calendar o el detalle de partido para construir tu radar.</p>
+    <div class="actions"><a class="btn primary" href="/sports-hub">Ver partidos</a><a class="btn" href="/picks">Ver picks</a></div>
   </div>
   {% endif %}
 </section>
 
-<section class="band two-col">
+<section class="band two-col compact-band">
   <div>
     <div class="section-head"><h2>Live relacionados</h2><span class="pill">{{ data.favorite_bundle.live|length }}</span></div>
     <div class="stack">
       {% for m in data.favorite_bundle.live %}
-      <a class="list-row" href="/match/{{ m.id }}"><span>{{ m.home_team }} vs {{ m.away_team }}</span><strong>{{ m.live_depth.label }}</strong></a>
+      {% set live_depth = m.live_depth|default({}) %}
+      <a class="list-row" href="/match/{{ m.id }}"><span>{{ m.home_team }} vs {{ m.away_team }}<small>{{ m.competition_name or m.league_name }}</small></span><strong>{{ live_depth.get('label') or m.status or 'Live' }}</strong></a>
       {% else %}
-      <div class="empty">Sin directos relacionados con tus favoritos ahora mismo.</div>
+      <div class="empty premium-empty">Sin directos relacionados ahora mismo.</div>
       {% endfor %}
     </div>
   </div>
@@ -98,11 +57,49 @@
     <div class="section-head"><h2>Picks relacionados</h2><span class="pill">{{ data.favorite_bundle.picks|length }}</span></div>
     <div class="stack">
       {% for p in data.favorite_bundle.picks %}
-      <a class="list-row" href="/picks"><span>{{ p.selection }}</span><strong>{{ p.confidence }}%</strong></a>
+      <a class="list-row" href="/picks"><span>{{ p.selection or 'Pick SHARK' }}<small>{{ p.home_team }} vs {{ p.away_team }}</small></span><strong>{{ p.confidence or 0 }}%</strong></a>
       {% else %}
-      <div class="empty">Sin picks conectados a tus favoritos todavía.</div>
+      <div class="empty premium-empty">Sin picks conectados a tus favoritos todavía.</div>
       {% endfor %}
     </div>
   </div>
+</section>
+
+<section class="band compact-band">
+  <div class="section-head"><h2>Guardados</h2><span class="pill">{{ data.favorites|length }}</span></div>
+  {% if data.favorites %}
+  <div class="grid dense-grid">
+    {% for f in data.favorites %}
+    <article class="card favorite-item">
+      <div>
+        <div class="ok">{% if f.kind == 'team' %}Equipo{% elif f.kind == 'league' %}Liga{% else %}Partido{% endif %}</div>
+        <strong>{{ f.label or f.value }}</strong>
+        <div class="small">{{ f.value }}</div>
+      </div>
+      <form method="post" action="/favorites">
+        <input type="hidden" name="action" value="remove">
+        <input type="hidden" name="kind" value="{{ f.kind }}">
+        <input type="hidden" name="value" value="{{ f.value }}">
+        <button class="danger small-btn" type="submit">Quitar</button>
+      </form>
+    </article>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty premium-empty">Todavía no tienes favoritos guardados.</div>
+  {% endif %}
+</section>
+
+<section class="band compact-band">
+  <details class="card">
+    <summary><strong>Añadir favorito manualmente</strong></summary>
+    <form method="post" action="/favorites" style="margin-top:12px">
+      <input type="hidden" name="action" value="add">
+      <div class="field"><label>Tipo</label><select name="kind"><option value="team">Equipo</option><option value="league">Liga / competición</option><option value="match">Partido</option></select></div>
+      <div class="field"><label>Nombre o ID</label><input name="value" placeholder="Real Madrid, LaLiga, Premier League..."></div>
+      <div class="field"><label>Etiqueta visible</label><input name="label" placeholder="Mi equipo, liga favorita..."></div>
+      <button type="submit">Guardar favorito</button>
+    </form>
+  </details>
 </section>
 {% endblock %}

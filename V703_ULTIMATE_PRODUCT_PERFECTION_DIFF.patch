@@ -1,0 +1,43 @@
+# V703 ULTIMATE PRODUCT PERFECTION DIFF SUMMARY
+
+Git no estaba disponible en PATH durante esta sesion, por lo que este archivo documenta el diff funcional aplicado.
+
+## app.py
+
+- `APP_VERSION` actualizado de `V702_FULL_PRODUCT_QA_PREMIUM_SPORTS` a `V703_ULTIMATE_PRODUCT_PERFECTION`.
+
+## VERSION.txt
+
+- Version actualizada a `V703_ULTIMATE_PRODUCT_PERFECTION`.
+
+## templates/sports_hub.html
+
+- Hero reescrito para lectura mas rapida y comercial.
+- Fallback SHARK cambiado a `Sin se?al` cuando no hay score.
+- Estado vacio compactado.
+
+## templates/picks.html
+
+- Hero ajustado a posicionamiento premium.
+- Texto de precaucion simplificado.
+- Partidos candidatos blindados con `home_identity|default({})` y `away_identity|default({})`.
+
+## templates/live.html
+
+- Hero compactado.
+- Partidos live blindados con `live_depth|default({})`, `home_identity|default({})` y `away_identity|default({})`.
+- Proximos destacados blindados frente a logos o identidades ausentes.
+
+## templates/combis.html
+
+- Partidos base de combis blindados frente a identidades ausentes.
+
+## templates/favorites.html
+
+- Feed de favoritos blindado frente a `live_depth`, `home_identity` y `away_identity` ausentes.
+- Directos relacionados usan fallback seguro para estado live.
+
+## static/app.css
+
+- Bloque V703 a?adido para compactar hero, tarjetas, filas deportivas, crests, tabs, bottom nav y widget SHARK.
+- Mejor densidad movil sin cambiar estructura funcional.

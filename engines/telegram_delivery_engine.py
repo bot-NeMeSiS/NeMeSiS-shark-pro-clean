@@ -68,20 +68,18 @@ def subscriber_payload(user=None, chat_id="", username="", first_name="", member
 
 def format_match_line(match):
     comp = safe_html(match.get("league_name") or match.get("competition_name") or "Futbol")
-    home = safe_html(match.get("home_team") or "")
-    away = safe_html(match.get("away_team") or "")
-    time = safe_html(match.get("kickoff_time") or match.get("match_time") or match.get("minute") or "hora por confirmar")
+    home = safe_html(match.get("home_team") or "Equipo local")
+    away = safe_html(match.get("away_team") or "Equipo visitante")
+    time = safe_html(match.get("kickoff_time") or match.get("match_time") or match.get("minute") or "Hora pendiente")
     status = safe_html((match.get("live_depth") or {}).get("label") or match.get("status") or "Programado")
-    odds = ""
-    if match.get("bookmaker"):
-        odds = f" · cuotas {safe_html(match.get('bookmaker'))}"
-    return f"• <b>{home} vs {away}</b> · {time} · {comp} · {status}{odds}"
+    odds = f" - cuotas {safe_html(match.get('bookmaker'))}" if match.get("bookmaker") else ""
+    return f"- <b>{home} vs {away}</b> - {time} - {comp} - {status}{odds}"
 
 
 def build_daily_matches_message(matches, date_key, premium_name="NeMeSiS SHARK PRO"):
     lines = [
         f"<b>{safe_html(premium_name)}</b>",
-        f"Partidos destacados · {safe_html(date_key)}",
+        f"Partidos destacados - {safe_html(date_key)}",
         "",
     ]
     if not matches:
@@ -94,33 +92,56 @@ def build_daily_matches_message(matches, date_key, premium_name="NeMeSiS SHARK P
 
 
 def build_daily_picks_message(picks, force_empty=False, premium_name="NeMeSiS SHARK PRO"):
-    lines = [f"<b>{safe_html(premium_name)}</b>", "Picks destacados", ""]
+    lines = [f"<b>SHARK PICK PREMIUM</b>", f"{safe_html(premium_name)}", ""]
     if not picks:
         if not force_empty:
             return ""
         lines.append("No hay picks publicados ahora mismo. SHARK no fabrica picks sin fuente real/autorizada.")
         return "\n".join(lines)
-    for pick in picks[:8]:
-        match = f"{pick.get('home_team') or ''} vs {pick.get('away_team') or ''}".strip(" vs")
-        selection = safe_html(pick.get("selection") or "Pick")
-        odds = safe_html(pick.get("odds") or "-")
-        confidence = safe_html(pick.get("confidence") or "-")
+
+    for index, pick in enumerate(picks[:6], start=1):
+        home = pick.get("home_team") or "Equipo local"
+        away = pick.get("away_team") or "Equipo visitante"
+        match = safe_html(f"{home} vs {away}")
+        comp = safe_html(pick.get("competition_name") or pick.get("league_name") or "Competicion")
+        date = safe_html(pick.get("match_date") or "Fecha pendiente")
+        selection = safe_html(pick.get("selection") or "Pick SHARK")
+        market = safe_html(pick.get("market") or pick.get("pick_type") or "Mercado")
+        odds = safe_html(pick.get("odds") or "Pendiente")
+        confidence = safe_html(pick.get("confidence") or pick.get("shark_score") or "-")
         stake = safe_html(pick.get("stake_units") or "1")
-        lines.append(f"• <b>{selection}</b> · {safe_html(match)} · cuota {odds} · confianza {confidence}% · stake {stake}u")
-    lines.extend(["", "Gestion de riesgo primero. Picks solo desde fuente autorizada o motor propio."])
+        risk = safe_html(pick.get("risk_level") or "Medio")
+        reason = safe_html(pick.get("reasoning") or "SHARK detecta valor con los datos disponibles.")
+        warning = safe_html(pick.get("warning_reason") or "Gestiona stake y banca. Ningun pick es seguro.")
+        value = "Detectado" if pick.get("odds") and pick.get("confidence") else "En calculo"
+        lines.extend(
+            [
+                f"<b>{index}. {match}</b>",
+                f"{comp} - {date}",
+                f"Pick: <b>{selection}</b>",
+                f"Mercado: {market}",
+                f"Cuota: {odds} - Stake: {stake}/5",
+                f"SHARK Score: {confidence}/100 - Riesgo: {risk}",
+                f"Value: {value}",
+                f"Por que entrar: {reason}",
+                f"Riesgo: {warning}",
+                "",
+            ]
+        )
+    lines.extend(["Gestion de riesgo primero. Picks solo desde fuente autorizada o motor propio."])
     return "\n".join(lines)
 
 
 def build_live_alert_message(match, event=None, internal_url="/live"):
     score = safe_html((match.get("live_depth") or {}).get("score") or match.get("score") or "sin marcador")
     minute = safe_html((match.get("live_depth") or {}).get("minute") or match.get("minute") or "LIVE")
-    home = safe_html(match.get("home_team") or "")
-    away = safe_html(match.get("away_team") or "")
+    home = safe_html(match.get("home_team") or "Equipo local")
+    away = safe_html(match.get("away_team") or "Equipo visitante")
     detail = safe_html((event or {}).get("title") or (event or {}).get("detail") or "Seguimiento en directo")
     return "\n".join(
         [
             "<b>Alerta live SHARK</b>",
-            f"{minute} · <b>{home} vs {away}</b>",
+            f"{minute} - <b>{home} vs {away}</b>",
             f"Marcador: {score}",
             detail,
             f"Ver en la app: {safe_html(internal_url)}",

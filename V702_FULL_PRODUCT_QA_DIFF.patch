@@ -1,0 +1,29 @@
+*** V702_FULL_PRODUCT_QA_DIFF.patch ***
+
+Resumen de cambios:
+
+- app.py
+  - APP_VERSION actualizado a V702_FULL_PRODUCT_QA_PREMIUM_SPORTS.
+
+- VERSION.txt
+  - V702_FULL_PRODUCT_QA_PREMIUM_SPORTS.
+
+- templates/match_detail.html
+  - Reescrito con fallbacks defensivos y lectura SHARK premium.
+
+- templates/combis.html
+  - Reescrito con KPIs, selector claro y estado vacio premium.
+
+- templates/favorites.html
+  - Reorganizado como radar personal, feed primero y formulario manual plegado.
+
+- templates/telegram.html
+  - Compactado y clarificado para cliente.
+
+- templates/profile.html
+  - Blindado ante partidos sin live_depth.
+
+- engines/telegram_delivery_engine.py
+  - Reescrito como helper puro limpio.
+  - Formato premium para picks diarios.
+  - Sin cambios en cola, HTTP ni persistencia.

@@ -3,8 +3,8 @@
 <section class="scoreboard-hero v701-scoreboard picks-board">
   <div>
     <div class="kicker">Picks SHARK</div>
-    <h1>Qué apostar y por qué</h1>
-    <p class="lead">Picks publicados, cuota, stake, confianza, riesgo y motivo en formato claro de producto premium.</p>
+    <h1>Picks de pago, lectura rápida</h1>
+    <p class="lead">Mercado, cuota, stake, confianza, riesgo y motivo SHARK sin relleno.</p>
   </div>
   <div class="scoreboard-kpis">
     <div><strong>{{ data.pick_stats.published }}</strong><span>Publicados</span></div>
@@ -49,7 +49,7 @@
         <span>Value {% if p.odds and p.confidence %}Detectado{% else %}En cálculo{% endif %}</span>
       </div>
       <p class="small"><strong>Por qué entrar:</strong> {{ p.reasoning or 'Pick publicado por SHARK con datos disponibles.' }}</p>
-      <p class="small"><strong>Por qué no entrar:</strong> {{ p.warning_reason or 'Ningún pick es seguro. Ajusta stake y banca.' }}</p>
+      <p class="small"><strong>Precaución:</strong> {{ p.warning_reason or 'Ningún pick es seguro. Ajusta stake y banca.' }}</p>
       <div class="inline-actions"><a class="mini-link" href="/match/{{ p.match_id }}">Detalle partido</a><a class="mini-link" href="/telegram">Recibir en Telegram</a></div>
     </article>
     {% endfor %}
@@ -68,12 +68,14 @@
   {% if data.candidate_matches %}
   <div class="sports-list v701-match-list">
     {% for m in data.candidate_matches[:14] %}
+    {% set home_identity = m.home_identity|default({}) %}
+    {% set away_identity = m.away_identity|default({}) %}
     <a class="sports-row v701-row favorite-scope" href="/match/{{ m.id }}">
       <button class="fav-star {% if m.is_favorite %}active{% endif %}" type="button" data-kind="match" data-value="{{ m.id }}" data-label="{{ m.home_team }} vs {{ m.away_team }}" aria-label="Favorito">★</button>
       <div class="sports-time"><strong>{{ m.kickoff_time or m.match_time or 'Hora' }}</strong><span>{{ m.match_date }}</span></div>
-      <div class="sports-team home"><span class="crest compact-crest"><img loading="lazy" src="{{ m.home_identity.crest_url }}" alt="{{ m.home_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ m.home_identity.initials }}'"></span><strong>{{ m.home_team or 'Equipo local' }}</strong></div>
+      <div class="sports-team home"><span class="crest compact-crest"><img loading="lazy" src="{{ home_identity.get('crest_url','') }}" alt="{{ m.home_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ home_identity.get('initials', (m.home_team or 'L')[:1]) }}'"></span><strong>{{ m.home_team or 'Equipo local' }}</strong></div>
       <div class="sports-score"><strong>vs</strong><span>{{ m.competition_name or m.league_name or 'Competición' }}</span></div>
-      <div class="sports-team away"><span class="crest compact-crest"><img loading="lazy" src="{{ m.away_identity.crest_url }}" alt="{{ m.away_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ m.away_identity.initials }}'"></span><strong>{{ m.away_team or 'Equipo visitante' }}</strong></div>
+      <div class="sports-team away"><span class="crest compact-crest"><img loading="lazy" src="{{ away_identity.get('crest_url','') }}" alt="{{ m.away_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ away_identity.get('initials', (m.away_team or 'V')[:1]) }}'"></span><strong>{{ m.away_team or 'Equipo visitante' }}</strong></div>
       <div class="sports-meta v701-meta"><span class="shark-pill">{{ m.pick_readiness or 'SHARK' }}</span></div>
     </a>
     {% endfor %}

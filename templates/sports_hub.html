@@ -6,8 +6,8 @@
 <section class="scoreboard-hero v701-scoreboard">
   <div>
     <div class="kicker">Sports Hub</div>
-    <h1>Partidos, picks y SHARK en una sola pantalla</h1>
-    <p class="lead">Hoy, directos, favoritos, picks y combis con lectura rápida tipo marcador deportivo.</p>
+    <h1>Todo el día deportivo en segundos</h1>
+    <p class="lead">Marcador, favoritos, picks y señal SHARK en una vista compacta para decidir rápido.</p>
   </div>
   <div class="scoreboard-kpis">
     <div><strong>{{ hub.today|length }}</strong><span>Hoy</span></div>
@@ -61,7 +61,7 @@
             <strong>{{ m.safe_away }}</strong>
           </div>
           <div class="sports-meta v701-meta">
-            {% if m.shark_score %}<span class="shark-pill">SH {{ m.shark_score }}</span>{% else %}<span class="shark-pill muted-pill">SHARK</span>{% endif %}
+            {% if m.shark_score %}<span class="shark-pill">SH {{ m.shark_score }}</span>{% else %}<span class="shark-pill muted-pill">Sin señal</span>{% endif %}
             {% if m.has_pick %}<span class="pick-dot">Pick</span>{% endif %}
           </div>
         </a>
@@ -73,7 +73,7 @@
   {% else %}
   <div class="empty premium-empty">
     <strong>No hay partidos para este filtro.</strong>
-    <p>SHARK mostrará encuentros cuando haya datos suficientes. Puedes revisar el calendario, picks o favoritos.</p>
+    <p>SHARK mostrará encuentros cuando haya datos suficientes. Puedes revisar calendario, picks o favoritos.</p>
     <div class="actions"><a class="btn primary" href="/calendar">Calendario</a><a class="btn" href="/picks">Picks</a><a class="btn" href="/combis">Combis</a></div>
   </div>
   {% endif %}

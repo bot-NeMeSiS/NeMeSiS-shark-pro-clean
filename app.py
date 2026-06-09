@@ -15,7 +15,7 @@ from datetime import datetime, timedelta
 from email.message import EmailMessage
 from zoneinfo import ZoneInfo
 
-from flask import Flask, Response, abort, jsonify, redirect, render_template, request, send_file, session, url_for
+from flask import Flask, Response, abort, has_request_context, jsonify, redirect, render_template, request, send_file, session, url_for
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from database_manager import connect as sqlite_connect, retry_locked
@@ -59,7 +59,7 @@ from engines.telegram_delivery_engine import (
 from engines.telegram_engine import build_alert_queue, dispatch_signature, should_skip_duplicate
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V701_CLIENT_EXPERIENCE_LAUNCH_EDITION"
+APP_VERSION = "V704_DATA_EXPANSION_REAL_SPORTS_COVERAGE"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -72,6 +72,7 @@ _SEEDED_DB_PATH = None
 _SEEDING_DB_PATH = None
 APP_INITIALIZED = False
 APP_INIT_ERROR = ""
+TEAM_IDENTITY_CACHE = {}
 
 FAKE_TEAM_NAMES = {
     "premier home",
@@ -908,16 +909,27 @@ COMPETITION_SEEDS = [
     ("uefa-europa-league", "UEFA Europa League", "continental", "Europe", "UEFA", 94, "API legal + cache", ["clubs", "europe"]),
     ("uefa-conference-league", "UEFA Conference League", "continental", "Europe", "UEFA", 88, "API legal + cache", ["clubs", "europe"]),
     ("premier-league", "Premier League", "domestic", "England", "Europe", 97, "API legal + odds bridge", ["top-league"]),
+    ("championship", "Championship", "domestic", "England", "Europe", 88, "API legal + odds bridge", ["england"]),
+    ("fa-cup", "FA Cup", "domestic-cup", "England", "Europe", 86, "API legal + odds bridge", ["england", "cup"]),
     ("laliga", "LaLiga EA Sports", "domestic", "Spain", "Europe", 97, "API legal + odds bridge", ["top-league", "spain"]),
+    ("segunda-division", "Segunda Division", "domestic", "Spain", "Europe", 90, "API legal + odds bridge", ["spain"]),
     ("serie-a", "Serie A", "domestic", "Italy", "Europe", 95, "API legal + odds bridge", ["top-league"]),
+    ("serie-b", "Serie B", "domestic", "Italy", "Europe", 84, "API legal + odds bridge", ["italy"]),
     ("bundesliga", "Bundesliga", "domestic", "Germany", "Europe", 95, "API legal + odds bridge", ["top-league"]),
+    ("bundesliga-2", "Bundesliga 2", "domestic", "Germany", "Europe", 84, "API legal + odds bridge", ["germany"]),
     ("ligue-1", "Ligue 1", "domestic", "France", "Europe", 92, "API legal + odds bridge", ["top-league"]),
+    ("ligue-2", "Ligue 2", "domestic", "France", "Europe", 82, "API legal + odds bridge", ["france"]),
     ("eredivisie", "Eredivisie", "domestic", "Netherlands", "Europe", 84, "API legal + cache", ["europe"]),
     ("primeira-liga", "Primeira Liga", "domestic", "Portugal", "Europe", 84, "API legal + cache", ["europe"]),
     ("brasileirao", "Brasileirao Serie A", "domestic", "Brazil", "South America", 86, "API legal + cache", ["america"]),
     ("argentina-primera", "Argentina Primera Division", "domestic", "Argentina", "South America", 85, "API legal + cache", ["america"]),
+    ("copa-libertadores", "Copa Libertadores", "continental", "South America", "CONMEBOL", 93, "API legal + odds bridge", ["america", "clubs"]),
+    ("copa-sudamericana", "Copa Sudamericana", "continental", "South America", "CONMEBOL", 88, "API legal + odds bridge", ["america", "clubs"]),
     ("mls", "Major League Soccer", "domestic", "United States", "North America", 78, "API legal + cache", ["america"]),
     ("copa-del-rey", "Copa del Rey", "domestic-cup", "Spain", "Europe", 86, "API legal + cache", ["spain", "cup"]),
+    ("supercopa-espana", "Supercopa de Espana", "domestic-cup", "Spain", "Europe", 82, "API legal + cache", ["spain", "cup"]),
+    ("uefa-nations-league", "UEFA Nations League", "international", "Europe", "UEFA", 90, "API legal + odds bridge", ["europe", "national"]),
+    ("world-cup-qualifiers", "World Cup Qualifiers", "international", "Global", "World", 88, "API legal + cache", ["world", "national"]),
     ("andalucia-regional", "Andalucia Regional Football", "regional", "Spain", "Andalucia", 72, "Carga legal + editorial", ["regional", "andalucia"]),
 ]
 
@@ -2659,7 +2671,7 @@ def odds_event_to_match(sport, event):
     }
 
 
-def fetch_odds_events(limit=80):
+def fetch_odds_events(limit=250):
     events = []
     errors = []
     for sport in odds_competitions():
@@ -2682,7 +2694,7 @@ def fetch_odds_events(limit=80):
     return events[: int(limit)], errors
 
 
-def sync_odds_events(limit=80, force=False):
+def sync_odds_events(limit=250, force=False):
     seed_core()
     if not os.getenv("THE_ODDS_API_KEY"):
         return {"ok": False, "sin_key": True, "skipped": False, "imported": 0, "updated": 0, "processed": 0, "errors": ["Falta THE_ODDS_API_KEY."]}
@@ -2861,11 +2873,15 @@ def cache_team_identity(name, identity):
 
 def resolve_team(name, refresh=False):
     key = canonical_team_key(name)
+    cache_key = f"{key}:{int(bool(refresh))}"
+    if not refresh and cache_key in TEAM_IDENTITY_CACHE:
+        return dict(TEAM_IDENTITY_CACHE[cache_key])
     team = one("SELECT * FROM teams WHERE key=?", (key,))
     if team and team.get("logo_url") and not refresh:
         team["initials"] = initials(team.get("name") or name)
         team["crest_url"] = team.get("logo_url")
         team["crest_mode"] = "logo"
+        TEAM_IDENTITY_CACHE[cache_key] = dict(team)
         return team
     if refresh:
         found = None
@@ -2886,6 +2902,7 @@ def resolve_team(name, refresh=False):
     status = crest_status(team)
     team["crest_mode"] = status["mode"]
     team["crest_source"] = status["source"]
+    TEAM_IDENTITY_CACHE[cache_key] = dict(team)
     return team
 
 
@@ -3782,7 +3799,7 @@ def favorite_sets(user_id=None):
 
 
 def annotate_match(match, favs=None):
-    favs = favs or favorite_sets()
+    favs = favs or (favorite_sets() if has_request_context() else {"team": set(), "league": set(), "match": set(), "all": []})
     match_key = str(match.get("id") or "").lower()
     comp_key = str(match.get("competition_key") or "").lower()
     comp_name = str(match.get("competition_name") or "").lower()
@@ -4261,9 +4278,9 @@ def get_results_matches(start_date=None, days_back=14, limit=150):
     return enriched
 
 
-def pick_candidate_matches(limit=24, days=14):
+def pick_candidate_matches(limit=80, days=21):
     candidates = []
-    for match in get_upcoming_matches(today_iso(), days=days, limit=limit * 2):
+    for match in get_upcoming_matches(today_iso(), days=days, limit=max(limit * 3, 300)):
         info = canonical_match_status(match)
         if info.get("is_upcoming") and match.get("home_team") and match.get("away_team"):
             annotated = annotate_match(match)
@@ -4276,7 +4293,7 @@ def pick_candidate_matches(limit=24, days=14):
 
 def build_combi_candidates_from_matches(count=3):
     count = max(2, min(int(count or 3), 8))
-    matches = pick_candidate_matches(limit=max(count, 8), days=14)
+    matches = pick_candidate_matches(limit=max(count * 3, 18), days=21)
     return {
         "requested_count": count,
         "matches": matches[:count],
@@ -4286,7 +4303,7 @@ def build_combi_candidates_from_matches(count=3):
     }
 
 
-def smart_pick_board(user=None, limit=12):
+def smart_pick_board(user=None, limit=24):
     """Panel comercial para que Picks nunca parezca roto.
 
     No fabrica apuestas reales: si no hay picks publicados, enseña partidos próximos
@@ -4294,7 +4311,7 @@ def smart_pick_board(user=None, limit=12):
     """
     user = user or current_session_user() or {"membership": "FREE", "role": "FREE"}
     published = published_picks_for_user(user, limit=limit)
-    candidates = pick_candidate_matches(limit=max(limit, 12), days=14)
+    candidates = pick_candidate_matches(limit=max(limit * 2, 80), days=21)
     def score_pick(p):
         try:
             conf = int(float(p.get("confidence") or 0))
@@ -4305,10 +4322,10 @@ def smart_pick_board(user=None, limit=12):
         except Exception:
             odds = 0
         return (conf, odds)
-    hot = sorted(published, key=score_pick, reverse=True)[:6]
+    hot = sorted(published, key=score_pick, reverse=True)[:12]
     pro_locked = []
     if str(user.get("membership") or "FREE").upper() == "FREE":
-        pro_locked = [p for p in get_picks(limit=20, status="published", include_admin=False) if str(p.get("membership_required") or "FREE").upper() in {"PRO", "ELITE"}][:4]
+        pro_locked = [p for p in get_picks(limit=80, status="published", include_admin=False) if str(p.get("membership_required") or "FREE").upper() in {"PRO", "ELITE"}][:8]
     return {
         "published": published,
         "hot": hot,
@@ -4333,13 +4350,13 @@ def match_hub(date=None, lane="today"):
         return cached
     favs = favorite_sets()
     favorites = get_favorites()
-    picks = get_picks(limit=80)
+    picks = get_picks(limit=200)
     today_matches = [annotate_match(m, favs) for m in get_matches(date, "today")]
-    window_matches = [annotate_match(m, favs) for m in get_upcoming_matches(date, days=7)]
-    result_matches = get_results_matches(date, days_back=14, limit=120)
+    window_matches = [annotate_match(m, favs) for m in get_upcoming_matches(date, days=10, limit=500)]
+    result_matches = get_results_matches(date, days_back=21, limit=250)
     combined = []
     seen = set()
-    source_matches = result_matches if lane in {"results", "finished"} else today_matches + window_matches + (result_matches[:40] if lane == "week" else [])
+    source_matches = result_matches if lane in {"results", "finished"} else today_matches + window_matches + (result_matches[:120] if lane == "week" else [])
     for match in source_matches:
         if match.get("id") in seen:
             continue
@@ -4350,7 +4367,7 @@ def match_hub(date=None, lane="today"):
     sections = hub_sections(combined, favorites=favorites, picks=picks)
     live_state = split_live(combined)
     sync = sync_plan(sections["today"], now_iso())
-    top_leagues = [c for c in competitions() if c.get("tier", 0) >= 90][:10]
+    top_leagues = [c for c in competitions() if c.get("tier", 0) >= 80][:24]
     with_odds = [m for m in combined if m.get("bookmaker") or m.get("odds_h2h_json")]
     by_country = {}
     for match in combined:
@@ -4361,15 +4378,15 @@ def match_hub(date=None, lane="today"):
         "date": date,
         "lane": lane,
         "sync": sync,
-        "live": sections["live"][:30],
-        "today": [m for m in combined if m.get("match_date") == date][:80],
-        "upcoming": [m for m in combined if m.get("match_date") >= date and m.get("match_date") != date][:40] or sections["upcoming"][:30],
-        "finished": (result_matches if lane in {"results", "finished"} else sections["finished"])[:40],
+        "live": sections["live"][:80],
+        "today": [m for m in combined if m.get("match_date") == date][:200],
+        "upcoming": [m for m in combined if m.get("match_date") >= date and m.get("match_date") != date][:160] or sections["upcoming"][:120],
+        "finished": (result_matches if lane in {"results", "finished"} else sections["finished"])[:120],
         "results": grouped_match_calendar(result_matches),
-        "popular": sections["top"][:20],
-        "favorites": sections["favorites"][:20],
-        "with_picks": sections["with_picks"][:20],
-        "with_odds": with_odds[:20],
+        "popular": sections["top"][:80],
+        "favorites": sections["favorites"][:80],
+        "with_picks": sections["with_picks"][:80],
+        "with_odds": with_odds[:80],
         "by_country": by_country,
         "top_leagues": top_leagues,
         "calendar_grouped": grouped_match_calendar(combined),
@@ -5907,7 +5924,7 @@ def get_matches(date=None, lane="today"):
         clauses.append("(lower(country)='spain' OR lower(competition_key) LIKE '%laliga%' OR lower(competition_key)='copa-del-rey')")
     elif lane == "andalucia":
         clauses.append("lower(competition_key)='andalucia-regional'")
-    query = "SELECT * FROM matches WHERE " + " AND ".join(clauses) + " ORDER BY priority DESC, kickoff_time, competition_name LIMIT 150"
+    query = "SELECT * FROM matches WHERE " + " AND ".join(clauses) + " ORDER BY priority DESC, kickoff_time, competition_name LIMIT 300"
     data = [item for item in rows(query, params) if not is_fake_match(item)]
     for item in data:
         item["kickoff_time"] = item.get("kickoff_time") or item.get("match_time") or ""
@@ -5924,7 +5941,7 @@ def get_matches(date=None, lane="today"):
     return data
 
 
-def get_upcoming_matches(start_date=None, days=7, limit=150):
+def get_upcoming_matches(start_date=None, days=7, limit=300):
     start_date = start_date or today_iso()
     end_date = (datetime.fromisoformat(start_date).date() + timedelta(days=int(days))).isoformat()
     query = """SELECT * FROM matches
@@ -6021,13 +6038,13 @@ def dashboard_data(lane="today", date=None):
     upcoming_matches = get_upcoming_matches(date, days=7)
     comps = competitions()
     imports = rows("SELECT * FROM imports ORDER BY created_at DESC LIMIT 20")
-    picks = get_picks(limit=10)
-    combis = get_combis(limit=5)
+    picks = get_picks(limit=30)
+    combis = get_combis(limit=12)
     profile = default_profile()
     favorites = get_favorites()
     hub = match_hub(date)
-    past_results = get_results_matches(date, days_back=14, limit=80)
-    candidate_matches = pick_candidate_matches(limit=24, days=14)
+    past_results = get_results_matches(date, days_back=21, limit=180)
+    candidate_matches = pick_candidate_matches(limit=80, days=21)
     smart_picks = smart_pick_board()
     favorite_bundle = favorite_feed_full()
     flow = build_live_flow(hub, favorites=favorites, picks=picks, profile=profile)
@@ -6152,14 +6169,14 @@ def sports_hub_page():
     tab = (request.args.get("tab") or "today").strip().lower()
     data = dashboard_data()
     hub = data.get("match_hub") or {}
-    picks = published_picks_for_user(current_session_user() or {"membership": "FREE"}, limit=12)
-    recs = v565_recommendation_pool(limit=6)
+    picks = published_picks_for_user(current_session_user() or {"membership": "FREE"}, limit=30)
+    recs = v565_recommendation_pool(limit=24)
     best = picks[0] if picks else (recs[0] if recs else {})
     score = as_int(best.get("confidence") or best.get("score"), 0)
     today_matches = annotate_sports_hub_matches((hub.get("today") or data.get("matches") or []), picks)
     live_matches = annotate_sports_hub_matches((hub.get("live") or []), picks)
     tomorrow_matches = annotate_sports_hub_matches(get_matches(today_iso(1), "today"), picks)
-    week_matches = annotate_sports_hub_matches(get_upcoming_matches(today_iso(), days=7, limit=80), picks)
+    week_matches = annotate_sports_hub_matches(get_upcoming_matches(today_iso(), days=10, limit=220), picks)
     favorites_feed = annotate_sports_hub_matches((data.get("favorite_feed") or []), picks)
     if tab == "live":
         selected_matches = live_matches or today_matches
@@ -6183,18 +6200,18 @@ def sports_hub_page():
             {"key": "favorites", "label": "Favoritos", "href": "/sports-hub?tab=favorites"},
             {"key": "combis", "label": "Combis", "href": "/combis"},
         ],
-        "selected": selected_matches[:80],
+        "selected": selected_matches[:160],
         "selected_groups": sports_hub_groups(selected_matches),
-        "today": today_matches[:30],
-        "live": live_matches[:20],
-        "tomorrow": tomorrow_matches[:30],
-        "week": week_matches[:80],
+        "today": today_matches[:120],
+        "live": live_matches[:80],
+        "tomorrow": tomorrow_matches[:120],
+        "week": week_matches[:220],
         "picks": picks,
         "recommendations": recs,
-        "favorites": favorites_feed[:20],
-        "top_leagues": (hub.get("top_leagues") or data.get("competitions") or [])[:8],
+        "favorites": favorites_feed[:80],
+        "top_leagues": (hub.get("top_leagues") or data.get("competitions") or [])[:18],
         "counts": hub.get("counts") or {},
-        "combis": get_combis(limit=4),
+        "combis": get_combis(limit=12),
     }
     data["shark_product"] = {
         "score": score,
@@ -6734,7 +6751,7 @@ def picks_page():
     user = current_session_user() or {"membership": "FREE", "role": "FREE"}
     data["membership"] = v566_membership_ui(user)
     data["picks"] = published_picks_for_user(user, limit=80)
-    data["candidate_matches"] = pick_candidate_matches(limit=24, days=14)
+    data["candidate_matches"] = pick_candidate_matches(limit=80, days=21)
     data["pick_stats"] = pick_stats()
     data["smart_picks"] = smart_pick_board(user, limit=24)
     record_user_activity("view", "picks", "picks-page", {"count": len(data["picks"]), "candidates": len(data["candidate_matches"])})
@@ -8108,7 +8125,36 @@ def v565_extract_odds(match):
     home = as_float(parsed.get("home") or parsed.get("h2h_home") or match.get("home_price"), 0)
     draw = as_float(parsed.get("draw") or parsed.get("h2h_draw") or match.get("draw_price"), 0)
     away = as_float(parsed.get("away") or parsed.get("h2h_away") or match.get("away_price"), 0)
-    return {"home": home, "draw": draw, "away": away, "available": any(x > 1 for x in (home, draw, away))}
+    outcomes = parsed.get("outcomes") or []
+    if isinstance(outcomes, list) and outcomes:
+        home_name = normalized_label(match.get("home_team") or "")
+        away_name = normalized_label(match.get("away_team") or "")
+        for outcome in outcomes:
+            if not isinstance(outcome, dict):
+                continue
+            name = normalized_label(outcome.get("name") or outcome.get("description") or "")
+            price = as_float(outcome.get("price") or outcome.get("odds"), 0)
+            if price <= 1:
+                continue
+            if name in {"draw", "empate", "x"}:
+                draw = draw or price
+            elif home_name and (name == home_name or home_name in name or name in home_name):
+                home = home or price
+            elif away_name and (name == away_name or away_name in name or name in away_name):
+                away = away or price
+            elif not home:
+                home = price
+            elif not away:
+                away = price
+            elif not draw:
+                draw = price
+    return {
+        "home": home,
+        "draw": draw,
+        "away": away,
+        "markets": len(outcomes) if isinstance(outcomes, list) else 0,
+        "available": any(x > 1 for x in (home, draw, away)),
+    }
 
 
 def v565_recommendation_for_match(match):

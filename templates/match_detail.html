@@ -1,81 +1,90 @@
 {% extends "base.html" %}
 {% block content %}
 {% if not detail %}
-<section class="hero compact">
-  <div class="kicker">Partido no encontrado</div>
-  <h1>No hemos encontrado este partido</h1>
-  <p class="lead">Puede haber cambiado el calendario. Vuelve al centro de partidos para consultar los encuentros disponibles.</p>
-  <div class="actions"><a class="btn primary" href="/match-hub">Volver a partidos</a></div>
+<section class="scoreboard-hero v701-scoreboard">
+  <div>
+    <div class="kicker">Partido no encontrado</div>
+    <h1>No hemos encontrado este partido</h1>
+    <p class="lead">Puede haber cambiado el calendario. Vuelve al Sports Hub para consultar los encuentros disponibles.</p>
+  </div>
+  <div class="actions"><a class="btn primary" href="/sports-hub">Volver a partidos</a></div>
 </section>
 {% else %}
 {% set m = detail.match %}
+{% set state = detail.state or {} %}
 {% set momentum = detail.momentum or {} %}
-<section class="match-hero">
+{% set home = m.home_team or 'Equipo local' %}
+{% set away = m.away_team or 'Equipo visitante' %}
+{% set comp = m.competition_name or m.league_name or 'Competicion' %}
+{% set score = state.score or m.score or 'vs' %}
+{% set shark_score = momentum.value or state.momentum or 0 %}
+{% set home_identity = m.home_identity|default({}) %}
+{% set away_identity = m.away_identity|default({}) %}
+
+<section class="match-hero v702-match-hero">
   <div class="match-hero-top">
     <div>
-      <div class="kicker">{{ m.competition_name or m.league_name or 'Competición' }}</div>
-      <h1>{{ m.home_team }} vs {{ m.away_team }}</h1>
-      <p class="lead">Detalle del partido con estado, marcador, equipos, picks relacionados y lectura SHARK.</p>
+      <div class="kicker">{{ comp }}</div>
+      <h1>{{ home }} vs {{ away }}</h1>
+      <p class="lead">Marcador, estado, SHARK Score, riesgo, momentum, picks y lectura clara del partido.</p>
     </div>
     <div class="match-scorebox">
-      <span class="state-badge {{ detail.state.badge }}">{{ detail.state.label }}</span>
-      <strong>{{ detail.state.score or 'vs' }}</strong>
-      <small>{{ detail.state.minute }}</small>
+      <span class="state-badge {{ state.badge or 'upcoming' }}">{{ state.label or 'Proximo' }}</span>
+      <strong>{{ score }}</strong>
+      <small>{{ state.minute or m.kickoff_time or m.match_time or 'Hora pendiente' }}</small>
     </div>
   </div>
   <div class="match-versus">
     <div class="match-side">
-      <div class="crest xl"><img loading="lazy" src="{{ m.home_identity.crest_url }}" alt="{{ m.home_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ m.home_identity.initials }}'"></div>
-      <h2><a class="team-title-link" href="/team/{{ m.home_team|urlencode }}">{{ m.home_team }}</a></h2>
+      <div class="crest xl"><img loading="lazy" src="{{ home_identity.get('crest_url','') }}" alt="{{ home }}" onerror="this.style.display='none';this.parentElement.textContent='{{ home_identity.get('initials', (home or 'L')[:1]) }}'"></div>
+      <h2><a class="team-title-link" href="/team/{{ home|urlencode }}">{{ home }}</a></h2>
     </div>
     <div class="versus-center">
-      <div class="score-main">{{ detail.state.score or 'vs' }}</div>
-      <div class="small">{{ m.match_date }} · {{ m.kickoff_time or m.match_time or detail.state.minute }}</div>
+      <button class="btn fav-star {% if m.is_favorite %}active{% endif %}" type="button" data-kind="match" data-value="{{ m.id }}" data-label="{{ home }} vs {{ away }}">★ Favorito</button>
+      <div class="score-main">{{ score }}</div>
+      <div class="small">{{ m.match_date or 'Fecha pendiente' }} - {{ m.kickoff_time or m.match_time or state.minute or 'Hora pendiente' }}</div>
+      <span class="shark-pill">SHARK {{ shark_score or 'en calculo' }}</span>
     </div>
     <div class="match-side">
-      <div class="crest xl"><img loading="lazy" src="{{ m.away_identity.crest_url }}" alt="{{ m.away_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ m.away_identity.initials }}'"></div>
-      <h2><a class="team-title-link" href="/team/{{ m.away_team|urlencode }}">{{ m.away_team }}</a></h2>
+      <div class="crest xl"><img loading="lazy" src="{{ away_identity.get('crest_url','') }}" alt="{{ away }}" onerror="this.style.display='none';this.parentElement.textContent='{{ away_identity.get('initials', (away or 'V')[:1]) }}'"></div>
+      <h2><a class="team-title-link" href="/team/{{ away|urlencode }}">{{ away }}</a></h2>
     </div>
   </div>
 </section>
 
 <section class="band compact-band">
-  <div class="section-head"><h2>SHARK Score</h2><span class="pill">{{ detail.state.label }}</span></div>
+  <div class="section-head"><h2>Lectura SHARK</h2><span class="pill">{{ state.label or 'Estado' }}</span></div>
   <div class="grid compact-grid metric-row">
-    <div class="card metric-card"><div class="metric">{{ momentum.value or detail.state.momentum or 0 }}</div><div class="muted">SHARK Score</div></div>
+    <div class="card metric-card"><div class="metric">{{ shark_score or 0 }}</div><div class="muted">SHARK Score</div></div>
     <div class="card metric-card"><div class="metric">{{ momentum.presion or 0 }}</div><div class="muted">presion</div></div>
     <div class="card metric-card"><div class="metric">{{ momentum.riesgo or 0 }}</div><div class="muted">riesgo</div></div>
-    <div class="card metric-card"><div class="metric">{{ momentum.dominancia or 'equilibrado' }}</div><div class="muted">dominancia</div></div>
+    <div class="card metric-card"><div class="metric">{{ momentum.dominancia or 'Equilibrio' }}</div><div class="muted">dominancia</div></div>
   </div>
   <div class="grid compact-grid">
-    <article class="card">
-      <div class="match-top"><strong>Momentum local</strong><span>{{ momentum.momentum_local or 0 }}/100</span></div>
-      <div class="momentum"><i style="width:{{ momentum.momentum_local or 0 }}%"></i></div>
-    </article>
-    <article class="card">
-      <div class="match-top"><strong>Momentum visitante</strong><span>{{ momentum.momentum_visitante or 0 }}/100</span></div>
-      <div class="momentum"><i style="width:{{ momentum.momentum_visitante or 0 }}%"></i></div>
-    </article>
-    <article class="card">
-      <div class="match-top"><strong>Confianza SHARK</strong><span>{{ detail.data_quality.has_picks and 'Alta' or 'Contextual' }}</span></div>
-      <p class="small">Basada en estado, marcador, minuto, picks relacionados y datos disponibles.</p>
-    </article>
+    <article class="card"><div class="match-top"><strong>Momentum local</strong><span>{{ momentum.momentum_local or 0 }}/100</span></div><div class="momentum"><i style="width:{{ momentum.momentum_local or 0 }}%"></i></div></article>
+    <article class="card"><div class="match-top"><strong>Momentum visitante</strong><span>{{ momentum.momentum_visitante or 0 }}/100</span></div><div class="momentum"><i style="width:{{ momentum.momentum_visitante or 0 }}%"></i></div></article>
+    <article class="card"><div class="match-top"><strong>Confianza</strong><span>{{ detail.data_quality.has_picks and 'Alta' or 'Contextual' }}</span></div><p class="small">SHARK combina estado, marcador, minuto, picks relacionados y datos disponibles. Si falta mercado, no fuerza una recomendacion.</p></article>
   </div>
 </section>
 
-<section class="band two-col">
+<section class="band two-col compact-band">
   <div class="card">
-    <div class="section-head"><h2>Lectura SHARK</h2><span class="pill">Contexto</span></div>
-    <div class="stack">{% for note in detail.shark_notes %}<div class="list-row"><span>{{ note }}</span></div>{% else %}<div class="empty">SHARK está esperando más señales de este partido.</div>{% endfor %}</div>
+    <div class="section-head"><h2>Merece atencion</h2><span class="pill">SHARK</span></div>
+    <div class="stack">
+      {% for note in detail.shark_notes %}
+      <div class="list-row"><span>{{ note }}</span></div>
+      {% else %}
+      <div class="empty premium-empty">SHARK esta esperando mas datos de mercado para valorar este partido.</div>
+      {% endfor %}
+    </div>
   </div>
   <div class="card">
-    <div class="section-head"><h2>Acciones</h2></div>
+    <div class="section-head"><h2>Acciones rapidas</h2></div>
     <div class="quick-grid">
       <a class="btn primary" href="/shark?match={{ m.id }}">Preguntar a SHARK</a>
-      <a class="btn" href="/team/{{ m.home_team|urlencode }}">Ver {{ m.home_team }}</a>
-      <a class="btn" href="/team/{{ m.away_team|urlencode }}">Ver {{ m.away_team }}</a>
-      <a class="btn" href="/match-hub">Volver al calendario</a>
-      <button class="btn fav-star {% if m.is_favorite %}active{% endif %}" type="button" data-kind="match" data-value="{{ m.id }}" data-label="{{ m.home_team }} vs {{ m.away_team }}">★ Favorito</button>
+      <a class="btn" href="/team/{{ home|urlencode }}">Ver {{ home }}</a>
+      <a class="btn" href="/team/{{ away|urlencode }}">Ver {{ away }}</a>
+      <a class="btn" href="/sports-hub">Volver a partidos</a>
     </div>
   </div>
 </section>
@@ -91,24 +100,33 @@
 </section>
 {% endif %}
 
-<section class="band">
+<section class="band compact-band">
+  <div class="section-head"><h2>Picks relacionados</h2><span class="pill">{{ detail.related_picks|length }}</span></div>
+  {% if detail.related_picks %}
+  <div class="grid dense-grid">
+    {% for p in detail.related_picks[:6] %}
+    <article class="card pick-card v701-premium-pick">
+      <div class="comp-name">{{ p.competition_name or comp }}</div>
+      <h3>{{ p.selection or 'Pick SHARK' }}</h3>
+      <div class="pick-signals"><span>Cuota {{ p.odds or 'Pendiente' }}</span><span>Confianza {{ p.confidence or 0 }}%</span><span>Riesgo {{ p.risk_level or 'Medio' }}</span></div>
+      <p class="small"><strong>Motivo:</strong> {{ p.reasoning or 'Pick publicado por SHARK con los datos disponibles.' }}</p>
+    </article>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty premium-empty">Sin pick premium todavia. SHARK esta esperando mas datos antes de recomendar entrada.</div>
+  {% endif %}
+</section>
+
+<section class="band compact-band">
   <div class="section-head"><h2>Timeline</h2><span class="pill">{{ detail.timeline|length }}</span></div>
   <div class="timeline">
     {% for ev in detail.timeline %}
     <div class="timeline-item"><div class="timeline-minute">{{ ev.minute or '-' }}</div><div><strong>{{ ev.title }}</strong><p>{{ ev.detail }}</p></div></div>
     {% else %}
-    <div class="empty">Aún no hay eventos suficientes para este partido.</div>
+    <div class="empty premium-empty">Aun no hay eventos suficientes para este partido.</div>
     {% endfor %}
   </div>
-</section>
-
-<section class="band">
-  <div class="section-head"><h2>Picks relacionados</h2><span class="pill">{{ detail.related_picks|length }}</span></div>
-  {% if detail.related_picks %}
-  <div class="grid">{% for p in detail.related_picks[:6] %}<article class="card pick-card"><div class="kicker">{{ p.competition_name }}</div><h3>{{ p.selection }}</h3><p class="small">{{ p.reasoning }}</p><div class="status"><span>Cuota {{ p.odds }}</span><span>{{ p.confidence }}%</span></div></article>{% endfor %}</div>
-  {% else %}
-  <div class="empty premium-empty">SHARK está analizando este partido. Si aparece una oportunidad clara, se publicará como recomendación o pick.</div>
-  {% endif %}
 </section>
 {% endif %}
 {% endblock %}
