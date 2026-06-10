@@ -59,13 +59,13 @@ from engines.telegram_delivery_engine import (
 from engines.telegram_engine import build_alert_queue, dispatch_signature, should_skip_duplicate
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V705_SPORTS_DATA_DOMINATION_LAUNCH_CERTIFICATION"
+APP_VERSION = "V710_RENDER_CRON_AUTOMATION_FINAL"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
 
 app = Flask(__name__)
-app.secret_key = os.getenv("SECRET_KEY") or os.getenv("FLASK_SECRET_KEY") or "nemesis-shark-pro-local-session-key"
+app.secret_key = os.getenv("SECRET_KEY") or os.getenv("FLASK_SECRET_KEY") or secrets.token_hex(32)
 SEED_LOCK = threading.RLock()
 _SEED_LOCK = SEED_LOCK
 _SEEDED_DB_PATH = None
@@ -129,25 +129,156 @@ def automation_secret_configured():
     return bool(str(os.getenv("AUTOMATION_SECRET") or "").strip())
 
 
+def automation_request_secret():
+    payload = request.get_json(silent=True) or {}
+    return str(
+        request.args.get("secret")
+        or request.headers.get("X-Automation-Secret")
+        or request.headers.get("X-CRON-SECRET")
+        or request.form.get("secret")
+        or payload.get("secret")
+        or ""
+    ).strip()
+
+
 def automation_secret_valid():
     expected = str(os.getenv("AUTOMATION_SECRET") or "").strip()
     if not expected:
         return False
-    provided = str(request.args.get("secret") or request.headers.get("X-Automation-Secret") or "").strip()
-    return secrets.compare_digest(provided, expected)
+    return secrets.compare_digest(automation_request_secret(), expected)
+
+
+def automation_secret_status():
+    expected = str(os.getenv("AUTOMATION_SECRET") or "").strip()
+    provided = automation_request_secret()
+    if not expected:
+        return {
+            "ok": False,
+            "error": "automation_secret_missing",
+            "message": "Falta AUTOMATION_SECRET en Render. Configura esa variable antes de activar los Cron Jobs.",
+            "configured": False,
+            "provided": bool(provided),
+        }
+    if not provided:
+        return {
+            "ok": False,
+            "error": "automation_secret_required",
+            "message": "Endpoint protegido. Llama con ?secret=AUTOMATION_SECRET o header X-Automation-Secret.",
+            "configured": True,
+            "provided": False,
+        }
+    if not secrets.compare_digest(provided, expected):
+        return {
+            "ok": False,
+            "error": "automation_secret_invalid",
+            "message": "AUTOMATION_SECRET recibido, pero no coincide con el valor configurado en Render.",
+            "configured": True,
+            "provided": True,
+        }
+    return {"ok": True, "configured": True, "provided": True}
 
 
 def automation_access_allowed():
+    # Rutas antiguas pueden seguir aceptando sesión admin o secret. Los endpoints Cron nuevos usan validación estricta.
     return is_admin_session() or automation_secret_valid()
 
 
+def automation_cron_access_allowed():
+    return automation_secret_status().get("ok") is True
+
+
 def automation_json_forbidden():
+    status = automation_secret_status()
     return jsonify({
         "ok": False,
         "version": APP_VERSION,
-        "error": "automation_secret_required",
-        "message": "Configura AUTOMATION_SECRET y llama el endpoint con ?secret=... o header X-Automation-Secret.",
+        "error": status.get("error") or "automation_secret_required",
+        "message": status.get("message") or "Configura AUTOMATION_SECRET y llama el endpoint con ?secret=... o header X-Automation-Secret.",
+        "automation_secret_configured": bool(status.get("configured")),
+        "automation_secret_provided": bool(status.get("provided")),
     }), 403
+
+
+def automation_safe_set(key, value):
+    try:
+        seed_core()
+        automation_set(key, value)
+        return {"ok": True, "key": key}
+    except Exception as exc:
+        try:
+            print("[AUTOMATION_STATE_SAVE_ERROR]", key, str(exc)[:300])
+        except Exception:
+            pass
+        return {"ok": False, "key": key, "error": str(exc)[:300]}
+
+
+def telegram_diagnostics_safe():
+    try:
+        return telegram_diagnostics()
+    except Exception as exc:
+        return {
+            "error": "telegram_diagnostics_unavailable",
+            "message": str(exc)[:300],
+            "env_flags": {
+                "TELEGRAM_BOT_TOKEN": env_present("TELEGRAM_BOT_TOKEN"),
+                "TELEGRAM_CHAT_ID": env_present("TELEGRAM_CHAT_ID"),
+                "AUTOMATION_SECRET": automation_secret_configured(),
+                "ENABLE_TELEGRAM_AUTO": env_bool("ENABLE_TELEGRAM_AUTO", False),
+                "AUTO_SEND_TELEGRAM_PICKS": env_bool("AUTO_SEND_TELEGRAM_PICKS", False),
+            },
+            "last_cron_daily_call": {},
+            "last_cron_telegram_call": {},
+        }
+
+
+def cron_force_requested():
+    payload = request.get_json(silent=True) or {}
+    return (
+        request.args.get("force") in {"1", "true", "yes", "on"}
+        or request.form.get("force") in {"1", "true", "yes", "on"}
+        or payload.get("force") is True
+    )
+
+
+def automation_cron_result(endpoint, state_keys, runner, force=False):
+    called_at = now_iso()
+    state_payload = {"time": called_at, "force": bool(force), "source": "render_cron", "endpoint": endpoint, "version": APP_VERSION}
+    state_results = [automation_safe_set(key, state_payload) for key in state_keys]
+    try:
+        seed_core()
+        result = runner(force=force)
+        if not isinstance(result, dict):
+            result = {"ok": True, "result": result}
+    except Exception as exc:
+        try:
+            print(f"[CRON_ENDPOINT_ERROR] {endpoint}:", str(exc)[:800])
+        except Exception:
+            pass
+        result = {
+            "ok": False,
+            "error": "cron_execution_error",
+            "message": "El endpoint Cron se autenticó correctamente, pero la automatización falló de forma controlada. Revisa logs Render.",
+            "detail": str(exc)[:500],
+        }
+    finished_at = now_iso()
+    final_payload = {
+        "ok": bool(result.get("ok", False)),
+        "version": APP_VERSION,
+        "cron": True,
+        "endpoint": endpoint,
+        "auth": "automation_secret",
+        "called_at": called_at,
+        "finished_at": finished_at,
+        "force": bool(force),
+        "state_saved": all(item.get("ok") for item in state_results),
+        "state_save_results": state_results,
+    }
+    final_payload.update(result)
+    final_payload["ok"] = bool(result.get("ok", final_payload["ok"]))
+    final_payload["version"] = APP_VERSION
+    final_payload["cron"] = True
+    final_payload["diagnostics"] = telegram_diagnostics_safe()
+    return jsonify(final_payload), 200
 
 
 def telegram_env_ready():
@@ -5922,8 +6053,8 @@ def telegram_diagnostics():
         "automatic_reason": automatic_reason,
         "env_flags": env_flags,
         "missing_required": missing_required,
-        "last_cron_daily_call": automation_get("cron_daily_run_last_call", {}) or {},
-        "last_cron_telegram_call": automation_get("cron_telegram_tick_last_call", {}) or {},
+        "last_cron_daily_call": automation_get("last_cron_daily_call", {}) or automation_get("cron_daily_run_last_call", {}) or {},
+        "last_cron_telegram_call": automation_get("last_cron_telegram_call", {}) or automation_get("cron_telegram_tick_last_call", {}) or {},
         "last_daily_automation": automation_get("daily_autonomous_system", {}) or {},
         "last_scheduler_tick": automation_get("telegram_last_dispatch", {}) or {},
         "subscribers": (one("SELECT COUNT(*) AS total FROM telegram_subscribers WHERE is_active=1") or {}).get("total", 0),
@@ -8113,22 +8244,28 @@ def api_telegram_scheduler_tick():
 
 @app.route("/api/automation/daily/run", methods=["POST", "GET"])
 def api_automation_daily_run():
-    if not automation_access_allowed():
+    if not automation_cron_access_allowed():
         return automation_json_forbidden()
-    force = request.args.get("force") in {"1", "true", "yes"} or (request.get_json(silent=True) or {}).get("force") is True
-    automation_set("cron_daily_run_last_call", {"time": now_iso(), "force": bool(force), "source": "render_cron"})
-    result = run_daily_autonomous_system(force=force)
-    return jsonify({"version": APP_VERSION, "cron": True, **result, "diagnostics": telegram_diagnostics()})
+    force = cron_force_requested()
+    return automation_cron_result(
+        "daily_run",
+        ("last_cron_daily_call", "cron_daily_run_last_call"),
+        run_daily_autonomous_system,
+        force=force,
+    )
 
 
 @app.route("/api/automation/telegram/tick", methods=["POST", "GET"])
 def api_automation_telegram_tick():
-    if not automation_access_allowed():
+    if not automation_cron_access_allowed():
         return automation_json_forbidden()
-    force = request.args.get("force") in {"1", "true", "yes"} or (request.get_json(silent=True) or {}).get("force") is True
-    automation_set("cron_telegram_tick_last_call", {"time": now_iso(), "force": bool(force), "source": "render_cron"})
-    result = telegram_scheduler_tick(force=force)
-    return jsonify({"version": APP_VERSION, "cron": True, **result, "diagnostics": telegram_diagnostics()})
+    force = cron_force_requested()
+    return automation_cron_result(
+        "telegram_tick",
+        ("last_cron_telegram_call", "cron_telegram_tick_last_call"),
+        telegram_scheduler_tick,
+        force=force,
+    )
 
 
 @app.route("/api/telegram/triggers")
@@ -8182,6 +8319,22 @@ def api_cache_status():
 @app.route("/api/imports")
 def api_imports():
     return jsonify({"ok": True, "version": APP_VERSION, "imports": rows("SELECT * FROM imports ORDER BY created_at DESC LIMIT 50")})
+
+
+@app.route("/api/security/summary")
+def api_security_summary():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({
+        "ok": True,
+        "version": APP_VERSION,
+        "security": {
+            "secret_key_configured": env_present("SECRET_KEY") or env_present("FLASK_SECRET_KEY"),
+            "automation_secret_configured": automation_secret_configured(),
+            "db_path_configured": env_present("DB_PATH"),
+            "safe_runtime_fallback": not (env_present("SECRET_KEY") or env_present("FLASK_SECRET_KEY")),
+        },
+    })
 
 
 @app.route("/api/diagnostics")
@@ -9284,6 +9437,21 @@ def api_v570_system_check():
         "memory_table": True,
         "app_goal": "SHARK conectado a favoritos, picks, recomendaciones, live y calendario.",
     })
+
+
+def register_optional_blueprints():
+    try:
+        if "architecture" not in app.blueprints:
+            from blueprints.architecture import create_architecture_blueprint
+            app.register_blueprint(create_architecture_blueprint(APP_VERSION, DB_PATH, is_admin_session))
+    except Exception as exc:
+        try:
+            print("[BLUEPRINT_REGISTER_SKIP]", str(exc)[:300])
+        except Exception:
+            pass
+
+
+register_optional_blueprints()
 
 
 if __name__ == "__main__":
