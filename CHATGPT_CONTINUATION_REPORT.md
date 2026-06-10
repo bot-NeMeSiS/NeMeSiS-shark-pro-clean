@@ -1,79 +1,88 @@
 # CHATGPT CONTINUATION REPORT
 
-## 1. Estado inicial
+## 1. Causa raiz exacta
 
-Antes de V705, V704 ya habia ampliado limites visuales, competiciones y lectura de cuotas outcomes. El problema pendiente era certificar la verdad: saber si la app parece vacia por codigo o por falta de datos reales en Render.
+Telegram manual funcionaba. El problema real estaba en que el automatico no tenia un disparador de produccion garantizado en Render. Un Web Service no asegura tareas periodicas por si solo. Hacia falta Render Cron o un equivalente externo.
 
-## 2. Que limitaba cobertura
+Tambien se reforzo la generacion real de auto picks y se corrigio un bloqueo SQLite detectado en cola.
 
-- Limites restantes en SportsDB feed/resultados: 80.
-- Daily automation con limites bajos.
-- Admin Picks con solo 80 partidos.
-- No hay DB real local para medir produccion.
-- Las APIs requieren claves reales.
+## 2. Que fallaba en automatico
 
-## 3. Que se corrigio
+Fallaba la garantia de ejecucion sin admin. El sistema tenia funciones internas, pero no habia una ruta cron segura y documentada como contrato de produccion.
 
-- SportsDB feed/resultados suben a 220.
-- Scheduler odds sube a 250.
-- Scheduler live sube a 160.
-- Scheduler recommendations sube a 120.
-- Daily automation sube calendar/live/recommendations/auto_picks.
-- Admin Picks sube a 220 partidos y 21 dias.
-- Version V705 actualizada.
+## 3. Que si funcionaba manualmente
 
-## 4. Numero estimado de ligas visibles
+Funcionaba:
 
-En smoke controlado: 10 ligas. En produccion: no verificable sin DB Render.
+- `TELEGRAM_BOT_TOKEN`
+- `TELEGRAM_CHAT_ID`
+- `/api/telegram/send`
+- cola manual
+- canal Telegram
 
-## 5. Numero estimado de partidos visibles
+## 4. Que se corrigio
 
-En smoke controlado: 28 totales, 18 hoy, 10 manana, 28 semana. En produccion: no verificable localmente.
+- Se crearon endpoints cron seguros.
+- Se anadio `AUTOMATION_SECRET`.
+- Se conecto auto-pick real al ciclo.
+- Se aseguro canal global obligatorio.
+- Se reforzo dedupe.
+- Se mejoro diagnostico admin.
+- Se corrigio `database is locked` al loguear tras envio.
 
-## 6. Numero estimado de picks visibles
+## 5. Endpoints automaticos
 
-En smoke controlado: 12 picks publicados y 22 candidatos.
+- `/api/automation/daily/run?secret=...`
+- `/api/automation/telegram/tick?secret=...`
+- `/api/telegram/scheduler-tick?secret=...`
 
-## 7. Numero estimado de cuotas visibles
+## 6. Variables Render obligatorias
 
-En smoke controlado: 28 partidos con cuotas reconocidas.
+- `TELEGRAM_BOT_TOKEN`
+- `TELEGRAM_CHAT_ID`
+- `TELEGRAM_BOT_USERNAME`
+- `ENABLE_TELEGRAM_AUTO=true`
+- `AUTO_SEND_TELEGRAM_PICKS=true`
+- `AUTO_GENERATE_PICKS=true`
+- `SCHEDULER_ENABLED=true`
+- `DAILY_AUTOMATION_ENABLED=true`
+- `RUN_DAILY_AUTOMATION=true`
+- `AUTOMATION_SECRET=...`
 
-## 8. Estado Telegram real
+## 7. Necesita Render Cron
 
-Rutas y codigo: LISTO. Envio real privado/canal: PENDIENTE. Certificacion completa: NO VERIFICABLE sin Render/token/canal/usuario real.
+Si. Para certificar que el admin no toca nada, Render debe ejecutar Cron Jobs contra los endpoints seguros.
 
-## 9. Estado SHARK real
+## 8. Como probar en produccion
 
-SHARK funciona sobre datos disponibles. En smoke: 22 recomendaciones/partidos con SHARK. Para valor real necesita datos historicos y cuotas reales constantes.
+1. Configurar variables Render.
+2. Crear Cron diario para `/api/automation/daily/run?secret=...`.
+3. Crear Cron cada 15 minutos para `/api/automation/telegram/tick?secret=...`.
+4. Mirar `/admin/telegram/diagnostics`.
+5. Confirmar `last_auto_pick.status=sent`.
+6. Confirmar `pending=0`.
+7. Confirmar mensaje recibido en canal.
 
-## 10. Que falta para competir con Flashscore
+## 9. Logs que mirar
 
-- Cobertura real diaria de muchas ligas.
-- Live real con eventos, minuto y marcador fiable.
-- Alineaciones, estadisticas, timeline y clasificaciones.
-- Mas deportes si se quiere competir fuera de futbol.
-- Cache caliente y sincronizaciones programadas estables.
+- `[AUTOMATION]`
+- `[AUTO_PICKS]`
+- `[QUEUE_LOAD]`
+- `[QUEUE_PROCESS]`
+- `[QUEUE_SENT]`
+- `[QUEUE_FAIL]`
+- `[TELEGRAM]`
 
-## 11. Que falta para lanzamiento
+## 10. Si no llega mensaje
 
-- Probar sync real en Render.
-- Confirmar volumen en `/data/database.db`.
-- Probar Telegram real.
-- Monitorizar varios dias.
-- Revisar que las cuotas entran con mercados suficientes.
+Revisar:
 
-## 12. Puntuacion real de producto
+- falta `AUTOMATION_SECRET`
+- Render Cron no creado
+- `ENABLE_TELEGRAM_AUTO=false`
+- `AUTO_SEND_TELEGRAM_PICKS=false`
+- no hay cuotas validas
+- score por debajo de `MIN_SHARK_SCORE_FOR_AUTO_SEND`
+- cola `failed`
+- error real de Telegram en `last_error`
 
-- Arquitectura: 8.9/10
-- Estabilidad: 9.1/10
-- Cobertura potencial: 8.7/10
-- Cobertura real certificada localmente: 5.5/10 por falta de DB/API productiva local
-- Sports Hub: 9.0/10
-- Picks: 8.8/10
-- Odds: 8.4/10
-- SHARK: 8.6/10
-- Telegram: 8.3/10
-- Launch beta: 8.6/10
-- Launch venta abierta: 7.4/10 hasta validar Render real
-
-Conclusion: V705 deja el codigo preparado para cobertura mucho mayor. La verdad final depende de alimentar Render con datos reales y verificar Telegram real. No hace falta mas arquitectura; hace falta certificacion operativa en produccion.

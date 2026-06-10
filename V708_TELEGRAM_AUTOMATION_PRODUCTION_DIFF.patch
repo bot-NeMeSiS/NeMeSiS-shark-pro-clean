@@ -1,0 +1,19 @@
+diff --git a/app.py b/app.py
+--- a/app.py
++++ b/app.py
+@@
++V708 Telegram automation production fix:
++- added AUTOMATION_SECRET support
++- added secure cron endpoints:
++  /api/automation/daily/run
++  /api/automation/telegram/tick
++- protected /api/telegram/scheduler-tick by admin session or secret
++- connected SCHEDULER_ENABLED and daily automation env flags
++- persisted real auto picks from valid SHARK recommendations
++- required valid odds for premium auto pick sending
++- forced global TELEGRAM_CHAT_ID as automatic destination
++- added private destinations by membership
++- added auto_pick queue items with pick_id + chat_id dedupe
++- added diagnostics for env flags, missing variables, last daily automation, last scheduler tick and last auto pick
++- fixed SQLite database locked in queue processing logs by closing queue transaction before telegram_log()
++- updated .env.example and .env.render.clean

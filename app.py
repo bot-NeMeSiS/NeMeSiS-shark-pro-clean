@@ -113,6 +113,43 @@ def telegram_env_auto_enabled():
     return env_bool("ENABLE_TELEGRAM_AUTO", False) or env_bool("AUTO_SEND_TELEGRAM_PICKS", False)
 
 
+def scheduler_env_enabled():
+    return env_bool("SCHEDULER_ENABLED", env_bool("ENABLE_AUTO_SYNC", True))
+
+
+def daily_automation_env_enabled():
+    return (
+        env_bool("DAILY_AUTOMATION_ENABLED", False)
+        or env_bool("RUN_DAILY_AUTOMATION", False)
+        or env_bool("AUTO_GENERATE_PICKS", False)
+    )
+
+
+def automation_secret_configured():
+    return bool(str(os.getenv("AUTOMATION_SECRET") or "").strip())
+
+
+def automation_secret_valid():
+    expected = str(os.getenv("AUTOMATION_SECRET") or "").strip()
+    if not expected:
+        return False
+    provided = str(request.args.get("secret") or request.headers.get("X-Automation-Secret") or "").strip()
+    return secrets.compare_digest(provided, expected)
+
+
+def automation_access_allowed():
+    return is_admin_session() or automation_secret_valid()
+
+
+def automation_json_forbidden():
+    return jsonify({
+        "ok": False,
+        "version": APP_VERSION,
+        "error": "automation_secret_required",
+        "message": "Configura AUTOMATION_SECRET y llama el endpoint con ?secret=... o header X-Automation-Secret.",
+    }), 403
+
+
 def telegram_env_ready():
     return env_present("TELEGRAM_BOT_TOKEN") and env_present("TELEGRAM_CHAT_ID")
 
@@ -2272,7 +2309,7 @@ def scheduler_env_config():
 
 
 def scheduler_enabled():
-    return scheduler_env_config().get("enabled", True)
+    return scheduler_env_enabled()
 
 
 def scheduler_startup_enabled():
@@ -2368,8 +2405,33 @@ def refresh_recommendations_basic(limit=40):
 
 def refresh_auto_picks_basic(limit=40):
     recs = v565_recommendation_pool(limit=limit)
-    candidates = [r for r in recs if as_int(r.get("score"), 0) >= as_int(os.getenv("AUTO_PICKS_MIN_SCORE", "78"), 78)]
-    return {"ok": True, "processed": len(recs), "inserted": 0, "updated": len(candidates), "skipped": max(0, len(recs) - len(candidates)), "auto_candidates": len(candidates)}
+    min_score = as_int(os.getenv("MIN_SHARK_SCORE_FOR_AUTO_SEND", os.getenv("AUTO_PICKS_MIN_SCORE", "78")), 78)
+    max_saved = as_int(os.getenv("MAX_AUTO_PICKS_PER_DAY", "4"), 4)
+    candidates = []
+    discarded = []
+    for rec in recs:
+        score = as_int(rec.get("score"), 0)
+        odds = as_float(rec.get("odds_value") or rec.get("odds"), 0.0)
+        if score < min_score:
+            discarded.append({"match_id": rec.get("match_id"), "reason": "score_bajo", "score": score})
+            continue
+        if not rec.get("match_id") or not rec.get("selection"):
+            discarded.append({"match_id": rec.get("match_id"), "reason": "datos_incompletos"})
+            continue
+        if odds <= 1:
+            discarded.append({"match_id": rec.get("match_id"), "reason": "sin_cuota_valida", "score": score})
+            continue
+        candidates.append(rec)
+    saved = []
+    duplicates = 0
+    for rec in candidates[:max_saved]:
+        result = ensure_auto_pick_from_recommendation(rec)
+        if result.get("created"):
+            saved.append(result.get("pick"))
+        elif result.get("reason") == "duplicate":
+            duplicates += 1
+    telegram_log("[AUTO_PICKS]", "reviewed", "Revision de auto picks completada.", {"processed": len(recs), "candidates": len(candidates), "saved": len(saved), "duplicates": duplicates, "discarded": discarded[:12]})
+    return {"ok": True, "processed": len(recs), "inserted": len(saved), "updated": len(candidates), "skipped": len(discarded) + duplicates, "auto_candidates": len(candidates), "saved": len(saved), "duplicates": duplicates, "discarded": discarded[:20], "min_score": min_score}
 
 
 def refresh_live_alerts_basic(limit=40):
@@ -2569,11 +2631,18 @@ def restore_database_backup(name):
 
 def daily_automation_summary():
     last = automation_get("daily_autonomous_system", {}) or {}
-    return {"last": last, "next_run_label": "Hoy 10:00 Europe/Madrid" if str(last.get("date") or "") != today_iso() else "Mañana 10:00 Europe/Madrid", "enabled": scheduler_enabled(), "due_now": not bool(last.get("date") == today_iso())}
-
+    return {
+        "last": last,
+        "next_run_label": "Hoy 10:00 Europe/Madrid" if str(last.get("date") or "") != today_iso() else "Manana 10:00 Europe/Madrid",
+        "enabled": scheduler_enabled() or daily_automation_env_enabled(),
+        "env_enabled": daily_automation_env_enabled(),
+        "secret_configured": automation_secret_configured(),
+        "due_now": not bool(last.get("date") == today_iso()),
+    }
 
 def run_daily_autonomous_system(force=False):
     started = datetime.now(TZ)
+    telegram_log("[AUTOMATION]", "start", "Daily automation iniciada.", {"force": bool(force), "scheduler_enabled": scheduler_enabled(), "daily_env": daily_automation_env_enabled()})
     tasks = {
         "calendar": run_scheduler_task("calendar", force=force, limit=220),
         "live": run_scheduler_task("live", force=force, limit=160),
@@ -2593,11 +2662,12 @@ def run_daily_autonomous_system(force=False):
         "errors": errors,
         "tasks": tasks,
         "matches_synced": as_int((tasks.get("calendar") or {}).get("processed"), 0) + as_int((tasks.get("live") or {}).get("processed"), 0),
-        "picks_generated": as_int((tasks.get("auto_picks") or {}).get("saved"), 0),
+        "picks_generated": as_int((tasks.get("auto_picks") or {}).get("saved") or ((tasks.get("auto_picks") or {}).get("raw") or {}).get("saved"), 0),
         "picks_sent": as_int((tasks.get("telegram") or {}).get("sent"), 0),
         "backups_created": 1 if (tasks.get("backup") or {}).get("ok") else 0,
     }
     automation_set("daily_autonomous_system", result)
+    telegram_log("[AUTOMATION]", "finished", "Daily automation finalizada.", {"ok": result.get("ok"), "picks_generated": result.get("picks_generated"), "picks_sent": result.get("picks_sent"), "errors": result.get("errors")})
     return result
 
 
@@ -3348,6 +3418,56 @@ def create_or_update_pick(payload, pick_id=None, publish=False):
     conn.commit()
     conn.close()
     return normalize_pick_row(one("SELECT * FROM picks WHERE id=?", (pick_id,)))
+
+
+def ensure_auto_pick_from_recommendation(rec):
+    rec = dict(rec or {})
+    match_id = str(rec.get("match_id") or "").strip()
+    selection = str(rec.get("selection") or "").strip()
+    odds = as_float(rec.get("odds_value") or rec.get("odds"), 0.0)
+    if not match_id or not selection:
+        return {"ok": False, "created": False, "reason": "datos_incompletos"}
+    if odds <= 1:
+        return {"ok": False, "created": False, "reason": "sin_cuota_valida"}
+    market = "Resultado / analisis SHARK"
+    source = "auto_picks_scheduler"
+    existing = one(
+        """SELECT * FROM picks
+           WHERE match_id=?
+             AND lower(COALESCE(selection,''))=lower(?)
+             AND lower(COALESCE(market,''))=lower(?)
+             AND lower(COALESCE(source,''))=lower(?)
+           ORDER BY created_at DESC LIMIT 1""",
+        (match_id, selection, market, source),
+    )
+    if existing:
+        telegram_log("[AUTO_PICKS]", "skipped", "Pick automatico duplicado evitado.", {"match_id": match_id, "pick_id": existing.get("id")})
+        return {"ok": True, "created": False, "reason": "duplicate", "pick": normalize_pick_row(existing)}
+    pick_id = hashlib.md5(f"auto-pick:{match_id}:{market}:{selection}".encode("utf-8")).hexdigest()[:18]
+    payload = {
+        "id": pick_id,
+        "match_id": match_id,
+        "league_name": rec.get("league_name") or rec.get("competition_name"),
+        "competition_name": rec.get("league_name") or rec.get("competition_name"),
+        "home_team": rec.get("home_team"),
+        "away_team": rec.get("away_team"),
+        "market": market,
+        "pick_type": "SHARK Auto",
+        "selection": selection,
+        "odds": odds,
+        "confidence": rec.get("score"),
+        "stake_units": 1 if str(rec.get("risk") or "").upper() == "BAJO" else 0.5,
+        "risk_level": rec.get("risk") or "MEDIO",
+        "reasoning": rec.get("reason") or "SHARK detecta valor con los datos disponibles.",
+        "warning_reason": rec.get("warning") or "No apostar si cambia la cuota o falta contexto clave.",
+        "membership_required": rec.get("membership_required") or "PRO",
+        "status": "published",
+        "source": source,
+        "legal_note": "Pick automatico generado desde recomendacion SHARK con datos reales disponibles.",
+    }
+    pick = create_or_update_pick(payload, pick_id=pick_id, publish=True)
+    telegram_log("[AUTO_PICKS]", "created", "Pick automatico guardado.", {"pick_id": pick.get("id"), "match_id": match_id, "score": rec.get("score")})
+    return {"ok": True, "created": True, "reason": "created", "pick": pick}
 
 
 def update_pick_status(pick_id, status):
@@ -5447,6 +5567,26 @@ def telegram_subscribers(active_only=True):
     return rows("SELECT * FROM telegram_subscribers ORDER BY created_at DESC")
 
 
+def telegram_auto_destinations(required_membership="FREE", include_global=True):
+    required_membership = normalize_role(required_membership or "FREE")
+    destinations = []
+    seen = set()
+    global_chat_id = os.getenv("TELEGRAM_CHAT_ID", "").strip()
+    if include_global and global_chat_id:
+        destinations.append({"chat_id": global_chat_id, "user_id": "", "membership": "ADMIN", "target_kind": "channel", "target_key": "auto_channel", "label": "Canal global"})
+        seen.add(global_chat_id)
+    for sub in telegram_subscribers():
+        chat_id = str(sub.get("chat_id") or "").strip()
+        if not chat_id or chat_id in seen:
+            continue
+        membership = normalize_role(sub.get("membership") or "FREE")
+        if membership_allows(membership, required_membership):
+            user_id = sub.get("user_id") or ""
+            destinations.append({"chat_id": chat_id, "user_id": user_id, "membership": membership, "target_kind": "private", "target_key": f"auto_private_user_{user_id or chat_id}", "label": sub.get("first_name") or sub.get("username") or "Usuario Telegram"})
+            seen.add(chat_id)
+    return destinations
+
+
 def telegram_sent_last_hour(chat_id=None):
     since = (datetime.now(TZ) - timedelta(hours=1)).isoformat(timespec="seconds")
     if chat_id:
@@ -5551,11 +5691,11 @@ def enqueue_daily_picks(force=False, force_empty=False, forced_chat_id=""):
     body = build_daily_picks_message(force_empty=force_empty)
     if not body:
         return {"ok": True, "message": "No hay picks publicados; no se encola nada.", "processed": 0, "inserted": 0, "sent": 0, "failed": 0, "skipped": 1, "errors": []}
-    subscribers = [s for s in telegram_subscribers() if str(s.get("membership") or "FREE").upper() in {"PRO", "ELITE", "ADMIN"}]
+    subscribers = telegram_auto_destinations("PRO", include_global=True)
     if forced_chat_id and not subscribers:
         subscribers = [{"chat_id": forced_chat_id, "user_id": "", "membership": "ADMIN"}]
     if not subscribers:
-        return {"ok": False, "message": "No hay suscriptores PRO/ELITE activos.", "processed": 0, "sent": 0, "failed": 0, "skipped": 0, "errors": ["sin_destinatarios"]}
+        return {"ok": False, "message": "No hay canal global ni suscriptores PRO/ELITE activos.", "processed": 0, "sent": 0, "failed": 0, "skipped": 0, "errors": ["sin_destinatarios"]}
     inserted = skipped = 0
     for sub in subscribers:
         result = enqueue_telegram_message(
@@ -5571,6 +5711,60 @@ def enqueue_daily_picks(force=False, force_empty=False, forced_chat_id=""):
         inserted += 1 if result.get("queued") else 0
         skipped += 1 if result.get("skipped") else 0
     return {"ok": True, "message": "Picks destacados encolados.", "processed": len(subscribers), "inserted": inserted, "updated": 0, "sent": 0, "failed": 0, "skipped": skipped, "errors": []}
+
+
+def enqueue_auto_pick_alerts(force=False, limit=6):
+    min_score = as_int(os.getenv("MIN_SHARK_SCORE_FOR_AUTO_SEND", os.getenv("AUTO_PICKS_MIN_SCORE", "78")), 78)
+    picks = get_picks(limit=max(20, int(limit) * 4), status=["published"], include_admin=True)
+    candidates = []
+    discarded = []
+    for pick in picks:
+        score = as_int(pick.get("confidence") or pick.get("shark_score"), 0)
+        odds = as_float(pick.get("odds"), 0.0)
+        if score < min_score and not force:
+            discarded.append({"pick_id": pick.get("id"), "reason": "score_bajo", "score": score})
+            continue
+        if odds <= 1 and not force:
+            discarded.append({"pick_id": pick.get("id"), "reason": "sin_cuota_valida"})
+            continue
+        candidates.append(pick)
+        if len(candidates) >= int(limit):
+            break
+    if not candidates:
+        telegram_log("[AUTO_PICKS]", "skipped", "No hay picks automaticos elegibles para Telegram.", {"min_score": min_score, "discarded": discarded[:12]})
+        return {"ok": True, "message": "No hay picks automaticos elegibles.", "processed": len(picks), "inserted": 0, "sent": 0, "failed": 0, "skipped": len(discarded) or 1, "errors": [], "discarded": discarded[:12]}
+    inserted = skipped = blocked = 0
+    errors = []
+    for pick in candidates:
+        required = normalize_role(pick.get("membership_required") or "PRO")
+        body = format_daily_picks_message([pick], force_empty=False, premium_name=APP_NAME)
+        if not body:
+            skipped += 1
+            continue
+        destinations = telegram_auto_destinations(required, include_global=True)
+        if not destinations:
+            errors.append("sin_destinatarios")
+            telegram_log("[QUEUE]", "failed", "Pick automatico sin canal global ni privados elegibles.", {"pick_id": pick.get("id"), "required": required})
+            continue
+        for dest in destinations:
+            if dest.get("target_kind") == "private" and not membership_allows(dest.get("membership"), required):
+                blocked += 1
+                continue
+            dedupe_target = dest.get("chat_id") or dest.get("user_id") or "global"
+            result = enqueue_telegram_message(
+                "auto_pick",
+                "Pick automatico SHARK",
+                body,
+                chat_id=dest.get("chat_id"),
+                user_id=dest.get("user_id"),
+                payload={"membership": dest.get("membership"), "target_key": dest.get("target_key"), "pick_id": pick.get("id"), "priority": 90, "auto": True, "target_kind": dest.get("target_kind")},
+                dedupe_key=telegram_dedupe_key("auto_pick", str(pick.get("id") or today_iso()), dedupe_target),
+                force=force,
+            )
+            inserted += 1 if result.get("queued") else 0
+            skipped += 1 if result.get("skipped") else 0
+    telegram_log("[QUEUE]", "pending", "Revision de picks automaticos para Telegram completada.", {"candidates": len(candidates), "inserted": inserted, "skipped": skipped, "blocked": blocked, "min_score": min_score})
+    return {"ok": not errors, "message": "Picks automaticos revisados.", "processed": len(candidates), "inserted": inserted, "updated": 0, "sent": 0, "failed": 0, "skipped": skipped + blocked, "errors": errors[:12], "candidates": len(candidates), "discarded": discarded[:12]}
 
 
 def enqueue_live_alerts(force=False):
@@ -5626,6 +5820,7 @@ def process_premium_telegram_queue(limit=5, force=False):
            LIMIT ?""",
         (now_iso(), int(limit)),
     )
+    telegram_log("[QUEUE_LOAD]", "loaded", "Cola Telegram cargada para procesamiento.", {"pending_loaded": len(pending), "limit": int(limit), "force": bool(force)})
     processed = sent = failed = skipped = 0
     errors = []
     for item in pending:
@@ -5636,7 +5831,9 @@ def process_premium_telegram_queue(limit=5, force=False):
             conn.commit()
             conn.close()
             skipped += 1
+            telegram_log("[QUEUE_SKIP_DUPLICATE]", "skipped", "Mensaje omitido por limite horario.", {"queue_id": item.get("id"), "chat_id": masked_key(chat_id)})
             continue
+        telegram_log("[QUEUE_PROCESS]", "sending", "Procesando item de cola Telegram.", {"queue_id": item.get("id"), "message_type": item.get("message_type"), "chat_id": masked_key(chat_id)})
         conn = db()
         conn.execute("UPDATE telegram_queue SET status=?, attempts=attempts+1, updated_at=? WHERE id=?", (QUEUE_SENDING, now_iso(), item.get("id")))
         conn.commit()
@@ -5650,14 +5847,22 @@ def process_premium_telegram_queue(limit=5, force=False):
             "UPDATE telegram_queue SET status=?, sent_at=?, error_message=?, updated_at=? WHERE id=?",
             (new_status, now_iso() if result.get("sent") else "", error[:500], now_iso(), item.get("id")),
         )
+        sent_log_payload = None
+        fail_log_payload = None
         if result.get("sent"):
             conn.execute("UPDATE telegram_subscribers SET last_message_sent_at=? WHERE chat_id=?", (now_iso(), chat_id))
             sent += 1
+            sent_log_payload = {"queue_id": item.get("id"), "message_type": item.get("message_type"), "chat_id": masked_key(chat_id)}
         else:
             failed += 1
             errors.append(error[:160] or result.get("status"))
+            fail_log_payload = {"queue_id": item.get("id"), "message_type": item.get("message_type"), "chat_id": masked_key(chat_id), "error": error[:300]}
         conn.commit()
         conn.close()
+        if sent_log_payload:
+            telegram_log("[QUEUE_SENT]", "sent", "Mensaje Telegram enviado.", sent_log_payload)
+        if fail_log_payload:
+            telegram_log("[QUEUE_FAIL]", "failed", "Fallo enviando mensaje Telegram.", fail_log_payload)
         telegram_log("send", new_status, item.get("title") or item.get("message_type"), {"queue_id": item.get("id"), "result": result})
         log_telegram_delivery(chat_id, item.get("message_type") or "queue", item.get("body"), new_status.upper(), result)
     return {"ok": failed == 0, "message": "Cola procesada.", "processed": processed, "sent": sent, "failed": failed, "skipped": skipped, "errors": errors[:12]}
@@ -5666,13 +5871,42 @@ def process_premium_telegram_queue(limit=5, force=False):
 def telegram_diagnostics():
     settings = get_telegram_settings()
     today = today_iso()
+    env_flags = {
+        "TELEGRAM_BOT_TOKEN": env_present("TELEGRAM_BOT_TOKEN"),
+        "TELEGRAM_CHAT_ID": env_present("TELEGRAM_CHAT_ID"),
+        "TELEGRAM_BOT_USERNAME": env_present("TELEGRAM_BOT_USERNAME") or env_present("TELEGRAM_USERNAME"),
+        "ENABLE_TELEGRAM_AUTO": env_bool("ENABLE_TELEGRAM_AUTO", False),
+        "AUTO_SEND_TELEGRAM_PICKS": env_bool("AUTO_SEND_TELEGRAM_PICKS", False),
+        "AUTO_GENERATE_PICKS": env_bool("AUTO_GENERATE_PICKS", False),
+        "SCHEDULER_ENABLED": scheduler_enabled(),
+        "DAILY_AUTOMATION_ENABLED": daily_automation_env_enabled(),
+        "RUN_DAILY_AUTOMATION": env_bool("RUN_DAILY_AUTOMATION", False),
+        "RUN_STARTUP_SCHEDULER_NOW": env_bool("RUN_STARTUP_SCHEDULER_NOW", False),
+        "AUTOMATION_SECRET": automation_secret_configured(),
+    }
+    missing_required = [key for key in ("TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID") if not env_flags.get(key)]
+    if not (env_flags["ENABLE_TELEGRAM_AUTO"] or env_flags["AUTO_SEND_TELEGRAM_PICKS"]):
+        missing_required.append("ENABLE_TELEGRAM_AUTO o AUTO_SEND_TELEGRAM_PICKS")
+    if not env_flags["AUTOMATION_SECRET"]:
+        missing_required.append("AUTOMATION_SECRET para Render Cron")
+    if missing_required:
+        automatic_status = "pendiente_configuracion"
+        automatic_reason = "Faltan variables: " + ", ".join(missing_required)
+    elif not (settings.get("enabled") or telegram_env_should_enable()):
+        automatic_status = "desactivado"
+        automatic_reason = "telegram_settings.enabled esta desactivado y las variables auto no lo activan."
+    else:
+        automatic_status = "funcionando" if ((one("SELECT COUNT(*) AS total FROM telegram_queue WHERE lower(status)=? AND lower(coalesce(message_type,''))='auto_pick' AND sent_at LIKE ?", (QUEUE_SENT, today + "%")) or {}).get("total", 0) or 0) > 0 else "preparado"
+        automatic_reason = "Preparado para cron. Sin envio auto_pick hoy todavia." if automatic_status == "preparado" else "Auto pick enviado hoy."
     pending = (one("SELECT COUNT(*) AS total FROM telegram_queue WHERE lower(status)=?", (QUEUE_PENDING,)) or {}).get("total", 0)
     sent_today = (one("SELECT COUNT(*) AS total FROM telegram_queue WHERE lower(status)=? AND sent_at LIKE ?", (QUEUE_SENT, today + "%")) or {}).get("total", 0)
     failed_today = (one("SELECT COUNT(*) AS total FROM telegram_queue WHERE lower(status)=? AND updated_at LIKE ?", (QUEUE_FAILED, today + "%")) or {}).get("total", 0)
     last_error = one("SELECT * FROM telegram_logs WHERE lower(status) IN ('failed','error') ORDER BY created_at DESC LIMIT 1")
     last_sent = one("SELECT * FROM telegram_queue WHERE lower(status)=? ORDER BY sent_at DESC LIMIT 1", (QUEUE_SENT,))
-    last_auto = one("SELECT * FROM telegram_logs WHERE event_type IN ('scheduler','queue','send') OR message LIKE '%automatic%' OR message LIKE '%auto%' ORDER BY created_at DESC LIMIT 1")
+    last_auto = one("SELECT * FROM telegram_logs WHERE event_type IN ('scheduler','queue','send','[AUTO_PICKS]','[QUEUE]','[TELEGRAM]','[AUTOMATION]','[QUEUE_LOAD]','[QUEUE_PROCESS]','[QUEUE_SENT]','[QUEUE_FAIL]','[QUEUE_SKIP_DUPLICATE]') OR message LIKE '%automatic%' OR message LIKE '%auto%' ORDER BY created_at DESC LIMIT 1")
     last_pick = one("SELECT * FROM telegram_queue WHERE lower(status)=? AND lower(coalesce(message_type,'')) LIKE '%pick%' ORDER BY sent_at DESC LIMIT 1", (QUEUE_SENT,))
+    last_auto_pick = one("SELECT * FROM telegram_queue WHERE lower(coalesce(message_type,''))='auto_pick' ORDER BY COALESCE(sent_at, created_at) DESC LIMIT 1")
+    auto_pick_pending = (one("SELECT COUNT(*) AS total FROM telegram_queue WHERE lower(status)=? AND lower(coalesce(message_type,''))='auto_pick'", (QUEUE_PENDING,)) or {}).get("total", 0)
     duplicate_logs = (one("SELECT COUNT(*) AS total FROM telegram_logs WHERE lower(status)='skipped' OR lower(message) LIKE '%duplicado%'") or {}).get("total", 0)
     return {
         "token_present": bool(os.getenv("TELEGRAM_BOT_TOKEN")),
@@ -5684,6 +5918,12 @@ def telegram_diagnostics():
         "env_auto_enabled": telegram_env_auto_enabled(),
         "env_ready": telegram_env_ready(),
         "settings": settings,
+        "automatic_status": automatic_status,
+        "automatic_reason": automatic_reason,
+        "env_flags": env_flags,
+        "missing_required": missing_required,
+        "last_daily_automation": automation_get("daily_autonomous_system", {}) or {},
+        "last_scheduler_tick": automation_get("telegram_last_dispatch", {}) or {},
         "subscribers": (one("SELECT COUNT(*) AS total FROM telegram_subscribers WHERE is_active=1") or {}).get("total", 0),
         "linked_users": (one("SELECT COUNT(*) AS total FROM users WHERE telegram_chat_id IS NOT NULL AND telegram_chat_id!=''") or {}).get("total", 0),
         "pending": pending,
@@ -5694,6 +5934,8 @@ def telegram_diagnostics():
         "last_sent": last_sent or {},
         "last_auto": last_auto or {},
         "last_pick": last_pick or {},
+        "last_auto_pick": last_auto_pick or {},
+        "auto_pick_pending": auto_pick_pending,
         "duplicates_avoided": duplicate_logs,
         "recent_sent": rows("SELECT * FROM telegram_queue WHERE lower(status)=? ORDER BY sent_at DESC LIMIT 8", (QUEUE_SENT,)),
         "recent_errors": rows("SELECT * FROM telegram_logs WHERE lower(status) IN ('failed','error') ORDER BY created_at DESC LIMIT 8"),
@@ -5717,6 +5959,7 @@ def telegram_scheduler_delivery(force=False):
     if settings.get("auto_daily_matches") and telegram_time_due(settings.get("daily_matches_time"), force=force):
         results.append(enqueue_daily_matches(force=force))
     if settings.get("auto_daily_picks") and telegram_time_due(settings.get("daily_picks_time"), force=force):
+        results.append(enqueue_auto_pick_alerts(force=force, limit=as_int(os.getenv("MAX_AUTO_PICKS_PER_DAY", "4"), 4)))
         results.append(enqueue_daily_picks(force=force, force_empty=False))
     if settings.get("auto_live_alerts"):
         results.append(enqueue_live_alerts(force=force))
@@ -6782,9 +7025,10 @@ def admin_telegram_page():
             update_telegram_settings({"enabled": True, "auto_daily_matches": True, "auto_daily_picks": True})
             synced = sync_telegram_subscribers_from_users()
             queued_matches = enqueue_daily_matches(force=True, forced_chat_id=os.getenv("TELEGRAM_CHAT_ID", ""))
+            queued_auto_picks = enqueue_auto_pick_alerts(force=True, limit=as_int(os.getenv("MAX_AUTO_PICKS_PER_DAY", "4"), 4))
             queued_picks = enqueue_daily_picks(force=True, force_empty=True, forced_chat_id=os.getenv("TELEGRAM_CHAT_ID", ""))
             processed = process_premium_telegram_queue(limit=10, force=True)
-            result = {"ok": processed.get("failed", 0) == 0, "synced_users": synced, "queued_matches": queued_matches, "queued_picks": queued_picks, "processed": processed}
+            result = {"ok": processed.get("failed", 0) == 0, "synced_users": synced, "queued_matches": queued_matches, "queued_auto_picks": queued_auto_picks, "queued_picks": queued_picks, "processed": processed}
         message = "Accion Telegram ejecutada."
     data = dashboard_data()
     data["telegram_delivery"] = telegram_diagnostics()
@@ -7113,6 +7357,7 @@ def api_telegram_repair_automatic():
     synced = sync_telegram_subscribers_from_users()
     default_sub = ensure_default_telegram_subscriber()
     queued_matches = enqueue_daily_matches(force=True, forced_chat_id=os.getenv("TELEGRAM_CHAT_ID", ""))
+    queued_auto_picks = enqueue_auto_pick_alerts(force=True, limit=as_int(os.getenv("MAX_AUTO_PICKS_PER_DAY", "4"), 4))
     queued_picks = enqueue_daily_picks(force=True, force_empty=True, forced_chat_id=os.getenv("TELEGRAM_CHAT_ID", ""))
     processed = process_premium_telegram_queue(limit=10, force=True)
     return jsonify({
@@ -7122,6 +7367,7 @@ def api_telegram_repair_automatic():
         "synced_users": synced,
         "default_subscriber": bool(default_sub),
         "queued_matches": queued_matches,
+        "queued_auto_picks": queued_auto_picks,
         "queued_picks": queued_picks,
         "processed": processed,
         "diagnostics": telegram_diagnostics(),
@@ -7857,8 +8103,28 @@ def api_telegram_auto_run():
 
 @app.route("/api/telegram/scheduler-tick", methods=["POST", "GET"])
 def api_telegram_scheduler_tick():
+    if not automation_access_allowed():
+        return automation_json_forbidden()
     force = request.args.get("force") in {"1", "true", "yes"} or (request.get_json(silent=True) or {}).get("force") is True
     return jsonify({"version": APP_VERSION, **telegram_scheduler_tick(force=force)})
+
+
+@app.route("/api/automation/daily/run", methods=["POST", "GET"])
+def api_automation_daily_run():
+    if not automation_access_allowed():
+        return automation_json_forbidden()
+    force = request.args.get("force") in {"1", "true", "yes"} or (request.get_json(silent=True) or {}).get("force") is True
+    result = run_daily_autonomous_system(force=force)
+    return jsonify({"version": APP_VERSION, "cron": True, **result, "diagnostics": telegram_diagnostics()})
+
+
+@app.route("/api/automation/telegram/tick", methods=["POST", "GET"])
+def api_automation_telegram_tick():
+    if not automation_access_allowed():
+        return automation_json_forbidden()
+    force = request.args.get("force") in {"1", "true", "yes"} or (request.get_json(silent=True) or {}).get("force") is True
+    result = telegram_scheduler_tick(force=force)
+    return jsonify({"version": APP_VERSION, "cron": True, **result, "diagnostics": telegram_diagnostics()})
 
 
 @app.route("/api/telegram/triggers")
