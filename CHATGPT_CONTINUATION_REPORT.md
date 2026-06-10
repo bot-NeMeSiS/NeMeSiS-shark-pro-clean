@@ -1,28 +1,57 @@
-# ChatGPT Continuation Report — V709 Render Cron Certification
+# ChatGPT Continuation Report — V710 Render Cron Automation Final Setup
 
 ## Estado Inicial
 
-El envío manual de Telegram funcionaba. El canal global podía recibir mensajes y la cola manual procesaba correctamente. El problema pendiente era garantizar que los picks automáticos se enviaran sin que el administrador pulsara botones.
+NeMeSiS SHARK PRO ya tenía Telegram manual funcionando, canal global probado, cola operativa, picks generados, dedupe activo y endpoints de automatización protegidos con secreto.
 
-La aplicación estaba configurada como Render Web Service con Gunicorn, no como worker persistente ni Cron Job.
+La conclusión anterior fue clara: el Web Service de Render no garantiza el scheduler interno. Hace falta Render Cron.
 
-## Cambios Realizados
+## Trabajo Realizado
 
-- Se certificaron los endpoints reales de automatización:
-  - `/api/automation/telegram/tick`
-  - `/api/automation/daily/run`
-- Se verificó que ambos requieren `AUTOMATION_SECRET`.
-- Se confirmó que el endpoint de Telegram Cron devuelve 200 con secreto válido.
-- Se añadió trazabilidad explícita de última llamada Cron:
-  - `last_cron_daily_call`
-  - `last_cron_telegram_call`
-- Se documentó la guía exacta de despliegue Render Cron.
+Se certificaron los endpoints definitivos:
 
-## Veredicto
+- `/api/automation/telegram/tick?secret=AUTOMATION_SECRET`
+- `/api/automation/daily/run?secret=AUTOMATION_SECRET`
 
-Render Cron Job es obligatorio.
+Se verificó:
 
-El scheduler interno no es suficiente para garantizar ejecución autónoma en producción, porque Render Web Service con Gunicorn no garantiza ciclos de fondo durante horas, ni persistencia de threads ante reinicios, reposo o reciclado de workers.
+- sin secreto devuelven 403.
+- con secreto devuelven 200.
+- registran `last_cron_telegram_call`.
+- registran `last_cron_daily_call`.
+- no requieren sesión admin.
+- están preparados para Render Cron.
+
+## Variables Necesarias
+
+- `AUTOMATION_SECRET`
+- `TELEGRAM_BOT_TOKEN`
+- `TELEGRAM_CHAT_ID`
+- `TELEGRAM_BOT_USERNAME`
+- `ENABLE_TELEGRAM_AUTO=true`
+- `AUTO_SEND_TELEGRAM_PICKS=true`
+- `AUTO_GENERATE_PICKS=true`
+- `SCHEDULER_ENABLED=true`
+- `DAILY_AUTOMATION_ENABLED=true`
+- `DB_PATH=/data/database.db`
+
+## Cron Jobs Necesarios
+
+Cron 1:
+
+`NeMeSiS Telegram Tick`
+
+Cada 15 minutos:
+
+`https://bot-apuestas-crgf.onrender.com/api/automation/telegram/tick?secret=VALOR_DE_AUTOMATION_SECRET`
+
+Cron 2:
+
+`NeMeSiS Daily Automation`
+
+Cada hora o diario a las 10:00 Europe/Madrid:
+
+`https://bot-apuestas-crgf.onrender.com/api/automation/daily/run?secret=VALOR_DE_AUTOMATION_SECRET`
 
 ## Estado Telegram
 
@@ -30,43 +59,17 @@ Telegram manual: funciona.
 
 Telegram canal: funciona.
 
-Telegram privado: soportado por código, requiere usuario vinculado real para certificación final.
+Telegram privado: soportado, pendiente de prueba con usuario real vinculado.
 
-Telegram automático: preparado por código.
+Telegram automático: listo con Render Cron.
 
-Telegram automático sin admin: garantizado solo con Render Cron configurado.
+Telegram automático sin admin: sí, si Render Cron queda configurado.
 
-## Qué Falta
+## Conclusión
 
-Crear en Render:
+El código ya está listo.
 
-Cron 1:
+La única pieza externa pendiente es crear los dos Render Cron Jobs con el secreto correcto.
 
-`Telegram Scheduler`
-
-Cada 15 minutos:
-
-`https://nemesis-shark-pro.onrender.com/api/automation/telegram/tick?secret=TU_AUTOMATION_SECRET`
-
-Cron 2:
-
-`Daily Automation`
-
-Cada hora o diario:
-
-`https://nemesis-shark-pro.onrender.com/api/automation/daily/run?secret=TU_AUTOMATION_SECRET`
-
-## Certificación Final
-
-Con Cron configurado:
-
-Telegram automático queda garantizado.
-
-Sin Cron configurado:
-
-Telegram automático no queda garantizado.
-
-## Próximo Paso
-
-Configurar los dos Cron Jobs en Render y verificar `/admin/telegram/diagnostics` tras la primera ejecución.
+Una vez hecho, NeMeSiS podrá enviar picks automáticamente sin intervención del admin.
 
