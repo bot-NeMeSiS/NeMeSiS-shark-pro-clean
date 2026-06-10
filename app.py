@@ -69,10 +69,12 @@ from engines.spanish_localization_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V712_SPANISH_TIME_CLIENT_POLISH"
+APP_VERSION = "V713_COMBIS15_SHARK_AI_FINAL"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
+COMBI_MIN_LEGS = 2
+COMBI_MAX_LEGS = 15
 
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY") or os.getenv("FLASK_SECRET_KEY") or secrets.token_hex(32)
@@ -3445,6 +3447,11 @@ def as_int(value, default=50):
         return default
 
 
+def combi_leg_count(value=None, default=3):
+    """Clamp combinadas to the commercial V713 limit: 2 to 15 legs."""
+    return max(COMBI_MIN_LEGS, min(as_int(value, default), COMBI_MAX_LEGS))
+
+
 def import_picks(pick_rows, source_name="manual autorizado", legal_note="Carga autorizada"):
     seed_core()
     conn = db()
@@ -4036,7 +4043,7 @@ def build_combi_from_picks(pick_ids=None, limit=3):
         picks = rows(f"SELECT * FROM picks WHERE id IN ({placeholders}) ORDER BY confidence DESC", pick_ids)
     else:
         picks = get_picks(limit=limit, status=["published", "won", "lost", "void"], membership=(current_session_user() or {}).get("membership", "FREE"))
-    picks = picks[: max(1, min(6, int(limit or len(picks) or 3)))]
+    picks = picks[:combi_leg_count(limit or len(picks) or 3)]
     if len(picks) < 2:
         return None
     total = 1.0
@@ -4060,7 +4067,7 @@ def build_combi_from_picks(pick_ids=None, limit=3):
         """INSERT OR REPLACE INTO combis
            (id,name,picks_json,total_odds,risk_level,status,source,created_at,updated_at)
            VALUES (?,?,?,?,?,?,?,?,?)""",
-        (combi_id, "Combi SHARK " + today_iso(), json.dumps(payload, ensure_ascii=False), round(total, 2), combi_risk(picks), "DRAFT", "motor interno V522", now_iso(), now_iso()),
+        (combi_id, "Combi SHARK " + today_iso(), json.dumps(payload, ensure_ascii=False), round(total, 2), combi_risk(picks), "DRAFT", "motor interno V713 combis 15", now_iso(), now_iso()),
     )
     conn.commit()
     conn.close()
@@ -4627,8 +4634,8 @@ def pick_candidate_matches(limit=80, days=21):
 
 
 def build_combi_candidates_from_matches(count=3):
-    count = max(2, min(int(count or 3), 8))
-    matches = pick_candidate_matches(limit=max(count * 3, 18), days=21)
+    count = combi_leg_count(count, 3)
+    matches = pick_candidate_matches(limit=max(count * 3, 45), days=21)
     return {
         "requested_count": count,
         "matches": matches[:count],
@@ -5432,32 +5439,182 @@ def save_shark_context(context_type, target_key, payload):
     return snapshot_id
 
 
+def _shark_line_match(match):
+    match = apply_match_localization(dict(match or {}))
+    home = match.get("home_team") or match.get("safe_home") or "Local"
+    away = match.get("away_team") or match.get("safe_away") or "Visitante"
+    comp = match.get("competition_name") or match.get("league_name") or match.get("safe_competition") or "Competición"
+    time = match.get("kickoff_time") or match.get("match_time") or match.get("safe_time") or "Hora pendiente"
+    date = match.get("match_date") or today_iso()
+    live_depth = match.get("live_depth") or {}
+    status = live_depth.get("label") or match.get("status") or "Próximo"
+    score = live_depth.get("score") or match.get("score") or ""
+    suffix = f" · {score}" if score else ""
+    return f"{time} · {home} vs {away} · {comp} · {status}{suffix}"
+
+
+def _shark_line_pick(pick):
+    pick = normalize_pick_row(dict(pick or {}))
+    home = pick.get("home_team") or "Local"
+    away = pick.get("away_team") or "Visitante"
+    selection = pick.get("selection") or "Selección pendiente"
+    market = pick.get("market") or "Mercado principal"
+    odds = as_float(pick.get("odds"), 0)
+    odds_txt = f"cuota {odds:.2f}" if odds > 1 else "cuota pendiente"
+    stake = as_float(pick.get("stake_units"), 1)
+    confidence = as_int(pick.get("confidence"), 50)
+    risk = pick.get("risk_level") or "MEDIO"
+    return f"{home} vs {away}: {selection} ({market}) · {odds_txt} · stake {stake:g}/10 · confianza {confidence}% · riesgo {risk}"
+
+
+def _shark_visible_picks(user, limit=8):
+    picks = published_picks_for_user(user, limit=max(limit * 3, 12))
+    picks = [p for p in picks if as_float(p.get("odds"), 0) > 1 or p.get("selection")]
+    picks.sort(key=lambda p: (as_int(p.get("confidence"), 0), as_float(p.get("odds"), 0)), reverse=True)
+    return picks[:limit]
+
+
+def _shark_recommendation_lines(limit=4):
+    try:
+        recs = v566_template_recommendations(limit=limit)
+    except Exception:
+        recs = []
+    lines = []
+    for rec in recs[:limit]:
+        rec = dict(rec or {})
+        home = spanish_team_name(rec.get("home_team") or "Local")
+        away = spanish_team_name(rec.get("away_team") or "Visitante")
+        comp = spanish_competition_name(rec.get("league_name") or rec.get("competition_name") or "Competición")
+        selection = rec.get("selection") or "Esperar mercado"
+        score = as_int(rec.get("shark_score") or rec.get("score"), 0)
+        odds = as_float(rec.get("odds") or rec.get("odds_value"), 0)
+        odds_txt = f" · cuota {odds:.2f}" if odds > 1 else " · cuota pendiente"
+        lines.append(f"{home} vs {away} · {comp}: {selection}{odds_txt} · Score SHARK {score}/100")
+    return lines
+
+
+def _shark_count_requested(q_norm):
+    numbers = [as_int(n, 0) for n in re.findall(r"\d+", q_norm or "")]
+    if numbers:
+        return combi_leg_count(max(numbers), 3)
+    if "max" in q_norm or "quince" in q_norm:
+        return COMBI_MAX_LEGS
+    if "segura" in q_norm or "conservadora" in q_norm:
+        return 3
+    return 5
+
+
 def shark_answer(question):
-    q = str(question or "").strip()
+    q = str(question or "").strip() or "resumen"
+    q_norm = normalized_label(q)
+    user = current_session_user() or {"membership": "FREE", "role": "FREE"}
     briefing = shark_briefing()
     hub = match_hub(today_iso())
-    if not q:
-        q = "resumen"
-    q_lower = q.lower()
-    if "pick" in q_lower or "combi" in q_lower:
+    focus = "contexto"
+    next_url = "/sports-hub"
+
+    if any(word in q_norm for word in ["combi", "combinada", "combinadas"]):
+        focus = "combis"
+        requested = _shark_count_requested(q_norm)
+        picks = _shark_visible_picks(user, limit=COMBI_MAX_LEGS)
+        usable = [p for p in picks if as_float(p.get("odds"), 0) > 1][:requested]
+        if len(usable) >= 2:
+            total = 1.0
+            for pick in usable:
+                total *= max(1.0, as_float(pick.get("odds"), 1.0))
+            risk = combi_risk(usable)
+            lines = [_shark_line_pick(p) for p in usable[:requested]]
+            body = (
+                f"Combinada SHARK preparada con {len(usable)} de {requested} partidos solicitados.\n"
+                f"Cuota total aproximada: {total:.2f} · Riesgo: {risk}.\n"
+                "Para una combinada segura suelo priorizar 2-4 partidos; hasta 15 está permitido, pero el riesgo sube mucho.\n\n"
+                + "\n".join(f"{i+1}. {line}" for i, line in enumerate(lines))
+            )
+        else:
+            candidates = build_combi_candidates_from_matches(requested).get("matches", [])
+            lines = [_shark_line_match(m) for m in candidates[:requested]]
+            body = (
+                f"Ahora mismo no cierro una combinada real de {requested} partidos porque faltan picks publicados con cuota suficiente.\n"
+                "Te dejo la base responsable de partidos reales para revisar desde Combis; no voy a inventar selecciones.\n\n"
+                + ("\n".join(f"{i+1}. {line}" for i, line in enumerate(lines)) if lines else "No hay base suficiente todavía. Sin datos reales, mejor esperar.")
+            )
+        next_url = f"/combis?partidos={requested}"
+
+    elif any(word in q_norm for word in ["pick", "apuesta", "pronostico", "pronosticos"]):
         focus = "picks"
-        body = "Los picks se explican con confianza, cuota, stake y riesgo. Si no hay picks importados, SHARK no fabrica recomendaciones."
-    elif "live" in q_lower or "directo" in q_lower:
+        picks = _shark_visible_picks(user, limit=5)
+        if picks:
+            best = picks[0]
+            body = (
+                "Mejor lectura SHARK ahora mismo:\n"
+                f"1. {_shark_line_pick(best)}\n\n"
+                "Más opciones visibles:\n"
+                + "\n".join(f"{i+2}. {_shark_line_pick(p)}" for i, p in enumerate(picks[1:4]))
+                + "\n\nNo entres si la cuota cambió mucho, si falta alineación o si el mercado ya no coincide con el pick publicado."
+            )
+        else:
+            rec_lines = _shark_recommendation_lines(limit=4)
+            body = (
+                "No hay pick premium cerrado suficiente para publicarlo como apuesta final ahora mismo.\n"
+                "SHARK puede mirar estas oportunidades, pero no las trata como pick oficial hasta tener mercado/cuota claros:\n\n"
+                + ("\n".join(f"{i+1}. {line}" for i, line in enumerate(rec_lines)) if rec_lines else "No hay oportunidades claras con datos suficientes todavía.")
+            )
+        next_url = "/picks"
+
+    elif any(word in q_norm for word in ["oportunidad", "oportunidades", "value", "valor"]):
+        focus = "oportunidades"
+        rec_lines = _shark_recommendation_lines(limit=5)
+        body = (
+            "Radar SHARK de oportunidades de hoy/próximos partidos:\n"
+            + ("\n".join(f"{i+1}. {line}" for i, line in enumerate(rec_lines)) if rec_lines else "No hay señales de value suficientes ahora mismo.")
+            + "\n\nRegla: si la cuota está pendiente o cambia fuerte, se queda como análisis y no como pick premium."
+        )
+        next_url = "/recommendations"
+
+    elif any(word in q_norm for word in ["live", "directo", "marcador", "minuto"]):
         focus = "live"
-        body = f"Ahora mismo hay {hub['counts']['live']} partidos en directo, {hub['counts']['upcoming']} proximos y refresco inteligente cada {hub['sync']['refresh_seconds']} segundos."
-    elif "favor" in q_lower:
+        live_matches = hub.get("live", []) or get_matches(today_iso(), "live")
+        lines = [_shark_line_match(m) for m in live_matches[:6]]
+        body = (
+            f"Directo SHARK: {hub['counts'].get('live', len(live_matches))} partidos en directo y {hub['counts'].get('upcoming', 0)} próximos.\n"
+            + ("\n".join(f"{i+1}. {line}" for i, line in enumerate(lines)) if lines else "No detecto directos reales ahora mismo. En cuanto entren minuto/marcador, los priorizo aquí.")
+            + f"\n\nRefresco inteligente: cada {hub['sync'].get('refresh_seconds', 60)} segundos."
+        )
+        next_url = "/live"
+
+    elif any(word in q_norm for word in ["favor", "favorito", "favoritos"]):
         focus = "favoritos"
-        body = f"Tu feed favorito tiene {hub['counts']['favorites']} partidos destacados para hoy."
+        fav = favorite_insights()
+        lines = [_shark_line_match(m) for m in fav.get("matches", [])[:6]]
+        body = (
+            f"Favoritos SHARK: {fav.get('summary')}.\n"
+            + ("\n".join(f"{i+1}. {line}" for i, line in enumerate(lines)) if lines else "Todavía no hay partidos activos/próximos cruzados con tus favoritos. Marca equipos, ligas o partidos con la estrella para personalizar esto.")
+        )
+        next_url = "/favorites"
+
     else:
-        focus = "contexto"
-        body = "Prioridad global: competiciones top mundiales y europeas, Espana como eje fuerte y Andalucia como diferencial propio."
+        focus = "resumen"
+        best_pick = _shark_visible_picks(user, limit=1)
+        rec_lines = _shark_recommendation_lines(limit=2)
+        body = (
+            f"Resumen SHARK: {briefing['summary']['matches_today']} partidos hoy, {briefing['summary']['live_now']} en directo y {briefing['summary']['picks_ready']} picks preparados.\n"
+            f"Riesgo general: {briefing['risk']['level']} · {briefing['risk']['note']}\n"
+        )
+        if best_pick:
+            body += f"\nPick más claro: {_shark_line_pick(best_pick[0])}"
+        elif rec_lines:
+            body += "\nOportunidades a revisar:\n" + "\n".join(f"{i+1}. {line}" for i, line in enumerate(rec_lines))
+        else:
+            body += "\nNo fuerzo apuestas sin datos suficientes. Revisa Partidos o espera a nuevas cuotas."
+
     return {
         "question": q,
         "focus": focus,
         "answer": body,
         "context": briefing.get("context"),
         "risk_note": briefing["risk"]["note"],
-        "next_action": "Carga datos reales/autorizados para que SHARK pueda razonar con mas profundidad.",
+        "next_action": "Abrir la pantalla recomendada para revisar datos completos antes de apostar.",
+        "next_url": next_url,
         "legal_policy": briefing["legal_policy"],
     }
 
@@ -7487,7 +7644,7 @@ def combis_page():
     data = dashboard_data()
     user = current_session_user() or {"membership": "FREE", "role": "FREE"}
     data["membership"] = v566_membership_ui(user)
-    requested_count = max(2, min(as_int(request.args.get("partidos"), 3), 8))
+    requested_count = combi_leg_count(request.args.get("partidos"), 3)
     data["picks"] = published_picks_for_user(user, limit=30)
     data["combis"] = get_combis(limit=20)
     data["combi_builder"] = build_combi_candidates_from_matches(requested_count)
@@ -7736,6 +7893,11 @@ def health():
             "db_path_configured": bool(DB_PATH),
         }
     )
+
+
+@app.route("/version")
+def public_version():
+    return jsonify({"ok": True, "app": APP_NAME, "version": APP_VERSION, "time": now_iso()})
 
 
 @app.route("/api/runtime-version")

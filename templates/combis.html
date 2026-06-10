@@ -3,8 +3,8 @@
 <section class="scoreboard-hero v701-scoreboard">
   <div>
     <div class="kicker">Combis SHARK</div>
-    <h1>Combinadas claras, no inventadas</h1>
-    <p class="lead">Solo se construyen desde picks publicados o partidos reales con datos suficientes.</p>
+    <h1>Combinadas claras hasta 15 partidos</h1>
+    <p class="lead">Ahora puedes preparar estructuras de 2 a 15 partidos, siempre desde picks publicados o partidos reales con datos suficientes.</p>
   </div>
   <div class="scoreboard-kpis">
     <div><strong>{{ data.combis|length }}</strong><span>Guardadas</span></div>
@@ -19,11 +19,11 @@
   <a class="tab-link active" href="/combis">Combis</a>
   <a class="tab-link" href="/sports-hub">Partidos</a>
   <a class="tab-link" href="/telegram">Telegram</a>
-  {% for n in [2,3,4,5,6,7,8] %}<a class="tab-link {% if data.requested_combi_count == n %}active{% endif %}" href="/combis?partidos={{ n }}">{{ n }} partidos</a>{% endfor %}
+  {% for n in range(2,16) %}<a class="tab-link {% if data.requested_combi_count == n %}active{% endif %}" href="/combis?partidos={{ n }}">{{ n }} partidos</a>{% endfor %}
 </section>
 
 {% if not current_user or current_user.membership == 'FREE' %}
-<section class="band compact-band"><div class="notice">Combis avanzadas son parte de PRO/ELITE. FREE puede ver la estructura y entender el valor antes de subir de plan.</div></section>
+<section class="band compact-band"><div class="notice">Combis avanzadas de hasta 15 partidos son parte de PRO/ELITE. FREE puede ver la estructura y entender el valor antes de subir de plan.</div></section>
 {% endif %}
 
 <section class="band compact-band">
@@ -45,7 +45,7 @@
 
 <section class="band compact-band">
   <div class="section-head"><h2>Base para próxima combi</h2><span class="pill">{{ data.combi_builder.requested_count }} partidos</span></div>
-  <p class="small">{{ data.combi_builder.notice }}</p>
+  <p class="small">{{ data.combi_builder.notice }}</p><p class="small"><strong>Nota SHARK:</strong> hasta 15 partidos está permitido, pero las combinadas largas son de riesgo alto. Para gestión responsable, SHARK prioriza 2-4 selecciones cuando buscas seguridad.</p>
   {% if data.combi_builder.matches %}
   <div class="sports-list v701-match-list">
     {% for m in data.combi_builder.matches %}

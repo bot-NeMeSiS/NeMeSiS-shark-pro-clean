@@ -233,3 +233,6 @@ textarea{min-height:230px;font-family:Consolas,monospace;font-size:13px}
   .fav-star{left:6px}
   .two-col{gap:8px}
 }
+
+/* V713 SHARK AI polish */
+.shark-msg{white-space:pre-line}.shark-msg.thinking{opacity:.82}.shark-quick{display:flex;flex-wrap:wrap;gap:6px}.shark-quick button{font-size:12px;padding:7px 9px;border-radius:999px;background:#122039;border:1px solid #27476d;color:#dbeafe}.shark-quick button:hover{border-color:#20d7ff;color:#fff}.shark-panel{width:min(430px,calc(100vw - 28px))}.shark-messages{max-height:340px}.sports-tabs{overflow:auto}.sports-tabs .tab-link{white-space:nowrap}

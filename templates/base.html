@@ -73,17 +73,17 @@
         <button type="button" id="sharkClose" aria-label="Cerrar SHARK">×</button>
       </div>
       <div class="shark-messages" id="sharkMessages">
-        <div class="shark-msg bot">Pregúntame por partidos, picks, combinadas, favoritos o live. Si falta dato real, te lo diré claro.</div>
+        <div class="shark-msg bot">Pregúntame por picks, combinadas hasta 15, favoritos, directo u oportunidades. SHARK no inventa: si falta cuota o dato real, te lo dirá claro.</div>
         <div class="shark-quick">
-          <button type="button" data-q="¿Qué pick ves mejor hoy?">Pick de hoy</button>
-          <button type="button" data-q="¿Qué partidos de mis favoritos juegan?">Favoritos</button>
-          <button type="button" data-q="Hazme una combinada segura">Combinada</button>
-          <button type="button" data-q="Resume el live">Directo</button>
-          <button type="button" data-q="Dime oportunidades de hoy">Oportunidades</button>
+          <button type="button" data-q="Analiza el mejor pick de hoy con cuota, stake y riesgo">Pick de hoy</button>
+          <button type="button" data-q="Qué partidos de mis favoritos juegan hoy y cuáles importan más">Favoritos</button>
+          <button type="button" data-q="Prepara una combinada responsable de hasta 15 partidos">Combi 15</button>
+          <button type="button" data-q="Resume el directo con marcador minuto y riesgo">Directo</button>
+          <button type="button" data-q="Dime las mejores oportunidades SHARK de hoy con value y aviso de riesgo">Oportunidades</button>
         </div>
       </div>
       <form id="sharkForm" class="shark-form">
-        <input id="sharkInput" name="q" placeholder="Pregunta a SHARK" autocomplete="off">
+        <input id="sharkInput" name="q" placeholder="Pregunta a SHARK: pick, combi, directo..." autocomplete="off">
         <button type="submit">Enviar</button>
       </form>
     </div>
@@ -97,11 +97,18 @@
     const input=document.getElementById('sharkInput');
     const msgs=document.getElementById('sharkMessages');
     if(!fab||!panel||!msgs) return;
-    function add(text, cls){ const d=document.createElement('div'); d.className='shark-msg '+cls; d.textContent=text; msgs.appendChild(d); msgs.scrollTop=msgs.scrollHeight; }
+    function add(text, cls){ const d=document.createElement('div'); d.className='shark-msg '+cls; d.textContent=text; msgs.appendChild(d); msgs.scrollTop=msgs.scrollHeight; return d; }
     async function ask(q){
       q=(q||'').trim(); if(!q) return; add(q,'user'); if(input) input.value='';
-      try{ const r=await fetch('/api/shark/ask',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:q})}); const j=await r.json(); add((j.shark&&j.shark.answer)||j.message||'SHARK no pudo responder ahora mismo.','bot'); }
-      catch(err){ add('No puedo conectar con SHARK ahora mismo. Prueba de nuevo en unos segundos.','bot'); }
+      const thinking=add('SHARK está revisando partidos, picks, cuotas y riesgo...', 'bot thinking');
+      try{
+        const r=await fetch('/api/shark/ask',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:q})});
+        const j=await r.json();
+        let answer=(j.shark&&j.shark.answer)||j.message||'SHARK no pudo responder ahora mismo.';
+        if(j.shark&&j.shark.next_url){ answer += '\n\nAbrir: '+j.shark.next_url; }
+        thinking.textContent=answer; thinking.classList.remove('thinking');
+      }
+      catch(err){ thinking.textContent='No puedo conectar con SHARK ahora mismo. Prueba de nuevo en unos segundos.'; thinking.classList.remove('thinking'); }
     }
     fab.addEventListener('click',()=>{panel.hidden=!panel.hidden; if(!panel.hidden&&input) input.focus();});
     close&&close.addEventListener('click',()=>panel.hidden=true);

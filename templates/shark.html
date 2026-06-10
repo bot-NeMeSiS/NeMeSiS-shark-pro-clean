@@ -2,12 +2,12 @@
 {% block content %}
 <section class="hero compact">
   <div class="kicker">IA SHARK 2.0</div>
-  <h1>Analisis premium con contexto</h1>
-  <p class="lead">SHARK responde sobre calendario, live, favoritos, picks, combis y riesgo. Si faltan datos reales, lo deja claro antes de recomendar nada.</p>
+  <h1>Análisis premium con contexto real</h1>
+  <p class="lead">SHARK responde sobre calendario, directo, favoritos, picks, combis hasta 15 y riesgo. Si faltan datos reales, lo deja claro antes de recomendar nada.</p>
   <div class="actions"><a class="btn primary" href="/perfil">Mi perfil</a><a class="btn" href="/picks">Ver picks</a></div>
 </section>
 {% if not current_user or current_user.membership not in ['ELITE','ADMIN'] %}
-<section class="band"><div class="notice">SHARK completo queda reservado para ELITE. En FREE/PRO tienes preguntas basicas, favoritos, directo y picks disponibles sin inventar datos.</div></section>
+<section class="band"><div class="notice">SHARK completo queda reservado para ELITE. En FREE/PRO tienes preguntas básicas, favoritos, directo y picks disponibles sin inventar datos.</div></section>
 {% endif %}
 <section class="band">
   <div class="grid">

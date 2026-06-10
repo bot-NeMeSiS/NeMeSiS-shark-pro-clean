@@ -42,7 +42,7 @@
   <div class="section-head"><h2>Elige cómo quieres usar NeMeSiS</h2><a class="pill" href="/membresias">Membresías</a></div>
   <div class="grid membership-grid pricing-polish">
     <article class="card plan-card plan-free"><div class="badge badge-free">FREE</div><h2>Explorar</h2><p class="small">Para seguir partidos, resultados y favoritos sin complicarte.</p><ul><li>Calendario y resultados</li><li>Favoritos básicos</li><li>SHARK IA base</li></ul>{% if not current_user %}<a class="btn" href="/registro">Empezar gratis</a>{% endif %}</article>
-    <article class="card plan-card plan-pro featured-plan"><div class="badge badge-pro">PRO</div><h2>Premium</h2><p class="small">Para usuarios que quieren picks, combinadas y análisis más serio.</p><ul><li>Picks PRO</li><li>Combinadas</li><li>Telegram premium</li></ul>{% if current_user %}<a class="btn primary" href="/picks">Ver picks</a>{% else %}<a class="btn primary" href="/registro">Crear cuenta</a>{% endif %}</article>
+    <article class="card plan-card plan-pro featured-plan"><div class="badge badge-pro">PRO</div><h2>Premium</h2><p class="small">Para usuarios que quieren picks, combinadas hasta 15 y análisis más serio.</p><ul><li>Picks PRO</li><li>Combinadas</li><li>Telegram premium</li></ul>{% if current_user %}<a class="btn primary" href="/picks">Ver picks</a>{% else %}<a class="btn primary" href="/registro">Crear cuenta</a>{% endif %}</article>
     <article class="card plan-card plan-elite"><div class="badge badge-elite">ELITE</div><h2>Máximo</h2><p class="small">Todo el ecosistema: SHARK IA, alertas, favoritos y acceso avanzado.</p><ul><li>SHARK contextual</li><li>Alertas live</li><li>Picks élite</li></ul>{% if current_user %}<a class="btn" href="/shark">Abrir SHARK</a>{% else %}<a class="btn" href="/cliente-login">Entrar</a>{% endif %}</article>
   </div>
 </section>
@@ -66,7 +66,7 @@
       <a class="quick" href="/resultados"><span>Resultados</span><strong>FT</strong></a>
       <a class="quick" href="/live"><span>Directos</span><strong>Live</strong></a>
       <a class="quick" href="/picks"><span>Picks</span><strong>Pro</strong></a>
-      <a class="quick" href="/combis"><span>Combis</span><strong>2-8</strong></a>
+      <a class="quick" href="/combis"><span>Combis</span><strong>2-15</strong></a>
       <a class="quick" href="/favorites"><span>Favoritos</span><strong>Mi feed</strong></a>
       <a class="quick" href="/telegram"><span>Telegram</span><strong>Auto</strong></a>
       <a class="quick" href="/shark"><span>SHARK IA</span><strong>ðŸ¦ˆ</strong></a>
