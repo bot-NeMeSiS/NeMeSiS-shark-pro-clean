@@ -1,88 +1,72 @@
-# CHATGPT CONTINUATION REPORT
+# ChatGPT Continuation Report — V709 Render Cron Certification
 
-## 1. Causa raiz exacta
+## Estado Inicial
 
-Telegram manual funcionaba. El problema real estaba en que el automatico no tenia un disparador de produccion garantizado en Render. Un Web Service no asegura tareas periodicas por si solo. Hacia falta Render Cron o un equivalente externo.
+El envío manual de Telegram funcionaba. El canal global podía recibir mensajes y la cola manual procesaba correctamente. El problema pendiente era garantizar que los picks automáticos se enviaran sin que el administrador pulsara botones.
 
-Tambien se reforzo la generacion real de auto picks y se corrigio un bloqueo SQLite detectado en cola.
+La aplicación estaba configurada como Render Web Service con Gunicorn, no como worker persistente ni Cron Job.
 
-## 2. Que fallaba en automatico
+## Cambios Realizados
 
-Fallaba la garantia de ejecucion sin admin. El sistema tenia funciones internas, pero no habia una ruta cron segura y documentada como contrato de produccion.
+- Se certificaron los endpoints reales de automatización:
+  - `/api/automation/telegram/tick`
+  - `/api/automation/daily/run`
+- Se verificó que ambos requieren `AUTOMATION_SECRET`.
+- Se confirmó que el endpoint de Telegram Cron devuelve 200 con secreto válido.
+- Se añadió trazabilidad explícita de última llamada Cron:
+  - `last_cron_daily_call`
+  - `last_cron_telegram_call`
+- Se documentó la guía exacta de despliegue Render Cron.
 
-## 3. Que si funcionaba manualmente
+## Veredicto
 
-Funcionaba:
+Render Cron Job es obligatorio.
 
-- `TELEGRAM_BOT_TOKEN`
-- `TELEGRAM_CHAT_ID`
-- `/api/telegram/send`
-- cola manual
-- canal Telegram
+El scheduler interno no es suficiente para garantizar ejecución autónoma en producción, porque Render Web Service con Gunicorn no garantiza ciclos de fondo durante horas, ni persistencia de threads ante reinicios, reposo o reciclado de workers.
 
-## 4. Que se corrigio
+## Estado Telegram
 
-- Se crearon endpoints cron seguros.
-- Se anadio `AUTOMATION_SECRET`.
-- Se conecto auto-pick real al ciclo.
-- Se aseguro canal global obligatorio.
-- Se reforzo dedupe.
-- Se mejoro diagnostico admin.
-- Se corrigio `database is locked` al loguear tras envio.
+Telegram manual: funciona.
 
-## 5. Endpoints automaticos
+Telegram canal: funciona.
 
-- `/api/automation/daily/run?secret=...`
-- `/api/automation/telegram/tick?secret=...`
-- `/api/telegram/scheduler-tick?secret=...`
+Telegram privado: soportado por código, requiere usuario vinculado real para certificación final.
 
-## 6. Variables Render obligatorias
+Telegram automático: preparado por código.
 
-- `TELEGRAM_BOT_TOKEN`
-- `TELEGRAM_CHAT_ID`
-- `TELEGRAM_BOT_USERNAME`
-- `ENABLE_TELEGRAM_AUTO=true`
-- `AUTO_SEND_TELEGRAM_PICKS=true`
-- `AUTO_GENERATE_PICKS=true`
-- `SCHEDULER_ENABLED=true`
-- `DAILY_AUTOMATION_ENABLED=true`
-- `RUN_DAILY_AUTOMATION=true`
-- `AUTOMATION_SECRET=...`
+Telegram automático sin admin: garantizado solo con Render Cron configurado.
 
-## 7. Necesita Render Cron
+## Qué Falta
 
-Si. Para certificar que el admin no toca nada, Render debe ejecutar Cron Jobs contra los endpoints seguros.
+Crear en Render:
 
-## 8. Como probar en produccion
+Cron 1:
 
-1. Configurar variables Render.
-2. Crear Cron diario para `/api/automation/daily/run?secret=...`.
-3. Crear Cron cada 15 minutos para `/api/automation/telegram/tick?secret=...`.
-4. Mirar `/admin/telegram/diagnostics`.
-5. Confirmar `last_auto_pick.status=sent`.
-6. Confirmar `pending=0`.
-7. Confirmar mensaje recibido en canal.
+`Telegram Scheduler`
 
-## 9. Logs que mirar
+Cada 15 minutos:
 
-- `[AUTOMATION]`
-- `[AUTO_PICKS]`
-- `[QUEUE_LOAD]`
-- `[QUEUE_PROCESS]`
-- `[QUEUE_SENT]`
-- `[QUEUE_FAIL]`
-- `[TELEGRAM]`
+`https://nemesis-shark-pro.onrender.com/api/automation/telegram/tick?secret=TU_AUTOMATION_SECRET`
 
-## 10. Si no llega mensaje
+Cron 2:
 
-Revisar:
+`Daily Automation`
 
-- falta `AUTOMATION_SECRET`
-- Render Cron no creado
-- `ENABLE_TELEGRAM_AUTO=false`
-- `AUTO_SEND_TELEGRAM_PICKS=false`
-- no hay cuotas validas
-- score por debajo de `MIN_SHARK_SCORE_FOR_AUTO_SEND`
-- cola `failed`
-- error real de Telegram en `last_error`
+Cada hora o diario:
+
+`https://nemesis-shark-pro.onrender.com/api/automation/daily/run?secret=TU_AUTOMATION_SECRET`
+
+## Certificación Final
+
+Con Cron configurado:
+
+Telegram automático queda garantizado.
+
+Sin Cron configurado:
+
+Telegram automático no queda garantizado.
+
+## Próximo Paso
+
+Configurar los dos Cron Jobs en Render y verificar `/admin/telegram/diagnostics` tras la primera ejecución.
 

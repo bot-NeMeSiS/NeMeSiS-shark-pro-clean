@@ -5922,6 +5922,8 @@ def telegram_diagnostics():
         "automatic_reason": automatic_reason,
         "env_flags": env_flags,
         "missing_required": missing_required,
+        "last_cron_daily_call": automation_get("cron_daily_run_last_call", {}) or {},
+        "last_cron_telegram_call": automation_get("cron_telegram_tick_last_call", {}) or {},
         "last_daily_automation": automation_get("daily_autonomous_system", {}) or {},
         "last_scheduler_tick": automation_get("telegram_last_dispatch", {}) or {},
         "subscribers": (one("SELECT COUNT(*) AS total FROM telegram_subscribers WHERE is_active=1") or {}).get("total", 0),
@@ -8114,6 +8116,7 @@ def api_automation_daily_run():
     if not automation_access_allowed():
         return automation_json_forbidden()
     force = request.args.get("force") in {"1", "true", "yes"} or (request.get_json(silent=True) or {}).get("force") is True
+    automation_set("cron_daily_run_last_call", {"time": now_iso(), "force": bool(force), "source": "render_cron"})
     result = run_daily_autonomous_system(force=force)
     return jsonify({"version": APP_VERSION, "cron": True, **result, "diagnostics": telegram_diagnostics()})
 
@@ -8123,6 +8126,7 @@ def api_automation_telegram_tick():
     if not automation_access_allowed():
         return automation_json_forbidden()
     force = request.args.get("force") in {"1", "true", "yes"} or (request.get_json(silent=True) or {}).get("force") is True
+    automation_set("cron_telegram_tick_last_call", {"time": now_iso(), "force": bool(force), "source": "render_cron"})
     result = telegram_scheduler_tick(force=force)
     return jsonify({"version": APP_VERSION, "cron": True, **result, "diagnostics": telegram_diagnostics()})
 
