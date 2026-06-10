@@ -59,7 +59,7 @@ from engines.telegram_delivery_engine import (
 from engines.telegram_engine import build_alert_queue, dispatch_signature, should_skip_duplicate
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V710_RENDER_CRON_AUTOMATION_FINAL"
+APP_VERSION = "V711_TELEGRAM_PREMIUM_EXPERIENCE"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -5771,15 +5771,94 @@ def enqueue_telegram_message(message_type, title, body, chat_id="", user_id="", 
     return {"ok": True, "queued": True, "inserted": 1, "item": one("SELECT * FROM telegram_queue WHERE id=?", (queue_id,))}
 
 
+def telegram_public_base_url():
+    for key in ("PUBLIC_BASE_URL", "APP_PUBLIC_URL", "BASE_URL", "RENDER_EXTERNAL_URL", "CANONICAL_URL"):
+        value = str(os.getenv(key, "") or "").strip().rstrip("/")
+        if value.startswith(("http://", "https://")):
+            return value
+    if has_request_context():
+        return request.url_root.rstrip("/")
+    return ""
+
+
+def telegram_absolute_url(value):
+    value = str(value or "").strip()
+    if not value:
+        return ""
+    if value.startswith(("http://", "https://")):
+        return value
+    if value.startswith("/"):
+        base = telegram_public_base_url()
+        return f"{base}{value}" if base else ""
+    return ""
+
+
+def telegram_match_url(match_id="", fallback_path="/match-hub"):
+    match_id = str(match_id or "").strip()
+    if match_id:
+        return telegram_absolute_url(f"/match/{urllib.parse.quote(match_id)}")
+    return telegram_absolute_url(fallback_path)
+
+
+def telegram_crest_url_for_team(team_name, explicit_url=""):
+    url = telegram_absolute_url(explicit_url)
+    if url:
+        return url
+    try:
+        identity = resolve_team(team_name)
+        return telegram_absolute_url(identity.get("crest_url") or identity.get("logo_url") or "")
+    except Exception:
+        return ""
+
+
+def telegram_enrich_match_for_message(match):
+    item = dict(match or {})
+    item["home_logo"] = telegram_crest_url_for_team(item.get("home_team"), item.get("home_logo") or ((item.get("home_identity") or {}).get("crest_url")))
+    item["away_logo"] = telegram_crest_url_for_team(item.get("away_team"), item.get("away_logo") or ((item.get("away_identity") or {}).get("crest_url")))
+    item["match_url"] = item.get("match_url") or telegram_match_url(item.get("id"))
+    return item
+
+
+def telegram_enrich_pick_for_message(pick):
+    item = normalize_pick_row(dict(pick or {}))
+    match = one("SELECT * FROM matches WHERE id=?", (item.get("match_id"),)) if item.get("match_id") else None
+    if match:
+        item.setdefault("competition_name", match.get("competition_name") or match.get("league_name") or "")
+        item.setdefault("league_name", match.get("league_name") or match.get("competition_name") or "")
+        item["country"] = item.get("country") or match.get("country") or ""
+        item["kickoff_time"] = item.get("kickoff_time") or match.get("kickoff_time") or match.get("match_time") or ""
+        item["kickoff_iso"] = item.get("kickoff_iso") or match.get("kickoff_iso") or ""
+        item["home_logo"] = telegram_crest_url_for_team(item.get("home_team") or match.get("home_team"), match.get("home_logo") or item.get("home_logo") or "")
+        item["away_logo"] = telegram_crest_url_for_team(item.get("away_team") or match.get("away_team"), match.get("away_logo") or item.get("away_logo") or "")
+        item["home_team"] = item.get("home_team") or match.get("home_team") or ""
+        item["away_team"] = item.get("away_team") or match.get("away_team") or ""
+    else:
+        item["home_logo"] = telegram_crest_url_for_team(item.get("home_team"), item.get("home_logo") or "")
+        item["away_logo"] = telegram_crest_url_for_team(item.get("away_team"), item.get("away_logo") or "")
+    item["match_url"] = item.get("match_url") or telegram_match_url(item.get("match_id"))
+    return item
+
+
+def telegram_reply_markup_from_payload(payload):
+    payload = dict(payload or {})
+    url = telegram_absolute_url(payload.get("match_url") or payload.get("app_url") or "")
+    if not url:
+        return None
+    text = payload.get("button_text") or "📲 Abrir en NeMeSiS"
+    return {"inline_keyboard": [[{"text": str(text)[:60], "url": url}]]}
+
+
 def build_daily_matches_message():
     matches = match_hub(today_iso(), "today").get("today") or get_matches(today_iso(), "today")
     if not matches:
         matches = get_upcoming_matches(today_iso(), days=2, limit=10)
+    matches = [telegram_enrich_match_for_message(match) for match in matches]
     return format_daily_matches_message(matches, today_iso(), APP_NAME)
 
 
 def build_daily_picks_message(force_empty=False):
     picks = get_picks(limit=8, status=["published", "won", "lost", "void"], membership="ELITE")
+    picks = [telegram_enrich_pick_for_message(pick) for pick in picks]
     return format_daily_picks_message(picks, force_empty=force_empty, premium_name=APP_NAME)
 
 
@@ -5787,7 +5866,8 @@ def build_live_alert_message(match=None):
     match = match or (match_hub(today_iso(), "live").get("live") or [None])[0]
     if not match:
         return ""
-    return format_live_alert_message(match, internal_url="/live")
+    match = telegram_enrich_match_for_message(match)
+    return format_live_alert_message(match, internal_url=telegram_absolute_url("/live") or "/live")
 
 
 def build_system_test_message():
@@ -5809,7 +5889,7 @@ def enqueue_daily_matches(force=False, forced_chat_id=""):
             body,
             chat_id=sub.get("chat_id"),
             user_id=sub.get("user_id"),
-            payload={"membership": sub.get("membership"), "target_key": today_iso()},
+            payload={"membership": sub.get("membership"), "target_key": today_iso(), "app_url": telegram_absolute_url("/match-hub"), "button_text": "📅 Abrir calendario", "enable_link_preview": False},
             dedupe_key=telegram_dedupe_key("daily_matches", today_iso(), sub.get("chat_id")),
             force=force,
         )
@@ -5835,7 +5915,7 @@ def enqueue_daily_picks(force=False, force_empty=False, forced_chat_id=""):
             body,
             chat_id=sub.get("chat_id"),
             user_id=sub.get("user_id"),
-            payload={"membership": sub.get("membership"), "target_key": today_iso()},
+            payload={"membership": sub.get("membership"), "target_key": today_iso(), "app_url": telegram_absolute_url("/picks"), "button_text": "🦈 Abrir picks SHARK", "enable_link_preview": False},
             dedupe_key=telegram_dedupe_key("daily_picks", today_iso(), sub.get("chat_id")),
             force=force,
         )
@@ -5867,6 +5947,7 @@ def enqueue_auto_pick_alerts(force=False, limit=6):
     inserted = skipped = blocked = 0
     errors = []
     for pick in candidates:
+        pick = telegram_enrich_pick_for_message(pick)
         required = normalize_role(pick.get("membership_required") or "PRO")
         body = format_daily_picks_message([pick], force_empty=False, premium_name=APP_NAME)
         if not body:
@@ -5888,7 +5969,7 @@ def enqueue_auto_pick_alerts(force=False, limit=6):
                 body,
                 chat_id=dest.get("chat_id"),
                 user_id=dest.get("user_id"),
-                payload={"membership": dest.get("membership"), "target_key": dest.get("target_key"), "pick_id": pick.get("id"), "priority": 90, "auto": True, "target_kind": dest.get("target_kind")},
+                payload={"membership": dest.get("membership"), "target_key": dest.get("target_key"), "pick_id": pick.get("id"), "priority": 90, "auto": True, "target_kind": dest.get("target_kind"), "match_url": pick.get("match_url"), "home_logo": pick.get("home_logo"), "away_logo": pick.get("away_logo"), "button_text": "🦈 Ver análisis SHARK", "enable_link_preview": bool(pick.get("home_logo") or pick.get("away_logo"))},
                 dedupe_key=telegram_dedupe_key("auto_pick", str(pick.get("id") or today_iso()), dedupe_target),
                 force=force,
             )
@@ -5906,7 +5987,8 @@ def enqueue_live_alerts(force=False):
     subscribers = [s for s in telegram_subscribers() if str(s.get("membership") or "FREE").upper() in {"ELITE", "ADMIN"}]
     inserted = skipped = 0
     for match in live_matches[:8]:
-        body = format_live_alert_message(match, internal_url="/live")
+        match = telegram_enrich_match_for_message(match)
+        body = format_live_alert_message(match, internal_url=telegram_absolute_url("/live") or "/live")
         for sub in subscribers:
             result = enqueue_telegram_message(
                 "live_alert",
@@ -5914,7 +5996,7 @@ def enqueue_live_alerts(force=False):
                 body,
                 chat_id=sub.get("chat_id"),
                 user_id=sub.get("user_id"),
-                payload={"membership": sub.get("membership"), "target_key": match.get("id"), "match_id": match.get("id")},
+                payload={"membership": sub.get("membership"), "target_key": match.get("id"), "match_id": match.get("id"), "match_url": match.get("match_url"), "home_logo": match.get("home_logo"), "away_logo": match.get("away_logo"), "button_text": "🔴 Abrir live SHARK", "enable_link_preview": bool(match.get("home_logo") or match.get("away_logo"))},
                 dedupe_key=telegram_dedupe_key("live_alert", today_iso(), f"{sub.get('chat_id')}:{match.get('id')}:{match.get('minute') or match.get('score')}"),
                 force=force,
             )
@@ -5923,14 +6005,24 @@ def enqueue_live_alerts(force=False):
     return {"ok": True, "message": "Alertas live revisadas.", "processed": len(live_matches), "inserted": inserted, "updated": 0, "sent": 0, "failed": 0, "skipped": skipped, "errors": []}
 
 
-def telegram_send_http(chat_id, text, message_type="manual"):
+def telegram_send_http(chat_id, text, message_type="manual", payload=None):
     token = os.getenv("TELEGRAM_BOT_TOKEN", "")
     if not token or not chat_id:
         return {"ok": False, "sent": False, "status": "CONFIG_MISSING", "error": "Falta TELEGRAM_BOT_TOKEN o chat_id."}
+    payload = dict(payload or {})
     url = f"https://api.telegram.org/bot{token}/sendMessage"
-    payload = urllib.parse.urlencode({"chat_id": chat_id, "text": text, "parse_mode": "HTML", "disable_web_page_preview": "true"}).encode("utf-8")
+    data = {
+        "chat_id": chat_id,
+        "text": text,
+        "parse_mode": "HTML",
+        "disable_web_page_preview": "false" if payload.get("enable_link_preview") else "true",
+    }
+    reply_markup = payload.get("reply_markup") or telegram_reply_markup_from_payload(payload)
+    if reply_markup:
+        data["reply_markup"] = json.dumps(reply_markup, ensure_ascii=False)
+    encoded = urllib.parse.urlencode(data).encode("utf-8")
     try:
-        req = urllib.request.Request(url, data=payload, method="POST")
+        req = urllib.request.Request(url, data=encoded, method="POST")
         with urllib.request.urlopen(req, timeout=10) as res:
             response = json.loads(res.read().decode("utf-8", errors="replace"))
         return {"ok": True, "sent": True, "status": "SENT", "telegram": response}
@@ -5969,7 +6061,11 @@ def process_premium_telegram_queue(limit=5, force=False):
         conn.execute("UPDATE telegram_queue SET status=?, attempts=attempts+1, updated_at=? WHERE id=?", (QUEUE_SENDING, now_iso(), item.get("id")))
         conn.commit()
         conn.close()
-        result = telegram_send_http(chat_id, item.get("body") or item.get("title") or "", message_type=item.get("message_type") or "queue")
+        try:
+            item_payload = json.loads(item.get("payload_json") or "{}")
+        except Exception:
+            item_payload = {}
+        result = telegram_send_http(chat_id, item.get("body") or item.get("title") or "", message_type=item.get("message_type") or "queue", payload=item_payload)
         processed += 1
         new_status = QUEUE_SENT if result.get("sent") else QUEUE_FAILED
         error = result.get("error") or ""
