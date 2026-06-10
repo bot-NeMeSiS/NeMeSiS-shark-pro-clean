@@ -1,13 +1,17 @@
 # V710 Render Cron Setup Guide
 
-## Paso 1 — Variables del Web Service
+## Objetivo
 
-En Render, abrir el Web Service de NeMeSiS SHARK PRO y configurar:
+Crear dos Render Cron Jobs para que NeMeSiS SHARK PRO envíe Telegram automáticamente sin intervención del administrador.
 
-- `AUTOMATION_SECRET`: valor largo, privado y aleatorio.
-- `TELEGRAM_BOT_TOKEN`: token real del bot.
-- `TELEGRAM_CHAT_ID`: canal global real.
-- `TELEGRAM_BOT_USERNAME`: usuario del bot sin `@` o con `@`.
+## Variables Obligatorias
+
+En el Web Service de Render configurar:
+
+- `AUTOMATION_SECRET`
+- `TELEGRAM_BOT_TOKEN`
+- `TELEGRAM_CHAT_ID`
+- `TELEGRAM_BOT_USERNAME`
 - `ENABLE_TELEGRAM_AUTO=true`
 - `AUTO_SEND_TELEGRAM_PICKS=true`
 - `AUTO_GENERATE_PICKS=true`
@@ -15,7 +19,7 @@ En Render, abrir el Web Service de NeMeSiS SHARK PRO y configurar:
 - `DAILY_AUTOMATION_ENABLED=true`
 - `DB_PATH=/data/database.db`
 
-## Cron Job 1
+## Cron 1
 
 Nombre:
 
@@ -31,26 +35,27 @@ Método:
 
 URL:
 
-`https://bot-apuestas-crgf.onrender.com/api/automation/telegram/tick?secret=VALOR_DE_AUTOMATION_SECRET`
+`https://bot-apuestas-crgf.onrender.com/api/automation/telegram/tick?secret=VALOR_REAL_DE_AUTOMATION_SECRET`
 
 Objetivo:
 
 - procesar cola Telegram.
-- preparar auto picks elegibles.
+- preparar auto picks.
+- aplicar dedupe.
 - enviar al canal global.
-- enviar privados vinculados si existen.
-- evitar duplicados.
-- registrar última ejecución.
+- enviar a privados vinculados si existen.
+- marcar mensajes como `sent`.
+- registrar `last_cron_telegram_call`.
 
-## Cron Job 2
+## Cron 2
 
 Nombre:
 
 `NeMeSiS Daily Automation`
 
-Frecuencia recomendada:
+Frecuencia:
 
-Cada hora durante el día deportivo o diario a las 10:00 Europe/Madrid.
+Cada hora o diario a las 10:00 Europe/Madrid.
 
 Método:
 
@@ -58,7 +63,7 @@ Método:
 
 URL:
 
-`https://bot-apuestas-crgf.onrender.com/api/automation/daily/run?secret=VALOR_DE_AUTOMATION_SECRET`
+`https://bot-apuestas-crgf.onrender.com/api/automation/daily/run?secret=VALOR_REAL_DE_AUTOMATION_SECRET`
 
 Objetivo:
 
@@ -68,27 +73,30 @@ Objetivo:
 - generar picks.
 - procesar Telegram.
 - crear backup.
-- registrar automatización diaria.
+- registrar `last_cron_daily_call`.
 
-## Validación Tras Configurar Cron
+## Validación
 
-Abrir:
+Después de crear los Cron Jobs, abrir:
 
 `https://bot-apuestas-crgf.onrender.com/admin/telegram/diagnostics`
 
 Comprobar:
 
-- `last_cron_telegram_call` tiene hora reciente.
-- `last_cron_daily_call` tiene hora reciente.
-- `last_scheduler_tick` se actualiza.
-- `last_daily_automation` se actualiza.
-- `automatic_status` aparece como `preparado` o `funcionando`.
-- `pending` baja tras cada tick.
-- `failed_today` queda en 0 o con error claro.
+- `last_cron_telegram_call` actualizado.
+- `last_cron_daily_call` actualizado.
+- `automatic_status` en `preparado` o `funcionando`.
+- `chat_id_present=true`.
+- `env_flags.AUTOMATION_SECRET=true`.
+- `pending=0` o cola justificada.
+- `failed_today=0` o error explícito.
+- `last_sent` actualizado si había mensajes.
 
 ## Resultado Esperado
 
-Una vez creados los Cron Jobs:
+Render llama automáticamente.
 
-Render ejecuta la automatización sin visitas web y sin acciones del admin.
+El admin no pulsa nada.
+
+Telegram recibe picks cuando hay oportunidades válidas.
 
