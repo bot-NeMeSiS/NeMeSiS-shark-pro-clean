@@ -57,9 +57,19 @@ from engines.telegram_delivery_engine import (
     telegram_dedupe_key,
 )
 from engines.telegram_engine import build_alert_queue, dispatch_signature, should_skip_duplicate
+from engines.spanish_localization_engine import (
+    MADRID_TZ,
+    apply_match_localization,
+    apply_pick_localization,
+    madrid_values_from_datetime,
+    parse_datetime_to_madrid,
+    spanish_competition_name,
+    spanish_country_name,
+    spanish_team_name,
+)
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V711_TELEGRAM_PREMIUM_EXPERIENCE"
+APP_VERSION = "V712_SPANISH_TIME_CLIENT_POLISH"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -1048,6 +1058,7 @@ def init_db():
     )
     run_schema_migrations(conn)
     cleanup_fake_matches(cur)
+    normalize_existing_match_times_to_madrid(conn)
     cur.execute(
         """INSERT OR IGNORE INTO telegram_settings
            (id,auto_daily_matches,auto_daily_picks,auto_live_alerts,daily_matches_time,daily_picks_time,max_messages_per_hour,enabled,updated_at)
@@ -1383,6 +1394,9 @@ def competitions():
     data = rows("SELECT * FROM competitions ORDER BY tier DESC, name")
     for item in data:
         item["tags"] = json.loads(item.get("tags_json") or "[]")
+        item["name"] = spanish_competition_name(item.get("name")) or item.get("name")
+        item["country"] = spanish_country_name(item.get("country")) or item.get("country")
+        item["region"] = spanish_country_name(item.get("region")) or item.get("region")
     return data
 
 
@@ -1759,13 +1773,12 @@ def canonical_match_status(match):
     return {"key": "UPCOMING", "label": "Próximo", "badge": "upcoming", "is_live": False, "is_finished": False, "is_upcoming": True}
 
 def sportsdb_event_time(event):
-    raw_time = str(event.get("strTime") or event.get("strEventTime") or event.get("timeEvent") or "").strip()
-    if raw_time and len(raw_time) >= 5:
-        return raw_time[:5]
     timestamp = str(event.get("strTimestamp") or "").strip()
-    if "T" in timestamp:
-        return timestamp.split("T", 1)[1][:5]
-    return raw_time
+    values = madrid_values_from_datetime(timestamp)
+    if values.get("kickoff_time"):
+        return values["kickoff_time"]
+    raw_time = str(event.get("strTime") or event.get("strEventTime") or event.get("timeEvent") or "").strip()
+    return raw_time[:5] if raw_time and len(raw_time) >= 5 else raw_time
 
 
 def kickoff_iso_value(match_date, match_time):
@@ -1774,8 +1787,53 @@ def kickoff_iso_value(match_date, match_time):
     if not date:
         return ""
     if time:
-        return f"{date}T{time[:5]}:00"
+        values = madrid_values_from_datetime("", date, time)
+        return values.get("kickoff_iso") or f"{date}T{time[:5]}:00"
     return date
+
+
+
+
+def normalize_existing_match_times_to_madrid(conn, limit=1200):
+    """One-shot light maintenance: display old UTC API times as Spain/Madrid time."""
+    try:
+        rows_to_fix = conn.execute(
+            """SELECT id, kickoff_iso, match_date, kickoff_time, match_time
+               FROM matches
+               WHERE COALESCE(kickoff_iso,'')!=''
+               ORDER BY COALESCE(updated_at, match_date, id) DESC
+               LIMIT ?""",
+            (int(limit),),
+        ).fetchall()
+    except Exception:
+        return 0
+    changed = 0
+    for row in rows_to_fix:
+        data = dict(row)
+        values = madrid_values_from_datetime(data.get("kickoff_iso") or "", data.get("match_date"), data.get("kickoff_time") or data.get("match_time"))
+        new_date = values.get("match_date") or data.get("match_date")
+        new_time = values.get("kickoff_time") or data.get("kickoff_time") or data.get("match_time")
+        new_iso = values.get("kickoff_iso") or data.get("kickoff_iso")
+        if not new_date or not new_time:
+            continue
+        if new_date != data.get("match_date") or new_time != (data.get("kickoff_time") or data.get("match_time")) or (new_iso and new_iso != data.get("kickoff_iso")):
+            try:
+                conn.execute(
+                    "UPDATE matches SET match_date=?, kickoff_time=?, match_time=?, kickoff_iso=?, updated_at=? WHERE id=?",
+                    (new_date, new_time, new_time, new_iso, now_iso(), data.get("id")),
+                )
+                changed += 1
+            except Exception:
+                continue
+    if changed:
+        try:
+            conn.execute(
+                "INSERT OR REPLACE INTO automation_state(key,value_json,updated_at) VALUES (?,?,?)",
+                ("v712_madrid_time_normalization", json.dumps({"changed": changed, "time": now_iso()}, ensure_ascii=False), now_iso()),
+            )
+        except Exception:
+            pass
+    return changed
 
 
 def sportsdb_event_id(event):
@@ -1810,29 +1868,33 @@ def sportsdb_event_to_match(event, fallback=None):
     away = event.get("strAwayTeam") or event.get("awayTeam") or event.get("strAway") or ""
     if not home or not away or is_fake_team_name(home) or is_fake_team_name(away):
         return None
-    comp_name = event.get("strLeague") or fallback.get("name") or "TheSportsDB"
+    raw_home, raw_away = home, away
+    home = spanish_team_name(home)
+    away = spanish_team_name(away)
+    comp_name = spanish_competition_name(event.get("strLeague") or fallback.get("name") or "TheSportsDB")
     comp_key = fallback.get("key") or slug(comp_name)
     comp_id = event.get("idLeague") or fallback.get("id") or ""
     status = sportsdb_match_status(event)
     score = sportsdb_score(event.get("intHomeScore"), event.get("intAwayScore"))
-    match_date = event.get("dateEvent") or today_iso()
-    match_time = sportsdb_event_time(event)
+    time_values = madrid_values_from_datetime(event.get("strTimestamp") or "", event.get("dateEvent") or today_iso(), sportsdb_event_time(event))
+    match_date = time_values.get("match_date") or event.get("dateEvent") or today_iso()
+    match_time = time_values.get("kickoff_time") or sportsdb_event_time(event)
     home_badge = event.get("strHomeTeamBadge") or event.get("strHomeTeamLogo") or ""
     away_badge = event.get("strAwayTeamBadge") or event.get("strAwayTeamLogo") or ""
     home_id = event.get("idHomeTeam") or ""
     away_id = event.get("idAwayTeam") or ""
     home_score = str(event.get("intHomeScore") or "")
     away_score = str(event.get("intAwayScore") or "")
-    country = event.get("strCountry") or fallback.get("country") or ""
-    cache_sportsdb_event_team(home, home_id, home_badge, country, comp_name)
-    cache_sportsdb_event_team(away, away_id, away_badge, country, comp_name)
+    country = spanish_country_name(event.get("strCountry") or fallback.get("country") or "")
+    cache_sportsdb_event_team(raw_home, home_id, home_badge, country, comp_name)
+    cache_sportsdb_event_team(raw_away, away_id, away_badge, country, comp_name)
     return {
         "id": sportsdb_event_id(event),
         "external_id": event.get("idEvent") or event.get("idLiveScore") or "",
         "match_date": match_date,
         "kickoff_time": match_time,
         "match_time": match_time,
-        "kickoff_iso": event.get("strTimestamp") or kickoff_iso_value(match_date, match_time),
+        "kickoff_iso": time_values.get("kickoff_iso") or event.get("strTimestamp") or kickoff_iso_value(match_date, match_time),
         "competition_id": comp_id,
         "competition_key": comp_key,
         "competition_name": comp_name,
@@ -2834,12 +2896,15 @@ def odds_event_to_match(sport, event):
     away = event.get("away_team") or ""
     if not home or not away or is_fake_team_name(home) or is_fake_team_name(away):
         return None
+    home = spanish_team_name(home)
+    away = spanish_team_name(away)
     commence = str(event.get("commence_time") or "")
-    match_date = commence[:10] if len(commence) >= 10 else today_iso()
-    match_time = commence[11:16] if "T" in commence else ""
+    time_values = madrid_values_from_datetime(commence)
+    match_date = time_values.get("match_date") or (commence[:10] if len(commence) >= 10 else today_iso())
+    match_time = time_values.get("kickoff_time") or (commence[11:16] if "T" in commence else "")
     odds_snapshot = h2h_price_snapshot(event)
     comp_key = sport.get("key") or slug(event.get("sport_key") or "odds")
-    comp_name = sport.get("name") or event.get("sport_title") or comp_key
+    comp_name = spanish_competition_name(sport.get("name") or event.get("sport_title") or comp_key)
     status = sync_normalize_status(event.get("status") or "PROGRAMADO")
     return {
         "id": odds_event_id(sport.get("odds_key") or comp_key, event),
@@ -2847,12 +2912,12 @@ def odds_event_to_match(sport, event):
         "match_date": match_date,
         "kickoff_time": match_time,
         "match_time": match_time,
-        "kickoff_iso": commence or kickoff_iso_value(match_date, match_time),
+        "kickoff_iso": time_values.get("kickoff_iso") or commence or kickoff_iso_value(match_date, match_time),
         "competition_id": event.get("sport_key") or sport.get("odds_key") or "",
         "competition_key": comp_key,
         "competition_name": comp_name,
         "league_name": comp_name,
-        "country": sport.get("country") or "",
+        "country": spanish_country_name(sport.get("country") or ""),
         "home_team": home,
         "away_team": away,
         "home_team_id": "",
@@ -3152,11 +3217,14 @@ def import_matches(import_rows, source_name="manual", source_url="", legal_note=
         away = item.get("away_team") or item.get("away") or item.get("visitante") or item.get("equipo_visitante") or ""
         if not home or not away or is_fake_team_name(home) or is_fake_team_name(away):
             continue
-        league_name = item.get("league_name") or item.get("competition_name") or item.get("competition") or item.get("league") or item.get("liga") or "manual"
+        home = spanish_team_name(home)
+        away = spanish_team_name(away)
+        league_name = spanish_competition_name(item.get("league_name") or item.get("competition_name") or item.get("competition") or item.get("league") or item.get("liga") or "manual")
         comp_key = item.get("competition_key") or slug(league_name)
-        comp_name = item.get("competition_name") or league_name or comp_key
-        date = item.get("match_date") or item.get("date") or item.get("fecha") or today_iso()
-        kickoff = item.get("match_time") or item.get("kickoff_time") or item.get("time") or item.get("hora") or ""
+        comp_name = spanish_competition_name(item.get("competition_name") or league_name or comp_key)
+        time_values = madrid_values_from_datetime(item.get("kickoff_iso") or "", item.get("match_date") or item.get("date") or item.get("fecha") or today_iso(), item.get("match_time") or item.get("kickoff_time") or item.get("time") or item.get("hora") or "")
+        date = time_values.get("match_date") or item.get("match_date") or item.get("date") or item.get("fecha") or today_iso()
+        kickoff = time_values.get("kickoff_time") or item.get("match_time") or item.get("kickoff_time") or item.get("time") or item.get("hora") or ""
         status = item.get("status") or item.get("estado") or "PROGRAMADO"
         raw_id = item.get("id") or item.get("match_id") or f"{date}-{comp_key}-{home}-{away}-{kickoff}"
         match_id = hashlib.md5(str(raw_id).encode("utf-8")).hexdigest()[:18]
@@ -3172,12 +3240,12 @@ def import_matches(import_rows, source_name="manual", source_url="", legal_note=
                 date,
                 kickoff,
                 kickoff,
-                item.get("kickoff_iso") or kickoff_iso_value(date, kickoff),
+                time_values.get("kickoff_iso") or item.get("kickoff_iso") or kickoff_iso_value(date, kickoff),
                 item.get("competition_id") or "",
                 comp_key,
                 comp_name,
                 league_name,
-                item.get("country") or item.get("pais") or "",
+                spanish_country_name(item.get("country") or item.get("pais") or ""),
                 home,
                 away,
                 item.get("home_team_id") or "",
@@ -3468,8 +3536,9 @@ def normalize_pick_row(pick):
     pick["membership_required"] = normalize_role(pick.get("membership_required") or "FREE")
     pick["market"] = pick.get("market") or pick.get("pick_type") or "Principal"
     pick["bookmaker"] = pick.get("bookmaker") or ""
-    pick["warning_reason"] = pick.get("warning_reason") or "Gestiona stake y evita perseguir perdidas."
+    pick["warning_reason"] = pick.get("warning_reason") or "Gestiona stake y evita perseguir pérdidas."
     pick["result_status"] = str(pick.get("result_status") or "pending").lower()
+    pick = apply_pick_localization(pick)
     return pick
 
 
@@ -3504,9 +3573,9 @@ def create_or_update_pick(payload, pick_id=None, publish=False):
     payload = dict(payload or {})
     match_id = payload.get("match_id") or ""
     selected_match = one("SELECT * FROM matches WHERE id=?", (match_id,)) if match_id else None
-    home = payload.get("home_team") or (selected_match or {}).get("home_team") or ""
-    away = payload.get("away_team") or (selected_match or {}).get("away_team") or ""
-    league = payload.get("league_name") or payload.get("competition_name") or (selected_match or {}).get("league_name") or (selected_match or {}).get("competition_name") or ""
+    home = spanish_team_name(payload.get("home_team") or (selected_match or {}).get("home_team") or "")
+    away = spanish_team_name(payload.get("away_team") or (selected_match or {}).get("away_team") or "")
+    league = spanish_competition_name(payload.get("league_name") or payload.get("competition_name") or (selected_match or {}).get("league_name") or (selected_match or {}).get("competition_name") or "")
     match_date = payload.get("match_date") or (selected_match or {}).get("match_date") or today_iso()
     pick_id = pick_id or payload.get("id") or hashlib.md5(f"pick-{match_id}-{home}-{away}-{payload.get('selection')}-{now_iso()}".encode("utf-8")).hexdigest()[:18]
     status = normalize_pick_status(payload.get("status") or ("published" if publish else "draft"))
@@ -4075,6 +4144,7 @@ def annotate_match(match, favs=None):
         or home in favs["team"]
         or away in favs["team"]
     )
+    match = apply_match_localization(match)
     match["status_info"] = canonical_match_status(match)
     match["real_time_state"] = real_time_state(match)
     match["timeline"] = match_timeline(match)
@@ -4465,12 +4535,13 @@ def date_display_label(date_value):
     try:
         target = datetime.fromisoformat(str(date_value)).date()
         today = datetime.now(TZ).date()
+        weekdays = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"]
         if target == today:
             prefix = "Hoy"
         elif target == today + timedelta(days=1):
             prefix = "Mañana"
         else:
-            prefix = target.strftime("%A")
+            prefix = weekdays[target.weekday()].capitalize()
         return f"{prefix} · {target.strftime('%d/%m/%Y')}"
     except Exception:
         return str(date_value or "Fecha por confirmar")
@@ -4486,8 +4557,8 @@ def match_sort_tuple(match):
 def grouped_match_calendar(matches):
     days_map = {}
     for raw in matches or []:
-        match = dict(raw)
-        day_key = match.get("match_date") or (str(match.get("kickoff_iso") or "")[:10] if match.get("kickoff_iso") else "sin-fecha")
+        match = apply_match_localization(dict(raw))
+        day_key = match.get("match_date") or (str(match.get("kickoff_iso_madrid") or match.get("kickoff_iso") or "")[:10] if (match.get("kickoff_iso_madrid") or match.get("kickoff_iso")) else "sin-fecha")
         league_name = league_display_name(match)
         league_key = slug(league_name)
         day = days_map.setdefault(day_key, {"date": day_key, "label": date_display_label(day_key), "total": 0, "leagues": {}})
@@ -4533,6 +4604,7 @@ def get_results_matches(start_date=None, days_back=14, limit=150):
         item["home_identity"] = resolve_team(item.get("home_team"))
         item["away_identity"] = resolve_team(item.get("away_team"))
         item = annotate_match(item)
+        item.update(apply_match_localization(item))
         item["live_depth"]["state"] = "FT"
         item["live_depth"]["label"] = "Finalizado"
         item["live_depth"]["badge"] = "finished"
@@ -4602,7 +4674,7 @@ def smart_pick_board(user=None, limit=24):
             if published
             else "No hay picks publicados ahora mismo. Te mostramos partidos reales próximos para preparar análisis sin inventar apuestas."
         ),
-        "admin_message": "Publica picks desde /admin/picks usando partidos reales próximos." if not published else "Picks activos y visibles.",
+        "admin_message": "Picks activos y visibles." if published else "SHARK está preparando picks con partidos reales próximos.",
     }
 
 def match_hub(date=None, lane="today"):
@@ -6425,6 +6497,7 @@ def get_matches(date=None, lane="today"):
         if item.get("away_logo"):
             item["away_identity"]["crest_url"] = item.get("away_logo")
             item["away_identity"]["crest_mode"] = "logo"
+        item.update(apply_match_localization(item))
     return data
 
 
@@ -6448,6 +6521,7 @@ def get_upcoming_matches(start_date=None, days=7, limit=300):
         if item.get("away_logo"):
             item["away_identity"]["crest_url"] = item.get("away_logo")
             item["away_identity"]["crest_mode"] = "logo"
+        item.update(apply_match_localization(item))
     return data
 
 
@@ -6665,15 +6739,16 @@ def annotate_sports_hub_matches(matches, picks=None):
             pick_map[mid] = pick
     out = []
     for match in dedupe_matches_list(matches):
+        match = apply_match_localization(match)
         pick = pick_map.get(str(match.get("id") or ""))
         live_depth = match.get("live_depth") or {}
         match["has_pick"] = bool(pick)
         match["pick_label"] = (pick or {}).get("selection") or ""
         match["shark_score"] = as_int((pick or {}).get("confidence") or live_depth.get("momentum") or match.get("shark_score"), 0)
-        match["safe_home"] = match.get("home_team") or "Equipo por confirmar"
-        match["safe_away"] = match.get("away_team") or "Equipo por confirmar"
-        match["safe_competition"] = match.get("competition_name") or match.get("league_name") or "Competición"
-        match["safe_time"] = match.get("kickoff_time") or match.get("match_time") or live_depth.get("minute") or "Hora pendiente"
+        match["safe_home"] = match.get("safe_home") or match.get("home_team") or "Equipo por confirmar"
+        match["safe_away"] = match.get("safe_away") or match.get("away_team") or "Equipo por confirmar"
+        match["safe_competition"] = match.get("safe_competition") or match.get("competition_name") or match.get("league_name") or "Competición"
+        match["safe_time"] = match.get("safe_time") or match.get("kickoff_time") or match.get("match_time") or live_depth.get("minute") or "Hora pendiente"
         match["safe_score"] = live_depth.get("score") or match.get("score") or "vs"
         match["safe_status"] = live_depth.get("label") or match.get("status") or "Próximo"
         out.append(match)
@@ -9039,7 +9114,7 @@ def v566_client_menu_items():
         {"group": "Picks", "title": "Combinadas", "body": "Combis según tu plan FREE, PRO o ELITE.", "href": "/combis"},
         {"group": "Canal", "title": "Telegram", "body": "Alertas y picks según membresía.", "href": "/telegram"},
         {"group": "IA", "title": "SHARK", "body": "Pregunta por picks, favoritos, live y oportunidades.", "href": "/shark"},
-        {"group": "IA", "title": "SHARK Core", "body": "Resumen inteligente conectado a picks, favoritos y live.", "href": "/shark-core"},
+        {"group": "IA", "title": "Centro SHARK", "body": "Resumen inteligente conectado a picks, favoritos y directo.", "href": "/shark-core"},
         {"group": "Cuenta", "title": "Mi cuenta", "body": "Perfil, membresía, favoritos y actividad.", "href": "/mi-cuenta"},
         {"group": "Cuenta", "title": "Alertas", "body": "Avisos importantes de tu actividad.", "href": "/alertas"},
         {"group": "Picks", "title": "Seguimiento", "body": "Banca y picks guardados.", "href": "/seguimiento"},
@@ -9087,7 +9162,7 @@ def v566_dashboard_summary(user=None):
         "focus": [
             {"type": "LIVE", "title": "Live limpio", "body": "Estados Próximo, En directo, Descanso y Finalizado.", "href": "/live"},
             {"type": "PICKS", "title": "Picks y señales", "body": "Picks publicados y recomendaciones sin inventar datos.", "href": "/picks"},
-            {"type": "SHARK", "title": "Insight SHARK", "body": "Pregunta por favoritos, live y oportunidades de hoy.", "href": "/shark"},
+            {"type": "SHARK", "title": "Insight SHARK", "body": "Pregunta por favoritos, directo y oportunidades de hoy.", "href": "/shark"},
         ],
     }
 
@@ -9119,7 +9194,7 @@ def v566_product_polish_report():
         "client_routes": [{"path": p, "ok": p in registered} for p in client_routes],
         "admin_routes": [{"path": p, "ok": p in registered, "admin_only": True} for p in admin_routes],
         "apis": [{"path": p, "ok": p in registered} for p in api_routes],
-        "critical_buttons": {"match_detail": "/match/<id>", "team_detail": "/team/<id>", "client_more": "/menu", "admin_dashboard": "/admin/dashboard", "ok": True},
+        "critical_buttons": {"match_detail": "/match/<id>", "team_detail": "/team/<id>", "client_more": "/menu", "account": "/mi-cuenta", "ok": True},
         "match_detail_ok": bool(sample_match),
         "team_detail_ok": bool(sample_team),
         "live_states_ok": True,

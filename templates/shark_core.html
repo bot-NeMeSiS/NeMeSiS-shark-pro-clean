@@ -41,7 +41,7 @@
 
   <article class="card">
     <p class="eyebrow">Live y favoritos</p>
-    <h3>{{ shark.counts.live }} live · {{ shark.counts.favorites }} favoritos</h3>
+    <h3>{{ shark.counts.live }} directo · {{ shark.counts.favorites }} favoritos</h3>
     <p class="muted">SHARK cruza favoritos, live, picks y calendario para priorizar lo importante.</p>
     <a class="btn ghost" href="/favorites">Mis favoritos</a>
   </article>
@@ -67,8 +67,8 @@
     {% if shark.sections.upcoming %}
       {% for m in shark.sections.upcoming[:6] %}
         <div class="mini-row">
-          <span>{{ m.home_team }} vs {{ m.away_team }}</span>
-          <small>{{ m.competition_name or m.league_name }} · {{ m.match_date }} {{ m.kickoff_time or '' }}</small>
+          <span>{{ m.safe_home or m.home_team }} vs {{ m.safe_away or m.away_team }}</span>
+          <small>{{ m.safe_competition or m.competition_name or m.league_name }} · {{ m.match_date }} {{ m.kickoff_time or '' }}</small>
         </div>
       {% endfor %}
     {% else %}

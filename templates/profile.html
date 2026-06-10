@@ -4,7 +4,7 @@
 {% set plan = data.session_user.membership|lower %}
 <section class="client-hero plan-{{ plan }}">
   <div>
-    <div class="kicker">írea cliente</div>
+    <div class="kicker">Área cliente</div>
     <h1>Tu panel SHARK</h1>
     <p class="lead">Hola, {{ data.session_user.name }} · @{{ data.session_user.username }} · plan {{ data.session_user.membership }}</p>
     <div class="actions">
@@ -16,7 +16,7 @@
     </div>
   </div>
   <aside class="membership-card plan-{{ plan }}">
-    <span>MEMBRESíA</span>
+    <span>MEMBRESÍA</span>
     <strong>{{ data.session_user.membership }}</strong>
     {% if data.session_user.membership == 'FREE' %}
     <p>Acceso base activo. PRO desbloquea más picks, combinadas y avisos.</p>
@@ -32,7 +32,7 @@
   <div class="quick-actions client-actions">
     <a class="quick primary" href="/mi-dia"><span>Mi día</span><strong>{{ data.daily_briefing.score }}%</strong></a>
     <a class="quick" href="/match-hub"><span>Partidos</span><strong>{{ data.upcoming_matches|length }}</strong></a>
-    <a class="quick" href="/live"><span>Live</span><strong>{{ data.match_hub.counts.live }}</strong></a>
+    <a class="quick" href="/live"><span>Directo</span><strong>{{ data.match_hub.counts.live }}</strong></a>
     <a class="quick" href="/picks"><span>Picks</span><strong>{{ data.picks|length }}</strong></a>
     <a class="quick" href="/combis"><span>Combinadas</span><strong>{{ data.combis|length }}</strong></a>
     <a class="quick" href="/favorites"><span>Favoritos</span><strong>{{ data.favorites|length }}</strong></a>
@@ -96,9 +96,9 @@
       {% set profile_matches = data.matches if data.matches else data.upcoming_matches %}
       {% for m in profile_matches[:5] %}
       {% set live_depth = m.live_depth|default({}) %}
-      <a class="list-row" href="/match/{{ m.id }}"><span>{{ m.home_team or 'Equipo local' }} vs {{ m.away_team or 'Equipo visitante' }}</span><strong>{{ live_depth.get('label') or m.status or 'Próximo' }}</strong></a>
+      <a class="list-row" href="/match/{{ m.id }}"><span>{{ m.safe_home or m.home_team or 'Equipo local' }} vs {{ m.safe_away or m.away_team or 'Equipo visitante' }}</span><strong>{{ live_depth.get('label') or m.status or 'Próximo' }}</strong></a>
       {% else %}
-      <div class="empty">No hay partidos disponibles todavia.El calendario se completara cuando haya datos suficientes.</div>
+      <div class="empty">No hay partidos disponibles todavía. El calendario se completará cuando haya datos suficientes.</div>
       {% endfor %}
     </div>
   </div>

@@ -41,7 +41,7 @@
     <div class="section-head"><h2>Partidos próximos</h2><a class="pill" href="/match-hub">Calendario</a></div>
     <div class="stack compact-stack">
       {% for m in dashboard.briefing.upcoming[:5] %}
-      <a class="list-row" href="/match/{{ m.id }}"><span>{{ m.home_team }} vs {{ m.away_team }}<small>{{ m.competition_name or m.league_name or 'Competición' }}</small></span><strong>{{ m.kickoff_time or m.match_time or 'Hora' }}</strong></a>
+      <a class="list-row" href="/match/{{ m.id }}"><span>{{ m.safe_home or m.home_team }} vs {{ m.safe_away or m.away_team }}<small>{{ m.safe_competition or m.competition_name or m.league_name or 'Competición' }}</small></span><strong>{{ m.kickoff_time or m.match_time or 'Hora' }}</strong></a>
       {% else %}
       <div class="empty">Aún no hay partidos próximos sincronizados.</div>
       {% endfor %}

@@ -8,6 +8,15 @@ import html
 import re
 from datetime import datetime
 
+from engines.spanish_localization_engine import (
+    apply_match_localization,
+    apply_pick_localization,
+    madrid_values_from_datetime,
+    spanish_competition_name,
+    spanish_country_name,
+    spanish_team_name,
+)
+
 
 DEFAULT_SETTINGS = {
     "id": "default",
@@ -43,8 +52,15 @@ _COUNTRY_FLAGS = {
     "usa": "🇺🇸",
     "united states": "🇺🇸",
     "international": "🌍",
+    "internacional": "🌍",
+    "mundial": "🌍",
     "world": "🌍",
     "global": "🌍",
+    "méxico": "🇲🇽",
+    "mexico": "🇲🇽",
+    "sudáfrica": "🇿🇦",
+    "corea del sur": "🇰🇷",
+    "república checa": "🇨🇿",
 }
 
 
@@ -132,11 +148,11 @@ def _first_value(data, keys, default=""):
 
 
 def _competition_name(item):
-    return _first_value(item, ["competition_name", "league_name", "competition", "league"], "Competición")
+    return spanish_competition_name(_first_value(item, ["competition_name", "league_name", "competition", "league"], "Competición")) or "Competición"
 
 
 def _competition_emoji(item):
-    country = str(item.get("country") or "").strip().lower()
+    country = str(spanish_country_name(item.get("country") or item.get("safe_country") or "") or "").strip().lower()
     if country in _COUNTRY_FLAGS:
         return _COUNTRY_FLAGS[country]
     comp = str(_competition_name(item)).lower()
@@ -150,6 +166,9 @@ def _format_date(value):
     raw = str(value or "").strip()
     if not raw:
         return "Fecha pendiente"
+    values = madrid_values_from_datetime(raw)
+    if values.get("safe_datetime"):
+        return values["safe_datetime"]
     for fmt in ("%Y-%m-%dT%H:%M:%S", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d"):
         try:
             dt = datetime.strptime(raw[:19] if "T" in raw else raw[:19], fmt)
@@ -162,8 +181,11 @@ def _format_date(value):
 
 
 def _match_time(item):
-    time = _first_value(item, ["kickoff_time", "match_time", "time", "minute"], "")
-    date = _first_value(item, ["match_date", "date", "kickoff_iso"], "")
+    values = madrid_values_from_datetime(item.get("kickoff_iso") or item.get("kickoff_iso_madrid") or "", item.get("match_date") or item.get("date"), item.get("kickoff_time") or item.get("match_time") or item.get("time"))
+    if values.get("safe_time") and values.get("safe_time") != "Hora":
+        return safe_html(values["safe_time"])
+    time = _first_value(item, ["safe_time", "kickoff_time", "match_time", "time", "minute"], "")
+    date = _first_value(item, ["safe_date", "match_date", "date", "kickoff_iso"], "")
     if time:
         return safe_html(time)
     return safe_html(_format_date(date))
@@ -190,7 +212,7 @@ def _crest_anchor(url, fallback="⚽"):
 
 
 def _team_block(item, side):
-    team = safe_html(_first_value(item, [f"{side}_team", f"{side}", f"{side}_name"], "Equipo"))
+    team = safe_html(spanish_team_name(_first_value(item, [f"{side}_team", f"{side}", f"{side}_name"], "Equipo")) or "Equipo")
     crest = _crest_anchor(_team_crest_url(item, side))
     side_icon = "🏠" if side == "home" else "✈️"
     return f"{side_icon} {crest} <b>{team}</b>"
@@ -244,6 +266,7 @@ def _match_url_line(item, label="Abrir partido en la app"):
 
 
 def format_match_line(match):
+    match = apply_match_localization(match)
     comp = safe_html(_competition_name(match))
     time = _match_time(match)
     status = _status_label(match)
@@ -251,7 +274,7 @@ def format_match_line(match):
     score_line = f" · <b>{score}</b>" if score else ""
     lines = [
         f"{_competition_emoji(match)} <b>{comp}</b>",
-        f"🕘 {time} · {status}{score_line}",
+        f"🕘 {time} h España · {status}{score_line}",
         _team_block(match, "home"),
         "🆚",
         _team_block(match, "away"),
@@ -310,8 +333,8 @@ def _stake_text(pick):
 
 
 def _pick_title(index, pick):
-    home = _first_value(pick, ["home_team", "home"], "Equipo local")
-    away = _first_value(pick, ["away_team", "away"], "Equipo visitante")
+    home = spanish_team_name(_first_value(pick, ["home_team", "home"], "Equipo local"))
+    away = spanish_team_name(_first_value(pick, ["away_team", "away"], "Equipo visitante"))
     return f"<b>#{index} · {safe_html(home)} vs {safe_html(away)}</b>"
 
 
@@ -328,6 +351,7 @@ def build_daily_picks_message(picks, force_empty=False, premium_name="NeMeSiS SH
         return "\n".join(lines)
 
     for index, pick in enumerate(picks[:4], start=1):
+        pick = apply_pick_localization(pick)
         comp = safe_html(_competition_name(pick))
         date = safe_html(_format_date(pick.get("match_date") or pick.get("kickoff_iso") or pick.get("date")))
         time = _match_time(pick)
@@ -341,7 +365,7 @@ def build_daily_picks_message(picks, force_empty=False, premium_name="NeMeSiS SH
             [
                 _pick_title(index, pick),
                 f"{_competition_emoji(pick)} <b>{comp}</b>",
-                f"🕘 {date}" + (f" · {time}" if time and time != date else ""),
+                f"🕘 {date}" + (f" · {time} h España" if time and time != date else " · hora España"),
                 _team_block(pick, "home"),
                 "🆚",
                 _team_block(pick, "away"),
@@ -365,6 +389,7 @@ def build_daily_picks_message(picks, force_empty=False, premium_name="NeMeSiS SH
 
 
 def build_live_alert_message(match, event=None, internal_url="/live"):
+    match = apply_match_localization(match)
     event = event or {}
     score = _score_text(match) or "sin marcador"
     minute = safe_html((match.get("live_depth") or {}).get("minute") or match.get("minute") or "LIVE")

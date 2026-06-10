@@ -2,14 +2,14 @@
 {% block content %}
 <section class="scoreboard-hero v701-scoreboard live-board">
   <div>
-    <div class="kicker">Live</div>
-    <h1>Live compacto</h1>
+    <div class="kicker">Directo</div>
+    <h1>Partidos en directo</h1>
     <p class="lead">Minuto, marcador, estado, favoritos y señal SHARK sin ruido técnico.</p>
   </div>
   <div class="scoreboard-kpis">
-    <div><strong>{{ data.match_hub.counts.live }}</strong><span>Directo</span></div>
+    <div><strong>{{ data.match_hub.counts.live }}</strong><span>En directo</span></div>
     <div><strong>{{ data.match_hub.counts.upcoming }}</strong><span>Próximos</span></div>
-    <div><strong>{{ data.match_hub.counts.finished }}</strong><span>FT</span></div>
+    <div><strong>{{ data.match_hub.counts.finished }}</strong><span>Finalizados</span></div>
     <div><strong>{{ data.match_hub.counts.with_odds }}</strong><span>Cuotas</span></div>
   </div>
 </section>
@@ -37,9 +37,9 @@
         <a class="sports-row v701-row live-row favorite-scope" href="/match/{{ m.id }}">
           <button class="fav-star {% if m.is_favorite %}active{% endif %}" type="button" data-kind="match" data-value="{{ m.id }}" data-label="{{ m.home_team }} vs {{ m.away_team }}" aria-label="Favorito">★</button>
           <div class="sports-time is-live"><strong>{{ live_depth.get('minute') or 'Live' }}</strong><span>{{ live_depth.get('label') or 'En directo' }}</span></div>
-          <div class="sports-team home"><span class="crest compact-crest"><img loading="lazy" src="{{ home_identity.get('crest_url','') }}" alt="{{ m.home_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ home_identity.get('initials', (m.home_team or 'L')[:1]) }}'"></span><strong>{{ m.home_team or 'Equipo local' }}</strong></div>
+          <div class="sports-team home"><span class="crest compact-crest"><img loading="lazy" src="{{ home_identity.get('crest_url','') }}" alt="{{ m.home_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ home_identity.get('initials', (m.home_team or 'L')[:1]) }}'"></span><strong>{{ m.safe_home or m.home_team or 'Equipo local' }}</strong></div>
           <div class="sports-score live-score"><strong>{{ live_depth.get('score') or m.score or 'vs' }}</strong><span>Momentum {{ live_depth.get('momentum') or 0 }}</span></div>
-          <div class="sports-team away"><span class="crest compact-crest"><img loading="lazy" src="{{ away_identity.get('crest_url','') }}" alt="{{ m.away_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ away_identity.get('initials', (m.away_team or 'V')[:1]) }}'"></span><strong>{{ m.away_team or 'Equipo visitante' }}</strong></div>
+          <div class="sports-team away"><span class="crest compact-crest"><img loading="lazy" src="{{ away_identity.get('crest_url','') }}" alt="{{ m.away_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ away_identity.get('initials', (m.away_team or 'V')[:1]) }}'"></span><strong>{{ m.safe_away or m.away_team or 'Equipo visitante' }}</strong></div>
           <div class="sports-meta v701-meta"><span class="shark-pill">SH {{ live_depth.get('momentum') or 0 }}</span><span class="state-badge {{ live_depth.get('badge','live') }}">{{ live_depth.get('label') or 'En directo' }}</span></div>
         </a>
       {% endfor %}
@@ -61,10 +61,10 @@
     {% set away_identity = m.away_identity|default({}) %}
     <a class="sports-row v701-row favorite-scope" href="/match/{{ m.id }}">
       <button class="fav-star {% if m.is_favorite %}active{% endif %}" type="button" data-kind="match" data-value="{{ m.id }}" data-label="{{ m.home_team }} vs {{ m.away_team }}" aria-label="Favorito">★</button>
-      <div class="sports-time"><strong>{{ m.kickoff_time or m.match_time or 'Hora' }}</strong><span>{{ m.match_date }}</span></div>
-      <div class="sports-team home"><span class="crest compact-crest"><img loading="lazy" src="{{ home_identity.get('crest_url','') }}" alt="{{ m.home_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ home_identity.get('initials', (m.home_team or 'L')[:1]) }}'"></span><strong>{{ m.home_team or 'Equipo local' }}</strong></div>
-      <div class="sports-score"><strong>vs</strong><span>{{ m.competition_name or m.league_name or 'Competición' }}</span></div>
-      <div class="sports-team away"><span class="crest compact-crest"><img loading="lazy" src="{{ away_identity.get('crest_url','') }}" alt="{{ m.away_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ away_identity.get('initials', (m.away_team or 'V')[:1]) }}'"></span><strong>{{ m.away_team or 'Equipo visitante' }}</strong></div>
+      <div class="sports-time"><strong>{{ m.safe_time or m.kickoff_time or m.match_time or 'Hora' }}</strong><span>{{ m.safe_date or m.match_date }}</span></div>
+      <div class="sports-team home"><span class="crest compact-crest"><img loading="lazy" src="{{ home_identity.get('crest_url','') }}" alt="{{ m.home_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ home_identity.get('initials', (m.home_team or 'L')[:1]) }}'"></span><strong>{{ m.safe_home or m.home_team or 'Equipo local' }}</strong></div>
+      <div class="sports-score"><strong>vs</strong><span>{{ m.safe_competition or m.competition_name or m.league_name or 'Competición' }}</span></div>
+      <div class="sports-team away"><span class="crest compact-crest"><img loading="lazy" src="{{ away_identity.get('crest_url','') }}" alt="{{ m.away_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ away_identity.get('initials', (m.away_team or 'V')[:1]) }}'"></span><strong>{{ m.safe_away or m.away_team or 'Equipo visitante' }}</strong></div>
       <div class="sports-meta v701-meta"><span class="state-badge upcoming">Próximo</span></div>
     </a>
     {% endfor %}
