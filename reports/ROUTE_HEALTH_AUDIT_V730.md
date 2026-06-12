@@ -1,14 +1,14 @@
 # Route Health Audit V730
 
-- Versión: `V742_SALE_READY_LIVE_DETAIL_TRACK_RECORD_TELEGRAM_FINAL_POLISH`
-- Rutas: 228
+- Versión: `V742_TOP_APP_LIVE_DETAIL_TRACK_RECORD_MATCH_INTELLIGENCE_VIDEO_HIGHLIGHTS_FINAL`
+- Rutas: 230
 - Templates faltantes: 0
 - Resultado: OK
 
 ## Distribución por tipo
 - `action`: 4
-- `admin`: 50
-- `admin_api`: 26
+- `admin`: 51
+- `admin_api`: 27
 - `api`: 104
 - `client`: 35
 - `cron`: 2

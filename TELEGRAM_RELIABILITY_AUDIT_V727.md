@@ -1,6 +1,6 @@
 # TELEGRAM RELIABILITY AUDIT V727
 
-- Version: `V742_SALE_READY_LIVE_DETAIL_TRACK_RECORD_TELEGRAM_FINAL_POLISH`
+- Version: `V742_TOP_APP_LIVE_DETAIL_TRACK_RECORD_MATCH_INTELLIGENCE_VIDEO_HIGHLIGHTS_FINAL`
 - Estado: `MISSING_BOT_TOKEN`
 - Severidad: `critical`
 - Explicacion: Telegram no puede enviar porque falta TELEGRAM_BOT_TOKEN.
@@ -8,6 +8,7 @@
 
 ## Variables configuradas
 - `auto_generate_picks`: no
+- `auto_send_enabled`: no
 - `auto_send_telegram_picks`: no
 - `automation_secret_configured`: no
 - `bot_token_configured`: no
@@ -17,6 +18,7 @@
 - `enable_telegram_auto`: no
 - `public_base_url_configured`: no
 - `scheduler_enabled`: no
+- `telegram_enabled`: no
 - `telegram_football_only`: si
 - `telegram_sport_mode`: football_only
 

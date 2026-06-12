@@ -1,7 +1,7 @@
 {
   "ok": true,
   "checks": {
-    "version": "V742_SALE_READY_LIVE_DETAIL_TRACK_RECORD_TELEGRAM_FINAL_POLISH",
+    "version": "V742_TOP_APP_LIVE_DETAIL_TRACK_RECORD_MATCH_INTELLIGENCE_VIDEO_HIGHLIGHTS_FINAL",
     "app_version_updated": true,
     "engine_imported": true,
     "routes_present": true,
@@ -16,7 +16,7 @@
   },
   "snapshot": {
     "version": "V733_CLIENT_SUCCESS_ONBOARDING_SUPPORT_POLISH",
-    "generated_at": "2026-06-13T00:57:28",
+    "generated_at": "2026-06-13T01:20:56",
     "membership": "PRO",
     "score": 100,
     "status": "OK",

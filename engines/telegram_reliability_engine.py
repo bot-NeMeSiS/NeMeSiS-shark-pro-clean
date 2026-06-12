@@ -21,12 +21,22 @@ ALL_ALREADY_SENT = "ALL_ALREADY_SENT"
 BLOCKED_BY_HOURLY_LIMIT = "BLOCKED_BY_HOURLY_LIMIT"
 BLOCKED_BY_DAILY_LIMIT = "BLOCKED_BY_DAILY_LIMIT"
 BLOCKED_BY_QUIET_HOURS = "BLOCKED_BY_QUIET_HOURS"
+BLOCKED_BY_AUTOMATION_DISABLED = "BLOCKED_BY_AUTOMATION_DISABLED"
+BLOCKED_BY_TELEGRAM_DISABLED = "BLOCKED_BY_TELEGRAM_DISABLED"
+BLOCKED_BY_MISSING_DESTINATION = "BLOCKED_BY_MISSING_DESTINATION"
 MISSING_BOT_TOKEN = "MISSING_BOT_TOKEN"
 MISSING_CHAT_ID = "MISSING_CHAT_ID"
+BOT_NOT_IN_GROUP_OR_CHANNEL = "BOT_NOT_IN_GROUP_OR_CHANNEL"
+BOT_NOT_ADMIN_IN_CHANNEL = "BOT_NOT_ADMIN_IN_CHANNEL"
 TELEGRAM_API_ERROR = "TELEGRAM_API_ERROR"
+TELEGRAM_PARSE_MODE_ERROR = "TELEGRAM_PARSE_MODE_ERROR"
+MESSAGE_TOO_LONG = "MESSAGE_TOO_LONG"
+CRON_SECRET_INVALID = "CRON_SECRET_INVALID"
+CRON_NOT_RUNNING = "CRON_NOT_RUNNING"
 DB_ERROR = "DB_ERROR"
 DATA_MEMORY_ERROR = "DATA_MEMORY_ERROR"
 UNKNOWN_ERROR = "UNKNOWN_ERROR"
+RENDER_ENV_PENDING_VALIDATION = "RENDER_ENV_PENDING_VALIDATION"
 
 
 def madrid_now() -> str:
@@ -40,7 +50,7 @@ def _count(reason_counts: dict, key: str) -> int:
 def _severity(status: str) -> str:
     if status in {READY_TO_SEND, NO_CANDIDATES, NO_PREMIUM_PICKS, ALL_ALREADY_SENT}:
         return "info"
-    if status in {BLOCKED_BY_HOURLY_LIMIT, BLOCKED_BY_DAILY_LIMIT, BLOCKED_BY_QUIET_HOURS, ALL_DISCARDED_NO_ODDS, ALL_DISCARDED_LOW_QUALITY, NO_FOOTBALL_CANDIDATES}:
+    if status in {BLOCKED_BY_HOURLY_LIMIT, BLOCKED_BY_DAILY_LIMIT, BLOCKED_BY_QUIET_HOURS, BLOCKED_BY_AUTOMATION_DISABLED, BLOCKED_BY_TELEGRAM_DISABLED, ALL_DISCARDED_NO_ODDS, ALL_DISCARDED_LOW_QUALITY, NO_FOOTBALL_CANDIDATES, RENDER_ENV_PENDING_VALIDATION}:
         return "warning"
     return "critical"
 
@@ -54,7 +64,26 @@ def _normal(status: str) -> bool:
         BLOCKED_BY_HOURLY_LIMIT,
         BLOCKED_BY_DAILY_LIMIT,
         BLOCKED_BY_QUIET_HOURS,
+        BLOCKED_BY_AUTOMATION_DISABLED,
+        BLOCKED_BY_TELEGRAM_DISABLED,
+        RENDER_ENV_PENDING_VALIDATION,
     }
+
+
+def translate_telegram_error(message: str) -> dict:
+    raw = str(message or "")
+    low = raw.lower()
+    if "chat not found" in low:
+        return {"status": BOT_NOT_IN_GROUP_OR_CHANNEL, "explanation": "Telegram no encuentra el grupo/canal configurado.", "action": "Revisar TELEGRAM_CHAT_ID y que el bot esté dentro del grupo/canal."}
+    if "bot was kicked" in low or "forbidden" in low:
+        return {"status": BOT_NOT_IN_GROUP_OR_CHANNEL, "explanation": "El bot no puede escribir porque fue expulsado o no tiene permiso.", "action": "Añadir de nuevo el bot y permitirle escribir."}
+    if "not enough rights" in low or "need administrator" in low:
+        return {"status": BOT_NOT_ADMIN_IN_CHANNEL, "explanation": "El bot no tiene permisos suficientes en el canal.", "action": "Hacer admin al bot en el canal o usar un destino donde pueda escribir."}
+    if "can't parse" in low or "parse entities" in low:
+        return {"status": TELEGRAM_PARSE_MODE_ERROR, "explanation": "Telegram rechazó el formato Markdown/HTML del mensaje.", "action": "Reintentar en texto plano y revisar caracteres especiales."}
+    if "message is too long" in low or "message_too_long" in low:
+        return {"status": MESSAGE_TOO_LONG, "explanation": "El mensaje supera el tamaño permitido por Telegram.", "action": "Recortar secciones secundarias del mensaje premium."}
+    return {"status": TELEGRAM_API_ERROR, "explanation": "Telegram devolvió un error no clasificado.", "action": "Revisar respuesta Telegram, destino y permisos del bot."}
 
 
 def explain_telegram_state(snapshot: dict) -> dict:
@@ -78,10 +107,19 @@ def explain_telegram_state(snapshot: dict) -> dict:
         status = MISSING_CHAT_ID
         explanation = "Telegram no puede enviar al canal global porque falta TELEGRAM_CHAT_ID."
         action = "Configurar TELEGRAM_CHAT_ID o CHANNEL_ID en Render."
+    elif env.get("telegram_enabled") is False:
+        status = BLOCKED_BY_TELEGRAM_DISABLED
+        explanation = "Telegram está desactivado por configuración."
+        action = "Activar Telegram solo cuando el bot y el destino estén validados."
+    elif env.get("auto_send_enabled") is False:
+        status = BLOCKED_BY_AUTOMATION_DISABLED
+        explanation = "El envío automático de Telegram está desactivado."
+        action = "Activar ENABLE_TELEGRAM_AUTO/AUTO_SEND_TELEGRAM_PICKS en Render si se quiere automatizar."
     elif int(counts.get("failed_today") or 0) > 0 and (last_error.get("status") in {"ERROR", "FAILED", "failed", "error"} or last_error.get("message")):
-        status = TELEGRAM_API_ERROR
-        explanation = "Hay un error reciente de Telegram registrado en logs o cola."
-        action = "Revisar ultimo error, permisos del bot y chat/channel usado."
+        translated = translate_telegram_error(last_error.get("message") or last_error.get("error") or "")
+        status = translated["status"]
+        explanation = translated["explanation"]
+        action = translated["action"]
     elif data_memory.get("errors"):
         status = DATA_MEMORY_ERROR
         explanation = "Data Memory registro errores relacionados con Telegram o picks."

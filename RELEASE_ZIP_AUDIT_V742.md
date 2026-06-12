@@ -1,10 +1,24 @@
+# Release ZIP Audit V742
+
+- ZIP: `C:\Users\aloha\OneDrive\Escritorio\NeMeSiS shark pro\release_output\NeMeSiS_SHARK_PRO_V742_TOP_APP_LIVE_DETAIL_TRACK_RECORD_MATCH_INTELLIGENCE_VIDEO_HIGHLIGHTS_FINAL_RENDER_READY.zip`
+- Estado: OK
+- Archivos: 382
+- Tama?o ZIP bytes: 689536
+- Prohibidos: 0
+- `.git`: excluido
+- `.venv`: excluido
+- caches: excluidos
+- DB/logs/ZIPs/v?deos/capturas internas: excluidos
+
+## Resultado bruto
+```json
 {
   "ok": true,
-  "audited_at": "2026-06-13T01:22:37",
+  "audited_at": "2026-06-13T01:22:27",
   "zip": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\release_output\\NeMeSiS_SHARK_PRO_V742_TOP_APP_LIVE_DETAIL_TRACK_RECORD_MATCH_INTELLIGENCE_VIDEO_HIGHLIGHTS_FINAL_RENDER_READY.zip",
-  "zip_size_bytes": 690885,
-  "file_count": 383,
-  "content_size_bytes": 2245485,
+  "zip_size_bytes": 689536,
+  "file_count": 382,
+  "content_size_bytes": 2240805,
   "forbidden_count": 0,
   "forbidden": [],
   "top_files": [
@@ -161,11 +175,6 @@
       "files": 1
     },
     {
-      "folder": "RELEASE_ZIP_AUDIT_V742.md",
-      "size": 4680,
-      "files": 1
-    },
-    {
       "folder": "V742_SALE_READY_LIVE_DETAIL_TRACK_RECORD_TELEGRAM_FINAL_POLISH_REPORT.md",
       "size": 4615,
       "files": 1
@@ -189,6 +198,12 @@
       "folder": "RELEASE_MANIFEST_V739.json",
       "size": 4121,
       "files": 1
+    },
+    {
+      "folder": "V734_PUBLIC_LAUNCH_TRACK_RECORD_PAYMENTS_FOUNDATION_REPORT.md",
+      "size": 4027,
+      "files": 1
     }
   ]
 }
+```

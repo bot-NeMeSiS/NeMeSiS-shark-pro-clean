@@ -1,13 +1,13 @@
 {
   "ok": true,
-  "version": "V742_SALE_READY_LIVE_DETAIL_TRACK_RECORD_TELEGRAM_FINAL_POLISH",
+  "version": "V742_TOP_APP_LIVE_DETAIL_TRACK_RECORD_MATCH_INTELLIGENCE_VIDEO_HIGHLIGHTS_FINAL",
   "diagnosis": {
     "status": "MISSING_BOT_TOKEN",
     "severity": "critical",
     "normal": false,
     "explanation": "Telegram no puede enviar porque falta TELEGRAM_BOT_TOKEN.",
     "action": "Configurar TELEGRAM_BOT_TOKEN en Render y redeployar.",
-    "madrid_now": "2026-06-13T00:58:30+02:00",
+    "madrid_now": "2026-06-13T01:20:58+02:00",
     "data": {
       "counts": {
         "candidate_picks": 0,
@@ -56,6 +56,8 @@
         "automation_secret_configured": false,
         "enable_telegram_auto": false,
         "auto_send_telegram_picks": false,
+        "telegram_enabled": false,
+        "auto_send_enabled": false,
         "auto_generate_picks": false,
         "scheduler_enabled": false,
         "daily_automation_enabled": false,
@@ -111,6 +113,8 @@
     "automation_secret_configured": false,
     "enable_telegram_auto": false,
     "auto_send_telegram_picks": false,
+    "telegram_enabled": false,
+    "auto_send_enabled": false,
     "auto_generate_picks": false,
     "scheduler_enabled": false,
     "daily_automation_enabled": false,

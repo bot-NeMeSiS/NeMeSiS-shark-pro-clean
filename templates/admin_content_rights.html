@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block content %}
+{% set cr = data.content_rights or {} %}
+{% set summary = cr.summary or {} %}
+<section class="scoreboard-hero v701-scoreboard v742-sale-ready">
+  <div>
+    <div class="kicker">Admin · Derechos de contenido</div>
+    <h1>Legalidad de contenido externo</h1>
+    <p class="lead">Control para vídeos, escudos, imágenes, noticias y enlaces externos sin descargar ni rehostear contenido protegido.</p>
+    <div class="admin-menu">
+      <a class="btn primary" href="/admin/content-rights">Derechos</a>
+      <a class="btn" href="/admin/sale-ready">Sale Ready</a>
+      <a class="btn" href="/admin/telegram/command-center">Telegram</a>
+    </div>
+  </div>
+  <div class="scoreboard-kpis">
+    <div><strong>{{ summary.counts.SAFE_EMBED or 0 }}</strong><span>Embeds seguros</span></div>
+    <div><strong>{{ summary.counts.SAFE_LINK_ONLY or 0 }}</strong><span>Solo enlace</span></div>
+    <div><strong>{{ summary.counts.METADATA_ONLY or 0 }}</strong><span>Metadatos</span></div>
+    <div><strong>{{ summary.counts.UNKNOWN_REVIEW_REQUIRED or 0 }}</strong><span>Revisión</span></div>
+  </div>
+</section>
+
+<section class="band compact-band">
+  <div class="section-head"><h2>Política aplicada</h2><span class="pill">V742</span></div>
+  <div class="stack">
+    {% for rule in summary.rules %}
+    <div class="list-row"><span>{{ rule }}</span><strong>OK</strong></div>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="band compact-band">
+  <div class="section-head"><h2>Clasificación</h2><span class="pill">{{ summary.classified|length }}</span></div>
+  <div class="grid compact-grid">
+    {% for item in summary.classified %}
+    <article class="card">
+      <span class="pill">{{ item.rights_status }}</span>
+      <h3>{{ item.content_type|title }}</h3>
+      <p class="small">{{ item.notice_text }}</p>
+      <div class="stack">
+        <div class="route-row"><span>Fuente</span><strong>{{ item.attribution or item.provider or 'Pendiente' }}</strong></div>
+        <div class="route-row"><span>Embeber</span><strong>{{ 'Sí' if item.can_embed else 'No' }}</strong></div>
+        <div class="route-row"><span>Enlazar</span><strong>{{ 'Sí' if item.can_link else 'No' }}</strong></div>
+        <div class="route-row"><span>Cache binario</span><strong>No</strong></div>
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="band compact-band">
+  <div class="section-head"><h2>Aviso cliente</h2><span class="pill">Discreto</span></div>
+  <div class="card"><p class="small">{{ cr.client_notice }}</p></div>
+</section>
+{% endblock %}

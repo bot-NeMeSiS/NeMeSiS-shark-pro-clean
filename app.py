@@ -54,6 +54,7 @@ from engines.football_population_engine import (
 )
 from engines.live_engine import build_live_depth, build_live_flow, build_match_detail, fallback_timeline, normalize_live_state, shark_live_alerts, shark_momentum
 from engines.live_experience_engine import build_live_experience, live_experience_snapshot
+from engines.content_rights_engine import content_rights_policy_summary
 from engines.match_engine import hub_sections, real_time_state, sync_plan
 from engines.match_sync_engine import IMPORTANT_COMPETITIONS, h2h_price_snapshot, normalize_status as sync_normalize_status, odds_sports, sportsdb_leagues
 from engines.membership_engine import can_access_feature, get_membership_limits, get_user_membership, membership_context
@@ -137,7 +138,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V742_SALE_READY_LIVE_DETAIL_TRACK_RECORD_TELEGRAM_FINAL_POLISH"
+APP_VERSION = "V742_TOP_APP_LIVE_DETAIL_TRACK_RECORD_MATCH_INTELLIGENCE_VIDEO_HIGHLIGHTS_FINAL"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -6716,6 +6717,8 @@ def telegram_reliability_snapshot(limit=60):
         "automation_secret_configured": automation_secret_configured(),
         "enable_telegram_auto": env_bool("ENABLE_TELEGRAM_AUTO", False),
         "auto_send_telegram_picks": env_bool("AUTO_SEND_TELEGRAM_PICKS", False),
+        "telegram_enabled": env_bool("TELEGRAM_ENABLED", bool((settings or {}).get("enabled"))),
+        "auto_send_enabled": env_bool("ENABLE_TELEGRAM_AUTO", False) and env_bool("AUTO_SEND_TELEGRAM_PICKS", False),
         "auto_generate_picks": env_bool("AUTO_GENERATE_PICKS", False),
         "scheduler_enabled": scheduler_enabled(),
         "daily_automation_enabled": daily_automation_env_enabled(),
@@ -8924,9 +8927,21 @@ def api_admin_telegram_status():
         "severity": diagnosis.get("severity"),
         "explanation": diagnosis.get("explanation"),
         "what_to_do": diagnosis.get("action"),
+        "manual_send_status": "READY_FOR_ADMIN_TEST" if (snapshot.get("env") or {}).get("bot_token_configured") and (snapshot.get("env") or {}).get("chat_id_configured") else diagnosis.get("status"),
+        "auto_tick_status": diagnosis.get("status"),
+        "daily_run_status": "CRON_READY" if (snapshot.get("env") or {}).get("automation_secret_configured") else "CRON_SECRET_INVALID",
+        "bot_private_status": "CONFIGURABLE" if (snapshot.get("counts") or {}).get("private_destinations", 0) else "SIN_USUARIOS_PRIVADOS_VINCULADOS",
+        "group_status": "REVISION_RENDER" if (snapshot.get("env") or {}).get("chat_id_configured") else "MISSING_CHAT_ID",
+        "channel_status": "REVISION_RENDER" if (snapshot.get("counts") or {}).get("global_channel") else "BLOCKED_BY_MISSING_DESTINATION",
         "last_tick": (snapshot.get("cron") or {}).get("last_telegram"),
         "last_daily": (snapshot.get("cron") or {}).get("last_daily"),
+        "last_manual_send_at": (snapshot.get("last_sent") or {}).get("sent_at"),
+        "last_auto_send_at": (snapshot.get("last_auto_pick") or {}).get("sent_at"),
+        "last_daily_send_at": ((snapshot.get("cron") or {}).get("last_daily") or {}).get("time"),
         "last_sent": snapshot.get("last_sent"),
+        "last_telegram_error": snapshot.get("last_error"),
+        "last_successful_destination": masked_key((snapshot.get("last_sent") or {}).get("chat_id")),
+        "next_candidate_destination": ((snapshot.get("destinations") or [{}])[0] or {}).get("chat_id"),
         "candidates": (snapshot.get("counts") or {}).get("candidate_picks"),
         "discarded": snapshot.get("discarded", [])[:12],
         "blocked_by_limits": {
@@ -12065,6 +12080,47 @@ def api_admin_sale_ready():
     if not is_admin_session():
         return admin_json_forbidden()
     return jsonify({"ok": True, "version": APP_VERSION, "sale_ready": v742_sale_ready_context()})
+
+
+def v742_content_rights_context():
+    sample_items = [
+        {"content_type": "video", "source": "YouTube", "embed_url": "https://www.youtube.com/embed/example", "attribution": "Fuente externa"},
+        {"content_type": "crest", "source": "TheSportsDB", "original_url": "https://www.thesportsdb.com/images/media/team/badge/example.png", "attribution": "TheSportsDB"},
+        {"content_type": "news", "source": "Fuente externa", "original_url": "https://example.com/noticia", "attribution": "Fuente original"},
+        {"content_type": "image", "source": "unknown"},
+    ]
+    summary = content_rights_policy_summary(sample_items)
+    return {
+        "version": APP_VERSION,
+        "summary": summary,
+        "client_notice": "Vídeos, escudos y contenido externo pueden pertenecer a sus respectivos titulares. NeMeSiS SHARK PRO muestra enlaces o contenido embebido desde fuentes externas cuando está disponible.",
+        "zip_policy": "El release no debe incluir vídeos, logos externos descargados, capturas locales ni assets dudosos.",
+        "admin_notes": [
+            "No se descargan vídeos.",
+            "No se rehostean vídeos.",
+            "No se cachean binarios externos sin permiso.",
+            "Los escudos usan URL permitida o fallback propio.",
+            "Las noticias no se copian completas.",
+        ],
+    }
+
+
+@app.route("/admin/content-rights")
+@app.route("/admin/legal-content")
+def admin_content_rights_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/content-rights")
+    data = dashboard_data()
+    data["content_rights"] = v742_content_rights_context()
+    return render_template("admin_content_rights.html", data=data)
+
+
+@app.route("/api/admin/content-rights")
+@app.route("/api/admin/legal-content")
+def api_admin_content_rights():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "version": APP_VERSION, "content_rights": v742_content_rights_context()})
 
 def register_optional_blueprints():
     try:

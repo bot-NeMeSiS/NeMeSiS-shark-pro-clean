@@ -1,11 +1,11 @@
 {
   "ok": true,
-  "version": "V742_SALE_READY_LIVE_DETAIL_TRACK_RECORD_TELEGRAM_FINAL_POLISH",
-  "total_routes": 228,
+  "version": "V742_TOP_APP_LIVE_DETAIL_TRACK_RECORD_MATCH_INTELLIGENCE_VIDEO_HIGHLIGHTS_FINAL",
+  "total_routes": 230,
   "bucket_counts": {
     "action": 4,
-    "admin": 50,
-    "admin_api": 26,
+    "admin": 51,
+    "admin_api": 27,
     "api": 104,
     "client": 35,
     "cron": 2,
@@ -2219,6 +2219,24 @@
     {
       "rule": "/api/admin/sale-ready",
       "function": "api_admin_sale_ready",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "admin_api",
+      "template": ""
+    },
+    {
+      "rule": "/admin/content-rights\")\n@app.route(",
+      "function": "admin_content_rights_page",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "admin",
+      "template": "admin_content_rights.html"
+    },
+    {
+      "rule": "/api/admin/content-rights\")\n@app.route(",
+      "function": "api_admin_content_rights",
       "methods": [
         "GET"
       ],
