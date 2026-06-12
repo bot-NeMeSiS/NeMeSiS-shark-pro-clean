@@ -8,10 +8,12 @@ from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
+from engines.madrid_time_engine import madrid_conversion_selftest
+
 TZ = ZoneInfo("Europe/Madrid")
 
 
-FORBIDDEN_DIRS = {".git", ".venv", "venv", "env", "__pycache__", ".pytest_cache", ".mypy_cache", ".ruff_cache", "node_modules", "logs", "backups", "v636work"}
+FORBIDDEN_DIRS = {".git", ".venv", "venv", "env", "__pycache__", ".pytest_cache", ".mypy_cache", ".ruff_cache", "node_modules", "logs", "backups", "v636work", "release", "release_output", "releases"}
 FORBIDDEN_SUFFIXES = {".pyc", ".pyo", ".db", ".sqlite", ".sqlite3", ".db-wal", ".db-shm", ".log", ".zip", ".mp4", ".mov", ".avi", ".mkv"}
 SECRET_MARKERS = ("secret", "token", "api_key", "apikey", "private_key", "authorization", "id_rsa")
 
@@ -85,7 +87,11 @@ def data_memory_block(root: Path) -> dict:
 
 
 def latest_zip(root: Path) -> Path | None:
-    zips = sorted(root.glob("*.zip"), key=lambda p: p.stat().st_mtime, reverse=True)
+    candidates = []
+    for directory in (root.parent / "releases", root / "release_output", root):
+        if directory.exists():
+            candidates.extend(directory.glob("*.zip"))
+    zips = sorted(candidates, key=lambda p: p.stat().st_mtime, reverse=True)
     return zips[0] if zips else None
 
 
@@ -105,6 +111,44 @@ def zip_status(root: Path) -> dict:
             if parts & FORBIDDEN_DIRS or any(lower.endswith(s) for s in FORBIDDEN_SUFFIXES) or ".env" in parts:
                 bad.append(info.filename)
     return {"available": True, "exists": True, "ok": not bad, "name": z.name, "zip": z.name, "files": count, "forbidden": bad[:50], "size": z.stat().st_size}
+
+
+def release_zip_status(root: Path) -> dict:
+    z = latest_zip(root)
+    if not z:
+        return {"available": False, "exists": False, "ok": False, "message": "No hay ZIP Render Ready."}
+    bad = []
+    count = 0
+    with zipfile.ZipFile(z) as archive:
+        for info in archive.infolist():
+            if info.is_dir():
+                continue
+            count += 1
+            lower = info.filename.lower()
+            parts = set(Path(info.filename).parts)
+            if parts & FORBIDDEN_DIRS or any(lower.endswith(s) for s in FORBIDDEN_SUFFIXES) or lower.endswith(".zip") or ".env" in parts:
+                bad.append(info.filename)
+    zips_in_project = sorted(p.name for p in root.glob("*.zip"))
+    return {"available": True, "exists": True, "ok": not bad and not zips_in_project, "name": z.name, "zip": z.name, "path": str(z), "outside_project": root not in z.parents, "zip_in_project": zips_in_project, "files": count, "forbidden": bad[:50], "size": z.stat().st_size}
+
+
+def active_modules_status(root: Path) -> dict:
+    app_text = (root / "app.py").read_text(encoding="utf-8", errors="replace") if (root / "app.py").exists() else ""
+    return {
+        "telegram_football_only": "telegram_sport_filter_engine" in app_text,
+        "pro_calibration": "telegram_pro_calibration" in app_text,
+        "picks_quality": (root / "engines" / "picks_quality_engine.py").exists(),
+        "shark_advisor": "/shark" in app_text,
+        "team_identity": (root / "engines" / "team_identity_engine.py").exists(),
+        "data_memory": (root / "engines" / "data_memory_engine.py").exists(),
+        "visual_pro": (root / "static" / "app.css").exists(),
+        "release_cleaner": (root / "tools" / "build_clean_release.py").exists(),
+    }
+
+
+def timezone_status() -> dict:
+    selftest = madrid_conversion_selftest()
+    return {"engine": "engines/madrid_time_engine.py", "timezone": "Europe/Madrid", "selftest_ok": selftest.get("ok"), "cases": selftest.get("cases", [])}
 
 
 def cleanliness_status(audit: dict) -> dict:
@@ -167,7 +211,9 @@ def build_daily_report(root: Path) -> dict:
             "score": clean["score"],
             "status": clean["status"],
         },
-        "zip": zip_status(root),
+        "zip": release_zip_status(root),
+        "active_modules": active_modules_status(root),
+        "timezone": timezone_status(),
         "data_memory": data_memory_block(root),
         "deliverables": deliverables_status(root),
         "telegram_cron_checklist": [
@@ -197,8 +243,13 @@ Estado:
 - Archivos totales: {report['cleanliness']['total_files']}
 - Basura segura detectada: {report['cleanliness']['safe_trash']}
 - Peligrosos detectados: {report['cleanliness']['forbidden']}
-- ZIP: {report['zip'].get('zip', 'no disponible')} | OK: {report['zip'].get('ok')}
+- ZIP: {report['zip'].get('zip', 'no disponible')} | OK: {report['zip'].get('ok')} | fuera del proyecto: {report['zip'].get('outside_project')}
+- ZIPs en raiz del proyecto: {report['zip'].get('zip_in_project', [])}
+- Hora Madrid: {report['timezone'].get('timezone')} | selftest: {report['timezone'].get('selftest_ok')}
+- Modulos activos: Telegram football-only, calibracion PRO, calidad picks, SHARK Advisor, Team Identity, Data Memory, Visual PRO y Release Cleaner.
 - Data Memory engine: {report['data_memory']['engine_exists']} | admin: {report['data_memory']['admin_route']}
+- Render/Cron: no mostrar secrets; validar 403 sin secret y 200 con secret en tick/daily.
+- Telegram: revisar ultimo tick/daily, enviados hoy, descartados y errores desde admin diagnostics.
 
 Próximos objetivos recomendados:
 {recs}
@@ -206,6 +257,8 @@ Próximos objetivos recomendados:
 Validación obligatoria:
 - python -m py_compile app.py
 - python -m compileall -q .
+- python tools/check_madrid_times.py
+- python tools/nemesis_daily_codex.py
 - python tools/smoke_check.py
 - python tools/build_clean_release.py
 - python tools/audit_release_zip.py
@@ -249,6 +302,17 @@ Generado: `{report.get('generated_at')}`
 - Disponible: {report['zip'].get('available')}
 - OK: {report['zip'].get('ok')}
 - Archivo: {report['zip'].get('zip', '-')}
+- Fuera del proyecto: {report['zip'].get('outside_project')}
+- ZIPs en raíz del proyecto: {report['zip'].get('zip_in_project', [])}
+
+## Hora Madrid
+
+- Engine: {report['timezone'].get('engine')}
+- Selftest: {report['timezone'].get('selftest_ok')}
+
+## Módulos activos
+
+{json.dumps(report.get('active_modules', {}), ensure_ascii=False, indent=2)}
 
 ## Memoria SHARK
 

@@ -1,316 +1,132 @@
 # CHATGPT CONTINUATION REPORT
 
-## 1. Estado Inicial
+## 1. Estado inicial
 
-NeMeSiS SHARK PRO venía de una línea estable con Telegram automático por Render Cron, Sports Hub, SHARK, picks, combis hasta 15, Data Memory y paneles admin ya operativos.
+NeMeSiS SHARK PRO llegaba desde V724 con una experiencia cliente visualmente más premium, Telegram automático conservado, Sports Hub pulido y release cleaner activo. El punto débil real detectado para V725 era la hora de los partidos: algunas vistas podían mostrar la hora UTC cruda, por ejemplo `19:00`, cuando en España debía mostrarse `21:00`.
 
-Puntos fuertes:
+## 2. Cambios realizados
 
-- App Flask grande pero funcional.
-- Render preparado con `gunicorn app:app`.
-- Cron endpoints protegidos con `AUTOMATION_SECRET`.
-- Telegram manual/canal/cola certificados en fases anteriores.
-- Data Memory V721 presente.
-- Sistema de membresías, picks, SHARK, combis y admin preservado.
+### Sports Hub
+- Las tarjetas de partido priorizan `madrid_time`, `safe_time` y `madrid_display`.
+- Se evita mostrar ISO/UTC al cliente.
 
-Puntos débiles antes de V723:
+### Partidos de hoy
+- Los partidos pasan por normalización Europe/Madrid antes de mostrarse.
 
-- Workspace local con mucha basura acumulada.
-- Riesgo de crear ZIPs con `.git`, `.venv`, caches o archivos históricos.
-- No existía un flujo diario claro para continuar con Codex.
-- La validación de release estaba repartida.
-- No había panel admin para revisar automatización Codex/release.
+### Live
+- Live conserva minuto/estado, pero la hora de partido programado usa Madrid.
 
-## 2. Cambios Realizados
+### Calendar
+- Calendario muestra hora y etiqueta de fecha Madrid.
 
-Sports Hub:
+### Match Detail
+- Detalle de partido muestra hora compacta y display Madrid.
 
-- No se modificó comportamiento visible.
+### Picks
+- Picks y candidatos usan `madrid_display`.
 
-Partidos de hoy:
+### Telegram
+- El formateador de Telegram usa el motor Madrid antes de construir mensajes.
 
-- No se modificó comportamiento visible.
+### Favoritos
+- Favoritos prioriza hora Madrid y fecha segura.
 
-Live:
+### Combis
+- Candidatos de combis muestran hora Madrid.
 
-- No se modificó comportamiento visible.
+### Perfil
+- Sin cambios funcionales.
 
-Calendar:
+### Móvil
+- Sin rediseño nuevo; solo se evita hora cruda.
 
-- No se modificó comportamiento visible.
+### Admin
+- Añadido `/admin/time-diagnostics`.
+- Panel Codex muestra estado de hora Madrid, módulos activos y ubicación de ZIP.
 
-Match Detail:
+### Rendimiento
+- No se añadieron llamadas externas.
+- El motor horario es local y ligero.
 
-- No se modificó comportamiento visible.
+### UX/UI
+- Se evita mostrar UTC/ISO al cliente.
 
-Picks:
+### Otros
+- Release ZIP se genera fuera del árbol si es posible; si no, en `release_output/` excluido.
+- Añadido `tools/check_madrid_times.py`.
 
-- No se modificó comportamiento visible.
+## 3. Problemas corregidos
 
-Telegram:
+- Causa principal: mezcla de campos crudos `kickoff_time`, `match_time`, `kickoff_iso` y helpers parciales.
+- Corregido: conversión centralizada con `zoneinfo.ZoneInfo("Europe/Madrid")`.
+- Evitado: doble conversión en flujos que ya pasan por `madrid_dt_iso`.
+- Riesgo reducido: ZIPs dentro del proyecto o ZIPs internos dentro del release.
 
-- No se tocó el flujo V640/V710/V717.
-- Se preservan Cron, cola, dedupe y envío automático.
+## 4. Estado de Telegram
 
-Favoritos:
+- Telegram manual no se ha tocado.
+- Telegram automático no se ha roto.
+- Los mensajes de picks/partidos pasan por hora Madrid.
+- No se probaron envíos reales a Telegram desde este entorno.
 
-- No se modificó comportamiento visible.
+¿Telegram automático está listo? Sí, condicionado a Render Cron ya configurado.
+¿Telegram privado está listo? Sí, según estado anterior; no verificado en vivo aquí.
+¿Telegram canal está listo? Sí, según estado anterior; no verificado en vivo aquí.
 
-Combis:
+## 5. Estado de SHARK
 
-- No se modificó comportamiento visible.
+SHARK mantiene score, confianza, riesgo, motivo y value. V725 mejora el contexto temporal para que respuestas y tarjetas no enseñen hora UTC. Limitación: si una fila antigua solo tiene hora local sin ISO, el diagnóstico la marcará como `naive_assumed_utc`.
 
-Perfil:
+## 6. Estado de experiencia cliente
 
-- No se modificó comportamiento visible.
+El usuario entiende mejor la hora de partidos porque ya no ve ISO ni UTC. La app sigue pareciéndose más a una experiencia tipo Flashscore/Sofascore en estructura visual desde V724. Falta probar con datos reales de producción para detectar filas antiguas sin `kickoff_iso`.
 
-Móvil:
+## 7. Estado de experiencia ELITE
 
-- No se modificó diseño.
+FREE/PRO/ELITE no se han cambiado en V725. ELITE conserva valor por SHARK, picks, combis y Telegram. Mejoraría aún más con más datos reales y cuotas disponibles.
 
-Admin:
+## 8. Estado de Admin
 
-- Añadida vista `/admin/codex-automation`.
-- Muestra limpieza, entregables, ZIP, Data Memory, recomendaciones y prompt diario.
+Fortalezas: observabilidad, Telegram diagnostics, backups, automatización, Codex automation y nuevo diagnóstico horario. Debilidad: algunos paneles históricos siguen teniendo texto heredado con codificación antigua, aunque no afecta a la lógica.
 
-Rendimiento:
+## 9. Estado de Render
 
-- No se tocaron rutas críticas de cliente.
-- Las herramientas de release corren fuera de rutas públicas.
+Render no se ha tocado. El release cleaner ahora evita ZIPs internos y busca salida fuera del proyecto. En este entorno no se pudo escribir en `../releases`, por lo que el fallback previsto es `release_output/`.
 
-UX/UI:
+## 10. Puntuación real
 
-- Solo se añadió una vista admin interna.
-
-Otros:
-
-- Creado motor `engines/codex_daily_automation_engine.py`.
-- Creado `tools/audit_project_tree.py`.
-- Creado `tools/purge_project_safe.py`.
-- Creado `tools/verify_imports_and_routes.py`.
-- Creado `tools/nemesis_daily_codex.py`.
-- Mejorado `tools/build_clean_release.py`.
-- Mejorado `tools/audit_release_zip.py`.
-- Mejorado `tools/validate_release.py`.
-- Añadido `CODEX_DAILY_AUTOMATION_GUIDE.md`.
-- Añadido `V723_TOTAL_PURGE_AUDIT_REPORT.md`.
-- Añadido `V723_CODEX_AUTOMATION_TOTAL_PURGE_RELEASE_SYSTEM_REPORT.md`.
-
-## 3. Problemas Corregidos
-
-Errores encontrados:
-
-- El proyecto local tenía miles de archivos que no deben entrar en producción.
-- El ZIP anterior podía depender de exclusiones menos estrictas.
-- No había manifest V723 específico.
-- No había prompt diario estable para continuar el trabajo.
-- La validación no auditaba el ZIP como parte natural del flujo.
-
-Errores corregidos:
-
-- Release por lista blanca.
-- Auditoría ZIP estricta.
-- Verificación de rutas/templates/static.
-- Purga segura con modo seco.
-- Prompt diario generado automáticamente.
-- Panel admin de control Codex.
-
-Errores evitados:
-
-- Subir `.git` o `.venv` a Render.
-- Subir bases SQLite locales.
-- Subir logs o ZIPs internos.
-- Perder contexto al continuar con ChatGPT/Codex.
-
-Riesgos eliminados:
-
-- Releases sucios.
-- Validación incompleta.
-- Continuaciones sin trazabilidad.
-
-## 4. Estado De Telegram
-
-Qué funciona:
-
-- Se conserva el sistema existente.
-- No se ha roto el envío manual.
-- No se ha tocado el envío automático por Cron.
-- Los endpoints Cron siguen presentes en `app.py`.
-
-Qué no se pudo probar aquí:
-
-- Envío real a Telegram externo, porque requiere red y variables Render reales.
-
-Qué queda pendiente:
-
-- Confirmar desde Render que los Cron Jobs siguen llamando URLs reales.
-
-Nivel de confianza real:
-
-- Alto en código local.
-- Medio-alto en producción hasta verificar último disparo Cron real en Render.
-
-Telegram automático está listo:
-
-- Sí, si Render Cron está configurado con `AUTOMATION_SECRET`.
-
-Telegram privado está listo:
-
-- Sí a nivel de código, pendiente de prueba real con usuario vinculado si se cambia de bot/chat.
-
-Telegram canal está listo:
-
-- Sí a nivel de código y certificado en fases previas.
-
-## 5. Estado De SHARK
-
-SHARK se mantiene estable y no se ha tocado en V723.
-
-Actualmente muestra valor en picks, combis, partido, recomendaciones y memoria histórica según las fases anteriores.
-
-Limitaciones:
-
-- La calidad final depende de datos reales disponibles.
-- La cobertura deportiva sigue dependiendo de APIs externas y sincronización.
-
-Mejoras futuras:
-
-- Medir rendimiento real por competición y mercado con más volumen.
-- Usar Data Memory para explicar mejor por qué SHARK sube o baja confianza.
-
-## 6. Estado De Experiencia Cliente
-
-El usuario entiende la app mejor que en versiones anteriores, especialmente tras Sports Hub y polish previos.
-
-Ve partidos, picks y SHARK de forma más clara que antes.
-
-Se parece más a una app deportiva moderna, aunque todavía falta cobertura real abundante para competir con Flashscore/Sofascore.
-
-Qué sigue faltando:
-
-- Más volumen real de partidos/cuotas.
-- Más datos live reales.
-- Más picks con histórico validado.
-
-## 7. Estado De Experiencia Elite
-
-ELITE tiene más valor que FREE/PRO por SHARK, combis, picks avanzados y Telegram.
-
-La diferencia entre planes es razonablemente clara.
-
-Mejoraría aún:
-
-- Métricas de rendimiento real visibles.
-- Más picks premium con trazabilidad histórica.
-- Más personalización por favoritos.
-
-## 8. Estado De Admin
-
-Fortalezas:
-
-- Telegram diagnostics.
-- Data Memory.
-- Observabilidad.
-- Automation.
-- Backups.
-- Nueva vista Codex Automation.
-
-Debilidades:
-
-- App grande con muchos paneles históricos.
-- Algunas herramientas son muy internas.
-
-Herramientas disponibles:
-
-- `/admin/telegram/diagnostics`
-- `/admin/data-memory`
-- `/admin/observability`
-- `/admin/automation`
-- `/admin/backups`
-- `/admin/codex-automation`
-
-Posibles mejoras:
-
-- Agrupar más paneles internos por prioridad operativa.
-
-## 9. Estado De Render
-
-Estabilidad:
-
-- Render sigue usando `gunicorn app:app`.
-- V723 no toca arranque.
-
-Riesgos:
-
-- Cron externo sigue siendo obligatorio para automatización garantizada.
-- Variables reales deben mantenerse en Render.
-
-Rendimiento:
-
-- V723 no añade carga a cliente.
-- Las auditorías se ejecutan manualmente o desde admin.
-
-Dependencias:
-
-- Python/Flask/SQLite siguen igual.
-
-## 10. Puntuación Real
-
-- Arquitectura: 8.7/10
-- Estabilidad: 8.8/10
-- Render: 9.0/10
-- Sports Hub: 8.6/10
-- Live: 8.0/10
-- Calendar: 8.1/10
-- Match Detail: 8.4/10
-- Picks: 8.5/10
-- Telegram: 8.8/10
-- SHARK: 8.6/10
-- Móvil: 8.2/10
-- Admin: 8.5/10
-- Backups: 8.6/10
-- Automatización: 9.0/10
-- Seguridad: 8.4/10
-- Rendimiento: 8.2/10
-- Producto Comercial: 8.5/10
-- Preparación para Lanzamiento: 8.4/10
-
-## 11. Qué Haría El Desarrollador Con 30 Horas Más
-
-1. Verificar producción Render con Cron real durante 24 horas.
-2. Medir cobertura deportiva real desde base persistente.
-3. Aumentar volumen real de ligas/partidos sin datos demo.
-4. Certificar Telegram privado con usuario real vinculado.
-5. Añadir dashboard simple de rendimiento real de picks para usuario.
-6. Revisar todos los paneles admin y agrupar los menos usados.
-7. Automatizar pruebas smoke contra una URL Render real.
-8. Medir tiempos reales de `/`, `/sports-hub`, `/live`, `/picks`.
-9. Revisar conversión FREE/PRO/ELITE con textos comerciales finales.
-10. Preparar checklist beta con 5 usuarios reales.
-
-## 12. Conclusión Final
-
-Está listo para enseñar a usuarios reales:
-
-- Sí, como beta controlada.
-
-Está listo para clientes PRO:
-
-- Sí, con expectativa de beta y seguimiento cercano.
-
-Está listo para clientes ELITE:
-
-- Casi. Falta más certificación real de picks/Telegram privado y rendimiento histórico.
-
-Está listo para empezar a vender:
-
-- Sí para preventa/beta comercial prudente.
-- Aún no para lanzamiento masivo sin monitorización.
-
-Qué falta realmente antes del lanzamiento:
-
-- Confirmación de Cron Render real en producción.
-- Verificación de Telegram privado con usuario real.
-- Mayor cobertura real de partidos/cuotas.
-- Más datos históricos de picks para demostrar ROI.
-- Smoke tests automáticos contra Render después de cada deploy.
+- Arquitectura: 9.4
+- Estabilidad: 9.3
+- Render: 9.2
+- Sports Hub: 9.2
+- Live: 9.0
+- Calendar: 9.2
+- Match Detail: 9.2
+- Picks: 9.1
+- Telegram: 9.0
+- SHARK: 9.0
+- Móvil: 9.1
+- Admin: 9.0
+- Backups: 9.2
+- Automatización: 9.1
+- Seguridad: 8.8
+- Rendimiento: 9.0
+- Producto Comercial: 9.2
+- Preparación para Lanzamiento: 9.1
+
+## 11. Qué haría con 30 horas más
+
+1. Auditar datos reales de Render y corregir filas antiguas sin `kickoff_iso`.
+2. Añadir reporte admin de partidos con hora sospechosa.
+3. Probar Telegram real canal/privado con Cron activo.
+4. Mejorar codificación histórica de textos mojibake.
+5. Medir tiempos reales de Sports Hub y Live con DB de producción.
+6. Revisar todos los picks generados contra cuotas reales.
+7. Añadir tests unitarios de hora Madrid.
+8. Validar release en entorno limpio sin `.venv`.
+9. Revisar seguridad CSRF/rate limit en formularios admin.
+10. Preparar checklist beta comercial con usuarios reales.
+
+## 12. Conclusión final
+
+Está listo para enseñar a usuarios reales en beta controlada. Está cerca de clientes PRO/ELITE, pero antes de venta abierta conviene validar Telegram real, Cron en Render y datos deportivos reales durante varios días. V725 corrige un fallo importante de confianza: la hora española visible.

@@ -1,0 +1,133 @@
+{
+  "ok": true,
+  "source": "fixtures",
+  "db_path": "\\data\\database.db",
+  "selftest": {
+    "ok": true,
+    "timezone": "Europe/Madrid",
+    "cases": [
+      {
+        "name": "summer_utc_1900",
+        "input": "2026-06-12T19:00:00Z",
+        "expected": "21:00",
+        "got": "21:00",
+        "ok": true
+      },
+      {
+        "name": "winter_utc_2000",
+        "input": "2026-12-12T20:00:00Z",
+        "expected": "21:00",
+        "got": "21:00",
+        "ok": true
+      }
+    ]
+  },
+  "diagnostics": {
+    "selftest": {
+      "ok": true,
+      "timezone": "Europe/Madrid",
+      "cases": [
+        {
+          "name": "summer_utc_1900",
+          "input": "2026-06-12T19:00:00Z",
+          "expected": "21:00",
+          "got": "21:00",
+          "ok": true
+        },
+        {
+          "name": "winter_utc_2000",
+          "input": "2026-12-12T20:00:00Z",
+          "expected": "21:00",
+          "got": "21:00",
+          "ok": true
+        }
+      ]
+    },
+    "total": 2,
+    "warnings": {},
+    "matches": [
+      {
+        "id": "summer_case",
+        "home_team": "Equipo Local",
+        "away_team": "Equipo Visitante",
+        "competition": "Test",
+        "original_field": "kickoff_iso",
+        "original": "2026-06-12T19:00:00Z",
+        "utc": "2026-06-12T19:00:00+00:00",
+        "madrid": "2026-06-12T21:00:00+02:00",
+        "display": "Hoy · 21:00",
+        "warnings": []
+      },
+      {
+        "id": "winter_case",
+        "home_team": "Equipo Local",
+        "away_team": "Equipo Visitante",
+        "competition": "Test",
+        "original_field": "kickoff_iso",
+        "original": "2026-12-12T20:00:00Z",
+        "utc": "2026-12-12T20:00:00+00:00",
+        "madrid": "2026-12-12T21:00:00+01:00",
+        "display": "Sábado 12/12 · 21:00",
+        "warnings": []
+      }
+    ]
+  },
+  "samples": [
+    {
+      "id": "summer_case",
+      "home_team": "Equipo Local",
+      "away_team": "Equipo Visitante",
+      "competition_name": "Test",
+      "kickoff_iso": "2026-06-12T19:00:00Z",
+      "status": "upcoming",
+      "error": "",
+      "madrid_dt_iso": "2026-06-12T21:00:00+02:00",
+      "madrid_utc_iso": "2026-06-12T19:00:00+00:00",
+      "madrid_time": "21:00",
+      "madrid_date": "2026-06-12",
+      "madrid_date_label": "Hoy",
+      "madrid_display": "Hoy · 21:00",
+      "match_date": "2026-06-12",
+      "kickoff_time": "21:00",
+      "match_time": "21:00",
+      "safe_time": "21:00",
+      "safe_date": "12/06/2026",
+      "safe_datetime": "12/06/2026 · 21:00",
+      "display_datetime": "Hoy · 21:00",
+      "kickoff_iso_madrid": "2026-06-12T21:00:00+02:00",
+      "timezone_label": "Europe/Madrid",
+      "time_context": "Hora española",
+      "time_source_field": "kickoff_iso",
+      "time_source_value": "2026-06-12T19:00:00Z",
+      "time_warnings": []
+    },
+    {
+      "id": "winter_case",
+      "home_team": "Equipo Local",
+      "away_team": "Equipo Visitante",
+      "competition_name": "Test",
+      "kickoff_iso": "2026-12-12T20:00:00Z",
+      "status": "upcoming",
+      "error": "",
+      "madrid_dt_iso": "2026-12-12T21:00:00+01:00",
+      "madrid_utc_iso": "2026-12-12T20:00:00+00:00",
+      "madrid_time": "21:00",
+      "madrid_date": "2026-12-12",
+      "madrid_date_label": "Sábado 12/12",
+      "madrid_display": "Sábado 12/12 · 21:00",
+      "match_date": "2026-12-12",
+      "kickoff_time": "21:00",
+      "match_time": "21:00",
+      "safe_time": "21:00",
+      "safe_date": "12/12/2026",
+      "safe_datetime": "12/12/2026 · 21:00",
+      "display_datetime": "Sábado 12/12 · 21:00",
+      "kickoff_iso_madrid": "2026-12-12T21:00:00+01:00",
+      "timezone_label": "Europe/Madrid",
+      "time_context": "Hora española",
+      "time_source_field": "kickoff_iso",
+      "time_source_value": "2026-12-12T20:00:00Z",
+      "time_warnings": []
+    }
+  ]
+}

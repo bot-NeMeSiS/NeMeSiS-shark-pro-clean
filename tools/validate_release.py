@@ -26,7 +26,12 @@ def run_step(label: str, command: list[str], required: bool = True) -> int:
 
 
 def latest_release_zip() -> pathlib.Path | None:
-    zips = sorted(ROOT.glob("*RENDER_READY.zip"), key=lambda path: path.stat().st_mtime, reverse=True)
+    search_dirs = [ROOT.parent / "releases", ROOT / "release_output", ROOT]
+    zips = []
+    for directory in search_dirs:
+        if directory.exists():
+            zips.extend(directory.glob("*RENDER_READY.zip"))
+    zips = sorted(zips, key=lambda path: path.stat().st_mtime, reverse=True)
     return zips[0] if zips else None
 
 

@@ -44,6 +44,7 @@ Thumbs.db
 # Old working folders / generated artifacts
 v636work/
 release/
+release_output/
 releases/
 outputs/
 tmp/

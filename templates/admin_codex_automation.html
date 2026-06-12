@@ -27,6 +27,20 @@
   </div>
 </section>
 
+<section class="band compact-band">
+  <div class="section-head"><h2>Módulos activos, hora y release</h2><span class="pill">{{ report.timezone.timezone }}</span></div>
+  <div class="grid compact-grid">
+    <article class="card"><strong>{% if report.timezone.selftest_ok %}OK{% else %}Revisar{% endif %}</strong><p class="small">hora Europe/Madrid</p></article>
+    <article class="card"><strong>{% if report.zip.outside_project %}Externo{% else %}Fallback{% endif %}</strong><p class="small">ubicación ZIP</p></article>
+    {% for name, ok in report.active_modules.items() %}
+    <article class="card"><strong>{% if ok %}OK{% else %}Pendiente{% endif %}</strong><p class="small">{{ name }}</p></article>
+    {% endfor %}
+  </div>
+  {% if report.zip.zip_in_project %}
+  <div class="notice">Hay ZIPs dentro de la carpeta del proyecto: {{ report.zip.zip_in_project|join(', ') }}. El release V725 debe salir fuera o en release_output excluido.</div>
+  {% endif %}
+</section>
+
 <section class="band two-col compact-band">
   <div>
     <div class="section-head"><h2>Acciones recomendadas</h2></div>

@@ -1,9 +1,9 @@
 # Verificación de imports, rutas y plantillas V723
 
 - Resultado: OK
-- Versión importada: `V724_SUPREME_CLIENT_VISUAL_EXPERIENCE_PRO`
-- Rutas GET: 226
-- Templates referenciados: 63
+- Versión importada: `V725_MADRID_TIME_RELEASE_WORKFLOW_AUTOMATION_FIX`
+- Rutas GET: 227
+- Templates referenciados: 64
 - Templates faltantes: 0
 - Static faltantes: 0
 

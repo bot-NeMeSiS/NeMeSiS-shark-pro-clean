@@ -1,0 +1,194 @@
+{
+  "ok": true,
+  "audited_at": "2026-06-12T19:43:20",
+  "zip": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\release_output\\NeMeSiS_SHARK_PRO_V725_MADRID_TIME_RELEASE_WORKFLOW_AUTOMATION_FIX_RENDER_READY.zip",
+  "zip_size_bytes": 468521,
+  "file_count": 254,
+  "content_size_bytes": 1535667,
+  "forbidden_count": 0,
+  "forbidden": [],
+  "top_files": [
+    {
+      "path": "app.py",
+      "size": 468282
+    },
+    {
+      "path": "static/app.css",
+      "size": 48711
+    },
+    {
+      "path": "engines/api_exploitation_engine.py",
+      "size": 41823
+    },
+    {
+      "path": "engines/football_data_warehouse_engine.py",
+      "size": 38480
+    },
+    {
+      "path": "engines/shark_historical_intelligence_engine.py",
+      "size": 30018
+    },
+    {
+      "path": "engines/shark_prediction_engine.py",
+      "size": 23584
+    },
+    {
+      "path": "engines/telegram_delivery_engine.py",
+      "size": 22847
+    },
+    {
+      "path": "engines/spanish_localization_engine.py",
+      "size": 21939
+    },
+    {
+      "path": "engines/player_intelligence_engine.py",
+      "size": 20270
+    },
+    {
+      "path": "engines/data_memory_engine.py",
+      "size": 20076
+    },
+    {
+      "path": "engines/sportsdb_enrichment_engine.py",
+      "size": 20026
+    },
+    {
+      "path": "engines/shark_learning_engine.py",
+      "size": 19489
+    },
+    {
+      "path": "engines/shark_accuracy_engine.py",
+      "size": 17309
+    },
+    {
+      "path": "engines/telegram_autonomous_delivery_engine.py",
+      "size": 16712
+    },
+    {
+      "path": "engines/shark_performance_engine.py",
+      "size": 15852
+    },
+    {
+      "path": "engines/codex_daily_automation_engine.py",
+      "size": 15622
+    },
+    {
+      "path": "engines/data_provider_engine.py",
+      "size": 15044
+    },
+    {
+      "path": "engines/odds_value_engine.py",
+      "size": 14349
+    },
+    {
+      "path": "engines/historical_warehouse_engine.py",
+      "size": 14340
+    },
+    {
+      "path": "engines/observability_engine.py",
+      "size": 14228
+    }
+  ],
+  "top_folders": [
+    {
+      "folder": "engines",
+      "size": 558432,
+      "files": 44
+    },
+    {
+      "folder": "app.py",
+      "size": 468282,
+      "files": 1
+    },
+    {
+      "folder": "templates",
+      "size": 316388,
+      "files": 100
+    },
+    {
+      "folder": "static",
+      "size": 48711,
+      "files": 1
+    },
+    {
+      "folder": "docs",
+      "size": 45484,
+      "files": 56
+    },
+    {
+      "folder": "tools",
+      "size": 34974,
+      "files": 10
+    },
+    {
+      "folder": "tests",
+      "size": 9712,
+      "files": 9
+    },
+    {
+      "folder": "services",
+      "size": 7327,
+      "files": 6
+    },
+    {
+      "folder": "V724_SUPREME_CLIENT_VISUAL_EXPERIENCE_PRO_REPORT.md",
+      "size": 6347,
+      "files": 1
+    },
+    {
+      "folder": "CHATGPT_CONTINUATION_REPORT.md",
+      "size": 5154,
+      "files": 1
+    },
+    {
+      "folder": "blueprints",
+      "size": 3545,
+      "files": 3
+    },
+    {
+      "folder": "V725_MADRID_TIME_RELEASE_WORKFLOW_AUTOMATION_FIX_REPORT.md",
+      "size": 3541,
+      "files": 1
+    },
+    {
+      "folder": "V723_CODEX_AUTOMATION_TOTAL_PURGE_RELEASE_SYSTEM_REPORT.md",
+      "size": 3450,
+      "files": 1
+    },
+    {
+      "folder": ".env.render.clean",
+      "size": 2592,
+      "files": 1
+    },
+    {
+      "folder": "CLIENT_VISUAL_SYSTEM_V724.md",
+      "size": 2547,
+      "files": 1
+    },
+    {
+      "folder": "RELEASE_MANIFEST_V725.json",
+      "size": 2426,
+      "files": 1
+    },
+    {
+      "folder": "CODEX_DAILY_AUTOMATION_GUIDE.md",
+      "size": 2080,
+      "files": 1
+    },
+    {
+      "folder": "RELEASE_MANIFEST_V724.json",
+      "size": 2008,
+      "files": 1
+    },
+    {
+      "folder": ".env.example",
+      "size": 1920,
+      "files": 1
+    },
+    {
+      "folder": "RELEASE_MANIFEST_V723.json",
+      "size": 1852,
+      "files": 1
+    }
+  ]
+}

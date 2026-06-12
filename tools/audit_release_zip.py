@@ -14,6 +14,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 REPORT_DIR = ROOT / "reports"
+VERSION_FILE = ROOT / "VERSION.txt"
+VERSION = VERSION_FILE.read_text(encoding="utf-8-sig").strip() if VERSION_FILE.exists() else "DEV"
+VERSION_PREFIX = VERSION.split("_", 1)[0] if VERSION else "DEV"
 FORBIDDEN_PARTS = {
     ".git",
     ".venv",
@@ -26,6 +29,9 @@ FORBIDDEN_PARTS = {
     "node_modules",
     "logs",
     "backups",
+    "release",
+    "release_output",
+    "releases",
     "tmp",
     "temp",
     "v636work",
@@ -51,11 +57,19 @@ SECRET_MARKERS = ("secret", "token", "private_key", "id_rsa")
 
 
 def latest_zip() -> Path:
-    zips = sorted(ROOT.glob("*RENDER_READY.zip"), key=lambda p: p.stat().st_mtime, reverse=True)
+    search_dirs = [ROOT.parent / "releases", ROOT / "release_output", ROOT]
+    zips = []
+    for directory in search_dirs:
+        if directory.exists():
+            zips.extend(directory.glob("*RENDER_READY.zip"))
+    zips = sorted(zips, key=lambda p: p.stat().st_mtime, reverse=True)
     if not zips:
-        zips = sorted(ROOT.glob("*.zip"), key=lambda p: p.stat().st_mtime, reverse=True)
+        for directory in search_dirs:
+            if directory.exists():
+                zips.extend(directory.glob("*.zip"))
+        zips = sorted(zips, key=lambda p: p.stat().st_mtime, reverse=True)
     if not zips:
-        raise FileNotFoundError("No hay ZIP de release en la carpeta del proyecto.")
+        raise FileNotFoundError("No hay ZIP de release en releases, release_output ni la carpeta del proyecto.")
     return zips[0]
 
 
@@ -113,7 +127,7 @@ def audit_zip(target: Path) -> dict:
 
 def write_reports(report: dict) -> None:
     REPORT_DIR.mkdir(exist_ok=True)
-    (REPORT_DIR / "RELEASE_ZIP_AUDIT_V723.json").write_text(
+    (REPORT_DIR / f"RELEASE_ZIP_AUDIT_{VERSION_PREFIX}.json").write_text(
         json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
     lines = [
@@ -138,7 +152,7 @@ def write_reports(report: dict) -> None:
         lines.append("## Prohibidos")
         for item in report["forbidden"][:50]:
             lines.append(f"- `{item['path']}`: {item['reason']}")
-    (REPORT_DIR / "RELEASE_ZIP_AUDIT_V723.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    (REPORT_DIR / f"RELEASE_ZIP_AUDIT_{VERSION_PREFIX}.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
 def main(argv: list[str] | None = None) -> int:

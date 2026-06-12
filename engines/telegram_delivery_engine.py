@@ -24,6 +24,7 @@ from engines.spanish_localization_engine import (
     spanish_market_name,
     spanish_team_name,
 )
+from engines.madrid_time_engine import normalize_kickoff_for_display
 
 
 DEFAULT_SETTINGS = {
@@ -226,10 +227,15 @@ def _competition_emoji(item) -> str:
 
 
 def _display_datetime(item) -> str:
-    return spanish_datetime_label(
-        item.get("kickoff_iso") or item.get("kickoff_iso_madrid") or "",
-        item.get("match_date") or item.get("date"),
-        item.get("kickoff_time") or item.get("match_time") or item.get("time"),
+    localized = normalize_kickoff_for_display(dict(item or {}))
+    return (
+        localized.get("madrid_display")
+        or localized.get("display_datetime")
+        or spanish_datetime_label(
+            localized.get("kickoff_iso") or localized.get("kickoff_iso_madrid") or localized.get("madrid_dt_iso") or "",
+            localized.get("match_date") or localized.get("date"),
+            localized.get("kickoff_time") or localized.get("match_time") or localized.get("time"),
+        )
     )
 
 

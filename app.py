@@ -100,9 +100,10 @@ from engines.spanish_localization_engine import (
     spanish_pick_selection_name,
     spanish_team_name,
 )
+from engines.madrid_time_engine import madrid_conversion_selftest, madrid_time_diagnostics, normalize_kickoff_for_display
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V724_SUPREME_CLIENT_VISUAL_EXPERIENCE_PRO"
+APP_VERSION = "V725_MADRID_TIME_RELEASE_WORKFLOW_AUTOMATION_FIX"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -8292,6 +8293,49 @@ def admin_telegram_diagnostics_page():
             "legacy_expires_column": "telegram_link_expires",
         },
     })
+
+
+@app.route("/admin/time-diagnostics")
+def admin_time_diagnostics_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/time-diagnostics")
+    available = {col.get("name") for col in rows("PRAGMA table_info(matches)")}
+    wanted = [
+        "id",
+        "home_team",
+        "away_team",
+        "competition_name",
+        "league_name",
+        "country",
+        "match_date",
+        "kickoff_time",
+        "match_time",
+        "kickoff_iso",
+        "commence_time",
+        "start_time",
+        "event_time",
+        "status",
+        "minute",
+    ]
+    selected = [name for name in wanted if name in available]
+    matches = []
+    if selected:
+        order_candidates = [name for name in ("kickoff_iso", "match_date", "updated_at", "created_at") if name in available]
+        if len(order_candidates) > 1:
+            order_sql = f"ORDER BY COALESCE({', '.join(order_candidates)}) DESC"
+        elif order_candidates:
+            order_sql = f"ORDER BY {order_candidates[0]} DESC"
+        else:
+            order_sql = ""
+        sql = f"SELECT {', '.join(selected)} FROM matches {order_sql} LIMIT 80"
+        matches = rows(sql)
+    diagnostics = madrid_time_diagnostics(matches)
+    return render_template(
+        "admin_time_diagnostics.html",
+        data=dashboard_data(),
+        diagnostics=diagnostics,
+        version=APP_VERSION,
+    )
 
 
 @app.route("/api/telegram/repair-automatic", methods=["POST", "GET"])

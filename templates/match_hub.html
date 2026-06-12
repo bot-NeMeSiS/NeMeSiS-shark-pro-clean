@@ -62,7 +62,7 @@
                 <div class="match-list">
                   {% for m in league.matches %}
                     <article class="match-row premium-row">
-                      <div class="match-hour">{{ m.safe_time or m.kickoff_time or m.match_time or m.minute or 'Hora por confirmar' }}</div>
+                      <div class="match-hour">{{ m.madrid_time or m.safe_time or m.kickoff_time or m.match_time or m.minute or 'Hora por confirmar' }}</div>
                       <a class="team mini-team team-link" href="/team/{{ (m._raw_home_team or m.home_team)|urlencode }}"><div class="crest small-crest {{ m.home_identity.ui_class|default('crest-fallback') }}"><img loading="lazy" src="{{ m.home_identity.crest_url }}" alt="{{ m.safe_home or m.home_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ m.home_identity.initials }}'"></div><strong>{{ m.safe_home or m.home_team }}</strong></a>
                       <div class="scoreline"><span class="state-badge {{ m.live_depth.badge }}">{{ m.live_depth.label }}</span><span>{{ m.live_depth.score or 'vs' }}</span></div>
                       <a class="team mini-team away team-link" href="/team/{{ (m._raw_away_team or m.away_team)|urlencode }}"><div class="crest small-crest {{ m.away_identity.ui_class|default('crest-fallback') }}"><img loading="lazy" src="{{ m.away_identity.crest_url }}" alt="{{ m.safe_away or m.away_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ m.away_identity.initials }}'"></div><strong>{{ m.safe_away or m.away_team }}</strong></a>
@@ -110,7 +110,7 @@
   <div class="grid">
     {% for m in items[:12] %}
     <a class="card match-card" href="/match/{{ m.id }}">
-      <div class="match-top"><div><div class="comp-name">{{ (m.safe_competition or m.competition_name or m.league_name)|competition_es }}</div><div class="small">{{ m.safe_date or m.match_date }} · {{ m.safe_time or m.kickoff_time or m.minute or 'hora por confirmar' }}</div></div><div class="time">{{ m.live_depth.minute }}</div></div>
+      <div class="match-top"><div><div class="comp-name">{{ (m.safe_competition or m.competition_name or m.league_name)|competition_es }}</div><div class="small">{{ m.madrid_display or ((m.madrid_date_label or m.safe_date or m.match_date) ~ ' · ' ~ (m.madrid_time or m.safe_time or m.kickoff_time or m.minute or 'hora por confirmar')) }}</div></div><div class="time">{{ m.live_depth.minute }}</div></div>
       <div class="teams">
         <div class="team"><div class="crest {{ m.home_identity.ui_class|default('crest-fallback') }}"><img loading="lazy" src="{{ m.home_identity.crest_url }}" alt="{{ m.safe_home or m.home_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ m.home_identity.initials }}'"></div><strong>{{ m.safe_home or m.home_team }}</strong></div>
         <div class="team"><div class="crest {{ m.away_identity.ui_class|default('crest-fallback') }}"><img loading="lazy" src="{{ m.away_identity.crest_url }}" alt="{{ m.safe_away or m.away_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ m.away_identity.initials }}'"></div><strong>{{ m.safe_away or m.away_team }}</strong></div>

@@ -13,10 +13,27 @@ ROOT = Path(__file__).resolve().parents[1]
 VERSION_FILE = ROOT / "VERSION.txt"
 VERSION = VERSION_FILE.read_text(encoding="utf-8-sig").strip() if VERSION_FILE.exists() else "DEV"
 ZIP_NAME = f"NeMeSiS_SHARK_PRO_{VERSION}_RENDER_READY.zip"
-OUT = ROOT / ZIP_NAME
 VERSION_PREFIX = VERSION.split("_", 1)[0] if VERSION else "DEV"
 MANIFEST_NAME = f"RELEASE_MANIFEST_{VERSION_PREFIX}.json"
 MANIFEST_PATH = ROOT / MANIFEST_NAME
+
+
+def release_output_dir() -> Path:
+    preferred = ROOT.parent / "releases"
+    try:
+        preferred.mkdir(parents=True, exist_ok=True)
+        probe = preferred / ".codex_release_probe"
+        probe.write_text("ok", encoding="utf-8")
+        probe.unlink(missing_ok=True)
+        return preferred
+    except OSError:
+        fallback = ROOT / "release_output"
+        fallback.mkdir(exist_ok=True)
+        return fallback
+
+
+OUT_DIR = release_output_dir()
+OUT = OUT_DIR / ZIP_NAME
 
 INCLUDE_TOP_LEVEL_DIRS = {
     "blueprints",
@@ -49,8 +66,11 @@ INCLUDE_TOP_LEVEL_FILES = {
     "V723_TOTAL_PURGE_AUDIT_REPORT.md",
     "V724_SUPREME_CLIENT_VISUAL_EXPERIENCE_PRO_REPORT.md",
     "CLIENT_VISUAL_SYSTEM_V724.md",
+    "V725_MADRID_TIME_RELEASE_WORKFLOW_AUTOMATION_FIX_REPORT.md",
+    "MADRID_TIME_AUDIT_V725.md",
     "RELEASE_MANIFEST_V723.json",
     "RELEASE_MANIFEST_V724.json",
+    "RELEASE_MANIFEST_V725.json",
 }
 EXCLUDE_DIRS = {
     ".git",
@@ -65,6 +85,7 @@ EXCLUDE_DIRS = {
     "dist",
     "build",
     "release",
+    "release_output",
     "releases",
     "tmp",
     "temp",
@@ -133,13 +154,20 @@ def collect_files() -> list[Path]:
 
 
 def build_manifest(files: list[Path]) -> dict:
+    internal_zips = [p.relative_to(ROOT).as_posix() for p in files if p.suffix.lower() == ".zip"]
+    forbidden_folders = sorted({part for p in files for part in p.relative_to(ROOT).parts if part in EXCLUDE_DIRS})
     return {
         "version": VERSION,
         "created_at": datetime.now().isoformat(timespec="seconds"),
         "zip": ZIP_NAME,
         "zip_path": str(OUT),
+        "zip_inside_project_tree": ROOT in OUT.parents,
+        "output_dir": str(OUT_DIR),
         "manifest": MANIFEST_NAME,
         "files": len(files),
+        "internal_zips": internal_zips,
+        "has_internal_zips": bool(internal_zips),
+        "forbidden_folders_included": forbidden_folders,
         "git_commit": git_commit(),
         "included_top_level_dirs": sorted(INCLUDE_TOP_LEVEL_DIRS),
         "included_top_level_files": sorted(INCLUDE_TOP_LEVEL_FILES),
@@ -162,6 +190,7 @@ def main() -> int:
             zf.write(path, path.relative_to(ROOT).as_posix())
     manifest = build_manifest(files)
     manifest["zip_size_bytes"] = OUT.stat().st_size
+    manifest["zip_file_count"] = len(files)
     MANIFEST_PATH.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(manifest, ensure_ascii=False, indent=2))
     return 0

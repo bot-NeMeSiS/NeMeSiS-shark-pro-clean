@@ -38,7 +38,7 @@
     {% for p in data.smart_picks.hot %}
     <article class="card pick-card v701-premium-pick shark-pick-card">
       <div class="match-top">
-        <div><div class="comp-name">{{ (p.competition_name or p.league_name or p.competition_key or 'Competición')|competition_es }}</div><div class="small">{{ p.display_datetime or p.match_date or 'Fecha pendiente' }} · {{ (p.market or 'Mercado')|market_es }}</div></div>
+        <div><div class="comp-name">{{ (p.competition_name or p.league_name or p.competition_key or 'Competición')|competition_es }}</div><div class="small">{{ p.madrid_display or p.display_datetime or p.match_date or 'Fecha pendiente' }} · {{ (p.market or 'Mercado')|market_es }}</div></div>
         <span class="badge badge-{{ p.membership_required|lower }}">{{ p.quality_label or p.membership_required or 'FREE' }}</span>
       </div>
       {% set home_identity = p.home_identity|default({}) %}
@@ -83,7 +83,7 @@
     {% set away_identity = m.away_identity|default({}) %}
     <a class="sports-row v701-row favorite-scope" href="/match/{{ m.id }}">
       <button class="fav-star {% if m.is_favorite %}active{% endif %}" type="button" data-kind="match" data-value="{{ m.id }}" data-label="{{ m.home_team }} vs {{ m.away_team }}" aria-label="Favorito">★</button>
-      <div class="sports-time"><strong>{{ m.kickoff_time or m.match_time or 'Hora' }}</strong><span>{{ m.match_date }}</span></div>
+      <div class="sports-time"><strong>{{ m.madrid_time or m.safe_time or m.kickoff_time or m.match_time or 'Hora' }}</strong><span>{{ m.madrid_date_label or m.safe_date or m.match_date }}</span></div>
       <div class="sports-team home"><span class="crest compact-crest"><img loading="lazy" src="{{ home_identity.get('crest_url','') }}" alt="{{ m.home_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ home_identity.get('initials', (m.home_team or 'L')[:1]) }}'"></span><strong>{{ m.home_team or 'Equipo local' }}</strong></div>
       <div class="sports-score"><strong>vs</strong><span>{{ (m.competition_name or m.league_name or 'Competición')|competition_es }}</span></div>
       <div class="sports-team away"><span class="crest compact-crest"><img loading="lazy" src="{{ away_identity.get('crest_url','') }}" alt="{{ m.away_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ away_identity.get('initials', (m.away_team or 'V')[:1]) }}'"></span><strong>{{ m.away_team or 'Equipo visitante' }}</strong></div>
@@ -103,7 +103,7 @@
   <div class="grid dense-grid">
     {% for p in data.smart_picks.study[:8] %}
     <article class="card study-card">
-      <div class="match-top"><div><div class="comp-name">{{ (p.competition_name or p.league_name or 'Competición')|competition_es }}</div><div class="small">{{ p.display_datetime or p.match_date or 'Fecha pendiente' }} · {{ (p.market or 'Mercado')|market_es }}</div></div><span class="shark-pill">{{ p.quality_label or 'En estudio' }}</span></div>
+      <div class="match-top"><div><div class="comp-name">{{ (p.competition_name or p.league_name or 'Competición')|competition_es }}</div><div class="small">{{ p.madrid_display or p.display_datetime or p.match_date or 'Fecha pendiente' }} · {{ (p.market or 'Mercado')|market_es }}</div></div><span class="shark-pill">{{ p.quality_label or 'En estudio' }}</span></div>
       <h3>{{ p.home_team }} vs {{ p.away_team }}</h3>
       <p class="small"><strong>Señal:</strong> {{ p.selection_display or p.selection or 'Pendiente de confirmación' }}</p>
       <p class="small"><strong>Estado:</strong> no se publica como premium hasta tener cuota real y calidad suficiente.</p>

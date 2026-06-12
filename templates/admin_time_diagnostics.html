@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="scoreboard-hero v701-scoreboard">
+  <div>
+    <div class="kicker">Admin · Hora Madrid</div>
+    <h1>Diagnóstico de horarios</h1>
+    <p class="lead">Verificación interna de conversión UTC/API a Europe/Madrid antes de mostrar partidos, picks, SHARK o Telegram.</p>
+  </div>
+  <div class="scoreboard-kpis identity-kpis">
+    <div><strong>{{ diagnostics.total }}</strong><span>partidos revisados</span></div>
+    <div><strong>{% if diagnostics.selftest.ok %}OK{% else %}FAIL{% endif %}</strong><span>selftest</span></div>
+    <div><strong>{{ diagnostics.warnings.naive_assumed_utc or 0 }}</strong><span>naive UTC</span></div>
+    <div><strong>{{ diagnostics.warnings.missing_kickoff or 0 }}</strong><span>sin kickoff</span></div>
+  </div>
+</section>
+
+<section class="band compact-band">
+  <div class="section-head"><h2>Casos obligatorios</h2><span class="pill">{{ diagnostics.selftest.timezone }}</span></div>
+  <div class="grid compact-grid">
+    {% for case in diagnostics.selftest.cases %}
+    <article class="card">
+      <strong>{{ case.got }}</strong>
+      <p class="small">{{ case.input }} → esperado {{ case.expected }}</p>
+      <span class="badge {% if case.ok %}badge-pro{% else %}badge-free{% endif %}">{% if case.ok %}OK{% else %}Revisar{% endif %}</span>
+    </article>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="band compact-band">
+  <div class="section-head"><h2>Partidos</h2><span class="pill">Europe/Madrid</span></div>
+  <div class="table-wrap">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Partido</th>
+          <th>Competición</th>
+          <th>Original</th>
+          <th>UTC</th>
+          <th>Madrid</th>
+          <th>Vista</th>
+          <th>Alertas</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for m in diagnostics.matches %}
+        <tr>
+          <td>{{ m.id }}</td>
+          <td>{{ m.home_team or 'Local' }} vs {{ m.away_team or 'Visitante' }}</td>
+          <td>{{ m.competition or 'Competición' }}</td>
+          <td><small>{{ m.original_field }} · {{ m.original or 'vacío' }}</small></td>
+          <td><small>{{ m.utc or 'pendiente' }}</small></td>
+          <td><small>{{ m.madrid or 'pendiente' }}</small></td>
+          <td><strong>{{ m.display }}</strong></td>
+          <td>{% if m.warnings %}{{ m.warnings|join(', ') }}{% else %}OK{% endif %}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="8">No hay partidos cargados para diagnosticar.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

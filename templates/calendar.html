@@ -38,8 +38,8 @@
     <a class="sports-row v701-row favorite-scope" href="/match/{{ m.id }}">
       <button class="fav-star {% if m.is_favorite %}active{% endif %}" type="button" data-kind="match" data-value="{{ m.id }}" data-label="{{ m.home_team }} vs {{ m.away_team }}" aria-label="Favorito">★</button>
       <div class="sports-time">
-        <strong>{{ m.safe_time or m.kickoff_time or m.match_time or live_depth.get('minute') or 'Hora' }}</strong>
-        <span>{{ m.safe_date or m.match_date }}</span>
+        <strong>{{ m.madrid_time or m.safe_time or m.kickoff_time or m.match_time or live_depth.get('minute') or 'Hora' }}</strong>
+        <span>{{ m.madrid_date_label or m.safe_date or m.match_date }}</span>
       </div>
       <div class="sports-team home"><span class="crest compact-crest {{ home_identity.get('ui_class','crest-fallback') }}"><img loading="lazy" src="{{ home_identity.get('crest_url','') }}" alt="{{ m.home_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ home_identity.get('flag_emoji') or home_identity.get('initials', (m.home_team or 'L')[:1]) }}'"></span><strong>{{ m.safe_home or m.home_team or 'Equipo local' }}</strong></div>
       <div class="sports-score"><strong>{{ live_depth.get('score') or m.score or 'vs' }}</strong><span>{{ m.safe_competition or m.competition_name or m.league_name or 'Competición' }}</span></div>

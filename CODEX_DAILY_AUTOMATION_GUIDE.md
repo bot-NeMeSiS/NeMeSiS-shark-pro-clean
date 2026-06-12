@@ -6,6 +6,22 @@ Mantener NeMeSiS SHARK PRO limpio, validado y preparado para continuar cada día
 
 ## Uso Diario Recomendado
 
+### Control V725 de hora Madrid
+
+Antes de construir el release, comprobar que todas las horas deportivas pasan por Europe/Madrid:
+
+```bash
+python tools/check_madrid_times.py
+```
+
+Reglas:
+
+- `2026-06-12T19:00:00Z` debe mostrarse como `21:00` en España.
+- `2026-12-12T20:00:00Z` debe mostrarse como `21:00` en España.
+- No usar sumas fijas `+1` o `+2`.
+- No mostrar ISO, UTC, `Z` ni `+00:00` al cliente.
+- Templates y Telegram deben usar `madrid_display`, `madrid_time`, `safe_time` o `display_datetime`.
+
 1. Generar informe y prompt diario:
 
 ```bash
@@ -86,4 +102,4 @@ No subir nunca a Render:
 - backups locales
 - secretos reales
 
-El ZIP V723 se crea por lista blanca para evitar inclusiones accidentales.
+El ZIP se crea por lista blanca para evitar inclusiones accidentales. Desde V725 se intenta guardar fuera del proyecto en `../releases`; si el sistema no permite escribir fuera, se usa `release_output/`, que queda excluido del propio ZIP.

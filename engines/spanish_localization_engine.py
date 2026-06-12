@@ -11,6 +11,11 @@ import unicodedata
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
+from engines.madrid_time_engine import (
+    normalize_kickoff_for_display,
+    to_madrid_time,
+)
+
 MADRID_TZ = ZoneInfo("Europe/Madrid")
 
 
@@ -415,24 +420,7 @@ def _has_explicit_timezone(value: str) -> bool:
 
 
 def parse_datetime_to_madrid(value: object, assume_naive_madrid: bool = True) -> datetime | None:
-    raw = str(value or "").strip()
-    if not raw:
-        return None
-    s = raw.replace(" UTC", "+00:00").replace("Z", "+00:00")
-    # Avoid parsing date-only values as midnight unless the caller explicitly supplied a full date-time.
-    if re.fullmatch(r"\d{4}-\d{2}-\d{2}", s):
-        return None
-    if re.match(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$", s):
-        s = s + ":00"
-    try:
-        dt = datetime.fromisoformat(s)
-    except ValueError:
-        return None
-    if dt.tzinfo is None:
-        if assume_naive_madrid:
-            return dt.replace(tzinfo=MADRID_TZ)
-        return dt.replace(tzinfo=ZoneInfo("UTC")).astimezone(MADRID_TZ)
-    return dt.astimezone(MADRID_TZ)
+    return to_madrid_time(value)
 
 
 def madrid_values_from_datetime(value: object, fallback_date: object = "", fallback_time: object = "") -> dict:
@@ -482,6 +470,7 @@ def apply_match_localization(match: dict | None) -> dict:
     item = dict(match or {})
     if not item:
         return item
+    item = normalize_kickoff_for_display(item)
     raw_home = item.get("_raw_home_team") or item.get("home_team") or item.get("home") or ""
     raw_away = item.get("_raw_away_team") or item.get("away_team") or item.get("away") or ""
     raw_comp = item.get("_raw_competition_name") or item.get("competition_name") or item.get("league_name") or item.get("competition") or item.get("league") or ""
@@ -495,7 +484,7 @@ def apply_match_localization(match: dict | None) -> dict:
     item["competition_name"] = spanish_competition_name(raw_comp) or "Competición"
     item["league_name"] = spanish_competition_name(item.get("league_name") or raw_comp) or item["competition_name"]
     item["country"] = spanish_country_name(raw_country) or raw_country
-    values = madrid_values_from_datetime(item.get("kickoff_iso") or item.get("commence_time") or "", item.get("match_date"), item.get("kickoff_time") or item.get("match_time"))
+    values = madrid_values_from_datetime(item.get("madrid_dt_iso") or item.get("kickoff_iso") or item.get("commence_time") or "", item.get("match_date"), item.get("kickoff_time") or item.get("match_time"))
     # For timezone-aware API timestamps, update visible date/time to Madrid. For rows without a real timestamp, keep the fallback date/time.
     if values.get("match_date"):
         item["match_date"] = values["match_date"]
@@ -520,11 +509,12 @@ def apply_pick_localization(pick: dict | None) -> dict:
     item = dict(pick or {})
     if not item:
         return item
+    item = normalize_kickoff_for_display(item)
     item["home_team"] = spanish_team_name(item.get("home_team") or item.get("home") or "") or "Equipo local"
     item["away_team"] = spanish_team_name(item.get("away_team") or item.get("away") or "") or "Equipo visitante"
     item["competition_name"] = spanish_competition_name(item.get("competition_name") or item.get("league_name") or "") or "Competición"
     item["league_name"] = spanish_competition_name(item.get("league_name") or item.get("competition_name")) or item["competition_name"]
-    values = madrid_values_from_datetime(item.get("kickoff_iso") or "", item.get("match_date"), item.get("kickoff_time") or item.get("match_time"))
+    values = madrid_values_from_datetime(item.get("madrid_dt_iso") or item.get("kickoff_iso") or "", item.get("match_date"), item.get("kickoff_time") or item.get("match_time"))
     if values.get("match_date"):
         item["match_date"] = values["match_date"]
     if values.get("kickoff_time"):
