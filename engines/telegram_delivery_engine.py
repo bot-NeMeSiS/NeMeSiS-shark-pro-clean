@@ -336,10 +336,7 @@ def _pick_score(pick):
 
 def _stake_text(pick):
     stake = pick.get("stake_units") or pick.get("stake") or "1"
-    euros = pick.get("stake_euros_example") or pick.get("stake_euros") or ""
-    if euros not in (None, "", 0, 0.0):
-        return f"{safe_html(stake)}/5 · ejemplo {safe_html(euros)} €"
-    return f"{safe_html(stake)}/5"
+    return f"{safe_html(stake)}/10"
 
 
 def _pick_title(index, pick):
@@ -350,8 +347,7 @@ def _pick_title(index, pick):
 
 def build_daily_picks_message(picks, force_empty=False, premium_name="NeMeSiS SHARK PRO"):
     lines = [
-        f"<b>🦈 SHARK PICK PREMIUM</b>",
-        f"<b>{safe_html(premium_name)}</b>",
+        f"<b>🦈 Pick SHARK Premium</b>",
         _SEPARATOR,
     ]
     if not picks:
@@ -360,33 +356,29 @@ def build_daily_picks_message(picks, force_empty=False, premium_name="NeMeSiS SH
         lines.append("No hay picks publicados ahora mismo. SHARK no fabrica picks sin fuente real/autorizada.")
         return "\n".join(lines)
 
-    for index, pick in enumerate(picks[:4], start=1):
+    for index, pick in enumerate(picks[:3], start=1):
         pick = apply_pick_localization(pick)
         comp = safe_html(_competition_name(pick))
         date = safe_html(_display_datetime(pick))
         selection = safe_html(compact_text(pick.get("selection") or "Pick SHARK", 90))
         market = safe_html(compact_text(spanish_market_name(pick.get("market") or pick.get("pick_type") or "Mercado"), 80))
-        odds = safe_html(pick.get("odds") or "Pendiente")
+        odds = safe_html(pick.get("odds") or "")
         risk = safe_html(pick.get("risk_level") or "Medio")
-        reason = safe_html(compact_text(pick.get("reasoning") or pick.get("reason") or "SHARK detecta valor con los datos disponibles.", 260))
-        warning = safe_html(compact_text(pick.get("warning_reason") or pick.get("warning") or "Gestiona stake y banca. Ningún pick es seguro.", 220))
+        reason = safe_html(compact_text(pick.get("reasoning") or pick.get("reason") or "SHARK detecta valor con los datos disponibles.", 190))
+        warning = safe_html(compact_text(pick.get("warning_reason") or pick.get("warning") or "Revisa alineaciones y no subas stake si cambia la cuota.", 170))
         lines.extend(
             [
-                _pick_title(index, pick),
                 f"{_competition_emoji(pick)} <b>{comp}</b>",
                 f"🕘 {date}",
-                _team_block(pick, "home"),
-                "🆚",
-                _team_block(pick, "away"),
+                _pick_title(index, pick),
                 f"🎯 <b>Pick:</b> <b>{selection}</b>",
                 f"🎲 <b>Mercado:</b> {market}",
                 f"💰 <b>Cuota:</b> {odds}",
                 f"📌 <b>Stake:</b> {_stake_text(pick)}",
-                f"🧠 <b>SHARK Score:</b> {_pick_score(pick)}/100",
+                f"📊 <b>Confianza:</b> {_pick_score(pick)}/100",
                 f"⚠️ <b>Riesgo:</b> {risk}",
-                f"💎 <b>Value:</b> {_pick_value_label(pick)}",
-                f"✅ <b>Por qué entrar:</b> {reason}",
-                f"🛡️ <b>Precaución:</b> {warning}",
+                f"<b>Motivo:</b> {reason}",
+                f"<b>Precaución:</b> {warning}",
             ]
         )
         match_url = _match_url_line(pick, "Ver partido y contexto SHARK")

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import py_compile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -16,4 +15,4 @@ def test_core_files_compile():
     files.extend(sorted((ROOT / "engines").glob("*.py")))
     for file in files:
         if file.exists():
-            py_compile.compile(str(file), doraise=True)
+            compile(file.read_text(encoding="utf-8", errors="replace"), str(file), "exec")

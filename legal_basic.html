@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="scoreboard-hero v701-scoreboard">
+  <div>
+    <div class="kicker">{{ page.kicker }}</div>
+    <h1>{{ page.title }}</h1>
+    <p class="lead">{{ page.lead }}</p>
+    <div class="actions">
+      <a class="btn primary" href="/registro">Crear cuenta</a>
+      <a class="btn" href="/membresias">Ver planes</a>
+      <a class="btn" href="/juego-responsable">Juego responsable</a>
+    </div>
+  </div>
+  <div class="scoreboard-kpis">
+    <div><strong>+18</strong><span>Uso adulto</span></div>
+    <div><strong>Claro</strong><span>Sin promesas</span></div>
+    <div><strong>Seguro</strong><span>Cuenta</span></div>
+    <div><strong>SHARK</strong><span>Responsable</span></div>
+  </div>
+</section>
+
+<section class="band compact-band">
+  <div class="grid compact-grid">
+    {% for item in page["items"] %}
+    <article class="card service-card">
+      <h3>{{ item.title }}</h3>
+      <p class="small">{{ item.body }}</p>
+    </article>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="band compact-band">
+  <div class="notice">NeMeSiS SHARK PRO ofrece análisis deportivo y señales de valor. No garantiza resultados. Apuesta siempre con responsabilidad.</div>
+</section>
+{% endblock %}

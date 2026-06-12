@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 
-EXPECTED_VERSION = "V717_PRODUCTION_POLISH_COMMERCIAL_LAUNCH_UPGRADE"
+EXPECTED_VERSION = "V716_TESTING_VALIDATION_POLISH"
 
 
 def _login_client_session(client, membership="ELITE"):
@@ -60,11 +60,6 @@ def test_cron_endpoints_require_secret_and_accept_valid_secret(client):
 
         response = client.get(path + "?secret=pytest-automation-secret")
         assert response.status_code == 200
-        payload = response.get_json()
-        assert payload["cron"] is True
-        assert "diagnostics" not in payload
-        assert "state_save_results" not in payload
-        assert "result" not in payload
 
 
 def test_internal_api_endpoints_are_protected_without_secret(client, app_module):

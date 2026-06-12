@@ -43,6 +43,13 @@
     {% block content %}{% endblock %}
   </main>
 
+  <footer class="site-footer">
+    <a href="/juego-responsable">Juego responsable</a>
+    <a href="/privacy">Privacidad</a>
+    <a href="/terms">Términos</a>
+    <a href="/contact">Contacto</a>
+  </footer>
+
   <nav class="bottom-nav bottom-nav-clean" aria-label="Navegación rápida">
     {% if current_user and current_user.role == 'ADMIN' %}
       <a href="/admin/dashboard">Admin</a>
@@ -82,6 +89,7 @@
           <button type="button" data-q="Qué partido merece más la pena ver ahora">Qué partido ver</button>
           <button type="button" data-q="Explica una apuesta como si fuera nuevo">Explicar apuesta</button>
           <button type="button" data-q="Dame un resumen corto del día deportivo">Resumen del día</button>
+          <button type="button" data-q="Qué recibiré por Telegram según mi plan">Telegram</button>
         </div>
       </div>
       <form id="sharkForm" class="shark-form">

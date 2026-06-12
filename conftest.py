@@ -19,6 +19,7 @@ def app_module():
     os.environ.setdefault("BACKGROUND_JOBS_ENABLED", "false")
     os.environ.setdefault("AUTO_GENERATE_PICKS", "false")
     os.environ.setdefault("AUTO_SEND_TELEGRAM_PICKS", "false")
+    os.environ.setdefault("AUTOMATION_SECRET", "pytest-automation-secret")
     os.environ.setdefault("DB_PATH", str(pathlib.Path(tempfile.gettempdir()) / "nemesis_pytest.db"))
     sys.path.insert(0, str(ROOT))
     module = importlib.import_module("app")

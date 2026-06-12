@@ -8,7 +8,6 @@ from __future__ import annotations
 import ast
 import os
 import pathlib
-import py_compile
 import sys
 import tempfile
 from collections import Counter
@@ -47,7 +46,7 @@ def compile_python_files() -> list[str]:
         if not file.exists():
             continue
         try:
-            py_compile.compile(str(file), doraise=True)
+            compile(file.read_text(encoding="utf-8", errors="replace"), str(file), "exec")
         except Exception as exc:  # pragma: no cover
             errors.append(f"{file.relative_to(ROOT)} -> {exc}")
     return errors
