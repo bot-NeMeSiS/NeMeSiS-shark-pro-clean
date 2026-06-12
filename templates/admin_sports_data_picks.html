@@ -25,7 +25,7 @@
   <div class="cards-list compact-list">
     {% for r in data.v565.top_recommendations %}
     <article class="match-card pick-card">
-      <div><strong>{{ r.home_team }} vs {{ r.away_team }}</strong><p>{{ r.league_name }} · {{ r.match_date }} {{ r.kickoff_time }}</p><small>{{ r.reason }}</small></div>
+      <div><strong>{{ r.home_team }} vs {{ r.away_team }}</strong><p>{{ r.league_name|competition_es }} · {{ r.match_date }} {{ r.kickoff_time }}</p><small>{{ r.reason }}</small></div>
       <div class="pick-score"><strong>{{ r.score }}/100</strong><span>{{ r.risk }} · {{ r.membership_required }}</span></div>
     </article>
     {% else %}<div class="empty-state premium-card">No hay recomendaciones todavía.</div>{% endfor %}

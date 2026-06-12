@@ -52,7 +52,7 @@
     <div class="section-head"><h2>Partidos destacados reales</h2><a class="pill" href="/match-hub">Calendario completo</a></div>
     <div class="stack">
       {% for m in data.upcoming_matches[:6] %}
-      <a class="list-row match-teaser" href="/match/{{ m.id }}"><span>{{ m.home_team }} vs {{ m.away_team }}<small>{{ m.competition_name or m.league_name or 'Competición' }}</small></span><strong>{{ m.kickoff_time or m.live_depth.label }}</strong></a>
+      <a class="list-row match-teaser" href="/match/{{ m.id }}"><span>{{ m.home_team }} vs {{ m.away_team }}<small>{{ (m.competition_name or m.league_name or 'Competición')|competition_es }}</small></span><strong>{{ m.kickoff_time or m.live_depth.label }}</strong></a>
       {% else %}
       <div class="empty">No hay partidos disponibles todavia. SHARK mostrara nuevos encuentros cuando haya datos suficientes.</div>
       {% endfor %}

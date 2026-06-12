@@ -12,6 +12,7 @@ import re
 from datetime import datetime
 
 from engines.telegram_sport_filter_engine import is_telegram_football_item
+from engines.picks_quality_engine import enrich_pick_quality, sort_picks_by_quality
 
 from engines.spanish_localization_engine import (
     apply_match_localization,
@@ -452,7 +453,7 @@ def build_daily_matches_message(matches, date_key, premium_name="NeMeSiS SHARK P
 def build_single_pick_message(pick, premium_name="NeMeSiS SHARK PRO", title="🦈 PICK SHARK PREMIUM") -> str:
     if not is_telegram_football_item(pick or {}):
         return ""
-    pick = apply_pick_localization(pick)
+    pick = enrich_pick_quality(apply_pick_localization(pick))
     selection = _selection_text(pick)
     odds = _clean_odds(pick.get("odds"))
     if not selection or not odds:
@@ -476,6 +477,7 @@ def build_single_pick_message(pick, premium_name="NeMeSiS SHARK PRO", title="�
         f"💰 <b>Cuota:</b> {safe_html(odds)}",
         f"📌 <b>Stake:</b> {_stake_text(pick)}",
         f"📊 <b>Confianza SHARK:</b> {_pick_score(pick)}/100",
+        f"🏅 <b>Calidad:</b> {safe_html(str(pick.get('quality_score') or _pick_score(pick)))}/100 · {safe_html(pick.get('quality_label') or 'Filtro SHARK')}",
         f"⚠️ <b>Riesgo:</b> {risk}",
         f"💎 <b>Value:</b> {_pick_value_label(pick)}",
         "",
@@ -495,9 +497,10 @@ def build_daily_picks_message(picks, force_empty=False, premium_name="NeMeSiS SH
     for raw in picks or []:
         if not is_telegram_football_item(raw or {}):
             continue
-        pick = apply_pick_localization(raw)
-        if _selection_text(pick) and _clean_odds(pick.get("odds")):
+        pick = enrich_pick_quality(apply_pick_localization(raw))
+        if pick.get("premium_ready") and _selection_text(pick) and _clean_odds(pick.get("odds")):
             clean.append(pick)
+    clean = sort_picks_by_quality(clean)
     if not clean:
         if not force_empty:
             return ""
@@ -524,7 +527,7 @@ def build_daily_picks_message(picks, force_empty=False, premium_name="NeMeSiS SH
             f"<b>{index}. {_match_title(pick)}</b>",
             f"{_competition_emoji(pick)} {_competition_name(pick)} · 🕘 {_display_datetime(pick)}",
             f"✅ {safe_html(selection)} · 💰 {safe_html(odds)} · 📌 {_stake_text(pick)}",
-            f"📊 Confianza {_pick_score(pick)}/100 · ⚠️ Riesgo {_risk_text(pick)}",
+            f"📊 Calidad {safe_html(str(pick.get('quality_score') or _pick_score(pick)))}/100 · {safe_html(pick.get('quality_label') or 'Filtro SHARK')} · ⚠️ Riesgo {_risk_text(pick)}",
             "",
         ])
     lines.extend([
@@ -541,7 +544,7 @@ def build_combi_message(picks, combi_type="media", premium_name="NeMeSiS SHARK P
     for raw in picks or []:
         if not is_telegram_football_item(raw or {}):
             continue
-        pick = apply_pick_localization(raw)
+        pick = enrich_pick_quality(apply_pick_localization(raw))
         selection = _selection_text(pick)
         odds = _clean_odds(pick.get("odds"))
         key = f"{_norm(_team_name(pick, 'home'))}:{_norm(_team_name(pick, 'away'))}:{pick.get('match_date') or ''}"

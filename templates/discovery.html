@@ -32,7 +32,7 @@
     {% for m in data.discovery.matches %}
       <a class="match-card mini" href="/match/{{ m.id }}">
         <div><strong>{{ m.home_team }}</strong><span>vs</span><strong>{{ m.away_team }}</strong></div>
-        <small>{{ m.competition_name or m.league_name }} · {{ m.match_date }} {{ m.kickoff_time }}</small>
+        <small>{{ (m.competition_name or m.league_name)|competition_es }} · {{ m.match_date }} {{ m.kickoff_time }}</small>
         <span class="status {{ m.status_info.css if m.status_info else '' }}">{{ m.status_info.label if m.status_info else m.status }}</span>
       </a>
     {% endfor %}

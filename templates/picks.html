@@ -3,14 +3,14 @@
 <section class="scoreboard-hero v701-scoreboard picks-board">
   <div>
     <div class="kicker">Picks SHARK</div>
-    <h1>Picks de pago, lectura rápida</h1>
-    <p class="lead">Mercado, cuota, stake, confianza, riesgo y motivo SHARK sin relleno.</p>
+    <h1>Picks SHARK ordenados por calidad real</h1>
+    <p class="lead">Solo destacamos picks con cuota real, selección clara, liga en castellano y filtro SHARK profesional.</p>
   </div>
   <div class="scoreboard-kpis">
     <div><strong>{{ data.pick_stats.published }}</strong><span>Publicados</span></div>
-    <div><strong>{{ data.smart_picks.candidate_count }}</strong><span>Analizables</span></div>
-    <div><strong>{{ data.pick_stats.avg_odds }}</strong><span>Cuota media</span></div>
-    <div><strong>{{ data.pick_stats.winrate }}%</strong><span>Winrate</span></div>
+    <div><strong>{{ data.smart_picks.study_count or 0 }}</strong><span>En estudio</span></div>
+    <div><strong>{{ data.pick_stats.avg_odds if data.pick_stats.avg_odds else "—" }}</strong><span>Cuota media</span></div>
+    <div><strong>{% if data.pick_stats.winrate and data.pick_stats.winrate > 0 %}{{ data.pick_stats.winrate }}%{% else %}—{% endif %}</strong><span>Histórico</span></div>
   </div>
 </section>
 
@@ -27,14 +27,15 @@
 {% endif %}
 
 <section class="band compact-band">
-  <div class="section-head"><h2>Picks disponibles</h2><span class="pill">{{ data.smart_picks.hot|length }}</span></div>
+  <div class="section-head"><h2>Picks premium listos</h2><span class="pill">{{ data.smart_picks.hot|length }}</span></div>
+  <p class="small">{{ data.smart_picks.client_message }}</p>
   {% if data.smart_picks.hot %}
   <div class="grid dense-grid v701-pick-grid">
     {% for p in data.smart_picks.hot %}
     <article class="card pick-card v701-premium-pick">
       <div class="match-top">
-        <div><div class="comp-name">{{ p.competition_name or p.league_name or p.competition_key or 'Competición' }}</div><div class="small">{{ p.match_date or 'Fecha pendiente' }} · {{ p.market or 'Mercado' }}</div></div>
-        <span class="badge badge-{{ p.membership_required|lower }}">{{ p.membership_required or 'FREE' }}</span>
+        <div><div class="comp-name">{{ (p.competition_name or p.league_name or p.competition_key or 'Competición')|competition_es }}</div><div class="small">{{ p.display_datetime or p.match_date or 'Fecha pendiente' }} · {{ (p.market or 'Mercado')|market_es }}</div></div>
+        <span class="badge badge-{{ p.membership_required|lower }}">{{ p.quality_label or p.membership_required or 'FREE' }}</span>
       </div>
       {% set home_identity = p.home_identity|default({}) %}
       {% set away_identity = p.away_identity|default({}) %}
@@ -49,10 +50,10 @@
         <div><span>Stake</span><strong>{{ p.stake_units or 1 }}u</strong></div>
       </div>
       <div class="pick-signals">
-        <span>SHARK {{ p.confidence or p.shark_score or 0 }}/100</span>
+        <span>Calidad {{ p.quality_score or p.confidence or p.shark_score or 0 }}/100</span>
         <span>Confianza {{ p.confidence or 0 }}%</span>
         <span>Riesgo {{ p.risk_level or 'Medio' }}</span>
-        <span>Value {% if p.odds and p.confidence %}Detectado{% else %}En cálculo{% endif %}</span>
+        <span>{{ p.quality_label or 'Filtro SHARK' }}</span>
       </div>
       <p class="small"><strong>Por qué entrar:</strong> {{ p.reasoning or 'Pick publicado por SHARK con datos disponibles.' }}</p>
       <p class="small"><strong>Precaución:</strong> {{ p.warning_reason or 'Ningún pick es seguro. Ajusta stake y banca.' }}</p>
@@ -80,7 +81,7 @@
       <button class="fav-star {% if m.is_favorite %}active{% endif %}" type="button" data-kind="match" data-value="{{ m.id }}" data-label="{{ m.home_team }} vs {{ m.away_team }}" aria-label="Favorito">★</button>
       <div class="sports-time"><strong>{{ m.kickoff_time or m.match_time or 'Hora' }}</strong><span>{{ m.match_date }}</span></div>
       <div class="sports-team home"><span class="crest compact-crest"><img loading="lazy" src="{{ home_identity.get('crest_url','') }}" alt="{{ m.home_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ home_identity.get('initials', (m.home_team or 'L')[:1]) }}'"></span><strong>{{ m.home_team or 'Equipo local' }}</strong></div>
-      <div class="sports-score"><strong>vs</strong><span>{{ m.competition_name or m.league_name or 'Competición' }}</span></div>
+      <div class="sports-score"><strong>vs</strong><span>{{ (m.competition_name or m.league_name or 'Competición')|competition_es }}</span></div>
       <div class="sports-team away"><span class="crest compact-crest"><img loading="lazy" src="{{ away_identity.get('crest_url','') }}" alt="{{ m.away_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ away_identity.get('initials', (m.away_team or 'V')[:1]) }}'"></span><strong>{{ m.away_team or 'Equipo visitante' }}</strong></div>
       <div class="sports-meta v701-meta"><span class="shark-pill">{{ m.pick_readiness or 'SHARK' }}</span></div>
     </a>
@@ -90,6 +91,23 @@
   <div class="empty premium-empty">No hay partidos analizables ahora mismo. El calendario se completará cuando haya datos autorizados.</div>
   {% endif %}
 </section>
+
+{% if data.smart_picks.study %}
+<section class="band compact-band">
+  <div class="section-head"><h2>En estudio por SHARK</h2><span class="pill">{{ data.smart_picks.study|length }}</span></div>
+  <p class="small">Estos picks existen como señal interna, pero no se venden como premium porque les falta calidad, cuota, timing o confirmación completa.</p>
+  <div class="grid dense-grid">
+    {% for p in data.smart_picks.study[:8] %}
+    <article class="card study-card">
+      <div class="match-top"><div><div class="comp-name">{{ (p.competition_name or p.league_name or 'Competición')|competition_es }}</div><div class="small">{{ p.display_datetime or p.match_date or 'Fecha pendiente' }} · {{ (p.market or 'Mercado')|market_es }}</div></div><span class="shark-pill">{{ p.quality_label or 'En estudio' }}</span></div>
+      <h3>{{ p.home_team }} vs {{ p.away_team }}</h3>
+      <p class="small"><strong>Señal:</strong> {{ p.selection_display or p.selection or 'Pendiente de confirmación' }}</p>
+      <p class="small"><strong>Estado:</strong> no se publica como premium hasta tener cuota real y calidad suficiente.</p>
+    </article>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
 
 {% if data.smart_picks.pro_locked %}
 <section class="band compact-band">

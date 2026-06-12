@@ -22,7 +22,7 @@
 <div class="cards compact-cards">
 {% for r in data.recommendations %}
   <article class="card rec-card">
-    <div class="card-topline"><span class="badge badge-{{ (r.value_label or 'ANALISIS')|lower }}">{{ r.value_label }}</span><span class="muted">{{ r.league_name }}</span></div>
+    <div class="card-topline"><span class="badge badge-{{ (r.value_label or 'ANALISIS')|lower }}">{{ r.value_label }}</span><span class="muted">{{ r.league_name|competition_es }}</span></div>
     <h3>{{ r.home_team }} vs {{ r.away_team }}</h3>
     <div class="metric-row"><span>Score <strong>{{ r.shark_score }}</strong></span><span>Conf <strong>{{ r.confidence }}%</strong></span><span>Riesgo <strong>{{ r.risk_level }}</strong></span></div>
     <p><strong>{{ r.selection }}</strong> {% if r.odds %}<span class="chip">{{ '%.2f'|format(r.odds|float) }}</span>{% endif %}</p>

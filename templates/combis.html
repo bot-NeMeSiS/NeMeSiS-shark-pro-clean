@@ -19,7 +19,18 @@
   <a class="tab-link active" href="/combis">Combis</a>
   <a class="tab-link" href="/sports-hub">Partidos</a>
   <a class="tab-link" href="/telegram">Telegram</a>
-  {% for n in range(2,16) %}<a class="tab-link {% if data.requested_combi_count == n %}active{% endif %}" href="/combis?partidos={{ n }}">{{ n }} partidos</a>{% endfor %}
+</section>
+
+<section class="band compact-band combi-selector-pro">
+  <div class="section-head"><h2>Tipo de combinada</h2><span class="pill">{{ data.requested_combi_count }} selecciones</span></div>
+  <div class="quick-actions compact-actions">
+    <a class="btn {% if data.requested_combi_count <= 4 %}primary{% endif %}" href="/combis?partidos=3">Segura · 2-4</a>
+    <a class="btn {% if data.requested_combi_count >= 5 and data.requested_combi_count <= 8 %}primary{% endif %}" href="/combis?partidos=6">Media · 5-8</a>
+    <a class="btn {% if data.requested_combi_count >= 9 %}primary{% endif %}" href="/combis?partidos=12">Larga · 9-15</a>
+  </div>
+  <div class="sports-tabs v701-tabs compact-leg-tabs">
+    {% for n in range(2,16) %}<a class="tab-link {% if data.requested_combi_count == n %}active{% endif %}" href="/combis?partidos={{ n }}">{{ n }}</a>{% endfor %}
+  </div>
 </section>
 
 {% if not current_user or current_user.membership == 'FREE' %}
@@ -55,7 +66,7 @@
       <button class="fav-star {% if m.is_favorite %}active{% endif %}" type="button" data-kind="match" data-value="{{ m.id }}" data-label="{{ m.home_team }} vs {{ m.away_team }}" aria-label="Favorito">★</button>
       <div class="sports-time"><strong>{{ m.kickoff_time or m.match_time or 'Hora' }}</strong><span>{{ m.match_date }}</span></div>
       <div class="sports-team home"><span class="crest compact-crest {{ home_identity.get('ui_class','crest-fallback') }}"><img loading="lazy" src="{{ home_identity.get('crest_url','') }}" alt="{{ m.home_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ home_identity.get('flag_emoji') or home_identity.get('initials', (m.home_team or 'L')[:1]) }}'"></span><strong>{{ m.home_team or 'Equipo local' }}</strong></div>
-      <div class="sports-score"><strong>vs</strong><span>{{ m.competition_name or m.league_name or 'Competición' }}</span></div>
+      <div class="sports-score"><strong>vs</strong><span>{{ (m.competition_name or m.league_name or 'Competición')|competition_es }}</span></div>
       <div class="sports-team away"><span class="crest compact-crest {{ away_identity.get('ui_class','crest-fallback') }}"><img loading="lazy" src="{{ away_identity.get('crest_url','') }}" alt="{{ m.away_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ away_identity.get('flag_emoji') or away_identity.get('initials', (m.away_team or 'V')[:1]) }}'"></span><strong>{{ m.away_team or 'Equipo visitante' }}</strong></div>
       <div class="sports-meta v701-meta"><span class="shark-pill">{% if m.bookmaker %}Cuotas{% else %}Mercado pendiente{% endif %}</span></div>
     </a>

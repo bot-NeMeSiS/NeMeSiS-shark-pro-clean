@@ -22,7 +22,7 @@
       {% for r in data.v565.allowed %}
       <article class="match-card pick-card">
         <div class="match-main">
-          <span class="league-badge">{{ r.league_name }}</span>
+          <span class="league-badge">{{ r.league_name|competition_es }}</span>
           <h3>{{ r.home_team }} vs {{ r.away_team }}</h3>
           <p>{{ r.match_date }} · {{ r.kickoff_time or 'Hora pendiente' }} · {{ r.status.label }}</p>
           <p>{{ r.reason }}</p>
@@ -47,7 +47,7 @@
   <div class="cards-list compact-list">
     {% for r in data.v565.locked %}
     <article class="match-card locked-card">
-      <div><strong>{{ r.home_team }} vs {{ r.away_team }}</strong><p>{{ r.league_name }}</p></div>
+      <div><strong>{{ r.home_team }} vs {{ r.away_team }}</strong><p>{{ r.league_name|competition_es }}</p></div>
       <span class="lock-badge">Disponible en {{ r.membership_required }}</span>
     </article>
     {% endfor %}

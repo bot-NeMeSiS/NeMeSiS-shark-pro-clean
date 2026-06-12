@@ -183,6 +183,43 @@ SPANISH_COMPETITION_OVERRIDES = {
     "major league soccer": "MLS",
     "nations league": "Liga de Naciones",
     "uefa nations league": "Liga de Naciones UEFA",
+    "soccer_fifa_world_cup": "Mundial FIFA",
+    "soccer_fifa_club_world_cup": "Mundial de Clubes FIFA",
+    "soccer_uefa_champs_league": "Champions League",
+    "soccer_uefa_champions_league": "Champions League",
+    "soccer_uefa_europa_league": "Europa League",
+    "soccer_uefa_europa_conference_league": "Conference League",
+    "soccer_spain_la_liga": "LaLiga EA Sports",
+    "soccer_spain_segunda_division": "Segunda División",
+    "soccer_epl": "Premier League",
+    "soccer_england_league1": "League One inglesa",
+    "soccer_england_league2": "League Two inglesa",
+    "soccer_england_championship": "Championship inglesa",
+    "soccer_italy_serie_a": "Serie A",
+    "soccer_italy_serie_b": "Serie B",
+    "soccer_germany_bundesliga": "Bundesliga",
+    "soccer_germany_bundesliga2": "2. Bundesliga",
+    "soccer_france_ligue_one": "Ligue 1",
+    "soccer_france_ligue_two": "Ligue 2",
+    "soccer_portugal_primeira_liga": "Primeira Liga",
+    "soccer_netherlands_eredivisie": "Eredivisie",
+    "soccer_brazil_campeonato": "Brasileirão Serie A",
+    "soccer_argentina_primera_division": "Primera División Argentina",
+    "soccer_usa_mls": "MLS",
+    "copa del rey": "Copa del Rey",
+    "supercopa de espana": "Supercopa de España",
+    "supercopa de españa": "Supercopa de España",
+    "spanish copa del rey": "Copa del Rey",
+    "coppa italia": "Copa de Italia",
+    "dfb pokal": "Copa de Alemania",
+    "coupe de france": "Copa de Francia",
+    "community shield": "Community Shield",
+    "libertadores": "Copa Libertadores",
+    "copa libertadores": "Copa Libertadores",
+    "copa sudamericana": "Copa Sudamericana",
+    "afc champions league": "Champions League AFC",
+    "caf champions league": "Champions League CAF",
+    "concacaf champions cup": "Copa de Campeones CONCACAF",
 }
 
 
@@ -237,6 +274,47 @@ def spanish_country_name(value: object) -> str:
     return SPANISH_COUNTRY_OVERRIDES.get(_norm(raw), _title_preserving_acronyms(raw))
 
 
+def _humanize_competition_key(raw: str) -> str:
+    text = str(raw or "").strip()
+    if not text:
+        return ""
+    cleaned = re.sub(r"^(soccer|football)[_\-\s]+", "", text, flags=re.I)
+    cleaned = cleaned.replace("_", " ").replace("-", " ")
+    cleaned = re.sub(r"\s+", " ", cleaned).strip()
+    replacements = {
+        "fifa world cup": "Mundial FIFA",
+        "fifa club world cup": "Mundial de Clubes FIFA",
+        "uefa champs league": "Champions League",
+        "uefa champions league": "Champions League",
+        "uefa europa league": "Europa League",
+        "uefa europa conference league": "Conference League",
+        "spain la liga": "LaLiga EA Sports",
+        "spain segunda division": "Segunda División",
+        "epl": "Premier League",
+        "england championship": "Championship inglesa",
+        "italy serie a": "Serie A",
+        "germany bundesliga": "Bundesliga",
+        "france ligue one": "Ligue 1",
+        "france ligue two": "Ligue 2",
+        "portugal primeira liga": "Primeira Liga",
+        "netherlands eredivisie": "Eredivisie",
+        "usa mls": "MLS",
+        "brazil campeonato": "Brasileirão Serie A",
+        "argentina primera division": "Primera División Argentina",
+    }
+    key = _norm(cleaned)
+    if key in replacements:
+        return replacements[key]
+    # País + liga: mantener castellano si reconocemos el país.
+    pieces = cleaned.split(" ")
+    if pieces:
+        country = spanish_country_name(pieces[0])
+        rest = " ".join(pieces[1:])
+        if country and rest:
+            return _title_preserving_acronyms(f"{rest.title()} {country}")
+    return _title_preserving_acronyms(cleaned.title())
+
+
 def spanish_competition_name(value: object) -> str:
     raw = str(value or "").strip()
     if not raw:
@@ -244,11 +322,16 @@ def spanish_competition_name(value: object) -> str:
     key = _norm(raw)
     if key in SPANISH_COMPETITION_OVERRIDES:
         return SPANISH_COMPETITION_OVERRIDES[key]
+    compact_key = raw.strip().lower()
+    if compact_key in SPANISH_COMPETITION_OVERRIDES:
+        return SPANISH_COMPETITION_OVERRIDES[compact_key]
     for needle, translated in SPANISH_COMPETITION_OVERRIDES.items():
         if needle and needle in key:
             return translated
+    # API keys such as soccer_spain_la_liga should never be displayed raw.
+    if "_" in raw or raw.lower().startswith(("soccer", "football")):
+        return _humanize_competition_key(raw)
     return _title_preserving_acronyms(raw)
-
 
 def spanish_market_name(value: object) -> str:
     raw = str(value or "").strip()

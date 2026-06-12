@@ -59,7 +59,7 @@
     <div class="section-head"><h2>Partidos para revisar</h2><a class="pill" href="/match-hub">Calendario</a></div>
     <div class="stack">
       {% for m in briefing.today_matches[:5] or briefing.upcoming[:5] %}
-      <a class="list-row" href="/match/{{ m.id }}"><span>{{ m.home_team }} vs {{ m.away_team }}<small>{{ m.competition_name or m.league_name or 'Competición' }}</small></span><strong>{{ m.kickoff_time or m.live_depth.label }}</strong></a>
+      <a class="list-row" href="/match/{{ m.id }}"><span>{{ m.home_team }} vs {{ m.away_team }}<small>{{ (m.competition_name or m.league_name or 'Competición')|competition_es }}</small></span><strong>{{ m.kickoff_time or m.live_depth.label }}</strong></a>
       {% else %}
       <div class="empty premium-empty"><strong>Sin partidos sincronizados</strong><p>Cuando haya datos suficientes, apareceran aqui automaticamente.</p></div>
       {% endfor %}
