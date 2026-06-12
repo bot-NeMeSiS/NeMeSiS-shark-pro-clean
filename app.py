@@ -75,6 +75,11 @@ from engines.telegram_sport_filter_engine import (
     telegram_sport_filter_reason,
     telegram_sport_mode_summary,
 )
+from engines.telegram_reliability_engine import (
+    explain_telegram_state,
+    madrid_now as telegram_reliability_madrid_now,
+    safe_preview_text,
+)
 from engines.team_identity_engine import (
     flag_or_emoji as team_flag_or_emoji,
     identity_payload as build_team_identity_payload,
@@ -103,7 +108,7 @@ from engines.spanish_localization_engine import (
 from engines.madrid_time_engine import madrid_conversion_selftest, madrid_time_diagnostics, normalize_kickoff_for_display
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V726_TOTAL_PROJECT_CLEANUP_LIVE_EXPERIENCE_ORGANIZATION"
+APP_VERSION = "V727_TELEGRAM_RELIABILITY_COMMAND_CENTER"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -1457,6 +1462,13 @@ def ensure_runtime_ready_for_request():
 def one(query, params=()):
     data = rows(query, params)
     return data[0] if data else None
+
+
+def db_table_exists(table_name):
+    try:
+        return bool(one("SELECT name FROM sqlite_master WHERE type='table' AND name=?", (str(table_name),)))
+    except Exception:
+        return False
 
 
 def cache_get(key):
@@ -6482,6 +6494,225 @@ def telegram_auto_pick_health(limit=40):
     return summary
 
 
+def telegram_reliability_snapshot(limit=60):
+    """Build a safe admin diagnostic without sending Telegram messages."""
+    cfg = telegram_pro_calibration()
+    settings = get_telegram_settings()
+    now_madrid = telegram_reliability_madrid_now()
+    env = {
+        "bot_token_configured": env_present("TELEGRAM_BOT_TOKEN"),
+        "chat_id_configured": env_present("TELEGRAM_CHAT_ID"),
+        "bot_username_configured": env_present("TELEGRAM_BOT_USERNAME") or env_present("TELEGRAM_USERNAME"),
+        "public_base_url_configured": env_present("PUBLIC_BASE_URL") or env_present("RENDER_EXTERNAL_URL"),
+        "automation_secret_configured": automation_secret_configured(),
+        "enable_telegram_auto": env_bool("ENABLE_TELEGRAM_AUTO", False),
+        "auto_send_telegram_picks": env_bool("AUTO_SEND_TELEGRAM_PICKS", False),
+        "auto_generate_picks": env_bool("AUTO_GENERATE_PICKS", False),
+        "scheduler_enabled": scheduler_enabled(),
+        "daily_automation_enabled": daily_automation_env_enabled(),
+        "telegram_sport_mode": os.getenv("TELEGRAM_SPORT_MODE", "football_only"),
+        "telegram_football_only": telegram_sport_mode_summary().get("football_only"),
+    }
+    try:
+        raw_picks = get_picks(limit=max(int(limit), 40), status=["published"], include_admin=True)
+    except Exception as exc:
+        return {
+            "ok": False,
+            "madrid_now": now_madrid,
+            "error": str(exc)[:300],
+            "diagnosis": explain_telegram_state({
+                "env": env,
+                "counts": {},
+                "reason_counts": {},
+                "limits": {},
+                "last_error": {"status": "error", "message": str(exc)[:200]},
+                "madrid_now": now_madrid,
+            }),
+        }
+
+    candidates = []
+    discarded = []
+    reason_counts = {}
+    football_candidates = 0
+    premium_eligible = 0
+    already_sent = 0
+    no_football = 0
+    missing_odds = 0
+    missing_selection = 0
+    old_matches = 0
+    finished_matches = 0
+    duplicates = 0
+    preview_pick = None
+
+    destinations = telegram_auto_destinations("PRO", include_global=True)
+    global_dest = next((d for d in destinations if d.get("target_kind") == "channel"), {})
+    dedupe_target = global_dest.get("chat_id") or os.getenv("TELEGRAM_CHAT_ID", "") or "global"
+
+    for raw in raw_picks:
+        pick = telegram_enrich_pick_for_message(raw)
+        sendability = telegram_pick_sendability(pick)
+        sport_reason = telegram_sport_filter_reason(pick)
+        if sport_reason:
+            no_football += 1
+        else:
+            football_candidates += 1
+        reasons = list(sendability.get("reasons") or [])
+        for reason in reasons:
+            reason_counts[reason] = reason_counts.get(reason, 0) + 1
+        if as_float(pick.get("odds"), 0) <= 1:
+            missing_odds += 1
+        if not str(pick.get("selection") or pick.get("pick") or pick.get("recommendation") or "").strip():
+            missing_selection += 1
+        match_date = str(pick.get("match_date") or "")[:10]
+        if match_date and match_date < today_iso():
+            old_matches += 1
+        status = str(pick.get("status") or pick.get("match_status") or "").lower()
+        if any(word in status for word in ("final", "finished", "ended", "cancelled", "postponed")):
+            finished_matches += 1
+        dedupe = telegram_dedupe_key("auto_pick", str(pick.get("id") or today_iso()), dedupe_target)
+        existing = one("SELECT id,status,sent_at,error_message FROM telegram_queue WHERE dedupe_key=? ORDER BY created_at DESC LIMIT 1", (dedupe,))
+        if existing:
+            already_sent += 1
+            duplicates += 1
+        if sendability.get("sendable"):
+            premium_eligible += 1
+            candidates.append({
+                "id": pick.get("id"),
+                "match_id": pick.get("match_id"),
+                "partido": f"{pick.get('home_team') or 'Local'} vs {pick.get('away_team') or 'Visitante'}",
+                "competicion": pick.get("competition_name") or pick.get("league_name") or "",
+                "selection": pick.get("selection") or pick.get("pick") or pick.get("recommendation") or "",
+                "odds": pick.get("odds"),
+                "confidence": pick.get("confidence") or pick.get("shark_score"),
+                "dedupe_status": (existing or {}).get("status") or "",
+            })
+            if not preview_pick:
+                preview_pick = pick
+        else:
+            discarded.append({
+                "id": pick.get("id"),
+                "match_id": pick.get("match_id"),
+                "partido": f"{pick.get('home_team') or 'Local'} vs {pick.get('away_team') or 'Visitante'}",
+                "reasons": reasons or ["no_enviable"],
+                "odds": pick.get("odds"),
+                "confidence": pick.get("confidence") or pick.get("shark_score"),
+            })
+
+    pending_queue = (one("SELECT COUNT(*) AS total FROM telegram_queue WHERE lower(status)=?", (QUEUE_PENDING,)) or {}).get("total", 0)
+    sent_today = telegram_sent_today()
+    sent_hour = telegram_sent_last_hour()
+    failed_today = (one("SELECT COUNT(*) AS total FROM telegram_queue WHERE lower(status)=? AND updated_at LIKE ?", (QUEUE_FAILED, today_iso() + "%")) or {}).get("total", 0)
+    last_error = one("SELECT * FROM telegram_logs WHERE lower(status) IN ('failed','error') ORDER BY created_at DESC LIMIT 1") or {}
+    last_sent = one("SELECT * FROM telegram_queue WHERE lower(status)=? ORDER BY sent_at DESC LIMIT 1", (QUEUE_SENT,)) or {}
+    last_auto_pick = one("SELECT * FROM telegram_queue WHERE lower(coalesce(message_type,''))='auto_pick' ORDER BY COALESCE(sent_at, created_at) DESC LIMIT 1") or {}
+    if db_table_exists("telegram_delivery_memory"):
+        memory_total = (one("SELECT COUNT(*) AS total FROM telegram_delivery_memory") or {}).get("total", 0)
+        memory_recent = rows("SELECT * FROM telegram_delivery_memory ORDER BY created_at DESC LIMIT 20")
+    else:
+        memory_total = 0
+        memory_recent = []
+    if db_table_exists("data_memory_errors"):
+        memory_errors = rows("SELECT * FROM data_memory_errors WHERE lower(context) LIKE '%telegram%' OR lower(context) LIKE '%pick%' ORDER BY created_at DESC LIMIT 8")
+    else:
+        memory_errors = []
+
+    counts = {
+        "candidate_picks": len(raw_picks),
+        "football_candidates": football_candidates,
+        "non_football_discarded": no_football,
+        "premium_eligible": premium_eligible,
+        "discarded": len(discarded),
+        "missing_odds": missing_odds,
+        "missing_selection": missing_selection,
+        "old_matches": old_matches,
+        "finished_matches": finished_matches,
+        "already_sent": already_sent,
+        "duplicates": duplicates,
+        "destinations": len(destinations),
+        "global_channel": 1 if global_dest else 0,
+        "private_destinations": len([d for d in destinations if d.get("target_kind") == "private"]),
+        "pending_queue": pending_queue,
+        "sent_today": sent_today,
+        "sent_last_hour": sent_hour,
+        "failed_today": failed_today,
+        "delivery_memory_total": memory_total,
+    }
+    limits = {
+        "quiet_hours_active": telegram_quiet_hours_active(),
+        "quiet_start": cfg["quiet_start"],
+        "quiet_end": cfg["quiet_end"],
+        "daily_summary_start": cfg["daily_summary_start"],
+        "daily_summary_end": cfg["daily_summary_end"],
+        "daily_picks_start": cfg["daily_picks_start"],
+        "daily_picks_end": cfg["daily_picks_end"],
+        "max_per_hour": cfg["max_messages_per_hour"],
+        "max_per_day": cfg["max_messages_per_day"],
+        "max_auto_picks_per_day": cfg["max_auto_picks_per_day"],
+        "sent_last_hour": sent_hour,
+        "sent_today": sent_today,
+        "min_pick_score": cfg["min_pick_score"],
+        "min_odds": cfg["min_odds"],
+        "max_odds": cfg["max_odds"],
+    }
+    snapshot = {
+        "ok": True,
+        "madrid_now": now_madrid,
+        "env": env,
+        "settings": settings,
+        "counts": counts,
+        "reason_counts": reason_counts,
+        "limits": limits,
+        "last_error": last_error,
+        "last_sent": last_sent,
+        "last_auto_pick": last_auto_pick,
+        "candidates": candidates[:20],
+        "discarded": discarded[:30],
+        "destinations": [
+            {
+                "target_kind": d.get("target_kind"),
+                "membership": d.get("membership"),
+                "label": d.get("label"),
+                "chat_id": masked_key(d.get("chat_id")),
+            }
+            for d in destinations
+        ],
+        "data_memory": {
+            "total": memory_total,
+            "recent": memory_recent,
+            "errors": memory_errors,
+        },
+        "cron": {
+            "last_telegram": automation_get("last_cron_telegram_call", {}) or automation_get("cron_telegram_tick_last_call", {}) or {},
+            "last_daily": automation_get("last_cron_daily_call", {}) or automation_get("cron_daily_run_last_call", {}) or {},
+            "last_dispatch": automation_get("telegram_last_dispatch", {}) or {},
+        },
+        "preview_pick": preview_pick,
+    }
+    snapshot["diagnosis"] = explain_telegram_state(snapshot)
+    return snapshot
+
+
+def telegram_reliability_dry_run():
+    snapshot = telegram_reliability_snapshot(limit=80)
+    preview = ""
+    pick = snapshot.get("preview_pick")
+    if pick:
+        try:
+            preview = safe_preview_text(format_daily_picks_message([pick], force_empty=False, premium_name=APP_NAME))
+        except Exception as exc:
+            preview = f"No se pudo generar preview: {str(exc)[:160]}"
+    return {
+        "ok": snapshot.get("ok", False),
+        "madrid_now": snapshot.get("madrid_now"),
+        "diagnosis": snapshot.get("diagnosis"),
+        "candidates": snapshot.get("candidates", []),
+        "discarded": snapshot.get("discarded", []),
+        "reason_counts": snapshot.get("reason_counts", {}),
+        "would_send": (snapshot.get("diagnosis") or {}).get("status") == "READY_TO_SEND",
+        "message_preview": preview,
+    }
+
+
 def telegram_reply_markup_from_payload(payload):
     payload = dict(payload or {})
     buttons = []
@@ -8000,6 +8231,113 @@ def admin_telegram_page():
     data["telegram_logs"] = rows("SELECT * FROM telegram_logs ORDER BY created_at DESC LIMIT 30")
     data["telegram_subscribers"] = telegram_subscribers(active_only=False)
     return render_template("admin_telegram.html", data=data, message=message, result=result)
+
+
+@app.route("/admin/telegram/command-center")
+def admin_telegram_command_center_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/telegram/command-center")
+    snapshot = telegram_reliability_snapshot(limit=80)
+    dry_run = telegram_reliability_dry_run()
+    diagnostics = telegram_diagnostics_safe()
+    return render_template(
+        "admin_telegram_command_center.html",
+        data={
+            "version": APP_VERSION,
+            "snapshot": snapshot,
+            "dry_run": dry_run,
+            "diagnostics": diagnostics,
+        },
+    )
+
+
+@app.route("/api/admin/telegram/status")
+def api_admin_telegram_status():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    snapshot = telegram_reliability_snapshot(limit=80)
+    diagnosis = snapshot.get("diagnosis") or {}
+    return jsonify({
+        "ok": snapshot.get("ok", False),
+        "version": APP_VERSION,
+        "configured": {
+            "bot_token": (snapshot.get("env") or {}).get("bot_token_configured"),
+            "chat_id": (snapshot.get("env") or {}).get("chat_id_configured"),
+            "automation_secret": (snapshot.get("env") or {}).get("automation_secret_configured"),
+        },
+        "status": diagnosis.get("status"),
+        "severity": diagnosis.get("severity"),
+        "explanation": diagnosis.get("explanation"),
+        "what_to_do": diagnosis.get("action"),
+        "last_tick": (snapshot.get("cron") or {}).get("last_telegram"),
+        "last_daily": (snapshot.get("cron") or {}).get("last_daily"),
+        "last_sent": snapshot.get("last_sent"),
+        "candidates": (snapshot.get("counts") or {}).get("candidate_picks"),
+        "discarded": snapshot.get("discarded", [])[:12],
+        "blocked_by_limits": {
+            "quiet_hours": (snapshot.get("limits") or {}).get("quiet_hours_active"),
+            "sent_last_hour": (snapshot.get("limits") or {}).get("sent_last_hour"),
+            "max_per_hour": (snapshot.get("limits") or {}).get("max_per_hour"),
+            "sent_today": (snapshot.get("limits") or {}).get("sent_today"),
+            "max_per_day": (snapshot.get("limits") or {}).get("max_per_day"),
+        },
+        "errors": {
+            "last_error": snapshot.get("last_error"),
+            "data_memory_errors": (snapshot.get("data_memory") or {}).get("errors", [])[:5],
+        },
+        "football_only": (snapshot.get("env") or {}).get("telegram_football_only"),
+        "quiet_hours": {
+            "start": (snapshot.get("limits") or {}).get("quiet_start"),
+            "end": (snapshot.get("limits") or {}).get("quiet_end"),
+        },
+        "madrid_now": snapshot.get("madrid_now"),
+    })
+
+
+@app.route("/api/admin/telegram/dry-run", methods=["GET", "POST"])
+def api_admin_telegram_dry_run():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "version": APP_VERSION, **telegram_reliability_dry_run()})
+
+
+@app.route("/api/admin/telegram/preview-next")
+def api_admin_telegram_preview_next():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    dry = telegram_reliability_dry_run()
+    return jsonify({
+        "ok": True,
+        "version": APP_VERSION,
+        "madrid_now": dry.get("madrid_now"),
+        "would_send": dry.get("would_send"),
+        "diagnosis": dry.get("diagnosis"),
+        "message_preview": dry.get("message_preview") or "No hay mensaje premium listo para previsualizar.",
+    })
+
+
+@app.route("/api/admin/telegram/test-send", methods=["POST"])
+def api_admin_telegram_test_send():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    text = f"✅ Test Telegram NeMeSiS SHARK PRO — conexión correcta — hora Madrid {datetime.now(TZ).strftime('%H:%M')}"
+    result = enqueue_telegram_message(
+        "admin_connectivity_test",
+        "Test Telegram controlado",
+        text,
+        chat_id=os.getenv("TELEGRAM_CHAT_ID", ""),
+        payload={"target_key": "admin-connectivity-test", "priority": 99},
+        dedupe_key=telegram_dedupe_key("admin_connectivity_test", now_iso(), os.getenv("TELEGRAM_CHAT_ID", "")),
+        force=True,
+    )
+    process = process_premium_telegram_queue(limit=1, force=True) if result.get("queued") else {}
+    return jsonify({
+        "ok": bool(result.get("ok")),
+        "version": APP_VERSION,
+        "queued": result,
+        "process": process,
+        "note": "Envio de prueba controlado iniciado por admin. No expone secrets.",
+    })
 
 
 @app.route("/admin/automation", methods=["GET", "POST"])

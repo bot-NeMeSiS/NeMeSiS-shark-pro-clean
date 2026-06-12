@@ -1,3 +1,56 @@
+# Codex Daily Automation
+
+Versión: `V727_TELEGRAM_RELIABILITY_COMMAND_CENTER`
+
+Generado: `2026-06-12T20:36:44+02:00`
+
+## Limpieza
+
+- Archivos: 4600
+- Basura segura: 4003
+- Peligrosos: 0
+- Revisar manualmente: 315
+
+## ZIP
+
+- Disponible: True
+- OK: True
+- Archivo: NeMeSiS_SHARK_PRO_V726_TOTAL_PROJECT_CLEANUP_LIVE_EXPERIENCE_ORGANIZATION_RENDER_READY.zip
+- Fuera del proyecto: False
+- ZIPs en raíz del proyecto: []
+
+## Hora Madrid
+
+- Engine: engines/madrid_time_engine.py
+- Selftest: True
+
+## Módulos activos
+
+{
+  "telegram_football_only": true,
+  "pro_calibration": true,
+  "picks_quality": true,
+  "shark_advisor": true,
+  "team_identity": true,
+  "data_memory": true,
+  "visual_pro": true,
+  "release_cleaner": true
+}
+
+## Memoria SHARK
+
+- Engine: True
+- Admin: True
+- Recomendación: Data Memory está preparado; revisar admin/data-memory tras Daily Run real.
+
+## Recomendaciones
+
+- Ejecutar python tools/purge_project_safe.py --dry-run y luego --apply si todo es seguro.
+- Validar compileall, smoke_check, Cron 403/200 y runtime-version antes de cada entrega.
+
+## Prompt actual
+
+```text
 Estoy continuando NeMeSiS SHARK PRO desde la versión V727_TELEGRAM_RELIABILITY_COMMAND_CENTER.
 
 Reglas:
@@ -32,3 +85,5 @@ Validación obligatoria:
 - python tools/audit_release_zip.py
 - python tools/validate_release.py
 - pytest -q si pytest está instalado
+
+```

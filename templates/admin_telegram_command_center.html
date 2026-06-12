@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% block content %}
+{% set snap = data.snapshot or {} %}
+{% set diag = snap.diagnosis or {} %}
+{% set counts = snap.counts or {} %}
+{% set limits = snap.limits or {} %}
+{% set env = snap.env or {} %}
+{% set cron = snap.cron or {} %}
+{% set last_dispatch = cron.last_dispatch or {} %}
+{% set last_dispatch_result = last_dispatch.get('result') or {} %}
+{% set memory = snap.data_memory or {} %}
+<section class="hero compact v638-tight-hero">
+  <div class="kicker">Admin · Telegram Command Center</div>
+  <h1>Fiabilidad Telegram</h1>
+  <p class="lead">Diagnóstico completo del flujo Cron → picks → cola → Telegram, sin mostrar secrets y sin enviar pruebas automáticas.</p>
+  <div class="admin-menu">
+    <a class="btn primary" href="/admin/telegram/command-center">Command Center</a>
+    <a class="btn" href="/admin/telegram">Telegram</a>
+    <a class="btn" href="/admin/telegram/diagnostics">Diagnóstico JSON</a>
+    <a class="btn" href="/admin/automation">Automatización</a>
+  </div>
+</section>
+
+<section class="band compact-band">
+  <div class="card status-card {{ diag.severity or 'info' }}">
+    <div class="kicker">Estado actual</div>
+    <h2>{{ diag.status or 'UNKNOWN_ERROR' }}</h2>
+    <p>{{ diag.explanation or 'Sin diagnóstico disponible.' }}</p>
+    <p class="small"><strong>Qué hacer:</strong> {{ diag.action or 'Revisar cola, cron y configuración.' }}</p>
+    <p class="small">Hora Madrid: {{ snap.madrid_now }}</p>
+  </div>
+</section>
+
+<section class="band compact-band">
+  <div class="section-head"><h2>Configuración</h2><span class="pill">sin secrets</span></div>
+  <div class="grid compact-grid metric-row">
+    <div class="card metric-card"><div class="metric">{% if env.bot_token_configured %}Sí{% else %}No{% endif %}</div><div class="muted">BOT_TOKEN</div></div>
+    <div class="card metric-card"><div class="metric">{% if env.chat_id_configured %}Sí{% else %}No{% endif %}</div><div class="muted">CHAT_ID / canal</div></div>
+    <div class="card metric-card"><div class="metric">{% if env.public_base_url_configured %}Sí{% else %}No{% endif %}</div><div class="muted">PUBLIC_BASE_URL</div></div>
+    <div class="card metric-card"><div class="metric">{% if env.automation_secret_configured %}Sí{% else %}No{% endif %}</div><div class="muted">AUTOMATION_SECRET</div></div>
+    <div class="card metric-card"><div class="metric">{% if env.telegram_football_only %}football_only{% else %}multi{% endif %}</div><div class="muted">modo deporte</div></div>
+    <div class="card metric-card"><div class="metric">{% if env.auto_send_telegram_picks or env.enable_telegram_auto %}ON{% else %}OFF{% endif %}</div><div class="muted">auto Telegram</div></div>
+  </div>
+</section>
+
+<section class="band compact-band">
+  <div class="section-head"><h2>Cron</h2><span class="pill">Render</span></div>
+  <div class="grid compact-grid">
+    <div class="card"><div class="kicker">Último Telegram Tick</div><strong>{{ cron.last_telegram.time or 'Sin registro' }}</strong><p class="small">{{ cron.last_telegram.endpoint or '' }} · force={{ cron.last_telegram.force }}</p></div>
+    <div class="card"><div class="kicker">Último Daily Run</div><strong>{{ cron.last_daily.time or 'Sin registro' }}</strong><p class="small">{{ cron.last_daily.endpoint or '' }} · force={{ cron.last_daily.force }}</p></div>
+    <div class="card"><div class="kicker">Último dispatch</div><strong>{{ last_dispatch.get('time') or 'Sin registro' }}</strong><p class="small">{{ last_dispatch_result.get('message') or '' }}</p></div>
+  </div>
+</section>
+
+<section class="band compact-band">
+  <div class="section-head"><h2>Candidatos y descartes</h2><span class="pill">{{ counts.candidate_picks or 0 }} revisados</span></div>
+  <div class="grid compact-grid metric-row">
+    <div class="card metric-card"><div class="metric">{{ counts.football_candidates or 0 }}</div><div class="muted">fútbol</div></div>
+    <div class="card metric-card"><div class="metric">{{ counts.non_football_discarded or 0 }}</div><div class="muted">no fútbol</div></div>
+    <div class="card metric-card"><div class="metric">{{ counts.premium_eligible or 0 }}</div><div class="muted">premium elegibles</div></div>
+    <div class="card metric-card"><div class="metric">{{ counts.missing_odds or 0 }}</div><div class="muted">sin cuota</div></div>
+    <div class="card metric-card"><div class="metric">{{ counts.missing_selection or 0 }}</div><div class="muted">sin selección</div></div>
+    <div class="card metric-card"><div class="metric">{{ counts.already_sent or 0 }}</div><div class="muted">ya enviados/dedupe</div></div>
+  </div>
+  <div class="two-col">
+    <div>
+      <h3>Elegibles</h3>
+      <div class="stack">
+        {% for item in snap.candidates[:10] %}
+        <div class="list-row"><span>{{ item.partido }}<small>{{ item.competicion }} · cuota {{ item.odds or 'sin cuota' }} · confianza {{ item.confidence or '-' }}</small></span><strong>{{ item.dedupe_status or 'nuevo' }}</strong></div>
+        {% else %}
+        <div class="empty">No hay picks premium listos para enviar.</div>
+        {% endfor %}
+      </div>
+    </div>
+    <div>
+      <h3>Descartados</h3>
+      <div class="stack">
+        {% for item in snap.discarded[:10] %}
+        <div class="list-row"><span>{{ item.partido }}<small>{{ item.reasons|join(', ') }}</small></span><strong>{{ item.odds or '-' }}</strong></div>
+        {% else %}
+        <div class="empty">No hay descartes recientes.</div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band compact-band">
+  <div class="section-head"><h2>Límites y ventanas</h2><span class="pill">{% if limits.quiet_hours_active %}silencio activo{% else %}operativo{% endif %}</span></div>
+  <div class="grid compact-grid">
+    <div class="card"><div class="kicker">Horario silencioso</div><strong>{{ limits.quiet_start }} - {{ limits.quiet_end }}</strong></div>
+    <div class="card"><div class="kicker">Picks premium</div><strong>{{ limits.daily_picks_start }} - {{ limits.daily_picks_end }}</strong></div>
+    <div class="card"><div class="kicker">Última hora</div><strong>{{ limits.sent_last_hour or 0 }}/{{ limits.max_per_hour }}</strong></div>
+    <div class="card"><div class="kicker">Hoy</div><strong>{{ limits.sent_today or 0 }}/{{ limits.max_per_day }}</strong></div>
+  </div>
+</section>
+
+<section class="band compact-band">
+  <div class="section-head"><h2>Preview sin envío</h2><span class="pill">{% if data.dry_run.would_send %}enviaría{% else %}no enviaría{% endif %}</span></div>
+  <div class="card">
+    <pre class="code-block">{{ data.dry_run.message_preview or 'No hay mensaje premium listo para previsualizar.' }}</pre>
+  </div>
+</section>
+
+<section class="band compact-band">
+  <div class="section-head"><h2>Data Memory</h2><span class="pill">{{ memory.total or 0 }} registros</span></div>
+  <div class="two-col">
+    <div>
+      <h3>Últimos registros</h3>
+      <div class="stack">
+        {% for item in memory.recent[:8] %}
+        <div class="list-row"><span>{{ item.message_type or item.status }}<small>{{ item.created_at }} · {{ item.dedupe_key }}</small></span><strong>{{ item.status }}</strong></div>
+        {% else %}
+        <div class="empty">Sin memoria Telegram todavía.</div>
+        {% endfor %}
+      </div>
+    </div>
+    <div>
+      <h3>Errores memoria</h3>
+      <div class="stack">
+        {% for item in memory.errors[:8] %}
+        <div class="list-row"><span>{{ item.context }}<small>{{ item.error_summary }}</small></span><strong>{{ item.created_at }}</strong></div>
+        {% else %}
+        <div class="empty">Sin errores de memoria Telegram.</div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band compact-band">
+  <div class="section-head"><h2>Acciones admin seguras</h2><span class="pill">manual</span></div>
+  <div class="grid compact-grid">
+    <a class="card service-card" href="/api/admin/telegram/status"><h3>Estado JSON</h3><p class="small">Resumen seguro sin secrets.</p></a>
+    <a class="card service-card" href="/api/admin/telegram/dry-run"><h3>Dry-run</h3><p class="small">Simula el próximo tick sin enviar.</p></a>
+    <a class="card service-card" href="/api/admin/telegram/preview-next"><h3>Preview</h3><p class="small">Muestra el siguiente mensaje real sin mandarlo.</p></a>
+    <form class="card service-card" method="post" action="/api/admin/telegram/test-send"><h3>Test controlado</h3><p class="small">Envía solo si un admin pulsa este botón.</p><button type="submit">Enviar test al canal</button></form>
+  </div>
+</section>
+{% endblock %}

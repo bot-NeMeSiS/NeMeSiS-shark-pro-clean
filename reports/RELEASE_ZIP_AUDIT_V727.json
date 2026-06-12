@@ -1,0 +1,194 @@
+{
+  "ok": true,
+  "audited_at": "2026-06-12T20:39:45",
+  "zip": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\release_output\\NeMeSiS_SHARK_PRO_V727_TELEGRAM_RELIABILITY_COMMAND_CENTER_RENDER_READY.zip",
+  "zip_size_bytes": 501178,
+  "file_count": 267,
+  "content_size_bytes": 1720207,
+  "forbidden_count": 0,
+  "forbidden": [],
+  "top_files": [
+    {
+      "path": "app.py",
+      "size": 484226
+    },
+    {
+      "path": "V726_PROJECT_TREE_AUDIT.md",
+      "size": 97068
+    },
+    {
+      "path": "static/app.css",
+      "size": 50172
+    },
+    {
+      "path": "engines/api_exploitation_engine.py",
+      "size": 41823
+    },
+    {
+      "path": "engines/football_data_warehouse_engine.py",
+      "size": 38480
+    },
+    {
+      "path": "engines/shark_historical_intelligence_engine.py",
+      "size": 30018
+    },
+    {
+      "path": "engines/shark_prediction_engine.py",
+      "size": 23584
+    },
+    {
+      "path": "engines/telegram_delivery_engine.py",
+      "size": 22847
+    },
+    {
+      "path": "engines/spanish_localization_engine.py",
+      "size": 21939
+    },
+    {
+      "path": "engines/player_intelligence_engine.py",
+      "size": 20270
+    },
+    {
+      "path": "engines/data_memory_engine.py",
+      "size": 20076
+    },
+    {
+      "path": "engines/sportsdb_enrichment_engine.py",
+      "size": 20026
+    },
+    {
+      "path": "engines/shark_learning_engine.py",
+      "size": 19489
+    },
+    {
+      "path": "engines/shark_accuracy_engine.py",
+      "size": 17309
+    },
+    {
+      "path": "V726_PURGE_REPORT.md",
+      "size": 16880
+    },
+    {
+      "path": "engines/telegram_autonomous_delivery_engine.py",
+      "size": 16712
+    },
+    {
+      "path": "engines/shark_performance_engine.py",
+      "size": 15852
+    },
+    {
+      "path": "engines/codex_daily_automation_engine.py",
+      "size": 15622
+    },
+    {
+      "path": "engines/data_provider_engine.py",
+      "size": 15044
+    },
+    {
+      "path": "engines/odds_value_engine.py",
+      "size": 14349
+    }
+  ],
+  "top_folders": [
+    {
+      "folder": "engines",
+      "size": 565637,
+      "files": 45
+    },
+    {
+      "folder": "app.py",
+      "size": 484226,
+      "files": 1
+    },
+    {
+      "folder": "templates",
+      "size": 326001,
+      "files": 101
+    },
+    {
+      "folder": "V726_PROJECT_TREE_AUDIT.md",
+      "size": 97068,
+      "files": 1
+    },
+    {
+      "folder": "static",
+      "size": 50172,
+      "files": 1
+    },
+    {
+      "folder": "tools",
+      "size": 47998,
+      "files": 11
+    },
+    {
+      "folder": "docs",
+      "size": 45484,
+      "files": 56
+    },
+    {
+      "folder": "V726_PURGE_REPORT.md",
+      "size": 16880,
+      "files": 1
+    },
+    {
+      "folder": "tests",
+      "size": 11717,
+      "files": 10
+    },
+    {
+      "folder": "services",
+      "size": 7327,
+      "files": 6
+    },
+    {
+      "folder": "V724_SUPREME_CLIENT_VISUAL_EXPERIENCE_PRO_REPORT.md",
+      "size": 6347,
+      "files": 1
+    },
+    {
+      "folder": "V727_TELEGRAM_RELIABILITY_COMMAND_CENTER_REPORT.md",
+      "size": 4465,
+      "files": 1
+    },
+    {
+      "folder": "V726_TOTAL_PROJECT_CLEANUP_LIVE_EXPERIENCE_ORGANIZATION_REPORT.md",
+      "size": 3989,
+      "files": 1
+    },
+    {
+      "folder": "CHATGPT_CONTINUATION_REPORT.md",
+      "size": 3914,
+      "files": 1
+    },
+    {
+      "folder": "blueprints",
+      "size": 3545,
+      "files": 3
+    },
+    {
+      "folder": "V725_MADRID_TIME_RELEASE_WORKFLOW_AUTOMATION_FIX_REPORT.md",
+      "size": 3541,
+      "files": 1
+    },
+    {
+      "folder": "TELEGRAM_RUNBOOK_V727.md",
+      "size": 3479,
+      "files": 1
+    },
+    {
+      "folder": "V723_CODEX_AUTOMATION_TOTAL_PURGE_RELEASE_SYSTEM_REPORT.md",
+      "size": 3450,
+      "files": 1
+    },
+    {
+      "folder": "TELEGRAM_RELIABILITY_AUDIT_V727.md",
+      "size": 2813,
+      "files": 1
+    },
+    {
+      "folder": "RELEASE_MANIFEST_V727.json",
+      "size": 2787,
+      "files": 1
+    }
+  ]
+}

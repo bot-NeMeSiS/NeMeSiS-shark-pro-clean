@@ -1,13 +1,15 @@
 # Purga segura V726
 
 - Modo: apply
-- Candidatos: 55
-- Ejecutados: 55
+- Candidatos: 78
+- Ejecutados: 78
 
 ## Candidatos
+- `data/telegram_reliability_audit.db`: base SQLite local o backup local; Render usa /data/database.db
 - `__pycache__/app.cpython-312.pyc`: cache/carpeta temporal local
 - `__pycache__/database_manager.cpython-312.pyc`: cache/carpeta temporal local
 - `blueprints/__pycache__/architecture.cpython-312.pyc`: cache/carpeta temporal local
+- `blueprints/__pycache__/system_blueprint.cpython-312.pyc`: cache/carpeta temporal local
 - `blueprints/__pycache__/__init__.cpython-312.pyc`: cache/carpeta temporal local
 - `engines/__pycache__/api_exploitation_engine.cpython-312.pyc`: cache/carpeta temporal local
 - `engines/__pycache__/autonomous_operations_engine.cpython-312.pyc`: cache/carpeta temporal local
@@ -51,6 +53,7 @@
 - `engines/__pycache__/telegram_autonomous_delivery_engine.cpython-312.pyc`: cache/carpeta temporal local
 - `engines/__pycache__/telegram_delivery_engine.cpython-312.pyc`: cache/carpeta temporal local
 - `engines/__pycache__/telegram_engine.cpython-312.pyc`: cache/carpeta temporal local
+- `engines/__pycache__/telegram_reliability_engine.cpython-312.pyc`: cache/carpeta temporal local
 - `engines/__pycache__/telegram_sport_filter_engine.cpython-312.pyc`: cache/carpeta temporal local
 - `engines/__pycache__/__init__.cpython-312.pyc`: cache/carpeta temporal local
 - `services/__pycache__/backup_service.cpython-312.pyc`: cache/carpeta temporal local
@@ -59,12 +62,34 @@
 - `services/__pycache__/sports_service.cpython-312.pyc`: cache/carpeta temporal local
 - `services/__pycache__/telegram_service.cpython-312.pyc`: cache/carpeta temporal local
 - `services/__pycache__/__init__.cpython-312.pyc`: cache/carpeta temporal local
+- `tests/__pycache__/conftest.cpython-312.pyc`: cache/carpeta temporal local
+- `tests/__pycache__/test_app_imports.cpython-312.pyc`: cache/carpeta temporal local
+- `tests/__pycache__/test_routes_smoke.cpython-312.pyc`: cache/carpeta temporal local
+- `tests/__pycache__/test_security_baseline.cpython-312.pyc`: cache/carpeta temporal local
+- `tests/__pycache__/test_telegram_football_only_filter.cpython-312.pyc`: cache/carpeta temporal local
+- `tests/__pycache__/test_templates_integrity.cpython-312.pyc`: cache/carpeta temporal local
+- `tests/__pycache__/test_v606_blueprint_migration.cpython-312.pyc`: cache/carpeta temporal local
+- `tests/__pycache__/test_v608_blueprint_phase2.cpython-312.pyc`: cache/carpeta temporal local
+- `tests/__pycache__/test_v716_release_validation.cpython-312.pyc`: cache/carpeta temporal local
+- `tests/__pycache__/test_v727_telegram_reliability.cpython-312.pyc`: cache/carpeta temporal local
 - `tools/__pycache__/audit_project_tree.cpython-312.pyc`: cache/carpeta temporal local
+- `tools/__pycache__/audit_release_zip.cpython-312.pyc`: cache/carpeta temporal local
+- `tools/__pycache__/build_clean_release.cpython-312.pyc`: cache/carpeta temporal local
+- `tools/__pycache__/check_madrid_times.cpython-312.pyc`: cache/carpeta temporal local
+- `tools/__pycache__/check_telegram_reliability.cpython-312.pyc`: cache/carpeta temporal local
+- `tools/__pycache__/nemesis_daily_codex.cpython-312.pyc`: cache/carpeta temporal local
+- `tools/__pycache__/purge_project_safe.cpython-312.pyc`: cache/carpeta temporal local
+- `tools/__pycache__/route_map_v606.cpython-312.pyc`: cache/carpeta temporal local
+- `tools/__pycache__/smoke_check.cpython-312.pyc`: cache/carpeta temporal local
+- `tools/__pycache__/validate_release.cpython-312.pyc`: cache/carpeta temporal local
+- `tools/__pycache__/verify_imports_and_routes.cpython-312.pyc`: cache/carpeta temporal local
 
 ## Acciones
+- `C:\Users\aloha\OneDrive\Escritorio\NeMeSiS shark pro\data\telegram_reliability_audit.db`: deleted
 - `C:\Users\aloha\OneDrive\Escritorio\NeMeSiS shark pro\__pycache__\app.cpython-312.pyc`: deleted
 - `C:\Users\aloha\OneDrive\Escritorio\NeMeSiS shark pro\__pycache__\database_manager.cpython-312.pyc`: deleted
 - `C:\Users\aloha\OneDrive\Escritorio\NeMeSiS shark pro\blueprints\__pycache__\architecture.cpython-312.pyc`: deleted
+- `C:\Users\aloha\OneDrive\Escritorio\NeMeSiS shark pro\blueprints\__pycache__\system_blueprint.cpython-312.pyc`: deleted
 - `C:\Users\aloha\OneDrive\Escritorio\NeMeSiS shark pro\blueprints\__pycache__\__init__.cpython-312.pyc`: deleted
 - `C:\Users\aloha\OneDrive\Escritorio\NeMeSiS shark pro\engines\__pycache__\api_exploitation_engine.cpython-312.pyc`: deleted
 - `C:\Users\aloha\OneDrive\Escritorio\NeMeSiS shark pro\engines\__pycache__\autonomous_operations_engine.cpython-312.pyc`: deleted
@@ -108,6 +133,7 @@
 - `C:\Users\aloha\OneDrive\Escritorio\NeMeSiS shark pro\engines\__pycache__\telegram_autonomous_delivery_engine.cpython-312.pyc`: deleted
 - `C:\Users\aloha\OneDrive\Escritorio\NeMeSiS shark pro\engines\__pycache__\telegram_delivery_engine.cpython-312.pyc`: deleted
 - `C:\Users\aloha\OneDrive\Escritorio\NeMeSiS shark pro\engines\__pycache__\telegram_engine.cpython-312.pyc`: deleted
+- `C:\Users\aloha\OneDrive\Escritorio\NeMeSiS shark pro\engines\__pycache__\telegram_reliability_engine.cpython-312.pyc`: deleted
 - `C:\Users\aloha\OneDrive\Escritorio\NeMeSiS shark pro\engines\__pycache__\telegram_sport_filter_engine.cpython-312.pyc`: deleted
 - `C:\Users\aloha\OneDrive\Escritorio\NeMeSiS shark pro\engines\__pycache__\__init__.cpython-312.pyc`: deleted
 - `C:\Users\aloha\OneDrive\Escritorio\NeMeSiS shark pro\services\__pycache__\backup_service.cpython-312.pyc`: deleted
@@ -116,4 +142,24 @@
 - `C:\Users\aloha\OneDrive\Escritorio\NeMeSiS shark pro\services\__pycache__\sports_service.cpython-312.pyc`: deleted
 - `C:\Users\aloha\OneDrive\Escritorio\NeMeSiS shark pro\services\__pycache__\telegram_service.cpython-312.pyc`: deleted
 - `C:\Users\aloha\OneDrive\Escritorio\NeMeSiS shark pro\services\__pycache__\__init__.cpython-312.pyc`: deleted
+- `C:\Users\aloha\OneDrive\Escritorio\NeMeSiS shark pro\tests\__pycache__\conftest.cpython-312.pyc`: deleted
+- `C:\Users\aloha\OneDrive\Escritorio\NeMeSiS shark pro\tests\__pycache__\test_app_imports.cpython-312.pyc`: deleted
+- `C:\Users\aloha\OneDrive\Escritorio\NeMeSiS shark pro\tests\__pycache__\test_routes_smoke.cpython-312.pyc`: deleted
+- `C:\Users\aloha\OneDrive\Escritorio\NeMeSiS shark pro\tests\__pycache__\test_security_baseline.cpython-312.pyc`: deleted
+- `C:\Users\aloha\OneDrive\Escritorio\NeMeSiS shark pro\tests\__pycache__\test_telegram_football_only_filter.cpython-312.pyc`: deleted
+- `C:\Users\aloha\OneDrive\Escritorio\NeMeSiS shark pro\tests\__pycache__\test_templates_integrity.cpython-312.pyc`: deleted
+- `C:\Users\aloha\OneDrive\Escritorio\NeMeSiS shark pro\tests\__pycache__\test_v606_blueprint_migration.cpython-312.pyc`: deleted
+- `C:\Users\aloha\OneDrive\Escritorio\NeMeSiS shark pro\tests\__pycache__\test_v608_blueprint_phase2.cpython-312.pyc`: deleted
+- `C:\Users\aloha\OneDrive\Escritorio\NeMeSiS shark pro\tests\__pycache__\test_v716_release_validation.cpython-312.pyc`: deleted
+- `C:\Users\aloha\OneDrive\Escritorio\NeMeSiS shark pro\tests\__pycache__\test_v727_telegram_reliability.cpython-312.pyc`: deleted
 - `C:\Users\aloha\OneDrive\Escritorio\NeMeSiS shark pro\tools\__pycache__\audit_project_tree.cpython-312.pyc`: deleted
+- `C:\Users\aloha\OneDrive\Escritorio\NeMeSiS shark pro\tools\__pycache__\audit_release_zip.cpython-312.pyc`: deleted
+- `C:\Users\aloha\OneDrive\Escritorio\NeMeSiS shark pro\tools\__pycache__\build_clean_release.cpython-312.pyc`: deleted
+- `C:\Users\aloha\OneDrive\Escritorio\NeMeSiS shark pro\tools\__pycache__\check_madrid_times.cpython-312.pyc`: deleted
+- `C:\Users\aloha\OneDrive\Escritorio\NeMeSiS shark pro\tools\__pycache__\check_telegram_reliability.cpython-312.pyc`: deleted
+- `C:\Users\aloha\OneDrive\Escritorio\NeMeSiS shark pro\tools\__pycache__\nemesis_daily_codex.cpython-312.pyc`: deleted
+- `C:\Users\aloha\OneDrive\Escritorio\NeMeSiS shark pro\tools\__pycache__\purge_project_safe.cpython-312.pyc`: deleted
+- `C:\Users\aloha\OneDrive\Escritorio\NeMeSiS shark pro\tools\__pycache__\route_map_v606.cpython-312.pyc`: deleted
+- `C:\Users\aloha\OneDrive\Escritorio\NeMeSiS shark pro\tools\__pycache__\smoke_check.cpython-312.pyc`: deleted
+- `C:\Users\aloha\OneDrive\Escritorio\NeMeSiS shark pro\tools\__pycache__\validate_release.cpython-312.pyc`: deleted
+- `C:\Users\aloha\OneDrive\Escritorio\NeMeSiS shark pro\tools\__pycache__\verify_imports_and_routes.cpython-312.pyc`: deleted
