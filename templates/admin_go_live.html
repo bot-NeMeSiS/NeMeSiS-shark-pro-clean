@@ -1,0 +1,120 @@
+{% extends 'base.html' %}
+{% block content %}
+<section class="hero compact-hero admin-hero v735-hero go-live-hero">
+  <div class="eyebrow">Admin · Go Live V735</div>
+  <h1>Certificación para beta pública controlada</h1>
+  <p>Panel único para decidir si NeMeSiS SHARK PRO puede abrirse a más usuarios con producción, Telegram, Data Memory, track record, pagos y cliente bajo control.</p>
+</section>
+
+<section class="grid cards-4 v735-go-live-score">
+  <article class="card stat-card launch-score-card">
+    <span>Score Go Live</span>
+    <strong>{{ data.go_live.global_score }}%</strong>
+    <small>{{ data.go_live.status|replace('_',' ')|title }}</small>
+  </article>
+  <article class="card stat-card">
+    <span>Bloqueos críticos</span>
+    <strong>{{ data.go_live.critical_blockers|length }}</strong>
+    <small>Render / Telegram / Data Memory</small>
+  </article>
+  <article class="card stat-card">
+    <span>Bloqueos totales</span>
+    <strong>{{ data.go_live.blockers|length }}</strong>
+    <small>áreas bajo 75%</small>
+  </article>
+  <article class="card stat-card">
+    <span>Versión</span>
+    <strong>{{ data.version }}</strong>
+    <small>Render Ready</small>
+  </article>
+</section>
+
+<section class="card go-live-decision {{ 'success' if data.go_live.decision.can_run_private_beta else 'warn' }}">
+  <h2>Decisión clara</h2>
+  {% if data.go_live.decision.can_open_public_big %}
+    <p class="empty-state success">Listo para pre-lanzamiento controlado. Mantén monitorización diaria antes de abrir tráfico grande.</p>
+  {% elif data.go_live.decision.can_run_private_beta %}
+    <p class="empty-state success">Apto para beta comercial controlada si las pruebas reales de Render/Telegram pasan varios días seguidos.</p>
+  {% else %}
+    <p class="empty-state warn">No abrir a público grande todavía. Primero cierra los bloqueos críticos marcados abajo.</p>
+  {% endif %}
+  <p class="muted">{{ data.go_live.decision.recommended_next }}</p>
+</section>
+
+<section class="grid cards-2 launch-stage-grid v735-gates">
+  {% for gate in data.go_live.gates %}
+  <article class="card launch-stage {{ 'ok' if gate.score >= 85 else ('warn' if gate.score >= 65 else 'danger') }}">
+    <div class="stage-head">
+      <div>
+        <span class="eyebrow">{{ 'Crítico' if gate.critical else 'Operativo' }}</span>
+        <h2>{{ gate.title }}</h2>
+      </div>
+      <strong class="stage-score">{{ gate.score }}%</strong>
+    </div>
+    <div class="checklist compact">
+      {% for check in gate.checks %}
+      <div class="check-row {{ 'ok' if check.ok else 'warn' }}">
+        <span>{{ '✅' if check.ok else '⚠️' }}</span>
+        <div>
+          <strong>{{ check.label }}</strong>
+          {% if check.value is defined %}<small>{{ check.value }}</small>{% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    <p class="muted"><strong>Siguiente:</strong> {{ gate.next_action }}</p>
+  </article>
+  {% endfor %}
+</section>
+
+<section class="grid cards-2">
+  <article class="card">
+    <h2>Variables seguras</h2>
+    <div class="checklist compact">
+      {% for key, present in data.go_live.safe_env.items() %}
+      <div class="check-row {{ 'ok' if present else 'warn' }}">
+        <span>{{ '✅' if present else '⚠️' }}</span>
+        <div><strong>{{ key }}</strong><small>{{ 'configurado' if present else 'pendiente' }}</small></div>
+      </div>
+      {% endfor %}
+    </div>
+    <p class="muted">No se muestran tokens, claves ni secrets. Solo presencia segura.</p>
+  </article>
+  <article class="card">
+    <h2>Datos reales</h2>
+    <div class="grid cards-2 mini-grid">
+      {% for table, count in data.go_live.db.counts.items() %}
+        {% if table in ['users','matches','picks','telegram_delivery_memory','match_snapshots','pick_grading_results','payment_webhook_events','security_events'] %}
+        <div class="mini-card"><strong>{{ table }}</strong><span>{{ count }}</span></div>
+        {% endif %}
+      {% endfor %}
+    </div>
+  </article>
+</section>
+
+<section class="card">
+  <h2>Plan de validación en Render</h2>
+  <div class="table-wrap">
+    <table class="premium-table">
+      <thead><tr><th>Paso</th><th>Prueba</th><th>URL</th><th>Debe dar</th></tr></thead>
+      <tbody>
+      {% for item in data.validation_plan %}
+        <tr>
+          <td>{{ item.step }}</td>
+          <td>{{ item.title }}</td>
+          <td><code>{{ item.url }}</code></td>
+          <td>{{ item.expected }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="grid cards-4 quick-admin-links">
+  <a class="card mini-card" href="/admin/public-launch"><strong>Público grande</strong><span>Roadmap global</span></a>
+  <a class="card mini-card" href="/admin/telegram/command-center"><strong>Telegram</strong><span>Status y dry-run</span></a>
+  <a class="card mini-card" href="/admin/data-memory"><strong>Data Memory</strong><span>Memoria real</span></a>
+  <a class="card mini-card" href="/admin/track-record"><strong>Track Record</strong><span>ROI real</span></a>
+</section>
+{% endblock %}

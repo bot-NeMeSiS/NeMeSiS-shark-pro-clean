@@ -1,7 +1,7 @@
 # V733 Client Success Onboarding Support Polish Report
 
 - Estado: **OK**
-- Versión: `V734_PUBLIC_LAUNCH_TRACK_RECORD_PAYMENTS_FOUNDATION`
+- Versión: `V735_GO_LIVE_PRODUCTION_TELEGRAM_DATA_CERTIFICATION`
 - Score snapshot cliente: **100/100**
 - Rutas nuevas presentes: sí
 - Soporte POST activo: sí

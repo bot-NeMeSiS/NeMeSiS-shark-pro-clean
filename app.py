@@ -92,6 +92,7 @@ from engines.client_experience_guard_engine import client_experience_snapshot
 from engines.production_readiness_engine import production_readiness_snapshot
 from engines.client_success_engine import client_success_snapshot
 from engines.public_launch_engine import public_launch_snapshot
+from engines.go_live_engine import go_live_snapshot, production_validation_plan
 from engines.payment_readiness_engine import payment_readiness_snapshot, record_payment_webhook_event
 from engines.pick_grading_engine import pick_grading_summary, run_pick_grading
 from engines.subscription_control_engine import subscription_summary, apply_subscription_rules
@@ -129,7 +130,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V734_PUBLIC_LAUNCH_TRACK_RECORD_PAYMENTS_FOUNDATION"
+APP_VERSION = "V735_GO_LIVE_PRODUCTION_TELEGRAM_DATA_CERTIFICATION"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -10339,6 +10340,41 @@ def api_admin_client_success():
     return jsonify({"ok": True, "version": APP_VERSION, "client_success": client_success_runtime_context({"membership": "ADMIN", "role": "ADMIN", "id": ""})})
 
 
+
+
+# ===================== V735 GO LIVE / PRODUCTION / TELEGRAM / DATA CERTIFICATION =====================
+
+def v735_go_live_context():
+    return go_live_snapshot(DB_PATH, app_version=APP_VERSION)
+
+
+@app.route("/admin/go-live")
+@app.route("/admin/public-beta")
+@app.route("/admin/launch-certification")
+def admin_go_live_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/go-live")
+    data = dashboard_data()
+    data["version"] = APP_VERSION
+    data["go_live"] = v735_go_live_context()
+    data["validation_plan"] = production_validation_plan()
+    return render_template("admin_go_live.html", data=data)
+
+
+@app.route("/api/admin/go-live")
+def api_admin_go_live():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "version": APP_VERSION, "go_live": v735_go_live_context(), "validation_plan": production_validation_plan()})
+
+
+@app.route("/api/admin/go-live/validation-plan")
+def api_admin_go_live_validation_plan():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "version": APP_VERSION, "validation_plan": production_validation_plan()})
+
+
 # ===================== V734 PUBLIC LAUNCH / TRACK RECORD / PAYMENTS FOUNDATION =====================
 
 def v734_public_launch_context():
@@ -10800,6 +10836,7 @@ def v566_admin_items():
         {"group": "IA", "title": "SHARK Center", "body": "Memoria, señales y salud del copiloto SHARK.", "href": "/admin/shark-center"},
         {"group": "Sistema", "title": "QA", "body": "Auditoría final y salud del producto.", "href": "/admin/final-qa"},
         {"group": "Cliente", "title": "Client Success", "body": "Guía, onboarding, soporte y claridad de uso para cliente.", "href": "/admin/client-success"},
+        {"group": "Lanzamiento", "title": "Go Live", "body": "Certificación final para beta pública, Telegram, Data Memory y producción.", "href": "/admin/go-live"},
         {"group": "Lanzamiento", "title": "Público grande", "body": "Seis áreas para abrir a público grande sin improvisar.", "href": "/admin/public-launch"},
         {"group": "Credibilidad", "title": "Track Record", "body": "Resultados, ROI y picks auditados.", "href": "/admin/track-record"},
         {"group": "Pagos", "title": "Pagos PRO/ELITE", "body": "Stripe, suscripciones y monetización segura.", "href": "/admin/payments"},

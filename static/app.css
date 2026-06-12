@@ -413,3 +413,17 @@ body{letter-spacing:-.005em;text-rendering:optimizeLegibility}.shell.shark-shell
 .quick-admin-links .mini-card{text-decoration:none}.responsible-note{border-color:rgba(245,158,11,.25)}.badge.warn{background:rgba(245,158,11,.12);border-color:rgba(245,158,11,.3);color:#fbbf24}.empty-state.success{border-color:rgba(34,197,94,.25);background:rgba(34,197,94,.08)}.spacer-top{margin-top:1rem}.code-block{white-space:pre-wrap;max-height:360px;overflow:auto;border:1px solid rgba(148,163,184,.18);border-radius:14px;padding:1rem;background:rgba(2,6,23,.62);font-size:.82rem}
 .status-won,.status-WON{background:rgba(34,197,94,.12);border-color:rgba(34,197,94,.3);color:#86efac}.status-lost,.status-LOST{background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.3);color:#fca5a5}.status-pending,.status-PENDING{background:rgba(148,163,184,.12);border-color:rgba(148,163,184,.28);color:#cbd5e1}.status-void,.status-VOID{background:rgba(59,130,246,.12);border-color:rgba(59,130,246,.28);color:#93c5fd}
 @media (max-width:760px){.stage-head{align-items:center}.launch-stage-grid{grid-template-columns:1fr}.v734-score-grid{grid-template-columns:1fr}.quick-admin-links{grid-template-columns:1fr 1fr}.premium-table{font-size:.82rem}}
+
+/* V735 Go Live Production Certification */
+.v735-hero{position:relative;overflow:hidden;border:1px solid rgba(46,196,255,.18)}
+.v735-hero:after{content:"";position:absolute;right:-80px;top:-80px;width:220px;height:220px;background:radial-gradient(circle,rgba(46,196,255,.22),transparent 65%);pointer-events:none}
+.v735-go-live-score .stat-card strong{letter-spacing:-.04em}
+.go-live-decision{border:1px solid rgba(255,255,255,.12)}
+.go-live-decision.success{box-shadow:0 0 0 1px rgba(42,255,160,.16) inset}
+.go-live-decision.warn{box-shadow:0 0 0 1px rgba(255,190,80,.18) inset}
+.v735-gates .launch-stage{min-height:100%}
+.launch-stage.danger{border-color:rgba(255,92,122,.32);box-shadow:0 0 0 1px rgba(255,92,122,.08) inset}
+.stage-score{font-variant-numeric:tabular-nums}
+.mini-grid{gap:.7rem}
+.premium-table code{white-space:normal;word-break:break-all;font-size:.86em;color:var(--muted,#a9b7d9)}
+@media(max-width:760px){.v735-go-live-score{grid-template-columns:repeat(2,minmax(0,1fr))}.v735-gates{grid-template-columns:1fr}.premium-table{font-size:.86rem}.premium-table th:nth-child(3),.premium-table td:nth-child(3){min-width:180px}}
