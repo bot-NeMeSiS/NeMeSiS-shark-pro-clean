@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block content %}
+{% set cx = data.calendar_experience %}
+<section class="scoreboard-hero v701-scoreboard">
+  <div>
+    <div class="kicker">Admin · Calendario</div>
+    <h1>Calendar Experience QA</h1>
+    <p class="lead">Control de búsqueda, filtros, ligas, escudos y claridad visual de la pantalla Partidos/Calendario.</p>
+  </div>
+  <div class="scoreboard-kpis">
+    <div><strong>{{ cx.score }}</strong><span>Score</span></div>
+    <div><strong>{{ cx.status }}</strong><span>Estado</span></div>
+  </div>
+</section>
+
+<section class="band compact-band">
+  <div class="section-head"><h2>Checks V741</h2><a class="pill" href="/calendar">Ver calendario</a></div>
+  <div class="grid cards-grid">
+    {% for check in cx.checks %}
+    <article class="card">
+      <span class="pill">{{ 'OK' if check.ok else 'Revisar' }}</span>
+      <h3>{{ check.file }}</h3>
+      <p class="small">Marcadores revisados: {{ check.markers_checked }}</p>
+      {% if check.missing %}<p class="small danger">Faltan: {{ check.missing|join(', ') }}</p>{% else %}<p class="small">Calendario preparado correctamente.</p>{% endif %}
+    </article>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="band compact-band">
+  <div class="section-head"><h2>Puntos de venta</h2><span class="pill">Cliente</span></div>
+  <div class="stack">
+    {% for item in cx.sell_ready_points %}<div class="list-row"><strong>{{ item }}</strong></div>{% endfor %}
+  </div>
+</section>
+{% endblock %}

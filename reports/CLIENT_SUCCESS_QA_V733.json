@@ -1,0 +1,144 @@
+{
+  "ok": true,
+  "checks": {
+    "version": "V742_SALE_READY_LIVE_DETAIL_TRACK_RECORD_TELEGRAM_FINAL_POLISH",
+    "app_version_updated": true,
+    "engine_imported": true,
+    "routes_present": true,
+    "files_present": true,
+    "support_accepts_post": true,
+    "menu_has_guide": true,
+    "css_layer": true,
+    "snapshot_score": 100,
+    "snapshot_status": "OK",
+    "missing_files": [],
+    "missing_routes": []
+  },
+  "snapshot": {
+    "version": "V733_CLIENT_SUCCESS_ONBOARDING_SUPPORT_POLISH",
+    "generated_at": "2026-06-13T00:57:28",
+    "membership": "PRO",
+    "score": 100,
+    "status": "OK",
+    "pillars": [
+      {
+        "key": "matches",
+        "title": "Partidos y calendario",
+        "status": "OK",
+        "value": 18,
+        "label": "próximos detectados",
+        "body": "Calendario en hora Madrid con filtros Hoy, Mañana, Semana, Favoritos y Con pick.",
+        "href": "/calendar",
+        "cta": "Ver calendario"
+      },
+      {
+        "key": "live",
+        "title": "Directo y resultados",
+        "status": "OK",
+        "value": 1,
+        "label": "directos ahora",
+        "body": "Si hay partido en vivo, SHARK muestra minuto, marcador y estado sin inventar datos.",
+        "href": "/live",
+        "cta": "Abrir directo"
+      },
+      {
+        "key": "picks",
+        "title": "Picks premium",
+        "status": "OK",
+        "value": 3,
+        "label": "picks visibles",
+        "body": "Solo se muestran como premium señales con selección clara y cuota real.",
+        "href": "/picks",
+        "cta": "Ver picks"
+      },
+      {
+        "key": "combis",
+        "title": "Combis inteligentes",
+        "status": "LISTO",
+        "value": 15,
+        "label": "máximo selecciones",
+        "body": "Combi segura, media y larga con aviso de riesgo y stake responsable.",
+        "href": "/combis",
+        "cta": "Crear combi"
+      },
+      {
+        "key": "shark",
+        "title": "SHARK AI Advisor",
+        "status": "LISTO",
+        "value": "PRO",
+        "label": "asesor activo",
+        "body": "Preguntas rápidas para interpretar picks, value, directo, favoritos y qué no tocar.",
+        "href": "/shark",
+        "cta": "Preguntar"
+      },
+      {
+        "key": "telegram",
+        "title": "Telegram PRO",
+        "status": "CONFIGURADO",
+        "value": "Fútbol",
+        "label": "modo activo",
+        "body": "Alertas de fútbol, resumen diario y picks sin cuotas pendientes ni ruido técnico.",
+        "href": "/telegram",
+        "cta": "Conectar Telegram"
+      }
+    ],
+    "next_actions": [
+      {
+        "priority": "ok",
+        "title": "Revisar el directo y picks de hoy",
+        "href": "/sports-hub"
+      }
+    ],
+    "stats": {
+      "favorites_count": 2,
+      "picks_visible": 3,
+      "live_count": 1,
+      "upcoming_count": 18,
+      "telegram_configured": true,
+      "telegram_football_only": true,
+      "madrid_time_ready": true,
+      "support_ready": true
+    },
+    "static_checks": {
+      "templates": {
+        "client_success": true,
+        "admin_client_success": true,
+        "onboarding": true,
+        "support": true,
+        "telegram": true,
+        "sports_hub": true,
+        "calendar": true,
+        "live": true,
+        "picks": true,
+        "combis": true,
+        "shark": true
+      },
+      "css": {
+        "exists": true,
+        "client_success_layer": true,
+        "mobile_media": true,
+        "bottom_nav": true,
+        "shark_widget": true
+      }
+    },
+    "support_channels": [
+      {
+        "title": "Partidos o calendario",
+        "body": "Indica equipo, competición y hora visible en la app."
+      },
+      {
+        "title": "Telegram",
+        "body": "Indica última hora recibida, canal o mensaje privado, sin compartir secrets."
+      },
+      {
+        "title": "Picks y combis",
+        "body": "Indica partido, selección, cuota y si aparece en premium o estudio."
+      },
+      {
+        "title": "Cuenta",
+        "body": "Indica plan actual, acceso y pantalla donde se produce el problema."
+      }
+    ],
+    "responsible_note": "NeMeSiS SHARK PRO ofrece análisis deportivo y señales de valor; no garantiza resultados."
+  }
+}

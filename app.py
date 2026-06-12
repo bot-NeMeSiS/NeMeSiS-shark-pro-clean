@@ -53,6 +53,7 @@ from engines.football_population_engine import (
     team_payload,
 )
 from engines.live_engine import build_live_depth, build_live_flow, build_match_detail, fallback_timeline, normalize_live_state, shark_live_alerts, shark_momentum
+from engines.live_experience_engine import build_live_experience, live_experience_snapshot
 from engines.match_engine import hub_sections, real_time_state, sync_plan
 from engines.match_sync_engine import IMPORTANT_COMPETITIONS, h2h_price_snapshot, normalize_status as sync_normalize_status, odds_sports, sportsdb_leagues
 from engines.membership_engine import can_access_feature, get_membership_limits, get_user_membership, membership_context
@@ -97,6 +98,7 @@ from engines.visual_experience_engine import visual_experience_snapshot
 from engines.native_app_experience_engine import native_app_experience_snapshot
 from engines.final_release_engine import final_release_snapshot, final_release_validation_plan
 from engines.client_visual_perfection_engine import client_visual_perfection_snapshot
+from engines.calendar_experience_engine import calendar_experience_snapshot
 from engines.payment_readiness_engine import payment_readiness_snapshot, record_payment_webhook_event
 from engines.pick_grading_engine import pick_grading_summary, run_pick_grading
 from engines.subscription_control_engine import subscription_summary, apply_subscription_rules
@@ -135,7 +137,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V740_CLIENT_VISUAL_PICK_ANALYSIS_PERFECTION"
+APP_VERSION = "V742_SALE_READY_LIVE_DETAIL_TRACK_RECORD_TELEGRAM_FINAL_POLISH"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -8046,6 +8048,12 @@ def home_live_summary_data():
         if has_real_data
         else "Aún no hay partidos o picks sincronizados en producción. Ejecuta Cron/SportsDB/Odds y revisa el Command Center."
     )
+    favorite_rows = _home_rows_sql(
+        """SELECT * FROM favorites WHERE user_id=? ORDER BY created_at DESC LIMIT 6""",
+        (current_user_id() or "",),
+        limit=6,
+    ) if current_user_id() else []
+
     return {
         "date": today,
         "status": data_status,
@@ -8060,7 +8068,7 @@ def home_live_summary_data():
         },
         "upcoming_matches": upcoming_matches,
         "picks": picks,
-        "favorites": get_favorites() if current_user_id() else [],
+        "favorites": favorite_rows,
     }
 
 
@@ -8068,11 +8076,19 @@ def home_light_data():
     """Datos seguros para / con resumen real de producción cuando exista DB."""
     live = home_live_summary_data()
     counts = live.get("counts") or {}
+    try:
+        client_alerts = build_client_alerts(limit=3) if current_user_id() else []
+    except Exception as exc:
+        try:
+            print("[HOME_LIGHT][CLIENT_ALERTS_SKIP]", str(exc)[:200])
+        except Exception:
+            pass
+        client_alerts = []
     return {
         "app_name": APP_NAME,
         "version": APP_VERSION,
         "date": today_iso(),
-        "client_alerts": build_client_alerts(limit=3) if current_user_id() else [],
+        "client_alerts": client_alerts,
         "match_hub": {
             "counts": {
                 "upcoming": counts.get("upcoming", 0),
@@ -8106,34 +8122,291 @@ def home():
 
 
 
+# ===================== V741 CALENDAR SEARCH EXPERIENCE PERFECTION =====================
+
+CALENDAR_LANE_LABELS = {
+    "today": "Hoy",
+    "tomorrow": "Mañana",
+    "week": "Semana",
+    "upcoming": "Próximos",
+    "live": "Directo",
+    "favorites": "Favoritos",
+    "with_pick": "Con pick",
+    "picks": "Con pick",
+    "top": "Top mundial",
+    "spain": "España",
+    "andalucia": "Andalucía",
+}
+
+
+def _safe_query_value(value, max_len=80):
+    return str(value or "").strip()[:max_len]
+
+
+def _safe_date_value(value, fallback=None):
+    raw = str(value or "").strip()[:10]
+    try:
+        if raw:
+            datetime.fromisoformat(raw)
+            return raw
+    except Exception:
+        pass
+    return fallback or today_iso()
+
+
+def _calendar_pick_map(picks):
+    out = {}
+    for pick in picks or []:
+        mid = str(pick.get("match_id") or "").strip()
+        if mid and mid not in out:
+            out[mid] = pick
+    return out
+
+
+def _calendar_base_matches(lane, date):
+    lane = (lane or "today").strip().lower()
+    date = _safe_date_value(date)
+    if lane == "tomorrow":
+        return get_matches(today_iso(1), "today")
+    if lane == "week":
+        return get_upcoming_matches(today_iso(), days=7, limit=380)
+    if lane == "upcoming":
+        return get_upcoming_matches(today_iso(), days=21, limit=520)
+    if lane == "live":
+        return get_matches(today_iso(), "live")
+    if lane == "favorites":
+        return favorite_feed_full().get("matches") or []
+    if lane in {"top", "spain", "andalucia"}:
+        return get_matches(date, lane)
+    return get_matches(date, "today")
+
+
+def _calendar_match_text(match):
+    parts = [
+        match.get("safe_home"), match.get("home_team"),
+        match.get("safe_away"), match.get("away_team"),
+        match.get("safe_competition"), match.get("competition_name"),
+        match.get("league_name"), match.get("country"), match.get("status"),
+    ]
+    return normalized_label(" ".join(str(x or "") for x in parts))
+
+
+def _calendar_enrich_matches(matches, picks):
+    pick_map = _calendar_pick_map(picks)
+    favs = favorite_sets() if has_request_context() else {"team": set(), "league": set(), "match": set(), "all": []}
+    enriched = []
+    for raw in dedupe_matches_list(matches or []):
+        if is_fake_match(raw):
+            continue
+        try:
+            item = annotate_match(dict(raw), favs=favs)
+        except Exception:
+            item = dict(raw)
+            item.update(apply_match_localization(item))
+            item.update(apply_team_identities_to_match(item))
+        pick = pick_map.get(str(item.get("id") or ""))
+        comp = spanish_competition_name(item.get("safe_competition") or item.get("competition_name") or item.get("league_name") or item.get("competition_key") or "") or "Competición"
+        country = spanish_country_name(item.get("country") or item.get("safe_country") or "") or item.get("country") or "Global"
+        live_depth = item.get("live_depth") or {}
+        item["calendar_competition"] = comp
+        item["calendar_country"] = country
+        item["calendar_date_label"] = jinja_match_date_label(item)
+        item["calendar_time"] = live_depth.get("minute") if live_depth.get("badge") == "live" else jinja_match_time_short(item)
+        item["calendar_status"] = live_depth.get("label") or item.get("status") or "Próximo"
+        item["calendar_score"] = live_depth.get("score") or item.get("score") or "vs"
+        item["calendar_rank"] = v565_league_rank(item)
+        item["calendar_priority"] = max(0, 100 - int(item.get("calendar_rank") or 80))
+        item["has_pick"] = bool(pick)
+        item["calendar_pick"] = pick or {}
+        item["pick_label"] = (pick or {}).get("selection_display") or (pick or {}).get("selection") or ""
+        item["calendar_text"] = _calendar_match_text(item)
+        item["safe_home"] = item.get("safe_home") or item.get("home_team") or "Equipo local"
+        item["safe_away"] = item.get("safe_away") or item.get("away_team") or "Equipo visitante"
+        enriched.append(item)
+    return enriched
+
+
+def _calendar_apply_filters(matches, filters):
+    q = normalized_label(filters.get("q") or "")
+    league = normalized_label(filters.get("league") or "")
+    team = normalized_label(filters.get("team") or "")
+    country = normalized_label(filters.get("country") or "")
+    status = normalized_label(filters.get("status") or "")
+    only_pick = filters.get("lane") in {"with_pick", "picks"} or filters.get("with_pick") == "1"
+    out = []
+    for item in matches:
+        text = item.get("calendar_text") or _calendar_match_text(item)
+        if q and q not in text:
+            continue
+        if league and league not in normalized_label(item.get("calendar_competition") or item.get("competition_name") or item.get("league_name") or ""):
+            continue
+        if country and country not in normalized_label(item.get("calendar_country") or item.get("country") or ""):
+            continue
+        if team:
+            teams = normalized_label(" ".join([str(item.get("safe_home") or item.get("home_team") or ""), str(item.get("safe_away") or item.get("away_team") or "")]))
+            if team not in teams:
+                continue
+        if status:
+            status_text = normalized_label(" ".join([str(item.get("calendar_status") or ""), str((item.get("live_depth") or {}).get("badge") or "")]))
+            if status not in status_text:
+                continue
+        if only_pick and not item.get("has_pick"):
+            continue
+        out.append(item)
+    return out
+
+
+def _calendar_sort(matches, sort_key):
+    sort_key = (sort_key or "importance").lower()
+    def time_key(item):
+        return (
+            item.get("match_date") or "9999-99-99",
+            normalize_kickoff_for_display(item).get("madrid_time") or item.get("kickoff_time") or item.get("match_time") or "99:99",
+            int(item.get("calendar_rank") or 80),
+            item.get("calendar_competition") or "",
+            item.get("safe_home") or "",
+        )
+    if sort_key == "time":
+        return sorted(matches, key=time_key)
+    if sort_key == "league":
+        return sorted(matches, key=lambda item: (int(item.get("calendar_rank") or 80), item.get("calendar_competition") or "", item.get("match_date") or "", item.get("calendar_time") or ""))
+    if sort_key == "picks":
+        return sorted(matches, key=lambda item: (0 if item.get("has_pick") else 1, int(item.get("calendar_rank") or 80), time_key(item)))
+    return sorted(matches, key=lambda item: (item.get("match_date") or "9999-99-99", 0 if item.get("has_pick") else 1, int(item.get("calendar_rank") or 80), normalize_kickoff_for_display(item).get("madrid_time") or item.get("kickoff_time") or "99:99"))
+
+
+def _calendar_facets(matches):
+    leagues = {}
+    teams = {}
+    countries = {}
+    for item in matches:
+        league = item.get("calendar_competition") or "Competición"
+        country = item.get("calendar_country") or "Global"
+        leagues.setdefault(league, {"label": league, "value": league, "count": 0, "rank": int(item.get("calendar_rank") or 80)})
+        leagues[league]["count"] += 1
+        countries.setdefault(country, {"label": country, "value": country, "count": 0})
+        countries[country]["count"] += 1
+        for name in (item.get("safe_home") or item.get("home_team"), item.get("safe_away") or item.get("away_team")):
+            name = str(name or "").strip()
+            if not name:
+                continue
+            teams.setdefault(name, {"label": name, "value": name, "count": 0})
+            teams[name]["count"] += 1
+    return {
+        "leagues": sorted(leagues.values(), key=lambda x: (x["rank"], -x["count"], x["label"]))[:28],
+        "teams": sorted(teams.values(), key=lambda x: (-x["count"], x["label"]))[:32],
+        "countries": sorted(countries.values(), key=lambda x: (-x["count"], x["label"]))[:18],
+    }
+
+
+def _calendar_group(matches):
+    date_buckets = []
+    by_date = {}
+    for item in matches:
+        key = item.get("match_date") or normalize_kickoff_for_display(item).get("match_date") or "sin-fecha"
+        label = item.get("calendar_date_label") or jinja_match_date_label(item)
+        by_date.setdefault(key, {"date_key": key, "date_label": label, "matches_count": 0, "leagues": {}})
+        bucket = by_date[key]
+        bucket["matches_count"] += 1
+        league_name = item.get("calendar_competition") or "Competición"
+        league_key = normalized_label(league_name) or "competicion"
+        league = bucket["leagues"].setdefault(league_key, {
+            "key": league_key,
+            "name": league_name,
+            "country": item.get("calendar_country") or "Global",
+            "rank": int(item.get("calendar_rank") or 80),
+            "matches": [],
+        })
+        league["matches"].append(item)
+    for key in sorted(by_date.keys()):
+        bucket = by_date[key]
+        leagues = list(bucket["leagues"].values())
+        leagues.sort(key=lambda g: (g["rank"], g["name"]))
+        bucket["leagues"] = leagues
+        date_buckets.append(bucket)
+    return date_buckets
+
+
+def calendar_experience_data():
+    lane = _safe_query_value(request.args.get("lane") or "today", 32).lower() or "today"
+    date = _safe_date_value(request.args.get("date"), today_iso(1) if lane == "tomorrow" else today_iso())
+    filters = {
+        "lane": lane,
+        "date": date,
+        "q": _safe_query_value(request.args.get("q"), 90),
+        "league": _safe_query_value(request.args.get("league"), 80),
+        "team": _safe_query_value(request.args.get("team"), 80),
+        "country": _safe_query_value(request.args.get("country"), 60),
+        "status": _safe_query_value(request.args.get("status"), 40),
+        "sort": _safe_query_value(request.args.get("sort") or "importance", 40),
+        "with_pick": "1" if request.args.get("with_pick") in {"1", "true", "yes"} else "",
+    }
+    user = current_session_user() or {"membership": "FREE", "role": "FREE"}
+    picks = published_picks_for_user(user, limit=180)
+    raw_matches = _calendar_base_matches(lane, date)
+    all_matches = _calendar_enrich_matches(raw_matches, picks)
+    filtered = _calendar_apply_filters(all_matches, filters)
+    sorted_matches = _calendar_sort(filtered, filters.get("sort"))[:420]
+    facets = _calendar_facets(all_matches)
+    counts = {
+        "all": len(all_matches),
+        "visible": len(sorted_matches),
+        "picks": len([m for m in all_matches if m.get("has_pick")]),
+        "live": len([m for m in all_matches if (m.get("live_depth") or {}).get("badge") == "live"]),
+        "favorites": len([m for m in all_matches if m.get("is_favorite")]),
+        "leagues": len(facets.get("leagues") or []),
+    }
+    date_chips = []
+    for offset, label in [(0, "Hoy"), (1, "Mañana"), (2, "Pasado"), (3, "+3 días"), (4, "+4 días"), (5, "+5 días"), (6, "+6 días")]:
+        d = today_iso(offset)
+        date_chips.append({"label": label, "date": d, "href": f"/calendar?lane=today&date={d}", "active": d == date and lane not in {"week", "upcoming", "live", "favorites", "with_pick", "picks"}})
+    return {
+        "version": APP_VERSION,
+        "title": "Calendario de partidos",
+        "filters": filters,
+        "lane_label": CALENDAR_LANE_LABELS.get(lane, "Hoy"),
+        "tabs": [
+            {"key": "today", "label": "Hoy", "href": "/calendar?lane=today"},
+            {"key": "tomorrow", "label": "Mañana", "href": "/calendar?lane=tomorrow"},
+            {"key": "week", "label": "Semana", "href": "/calendar?lane=week"},
+            {"key": "live", "label": "Directo", "href": "/calendar?lane=live"},
+            {"key": "with_pick", "label": "Con pick", "href": "/calendar?lane=with_pick"},
+            {"key": "favorites", "label": "Favoritos", "href": "/calendar?lane=favorites"},
+            {"key": "spain", "label": "España", "href": "/calendar?lane=spain"},
+            {"key": "andalucia", "label": "Andalucía", "href": "/calendar?lane=andalucia"},
+            {"key": "upcoming", "label": "21 días", "href": "/calendar?lane=upcoming"},
+        ],
+        "date_chips": date_chips,
+        "matches": sorted_matches,
+        "groups": _calendar_group(sorted_matches),
+        "facets": facets,
+        "counts": counts,
+        "has_filters": any(filters.get(k) for k in ["q", "league", "team", "country", "status", "with_pick"]),
+    }
+
+
+def v741_calendar_experience_context():
+    return calendar_experience_snapshot(app_version=APP_VERSION)
+
+
 @app.route("/global")
 @app.route("/competiciones")
 def global_football():
     return render_template("global.html", data=dashboard_data())
 
 
+
 @app.route("/calendar")
 @app.route("/calendario")
 @app.route("/calendario-global")
+@app.route("/partidos")
+@app.route("/partidos/calendario")
 def calendar_page():
-    lane = (request.args.get("lane") or "today").strip().lower()
-    if lane == "tomorrow":
-        date = request.args.get("date") or today_iso(1)
-        data = dashboard_data("today", date)
-    else:
-        date = request.args.get("date") or today_iso()
-        data = dashboard_data("today", date)
-    if lane == "week":
-        data["matches"] = [annotate_match(m) for m in get_upcoming_matches(today_iso(), days=7, limit=260)]
-    elif lane == "upcoming":
-        data["matches"] = [annotate_match(m) for m in get_upcoming_matches(today_iso(), days=21, limit=360)]
-    elif lane == "favorites":
-        data["matches"] = [annotate_match(m) for m in (favorite_feed_full().get("matches") or [])]
-    elif lane in {"with_pick", "picks"}:
-        pick_ids = {str(p.get("match_id") or "") for p in published_picks_for_user(current_session_user() or {"membership": "FREE"}, limit=120)}
-        data["matches"] = [m for m in [annotate_match(x) for x in get_upcoming_matches(today_iso(), days=14, limit=260)] if str(m.get("id") or "") in pick_ids]
-    data["lane"] = lane
-    data["date"] = date
+    data = dashboard_data("today", request.args.get("date") or today_iso())
+    data["calendar"] = calendar_experience_data()
+    data["matches"] = data["calendar"].get("matches", [])
+    data["lane"] = data["calendar"].get("filters", {}).get("lane", "today")
+    data["date"] = data["calendar"].get("filters", {}).get("date", today_iso())
     return render_template("calendar.html", data=data)
 
 
@@ -8200,8 +8473,19 @@ def sports_hub_page():
 
 @app.route("/live")
 @app.route("/live-center")
+@app.route("/directo")
+@app.route("/en-directo")
 def live_page():
-    return render_template("live.html", data=dashboard_data("today", request.args.get("date") or today_iso()))
+    lane = request.args.get("f") or request.args.get("filter") or request.args.get("lane") or "live"
+    query = (request.args.get("q") or "").strip()
+    data = dashboard_data("today", request.args.get("date") or today_iso())
+    hub = data.get("match_hub") or {}
+    source = []
+    for key in ("live", "today", "upcoming", "finished"):
+        source.extend(hub.get(key) or [])
+    source = dedupe_matches_list(source)
+    data["live_experience"] = build_live_experience(source, lane=lane, query=query)
+    return render_template("live.html", data=data)
 
 
 @app.route("/match-hub")
@@ -9350,9 +9634,8 @@ def api_scheduler_run_live():
 
 @app.route("/api/calendar")
 def api_calendar():
-    lane = request.args.get("lane", "today")
-    date = request.args.get("date") or today_iso()
-    return jsonify({"ok": True, "version": APP_VERSION, "date": date, "lane": lane, "matches": get_matches(date, lane)})
+    calendar = calendar_experience_data()
+    return jsonify({"ok": True, "version": APP_VERSION, "calendar": calendar, "matches": calendar.get("matches", [])})
 
 
 @app.route("/api/live")
@@ -10559,18 +10842,78 @@ def api_admin_public_launch():
     return jsonify({"ok": True, "version": APP_VERSION, "public_launch": v734_public_launch_context()})
 
 
+def v742_track_record_context():
+    summary = dict(pick_grading_summary(DB_PATH) or {})
+    won = as_int(summary.get("won"), 0)
+    lost = as_int(summary.get("lost"), 0)
+    pending = as_int(summary.get("pending_review"), 0)
+    voids = 0
+    stake_total = 0.0
+    profit = as_float(summary.get("profit"), 0.0)
+    by_month = []
+    by_market = []
+    by_league = []
+    by_plan = []
+    pending_results = []
+    if db_table_exists("pick_grading_results"):
+        voids = as_int((one("SELECT COUNT(*) AS total FROM pick_grading_results WHERE result_status='void'") or {}).get("total"), 0)
+        stake_total = as_float((one("SELECT ROUND(SUM(stake),2) AS total FROM pick_grading_results WHERE result_status IN ('won','lost','void')") or {}).get("total"), 0.0)
+        by_month = rows("""SELECT substr(graded_at,1,7) AS label, COUNT(*) AS total, ROUND(SUM(profit),2) AS profit
+                           FROM pick_grading_results
+                           WHERE COALESCE(graded_at,'')!=''
+                           GROUP BY substr(graded_at,1,7)
+                           ORDER BY label DESC LIMIT 12""")
+        pending_results = rows("""SELECT * FROM pick_grading_results
+                                  WHERE result_status='pending'
+                                  ORDER BY graded_at DESC LIMIT 12""")
+    if db_table_exists("picks"):
+        try:
+            by_market = rows("""SELECT COALESCE(pick_type, market, 'Mercado sin clasificar') AS label, COUNT(*) AS total
+                                FROM picks GROUP BY COALESCE(pick_type, market, 'Mercado sin clasificar')
+                                ORDER BY total DESC LIMIT 8""")
+        except Exception:
+            by_market = []
+        try:
+            by_league = rows("""SELECT COALESCE(competition_name, league_name, 'Competición sin clasificar') AS label, COUNT(*) AS total
+                                FROM picks GROUP BY COALESCE(competition_name, league_name, 'Competición sin clasificar')
+                                ORDER BY total DESC LIMIT 8""")
+        except Exception:
+            by_league = []
+        try:
+            by_plan = rows("""SELECT COALESCE(membership_required, 'FREE') AS label, COUNT(*) AS total
+                              FROM picks GROUP BY COALESCE(membership_required, 'FREE')
+                              ORDER BY total DESC""")
+        except Exception:
+            by_plan = []
+    decided = won + lost
+    summary["void"] = voids
+    summary["pending"] = pending
+    summary["decided_total"] = decided
+    summary["stake_total"] = round(stake_total, 2)
+    summary["roi"] = round((profit / stake_total) * 100, 2) if stake_total else None
+    summary["yield"] = summary["roi"]
+    summary["winrate"] = round((won / decided) * 100, 2) if decided else None
+    summary["by_month"] = by_month
+    summary["by_market"] = by_market
+    summary["by_league"] = by_league
+    summary["by_plan"] = by_plan
+    summary["pending_results"] = pending_results
+    summary["commercial_note"] = "Pendiente de resultados reales" if decided == 0 else "Rendimiento calculado solo con picks evaluables."
+    return summary
+
+
 @app.route("/track-record")
 @app.route("/rendimiento-picks")
 def public_track_record_page():
     user = current_session_user()
     data = dashboard_data() if user else home_light_data()
-    data["track_record"] = pick_grading_summary(DB_PATH)
+    data["track_record"] = v742_track_record_context()
     return render_template("track_record.html", data=data)
 
 
 @app.route("/api/track-record")
 def api_track_record():
-    return jsonify({"ok": True, "version": APP_VERSION, "track_record": pick_grading_summary(DB_PATH)})
+    return jsonify({"ok": True, "version": APP_VERSION, "track_record": v742_track_record_context()})
 
 
 @app.route("/admin/track-record", methods=["GET", "POST"])
@@ -10597,7 +10940,7 @@ def admin_track_record_page():
         except Exception:
             pass
     data = dashboard_data()
-    data["track_record"] = pick_grading_summary(DB_PATH)
+    data["track_record"] = v742_track_record_context()
     data["last_run"] = last_run
     return render_template("admin_track_record.html", data=data)
 
@@ -10611,8 +10954,8 @@ def api_admin_track_record():
         limit = max(20, min(2000, as_int(payload.get("limit"), 500)))
         apply = str(payload.get("apply") or "").lower() in {"1", "true", "yes", "si", "sí"}
         run = run_pick_grading(DB_PATH, limit=limit, apply=apply)
-        return jsonify({"ok": True, "version": APP_VERSION, "run": run, "track_record": pick_grading_summary(DB_PATH)})
-    return jsonify({"ok": True, "version": APP_VERSION, "track_record": pick_grading_summary(DB_PATH)})
+        return jsonify({"ok": True, "version": APP_VERSION, "run": run, "track_record": v742_track_record_context()})
+    return jsonify({"ok": True, "version": APP_VERSION, "track_record": v742_track_record_context()})
 
 
 @app.route("/admin/payments", methods=["GET", "POST"])
@@ -11552,6 +11895,29 @@ def api_admin_client_visual_qa():
     return jsonify({"ok": True, "version": APP_VERSION, "client_visual_perfection": v740_client_visual_perfection_context()})
 
 
+# ===================== V741 CALENDAR SEARCH EXPERIENCE QA =====================
+
+@app.route("/admin/calendar-experience")
+@app.route("/admin/calendar-qa")
+@app.route("/admin/calendar-search-qa")
+def admin_calendar_experience_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/calendar-experience")
+    data = dashboard_data()
+    data["version"] = APP_VERSION
+    data["calendar_experience"] = v741_calendar_experience_context()
+    return render_template("admin_calendar_experience.html", data=data)
+
+
+@app.route("/api/admin/calendar-experience")
+@app.route("/api/admin/calendar-qa")
+def api_admin_calendar_experience():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "version": APP_VERSION, "calendar_experience": v741_calendar_experience_context()})
+
+
+
 # ===================== V738 FINAL COMMERCIAL RELEASE CANDIDATE =====================
 
 def v738_final_release_context():
@@ -11584,6 +11950,121 @@ def api_admin_final_release_checklist():
     if not is_admin_session():
         return admin_json_forbidden()
     return jsonify({"ok": True, "version": APP_VERSION, "validation_plan": final_release_validation_plan()})
+
+
+def v742_live_experience_admin_context():
+    data = dashboard_data()
+    hub = data.get("match_hub") or {}
+    source = []
+    for key in ("live", "today", "upcoming", "finished", "matches"):
+        items = hub.get(key) if isinstance(hub, dict) else []
+        if isinstance(items, list):
+            source.extend(items)
+    for key in ("matches", "upcoming_matches", "past_results", "candidate_matches"):
+        items = data.get(key) or []
+        if isinstance(items, list):
+            source.extend(items)
+    source = dedupe_matches_list(source)
+    lanes = {
+        "live": build_live_experience(source, lane="live"),
+        "today": build_live_experience(source, lane="today"),
+        "upcoming": build_live_experience(source, lane="upcoming"),
+        "finished": build_live_experience(source, lane="finished"),
+        "picks": build_live_experience(source, lane="picks"),
+        "favorites": build_live_experience(source, lane="favorites"),
+    }
+    return {
+        "version": APP_VERSION,
+        "snapshot": live_experience_snapshot(app_version=APP_VERSION),
+        "source_total": len(source),
+        "lanes": lanes,
+        "counts": {
+            "live": (lanes["live"].get("counts") or {}).get("live", 0),
+            "today": lanes["today"].get("filtered", 0),
+            "upcoming": lanes["upcoming"].get("filtered", 0),
+            "finished": lanes["finished"].get("filtered", 0),
+            "with_pick": (lanes["picks"].get("counts") or {}).get("with_pick", 0),
+            "favorites": (lanes["favorites"].get("counts") or {}).get("favorites", 0),
+        },
+        "notes": [
+            "La vista cliente /live usa deduplicación antes de presentar partidos.",
+            "Los minutos se muestran solo cuando existen; si no, se usa 'En directo'.",
+            "Las horas visibles se formatean con filtros Madrid.",
+        ],
+    }
+
+
+@app.route("/admin/live-experience")
+@app.route("/admin/live-qa")
+def admin_live_experience_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/live-experience")
+    data = dashboard_data()
+    data["live_experience_admin"] = v742_live_experience_admin_context()
+    return render_template("admin_live_experience.html", data=data)
+
+
+@app.route("/api/admin/live-experience")
+@app.route("/api/admin/live-qa")
+def api_admin_live_experience():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "version": APP_VERSION, "live_experience": v742_live_experience_admin_context()})
+
+
+def v742_sale_ready_context():
+    live_snap = live_experience_snapshot(app_version=APP_VERSION)
+    calendar_snap = v741_calendar_experience_context()
+    track = v742_track_record_context()
+    telegram = telegram_reliability_snapshot(limit=80)
+    visual = v740_client_visual_perfection_context()
+    warnings = []
+    if (telegram.get("diagnosis") or {}).get("status") not in {"READY_TO_SEND", "NO_CANDIDATES", "NO_PREMIUM_PICKS", "ALL_ALREADY_SENT", "BLOCKED_BY_QUIET_HOURS"}:
+        warnings.append("Telegram requiere revisión de producción real.")
+    if track.get("decided_total", 0) == 0:
+        warnings.append("Track Record pendiente de resultados reales evaluables.")
+    if not (calendar_snap.get("ok") or calendar_snap.get("status")):
+        warnings.append("Calendario necesita revisión.")
+    return {
+        "version": APP_VERSION,
+        "status": "SALE_READY_CONTROLADO" if len(warnings) <= 2 else "REVISAR_ANTES_DE_VENDER",
+        "live": live_snap,
+        "calendar": calendar_snap,
+        "picks": pick_stats(),
+        "track_record": track,
+        "telegram": {
+            "status": (telegram.get("diagnosis") or {}).get("status"),
+            "explanation": (telegram.get("diagnosis") or {}).get("explanation"),
+            "severity": (telegram.get("diagnosis") or {}).get("severity"),
+            "counts": telegram.get("counts"),
+        },
+        "visual_mobile": visual,
+        "render": {
+            "db_path": DB_PATH,
+            "runtime": APP_VERSION,
+            "cron_secret_required": True,
+            "zip_policy": "sin .git, .venv, caches, DB local, logs ni ZIPs internos",
+        },
+        "data_memory": data_memory_summary(DB_PATH),
+        "warnings": warnings,
+    }
+
+
+@app.route("/admin/sale-ready")
+@app.route("/admin/commercial-ready")
+def admin_sale_ready_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/sale-ready")
+    data = dashboard_data()
+    data["sale_ready"] = v742_sale_ready_context()
+    return render_template("admin_sale_ready.html", data=data)
+
+
+@app.route("/api/admin/sale-ready")
+def api_admin_sale_ready():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "version": APP_VERSION, "sale_ready": v742_sale_ready_context()})
 
 def register_optional_blueprints():
     try:

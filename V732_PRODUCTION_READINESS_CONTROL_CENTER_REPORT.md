@@ -1,9 +1,9 @@
 # V732 Production Readiness Control Center
 
-- Versión: `V740_CLIENT_VISUAL_PICK_ANALYSIS_PERFECTION`
-- Score: **87/100**
-- Estado: **OK**
-- Generado: `2026-06-12T22:16:16`
+- Versión: `V742_SALE_READY_LIVE_DETAIL_TRACK_RECORD_TELEGRAM_FINAL_POLISH`
+- Score: **71/100**
+- Estado: **REVISAR**
+- Generado: `2026-06-13T00:56:52`
 
 ## Bloqueos
 - No hay bloqueos estáticos críticos detectados.
@@ -13,9 +13,9 @@
 - Faltan variables críticas en este entorno local/sandbox; confirmar en Render antes de vender.
 
 ## Versión
-- `version_txt`: `V740_CLIENT_VISUAL_PICK_ANALYSIS_PERFECTION`
-- `app_py_version`: `V740_CLIENT_VISUAL_PICK_ANALYSIS_PERFECTION`
-- `runtime_expected`: `V740_CLIENT_VISUAL_PICK_ANALYSIS_PERFECTION`
+- `version_txt`: `V742_SALE_READY_LIVE_DETAIL_TRACK_RECORD_TELEGRAM_FINAL_POLISH`
+- `app_py_version`: `V742_SALE_READY_LIVE_DETAIL_TRACK_RECORD_TELEGRAM_FINAL_POLISH`
+- `runtime_expected`: `V742_SALE_READY_LIVE_DETAIL_TRACK_RECORD_TELEGRAM_FINAL_POLISH`
 - `match`: `True`
 - `has_recent_stack`: `False`
 
@@ -36,11 +36,11 @@
 - Memoria SHARK: ruta OK · template OK
 
 ## Limpieza
-- Prohibidos en raíz: 1
-- Directorios prohibidos: __pycache__
+- Prohibidos en raíz: 5
+- Directorios prohibidos: .git, .pytest_cache, .venv, __pycache__, v636work
 
 ## Checklist Render
-- `/api/runtime-version` → V740_CLIENT_VISUAL_PICK_ANALYSIS_PERFECTION
+- `/api/runtime-version` → V742_SALE_READY_LIVE_DETAIL_TRACK_RECORD_TELEGRAM_FINAL_POLISH
 - `/api/health` → 200 / OK si existe
 - `/api/automation/telegram/tick` → 403
 - `/api/automation/telegram/tick?secret=***` → 200

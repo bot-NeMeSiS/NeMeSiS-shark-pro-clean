@@ -3,7 +3,7 @@
 - Estado: **OK**
 - Score: **100/100**
 - Templates cliente escaneados: 17
-- Avisos totales: 13
+- Avisos totales: 14
 - Avisos importantes: 0
 
 ## Pantallas críticas
@@ -25,14 +25,15 @@
 - Mantener QA visual con capturas reales de móvil/desktop tras desplegar.
 
 ## Primeros avisos
-- INFO · texto_tecnico · `calendar.html`:48 · `None` — Revisar que este texto no sea visible al cliente final.
+- INFO · texto_tecnico · `calendar.html`:137 · `None` — Revisar que este texto no sea visible al cliente final.
 - INFO · microcopy · `client_overview.html`:11 · `Live` — Usar Directo cuando sea texto visible al cliente.
 - INFO · texto_tecnico · `combis.html`:73 · `None` — Revisar que este texto no sea visible al cliente final.
 - INFO · texto_tecnico · `daily_briefing.html`:64 · `None` — Revisar que este texto no sea visible al cliente final.
 - INFO · texto_tecnico · `favorites.html`:28 · `None` — Revisar que este texto no sea visible al cliente final.
 - INFO · microcopy · `favorites.html`:38 · `Live` — Usar Directo cuando sea texto visible al cliente.
 - INFO · texto_tecnico · `home.html`:86 · `None` — Revisar que este texto no sea visible al cliente final.
-- INFO · texto_tecnico · `live.html`:40 · `None` — Revisar que este texto no sea visible al cliente final.
+- INFO · texto_tecnico · `live.html`:58 · `None` — Revisar que este texto no sea visible al cliente final.
+- INFO · microcopy · `live.html`:8 · `Live` — Usar Directo cuando sea texto visible al cliente.
 - INFO · texto_tecnico · `match_detail.html`:39 · `None` — Revisar que este texto no sea visible al cliente final.
 - INFO · texto_tecnico · `match_hub.html`:66 · `None` — Revisar que este texto no sea visible al cliente final.
 - INFO · texto_tecnico · `picks.html`:52 · `None` — Revisar que este texto no sea visible al cliente final.

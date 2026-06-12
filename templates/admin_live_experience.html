@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block content %}
+{% set lx = data.live_experience_admin or {} %}
+{% set counts = lx.counts or {} %}
+<section class="scoreboard-hero v701-scoreboard v742-sale-ready">
+  <div>
+    <div class="kicker">Admin · Live Experience</div>
+    <h1>Control de experiencia Live</h1>
+    <p class="lead">Revisión compacta de directo, hoy, próximos, finalizados, picks y favoritos sin cambiar la vista del cliente.</p>
+    <div class="admin-menu">
+      <a class="btn primary" href="/admin/live-experience">Live QA</a>
+      <a class="btn" href="/live">Ver cliente</a>
+      <a class="btn" href="/admin/sale-ready">Sale Ready</a>
+      <a class="btn" href="/admin/calendar-experience">Calendario</a>
+    </div>
+  </div>
+  <div class="scoreboard-kpis">
+    <div><strong>{{ counts.live or 0 }}</strong><span>En directo</span></div>
+    <div><strong>{{ counts.today or 0 }}</strong><span>Hoy</span></div>
+    <div><strong>{{ counts.upcoming or 0 }}</strong><span>Próximos</span></div>
+    <div><strong>{{ counts.with_pick or 0 }}</strong><span>Con pick</span></div>
+  </div>
+</section>
+
+<section class="grid cards-4">
+  <article class="card stat-card"><span>Fuente única</span><strong>{{ lx.source_total or 0 }}</strong><small>partidos deduplicados</small></article>
+  <article class="card stat-card"><span>Finalizados</span><strong>{{ counts.finished or 0 }}</strong><small>cerrados</small></article>
+  <article class="card stat-card"><span>Favoritos</span><strong>{{ counts.favorites or 0 }}</strong><small>marcados por usuario</small></article>
+  <article class="card stat-card"><span>Estado</span><strong>{{ lx.snapshot.status }}</strong><small>{{ lx.version }}</small></article>
+</section>
+
+<section class="band compact-band">
+  <div class="section-head"><h2>Vistas revisadas</h2><span class="pill">V742</span></div>
+  <div class="grid compact-grid">
+    {% for key, lane in lx.lanes.items() %}
+    <article class="card">
+      <span class="pill">{{ lane.filtered or 0 }} partidos</span>
+      <h3>{{ key|replace('_',' ')|title }}</h3>
+      <p class="small">Ligas agrupadas: {{ lane.groups|length if lane.groups else 0 }} · Total base: {{ lane.total or 0 }}</p>
+      {% if lane.groups %}
+      <div class="stack">
+        {% for group in lane.groups[:3] %}
+        <div class="route-row"><span>{{ group.name|competition_es }}</span><strong>{{ group.count }}</strong></div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="small">Sin datos sincronizados para esta vista.</p>
+      {% endif %}
+    </article>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="band compact-band">
+  <div class="section-head"><h2>Criterios protegidos</h2><span class="pill">Cliente</span></div>
+  <div class="stack">
+    {% for note in lx.notes %}
+    <div class="list-row"><span>{{ note }}</span><strong>OK</strong></div>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

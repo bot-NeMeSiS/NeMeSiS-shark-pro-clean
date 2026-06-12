@@ -1,6 +1,6 @@
 # TELEGRAM RELIABILITY AUDIT V727
 
-- Version: `V727_TELEGRAM_RELIABILITY_COMMAND_CENTER`
+- Version: `V742_SALE_READY_LIVE_DETAIL_TRACK_RECORD_TELEGRAM_FINAL_POLISH`
 - Estado: `MISSING_BOT_TOKEN`
 - Severidad: `critical`
 - Explicacion: Telegram no puede enviar porque falta TELEGRAM_BOT_TOKEN.
@@ -89,7 +89,7 @@
 - `min_odds`: 1.4
 - `min_pick_score`: 75
 - `quiet_end`: 09:30
-- `quiet_hours_active`: False
+- `quiet_hours_active`: True
 - `quiet_start`: 00:30
 - `sent_last_hour`: 0
 - `sent_today`: 0

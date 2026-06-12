@@ -1,0 +1,315 @@
+{
+  "generated_at": "2026-06-13T00:56:52",
+  "project_root": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro",
+  "templates_scanned": 17,
+  "critical_screens": [
+    {
+      "route": "/",
+      "template": "home.html",
+      "label": "Home pública",
+      "priority": "alta",
+      "exists": true,
+      "needs_time_filter": true,
+      "uses_madrid_filters": true,
+      "time_status_ok": true,
+      "has_empty_state_hint": true,
+      "size_bytes": 10770,
+      "status": "OK"
+    },
+    {
+      "route": "/dashboard",
+      "template": "client_overview.html",
+      "label": "Dashboard cliente",
+      "priority": "alta",
+      "exists": true,
+      "needs_time_filter": true,
+      "uses_madrid_filters": true,
+      "time_status_ok": true,
+      "has_empty_state_hint": true,
+      "size_bytes": 3377,
+      "status": "OK"
+    },
+    {
+      "route": "/sports-hub",
+      "template": "sports_hub.html",
+      "label": "Sports Hub / Partidos",
+      "priority": "alta",
+      "exists": true,
+      "needs_time_filter": true,
+      "uses_madrid_filters": true,
+      "time_status_ok": true,
+      "has_empty_state_hint": true,
+      "size_bytes": 6476,
+      "status": "OK"
+    },
+    {
+      "route": "/live",
+      "template": "live.html",
+      "label": "Directo",
+      "priority": "alta",
+      "exists": true,
+      "needs_time_filter": true,
+      "uses_madrid_filters": true,
+      "time_status_ok": true,
+      "has_empty_state_hint": true,
+      "size_bytes": 5160,
+      "status": "OK"
+    },
+    {
+      "route": "/calendar",
+      "template": "calendar.html",
+      "label": "Calendario",
+      "priority": "alta",
+      "exists": true,
+      "needs_time_filter": true,
+      "uses_madrid_filters": true,
+      "time_status_ok": true,
+      "has_empty_state_hint": true,
+      "size_bytes": 9010,
+      "status": "OK"
+    },
+    {
+      "route": "/picks",
+      "template": "picks.html",
+      "label": "Picks",
+      "priority": "alta",
+      "exists": true,
+      "needs_time_filter": true,
+      "uses_madrid_filters": true,
+      "time_status_ok": true,
+      "has_empty_state_hint": true,
+      "size_bytes": 11704,
+      "status": "OK"
+    },
+    {
+      "route": "/combis",
+      "template": "combis.html",
+      "label": "Combis",
+      "priority": "alta",
+      "exists": true,
+      "needs_time_filter": true,
+      "uses_madrid_filters": true,
+      "time_status_ok": true,
+      "has_empty_state_hint": true,
+      "size_bytes": 6666,
+      "status": "OK"
+    },
+    {
+      "route": "/shark",
+      "template": "shark.html",
+      "label": "SHARK",
+      "priority": "media",
+      "needs_time_filter": false,
+      "exists": true,
+      "uses_madrid_filters": false,
+      "time_status_ok": true,
+      "has_empty_state_hint": true,
+      "size_bytes": 3986,
+      "status": "OK"
+    },
+    {
+      "route": "/telegram",
+      "template": "telegram.html",
+      "label": "Telegram cliente",
+      "priority": "alta",
+      "needs_time_filter": false,
+      "exists": true,
+      "uses_madrid_filters": false,
+      "time_status_ok": true,
+      "has_empty_state_hint": false,
+      "size_bytes": 3726,
+      "status": "OK"
+    },
+    {
+      "route": "/favorites",
+      "template": "favorites.html",
+      "label": "Favoritos",
+      "priority": "media",
+      "exists": true,
+      "needs_time_filter": false,
+      "uses_madrid_filters": true,
+      "time_status_ok": true,
+      "has_empty_state_hint": true,
+      "size_bytes": 7372,
+      "status": "OK"
+    },
+    {
+      "route": "/perfil",
+      "template": "profile.html",
+      "label": "Perfil",
+      "priority": "media",
+      "needs_time_filter": false,
+      "exists": true,
+      "uses_madrid_filters": false,
+      "time_status_ok": true,
+      "has_empty_state_hint": true,
+      "size_bytes": 6884,
+      "status": "OK"
+    },
+    {
+      "route": "/membership",
+      "template": "membership.html",
+      "label": "Membresías",
+      "priority": "media",
+      "needs_time_filter": false,
+      "exists": true,
+      "uses_madrid_filters": false,
+      "time_status_ok": true,
+      "has_empty_state_hint": true,
+      "size_bytes": 2607,
+      "status": "OK"
+    },
+    {
+      "route": "/match/<id>",
+      "template": "match_detail.html",
+      "label": "Detalle partido",
+      "priority": "alta",
+      "exists": true,
+      "needs_time_filter": true,
+      "uses_madrid_filters": true,
+      "time_status_ok": true,
+      "has_empty_state_hint": true,
+      "size_bytes": 9537,
+      "status": "OK"
+    }
+  ],
+  "findings": [
+    {
+      "severity": "INFO",
+      "category": "texto_tecnico",
+      "template": "calendar.html",
+      "pattern": "None",
+      "line": 137,
+      "message": "Revisar que este texto no sea visible al cliente final."
+    },
+    {
+      "severity": "INFO",
+      "category": "microcopy",
+      "template": "client_overview.html",
+      "pattern": "Live",
+      "line": 11,
+      "message": "Usar Directo cuando sea texto visible al cliente."
+    },
+    {
+      "severity": "INFO",
+      "category": "texto_tecnico",
+      "template": "combis.html",
+      "pattern": "None",
+      "line": 73,
+      "message": "Revisar que este texto no sea visible al cliente final."
+    },
+    {
+      "severity": "INFO",
+      "category": "texto_tecnico",
+      "template": "daily_briefing.html",
+      "pattern": "None",
+      "line": 64,
+      "message": "Revisar que este texto no sea visible al cliente final."
+    },
+    {
+      "severity": "INFO",
+      "category": "texto_tecnico",
+      "template": "favorites.html",
+      "pattern": "None",
+      "line": 28,
+      "message": "Revisar que este texto no sea visible al cliente final."
+    },
+    {
+      "severity": "INFO",
+      "category": "microcopy",
+      "template": "favorites.html",
+      "pattern": "Live",
+      "line": 38,
+      "message": "Usar Directo cuando sea texto visible al cliente."
+    },
+    {
+      "severity": "INFO",
+      "category": "texto_tecnico",
+      "template": "home.html",
+      "pattern": "None",
+      "line": 86,
+      "message": "Revisar que este texto no sea visible al cliente final."
+    },
+    {
+      "severity": "INFO",
+      "category": "texto_tecnico",
+      "template": "live.html",
+      "pattern": "None",
+      "line": 58,
+      "message": "Revisar que este texto no sea visible al cliente final."
+    },
+    {
+      "severity": "INFO",
+      "category": "microcopy",
+      "template": "live.html",
+      "pattern": "Live",
+      "line": 8,
+      "message": "Usar Directo cuando sea texto visible al cliente."
+    },
+    {
+      "severity": "INFO",
+      "category": "texto_tecnico",
+      "template": "match_detail.html",
+      "pattern": "None",
+      "line": 39,
+      "message": "Revisar que este texto no sea visible al cliente final."
+    },
+    {
+      "severity": "INFO",
+      "category": "texto_tecnico",
+      "template": "match_hub.html",
+      "pattern": "None",
+      "line": 66,
+      "message": "Revisar que este texto no sea visible al cliente final."
+    },
+    {
+      "severity": "INFO",
+      "category": "texto_tecnico",
+      "template": "picks.html",
+      "pattern": "None",
+      "line": 52,
+      "message": "Revisar que este texto no sea visible al cliente final."
+    },
+    {
+      "severity": "INFO",
+      "category": "texto_tecnico",
+      "template": "sports_hub.html",
+      "pattern": "None",
+      "line": 52,
+      "message": "Revisar que este texto no sea visible al cliente final."
+    },
+    {
+      "severity": "INFO",
+      "category": "texto_tecnico",
+      "template": "team_detail.html",
+      "pattern": "None",
+      "line": 6,
+      "message": "Revisar que este texto no sea visible al cliente final."
+    }
+  ],
+  "findings_count": 14,
+  "warning_count": 0,
+  "counts": {
+    "technical_text": 11,
+    "microcopy": 3
+  },
+  "css": {
+    "exists": true,
+    "size_bytes": 102413,
+    "checks": {
+      "bottom_nav": true,
+      "shark_widget": true,
+      "mobile_media": true,
+      "live_rows": true,
+      "v728_layer": true,
+      "v731_layer": true
+    },
+    "score": 6,
+    "max_score": 6
+  },
+  "score": 100,
+  "status": "OK",
+  "recommended_next_steps": [
+    "Mantener QA visual con capturas reales de móvil/desktop tras desplegar."
+  ]
+}

@@ -82,10 +82,35 @@
     <div class="section-head"><h2>Acciones rápidas</h2></div>
     <div class="quick-grid">
       <a class="btn primary" href="/shark?match={{ m.id }}">Preguntar a SHARK</a>
+      <a class="btn" href="/calendar">Volver al calendario</a>
+      {% if state.is_live %}<a class="btn" href="/live?f=live">Ver en directo</a>{% endif %}
+      {% if detail.related_picks %}<a class="btn" href="/picks">Ver picks relacionados</a>{% endif %}
       <a class="btn" href="/team/{{ (m._raw_home_team or home)|urlencode }}">Ver {{ home }}</a>
       <a class="btn" href="/team/{{ (m._raw_away_team or away)|urlencode }}">Ver {{ away }}</a>
       <a class="btn" href="/sports-hub">Volver a partidos</a>
     </div>
+  </div>
+</section>
+
+<section class="band two-col compact-band v742-context-band">
+  <div class="card">
+    <div class="section-head"><h2>Riesgos</h2><span class="pill">sin inventar</span></div>
+    <div class="stack">
+      {% if detail.related_picks %}
+        {% for p in detail.related_picks[:3] %}
+        <div class="list-row"><span>{{ p.risk_level or 'Riesgo moderado' }}<small>{{ p.caution or p.analysis_caution or 'Usar stake responsable y no entrar si la cuota cambia demasiado.' }}</small></span><strong>{{ p.confidence or 0 }}%</strong></div>
+        {% endfor %}
+      {% else %}
+        <div class="empty premium-empty">Todavía no hay suficiente información sincronizada para medir riesgos de pick en este partido.</div>
+      {% endif %}
+    </div>
+  </div>
+  <div class="card">
+    <div class="section-head"><h2>Contexto</h2><span class="pill">{{ comp|competition_es }}</span></div>
+    <p class="small">Hora Madrid: <strong>{{ m|match_time_label }}</strong></p>
+    <p class="small">Estado: <strong>{{ state.label or 'Próximo' }}</strong></p>
+    <p class="small">Marcador: <strong>{{ score if score != 'vs' else 'Sin marcador sincronizado' }}</strong></p>
+    <p class="small">SHARK no fuerza predicciones cuando faltan cuota, mercado o resultado fiable.</p>
   </div>
 </section>
 

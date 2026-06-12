@@ -1,0 +1,59 @@
+# V742 summary patch
+
+This project environment did not expose a working `git` executable, so this file records the exact V742 change set as a release patch summary instead of a generated git diff.
+
+## Modified
+
+- `app.py`
+  - Updated `APP_VERSION`.
+  - Added Live Experience integration for `/live`, `/directo` and `/en-directo`.
+  - Added `v742_track_record_context()`.
+  - Updated `/track-record`, `/api/track-record`, `/admin/track-record` and `/api/admin/track-record`.
+  - Added `v742_live_experience_admin_context()`.
+  - Added `/admin/live-experience`, `/admin/live-qa`, `/api/admin/live-experience` and `/api/admin/live-qa`.
+  - Added `v742_sale_ready_context()`, `/admin/sale-ready`, `/admin/commercial-ready` and `/api/admin/sale-ready`.
+  - Hardened `home_light_data()` and `home_live_summary_data()` so `/` loads with a fresh or partially migrated SQLite database.
+- `VERSION.txt`
+  - Updated to `V742_SALE_READY_LIVE_DETAIL_TRACK_RECORD_TELEGRAM_FINAL_POLISH`.
+- `templates/live.html`
+  - Reworked Live into a compact filterable/searchable center.
+  - Uses Madrid time filter and never invents minute or score.
+- `templates/match_detail.html`
+  - Added clearer actions, risks and context.
+- `templates/track_record.html`
+  - Reworked as honest commercial track record.
+- `templates/admin_sale_ready.html`
+  - Added final commercial control center.
+- `templates/admin_live_experience.html`
+  - Added admin QA view for Live Experience.
+- `static/app.css`
+  - Added V742 responsive polish for Live, Match Detail, Track Record and admin sale-ready panels.
+- `tools/build_clean_release.py`
+  - Added V742 reports and manifest to release allowlist.
+- `tools/check_v729_security.py`, `tools/check_v733_client_success.py`, `tools/check_v735_go_live.py`, `tools/check_v739_home_data.py`
+  - Updated version acceptance to include V742.
+
+## Added
+
+- `engines/live_experience_engine.py`
+- `tools/check_v742_live_experience.py`
+- `tools/check_v742_track_record.py`
+- `tools/check_v742_sale_ready.py`
+- `V742_SALE_READY_LIVE_DETAIL_TRACK_RECORD_TELEGRAM_FINAL_POLISH_REPORT.md`
+- `V742_LIVE_EXPERIENCE_QA_REPORT.md`
+- `V742_MATCH_DETAIL_QA_REPORT.md`
+- `V742_TRACK_RECORD_ROI_QA_REPORT.md`
+- `V742_TELEGRAM_PRODUCTION_QA_REPORT.md`
+- `V742_SELL_READY_FINAL_CHECKLIST.md`
+- `RELEASE_MANIFEST_V742.json`
+
+## Removed
+
+- Root-level duplicated `.html` files. Official templates remain under `templates/`.
+
+## Validation
+
+- Compileall OK.
+- V728-V742 static QA OK.
+- Flask route smoke OK for tested client/admin/API routes.
+- Cron endpoints keep 403 without secret and 200 with valid secret.

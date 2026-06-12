@@ -1,0 +1,2229 @@
+{
+  "ok": true,
+  "version": "V742_SALE_READY_LIVE_DETAIL_TRACK_RECORD_TELEGRAM_FINAL_POLISH",
+  "total_routes": 228,
+  "bucket_counts": {
+    "action": 4,
+    "admin": 50,
+    "admin_api": 26,
+    "api": 104,
+    "client": 35,
+    "cron": 2,
+    "public": 3,
+    "telegram": 4
+  },
+  "missing_templates": [],
+  "warnings": [
+    {
+      "route": "/admin-forgot-password",
+      "function": "admin_forgot_password_page",
+      "issue": "admin route without visible is_admin_session check"
+    },
+    {
+      "route": "/admin-reset-password/<token>",
+      "function": "admin_reset_password_page",
+      "issue": "admin route without visible is_admin_session check"
+    },
+    {
+      "route": "/admin-bootstrap",
+      "function": "admin_bootstrap_page",
+      "issue": "admin route without visible is_admin_session check"
+    }
+  ],
+  "top_templates": [
+    {
+      "template": "password_reset_request.html",
+      "uses": 2
+    },
+    {
+      "template": "password_reset_form.html",
+      "uses": 2
+    },
+    {
+      "template": "home.html",
+      "uses": 1
+    },
+    {
+      "template": "global.html",
+      "uses": 1
+    },
+    {
+      "template": "calendar.html",
+      "uses": 1
+    },
+    {
+      "template": "sports_hub.html",
+      "uses": 1
+    },
+    {
+      "template": "live.html",
+      "uses": 1
+    },
+    {
+      "template": "match_hub.html",
+      "uses": 1
+    },
+    {
+      "template": "match_detail.html",
+      "uses": 1
+    },
+    {
+      "template": "team_detail.html",
+      "uses": 1
+    },
+    {
+      "template": "favorites.html",
+      "uses": 1
+    },
+    {
+      "template": "register.html",
+      "uses": 1
+    },
+    {
+      "template": "client_login.html",
+      "uses": 1
+    },
+    {
+      "template": "admin_login.html",
+      "uses": 1
+    },
+    {
+      "template": "admin_bootstrap.html",
+      "uses": 1
+    },
+    {
+      "template": "admin_observability.html",
+      "uses": 1
+    },
+    {
+      "template": "admin_observability_errors.html",
+      "uses": 1
+    },
+    {
+      "template": "import_center.html",
+      "uses": 1
+    },
+    {
+      "template": "admin_users.html",
+      "uses": 1
+    },
+    {
+      "template": "admin_user_import.html",
+      "uses": 1
+    }
+  ],
+  "route_map_available": true,
+  "api_route_health_available": true,
+  "routes": [
+    {
+      "rule": "/service-worker.js",
+      "function": "service_worker",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "client",
+      "template": ""
+    },
+    {
+      "rule": "/",
+      "function": "home",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "public",
+      "template": "home.html"
+    },
+    {
+      "rule": "/global\")\n@app.route(",
+      "function": "global_football",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "client",
+      "template": "global.html"
+    },
+    {
+      "rule": "/calendar\")\n@app.route(\"/calendario\")\n@app.route(\"/calendario-global\")\n@app.route(\"/partidos\")\n@app.route(",
+      "function": "calendar_page",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "client",
+      "template": "calendar.html"
+    },
+    {
+      "rule": "/sports-hub\")\n@app.route(\"/sports\")\n@app.route(",
+      "function": "sports_hub_page",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "client",
+      "template": "sports_hub.html"
+    },
+    {
+      "rule": "/live\")\n@app.route(\"/live-center\")\n@app.route(\"/directo\")\n@app.route(",
+      "function": "live_page",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "client",
+      "template": "live.html"
+    },
+    {
+      "rule": "/match-hub\")\n@app.route(\"/partidos\")\n@app.route(\"/partidos-hoy\")\n@app.route(",
+      "function": "match_hub_page",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "client",
+      "template": "match_hub.html"
+    },
+    {
+      "rule": "/match/<match_id>\")\n@app.route(",
+      "function": "match_detail_page",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "client",
+      "template": "match_detail.html"
+    },
+    {
+      "rule": "/team/<team_id>\")\n@app.route(",
+      "function": "team_page",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "client",
+      "template": "team_detail.html"
+    },
+    {
+      "rule": "/favoritos\", methods=[\"GET\", \"POST\"])\n@app.route(",
+      "function": "favorites_page",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "bucket": "action",
+      "template": "favorites.html"
+    },
+    {
+      "rule": "/registro",
+      "function": "register_page",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "bucket": "public",
+      "template": "register.html"
+    },
+    {
+      "rule": "/cliente-login\", methods=[\"GET\", \"POST\"])\n@app.route(\"/login\", methods=[\"GET\", \"POST\"])\n@app.route(",
+      "function": "client_login_page",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "bucket": "action",
+      "template": "client_login.html"
+    },
+    {
+      "rule": "/forgot-password",
+      "function": "forgot_password_page",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "bucket": "action",
+      "template": "password_reset_request.html"
+    },
+    {
+      "rule": "/reset-password/<token>",
+      "function": "reset_password_page",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "bucket": "action",
+      "template": "password_reset_form.html"
+    },
+    {
+      "rule": "/admin-login",
+      "function": "admin_login_page",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "bucket": "admin",
+      "template": "admin_login.html"
+    },
+    {
+      "rule": "/admin-forgot-password",
+      "function": "admin_forgot_password_page",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "bucket": "admin",
+      "template": "password_reset_request.html"
+    },
+    {
+      "rule": "/admin-reset-password/<token>",
+      "function": "admin_reset_password_page",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "bucket": "admin",
+      "template": "password_reset_form.html"
+    },
+    {
+      "rule": "/admin-bootstrap",
+      "function": "admin_bootstrap_page",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "bucket": "admin",
+      "template": "admin_bootstrap.html"
+    },
+    {
+      "rule": "/logout",
+      "function": "logout_page",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "client",
+      "template": ""
+    },
+    {
+      "rule": "/admin",
+      "function": "admin_redirect",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "admin",
+      "template": ""
+    },
+    {
+      "rule": "/admin/intelligence",
+      "function": "admin_intelligence_alias",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "admin",
+      "template": ""
+    },
+    {
+      "rule": "/admin/observability",
+      "function": "admin_observability_page",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "admin",
+      "template": "admin_observability.html"
+    },
+    {
+      "rule": "/admin/observability/errors",
+      "function": "admin_observability_errors_page",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "admin",
+      "template": "admin_observability_errors.html"
+    },
+    {
+      "rule": "/admin/import-center",
+      "function": "import_center",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "admin",
+      "template": "import_center.html"
+    },
+    {
+      "rule": "/admin/users",
+      "function": "admin_users_page",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "bucket": "admin",
+      "template": "admin_users.html"
+    },
+    {
+      "rule": "/admin/user-import",
+      "function": "admin_user_import_page",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "bucket": "admin",
+      "template": "admin_user_import.html"
+    },
+    {
+      "rule": "/admin/sportsdb-sync",
+      "function": "admin_sportsdb_sync_page",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "bucket": "admin",
+      "template": "admin_sportsdb_sync.html"
+    },
+    {
+      "rule": "/admin/sportsdb-feed",
+      "function": "admin_sportsdb_feed_page",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "bucket": "admin",
+      "template": "admin_sportsdb_feed.html"
+    },
+    {
+      "rule": "/admin/matches-sync",
+      "function": "admin_matches_sync_page",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "bucket": "admin",
+      "template": "admin_matches_sync.html"
+    },
+    {
+      "rule": "/admin/telegram",
+      "function": "admin_telegram_page",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "bucket": "admin",
+      "template": "admin_telegram.html"
+    },
+    {
+      "rule": "/admin/telegram/command-center",
+      "function": "admin_telegram_command_center_page",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "admin",
+      "template": "admin_telegram_command_center.html"
+    },
+    {
+      "rule": "/api/admin/telegram/status",
+      "function": "api_admin_telegram_status",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "admin_api",
+      "template": ""
+    },
+    {
+      "rule": "/api/admin/telegram/dry-run",
+      "function": "api_admin_telegram_dry_run",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "bucket": "admin_api",
+      "template": ""
+    },
+    {
+      "rule": "/api/admin/telegram/preview-next",
+      "function": "api_admin_telegram_preview_next",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "admin_api",
+      "template": ""
+    },
+    {
+      "rule": "/api/admin/telegram/test-send",
+      "function": "api_admin_telegram_test_send",
+      "methods": [
+        "POST"
+      ],
+      "bucket": "admin_api",
+      "template": ""
+    },
+    {
+      "rule": "/admin/automation",
+      "function": "admin_automation_page",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "bucket": "admin",
+      "template": "admin_automation.html"
+    },
+    {
+      "rule": "/admin/backups",
+      "function": "admin_backups_page",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "bucket": "admin",
+      "template": "admin_backups.html"
+    },
+    {
+      "rule": "/admin/backups/download/<name>",
+      "function": "admin_backup_download",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "admin",
+      "template": ""
+    },
+    {
+      "rule": "/admin/picks",
+      "function": "admin_picks_page",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "bucket": "admin",
+      "template": "admin_picks.html"
+    },
+    {
+      "rule": "/admin/data-center",
+      "function": "admin_data_center_page",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "bucket": "admin",
+      "template": "admin_data_center.html"
+    },
+    {
+      "rule": "/admin/system",
+      "function": "admin_system_page",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "admin",
+      "template": "admin_system.html"
+    },
+    {
+      "rule": "/admin/route-health",
+      "function": "admin_route_health_page",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "admin",
+      "template": "admin_route_health.html"
+    },
+    {
+      "rule": "/api/admin/route-health",
+      "function": "api_admin_route_health",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "admin_api",
+      "template": ""
+    },
+    {
+      "rule": "/admin/client-experience",
+      "function": "admin_client_experience_page",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "admin",
+      "template": "admin_client_experience.html"
+    },
+    {
+      "rule": "/api/admin/client-experience",
+      "function": "api_admin_client_experience",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "admin_api",
+      "template": ""
+    },
+    {
+      "rule": "/admin/production-readiness",
+      "function": "admin_production_readiness_page",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "admin",
+      "template": "admin_production_readiness.html"
+    },
+    {
+      "rule": "/api/admin/production-readiness",
+      "function": "api_admin_production_readiness",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "admin_api",
+      "template": ""
+    },
+    {
+      "rule": "/picks",
+      "function": "picks_page",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "client",
+      "template": "picks.html"
+    },
+    {
+      "rule": "/combis",
+      "function": "combis_page",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "client",
+      "template": "combis.html"
+    },
+    {
+      "rule": "/perfil\")\n@app.route(",
+      "function": "profile_page",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "client",
+      "template": "profile.html"
+    },
+    {
+      "rule": "/alertas",
+      "function": "alerts_page",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "client",
+      "template": "alerts.html"
+    },
+    {
+      "rule": "/actividad",
+      "function": "activity_page",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "client",
+      "template": "activity.html"
+    },
+    {
+      "rule": "/mi-dia\")\n@app.route(",
+      "function": "daily_briefing_page",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "client",
+      "template": "daily_briefing.html"
+    },
+    {
+      "rule": "/membresias\")\n@app.route(",
+      "function": "membership_page",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "client",
+      "template": "membership.html"
+    },
+    {
+      "rule": "/shark-ai\")\n@app.route(",
+      "function": "shark_page",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "client",
+      "template": "shark.html"
+    },
+    {
+      "rule": "/telegram",
+      "function": "telegram_page",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "telegram",
+      "template": "telegram.html"
+    },
+    {
+      "rule": "/telegram/regenerar-codigo",
+      "function": "telegram_regenerate_code",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "bucket": "telegram",
+      "template": ""
+    },
+    {
+      "rule": "/telegram/desvincular",
+      "function": "telegram_unlink_private",
+      "methods": [
+        "POST"
+      ],
+      "bucket": "telegram",
+      "template": ""
+    },
+    {
+      "rule": "/telegram/webhook",
+      "function": "telegram_webhook",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "bucket": "telegram",
+      "template": ""
+    },
+    {
+      "rule": "/api/telegram/link-status",
+      "function": "api_telegram_link_status",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/admin/telegram/diagnostics",
+      "function": "admin_telegram_diagnostics_page",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "admin",
+      "template": ""
+    },
+    {
+      "rule": "/admin/time-diagnostics",
+      "function": "admin_time_diagnostics_page",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "admin",
+      "template": "admin_time_diagnostics.html"
+    },
+    {
+      "rule": "/api/telegram/repair-automatic",
+      "function": "api_telegram_repair_automatic",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/escudos\")\n@app.route(",
+      "function": "crests_page",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "client",
+      "template": "crests.html"
+    },
+    {
+      "rule": "/api/client/alerts",
+      "function": "api_client_alerts",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/client/activity",
+      "function": "api_client_activity",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/client/daily-briefing",
+      "function": "api_client_daily_briefing",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/client/command-center",
+      "function": "api_client_command_center",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/health\")\n@app.route(\"/v504-health\")\n@app.route(\"/v505-health\")\n@app.route(\"/v506-health\")\n@app.route(\"/v507-health\")\n@app.route(\"/v508-health\")\n@app.route(\"/v509-health\")\n@app.route(\"/v512-health\")\n@app.route(\"/v513-health\")\n@app.route(\"/v516-health\")\n@app.route(\"/v518-health\")\n@app.route(\"/v520-health\")\n@app.route(\"/v524-health\")\n@app.route(\"/v529-health\")\n@app.route(\"/v535-health\")\n@app.route(\"/v536-health\")\n@app.route(\"/v537-health\")\n@app.route(",
+      "function": "health",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/version",
+      "function": "public_version",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "client",
+      "template": ""
+    },
+    {
+      "rule": "/api/runtime-version",
+      "function": "api_runtime_version",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/startup-check",
+      "function": "api_startup_check",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/observability/summary",
+      "function": "api_observability_summary",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/observability/errors",
+      "function": "api_observability_errors",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/competitions",
+      "function": "api_competitions",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/matches/diagnostics",
+      "function": "api_matches_diagnostics",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/data-center/summary",
+      "function": "api_data_center_summary",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/data-center/warmup",
+      "function": "api_data_center_warmup",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/scheduler/status",
+      "function": "api_scheduler_status",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/scheduler/run-now",
+      "function": "api_scheduler_run_now",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/scheduler/run-calendar",
+      "function": "api_scheduler_run_calendar",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/scheduler/run-crests",
+      "function": "api_scheduler_run_crests",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/scheduler/run-odds",
+      "function": "api_scheduler_run_odds",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/scheduler/run-live",
+      "function": "api_scheduler_run_live",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/calendar",
+      "function": "api_calendar",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/live",
+      "function": "api_live",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/match-hub",
+      "function": "api_match_hub",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/live-flow\")\n@app.route(",
+      "function": "api_live_flow",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/realtime/state\")\n@app.route(",
+      "function": "api_real_time_state",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/favorites",
+      "function": "api_favorites",
+      "methods": [
+        "DELETE",
+        "GET",
+        "POST"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/favorites/feed",
+      "function": "api_favorites_feed",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/matches/<match_id>/timeline",
+      "function": "api_match_timeline",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/matches/<match_id>/detail",
+      "function": "api_match_detail",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/matches/<match_id>/depth",
+      "function": "api_match_depth",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/matches/<match_id>/statistics",
+      "function": "api_match_statistics",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/team-crest.svg",
+      "function": "team_crest_svg",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "client",
+      "template": ""
+    },
+    {
+      "rule": "/admin/data-memory",
+      "function": "admin_data_memory_page",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "admin",
+      "template": "admin_data_memory.html"
+    },
+    {
+      "rule": "/admin/codex-automation",
+      "function": "admin_codex_automation_page",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "admin",
+      "template": "admin_codex_automation.html"
+    },
+    {
+      "rule": "/api/admin/data-memory",
+      "function": "api_admin_data_memory",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "admin_api",
+      "template": ""
+    },
+    {
+      "rule": "/api/admin/data-memory/cleanup",
+      "function": "api_admin_data_memory_cleanup",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "bucket": "admin_api",
+      "template": ""
+    },
+    {
+      "rule": "/admin/team-identity",
+      "function": "admin_team_identity_page",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "admin",
+      "template": "admin_team_identity.html"
+    },
+    {
+      "rule": "/api/admin/team-identity",
+      "function": "api_admin_team_identity",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "admin_api",
+      "template": ""
+    },
+    {
+      "rule": "/api/team/resolve",
+      "function": "api_team_resolve",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/teams",
+      "function": "api_teams",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/teams/<team_id>/detail",
+      "function": "api_team_detail",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/import-teams",
+      "function": "api_import_teams",
+      "methods": [
+        "POST"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/import-competitions",
+      "function": "api_import_competitions",
+      "methods": [
+        "POST"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/crest-diagnostics",
+      "function": "api_crest_diagnostics",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/thesportsdb/diagnostics",
+      "function": "api_thesportsdb_diagnostics",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/sportsdb/sync-crests",
+      "function": "api_sportsdb_sync_crests",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/sportsdb/sync-competitions",
+      "function": "api_sportsdb_sync_competitions",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/sportsdb/sync-teams",
+      "function": "api_sportsdb_sync_teams",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/sportsdb/sync-feed\", methods=[\"POST\", \"GET\"])\n@app.route(\"/api/sportsdb/sync-matches\", methods=[\"POST\", \"GET\"])\n@app.route(",
+      "function": "api_sportsdb_sync_feed",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/sportsdb/sync-results",
+      "function": "api_sportsdb_sync_results",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/matches/sync-now",
+      "function": "api_matches_sync_now",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/odds/sync-events\", methods=[\"POST\", \"GET\"])\n@app.route(",
+      "function": "api_odds_sync_events",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/odds/diagnostics",
+      "function": "api_odds_diagnostics",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/import-matches",
+      "function": "api_import_matches",
+      "methods": [
+        "POST"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/import-results",
+      "function": "api_import_results",
+      "methods": [
+        "POST"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/import-odds",
+      "function": "api_import_odds",
+      "methods": [
+        "POST"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/picks",
+      "function": "api_picks",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/picks/create",
+      "function": "api_picks_create",
+      "methods": [
+        "POST"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/picks/update",
+      "function": "api_picks_update",
+      "methods": [
+        "POST"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/picks/publish",
+      "function": "api_picks_publish",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/picks/archive",
+      "function": "api_picks_archive",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/picks/stats",
+      "function": "api_picks_stats",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/import-picks",
+      "function": "api_import_picks",
+      "methods": [
+        "POST"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/combis",
+      "function": "api_combis",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/combis/build",
+      "function": "api_combis_build",
+      "methods": [
+        "POST"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/profile",
+      "function": "api_profile",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/membership",
+      "function": "api_membership",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/shark/briefing",
+      "function": "api_shark_briefing",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/shark/ask",
+      "function": "api_shark_ask",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/shark/context",
+      "function": "api_shark_context",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/telegram/status\")\n@app.route(",
+      "function": "api_telegram_status",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/telegram/diagnostics",
+      "function": "api_telegram_diagnostics",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/telegram/settings",
+      "function": "api_telegram_settings",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/telegram/settings/update",
+      "function": "api_telegram_settings_update",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/telegram/send-test",
+      "function": "api_telegram_send_test",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/telegram/enqueue-daily-matches",
+      "function": "api_telegram_enqueue_daily_matches",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/telegram/enqueue-daily-picks",
+      "function": "api_telegram_enqueue_daily_picks",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/telegram/process-queue",
+      "function": "api_telegram_process_queue",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/telegram/send",
+      "function": "api_telegram_send",
+      "methods": [
+        "POST"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/telegram/auto-run\", methods=[\"POST\", \"GET\"])\n@app.route(",
+      "function": "api_telegram_auto_run",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/telegram/scheduler-tick",
+      "function": "api_telegram_scheduler_tick",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/automation/daily/run",
+      "function": "api_automation_daily_run",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "bucket": "cron",
+      "template": ""
+    },
+    {
+      "rule": "/api/automation/telegram/tick",
+      "function": "api_automation_telegram_tick",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "bucket": "cron",
+      "template": ""
+    },
+    {
+      "rule": "/api/telegram/triggers",
+      "function": "api_telegram_triggers",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/telegram/logs",
+      "function": "api_telegram_logs",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/telegram/queue",
+      "function": "api_telegram_queue",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/telegram/scheduler-manager",
+      "function": "api_telegram_scheduler_manager",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/telegram/auto-posts",
+      "function": "api_telegram_auto_posts",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/cache/status",
+      "function": "api_cache_status",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/imports",
+      "function": "api_imports",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/security/summary",
+      "function": "api_security_summary",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/diagnostics",
+      "function": "api_diagnostics",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/deep-route-check",
+      "function": "api_deep_route_check",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/client-experience-check",
+      "function": "api_client_experience_check",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/route-check",
+      "function": "api_route_check",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/product-experience-check",
+      "function": "api_product_experience_check",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/admin/quality-center",
+      "function": "admin_quality_center",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "admin",
+      "template": "admin_quality_center.html"
+    },
+    {
+      "rule": "/api/quality-center/summary",
+      "function": "api_quality_center_summary",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/client/app-pulse",
+      "function": "api_client_app_pulse",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/onboarding",
+      "function": "onboarding_page",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "client",
+      "template": "onboarding.html"
+    },
+    {
+      "rule": "/mi-cuenta",
+      "function": "account_center_page",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "client",
+      "template": "account_center.html"
+    },
+    {
+      "rule": "/admin/memberships",
+      "function": "admin_memberships_page",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "admin",
+      "template": "admin_memberships.html"
+    },
+    {
+      "rule": "/api/client/onboarding-check",
+      "function": "api_client_onboarding_check",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/admin/membership-summary",
+      "function": "api_admin_membership_summary",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "admin_api",
+      "template": ""
+    },
+    {
+      "rule": "/guia\")\n@app.route(",
+      "function": "client_success_page",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "client",
+      "template": "client_success.html"
+    },
+    {
+      "rule": "/api/client/success",
+      "function": "api_client_success",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/admin/client-success",
+      "function": "admin_client_success_page",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "admin",
+      "template": "admin_client_success.html"
+    },
+    {
+      "rule": "/api/admin/client-success",
+      "function": "api_admin_client_success",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "admin_api",
+      "template": ""
+    },
+    {
+      "rule": "/admin/go-live\")\n@app.route(\"/admin/public-beta\")\n@app.route(",
+      "function": "admin_go_live_page",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "admin",
+      "template": "admin_go_live.html"
+    },
+    {
+      "rule": "/api/admin/go-live",
+      "function": "api_admin_go_live",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "admin_api",
+      "template": ""
+    },
+    {
+      "rule": "/api/admin/go-live/validation-plan",
+      "function": "api_admin_go_live_validation_plan",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "admin_api",
+      "template": ""
+    },
+    {
+      "rule": "/admin/public-launch\")\n@app.route(",
+      "function": "admin_public_launch_page",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "admin",
+      "template": "admin_public_launch.html"
+    },
+    {
+      "rule": "/api/admin/public-launch",
+      "function": "api_admin_public_launch",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "admin_api",
+      "template": ""
+    },
+    {
+      "rule": "/track-record\")\n@app.route(",
+      "function": "public_track_record_page",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "client",
+      "template": "track_record.html"
+    },
+    {
+      "rule": "/api/track-record",
+      "function": "api_track_record",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/admin/track-record",
+      "function": "admin_track_record_page",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "bucket": "admin",
+      "template": "admin_track_record.html"
+    },
+    {
+      "rule": "/api/admin/track-record",
+      "function": "api_admin_track_record",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "bucket": "admin_api",
+      "template": ""
+    },
+    {
+      "rule": "/admin/payments",
+      "function": "admin_payments_page",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "bucket": "admin",
+      "template": "admin_payments.html"
+    },
+    {
+      "rule": "/api/admin/payments",
+      "function": "api_admin_payments",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "bucket": "admin_api",
+      "template": ""
+    },
+    {
+      "rule": "/api/payments/stripe-webhook",
+      "function": "api_payments_stripe_webhook",
+      "methods": [
+        "POST"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/oportunidades",
+      "function": "v565_opportunities_page",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "client",
+      "template": "opportunities.html"
+    },
+    {
+      "rule": "/admin/sports-data-picks",
+      "function": "v565_admin_sports_data_picks_page",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "admin",
+      "template": "admin_sports_data_picks.html"
+    },
+    {
+      "rule": "/api/v565/sports-data-picks-check",
+      "function": "api_v565_sports_data_picks_check",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/v565/recommendations",
+      "function": "api_v565_recommendations",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/v565/convert-recommendation",
+      "function": "api_v565_convert_recommendation",
+      "methods": [
+        "POST"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/dashboard",
+      "function": "v566_dashboard_page",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "client",
+      "template": "client_overview.html"
+    },
+    {
+      "rule": "/menu",
+      "function": "v566_client_menu_page",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "client",
+      "template": "client_menu.html"
+    },
+    {
+      "rule": "/live-depth",
+      "function": "v566_live_depth_page",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "client",
+      "template": "live_depth.html"
+    },
+    {
+      "rule": "/recomendaciones\")\n@app.route(",
+      "function": "v566_recommendations_page",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "client",
+      "template": "recommendations.html"
+    },
+    {
+      "rule": "/auto-picks\")\n@app.route(",
+      "function": "v566_auto_picks_page",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "client",
+      "template": "auto_picks.html"
+    },
+    {
+      "rule": "/juego-responsable\")\n@app.route(",
+      "function": "v566_responsible_betting_page",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "client",
+      "template": "responsible_betting.html"
+    },
+    {
+      "rule": "/legal\")\n@app.route(\"/privacy\")\n@app.route(",
+      "function": "v566_legal_page",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "client",
+      "template": "legal_trust.html"
+    },
+    {
+      "rule": "/contact",
+      "function": "v724_contact_alias_page",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "bucket": "public",
+      "template": "support.html"
+    },
+    {
+      "rule": "/intelligence-hub",
+      "function": "v566_intelligence_hub_page",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "client",
+      "template": "unified_intelligence_hub.html"
+    },
+    {
+      "rule": "/admin/dashboard",
+      "function": "v566_admin_dashboard_page",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "admin",
+      "template": "admin_dashboard.html"
+    },
+    {
+      "rule": "/admin/recommendations",
+      "function": "v566_admin_recommendations_page",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "bucket": "admin",
+      "template": "admin_recommendations.html"
+    },
+    {
+      "rule": "/admin/final-qa",
+      "function": "v566_admin_final_qa_page",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "admin",
+      "template": "admin_final_qa.html"
+    },
+    {
+      "rule": "/admin/unified-intelligence",
+      "function": "v566_admin_unified_intelligence_page",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "admin",
+      "template": "admin_unified_intelligence.html"
+    },
+    {
+      "rule": "/api/full-audit-report",
+      "function": "api_v566_full_audit_report",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/v566/product-polish-check",
+      "function": "api_v566_product_polish_check",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/recommendations",
+      "function": "api_v566_recommendations",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/autonomous-picks/status",
+      "function": "api_v566_autonomous_picks_status",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/timezone-check",
+      "function": "api_v566_timezone_check",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/shark-core",
+      "function": "v570_shark_core_page",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "client",
+      "template": "shark_core.html"
+    },
+    {
+      "rule": "/inteligencia",
+      "function": "v570_inteligencia_alias",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "client",
+      "template": ""
+    },
+    {
+      "rule": "/admin/shark-center",
+      "function": "v570_admin_shark_center",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "admin",
+      "template": "admin_shark_center.html"
+    },
+    {
+      "rule": "/api/shark/core-summary",
+      "function": "api_v570_shark_core_summary",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/api/admin/shark-center",
+      "function": "api_v570_admin_shark_center",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "admin_api",
+      "template": ""
+    },
+    {
+      "rule": "/api/system/v570-check",
+      "function": "api_v570_system_check",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "api",
+      "template": ""
+    },
+    {
+      "rule": "/admin/visual-experience\")\n@app.route(",
+      "function": "admin_visual_experience_page",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "admin",
+      "template": "admin_visual_experience.html"
+    },
+    {
+      "rule": "/api/admin/visual-experience",
+      "function": "api_admin_visual_experience",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "admin_api",
+      "template": ""
+    },
+    {
+      "rule": "/admin/app-feel\")\n@app.route(",
+      "function": "admin_native_app_experience_page",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "admin",
+      "template": "admin_app_feel.html"
+    },
+    {
+      "rule": "/api/admin/app-feel\")\n@app.route(",
+      "function": "api_admin_native_app_experience",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "admin_api",
+      "template": ""
+    },
+    {
+      "rule": "/admin/client-visual-qa\")\n@app.route(\"/admin/visual-qa\")\n@app.route(",
+      "function": "admin_client_visual_qa_page",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "admin",
+      "template": "admin_client_visual_qa.html"
+    },
+    {
+      "rule": "/api/admin/client-visual-qa\")\n@app.route(",
+      "function": "api_admin_client_visual_qa",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "admin_api",
+      "template": ""
+    },
+    {
+      "rule": "/admin/calendar-experience\")\n@app.route(\"/admin/calendar-qa\")\n@app.route(",
+      "function": "admin_calendar_experience_page",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "admin",
+      "template": "admin_calendar_experience.html"
+    },
+    {
+      "rule": "/api/admin/calendar-experience\")\n@app.route(",
+      "function": "api_admin_calendar_experience",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "admin_api",
+      "template": ""
+    },
+    {
+      "rule": "/admin/final-release\")\n@app.route(\"/admin/release-candidate\")\n@app.route(",
+      "function": "admin_final_release_page",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "admin",
+      "template": "admin_final_release.html"
+    },
+    {
+      "rule": "/api/admin/final-release\")\n@app.route(",
+      "function": "api_admin_final_release",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "admin_api",
+      "template": ""
+    },
+    {
+      "rule": "/api/admin/final-release/checklist",
+      "function": "api_admin_final_release_checklist",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "admin_api",
+      "template": ""
+    },
+    {
+      "rule": "/admin/live-experience\")\n@app.route(",
+      "function": "admin_live_experience_page",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "admin",
+      "template": "admin_live_experience.html"
+    },
+    {
+      "rule": "/api/admin/live-experience\")\n@app.route(",
+      "function": "api_admin_live_experience",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "admin_api",
+      "template": ""
+    },
+    {
+      "rule": "/admin/sale-ready\")\n@app.route(",
+      "function": "admin_sale_ready_page",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "admin",
+      "template": "admin_sale_ready.html"
+    },
+    {
+      "rule": "/api/admin/sale-ready",
+      "function": "api_admin_sale_ready",
+      "methods": [
+        "GET"
+      ],
+      "bucket": "admin_api",
+      "template": ""
+    }
+  ]
+}

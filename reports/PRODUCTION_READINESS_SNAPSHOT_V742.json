@@ -1,0 +1,388 @@
+{
+  "ok": true,
+  "generated_at": "2026-06-13T00:56:52",
+  "project_root": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro",
+  "version": {
+    "version_txt": "V742_SALE_READY_LIVE_DETAIL_TRACK_RECORD_TELEGRAM_FINAL_POLISH",
+    "app_py_version": "V742_SALE_READY_LIVE_DETAIL_TRACK_RECORD_TELEGRAM_FINAL_POLISH",
+    "runtime_expected": "V742_SALE_READY_LIVE_DETAIL_TRACK_RECORD_TELEGRAM_FINAL_POLISH",
+    "match": true,
+    "has_recent_stack": false
+  },
+  "critical_files": [
+    {
+      "path": "app.py",
+      "label": "Aplicación Flask principal",
+      "exists": true,
+      "size_bytes": 538162,
+      "severity": "OK"
+    },
+    {
+      "path": "database_manager.py",
+      "label": "Conexión SQLite segura",
+      "exists": true,
+      "size_bytes": 1802,
+      "severity": "OK"
+    },
+    {
+      "path": "VERSION.txt",
+      "label": "Versión de release",
+      "exists": true,
+      "size_bytes": 63,
+      "severity": "OK"
+    },
+    {
+      "path": "requirements.txt",
+      "label": "Dependencias Render",
+      "exists": true,
+      "size_bytes": 125,
+      "severity": "OK"
+    },
+    {
+      "path": "Procfile",
+      "label": "Arranque Render",
+      "exists": true,
+      "size_bytes": 22,
+      "severity": "OK"
+    },
+    {
+      "path": ".env.example",
+      "label": "Variables documentadas",
+      "exists": true,
+      "size_bytes": 2184,
+      "severity": "OK"
+    },
+    {
+      "path": ".env.render.clean",
+      "label": "Plantilla Render limpia",
+      "exists": true,
+      "size_bytes": 2688,
+      "severity": "OK"
+    },
+    {
+      "path": "templates/base.html",
+      "label": "Base visual y seguridad CSRF",
+      "exists": true,
+      "size_bytes": 11408,
+      "severity": "OK"
+    },
+    {
+      "path": "engines/madrid_time_engine.py",
+      "label": "Hora Europe/Madrid",
+      "exists": true,
+      "size_bytes": 9273,
+      "severity": "OK"
+    },
+    {
+      "path": "engines/telegram_reliability_engine.py",
+      "label": "Diagnóstico Telegram V727",
+      "exists": true,
+      "size_bytes": 7205,
+      "severity": "OK"
+    },
+    {
+      "path": "engines/client_experience_guard_engine.py",
+      "label": "QA cliente V731",
+      "exists": true,
+      "size_bytes": 9723,
+      "severity": "OK"
+    },
+    {
+      "path": "engines/route_health_engine.py",
+      "label": "Salud de rutas V730",
+      "exists": true,
+      "size_bytes": 7195,
+      "severity": "OK"
+    },
+    {
+      "path": "engines/security_engine.py",
+      "label": "CSRF, rate limit y SECRET_KEY V729",
+      "exists": true,
+      "size_bytes": 8040,
+      "severity": "OK"
+    },
+    {
+      "path": "tools/build_clean_release.py",
+      "label": "ZIP limpio Render Ready",
+      "exists": true,
+      "size_bytes": 8621,
+      "severity": "OK"
+    },
+    {
+      "path": "tools/audit_release_zip.py",
+      "label": "Auditor ZIP",
+      "exists": true,
+      "size_bytes": 5620,
+      "severity": "OK"
+    },
+    {
+      "path": "tools/check_madrid_times.py",
+      "label": "Auditoría hora Madrid",
+      "exists": true,
+      "size_bytes": 5082,
+      "severity": "OK"
+    },
+    {
+      "path": "tools/check_telegram_reliability.py",
+      "label": "Auditoría Telegram",
+      "exists": true,
+      "size_bytes": 5260,
+      "severity": "OK"
+    },
+    {
+      "path": "tools/check_v731_client_experience.py",
+      "label": "Auditoría cliente",
+      "exists": true,
+      "size_bytes": 2441,
+      "severity": "OK"
+    }
+  ],
+  "admin_centers": [
+    {
+      "route": "/admin/telegram/command-center",
+      "label": "Telegram Command Center",
+      "template": "admin_telegram_command_center.html",
+      "route_exists": true,
+      "template_exists": true,
+      "ok": true,
+      "severity": "OK"
+    },
+    {
+      "route": "/admin/route-health",
+      "label": "Salud de rutas",
+      "template": "admin_route_health.html",
+      "route_exists": true,
+      "template_exists": true,
+      "ok": true,
+      "severity": "OK"
+    },
+    {
+      "route": "/admin/client-experience",
+      "label": "Experiencia cliente",
+      "template": "admin_client_experience.html",
+      "route_exists": true,
+      "template_exists": true,
+      "ok": true,
+      "severity": "OK"
+    },
+    {
+      "route": "/admin/time-diagnostics",
+      "label": "Diagnóstico hora Madrid",
+      "template": "admin_time_diagnostics.html",
+      "route_exists": true,
+      "template_exists": true,
+      "ok": true,
+      "severity": "OK"
+    },
+    {
+      "route": "/admin/data-memory",
+      "label": "Memoria SHARK",
+      "template": "admin_data_memory.html",
+      "route_exists": true,
+      "template_exists": true,
+      "ok": true,
+      "severity": "OK"
+    }
+  ],
+  "env": [
+    {
+      "name": "SECRET_KEY",
+      "label": "SECRET_KEY estable",
+      "present": false,
+      "required_for_render": true,
+      "expected": "",
+      "expected_ok": true,
+      "alternatives": [],
+      "severity": "WARN",
+      "safe_value": "pendiente"
+    },
+    {
+      "name": "AUTOMATION_SECRET",
+      "label": "Secret Cron",
+      "present": false,
+      "required_for_render": true,
+      "expected": "",
+      "expected_ok": true,
+      "alternatives": [],
+      "severity": "WARN",
+      "safe_value": "pendiente"
+    },
+    {
+      "name": "DB_PATH",
+      "label": "Ruta DB",
+      "present": false,
+      "required_for_render": true,
+      "expected": "/data/database.db",
+      "expected_ok": true,
+      "alternatives": [],
+      "severity": "WARN",
+      "safe_value": "pendiente"
+    },
+    {
+      "name": "TELEGRAM_BOT_TOKEN",
+      "label": "Bot token Telegram",
+      "present": false,
+      "required_for_render": false,
+      "expected": "",
+      "expected_ok": true,
+      "alternatives": [],
+      "severity": "INFO",
+      "safe_value": "pendiente"
+    },
+    {
+      "name": "TELEGRAM_CHAT_ID",
+      "label": "Chat/canal Telegram",
+      "present": false,
+      "required_for_render": false,
+      "expected": "",
+      "expected_ok": true,
+      "alternatives": [
+        "TELEGRAM_CHANNEL_ID"
+      ],
+      "severity": "INFO",
+      "safe_value": "pendiente"
+    },
+    {
+      "name": "PUBLIC_BASE_URL",
+      "label": "URL pública",
+      "present": false,
+      "required_for_render": false,
+      "expected": "",
+      "expected_ok": true,
+      "alternatives": [],
+      "severity": "INFO",
+      "safe_value": "pendiente"
+    },
+    {
+      "name": "THE_ODDS_API_KEY",
+      "label": "The Odds API",
+      "present": false,
+      "required_for_render": false,
+      "expected": "",
+      "expected_ok": true,
+      "alternatives": [],
+      "severity": "INFO",
+      "safe_value": "pendiente"
+    }
+  ],
+  "tree": {
+    "root_entries": 300,
+    "forbidden_dirs": [
+      ".git",
+      ".pytest_cache",
+      ".venv",
+      "__pycache__",
+      "v636work"
+    ],
+    "forbidden_files": [],
+    "forbidden_count": 5,
+    "release_output_exists": true,
+    "release_output_note": "OK si está excluido del ZIP",
+    "ok": false
+  },
+  "templates": {
+    "base_has_csrf": true,
+    "templates": [
+      {
+        "template": "sports_hub.html",
+        "exists": true,
+        "uses_madrid_filters": true,
+        "has_empty_state": true,
+        "size_bytes": 6476
+      },
+      {
+        "template": "live.html",
+        "exists": true,
+        "uses_madrid_filters": true,
+        "has_empty_state": true,
+        "size_bytes": 5160
+      },
+      {
+        "template": "calendar.html",
+        "exists": true,
+        "uses_madrid_filters": true,
+        "has_empty_state": true,
+        "size_bytes": 9010
+      },
+      {
+        "template": "picks.html",
+        "exists": true,
+        "uses_madrid_filters": true,
+        "has_empty_state": true,
+        "size_bytes": 11704
+      },
+      {
+        "template": "combis.html",
+        "exists": true,
+        "uses_madrid_filters": true,
+        "has_empty_state": true,
+        "size_bytes": 6666
+      },
+      {
+        "template": "match_detail.html",
+        "exists": true,
+        "uses_madrid_filters": true,
+        "has_empty_state": true,
+        "size_bytes": 9537
+      }
+    ],
+    "css_checks": {
+      "mobile_media": true,
+      "bottom_nav": true,
+      "live_state_badges": true,
+      "shark_widget": true,
+      "v728_layer": true,
+      "v731_layer": true
+    },
+    "css_score": 6,
+    "css_max_score": 6
+  },
+  "render_checks": [
+    {
+      "label": "runtime-version",
+      "route": "/api/runtime-version",
+      "expected": "V742_SALE_READY_LIVE_DETAIL_TRACK_RECORD_TELEGRAM_FINAL_POLISH"
+    },
+    {
+      "label": "health",
+      "route": "/api/health",
+      "expected": "200 / OK si existe"
+    },
+    {
+      "label": "Cron Telegram sin secret",
+      "route": "/api/automation/telegram/tick",
+      "expected": "403"
+    },
+    {
+      "label": "Cron Telegram con secret",
+      "route": "/api/automation/telegram/tick?secret=***",
+      "expected": "200"
+    },
+    {
+      "label": "Daily sin secret",
+      "route": "/api/automation/daily/run",
+      "expected": "403"
+    },
+    {
+      "label": "Daily con secret",
+      "route": "/api/automation/daily/run?secret=***",
+      "expected": "200"
+    }
+  ],
+  "score": 71,
+  "status": "REVISAR",
+  "blockers": [],
+  "warnings": [
+    "Hay basura local en raíz; el ZIP puede estar limpio, pero conviene purgar o excluir.",
+    "Faltan variables críticas en este entorno local/sandbox; confirmar en Render antes de vender."
+  ],
+  "recommended_next_steps": [
+    "Subir ZIP limpio a Render y confirmar /api/runtime-version.",
+    "Confirmar DB_PATH=/data/database.db y disco persistente en Render.",
+    "Probar Cron Telegram/Daily 403 sin secret y 200 con secret sin compartir secrets.",
+    "Entrar en /admin/telegram/command-center para ver causa real si Telegram no envía.",
+    "Revisar /admin/client-experience y /admin/route-health tras cada release.",
+    "Grabar QA móvil real de Home, Calendar, Live, Picks, Combis, SHARK, Telegram y Match Detail."
+  ],
+  "note": "Snapshot local/read-only. No certifica Render real sin URL/logs/capturas de producción."
+}

@@ -1,76 +1,87 @@
 {% extends "base.html" %}
 {% block content %}
-<section class="scoreboard-hero v701-scoreboard live-board">
+{% set live = data.live_experience or {} %}
+{% set counts = live.counts or {} %}
+<section class="scoreboard-hero v701-scoreboard live-board v742-live-hero">
   <div>
     <div class="kicker">Directo</div>
-    <h1>Partidos en directo</h1>
-    <p class="lead">Minuto, marcador, estado, favoritos y señal SHARK sin ruido técnico.</p>
+    <h1>Centro Live</h1>
+    <p class="lead">Partidos en directo, próximos, finalizados, favoritos y picks en una vista compacta con hora Madrid.</p>
   </div>
   <div class="scoreboard-kpis">
-    <div><strong>{{ data.match_hub.counts.live }}</strong><span>En directo</span></div>
-    <div><strong>{{ data.match_hub.counts.upcoming }}</strong><span>Próximos</span></div>
-    <div><strong>{{ data.match_hub.counts.finished }}</strong><span>Finalizados</span></div>
-    <div><strong>{{ data.match_hub.counts.with_odds }}</strong><span>Cuotas</span></div>
+    <div><strong>{{ counts.live or 0 }}</strong><span>En directo</span></div>
+    <div><strong>{{ counts.upcoming or 0 }}</strong><span>Próximos</span></div>
+    <div><strong>{{ counts.finished or 0 }}</strong><span>Finalizados</span></div>
+    <div><strong>{{ counts.with_pick or 0 }}</strong><span>Con pick</span></div>
   </div>
 </section>
 
-<section class="sports-tabs v701-tabs">
-  <a class="tab-link active" href="/live">Directo</a>
-  <a class="tab-link" href="/sports-hub?tab=today">Hoy</a>
-  <a class="tab-link" href="/calendar">Calendario</a>
-  <a class="tab-link" href="/picks">Picks</a>
-  <a class="tab-link" href="/favorites">Favoritos</a>
+<section class="sports-tabs v701-tabs v742-live-tabs">
+  {% for key, label in live.filters %}
+  <a class="tab-link {% if live.lane == key %}active{% endif %}" href="/live?f={{ key }}{% if live.query %}&q={{ live.query|urlencode }}{% endif %}">{{ label }}</a>
+  {% endfor %}
+</section>
+
+<section class="band compact-band v742-search-band">
+  <form class="v742-search" method="get" action="/live">
+    <input type="hidden" name="f" value="{{ live.lane or 'live' }}">
+    <input name="q" value="{{ live.query or '' }}" placeholder="Buscar equipo, liga o país">
+    <button type="submit">Buscar</button>
+    {% if live.query %}<a class="btn" href="/live?f={{ live.lane or 'live' }}">Limpiar</a>{% endif %}
+  </form>
 </section>
 
 <section class="band compact-band">
-  <div class="section-head"><h2>En directo por competición</h2><span class="pill">{{ data.match_hub.counts.live }}</span></div>
-  {% if data.match_hub.live_grouped %}
+  <div class="section-head">
+    <h2>{{ live.filtered or 0 }} partidos</h2>
+    <span class="pill">{% if live.query %}{{ live.query }}{% else %}{{ live.lane or 'Directo' }}{% endif %}</span>
+  </div>
+  {% if live.groups %}
   <div class="league-stack v701-leagues">
-    {% for league in data.match_hub.live_grouped %}
+    {% for league in live.groups %}
     <div class="league-block v701-league">
-      <div class="league-head"><div><strong>{{ league.name }}</strong><small>{{ league.country or 'Global' }}</small></div><span class="pill">{{ league.count }}</span></div>
+      <div class="league-head"><div><strong>{{ league.name|competition_es }}</strong><small>{{ league.count }} partidos</small></div><span class="pill">{{ league.count }}</span></div>
       <div class="sports-list v701-match-list">
-      {% for m in league.matches %}
+        {% for m in league.matches %}
         {% set home_identity = m.home_identity|default({}) %}
         {% set away_identity = m.away_identity|default({}) %}
-        {% set live_depth = m.live_depth|default({}) %}
-        <a class="sports-row v701-row live-row favorite-scope" href="/match/{{ m.id }}">
+        {% set depth = m.live_depth|default({}) %}
+        {% set live_badge = depth.get('badge') == 'live' %}
+        {% set score = depth.get('score') or m.score %}
+        <a class="sports-row v701-row live-row favorite-scope v742-live-row" href="/match/{{ m.id }}">
           <button class="fav-star {% if m.is_favorite %}active{% endif %}" type="button" data-kind="match" data-value="{{ m.id }}" data-label="{{ m.home_team }} vs {{ m.away_team }}" aria-label="Favorito">★</button>
-          <div class="sports-time is-live"><strong>{{ live_depth.get('minute') or 'En directo' }}</strong><span>{{ live_depth.get('label') or 'En directo' }}</span></div>
-          <div class="sports-team home"><span class="crest compact-crest {{ home_identity.get('ui_class','crest-fallback') }}"><img loading="lazy" src="{{ home_identity.get('crest_url','') }}" alt="{{ m.home_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ home_identity.get('flag_emoji') or home_identity.get('initials', (m.home_team or 'L')[:1]) }}'"></span><strong>{{ m.safe_home or m.home_team or 'Equipo local' }}</strong></div>
-          <div class="sports-score live-score"><strong>{{ live_depth.get('score') or m.score or 'vs' }}</strong><span>{% if live_depth.get('score') or m.score %}Momentum {{ live_depth.get('momentum') or 0 }}{% else %}Sin marcador{% endif %}</span></div>
-          <div class="sports-team away"><span class="crest compact-crest {{ away_identity.get('ui_class','crest-fallback') }}"><img loading="lazy" src="{{ away_identity.get('crest_url','') }}" alt="{{ m.away_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ away_identity.get('flag_emoji') or away_identity.get('initials', (m.away_team or 'V')[:1]) }}'"></span><strong>{{ m.safe_away or m.away_team or 'Equipo visitante' }}</strong></div>
-          <div class="sports-meta v701-meta"><span class="shark-pill">SH {{ live_depth.get('momentum') or 0 }}</span><span class="state-badge {{ live_depth.get('badge','live') }}">{{ live_depth.get('label') or 'En directo' }}</span></div>
+          <div class="sports-time {% if live_badge %}is-live{% endif %}">
+            <strong>{% if live_badge %}{{ depth.get('minute') or 'En directo' }}{% else %}{{ m|match_time_short }}{% endif %}</strong>
+            <span>{{ depth.get('label') or m.safe_status or m.madrid_date_label or 'Próximo' }}</span>
+          </div>
+          <div class="sports-team home">
+            <span class="crest compact-crest {{ home_identity.get('ui_class','crest-fallback') }}"><img loading="lazy" src="{{ home_identity.get('crest_url','') }}" alt="{{ m.home_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ home_identity.get('flag_emoji') or home_identity.get('initials', (m.home_team or 'L')[:1]) }}'"></span>
+            <strong>{{ m.safe_home or m.home_team or 'Equipo local' }}</strong>
+          </div>
+          <div class="sports-score live-score">
+            <strong>{{ score or 'vs' }}</strong>
+            <span>{% if score %}Marcador{% else %}Sin marcador{% endif %}</span>
+          </div>
+          <div class="sports-team away">
+            <span class="crest compact-crest {{ away_identity.get('ui_class','crest-fallback') }}"><img loading="lazy" src="{{ away_identity.get('crest_url','') }}" alt="{{ m.away_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ away_identity.get('flag_emoji') or away_identity.get('initials', (m.away_team or 'V')[:1]) }}'"></span>
+            <strong>{{ m.safe_away or m.away_team or 'Equipo visitante' }}</strong>
+          </div>
+          <div class="sports-meta v701-meta">
+            {% if m.has_pick or m.pick_id %}<span class="badge">Pick SHARK disponible</span>{% endif %}
+            <span class="shark-pill">SH {{ depth.get('momentum') or m.shark_score or 0 }}</span>
+            <span class="state-badge {{ depth.get('badge','upcoming') }}">{{ depth.get('label') or m.safe_status or 'Próximo' }}</span>
+          </div>
         </a>
-      {% endfor %}
+        {% endfor %}
       </div>
     </div>
     {% endfor %}
   </div>
   {% else %}
-  <div class="empty premium-empty"><strong>No hay partidos en directo ahora mismo.</strong><p>SHARK seguirá vigilando el calendario.</p></div>
-  {% endif %}
-</section>
-
-<section class="band compact-band">
-  <div class="section-head"><h2>Próximos destacados</h2><a class="pill" href="/sports-hub?tab=today">Ver hoy</a></div>
-  {% if data.match_hub.upcoming %}
-  <div class="sports-list v701-match-list">
-    {% for m in data.match_hub.upcoming[:14] %}
-    {% set home_identity = m.home_identity|default({}) %}
-    {% set away_identity = m.away_identity|default({}) %}
-    <a class="sports-row v701-row favorite-scope" href="/match/{{ m.id }}">
-      <button class="fav-star {% if m.is_favorite %}active{% endif %}" type="button" data-kind="match" data-value="{{ m.id }}" data-label="{{ m.home_team }} vs {{ m.away_team }}" aria-label="Favorito">★</button>
-      <div class="sports-time"><strong>{{ m|match_time_short }}</strong><span>{{ m|match_date_label }}</span></div>
-      <div class="sports-team home"><span class="crest compact-crest {{ home_identity.get('ui_class','crest-fallback') }}"><img loading="lazy" src="{{ home_identity.get('crest_url','') }}" alt="{{ m.home_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ home_identity.get('flag_emoji') or home_identity.get('initials', (m.home_team or 'L')[:1]) }}'"></span><strong>{{ m.safe_home or m.home_team or 'Equipo local' }}</strong></div>
-      <div class="sports-score"><strong>vs</strong><span>{{ (m.safe_competition or m.competition_name or m.league_name or 'Competición')|competition_es }}</span></div>
-      <div class="sports-team away"><span class="crest compact-crest {{ away_identity.get('ui_class','crest-fallback') }}"><img loading="lazy" src="{{ away_identity.get('crest_url','') }}" alt="{{ m.away_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ away_identity.get('flag_emoji') or away_identity.get('initials', (m.away_team or 'V')[:1]) }}'"></span><strong>{{ m.safe_away or m.away_team or 'Equipo visitante' }}</strong></div>
-      <div class="sports-meta v701-meta"><span class="state-badge upcoming">Próximo</span></div>
-    </a>
-    {% endfor %}
+  <div class="empty premium-empty">
+    <strong>No hay partidos para este filtro.</strong>
+    <p>{% if live.lane == 'live' %}No hay partidos en directo ahora mismo. SHARK seguirá vigilando el calendario.{% else %}Sin datos sincronizados para esta vista. Prueba Hoy, Próximos o Grandes ligas.{% endif %}</p>
   </div>
-  {% else %}
-  <div class="empty premium-empty">No hay próximos destacados cargados. Revisa el calendario cuando haya sincronización disponible.</div>
   {% endif %}
 </section>
 {% endblock %}

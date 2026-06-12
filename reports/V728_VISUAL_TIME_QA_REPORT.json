@@ -1,0 +1,92 @@
+{
+  "ok": true,
+  "findings": [],
+  "filter_coverage": {
+    "calendar.html": {
+      "match_time_short": true,
+      "match_time_label": false,
+      "match_date_label": false
+    },
+    "client_overview.html": {
+      "match_time_short": true,
+      "match_time_label": false,
+      "match_date_label": false
+    },
+    "combis.html": {
+      "match_time_short": true,
+      "match_time_label": false,
+      "match_date_label": true
+    },
+    "daily_briefing.html": {
+      "match_time_short": true,
+      "match_time_label": false,
+      "match_date_label": false
+    },
+    "favorites.html": {
+      "match_time_short": true,
+      "match_time_label": false,
+      "match_date_label": true
+    },
+    "home.html": {
+      "match_time_short": true,
+      "match_time_label": false,
+      "match_date_label": false
+    },
+    "live.html": {
+      "match_time_short": true,
+      "match_time_label": false,
+      "match_date_label": false
+    },
+    "match_detail.html": {
+      "match_time_short": true,
+      "match_time_label": true,
+      "match_date_label": false
+    },
+    "match_hub.html": {
+      "match_time_short": true,
+      "match_time_label": true,
+      "match_date_label": false
+    },
+    "picks.html": {
+      "match_time_short": true,
+      "match_time_label": false,
+      "match_date_label": true
+    },
+    "profile.html": {
+      "match_time_short": false,
+      "match_time_label": false,
+      "match_date_label": false
+    },
+    "shark.html": {
+      "match_time_short": false,
+      "match_time_label": false,
+      "match_date_label": false
+    },
+    "smart_dashboard.html": {
+      "match_time_short": true,
+      "match_time_label": false,
+      "match_date_label": false
+    },
+    "sports_hub.html": {
+      "match_time_short": true,
+      "match_time_label": false,
+      "match_date_label": true
+    },
+    "team_detail.html": {
+      "match_time_short": false,
+      "match_time_label": true,
+      "match_date_label": false
+    },
+    "telegram.html": {
+      "match_time_short": false,
+      "match_time_label": false,
+      "match_date_label": false
+    },
+    "unified_intelligence_hub.html": {
+      "match_time_short": true,
+      "match_time_label": false,
+      "match_date_label": false
+    }
+  },
+  "missing_required_filters": []
+}

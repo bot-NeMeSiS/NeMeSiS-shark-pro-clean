@@ -8,7 +8,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 REQUIRED = {
-    "app.py": ["V740_CLIENT_VISUAL_PICK_ANALYSIS_PERFECTION", "enrich_pick_analysis", "client_visual_perfection_snapshot"],
+    "app.py": ["enrich_pick_analysis", "client_visual_perfection_snapshot"],
     "engines/pick_analysis_experience_engine.py": ["pick_analysis_payload", "analysis_conclusion", "analysis_reasons"],
     "engines/client_visual_perfection_engine.py": ["client_visual_perfection_snapshot", "CLIENT_VISUAL_READY"],
     "templates/picks.html": ["v740-analysis-box", "analysis_reasons", "analysis_conclusion", "compact-crest"],

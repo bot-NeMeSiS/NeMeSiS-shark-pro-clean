@@ -1,0 +1,18 @@
+{
+  "ok": true,
+  "checks": {
+    "version_v729_or_later": true,
+    "secure_secret_key_used": true,
+    "no_random_secret_fallback": true,
+    "csrf_helpers_imported": true,
+    "csrf_enforced": true,
+    "csrf_meta_present": true,
+    "post_forms_auto_injected": true,
+    "rate_limit_present": true,
+    "login_events_recorded": true,
+    "registration_events_recorded": true,
+    "security_headers_present": true,
+    "root_html_duplicates": true
+  },
+  "root_html_files": []
+}

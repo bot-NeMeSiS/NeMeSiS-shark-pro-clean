@@ -1,43 +1,56 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
 {% block content %}
-<section class="hero compact-hero v734-hero">
+{% set tr = data.track_record or {} %}
+<section class="hero compact-hero v734-hero v742-track-hero">
   <div class="eyebrow">Transparencia SHARK</div>
-  <h1>Histórico y rendimiento real</h1>
-  <p>Mostramos rendimiento cuando hay datos suficientes. Si un mercado no puede validarse con seguridad, queda pendiente y no se usa para vender humo.</p>
+  <h1>Track Record real</h1>
+  <p>Rendimiento calculado solo con picks evaluables. Si faltan resultados fiables, queda pendiente y no se usa para vender humo.</p>
 </section>
 
 <section class="grid cards-4">
-  <article class="card stat-card"><span>Picks auditados</span><strong>{{ data.track_record.graded_total }}</strong><small>histórico disponible</small></article>
-  <article class="card stat-card"><span>Ganados</span><strong>{{ data.track_record.won }}</strong><small>validados</small></article>
-  <article class="card stat-card"><span>Perdidos</span><strong>{{ data.track_record.lost }}</strong><small>validados</small></article>
-  <article class="card stat-card"><span>Resultado</span><strong>{{ data.track_record.profit }} u</strong><small>sin prometer beneficios</small></article>
+  <article class="card stat-card"><span>Picks evaluables</span><strong>{{ tr.graded_total or 0 }}</strong><small>{{ tr.commercial_note or 'Pendiente de resultados reales' }}</small></article>
+  <article class="card stat-card"><span>Ganados / Perdidos</span><strong>{{ tr.won or 0 }} / {{ tr.lost or 0 }}</strong><small>Nulos {{ tr.void or 0 }} · Pendientes {{ tr.pending or tr.pending_review or 0 }}</small></article>
+  <article class="card stat-card"><span>Beneficio</span><strong>{{ tr.profit or 0 }} u</strong><small>Stake {{ tr.stake_total or 0 }} u</small></article>
+  <article class="card stat-card"><span>ROI</span><strong>{% if tr.roi is not none %}{{ tr.roi }}%{% else %}Pendiente{% endif %}</strong><small>Winrate {% if tr.winrate is not none %}{{ tr.winrate }}%{% else %}por validar{% endif %}</small></article>
 </section>
 
-<section class="card">
-  <h2>Últimos picks evaluados</h2>
-  {% if data.track_record.recent_results %}
-  <div class="stack compact-list">
-    {% for row in data.track_record.recent_results[:8] %}
-    <div class="mini-row v740-home-match">
-      {% if row.home_team and row.away_team %}
-      <span class="v740-home-teams">
-        {% set home_identity = row.home_identity or {} %}
-        {% set away_identity = row.away_identity or {} %}
-        <span class="crest compact-crest {{ home_identity.get('ui_class','crest-fallback') }}"><img loading="lazy" src="{{ home_identity.get('crest_url','') }}" alt="{{ row.home_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ home_identity.get('flag_emoji') or home_identity.get('initials', (row.home_team or 'L')[:1]) }}'"></span>
-        <span class="v740-home-team-text"><strong>{{ row.home_team }}</strong><em>vs</em><strong>{{ row.away_team }}</strong><small>{{ (row.safe_competition or row.competition_name or row.league_name or 'Competición')|competition_es }}</small></span>
-        <span class="crest compact-crest {{ away_identity.get('ui_class','crest-fallback') }}"><img loading="lazy" src="{{ away_identity.get('crest_url','') }}" alt="{{ row.away_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ away_identity.get('flag_emoji') or away_identity.get('initials', (row.away_team or 'V')[:1]) }}'"></span>
-      </span>
+<section class="band two-col compact-band">
+  <div class="card">
+    <div class="section-head"><h2>Últimos picks cerrados</h2><span class="pill">{{ tr.recent_results|length }}</span></div>
+    <div class="stack compact-list">
+      {% for row in tr.recent_results[:10] %}
+      <div class="mini-row v740-home-match">
+        <span class="v740-home-teams">
+          <span class="crest compact-crest crest-fallback">NS</span>
+          <span class="v740-home-team-text"><strong>{{ row.pick_label or ('Pick ' ~ row.pick_id) }}</strong><small>{{ row.reason or 'Resultado auditado' }}</small></span>
+        </span>
+        <span class="badge status-{{ row.result_status }}">{{ row.result_status or 'pendiente' }}</span>
+      </div>
       {% else %}
-      <span class="v740-home-teams"><span class="crest compact-crest crest-fallback">NS</span><span class="v740-home-team-text"><strong>Pick {{ row.pick_id }}</strong><small>Datos de partido no disponibles</small></span></span>
-      {% endif %}
-      <div><strong>{{ row.pick_label or ('Pick ' ~ row.pick_id) }}</strong><span>{{ row.reason }}</span></div>
-      <span class="badge status-{{ row.result_status }}">{{ row.result_status }}</span>
+      <div class="empty-state">Pendiente de resultados reales. Cuando haya picks cerrados con evidencia fiable, aparecerán aquí.</div>
+      {% endfor %}
     </div>
-    {% endfor %}
   </div>
-  {% else %}
-  <div class="empty-state">Aún no hay histórico suficiente. Cuando haya resultados reales auditados, aparecerán aquí.</div>
-  {% endif %}
+  <div class="card">
+    <div class="section-head"><h2>Pendientes</h2><span class="pill">{{ tr.pending_results|length }}</span></div>
+    <div class="stack compact-list">
+      {% for row in tr.pending_results[:8] %}
+      <div class="list-row"><span>{{ row.pick_id }}<small>{{ row.reason or 'Pendiente de resultado fiable' }}</small></span><strong>Pendiente</strong></div>
+      {% else %}
+      <div class="empty-state">No hay picks pendientes de resultado en la muestra actual.</div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<section class="band compact-band">
+  <div class="section-head"><h2>Lectura por categorías</h2><span class="pill">sin datos demo</span></div>
+  <div class="grid compact-grid">
+    <article class="card"><h3>Por mes</h3>{% for row in tr.by_month[:6] %}<div class="list-row"><span>{{ row.label }}</span><strong>{{ row.profit or 0 }} u</strong></div>{% else %}<div class="empty-state">Sin histórico mensual suficiente.</div>{% endfor %}</article>
+    <article class="card"><h3>Por liga</h3>{% for row in tr.by_league[:6] %}<div class="list-row"><span>{{ row.label|competition_es }}</span><strong>{{ row.total }}</strong></div>{% else %}<div class="empty-state">Sin ligas evaluables todavía.</div>{% endfor %}</article>
+    <article class="card"><h3>Por mercado</h3>{% for row in tr.by_market[:6] %}<div class="list-row"><span>{{ row.label }}</span><strong>{{ row.total }}</strong></div>{% else %}<div class="empty-state">Sin mercados evaluables todavía.</div>{% endfor %}</article>
+    <article class="card"><h3>Por plan</h3>{% for row in tr.by_plan[:6] %}<div class="list-row"><span>{{ row.label }}</span><strong>{{ row.total }}</strong></div>{% else %}<div class="empty-state">Sin segmentación por plan todavía.</div>{% endfor %}</article>
+  </div>
 </section>
 
 <section class="card responsible-note">

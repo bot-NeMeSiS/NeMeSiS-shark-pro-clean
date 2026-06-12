@@ -1,13 +1,13 @@
 {
   "ok": true,
-  "version": "V727_TELEGRAM_RELIABILITY_COMMAND_CENTER",
+  "version": "V742_SALE_READY_LIVE_DETAIL_TRACK_RECORD_TELEGRAM_FINAL_POLISH",
   "diagnosis": {
     "status": "MISSING_BOT_TOKEN",
     "severity": "critical",
     "normal": false,
     "explanation": "Telegram no puede enviar porque falta TELEGRAM_BOT_TOKEN.",
     "action": "Configurar TELEGRAM_BOT_TOKEN en Render y redeployar.",
-    "madrid_now": "2026-06-12T20:39:32+02:00",
+    "madrid_now": "2026-06-13T00:58:30+02:00",
     "data": {
       "counts": {
         "candidate_picks": 0,
@@ -32,7 +32,7 @@
       },
       "reason_counts": {},
       "limits": {
-        "quiet_hours_active": false,
+        "quiet_hours_active": true,
         "quiet_start": "00:30",
         "quiet_end": "09:30",
         "daily_summary_start": "09:30",
@@ -87,7 +87,7 @@
   },
   "reason_counts": {},
   "limits": {
-    "quiet_hours_active": false,
+    "quiet_hours_active": true,
     "quiet_start": "00:30",
     "quiet_end": "09:30",
     "daily_summary_start": "09:30",
