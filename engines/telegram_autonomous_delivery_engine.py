@@ -2,6 +2,8 @@ import hashlib
 import json
 import sqlite3
 import re
+
+from engines.telegram_sport_filter_engine import is_telegram_football_item, telegram_sport_filter_reason
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
@@ -209,7 +211,8 @@ def _top_picks(conn, limit=8):
     if 'status' in cols:
         where_parts.append("LOWER(COALESCE(status,'')) IN ('published','pending','active','')")
     where = ('WHERE ' + ' AND '.join(where_parts)) if where_parts else ''
-    return _rows(conn, f'SELECT {select} FROM picks {where} ORDER BY {order} LIMIT ?', (limit,))
+    data = _rows(conn, f'SELECT {select} FROM picks {where} ORDER BY {order} LIMIT ?', (limit * 3,))
+    return [item for item in data if is_telegram_football_item(item)][:limit]
 
 
 def _matches_today(conn, limit=6):
@@ -222,11 +225,15 @@ def _matches_today(conn, limit=6):
     today = _date_key()
     date_col = 'match_date' if 'match_date' in cols else None
     if date_col:
-        return _rows(conn, f'SELECT {select} FROM matches WHERE {date_col} LIKE ? ORDER BY {date_col} ASC LIMIT ?', (today + '%', limit))
-    return _rows(conn, f'SELECT {select} FROM matches LIMIT ?', (limit,))
+        data = _rows(conn, f'SELECT {select} FROM matches WHERE {date_col} LIKE ? ORDER BY {date_col} ASC LIMIT ?', (today + '%', limit * 3))
+        return [item for item in data if is_telegram_football_item(item)][:limit]
+    data = _rows(conn, f'SELECT {select} FROM matches LIMIT ?', (limit * 3,))
+    return [item for item in data if is_telegram_football_item(item)][:limit]
 
 
 def _pick_message(pick, elite=False):
+    if not is_telegram_football_item(pick or {}):
+        return '', ''
     teams = f"{pick.get('home_team') or 'Local'} vs {pick.get('away_team') or 'Visitante'}"
     selection = _selection_label(pick) or 'Pick SHARK'
     odds = _valid_odds(pick.get('odds')) or 'cuota real pendiente'
@@ -252,7 +259,7 @@ def _pick_message(pick, elite=False):
 def _briefing_message(matches, picks):
     lines = ['🦈 RESUMEN SHARK DEL DÍA', '']
     lines.append(f"⚽ Partidos monitorizados: {len(matches or [])}")
-    valid_picks = [p for p in (picks or []) if _valid_odds(p.get('odds')) and _selection_label(p)]
+    valid_picks = [p for p in (picks or []) if is_telegram_football_item(p) and _valid_odds(p.get('odds')) and _selection_label(p)]
     lines.append(f"✅ Picks premium listos: {len(valid_picks)}")
     lines.append('')
     if matches:
@@ -305,6 +312,10 @@ def run_telegram_autonomous_delivery(db_path, limit=30, force=False):
             elite = target == 'ELITE' or conf >= 76
             cid = hashlib.md5(f"pick:{pick.get('id')}:{_date_key()}".encode()).hexdigest()[:22]
             title, body = _pick_message(pick, elite=elite)
+            if not body:
+                skipped += 1
+                campaigns.append({'type': 'pick_skipped', 'reason': telegram_sport_filter_reason(pick) or 'no_body', 'pick': pick.get('id')})
+                continue
             q = s = 0
             for sub in subscribers[:limit]:
                 member = str(sub.get('membership') or 'FREE').upper()

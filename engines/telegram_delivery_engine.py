@@ -11,6 +11,8 @@ import html
 import re
 from datetime import datetime
 
+from engines.telegram_sport_filter_engine import is_telegram_football_item
+
 from engines.spanish_localization_engine import (
     apply_match_localization,
     apply_pick_localization,
@@ -394,6 +396,8 @@ def _pick_value_label(pick) -> str:
 
 
 def format_match_line(match) -> str:
+    if not is_telegram_football_item(match or {}):
+        return ""
     match = apply_match_localization(match)
     comp = safe_html(_competition_name(match))
     score = _score_text(match)
@@ -418,6 +422,7 @@ def build_daily_matches_message(matches, date_key, premium_name="NeMeSiS SHARK P
         f"📅 <b>{safe_html(_format_date(date_key))}</b>",
         _SEPARATOR,
     ]
+    matches = [item for item in (matches or []) if is_telegram_football_item(item)]
     if not matches:
         lines.extend([
             "Hoy no hay partidos destacados cargados todavía.",
@@ -445,6 +450,8 @@ def build_daily_matches_message(matches, date_key, premium_name="NeMeSiS SHARK P
 
 
 def build_single_pick_message(pick, premium_name="NeMeSiS SHARK PRO", title="🦈 PICK SHARK PREMIUM") -> str:
+    if not is_telegram_football_item(pick or {}):
+        return ""
     pick = apply_pick_localization(pick)
     selection = _selection_text(pick)
     odds = _clean_odds(pick.get("odds"))
@@ -486,6 +493,8 @@ def build_single_pick_message(pick, premium_name="NeMeSiS SHARK PRO", title="�
 def build_daily_picks_message(picks, force_empty=False, premium_name="NeMeSiS SHARK PRO") -> str:
     clean = []
     for raw in picks or []:
+        if not is_telegram_football_item(raw or {}):
+            continue
         pick = apply_pick_localization(raw)
         if _selection_text(pick) and _clean_odds(pick.get("odds")):
             clean.append(pick)
@@ -530,6 +539,8 @@ def build_combi_message(picks, combi_type="media", premium_name="NeMeSiS SHARK P
     seen = set()
     total_odds = 1.0
     for raw in picks or []:
+        if not is_telegram_football_item(raw or {}):
+            continue
         pick = apply_pick_localization(raw)
         selection = _selection_text(pick)
         odds = _clean_odds(pick.get("odds"))
@@ -574,6 +585,8 @@ def build_combi_message(picks, combi_type="media", premium_name="NeMeSiS SHARK P
 
 
 def build_live_alert_message(match, event=None, internal_url="/live") -> str:
+    if not is_telegram_football_item(match or {}):
+        return ""
     match = apply_match_localization(match)
     event = event or {}
     score = _score_text(match) or "sin marcador"

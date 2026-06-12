@@ -57,6 +57,12 @@ from engines.telegram_delivery_engine import (
     telegram_dedupe_key,
 )
 from engines.telegram_engine import build_alert_queue, dispatch_signature, should_skip_duplicate
+from engines.telegram_sport_filter_engine import (
+    filter_telegram_football_items,
+    is_telegram_football_item,
+    telegram_sport_filter_reason,
+    telegram_sport_mode_summary,
+)
 from engines.spanish_localization_engine import (
     MADRID_TZ,
     apply_match_localization,
@@ -72,7 +78,7 @@ from engines.spanish_localization_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V717_3_BET_SELECTION_CLARITY"
+APP_VERSION = "V717_4_TELEGRAM_FOOTBALL_ONLY_FILTER"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -428,6 +434,7 @@ def run_schema_migrations(conn):
         ("matches", "raw_json", "TEXT"),
         ("matches", "updated_at", "TEXT"),
         ("matches", "external_id", "TEXT"),
+        ("matches", "sport_key", "TEXT DEFAULT 'soccer'"),
         ("matches", "competition_id", "TEXT"),
         ("matches", "league_name", "TEXT"),
         ("matches", "home_team_id", "TEXT"),
@@ -445,6 +452,7 @@ def run_schema_migrations(conn):
         ("matches", "odds_h2h_json", "TEXT"),
         ("matches", "odds_updated_at", "TEXT"),
         ("matches", "sync_status", "TEXT"),
+        ("picks", "sport_key", "TEXT DEFAULT 'soccer'"),
         ("picks", "stake_units", "REAL DEFAULT 1"),
         ("picks", "status", "TEXT DEFAULT 'PENDING'"),
         ("picks", "source", "TEXT"),
@@ -712,6 +720,7 @@ def init_db():
         """CREATE TABLE IF NOT EXISTS matches(
             id TEXT PRIMARY KEY,
             external_id TEXT,
+            sport_key TEXT DEFAULT 'soccer',
             match_date TEXT NOT NULL,
             kickoff_time TEXT,
             match_time TEXT,
@@ -787,6 +796,7 @@ def init_db():
             id TEXT PRIMARY KEY,
             match_id TEXT,
             match_date TEXT,
+            sport_key TEXT DEFAULT 'soccer',
             competition_key TEXT,
             competition_name TEXT,
             home_team TEXT,
@@ -6011,6 +6021,7 @@ def telegram_pro_calibration():
         "elite_pick_score": as_int(os.getenv("TELEGRAM_ELITE_PICK_SCORE", "85"), 85),
         "min_odds": as_float(os.getenv("TELEGRAM_MIN_ODDS", "1.40"), 1.40),
         "max_odds": as_float(os.getenv("TELEGRAM_MAX_ODDS", "4.50"), 4.50),
+        "sport_mode": telegram_sport_mode_summary(),
     }
 
 
@@ -6138,6 +6149,7 @@ def telegram_crest_url_for_team(team_name, explicit_url=""):
 
 def telegram_enrich_match_for_message(match):
     item = dict(match or {})
+    item["sport_key"] = item.get("sport_key") or item.get("sport") or item.get("competition_id") or "soccer"
     item["home_logo"] = telegram_crest_url_for_team(item.get("home_team"), item.get("home_logo") or ((item.get("home_identity") or {}).get("crest_url")))
     item["away_logo"] = telegram_crest_url_for_team(item.get("away_team"), item.get("away_logo") or ((item.get("away_identity") or {}).get("crest_url")))
     item["match_url"] = item.get("match_url") or telegram_match_url(item.get("id"))
@@ -6149,6 +6161,8 @@ def telegram_enrich_pick_for_message(pick):
     match = one("SELECT * FROM matches WHERE id=?", (item.get("match_id"),)) if item.get("match_id") else None
     if match:
         item.setdefault("competition_name", match.get("competition_name") or match.get("league_name") or "")
+        item["sport_key"] = item.get("sport_key") or match.get("sport_key") or match.get("competition_id") or "soccer"
+        item["sport"] = item.get("sport") or match.get("sport") or "Soccer"
         item.setdefault("league_name", match.get("league_name") or match.get("competition_name") or "")
         item["country"] = item.get("country") or match.get("country") or ""
         item["kickoff_time"] = item.get("kickoff_time") or match.get("kickoff_time") or match.get("match_time") or ""
@@ -6158,6 +6172,8 @@ def telegram_enrich_pick_for_message(pick):
         item["home_team"] = item.get("home_team") or match.get("home_team") or ""
         item["away_team"] = item.get("away_team") or match.get("away_team") or ""
     else:
+        item["sport_key"] = item.get("sport_key") or item.get("competition_id") or "soccer"
+        item["sport"] = item.get("sport") or "Soccer"
         item["home_logo"] = telegram_crest_url_for_team(item.get("home_team"), item.get("home_logo") or "")
         item["away_logo"] = telegram_crest_url_for_team(item.get("away_team"), item.get("away_logo") or "")
     item["match_url"] = item.get("match_url") or telegram_match_url(item.get("match_id"))
@@ -6167,6 +6183,9 @@ def telegram_enrich_pick_for_message(pick):
 def telegram_pick_sendability(pick):
     item = normalize_pick_row(dict(pick or {}))
     reasons = []
+    sport_reason = telegram_sport_filter_reason(item)
+    if sport_reason:
+        reasons.append(sport_reason)
     odds = as_float(item.get("odds"), 0)
     selection = str(item.get("selection") or item.get("pick") or item.get("recommendation") or "").strip()
     market = str(item.get("market") or item.get("pick_type") or "").strip()
@@ -6196,7 +6215,7 @@ def telegram_pick_sendability(pick):
 
 
 def telegram_auto_pick_health(limit=40):
-    summary = {"candidates": 0, "sendable": 0, "discarded": 0, "missing_odds": 0, "missing_crests": 0, "missing_time": 0, "discard_reasons": []}
+    summary = {"candidates": 0, "sendable": 0, "discarded": 0, "missing_odds": 0, "missing_crests": 0, "missing_time": 0, "non_football": 0, "sport_mode": telegram_sport_mode_summary(), "discard_reasons": []}
     try:
         picks = get_picks(limit=limit, status=["published"], include_admin=True)
     except Exception as exc:
@@ -6207,6 +6226,8 @@ def telegram_auto_pick_health(limit=40):
     for raw in picks:
         pick = telegram_enrich_pick_for_message(raw)
         check = telegram_pick_sendability(pick)
+        if "deporte_no_futbol" in (check.get("reasons") or []):
+            summary["non_football"] += 1
         if check.get("sendable"):
             summary["sendable"] += 1
         else:
@@ -6248,12 +6269,17 @@ def build_daily_matches_message():
     if not matches:
         matches = get_upcoming_matches(today_iso(), days=2, limit=10)
     matches = [telegram_enrich_match_for_message(match) for match in matches]
+    matches = filter_telegram_football_items(matches)
     return format_daily_matches_message(matches, today_iso(), APP_NAME)
 
 
 def build_daily_picks_message(force_empty=False):
-    picks = get_picks(limit=16, status=["published"], membership="ELITE")
-    picks = [telegram_enrich_pick_for_message(pick) for pick in picks if telegram_pick_sendability(pick).get("sendable")]
+    raw_picks = get_picks(limit=16, status=["published"], membership="ELITE")
+    picks = []
+    for raw in raw_picks:
+        pick = telegram_enrich_pick_for_message(raw)
+        if telegram_pick_sendability(pick).get("sendable"):
+            picks.append(pick)
     return format_daily_picks_message(picks, force_empty=force_empty, premium_name=APP_NAME)
 
 
@@ -6334,7 +6360,8 @@ def enqueue_auto_pick_alerts(force=False, limit=4):
     picks = get_picks(limit=max(20, int(limit) * 5), status=["published"], include_admin=True)
     candidates = []
     discarded = []
-    for pick in picks:
+    for raw_pick in picks:
+        pick = telegram_enrich_pick_for_message(raw_pick)
         score = as_int(pick.get("confidence") or pick.get("shark_score"), 0)
         odds = as_float(pick.get("odds"), 0.0)
         sendability = telegram_pick_sendability(pick)
@@ -6407,6 +6434,9 @@ def enqueue_live_alerts(force=False):
     inserted = skipped = 0
     for match in live_matches[:8]:
         match = telegram_enrich_match_for_message(match)
+        if not is_telegram_football_item(match):
+            skipped += 1
+            continue
         body = format_live_alert_message(match, internal_url=telegram_absolute_url("/live") or "/live")
         for sub in subscribers:
             result = enqueue_telegram_message(
@@ -6605,6 +6635,7 @@ def telegram_diagnostics():
         "recent_errors": rows("SELECT * FROM telegram_logs WHERE lower(status) IN ('failed','error') ORDER BY created_at DESC LIMIT 8"),
         "queue_summary": queue_summary(rows("SELECT status FROM telegram_queue ORDER BY created_at DESC LIMIT 500")),
         "pro_calibration": telegram_pro_calibration(),
+        "sport_filter": telegram_sport_mode_summary(),
     }
 
 
