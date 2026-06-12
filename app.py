@@ -89,6 +89,7 @@ from engines.telegram_reliability_engine import (
 )
 from engines.route_health_engine import route_health_snapshot
 from engines.client_experience_guard_engine import client_experience_snapshot
+from engines.production_readiness_engine import production_readiness_snapshot
 from engines.team_identity_engine import (
     flag_or_emoji as team_flag_or_emoji,
     identity_payload as build_team_identity_payload,
@@ -123,7 +124,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V731_CLIENT_EXPERIENCE_QA_POLISH_FOUNDATION"
+APP_VERSION = "V732_PRODUCTION_READINESS_CONTROL_CENTER"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -8710,6 +8711,29 @@ def api_admin_client_experience():
     if not is_admin_session():
         return admin_json_forbidden()
     return jsonify({"ok": True, "version": APP_VERSION, **client_experience_snapshot()})
+
+
+
+
+@app.route("/admin/production-readiness")
+def admin_production_readiness_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/production-readiness")
+    snapshot = production_readiness_snapshot(app_version=APP_VERSION)
+    return render_template(
+        "admin_production_readiness.html",
+        data={
+            "version": APP_VERSION,
+            "production_readiness": snapshot,
+        },
+    )
+
+
+@app.route("/api/admin/production-readiness")
+def api_admin_production_readiness():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "version": APP_VERSION, **production_readiness_snapshot(app_version=APP_VERSION)})
 
 
 @app.route("/picks")

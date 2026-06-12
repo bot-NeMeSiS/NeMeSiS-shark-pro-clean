@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+{% block content %}
+{% set pr = data.production_readiness %}
+<section class="hero compact admin-hero production-readiness-hero">
+  <div class="kicker">Producción y beta comercial</div>
+  <h1>Control de preparación Render Ready</h1>
+  <p class="lead">Panel admin para revisar versión, variables seguras, centros de control, limpieza, horarios Madrid y checklist de despliegue sin tocar secretos ni enviar Telegram.</p>
+  <div class="admin-menu">
+    <a class="btn" href="/admin/system">Sistema</a>
+    <a class="btn" href="/admin/telegram/command-center">Telegram</a>
+    <a class="btn" href="/admin/route-health">Rutas</a>
+    <a class="btn" href="/admin/client-experience">Cliente QA</a>
+    <a class="btn primary" href="/admin/production-readiness">Producción</a>
+  </div>
+</section>
+
+<section class="band">
+  <div class="grid compact-grid production-kpis">
+    <div class="card status-card {{ 'info' if pr.status == 'OK' else ('warning' if pr.status == 'REVISAR' else 'critical') }}">
+      <div class="metric">{{ pr.score }}/100</div>
+      <div class="muted">preparación</div>
+    </div>
+    <div class="card"><div class="metric">{{ pr.version.runtime_expected }}</div><div class="muted">versión esperada</div></div>
+    <div class="card"><div class="metric">{{ pr.blockers|length }}</div><div class="muted">bloqueos</div></div>
+    <div class="card"><div class="metric">{{ pr.warnings|length }}</div><div class="muted">avisos</div></div>
+    <div class="card"><div class="metric">{{ pr.tree.forbidden_count }}</div><div class="muted">basura raíz</div></div>
+  </div>
+</section>
+
+<section class="band two-col">
+  <div class="card">
+    <h2>Bloqueos</h2>
+    {% if pr.blockers %}
+      <ul class="clean-list">{% for item in pr.blockers %}<li>{{ item }}</li>{% endfor %}</ul>
+    {% else %}
+      <p class="muted">No hay bloqueos estáticos críticos. La producción real debe confirmarse en Render.</p>
+    {% endif %}
+  </div>
+  <div class="card">
+    <h2>Avisos</h2>
+    {% if pr.warnings %}
+      <ul class="clean-list">{% for item in pr.warnings %}<li>{{ item }}</li>{% endfor %}</ul>
+    {% else %}
+      <p class="muted">Sin avisos estáticos importantes.</p>
+    {% endif %}
+  </div>
+</section>
+
+<section class="band two-col">
+  <div class="card">
+    <h2>Versión</h2>
+    <div class="route-list compact-list">
+      <div class="route-row"><span>VERSION.txt</span><strong>{{ pr.version.version_txt }}</strong></div>
+      <div class="route-row"><span>APP_VERSION</span><strong>{{ pr.version.app_py_version }}</strong></div>
+      <div class="route-row"><span>Coinciden</span><strong class="{{ 'text-good' if pr.version.match else 'text-warn' }}">{{ 'Sí' if pr.version.match else 'No' }}</strong></div>
+    </div>
+  </div>
+  <div class="card">
+    <h2>Variables de entorno</h2>
+    <div class="route-list compact-list">
+      {% for item in pr.env %}
+        <div class="route-row"><span>{{ item.label }}</span><strong class="{{ 'text-good' if item.present else ('text-warn' if item.required_for_render else '') }}">{{ item.safe_value }}</strong></div>
+      {% endfor %}
+    </div>
+    <p class="muted small">No se muestran valores reales. Confirmar en Render antes de vender.</p>
+  </div>
+</section>
+
+<section class="band">
+  <div class="card">
+    <h2>Centros admin</h2>
+    <div class="client-screen-grid production-centers-grid">
+      {% for center in pr.admin_centers %}
+        <article class="client-screen-card {{ '' if center.ok else 'is-missing' }}">
+          <div class="screen-head">
+            <strong>{{ center.label }}</strong>
+            <span class="pill {{ 'info' if center.ok else 'danger' }}">{{ 'OK' if center.ok else 'Revisar' }}</span>
+          </div>
+          <p class="muted small"><code>{{ center.route }}</code></p>
+          <div class="screen-flags">
+            <span class="time-audit-pill">Ruta {{ 'OK' if center.route_exists else 'falta' }}</span>
+            <span class="time-audit-pill">Template {{ 'OK' if center.template_exists else 'falta' }}</span>
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<section class="band two-col">
+  <div class="card">
+    <h2>Archivos críticos</h2>
+    <div class="route-list compact-list production-file-list">
+      {% for item in pr.critical_files %}
+        <div class="route-row"><span>{{ item.path }}</span><strong class="{{ 'text-good' if item.exists else 'text-warn' }}">{{ 'OK' if item.exists else 'Falta' }}</strong></div>
+      {% endfor %}
+    </div>
+  </div>
+  <div class="card">
+    <h2>Checklist Render</h2>
+    <div class="route-list compact-list">
+      {% for item in pr.render_checks %}
+        <div class="route-row"><span>{{ item.route }}</span><strong>{{ item.expected }}</strong></div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<section class="band two-col">
+  <div class="card">
+    <h2>Limpieza local</h2>
+    <div class="route-list compact-list">
+      <div class="route-row"><span>Entradas raíz</span><strong>{{ pr.tree.root_entries }}</strong></div>
+      <div class="route-row"><span>Prohibidos</span><strong class="{{ 'text-good' if pr.tree.forbidden_count == 0 else 'text-warn' }}">{{ pr.tree.forbidden_count }}</strong></div>
+      <div class="route-row"><span>release_output</span><strong>{{ pr.tree.release_output_note }}</strong></div>
+    </div>
+    {% if pr.tree.forbidden_dirs %}<p class="muted small">Revisar: {{ pr.tree.forbidden_dirs|join(', ') }}</p>{% endif %}
+  </div>
+  <div class="card">
+    <h2>Próximos pasos</h2>
+    <ul class="clean-list">{% for item in pr.recommended_next_steps %}<li>{{ item }}</li>{% endfor %}</ul>
+  </div>
+</section>
+
+<section class="band">
+  <div class="card">
+    <h2>Nota</h2>
+    <p class="muted">{{ pr.note }}</p>
+  </div>
+</section>
+{% endblock %}
