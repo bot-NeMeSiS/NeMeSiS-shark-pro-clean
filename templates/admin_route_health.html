@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% block content %}
+{% set rh = data.route_health %}
+<section class="hero compact admin-hero route-health-hero">
+  <div class="kicker">Arquitectura segura</div>
+  <h1>Mapa de rutas y salud modular</h1>
+  <p class="lead">Vista admin para ordenar el crecimiento de la app sin romper Render, Telegram, Cron ni la experiencia cliente.</p>
+  <div class="admin-menu">
+    <a class="btn" href="/admin/system">Sistema</a>
+    <a class="btn" href="/admin/telegram/command-center">Telegram</a>
+    <a class="btn" href="/admin/codex-automation">Codex</a>
+    <a class="btn primary" href="/admin/route-health">Rutas</a>
+  </div>
+</section>
+
+<section class="band">
+  <div class="grid compact-grid route-kpi-grid">
+    <div class="card"><div class="metric">{{ rh.total_routes }}</div><div class="muted">rutas totales</div></div>
+    <div class="card"><div class="metric">{{ rh.admin_routes }}</div><div class="muted">admin/admin API</div></div>
+    <div class="card"><div class="metric">{{ rh.api_routes }}</div><div class="muted">APIs y Cron</div></div>
+    <div class="card"><div class="metric">{{ rh.client_routes }}</div><div class="muted">cliente</div></div>
+    <div class="card"><div class="metric">{{ rh.warnings_count }}</div><div class="muted">avisos</div></div>
+  </div>
+</section>
+
+<section class="band two-col">
+  <div class="card">
+    <h2>Distribución</h2>
+    <div class="route-list compact-list">
+      {% for bucket, count in rh.bucket_counts.items() %}
+        <div class="route-row"><span>{{ bucket }}</span><strong>{{ count }}</strong></div>
+      {% endfor %}
+    </div>
+  </div>
+  <div class="card">
+    <h2>Blueprints recomendados</h2>
+    <div class="route-list compact-list">
+      {% for target, count in rh.blueprint_targets.items() %}
+        <div class="route-row"><span>{{ target }}</span><strong>{{ count }}</strong></div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<section class="band two-col">
+  <div class="card">
+    <h2>Siguiente extracción segura</h2>
+    <ul class="clean-list">
+      {% for step in rh.recommended_next_steps %}
+        <li>{{ step }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+  <div class="card">
+    <h2>Templates más usados</h2>
+    <div class="route-list compact-list">
+      {% for item in rh.top_templates %}
+        <div class="route-row"><span>{{ item.template }}</span><strong>{{ item.uses }}</strong></div>
+      {% else %}
+        <p class="muted">No se detectaron templates en el mapa estático.</p>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="card">
+    <h2>Avisos de protección</h2>
+    {% if rh.warnings %}
+      <div class="route-warning-list">
+        {% for item in rh.warnings[:25] %}
+          <article class="route-warning-card">
+            <div class="pill {{ 'danger' if item.severity == 'WARN' else 'info' }}">{{ item.severity }}</div>
+            <strong>{{ item.rule }}</strong>
+            <p class="muted small">{{ item.endpoint }}</p>
+            <ul class="clean-list small">
+              {% for issue in item.issues %}<li>{{ issue }}</li>{% endfor %}
+            </ul>
+          </article>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="muted">No hay avisos críticos en el mapa de rutas.</p>
+    {% endif %}
+  </div>
+</section>
+
+<section class="band">
+  <div class="card">
+    <h2>Mapa completo</h2>
+    <div class="table-wrap route-table-wrap">
+      <table class="data-table route-table">
+        <thead><tr><th>Ruta</th><th>Tipo</th><th>Métodos</th><th>Destino futuro</th><th>Template</th></tr></thead>
+        <tbody>
+        {% for route in rh.routes %}
+          <tr>
+            <td><code>{{ route.rule }}</code></td>
+            <td>{{ route.bucket }}</td>
+            <td>{{ route.methods|join(', ') }}</td>
+            <td>{{ route.blueprint_target }}</td>
+            <td>{{ route.template or '—' }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+{% endblock %}

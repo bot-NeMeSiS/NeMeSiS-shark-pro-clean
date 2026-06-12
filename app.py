@@ -87,6 +87,7 @@ from engines.telegram_reliability_engine import (
     madrid_now as telegram_reliability_madrid_now,
     safe_preview_text,
 )
+from engines.route_health_engine import route_health_snapshot
 from engines.team_identity_engine import (
     flag_or_emoji as team_flag_or_emoji,
     identity_payload as build_team_identity_payload,
@@ -121,7 +122,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V729_SECURITY_STABILITY_VISUAL_QA_FOUNDATION"
+APP_VERSION = "V730_ARCHITECTURE_ROUTE_HEALTH_VISUAL_QA_FOUNDATION"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -8666,6 +8667,27 @@ def admin_system_page():
         "sportsdb_feed": sportsdb_feed_status(),
     }
     return render_template("admin_system.html", data=data)
+
+
+@app.route("/admin/route-health")
+def admin_route_health_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/route-health")
+    snapshot = route_health_snapshot(app)
+    return render_template(
+        "admin_route_health.html",
+        data={
+            "version": APP_VERSION,
+            "route_health": snapshot,
+        },
+    )
+
+
+@app.route("/api/admin/route-health")
+def api_admin_route_health():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "version": APP_VERSION, **route_health_snapshot(app)})
 
 
 @app.route("/picks")
