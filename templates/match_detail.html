@@ -55,14 +55,14 @@
 <section class="band compact-band">
   <div class="section-head"><h2>Lectura SHARK</h2><span class="pill">{{ state.label or 'Estado' }}</span></div>
   <div class="grid compact-grid metric-row">
-    <div class="card metric-card"><div class="metric">{{ shark_score or 0 }}</div><div class="muted">SHARK Score</div></div>
-    <div class="card metric-card"><div class="metric">{{ momentum.presion or 0 }}</div><div class="muted">presion</div></div>
-    <div class="card metric-card"><div class="metric">{{ momentum.riesgo or 0 }}</div><div class="muted">riesgo</div></div>
+    <div class="card metric-card"><div class="metric">{{ shark_score or 'En cálculo' }}</div><div class="muted">SHARK Score</div></div>
+    <div class="card metric-card"><div class="metric">{{ momentum.presion or 'Contextual' }}</div><div class="muted">presión</div></div>
+    <div class="card metric-card"><div class="metric">{{ momentum.riesgo or 'Controlado' }}</div><div class="muted">riesgo</div></div>
     <div class="card metric-card"><div class="metric">{{ momentum.dominancia or 'Equilibrio' }}</div><div class="muted">dominancia</div></div>
   </div>
   <div class="grid compact-grid">
-    <article class="card"><div class="match-top"><strong>Momentum local</strong><span>{{ momentum.momentum_local or 0 }}/100</span></div><div class="momentum"><i style="width:{{ momentum.momentum_local or 0 }}%"></i></div></article>
-    <article class="card"><div class="match-top"><strong>Momentum visitante</strong><span>{{ momentum.momentum_visitante or 0 }}/100</span></div><div class="momentum"><i style="width:{{ momentum.momentum_visitante or 0 }}%"></i></div></article>
+    <article class="card"><div class="match-top"><strong>Momentum local</strong><span>{% if momentum.momentum_local %}{{ momentum.momentum_local }}/100{% else %}En cálculo{% endif %}</span></div><div class="momentum"><i style="width:{{ momentum.momentum_local or 0 }}%"></i></div></article>
+    <article class="card"><div class="match-top"><strong>Momentum visitante</strong><span>{% if momentum.momentum_visitante %}{{ momentum.momentum_visitante }}/100{% else %}En cálculo{% endif %}</span></div><div class="momentum"><i style="width:{{ momentum.momentum_visitante or 0 }}%"></i></div></article>
     <article class="card"><div class="match-top"><strong>Confianza</strong><span>{{ detail.data_quality.has_picks and 'Alta' or 'Contextual' }}</span></div><p class="small">SHARK combina estado, marcador, minuto, picks relacionados y datos disponibles. Si falta mercado, no fuerza una recomendación.</p></article>
   </div>
 </section>

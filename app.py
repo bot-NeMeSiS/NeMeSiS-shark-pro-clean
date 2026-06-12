@@ -71,7 +71,7 @@ from engines.spanish_localization_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V715_LAUNCH_AUDIT_SECURITY_POLISH_FINAL"
+APP_VERSION = "V716_PROFESSIONAL_CLIENT_EXPERIENCE_FINAL"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -3728,6 +3728,61 @@ def published_picks_for_user(user=None, limit=50):
     return get_picks(limit=limit, status=["published", "won", "lost", "void"], membership=membership, include_admin=include_admin)
 
 
+def commercial_pick_check(pick):
+    item = normalize_pick_row(dict(pick or {}))
+    reasons = []
+    odds = as_float(item.get("odds"), 0)
+    selection = str(item.get("selection") or "").strip()
+    match_date = str(item.get("match_date") or "")[:10]
+    if match_date and match_date < today_iso():
+        reasons.append("partido_antiguo")
+    if odds <= 1:
+        reasons.append("sin_cuota_real")
+    if not selection:
+        reasons.append("sin_pick_recomendado")
+    if re.search(r"(esperar|pendiente|sin cuota|no disponible|undefined|null|none)", selection, flags=re.I):
+        reasons.append("pick_no_cerrado")
+    item["commercial_ready"] = not reasons
+    item["commercial_reasons"] = reasons
+    item["client_status"] = "premium" if not reasons else "en_estudio"
+    return item
+
+
+def client_ready_picks(picks, limit=12):
+    ready = []
+    seen = set()
+    for raw in picks or []:
+        pick = commercial_pick_check(raw)
+        if not pick.get("commercial_ready"):
+            continue
+        key = (
+            str(pick.get("match_id") or ""),
+            slug(pick.get("market") or pick.get("pick_type") or ""),
+            slug(pick.get("selection") or ""),
+        )
+        if key in seen:
+            continue
+        seen.add(key)
+        ready.append(pick)
+        if len(ready) >= int(limit):
+            break
+    return ready
+
+
+def split_client_picks(picks, ready_limit=12, study_limit=12):
+    ready = client_ready_picks(picks, limit=ready_limit)
+    ready_ids = {p.get("id") for p in ready}
+    study = []
+    for raw in picks or []:
+        pick = commercial_pick_check(raw)
+        if pick.get("id") in ready_ids or pick.get("commercial_ready"):
+            continue
+        study.append(pick)
+        if len(study) >= int(study_limit):
+            break
+    return {"ready": ready, "study": study}
+
+
 def create_or_update_pick(payload, pick_id=None, publish=False):
     seed_core()
     payload = dict(payload or {})
@@ -4193,10 +4248,10 @@ def build_combi_from_picks(pick_ids=None, limit=3):
     seed_core()
     if pick_ids:
         placeholders = ",".join("?" for _ in pick_ids)
-        picks = rows(f"SELECT * FROM picks WHERE id IN ({placeholders}) ORDER BY confidence DESC", pick_ids)
+        picks = [normalize_pick_row(p) for p in rows(f"SELECT * FROM picks WHERE id IN ({placeholders}) ORDER BY confidence DESC", pick_ids)]
     else:
         picks = get_picks(limit=limit, status=["published", "won", "lost", "void"], membership=(current_session_user() or {}).get("membership", "FREE"))
-    picks = picks[:combi_leg_count(limit or len(picks) or 3)]
+    picks = client_ready_picks(picks, limit=combi_leg_count(limit or len(picks) or 3))
     if len(picks) < 2:
         return None
     total = 1.0
@@ -4789,12 +4844,20 @@ def pick_candidate_matches(limit=80, days=21):
 def build_combi_candidates_from_matches(count=3):
     count = combi_leg_count(count, 3)
     matches = pick_candidate_matches(limit=max(count * 3, 45), days=21)
+    user = current_session_user() or {"membership": "FREE", "role": "FREE"}
+    ready_picks = client_ready_picks(published_picks_for_user(user, limit=max(count * 4, 40)), limit=count)
     return {
         "requested_count": count,
+        "picks": ready_picks,
+        "has_ready_picks": len(ready_picks) >= 2,
         "matches": matches[:count],
         "available": len(matches),
         "mode": "partidos_reales_proximos",
-        "notice": "Base real de partidos próximos. La selección final debe salir de picks publicados o análisis admin; no se fabrican apuestas falsas.",
+        "notice": (
+            "Combi preparada con picks publicados y cuota real."
+            if len(ready_picks) >= 2
+            else "Base real de partidos próximos. SHARK no fabrica selecciones ni cuotas: la combi se activa cuando hay picks publicados suficientes."
+        ),
     }
 
 
@@ -4817,22 +4880,27 @@ def smart_pick_board(user=None, limit=24):
         except Exception:
             odds = 0
         return (conf, odds)
-    hot = sorted(published, key=score_pick, reverse=True)[:12]
+    split = split_client_picks(sorted(published, key=score_pick, reverse=True), ready_limit=12, study_limit=12)
+    hot = split["ready"]
+    study = split["study"]
     pro_locked = []
     if str(user.get("membership") or "FREE").upper() == "FREE":
         pro_locked = [p for p in get_picks(limit=80, status="published", include_admin=False) if str(p.get("membership_required") or "FREE").upper() in {"PRO", "ELITE"}][:8]
     return {
         "published": published,
         "hot": hot,
+        "study": study,
         "candidates": candidates,
         "pro_locked": pro_locked,
         "published_count": len(published),
+        "ready_count": len(hot),
+        "study_count": len(study),
         "candidate_count": len(candidates),
-        "has_real_picks": bool(published),
+        "has_real_picks": bool(hot),
         "client_message": (
             "Picks publicados disponibles para tu membresía."
-            if published
-            else "No hay picks publicados ahora mismo. Te mostramos partidos reales próximos para preparar análisis sin inventar apuestas."
+            if hot
+            else "SHARK está analizando los próximos partidos. Las recomendaciones aparecerán automáticamente cuando haya cuota y selección suficiente."
         ),
         "admin_message": "Picks activos y visibles." if published else "SHARK está preparando picks con partidos reales próximos.",
     }
