@@ -54,7 +54,7 @@ def main() -> int:
     missing_routes = [route for route in REQUIRED_ROUTES if route not in app_text]
     checks = {
         "version": read(ROOT / "VERSION.txt").strip(),
-        "app_version_updated": any(marker in app_text for marker in ["V733_CLIENT_SUCCESS_ONBOARDING_SUPPORT_POLISH", "V734_PUBLIC_LAUNCH_TRACK_RECORD_PAYMENTS_FOUNDATION", "V735_GO_LIVE_PRODUCTION_TELEGRAM_DATA_CERTIFICATION", "V736_GLOBAL_CLIENT_VISUAL_MEMBERSHIP_EXPERIENCE"]),
+        "app_version_updated": any(marker in app_text for marker in ["V733_CLIENT_SUCCESS_ONBOARDING_SUPPORT_POLISH", "V734_PUBLIC_LAUNCH_TRACK_RECORD_PAYMENTS_FOUNDATION", "V735_GO_LIVE_PRODUCTION_TELEGRAM_DATA_CERTIFICATION", "V736_GLOBAL_CLIENT_VISUAL_MEMBERSHIP_EXPERIENCE", "V737_NATIVE_APP_FEEL_MICROINTERACTIONS_NAVIGATION_POLISH"]),
         "engine_imported": "client_success_snapshot" in app_text,
         "routes_present": not missing_routes,
         "files_present": not missing_files,

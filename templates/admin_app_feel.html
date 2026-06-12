@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block content %}
+{% set ax = data.native_app_experience %}
+<section class="app-hero v737-admin-appfeel-hero shark-section">
+  <div>
+    <div class="kicker">V737 · Experiencia tipo app</div>
+    <h1>App Feel, navegación y microinteracciones</h1>
+    <p class="lead">Control de la capa que hace que NeMeSiS SHARK PRO se sienta más nativa, rápida, táctil y premium en toda la experiencia cliente.</p>
+    <div class="actions">
+      <a class="btn primary" href="/sports-hub">Ver cliente</a>
+      <a class="btn" href="/admin/visual-experience">Sistema visual</a>
+      <a class="btn" href="/admin/client-experience">QA cliente</a>
+      <a class="btn" href="/admin/go-live">Go Live</a>
+    </div>
+  </div>
+  <aside class="hero-panel v737-score-panel">
+    <span class="pill">Estado app-feel</span>
+    <strong>{{ ax.score }}%</strong>
+    <p class="small">{{ ax.status }}</p>
+  </aside>
+</section>
+
+<section class="band compact-band">
+  <div class="section-head"><h2>Pilares de experiencia</h2><span class="pill">Premium global</span></div>
+  <div class="grid v737-pillars-grid">
+    {% for item in ax.pillars %}
+    <article class="card v737-pillar-card">
+      <span class="badge">{{ loop.index }}</span>
+      <h3>{{ item.name }}</h3>
+      <p class="small">{{ item.description }}</p>
+    </article>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="band compact-band two-col">
+  <div class="card">
+    <div class="section-head"><h2>Base global</h2><span class="pill">{{ ax.base_checks|selectattr('ok')|list|length }}/{{ ax.base_checks|length }}</span></div>
+    <div class="stack">
+      {% for item in ax.base_checks %}
+      <div class="route-row"><span>{{ item.marker }}</span><strong class="{{ 'ok' if item.ok else 'bad' }}">{{ item.status }}</strong></div>
+      {% endfor %}
+    </div>
+  </div>
+  <div class="card">
+    <div class="section-head"><h2>CSS app-feel</h2><span class="pill">{{ ax.css_checks|selectattr('ok')|list|length }}/{{ ax.css_checks|length }}</span></div>
+    <div class="stack">
+      {% for item in ax.css_checks %}
+      <div class="route-row"><span>{{ item.marker }}</span><strong class="{{ 'ok' if item.ok else 'bad' }}">{{ item.status }}</strong></div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<section class="band compact-band">
+  <div class="section-head"><h2>Pantallas cubiertas</h2><span class="pill">{{ ax.covered_templates }}/{{ ax.total_templates }}</span></div>
+  <div class="grid client-screen-grid">
+    {% for item in ax.template_checks %}
+    <article class="client-screen-card {{ '' if item.covered_by_native_app_feel else 'is-missing' }}">
+      <div class="screen-head"><strong>{{ item.template }}</strong><span class="badge {{ 'status-won' if item.covered_by_native_app_feel else 'status-lost' }}">{{ item.status }}</span></div>
+      <p class="small">Existe: {{ 'sí' if item.exists else 'no' }} · Base global: {{ 'sí' if item.extends_base else 'no' }}</p>
+    </article>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="band compact-band">
+  <div class="section-head"><h2>Alcance seguro</h2><span class="pill">Sin tocar lógica crítica</span></div>
+  <div class="grid compact-grid">
+    {% for item in ax.safe_scope %}<article class="card"><strong>{{ item }}</strong></article>{% endfor %}
+  </div>
+</section>
+{% endblock %}

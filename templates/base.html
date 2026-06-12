@@ -21,9 +21,10 @@
   {% set _visual_tier = 'free' %}
   {% set _tier_label = 'FREE' %}
 {% endif %}
-<body class="ns-app ns-tier-{{ _visual_tier }}{% if current_user %} ns-authenticated{% else %} ns-public{% endif %}">
+<body class="ns-app ns-tier-{{ _visual_tier }}{% if current_user %} ns-authenticated{% else %} ns-public{% endif %}" data-ns-route="{{ request.path }}" data-ns-plan="{{ _tier_label }}">
   <div class="ns-ambient" aria-hidden="true"><i></i><i></i><i></i></div>
   <div class="membership-energy-bar" aria-hidden="true"></div>
+  <div class="ns-route-glow" aria-hidden="true"></div>
   <header class="top ns-topbar">
     <div class="topin">
       <a class="brand" href="/"><span class="mark">NS</span><span>NeMeSiS SHARK PRO</span></a>
@@ -41,6 +42,7 @@
           <a href="/admin/go-live">Go Live</a>
           <a href="/admin/public-launch">Lanzamiento</a>
           <a href="/admin/visual-experience">Visual</a>
+          <a href="/admin/app-feel">App Feel</a>
           <a href="/logout">Salir</a>
         {% elif current_user %}
           <a href="/sports-hub">Inicio</a>
@@ -173,5 +175,72 @@
   })();
   </script>
   {% endif %}
+
+  <button class="ns-scroll-top" id="nsScrollTop" type="button" aria-label="Volver arriba">↑</button>
+  <div class="ns-toast-host" id="nsToastHost" aria-live="polite" aria-atomic="true"></div>
+  <script>
+  (function nsAppEnhance(){
+    const body=document.body;
+    const path=window.location.pathname.replace(/\/$/,'') || '/';
+    body.classList.add('ns-ready');
+    body.dataset.nsEnhanced='true';
+
+    document.querySelectorAll('.nav a,.bottom-nav a').forEach(function(link){
+      try{
+        const href=new URL(link.getAttribute('href'), window.location.origin).pathname.replace(/\/$/,'') || '/';
+        if(href==='/' ? path==='/' : path===href || path.indexOf(href + '/')===0){
+          link.classList.add('is-active');
+          link.setAttribute('aria-current','page');
+        }
+      }catch(e){}
+    });
+
+    const toastHost=document.getElementById('nsToastHost');
+    window.nsToast=function(message,type){
+      if(!toastHost || !message) return;
+      const item=document.createElement('div');
+      item.className='ns-toast '+(type||'info');
+      item.textContent=message;
+      toastHost.appendChild(item);
+      window.setTimeout(function(){ item.classList.add('is-out'); }, 2600);
+      window.setTimeout(function(){ item.remove(); }, 3200);
+    };
+
+    document.addEventListener('pointerdown',function(ev){
+      const target=ev.target.closest && ev.target.closest('.btn,button,.quick,.card,.sports-row,.list-row,.bottom-nav a');
+      if(target) target.classList.add('ns-touch');
+    },{passive:true});
+    document.addEventListener('pointerup',function(){
+      document.querySelectorAll('.ns-touch').forEach(function(el){ el.classList.remove('ns-touch'); });
+    },{passive:true});
+    document.addEventListener('pointercancel',function(){
+      document.querySelectorAll('.ns-touch').forEach(function(el){ el.classList.remove('ns-touch'); });
+    },{passive:true});
+
+    document.querySelectorAll('form').forEach(function(form){
+      const method=(form.getAttribute('method')||'get').toLowerCase();
+      if(method !== 'post') return;
+      form.addEventListener('submit',function(){
+        const btn=form.querySelector('button[type="submit"],.btn.primary');
+        if(btn && !btn.dataset.nsNoLoading){
+          btn.classList.add('is-loading');
+          btn.setAttribute('aria-busy','true');
+        }
+      });
+    });
+
+    const scrollTop=document.getElementById('nsScrollTop');
+    function syncScroll(){
+      if(!scrollTop) return;
+      scrollTop.classList.toggle('is-visible', window.scrollY > 420);
+    }
+    window.addEventListener('scroll', syncScroll, {passive:true});
+    syncScroll();
+    if(scrollTop){
+      scrollTop.addEventListener('click',function(){ window.scrollTo({top:0,behavior:'smooth'}); });
+    }
+  })();
+  </script>
+
 </body>
 </html>

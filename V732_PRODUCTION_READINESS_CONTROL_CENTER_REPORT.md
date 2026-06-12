@@ -1,9 +1,9 @@
 # V732 Production Readiness Control Center
 
-- Versión: `V736_GLOBAL_CLIENT_VISUAL_MEMBERSHIP_EXPERIENCE`
+- Versión: `V737_NATIVE_APP_FEEL_MICROINTERACTIONS_NAVIGATION_POLISH`
 - Score: **87/100**
 - Estado: **OK**
-- Generado: `2026-06-12T21:06:19`
+- Generado: `2026-06-12T21:19:28`
 
 ## Bloqueos
 - No hay bloqueos estáticos críticos detectados.
@@ -13,9 +13,9 @@
 - Faltan variables críticas en este entorno local/sandbox; confirmar en Render antes de vender.
 
 ## Versión
-- `version_txt`: `V736_GLOBAL_CLIENT_VISUAL_MEMBERSHIP_EXPERIENCE`
-- `app_py_version`: `V736_GLOBAL_CLIENT_VISUAL_MEMBERSHIP_EXPERIENCE`
-- `runtime_expected`: `V736_GLOBAL_CLIENT_VISUAL_MEMBERSHIP_EXPERIENCE`
+- `version_txt`: `V737_NATIVE_APP_FEEL_MICROINTERACTIONS_NAVIGATION_POLISH`
+- `app_py_version`: `V737_NATIVE_APP_FEEL_MICROINTERACTIONS_NAVIGATION_POLISH`
+- `runtime_expected`: `V737_NATIVE_APP_FEEL_MICROINTERACTIONS_NAVIGATION_POLISH`
 - `match`: `True`
 - `has_recent_stack`: `False`
 
@@ -40,7 +40,7 @@
 - Directorios prohibidos: __pycache__
 
 ## Checklist Render
-- `/api/runtime-version` → V736_GLOBAL_CLIENT_VISUAL_MEMBERSHIP_EXPERIENCE
+- `/api/runtime-version` → V737_NATIVE_APP_FEEL_MICROINTERACTIONS_NAVIGATION_POLISH
 - `/api/health` → 200 / OK si existe
 - `/api/automation/telegram/tick` → 403
 - `/api/automation/telegram/tick?secret=***` → 200
