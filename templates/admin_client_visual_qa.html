@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block content %}
+{% set qa = data.client_visual_perfection %}
+<section class="scoreboard-hero v701-scoreboard v740-admin-visual-hero">
+  <div>
+    <div class="kicker">V740 · Visual Cliente</div>
+    <h1>QA visual y análisis de picks</h1>
+    <p class="lead">Control final de experiencia cliente: escudos, castellano, anti-solape, estilo por membresía y explicación profesional de picks.</p>
+  </div>
+  <div class="v736-score-panel"><strong>{{ qa.score }}</strong><span>{{ qa.status }}</span></div>
+</section>
+<section class="band compact-band">
+  <div class="section-head"><h2>Checks V740</h2><span class="pill">{{ qa.checks|length }}</span></div>
+  <div class="grid compact-grid">
+    {% for check in qa.checks %}
+    <article class="card"><span class="badge {{ 'badge-pro' if check.status == 'OK' else 'badge-elite' }}">{{ check.status }}</span><h3>{{ check.label }}</h3><p class="small">{{ check.key }}</p></article>
+    {% endfor %}
+  </div>
+</section>
+<section class="band compact-band">
+  <div class="section-head"><h2>Pantallas críticas</h2><span class="pill">{{ qa.templates|length }}</span></div>
+  <div class="stack">
+    {% for item in qa.templates %}
+    <div class="list-row"><span><strong>{{ item.template }}</strong><small>Escudos: {{ 'sí' if item.has_crest else 'revisar' }} · Castellano: {{ 'sí' if item.has_spanish_competition else 'revisar' }}</small></span><strong>{{ 'OK' if item.exists and not item.raw_risk else 'REVISAR' }}</strong></div>
+    {% endfor %}
+  </div>
+</section>
+<section class="band compact-band">
+  <div class="section-head"><h2>Siguientes pasos</h2><span class="pill">Manual</span></div>
+  <div class="grid compact-grid">{% for step in qa.next_steps %}<article class="card"><p>{{ step }}</p></article>{% endfor %}</div>
+</section>
+{% endblock %}

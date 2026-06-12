@@ -46,7 +46,7 @@
             <span>{{ live_depth.get('label') or (m|match_date_label) }}</span>
           </div>
           <div class="sports-team home"><span class="crest compact-crest {{ home_identity.get('ui_class','crest-fallback') }}"><img loading="lazy" src="{{ home_identity.get('crest_url','') }}" alt="{{ m.home_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ home_identity.get('flag_emoji') or home_identity.get('initials', (m.home_team or 'L')[:1]) }}'"></span><strong>{{ m.safe_home or m.home_team or 'Equipo local' }}</strong></div>
-          <div class="sports-score"><strong>{{ live_depth.get('score') or m.score or 'vs' }}</strong><span>{{ m.safe_competition or m.competition_name or m.league_name or 'Competición' }}</span></div>
+          <div class="sports-score"><strong>{{ live_depth.get('score') or m.score or 'vs' }}</strong><span>{{ (m.safe_competition or m.competition_name or m.league_name or 'Competición')|competition_es }}</span></div>
           <div class="sports-team away"><span class="crest compact-crest {{ away_identity.get('ui_class','crest-fallback') }}"><img loading="lazy" src="{{ away_identity.get('crest_url','') }}" alt="{{ m.away_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ away_identity.get('flag_emoji') or away_identity.get('initials', (m.away_team or 'V')[:1]) }}'"></span><strong>{{ m.safe_away or m.away_team or 'Equipo visitante' }}</strong></div>
           <div class="sports-meta v701-meta"><span class="state-badge {{ live_depth.get('badge', 'upcoming') }}">{{ live_depth.get('label') or m.status or 'Próximo' }}</span></div>
         </a>

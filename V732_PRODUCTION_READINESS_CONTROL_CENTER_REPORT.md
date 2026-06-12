@@ -1,9 +1,9 @@
 # V732 Production Readiness Control Center
 
-- Versión: `V739_SALE_READY_HOME_DATA_PRODUCTION_FIX`
+- Versión: `V740_CLIENT_VISUAL_PICK_ANALYSIS_PERFECTION`
 - Score: **87/100**
 - Estado: **OK**
-- Generado: `2026-06-12T21:41:06`
+- Generado: `2026-06-12T22:16:16`
 
 ## Bloqueos
 - No hay bloqueos estáticos críticos detectados.
@@ -13,9 +13,9 @@
 - Faltan variables críticas en este entorno local/sandbox; confirmar en Render antes de vender.
 
 ## Versión
-- `version_txt`: `V739_SALE_READY_HOME_DATA_PRODUCTION_FIX`
-- `app_py_version`: `V739_SALE_READY_HOME_DATA_PRODUCTION_FIX`
-- `runtime_expected`: `V739_SALE_READY_HOME_DATA_PRODUCTION_FIX`
+- `version_txt`: `V740_CLIENT_VISUAL_PICK_ANALYSIS_PERFECTION`
+- `app_py_version`: `V740_CLIENT_VISUAL_PICK_ANALYSIS_PERFECTION`
+- `runtime_expected`: `V740_CLIENT_VISUAL_PICK_ANALYSIS_PERFECTION`
 - `match`: `True`
 - `has_recent_stack`: `False`
 
@@ -40,7 +40,7 @@
 - Directorios prohibidos: __pycache__
 
 ## Checklist Render
-- `/api/runtime-version` → V739_SALE_READY_HOME_DATA_PRODUCTION_FIX
+- `/api/runtime-version` → V740_CLIENT_VISUAL_PICK_ANALYSIS_PERFECTION
 - `/api/health` → 200 / OK si existe
 - `/api/automation/telegram/tick` → 403
 - `/api/automation/telegram/tick?secret=***` → 200

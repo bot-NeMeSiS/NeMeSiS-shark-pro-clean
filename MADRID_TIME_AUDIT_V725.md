@@ -11,5 +11,5 @@
 - `2026-12-12T20:00:00Z` -> `21:00` Madrid | esperado `21:00` | OK
 
 ## Muestras
-- `summer_case` Equipo Local vs Equipo Visitante | original `2026-06-12T19:00:00Z` | Madrid `Hoy · 21:00` | OK
+- `summer_case` Equipo Local vs Equipo Visitante | original `2026-06-12T19:00:00Z` | Madrid `Viernes 12/06 · 21:00` | OK
 - `winter_case` Equipo Local vs Equipo Visitante | original `2026-12-12T20:00:00Z` | Madrid `Sábado 12/12 · 21:00` | OK

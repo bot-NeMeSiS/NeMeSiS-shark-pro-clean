@@ -7,7 +7,7 @@ import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = "V739_SALE_READY_HOME_DATA_PRODUCTION_FIX"
+BASE_VERSION = "V739_SALE_READY_HOME_DATA_PRODUCTION_FIX"
 
 
 def read(path: Path) -> str:
@@ -25,8 +25,8 @@ def main() -> int:
     css = read(ROOT / "static" / "app.css")
     version_txt = read(ROOT / "VERSION.txt").strip()
     checks = [
-        {"name": "version_txt", "ok": version_txt == VERSION, "value": version_txt},
-        {"name": "app_version", "ok": f'APP_VERSION = "{VERSION}"' in app},
+        {"name": "version_txt", "ok": version_txt == BASE_VERSION or version_txt.startswith("V740_"), "value": version_txt},
+        {"name": "app_version", "ok": f'APP_VERSION = "{version_txt}"' in app or f'APP_VERSION = "{BASE_VERSION}"' in app},
         {"name": "home_live_summary_function", "ok": "def home_live_summary_data" in app},
         {"name": "home_no_static_zero_counts", "ok": '"upcoming": 0' not in app[app.find('def home_light_data'):app.find('@app.route("/")')] if 'def home_light_data' in app else False},
         {"name": "home_queries_matches", "ok": "SELECT COUNT(*) FROM matches" in app},

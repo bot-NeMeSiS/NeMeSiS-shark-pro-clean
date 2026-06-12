@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 {% block content %}
-<section class="scoreboard-hero v701-scoreboard picks-board">
+<section class="scoreboard-hero v701-scoreboard picks-board v740-hero-polish">
   <div>
     <div class="kicker">Picks SHARK</div>
-    <h1>Picks SHARK ordenados por calidad real</h1>
-    <p class="lead">Solo destacamos picks con cuota real, selección clara, liga en castellano y filtro SHARK profesional.</p>
+    <h1>Picks premium con explicación completa</h1>
+    <p class="lead">Cada pick muestra selección, cuota, stake, riesgo, escudos, liga en castellano y una lectura clara de por qué SHARK llega a esa decisión.</p>
   </div>
   <div class="scoreboard-kpis">
     <div><strong>{{ data.pick_stats.published }}</strong><span>Publicados</span></div>
@@ -34,33 +34,64 @@
   <div class="section-head"><h2>Picks premium listos</h2><span class="pill">{{ data.smart_picks.hot|length }}</span></div>
   <p class="small">{{ data.smart_picks.client_message }}</p>
   {% if data.smart_picks.hot %}
-  <div class="grid dense-grid v701-pick-grid">
+  <div class="grid dense-grid v701-pick-grid v740-pick-grid">
     {% for p in data.smart_picks.hot %}
-    <article class="card pick-card v701-premium-pick shark-pick-card">
-      <div class="match-top">
-        <div><div class="comp-name">{{ (p.competition_name or p.league_name or p.competition_key or 'Competición')|competition_es }}</div><div class="small">{{ p.madrid_display or p.display_datetime or p.match_date or 'Fecha pendiente' }} · {{ (p.market or 'Mercado')|market_es }}</div></div>
+    {% set home_identity = p.home_identity|default({}) %}
+    {% set away_identity = p.away_identity|default({}) %}
+    <article class="card pick-card v701-premium-pick shark-pick-card v740-pick-card">
+      <div class="match-top v740-card-top">
+        <div>
+          <div class="comp-name">{{ (p.competition_name or p.league_name or p.competition_key or 'Competición')|competition_es }}</div>
+          <div class="small">{{ p.madrid_display or p.display_datetime or p.match_date or 'Fecha pendiente' }} · {{ (p.market or 'Mercado')|market_es }}</div>
+        </div>
         <span class="badge badge-{{ p.membership_required|lower }}">{{ p.quality_label or p.membership_required or 'FREE' }}</span>
       </div>
-      {% set home_identity = p.home_identity|default({}) %}
-      {% set away_identity = p.away_identity|default({}) %}
-      <div class="pick-teams-pro">
-        <div class="pick-team-pro"><span class="crest compact-crest {{ home_identity.get('ui_class','crest-fallback') }}"><img loading="lazy" src="{{ home_identity.get('crest_url','') }}" alt="{{ p.home_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ home_identity.get('flag_emoji') or home_identity.get('initials', (p.home_team or 'L')[:1]) }}'"></span><strong>{% if home_identity.get('flag_emoji') %}<span class="team-emoji">{{ home_identity.get('flag_emoji') }}</span>{% endif %}{{ p.home_team or 'Equipo local' }}</strong></div>
+
+      <div class="pick-teams-pro v740-team-strip">
+        <div class="pick-team-pro">
+          <span class="crest compact-crest {{ home_identity.get('ui_class','crest-fallback') }}"><img loading="lazy" src="{{ home_identity.get('crest_url','') }}" alt="{{ p.home_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ home_identity.get('flag_emoji') or home_identity.get('initials', (p.home_team or 'L')[:1]) }}'"></span>
+          <strong>{% if home_identity.get('flag_emoji') %}<span class="team-emoji">{{ home_identity.get('flag_emoji') }}</span>{% endif %}{{ p.home_team or 'Equipo local' }}</strong>
+        </div>
         <span class="pick-versus-pro">VS</span>
-        <div class="pick-team-pro away"><strong>{% if away_identity.get('flag_emoji') %}<span class="team-emoji">{{ away_identity.get('flag_emoji') }}</span>{% endif %}{{ p.away_team or 'Equipo visitante' }}</strong><span class="crest compact-crest {{ away_identity.get('ui_class','crest-fallback') }}"><img loading="lazy" src="{{ away_identity.get('crest_url','') }}" alt="{{ p.away_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ away_identity.get('flag_emoji') or away_identity.get('initials', (p.away_team or 'V')[:1]) }}'"></span></div>
+        <div class="pick-team-pro away">
+          <strong>{% if away_identity.get('flag_emoji') %}<span class="team-emoji">{{ away_identity.get('flag_emoji') }}</span>{% endif %}{{ p.away_team or 'Equipo visitante' }}</strong>
+          <span class="crest compact-crest {{ away_identity.get('ui_class','crest-fallback') }}"><img loading="lazy" src="{{ away_identity.get('crest_url','') }}" alt="{{ p.away_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ away_identity.get('flag_emoji') or away_identity.get('initials', (p.away_team or 'V')[:1]) }}'"></span>
+        </div>
       </div>
-      <div class="pick-mainline">
+
+      <div class="pick-mainline v740-pick-mainline">
         <div><span>Pick SHARK</span><strong>{{ p.selection_display or p.selection or 'Selección pendiente' }}</strong></div>
         <div><span>Cuota</span><strong>{{ p.odds or 'Pendiente' }}</strong></div>
         <div><span>Stake</span><strong>{{ p.stake_units or 1 }}u</strong></div>
       </div>
-      <div class="pick-signals">
+
+      <div class="pick-signals v740-signals">
         <span>Calidad {{ p.quality_score or p.confidence or p.shark_score or 0 }}/100</span>
         <span>Confianza {{ p.confidence or 0 }}%</span>
         <span>Riesgo {{ p.risk_level or 'Medio' }}</span>
-        <span>{{ p.quality_label or 'Filtro SHARK' }}</span>
+        <span>{{ p.analysis_badge or p.quality_label or 'Filtro SHARK' }}</span>
       </div>
-      <p class="small"><strong>Por qué entrar:</strong> {{ p.reasoning or 'Pick publicado por SHARK con datos disponibles.' }}</p>
-      <p class="small"><strong>Precaución:</strong> {{ p.warning_reason or 'Ningún pick es seguro. Ajusta stake y banca.' }}</p>
+
+      <div class="v740-analysis-box">
+        <div class="v740-analysis-title"><span>Lectura SHARK</span><strong>{{ p.analysis_badge or 'Análisis' }}</strong></div>
+        <p>{{ p.analysis_summary or p.reasoning or 'SHARK explica el pick con los datos disponibles.' }}</p>
+        <div class="v740-reason-grid">
+          <div>
+            <strong>Por qué entrar</strong>
+            <ul>
+              {% for reason in p.analysis_reasons[:4] %}<li>{{ reason }}</li>{% endfor %}
+            </ul>
+          </div>
+          <div>
+            <strong>Riesgos</strong>
+            <ul>
+              {% for risk in p.analysis_risks[:3] %}<li>{{ risk }}</li>{% endfor %}
+            </ul>
+          </div>
+        </div>
+        <p class="v740-conclusion"><strong>Conclusión:</strong> {{ p.analysis_conclusion or 'Entrada solo con cuota confirmada y stake responsable.' }}</p>
+      </div>
+
       <div class="inline-actions"><a class="btn small-btn" href="/match/{{ p.match_id }}">Ver análisis</a><a class="btn small-btn" href="/shark?pick={{ p.id }}">Preguntar a SHARK</a><a class="btn small-btn" href="/telegram">Telegram</a></div>
     </article>
     {% endfor %}
@@ -84,9 +115,9 @@
     <a class="sports-row v701-row favorite-scope" href="/match/{{ m.id }}">
       <button class="fav-star {% if m.is_favorite %}active{% endif %}" type="button" data-kind="match" data-value="{{ m.id }}" data-label="{{ m.home_team }} vs {{ m.away_team }}" aria-label="Favorito">★</button>
       <div class="sports-time"><strong>{{ m|match_time_short }}</strong><span>{{ m|match_date_label }}</span></div>
-      <div class="sports-team home"><span class="crest compact-crest"><img loading="lazy" src="{{ home_identity.get('crest_url','') }}" alt="{{ m.home_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ home_identity.get('initials', (m.home_team or 'L')[:1]) }}'"></span><strong>{{ m.home_team or 'Equipo local' }}</strong></div>
+      <div class="sports-team home"><span class="crest compact-crest {{ home_identity.get('ui_class','crest-fallback') }}"><img loading="lazy" src="{{ home_identity.get('crest_url','') }}" alt="{{ m.home_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ home_identity.get('flag_emoji') or home_identity.get('initials', (m.home_team or 'L')[:1]) }}'"></span><strong>{{ m.home_team or 'Equipo local' }}</strong></div>
       <div class="sports-score"><strong>vs</strong><span>{{ (m.competition_name or m.league_name or 'Competición')|competition_es }}</span></div>
-      <div class="sports-team away"><span class="crest compact-crest"><img loading="lazy" src="{{ away_identity.get('crest_url','') }}" alt="{{ m.away_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ away_identity.get('initials', (m.away_team or 'V')[:1]) }}'"></span><strong>{{ m.away_team or 'Equipo visitante' }}</strong></div>
+      <div class="sports-team away"><span class="crest compact-crest {{ away_identity.get('ui_class','crest-fallback') }}"><img loading="lazy" src="{{ away_identity.get('crest_url','') }}" alt="{{ m.away_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ away_identity.get('flag_emoji') or away_identity.get('initials', (m.away_team or 'V')[:1]) }}'"></span><strong>{{ m.away_team or 'Equipo visitante' }}</strong></div>
       <div class="sports-meta v701-meta"><span class="shark-pill">{{ m.pick_readiness or 'SHARK' }}</span></div>
     </a>
     {% endfor %}
@@ -100,12 +131,19 @@
 <section class="band compact-band">
   <div class="section-head"><h2>En estudio por SHARK</h2><span class="pill">{{ data.smart_picks.study|length }}</span></div>
   <p class="small">Estas señales están en revisión. No se venden como premium hasta tener cuota real, selección clara y calidad suficiente.</p>
-  <div class="grid dense-grid">
+  <div class="grid dense-grid v740-study-grid">
     {% for p in data.smart_picks.study[:8] %}
-    <article class="card study-card">
+    {% set home_identity = p.home_identity|default({}) %}
+    {% set away_identity = p.away_identity|default({}) %}
+    <article class="card study-card v740-study-card">
       <div class="match-top"><div><div class="comp-name">{{ (p.competition_name or p.league_name or 'Competición')|competition_es }}</div><div class="small">{{ p.madrid_display or p.display_datetime or p.match_date or 'Fecha pendiente' }} · {{ (p.market or 'Mercado')|market_es }}</div></div><span class="shark-pill">{{ p.quality_label or 'En estudio' }}</span></div>
-      <h3>{{ p.home_team }} vs {{ p.away_team }}</h3>
+      <div class="pick-teams-pro v740-team-strip compact">
+        <div class="pick-team-pro"><span class="crest compact-crest {{ home_identity.get('ui_class','crest-fallback') }}"><img loading="lazy" src="{{ home_identity.get('crest_url','') }}" alt="{{ p.home_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ home_identity.get('flag_emoji') or home_identity.get('initials', (p.home_team or 'L')[:1]) }}'"></span><strong>{{ p.home_team }}</strong></div>
+        <span class="pick-versus-pro">VS</span>
+        <div class="pick-team-pro away"><strong>{{ p.away_team }}</strong><span class="crest compact-crest {{ away_identity.get('ui_class','crest-fallback') }}"><img loading="lazy" src="{{ away_identity.get('crest_url','') }}" alt="{{ p.away_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ away_identity.get('flag_emoji') or away_identity.get('initials', (p.away_team or 'V')[:1]) }}'"></span></div>
+      </div>
       <p class="small"><strong>Señal:</strong> {{ p.selection_display or p.selection or 'Pendiente de confirmación' }}</p>
+      <p class="small"><strong>Lectura:</strong> {{ p.analysis_summary or 'SHARK necesita cuota real y más calidad antes de publicarlo.' }}</p>
       <p class="small"><strong>Estado:</strong> no se publica como premium hasta tener cuota real y calidad suficiente.</p>
     </article>
     {% endfor %}
@@ -118,7 +156,7 @@
   <div class="section-head"><h2>Vista premium</h2><span class="pill">PRO / ELITE</span></div>
   <div class="grid dense-grid">
     {% for p in data.smart_picks.pro_locked %}
-    <article class="card locked-card"><div class="badge badge-{{ p.membership_required|lower }}">{{ p.membership_required }}</div><h3>{{ p.selection_display or p.selection }}</h3><p class="small">Pick premium disponible al subir de plan.</p></article>
+    <article class="card locked-card"><div class="badge badge-{{ p.membership_required|lower }}">{{ p.membership_required }}</div><h3>{{ p.selection_display or p.selection }}</h3><p class="small">Pick premium disponible al subir de plan. No ocultamos el riesgo: dentro verás cuota, stake, motivo, precaución y conclusión SHARK.</p></article>
     {% endfor %}
   </div>
 </section>

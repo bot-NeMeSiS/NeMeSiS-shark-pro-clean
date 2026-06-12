@@ -96,6 +96,7 @@ from engines.go_live_engine import go_live_snapshot, production_validation_plan
 from engines.visual_experience_engine import visual_experience_snapshot
 from engines.native_app_experience_engine import native_app_experience_snapshot
 from engines.final_release_engine import final_release_snapshot, final_release_validation_plan
+from engines.client_visual_perfection_engine import client_visual_perfection_snapshot
 from engines.payment_readiness_engine import payment_readiness_snapshot, record_payment_webhook_event
 from engines.pick_grading_engine import pick_grading_summary, run_pick_grading
 from engines.subscription_control_engine import subscription_summary, apply_subscription_rules
@@ -111,6 +112,7 @@ from engines.picks_quality_engine import (
     sort_picks_by_quality,
     split_picks_by_quality,
 )
+from engines.pick_analysis_experience_engine import enrich_pick_analysis
 from engines.spanish_localization_engine import (
     MADRID_TZ,
     apply_match_localization,
@@ -133,7 +135,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V739_SALE_READY_HOME_DATA_PRODUCTION_FIX"
+APP_VERSION = "V740_CLIENT_VISUAL_PICK_ANALYSIS_PERFECTION"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -3862,6 +3864,7 @@ def normalize_pick_row(pick):
     pick["home_badge_text"] = pick["home_identity"].get("flag_emoji") or pick["home_identity"].get("initials")
     pick["away_badge_text"] = pick["away_identity"].get("flag_emoji") or pick["away_identity"].get("initials")
     pick = enrich_pick_quality(pick)
+    pick = enrich_pick_analysis(pick)
     return pick
 
 
@@ -7798,8 +7801,8 @@ def cleanup_duplicate_matches(cur=None):
 def sports_hub_groups(matches):
     buckets = {}
     for match in dedupe_matches_list(matches):
-        name = match.get("competition_name") or match.get("league_name") or "Competición"
-        country = match.get("country") or ""
+        name = spanish_competition_name(match.get("competition_name") or match.get("league_name") or match.get("competition_key") or "") or "Competición"
+        country = spanish_country_name(match.get("country") or "") or match.get("country") or ""
         key = (name, country)
         buckets.setdefault(key, {"name": name, "country": country, "matches": []})
         buckets[key]["matches"].append(match)
@@ -7817,6 +7820,7 @@ def annotate_sports_hub_matches(matches, picks=None):
     out = []
     for match in dedupe_matches_list(matches):
         match = apply_match_localization(match)
+        match.update(apply_team_identities_to_match(match))
         pick = pick_map.get(str(match.get("id") or ""))
         live_depth = match.get("live_depth") or {}
         match["has_pick"] = bool(pick)
@@ -7824,7 +7828,7 @@ def annotate_sports_hub_matches(matches, picks=None):
         match["shark_score"] = as_int((pick or {}).get("confidence") or live_depth.get("momentum") or match.get("shark_score"), 0)
         match["safe_home"] = match.get("safe_home") or match.get("home_team") or "Equipo por confirmar"
         match["safe_away"] = match.get("safe_away") or match.get("away_team") or "Equipo por confirmar"
-        match["safe_competition"] = match.get("safe_competition") or match.get("competition_name") or match.get("league_name") or "Competición"
+        match["safe_competition"] = spanish_competition_name(match.get("safe_competition") or match.get("competition_name") or match.get("league_name") or match.get("competition_key") or "") or "Competición"
         match["safe_time"] = match.get("safe_time") or match.get("kickoff_time") or match.get("match_time") or live_depth.get("minute") or "Hora pendiente"
         match["safe_score"] = live_depth.get("score") or match.get("score") or "vs"
         match["safe_status"] = live_depth.get("label") or match.get("status") or "Próximo"
@@ -8014,6 +8018,7 @@ def home_live_summary_data():
                 continue
             item["kickoff_time"] = item.get("kickoff_time") or item.get("match_time") or ""
             item.update(apply_match_localization(item))
+            item.update(apply_team_identities_to_match(item))
             upcoming_matches.append(item)
         except Exception:
             upcoming_matches.append(item)
@@ -11519,6 +11524,32 @@ def api_admin_native_app_experience():
         return admin_json_forbidden()
     return jsonify({"ok": True, "version": APP_VERSION, "native_app_experience": v737_native_app_experience_context()})
 
+
+
+# ===================== V740 CLIENT VISUAL + PICK ANALYSIS PERFECTION =====================
+
+def v740_client_visual_perfection_context():
+    return client_visual_perfection_snapshot(app_version=APP_VERSION)
+
+
+@app.route("/admin/client-visual-qa")
+@app.route("/admin/visual-qa")
+@app.route("/admin/pick-analysis-qa")
+def admin_client_visual_qa_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/client-visual-qa")
+    data = dashboard_data()
+    data["version"] = APP_VERSION
+    data["client_visual_perfection"] = v740_client_visual_perfection_context()
+    return render_template("admin_client_visual_qa.html", data=data)
+
+
+@app.route("/api/admin/client-visual-qa")
+@app.route("/api/admin/visual-qa")
+def api_admin_client_visual_qa():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "version": APP_VERSION, "client_visual_perfection": v740_client_visual_perfection_context()})
 
 
 # ===================== V738 FINAL COMMERCIAL RELEASE CANDIDATE =====================

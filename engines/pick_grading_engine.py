@@ -14,6 +14,11 @@ import sqlite3
 from datetime import datetime, timezone
 from typing import Any, Dict, Iterable
 
+try:
+    from engines.team_identity_engine import identity_payload
+except Exception:  # pragma: no cover - keeps grading standalone in minimal environments
+    identity_payload = None
+
 
 def utc_now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
@@ -292,6 +297,34 @@ def run_pick_grading(db_path: str, limit: int = 500, apply: bool = False) -> Dic
     return {"ok": True, "pick_grading_v577": True, "run_id": run_id, "picks_checked": len(picks), **stats, "profit": round(stats["profit"], 2), "applied": bool(apply)}
 
 
+
+def _enrich_recent_result(row: Dict[str, Any]) -> Dict[str, Any]:
+    """Add safe client-facing match/team context to a grading row.
+
+    The grading table stores the original pick payload as JSON. We only surface
+    fields that already exist there and use a local crest fallback; no results,
+    odds or team strength are invented.
+    """
+    item = dict(row or {})
+    payload = {}
+    try:
+        payload = json.loads(item.get("payload_json") or "{}") or {}
+    except Exception:
+        payload = {}
+    pick = payload.get("pick") if isinstance(payload, dict) else {}
+    if not isinstance(pick, dict):
+        pick = {}
+    for key in ("home_team", "away_team", "competition_name", "league_name", "selection", "pick_type", "odds", "match_id"):
+        if pick.get(key) not in (None, "") and item.get(key) in (None, ""):
+            item[key] = pick.get(key)
+    if item.get("home_team") and identity_payload:
+        item["home_identity"] = identity_payload(item.get("home_team"), source="track_record")
+    if item.get("away_team") and identity_payload:
+        item["away_identity"] = identity_payload(item.get("away_team"), source="track_record")
+    item["safe_competition"] = item.get("competition_name") or item.get("league_name") or "Competición"
+    item["pick_label"] = item.get("selection") or item.get("pick_type") or f"Pick {item.get('pick_id') or ''}".strip()
+    return item
+
 def pick_grading_summary(db_path: str) -> Dict[str, Any]:
     ensure_pick_grading_schema(db_path)
     conn = connect(db_path)
@@ -302,7 +335,7 @@ def pick_grading_summary(db_path: str) -> Dict[str, Any]:
     lost = scalar(conn, "SELECT COUNT(*) FROM pick_grading_results WHERE result_status='lost'", default=0)
     profit = scalar(conn, "SELECT ROUND(SUM(profit),2) FROM pick_grading_results", default=0) or 0
     avg_score = scalar(conn, "SELECT ROUND(AVG(grading_score),1) FROM pick_grading_results", default=0) or 0
-    recent = rows(conn, "SELECT * FROM pick_grading_results ORDER BY graded_at DESC LIMIT 10")
+    recent = [_enrich_recent_result(r) for r in rows(conn, "SELECT * FROM pick_grading_results ORDER BY graded_at DESC LIMIT 10")]
     runs = rows(conn, "SELECT * FROM pick_grading_runs ORDER BY started_at DESC LIMIT 6")
     checks = [total > 0, auto_validated > 0 or pending > 0, len(runs) > 0, avg_score >= 40]
     readiness = round(100 * sum(1 for x in checks if x) / len(checks))

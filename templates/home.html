@@ -79,7 +79,16 @@
     <div class="section-head"><h2>Partidos destacados reales</h2><a class="pill" href="/match-hub">Calendario completo</a></div>
     <div class="stack">
       {% for m in data.upcoming_matches[:6] %}
-      <a class="list-row match-teaser" href="/match/{{ m.id }}"><span>{{ m.home_team }} vs {{ m.away_team }}<small>{{ (m.competition_name or m.league_name or 'Competición')|competition_es }}</small></span><strong>{{ m|match_time_short }}</strong></a>
+      {% set home_identity = m.home_identity|default({}) %}
+      {% set away_identity = m.away_identity|default({}) %}
+      <a class="list-row match-teaser v740-home-match" href="/match/{{ m.id }}">
+        <span class="v740-home-teams">
+          <span class="crest compact-crest {{ home_identity.get('ui_class','crest-fallback') }}"><img loading="lazy" src="{{ home_identity.get('crest_url','') }}" alt="{{ m.home_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ home_identity.get('flag_emoji') or home_identity.get('initials', (m.home_team or 'L')[:1]) }}'"></span>
+          <span class="v740-home-team-text"><strong>{{ m.home_team }}</strong><em>vs</em><strong>{{ m.away_team }}</strong><small>{{ (m.competition_name or m.league_name or 'Competición')|competition_es }}</small></span>
+          <span class="crest compact-crest {{ away_identity.get('ui_class','crest-fallback') }}"><img loading="lazy" src="{{ away_identity.get('crest_url','') }}" alt="{{ m.away_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ away_identity.get('flag_emoji') or away_identity.get('initials', (m.away_team or 'V')[:1]) }}'"></span>
+        </span>
+        <strong>{{ m|match_time_short }}</strong>
+      </a>
       {% else %}
       <div class="empty shark-empty-state">No hay partidos disponibles todavía. SHARK mostrará nuevos encuentros cuando haya datos suficientes.</div>
       {% endfor %}

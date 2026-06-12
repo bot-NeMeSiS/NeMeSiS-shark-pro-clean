@@ -24,7 +24,7 @@
 <section class="match-hero v702-match-hero">
   <div class="match-hero-top">
     <div>
-      <div class="kicker">{{ comp }}</div>
+      <div class="kicker">{{ comp|competition_es }}</div>
       <h1>{{ home }} vs {{ away }}</h1>
       <p class="lead">Marcador, estado, SHARK Score, riesgo, momentum, picks y lectura clara del partido.</p>
     </div>
@@ -109,7 +109,12 @@
       <div class="comp-name">{{ (p.competition_name or comp)|competition_es }}</div>
       <h3>{{ p.selection_display or p.selection or 'Pick SHARK' }}</h3>
       <div class="pick-signals"><span>Cuota {{ p.odds or 'Pendiente' }}</span><span>Confianza {{ p.confidence or 0 }}%</span><span>Riesgo {{ p.risk_level or 'Medio' }}</span></div>
-      <p class="small"><strong>Motivo:</strong> {{ p.reasoning or 'Pick publicado por SHARK con los datos disponibles.' }}</p>
+      <div class="v740-analysis-box compact">
+        <div class="v740-analysis-title"><span>Lectura SHARK</span><strong>{{ p.analysis_badge or 'Análisis' }}</strong></div>
+        <p>{{ p.analysis_summary or p.reasoning or 'Pick publicado por SHARK con los datos disponibles.' }}</p>
+        {% if p.analysis_reasons %}<ul>{% for reason in p.analysis_reasons[:3] %}<li>{{ reason }}</li>{% endfor %}</ul>{% endif %}
+        <p class="v740-conclusion"><strong>Conclusión:</strong> {{ p.analysis_conclusion or 'Entrada solo con cuota confirmada y stake responsable.' }}</p>
+      </div>
     </article>
     {% endfor %}
   </div>

@@ -18,8 +18,19 @@
   {% if data.track_record.recent_results %}
   <div class="stack compact-list">
     {% for row in data.track_record.recent_results[:8] %}
-    <div class="mini-row">
-      <div><strong>Pick {{ row.pick_id }}</strong><span>{{ row.reason }}</span></div>
+    <div class="mini-row v740-home-match">
+      {% if row.home_team and row.away_team %}
+      <span class="v740-home-teams">
+        {% set home_identity = row.home_identity or {} %}
+        {% set away_identity = row.away_identity or {} %}
+        <span class="crest compact-crest {{ home_identity.get('ui_class','crest-fallback') }}"><img loading="lazy" src="{{ home_identity.get('crest_url','') }}" alt="{{ row.home_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ home_identity.get('flag_emoji') or home_identity.get('initials', (row.home_team or 'L')[:1]) }}'"></span>
+        <span class="v740-home-team-text"><strong>{{ row.home_team }}</strong><em>vs</em><strong>{{ row.away_team }}</strong><small>{{ (row.safe_competition or row.competition_name or row.league_name or 'Competición')|competition_es }}</small></span>
+        <span class="crest compact-crest {{ away_identity.get('ui_class','crest-fallback') }}"><img loading="lazy" src="{{ away_identity.get('crest_url','') }}" alt="{{ row.away_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ away_identity.get('flag_emoji') or away_identity.get('initials', (row.away_team or 'V')[:1]) }}'"></span>
+      </span>
+      {% else %}
+      <span class="v740-home-teams"><span class="crest compact-crest crest-fallback">NS</span><span class="v740-home-team-text"><strong>Pick {{ row.pick_id }}</strong><small>Datos de partido no disponibles</small></span></span>
+      {% endif %}
+      <div><strong>{{ row.pick_label or ('Pick ' ~ row.pick_id) }}</strong><span>{{ row.reason }}</span></div>
       <span class="badge status-{{ row.result_status }}">{{ row.result_status }}</span>
     </div>
     {% endfor %}
