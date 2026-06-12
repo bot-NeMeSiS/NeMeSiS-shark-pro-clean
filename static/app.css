@@ -236,3 +236,12 @@ textarea{min-height:230px;font-family:Consolas,monospace;font-size:13px}
 
 /* V713 SHARK AI polish */
 .shark-msg{white-space:pre-line}.shark-msg.thinking{opacity:.82}.shark-quick{display:flex;flex-wrap:wrap;gap:6px}.shark-quick button{font-size:12px;padding:7px 9px;border-radius:999px;background:#122039;border:1px solid #27476d;color:#dbeafe}.shark-quick button:hover{border-color:#20d7ff;color:#fff}.shark-panel{width:min(430px,calc(100vw - 28px))}.shark-messages{max-height:340px}.sports-tabs{overflow:auto}.sports-tabs .tab-link{white-space:nowrap}
+
+/* V718 Team Identity PRO */
+.crest{position:relative;color:#eaf6ff;text-shadow:0 1px 8px rgba(0,0,0,.35)}
+.crest-logo{background:linear-gradient(145deg,#102139,#07111f);border-color:rgba(123,180,255,.28)}
+.crest-flag{font-size:1.05rem;background:radial-gradient(circle at 30% 18%,rgba(255,255,255,.18),transparent 34%),linear-gradient(145deg,#152944,#07111f);border-color:rgba(32,215,255,.26)}
+.crest-fallback{background:radial-gradient(circle at 30% 18%,rgba(32,215,255,.18),transparent 38%),linear-gradient(145deg,#17324e,#08111d);border-color:rgba(255,255,255,.12);font-size:.72rem;letter-spacing:.02em}
+.crest img{display:block;max-width:100%;max-height:100%}
+.team-emoji{display:inline-flex;align-items:center;justify-content:center;margin-right:.15rem;font-size:1rem;filter:drop-shadow(0 2px 8px rgba(0,0,0,.3))}
+.sports-team strong .team-emoji{margin-right:.25rem}.identity-kpis div strong{font-size:1.55rem}.identity-row{cursor:default}.match-side .team-emoji{font-size:1.15rem;margin-bottom:-2px}.pick-teams-pro{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:10px 0 12px}.pick-team-pro{display:flex;align-items:center;gap:8px;min-width:0}.pick-team-pro strong{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:.92rem}.pick-team-pro.away{text-align:right;justify-content:flex-end}.pick-versus-pro{font-weight:900;color:var(--muted);font-size:.75rem;letter-spacing:.08em}.team-identity-note{font-size:.72rem;color:var(--muted);display:block;margin-top:2px}

@@ -36,7 +36,13 @@
         <div><div class="comp-name">{{ p.competition_name or p.league_name or p.competition_key or 'Competición' }}</div><div class="small">{{ p.match_date or 'Fecha pendiente' }} · {{ p.market or 'Mercado' }}</div></div>
         <span class="badge badge-{{ p.membership_required|lower }}">{{ p.membership_required or 'FREE' }}</span>
       </div>
-      <h3>{{ p.home_team or 'Equipo local' }}{% if p.away_team %} vs {{ p.away_team }}{% endif %}</h3>
+      {% set home_identity = p.home_identity|default({}) %}
+      {% set away_identity = p.away_identity|default({}) %}
+      <div class="pick-teams-pro">
+        <div class="pick-team-pro"><span class="crest compact-crest {{ home_identity.get('ui_class','crest-fallback') }}"><img loading="lazy" src="{{ home_identity.get('crest_url','') }}" alt="{{ p.home_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ home_identity.get('flag_emoji') or home_identity.get('initials', (p.home_team or 'L')[:1]) }}'"></span><strong>{% if home_identity.get('flag_emoji') %}<span class="team-emoji">{{ home_identity.get('flag_emoji') }}</span>{% endif %}{{ p.home_team or 'Equipo local' }}</strong></div>
+        <span class="pick-versus-pro">VS</span>
+        <div class="pick-team-pro away"><strong>{% if away_identity.get('flag_emoji') %}<span class="team-emoji">{{ away_identity.get('flag_emoji') }}</span>{% endif %}{{ p.away_team or 'Equipo visitante' }}</strong><span class="crest compact-crest {{ away_identity.get('ui_class','crest-fallback') }}"><img loading="lazy" src="{{ away_identity.get('crest_url','') }}" alt="{{ p.away_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ away_identity.get('flag_emoji') or away_identity.get('initials', (p.away_team or 'V')[:1]) }}'"></span></div>
+      </div>
       <div class="pick-mainline">
         <div><span>Pick SHARK</span><strong>{{ p.selection_display or p.selection or 'Selección pendiente' }}</strong></div>
         <div><span>Cuota</span><strong>{{ p.odds or 'Pendiente' }}</strong></div>

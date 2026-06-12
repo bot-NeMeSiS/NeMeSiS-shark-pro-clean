@@ -36,7 +36,7 @@
   </div>
   <div class="match-versus">
     <div class="match-side">
-      <div class="crest xl"><img loading="lazy" src="{{ home_identity.get('crest_url','') }}" alt="{{ home }}" onerror="this.style.display='none';this.parentElement.textContent='{{ home_identity.get('initials', (home or 'L')[:1]) }}'"></div>
+      <div class="crest xl {{ home_identity.get('ui_class','crest-fallback') }}"><img loading="lazy" src="{{ home_identity.get('crest_url','') }}" alt="{{ home }}" onerror="this.style.display='none';this.parentElement.textContent='{{ home_identity.get('flag_emoji') or home_identity.get('initials', (home or 'L')[:1]) }}'"></div>
       <h2><a class="team-title-link" href="/team/{{ (m._raw_home_team or home)|urlencode }}">{{ home }}</a></h2>
     </div>
     <div class="versus-center">
@@ -46,7 +46,7 @@
       <span class="shark-pill">SHARK {{ shark_score or 'en cálculo' }}</span>
     </div>
     <div class="match-side">
-      <div class="crest xl"><img loading="lazy" src="{{ away_identity.get('crest_url','') }}" alt="{{ away }}" onerror="this.style.display='none';this.parentElement.textContent='{{ away_identity.get('initials', (away or 'V')[:1]) }}'"></div>
+      <div class="crest xl {{ away_identity.get('ui_class','crest-fallback') }}"><img loading="lazy" src="{{ away_identity.get('crest_url','') }}" alt="{{ away }}" onerror="this.style.display='none';this.parentElement.textContent='{{ away_identity.get('flag_emoji') or away_identity.get('initials', (away or 'V')[:1]) }}'"></div>
       <h2><a class="team-title-link" href="/team/{{ (m._raw_away_team or away)|urlencode }}">{{ away }}</a></h2>
     </div>
   </div>

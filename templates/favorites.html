@@ -25,9 +25,9 @@
     <a class="sports-row v701-row favorite-scope" href="/match/{{ m.id }}">
       <button class="fav-star active" type="button" data-kind="match" data-value="{{ m.id }}" data-label="{{ m.home_team }} vs {{ m.away_team }}" aria-label="Favorito">★</button>
       <div class="sports-time"><strong>{{ m.kickoff_time or m.minute or live_depth.get('minute') or 'Hora' }}</strong><span>{{ live_depth.get('label') or m.match_date }}</span></div>
-      <div class="sports-team home"><span class="crest compact-crest"><img loading="lazy" src="{{ home_identity.get('crest_url','') }}" alt="{{ m.home_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ home_identity.get('initials', (m.home_team or 'L')[:1]) }}'"></span><strong>{{ m.home_team or 'Equipo local' }}</strong></div>
+      <div class="sports-team home"><span class="crest compact-crest {{ home_identity.get('ui_class','crest-fallback') }}"><img loading="lazy" src="{{ home_identity.get('crest_url','') }}" alt="{{ m.home_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ home_identity.get('flag_emoji') or home_identity.get('initials', (m.home_team or 'L')[:1]) }}'"></span><strong>{{ m.home_team or 'Equipo local' }}</strong></div>
       <div class="sports-score"><strong>{{ live_depth.get('score') or m.score or 'vs' }}</strong><span>{{ m.competition_name or m.league_name or 'Competición' }}</span></div>
-      <div class="sports-team away"><span class="crest compact-crest"><img loading="lazy" src="{{ away_identity.get('crest_url','') }}" alt="{{ m.away_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ away_identity.get('initials', (m.away_team or 'V')[:1]) }}'"></span><strong>{{ m.away_team or 'Equipo visitante' }}</strong></div>
+      <div class="sports-team away"><span class="crest compact-crest {{ away_identity.get('ui_class','crest-fallback') }}"><img loading="lazy" src="{{ away_identity.get('crest_url','') }}" alt="{{ m.away_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ away_identity.get('flag_emoji') or away_identity.get('initials', (m.away_team or 'V')[:1]) }}'"></span><strong>{{ m.away_team or 'Equipo visitante' }}</strong></div>
       <div class="sports-meta v701-meta"><span class="shark-pill">SHARK</span></div>
     </a>
     {% endfor %}

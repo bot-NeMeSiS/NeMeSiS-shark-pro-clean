@@ -63,6 +63,12 @@ from engines.telegram_sport_filter_engine import (
     telegram_sport_filter_reason,
     telegram_sport_mode_summary,
 )
+from engines.team_identity_engine import (
+    flag_or_emoji as team_flag_or_emoji,
+    identity_payload as build_team_identity_payload,
+    merge_identity as merge_team_identity_payload,
+    safe_logo_url as safe_team_logo_url,
+)
 from engines.spanish_localization_engine import (
     MADRID_TZ,
     apply_match_localization,
@@ -78,7 +84,7 @@ from engines.spanish_localization_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V717_4_TELEGRAM_FOOTBALL_ONLY_FILTER"
+APP_VERSION = "V718_TEAM_IDENTITY_FLASHCORE_PRO"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -1449,6 +1455,46 @@ def canonical_team_key(name):
 
 def fallback_crest_url(name):
     return "/team-crest.svg?" + urllib.parse.urlencode({"name": name or "Equipo"})
+
+
+def professional_team_identity(name, explicit_logo="", country="", source=""):
+    """Central UI identity payload for teams in cliente/admin/Telegram.
+
+    Always returns a safe crest_url: a validated real logo when available or the app-owned
+    SVG fallback. This avoids broken images and oversized raw initials in templates.
+    """
+    display = spanish_team_name(name) or str(name or "Equipo").strip() or "Equipo"
+    return build_team_identity_payload(display, logo_url=safe_team_logo_url(explicit_logo), country=spanish_country_name(country) or country or "", source=source or "NeMeSiS identity")
+
+
+def professionalize_identity(identity, name="", explicit_logo="", country="", source=""):
+    base = dict(identity or {})
+    display = spanish_team_name(base.get("name") or base.get("display_name") or name) or base.get("name") or name or "Equipo"
+    merged = merge_team_identity_payload(base, name=display, logo_url=explicit_logo or base.get("crest_url") or base.get("logo_url"), country=country or base.get("country") or "", source=source or base.get("crest_source") or base.get("source") or "cache")
+    merged["name"] = spanish_team_name(merged.get("name") or display) or display
+    merged["display_name"] = merged["name"]
+    merged["flag_emoji"] = merged.get("flag_emoji") or team_flag_or_emoji(merged.get("name"), merged.get("country"))
+    merged["team_emoji"] = merged.get("flag_emoji")
+    merged["crest_url"] = safe_team_logo_url(merged.get("crest_url")) or fallback_crest_url(merged.get("name") or display)
+    merged["logo_url"] = safe_team_logo_url(merged.get("logo_url"))
+    merged["crest_mode"] = "logo" if merged.get("logo_url") or (str(merged.get("crest_url") or "").startswith(("http://", "https://", "data:image/"))) else ("flag" if merged.get("flag_emoji") else "fallback")
+    merged["ui_class"] = f"crest-{merged.get('crest_mode') or 'fallback'}"
+    merged["has_real_logo"] = merged.get("crest_mode") == "logo" and not str(merged.get("crest_url") or "").startswith("/team-crest.svg")
+    return merged
+
+
+def apply_team_identities_to_match(item):
+    item = dict(item or {})
+    home = item.get("home_team") or item.get("safe_home") or "Equipo local"
+    away = item.get("away_team") or item.get("safe_away") or "Equipo visitante"
+    country = item.get("country") or item.get("safe_country") or ""
+    item["home_identity"] = professionalize_identity(item.get("home_identity"), home, item.get("home_logo") or ((item.get("home_identity") or {}).get("logo_url")), country, "match")
+    item["away_identity"] = professionalize_identity(item.get("away_identity"), away, item.get("away_logo") or ((item.get("away_identity") or {}).get("logo_url")), country, "match")
+    item["home_logo"] = safe_team_logo_url(item.get("home_logo")) or item["home_identity"].get("logo_url") or ""
+    item["away_logo"] = safe_team_logo_url(item.get("away_logo")) or item["away_identity"].get("logo_url") or ""
+    item["home_badge_text"] = item["home_identity"].get("flag_emoji") or item["home_identity"].get("initials")
+    item["away_badge_text"] = item["away_identity"].get("flag_emoji") or item["away_identity"].get("initials")
+    return item
 
 
 def thesportsdb_key():
@@ -3191,12 +3237,6 @@ def resolve_team(name, refresh=False):
     if not refresh and cache_key in TEAM_IDENTITY_CACHE:
         return dict(TEAM_IDENTITY_CACHE[cache_key])
     team = one("SELECT * FROM teams WHERE key=?", (key,))
-    if team and team.get("logo_url") and not refresh:
-        team["initials"] = initials(team.get("name") or name)
-        team["crest_url"] = team.get("logo_url")
-        team["crest_mode"] = "logo"
-        TEAM_IDENTITY_CACHE[cache_key] = dict(team)
-        return team
     if refresh:
         found = None
         if (team or {}).get("external_id"):
@@ -3210,12 +3250,9 @@ def resolve_team(name, refresh=False):
             cache_team_identity(name, found)
             team = one("SELECT * FROM teams WHERE key=?", (key,))
     if not team:
-        team = {"key": key, "name": name or "Equipo", "logo_url": "", "country": "", "region": "", "source": "fallback propio", "legal_note": "Iniciales generadas por la app."}
-    team["initials"] = initials(team.get("name") or name)
-    team["crest_url"] = team.get("logo_url") or fallback_crest_url(team.get("name") or name)
-    status = crest_status(team)
-    team["crest_mode"] = status["mode"]
-    team["crest_source"] = status["source"]
+        team = {"key": key, "name": spanish_team_name(name) or name or "Equipo", "logo_url": "", "country": "", "region": "", "source": "fallback propio", "legal_note": "Iniciales/emoji generados por la app."}
+    team = professionalize_identity(team, team.get("name") or name, team.get("logo_url"), team.get("country"), team.get("source") or "teams")
+    team["key"] = key
     TEAM_IDENTITY_CACHE[cache_key] = dict(team)
     return team
 
@@ -3582,6 +3619,12 @@ def normalize_pick_row(pick):
     pick["warning_reason"] = pick.get("warning_reason") or "Gestiona stake y evita perseguir pérdidas."
     pick["result_status"] = str(pick.get("result_status") or "pending").lower()
     pick = apply_pick_localization(pick)
+    pick["home_identity"] = professionalize_identity(pick.get("home_identity"), pick.get("home_team"), pick.get("home_logo"), pick.get("country") or pick.get("safe_country"), "pick")
+    pick["away_identity"] = professionalize_identity(pick.get("away_identity"), pick.get("away_team"), pick.get("away_logo"), pick.get("country") or pick.get("safe_country"), "pick")
+    pick["home_logo"] = safe_team_logo_url(pick.get("home_logo")) or pick["home_identity"].get("logo_url") or ""
+    pick["away_logo"] = safe_team_logo_url(pick.get("away_logo")) or pick["away_identity"].get("logo_url") or ""
+    pick["home_badge_text"] = pick["home_identity"].get("flag_emoji") or pick["home_identity"].get("initials")
+    pick["away_badge_text"] = pick["away_identity"].get("flag_emoji") or pick["away_identity"].get("initials")
     return pick
 
 
@@ -4188,6 +4231,11 @@ def annotate_match(match, favs=None):
         or away in favs["team"]
     )
     match = apply_match_localization(match)
+    if not match.get("home_identity"):
+        match["home_identity"] = resolve_team(match.get("home_team"))
+    if not match.get("away_identity"):
+        match["away_identity"] = resolve_team(match.get("away_team"))
+    match.update(apply_team_identities_to_match(match))
     match["status_info"] = canonical_match_status(match)
     match["real_time_state"] = real_time_state(match)
     match["timeline"] = match_timeline(match)
@@ -6885,15 +6933,10 @@ def get_matches(date=None, lane="today"):
         item["kickoff_time"] = item.get("kickoff_time") or item.get("match_time") or ""
         if not item.get("score") and (item.get("home_score") or item.get("away_score")):
             item["score"] = sportsdb_score(item.get("home_score"), item.get("away_score"))
+        item.update(apply_match_localization(item))
         item["home_identity"] = resolve_team(item.get("home_team"))
         item["away_identity"] = resolve_team(item.get("away_team"))
-        if item.get("home_logo"):
-            item["home_identity"]["crest_url"] = item.get("home_logo")
-            item["home_identity"]["crest_mode"] = "logo"
-        if item.get("away_logo"):
-            item["away_identity"]["crest_url"] = item.get("away_logo")
-            item["away_identity"]["crest_mode"] = "logo"
-        item.update(apply_match_localization(item))
+        item.update(apply_team_identities_to_match(item))
     return data
 
 
@@ -6909,15 +6952,10 @@ def get_upcoming_matches(start_date=None, days=7, limit=300):
         item["kickoff_time"] = item.get("kickoff_time") or item.get("match_time") or ""
         if not item.get("score") and (item.get("home_score") or item.get("away_score")):
             item["score"] = sportsdb_score(item.get("home_score"), item.get("away_score"))
+        item.update(apply_match_localization(item))
         item["home_identity"] = resolve_team(item.get("home_team"))
         item["away_identity"] = resolve_team(item.get("away_team"))
-        if item.get("home_logo"):
-            item["home_identity"]["crest_url"] = item.get("home_logo")
-            item["home_identity"]["crest_mode"] = "logo"
-        if item.get("away_logo"):
-            item["away_identity"]["crest_url"] = item.get("away_logo")
-            item["away_identity"]["crest_mode"] = "logo"
-        item.update(apply_match_localization(item))
+        item.update(apply_team_identities_to_match(item))
     return data
 
 
@@ -8373,6 +8411,63 @@ def team_crest_svg():
     return Response(svg, mimetype="image/svg+xml")
 
 
+def team_identity_diagnostics(limit=20):
+    seed_core()
+    teams_total = (one("SELECT COUNT(*) AS total FROM teams") or {}).get("total", 0)
+    teams_logo = (one("SELECT COUNT(*) AS total FROM teams WHERE logo_url IS NOT NULL AND logo_url!=''") or {}).get("total", 0)
+    teams_fallback = max(0, teams_total - teams_logo)
+    matches_total = (one("SELECT COUNT(*) AS total FROM matches") or {}).get("total", 0)
+    both_logos = (one("SELECT COUNT(*) AS total FROM matches WHERE COALESCE(home_logo,'')!='' AND COALESCE(away_logo,'')!=''") or {}).get("total", 0)
+    one_or_more_missing = (one("SELECT COUNT(*) AS total FROM matches WHERE COALESCE(home_logo,'')='' OR COALESCE(away_logo,'')=''") or {}).get("total", 0)
+    missing_samples = rows("""SELECT id, competition_name, country, home_team, away_team, home_logo, away_logo, match_date, kickoff_time
+                              FROM matches
+                              WHERE COALESCE(home_logo,'')='' OR COALESCE(away_logo,'')=''
+                              ORDER BY match_date DESC, priority DESC LIMIT ?""", (int(limit),))
+    sample_payload = []
+    for match in missing_samples:
+        match = apply_match_localization(match)
+        match.update(apply_team_identities_to_match(match))
+        sample_payload.append({
+            "id": match.get("id"),
+            "competition": match.get("safe_competition") or match.get("competition_name"),
+            "home": match.get("safe_home") or match.get("home_team"),
+            "away": match.get("safe_away") or match.get("away_team"),
+            "home_mode": (match.get("home_identity") or {}).get("crest_mode"),
+            "away_mode": (match.get("away_identity") or {}).get("crest_mode"),
+            "home_badge": match.get("home_badge_text"),
+            "away_badge": match.get("away_badge_text"),
+            "date": match.get("match_date"),
+            "time": match.get("kickoff_time") or match.get("match_time"),
+        })
+    return {
+        "version": APP_VERSION,
+        "policy": "logo real si existe; si no, bandera/emoji para selecciones o SVG propio seguro",
+        "teams_total": teams_total,
+        "teams_with_logo": teams_logo,
+        "teams_using_fallback": teams_fallback,
+        "matches_total": matches_total,
+        "matches_with_both_logos": both_logos,
+        "matches_missing_one_or_more_logos": one_or_more_missing,
+        "coverage_percent": round((both_logos / matches_total) * 100, 1) if matches_total else 0,
+        "missing_samples": sample_payload,
+        "helpers": ["safe_logo_url", "fallback_team_badge", "get_team_identity", "resolve_team"],
+    }
+
+
+@app.route("/admin/team-identity")
+def admin_team_identity_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/team-identity")
+    return render_template("admin_team_identity.html", data=team_identity_diagnostics())
+
+
+@app.route("/api/admin/team-identity")
+def api_admin_team_identity():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "version": APP_VERSION, "identity": team_identity_diagnostics(limit=50)})
+
+
 @app.route("/api/team/resolve")
 def api_team_resolve():
     team = request.args.get("team") or request.args.get("name") or ""
@@ -8385,9 +8480,7 @@ def api_teams():
     seed_core()
     teams = rows("SELECT * FROM teams ORDER BY name")
     for team in teams:
-        team["initials"] = initials(team.get("name"))
-        team["crest_url"] = team.get("logo_url") or fallback_crest_url(team.get("name"))
-        team["crest_mode"] = "logo" if team.get("logo_url") else "fallback"
+        team.update(professionalize_identity(team, team.get("name"), team.get("logo_url"), team.get("country"), team.get("source") or "teams"))
     return jsonify({"ok": True, "version": APP_VERSION, "teams": teams})
 
 

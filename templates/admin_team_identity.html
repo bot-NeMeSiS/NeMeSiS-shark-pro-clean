@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="scoreboard-hero v701-scoreboard">
+  <div>
+    <div class="kicker">Admin · Identidad equipos</div>
+    <h1>Escudos, banderas y fallback PRO</h1>
+    <p class="lead">Control de calidad visual para Sports Hub, Live, Picks, Combis, Match Detail y Telegram.</p>
+  </div>
+  <div class="scoreboard-kpis identity-kpis">
+    <div><strong>{{ data.teams_with_logo }}</strong><span>Equipos con logo</span></div>
+    <div><strong>{{ data.teams_using_fallback }}</strong><span>Fallback</span></div>
+    <div><strong>{{ data.matches_with_both_logos }}</strong><span>Partidos completos</span></div>
+    <div><strong>{{ data.coverage_percent }}%</strong><span>Cobertura</span></div>
+  </div>
+</section>
+
+<section class="band compact-band">
+  <div class="section-head"><h2>Política visual activa</h2><span class="pill">{{ data.version }}</span></div>
+  <div class="grid compact-grid">
+    <article class="card"><strong>1. Logo real</strong><p class="small">Se usa solo si la URL es segura y viene de datos permitidos.</p></article>
+    <article class="card"><strong>2. Bandera / emoji</strong><p class="small">Para selecciones reconocidas o clubes con color claro.</p></article>
+    <article class="card"><strong>3. SVG propio</strong><p class="small">Si falta logo real, NeMeSiS genera un escudo compacto sin imagen rota.</p></article>
+  </div>
+</section>
+
+<section class="band compact-band">
+  <div class="section-head"><h2>Partidos sin logo real completo</h2><span class="pill">{{ data.matches_missing_one_or_more_logos }}</span></div>
+  {% if data.missing_samples %}
+  <div class="sports-list">
+    {% for m in data.missing_samples %}
+    <div class="sports-row identity-row">
+      <div class="sports-time"><strong>{{ m.time or 'Hora' }}</strong><span>{{ m.date or '' }}</span></div>
+      <div class="sports-team home"><span class="crest compact-crest crest-{{ m.home_mode or 'fallback' }}">{{ m.home_badge or 'L' }}</span><strong>{{ m.home }}</strong></div>
+      <div class="sports-score"><strong>vs</strong><span>{{ m.competition }}</span></div>
+      <div class="sports-team away"><span class="crest compact-crest crest-{{ m.away_mode or 'fallback' }}">{{ m.away_badge or 'V' }}</span><strong>{{ m.away }}</strong></div>
+      <div class="sports-meta"><span class="pill">{{ m.home_mode }} / {{ m.away_mode }}</span></div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty premium-empty">Todos los partidos recientes tienen identidad visual completa.</div>
+  {% endif %}
+</section>
+{% endblock %}
