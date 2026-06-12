@@ -1,6 +1,6 @@
 {
   "ok": true,
-  "checked_at": "2026-06-12T19:40:34",
+  "checked_at": "2026-06-12T20:19:12",
   "templates_referenced": [
     "account_center.html",
     "activity.html",
@@ -73,7 +73,7 @@
   ],
   "missing_static": [],
   "import_ok": true,
-  "version": "V725_MADRID_TIME_RELEASE_WORKFLOW_AUTOMATION_FIX",
+  "version": "V726_TOTAL_PROJECT_CLEANUP_LIVE_EXPERIENCE_ORGANIZATION",
   "route_count": 227,
   "routes": [
     "/",

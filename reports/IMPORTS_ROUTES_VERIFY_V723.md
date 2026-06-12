@@ -1,7 +1,7 @@
 # Verificación de imports, rutas y plantillas V723
 
 - Resultado: OK
-- Versión importada: `V725_MADRID_TIME_RELEASE_WORKFLOW_AUTOMATION_FIX`
+- Versión importada: `V726_TOTAL_PROJECT_CLEANUP_LIVE_EXPERIENCE_ORGANIZATION`
 - Rutas GET: 227
 - Templates referenciados: 64
 - Templates faltantes: 0

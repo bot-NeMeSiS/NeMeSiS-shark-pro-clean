@@ -12,10 +12,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from engines.codex_daily_automation_engine import audit_tree
+from tools.audit_project_tree import audit_tree
 
 REPORT_DIR = ROOT / "reports"
-PROTECTED_DIRS = {".git", ".venv", "venv", "env"}
+PROTECTED_DIRS = {".git", ".venv", "venv", "env", "release_output", "release", "releases"}
 
 
 def should_delete_item(item: dict, include_venv: bool = False) -> bool:
@@ -38,7 +38,7 @@ def delete_path(path: Path) -> dict:
 
 def markdown(result: dict) -> str:
     lines = [
-        "# Purga segura V723",
+        "# Purga segura V726",
         "",
         f"- Modo: {result['mode']}",
         f"- Candidatos: {len(result['candidates'])}",
@@ -80,10 +80,12 @@ def main() -> int:
         "note": "Por defecto no elimina .venv para no romper la validación local de Codex.",
     }
     REPORT_DIR.mkdir(exist_ok=True)
-    (REPORT_DIR / "PURGE_PROJECT_SAFE_LAST.json").write_text(
+    (REPORT_DIR / "V726_PURGE_REPORT.json").write_text(
         json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
-    (REPORT_DIR / "PURGE_PROJECT_SAFE_LAST.md").write_text(markdown(result), encoding="utf-8")
+    md = markdown(result)
+    (REPORT_DIR / "V726_PURGE_REPORT.md").write_text(md, encoding="utf-8")
+    (ROOT / "V726_PURGE_REPORT.md").write_text(md, encoding="utf-8")
     print(json.dumps({
         "ok": True,
         "mode": mode,

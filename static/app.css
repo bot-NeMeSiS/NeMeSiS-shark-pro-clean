@@ -272,6 +272,21 @@ h1{font-size:clamp(2rem,5vw,4.15rem);line-height:1.01}.lead{font-size:clamp(.96r
   .bottom-nav-clean a{min-height:36px;font-size:.6rem}
 }
 .empty.premium-empty{padding:14px}
+
+/* V726 Total cleanup + live experience organization */
+.v701-match-list .sports-row{min-height:54px}
+.sports-time strong{font-variant-numeric:tabular-nums}
+.sports-score span:empty{display:none}
+.state-badge.finished,.state-badge.finalizado{background:rgba(148,163,184,.14);color:#d7e2ef}
+.state-badge.upcoming{background:rgba(96,165,250,.12);color:#bfdbfe}
+.state-badge.live{background:rgba(57,217,138,.13);color:#bbf7d0}
+.calendar-filters{overflow-x:auto;scrollbar-width:thin}
+.league-head small{max-width:260px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media(max-width:520px){
+  .sports-row{grid-template-columns:50px minmax(0,1fr) 54px!important;padding:8px 9px 8px 36px}
+  .sports-meta{grid-column:2/4;text-align:left;display:flex;gap:6px;flex-wrap:wrap}
+  .sports-score span{max-width:86px}
+}
 .bottom-nav-clean{left:8px;right:8px;bottom:8px;padding:6px}
 .bottom-nav-clean a{min-height:36px}
 .shark-widget{right:14px}

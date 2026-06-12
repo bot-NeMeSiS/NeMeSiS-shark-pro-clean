@@ -103,7 +103,7 @@ from engines.spanish_localization_engine import (
 from engines.madrid_time_engine import madrid_conversion_selftest, madrid_time_diagnostics, normalize_kickoff_for_display
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V725_MADRID_TIME_RELEASE_WORKFLOW_AUTOMATION_FIX"
+APP_VERSION = "V726_TOTAL_PROJECT_CLEANUP_LIVE_EXPERIENCE_ORGANIZATION"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -7524,7 +7524,25 @@ def global_football():
 @app.route("/calendario")
 @app.route("/calendario-global")
 def calendar_page():
-    return render_template("calendar.html", data=dashboard_data(request.args.get("lane", "today"), request.args.get("date") or today_iso()))
+    lane = (request.args.get("lane") or "today").strip().lower()
+    if lane == "tomorrow":
+        date = request.args.get("date") or today_iso(1)
+        data = dashboard_data("today", date)
+    else:
+        date = request.args.get("date") or today_iso()
+        data = dashboard_data("today", date)
+    if lane == "week":
+        data["matches"] = [annotate_match(m) for m in get_upcoming_matches(today_iso(), days=7, limit=260)]
+    elif lane == "upcoming":
+        data["matches"] = [annotate_match(m) for m in get_upcoming_matches(today_iso(), days=21, limit=360)]
+    elif lane == "favorites":
+        data["matches"] = [annotate_match(m) for m in (favorite_feed_full().get("matches") or [])]
+    elif lane in {"with_pick", "picks"}:
+        pick_ids = {str(p.get("match_id") or "") for p in published_picks_for_user(current_session_user() or {"membership": "FREE"}, limit=120)}
+        data["matches"] = [m for m in [annotate_match(x) for x in get_upcoming_matches(today_iso(), days=14, limit=260)] if str(m.get("id") or "") in pick_ids]
+    data["lane"] = lane
+    data["date"] = date
+    return render_template("calendar.html", data=data)
 
 
 @app.route("/sports-hub")

@@ -1,0 +1,674 @@
+# Auditoría de árbol V726
+
+- Versión detectada: `V726_TOTAL_PROJECT_CLEANUP_LIVE_EXPERIENCE_ORGANIZATION`
+- Raíz: `C:\Users\aloha\OneDrive\Escritorio\NeMeSiS shark pro`
+- Archivos: 4545
+- Tamaño total: 83945376 bytes
+
+## Clasificación
+- NECESARIO: 276
+- BASURA_SEGURA: 75
+- DUPLICADO_LEGACY: 144
+- DUDOSO_REVISAR: 2033
+- PELIGROSO_NO_PUBLICAR: 2017
+
+## Basura segura
+- `__pycache__/app.cpython-312.pyc` · cache/carpeta temporal local · acción: eliminar con purge --apply
+- `__pycache__/database_manager.cpython-312.pyc` · cache/carpeta temporal local · acción: eliminar con purge --apply
+- `blueprints/__pycache__/architecture.cpython-312.pyc` · cache/carpeta temporal local · acción: eliminar con purge --apply
+- `blueprints/__pycache__/system_blueprint.cpython-312.pyc` · cache/carpeta temporal local · acción: eliminar con purge --apply
+- `blueprints/__pycache__/__init__.cpython-312.pyc` · cache/carpeta temporal local · acción: eliminar con purge --apply
+- `data/data/backups/database_20260612_201157.db` · base SQLite local o backup local; Render usa /data/database.db · acción: eliminar del workspace, nunca incluir en ZIP
+- `engines/__pycache__/api_exploitation_engine.cpython-312.pyc` · cache/carpeta temporal local · acción: eliminar con purge --apply
+- `engines/__pycache__/autonomous_operations_engine.cpython-312.pyc` · cache/carpeta temporal local · acción: eliminar con purge --apply
+- `engines/__pycache__/betting_recommendation_engine.cpython-312.pyc` · cache/carpeta temporal local · acción: eliminar con purge --apply
+- `engines/__pycache__/blueprint_migration_engine.cpython-312.pyc` · cache/carpeta temporal local · acción: eliminar con purge --apply
+- `engines/__pycache__/cache_engine.cpython-312.pyc` · cache/carpeta temporal local · acción: eliminar con purge --apply
+- `engines/__pycache__/codex_daily_automation_engine.cpython-312.pyc` · cache/carpeta temporal local · acción: eliminar con purge --apply
+- `engines/__pycache__/commercial_launch_engine.cpython-312.pyc` · cache/carpeta temporal local · acción: eliminar con purge --apply
+- `engines/__pycache__/crest_engine.cpython-312.pyc` · cache/carpeta temporal local · acción: eliminar con purge --apply
+- `engines/__pycache__/data_memory_engine.cpython-312.pyc` · cache/carpeta temporal local · acción: eliminar con purge --apply
+- `engines/__pycache__/data_provider_engine.cpython-312.pyc` · cache/carpeta temporal local · acción: eliminar con purge --apply
+- `engines/__pycache__/football_data_warehouse_engine.cpython-312.pyc` · cache/carpeta temporal local · acción: eliminar con purge --apply
+- `engines/__pycache__/football_population_engine.cpython-312.pyc` · cache/carpeta temporal local · acción: eliminar con purge --apply
+- `engines/__pycache__/historical_warehouse_engine.cpython-312.pyc` · cache/carpeta temporal local · acción: eliminar con purge --apply
+- `engines/__pycache__/live_engine.cpython-312.pyc` · cache/carpeta temporal local · acción: eliminar con purge --apply
+- `engines/__pycache__/madrid_time_engine.cpython-312.pyc` · cache/carpeta temporal local · acción: eliminar con purge --apply
+- `engines/__pycache__/match_engine.cpython-312.pyc` · cache/carpeta temporal local · acción: eliminar con purge --apply
+- `engines/__pycache__/match_sync_engine.cpython-312.pyc` · cache/carpeta temporal local · acción: eliminar con purge --apply
+- `engines/__pycache__/membership_engine.cpython-312.pyc` · cache/carpeta temporal local · acción: eliminar con purge --apply
+- `engines/__pycache__/observability_engine.cpython-312.pyc` · cache/carpeta temporal local · acción: eliminar con purge --apply
+- `engines/__pycache__/odds_value_engine.cpython-312.pyc` · cache/carpeta temporal local · acción: eliminar con purge --apply
+- `engines/__pycache__/picks_engine.cpython-312.pyc` · cache/carpeta temporal local · acción: eliminar con purge --apply
+- `engines/__pycache__/picks_quality_engine.cpython-312.pyc` · cache/carpeta temporal local · acción: eliminar con purge --apply
+- `engines/__pycache__/pick_grading_engine.cpython-312.pyc` · cache/carpeta temporal local · acción: eliminar con purge --apply
+- `engines/__pycache__/player_intelligence_engine.cpython-312.pyc` · cache/carpeta temporal local · acción: eliminar con purge --apply
+- `engines/__pycache__/scheduler_engine.cpython-312.pyc` · cache/carpeta temporal local · acción: eliminar con purge --apply
+- `engines/__pycache__/security_engine.cpython-312.pyc` · cache/carpeta temporal local · acción: eliminar con purge --apply
+- `engines/__pycache__/shark_accuracy_engine.cpython-312.pyc` · cache/carpeta temporal local · acción: eliminar con purge --apply
+- `engines/__pycache__/shark_engine.cpython-312.pyc` · cache/carpeta temporal local · acción: eliminar con purge --apply
+- `engines/__pycache__/shark_historical_intelligence_engine.cpython-312.pyc` · cache/carpeta temporal local · acción: eliminar con purge --apply
+- `engines/__pycache__/shark_intelligence_core.cpython-312.pyc` · cache/carpeta temporal local · acción: eliminar con purge --apply
+- `engines/__pycache__/shark_learning_engine.cpython-312.pyc` · cache/carpeta temporal local · acción: eliminar con purge --apply
+- `engines/__pycache__/shark_performance_engine.cpython-312.pyc` · cache/carpeta temporal local · acción: eliminar con purge --apply
+- `engines/__pycache__/shark_performance_memory_engine.cpython-312.pyc` · cache/carpeta temporal local · acción: eliminar con purge --apply
+- `engines/__pycache__/shark_prediction_engine.cpython-312.pyc` · cache/carpeta temporal local · acción: eliminar con purge --apply
+- `engines/__pycache__/spanish_localization_engine.cpython-312.pyc` · cache/carpeta temporal local · acción: eliminar con purge --apply
+- `engines/__pycache__/sportsdb_enrichment_engine.cpython-312.pyc` · cache/carpeta temporal local · acción: eliminar con purge --apply
+- `engines/__pycache__/sportsdb_highlights_engine.cpython-312.pyc` · cache/carpeta temporal local · acción: eliminar con purge --apply
+- `engines/__pycache__/subscription_control_engine.cpython-312.pyc` · cache/carpeta temporal local · acción: eliminar con purge --apply
+- `engines/__pycache__/team_identity_engine.cpython-312.pyc` · cache/carpeta temporal local · acción: eliminar con purge --apply
+- `engines/__pycache__/telegram_autonomous_delivery_engine.cpython-312.pyc` · cache/carpeta temporal local · acción: eliminar con purge --apply
+- `engines/__pycache__/telegram_delivery_engine.cpython-312.pyc` · cache/carpeta temporal local · acción: eliminar con purge --apply
+- `engines/__pycache__/telegram_engine.cpython-312.pyc` · cache/carpeta temporal local · acción: eliminar con purge --apply
+- `engines/__pycache__/telegram_sport_filter_engine.cpython-312.pyc` · cache/carpeta temporal local · acción: eliminar con purge --apply
+- `engines/__pycache__/__init__.cpython-312.pyc` · cache/carpeta temporal local · acción: eliminar con purge --apply
+- `services/__pycache__/backup_service.cpython-312.pyc` · cache/carpeta temporal local · acción: eliminar con purge --apply
+- `services/__pycache__/membership_service.cpython-312.pyc` · cache/carpeta temporal local · acción: eliminar con purge --apply
+- `services/__pycache__/shark_service.cpython-312.pyc` · cache/carpeta temporal local · acción: eliminar con purge --apply
+- `services/__pycache__/sports_service.cpython-312.pyc` · cache/carpeta temporal local · acción: eliminar con purge --apply
+- `services/__pycache__/telegram_service.cpython-312.pyc` · cache/carpeta temporal local · acción: eliminar con purge --apply
+- `services/__pycache__/__init__.cpython-312.pyc` · cache/carpeta temporal local · acción: eliminar con purge --apply
+- `tests/__pycache__/conftest.cpython-312.pyc` · cache/carpeta temporal local · acción: eliminar con purge --apply
+- `tests/__pycache__/test_app_imports.cpython-312.pyc` · cache/carpeta temporal local · acción: eliminar con purge --apply
+- `tests/__pycache__/test_routes_smoke.cpython-312.pyc` · cache/carpeta temporal local · acción: eliminar con purge --apply
+- `tests/__pycache__/test_security_baseline.cpython-312.pyc` · cache/carpeta temporal local · acción: eliminar con purge --apply
+- `tests/__pycache__/test_telegram_football_only_filter.cpython-312.pyc` · cache/carpeta temporal local · acción: eliminar con purge --apply
+- `tests/__pycache__/test_templates_integrity.cpython-312.pyc` · cache/carpeta temporal local · acción: eliminar con purge --apply
+- `tests/__pycache__/test_v606_blueprint_migration.cpython-312.pyc` · cache/carpeta temporal local · acción: eliminar con purge --apply
+- `tests/__pycache__/test_v608_blueprint_phase2.cpython-312.pyc` · cache/carpeta temporal local · acción: eliminar con purge --apply
+- `tests/__pycache__/test_v716_release_validation.cpython-312.pyc` · cache/carpeta temporal local · acción: eliminar con purge --apply
+- `tools/__pycache__/audit_project_tree.cpython-312.pyc` · cache/carpeta temporal local · acción: eliminar con purge --apply
+- `tools/__pycache__/audit_release_zip.cpython-312.pyc` · cache/carpeta temporal local · acción: eliminar con purge --apply
+- `tools/__pycache__/build_clean_release.cpython-312.pyc` · cache/carpeta temporal local · acción: eliminar con purge --apply
+- `tools/__pycache__/check_madrid_times.cpython-312.pyc` · cache/carpeta temporal local · acción: eliminar con purge --apply
+- `tools/__pycache__/nemesis_daily_codex.cpython-312.pyc` · cache/carpeta temporal local · acción: eliminar con purge --apply
+- `tools/__pycache__/purge_project_safe.cpython-312.pyc` · cache/carpeta temporal local · acción: eliminar con purge --apply
+- `tools/__pycache__/route_map_v606.cpython-312.pyc` · cache/carpeta temporal local · acción: eliminar con purge --apply
+- `tools/__pycache__/smoke_check.cpython-312.pyc` · cache/carpeta temporal local · acción: eliminar con purge --apply
+- `tools/__pycache__/validate_release.cpython-312.pyc` · cache/carpeta temporal local · acción: eliminar con purge --apply
+- `tools/__pycache__/verify_imports_and_routes.cpython-312.pyc` · cache/carpeta temporal local · acción: eliminar con purge --apply
+
+## Duplicado / legacy
+- `account_center.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `activity.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `admin_architecture.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `admin_automation.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `admin_autonomous_ecosystem.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `admin_autonomous_picks.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `admin_autopilot_audit.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `admin_backups.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `admin_beta_center.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `admin_betting_center.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `admin_bootstrap.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `admin_command_center.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `admin_commercial_readiness.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `admin_compliance_center.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `admin_dashboard.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `admin_data_center.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `admin_data_depth.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `admin_final_qa.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `admin_growth_center.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `admin_intelligence.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `admin_intelligence_center.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `admin_intelligence_engine.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `admin_launch_center.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `admin_live_depth.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `admin_login.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `admin_matches_sync.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `admin_memberships.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `admin_observability.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `admin_observability_errors.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `admin_picks.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `admin_pick_performance.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `admin_quality_center.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `admin_recommendations.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `admin_retention_center.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `admin_shark_center.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `admin_sportsdb_feed.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `admin_sportsdb_sync.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `admin_sports_data_picks.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `admin_support_center.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `admin_system.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `admin_telegram.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `admin_telegram_audit.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `admin_unified_intelligence.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `admin_users.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `admin_user_import.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `alerts.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `api_exploitation_engine.py` · Python duplicado en raíz; existe versión organizada en engines/services/tools/blueprints · acción: no borrar automático; revisar si puede archivarse
+- `architecture.py` · Python duplicado en raíz; existe versión organizada en engines/services/tools/blueprints · acción: no borrar automático; revisar si puede archivarse
+- `autonomous_ecosystem.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `autonomous_operations_engine.py` · Python duplicado en raíz; existe versión organizada en engines/services/tools/blueprints · acción: no borrar automático; revisar si puede archivarse
+- `auto_picks.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `backup_service.py` · Python duplicado en raíz; existe versión organizada en engines/services/tools/blueprints · acción: no borrar automático; revisar si puede archivarse
+- `base.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `beta.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `betting_recommendations.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `betting_recommendation_engine.py` · Python duplicado en raíz; existe versión organizada en engines/services/tools/blueprints · acción: no borrar automático; revisar si puede archivarse
+- `blueprint_migration_engine.py` · Python duplicado en raíz; existe versión organizada en engines/services/tools/blueprints · acción: no borrar automático; revisar si puede archivarse
+- `cache_engine.py` · Python duplicado en raíz; existe versión organizada en engines/services/tools/blueprints · acción: no borrar automático; revisar si puede archivarse
+- `calendar.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `client_login.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `client_menu.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `client_overview.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `client_progress.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `combis.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `commercial_launch_engine.py` · Python duplicado en raíz; existe versión organizada en engines/services/tools/blueprints · acción: no borrar automático; revisar si puede archivarse
+- `crests.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `crest_engine.py` · Python duplicado en raíz; existe versión organizada en engines/services/tools/blueprints · acción: no borrar automático; revisar si puede archivarse
+- `daily_briefing.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `data_depth.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `data_provider_engine.py` · Python duplicado en raíz; existe versión organizada en engines/services/tools/blueprints · acción: no borrar automático; revisar si puede archivarse
+- `discovery.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `ecosystem.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `error_controlled.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `favorites.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `football_data_warehouse_engine.py` · Python duplicado en raíz; existe versión organizada en engines/services/tools/blueprints · acción: no borrar automático; revisar si puede archivarse
+- `football_population_engine.py` · Python duplicado en raíz; existe versión organizada en engines/services/tools/blueprints · acción: no borrar automático; revisar si puede archivarse
+- `global.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `growth_client.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `historical_warehouse_engine.py` · Python duplicado en raíz; existe versión organizada en engines/services/tools/blueprints · acción: no borrar automático; revisar si puede archivarse
+- `home.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `ia_shark.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `import_center.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `legal_basic.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `legal_trust.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `live.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `live_depth.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `live_engine.py` · Python duplicado en raíz; existe versión organizada en engines/services/tools/blueprints · acción: no borrar automático; revisar si puede archivarse
+- `match_detail.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `match_engine.py` · Python duplicado en raíz; existe versión organizada en engines/services/tools/blueprints · acción: no borrar automático; revisar si puede archivarse
+- `match_hub.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `match_sync_engine.py` · Python duplicado en raíz; existe versión organizada en engines/services/tools/blueprints · acción: no borrar automático; revisar si puede archivarse
+- `membership.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `membership_engine.py` · Python duplicado en raíz; existe versión organizada en engines/services/tools/blueprints · acción: no borrar automático; revisar si puede archivarse
+- `membership_service.py` · Python duplicado en raíz; existe versión organizada en engines/services/tools/blueprints · acción: no borrar automático; revisar si puede archivarse
+- `observability_engine.py` · Python duplicado en raíz; existe versión organizada en engines/services/tools/blueprints · acción: no borrar automático; revisar si puede archivarse
+- `odds_value_engine.py` · Python duplicado en raíz; existe versión organizada en engines/services/tools/blueprints · acción: no borrar automático; revisar si puede archivarse
+- `onboarding.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `opportunities.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `password_reset_form.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `password_reset_request.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `picks.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `picks_engine.py` · Python duplicado en raíz; existe versión organizada en engines/services/tools/blueprints · acción: no borrar automático; revisar si puede archivarse
+- `pick_grading_engine.py` · Python duplicado en raíz; existe versión organizada en engines/services/tools/blueprints · acción: no borrar automático; revisar si puede archivarse
+- `pick_tracking.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `player_intelligence_engine.py` · Python duplicado en raíz; existe versión organizada en engines/services/tools/blueprints · acción: no borrar automático; revisar si puede archivarse
+- `product_audit.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `profile.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `recommendations.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `register.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `responsible_betting.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `route_map_v606.py` · Python duplicado en raíz; existe versión organizada en engines/services/tools/blueprints · acción: no borrar automático; revisar si puede archivarse
+- `scheduler_engine.py` · Python duplicado en raíz; existe versión organizada en engines/services/tools/blueprints · acción: no borrar automático; revisar si puede archivarse
+- `security_engine.py` · Python duplicado en raíz; existe versión organizada en engines/services/tools/blueprints · acción: no borrar automático; revisar si puede archivarse
+- `shark.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `shark_accuracy_engine.py` · Python duplicado en raíz; existe versión organizada en engines/services/tools/blueprints · acción: no borrar automático; revisar si puede archivarse
+- `shark_core.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `shark_engine.py` · Python duplicado en raíz; existe versión organizada en engines/services/tools/blueprints · acción: no borrar automático; revisar si puede archivarse
+- `shark_historical_intelligence_engine.py` · Python duplicado en raíz; existe versión organizada en engines/services/tools/blueprints · acción: no borrar automático; revisar si puede archivarse
+- `shark_intelligence_core.py` · Python duplicado en raíz; existe versión organizada en engines/services/tools/blueprints · acción: no borrar automático; revisar si puede archivarse
+- `shark_learning_engine.py` · Python duplicado en raíz; existe versión organizada en engines/services/tools/blueprints · acción: no borrar automático; revisar si puede archivarse
+- `shark_performance_engine.py` · Python duplicado en raíz; existe versión organizada en engines/services/tools/blueprints · acción: no borrar automático; revisar si puede archivarse
+- `shark_performance_memory_engine.py` · Python duplicado en raíz; existe versión organizada en engines/services/tools/blueprints · acción: no borrar automático; revisar si puede archivarse
+- `shark_prediction_engine.py` · Python duplicado en raíz; existe versión organizada en engines/services/tools/blueprints · acción: no borrar automático; revisar si puede archivarse
+- `shark_service.py` · Python duplicado en raíz; existe versión organizada en engines/services/tools/blueprints · acción: no borrar automático; revisar si puede archivarse
+- `smart_dashboard.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `smoke_check.py` · Python duplicado en raíz; existe versión organizada en engines/services/tools/blueprints · acción: no borrar automático; revisar si puede archivarse
+- `spanish_localization_engine.py` · Python duplicado en raíz; existe versión organizada en engines/services/tools/blueprints · acción: no borrar automático; revisar si puede archivarse
+- `sportsdb_enrichment_engine.py` · Python duplicado en raíz; existe versión organizada en engines/services/tools/blueprints · acción: no borrar automático; revisar si puede archivarse
+- `sportsdb_highlights_engine.py` · Python duplicado en raíz; existe versión organizada en engines/services/tools/blueprints · acción: no borrar automático; revisar si puede archivarse
+- `sports_hub.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `sports_intelligence.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `sports_service.py` · Python duplicado en raíz; existe versión organizada en engines/services/tools/blueprints · acción: no borrar automático; revisar si puede archivarse
+- `subscription_control_engine.py` · Python duplicado en raíz; existe versión organizada en engines/services/tools/blueprints · acción: no borrar automático; revisar si puede archivarse
+- `support.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `system_blueprint.py` · Python duplicado en raíz; existe versión organizada en engines/services/tools/blueprints · acción: no borrar automático; revisar si puede archivarse
+- `team_detail.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `telegram.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `telegram_autonomous_delivery_engine.py` · Python duplicado en raíz; existe versión organizada en engines/services/tools/blueprints · acción: no borrar automático; revisar si puede archivarse
+- `telegram_delivery_engine.py` · Python duplicado en raíz; existe versión organizada en engines/services/tools/blueprints · acción: no borrar automático; revisar si puede archivarse
+- `telegram_engine.py` · Python duplicado en raíz; existe versión organizada en engines/services/tools/blueprints · acción: no borrar automático; revisar si puede archivarse
+- `telegram_service.py` · Python duplicado en raíz; existe versión organizada en engines/services/tools/blueprints · acción: no borrar automático; revisar si puede archivarse
+- `unified_intelligence_hub.html` · HTML duplicado en raíz; existe versión activa en templates/ · acción: no borrar automático; revisar si puede archivarse
+- `validate_release.py` · Python duplicado en raíz; existe versión organizada en engines/services/tools/blueprints · acción: no borrar automático; revisar si puede archivarse
+- `__init__.py` · Python duplicado en raíz; existe versión organizada en engines/services/tools/blueprints · acción: no borrar automático; revisar si puede archivarse
+
+## Dudoso revisar
+- `app.css` · archivo no clasificado como producción ni basura segura · acción: revisar manualmente
+- `CHANGELOG_V600.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `CHANGELOG_V602.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `CLIENT_VISUAL_SYSTEM_V724.md` · archivo no clasificado como producción ni basura segura · acción: revisar manualmente
+- `COMMERCIAL_PRODUCT_FINAL_REVIEW_REPORT.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `conftest.py` · archivo no clasificado como producción ni basura segura · acción: revisar manualmente
+- `DATA_MEMORY_AUDIT_V721.md` · archivo no clasificado como producción ni basura segura · acción: revisar manualmente
+- `env.example` · archivo no clasificado como producción ni basura segura · acción: revisar manualmente
+- `FINAL_RELEASE_NOTES.md` · archivo no clasificado como producción ni basura segura · acción: revisar manualmente
+- `LAUNCH_AUDIT_REPORT.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `MADRID_TIME_AUDIT_V725.md` · archivo no clasificado como producción ni basura segura · acción: revisar manualmente
+- `MATCH_DEDUPLICATION_DIFF.patch` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `MATCH_DEDUPLICATION_REPORT.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `nemesis-smoke.yml` · archivo no clasificado como producción ni basura segura · acción: revisar manualmente
+- `PRODUCT_SCORECARD.md` · archivo no clasificado como producción ni basura segura · acción: revisar manualmente
+- `README_PC2_CURRENT_CLEAN_RENDER_READY.md` · archivo no clasificado como producción ni basura segura · acción: revisar manualmente
+- `README_V522_GLOBAL_APP_RESTRUCTURE_PICKS_COMMAND_CENTER.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `README_V523_CALENDAR_DAY_LEAGUE_GROUPING.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `README_V524_RESULTS_PICKS_COMBIS_FIX.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `README_V526_VIDEO_REVIEW_CLIENT_EXPERIENCE_POLISH.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `README_V527_MATCH_DETAIL_PRO_SHARK_CONTEXT_AI.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `README_V528_CLIENT_LOGIN_ROUTE_STABILITY_FIX.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `README_V529_LIVE_CENTER_TEAM_PAGES_SMART_FAVORITES.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `README_V530_CLIENT_ROUTE_STABILITY_HARDENING.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `README_V532_PREMIUM_UX_CLIENT_CONVERSION_PASS.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `README_V533_SMART_LIVE_MOMENTUM_PREMIUM_TEAM_HUB.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `README_V534_SMART_NOTIFICATIONS_DYNAMIC_HOME_EXPERIENCE.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `README_V535_PRODUCT_EXPERIENCE_LIVE_DATA_EVOLUTION.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `README_V536_CLIENT_RETENTION_ALERTS_ACTIVITY_CENTER.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `README_V537_DAILY_BRIEFING_CLIENT_COMMAND_CENTER.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `README_V538_QUALITY_CENTER_DATA_HEALTH_POLISH.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `README_V539_MEMBERSHIP_REVENUE_ONBOARDING_PASS.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `README_V540_LIVE_DATA_INTELLIGENCE_REAL_MATCH_DEPTH.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `README_V541_SMART_MATCH_INSIGHTS_PREMIUM_PERFORMANCE_LAYER.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `README_V542_SMART_DISCOVERY_COMMERCIAL_READINESS.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `README_V543_BETTING_RECOMMENDATION_LIVE_TELEGRAM_QA.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `README_V544_PICK_TRACKING_BANKROLL_PERFORMANCE.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `README_V545_COMMERCIAL_LAUNCH_ORDER_PASS.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `README_V546_SUPPORT_FEEDBACK_COMMERCIAL_CONFIDENCE_CENTER.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `README_V547_REAL_SPORTS_INTELLIGENCE_CORE.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `README_V548_USER_JOURNEY_AUTOMATION_RETENTION_INTELLIGENCE.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `README_V549_NAVIGATION_CLEANUP_PREMIUM_UX_ORDER.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `README_V550_SMART_DASHBOARD_ZERO_CLICK_EXPERIENCE.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `README_V551_REAL_BETTING_INTELLIGENCE_ENGINE.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `README_V552_PRODUCT_CONSOLIDATION_DATA_DEPTH.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `README_V553_PICKS_RECOMMENDATIONS_REBUILD.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `README_V554_LIVE_DATA_DEEPENING_MATCH_TIMELINE.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `README_V555_LAUNCH_CANDIDATE_FULL_QA.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `README_V556_PRIVATE_BETA_TESTER_CONTROL.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `README_V557_RESPONSIBLE_BETTING_TRUST_COMPLIANCE_LAYER.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `README_V558_GROWTH_METRICS_REVENUE_OPERATIONS.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `README_V559_UNIFIED_INTELLIGENCE_HUB.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `README_V560_DATA_DEPTH_LIVE_EXPANSION.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `README_V562_AUTONOMOUS_PICKS_ENGINE.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `README_V563_MADRID_TIMEZONE_MATCH_HOURS_FIX.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `README_V565_SPORTS_DATA_PICKS_PERFECTION.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `README_V567_FULL_AUDIT_FIXES.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `README_V568_AUTONOMOUS_PICKS_ODDS_SHARK_UPGRADE.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `README_V569_AUTONOMOUS_ECOSYSTEM_ENGINE.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `README_V570_SHARK_INTELLIGENCE_CORE.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `README_V571_DEEP_LIVE_INTELLIGENCE.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `README_V572_HISTORICAL_DATA_WAREHOUSE.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `README_V573_AUTONOMOUS_OPERATIONS.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `README_V574_COMMERCIAL_LAUNCH_PREPARATION.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `README_V575_REVENUE_SUBSCRIPTION_CONTROL.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `README_V576_SHARK_PERFORMANCE_MEMORY.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `README_V577_SMART_PICK_GRADING_AUTO_VALIDATION.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `README_V578_TELEGRAM_AUTONOMOUS_DELIVERY.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `README_V579_SPORTSDB_HIGHLIGHTS_PAST_MATCH_INTELLIGENCE.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `README_V580_TELEGRAM_PICKS_FULL_AUDIT_DELIVERY_FIX.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `README_V581_TELEGRAM_PICKS_REAL_DELIVERY_REPAIR.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `README_V582_TELEGRAM_PICKS_HARD_FIX_AUDIT_READY.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `README_V710_RENDER_READY.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `README_V712_SPANISH_TIME_CLIENT_POLISH.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `README_V713_COMBIS15_SHARK_AI_FINAL.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `RELEASE_MANIFEST.json` · archivo no clasificado como producción ni basura segura · acción: revisar manualmente
+- `RELEASE_MANIFEST_V723.json` · archivo no clasificado como producción ni basura segura · acción: revisar manualmente
+- `RELEASE_MANIFEST_V724.json` · archivo no clasificado como producción ni basura segura · acción: revisar manualmente
+- `RELEASE_MANIFEST_V725.json` · archivo no clasificado como producción ni basura segura · acción: revisar manualmente
+- `SEED_CORE_RUNTIME_STARTUP_FIX_REPORT.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `TELEGRAM_AUTO_PICK_DELIVERY_DIFF.patch` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `TELEGRAM_AUTO_PICK_DELIVERY_FIX_REPORT.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `TELEGRAM_RUNTIME_ERROR_FIX_REPORT.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `test_app_imports.py` · archivo no clasificado como producción ni basura segura · acción: revisar manualmente
+- `test_routes_smoke.py` · archivo no clasificado como producción ni basura segura · acción: revisar manualmente
+- `test_security_baseline.py` · archivo no clasificado como producción ni basura segura · acción: revisar manualmente
+- `test_templates_integrity.py` · archivo no clasificado como producción ni basura segura · acción: revisar manualmente
+- `test_v606_blueprint_migration.py` · archivo no clasificado como producción ni basura segura · acción: revisar manualmente
+- `test_v608_blueprint_phase2.py` · archivo no clasificado como producción ni basura segura · acción: revisar manualmente
+- `test_v716_release_validation.py` · archivo no clasificado como producción ni basura segura · acción: revisar manualmente
+- `V600_AUDIT_REPORT.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `V623_RUNTIME_TEMPLATE_HARDENING_REPORT.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `V624_ADMIN_UX_CLIENT_EXPERIENCE_POLISH_REPORT.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `V625_ELITE_PRODUCT_EXPERIENCE_REPORT.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `V626_COMPACT_SPORTS_EXPERIENCE_REPORT.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `V631_ELITE_COMMERCIAL_EVOLUTION_REPORT.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `V632_ARCHITECTURE_EXCELLENCE_REPORT.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `V633_USER_DOMINANCE_EXPERIENCE_REPORT.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `V634_RESPONSIVE_CLIENT_POLISH_REPORT.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `V635_TELEGRAM_AUTOMATIC_DELIVERY_REPAIR_REPORT.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `V636_TELEGRAM_PRIVATE_LINKING_REPORT.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `V637_TELEGRAM_COMPLETE_DELIVERY_LINKING_REPORT.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `V638_CLIENT_FINAL_POLISH_TELEGRAM_AUTO_VERIFY_REPORT.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `V639_RENDER_STARTUP_BLACKSCREEN_REPAIR_REPORT.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `V640_TELEGRAM_AUTO_ENV_SYNC_FIX_REPORT.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `V700_ULTIMATE_LAUNCH_EDITION_DIFF.patch` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `V701_CLIENT_EXPERIENCE_DIFF.patch` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `V701_CLIENT_EXPERIENCE_LAUNCH_REPORT.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `V701_FINAL_RELEASE_NOTES.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `V701_PRODUCT_SCORECARD.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `V702_FINAL_RELEASE_NOTES.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `V702_FULL_PRODUCT_QA_DIFF.patch` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `V702_FULL_PRODUCT_QA_PREMIUM_SPORTS_REPORT.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `V702_PRODUCT_SCORECARD.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `V703_PRODUCT_SCORECARD.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `V703_RELEASE_NOTES.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `V703_ULTIMATE_PRODUCT_PERFECTION_DIFF.patch` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `V703_ULTIMATE_PRODUCT_PERFECTION_REPORT.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `V704_COVERAGE_AUDIT.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `V704_DATA_EXPANSION_REPORT.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `V704_PICKS_AUDIT.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `V704_SHARK_COVERAGE_REPORT.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `V705_LAUNCH_CERTIFICATION.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `V705_PICKS_AND_ODDS_AUDIT.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `V705_REAL_COVERAGE_AUDIT.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `V705_SPORTS_DATA_DOMINATION_REPORT.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `V706_LAUNCH_READINESS_REPORT.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `V706_PRODUCTION_REALITY_REPORT.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `V706_TELEGRAM_CERTIFICATION.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `V708_RENDER_CRON_GUIDE.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `V708_TELEGRAM_AUTOMATION_CERTIFICATION.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `V708_TELEGRAM_AUTOMATION_PRODUCTION_DIFF.patch` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `V708_TELEGRAM_PRODUCTION_FIX_REPORT.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `V709_RENDER_CRON_CERTIFICATION.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `V709_RENDER_DEPLOY_GUIDE.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `V710_CRON_ENDPOINTS_PRODUCTION_FIX_REPORT.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `V710_RENDER_CRON_AUTOMATION_FINAL_REPORT.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `V710_RENDER_CRON_SETUP_GUIDE.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `V710_TELEGRAM_AUTOMATIC_FINAL_CHECK.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `V710_TELEGRAM_AUTO_SEND_CRON_REPORT.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `V711_TELEGRAM_PREMIUM_EXPERIENCE_REPORT.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `V714_TELEGRAM_SHARK_CLIENT_POLISH_FINAL_REPORT.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `V715_LAUNCH_AUDIT_SECURITY_POLISH_FINAL_REPORT.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `V716_PROFESSIONAL_CLIENT_EXPERIENCE_FINAL_REPORT.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `V716_PROFESSIONAL_CLIENT_EXPERIENCE_MAXIMUM_UPGRADE_REPORT.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `V716_TESTING_VALIDATION_POLISH_REPORT.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `V717_1_TELEGRAM_PREMIUM_MESSAGE_ENGINE_REPORT.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `V717_2_TELEGRAM_PRO_CALIBRATION_REPORT.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `V717_3_BET_SELECTION_CLARITY_REPORT.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `V717_4_TELEGRAM_FOOTBALL_ONLY_FILTER_REPORT.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `V717_PRODUCTION_POLISH_COMMERCIAL_LAUNCH_UPGRADE_REPORT.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `V718_TEAM_IDENTITY_FLASHCORE_PRO_REPORT.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `V719_PICKS_QUALITY_LEAGUES_CASTELLANO_REPORT.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `V720_SHARK_AI_ADVISOR_PRO_REPORT.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `V721_DATA_MEMORY_HISTORIC_SHARK_REPORT.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `V723_CODEX_AUTOMATION_TOTAL_PURGE_RELEASE_SYSTEM_REPORT.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `V723_TOTAL_PURGE_AUDIT_REPORT.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `V724_SUPREME_CLIENT_VISUAL_EXPERIENCE_PRO_REPORT.md` · documentación histórica útil pero excesiva para release final · acción: mantener fuera del ZIP salvo lista blanca
+- `.git/COMMIT_EDITMSG` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.git/config` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.git/description` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.git/FETCH_HEAD` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.git/HEAD` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.git/index` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.git/ORIG_HEAD` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `release_output/NeMeSiS_SHARK_PRO_V725_MADRID_TIME_RELEASE_WORKFLOW_AUTOMATION_FIX_RENDER_READY.zip` · salida de build/release; no entra en ZIP final · acción: conservar si contiene el release final, excluir del paquete
+- `.git/hooks/applypatch-msg.sample` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.git/hooks/commit-msg.sample` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.git/hooks/fsmonitor-watchman.sample` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.git/hooks/post-update.sample` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.git/hooks/pre-applypatch.sample` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.git/hooks/pre-commit.sample` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.git/hooks/pre-merge-commit.sample` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.git/hooks/pre-push.sample` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.git/hooks/pre-rebase.sample` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.git/hooks/pre-receive.sample` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.git/hooks/prepare-commit-msg.sample` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.git/hooks/push-to-checkout.sample` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.git/hooks/sendemail-validate.sample` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.git/hooks/update.sample` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.git/info/exclude` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.git/info/refs` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.git/logs/HEAD` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.git/logs/refs/heads/main` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.git/logs/refs/remotes/origin/HEAD` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.git/logs/refs/remotes/origin/main` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.git/objects/00/25e20d4f2aab3d39ce8bff2d2ae25f23b18f8c` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.git/objects/00/372eea351839d721f94126fb156e22540d6629` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.git/objects/00/4e11b326958020584148d21004872f948550c3` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.git/objects/00/51508a55ce2dc97ae00c940840da606eff5f7d` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.git/objects/00/6041f423a9c2a53e5e251fddc9abbe75b531cf` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.git/objects/00/8a47fb06539d880f4c41f07399a0cb1a3a0384` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.git/objects/00/9efd7fa36138e1d9aa51eca5f51d3563b03895` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.git/objects/00/a4ef36cc82e734f6e7c888b5d5b489fc7f2fde` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.git/objects/00/ef57b88cc26036d1ad8b5021e6e6478befc4b5` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.git/objects/01/7b33027c335e30d3e3e25093497e2b8e8d8a86` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.git/objects/01/bdbad28a483c9cf3801b2daa9262a43d83c99d` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.git/objects/01/de76d8c19609e1608ad5e1440b34936287f85e` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.git/objects/01/ea4856a1e1160e13c8651681468b636c1021a2` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.git/objects/02/264e36907fabd2627c08f68e514928c64dabd6` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+
+## Peligroso no publicar
+- `.venv/pyvenv.cfg` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Scripts/activate` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Scripts/activate.bat` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Scripts/Activate.ps1` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Scripts/deactivate.bat` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Scripts/flask.exe` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Scripts/gunicorn.exe` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Scripts/pip.exe` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Scripts/pip3.12.exe` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Scripts/pip3.exe` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Scripts/python.exe` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Scripts/pythonw.exe` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/blinker/base.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/blinker/py.typed` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/blinker/_utilities.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/blinker/__init__.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/blinker-1.9.0.dist-info/INSTALLER` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/blinker-1.9.0.dist-info/LICENSE.txt` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/blinker-1.9.0.dist-info/METADATA` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/blinker-1.9.0.dist-info/RECORD` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/blinker-1.9.0.dist-info/WHEEL` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/click/core.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/click/decorators.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/click/exceptions.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/click/formatting.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/click/globals.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/click/parser.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/click/py.typed` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/click/shell_completion.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/click/termui.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/click/testing.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/click/types.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/click/utils.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/click/_compat.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/click/_termui_impl.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/click/_textwrap.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/click/_winconsole.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/click/__init__.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/click-8.1.7.dist-info/INSTALLER` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/click-8.1.7.dist-info/LICENSE.rst` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/click-8.1.7.dist-info/METADATA` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/click-8.1.7.dist-info/RECORD` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/click-8.1.7.dist-info/REQUESTED` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/click-8.1.7.dist-info/top_level.txt` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/click-8.1.7.dist-info/WHEEL` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/colorama/ansi.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/colorama/ansitowin32.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/colorama/initialise.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/colorama/win32.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/colorama/winterm.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/colorama/__init__.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/colorama-0.4.6.dist-info/INSTALLER` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/colorama-0.4.6.dist-info/METADATA` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/colorama-0.4.6.dist-info/RECORD` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/colorama-0.4.6.dist-info/WHEEL` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/flask/app.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/flask/blueprints.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/flask/cli.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/flask/config.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/flask/ctx.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/flask/debughelpers.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/flask/globals.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/flask/helpers.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/flask/logging.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/flask/py.typed` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/flask/sessions.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/flask/signals.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/flask/templating.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/flask/testing.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/flask/typing.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/flask/views.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/flask/wrappers.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/flask/__init__.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/flask/__main__.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/flask-3.0.3.dist-info/entry_points.txt` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/flask-3.0.3.dist-info/INSTALLER` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/flask-3.0.3.dist-info/LICENSE.txt` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/flask-3.0.3.dist-info/METADATA` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/flask-3.0.3.dist-info/RECORD` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/flask-3.0.3.dist-info/REQUESTED` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/flask-3.0.3.dist-info/WHEEL` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/gunicorn/arbiter.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/gunicorn/config.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/gunicorn/debug.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/gunicorn/errors.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/gunicorn/glogging.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/gunicorn/pidfile.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/gunicorn/reloader.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/gunicorn/sock.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/gunicorn/systemd.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/gunicorn/util.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/gunicorn/__init__.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/gunicorn/__main__.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/gunicorn-22.0.0.dist-info/entry_points.txt` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/gunicorn-22.0.0.dist-info/INSTALLER` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/gunicorn-22.0.0.dist-info/LICENSE` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/gunicorn-22.0.0.dist-info/METADATA` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/gunicorn-22.0.0.dist-info/RECORD` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/gunicorn-22.0.0.dist-info/REQUESTED` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/gunicorn-22.0.0.dist-info/top_level.txt` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/gunicorn-22.0.0.dist-info/WHEEL` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/itsdangerous/encoding.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/itsdangerous/exc.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/itsdangerous/py.typed` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/itsdangerous/serializer.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/itsdangerous/signer.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/itsdangerous/timed.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/itsdangerous/url_safe.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/itsdangerous/_json.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/itsdangerous/__init__.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/itsdangerous-2.2.0.dist-info/INSTALLER` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/itsdangerous-2.2.0.dist-info/LICENSE.txt` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/itsdangerous-2.2.0.dist-info/METADATA` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/itsdangerous-2.2.0.dist-info/RECORD` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/itsdangerous-2.2.0.dist-info/REQUESTED` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/itsdangerous-2.2.0.dist-info/WHEEL` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/jinja2/async_utils.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/jinja2/bccache.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/jinja2/compiler.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/jinja2/constants.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/jinja2/debug.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/jinja2/defaults.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/jinja2/environment.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/jinja2/exceptions.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/jinja2/ext.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/jinja2/filters.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/jinja2/idtracking.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/jinja2/lexer.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/jinja2/loaders.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/jinja2/meta.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/jinja2/nativetypes.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/jinja2/nodes.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/jinja2/optimizer.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/jinja2/parser.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/jinja2/py.typed` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/jinja2/runtime.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/jinja2/sandbox.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/jinja2/tests.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/jinja2/utils.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/jinja2/visitor.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/jinja2/_identifier.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/jinja2/__init__.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/jinja2-3.1.4.dist-info/entry_points.txt` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/jinja2-3.1.4.dist-info/INSTALLER` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/jinja2-3.1.4.dist-info/LICENSE.txt` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/jinja2-3.1.4.dist-info/METADATA` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/jinja2-3.1.4.dist-info/RECORD` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/jinja2-3.1.4.dist-info/REQUESTED` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/jinja2-3.1.4.dist-info/WHEEL` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/markupsafe/py.typed` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/markupsafe/_native.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/markupsafe/_speedups.c` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/markupsafe/_speedups.cp312-win_amd64.pyd` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/markupsafe/_speedups.pyi` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/markupsafe/__init__.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/MarkupSafe-2.1.5.dist-info/INSTALLER` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/MarkupSafe-2.1.5.dist-info/LICENSE.rst` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/MarkupSafe-2.1.5.dist-info/METADATA` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/MarkupSafe-2.1.5.dist-info/RECORD` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/MarkupSafe-2.1.5.dist-info/REQUESTED` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/MarkupSafe-2.1.5.dist-info/top_level.txt` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/MarkupSafe-2.1.5.dist-info/WHEEL` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/packaging/dependency_groups.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/packaging/direct_url.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/packaging/errors.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/packaging/markers.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/packaging/metadata.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/packaging/py.typed` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/packaging/pylock.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/packaging/requirements.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/packaging/specifiers.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/packaging/tags.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/packaging/utils.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/packaging/version.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/packaging/_elffile.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/packaging/_manylinux.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/packaging/_musllinux.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/packaging/_parser.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/packaging/_structures.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/packaging/_tokenizer.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/packaging/__init__.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/packaging-26.2.dist-info/INSTALLER` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/packaging-26.2.dist-info/METADATA` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/packaging-26.2.dist-info/RECORD` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/packaging-26.2.dist-info/WHEEL` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/pip/py.typed` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/pip/__init__.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/pip/__main__.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/pip/__pip-runner__.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/pip-26.1.2.dist-info/entry_points.txt` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/pip-26.1.2.dist-info/INSTALLER` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/pip-26.1.2.dist-info/METADATA` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/pip-26.1.2.dist-info/RECORD` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/pip-26.1.2.dist-info/REQUESTED` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/pip-26.1.2.dist-info/WHEEL` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/tzdata/zones` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/tzdata/__init__.py` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/tzdata-2026.2.dist-info/INSTALLER` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/tzdata-2026.2.dist-info/METADATA` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+- `.venv/Lib/site-packages/tzdata-2026.2.dist-info/RECORD` · carpeta local/protegida; excluir del ZIP · acción: conservar en workspace, excluir release
+
+## Carpetas más pesadas
+- `.git`: 37728876 bytes
+- `reports`: 22576577 bytes
+- `.venv`: 18354560 bytes
+- `engines`: 1333836 bytes
+- `__pycache__`: 637106 bytes
+- `data`: 561152 bytes
+- `app.py`: 469298 bytes
+- `release_output`: 468521 bytes
+- `templates`: 317310 bytes
+- `tools`: 112075 bytes
+- `V726_PROJECT_TREE_AUDIT.md`: 87266 bytes
+- `static`: 49530 bytes
+- `docs`: 45484 bytes
+- `api_exploitation_engine.py`: 41823 bytes
+- `app.css`: 41501 bytes
+
+## Archivos más pesados
+- `.git/objects/pack/pack-15ab91dd88a1550bb17279d58b835eb5a4be6cdc.pack`: 10438200 bytes · DUDOSO_REVISAR
+- `reports/CODEX_DAILY_REPORT_20260612_1941.json`: 3331986 bytes · NECESARIO
+- `reports/CODEX_DAILY_REPORT_20260612_1939.json`: 3328440 bytes · NECESARIO
+- `reports/CODEX_DAILY_REPORT_20260612_1556.json`: 3225745 bytes · NECESARIO
+- `reports/CODEX_DAILY_REPORT_20260612_1550.json`: 3225521 bytes · NECESARIO
+- `reports/CODEX_DAILY_REPORT_20260612_1551.json`: 3221541 bytes · NECESARIO
+- `reports/PROJECT_TREE_AUDIT_V723.json`: 3059933 bytes · NECESARIO
+- `reports/V726_PROJECT_TREE_AUDIT.json`: 2878597 bytes · NECESARIO
+- `.git/objects/dd/92e630aed9cccc50b3a26f40a914dfb8d08f13`: 838767 bytes · DUDOSO_REVISAR
+- `.git/objects/a9/970db21d0cbc8f89ef64a3a84835b0f36784dd`: 837333 bytes · DUDOSO_REVISAR
+- `.git/objects/c2/af39fbe195ba8c6b6d59ff14e623ecfcab6023`: 831804 bytes · DUDOSO_REVISAR
+- `.git/objects/c0/a6a9349ea577c7ca742ac5a0be312e4c420e25`: 821431 bytes · DUDOSO_REVISAR
+- `.git/objects/f8/93857e466979cb0ca2e7b471a857256bd1607f`: 772392 bytes · DUDOSO_REVISAR
+- `.git/objects/5a/abbaad0596d9446b1ee7820cc22836689d9d9f`: 770692 bytes · DUDOSO_REVISAR
+- `.git/objects/8f/421a0807554d0c353fd3ccb5bf687467ab9080`: 764580 bytes · DUDOSO_REVISAR

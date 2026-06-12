@@ -1,0 +1,725 @@
+{
+  "ok": true,
+  "mode": "apply",
+  "include_venv": false,
+  "candidates": [
+    {
+      "path": "__pycache__/app.cpython-312.pyc",
+      "size": 633945,
+      "category": "BASURA_SEGURA",
+      "reason": "cache/carpeta temporal local",
+      "action": "eliminar con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "__pycache__/database_manager.cpython-312.pyc",
+      "size": 3214,
+      "category": "BASURA_SEGURA",
+      "reason": "cache/carpeta temporal local",
+      "action": "eliminar con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "blueprints/__pycache__/architecture.cpython-312.pyc",
+      "size": 3941,
+      "category": "BASURA_SEGURA",
+      "reason": "cache/carpeta temporal local",
+      "action": "eliminar con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "blueprints/__pycache__/__init__.cpython-312.pyc",
+      "size": 403,
+      "category": "BASURA_SEGURA",
+      "reason": "cache/carpeta temporal local",
+      "action": "eliminar con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "engines/__pycache__/api_exploitation_engine.cpython-312.pyc",
+      "size": 58681,
+      "category": "BASURA_SEGURA",
+      "reason": "cache/carpeta temporal local",
+      "action": "eliminar con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "engines/__pycache__/autonomous_operations_engine.cpython-312.pyc",
+      "size": 15151,
+      "category": "BASURA_SEGURA",
+      "reason": "cache/carpeta temporal local",
+      "action": "eliminar con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "engines/__pycache__/betting_recommendation_engine.cpython-312.pyc",
+      "size": 8147,
+      "category": "BASURA_SEGURA",
+      "reason": "cache/carpeta temporal local",
+      "action": "eliminar con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "engines/__pycache__/blueprint_migration_engine.cpython-312.pyc",
+      "size": 14959,
+      "category": "BASURA_SEGURA",
+      "reason": "cache/carpeta temporal local",
+      "action": "eliminar con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "engines/__pycache__/cache_engine.cpython-312.pyc",
+      "size": 434,
+      "category": "BASURA_SEGURA",
+      "reason": "cache/carpeta temporal local",
+      "action": "eliminar con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "engines/__pycache__/codex_daily_automation_engine.cpython-312.pyc",
+      "size": 23701,
+      "category": "BASURA_SEGURA",
+      "reason": "cache/carpeta temporal local",
+      "action": "eliminar con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "engines/__pycache__/commercial_launch_engine.cpython-312.pyc",
+      "size": 15507,
+      "category": "BASURA_SEGURA",
+      "reason": "cache/carpeta temporal local",
+      "action": "eliminar con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "engines/__pycache__/crest_engine.cpython-312.pyc",
+      "size": 484,
+      "category": "BASURA_SEGURA",
+      "reason": "cache/carpeta temporal local",
+      "action": "eliminar con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "engines/__pycache__/data_memory_engine.cpython-312.pyc",
+      "size": 30336,
+      "category": "BASURA_SEGURA",
+      "reason": "cache/carpeta temporal local",
+      "action": "eliminar con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "engines/__pycache__/data_provider_engine.cpython-312.pyc",
+      "size": 19973,
+      "category": "BASURA_SEGURA",
+      "reason": "cache/carpeta temporal local",
+      "action": "eliminar con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "engines/__pycache__/football_data_warehouse_engine.cpython-312.pyc",
+      "size": 53398,
+      "category": "BASURA_SEGURA",
+      "reason": "cache/carpeta temporal local",
+      "action": "eliminar con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "engines/__pycache__/football_population_engine.cpython-312.pyc",
+      "size": 9399,
+      "category": "BASURA_SEGURA",
+      "reason": "cache/carpeta temporal local",
+      "action": "eliminar con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "engines/__pycache__/historical_warehouse_engine.cpython-312.pyc",
+      "size": 22142,
+      "category": "BASURA_SEGURA",
+      "reason": "cache/carpeta temporal local",
+      "action": "eliminar con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "engines/__pycache__/live_engine.cpython-312.pyc",
+      "size": 13073,
+      "category": "BASURA_SEGURA",
+      "reason": "cache/carpeta temporal local",
+      "action": "eliminar con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "engines/__pycache__/madrid_time_engine.cpython-312.pyc",
+      "size": 12663,
+      "category": "BASURA_SEGURA",
+      "reason": "cache/carpeta temporal local",
+      "action": "eliminar con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "engines/__pycache__/match_engine.cpython-312.pyc",
+      "size": 6242,
+      "category": "BASURA_SEGURA",
+      "reason": "cache/carpeta temporal local",
+      "action": "eliminar con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "engines/__pycache__/match_sync_engine.cpython-312.pyc",
+      "size": 6210,
+      "category": "BASURA_SEGURA",
+      "reason": "cache/carpeta temporal local",
+      "action": "eliminar con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "engines/__pycache__/membership_engine.cpython-312.pyc",
+      "size": 5285,
+      "category": "BASURA_SEGURA",
+      "reason": "cache/carpeta temporal local",
+      "action": "eliminar con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "engines/__pycache__/observability_engine.cpython-312.pyc",
+      "size": 18687,
+      "category": "BASURA_SEGURA",
+      "reason": "cache/carpeta temporal local",
+      "action": "eliminar con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "engines/__pycache__/odds_value_engine.cpython-312.pyc",
+      "size": 19167,
+      "category": "BASURA_SEGURA",
+      "reason": "cache/carpeta temporal local",
+      "action": "eliminar con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "engines/__pycache__/picks_engine.cpython-312.pyc",
+      "size": 2529,
+      "category": "BASURA_SEGURA",
+      "reason": "cache/carpeta temporal local",
+      "action": "eliminar con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "engines/__pycache__/picks_quality_engine.cpython-312.pyc",
+      "size": 13960,
+      "category": "BASURA_SEGURA",
+      "reason": "cache/carpeta temporal local",
+      "action": "eliminar con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "engines/__pycache__/pick_grading_engine.cpython-312.pyc",
+      "size": 19085,
+      "category": "BASURA_SEGURA",
+      "reason": "cache/carpeta temporal local",
+      "action": "eliminar con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "engines/__pycache__/player_intelligence_engine.cpython-312.pyc",
+      "size": 27497,
+      "category": "BASURA_SEGURA",
+      "reason": "cache/carpeta temporal local",
+      "action": "eliminar con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "engines/__pycache__/scheduler_engine.cpython-312.pyc",
+      "size": 7002,
+      "category": "BASURA_SEGURA",
+      "reason": "cache/carpeta temporal local",
+      "action": "eliminar con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "engines/__pycache__/security_engine.cpython-312.pyc",
+      "size": 11089,
+      "category": "BASURA_SEGURA",
+      "reason": "cache/carpeta temporal local",
+      "action": "eliminar con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "engines/__pycache__/shark_accuracy_engine.cpython-312.pyc",
+      "size": 24016,
+      "category": "BASURA_SEGURA",
+      "reason": "cache/carpeta temporal local",
+      "action": "eliminar con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "engines/__pycache__/shark_engine.cpython-312.pyc",
+      "size": 1680,
+      "category": "BASURA_SEGURA",
+      "reason": "cache/carpeta temporal local",
+      "action": "eliminar con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "engines/__pycache__/shark_historical_intelligence_engine.cpython-312.pyc",
+      "size": 37630,
+      "category": "BASURA_SEGURA",
+      "reason": "cache/carpeta temporal local",
+      "action": "eliminar con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "engines/__pycache__/shark_intelligence_core.cpython-312.pyc",
+      "size": 6484,
+      "category": "BASURA_SEGURA",
+      "reason": "cache/carpeta temporal local",
+      "action": "eliminar con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "engines/__pycache__/shark_learning_engine.cpython-312.pyc",
+      "size": 25305,
+      "category": "BASURA_SEGURA",
+      "reason": "cache/carpeta temporal local",
+      "action": "eliminar con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "engines/__pycache__/shark_performance_engine.cpython-312.pyc",
+      "size": 20493,
+      "category": "BASURA_SEGURA",
+      "reason": "cache/carpeta temporal local",
+      "action": "eliminar con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "engines/__pycache__/shark_performance_memory_engine.cpython-312.pyc",
+      "size": 16300,
+      "category": "BASURA_SEGURA",
+      "reason": "cache/carpeta temporal local",
+      "action": "eliminar con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "engines/__pycache__/shark_prediction_engine.cpython-312.pyc",
+      "size": 34065,
+      "category": "BASURA_SEGURA",
+      "reason": "cache/carpeta temporal local",
+      "action": "eliminar con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "engines/__pycache__/spanish_localization_engine.cpython-312.pyc",
+      "size": 28452,
+      "category": "BASURA_SEGURA",
+      "reason": "cache/carpeta temporal local",
+      "action": "eliminar con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "engines/__pycache__/sportsdb_enrichment_engine.cpython-312.pyc",
+      "size": 30137,
+      "category": "BASURA_SEGURA",
+      "reason": "cache/carpeta temporal local",
+      "action": "eliminar con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "engines/__pycache__/sportsdb_highlights_engine.cpython-312.pyc",
+      "size": 21466,
+      "category": "BASURA_SEGURA",
+      "reason": "cache/carpeta temporal local",
+      "action": "eliminar con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "engines/__pycache__/subscription_control_engine.cpython-312.pyc",
+      "size": 16472,
+      "category": "BASURA_SEGURA",
+      "reason": "cache/carpeta temporal local",
+      "action": "eliminar con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "engines/__pycache__/team_identity_engine.cpython-312.pyc",
+      "size": 11791,
+      "category": "BASURA_SEGURA",
+      "reason": "cache/carpeta temporal local",
+      "action": "eliminar con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "engines/__pycache__/telegram_autonomous_delivery_engine.cpython-312.pyc",
+      "size": 24913,
+      "category": "BASURA_SEGURA",
+      "reason": "cache/carpeta temporal local",
+      "action": "eliminar con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "engines/__pycache__/telegram_delivery_engine.cpython-312.pyc",
+      "size": 34956,
+      "category": "BASURA_SEGURA",
+      "reason": "cache/carpeta temporal local",
+      "action": "eliminar con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "engines/__pycache__/telegram_engine.cpython-312.pyc",
+      "size": 1714,
+      "category": "BASURA_SEGURA",
+      "reason": "cache/carpeta temporal local",
+      "action": "eliminar con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "engines/__pycache__/telegram_sport_filter_engine.cpython-312.pyc",
+      "size": 6753,
+      "category": "BASURA_SEGURA",
+      "reason": "cache/carpeta temporal local",
+      "action": "eliminar con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "engines/__pycache__/__init__.cpython-312.pyc",
+      "size": 308,
+      "category": "BASURA_SEGURA",
+      "reason": "cache/carpeta temporal local",
+      "action": "eliminar con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "services/__pycache__/backup_service.cpython-312.pyc",
+      "size": 7315,
+      "category": "BASURA_SEGURA",
+      "reason": "cache/carpeta temporal local",
+      "action": "eliminar con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "services/__pycache__/membership_service.cpython-312.pyc",
+      "size": 2376,
+      "category": "BASURA_SEGURA",
+      "reason": "cache/carpeta temporal local",
+      "action": "eliminar con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "services/__pycache__/shark_service.cpython-312.pyc",
+      "size": 1492,
+      "category": "BASURA_SEGURA",
+      "reason": "cache/carpeta temporal local",
+      "action": "eliminar con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "services/__pycache__/sports_service.cpython-312.pyc",
+      "size": 950,
+      "category": "BASURA_SEGURA",
+      "reason": "cache/carpeta temporal local",
+      "action": "eliminar con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "services/__pycache__/telegram_service.cpython-312.pyc",
+      "size": 585,
+      "category": "BASURA_SEGURA",
+      "reason": "cache/carpeta temporal local",
+      "action": "eliminar con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "services/__pycache__/__init__.cpython-312.pyc",
+      "size": 334,
+      "category": "BASURA_SEGURA",
+      "reason": "cache/carpeta temporal local",
+      "action": "eliminar con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "tools/__pycache__/audit_project_tree.cpython-312.pyc",
+      "size": 15379,
+      "category": "BASURA_SEGURA",
+      "reason": "cache/carpeta temporal local",
+      "action": "eliminar con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    }
+  ],
+  "actions": [
+    {
+      "path": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\__pycache__\\app.cpython-312.pyc",
+      "status": "deleted"
+    },
+    {
+      "path": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\__pycache__\\database_manager.cpython-312.pyc",
+      "status": "deleted"
+    },
+    {
+      "path": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\blueprints\\__pycache__\\architecture.cpython-312.pyc",
+      "status": "deleted"
+    },
+    {
+      "path": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\blueprints\\__pycache__\\__init__.cpython-312.pyc",
+      "status": "deleted"
+    },
+    {
+      "path": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\engines\\__pycache__\\api_exploitation_engine.cpython-312.pyc",
+      "status": "deleted"
+    },
+    {
+      "path": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\engines\\__pycache__\\autonomous_operations_engine.cpython-312.pyc",
+      "status": "deleted"
+    },
+    {
+      "path": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\engines\\__pycache__\\betting_recommendation_engine.cpython-312.pyc",
+      "status": "deleted"
+    },
+    {
+      "path": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\engines\\__pycache__\\blueprint_migration_engine.cpython-312.pyc",
+      "status": "deleted"
+    },
+    {
+      "path": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\engines\\__pycache__\\cache_engine.cpython-312.pyc",
+      "status": "deleted"
+    },
+    {
+      "path": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\engines\\__pycache__\\codex_daily_automation_engine.cpython-312.pyc",
+      "status": "deleted"
+    },
+    {
+      "path": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\engines\\__pycache__\\commercial_launch_engine.cpython-312.pyc",
+      "status": "deleted"
+    },
+    {
+      "path": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\engines\\__pycache__\\crest_engine.cpython-312.pyc",
+      "status": "deleted"
+    },
+    {
+      "path": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\engines\\__pycache__\\data_memory_engine.cpython-312.pyc",
+      "status": "deleted"
+    },
+    {
+      "path": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\engines\\__pycache__\\data_provider_engine.cpython-312.pyc",
+      "status": "deleted"
+    },
+    {
+      "path": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\engines\\__pycache__\\football_data_warehouse_engine.cpython-312.pyc",
+      "status": "deleted"
+    },
+    {
+      "path": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\engines\\__pycache__\\football_population_engine.cpython-312.pyc",
+      "status": "deleted"
+    },
+    {
+      "path": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\engines\\__pycache__\\historical_warehouse_engine.cpython-312.pyc",
+      "status": "deleted"
+    },
+    {
+      "path": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\engines\\__pycache__\\live_engine.cpython-312.pyc",
+      "status": "deleted"
+    },
+    {
+      "path": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\engines\\__pycache__\\madrid_time_engine.cpython-312.pyc",
+      "status": "deleted"
+    },
+    {
+      "path": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\engines\\__pycache__\\match_engine.cpython-312.pyc",
+      "status": "deleted"
+    },
+    {
+      "path": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\engines\\__pycache__\\match_sync_engine.cpython-312.pyc",
+      "status": "deleted"
+    },
+    {
+      "path": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\engines\\__pycache__\\membership_engine.cpython-312.pyc",
+      "status": "deleted"
+    },
+    {
+      "path": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\engines\\__pycache__\\observability_engine.cpython-312.pyc",
+      "status": "deleted"
+    },
+    {
+      "path": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\engines\\__pycache__\\odds_value_engine.cpython-312.pyc",
+      "status": "deleted"
+    },
+    {
+      "path": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\engines\\__pycache__\\picks_engine.cpython-312.pyc",
+      "status": "deleted"
+    },
+    {
+      "path": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\engines\\__pycache__\\picks_quality_engine.cpython-312.pyc",
+      "status": "deleted"
+    },
+    {
+      "path": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\engines\\__pycache__\\pick_grading_engine.cpython-312.pyc",
+      "status": "deleted"
+    },
+    {
+      "path": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\engines\\__pycache__\\player_intelligence_engine.cpython-312.pyc",
+      "status": "deleted"
+    },
+    {
+      "path": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\engines\\__pycache__\\scheduler_engine.cpython-312.pyc",
+      "status": "deleted"
+    },
+    {
+      "path": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\engines\\__pycache__\\security_engine.cpython-312.pyc",
+      "status": "deleted"
+    },
+    {
+      "path": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\engines\\__pycache__\\shark_accuracy_engine.cpython-312.pyc",
+      "status": "deleted"
+    },
+    {
+      "path": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\engines\\__pycache__\\shark_engine.cpython-312.pyc",
+      "status": "deleted"
+    },
+    {
+      "path": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\engines\\__pycache__\\shark_historical_intelligence_engine.cpython-312.pyc",
+      "status": "deleted"
+    },
+    {
+      "path": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\engines\\__pycache__\\shark_intelligence_core.cpython-312.pyc",
+      "status": "deleted"
+    },
+    {
+      "path": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\engines\\__pycache__\\shark_learning_engine.cpython-312.pyc",
+      "status": "deleted"
+    },
+    {
+      "path": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\engines\\__pycache__\\shark_performance_engine.cpython-312.pyc",
+      "status": "deleted"
+    },
+    {
+      "path": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\engines\\__pycache__\\shark_performance_memory_engine.cpython-312.pyc",
+      "status": "deleted"
+    },
+    {
+      "path": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\engines\\__pycache__\\shark_prediction_engine.cpython-312.pyc",
+      "status": "deleted"
+    },
+    {
+      "path": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\engines\\__pycache__\\spanish_localization_engine.cpython-312.pyc",
+      "status": "deleted"
+    },
+    {
+      "path": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\engines\\__pycache__\\sportsdb_enrichment_engine.cpython-312.pyc",
+      "status": "deleted"
+    },
+    {
+      "path": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\engines\\__pycache__\\sportsdb_highlights_engine.cpython-312.pyc",
+      "status": "deleted"
+    },
+    {
+      "path": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\engines\\__pycache__\\subscription_control_engine.cpython-312.pyc",
+      "status": "deleted"
+    },
+    {
+      "path": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\engines\\__pycache__\\team_identity_engine.cpython-312.pyc",
+      "status": "deleted"
+    },
+    {
+      "path": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\engines\\__pycache__\\telegram_autonomous_delivery_engine.cpython-312.pyc",
+      "status": "deleted"
+    },
+    {
+      "path": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\engines\\__pycache__\\telegram_delivery_engine.cpython-312.pyc",
+      "status": "deleted"
+    },
+    {
+      "path": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\engines\\__pycache__\\telegram_engine.cpython-312.pyc",
+      "status": "deleted"
+    },
+    {
+      "path": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\engines\\__pycache__\\telegram_sport_filter_engine.cpython-312.pyc",
+      "status": "deleted"
+    },
+    {
+      "path": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\engines\\__pycache__\\__init__.cpython-312.pyc",
+      "status": "deleted"
+    },
+    {
+      "path": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\services\\__pycache__\\backup_service.cpython-312.pyc",
+      "status": "deleted"
+    },
+    {
+      "path": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\services\\__pycache__\\membership_service.cpython-312.pyc",
+      "status": "deleted"
+    },
+    {
+      "path": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\services\\__pycache__\\shark_service.cpython-312.pyc",
+      "status": "deleted"
+    },
+    {
+      "path": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\services\\__pycache__\\sports_service.cpython-312.pyc",
+      "status": "deleted"
+    },
+    {
+      "path": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\services\\__pycache__\\telegram_service.cpython-312.pyc",
+      "status": "deleted"
+    },
+    {
+      "path": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\services\\__pycache__\\__init__.cpython-312.pyc",
+      "status": "deleted"
+    },
+    {
+      "path": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\tools\\__pycache__\\audit_project_tree.cpython-312.pyc",
+      "status": "deleted"
+    }
+  ],
+  "note": "Por defecto no elimina .venv para no romper la validación local de Codex."
+}
