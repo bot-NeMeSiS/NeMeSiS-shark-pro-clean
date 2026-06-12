@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block content %}
+{% set fr = data.final_release %}
+<section class="app-hero ns-final-release v738-final-hero shark-section">
+  <div>
+    <div class="kicker">V738 · Release candidate comercial</div>
+    <h1>Versión final preparada para vender con control</h1>
+    <p class="lead">Centro final para revisar que NeMeSiS SHARK PRO queda premium, coherente, segura y lista para validación real en Render antes de abrir beta pública controlada.</p>
+    <div class="actions">
+      <a class="btn primary" href="/admin/go-live">Go Live</a>
+      <a class="btn" href="/admin/telegram/command-center">Telegram</a>
+      <a class="btn" href="/admin/production-readiness">Producción</a>
+      <a class="btn" href="/admin/visual-experience">Visual</a>
+      <a class="btn" href="/sports-hub">Ver cliente</a>
+    </div>
+  </div>
+  <aside class="hero-panel v738-final-score">
+    <span class="pill">Estado final</span>
+    <strong>{{ fr.readiness_score }}%</strong>
+    <p class="small">{{ fr.status }}</p>
+  </aside>
+</section>
+
+<section class="band compact-band ns-final-strip">
+  <div class="section-head"><h2>Puertas finales</h2><span class="pill">{{ fr.overall }}% global</span></div>
+  <div class="grid v738-final-grid">
+    {% for gate in fr.gates %}
+    <article class="card v738-gate-card {{ 'is-critical' if gate.critical else '' }}">
+      <div class="screen-head">
+        <span class="ns-final-badge">{{ gate.score }}%</span>
+        <span class="badge {{ 'status-won' if gate.score >= 90 else ('status-push' if gate.score >= 75 else 'status-lost') }}">{{ gate.status }}</span>
+      </div>
+      <h3>{{ gate.title }}</h3>
+      <div class="stack">
+        {% for item in gate.checks %}
+        <div class="route-row"><span>{{ item.label }}</span><strong class="{{ 'ok' if item.ok else 'bad' }}">{{ item.value if item.value is defined else ('OK' if item.ok else 'Pendiente') }}</strong></div>
+        {% endfor %}
+      </div>
+      <p class="small final-next">{{ gate.next_action }}</p>
+    </article>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="band compact-band two-col">
+  <article class="card">
+    <div class="section-head"><h2>Pendiente en producción real</h2><span class="pill">Render</span></div>
+    <div class="stack">
+      {% for item in fr.production_missing %}
+      <div class="route-row"><span>{{ item }}</span><strong class="bad">Pendiente</strong></div>
+      {% else %}
+      <div class="route-row"><span>Variables principales</span><strong class="ok">Configuradas</strong></div>
+      {% endfor %}
+    </div>
+  </article>
+  <article class="card">
+    <div class="section-head"><h2>Alcance seguro</h2><span class="pill">Sin romper lógica</span></div>
+    <div class="stack">
+      {% for item in fr.safe_scope %}
+      <div class="route-row"><span>{{ item }}</span><strong class="ok">OK</strong></div>
+      {% endfor %}
+    </div>
+  </article>
+</section>
+
+<section class="band compact-band">
+  <div class="section-head"><h2>Plan final de validación</h2><span class="pill">Paso a paso</span></div>
+  <div class="grid compact-grid">
+    {% for step in data.validation_plan %}
+    <article class="card v738-step-card">
+      <span class="badge">{{ step.step }}</span>
+      <h3>{{ step.title }}</h3>
+      <p class="small">{{ step.detail }}</p>
+    </article>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="band compact-band">
+  <div class="card">
+    <div class="section-head"><h2>Mensaje final</h2><span class="pill">Candidato comercial</span></div>
+    <p class="lead">{{ fr.final_message }}</p>
+  </div>
+</section>
+{% endblock %}

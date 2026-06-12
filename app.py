@@ -95,6 +95,7 @@ from engines.public_launch_engine import public_launch_snapshot
 from engines.go_live_engine import go_live_snapshot, production_validation_plan
 from engines.visual_experience_engine import visual_experience_snapshot
 from engines.native_app_experience_engine import native_app_experience_snapshot
+from engines.final_release_engine import final_release_snapshot, final_release_validation_plan
 from engines.payment_readiness_engine import payment_readiness_snapshot, record_payment_webhook_event
 from engines.pick_grading_engine import pick_grading_summary, run_pick_grading
 from engines.subscription_control_engine import subscription_summary, apply_subscription_rules
@@ -132,7 +133,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V737_NATIVE_APP_FEEL_MICROINTERACTIONS_NAVIGATION_POLISH"
+APP_VERSION = "V738_FINAL_COMMERCIAL_RELEASE_CANDIDATE_POLISH"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -10839,6 +10840,7 @@ def v566_admin_items():
         {"group": "Sistema", "title": "QA", "body": "Auditoría final y salud del producto.", "href": "/admin/final-qa"},
         {"group": "Cliente", "title": "Client Success", "body": "Guía, onboarding, soporte y claridad de uso para cliente.", "href": "/admin/client-success"},
         {"group": "Lanzamiento", "title": "Go Live", "body": "Certificación final para beta pública, Telegram, Data Memory y producción.", "href": "/admin/go-live"},
+        {"group": "Lanzamiento", "title": "Versión final", "body": "Release candidate comercial con checklist final, visual, seguridad y producción.", "href": "/admin/final-release"},
         {"group": "Lanzamiento", "title": "Público grande", "body": "Seis áreas para abrir a público grande sin improvisar.", "href": "/admin/public-launch"},
         {"group": "Credibilidad", "title": "Track Record", "body": "Resultados, ROI y picks auditados.", "href": "/admin/track-record"},
         {"group": "Pagos", "title": "Pagos PRO/ELITE", "body": "Stripe, suscripciones y monetización segura.", "href": "/admin/payments"},
@@ -11365,6 +11367,40 @@ def api_admin_native_app_experience():
         return admin_json_forbidden()
     return jsonify({"ok": True, "version": APP_VERSION, "native_app_experience": v737_native_app_experience_context()})
 
+
+
+# ===================== V738 FINAL COMMERCIAL RELEASE CANDIDATE =====================
+
+def v738_final_release_context():
+    return final_release_snapshot(DB_PATH, app_version=APP_VERSION)
+
+
+@app.route("/admin/final-release")
+@app.route("/admin/release-candidate")
+@app.route("/admin/final-commercial")
+def admin_final_release_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/final-release")
+    data = dashboard_data()
+    data["version"] = APP_VERSION
+    data["final_release"] = v738_final_release_context()
+    data["validation_plan"] = final_release_validation_plan()
+    return render_template("admin_final_release.html", data=data)
+
+
+@app.route("/api/admin/final-release")
+@app.route("/api/admin/release-candidate")
+def api_admin_final_release():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "version": APP_VERSION, "final_release": v738_final_release_context(), "validation_plan": final_release_validation_plan()})
+
+
+@app.route("/api/admin/final-release/checklist")
+def api_admin_final_release_checklist():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "version": APP_VERSION, "validation_plan": final_release_validation_plan()})
 
 def register_optional_blueprints():
     try:

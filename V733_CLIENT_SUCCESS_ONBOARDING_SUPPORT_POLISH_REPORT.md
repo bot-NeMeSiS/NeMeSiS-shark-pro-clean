@@ -1,7 +1,7 @@
 # V733 Client Success Onboarding Support Polish Report
 
 - Estado: **OK**
-- Versión: `V737_NATIVE_APP_FEEL_MICROINTERACTIONS_NAVIGATION_POLISH`
+- Versión: `V738_FINAL_COMMERCIAL_RELEASE_CANDIDATE_POLISH`
 - Score snapshot cliente: **100/100**
 - Rutas nuevas presentes: sí
 - Soporte POST activo: sí
