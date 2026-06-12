@@ -1,9 +1,9 @@
 # V732 Production Readiness Control Center
 
-- Versión: `V732_PRODUCTION_READINESS_CONTROL_CENTER`
+- Versión: `V733_CLIENT_SUCCESS_ONBOARDING_SUPPORT_POLISH`
 - Score: **87/100**
 - Estado: **OK**
-- Generado: `2026-06-12T19:44:21`
+- Generado: `2026-06-12T20:22:11`
 
 ## Bloqueos
 - No hay bloqueos estáticos críticos detectados.
@@ -13,9 +13,9 @@
 - Faltan variables críticas en este entorno local/sandbox; confirmar en Render antes de vender.
 
 ## Versión
-- `version_txt`: `V732_PRODUCTION_READINESS_CONTROL_CENTER`
-- `app_py_version`: `V732_PRODUCTION_READINESS_CONTROL_CENTER`
-- `runtime_expected`: `V732_PRODUCTION_READINESS_CONTROL_CENTER`
+- `version_txt`: `V733_CLIENT_SUCCESS_ONBOARDING_SUPPORT_POLISH`
+- `app_py_version`: `V733_CLIENT_SUCCESS_ONBOARDING_SUPPORT_POLISH`
+- `runtime_expected`: `V733_CLIENT_SUCCESS_ONBOARDING_SUPPORT_POLISH`
 - `match`: `True`
 - `has_recent_stack`: `False`
 
@@ -40,7 +40,7 @@
 - Directorios prohibidos: __pycache__
 
 ## Checklist Render
-- `/api/runtime-version` → V732_PRODUCTION_READINESS_CONTROL_CENTER
+- `/api/runtime-version` → V733_CLIENT_SUCCESS_ONBOARDING_SUPPORT_POLISH
 - `/api/health` → 200 / OK si existe
 - `/api/automation/telegram/tick` → 403
 - `/api/automation/telegram/tick?secret=***` → 200

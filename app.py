@@ -90,6 +90,7 @@ from engines.telegram_reliability_engine import (
 from engines.route_health_engine import route_health_snapshot
 from engines.client_experience_guard_engine import client_experience_snapshot
 from engines.production_readiness_engine import production_readiness_snapshot
+from engines.client_success_engine import client_success_snapshot
 from engines.team_identity_engine import (
     flag_or_emoji as team_flag_or_emoji,
     identity_payload as build_team_identity_payload,
@@ -124,7 +125,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V732_PRODUCTION_READINESS_CONTROL_CENTER"
+APP_VERSION = "V733_CLIENT_SUCCESS_ONBOARDING_SUPPORT_POLISH"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -10263,6 +10264,76 @@ def api_admin_membership_summary():
     return jsonify({"ok": True, "version": APP_VERSION, "summary": membership_revenue_summary()})
 
 
+def client_success_runtime_context(user=None):
+    user = user or current_session_user() or {"membership": "FREE", "role": "FREE", "id": ""}
+    membership = normalize_role(user.get("membership") or user.get("role"))
+    uid = user.get("id") or ""
+    try:
+        favorites_count = len(get_favorites(user_id=uid)) if uid else 0
+    except Exception:
+        favorites_count = 0
+    try:
+        picks_visible = len(published_picks_for_user(user, limit=20))
+    except Exception:
+        picks_visible = 0
+    try:
+        live_count = len(get_live_matches(limit=20))
+    except Exception:
+        live_count = 0
+    try:
+        upcoming_count = len(get_upcoming_matches(today_iso(), days=7, limit=40))
+    except Exception:
+        upcoming_count = 0
+    try:
+        telegram_cfg = telegram_config() or {}
+    except Exception:
+        telegram_cfg = {}
+    stats = {
+        "membership": membership,
+        "favorites_count": favorites_count,
+        "picks_visible": picks_visible,
+        "live_count": live_count,
+        "upcoming_count": upcoming_count,
+        "telegram_configured": bool(telegram_cfg.get("configured")),
+        "telegram_football_only": True,
+        "madrid_time_ready": True,
+        "support_ready": True,
+    }
+    return client_success_snapshot(stats=stats)
+
+
+@app.route("/guia")
+@app.route("/ayuda")
+def client_success_page():
+    user = current_session_user()
+    data = dashboard_data() if user else home_light_data()
+    data["client_success"] = client_success_runtime_context(user or {"membership": "FREE", "role": "FREE", "id": ""})
+    data["onboarding"] = onboarding_status(user or {"membership": "FREE", "role": "FREE", "id": ""})
+    return render_template("client_success.html", data=data)
+
+
+@app.route("/api/client/success")
+def api_client_success():
+    user = current_session_user() or {"membership": "FREE", "role": "FREE", "id": ""}
+    return jsonify({"ok": True, "version": APP_VERSION, "client_success": client_success_runtime_context(user)})
+
+
+@app.route("/admin/client-success")
+def admin_client_success_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/client-success")
+    data = dashboard_data()
+    data["client_success"] = client_success_runtime_context({"membership": "ADMIN", "role": "ADMIN", "id": ""})
+    return render_template("admin_client_success.html", data=data)
+
+
+@app.route("/api/admin/client-success")
+def api_admin_client_success():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "version": APP_VERSION, "client_success": client_success_runtime_context({"membership": "ADMIN", "role": "ADMIN", "id": ""})})
+
+
 # ===================== V565 SPORTS DATA & PICKS PERFECTION =====================
 
 PRIORITY_LEAGUE_ORDER = [
@@ -10532,6 +10603,8 @@ def v566_client_menu_items():
         {"group": "IA", "title": "SHARK", "body": "Pregunta por picks, favoritos, live y oportunidades.", "href": "/shark"},
         {"group": "IA", "title": "Centro SHARK", "body": "Resumen inteligente conectado a picks, favoritos y directo.", "href": "/shark-core"},
         {"group": "Cuenta", "title": "Mi cuenta", "body": "Perfil, membresía, favoritos y actividad.", "href": "/mi-cuenta"},
+        {"group": "Cuenta", "title": "Guía cliente", "body": "Primeros pasos, Telegram, picks, directo y soporte en una pantalla.", "href": "/guia"},
+        {"group": "Cuenta", "title": "Soporte", "body": "Enviar incidencia o duda sobre partidos, Telegram, picks o cuenta.", "href": "/ayuda"},
         {"group": "Cuenta", "title": "Alertas", "body": "Avisos importantes de tu actividad.", "href": "/alertas"},
         {"group": "Picks", "title": "Seguimiento", "body": "Banca y picks guardados.", "href": "/seguimiento"},
         {"group": "Legal", "title": "Juego responsable", "body": "Uso responsable y límites.", "href": "/juego-responsable"},
@@ -10594,6 +10667,7 @@ def v566_admin_items():
         {"group": "Live", "title": "Live", "body": "Profundidad de directo y estados.", "href": "/admin/live-depth"},
         {"group": "IA", "title": "SHARK Center", "body": "Memoria, señales y salud del copiloto SHARK.", "href": "/admin/shark-center"},
         {"group": "Sistema", "title": "QA", "body": "Auditoría final y salud del producto.", "href": "/admin/final-qa"},
+        {"group": "Cliente", "title": "Client Success", "body": "Guía, onboarding, soporte y claridad de uso para cliente.", "href": "/admin/client-success"},
     ]
 
 
@@ -10747,13 +10821,35 @@ def v566_legal_page():
     return render_template("legal_trust.html", rb=v566_responsible_payload())
 
 
-@app.route("/contact")
+@app.route("/contact", methods=["GET", "POST"])
 def v724_contact_alias_page():
     data = home_light_data()
+    sent = False
+    error = ""
+    if request.method == "POST":
+        subject = (request.form.get("subject") or "").strip()
+        message = (request.form.get("message") or "").strip()
+        if not subject or not message:
+            error = "Escribe un asunto y un mensaje para que podamos revisarlo bien."
+        else:
+            sent = True
+            try:
+                record_security_event(
+                    DB_PATH,
+                    event_type="support_message",
+                    severity="INFO",
+                    ip_address=security_client_ip(),
+                    path=request.path,
+                    method=request.method,
+                    success=True,
+                    reason=f"{(request.form.get('category') or 'general')}: {subject[:80]}",
+                )
+            except Exception:
+                pass
     data.update(
         {
-            "sent": False,
-            "error": "",
+            "sent": sent,
+            "error": error,
             "support_tips": [
                 {"title": "Partidos", "body": "Indica equipo, competición y hora si ves un dato raro."},
                 {"title": "Picks", "body": "Cuéntanos qué selección o cuota quieres revisar."},

@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block content %}
+{% set success = data.client_success %}
+<section class="hero compact admin-hero client-success-admin-hero">
+  <div class="kicker">Client Success</div>
+  <h1>Control de onboarding, soporte y experiencia guiada</h1>
+  <p class="lead">Centro admin para comprobar que el cliente entiende la app: partidos, directo, picks, combis, SHARK, Telegram, soporte y juego responsable.</p>
+  <div class="admin-menu">
+    <a class="btn" href="/admin/client-experience">Cliente QA</a>
+    <a class="btn" href="/admin/production-readiness">Producción</a>
+    <a class="btn" href="/admin/telegram/command-center">Telegram</a>
+    <a class="btn primary" href="/admin/client-success">Client Success</a>
+  </div>
+</section>
+
+<section class="band">
+  <div class="grid compact-grid client-success-kpis">
+    <div class="card status-card {{ 'info' if success.status == 'OK' else 'critical' }}"><div class="metric">{{ success.score }}/100</div><div class="muted">score guía cliente</div></div>
+    <div class="card"><div class="metric">{{ success.stats.upcoming_count }}</div><div class="muted">próximos</div></div>
+    <div class="card"><div class="metric">{{ success.stats.live_count }}</div><div class="muted">directos</div></div>
+    <div class="card"><div class="metric">{{ success.stats.picks_visible }}</div><div class="muted">picks visibles</div></div>
+    <div class="card"><div class="metric">{{ 'OK' if success.stats.telegram_configured else 'Revisar' }}</div><div class="muted">Telegram</div></div>
+  </div>
+</section>
+
+<section class="band two-col">
+  <div class="card">
+    <h2>Acciones recomendadas</h2>
+    <ul class="clean-list">
+      {% for action in success.next_actions %}<li><strong>{{ action.priority|title }}</strong> · <a href="{{ action.href }}">{{ action.title }}</a></li>{% endfor %}
+    </ul>
+  </div>
+  <div class="card">
+    <h2>Checks estáticos</h2>
+    <div class="route-list compact-list">
+      {% for name, ok in success.static_checks.templates.items() %}<div class="route-row"><span>{{ name|replace('_',' ')|title }}</span><strong class="{{ 'text-good' if ok else 'text-warn' }}">{{ 'OK' if ok else 'Falta' }}</strong></div>{% endfor %}
+      {% for name, ok in success.static_checks.css.items() %}<div class="route-row"><span>CSS {{ name|replace('_',' ') }}</span><strong class="{{ 'text-good' if ok else 'text-warn' }}">{{ 'OK' if ok else 'Revisar' }}</strong></div>{% endfor %}
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="card">
+    <h2>Pilares cliente</h2>
+    <div class="client-screen-grid">
+      {% for pillar in success.pillars %}
+      <article class="client-screen-card"><div class="screen-head"><strong>{{ pillar.title }}</strong><span class="pill info">{{ pillar.status }}</span></div><p class="muted small">{{ pillar.body }}</p><a class="btn small" href="{{ pillar.href }}">Abrir</a></article>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endblock %}

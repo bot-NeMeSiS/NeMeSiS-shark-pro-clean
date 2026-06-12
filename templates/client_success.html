@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block content %}
+{% set success = data.client_success %}
+<section class="app-hero compact-hero client-success-hero">
+  <div>
+    <div class="kicker">Guía cliente</div>
+    <h1>Tu experiencia SHARK, ordenada y lista para usar.</h1>
+    <p class="lead">Partidos, directo, calendario, picks, combis, SHARK y Telegram en una sola guía clara. Sin ruido técnico, sin promesas falsas y siempre en hora española.</p>
+    <div class="actions">
+      <a class="btn primary" href="{{ success.next_actions[0].href if success.next_actions else '/sports-hub' }}">Siguiente paso</a>
+      <a class="btn" href="/sports-hub">Inicio deportivo</a>
+      <a class="btn" href="/ayuda#soporte">Soporte</a>
+    </div>
+  </div>
+  <aside class="hero-panel client-success-score">
+    <span class="pill">Estado cliente</span>
+    <div class="big-score">{{ success.score }}%</div>
+    <p class="small">{{ success.status }} · plan {{ success.membership }}</p>
+    <div class="signal"><span>Experiencia</span><i style="width:{{ success.score }}%"></i></div>
+  </aside>
+</section>
+
+<section class="band compact-band">
+  <div class="section-head"><h2>Qué puedes hacer ahora</h2><span class="pill">Acciones recomendadas</span></div>
+  <div class="quick-actions quick-actions-polish client-success-actions">
+    {% for action in success.next_actions %}
+      <a class="quick primary" href="{{ action.href }}"><span>{{ action.priority|title }}</span><strong>{{ action.title }}</strong></a>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="band compact-band">
+  <div class="section-head"><h2>Funciones principales</h2><span class="pill">Cliente</span></div>
+  <div class="grid compact-grid client-success-grid">
+    {% for pillar in success.pillars %}
+      <article class="card client-success-card {{ pillar.key }}">
+        <div class="screen-head"><strong>{{ pillar.title }}</strong><span class="pill {{ 'info' if pillar.status in ['OK','LISTO','CONFIGURADO'] else 'warn' }}">{{ pillar.status }}</span></div>
+        <div class="metric-line"><span class="metric">{{ pillar.value }}</span><span class="muted">{{ pillar.label }}</span></div>
+        <p class="small">{{ pillar.body }}</p>
+        <a class="btn small" href="{{ pillar.href }}">{{ pillar.cta }}</a>
+      </article>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="band two-col" id="soporte">
+  <div class="card stack">
+    <h2>Cómo reportar algo para arreglarlo rápido</h2>
+    {% for channel in success.support_channels %}
+      <div class="mini-card"><strong>{{ channel.title }}</strong><p>{{ channel.body }}</p></div>
+    {% endfor %}
+    <a class="btn primary" href="/contact">Enviar incidencia</a>
+  </div>
+  <div class="card stack">
+    <h2>Reglas de experiencia limpia</h2>
+    <div class="mini-card accent"><strong>Horarios</strong><p>Todo partido debe verse en hora española de Madrid. Si ves 19:00 cuando debería ser 21:00, repórtalo.</p></div>
+    <div class="mini-card accent"><strong>Picks</strong><p>Los picks premium necesitan cuota real, selección clara, stake, riesgo, motivo y precaución.</p></div>
+    <div class="mini-card accent"><strong>Telegram</strong><p>Solo fútbol, sin cuotas pendientes, sin spam y con diagnóstico admin si no se envía.</p></div>
+    <p class="small muted">{{ success.responsible_note }}</p>
+  </div>
+</section>
+{% endblock %}

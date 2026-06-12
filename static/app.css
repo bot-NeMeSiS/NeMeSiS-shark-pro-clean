@@ -366,3 +366,40 @@ body{letter-spacing:-.005em;text-rendering:optimizeLegibility}.shell.shark-shell
 .production-readiness-hero{background:radial-gradient(circle at 10% 0%,rgba(61,240,163,.16),transparent 34%),radial-gradient(circle at 86% 8%,rgba(40,221,255,.13),transparent 34%),linear-gradient(180deg,rgba(10,22,38,.97),rgba(4,8,16,.95));border:1px solid rgba(137,180,255,.14)}
 .production-kpis .metric{font-variant-numeric:tabular-nums;letter-spacing:-.035em}.production-centers-grid .client-screen-card{min-height:112px}.production-file-list{max-height:520px;overflow:auto;padding-right:4px}.production-file-list .route-row span{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:.82rem}.status-card.warning{border-color:rgba(251,191,36,.38);background:linear-gradient(180deg,rgba(113,63,18,.22),rgba(8,14,30,.92))}.status-card.critical{border-color:rgba(248,113,113,.42);background:linear-gradient(180deg,rgba(127,29,29,.24),rgba(8,14,30,.92))}
 @media(max-width:640px){.production-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.production-kpis .card:nth-child(2){grid-column:1/-1}.production-file-list{max-height:360px}}
+
+/* V733 Client Success Onboarding Support Polish */
+.client-success-hero,
+.client-success-admin-hero{
+  position:relative;
+  overflow:hidden;
+}
+.client-success-hero:after,
+.client-success-admin-hero:after{
+  content:"";
+  position:absolute;
+  inset:auto -12% -45% auto;
+  width:360px;
+  height:360px;
+  border-radius:999px;
+  background:radial-gradient(circle, rgba(21,202,255,.18), transparent 65%);
+  pointer-events:none;
+}
+.client-success-score .big-score{letter-spacing:-.04em;}
+.client-success-actions .quick strong{font-size:.98rem;line-height:1.15;}
+.client-success-grid{grid-template-columns:repeat(auto-fit,minmax(210px,1fr));}
+.client-success-card{display:flex;flex-direction:column;gap:10px;min-height:210px;}
+.client-success-card .screen-head{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.client-success-card .metric-line{display:flex;align-items:baseline;gap:10px;}
+.client-success-card .metric{font-size:1.8rem;font-weight:900;letter-spacing:-.04em;color:var(--text,#eef7ff);}
+.client-success-card .btn{margin-top:auto;width:max-content;}
+.client-success-card.telegram{border-color:rgba(54,162,255,.32);}
+.client-success-card.picks{border-color:rgba(255,205,86,.28);}
+.client-success-card.live{border-color:rgba(255,80,80,.28);}
+.client-success-kpis{grid-template-columns:repeat(auto-fit,minmax(160px,1fr));}
+.client-success-kpis .metric{font-size:1.55rem;font-weight:900;letter-spacing:-.03em;}
+@media(max-width:760px){
+  .client-success-card{min-height:auto;}
+  .client-success-grid{grid-template-columns:1fr;}
+  .client-success-actions{grid-template-columns:1fr;}
+  .client-success-hero .actions{display:grid;grid-template-columns:1fr;}
+}
