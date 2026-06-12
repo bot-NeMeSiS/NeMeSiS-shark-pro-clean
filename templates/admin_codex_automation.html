@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="scoreboard-hero v701-scoreboard">
+  <div>
+    <div class="kicker">Admin · Codex</div>
+    <h1>Automatización diaria y release</h1>
+    <p class="lead">Control de limpieza, entregables, ZIP Render Ready y prompt de continuidad para seguir trabajando sin arrastrar basura.</p>
+  </div>
+  <div class="scoreboard-kpis identity-kpis">
+    <div><strong>{{ report.audit.total_files or 0 }}</strong><span>archivos</span></div>
+    <div><strong>{{ report.audit.counts.BASURA_SEGURA or 0 }}</strong><span>basura segura</span></div>
+    <div><strong>{{ report.audit.counts.DUDOSO_REVISAR or 0 }}</strong><span>revisar</span></div>
+    <div><strong>{% if report.zip.exists %}OK{% else %}NO{% endif %}</strong><span>ZIP</span></div>
+  </div>
+</section>
+
+<section class="band compact-band">
+  <div class="section-head">
+    <h2>Estado de release</h2>
+    <span class="pill">{{ version }}</span>
+  </div>
+  <div class="grid compact-grid">
+    <article class="card"><strong>{{ report.cleanliness.score }}/100</strong><p class="small">limpieza del proyecto</p></article>
+    <article class="card"><strong>{{ report.cleanliness.status }}</strong><p class="small">estado general</p></article>
+    <article class="card"><strong>{{ report.zip.name or 'Sin ZIP' }}</strong><p class="small">último ZIP Render Ready</p></article>
+    <article class="card"><strong>{{ report.data_memory.status }}</strong><p class="small">memoria de datos</p></article>
+  </div>
+</section>
+
+<section class="band two-col compact-band">
+  <div>
+    <div class="section-head"><h2>Acciones recomendadas</h2></div>
+    <div class="stack">
+      {% for item in report.recommendations %}
+      <div class="list-row"><span>{{ item }}</span><strong>V723</strong></div>
+      {% else %}
+      <div class="empty premium-empty">Sin recomendaciones críticas.</div>
+      {% endfor %}
+    </div>
+  </div>
+  <div>
+    <div class="section-head"><h2>Entregables</h2></div>
+    <div class="stack">
+      {% for name, ok in report.deliverables.items() %}
+      <div class="list-row"><span>{{ name }}</span><strong>{% if ok %}OK{% else %}Pendiente{% endif %}</strong></div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<section class="band two-col compact-band">
+  <div>
+    <div class="section-head"><h2>Basura segura detectada</h2><span class="pill">{{ report.audit.safe_trash|length }}</span></div>
+    <div class="stack">
+      {% for item in report.audit.safe_trash[:12] %}
+      <div class="list-row"><span>{{ item.path }}<small>{{ item.reason }}</small></span><strong>{{ item.category }}</strong></div>
+      {% else %}
+      <div class="empty premium-empty">No hay basura segura relevante.</div>
+      {% endfor %}
+    </div>
+  </div>
+  <div>
+    <div class="section-head"><h2>Revisión manual</h2><span class="pill">{{ report.audit.review|length }}</span></div>
+    <div class="stack">
+      {% for item in report.audit.review[:12] %}
+      <div class="list-row"><span>{{ item.path }}<small>{{ item.reason }}</small></span><strong>Revisar</strong></div>
+      {% else %}
+      <div class="empty premium-empty">Sin elementos dudosos principales.</div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<section class="band compact-band">
+  <div class="section-head"><h2>Prompt diario Codex</h2><span class="pill">copiar y continuar</span></div>
+  <textarea style="width:100%;min-height:260px;border-radius:10px;border:1px solid rgba(255,255,255,.14);background:rgba(8,12,22,.78);color:#f8fafc;padding:16px;">{{ prompt }}</textarea>
+  <p class="small muted">También se genera en reports/CODEX_DAILY_PROMPT_CURRENT.txt desde tools/nemesis_daily_codex.py.</p>
+</section>
+
+<section class="band compact-band">
+  <div class="admin-menu">
+    <a class="btn primary" href="/admin/data-memory">Memoria de datos</a>
+    <a class="btn" href="/admin/telegram/diagnostics">Telegram</a>
+    <a class="btn" href="/admin/automation">Automatización</a>
+    <a class="btn" href="/admin/observability">Observabilidad</a>
+  </div>
+</section>
+{% endblock %}

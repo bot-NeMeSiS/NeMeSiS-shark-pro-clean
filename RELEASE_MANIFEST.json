@@ -1,0 +1,40 @@
+{
+  "version": "V721_DATA_MEMORY_HISTORIC_SHARK",
+  "created_at": "2026-06-12T13:23:06",
+  "files": 182,
+  "zip": "NeMeSiS_SHARK_PRO_V721_DATA_MEMORY_HISTORIC_SHARK_RENDER_READY.zip",
+  "zip_size_bytes": 404774,
+  "git_commit": "unavailable",
+  "excluded_dirs": [
+    ".git",
+    ".mypy_cache",
+    ".pytest_cache",
+    ".ruff_cache",
+    ".venv",
+    "__pycache__",
+    "backups",
+    "build",
+    "dist",
+    "env",
+    "logs",
+    "node_modules",
+    "release",
+    "temp",
+    "tmp",
+    "v636work",
+    "venv"
+  ],
+  "excluded_suffixes": [
+    ".avi",
+    ".db",
+    ".db-shm",
+    ".db-wal",
+    ".log",
+    ".mov",
+    ".mp4",
+    ".pyc",
+    ".pyo",
+    ".sqlite",
+    ".sqlite3"
+  ]
+}

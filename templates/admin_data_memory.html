@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="scoreboard-hero v701-scoreboard">
+  <div>
+    <div class="kicker">Admin · Memoria SHARK</div>
+    <h1>Histórico deportivo y memoria de datos</h1>
+    <p class="lead">Control interno de sincronizaciones, snapshots, picks, descartes y Telegram para mejorar SHARK con datos propios.</p>
+  </div>
+  <div class="scoreboard-kpis identity-kpis">
+    <div><strong>{{ summary.counts.api_sync_runs or 0 }}</strong><span>Syncs</span></div>
+    <div><strong>{{ summary.counts.match_snapshots or 0 }}</strong><span>Partidos guardados</span></div>
+    <div><strong>{{ summary.counts.pick_decisions or 0 }}</strong><span>Decisiones pick</span></div>
+    <div><strong>{{ summary.counts.telegram_delivery_memory or 0 }}</strong><span>Telegram</span></div>
+  </div>
+</section>
+
+<section class="band compact-band">
+  <div class="section-head"><h2>Estado de memoria</h2><span class="pill">{{ version }}</span></div>
+  <div class="grid compact-grid">
+    <article class="card"><strong>{% if summary.enabled %}Activa{% else %}Desactivada{% endif %}</strong><p class="small">DATA_MEMORY_ENABLED</p></article>
+    <article class="card"><strong>{{ summary.retention.DATA_MEMORY_KEEP_DAYS }} días</strong><p class="small">retención general</p></article>
+    <article class="card"><strong>{{ summary.retention.ODDS_SNAPSHOT_KEEP_DAYS }} días</strong><p class="small">cuotas</p></article>
+    <article class="card"><strong>{{ summary.retention.LIVE_SNAPSHOT_KEEP_DAYS }} días</strong><p class="small">live</p></article>
+  </div>
+  <p class="small muted">{{ summary.policy }}</p>
+</section>
+
+<section class="band compact-band">
+  <div class="section-head"><h2>Tablas monitorizadas</h2><span class="pill">{{ summary.table_sizes|length }}</span></div>
+  <div class="grid compact-grid">
+    {% for item in summary.table_sizes %}
+    <article class="card"><strong>{{ item.rows }}</strong><p class="small">{{ item.table }}</p></article>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="band two-col compact-band">
+  <div>
+    <div class="section-head"><h2>Últimas sincronizaciones</h2></div>
+    <div class="stack">
+      {% for run in summary.latest_sync_runs %}
+      <div class="list-row"><span>{{ run.source }}<small>{{ run.started_at }} · {{ run.status }}</small></span><strong>{{ run.matches_count or 0 }} / {{ run.picks_count or 0 }}</strong></div>
+      {% else %}<div class="empty">Aún no hay syncs en memoria.</div>{% endfor %}
+    </div>
+  </div>
+  <div>
+    <div class="section-head"><h2>Descartes por motivo</h2></div>
+    <div class="stack">
+      {% for item in summary.discard_reasons %}
+      <div class="list-row"><span>{{ item.reason }}</span><strong>{{ item.total }}</strong></div>
+      {% else %}<div class="empty">Sin descartes guardados todavía.</div>{% endfor %}
+    </div>
+  </div>
+</section>
+
+<section class="band two-col compact-band">
+  <div>
+    <div class="section-head"><h2>Últimas decisiones de picks</h2></div>
+    <div class="stack">
+      {% for pick in summary.latest_pick_decisions %}
+      <div class="list-row"><span>{{ pick.selection or 'Selección' }}<small>{{ pick.market }} · {{ pick.created_at }} · {{ pick.decision }}</small></span><strong>{{ pick.odds or '-' }}</strong></div>
+      {% else %}<div class="empty">Sin decisiones registradas.</div>{% endfor %}
+    </div>
+  </div>
+  <div>
+    <div class="section-head"><h2>Telegram memoria</h2></div>
+    <div class="stack">
+      {% for item in summary.latest_telegram %}
+      <div class="list-row"><span>{{ item.message_type }}<small>{{ item.created_at }} · {{ item.status }}</small></span><strong>{{ item.target_type }}</strong></div>
+      {% else %}<div class="empty">Sin entregas Telegram en memoria.</div>{% endfor %}
+    </div>
+  </div>
+</section>
+
+<section class="band compact-band">
+  <div class="section-head"><h2>Errores controlados</h2><span class="pill">{{ summary.latest_errors|length }}</span></div>
+  <div class="stack">
+    {% for err in summary.latest_errors %}
+    <div class="list-row"><span>{{ err.context }}<small>{{ err.created_at }}</small></span><strong>{{ err.error_summary }}</strong></div>
+    {% else %}<div class="empty premium-empty">Sin errores de memoria.</div>{% endfor %}
+  </div>
+</section>
+{% endblock %}

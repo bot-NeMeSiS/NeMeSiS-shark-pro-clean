@@ -21,6 +21,18 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from database_manager import connect as sqlite_connect, retry_locked
 from engines.cache_engine import cache_health
 from engines.crest_engine import crest_status
+from engines.data_memory_engine import (
+    cleanup_old_memory,
+    data_memory_summary,
+    ensure_data_memory_schema,
+    record_api_sync_run,
+    remember_match_snapshot,
+    remember_pick_decision,
+    remember_pick_discard,
+    remember_team_identity,
+    remember_telegram_delivery,
+    safe_memory_call,
+)
 from engines.football_population_engine import (
     PRIORITY_COMPETITIONS,
     STRUCTURAL_TEAMS,
@@ -90,7 +102,7 @@ from engines.spanish_localization_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V720_SHARK_AI_ADVISOR_PRO"
+APP_VERSION = "V723_CODEX_AUTOMATION_TOTAL_PURGE_RELEASE_SYSTEM"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -327,6 +339,36 @@ def automation_cron_result(endpoint, state_keys, runner, force=False):
     finished_at = now_iso()
     compact = _cron_compact_payload(endpoint, result, called_at, finished_at, force=force)
     compact["state_saved"] = all(item.get("ok") for item in state_results)
+    try:
+        safe_memory_call(
+            DB_PATH,
+            f"cron_{endpoint}",
+            record_api_sync_run,
+            source=endpoint,
+            status=compact.get("status") or ("OK" if compact.get("ok") else "ERROR"),
+            counts={
+                "started_at": called_at,
+                "finished_at": finished_at,
+                "matches_synced": compact.get("matches_synced", 0),
+                "picks_generated": compact.get("picks_generated", 0),
+                "picks_sent": compact.get("picks_sent", compact.get("sent", 0)),
+                "sent": compact.get("sent", 0),
+            },
+            error=compact.get("error"),
+            meta={"compact": compact, "force": bool(force)},
+        )
+        if endpoint == "daily_run":
+            try:
+                for match in rows("SELECT * FROM matches ORDER BY COALESCE(updated_at, kickoff_iso, match_date) DESC LIMIT 80"):
+                    safe_memory_call(DB_PATH, "match_snapshot", remember_match_snapshot, match=match, source="daily_run_cache")
+                    if match.get("home_team"):
+                        safe_memory_call(DB_PATH, "team_identity", remember_team_identity, team_name=match.get("home_team"), logo_url=match.get("home_logo") or "", country=match.get("country") or "", source="daily_run_cache")
+                    if match.get("away_team"):
+                        safe_memory_call(DB_PATH, "team_identity", remember_team_identity, team_name=match.get("away_team"), logo_url=match.get("away_logo") or "", country=match.get("country") or "", source="daily_run_cache")
+            except Exception:
+                pass
+    except Exception:
+        pass
     # El detalle largo queda solo para admin/diagnóstico interno, no en la respuesta pública del Cron.
     automation_safe_set(f"{endpoint}_last_detail", {
         "called_at": called_at,
@@ -1125,6 +1167,7 @@ def init_db():
             now_iso(),
         ),
     )
+    ensure_data_memory_schema(conn)
     bootstrap_admin_from_env(conn)
     conn.commit()
     conn.close()
@@ -3710,7 +3753,12 @@ def create_or_update_pick(payload, pick_id=None, publish=False):
     )
     conn.commit()
     conn.close()
-    return normalize_pick_row(one("SELECT * FROM picks WHERE id=?", (pick_id,)))
+    saved_pick = normalize_pick_row(one("SELECT * FROM picks WHERE id=?", (pick_id,)))
+    try:
+        safe_memory_call(DB_PATH, "pick_save", remember_pick_decision, pick=saved_pick, decision=status, reason=saved_pick.get("reasoning") or "pick guardado")
+    except Exception:
+        pass
+    return saved_pick
 
 
 def ensure_auto_pick_from_recommendation(rec):
@@ -6555,19 +6603,25 @@ def enqueue_auto_pick_alerts(force=False, limit=4):
         odds = as_float(pick.get("odds"), 0.0)
         sendability = telegram_pick_sendability(pick)
         if not sendability.get("sendable"):
-            discarded.append({"pick_id": pick.get("id"), "reason": ",".join(sendability.get("reasons") or ["no_enviable"])})
+            discard_reason = ",".join(sendability.get("reasons") or ["no_enviable"])
+            discarded.append({"pick_id": pick.get("id"), "reason": discard_reason})
+            safe_memory_call(DB_PATH, "pick_discard", remember_pick_discard, candidate=pick, reason=discard_reason)
             continue
         if score < min_score and not force:
             discarded.append({"pick_id": pick.get("id"), "reason": "score_bajo", "score": score})
+            safe_memory_call(DB_PATH, "pick_discard", remember_pick_discard, candidate=pick, reason="score_bajo")
             continue
         risk_raw = str(pick.get("risk_level") or pick.get("risk") or "").lower()
         if ("alto" in risk_raw or "high" in risk_raw) and score < cfg["elite_pick_score"] and not force:
             discarded.append({"pick_id": pick.get("id"), "reason": "riesgo_alto", "score": score})
+            safe_memory_call(DB_PATH, "pick_discard", remember_pick_discard, candidate=pick, reason="riesgo_alto")
             continue
         if odds <= 1 and not force:
             discarded.append({"pick_id": pick.get("id"), "reason": "sin_cuota_valida"})
+            safe_memory_call(DB_PATH, "pick_discard", remember_pick_discard, candidate=pick, reason="sin_cuota_valida")
             continue
         candidates.append(pick)
+        safe_memory_call(DB_PATH, "pick_decision", remember_pick_decision, pick=pick, decision="telegram_candidate", reason="pasa filtros PRO Telegram")
         if len(candidates) >= int(limit):
             break
     if not candidates:
@@ -7021,6 +7075,18 @@ def log_telegram_delivery(chat_id, message_type, text, status, response=None):
         conn.commit()
     finally:
         conn.close()
+    try:
+        safe_memory_call(
+            DB_PATH,
+            "telegram_delivery",
+            remember_telegram_delivery,
+            message_type=message_type,
+            target=chat_id or "",
+            status=status,
+            meta={"delivery_id": delivery_id, "response": response or {}},
+        )
+    except Exception:
+        pass
     return delivery_id
 
 
@@ -8593,6 +8659,52 @@ def team_identity_diagnostics(limit=20):
         "missing_samples": sample_payload,
         "helpers": ["safe_logo_url", "fallback_team_badge", "get_team_identity", "resolve_team"],
     }
+
+
+
+
+@app.route("/admin/data-memory")
+def admin_data_memory_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/data-memory")
+    seed_core()
+    summary = data_memory_summary(DB_PATH)
+    return render_template("admin_data_memory.html", summary=summary, version=APP_VERSION)
+
+
+@app.route("/admin/codex-automation")
+def admin_codex_automation_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/codex-automation")
+    from pathlib import Path
+    from engines.codex_daily_automation_engine import build_daily_report, prompt_from_report
+
+    project_root = Path(os.path.dirname(os.path.abspath(__file__)))
+    report = build_daily_report(project_root)
+    prompt = prompt_from_report(report)
+    return render_template(
+        "admin_codex_automation.html",
+        version=APP_VERSION,
+        report=report,
+        prompt=prompt,
+    )
+
+
+@app.route("/api/admin/data-memory")
+def api_admin_data_memory():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    seed_core()
+    return jsonify({"ok": True, "version": APP_VERSION, "summary": data_memory_summary(DB_PATH)})
+
+
+@app.route("/api/admin/data-memory/cleanup", methods=["POST", "GET"])
+def api_admin_data_memory_cleanup():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    seed_core()
+    result = safe_memory_call(DB_PATH, "data_memory_cleanup", cleanup_old_memory)
+    return jsonify({"ok": bool(result.get("ok", True)), "version": APP_VERSION, "cleanup": result})
 
 
 @app.route("/admin/team-identity")

@@ -1,0 +1,3690 @@
+{
+  "ok": true,
+  "mode": "dry-run",
+  "include_venv": false,
+  "candidates": [
+    {
+      "path": ".pytest_cache/.gitignore",
+      "size": 37,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": ".pytest_cache/CACHEDIR.TAG",
+      "size": 191,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": ".pytest_cache/README.md",
+      "size": 302,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/.env.example",
+      "size": 957,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/.env.render.clean",
+      "size": 1503,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/app.py",
+      "size": 515788,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/COMMERCIAL_PRODUCT_FINAL_REVIEW_REPORT.md",
+      "size": 4335,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/database_manager.py",
+      "size": 1749,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/env.example",
+      "size": 957,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/Procfile",
+      "size": 22,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/pytest.ini",
+      "size": 113,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/README_MASTER.md",
+      "size": 1763,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/README_PC2_CURRENT_CLEAN_RENDER_READY.md",
+      "size": 856,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/render.yaml",
+      "size": 362,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/requirements-dev.txt",
+      "size": 14,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/requirements.txt",
+      "size": 132,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/runtime.txt",
+      "size": 14,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/V635_TELEGRAM_AUTOMATIC_DELIVERY_REPAIR_REPORT.md",
+      "size": 3136,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/V636_TELEGRAM_PRIVATE_LINKING_REPORT.md",
+      "size": 2354,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/VERSION.txt",
+      "size": 30,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "__pycache__/api_exploitation_engine.cpython-312.pyc",
+      "size": 58622,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "__pycache__/app.cpython-312.pyc",
+      "size": 629557,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "__pycache__/architecture.cpython-312.pyc",
+      "size": 3879,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "__pycache__/autonomous_operations_engine.cpython-312.pyc",
+      "size": 15092,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "__pycache__/backup_service.cpython-312.pyc",
+      "size": 7308,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "__pycache__/betting_recommendation_engine.cpython-312.pyc",
+      "size": 8088,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "__pycache__/blueprint_migration_engine.cpython-312.pyc",
+      "size": 14900,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "__pycache__/cache_engine.cpython-312.pyc",
+      "size": 375,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "__pycache__/commercial_launch_engine.cpython-312.pyc",
+      "size": 15448,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "__pycache__/conftest.cpython-312.pyc",
+      "size": 2252,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "__pycache__/crest_engine.cpython-312.pyc",
+      "size": 425,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "__pycache__/database_manager.cpython-312.pyc",
+      "size": 3214,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "__pycache__/data_provider_engine.cpython-312.pyc",
+      "size": 19914,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "__pycache__/football_data_warehouse_engine.cpython-312.pyc",
+      "size": 53339,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "__pycache__/football_population_engine.cpython-312.pyc",
+      "size": 9340,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "__pycache__/historical_warehouse_engine.cpython-312.pyc",
+      "size": 22083,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "__pycache__/live_engine.cpython-312.pyc",
+      "size": 13014,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "__pycache__/match_engine.cpython-312.pyc",
+      "size": 6183,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "__pycache__/match_sync_engine.cpython-312.pyc",
+      "size": 6151,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "__pycache__/membership_engine.cpython-312.pyc",
+      "size": 5226,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "__pycache__/membership_service.cpython-312.pyc",
+      "size": 2369,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "__pycache__/observability_engine.cpython-312.pyc",
+      "size": 18628,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "__pycache__/odds_value_engine.cpython-312.pyc",
+      "size": 19108,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "__pycache__/picks_engine.cpython-312.pyc",
+      "size": 2470,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "__pycache__/pick_grading_engine.cpython-312.pyc",
+      "size": 19026,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "__pycache__/player_intelligence_engine.cpython-312.pyc",
+      "size": 27438,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "__pycache__/route_map_v606.cpython-312.pyc",
+      "size": 861,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "__pycache__/scheduler_engine.cpython-312.pyc",
+      "size": 6943,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "__pycache__/security_engine.cpython-312.pyc",
+      "size": 11030,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "__pycache__/shark_accuracy_engine.cpython-312.pyc",
+      "size": 23957,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "__pycache__/shark_engine.cpython-312.pyc",
+      "size": 1621,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "__pycache__/shark_historical_intelligence_engine.cpython-312.pyc",
+      "size": 37571,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "__pycache__/shark_intelligence_core.cpython-312.pyc",
+      "size": 6425,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "__pycache__/shark_learning_engine.cpython-312.pyc",
+      "size": 25246,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "__pycache__/shark_performance_engine.cpython-312.pyc",
+      "size": 20434,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "__pycache__/shark_performance_memory_engine.cpython-312.pyc",
+      "size": 16241,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "__pycache__/shark_prediction_engine.cpython-312.pyc",
+      "size": 34006,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "__pycache__/shark_service.cpython-312.pyc",
+      "size": 1485,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "__pycache__/smoke_check.cpython-312.pyc",
+      "size": 7981,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "__pycache__/spanish_localization_engine.cpython-312.pyc",
+      "size": 20598,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "__pycache__/sportsdb_enrichment_engine.cpython-312.pyc",
+      "size": 30078,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "__pycache__/sportsdb_highlights_engine.cpython-312.pyc",
+      "size": 21407,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "__pycache__/sports_service.cpython-312.pyc",
+      "size": 943,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "__pycache__/subscription_control_engine.cpython-312.pyc",
+      "size": 16413,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "__pycache__/system_blueprint.cpython-312.pyc",
+      "size": 980,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "__pycache__/telegram_autonomous_delivery_engine.cpython-312.pyc",
+      "size": 20276,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "__pycache__/telegram_delivery_engine.cpython-312.pyc",
+      "size": 23446,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "__pycache__/telegram_engine.cpython-312.pyc",
+      "size": 1655,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "__pycache__/telegram_service.cpython-312.pyc",
+      "size": 578,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "__pycache__/test_app_imports.cpython-312.pyc",
+      "size": 1197,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "__pycache__/test_routes_smoke.cpython-312.pyc",
+      "size": 1979,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "__pycache__/test_security_baseline.cpython-312.pyc",
+      "size": 1196,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "__pycache__/test_templates_integrity.cpython-312.pyc",
+      "size": 1873,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "__pycache__/test_v606_blueprint_migration.cpython-312.pyc",
+      "size": 1460,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "__pycache__/test_v608_blueprint_phase2.cpython-312.pyc",
+      "size": 1547,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "__pycache__/__init__.cpython-312.pyc",
+      "size": 327,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": ".pytest_cache/v/cache/nodeids",
+      "size": 851,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "blueprints/__pycache__/architecture.cpython-312.pyc",
+      "size": 3941,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "blueprints/__pycache__/system_blueprint.cpython-312.pyc",
+      "size": 991,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "blueprints/__pycache__/__init__.cpython-312.pyc",
+      "size": 403,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "engines/__pycache__/api_exploitation_engine.cpython-312.pyc",
+      "size": 58681,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "engines/__pycache__/autonomous_operations_engine.cpython-312.pyc",
+      "size": 15151,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "engines/__pycache__/betting_recommendation_engine.cpython-312.pyc",
+      "size": 8147,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "engines/__pycache__/blueprint_migration_engine.cpython-312.pyc",
+      "size": 14959,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "engines/__pycache__/cache_engine.cpython-312.pyc",
+      "size": 434,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "engines/__pycache__/codex_daily_automation_engine.cpython-312.pyc",
+      "size": 18134,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "engines/__pycache__/commercial_launch_engine.cpython-312.pyc",
+      "size": 15507,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "engines/__pycache__/crest_engine.cpython-312.pyc",
+      "size": 484,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "engines/__pycache__/data_memory_engine.cpython-312.pyc",
+      "size": 30336,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "engines/__pycache__/data_provider_engine.cpython-312.pyc",
+      "size": 19973,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "engines/__pycache__/football_data_warehouse_engine.cpython-312.pyc",
+      "size": 53398,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "engines/__pycache__/football_population_engine.cpython-312.pyc",
+      "size": 9399,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "engines/__pycache__/historical_warehouse_engine.cpython-312.pyc",
+      "size": 22142,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "engines/__pycache__/live_engine.cpython-312.pyc",
+      "size": 13093,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "engines/__pycache__/match_engine.cpython-312.pyc",
+      "size": 6242,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "engines/__pycache__/match_sync_engine.cpython-312.pyc",
+      "size": 6210,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "engines/__pycache__/membership_engine.cpython-312.pyc",
+      "size": 5285,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "engines/__pycache__/observability_engine.cpython-312.pyc",
+      "size": 18687,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "engines/__pycache__/odds_value_engine.cpython-312.pyc",
+      "size": 19167,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "engines/__pycache__/picks_engine.cpython-312.pyc",
+      "size": 2529,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "engines/__pycache__/picks_quality_engine.cpython-312.pyc",
+      "size": 13960,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "engines/__pycache__/pick_grading_engine.cpython-312.pyc",
+      "size": 19085,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "engines/__pycache__/player_intelligence_engine.cpython-312.pyc",
+      "size": 27497,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "engines/__pycache__/scheduler_engine.cpython-312.pyc",
+      "size": 7002,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "engines/__pycache__/security_engine.cpython-312.pyc",
+      "size": 11089,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "engines/__pycache__/shark_accuracy_engine.cpython-312.pyc",
+      "size": 24016,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "engines/__pycache__/shark_engine.cpython-312.pyc",
+      "size": 1680,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "engines/__pycache__/shark_historical_intelligence_engine.cpython-312.pyc",
+      "size": 37630,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "engines/__pycache__/shark_intelligence_core.cpython-312.pyc",
+      "size": 6484,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "engines/__pycache__/shark_learning_engine.cpython-312.pyc",
+      "size": 25305,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "engines/__pycache__/shark_performance_engine.cpython-312.pyc",
+      "size": 20493,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "engines/__pycache__/shark_performance_memory_engine.cpython-312.pyc",
+      "size": 16300,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "engines/__pycache__/shark_prediction_engine.cpython-312.pyc",
+      "size": 34065,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "engines/__pycache__/spanish_localization_engine.cpython-312.pyc",
+      "size": 28993,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "engines/__pycache__/sportsdb_enrichment_engine.cpython-312.pyc",
+      "size": 30137,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "engines/__pycache__/sportsdb_highlights_engine.cpython-312.pyc",
+      "size": 21466,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "engines/__pycache__/subscription_control_engine.cpython-312.pyc",
+      "size": 16472,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "engines/__pycache__/team_identity_engine.cpython-312.pyc",
+      "size": 11791,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "engines/__pycache__/telegram_autonomous_delivery_engine.cpython-312.pyc",
+      "size": 20335,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "engines/__pycache__/telegram_delivery_engine.cpython-312.pyc",
+      "size": 34562,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "engines/__pycache__/telegram_engine.cpython-312.pyc",
+      "size": 1714,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "engines/__pycache__/telegram_sport_filter_engine.cpython-312.pyc",
+      "size": 6753,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "engines/__pycache__/__init__.cpython-312.pyc",
+      "size": 308,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "services/__pycache__/backup_service.cpython-312.pyc",
+      "size": 7317,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "services/__pycache__/membership_service.cpython-312.pyc",
+      "size": 2378,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "services/__pycache__/shark_service.cpython-312.pyc",
+      "size": 1494,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "services/__pycache__/sports_service.cpython-312.pyc",
+      "size": 952,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "services/__pycache__/telegram_service.cpython-312.pyc",
+      "size": 587,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "services/__pycache__/__init__.cpython-312.pyc",
+      "size": 336,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "tests/__pycache__/conftest.cpython-312.pyc",
+      "size": 2389,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "tests/__pycache__/test_app_imports.cpython-312.pyc",
+      "size": 1241,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "tests/__pycache__/test_routes_smoke.cpython-312.pyc",
+      "size": 1985,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "tests/__pycache__/test_security_baseline.cpython-312.pyc",
+      "size": 1202,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "tests/__pycache__/test_templates_integrity.cpython-312.pyc",
+      "size": 1879,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "tests/__pycache__/test_v606_blueprint_migration.cpython-312.pyc",
+      "size": 1466,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "tests/__pycache__/test_v608_blueprint_phase2.cpython-312.pyc",
+      "size": 1553,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "tests/__pycache__/test_v716_release_validation.cpython-312.pyc",
+      "size": 4573,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "tools/__pycache__/audit_project_tree.cpython-312.pyc",
+      "size": 3369,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "tools/__pycache__/audit_release_zip.cpython-312.pyc",
+      "size": 8215,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "tools/__pycache__/build_clean_release.cpython-312.pyc",
+      "size": 6777,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "tools/__pycache__/nemesis_daily_codex.cpython-312.pyc",
+      "size": 1068,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "tools/__pycache__/purge_project_safe.cpython-312.pyc",
+      "size": 4900,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "tools/__pycache__/route_map_v606.cpython-312.pyc",
+      "size": 867,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "tools/__pycache__/smoke_check.cpython-312.pyc",
+      "size": 7995,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "tools/__pycache__/validate_release.cpython-312.pyc",
+      "size": 3252,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "tools/__pycache__/verify_imports_and_routes.cpython-312.pyc",
+      "size": 8123,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/blueprints/architecture.py",
+      "size": 2660,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/blueprints/system_blueprint.py",
+      "size": 664,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/blueprints/__init__.py",
+      "size": 221,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/docs/README_V522_GLOBAL_APP_RESTRUCTURE_PICKS_COMMAND_CENTER.md",
+      "size": 1975,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/docs/README_V523_CALENDAR_DAY_LEAGUE_GROUPING.md",
+      "size": 991,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/docs/README_V524_RESULTS_PICKS_COMBIS_FIX.md",
+      "size": 902,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/docs/README_V526_VIDEO_REVIEW_CLIENT_EXPERIENCE_POLISH.md",
+      "size": 1100,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/docs/README_V527_MATCH_DETAIL_PRO_SHARK_CONTEXT_AI.md",
+      "size": 1006,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/docs/README_V528_CLIENT_LOGIN_ROUTE_STABILITY_FIX.md",
+      "size": 522,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/docs/README_V529_LIVE_CENTER_TEAM_PAGES_SMART_FAVORITES.md",
+      "size": 433,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/docs/README_V530_CLIENT_ROUTE_STABILITY_HARDENING.md",
+      "size": 136,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/docs/README_V532_PREMIUM_UX_CLIENT_CONVERSION_PASS.md",
+      "size": 999,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/docs/README_V533_SMART_LIVE_MOMENTUM_PREMIUM_TEAM_HUB.md",
+      "size": 946,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/docs/README_V534_SMART_NOTIFICATIONS_DYNAMIC_HOME_EXPERIENCE.md",
+      "size": 640,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/docs/README_V535_PRODUCT_EXPERIENCE_LIVE_DATA_EVOLUTION.md",
+      "size": 868,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/docs/README_V536_CLIENT_RETENTION_ALERTS_ACTIVITY_CENTER.md",
+      "size": 693,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/docs/README_V537_DAILY_BRIEFING_CLIENT_COMMAND_CENTER.md",
+      "size": 586,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/docs/README_V538_QUALITY_CENTER_DATA_HEALTH_POLISH.md",
+      "size": 1192,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/docs/README_V539_MEMBERSHIP_REVENUE_ONBOARDING_PASS.md",
+      "size": 707,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/docs/README_V540_LIVE_DATA_INTELLIGENCE_REAL_MATCH_DEPTH.md",
+      "size": 771,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/docs/README_V541_SMART_MATCH_INSIGHTS_PREMIUM_PERFORMANCE_LAYER.md",
+      "size": 285,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/docs/README_V542_SMART_DISCOVERY_COMMERCIAL_READINESS.md",
+      "size": 755,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/docs/README_V543_BETTING_RECOMMENDATION_LIVE_TELEGRAM_QA.md",
+      "size": 1286,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/docs/README_V544_PICK_TRACKING_BANKROLL_PERFORMANCE.md",
+      "size": 845,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/docs/README_V545_COMMERCIAL_LAUNCH_ORDER_PASS.md",
+      "size": 680,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/docs/README_V546_SUPPORT_FEEDBACK_COMMERCIAL_CONFIDENCE_CENTER.md",
+      "size": 554,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/docs/README_V547_REAL_SPORTS_INTELLIGENCE_CORE.md",
+      "size": 504,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/docs/README_V548_USER_JOURNEY_AUTOMATION_RETENTION_INTELLIGENCE.md",
+      "size": 703,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/docs/README_V549_NAVIGATION_CLEANUP_PREMIUM_UX_ORDER.md",
+      "size": 505,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/docs/README_V550_SMART_DASHBOARD_ZERO_CLICK_EXPERIENCE.md",
+      "size": 603,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/docs/README_V551_REAL_BETTING_INTELLIGENCE_ENGINE.md",
+      "size": 620,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/docs/README_V552_PRODUCT_CONSOLIDATION_DATA_DEPTH.md",
+      "size": 503,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/docs/README_V553_PICKS_RECOMMENDATIONS_REBUILD.md",
+      "size": 1178,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/docs/README_V554_LIVE_DATA_DEEPENING_MATCH_TIMELINE.md",
+      "size": 784,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/docs/README_V555_LAUNCH_CANDIDATE_FULL_QA.md",
+      "size": 685,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/docs/README_V556_PRIVATE_BETA_TESTER_CONTROL.md",
+      "size": 408,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/docs/README_V557_RESPONSIBLE_BETTING_TRUST_COMPLIANCE_LAYER.md",
+      "size": 700,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/docs/README_V558_GROWTH_METRICS_REVENUE_OPERATIONS.md",
+      "size": 704,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/docs/README_V559_UNIFIED_INTELLIGENCE_HUB.md",
+      "size": 589,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/docs/README_V560_DATA_DEPTH_LIVE_EXPANSION.md",
+      "size": 862,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/docs/README_V562_AUTONOMOUS_PICKS_ENGINE.md",
+      "size": 1071,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/docs/README_V563_MADRID_TIMEZONE_MATCH_HOURS_FIX.md",
+      "size": 345,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/docs/README_V565_SPORTS_DATA_PICKS_PERFECTION.md",
+      "size": 747,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/docs/README_V567_FULL_AUDIT_FIXES.md",
+      "size": 682,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/docs/README_V568_AUTONOMOUS_PICKS_ODDS_SHARK_UPGRADE.md",
+      "size": 1384,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/docs/README_V569_AUTONOMOUS_ECOSYSTEM_ENGINE.md",
+      "size": 729,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/docs/README_V570_SHARK_INTELLIGENCE_CORE.md",
+      "size": 805,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/docs/README_V571_DEEP_LIVE_INTELLIGENCE.md",
+      "size": 869,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/docs/README_V572_HISTORICAL_DATA_WAREHOUSE.md",
+      "size": 1031,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/docs/README_V573_AUTONOMOUS_OPERATIONS.md",
+      "size": 1233,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/docs/README_V574_COMMERCIAL_LAUNCH_PREPARATION.md",
+      "size": 887,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/docs/README_V575_REVENUE_SUBSCRIPTION_CONTROL.md",
+      "size": 842,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/docs/README_V576_SHARK_PERFORMANCE_MEMORY.md",
+      "size": 835,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/docs/README_V577_SMART_PICK_GRADING_AUTO_VALIDATION.md",
+      "size": 848,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/docs/README_V578_TELEGRAM_AUTONOMOUS_DELIVERY.md",
+      "size": 738,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/docs/README_V579_SPORTSDB_HIGHLIGHTS_PAST_MATCH_INTELLIGENCE.md",
+      "size": 973,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/docs/README_V580_TELEGRAM_PICKS_FULL_AUDIT_DELIVERY_FIX.md",
+      "size": 1186,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/docs/README_V581_TELEGRAM_PICKS_REAL_DELIVERY_REPAIR.md",
+      "size": 1199,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/docs/README_V582_TELEGRAM_PICKS_HARD_FIX_AUDIT_READY.md",
+      "size": 860,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/engines/api_exploitation_engine.py",
+      "size": 41823,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/engines/autonomous_operations_engine.py",
+      "size": 10411,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/engines/betting_recommendation_engine.py",
+      "size": 5909,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/engines/blueprint_migration_engine.py",
+      "size": 9920,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/engines/cache_engine.py",
+      "size": 185,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/engines/commercial_launch_engine.py",
+      "size": 10665,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/engines/crest_engine.py",
+      "size": 182,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/engines/data_provider_engine.py",
+      "size": 15044,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/engines/football_data_warehouse_engine.py",
+      "size": 38480,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/engines/football_population_engine.py",
+      "size": 11226,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/engines/historical_warehouse_engine.py",
+      "size": 14340,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/engines/live_engine.py",
+      "size": 14980,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/engines/match_engine.py",
+      "size": 3758,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/engines/match_sync_engine.py",
+      "size": 5161,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/engines/membership_engine.py",
+      "size": 4757,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/engines/observability_engine.py",
+      "size": 14228,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/engines/odds_value_engine.py",
+      "size": 14349,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/engines/picks_engine.py",
+      "size": 1439,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/engines/pick_grading_engine.py",
+      "size": 13689,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/engines/player_intelligence_engine.py",
+      "size": 20270,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/engines/scheduler_engine.py",
+      "size": 4942,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/engines/security_engine.py",
+      "size": 8040,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/engines/shark_accuracy_engine.py",
+      "size": 17309,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/engines/shark_engine.py",
+      "size": 1139,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/engines/shark_historical_intelligence_engine.py",
+      "size": 30018,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/engines/shark_intelligence_core.py",
+      "size": 4652,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/engines/shark_learning_engine.py",
+      "size": 19489,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/engines/shark_performance_engine.py",
+      "size": 15852,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/engines/shark_performance_memory_engine.py",
+      "size": 11364,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/engines/shark_prediction_engine.py",
+      "size": 23584,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/engines/sportsdb_enrichment_engine.py",
+      "size": 20026,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/engines/sportsdb_highlights_engine.py",
+      "size": 13198,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/engines/subscription_control_engine.py",
+      "size": 11987,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/engines/telegram_autonomous_delivery_engine.py",
+      "size": 13929,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/engines/telegram_delivery_engine.py",
+      "size": 9934,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/engines/telegram_engine.py",
+      "size": 1004,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/engines/__init__.py",
+      "size": 129,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/services/backup_service.py",
+      "size": 3812,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/services/membership_service.py",
+      "size": 1490,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/services/shark_service.py",
+      "size": 934,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/services/sports_service.py",
+      "size": 542,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/services/telegram_service.py",
+      "size": 344,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/services/__init__.py",
+      "size": 205,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/static/app.css",
+      "size": 40070,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/account_center.html",
+      "size": 1780,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/activity.html",
+      "size": 1188,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/admin_architecture.html",
+      "size": 3009,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/admin_automation.html",
+      "size": 3159,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/admin_autonomous_ecosystem.html",
+      "size": 3060,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/admin_autonomous_picks.html",
+      "size": 3640,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/admin_autopilot_audit.html",
+      "size": 5666,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/admin_backups.html",
+      "size": 3302,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/admin_beta_center.html",
+      "size": 1977,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/admin_betting_center.html",
+      "size": 3021,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/admin_bootstrap.html",
+      "size": 1684,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/admin_command_center.html",
+      "size": 3157,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/admin_commercial_readiness.html",
+      "size": 1575,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/admin_compliance_center.html",
+      "size": 1260,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/admin_dashboard.html",
+      "size": 3771,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/admin_data_center.html",
+      "size": 40160,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/admin_data_depth.html",
+      "size": 2957,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/admin_final_qa.html",
+      "size": 3405,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/admin_growth_center.html",
+      "size": 1201,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/admin_intelligence.html",
+      "size": 3102,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/admin_intelligence_center.html",
+      "size": 2013,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/admin_intelligence_engine.html",
+      "size": 3702,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/admin_launch_center.html",
+      "size": 2339,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/admin_live_depth.html",
+      "size": 2737,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/admin_login.html",
+      "size": 1441,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/admin_matches_sync.html",
+      "size": 3811,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/admin_memberships.html",
+      "size": 1521,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/admin_observability.html",
+      "size": 3686,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/admin_observability_errors.html",
+      "size": 2949,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/admin_picks.html",
+      "size": 5601,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/admin_pick_performance.html",
+      "size": 1962,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/admin_quality_center.html",
+      "size": 2807,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/admin_recommendations.html",
+      "size": 2646,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/admin_retention_center.html",
+      "size": 2012,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/admin_shark_center.html",
+      "size": 1600,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/admin_sportsdb_feed.html",
+      "size": 2895,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/admin_sportsdb_sync.html",
+      "size": 2892,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/admin_sports_data_picks.html",
+      "size": 1690,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/admin_support_center.html",
+      "size": 1875,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/admin_system.html",
+      "size": 1832,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/admin_telegram.html",
+      "size": 8145,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/admin_telegram_audit.html",
+      "size": 6519,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/admin_unified_intelligence.html",
+      "size": 2023,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/admin_users.html",
+      "size": 3255,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/admin_user_import.html",
+      "size": 1510,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/alerts.html",
+      "size": 2095,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/autonomous_ecosystem.html",
+      "size": 3101,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/auto_picks.html",
+      "size": 2103,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/base.html",
+      "size": 5498,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/beta.html",
+      "size": 2825,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/betting_recommendations.html",
+      "size": 2368,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/calendar.html",
+      "size": 3580,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/client_login.html",
+      "size": 1284,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/client_menu.html",
+      "size": 436,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/client_overview.html",
+      "size": 4766,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/client_progress.html",
+      "size": 1425,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/combis.html",
+      "size": 4079,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/crests.html",
+      "size": 2013,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/daily_briefing.html",
+      "size": 4379,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/data_depth.html",
+      "size": 2735,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/discovery.html",
+      "size": 4375,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/ecosystem.html",
+      "size": 1398,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/error_controlled.html",
+      "size": 790,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/favorites.html",
+      "size": 6203,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/global.html",
+      "size": 890,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/growth_client.html",
+      "size": 1357,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/home.html",
+      "size": 6549,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/ia_shark.html",
+      "size": 1043,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/import_center.html",
+      "size": 7669,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/legal_trust.html",
+      "size": 1470,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/live.html",
+      "size": 8597,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/live_depth.html",
+      "size": 2291,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/match_detail.html",
+      "size": 7727,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/match_hub.html",
+      "size": 8690,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/membership.html",
+      "size": 2446,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/onboarding.html",
+      "size": 1526,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/opportunities.html",
+      "size": 2482,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/picks.html",
+      "size": 6681,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/pick_tracking.html",
+      "size": 5047,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/product_audit.html",
+      "size": 541,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/profile.html",
+      "size": 7382,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/recommendations.html",
+      "size": 3145,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/register.html",
+      "size": 1645,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/responsible_betting.html",
+      "size": 3136,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/shark.html",
+      "size": 3958,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/shark_core.html",
+      "size": 3356,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/smart_dashboard.html",
+      "size": 3416,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/sports_hub.html",
+      "size": 5381,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/sports_intelligence.html",
+      "size": 2115,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/support.html",
+      "size": 2453,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/team_detail.html",
+      "size": 5649,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/telegram.html",
+      "size": 3878,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/templates/unified_intelligence_hub.html",
+      "size": 3319,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/tests/conftest.py",
+      "size": 926,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/tests/test_app_imports.py",
+      "size": 493,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/tests/test_routes_smoke.py",
+      "size": 867,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/tests/test_security_baseline.py",
+      "size": 679,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/tests/test_templates_integrity.py",
+      "size": 846,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/tests/test_v606_blueprint_migration.py",
+      "size": 811,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/tests/test_v608_blueprint_phase2.py",
+      "size": 767,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/tools/route_map_v606.py",
+      "size": 462,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/tools/smoke_check.py",
+      "size": 4746,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/__pycache__/app.cpython-312.pyc",
+      "size": 688133,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/__pycache__/database_manager.cpython-312.pyc",
+      "size": 3172,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/.github/workflows/nemesis-smoke.yml",
+      "size": 1182,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/blueprints/__pycache__/architecture.cpython-312.pyc",
+      "size": 3899,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/blueprints/__pycache__/system_blueprint.cpython-312.pyc",
+      "size": 1000,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/blueprints/__pycache__/__init__.cpython-312.pyc",
+      "size": 361,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/engines/__pycache__/api_exploitation_engine.cpython-312.pyc",
+      "size": 58639,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/engines/__pycache__/autonomous_operations_engine.cpython-312.pyc",
+      "size": 15109,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/engines/__pycache__/betting_recommendation_engine.cpython-312.pyc",
+      "size": 8105,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/engines/__pycache__/blueprint_migration_engine.cpython-312.pyc",
+      "size": 14917,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/engines/__pycache__/cache_engine.cpython-312.pyc",
+      "size": 392,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/engines/__pycache__/commercial_launch_engine.cpython-312.pyc",
+      "size": 15465,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/engines/__pycache__/crest_engine.cpython-312.pyc",
+      "size": 442,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/engines/__pycache__/data_provider_engine.cpython-312.pyc",
+      "size": 19931,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/engines/__pycache__/football_data_warehouse_engine.cpython-312.pyc",
+      "size": 53356,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/engines/__pycache__/football_population_engine.cpython-312.pyc",
+      "size": 9357,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/engines/__pycache__/historical_warehouse_engine.cpython-312.pyc",
+      "size": 22100,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/engines/__pycache__/live_engine.cpython-312.pyc",
+      "size": 19571,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/engines/__pycache__/match_engine.cpython-312.pyc",
+      "size": 6200,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/engines/__pycache__/match_sync_engine.cpython-312.pyc",
+      "size": 4897,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/engines/__pycache__/membership_engine.cpython-312.pyc",
+      "size": 5243,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/engines/__pycache__/observability_engine.cpython-312.pyc",
+      "size": 18645,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/engines/__pycache__/odds_value_engine.cpython-312.pyc",
+      "size": 19125,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/engines/__pycache__/picks_engine.cpython-312.pyc",
+      "size": 2487,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/engines/__pycache__/pick_grading_engine.cpython-312.pyc",
+      "size": 19043,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/engines/__pycache__/player_intelligence_engine.cpython-312.pyc",
+      "size": 27455,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/engines/__pycache__/scheduler_engine.cpython-312.pyc",
+      "size": 7048,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/engines/__pycache__/security_engine.cpython-312.pyc",
+      "size": 11047,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/engines/__pycache__/shark_accuracy_engine.cpython-312.pyc",
+      "size": 23974,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/engines/__pycache__/shark_engine.cpython-312.pyc",
+      "size": 1638,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/engines/__pycache__/shark_historical_intelligence_engine.cpython-312.pyc",
+      "size": 37588,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/engines/__pycache__/shark_intelligence_core.cpython-312.pyc",
+      "size": 6442,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/engines/__pycache__/shark_learning_engine.cpython-312.pyc",
+      "size": 25263,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/engines/__pycache__/shark_performance_engine.cpython-312.pyc",
+      "size": 20451,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/engines/__pycache__/shark_performance_memory_engine.cpython-312.pyc",
+      "size": 16258,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/engines/__pycache__/shark_prediction_engine.cpython-312.pyc",
+      "size": 34023,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/engines/__pycache__/sportsdb_enrichment_engine.cpython-312.pyc",
+      "size": 30095,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/engines/__pycache__/sportsdb_highlights_engine.cpython-312.pyc",
+      "size": 21424,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/engines/__pycache__/subscription_control_engine.cpython-312.pyc",
+      "size": 16430,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/engines/__pycache__/telegram_autonomous_delivery_engine.cpython-312.pyc",
+      "size": 20293,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/engines/__pycache__/telegram_delivery_engine.cpython-312.pyc",
+      "size": 15326,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/engines/__pycache__/telegram_engine.cpython-312.pyc",
+      "size": 1672,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/engines/__pycache__/__init__.cpython-312.pyc",
+      "size": 266,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/services/__pycache__/backup_service.cpython-312.pyc",
+      "size": 7326,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/services/__pycache__/membership_service.cpython-312.pyc",
+      "size": 2387,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/services/__pycache__/shark_service.cpython-312.pyc",
+      "size": 1503,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/services/__pycache__/sports_service.cpython-312.pyc",
+      "size": 961,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/services/__pycache__/telegram_service.cpython-312.pyc",
+      "size": 596,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/services/__pycache__/__init__.cpython-312.pyc",
+      "size": 345,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/tests/__pycache__/conftest.cpython-312.pyc",
+      "size": 2267,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/tests/__pycache__/test_app_imports.cpython-312.pyc",
+      "size": 1212,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/tests/__pycache__/test_routes_smoke.cpython-312.pyc",
+      "size": 1994,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/tests/__pycache__/test_security_baseline.cpython-312.pyc",
+      "size": 1211,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/tests/__pycache__/test_templates_integrity.cpython-312.pyc",
+      "size": 1888,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/tests/__pycache__/test_v606_blueprint_migration.cpython-312.pyc",
+      "size": 1475,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/tests/__pycache__/test_v608_blueprint_phase2.cpython-312.pyc",
+      "size": 1562,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/tools/__pycache__/route_map_v606.cpython-312.pyc",
+      "size": 876,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "v636work/tools/__pycache__/smoke_check.cpython-312.pyc",
+      "size": 7996,
+      "category": "BASURA_SEGURA",
+      "reason": "cach?, entorno, base local, log, zip o artefacto temporal",
+      "action": "excluir del ZIP; borrar solo con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    }
+  ],
+  "actions": [],
+  "note": "Por defecto no elimina .venv para no romper la validación local de Codex."
+}

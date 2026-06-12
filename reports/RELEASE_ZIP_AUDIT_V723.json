@@ -1,0 +1,194 @@
+{
+  "ok": true,
+  "audited_at": "2026-06-12T15:57:52",
+  "zip": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\NeMeSiS_SHARK_PRO_V723_CODEX_AUTOMATION_TOTAL_PURGE_RELEASE_SYSTEM_RENDER_READY.zip",
+  "zip_size_bytes": 449640,
+  "file_count": 245,
+  "content_size_bytes": 1482419,
+  "forbidden_count": 0,
+  "forbidden": [],
+  "top_files": [
+    {
+      "path": "app.py",
+      "size": 466084
+    },
+    {
+      "path": "static/app.css",
+      "size": 43264
+    },
+    {
+      "path": "engines/api_exploitation_engine.py",
+      "size": 41823
+    },
+    {
+      "path": "engines/football_data_warehouse_engine.py",
+      "size": 38480
+    },
+    {
+      "path": "engines/shark_historical_intelligence_engine.py",
+      "size": 30018
+    },
+    {
+      "path": "engines/shark_prediction_engine.py",
+      "size": 23584
+    },
+    {
+      "path": "engines/telegram_delivery_engine.py",
+      "size": 22525
+    },
+    {
+      "path": "engines/spanish_localization_engine.py",
+      "size": 22341
+    },
+    {
+      "path": "engines/player_intelligence_engine.py",
+      "size": 20270
+    },
+    {
+      "path": "engines/data_memory_engine.py",
+      "size": 20076
+    },
+    {
+      "path": "engines/sportsdb_enrichment_engine.py",
+      "size": 20026
+    },
+    {
+      "path": "engines/shark_learning_engine.py",
+      "size": 19489
+    },
+    {
+      "path": "engines/shark_accuracy_engine.py",
+      "size": 17309
+    },
+    {
+      "path": "engines/telegram_autonomous_delivery_engine.py",
+      "size": 16712
+    },
+    {
+      "path": "engines/shark_performance_engine.py",
+      "size": 15852
+    },
+    {
+      "path": "engines/data_provider_engine.py",
+      "size": 15044
+    },
+    {
+      "path": "engines/odds_value_engine.py",
+      "size": 14349
+    },
+    {
+      "path": "engines/historical_warehouse_engine.py",
+      "size": 14340
+    },
+    {
+      "path": "engines/observability_engine.py",
+      "size": 14228
+    },
+    {
+      "path": "engines/pick_grading_engine.py",
+      "size": 13689
+    }
+  ],
+  "top_folders": [
+    {
+      "folder": "engines",
+      "size": 546368,
+      "files": 43
+    },
+    {
+      "folder": "app.py",
+      "size": 466084,
+      "files": 1
+    },
+    {
+      "folder": "templates",
+      "size": 305758,
+      "files": 99
+    },
+    {
+      "folder": "docs",
+      "size": 45484,
+      "files": 56
+    },
+    {
+      "folder": "static",
+      "size": 43264,
+      "files": 1
+    },
+    {
+      "folder": "tools",
+      "size": 27708,
+      "files": 9
+    },
+    {
+      "folder": "tests",
+      "size": 9712,
+      "files": 9
+    },
+    {
+      "folder": "CHATGPT_CONTINUATION_REPORT.md",
+      "size": 8144,
+      "files": 1
+    },
+    {
+      "folder": "services",
+      "size": 7327,
+      "files": 6
+    },
+    {
+      "folder": "blueprints",
+      "size": 3545,
+      "files": 3
+    },
+    {
+      "folder": "V723_CODEX_AUTOMATION_TOTAL_PURGE_RELEASE_SYSTEM_REPORT.md",
+      "size": 3450,
+      "files": 1
+    },
+    {
+      "folder": ".env.render.clean",
+      "size": 2592,
+      "files": 1
+    },
+    {
+      "folder": ".env.example",
+      "size": 1920,
+      "files": 1
+    },
+    {
+      "folder": "RELEASE_MANIFEST_V723.json",
+      "size": 1852,
+      "files": 1
+    },
+    {
+      "folder": "database_manager.py",
+      "size": 1802,
+      "files": 1
+    },
+    {
+      "folder": "V723_TOTAL_PURGE_AUDIT_REPORT.md",
+      "size": 1775,
+      "files": 1
+    },
+    {
+      "folder": "README_MASTER.md",
+      "size": 1763,
+      "files": 1
+    },
+    {
+      "folder": "CODEX_DAILY_AUTOMATION_GUIDE.md",
+      "size": 1410,
+      "files": 1
+    },
+    {
+      "folder": "reports",
+      "size": 1131,
+      "files": 1
+    },
+    {
+      "folder": ".gitignore",
+      "size": 624,
+      "files": 1
+    }
+  ]
+}

@@ -1,5 +1,6 @@
 # Python cache/build
 __pycache__/
+**/__pycache__/
 *.py[cod]
 *.pyo
 *.pyd
@@ -30,6 +31,9 @@ ENV/
 logs/
 backups/
 *.zip
+*.db-journal
+*.sqlite-wal
+*.sqlite-shm
 
 # OS/editor
 .DS_Store
@@ -39,6 +43,21 @@ Thumbs.db
 
 # Old working folders / generated artifacts
 v636work/
+release/
+releases/
+outputs/
+tmp/
+temp/
 *_work/
 video_review_frames/
 cron_video_frames/
+*.mp4
+*.mov
+*.avi
+*.mkv
+*.png.tmp
+*.secret
+*secret*
+*token*
+private_key*
+id_rsa*
