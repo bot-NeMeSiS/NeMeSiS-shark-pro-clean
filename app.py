@@ -71,7 +71,7 @@ from engines.spanish_localization_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V717_1_TELEGRAM_PREMIUM_MESSAGE_ENGINE"
+APP_VERSION = "V717_2_TELEGRAM_PRO_CALIBRATION"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -491,7 +491,7 @@ def run_schema_migrations(conn):
         ("telegram_settings", "auto_live_alerts", "INTEGER DEFAULT 0"),
         ("telegram_settings", "daily_matches_time", "TEXT DEFAULT '09:00'"),
         ("telegram_settings", "daily_picks_time", "TEXT DEFAULT '11:00'"),
-        ("telegram_settings", "max_messages_per_hour", "INTEGER DEFAULT 10"),
+        ("telegram_settings", "max_messages_per_hour", "INTEGER DEFAULT 1"),
         ("telegram_settings", "enabled", "INTEGER DEFAULT 0"),
         ("telegram_settings", "updated_at", "TEXT"),
         ("live_sync_state", "sync_status", "TEXT"),
@@ -886,7 +886,7 @@ def init_db():
             auto_live_alerts INTEGER DEFAULT 0,
             daily_matches_time TEXT DEFAULT '09:00',
             daily_picks_time TEXT DEFAULT '11:00',
-            max_messages_per_hour INTEGER DEFAULT 10,
+            max_messages_per_hour INTEGER DEFAULT 1,
             enabled INTEGER DEFAULT 0,
             updated_at TEXT
         )"""
@@ -5978,6 +5978,77 @@ def telegram_sent_last_hour(chat_id=None):
     return (one("SELECT COUNT(*) AS total FROM telegram_queue WHERE status=? AND sent_at>=?", (QUEUE_SENT, since)) or {}).get("total", 0)
 
 
+def telegram_sent_today(chat_id=None, message_type=None):
+    clauses = ["status=?", "sent_at LIKE ?"]
+    params = [QUEUE_SENT, today_iso() + "%"]
+    if chat_id:
+        clauses.append("chat_id=?")
+        params.append(chat_id)
+    if message_type:
+        clauses.append("lower(coalesce(message_type,''))=?")
+        params.append(str(message_type).lower())
+    return (one(f"SELECT COUNT(*) AS total FROM telegram_queue WHERE {' AND '.join(clauses)}", tuple(params)) or {}).get("total", 0)
+
+
+def telegram_pro_calibration():
+    return {
+        "mode": "PRO",
+        "tick_review_every_minutes": as_int(os.getenv("TELEGRAM_TICK_REVIEW_MINUTES", "15"), 15),
+        "daily_run_every_minutes": as_int(os.getenv("TELEGRAM_DAILY_RUN_MINUTES", "60"), 60),
+        "quiet_start": os.getenv("TELEGRAM_QUIET_START", "00:30"),
+        "quiet_end": os.getenv("TELEGRAM_QUIET_END", "09:30"),
+        "daily_summary_start": os.getenv("TELEGRAM_DAILY_SUMMARY_START", "09:30"),
+        "daily_summary_end": os.getenv("TELEGRAM_DAILY_SUMMARY_END", "12:30"),
+        "daily_picks_start": os.getenv("TELEGRAM_DAILY_PICKS_START", "13:00"),
+        "daily_picks_end": os.getenv("TELEGRAM_DAILY_PICKS_END", "20:30"),
+        "max_messages_per_hour": as_int(os.getenv("TELEGRAM_MAX_MESSAGES_PER_HOUR", "1"), 1),
+        "max_messages_per_day": as_int(os.getenv("TELEGRAM_MAX_MESSAGES_PER_DAY", "8"), 8),
+        "max_queue_per_tick": as_int(os.getenv("TELEGRAM_MAX_QUEUE_PER_TICK", "3"), 3),
+        "max_auto_picks_per_tick": as_int(os.getenv("TELEGRAM_MAX_AUTO_PICKS_PER_TICK", "2"), 2),
+        "max_auto_picks_per_day": as_int(os.getenv("TELEGRAM_MAX_AUTO_PICKS_PER_DAY", os.getenv("MAX_AUTO_PICKS_PER_DAY", "4")), 4),
+        "min_pick_score": as_int(os.getenv("MIN_SHARK_SCORE_FOR_AUTO_SEND", os.getenv("AUTO_PICKS_MIN_SCORE", "75")), 75),
+        "elite_pick_score": as_int(os.getenv("TELEGRAM_ELITE_PICK_SCORE", "85"), 85),
+        "min_odds": as_float(os.getenv("TELEGRAM_MIN_ODDS", "1.40"), 1.40),
+        "max_odds": as_float(os.getenv("TELEGRAM_MAX_ODDS", "4.50"), 4.50),
+    }
+
+
+def _telegram_time_to_minutes(value, default="00:00"):
+    raw = str(value or default).strip()[:5]
+    try:
+        hh, mm = raw.split(":", 1)
+        return max(0, min(23, int(hh))) * 60 + max(0, min(59, int(mm)))
+    except Exception:
+        hh, mm = default.split(":", 1)
+        return int(hh) * 60 + int(mm)
+
+
+def telegram_time_window_active(start, end, current=None):
+    now_dt = current or datetime.now(TZ)
+    cur = now_dt.hour * 60 + now_dt.minute
+    start_m = _telegram_time_to_minutes(start)
+    end_m = _telegram_time_to_minutes(end)
+    if start_m == end_m:
+        return True
+    if start_m < end_m:
+        return start_m <= cur <= end_m
+    return cur >= start_m or cur <= end_m
+
+
+def telegram_quiet_hours_active():
+    cfg = telegram_pro_calibration()
+    return telegram_time_window_active(cfg["quiet_start"], cfg["quiet_end"])
+
+
+def telegram_message_is_automatic(message_type):
+    value = str(message_type or "").lower()
+    return value not in {"manual", "test", "system_test", "admin_test"}
+
+
+def telegram_should_delay_message(message_type, force=False):
+    return (not force) and telegram_message_is_automatic(message_type) and telegram_quiet_hours_active()
+
+
 def enqueue_telegram_message(message_type, title, body, chat_id="", user_id="", payload=None, scheduled_at=None, dedupe_key="", force=False, max_attempts=3):
     seed_core()
     scheduled_at = scheduled_at or now_iso()
@@ -6105,8 +6176,13 @@ def telegram_pick_sendability(pick):
         reasons.append("partido_antiguo")
     if any(word in status for word in ("final", "finished", "ended", "cancelled", "postponed")):
         reasons.append("partido_no_valido")
+    cfg = telegram_pro_calibration()
     if odds <= 1:
         reasons.append("sin_cuota_real")
+    elif odds < cfg["min_odds"]:
+        reasons.append("cuota_demasiado_baja")
+    elif odds > cfg["max_odds"]:
+        reasons.append("cuota_demasiado_alta")
     if not selection:
         reasons.append("sin_pick_recomendado")
     if not market:
@@ -6193,6 +6269,9 @@ def build_system_test_message():
 
 
 def enqueue_daily_matches(force=False, forced_chat_id=""):
+    cfg = telegram_pro_calibration()
+    if not force and not telegram_time_window_active(cfg["daily_summary_start"], cfg["daily_summary_end"]):
+        return {"ok": True, "message": "Resumen diario fuera de ventana PRO; se mantiene pendiente para horario profesional.", "processed": 0, "sent": 0, "failed": 0, "skipped": 1, "errors": [], "reason": "fuera_ventana_resumen"}
     subscribers = telegram_subscribers()
     if forced_chat_id and not subscribers:
         subscribers = [{"chat_id": forced_chat_id, "user_id": "", "membership": "ADMIN"}]
@@ -6217,6 +6296,9 @@ def enqueue_daily_matches(force=False, forced_chat_id=""):
 
 
 def enqueue_daily_picks(force=False, force_empty=False, forced_chat_id=""):
+    cfg = telegram_pro_calibration()
+    if not force and not telegram_time_window_active(cfg["daily_picks_start"], cfg["daily_picks_end"]):
+        return {"ok": True, "message": "Picks diarios fuera de ventana PRO; no se fuerza envio.", "processed": 0, "inserted": 0, "sent": 0, "failed": 0, "skipped": 1, "errors": [], "reason": "fuera_ventana_picks"}
     body = build_daily_picks_message(force_empty=force_empty)
     if not body:
         return {"ok": True, "message": "No hay picks publicados; no se encola nada.", "processed": 0, "inserted": 0, "sent": 0, "failed": 0, "skipped": 1, "errors": []}
@@ -6242,9 +6324,13 @@ def enqueue_daily_picks(force=False, force_empty=False, forced_chat_id=""):
     return {"ok": True, "message": "Picks destacados encolados.", "processed": len(subscribers), "inserted": inserted, "updated": 0, "sent": 0, "failed": 0, "skipped": skipped, "errors": []}
 
 
-def enqueue_auto_pick_alerts(force=False, limit=6):
-    min_score = as_int(os.getenv("MIN_SHARK_SCORE_FOR_AUTO_SEND", os.getenv("AUTO_PICKS_MIN_SCORE", "78")), 78)
-    picks = get_picks(limit=max(20, int(limit) * 4), status=["published"], include_admin=True)
+def enqueue_auto_pick_alerts(force=False, limit=4):
+    cfg = telegram_pro_calibration()
+    if telegram_should_delay_message("auto_pick", force=force):
+        return {"ok": True, "message": "Horario silencioso PRO activo; no se encolan picks automaticos.", "processed": 0, "inserted": 0, "sent": 0, "failed": 0, "skipped": 1, "errors": [], "reason": "horario_silencioso"}
+    min_score = cfg["min_pick_score"]
+    limit = min(int(limit or cfg["max_auto_picks_per_tick"]), cfg["max_auto_picks_per_tick"]) if not force else int(limit or cfg["max_auto_picks_per_tick"])
+    picks = get_picks(limit=max(20, int(limit) * 5), status=["published"], include_admin=True)
     candidates = []
     discarded = []
     for pick in picks:
@@ -6256,6 +6342,10 @@ def enqueue_auto_pick_alerts(force=False, limit=6):
             continue
         if score < min_score and not force:
             discarded.append({"pick_id": pick.get("id"), "reason": "score_bajo", "score": score})
+            continue
+        risk_raw = str(pick.get("risk_level") or pick.get("risk") or "").lower()
+        if ("alto" in risk_raw or "high" in risk_raw) and score < cfg["elite_pick_score"] and not force:
+            discarded.append({"pick_id": pick.get("id"), "reason": "riesgo_alto", "score": score})
             continue
         if odds <= 1 and not force:
             discarded.append({"pick_id": pick.get("id"), "reason": "sin_cuota_valida"})
@@ -6285,6 +6375,10 @@ def enqueue_auto_pick_alerts(force=False, limit=6):
                 blocked += 1
                 continue
             dedupe_target = dest.get("chat_id") or dest.get("user_id") or "global"
+            if not force and telegram_sent_today(dest.get("chat_id"), "auto_pick") >= cfg["max_auto_picks_per_day"]:
+                blocked += 1
+                telegram_log("[QUEUE]", "skipped", "Auto pick omitido por limite diario PRO.", {"chat_id": masked_key(dest.get("chat_id")), "limit": cfg["max_auto_picks_per_day"]})
+                continue
             result = enqueue_telegram_message(
                 "auto_pick",
                 "Pick automático SHARK",
@@ -6303,6 +6397,8 @@ def enqueue_auto_pick_alerts(force=False, limit=6):
 
 def enqueue_live_alerts(force=False):
     settings = get_telegram_settings()
+    if telegram_should_delay_message("live_alert", force=force):
+        return {"ok": True, "message": "Horario silencioso PRO activo; no se encolan alertas live.", "processed": 0, "inserted": 0, "sent": 0, "failed": 0, "skipped": 1, "errors": [], "reason": "horario_silencioso"}
     if not settings.get("auto_live_alerts") and not force:
         return {"ok": True, "message": "Alertas live desactivadas.", "processed": 0, "inserted": 0, "sent": 0, "failed": 0, "skipped": 1, "errors": []}
     live_matches = match_hub(today_iso(), "live").get("live") or []
@@ -6354,8 +6450,10 @@ def telegram_send_http(chat_id, text, message_type="manual", payload=None):
 
 def process_premium_telegram_queue(limit=5, force=False):
     settings = get_telegram_settings()
+    cfg = telegram_pro_calibration()
     if not (settings.get("enabled") or telegram_env_should_enable()) and not force:
         return {"ok": True, "message": "Telegram automatico desactivado.", "processed": 0, "sent": 0, "failed": 0, "skipped": 1, "errors": []}
+    limit = min(int(limit or cfg["max_queue_per_tick"]), cfg["max_queue_per_tick"]) if not force else int(limit or cfg["max_queue_per_tick"])
     pending = rows(
         """SELECT * FROM telegram_queue
            WHERE lower(status) IN ('pending','failed')
@@ -6370,15 +6468,25 @@ def process_premium_telegram_queue(limit=5, force=False):
     errors = []
     for item in pending:
         chat_id = item.get("chat_id") or os.getenv("TELEGRAM_CHAT_ID", "")
-        if telegram_sent_last_hour(chat_id) >= settings["max_messages_per_hour"] and not force:
+        message_type = item.get("message_type") or "queue"
+        if telegram_should_delay_message(message_type, force=force):
+            skipped += 1
+            telegram_log("[QUEUE_DELAY]", "skipped", "Mensaje automatico retenido por horario silencioso PRO.", {"queue_id": item.get("id"), "message_type": message_type, "chat_id": masked_key(chat_id)})
+            continue
+        hourly_limit = max(1, min(as_int(settings.get("max_messages_per_hour"), cfg["max_messages_per_hour"]), cfg["max_messages_per_hour"]))
+        if telegram_message_is_automatic(message_type) and telegram_sent_last_hour(chat_id) >= hourly_limit and not force:
+            skipped += 1
+            telegram_log("[QUEUE_DELAY]", "skipped", "Mensaje retenido por limite horario PRO.", {"queue_id": item.get("id"), "chat_id": masked_key(chat_id), "limit": hourly_limit})
+            continue
+        if telegram_message_is_automatic(message_type) and telegram_sent_today(chat_id) >= cfg["max_messages_per_day"] and not force:
             conn = db()
-            conn.execute("UPDATE telegram_queue SET status=?, error_message=?, updated_at=? WHERE id=?", (QUEUE_SKIPPED, "limite_hora", now_iso(), item.get("id")))
+            conn.execute("UPDATE telegram_queue SET status=?, error_message=?, updated_at=? WHERE id=?", (QUEUE_SKIPPED, "limite_dia_pro", now_iso(), item.get("id")))
             conn.commit()
             conn.close()
             skipped += 1
-            telegram_log("[QUEUE_SKIP_DUPLICATE]", "skipped", "Mensaje omitido por limite horario.", {"queue_id": item.get("id"), "chat_id": masked_key(chat_id)})
+            telegram_log("[QUEUE_SKIP_LIMIT]", "skipped", "Mensaje omitido por limite diario PRO.", {"queue_id": item.get("id"), "chat_id": masked_key(chat_id), "limit": cfg["max_messages_per_day"]})
             continue
-        telegram_log("[QUEUE_PROCESS]", "sending", "Procesando item de cola Telegram.", {"queue_id": item.get("id"), "message_type": item.get("message_type"), "chat_id": masked_key(chat_id)})
+        telegram_log("[QUEUE_PROCESS]", "sending", "Procesando item de cola Telegram.", {"queue_id": item.get("id"), "message_type": message_type, "chat_id": masked_key(chat_id)})
         conn = db()
         conn.execute("UPDATE telegram_queue SET status=?, attempts=attempts+1, updated_at=? WHERE id=?", (QUEUE_SENDING, now_iso(), item.get("id")))
         conn.commit()
@@ -6495,6 +6603,7 @@ def telegram_diagnostics():
         "recent_sent": rows("SELECT * FROM telegram_queue WHERE lower(status)=? ORDER BY sent_at DESC LIMIT 8", (QUEUE_SENT,)),
         "recent_errors": rows("SELECT * FROM telegram_logs WHERE lower(status) IN ('failed','error') ORDER BY created_at DESC LIMIT 8"),
         "queue_summary": queue_summary(rows("SELECT status FROM telegram_queue ORDER BY created_at DESC LIMIT 500")),
+        "pro_calibration": telegram_pro_calibration(),
     }
 
 
@@ -6508,17 +6617,18 @@ def telegram_time_due(time_value, force=False):
 
 def telegram_scheduler_delivery(force=False):
     settings = get_telegram_settings()
+    cfg = telegram_pro_calibration()
     if not (settings.get("enabled") or telegram_env_should_enable()) and not force:
         return {"ok": True, "message": "Telegram automatico desactivado.", "processed": 0, "inserted": 0, "sent": 0, "failed": 0, "skipped": 1, "errors": []}
     results = []
     if settings.get("auto_daily_matches") and telegram_time_due(settings.get("daily_matches_time"), force=force):
         results.append(enqueue_daily_matches(force=force))
     if settings.get("auto_daily_picks") and telegram_time_due(settings.get("daily_picks_time"), force=force):
-        results.append(enqueue_auto_pick_alerts(force=force, limit=as_int(os.getenv("MAX_AUTO_PICKS_PER_DAY", "4"), 4)))
+        results.append(enqueue_auto_pick_alerts(force=force, limit=cfg["max_auto_picks_per_tick"]))
         results.append(enqueue_daily_picks(force=force, force_empty=False))
     if settings.get("auto_live_alerts"):
         results.append(enqueue_live_alerts(force=force))
-    processed_queue = process_premium_telegram_queue(limit=5, force=force)
+    processed_queue = process_premium_telegram_queue(limit=cfg["max_queue_per_tick"], force=force)
     processed = sum(as_int(r.get("processed"), 0) for r in results) + as_int(processed_queue.get("processed"), 0)
     inserted = sum(as_int(r.get("inserted"), 0) for r in results)
     skipped = sum(as_int(r.get("skipped"), 0) for r in results) + as_int(processed_queue.get("skipped"), 0)

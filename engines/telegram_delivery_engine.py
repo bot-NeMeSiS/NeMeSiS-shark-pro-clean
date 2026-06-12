@@ -29,9 +29,9 @@ DEFAULT_SETTINGS = {
     "auto_daily_matches": True,
     "auto_daily_picks": False,
     "auto_live_alerts": False,
-    "daily_matches_time": "09:00",
-    "daily_picks_time": "11:00",
-    "max_messages_per_hour": 10,
+    "daily_matches_time": "10:00",
+    "daily_picks_time": "13:30",
+    "max_messages_per_hour": 1,
 }
 
 
