@@ -2,9 +2,9 @@
 {% block content %}
 <section class="hero compact-hero">
   <div class="kicker">Recomendaciones SHARK</div>
-  <h1>Oportunidades explicadas por membresia</h1>
-  <p class="lead">FREE recibe una vista limitada. PRO ve confianza, riesgo y value basico. ELITE desbloquea value avanzado, Auto Picks y mejores oportunidades.</p>
-  <div class="actions"><a class="btn primary" href="/picks">Picks publicados</a><a class="btn" href="/membresias">{{ data.membership.next_cta }}</a></div>
+  <h1>Oportunidades explicadas por membresía</h1>
+  <p class="lead">FREE recibe una vista limitada. PRO ve confianza, riesgo y value básico. ELITE desbloquea value avanzado, Auto Picks y mejores oportunidades.</p>
+  <div class="actions"><a class="btn primary" href="/picks">Picks publicados</a><a class="btn" href="/membresías">{{ data.membership.next_cta }}</a></div>
 </section>
 
 <section class="band compact-band">
@@ -31,13 +31,13 @@
     {% endfor %}
   </div>
   {% else %}
-  <div class="empty premium-empty"><strong>SHARK esta analizando los proximos partidos.</strong><p>Las recomendaciones apareceran cuando haya datos suficientes.</p></div>
+  <div class="empty premium-empty"><strong>SHARK está analizando los próximos partidos.</strong><p>Las recomendaciones apareceran cuando haya datos suficientes.</p></div>
   {% endif %}
 </section>
 
 {% if data.locked_recommendations %}
 <section class="band compact-band">
-  <div class="section-head"><h2>Premium bloqueado</h2><a class="pill" href="/membresias">Ver planes</a></div>
+  <div class="section-head"><h2>Premium bloqueado</h2><a class="pill" href="/membresías">Ver planes</a></div>
   <div class="grid dense-grid">
   {% for item in data.locked_recommendations %}
     <article class="card locked-feature"><span class="badge {{ item.badge.class }}">Disponible en {{ item.required }}</span><h3>{{ item.label }}</h3><p class="small">{{ item.message }}</p></article>

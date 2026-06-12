@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{{ title or 'NeMeSiS SHARK PRO' }}</title>
   <link rel="stylesheet" href="/static/app.css">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
 </head>
 <body>
   <header class="top">
@@ -90,6 +91,15 @@
     </div>
   </div>
   <script>
+  window.nemesisCsrfToken = function(){
+    const meta = document.querySelector('meta[name="csrf-token"]');
+    return meta ? meta.getAttribute('content') : '';
+  };
+  window.nemesisJsonHeaders = function(extra){
+    return Object.assign({'Content-Type':'application/json','X-CSRF-Token': window.nemesisCsrfToken()}, extra || {});
+  };
+  </script>
+  <script>
   (function(){
     const fab=document.getElementById('sharkFab');
     const panel=document.getElementById('sharkPanel');
@@ -103,7 +113,7 @@
       q=(q||'').trim(); if(!q) return; add(q,'user'); if(input) input.value='';
       const thinking=add('SHARK está revisando partidos, picks, cuotas y riesgo...', 'bot thinking');
       try{
-        const r=await fetch('/api/shark/ask',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:q})});
+        const r=await fetch('/api/shark/ask',{method:'POST',headers:window.nemesisJsonHeaders(),body:JSON.stringify({question:q})});
         const j=await r.json();
         let answer=(j.shark&&j.shark.answer)||j.message||'SHARK no pudo responder ahora mismo.';
         thinking.textContent=answer; thinking.classList.remove('thinking');
@@ -124,7 +134,7 @@
       if(!payload.value) return;
       btn.disabled=true;
       try{
-        const res=await fetch('/api/favorites',{method:active?'DELETE':'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+        const res=await fetch('/api/favorites',{method:active?'DELETE':'POST',headers:window.nemesisJsonHeaders(),body:JSON.stringify(payload)});
         const data=await res.json();
         if(data.ok!==false){
           btn.classList.toggle('active',!active);

@@ -3,7 +3,7 @@
 <section class="hero compact">
   <div class="kicker">SportsDB Feed</div>
   <h1>Sincronizar partidos reales</h1>
-  <p class="lead">Importa proximos partidos y livescores permitidos por TheSportsDB Premium, los guarda en SQLite y deja Match Hub/Live leyendo datos cacheados.</p>
+  <p class="lead">Importa próximos partidos y livescores permitidos por TheSportsDB Premium, los guarda en SQLite y deja Match Hub/Live leyendo datos cacheados.</p>
   <div class="admin-menu">
     <a class="btn" href="/admin/users">Usuarios</a>
     <a class="btn" href="/admin/sportsdb-sync">Escudos</a>
@@ -23,7 +23,7 @@
   {% if message %}<div class="notice">{{ message }}</div>{% endif %}
   <form class="card" method="post" action="/admin/sportsdb-feed">
     <h2>Sincronizar partidos reales</h2>
-    <p class="small">Usa eventos de dia, proximos partidos por liga y livescores si `ENABLE_LIVE_API=true` esta activo.</p>
+    <p class="small">Usa eventos de día, próximos partidos por liga y livescores si `ENABLE_LIVE_API=true` está activo.</p>
     <div class="field"><label>Limite por ejecucion</label><input name="limit" value="80"></div>
     <button type="submit">Sincronizar partidos reales</button>
   </form>

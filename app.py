@@ -19,6 +19,13 @@ from flask import Flask, Response, abort, has_request_context, jsonify, redirect
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from database_manager import connect as sqlite_connect, retry_locked
+from engines.security_engine import (
+    generate_csrf_token,
+    rate_limit_status,
+    record_security_event,
+    secure_secret_key,
+    validate_csrf,
+)
 from engines.cache_engine import cache_health
 from engines.crest_engine import crest_status
 from engines.data_memory_engine import (
@@ -114,7 +121,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V728_FINAL_CLIENT_EXPERIENCE_MADRID_TIME_LIVE_POLISH"
+APP_VERSION = "V729_SECURITY_STABILITY_VISUAL_QA_FOUNDATION"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -122,7 +129,7 @@ COMBI_MIN_LEGS = 2
 COMBI_MAX_LEGS = 15
 
 app = Flask(__name__)
-app.secret_key = os.getenv("SECRET_KEY") or os.getenv("FLASK_SECRET_KEY") or secrets.token_hex(32)
+app.secret_key = secure_secret_key()
 SEED_LOCK = threading.RLock()
 _SEED_LOCK = SEED_LOCK
 _SEEDED_DB_PATH = None
@@ -172,6 +179,112 @@ def telegram_env_auto_enabled():
 
 def scheduler_env_enabled():
     return env_bool("SCHEDULER_ENABLED", env_bool("ENABLE_AUTO_SYNC", True))
+
+
+def security_client_ip():
+    forwarded = request.headers.get("X-Forwarded-For", "") if has_request_context() else ""
+    if forwarded:
+        return forwarded.split(",", 1)[0].strip()
+    return (request.remote_addr or "local") if has_request_context() else "local"
+
+
+def csrf_exempt_path(path: str) -> bool:
+    path = str(path or "")
+    exact = {
+        "/telegram/webhook",
+        "/api/automation/telegram/tick",
+        "/api/automation/daily/run",
+    }
+    prefixes = (
+        "/static/",
+        "/team-crest.svg",
+    )
+    if path in exact:
+        return True
+    if any(path.startswith(prefix) for prefix in prefixes):
+        return True
+    # These legacy automation/import endpoints are already protected by admin session
+    # or automation secret. Keep CSRF strict for login/register/admin forms and
+    # normal client actions, but avoid breaking external cron/webhook style calls.
+    if path.startswith("/api/v495/telegram-auto-run"):
+        return True
+    return False
+
+
+def request_csrf_token():
+    token = request.form.get("csrf_token") or request.headers.get("X-CSRF-Token") or request.headers.get("X-CSRFToken")
+    if not token and request.is_json:
+        payload = request.get_json(silent=True) or {}
+        token = payload.get("csrf_token")
+    return token or ""
+
+
+def csrf_failure_response():
+    record_security_event(
+        DB_PATH,
+        event_type="csrf_block",
+        severity="WARN",
+        ip_address=security_client_ip(),
+        path=request.path,
+        method=request.method,
+        success=False,
+        reason="token_csrf_invalido_o_ausente",
+    )
+    if request.path.startswith("/api/") or request.is_json:
+        return jsonify({"ok": False, "error": "csrf_required", "message": "Sesión caducada o formulario no válido. Recarga la página e inténtalo de nuevo."}), 403
+    return Response("Sesión caducada o formulario no válido. Recarga la página e inténtalo de nuevo.", status=403, mimetype="text/plain; charset=utf-8")
+
+
+def rate_limit_failure_response(scope: str, status: dict):
+    record_security_event(
+        DB_PATH,
+        event_type="rate_limit_block",
+        severity="WARN",
+        ip_address=security_client_ip(),
+        path=request.path,
+        method=request.method,
+        success=False,
+        reason=f"{scope}: demasiados intentos",
+        payload={"status": status},
+    )
+    message = "Demasiados intentos seguidos. Espera unos minutos y vuelve a probar."
+    if request.path.startswith("/api/") or request.is_json:
+        return jsonify({"ok": False, "error": "rate_limited", "message": message, "window_minutes": status.get("window_minutes")}), 429
+    return Response(message, status=429, mimetype="text/plain; charset=utf-8")
+
+
+def security_rate_limit_for_request():
+    if request.method not in {"POST", "PUT", "PATCH", "DELETE"}:
+        return None
+    path = request.path or ""
+    ip = security_client_ip()
+    rules = [
+        (("/cliente-login", "/login", "/entrar", "/admin-login"), "login_attempt", 8, 15, "login"),
+        (("/registro",), "registration_attempt", 5, 30, "registro"),
+        (("/forgot-password", "/admin-forgot-password"), "password_reset_request", 5, 30, "recuperacion"),
+        (("/reset-password", "/admin-reset-password"), "password_reset_change", 6, 30, "cambio_password"),
+        (("/api/admin/telegram/test-send",), "telegram_test_send", 4, 60, "telegram_test_send"),
+    ]
+    for prefixes, event_type, limit, minutes, scope in rules:
+        if any(path == prefix or path.startswith(prefix + "/") for prefix in prefixes):
+            status = rate_limit_status(DB_PATH, event_type=event_type, ip_address=ip, path_like=f"{prefixes[0]}%", limit=limit, minutes=minutes)
+            if status.get("blocked"):
+                return rate_limit_failure_response(scope, status)
+    return None
+
+
+def security_event_for_auth(event_type: str, success: bool, username: str = "", reason: str = "") -> None:
+    record_security_event(
+        DB_PATH,
+        event_type=event_type,
+        severity="INFO" if success else "WARN",
+        ip_address=security_client_ip(),
+        username=str(username or "")[:120],
+        path=request.path if has_request_context() else "",
+        method=request.method if has_request_context() else "",
+        success=success,
+        reason=reason,
+    )
 
 
 def daily_automation_env_enabled():
@@ -1463,6 +1576,48 @@ def ensure_runtime_ready_for_request():
         except Exception:
             pass
     return None
+
+
+@app.before_request
+def enforce_security_guards():
+    # Token exists before rendering pages and before validating later POSTs.
+    try:
+        generate_csrf_token(session)
+    except Exception:
+        pass
+    limited = security_rate_limit_for_request()
+    if limited is not None:
+        return limited
+    if request.method in {"POST", "PUT", "PATCH", "DELETE"} and not csrf_exempt_path(request.path):
+        if not validate_csrf(session, request_csrf_token()):
+            return csrf_failure_response()
+    return None
+
+
+@app.context_processor
+def inject_security_context():
+    token = generate_csrf_token(session)
+    return {"csrf_token": lambda: token, "csrf_token_value": token}
+
+
+@app.after_request
+def apply_security_headers_and_csrf(response):
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
+    response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+    response.headers.setdefault("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
+    try:
+        if response.mimetype == "text/html" and not response.direct_passthrough:
+            body = response.get_data(as_text=True)
+            token = generate_csrf_token(session)
+            if 'name="csrf_token"' not in body:
+                hidden = f'<input type="hidden" name="csrf_token" value="{token}">'
+                body = re.sub(r'(<form\b(?=[^>]*method=["\']?post["\']?)[^>]*>)', r'\1' + hidden, body, flags=re.IGNORECASE)
+            response.set_data(body)
+            response.headers["Content-Length"] = str(len(response.get_data()))
+    except Exception:
+        pass
+    return response
 
 
 def one(query, params=()):
@@ -7940,9 +8095,11 @@ def register_page():
                 request.form.get("email"),
                 request.form.get("password"),
             )
+            security_event_for_auth("registration_attempt", True, request.form.get("username") or request.form.get("email"), "registro_correcto")
             set_login_session(user)
             return redirect("/perfil")
         except ValueError as exc:
+            security_event_for_auth("registration_attempt", False, request.form.get("username") or request.form.get("email"), str(exc)[:180])
             error = str(exc)
     return render_template("register.html", data=home_light_data(), error=error)
 
@@ -7958,9 +8115,11 @@ def client_login_page():
         identifier = request.form.get("login") or request.form.get("email") or request.form.get("username")
         user = authenticate_user(identifier, request.form.get("password"))
         if user:
+            security_event_for_auth("login_attempt", True, identifier, "cliente_login_correcto")
             set_login_session(user)
             return redirect("/perfil")
-        error = "Email, usuario o contrasena incorrectos."
+        security_event_for_auth("login_attempt", False, identifier, "credenciales_cliente_invalidas")
+        error = "Email, usuario o contraseña incorrectos."
     return render_template("client_login.html", data=home_light_data(), error=error)
 
 
@@ -7969,7 +8128,9 @@ def forgot_password_page():
     message = ""
     diagnostic_url = ""
     if request.method == "POST":
-        result = password_reset_request(request.form.get("login") or request.form.get("email"), scope="client")
+        identifier = request.form.get("login") or request.form.get("email")
+        security_event_for_auth("password_reset_request", True, identifier, "solicitud_cliente")
+        result = password_reset_request(identifier, scope="client")
         diagnostic_url = result.get("diagnostic_reset_url") or ""
         message = "Si existe una cuenta con esos datos, recibirás un enlace para restablecer la contraseña."
     return render_template("password_reset_request.html", data=home_light_data(), message=message, diagnostic_url=diagnostic_url, admin=False)
@@ -8000,9 +8161,11 @@ def admin_login_page():
         if not user:
             user = authenticate_user(request.form.get("login"), request.form.get("password"), admin_only=True)
         if user:
+            security_event_for_auth("login_attempt", True, request.form.get("login"), "admin_login_correcto")
             set_login_session(user)
             return redirect(request.args.get("next") or "/admin/import-center")
-        error = "Acceso admin no valido."
+        security_event_for_auth("login_attempt", False, request.form.get("login"), "credenciales_admin_invalidas")
+        error = "Acceso admin no válido."
     return render_template("admin_login.html", data=home_light_data(), error=error, configured=configured)
 
 
@@ -8011,7 +8174,9 @@ def admin_forgot_password_page():
     message = ""
     diagnostic_url = ""
     if request.method == "POST":
-        result = password_reset_request(request.form.get("login") or request.form.get("email"), scope="admin")
+        identifier = request.form.get("login") or request.form.get("email")
+        security_event_for_auth("password_reset_request", True, identifier, "solicitud_admin")
+        result = password_reset_request(identifier, scope="admin")
         diagnostic_url = result.get("diagnostic_reset_url") or ""
         message = "Si existe una cuenta admin con esos datos, recibirás un enlace para restablecer la contraseña."
     return render_template("password_reset_request.html", data=home_light_data(), message=message, diagnostic_url=diagnostic_url, admin=True)
