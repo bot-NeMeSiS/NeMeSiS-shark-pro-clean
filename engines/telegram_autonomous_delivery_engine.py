@@ -1,6 +1,7 @@
 import hashlib
 import json
 import sqlite3
+import re
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
@@ -103,6 +104,44 @@ def _allowed(user_membership, target):
     return _membership_rank(user_membership) >= _membership_rank(target)
 
 
+def _clean_text(value, limit=180):
+    text = re.sub(r"\s+", " ", str(value or "")).strip()
+    text = re.sub(r"\b(None|null|undefined|nan)\b", "", text, flags=re.I).strip()
+    return text if len(text) <= limit else text[: max(0, limit - 1)].rstrip() + "…"
+
+
+def _valid_odds(value):
+    try:
+        odds = float(str(value).replace(",", "."))
+    except Exception:
+        return ""
+    if odds <= 1:
+        return ""
+    return f"{odds:.2f}".rstrip("0").rstrip(".")
+
+
+def _selection_label(pick):
+    raw = str(pick.get('selection') or pick.get('pick_type') or 'Pick SHARK').strip()
+    home = pick.get('home_team') or 'Local'
+    away = pick.get('away_team') or 'Visitante'
+    low = raw.lower()
+    if re.search(r"(esperar|pendiente|sin cuota|value en c[aá]lculo|undefined|null|none)", raw, flags=re.I):
+        return ''
+    if low in {'home', 'local', '1'}:
+        return f"Gana {home}"
+    if low in {'away', 'visitante', '2'}:
+        return f"Gana {away}"
+    if low in {'draw', 'empate', 'x'}:
+        return 'Empate'
+    over = re.search(r"over\s*([0-9]+(?:[\.,][0-9]+)?)", raw, flags=re.I)
+    if over:
+        return f"Más de {over.group(1).replace(',', '.')} goles"
+    under = re.search(r"under\s*([0-9]+(?:[\.,][0-9]+)?)", raw, flags=re.I)
+    if under:
+        return f"Menos de {under.group(1).replace(',', '.')} goles"
+    return _clean_text(raw, 90)
+
+
 def _queue_insert(conn, *, chat_id, user_id, membership, message_type, title, body, priority, source_key, campaign_id):
     now = _now()
     dedupe = f"auto:{_date_key()}:{message_type}:{source_key}:{chat_id or user_id or 'global'}"
@@ -189,32 +228,50 @@ def _matches_today(conn, limit=6):
 
 def _pick_message(pick, elite=False):
     teams = f"{pick.get('home_team') or 'Local'} vs {pick.get('away_team') or 'Visitante'}"
-    selection = pick.get('selection') or pick.get('pick_type') or 'Recomendación SHARK'
-    odds = pick.get('odds') or '-'
-    confidence = pick.get('confidence') or 0
-    risk = pick.get('risk_level') or 'MEDIO'
-    reason = pick.get('reasoning') or 'SHARK detecta valor por datos, confianza y contexto disponible.'
-    title = ('🦈 Pick ELITE detectado' if elite else '🦈 Pick PRO detectado')
-    body = f"{title}\n\n{teams}\nMercado: {selection}\nCuota: {odds}\nConfianza SHARK: {confidence}%\nRiesgo: {risk}\n\nMotivo: {reason}\n\nJuego responsable: apuesta solo con control de banca."
+    selection = _selection_label(pick) or 'Pick SHARK'
+    odds = _valid_odds(pick.get('odds')) or 'cuota real pendiente'
+    confidence = int(float(pick.get('confidence') or 0))
+    risk = _clean_text(pick.get('risk_level') or 'Medio', 40)
+    reason = _clean_text(pick.get('reasoning') or 'SHARK detecta señal positiva con los datos disponibles.', 180)
+    title = ('🦈 ELITE SHARK SIGNAL' if elite else '🦈 PICK SHARK PREMIUM')
+    body = (
+        f"{title}\n\n"
+        f"{teams}\n\n"
+        f"✅ Pick: {selection}\n"
+        f"💰 Cuota: {odds}\n"
+        f"📌 Stake: 1/10\n"
+        f"📊 Confianza SHARK: {confidence}/100\n"
+        f"⚠️ Riesgo: {risk}\n\n"
+        f"Motivo: {reason}\n\n"
+        f"Precaución: revisar contexto y no subir stake si la cuota baja.\n"
+        f"Juego responsable: ningún pick garantiza resultado."
+    )
     return title, body
 
 
 def _briefing_message(matches, picks):
-    lines = ['🦈 Resumen diario NeMeSiS SHARK PRO', '']
+    lines = ['🦈 RESUMEN SHARK DEL DÍA', '']
+    lines.append(f"⚽ Partidos monitorizados: {len(matches or [])}")
+    valid_picks = [p for p in (picks or []) if _valid_odds(p.get('odds')) and _selection_label(p)]
+    lines.append(f"✅ Picks premium listos: {len(valid_picks)}")
+    lines.append('')
     if matches:
-        lines.append('Partidos destacados de hoy:')
+        lines.append('Partidos destacados:')
         for m in matches[:5]:
             lines.append(f"• {m.get('home_team','Local')} vs {m.get('away_team','Visitante')} — {m.get('competition_name','Competición')}")
     else:
         lines.append('Hoy no hay partidos destacados cargados todavía. SHARK seguirá revisando datos.')
-    if picks:
+    if valid_picks:
         lines.append('')
-        lines.append('Oportunidades en observación:')
-        for p in picks[:3]:
-            lines.append(f"• {p.get('home_team','Local')} vs {p.get('away_team','Visitante')} → {p.get('selection') or p.get('pick_type') or 'Pick'}")
+        lines.append('Top señales con cuota real:')
+        for p in valid_picks[:3]:
+            lines.append(f"• {p.get('home_team','Local')} vs {p.get('away_team','Visitante')} → {_selection_label(p)} @{_valid_odds(p.get('odds'))}")
+    else:
+        lines.append('')
+        lines.append('No hay picks premium cerrados ahora mismo. Mejor esperar que enviar señales débiles.')
     lines.append('')
-    lines.append('El admin supervisa. SHARK vigila.')
-    return '🦈 Resumen diario', '\n'.join(lines)
+    lines.append('Apuesta siempre con responsabilidad. SHARK prioriza calidad antes que cantidad.')
+    return '🦈 Resumen SHARK del día', '\n'.join(lines)
 
 
 def run_telegram_autonomous_delivery(db_path, limit=30, force=False):

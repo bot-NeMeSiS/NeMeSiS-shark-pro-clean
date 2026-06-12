@@ -25,15 +25,15 @@
     </div>
   </div>
   <aside class="hero-panel premium-scoreboard">
-    <div class="panel-top"><span>Radar deportivo</span><strong>Activo</strong></div>
+    <div class="panel-top"><span>Estado app</span><strong>{{ data.version }}</strong></div>
     <div class="live-strip mini-live-strip">
       <div><span>Próximos</span><strong>{{ data.match_hub.counts.upcoming }}</strong></div>
       <div><span>Live</span><strong>{{ data.match_hub.counts.live }}</strong></div>
       <div><span>Picks</span><strong>{{ data.picks|length }}</strong></div>
-      <div><span>Telegram</span><strong>Alertas</strong></div>
+      <div><span>Favs</span><strong>{{ data.favorites|length }}</strong></div>
     </div>
     <div class="signal"><span>Calendario</span><i style="width:{{ data.readiness.calendar }}%"></i></div>
-    <div class="signal"><span>Directo</span><i style="width:{{ data.readiness.live_foundation }}%"></i></div>
+    <div class="signal"><span>Live foundation</span><i style="width:{{ data.readiness.live_foundation }}%"></i></div>
     <div class="signal"><span>SHARK IA</span><i style="width:{{ data.readiness.shark_ai }}%"></i></div>
   </aside>
 </section>
@@ -63,12 +63,12 @@
     <div class="quick-actions quick-actions-polish">
       <a class="quick primary" href="/mi-dia"><span>Mi día</span><strong>{{ data.daily_briefing.score }}%</strong></a>
       <a class="quick" href="/match-hub"><span>Calendario</span><strong>Ver</strong></a>
-      <a class="quick" href="/resultados"><span>Resultados</span><strong>Final</strong></a>
+      <a class="quick" href="/resultados"><span>Resultados</span><strong>FT</strong></a>
       <a class="quick" href="/live"><span>Directos</span><strong>Live</strong></a>
       <a class="quick" href="/picks"><span>Picks</span><strong>Pro</strong></a>
       <a class="quick" href="/combis"><span>Combis</span><strong>2-15</strong></a>
       <a class="quick" href="/favorites"><span>Favoritos</span><strong>Mi feed</strong></a>
-      <a class="quick" href="/telegram"><span>Telegram</span><strong>Alertas</strong></a>
+      <a class="quick" href="/telegram"><span>Telegram</span><strong>Auto</strong></a>
       <a class="quick" href="/shark"><span>SHARK IA</span><strong>ðŸ¦ˆ</strong></a>
     </div>
   </div>
@@ -78,8 +78,8 @@
   <div class="section-head"><h2>Qué lo hace diferente</h2><span class="pill">Producto real</span></div>
   <div class="grid compact-grid">
     <article class="card service-card"><h3>Todo guardado</h3><p class="small">Favoritos, picks y seguimiento preparados para crecer contigo.</p></article>
-    <article class="card service-card"><h3>Datos responsables</h3><p class="small">Partidos y cuotas se muestran solo cuando hay informaci?n permitida.</p></article>
-    <article class="card service-card"><h3>App limpia</h3><p class="small">Inicio, directo, picks, favoritos y perfil sin ruido t?cnico.</p></article>
+    <article class="card service-card"><h3>Datos responsables</h3><p class="small">Partidos y cuotas se muestran solo cuando hay informacion permitida.</p></article>
+    <article class="card service-card"><h3>App limpia</h3><p class="small">Inicio, live, picks, favoritos y perfil sin ruido tecnico.</p></article>
     <article class="card service-card"><h3>Experiencia ordenada</h3><p class="small">Navegacion simple, favoritos, live, picks y SHARK en una app compacta.</p></article>
   </div>
 </section>

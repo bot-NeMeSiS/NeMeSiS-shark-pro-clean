@@ -33,18 +33,9 @@
       <p class="small">Envía <strong>{{ state.command }}</strong> al bot. Caduca en 24 horas.</p>
       <div class="actions compact-actions-v637">
         {% if state.deep_link %}<a class="btn primary" href="{{ state.deep_link }}" target="_blank" rel="noopener">Abrir bot y vincular</a>{% endif %}
-        <button class="btn" type="button" data-copy-telegram-code="{{ state.command }}">Copiar código</button>
         <form method="post" action="/telegram/regenerar-codigo"><button class="btn" type="submit">Nuevo código</button></form>
       </div>
     {% endif %}
-  </div>
-  <div class="card telegram-status-card-v637">
-    <div class="section-head"><h2>Cómo vincularlo</h2><span class="pill">1 minuto</span></div>
-    <div class="stack">
-      <div class="list-row"><span>1. Abre el bot oficial</span><strong>Telegram</strong></div>
-      <div class="list-row"><span>2. Envía tu código</span><strong>/start</strong></div>
-      <div class="list-row"><span>3. Recibe alertas según tu plan</span><strong>{{ tier }}</strong></div>
-    </div>
   </div>
   <div class="card telegram-status-card-v637">
     <div class="section-head"><h2>Qué recibirás</h2><span class="pill">{{ tier }}</span></div>
@@ -56,16 +47,4 @@
     <p class="small muted">Las alertas se adaptan a tu plan y solo se envían cuando SHARK detecta información útil.</p>
   </div>
 </section>
-<script>
-(function(){
-  document.addEventListener('click', async function(e){
-    const btn=e.target.closest('[data-copy-telegram-code]');
-    if(!btn) return;
-    const code=btn.getAttribute('data-copy-telegram-code')||'';
-    try{ await navigator.clipboard.writeText(code); btn.textContent='Copiado'; }
-    catch(_){ btn.textContent='Copia el código de arriba'; }
-    setTimeout(()=>{ btn.textContent='Copiar código'; },1800);
-  });
-})();
-</script>
 {% endblock %}

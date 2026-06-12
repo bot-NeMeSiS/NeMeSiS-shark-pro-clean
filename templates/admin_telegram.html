@@ -27,35 +27,6 @@
   </div>
 </section>
 
-<section class="band compact-band">
-  <div class="section-head"><h2>Render Cron y variables</h2><span class="pill">seguro</span></div>
-  <div class="grid compact-grid">
-    <div class="card"><div class="kicker">Telegram Tick</div><strong>{{ data.telegram_delivery.last_cron_telegram_call.time or 'Sin llamada' }}</strong><p class="small">{{ data.telegram_delivery.last_cron_telegram_detail.status or data.telegram_delivery.last_cron_telegram_detail.result.status or 'Sin detalle' }}</p></div>
-    <div class="card"><div class="kicker">Daily Run</div><strong>{{ data.telegram_delivery.last_cron_daily_call.time or 'Sin llamada' }}</strong><p class="small">{{ data.telegram_delivery.last_cron_daily_detail.status or 'Sin detalle' }}</p></div>
-    <div class="card"><div class="kicker">Token bot</div><strong>{% if data.telegram_delivery.env_flags.TELEGRAM_BOT_TOKEN %}Configurado{% else %}Pendiente{% endif %}</strong><p class="small">Nunca se muestra el valor completo.</p></div>
-    <div class="card"><div class="kicker">Canal</div><strong>{% if data.telegram_delivery.env_flags.TELEGRAM_CHAT_ID %}Configurado{% else %}Pendiente{% endif %}</strong><p class="small">Chat ID oculto en respuestas públicas.</p></div>
-    <div class="card"><div class="kicker">Secret Cron</div><strong>{% if data.telegram_delivery.env_flags.AUTOMATION_SECRET %}Configurado{% else %}Pendiente{% endif %}</strong><p class="small">Rotar si se probó desde navegador.</p></div>
-    <div class="card"><div class="kicker">APIs deportivas</div><strong>{% if data.telegram_delivery.env_flags.THE_ODDS_API_KEY or data.telegram_delivery.env_flags.THESPORTSDB_API_KEY %}Parcial/OK{% else %}Pendiente{% endif %}</strong><p class="small">The Odds API y TheSportsDB solo como configured true/false.</p></div>
-  </div>
-</section>
-
-<section class="band compact-band">
-  <div class="section-head"><h2>Descartes de picks</h2><span class="pill">{{ data.telegram_delivery.auto_pick_health.discarded or 0 }}</span></div>
-  <div class="grid compact-grid">
-    <div class="card"><div class="metric">{{ data.telegram_delivery.auto_pick_health.candidates or 0 }}</div><div class="muted">candidatos</div></div>
-    <div class="card"><div class="metric">{{ data.telegram_delivery.auto_pick_health.sendable or 0 }}</div><div class="muted">enviables</div></div>
-    <div class="card"><div class="metric">{{ data.telegram_delivery.auto_pick_health.missing_odds or 0 }}</div><div class="muted">sin cuota real</div></div>
-    <div class="card"><div class="metric">{{ data.telegram_delivery.auto_pick_health.discarded or 0 }}</div><div class="muted">descartados</div></div>
-  </div>
-  <div class="stack">
-    {% for reason in data.telegram_delivery.auto_pick_health.discard_reasons[:8] %}
-    <div class="list-row"><span>{{ reason.reason }}</span><strong>{{ reason.total }}</strong></div>
-    {% else %}
-    <div class="empty">Sin descartes relevantes registrados.</div>
-    {% endfor %}
-  </div>
-</section>
-
 <section class="band form-grid compact-band">
   <form class="card" method="post" action="/admin/telegram">
     <h2>Estado</h2>

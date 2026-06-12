@@ -71,7 +71,7 @@ from engines.spanish_localization_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V716_TESTING_VALIDATION_POLISH"
+APP_VERSION = "V717_1_TELEGRAM_PREMIUM_MESSAGE_ENGINE"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -80,11 +80,6 @@ COMBI_MAX_LEGS = 15
 
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY") or os.getenv("FLASK_SECRET_KEY") or secrets.token_hex(32)
-app.config.update(
-    SESSION_COOKIE_HTTPONLY=True,
-    SESSION_COOKIE_SAMESITE="Lax",
-    SESSION_COOKIE_SECURE=bool(os.getenv("RENDER") or os.getenv("RENDER_SERVICE_ID") or str(os.getenv("SESSION_COOKIE_SECURE", "")).strip().lower() in {"1", "true", "yes", "on"}),
-)
 SEED_LOCK = threading.RLock()
 _SEED_LOCK = SEED_LOCK
 _SEEDED_DB_PATH = None
@@ -218,152 +213,6 @@ def automation_json_forbidden():
     }), 403
 
 
-def ensure_csrf_token():
-    token = session.get("_csrf_token")
-    if not token:
-        token = secrets.token_urlsafe(32)
-        session["_csrf_token"] = token
-    return token
-
-
-def csrf_valid():
-    expected = session.get("_csrf_token") or ""
-    provided = (
-        request.form.get("_csrf_token")
-        or request.headers.get("X-CSRF-Token")
-        or request.headers.get("X-CSRFToken")
-        or ""
-    )
-    return bool(expected and provided and secrets.compare_digest(str(provided), str(expected)))
-
-
-def csrf_exempt_path(path):
-    return (
-        path.startswith("/api/")
-        or path == "/telegram/webhook"
-        or path == "/service-worker.js"
-    )
-
-
-INTERNAL_API_PREFIXES = (
-    "/api/admin/",
-    "/api/scheduler/",
-    "/api/data-center/",
-    "/api/sportsdb/sync-",
-    "/api/odds/sync-",
-    "/api/import-",
-    "/api/telegram/",
-    "/api/observability/",
-    "/api/security/",
-    "/api/architecture/",
-    "/api/v608/",
-)
-
-INTERNAL_API_PATHS = {
-    "/api/diagnostics",
-    "/api/cache/status",
-    "/api/imports",
-    "/api/crest-diagnostics",
-    "/api/thesportsdb/diagnostics",
-    "/api/odds/diagnostics",
-    "/api/matches/diagnostics",
-    "/api/startup-check",
-    "/api/full-audit-report",
-    "/api/route-check",
-    "/api/deep-route-check",
-    "/api/v566/product-polish-check",
-    "/api/system/v570-check",
-    "/api/automation-status",
-    "/api/quality-center/summary",
-    "/api/picks/create",
-    "/api/picks/update",
-    "/api/picks/publish",
-    "/api/picks/archive",
-    "/api/import-picks",
-    "/api/v565/convert-recommendation",
-}
-
-PUBLIC_API_PREFIXES = (
-    "/api/automation/",
-    "/api/client/",
-    "/api/matches/",
-    "/api/teams/",
-)
-
-PUBLIC_API_PATHS = {
-    "/api/health",
-    "/api/runtime-version",
-    "/api/calendar",
-    "/api/live",
-    "/api/match-hub",
-    "/api/live-flow",
-    "/api/ecosystem/state",
-    "/api/realtime/state",
-    "/api/live/state",
-    "/api/favorites",
-    "/api/favorites/feed",
-    "/api/picks",
-    "/api/picks/stats",
-    "/api/combis",
-    "/api/combis/build",
-    "/api/profile",
-    "/api/membership",
-    "/api/shark/briefing",
-    "/api/shark/ask",
-    "/api/shark/context",
-    "/api/competitions",
-    "/api/recommendations",
-    "/api/timezone-check",
-    "/api/autonomous-picks/status",
-    "/api/route-check",
-    "/api/deep-route-check",
-    "/api/client-experience-check",
-    "/api/product-experience-check",
-    "/api/client/app-pulse",
-    "/api/client/onboarding-check",
-    "/api/team/resolve",
-    "/api/shark/core-summary",
-    "/api/v565/recommendations",
-    "/api/v565/sports-data-picks-check",
-}
-
-
-def internal_api_requires_protection(path):
-    if path in INTERNAL_API_PATHS:
-        return True
-    if any(path.startswith(prefix) for prefix in INTERNAL_API_PREFIXES):
-        # Keep user Telegram link status available to logged-in clients.
-        return path != "/api/telegram/link-status"
-    if path in PUBLIC_API_PATHS or any(path.startswith(prefix) for prefix in PUBLIC_API_PREFIXES):
-        return False
-    return False
-
-
-@app.context_processor
-def inject_security_helpers():
-    return {"csrf_token": ensure_csrf_token}
-
-
-@app.before_request
-def v715_security_gate():
-    path = request.path or ""
-    if request.method == "POST" and not csrf_exempt_path(path) and not csrf_valid():
-        return jsonify({"ok": False, "version": APP_VERSION, "error": "csrf_required", "message": "Formulario caducado. Recarga la página e inténtalo de nuevo."}), 403
-    if internal_api_requires_protection(path) and not automation_access_allowed():
-        return admin_json_forbidden()
-
-
-@app.after_request
-def v715_security_headers(response):
-    response.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
-    response.headers.setdefault("X-Content-Type-Options", "nosniff")
-    response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
-    response.headers.setdefault("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
-    if request.path.startswith("/admin") or request.path.startswith("/api/telegram") or request.path.startswith("/api/scheduler"):
-        response.headers.setdefault("Cache-Control", "no-store")
-    return response
-
-
 def automation_safe_set(key, value):
     try:
         seed_core()
@@ -405,6 +254,37 @@ def cron_force_requested():
     )
 
 
+def _cron_compact_payload(endpoint, result, called_at, finished_at, force=False):
+    result = result or {}
+    compact = {
+        "ok": bool(result.get("ok", False)),
+        "endpoint": endpoint,
+        "version": APP_VERSION,
+        "status": result.get("status") or result.get("message") or ("OK" if result.get("ok") else "ERROR"),
+        "cron": True,
+        "processed": as_int(result.get("processed"), 0),
+        "inserted": as_int(result.get("inserted"), 0),
+        "sent": as_int(result.get("sent"), 0),
+        "failed": as_int(result.get("failed"), 0),
+        "skipped": as_int(result.get("skipped"), 0),
+        "force": bool(force),
+        "called_at": called_at,
+        "finished_at": finished_at,
+    }
+    if endpoint == "daily_run":
+        compact.update({
+            "matches_synced": as_int(result.get("matches_synced"), 0),
+            "picks_generated": as_int(result.get("picks_generated"), 0),
+            "picks_sent": as_int(result.get("picks_sent") or result.get("sent"), 0),
+            "backups_created": as_int(result.get("backups_created"), 0),
+        })
+    if result.get("error"):
+        compact["error"] = str(result.get("error"))[:120]
+    if result.get("errors"):
+        compact["errors_count"] = len(result.get("errors") or [])
+    return compact
+
+
 def automation_cron_result(endpoint, state_keys, runner, force=False):
     called_at = now_iso()
     state_payload = {"time": called_at, "force": bool(force), "source": "render_cron", "endpoint": endpoint, "version": APP_VERSION}
@@ -426,25 +306,17 @@ def automation_cron_result(endpoint, state_keys, runner, force=False):
             "detail": str(exc)[:500],
         }
     finished_at = now_iso()
-    final_payload = {
-        "ok": bool(result.get("ok", False)),
-        "version": APP_VERSION,
-        "cron": True,
-        "endpoint": endpoint,
-        "auth": "automation_secret",
+    compact = _cron_compact_payload(endpoint, result, called_at, finished_at, force=force)
+    compact["state_saved"] = all(item.get("ok") for item in state_results)
+    # El detalle largo queda solo para admin/diagnóstico interno, no en la respuesta pública del Cron.
+    automation_safe_set(f"{endpoint}_last_detail", {
         "called_at": called_at,
         "finished_at": finished_at,
-        "force": bool(force),
-        "state_saved": all(item.get("ok") for item in state_results),
+        "compact": compact,
+        "result": result,
         "state_save_results": state_results,
-    }
-    final_payload.update(result)
-    final_payload["ok"] = bool(result.get("ok", final_payload["ok"]))
-    final_payload["version"] = APP_VERSION
-    final_payload["cron"] = True
-    final_payload["diagnostics"] = telegram_diagnostics_safe()
-    return jsonify(final_payload), 200
-
+    })
+    return jsonify(compact), 200
 
 def telegram_env_ready():
     return env_present("TELEGRAM_BOT_TOKEN") and env_present("TELEGRAM_CHAT_ID")
@@ -3699,39 +3571,7 @@ def normalize_pick_row(pick):
     pick["warning_reason"] = pick.get("warning_reason") or "Gestiona stake y evita perseguir pérdidas."
     pick["result_status"] = str(pick.get("result_status") or "pending").lower()
     pick = apply_pick_localization(pick)
-    pick["selection"] = client_selection_label(pick.get("selection"), pick)
     return pick
-
-
-def client_selection_label(selection, pick=None):
-    pick = dict(pick or {})
-    raw = str(selection or "").strip()
-    if not raw:
-        return ""
-    norm = normalized_label(raw)
-    home = spanish_team_name(pick.get("home_team") or "equipo local")
-    away = spanish_team_name(pick.get("away_team") or "equipo visitante")
-    mapping = {
-        "local": f"Gana {home}",
-        "home": f"Gana {home}",
-        "1": f"Gana {home}",
-        "visitante": f"Gana {away}",
-        "away": f"Gana {away}",
-        "2": f"Gana {away}",
-        "empate": "Empate",
-        "draw": "Empate",
-        "x": "Empate",
-        "over 2 5": "Más de 2.5 goles",
-        "over25": "Más de 2.5 goles",
-        "mas de 2 5 goles": "Más de 2.5 goles",
-        "under 2 5": "Menos de 2.5 goles",
-        "under25": "Menos de 2.5 goles",
-        "menos de 2 5 goles": "Menos de 2.5 goles",
-        "btts yes": "Ambos equipos marcan: Sí",
-        "ambos marcan si": "Ambos equipos marcan: Sí",
-        "btts no": "Ambos equipos marcan: No",
-    }
-    return mapping.get(norm, raw)
 
 
 def get_picks(limit=50, status=None, membership=None, include_admin=False):
@@ -3758,61 +3598,6 @@ def published_picks_for_user(user=None, limit=50):
     membership = user.get("membership") or user.get("role") or "FREE"
     include_admin = normalize_role(user.get("role")) == "ADMIN"
     return get_picks(limit=limit, status=["published", "won", "lost", "void"], membership=membership, include_admin=include_admin)
-
-
-def commercial_pick_check(pick):
-    item = normalize_pick_row(dict(pick or {}))
-    reasons = []
-    odds = as_float(item.get("odds"), 0)
-    selection = str(item.get("selection") or "").strip()
-    match_date = str(item.get("match_date") or "")[:10]
-    if match_date and match_date < today_iso():
-        reasons.append("partido_antiguo")
-    if odds <= 1:
-        reasons.append("sin_cuota_real")
-    if not selection:
-        reasons.append("sin_pick_recomendado")
-    if re.search(r"(esperar|pendiente|sin cuota|no disponible|undefined|null|none)", selection, flags=re.I):
-        reasons.append("pick_no_cerrado")
-    item["commercial_ready"] = not reasons
-    item["commercial_reasons"] = reasons
-    item["client_status"] = "premium" if not reasons else "en_estudio"
-    return item
-
-
-def client_ready_picks(picks, limit=12):
-    ready = []
-    seen = set()
-    for raw in picks or []:
-        pick = commercial_pick_check(raw)
-        if not pick.get("commercial_ready"):
-            continue
-        key = (
-            str(pick.get("match_id") or ""),
-            slug(pick.get("market") or pick.get("pick_type") or ""),
-            slug(pick.get("selection") or ""),
-        )
-        if key in seen:
-            continue
-        seen.add(key)
-        ready.append(pick)
-        if len(ready) >= int(limit):
-            break
-    return ready
-
-
-def split_client_picks(picks, ready_limit=12, study_limit=12):
-    ready = client_ready_picks(picks, limit=ready_limit)
-    ready_ids = {p.get("id") for p in ready}
-    study = []
-    for raw in picks or []:
-        pick = commercial_pick_check(raw)
-        if pick.get("id") in ready_ids or pick.get("commercial_ready"):
-            continue
-        study.append(pick)
-        if len(study) >= int(study_limit):
-            break
-    return {"ready": ready, "study": study}
 
 
 def create_or_update_pick(payload, pick_id=None, publish=False):
@@ -4280,10 +4065,10 @@ def build_combi_from_picks(pick_ids=None, limit=3):
     seed_core()
     if pick_ids:
         placeholders = ",".join("?" for _ in pick_ids)
-        picks = [normalize_pick_row(p) for p in rows(f"SELECT * FROM picks WHERE id IN ({placeholders}) ORDER BY confidence DESC", pick_ids)]
+        picks = rows(f"SELECT * FROM picks WHERE id IN ({placeholders}) ORDER BY confidence DESC", pick_ids)
     else:
         picks = get_picks(limit=limit, status=["published", "won", "lost", "void"], membership=(current_session_user() or {}).get("membership", "FREE"))
-    picks = client_ready_picks(picks, limit=combi_leg_count(limit or len(picks) or 3))
+    picks = picks[:combi_leg_count(limit or len(picks) or 3)]
     if len(picks) < 2:
         return None
     total = 1.0
@@ -4876,20 +4661,12 @@ def pick_candidate_matches(limit=80, days=21):
 def build_combi_candidates_from_matches(count=3):
     count = combi_leg_count(count, 3)
     matches = pick_candidate_matches(limit=max(count * 3, 45), days=21)
-    user = current_session_user() or {"membership": "FREE", "role": "FREE"}
-    ready_picks = client_ready_picks(published_picks_for_user(user, limit=max(count * 4, 40)), limit=count)
     return {
         "requested_count": count,
-        "picks": ready_picks,
-        "has_ready_picks": len(ready_picks) >= 2,
         "matches": matches[:count],
         "available": len(matches),
         "mode": "partidos_reales_proximos",
-        "notice": (
-            "Combi preparada con picks publicados y cuota real."
-            if len(ready_picks) >= 2
-            else "Base real de partidos próximos. SHARK no fabrica selecciones ni cuotas: la combi se activa cuando hay picks publicados suficientes."
-        ),
+        "notice": "Base real de partidos próximos. La selección final debe salir de picks publicados o análisis admin; no se fabrican apuestas falsas.",
     }
 
 
@@ -4912,27 +4689,22 @@ def smart_pick_board(user=None, limit=24):
         except Exception:
             odds = 0
         return (conf, odds)
-    split = split_client_picks(sorted(published, key=score_pick, reverse=True), ready_limit=12, study_limit=12)
-    hot = split["ready"]
-    study = split["study"]
+    hot = sorted(published, key=score_pick, reverse=True)[:12]
     pro_locked = []
     if str(user.get("membership") or "FREE").upper() == "FREE":
         pro_locked = [p for p in get_picks(limit=80, status="published", include_admin=False) if str(p.get("membership_required") or "FREE").upper() in {"PRO", "ELITE"}][:8]
     return {
         "published": published,
         "hot": hot,
-        "study": study,
         "candidates": candidates,
         "pro_locked": pro_locked,
         "published_count": len(published),
-        "ready_count": len(hot),
-        "study_count": len(study),
         "candidate_count": len(candidates),
-        "has_real_picks": bool(hot),
+        "has_real_picks": bool(published),
         "client_message": (
             "Picks publicados disponibles para tu membresía."
-            if hot
-            else "SHARK está analizando los próximos partidos. Las recomendaciones aparecerán automáticamente cuando haya cuota y selección suficiente."
+            if published
+            else "No hay picks publicados ahora mismo. Te mostramos partidos reales próximos para preparar análisis sin inventar apuestas."
         ),
         "admin_message": "Picks activos y visibles." if published else "SHARK está preparando picks con partidos reales próximos.",
     }
@@ -5721,7 +5493,7 @@ def _shark_line_pick(pick):
 
 def _shark_visible_picks(user, limit=8):
     picks = published_picks_for_user(user, limit=max(limit * 3, 12))
-    picks = client_ready_picks(picks, limit=max(limit * 2, 12))
+    picks = [p for p in picks if as_float(p.get("odds"), 0) > 1 or p.get("selection")]
     picks.sort(key=lambda p: (as_int(p.get("confidence"), 0), as_float(p.get("odds"), 0)), reverse=True)
     return picks[:limit]
 
@@ -5737,26 +5509,22 @@ def _shark_recommendation_lines(limit=4):
         home = spanish_team_name(rec.get("home_team") or "Local")
         away = spanish_team_name(rec.get("away_team") or "Visitante")
         comp = spanish_competition_name(rec.get("league_name") or rec.get("competition_name") or "Competición")
-        selection = client_selection_label(rec.get("selection") or "", rec)
+        selection = rec.get("selection") or "Esperar mercado"
         score = as_int(rec.get("shark_score") or rec.get("score"), 0)
         odds = as_float(rec.get("odds") or rec.get("odds_value"), 0)
-        if odds > 1 and selection:
-            odds_txt = f" · cuota {odds:.2f}"
-            lines.append(f"{home} vs {away} · {comp}: {selection}{odds_txt} · Score SHARK {score}/100")
-        else:
-            lines.append(f"{home} vs {away} · {comp}: en estudio · falta cuota o selección cerrada · Score SHARK {score}/100")
+        odds_txt = f" · cuota {odds:.2f}" if odds > 1 else " · cuota pendiente"
+        lines.append(f"{home} vs {away} · {comp}: {selection}{odds_txt} · Score SHARK {score}/100")
     return lines
 
 
 def _shark_count_requested(q_norm):
     numbers = [as_int(n, 0) for n in re.findall(r"\d+", q_norm or "")]
-    if "segura" in q_norm or "conservadora" in q_norm:
-        requested = numbers[0] if numbers else 3
-        return max(2, min(4, requested))
     if numbers:
         return combi_leg_count(max(numbers), 3)
     if "max" in q_norm or "quince" in q_norm:
         return COMBI_MAX_LEGS
+    if "segura" in q_norm or "conservadora" in q_norm:
+        return 3
     return 5
 
 
@@ -6328,16 +6096,25 @@ def telegram_pick_sendability(pick):
     item = normalize_pick_row(dict(pick or {}))
     reasons = []
     odds = as_float(item.get("odds"), 0)
-    selection = str(item.get("selection") or "").strip()
+    selection = str(item.get("selection") or item.get("pick") or item.get("recommendation") or "").strip()
+    market = str(item.get("market") or item.get("pick_type") or "").strip()
     match_date = str(item.get("match_date") or "")[:10]
+    status = str(item.get("status") or item.get("match_status") or "").lower()
+    pending_re = r"(esperar|pendiente|sin cuota|no disponible|value en c[aá]lculo|cuota pendiente|mercado pendiente|undefined|null|none)"
     if match_date and match_date < today_iso():
         reasons.append("partido_antiguo")
+    if any(word in status for word in ("final", "finished", "ended", "cancelled", "postponed")):
+        reasons.append("partido_no_valido")
     if odds <= 1:
         reasons.append("sin_cuota_real")
     if not selection:
         reasons.append("sin_pick_recomendado")
-    if re.search(r"(esperar|pendiente|sin cuota|no disponible|undefined|null|none)", selection, flags=re.I):
+    if not market:
+        reasons.append("sin_mercado")
+    if re.search(pending_re, selection, flags=re.I) or re.search(pending_re, market, flags=re.I):
         reasons.append("pick_no_cerrado")
+    if len(selection) > 120:
+        reasons.append("pick_demasiado_largo")
     return {"sendable": not reasons, "reasons": reasons}
 
 
@@ -6371,11 +6148,22 @@ def telegram_auto_pick_health(limit=40):
 
 def telegram_reply_markup_from_payload(payload):
     payload = dict(payload or {})
-    url = telegram_absolute_url(payload.get("match_url") or payload.get("app_url") or "")
-    if not url:
+    buttons = []
+    primary_url = telegram_absolute_url(payload.get("match_url") or payload.get("app_url") or "")
+    if primary_url:
+        buttons.append({"text": str(payload.get("button_text") or "📲 Abrir en NeMeSiS")[:60], "url": primary_url})
+    picks_url = telegram_absolute_url(payload.get("picks_url") or "/picks") if payload.get("include_picks_button", True) else ""
+    if picks_url and picks_url != primary_url:
+        buttons.append({"text": "🦈 Ver picks", "url": picks_url})
+    live_url = telegram_absolute_url(payload.get("live_url") or "/live") if payload.get("include_live_button") else ""
+    if live_url and live_url not in {primary_url, picks_url}:
+        buttons.append({"text": "🔴 Directo SHARK", "url": live_url})
+    if not buttons:
         return None
-    text = payload.get("button_text") or "📲 Abrir en NeMeSiS"
-    return {"inline_keyboard": [[{"text": str(text)[:60], "url": url}]]}
+    keyboard = []
+    for index in range(0, min(len(buttons), 3), 2):
+        keyboard.append(buttons[index:index + 2])
+    return {"inline_keyboard": keyboard}
 
 
 def build_daily_matches_message():
@@ -6419,7 +6207,7 @@ def enqueue_daily_matches(force=False, forced_chat_id=""):
             body,
             chat_id=sub.get("chat_id"),
             user_id=sub.get("user_id"),
-            payload={"membership": sub.get("membership"), "target_key": today_iso(), "app_url": telegram_absolute_url("/match-hub"), "button_text": "📅 Abrir calendario", "enable_link_preview": False},
+            payload={"membership": sub.get("membership"), "target_key": today_iso(), "app_url": telegram_absolute_url("/sports-hub"), "button_text": "📅 Ver partidos", "picks_url": telegram_absolute_url("/picks"), "include_picks_button": True, "include_live_button": True, "live_url": telegram_absolute_url("/live"), "enable_link_preview": False},
             dedupe_key=telegram_dedupe_key("daily_matches", today_iso(), sub.get("chat_id")),
             force=force,
         )
@@ -6445,7 +6233,7 @@ def enqueue_daily_picks(force=False, force_empty=False, forced_chat_id=""):
             body,
             chat_id=sub.get("chat_id"),
             user_id=sub.get("user_id"),
-            payload={"membership": sub.get("membership"), "target_key": today_iso(), "app_url": telegram_absolute_url("/picks"), "button_text": "🦈 Abrir picks SHARK", "enable_link_preview": False},
+            payload={"membership": sub.get("membership"), "target_key": today_iso(), "app_url": telegram_absolute_url("/picks"), "button_text": "🦈 Abrir picks SHARK", "include_picks_button": False, "include_live_button": True, "live_url": telegram_absolute_url("/live"), "enable_link_preview": False},
             dedupe_key=telegram_dedupe_key("daily_picks", today_iso(), sub.get("chat_id")),
             force=force,
         )
@@ -6503,7 +6291,7 @@ def enqueue_auto_pick_alerts(force=False, limit=6):
                 body,
                 chat_id=dest.get("chat_id"),
                 user_id=dest.get("user_id"),
-                payload={"membership": dest.get("membership"), "target_key": dest.get("target_key"), "pick_id": pick.get("id"), "priority": 90, "auto": True, "target_kind": dest.get("target_kind"), "match_url": pick.get("match_url"), "home_logo": pick.get("home_logo"), "away_logo": pick.get("away_logo"), "button_text": "🦈 Ver análisis SHARK", "enable_link_preview": bool(pick.get("home_logo") or pick.get("away_logo"))},
+                payload={"membership": dest.get("membership"), "target_key": dest.get("target_key"), "pick_id": pick.get("id"), "priority": 90, "auto": True, "target_kind": dest.get("target_kind"), "match_url": pick.get("match_url"), "home_logo": pick.get("home_logo"), "away_logo": pick.get("away_logo"), "button_text": "🦈 Ver análisis SHARK", "picks_url": telegram_absolute_url("/picks"), "include_picks_button": True, "include_live_button": True, "live_url": telegram_absolute_url("/live"), "enable_link_preview": bool(pick.get("home_logo") or pick.get("away_logo"))},
                 dedupe_key=telegram_dedupe_key("auto_pick", str(pick.get("id") or today_iso()), dedupe_target),
                 force=force,
             )
@@ -6530,7 +6318,7 @@ def enqueue_live_alerts(force=False):
                 body,
                 chat_id=sub.get("chat_id"),
                 user_id=sub.get("user_id"),
-                payload={"membership": sub.get("membership"), "target_key": match.get("id"), "match_id": match.get("id"), "match_url": match.get("match_url"), "home_logo": match.get("home_logo"), "away_logo": match.get("away_logo"), "button_text": "🔴 Abrir live SHARK", "enable_link_preview": bool(match.get("home_logo") or match.get("away_logo"))},
+                payload={"membership": sub.get("membership"), "target_key": match.get("id"), "match_id": match.get("id"), "match_url": match.get("match_url"), "home_logo": match.get("home_logo"), "away_logo": match.get("away_logo"), "button_text": "🔴 Abrir live SHARK", "picks_url": telegram_absolute_url("/picks"), "include_picks_button": True, "include_live_button": False, "enable_link_preview": bool(match.get("home_logo") or match.get("away_logo"))},
                 dedupe_key=telegram_dedupe_key("live_alert", today_iso(), f"{sub.get('chat_id')}:{match.get('id')}:{match.get('minute') or match.get('score')}"),
                 force=force,
             )
@@ -6686,7 +6474,9 @@ def telegram_diagnostics():
         "missing_required": missing_required,
         "last_cron_daily_call": automation_get("last_cron_daily_call", {}) or automation_get("cron_daily_run_last_call", {}) or {},
         "last_cron_telegram_call": automation_get("last_cron_telegram_call", {}) or automation_get("cron_telegram_tick_last_call", {}) or {},
+        "last_telegram_tick_detail": automation_get("telegram_tick_last_detail", {}) or {},
         "last_daily_automation": automation_get("daily_autonomous_system", {}) or {},
+        "last_daily_run_detail": automation_get("daily_run_last_detail", {}) or {},
         "last_scheduler_tick": automation_get("telegram_last_dispatch", {}) or {},
         "subscribers": (one("SELECT COUNT(*) AS total FROM telegram_subscribers WHERE is_active=1") or {}).get("total", 0),
         "linked_users": (one("SELECT COUNT(*) AS total FROM users WHERE telegram_chat_id IS NOT NULL AND telegram_chat_id!=''") or {}).get("total", 0),
@@ -9724,11 +9514,12 @@ def v566_template_recommendations(limit=20):
 def v566_dashboard_page():
     if not current_session_user():
         return redirect("/cliente-login")
+    return redirect("/sports-hub")
     user = current_session_user()
     data = dashboard_data()
     summary = v566_dashboard_summary(user)
     upcoming = get_upcoming_matches(today_iso(), days=7, limit=10)
-    picks = client_ready_picks(published_picks_for_user(user, limit=40), limit=5)
+    picks = published_picks_for_user(user, limit=8)
     return render_template("client_overview.html", data=data, summary=summary, upcoming=upcoming, picks=picks)
 
 
@@ -10076,20 +9867,6 @@ def api_v570_system_check():
         "memory_table": True,
         "app_goal": "SHARK conectado a favoritos, picks, recomendaciones, live y calendario.",
     })
-
-
-@app.route("/api/v601/api-exploitation-check")
-def api_v601_api_exploitation_check():
-    if not automation_access_allowed():
-        return admin_json_forbidden()
-    return jsonify({"ok": True, "version": APP_VERSION, "status": "compatible", "message": "Endpoint legacy protegido para smoke de APIs."})
-
-
-@app.route("/api/v602/player-intelligence-check")
-def api_v602_player_intelligence_check():
-    if not automation_access_allowed():
-        return admin_json_forbidden()
-    return jsonify({"ok": True, "version": APP_VERSION, "status": "compatible", "message": "Endpoint legacy protegido para smoke de inteligencia de jugadores."})
 
 
 def register_optional_blueprints():

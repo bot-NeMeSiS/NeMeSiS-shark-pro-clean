@@ -3,7 +3,7 @@
 <section class="hero compact">
   <div class="kicker">IA SHARK 2.0</div>
   <h1>Análisis premium con contexto real</h1>
-  <p class="lead">Pregunta por picks, directo, favoritos, combinadas y riesgo. Si falta cuota o dato real, SHARK lo dirá claro antes de recomendar nada.</p>
+  <p class="lead">SHARK responde sobre calendario, directo, favoritos, picks, combis hasta 15 y riesgo. Si faltan datos reales, lo deja claro antes de recomendar nada.</p>
   <div class="actions"><a class="btn primary" href="/perfil">Mi perfil</a><a class="btn" href="/picks">Ver picks</a></div>
 </section>
 {% if not current_user or current_user.membership not in ['ELITE','ADMIN'] %}
@@ -11,21 +11,10 @@
 {% endif %}
 <section class="band">
   <div class="grid">
-    <div class="card"><div class="metric">{% if data.briefing.summary.matches_today %}{{ data.briefing.summary.matches_today }}{% else %}Hoy{% endif %}</div><div class="muted">partidos</div></div>
-    <div class="card"><div class="metric">{% if data.briefing.summary.live_now %}{{ data.briefing.summary.live_now }}{% else %}Radar{% endif %}</div><div class="muted">directo</div></div>
-    <div class="card"><div class="metric">{% if data.briefing.summary.picks_ready %}{{ data.briefing.summary.picks_ready }}{% else %}En estudio{% endif %}</div><div class="muted">picks</div></div>
-    <div class="card"><div class="metric">{{ data.briefing.risk.level or 'Controlado' }}</div><div class="muted">riesgo</div></div>
-  </div>
-</section>
-<section class="band compact-band">
-  <div class="section-head"><h2>Preguntas rápidas</h2><span class="pill">SHARK</span></div>
-  <div class="quick-actions quick-actions-polish">
-    <a class="quick" href="/picks"><span>Mejor pick</span><strong>Hoy</strong></a>
-    <a class="quick" href="/live"><span>Resumen live</span><strong>Directo</strong></a>
-    <a class="quick" href="/combis"><span>Combi segura</span><strong>2-4</strong></a>
-    <a class="quick" href="/favorites"><span>Mis equipos</span><strong>Favoritos</strong></a>
-    <a class="quick" href="/sports-hub"><span>Qué ver</span><strong>Partidos</strong></a>
-    <a class="quick" href="/telegram"><span>Alertas</span><strong>Telegram</strong></a>
+    <div class="card"><div class="metric">{{ data.briefing.summary.matches_today }}</div><div class="muted">partidos hoy</div></div>
+    <div class="card"><div class="metric">{{ data.briefing.summary.live_now }}</div><div class="muted">en directo</div></div>
+    <div class="card"><div class="metric">{{ data.briefing.summary.picks_ready }}</div><div class="muted">picks listos</div></div>
+    <div class="card"><div class="metric">{{ data.briefing.risk.level }}</div><div class="muted">riesgo general</div></div>
   </div>
 </section>
 <section class="band two-col">

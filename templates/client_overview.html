@@ -1,87 +1,65 @@
 {% extends "base.html" %}
 {% block content %}
-<section class="scoreboard-hero v701-scoreboard">
+<section class="app-hero compact-hero">
   <div>
-    <div class="kicker">Dashboard cliente</div>
-    <h1>Hoy en NeMeSiS</h1>
-    <p class="lead">Partidos, picks, directo, favoritos y Telegram en una pantalla clara.</p>
+    <div class="kicker">Inicio</div>
+    <h1>Lo importante de hoy</h1>
+    <p class="lead">Picks, live, favoritos, próximos importantes y SHARK en una pantalla limpia.</p>
     <div class="actions">
-      <a class="btn primary" href="/sports-hub">Ver partidos de hoy</a>
-      <a class="btn" href="/picks">Ver picks</a>
-      <a class="btn" href="/shark">Preguntar a SHARK</a>
+      <a class="btn primary" href="/picks">Ver picks</a>
+      <a class="btn" href="/recomendaciones">Recomendaciones</a>
+      <a class="btn" href="/live">Live</a>
+      <a class="btn" href="/shark">SHARK</a>
     </div>
   </div>
-  <div class="scoreboard-kpis">
-    <div><strong>{{ summary.matches.upcoming }}</strong><span>Partidos</span></div>
-    <div><strong>{{ picks|length }}</strong><span>Picks premium</span></div>
-    <div><strong>{{ summary.matches.live }}</strong><span>Directos</span></div>
-    <div><strong>{{ summary.favorites.total }}</strong><span>Favoritos</span></div>
-  </div>
+  <aside class="hero-panel">
+    <span class="pill">{{ summary.membership }}</span>
+    <div class="live-strip">
+      <div><span>Próximos</span><strong>{{ summary.matches.upcoming }}</strong></div>
+      <div><span>Live</span><strong>{{ summary.matches.live }}</strong></div>
+      <div><span>Picks</span><strong>{{ summary.picks.published }}</strong></div>
+      <div><span>Favs</span><strong>{{ summary.favorites.total }}</strong></div>
+    </div>
+  </aside>
 </section>
 
 <section class="band compact-band">
-  <div class="section-head"><h2>Acciones rápidas</h2><a class="pill" href="/menu">Más</a></div>
-  <div class="quick-actions quick-actions-polish">
-    <a class="quick primary" href="/sports-hub"><span>Partidos de hoy</span><strong>Ver</strong></a>
-    <a class="quick" href="/live"><span>Directo</span><strong>Live</strong></a>
-    <a class="quick" href="/picks"><span>Picks</span><strong>Premium</strong></a>
-    <a class="quick" href="/combis"><span>Crear combi</span><strong>2-15</strong></a>
-    <a class="quick" href="/shark"><span>SHARK</span><strong>Preguntar</strong></a>
-    <a class="quick" href="/telegram"><span>Telegram</span><strong>Alertas</strong></a>
+  <div class="section-head"><h2>Prioridades</h2><span class="pill">{{ summary.score }}%</span></div>
+  <div class="grid dense-grid">
+    {% for item in summary.focus %}
+    <a class="card focus-card" href="{{ item.href }}"><span class="badge">{{ item.type }}</span><strong>{{ item.title }}</strong><p class="small">{{ item.body }}</p></a>
+    {% endfor %}
   </div>
 </section>
 
 <section class="band two-col compact-band">
   <div>
-    <div class="section-head"><h2>Mejores señales SHARK</h2><a class="pill" href="/picks">Ver picks</a></div>
+    <div class="section-head"><h2>Próximos importantes</h2><a class="pill" href="/match-hub">Todos</a></div>
     <div class="stack">
-      {% for p in picks[:5] %}
-      <a class="list-row" href="/match/{{ p.match_id }}">
-        <span>{{ p.selection }}<small>{{ p.home_team or 'Equipo local' }}{% if p.away_team %} vs {{ p.away_team }}{% endif %}</small></span>
-        <strong>{{ p.confidence }}/100</strong>
-      </a>
-      {% else %}
-      <div class="empty premium-empty">
-        <strong>SHARK está analizando los próximos partidos.</strong>
-        <p>No hay picks premium cerrados con cuota real ahora mismo.</p>
-      </div>
-      {% endfor %}
+      {% for m in upcoming[:6] %}
+      <a class="list-row" href="/match/{{ m.id }}"><span>{{ m.home_team }} vs {{ m.away_team }}<small>{{ m.league_name or m.competition_name or 'Competición' }}</small></span><strong>{{ m.kickoff_time or m.match_time or 'Hora' }}</strong></a>
+      {% else %}<div class="empty premium-empty">Aún no hay partidos listos. Cuando haya datos suficientes aparecerán aquí.</div>{% endfor %}
     </div>
   </div>
   <div>
-    <div class="section-head"><h2>Partidos destacados</h2><a class="pill" href="/sports-hub">Todos</a></div>
+    <div class="section-head"><h2>Picks y señales</h2><a class="pill" href="/picks">Ver picks</a></div>
     <div class="stack">
-      {% for m in upcoming[:6] %}
-      <a class="list-row" href="/match/{{ m.id }}">
-        <span>{{ m.home_team or 'Equipo local' }}{% if m.away_team %} vs {{ m.away_team }}{% endif %}<small>{{ m.league_name or m.competition_name or 'Competición' }}</small></span>
-        <strong>{{ m.kickoff_time or m.match_time or 'Hora' }}</strong>
-      </a>
-      {% else %}
-      <div class="empty premium-empty">El calendario se completará cuando entren partidos con datos suficientes.</div>
-      {% endfor %}
+      {% for p in picks[:4] %}
+      <a class="list-row" href="/picks"><span>{{ p.selection or p.title or 'Pick publicado' }}<small>{{ p.home_team }} {{ p.away_team and 'vs ' ~ p.away_team }}</small></span><strong>{{ p.confidence or p.score or 70 }}%</strong></a>
+      {% else %}<div class="empty premium-empty">SHARK está analizando los próximos partidos. Las recomendaciones aparecerán automáticamente cuando haya datos suficientes.</div>{% endfor %}
     </div>
   </div>
 </section>
 
 <section class="band compact-band">
-  <div class="section-head"><h2>Tu actividad</h2><span class="pill">{{ summary.membership }}</span></div>
-  <div class="grid compact-grid">
-    <article class="card service-card">
-      <h3>Historial</h3>
-      <p class="small">Aún no hay historial suficiente. Se activará cuando haya picks finalizados.</p>
-    </article>
-    <article class="card service-card">
-      <h3>Favoritos vigilados</h3>
-      <p class="small">{% if summary.favorites.total %}Tienes {{ summary.favorites.total }} favoritos en seguimiento.{% else %}Marca equipos, ligas o partidos con la estrella para personalizar tu feed.{% endif %}</p>
-    </article>
-    <article class="card service-card">
-      <h3>Telegram</h3>
-      <p class="small">Recibe alertas según tu membresía cuando SHARK detecte información útil.</p>
-    </article>
-    <article class="card service-card">
-      <h3>Juego responsable</h3>
-      <p class="small">NeMeSiS ofrece análisis deportivo. No garantiza resultados. Ajusta siempre el stake.</p>
-    </article>
+  <div class="section-head"><h2>Accesos rápidos</h2><a class="pill" href="/menu">Más</a></div>
+  <div class="quick-actions">
+    <a class="quick" href="/resultados"><span>Resultados</span><strong>FT</strong></a>
+    <a class="quick" href="/combis"><span>Combis</span><strong>PRO</strong></a>
+    <a class="quick" href="/favorites"><span>Favoritos</span><strong>Feed</strong></a>
+    <a class="quick" href="/telegram"><span>Telegram</span><strong>Plan</strong></a>
+    <a class="quick" href="/auto-picks"><span>Auto Picks</span><strong>ELITE</strong></a>
+    <a class="quick" href="/mi-cuenta"><span>Cuenta</span><strong>Yo</strong></a>
   </div>
 </section>
 {% endblock %}
