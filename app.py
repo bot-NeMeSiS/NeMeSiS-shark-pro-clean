@@ -55,6 +55,12 @@ from engines.football_population_engine import (
 from engines.live_engine import build_live_depth, build_live_flow, build_match_detail, fallback_timeline, normalize_live_state, shark_live_alerts, shark_momentum
 from engines.live_experience_engine import build_live_experience, live_experience_snapshot
 from engines.content_rights_engine import content_rights_policy_summary
+from engines.data_vault_engine import create_sqlite_backup, db_vault_status, export_table_csv, list_backups as data_vault_list_backups, validate_backup as data_vault_validate_backup
+from engines.match_intelligence_engine import build_match_intelligence, match_intelligence_snapshot
+from engines.video_highlights_engine import video_highlights_snapshot
+from engines.team_form_engine import team_form_snapshot
+from engines.standings_experience_engine import standings_snapshot
+from engines.alerts_engine import alerts_foundation_snapshot
 from engines.match_engine import hub_sections, real_time_state, sync_plan
 from engines.match_sync_engine import IMPORTANT_COMPETITIONS, h2h_price_snapshot, normalize_status as sync_normalize_status, odds_sports, sportsdb_leagues
 from engines.membership_engine import can_access_feature, get_membership_limits, get_user_membership, membership_context
@@ -138,7 +144,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V742_TOP_APP_LIVE_DETAIL_TRACK_RECORD_MATCH_INTELLIGENCE_VIDEO_HIGHLIGHTS_FINAL"
+APP_VERSION = "V745_TOP_APP_INTELLIGENCE_ALERTS_DEEP_DATA_COMMERCIAL_POLISH"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -211,6 +217,7 @@ def csrf_exempt_path(path: str) -> bool:
         "/telegram/webhook",
         "/api/automation/telegram/tick",
         "/api/automation/daily/run",
+        "/api/automation/data-backup/run",
         "/api/payments/stripe-webhook",
     }
     prefixes = (
@@ -9521,7 +9528,22 @@ def public_version():
 
 @app.route("/api/runtime-version")
 def api_runtime_version():
-    return jsonify({"ok": True, "app": APP_NAME, "version": APP_VERSION, "time": now_iso()})
+    return jsonify({
+        "ok": True,
+        "app": APP_NAME,
+        "version": APP_VERSION,
+        "time": now_iso(),
+        "render": {
+            "db_path": DB_PATH,
+            "db_exists": os.path.exists(DB_PATH),
+            "automation_secret_configured": automation_secret_configured(),
+            "telegram_bot_configured": env_present("TELEGRAM_BOT_TOKEN"),
+            "telegram_channel_configured": env_present("TELEGRAM_CHAT_ID"),
+            "scheduler_enabled": scheduler_env_enabled(),
+            "daily_automation_enabled": daily_automation_env_enabled(),
+            "data_backup_enabled": env_bool("DATA_BACKUP_ENABLED", False),
+        },
+    })
 
 
 @app.route("/api/startup-check")
@@ -12121,6 +12143,265 @@ def api_admin_content_rights():
     if not is_admin_session():
         return admin_json_forbidden()
     return jsonify({"ok": True, "version": APP_VERSION, "content_rights": v742_content_rights_context()})
+
+
+# ===================== V743 DATA VAULT + V744/V745 PRODUCTION CERTIFICATION =====================
+
+def project_root_path():
+    return os.path.dirname(os.path.abspath(__file__))
+
+
+def admin_actor_label():
+    return session.get("user_email") or session.get("user_name") or session.get("username") or "admin"
+
+
+def v743_data_vault_context():
+    status = db_vault_status(DB_PATH, project_root_path(), APP_VERSION)
+    return {
+        "version": APP_VERSION,
+        "data_vault": status,
+        "backups": data_vault_list_backups(project_root_path()),
+        "policies": {
+            "backup_retention": int(os.getenv("DATA_BACKUP_MAX_FILES", "30") or 30),
+            "backup_dir": status.get("backup_dir"),
+            "zip_includes_backups": False,
+            "db_path_policy": "DB_PATH se mantiene externo al release; Render debe usar /data/database.db.",
+            "ownership": status.get("ownership", {}),
+        },
+    }
+
+
+def v744_render_runtime_context():
+    telegram = telegram_diagnostics_safe()
+    return {
+        "version": APP_VERSION,
+        "render": {
+            "db_path": DB_PATH,
+            "db_path_configured": env_present("DB_PATH"),
+            "automation_secret_configured": automation_secret_configured(),
+            "scheduler_enabled": scheduler_env_enabled(),
+            "daily_automation_enabled": daily_automation_env_enabled(),
+            "telegram_auto_enabled": telegram_env_auto_enabled(),
+        },
+        "cron": {
+            "telegram_tick": "/api/automation/telegram/tick?secret=AUTOMATION_SECRET",
+            "daily_run": "/api/automation/daily/run?secret=AUTOMATION_SECRET",
+            "data_backup_run": "/api/automation/data-backup/run?secret=AUTOMATION_SECRET",
+            "last_cron_telegram_call": automation_get("last_cron_telegram_call", {}),
+            "last_cron_daily_call": automation_get("last_cron_daily_call", {}),
+            "last_cron_data_backup_call": automation_get("last_cron_data_backup_call", {}),
+        },
+        "telegram": {
+            "bot_configured": env_present("TELEGRAM_BOT_TOKEN"),
+            "channel_configured": env_present("TELEGRAM_CHAT_ID"),
+            "bot_username_configured": env_present("TELEGRAM_BOT_USERNAME"),
+            "diagnostics": telegram,
+        },
+        "data_vault": v743_data_vault_context().get("data_vault", {}),
+    }
+
+
+def v745_match_intelligence_context(match_id=None):
+    data = dashboard_data() if has_request_context() else {}
+    matches = dedupe_matches_list((data.get("candidate_matches") or []) + (data.get("upcoming_matches") or []) + (data.get("past_results") or []))
+    selected = None
+    if match_id:
+        selected = next((m for m in matches if str(m.get("id")) == str(match_id)), None)
+    selected = selected or (matches[0] if matches else {})
+    try:
+        picks = get_picks(limit=80)
+    except Exception:
+        picks = []
+    return {
+        "version": APP_VERSION,
+        "snapshot": match_intelligence_snapshot(),
+        "match": selected,
+        "intelligence": build_match_intelligence(selected, picks),
+        "team_form": {
+            "home": team_form_snapshot(matches, (selected or {}).get("home_team")),
+            "away": team_form_snapshot(matches, (selected or {}).get("away_team")),
+        },
+        "standings": standings_snapshot([]),
+        "counts": {"matches": len(matches), "picks": len(picks)},
+    }
+
+
+def v745_video_highlights_context():
+    sample = [
+        {"content_type": "video", "source": "YouTube", "embed_url": "", "original_url": "", "attribution": "Fuente externa"},
+        {"content_type": "video", "source": "Proveedor externo", "original_url": "", "attribution": "Pendiente"},
+    ]
+    return {
+        "version": APP_VERSION,
+        "snapshot": video_highlights_snapshot(sample),
+        "content_rights": v742_content_rights_context(),
+        "policy": "Solo metadatos, embeds autorizados o enlace externo. No se descargan videos.",
+    }
+
+
+def v745_alerts_context():
+    return {
+        "version": APP_VERSION,
+        "alerts": alerts_foundation_snapshot(enabled=env_bool("ENABLE_CLIENT_ALERTS", False)),
+        "telegram": telegram_diagnostics_safe(),
+        "rules": [
+            "No enviar spam.",
+            "No activar alertas nuevas durante QA.",
+            "Registrar errores y mantener la web operativa si falla Telegram.",
+        ],
+    }
+
+
+def v745_top_app_readiness_context():
+    return {
+        "version": APP_VERSION,
+        "data_vault": v743_data_vault_context(),
+        "production": v744_render_runtime_context(),
+        "match_intelligence": v745_match_intelligence_context(),
+        "video_highlights": v745_video_highlights_context(),
+        "alerts": v745_alerts_context(),
+        "payments": payment_readiness_snapshot(DB_PATH),
+        "sale_ready": v742_sale_ready_context(),
+        "status": "V745_FOUNDATION_READY",
+    }
+
+
+@app.route("/admin/data-vault")
+@app.route("/admin/data-backups")
+@app.route("/admin/business-intelligence")
+def admin_data_vault_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/data-vault")
+    data = dashboard_data()
+    data["data_vault_admin"] = v743_data_vault_context()
+    return render_template("admin_data_vault.html", data=data)
+
+
+@app.route("/api/admin/data-vault")
+@app.route("/api/admin/data-vault/backups")
+def api_admin_data_vault():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "version": APP_VERSION, **v743_data_vault_context()})
+
+
+@app.route("/api/admin/data-vault/create-backup", methods=["POST"])
+def api_admin_data_vault_create_backup():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    result = create_sqlite_backup(DB_PATH, project_root_path(), APP_VERSION, backup_type="manual", created_by=admin_actor_label())
+    try:
+        automation_set("last_manual_data_backup", {"time": now_iso(), "result": result, "admin": admin_actor_label()})
+    except Exception:
+        pass
+    return jsonify({"version": APP_VERSION, **result})
+
+
+@app.route("/api/admin/data-vault/validate-backup", methods=["POST"])
+def api_admin_data_vault_validate_backup():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    payload = request.get_json(silent=True) or dict(request.form or {})
+    result = data_vault_validate_backup(project_root_path(), payload.get("backup_name") or payload.get("name") or "")
+    return jsonify({"version": APP_VERSION, **result})
+
+
+@app.route("/api/admin/data-vault/export", methods=["POST"])
+def api_admin_data_vault_export():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    payload = request.get_json(silent=True) or dict(request.form or {})
+    result = export_table_csv(DB_PATH, project_root_path(), payload.get("table") or "picks")
+    return jsonify({"version": APP_VERSION, **result})
+
+
+@app.route("/api/automation/data-backup/run", methods=["GET", "POST"])
+def api_automation_data_backup_run():
+    if not automation_cron_access_allowed():
+        return automation_json_forbidden()
+    if not env_bool("DATA_BACKUP_ENABLED", False):
+        result = {"ok": True, "backup_created": False, "status": "DISABLED", "message": "DATA_BACKUP_ENABLED no esta activo."}
+    else:
+        result = create_sqlite_backup(DB_PATH, project_root_path(), APP_VERSION, backup_type="auto", created_by="render_cron")
+    automation_safe_set("last_cron_data_backup_call", {"time": now_iso(), "result": result})
+    return jsonify({"version": APP_VERSION, **result})
+
+
+@app.route("/api/admin/production-readiness-v744")
+def api_admin_production_readiness_v744():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "version": APP_VERSION, "production": v744_render_runtime_context()})
+
+
+@app.route("/admin/match-intelligence")
+def admin_match_intelligence_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/match-intelligence")
+    data = dashboard_data()
+    data["match_intelligence_admin"] = v745_match_intelligence_context(request.args.get("match_id"))
+    return render_template("admin_match_intelligence.html", data=data)
+
+
+@app.route("/api/admin/match-intelligence")
+def api_admin_match_intelligence():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "version": APP_VERSION, "match_intelligence": v745_match_intelligence_context(request.args.get("match_id"))})
+
+
+@app.route("/admin/video-highlights")
+@app.route("/admin/highlights")
+@app.route("/admin/news-center")
+def admin_video_highlights_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/video-highlights")
+    data = dashboard_data()
+    data["video_highlights_admin"] = v745_video_highlights_context()
+    return render_template("admin_video_highlights.html", data=data)
+
+
+@app.route("/api/admin/video-highlights")
+@app.route("/api/admin/highlights")
+def api_admin_video_highlights():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "version": APP_VERSION, "video_highlights": v745_video_highlights_context()})
+
+
+@app.route("/admin/alerts")
+def admin_alerts_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/alerts")
+    data = dashboard_data()
+    data["alerts_admin"] = v745_alerts_context()
+    return render_template("admin_alerts.html", data=data)
+
+
+@app.route("/api/admin/alerts")
+def api_admin_alerts():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "version": APP_VERSION, "alerts": v745_alerts_context()})
+
+
+@app.route("/admin/top-app-readiness")
+@app.route("/admin/v745-readiness")
+def admin_top_app_readiness_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/top-app-readiness")
+    data = dashboard_data()
+    data["top_app_readiness"] = v745_top_app_readiness_context()
+    return render_template("admin_top_app_readiness.html", data=data)
+
+
+@app.route("/api/admin/top-app-readiness")
+@app.route("/api/admin/v745-readiness")
+def api_admin_top_app_readiness():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "version": APP_VERSION, "top_app_readiness": v745_top_app_readiness_context()})
+
 
 def register_optional_blueprints():
     try:

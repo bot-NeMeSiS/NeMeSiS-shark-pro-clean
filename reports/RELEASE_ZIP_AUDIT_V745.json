@@ -1,0 +1,194 @@
+{
+  "ok": true,
+  "audited_at": "2026-06-13T01:50:31",
+  "zip": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\release_output\\NeMeSiS_SHARK_PRO_V745_TOP_APP_INTELLIGENCE_ALERTS_DEEP_DATA_COMMERCIAL_POLISH_RENDER_READY.zip",
+  "zip_size_bytes": 724074,
+  "file_count": 421,
+  "content_size_bytes": 2320704,
+  "forbidden_count": 0,
+  "forbidden": [],
+  "top_files": [
+    {
+      "path": "app.py",
+      "size": 553703
+    },
+    {
+      "path": "static/app.css",
+      "size": 102413
+    },
+    {
+      "path": "V726_PROJECT_TREE_AUDIT.md",
+      "size": 97068
+    },
+    {
+      "path": "engines/api_exploitation_engine.py",
+      "size": 41823
+    },
+    {
+      "path": "engines/football_data_warehouse_engine.py",
+      "size": 38480
+    },
+    {
+      "path": "engines/shark_historical_intelligence_engine.py",
+      "size": 30018
+    },
+    {
+      "path": "V726_PURGE_REPORT.md",
+      "size": 28948
+    },
+    {
+      "path": "engines/shark_prediction_engine.py",
+      "size": 23584
+    },
+    {
+      "path": "engines/spanish_localization_engine.py",
+      "size": 23147
+    },
+    {
+      "path": "engines/telegram_delivery_engine.py",
+      "size": 22847
+    },
+    {
+      "path": "engines/player_intelligence_engine.py",
+      "size": 20270
+    },
+    {
+      "path": "engines/data_memory_engine.py",
+      "size": 20076
+    },
+    {
+      "path": "engines/sportsdb_enrichment_engine.py",
+      "size": 20026
+    },
+    {
+      "path": "engines/shark_learning_engine.py",
+      "size": 19489
+    },
+    {
+      "path": "engines/shark_accuracy_engine.py",
+      "size": 17309
+    },
+    {
+      "path": "engines/telegram_autonomous_delivery_engine.py",
+      "size": 16712
+    },
+    {
+      "path": "engines/go_live_engine.py",
+      "size": 16480
+    },
+    {
+      "path": "engines/final_release_engine.py",
+      "size": 16205
+    },
+    {
+      "path": "engines/shark_performance_engine.py",
+      "size": 15852
+    },
+    {
+      "path": "engines/codex_daily_automation_engine.py",
+      "size": 15622
+    }
+  ],
+  "top_folders": [
+    {
+      "folder": "engines",
+      "size": 711717,
+      "files": 66
+    },
+    {
+      "folder": "app.py",
+      "size": 553703,
+      "files": 1
+    },
+    {
+      "folder": "templates",
+      "size": 413927,
+      "files": 124
+    },
+    {
+      "folder": "tools",
+      "size": 119789,
+      "files": 44
+    },
+    {
+      "folder": "static",
+      "size": 102413,
+      "files": 1
+    },
+    {
+      "folder": "V726_PROJECT_TREE_AUDIT.md",
+      "size": 97068,
+      "files": 1
+    },
+    {
+      "folder": "docs",
+      "size": 45484,
+      "files": 56
+    },
+    {
+      "folder": "V726_PURGE_REPORT.md",
+      "size": 28948,
+      "files": 1
+    },
+    {
+      "folder": "tests",
+      "size": 12961,
+      "files": 11
+    },
+    {
+      "folder": "CHATGPT_CONTINUATION_REPORT.md",
+      "size": 8228,
+      "files": 1
+    },
+    {
+      "folder": "services",
+      "size": 7327,
+      "files": 6
+    },
+    {
+      "folder": "V742_DUPLICATES_AND_LEGACY_AUDIT.md",
+      "size": 6889,
+      "files": 1
+    },
+    {
+      "folder": "RELEASE_MANIFEST_V745.json",
+      "size": 6562,
+      "files": 1
+    },
+    {
+      "folder": "V724_SUPREME_CLIENT_VISUAL_EXPERIENCE_PRO_REPORT.md",
+      "size": 6347,
+      "files": 1
+    },
+    {
+      "folder": "RELEASE_MANIFEST_V742.json",
+      "size": 5747,
+      "files": 1
+    },
+    {
+      "folder": "V728_FINAL_CLIENT_EXPERIENCE_MADRID_TIME_LIVE_POLISH_REPORT.md",
+      "size": 5182,
+      "files": 1
+    },
+    {
+      "folder": "RELEASE_ZIP_AUDIT_V742.md",
+      "size": 4680,
+      "files": 1
+    },
+    {
+      "folder": "V742_SALE_READY_LIVE_DETAIL_TRACK_RECORD_TELEGRAM_FINAL_POLISH_REPORT.md",
+      "size": 4615,
+      "files": 1
+    },
+    {
+      "folder": "RELEASE_MANIFEST_V741.json",
+      "size": 4533,
+      "files": 1
+    },
+    {
+      "folder": "V727_TELEGRAM_RELIABILITY_COMMAND_CENTER_REPORT.md",
+      "size": 4465,
+      "files": 1
+    }
+  ]
+}

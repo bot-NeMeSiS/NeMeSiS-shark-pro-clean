@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block content %}
+{% set vault = data.data_vault_admin or {} %}
+{% set dv = vault.data_vault or {} %}
+{% set policies = vault.policies or {} %}
+<section class="scoreboard-hero v701-scoreboard">
+  <div>
+    <div class="kicker">Admin · Data Vault</div>
+    <h1>Copias, propiedad y valor de datos</h1>
+    <p class="lead">Centro de control para proteger la base de datos, validar backups y revisar qué datos sostienen el valor comercial de NeMeSiS.</p>
+    <div class="admin-menu">
+      <a class="btn primary" href="/admin/data-vault">Data Vault</a>
+      <a class="btn" href="/admin/backups">Backups clásicos</a>
+      <a class="btn" href="/admin/data-center">Data Center</a>
+    </div>
+  </div>
+  <div class="scoreboard-kpis">
+    <div><strong>{{ 'OK' if dv.exists else 'NO' }}</strong><span>DB</span></div>
+    <div><strong>{{ dv.tables|length if dv.tables else 0 }}</strong><span>Tablas</span></div>
+    <div><strong>{{ vault.backups|length if vault.backups else 0 }}</strong><span>Backups</span></div>
+    <div><strong>{{ policies.backup_retention or 30 }}</strong><span>Retención</span></div>
+  </div>
+</section>
+
+<section class="band compact-band">
+  <div class="section-head"><h2>Estado de la base</h2><span class="pill">{{ dv.db_path_masked or 'Sin DB' }}</span></div>
+  <div class="grid compact-grid">
+    <article class="card">
+      <h3>Protección</h3>
+      <div class="stack">
+        <div class="route-row"><span>Tamaño</span><strong>{{ dv.size_bytes or 0 }} bytes</strong></div>
+        <div class="route-row"><span>Última modificación</span><strong>{{ dv.modified_at or 'Pendiente' }}</strong></div>
+        <div class="route-row"><span>Directorio backup</span><strong>{{ dv.backup_dir or 'Pendiente' }}</strong></div>
+        <div class="route-row"><span>Incluido en ZIP</span><strong>No</strong></div>
+      </div>
+    </article>
+    <article class="card">
+      <h3>Riesgos</h3>
+      <div class="stack">
+        {% for item in dv.risk or [] %}
+        <div class="list-row"><span>{{ item }}</span><strong>Revisar</strong></div>
+        {% else %}
+        <div class="list-row"><span>Sin riesgos críticos detectados</span><strong>OK</strong></div>
+        {% endfor %}
+      </div>
+    </article>
+  </div>
+</section>
+
+<section class="band compact-band">
+  <div class="section-head"><h2>Backups recientes</h2><span class="pill">{{ vault.backups|length if vault.backups else 0 }}</span></div>
+  <div class="stack">
+    {% for backup in vault.backups[:12] %}
+    <div class="route-row">
+      <span>{{ backup.name }}</span>
+      <strong>{{ backup.size_bytes }} bytes · {{ 'válido' if backup.valid else 'revisar' }}</strong>
+    </div>
+    {% else %}
+    <div class="card"><p class="small">Todavía no hay backups detectados. Activa el cron de Data Vault o crea una copia manual desde el endpoint admin.</p></div>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="band compact-band">
+  <div class="section-head"><h2>Acciones seguras</h2><span class="pill">Solo admin</span></div>
+  <div class="grid compact-grid">
+    <form class="card" method="post" action="/api/admin/data-vault/create-backup">
+      <h3>Crear backup ahora</h3>
+      <p class="small">Genera una copia SQLite externa al ZIP de release.</p>
+      <button class="btn primary" type="submit">Crear backup</button>
+    </form>
+    <form class="card" method="post" action="/api/admin/data-vault/validate-backup">
+      <h3>Validar backups</h3>
+      <p class="small">Comprueba hash SHA-256 y manifiestos disponibles.</p>
+      <button class="btn" type="submit">Validar</button>
+    </form>
+  </div>
+</section>
+
+<section class="band compact-band">
+  <div class="section-head"><h2>Propiedad de datos</h2><span class="pill">Comercial</span></div>
+  <div class="grid compact-grid">
+    {% for table, kind in (dv.ownership or {}).items() %}
+    <article class="card">
+      <span class="pill">{{ kind }}</span>
+      <h3>{{ table }}</h3>
+      <p class="small">{{ dv.counts.get(table, 0) if dv.counts else 0 }} registros protegidos.</p>
+    </article>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

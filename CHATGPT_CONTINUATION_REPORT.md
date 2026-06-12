@@ -1,147 +1,306 @@
 # CHATGPT CONTINUATION REPORT
 
-## Estado actual
+## 1. Estado inicial
 
-NeMeSiS SHARK PRO continúa desde `V727_TELEGRAM_RELIABILITY_COMMAND_CENTER`.
+El proyecto parte de `V742_TOP_APP_LIVE_DETAIL_TRACK_RECORD_MATCH_INTELLIGENCE_VIDEO_HIGHLIGHTS_FINAL`.
 
-La base anterior era `V726_TOTAL_PROJECT_CLEANUP_LIVE_EXPERIENCE_ORGANIZATION`, con Live/Calendar más compactos, release limpio y cron protegido.
+Puntos fuertes:
 
-## Problema que motivó V727
+- Render ya estaba estabilizado.
+- Telegram manual y cron estaban protegidos con secret.
+- Sports Hub, Live, Calendar, Picks, SHARK, Favoritos y Admin ya existían.
+- El ZIP limpio ya excluía `.git`, `.venv`, cachés, bases locales, logs y ZIPs internos.
+- Existían bases sólidas de Madrid Time, Telegram, Track Record, pagos foundation y derechos de contenido.
 
-Telegram no enviaba desde las 12:00 en producción. El envío manual ya había funcionado en versiones previas, por lo que el problema probable no era el bot ni el canal, sino algún punto del flujo automático:
+Puntos débiles:
 
-- Cron no llama;
-- Cron llama pero no hay candidatos;
-- picks descartados;
-- horario silencioso;
-- límites;
-- dedupe;
-- fallo API Telegram;
-- configuración incompleta;
-- Data Memory/DB;
-- football-only bloqueando demasiado.
+- Faltaba una capa clara de protección de datos y backups.
+- La realidad de producción dependía de variables Render y cron correctamente configurados.
+- La inteligencia de partido, highlights, alertas y Data Vault no estaban visibles como panel ejecutivo V745.
+- El proyecto tenía muchos informes históricos y necesitaba continuidad clara.
 
-## Cambios V727
+## 2. Cambios realizados
 
-Se añadió un centro de mando Telegram:
+### Sports Hub
 
-- `/admin/telegram/command-center`
-- `/api/admin/telegram/status`
-- `/api/admin/telegram/dry-run`
-- `/api/admin/telegram/preview-next`
-- `POST /api/admin/telegram/test-send`
+- No se cambió el comportamiento cliente estable.
+- Se mantiene como pantalla deportiva principal.
 
-Se añadió motor:
+### Partidos de hoy
 
-- `engines/telegram_reliability_engine.py`
+- Sin cambios funcionales nuevos.
+- La inteligencia V745 puede leer partidos sincronizados para contexto admin.
 
-Se añadió script:
+### Live
 
-- `tools/check_telegram_reliability.py`
+- Se preserva V742 Live Experience.
+- No se toca Madrid Time ni estados live.
 
-Se añadieron tests:
+### Calendar
 
-- `tests/test_v727_telegram_reliability.py`
+- Se preserva V741/V742.
+- No se añaden filtros nuevos.
 
-Se añadieron informes:
+### Match Detail
 
-- `V727_TELEGRAM_RELIABILITY_COMMAND_CENTER_REPORT.md`
-- `TELEGRAM_RELIABILITY_AUDIT_V727.md`
-- `TELEGRAM_RUNBOOK_V727.md`
+- Se añade foundation de Match Intelligence para explicar partido, señales, riesgos y picks relacionados.
+- No inventa noticias, lesiones ni datos externos.
 
-## Qué hace el Command Center
+### Picks
 
-Muestra sin secrets:
+- Se preserva el flujo existente.
+- Match Intelligence puede conectar picks relacionados sin alterar publicación.
 
-- BOT_TOKEN configurado sí/no;
-- CHAT_ID configurado sí/no;
-- PUBLIC_BASE_URL sí/no;
-- AUTOMATION_SECRET sí/no;
-- football-only activo;
-- último Telegram Tick;
-- último Daily Run;
-- candidatos;
-- descartes;
-- picks premium elegibles;
-- picks sin cuota;
-- picks sin selección;
-- duplicados/dedupe;
-- límites por hora/día;
-- horario silencioso;
-- últimos errores;
-- Data Memory Telegram;
-- preview del siguiente mensaje sin enviar.
+### Telegram
 
-## Diagnósticos posibles
+- Se preserva Telegram V742/V744.
+- No se fuerza ningún envío real durante QA.
+- Se mantiene cron protegido por `AUTOMATION_SECRET`.
+- Se añade visibilidad de cron y configuración en runtime/readiness.
 
-- `READY_TO_SEND`
-- `NO_CANDIDATES`
-- `NO_FOOTBALL_CANDIDATES`
-- `NO_PREMIUM_PICKS`
-- `ALL_DISCARDED_NO_ODDS`
-- `ALL_DISCARDED_LOW_QUALITY`
-- `ALL_ALREADY_SENT`
-- `BLOCKED_BY_HOURLY_LIMIT`
-- `BLOCKED_BY_DAILY_LIMIT`
-- `BLOCKED_BY_QUIET_HOURS`
-- `MISSING_BOT_TOKEN`
-- `MISSING_CHAT_ID`
-- `TELEGRAM_API_ERROR`
-- `DB_ERROR`
-- `DATA_MEMORY_ERROR`
-- `UNKNOWN_ERROR`
+### Favoritos
 
-Cada diagnóstico incluye explicación en castellano, qué hacer, severidad y si es fallo real o situación normal.
+- Sin cambios funcionales.
 
-## Qué se puede saber localmente
+### Combis
 
-En local, sin variables Render reales ni `/data/database.db`, el script puede verificar:
+- Sin cambios funcionales.
 
-- rutas;
-- imports;
-- motor de diagnóstico;
-- filtro football-only;
-- formato de preview;
-- ausencia de envío en dry-run;
-- protección admin.
+### Perfil
 
-No puede determinar la causa exacta de producción desde las 12:00 sin:
+- Sin cambios funcionales.
 
-- DB persistente real de Render;
-- logs reales;
-- `automation_state` real;
-- cola real;
-- variables Render reales.
+### Móvil
 
-## Qué debe mirarse en producción
+- Sin cambios visuales directos en V745.
 
-1. Abrir `/admin/telegram/command-center`.
-2. Ver estado principal.
-3. Revisar último Cron.
-4. Revisar candidatos y descartes.
-5. Revisar límites y horario silencioso.
-6. Revisar Data Memory.
-7. Ejecutar dry-run.
-8. Ejecutar preview.
-9. Solo si procede, `POST /api/admin/telegram/test-send`.
+### Admin
 
-## Estado de seguridad
+- Nuevos paneles:
+  - `/admin/data-vault`
+  - `/admin/match-intelligence`
+  - `/admin/video-highlights`
+  - `/admin/alerts`
+  - `/admin/top-app-readiness`
 
-- No se exponen secrets.
-- No se envían pruebas automáticamente.
-- El test de envío requiere admin y acción explícita.
-- Los endpoints admin requieren sesión admin.
-- Cron mantiene `AUTOMATION_SECRET`.
-- Se conserva `DB_PATH=/data/database.db` para producción.
+### Rendimiento
 
-## Riesgos pendientes
+- Los nuevos endpoints son administrativos o cron.
+- `/api/runtime-version` sigue siendo ligero.
+- No se añaden llamadas externas en carga cliente.
 
-- Confirmar causa real en Render con datos reales.
-- Revisar si `auto_daily_picks` está activo en DB/settings.
-- Revisar si el límite horario actual es demasiado estricto.
-- Revisar si el dedupe bloquea nuevos picks por clave demasiado amplia.
-- Confirmar permisos reales del bot en canal.
+### UX/UI
 
-## Próximo paso recomendado
+- Se añaden paneles compactos de control admin.
+- No se modifica la UX cliente estable.
 
-Desplegar V727 en Render, entrar como admin y abrir `/admin/telegram/command-center`. El estado principal debe decir exactamente por qué no se está enviando.
+### Otros
+
+- Nuevo motor Data Vault.
+- Nuevo motor Match Intelligence.
+- Nuevo motor Video Highlights seguro.
+- Nuevo motor Team Form.
+- Nuevo motor Standings foundation.
+- Nuevo motor Alerts foundation.
+
+## 3. Problemas corregidos
+
+- Falta de visibilidad sobre protección de datos.
+- Falta de backup profesional documentado.
+- Falta de estado runtime Render/cron en `/api/runtime-version`.
+- Falta de panel V745 para revisar preparación global.
+- Falta de herramientas QA V743/V744/V745.
+
+Riesgos eliminados:
+
+- Backups reales no entran en el ZIP.
+- Cron backup no crea ficheros salvo `DATA_BACKUP_ENABLED=true`.
+- Highlights no descargan ni rehostean vídeos.
+- Alertas nuevas no envían mensajes por defecto.
+- Data Vault no toca `DB_PATH`.
+
+## 4. Estado de Telegram
+
+Funciona:
+
+- Endpoints cron protegidos.
+- Diagnóstico Telegram existente.
+- Variables detectables sin exponer secrets.
+- Flujo manual/cola no se toca.
+
+No se pudo probar localmente:
+
+- Envío real a canal con credenciales de producción.
+- Envío privado real.
+- Cron real de Render llamando durante horas.
+
+Pendiente:
+
+- Configurar/confirmar Cron Jobs en Render.
+- Validar en producción con canal real.
+
+Telegram automático está listo a nivel código si Render Cron llama los endpoints con `AUTOMATION_SECRET`.
+
+Telegram privado está listo a nivel código, pero requiere usuarios vinculados reales.
+
+Telegram canal está listo a nivel código, pero requiere variables reales en Render.
+
+Nivel de confianza: alto en código, medio-alto en producción hasta validar cron real.
+
+## 5. Estado de SHARK
+
+Actualmente muestra y usa:
+
+- Picks.
+- Riesgo.
+- Confianza.
+- Contexto de partido.
+- Track Record/ROI foundation.
+- Match Intelligence V745 para admin.
+
+Limitaciones:
+
+- La profundidad depende de datos reales sincronizados.
+- No se inventan noticias, lesiones ni vídeos.
+
+Mejoras futuras:
+
+- Integrar Match Intelligence directamente en Match Detail cliente.
+- Añadir más datos reales de alineaciones, lesiones y standings si las APIs lo permiten.
+
+## 6. Estado de experiencia cliente
+
+El usuario entiende mejor la app que en versiones antiguas porque Sports Hub, Live, Picks, Telegram y SHARK ya están organizados.
+
+Ve partidos fácilmente: sí, dependiendo de cobertura real de datos.
+
+Ve picks fácilmente: sí, si existen picks generados/publicados.
+
+Entiende SHARK: bastante mejor, aunque todavía puede ganar claridad en cliente.
+
+Se parece más a Flashscore/Sofascore: parcialmente. Falta cobertura masiva real para igualar sensación de plataforma global.
+
+Sigue faltando:
+
+- Más datos reales en producción.
+- Más señales SHARK visibles en cliente.
+- Validación de usuarios reales.
+
+## 7. Estado de experiencia ELITE
+
+Un usuario ELITE puede percibir valor por:
+
+- SHARK.
+- Picks premium.
+- Telegram.
+- Track Record.
+- Match Intelligence foundation.
+
+La diferencia FREE/PRO/ELITE existe, pero todavía puede hacerse más evidente en copy comercial y pantallas cliente.
+
+Mejoraría:
+
+- Comparativas de valor por plan.
+- Más datos avanzados reales para ELITE.
+- Alertas configurables cuando estén listas.
+
+## 8. Estado de Admin
+
+Fortalezas:
+
+- Mucha observabilidad.
+- Telegram diagnostics.
+- Data Center.
+- Backups/Data Vault.
+- Readiness V745.
+- Track Record/ROI.
+- Content Rights.
+
+Debilidades:
+
+- Muchas pantallas históricas.
+- Requiere disciplina de uso.
+- Algunas áreas son foundation y no producto terminado completo.
+
+Herramientas disponibles:
+
+- Data Vault.
+- Match Intelligence.
+- Video Highlights seguros.
+- Alerts foundation.
+- Top App Readiness.
+- Telegram diagnostics.
+- Observability.
+- Backups.
+
+## 9. Estado de Render
+
+Estabilidad:
+
+- Mejorada desde V611-V742.
+- Runtime version ligero.
+- Cron endpoints protegidos.
+
+Riesgos:
+
+- Render Web Service no garantiza scheduler interno sin Cron Jobs externos.
+- Producción depende de Persistent Disk y variables Render.
+
+Dependencias:
+
+- SQLite en `/data/database.db`.
+- Telegram Bot API.
+- APIs deportivas configuradas.
+- Render Cron Jobs para automatización fiable.
+
+## 10. Puntuación real
+
+- Arquitectura: 9.2/10
+- Estabilidad: 9.0/10
+- Render: 9.1/10
+- Sports Hub: 8.8/10
+- Live: 8.8/10
+- Calendar: 8.7/10
+- Match Detail: 8.5/10
+- Picks: 8.7/10
+- Telegram: 8.8/10 código, pendiente certificación producción real
+- SHARK: 8.7/10
+- Móvil: 8.5/10
+- Admin: 9.0/10
+- Backups: 8.9/10
+- Automatización: 8.7/10
+- Seguridad: 8.8/10
+- Rendimiento: 8.6/10
+- Producto Comercial: 8.7/10
+- Preparación para Lanzamiento: 8.6/10
+
+## 11. Qué haría el desarrollador con 30 horas más
+
+1. Certificar Render Cron real durante 24 horas.
+2. Probar Telegram canal y privado con usuarios reales.
+3. Integrar Match Intelligence en Match Detail cliente.
+4. Mejorar copy FREE/PRO/ELITE.
+5. Añadir QA visual móvil con capturas reales.
+6. Revisar cobertura deportiva real en producción.
+7. Conectar standings reales si la API lo permite.
+8. Refinar alertas configurables sin spam.
+9. Validar backup y restauración en entorno staging.
+10. Hacer beta cerrada con 5-10 usuarios y recopilar feedback.
+
+## 12. Conclusión final
+
+Está listo para enseñar a usuarios reales en beta controlada.
+
+Está casi listo para usuarios PRO si Telegram Cron queda validado en Render.
+
+Está preparado como base para ELITE, pero ELITE necesita más datos reales y más señales avanzadas visibles para justificar máximo precio.
+
+Está cerca de empezar a vender, pero antes conviene validar:
+
+- Cron real en Render.
+- Telegram real canal/privado.
+- Persistencia `/data/database.db`.
+- Backups reales en `/data/backups`.
+- Flujo de usuarios reales durante varios días.
+
+Lo que falta realmente antes del lanzamiento abierto no es más código grande: es certificación operativa real con datos, cron, Telegram y usuarios.

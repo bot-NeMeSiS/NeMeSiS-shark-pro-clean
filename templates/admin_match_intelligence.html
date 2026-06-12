@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block content %}
+{% set mi = data.match_intelligence_admin or {} %}
+{% set intel = mi.intelligence or {} %}
+<section class="scoreboard-hero v701-scoreboard">
+  <div>
+    <div class="kicker">Admin · Match Intelligence</div>
+    <h1>Inteligencia de partido</h1>
+    <p class="lead">Lectura clara de contexto SHARK usando solo datos sincronizados, picks internos y estado real del partido.</p>
+    <div class="admin-menu">
+      <a class="btn primary" href="/admin/match-intelligence">Match Intelligence</a>
+      <a class="btn" href="/admin/top-app-readiness">Readiness V745</a>
+      <a class="btn" href="/admin/data-center">Datos</a>
+    </div>
+  </div>
+  <div class="scoreboard-kpis">
+    <div><strong>{{ mi.counts.matches or 0 }}</strong><span>Partidos</span></div>
+    <div><strong>{{ mi.counts.picks or 0 }}</strong><span>Picks</span></div>
+    <div><strong>{{ intel.related_picks|length if intel.related_picks else 0 }}</strong><span>Relacionados</span></div>
+    <div><strong>{{ 'Sí' if intel.no_fake_data else 'No' }}</strong><span>Sin inventar</span></div>
+  </div>
+</section>
+
+<section class="band compact-band">
+  <div class="section-head"><h2>{{ intel.title or 'Partido pendiente' }}</h2><span class="pill">SHARK</span></div>
+  <div class="grid compact-grid">
+    <article class="card">
+      <h3>Resumen</h3>
+      <p class="small">{{ intel.summary or 'Pendiente de datos sincronizados.' }}</p>
+      <p class="small">{{ intel.shark_context or '' }}</p>
+    </article>
+    <article class="card">
+      <h3>Señales</h3>
+      <div class="stack">
+        {% for item in intel.signals or [] %}
+        <div class="list-row"><span>{{ item }}</span><strong>OK</strong></div>
+        {% endfor %}
+      </div>
+    </article>
+    <article class="card">
+      <h3>Riesgos</h3>
+      <div class="stack">
+        {% for item in intel.risks or [] %}
+        <div class="list-row"><span>{{ item }}</span><strong>Control</strong></div>
+        {% endfor %}
+      </div>
+    </article>
+  </div>
+</section>
+{% endblock %}

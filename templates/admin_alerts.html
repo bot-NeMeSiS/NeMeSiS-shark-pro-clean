@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block content %}
+{% set ctx = data.alerts_admin or {} %}
+{% set alerts = ctx.alerts or {} %}
+<section class="scoreboard-hero v701-scoreboard">
+  <div>
+    <div class="kicker">Admin · Alertas</div>
+    <h1>Fundación de alertas premium</h1>
+    <p class="lead">Mapa de eventos preparados para futuro envío controlado sin activar spam ni romper Telegram.</p>
+    <div class="admin-menu">
+      <a class="btn primary" href="/admin/alerts">Alertas</a>
+      <a class="btn" href="/admin/telegram/diagnostics">Telegram</a>
+      <a class="btn" href="/admin/top-app-readiness">Readiness</a>
+    </div>
+  </div>
+  <div class="scoreboard-kpis">
+    <div><strong>{{ alerts.types|length if alerts.types else 0 }}</strong><span>Tipos</span></div>
+    <div><strong>{{ 'Activo' if alerts.enabled else 'Off' }}</strong><span>Estado</span></div>
+    <div><strong>Telegram</strong><span>Canal</span></div>
+    <div><strong>Sin spam</strong><span>Regla</span></div>
+  </div>
+</section>
+
+<section class="band compact-band">
+  <div class="section-head"><h2>Tipos de alerta</h2><span class="pill">{{ alerts.status }}</span></div>
+  <div class="grid compact-grid">
+    {% for item in alerts.types or [] %}
+    <article class="card"><h3>{{ item|replace('_', ' ')|title }}</h3><p class="small">Preparado para configuración futura.</p></article>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

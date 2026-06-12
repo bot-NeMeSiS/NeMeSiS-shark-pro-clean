@@ -16,7 +16,7 @@ def main() -> int:
     base_text = BASE.read_text(encoding="utf-8", errors="replace") if BASE.exists() else ""
     root_html = sorted(p.name for p in ROOT.glob("*.html"))
     version = (ROOT / "VERSION.txt").read_text(encoding="utf-8-sig").strip() if (ROOT / "VERSION.txt").exists() else ""
-    version_ok = version.startswith(("V729_", "V730_", "V731_", "V732_", "V733_", "V734_", "V735_", "V736_", "V737_", "V738_", "V739_", "V740_", "V741_", "V742_"))
+    version_ok = version.startswith(("V729_", "V730_", "V731_", "V732_", "V733_", "V734_", "V735_", "V736_", "V737_", "V738_", "V739_", "V740_", "V741_", "V742_", "V743_", "V744_", "V745_"))
     checks = {
         "version_v729_or_later": version_ok,
         "secure_secret_key_used": "app.secret_key = secure_secret_key()" in app_text,

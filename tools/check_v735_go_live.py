@@ -50,7 +50,7 @@ def check() -> dict:
         "api_admin_go_live",
     ]
     checks = []
-    checks.append({"name": "version_txt", "ok": version_txt in {BASE_VERSION, current_version} and (version_txt.startswith("V735_") or version_txt.startswith("V736_") or version_txt.startswith("V737_") or version_txt.startswith("V738_") or version_txt.startswith("V739_") or version_txt.startswith(("V740_", "V741_", "V742_"))), "value": version_txt})
+    checks.append({"name": "version_txt", "ok": version_txt in {BASE_VERSION, current_version} and (version_txt.startswith("V735_") or version_txt.startswith("V736_") or version_txt.startswith("V737_") or version_txt.startswith("V738_") or version_txt.startswith("V739_") or version_txt.startswith(("V740_", "V741_", "V742_", "V743_", "V744_", "V745_"))), "value": version_txt})
     checks.append({"name": "app_version", "ok": f'APP_VERSION = "{version_txt}"' in app or f'APP_VERSION = "{BASE_VERSION}"' in app})
     for rel in required_files:
         path = ROOT / rel

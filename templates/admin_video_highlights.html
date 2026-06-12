@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block content %}
+{% set vh = data.video_highlights_admin or {} %}
+{% set snap = vh.snapshot or {} %}
+<section class="scoreboard-hero v701-scoreboard">
+  <div>
+    <div class="kicker">Admin · Vídeos y noticias</div>
+    <h1>Highlights seguros</h1>
+    <p class="lead">Base preparada para mostrar vídeos, noticias y resúmenes sin descargar, rehostear ni inventar contenido externo.</p>
+    <div class="admin-menu">
+      <a class="btn primary" href="/admin/video-highlights">Highlights</a>
+      <a class="btn" href="/admin/content-rights">Derechos</a>
+      <a class="btn" href="/admin/top-app-readiness">Readiness</a>
+    </div>
+  </div>
+  <div class="scoreboard-kpis">
+    <div><strong>{{ snap.videos|length if snap.videos else 0 }}</strong><span>Entradas</span></div>
+    <div><strong>No</strong><span>Descargas</span></div>
+    <div><strong>No</strong><span>Rehost</span></div>
+    <div><strong>Seguro</strong><span>Política</span></div>
+  </div>
+</section>
+
+<section class="band compact-band">
+  <div class="section-head"><h2>Reglas aplicadas</h2><span class="pill">Legal</span></div>
+  <div class="stack">
+    {% for rule in snap.rules or [] %}
+    <div class="list-row"><span>{{ rule }}</span><strong>OK</strong></div>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}
