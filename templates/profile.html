@@ -81,7 +81,7 @@
     <div class="section-head"><h2>Picks destacados</h2><a class="pill" href="/picks">Ver picks</a></div>
     <div class="stack">
       {% for p in data.picks[:4] %}
-      <div class="list-row"><span>{{ p.selection }}</span><strong>{{ p.confidence }}%</strong></div>
+      <div class="list-row"><span>{{ p.selection_display or p.selection }}</span><strong>{{ p.confidence }}%</strong></div>
       {% else %}
       <div class="empty">No hay picks publicados ahora mismo; SHARK mostrará partidos próximos reales para análisis en la sección Picks.</div>
       {% endfor %}

@@ -57,7 +57,7 @@
     <div class="section-head"><h2>Picks relacionados</h2><span class="pill">{{ data.favorite_bundle.picks|length }}</span></div>
     <div class="stack">
       {% for p in data.favorite_bundle.picks %}
-      <a class="list-row" href="/picks"><span>{{ p.selection or 'Pick SHARK' }}<small>{{ p.home_team }} vs {{ p.away_team }}</small></span><strong>{{ p.confidence or 0 }}%</strong></a>
+      <a class="list-row" href="/picks"><span>{{ p.selection_display or p.selection or 'Pick SHARK' }}<small>{{ p.home_team }} vs {{ p.away_team }}</small></span><strong>{{ p.confidence or 0 }}%</strong></a>
       {% else %}
       <div class="empty premium-empty">Sin picks conectados a tus favoritos todavía.</div>
       {% endfor %}

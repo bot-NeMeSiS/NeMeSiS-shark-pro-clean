@@ -55,7 +55,7 @@
     <article class="card pick-card">
       <div class="match-top"><div><div class="comp-name">{{ p.competition_name or p.league_name or 'Sin liga' }}</div><div class="small">{{ p.match_date }} · {{ p.market }}</div></div><span class="badge badge-{{ p.membership_required|lower }}">{{ p.membership_required }}</span></div>
       <h3>{{ p.home_team }}{% if p.away_team %} vs {{ p.away_team }}{% endif %}</h3>
-      <p><strong>{{ p.selection }}</strong> · cuota {{ p.odds }} · confianza {{ p.confidence }}%</p>
+      <p><strong>{{ p.selection_display or p.selection }}</strong> · cuota {{ p.odds }} · confianza {{ p.confidence }}%</p>
       <p class="small">{{ p.reasoning or 'Sin razonamiento añadido todavía.' }}</p>
       <div class="status"><span>{{ p.status }}</span><span>{{ p.risk_level }}</span><span>{{ p.result_status }}</span></div>
       <form class="inline-actions" method="post" action="/admin/picks">

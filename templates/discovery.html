@@ -66,7 +66,7 @@
   {% if data.discovery.picks %}
     <div class="grid cards-3">
     {% for p in data.discovery.picks %}
-      <article class="card pick-card"><span class="tag">{{ p.membership_required or 'FREE' }}</span><h3>{{ p.selection }}</h3><p>{{ p.home_team }} vs {{ p.away_team }}</p><small>{{ p.reasoning or 'Análisis guardado.' }}</small></article>
+      <article class="card pick-card"><span class="tag">{{ p.membership_required or 'FREE' }}</span><h3>{{ p.selection_display or p.selection }}</h3><p>{{ p.home_team }} vs {{ p.away_team }}</p><small>{{ p.reasoning or 'Análisis guardado.' }}</small></article>
     {% endfor %}
     </div>
   {% else %}<div class="empty premium-empty">No hay picks publicados para esta búsqueda. SHARK puede ayudarte a revisar partidos próximos.</div>{% endif %}

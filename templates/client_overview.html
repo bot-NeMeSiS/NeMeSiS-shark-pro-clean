@@ -45,7 +45,7 @@
     <div class="section-head"><h2>Picks y señales</h2><a class="pill" href="/picks">Ver picks</a></div>
     <div class="stack">
       {% for p in picks[:4] %}
-      <a class="list-row" href="/picks"><span>{{ p.selection or p.title or 'Pick publicado' }}<small>{{ p.home_team }} {{ p.away_team and 'vs ' ~ p.away_team }}</small></span><strong>{{ p.confidence or p.score or 70 }}%</strong></a>
+      <a class="list-row" href="/picks"><span>{{ p.selection_display or p.selection or p.title or 'Pick publicado' }}<small>{{ p.home_team }} {{ p.away_team and 'vs ' ~ p.away_team }}</small></span><strong>{{ p.confidence or p.score or 70 }}%</strong></a>
       {% else %}<div class="empty premium-empty">SHARK está analizando los próximos partidos. Las recomendaciones aparecerán automáticamente cuando haya datos suficientes.</div>{% endfor %}
     </div>
   </div>

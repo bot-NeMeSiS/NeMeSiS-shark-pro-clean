@@ -23,7 +23,7 @@
     <div class="stack">
       {% if data.briefing.explained_picks %}
         {% for p in data.briefing.explained_picks %}
-        <div class="card"><div class="match-top"><div class="name">{{ p.selection }}</div><div class="time">{{ p.odds }}</div></div><p class="small">{{ p.match }}</p><p>{{ p.explanation }}</p><div class="status"><span>Riesgo {{ p.risk }}</span><span class="priority">{{ p.confidence }}%</span></div></div>
+        <div class="card"><div class="match-top"><div class="name">{{ p.selection_display or p.selection }}</div><div class="time">{{ p.odds }}</div></div><p class="small">{{ p.match }}</p><p>{{ p.explanation }}</p><div class="status"><span>Riesgo {{ p.risk }}</span><span class="priority">{{ p.confidence }}%</span></div></div>
         {% endfor %}
       {% else %}
         <div class="empty">Carga picks autorizados para que SHARK pueda explicarlos.</div>

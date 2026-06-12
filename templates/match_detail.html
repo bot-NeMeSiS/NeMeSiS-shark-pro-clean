@@ -107,7 +107,7 @@
     {% for p in detail.related_picks[:6] %}
     <article class="card pick-card v701-premium-pick">
       <div class="comp-name">{{ p.competition_name or comp }}</div>
-      <h3>{{ p.selection or 'Pick SHARK' }}</h3>
+      <h3>{{ p.selection_display or p.selection or 'Pick SHARK' }}</h3>
       <div class="pick-signals"><span>Cuota {{ p.odds or 'Pendiente' }}</span><span>Confianza {{ p.confidence or 0 }}%</span><span>Riesgo {{ p.risk_level or 'Medio' }}</span></div>
       <p class="small"><strong>Motivo:</strong> {{ p.reasoning or 'Pick publicado por SHARK con los datos disponibles.' }}</p>
     </article>

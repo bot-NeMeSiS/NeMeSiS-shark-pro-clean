@@ -38,7 +38,7 @@
       </div>
       <h3>{{ p.home_team or 'Equipo local' }}{% if p.away_team %} vs {{ p.away_team }}{% endif %}</h3>
       <div class="pick-mainline">
-        <div><span>Pick SHARK</span><strong>{{ p.selection or 'Selección pendiente' }}</strong></div>
+        <div><span>Pick SHARK</span><strong>{{ p.selection_display or p.selection or 'Selección pendiente' }}</strong></div>
         <div><span>Cuota</span><strong>{{ p.odds or 'Pendiente' }}</strong></div>
         <div><span>Stake</span><strong>{{ p.stake_units or 1 }}u</strong></div>
       </div>
@@ -90,7 +90,7 @@
   <div class="section-head"><h2>Vista premium</h2><span class="pill">PRO / ELITE</span></div>
   <div class="grid dense-grid">
     {% for p in data.smart_picks.pro_locked %}
-    <article class="card locked-card"><div class="badge badge-{{ p.membership_required|lower }}">{{ p.membership_required }}</div><h3>{{ p.selection }}</h3><p class="small">Pick premium disponible al subir de plan.</p></article>
+    <article class="card locked-card"><div class="badge badge-{{ p.membership_required|lower }}">{{ p.membership_required }}</div><h3>{{ p.selection_display or p.selection }}</h3><p class="small">Pick premium disponible al subir de plan.</p></article>
     {% endfor %}
   </div>
 </section>

@@ -82,7 +82,7 @@
   <div>
     <div class="section-head"><h2>Picks relacionados</h2><span class="pill">{{ t.picks|length }}</span></div>
     <div class="stack">
-      {% for p in t.picks[:8] %}<a class="list-row" href="/picks"><span>{{ p.selection }}</span><strong>{{ p.odds or '-' }}</strong></a>{% else %}<div class="empty">Aún no hay picks publicados para este equipo.</div>{% endfor %}
+      {% for p in t.picks[:8] %}<a class="list-row" href="/picks"><span>{{ p.selection_display or p.selection }}</span><strong>{{ p.odds or '-' }}</strong></a>{% else %}<div class="empty">Aún no hay picks publicados para este equipo.</div>{% endfor %}
     </div>
   </div>
 </section>

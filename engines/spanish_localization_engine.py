@@ -263,6 +263,69 @@ def spanish_market_name(value: object) -> str:
     return _title_preserving_acronyms(raw)
 
 
+
+
+def spanish_pick_selection_name(value: object, home_team: object = "", away_team: object = "", market: object = "") -> str:
+    """Devuelve una selección de apuesta clara para cliente.
+
+    Evita mostrar valores técnicos como "Local" o "Visitante" y los convierte en
+    instrucciones accionables: "Gana Canadá", "Gana Croacia", "Empate", etc.
+    """
+    raw = str(value or "").strip()
+    if not raw:
+        return ""
+    home = spanish_team_name(home_team) or "equipo local"
+    away = spanish_team_name(away_team) or "equipo visitante"
+    key = _norm(raw)
+    pending_re = r"(esperar|pendiente|sin cuota|no disponible|value en c[aá]lculo|cuota pendiente|mercado pendiente|undefined|null|none)"
+    if re.search(pending_re, raw, flags=re.I):
+        return ""
+
+    # 1X2 / ganador del partido
+    if key in {"home", "local", "1", "winner home", "match winner home", "home win", "local win", "equipo local"}:
+        return f"Gana {home}"
+    if key in {"away", "visitante", "2", "winner away", "match winner away", "away win", "visitante win", "equipo visitante"}:
+        return f"Gana {away}"
+    if key in {"draw", "empate", "x", "tie"}:
+        return "Empate"
+
+    # Doble oportunidad
+    if key in {"1x", "home or draw", "local or draw", "local empate", "local o empate"}:
+        return f"{home} o empate"
+    if key in {"x2", "away or draw", "visitante or draw", "visitante empate", "visitante o empate"}:
+        return f"{away} o empate"
+    if key in {"12", "home or away", "local or away", "local o visitante"}:
+        return f"{home} o {away}"
+
+    # Totales y ambos marcan
+    over_match = re.search(r"(?:over|m[aá]s de)\s*([0-9]+(?:[\.,][0-9]+)?)", raw, flags=re.I)
+    if over_match:
+        return f"Más de {over_match.group(1).replace(',', '.')} goles"
+    under_match = re.search(r"(?:under|menos de)\s*([0-9]+(?:[\.,][0-9]+)?)", raw, flags=re.I)
+    if under_match:
+        return f"Menos de {under_match.group(1).replace(',', '.')} goles"
+    if "btts" in key or "both teams" in key or "ambos equipos" in key:
+        if any(x in key for x in {"no", "not", "false"}):
+            return "Ambos equipos marcan: No"
+        return "Ambos equipos marcan: Sí"
+
+    # Si la API trae directamente el nombre del equipo, convertirlo en instrucción.
+    if key and key == _norm(home):
+        return f"Gana {home}"
+    if key and key == _norm(away):
+        return f"Gana {away}"
+
+    # Hándicaps frecuentes con Local/Visitante.
+    handicap = re.search(r"\b(home|local|away|visitante)\b\s*([+-]\s*\d+(?:[\.,]\d+)?)", raw, flags=re.I)
+    if handicap:
+        side = _norm(handicap.group(1))
+        line = handicap.group(2).replace(" ", "").replace(",", ".")
+        team = home if side in {"home", "local"} else away
+        return f"Hándicap {team} {line}"
+
+    return _title_preserving_acronyms(raw)
+
+
 def _has_explicit_timezone(value: str) -> bool:
     s = str(value or "").strip()
     return bool(s.endswith("Z") or re.search(r"[+-]\d{2}:?\d{2}$", s))
@@ -388,6 +451,17 @@ def apply_pick_localization(pick: dict | None) -> dict:
     item["safe_date"] = values.get("safe_date") or item.get("match_date") or ""
     item["display_datetime"] = values.get("display_datetime") or spanish_datetime_label("", item.get("match_date"), item.get("kickoff_time") or item.get("match_time"))
     item["time_context"] = "Hora española"
+    raw_selection = item.get("_raw_selection") or item.get("selection") or item.get("pick") or item.get("recommendation") or ""
+    item["_raw_selection"] = raw_selection
     item["market"] = spanish_market_name(item.get("market") or item.get("pick_type") or "")
     item["pick_type"] = spanish_market_name(item.get("pick_type") or item.get("market") or "")
+    selection_label = spanish_pick_selection_name(raw_selection, item.get("home_team"), item.get("away_team"), item.get("market"))
+    if selection_label:
+        item["selection"] = selection_label
+        item["selection_display"] = selection_label
+    else:
+        item["selection_display"] = "Selección pendiente"
+        # Mantener vacío para que filtros premium no traten pendientes como picks cerrados.
+        if raw_selection:
+            item["selection"] = ""
     return item

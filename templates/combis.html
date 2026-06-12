@@ -34,7 +34,7 @@
     <article class="card v701-premium-pick">
       <div class="match-top"><div><div class="comp-name">{{ c.name or 'Combi SHARK' }}</div><div class="small">{{ c.created_at or 'Fecha pendiente' }}</div></div><span class="shark-pill">{{ c.risk_level or 'Riesgo medio' }}</span></div>
       <div class="pick-mainline"><div><span>Cuota total</span><strong>{{ c.total_odds or 'Pendiente' }}</strong></div><div><span>Estado</span><strong>{{ c.status or 'Activa' }}</strong></div><div><span>Picks</span><strong>{{ c.picks|length }}</strong></div></div>
-      {% for p in c.picks %}<p class="small">{{ p.match or 'Partido' }} · {{ p.selection or 'Selección' }} · {{ p.odds or 'Cuota' }}</p>{% endfor %}
+      {% for p in c.picks %}<p class="small">{{ p.match or 'Partido' }} · {{ p.selection_display or p.selection or 'Selección' }} · {{ p.odds or 'Cuota' }}</p>{% endfor %}
     </article>
     {% endfor %}
   </div>

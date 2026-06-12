@@ -85,7 +85,7 @@
     <div class="stack">
       {% for p in hub.picks[:5] %}
       <a class="list-row v701-pick-row" href="/picks">
-        <span><strong>{{ p.selection or 'Pick SHARK' }}</strong><small>{{ p.home_team or 'Equipo local' }} vs {{ p.away_team or 'Equipo visitante' }} · {{ p.reasoning or 'Motivo SHARK disponible en el pick.' }}</small></span>
+        <span><strong>{{ p.selection_display or p.selection or 'Pick SHARK' }}</strong><small>{{ p.home_team or 'Equipo local' }} vs {{ p.away_team or 'Equipo visitante' }} · {{ p.reasoning or 'Motivo SHARK disponible en el pick.' }}</small></span>
         <strong>{{ p.confidence or p.shark_score or 0 }}%</strong>
       </a>
       {% else %}

@@ -54,7 +54,7 @@
     <div class="section-head"><h2>Picks destacados</h2><a class="pill" href="/picks">Abrir picks</a></div>
     <div class="stack compact-stack">
       {% for p in dashboard.briefing.picks[:4] %}
-      <a class="list-row" href="/picks"><span>{{ p.home_team }} vs {{ p.away_team }}<small>{{ p.selection or p.market or 'Pick publicado' }}</small></span><strong>{{ p.odds or '—' }}</strong></a>
+      <a class="list-row" href="/picks"><span>{{ p.home_team }} vs {{ p.away_team }}<small>{{ p.selection_display or p.selection or p.market or 'Pick publicado' }}</small></span><strong>{{ p.odds or '—' }}</strong></a>
       {% else %}
       <div class="empty">No hay picks publicados ahora. Revisa recomendaciones SHARK o próximos partidos.</div>
       {% endfor %}

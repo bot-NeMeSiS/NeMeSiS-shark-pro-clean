@@ -69,7 +69,7 @@
     <div class="section-head"><h2>Picks y análisis</h2><a class="pill" href="/picks">Abrir</a></div>
     <div class="stack">
       {% for p in briefing.picks[:5] %}
-      <a class="list-row" href="/picks"><span>{{ p.home_team }} vs {{ p.away_team }}<small>{{ p.selection }}</small></span><strong>{{ p.confidence }}%</strong></a>
+      <a class="list-row" href="/picks"><span>{{ p.home_team }} vs {{ p.away_team }}<small>{{ p.selection_display or p.selection }}</small></span><strong>{{ p.confidence }}%</strong></a>
       {% else %}
       <div class="empty premium-empty"><strong>No hay picks publicados</strong><p>Te mostraremos candidatos reales en Picks sin inventar apuestas.</p></div>
       {% endfor %}

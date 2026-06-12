@@ -67,11 +67,12 @@ from engines.spanish_localization_engine import (
     spanish_country_name,
     spanish_datetime_label,
     spanish_market_name,
+    spanish_pick_selection_name,
     spanish_team_name,
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V717_2_TELEGRAM_PRO_CALIBRATION"
+APP_VERSION = "V717_3_BET_SELECTION_CLARITY"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -5481,7 +5482,7 @@ def _shark_line_pick(pick):
     pick = normalize_pick_row(dict(pick or {}))
     home = pick.get("home_team") or "Local"
     away = pick.get("away_team") or "Visitante"
-    selection = pick.get("selection") or "Selección pendiente"
+    selection = pick.get("selection_display") or spanish_pick_selection_name(pick.get("selection") or pick.get("_raw_selection"), home, away, pick.get("market")) or "Selección pendiente"
     market = spanish_market_name(pick.get("market") or "Mercado principal")
     odds = as_float(pick.get("odds"), 0)
     odds_txt = f"cuota {odds:.2f}" if odds > 1 else "cuota pendiente"
@@ -5509,7 +5510,7 @@ def _shark_recommendation_lines(limit=4):
         home = spanish_team_name(rec.get("home_team") or "Local")
         away = spanish_team_name(rec.get("away_team") or "Visitante")
         comp = spanish_competition_name(rec.get("league_name") or rec.get("competition_name") or "Competición")
-        selection = rec.get("selection") or "Esperar mercado"
+        selection = spanish_pick_selection_name(rec.get("selection") or rec.get("pick") or rec.get("recommendation"), home, away, rec.get("market") or rec.get("pick_type")) or "En estudio por SHARK"
         score = as_int(rec.get("shark_score") or rec.get("score"), 0)
         odds = as_float(rec.get("odds") or rec.get("odds_value"), 0)
         odds_txt = f" · cuota {odds:.2f}" if odds > 1 else " · cuota pendiente"
