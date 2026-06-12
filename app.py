@@ -65,11 +65,13 @@ from engines.spanish_localization_engine import (
     parse_datetime_to_madrid,
     spanish_competition_name,
     spanish_country_name,
+    spanish_datetime_label,
+    spanish_market_name,
     spanish_team_name,
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V713_COMBIS15_SHARK_AI_FINAL"
+APP_VERSION = "V714_TELEGRAM_SHARK_CLIENT_POLISH_FINAL"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -2828,7 +2830,7 @@ def daily_automation_summary():
     last = automation_get("daily_autonomous_system", {}) or {}
     return {
         "last": last,
-        "next_run_label": "Hoy 10:00 Europe/Madrid" if str(last.get("date") or "") != today_iso() else "Manana 10:00 Europe/Madrid",
+        "next_run_label": "Hoy 10:00 Europe/Madrid" if str(last.get("date") or "") != today_iso() else "Mañana 10:00 Europe/Madrid",
         "enabled": scheduler_enabled() or daily_automation_env_enabled(),
         "env_enabled": daily_automation_env_enabled(),
         "secret_configured": automation_secret_configured(),
@@ -5444,8 +5446,7 @@ def _shark_line_match(match):
     home = match.get("home_team") or match.get("safe_home") or "Local"
     away = match.get("away_team") or match.get("safe_away") or "Visitante"
     comp = match.get("competition_name") or match.get("league_name") or match.get("safe_competition") or "Competición"
-    time = match.get("kickoff_time") or match.get("match_time") or match.get("safe_time") or "Hora pendiente"
-    date = match.get("match_date") or today_iso()
+    time = match.get("display_datetime") or spanish_datetime_label(match.get("kickoff_iso") or "", match.get("match_date"), match.get("kickoff_time") or match.get("match_time"))
     live_depth = match.get("live_depth") or {}
     status = live_depth.get("label") or match.get("status") or "Próximo"
     score = live_depth.get("score") or match.get("score") or ""
@@ -5458,7 +5459,7 @@ def _shark_line_pick(pick):
     home = pick.get("home_team") or "Local"
     away = pick.get("away_team") or "Visitante"
     selection = pick.get("selection") or "Selección pendiente"
-    market = pick.get("market") or "Mercado principal"
+    market = spanish_market_name(pick.get("market") or "Mercado principal")
     odds = as_float(pick.get("odds"), 0)
     odds_txt = f"cuota {odds:.2f}" if odds > 1 else "cuota pendiente"
     stake = as_float(pick.get("stake_units"), 1)
@@ -6068,6 +6069,51 @@ def telegram_enrich_pick_for_message(pick):
     return item
 
 
+def telegram_pick_sendability(pick):
+    item = normalize_pick_row(dict(pick or {}))
+    reasons = []
+    odds = as_float(item.get("odds"), 0)
+    selection = str(item.get("selection") or "").strip()
+    match_date = str(item.get("match_date") or "")[:10]
+    if match_date and match_date < today_iso():
+        reasons.append("partido_antiguo")
+    if odds <= 1:
+        reasons.append("sin_cuota_real")
+    if not selection:
+        reasons.append("sin_pick_recomendado")
+    if re.search(r"(esperar|pendiente|sin cuota|no disponible|undefined|null|none)", selection, flags=re.I):
+        reasons.append("pick_no_cerrado")
+    return {"sendable": not reasons, "reasons": reasons}
+
+
+def telegram_auto_pick_health(limit=40):
+    summary = {"candidates": 0, "sendable": 0, "discarded": 0, "missing_odds": 0, "missing_crests": 0, "missing_time": 0, "discard_reasons": []}
+    try:
+        picks = get_picks(limit=limit, status=["published"], include_admin=True)
+    except Exception as exc:
+        summary["error"] = str(exc)[:180]
+        return summary
+    summary["candidates"] = len(picks)
+    reasons = {}
+    for raw in picks:
+        pick = telegram_enrich_pick_for_message(raw)
+        check = telegram_pick_sendability(pick)
+        if check.get("sendable"):
+            summary["sendable"] += 1
+        else:
+            summary["discarded"] += 1
+            for reason in check.get("reasons") or ["no_enviable"]:
+                reasons[reason] = reasons.get(reason, 0) + 1
+        if as_float(pick.get("odds"), 0) <= 1:
+            summary["missing_odds"] += 1
+        if not (pick.get("home_logo") and pick.get("away_logo")):
+            summary["missing_crests"] += 1
+        if not (pick.get("kickoff_iso") or pick.get("kickoff_time") or pick.get("match_time")):
+            summary["missing_time"] += 1
+    summary["discard_reasons"] = [{"reason": key, "total": value} for key, value in sorted(reasons.items(), key=lambda item: item[1], reverse=True)]
+    return summary
+
+
 def telegram_reply_markup_from_payload(payload):
     payload = dict(payload or {})
     url = telegram_absolute_url(payload.get("match_url") or payload.get("app_url") or "")
@@ -6086,8 +6132,8 @@ def build_daily_matches_message():
 
 
 def build_daily_picks_message(force_empty=False):
-    picks = get_picks(limit=8, status=["published", "won", "lost", "void"], membership="ELITE")
-    picks = [telegram_enrich_pick_for_message(pick) for pick in picks]
+    picks = get_picks(limit=16, status=["published"], membership="ELITE")
+    picks = [telegram_enrich_pick_for_message(pick) for pick in picks if telegram_pick_sendability(pick).get("sendable")]
     return format_daily_picks_message(picks, force_empty=force_empty, premium_name=APP_NAME)
 
 
@@ -6114,7 +6160,7 @@ def enqueue_daily_matches(force=False, forced_chat_id=""):
     for sub in subscribers:
         result = enqueue_telegram_message(
             "daily_matches",
-            "Partidos del dia",
+            "Partidos del día",
             body,
             chat_id=sub.get("chat_id"),
             user_id=sub.get("user_id"),
@@ -6161,6 +6207,10 @@ def enqueue_auto_pick_alerts(force=False, limit=6):
     for pick in picks:
         score = as_int(pick.get("confidence") or pick.get("shark_score"), 0)
         odds = as_float(pick.get("odds"), 0.0)
+        sendability = telegram_pick_sendability(pick)
+        if not sendability.get("sendable"):
+            discarded.append({"pick_id": pick.get("id"), "reason": ",".join(sendability.get("reasons") or ["no_enviable"])})
+            continue
         if score < min_score and not force:
             discarded.append({"pick_id": pick.get("id"), "reason": "score_bajo", "score": score})
             continue
@@ -6194,7 +6244,7 @@ def enqueue_auto_pick_alerts(force=False, limit=6):
             dedupe_target = dest.get("chat_id") or dest.get("user_id") or "global"
             result = enqueue_telegram_message(
                 "auto_pick",
-                "Pick automatico SHARK",
+                "Pick automático SHARK",
                 body,
                 chat_id=dest.get("chat_id"),
                 user_id=dest.get("user_id"),
@@ -6364,6 +6414,7 @@ def telegram_diagnostics():
     last_auto_pick = one("SELECT * FROM telegram_queue WHERE lower(coalesce(message_type,''))='auto_pick' ORDER BY COALESCE(sent_at, created_at) DESC LIMIT 1")
     auto_pick_pending = (one("SELECT COUNT(*) AS total FROM telegram_queue WHERE lower(status)=? AND lower(coalesce(message_type,''))='auto_pick'", (QUEUE_PENDING,)) or {}).get("total", 0)
     duplicate_logs = (one("SELECT COUNT(*) AS total FROM telegram_logs WHERE lower(status)='skipped' OR lower(message) LIKE '%duplicado%'") or {}).get("total", 0)
+    auto_pick_health = telegram_auto_pick_health(limit=40)
     return {
         "token_present": bool(os.getenv("TELEGRAM_BOT_TOKEN")),
         "token_masked": masked_key(os.getenv("TELEGRAM_BOT_TOKEN", "")),
@@ -6394,6 +6445,7 @@ def telegram_diagnostics():
         "last_pick": last_pick or {},
         "last_auto_pick": last_auto_pick or {},
         "auto_pick_pending": auto_pick_pending,
+        "auto_pick_health": auto_pick_health,
         "duplicates_avoided": duplicate_logs,
         "recent_sent": rows("SELECT * FROM telegram_queue WHERE lower(status)=? ORDER BY sent_at DESC LIMIT 8", (QUEUE_SENT,)),
         "recent_errors": rows("SELECT * FROM telegram_logs WHERE lower(status) IN ('failed','error') ORDER BY created_at DESC LIMIT 8"),

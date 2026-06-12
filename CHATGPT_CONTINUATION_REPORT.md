@@ -1,79 +1,82 @@
-# ChatGPT Continuation Report — V710 Telegram Auto Send Via Render Cron
+# ChatGPT Continuation Report — V714 Telegram SHARK Client Polish Final
 
 ## Estado Inicial
 
-NeMeSiS SHARK PRO ya tenía Telegram manual funcionando, canal global operativo, token válido, `TELEGRAM_CHAT_ID` válido, cola funcional, picks existentes, scheduler interno y dedupe.
+La base actual era `V713_COMBIS15_SHARK_AI_FINAL`. Ya estaban funcionando Telegram automático por Render Cron, canal Telegram, cola, picks, SHARK AI, Sports Hub, Live, Calendar, Match Detail, Favoritos, Combis hasta 15, Admin, Cliente, Render, SQLite persistente y PWA.
 
-El problema real era que Render Web Service no garantiza ejecución automática de fondo. Por eso el envío automático necesita Render Cron.
+El objetivo de V714 no era añadir módulos, sino pulir presentación, idioma, horarios, Telegram, SHARK y experiencia cliente.
 
-## Qué Se Certificó
+## Cambios Realizados
 
-Endpoints:
+- Versión actualizada a `V714_TELEGRAM_SHARK_CLIENT_POLISH_FINAL`.
+- `VERSION.txt` actualizado.
+- Motor central de localización deportiva reforzado.
+- Añadida traducción centralizada de mercados deportivos.
+- Añadido formato de fecha/hora en español y Europe/Madrid: Hoy, Mañana y día de semana.
+- Telegram usa mejor hora visible, nombres localizados y mercados en castellano.
+- SHARK muestra horarios más claros y mercados traducidos.
+- Picks automáticos Telegram más estrictos:
+  - bloquea partidos antiguos.
+  - bloquea picks sin cuota real.
+  - bloquea selecciones pendientes/no cerradas.
+- Diagnóstico admin de Telegram incluye salud de auto picks:
+  - candidatos.
+  - enviables.
+  - descartados.
+  - faltan cuotas.
+  - faltan escudos.
+  - faltan horarios.
+  - motivos de descarte.
+- Pantalla cliente Telegram limpiada para no mostrar token/canal/configuración técnica.
 
-- `/api/automation/telegram/tick?secret=AUTOMATION_SECRET`
-- `/api/automation/daily/run?secret=AUTOMATION_SECRET`
+## Estado Telegram
 
-Ambos:
+Telegram manual y canal estaban certificados previamente.
 
-- existen.
-- no dependen de sesión admin.
-- bloquean sin secreto.
-- responden 200 con secreto válido.
-- actualizan diagnóstico.
+En V714 no se cambió el flujo Cron estable:
 
-## Prueba Final
-
-Resultado local controlado:
-
-- Telegram Tick sin secreto: 403.
-- Telegram Tick con secreto: 200.
-- Estado: `QUEUE_PROCESSED`.
-- Mensajes enviados por cola: 2.
-- Daily Automation sin secreto: 403.
-- Daily Automation con secreto: 200.
-- `last_cron_telegram_call`: actualizado.
-- `last_cron_daily_call`: actualizado.
-- cola pendiente: 0.
-- fallidos hoy: 0.
-- dedupe activo.
-- observability errors: 0.
-
-## Variables Necesarias
-
+- `/api/automation/telegram/tick`
+- `/api/automation/daily/run`
 - `AUTOMATION_SECRET`
-- `TELEGRAM_BOT_TOKEN`
-- `TELEGRAM_CHAT_ID`
-- `TELEGRAM_BOT_USERNAME`
-- `ENABLE_TELEGRAM_AUTO=true`
-- `AUTO_SEND_TELEGRAM_PICKS=true`
-- `AUTO_GENERATE_PICKS=true`
-- `SCHEDULER_ENABLED=true`
-- `DAILY_AUTOMATION_ENABLED=true`
-- `DB_PATH=/data/database.db`
+- dedupe
+- cola
 
-## Cron Jobs a Crear
+Se pulió el formato y se endureció qué puede salir como pick premium.
 
-Cron 1:
+## Estado SHARK
 
-`NeMeSiS Telegram Tick`
+SHARK mantiene respuestas sobre picks, combinadas, favoritos, directo y resumen del día. V714 mejora la presentación con hora contextual y mercado traducido. Sigue sin inventar cuotas ni partidos.
 
-Cada 15 minutos:
+## Validación
 
-`https://bot-apuestas-crgf.onrender.com/api/automation/telegram/tick?secret=VALOR_REAL_DE_AUTOMATION_SECRET`
+- `python -m compileall .`: OK.
+- `pytest -q`: no ejecutable porque pytest no está instalado en el entorno local.
+- `tools/smoke_check.py`: OK con avisos históricos de endpoints V601/V602 no relacionados.
+- Smoke Flask local:
+  - `/`: 200.
+  - `/version`: 200 y V714.
+  - `/api/runtime-version`: 200.
+  - `/login`: 200.
+  - `/cliente-login`: 200.
+  - `/admin-login`: 200.
+  - `/registro`: 200.
+  - `/sports-hub`: 200.
+  - `/live`: 200.
+  - `/calendar`: 200.
+  - `/picks`: 200.
+  - `/combis`: 200.
+  - `/telegram`: 302 por login, correcto.
+  - `/shark`: 200.
+  - Cron sin secret: 403.
+  - Cron con secret: 200.
 
-Cron 2:
+## Pendiente Real
 
-`NeMeSiS Daily Automation`
-
-Cada hora o diario a las 10:00 Europe/Madrid:
-
-`https://bot-apuestas-crgf.onrender.com/api/automation/daily/run?secret=VALOR_REAL_DE_AUTOMATION_SECRET`
+- Certificar recepción Telegram real en producción después de configurar Cron en Render.
+- Verificar volumen de picks y cuotas con datos reales de API en producción.
+- Instalar `pytest` si se quiere ejecutar la suite completa localmente.
 
 ## Conclusión
 
-Telegram automático queda listo a nivel de código y configuración documentada.
-
-La única acción externa pendiente es crear los dos Cron Jobs en Render con el secreto real.
-
-Una vez creados, NeMeSiS podrá mandar picks automáticamente sin que el admin toque nada.
+V714 deja la app más pulida para cliente, Telegram y SHARK sin romper el flujo estable de Render Cron ni las combinadas hasta 15.
 

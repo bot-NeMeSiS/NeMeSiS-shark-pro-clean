@@ -16,8 +16,8 @@
   <div class="scoreboard-kpis">
     <div><strong>{% if state.linked %}OK{% else %}Link{% endif %}</strong><span>Estado</span></div>
     <div><strong>{{ tier }}</strong><span>Plan</span></div>
-    <div><strong>{% if data.telegram.enabled or data.telegram.legacy_enabled %}Auto{% else %}Off{% endif %}</strong><span>Envío</span></div>
-    <div><strong>{% if data.telegram.chat_id_present %}Canal{% else %}Privado{% endif %}</strong><span>Destino</span></div>
+    <div><strong>{% if data.telegram.enabled or data.telegram.legacy_enabled %}Activo{% else %}Pausa{% endif %}</strong><span>Alertas</span></div>
+    <div><strong>SHARK</strong><span>Canal</span></div>
   </div>
 </section>
 
@@ -25,7 +25,7 @@
   <div class="card telegram-status-card-v637 {% if state.linked %}ok{% else %}pending{% endif %}">
     <div class="section-head"><h2>{% if state.linked %}Cuenta vinculada{% else %}Código de vinculación{% endif %}</h2><span class="pill">{{ tier }}</span></div>
     {% if state.linked %}
-      <p class="small">Chat: <strong>{{ state.chat_id_masked }}</strong>{% if state.username %} · @{{ state.username }}{% endif %}</p>
+      <p class="small">Cuenta Telegram activa{% if state.username %} · @{{ state.username }}{% endif %}</p>
       <p class="small muted">Vinculado: {{ state.linked_at or 'activo' }}</p>
       <form method="post" action="/telegram/desvincular"><button class="btn danger" type="submit">Desvincular</button></form>
     {% else %}
@@ -44,11 +44,7 @@
       <div class="list-row"><span>Picks y recomendaciones SHARK</span><strong>PRO</strong></div>
       <div class="list-row"><span>Alertas live, value y prioridad</span><strong>ELITE</strong></div>
     </div>
-    <div class="mini-grid-v637">
-      <span>Bot</span><strong>{% if data.telegram.token_present %}OK{% else %}Pendiente{% endif %}</strong>
-      <span>Canal</span><strong>{% if data.telegram.chat_id_present %}OK{% else %}Pendiente{% endif %}</strong>
-      <span>Automático</span><strong>{% if data.telegram.enabled or data.telegram.legacy_enabled %}Activo{% else %}Inactivo{% endif %}</strong>
-    </div>
+    <p class="small muted">Las alertas se adaptan a tu plan y solo se envían cuando SHARK detecta información útil.</p>
   </div>
 </section>
 {% endblock %}

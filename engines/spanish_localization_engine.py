@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import re
 import unicodedata
-from datetime import datetime
+from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 MADRID_TZ = ZoneInfo("Europe/Madrid")
@@ -186,6 +186,29 @@ SPANISH_COMPETITION_OVERRIDES = {
 }
 
 
+SPANISH_MARKET_OVERRIDES = {
+    "home": "Local",
+    "away": "Visitante",
+    "draw": "Empate",
+    "over": "Más de",
+    "under": "Menos de",
+    "both teams to score": "Ambos equipos marcan",
+    "btts": "Ambos equipos marcan",
+    "double chance": "Doble oportunidad",
+    "moneyline": "Ganador del partido",
+    "h2h": "Ganador del partido",
+    "match winner": "Ganador del partido",
+    "winner": "Ganador",
+    "spread": "Hándicap",
+    "handicap": "Hándicap",
+    "total": "Total de goles/puntos",
+    "totals": "Total de goles/puntos",
+    "result": "Resultado",
+    "main": "Mercado principal",
+    "principal": "Mercado principal",
+}
+
+
 def _title_preserving_acronyms(text: str) -> str:
     replacements = {
         "Atletico": "Atlético",
@@ -224,6 +247,19 @@ def spanish_competition_name(value: object) -> str:
     for needle, translated in SPANISH_COMPETITION_OVERRIDES.items():
         if needle and needle in key:
             return translated
+    return _title_preserving_acronyms(raw)
+
+
+def spanish_market_name(value: object) -> str:
+    raw = str(value or "").strip()
+    if not raw:
+        return ""
+    key = _norm(raw)
+    if key in SPANISH_MARKET_OVERRIDES:
+        return SPANISH_MARKET_OVERRIDES[key]
+    for needle, translated in SPANISH_MARKET_OVERRIDES.items():
+        if needle and needle in key:
+            return translated if key == needle else raw
     return _title_preserving_acronyms(raw)
 
 
@@ -273,7 +309,27 @@ def madrid_values_from_datetime(value: object, fallback_date: object = "", fallb
         "safe_time": dt.strftime("%H:%M"),
         "safe_date": dt.strftime("%d/%m/%Y"),
         "safe_datetime": dt.strftime("%d/%m/%Y · %H:%M"),
+        "display_datetime": spanish_datetime_label(dt),
     }
+
+
+def spanish_datetime_label(value: object, fallback_date: object = "", fallback_time: object = "") -> str:
+    dt = value if isinstance(value, datetime) else parse_datetime_to_madrid(value)
+    if dt is None and fallback_date and fallback_time:
+        dt = parse_datetime_to_madrid(f"{fallback_date}T{str(fallback_time)[:5]}:00")
+    if dt is None:
+        date = str(fallback_date or "")[:10]
+        time = str(fallback_time or "")[:5]
+        return f"{date} · {time}".strip(" ·") or "Hora pendiente"
+    dt = dt.astimezone(MADRID_TZ)
+    today = datetime.now(MADRID_TZ).date()
+    tomorrow = today + timedelta(days=1)
+    weekday = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"][dt.weekday()]
+    if dt.date() == today:
+        return f"Hoy {dt:%H:%M}"
+    if dt.date() == tomorrow:
+        return f"Mañana {dt:%H:%M}"
+    return f"{weekday} {dt:%d/%m} · {dt:%H:%M}"
 
 
 def apply_match_localization(match: dict | None) -> dict:
@@ -309,6 +365,7 @@ def apply_match_localization(match: dict | None) -> dict:
     item["safe_time"] = values.get("safe_time") or item.get("kickoff_time") or item.get("match_time") or "Hora"
     item["safe_date"] = values.get("safe_date") or item.get("match_date") or ""
     item["safe_datetime"] = values.get("safe_datetime") or ""
+    item["display_datetime"] = values.get("display_datetime") or spanish_datetime_label("", item.get("match_date"), item.get("kickoff_time") or item.get("match_time"))
     item["time_context"] = "Hora española"
     return item
 
@@ -329,5 +386,8 @@ def apply_pick_localization(pick: dict | None) -> dict:
         item["match_time"] = values["kickoff_time"]
     item["safe_time"] = values.get("safe_time") or item.get("kickoff_time") or item.get("match_time") or "Hora"
     item["safe_date"] = values.get("safe_date") or item.get("match_date") or ""
+    item["display_datetime"] = values.get("display_datetime") or spanish_datetime_label("", item.get("match_date"), item.get("kickoff_time") or item.get("match_time"))
     item["time_context"] = "Hora española"
+    item["market"] = spanish_market_name(item.get("market") or item.get("pick_type") or "")
+    item["pick_type"] = spanish_market_name(item.get("pick_type") or item.get("market") or "")
     return item

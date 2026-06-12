@@ -14,6 +14,8 @@ from engines.spanish_localization_engine import (
     madrid_values_from_datetime,
     spanish_competition_name,
     spanish_country_name,
+    spanish_datetime_label,
+    spanish_market_name,
     spanish_team_name,
 )
 
@@ -180,6 +182,14 @@ def _format_date(value):
     return raw
 
 
+def _display_datetime(item):
+    return spanish_datetime_label(
+        item.get("kickoff_iso") or item.get("kickoff_iso_madrid") or "",
+        item.get("match_date") or item.get("date"),
+        item.get("kickoff_time") or item.get("match_time") or item.get("time"),
+    )
+
+
 def _match_time(item):
     values = madrid_values_from_datetime(item.get("kickoff_iso") or item.get("kickoff_iso_madrid") or "", item.get("match_date") or item.get("date"), item.get("kickoff_time") or item.get("match_time") or item.get("time"))
     if values.get("safe_time") and values.get("safe_time") != "Hora":
@@ -274,7 +284,7 @@ def format_match_line(match):
     score_line = f" · <b>{score}</b>" if score else ""
     lines = [
         f"{_competition_emoji(match)} <b>{comp}</b>",
-        f"🕘 {time} h España · {status}{score_line}",
+        f"🕘 {_display_datetime(match)} · {status}{score_line}",
         _team_block(match, "home"),
         "🆚",
         _team_block(match, "away"),
@@ -353,10 +363,9 @@ def build_daily_picks_message(picks, force_empty=False, premium_name="NeMeSiS SH
     for index, pick in enumerate(picks[:4], start=1):
         pick = apply_pick_localization(pick)
         comp = safe_html(_competition_name(pick))
-        date = safe_html(_format_date(pick.get("match_date") or pick.get("kickoff_iso") or pick.get("date")))
-        time = _match_time(pick)
+        date = safe_html(_display_datetime(pick))
         selection = safe_html(compact_text(pick.get("selection") or "Pick SHARK", 90))
-        market = safe_html(compact_text(pick.get("market") or pick.get("pick_type") or "Mercado", 80))
+        market = safe_html(compact_text(spanish_market_name(pick.get("market") or pick.get("pick_type") or "Mercado"), 80))
         odds = safe_html(pick.get("odds") or "Pendiente")
         risk = safe_html(pick.get("risk_level") or "Medio")
         reason = safe_html(compact_text(pick.get("reasoning") or pick.get("reason") or "SHARK detecta valor con los datos disponibles.", 260))
@@ -365,7 +374,7 @@ def build_daily_picks_message(picks, force_empty=False, premium_name="NeMeSiS SH
             [
                 _pick_title(index, pick),
                 f"{_competition_emoji(pick)} <b>{comp}</b>",
-                f"🕘 {date}" + (f" · {time} h España" if time and time != date else " · hora España"),
+                f"🕘 {date}",
                 _team_block(pick, "home"),
                 "🆚",
                 _team_block(pick, "away"),
