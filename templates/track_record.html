@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% block content %}
+<section class="hero compact-hero v734-hero">
+  <div class="eyebrow">Transparencia SHARK</div>
+  <h1>Histórico y rendimiento real</h1>
+  <p>Mostramos rendimiento cuando hay datos suficientes. Si un mercado no puede validarse con seguridad, queda pendiente y no se usa para vender humo.</p>
+</section>
+
+<section class="grid cards-4">
+  <article class="card stat-card"><span>Picks auditados</span><strong>{{ data.track_record.graded_total }}</strong><small>histórico disponible</small></article>
+  <article class="card stat-card"><span>Ganados</span><strong>{{ data.track_record.won }}</strong><small>validados</small></article>
+  <article class="card stat-card"><span>Perdidos</span><strong>{{ data.track_record.lost }}</strong><small>validados</small></article>
+  <article class="card stat-card"><span>Resultado</span><strong>{{ data.track_record.profit }} u</strong><small>sin prometer beneficios</small></article>
+</section>
+
+<section class="card">
+  <h2>Últimos picks evaluados</h2>
+  {% if data.track_record.recent_results %}
+  <div class="stack compact-list">
+    {% for row in data.track_record.recent_results[:8] %}
+    <div class="mini-row">
+      <div><strong>Pick {{ row.pick_id }}</strong><span>{{ row.reason }}</span></div>
+      <span class="badge status-{{ row.result_status }}">{{ row.result_status }}</span>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state">Aún no hay histórico suficiente. Cuando haya resultados reales auditados, aparecerán aquí.</div>
+  {% endif %}
+</section>
+
+<section class="card responsible-note">
+  <h2>Juego responsable</h2>
+  <p>NeMeSiS SHARK PRO organiza datos y señales deportivas. No garantiza ganancias. Usa siempre stake responsable y no apuestes dinero que no puedas permitirte perder.</p>
+</section>
+{% endblock %}

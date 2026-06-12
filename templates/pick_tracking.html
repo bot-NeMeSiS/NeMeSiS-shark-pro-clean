@@ -1,4 +1,4 @@
-﻿{% extends 'base.html' %}
+{% extends 'base.html' %}
 {% block content %}
 <section class="hero compact-hero">
   <div class="eyebrow">Centro de seguimiento</div>
@@ -10,7 +10,7 @@
   <article class="card stat-card"><span>Seguimiento</span><strong>{{ data.performance.tracked_total }}</strong><small>picks guardados</small></article>
   <article class="card stat-card"><span>Winrate</span><strong>{{ data.performance.winrate }}%</strong><small>solo decididos</small></article>
   <article class="card stat-card"><span>ROI estimado</span><strong>{{ data.performance.roi }}%</strong><small>según stakes marcados</small></article>
-  <article class="card stat-card"><span>Beneficio</span><strong>{{ data.performance.estimated_profit }}â‚¬</strong><small>estimación</small></article>
+  <article class="card stat-card"><span>Beneficio</span><strong>{{ data.performance.estimated_profit }}€</strong><small>estimación</small></article>
 </section>
 
 <section class="grid two-col">
@@ -42,7 +42,7 @@
       {% endfor %}
       </div>
     {% else %}
-      <div class="empty-state">No hay picks publicados ahora mismo. Cuando haya picks reales publicados apareceran aqui.</div>
+      <div class="empty-state">No hay picks publicados ahora mismo. Cuando haya picks reales publicados aparecerán aquí.</div>
     {% endif %}
   </article>
 </section>
@@ -58,7 +58,7 @@
           <tr>
             <td>{{ item.home_team }} vs {{ item.away_team }}<br><small>{{ item.league_name }}</small></td>
             <td>{{ item.selection }}<br><small>{{ item.odds }} · {{ item.risk_level }}</small></td>
-            <td>{{ item.stake_euros }}â‚¬</td>
+            <td>{{ item.stake_euros }}€</td>
             <td><span class="badge status-{{ item.result_status }}">{{ item.result_status or 'pending' }}</span></td>
             <td><button class="btn tiny remove-pick" data-pick="{{ item.pick_id }}">Quitar</button></td>
           </tr>
@@ -72,7 +72,7 @@
 </section>
 
 <script>
-async function postJson(url, payload){ const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}); return r.json(); }
+async function postJson(url, payload){ const r=await fetch(url,{method:'POST',headers:(window.nemesisJsonHeaders?window.nemesisJsonHeaders():{'Content-Type':'application/json'}),body:JSON.stringify(payload)}); return r.json(); }
 document.getElementById('bankrollForm')?.addEventListener('submit', async (e)=>{e.preventDefault(); const payload=Object.fromEntries(new FormData(e.currentTarget).entries()); const j=await postJson('/api/client/bankroll', payload); document.getElementById('bankrollStatus').textContent=j.ok?'Banca guardada correctamente.':'No se pudo guardar ahora.';});
 document.querySelectorAll('.track-pick').forEach(btn=>btn.addEventListener('click', async()=>{const j=await postJson('/api/client/track-pick',{pick_id:btn.dataset.pick,action:'saved'}); btn.textContent=j.ok?'Guardado':'Error';}));
 document.querySelectorAll('.remove-pick').forEach(btn=>btn.addEventListener('click', async()=>{const j=await postJson('/api/client/track-pick',{pick_id:btn.dataset.pick,action:'removed'}); if(j.ok) location.reload();}));

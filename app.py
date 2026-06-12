@@ -91,6 +91,10 @@ from engines.route_health_engine import route_health_snapshot
 from engines.client_experience_guard_engine import client_experience_snapshot
 from engines.production_readiness_engine import production_readiness_snapshot
 from engines.client_success_engine import client_success_snapshot
+from engines.public_launch_engine import public_launch_snapshot
+from engines.payment_readiness_engine import payment_readiness_snapshot, record_payment_webhook_event
+from engines.pick_grading_engine import pick_grading_summary, run_pick_grading
+from engines.subscription_control_engine import subscription_summary, apply_subscription_rules
 from engines.team_identity_engine import (
     flag_or_emoji as team_flag_or_emoji,
     identity_payload as build_team_identity_payload,
@@ -125,7 +129,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V733_CLIENT_SUCCESS_ONBOARDING_SUPPORT_POLISH"
+APP_VERSION = "V734_PUBLIC_LAUNCH_TRACK_RECORD_PAYMENTS_FOUNDATION"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -198,6 +202,7 @@ def csrf_exempt_path(path: str) -> bool:
         "/telegram/webhook",
         "/api/automation/telegram/tick",
         "/api/automation/daily/run",
+        "/api/payments/stripe-webhook",
     }
     prefixes = (
         "/static/",
@@ -10334,6 +10339,132 @@ def api_admin_client_success():
     return jsonify({"ok": True, "version": APP_VERSION, "client_success": client_success_runtime_context({"membership": "ADMIN", "role": "ADMIN", "id": ""})})
 
 
+# ===================== V734 PUBLIC LAUNCH / TRACK RECORD / PAYMENTS FOUNDATION =====================
+
+def v734_public_launch_context():
+    return public_launch_snapshot(DB_PATH, app_version=APP_VERSION)
+
+
+@app.route("/admin/public-launch")
+@app.route("/admin/commercial-launch")
+def admin_public_launch_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/public-launch")
+    data = dashboard_data()
+    data["version"] = APP_VERSION
+    data["public_launch"] = v734_public_launch_context()
+    return render_template("admin_public_launch.html", data=data)
+
+
+@app.route("/api/admin/public-launch")
+def api_admin_public_launch():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "version": APP_VERSION, "public_launch": v734_public_launch_context()})
+
+
+@app.route("/track-record")
+@app.route("/rendimiento-picks")
+def public_track_record_page():
+    user = current_session_user()
+    data = dashboard_data() if user else home_light_data()
+    data["track_record"] = pick_grading_summary(DB_PATH)
+    return render_template("track_record.html", data=data)
+
+
+@app.route("/api/track-record")
+def api_track_record():
+    return jsonify({"ok": True, "version": APP_VERSION, "track_record": pick_grading_summary(DB_PATH)})
+
+
+@app.route("/admin/track-record", methods=["GET", "POST"])
+def admin_track_record_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/track-record")
+    last_run = None
+    if request.method == "POST":
+        action = str(request.form.get("action") or "scan").lower()
+        limit = max(20, min(2000, as_int(request.form.get("limit"), 500)))
+        last_run = run_pick_grading(DB_PATH, limit=limit, apply=action == "apply")
+        try:
+            record_security_event(
+                DB_PATH,
+                event_type="track_record_run",
+                severity="INFO",
+                ip_address=security_client_ip(),
+                path=request.path,
+                method=request.method,
+                success=bool(last_run.get("ok")),
+                reason=f"action={action}",
+                payload={"limit": limit, "run": last_run},
+            )
+        except Exception:
+            pass
+    data = dashboard_data()
+    data["track_record"] = pick_grading_summary(DB_PATH)
+    data["last_run"] = last_run
+    return render_template("admin_track_record.html", data=data)
+
+
+@app.route("/api/admin/track-record", methods=["GET", "POST"])
+def api_admin_track_record():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    if request.method == "POST":
+        payload = request.get_json(silent=True) or {}
+        limit = max(20, min(2000, as_int(payload.get("limit"), 500)))
+        apply = str(payload.get("apply") or "").lower() in {"1", "true", "yes", "si", "sí"}
+        run = run_pick_grading(DB_PATH, limit=limit, apply=apply)
+        return jsonify({"ok": True, "version": APP_VERSION, "run": run, "track_record": pick_grading_summary(DB_PATH)})
+    return jsonify({"ok": True, "version": APP_VERSION, "track_record": pick_grading_summary(DB_PATH)})
+
+
+@app.route("/admin/payments", methods=["GET", "POST"])
+def admin_payments_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/payments")
+    result = None
+    if request.method == "POST":
+        action = str(request.form.get("action") or "rules").lower()
+        if action == "rules":
+            result = apply_subscription_rules(DB_PATH)
+    data = dashboard_data()
+    data["payments"] = payment_readiness_snapshot(DB_PATH)
+    data["subscriptions"] = subscription_summary(DB_PATH, apply_rules=True)
+    data["last_result"] = result
+    return render_template("admin_payments.html", data=data)
+
+
+@app.route("/api/admin/payments", methods=["GET", "POST"])
+def api_admin_payments():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    result = None
+    if request.method == "POST":
+        result = apply_subscription_rules(DB_PATH)
+    return jsonify({
+        "ok": True,
+        "version": APP_VERSION,
+        "payments": payment_readiness_snapshot(DB_PATH),
+        "subscriptions": subscription_summary(DB_PATH, apply_rules=True),
+        "result": result,
+    })
+
+
+@app.route("/api/payments/stripe-webhook", methods=["POST"])
+def api_payments_stripe_webhook():
+    payload = request.get_json(silent=True)
+    if payload is None:
+        try:
+            payload = json.loads((request.get_data(as_text=True) or "{}").strip() or "{}")
+        except Exception:
+            payload = {"type": "unreadable"}
+    signature_present = bool(request.headers.get("Stripe-Signature"))
+    result = record_payment_webhook_event(DB_PATH, "stripe", payload, signature_present=signature_present)
+    return jsonify({"ok": True, "version": APP_VERSION, **result})
+
+
+
 # ===================== V565 SPORTS DATA & PICKS PERFECTION =====================
 
 PRIORITY_LEAGUE_ORDER = [
@@ -10607,6 +10738,7 @@ def v566_client_menu_items():
         {"group": "Cuenta", "title": "Soporte", "body": "Enviar incidencia o duda sobre partidos, Telegram, picks o cuenta.", "href": "/ayuda"},
         {"group": "Cuenta", "title": "Alertas", "body": "Avisos importantes de tu actividad.", "href": "/alertas"},
         {"group": "Picks", "title": "Seguimiento", "body": "Banca y picks guardados.", "href": "/seguimiento"},
+        {"group": "Picks", "title": "Histórico real", "body": "Track record, resultados y ROI sin datos inventados.", "href": "/track-record"},
         {"group": "Legal", "title": "Juego responsable", "body": "Uso responsable y límites.", "href": "/juego-responsable"},
         {"group": "Legal", "title": "Legal", "body": "Confianza, datos permitidos y términos.", "href": "/legal"},
     ]
@@ -10668,6 +10800,9 @@ def v566_admin_items():
         {"group": "IA", "title": "SHARK Center", "body": "Memoria, señales y salud del copiloto SHARK.", "href": "/admin/shark-center"},
         {"group": "Sistema", "title": "QA", "body": "Auditoría final y salud del producto.", "href": "/admin/final-qa"},
         {"group": "Cliente", "title": "Client Success", "body": "Guía, onboarding, soporte y claridad de uso para cliente.", "href": "/admin/client-success"},
+        {"group": "Lanzamiento", "title": "Público grande", "body": "Seis áreas para abrir a público grande sin improvisar.", "href": "/admin/public-launch"},
+        {"group": "Credibilidad", "title": "Track Record", "body": "Resultados, ROI y picks auditados.", "href": "/admin/track-record"},
+        {"group": "Pagos", "title": "Pagos PRO/ELITE", "body": "Stripe, suscripciones y monetización segura.", "href": "/admin/payments"},
     ]
 
 

@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+{% block content %}
+<section class="hero compact-hero admin-hero v734-hero">
+  <div class="eyebrow">Admin · Público grande</div>
+  <h1>Centro de lanzamiento comercial</h1>
+  <p>Mapa claro de lo que falta para abrir NeMeSiS SHARK PRO a más usuarios sin improvisar: producción, Telegram, datos, track record, pagos y arquitectura.</p>
+</section>
+
+<section class="grid cards-3 v734-score-grid">
+  <article class="card stat-card launch-score-card">
+    <span>Score global</span>
+    <strong>{{ data.public_launch.global_score }}%</strong>
+    <small>{{ data.public_launch.status|replace('_',' ')|title }}</small>
+  </article>
+  <article class="card stat-card">
+    <span>Bloqueos</span>
+    <strong>{{ data.public_launch.blockers|length }}</strong>
+    <small>áreas bajo 75%</small>
+  </article>
+  <article class="card stat-card">
+    <span>Versión</span>
+    <strong>{{ data.version }}</strong>
+    <small>base Render Ready</small>
+  </article>
+</section>
+
+<section class="grid cards-2 launch-stage-grid">
+  {% for stage in data.public_launch.stages %}
+  <article class="card launch-stage {{ 'ok' if stage.score >= 75 else 'warn' }}">
+    <div class="stage-head">
+      <div><span class="eyebrow">{{ loop.index }}/6</span><h2>{{ stage.title }}</h2></div>
+      <strong class="stage-score">{{ stage.score }}%</strong>
+    </div>
+    <div class="checklist compact">
+      {% for check in stage.checks %}
+      <div class="check-row {{ 'ok' if check.ok else 'warn' }}">
+        <span>{{ '✅' if check.ok else '⚠️' }}</span>
+        <div><strong>{{ check.label }}</strong>{% if check.value is defined %}<small>{{ check.value }}</small>{% endif %}</div>
+      </div>
+      {% endfor %}
+    </div>
+    <p class="muted">{{ stage.next }}</p>
+  </article>
+  {% endfor %}
+</section>
+
+<section class="card">
+  <h2>Siguiente decisión</h2>
+  {% if data.public_launch.blockers %}
+    <div class="stack compact-list">
+      {% for blocker in data.public_launch.blockers %}
+      <div class="mini-row">
+        <div><strong>{{ blocker.stage }}</strong><span>{{ blocker.next }}</span></div>
+        <span class="badge warn">{{ blocker.score }}%</span>
+      </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-state success">Sin bloqueos fuertes detectados. Aun así, valida producción real varios días antes de abrir tráfico grande.</div>
+  {% endif %}
+</section>
+
+<section class="grid cards-4 quick-admin-links">
+  <a class="card mini-card" href="/admin/production-readiness"><strong>Producción</strong><span>Render, env y checklist</span></a>
+  <a class="card mini-card" href="/admin/telegram/command-center"><strong>Telegram</strong><span>Status, dry-run y preview</span></a>
+  <a class="card mini-card" href="/admin/track-record"><strong>Track record</strong><span>ROI y resultados reales</span></a>
+  <a class="card mini-card" href="/admin/payments"><strong>Pagos</strong><span>Stripe y suscripciones</span></a>
+</section>
+{% endblock %}

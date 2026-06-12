@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+{% block content %}
+<section class="hero compact-hero admin-hero v734-hero">
+  <div class="eyebrow">Admin · Pagos</div>
+  <h1>Pagos PRO/ELITE y suscripciones</h1>
+  <p>Base segura para monetización. V734 no cobra ni cambia membresías automáticamente: prepara configuración, auditoría y control antes del modo pago real.</p>
+</section>
+
+<section class="grid cards-4">
+  <article class="card stat-card"><span>Pago readiness</span><strong>{{ data.payments.readiness_score }}%</strong><small>{{ data.payments.status }}</small></article>
+  <article class="card stat-card"><span>MRR estimado</span><strong>{{ data.subscriptions.estimated_mrr }}€</strong><small>{{ data.subscriptions.active_paid }} usuarios pagados</small></article>
+  <article class="card stat-card"><span>Conversión</span><strong>{{ data.subscriptions.conversion_rate }}%</strong><small>PRO/ELITE activos</small></article>
+  <article class="card stat-card"><span>Eventos webhook</span><strong>{{ data.payments.events_total }}</strong><small>auditoría recibida</small></article>
+</section>
+
+<section class="grid two-col">
+  <article class="card">
+    <h2>Variables necesarias</h2>
+    <div class="checklist compact">
+      {% for key, present in data.payments.env_present.items() %}
+      <div class="check-row {{ 'ok' if present else 'warn' }}"><span>{{ '✅' if present else '⚠️' }}</span><div><strong>{{ key }}</strong><small>{{ 'configurada' if present else 'pendiente' }}</small></div></div>
+      {% endfor %}
+    </div>
+  </article>
+  <article class="card">
+    <h2>Bloqueos</h2>
+    {% if data.payments.blockers %}
+      <div class="stack compact-list">
+        {% for b in data.payments.blockers %}<div class="mini-row"><div><strong>{{ b.key }}</strong><span>{{ b.message }}</span></div><span class="badge warn">{{ b.priority }}</span></div>{% endfor %}
+      </div>
+    {% else %}
+      <div class="empty-state success">Configuración mínima completa. Falta prueba real controlada antes de activar pagos públicos.</div>
+    {% endif %}
+  </article>
+</section>
+
+<section class="card">
+  <h2>Suscripciones internas</h2>
+  <div class="grid cards-4">
+    {% for tier, count in data.subscriptions.by_tier.items() %}<article class="mini-card"><strong>{{ tier }}</strong><span>{{ count }} usuarios</span></article>{% endfor %}
+  </div>
+  {% if data.subscriptions.actions %}
+  <div class="stack compact-list spacer-top">
+    {% for action in data.subscriptions.actions %}<div class="mini-row"><div><strong>{{ action.title }}</strong><span>{{ action.detail }}</span></div><span class="badge warn">{{ action.priority }}</span></div>{% endfor %}
+  </div>
+  {% endif %}
+</section>
+
+<section class="card">
+  <h2>Últimos webhooks</h2>
+  {% if data.payments.recent_events %}
+  <div class="table-wrap"><table class="premium-table">
+    <thead><tr><th>Proveedor</th><th>Tipo</th><th>Verificado</th><th>Estado</th><th>Plan</th><th>Fecha</th></tr></thead>
+    <tbody>{% for e in data.payments.recent_events %}<tr><td>{{ e.provider }}</td><td>{{ e.event_type }}</td><td>{{ 'sí' if e.verified else 'no' }}</td><td>{{ e.status }}</td><td>{{ e.plan }}</td><td>{{ e.received_at }}</td></tr>{% endfor %}</tbody>
+  </table></div>
+  {% else %}<div class="empty-state">No hay webhooks recibidos todavía. Correcto si aún no has configurado Stripe.</div>{% endif %}
+</section>
+{% endblock %}

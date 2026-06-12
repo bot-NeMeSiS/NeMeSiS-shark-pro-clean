@@ -403,3 +403,13 @@ body{letter-spacing:-.005em;text-rendering:optimizeLegibility}.shell.shark-shell
   .client-success-actions{grid-template-columns:1fr;}
   .client-success-hero .actions{display:grid;grid-template-columns:1fr;}
 }
+
+/* V734 — Public launch, track record and payments polish */
+.v734-hero{border:1px solid rgba(56,189,248,.22);background:linear-gradient(135deg,rgba(8,17,34,.98),rgba(12,27,55,.94));box-shadow:0 18px 60px rgba(0,0,0,.25)}
+.v734-score-grid .launch-score-card strong{font-size:clamp(2.2rem,7vw,4.4rem);line-height:.95;letter-spacing:-.05em}
+.launch-stage-grid{align-items:stretch}.launch-stage{position:relative;overflow:hidden}.launch-stage:before{content:"";position:absolute;inset:0 0 auto 0;height:3px;background:linear-gradient(90deg,#38bdf8,#22c55e);opacity:.8}.launch-stage.warn:before{background:linear-gradient(90deg,#f59e0b,#ef4444)}
+.stage-head{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;margin-bottom:1rem}.stage-head h2{margin:.1rem 0 0;font-size:1.05rem}.stage-score{font-size:1.35rem;border:1px solid rgba(148,163,184,.25);border-radius:999px;padding:.35rem .65rem;background:rgba(15,23,42,.6)}
+.checklist.compact{display:grid;gap:.55rem}.check-row{display:flex;align-items:center;gap:.7rem;border:1px solid rgba(148,163,184,.16);background:rgba(15,23,42,.48);border-radius:14px;padding:.7rem}.check-row.ok{border-color:rgba(34,197,94,.25)}.check-row.warn{border-color:rgba(245,158,11,.32)}.check-row small{display:block;color:var(--muted,#94a3b8)}
+.quick-admin-links .mini-card{text-decoration:none}.responsible-note{border-color:rgba(245,158,11,.25)}.badge.warn{background:rgba(245,158,11,.12);border-color:rgba(245,158,11,.3);color:#fbbf24}.empty-state.success{border-color:rgba(34,197,94,.25);background:rgba(34,197,94,.08)}.spacer-top{margin-top:1rem}.code-block{white-space:pre-wrap;max-height:360px;overflow:auto;border:1px solid rgba(148,163,184,.18);border-radius:14px;padding:1rem;background:rgba(2,6,23,.62);font-size:.82rem}
+.status-won,.status-WON{background:rgba(34,197,94,.12);border-color:rgba(34,197,94,.3);color:#86efac}.status-lost,.status-LOST{background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.3);color:#fca5a5}.status-pending,.status-PENDING{background:rgba(148,163,184,.12);border-color:rgba(148,163,184,.28);color:#cbd5e1}.status-void,.status-VOID{background:rgba(59,130,246,.12);border-color:rgba(59,130,246,.28);color:#93c5fd}
+@media (max-width:760px){.stage-head{align-items:center}.launch-stage-grid{grid-template-columns:1fr}.v734-score-grid{grid-template-columns:1fr}.quick-admin-links{grid-template-columns:1fr 1fr}.premium-table{font-size:.82rem}}

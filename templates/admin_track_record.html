@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+{% block content %}
+<section class="hero compact-hero admin-hero v734-hero">
+  <div class="eyebrow">Admin · Credibilidad</div>
+  <h1>Track Record y ROI real</h1>
+  <p>Centro para medir resultados reales de picks. No inventa aciertos: deja pendiente cualquier mercado que no pueda validar con seguridad.</p>
+</section>
+
+<section class="grid cards-4">
+  <article class="card stat-card"><span>Evaluados</span><strong>{{ data.track_record.graded_total }}</strong><small>picks con auditoría</small></article>
+  <article class="card stat-card"><span>Auto validados</span><strong>{{ data.track_record.auto_validated }}</strong><small>con evidencia suficiente</small></article>
+  <article class="card stat-card"><span>Ganados / Perdidos</span><strong>{{ data.track_record.won }} / {{ data.track_record.lost }}</strong><small>solo decididos</small></article>
+  <article class="card stat-card"><span>Beneficio</span><strong>{{ data.track_record.profit }} u</strong><small>stake por unidades</small></article>
+</section>
+
+<section class="grid two-col">
+  <article class="card">
+    <h2>Ejecutar revisión</h2>
+    <p class="muted">Modo seguro: analiza y guarda auditoría. Aplicar resultados solo actualiza picks auto validados.</p>
+    <form class="premium-form" method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label>Límite de picks<input type="number" name="limit" value="500" min="20" max="2000"></label>
+      <button class="btn primary" type="submit" name="action" value="scan">Analizar sin aplicar</button>
+      <button class="btn" type="submit" name="action" value="apply">Aplicar auto validados</button>
+    </form>
+    {% if data.last_run %}<pre class="code-block">{{ data.last_run|tojson(indent=2) }}</pre>{% endif %}
+  </article>
+  <article class="card">
+    <h2>Estado</h2>
+    <p><strong>{{ data.track_record.status|title }}</strong></p>
+    <p class="muted">{{ data.track_record.note }}</p>
+    <a class="btn" href="/track-record">Ver vista cliente</a>
+  </article>
+</section>
+
+<section class="card">
+  <h2>Últimos resultados</h2>
+  {% if data.track_record.recent_results %}
+  <div class="table-wrap"><table class="premium-table">
+    <thead><tr><th>Pick</th><th>Resultado</th><th>Profit</th><th>Score</th><th>Motivo</th><th>Fecha</th></tr></thead>
+    <tbody>
+    {% for row in data.track_record.recent_results %}
+      <tr>
+        <td>{{ row.pick_id }}</td>
+        <td><span class="badge status-{{ row.result_status }}">{{ row.result_status }}</span></td>
+        <td>{{ row.profit }}</td>
+        <td>{{ row.grading_score }}</td>
+        <td>{{ row.reason }}</td>
+        <td>{{ row.graded_at }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% else %}<div class="empty-state">Todavía no hay picks evaluados. Ejecuta una revisión cuando existan partidos finalizados con resultado fiable.</div>{% endif %}
+</section>
+{% endblock %}

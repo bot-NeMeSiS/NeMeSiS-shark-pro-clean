@@ -1,9 +1,9 @@
 # V732 Production Readiness Control Center
 
-- Versión: `V733_CLIENT_SUCCESS_ONBOARDING_SUPPORT_POLISH`
+- Versión: `V734_PUBLIC_LAUNCH_TRACK_RECORD_PAYMENTS_FOUNDATION`
 - Score: **87/100**
 - Estado: **OK**
-- Generado: `2026-06-12T20:22:11`
+- Generado: `2026-06-12T20:45:11`
 
 ## Bloqueos
 - No hay bloqueos estáticos críticos detectados.
@@ -13,9 +13,9 @@
 - Faltan variables críticas en este entorno local/sandbox; confirmar en Render antes de vender.
 
 ## Versión
-- `version_txt`: `V733_CLIENT_SUCCESS_ONBOARDING_SUPPORT_POLISH`
-- `app_py_version`: `V733_CLIENT_SUCCESS_ONBOARDING_SUPPORT_POLISH`
-- `runtime_expected`: `V733_CLIENT_SUCCESS_ONBOARDING_SUPPORT_POLISH`
+- `version_txt`: `V734_PUBLIC_LAUNCH_TRACK_RECORD_PAYMENTS_FOUNDATION`
+- `app_py_version`: `V734_PUBLIC_LAUNCH_TRACK_RECORD_PAYMENTS_FOUNDATION`
+- `runtime_expected`: `V734_PUBLIC_LAUNCH_TRACK_RECORD_PAYMENTS_FOUNDATION`
 - `match`: `True`
 - `has_recent_stack`: `False`
 
@@ -40,7 +40,7 @@
 - Directorios prohibidos: __pycache__
 
 ## Checklist Render
-- `/api/runtime-version` → V733_CLIENT_SUCCESS_ONBOARDING_SUPPORT_POLISH
+- `/api/runtime-version` → V734_PUBLIC_LAUNCH_TRACK_RECORD_PAYMENTS_FOUNDATION
 - `/api/health` → 200 / OK si existe
 - `/api/automation/telegram/tick` → 403
 - `/api/automation/telegram/tick?secret=***` → 200
