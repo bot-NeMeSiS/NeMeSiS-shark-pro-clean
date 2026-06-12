@@ -78,6 +78,5 @@
     ".zip"
   ],
   "security_policy": "No incluye .git, .venv, caches, bases de datos locales, logs, ZIPs internos ni secretos reales.",
-  "render_ready": true,
-  "zip_size_bytes": 457509
+  "render_ready": true
 }
