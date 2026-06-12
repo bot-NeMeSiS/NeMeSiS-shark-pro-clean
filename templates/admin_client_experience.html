@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block content %}
+{% set qa = data.client_experience %}
+<section class="hero compact admin-hero client-qa-hero">
+  <div class="kicker">Experiencia cliente</div>
+  <h1>Control visual, horarios y pantallas premium</h1>
+  <p class="lead">Auditoría admin para comprobar que Home, Directo, Calendario, Picks, Combis, SHARK, Telegram y Match Detail mantienen una experiencia limpia, en castellano y sin datos técnicos.</p>
+  <div class="admin-menu">
+    <a class="btn" href="/admin/system">Sistema</a>
+    <a class="btn" href="/admin/route-health">Rutas</a>
+    <a class="btn" href="/admin/telegram/command-center">Telegram</a>
+    <a class="btn primary" href="/admin/client-experience">Cliente QA</a>
+  </div>
+</section>
+
+<section class="band">
+  <div class="grid compact-grid client-qa-kpis">
+    <div class="card status-card {{ 'critical' if qa.status != 'OK' else 'info' }}">
+      <div class="metric">{{ qa.score }}/100</div>
+      <div class="muted">score experiencia</div>
+    </div>
+    <div class="card"><div class="metric">{{ qa.templates_scanned }}</div><div class="muted">templates cliente</div></div>
+    <div class="card"><div class="metric">{{ qa.findings_count }}</div><div class="muted">avisos totales</div></div>
+    <div class="card"><div class="metric">{{ qa.warning_count }}</div><div class="muted">avisos importantes</div></div>
+    <div class="card"><div class="metric">{{ qa.css.score }}/{{ qa.css.max_score }}</div><div class="muted">checks CSS</div></div>
+  </div>
+</section>
+
+<section class="band two-col">
+  <div class="card">
+    <h2>Siguiente acción recomendada</h2>
+    <ul class="clean-list">
+      {% for step in qa.recommended_next_steps %}
+        <li>{{ step }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+  <div class="card">
+    <h2>Checks visuales CSS</h2>
+    <div class="route-list compact-list">
+      {% for name, ok in qa.css.checks.items() %}
+        <div class="route-row"><span>{{ name|replace('_', ' ')|title }}</span><strong class="{{ 'text-good' if ok else 'text-warn' }}">{{ 'OK' if ok else 'Revisar' }}</strong></div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="card">
+    <h2>Pantallas críticas cliente</h2>
+    <div class="client-screen-grid">
+      {% for screen in qa.critical_screens %}
+        <article class="client-screen-card {{ 'is-missing' if not screen.exists else '' }}">
+          <div class="screen-head">
+            <strong>{{ screen.label }}</strong>
+            <span class="pill {{ 'danger' if not screen.exists else 'info' }}">{{ screen.status }}</span>
+          </div>
+          <p class="muted small"><code>{{ screen.route }}</code> · {{ screen.template }}</p>
+          <div class="screen-flags">
+            <span class="time-audit-pill">{{ 'Hora Madrid' if screen.uses_madrid_filters else ('No aplica' if not screen.needs_time_filter else 'Sin filtro hora') }}</span>
+            <span class="time-audit-pill">{{ 'Empty state' if screen.has_empty_state_hint else 'Revisar vacío' }}</span>
+            <span class="time-audit-pill">{{ screen.priority }}</span>
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="card">
+    <h2>Avisos detectados</h2>
+    {% if qa.findings %}
+      <div class="table-wrap route-table-wrap">
+        <table class="data-table route-table">
+          <thead><tr><th>Severidad</th><th>Categoría</th><th>Template</th><th>Línea</th><th>Patrón</th><th>Mensaje</th></tr></thead>
+          <tbody>
+          {% for item in qa.findings[:80] %}
+            <tr>
+              <td><span class="pill {{ 'danger' if item.severity == 'WARN' else 'info' }}">{{ item.severity }}</span></td>
+              <td>{{ item.category }}</td>
+              <td><code>{{ item.template }}</code></td>
+              <td>{{ item.line or '—' }}</td>
+              <td><code>{{ item.pattern }}</code></td>
+              <td>{{ item.message }}</td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="muted">No hay avisos de experiencia cliente en el análisis estático.</p>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

@@ -15,8 +15,10 @@ def main() -> int:
     app_text = APP.read_text(encoding="utf-8", errors="replace")
     base_text = BASE.read_text(encoding="utf-8", errors="replace") if BASE.exists() else ""
     root_html = sorted(p.name for p in ROOT.glob("*.html"))
+    version = (ROOT / "VERSION.txt").read_text(encoding="utf-8-sig").strip() if (ROOT / "VERSION.txt").exists() else ""
+    version_ok = version.startswith(("V729_", "V730_", "V731_"))
     checks = {
-        "version_v729": "V729_SECURITY_STABILITY_VISUAL_QA_FOUNDATION" in app_text and (ROOT / "VERSION.txt").read_text(encoding="utf-8-sig").strip() == "V729_SECURITY_STABILITY_VISUAL_QA_FOUNDATION",
+        "version_v729_or_later": version_ok,
         "secure_secret_key_used": "app.secret_key = secure_secret_key()" in app_text,
         "no_random_secret_fallback": "secrets.token_hex(32)" not in app_text.split("app = Flask", 1)[-1].split("SEED_LOCK", 1)[0],
         "csrf_helpers_imported": "generate_csrf_token" in app_text and "validate_csrf" in app_text,
@@ -36,7 +38,7 @@ def main() -> int:
     }
     REPORTS.mkdir(exist_ok=True)
     (REPORTS / "V729_SECURITY_CHECK.json").write_text(json.dumps(report, ensure_ascii=False, indent=2)+"\n", encoding="utf-8")
-    lines = ["# V729 Security Check", "", f"- Resultado: {'OK' if report['ok'] else 'FAIL'}", "", "## Checks"]
+    lines = ["# V729+ Security Check", "", f"- Versión: `{version}`", f"- Resultado: {'OK' if report['ok'] else 'FAIL'}", "", "## Checks"]
     for name, ok in checks.items():
         lines.append(f"- {'✅' if ok else '❌'} `{name}`")
     if root_html:

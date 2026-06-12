@@ -88,6 +88,7 @@ from engines.telegram_reliability_engine import (
     safe_preview_text,
 )
 from engines.route_health_engine import route_health_snapshot
+from engines.client_experience_guard_engine import client_experience_snapshot
 from engines.team_identity_engine import (
     flag_or_emoji as team_flag_or_emoji,
     identity_payload as build_team_identity_payload,
@@ -122,7 +123,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V730_ARCHITECTURE_ROUTE_HEALTH_VISUAL_QA_FOUNDATION"
+APP_VERSION = "V731_CLIENT_EXPERIENCE_QA_POLISH_FOUNDATION"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -8688,6 +8689,27 @@ def api_admin_route_health():
     if not is_admin_session():
         return admin_json_forbidden()
     return jsonify({"ok": True, "version": APP_VERSION, **route_health_snapshot(app)})
+
+
+@app.route("/admin/client-experience")
+def admin_client_experience_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/client-experience")
+    snapshot = client_experience_snapshot()
+    return render_template(
+        "admin_client_experience.html",
+        data={
+            "version": APP_VERSION,
+            "client_experience": snapshot,
+        },
+    )
+
+
+@app.route("/api/admin/client-experience")
+def api_admin_client_experience():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "version": APP_VERSION, **client_experience_snapshot()})
 
 
 @app.route("/picks")
