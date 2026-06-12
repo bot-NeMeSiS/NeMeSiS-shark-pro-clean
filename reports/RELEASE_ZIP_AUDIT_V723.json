@@ -1,20 +1,20 @@
 {
   "ok": true,
-  "audited_at": "2026-06-12T15:57:52",
-  "zip": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\NeMeSiS_SHARK_PRO_V723_CODEX_AUTOMATION_TOTAL_PURGE_RELEASE_SYSTEM_RENDER_READY.zip",
-  "zip_size_bytes": 449640,
-  "file_count": 245,
-  "content_size_bytes": 1482419,
+  "audited_at": "2026-06-12T16:13:58",
+  "zip": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\NeMeSiS_SHARK_PRO_V724_SUPREME_CLIENT_VISUAL_EXPERIENCE_PRO_RENDER_READY.zip",
+  "zip_size_bytes": 457509,
+  "file_count": 248,
+  "content_size_bytes": 1505659,
   "forbidden_count": 0,
   "forbidden": [],
   "top_files": [
     {
       "path": "app.py",
-      "size": 466084
+      "size": 466755
     },
     {
       "path": "static/app.css",
-      "size": 43264
+      "size": 48711
     },
     {
       "path": "engines/api_exploitation_engine.py",
@@ -97,13 +97,18 @@
     },
     {
       "folder": "app.py",
-      "size": 466084,
+      "size": 466755,
       "files": 1
     },
     {
       "folder": "templates",
-      "size": 305758,
+      "size": 311714,
       "files": 99
+    },
+    {
+      "folder": "static",
+      "size": 48711,
+      "files": 1
     },
     {
       "folder": "docs",
@@ -111,13 +116,8 @@
       "files": 56
     },
     {
-      "folder": "static",
-      "size": 43264,
-      "files": 1
-    },
-    {
       "folder": "tools",
-      "size": 27708,
+      "size": 27979,
       "files": 9
     },
     {
@@ -136,6 +136,11 @@
       "files": 6
     },
     {
+      "folder": "V724_SUPREME_CLIENT_VISUAL_EXPERIENCE_PRO_REPORT.md",
+      "size": 6347,
+      "files": 1
+    },
+    {
       "folder": "blueprints",
       "size": 3545,
       "files": 3
@@ -148,6 +153,16 @@
     {
       "folder": ".env.render.clean",
       "size": 2592,
+      "files": 1
+    },
+    {
+      "folder": "CLIENT_VISUAL_SYSTEM_V724.md",
+      "size": 2547,
+      "files": 1
+    },
+    {
+      "folder": "RELEASE_MANIFEST_V724.json",
+      "size": 2008,
       "files": 1
     },
     {
@@ -173,21 +188,6 @@
     {
       "folder": "README_MASTER.md",
       "size": 1763,
-      "files": 1
-    },
-    {
-      "folder": "CODEX_DAILY_AUTOMATION_GUIDE.md",
-      "size": 1410,
-      "files": 1
-    },
-    {
-      "folder": "reports",
-      "size": 1131,
-      "files": 1
-    },
-    {
-      "folder": ".gitignore",
-      "size": 624,
       "files": 1
     }
   ]

@@ -56,7 +56,7 @@
   <div class="section-head"><h2>Lectura SHARK</h2><span class="pill">{{ state.label or 'Estado' }}</span></div>
   <div class="grid compact-grid metric-row">
     <div class="card metric-card"><div class="metric">{{ shark_score or 0 }}</div><div class="muted">SHARK Score</div></div>
-    <div class="card metric-card"><div class="metric">{{ momentum.presion or 0 }}</div><div class="muted">presion</div></div>
+    <div class="card metric-card"><div class="metric">{{ momentum.presion or 0 }}</div><div class="muted">presión</div></div>
     <div class="card metric-card"><div class="metric">{{ momentum.riesgo or 0 }}</div><div class="muted">riesgo</div></div>
     <div class="card metric-card"><div class="metric">{{ momentum.dominancia or 'Equilibrio' }}</div><div class="muted">dominancia</div></div>
   </div>
@@ -124,7 +124,7 @@
     {% for ev in detail.timeline %}
     <div class="timeline-item"><div class="timeline-minute">{{ ev.minute or '-' }}</div><div><strong>{{ ev.title }}</strong><p>{{ ev.detail }}</p></div></div>
     {% else %}
-    <div class="empty premium-empty">Aun no hay eventos suficientes para este partido.</div>
+    <div class="empty premium-empty">Aún no hay eventos suficientes para este partido.</div>
     {% endfor %}
   </div>
 </section>

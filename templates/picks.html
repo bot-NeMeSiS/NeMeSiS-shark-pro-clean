@@ -16,6 +16,10 @@
 
 <section class="sports-tabs v701-tabs">
   <a class="tab-link active" href="/picks">Picks</a>
+  <a class="tab-link" href="#premium">Premium</a>
+  <a class="tab-link" href="#en-estudio">En estudio</a>
+  <a class="tab-link" href="/picks?filtro=seguros">Seguros</a>
+  <a class="tab-link" href="/picks?filtro=value">Value</a>
   <a class="tab-link" href="/recomendaciones">Recomendaciones</a>
   <a class="tab-link" href="/combis">Combis</a>
   <a class="tab-link" href="/sports-hub">Partidos</a>
@@ -26,13 +30,13 @@
 <section class="band compact-band"><div class="notice">Plan FREE activo: verás picks gratuitos y vista previa PRO/ELITE. PRO desbloquea más picks, Telegram premium y combinadas.</div></section>
 {% endif %}
 
-<section class="band compact-band">
+<section class="band compact-band" id="premium">
   <div class="section-head"><h2>Picks premium listos</h2><span class="pill">{{ data.smart_picks.hot|length }}</span></div>
   <p class="small">{{ data.smart_picks.client_message }}</p>
   {% if data.smart_picks.hot %}
   <div class="grid dense-grid v701-pick-grid">
     {% for p in data.smart_picks.hot %}
-    <article class="card pick-card v701-premium-pick">
+    <article class="card pick-card v701-premium-pick shark-pick-card">
       <div class="match-top">
         <div><div class="comp-name">{{ (p.competition_name or p.league_name or p.competition_key or 'Competición')|competition_es }}</div><div class="small">{{ p.display_datetime or p.match_date or 'Fecha pendiente' }} · {{ (p.market or 'Mercado')|market_es }}</div></div>
         <span class="badge badge-{{ p.membership_required|lower }}">{{ p.quality_label or p.membership_required or 'FREE' }}</span>
@@ -57,7 +61,7 @@
       </div>
       <p class="small"><strong>Por qué entrar:</strong> {{ p.reasoning or 'Pick publicado por SHARK con datos disponibles.' }}</p>
       <p class="small"><strong>Precaución:</strong> {{ p.warning_reason or 'Ningún pick es seguro. Ajusta stake y banca.' }}</p>
-      <div class="inline-actions"><a class="mini-link" href="/match/{{ p.match_id }}">Detalle partido</a><a class="mini-link" href="/telegram">Recibir en Telegram</a></div>
+      <div class="inline-actions"><a class="btn small-btn" href="/match/{{ p.match_id }}">Ver análisis</a><a class="btn small-btn" href="/shark?pick={{ p.id }}">Preguntar a SHARK</a><a class="btn small-btn" href="/telegram">Telegram</a></div>
     </article>
     {% endfor %}
   </div>
@@ -70,7 +74,7 @@
   {% endif %}
 </section>
 
-<section class="band compact-band">
+<section class="band compact-band" id="en-estudio">
   <div class="section-head"><h2>Partidos para estudiar</h2><span class="pill">{{ data.candidate_matches|length }}</span></div>
   {% if data.candidate_matches %}
   <div class="sports-list v701-match-list">
@@ -95,7 +99,7 @@
 {% if data.smart_picks.study %}
 <section class="band compact-band">
   <div class="section-head"><h2>En estudio por SHARK</h2><span class="pill">{{ data.smart_picks.study|length }}</span></div>
-  <p class="small">Estos picks existen como señal interna, pero no se venden como premium porque les falta calidad, cuota, timing o confirmación completa.</p>
+  <p class="small">Estas señales están en revisión. No se venden como premium hasta tener cuota real, selección clara y calidad suficiente.</p>
   <div class="grid dense-grid">
     {% for p in data.smart_picks.study[:8] %}
     <article class="card study-card">

@@ -1,15 +1,27 @@
 {% extends "base.html" %}
 {% block content %}
-<section class="hero compact">
+<section class="hero compact shark-section v724-shark-hero">
   <div class="kicker">SHARK AI Advisor PRO</div>
-  <h1>Asesor deportivo premium con picks, riesgo y valor</h1>
-  <p class="lead">SHARK prioriza pocas señales buenas: pick claro, cuota real, stake responsable, motivo y precaución. Si falta dato real, no inventa y deja la jugada en estudio.</p>
+  <h1>SHARK AI Advisor PRO</h1>
+  <p class="lead">Tu asistente para interpretar picks, riesgo, value, directo y combinadas con lenguaje claro.</p>
   <div class="actions"><a class="btn primary" href="/picks">Ver picks premium</a><a class="btn" href="/combis?tipo=segura&partidos=3">Combi segura</a><a class="btn" href="/telegram">Telegram</a></div>
 </section>
 {% if not current_user or current_user.membership not in ['ELITE','ADMIN'] %}
 <section class="band"><div class="notice">SHARK completo queda reservado para ELITE. En FREE/PRO tendrás lectura básica, picks visibles, directo y favoritos sin inventar cuotas ni partidos.</div></section>
 {% endif %}
-<section class="band">
+<section class="band compact-band">
+  <div class="section-head"><h2>Preguntas rápidas</h2><span class="pill">Toca y consulta</span></div>
+  <div class="grid compact-grid shark-action-grid">
+    <a class="card service-card shark-card" href="/shark?q=mejor-pick"><h3>Mejor pick de hoy</h3><p class="small">Selección, cuota, stake y motivo.</p></a>
+    <a class="card service-card shark-card" href="/combis?partidos=3"><h3>Combi segura</h3><p class="small">2-4 selecciones con riesgo controlado.</p></a>
+    <a class="card service-card shark-card" href="/shark?q=no-tocar"><h3>Qué no tocaría</h3><p class="small">Señales débiles o partidos en estudio.</p></a>
+    <a class="card service-card shark-card" href="/live"><h3>Resumen del directo</h3><p class="small">Estado, minuto, marcador y alertas.</p></a>
+    <a class="card service-card shark-card" href="/favorites"><h3>Favoritos</h3><p class="small">Partidos vigilados y posibles alertas.</p></a>
+    <a class="card service-card shark-card" href="/picks"><h3>Explicar una apuesta</h3><p class="small">Riesgo, value y precaución.</p></a>
+  </div>
+</section>
+
+<section class="band compact-band">
   <div class="grid">
     <div class="card"><div class="metric">{{ data.briefing.summary.matches_today }}</div><div class="muted">partidos hoy</div></div>
     <div class="card"><div class="metric">{{ data.briefing.summary.live_now }}</div><div class="muted">en directo</div></div>

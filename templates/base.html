@@ -42,7 +42,7 @@
     </div>
   </header>
 
-  <main class="shell">
+  <main class="shell shark-shell">
     {% block content %}{% endblock %}
   </main>
 
@@ -66,7 +66,7 @@
 
   {% if current_user and current_user.role != 'ADMIN' %}
   <div class="shark-widget" id="sharkWidget">
-    <button class="shark-fab" id="sharkFab" type="button" aria-label="Abrir SHARK IA">SH</button>
+    <button class="shark-fab" id="sharkFab" type="button" aria-label="Abrir SHARK IA">SHARK</button>
     <div class="shark-panel" id="sharkPanel" hidden>
       <div class="shark-panel-head">
         <strong>SHARK IA</strong>
@@ -106,7 +106,6 @@
         const r=await fetch('/api/shark/ask',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:q})});
         const j=await r.json();
         let answer=(j.shark&&j.shark.answer)||j.message||'SHARK no pudo responder ahora mismo.';
-        if(j.shark&&j.shark.next_url){ answer += '\n\nAbrir: '+j.shark.next_url; }
         thinking.textContent=answer; thinking.classList.remove('thinking');
       }
       catch(err){ thinking.textContent='No puedo conectar con SHARK ahora mismo. Prueba de nuevo en unos segundos.'; thinking.classList.remove('thinking'); }

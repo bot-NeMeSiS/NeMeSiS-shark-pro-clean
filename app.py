@@ -102,7 +102,7 @@ from engines.spanish_localization_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V723_CODEX_AUTOMATION_TOTAL_PURGE_RELEASE_SYSTEM"
+APP_VERSION = "V724_SUPREME_CLIENT_VISUAL_EXPERIENCE_PRO"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -10066,13 +10066,33 @@ def v566_auto_picks_page():
 
 
 @app.route("/juego-responsable")
+@app.route("/responsible-gaming")
 def v566_responsible_betting_page():
     return render_template("responsible_betting.html", rb=v566_responsible_payload())
 
 
 @app.route("/legal")
+@app.route("/privacy")
+@app.route("/terms")
 def v566_legal_page():
     return render_template("legal_trust.html", rb=v566_responsible_payload())
+
+
+@app.route("/contact")
+def v724_contact_alias_page():
+    data = home_light_data()
+    data.update(
+        {
+            "sent": False,
+            "error": "",
+            "support_tips": [
+                {"title": "Partidos", "body": "Indica equipo, competición y hora si ves un dato raro."},
+                {"title": "Picks", "body": "Cuéntanos qué selección o cuota quieres revisar."},
+                {"title": "Telegram", "body": "Describe si el problema es vinculación, canal o mensaje privado."},
+            ],
+        }
+    )
+    return render_template("support.html", data=data)
 
 
 @app.route("/intelligence-hub")

@@ -1,9 +1,10 @@
 {
-  "version": "V723_CODEX_AUTOMATION_TOTAL_PURGE_RELEASE_SYSTEM",
-  "created_at": "2026-06-12T15:57:51",
-  "zip": "NeMeSiS_SHARK_PRO_V723_CODEX_AUTOMATION_TOTAL_PURGE_RELEASE_SYSTEM_RENDER_READY.zip",
-  "zip_path": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\NeMeSiS_SHARK_PRO_V723_CODEX_AUTOMATION_TOTAL_PURGE_RELEASE_SYSTEM_RENDER_READY.zip",
-  "files": 245,
+  "version": "V724_SUPREME_CLIENT_VISUAL_EXPERIENCE_PRO",
+  "created_at": "2026-06-12T16:13:58",
+  "zip": "NeMeSiS_SHARK_PRO_V724_SUPREME_CLIENT_VISUAL_EXPERIENCE_PRO_RENDER_READY.zip",
+  "zip_path": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\NeMeSiS_SHARK_PRO_V724_SUPREME_CLIENT_VISUAL_EXPERIENCE_PRO_RENDER_READY.zip",
+  "manifest": "RELEASE_MANIFEST_V724.json",
+  "files": 248,
   "git_commit": "unavailable",
   "included_top_level_dirs": [
     "blueprints",
@@ -21,12 +22,15 @@
     ".env.render.clean",
     ".gitignore",
     "CHATGPT_CONTINUATION_REPORT.md",
+    "CLIENT_VISUAL_SYSTEM_V724.md",
     "CODEX_DAILY_AUTOMATION_GUIDE.md",
     "Procfile",
     "README_MASTER.md",
     "RELEASE_MANIFEST_V723.json",
+    "RELEASE_MANIFEST_V724.json",
     "V723_CODEX_AUTOMATION_TOTAL_PURGE_RELEASE_SYSTEM_REPORT.md",
     "V723_TOTAL_PURGE_AUDIT_REPORT.md",
+    "V724_SUPREME_CLIENT_VISUAL_EXPERIENCE_PRO_REPORT.md",
     "VERSION.txt",
     "app.py",
     "database_manager.py",
@@ -74,5 +78,6 @@
     ".zip"
   ],
   "security_policy": "No incluye .git, .venv, caches, bases de datos locales, logs, ZIPs internos ni secretos reales.",
-  "render_ready": true
+  "render_ready": true,
+  "zip_size_bytes": 457509
 }

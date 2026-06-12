@@ -14,7 +14,9 @@ VERSION_FILE = ROOT / "VERSION.txt"
 VERSION = VERSION_FILE.read_text(encoding="utf-8-sig").strip() if VERSION_FILE.exists() else "DEV"
 ZIP_NAME = f"NeMeSiS_SHARK_PRO_{VERSION}_RENDER_READY.zip"
 OUT = ROOT / ZIP_NAME
-MANIFEST_PATH = ROOT / "RELEASE_MANIFEST_V723.json"
+VERSION_PREFIX = VERSION.split("_", 1)[0] if VERSION else "DEV"
+MANIFEST_NAME = f"RELEASE_MANIFEST_{VERSION_PREFIX}.json"
+MANIFEST_PATH = ROOT / MANIFEST_NAME
 
 INCLUDE_TOP_LEVEL_DIRS = {
     "blueprints",
@@ -45,7 +47,10 @@ INCLUDE_TOP_LEVEL_FILES = {
     "CHATGPT_CONTINUATION_REPORT.md",
     "V723_CODEX_AUTOMATION_TOTAL_PURGE_RELEASE_SYSTEM_REPORT.md",
     "V723_TOTAL_PURGE_AUDIT_REPORT.md",
+    "V724_SUPREME_CLIENT_VISUAL_EXPERIENCE_PRO_REPORT.md",
+    "CLIENT_VISUAL_SYSTEM_V724.md",
     "RELEASE_MANIFEST_V723.json",
+    "RELEASE_MANIFEST_V724.json",
 }
 EXCLUDE_DIRS = {
     ".git",
@@ -133,6 +138,7 @@ def build_manifest(files: list[Path]) -> dict:
         "created_at": datetime.now().isoformat(timespec="seconds"),
         "zip": ZIP_NAME,
         "zip_path": str(OUT),
+        "manifest": MANIFEST_NAME,
         "files": len(files),
         "git_commit": git_commit(),
         "included_top_level_dirs": sorted(INCLUDE_TOP_LEVEL_DIRS),
