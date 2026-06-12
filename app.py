@@ -105,10 +105,16 @@ from engines.spanish_localization_engine import (
     spanish_pick_selection_name,
     spanish_team_name,
 )
-from engines.madrid_time_engine import madrid_conversion_selftest, madrid_time_diagnostics, normalize_kickoff_for_display
+from engines.madrid_time_engine import (
+    format_madrid_match_time,
+    format_madrid_short_time,
+    madrid_conversion_selftest,
+    madrid_time_diagnostics,
+    normalize_kickoff_for_display,
+)
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V727_TELEGRAM_RELIABILITY_COMMAND_CENTER"
+APP_VERSION = "V728_FINAL_CLIENT_EXPERIENCE_MADRID_TIME_LIVE_POLISH"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -4317,7 +4323,7 @@ def annotate_match(match, favs=None):
         match["live_depth"]["state"] = "UPCOMING"
         match["live_depth"]["label"] = "Próximo"
         match["live_depth"]["badge"] = "upcoming"
-        match["live_depth"]["minute"] = match.get("kickoff_time") or match.get("match_time") or "Hora"
+        match["live_depth"]["minute"] = jinja_match_time_short(match) if has_request_context() else (normalize_kickoff_for_display(match).get("madrid_time") or "Hora")
         if not (match.get("home_score") or match.get("away_score") or match.get("score")):
             match["live_depth"]["score"] = ""
     elif match["status_info"].get("is_live"):
@@ -5083,6 +5089,36 @@ def jinja_competition_es(value):
 @app.template_filter("market_es")
 def jinja_market_es(value):
     return spanish_market_name(value) or "Mercado"
+
+
+def _jinja_match_time_source(value, fallback_date="", fallback_time=""):
+    if isinstance(value, dict):
+        item = normalize_kickoff_for_display(value)
+        return item, item.get("madrid_dt_iso") or item.get("kickoff_iso") or item.get("commence_time") or item.get("start_time") or item.get("event_time") or (f"{item.get('match_date')}T{str(item.get('kickoff_time') or item.get('match_time') or '')[:5]}:00" if item.get("match_date") and (item.get("kickoff_time") or item.get("match_time")) else "")
+    return {}, value or (f"{fallback_date}T{str(fallback_time)[:5]}:00" if fallback_date and fallback_time else "")
+
+
+@app.template_filter("match_time_short")
+def jinja_match_time_short(value, fallback_date="", fallback_time=""):
+    item, source = _jinja_match_time_source(value, fallback_date, fallback_time)
+    if item.get("madrid_time"):
+        return item.get("madrid_time")
+    return format_madrid_short_time(source) or "Hora"
+
+
+@app.template_filter("match_time_label")
+def jinja_match_time_label(value, status=None, minute=None):
+    item, source = _jinja_match_time_source(value)
+    status_value = status if status is not None else item.get("status")
+    minute_value = minute if minute is not None else (item.get("minute") or (item.get("live_depth") or {}).get("minute"))
+    label = format_madrid_match_time(source, status_value, minute_value)
+    return label or item.get("madrid_display") or item.get("display_datetime") or "Hora pendiente"
+
+
+@app.template_filter("match_date_label")
+def jinja_match_date_label(value):
+    item, _source = _jinja_match_time_source(value)
+    return item.get("madrid_date_label") or item.get("safe_date") or item.get("match_date") or "Sin fecha"
 
 
 @app.context_processor

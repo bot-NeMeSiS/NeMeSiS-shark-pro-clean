@@ -39,7 +39,7 @@
     <div class="section-head"><h2>Proximos partidos</h2><a class="btn small" href="/match-hub">Calendario</a></div>
     <div class="stack">
       {% for m in upcoming %}
-      <a class="list-row" href="/match/{{ m.id }}"><span>{{ m.home_team }} vs {{ m.away_team }}<small>{{ m.league_name or 'Competicion' }}</small></span><strong>{{ m.madrid_time or m.safe_time or m.match_time or 'Hora' }}</strong></a>
+      <a class="list-row" href="/match/{{ m.id }}"><span>{{ m.home_team }} vs {{ m.away_team }}<small>{{ m.league_name or 'Competicion' }}</small></span><strong>{{ m|match_time_short }}</strong></a>
       {% else %}<div class="empty">No hay proximos partidos disponibles todavia. SHARK los mostrara cuando haya datos suficientes.</div>{% endfor %}
     </div>
   </div>

@@ -24,7 +24,23 @@ def main() -> int:
     os.environ.setdefault("AUTO_GENERATE_PICKS", os.getenv("AUTO_GENERATE_PICKS", "false"))
     sys.path.insert(0, str(ROOT))
 
-    import app as app_module  # noqa: WPS433
+    try:
+        import app as app_module  # noqa: WPS433
+    except ModuleNotFoundError as exc:
+        REPORT_DIR.mkdir(exist_ok=True)
+        report = {
+            "ok": False,
+            "status": "DEPENDENCY_MISSING",
+            "missing": str(exc),
+            "action": "Instala dependencias con pip install -r requirements.txt y repite la auditoría.",
+            "note": "No se envía Telegram ni se muestran secrets.",
+        }
+        REPORT_JSON.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        markdown = "# TELEGRAM RELIABILITY AUDIT V727\n\n- Estado: `DEPENDENCY_MISSING`\n- Detalle: `" + str(exc) + "`\n- Acción: instala dependencias con `pip install -r requirements.txt` y repite.\n- No se enviaron mensajes ni se mostraron secrets.\n"
+        REPORT_MD.write_text(markdown, encoding="utf-8")
+        ROOT_REPORT_MD.write_text(markdown, encoding="utf-8")
+        print(json.dumps(report, ensure_ascii=False, indent=2))
+        return 0
 
     snapshot = app_module.telegram_reliability_snapshot(limit=80)
     dry = app_module.telegram_reliability_dry_run()

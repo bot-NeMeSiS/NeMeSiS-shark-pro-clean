@@ -25,7 +25,7 @@
       {% for item in data.top_recommendations %}
       <article class="card pick-card compact-card">
         <div class="row between"><strong>{{ item.home_team }} vs {{ item.away_team }}</strong><span class="badge">{{ item.score }}/100</span></div>
-        <p class="muted small">{{ item.league_name }} · {{ item.kickoff_time or 'hora pendiente' }} · {{ item.value_label }}</p>
+        <p class="muted small">{{ item.league_name }} · {{ item|match_time_label }} · {{ item.value_label }}</p>
         <p><strong>{{ item.selection }}</strong>{% if item.has_odds %} · cuota {{ item.odds }}{% else %} · cuota pendiente{% endif %}</p>
         <div class="chips"><span>Confianza {{ item.confidence }}%</span><span>Riesgo {{ item.risk_level }}</span><span>{{ item.membership_required }}</span></div>
         <p class="muted small">{{ item.reasoning }}</p>

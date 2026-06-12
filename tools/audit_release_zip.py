@@ -131,7 +131,7 @@ def write_reports(report: dict) -> None:
         json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
     lines = [
-        "# Auditoría ZIP V723",
+        f"# Auditoría ZIP {VERSION_PREFIX}",
         "",
         f"- ZIP: `{Path(report['zip']).name}`",
         f"- Archivos: {report['file_count']}",

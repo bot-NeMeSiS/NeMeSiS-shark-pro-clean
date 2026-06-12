@@ -31,7 +31,7 @@
     <div class="match-scorebox">
       <span class="state-badge {{ state.badge or 'upcoming' }}">{{ state.label or 'Próximo' }}</span>
       <strong>{{ score }}</strong>
-      <small>{{ state.minute or m.madrid_time or m.safe_time or m.kickoff_time or m.match_time or 'Hora pendiente' }}</small>
+      <small>{% if state.is_live %}{{ state.minute or 'En directo' }}{% else %}{{ m|match_time_short }}{% endif %}</small>
     </div>
   </div>
   <div class="match-versus">
@@ -42,7 +42,7 @@
     <div class="versus-center">
       <button class="btn fav-star {% if m.is_favorite %}active{% endif %}" type="button" data-kind="match" data-value="{{ m.id }}" data-label="{{ home }} vs {{ away }}">★ Favorito</button>
       <div class="score-main">{{ score }}</div>
-      <div class="small">{{ m.madrid_display or m.display_datetime or ((m.madrid_date_label or m.safe_date or m.match_date or 'Fecha pendiente') ~ ' - ' ~ (m.madrid_time or m.safe_time or m.kickoff_time or m.match_time or state.minute or 'Hora pendiente')) }}</div>
+      <div class="small">{{ m|match_time_label }}</div>
       <span class="shark-pill">SHARK {{ shark_score or 'en cálculo' }}</span>
     </div>
     <div class="match-side">

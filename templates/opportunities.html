@@ -24,7 +24,7 @@
         <div class="match-main">
           <span class="league-badge">{{ r.league_name|competition_es }}</span>
           <h3>{{ r.home_team }} vs {{ r.away_team }}</h3>
-          <p>{{ r.match_date }} · {{ r.kickoff_time or 'Hora pendiente' }} · {{ r.status.label }}</p>
+          <p>{{ r|match_time_label }} · {{ r.status.label }}</p>
           <p>{{ r.reason }}</p>
           <small class="muted">Precaución: {{ r.warning }}</small>
         </div>

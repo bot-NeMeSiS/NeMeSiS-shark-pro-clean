@@ -68,7 +68,7 @@
       {% for m in shark.sections.upcoming[:6] %}
         <div class="mini-row">
           <span>{{ m.safe_home or m.home_team }} vs {{ m.safe_away or m.away_team }}</span>
-          <small>{{ (m.safe_competition or m.competition_name or m.league_name)|competition_es }} · {{ m.madrid_display or m.display_datetime or m.safe_datetime or (m.match_date ~ ' ' ~ (m.kickoff_time or '')) }}</small>
+          <small>{{ (m.safe_competition or m.competition_name or m.league_name)|competition_es }} · {{ m|match_time_label }}</small>
         </div>
       {% endfor %}
     {% else %}

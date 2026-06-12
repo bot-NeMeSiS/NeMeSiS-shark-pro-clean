@@ -37,7 +37,7 @@
     <div class="section-head"><h2>Próximos importantes</h2><a class="pill" href="/match-hub">Todos</a></div>
     <div class="stack">
       {% for m in upcoming[:6] %}
-      <a class="list-row" href="/match/{{ m.id }}"><span>{{ m.home_team }} vs {{ m.away_team }}<small>{{ m.league_name or m.competition_name or 'Competición' }}</small></span><strong>{{ m.madrid_time or m.safe_time or m.kickoff_time or m.match_time or 'Hora' }}</strong></a>
+      <a class="list-row" href="/match/{{ m.id }}"><span>{{ m.home_team }} vs {{ m.away_team }}<small>{{ m.league_name or m.competition_name or 'Competición' }}</small></span><strong>{{ m|match_time_short }}</strong></a>
       {% else %}<div class="empty premium-empty">Aún no hay partidos listos. Cuando haya datos suficientes aparecerán aquí.</div>{% endfor %}
     </div>
   </div>

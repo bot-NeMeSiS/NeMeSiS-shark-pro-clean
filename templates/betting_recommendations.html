@@ -17,7 +17,7 @@
   <div class="grid dense-grid">
     {% for r in data.betting_recommendations %}
     <article class="card rec-card badge-{{ r.badge|lower }}">
-      <div class="match-top"><div><div class="comp-name">{{ (r.league_name or 'Competición')|competition_es }}</div><div class="small">{{ r.match_date }} · {{ r.kickoff_time or 'hora pendiente' }}</div></div><span class="badge">{{ r.badge }}</span></div>
+      <div class="match-top"><div><div class="comp-name">{{ (r.league_name or 'Competición')|competition_es }}</div><div class="small">{{ r|match_time_label }}</div></div><span class="badge">{{ r.badge }}</span></div>
       <h3>{{ r.home_team }} vs {{ r.away_team }}</h3>
       <p class="selection">{{ r.market }} · <strong>{{ r.selection }}</strong>{% if r.odds %} · cuota {{ r.odds }}{% endif %}</p>
       <div class="status"><span>{{ r.confidence }}% confianza</span><span>{{ r.risk_level }}</span><span>{% if r.has_real_odds %}Cuota real{% else %}Watchlist{% endif %}</span></div>

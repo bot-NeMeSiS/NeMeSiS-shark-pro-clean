@@ -173,6 +173,10 @@ def normalize_kickoff_for_display(match: dict | None) -> dict:
         item["safe_time"] = item["madrid_time"]
         item["safe_date"] = dt_madrid.strftime("%d/%m/%Y")
         item["safe_datetime"] = f"{item['safe_date']} · {item['madrid_time']}"
+        item["display_time"] = item["madrid_time"]
+        item["display_date_label"] = item["madrid_date_label"]
+        item["display_status_label"] = item["madrid_display"]
+        item["kickoff_display"] = item["madrid_display"]
         item["display_datetime"] = item["madrid_display"]
         item["kickoff_iso_madrid"] = item["madrid_dt_iso"]
     else:
@@ -182,6 +186,10 @@ def normalize_kickoff_for_display(match: dict | None) -> dict:
         item["madrid_display"] = item.get("display_datetime") or "Hora pendiente"
         item["safe_time"] = item.get("safe_time") or item["madrid_time"] or "Hora pendiente"
         item["safe_date"] = item.get("safe_date") or item["madrid_date"]
+        item["display_time"] = item["safe_time"]
+        item["display_date_label"] = item["safe_date"] or "Sin fecha"
+        item["display_status_label"] = item["madrid_display"]
+        item["kickoff_display"] = item["madrid_display"]
         item["display_datetime"] = item.get("display_datetime") or item["madrid_display"]
     item["timezone_label"] = "Europe/Madrid"
     item["time_context"] = "Hora española"

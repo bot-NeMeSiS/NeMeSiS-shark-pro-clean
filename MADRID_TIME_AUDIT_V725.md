@@ -1,7 +1,7 @@
 # Auditoría de hora Madrid V725
 
 - Fuente: `fixtures`
-- DB: `\data\database.db`
+- DB: `/data/database.db`
 - Selftest: OK
 - Partidos revisados: 2
 - Alertas: {}

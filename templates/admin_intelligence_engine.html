@@ -39,7 +39,7 @@
     {% for r in status.intelligence.top %}
     <article class="card rec-card v551-rec {{ r.intelligence_type|lower }}">
       <div class="match-top">
-        <div><div class="comp-name">{{ (r.league_name or 'Competición')|competition_es }}</div><div class="small">{{ r.match_date }} · {{ r.kickoff_time or 'hora pendiente' }}</div></div>
+        <div><div class="comp-name">{{ (r.league_name or 'Competición')|competition_es }}</div><div class="small">{{ r|match_time_label }}</div></div>
         <span class="badge">{{ r.intelligence_type }}</span>
       </div>
       <h3>{{ r.home_team }} vs {{ r.away_team }}</h3>

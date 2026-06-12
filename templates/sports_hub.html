@@ -45,8 +45,8 @@
         <a class="sports-row v701-row favorite-scope" href="/match/{{ m.id }}">
           <button class="fav-star {% if m.is_favorite %}active{% endif %}" type="button" data-kind="match" data-value="{{ m.id }}" data-label="{{ m.safe_home }} vs {{ m.safe_away }}" aria-label="Favorito">★</button>
           <div class="sports-time {% if live_depth.get('badge') == 'live' %}is-live{% endif %}">
-            <strong>{% if live_depth.get('badge') == 'live' %}{{ live_depth.get('minute') or 'En directo' }}{% else %}{{ m.madrid_time or m.safe_time or 'Hora' }}{% endif %}</strong>
-            <span>{{ live_depth.get('label') or m.safe_status or m.madrid_date_label }}</span>
+            <strong>{% if live_depth.get('badge') == 'live' %}{{ live_depth.get('minute') or 'En directo' }}{% else %}{{ m|match_time_short }}{% endif %}</strong>
+            <span>{{ live_depth.get('label') or m.safe_status or (m|match_date_label) }}</span>
           </div>
           <div class="sports-team home">
             <span class="crest compact-crest {{ home_identity.get('ui_class','crest-fallback') }}"><img loading="lazy" src="{{ home_identity.get('crest_url','') }}" alt="{{ m.safe_home }}" onerror="this.style.display='none';this.parentElement.textContent='{{ home_identity.get('flag_emoji') or home_identity.get('initials', (m.safe_home or 'L')[:1]) }}'"></span>

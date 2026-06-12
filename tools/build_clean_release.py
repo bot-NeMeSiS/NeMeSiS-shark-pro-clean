@@ -75,11 +75,14 @@ INCLUDE_TOP_LEVEL_FILES = {
     "V727_TELEGRAM_RELIABILITY_COMMAND_CENTER_REPORT.md",
     "TELEGRAM_RELIABILITY_AUDIT_V727.md",
     "TELEGRAM_RUNBOOK_V727.md",
+    "V728_FINAL_CLIENT_EXPERIENCE_MADRID_TIME_LIVE_POLISH_REPORT.md",
+    "V728_VISUAL_TIME_QA_REPORT.md",
     "RELEASE_MANIFEST_V723.json",
     "RELEASE_MANIFEST_V724.json",
     "RELEASE_MANIFEST_V725.json",
     "RELEASE_MANIFEST_V726.json",
     "RELEASE_MANIFEST_V727.json",
+    "RELEASE_MANIFEST_V728.json",
 }
 EXCLUDE_DIRS = {
     ".git",
@@ -154,6 +157,8 @@ def include(path: Path) -> bool:
     if any(lower_name.endswith(suffix) for suffix in EXCLUDE_SUFFIXES):
         return False
     if parts[0] in INCLUDE_TOP_LEVEL_DIRS:
+        return True
+    if len(parts) == 1 and path.name == MANIFEST_NAME:
         return True
     return len(parts) == 1 and path.name in INCLUDE_TOP_LEVEL_FILES
 

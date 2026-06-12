@@ -63,7 +63,7 @@
   <div class="grid">
     {% for m in t.upcoming[:12] %}
     <a class="card match-card" href="/match/{{ m.id }}">
-      <div class="match-top"><div><div class="comp-name">{{ (m.safe_competition or m.competition_name or m.league_name)|competition_es }}</div><div class="small">{{ m.madrid_display or m.display_datetime or (m.safe_date ~ ' · ' ~ (m.safe_time or 'hora por confirmar')) }}</div></div><div class="time">{{ m.live_depth.minute }}</div></div>
+      <div class="match-top"><div><div class="comp-name">{{ (m.safe_competition or m.competition_name or m.league_name)|competition_es }}</div><div class="small">{{ m|match_time_label }}</div></div><div class="time">{{ m.live_depth.minute }}</div></div>
       <div class="teams"><div class="team"><div class="crest"><img src="{{ m.home_identity.crest_url }}" alt="{{ m.safe_home or m.home_team }}"></div><strong>{{ m.safe_home or m.home_team }}</strong></div><div class="team"><div class="crest"><img src="{{ m.away_identity.crest_url }}" alt="{{ m.safe_away or m.away_team }}"></div><strong>{{ m.safe_away or m.away_team }}</strong></div></div>
       <div class="status"><span class="state-badge {{ m.live_depth.badge }}">{{ m.live_depth.label }}</span><span>{{ m.live_depth.score or 'vs' }}</span></div>
     </a>
