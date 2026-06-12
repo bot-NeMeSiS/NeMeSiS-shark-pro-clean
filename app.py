@@ -71,7 +71,7 @@ from engines.spanish_localization_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V714_TELEGRAM_SHARK_CLIENT_POLISH_FINAL"
+APP_VERSION = "V715_LAUNCH_AUDIT_SECURITY_POLISH_FINAL"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -80,6 +80,11 @@ COMBI_MAX_LEGS = 15
 
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY") or os.getenv("FLASK_SECRET_KEY") or secrets.token_hex(32)
+app.config.update(
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE="Lax",
+    SESSION_COOKIE_SECURE=bool(os.getenv("RENDER") or os.getenv("RENDER_SERVICE_ID") or str(os.getenv("SESSION_COOKIE_SECURE", "")).strip().lower() in {"1", "true", "yes", "on"}),
+)
 SEED_LOCK = threading.RLock()
 _SEED_LOCK = SEED_LOCK
 _SEEDED_DB_PATH = None
@@ -211,6 +216,152 @@ def automation_json_forbidden():
         "automation_secret_configured": bool(status.get("configured")),
         "automation_secret_provided": bool(status.get("provided")),
     }), 403
+
+
+def ensure_csrf_token():
+    token = session.get("_csrf_token")
+    if not token:
+        token = secrets.token_urlsafe(32)
+        session["_csrf_token"] = token
+    return token
+
+
+def csrf_valid():
+    expected = session.get("_csrf_token") or ""
+    provided = (
+        request.form.get("_csrf_token")
+        or request.headers.get("X-CSRF-Token")
+        or request.headers.get("X-CSRFToken")
+        or ""
+    )
+    return bool(expected and provided and secrets.compare_digest(str(provided), str(expected)))
+
+
+def csrf_exempt_path(path):
+    return (
+        path.startswith("/api/")
+        or path == "/telegram/webhook"
+        or path == "/service-worker.js"
+    )
+
+
+INTERNAL_API_PREFIXES = (
+    "/api/admin/",
+    "/api/scheduler/",
+    "/api/data-center/",
+    "/api/sportsdb/sync-",
+    "/api/odds/sync-",
+    "/api/import-",
+    "/api/telegram/",
+    "/api/observability/",
+    "/api/security/",
+    "/api/architecture/",
+    "/api/v608/",
+)
+
+INTERNAL_API_PATHS = {
+    "/api/diagnostics",
+    "/api/cache/status",
+    "/api/imports",
+    "/api/crest-diagnostics",
+    "/api/thesportsdb/diagnostics",
+    "/api/odds/diagnostics",
+    "/api/matches/diagnostics",
+    "/api/startup-check",
+    "/api/full-audit-report",
+    "/api/route-check",
+    "/api/deep-route-check",
+    "/api/v566/product-polish-check",
+    "/api/system/v570-check",
+    "/api/automation-status",
+    "/api/quality-center/summary",
+    "/api/picks/create",
+    "/api/picks/update",
+    "/api/picks/publish",
+    "/api/picks/archive",
+    "/api/import-picks",
+    "/api/v565/convert-recommendation",
+}
+
+PUBLIC_API_PREFIXES = (
+    "/api/automation/",
+    "/api/client/",
+    "/api/matches/",
+    "/api/teams/",
+)
+
+PUBLIC_API_PATHS = {
+    "/api/health",
+    "/api/runtime-version",
+    "/api/calendar",
+    "/api/live",
+    "/api/match-hub",
+    "/api/live-flow",
+    "/api/ecosystem/state",
+    "/api/realtime/state",
+    "/api/live/state",
+    "/api/favorites",
+    "/api/favorites/feed",
+    "/api/picks",
+    "/api/picks/stats",
+    "/api/combis",
+    "/api/combis/build",
+    "/api/profile",
+    "/api/membership",
+    "/api/shark/briefing",
+    "/api/shark/ask",
+    "/api/shark/context",
+    "/api/competitions",
+    "/api/recommendations",
+    "/api/timezone-check",
+    "/api/autonomous-picks/status",
+    "/api/route-check",
+    "/api/deep-route-check",
+    "/api/client-experience-check",
+    "/api/product-experience-check",
+    "/api/client/app-pulse",
+    "/api/client/onboarding-check",
+    "/api/team/resolve",
+    "/api/shark/core-summary",
+    "/api/v565/recommendations",
+    "/api/v565/sports-data-picks-check",
+}
+
+
+def internal_api_requires_protection(path):
+    if path in INTERNAL_API_PATHS:
+        return True
+    if any(path.startswith(prefix) for prefix in INTERNAL_API_PREFIXES):
+        # Keep user Telegram link status available to logged-in clients.
+        return path != "/api/telegram/link-status"
+    if path in PUBLIC_API_PATHS or any(path.startswith(prefix) for prefix in PUBLIC_API_PREFIXES):
+        return False
+    return False
+
+
+@app.context_processor
+def inject_security_helpers():
+    return {"csrf_token": ensure_csrf_token}
+
+
+@app.before_request
+def v715_security_gate():
+    path = request.path or ""
+    if request.method == "POST" and not csrf_exempt_path(path) and not csrf_valid():
+        return jsonify({"ok": False, "version": APP_VERSION, "error": "csrf_required", "message": "Formulario caducado. Recarga la página e inténtalo de nuevo."}), 403
+    if internal_api_requires_protection(path) and not automation_access_allowed():
+        return admin_json_forbidden()
+
+
+@app.after_request
+def v715_security_headers(response):
+    response.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+    response.headers.setdefault("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
+    if request.path.startswith("/admin") or request.path.startswith("/api/telegram") or request.path.startswith("/api/scheduler"):
+        response.headers.setdefault("Cache-Control", "no-store")
+    return response
 
 
 def automation_safe_set(key, value):
@@ -9822,6 +9973,20 @@ def api_v570_system_check():
         "memory_table": True,
         "app_goal": "SHARK conectado a favoritos, picks, recomendaciones, live y calendario.",
     })
+
+
+@app.route("/api/v601/api-exploitation-check")
+def api_v601_api_exploitation_check():
+    if not automation_access_allowed():
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "version": APP_VERSION, "status": "compatible", "message": "Endpoint legacy protegido para smoke de APIs."})
+
+
+@app.route("/api/v602/player-intelligence-check")
+def api_v602_player_intelligence_check():
+    if not automation_access_allowed():
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "version": APP_VERSION, "status": "compatible", "message": "Endpoint legacy protegido para smoke de inteligencia de jugadores."})
 
 
 def register_optional_blueprints():

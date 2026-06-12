@@ -1,0 +1,39 @@
+# Python/cache
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Local virtual environments
+.venv/
+venv/
+env/
+
+# Local databases and SQLite sidecars
+*.db
+*.sqlite
+*.sqlite3
+*.db-wal
+*.db-shm
+*.sqlite-wal
+*.sqlite-shm
+data/*.db
+data/*.sqlite*
+
+# Logs, backups and temporary artifacts
+*.log
+logs/
+backups/
+data/backups/
+*.tmp
+*.bak
+*.zip
+v636work/
+.codex_v*_backup/
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
