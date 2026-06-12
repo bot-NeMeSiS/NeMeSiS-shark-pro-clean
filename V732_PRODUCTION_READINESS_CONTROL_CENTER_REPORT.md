@@ -1,9 +1,9 @@
 # V732 Production Readiness Control Center
 
-- Versión: `V735_GO_LIVE_PRODUCTION_TELEGRAM_DATA_CERTIFICATION`
+- Versión: `V736_GLOBAL_CLIENT_VISUAL_MEMBERSHIP_EXPERIENCE`
 - Score: **87/100**
 - Estado: **OK**
-- Generado: `2026-06-12T20:54:02`
+- Generado: `2026-06-12T21:06:19`
 
 ## Bloqueos
 - No hay bloqueos estáticos críticos detectados.
@@ -13,9 +13,9 @@
 - Faltan variables críticas en este entorno local/sandbox; confirmar en Render antes de vender.
 
 ## Versión
-- `version_txt`: `V735_GO_LIVE_PRODUCTION_TELEGRAM_DATA_CERTIFICATION`
-- `app_py_version`: `V735_GO_LIVE_PRODUCTION_TELEGRAM_DATA_CERTIFICATION`
-- `runtime_expected`: `V735_GO_LIVE_PRODUCTION_TELEGRAM_DATA_CERTIFICATION`
+- `version_txt`: `V736_GLOBAL_CLIENT_VISUAL_MEMBERSHIP_EXPERIENCE`
+- `app_py_version`: `V736_GLOBAL_CLIENT_VISUAL_MEMBERSHIP_EXPERIENCE`
+- `runtime_expected`: `V736_GLOBAL_CLIENT_VISUAL_MEMBERSHIP_EXPERIENCE`
 - `match`: `True`
 - `has_recent_stack`: `False`
 
@@ -40,7 +40,7 @@
 - Directorios prohibidos: __pycache__
 
 ## Checklist Render
-- `/api/runtime-version` → V735_GO_LIVE_PRODUCTION_TELEGRAM_DATA_CERTIFICATION
+- `/api/runtime-version` → V736_GLOBAL_CLIENT_VISUAL_MEMBERSHIP_EXPERIENCE
 - `/api/health` → 200 / OK si existe
 - `/api/automation/telegram/tick` → 403
 - `/api/automation/telegram/tick?secret=***` → 200

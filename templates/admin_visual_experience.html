@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block content %}
+{% set vx = data.visual_experience %}
+<section class="app-hero v736-admin-visual-hero shark-section">
+  <div>
+    <div class="kicker">V736 · Sistema visual premium</div>
+    <h1>Experiencia visual por membresía</h1>
+    <p class="lead">Control global del nuevo estilo cliente: misma información, distinta energía visual para FREE, PRO, ELITE y ELITE+.</p>
+    <div class="actions">
+      <a class="btn primary" href="/sports-hub">Ver experiencia cliente</a>
+      <a class="btn" href="/admin/client-experience">QA cliente</a>
+      <a class="btn" href="/admin/go-live">Go Live</a>
+    </div>
+  </div>
+  <aside class="hero-panel v736-score-panel">
+    <span class="pill">Estado visual</span>
+    <strong>{{ vx.score }}%</strong>
+    <p class="small">{{ vx.status }}</p>
+  </aside>
+</section>
+
+<section class="band compact-band">
+  <div class="section-head"><h2>Temas premium</h2><span class="pill">Membresías</span></div>
+  <div class="grid v736-visual-grid">
+    {% for key, theme in vx.themes.items() %}
+    <article class="card v736-theme-card v736-theme-{{ key|lower|replace('+','plus') }}">
+      <span class="badge">{{ key }}</span>
+      <h3>{{ theme.name }}</h3>
+      <p class="small">{{ theme.description }}</p>
+      <div class="v736-theme-strip"><i style="background: {{ theme.primary }}"></i><i style="background: {{ theme.accent }}"></i></div>
+    </article>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="band compact-band two-col">
+  <div class="card">
+    <div class="section-head"><h2>Base global</h2><span class="pill">{{ vx.base_checks|selectattr('ok')|list|length }}/{{ vx.base_checks|length }}</span></div>
+    <div class="stack">
+      {% for item in vx.base_checks %}
+      <div class="route-row"><span>{{ item.marker }}</span><strong class="{{ 'ok' if item.ok else 'bad' }}">{{ item.status }}</strong></div>
+      {% endfor %}
+    </div>
+  </div>
+  <div class="card">
+    <div class="section-head"><h2>CSS visual</h2><span class="pill">{{ vx.css_checks|selectattr('ok')|list|length }}/{{ vx.css_checks|length }}</span></div>
+    <div class="stack">
+      {% for item in vx.css_checks %}
+      <div class="route-row"><span>{{ item.marker }}</span><strong class="{{ 'ok' if item.ok else 'bad' }}">{{ item.status }}</strong></div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<section class="band compact-band">
+  <div class="section-head"><h2>Pantallas cubiertas</h2><span class="pill">{{ vx.covered_templates }}/{{ vx.total_templates }}</span></div>
+  <div class="grid client-screen-grid">
+    {% for item in vx.template_checks %}
+    <article class="client-screen-card {{ '' if item.covered_by_global_skin else 'is-missing' }}">
+      <div class="screen-head"><strong>{{ item.template }}</strong><span class="badge {{ 'status-won' if item.covered_by_global_skin else 'status-lost' }}">{{ item.status }}</span></div>
+      <p class="small">Existe: {{ 'sí' if item.exists else 'no' }} · Base global: {{ 'sí' if item.extends_base else 'no' }}</p>
+    </article>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="band compact-band">
+  <div class="section-head"><h2>Alcance seguro</h2><span class="pill">Sin romper flujos</span></div>
+  <div class="grid compact-grid">
+    {% for item in vx.safe_scope %}<article class="card"><strong>{{ item }}</strong></article>{% endfor %}
+  </div>
+</section>
+{% endblock %}

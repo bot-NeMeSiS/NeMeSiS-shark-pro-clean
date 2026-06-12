@@ -7,10 +7,27 @@
   <link rel="stylesheet" href="/static/app.css">
   <meta name="csrf-token" content="{{ csrf_token() }}">
 </head>
-<body>
-  <header class="top">
+{% set _raw_tier = (current_user.membership if current_user else 'FREE')|upper %}
+{% if _raw_tier == 'PRO' %}
+  {% set _visual_tier = 'pro' %}
+  {% set _tier_label = 'PRO' %}
+{% elif _raw_tier == 'ELITE' %}
+  {% set _visual_tier = 'elite' %}
+  {% set _tier_label = 'ELITE' %}
+{% elif _raw_tier in ['ADMIN', 'ELITE+', 'ELITE_PLUS'] %}
+  {% set _visual_tier = 'eliteplus' %}
+  {% set _tier_label = 'ELITE+' if _raw_tier != 'ADMIN' else 'ADMIN' %}
+{% else %}
+  {% set _visual_tier = 'free' %}
+  {% set _tier_label = 'FREE' %}
+{% endif %}
+<body class="ns-app ns-tier-{{ _visual_tier }}{% if current_user %} ns-authenticated{% else %} ns-public{% endif %}">
+  <div class="ns-ambient" aria-hidden="true"><i></i><i></i><i></i></div>
+  <div class="membership-energy-bar" aria-hidden="true"></div>
+  <header class="top ns-topbar">
     <div class="topin">
       <a class="brand" href="/"><span class="mark">NS</span><span>NeMeSiS SHARK PRO</span></a>
+      <span class="tier-badge tier-badge-{{ _visual_tier }}">{{ _tier_label }}</span>
       <nav class="nav nav-clean">
         {% if current_user and current_user.role == 'ADMIN' %}
           <a href="/admin/dashboard">Admin</a>
@@ -23,6 +40,7 @@
           <a href="/admin/final-qa">QA</a>
           <a href="/admin/go-live">Go Live</a>
           <a href="/admin/public-launch">Lanzamiento</a>
+          <a href="/admin/visual-experience">Visual</a>
           <a href="/logout">Salir</a>
         {% elif current_user %}
           <a href="/sports-hub">Inicio</a>
@@ -46,7 +64,7 @@
     </div>
   </header>
 
-  <main class="shell shark-shell">
+  <main class="shell shark-shell ns-main-shell">
     {% block content %}{% endblock %}
   </main>
 

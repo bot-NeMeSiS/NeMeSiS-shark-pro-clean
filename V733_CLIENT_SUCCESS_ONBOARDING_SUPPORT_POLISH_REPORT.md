@@ -1,7 +1,7 @@
 # V733 Client Success Onboarding Support Polish Report
 
 - Estado: **OK**
-- Versión: `V735_GO_LIVE_PRODUCTION_TELEGRAM_DATA_CERTIFICATION`
+- Versión: `V736_GLOBAL_CLIENT_VISUAL_MEMBERSHIP_EXPERIENCE`
 - Score snapshot cliente: **100/100**
 - Rutas nuevas presentes: sí
 - Soporte POST activo: sí

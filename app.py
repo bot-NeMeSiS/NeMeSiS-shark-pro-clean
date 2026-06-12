@@ -93,6 +93,7 @@ from engines.production_readiness_engine import production_readiness_snapshot
 from engines.client_success_engine import client_success_snapshot
 from engines.public_launch_engine import public_launch_snapshot
 from engines.go_live_engine import go_live_snapshot, production_validation_plan
+from engines.visual_experience_engine import visual_experience_snapshot
 from engines.payment_readiness_engine import payment_readiness_snapshot, record_payment_webhook_event
 from engines.pick_grading_engine import pick_grading_summary, run_pick_grading
 from engines.subscription_control_engine import subscription_summary, apply_subscription_rules
@@ -130,7 +131,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V735_GO_LIVE_PRODUCTION_TELEGRAM_DATA_CERTIFICATION"
+APP_VERSION = "V736_GLOBAL_CLIENT_VISUAL_MEMBERSHIP_EXPERIENCE"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -11312,6 +11313,31 @@ def api_v570_system_check():
         "memory_table": True,
         "app_goal": "SHARK conectado a favoritos, picks, recomendaciones, live y calendario.",
     })
+
+
+
+# ===================== V736 GLOBAL CLIENT VISUAL MEMBERSHIP EXPERIENCE =====================
+
+def v736_visual_experience_context():
+    return visual_experience_snapshot(app_version=APP_VERSION)
+
+
+@app.route("/admin/visual-experience")
+@app.route("/admin/client-visual-system")
+def admin_visual_experience_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/visual-experience")
+    data = dashboard_data()
+    data["version"] = APP_VERSION
+    data["visual_experience"] = v736_visual_experience_context()
+    return render_template("admin_visual_experience.html", data=data)
+
+
+@app.route("/api/admin/visual-experience")
+def api_admin_visual_experience():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "version": APP_VERSION, "visual_experience": v736_visual_experience_context()})
 
 
 def register_optional_blueprints():

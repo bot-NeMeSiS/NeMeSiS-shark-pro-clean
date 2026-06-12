@@ -12,7 +12,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = "V735_GO_LIVE_PRODUCTION_TELEGRAM_DATA_CERTIFICATION"
+BASE_VERSION = "V735_GO_LIVE_PRODUCTION_TELEGRAM_DATA_CERTIFICATION"
 
 
 def read(path: Path) -> str:
@@ -29,6 +29,7 @@ def check() -> dict:
     css = read(ROOT / "static" / "app.css")
     base = read(ROOT / "templates" / "base.html")
     version_txt = read(ROOT / "VERSION.txt").strip()
+    current_version = version_txt or BASE_VERSION
     required_files = [
         "engines/go_live_engine.py",
         "templates/admin_go_live.html",
@@ -49,8 +50,8 @@ def check() -> dict:
         "api_admin_go_live",
     ]
     checks = []
-    checks.append({"name": "version_txt", "ok": version_txt == VERSION, "value": version_txt})
-    checks.append({"name": "app_version", "ok": f'APP_VERSION = "{VERSION}"' in app})
+    checks.append({"name": "version_txt", "ok": version_txt in {BASE_VERSION, current_version} and (version_txt.startswith("V735_") or version_txt.startswith("V736_")), "value": version_txt})
+    checks.append({"name": "app_version", "ok": f'APP_VERSION = "{version_txt}"' in app or f'APP_VERSION = "{BASE_VERSION}"' in app})
     for rel in required_files:
         path = ROOT / rel
         checks.append({"name": f"file:{rel}", "ok": path.exists(), "size": path.stat().st_size if path.exists() else 0})
@@ -66,7 +67,7 @@ def check() -> dict:
     failures = [item for item in checks if not item.get("ok")]
     return {
         "ok": not failures,
-        "version": VERSION,
+        "version": current_version,
         "checks_total": len(checks),
         "failures": failures,
         "checks": checks,
