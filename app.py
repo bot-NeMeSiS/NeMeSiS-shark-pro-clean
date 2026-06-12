@@ -133,7 +133,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V738_FINAL_COMMERCIAL_RELEASE_CANDIDATE_POLISH"
+APP_VERSION = "V739_SALE_READY_HOME_DATA_PRODUCTION_FIX"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -7925,18 +7925,170 @@ def service_worker():
     return Response(body, mimetype="application/javascript")
 
 
+def _home_count_sql(query, params=()):
+    """Contador ligero para home: no dispara APIs ni rompe si la DB aún no existe."""
+    try:
+        conn = db()
+        cur = conn.cursor()
+        cur.execute(query, params)
+        row = cur.fetchone()
+        conn.close()
+        if row is None:
+            return 0
+        try:
+            return int(row[0] or 0)
+        except Exception:
+            return 0
+    except Exception:
+        return 0
+
+
+def _home_rows_sql(query, params=(), limit=6):
+    """Lectura ligera para home: nunca debe tumbar la landing si faltan tablas o datos."""
+    try:
+        conn = db()
+        cur = conn.cursor()
+        cur.execute(query, params)
+        items = [dict(r) for r in cur.fetchmany(int(limit))]
+        conn.close()
+        return items
+    except Exception:
+        return []
+
+
+def home_live_summary_data():
+    """Datos reales y ligeros para /.
+
+    V739 corrige el panel "Hoy en NeMeSiS": antes usaba home_light_data()
+    con ceros estáticos para acelerar Render. Ahora consulta la SQLite real de forma
+    segura, sin llamar APIs externas, sin inventar partidos y sin romper si la DB aún
+    está vacía. Si no hay sincronización real, el estado visible será "Pendiente de
+    sincronización" en vez de vender una cifra falsa.
+    """
+    today = today_iso()
+    upcoming = _home_count_sql(
+        """SELECT COUNT(*) FROM matches
+           WHERE match_date>=?
+             AND COALESCE(home_team,'')!=''
+             AND COALESCE(away_team,'')!=''""",
+        (today,),
+    )
+    today_count = _home_count_sql(
+        """SELECT COUNT(*) FROM matches
+           WHERE match_date=?
+             AND COALESCE(home_team,'')!=''
+             AND COALESCE(away_team,'')!=''""",
+        (today,),
+    )
+    live_count = _home_count_sql(
+        """SELECT COUNT(*) FROM matches
+           WHERE match_date=?
+             AND (lower(COALESCE(status,'')) LIKE '%live%'
+                  OR lower(COALESCE(status,'')) LIKE '%directo%'
+                  OR COALESCE(minute,'')!='')""",
+        (today,),
+    )
+    picks_count = _home_count_sql(
+        """SELECT COUNT(*) FROM picks
+           WHERE lower(COALESCE(status,'')) IN ('published','won','lost','void')"""
+    )
+    favorites_count = _home_count_sql(
+        """SELECT COUNT(*) FROM favorites WHERE user_id=?""",
+        (current_user_id() or "",),
+    ) if current_user_id() else 0
+
+    raw_matches = _home_rows_sql(
+        """SELECT * FROM matches
+           WHERE match_date>=?
+             AND COALESCE(home_team,'')!=''
+             AND COALESCE(away_team,'')!=''
+           ORDER BY match_date, kickoff_time, priority DESC, competition_name
+           LIMIT 8""",
+        (today,),
+        limit=8,
+    )
+    upcoming_matches = []
+    for item in raw_matches:
+        try:
+            if is_fake_match(item):
+                continue
+            item["kickoff_time"] = item.get("kickoff_time") or item.get("match_time") or ""
+            item.update(apply_match_localization(item))
+            upcoming_matches.append(item)
+        except Exception:
+            upcoming_matches.append(item)
+        if len(upcoming_matches) >= 6:
+            break
+
+    raw_picks = _home_rows_sql(
+        """SELECT * FROM picks
+           WHERE lower(COALESCE(status,'')) IN ('published','won','lost','void')
+           ORDER BY COALESCE(published_at, updated_at, created_at) DESC, confidence DESC
+           LIMIT 12""",
+        limit=12,
+    )
+    picks = []
+    for pick in raw_picks:
+        try:
+            picks.append(normalize_pick_row(pick))
+        except Exception:
+            picks.append(pick)
+
+    has_real_data = bool(upcoming or today_count or live_count or picks_count)
+    data_status = "DATOS_REALES" if has_real_data else "PENDIENTE_SINCRONIZACION"
+    data_message = (
+        "Datos reales cargados desde la base persistente."
+        if has_real_data
+        else "Aún no hay partidos o picks sincronizados en producción. Ejecuta Cron/SportsDB/Odds y revisa el Command Center."
+    )
+    return {
+        "date": today,
+        "status": data_status,
+        "has_real_data": has_real_data,
+        "message": data_message,
+        "counts": {
+            "today": today_count,
+            "upcoming": upcoming,
+            "live": live_count,
+            "picks": picks_count,
+            "favorites": favorites_count,
+        },
+        "upcoming_matches": upcoming_matches,
+        "picks": picks,
+        "favorites": get_favorites() if current_user_id() else [],
+    }
+
+
 def home_light_data():
-    """Datos minimos para que / responda rapido en Render sin cargar dashboard_data()."""
+    """Datos seguros para / con resumen real de producción cuando exista DB."""
+    live = home_live_summary_data()
+    counts = live.get("counts") or {}
     return {
         "app_name": APP_NAME,
         "version": APP_VERSION,
         "date": today_iso(),
-        "client_alerts": [],
-        "match_hub": {"counts": {"upcoming": 0, "live": 0, "finished": 0}, "today": [], "live": [], "upcoming": []},
-        "picks": [],
-        "favorites": [],
-        "upcoming_matches": [],
-        "daily_briefing": {"score": 0},
+        "client_alerts": build_client_alerts(limit=3) if current_user_id() else [],
+        "match_hub": {
+            "counts": {
+                "upcoming": counts.get("upcoming", 0),
+                "today": counts.get("today", 0),
+                "live": counts.get("live", 0),
+                "finished": 0,
+                "favorites": counts.get("favorites", 0),
+                "with_picks": counts.get("picks", 0),
+            },
+            "today": [],
+            "live": [],
+            "upcoming": live.get("upcoming_matches", []),
+            "data_status": live.get("status"),
+            "data_message": live.get("message"),
+            "has_real_data": live.get("has_real_data"),
+        },
+        "home_summary": live,
+        "picks": live.get("picks", []),
+        "favorites": live.get("favorites", []),
+        "upcoming_matches": live.get("upcoming_matches", []),
+        "daily_briefing": {"score": 72 if live.get("has_real_data") else 0},
         "readiness": {"calendar": 95, "live_foundation": 92, "shark_ai": 94},
     }
 

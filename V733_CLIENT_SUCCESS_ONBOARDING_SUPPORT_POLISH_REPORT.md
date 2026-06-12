@@ -1,7 +1,7 @@
 # V733 Client Success Onboarding Support Polish Report
 
 - Estado: **OK**
-- Versión: `V738_FINAL_COMMERCIAL_RELEASE_CANDIDATE_POLISH`
+- Versión: `V739_SALE_READY_HOME_DATA_PRODUCTION_FIX`
 - Score snapshot cliente: **100/100**
 - Rutas nuevas presentes: sí
 - Soporte POST activo: sí

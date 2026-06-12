@@ -1,4 +1,4 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 {% block content %}
 {% if current_user %}
 <section class="band compact-band retention-strip"><div class="section-head"><h2>Tu radar SHARK</h2><a class="pill" href="/alertas">Alertas</a></div><div class="grid dense-grid">{% for alert in data.client_alerts[:3] %}<a class="card alert-card" href="{{ alert.href }}"><span class="badge">{{ alert.badge }}</span><strong>{{ alert.title }}</strong><p class="small">{{ alert.body }}</p></a>{% endfor %}</div></section>
@@ -28,13 +28,14 @@
   </div>
   <aside class="hero-panel premium-scoreboard v724-home-panel">
     <div class="panel-top"><span>Hoy en NeMeSiS</span><strong>SHARK</strong></div>
-    <div class="live-strip mini-live-strip">
-      <div><span>Partidos</span><strong>{{ data.match_hub.counts.upcoming }}</strong></div>
-      <div><span>Directo</span><strong>{{ data.match_hub.counts.live }}</strong></div>
-      <div><span>Picks</span><strong>{{ data.picks|length }}</strong></div>
-      <div><span>Favoritos</span><strong>{{ data.favorites|length }}</strong></div>
+    {% set home_has_data = data.home_summary.has_real_data if data.home_summary is defined else true %}
+    <div class="live-strip mini-live-strip ns-real-data-strip {{ 'is-synced' if home_has_data else 'is-pending' }}">
+      <div><span>Partidos</span><strong>{{ data.match_hub.counts.upcoming if home_has_data else '—' }}</strong></div>
+      <div><span>Directo</span><strong>{{ data.match_hub.counts.live if home_has_data else '—' }}</strong></div>
+      <div><span>Picks</span><strong>{{ data.picks|length if home_has_data else '—' }}</strong></div>
+      <div><span>Favoritos</span><strong>{{ data.favorites|length if home_has_data else '—' }}</strong></div>
     </div>
-    <p class="small">Una vista rápida para seguir el día deportivo sin abrir varias apps.</p>
+    <p class="small ns-data-message">{{ data.match_hub.data_message if data.match_hub.data_message is defined else 'Una vista rápida para seguir el día deportivo sin abrir varias apps.' }}</p>
   </aside>
 </section>
 

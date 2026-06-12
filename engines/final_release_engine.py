@@ -1,4 +1,4 @@
-"""Final commercial release candidate checks for NeMeSiS SHARK PRO V738.
+"""Final commercial release candidate checks for NeMeSiS SHARK PRO V739.
 
 Read-only engine. It does not send Telegram, does not charge, does not change
 memberships and does not expose secrets. It consolidates the visual, security,
@@ -43,6 +43,7 @@ REQUIRED_CSS_MARKERS = [
     "V736 Global Client Visual Membership Experience",
     "V737 Native App Feel",
     "V738 Final Commercial Release Candidate",
+    "V739 Sale Ready Home Data Production Fix",
     "ns-tier-free", "ns-tier-pro", "ns-tier-elite", "ns-tier-eliteplus",
     "ns-final-release", "ns-final-badge", "ns-final-strip",
     "prefers-reduced-motion", "safe-area-inset-bottom",
@@ -174,7 +175,7 @@ def _project_state(app_version: str = "") -> dict[str, Any]:
 def final_release_validation_plan() -> list[dict[str, str]]:
     return [
         {"step": "1", "title": "Subir ZIP final a GitHub/Render", "detail": "Desplegar la release final y esperar build verde."},
-        {"step": "2", "title": "Verificar versión", "detail": "Abrir /api/runtime-version y confirmar V738_FINAL_COMMERCIAL_RELEASE_CANDIDATE_POLISH."},
+        {"step": "2", "title": "Verificar versión", "detail": "Abrir /api/runtime-version y confirmar la versión V739_SALE_READY_HOME_DATA_PRODUCTION_FIX."},
         {"step": "3", "title": "Probar salud y seguridad", "detail": "Abrir /api/health, login cliente, login admin, CSRF/rate limit y centros admin."},
         {"step": "4", "title": "Confirmar horarios Madrid", "detail": "Revisar Calendar, Live, Picks, Match Detail y Telegram con un partido de hora conocida."},
         {"step": "5", "title": "Confirmar Telegram real", "detail": "Usar /admin/telegram/command-center, dry-run y test-send manual solo si procede."},
@@ -315,5 +316,5 @@ def final_release_snapshot(db_path: str, app_version: str = "") -> dict[str, Any
             "No muestra secretos reales.",
             "No cambia lógica de picks/cuotas ni horarios Madrid.",
         ],
-        "final_message": "Release candidate comercial: listo estáticamente; producción grande depende de Render real, Telegram real, DB persistente y pagos reales validados.",
+        "final_message": "Release candidate comercial V739: home con datos reales preparado; producción grande depende de Render real, Telegram real, DB persistente, cron real y pagos reales validados.",
     }

@@ -524,3 +524,22 @@ body.ns-tier-free{--tier-primary:#22d3ff;--tier-secondary:#2f6bff;--tier-rgb:34,
 @media(max-width:920px){.ns-app .v738-final-hero{grid-template-columns:1fr}.ns-app .v738-final-grid{grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}}
 @media(max-width:760px){.ns-app .v738-final-grid{grid-template-columns:1fr}.ns-app .v738-final-score strong{font-size:3.2rem}.ns-app .v738-gate-card{min-height:auto}.ns-app .v738-step-card{min-height:auto}}
 @media(prefers-reduced-motion:reduce){.ns-app .ns-final-release,.ns-app .ns-final-badge{transition:none}}
+
+/* V739 Sale Ready Home Data Production Fix */
+.ns-real-data-strip.is-pending strong{
+  color: var(--muted, #94a3b8);
+  opacity: .85;
+}
+.ns-real-data-strip.is-pending div{
+  border-style: dashed;
+}
+.ns-data-message{
+  border-top: 1px solid rgba(255,255,255,.08);
+  margin-top: .85rem;
+  padding-top: .75rem;
+}
+.ns-tier-elite .ns-real-data-strip.is-synced strong,
+.ns-tier-eliteplus .ns-real-data-strip.is-synced strong,
+.ns-tier-pro .ns-real-data-strip.is-synced strong{
+  text-shadow: 0 0 18px color-mix(in srgb, var(--tier-accent, #38bdf8) 45%, transparent);
+}

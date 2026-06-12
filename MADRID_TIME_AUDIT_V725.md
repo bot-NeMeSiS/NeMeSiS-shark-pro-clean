@@ -1,6 +1,6 @@
 # Auditoría de hora Madrid V725
 
-- Fuente: `fixtures`
+- Fuente: `fixtures_no_matches_table`
 - DB: `/data/database.db`
 - Selftest: OK
 - Partidos revisados: 2
