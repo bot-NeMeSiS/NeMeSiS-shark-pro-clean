@@ -1,0 +1,393 @@
+"""Spanish display and Madrid-time helpers for NeMeSiS SHARK PRO.
+
+Pure stdlib helpers: safe to import from app.py and Telegram formatting modules.
+They do not perform network calls or persistence.
+"""
+
+from __future__ import annotations
+
+import re
+import unicodedata
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
+
+MADRID_TZ = ZoneInfo("Europe/Madrid")
+
+
+def _norm(value: object) -> str:
+    text = str(value or "").strip().lower()
+    text = unicodedata.normalize("NFKD", text)
+    text = "".join(ch for ch in text if not unicodedata.combining(ch))
+    text = re.sub(r"[^a-z0-9]+", " ", text)
+    return re.sub(r"\s+", " ", text).strip()
+
+
+SPANISH_TEAM_OVERRIDES = {
+    # Selecciones vistas en el vídeo y competiciones internacionales frecuentes.
+    "mexico": "México",
+    "south africa": "Sudáfrica",
+    "south korea": "Corea del Sur",
+    "korea republic": "Corea del Sur",
+    "north korea": "Corea del Norte",
+    "czech republic": "República Checa",
+    "czechia": "República Checa",
+    "bosnia herzogovina": "Bosnia y Herzegovina",
+    "bosnia herzegovina": "Bosnia y Herzegovina",
+    "bosnia and herzegovina": "Bosnia y Herzegovina",
+    "cape verde": "Cabo Verde",
+    "ivory coast": "Costa de Marfil",
+    "cote d ivoire": "Costa de Marfil",
+    "new zealand": "Nueva Zelanda",
+    "saudi arabia": "Arabia Saudí",
+    "united arab emirates": "Emiratos Árabes Unidos",
+    "uae": "Emiratos Árabes Unidos",
+    "united states": "Estados Unidos",
+    "usa": "Estados Unidos",
+    "usmnt": "Estados Unidos",
+    "england": "Inglaterra",
+    "scotland": "Escocia",
+    "wales": "Gales",
+    "northern ireland": "Irlanda del Norte",
+    "republic of ireland": "Irlanda",
+    "ireland": "Irlanda",
+    "netherlands": "Países Bajos",
+    "holland": "Países Bajos",
+    "switzerland": "Suiza",
+    "sweden": "Suecia",
+    "norway": "Noruega",
+    "denmark": "Dinamarca",
+    "finland": "Finlandia",
+    "germany": "Alemania",
+    "france": "Francia",
+    "italy": "Italia",
+    "spain": "España",
+    "portugal": "Portugal",
+    "belgium": "Bélgica",
+    "austria": "Austria",
+    "croatia": "Croacia",
+    "serbia": "Serbia",
+    "slovenia": "Eslovenia",
+    "slovakia": "Eslovaquia",
+    "hungary": "Hungría",
+    "poland": "Polonia",
+    "ukraine": "Ucrania",
+    "romania": "Rumanía",
+    "turkey": "Turquía",
+    "greece": "Grecia",
+    "albania": "Albania",
+    "georgia": "Georgia",
+    "japan": "Japón",
+    "china": "China",
+    "iran": "Irán",
+    "iraq": "Irak",
+    "qatar": "Catar",
+    "australia": "Australia",
+    "morocco": "Marruecos",
+    "egypt": "Egipto",
+    "tunisia": "Túnez",
+    "algeria": "Argelia",
+    "nigeria": "Nigeria",
+    "senegal": "Senegal",
+    "ghana": "Ghana",
+    "cameroon": "Camerún",
+    "uruguay": "Uruguay",
+    "paraguay": "Paraguay",
+    "argentina": "Argentina",
+    "brazil": "Brasil",
+    "chile": "Chile",
+    "colombia": "Colombia",
+    "ecuador": "Ecuador",
+    "peru": "Perú",
+    "venezuela": "Venezuela",
+    "bolivia": "Bolivia",
+    "canada": "Canadá",
+    "costa rica": "Costa Rica",
+    "jamaica": "Jamaica",
+    "panama": "Panamá",
+    # Clubes con traducción habitual en castellano.
+    "atletico madrid": "Atlético de Madrid",
+    "atletico de madrid": "Atlético de Madrid",
+    "bayern munich": "Bayern de Múnich",
+    "inter milan": "Inter de Milán",
+    "sporting lisbon": "Sporting CP",
+    "red star belgrade": "Estrella Roja",
+    "slavia prague": "Slavia Praga",
+    "sparta prague": "Sparta Praga",
+}
+
+
+SPANISH_COUNTRY_OVERRIDES = {
+    "world": "Mundial",
+    "global": "Global",
+    "international": "Internacional",
+    "spain": "España",
+    "england": "Inglaterra",
+    "scotland": "Escocia",
+    "wales": "Gales",
+    "france": "Francia",
+    "germany": "Alemania",
+    "italy": "Italia",
+    "portugal": "Portugal",
+    "netherlands": "Países Bajos",
+    "brazil": "Brasil",
+    "argentina": "Argentina",
+    "south america": "Sudamérica",
+    "north america": "Norteamérica",
+    "europe": "Europa",
+    "usa": "Estados Unidos",
+    "united states": "Estados Unidos",
+    "mexico": "México",
+    "south africa": "Sudáfrica",
+    "south korea": "Corea del Sur",
+    "czech republic": "República Checa",
+    "czechia": "República Checa",
+}
+
+
+SPANISH_COMPETITION_OVERRIDES = {
+    "fifa world cup": "Mundial FIFA",
+    "world cup": "Mundial",
+    "fifa club world cup": "Mundial de Clubes FIFA",
+    "club world cup": "Mundial de Clubes",
+    "uefa euro": "Eurocopa",
+    "euro": "Eurocopa",
+    "uefa european championship": "Eurocopa",
+    "copa america": "Copa América",
+    "copa america centenario": "Copa América",
+    "uefa champions league": "Champions League",
+    "champions league": "Champions League",
+    "uefa europa league": "Europa League",
+    "europa league": "Europa League",
+    "uefa conference league": "Conference League",
+    "conference league": "Conference League",
+    "english premier league": "Premier League",
+    "premier league": "Premier League",
+    "efl championship": "Championship",
+    "championship": "Championship",
+    "fa cup": "Copa FA",
+    "efl cup": "Copa de la Liga inglesa",
+    "spanish la liga": "LaLiga EA Sports",
+    "laliga": "LaLiga EA Sports",
+    "la liga": "LaLiga EA Sports",
+    "spanish segunda division": "Segunda División",
+    "segunda division": "Segunda División",
+    "serie a": "Serie A",
+    "bundesliga": "Bundesliga",
+    "ligue 1": "Ligue 1",
+    "primeira liga": "Primeira Liga",
+    "eredivisie": "Eredivisie",
+    "brasileirao serie a": "Brasileirão Serie A",
+    "brasileirao": "Brasileirão",
+    "argentina primera division": "Primera División Argentina",
+    "mls": "MLS",
+    "major league soccer": "MLS",
+    "nations league": "Liga de Naciones",
+    "uefa nations league": "Liga de Naciones UEFA",
+}
+
+
+SPANISH_MARKET_OVERRIDES = {
+    "home": "Local",
+    "away": "Visitante",
+    "draw": "Empate",
+    "over": "Más de",
+    "under": "Menos de",
+    "both teams to score": "Ambos equipos marcan",
+    "btts": "Ambos equipos marcan",
+    "double chance": "Doble oportunidad",
+    "moneyline": "Ganador del partido",
+    "h2h": "Ganador del partido",
+    "match winner": "Ganador del partido",
+    "winner": "Ganador",
+    "spread": "Hándicap",
+    "handicap": "Hándicap",
+    "total": "Total de goles/puntos",
+    "totals": "Total de goles/puntos",
+    "result": "Resultado",
+    "main": "Mercado principal",
+    "principal": "Mercado principal",
+}
+
+
+def _title_preserving_acronyms(text: str) -> str:
+    replacements = {
+        "Atletico": "Atlético",
+        "Mexico": "México",
+        "Copa America": "Copa América",
+        "Division": "División",
+        "Brasileirao": "Brasileirão",
+    }
+    out = str(text or "").strip()
+    for src, dst in replacements.items():
+        out = re.sub(rf"\b{re.escape(src)}\b", dst, out, flags=re.I)
+    return out
+
+
+def spanish_team_name(value: object) -> str:
+    raw = str(value or "").strip()
+    if not raw:
+        return ""
+    return SPANISH_TEAM_OVERRIDES.get(_norm(raw), _title_preserving_acronyms(raw))
+
+
+def spanish_country_name(value: object) -> str:
+    raw = str(value or "").strip()
+    if not raw:
+        return ""
+    return SPANISH_COUNTRY_OVERRIDES.get(_norm(raw), _title_preserving_acronyms(raw))
+
+
+def spanish_competition_name(value: object) -> str:
+    raw = str(value or "").strip()
+    if not raw:
+        return ""
+    key = _norm(raw)
+    if key in SPANISH_COMPETITION_OVERRIDES:
+        return SPANISH_COMPETITION_OVERRIDES[key]
+    for needle, translated in SPANISH_COMPETITION_OVERRIDES.items():
+        if needle and needle in key:
+            return translated
+    return _title_preserving_acronyms(raw)
+
+
+def spanish_market_name(value: object) -> str:
+    raw = str(value or "").strip()
+    if not raw:
+        return ""
+    key = _norm(raw)
+    if key in SPANISH_MARKET_OVERRIDES:
+        return SPANISH_MARKET_OVERRIDES[key]
+    for needle, translated in SPANISH_MARKET_OVERRIDES.items():
+        if needle and needle in key:
+            return translated if key == needle else raw
+    return _title_preserving_acronyms(raw)
+
+
+def _has_explicit_timezone(value: str) -> bool:
+    s = str(value or "").strip()
+    return bool(s.endswith("Z") or re.search(r"[+-]\d{2}:?\d{2}$", s))
+
+
+def parse_datetime_to_madrid(value: object, assume_naive_madrid: bool = True) -> datetime | None:
+    raw = str(value or "").strip()
+    if not raw:
+        return None
+    s = raw.replace(" UTC", "+00:00").replace("Z", "+00:00")
+    # Avoid parsing date-only values as midnight unless the caller explicitly supplied a full date-time.
+    if re.fullmatch(r"\d{4}-\d{2}-\d{2}", s):
+        return None
+    if re.match(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$", s):
+        s = s + ":00"
+    try:
+        dt = datetime.fromisoformat(s)
+    except ValueError:
+        return None
+    if dt.tzinfo is None:
+        if assume_naive_madrid:
+            return dt.replace(tzinfo=MADRID_TZ)
+        return dt.replace(tzinfo=ZoneInfo("UTC")).astimezone(MADRID_TZ)
+    return dt.astimezone(MADRID_TZ)
+
+
+def madrid_values_from_datetime(value: object, fallback_date: object = "", fallback_time: object = "") -> dict:
+    dt = parse_datetime_to_madrid(value)
+    if dt is None and fallback_date and fallback_time:
+        dt = parse_datetime_to_madrid(f"{fallback_date}T{str(fallback_time)[:5]}:00")
+    if dt is None:
+        return {
+            "match_date": str(fallback_date or "")[:10],
+            "kickoff_time": str(fallback_time or "")[:5],
+            "kickoff_iso": str(value or ""),
+            "safe_time": str(fallback_time or "")[:5] or "Hora",
+            "safe_date": str(fallback_date or "")[:10],
+            "safe_datetime": "",
+        }
+    return {
+        "match_date": dt.date().isoformat(),
+        "kickoff_time": dt.strftime("%H:%M"),
+        "kickoff_iso": dt.isoformat(timespec="seconds"),
+        "safe_time": dt.strftime("%H:%M"),
+        "safe_date": dt.strftime("%d/%m/%Y"),
+        "safe_datetime": dt.strftime("%d/%m/%Y · %H:%M"),
+        "display_datetime": spanish_datetime_label(dt),
+    }
+
+
+def spanish_datetime_label(value: object, fallback_date: object = "", fallback_time: object = "") -> str:
+    dt = value if isinstance(value, datetime) else parse_datetime_to_madrid(value)
+    if dt is None and fallback_date and fallback_time:
+        dt = parse_datetime_to_madrid(f"{fallback_date}T{str(fallback_time)[:5]}:00")
+    if dt is None:
+        date = str(fallback_date or "")[:10]
+        time = str(fallback_time or "")[:5]
+        return f"{date} · {time}".strip(" ·") or "Hora pendiente"
+    dt = dt.astimezone(MADRID_TZ)
+    today = datetime.now(MADRID_TZ).date()
+    tomorrow = today + timedelta(days=1)
+    weekday = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"][dt.weekday()]
+    if dt.date() == today:
+        return f"Hoy {dt:%H:%M}"
+    if dt.date() == tomorrow:
+        return f"Mañana {dt:%H:%M}"
+    return f"{weekday} {dt:%d/%m} · {dt:%H:%M}"
+
+
+def apply_match_localization(match: dict | None) -> dict:
+    item = dict(match or {})
+    if not item:
+        return item
+    raw_home = item.get("_raw_home_team") or item.get("home_team") or item.get("home") or ""
+    raw_away = item.get("_raw_away_team") or item.get("away_team") or item.get("away") or ""
+    raw_comp = item.get("_raw_competition_name") or item.get("competition_name") or item.get("league_name") or item.get("competition") or item.get("league") or ""
+    raw_country = item.get("_raw_country") or item.get("country") or ""
+    item["_raw_home_team"] = raw_home
+    item["_raw_away_team"] = raw_away
+    item["_raw_competition_name"] = raw_comp
+    item["_raw_country"] = raw_country
+    item["home_team"] = spanish_team_name(raw_home) or "Equipo local"
+    item["away_team"] = spanish_team_name(raw_away) or "Equipo visitante"
+    item["competition_name"] = spanish_competition_name(raw_comp) or "Competición"
+    item["league_name"] = spanish_competition_name(item.get("league_name") or raw_comp) or item["competition_name"]
+    item["country"] = spanish_country_name(raw_country) or raw_country
+    values = madrid_values_from_datetime(item.get("kickoff_iso") or item.get("commence_time") or "", item.get("match_date"), item.get("kickoff_time") or item.get("match_time"))
+    # For timezone-aware API timestamps, update visible date/time to Madrid. For rows without a real timestamp, keep the fallback date/time.
+    if values.get("match_date"):
+        item["match_date"] = values["match_date"]
+    if values.get("kickoff_time"):
+        item["kickoff_time"] = values["kickoff_time"]
+        item["match_time"] = values["kickoff_time"]
+    if values.get("kickoff_iso"):
+        item["kickoff_iso_madrid"] = values["kickoff_iso"]
+    item["safe_home"] = item["home_team"]
+    item["safe_away"] = item["away_team"]
+    item["safe_competition"] = item["competition_name"]
+    item["safe_country"] = item["country"] or "Global"
+    item["safe_time"] = values.get("safe_time") or item.get("kickoff_time") or item.get("match_time") or "Hora"
+    item["safe_date"] = values.get("safe_date") or item.get("match_date") or ""
+    item["safe_datetime"] = values.get("safe_datetime") or ""
+    item["display_datetime"] = values.get("display_datetime") or spanish_datetime_label("", item.get("match_date"), item.get("kickoff_time") or item.get("match_time"))
+    item["time_context"] = "Hora española"
+    return item
+
+
+def apply_pick_localization(pick: dict | None) -> dict:
+    item = dict(pick or {})
+    if not item:
+        return item
+    item["home_team"] = spanish_team_name(item.get("home_team") or item.get("home") or "") or "Equipo local"
+    item["away_team"] = spanish_team_name(item.get("away_team") or item.get("away") or "") or "Equipo visitante"
+    item["competition_name"] = spanish_competition_name(item.get("competition_name") or item.get("league_name") or "") or "Competición"
+    item["league_name"] = spanish_competition_name(item.get("league_name") or item.get("competition_name")) or item["competition_name"]
+    values = madrid_values_from_datetime(item.get("kickoff_iso") or "", item.get("match_date"), item.get("kickoff_time") or item.get("match_time"))
+    if values.get("match_date"):
+        item["match_date"] = values["match_date"]
+    if values.get("kickoff_time"):
+        item["kickoff_time"] = values["kickoff_time"]
+        item["match_time"] = values["kickoff_time"]
+    item["safe_time"] = values.get("safe_time") or item.get("kickoff_time") or item.get("match_time") or "Hora"
+    item["safe_date"] = values.get("safe_date") or item.get("match_date") or ""
+    item["display_datetime"] = values.get("display_datetime") or spanish_datetime_label("", item.get("match_date"), item.get("kickoff_time") or item.get("match_time"))
+    item["time_context"] = "Hora española"
+    item["market"] = spanish_market_name(item.get("market") or item.get("pick_type") or "")
+    item["pick_type"] = spanish_market_name(item.get("pick_type") or item.get("market") or "")
+    return item

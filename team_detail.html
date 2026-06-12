@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block content %}
+{% set t = detail %}
+<section class="team-hero">
+  <div class="team-hero-main">
+    <div class="crest mega"><img loading="lazy" src="{{ t.identity.crest_url }}" alt="{{ t.name }}" onerror="this.style.display='none';this.parentElement.textContent='{{ t.identity.initials }}'"></div>
+    <div>
+      <div class="kicker">Equipo · {{ t.team.country or 'Global' }}</div>
+      <h1>{{ t.name }}</h1>
+      <p class="lead">Página inteligente del equipo con próximos partidos, resultados recientes, picks relacionados y contexto SHARK.</p>
+      <div class="actions">
+        <form method="post" action="/favorites">
+          <input type="hidden" name="action" value="{{ 'remove' if t.is_favorite else 'add' }}">
+          <input type="hidden" name="kind" value="team">
+          <input type="hidden" name="value" value="{{ t.name }}">
+          <input type="hidden" name="label" value="{{ t.name }}">
+          <button class="{{ 'danger' if t.is_favorite else 'primary' }}" type="submit">{{ 'Quitar favorito' if t.is_favorite else 'Guardar equipo' }}</button>
+        </form>
+        <a class="btn" href="/match-hub">Calendario</a>
+        <a class="btn" href="/shark?team={{ t.name|urlencode }}">Preguntar a SHARK</a>
+      </div>
+    </div>
+  </div>
+  <aside class="hero-panel">
+    <div class="panel-top"><span>Seguimiento</span><strong>{{ 'Activo' if t.is_favorite else 'Disponible' }}</strong></div>
+    <div class="signal"><span>Próximos</span><i style="width:{{ [t.stats.upcoming * 12, 100]|min }}%"></i></div>
+    <div class="signal"><span>Resultados</span><i style="width:{{ [t.stats.recent * 14, 100]|min }}%"></i></div>
+    <div class="signal"><span>Picks</span><i style="width:{{ [t.stats.picks * 18, 100]|min }}%"></i></div>
+  </aside>
+</section>
+
+
+<section class="band">
+  <div class="section-head"><h2>Forma y contexto</h2><span class="pill">V540</span></div>
+  <div class="grid stats-grid">
+    <div class="card mini-stat"><span>Próximos</span><strong>{{ t.stats.upcoming }}</strong><small>Partidos sincronizados</small></div>
+    <div class="card mini-stat"><span>Resultados</span><strong>{{ t.stats.recent }}</strong><small>Histórico guardado</small></div>
+    <div class="card mini-stat"><span>Directo</span><strong>{{ t.stats.live }}</strong><small>Ahora mismo</small></div>
+    <div class="card mini-stat"><span>Picks</span><strong>{{ t.stats.picks }}</strong><small>Relacionados</small></div>
+  </div>
+</section>
+
+<section class="band two-col">
+  <div class="card">
+    <div class="section-head"><h2>Contexto SHARK</h2><span class="pill">IA</span></div>
+    <p>{{ t.shark_context }}</p>
+    <div class="actions"><a class="btn primary" href="/shark?team={{ t.name|urlencode }}">Abrir SHARK IA</a></div>
+  </div>
+  <div class="card">
+    <div class="section-head"><h2>Resumen</h2><span class="pill">Equipo</span></div>
+    <div class="stack">
+      <div class="list-row"><span>Próximos partidos</span><strong>{{ t.stats.upcoming }}</strong></div>
+      <div class="list-row"><span>Resultados guardados</span><strong>{{ t.stats.recent }}</strong></div>
+      <div class="list-row"><span>En directo ahora</span><strong>{{ t.stats.live }}</strong></div>
+      <div class="list-row"><span>Picks relacionados</span><strong>{{ t.stats.picks }}</strong></div>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="section-head"><h2>Próximos partidos</h2><span class="pill">{{ t.upcoming|length }}</span></div>
+  {% if t.upcoming %}
+  <div class="grid">
+    {% for m in t.upcoming[:12] %}
+    <a class="card match-card" href="/match/{{ m.id }}">
+      <div class="match-top"><div><div class="comp-name">{{ m.safe_competition or m.competition_name or m.league_name }}</div><div class="small">{{ m.match_date }} · {{ m.kickoff_time or 'hora por confirmar' }}</div></div><div class="time">{{ m.live_depth.minute }}</div></div>
+      <div class="teams"><div class="team"><div class="crest"><img src="{{ m.home_identity.crest_url }}" alt="{{ m.safe_home or m.home_team }}"></div><strong>{{ m.safe_home or m.home_team }}</strong></div><div class="team"><div class="crest"><img src="{{ m.away_identity.crest_url }}" alt="{{ m.safe_away or m.away_team }}"></div><strong>{{ m.safe_away or m.away_team }}</strong></div></div>
+      <div class="status"><span class="state-badge {{ m.live_depth.badge }}">{{ m.live_depth.label }}</span><span>{{ m.live_depth.score or 'vs' }}</span></div>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}<div class="empty">No hay próximos partidos sincronizados para este equipo todavía.</div>{% endif %}
+</section>
+
+<section class="band two-col">
+  <div>
+    <div class="section-head"><h2>Resultados recientes</h2><span class="pill">{{ t.recent|length }}</span></div>
+    <div class="stack">
+      {% for m in t.recent[:8] %}<a class="list-row" href="/match/{{ m.id }}"><span>{{ m.safe_home or m.home_team }} vs {{ m.safe_away or m.away_team }}</span><strong>{{ m.live_depth.score or m.score or 'FT' }}</strong></a>{% else %}<div class="empty">Sin resultados recientes guardados.</div>{% endfor %}
+    </div>
+  </div>
+  <div>
+    <div class="section-head"><h2>Picks relacionados</h2><span class="pill">{{ t.picks|length }}</span></div>
+    <div class="stack">
+      {% for p in t.picks[:8] %}<a class="list-row" href="/picks"><span>{{ p.selection }}</span><strong>{{ p.odds or '-' }}</strong></a>{% else %}<div class="empty">Aún no hay picks publicados para este equipo.</div>{% endfor %}
+    </div>
+  </div>
+</section>
+{% endblock %}

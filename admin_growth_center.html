@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="hero compact-hero admin-hero">
+  <div>
+    <span class="eyebrow">Admin · Growth Center</span>
+    <h1>Embudo comercial y retención</h1>
+    <p>Control rápido de usuarios, valor visible, picks publicados, favoritos y señales de preparación comercial.</p>
+  </div>
+  <div class="score-ring">{{ growth.score }}%</div>
+</section>
+
+<section class="grid cards-4">
+  {% for card in growth.cards %}
+  <article class="card metric-card">
+    <span>{{ card.title }}</span>
+    <strong>{{ card.value }}</strong>
+    <p>{{ card.body }}</p>
+  </article>
+  {% endfor %}
+</section>
+
+<section class="panel">
+  <h2>Acciones prioritarias</h2>
+  <ul class="clean-list">
+    {% for action in growth.actions %}<li>{{ action }}</li>{% endfor %}
+  </ul>
+</section>
+
+<section class="panel">
+  <h2>Operativa rápida</h2>
+  <div class="quick-actions">
+    <a class="btn" href="/admin/users">Usuarios</a>
+    <a class="btn" href="/admin/picks">Picks</a>
+    <a class="btn" href="/admin/data-center">Datos</a>
+    <a class="btn" href="/admin/telegram">Telegram</a>
+    <a class="btn" href="/admin/final-qa">QA final</a>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="hero auth-hero">
+  <div class="kicker">Crear cuenta</div>
+  <h1>Acceso cliente SHARK</h1>
+  <p class="lead">Registra tu cuenta FREE y conecta el perfil con favoritos, live, picks y futuras membresias premium.</p>
+</section>
+<section class="band auth-grid">
+  <form class="card auth-card" method="post" action="/registro">
+    <h2>Registro</h2>
+    {% if error %}<p class="notice danger">{{ error }}</p>{% endif %}
+    <div class="field"><label>Nombre visible</label><input name="name" autocomplete="name" required></div>
+    <div class="field"><label>Nombre de usuario</label><input name="username" autocomplete="username" pattern="[A-Za-z0-9_-]{3,32}" required></div>
+    <div class="field"><label>Email</label><input type="email" name="email" autocomplete="email" required></div>
+    <div class="field"><label>Contrasena</label><input type="password" name="password" autocomplete="new-password" required></div>
+    <button type="submit">Crear cuenta</button>
+    <p class="small">El plan inicial es FREE. Podras mejorar a PRO o ELITE desde membresias.</p>
+  </form>
+  <aside class="card auth-side">
+    <h2>Ya tengo cuenta</h2>
+    <p class="small">Entra para volver a tu perfil y recuperar tu sesion premium.</p>
+    <a class="btn" href="/cliente-login">Entrar</a>
+  </aside>
+</section>
+{% endblock %}

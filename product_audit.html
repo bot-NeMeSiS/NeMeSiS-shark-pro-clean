@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="band compact-band">
+  <div class="section-head"><h1>Auditoría de producto V552</h1><span class="pill">{{ audit.score }}%</span></div>
+  <div class="grid dense-grid">
+    {% for area in audit.areas %}
+    <article class="card"><span class="badge">{{ area.status }}</span><h3>{{ area.name }}</h3><p class="small">{{ area.detail }}</p><div class="signal"><span>Nivel</span><i style="width:{{ area.score }}%"></i></div></article>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

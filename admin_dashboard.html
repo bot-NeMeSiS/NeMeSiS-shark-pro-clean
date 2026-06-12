@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="app-hero compact-hero">
+  <div>
+    <div class="kicker">Centro de mando</div>
+    <h1>Admin dashboard</h1>
+    <p class="lead">Usuarios, membresías, picks, recomendaciones, Telegram, datos, live, sistema y QA en un solo sitio.</p>
+    <div class="actions"><a class="btn primary" href="/admin/unified-intelligence">Intelligence</a><a class="btn" href="/admin/final-qa">QA final</a></div>
+  </div>
+  <aside class="hero-panel"><div class="live-strip"><div><span>Salud</span><strong>{{ q.score }}%</strong></div><div><span>Partidos</span><strong>{{ q.matches.total }}</strong></div><div><span>Picks</span><strong>{{ q.picks.published }}</strong></div><div><span>Usuarios</span><strong>{{ q.users.total }}</strong></div></div></aside>
+</section>
+<section class="band compact-band">
+  <div class="section-head"><h2>Acciones principales</h2><span class="pill">Protegido</span></div>
+  <div class="grid menu-grid">
+    {% for item in items %}
+    <a class="card menu-card" href="{{ item.href }}"><span class="badge">{{ item.group }}</span><h3>{{ item.title }}</h3><p class="small">{{ item.body }}</p></a>
+    {% endfor %}
+  </div>
+</section>
+<section class="band compact-band"><div class="section-head"><h2>Siguiente paso</h2><span class="pill">Sistema</span></div><div class="stack">{% for rec in q.recommendations %}<div class="list-row"><span>{{ rec }}</span><strong>Acción</strong></div>{% endfor %}</div></section>
+{% endblock %}

@@ -1,0 +1,87 @@
+﻿{% extends "base.html" %}
+{% block content %}
+{% if current_user %}
+<section class="band compact-band retention-strip"><div class="section-head"><h2>Tu radar SHARK</h2><a class="pill" href="/alertas">Alertas</a></div><div class="grid dense-grid">{% for alert in data.client_alerts[:3] %}<a class="card alert-card" href="{{ alert.href }}"><span class="badge">{{ alert.badge }}</span><strong>{{ alert.title }}</strong><p class="small">{{ alert.body }}</p></a>{% endfor %}</div></section>
+{% endif %}
+<section class="app-hero landing-hero conversion-hero product-hero">
+  <div>
+    <div class="kicker">Ecosistema premium fútbol + IA + picks</div>
+    <h1>NeMeSiS SHARK PRO: calendario, resultados, picks, Telegram y SHARK IA en una sola app.</h1>
+    <p class="lead">Calendario, picks, live, favoritos e IA en una experiencia más compacta, clara y preparada para cliente real.</p>
+    <div class="actions">
+      {% if current_user %}
+        <a class="btn primary" href="/mi-dia">Mi día SHARK</a>
+        <a class="btn" href="/perfil">Ir a mi dashboard</a>
+        <a class="btn" href="/match-hub">Ver partidos</a>
+        <a class="btn" href="/picks">Picks</a>
+      {% else %}
+        <a class="btn primary" href="/registro">Crear cuenta gratis</a>
+        <a class="btn" href="/cliente-login">Entrar</a>
+        <a class="btn" href="/membresias">Ver membresías</a>
+      {% endif %}
+    </div>
+    <div class="conversion-proof">
+      <span>Calendario por liga</span><span>Favoritos inteligentes</span><span>SHARK IA</span><span>Telegram premium</span>
+    </div>
+  </div>
+  <aside class="hero-panel premium-scoreboard">
+    <div class="panel-top"><span>Radar deportivo</span><strong>Activo</strong></div>
+    <div class="live-strip mini-live-strip">
+      <div><span>Próximos</span><strong>{{ data.match_hub.counts.upcoming }}</strong></div>
+      <div><span>Live</span><strong>{{ data.match_hub.counts.live }}</strong></div>
+      <div><span>Picks</span><strong>{{ data.picks|length }}</strong></div>
+      <div><span>Telegram</span><strong>Alertas</strong></div>
+    </div>
+    <div class="signal"><span>Calendario</span><i style="width:{{ data.readiness.calendar }}%"></i></div>
+    <div class="signal"><span>Directo</span><i style="width:{{ data.readiness.live_foundation }}%"></i></div>
+    <div class="signal"><span>SHARK IA</span><i style="width:{{ data.readiness.shark_ai }}%"></i></div>
+  </aside>
+</section>
+
+<section class="band compact-band">
+  <div class="section-head"><h2>Elige cómo quieres usar NeMeSiS</h2><a class="pill" href="/membresias">Membresías</a></div>
+  <div class="grid membership-grid pricing-polish">
+    <article class="card plan-card plan-free"><div class="badge badge-free">FREE</div><h2>Explorar</h2><p class="small">Para seguir partidos, resultados y favoritos sin complicarte.</p><ul><li>Calendario y resultados</li><li>Favoritos básicos</li><li>SHARK IA base</li></ul>{% if not current_user %}<a class="btn" href="/registro">Empezar gratis</a>{% endif %}</article>
+    <article class="card plan-card plan-pro featured-plan"><div class="badge badge-pro">PRO</div><h2>Premium</h2><p class="small">Para usuarios que quieren picks, combinadas hasta 15 y análisis más serio.</p><ul><li>Picks PRO</li><li>Combinadas</li><li>Telegram premium</li></ul>{% if current_user %}<a class="btn primary" href="/picks">Ver picks</a>{% else %}<a class="btn primary" href="/registro">Crear cuenta</a>{% endif %}</article>
+    <article class="card plan-card plan-elite"><div class="badge badge-elite">ELITE</div><h2>Máximo</h2><p class="small">Todo el ecosistema: SHARK IA, alertas, favoritos y acceso avanzado.</p><ul><li>SHARK contextual</li><li>Alertas live</li><li>Picks élite</li></ul>{% if current_user %}<a class="btn" href="/shark">Abrir SHARK</a>{% else %}<a class="btn" href="/cliente-login">Entrar</a>{% endif %}</article>
+  </div>
+</section>
+
+<section class="band two-col compact-band">
+  <div>
+    <div class="section-head"><h2>Partidos destacados reales</h2><a class="pill" href="/match-hub">Calendario completo</a></div>
+    <div class="stack">
+      {% for m in data.upcoming_matches[:6] %}
+      <a class="list-row match-teaser" href="/match/{{ m.id }}"><span>{{ m.home_team }} vs {{ m.away_team }}<small>{{ m.competition_name or m.league_name or 'Competición' }}</small></span><strong>{{ m.kickoff_time or m.live_depth.label }}</strong></a>
+      {% else %}
+      <div class="empty">No hay partidos disponibles todavia. SHARK mostrara nuevos encuentros cuando haya datos suficientes.</div>
+      {% endfor %}
+    </div>
+  </div>
+  <div>
+    <div class="section-head"><h2>Accesos rápidos</h2><span class="pill">Cliente</span></div>
+    <div class="quick-actions quick-actions-polish">
+      <a class="quick primary" href="/mi-dia"><span>Mi día</span><strong>{{ data.daily_briefing.score }}%</strong></a>
+      <a class="quick" href="/match-hub"><span>Calendario</span><strong>Ver</strong></a>
+      <a class="quick" href="/resultados"><span>Resultados</span><strong>Final</strong></a>
+      <a class="quick" href="/live"><span>Directos</span><strong>Live</strong></a>
+      <a class="quick" href="/picks"><span>Picks</span><strong>Pro</strong></a>
+      <a class="quick" href="/combis"><span>Combis</span><strong>2-15</strong></a>
+      <a class="quick" href="/favorites"><span>Favoritos</span><strong>Mi feed</strong></a>
+      <a class="quick" href="/telegram"><span>Telegram</span><strong>Alertas</strong></a>
+      <a class="quick" href="/shark"><span>SHARK IA</span><strong>ðŸ¦ˆ</strong></a>
+    </div>
+  </div>
+</section>
+
+<section class="band compact-band">
+  <div class="section-head"><h2>Qué lo hace diferente</h2><span class="pill">Producto real</span></div>
+  <div class="grid compact-grid">
+    <article class="card service-card"><h3>Todo guardado</h3><p class="small">Favoritos, picks y seguimiento preparados para crecer contigo.</p></article>
+    <article class="card service-card"><h3>Datos responsables</h3><p class="small">Partidos y cuotas se muestran solo cuando hay informaci?n permitida.</p></article>
+    <article class="card service-card"><h3>App limpia</h3><p class="small">Inicio, directo, picks, favoritos y perfil sin ruido t?cnico.</p></article>
+    <article class="card service-card"><h3>Experiencia ordenada</h3><p class="small">Navegacion simple, favoritos, live, picks y SHARK en una app compacta.</p></article>
+  </div>
+</section>
+{% endblock %}
+

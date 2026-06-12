@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="hero compact-hero">
+  <div>
+    <p class="eyebrow">Admin · SHARK Center</p>
+    <h1>Centro de inteligencia SHARK</h1>
+    <p class="muted">Supervisa memoria, datos, recomendaciones y preparación del copiloto deportivo.</p>
+  </div>
+  <div class="score-card">
+    <span class="score-number">{{ shark.score }}</span>
+    <span class="muted">Salud SHARK</span>
+    <strong>{{ shark.status }}</strong>
+  </div>
+</section>
+
+<section class="grid cards-4">
+  <article class="card"><p class="eyebrow">Memoria</p><h2>{{ shark.memory_total }}</h2><p class="muted">Eventos guardados</p></article>
+  <article class="card"><p class="eyebrow">Usuarios</p><h2>{{ shark.users }}</h2><p class="muted">Base cliente</p></article>
+  <article class="card"><p class="eyebrow">Picks</p><h2>{{ shark.picks }}</h2><p class="muted">Registros</p></article>
+  <article class="card"><p class="eyebrow">Recomendaciones</p><h2>{{ shark.recommendations }}</h2><p class="muted">Candidatas</p></article>
+</section>
+
+<section class="card">
+  <h2>Acciones recomendadas</h2>
+  <div class="stack">
+    {% for action in shark.actions %}
+      <div class="notice">{{ action }}</div>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="card">
+  <h2>APIs de control</h2>
+  <div class="quick-grid">
+    <a class="chip" href="/api/admin/shark-center">/api/admin/shark-center</a>
+    <a class="chip" href="/api/system/v570-check">/api/system/v570-check</a>
+    <a class="chip" href="/api/shark/core-summary?public=1">/api/shark/core-summary</a>
+  </div>
+</section>
+{% endblock %}

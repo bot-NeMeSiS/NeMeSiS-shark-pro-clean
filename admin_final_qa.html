@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="hero compact-hero launch-hero">
+  <div>
+    <p class="eyebrow">ADMIN · LANZAMIENTO</p>
+    <h1>QA final comercial</h1>
+    <p class="muted">Centro único para validar si NeMeSiS SHARK PRO está listo para testers, usuarios reales y evolución comercial.</p>
+  </div>
+  <div class="score-ring big"><strong>{{ qa.score }}%</strong><span>{{ qa.launch_state|upper }}</span></div>
+</section>
+
+<section class="grid stats-grid">
+  <article class="card"><span class="label">Partidos</span><strong>{{ qa.metrics.matches }}</strong><small>Base para calendario, live y recomendaciones</small></article>
+  <article class="card"><span class="label">Picks</span><strong>{{ qa.metrics.picks }}</strong><small>Publicados/gestionables desde admin</small></article>
+  <article class="card"><span class="label">Recomendaciones</span><strong>{{ qa.metrics.recommendations }}</strong><small>Motor SHARK Betting Intelligence</small></article>
+  <article class="card"><span class="label">Telegram cola</span><strong>{{ qa.metrics.telegram_queue }}</strong><small>Mensajes preparados/enviables</small></article>
+</section>
+
+<section class="grid stats-grid">
+  <article class="card"><span class="label">Historical matches</span><strong>{{ qa.metrics.historical_matches }}</strong><small>Resultados y contexto guardado para aprendizaje futuro</small></article>
+  <article class="card"><span class="label">Historical picks</span><strong>{{ qa.metrics.historical_picks }}</strong><small>Picks, cuotas, stake y beneficio persistidos</small></article>
+  <article class="card"><span class="label">Historical recommendations</span><strong>{{ qa.metrics.historical_recommendations }}</strong><small>Señales SHARK guardadas para evolución del motor</small></article>
+</section>
+
+<section class="grid two-cols">
+  <article class="card">
+    <h2>Checklist crítico</h2>
+    <div class="stack-list">
+      {% for c in qa.checks %}
+      <div class="mini-row qa-row {{ 'ok' if c.ok else 'warn' }}">
+        <span class="dot {{ 'good' if c.ok else 'hot' }}"></span>
+        <div><strong>{{ c.name }}</strong><small>{{ c.detail }}</small></div>
+      </div>
+      {% endfor %}
+    </div>
+  </article>
+  <article class="card">
+    <h2>Acciones prioritarias</h2>
+    <div class="stack-list">
+      {% for action in qa.priority_actions %}
+      <div class="mini-row"><span class="dot hot"></span><span>{{ action }}</span></div>
+      {% endfor %}
+    </div>
+    <div class="quick-grid mt">
+      <a class="btn" href="/admin/data-center">Data Center</a>
+      <a class="btn" href="/admin/recommendations">Recomendaciones</a>
+      <a class="btn" href="/admin/picks">Picks</a>
+      <a class="btn" href="/admin/telegram">Telegram</a>
+      <a class="btn ghost" href="/api/launch-candidate/check">JSON QA</a>
+    </div>
+  </article>
+</section>
+
+<section class="grid two-cols">
+  <article class="card">
+    <h2>Rutas cliente clave</h2>
+    <div class="compact-list">
+      {% for r in qa.routes.cliente %}
+      <div><span>{{ r.path }}</span><em>{{ r.status }}</em></div>
+      {% endfor %}
+    </div>
+  </article>
+  <article class="card">
+    <h2>Rutas admin clave</h2>
+    <div class="compact-list">
+      {% for r in qa.routes.admin %}
+      <div><span>{{ r.path }}</span><em>{{ r.status }}</em></div>
+      {% endfor %}
+    </div>
+  </article>
+</section>
+{% endblock %}

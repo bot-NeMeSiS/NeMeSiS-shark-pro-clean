@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="hero compact">
+  <div class="kicker">Admin - Data Center</div>
+  <h1>Poblacion masiva de futbol</h1>
+  <p class="lead">Centro seguro para poblar competiciones, equipos, escudos, calendario, resultados y cuotas desde fuentes legales y cache SQLite.</p>
+  <div class="admin-menu">
+    <a class="btn primary" href="/admin/data-center">Data Center</a>
+    <a class="btn" href="/admin/matches-sync">Partidos</a>
+    <a class="btn" href="/admin/sportsdb-sync">Escudos</a>
+    <a class="btn" href="/admin/import-center">Import Center</a>
+  </div>
+</section>
+
+{% if message %}<section class="band"><div class="notice">{{ message }}</div></section>{% endif %}
+
+<section class="band">
+  <div class="grid compact-grid">
+    <div class="card"><div class="metric">{{ data.data_center.total_competitions }}</div><div class="muted">competiciones</div></div>
+    <div class="card"><div class="metric">{{ data.data_center.total_teams }}</div><div class="muted">equipos</div></div>
+    <div class="card"><div class="metric">{{ data.data_center.total_matches }}</div><div class="muted">partidos</div></div>
+    <div class="card"><div class="metric">{{ data.data_center.upcoming_matches }}</div><div class="muted">proximos</div></div>
+    <div class="card"><div class="metric">{{ data.data_center.live_matches }}</div><div class="muted">live</div></div>
+    <div class="card"><div class="metric">{{ data.data_center.teams_with_crests }}</div><div class="muted">con escudo</div></div>
+    <div class="card"><div class="metric">{{ data.data_center.odds_snapshots }}</div><div class="muted">cuotas</div></div>
+    <div class="card"><div class="metric">{{ data.data_center.population.competitions_prepared }}</div><div class="muted">preparadas</div></div>
+  </div>
+</section>
+
+<section class="band form-grid">
+  <aside class="card">
+    <h2>Auto Sync</h2>
+    <p class="small">Estado: {% if data.data_center.scheduler.enabled %}activado{% else %}desactivado{% endif %}</p>
+    <p class="small">Arranque automatico: {% if data.data_center.scheduler.startup %}activo{% else %}desactivado{% endif %}</p>
+    <p class="small">Ultimo scheduler: {{ data.data_center.scheduler.last_scheduler_log.started_at or '-' }}</p>
+  </aside>
+  <aside class="card">
+    <h2>Errores scheduler</h2>
+    {% for error in data.data_center.scheduler.recent_errors[:4] %}
+    <p class="small">{{ error }}</p>
+    {% else %}
+    <p class="small">Sin errores recientes.</p>
+    {% endfor %}
+  </aside>
+</section>
+
+<section class="band">
+  <div class="section-head"><h2>Tareas automaticas</h2><span class="pill">{{ data.data_center.scheduler.tasks|length }}</span></div>
+  <div class="grid">
+    {% for task in data.data_center.scheduler.tasks %}
+    <article class="card">
+      <div class="section-head"><h2>{{ task.label }}</h2><span class="state-badge {{ 'live' if task.status == 'OK' else 'half' if task.status == 'RUNNING' else 'upcoming' }}">{{ task.status }}</span></div>
+      <p class="small">Ultima: {{ task.last_run or '-' }}</p>
+      <p class="small">Proxima: {{ task.next_run or '-' }}</p>
+      <p class="small">Intervalo: {{ task.interval_seconds }}s</p>
+      {% if task.error_message %}<p class="small">{{ task.error_message }}</p>{% endif %}
+    </article>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="band form-grid">
+  {% for action,label,detail in [
+    ('competitions','Sincronizar competiciones','Prepara las ligas prioritarias sin inventar partidos.'),
+    ('teams','Sincronizar equipos/escudos','Carga equipos reales y escudos si SportsDB devuelve datos.'),
+    ('calendar','Sincronizar calendario','Trae proximos eventos y live permitidos por SportsDB.'),
+    ('live','Refresh live','Actualiza live basico y proximos destacados.'),
+    ('results','Sincronizar resultados','Guarda resultados recientes si la API los ofrece.'),
+    ('odds','Sincronizar cuotas','Trae eventos/cuotas H2H respetando cache.'),
+    ('warmup','Warmup general','Ejecuta competiciones, equipos, calendario y cuotas con control de intervalo.')
+  ] %}
+  <form class="card" method="post" action="/admin/data-center">
+    <h2>{{ label }}</h2>
+    <p class="small">{{ detail }}</p>
+    <input type="hidden" name="action" value="{{ action }}">
+    <div class="field"><label>Limite</label><input name="limit" value="120"></div>
+    {% if action == 'warmup' %}<label class="check"><input type="checkbox" name="force" value="1"> Forzar ahora</label>{% endif %}
+    <button type="submit">{{ label }}</button>
+  </form>
+  {% endfor %}
+</section>
+
+<section class="band two-col">
+  <aside class="card">
+    <h2>Fuentes</h2>
+    <p class="small">SportsDB: {{ data.matches_diagnostics.sportsdb_key_masked or 'sin key' }}</p>
+    <p class="small">Odds: {{ data.matches_diagnostics.odds_key_masked or 'sin key' }}</p>
+    <p class="small">Fuente activa: {{ data.matches_diagnostics.active_data_source }}</p>
+  </aside>
+  <aside class="card">
+    <h2>Ultima actividad</h2>
+    <p class="small">SportsDB: {{ data.data_center.last_sportsdb_sync.started_at or '-' }}</p>
+    <p class="small">Odds: {{ data.data_center.last_odds_sync.started_at or '-' }}</p>
+    <p class="small">No data: {{ data.matches_diagnostics.competitions_no_data|length }} competiciones preparadas para import legal.</p>
+  </aside>
+</section>
+
+<section class="band">
+  <div class="section-head"><h2>Logs recientes</h2><span class="pill">{{ data.data_center.recent_logs|length }}</span></div>
+  <div class="stack">
+    {% for log in data.data_center.recent_logs %}
+    <div class="list-row"><span>{{ log.source }} / {{ log.sync_type }} / {{ log.status }}</span><strong>{{ log.total_items }}</strong></div>
+    {% else %}
+    <div class="empty">Aun no hay sincronizaciones registradas.</div>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

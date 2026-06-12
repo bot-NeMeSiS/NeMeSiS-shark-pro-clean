@@ -71,7 +71,7 @@ from engines.spanish_localization_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V716_PROFESSIONAL_CLIENT_EXPERIENCE_FINAL"
+APP_VERSION = "V716_TESTING_VALIDATION_POLISH"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -3699,7 +3699,39 @@ def normalize_pick_row(pick):
     pick["warning_reason"] = pick.get("warning_reason") or "Gestiona stake y evita perseguir pérdidas."
     pick["result_status"] = str(pick.get("result_status") or "pending").lower()
     pick = apply_pick_localization(pick)
+    pick["selection"] = client_selection_label(pick.get("selection"), pick)
     return pick
+
+
+def client_selection_label(selection, pick=None):
+    pick = dict(pick or {})
+    raw = str(selection or "").strip()
+    if not raw:
+        return ""
+    norm = normalized_label(raw)
+    home = spanish_team_name(pick.get("home_team") or "equipo local")
+    away = spanish_team_name(pick.get("away_team") or "equipo visitante")
+    mapping = {
+        "local": f"Gana {home}",
+        "home": f"Gana {home}",
+        "1": f"Gana {home}",
+        "visitante": f"Gana {away}",
+        "away": f"Gana {away}",
+        "2": f"Gana {away}",
+        "empate": "Empate",
+        "draw": "Empate",
+        "x": "Empate",
+        "over 2 5": "Más de 2.5 goles",
+        "over25": "Más de 2.5 goles",
+        "mas de 2 5 goles": "Más de 2.5 goles",
+        "under 2 5": "Menos de 2.5 goles",
+        "under25": "Menos de 2.5 goles",
+        "menos de 2 5 goles": "Menos de 2.5 goles",
+        "btts yes": "Ambos equipos marcan: Sí",
+        "ambos marcan si": "Ambos equipos marcan: Sí",
+        "btts no": "Ambos equipos marcan: No",
+    }
+    return mapping.get(norm, raw)
 
 
 def get_picks(limit=50, status=None, membership=None, include_admin=False):
@@ -5689,7 +5721,7 @@ def _shark_line_pick(pick):
 
 def _shark_visible_picks(user, limit=8):
     picks = published_picks_for_user(user, limit=max(limit * 3, 12))
-    picks = [p for p in picks if as_float(p.get("odds"), 0) > 1 or p.get("selection")]
+    picks = client_ready_picks(picks, limit=max(limit * 2, 12))
     picks.sort(key=lambda p: (as_int(p.get("confidence"), 0), as_float(p.get("odds"), 0)), reverse=True)
     return picks[:limit]
 
@@ -5705,22 +5737,26 @@ def _shark_recommendation_lines(limit=4):
         home = spanish_team_name(rec.get("home_team") or "Local")
         away = spanish_team_name(rec.get("away_team") or "Visitante")
         comp = spanish_competition_name(rec.get("league_name") or rec.get("competition_name") or "Competición")
-        selection = rec.get("selection") or "Esperar mercado"
+        selection = client_selection_label(rec.get("selection") or "", rec)
         score = as_int(rec.get("shark_score") or rec.get("score"), 0)
         odds = as_float(rec.get("odds") or rec.get("odds_value"), 0)
-        odds_txt = f" · cuota {odds:.2f}" if odds > 1 else " · cuota pendiente"
-        lines.append(f"{home} vs {away} · {comp}: {selection}{odds_txt} · Score SHARK {score}/100")
+        if odds > 1 and selection:
+            odds_txt = f" · cuota {odds:.2f}"
+            lines.append(f"{home} vs {away} · {comp}: {selection}{odds_txt} · Score SHARK {score}/100")
+        else:
+            lines.append(f"{home} vs {away} · {comp}: en estudio · falta cuota o selección cerrada · Score SHARK {score}/100")
     return lines
 
 
 def _shark_count_requested(q_norm):
     numbers = [as_int(n, 0) for n in re.findall(r"\d+", q_norm or "")]
+    if "segura" in q_norm or "conservadora" in q_norm:
+        requested = numbers[0] if numbers else 3
+        return max(2, min(4, requested))
     if numbers:
         return combi_leg_count(max(numbers), 3)
     if "max" in q_norm or "quince" in q_norm:
         return COMBI_MAX_LEGS
-    if "segura" in q_norm or "conservadora" in q_norm:
-        return 3
     return 5
 
 
@@ -9688,12 +9724,11 @@ def v566_template_recommendations(limit=20):
 def v566_dashboard_page():
     if not current_session_user():
         return redirect("/cliente-login")
-    return redirect("/sports-hub")
     user = current_session_user()
     data = dashboard_data()
     summary = v566_dashboard_summary(user)
     upcoming = get_upcoming_matches(today_iso(), days=7, limit=10)
-    picks = published_picks_for_user(user, limit=8)
+    picks = client_ready_picks(published_picks_for_user(user, limit=40), limit=5)
     return render_template("client_overview.html", data=data, summary=summary, upcoming=upcoming, picks=picks)
 
 

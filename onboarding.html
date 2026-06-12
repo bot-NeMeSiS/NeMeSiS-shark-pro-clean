@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="app-hero compact-hero onboarding-hero">
+  <div>
+    <div class="kicker">Primeros pasos</div>
+    <h1>Configura tu experiencia SHARK en pocos pasos.</h1>
+    <p class="lead">Cuantos más favoritos, picks y alertas uses, más personalizada será la app para ti.</p>
+    <div class="actions"><a class="btn primary" href="{{ data.onboarding.next_step.href }}">Siguiente paso</a><a class="btn" href="/mi-cuenta">Mi cuenta</a></div>
+  </div>
+  <aside class="hero-panel">
+    <span class="pill">Progreso</span>
+    <div class="big-score">{{ data.onboarding.score }}%</div>
+    <p class="small">{{ data.onboarding.done }} de {{ data.onboarding.total }} pasos completados.</p>
+    <div class="signal"><span>Onboarding</span><i style="width:{{ data.onboarding.score }}%"></i></div>
+  </aside>
+</section>
+<section class="band compact-band">
+  <div class="section-head"><h2>Checklist cliente</h2><span class="pill">{{ data.onboarding.membership }}</span></div>
+  <div class="grid compact-grid onboarding-grid">
+    {% for step in data.onboarding.steps %}
+    <a class="card step-card {% if step.done %}done{% endif %}" href="{{ step.href }}">
+      <span class="badge">{% if step.done %}OK{% else %}Pendiente{% endif %}</span>
+      <h3>{{ step.label }}</h3>
+      <p class="small">{% if step.done %}Completado y listo para personalizar tu experiencia.{% else %}Pulsa aquí para completar este paso.{% endif %}</p>
+    </a>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

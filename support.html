@@ -1,0 +1,67 @@
+﻿{% extends "base.html" %}
+{% block content %}
+<section class="hero compact-hero">
+  <div>
+    <p class="eyebrow">Centro de ayuda</p>
+    <h1>Soporte NeMeSiS SHARK PRO</h1>
+    <p>Cuéntanos cualquier fallo de partidos, picks, live, Telegram o cuenta. Lo guardamos para revisarlo y mejorar la app.</p>
+  </div>
+  <div class="hero-actions">
+    <a class="btn" href="/mi-dia">Volver a Mi día</a>
+    <a class="btn ghost" href="/shark">Preguntar a SHARK</a>
+  </div>
+</section>
+
+{% if data.sent %}
+  <div class="premium-alert ok">Mensaje recibido. Lo hemos guardado en el centro de soporte para revisión.</div>
+{% endif %}
+{% if data.error %}
+  <div class="premium-alert danger">{{ data.error }}</div>
+{% endif %}
+
+<section class="grid two">
+  <div class="card">
+    <h2>Enviar incidencia o sugerencia</h2>
+    <form method="post" class="form-grid">
+      <label>Tipo
+        <select name="category">
+          <option value="partidos">Partidos / calendario</option>
+          <option value="live">Directo / resultados</option>
+          <option value="picks">Picks / combinadas</option>
+          <option value="telegram">Telegram</option>
+          <option value="cuenta">Cuenta / membresía</option>
+          <option value="general">General</option>
+        </select>
+      </label>
+      <label>Prioridad
+        <select name="priority">
+          <option value="normal">Normal</option>
+          <option value="alta">Alta</option>
+          <option value="baja">Baja</option>
+        </select>
+      </label>
+      <label>Asunto
+        <input name="subject" placeholder="Ej: No veo picks para los partidos de hoy">
+      </label>
+      <label>Mensaje
+        <textarea name="message" rows="6" placeholder="Explica qué estabas viendo, qué botón pulsaste o qué dato falta."></textarea>
+      </label>
+      <button class="btn primary" type="submit">Enviar al soporte</button>
+    </form>
+  </div>
+  <div class="card stack">
+    <h2>Para ayudarte mejor</h2>
+    {% for tip in data.support_tips %}
+      <div class="mini-card">
+        <strong>{{ tip.title }}</strong>
+        <p>{{ tip.body }}</p>
+      </div>
+    {% endfor %}
+    <div class="mini-card accent">
+      <strong>Privacidad</strong>
+      <p>No mostramos ruido técnico ni claves al cliente. El equipo SHARK revisa incidencias desde un entorno privado.</p>
+    </div>
+  </div>
+</section>
+{% endblock %}
+

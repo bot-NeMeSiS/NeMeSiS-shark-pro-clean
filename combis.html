@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="scoreboard-hero v701-scoreboard">
+  <div>
+    <div class="kicker">Combis SHARK</div>
+    <h1>Combinadas claras hasta 15 partidos</h1>
+    <p class="lead">Ahora puedes preparar estructuras de 2 a 15 partidos, siempre desde picks publicados o partidos reales con datos suficientes.</p>
+  </div>
+  <div class="scoreboard-kpis">
+    <div><strong>{{ data.combis|length }}</strong><span>Guardadas</span></div>
+    <div><strong>{{ data.picks|length }}</strong><span>Picks base</span></div>
+    <div><strong>{{ data.combi_builder.matches|length }}</strong><span>Partidos</span></div>
+    <div><strong>{{ data.requested_combi_count }}</strong><span>Selección</span></div>
+  </div>
+</section>
+
+<section class="sports-tabs v701-tabs">
+  <a class="tab-link" href="/picks">Picks</a>
+  <a class="tab-link active" href="/combis">Combis</a>
+  <a class="tab-link" href="/sports-hub">Partidos</a>
+  <a class="tab-link" href="/telegram">Telegram</a>
+  <a class="tab-link {% if data.requested_combi_count == 3 %}active{% endif %}" href="/combis?partidos=3">Segura</a>
+  <a class="tab-link {% if data.requested_combi_count == 6 %}active{% endif %}" href="/combis?partidos=6">Media</a>
+  <a class="tab-link {% if data.requested_combi_count == 15 %}active{% endif %}" href="/combis?partidos=15">Larga</a>
+</section>
+
+<section class="band compact-band">
+  <form class="card compact-selector" method="get" action="/combis">
+    <label for="partidos-combi"><strong>Número de partidos</strong></label>
+    <select id="partidos-combi" name="partidos" onchange="this.form.submit()">
+      {% for n in range(2,16) %}<option value="{{ n }}" {% if data.requested_combi_count == n %}selected{% endif %}>{{ n }} partidos</option>{% endfor %}
+    </select>
+    <span class="small">SHARK prioriza 2-4 selecciones cuando buscas control. Las combinadas largas son de riesgo alto.</span>
+  </form>
+</section>
+
+{% if not current_user or current_user.membership == 'FREE' %}
+<section class="band compact-band"><div class="notice">Combis avanzadas de hasta 15 partidos son parte de PRO/ELITE. FREE puede ver la estructura y entender el valor antes de subir de plan.</div></section>
+{% endif %}
+
+<section class="band compact-band">
+  <div class="section-head"><h2>Combis guardadas</h2><span class="pill">{{ data.combis|length }}</span></div>
+  {% if data.combis %}
+  <div class="grid dense-grid">
+    {% for c in data.combis %}
+    <article class="card v701-premium-pick">
+      <div class="match-top"><div><div class="comp-name">{{ c.name or 'Combi SHARK' }}</div><div class="small">{{ c.created_at or 'Fecha pendiente' }}</div></div><span class="shark-pill">{{ c.risk_level or 'Riesgo medio' }}</span></div>
+      <div class="pick-mainline"><div><span>Cuota total</span><strong>{{ c.total_odds or 'Pendiente' }}</strong></div><div><span>Estado</span><strong>{{ c.status or 'Activa' }}</strong></div><div><span>Picks</span><strong>{{ c.picks|length }}</strong></div></div>
+      {% for p in c.picks %}<p class="small">{{ p.match or 'Partido' }} · {{ p.selection or 'Selección' }} · {{ p.odds or 'Cuota' }}</p>{% endfor %}
+    </article>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty premium-empty">Todavía no hay combis SHARK preparadas para hoy. Aparecerán cuando haya picks suficientes y coherentes.</div>
+  {% endif %}
+</section>
+
+<section class="band compact-band">
+  <div class="section-head"><h2>Base para próxima combi</h2><span class="pill">{{ data.combi_builder.requested_count }} partidos</span></div>
+  <p class="small">{{ data.combi_builder.notice }}</p><p class="small"><strong>Nota SHARK:</strong> hasta 15 partidos está permitido, pero las combinadas largas son de riesgo alto. Para gestión responsable, SHARK prioriza 2-4 selecciones cuando buscas seguridad.</p>
+  {% if data.combi_builder.picks %}
+  <div class="grid dense-grid">
+    {% for p in data.combi_builder.picks %}
+    <article class="card v701-premium-pick">
+      <div class="match-top"><div><div class="comp-name">{{ p.competition_name or p.league_name or 'Competición' }}</div><div class="small">{{ p.market or 'Mercado' }}</div></div><span class="shark-pill">Cuota {{ p.odds }}</span></div>
+      <h3>{{ p.home_team or 'Equipo local' }}{% if p.away_team %} vs {{ p.away_team }}{% endif %}</h3>
+      <div class="pick-mainline"><div><span>Selección</span><strong>{{ p.selection }}</strong></div><div><span>Confianza</span><strong>{{ p.confidence }}%</strong></div><div><span>Riesgo</span><strong>{{ p.risk_level or 'Medio' }}</strong></div></div>
+    </article>
+    {% endfor %}
+  </div>
+  {% elif data.combi_builder.matches %}
+  <div class="sports-list v701-match-list">
+    {% for m in data.combi_builder.matches %}
+    {% set home_identity = m.home_identity|default({}) %}
+    {% set away_identity = m.away_identity|default({}) %}
+    <a class="sports-row v701-row favorite-scope" href="/match/{{ m.id }}">
+      <button class="fav-star {% if m.is_favorite %}active{% endif %}" type="button" data-kind="match" data-value="{{ m.id }}" data-label="{{ m.home_team }} vs {{ m.away_team }}" aria-label="Favorito">★</button>
+      <div class="sports-time"><strong>{{ m.kickoff_time or m.match_time or 'Hora' }}</strong><span>{{ m.match_date }}</span></div>
+      <div class="sports-team home"><span class="crest compact-crest"><img loading="lazy" src="{{ home_identity.get('crest_url','') }}" alt="{{ m.home_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ home_identity.get('initials', (m.home_team or 'L')[:1]) }}'"></span><strong>{{ m.home_team or 'Equipo local' }}</strong></div>
+      <div class="sports-score"><strong>vs</strong><span>{{ m.competition_name or m.league_name or 'Competición' }}</span></div>
+      <div class="sports-team away"><span class="crest compact-crest"><img loading="lazy" src="{{ away_identity.get('crest_url','') }}" alt="{{ m.away_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ away_identity.get('initials', (m.away_team or 'V')[:1]) }}'"></span><strong>{{ m.away_team or 'Equipo visitante' }}</strong></div>
+      <div class="sports-meta v701-meta"><span class="shark-pill">{% if m.bookmaker %}Cuotas{% else %}Mercado pendiente{% endif %}</span></div>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty premium-empty">No hay partidos próximos suficientes para preparar una combinada responsable.</div>
+  {% endif %}
+</section>
+{% endblock %}
