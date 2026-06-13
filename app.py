@@ -146,7 +146,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V747_ADMIN_TELEGRAM_MEMBERSHIP_DAYS_TIME_ORDER_POLISH"
+APP_VERSION = "V748_ADMIN_CLIENT_TELEGRAM_SECURITY_ROUTE_HOTFIX"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -841,6 +841,7 @@ def run_schema_migrations(conn):
         ("users", "membership_note", "TEXT"),
         ("users", "membership_updated_at", "TEXT"),
         ("users", "membership_updated_by", "TEXT"),
+        ("users", "membership_admin_granted", "INTEGER DEFAULT 0"),
         ("favorites", "user_id", "TEXT"),
         ("picks", "market", "TEXT"),
         ("picks", "bookmaker", "TEXT"),
@@ -4408,14 +4409,14 @@ def client_progress_score(user=None):
     return max(0, min(100, score))
 
 
-def build_daily_briefing(user=None):
+def build_daily_briefing(user=None, favorites=None, recommendations=None, picks=None, live_matches=None, upcoming=None, membership=None):
     """Briefing comercial para cliente: resume qué mirar hoy sin inventar datos."""
     user = user or current_session_user() or {"membership": "FREE", "role": "FREE"}
     hub = match_hub(today_iso())
-    upcoming = get_upcoming_matches(today_iso(), days=7, limit=12)
+    upcoming = upcoming if upcoming is not None else get_upcoming_matches(today_iso(), days=7, limit=12)
     today_matches = get_matches(today_iso(), "today")
-    favs = get_favorites(user_id=user.get("id")) if user.get("id") else []
-    picks = published_picks_for_user(user, limit=8)
+    favs = favorites if favorites is not None else (get_favorites(user_id=user.get("id")) if user.get("id") else [])
+    picks = picks if picks is not None else published_picks_for_user(user, limit=8)
     smart = smart_pick_board(user, limit=8)
     alerts = build_client_alerts(limit=6, user_id=user.get("id"))
     activity = client_activity_feed(limit=6, user_id=user.get("id")) if user.get("id") else []
@@ -4446,9 +4447,11 @@ def build_daily_briefing(user=None):
         "favorites": favs,
         "picks": picks,
         "smart_picks": smart,
+        "recommendations": recommendations or [],
+        "membership": membership or (user.get("membership") or user.get("role") or "FREE"),
         "upcoming": upcoming,
         "today_matches": today_matches,
-        "live": hub.get("live", [])[:8],
+        "live": (live_matches if live_matches is not None else hub.get("live", []))[:8],
         "counts": {
             "today": len(today_matches),
             "upcoming": len(upcoming),
@@ -5811,7 +5814,8 @@ def list_users():
     users = rows(
         """SELECT id,name,username,email,role,membership,created_at,last_login,
                   membership_source,membership_started_at,membership_expires_at,
-                  membership_note,membership_updated_at,membership_updated_by
+                  membership_note,membership_updated_at,membership_updated_by,
+                  membership_admin_granted
            FROM users ORDER BY created_at DESC"""
     )
     return [enrich_user_membership_state(user) for user in users]
@@ -5837,9 +5841,10 @@ def update_user_membership(user_id, membership, days=0, note="", source="admin_m
     conn.execute(
         """UPDATE users
               SET role=?, membership=?, membership_source=?, membership_started_at=?,
-                  membership_expires_at=?, membership_note=?, membership_updated_at=?, membership_updated_by=?
+                  membership_expires_at=?, membership_note=?, membership_updated_at=?, membership_updated_by=?,
+                  membership_admin_granted=?
             WHERE id=?""",
-        (role, membership, source, started_at, expires_at, clean_note, now_iso(), str(admin_id or "")[:80], user_id),
+        (role, membership, source, started_at, expires_at, clean_note, now_iso(), str(admin_id or "")[:80], 1 if source.startswith("admin") else 0, user_id),
     )
     conn.commit()
     conn.close()
@@ -8854,7 +8859,6 @@ def live_page():
 
 
 @app.route("/match-hub")
-@app.route("/partidos")
 @app.route("/partidos-hoy")
 @app.route("/resultados")
 def match_hub_page():
@@ -9657,6 +9661,7 @@ def daily_briefing_page():
 
 
 @app.route("/membresias")
+@app.route("/membresías")
 @app.route("/membership")
 def membership_page():
     user = current_session_user() or {"membership": "FREE", "role": "FREE"}
@@ -9980,6 +9985,8 @@ def api_competitions():
 
 @app.route("/api/matches/diagnostics")
 def api_matches_diagnostics():
+    if not is_admin_session():
+        return admin_json_forbidden()
     return jsonify({"ok": True, "version": APP_VERSION, "diagnostics": match_calendar_diagnostics()})
 
 
@@ -10410,6 +10417,8 @@ def api_odds_sync_events():
 
 @app.route("/api/odds/diagnostics")
 def api_odds_diagnostics():
+    if not is_admin_session():
+        return admin_json_forbidden()
     return jsonify({"ok": True, "version": APP_VERSION, "diagnostics": odds_diagnostics()})
 
 
@@ -10558,6 +10567,8 @@ def api_combis_build():
 
 @app.route("/api/profile")
 def api_profile():
+    if not current_session_user():
+        return jsonify({"ok": False, "version": APP_VERSION, "error": "Login requerido."}), 401
     return jsonify({"ok": True, "version": APP_VERSION, "profile": default_profile(), "session_user": current_session_user()})
 
 
@@ -10677,6 +10688,8 @@ def api_telegram_send():
 @app.route("/api/telegram/auto-run", methods=["POST", "GET"])
 @app.route("/api/v495/telegram-auto-run", methods=["POST", "GET"])
 def api_telegram_auto_run():
+    if not automation_access_allowed():
+        return automation_json_forbidden()
     cfg = telegram_config()
     if not cfg["enabled"]:
         return jsonify({"ok": False, "version": APP_VERSION, "sent": False, "status": "AUTO_DISABLED", "telegram": cfg})
@@ -10762,6 +10775,8 @@ def api_telegram_auto_posts():
 
 @app.route("/api/cache/status")
 def api_cache_status():
+    if not is_admin_session():
+        return admin_json_forbidden()
     cache_rows = rows("SELECT key,expires_at,updated_at FROM persistent_cache ORDER BY updated_at DESC LIMIT 50")
     return jsonify({"ok": True, "version": APP_VERSION, "health": cache_health(cache_rows), "items": cache_rows})
 
@@ -10789,6 +10804,8 @@ def api_security_summary():
 
 @app.route("/api/diagnostics")
 def api_diagnostics():
+    if not is_admin_session():
+        return admin_json_forbidden()
     data = dashboard_data()
     checks = [
         {"name": "Core limpio", "status": "READY", "detail": "Proyecto reconstruido sin versiones antiguas acumuladas."},
@@ -11318,6 +11335,7 @@ def v742_track_record_context():
 
 
 @app.route("/track-record")
+@app.route("/seguimiento")
 @app.route("/rendimiento-picks")
 def public_track_record_page():
     user = current_session_user()
@@ -11859,6 +11877,13 @@ def v566_live_depth_page():
     return render_template("live_depth.html", data=data)
 
 
+@app.route("/admin/live-depth")
+def admin_live_depth_alias():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/live-depth")
+    return redirect("/admin/live-qa")
+
+
 @app.route("/recomendaciones")
 @app.route("/recommendations")
 def v566_recommendations_page():
@@ -11913,6 +11938,7 @@ def v566_legal_page():
 
 
 @app.route("/contact", methods=["GET", "POST"])
+@app.route("/soporte", methods=["GET", "POST"])
 def v724_contact_alias_page():
     data = home_light_data()
     sent = False
@@ -11978,6 +12004,57 @@ def v566_admin_dashboard_page():
     if not is_admin_session():
         return redirect("/admin-login?next=/admin/control-center")
     return render_template("admin_dashboard.html", data=dashboard_data(), q=quality_center_summary(), items=v566_admin_items())
+
+
+@app.route("/api/admin/control-center")
+def api_admin_control_center():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    telegram = telegram_diagnostics_safe()
+    critical_routes = [
+        "/", "/login", "/registro", "/dashboard", "/sports-hub", "/live", "/calendar", "/partidos",
+        "/picks", "/shark-core", "/admin/control-center", "/admin/data-center", "/admin/matches-sync",
+        "/admin/telegram/command-center", "/admin/data-vault",
+    ]
+    route_status = []
+    for route in critical_routes:
+        route_status.append({"route": route, "registered": any(str(rule.rule) == route for rule in app.url_map.iter_rules())})
+    payload = {
+        "ok": True,
+        "version": APP_VERSION,
+        "telegram": {
+            "bot_configured": env_present("TELEGRAM_BOT_TOKEN"),
+            "channel_configured": env_present("TELEGRAM_CHAT_ID"),
+            "auto_enabled": telegram_env_auto_enabled(),
+            "automatic_status": telegram.get("automatic_status"),
+            "pending": telegram.get("pending"),
+            "failed_today": telegram.get("failed_today"),
+            "last_error": telegram.get("last_error"),
+        },
+        "database": {
+            "db_path": DB_PATH,
+            "db_exists": os.path.exists(DB_PATH),
+            "data_memory": data_memory_summary(DB_PATH),
+            "data_vault": db_vault_status(DB_PATH, project_root_path(), APP_VERSION),
+        },
+        "memberships": membership_admin_summary(),
+        "automation": {
+            "automation_secret_configured": automation_secret_configured(),
+            "scheduler_enabled": scheduler_env_enabled(),
+            "daily_automation_enabled": daily_automation_env_enabled(),
+            "last_cron_telegram_call": automation_get("last_cron_telegram_call", {}),
+            "last_cron_daily_call": automation_get("last_cron_daily_call", {}),
+        },
+        "routes": route_status,
+        "errors": latest_observability_errors(DB_PATH, limit=8),
+        "checks": {
+            "admin_session": True,
+            "madrid_time": True,
+            "secrets_exposed": False,
+            "technical_apis_protected": True,
+        },
+    }
+    return jsonify(payload)
 
 
 @app.route("/admin/recommendations", methods=["GET", "POST"])

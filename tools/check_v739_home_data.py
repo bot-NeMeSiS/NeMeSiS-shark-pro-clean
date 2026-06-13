@@ -25,7 +25,7 @@ def main() -> int:
     css = read(ROOT / "static" / "app.css")
     version_txt = read(ROOT / "VERSION.txt").strip()
     checks = [
-        {"name": "version_txt", "ok": version_txt == BASE_VERSION or version_txt.startswith(("V740_", "V741_", "V742_", "V743_", "V744_", "V745_", "V746_", "V747_")), "value": version_txt},
+        {"name": "version_txt", "ok": version_txt == BASE_VERSION or version_txt.startswith(("V740_", "V741_", "V742_", "V743_", "V744_", "V745_", "V746_", "V747_", "V748_")), "value": version_txt},
         {"name": "app_version", "ok": f'APP_VERSION = "{version_txt}"' in app or f'APP_VERSION = "{BASE_VERSION}"' in app},
         {"name": "home_live_summary_function", "ok": "def home_live_summary_data" in app},
         {"name": "home_no_static_zero_counts", "ok": '"upcoming": 0' not in app[app.find('def home_light_data'):app.find('@app.route("/")')] if 'def home_light_data' in app else False},

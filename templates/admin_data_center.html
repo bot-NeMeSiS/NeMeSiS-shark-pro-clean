@@ -19,7 +19,7 @@
     <div class="card"><div class="metric">{{ data.data_center.total_competitions }}</div><div class="muted">competiciones</div></div>
     <div class="card"><div class="metric">{{ data.data_center.total_teams }}</div><div class="muted">equipos</div></div>
     <div class="card"><div class="metric">{{ data.data_center.total_matches }}</div><div class="muted">partidos</div></div>
-    <div class="card"><div class="metric">{{ data.data_center.upcoming_matches }}</div><div class="muted">próximos</div></div>
+    <div class="card"><div class="metric">{{ data.data_center.upcoming_matches }}</div><div class="muted">prÃ³ximos</div></div>
     <div class="card"><div class="metric">{{ data.data_center.live_matches }}</div><div class="muted">live</div></div>
     <div class="card"><div class="metric">{{ data.data_center.teams_with_crests }}</div><div class="muted">con escudo</div></div>
     <div class="card"><div class="metric">{{ data.data_center.odds_snapshots }}</div><div class="muted">cuotas</div></div>
@@ -45,7 +45,7 @@
 </section>
 
 <section class="band">
-  <div class="section-head"><h2>Tareas automáticas</h2><span class="pill">{{ data.data_center.scheduler.tasks|length }}</span></div>
+  <div class="section-head"><h2>Tareas automÃ¡ticas</h2><span class="pill">{{ data.data_center.scheduler.tasks|length }}</span></div>
   <div class="grid">
     {% for task in data.data_center.scheduler.tasks %}
     <article class="card">
@@ -63,8 +63,8 @@
   {% for action,label,detail in [
     ('competitions','Sincronizar competiciones','Prepara las ligas prioritarias sin inventar partidos.'),
     ('teams','Sincronizar equipos/escudos','Carga equipos reales y escudos si SportsDB devuelve datos.'),
-    ('calendar','Sincronizar calendario','Trae próximos eventos y live permitidos por SportsDB.'),
-    ('live','Refresh live','Actualiza live básico y próximos destacados.'),
+    ('calendar','Sincronizar calendario','Trae prÃ³ximos eventos y live permitidos por SportsDB.'),
+    ('live','Refresh live','Actualiza live bÃ¡sico y prÃ³ximos destacados.'),
     ('results','Sincronizar resultados','Guarda resultados recientes si la API los ofrece.'),
     ('odds','Sincronizar cuotas','Trae eventos/cuotas H2H respetando cache.'),
     ('warmup','Warmup general','Ejecuta competiciones, equipos, calendario y cuotas con control de intervalo.')
@@ -83,15 +83,15 @@
 <section class="band two-col">
   <aside class="card">
     <h2>Fuentes</h2>
-    <p class="small">SportsDB: {{ data.matches_díagnostics.sportsdb_key_masked or 'sin key' }}</p>
-    <p class="small">Odds: {{ data.matches_díagnostics.odds_key_masked or 'sin key' }}</p>
-    <p class="small">Fuente activa: {{ data.matches_díagnostics.active_data_source }}</p>
+    <p class="small">SportsDB: {{ data.matches_diagnostics.sportsdb_key_masked or 'sin key' }}</p>
+    <p class="small">Odds: {{ data.matches_diagnostics.odds_key_masked or 'sin key' }}</p>
+    <p class="small">Fuente activa: {{ data.matches_diagnostics.active_data_source }}</p>
   </aside>
   <aside class="card">
     <h2>Ultima actividad</h2>
     <p class="small">SportsDB: {{ data.data_center.last_sportsdb_sync.started_at or '-' }}</p>
     <p class="small">Odds: {{ data.data_center.last_odds_sync.started_at or '-' }}</p>
-    <p class="small">No data: {{ data.matches_díagnostics.competitions_no_data|length }} competiciones preparadas para import legal.</p>
+    <p class="small">No data: {{ data.matches_diagnostics.competitions_no_data|length }} competiciones preparadas para import legal.</p>
   </aside>
 </section>
 
@@ -106,3 +106,4 @@
   </div>
 </section>
 {% endblock %}
+
