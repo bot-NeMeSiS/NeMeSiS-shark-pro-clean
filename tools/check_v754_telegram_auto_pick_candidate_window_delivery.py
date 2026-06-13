@@ -17,6 +17,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V754_TELEGRAM_AUTO_PICK_CANDIDATE_WINDOW_DELIVERY_FIX"
+FUTURE_VERSION = "V756_CLIENT_APP_PREMIUM_EXPERIENCE_TOTAL_POLISH"
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
@@ -54,8 +55,8 @@ def static_checks() -> None:
     template = read("templates/admin_telegram_command_center.html")
     runner = read("tools/render_cron_telegram_tick.py")
     version = read("VERSION.txt").strip()
-    check("version_v754", version == VERSION, version)
-    check("app_version_v754", f'APP_VERSION = "{VERSION}"' in app_source)
+    check("version_v754", version in {VERSION, FUTURE_VERSION}, version)
+    check("app_version_v754", f'APP_VERSION = "{VERSION}"' in app_source or f'APP_VERSION = "{FUTURE_VERSION}"' in app_source)
     check("runner_still_v753_compatible", "X-NeMeSiS-Cron-Runner" in runner and '"runner": "render_cron"' in runner)
     check("candidate_function_exists", "def find_auto_telegram_pick_candidates" in app_source)
     check("auto_window_function_exists", "def telegram_auto_pick_window_decision" in app_source)

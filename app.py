@@ -109,6 +109,7 @@ from engines.public_launch_engine import public_launch_snapshot
 from engines.go_live_engine import go_live_snapshot, production_validation_plan
 from engines.visual_experience_engine import visual_experience_snapshot
 from engines.native_app_experience_engine import native_app_experience_snapshot
+from engines.client_app_premium_engine import build_client_app_premium_context
 from engines.final_release_engine import final_release_snapshot, final_release_validation_plan
 from engines.client_visual_perfection_engine import client_visual_perfection_snapshot
 from engines.calendar_experience_engine import calendar_experience_snapshot
@@ -151,7 +152,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V754_TELEGRAM_AUTO_PICK_CANDIDATE_WINDOW_DELIVERY_FIX"
+APP_VERSION = "V756_CLIENT_APP_PREMIUM_EXPERIENCE_TOTAL_POLISH"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -9005,7 +9006,9 @@ def home_light_data():
 def home():
     if request.method == "HEAD":
         return Response("", status=200)
-    return render_template("home.html", data=home_light_data())
+    data = home_light_data()
+    data["client_premium"] = build_client_app_premium_context(data, current_session_user())
+    return render_template("home.html", data=data)
 
 
 
@@ -9294,6 +9297,7 @@ def calendar_page():
     data["matches"] = data["calendar"].get("matches", [])
     data["lane"] = data["calendar"].get("filters", {}).get("lane", "today")
     data["date"] = data["calendar"].get("filters", {}).get("date", today_iso())
+    data["client_premium"] = build_client_app_premium_context(data, current_session_user())
     return render_template("calendar.html", data=data)
 
 
@@ -9393,6 +9397,9 @@ def match_detail_page(match_id):
     detail = match_detail(match_id)
     data = dashboard_data()
     data["match_detail"] = detail
+    data["client_premium"] = build_client_app_premium_context(data, current_session_user(), detail=detail)
+    if detail:
+        detail["client_premium"] = data["client_premium"].get("match", {})
     return render_template("match_detail.html", data=data, detail=detail)
 
 
@@ -10132,6 +10139,7 @@ def picks_page():
     data["candidate_matches"] = pick_candidate_matches(limit=80, days=21)
     data["pick_stats"] = pick_stats()
     data["smart_picks"] = smart_pick_board(user, limit=24)
+    data["client_premium"] = build_client_app_premium_context(data, user, filter_key=(request.args.get("filtro") or request.args.get("filter") or "all"))
     record_user_activity("view", "picks", "picks-page", {"count": len(data["picks"]), "candidates": len(data["candidate_matches"])})
     return render_template("picks.html", data=data)
 

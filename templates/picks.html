@@ -26,6 +26,30 @@
   <a class="tab-link" href="/telegram">Telegram</a>
 </section>
 
+
+{% set v756_picks = data.client_premium.picks if data.client_premium is defined else {} %}
+<section class="band compact-band v756-picks-command">
+  <div class="section-head">
+    <div><h2>Centro de picks</h2><p class="small">Filtra señales, distingue premium real de estudio y entra al partido sin perder contexto.</p></div>
+    <span class="pill">Plan {{ v756_picks.plan or 'FREE' }}</span>
+  </div>
+  <div class="v756-kpi-grid">
+    {% for card in v756_picks.get('status_cards', []) %}
+      <a class="v756-kpi-card" href="{{ card.href }}"><span>{{ card.label }}</span><strong>{{ card.value }}</strong><small>{{ card.hint }}</small></a>
+    {% endfor %}
+  </div>
+  <div class="sports-tabs v756-filter-tabs">
+    {% for f in v756_picks.get('filters', []) %}<a class="tab-link {% if f.active %}active{% endif %}" href="{{ f.href }}">{{ f.label }}</a>{% endfor %}
+  </div>
+  <div class="v756-feature-strip">
+    {% for p in v756_picks.get('featured', []) %}
+      <a class="card v756-pick-teaser" href="{{ p.href }}"><strong>{{ p.selection }}</strong><span>{{ p.title }}</span><small>Cuota {{ p.odds }} · {{ p.risk }} · {{ p.status }}</small></a>
+    {% else %}
+      <div class="empty premium-empty">{{ v756_picks.empty_message }}</div>
+    {% endfor %}
+  </div>
+</section>
+
 {% if current_user and current_user.membership == 'FREE' %}
 <section class="band compact-band"><div class="notice">Plan FREE activo: verás picks gratuitos y vista previa PRO/ELITE. PRO desbloquea más picks, Telegram premium y combinadas.</div></section>
 {% endif %}

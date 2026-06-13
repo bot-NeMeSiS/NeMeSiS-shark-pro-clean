@@ -14,6 +14,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V753_TELEGRAM_PRODUCTION_AUTOPILOT_ENVIRONMENT_AUDIT_AND_REAL_CRON_CERTIFICATION"
 CURRENT_VERSION = "V754_TELEGRAM_AUTO_PICK_CANDIDATE_WINDOW_DELIVERY_FIX"
+FUTURE_VERSION = "V756_CLIENT_APP_PREMIUM_EXPERIENCE_TOTAL_POLISH"
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
@@ -53,8 +54,8 @@ def static_checks() -> None:
     env_engine = read("engines/telegram_environment_engine.py")
     version = read("VERSION.txt").strip()
 
-    check("version_v753_or_newer", version in {VERSION, CURRENT_VERSION}, version)
-    check("app_version_v753_or_newer", f'APP_VERSION = "{VERSION}"' in app_source or f'APP_VERSION = "{CURRENT_VERSION}"' in app_source)
+    check("version_v753_or_newer", version in {VERSION, CURRENT_VERSION, FUTURE_VERSION}, version)
+    check("app_version_v753_or_newer", f'APP_VERSION = "{VERSION}"' in app_source or f'APP_VERSION = "{CURRENT_VERSION}"' in app_source or f'APP_VERSION = "{FUTURE_VERSION}"' in app_source)
     check("environment_engine", "get_telegram_environment_audit" in env_engine and "is_telegram_auto_enabled" in env_engine)
     check("official_flags_required", all(token in env_engine for token in ("ENABLE_TELEGRAM_AUTO", "AUTO_SEND_TELEGRAM_PICKS", "TELEGRAM_AUTO_SEND_ENABLED", "ENABLE_TELEGRAM_AUTOMATION")))
     check("environment_endpoint", "/api/admin/telegram/environment-audit" in app_source)

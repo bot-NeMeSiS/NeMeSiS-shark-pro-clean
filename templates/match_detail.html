@@ -52,6 +52,16 @@
   </div>
 </section>
 
+
+{% set v756_match = detail.client_premium if detail.client_premium is defined else {} %}
+<section class="band compact-band v756-match-command">
+  <div class="section-head"><div><h2>Centro del partido</h2><p class="small">{{ v756_match.client_hint or 'Hora, picks, riesgo y acciones en una vista clara.' }}</p></div><span class="pill">{{ v756_match.status or 'Estado' }}</span></div>
+  <div class="v756-client-layout slim">
+    <article class="card v756-feature-card"><strong>{{ v756_match.title or (home ~ ' vs ' ~ away) }}</strong><p class="small">Hora Madrid: {{ v756_match.time or (m|match_time_label) }} · Picks relacionados: {{ v756_match.related_picks or detail.related_picks|length }}</p></article>
+    <article class="card v756-feature-card"><div class="v756-action-rail inline">{% for action in v756_match.get('actions', []) %}<a class="btn small-btn" href="{{ action.href }}">{{ action.label }}</a>{% endfor %}</div></article>
+  </div>
+</section>
+
 <section class="band compact-band">
   <div class="section-head"><h2>Lectura SHARK</h2><span class="pill">{{ state.label or 'Estado' }}</span></div>
   <div class="grid compact-grid metric-row">

@@ -23,6 +23,18 @@
   </div>
 </section>
 
+
+{% set v756_calendar = data.client_premium.calendar if data.client_premium is defined else {} %}
+<section class="band compact-band v756-calendar-guide">
+  <div class="section-head"><div><h2>Agenda inteligente</h2><p class="small">{{ v756_calendar.guide or 'Directos, picks, favoritos y hora Madrid siempre primero.' }}</p></div><span class="pill">V756</span></div>
+  <div class="v756-kpi-grid compact">
+    {% for card in v756_calendar.get('summary', []) %}<div class="v756-kpi-card"><span>{{ card.label }}</span><strong>{{ card.value }}</strong><small>calendario</small></div>{% endfor %}
+  </div>
+  <div class="v756-action-rail">
+    {% for link in v756_calendar.get('smart_links', []) %}<a class="quick v756-quick" href="{{ link.href }}"><span>{{ link.label }}</span><strong>Ir</strong></a>{% endfor %}
+  </div>
+</section>
+
 <section class="band compact-band calendar-filter-panel">
   <div class="section-head">
     <div>
