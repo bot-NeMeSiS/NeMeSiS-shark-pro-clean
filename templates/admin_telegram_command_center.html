@@ -10,6 +10,8 @@
 {% set last_dispatch = cron.last_dispatch or {} %}
 {% set last_dispatch_result = last_dispatch.get('result') or {} %}
 {% set last_tick_result = data.diagnostics.last_automation_result or {} %}
+{% set auto_candidates = data.diagnostics.auto_pick_candidates or {} %}
+{% set auto_modules = last_tick_result.modules.auto_picks if last_tick_result.modules else {} %}
 {% set memory = snap.data_memory or {} %}
 {% set schema = snap.schema or {} %}
 <section class="hero compact v638-tight-hero">
@@ -108,6 +110,46 @@
     <strong>Lectura del estado</strong>
     <p class="small"><code>NO_DUE_JOBS</code>, <code>QUEUE_EMPTY</code>, <code>NO_ELIGIBLE_PICKS</code>, <code>OUTSIDE_PRO_WINDOW</code>, <code>NO_LIVE_ALERTS</code> y <code>DUPLICATE_ALREADY_SENT</code> son estados controlados, no fallos de Telegram.</p>
     <p class="small">Motivos detectados: {% for reason in last_tick_result.discard_reasons or [] %}<span class="pill">{{ reason }}</span> {% else %}<span class="muted">Sin descartes registrados.</span>{% endfor %}</p>
+  </div>
+</section>
+
+<section class="band compact-band">
+  <div class="section-head"><h2>Candidatos V754</h2><span class="pill">{{ auto_candidates.eligible or 0 }} elegibles</span></div>
+  <div class="grid compact-grid metric-row">
+    <div class="card metric-card"><div class="metric">{{ auto_candidates.reviewed or 0 }}</div><div class="muted">picks revisados</div></div>
+    <div class="card metric-card"><div class="metric">{{ auto_candidates.candidates or 0 }}</div><div class="muted">candidatos</div></div>
+    <div class="card metric-card"><div class="metric">{{ auto_candidates.eligible or 0 }}</div><div class="muted">elegibles ahora</div></div>
+    <div class="card metric-card"><div class="metric">{{ auto_modules.status or 'Sin tick' }}</div><div class="muted">modulo auto_picks</div></div>
+    <div class="card metric-card"><div class="metric">{{ auto_modules.sent or 0 }}</div><div class="muted">auto enviados</div></div>
+    <div class="card metric-card"><div class="metric">{{ auto_candidates.destinations or 0 }}</div><div class="muted">destinos</div></div>
+  </div>
+  <div class="two-col">
+    <div class="card">
+      <h3>PrÃ³ximo candidato</h3>
+      {% if auto_candidates.next_candidate %}
+      <p><strong>{{ auto_candidates.next_candidate.match }}</strong></p>
+      <p class="small">{{ auto_candidates.next_candidate.market or 'Mercado pendiente' }} Â· {{ auto_candidates.next_candidate.match_time_madrid or 'Hora pendiente' }}</p>
+      <p class="small">Dedupe: <code>{{ auto_candidates.next_candidate.dedupe_key or 'Sin bloqueo' }}</code></p>
+      {% else %}
+      <div class="empty">No hay candidato listo para el prÃ³ximo tick.</div>
+      {% endif %}
+    </div>
+    <div class="card">
+      <h3>Ventana de envÃ­o</h3>
+      <p class="small">Auto picks: desde {{ auto_candidates.window.hours_before or 24 }}h antes hasta {{ auto_candidates.window.min_minutes_before or 15 }} min antes del partido.</p>
+      <p class="small">Resumen: {{ auto_candidates.window.summary_morning or '09:00-11:30' }} y {{ auto_candidates.window.summary_evening or '17:00-19:30' }} Madrid.</p>
+      <p class="small">El resumen fuera de ventana no bloquea el mÃ³dulo <code>auto_picks</code>.</p>
+    </div>
+  </div>
+  <div class="card">
+    <strong>Descartes recientes</strong>
+    <div class="stack">
+      {% for item in auto_candidates.discarded[:8] %}
+      <div class="list-row"><span>{{ item.match or item.pick_id }}<small>{{ item.reason }} Â· {{ item.market or '' }}</small></span><strong>{{ item.match_time_madrid or '-' }}</strong></div>
+      {% else %}
+      <div class="empty">Sin descartes V754 registrados.</div>
+      {% endfor %}
+    </div>
   </div>
 </section>
 

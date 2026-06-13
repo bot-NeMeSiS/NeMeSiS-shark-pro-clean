@@ -14,6 +14,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V753_TELEGRAM_PRODUCTION_AUTOPILOT_ENVIRONMENT_AUDIT_AND_REAL_CRON_CERTIFICATION"
+VERSION_V754 = "V754_TELEGRAM_AUTO_PICK_CANDIDATE_WINDOW_DELIVERY_FIX"
 CHECKS: list[tuple[str, bool, str]] = []
 
 if str(ROOT) not in sys.path:
@@ -56,7 +57,7 @@ def static_checks() -> None:
     env_example = read(".env.example")
     env_render = read(".env.render.clean")
 
-    check("version_v752_or_v753", version in {"V752_TELEGRAM_FULL_AUTO_ARTILLERY_PRODUCTION_CERTIFICATION", VERSION}, version)
+    check("version_v752_or_v754", version in {"V752_TELEGRAM_FULL_AUTO_ARTILLERY_PRODUCTION_CERTIFICATION", VERSION, VERSION_V754}, version)
     check("app_version_v752_or_v753", f'APP_VERSION = "{version}"' in app_source)
     check("endpoint_exists", '@app.route("/api/automation/telegram/tick"' in app_source)
     check("secret_protected", "automation_cron_result" in app_source and "AUTOMATION_SECRET" in app_source)
@@ -94,6 +95,7 @@ def functional_mock_check() -> None:
             "TELEGRAM_MAX_ODDS": "9.99",
             "TELEGRAM_QUIET_START": "23:59",
             "TELEGRAM_QUIET_END": "00:01",
+            "TELEGRAM_PICK_SEND_WINDOW_HOURS_BEFORE": "48",
             "TZ": "Europe/Madrid",
             "APP_TIMEZONE": "Europe/Madrid",
             "PUBLIC_BASE_URL": "https://bot-apuestas-crgf.onrender.com",
@@ -108,7 +110,7 @@ def functional_mock_check() -> None:
         response = client.get("/api/automation/telegram/tick?secret=v752-secret")
         check("endpoint_with_secret_200", response.status_code == 200, response.get_data(as_text=True)[:300])
 
-        future = datetime.now(app_module.TZ) + timedelta(days=1, hours=3)
+        future = datetime.now(app_module.TZ) + timedelta(hours=3)
         match_id = "v752-match-001"
         pick_id = "v752-pick-001"
         conn = sqlite3.connect(db_path)

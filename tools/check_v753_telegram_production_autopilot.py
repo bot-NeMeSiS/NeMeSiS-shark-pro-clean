@@ -13,6 +13,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V753_TELEGRAM_PRODUCTION_AUTOPILOT_ENVIRONMENT_AUDIT_AND_REAL_CRON_CERTIFICATION"
+CURRENT_VERSION = "V754_TELEGRAM_AUTO_PICK_CANDIDATE_WINDOW_DELIVERY_FIX"
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
@@ -52,8 +53,8 @@ def static_checks() -> None:
     env_engine = read("engines/telegram_environment_engine.py")
     version = read("VERSION.txt").strip()
 
-    check("version_v753", version == VERSION, version)
-    check("app_version_v753", f'APP_VERSION = "{VERSION}"' in app_source)
+    check("version_v753_or_newer", version in {VERSION, CURRENT_VERSION}, version)
+    check("app_version_v753_or_newer", f'APP_VERSION = "{VERSION}"' in app_source or f'APP_VERSION = "{CURRENT_VERSION}"' in app_source)
     check("environment_engine", "get_telegram_environment_audit" in env_engine and "is_telegram_auto_enabled" in env_engine)
     check("official_flags_required", all(token in env_engine for token in ("ENABLE_TELEGRAM_AUTO", "AUTO_SEND_TELEGRAM_PICKS", "TELEGRAM_AUTO_SEND_ENABLED", "ENABLE_TELEGRAM_AUTOMATION")))
     check("environment_endpoint", "/api/admin/telegram/environment-audit" in app_source)
@@ -85,6 +86,7 @@ def functional_check() -> None:
             "TELEGRAM_MAX_ODDS": "9.99",
             "TELEGRAM_QUIET_START": "23:59",
             "TELEGRAM_QUIET_END": "00:01",
+            "TELEGRAM_PICK_SEND_WINDOW_HOURS_BEFORE": "48",
             "TZ": "Europe/Madrid",
             "APP_TIMEZONE": "Europe/Madrid",
             "PUBLIC_BASE_URL": "https://bot-apuestas-crgf.onrender.com",
@@ -108,7 +110,7 @@ def functional_check() -> None:
         env_audit = get_env_audit(app_module)
         check("environment_audit_ok", env_audit.get("auto_flags_ok") is True and not env_audit.get("missing"), env_audit)
 
-        future = datetime.now(app_module.TZ) + timedelta(days=1, hours=4)
+        future = datetime.now(app_module.TZ) + timedelta(hours=4)
         match_id = "v753-match-001"
         pick_id = "v753-pick-001"
         conn = sqlite3.connect(db_path)
