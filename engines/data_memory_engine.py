@@ -186,6 +186,10 @@ def ensure_data_memory_schema(db_or_conn: str | sqlite3.Connection) -> None:
             user_id TEXT,
             membership TEXT,
             status TEXT,
+            source TEXT,
+            trigger_type TEXT,
+            auto_job_key TEXT,
+            sent_at_madrid TEXT,
             match_id TEXT,
             pick_id TEXT,
             error_summary TEXT,
@@ -203,6 +207,10 @@ def ensure_data_memory_schema(db_or_conn: str | sqlite3.Connection) -> None:
             ("user_id", "TEXT"),
             ("membership", "TEXT"),
             ("status", "TEXT"),
+            ("source", "TEXT"),
+            ("trigger_type", "TEXT"),
+            ("auto_job_key", "TEXT"),
+            ("sent_at_madrid", "TEXT"),
             ("match_id", "TEXT"),
             ("pick_id", "TEXT"),
             ("error_summary", "TEXT"),
@@ -423,8 +431,8 @@ def remember_telegram_delivery(db_path: str, message_type: str, target: str, sta
     cur = conn.cursor()
     cur.execute(
         """INSERT OR REPLACE INTO telegram_delivery_memory
-           (id,created_at,updated_at,message_type,target_type,target_key,destination_masked,delivery_channel,chat_id,user_id,membership,status,match_id,pick_id,error_summary,dedupe_key,meta_json)
-           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+           (id,created_at,updated_at,message_type,target_type,target_key,destination_masked,delivery_channel,chat_id,user_id,membership,status,source,trigger_type,auto_job_key,sent_at_madrid,match_id,pick_id,error_summary,dedupe_key,meta_json)
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
         (
             tid,
             now,
@@ -438,6 +446,10 @@ def remember_telegram_delivery(db_path: str, message_type: str, target: str, sta
             str(meta.get("user_id") or "")[:80],
             str(meta.get("membership") or "")[:40],
             str(status or "UNKNOWN")[:80],
+            str(meta.get("source") or "")[:80],
+            str(meta.get("trigger_type") or "")[:80],
+            str(meta.get("auto_job_key") or "")[:160],
+            str(meta.get("sent_at_madrid") or "")[:80],
             str(meta.get("match_id") or "")[:80],
             str(meta.get("pick_id") or "")[:80],
             str(meta.get("error") or meta.get("action") or "")[:700],

@@ -54,7 +54,10 @@ def main() -> int:
         partidos_rules = [str(rule.rule) for rule in app_module.app.url_map.iter_rules() if str(rule.rule) == "/partidos"]
         telegram_schema = app_module.telegram_delivery_memory_schema_status()
     checks = {
-        "version_v748": version == "V748_ADMIN_CLIENT_TELEGRAM_SECURITY_PRODUCTION_HOTFIX",
+        "version_v748": version in {
+            "V748_ADMIN_CLIENT_TELEGRAM_SECURITY_PRODUCTION_HOTFIX",
+            "V749_TELEGRAM_AUTO_DELIVERY_MADRID_TIME_PRODUCTION_FIX",
+        },
         "partidos_not_duplicated": len(partidos_rules) == 1,
         "admin_templates_no_tilde_variable": "matches_dÃ­agnostics" not in admin_data and "matches_dÃ­agnostics" not in admin_sync,
         "shark_briefing_signature_accepts_context": "def build_daily_briefing(user=None, favorites=None, recommendations=None, picks=None, live_matches=None, upcoming=None, membership=None)" in app_text,

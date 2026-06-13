@@ -24,7 +24,7 @@ from engines.spanish_localization_engine import (
     spanish_market_name,
     spanish_team_name,
 )
-from engines.madrid_time_engine import normalize_kickoff_for_display
+from engines.madrid_time_engine import format_telegram_match_time_madrid, normalize_kickoff_for_display
 
 
 DEFAULT_SETTINGS = {
@@ -227,6 +227,9 @@ def _competition_emoji(item) -> str:
 
 
 def _display_datetime(item) -> str:
+    telegram_time = format_telegram_match_time_madrid(dict(item or {}))
+    if telegram_time.get("datetime_label") and telegram_time.get("datetime_label") != "Hora pendiente":
+        return telegram_time["datetime_label"]
     localized = normalize_kickoff_for_display(dict(item or {}))
     return (
         localized.get("madrid_display")
@@ -616,10 +619,11 @@ def build_live_alert_message(match, event=None, internal_url="/live") -> str:
 
 
 def build_system_test_message(now_iso, premium_name="NeMeSiS SHARK PRO") -> str:
+    madrid_time = format_telegram_match_time_madrid({"kickoff_iso": now_iso})
     return "\n".join([
         f"<b>🦈 {safe_html(premium_name)}</b>",
         "✅ Mensaje de prueba admin.",
-        f"🕘 Hora España: {safe_html(now_iso)}",
+        f"🕘 Hora Madrid: {safe_html(madrid_time.get('datetime_label') or now_iso)}",
         "Canal Telegram premium operativo si recibes este aviso.",
     ])
 

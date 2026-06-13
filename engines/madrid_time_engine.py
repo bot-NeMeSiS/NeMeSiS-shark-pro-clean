@@ -199,6 +199,80 @@ def normalize_kickoff_for_display(match: dict | None) -> dict:
     return item
 
 
+def _madrid_label_from_dt(dt: datetime) -> str:
+    today = madrid_now().date()
+    if dt.date() == today:
+        return "Hoy"
+    if dt.date() == today + timedelta(days=1):
+        return "Mañana"
+    return f"{WEEKDAYS_ES[dt.weekday()]} {dt:%d/%m}"
+
+
+def format_telegram_match_time_madrid(match: dict | None) -> dict:
+    """Return Telegram-ready match time labels in Europe/Madrid.
+
+    Sports API datetimes with ``Z`` or an explicit offset are converted to
+    Madrid. Manual admin values expressed as ``match_date`` + ``match_time``
+    are treated as Madrid local time, so they are not shifted again.
+    """
+    item = dict(match or {})
+    source_key, raw_value = _first_match_datetime_value(item)
+    raw_text = str(raw_value or "").strip()
+    warning = ""
+    detected = "unknown"
+    dt_madrid: datetime | None = None
+
+    if source_key == "match_date+time":
+        date_value = str(item.get("match_date") or item.get("date") or "")[:10]
+        time_value = str(item.get("kickoff_time") or item.get("match_time") or item.get("time") or "")[:5]
+        try:
+            dt_madrid = datetime.fromisoformat(f"{date_value}T{time_value}:00").replace(tzinfo=MADRID_TZ)
+            detected = "madrid_local_manual"
+        except ValueError:
+            warning = "ambiguous_manual_datetime"
+    elif raw_text:
+        dt_utc = parse_match_datetime(raw_text)
+        if dt_utc:
+            dt_madrid = dt_utc.astimezone(MADRID_TZ)
+            detected = "utc_or_offset" if _has_tz_suffix(raw_text) else "naive_assumed_utc"
+            if detected == "naive_assumed_utc":
+                warning = "naive_api_datetime_assumed_utc"
+        else:
+            warning = "unparseable_datetime"
+    else:
+        warning = "missing_datetime"
+
+    if not dt_madrid:
+        fallback_date = str(item.get("match_date") or "")[:10]
+        fallback_time = str(item.get("kickoff_time") or item.get("match_time") or "")[:5]
+        fallback_label = "Hora pendiente"
+        if fallback_date and fallback_time:
+            fallback_label = f"{fallback_date} · {fallback_time} · Madrid"
+        elif fallback_time:
+            fallback_label = f"{fallback_time} · Madrid"
+        return {
+            "date_label": fallback_date,
+            "time_label": fallback_time,
+            "datetime_label": fallback_label,
+            "iso_madrid": "",
+            "source_timezone_detected": detected,
+            "source_field": source_key,
+            "source_value": raw_text,
+            "warning": warning,
+        }
+
+    return {
+        "date_label": _madrid_label_from_dt(dt_madrid),
+        "time_label": dt_madrid.strftime("%H:%M"),
+        "datetime_label": f"{_madrid_label_from_dt(dt_madrid)} · {dt_madrid:%H:%M} · Madrid",
+        "iso_madrid": dt_madrid.isoformat(timespec="seconds"),
+        "source_timezone_detected": detected,
+        "source_field": source_key,
+        "source_value": raw_text,
+        "warning": warning,
+    }
+
+
 def madrid_conversion_selftest() -> dict:
     cases = [
         ("summer_utc_1900", "2026-06-12T19:00:00Z", "21:00"),

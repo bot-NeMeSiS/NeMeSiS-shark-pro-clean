@@ -5,7 +5,7 @@
   "candidates": [
     {
       "path": "__pycache__/app.cpython-312.pyc",
-      "size": 770021,
+      "size": 779419,
       "category": "BASURA_SEGURA",
       "reason": "cache/carpeta temporal local",
       "action": "eliminar con purge --apply",
@@ -167,7 +167,7 @@
     },
     {
       "path": "engines/__pycache__/data_memory_engine.cpython-312.pyc",
-      "size": 33007,
+      "size": 33654,
       "category": "BASURA_SEGURA",
       "reason": "cache/carpeta temporal local",
       "action": "eliminar con purge --apply",
@@ -257,7 +257,7 @@
     },
     {
       "path": "engines/__pycache__/madrid_time_engine.cpython-312.pyc",
-      "size": 12966,
+      "size": 16067,
       "category": "BASURA_SEGURA",
       "reason": "cache/carpeta temporal local",
       "action": "eliminar con purge --apply",
@@ -572,7 +572,7 @@
     },
     {
       "path": "engines/__pycache__/telegram_delivery_engine.cpython-312.pyc",
-      "size": 34903,
+      "size": 35325,
       "category": "BASURA_SEGURA",
       "reason": "cache/carpeta temporal local",
       "action": "eliminar con purge --apply",
@@ -653,7 +653,7 @@
     },
     {
       "path": "tools/__pycache__/build_clean_release.cpython-312.pyc",
-      "size": 12910,
+      "size": 13016,
       "category": "BASURA_SEGURA",
       "reason": "cache/carpeta temporal local",
       "action": "eliminar con purge --apply",
@@ -689,7 +689,7 @@
     },
     {
       "path": "tools/__pycache__/check_v729_security.cpython-312.pyc",
-      "size": 4286,
+      "size": 4293,
       "category": "BASURA_SEGURA",
       "reason": "cache/carpeta temporal local",
       "action": "eliminar con purge --apply",
@@ -986,7 +986,7 @@
     },
     {
       "path": "tools/__pycache__/check_v748_admin_client_telegram_security_production_hotfix.cpython-312.pyc",
-      "size": 7124,
+      "size": 7190,
       "category": "BASURA_SEGURA",
       "reason": "cache/carpeta temporal local",
       "action": "eliminar con purge --apply",
@@ -996,6 +996,15 @@
     {
       "path": "tools/__pycache__/check_v748_admin_client_telegram_security_route_hotfix.cpython-312.pyc",
       "size": 7112,
+      "category": "BASURA_SEGURA",
+      "reason": "cache/carpeta temporal local",
+      "action": "eliminar con purge --apply",
+      "risk": "bajo",
+      "auto_delete": true
+    },
+    {
+      "path": "tools/__pycache__/check_v749_telegram_auto_delivery_madrid_time.cpython-312.pyc",
+      "size": 4838,
       "category": "BASURA_SEGURA",
       "reason": "cache/carpeta temporal local",
       "action": "eliminar con purge --apply",
@@ -1500,6 +1509,10 @@
     },
     {
       "path": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\tools\\__pycache__\\check_v748_admin_client_telegram_security_route_hotfix.cpython-312.pyc",
+      "status": "deleted"
+    },
+    {
+      "path": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\tools\\__pycache__\\check_v749_telegram_auto_delivery_madrid_time.cpython-312.pyc",
       "status": "deleted"
     },
     {

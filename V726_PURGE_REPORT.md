@@ -1,8 +1,8 @@
 # Purga segura V726
 
 - Modo: apply
-- Candidatos: 117
-- Ejecutados: 117
+- Candidatos: 118
+- Ejecutados: 118
 
 ## Candidatos
 - `__pycache__/app.cpython-312.pyc`: cache/carpeta temporal local
@@ -116,6 +116,7 @@
 - `tools/__pycache__/check_v747_admin_telegram_membership.cpython-312.pyc`: cache/carpeta temporal local
 - `tools/__pycache__/check_v748_admin_client_telegram_security_production_hotfix.cpython-312.pyc`: cache/carpeta temporal local
 - `tools/__pycache__/check_v748_admin_client_telegram_security_route_hotfix.cpython-312.pyc`: cache/carpeta temporal local
+- `tools/__pycache__/check_v749_telegram_auto_delivery_madrid_time.cpython-312.pyc`: cache/carpeta temporal local
 - `tools/__pycache__/nemesis_daily_codex.cpython-312.pyc`: cache/carpeta temporal local
 - `tools/__pycache__/purge_project_safe.cpython-312.pyc`: cache/carpeta temporal local
 - `tools/__pycache__/route_map_v606.cpython-312.pyc`: cache/carpeta temporal local
@@ -235,6 +236,7 @@
 - `C:\Users\aloha\OneDrive\Escritorio\NeMeSiS shark pro\tools\__pycache__\check_v747_admin_telegram_membership.cpython-312.pyc`: deleted
 - `C:\Users\aloha\OneDrive\Escritorio\NeMeSiS shark pro\tools\__pycache__\check_v748_admin_client_telegram_security_production_hotfix.cpython-312.pyc`: deleted
 - `C:\Users\aloha\OneDrive\Escritorio\NeMeSiS shark pro\tools\__pycache__\check_v748_admin_client_telegram_security_route_hotfix.cpython-312.pyc`: deleted
+- `C:\Users\aloha\OneDrive\Escritorio\NeMeSiS shark pro\tools\__pycache__\check_v749_telegram_auto_delivery_madrid_time.cpython-312.pyc`: deleted
 - `C:\Users\aloha\OneDrive\Escritorio\NeMeSiS shark pro\tools\__pycache__\nemesis_daily_codex.cpython-312.pyc`: deleted
 - `C:\Users\aloha\OneDrive\Escritorio\NeMeSiS shark pro\tools\__pycache__\purge_project_safe.cpython-312.pyc`: deleted
 - `C:\Users\aloha\OneDrive\Escritorio\NeMeSiS shark pro\tools\__pycache__\route_map_v606.cpython-312.pyc`: deleted
