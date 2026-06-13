@@ -161,6 +161,8 @@ INCLUDE_TOP_LEVEL_FILES = {
     "RELEASE_ZIP_AUDIT_V745.md",
     "RELEASE_ZIP_AUDIT_V748.md",
     "RELEASE_ZIP_AUDIT_V749.md",
+    "RELEASE_ZIP_AUDIT_V749B.md",
+    "RELEASE_ZIP_AUDIT_V750.md",
     "RELEASE_MANIFEST_V745.json",
     "V747_ADMIN_TELEGRAM_MEMBERSHIP_DAYS_TIME_ORDER_REPORT.md",
     "RELEASE_MANIFEST_V747.json",
@@ -227,6 +229,8 @@ def include(path: Path) -> bool:
             rel_posix == "reports/CODEX_DAILY_PROMPT_CURRENT.txt"
             or rel_posix.startswith("reports/V748_")
             or rel_posix.startswith("reports/V749_")
+            or rel_posix.startswith("reports/V749B_")
+            or rel_posix.startswith("reports/V750_")
         )
     if any(part in EXCLUDE_DIRS for part in parts):
         return False

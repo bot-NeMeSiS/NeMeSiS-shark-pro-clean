@@ -1,33 +1,62 @@
-"""Live experience helpers for V742.
+"""Live experience helpers for V750.
 
 Pure helpers: no HTTP, no external API calls and no writes.
+The client /live screen must feel like the rest of NeMeSiS SHARK PRO:
+Madrid time, real score/status, day grouping and relevance-first ordering.
 """
 
 from __future__ import annotations
 
 import re
+from datetime import date, datetime, timedelta
 from typing import Any
 
+try:
+    from engines.madrid_time_engine import madrid_now, normalize_kickoff_for_display
+except Exception:  # pragma: no cover - defensive for standalone imports
+    madrid_now = None
+    normalize_kickoff_for_display = None
+
 IMPORTANT_TERMS = (
-    "laliga",
-    "primera",
-    "segunda",
-    "premier",
     "champions",
-    "europa",
-    "conference",
-    "serie a",
-    "bundesliga",
-    "ligue",
-    "primeira",
-    "copa",
     "mundial",
     "uefa",
     "fifa",
+    "laliga",
+    "primera",
+    "premier",
+    "serie a",
+    "bundesliga",
+    "ligue",
+    "europa",
+    "conference",
+    "segunda",
+    "primeira",
+    "copa",
+    "libertadores",
+    "sudamericana",
 )
 
 SPAIN_TERMS = ("españa", "spain", "laliga", "segunda", "copa del rey", "rfef")
-ANDALUCIA_TERMS = ("andaluc", "sevilla", "betis", "granada", "malaga", "málaga", "cadiz", "cádiz", "cordoba", "córdoba", "almeria", "almería", "huelva", "jaen", "jaén")
+ANDALUCIA_TERMS = (
+    "andaluc",
+    "sevilla",
+    "betis",
+    "granada",
+    "malaga",
+    "málaga",
+    "cadiz",
+    "cádiz",
+    "cordoba",
+    "córdoba",
+    "almeria",
+    "almería",
+    "huelva",
+    "jaen",
+    "jaén",
+)
+
+WEEKDAYS_ES = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
 
 
 def text(value: Any) -> str:
@@ -53,12 +82,12 @@ def lower_blob(match: dict) -> str:
 def state_bucket(match: dict) -> str:
     depth = match.get("live_depth") or {}
     badge = text(depth.get("badge") or "").lower()
-    label = text(depth.get("label") or match.get("status") or "").lower()
-    if badge == "live" or any(word in label for word in ("directo", "live", "descanso")):
+    label = text(depth.get("label") or match.get("safe_status") or match.get("status") or "").lower()
+    if badge in {"live", "halftime"} or any(word in label for word in ("directo", "live", "descanso", "1h", "2h")):
         return "live"
     if badge in {"finished", "finalizado"} or any(word in label for word in ("final", "finished", "terminado")):
         return "finished"
-    if any(word in label for word in ("aplaz", "suspend", "postpon")):
+    if any(word in label for word in ("aplaz", "suspend", "postpon", "cancel")):
         return "postponed"
     return "upcoming"
 
@@ -96,54 +125,230 @@ def match_filter(match: dict, lane: str, query: str = "") -> bool:
     return True
 
 
+def _safe_int(value: Any, default: int = 0) -> int:
+    try:
+        return int(float(str(value or "").replace("%", "").strip()))
+    except Exception:
+        return default
+
+
+def _score_text(match: dict) -> str:
+    depth = match.get("live_depth") or {}
+    score = text(depth.get("score") or match.get("safe_score") or match.get("score") or "")
+    if score and score.lower() not in {"vs", "none", "null", "0-0"}:
+        return score
+    home_score = text(match.get("home_score") or "")
+    away_score = text(match.get("away_score") or "")
+    if home_score != "" or away_score != "":
+        return f"{home_score or '0'}-{away_score or '0'}"
+    return ""
+
+
+def _time_item(match: dict) -> dict:
+    if callable(normalize_kickoff_for_display):
+        try:
+            return normalize_kickoff_for_display(match)
+        except Exception:
+            pass
+    return dict(match or {})
+
+
+def _today_date() -> date:
+    if callable(madrid_now):
+        try:
+            return madrid_now().date()
+        except Exception:
+            pass
+    return datetime.utcnow().date()
+
+
+def _date_label(date_key: str) -> str:
+    raw = text(date_key)[:10]
+    try:
+        d = date.fromisoformat(raw)
+    except Exception:
+        return "Sin fecha"
+    today = _today_date()
+    if d == today:
+        return "Hoy"
+    if d == today + timedelta(days=1):
+        return "Mañana"
+    if d == today - timedelta(days=1):
+        return "Ayer"
+    return f"{WEEKDAYS_ES[d.weekday()]} {d:%d/%m}"
+
+
+def _league_rank(match: dict) -> int:
+    blob = lower_blob(match)
+    for idx, term in enumerate(IMPORTANT_TERMS):
+        if term in blob:
+            return idx + 1
+    return 80
+
+
 def importance_score(match: dict) -> int:
     blob = lower_blob(match)
     score = 0
-    if state_bucket(match) == "live":
+    bucket = state_bucket(match)
+    if bucket == "live":
         score += 1000
-    if has_pick(match):
+    elif bucket == "upcoming":
         score += 180
+    if has_pick(match):
+        score += 260
     if match.get("is_favorite"):
-        score += 160
-    for idx, term in enumerate(IMPORTANT_TERMS):
-        if term in blob:
-            score += max(20, 140 - idx * 8)
-            break
+        score += 220
+    shark_score = _safe_int(match.get("shark_score") or (match.get("live_depth") or {}).get("momentum"), 0)
+    score += min(max(shark_score, 0), 100)
+    rank = _league_rank(match)
+    if rank < 80:
+        score += max(40, 180 - rank * 8)
     return score
 
 
-def sort_live_matches(matches: list[dict]) -> list[dict]:
-    return sorted(
-        list(matches or []),
-        key=lambda m: (
-            -importance_score(m),
-            text(m.get("madrid_time") or m.get("safe_time") or m.get("kickoff_time") or "99:99"),
-            text(m.get("safe_competition") or m.get("competition_name") or m.get("league_name")),
-        ),
+def enrich_live_match(match: dict) -> dict:
+    item = dict(match or {})
+    item.update(_time_item(item))
+    depth = dict(item.get("live_depth") or {})
+    bucket = state_bucket(item)
+    score = _score_text(item)
+    date_key = text(item.get("madrid_date") or item.get("match_date") or "")[:10] or "sin-fecha"
+    time_label = text(item.get("madrid_time") or item.get("safe_time") or item.get("kickoff_time") or item.get("match_time") or "")[:5]
+    minute = text(depth.get("minute") or item.get("minute") or "")
+    status_label = text(depth.get("label") or item.get("safe_status") or item.get("status") or "Próximo")
+    if bucket == "live":
+        clock = minute if minute else "En directo"
+        if minute.isdigit():
+            clock = f"{minute}'"
+        score_label = score or "0-0"
+        score_caption = "Marcador live" if score else "En directo"
+    elif bucket == "finished":
+        clock = "FT"
+        score_label = score or "Finalizado"
+        score_caption = "Resultado" if score else "Finalizado"
+        status_label = "Finalizado"
+    elif bucket == "postponed":
+        clock = time_label or "Hora"
+        score_label = "Aplazado"
+        score_caption = "Estado"
+        status_label = status_label if status_label and status_label != "Próximo" else "Aplazado"
+    else:
+        clock = time_label or "Hora"
+        score_label = "vs"
+        score_caption = "Programado"
+        status_label = "Próximo" if not status_label or status_label.lower() in {"programado", "scheduled"} else status_label
+    priority = importance_score(item)
+    if has_pick(item):
+        priority_label = "Pick SHARK"
+    elif item.get("is_favorite"):
+        priority_label = "Favorito"
+    elif bucket == "live":
+        priority_label = "Directo"
+    elif priority >= 260:
+        priority_label = "Alta relevancia"
+    elif _league_rank(item) < 20:
+        priority_label = "Liga destacada"
+    else:
+        priority_label = "Calendario"
+    item.update(
+        {
+            "live_bucket": bucket,
+            "live_date_key": date_key,
+            "live_date_label": item.get("madrid_date_label") or item.get("safe_date") or _date_label(date_key),
+            "live_time_label": time_label or "Hora",
+            "live_clock_label": clock,
+            "live_score_label": score_label,
+            "live_score_caption": score_caption,
+            "live_status_label": status_label,
+            "live_status_badge": depth.get("badge") or bucket,
+            "live_priority_score": priority,
+            "live_priority_label": priority_label,
+            "live_competition_display": text(item.get("safe_competition") or item.get("competition_name") or item.get("league_name") or "Competición"),
+            "live_country_display": text(item.get("safe_country") or item.get("country") or "Global"),
+            "home_identity": item.get("home_identity") or {},
+            "away_identity": item.get("away_identity") or {},
+        }
+    )
+    return item
+
+
+def _sort_key(match: dict) -> tuple:
+    bucket_order = {"live": 0, "upcoming": 1, "postponed": 2, "finished": 3}.get(match.get("live_bucket"), 4)
+    return (
+        match.get("live_date_key") or "9999-99-99",
+        bucket_order,
+        -int(match.get("live_priority_score") or 0),
+        match.get("live_time_label") or "99:99",
+        _league_rank(match),
+        text(match.get("live_competition_display")),
+        text(match.get("safe_home") or match.get("home_team")),
     )
 
 
+def sort_live_matches(matches: list[dict]) -> list[dict]:
+    return sorted([enrich_live_match(m) for m in (matches or [])], key=_sort_key)
+
+
+def _group_by_league(matches: list[dict]) -> list[dict]:
+    grouped: dict[str, dict] = {}
+    for match in matches:
+        name = match.get("live_competition_display") or "Competición"
+        country = match.get("live_country_display") or "Global"
+        key = f"{name}|{country}"
+        grouped.setdefault(key, {"name": name, "country": country, "rank": _league_rank(match), "matches": []})
+        grouped[key]["matches"].append(match)
+    out = list(grouped.values())
+    out.sort(key=lambda g: (g.get("rank") or 80, -sum(int(m.get("live_priority_score") or 0) for m in g["matches"]), g["name"]))
+    for group in out:
+        group["count"] = len(group["matches"])
+    return out
+
+
+def _group_by_day(matches: list[dict]) -> list[dict]:
+    days: dict[str, dict] = {}
+    for match in matches:
+        key = match.get("live_date_key") or "sin-fecha"
+        days.setdefault(key, {"date_key": key, "date_label": match.get("live_date_label") or _date_label(key), "matches": []})
+        days[key]["matches"].append(match)
+    out = []
+    for key, day in days.items():
+        day_matches = sorted(day["matches"], key=_sort_key)
+        live_count = sum(1 for m in day_matches if m.get("live_bucket") == "live")
+        pick_count = sum(1 for m in day_matches if has_pick(m))
+        out.append(
+            {
+                "date_key": key,
+                "date_label": day["date_label"],
+                "matches_count": len(day_matches),
+                "live_count": live_count,
+                "with_pick_count": pick_count,
+                "leagues": _group_by_league(day_matches),
+            }
+        )
+    return sorted(out, key=lambda d: (d.get("date_key") == "sin-fecha", d.get("date_key") or "9999-99-99"))
+
+
 def build_live_experience(matches: list[dict], lane: str = "live", query: str = "") -> dict:
-    all_matches = list(matches or [])
+    all_matches = [enrich_live_match(m) for m in (matches or [])]
     filtered = [m for m in all_matches if match_filter(m, lane, query)]
-    grouped: dict[str, list[dict]] = {}
-    for match in sort_live_matches(filtered):
-        comp = text(match.get("safe_competition") or match.get("competition_name") or match.get("league_name") or "Competición")
-        grouped.setdefault(comp, []).append(match)
+    sorted_filtered = sorted(filtered, key=_sort_key)
+    flat_groups = _group_by_league(sorted_filtered)
     return {
         "lane": lane or "live",
         "query": query or "",
         "total": len(all_matches),
-        "filtered": len(filtered),
+        "filtered": len(sorted_filtered),
         "counts": {
             "live": sum(1 for m in all_matches if state_bucket(m) == "live"),
             "upcoming": sum(1 for m in all_matches if state_bucket(m) == "upcoming"),
             "finished": sum(1 for m in all_matches if state_bucket(m) == "finished"),
             "with_pick": sum(1 for m in all_matches if has_pick(m)),
             "favorites": sum(1 for m in all_matches if m.get("is_favorite")),
+            "days": len({m.get("live_date_key") for m in sorted_filtered if m.get("live_date_key")}),
         },
-        "matches": sort_live_matches(filtered),
-        "groups": [{"name": name, "count": len(items), "matches": items} for name, items in grouped.items()],
+        "matches": sorted_filtered,
+        "groups": flat_groups,
+        "day_groups": _group_by_day(sorted_filtered),
         "filters": [
             ("live", "En directo"),
             ("today", "Hoy"),
@@ -155,6 +360,17 @@ def build_live_experience(matches: list[dict], lane: str = "live", query: str = 
             ("andalucia", "Andalucía"),
             ("top", "Grandes ligas"),
         ],
+        "lane_labels": {
+            "live": "En directo",
+            "today": "Hoy",
+            "upcoming": "Próximos",
+            "finished": "Finalizados",
+            "picks": "Con pick",
+            "favorites": "Favoritos",
+            "spain": "España",
+            "andalucia": "Andalucía",
+            "top": "Grandes ligas",
+        },
     }
 
 
@@ -162,7 +378,7 @@ def live_experience_snapshot(app_version: str = "") -> dict:
     return {
         "ok": True,
         "version": app_version,
-        "status": "LIVE_EXPERIENCE_V742_READY",
+        "status": "LIVE_EXPERIENCE_V750_CLIENT_READY",
         "checks": {
             "filters": True,
             "search": True,
@@ -170,5 +386,8 @@ def live_experience_snapshot(app_version: str = "") -> dict:
             "no_fake_scores": True,
             "match_links": True,
             "mobile_density": True,
+            "day_grouping": True,
+            "relevance_order": True,
+            "score_status_clarity": True,
         },
     }

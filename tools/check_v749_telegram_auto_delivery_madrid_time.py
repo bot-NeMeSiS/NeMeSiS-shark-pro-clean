@@ -9,6 +9,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V749_TELEGRAM_AUTO_DELIVERY_MADRID_TIME_PRODUCTION_FIX"
+VERSION_B = "V749B_RENDER_CRON_SIMPLE_RUNNER_FINAL_FIX"
 sys.path.insert(0, str(ROOT))
 
 
@@ -18,7 +19,8 @@ def assert_true(condition, message):
 
 
 def main():
-    assert_true((ROOT / "VERSION.txt").read_text(encoding="utf-8").strip() == VERSION, "VERSION.txt no contiene V749.")
+    current_version = (ROOT / "VERSION.txt").read_text(encoding="utf-8").strip()
+    assert_true(current_version in {VERSION, VERSION_B, "V750_CLIENT_LIVE_DAY_RELEVANCE_MADRID_RESULT_POLISH"}, "VERSION.txt no contiene V749/V749B/V750.")
     source = (ROOT / "app.py").read_text(encoding="utf-8")
     telegram_source = (ROOT / "engines" / "telegram_delivery_engine.py").read_text(encoding="utf-8")
     madrid_source = (ROOT / "engines" / "madrid_time_engine.py").read_text(encoding="utf-8")

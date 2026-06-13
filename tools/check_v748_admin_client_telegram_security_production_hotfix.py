@@ -57,6 +57,8 @@ def main() -> int:
         "version_v748": version in {
             "V748_ADMIN_CLIENT_TELEGRAM_SECURITY_PRODUCTION_HOTFIX",
             "V749_TELEGRAM_AUTO_DELIVERY_MADRID_TIME_PRODUCTION_FIX",
+            "V749B_RENDER_CRON_SIMPLE_RUNNER_FINAL_FIX",
+            "V750_CLIENT_LIVE_DAY_RELEVANCE_MADRID_RESULT_POLISH",
         },
         "partidos_not_duplicated": len(partidos_rules) == 1,
         "admin_templates_no_tilde_variable": "matches_dÃ­agnostics" not in admin_data and "matches_dÃ­agnostics" not in admin_sync,
