@@ -17,7 +17,7 @@ def assert_true(condition, message):
 
 def main():
     current_version = (ROOT / "VERSION.txt").read_text(encoding="utf-8").strip()
-    assert_true(current_version in {VERSION, "V750_CLIENT_LIVE_DAY_RELEVANCE_MADRID_RESULT_POLISH"}, "VERSION.txt no contiene V749B/V750.")
+    assert_true(current_version in {VERSION, "V750_CLIENT_LIVE_DAY_RELEVANCE_MADRID_RESULT_POLISH", "V751_TELEGRAM_PICK_ULTRA_PRO_MESSAGE_EXPERIENCE"}, "VERSION.txt no contiene V749B/V750/V751.")
     assert_true(RUNNER.exists(), "Falta tools/render_cron_telegram_tick.py")
     source = RUNNER.read_text(encoding="utf-8")
     ast.parse(source)

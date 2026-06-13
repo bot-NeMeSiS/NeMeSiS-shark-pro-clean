@@ -227,10 +227,16 @@ def _competition_emoji(item) -> str:
 
 
 def _display_datetime(item) -> str:
-    telegram_time = format_telegram_match_time_madrid(dict(item or {}))
+    item_for_time = dict(item or {})
+    # Some payloads store an ISO API datetime inside kickoff_time instead of kickoff_iso.
+    # Promote it for the Madrid helper so Telegram never shows raw/truncated UTC labels.
+    kickoff_raw = str(item_for_time.get("kickoff_time") or "").strip()
+    if kickoff_raw and ("T" in kickoff_raw or kickoff_raw.endswith("Z")) and not item_for_time.get("kickoff_iso"):
+        item_for_time["kickoff_iso"] = kickoff_raw
+    telegram_time = format_telegram_match_time_madrid(item_for_time)
     if telegram_time.get("datetime_label") and telegram_time.get("datetime_label") != "Hora pendiente":
         return telegram_time["datetime_label"]
-    localized = normalize_kickoff_for_display(dict(item or {}))
+    localized = normalize_kickoff_for_display(item_for_time)
     return (
         localized.get("madrid_display")
         or localized.get("display_datetime")
@@ -405,6 +411,223 @@ def _pick_value_label(pick) -> str:
     return "Controlado"
 
 
+_TELEGRAM_PICK_PRO_MARKER = "V751_TELEGRAM_PICK_ULTRA_PRO"
+
+
+def _bookmaker_text(pick) -> str:
+    bookmaker = pick.get("bookmaker") or pick.get("bookmaker_name") or pick.get("sportsbook") or pick.get("book") or ""
+    return safe_html(compact_text(bookmaker, 40)) if bookmaker else "Casa no fijada"
+
+
+def _quality_badge(pick) -> str:
+    try:
+        score = int(float(pick.get("quality_score") or pick.get("confidence") or pick.get("shark_score") or 0))
+    except Exception:
+        score = 0
+    label = str(pick.get("quality_label") or "").strip()
+    if label:
+        return safe_html(compact_text(label, 42))
+    if score >= 82:
+        return "Entrada premium"
+    if score >= 72:
+        return "Entrada con valor"
+    if score >= 62:
+        return "Entrada controlada"
+    return "Señal prudente"
+
+
+def _confidence_bar(pick) -> str:
+    try:
+        score = max(0, min(100, int(float(pick.get("confidence") or pick.get("shark_score") or pick.get("quality_score") or 0))))
+    except Exception:
+        score = 0
+    filled = max(1, min(5, round(score / 20))) if score else 0
+    return "▰" * filled + "▱" * (5 - filled)
+
+
+def _probability_text(pick) -> str:
+    for key in ("probability", "probability_pct", "implied_probability", "win_probability", "shark_probability"):
+        value = pick.get(key)
+        if value in (None, "", "None"):
+            continue
+        try:
+            n = float(str(value).replace("%", "").replace(",", "."))
+            if 0 < n <= 1:
+                n *= 100
+            if 0 < n <= 100:
+                return f"{n:.0f}%"
+        except Exception:
+            text = compact_text(value, 18)
+            if text:
+                return safe_html(text)
+    return "No publicada"
+
+
+def _ev_text(pick) -> str:
+    for key in ("ev", "expected_value", "ev_pct", "edge", "edge_pct", "value_pct"):
+        value = pick.get(key)
+        if value in (None, "", "None"):
+            continue
+        try:
+            n = float(str(value).replace("%", "").replace(",", "."))
+            if abs(n) <= 1:
+                n *= 100
+            sign = "+" if n > 0 else ""
+            return f"{sign}{n:.1f}%"
+        except Exception:
+            text = compact_text(value, 18)
+            if text:
+                return safe_html(text)
+    return _pick_value_label(pick)
+
+
+def _stake_money_text(pick) -> str:
+    for key in ("stake_eur", "stake_euros", "stake_amount", "stake_money", "stake_value"):
+        value = pick.get(key)
+        if value in (None, "", "None"):
+            continue
+        try:
+            n = float(str(value).replace("€", "").replace(",", "."))
+            if n > 0:
+                return f"{n:g}€"
+        except Exception:
+            text = compact_text(value, 16)
+            if text:
+                return safe_html(text)
+    return "Según banca"
+
+
+def _odds_movement_text(pick) -> str:
+    for key in ("odds_movement", "line_movement", "movement", "closing_line_note", "odds_trend"):
+        text = compact_text(pick.get(key), 70)
+        if text:
+            return safe_html(text)
+    return "Sin movimiento confirmado"
+
+
+def _pick_context_text(pick) -> str:
+    pieces = []
+    for key in ("context", "match_context", "analysis_context", "league_context", "shark_context"):
+        text = compact_text(pick.get(key), 150)
+        if text and not _PENDING_PICK_RE.search(text):
+            pieces.append(text)
+            break
+    if not pieces:
+        status = _status_label(pick)
+        if status:
+            pieces.append(f"Estado del partido: {status}.")
+    if not pieces:
+        pieces.append("Contexto calculado con los datos disponibles en NeMeSiS.")
+    return safe_html(compact_text(" ".join(pieces), 180))
+
+
+def _reasons_for_pick(pick) -> list[str]:
+    raw_values = [
+        pick.get("reasoning"), pick.get("reason"), pick.get("motivo"), pick.get("why"),
+        pick.get("analysis"), pick.get("headline"), pick.get("summary"),
+    ]
+    reasons = []
+    for raw in raw_values:
+        text = compact_text(raw, 170)
+        if text and not _PENDING_PICK_RE.search(text) and text not in reasons:
+            reasons.append(text)
+        if len(reasons) >= 2:
+            break
+    if not reasons:
+        reasons.append("SHARK detecta una señal positiva con cuota real, mercado definido y riesgo controlado.")
+    return [safe_html(r) for r in reasons[:2]]
+
+
+def _risk_controls(pick) -> list[str]:
+    raw_values = [pick.get("warning_reason"), pick.get("warning"), pick.get("risk_note"), pick.get("caution"), pick.get("avoid_reason")]
+    controls = []
+    for raw in raw_values:
+        text = compact_text(raw, 150)
+        if text and text not in controls:
+            controls.append(text)
+        if len(controls) >= 2:
+            break
+    if not controls:
+        controls.append("No subir stake si la cuota cae demasiado o aparecen bajas relevantes antes del inicio.")
+    return [safe_html(c) for c in controls[:2]]
+
+
+def _entry_rule_text(pick) -> str:
+    odds = _clean_odds(pick.get("odds"))
+    if odds:
+        try:
+            min_odds = max(1.01, float(odds) - 0.08)
+            return f"Entrar solo si la cuota se mantiene cerca de {float(odds):.2f}; evitar si baja de {min_odds:.2f}."
+        except Exception:
+            pass
+    return "Entrar solo con cuota disponible y mercado confirmado antes del inicio."
+
+
+def _professional_footer() -> str:
+    return "⚠️ Gestión SHARK: stake responsable, sin perseguir pérdidas y sin convertir una señal en obligación."
+
+
+def _localize_pick_for_telegram(pick) -> dict:
+    raw = dict(pick or {})
+    localized = apply_pick_localization(raw)
+    # Keep original datetime fields when localization receives a non-standard payload and truncates them.
+    for key in ("kickoff_iso", "kickoff_time", "commence_time", "start_time", "event_time", "datetime", "date_time", "kickoff", "match_date", "match_time", "date", "time"):
+        raw_value = raw.get(key)
+        loc_value = localized.get(key)
+        if raw_value not in (None, "") and (loc_value in (None, "") or str(loc_value).strip().endswith("-") or str(loc_value).strip() == "Hora pendiente"):
+            localized[key] = raw_value
+    return localized
+
+
+def _premium_pick_card(pick, index: int | None = None, detailed: bool = True) -> list[str]:
+    selection = _selection_text(pick)
+    odds = _clean_odds(pick.get("odds"))
+    comp = safe_html(_competition_name(pick))
+    date = safe_html(_display_datetime(pick))
+    market = safe_html(_market_text(pick))
+    risk = safe_html(_risk_text(pick))
+    score = safe_html(_pick_score(pick))
+    quality = _quality_badge(pick)
+    title_prefix = f"<b>{index}." if index else "<b>"
+    title_suffix = "</b>" if index else "</b>"
+    lines = [
+        f"{title_prefix} {_match_title(pick)}{title_suffix}",
+        f"{_competition_emoji(pick)} <b>{comp}</b>",
+        f"📅 <b>{date}</b>",
+        f"🎯 <b>Entrada:</b> {safe_html(selection)}",
+        f"📌 <b>Mercado:</b> {market}",
+        f"💰 <b>Cuota:</b> {safe_html(odds)} · {_bookmaker_text(pick)}",
+        f"🧮 <b>Stake:</b> {_stake_text(pick)} · {_stake_money_text(pick)}",
+        f"📊 <b>SHARK:</b> {score}/100 {_confidence_bar(pick)} · {quality}",
+        f"💎 <b>Edge:</b> {_ev_text(pick)} · Prob. SHARK: {_probability_text(pick)}",
+        f"⚠️ <b>Riesgo:</b> {risk}",
+    ]
+    if not detailed:
+        lines.append(f"🛡️ <b>Condición:</b> {safe_html(_entry_rule_text(pick))}")
+        return lines
+    lines.extend([
+        "",
+        "<b>🧠 Lectura SHARK</b>",
+        f"• {_pick_context_text(pick)}",
+    ])
+    for reason in _reasons_for_pick(pick):
+        lines.append(f"• {reason}")
+    lines.extend([
+        "",
+        "<b>🛡️ Gestión y riesgos</b>",
+        f"• {safe_html(_entry_rule_text(pick))}",
+        f"• Movimiento cuota: {_odds_movement_text(pick)}.",
+    ])
+    for control in _risk_controls(pick):
+        lines.append(f"• {control}")
+    lines.extend([
+        "",
+        "<b>✅ Conclusión</b>",
+        f"Entrada válida solo si se mantiene cuota, mercado y lectura previa al partido. Perfil {risk.lower()} con stake {_stake_text(pick)}.",
+    ])
+    return lines
+
+
 def format_match_line(match) -> str:
     if not is_telegram_football_item(match or {}):
         return ""
@@ -462,43 +685,22 @@ def build_daily_matches_message(matches, date_key, premium_name="NeMeSiS SHARK P
 def build_single_pick_message(pick, premium_name="NeMeSiS SHARK PRO", title="🦈 PICK SHARK PREMIUM") -> str:
     if not is_telegram_football_item(pick or {}):
         return ""
-    pick = enrich_pick_quality(apply_pick_localization(pick))
+    pick = enrich_pick_quality(_localize_pick_for_telegram(pick))
     selection = _selection_text(pick)
     odds = _clean_odds(pick.get("odds"))
     if not selection or not odds:
         return ""
-    comp = safe_html(_competition_name(pick))
-    date = safe_html(_display_datetime(pick))
-    market = safe_html(_market_text(pick))
-    risk = safe_html(_risk_text(pick))
-    reason = compact_text(pick.get("reasoning") or pick.get("reason") or "SHARK detecta una señal positiva con los datos disponibles.", 210)
-    warning = compact_text(pick.get("warning_reason") or pick.get("warning") or "Revisar alineaciones y no subir stake si la cuota baja demasiado.", 180)
     lines = [
         f"<b>{safe_html(title)}</b>",
+        f"<b>{safe_html(premium_name)}</b> · <i>Lectura profesional prepartido</i>",
         _SEPARATOR,
-        f"{_competition_emoji(pick)} <b>{comp}</b>",
-        f"🕘 <b>{date}</b>",
-        "",
-        f"<b>{_match_title(pick)}</b>",
-        "",
-        f"✅ <b>Pick:</b> {safe_html(selection)}",
-        f"🎯 <b>Mercado:</b> {market}",
-        f"💰 <b>Cuota:</b> {safe_html(odds)}",
-        f"📌 <b>Stake:</b> {_stake_text(pick)}",
-        f"📊 <b>Confianza SHARK:</b> {_pick_score(pick)}/100",
-        f"🏅 <b>Calidad:</b> {safe_html(str(pick.get('quality_score') or _pick_score(pick)))}/100 · {safe_html(pick.get('quality_label') or 'Filtro SHARK')}",
-        f"⚠️ <b>Riesgo:</b> {risk}",
-        f"💎 <b>Value:</b> {_pick_value_label(pick)}",
-        "",
-        f"✅ <b>Motivo:</b> {safe_html(reason)}",
-        f"🛡️ <b>Precaución:</b> {safe_html(warning)}",
-        "",
-        "Juego responsable: ningún pick garantiza resultado.",
     ]
-    match_url = _match_url_line(pick, "Abrir partido y análisis SHARK")
+    lines.extend(_premium_pick_card(pick, detailed=True))
+    match_url = _match_url_line(pick, "Abrir partido, cuotas y análisis SHARK")
     if match_url:
-        lines.extend([_SOFT_SEPARATOR, match_url])
-    return _limit_message("\n".join(line for line in lines if line is not None).strip(), 3800)
+        lines.extend(["", _SOFT_SEPARATOR, match_url])
+    lines.extend(["", _SOFT_SEPARATOR, _professional_footer()])
+    return _limit_message("\n".join(line for line in lines if line is not None).strip(), 3900)
 
 
 def build_daily_picks_message(picks, force_empty=False, premium_name="NeMeSiS SHARK PRO") -> str:
@@ -506,7 +708,7 @@ def build_daily_picks_message(picks, force_empty=False, premium_name="NeMeSiS SH
     for raw in picks or []:
         if not is_telegram_football_item(raw or {}):
             continue
-        pick = enrich_pick_quality(apply_pick_localization(raw))
+        pick = enrich_pick_quality(_localize_pick_for_telegram(raw))
         if pick.get("premium_ready") and _selection_text(pick) and _clean_odds(pick.get("odds")):
             clean.append(pick)
     clean = sort_picks_by_quality(clean)
@@ -514,36 +716,34 @@ def build_daily_picks_message(picks, force_empty=False, premium_name="NeMeSiS SH
         if not force_empty:
             return ""
         return "\n".join([
-            "<b>🦈 SHARK PICKS</b>",
+            "<b>🦈 SHARK PICKS PREMIUM</b>",
+            f"<b>{safe_html(premium_name)}</b>",
             _SEPARATOR,
-            "Ahora mismo no hay picks premium cerrados con cuota real.",
-            "SHARK seguirá revisando partidos, cuotas y riesgo antes de publicar.",
+            "Ahora mismo no hay picks premium cerrados con cuota real, mercado claro y riesgo controlado.",
+            "SHARK seguirá revisando calendario, cuotas y señales antes de publicar.",
             "⚠️ Mejor no enviar una apuesta débil que forzar una señal sin valor.",
         ])
     if len(clean) == 1:
         return build_single_pick_message(clean[0], premium_name=premium_name)
+    top = clean[:3]
     lines = [
         "<b>🦈 PICKS SHARK PREMIUM</b>",
-        f"<b>{safe_html(premium_name)}</b>",
+        f"<b>{safe_html(premium_name)}</b> · <i>Selección profesional del día</i>",
         _SEPARATOR,
-        f"✅ <b>{len(clean[:3])} señales con cuota real</b>",
+        f"✅ <b>{len(top)} señales con cuota real y filtro SHARK</b>",
+        "📍 Ordenadas por calidad, relevancia, riesgo y hora Madrid.",
         "",
     ]
-    for index, pick in enumerate(clean[:3], start=1):
-        selection = _selection_text(pick)
-        odds = _clean_odds(pick.get("odds"))
-        lines.extend([
-            f"<b>{index}. {_match_title(pick)}</b>",
-            f"{_competition_emoji(pick)} {_competition_name(pick)} · 🕘 {_display_datetime(pick)}",
-            f"✅ {safe_html(selection)} · 💰 {safe_html(odds)} · 📌 {_stake_text(pick)}",
-            f"📊 Calidad {safe_html(str(pick.get('quality_score') or _pick_score(pick)))}/100 · {safe_html(pick.get('quality_label') or 'Filtro SHARK')} · ⚠️ Riesgo {_risk_text(pick)}",
-            "",
-        ])
+    for index, pick in enumerate(top, start=1):
+        lines.extend(_premium_pick_card(pick, index=index, detailed=False))
+        if index != len(top):
+            lines.append(_SOFT_SEPARATOR)
     lines.extend([
         _SEPARATOR,
-        "🛡️ Revisa alineaciones y mantén stake controlado.",
+        "🧠 SHARK publica menos, pero mejor: cuota real, mercado entendible y stake controlado.",
+        _professional_footer(),
     ])
-    return _limit_message("\n".join(lines).strip(), 3800)
+    return _limit_message("\n".join(lines).strip(), 3900)
 
 
 def build_combi_message(picks, combi_type="media", premium_name="NeMeSiS SHARK PRO") -> str:
@@ -553,7 +753,7 @@ def build_combi_message(picks, combi_type="media", premium_name="NeMeSiS SHARK P
     for raw in picks or []:
         if not is_telegram_football_item(raw or {}):
             continue
-        pick = enrich_pick_quality(apply_pick_localization(raw))
+        pick = enrich_pick_quality(_localize_pick_for_telegram(raw))
         selection = _selection_text(pick)
         odds = _clean_odds(pick.get("odds"))
         key = f"{_norm(_team_name(pick, 'home'))}:{_norm(_team_name(pick, 'away'))}:{pick.get('match_date') or ''}"
