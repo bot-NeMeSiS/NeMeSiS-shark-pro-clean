@@ -1,12 +1,12 @@
 {
-  "version": "V748_ADMIN_CLIENT_TELEGRAM_SECURITY_ROUTE_HOTFIX",
-  "created_at": "2026-06-13T12:08:43",
-  "zip": "NeMeSiS_SHARK_PRO_V748_ADMIN_CLIENT_TELEGRAM_SECURITY_ROUTE_HOTFIX_RENDER_READY.zip",
-  "zip_path": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\release_output\\NeMeSiS_SHARK_PRO_V748_ADMIN_CLIENT_TELEGRAM_SECURITY_ROUTE_HOTFIX_RENDER_READY.zip",
+  "version": "V748_ADMIN_CLIENT_TELEGRAM_SECURITY_PRODUCTION_HOTFIX",
+  "created_at": "2026-06-13T12:16:08",
+  "zip": "NeMeSiS_SHARK_PRO_V748_ADMIN_CLIENT_TELEGRAM_SECURITY_PRODUCTION_HOTFIX_RENDER_READY.zip",
+  "zip_path": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\release_output\\NeMeSiS_SHARK_PRO_V748_ADMIN_CLIENT_TELEGRAM_SECURITY_PRODUCTION_HOTFIX_RENDER_READY.zip",
   "zip_inside_project_tree": true,
   "output_dir": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\release_output",
   "manifest": "RELEASE_MANIFEST_V748.json",
-  "files": 428,
+  "files": 430,
   "internal_zips": [],
   "has_internal_zips": false,
   "forbidden_folders_included": [],
@@ -180,6 +180,6 @@
   ],
   "security_policy": "No incluye .git, .venv, caches, bases de datos locales, logs, ZIPs internos ni secretos reales.",
   "render_ready": true,
-  "zip_size_bytes": 743872,
-  "zip_file_count": 428
+  "zip_size_bytes": 747472,
+  "zip_file_count": 430
 }

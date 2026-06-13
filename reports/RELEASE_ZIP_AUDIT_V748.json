@@ -1,16 +1,16 @@
 {
   "ok": true,
-  "audited_at": "2026-06-13T12:08:43",
-  "zip": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\release_output\\NeMeSiS_SHARK_PRO_V748_ADMIN_CLIENT_TELEGRAM_SECURITY_ROUTE_HOTFIX_RENDER_READY.zip",
-  "zip_size_bytes": 743872,
-  "file_count": 428,
-  "content_size_bytes": 2376623,
+  "audited_at": "2026-06-13T12:16:08",
+  "zip": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\release_output\\NeMeSiS_SHARK_PRO_V748_ADMIN_CLIENT_TELEGRAM_SECURITY_PRODUCTION_HOTFIX_RENDER_READY.zip",
+  "zip_size_bytes": 747472,
+  "file_count": 430,
+  "content_size_bytes": 2384306,
   "forbidden_count": 0,
   "forbidden": [],
   "top_files": [
     {
       "path": "app.py",
-      "size": 575430
+      "size": 575434
     },
     {
       "path": "static/app.css",
@@ -34,7 +34,7 @@
     },
     {
       "path": "V726_PURGE_REPORT.md",
-      "size": 25606
+      "size": 25896
     },
     {
       "path": "engines/shark_prediction_engine.py",
@@ -97,7 +97,7 @@
     },
     {
       "folder": "app.py",
-      "size": 575430,
+      "size": 575434,
       "files": 1
     },
     {
@@ -107,8 +107,8 @@
     },
     {
       "folder": "tools",
-      "size": 128529,
-      "files": 46
+      "size": 132995,
+      "files": 47
     },
     {
       "folder": "static",
@@ -127,7 +127,7 @@
     },
     {
       "folder": "V726_PURGE_REPORT.md",
-      "size": 25606,
+      "size": 25896,
       "files": 1
     },
     {
@@ -141,6 +141,11 @@
       "files": 1
     },
     {
+      "folder": "reports",
+      "size": 7953,
+      "files": 3
+    },
+    {
       "folder": "services",
       "size": 7327,
       "files": 6
@@ -152,7 +157,7 @@
     },
     {
       "folder": "RELEASE_MANIFEST_V748.json",
-      "size": 6660,
+      "size": 6675,
       "files": 1
     },
     {
@@ -179,11 +184,6 @@
       "folder": "V728_FINAL_CLIENT_EXPERIENCE_MADRID_TIME_LIVE_POLISH_REPORT.md",
       "size": 5182,
       "files": 1
-    },
-    {
-      "folder": "reports",
-      "size": 5096,
-      "files": 2
     },
     {
       "folder": "V742_SALE_READY_LIVE_DETAIL_TRACK_RECORD_TELEGRAM_FINAL_POLISH_REPORT.md",

@@ -3,9 +3,9 @@
 ## Resultado
 
 - Estado: OK
-- ZIP auditado: `release_output/NeMeSiS_SHARK_PRO_V748_ADMIN_CLIENT_TELEGRAM_SECURITY_ROUTE_HOTFIX_RENDER_READY.zip`
-- Archivos incluidos: 427
-- Tamaño ZIP: 743367 bytes
+- ZIP auditado: `release_output/NeMeSiS_SHARK_PRO_V748_ADMIN_CLIENT_TELEGRAM_SECURITY_PRODUCTION_HOTFIX_RENDER_READY.zip`
+- Archivos incluidos: 430
+- Tamaño ZIP: 747468 bytes
 - Archivos prohibidos detectados: 0
 
 ## Política verificada

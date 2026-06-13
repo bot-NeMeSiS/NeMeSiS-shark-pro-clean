@@ -146,7 +146,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V748_ADMIN_CLIENT_TELEGRAM_SECURITY_ROUTE_HOTFIX"
+APP_VERSION = "V748_ADMIN_CLIENT_TELEGRAM_SECURITY_PRODUCTION_HOTFIX"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -12273,7 +12273,7 @@ def v570_shark_core_page():
 
 @app.route("/inteligencia")
 def v570_inteligencia_alias():
-    return redirect("/shark-core")
+    return v570_shark_core_page()
 
 
 @app.route("/admin/shark-center")
