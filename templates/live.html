@@ -1,12 +1,5 @@
 {% extends "base.html" %}
 {% block content %}
-{% if data.v758_adaptive is defined %}{% include "partials/v758_adaptive_strip.html" %}{% endif %}
-
-<section class="band compact-band v759-release-strip">
-  <div class="section-head"><div><h2>Directo compacto</h2><p class="small">Marcador, minuto, estado, favorito y pick relacionado primero. Si no hay directos, la app te lleva al calendario.</p></div><span class="pill">V759</span></div>
-  <div class="v759-quick-grid"><a class="quick" href="/live?f=live"><span>Live</span><strong>minuto</strong></a><a class="quick" href="/live?f=today"><span>Hoy</span><strong>todo</strong></a><a class="quick" href="/live?f=picks"><span>Con pick</span><strong>SHARK</strong></a><a class="quick" href="/calendar"><span>Calendario</span><strong>seguir</strong></a></div>
-</section>
-
 {% set live = data.live_experience or {} %}
 {% set counts = live.counts or {} %}
 {% set lane_label = (live.lane_labels or {}).get(live.lane, live.lane or 'Directo') %}
@@ -14,7 +7,7 @@
 <section class="scoreboard-hero v701-scoreboard live-board v742-live-hero v750-live-hero">
   <div>
     <div class="kicker">Directo SHARK · hora Madrid</div>
-    <h1>Live premium</h1>
+    <h1>Directo, resultados y próximos partidos</h1>
     <p class="lead">Marcador, minuto, día exacto y estado claro. Los finalizados muestran resultado y los próximos quedan separados por hora Madrid.</p>
     <div class="v750-live-actions">
       <a class="btn primary" href="/live?f=live">En directo</a>
@@ -110,7 +103,7 @@
 
             <div class="v750-live-card-meta v761-live-meta">
               <span>{{ m.live_competition_display|competition_es }}</span>
-              <span>Día: {{ m.live_date_label or (m|match_date_label) }} · Hora: {{ m.live_time_label or (m|match_time_short) }}</span>
+              <span>{{ m.client_full_datetime_label or (m|match_full_datetime) }}</span>
               {% if m.live_bucket == 'finished' %}<strong>Finalizado · {{ m.live_score_label or 'resultado pendiente' }}</strong>{% elif m.live_bucket == 'live' %}<strong>En juego · {{ m.live_clock_label or 'minuto pendiente' }}</strong>{% elif m.has_pick or m.pick_id %}<strong>Pick SHARK disponible</strong>{% elif m.is_favorite %}<strong>Favorito</strong>{% else %}<strong>Ver detalle</strong>{% endif %}
             </div>
           </a>

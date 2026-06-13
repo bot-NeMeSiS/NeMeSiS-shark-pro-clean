@@ -1,20 +1,5 @@
 {% extends "base.html" %}
 {% block content %}
-{% if data.v758_adaptive is defined %}{% include "partials/v758_adaptive_strip.html" %}{% endif %}
-
-<section class="band compact-band v759-release-strip">
-  <div class="section-head"><div><h2>Calendario sin ruido</h2><p class="small">Hoy, semana, favoritos, picks y directo se priorizan para encontrar rápido qué merece atención.</p></div><span class="pill">V759</span></div>
-  <div class="v759-quick-grid"><a class="quick" href="/calendar?lane=today"><span>Hoy</span><strong>ahora</strong></a><a class="quick" href="/calendar?lane=tomorrow"><span>Mañana</span><strong>previa</strong></a><a class="quick" href="/calendar?lane=week"><span>Semana</span><strong>agenda</strong></a><a class="quick" href="/live"><span>Directo</span><strong>live</strong></a></div>
-</section>
-
-{% set v757 = data.v757_app if data.v757_app is defined else {} %}
-{% if v757 %}
-<section class="band compact-band v757-calendar-strip">
-  <div class="section-head"><div><h2>Ruta rápida del día</h2><p class="small">Calendario conectado con picks, directo, favoritos y track record.</p></div><a class="pill" href="/app">Centro app</a></div>
-  <div class="v757-action-row">{% for a in v757.get('next_actions', [])[:5] %}<a class="quick v756-quick" href="{{ a.href }}"><span>{{ a.title }}</span><strong>{{ a.badge }}</strong></a>{% endfor %}</div>
-</section>
-{% endif %}
-
 {% set calendar = data.calendar %}
 {% set filters = calendar.filters %}
 
@@ -22,7 +7,7 @@
   <div>
     <div class="kicker">Calendario premium · búsqueda de partidos</div>
     <h1>Partidos por día, liga y equipo</h1>
-    <p class="lead">Busca rápido, filtra por importancia y entra al detalle del partido sin perderte entre pantallas.</p>
+    <p class="lead">Busca rápido, filtra por día, liga y equipo. Cada tarjeta muestra fecha, hora Madrid, estado, marcador y si tiene pick.</p>
     <div class="calendar-hero-actions">
       <a class="btn primary" href="/calendar?lane=today">Hoy</a>
       <a class="btn" href="/calendar?lane=week">Semana</a>
@@ -40,8 +25,8 @@
 
 
 {% set v756_calendar = data.client_premium.calendar if data.client_premium is defined else {} %}
-<section class="band compact-band v756-calendar-guide">
-  <div class="section-head"><div><h2>Agenda inteligente</h2><p class="small">{{ v756_calendar.guide or 'Directos, picks, favoritos y hora Madrid siempre primero.' }}</p></div><span class="pill">V756</span></div>
+<section class="band compact-band v756-calendar-guide client-only-context">
+  <div class="section-head"><div><h2>Agenda inteligente</h2><p class="small">{{ v756_calendar.guide or 'Directos, picks, favoritos y hora Madrid siempre primero.' }}</p></div><span class="pill">Agenda</span></div>
   <div class="v756-kpi-grid compact">
     {% for card in v756_calendar.get('summary', []) %}<div class="v756-kpi-card"><span>{{ card.label }}</span><strong>{{ card.value }}</strong><small>calendario</small></div>{% endfor %}
   </div>
@@ -156,7 +141,7 @@
           <a class="calendar-match-card favorite-scope {% if live_depth.get('badge') == 'live' %}is-live{% endif %} {% if m.has_pick %}has-pick{% endif %}" href="/match/{{ m.id }}">
             <button class="fav-star {% if m.is_favorite %}active{% endif %}" type="button" data-kind="match" data-value="{{ m.id }}" data-label="{{ m.safe_home }} vs {{ m.safe_away }}" aria-label="Favorito">★</button>
             <div class="calendar-match-topline">
-              <span class="calendar-time {% if live_depth.get('badge') == 'live' %}live-time{% endif %}">{% if live_depth.get('badge') == 'live' %}{{ live_depth.get('minute') or 'En directo' }}{% else %}{{ m|match_time_short }}{% endif %}</span>
+              <span class="calendar-time {% if live_depth.get('badge') == 'live' %}live-time{% endif %}"><strong>{{ m.client_date_label or (m|match_date_label) }}</strong><small>{% if live_depth.get('badge') == 'live' %}{{ live_depth.get('minute') or 'En directo' }}{% else %}{{ m.client_time_label or (m|match_time_short) }}{% endif %}</small></span>
               <span class="state-badge {{ live_depth.get('badge','upcoming') }}">{{ live_depth.get('label') or m.calendar_status }}</span>
             </div>
             <div class="calendar-teams">
@@ -170,9 +155,9 @@
                 <strong class="calendar-team-name">{{ m.safe_away }}</strong>
               </div>
             </div>
-            <div class="calendar-card-meta v761-calendar-meta">
-              <span>{{ m.calendar_competition|competition_es }}</span>
-              <span>Fecha: {{ m|match_date_label }} · {{ m|match_time_short }}</span>
+            <div class="calendar-card-meta v761-calendar-meta v762-card-meta">
+              <span>{{ m.client_competition or m.calendar_competition|competition_es }}</span>
+              <span>{{ m.client_full_datetime_label or (m|match_full_datetime) }}</span>
               {% if live_depth.get('badge') == 'finished' or m.calendar_status == 'Finalizado' %}
                 <strong>Finalizado · {{ m.calendar_score or 'resultado pendiente' }}</strong>
               {% elif live_depth.get('badge') == 'live' %}
@@ -199,7 +184,7 @@
   {% else %}
   <div class="empty premium-empty calendar-empty-state">
     <strong>No hay partidos para esta búsqueda.</strong>
-    <p>Prueba con Hoy, Mañana, Semana, otra liga o el buscador por equipo. Si producción está recién desplegada, ejecuta Cron/SportsDB para sincronizar datos reales.</p>
+    <p>Prueba con Hoy, Mañana, Semana, otra liga o el buscador por equipo. Si la app acaba de actualizarse, los partidos aparecerán cuando se sincronicen los datos deportivos reales.</p>
     <div class="actions"><a class="btn primary" href="/calendar?lane=today">Hoy</a><a class="btn" href="/calendar?lane=week">Semana</a><a class="btn" href="/sports-hub">Inicio deportivo</a></div>
   </div>
   {% endif %}

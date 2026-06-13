@@ -33,7 +33,7 @@
     <div class="match-scorebox">
       <span class="state-badge {{ state.badge or 'upcoming' }}">{{ state.label or 'Próximo' }}</span>
       <strong>{{ score }}</strong>
-      <small>{% if state.is_live %}{{ state.minute or 'En directo' }}{% else %}{{ m|match_time_short }}{% endif %}</small>
+      <small>{% if state.is_live %}{{ state.minute or 'En directo' }} · {{ m|match_date_label }}{% else %}{{ m|match_full_datetime }}{% endif %}</small>
     </div>
   </div>
   <div class="match-versus">
@@ -44,7 +44,7 @@
     <div class="versus-center">
       <button class="btn fav-star {% if m.is_favorite %}active{% endif %}" type="button" data-kind="match" data-value="{{ m.id }}" data-label="{{ home }} vs {{ away }}">★ Favorito</button>
       <div class="score-main">{{ score }}</div>
-      <div class="small">{{ m|match_time_label }}</div>
+      <div class="small">{{ m|match_full_datetime }}</div>
       <span class="shark-pill">SHARK {{ shark_score or 'en cálculo' }}</span>
     </div>
     <div class="match-side">
@@ -99,7 +99,7 @@
       {% if detail.related_picks %}<a class="btn" href="/picks">Ver picks relacionados</a>{% endif %}
       <a class="btn" href="/team/{{ (m._raw_home_team or home)|urlencode }}">Ver {{ home }}</a>
       <a class="btn" href="/team/{{ (m._raw_away_team or away)|urlencode }}">Ver {{ away }}</a>
-      <a class="btn" href="/sports-hub">Volver a partidos</a>
+      <a class="btn" href="/calendar">Volver a partidos</a>
     </div>
   </div>
 </section>
@@ -119,7 +119,7 @@
   </div>
   <div class="card">
     <div class="section-head"><h2>Contexto</h2><span class="pill">{{ comp|competition_es }}</span></div>
-    <p class="small">Hora Madrid: <strong>{{ m|match_time_label }}</strong></p>
+    <p class="small">Día y hora Madrid: <strong>{{ m|match_full_datetime }}</strong></p>
     <p class="small">Estado: <strong>{{ state.label or 'Próximo' }}</strong></p>
     <p class="small">Marcador: <strong>{{ score if score != 'vs' else 'Sin marcador sincronizado' }}</strong></p>
     <p class="small">SHARK no fuerza predicciones cuando faltan cuota, mercado o resultado fiable.</p>

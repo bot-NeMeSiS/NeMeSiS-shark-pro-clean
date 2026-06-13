@@ -1,23 +1,5 @@
 {% extends "base.html" %}
 {% block content %}
-{% if data.v758_adaptive is defined %}{% include "partials/v758_adaptive_strip.html" %}{% endif %}
-
-<section class="band compact-band v759-release-strip">
-  <div class="section-head"><div><h2>Picks como producto estrella</h2><p class="small">Mercado, cuota, stake, riesgo, confianza y explicación SHARK en una lectura corta. Sin cuota inventada y sin ROI falso.</p></div><span class="pill">V759</span></div>
-  <div class="v759-quick-grid"><a class="quick" href="/picks?filtro=top"><span>TOP</span><strong>calidad</strong></a><a class="quick" href="/picks?filtro=pro"><span>PRO</span><strong>valor</strong></a><a class="quick" href="/picks?filtro=telegram"><span>Telegram</span><strong>enviados</strong></a><a class="quick" href="/calendar?lane=with_pick"><span>Partidos</span><strong>con pick</strong></a></div>
-</section>
-
-{% set v757 = data.v757_app if data.v757_app is defined else {} %}
-{% if v757 %}
-<section class="band compact-band v757-picks-trust">
-  <div class="section-head"><div><h2>Lectura rápida de picks</h2><p class="small">Prioriza mercado claro, cuota, hora Madrid, riesgo y no publicar por publicar.</p></div><a class="pill" href="/app">Centro app</a></div>
-  <div class="v757-kpi-grid compact">
-    {% for k in v757.get('kpis', []) %}<a class="v757-kpi" href="{{ k.href }}"><span>{{ k.label }}</span><strong>{{ k.value }}</strong><small>{{ k.hint }}</small></a>{% endfor %}
-  </div>
-  <div class="v757-action-row">{% for a in v757.get('next_actions', [])[:4] %}<a class="quick v756-quick" href="{{ a.href }}"><span>{{ a.title }}</span><strong>{{ a.badge }}</strong></a>{% endfor %}</div>
-</section>
-{% endif %}
-
 <section class="scoreboard-hero v701-scoreboard picks-board v740-hero-polish">
   <div>
     <div class="kicker">Picks SHARK</div>
@@ -41,19 +23,16 @@
 
 <section class="sports-tabs v701-tabs">
   <a class="tab-link active" href="/picks">Picks</a>
-  <a class="tab-link" href="#premium">Premium</a>
-  <a class="tab-link" href="#en-estudio">En estudio</a>
-  <a class="tab-link" href="/picks?filtro=seguros">Seguros</a>
-  <a class="tab-link" href="/picks?filtro=value">Value</a>
-  <a class="tab-link" href="/recomendaciones">Recomendaciones</a>
-  <a class="tab-link" href="/combis">Combis</a>
-  <a class="tab-link" href="/calendar">Partidos</a>
-  <a class="tab-link" href="/telegram">Telegram</a>
+  <a class="tab-link" href="/picks?filtro=hoy">Hoy</a>
+  <a class="tab-link" href="/picks?filtro=proximos">Próximos</a>
+  <a class="tab-link" href="/picks?filtro=top">TOP</a>
+  <a class="tab-link" href="/picks?filtro=telegram">Telegram</a>
+  <a class="tab-link" href="/calendar?lane=with_pick">Partidos con pick</a>
 </section>
 
 
 {% set v756_picks = data.client_premium.picks if data.client_premium is defined else {} %}
-<section class="band compact-band v756-picks-command">
+<section class="band compact-band v756-picks-command client-only-context">
   <div class="section-head">
     <div><h2>Centro de picks</h2><p class="small">Filtra señales, distingue premium real de estudio y entra al partido sin perder contexto.</p></div>
     <span class="pill">Plan {{ v756_picks.plan or 'FREE' }}</span>
@@ -91,7 +70,7 @@
       <div class="match-top v740-card-top">
         <div>
           <div class="comp-name">{{ (p.competition_name or p.league_name or p.competition_key or 'Competición')|competition_es }}</div>
-          <div class="small">{{ p.madrid_display or p.display_datetime or p.match_date or 'Fecha pendiente' }} · {{ (p.market or 'Mercado')|market_es }}</div>
+          <div class="small">{{ p.client_match_label or (p.home_team ~ ' vs ' ~ p.away_team) }} · {{ p.client_full_datetime_label or p.madrid_display or p.display_datetime or p.match_date or 'Hora Madrid pendiente' }} · {{ (p.market or 'Mercado')|market_es }}</div>
         </div>
         <span class="badge badge-{{ p.membership_required|lower }}">{{ p.quality_label or p.membership_required or 'FREE' }}</span>
       </div>
@@ -109,8 +88,8 @@
       </div>
 
       <div class="pick-mainline v740-pick-mainline">
-        <div><span>Pick SHARK</span><strong>{{ p.selection_display or p.selection or 'Selección pendiente' }}</strong></div>
-        <div><span>Cuota</span><strong>{{ p.odds or 'Pendiente' }}</strong></div>
+        <div><span>Pick SHARK</span><strong>{{ p.client_selection_label or p.selection_display or p.selection or 'Selección pendiente' }}</strong><small>{{ p.client_match_label or '' }}</small></div>
+        <div><span>Cuota</span><strong>{{ p.client_odds_label or p.odds or 'Pendiente' }}</strong></div>
         <div><span>Stake</span><strong>{{ p.stake_units or 1 }}u</strong></div>
       </div>
 
@@ -141,7 +120,7 @@
         <p class="v740-conclusion"><strong>Conclusión:</strong> {{ p.analysis_conclusion or 'Entrada solo con cuota confirmada y stake responsable.' }}</p>
       </div>
 
-      <div class="inline-actions"><a class="btn small-btn" href="/match/{{ p.match_id }}">Ver análisis</a><a class="btn small-btn" href="/shark?pick={{ p.id }}">Preguntar a SHARK</a><a class="btn small-btn" href="/telegram">Telegram</a></div>
+      <div class="inline-actions"><a class="btn small-btn" href="{{ p.client_match_url or ('/match/' ~ p.match_id) }}">Ver partido</a><a class="btn small-btn" href="/shark?pick={{ p.id }}">Preguntar a SHARK</a><a class="btn small-btn" href="/telegram">Telegram</a></div>
     </article>
     {% endfor %}
   </div>
@@ -185,7 +164,7 @@
     {% set home_identity = p.home_identity|default({}) %}
     {% set away_identity = p.away_identity|default({}) %}
     <article class="card study-card v740-study-card">
-      <div class="match-top"><div><div class="comp-name">{{ (p.competition_name or p.league_name or 'Competición')|competition_es }}</div><div class="small">{{ p.madrid_display or p.display_datetime or p.match_date or 'Fecha pendiente' }} · {{ (p.market or 'Mercado')|market_es }}</div></div><span class="shark-pill">{{ p.quality_label or 'En estudio' }}</span></div>
+      <div class="match-top"><div><div class="comp-name">{{ (p.competition_name or p.league_name or 'Competición')|competition_es }}</div><div class="small">{{ p.client_match_label or (p.home_team ~ ' vs ' ~ p.away_team) }} · {{ p.client_full_datetime_label or p.madrid_display or p.display_datetime or p.match_date or 'Hora Madrid pendiente' }} · {{ (p.market or 'Mercado')|market_es }}</div></div><span class="shark-pill">{{ p.quality_label or 'En estudio' }}</span></div>
       <div class="pick-teams-pro v740-team-strip compact">
         <div class="pick-team-pro"><span class="crest compact-crest {{ home_identity.get('ui_class','crest-fallback') }}"><img loading="lazy" src="{{ home_identity.get('crest_url','') }}" alt="{{ p.home_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ home_identity.get('flag_emoji') or home_identity.get('initials', (p.home_team or 'L')[:1]) }}'"></span><strong>{{ p.home_team }}</strong></div>
         <span class="pick-versus-pro">VS</span>

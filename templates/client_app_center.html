@@ -41,13 +41,13 @@
   <article class="card v757-panel">
     <div class="section-head"><h2>Focos deportivos</h2><a class="pill" href="/calendar">Calendario</a></div>
     <div class="stack">
-      {% for m in v.focus_matches %}<a class="list-row v757-row" href="{{ m.href }}"><span><strong>{{ m.title }}</strong><small>{{ m.competition }} · {{ m.time }}</small></span>{% if m.has_pick %}<em>Pick</em>{% endif %}</a>{% else %}<div class="empty premium-empty">Sin focos deportivos reales todavía.</div>{% endfor %}
+      {% for m in v.focus_matches %}<a class="list-row v757-row" href="{{ m.href }}"><span><strong>{{ m.title }}</strong><small>{{ m.competition }} · {{ m.time }} · Hora Madrid</small></span>{% if m.has_pick %}<em>Pick</em>{% endif %}</a>{% else %}<div class="empty premium-empty">Sin focos deportivos reales todavía.</div>{% endfor %}
     </div>
   </article>
   <article class="card v757-panel">
     <div class="section-head"><h2>Picks destacados</h2><a class="pill" href="/picks">Picks</a></div>
     <div class="stack">
-      {% for p in v.featured_picks %}<a class="list-row v757-row" href="{{ p.href }}"><span><strong>{{ p.title }}</strong><small>Cuota {{ p.odds }} · Riesgo {{ p.risk }}</small></span><em>SHARK</em></a>{% else %}<div class="empty premium-empty">No hay picks premium listos. Mejor esperar valor real.</div>{% endfor %}
+      {% for p in v.featured_picks %}<a class="list-row v757-row" href="{{ p.href }}"><span><strong>{{ p.title }}</strong><small>Cuota {{ p.odds }} · Riesgo {{ p.risk }} · Ver partido para contexto completo</small></span><em>SHARK</em></a>{% else %}<div class="empty premium-empty">No hay picks premium listos. Mejor esperar valor real.</div>{% endfor %}
     </div>
   </article>
 </section>

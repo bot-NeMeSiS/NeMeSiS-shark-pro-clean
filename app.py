@@ -154,7 +154,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V761_CLIENT_SALE_READY_EXPERIENCE_ORDER_PERFECTION"
+APP_VERSION = "V762_CLIENT_CLARITY_MADRID_TIME_ADMIN_NOISE_POLISH"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -5370,7 +5370,7 @@ def live_data_flow(date=None):
     date = date or today_iso()
     hub = match_hub(date)
     favs = get_favorites()
-    picks = get_picks(limit=30)
+    picks = [enrich_pick_client_context(p) for p in get_picks(limit=30)]
     profile = default_profile()
     favorite_bundle = favorite_feed_full()
     flow = build_live_flow(hub, favorites=favs, picks=picks, profile=profile)
@@ -5612,6 +5612,146 @@ def jinja_match_time_label(value, status=None, minute=None):
 def jinja_match_date_label(value):
     item, _source = _jinja_match_time_source(value)
     return item.get("madrid_date_label") or item.get("safe_date") or item.get("match_date") or "Sin fecha"
+
+
+# ===================== V762 CLIENT CLARITY / MADRID TIME / ADMIN NOISE POLISH =====================
+
+def _client_str(value, fallback=""):
+    text = str(value or "").strip()
+    return text if text else fallback
+
+
+def _client_score_from_match(match):
+    match = dict(match or {})
+    score = _client_str(match.get("score") or match.get("live_score_label"))
+    if score and score.lower() not in {"vs", "none", "null", "-"}:
+        return score
+    home_score = _client_str(match.get("home_score"))
+    away_score = _client_str(match.get("away_score"))
+    if home_score != "" and away_score != "":
+        return f"{home_score}-{away_score}"
+    return "vs"
+
+
+def client_match_display_context(match):
+    """Return client-safe labels: no admin jargon, all visible dates in Madrid time."""
+    item = normalize_kickoff_for_display(dict(match or {}))
+    home = spanish_team_name(item.get("safe_home") or item.get("home_team") or item.get("home") or "") or "Equipo local"
+    away = spanish_team_name(item.get("safe_away") or item.get("away_team") or item.get("away") or "") or "Equipo visitante"
+    comp = spanish_competition_name(item.get("safe_competition") or item.get("competition_name") or item.get("league_name") or item.get("competition_key") or "") or "Competición"
+    date_label = item.get("madrid_date_label") or item.get("display_date_label") or item.get("safe_date") or "Fecha pendiente"
+    safe_date = item.get("safe_date") or item.get("madrid_date") or ""
+    time_label = item.get("madrid_time") or item.get("safe_time") or "Hora pendiente"
+    score = _client_score_from_match(item)
+    raw_status = _client_str(item.get("status") or item.get("safe_status") or item.get("calendar_status") or item.get("live_status_label"))
+    status_key = raw_status.lower()
+    minute = _client_str(item.get("minute") or (item.get("live_depth") or {}).get("minute") or item.get("live_clock_label"))
+    if any(x in status_key for x in ("final", "finished", "ft", "acabado")) or score != "vs" and any(x in status_key for x in ("final", "finished", "ft")):
+        status_label = "Finalizado"
+    elif any(x in status_key for x in ("live", "directo", "inplay", "1h", "2h")) or minute:
+        status_label = f"En directo · {minute}" if minute else "En directo"
+    else:
+        status_label = "Próximo"
+    if time_label and time_label != "Hora pendiente":
+        datetime_label = f"{date_label} · {time_label}"
+        full_label = f"{date_label} · {safe_date} · {time_label}" if safe_date and safe_date not in date_label else datetime_label
+    else:
+        datetime_label = f"{date_label} · Hora pendiente"
+        full_label = datetime_label
+    item.update({
+        "client_home": home,
+        "client_away": away,
+        "client_teams": f"{home} vs {away}",
+        "client_competition": comp,
+        "client_date_label": date_label,
+        "client_safe_date": safe_date,
+        "client_time_label": time_label,
+        "client_datetime_label": datetime_label,
+        "client_full_datetime_label": full_label,
+        "client_status_label": status_label,
+        "client_score_label": score,
+        "client_result_label": f"{status_label} · {score}" if score != "vs" else status_label,
+        "safe_home": home,
+        "safe_away": away,
+        "safe_competition": comp,
+        "safe_score": score,
+        "safe_status": status_label,
+    })
+    return item
+
+
+def enrich_pick_client_context(pick):
+    pick = dict(pick or {})
+    match = None
+    match_id = _client_str(pick.get("match_id"))
+    if match_id:
+        try:
+            match = one("SELECT * FROM matches WHERE id=?", (match_id,))
+        except Exception:
+            match = None
+    if match:
+        ctx = client_match_display_context(match)
+        for key in ("home_team", "away_team", "competition_name", "league_name", "match_date", "kickoff_time", "match_time", "status", "score", "home_score", "away_score"):
+            if not pick.get(key) and ctx.get(key):
+                pick[key] = ctx.get(key)
+        pick["client_match_id"] = match_id
+        pick["client_match_url"] = f"/match/{match_id}"
+        pick["client_match_label"] = ctx.get("client_teams")
+        pick["client_competition"] = ctx.get("client_competition")
+        pick["client_datetime_label"] = ctx.get("client_datetime_label")
+        pick["client_full_datetime_label"] = ctx.get("client_full_datetime_label")
+        pick["client_result_label"] = ctx.get("client_result_label")
+        pick["client_status_label"] = ctx.get("client_status_label")
+    else:
+        home = spanish_team_name(pick.get("home_team") or "") or "Partido"
+        away = spanish_team_name(pick.get("away_team") or "") or "por confirmar"
+        pick["client_match_label"] = f"{home} vs {away}" if home != "Partido" or away != "por confirmar" else "Partido pendiente de confirmar"
+        pick["client_match_url"] = f"/match/{match_id}" if match_id else "/picks"
+        pick["client_competition"] = spanish_competition_name(pick.get("competition_name") or pick.get("league_name") or pick.get("competition_key") or "") or "Competición"
+        try:
+            ctx = client_match_display_context(pick)
+            pick["client_datetime_label"] = ctx.get("client_datetime_label")
+            pick["client_full_datetime_label"] = ctx.get("client_full_datetime_label")
+            pick["client_status_label"] = ctx.get("client_status_label")
+        except Exception:
+            pick["client_datetime_label"] = "Hora Madrid pendiente"
+            pick["client_full_datetime_label"] = "Hora Madrid pendiente"
+            pick["client_status_label"] = "Pendiente"
+    market = spanish_market_name(pick.get("market") or pick.get("pick_type") or "") or "Mercado pendiente"
+    selection = spanish_pick_selection_name(pick.get("selection_display") or pick.get("selection") or pick.get("pick_label") or "") or "Selección pendiente"
+    odds = pick.get("odds")
+    pick["client_market_label"] = market
+    pick["client_selection_label"] = selection
+    pick["client_pick_title"] = f"{selection} · {market}" if market and market != selection else selection
+    pick["client_odds_label"] = str(odds) if odds not in (None, "", 0, 0.0, "0", "0.0") else "Cuota no disponible · revisar antes de entrar"
+    pick["client_summary_line"] = f"{pick.get('client_match_label')} · {pick.get('client_datetime_label')} · {pick.get('client_competition')}"
+    return pick
+
+
+@app.template_filter("match_full_datetime")
+def jinja_match_full_datetime(value):
+    return client_match_display_context(value).get("client_full_datetime_label")
+
+
+@app.template_filter("match_client_status")
+def jinja_match_client_status(value):
+    return client_match_display_context(value).get("client_result_label")
+
+
+@app.template_filter("pick_client_title")
+def jinja_pick_client_title(value):
+    return enrich_pick_client_context(value).get("client_pick_title")
+
+
+@app.template_filter("pick_client_subtitle")
+def jinja_pick_client_subtitle(value):
+    return enrich_pick_client_context(value).get("client_summary_line")
+
+
+def client_home_message(has_real_data):
+    if has_real_data:
+        return "Datos reales cargados. Revisa primero partidos de hoy, picks activos y directo."
+    return "Todavía no hay datos deportivos sincronizados. Cuando haya partidos o picks reales, aparecerán ordenados aquí."
 
 
 @app.context_processor
@@ -9076,7 +9216,7 @@ def dashboard_data(lane="today", date=None):
     upcoming_matches = get_upcoming_matches(date, days=7)
     comps = competitions()
     imports = rows("SELECT * FROM imports ORDER BY created_at DESC LIMIT 20")
-    picks = get_picks(limit=30)
+    picks = [enrich_pick_client_context(p) for p in get_picks(limit=30)]
     combis = get_combis(limit=12)
     profile = default_profile()
     favorites = get_favorites()
@@ -9253,6 +9393,7 @@ def home_live_summary_data():
             item["kickoff_time"] = item.get("kickoff_time") or item.get("match_time") or ""
             item.update(apply_match_localization(item))
             item.update(apply_team_identities_to_match(item))
+            item = client_match_display_context(item)
             upcoming_matches.append(item)
         except Exception:
             upcoming_matches.append(item)
@@ -9269,17 +9410,13 @@ def home_live_summary_data():
     picks = []
     for pick in raw_picks:
         try:
-            picks.append(normalize_pick_row(pick))
+            picks.append(enrich_pick_client_context(normalize_pick_row(pick)))
         except Exception:
             picks.append(pick)
 
     has_real_data = bool(upcoming or today_count or live_count or picks_count)
     data_status = "DATOS_REALES" if has_real_data else "PENDIENTE_SINCRONIZACION"
-    data_message = (
-        "Datos reales cargados desde la base persistente."
-        if has_real_data
-        else "Aún no hay partidos o picks sincronizados en producción. Ejecuta Cron/SportsDB/Odds y revisa el Command Center."
-    )
+    data_message = client_home_message(has_real_data)
     favorite_rows = _home_rows_sql(
         """SELECT * FROM favorites WHERE user_id=? ORDER BY created_at DESC LIMIT 6""",
         (current_user_id() or "",),
@@ -12627,7 +12764,7 @@ def v566_client_menu_items():
         {"group": "Picks", "title": "Picks SHARK", "body": "Mercado, cuota, stake, riesgo, motivo y estado Telegram.", "href": "/picks"},
         {"group": "Picks", "title": "Histórico real", "body": "Track Record con resultados auditables, sin ROI inventado.", "href": "/track-record"},
         {"group": "SHARK", "title": "SHARK IA", "body": "Pregunta por el mejor pick, qué evitar, combis, directo o value.", "href": "/shark"},
-        {"group": "Canal", "title": "Telegram", "body": "Vinculación, estado y avisos automáticos cuando hay candidato válido.", "href": "/telegram"},
+        {"group": "Canal", "title": "Telegram", "body": "Vinculación, estado y avisos cuando hay picks reales disponibles.", "href": "/telegram"},
         {"group": "Cuenta", "title": "Mi cuenta", "body": "Perfil, plan, favoritos, actividad y datos de acceso.", "href": "/mi-cuenta"},
         {"group": "Ayuda", "title": "Guía rápida", "body": "Cómo usar la app, qué mirar primero y cómo interpretar picks.", "href": "/guia"},
         {"group": "Ayuda", "title": "Soporte", "body": "Enviar una duda o incidencia sobre cuenta, picks, Telegram o partidos.", "href": "/ayuda"},

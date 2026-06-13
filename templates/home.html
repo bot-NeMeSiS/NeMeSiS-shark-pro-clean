@@ -47,30 +47,30 @@
 </section>
 
 <section class="v760-client-grid">
-  <article class="card v760-panel">
-    <div class="section-head"><div><h2>Próximos partidos claros</h2><p class="small">Ordenados por fecha y hora Madrid. Entra al detalle para picks y contexto.</p></div><a class="pill" href="/calendar">Calendario</a></div>
-    <div class="v760-list">
+  <article class="card v760-panel v762-client-clarity-panel">
+    <div class="section-head"><div><h2>Partidos de hoy y próximos</h2><p class="small">Día, fecha y hora siempre en Madrid. Cada partido muestra competición, estado y resultado si ya terminó.</p></div><a class="pill" href="/calendar">Calendario</a></div>
+    <div class="v760-list v762-client-list">
       {% for m in (data.upcoming_matches or [])[:6] %}
-      {% set home = m.home_team or m.safe_home or 'Local' %}
-      {% set away = m.away_team or m.safe_away or 'Visitante' %}
-      <a class="v760-match-row" href="/match/{{ m.id }}">
-        <span class="v760-time">{{ m|match_time_short }}</span>
-        <span><strong>{{ home }} vs {{ away }}</strong><small>{{ (m.competition_name or m.league_name or 'Competición')|competition_es }} · {{ m.match_date or 'fecha pendiente' }}</small></span>
-        {% if m.has_pick or m.pick_id %}<em>Pick</em>{% else %}<em>Ver</em>{% endif %}
+      {% set home = m.client_home or m.safe_home or m.home_team or 'Local' %}
+      {% set away = m.client_away or m.safe_away or m.away_team or 'Visitante' %}
+      <a class="v762-match-row" href="/match/{{ m.id }}">
+        <span class="v762-datebox"><strong>{{ m.client_date_label or (m|match_date_label) }}</strong><small>{{ m.client_time_label or (m|match_time_short) }}</small></span>
+        <span class="v762-mainline"><strong>{{ home }} vs {{ away }}</strong><small>{{ m.client_competition or (m.competition_name or m.league_name or 'Competición')|competition_es }} · {{ m.client_result_label or (m|match_client_status) }}</small></span>
+        {% if m.has_pick or m.pick_id %}<em class="v762-chip pick">Con pick</em>{% else %}<em class="v762-chip">Ver partido</em>{% endif %}
       </a>
       {% else %}
-      <div class="empty premium-empty"><strong>No hay partidos visibles todavía.</strong><p>Cuando la sincronización cargue datos reales, aparecerán aquí ordenados por día y competición.</p></div>
+      <div class="empty premium-empty"><strong>No hay partidos visibles todavía.</strong><p>Cuando la sincronización cargue datos reales, aparecerán aquí ordenados por día, hora Madrid y competición.</p></div>
       {% endfor %}
     </div>
   </article>
 
-  <article class="card v760-panel">
-    <div class="section-head"><div><h2>Picks activos</h2><p class="small">Solo señales con información real disponible. Si no hay valor, mejor esperar.</p></div><a class="pill" href="/picks">Picks</a></div>
-    <div class="v760-list">
+  <article class="card v760-panel v762-client-clarity-panel">
+    <div class="section-head"><div><h2>Picks activos destacados</h2><p class="small">Cada pick indica el partido, la hora Madrid, el mercado, la selección, la cuota y el riesgo. Sin contexto, no se vende como pick.</p></div><a class="pill" href="/picks">Picks</a></div>
+    <div class="v760-list v762-client-list">
       {% for p in (data.picks or [])[:5] %}
-      <a class="v760-pick-row" href="/match/{{ p.match_id or p.id }}">
-        <span><strong>{{ p.selection_display or p.selection or p.pick_label or 'Selección pendiente' }}</strong><small>{{ p.home_team or '' }}{% if p.away_team %} vs {{ p.away_team }}{% endif %} · Cuota {{ p.odds or 'no disponible' }}</small></span>
-        <em>{{ p.risk_level or p.status or 'SHARK' }}</em>
+      <a class="v762-pick-row" href="{{ p.client_match_url or ('/match/' ~ (p.match_id or p.id)) }}">
+        <span class="v762-pick-main"><strong>{{ p.client_match_label or p.home_team ~ ' vs ' ~ p.away_team if p.home_team else 'Partido pendiente' }}</strong><small>{{ p.client_competition or (p.competition_name or p.league_name or 'Competición')|competition_es }} · {{ p.client_datetime_label or p.match_date or 'Hora Madrid pendiente' }}</small></span>
+        <span class="v762-pick-info"><strong>{{ p.client_selection_label or p.selection_display or p.selection or p.pick_label or 'Selección pendiente' }}</strong><small>{{ p.client_market_label or (p.market or p.pick_type or 'Mercado')|market_es }} · {{ p.client_odds_label or ('Cuota ' ~ (p.odds or 'no disponible')) }} · Riesgo {{ p.risk_level or 'Medio' }}</small></span>
       </a>
       {% else %}
       <div class="empty premium-empty"><strong>No hay picks premium activos ahora mismo.</strong><p>SHARK está esperando valor real. No se publican picks por rellenar.</p></div>
@@ -85,7 +85,7 @@
     <div class="v760-steps">
       <a href="/calendar?lane=today"><b>1</b><span><strong>Revisa partidos de hoy</strong><small>Filtra por directo, liga o con pick.</small></span></a>
       <a href="/picks"><b>2</b><span><strong>Mira picks activos</strong><small>Mercado, cuota, stake, riesgo y motivo.</small></span></a>
-      <a href="/telegram"><b>3</b><span><strong>Confirma Telegram</strong><small>Recibe avisos automáticos si hay candidato válido.</small></span></a>
+      <a href="/telegram"><b>3</b><span><strong>Conecta Telegram</strong><small>Recibe avisos cuando haya picks reales disponibles.</small></span></a>
       <a href="/track-record"><b>4</b><span><strong>Consulta resultados</strong><small>Solo rendimiento real y auditable.</small></span></a>
     </div>
   </article>
