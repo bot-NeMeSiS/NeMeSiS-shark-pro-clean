@@ -1,18 +1,18 @@
 # V729+ Security Check
 
-- Versión: `V755_TELEGRAM_PICK_CANDIDATE_NORMALIZATION_SCHEDULE_CERTIFICATION_FIX`
+- Versión: `V759_GLOBAL_TOP_APP_MERGED_QUALITY_EXPERIENCE_RELEASE`
 - Resultado: OK
 
 ## Checks
-- ✅ `version_v729_or_later`
-- ✅ `secure_secret_key_used`
-- ✅ `no_random_secret_fallback`
-- ✅ `csrf_helpers_imported`
-- ✅ `csrf_enforced`
-- ✅ `csrf_meta_present`
-- ✅ `post_forms_auto_injected`
-- ✅ `rate_limit_present`
-- ✅ `login_events_recorded`
-- ✅ `registration_events_recorded`
-- ✅ `security_headers_present`
-- ✅ `root_html_duplicates`
+- OK `version_v729_or_later`
+- OK `secure_secret_key_used`
+- OK `no_random_secret_fallback`
+- OK `csrf_helpers_imported`
+- OK `csrf_enforced`
+- OK `csrf_meta_present`
+- OK `post_forms_auto_injected`
+- OK `rate_limit_present`
+- OK `login_events_recorded`
+- OK `registration_events_recorded`
+- OK `security_headers_present`
+- OK `root_html_duplicates`

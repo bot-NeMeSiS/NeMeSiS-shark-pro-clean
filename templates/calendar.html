@@ -2,6 +2,10 @@
 {% block content %}
 {% if data.v758_adaptive is defined %}{% include "partials/v758_adaptive_strip.html" %}{% endif %}
 
+<section class="band compact-band v759-release-strip">
+  <div class="section-head"><div><h2>Calendario sin ruido</h2><p class="small">Hoy, semana, favoritos, picks y directo se priorizan para encontrar rápido qué merece atención.</p></div><span class="pill">V759</span></div>
+  <div class="v759-quick-grid"><a class="quick" href="/calendar?lane=today"><span>Hoy</span><strong>ahora</strong></a><a class="quick" href="/calendar?lane=tomorrow"><span>Mañana</span><strong>previa</strong></a><a class="quick" href="/calendar?lane=week"><span>Semana</span><strong>agenda</strong></a><a class="quick" href="/live"><span>Directo</span><strong>live</strong></a></div>
+</section>
 
 {% set v757 = data.v757_app if data.v757_app is defined else {} %}
 {% if v757 %}
@@ -20,9 +24,9 @@
     <h1>Partidos por día, liga y equipo</h1>
     <p class="lead">Busca rápido, filtra por importancia y entra al detalle del partido sin perderte entre pantallas.</p>
     <div class="calendar-hero-actions">
-      <a class="btn primary" href="/calendar?lane=today">Hoy</a>
-      <a class="btn" href="/calendar?lane=week">Semana</a>
-      <a class="btn" href="/calendar?lane=with_pick">Con pick</a>
+      <a class="btn primary" href="/calendarlane=today">Hoy</a>
+      <a class="btn" href="/calendarlane=week">Semana</a>
+      <a class="btn" href="/calendarlane=with_pick">Con pick</a>
       <a class="btn" href="/live">Directo</a>
     </div>
   </div>
@@ -90,7 +94,7 @@
     </div>
     <div class="calendar-form-actions">
       <button class="btn primary" type="submit">Buscar partidos</button>
-      <a class="btn" href="/calendar?lane=live">Ver directo</a>
+      <a class="btn" href="/calendarlane=live">Ver directo</a>
       <label class="calendar-check"><input type="checkbox" name="with_pick" value="1" {% if filters.with_pick %}checked{% endif %}> Solo partidos con pick</label>
     </div>
   </form>
@@ -114,7 +118,7 @@
 <section class="calendar-league-rail" aria-label="Ligas principales">
   <span class="rail-label">Ligas destacadas</span>
   {% for league in calendar.facets.leagues[:14] %}
-    <a class="calendar-filter-chip {% if filters.league and filters.league|lower in league.label|lower %}active{% endif %}" href="/calendar?lane={{ filters.lane }}&league={{ league.value|urlencode }}&sort={{ filters.sort }}">
+    <a class="calendar-filter-chip {% if filters.league and filters.league|lower in league.label|lower %}active{% endif %}" href="/calendarlane={{ filters.lane }}&league={{ league.value|urlencode }}&sort={{ filters.sort }}">
       {{ league.label }} <small>{{ league.count }}</small>
     </a>
   {% endfor %}
@@ -185,7 +189,7 @@
   <div class="empty premium-empty calendar-empty-state">
     <strong>No hay partidos para esta búsqueda.</strong>
     <p>Prueba con Hoy, Mañana, Semana, otra liga o el buscador por equipo. Si producción está recién desplegada, ejecuta Cron/SportsDB para sincronizar datos reales.</p>
-    <div class="actions"><a class="btn primary" href="/calendar?lane=today">Hoy</a><a class="btn" href="/calendar?lane=week">Semana</a><a class="btn" href="/sports-hub">Inicio deportivo</a></div>
+    <div class="actions"><a class="btn primary" href="/calendarlane=today">Hoy</a><a class="btn" href="/calendarlane=week">Semana</a><a class="btn" href="/sports-hub">Inicio deportivo</a></div>
   </div>
   {% endif %}
 </section>

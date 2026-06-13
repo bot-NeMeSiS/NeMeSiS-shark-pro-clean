@@ -21,6 +21,7 @@ V755_VERSION = "V755_TELEGRAM_PICK_CANDIDATE_NORMALIZATION_SCHEDULE_CERTIFICATIO
 FUTURE_VERSION = "V756_CLIENT_APP_PREMIUM_EXPERIENCE_TOTAL_POLISH"
 NEXT_VERSION = "V757_GLOBAL_APP_EXPERIENCE_TRUST_NAVIGATION_POLISH"
 V758_VERSION = "V758_ADAPTIVE_DESKTOP_MOBILE_TOP_APP_EXPERIENCE"
+V759_VERSION = "V759_GLOBAL_TOP_APP_MERGED_QUALITY_EXPERIENCE_RELEASE"
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
@@ -58,8 +59,8 @@ def static_checks() -> None:
     template = read("templates/admin_telegram_command_center.html")
     runner = read("tools/render_cron_telegram_tick.py")
     version = read("VERSION.txt").strip()
-    check("version_v754", version in {VERSION, V755_VERSION, FUTURE_VERSION, NEXT_VERSION, V758_VERSION}, version)
-    check("app_version_v754", f'APP_VERSION = "{VERSION}"' in app_source or f'APP_VERSION = "{V755_VERSION}"' in app_source or f'APP_VERSION = "{FUTURE_VERSION}"' in app_source or f'APP_VERSION = "{NEXT_VERSION}"' in app_source or f'APP_VERSION = "{V758_VERSION}"' in app_source)
+    check("version_v754", version in {VERSION, V755_VERSION, FUTURE_VERSION, NEXT_VERSION, V758_VERSION, V759_VERSION}, version)
+    check("app_version_v754", f'APP_VERSION = "{VERSION}"' in app_source or f'APP_VERSION = "{V755_VERSION}"' in app_source or f'APP_VERSION = "{FUTURE_VERSION}"' in app_source or f'APP_VERSION = "{NEXT_VERSION}"' in app_source or f'APP_VERSION = "{V758_VERSION}"' in app_source or f'APP_VERSION = "{V759_VERSION}"' in app_source)
     check("runner_still_v753_compatible", "X-NeMeSiS-Cron-Runner" in runner and '"runner": "render_cron"' in runner)
     check("candidate_function_exists", "def find_auto_telegram_pick_candidates" in app_source)
     check("auto_window_function_exists", "def telegram_auto_pick_window_decision" in app_source)

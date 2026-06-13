@@ -1,6 +1,19 @@
 {% extends "base.html" %}
 {% block content %}
 {% if data.v758_adaptive is defined %}{% include "partials/v758_adaptive_strip.html" %}{% endif %}
+<section class="band compact-band v759-release-strip">
+  <div class="section-head">
+    <div><h2>App unificada para seguir el día deportivo</h2><p class="small">Telegram automático, experiencia premium, confianza global y modo PC/móvil trabajan juntos sin datos inventados.</p></div>
+    <span class="pill">V759</span>
+  </div>
+  <div class="v759-quick-grid">
+    <a class="quick" href="/picks"><span>Picks</span><strong>claros</strong></a>
+    <a class="quick" href="/calendar"><span>Partidos</span><strong>Madrid</strong></a>
+    <a class="quick" href="/live"><span>Directo</span><strong>rápido</strong></a>
+    <a class="quick" href="/track-record"><span>Track Record</span><strong>real</strong></a>
+    <a class="quick" href="/telegram"><span>Telegram</span><strong>auto</strong></a>
+  </div>
+</section>
 
 {% if current_user %}
 <section class="band compact-band retention-strip"><div class="section-head"><h2>Tu radar SHARK</h2><a class="pill" href="/alertas">Alertas</a></div><div class="grid dense-grid">{% for alert in data.client_alerts[:3] %}<a class="card alert-card" href="{{ alert.href }}"><span class="badge">{{ alert.badge }}</span><strong>{{ alert.title }}</strong><p class="small">{{ alert.body }}</p></a>{% endfor %}</div></section>

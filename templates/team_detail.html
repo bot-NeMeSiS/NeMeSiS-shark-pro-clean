@@ -17,7 +17,7 @@
           <button class="{{ 'danger' if t.is_favorite else 'primary' }}" type="submit">{{ 'Quitar favorito' if t.is_favorite else 'Guardar equipo' }}</button>
         </form>
         <a class="btn" href="/match-hub">Calendario</a>
-        <a class="btn" href="/shark?team={{ t.name|urlencode }}">Preguntar a SHARK</a>
+        <a class="btn" href="/sharkteam={{ t.name|urlencode }}">Preguntar a SHARK</a>
       </div>
     </div>
   </div>
@@ -44,7 +44,7 @@
   <div class="card">
     <div class="section-head"><h2>Contexto SHARK</h2><span class="pill">IA</span></div>
     <p>{{ t.shark_context }}</p>
-    <div class="actions"><a class="btn primary" href="/shark?team={{ t.name|urlencode }}">Abrir SHARK IA</a></div>
+    <div class="actions"><a class="btn primary" href="/sharkteam={{ t.name|urlencode }}">Abrir SHARK IA</a></div>
   </div>
   <div class="card">
     <div class="section-head"><h2>Resumen</h2><span class="pill">Equipo</span></div>

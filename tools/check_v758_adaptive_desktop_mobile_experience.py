@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V758_ADAPTIVE_DESKTOP_MOBILE_TOP_APP_EXPERIENCE"
+V759_VERSION = "V759_GLOBAL_TOP_APP_MERGED_QUALITY_EXPERIENCE_RELEASE"
 REQUIRED = {
     "VERSION.txt": [VERSION],
     "app.py": [VERSION, "build_v758_adaptive_experience", "/api/client/device-experience", "v758_adaptive_experience_page"],
@@ -29,7 +30,7 @@ for rel, needles in REQUIRED.items():
         continue
     text=p.read_text(encoding="utf-8-sig")
     for n in needles:
-        if n not in text:
+        if n not in text and not (rel in {"VERSION.txt", "app.py"} and n == VERSION and V759_VERSION in text):
             errors.append(f"missing-token:{rel}:{n}")
 # Ensure protected systems preserved
 app=(ROOT/"app.py").read_text(encoding="utf-8-sig")

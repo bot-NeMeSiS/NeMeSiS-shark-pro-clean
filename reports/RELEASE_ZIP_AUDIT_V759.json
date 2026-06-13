@@ -1,0 +1,194 @@
+{
+  "ok": true,
+  "audited_at": "2026-06-13T23:15:40",
+  "zip": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\release_output\\NeMeSiS_SHARK_PRO_V759_GLOBAL_TOP_APP_MERGED_QUALITY_EXPERIENCE_RELEASE_RENDER_READY.zip",
+  "zip_size_bytes": 857010,
+  "file_count": 482,
+  "content_size_bytes": 2703796,
+  "forbidden_count": 0,
+  "forbidden": [],
+  "top_files": [
+    {
+      "path": "app.py",
+      "size": 631973
+    },
+    {
+      "path": "static/app.css",
+      "size": 124418
+    },
+    {
+      "path": "V726_PROJECT_TREE_AUDIT.md",
+      "size": 96394
+    },
+    {
+      "path": "engines/api_exploitation_engine.py",
+      "size": 41823
+    },
+    {
+      "path": "engines/football_data_warehouse_engine.py",
+      "size": 38480
+    },
+    {
+      "path": "engines/telegram_delivery_engine.py",
+      "size": 31032
+    },
+    {
+      "path": "engines/shark_historical_intelligence_engine.py",
+      "size": 30018
+    },
+    {
+      "path": "V726_PURGE_REPORT.md",
+      "size": 26158
+    },
+    {
+      "path": "engines/shark_prediction_engine.py",
+      "size": 23584
+    },
+    {
+      "path": "engines/spanish_localization_engine.py",
+      "size": 23147
+    },
+    {
+      "path": "engines/data_memory_engine.py",
+      "size": 22764
+    },
+    {
+      "path": "engines/player_intelligence_engine.py",
+      "size": 20270
+    },
+    {
+      "path": "engines/sportsdb_enrichment_engine.py",
+      "size": 20026
+    },
+    {
+      "path": "engines/shark_learning_engine.py",
+      "size": 19489
+    },
+    {
+      "path": "templates/admin_telegram_command_center.html",
+      "size": 19339
+    },
+    {
+      "path": "engines/shark_accuracy_engine.py",
+      "size": 17309
+    },
+    {
+      "path": "engines/telegram_autonomous_delivery_engine.py",
+      "size": 16712
+    },
+    {
+      "path": "engines/go_live_engine.py",
+      "size": 16480
+    },
+    {
+      "path": "engines/final_release_engine.py",
+      "size": 16205
+    },
+    {
+      "path": "engines/shark_performance_engine.py",
+      "size": 15852
+    }
+  ],
+  "top_folders": [
+    {
+      "folder": "engines",
+      "size": 762915,
+      "files": 70
+    },
+    {
+      "folder": "app.py",
+      "size": 631973,
+      "files": 1
+    },
+    {
+      "folder": "templates",
+      "size": 455614,
+      "files": 127
+    },
+    {
+      "folder": "tools",
+      "size": 215082,
+      "files": 60
+    },
+    {
+      "folder": "static",
+      "size": 124418,
+      "files": 1
+    },
+    {
+      "folder": "V726_PROJECT_TREE_AUDIT.md",
+      "size": 96394,
+      "files": 1
+    },
+    {
+      "folder": "reports",
+      "size": 65608,
+      "files": 29
+    },
+    {
+      "folder": "docs",
+      "size": 45463,
+      "files": 56
+    },
+    {
+      "folder": "V726_PURGE_REPORT.md",
+      "size": 26158,
+      "files": 1
+    },
+    {
+      "folder": "tests",
+      "size": 12961,
+      "files": 11
+    },
+    {
+      "folder": "CHATGPT_CONTINUATION_REPORT.md",
+      "size": 9057,
+      "files": 1
+    },
+    {
+      "folder": "services",
+      "size": 7327,
+      "files": 6
+    },
+    {
+      "folder": "RELEASE_MANIFEST_V759.json",
+      "size": 7120,
+      "files": 1
+    },
+    {
+      "folder": "RELEASE_MANIFEST_V758.json",
+      "size": 6763,
+      "files": 1
+    },
+    {
+      "folder": "RELEASE_MANIFEST_V757.json",
+      "size": 6758,
+      "files": 1
+    },
+    {
+      "folder": "V742_DUPLICATES_AND_LEGACY_AUDIT.md",
+      "size": 6694,
+      "files": 1
+    },
+    {
+      "folder": "RELEASE_MANIFEST_V745.json",
+      "size": 6435,
+      "files": 1
+    },
+    {
+      "folder": "RELEASE_MANIFEST_V747.json",
+      "size": 6375,
+      "files": 1
+    },
+    {
+      "folder": "V724_SUPREME_CLIENT_VISUAL_EXPERIENCE_PRO_REPORT.md",
+      "size": 6347,
+      "files": 1
+    },
+    {
+      "folder": "RELEASE_MANIFEST_V742.json",
+      "size": 5585,
+      "files": 1
+    }
+  ]
+}

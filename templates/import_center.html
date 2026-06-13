@@ -98,13 +98,13 @@ LaLiga EA Sports,Real Madrid,FC Barcelona,2026-05-30,21:00,Spain,PROGRAMADO</tex
     <div class="field"><label>Nota legal</label><input name="legal_note" value="Escudos cargados desde fuente autorizada"></div>
     <div class="field"><label>Payload CSV o JSON autorizado</label><textarea name="payload">name,country,region,logo_url</textarea></div>
     <button type="submit">Importar escudos</button>
-    <p class="small">Tambien puedes usar /api/team/resolve?team=Sevilla%20FC&refresh=1 para intentar resolver por TheSportsDB.</p>
+    <p class="small">Tambien puedes usar /api/team/resolveteam=Sevilla%20FC&refresh=1 para intentar resolver por TheSportsDB.</p>
   </form>
   <aside class="card">
     <h2>Diagnostico de escudos</h2>
     <p class="small">Endpoint: /api/crest-diagnostics</p>
-    <p class="small">Resolver equipo: /api/team/resolve?team=Real%20Madrid</p>
-    <p class="small">Fallback visual: /team-crest.svg?name=Equipo</p>
+    <p class="small">Resolver equipo: /api/team/resolveteam=Real%20Madrid</p>
+    <p class="small">Fallback visual: /team-crest.svgname=Equipo</p>
   </aside>
 </section>
 {% endblock %}

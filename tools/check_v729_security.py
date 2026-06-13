@@ -16,7 +16,7 @@ def main() -> int:
     base_text = BASE.read_text(encoding="utf-8", errors="replace") if BASE.exists() else ""
     root_html = sorted(p.name for p in ROOT.glob("*.html"))
     version = (ROOT / "VERSION.txt").read_text(encoding="utf-8-sig").strip() if (ROOT / "VERSION.txt").exists() else ""
-    version_ok = version.startswith(("V729_", "V730_", "V731_", "V732_", "V733_", "V734_", "V735_", "V736_", "V737_", "V738_", "V739_", "V740_", "V741_", "V742_", "V743_", "V744_", "V745_", "V746_", "V747_", "V748_", "V749_", "V749B_", "V750_", "V751_", "V752_", "V753_", "V754_", "V755_", "V756_", "V757_", "V758_"))
+    version_ok = version.startswith(("V729_", "V730_", "V731_", "V732_", "V733_", "V734_", "V735_", "V736_", "V737_", "V738_", "V739_", "V740_", "V741_", "V742_", "V743_", "V744_", "V745_", "V746_", "V747_", "V748_", "V749_", "V749B_", "V750_", "V751_", "V752_", "V753_", "V754_", "V755_", "V756_", "V757_", "V758_", "V759_"))
     checks = {
         "version_v729_or_later": version_ok,
         "secure_secret_key_used": "app.secret_key = secure_secret_key()" in app_text,
@@ -40,7 +40,7 @@ def main() -> int:
     (REPORTS / "V729_SECURITY_CHECK.json").write_text(json.dumps(report, ensure_ascii=False, indent=2)+"\n", encoding="utf-8")
     lines = ["# V729+ Security Check", "", f"- Versión: `{version}`", f"- Resultado: {'OK' if report['ok'] else 'FAIL'}", "", "## Checks"]
     for name, ok in checks.items():
-        lines.append(f"- {'✅' if ok else '❌'} `{name}`")
+        lines.append(f"- {'OK' if ok else 'FAIL'} `{name}`")
     if root_html:
         lines += ["", "## HTML en raíz", *[f"- `{name}`" for name in root_html]]
     (REPORTS / "V729_SECURITY_CHECK.md").write_text("\n".join(lines)+"\n", encoding="utf-8")

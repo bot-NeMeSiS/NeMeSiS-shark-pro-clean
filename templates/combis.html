@@ -24,12 +24,12 @@
 <section class="band compact-band combi-selector-pro shark-combi-card">
   <div class="section-head"><h2>Tipo de combinada</h2><span class="pill">{{ data.requested_combi_count }} selecciones</span></div>
   <div class="grid compact-grid v724-combi-modes">
-    <a class="card service-card {% if data.requested_combi_count <= 4 %}shark-card-premium{% endif %}" href="/combis?partidos=3"><span class="shark-pill">Riesgo controlado</span><h3>Combi segura</h3><p class="small">2-4 selecciones. Stake bajo y mercados más prudentes.</p></a>
-    <a class="card service-card {% if data.requested_combi_count >= 5 and data.requested_combi_count <= 8 %}shark-card-premium{% endif %}" href="/combis?partidos=6"><span class="shark-pill">Más cuota</span><h3>Combi media</h3><p class="small">5-8 selecciones. Más potencial, más riesgo.</p></a>
-    <a class="card service-card {% if data.requested_combi_count >= 9 %}shark-card-premium{% endif %}" href="/combis?partidos=12"><span class="shark-pill">Alto riesgo</span><h3>Combi larga</h3><p class="small">9-15 selecciones. Solo stake mínimo.</p></a>
+    <a class="card service-card {% if data.requested_combi_count <= 4 %}shark-card-premium{% endif %}" href="/combispartidos=3"><span class="shark-pill">Riesgo controlado</span><h3>Combi segura</h3><p class="small">2-4 selecciones. Stake bajo y mercados más prudentes.</p></a>
+    <a class="card service-card {% if data.requested_combi_count >= 5 and data.requested_combi_count <= 8 %}shark-card-premium{% endif %}" href="/combispartidos=6"><span class="shark-pill">Más cuota</span><h3>Combi media</h3><p class="small">5-8 selecciones. Más potencial, más riesgo.</p></a>
+    <a class="card service-card {% if data.requested_combi_count >= 9 %}shark-card-premium{% endif %}" href="/combispartidos=12"><span class="shark-pill">Alto riesgo</span><h3>Combi larga</h3><p class="small">9-15 selecciones. Solo stake mínimo.</p></a>
   </div>
   <div class="sports-tabs v701-tabs compact-leg-tabs">
-    {% for n in range(2,16) %}<a class="tab-link {% if data.requested_combi_count == n %}active{% endif %}" href="/combis?partidos={{ n }}">{{ n }}</a>{% endfor %}
+    {% for n in range(2,16) %}<a class="tab-link {% if data.requested_combi_count == n %}active{% endif %}" href="/combispartidos={{ n }}">{{ n }}</a>{% endfor %}
   </div>
 </section>
 
@@ -50,7 +50,7 @@
       <div class="match-top"><div><div class="comp-name">{{ c.name or 'Combi SHARK' }}</div><div class="small">{{ c.created_at or 'Fecha pendiente' }}</div></div><span class="shark-pill">{{ c.risk_level or 'Riesgo medio' }}</span></div>
       <div class="pick-mainline"><div><span>Cuota total</span><strong>{{ c.total_odds or 'Pendiente' }}</strong></div><div><span>Estado</span><strong>{{ c.status or 'Activa' }}</strong></div><div><span>Picks</span><strong>{{ c.picks|length }}</strong></div></div>
       {% for p in c.picks %}<p class="small">{{ p.match or 'Partido' }} · {{ p.selection_display or p.selection or 'Selección' }} · {{ p.odds or 'Cuota' }}</p>{% endfor %}
-      <div class="inline-actions"><a class="btn small-btn" href="/shark?combi={{ c.id }}">Preguntar a SHARK</a><a class="btn small-btn" href="/picks">Ver picks</a><button class="btn small-btn" type="button">Copiar combi</button></div>
+      <div class="inline-actions"><a class="btn small-btn" href="/sharkcombi={{ c.id }}">Preguntar a SHARK</a><a class="btn small-btn" href="/picks">Ver picks</a><button class="btn small-btn" type="button">Copiar combi</button></div>
     </article>
     {% endfor %}
   </div>

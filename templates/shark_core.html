@@ -56,7 +56,7 @@
   </div>
   <div class="quick-grid">
     {% for q in shark.quick_questions %}
-      <a class="chip" href="/shark?q={{ q.question|urlencode }}">{{ q.label }} · {{ q.question }}</a>
+      <a class="chip" href="/sharkq={{ q.question|urlencode }}">{{ q.label }} · {{ q.question }}</a>
     {% endfor %}
   </div>
 </section>

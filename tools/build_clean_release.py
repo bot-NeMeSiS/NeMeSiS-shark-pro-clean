@@ -237,6 +237,7 @@ def include(path: Path) -> bool:
     if parts[0] == "reports":
         return (
             rel_posix == "reports/CODEX_DAILY_PROMPT_CURRENT.txt"
+            or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V759")
             or rel_posix.startswith("reports/V748_")
             or rel_posix.startswith("reports/V749_")
             or rel_posix.startswith("reports/V749B_")
@@ -249,6 +250,7 @@ def include(path: Path) -> bool:
             or rel_posix.startswith("reports/V756_")
             or rel_posix.startswith("reports/V757_")
             or rel_posix.startswith("reports/V758_")
+            or rel_posix.startswith("reports/V759_")
         )
     if any(part in EXCLUDE_DIRS for part in parts):
         return False

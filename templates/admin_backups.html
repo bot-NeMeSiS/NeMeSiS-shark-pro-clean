@@ -44,7 +44,7 @@
           <input type="hidden" name="name" value="{{ backup.name }}">
           <button class="danger small-btn" type="submit">Eliminar</button>
         </form>
-        <form method="post" action="/admin/backups" onsubmit="return confirm('Se creará un backup de seguridad actual y después se restaurará esta copia. ¿Continuar?');">
+        <form method="post" action="/admin/backups" onsubmit="return confirm('Se creará un backup de seguridad actual y después se restaurará esta copia. ¿Continuar');">
           <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
           <input type="hidden" name="action" value="restore">
           <input type="hidden" name="name" value="{{ backup.name }}">

@@ -6,7 +6,7 @@
   <p class="lead">Entrada discreta para gestionar importaciones legales, Telegram y datos autorizados.</p>
 </section>
 <section class="band auth-grid">
-  <form class="card auth-card" method="post" action="/admin-login{% if request.args.get('next') %}?next={{ request.args.get('next') }}{% endif %}">
+  <form class="card auth-card" method="post" action="/admin-login{% if request.args.get('next') %}next={{ request.args.get('next') }}{% endif %}">
     <h2>Admin login</h2>
     {% if error %}<p class="notice danger">{{ error }}</p>{% endif %}
     {% if not configured %}<p class="notice">Configura ADMIN_EMAIL y ADMIN_PASSWORD en Render, o entra con un usuario ADMIN existente.</p>{% endif %}

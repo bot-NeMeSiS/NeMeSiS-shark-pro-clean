@@ -18,6 +18,7 @@ V755_VERSION = "V755_TELEGRAM_PICK_CANDIDATE_NORMALIZATION_SCHEDULE_CERTIFICATIO
 FUTURE_VERSION = "V756_CLIENT_APP_PREMIUM_EXPERIENCE_TOTAL_POLISH"
 NEXT_VERSION = "V757_GLOBAL_APP_EXPERIENCE_TRUST_NAVIGATION_POLISH"
 V758_VERSION = "V758_ADAPTIVE_DESKTOP_MOBILE_TOP_APP_EXPERIENCE"
+V759_VERSION = "V759_GLOBAL_TOP_APP_MERGED_QUALITY_EXPERIENCE_RELEASE"
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
@@ -57,8 +58,8 @@ def static_checks() -> None:
     env_engine = read("engines/telegram_environment_engine.py")
     version = read("VERSION.txt").strip()
 
-    check("version_v753_or_newer", version in {VERSION, CURRENT_VERSION, V755_VERSION, FUTURE_VERSION, NEXT_VERSION, V758_VERSION}, version)
-    check("app_version_v753_or_newer", f'APP_VERSION = "{VERSION}"' in app_source or f'APP_VERSION = "{CURRENT_VERSION}"' in app_source or f'APP_VERSION = "{V755_VERSION}"' in app_source or f'APP_VERSION = "{FUTURE_VERSION}"' in app_source or f'APP_VERSION = "{NEXT_VERSION}"' in app_source or f'APP_VERSION = "{V758_VERSION}"' in app_source)
+    check("version_v753_or_newer", version in {VERSION, CURRENT_VERSION, V755_VERSION, FUTURE_VERSION, NEXT_VERSION, V758_VERSION, V759_VERSION}, version)
+    check("app_version_v753_or_newer", f'APP_VERSION = "{VERSION}"' in app_source or f'APP_VERSION = "{CURRENT_VERSION}"' in app_source or f'APP_VERSION = "{V755_VERSION}"' in app_source or f'APP_VERSION = "{FUTURE_VERSION}"' in app_source or f'APP_VERSION = "{NEXT_VERSION}"' in app_source or f'APP_VERSION = "{V758_VERSION}"' in app_source or f'APP_VERSION = "{V759_VERSION}"' in app_source)
     check("environment_engine", "get_telegram_environment_audit" in env_engine and "is_telegram_auto_enabled" in env_engine)
     check("official_flags_required", all(token in env_engine for token in ("ENABLE_TELEGRAM_AUTO", "AUTO_SEND_TELEGRAM_PICKS", "TELEGRAM_AUTO_SEND_ENABLED", "ENABLE_TELEGRAM_AUTOMATION")))
     check("environment_endpoint", "/api/admin/telegram/environment-audit" in app_source)

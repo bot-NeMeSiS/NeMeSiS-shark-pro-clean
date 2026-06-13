@@ -4,7 +4,7 @@
   <div class="kicker">SHARK AI Advisor PRO</div>
   <h1>SHARK AI Advisor PRO</h1>
   <p class="lead">Tu asistente para interpretar picks, riesgo, value, directo y combinadas con lenguaje claro.</p>
-  <div class="actions"><a class="btn primary" href="/picks">Ver picks premium</a><a class="btn" href="/combis?tipo=segura&partidos=3">Combi segura</a><a class="btn" href="/telegram">Telegram</a></div>
+  <div class="actions"><a class="btn primary" href="/picks">Ver picks premium</a><a class="btn" href="/combistipo=segura&partidos=3">Combi segura</a><a class="btn" href="/telegram">Telegram</a></div>
 </section>
 {% if not current_user or current_user.membership not in ['ELITE','ADMIN'] %}
 <section class="band"><div class="notice">SHARK completo queda reservado para ELITE. En FREE/PRO tendrás lectura básica, picks visibles, directo y favoritos sin inventar cuotas ni partidos.</div></section>
@@ -12,9 +12,9 @@
 <section class="band compact-band">
   <div class="section-head"><h2>Preguntas rápidas</h2><span class="pill">Toca y consulta</span></div>
   <div class="grid compact-grid shark-action-grid">
-    <a class="card service-card shark-card" href="/shark?q=mejor-pick"><h3>Mejor pick de hoy</h3><p class="small">Selección, cuota, stake y motivo.</p></a>
-    <a class="card service-card shark-card" href="/combis?partidos=3"><h3>Combi segura</h3><p class="small">2-4 selecciones con riesgo controlado.</p></a>
-    <a class="card service-card shark-card" href="/shark?q=no-tocar"><h3>Qué no tocaría</h3><p class="small">Señales débiles o partidos en estudio.</p></a>
+    <a class="card service-card shark-card" href="/sharkq=mejor-pick"><h3>Mejor pick de hoy</h3><p class="small">Selección, cuota, stake y motivo.</p></a>
+    <a class="card service-card shark-card" href="/combispartidos=3"><h3>Combi segura</h3><p class="small">2-4 selecciones con riesgo controlado.</p></a>
+    <a class="card service-card shark-card" href="/sharkq=no-tocar"><h3>Qué no tocaría</h3><p class="small">Señales débiles o partidos en estudio.</p></a>
     <a class="card service-card shark-card" href="/live"><h3>Resumen del directo</h3><p class="small">Estado, minuto, marcador y alertas.</p></a>
     <a class="card service-card shark-card" href="/favorites"><h3>Favoritos</h3><p class="small">Partidos vigilados y posibles alertas.</p></a>
     <a class="card service-card shark-card" href="/picks"><h3>Explicar una apuesta</h3><p class="small">Riesgo, value y precaución.</p></a>

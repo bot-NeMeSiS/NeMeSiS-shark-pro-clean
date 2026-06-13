@@ -2,6 +2,9 @@
 {% block content %}
 {% if data.v758_adaptive is defined %}{% include "partials/v758_adaptive_strip.html" %}{% endif %}
 
+<section class="band compact-band v759-release-strip">
+  <div class="section-head"><div><h2>Transparencia antes que marketing</h2><p class="small">El rendimiento solo aparece cuando hay picks cerrados y auditables. NeMeSiS no inventa resultados.</p></div><span class="pill">V759</span></div>
+</section>
 
 {% set trust = data.v757_track if data.v757_track is defined else {} %}
 {% if trust %}

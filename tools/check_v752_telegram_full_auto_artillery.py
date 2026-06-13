@@ -19,6 +19,7 @@ VERSION_V755 = "V755_TELEGRAM_PICK_CANDIDATE_NORMALIZATION_SCHEDULE_CERTIFICATIO
 VERSION_V756 = "V756_CLIENT_APP_PREMIUM_EXPERIENCE_TOTAL_POLISH"
 VERSION_V757 = "V757_GLOBAL_APP_EXPERIENCE_TRUST_NAVIGATION_POLISH"
 VERSION_V758 = "V758_ADAPTIVE_DESKTOP_MOBILE_TOP_APP_EXPERIENCE"
+VERSION_V759 = "V759_GLOBAL_TOP_APP_MERGED_QUALITY_EXPERIENCE_RELEASE"
 CHECKS: list[tuple[str, bool, str]] = []
 
 if str(ROOT) not in sys.path:
@@ -61,7 +62,7 @@ def static_checks() -> None:
     env_example = read(".env.example")
     env_render = read(".env.render.clean")
 
-    check("version_v752_or_v754", version in {"V752_TELEGRAM_FULL_AUTO_ARTILLERY_PRODUCTION_CERTIFICATION", VERSION, VERSION_V754, VERSION_V755, VERSION_V756, VERSION_V757, VERSION_V758}, version)
+    check("version_v752_or_v754", version in {"V752_TELEGRAM_FULL_AUTO_ARTILLERY_PRODUCTION_CERTIFICATION", VERSION, VERSION_V754, VERSION_V755, VERSION_V756, VERSION_V757, VERSION_V758, VERSION_V759}, version)
     check("app_version_v752_or_v753", f'APP_VERSION = "{version}"' in app_source)
     check("endpoint_exists", '@app.route("/api/automation/telegram/tick"' in app_source)
     check("secret_protected", "automation_cron_result" in app_source and "AUTOMATION_SECRET" in app_source)

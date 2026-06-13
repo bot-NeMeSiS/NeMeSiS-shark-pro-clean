@@ -5,7 +5,7 @@
   <h1>Motor real de inteligencia de apuestas</h1>
   <p class="lead">Analiza partidos próximos, cuotas cacheadas, riesgo y confianza. Las recomendaciones son análisis SHARK: solo se convierten en picks cuando el admin las valida.</p>
   <div class="actions">
-    <a class="btn primary" href="/api/recommendations?refresh=1&limit=40">Regenerar inteligencia</a>
+    <a class="btn primary" href="/api/recommendationsrefresh=1&limit=40">Regenerar inteligencia</a>
     <a class="btn" href="/api/admin/intelligence-status">Ver estado JSON</a>
     <a class="btn" href="/admin/betting-center">Betting Center</a>
     <a class="btn" href="/admin/picks">Publicar picks</a>
@@ -50,8 +50,8 @@
       <p class="small muted"><strong>Precaución:</strong> {{ r.warning_reason }}</p>
       <div class="inline-actions">
         <a class="mini-link" href="/match/{{ r.match_id }}">Ver partido</a>
-        <a class="mini-link" href="/api/betting/convert-to-pick?id={{ r.id }}">Guardar borrador</a>
-        <a class="mini-link" href="/api/betting/convert-to-pick?id={{ r.id }}&publish=1">Publicar pick</a>
+        <a class="mini-link" href="/api/betting/convert-to-pickid={{ r.id }}">Guardar borrador</a>
+        <a class="mini-link" href="/api/betting/convert-to-pickid={{ r.id }}&publish=1">Publicar pick</a>
       </div>
     </article>
     {% else %}

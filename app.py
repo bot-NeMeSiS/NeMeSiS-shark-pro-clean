@@ -154,7 +154,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V755_TELEGRAM_PICK_CANDIDATE_NORMALIZATION_SCHEDULE_CERTIFICATION_FIX"
+APP_VERSION = "V759_GLOBAL_TOP_APP_MERGED_QUALITY_EXPERIENCE_RELEASE"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -1881,15 +1881,26 @@ def cache_get(key):
 
 def cache_set(key, value, seconds=60):
     expires = (datetime.now(TZ) + timedelta(seconds=seconds)).isoformat(timespec="seconds")
-    conn = db()
-    cur = conn.cursor()
-    cur.execute(
-        """INSERT OR REPLACE INTO persistent_cache(key,value_json,expires_at,updated_at)
-           VALUES (?,?,?,?)""",
-        (key, json.dumps(value, ensure_ascii=False), expires, now_iso()),
-    )
-    conn.commit()
-    conn.close()
+    def _write():
+        conn = db()
+        try:
+            conn.execute("PRAGMA busy_timeout=300")
+            cur = conn.cursor()
+            cur.execute(
+                """INSERT OR REPLACE INTO persistent_cache(key,value_json,expires_at,updated_at)
+                   VALUES (?,?,?,?)""",
+                (key, json.dumps(value, ensure_ascii=False), expires, now_iso()),
+            )
+            conn.commit()
+        finally:
+            conn.close()
+
+    try:
+        retry_locked(_write, attempts=3)
+    except sqlite3.OperationalError as exc:
+        if "locked" not in str(exc).lower():
+            raise
+        print(f"[CACHE] persistent_cache skipped: database locked for key={key}")
 
 
 def competitions():
@@ -5312,15 +5323,26 @@ def match_hub(date=None, lane="today"):
 
 def save_live_sync_state(key, payload):
     sync = payload.get("sync") or {}
-    conn = db()
-    cur = conn.cursor()
-    cur.execute(
-        """INSERT OR REPLACE INTO live_sync_state(key,payload_json,sync_status,next_refresh_at,updated_at)
-           VALUES (?,?,?,?,?)""",
-        (key, json.dumps(payload, ensure_ascii=False)[:12000], sync.get("sync_status") or "standby", sync.get("next_refresh_at") or "", now_iso()),
-    )
-    conn.commit()
-    conn.close()
+    def _write():
+        conn = db()
+        try:
+            conn.execute("PRAGMA busy_timeout=300")
+            cur = conn.cursor()
+            cur.execute(
+                """INSERT OR REPLACE INTO live_sync_state(key,payload_json,sync_status,next_refresh_at,updated_at)
+                   VALUES (?,?,?,?,?)""",
+                (key, json.dumps(payload, ensure_ascii=False)[:12000], sync.get("sync_status") or "standby", sync.get("next_refresh_at") or "", now_iso()),
+            )
+            conn.commit()
+        finally:
+            conn.close()
+
+    try:
+        retry_locked(_write, attempts=3)
+    except sqlite3.OperationalError as exc:
+        if "locked" not in str(exc).lower():
+            raise
+        print(f"[LIVE][CACHE] live_sync_state skipped: database locked for key={key}")
 
 
 def real_time_global_state(date=None, refresh=False):

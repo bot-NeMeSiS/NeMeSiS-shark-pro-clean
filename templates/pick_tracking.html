@@ -72,9 +72,9 @@
 </section>
 
 <script>
-async function postJson(url, payload){ const r=await fetch(url,{method:'POST',headers:(window.nemesisJsonHeaders?window.nemesisJsonHeaders():{'Content-Type':'application/json'}),body:JSON.stringify(payload)}); return r.json(); }
-document.getElementById('bankrollForm')?.addEventListener('submit', async (e)=>{e.preventDefault(); const payload=Object.fromEntries(new FormData(e.currentTarget).entries()); const j=await postJson('/api/client/bankroll', payload); document.getElementById('bankrollStatus').textContent=j.ok?'Banca guardada correctamente.':'No se pudo guardar ahora.';});
-document.querySelectorAll('.track-pick').forEach(btn=>btn.addEventListener('click', async()=>{const j=await postJson('/api/client/track-pick',{pick_id:btn.dataset.pick,action:'saved'}); btn.textContent=j.ok?'Guardado':'Error';}));
+async function postJson(url, payload){ const r=await fetch(url,{method:'POST',headers:(window.nemesisJsonHeaderswindow.nemesisJsonHeaders():{'Content-Type':'application/json'}),body:JSON.stringify(payload)}); return r.json(); }
+document.getElementById('bankrollForm').addEventListener('submit', async (e)=>{e.preventDefault(); const payload=Object.fromEntries(new FormData(e.currentTarget).entries()); const j=await postJson('/api/client/bankroll', payload); document.getElementById('bankrollStatus').textContent=j.ok'Banca guardada correctamente.':'No se pudo guardar ahora.';});
+document.querySelectorAll('.track-pick').forEach(btn=>btn.addEventListener('click', async()=>{const j=await postJson('/api/client/track-pick',{pick_id:btn.dataset.pick,action:'saved'}); btn.textContent=j.ok'Guardado':'Error';}));
 document.querySelectorAll('.remove-pick').forEach(btn=>btn.addEventListener('click', async()=>{const j=await postJson('/api/client/track-pick',{pick_id:btn.dataset.pick,action:'removed'}); if(j.ok) location.reload();}));
 </script>
 {% endblock %}
