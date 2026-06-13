@@ -48,7 +48,7 @@
           <a href="/calendar">Partidos</a>
           <a href="/live">Directo</a>
           <a href="/picks">Picks</a>
-          <a href="/track-record">Histórico</a>
+          <a href="/shark">SHARK</a>
           <a href="/menu">Más</a>
           <a href="/logout">Salir</a>
         {% else %}
@@ -79,8 +79,7 @@
       <a href="/calendar">Partidos</a>
       <a href="/live">Directo</a>
       <a href="/picks">Picks</a>
-      <a href="/track-record">Histórico</a>
-      {% if current_user %}<a href="/menu">Más</a>{% else %}<a href="/cliente-login">Entrar</a>{% endif %}
+      {% if current_user %}<a href="/shark">SHARK</a><a href="/menu">Más</a>{% else %}<a href="/cliente-login">Entrar</a>{% endif %}
     {% endif %}
   </nav>
 
@@ -132,15 +131,18 @@
       q=(q||'').trim(); if(!q) return; add(q,'user'); if(input) input.value='';
       const thinking=add('SHARK está revisando partidos, picks, cuotas y riesgo...', 'bot thinking');
       try{
-        const r=await fetch('/api/shark/ask',{method:'POST',headers:window.nemesisJsonHeaders(),body:JSON.stringify({question:q})});
+        let r=await fetch('/api/shark/ask',{method:'POST',headers:window.nemesisJsonHeaders(),body:JSON.stringify({question:q})});
+        if(r.status===403){
+          r=await fetch('/api/shark/ask?q='+encodeURIComponent(q),{method:'GET'});
+        }
         const j=await r.json();
         let answer=(j.shark&&j.shark.answer)||j.message||'SHARK no pudo responder ahora mismo.';
         thinking.textContent=answer; thinking.classList.remove('thinking');
       }
-      catch(err){ thinking.textContent='No puedo conectar con SHARK ahora mismo. Prueba de nuevo en unos segundos.'; thinking.classList.remove('thinking'); }
+      catch(err){ thinking.textContent='No puedo conectar con SHARK ahora mismo. Abre la página SHARK desde el menú o recarga si la sesión caducó.'; thinking.classList.remove('thinking'); }
     }
-    fab.addEventListener('click',()=>{panel.hidden=!panel.hidden; if(!panel.hidden&&input) input.focus();});
-    close&&close.addEventListener('click',()=>panel.hidden=true);
+    fab.addEventListener('click',()=>{panel.hidden=!panel.hidden; document.body.classList.toggle('shark-open',!panel.hidden); if(!panel.hidden&&input) input.focus();});
+    close&&close.addEventListener('click',()=>{panel.hidden=true; document.body.classList.remove('shark-open');});
     msgs.querySelectorAll('.shark-quick button').forEach(btn=>btn.addEventListener('click',()=>ask(btn.dataset.q)));
     form&&form.addEventListener('submit',(e)=>{e.preventDefault(); ask(input&&input.value);});
   })();

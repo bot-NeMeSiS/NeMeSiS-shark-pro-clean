@@ -129,7 +129,7 @@
   <div class="section-head">
     <div>
       <h2>{{ calendar.counts.visible }} partidos encontrados</h2>
-      <p class="small">{{ calendar.lane_label }}{% if calendar.has_filters %} · filtros aplicados{% endif %}</p>
+      <p class="small">{{ calendar.lane_label }}{% if calendar.has_filters %} · filtros aplicados{% endif %} · finalizados con resultado, próximos con hora Madrid.</p>
     </div>
     <span class="pill">Hora española</span>
   </div>
@@ -170,9 +170,20 @@
                 <strong class="calendar-team-name">{{ m.safe_away }}</strong>
               </div>
             </div>
-            <div class="calendar-card-meta">
+            <div class="calendar-card-meta v761-calendar-meta">
               <span>{{ m.calendar_competition|competition_es }}</span>
-              {% if m.has_pick %}<strong>Pick SHARK</strong>{% elif m.calendar_priority >= 70 %}<strong>Alta prioridad</strong>{% else %}<strong>Calendario</strong>{% endif %}
+              <span>Fecha: {{ m|match_date_label }} · {{ m|match_time_short }}</span>
+              {% if live_depth.get('badge') == 'finished' or m.calendar_status == 'Finalizado' %}
+                <strong>Finalizado · {{ m.calendar_score or 'resultado pendiente' }}</strong>
+              {% elif live_depth.get('badge') == 'live' %}
+                <strong>En directo · {{ live_depth.get('minute') or 'minuto pendiente' }}</strong>
+              {% elif m.has_pick %}
+                <strong>Pick SHARK</strong>
+              {% elif m.calendar_priority >= 70 %}
+                <strong>Alta prioridad</strong>
+              {% else %}
+                <strong>Programado</strong>
+              {% endif %}
             </div>
             {% if m.has_pick %}
             <div class="calendar-pick-strip">{{ m.pick_label or 'Pick disponible' }}</div>

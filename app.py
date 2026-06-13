@@ -154,7 +154,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V760_SALE_READY_CLIENT_ORDER_SHARK_TELEGRAM_FIX"
+APP_VERSION = "V761_CLIENT_SALE_READY_EXPERIENCE_ORDER_PERFECTION"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -12619,22 +12619,20 @@ def api_v565_convert_recommendation():
 # -----------------------------
 
 def v566_client_menu_items():
+    # V761: menú cliente ordenado para venta. Menos ruido, más acciones útiles y rutas principales primero.
     return [
-        {"group": "Partidos", "title": "Resultados", "body": "Marcadores finalizados agrupados por liga.", "href": "/resultados"},
-        {"group": "Partidos", "title": "Calendario", "body": "Próximos partidos importantes en hora española.", "href": "/match-hub"},
-        {"group": "SHARK", "title": "Recomendaciones", "body": "Oportunidades generadas con datos reales disponibles.", "href": "/recomendaciones"},
-        {"group": "Picks", "title": "Combinadas", "body": "Combis según tu plan FREE, PRO o ELITE.", "href": "/combis"},
-        {"group": "Canal", "title": "Telegram", "body": "Alertas y picks según membresía.", "href": "/telegram"},
-        {"group": "IA", "title": "SHARK", "body": "Pregunta por picks, favoritos, live y oportunidades.", "href": "/shark"},
-        {"group": "IA", "title": "Centro SHARK", "body": "Resumen inteligente conectado a picks, favoritos y directo.", "href": "/shark-core"},
-        {"group": "Cuenta", "title": "Mi cuenta", "body": "Perfil, membresía, favoritos y actividad.", "href": "/mi-cuenta"},
-        {"group": "Cuenta", "title": "Guía cliente", "body": "Primeros pasos, Telegram, picks, directo y soporte en una pantalla.", "href": "/guia"},
-        {"group": "Cuenta", "title": "Soporte", "body": "Enviar incidencia o duda sobre partidos, Telegram, picks o cuenta.", "href": "/ayuda"},
-        {"group": "Cuenta", "title": "Alertas", "body": "Avisos importantes de tu actividad.", "href": "/alertas"},
-        {"group": "Picks", "title": "Seguimiento", "body": "Banca y picks guardados.", "href": "/seguimiento"},
-        {"group": "Picks", "title": "Histórico real", "body": "Track record, resultados y ROI sin datos inventados.", "href": "/track-record"},
-        {"group": "Legal", "title": "Juego responsable", "body": "Uso responsable y límites.", "href": "/juego-responsable"},
-        {"group": "Legal", "title": "Legal", "body": "Confianza, datos permitidos y términos.", "href": "/legal"},
+        {"group": "Inicio", "title": "Mi panel", "body": "Resumen diario con partidos, picks, directo, Telegram y siguiente paso.", "href": "/app"},
+        {"group": "Partidos", "title": "Calendario", "body": "Hoy, mañana, semana, favoritos, directos y partidos con pick.", "href": "/calendar"},
+        {"group": "Partidos", "title": "Directo", "body": "Marcador, minuto, estado y enlaces al detalle del partido.", "href": "/live"},
+        {"group": "Picks", "title": "Picks SHARK", "body": "Mercado, cuota, stake, riesgo, motivo y estado Telegram.", "href": "/picks"},
+        {"group": "Picks", "title": "Histórico real", "body": "Track Record con resultados auditables, sin ROI inventado.", "href": "/track-record"},
+        {"group": "SHARK", "title": "SHARK IA", "body": "Pregunta por el mejor pick, qué evitar, combis, directo o value.", "href": "/shark"},
+        {"group": "Canal", "title": "Telegram", "body": "Vinculación, estado y avisos automáticos cuando hay candidato válido.", "href": "/telegram"},
+        {"group": "Cuenta", "title": "Mi cuenta", "body": "Perfil, plan, favoritos, actividad y datos de acceso.", "href": "/mi-cuenta"},
+        {"group": "Ayuda", "title": "Guía rápida", "body": "Cómo usar la app, qué mirar primero y cómo interpretar picks.", "href": "/guia"},
+        {"group": "Ayuda", "title": "Soporte", "body": "Enviar una duda o incidencia sobre cuenta, picks, Telegram o partidos.", "href": "/ayuda"},
+        {"group": "Legal", "title": "Juego responsable", "body": "Reglas de uso responsable, límites y advertencias honestas.", "href": "/juego-responsable"},
+        {"group": "Legal", "title": "Confianza", "body": "Datos permitidos, privacidad básica y transparencia del producto.", "href": "/legal"},
     ]
 
 

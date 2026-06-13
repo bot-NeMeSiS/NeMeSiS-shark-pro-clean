@@ -15,7 +15,7 @@
   <div>
     <div class="kicker">Directo SHARK · hora Madrid</div>
     <h1>Live premium</h1>
-    <p class="lead">Marcador, minuto, día y relevancia del partido en una vista clara para seguir el directo sin perderte.</p>
+    <p class="lead">Marcador, minuto, día exacto y estado claro. Los finalizados muestran resultado y los próximos quedan separados por hora Madrid.</p>
     <div class="v750-live-actions">
       <a class="btn primary" href="/live?f=live">En directo</a>
       <a class="btn" href="/live?f=today">Hoy</a>
@@ -108,10 +108,10 @@
               </div>
             </div>
 
-            <div class="v750-live-card-meta">
+            <div class="v750-live-card-meta v761-live-meta">
               <span>{{ m.live_competition_display|competition_es }}</span>
-              <span>{{ m.live_date_label or (m|match_date_label) }} · {{ m.live_time_label or (m|match_time_short) }}</span>
-              {% if m.has_pick or m.pick_id %}<strong>Pick SHARK disponible</strong>{% elif m.is_favorite %}<strong>Favorito</strong>{% else %}<strong>Detalle partido</strong>{% endif %}
+              <span>Día: {{ m.live_date_label or (m|match_date_label) }} · Hora: {{ m.live_time_label or (m|match_time_short) }}</span>
+              {% if m.live_bucket == 'finished' %}<strong>Finalizado · {{ m.live_score_label or 'resultado pendiente' }}</strong>{% elif m.live_bucket == 'live' %}<strong>En juego · {{ m.live_clock_label or 'minuto pendiente' }}</strong>{% elif m.has_pick or m.pick_id %}<strong>Pick SHARK disponible</strong>{% elif m.is_favorite %}<strong>Favorito</strong>{% else %}<strong>Ver detalle</strong>{% endif %}
             </div>
           </a>
           {% endfor %}

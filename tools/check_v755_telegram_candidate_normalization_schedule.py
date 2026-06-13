@@ -16,7 +16,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V755_TELEGRAM_PICK_CANDIDATE_NORMALIZATION_SCHEDULE_CERTIFICATION_FIX"
-V759_VERSION = "V759_GLOBAL_TOP_APP_MERGED_QUALITY_EXPERIENCE_RELEASE", "V760_SALE_READY_CLIENT_ORDER_SHARK_TELEGRAM_FIX"
+V759_VERSION = "V759_GLOBAL_TOP_APP_MERGED_QUALITY_EXPERIENCE_RELEASE"
+V760_VERSION = "V760_SALE_READY_CLIENT_ORDER_SHARK_TELEGRAM_FIX"
+V761_VERSION = "V761_CLIENT_SALE_READY_EXPERIENCE_ORDER_PERFECTION"
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
@@ -53,8 +55,8 @@ def static_checks() -> None:
     app_source = read("app.py")
     template = read("templates/admin_telegram_command_center.html")
     version = read("VERSION.txt").strip()
-    check("version_v755", version in {VERSION, V759_VERSION}, version)
-    check("app_version_v755", f'APP_VERSION = "{VERSION}"' in app_source or f'APP_VERSION = "{V759_VERSION}"' in app_source)
+    check("version_v755", version in {VERSION, V759_VERSION, V760_VERSION, V761_VERSION}, version)
+    check("app_version_v755", f'APP_VERSION = "{VERSION}"' in app_source or f'APP_VERSION = "{V759_VERSION}"' in app_source or f'APP_VERSION = "{V760_VERSION}"' in app_source or f'APP_VERSION = "{V761_VERSION}"' in app_source)
     check("v754_kept_modules", '"summary"' in app_source and '"auto_picks"' in app_source and '"live_alerts"' in app_source)
     check("normalizer_exists", "def normalize_telegram_pick_candidate" in app_source and "def normalize_match_time_madrid" in app_source)
     check("slots_config_exists", "TELEGRAM_PICK_PRO_SLOTS" in app_source and "WAITING_FOR_PRO_SLOT" in app_source)

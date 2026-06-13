@@ -22,7 +22,7 @@
   <div>
     <div class="kicker">Picks SHARK</div>
     <h1>Picks premium con explicación completa</h1>
-    <p class="lead">Cada pick muestra selección, cuota, stake, riesgo, escudos, liga en castellano y una lectura clara de por qué SHARK llega a esa decisión.</p>
+    <p class="lead">Cada pick se ordena como producto: partido, mercado, cuota, stake, riesgo, motivo, aviso y enlace al detalle. Si falta dato real, se avisa sin inventar.</p>
   </div>
   <div class="scoreboard-kpis">
     <div><strong>{{ data.pick_stats.published }}</strong><span>Publicados</span></div>
@@ -30,6 +30,13 @@
     <div><strong>{{ data.pick_stats.avg_odds if data.pick_stats.avg_odds else "—" }}</strong><span>Cuota media</span></div>
     <div><strong>{% if data.pick_stats.winrate and data.pick_stats.winrate > 0 %}{{ data.pick_stats.winrate }}%{% else %}—{% endif %}</strong><span>Histórico</span></div>
   </div>
+</section>
+
+<section class="v761-pick-flow">
+  <div><span>1</span><strong>Qué apostar</strong><small>Selección y mercado claros.</small></div>
+  <div><span>2</span><strong>Cuota y stake</strong><small>Sin inventar si falta dato.</small></div>
+  <div><span>3</span><strong>Riesgo</strong><small>Motivo para entrar y para no entrar.</small></div>
+  <div><span>4</span><strong>Resultado</strong><small>Track Record solo con datos reales.</small></div>
 </section>
 
 <section class="sports-tabs v701-tabs">
@@ -40,7 +47,7 @@
   <a class="tab-link" href="/picks?filtro=value">Value</a>
   <a class="tab-link" href="/recomendaciones">Recomendaciones</a>
   <a class="tab-link" href="/combis">Combis</a>
-  <a class="tab-link" href="/sports-hub">Partidos</a>
+  <a class="tab-link" href="/calendar">Partidos</a>
   <a class="tab-link" href="/telegram">Telegram</a>
 </section>
 
@@ -142,7 +149,7 @@
   <div class="empty premium-empty">
     <strong>SHARK está analizando los próximos partidos.</strong>
     <p>Las recomendaciones aparecerán automáticamente cuando haya datos suficientes. No se muestran picks inventados.</p>
-    <div class="actions"><a class="btn primary" href="/sports-hub">Ver partidos</a><a class="btn" href="/combis">Combis</a></div>
+    <div class="actions"><a class="btn primary" href="/calendar">Ver calendario</a><a class="btn" href="/combis">Combis</a></div>
   </div>
   {% endif %}
 </section>
