@@ -3,6 +3,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V762_CLIENT_CLARITY_MADRID_TIME_ADMIN_NOISE_POLISH"
+NEXT_VERSIONS = {"V763_WORLD_CUP_LAUNCH_CLIENT_FINALIZATION_POLISH", "V764_DYNAMIC_COMPETITION_MODE_ENGINE", "V765_MARKETS_COMBIS_CLIENT_STRUCTURE_POLISH"}
 
 def ok(cond, msg):
     if not cond:
@@ -10,9 +11,9 @@ def ok(cond, msg):
     print(f"[V762][OK] {msg}")
 
 version = (ROOT / "VERSION.txt").read_text(encoding="utf-8-sig").strip()
-ok(version == VERSION, "VERSION.txt apunta a V762")
+ok(version == VERSION or version in NEXT_VERSIONS, "VERSION.txt apunta a V762 o versión posterior compatible")
 app = (ROOT / "app.py").read_text(encoding="utf-8")
-ok(f'APP_VERSION = "{VERSION}"' in app, "APP_VERSION actualizado")
+ok(f'APP_VERSION = "{VERSION}"' in app or any(f'APP_VERSION = "{v}"' in app for v in NEXT_VERSIONS), "APP_VERSION actualizado o posterior compatible")
 ok("client_match_display_context" in app and "match_full_datetime" in app, "filtros/labels cliente para día y hora Madrid creados")
 ok("enrich_pick_client_context" in app and "client_match_label" in app, "picks enriquecidos con contexto de partido")
 ok("Ejecuta Cron" not in app, "mensajes cliente sin instrucciones internas de Cron")

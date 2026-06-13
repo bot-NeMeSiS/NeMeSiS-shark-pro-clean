@@ -131,6 +131,11 @@ from engines.picks_quality_engine import (
     split_picks_by_quality,
 )
 from engines.pick_analysis_experience_engine import enrich_pick_analysis
+from engines.betting_markets_engine import (
+    build_betting_markets_snapshot,
+    build_combi_strategy_context,
+    enrich_pick_market_context,
+)
 from engines.spanish_localization_engine import (
     MADRID_TZ,
     apply_match_localization,
@@ -154,7 +159,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V763_WORLD_CUP_LAUNCH_CLIENT_FINALIZATION_POLISH"
+APP_VERSION = "V765_MARKETS_COMBIS_CLIENT_STRUCTURE_POLISH"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -9606,6 +9611,7 @@ def v763_world_cup_launch_page():
     user = current_session_user() or {"membership": "FREE", "role": "FREE"}
     data = dashboard_data("top", today_iso())
     data["world_cup_launch"] = build_v763_world_cup_launch_context(data, user)
+    data["dynamic_mode"] = build_v764_dynamic_competition_mode(data, user, "world-cup")
     data["v758_adaptive"] = v758_adaptive_context(data, user, "world-cup")
     return render_template("world_cup_launch.html", data=data)
 
@@ -9614,6 +9620,314 @@ def api_client_world_cup_snapshot():
     data = home_light_data()
     return jsonify({"ok": True, "version": APP_VERSION, "world_cup": build_v763_world_cup_launch_context(data, current_session_user())})
 
+
+# ===================== V764 DYNAMIC COMPETITION MODE ENGINE =====================
+
+def _v764_match_competition_text(match):
+    return normalized_label(" ".join(str(match.get(k) or "") for k in (
+        "competition_name", "league_name", "competition_key", "country", "season", "round", "source", "sport_key"
+    )))
+
+
+def _v764_competition_bucket(match):
+    text = _v764_match_competition_text(match)
+    if any(t in text for t in ["world cup", "mundial", "fifa", "selecciones", "national"]):
+        return "world_cup"
+    if any(t in text for t in ["champions", "ucl", "uefa champions"]):
+        return "champions"
+    if any(t in text for t in ["europa league", "conference league", "uefa"]):
+        return "europe"
+    if any(t in text for t in ["laliga", "la liga", "spain", "espana", "españa", "segunda", "primera federacion", "andalucia", "andalucía"]):
+        return "spain"
+    if any(t in text for t in ["premier", "england", "bundesliga", "serie a", "ligue 1", "portugal", "eredivisie"]):
+        return "top_leagues"
+    return "general"
+
+
+def _v764_mode_label(mode_key):
+    labels = {
+        "live": "Modo Directo",
+        "world_cup": "Modo Mundial",
+        "champions": "Modo Champions",
+        "europe": "Modo Europa",
+        "spain": "Modo España",
+        "weekend": "Modo Fin de semana",
+        "picks": "Modo Picks del día",
+        "results": "Modo Resultados",
+        "top_leagues": "Modo Ligas top",
+        "agenda": "Modo Agenda",
+        "quiet": "Modo Próximos focos",
+    }
+    return labels.get(mode_key or "agenda", "Modo Agenda")
+
+
+def _v764_mode_description(mode_key):
+    desc = {
+        "live": "Hay partidos en directo: la app prioriza marcador, minuto, estado y picks relacionados.",
+        "world_cup": "El Mundial o selecciones mandan: se priorizan partidos internacionales, picks vinculados y horarios Madrid.",
+        "champions": "Jornada europea: Champions y competiciones UEFA suben al foco principal.",
+        "europe": "Competición europea activa: se ordenan los partidos continentales y picks de mayor interés.",
+        "spain": "Foco España: LaLiga, competiciones nacionales y Andalucía suben en prioridad cuando estén disponibles.",
+        "weekend": "Fin de semana de fútbol: agenda amplia con ligas top, picks y próximos directos.",
+        "picks": "Hay picks activos: el cliente debe ver qué apostar, de qué partido es y cuándo se juega.",
+        "results": "Hay partidos finalizados: se destacan resultados y picks pendientes de validar sin inventar ROI.",
+        "top_leagues": "Jornada de ligas importantes: se priorizan competiciones top y partidos con pick.",
+        "agenda": "Agenda normal: se muestran próximos partidos, directo si aparece y picks reales si existen.",
+        "quiet": "Sin foco fuerte ahora mismo: la app muestra próximos focos y espera datos reales.",
+    }
+    return desc.get(mode_key or "agenda", desc["agenda"])
+
+
+def _v764_sort_key(match):
+    item = dict(match or {})
+    status = canonical_match_status(item)
+    bucket = _v764_competition_bucket(item)
+    bucket_score = {"world_cup": 0, "champions": 1, "europe": 2, "spain": 3, "top_leagues": 4, "general": 7}.get(bucket, 7)
+    live_score = 0 if status.get("is_live") else 2
+    pick_score = 0 if item.get("has_pick") or item.get("pick_id") else 1
+    raw = str(item.get("kickoff_time") or item.get("match_time") or item.get("commence_time") or item.get("date") or "")
+    return (live_score, pick_score, bucket_score, raw)
+
+
+def _v764_collect_match_source(data=None):
+    source = []
+    today = today_iso()
+    try:
+        source.extend(get_matches(today, "today"))
+    except Exception:
+        pass
+    try:
+        source.extend(get_matches(today, "live"))
+    except Exception:
+        pass
+    try:
+        source.extend(get_upcoming_matches(today, days=14, limit=360))
+    except Exception:
+        pass
+    if data:
+        hub = (data or {}).get("match_hub") or {}
+        for key in ("live", "today", "upcoming", "finished"):
+            source.extend(hub.get(key) or [])
+        source.extend((data or {}).get("upcoming_matches") or [])
+        source.extend((data or {}).get("matches") or [])
+    return dedupe_matches_list(source)
+
+
+def _v764_enrich_match(match):
+    item = dict(match or {})
+    try:
+        item.update(apply_match_localization(item))
+        item.update(apply_team_identities_to_match(item))
+    except Exception:
+        pass
+    try:
+        item = client_match_display_context(item)
+    except Exception:
+        pass
+    status = canonical_match_status(item)
+    bucket = _v764_competition_bucket(item)
+    item["v764_bucket"] = bucket
+    item["v764_bucket_label"] = _v764_mode_label(bucket)
+    item["v764_title"] = f"{item.get('client_home') or item.get('safe_home') or item.get('home_team') or 'Local'} vs {item.get('client_away') or item.get('safe_away') or item.get('away_team') or 'Visitante'}"
+    item["v764_competition"] = item.get("client_competition") or spanish_competition_name(item.get("competition_name") or item.get("league_name") or item.get("competition_key") or "") or "Competición"
+    item["v764_when"] = item.get("client_full_datetime_label") or item.get("client_datetime_label") or item.get("client_time_label") or "Hora Madrid pendiente"
+    item["v764_status"] = item.get("client_result_label") or item.get("safe_status") or item.get("status") or "Programado"
+    item["v764_is_live"] = bool(status.get("is_live"))
+    item["v764_is_finished"] = bool(status.get("is_finished"))
+    return item
+
+
+def _v764_pick_summary(user):
+    picks = []
+    try:
+        picks = [enrich_pick_client_context(p) for p in published_picks_for_user(user, limit=24)]
+    except Exception:
+        picks = []
+    return picks
+
+
+def build_v764_dynamic_competition_mode(data=None, user=None, surface="home"):
+    """Decide automáticamente el modo de la app según partidos, competición, hora Madrid y picks reales."""
+    user = user or current_session_user() or {"membership": "FREE", "role": "FREE"}
+    now = datetime.now(TZ)
+    raw_matches = _v764_collect_match_source(data)
+    enriched = [_v764_enrich_match(m) for m in raw_matches if not is_fake_match(m)]
+    enriched = sorted(enriched, key=_v764_sort_key)
+    live = [m for m in enriched if m.get("v764_is_live")]
+    finished = [m for m in enriched if m.get("v764_is_finished")]
+    upcoming = [m for m in enriched if not m.get("v764_is_live") and not m.get("v764_is_finished")]
+    buckets = {"world_cup": [], "champions": [], "europe": [], "spain": [], "top_leagues": [], "general": []}
+    for m in enriched:
+        buckets.setdefault(m.get("v764_bucket") or "general", []).append(m)
+    picks = _v764_pick_summary(user)
+    mode_key = "agenda"
+    reason = "agenda"
+    if live:
+        mode_key, reason = "live", "partidos en directo"
+    elif buckets.get("world_cup"):
+        mode_key, reason = "world_cup", "Mundial o selecciones disponibles"
+    elif buckets.get("champions"):
+        mode_key, reason = "champions", "competición Champions detectada"
+    elif buckets.get("europe"):
+        mode_key, reason = "europe", "competición europea detectada"
+    elif picks:
+        mode_key, reason = "picks", "picks activos disponibles"
+    elif finished:
+        mode_key, reason = "results", "partidos finalizados recientes"
+    elif buckets.get("spain"):
+        mode_key, reason = "spain", "foco España disponible"
+    elif now.weekday() in {4, 5, 6} and enriched:
+        mode_key, reason = "weekend", "fin de semana con agenda"
+    elif buckets.get("top_leagues"):
+        mode_key, reason = "top_leagues", "ligas top disponibles"
+    elif not enriched:
+        mode_key, reason = "quiet", "sin datos reales sincronizados"
+    focus = []
+    if mode_key == "live":
+        focus = live + upcoming
+    elif mode_key == "world_cup":
+        focus = buckets.get("world_cup", []) + live + upcoming
+    elif mode_key in {"champions", "europe", "spain", "top_leagues"}:
+        focus = buckets.get(mode_key, []) + live + upcoming
+    elif mode_key == "results":
+        focus = finished + upcoming
+    else:
+        focus = upcoming + live + finished
+    focus = dedupe_matches_list(focus)[:14]
+    primary_action = {
+        "live": {"label": "Ver directo", "href": "/live?f=live"},
+        "world_cup": {"label": "Abrir Mundial", "href": "/mundial"},
+        "champions": {"label": "Ver jornada", "href": "/calendar?lane=top"},
+        "europe": {"label": "Ver Europa", "href": "/calendar?lane=top"},
+        "spain": {"label": "Ver España", "href": "/calendar?lane=spain"},
+        "weekend": {"label": "Ver semana", "href": "/calendar?lane=week"},
+        "picks": {"label": "Ver picks", "href": "/picks"},
+        "results": {"label": "Ver histórico", "href": "/track-record"},
+        "top_leagues": {"label": "Ver ligas top", "href": "/calendar?lane=top"},
+        "agenda": {"label": "Ver calendario", "href": "/calendar"},
+        "quiet": {"label": "Ver próximos", "href": "/calendar?lane=upcoming"},
+    }.get(mode_key, {"label": "Ver calendario", "href": "/calendar"})
+    quick_actions = [
+        primary_action,
+        {"label": "Hoy", "href": "/calendar?lane=today"},
+        {"label": "Directo", "href": "/live?f=live"},
+        {"label": "Picks", "href": "/picks"},
+        {"label": "Histórico", "href": "/track-record"},
+    ]
+    return {
+        "version": APP_VERSION,
+        "mode": mode_key,
+        "label": _v764_mode_label(mode_key),
+        "description": _v764_mode_description(mode_key),
+        "reason": reason,
+        "surface": surface,
+        "now_madrid": now.strftime("%d/%m/%Y %H:%M"),
+        "counts": {
+            "matches": len(enriched), "live": len(live), "upcoming": len(upcoming),
+            "finished": len(finished), "picks": len(picks),
+            "world_cup": len(buckets.get("world_cup") or []), "champions": len(buckets.get("champions") or []),
+            "spain": len(buckets.get("spain") or []), "top": len(buckets.get("top_leagues") or []),
+        },
+        "focus_matches": [_v764_enrich_match(m) for m in focus],
+        "live": live[:8], "upcoming": upcoming[:12], "finished": finished[:8],
+        "picks": picks[:8],
+        "primary_action": primary_action,
+        "quick_actions": quick_actions,
+        "empty_message": "Cuando haya datos reales sincronizados, NeMeSiS activará automáticamente Mundial, Directo, Picks, Resultados o Liga según el momento.",
+    }
+
+
+@app.route("/modo-dinamico")
+@app.route("/modo-competicion")
+@app.route("/competition-mode")
+def v764_dynamic_mode_page():
+    user = current_session_user() or {"membership": "FREE", "role": "FREE"}
+    data = dashboard_data("today", today_iso())
+    data["dynamic_mode"] = build_v764_dynamic_competition_mode(data, user, "dynamic-mode")
+    data["world_cup_launch"] = build_v763_world_cup_launch_context(data, user)
+    data["v758_adaptive"] = v758_adaptive_context(data, user, "dynamic-mode")
+    return render_template("dynamic_mode.html", data=data)
+
+
+@app.route("/api/client/dynamic-mode")
+def api_client_dynamic_mode():
+    data = home_light_data()
+    return jsonify({"ok": True, "version": APP_VERSION, "dynamic_mode": build_v764_dynamic_competition_mode(data, current_session_user(), "api")})
+
+
+
+
+# ===================== V765 MARKETS / COMBIS / CLIENT STRUCTURE POLISH =====================
+
+def _v765_collect_market_matches(data=None, limit=120):
+    source = []
+    try:
+        source.extend(get_matches(today_iso(), "today"))
+    except Exception:
+        pass
+    try:
+        source.extend(get_upcoming_matches(today_iso(), days=14, limit=limit))
+    except Exception:
+        pass
+    if data:
+        hub = (data or {}).get("match_hub") or {}
+        for key in ("live", "today", "upcoming", "finished"):
+            source.extend(hub.get(key) or [])
+        source.extend((data or {}).get("upcoming_matches") or [])
+        source.extend((data or {}).get("matches") or [])
+    return dedupe_matches_list(source)[:limit]
+
+
+def v765_markets_context(data=None, user=None):
+    """Mercados básicos para cliente: sin apuestas inventadas ni llamadas externas."""
+    user = user or current_session_user() or {"membership": "FREE", "role": "FREE"}
+    plan = str(user.get("membership") or user.get("role") or "FREE").upper()
+    try:
+        picks = [enrich_pick_market_context(enrich_pick_client_context(p)) for p in published_picks_for_user(user, limit=120)]
+    except Exception:
+        picks = []
+    matches = _v765_collect_market_matches(data, limit=160)
+    snapshot = build_betting_markets_snapshot(picks=picks, matches=matches, plan=plan)
+    snapshot["plan"] = plan
+    snapshot["quick_actions"] = [
+        {"label": "1X2", "href": "/mercados?tipo=1x2", "text": "Ganador, empate o visitante"},
+        {"label": "Goles", "href": "/mercados?tipo=goles", "text": "Más/Menos 1.5 y 2.5"},
+        {"label": "Doble oportunidad", "href": "/mercados?tipo=doble", "text": "1X, X2 o 12"},
+        {"label": "Combis", "href": "/combis?tipo=mixta&partidos=3", "text": "Combinadas responsables"},
+    ]
+    return snapshot
+
+
+def v765_combi_context(data=None, user=None, requested_count=3):
+    user = user or current_session_user() or {"membership": "FREE", "role": "FREE"}
+    try:
+        picks = [enrich_pick_market_context(enrich_pick_client_context(p)) for p in published_picks_for_user(user, limit=160)]
+    except Exception:
+        picks = []
+    matches = _v765_collect_market_matches(data, limit=180)
+    context = build_combi_strategy_context(picks=picks, matches=matches, requested_count=requested_count)
+    context["plan"] = str(user.get("membership") or user.get("role") or "FREE").upper()
+    context["selected_type"] = (request.args.get("tipo") or request.args.get("type") or "mixta") if has_request_context() else "mixta"
+    return context
+
+
+@app.route("/mercados")
+@app.route("/markets")
+@app.route("/apuestas-basicas")
+def betting_markets_page():
+    user = current_session_user() or {"membership": "FREE", "role": "FREE"}
+    data = dashboard_data("today", today_iso())
+    data["v765_markets"] = v765_markets_context(data, user)
+    data["v765_combis"] = v765_combi_context(data, user, combi_leg_count(request.args.get("partidos"), 3))
+    data["dynamic_mode"] = build_v764_dynamic_competition_mode(data, user, "markets")
+    return render_template("betting_markets.html", data=data)
+
+
+@app.route("/api/client/betting-markets")
+def api_client_betting_markets():
+    user = current_session_user() or {"membership": "FREE", "role": "FREE"}
+    data = home_light_data()
+    return jsonify({"ok": True, "version": APP_VERSION, "markets": v765_markets_context(data, user), "combis": v765_combi_context(data, user, combi_leg_count(request.args.get("partidos"), 3))})
 
 @app.route("/")
 def home():
@@ -9624,6 +9938,9 @@ def home():
     data["v757_app"] = build_v757_app_center(data, current_session_user(), track_record=None)
     data["v758_adaptive"] = v758_adaptive_context(data, current_session_user(), "home")
     data["world_cup_launch"] = build_v763_world_cup_launch_context(data, current_session_user())
+    data["dynamic_mode"] = build_v764_dynamic_competition_mode(data, current_session_user(), "home")
+    data["v765_markets"] = v765_markets_context(data, current_session_user())
+    data["v765_combis"] = v765_combi_context(data, current_session_user(), 3)
     return render_template("home.html", data=data)
 
 
@@ -9915,7 +10232,9 @@ def calendar_page():
     data["date"] = data["calendar"].get("filters", {}).get("date", today_iso())
     data["client_premium"] = build_client_app_premium_context(data, current_session_user())
     data["v757_app"] = build_v757_app_center(data, current_session_user(), track_record=None)
+    data["dynamic_mode"] = build_v764_dynamic_competition_mode(data, current_session_user(), "calendar")
     data["v758_adaptive"] = v758_adaptive_context(data, current_session_user(), "calendar")
+    data["v765_markets"] = v765_markets_context(data, current_session_user())
     return render_template("calendar.html", data=data)
 
 
@@ -9994,7 +10313,9 @@ def live_page():
         source.extend(hub.get(key) or [])
     source = dedupe_matches_list(source)
     data["live_experience"] = build_live_experience(source, lane=lane, query=query)
+    data["dynamic_mode"] = build_v764_dynamic_competition_mode(data, current_session_user(), "live")
     data["v758_adaptive"] = v758_adaptive_context(data, current_session_user(), "live")
+    data["v765_markets"] = v765_markets_context(data, current_session_user())
     return render_template("live.html", data=data)
 
 
@@ -10017,7 +10338,9 @@ def match_detail_page(match_id):
     data = dashboard_data()
     data["match_detail"] = detail
     data["client_premium"] = build_client_app_premium_context(data, current_session_user(), detail=detail)
+    data["dynamic_mode"] = build_v764_dynamic_competition_mode(data, current_session_user(), "match")
     data["v758_adaptive"] = v758_adaptive_context(data, current_session_user(), "match")
+    data["v765_markets"] = v765_markets_context(data, current_session_user())
     if detail:
         detail["client_premium"] = data["client_premium"].get("match", {})
     return render_template("match_detail.html", data=data, detail=detail)
@@ -10768,7 +11091,10 @@ def picks_page():
     data["smart_picks"] = smart_pick_board(user, limit=24)
     data["client_premium"] = build_client_app_premium_context(data, user, filter_key=(request.args.get("filtro") or request.args.get("filter") or "all"))
     data["v757_app"] = build_v757_app_center(data, user, track_record=None)
+    data["dynamic_mode"] = build_v764_dynamic_competition_mode(data, user, "picks")
     data["v758_adaptive"] = v758_adaptive_context(data, user, "picks")
+    data["v765_markets"] = v765_markets_context(data, user)
+    data["v765_combis"] = v765_combi_context(data, user, 3)
     record_user_activity("view", "picks", "picks-page", {"count": len(data["picks"]), "candidates": len(data["candidate_matches"])})
     return render_template("picks.html", data=data)
 
@@ -10782,6 +11108,8 @@ def combis_page():
     data["picks"] = published_picks_for_user(user, limit=30)
     data["combis"] = get_combis(limit=20)
     data["combi_builder"] = build_combi_candidates_from_matches(requested_count)
+    data["v765_markets"] = v765_markets_context(data, user)
+    data["v765_combis"] = v765_combi_context(data, user, requested_count)
     data["requested_combi_count"] = requested_count
     record_user_activity("view", "combis", "combis-page", {"picks_available": len(data["picks"])})
     return render_template("combis.html", data=data)
@@ -12865,9 +13193,12 @@ def v566_client_menu_items():
     return [
         {"group": "Inicio", "title": "Mi panel", "body": "Resumen diario con partidos, picks, directo, Telegram y siguiente paso.", "href": "/app"},
         {"group": "Mundial", "title": "Modo Mundial", "body": "Partidos clave, picks, directo y próximos focos con hora Madrid.", "href": "/mundial"},
+        {"group": "Inicio", "title": "Modo automático", "body": "NeMeSiS cambia el foco según directo, Mundial, Champions, picks, resultados o agenda.", "href": "/modo-dinamico"},
         {"group": "Partidos", "title": "Calendario", "body": "Hoy, mañana, semana, favoritos, directos y partidos con pick.", "href": "/calendar"},
         {"group": "Partidos", "title": "Directo", "body": "Marcador, minuto, estado y enlaces al detalle del partido.", "href": "/live"},
         {"group": "Picks", "title": "Picks SHARK", "body": "Mercado, cuota, stake, riesgo, motivo y estado Telegram.", "href": "/picks"},
+        {"group": "Mercados", "title": "Mercados básicos", "body": "1X2, doble oportunidad, DNB, goles y ambos marcan explicados para cliente.", "href": "/mercados"},
+        {"group": "Mercados", "title": "Combis", "body": "Combis 1X2, de goles o mixtas con pocas selecciones y aviso de riesgo.", "href": "/combis"},
         {"group": "Picks", "title": "Histórico real", "body": "Track Record con resultados auditables, sin ROI inventado.", "href": "/track-record"},
         {"group": "SHARK", "title": "SHARK IA", "body": "Pregunta por el mejor pick, qué evitar, combis, directo o value.", "href": "/shark"},
         {"group": "Canal", "title": "Telegram", "body": "Vinculación, estado y avisos cuando hay picks reales disponibles.", "href": "/telegram"},

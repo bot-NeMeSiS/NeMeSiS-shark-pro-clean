@@ -3,6 +3,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V761_CLIENT_SALE_READY_EXPERIENCE_ORDER_PERFECTION"
+NEXT_VERSIONS = {"V762_CLIENT_CLARITY_MADRID_TIME_ADMIN_NOISE_POLISH", "V763_WORLD_CUP_LAUNCH_CLIENT_FINALIZATION_POLISH", "V764_DYNAMIC_COMPETITION_MODE_ENGINE", "V765_MARKETS_COMBIS_CLIENT_STRUCTURE_POLISH"}
 
 def ok(cond, msg):
     if not cond:
@@ -10,9 +11,9 @@ def ok(cond, msg):
     print(f"[V761][OK] {msg}")
 
 version = (ROOT / "VERSION.txt").read_text(encoding="utf-8-sig").strip()
-ok(version == VERSION, "VERSION.txt apunta a V761")
+ok(version == VERSION or version in NEXT_VERSIONS, "VERSION.txt apunta a V761 o versión posterior compatible")
 app = (ROOT / "app.py").read_text(encoding="utf-8")
-ok(f'APP_VERSION = "{VERSION}"' in app, "APP_VERSION actualizado")
+ok(f'APP_VERSION = "{VERSION}"' in app or any(f'APP_VERSION = "{v}"' in app for v in NEXT_VERSIONS), "APP_VERSION actualizado o posterior compatible")
 ok("tools/render_cron_telegram_tick.py" not in app or "/api/automation/telegram/tick" in app, "cron/tick conservado")
 base = (ROOT / "templates" / "base.html").read_text(encoding="utf-8")
 ok('href="/shark">SHARK</a>' in base, "SHARK visible en navegación cliente")

@@ -64,6 +64,16 @@
   </div>
 </section>
 
+{% set mk = data.v765_markets if data.v765_markets is defined else {} %}
+{% if mk %}
+<section class="band compact-band v765-match-markets client-only-context">
+  <div class="section-head"><div><h2>Mercados básicos para este partido</h2><p class="small">Antes de entrar, el cliente debe entender mercado, selección, cuota y riesgo. SHARK no fuerza mercados si faltan datos.</p></div><a class="pill" href="/mercados">Guía de mercados</a></div>
+  <div class="v765-market-mini">
+    {% for market in (mk.catalog or [])[:5] %}<a href="/mercados?tipo={{ market.key }}"><strong>{{ market.label }}</strong><small>{{ market.client_label }}</small></a>{% endfor %}
+  </div>
+</section>
+{% endif %}
+
 <section class="band compact-band">
   <div class="section-head"><h2>Lectura SHARK</h2><span class="pill">{{ state.label or 'Estado' }}</span></div>
   <div class="grid compact-grid metric-row">

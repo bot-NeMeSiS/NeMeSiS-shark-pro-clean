@@ -23,6 +23,18 @@
   </div>
 </section>
 
+{% set dm = data.dynamic_mode if data.dynamic_mode is defined else {} %}
+{% if dm %}
+<section class="band compact-band v764-auto-mode-strip client-only-context">
+  <div class="section-head"><div><h2>{{ dm.label }}</h2><p class="small">{{ dm.description }} · Madrid {{ dm.now_madrid }}</p></div><a class="pill" href="/modo-dinamico">Modo automático</a></div>
+  <div class="v764-mode-mini">
+    <span><strong>{{ (dm.counts or {}).get('live', 0) }}</strong><small>Directo</small></span>
+    <span><strong>{{ (dm.counts or {}).get('upcoming', 0) }}</strong><small>Próximos</small></span>
+    <span><strong>{{ (dm.counts or {}).get('picks', 0) }}</strong><small>Picks</small></span>
+    <a class="btn primary" href="{{ (dm.primary_action or {}).get('href','/calendar') }}">{{ (dm.primary_action or {}).get('label','Ver calendario') }}</a>
+  </div>
+</section>
+{% endif %}
 
 {% set v756_calendar = data.client_premium.calendar if data.client_premium is defined else {} %}
 <section class="band compact-band v756-calendar-guide client-only-context">
@@ -84,6 +96,14 @@
     </div>
   </form>
 </section>
+
+
+{% set mk = data.v765_markets if data.v765_markets is defined else {} %}
+{% if mk %}
+<section class="band compact-band v765-screen-order-strip client-only-context">
+  <div class="section-head"><div><h2>Orden de lectura</h2><p class="small">Primero partido y hora Madrid, después estado, mercado y pick si existe. Fecha: visible para cada partido. Nada de apuestas sin contexto.</p></div><a class="pill" href="/mercados">Mercados</a></div>
+</section>
+{% endif %}
 
 <section class="sports-tabs v701-tabs calendar-tabs">
   {% for tab in calendar.tabs %}

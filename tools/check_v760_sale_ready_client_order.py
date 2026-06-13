@@ -5,6 +5,7 @@ import re
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V760_SALE_READY_CLIENT_ORDER_SHARK_TELEGRAM_FIX"
 NEXT_VERSION = "V761_CLIENT_SALE_READY_EXPERIENCE_ORDER_PERFECTION"
+NEXT_VERSIONS = {NEXT_VERSION, "V762_CLIENT_CLARITY_MADRID_TIME_ADMIN_NOISE_POLISH", "V763_WORLD_CUP_LAUNCH_CLIENT_FINALIZATION_POLISH", "V764_DYNAMIC_COMPETITION_MODE_ENGINE", "V765_MARKETS_COMBIS_CLIENT_STRUCTURE_POLISH"}
 
 def ok(cond, msg):
     if not cond:
@@ -12,9 +13,9 @@ def ok(cond, msg):
     print(f"[V760][OK] {msg}")
 
 version = (ROOT / "VERSION.txt").read_text(encoding="utf-8-sig").strip()
-ok(version in {VERSION, NEXT_VERSION}, "VERSION.txt apunta a V760 o versión posterior compatible")
+ok(version == VERSION or version in NEXT_VERSIONS, "VERSION.txt apunta a V760 o versión posterior compatible")
 app_py = (ROOT / "app.py").read_text(encoding="utf-8")
-ok(f'APP_VERSION = "{VERSION}"' in app_py or f'APP_VERSION = "{NEXT_VERSION}"' in app_py, "APP_VERSION actualizado")
+ok(f'APP_VERSION = "{VERSION}"' in app_py or any(f'APP_VERSION = "{v}"' in app_py for v in NEXT_VERSIONS), "APP_VERSION actualizado")
 base = (ROOT / "templates" / "base.html").read_text(encoding="utf-8")
 ok("return meta ? meta.getAttribute('content') : '';" in base, "CSRF JS corregido")
 ok("method: active ? 'DELETE' : 'POST'" in base, "favoritos JS corregido")

@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block content %}
+{% set mk = data.v765_markets or {} %}
+{% set cb = data.v765_combis or {} %}
+<section class="scoreboard-hero v701-scoreboard v765-markets-hero">
+  <div>
+    <div class="kicker">Mercados SHARK · claro para cliente</div>
+    <h1>Mercados básicos y combis responsables</h1>
+    <p class="lead">Solo añadimos mercados entendibles: 1X2, doble oportunidad, empate no apuesta, goles y ambos marcan. Si falta cuota real o contexto, se avisa sin inventar.</p>
+    <div class="v750-live-actions">
+      <a class="btn primary" href="/picks">Ver picks</a>
+      <a class="btn" href="/combis?tipo=mixta&partidos=3">Preparar combi</a>
+      <a class="btn" href="/calendar?lane=with_pick">Partidos con pick</a>
+    </div>
+  </div>
+  <div class="scoreboard-kpis">
+    <div><strong>{{ mk.ready_count or 0 }}</strong><span>Picks con mercado</span></div>
+    <div><strong>{{ cb.ready_picks or 0 }}</strong><span>Listos combi</span></div>
+    <div><strong>{{ mk.study_count or 0 }}</strong><span>En estudio</span></div>
+    <div><strong>{{ mk.plan or 'FREE' }}</strong><span>Plan</span></div>
+  </div>
+</section>
+
+<section class="band compact-band v765-client-note">
+  <div class="section-head"><div><h2>Regla de producto</h2><p class="small">Más mercados no significa más desorden. NeMeSiS muestra pocos mercados, bien explicados y con aviso de riesgo.</p></div><span class="pill">Sin humo</span></div>
+  <p class="small">{{ mk.client_message or 'Mercados básicos claros y responsables.' }}</p>
+</section>
+
+<section class="band compact-band">
+  <div class="section-head"><h2>Mercados disponibles</h2><span class="pill">Básicos</span></div>
+  <div class="grid dense-grid v765-market-grid">
+    {% for market in mk.catalog %}
+    <article class="card v765-market-card {% if not market.available %}locked-card{% endif %}">
+      <div class="match-top"><div><span class="badge">{{ market.label }}</span><h3>{{ market.title }}</h3></div><span class="shark-pill">{{ market.risk }}</span></div>
+      <p class="small"><strong>{{ market.client_label }}</strong></p>
+      <p class="small">{{ market.description }}</p>
+      <div class="v765-example-list">
+        {% for ex in market.examples %}<span>{{ ex }}</span>{% endfor %}
+      </div>
+      <p class="small"><strong>Combis:</strong> {{ market.combi_use }}</p>
+      {% if not market.available %}<p class="small muted">{{ market.locked_reason }}</p>{% endif %}
+    </article>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="band compact-band">
+  <div class="section-head"><div><h2>Combis recomendadas</h2><p class="small">Solo se montan sobre picks reales publicados. Si no hay suficientes patas válidas, se queda en estudio.</p></div><span class="pill">{{ cb.requested_count or 3 }} selecciones</span></div>
+  <div class="grid dense-grid v765-combi-grid">
+    {% for s in cb.strategies %}
+    <article class="card v765-combi-card {% if s.ready %}ready{% else %}study{% endif %}">
+      <div class="match-top"><div><span class="badge">{{ s.label }}</span><h3>{{ s.title }}</h3></div><span class="shark-pill">{{ s.risk }}</span></div>
+      <p class="small">{{ s.description }}</p>
+      <div class="pick-mainline v765-combi-kpis">
+        <div><span>Patas válidas</span><strong>{{ s.available_legs }}</strong></div>
+        <div><span>Cuota aprox.</span><strong>{{ s.total_odds_preview if s.total_odds_preview else '—' }}</strong></div>
+        <div><span>Estado</span><strong>{{ 'Lista' if s.ready else 'En estudio' }}</strong></div>
+      </div>
+      {% if s.legs %}
+      <div class="v765-leg-list">
+        {% for leg in s.legs[:5] %}<div><strong>{{ leg.match }}</strong><small>{{ leg.market }} · {{ leg.selection }} · Cuota {{ leg.odds or 'no disponible' }}</small></div>{% endfor %}
+      </div>
+      {% else %}
+      <div class="empty premium-empty">{{ s.empty_message }}</div>
+      {% endif %}
+      <div class="inline-actions"><a class="btn small-btn" href="{{ s.href }}">Abrir combi</a><a class="btn small-btn" href="/picks">Ver picks</a></div>
+    </article>
+    {% endfor %}
+  </div>
+  <p class="small responsible-note">{{ cb.responsible_note }}</p>
+</section>
+
+<section class="band compact-band">
+  <div class="section-head"><h2>Picks sin mercado/cuota suficiente</h2><span class="pill">Control de calidad</span></div>
+  {% if mk.study_picks %}
+  <div class="grid dense-grid">
+    {% for p in mk.study_picks[:6] %}
+    <article class="card study-card"><h3>{{ p.client_match_label or p.home_team ~ ' vs ' ~ p.away_team if p.home_team else 'Partido pendiente' }}</h3><p class="small">{{ p.v765_combi_warning or 'Falta algún dato antes de venderlo como pick completo.' }}</p><p class="small">Selección: {{ p.selection or 'pendiente' }} · Mercado: {{ p.v765_market_label }}</p></article>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty premium-empty">Ahora mismo no hay picks problemáticos detectados en la vista cliente.</div>
+  {% endif %}
+</section>
+{% endblock %}

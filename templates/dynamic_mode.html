@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block content %}
+{% set dm = data.dynamic_mode or {} %}
+<section class="scoreboard-hero v764-dynamic-hero">
+  <div>
+    <div class="kicker">Modo automático · hora Madrid</div>
+    <h1>{{ dm.label or 'Modo Agenda' }}</h1>
+    <p class="lead">{{ dm.description or 'La app decide qué enseñar primero según competición, directo, picks, resultados y momento del día.' }}</p>
+    <div class="v760-primary-actions">
+      <a class="btn primary" href="{{ (dm.primary_action or {}).get('href','/calendar') }}">{{ (dm.primary_action or {}).get('label','Ver calendario') }}</a>
+      <a class="btn" href="/calendar?lane=today">Hoy</a>
+      <a class="btn" href="/live?f=live">Directo</a>
+      <a class="btn" href="/picks">Picks</a>
+    </div>
+  </div>
+  <div class="scoreboard-kpis v764-mode-kpis">
+    <div><strong>{{ (dm.counts or {}).get('live', 0) }}</strong><span>Directo</span></div>
+    <div><strong>{{ (dm.counts or {}).get('upcoming', 0) }}</strong><span>Próximos</span></div>
+    <div><strong>{{ (dm.counts or {}).get('picks', 0) }}</strong><span>Picks</span></div>
+    <div><strong>{{ (dm.counts or {}).get('finished', 0) }}</strong><span>Finalizados</span></div>
+  </div>
+</section>
+
+<section class="band compact-band v764-auto-mode-panel">
+  <div class="section-head"><div><h2>Qué está priorizando NeMeSiS ahora</h2><p class="small">Motivo: {{ dm.reason or 'agenda' }} · Madrid {{ dm.now_madrid or '' }}</p></div><span class="pill">{{ dm.mode or 'agenda' }}</span></div>
+  <div class="v764-action-rail">
+    {% for action in dm.quick_actions or [] %}<a class="quick" href="{{ action.href }}"><span>{{ action.label }}</span><strong>Ir</strong></a>{% endfor %}
+  </div>
+</section>
+
+<section class="band compact-band v764-focus-panel">
+  <div class="section-head"><div><h2>Foco automático</h2><p class="small">Partidos con prioridad según directo, competición, picks y hora Madrid.</p></div><span class="pill">{{ (dm.focus_matches or [])|length }} focos</span></div>
+  <div class="v762-client-list">
+    {% for m in (dm.focus_matches or [])[:12] %}
+    <a class="v762-match-row v764-focus-row" href="/match/{{ m.id }}">
+      <span class="v762-datebox"><strong>{{ m.client_date_label or (m|match_date_label) }}</strong><small>{{ m.client_time_label or (m|match_time_short) }}</small></span>
+      <span class="v762-mainline"><strong>{{ m.v764_title }}</strong><small>{{ m.v764_competition }} · {{ m.v764_status }}</small></span>
+      <em class="v762-chip {{ 'pick' if m.has_pick or m.pick_id else '' }}">{{ 'Con pick' if m.has_pick or m.pick_id else m.v764_bucket_label }}</em>
+    </a>
+    {% else %}
+    <div class="empty premium-empty"><strong>{{ dm.empty_message }}</strong><p>Mientras tanto revisa calendario, directo o picks.</p></div>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="card responsible-note v764-dynamic-note">
+  <h2>Automático, pero sin inventar datos</h2>
+  <p>El modo cambia con datos reales: si hay directo, prioriza directo; si hay Mundial o Champions, sube esa competición; si hay picks, muestra partido, hora, mercado y riesgo; si faltan datos, lo dice claro.</p>
+</section>
+{% endblock %}

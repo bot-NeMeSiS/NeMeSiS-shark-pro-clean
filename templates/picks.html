@@ -14,6 +14,19 @@
   </div>
 </section>
 
+{% set dm = data.dynamic_mode if data.dynamic_mode is defined else {} %}
+{% if dm %}
+<section class="band compact-band v764-auto-mode-strip client-only-context">
+  <div class="section-head"><div><h2>{{ dm.label }}</h2><p class="small">{{ dm.description }} · Madrid {{ dm.now_madrid }}</p></div><a class="pill" href="/modo-dinamico">Modo automático</a></div>
+  <div class="v764-mode-mini">
+    <span><strong>{{ (dm.counts or {}).get('live', 0) }}</strong><small>Directo</small></span>
+    <span><strong>{{ (dm.counts or {}).get('upcoming', 0) }}</strong><small>Próximos</small></span>
+    <span><strong>{{ (dm.counts or {}).get('picks', 0) }}</strong><small>Picks</small></span>
+    <a class="btn primary" href="{{ (dm.primary_action or {}).get('href','/calendar') }}">{{ (dm.primary_action or {}).get('label','Ver calendario') }}</a>
+  </div>
+</section>
+{% endif %}
+
 <section class="v761-pick-flow">
   <div><span>1</span><strong>Qué apostar</strong><small>Selección y mercado claros.</small></div>
   <div><span>2</span><strong>Cuota y stake</strong><small>Sin inventar si falta dato.</small></div>
@@ -29,6 +42,16 @@
   <a class="tab-link" href="/picks?filtro=telegram">Telegram</a>
   <a class="tab-link" href="/calendar?lane=with_pick">Partidos con pick</a>
 </section>
+
+{% set mk = data.v765_markets if data.v765_markets is defined else {} %}
+{% if mk %}
+<section class="band compact-band v765-picks-market-control client-only-context">
+  <div class="section-head"><div><h2>Mercado antes que pick</h2><p class="small">Cada pick debe indicar partido, hora Madrid, mercado, selección, cuota y riesgo. Si falta algo, queda en estudio.</p></div><a class="pill" href="/mercados">Mercados básicos</a></div>
+  <div class="v765-market-mini">
+    {% for market in (mk.catalog or [])[:6] %}<a href="/mercados?tipo={{ market.key }}"><strong>{{ market.label }}</strong><small>{{ market.title }}</small></a>{% endfor %}
+  </div>
+</section>
+{% endif %}
 
 
 {% set v756_picks = data.client_premium.picks if data.client_premium is defined else {} %}
