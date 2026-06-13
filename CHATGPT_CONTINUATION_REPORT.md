@@ -304,3 +304,14 @@ Está cerca de empezar a vender, pero antes conviene validar:
 - Flujo de usuarios reales durante varios días.
 
 Lo que falta realmente antes del lanzamiento abierto no es más código grande: es certificación operativa real con datos, cron, Telegram y usuarios.
+
+
+## V747_ADMIN_TELEGRAM_MEMBERSHIP_DAYS_TIME_ORDER_POLISH
+- Revisado vídeo admin del 2026-06-13 y ZIP V745 subido por el usuario.
+- Prioridad aplicada: Telegram, orden admin, membresías por días y horarios Madrid.
+- Telegram ahora categoriza errores reales, reintenta sin HTML si falla parse_mode, expone schema seguro y mejora resultado de acciones admin.
+- Admin queda compactado con /admin/control-center, dashboard por áreas y navegación menos saturada.
+- /admin/users permite regalar PRO/ELITE por días con nota interna y caducidad automática a FREE.
+- /admin/memberships muestra temporales activos, próximos a caducar y caducadas hoy.
+- Import manual match_date+match_time queda como hora local Madrid para evitar desfase.
+- Validado con compileall, checks V729/V733/V735/V739/V742/V745 static y nuevo check V747.

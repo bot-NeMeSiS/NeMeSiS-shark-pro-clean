@@ -4,8 +4,8 @@
   <div>
     <div class="kicker">Admin · Membresías</div>
     <h1>Centro comercial de membresías.</h1>
-    <p class="lead">Control interno de FREE, PRO y ELITE para preparar la monetización sin activar pagos reales todavía.</p>
-    <div class="actions"><a class="btn primary" href="/admin/users">Gestionar usuarios</a><a class="btn" href="/membresias">Ver landing pública</a></div>
+    <p class="lead">Control FREE, PRO y ELITE con regalos por días para amigos, promociones, pruebas y ofertas sin activar pagos reales.</p>
+    <div class="actions"><a class="btn primary" href="/admin/users">Regalar por días</a><a class="btn" href="/membresias">Ver landing pública</a></div>
   </div>
   <aside class="hero-panel">
     <span class="pill">Conversión</span>
@@ -13,6 +13,25 @@
     <p class="small">MRR estimado interno: {{ data.membership_revenue.estimated_mrr }} €/mes</p>
   </aside>
 </section>
+
+<section class="band compact-band">
+  <div class="section-head"><h2>Regalos, ofertas y caducidades</h2><span class="pill">Nuevo</span></div>
+  <div class="grid compact-grid metric-row">
+    <article class="card metric-card"><div class="metric">{{ data.membership_admin.active_temporal or 0 }}</div><div class="muted">temporales activos</div></article>
+    <article class="card metric-card"><div class="metric">{{ data.membership_admin.expiring_soon or 0 }}</div><div class="muted">caducan en 7 días</div></article>
+    <article class="card metric-card"><div class="metric">{{ data.membership_admin.expired_today or 0 }}</div><div class="muted">bajadas a FREE hoy</div></article>
+  </div>
+  <div class="card">
+    <h3>Duraciones rápidas</h3>
+    <p class="small">Desde Usuarios puedes conceder PRO o ELITE por días concretos. Al caducar, el sistema lo baja a FREE automáticamente y deja nota interna.</p>
+    <div class="quick-days">
+      {% for days in data.membership_admin.quick_days %}<span class="pill">{{ days }} día{% if days != 1 %}s{% endif %}</span>{% endfor %}
+      <span class="pill">Sin caducidad</span>
+    </div>
+    <div class="actions"><a class="btn primary" href="/admin/users">Abrir usuarios</a></div>
+  </div>
+</section>
+
 <section class="band compact-band">
   <div class="section-head"><h2>Distribución actual</h2><span class="pill">Usuarios</span></div>
   <div class="grid compact-grid">
@@ -21,6 +40,18 @@
     {% endfor %}
   </div>
 </section>
+
+<section class="band compact-band">
+  <div class="section-head"><h2>Usuarios con membresía temporal</h2><span class="pill">Seguimiento</span></div>
+  <div class="stack">
+    {% for user in data.users if user.membership_is_temporal %}
+    <div class="list-row"><span>{{ user.name or user.username }}<small>{{ user.email }} · {{ user.membership }} · {{ user.membership_source or 'admin' }}</small></span><strong>{{ user.membership_expires_label }}</strong></div>
+    {% else %}
+    <div class="empty">No hay regalos/ofertas temporales activos.</div>
+    {% endfor %}
+  </div>
+</section>
+
 <section class="band compact-band">
   <div class="section-head"><h2>Recomendaciones comerciales</h2><span class="pill">Roadmap</span></div>
   <div class="stack">{% for item in data.membership_revenue.recommendations %}<div class="list-row"><span>{{ item }}</span><strong>OK</strong></div>{% endfor %}</div>

@@ -9,6 +9,7 @@
 {% set last_dispatch = cron.last_dispatch or {} %}
 {% set last_dispatch_result = last_dispatch.get('result') or {} %}
 {% set memory = snap.data_memory or {} %}
+{% set schema = snap.schema or {} %}
 <section class="hero compact v638-tight-hero">
   <div class="kicker">Admin · Telegram Command Center</div>
   <h1>Fiabilidad Telegram</h1>
@@ -41,6 +42,14 @@
     <div class="card metric-card"><div class="metric">{% if env.automation_secret_configured %}Sí{% else %}No{% endif %}</div><div class="muted">AUTOMATION_SECRET</div></div>
     <div class="card metric-card"><div class="metric">{% if env.telegram_football_only %}football_only{% else %}multi{% endif %}</div><div class="muted">modo deporte</div></div>
     <div class="card metric-card"><div class="metric">{% if env.auto_send_telegram_picks or env.enable_telegram_auto %}ON{% else %}OFF{% endif %}</div><div class="muted">auto Telegram</div></div>
+  </div>
+</section>
+<section class="band compact-band">
+  <div class="section-head"><h2>Schema Telegram</h2><span class="pill">{% if schema.delivery_memory.ok %}OK{% else %}Revisar{% endif %}</span></div>
+  <div class="card">
+    <strong>{% if schema.delivery_memory.ok %}Memoria compatible con V747{% else %}Memoria legacy detectada{% endif %}</strong>
+    <p class="small">{{ schema.delivery_memory.message }}</p>
+    {% if schema.delivery_memory.missing %}<p class="small">Columnas pendientes: {{ schema.delivery_memory.missing|join(', ') }}</p>{% endif %}
   </div>
 </section>
 
@@ -136,6 +145,7 @@
     <a class="card service-card" href="/api/admin/telegram/status"><h3>Estado JSON</h3><p class="small">Resumen seguro sin secrets.</p></a>
     <a class="card service-card" href="/api/admin/telegram/dry-run"><h3>Dry-run</h3><p class="small">Simula el próximo tick sin enviar.</p></a>
     <a class="card service-card" href="/api/admin/telegram/preview-next"><h3>Preview</h3><p class="small">Muestra el siguiente mensaje real sin mandarlo.</p></a>
+    <a class="card service-card" href="/api/admin/telegram/schema"><h3>Schema</h3><p class="small">Comprueba migración de memoria Telegram.</p></a>
     <form class="card service-card" method="post" action="/api/admin/telegram/test-send"><h3>Test controlado</h3><p class="small">Envía solo si un admin pulsa este botón.</p><button type="submit">Enviar test al canal</button></form>
   </div>
 </section>

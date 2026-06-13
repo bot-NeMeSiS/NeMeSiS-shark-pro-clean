@@ -65,6 +65,18 @@ def _conn(db_or_conn: str | sqlite3.Connection) -> tuple[sqlite3.Connection, boo
     return conn, True
 
 
+def _table_columns(conn: sqlite3.Connection, table: str) -> set[str]:
+    try:
+        return {str(row[1]) for row in conn.execute(f"PRAGMA table_info({table})").fetchall()}
+    except Exception:
+        return set()
+
+
+def _add_column_if_missing(conn: sqlite3.Connection, table: str, column: str, definition: str) -> None:
+    if column not in _table_columns(conn, table):
+        conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition}")
+
+
 def ensure_data_memory_schema(db_or_conn: str | sqlite3.Connection) -> None:
     conn, should_close = _conn(db_or_conn)
     try:
@@ -164,8 +176,15 @@ def ensure_data_memory_schema(db_or_conn: str | sqlite3.Connection) -> None:
         cur.execute("""CREATE TABLE IF NOT EXISTS telegram_delivery_memory(
             id TEXT PRIMARY KEY,
             created_at TEXT,
+            updated_at TEXT,
             message_type TEXT,
             target_type TEXT,
+            target_key TEXT,
+            destination_masked TEXT,
+            delivery_channel TEXT,
+            chat_id TEXT,
+            user_id TEXT,
+            membership TEXT,
             status TEXT,
             match_id TEXT,
             pick_id TEXT,
@@ -173,6 +192,24 @@ def ensure_data_memory_schema(db_or_conn: str | sqlite3.Connection) -> None:
             dedupe_key TEXT,
             meta_json TEXT
         )""")
+        for column, definition in (
+            ("updated_at", "TEXT"),
+            ("message_type", "TEXT"),
+            ("target_type", "TEXT"),
+            ("target_key", "TEXT"),
+            ("destination_masked", "TEXT"),
+            ("delivery_channel", "TEXT"),
+            ("chat_id", "TEXT"),
+            ("user_id", "TEXT"),
+            ("membership", "TEXT"),
+            ("status", "TEXT"),
+            ("match_id", "TEXT"),
+            ("pick_id", "TEXT"),
+            ("error_summary", "TEXT"),
+            ("dedupe_key", "TEXT"),
+            ("meta_json", "TEXT"),
+        ):
+            _add_column_if_missing(conn, "telegram_delivery_memory", column, definition)
         cur.execute("""CREATE TABLE IF NOT EXISTS team_identity_cache(
             id TEXT PRIMARY KEY,
             team_name TEXT,
@@ -369,27 +406,41 @@ def remember_pick_discard(db_path: str, candidate: Mapping[str, Any], reason: st
 
 
 def remember_telegram_delivery(db_path: str, message_type: str, target: str, status: str, meta: Any = None) -> dict[str, Any]:
+    ensure_data_memory_schema(db_path)
     now = _now()
     meta = meta or {}
-    dedupe = ""
-    if isinstance(meta, Mapping):
-        dedupe = str(meta.get("dedupe_key") or meta.get("signature") or "")[:160]
-    tid = hashlib.md5(f"tgmem-{message_type}-{status}-{dedupe}-{now}".encode()).hexdigest()[:18]
+    if not isinstance(meta, Mapping):
+        meta = {"value": meta}
+    dedupe = str(meta.get("dedupe_key") or meta.get("signature") or "")[:160]
+    category = str(meta.get("category") or meta.get("status") or status or "")[:80]
+    tid = hashlib.md5(f"tgmem-{message_type}-{category}-{dedupe}-{now}".encode()).hexdigest()[:18]
+    target_text = str(target or "")
+    target_type = str(meta.get("target_type") or ("channel" if target_text.startswith("-") else ("private" if target_text else "unknown")))[:40]
+    masked_target = ""
+    if target_text:
+        masked_target = target_text[:4] + "…" + target_text[-3:] if len(target_text) > 8 else "***"
     conn = sqlite3.connect(db_path)
     cur = conn.cursor()
     cur.execute(
         """INSERT OR REPLACE INTO telegram_delivery_memory
-           (id,created_at,message_type,target_type,status,match_id,pick_id,error_summary,dedupe_key,meta_json)
-           VALUES (?,?,?,?,?,?,?,?,?,?)""",
+           (id,created_at,updated_at,message_type,target_type,target_key,destination_masked,delivery_channel,chat_id,user_id,membership,status,match_id,pick_id,error_summary,dedupe_key,meta_json)
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
         (
             tid,
             now,
+            now,
             str(message_type or "unknown")[:80],
-            "channel" if target else "unknown",
+            target_type,
+            str(meta.get("target_key") or "")[:160],
+            str(meta.get("destination_masked") or masked_target)[:120],
+            str(meta.get("delivery_channel") or "telegram")[:40],
+            masked_target,
+            str(meta.get("user_id") or "")[:80],
+            str(meta.get("membership") or "")[:40],
             str(status or "UNKNOWN")[:80],
-            str(meta.get("match_id") if isinstance(meta, Mapping) else "")[:80],
-            str(meta.get("pick_id") if isinstance(meta, Mapping) else "")[:80],
-            str(meta.get("error") if isinstance(meta, Mapping) else "")[:500],
+            str(meta.get("match_id") or "")[:80],
+            str(meta.get("pick_id") or "")[:80],
+            str(meta.get("error") or meta.get("action") or "")[:700],
             dedupe,
             _safe_json({"target_configured": bool(target), "meta": meta}, 3000),
         ),

@@ -1,5 +1,6 @@
 import csv
 import hashlib
+import html
 import io
 import json
 import os
@@ -11,6 +12,7 @@ import threading
 import unicodedata
 import urllib.parse
 import urllib.request
+import urllib.error
 from datetime import datetime, timedelta
 from email.message import EmailMessage
 from zoneinfo import ZoneInfo
@@ -144,7 +146,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V745_TOP_APP_INTELLIGENCE_ALERTS_DEEP_DATA_COMMERCIAL_POLISH"
+APP_VERSION = "V747_ADMIN_TELEGRAM_MEMBERSHIP_DAYS_TIME_ORDER_POLISH"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -183,6 +185,69 @@ def now_iso():
 
 def today_iso(offset=0):
     return (datetime.now(TZ).date() + timedelta(days=offset)).isoformat()
+
+
+def madrid_local_iso(match_date, match_time=""):
+    """Build a Europe/Madrid-aware ISO value for admin/manual dates.
+
+    Sports APIs normally arrive with UTC/offset timestamps and are converted elsewhere.
+    When an admin imports a CSV with date + hour, that hour is already the hour they
+    typed for Spain, so we must store it as Madrid time and not add +2 again.
+    """
+    date_text = str(match_date or "").strip()[:10]
+    time_text = str(match_time or "").strip()[:5]
+    if not date_text:
+        return ""
+    try:
+        hour, minute = 0, 0
+        if time_text and re.match(r"^\d{1,2}:\d{2}$", time_text):
+            hour, minute = [int(x) for x in time_text.split(":", 1)]
+        dt = datetime.fromisoformat(date_text).replace(hour=hour, minute=minute, second=0, microsecond=0, tzinfo=TZ)
+        return dt.isoformat(timespec="seconds")
+    except Exception:
+        return f"{date_text}T{time_text or '00:00'}:00+02:00"
+
+
+def days_from_admin_value(value, default=0):
+    try:
+        days = int(str(value or "").strip() or default)
+    except Exception:
+        days = int(default or 0)
+    return max(0, min(days, 3650))
+
+
+def iso_has_passed(value):
+    text = str(value or "").strip()
+    if not text:
+        return False
+    try:
+        dt = datetime.fromisoformat(text.replace("Z", "+00:00"))
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=TZ)
+        return dt.astimezone(TZ) <= datetime.now(TZ)
+    except Exception:
+        return text[:19] <= now_iso()[:19]
+
+
+def membership_expires_label(value):
+    text = str(value or "").strip()
+    if not text:
+        return "Sin caducidad"
+    try:
+        dt = datetime.fromisoformat(text.replace("Z", "+00:00"))
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=TZ)
+        return dt.astimezone(TZ).strftime("%d/%m/%Y · %H:%M")
+    except Exception:
+        return text[:16] or "Sin caducidad"
+
+
+def masked_admin_text(value, limit=500):
+    text = str(value or "")[: int(limit)]
+    for key in ("TELEGRAM_BOT_TOKEN", "AUTOMATION_SECRET", "SECRET_KEY", "OPENAI_API_KEY"):
+        if os.getenv(key):
+            text = text.replace(os.getenv(key, ""), "***hidden***")
+    return text
 
 
 def env_bool(name, default=False):
@@ -603,6 +668,28 @@ def add_column_if_missing(conn, table, column, definition):
 
 
 def run_schema_migrations(conn):
+    try:
+        conn.execute("""CREATE TABLE IF NOT EXISTS telegram_delivery_memory(
+            id TEXT PRIMARY KEY,
+            created_at TEXT,
+            updated_at TEXT,
+            message_type TEXT,
+            target_type TEXT,
+            target_key TEXT,
+            destination_masked TEXT,
+            delivery_channel TEXT,
+            chat_id TEXT,
+            user_id TEXT,
+            membership TEXT,
+            status TEXT,
+            match_id TEXT,
+            pick_id TEXT,
+            error_summary TEXT,
+            dedupe_key TEXT,
+            meta_json TEXT
+        )""")
+    except sqlite3.OperationalError:
+        pass
     migrations = [
         ("competitions", "scope", "TEXT"),
         ("competitions", "country", "TEXT"),
@@ -707,6 +794,22 @@ def run_schema_migrations(conn):
         ("telegram_settings", "max_messages_per_hour", "INTEGER DEFAULT 1"),
         ("telegram_settings", "enabled", "INTEGER DEFAULT 0"),
         ("telegram_settings", "updated_at", "TEXT"),
+        ("telegram_delivery_memory", "created_at", "TEXT"),
+        ("telegram_delivery_memory", "updated_at", "TEXT"),
+        ("telegram_delivery_memory", "message_type", "TEXT"),
+        ("telegram_delivery_memory", "target_type", "TEXT"),
+        ("telegram_delivery_memory", "target_key", "TEXT"),
+        ("telegram_delivery_memory", "destination_masked", "TEXT"),
+        ("telegram_delivery_memory", "delivery_channel", "TEXT"),
+        ("telegram_delivery_memory", "chat_id", "TEXT"),
+        ("telegram_delivery_memory", "user_id", "TEXT"),
+        ("telegram_delivery_memory", "membership", "TEXT"),
+        ("telegram_delivery_memory", "status", "TEXT"),
+        ("telegram_delivery_memory", "match_id", "TEXT"),
+        ("telegram_delivery_memory", "pick_id", "TEXT"),
+        ("telegram_delivery_memory", "error_summary", "TEXT"),
+        ("telegram_delivery_memory", "dedupe_key", "TEXT"),
+        ("telegram_delivery_memory", "meta_json", "TEXT"),
         ("live_sync_state", "sync_status", "TEXT"),
         ("live_sync_state", "next_refresh_at", "TEXT"),
         ("live_sync_state", "updated_at", "TEXT"),
@@ -732,6 +835,12 @@ def run_schema_migrations(conn):
         ("users", "telegram_link_expires", "TEXT"),
         ("users", "telegram_link_expires_at", "TEXT"),
         ("users", "telegram_linked_at", "TEXT"),
+        ("users", "membership_source", "TEXT DEFAULT 'registro'"),
+        ("users", "membership_started_at", "TEXT"),
+        ("users", "membership_expires_at", "TEXT"),
+        ("users", "membership_note", "TEXT"),
+        ("users", "membership_updated_at", "TEXT"),
+        ("users", "membership_updated_by", "TEXT"),
         ("favorites", "user_id", "TEXT"),
         ("picks", "market", "TEXT"),
         ("picks", "bookmaker", "TEXT"),
@@ -866,6 +975,9 @@ def run_schema_migrations(conn):
         conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_telegram_queue_dedupe ON telegram_queue(dedupe_key) WHERE dedupe_key IS NOT NULL AND dedupe_key!=''")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_telegram_queue_status ON telegram_queue(status, scheduled_at)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_telegram_logs_created ON telegram_logs(created_at)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_telegram_memory_status ON telegram_delivery_memory(status, created_at)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_telegram_memory_dedupe ON telegram_delivery_memory(dedupe_key, created_at)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_users_membership_expiry ON users(membership, membership_expires_at)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_telegram_subscribers_active ON telegram_subscribers(is_active, membership)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_picks_status_membership ON picks(status, membership_required)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_picks_match_status ON picks(match_id, status)")
@@ -1054,6 +1166,12 @@ def init_db():
             password_hash TEXT NOT NULL,
             role TEXT DEFAULT 'FREE',
             membership TEXT DEFAULT 'FREE',
+            membership_source TEXT DEFAULT 'registro',
+            membership_started_at TEXT,
+            membership_expires_at TEXT,
+            membership_note TEXT,
+            membership_updated_at TEXT,
+            membership_updated_by TEXT,
             created_at TEXT,
             last_login TEXT
         )"""
@@ -2114,14 +2232,13 @@ def sportsdb_event_time(event):
 
 
 def kickoff_iso_value(match_date, match_time):
-    date = str(match_date or "").strip()
-    time = str(match_time or "").strip()
+    date = str(match_date or "").strip()[:10]
+    time = str(match_time or "").strip()[:5]
     if not date:
         return ""
-    if time:
-        values = madrid_values_from_datetime("", date, time)
-        return values.get("kickoff_iso") or f"{date}T{time[:5]}:00"
-    return date
+    # Admin/manual date+hour values are already Spanish/Madrid hour.
+    # Store them with timezone to avoid a second UTC→Madrid conversion later.
+    return madrid_local_iso(date, time) if time else madrid_local_iso(date, "00:00")
 
 
 
@@ -3545,9 +3662,18 @@ def import_matches(import_rows, source_name="manual", source_url="", legal_note=
         league_name = spanish_competition_name(item.get("league_name") or item.get("competition_name") or item.get("competition") or item.get("league") or item.get("liga") or "manual")
         comp_key = item.get("competition_key") or slug(league_name)
         comp_name = spanish_competition_name(item.get("competition_name") or league_name or comp_key)
-        time_values = madrid_values_from_datetime(item.get("kickoff_iso") or "", item.get("match_date") or item.get("date") or item.get("fecha") or today_iso(), item.get("match_time") or item.get("kickoff_time") or item.get("time") or item.get("hora") or "")
-        date = time_values.get("match_date") or item.get("match_date") or item.get("date") or item.get("fecha") or today_iso()
-        kickoff = time_values.get("kickoff_time") or item.get("match_time") or item.get("kickoff_time") or item.get("time") or item.get("hora") or ""
+        raw_kickoff_iso = item.get("kickoff_iso") or item.get("commence_time") or item.get("start_time") or ""
+        raw_date = item.get("match_date") or item.get("date") or item.get("fecha") or today_iso()
+        raw_time = item.get("match_time") or item.get("kickoff_time") or item.get("time") or item.get("hora") or ""
+        if raw_kickoff_iso:
+            time_values = madrid_values_from_datetime(raw_kickoff_iso, raw_date, raw_time)
+            date = time_values.get("match_date") or str(raw_date)[:10]
+            kickoff = time_values.get("kickoff_time") or str(raw_time)[:5]
+            stored_kickoff_iso = time_values.get("kickoff_iso") or raw_kickoff_iso
+        else:
+            date = str(raw_date or today_iso())[:10]
+            kickoff = str(raw_time or "")[:5]
+            stored_kickoff_iso = kickoff_iso_value(date, kickoff)
         status = item.get("status") or item.get("estado") or "PROGRAMADO"
         raw_id = item.get("id") or item.get("match_id") or f"{date}-{comp_key}-{home}-{away}-{kickoff}"
         match_id = hashlib.md5(str(raw_id).encode("utf-8")).hexdigest()[:18]
@@ -3563,7 +3689,7 @@ def import_matches(import_rows, source_name="manual", source_url="", legal_note=
                 date,
                 kickoff,
                 kickoff,
-                time_values.get("kickoff_iso") or item.get("kickoff_iso") or kickoff_iso_value(date, kickoff),
+                stored_kickoff_iso,
                 item.get("competition_id") or "",
                 comp_key,
                 comp_name,
@@ -5225,10 +5351,57 @@ def dict_row(row):
         return {}
 
 
+def user_membership_is_expired(data):
+    if not data:
+        return False
+    membership = normalize_role((data or {}).get("membership") or (data or {}).get("role"))
+    if membership in {"FREE", "ADMIN"}:
+        return False
+    return iso_has_passed((data or {}).get("membership_expires_at"))
+
+
+def expire_user_memberships_if_needed(user_id=""):
+    """Downgrade expired admin gifts/offers to FREE without deleting history."""
+    try:
+        conn = db()
+        params = [now_iso(), now_iso()]
+        where = "COALESCE(membership_expires_at,'')!='' AND membership_expires_at<=? AND upper(COALESCE(membership,'FREE')) NOT IN ('FREE','ADMIN')"
+        if user_id:
+            where += " AND id=?"
+            params.append(user_id)
+        conn.execute(
+            f"""UPDATE users
+                SET role='FREE',
+                    membership='FREE',
+                    membership_source='expirada',
+                    membership_note=COALESCE(NULLIF(membership_note,''),'Membresía temporal caducada automáticamente'),
+                    membership_updated_at=?
+              WHERE {where}""",
+            tuple(params),
+        )
+        conn.commit()
+        conn.close()
+        return True
+    except Exception:
+        return False
+
+
+def enrich_user_membership_state(data):
+    item = dict_row(data)
+    if not item:
+        return item
+    item["membership"] = normalize_role(item.get("membership"))
+    item["role"] = normalize_role(item.get("role"))
+    item["membership_expires_label"] = membership_expires_label(item.get("membership_expires_at"))
+    item["membership_is_temporal"] = bool(item.get("membership_expires_at")) and item["membership"] not in {"FREE", "ADMIN"}
+    item["membership_expired"] = user_membership_is_expired(item)
+    return item
+
+
 def user_public(row):
     if not row:
         return None
-    data = dict_row(row)
+    data = enrich_user_membership_state(row)
     email = data.get("email") or ""
     username = data.get("username") or username_from_email(email)
     return {
@@ -5238,6 +5411,12 @@ def user_public(row):
         "email": email,
         "role": normalize_role(data.get("role")),
         "membership": normalize_role(data.get("membership")),
+        "membership_source": data.get("membership_source") or "registro",
+        "membership_started_at": data.get("membership_started_at") or "",
+        "membership_expires_at": data.get("membership_expires_at") or "",
+        "membership_expires_label": data.get("membership_expires_label") or membership_expires_label(data.get("membership_expires_at")),
+        "membership_is_temporal": bool(data.get("membership_is_temporal")),
+        "membership_note": data.get("membership_note") or "",
         "created_at": data.get("created_at"),
         "last_login": data.get("last_login"),
     }
@@ -5246,6 +5425,21 @@ def user_public(row):
 def current_session_user():
     if not session.get("user_id"):
         return None
+    # If an admin gift or offer has expired, refresh the session once and keep
+    # the rest of the app seeing the correct plan immediately.
+    try:
+        if normalize_role(session.get("user_role")) != "ADMIN":
+            expire_user_memberships_if_needed(session.get("user_id"))
+            fresh = get_user_by_id(session.get("user_id"))
+            if fresh:
+                public = user_public(fresh)
+                session["user_role"] = public["role"]
+                session["user_membership"] = public["membership"]
+                session["membership"] = public["membership"]
+                session["membership_expires_at"] = public.get("membership_expires_at") or ""
+                return public
+    except Exception:
+        pass
     return {
         "id": session.get("user_id"),
         "name": session.get("user_name") or "Cliente SHARK",
@@ -5253,6 +5447,8 @@ def current_session_user():
         "email": session.get("user_email"),
         "role": normalize_role(session.get("user_role")),
         "membership": normalize_role(session.get("membership") or session.get("user_membership") or session.get("user_role")),
+        "membership_expires_at": session.get("membership_expires_at") or "",
+        "membership_expires_label": membership_expires_label(session.get("membership_expires_at")),
     }
 
 
@@ -5411,6 +5607,7 @@ def set_login_session(user):
     session["user_role"] = public["role"]
     session["user_membership"] = public["membership"]
     session["membership"] = public["membership"]
+    session["membership_expires_at"] = public.get("membership_expires_at") or ""
     return public
 
 
@@ -5610,25 +5807,70 @@ def admin_json_forbidden():
 
 def list_users():
     seed_core()
-    return rows(
-        """SELECT id,name,username,email,role,membership,created_at,last_login
+    expire_user_memberships_if_needed()
+    users = rows(
+        """SELECT id,name,username,email,role,membership,created_at,last_login,
+                  membership_source,membership_started_at,membership_expires_at,
+                  membership_note,membership_updated_at,membership_updated_by
            FROM users ORDER BY created_at DESC"""
     )
+    return [enrich_user_membership_state(user) for user in users]
 
 
-def update_user_membership(user_id, membership):
+def update_user_membership(user_id, membership, days=0, note="", source="admin_manual", admin_id=""):
     membership = normalize_role(membership)
     if membership not in VALID_ROLES or not user_id:
         return None
+    days = days_from_admin_value(days)
     role = "ADMIN" if membership == "ADMIN" else membership
+    started_at = now_iso()
+    expires_at = ""
+    if membership in {"PRO", "ELITE"} and days > 0:
+        expires_at = (datetime.now(TZ) + timedelta(days=days)).isoformat(timespec="seconds")
+        source = source or "admin_gift"
+    elif membership == "FREE":
+        source = source or "admin_free"
+    else:
+        source = source or "admin_manual"
+    clean_note = str(note or "").strip()[:300]
     conn = db()
     conn.execute(
-        "UPDATE users SET role=?, membership=? WHERE id=?",
-        (role, membership, user_id),
+        """UPDATE users
+              SET role=?, membership=?, membership_source=?, membership_started_at=?,
+                  membership_expires_at=?, membership_note=?, membership_updated_at=?, membership_updated_by=?
+            WHERE id=?""",
+        (role, membership, source, started_at, expires_at, clean_note, now_iso(), str(admin_id or "")[:80], user_id),
     )
     conn.commit()
     conn.close()
     return get_user_by_id(user_id)
+
+
+def membership_admin_summary():
+    expire_user_memberships_if_needed()
+    active_temporal = 0
+    expiring_soon = 0
+    expired_today = 0
+    soon_limit = (datetime.now(TZ) + timedelta(days=7)).isoformat(timespec="seconds")
+    try:
+        active_temporal = (one("""SELECT COUNT(*) AS total FROM users
+            WHERE COALESCE(membership_expires_at,'')!=''
+              AND upper(COALESCE(membership,'FREE')) IN ('PRO','ELITE')""") or {}).get("total", 0)
+        expiring_soon = (one("""SELECT COUNT(*) AS total FROM users
+            WHERE COALESCE(membership_expires_at,'')!=''
+              AND membership_expires_at<=?
+              AND upper(COALESCE(membership,'FREE')) IN ('PRO','ELITE')""", (soon_limit,)) or {}).get("total", 0)
+        expired_today = (one("""SELECT COUNT(*) AS total FROM users
+            WHERE membership_source='expirada' AND COALESCE(membership_updated_at,'') LIKE ?""", (today_iso()+"%",)) or {}).get("total", 0)
+    except Exception:
+        pass
+    return {
+        "active_temporal": active_temporal or 0,
+        "expiring_soon": expiring_soon or 0,
+        "expired_today": expired_today or 0,
+        "quick_days": [1, 3, 7, 15, 30, 60, 90, 180, 365],
+        "note": "Las membresías temporales se degradan a FREE automáticamente al caducar.",
+    }
 
 
 LEGACY_USER_TABLES = ("users", "clientes", "clients", "usuarios")
@@ -6878,6 +7120,7 @@ def telegram_reliability_snapshot(limit=60):
         "madrid_now": now_madrid,
         "env": env,
         "settings": settings,
+        "schema": {"delivery_memory": telegram_delivery_memory_schema_status()},
         "counts": counts,
         "reason_counts": reason_counts,
         "limits": limits,
@@ -7148,29 +7391,116 @@ def enqueue_live_alerts(force=False):
     return {"ok": True, "message": "Alertas live revisadas.", "processed": len(live_matches), "inserted": inserted, "updated": 0, "sent": 0, "failed": 0, "skipped": skipped, "errors": []}
 
 
+def telegram_plain_text_from_html(value):
+    """Fallback seguro cuando Telegram rechaza HTML por entidades mal cerradas."""
+    text = str(value or "")
+    text = re.sub(r"<br\s*/?>", "\n", text, flags=re.I)
+    text = re.sub(r"</p\s*>", "\n", text, flags=re.I)
+    text = re.sub(r"<[^>]+>", "", text)
+    text = html.unescape(text)
+    return text.strip()
+
+
+def telegram_error_category(description):
+    desc = str(description or "").lower()
+    if not desc:
+        return "UNKNOWN_ERROR", "Telegram devolvió un error sin descripción."
+    if "chat not found" in desc or "peer_id_invalid" in desc:
+        return "CHAT_NOT_FOUND", "Revisa TELEGRAM_CHAT_ID. En canales suele empezar por -100 y el bot debe estar dentro."
+    if "bot was blocked" in desc or "blocked by the user" in desc:
+        return "BOT_BLOCKED", "El usuario bloqueó el bot o no inició /start."
+    if "not enough rights" in desc or "not a member" in desc or "administrator" in desc:
+        return "BOT_NOT_ADMIN_OR_MEMBER", "Añade el bot al canal/grupo y dale permisos para publicar."
+    if "can't parse entities" in desc or "parse entities" in desc or "unsupported start tag" in desc:
+        return "HTML_PARSE_ERROR", "El mensaje tenía HTML inválido; la app reintenta automáticamente en texto plano."
+    if "message is too long" in desc:
+        return "MESSAGE_TOO_LONG", "El mensaje supera el límite de Telegram; reduce texto o picks por envío."
+    if "too many requests" in desc or "retry after" in desc or "429" in desc:
+        return "RATE_LIMITED", "Telegram ha limitado temporalmente los envíos; espera y reintenta."
+    if "forbidden" in desc or "403" in desc:
+        return "FORBIDDEN", "Telegram no permite enviar a ese destino con este bot."
+    if "bad request" in desc or "400" in desc:
+        return "BAD_REQUEST", "Petición rechazada por Telegram; revisa destino, botones o formato."
+    return "TELEGRAM_API_ERROR", "Error devuelto por Telegram; mira la descripción exacta en el panel."
+
+
+def telegram_http_error_payload(exc):
+    body = ""
+    try:
+        body = exc.read().decode("utf-8", errors="replace")[:2000]
+    except Exception:
+        body = ""
+    parsed = {}
+    try:
+        parsed = json.loads(body) if body else {}
+    except Exception:
+        parsed = {"raw": body}
+    description = parsed.get("description") or body or str(exc)
+    category, action = telegram_error_category(description)
+    return {
+        "ok": False,
+        "sent": False,
+        "status": category,
+        "category": category,
+        "action": action,
+        "error": str(description)[:700],
+        "http_status": getattr(exc, "code", None),
+        "telegram": parsed,
+    }
+
+
+def telegram_post_send_message(url, data):
+    encoded = urllib.parse.urlencode(data).encode("utf-8")
+    req = urllib.request.Request(url, data=encoded, method="POST")
+    with urllib.request.urlopen(req, timeout=12) as res:
+        response = json.loads(res.read().decode("utf-8", errors="replace"))
+    return {"ok": True, "sent": True, "status": "SENT", "category": "SENT", "telegram": response}
+
+
 def telegram_send_http(chat_id, text, message_type="manual", payload=None):
     token = os.getenv("TELEGRAM_BOT_TOKEN", "")
     if not token or not chat_id:
-        return {"ok": False, "sent": False, "status": "CONFIG_MISSING", "error": "Falta TELEGRAM_BOT_TOKEN o chat_id."}
+        return {"ok": False, "sent": False, "status": "CONFIG_MISSING", "category": "CONFIG_MISSING", "action": "Configura TELEGRAM_BOT_TOKEN y TELEGRAM_CHAT_ID en Render.", "error": "Falta TELEGRAM_BOT_TOKEN o chat_id."}
     payload = dict(payload or {})
     url = f"https://api.telegram.org/bot{token}/sendMessage"
+    text = str(text or "").strip()
+    if len(text) > 3900:
+        text = text[:3860].rstrip() + "\n\n…mensaje recortado por seguridad."
     data = {
         "chat_id": chat_id,
-        "text": text,
+        "text": text or "Mensaje NeMeSiS SHARK PRO",
         "parse_mode": "HTML",
         "disable_web_page_preview": "false" if payload.get("enable_link_preview") else "true",
     }
     reply_markup = payload.get("reply_markup") or telegram_reply_markup_from_payload(payload)
     if reply_markup:
         data["reply_markup"] = json.dumps(reply_markup, ensure_ascii=False)
-    encoded = urllib.parse.urlencode(data).encode("utf-8")
     try:
-        req = urllib.request.Request(url, data=encoded, method="POST")
-        with urllib.request.urlopen(req, timeout=10) as res:
-            response = json.loads(res.read().decode("utf-8", errors="replace"))
-        return {"ok": True, "sent": True, "status": "SENT", "telegram": response}
+        return telegram_post_send_message(url, data)
+    except urllib.error.HTTPError as exc:
+        first = telegram_http_error_payload(exc)
+        if first.get("category") == "HTML_PARSE_ERROR":
+            plain = telegram_plain_text_from_html(text)
+            retry_data = dict(data)
+            retry_data.pop("parse_mode", None)
+            retry_data["text"] = plain[:3900] or "Mensaje NeMeSiS SHARK PRO"
+            try:
+                retry = telegram_post_send_message(url, retry_data)
+                retry["retry_plain"] = True
+                retry["first_error"] = first
+                return retry
+            except urllib.error.HTTPError as retry_exc:
+                second = telegram_http_error_payload(retry_exc)
+                second["first_error"] = first
+                second["retry_plain"] = True
+                return second
+            except Exception as retry_exc:
+                return {"ok": False, "sent": False, "status": "NETWORK_ERROR", "category": "NETWORK_ERROR", "action": "Reintento sin HTML fallido; revisa conexión/Render.", "error": str(retry_exc)[:700], "first_error": first, "retry_plain": True}
+        return first
+    except urllib.error.URLError as exc:
+        return {"ok": False, "sent": False, "status": "NETWORK_ERROR", "category": "NETWORK_ERROR", "action": "Render no pudo conectar con api.telegram.org; reintenta o revisa red/salida.", "error": str(exc)[:700]}
     except Exception as exc:
-        return {"ok": False, "sent": False, "status": "ERROR", "error": str(exc)}
+        return {"ok": False, "sent": False, "status": "ERROR", "category": "ERROR", "action": "Error interno enviando Telegram; revisa logs y cola.", "error": str(exc)[:700]}
 
 
 def process_premium_telegram_queue(limit=5, force=False):
@@ -7223,7 +7553,9 @@ def process_premium_telegram_queue(limit=5, force=False):
         result = telegram_send_http(chat_id, item.get("body") or item.get("title") or "", message_type=item.get("message_type") or "queue", payload=item_payload)
         processed += 1
         new_status = QUEUE_SENT if result.get("sent") else QUEUE_FAILED
-        error = result.get("error") or ""
+        error = result.get("error") or result.get("category") or result.get("status") or ""
+        if result.get("action"):
+            error = f"{result.get('category') or result.get('status')}: {error} · Acción: {result.get('action')}"
         conn = db()
         conn.execute(
             "UPDATE telegram_queue SET status=?, sent_at=?, error_message=?, updated_at=? WHERE id=?",
@@ -7237,8 +7569,8 @@ def process_premium_telegram_queue(limit=5, force=False):
             sent_log_payload = {"queue_id": item.get("id"), "message_type": item.get("message_type"), "chat_id": masked_key(chat_id)}
         else:
             failed += 1
-            errors.append(error[:160] or result.get("status"))
-            fail_log_payload = {"queue_id": item.get("id"), "message_type": item.get("message_type"), "chat_id": masked_key(chat_id), "error": error[:300]}
+            errors.append(error[:220] or result.get("status"))
+            fail_log_payload = {"queue_id": item.get("id"), "message_type": item.get("message_type"), "chat_id": masked_key(chat_id), "error": error[:500], "category": result.get("category"), "action": result.get("action")}
         conn.commit()
         conn.close()
         if sent_log_payload:
@@ -7246,8 +7578,30 @@ def process_premium_telegram_queue(limit=5, force=False):
         if fail_log_payload:
             telegram_log("[QUEUE_FAIL]", "failed", "Fallo enviando mensaje Telegram.", fail_log_payload)
         telegram_log("send", new_status, item.get("title") or item.get("message_type"), {"queue_id": item.get("id"), "result": result})
-        log_telegram_delivery(chat_id, item.get("message_type") or "queue", item.get("body"), new_status.upper(), result)
+        log_telegram_delivery(chat_id, item.get("message_type") or "queue", item.get("body"), new_status.upper(), {**(result or {}), "dedupe_key": item.get("dedupe_key"), "match_id": item.get("match_id") or item_payload.get("match_id"), "pick_id": item.get("pick_id") or item_payload.get("pick_id"), "target_key": item_payload.get("target_key"), "delivery_channel": "telegram", "target_type": "channel" if str(chat_id).startswith("-") else "private"})
     return {"ok": failed == 0, "message": "Cola procesada.", "processed": processed, "sent": sent, "failed": failed, "skipped": skipped, "errors": errors[:12]}
+
+
+def telegram_delivery_memory_schema_status():
+    expected = {
+        "id", "created_at", "updated_at", "message_type", "target_type", "target_key",
+        "destination_masked", "delivery_channel", "chat_id", "user_id", "membership",
+        "status", "match_id", "pick_id", "error_summary", "dedupe_key", "meta_json",
+    }
+    try:
+        conn = db()
+        existing = {row[1] for row in conn.execute("PRAGMA table_info(telegram_delivery_memory)").fetchall()}
+        conn.close()
+        missing = sorted(expected - existing)
+        return {
+            "ok": not missing,
+            "columns": sorted(existing),
+            "missing": missing,
+            "expected_total": len(expected),
+            "message": "Memoria Telegram compatible." if not missing else "Faltan columnas legacy: " + ", ".join(missing),
+        }
+    except Exception as exc:
+        return {"ok": False, "columns": [], "missing": sorted(expected), "error": str(exc)[:300], "message": "No se pudo comprobar telegram_delivery_memory."}
 
 
 def telegram_diagnostics():
@@ -7301,6 +7655,7 @@ def telegram_diagnostics():
         "env_auto_enabled": telegram_env_auto_enabled(),
         "env_ready": telegram_env_ready(),
         "settings": settings,
+        "schema": {"delivery_memory": telegram_delivery_memory_schema_status()},
         "automatic_status": automatic_status,
         "automatic_reason": automatic_reason,
         "env_flags": env_flags,
@@ -8742,10 +9097,22 @@ def admin_users_page():
         return redirect("/admin-login?next=/admin/users")
     message = ""
     if request.method == "POST":
-        updated = update_user_membership(request.form.get("user_id"), request.form.get("membership"))
-        message = "Membresia actualizada." if updated else "No se pudo actualizar ese usuario."
+        updated = update_user_membership(
+            request.form.get("user_id"),
+            request.form.get("membership"),
+            days=request.form.get("membership_days"),
+            note=request.form.get("membership_note"),
+            source="admin_gift" if days_from_admin_value(request.form.get("membership_days")) else "admin_manual",
+            admin_id=session.get("user_id") or "admin",
+        )
+        if updated:
+            public = user_public(updated)
+            message = f"Membresía actualizada: {public['membership']} · {public.get('membership_expires_label') or 'Sin caducidad'}."
+        else:
+            message = "No se pudo actualizar ese usuario."
     data = dashboard_data()
     data["users"] = list_users()
+    data["membership_admin"] = membership_admin_summary()
     data["admin_exists"] = admin_exists()
     return render_template("admin_users.html", data=data, message=message)
 
@@ -8916,6 +9283,13 @@ def admin_telegram_command_center_page():
     )
 
 
+@app.route("/api/admin/telegram/schema")
+def api_admin_telegram_schema():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "version": APP_VERSION, "schema": telegram_delivery_memory_schema_status()})
+
+
 @app.route("/api/admin/telegram/status")
 def api_admin_telegram_status():
     if not is_admin_session():
@@ -9008,12 +9382,14 @@ def api_admin_telegram_test_send():
         force=True,
     )
     process = process_premium_telegram_queue(limit=1, force=True) if result.get("queued") else {}
+    actual_ok = bool(result.get("ok")) and (not process or process.get("failed", 0) == 0 and process.get("sent", 0) > 0)
     return jsonify({
-        "ok": bool(result.get("ok")),
+        "ok": actual_ok,
         "version": APP_VERSION,
         "queued": result,
         "process": process,
-        "note": "Envio de prueba controlado iniciado por admin. No expone secrets.",
+        "schema": telegram_delivery_memory_schema_status(),
+        "note": "Envío de prueba controlado iniciado por admin. No expone secrets.",
     })
 
 
@@ -10734,6 +11110,8 @@ def admin_memberships_page():
         return redirect("/admin-login?next=/admin/memberships")
     data = dashboard_data()
     data["membership_revenue"] = membership_revenue_summary()
+    data["membership_admin"] = membership_admin_summary()
+    data["users"] = list_users()
     return render_template("admin_memberships.html", data=data)
 
 
@@ -11594,10 +11972,11 @@ def v566_intelligence_hub_page():
     return render_template("unified_intelligence_hub.html", data=data, hub=hub, upcoming=upcoming, picks=picks)
 
 
+@app.route("/admin/control-center")
 @app.route("/admin/dashboard")
 def v566_admin_dashboard_page():
     if not is_admin_session():
-        return redirect("/admin-login?next=/admin/dashboard")
+        return redirect("/admin-login?next=/admin/control-center")
     return render_template("admin_dashboard.html", data=dashboard_data(), q=quality_center_summary(), items=v566_admin_items())
 
 

@@ -1,7 +1,7 @@
 # V733 Client Success Onboarding Support Polish Report
 
 - Estado: **OK**
-- Versión: `V742_TOP_APP_LIVE_DETAIL_TRACK_RECORD_MATCH_INTELLIGENCE_VIDEO_HIGHLIGHTS_FINAL`
+- Versión: `V747_ADMIN_TELEGRAM_MEMBERSHIP_DAYS_TIME_ORDER_POLISH`
 - Score snapshot cliente: **100/100**
 - Rutas nuevas presentes: sí
 - Soporte POST activo: sí

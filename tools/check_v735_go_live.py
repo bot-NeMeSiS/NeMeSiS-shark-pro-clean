@@ -50,7 +50,7 @@ def check() -> dict:
         "api_admin_go_live",
     ]
     checks = []
-    checks.append({"name": "version_txt", "ok": version_txt in {BASE_VERSION, current_version} and (version_txt.startswith("V735_") or version_txt.startswith("V736_") or version_txt.startswith("V737_") or version_txt.startswith("V738_") or version_txt.startswith("V739_") or version_txt.startswith(("V740_", "V741_", "V742_", "V743_", "V744_", "V745_"))), "value": version_txt})
+    checks.append({"name": "version_txt", "ok": version_txt in {BASE_VERSION, current_version} and (version_txt.startswith("V735_") or version_txt.startswith("V736_") or version_txt.startswith("V737_") or version_txt.startswith("V738_") or version_txt.startswith("V739_") or version_txt.startswith(("V740_", "V741_", "V742_", "V743_", "V744_", "V745_", "V746_", "V747_"))), "value": version_txt})
     checks.append({"name": "app_version", "ok": f'APP_VERSION = "{version_txt}"' in app or f'APP_VERSION = "{BASE_VERSION}"' in app})
     for rel in required_files:
         path = ROOT / rel
@@ -59,7 +59,7 @@ def check() -> dict:
         checks.append({"name": f"route:{route}", "ok": route in app})
     for token in required_tokens:
         checks.append({"name": f"token:{token}", "ok": token in app})
-    checks.append({"name": "admin_link_base", "ok": "/admin/go-live" in base})
+    checks.append({"name": "admin_link_base", "ok": "/admin/go-live" in base or "/admin/go-live" in read(ROOT / "templates" / "admin_dashboard.html")})
     checks.append({"name": "css_v735", "ok": "V735 Go Live" in css or "v735" in css.lower()})
     checks.append({"name": "template_no_secret_words", "ok": "TELEGRAM_BOT_TOKEN" not in read(ROOT / "templates" / "admin_go_live.html")})
     checks.append({"name": "cron_exemptions_kept", "ok": "/api/automation/telegram/tick" in app and "/api/automation/daily/run" in app})

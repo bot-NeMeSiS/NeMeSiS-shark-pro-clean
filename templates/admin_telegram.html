@@ -14,6 +14,19 @@
 </section>
 
 {% if message %}<section class="band compact-band"><div class="notice">{{ message }}</div></section>{% endif %}
+{% if result %}
+<section class="band compact-band">
+  <div class="card admin-result-card">
+    <div class="section-head"><h2>Resultado de la acción</h2><span class="pill">{{ 'OK' if result.ok else 'Revisar' }}</span></div>
+    <p class="small">Cola: {{ result.queued if result.queued is defined else result.message or 'acción ejecutada' }}</p>
+    {% set proc = result.process or result.processed or result %}
+    {% if proc %}
+      <p class="small">Procesados: {{ proc.processed or 0 }} · Enviados: {{ proc.sent or 0 }} · Fallidos: {{ proc.failed or 0 }} · Omitidos: {{ proc.skipped or 0 }}</p>
+      {% if proc.errors %}<div class="stack">{% for err in proc.errors[:4] %}<div class="list-row"><span>{{ err }}</span><strong>Telegram</strong></div>{% endfor %}</div>{% endif %}
+    {% endif %}
+  </div>
+</section>
+{% endif %}
 
 <section class="band compact-band">
   <div class="grid compact-grid metric-row">
@@ -25,6 +38,22 @@
     <div class="card metric-card"><div class="metric">{{ data.telegram_delivery.failed_today }}</div><div class="muted">errores hoy</div></div>
     <div class="card metric-card"><div class="metric">{{ data.telegram_delivery.duplicates_avoided or 0 }}</div><div class="muted">duplicados evitados</div></div>
     <div class="card metric-card"><div class="metric">{% if data.telegram_delivery.settings_enabled %}AUTO{% else %}OFF{% endif %}</div><div class="muted">automático</div></div>
+  </div>
+</section>
+
+<section class="band compact-band">
+  <div class="grid compact-grid">
+    <div class="card">
+      <div class="kicker">Memoria Telegram</div>
+      <strong>{% if data.telegram_delivery.schema.delivery_memory.ok %}Compatible{% else %}Necesita migración{% endif %}</strong>
+      <p class="small">{{ data.telegram_delivery.schema.delivery_memory.message }}</p>
+      {% if data.telegram_delivery.schema.delivery_memory.missing %}<p class="small">Faltan: {{ data.telegram_delivery.schema.delivery_memory.missing|join(', ') }}</p>{% endif %}
+    </div>
+    <div class="card">
+      <div class="kicker">Lectura rápida</div>
+      <strong>{{ data.telegram_delivery.automatic_status or 'pendiente' }}</strong>
+      <p class="small">{{ data.telegram_delivery.automatic_reason or 'Sin diagnóstico automático.' }}</p>
+    </div>
   </div>
 </section>
 

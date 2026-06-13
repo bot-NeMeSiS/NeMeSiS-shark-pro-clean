@@ -1,46 +1,64 @@
 {% extends "base.html" %}
 {% block content %}
-<section class="hero compact">
-  <div class="kicker">Panel admin</div>
-  <h1>Usuarios y membresías</h1>
-  <p class="lead">Gestiona clientes registrados, rol y membresía desde una zona separada de la experiencia cliente.</p>
-  <div class="admin-menu">
-    <a class="btn primary" href="/admin/users">Usuarios</a>
+<section class="hero compact admin-hero">
+  <div class="kicker">Panel admin · Clientes</div>
+  <h1>Usuarios, roles y regalos por días · Regalar membresía</h1>
+  <p class="lead">Gestiona cuentas reales, cambia membresías y concede PRO/ELITE temporal para amigos, ofertas, betas o promociones sin tocar pagos.</p>
+  <div class="admin-menu compact-admin-menu">
+    <a class="btn primary" href="/admin/control-center">Control</a>
+    <a class="btn" href="/admin/memberships">Membresías</a>
     <a class="btn" href="/admin/user-import">Importar usuarios</a>
-    <a class="btn" href="/admin-bootstrap">Alta inicial</a>
-    <a class="btn" href="/admin/import-center">Import Center</a>
-    <a class="btn" href="/admin/sportsdb-sync">SportsDB Sync</a>
-    <a class="btn" href="/api/díagnostics">Diagnosticos</a>
     <a class="btn" href="/admin/telegram">Telegram</a>
-    <a class="btn" href="/api/health">Sistema</a>
   </div>
 </section>
-<section class="band">
-  {% if message %}<p class="notice">{{ message }}</p>{% endif %}
+
+{% if message %}<section class="band compact-band"><p class="notice">{{ message }}</p></section>{% endif %}
+
+<section class="band compact-band">
+  <div class="grid compact-grid metric-row">
+    <article class="card metric-card"><div class="metric">{{ data.users|length }}</div><div class="muted">usuarios</div></article>
+    <article class="card metric-card"><div class="metric">{{ data.membership_admin.active_temporal or 0 }}</div><div class="muted">temporales activos</div></article>
+    <article class="card metric-card"><div class="metric">{{ data.membership_admin.expiring_soon or 0 }}</div><div class="muted">caducan en 7 días</div></article>
+    <article class="card metric-card"><div class="metric">{{ data.membership_admin.expired_today or 0 }}</div><div class="muted">caducadas hoy</div></article>
+  </div>
+  <p class="small">{{ data.membership_admin.note }}</p>
+</section>
+
+<section class="band compact-band">
   <div class="section-head"><h2>{{ data.users|length }} usuarios</h2><span class="pill">ADMIN</span></div>
   <div class="stack">
     {% for user in data.users %}
-    <article class="card user-row">
-      <div>
-        <div class="name">{{ user.name }} <span class="pill">@{{ user.username }}</span></div>
-        <p class="small">ID: {{ user.id }}</p>
-        <p class="small">{{ user.email }}</p>
-        <p class="small">Rol: {{ user.role }} - Membresia: {{ user.membership }}</p>
-        <p class="small">Alta: {{ user.created_at or '-' }} - Ultimo login: {{ user.last_login or '-' }}</p>
+    <article class="card user-row admin-user-card">
+      <div class="admin-user-main">
+        <div class="name">{{ user.name or user.username }} <span class="pill">@{{ user.username }}</span></div>
+        <p class="small">{{ user.email or 'Sin email' }} · ID: {{ user.id }}</p>
+        <p class="small">Rol: <strong>{{ user.role }}</strong> · Membresía: <strong>{{ user.membership }}</strong></p>
+        <p class="small">Caducidad: <strong>{{ user.membership_expires_label or 'Sin caducidad' }}</strong> · Origen: {{ user.membership_source or 'manual' }}</p>
+        {% if user.membership_note %}<p class="small">Nota admin: {{ user.membership_note }}</p>{% endif %}
+        <p class="small">Alta: {{ user.created_at or '-' }} · Último login: {{ user.last_login or '-' }}</p>
       </div>
-      <form method="post" action="/admin/users" class="inline-form">
+      <form method="post" action="/admin/users" class="gift-form">
         <input type="hidden" name="user_id" value="{{ user.id }}">
-        <label>Membresia / rol</label>
+        <label>Membresía / rol</label>
         <select name="membership">
           {% for role in ['FREE','PRO','ELITE','ADMIN'] %}
           <option value="{{ role }}" {% if user.membership == role or user.role == role %}selected{% endif %}>{{ role }}</option>
           {% endfor %}
         </select>
-        <button type="submit">Guardar</button>
+        <label>Duración</label>
+        <select name="membership_days">
+          <option value="0">Sin caducidad</option>
+          {% for days in data.membership_admin.quick_days %}
+          <option value="{{ days }}">{{ days }} día{% if days != 1 %}s{% endif %}</option>
+          {% endfor %}
+        </select>
+        <label>Nota interna</label>
+        <input name="membership_note" maxlength="220" placeholder="Ej: regalo amigo, oferta 7 días, beta...">
+        <button type="submit">Guardar membresía</button>
       </form>
     </article>
     {% else %}
-    <div class="empty">Aun no hay usuarios registrados.</div>
+    <div class="empty">Aún no hay usuarios registrados.</div>
     {% endfor %}
   </div>
 </section>
