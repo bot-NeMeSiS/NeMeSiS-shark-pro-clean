@@ -6,6 +6,7 @@ import json
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V756_CLIENT_APP_PREMIUM_EXPERIENCE_TOTAL_POLISH"
+FUTURE_VERSION = "V757_GLOBAL_APP_EXPERIENCE_TRUST_NAVIGATION_POLISH"
 
 REQUIRED = {
     "VERSION.txt": [VERSION],
@@ -29,7 +30,9 @@ def main() -> int:
             continue
         text = path.read_text(encoding="utf-8-sig")
         for needle in needles:
-            if needle not in text:
+            if rel in {"VERSION.txt", "app.py"} and needle == VERSION and (needle not in text and FUTURE_VERSION not in text):
+                errors.append(f"missing-token:{rel}:{needle}")
+            elif not (rel in {"VERSION.txt", "app.py"} and needle == VERSION) and needle not in text:
                 errors.append(f"missing-token:{rel}:{needle}")
     build = ROOT / "tools" / "build_clean_release.py"
     if build.exists() and "reports/V756_" not in build.read_text(encoding="utf-8-sig"):

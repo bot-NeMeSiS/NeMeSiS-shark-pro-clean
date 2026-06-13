@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block content %}
+{% set v = data.v757_app %}
+<section class="band compact-band v757-app-hero">
+  <div class="section-head">
+    <div>
+      <div class="kicker">V757 · Experiencia global cliente</div>
+      <h1>{{ v.headline }}</h1>
+      <p class="lead">{{ v.subtitle }}</p>
+    </div>
+    <span class="pill">{{ v.health_label }} · {{ v.score }}/100</span>
+  </div>
+  <div class="v757-kpi-grid">
+    {% for k in v.kpis %}<a class="v757-kpi" href="{{ k.href }}"><span>{{ k.label }}</span><strong>{{ k.value }}</strong><small>{{ k.hint }}</small></a>{% endfor %}
+  </div>
+  <div class="v757-action-row">
+    <a class="btn primary" href="/calendar?lane=today">Partidos de hoy</a>
+    <a class="btn" href="/picks">Picks</a>
+    <a class="btn" href="/live">Directo</a>
+    <a class="btn" href="/track-record">Track Record</a>
+  </div>
+</section>
+
+<section class="band compact-band v757-two-col">
+  <article class="card v757-panel">
+    <div class="section-head"><h2>Siguiente mejor acción</h2><span class="pill">Guía SHARK</span></div>
+    <div class="stack">
+      {% for a in v.next_actions %}<a class="list-row v757-row" href="{{ a.href }}"><span><strong>{{ a.title }}</strong><small>{{ a.body }}</small></span><em>{{ a.badge }}</em></a>{% endfor %}
+    </div>
+  </article>
+  <article class="card v757-panel">
+    <div class="section-head"><h2>Transparencia</h2><a class="pill" href="/track-record">Ver</a></div>
+    <div class="v757-mini-cards">
+      {% for c in v.trust.cards %}<div><span>{{ c.label }}</span><strong>{{ c.value }}</strong><small>{{ c.hint }}</small></div>{% endfor %}
+    </div>
+    <p class="small">{{ v.trust.note }}</p>
+  </article>
+</section>
+
+<section class="band compact-band v757-two-col">
+  <article class="card v757-panel">
+    <div class="section-head"><h2>Focos deportivos</h2><a class="pill" href="/calendar">Calendario</a></div>
+    <div class="stack">
+      {% for m in v.focus_matches %}<a class="list-row v757-row" href="{{ m.href }}"><span><strong>{{ m.title }}</strong><small>{{ m.competition }} · {{ m.time }}</small></span>{% if m.has_pick %}<em>Pick</em>{% endif %}</a>{% else %}<div class="empty premium-empty">Sin focos deportivos reales todavía.</div>{% endfor %}
+    </div>
+  </article>
+  <article class="card v757-panel">
+    <div class="section-head"><h2>Picks destacados</h2><a class="pill" href="/picks">Picks</a></div>
+    <div class="stack">
+      {% for p in v.featured_picks %}<a class="list-row v757-row" href="{{ p.href }}"><span><strong>{{ p.title }}</strong><small>Cuota {{ p.odds }} · Riesgo {{ p.risk }}</small></span><em>SHARK</em></a>{% else %}<div class="empty premium-empty">No hay picks premium listos. Mejor esperar valor real.</div>{% endfor %}
+    </div>
+  </article>
+</section>
+
+<section class="band compact-band v757-journey">
+  <div class="section-head"><h2>Flujo ideal de uso</h2><span class="pill">Cliente PRO</span></div>
+  <div class="grid compact-grid">
+    {% for j in v.journey %}<a class="card v757-step" href="{{ j.href }}"><b>{{ j.step }}</b><h3>{{ j.title }}</h3><p class="small">{{ j.body }}</p></a>{% endfor %}
+  </div>
+  <p class="small">{{ v.safe_message }}</p>
+</section>
+{% endblock %}

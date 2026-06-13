@@ -1,5 +1,14 @@
 {% extends "base.html" %}
 {% block content %}
+
+{% set v757 = data.v757_app if data.v757_app is defined else {} %}
+{% if v757 %}
+<section class="band compact-band v757-calendar-strip">
+  <div class="section-head"><div><h2>Ruta rápida del día</h2><p class="small">Calendario conectado con picks, directo, favoritos y track record.</p></div><a class="pill" href="/app">Centro app</a></div>
+  <div class="v757-action-row">{% for a in v757.get('next_actions', [])[:5] %}<a class="quick v756-quick" href="{{ a.href }}"><span>{{ a.title }}</span><strong>{{ a.badge }}</strong></a>{% endfor %}</div>
+</section>
+{% endif %}
+
 {% set calendar = data.calendar %}
 {% set filters = calendar.filters %}
 

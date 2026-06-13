@@ -1,5 +1,17 @@
 {% extends "base.html" %}
 {% block content %}
+
+{% set trust = data.v757_track if data.v757_track is defined else {} %}
+{% if trust %}
+<section class="band compact-band v757-track-trust">
+  <div class="section-head"><div><h2>{{ trust.title }}</h2><p class="small">{{ trust.note }}</p></div><span class="pill">{{ trust.status }}</span></div>
+  <div class="v757-mini-cards wide">
+    {% for c in trust.get('cards', []) %}<div><span>{{ c.label }}</span><strong>{{ c.value }}</strong><small>{{ c.hint }}</small></div>{% endfor %}
+  </div>
+  <p class="small">No se inventa ROI ni winrate: solo aparece cuando hay resultados reales auditables.</p>
+</section>
+{% endif %}
+
 {% set tr = data.track_record or {} %}
 <section class="hero compact-hero v734-hero v742-track-hero">
   <div class="eyebrow">Transparencia SHARK</div>

@@ -110,6 +110,7 @@ from engines.go_live_engine import go_live_snapshot, production_validation_plan
 from engines.visual_experience_engine import visual_experience_snapshot
 from engines.native_app_experience_engine import native_app_experience_snapshot
 from engines.client_app_premium_engine import build_client_app_premium_context
+from engines.client_growth_engine import build_v757_app_center, build_v757_trust_snapshot, build_v757_next_actions
 from engines.final_release_engine import final_release_snapshot, final_release_validation_plan
 from engines.client_visual_perfection_engine import client_visual_perfection_snapshot
 from engines.calendar_experience_engine import calendar_experience_snapshot
@@ -152,7 +153,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V756_CLIENT_APP_PREMIUM_EXPERIENCE_TOTAL_POLISH"
+APP_VERSION = "V757_GLOBAL_APP_EXPERIENCE_TRUST_NAVIGATION_POLISH"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -9008,6 +9009,7 @@ def home():
         return Response("", status=200)
     data = home_light_data()
     data["client_premium"] = build_client_app_premium_context(data, current_session_user())
+    data["v757_app"] = build_v757_app_center(data, current_session_user(), track_record=None)
     return render_template("home.html", data=data)
 
 
@@ -9298,6 +9300,7 @@ def calendar_page():
     data["lane"] = data["calendar"].get("filters", {}).get("lane", "today")
     data["date"] = data["calendar"].get("filters", {}).get("date", today_iso())
     data["client_premium"] = build_client_app_premium_context(data, current_session_user())
+    data["v757_app"] = build_v757_app_center(data, current_session_user(), track_record=None)
     return render_template("calendar.html", data=data)
 
 
@@ -10140,6 +10143,7 @@ def picks_page():
     data["pick_stats"] = pick_stats()
     data["smart_picks"] = smart_pick_board(user, limit=24)
     data["client_premium"] = build_client_app_premium_context(data, user, filter_key=(request.args.get("filtro") or request.args.get("filter") or "all"))
+    data["v757_app"] = build_v757_app_center(data, user, track_record=None)
     record_user_activity("view", "picks", "picks-page", {"count": len(data["picks"]), "candidates": len(data["candidate_matches"])})
     return render_template("picks.html", data=data)
 
@@ -11873,6 +11877,8 @@ def public_track_record_page():
     user = current_session_user()
     data = dashboard_data() if user else home_light_data()
     data["track_record"] = v742_track_record_context()
+    data["v757_track"] = build_v757_trust_snapshot(data.get("track_record") or {})
+    data["v757_app"] = build_v757_app_center(data, user, track_record=data.get("track_record"))
     return render_template("track_record.html", data=data)
 
 
@@ -13389,6 +13395,49 @@ def api_admin_top_app_readiness():
     if not is_admin_session():
         return admin_json_forbidden()
     return jsonify({"ok": True, "version": APP_VERSION, "top_app_readiness": v745_top_app_readiness_context()})
+
+
+
+# ===================== V757 GLOBAL APP EXPERIENCE TRUST NAVIGATION POLISH =====================
+
+@app.route("/app")
+@app.route("/mi-app")
+@app.route("/inicio")
+@app.route("/panel-cliente")
+def v757_client_app_center_page():
+    user = current_session_user()
+    if not user:
+        return redirect("/cliente-login?next=/app")
+    data = dashboard_data()
+    data["track_record"] = v742_track_record_context()
+    data["membership"] = v566_membership_ui(user)
+    data["client_premium"] = build_client_app_premium_context(data, user)
+    data["v757_app"] = build_v757_app_center(data, user, track_record=data.get("track_record"))
+    data["v757_trust"] = build_v757_trust_snapshot(data.get("track_record") or {})
+    return render_template("client_app_center.html", data=data)
+
+
+@app.route("/api/client/app-center")
+def api_v757_client_app_center():
+    user = current_session_user()
+    if not user:
+        return jsonify({"ok": False, "version": APP_VERSION, "error": "login_required"}), 403
+    data = dashboard_data()
+    track = v742_track_record_context()
+    return jsonify({
+        "ok": True,
+        "version": APP_VERSION,
+        "app_center": build_v757_app_center(data, user, track_record=track),
+        "trust": build_v757_trust_snapshot(track),
+        "next_actions": build_v757_next_actions(data, user, track_record=track),
+    })
+
+
+@app.route("/api/client/trust-snapshot")
+def api_v757_trust_snapshot():
+    user = current_session_user()
+    track = v742_track_record_context()
+    return jsonify({"ok": True, "version": APP_VERSION, "trust": build_v757_trust_snapshot(track), "logged_in": bool(user)})
 
 
 def register_optional_blueprints():

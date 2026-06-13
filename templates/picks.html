@@ -1,5 +1,17 @@
 {% extends "base.html" %}
 {% block content %}
+
+{% set v757 = data.v757_app if data.v757_app is defined else {} %}
+{% if v757 %}
+<section class="band compact-band v757-picks-trust">
+  <div class="section-head"><div><h2>Lectura rápida de picks</h2><p class="small">Prioriza mercado claro, cuota, hora Madrid, riesgo y no publicar por publicar.</p></div><a class="pill" href="/app">Centro app</a></div>
+  <div class="v757-kpi-grid compact">
+    {% for k in v757.get('kpis', []) %}<a class="v757-kpi" href="{{ k.href }}"><span>{{ k.label }}</span><strong>{{ k.value }}</strong><small>{{ k.hint }}</small></a>{% endfor %}
+  </div>
+  <div class="v757-action-row">{% for a in v757.get('next_actions', [])[:4] %}<a class="quick v756-quick" href="{{ a.href }}"><span>{{ a.title }}</span><strong>{{ a.badge }}</strong></a>{% endfor %}</div>
+</section>
+{% endif %}
+
 <section class="scoreboard-hero v701-scoreboard picks-board v740-hero-polish">
   <div>
     <div class="kicker">Picks SHARK</div>
