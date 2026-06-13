@@ -13,7 +13,7 @@
 </section>
 <section class="panel"><h2>Acciones recomendadas</h2><div class="stack">{% for a in data.intel.next_actions %}<div class="notice"><strong>{{ loop.index }}.</strong> {{ a }}</div>{% endfor %}</div></section>
 <section class="grid two">
-  <article class="panel"><h2>Últimos resultados</h2>{% for m in data.intel.recent_results %}<div class="mini-match"><strong>{{ m.home_team }} {{ m.home_score }} - {{ m.away_score }} {{ m.away_team }}</strong><span>{{ m.league_name }} · {{ m.madrid_display or m.display_datetime or m.safe_datetime or m.match_date or 'Hora pendiente' }}</span></div>{% else %}<p class="muted">Sin resultados recientes persistidos.</p>{% endfor %}</article>
+  <article class="panel"><h2>Últimos resultados</h2>{% for m in data.intel.recent_results %}<div class="mini-match"><strong>{{ m.home_team }} {{ m.home_score }} - {{ m.away_score }} {{ m.away_team }}</strong><span>{{ m.league_name }} · {{ m|match_full_datetime }}</span></div>{% else %}<p class="muted">Sin resultados recientes persistidos.</p>{% endfor %}</article>
   <article class="panel"><h2>Directos actuales</h2>{% for m in data.intel.live %}<div class="mini-match"><strong>{{ m.home_team }} {{ m.home_score }} - {{ m.away_score }} {{ m.away_team }}</strong><span>{{ m.league_name }} · {{ m.minute or '' }} · {{ m.status }}</span></div>{% else %}<p class="muted">No hay partidos live ahora.</p>{% endfor %}</article>
 </section>
 {% endblock %}

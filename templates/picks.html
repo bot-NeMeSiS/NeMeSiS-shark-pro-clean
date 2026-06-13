@@ -93,7 +93,7 @@
       <div class="match-top v740-card-top">
         <div>
           <div class="comp-name">{{ (p.competition_name or p.league_name or p.competition_key or 'Competición')|competition_es }}</div>
-          <div class="small">{{ p.client_match_label or (p.home_team ~ ' vs ' ~ p.away_team) }} · {{ p.client_full_datetime_label or p.madrid_display or p.display_datetime or p.match_date or 'Hora Madrid pendiente' }} · {{ (p.market or 'Mercado')|market_es }}</div>
+          <div class="small">{{ p.client_match_label or (p.home_team ~ ' vs ' ~ p.away_team) }} · {{ p.client_full_datetime_label or (p|match_full_datetime) }} · {{ (p.market or 'Mercado')|market_es }}</div>
         </div>
         <span class="badge badge-{{ p.membership_required|lower }}">{{ p.quality_label or p.membership_required or 'FREE' }}</span>
       </div>
@@ -187,7 +187,7 @@
     {% set home_identity = p.home_identity|default({}) %}
     {% set away_identity = p.away_identity|default({}) %}
     <article class="card study-card v740-study-card">
-      <div class="match-top"><div><div class="comp-name">{{ (p.competition_name or p.league_name or 'Competición')|competition_es }}</div><div class="small">{{ p.client_match_label or (p.home_team ~ ' vs ' ~ p.away_team) }} · {{ p.client_full_datetime_label or p.madrid_display or p.display_datetime or p.match_date or 'Hora Madrid pendiente' }} · {{ (p.market or 'Mercado')|market_es }}</div></div><span class="shark-pill">{{ p.quality_label or 'En estudio' }}</span></div>
+      <div class="match-top"><div><div class="comp-name">{{ (p.competition_name or p.league_name or 'Competición')|competition_es }}</div><div class="small">{{ p.client_match_label or (p.home_team ~ ' vs ' ~ p.away_team) }} · {{ p.client_full_datetime_label or (p|match_full_datetime) }} · {{ (p.market or 'Mercado')|market_es }}</div></div><span class="shark-pill">{{ p.quality_label or 'En estudio' }}</span></div>
       <div class="pick-teams-pro v740-team-strip compact">
         <div class="pick-team-pro"><span class="crest compact-crest {{ home_identity.get('ui_class','crest-fallback') }}"><img loading="lazy" src="{{ home_identity.get('crest_url','') }}" alt="{{ p.home_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ home_identity.get('flag_emoji') or home_identity.get('initials', (p.home_team or 'L')[:1]) }}'"></span><strong>{{ p.home_team }}</strong></div>
         <span class="pick-versus-pro">VS</span>

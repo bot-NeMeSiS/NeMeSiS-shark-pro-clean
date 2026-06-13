@@ -12,7 +12,9 @@ from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from engines.madrid_time_engine import (
+    MADRID_TZ as CORE_MADRID_TZ,
     normalize_kickoff_for_display,
+    parse_madrid_local_datetime,
     to_madrid_time,
 )
 
@@ -446,6 +448,14 @@ def _has_explicit_timezone(value: str) -> bool:
 
 
 def parse_datetime_to_madrid(value: object, assume_naive_madrid: bool = True) -> datetime | None:
+    if value in (None, ""):
+        return None
+    text = str(value or "").strip()
+    # Manual/admin/DB date+hour values are already Madrid time. API values with
+    # Z/offset are converted to Madrid. This keeps every visible value in Spain time
+    # without double-shifting manual hours.
+    if assume_naive_madrid and text and not (text.endswith("Z") or re.search(r"[+-]\d{2}:?\d{2}$", text)):
+        return parse_madrid_local_datetime(value)
     return to_madrid_time(value)
 
 
@@ -527,7 +537,7 @@ def apply_match_localization(match: dict | None) -> dict:
     item["safe_date"] = values.get("safe_date") or item.get("match_date") or ""
     item["safe_datetime"] = values.get("safe_datetime") or ""
     item["display_datetime"] = values.get("display_datetime") or spanish_datetime_label("", item.get("match_date"), item.get("kickoff_time") or item.get("match_time"))
-    item["time_context"] = "Hora española"
+    item["time_context"] = "Hora oficial de España (Madrid)"
     return item
 
 
@@ -549,7 +559,7 @@ def apply_pick_localization(pick: dict | None) -> dict:
     item["safe_time"] = values.get("safe_time") or item.get("kickoff_time") or item.get("match_time") or "Hora"
     item["safe_date"] = values.get("safe_date") or item.get("match_date") or ""
     item["display_datetime"] = values.get("display_datetime") or spanish_datetime_label("", item.get("match_date"), item.get("kickoff_time") or item.get("match_time"))
-    item["time_context"] = "Hora española"
+    item["time_context"] = "Hora oficial de España (Madrid)"
     raw_selection = item.get("_raw_selection") or item.get("selection") or item.get("pick") or item.get("recommendation") or ""
     item["_raw_selection"] = raw_selection
     item["market"] = spanish_market_name(item.get("market") or item.get("pick_type") or "")

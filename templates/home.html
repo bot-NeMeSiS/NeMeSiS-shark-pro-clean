@@ -70,6 +70,14 @@
 </section>
 {% endif %}
 
+{% set hi = data.v766_highlights if data.v766_highlights is defined else {} %}
+{% if hi %}
+<section class="band compact-band v766-highlights-band client-only-context">
+  <div class="section-head"><div><h2>Resultados y resúmenes</h2><p class="small">Partidos pasados con marcador y, cuando la API lo aporta, enlace externo al resumen/highlights.</p></div><a class="pill" href="/highlights">Abrir</a></div>
+  <div class="v766-order-kpis"><span><strong>{{ hi.with_video or 0 }}</strong><small>Vídeos</small></span><span><strong>{{ hi.linked_matches or 0 }}</strong><small>Enlazados</small></span><span><strong>{{ hi.enriched_matches or 0 }}</strong><small>Partidos</small></span></div>
+</section>
+{% endif %}
+
 {% set wc = data.world_cup_launch if data.world_cup_launch is defined else {} %}
 <section class="v763-world-cup-band">
   <div>
@@ -115,7 +123,7 @@
     <div class="v760-list v762-client-list">
       {% for p in (data.picks or [])[:5] %}
       <a class="v762-pick-row" href="{{ p.client_match_url or ('/match/' ~ (p.match_id or p.id)) }}">
-        <span class="v762-pick-main"><strong>{{ p.client_match_label or p.home_team ~ ' vs ' ~ p.away_team if p.home_team else 'Partido pendiente' }}</strong><small>{{ p.client_competition or (p.competition_name or p.league_name or 'Competición')|competition_es }} · {{ p.client_datetime_label or p.match_date or 'Hora Madrid pendiente' }}</small></span>
+        <span class="v762-pick-main"><strong>{{ p.client_match_label or p.home_team ~ ' vs ' ~ p.away_team if p.home_team else 'Partido pendiente' }}</strong><small>{{ p.client_competition or (p.competition_name or p.league_name or 'Competición')|competition_es }} · {{ p.client_full_datetime_label or (p|match_full_datetime) }}</small></span>
         <span class="v762-pick-info"><strong>{{ p.client_selection_label or p.selection_display or p.selection or p.pick_label or 'Selección pendiente' }}</strong><small>{{ p.client_market_label or (p.market or p.pick_type or 'Mercado')|market_es }} · {{ p.client_odds_label or ('Cuota ' ~ (p.odds or 'no disponible')) }} · Riesgo {{ p.risk_level or 'Medio' }}</small></span>
       </a>
       {% else %}

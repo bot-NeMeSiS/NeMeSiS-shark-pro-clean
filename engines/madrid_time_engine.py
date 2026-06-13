@@ -43,6 +43,52 @@ def _from_common_formats(value: str) -> datetime | None:
     return None
 
 
+def parse_madrid_local_datetime(value: object) -> datetime | None:
+    """Parse date/time values that are already written in Spain/Madrid time.
+
+    This is used for manual admin values or DB rows where ``match_date`` +
+    ``kickoff_time`` are already Madrid-facing fields. It avoids the classic
+    double-shift bug where 21:00 Madrid became 23:00 in the UI.
+    """
+    if value in (None, ""):
+        return None
+    if isinstance(value, datetime):
+        dt = value
+    elif isinstance(value, date):
+        dt = datetime.combine(value, time.min)
+    else:
+        raw = _clean_datetime_text(value)
+        if not raw:
+            return None
+        if raw.endswith("Z") or _has_tz_suffix(raw):
+            return to_madrid_time(raw)
+        if re.fullmatch(r"\d{4}-\d{2}-\d{2}", raw):
+            dt = datetime.fromisoformat(raw)
+        else:
+            iso = raw.replace(" ", "T")
+            if re.match(r"^\d{4}-\d{2}-\d{2}T\d{1,2}:\d{2}$", iso):
+                iso += ":00"
+            try:
+                dt = datetime.fromisoformat(iso)
+            except ValueError:
+                dt = _from_common_formats(raw)
+                if dt is None:
+                    return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=MADRID_TZ)
+    return dt.astimezone(MADRID_TZ)
+
+
+def madrid_local_from_parts(date_value: object, time_value: object = "") -> datetime | None:
+    date_text = str(date_value or "").strip()[:10]
+    time_text = str(time_value or "").strip()[:5]
+    if not date_text:
+        return None
+    if not time_text or not re.match(r"^\d{1,2}:\d{2}$", time_text):
+        return None
+    return parse_madrid_local_datetime(f"{date_text}T{time_text}:00")
+
+
 def parse_match_datetime(value: object) -> datetime | None:
     """Parse any known match datetime into an aware UTC datetime."""
     if value in (None, ""):
@@ -146,14 +192,28 @@ def _first_match_datetime_value(match: dict) -> tuple[str, object]:
 def normalize_kickoff_for_display(match: dict | None) -> dict:
     item = dict(match or {})
     key, raw_value = _first_match_datetime_value(item)
-    dt_utc = parse_match_datetime(raw_value)
-    dt_madrid = dt_utc.astimezone(MADRID_TZ) if dt_utc else None
     warnings: list[str] = []
     raw_text = str(raw_value or "").strip()
-    if not raw_text:
-        warnings.append("missing_kickoff")
-    elif key == "match_date+time" or (raw_text and not _has_tz_suffix(raw_text) and "T" in raw_text):
-        warnings.append("naive_assumed_utc")
+    dt_madrid = None
+    dt_utc = None
+    if key == "match_date+time":
+        dt_madrid = madrid_local_from_parts(item.get("match_date") or item.get("date"), item.get("kickoff_time") or item.get("match_time") or item.get("time"))
+        dt_utc = dt_madrid.astimezone(UTC_TZ) if dt_madrid else None
+        if dt_madrid:
+            warnings.append("manual_madrid_local")
+        else:
+            warnings.append("missing_or_invalid_madrid_time")
+    elif key == "match_date":
+        dt_utc = None
+        dt_madrid = None
+        warnings.append("date_without_time")
+    else:
+        dt_utc = parse_match_datetime(raw_value)
+        dt_madrid = dt_utc.astimezone(MADRID_TZ) if dt_utc else None
+        if not raw_text:
+            warnings.append("missing_kickoff")
+        elif raw_text and not _has_tz_suffix(raw_text) and "T" in raw_text:
+            warnings.append("naive_api_datetime_assumed_utc")
     if raw_text.endswith("+01:00") or raw_text.endswith("+02:00"):
         warnings.append("source_already_timezone_aware")
     if dt_madrid:
@@ -180,19 +240,21 @@ def normalize_kickoff_for_display(match: dict | None) -> dict:
         item["display_datetime"] = item["madrid_display"]
         item["kickoff_iso_madrid"] = item["madrid_dt_iso"]
     else:
-        item["madrid_time"] = str(item.get("kickoff_time") or item.get("match_time") or "")[:5]
-        item["madrid_date"] = str(item.get("match_date") or "")[:10]
-        item["madrid_date_label"] = item["madrid_date"]
-        item["madrid_display"] = item.get("display_datetime") or "Hora pendiente"
-        item["safe_time"] = item.get("safe_time") or item["madrid_time"] or "Hora pendiente"
-        item["safe_date"] = item.get("safe_date") or item["madrid_date"]
+        fallback_date = str(item.get("match_date") or "")[:10]
+        fallback_time = str(item.get("kickoff_time") or item.get("match_time") or "")[:5]
+        item["madrid_time"] = fallback_time
+        item["madrid_date"] = fallback_date
+        item["madrid_date_label"] = format_madrid_date_label(fallback_date) if fallback_date else "Sin fecha"
+        item["madrid_display"] = (f"{item['madrid_date_label']} · {fallback_time}" if fallback_date and fallback_time else (f"{item['madrid_date_label']} · Hora pendiente" if fallback_date else "Hora pendiente"))
+        item["safe_time"] = fallback_time or "Hora pendiente"
+        item["safe_date"] = item.get("safe_date") or fallback_date
         item["display_time"] = item["safe_time"]
-        item["display_date_label"] = item["safe_date"] or "Sin fecha"
+        item["display_date_label"] = item["madrid_date_label"] or "Sin fecha"
         item["display_status_label"] = item["madrid_display"]
         item["kickoff_display"] = item["madrid_display"]
         item["display_datetime"] = item.get("display_datetime") or item["madrid_display"]
     item["timezone_label"] = "Europe/Madrid"
-    item["time_context"] = "Hora española"
+    item["time_context"] = "Hora oficial de España (Madrid)"
     item["time_source_field"] = key
     item["time_source_value"] = raw_text
     item["time_warnings"] = warnings

@@ -34,7 +34,7 @@
     <div class="empty-state">No hay partidos en directo ahora mismo. Te mostramos próximos destacados desde el calendario.</div>
     <div class="match-list compact-list">
       {% for m in summary.upcoming %}
-      <a class="match-row" href="/match/{{ m.id }}"><strong>{{ m.safe_home or m.home_team }} vs {{ m.safe_away or m.away_team }}</strong><small>{{ m.league_name or m.competition_name }} · {{ m.madrid_display or m.display_datetime or m.safe_datetime or m.match_date }}</small></a>
+      <a class="match-row" href="/match/{{ m.id }}"><strong>{{ m.safe_home or m.home_team }} vs {{ m.safe_away or m.away_team }}</strong><small>{{ m.league_name or m.competition_name }} · {{ m|match_full_datetime }}</small></a>
       {% endfor %}
     </div>
   {% endif %}

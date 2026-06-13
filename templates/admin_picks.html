@@ -24,7 +24,7 @@
   <form class="card" method="post" action="/admin/picks">
     <h2>Crear pick</h2>
     <input type="hidden" name="action" value="create">
-    <div class="field"><label>Partido existente</label><select name="match_id"><option value="">Manual / sin partido enlazado</option>{% for m in data.matches_for_pick %}<option value="{{ m.id }}">{{ m.match_date }} · {{ m.home_team }} vs {{ m.away_team }}</option>{% endfor %}</select></div>
+    <div class="field"><label>Partido existente</label><select name="match_id"><option value="">Manual / sin partido enlazado</option>{% for m in data.matches_for_pick %}<option value="{{ m.id }}">{{ m|match_full_datetime }} · {{ m.home_team }} vs {{ m.away_team }}</option>{% endfor %}</select></div>
     <div class="field"><label>Liga</label><input name="league_name" placeholder="LaLiga, Premier..."></div>
     <div class="field"><label>Local</label><input name="home_team" placeholder="Equipo local"></div>
     <div class="field"><label>Visitante</label><input name="away_team" placeholder="Equipo visitante"></div>
@@ -53,7 +53,7 @@
   <div class="stack">
     {% for p in data.admin_picks %}
     <article class="card pick-card">
-      <div class="match-top"><div><div class="comp-name">{{ (p.competition_name or p.league_name or 'Sin liga')|competition_es }}</div><div class="small">{{ p.match_date }} · {{ p.market }}</div></div><span class="badge badge-{{ p.membership_required|lower }}">{{ p.membership_required }}</span></div>
+      <div class="match-top"><div><div class="comp-name">{{ (p.competition_name or p.league_name or 'Sin liga')|competition_es }}</div><div class="small">{{ p|match_full_datetime }} · {{ p.market }}</div></div><span class="badge badge-{{ p.membership_required|lower }}">{{ p.membership_required }}</span></div>
       <h3>{{ p.home_team }}{% if p.away_team %} vs {{ p.away_team }}{% endif %}</h3>
       <p><strong>{{ p.selection_display or p.selection }}</strong> · cuota {{ p.odds }} · confianza {{ p.confidence }}%</p>
       <p class="small">{{ p.reasoning or 'Sin razonamiento añadido todavía.' }}</p>

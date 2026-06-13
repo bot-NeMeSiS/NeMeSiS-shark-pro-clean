@@ -46,7 +46,7 @@
   <div class="stack">
     {% for r in data.recommendations %}
     <article class="card pick-card">
-      <div class="match-top"><div><div class="comp-name">{{ r.league_name|competition_es }}</div><div class="small">{{ r.match_date }} · {{ r.market }}</div></div><span class="pill">SHARK {{ r.shark_score }}</span></div>
+      <div class="match-top"><div><div class="comp-name">{{ r.league_name|competition_es }}</div><div class="small">{{ r|match_full_datetime }} · {{ r.market }}</div></div><span class="pill">SHARK {{ r.shark_score }}</span></div>
       <h3>{{ r.home_team }} vs {{ r.away_team }}</h3>
       <p><strong>{{ r.selection }}</strong>{% if r.odds %} · cuota {{ r.odds }}{% else %} · pendiente de cuota{% endif %}</p>
       <div class="status"><span>{{ r.confidence }}%</span><span>{{ r.risk_level }}</span><span>{{ r.value_rating }}</span><span>{{ r.membership_required }}</span></div>

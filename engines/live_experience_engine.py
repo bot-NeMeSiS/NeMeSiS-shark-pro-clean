@@ -119,7 +119,7 @@ def match_filter(match: dict, lane: str, query: str = "") -> bool:
     if lane in {"spain", "espana", "españa"}:
         return any(term in blob for term in SPAIN_TERMS)
     if lane in {"andalucia", "andalucía"}:
-        return any(term in blob for term in ANDALUCIA_TERMS)
+        return any(term in blob for term in SPAIN_TERMS)
     if lane in {"top", "grandes"}:
         return any(term in blob for term in IMPORTANT_TERMS)
     return True
@@ -357,7 +357,6 @@ def build_live_experience(matches: list[dict], lane: str = "live", query: str = 
             ("picks", "Con pick"),
             ("favorites", "Favoritos"),
             ("spain", "España"),
-            ("andalucia", "Andalucía"),
             ("top", "Grandes ligas"),
         ],
         "lane_labels": {
@@ -368,7 +367,6 @@ def build_live_experience(matches: list[dict], lane: str = "live", query: str = 
             "picks": "Con pick",
             "favorites": "Favoritos",
             "spain": "España",
-            "andalucia": "Andalucía",
             "top": "Grandes ligas",
         },
     }

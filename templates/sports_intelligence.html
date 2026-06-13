@@ -17,6 +17,6 @@
 </section>
 <section class="grid two">
   <article class="panel"><h2>Recomendaciones SHARK</h2>{% for r in data.intel.recommendations[:6] %}<div class="mini-match"><strong>{{ r.home_team }} vs {{ r.away_team }}</strong><span>{{ r.selection }} · {{ r.risk_level }} · {{ r.confidence }}%</span></div>{% else %}<p class="muted">No hay recomendaciones generadas todavía.</p>{% endfor %}</article>
-  <article class="panel"><h2>Próximos partidos</h2>{% for m in data.intel.upcoming[:6] %}<div class="mini-match"><strong>{{ m.home_team }} vs {{ m.away_team }}</strong><span>{{ m.league_name }} · {{ m.madrid_display or m.display_datetime or m.safe_datetime or 'Hora pendiente' }}</span></div>{% else %}<p class="muted">No hay próximos partidos cargados.</p>{% endfor %}</article>
+  <article class="panel"><h2>Próximos partidos</h2>{% for m in data.intel.upcoming[:6] %}<div class="mini-match"><strong>{{ m.home_team }} vs {{ m.away_team }}</strong><span>{{ m.league_name }} · {{ m|match_full_datetime }}</span></div>{% else %}<p class="muted">No hay próximos partidos cargados.</p>{% endfor %}</article>
 </section>
 {% endblock %}

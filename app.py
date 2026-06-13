@@ -136,6 +136,13 @@ from engines.betting_markets_engine import (
     build_combi_strategy_context,
     enrich_pick_market_context,
 )
+from engines.sportsdb_highlights_engine import (
+    ensure_sportsdb_highlights_schema,
+    rebuild_match_enrichment,
+    sportsdb_highlights_for_match,
+    sportsdb_highlights_summary,
+    sync_sportsdb_highlights,
+)
 from engines.spanish_localization_engine import (
     MADRID_TZ,
     apply_match_localization,
@@ -159,7 +166,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V765_MARKETS_COMBIS_CLIENT_STRUCTURE_POLISH"
+APP_VERSION = "V767_MADRID_TIME_EVERYWHERE_CERTIFICATION"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -296,6 +303,7 @@ def csrf_exempt_path(path: str) -> bool:
         "/api/automation/telegram/tick",
         "/api/automation/daily/run",
         "/api/automation/data-backup/run",
+        "/api/automation/highlights/sync",
         "/api/payments/stripe-webhook",
     }
     prefixes = (
@@ -3224,6 +3232,8 @@ def run_scheduler_task(task_name, force=False, limit=None):
             result = sync_odds_events(limit=limit or 250, force=force)
         elif task_name == "live":
             result = refresh_live_basic(limit=limit or 160)
+        elif task_name == "highlights":
+            result = v766_sync_highlights_daily(force=force, days_back=5, limit=limit or 250)
         elif task_name == "recommendations":
             result = refresh_recommendations_basic(limit=limit or 120)
         elif task_name == "auto_picks":
@@ -3251,11 +3261,11 @@ def run_scheduler_task(task_name, force=False, limit=None):
 def run_due_scheduler_tasks(force=False, startup=False):
     if not force and not scheduler_enabled():
         return {"ok": True, "skipped": True, "reason": "auto_sync_disabled", "tasks": []}
-    tasks = ["calendar", "crests", "odds", "live", "recommendations", "auto_picks", "live_alerts", "warehouse", "telegram", "cleanup"]
+    tasks = ["calendar", "crests", "odds", "live", "highlights", "recommendations", "auto_picks", "live_alerts", "warehouse", "telegram", "cleanup"]
     if startup:
         total_matches = (one("SELECT COUNT(*) AS total FROM matches") or {}).get("total", 0)
         teams_with_crests = (one("SELECT COUNT(*) AS total FROM teams WHERE logo_url IS NOT NULL AND logo_url!=''") or {}).get("total", 0)
-        tasks = ["calendar", "live", "odds", "recommendations", "auto_picks", "live_alerts", "warehouse", "telegram", "cleanup"]
+        tasks = ["calendar", "live", "highlights", "odds", "recommendations", "auto_picks", "live_alerts", "warehouse", "telegram", "cleanup"]
         if not total_matches:
             tasks.insert(0, "calendar")
         if not teams_with_crests:
@@ -4920,7 +4930,7 @@ def shark_context_summary(context):
     pieces = [f"Contexto SHARK para {team} preparado con datos cacheados reales."]
     if upcoming:
         first = upcoming[0]
-        pieces.append(f"Próximo partido: {first.get('home_team')} vs {first.get('away_team')} ({first.get('match_date')} {first.get('kickoff_time') or ''}).")
+        pieces.append(f"Próximo partido: {first.get('home_team')} vs {first.get('away_team')} ({client_match_display_context(first).get('client_full_datetime_label')}).")
     else:
         pieces.append("No hay próximos partidos sincronizados para este equipo todavía.")
     if picks:
@@ -5592,8 +5602,8 @@ def jinja_market_es(value):
 def _jinja_match_time_source(value, fallback_date="", fallback_time=""):
     if isinstance(value, dict):
         item = normalize_kickoff_for_display(value)
-        return item, item.get("madrid_dt_iso") or item.get("kickoff_iso") or item.get("commence_time") or item.get("start_time") or item.get("event_time") or (f"{item.get('match_date')}T{str(item.get('kickoff_time') or item.get('match_time') or '')[:5]}:00" if item.get("match_date") and (item.get("kickoff_time") or item.get("match_time")) else "")
-    return {}, value or (f"{fallback_date}T{str(fallback_time)[:5]}:00" if fallback_date and fallback_time else "")
+        return item, item.get("madrid_dt_iso") or item.get("kickoff_iso_madrid") or item.get("kickoff_iso") or item.get("commence_time") or item.get("start_time") or item.get("event_time") or (madrid_local_iso(item.get("match_date"), item.get("kickoff_time") or item.get("match_time")) if item.get("match_date") and (item.get("kickoff_time") or item.get("match_time")) else "")
+    return {}, value or (madrid_local_iso(fallback_date, fallback_time) if fallback_date and fallback_time else "")
 
 
 @app.template_filter("match_time_short")
@@ -5610,13 +5620,13 @@ def jinja_match_time_label(value, status=None, minute=None):
     status_value = status if status is not None else item.get("status")
     minute_value = minute if minute is not None else (item.get("minute") or (item.get("live_depth") or {}).get("minute"))
     label = format_madrid_match_time(source, status_value, minute_value)
-    return label or item.get("madrid_display") or item.get("display_datetime") or "Hora pendiente"
+    return label or item.get("madrid_display") or item.get("display_datetime") or "Hora Madrid pendiente"
 
 
 @app.template_filter("match_date_label")
 def jinja_match_date_label(value):
     item, _source = _jinja_match_time_source(value)
-    return item.get("madrid_date_label") or item.get("safe_date") or item.get("match_date") or "Sin fecha"
+    return item.get("madrid_date_label") or item.get("safe_date") or item.get("match_date") or "Sin fecha Madrid"
 
 
 # ===================== V762 CLIENT CLARITY / MADRID TIME / ADMIN NOISE POLISH =====================
@@ -5659,11 +5669,12 @@ def client_match_display_context(match):
         status_label = "Próximo"
     if time_label and time_label != "Hora pendiente":
         datetime_label = f"{date_label} · {time_label}"
-        full_label = f"{date_label} · {safe_date} · {time_label}" if safe_date and safe_date not in date_label else datetime_label
+        full_label = (f"{date_label} · {safe_date} · {time_label} · Madrid" if safe_date and safe_date not in date_label else f"{datetime_label} · Madrid")
     else:
         datetime_label = f"{date_label} · Hora pendiente"
-        full_label = datetime_label
+        full_label = f"{datetime_label} · Madrid" if "Madrid" not in datetime_label else datetime_label
     item.update({
+        "client_timezone_label": "Hora oficial de España (Madrid)",
         "client_home": home,
         "client_away": away,
         "client_teams": f"{home} vs {away}",
@@ -5736,6 +5747,17 @@ def enrich_pick_client_context(pick):
 @app.template_filter("match_full_datetime")
 def jinja_match_full_datetime(value):
     return client_match_display_context(value).get("client_full_datetime_label")
+
+
+@app.template_filter("match_madrid_datetime")
+def jinja_match_madrid_datetime(value):
+    """Strict visible Madrid datetime label for client/admin templates."""
+    return client_match_display_context(value).get("client_full_datetime_label") or "Hora Madrid pendiente"
+
+
+@app.template_filter("match_madrid_context")
+def jinja_match_madrid_context(value):
+    return client_match_display_context(value)
 
 
 @app.template_filter("match_client_status")
@@ -6339,7 +6361,7 @@ def _shark_line_match(match):
     home = match.get("home_team") or match.get("safe_home") or "Equipo local"
     away = match.get("away_team") or match.get("safe_away") or "Equipo visitante"
     comp = spanish_competition_name(match.get("competition_name") or match.get("league_name") or match.get("safe_competition") or "Competición")
-    time = match.get("display_datetime") or spanish_datetime_label(match.get("kickoff_iso") or "", match.get("match_date"), match.get("kickoff_time") or match.get("match_time"))
+    time = client_match_display_context(match).get("client_full_datetime_label") or match.get("display_datetime") or spanish_datetime_label(match.get("kickoff_iso") or "", match.get("match_date"), match.get("kickoff_time") or match.get("match_time"))
     live_depth = match.get("live_depth") or {}
     status = live_depth.get("label") or match.get("status") or "Próximo"
     score = live_depth.get("score") or match.get("score") or ""
@@ -8935,7 +8957,7 @@ def telegram_daily_message():
         "<b>NeMeSiS SHARK PRO</b>\n"
         f"Version: {APP_VERSION}\n"
         f"Partidos hoy: {summary['matches_today']} | Live: {summary['live_now']} | Picks: {summary['picks_ready']}\n"
-        "Cobertura: mundial primero, Espana y Andalucia como diferencial.\n"
+        "Cobertura: mundial, competiciones top, directo, resultados y picks con hora Madrid.\n"
         "Legal: solo APIs permitidas, importaciones autorizadas y cache propio."
     )
 
@@ -9083,7 +9105,7 @@ def match_deduplication_metrics(sample_limit=5000):
             "ids": [item.get("id") for item in items],
             "label": f"{items[0].get('home_team')} vs {items[0].get('away_team')}",
             "competition": items[0].get("competition_name") or items[0].get("league_name") or items[0].get("competition_key"),
-            "kickoff": items[0].get("kickoff_iso") or f"{items[0].get('match_date')} {items[0].get('kickoff_time') or items[0].get('match_time') or ''}".strip(),
+            "kickoff": client_match_display_context(items[0]).get("client_full_datetime_label") or items[0].get("kickoff_iso") or "Hora Madrid pendiente",
         }
         for key, items in groups.items()
         if len(items) > 1
@@ -9637,7 +9659,7 @@ def _v764_competition_bucket(match):
         return "champions"
     if any(t in text for t in ["europa league", "conference league", "uefa"]):
         return "europe"
-    if any(t in text for t in ["laliga", "la liga", "spain", "espana", "españa", "segunda", "primera federacion", "andalucia", "andalucía"]):
+    if any(t in text for t in ["laliga", "la liga", "spain", "espana", "españa", "segunda", "primera federacion"]):
         return "spain"
     if any(t in text for t in ["premier", "england", "bundesliga", "serie a", "ligue 1", "portugal", "eredivisie"]):
         return "top_leagues"
@@ -9667,7 +9689,7 @@ def _v764_mode_description(mode_key):
         "world_cup": "El Mundial o selecciones mandan: se priorizan partidos internacionales, picks vinculados y horarios Madrid.",
         "champions": "Jornada europea: Champions y competiciones UEFA suben al foco principal.",
         "europe": "Competición europea activa: se ordenan los partidos continentales y picks de mayor interés.",
-        "spain": "Foco España: LaLiga, competiciones nacionales y Andalucía suben en prioridad cuando estén disponibles.",
+        "spain": "Foco España: LaLiga y competiciones nacionales suben en prioridad cuando estén disponibles.",
         "weekend": "Fin de semana de fútbol: agenda amplia con ligas top, picks y próximos directos.",
         "picks": "Hay picks activos: el cliente debe ver qué apostar, de qué partido es y cuándo se juega.",
         "results": "Hay partidos finalizados: se destacan resultados y picks pendientes de validar sin inventar ROI.",
@@ -9929,6 +9951,174 @@ def api_client_betting_markets():
     data = home_light_data()
     return jsonify({"ok": True, "version": APP_VERSION, "markets": v765_markets_context(data, user), "combis": v765_combi_context(data, user, combi_leg_count(request.args.get("partidos"), 3))})
 
+
+
+# ===================== V766 CALENDAR RESULTS / HIGHLIGHTS / ORDER AUTOMATION =====================
+
+def v766_highlights_key_present():
+    return env_present("THESPORTSDB_API_KEY") or env_present("THESPORTSDB_KEY")
+
+
+def v766_highlight_map(match_ids, limit_per_match=2):
+    """Mapa seguro match_id -> highlights guardados. No hace llamadas externas en páginas cliente."""
+    ids = [str(x or "").strip() for x in (match_ids or []) if str(x or "").strip()]
+    if not ids:
+        return {}
+    try:
+        ensure_sportsdb_highlights_schema(DB_PATH)
+        placeholders = ",".join("?" for _ in ids[:500])
+        if not placeholders:
+            return {}
+        records = rows(
+            f"""SELECT * FROM sportsdb_match_highlights
+                WHERE match_id IN ({placeholders}) AND COALESCE(video_url,'')!=''
+                ORDER BY updated_at DESC""",
+            tuple(ids[:500]),
+        )
+    except Exception:
+        return {}
+    out = {}
+    for item in records:
+        mid = str(item.get("match_id") or "").strip()
+        if not mid:
+            continue
+        out.setdefault(mid, [])
+        if len(out[mid]) < int(limit_per_match or 2):
+            out[mid].append(item)
+    return out
+
+
+def v766_apply_match_highlight_badge(match, highlights=None):
+    item = dict(match or {})
+    hs = highlights if highlights is not None else []
+    if not hs and item.get("id"):
+        try:
+            hs = sportsdb_highlights_for_match(DB_PATH, str(item.get("id"))).get("highlights") or []
+        except Exception:
+            hs = []
+    first = hs[0] if hs else {}
+    item["has_highlights"] = bool(hs)
+    item["highlight_count"] = len(hs)
+    item["highlight_url"] = first.get("video_url") or ""
+    item["highlight_title"] = first.get("title") or "Resumen disponible"
+    item["highlight_provider"] = first.get("provider") or "YouTube"
+    item["client_highlight_label"] = "Resumen disponible" if hs else "Resumen pendiente"
+    return item
+
+
+def v766_enrich_matches_with_highlights(matches):
+    match_ids = [m.get("id") for m in (matches or []) if isinstance(m, dict)]
+    hmap = v766_highlight_map(match_ids, limit_per_match=3)
+    return [v766_apply_match_highlight_badge(m, hmap.get(str(m.get("id") or ""), [])) for m in (matches or [])]
+
+
+def v766_highlights_context(limit=12):
+    try:
+        summary = sportsdb_highlights_summary(DB_PATH)
+    except Exception as exc:
+        summary = {"status": "PENDIENTE", "key_present": v766_highlights_key_present(), "highlights_total": 0, "with_video": 0, "linked_matches": 0, "latest_highlights": [], "recent_runs": [], "note": str(exc)[:160]}
+    latest = []
+    for h in (summary.get("latest_highlights") or [])[: int(limit or 12)]:
+        latest.append({
+            **h,
+            "label": h.get("title") or "Resumen del partido",
+            "match_label": " vs ".join([x for x in [h.get("home_team"), h.get("away_team")] if x]) or h.get("title") or "Partido",
+            "safe_url": h.get("video_url") or "",
+            "source_label": f"{h.get('source') or 'TheSportsDB'} · {h.get('provider') or 'YouTube'}",
+        })
+    return {
+        "version": APP_VERSION,
+        "status": summary.get("status") or ("ACTIVO" if v766_highlights_key_present() else "FALTA KEY"),
+        "key_present": bool(summary.get("key_present") or v766_highlights_key_present()),
+        "highlights_total": summary.get("highlights_total", 0),
+        "with_video": summary.get("with_video", 0),
+        "linked_matches": summary.get("linked_matches", 0),
+        "enriched_matches": summary.get("enriched_matches", 0),
+        "latest": latest,
+        "recent_runs": summary.get("recent_runs") or [],
+        "note": summary.get("note") or "Highlights desde API permitida. No se descargan ni se rehostean vídeos.",
+        "client_note": "Los resúmenes se muestran como enlaces externos cuando la API los aporta. NeMeSiS no descarga ni rehostea vídeos.",
+    }
+
+
+def v766_calendar_order_context(calendar=None):
+    cal = calendar or {}
+    matches = cal.get("matches") or []
+    finished = [m for m in matches if (m.get("live_depth") or {}).get("badge") == "finished" or (m.get("client_result_label") or m.get("calendar_status") or "").lower().startswith("final")]
+    live = [m for m in matches if (m.get("live_depth") or {}).get("badge") == "live"]
+    upcoming = [m for m in matches if m not in finished and m not in live]
+    with_highlights = [m for m in finished if m.get("has_highlights")]
+    return {
+        "title": "Calendario ordenado por momento",
+        "rules": [
+            "Directo primero cuando haya partidos en juego.",
+            "Resultados finalizados con marcador y resumen si la API lo trae.",
+            "Próximos partidos con día y hora Madrid visibles.",
+            "Picks siempre ligados a partido, mercado, cuota y riesgo.",
+        ],
+        "counts": {"live": len(live), "finished": len(finished), "upcoming": len(upcoming), "with_highlights": len(with_highlights)},
+        "primary_action": {"label": "Ver resultados", "href": "/calendar?lane=results"} if finished else {"label": "Ver próximos", "href": "/calendar?lane=upcoming"},
+    }
+
+
+def v766_sync_highlights_daily(force=False, days_back=5, limit=250):
+    """Sincroniza highlights de forma controlada. Protegido por admin/secret en rutas."""
+    started = now_iso()
+    if not force:
+        last = automation_get("sportsdb_highlights_last_sync", {}) or {}
+        last_day = str(last.get("date") or "")[:10]
+        if last_day == today_iso():
+            return {"ok": True, "skipped": True, "reason": "already_synced_today", "last": last, "processed": 0, "updated": 0, "errors": []}
+    try:
+        result = sync_sportsdb_highlights(DB_PATH, days_back=days_back, limit=limit, force=force)
+        try:
+            rebuild_match_enrichment(DB_PATH, limit=limit)
+        except Exception:
+            pass
+    except Exception as exc:
+        result = {"ok": False, "errors": [str(exc)[:220]], "processed": 0, "updated": 0}
+    result["started_at"] = started
+    result["finished_at"] = now_iso()
+    result["date"] = today_iso()
+    automation_set("sportsdb_highlights_last_sync", result)
+    return result
+
+
+@app.route("/highlights")
+@app.route("/resumenes")
+@app.route("/resumenes-partidos")
+def highlights_page():
+    user = current_session_user() or {"membership": "FREE", "role": "FREE"}
+    data = dashboard_data("results", today_iso())
+    data["v766_highlights"] = v766_highlights_context(limit=18)
+    data["dynamic_mode"] = build_v764_dynamic_competition_mode(data, user, "highlights")
+    return render_template("highlights.html", data=data)
+
+
+@app.route("/api/client/highlights")
+def api_client_highlights():
+    return jsonify({"ok": True, "version": APP_VERSION, "highlights": v766_highlights_context(limit=24)})
+
+
+@app.route("/api/automation/highlights/sync", methods=["POST", "GET"])
+def api_automation_highlights_sync():
+    if not automation_cron_access_allowed():
+        return automation_json_forbidden()
+    days_back = days_from_admin_value(request.args.get("days_back") or request.form.get("days_back"), 5)
+    limit = as_int(request.args.get("limit") or request.form.get("limit"), 250)
+    force = request.args.get("force") in {"1", "true", "yes"} or request.form.get("force") in {"1", "true", "yes"}
+    return jsonify({"ok": True, "version": APP_VERSION, "highlights_sync": v766_sync_highlights_daily(force=force, days_back=days_back or 5, limit=limit or 250)})
+
+
+@app.route("/api/admin/highlights/sync", methods=["POST", "GET"])
+def api_admin_highlights_sync():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    days_back = days_from_admin_value(request.args.get("days_back") or request.form.get("days_back"), 5)
+    limit = as_int(request.args.get("limit") or request.form.get("limit"), 250)
+    force = True
+    return jsonify({"ok": True, "version": APP_VERSION, "highlights_sync": v766_sync_highlights_daily(force=force, days_back=days_back or 5, limit=limit or 250)})
+
 @app.route("/")
 def home():
     if request.method == "HEAD":
@@ -9941,6 +10131,7 @@ def home():
     data["dynamic_mode"] = build_v764_dynamic_competition_mode(data, current_session_user(), "home")
     data["v765_markets"] = v765_markets_context(data, current_session_user())
     data["v765_combis"] = v765_combi_context(data, current_session_user(), 3)
+    data["v766_highlights"] = v766_highlights_context(limit=6)
     return render_template("home.html", data=data)
 
 
@@ -9953,12 +10144,13 @@ CALENDAR_LANE_LABELS = {
     "week": "Semana",
     "upcoming": "Próximos",
     "live": "Directo",
+    "results": "Resultados",
+    "finished": "Resultados",
     "favorites": "Favoritos",
     "with_pick": "Con pick",
     "picks": "Con pick",
     "top": "Top mundial",
     "spain": "España",
-    "andalucia": "Andalucía",
 }
 
 
@@ -9988,6 +10180,8 @@ def _calendar_pick_map(picks):
 
 def _calendar_base_matches(lane, date):
     lane = (lane or "today").strip().lower()
+    if lane == "andalucia":
+        lane = "spain"
     date = _safe_date_value(date)
     if lane == "tomorrow":
         return get_matches(today_iso(1), "today")
@@ -9997,9 +10191,11 @@ def _calendar_base_matches(lane, date):
         return get_upcoming_matches(today_iso(), days=21, limit=520)
     if lane == "live":
         return get_matches(today_iso(), "live")
+    if lane in {"results", "finished"}:
+        return get_results_matches(date, days_back=14, limit=320)
     if lane == "favorites":
         return favorite_feed_full().get("matches") or []
-    if lane in {"top", "spain", "andalucia"}:
+    if lane in {"top", "spain"}:
         return get_matches(date, lane)
     return get_matches(date, "today")
 
@@ -10017,6 +10213,7 @@ def _calendar_match_text(match):
 def _calendar_enrich_matches(matches, picks):
     pick_map = _calendar_pick_map(picks)
     favs = favorite_sets() if has_request_context() else {"team": set(), "league": set(), "match": set(), "all": []}
+    highlight_map = v766_highlight_map([m.get("id") for m in dedupe_matches_list(matches or []) if isinstance(m, dict)], limit_per_match=3)
     enriched = []
     for raw in dedupe_matches_list(matches or []):
         if is_fake_match(raw):
@@ -10045,6 +10242,7 @@ def _calendar_enrich_matches(matches, picks):
         item["calendar_text"] = _calendar_match_text(item)
         item["safe_home"] = item.get("safe_home") or item.get("home_team") or "Equipo local"
         item["safe_away"] = item.get("safe_away") or item.get("away_team") or "Equipo visitante"
+        item = v766_apply_match_highlight_badge(item, highlight_map.get(str(item.get("id") or ""), []))
         enriched.append(item)
     return enriched
 
@@ -10152,6 +10350,8 @@ def _calendar_group(matches):
 
 def calendar_experience_data():
     lane = _safe_query_value(request.args.get("lane") or "today", 32).lower() or "today"
+    if lane == "andalucia":
+        lane = "spain"
     date = _safe_date_value(request.args.get("date"), today_iso(1) if lane == "tomorrow" else today_iso())
     filters = {
         "lane": lane,
@@ -10193,10 +10393,10 @@ def calendar_experience_data():
             {"key": "tomorrow", "label": "Mañana", "href": "/calendar?lane=tomorrow"},
             {"key": "week", "label": "Semana", "href": "/calendar?lane=week"},
             {"key": "live", "label": "Directo", "href": "/calendar?lane=live"},
+            {"key": "results", "label": "Resultados", "href": "/calendar?lane=results"},
             {"key": "with_pick", "label": "Con pick", "href": "/calendar?lane=with_pick"},
             {"key": "favorites", "label": "Favoritos", "href": "/calendar?lane=favorites"},
             {"key": "spain", "label": "España", "href": "/calendar?lane=spain"},
-            {"key": "andalucia", "label": "Andalucía", "href": "/calendar?lane=andalucia"},
             {"key": "upcoming", "label": "21 días", "href": "/calendar?lane=upcoming"},
         ],
         "date_chips": date_chips,
@@ -10235,6 +10435,8 @@ def calendar_page():
     data["dynamic_mode"] = build_v764_dynamic_competition_mode(data, current_session_user(), "calendar")
     data["v758_adaptive"] = v758_adaptive_context(data, current_session_user(), "calendar")
     data["v765_markets"] = v765_markets_context(data, current_session_user())
+    data["v766_calendar_order"] = v766_calendar_order_context(data["calendar"])
+    data["v766_highlights"] = v766_highlights_context(limit=8)
     return render_template("calendar.html", data=data)
 
 
@@ -10312,7 +10514,9 @@ def live_page():
     for key in ("live", "today", "upcoming", "finished"):
         source.extend(hub.get(key) or [])
     source = dedupe_matches_list(source)
+    source = v766_enrich_matches_with_highlights(source)
     data["live_experience"] = build_live_experience(source, lane=lane, query=query)
+    data["v766_highlights"] = v766_highlights_context(limit=8)
     data["dynamic_mode"] = build_v764_dynamic_competition_mode(data, current_session_user(), "live")
     data["v758_adaptive"] = v758_adaptive_context(data, current_session_user(), "live")
     data["v765_markets"] = v765_markets_context(data, current_session_user())
@@ -10341,6 +10545,7 @@ def match_detail_page(match_id):
     data["dynamic_mode"] = build_v764_dynamic_competition_mode(data, current_session_user(), "match")
     data["v758_adaptive"] = v758_adaptive_context(data, current_session_user(), "match")
     data["v765_markets"] = v765_markets_context(data, current_session_user())
+    data["v766_highlights"] = sportsdb_highlights_for_match(DB_PATH, match_id) if detail else {"highlights": [], "summary_text": ""}
     if detail:
         detail["client_premium"] = data["client_premium"].get("match", {})
     return render_template("match_detail.html", data=data, detail=detail)
@@ -11095,6 +11300,7 @@ def picks_page():
     data["v758_adaptive"] = v758_adaptive_context(data, user, "picks")
     data["v765_markets"] = v765_markets_context(data, user)
     data["v765_combis"] = v765_combi_context(data, user, 3)
+    data["v766_highlights"] = v766_highlights_context(limit=6)
     record_user_activity("view", "picks", "picks-page", {"count": len(data["picks"]), "candidates": len(data["candidate_matches"])})
     return render_template("picks.html", data=data)
 
@@ -12375,7 +12581,7 @@ def api_deep_route_check():
 def api_client_experience_check():
     """Chequeo de experiencia cliente: rutas públicas, cliente y admin separadas."""
     public_routes = ["/", "/membresias", "/cliente-login", "/registro"]
-    client_routes = ["/perfil", "/match-hub", "/live", "/resultados", "/picks", "/combis", "/favorites", "/shark", "/telegram"]
+    client_routes = ["/perfil", "/match-hub", "/live", "/resultados", "/highlights", "/picks", "/combis", "/favorites", "/shark", "/telegram"]
     admin_routes = ["/admin", "/admin/users", "/admin/data-center", "/admin/picks", "/admin/telegram", "/admin/import-center"]
     return jsonify({
         "ok": True,
@@ -13196,6 +13402,7 @@ def v566_client_menu_items():
         {"group": "Inicio", "title": "Modo automático", "body": "NeMeSiS cambia el foco según directo, Mundial, Champions, picks, resultados o agenda.", "href": "/modo-dinamico"},
         {"group": "Partidos", "title": "Calendario", "body": "Hoy, mañana, semana, favoritos, directos y partidos con pick.", "href": "/calendar"},
         {"group": "Partidos", "title": "Directo", "body": "Marcador, minuto, estado y enlaces al detalle del partido.", "href": "/live"},
+        {"group": "Partidos", "title": "Resúmenes", "body": "Resultados pasados y highlights externos cuando la API los aporte.", "href": "/highlights"},
         {"group": "Picks", "title": "Picks SHARK", "body": "Mercado, cuota, stake, riesgo, motivo y estado Telegram.", "href": "/picks"},
         {"group": "Mercados", "title": "Mercados básicos", "body": "1X2, doble oportunidad, DNB, goles y ambos marcan explicados para cliente.", "href": "/mercados"},
         {"group": "Mercados", "title": "Combis", "body": "Combis 1X2, de goles o mixtas con pocas selecciones y aviso de riesgo.", "href": "/combis"},
@@ -13275,7 +13482,7 @@ def v566_admin_items():
 
 
 def v566_product_polish_report():
-    client_routes = ["/", "/dashboard", "/menu", "/live", "/live-depth", "/match-hub", "/resultados", "/picks", "/recomendaciones", "/auto-picks", "/combis", "/favorites", "/shark", "/telegram", "/perfil", "/membresias", "/juego-responsable", "/legal"]
+    client_routes = ["/", "/dashboard", "/menu", "/live", "/live-depth", "/match-hub", "/resultados", "/highlights", "/picks", "/recomendaciones", "/auto-picks", "/combis", "/favorites", "/shark", "/telegram", "/perfil", "/membresias", "/juego-responsable", "/legal"]
     admin_routes = ["/admin/dashboard", "/admin/users", "/admin/memberships", "/admin/picks", "/admin/recommendations", "/admin/telegram", "/admin/data-center", "/admin/final-qa", "/admin/unified-intelligence"]
     api_routes = ["/api/health", "/api/full-audit-report", "/api/v566/product-polish-check", "/api/matches/diagnostics", "/api/recommendations", "/api/autonomous-picks/status", "/api/timezone-check"]
     registered = {rule.rule for rule in app.url_map.iter_rules()}

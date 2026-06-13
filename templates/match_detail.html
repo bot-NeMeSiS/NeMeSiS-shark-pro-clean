@@ -65,6 +65,20 @@
 </section>
 
 {% set mk = data.v765_markets if data.v765_markets is defined else {} %}
+{% set match_hi = data.v766_highlights if data.v766_highlights is defined else {} %}
+{% if match_hi.highlights %}
+<section class="band compact-band v766-match-highlights client-only-context">
+  <div class="section-head"><div><h2>Resumen / highlights</h2><p class="small">Enlaces externos aportados por la API. No se descarga ni se rehostea vídeo.</p></div><span class="pill">{{ match_hi.highlights|length }} disponibles</span></div>
+  <div class="v766-highlight-grid">
+    {% for h in match_hi.highlights[:4] %}<a class="v766-highlight-card" href="{{ h.video_url }}" target="_blank" rel="noopener noreferrer"><strong>{{ h.title or 'Resumen del partido' }}</strong><small>{{ h.source or 'TheSportsDB' }} · {{ h.provider or 'YouTube' }}</small><span>Ver resumen externo</span></a>{% endfor %}
+  </div>
+</section>
+{% elif state.is_finished %}
+<section class="band compact-band v766-match-highlights client-only-context">
+  <div class="section-head"><div><h2>Resumen / highlights</h2><p class="small">Partido finalizado. Resumen pendiente de aparecer en la API.</p></div><span class="pill">Pendiente</span></div>
+</section>
+{% endif %}
+
 {% if mk %}
 <section class="band compact-band v765-match-markets client-only-context">
   <div class="section-head"><div><h2>Mercados básicos para este partido</h2><p class="small">Antes de entrar, el cliente debe entender mercado, selección, cuota y riesgo. SHARK no fuerza mercados si faltan datos.</p></div><a class="pill" href="/mercados">Guía de mercados</a></div>

@@ -12,6 +12,8 @@
       <a class="btn primary" href="/calendar?lane=today">Hoy</a>
       <a class="btn" href="/calendar?lane=week">Semana</a>
       <a class="btn" href="/calendar?lane=with_pick">Con pick</a>
+      <a class="btn" href="/calendar?lane=results">Resultados</a>
+      <a class="btn" href="/highlights">Resúmenes</a>
       <a class="btn" href="/live">Directo</a>
     </div>
   </div>
@@ -86,7 +88,7 @@
       </label>
       <label>
         <span>País / zona</span>
-        <input name="country" value="{{ filters.country }}" placeholder="España, Inglaterra, Andalucía..." autocomplete="off">
+        <input name="country" value="{{ filters.country }}" placeholder="España, Inglaterra, Brasil, Mundial..." autocomplete="off">
       </label>
     </div>
     <div class="calendar-form-actions">
@@ -102,6 +104,19 @@
 {% if mk %}
 <section class="band compact-band v765-screen-order-strip client-only-context">
   <div class="section-head"><div><h2>Orden de lectura</h2><p class="small">Primero partido y hora Madrid, después estado, mercado y pick si existe. Fecha: visible para cada partido. Nada de apuestas sin contexto.</p></div><a class="pill" href="/mercados">Mercados</a></div>
+</section>
+{% endif %}
+
+{% set order = data.v766_calendar_order if data.v766_calendar_order is defined else {} %}
+{% if order %}
+<section class="band compact-band v766-calendar-order client-only-context">
+  <div class="section-head"><div><h2>{{ order.title }}</h2><p class="small">Directos, resultados, resúmenes y próximos partidos con una lectura única para cliente.</p></div><a class="pill" href="{{ (order.primary_action or {}).get('href','/calendar') }}">{{ (order.primary_action or {}).get('label','Ver calendario') }}</a></div>
+  <div class="v766-order-kpis">
+    <span><strong>{{ (order.counts or {}).get('live', 0) }}</strong><small>Directo</small></span>
+    <span><strong>{{ (order.counts or {}).get('finished', 0) }}</strong><small>Resultados</small></span>
+    <span><strong>{{ (order.counts or {}).get('with_highlights', 0) }}</strong><small>Resúmenes</small></span>
+    <span><strong>{{ (order.counts or {}).get('upcoming', 0) }}</strong><small>Próximos</small></span>
+  </div>
 </section>
 {% endif %}
 
@@ -193,6 +208,11 @@
             {% if m.has_pick %}
             <div class="calendar-pick-strip">{{ m.pick_label or 'Pick disponible' }}</div>
             {% endif %}
+            {% if m.has_highlights %}
+            <div class="calendar-highlight-strip">▶ Resumen disponible · {{ m.highlight_provider or 'YouTube' }}</div>
+            {% elif live_depth.get('badge') == 'finished' or m.calendar_status == 'Finalizado' %}
+            <div class="calendar-highlight-strip muted">Resumen pendiente de API</div>
+            {% endif %}
           </a>
           {% endfor %}
         </div>
@@ -209,4 +229,20 @@
   </div>
   {% endif %}
 </section>
+
+{% set hi = data.v766_highlights if data.v766_highlights is defined else {} %}
+{% if hi %}
+<section class="band compact-band v766-highlights-band client-only-context">
+  <div class="section-head"><div><h2>Resúmenes de partidos pasados</h2><p class="small">{{ hi.client_note }} Estado: {{ hi.status }} · Enlaces guardados: {{ hi.with_video or 0 }}.</p></div><a class="pill" href="/highlights">Ver resúmenes</a></div>
+  {% if hi.latest %}
+  <div class="v766-highlight-grid">
+    {% for h in hi.latest[:4] %}
+    <a class="v766-highlight-card" href="{{ h.safe_url }}" target="_blank" rel="noopener noreferrer"><strong>{{ h.match_label }}</strong><small>{{ h.event_date or '' }} · {{ h.source_label }}</small><span>Ver resumen externo</span></a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty premium-empty">Todavía no hay resúmenes enlazados. El sincronizador los añadirá cuando la API los publique.</div>
+  {% endif %}
+</section>
+{% endif %}
 {% endblock %}

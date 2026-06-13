@@ -16,8 +16,8 @@ markets_tpl = (ROOT / "templates" / "betting_markets.html").read_text(encoding="
 css = (ROOT / "static" / "app.css").read_text(encoding="utf-8")
 version = (ROOT / "VERSION.txt").read_text(encoding="utf-8").strip()
 
-ok("version_v765", version == "V765_MARKETS_COMBIS_CLIENT_STRUCTURE_POLISH")
-ok("app_version_v765", 'APP_VERSION = "V765_MARKETS_COMBIS_CLIENT_STRUCTURE_POLISH"' in app)
+ok("version_v765", version in {"V765_MARKETS_COMBIS_CLIENT_STRUCTURE_POLISH", "V766_CALENDAR_RESULTS_HIGHLIGHTS_ORDER_AUTOMATION", "V767_MADRID_TIME_EVERYWHERE_CERTIFICATION"})
+ok("app_version_v765", 'APP_VERSION = "V765_MARKETS_COMBIS_CLIENT_STRUCTURE_POLISH"' in app or 'APP_VERSION = "V766_CALENDAR_RESULTS_HIGHLIGHTS_ORDER_AUTOMATION"' in app or 'APP_VERSION = "V767_MADRID_TIME_EVERYWHERE_CERTIFICATION"' in app)
 ok("engine_exists", (ROOT / "engines" / "betting_markets_engine.py").exists())
 ok("markets_route", '@app.route("/mercados")' in app and 'betting_markets_page' in app)
 ok("markets_api", '/api/client/betting-markets' in app and 'api_client_betting_markets' in app)

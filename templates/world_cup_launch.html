@@ -54,7 +54,7 @@
   <div class="v762-client-list">
     {% for p in wc.picks[:6] %}
     <a class="v762-pick-row" href="{{ p.client_match_url or ('/match/' ~ (p.match_id or p.id)) }}">
-      <span class="v762-pick-main"><strong>{{ p.client_match_label or 'Partido pendiente' }}</strong><small>{{ p.client_competition or 'Competición' }} · {{ p.client_datetime_label or p.match_date or 'Hora Madrid pendiente' }}</small></span>
+      <span class="v762-pick-main"><strong>{{ p.client_match_label or 'Partido pendiente' }}</strong><small>{{ p.client_competition or 'Competición' }} · {{ p.client_full_datetime_label or (p|match_full_datetime) }}</small></span>
       <span class="v762-pick-info"><strong>{{ p.client_selection_label or p.selection or 'Selección pendiente' }}</strong><small>{{ p.client_market_label or p.market or 'Mercado pendiente' }} · {{ p.client_odds_label or 'Cuota no disponible' }} · Riesgo {{ p.risk_level or 'Medio' }}</small></span>
     </a>
     {% else %}

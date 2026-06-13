@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block content %}
+{% set hi = data.v766_highlights if data.v766_highlights is defined else {} %}
+<section class="scoreboard-hero v701-scoreboard v766-highlights-hero">
+  <div>
+    <div class="kicker">Resultados · resúmenes · highlights</div>
+    <h1>Partidos pasados con sentido</h1>
+    <p class="lead">Aquí se agrupan resultados y resúmenes externos cuando la API los aporta. NeMeSiS no descarga ni rehostea vídeo: enlaza a la fuente permitida.</p>
+    <div class="v750-live-actions">
+      <a class="btn primary" href="/calendar?lane=results">Resultados</a>
+      <a class="btn" href="/live?f=finished">Finalizados</a>
+      <a class="btn" href="/calendar">Calendario</a>
+      <a class="btn" href="/track-record">Track Record</a>
+    </div>
+  </div>
+  <div class="scoreboard-kpis">
+    <div><strong>{{ hi.with_video or 0 }}</strong><span>Vídeos</span></div>
+    <div><strong>{{ hi.linked_matches or 0 }}</strong><span>Enlazados</span></div>
+    <div><strong>{{ hi.enriched_matches or 0 }}</strong><span>Partidos</span></div>
+    <div><strong>{{ hi.status or 'Pendiente' }}</strong><span>API</span></div>
+  </div>
+</section>
+
+{% set dm = data.dynamic_mode if data.dynamic_mode is defined else {} %}
+{% if dm %}
+<section class="band compact-band v764-auto-mode-strip client-only-context">
+  <div class="section-head"><div><h2>{{ dm.label }}</h2><p class="small">{{ dm.description }} · Madrid {{ dm.now_madrid }}</p></div><a class="pill" href="/modo-dinamico">Modo automático</a></div>
+</section>
+{% endif %}
+
+<section class="band compact-band v766-highlights-band">
+  <div class="section-head"><div><h2>Últimos resúmenes detectados</h2><p class="small">{{ hi.client_note or 'Los resúmenes aparecen cuando la API los publique.' }}</p></div><span class="pill">{{ hi.latest|length if hi.latest else 0 }} visibles</span></div>
+  {% if hi.latest %}
+  <div class="v766-highlight-grid wide">
+    {% for h in hi.latest %}
+    <a class="v766-highlight-card" href="{{ h.safe_url }}" target="_blank" rel="noopener noreferrer">
+      {% if h.thumbnail_url %}<img loading="lazy" src="{{ h.thumbnail_url }}" alt="{{ h.label }}">{% endif %}
+      <strong>{{ h.match_label }}</strong>
+      <small>{{ h.event_date or 'Fecha pendiente' }} · {{ h.league_name or 'Competición' }}</small>
+      <span>{{ h.source_label }} · Ver resumen externo</span>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty premium-empty">
+    <strong>Sin resúmenes enlazados todavía.</strong>
+    <p>Cuando TheSportsDB publique highlights y el sincronizador los detecte, aparecerán aquí y en el detalle de cada partido.</p>
+    {% if not hi.key_present %}<p class="small">Falta configurar THESPORTSDB_API_KEY/THESPORTSDB_KEY en Render para activar esta capa.</p>{% endif %}
+  </div>
+  {% endif %}
+</section>
+
+<section class="band compact-band responsible-note">
+  <h2>Uso correcto de highlights</h2>
+  <p>Los vídeos son enlaces externos de fuente permitida. La app no copia, descarga ni rehostea contenido. Si un vídeo no está disponible por región o por la plataforma externa, NeMeSiS lo marcará como pendiente.</p>
+</section>
+{% endblock %}

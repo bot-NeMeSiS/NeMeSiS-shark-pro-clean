@@ -14,6 +14,7 @@
       <a class="btn" href="/live?f=today">Hoy</a>
       <a class="btn" href="/live?f=picks">Con pick</a>
       <a class="btn" href="/calendar">Calendario</a>
+      <a class="btn" href="/highlights">Resúmenes</a>
     </div>
   </div>
   <div class="scoreboard-kpis v750-live-kpis">
@@ -126,6 +127,7 @@
               <span>{{ m.live_competition_display|competition_es }}</span>
               <span>{{ m.client_full_datetime_label or (m|match_full_datetime) }}</span>
               {% if m.live_bucket == 'finished' %}<strong>Finalizado · {{ m.live_score_label or 'resultado pendiente' }}</strong>{% elif m.live_bucket == 'live' %}<strong>En juego · {{ m.live_clock_label or 'minuto pendiente' }}</strong>{% elif m.has_pick or m.pick_id %}<strong>Pick SHARK disponible</strong>{% elif m.is_favorite %}<strong>Favorito</strong>{% else %}<strong>Ver detalle</strong>{% endif %}
+              {% if m.has_highlights %}<em class="v766-card-note">▶ Resumen disponible</em>{% endif %}
             </div>
           </a>
           {% endfor %}
@@ -139,7 +141,8 @@
   <div class="empty premium-empty v750-live-empty-state">
     <strong>No hay partidos para este filtro.</strong>
     <p>{% if live.lane == 'live' %}No hay directos reales ahora mismo. Puedes revisar Hoy, Próximos o Calendario mientras SHARK sigue vigilando.{% else %}Sin datos sincronizados para esta vista. Prueba Hoy, Próximos, Grandes ligas o vuelve al calendario.{% endif %}</p>
-    <div class="actions"><a class="btn primary" href="/live?f=today">Hoy</a><a class="btn" href="/live?f=upcoming">Próximos</a><a class="btn" href="/calendar">Calendario</a></div>
+    <div class="actions"><a class="btn primary" href="/live?f=today">Hoy</a><a class="btn" href="/live?f=upcoming">Próximos</a><a class="btn" href="/calendar">Calendario</a>
+      <a class="btn" href="/highlights">Resúmenes</a></div>
   </div>
   {% endif %}
 </section>

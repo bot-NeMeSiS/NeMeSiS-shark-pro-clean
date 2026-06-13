@@ -783,3 +783,23 @@ body.ns-public .v764-auto-mode-strip{display:none!important;}
 .bottom-nav-clean a[href="/mercados"]{color:#d8f7ff;}
 @media(max-width:1020px){.v765-market-mini{grid-template-columns:repeat(3,minmax(0,1fr));}}
 @media(max-width:720px){.v765-market-mini{grid-template-columns:1fr 1fr}.v765-combi-kpis{grid-template-columns:1fr}.nav-clean a[href="/mercados"]{display:none}.bottom-nav-clean a[href="/mercados"]{display:none}.v765-market-card,.v765-combi-card{padding:14px}.v765-example-list span{font-size:.74rem}}
+
+/* V766 — Calendar results, highlights and client order polish */
+.v766-calendar-order,
+.v766-highlights-band,
+.v766-match-highlights { border:1px solid rgba(104,211,255,.18); background:linear-gradient(135deg,rgba(4,18,34,.92),rgba(8,33,58,.78)); }
+.v766-order-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.65rem;margin-top:.7rem}
+.v766-order-kpis span{border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:.75rem;background:rgba(255,255,255,.045);display:flex;flex-direction:column;gap:.25rem}
+.v766-order-kpis strong{font-size:1.35rem;color:#eef7ff}.v766-order-kpis small{color:#9fb5c7}
+.calendar-highlight-strip{margin:.55rem .1rem 0;padding:.45rem .6rem;border-radius:12px;background:rgba(54,211,153,.12);color:#b9ffe5;font-size:.82rem;font-weight:800;border:1px solid rgba(54,211,153,.2)}
+.calendar-highlight-strip.muted{background:rgba(255,255,255,.06);color:#9fb5c7;border-color:rgba(255,255,255,.08)}
+.v766-highlight-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:.75rem;margin-top:.75rem}
+.v766-highlight-grid.wide{grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}
+.v766-highlight-card{display:flex;flex-direction:column;gap:.4rem;padding:.85rem;border-radius:18px;background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.1);text-decoration:none;color:inherit;min-height:120px}
+.v766-highlight-card:hover{transform:translateY(-1px);border-color:rgba(104,211,255,.35);background:rgba(104,211,255,.08)}
+.v766-highlight-card img{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:14px;background:#07111f}
+.v766-highlight-card strong{font-size:.98rem}.v766-highlight-card small{color:#9fb5c7}.v766-highlight-card span{font-size:.82rem;color:#7dd3fc;font-weight:800;margin-top:auto}
+.v766-card-note{display:block;margin-top:.35rem;color:#b9ffe5;font-style:normal;font-weight:800;font-size:.8rem}
+.v766-highlights-hero .scoreboard-kpis strong{font-size:1.1rem}
+body.ns-authenticated .calendar-filter-panel input[name="country"]::placeholder{color:#7891a4}
+@media (max-width:760px){.v766-order-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.v766-highlight-grid{grid-template-columns:1fr}.calendar-highlight-strip{font-size:.78rem}}

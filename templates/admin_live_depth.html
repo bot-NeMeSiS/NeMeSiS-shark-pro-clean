@@ -50,11 +50,11 @@
   <div class="split-list">
     <div>
       <h3>Próximos</h3>
-      {% for m in summary.upcoming %}<p class="soft-row">{{ m.madrid_display or m.display_datetime or m.safe_datetime or m.match_date }} · {{ m.home_team }} vs {{ m.away_team }}</p>{% else %}<p class="muted">Sin próximos.</p>{% endfor %}
+      {% for m in summary.upcoming %}<p class="soft-row">{{ m|match_full_datetime }} · {{ m.home_team }} vs {{ m.away_team }}</p>{% else %}<p class="muted">Sin próximos.</p>{% endfor %}
     </div>
     <div>
       <h3>Finalizados</h3>
-      {% for m in summary.finished %}<p class="soft-row">{{ m.madrid_display or m.display_datetime or m.safe_datetime or m.match_date }} · {{ m.home_team }} {{ m.score or '' }} {{ m.away_team }}</p>{% else %}<p class="muted">Sin finalizados.</p>{% endfor %}
+      {% for m in summary.finished %}<p class="soft-row">{{ m|match_full_datetime }} · {{ m.home_team }} {{ m.score or '' }} {{ m.away_team }}</p>{% else %}<p class="muted">Sin finalizados.</p>{% endfor %}
     </div>
   </div>
 </section>
