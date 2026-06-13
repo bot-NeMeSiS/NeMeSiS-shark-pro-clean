@@ -95,7 +95,7 @@
     <div class="quick-grid">
       <a class="btn primary" href="/sharkmatch={{ m.id }}">Preguntar a SHARK</a>
       <a class="btn" href="/calendar">Volver al calendario</a>
-      {% if state.is_live %}<a class="btn" href="/livef=live">Ver en directo</a>{% endif %}
+      {% if state.is_live %}<a class="btn" href="/live?f=live">Ver en directo</a>{% endif %}
       {% if detail.related_picks %}<a class="btn" href="/picks">Ver picks relacionados</a>{% endif %}
       <a class="btn" href="/team/{{ (m._raw_home_team or home)|urlencode }}">Ver {{ home }}</a>
       <a class="btn" href="/team/{{ (m._raw_away_team or away)|urlencode }}">Ver {{ away }}</a>

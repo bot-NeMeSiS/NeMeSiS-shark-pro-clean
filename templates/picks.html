@@ -36,8 +36,8 @@
   <a class="tab-link active" href="/picks">Picks</a>
   <a class="tab-link" href="#premium">Premium</a>
   <a class="tab-link" href="#en-estudio">En estudio</a>
-  <a class="tab-link" href="/picksfiltro=seguros">Seguros</a>
-  <a class="tab-link" href="/picksfiltro=value">Value</a>
+  <a class="tab-link" href="/picks?filtro=seguros">Seguros</a>
+  <a class="tab-link" href="/picks?filtro=value">Value</a>
   <a class="tab-link" href="/recomendaciones">Recomendaciones</a>
   <a class="tab-link" href="/combis">Combis</a>
   <a class="tab-link" href="/sports-hub">Partidos</a>
@@ -134,7 +134,7 @@
         <p class="v740-conclusion"><strong>Conclusión:</strong> {{ p.analysis_conclusion or 'Entrada solo con cuota confirmada y stake responsable.' }}</p>
       </div>
 
-      <div class="inline-actions"><a class="btn small-btn" href="/match/{{ p.match_id }}">Ver análisis</a><a class="btn small-btn" href="/sharkpick={{ p.id }}">Preguntar a SHARK</a><a class="btn small-btn" href="/telegram">Telegram</a></div>
+      <div class="inline-actions"><a class="btn small-btn" href="/match/{{ p.match_id }}">Ver análisis</a><a class="btn small-btn" href="/shark?pick={{ p.id }}">Preguntar a SHARK</a><a class="btn small-btn" href="/telegram">Telegram</a></div>
     </article>
     {% endfor %}
   </div>

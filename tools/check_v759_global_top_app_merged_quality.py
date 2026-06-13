@@ -16,7 +16,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = "V759_GLOBAL_TOP_APP_MERGED_QUALITY_EXPERIENCE_RELEASE"
+VERSION = "V759_GLOBAL_TOP_APP_MERGED_QUALITY_EXPERIENCE_RELEASE", "V760_SALE_READY_CLIENT_ORDER_SHARK_TELEGRAM_FIX"
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
@@ -94,7 +94,7 @@ def static_checks() -> None:
         "ns-device-mobile",
     ]))
     check("v759_visual_layer", all(token in css + read("templates/home.html") + read("templates/calendar.html") + read("templates/live.html") + read("templates/track_record.html") for token in [
-        "V759_GLOBAL_TOP_APP_MERGED_QUALITY_EXPERIENCE_RELEASE",
+        "V759_GLOBAL_TOP_APP_MERGED_QUALITY_EXPERIENCE_RELEASE", "V760_SALE_READY_CLIENT_ORDER_SHARK_TELEGRAM_FIX",
         "v759-release-strip",
         "App unificada",
         "Directo compacto",

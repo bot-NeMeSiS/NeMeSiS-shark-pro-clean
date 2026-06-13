@@ -17,9 +17,9 @@
     <h1>Live premium</h1>
     <p class="lead">Marcador, minuto, día y relevancia del partido en una vista clara para seguir el directo sin perderte.</p>
     <div class="v750-live-actions">
-      <a class="btn primary" href="/livef=live">En directo</a>
-      <a class="btn" href="/livef=today">Hoy</a>
-      <a class="btn" href="/livef=picks">Con pick</a>
+      <a class="btn primary" href="/live?f=live">En directo</a>
+      <a class="btn" href="/live?f=today">Hoy</a>
+      <a class="btn" href="/live?f=picks">Con pick</a>
       <a class="btn" href="/calendar">Calendario</a>
     </div>
   </div>
@@ -33,7 +33,7 @@
 
 <section class="sports-tabs v701-tabs v742-live-tabs v750-live-tabs" aria-label="Filtros de directo">
   {% for key, label in live.filters %}
-  <a class="tab-link {% if live.lane == key %}active{% endif %}" href="/livef={{ key }}{% if live.query %}&q={{ live.query|urlencode }}{% endif %}">{{ label }}</a>
+  <a class="tab-link {% if live.lane == key %}active{% endif %}" href="/live?f={{ key }}{% if live.query %}&q={{ live.query|urlencode }}{% endif %}">{{ label }}</a>
   {% endfor %}
 </section>
 
@@ -42,7 +42,7 @@
     <input type="hidden" name="f" value="{{ live.lane or 'live' }}">
     <input name="q" value="{{ live.query or '' }}" placeholder="Buscar equipo, liga, país o partido" autocomplete="off">
     <button class="btn primary" type="submit">Buscar</button>
-    {% if live.query %}<a class="btn" href="/livef={{ live.lane or 'live' }}">Limpiar</a>{% endif %}
+    {% if live.query %}<a class="btn" href="/live?f={{ live.lane or 'live' }}">Limpiar</a>{% endif %}
   </form>
 </section>
 
@@ -125,7 +125,7 @@
   <div class="empty premium-empty v750-live-empty-state">
     <strong>No hay partidos para este filtro.</strong>
     <p>{% if live.lane == 'live' %}No hay directos reales ahora mismo. Puedes revisar Hoy, Próximos o Calendario mientras SHARK sigue vigilando.{% else %}Sin datos sincronizados para esta vista. Prueba Hoy, Próximos, Grandes ligas o vuelve al calendario.{% endif %}</p>
-    <div class="actions"><a class="btn primary" href="/livef=today">Hoy</a><a class="btn" href="/livef=upcoming">Próximos</a><a class="btn" href="/calendar">Calendario</a></div>
+    <div class="actions"><a class="btn primary" href="/live?f=today">Hoy</a><a class="btn" href="/live?f=upcoming">Próximos</a><a class="btn" href="/calendar">Calendario</a></div>
   </div>
   {% endif %}
 </section>

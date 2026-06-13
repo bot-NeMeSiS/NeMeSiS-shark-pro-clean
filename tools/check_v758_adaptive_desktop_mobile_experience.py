@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V758_ADAPTIVE_DESKTOP_MOBILE_TOP_APP_EXPERIENCE"
-V759_VERSION = "V759_GLOBAL_TOP_APP_MERGED_QUALITY_EXPERIENCE_RELEASE"
+V759_VERSION = "V759_GLOBAL_TOP_APP_MERGED_QUALITY_EXPERIENCE_RELEASE", "V760_SALE_READY_CLIENT_ORDER_SHARK_TELEGRAM_FIX"
 REQUIRED = {
     "VERSION.txt": [VERSION],
     "app.py": [VERSION, "build_v758_adaptive_experience", "/api/client/device-experience", "v758_adaptive_experience_page"],

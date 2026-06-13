@@ -44,15 +44,11 @@
           <a href="/sports-hub">Vista cliente</a>
           <a href="/logout">Salir</a>
         {% elif current_user %}
-          <a href="/sports-hub">Inicio</a>
+          <a href="/app">Inicio</a>
           <a href="/calendar">Partidos</a>
           <a href="/live">Directo</a>
           <a href="/picks">Picks</a>
-          <a href="/combis">Combis</a>
-          <a href="/favorites">Favoritos</a>
-          <a href="/telegram">Telegram</a>
           <a href="/track-record">Histórico</a>
-          <a href="/perfil">Perfil</a>
           <a href="/menu">Más</a>
           <a href="/logout">Salir</a>
         {% else %}
@@ -69,10 +65,6 @@
     {% block content %}{% endblock %}
   </main>
 
-  {% if current_user %}
-  <a class="v758-device-switcher" href="/experiencia" aria-label="Abrir experiencia PC móvil"><span>Modo</span><strong>PC/Móvil</strong></a>
-  {% endif %}
-
   <nav class="bottom-nav bottom-nav-clean" aria-label="Navegación rápida">
     {% if current_user and current_user.role == 'ADMIN' %}
       <a href="/admin/control-center">Control</a>
@@ -83,19 +75,18 @@
       <a href="/sports-hub">Vista cliente</a>
       <a href="/logout">Salir</a>
     {% else %}
-      <a href="/sports-hub">Inicio</a>
+      <a href="/app">Inicio</a>
       <a href="/calendar">Partidos</a>
       <a href="/live">Directo</a>
       <a href="/picks">Picks</a>
-      <a href="/combis">Combis</a>
-      <a href="/favorites">Favoritos</a>
+      <a href="/track-record">Histórico</a>
       {% if current_user %}<a href="/menu">Más</a>{% else %}<a href="/cliente-login">Entrar</a>{% endif %}
     {% endif %}
   </nav>
 
   {% if current_user and current_user.role != 'ADMIN' %}
   <div class="shark-widget" id="sharkWidget">
-    <button class="shark-fab" id="sharkFab" type="button" aria-label="Abrir SHARK IA">SHARK</button>
+    <button class="shark-fab" id="sharkFab" type="button" aria-label="Abrir SHARK IA">🦈</button>
     <div class="shark-panel" id="sharkPanel" hidden>
       <div class="shark-panel-head">
         <strong>SHARK IA</strong>
@@ -121,7 +112,7 @@
   <script>
   window.nemesisCsrfToken = function(){
     const meta = document.querySelector('meta[name="csrf-token"]');
-    return meta  meta.getAttribute('content') : '';
+    return meta ? meta.getAttribute('content') : '';
   };
   window.nemesisJsonHeaders = function(extra){
     return Object.assign({'Content-Type':'application/json','X-CSRF-Token': window.nemesisCsrfToken()}, extra || {});
@@ -162,7 +153,7 @@
       if(!payload.value) return;
       btn.disabled=true;
       try{
-        const res=await fetch('/api/favorites',{method:active'DELETE':'POST',headers:window.nemesisJsonHeaders(),body:JSON.stringify(payload)});
+        const res=await fetch('/api/favorites',{method: active ? 'DELETE' : 'POST',headers:window.nemesisJsonHeaders(),body:JSON.stringify(payload)});
         const data=await res.json();
         if(data.ok!==false){
           btn.classList.toggle('active',!active);
@@ -192,7 +183,7 @@
     document.querySelectorAll('.nav a,.bottom-nav a').forEach(function(link){
       try{
         const href=new URL(link.getAttribute('href'), window.location.origin).pathname.replace(/\/$/,'') || '/';
-        if(href==='/'  path==='/' : path===href || path.indexOf(href + '/')===0){
+        if(href === '/' ? path === '/' : path === href || path.indexOf(href + '/') === 0){
           link.classList.add('is-active');
           link.setAttribute('aria-current','page');
         }
@@ -252,9 +243,9 @@
     function classify(){
       const w=window.innerWidth||0;
       const touch=('ontouchstart' in window)||navigator.maxTouchPoints>0;
-      const kind=w<720'mobile':(w<1120'tablet':'desktop');
+      const kind = w < 720 ? 'mobile' : (w < 1120 ? 'tablet' : 'desktop');
       body.classList.remove('ns-device-mobile','ns-device-tablet','ns-device-desktop','ns-input-touch','ns-input-pointer');
-      body.classList.add('ns-device-'+kind, touch'ns-input-touch':'ns-input-pointer');
+      body.classList.add('ns-device-' + kind, touch ? 'ns-input-touch' : 'ns-input-pointer');
       root.style.setProperty('--v758-vh', (window.innerHeight*0.01)+'px');
       root.style.setProperty('--v758-vw', w+'px');
       body.dataset.nsDevice=kind;
