@@ -694,3 +694,17 @@ body.ns-authenticated:not(.ns-tier-eliteplus) .v757-picks-trust{display:none!imp
 .v762-datebox{display:flex;flex-direction:column;gap:2px;border-radius:14px;padding:8px 9px;background:rgba(83,214,255,.08);border:1px solid rgba(83,214,255,.14);text-align:center;min-width:74px}
 .v762-datebox strong{font-size:.82rem;line-height:1.1;color:#d8f7ff}.v762-datebox small{font-weight:800;color:#fff;font-size:1rem}.v762-mainline,.v762-pick-main,.v762-pick-info{display:flex;flex-direction:column;gap:4px;min-width:0}.v762-mainline strong,.v762-pick-main strong,.v762-pick-info strong{white-space:normal;line-height:1.15}.v762-mainline small,.v762-pick-main small,.v762-pick-info small{color:var(--muted,#9db0c8);line-height:1.35}.v762-chip{justify-self:end;border-radius:999px;border:1px solid rgba(255,255,255,.12);padding:7px 10px;font-size:.78rem;color:#dbeafe}.v762-chip.pick{border-color:rgba(60,255,180,.28);background:rgba(60,255,180,.08);color:#d7fff0}.calendar-time{display:flex;flex-direction:column;gap:1px;min-width:72px}.calendar-time strong{font-size:.76rem}.calendar-time small{font-size:.96rem;font-weight:900}.v762-card-meta{align-items:flex-start}.v762-card-meta span{line-height:1.35}.client-only-context .pill{background:rgba(83,214,255,.08);border-color:rgba(83,214,255,.16)}
 @media(max-width:720px){.v762-match-row,.v762-pick-row{grid-template-columns:1fr;gap:8px}.v762-datebox{flex-direction:row;align-items:center;justify-content:space-between;text-align:left;width:100%}.v762-chip{justify-self:start}.v762-pick-row{padding:13px}.calendar-time{min-width:58px}}
+
+
+/* V763_WORLD_CUP_LAUNCH_CLIENT_FINALIZATION_POLISH */
+.v763-world-cup-band{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:16px;align-items:center;margin:18px 0;padding:18px;border:1px solid rgba(77,214,255,.24);border-radius:24px;background:linear-gradient(135deg,rgba(8,25,44,.92),rgba(10,44,70,.74));box-shadow:0 18px 42px rgba(0,0,0,.22)}
+.v763-world-cup-band h2{margin:.2rem 0 .35rem;font-size:clamp(1.25rem,2vw,1.8rem)}
+.v763-world-kpis{display:grid;grid-template-columns:repeat(3,minmax(84px,1fr));gap:10px}
+.v763-world-kpis a{padding:12px;border-radius:16px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);text-align:center;text-decoration:none;color:inherit}
+.v763-world-kpis span{display:block;font-size:.74rem;opacity:.75}.v763-world-kpis strong{display:block;font-size:1.3rem}
+.v763-world-hero{border:1px solid rgba(77,214,255,.22)}
+.v763-world-panel{border:1px solid rgba(255,255,255,.09);background:rgba(5,14,28,.72)}
+.v763-launch-note{margin-top:18px}.quick.v763-world{border-color:rgba(255,204,102,.38);background:linear-gradient(135deg,rgba(255,204,102,.16),rgba(77,214,255,.08))}
+.ns-authenticated .admin-only,.ns-authenticated [data-admin-only="true"]{display:none!important}
+.ns-authenticated:not(.ns-tier-eliteplus) .client-hidden-tech{display:none!important}
+@media(max-width:760px){.v763-world-cup-band{grid-template-columns:1fr}.v763-world-kpis{grid-template-columns:repeat(3,1fr)}.v763-world-cup-band .btn{width:100%;justify-content:center}}

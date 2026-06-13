@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block content %}
+{% set wc = data.world_cup_launch or {} %}
+<section class="scoreboard-hero v763-world-hero">
+  <div>
+    <div class="kicker">Modo Mundial · hora Madrid</div>
+    <h1>Mundial en NeMeSiS SHARK PRO</h1>
+    <p class="lead">Partidos clave, directos, picks y resultados ordenados para el cliente. Sin mensajes de admin, sin datos inventados y con enlace claro al detalle.</p>
+    <div class="v760-primary-actions">
+      <a class="btn primary" href="/calendar?lane=today">Hoy</a>
+      <a class="btn" href="/live?f=live">Directo</a>
+      <a class="btn" href="/picks">Picks</a>
+      <a class="btn" href="/track-record">Histórico</a>
+    </div>
+  </div>
+  <div class="scoreboard-kpis">
+    <div><strong>{{ (wc.counts or {}).get('matches', 0) }}</strong><span>Partidos foco</span></div>
+    <div><strong>{{ (wc.counts or {}).get('live', 0) }}</strong><span>En directo</span></div>
+    <div><strong>{{ (wc.counts or {}).get('upcoming', 0) }}</strong><span>Próximos</span></div>
+    <div><strong>{{ (wc.counts or {}).get('picks', 0) }}</strong><span>Picks</span></div>
+  </div>
+</section>
+
+<section class="band compact-band v763-world-panel">
+  <div class="section-head"><div><h2>Próximos focos</h2><p class="small">Día, fecha y hora Madrid para que el cliente sepa exactamente cuándo juega cada partido.</p></div><span class="pill">{{ wc.status }}</span></div>
+  <div class="v762-client-list">
+    {% for m in wc.upcoming[:10] %}
+    <a class="v762-match-row" href="/match/{{ m.id }}">
+      <span class="v762-datebox"><strong>{{ m.client_date_label or (m|match_date_label) }}</strong><small>{{ m.client_time_label or (m|match_time_short) }}</small></span>
+      <span class="v762-mainline"><strong>{{ m.v763_title }}</strong><small>{{ m.v763_competition }} · {{ m.v763_status }}</small></span>
+      <em class="v762-chip">Ver partido</em>
+    </a>
+    {% else %}
+    <div class="empty premium-empty"><strong>{{ wc.empty_message }}</strong><p>Mientras tanto puedes revisar Calendario, Directo o Picks.</p></div>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="band compact-band v763-world-panel">
+  <div class="section-head"><div><h2>Picks vinculados</h2><p class="small">Cada pick debe verse con partido, hora Madrid, mercado, selección, cuota y riesgo.</p></div><a class="pill" href="/picks">Ver picks</a></div>
+  <div class="v762-client-list">
+    {% for p in wc.picks[:6] %}
+    <a class="v762-pick-row" href="{{ p.client_match_url or ('/match/' ~ (p.match_id or p.id)) }}">
+      <span class="v762-pick-main"><strong>{{ p.client_match_label or 'Partido pendiente' }}</strong><small>{{ p.client_competition or 'Competición' }} · {{ p.client_datetime_label or p.match_date or 'Hora Madrid pendiente' }}</small></span>
+      <span class="v762-pick-info"><strong>{{ p.client_selection_label or p.selection or 'Selección pendiente' }}</strong><small>{{ p.client_market_label or p.market or 'Mercado pendiente' }} · {{ p.client_odds_label or 'Cuota no disponible' }} · Riesgo {{ p.risk_level or 'Medio' }}</small></span>
+    </a>
+    {% else %}
+    <div class="empty premium-empty"><strong>No hay picks Mundial activos ahora mismo.</strong><p>SHARK espera valor real antes de publicar señales.</p></div>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="card responsible-note v763-launch-note">
+  <h2>Modo venta listo para Mundial</h2>
+  <p>La prioridad es claridad: qué partido es, cuándo se juega, qué pick hay, qué riesgo tiene y qué resultado real aparece después. NeMeSiS no inventa datos ni promete ganancias.</p>
+</section>
+{% endblock %}

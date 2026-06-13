@@ -154,7 +154,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V762_CLIENT_CLARITY_MADRID_TIME_ADMIN_NOISE_POLISH"
+APP_VERSION = "V763_WORLD_CUP_LAUNCH_CLIENT_FINALIZATION_POLISH"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -9511,6 +9511,110 @@ def v758_adaptive_context(data=None, user=None, page_key=""):
         }
 
 
+# ===================== V763 WORLD CUP LAUNCH / CLIENT FINALIZATION POLISH =====================
+
+def _v763_world_cup_match(match):
+    """Detecta partidos del Mundial o selecciones sin depender de una sola API."""
+    text = normalized_label(" ".join(str(match.get(k) or "") for k in (
+        "competition_name", "league_name", "competition_key", "country", "season", "round", "source"
+    )))
+    if any(token in text for token in ["world cup", "mundial", "fifa", "selecciones", "national"]):
+        return True
+    if str(match.get("competition_key") or "").lower() in {"fifa-world-cup", "soccer_fifa_world_cup"}:
+        return True
+    return False
+
+
+def _v763_client_match_card(match):
+    item = dict(match or {})
+    try:
+        item.update(apply_match_localization(item))
+        item.update(apply_team_identities_to_match(item))
+    except Exception:
+        pass
+    item = client_match_display_context(item)
+    item["v763_title"] = f"{item.get('client_home') or item.get('safe_home') or item.get('home_team') or 'Local'} vs {item.get('client_away') or item.get('safe_away') or item.get('away_team') or 'Visitante'}"
+    item["v763_competition"] = item.get("client_competition") or spanish_competition_name(item.get("competition_name") or item.get("league_name") or item.get("competition_key") or "") or "Competición"
+    item["v763_when"] = item.get("client_full_datetime_label") or item.get("client_datetime_label") or item.get("client_time_label") or "Hora Madrid pendiente"
+    item["v763_status"] = item.get("client_result_label") or item.get("safe_status") or item.get("status") or "Programado"
+    return item
+
+
+def build_v763_world_cup_launch_context(data=None, user=None):
+    """Contexto de venta/uso diario para Mundial: claro, sin inventar datos."""
+    user = user or current_session_user() or {"membership": "FREE", "role": "FREE"}
+    today = today_iso()
+    source = []
+    try:
+        source.extend(get_matches(today, "top"))
+    except Exception:
+        pass
+    try:
+        source.extend(get_upcoming_matches(today, days=18, limit=360))
+    except Exception:
+        pass
+    if data:
+        hub = (data or {}).get("match_hub") or {}
+        for key in ("live", "today", "upcoming", "finished"):
+            source.extend(hub.get(key) or [])
+        source.extend((data or {}).get("upcoming_matches") or [])
+    source = dedupe_matches_list(source)
+    mundial = [m for m in source if _v763_world_cup_match(m)]
+    if not mundial:
+        mundial = [m for m in source if as_int(m.get("priority"), 0) >= 88]
+    cards = [_v763_client_match_card(m) for m in mundial[:48]]
+    live, upcoming, finished = [], [], []
+    for item in cards:
+        info = canonical_match_status(item)
+        if info.get("is_live"):
+            live.append(item)
+        elif info.get("is_finished"):
+            finished.append(item)
+        else:
+            upcoming.append(item)
+    picks = []
+    try:
+        picks = [enrich_pick_client_context(p) for p in published_picks_for_user(user, limit=12)]
+    except Exception:
+        picks = []
+    return {
+        "title": "Modo Mundial",
+        "subtitle": "Partidos, picks y directo ordenados para el cliente. Todo en hora Madrid y sin ruido interno.",
+        "status": "Activo" if cards else "Pendiente de datos reales",
+        "today": today,
+        "counts": {"matches": len(cards), "live": len(live), "upcoming": len(upcoming), "finished": len(finished), "picks": len(picks)},
+        "matches": cards,
+        "live": live[:8],
+        "upcoming": upcoming[:12],
+        "finished": finished[:8],
+        "picks": picks[:6],
+        "empty_message": "Cuando Render sincronice partidos reales del Mundial, aparecerán aquí con día, hora Madrid, estado y enlace al detalle.",
+        "quick_actions": [
+            {"label": "Mundial", "href": "/mundial", "badge": "Foco"},
+            {"label": "Partidos de hoy", "href": "/calendar?lane=today", "badge": "Hoy"},
+            {"label": "Directo", "href": "/live?f=live", "badge": "Live"},
+            {"label": "Picks", "href": "/picks", "badge": "SHARK"},
+            {"label": "Histórico", "href": "/track-record", "badge": "Real"},
+        ],
+    }
+
+
+@app.route("/mundial")
+@app.route("/world-cup")
+@app.route("/copa-mundial")
+def v763_world_cup_launch_page():
+    user = current_session_user() or {"membership": "FREE", "role": "FREE"}
+    data = dashboard_data("top", today_iso())
+    data["world_cup_launch"] = build_v763_world_cup_launch_context(data, user)
+    data["v758_adaptive"] = v758_adaptive_context(data, user, "world-cup")
+    return render_template("world_cup_launch.html", data=data)
+
+@app.route("/api/client/world-cup-snapshot")
+def api_client_world_cup_snapshot():
+    data = home_light_data()
+    return jsonify({"ok": True, "version": APP_VERSION, "world_cup": build_v763_world_cup_launch_context(data, current_session_user())})
+
+
 @app.route("/")
 def home():
     if request.method == "HEAD":
@@ -9519,6 +9623,7 @@ def home():
     data["client_premium"] = build_client_app_premium_context(data, current_session_user())
     data["v757_app"] = build_v757_app_center(data, current_session_user(), track_record=None)
     data["v758_adaptive"] = v758_adaptive_context(data, current_session_user(), "home")
+    data["world_cup_launch"] = build_v763_world_cup_launch_context(data, current_session_user())
     return render_template("home.html", data=data)
 
 
@@ -12759,6 +12864,7 @@ def v566_client_menu_items():
     # V761: menú cliente ordenado para venta. Menos ruido, más acciones útiles y rutas principales primero.
     return [
         {"group": "Inicio", "title": "Mi panel", "body": "Resumen diario con partidos, picks, directo, Telegram y siguiente paso.", "href": "/app"},
+        {"group": "Mundial", "title": "Modo Mundial", "body": "Partidos clave, picks, directo y próximos focos con hora Madrid.", "href": "/mundial"},
         {"group": "Partidos", "title": "Calendario", "body": "Hoy, mañana, semana, favoritos, directos y partidos con pick.", "href": "/calendar"},
         {"group": "Partidos", "title": "Directo", "body": "Marcador, minuto, estado y enlaces al detalle del partido.", "href": "/live"},
         {"group": "Picks", "title": "Picks SHARK", "body": "Mercado, cuota, stake, riesgo, motivo y estado Telegram.", "href": "/picks"},

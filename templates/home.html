@@ -30,6 +30,7 @@
 
 <section class="v760-action-hub">
   <a class="quick primary" href="/app"><span>Mi app</span><strong>Panel</strong></a>
+  <a class="quick v763-world" href="/mundial"><span>Mundial</span><strong>Foco</strong></a>
   <a class="quick" href="/calendar?lane=today"><span>Hoy</span><strong>Partidos</strong></a>
   <a class="quick" href="/calendar?lane=week"><span>Semana</span><strong>Agenda</strong></a>
   <a class="quick" href="/picks"><span>Picks</span><strong>SHARK</strong></a>
@@ -37,6 +38,21 @@
   <a class="quick" href="/shark"><span>SHARK IA</span><strong>Ayuda</strong></a>
   <a class="quick" href="/track-record"><span>Histórico</span><strong>Real</strong></a>
   <a class="quick" href="/perfil"><span>Mi cuenta</span><strong>{{ plan }}</strong></a>
+</section>
+
+{% set wc = data.world_cup_launch if data.world_cup_launch is defined else {} %}
+<section class="v763-world-cup-band">
+  <div>
+    <div class="kicker">Modo Mundial · lanzamiento</div>
+    <h2>{{ wc.title or 'Modo Mundial' }}</h2>
+    <p class="small">{{ wc.subtitle or 'Calendario, directo, picks y resultados con hora Madrid y sin ruido técnico.' }}</p>
+  </div>
+  <div class="v763-world-kpis">
+    <a href="/mundial"><span>Partidos</span><strong>{{ (wc.counts or {}).get('matches', 0) }}</strong></a>
+    <a href="/live?f=live"><span>Directo</span><strong>{{ (wc.counts or {}).get('live', 0) }}</strong></a>
+    <a href="/picks"><span>Picks</span><strong>{{ (wc.counts or {}).get('picks', 0) }}</strong></a>
+  </div>
+  <a class="btn primary" href="/mundial">Abrir modo Mundial</a>
 </section>
 
 <section class="v761-sale-flow">
