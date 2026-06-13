@@ -1,5 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
+{% if data.v758_adaptive is defined %}{% include "partials/v758_adaptive_strip.html" %}{% endif %}
+
 {% set v = data.v757_app %}
 <section class="band compact-band v757-app-hero">
   <div class="section-head">

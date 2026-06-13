@@ -1,5 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
+{% if data.v758_adaptive is defined %}{% include "partials/v758_adaptive_strip.html" %}{% endif %}
+
 {% set live = data.live_experience or {} %}
 {% set counts = live.counts or {} %}
 {% set lane_label = (live.lane_labels or {}).get(live.lane, live.lane or 'Directo') %}

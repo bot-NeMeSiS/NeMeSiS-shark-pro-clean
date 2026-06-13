@@ -17,8 +17,10 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V754_TELEGRAM_AUTO_PICK_CANDIDATE_WINDOW_DELIVERY_FIX"
+V755_VERSION = "V755_TELEGRAM_PICK_CANDIDATE_NORMALIZATION_SCHEDULE_CERTIFICATION_FIX"
 FUTURE_VERSION = "V756_CLIENT_APP_PREMIUM_EXPERIENCE_TOTAL_POLISH"
 NEXT_VERSION = "V757_GLOBAL_APP_EXPERIENCE_TRUST_NAVIGATION_POLISH"
+V758_VERSION = "V758_ADAPTIVE_DESKTOP_MOBILE_TOP_APP_EXPERIENCE"
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
@@ -56,15 +58,15 @@ def static_checks() -> None:
     template = read("templates/admin_telegram_command_center.html")
     runner = read("tools/render_cron_telegram_tick.py")
     version = read("VERSION.txt").strip()
-    check("version_v754", version in {VERSION, FUTURE_VERSION, NEXT_VERSION}, version)
-    check("app_version_v754", f'APP_VERSION = "{VERSION}"' in app_source or f'APP_VERSION = "{FUTURE_VERSION}"' in app_source or f'APP_VERSION = "{NEXT_VERSION}"' in app_source)
+    check("version_v754", version in {VERSION, V755_VERSION, FUTURE_VERSION, NEXT_VERSION, V758_VERSION}, version)
+    check("app_version_v754", f'APP_VERSION = "{VERSION}"' in app_source or f'APP_VERSION = "{V755_VERSION}"' in app_source or f'APP_VERSION = "{FUTURE_VERSION}"' in app_source or f'APP_VERSION = "{NEXT_VERSION}"' in app_source or f'APP_VERSION = "{V758_VERSION}"' in app_source)
     check("runner_still_v753_compatible", "X-NeMeSiS-Cron-Runner" in runner and '"runner": "render_cron"' in runner)
     check("candidate_function_exists", "def find_auto_telegram_pick_candidates" in app_source)
     check("auto_window_function_exists", "def telegram_auto_pick_window_decision" in app_source)
     check("auto_pick_quiet_hours_not_default_blocker", "TELEGRAM_AUTO_PICK_RESPECT_QUIET_HOURS" in app_source)
     check("cron_modules_split", '"summary"' in app_source and '"auto_picks"' in app_source and '"live_alerts"' in app_source)
     check("auto_candidates_endpoint", "/api/admin/telegram/auto-candidates" in app_source)
-    check("command_center_candidates_block", "Candidatos V754" in template and "auto_picks" in template)
+    check("command_center_candidates_block", ("Candidatos V754" in template or "Candidatos V755" in template) and "auto_picks" in template)
     check("env_defaults_documented", all(token in read(".env.example") for token in (
         "TELEGRAM_PICK_SEND_WINDOW_HOURS_BEFORE",
         "TELEGRAM_PICK_SEND_MIN_MINUTES_BEFORE",
@@ -95,6 +97,10 @@ def functional_check() -> None:
             "TELEGRAM_AUTO_PICK_RESPECT_QUIET_HOURS": "false",
             "TELEGRAM_PICK_SEND_WINDOW_HOURS_BEFORE": "24",
             "TELEGRAM_PICK_SEND_MIN_MINUTES_BEFORE": "15",
+            "TELEGRAM_PICK_WINDOW_HOURS_BEFORE": "24",
+            "TELEGRAM_PICK_MIN_MINUTES_BEFORE": "15",
+            "TELEGRAM_PICK_PRO_SLOTS": "00:00-23:59",
+            "TELEGRAM_PICK_URGENT_MINUTES_BEFORE": "90",
             "TZ": "Europe/Madrid",
             "APP_TIMEZONE": "Europe/Madrid",
             "PUBLIC_BASE_URL": "https://bot-apuestas-crgf.onrender.com",

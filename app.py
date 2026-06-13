@@ -111,6 +111,7 @@ from engines.visual_experience_engine import visual_experience_snapshot
 from engines.native_app_experience_engine import native_app_experience_snapshot
 from engines.client_app_premium_engine import build_client_app_premium_context
 from engines.client_growth_engine import build_v757_app_center, build_v757_trust_snapshot, build_v757_next_actions
+from engines.adaptive_experience_engine import build_v758_adaptive_experience, build_v758_device_api_payload
 from engines.final_release_engine import final_release_snapshot, final_release_validation_plan
 from engines.client_visual_perfection_engine import client_visual_perfection_snapshot
 from engines.calendar_experience_engine import calendar_experience_snapshot
@@ -153,7 +154,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V757_GLOBAL_APP_EXPERIENCE_TRUST_NAVIGATION_POLISH"
+APP_VERSION = "V755_TELEGRAM_PICK_CANDIDATE_NORMALIZATION_SCHEDULE_CERTIFICATION_FIX"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -4049,7 +4050,7 @@ def import_picks(pick_rows, source_name="manual autorizado", legal_note="Carga a
 def normalize_pick_status(value):
     value = str(value or "draft").strip().lower()
     aliases = {"pending": "published", "publicado": "published", "pendiente": "published", "borrador": "draft", "archivado": "archived", "ganado": "won", "perdido": "lost", "nulo": "void"}
-    return aliases.get(value, value if value in {"draft", "published", "archived", "won", "lost", "void", "pending"} else "draft")
+    return aliases.get(value, value if value in {"draft", "published", "archived", "won", "lost", "void", "pending", "telegram_test"} else "draft")
 
 
 def normalize_risk(value):
@@ -6985,12 +6986,158 @@ def telegram_enrich_pick_for_message(pick):
     return item
 
 
+TELEGRAM_MARKET_FIELDS = (
+    "market", "pick_type", "prediction", "selection", "recommendation",
+    "bet_market", "market_name", "title", "content", "summary",
+)
+TELEGRAM_ODDS_FIELDS = (
+    "odds", "odd", "best_odd", "price", "quota", "cuota",
+    "decimal_odds", "bookmaker_odds",
+)
+TELEGRAM_TIME_FIELDS = (
+    "kickoff_iso", "kickoff_time", "match_time", "match_hour",
+    "time", "date_time", "commence_time", "start_time",
+)
+
+
+def _pick_first_text(item, fields):
+    for field in fields:
+        value = (item or {}).get(field)
+        if value not in (None, "", [], {}):
+            return field, str(value).strip()
+    return "", ""
+
+
+def normalize_telegram_market_text(value):
+    text = re.sub(r"\s+", " ", str(value or "").strip())
+    if not text:
+        return ""
+    lowered = text.lower()
+    if lowered in {"principal", "mercado principal", "main", "default"}:
+        return ""
+    lowered = lowered.replace("over", "mas de").replace("under", "menos de")
+    lowered = lowered.replace("m\xc3\xa1s", "mas").replace("m\xe1s", "mas")
+    lowered = lowered.replace("ambos equipos marcan", "ambos marcan")
+    lowered = lowered.replace("both teams to score", "ambos marcan")
+    number_match = re.search(r"(\d+(?:[\.,]\d+)?)", lowered)
+    number = number_match.group(1).replace(",", ".") if number_match else ""
+    if ("mas de" in lowered or "m\xe1s de" in lowered) and number:
+        return f"Mas de {number} goles".replace("Mas", "Más")
+    if ("menos de" in lowered or "under" in lowered) and number:
+        return f"Menos de {number} goles"
+    if "ambos" in lowered and ("marcan" in lowered or "btts" in lowered):
+        return "Ambos marcan"
+    if "gana local" in lowered or "home win" in lowered:
+        return "Gana local"
+    if "gana visitante" in lowered or "away win" in lowered:
+        return "Gana visitante"
+    try:
+        return spanish_market_name(text) or text
+    except Exception:
+        return text
+
+
+def normalize_telegram_odds(item):
+    field, raw = _pick_first_text(item, TELEGRAM_ODDS_FIELDS)
+    if not raw:
+        return {"field": "", "raw": "", "value": None, "warning": "MISSING_ODDS_WARNING"}
+    value = as_float(str(raw).replace(",", "."), 0)
+    if value <= 1:
+        return {"field": field, "raw": raw, "value": None, "warning": "MISSING_ODDS_WARNING"}
+    return {"field": field, "raw": raw, "value": value, "warning": ""}
+
+
+def normalize_match_time_madrid(pick, current=None):
+    item = dict(pick or {})
+    field, raw_time = _pick_first_text(item, TELEGRAM_TIME_FIELDS)
+    raw_date = str(item.get("match_date") or item.get("date") or "").strip()[:10]
+    parsed = None
+    source = field
+    now_dt = current or datetime.now(TZ)
+    try:
+        raw = raw_time.strip()
+        if raw and ("T" in raw or raw.endswith("Z")):
+            iso = raw.replace("Z", "+00:00")
+            parsed = datetime.fromisoformat(iso)
+            if parsed.tzinfo is None:
+                parsed = parsed.replace(tzinfo=TZ)
+            else:
+                parsed = parsed.astimezone(TZ)
+        elif raw_date and raw_time:
+            clock = raw_time[:5]
+            parsed = datetime.fromisoformat(f"{raw_date}T{clock}:00").replace(tzinfo=TZ)
+            source = f"match_date+{field}"
+        elif raw_date:
+            parsed = datetime.fromisoformat(f"{raw_date}T12:00:00").replace(tzinfo=TZ)
+            source = "match_date_no_hour"
+        if parsed and raw_date and raw_time and "T" not in raw_time and parsed < now_dt:
+            rolled = parsed + timedelta(days=1)
+            if 0 <= (rolled - now_dt).total_seconds() <= 12 * 3600:
+                parsed = rolled
+                source = f"{source}_rolled_next_day"
+    except Exception:
+        parsed = None
+    return {
+        "field": source or "",
+        "raw_date": raw_date,
+        "raw_time": raw_time,
+        "parsed_time_madrid": parsed.isoformat(timespec="seconds") if parsed else "",
+        "date_only": bool(parsed and source == "match_date_no_hour"),
+        "current_madrid": now_dt.isoformat(timespec="seconds"),
+    }
+
+
+def normalize_telegram_pick_candidate(pick):
+    original = dict(pick or {})
+    item = telegram_enrich_pick_for_message(original)
+    market_field, market_raw = _pick_first_text(original, TELEGRAM_MARKET_FIELDS)
+    if not market_raw or str(market_raw).strip().lower() in {"principal", "mercado principal"}:
+        market_field, market_raw = _pick_first_text(item, TELEGRAM_MARKET_FIELDS)
+    market = normalize_telegram_market_text(market_raw)
+    odds_info = normalize_telegram_odds(original)
+    if not odds_info.get("value") and not odds_info.get("raw"):
+        odds_info = normalize_telegram_odds(item)
+    time_source = {**item, **{key: value for key, value in original.items() if value not in (None, "", [], {})}}
+    time_info = normalize_match_time_madrid(time_source)
+    if market:
+        item["market"] = market
+        item.setdefault("pick_type", market)
+        if not str(item.get("selection") or "").strip():
+            item["selection"] = market
+        if not str(item.get("recommendation") or "").strip():
+            item["recommendation"] = market
+    if odds_info.get("value"):
+        item["odds"] = odds_info["value"]
+    if time_info.get("parsed_time_madrid"):
+        item["kickoff_iso"] = time_info["parsed_time_madrid"]
+        item["match_date"] = time_info["parsed_time_madrid"][:10]
+        item["match_time"] = time_info["parsed_time_madrid"][11:16]
+        item["kickoff_time"] = item.get("kickoff_time") or item["match_time"]
+    item["_telegram_candidate"] = {
+        "market_field": market_field,
+        "market_raw": market_raw,
+        "market_normalized": market,
+        "odds_field": odds_info.get("field") or "",
+        "odds_raw": odds_info.get("raw") or "",
+        "odds_normalized": odds_info.get("value"),
+        "odds_warning": odds_info.get("warning") or "",
+        "match_time": time_info,
+        "checked_fields": {
+            "market": list(TELEGRAM_MARKET_FIELDS),
+            "odds": list(TELEGRAM_ODDS_FIELDS),
+            "time": list(TELEGRAM_TIME_FIELDS),
+        },
+    }
+    return item
+
+
 def telegram_pick_sendability(pick):
-    item = normalize_pick_row(dict(pick or {}))
+    item = normalize_telegram_pick_candidate(pick)
     reasons = []
     sport_reason = telegram_sport_filter_reason(item)
     if sport_reason:
         reasons.append(sport_reason)
+    diag = item.get("_telegram_candidate") or {}
     odds = as_float(item.get("odds"), 0)
     selection = str(item.get("selection") or item.get("pick") or item.get("recommendation") or "").strip()
     market = str(item.get("market") or item.get("pick_type") or "").strip()
@@ -7005,7 +7152,7 @@ def telegram_pick_sendability(pick):
         reasons.append("partido_no_valido")
     cfg = telegram_pro_calibration()
     if odds <= 1:
-        reasons.append("sin_cuota_real")
+        reasons.append("cuota_warning")
     elif odds < cfg["min_odds"]:
         reasons.append("cuota_demasiado_baja")
     elif odds > cfg["max_odds"]:
@@ -7025,7 +7172,10 @@ def telegram_pick_sendability(pick):
                 reasons.append("calidad_insuficiente")
     except Exception:
         pass
-    return {"sendable": not reasons, "reasons": reasons, "reason_codes": telegram_discard_reason_codes(reasons)}
+    if (diag.get("odds_warning") or "") and "cuota_warning" not in reasons:
+        reasons.append("cuota_warning")
+    fatal_reasons = [reason for reason in reasons if not str(reason).endswith("_warning") and reason != "cuota_warning"]
+    return {"sendable": not fatal_reasons, "reasons": reasons, "reason_codes": telegram_discard_reason_codes(reasons), "fatal_reasons": fatal_reasons}
 
 
 TELEGRAM_DISCARD_REASON_CODES = {
@@ -7033,6 +7183,7 @@ TELEGRAM_DISCARD_REASON_CODES = {
     "partido_no_valido": "MATCH_STARTED",
     "sin_hora_partido": "MISSING_MATCH_TIME",
     "sin_cuota_real": "MISSING_ODDS",
+    "cuota_warning": "MISSING_ODDS_WARNING",
     "cuota_demasiado_baja": "OUTSIDE_WINDOW",
     "cuota_demasiado_alta": "OUTSIDE_WINDOW",
     "sin_pick_recomendado": "MISSING_MARKET",
@@ -7141,6 +7292,7 @@ def telegram_auto_pick_health(limit=40):
 
 
 def telegram_auto_pick_dedupe_key_for(pick, destination):
+    pick = normalize_telegram_pick_candidate(pick)
     return telegram_dedupe_key(
         "auto_pick",
         today_iso(),
@@ -7169,52 +7321,184 @@ def telegram_auto_pick_dedupe_status(pick, destination):
     }
 
 
+def telegram_candidate_fix_suggestion(reason, item=None, window=None):
+    reason = telegram_discard_reason_code(reason)
+    item = item or {}
+    window = window or {}
+    suggestions = {
+        "MISSING_MARKET": "Revisar campos market/selection/prediction/title/content; falta mercado reconocible.",
+        "MISSING_ODDS": "Añadir cuota real si existe. Si es pick manual aprobado con mercado claro, V755 permite enviarlo como aviso.",
+        "MISSING_ODDS_WARNING": "Cuota no disponible: se puede enviar con aviso si mercado, selección y hora son válidos.",
+        "MISSING_MATCH_TIME": "Añadir hora de inicio o kickoff ISO. Solo fecha no basta para Telegram automático.",
+        "OLD_MATCH": "No enviar: el partido ya está pasado según hora Madrid.",
+        "MATCH_STARTED": "No enviar como pick prepartido: el partido ya empezó.",
+        "TOO_EARLY": f"Esperar a ventana previa. Próxima ventana: {window.get('next_send_window_madrid') or telegram_next_pick_send_window() or 'pendiente'}.",
+        "TOO_LATE": "No enviar: queda menos del margen mínimo antes del inicio.",
+        "WAITING_FOR_PRO_SLOT": f"El pick es futuro y válido, pero espera slot profesional. Próxima ventana: {window.get('next_send_window_madrid') or telegram_next_pick_send_window() or 'pendiente'}.",
+        "NO_DESTINATION": "Configurar TELEGRAM_CHAT_ID o usuario privado vinculado.",
+        "DUPLICATE_ALREADY_SENT": "No reenviar: ya existe envío automático para ese pick/destino/mercado.",
+        "NOT_TELEGRAM_ELIGIBLE": "No cumple score, riesgo o calidad mínima para Telegram.",
+    }
+    return suggestions.get(reason, "Revisar datos del pick en Command Center.")
+
+
+def _sqlite_table_columns(table):
+    conn = db()
+    try:
+        return {row[1] for row in conn.execute(f"PRAGMA table_info({table})").fetchall()}
+    finally:
+        conn.close()
+
+
+def _insert_or_replace_dynamic(table, values):
+    cols = [key for key in values if key in _sqlite_table_columns(table)]
+    if not cols:
+        return False
+    conn = db()
+    try:
+        conn.execute(
+            f"INSERT OR REPLACE INTO {table} ({','.join(cols)}) VALUES ({','.join('?' for _ in cols)})",
+            [values[key] for key in cols],
+        )
+        conn.commit()
+        return True
+    finally:
+        conn.close()
+
+
+def create_telegram_test_candidate():
+    seed_core()
+    kickoff = datetime.now(TZ) + timedelta(hours=2)
+    stamp = kickoff.strftime("%Y%m%d%H%M")
+    match_id = f"telegram-test-match-{stamp}"
+    pick_id = f"telegram-test-pick-{stamp}"
+    common = {
+        "id": match_id,
+        "competition_name": "Test Telegram Controlado",
+        "league_name": "Test Telegram Controlado",
+        "home_team": "Equipo Test Local",
+        "away_team": "Equipo Test Visitante",
+        "match_date": kickoff.date().isoformat(),
+        "match_time": kickoff.strftime("%H:%M"),
+        "kickoff_time": kickoff.strftime("%H:%M"),
+        "kickoff_iso": kickoff.isoformat(timespec="seconds"),
+        "status": "upcoming",
+        "source": "telegram_test_candidate",
+        "created_at": now_iso(),
+        "updated_at": now_iso(),
+    }
+    _insert_or_replace_dynamic("matches", common)
+    pick_values = {
+        "id": pick_id,
+        "match_id": match_id,
+        "competition_name": "Test Telegram Controlado",
+        "league_name": "Test Telegram Controlado",
+        "home_team": "Equipo Test Local",
+        "away_team": "Equipo Test Visitante",
+        "match_date": kickoff.date().isoformat(),
+        "match_time": kickoff.strftime("%H:%M"),
+        "kickoff_time": kickoff.strftime("%H:%M"),
+        "kickoff_iso": kickoff.isoformat(timespec="seconds"),
+        "market": "Más de 1.5 goles",
+        "pick_type": "Más de 1.5 goles",
+        "selection": "Más de 1.5 goles",
+        "recommendation": "Más de 1.5 goles",
+        "odds": 1.80,
+        "confidence": 88,
+        "shark_score": 88,
+        "risk_level": "Medio",
+        "stake": 1,
+        "stake_units": 1,
+        "membership_required": "PRO",
+        "status": "telegram_test",
+        "source": "telegram_test_candidate",
+        "legal_note": "Candidato controlado para certificar Telegram automatico. Excluido de ROI y track record comercial.",
+        "reasoning": "TEST CONTROLADO AUTOMATICO: valida cola, dedupe, ventana Madrid y canal global.",
+        "created_at": now_iso(),
+        "updated_at": now_iso(),
+    }
+    _insert_or_replace_dynamic("picks", pick_values)
+    automation_set("last_telegram_test_candidate", {"pick_id": pick_id, "match_id": match_id, "kickoff_madrid": kickoff.isoformat(timespec="seconds"), "created_at": now_iso()})
+    return {"ok": True, "pick_id": pick_id, "match_id": match_id, "kickoff_madrid": kickoff.isoformat(timespec="seconds"), "status": "telegram_test"}
+
+
 def find_auto_telegram_pick_candidates(limit=40, destination_membership="PRO"):
     cfg = telegram_pro_calibration()
     reviewed = []
+    reviewed_items = []
     candidates = []
     eligible = []
     discarded = []
+    reason_counts = {}
     destinations_cache = {}
-    raw_picks = get_picks(limit=max(int(limit or 40), 20), status=["published"], include_admin=True)
+    raw_picks = get_picks(limit=max(int(limit or 40), 20), status=["published", "telegram_test"], include_admin=True)
     for raw_pick in raw_picks:
-        pick = telegram_enrich_pick_for_message(raw_pick)
+        pick = normalize_telegram_pick_candidate(raw_pick)
+        diag = pick.get("_telegram_candidate") or {}
         reviewed.append(pick)
         base = {
             "pick_id": pick.get("id"),
             "match_id": pick.get("match_id"),
             "match": f"{pick.get('home_team') or 'Local'} vs {pick.get('away_team') or 'Visitante'}",
-            "market": pick.get("market") or pick.get("pick_type") or "",
-            "selection": pick.get("selection") or pick.get("pick") or pick.get("recommendation") or "",
-            "odds": pick.get("odds"),
-            "score": as_int(pick.get("confidence") or pick.get("shark_score"), 0),
+            "home_team": pick.get("home_team") or "",
+            "away_team": pick.get("away_team") or "",
+            "match_time_raw": (diag.get("match_time") or {}).get("raw_time") or pick.get("kickoff_iso") or pick.get("match_time") or "",
             "match_time_madrid": format_telegram_match_time_madrid(pick).get("datetime_label") or "Hora pendiente",
+            "time_diagnostics": diag.get("match_time") or {},
+            "market_raw": diag.get("market_raw") or "",
+            "market": pick.get("market") or pick.get("pick_type") or "",
+            "market_normalized": diag.get("market_normalized") or pick.get("market") or "",
+            "selection": pick.get("selection") or pick.get("pick") or pick.get("recommendation") or "",
+            "odds_raw": diag.get("odds_raw") or "",
+            "odds": pick.get("odds"),
+            "odds_normalized": diag.get("odds_normalized"),
+            "score": as_int(pick.get("confidence") or pick.get("shark_score"), 0),
+            "status": pick.get("status") or "",
+            "active": str(pick.get("status") or "").lower() in {"published", "active", "telegram_test"},
+            "field_audit": diag.get("checked_fields") or {},
         }
         sendability = telegram_pick_sendability(pick)
         if not sendability.get("sendable"):
             reasons = sendability.get("reason_codes") or telegram_discard_reason_codes(sendability.get("reasons"))
-            discarded.append({**base, "reason": reasons[0], "reasons": reasons})
+            reason_counts[reasons[0]] = reason_counts.get(reasons[0], 0) + 1
+            item = {**base, "eligible": False, "reason": reasons[0], "reasons": reasons, "fix_suggestion": telegram_candidate_fix_suggestion(reasons[0], base)}
+            discarded.append(item)
+            reviewed_items.append(item)
             continue
         score = as_int(pick.get("confidence") or pick.get("shark_score"), 0)
         if score < cfg["min_pick_score"]:
-            discarded.append({**base, "reason": "NOT_TELEGRAM_ELIGIBLE", "reasons": ["NOT_TELEGRAM_ELIGIBLE"], "score": score})
+            reason_counts["NOT_TELEGRAM_ELIGIBLE"] = reason_counts.get("NOT_TELEGRAM_ELIGIBLE", 0) + 1
+            item = {**base, "eligible": False, "reason": "NOT_TELEGRAM_ELIGIBLE", "reasons": ["NOT_TELEGRAM_ELIGIBLE"], "score": score, "fix_suggestion": "Subir confianza SHARK o no enviar por Telegram."}
+            discarded.append(item)
+            reviewed_items.append(item)
             continue
         risk_raw = str(pick.get("risk_level") or pick.get("risk") or "").lower()
         if ("alto" in risk_raw or "high" in risk_raw) and score < cfg["elite_pick_score"]:
-            discarded.append({**base, "reason": "NOT_TELEGRAM_ELIGIBLE", "reasons": ["NOT_TELEGRAM_ELIGIBLE"], "score": score})
+            reason_counts["NOT_TELEGRAM_ELIGIBLE"] = reason_counts.get("NOT_TELEGRAM_ELIGIBLE", 0) + 1
+            item = {**base, "eligible": False, "reason": "NOT_TELEGRAM_ELIGIBLE", "reasons": ["NOT_TELEGRAM_ELIGIBLE"], "score": score, "fix_suggestion": "Riesgo alto: requiere score ELITE o revisión manual."}
+            discarded.append(item)
+            reviewed_items.append(item)
             continue
         window = telegram_auto_pick_window_decision(pick)
         if not window.get("sendable_now"):
-            discarded.append({**base, "reason": window.get("reason") or "OUTSIDE_WINDOW", "reasons": [window.get("reason") or "OUTSIDE_WINDOW"], "window": window})
+            reason = window.get("reason") or "OUTSIDE_WINDOW"
+            reason_counts[reason] = reason_counts.get(reason, 0) + 1
+            item = {**base, "eligible": False, "reason": reason, "reasons": [reason], "window": window, "next_send_window_madrid": window.get("next_send_window_madrid") or "", "fix_suggestion": telegram_candidate_fix_suggestion(reason, base, window)}
+            discarded.append(item)
+            reviewed_items.append(item)
             continue
         required = normalize_role(pick.get("membership_required") or destination_membership or "PRO")
         if required not in destinations_cache:
             destinations_cache[required] = telegram_auto_destinations(required, include_global=True)
         destinations = destinations_cache.get(required) or []
         if not destinations:
-            discarded.append({**base, "reason": "NO_DESTINATION", "reasons": ["NO_DESTINATION"], "window": window})
+            reason_counts["NO_DESTINATION"] = reason_counts.get("NO_DESTINATION", 0) + 1
+            item = {**base, "eligible": False, "reason": "NO_DESTINATION", "reasons": ["NO_DESTINATION"], "window": window, "fix_suggestion": telegram_candidate_fix_suggestion("NO_DESTINATION", base, window)}
+            discarded.append(item)
+            reviewed_items.append(item)
             continue
-        candidate = {**base, "required_membership": required, "window": window, "sendable_now": True, "destinations": len(destinations)}
+        warnings = [code for code in (sendability.get("reason_codes") or []) if code.endswith("_WARNING")]
+        candidate = {**base, "required_membership": required, "window": window, "sendable_now": True, "can_send_now": True, "would_send_on_next_cron": True, "destinations": len(destinations), "warnings": warnings}
         candidates.append(candidate)
         pick_eligible = False
         dedupe_details = []
@@ -7228,7 +7512,12 @@ def find_auto_telegram_pick_candidates(limit=40, destination_membership="PRO"):
             eligible.append({"pick": pick, "destination": dest, "dedupe": dedupe, "candidate": candidate})
             pick_eligible = True
         if not pick_eligible:
-            discarded.append({**base, "reason": "DUPLICATE_ALREADY_SENT", "reasons": ["DUPLICATE_ALREADY_SENT"], "dedupe": dedupe_details})
+            reason_counts["DUPLICATE_ALREADY_SENT"] = reason_counts.get("DUPLICATE_ALREADY_SENT", 0) + 1
+            item = {**base, "eligible": False, "reason": "DUPLICATE_ALREADY_SENT", "reasons": ["DUPLICATE_ALREADY_SENT"], "dedupe": dedupe_details, "fix_suggestion": telegram_candidate_fix_suggestion("DUPLICATE_ALREADY_SENT", base)}
+            discarded.append(item)
+            reviewed_items.append(item)
+        else:
+            reviewed_items.append({**candidate, "eligible": True, "reason": None, "destination_status": "GLOBAL_CHANNEL_USED" if any((e.get("destination") or {}).get("target_kind") == "channel" for e in eligible if (e.get("pick") or {}).get("id") == pick.get("id")) else "PRIVATE_DESTINATION_USED"})
     next_candidate = None
     if eligible:
         first = eligible[0]
@@ -7241,11 +7530,16 @@ def find_auto_telegram_pick_candidates(limit=40, destination_membership="PRO"):
         next_candidate = candidates[0]
     return {
         "reviewed": len(reviewed),
+        "reviewed_items": reviewed_items[:50],
         "candidates": len(candidates),
         "eligible": len(eligible),
         "discarded": discarded[:30],
         "next_candidate": next_candidate,
         "window": telegram_pick_window_config(),
+        "reason_counts": reason_counts,
+        "fix_suggestions": sorted({item.get("fix_suggestion") for item in discarded if item.get("fix_suggestion")}),
+        "can_send_now": bool(eligible),
+        "would_send_on_next_cron": bool(eligible),
         "destinations": sum(len(v) for v in destinations_cache.values()),
         "_eligible_items": eligible,
     }
@@ -7537,38 +7831,33 @@ def _telegram_has_explicit_timezone(value):
 
 
 def telegram_pick_kickoff_madrid(pick):
-    item = dict(pick or {})
-    for key in ("kickoff_iso", "commence_time", "start_time", "event_time", "datetime", "date_time", "kickoff"):
-        raw = str(item.get(key) or "").strip()
-        if not raw:
-            continue
-        try:
-            iso = raw.replace("Z", "+00:00")
-            if re.match(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$", iso):
-                iso += ":00"
-            dt = datetime.fromisoformat(iso)
-            if dt.tzinfo is None:
-                dt = dt.replace(tzinfo=TZ)
-            return dt.astimezone(TZ)
-        except Exception:
-            continue
-    date_value = str(item.get("match_date") or item.get("date") or "").strip()[:10]
-    time_value = str(item.get("kickoff_time") or item.get("match_time") or item.get("time") or "").strip()[:5]
-    if date_value and re.match(r"^\d{1,2}:\d{2}$", time_value):
-        try:
-            hour, minute = [int(part) for part in time_value.split(":", 1)]
-            return datetime.fromisoformat(date_value).replace(hour=hour, minute=minute, second=0, microsecond=0, tzinfo=TZ)
-        except Exception:
-            return None
-    return None
+    info = normalize_match_time_madrid(pick)
+    parsed = info.get("parsed_time_madrid")
+    if not parsed:
+        return None
+    try:
+        return datetime.fromisoformat(parsed)
+    except Exception:
+        return None
 
 
 def telegram_pick_window_config():
+    summary_windows = os.getenv("TELEGRAM_SUMMARY_WINDOWS", "").strip()
+    if summary_windows:
+        summary_parts = [part.strip() for part in summary_windows.split(",") if part.strip()]
+    else:
+        summary_parts = [
+            os.getenv("TELEGRAM_SUMMARY_MORNING_WINDOW", "09:00-11:30"),
+            os.getenv("TELEGRAM_SUMMARY_EVENING_WINDOW", "17:00-19:30"),
+        ]
     return {
-        "hours_before": max(1, as_int(os.getenv("TELEGRAM_PICK_SEND_WINDOW_HOURS_BEFORE", "24"), 24)),
-        "min_minutes_before": max(0, as_int(os.getenv("TELEGRAM_PICK_SEND_MIN_MINUTES_BEFORE", "15"), 15)),
-        "summary_morning": os.getenv("TELEGRAM_SUMMARY_MORNING_WINDOW", "09:00-11:30"),
-        "summary_evening": os.getenv("TELEGRAM_SUMMARY_EVENING_WINDOW", "17:00-19:30"),
+        "hours_before": max(1, as_int(os.getenv("TELEGRAM_PICK_WINDOW_HOURS_BEFORE", os.getenv("TELEGRAM_PICK_SEND_WINDOW_HOURS_BEFORE", "24")), 24)),
+        "min_minutes_before": max(0, as_int(os.getenv("TELEGRAM_PICK_MIN_MINUTES_BEFORE", os.getenv("TELEGRAM_PICK_SEND_MIN_MINUTES_BEFORE", "15")), 15)),
+        "pro_slots": os.getenv("TELEGRAM_PICK_PRO_SLOTS", "10:00-13:30,17:00-21:30"),
+        "urgent_minutes_before": max(15, as_int(os.getenv("TELEGRAM_PICK_URGENT_MINUTES_BEFORE", "90"), 90)),
+        "summary_windows": summary_parts,
+        "summary_morning": summary_parts[0] if summary_parts else "09:00-11:30",
+        "summary_evening": summary_parts[1] if len(summary_parts) > 1 else "17:00-19:30",
     }
 
 
@@ -7582,26 +7871,58 @@ def telegram_window_range_active(range_text, current=None):
 def telegram_summary_window_active(current=None):
     cfg = telegram_pick_window_config()
     now_dt = current or datetime.now(TZ)
-    return telegram_window_range_active(cfg["summary_morning"], now_dt) or telegram_window_range_active(cfg["summary_evening"], now_dt)
+    return any(telegram_window_range_active(slot, now_dt) for slot in cfg.get("summary_windows") or [])
+
+
+def telegram_pick_pro_slot_active(current=None):
+    cfg = telegram_pick_window_config()
+    now_dt = current or datetime.now(TZ)
+    return any(telegram_window_range_active(slot, now_dt) for slot in str(cfg.get("pro_slots") or "").split(",") if slot.strip())
+
+
+def telegram_next_pick_send_window(current=None):
+    cfg = telegram_pick_window_config()
+    now_dt = current or datetime.now(TZ)
+    candidates = []
+    for day_offset in range(0, 3):
+        base = now_dt.date() + timedelta(days=day_offset)
+        for slot in str(cfg.get("pro_slots") or "").split(","):
+            start, _, _end = slot.strip().partition("-")
+            if not start:
+                continue
+            try:
+                hour, minute = [int(part) for part in start[:5].split(":", 1)]
+                dt = datetime.combine(base, datetime.min.time(), tzinfo=TZ).replace(hour=hour, minute=minute)
+                if dt >= now_dt:
+                    candidates.append(dt)
+            except Exception:
+                continue
+    if not candidates:
+        return ""
+    return format_telegram_match_time_madrid({"kickoff_iso": min(candidates).isoformat(timespec="seconds")}).get("datetime_label")
 
 
 def telegram_auto_pick_window_decision(pick, current=None):
     cfg = telegram_pick_window_config()
     now_dt = current or datetime.now(TZ)
+    time_info = normalize_match_time_madrid(pick, current=now_dt)
     kickoff = telegram_pick_kickoff_madrid(pick)
     if not kickoff:
-        date_value = str((pick or {}).get("match_date") or "")[:10]
+        date_value = str((pick or {}).get("match_date") or (pick or {}).get("date") or "")[:10]
         if date_value and date_value < now_dt.date().isoformat():
-            return {"sendable_now": False, "reason": "OLD_MATCH", "kickoff_madrid": "", "minutes_before": None}
-        return {"sendable_now": False, "reason": "MISSING_MATCH_TIME", "kickoff_madrid": "", "minutes_before": None}
+            return {"sendable_now": False, "reason": "OLD_MATCH", "kickoff_madrid": "", "minutes_before": None, "time": time_info}
+        return {"sendable_now": False, "reason": "MISSING_MATCH_TIME", "kickoff_madrid": "", "minutes_before": None, "time": time_info}
     minutes_before = int((kickoff - now_dt).total_seconds() // 60)
     if minutes_before < 0:
-        return {"sendable_now": False, "reason": "OLD_MATCH", "kickoff_madrid": kickoff.isoformat(timespec="seconds"), "minutes_before": minutes_before}
+        reason = "OLD_MATCH" if minutes_before < -120 else "MATCH_STARTED"
+        return {"sendable_now": False, "reason": reason, "kickoff_madrid": kickoff.isoformat(timespec="seconds"), "minutes_before": minutes_before, "time": time_info}
     if minutes_before < cfg["min_minutes_before"]:
-        return {"sendable_now": False, "reason": "TOO_LATE", "kickoff_madrid": kickoff.isoformat(timespec="seconds"), "minutes_before": minutes_before}
+        return {"sendable_now": False, "reason": "TOO_LATE", "kickoff_madrid": kickoff.isoformat(timespec="seconds"), "minutes_before": minutes_before, "time": time_info}
     if minutes_before > cfg["hours_before"] * 60:
-        return {"sendable_now": False, "reason": "TOO_EARLY", "kickoff_madrid": kickoff.isoformat(timespec="seconds"), "minutes_before": minutes_before}
-    return {"sendable_now": True, "reason": "", "kickoff_madrid": kickoff.isoformat(timespec="seconds"), "minutes_before": minutes_before}
+        return {"sendable_now": False, "reason": "TOO_EARLY", "kickoff_madrid": kickoff.isoformat(timespec="seconds"), "minutes_before": minutes_before, "next_send_window_madrid": telegram_next_pick_send_window(now_dt), "time": time_info}
+    if not telegram_pick_pro_slot_active(now_dt) and minutes_before > cfg["urgent_minutes_before"]:
+        return {"sendable_now": False, "reason": "WAITING_FOR_PRO_SLOT", "kickoff_madrid": kickoff.isoformat(timespec="seconds"), "minutes_before": minutes_before, "next_send_window_madrid": telegram_next_pick_send_window(now_dt), "time": time_info}
+    return {"sendable_now": True, "reason": "", "kickoff_madrid": kickoff.isoformat(timespec="seconds"), "minutes_before": minutes_before, "time": time_info, "slot": "urgent" if minutes_before <= cfg["urgent_minutes_before"] else "professional"}
 
 
 def build_live_alert_message(match=None):
@@ -9003,6 +9324,34 @@ def home_light_data():
     }
 
 
+
+# ===================== V758 ADAPTIVE DESKTOP/MOBILE TOP APP EXPERIENCE =====================
+
+def v758_adaptive_context(data=None, user=None, page_key=""):
+    """Build an adaptive PC/mobile experience context without touching Cron/Telegram/DB."""
+    try:
+        return build_v758_adaptive_experience(
+            data=data or {},
+            user=user or current_session_user(),
+            path=request.path if has_request_context() else page_key,
+            user_agent=request.headers.get("User-Agent", "") if has_request_context() else "",
+        )
+    except Exception as exc:
+        return {
+            "version_tag": "V758",
+            "mode_label": "Adaptativo",
+            "device_hint": "Seguro",
+            "headline": "Experiencia adaptativa SHARK",
+            "subtitle": "Vista PC y móvil preparada con fallback seguro.",
+            "warnings": [str(exc)[:140]],
+            "quick_actions": [
+                {"label": "Inicio", "href": "/app", "badge": "App"},
+                {"label": "Partidos", "href": "/calendar", "badge": "Hoy"},
+                {"label": "Picks", "href": "/picks", "badge": "SHARK"},
+            ],
+        }
+
+
 @app.route("/")
 def home():
     if request.method == "HEAD":
@@ -9010,6 +9359,7 @@ def home():
     data = home_light_data()
     data["client_premium"] = build_client_app_premium_context(data, current_session_user())
     data["v757_app"] = build_v757_app_center(data, current_session_user(), track_record=None)
+    data["v758_adaptive"] = v758_adaptive_context(data, current_session_user(), "home")
     return render_template("home.html", data=data)
 
 
@@ -9301,6 +9651,7 @@ def calendar_page():
     data["date"] = data["calendar"].get("filters", {}).get("date", today_iso())
     data["client_premium"] = build_client_app_premium_context(data, current_session_user())
     data["v757_app"] = build_v757_app_center(data, current_session_user(), track_record=None)
+    data["v758_adaptive"] = v758_adaptive_context(data, current_session_user(), "calendar")
     return render_template("calendar.html", data=data)
 
 
@@ -9379,6 +9730,7 @@ def live_page():
         source.extend(hub.get(key) or [])
     source = dedupe_matches_list(source)
     data["live_experience"] = build_live_experience(source, lane=lane, query=query)
+    data["v758_adaptive"] = v758_adaptive_context(data, current_session_user(), "live")
     return render_template("live.html", data=data)
 
 
@@ -9401,6 +9753,7 @@ def match_detail_page(match_id):
     data = dashboard_data()
     data["match_detail"] = detail
     data["client_premium"] = build_client_app_premium_context(data, current_session_user(), detail=detail)
+    data["v758_adaptive"] = v758_adaptive_context(data, current_session_user(), "match")
     if detail:
         detail["client_premium"] = data["client_premium"].get("match", {})
     return render_template("match_detail.html", data=data, detail=detail)
@@ -9773,6 +10126,13 @@ def admin_telegram_page():
             result = enqueue_daily_picks(force=True, force_empty=True, forced_chat_id=os.getenv("TELEGRAM_CHAT_ID", ""))
         elif action == "process":
             result = process_premium_telegram_queue(limit=as_int(request.form.get("limit"), 5), force=True)
+        elif action == "create_test_candidate":
+            result = create_telegram_test_candidate()
+        elif action == "controlled_auto_test":
+            candidate = create_telegram_test_candidate()
+            queued = enqueue_auto_pick_alerts(force=False, limit=1)
+            processed = process_premium_telegram_queue(limit=1, force=True)
+            result = {"ok": processed.get("failed", 0) == 0, "candidate": candidate, "queued": queued, "processed": processed, "note": "Prueba automatica controlada. Usa automatic_cron y limita a 1 mensaje."}
         elif action == "retry_failed":
             conn = db()
             conn.execute("UPDATE telegram_queue SET status=?, updated_at=? WHERE lower(status)=?", (QUEUE_PENDING, now_iso(), QUEUE_FAILED))
@@ -10144,6 +10504,7 @@ def picks_page():
     data["smart_picks"] = smart_pick_board(user, limit=24)
     data["client_premium"] = build_client_app_premium_context(data, user, filter_key=(request.args.get("filtro") or request.args.get("filter") or "all"))
     data["v757_app"] = build_v757_app_center(data, user, track_record=None)
+    data["v758_adaptive"] = v758_adaptive_context(data, user, "picks")
     record_user_activity("view", "picks", "picks-page", {"count": len(data["picks"]), "candidates": len(data["candidate_matches"])})
     return render_template("picks.html", data=data)
 
@@ -11879,6 +12240,7 @@ def public_track_record_page():
     data["track_record"] = v742_track_record_context()
     data["v757_track"] = build_v757_trust_snapshot(data.get("track_record") or {})
     data["v757_app"] = build_v757_app_center(data, user, track_record=data.get("track_record"))
+    data["v758_adaptive"] = v758_adaptive_context(data, user, "track_record")
     return render_template("track_record.html", data=data)
 
 
@@ -13414,6 +13776,7 @@ def v757_client_app_center_page():
     data["client_premium"] = build_client_app_premium_context(data, user)
     data["v757_app"] = build_v757_app_center(data, user, track_record=data.get("track_record"))
     data["v757_trust"] = build_v757_trust_snapshot(data.get("track_record") or {})
+    data["v758_adaptive"] = v758_adaptive_context(data, user, "app_center")
     return render_template("client_app_center.html", data=data)
 
 
@@ -13438,6 +13801,46 @@ def api_v757_trust_snapshot():
     user = current_session_user()
     track = v742_track_record_context()
     return jsonify({"ok": True, "version": APP_VERSION, "trust": build_v757_trust_snapshot(track), "logged_in": bool(user)})
+
+
+
+# ===================== V758 ADAPTIVE DESKTOP/MOBILE TOP APP EXPERIENCE ROUTES =====================
+
+@app.route("/experiencia")
+@app.route("/modo-app")
+@app.route("/adaptive")
+@app.route("/adaptativo")
+def v758_adaptive_experience_page():
+    user = current_session_user()
+    if not user:
+        return redirect("/cliente-login?next=/experiencia")
+    data = dashboard_data()
+    data["track_record"] = v742_track_record_context()
+    data["membership"] = v566_membership_ui(user)
+    data["client_premium"] = build_client_app_premium_context(data, user)
+    data["v757_app"] = build_v757_app_center(data, user, track_record=data.get("track_record"))
+    data["v758_adaptive"] = v758_adaptive_context(data, user, "adaptive")
+    try:
+        record_user_activity("view", "adaptive_experience", "v758-adaptive", {"mode": data["v758_adaptive"].get("mode_label")})
+    except Exception:
+        pass
+    return render_template("adaptive_experience.html", data=data)
+
+
+@app.route("/api/client/device-experience")
+def api_v758_device_experience():
+    user = current_session_user()
+    if not user:
+        return jsonify({"ok": False, "version": APP_VERSION, "error": "login_required"}), 403
+    data = dashboard_data()
+    payload = build_v758_device_api_payload(
+        data=data,
+        user=user,
+        path=request.args.get("path") or request.path,
+        user_agent=request.headers.get("User-Agent", ""),
+        viewport=request.args.get("viewport") or "",
+    )
+    return jsonify({"ok": True, "version": APP_VERSION, **payload})
 
 
 def register_optional_blueprints():

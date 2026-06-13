@@ -308,6 +308,11 @@ def _clean_odds(value) -> str:
     return f"{odds:.2f}".rstrip("0").rstrip(".")
 
 
+def _odds_text(value) -> str:
+    odds = _clean_odds(value)
+    return odds if odds else "No disponible Â· revisar antes de entrar"
+
+
 def _odds_line(item) -> str:
     bookmaker = item.get("bookmaker") or item.get("bookmaker_name") or ""
     home_odds = _clean_odds(item.get("home_odds") or item.get("odds_home"))
@@ -409,7 +414,7 @@ def _pick_value_label(pick) -> str:
     explicit = pick.get("value_label") or pick.get("value") or pick.get("ev_label") or ""
     if explicit and not _PENDING_PICK_RE.search(str(explicit)):
         return safe_html(compact_text(explicit, 45))
-    odds = _clean_odds(pick.get("odds"))
+    odds = _odds_text(pick.get("odds"))
     confidence = pick.get("confidence") or pick.get("shark_score")
     if odds and confidence:
         return "Value positivo"
@@ -692,8 +697,8 @@ def build_single_pick_message(pick, premium_name="NeMeSiS SHARK PRO", title="ðŸ¦
         return ""
     pick = enrich_pick_quality(_localize_pick_for_telegram(pick))
     selection = _selection_text(pick)
-    odds = _clean_odds(pick.get("odds"))
-    if not selection or not odds:
+    odds = _odds_text(pick.get("odds"))
+    if not selection:
         return ""
     lines = [
         f"<b>{safe_html(title)}</b>",
@@ -714,7 +719,7 @@ def build_daily_picks_message(picks, force_empty=False, premium_name="NeMeSiS SH
         if not is_telegram_football_item(raw or {}):
             continue
         pick = enrich_pick_quality(_localize_pick_for_telegram(raw))
-        if pick.get("premium_ready") and _selection_text(pick) and _clean_odds(pick.get("odds")):
+        if _selection_text(pick) and _market_text(pick):
             clean.append(pick)
     clean = sort_picks_by_quality(clean)
     if not clean:

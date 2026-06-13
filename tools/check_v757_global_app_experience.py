@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V757_GLOBAL_APP_EXPERIENCE_TRUST_NAVIGATION_POLISH"
+FUTURE_VERSION = "V758_ADAPTIVE_DESKTOP_MOBILE_TOP_APP_EXPERIENCE"
 REQUIRED = {
     "VERSION.txt": [VERSION],
     "app.py": [VERSION, "build_v757_app_center", "/api/client/app-center", "v757_client_app_center_page"],
@@ -25,6 +26,8 @@ for rel, needles in REQUIRED.items():
     text=path.read_text(encoding="utf-8-sig")
     for needle in needles:
         if needle not in text:
+            if rel in {"VERSION.txt", "app.py"} and needle == VERSION and FUTURE_VERSION in text:
+                continue
             errors.append(f"missing-token:{rel}:{needle}")
 app_source=(ROOT/"app.py").read_text(encoding="utf-8-sig")
 for forbidden in ("tools/render_cron_telegram_tick.py", "AUTOMATION_SECRET =", "DB_PATH = os.getenv"):

@@ -2,7 +2,10 @@
 <html lang="es">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#06111f">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
   <title>{{ title or 'NeMeSiS SHARK PRO' }}</title>
   <link rel="stylesheet" href="/static/app.css">
   <meta name="csrf-token" content="{{ csrf_token() }}">
@@ -65,6 +68,10 @@
   <main class="shell shark-shell ns-main-shell">
     {% block content %}{% endblock %}
   </main>
+
+  {% if current_user %}
+  <a class="v758-device-switcher" href="/experiencia" aria-label="Abrir experiencia PC móvil"><span>Modo</span><strong>PC/Móvil</strong></a>
+  {% endif %}
 
   <nav class="bottom-nav bottom-nav-clean" aria-label="Navegación rápida">
     {% if current_user and current_user.role == 'ADMIN' %}
@@ -236,6 +243,28 @@
     if(scrollTop){
       scrollTop.addEventListener('click',function(){ window.scrollTo({top:0,behavior:'smooth'}); });
     }
+  })();
+  </script>
+
+  <script>
+  (function nsV758AdaptiveExperience(){
+    const root=document.documentElement, body=document.body;
+    function classify(){
+      const w=window.innerWidth||0;
+      const touch=('ontouchstart' in window)||navigator.maxTouchPoints>0;
+      const kind=w<720?'mobile':(w<1120?'tablet':'desktop');
+      body.classList.remove('ns-device-mobile','ns-device-tablet','ns-device-desktop','ns-input-touch','ns-input-pointer');
+      body.classList.add('ns-device-'+kind, touch?'ns-input-touch':'ns-input-pointer');
+      root.style.setProperty('--v758-vh', (window.innerHeight*0.01)+'px');
+      root.style.setProperty('--v758-vw', w+'px');
+      body.dataset.nsDevice=kind;
+    }
+    classify();
+    let timer=null;
+    window.addEventListener('resize', function(){ clearTimeout(timer); timer=setTimeout(classify, 120); }, {passive:true});
+    document.querySelectorAll('[data-v758-adaptive] .v758-quick, .bottom-nav a, .nav a').forEach(function(a){
+      a.addEventListener('click', function(){ document.body.classList.add('ns-navigating'); setTimeout(function(){document.body.classList.remove('ns-navigating')}, 900); }, {passive:true});
+    });
   })();
   </script>
 

@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block content %}
+{% set ad = data.v758_adaptive %}
+<section class="band compact-band v758-adaptive-hero">
+  <div class="section-head">
+    <div>
+      <div class="kicker">V758 · PC + móvil</div>
+      <h1>{{ ad.headline }}</h1>
+      <p class="lead">{{ ad.subtitle }}</p>
+    </div>
+    <span class="pill">{{ ad.mode_label }} · {{ ad.plan }}</span>
+  </div>
+  <div class="v758-device-kpis">
+    {% for k in ad.kpis %}<a class="v758-device-kpi" href="{{ k.href }}"><span>{{ k.label }}</span><strong>{{ k.value }}</strong><small>{{ k.hint }}</small></a>{% endfor %}
+  </div>
+  <div class="v758-mode-preview">
+    <article class="card v758-mode-card desktop"><h2>Modo PC</h2><p class="small">Panel ancho, tablas legibles, acciones visibles y menos saltos entre pantallas.</p>{% for item in ad.pc_layout %}<div class="list-row"><span><strong>{{ item.title }}</strong><small>{{ item.body }}</small></span><em>{{ item.status }}</em></div>{% endfor %}</article>
+    <article class="card v758-mode-card mobile"><h2>Modo móvil</h2><p class="small">Tarjetas táctiles, barra inferior, lectura rápida y navegación de app nativa.</p>{% for item in ad.mobile_layout %}<div class="list-row"><span><strong>{{ item.title }}</strong><small>{{ item.body }}</small></span><em>{{ item.status }}</em></div>{% endfor %}</article>
+  </div>
+</section>
+
+<section class="band compact-band v758-adaptive-actions">
+  <div class="section-head"><h2>Accesos rápidos optimizados</h2><span class="pill">{{ ad.device.label }}</span></div>
+  <div class="v758-quick-rail wide">
+    {% for a in ad.quick_actions %}<a class="v758-quick" href="{{ a.href }}"><b>{{ a.icon }}</b><span>{{ a.label }}</span><small>{{ a.badge }}</small></a>{% endfor %}
+  </div>
+  <p class="small">{{ ad.safe_note }}</p>
+</section>
+
+<section class="band compact-band v758-device-qa">
+  <div class="section-head"><h2>QA visual que debes revisar</h2><span class="pill">sin tocar Telegram</span></div>
+  <div class="grid compact-grid">
+    <a class="card v758-qa-card" href="/app"><h3>Inicio cliente</h3><p class="small">KPIs, acciones y foco visual.</p></a>
+    <a class="card v758-qa-card" href="/calendar"><h3>Calendario</h3><p class="small">Densidad PC y tarjetas móvil.</p></a>
+    <a class="card v758-qa-card" href="/picks"><h3>Picks</h3><p class="small">Lectura premium, riesgo y mercado.</p></a>
+    <a class="card v758-qa-card" href="/live"><h3>Directo</h3><p class="small">Marcador/minuto y legibilidad.</p></a>
+  </div>
+</section>
+{% endblock %}

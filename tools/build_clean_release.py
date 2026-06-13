@@ -167,9 +167,12 @@ INCLUDE_TOP_LEVEL_FILES = {
     "RELEASE_ZIP_AUDIT_V752.md",
     "RELEASE_ZIP_AUDIT_V753.md",
     "RELEASE_ZIP_AUDIT_V754.md",
+    "RELEASE_ZIP_AUDIT_V755.md",
     "RELEASE_ZIP_AUDIT_V756.md",
     "RELEASE_ZIP_AUDIT_V757.md",
+    "RELEASE_ZIP_AUDIT_V758.md",
     "RELEASE_MANIFEST_V757.json",
+    "RELEASE_MANIFEST_V758.json",
     "RELEASE_MANIFEST_V745.json",
     "V747_ADMIN_TELEGRAM_MEMBERSHIP_DAYS_TIME_ORDER_REPORT.md",
     "RELEASE_MANIFEST_V747.json",
@@ -242,8 +245,10 @@ def include(path: Path) -> bool:
             or rel_posix.startswith("reports/V752_")
             or rel_posix.startswith("reports/V753_")
             or rel_posix.startswith("reports/V754_")
+            or rel_posix.startswith("reports/V755_")
             or rel_posix.startswith("reports/V756_")
             or rel_posix.startswith("reports/V757_")
+            or rel_posix.startswith("reports/V758_")
         )
     if any(part in EXCLUDE_DIRS for part in parts):
         return False

@@ -1,12 +1,12 @@
 {
-  "version": "V757_GLOBAL_APP_EXPERIENCE_TRUST_NAVIGATION_POLISH",
-  "created_at": "2026-06-13T17:56:19",
-  "zip": "NeMeSiS_SHARK_PRO_V757_GLOBAL_APP_EXPERIENCE_TRUST_NAVIGATION_POLISH_RENDER_READY.zip",
-  "zip_path": "/mnt/data/releases/NeMeSiS_SHARK_PRO_V757_GLOBAL_APP_EXPERIENCE_TRUST_NAVIGATION_POLISH_RENDER_READY.zip",
+  "version": "V758_ADAPTIVE_DESKTOP_MOBILE_TOP_APP_EXPERIENCE",
+  "created_at": "2026-06-13T18:11:21",
+  "zip": "NeMeSiS_SHARK_PRO_V758_ADAPTIVE_DESKTOP_MOBILE_TOP_APP_EXPERIENCE_RENDER_READY.zip",
+  "zip_path": "/mnt/data/releases/NeMeSiS_SHARK_PRO_V758_ADAPTIVE_DESKTOP_MOBILE_TOP_APP_EXPERIENCE_RENDER_READY.zip",
   "zip_inside_project_tree": false,
   "output_dir": "/mnt/data/releases",
-  "manifest": "RELEASE_MANIFEST_V757.json",
-  "files": 463,
+  "manifest": "RELEASE_MANIFEST_V758.json",
+  "files": 471,
   "internal_zips": [],
   "has_internal_zips": false,
   "forbidden_folders_included": [],
@@ -58,6 +58,7 @@
     "RELEASE_MANIFEST_V745.json",
     "RELEASE_MANIFEST_V747.json",
     "RELEASE_MANIFEST_V757.json",
+    "RELEASE_MANIFEST_V758.json",
     "RELEASE_ZIP_AUDIT_V742.md",
     "RELEASE_ZIP_AUDIT_V743.md",
     "RELEASE_ZIP_AUDIT_V744.md",
@@ -72,6 +73,7 @@
     "RELEASE_ZIP_AUDIT_V754.md",
     "RELEASE_ZIP_AUDIT_V756.md",
     "RELEASE_ZIP_AUDIT_V757.md",
+    "RELEASE_ZIP_AUDIT_V758.md",
     "RENDER_PRODUCTION_VALIDATION_RUNBOOK_V744.md",
     "ROUTE_HEALTH_AUDIT_V730.md",
     "TELEGRAM_AUTOMATION_RENDER_SETUP_V742.md",
@@ -189,7 +191,5 @@
     ".zip"
   ],
   "security_policy": "No incluye .git, .venv, caches, bases de datos locales, logs, ZIPs internos ni secretos reales.",
-  "render_ready": true,
-  "zip_size_bytes": 820107,
-  "zip_file_count": 463
+  "render_ready": true
 }

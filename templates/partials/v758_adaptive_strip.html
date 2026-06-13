@@ -1,0 +1,19 @@
+{% set ad = data.v758_adaptive if data.v758_adaptive is defined else {} %}
+{% if ad %}
+<section class="band compact-band v758-adaptive-strip" data-v758-adaptive>
+  <div class="section-head">
+    <div>
+      <div class="kicker">V758 · {{ ad.mode_label or 'Modo adaptativo' }}</div>
+      <h2>{{ ad.headline or 'Experiencia adaptativa' }}</h2>
+      <p class="small">{{ ad.device_hint or ad.subtitle }}</p>
+    </div>
+    <a class="pill" href="/experiencia">Ajuste PC/Móvil</a>
+  </div>
+  <div class="v758-device-kpis compact">
+    {% for k in ad.get('kpis', [])[:4] %}<a class="v758-device-kpi" href="{{ k.href }}"><span>{{ k.label }}</span><strong>{{ k.value }}</strong><small>{{ k.hint }}</small></a>{% endfor %}
+  </div>
+  <div class="v758-quick-rail" aria-label="Accesos adaptativos">
+    {% for a in ad.get('quick_actions', [])[:6] %}<a class="v758-quick" href="{{ a.href }}"><b>{{ a.icon }}</b><span>{{ a.label }}</span><small>{{ a.badge }}</small></a>{% endfor %}
+  </div>
+</section>
+{% endif %}

@@ -114,7 +114,7 @@
 </section>
 
 <section class="band compact-band">
-  <div class="section-head"><h2>Candidatos V754</h2><span class="pill">{{ auto_candidates.eligible or 0 }} elegibles</span></div>
+  <div class="section-head"><h2>Candidatos V755</h2><span class="pill">{{ auto_candidates.eligible or 0 }} elegibles</span></div>
   <div class="grid compact-grid metric-row">
     <div class="card metric-card"><div class="metric">{{ auto_candidates.reviewed or 0 }}</div><div class="muted">picks revisados</div></div>
     <div class="card metric-card"><div class="metric">{{ auto_candidates.candidates or 0 }}</div><div class="muted">candidatos</div></div>
@@ -142,12 +142,16 @@
     </div>
   </div>
   <div class="card">
-    <strong>Descartes recientes</strong>
+    <strong>DiagnÃ³stico por pick</strong>
     <div class="stack">
-      {% for item in auto_candidates.discarded[:8] %}
-      <div class="list-row"><span>{{ item.match or item.pick_id }}<small>{{ item.reason }} Â· {{ item.market or '' }}</small></span><strong>{{ item.match_time_madrid or '-' }}</strong></div>
+      <div class="list-row"><span><strong>Pick / Partido</strong><small>Hora Madrid Â· Mercado Â· Cuota</small></span><strong>Estado</strong></div>
+      {% for item in (auto_candidates.reviewed_items or auto_candidates.discarded or [])[:12] %}
+      <div class="list-row">
+        <span>{{ item.pick_id }} Â· {{ item.match or '-' }}<small>{{ item.match_time_madrid or '-' }} Â· {{ item.market_normalized or item.market or 'Sin mercado' }} Â· {{ item.odds_normalized or item.odds or 'Sin cuota' }}</small></span>
+        <strong>{{ 'Elegible' if item.eligible else item.reason or 'Revisado' }}</strong>
+      </div>
       {% else %}
-      <div class="empty">Sin descartes V754 registrados.</div>
+      <div class="empty">Sin picks revisados todavÃ­a.</div>
       {% endfor %}
     </div>
   </div>
@@ -239,6 +243,8 @@
     <a class="card service-card" href="/api/admin/telegram/preview-next"><h3>Preview</h3><p class="small">Muestra el siguiente mensaje real sin mandarlo.</p></a>
     <a class="card service-card" href="/api/admin/telegram/schema"><h3>Schema</h3><p class="small">Comprueba migraciÃ³n de memoria Telegram.</p></a>
     <form class="card service-card" method="post" action="/api/admin/telegram/test-send"><h3>Test controlado</h3><p class="small">EnvÃ­a solo si un admin pulsa este botÃ³n.</p><button type="submit">Enviar prueba controlada</button></form>
+    <form class="card service-card" method="post" action="/admin/telegram"><input type="hidden" name="action" value="create_test_candidate"><h3>Crear candidato Telegram de prueba</h3><p class="small">Genera un pick test futuro +2h, excluido del flujo comercial normal.</p><button type="submit">Crear candidato</button></form>
+    <form class="card service-card" method="post" action="/admin/telegram"><input type="hidden" name="action" value="controlled_auto_test"><h3>Ejecutar prueba automÃ¡tica controlada</h3><p class="small">Usa el flujo automatic_cron, procesa 1 mensaje y evita spam.</p><button type="submit">Probar automÃ¡tico</button></form>
   </div>
 </section>
 {% endblock %}
