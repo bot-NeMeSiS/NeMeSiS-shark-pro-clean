@@ -44,7 +44,7 @@ def masked_url(base_url: str, secret: str) -> str:
 
 def target_url(base_url: str, secret: str) -> str:
     base = base_url.rstrip("/")
-    query = urllib.parse.urlencode({"secret": secret})
+    query = urllib.parse.urlencode({"secret": secret, "runner": "render_cron"})
     return f"{base}{ENDPOINT}?{query}"
 
 
@@ -91,7 +91,8 @@ def main() -> int:
     request = urllib.request.Request(
         url,
         headers={
-            "User-Agent": "NeMeSiS-SHARK-PRO-Render-Cron/752",
+            "User-Agent": "NeMeSiS-SHARK-PRO-Render-Cron/753",
+            "X-NeMeSiS-Cron-Runner": "render-cron",
             "Accept": "application/json,text/plain,*/*",
         },
         method="GET",

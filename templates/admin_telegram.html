@@ -65,15 +65,16 @@
     <p class="small">Partidos: {% if data.telegram_delivery.settings.auto_daily_matches %}activo{% else %}inactivo{% endif %} · {{ data.telegram_delivery.settings.daily_matches_time }}</p>
     <p class="small">Picks: {% if data.telegram_delivery.settings.auto_daily_picks %}activo{% else %}inactivo{% endif %} · {{ data.telegram_delivery.settings.daily_picks_time }}</p>
     <input type="hidden" name="action" value="toggle">
-    <button type="submit">{% if data.telegram_delivery.settings_enabled %}Desactivar automático{% else %}Activar automático{% endif %}</button>
+    <button type="submit">{% if data.telegram_delivery.settings_enabled %}Desactivar ajuste admin{% else %}Activar ajuste admin{% endif %}</button>
   </form>
   <div class="card telegram-actions-v638">
     <h2>Acciones</h2>
-    <form method="post" action="/admin/telegram"><input type="hidden" name="action" value="process"><button type="submit">Procesar cola ahora</button></form>
-    <form method="post" action="/admin/telegram"><input type="hidden" name="action" value="test_private"><button type="submit">Enviar prueba privada</button></form>
-    <form method="post" action="/admin/telegram"><input type="hidden" name="action" value="test_channel"><button type="submit">Enviar prueba canal</button></form>
-    <form method="post" action="/admin/telegram"><input type="hidden" name="action" value="repair"><button type="submit">Reparar automático</button></form>
-    <form method="post" action="/admin/telegram"><input type="hidden" name="action" value="retry_failed"><button type="submit">Reintentar fallidos</button></form>
+    <p class="small">Estas acciones son manuales. El Cron real se valida solo en Command Center con Render Cron.</p>
+    <form method="post" action="/admin/telegram"><input type="hidden" name="action" value="process"><button type="submit">Procesar cola manualmente</button></form>
+    <form method="post" action="/admin/telegram"><input type="hidden" name="action" value="test_private"><button type="submit">Enviar prueba privada manual</button></form>
+    <form method="post" action="/admin/telegram"><input type="hidden" name="action" value="test_channel"><button type="submit">Enviar prueba canal manual</button></form>
+    <form method="post" action="/admin/telegram"><input type="hidden" name="action" value="repair"><button type="submit">Reparar ajustes automáticos</button></form>
+    <form method="post" action="/admin/telegram"><input type="hidden" name="action" value="retry_failed"><button type="submit">Reintentar fallidos manualmente</button></form>
   </div>
 </section>
 

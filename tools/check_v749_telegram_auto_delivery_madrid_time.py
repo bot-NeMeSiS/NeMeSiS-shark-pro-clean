@@ -20,7 +20,7 @@ def assert_true(condition, message):
 
 def main():
     current_version = (ROOT / "VERSION.txt").read_text(encoding="utf-8").strip()
-    assert_true(current_version in {VERSION, VERSION_B, "V750_CLIENT_LIVE_DAY_RELEVANCE_MADRID_RESULT_POLISH", "V751_TELEGRAM_PICK_ULTRA_PRO_MESSAGE_EXPERIENCE", "V752_TELEGRAM_FULL_AUTO_ARTILLERY_PRODUCTION_CERTIFICATION"}, "VERSION.txt no contiene V749/V749B/V750/V751/V752.")
+    assert_true(current_version in {VERSION, VERSION_B, "V750_CLIENT_LIVE_DAY_RELEVANCE_MADRID_RESULT_POLISH", "V751_TELEGRAM_PICK_ULTRA_PRO_MESSAGE_EXPERIENCE", "V752_TELEGRAM_FULL_AUTO_ARTILLERY_PRODUCTION_CERTIFICATION", "V753_TELEGRAM_PRODUCTION_AUTOPILOT_ENVIRONMENT_AUDIT_AND_REAL_CRON_CERTIFICATION"}, "VERSION.txt no contiene V749/V749B/V750/V751/V752/V753.")
     source = (ROOT / "app.py").read_text(encoding="utf-8")
     telegram_source = (ROOT / "engines" / "telegram_delivery_engine.py").read_text(encoding="utf-8")
     madrid_source = (ROOT / "engines" / "madrid_time_engine.py").read_text(encoding="utf-8")

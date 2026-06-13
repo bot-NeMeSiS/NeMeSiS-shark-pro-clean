@@ -61,6 +61,7 @@ def main() -> int:
             "V750_CLIENT_LIVE_DAY_RELEVANCE_MADRID_RESULT_POLISH",
             "V751_TELEGRAM_PICK_ULTRA_PRO_MESSAGE_EXPERIENCE",
             "V752_TELEGRAM_FULL_AUTO_ARTILLERY_PRODUCTION_CERTIFICATION",
+            "V753_TELEGRAM_PRODUCTION_AUTOPILOT_ENVIRONMENT_AUDIT_AND_REAL_CRON_CERTIFICATION",
         },
         "partidos_not_duplicated": len(partidos_rules) == 1,
         "admin_templates_no_tilde_variable": "matches_dÃ­agnostics" not in admin_data and "matches_dÃ­agnostics" not in admin_sync,

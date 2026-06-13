@@ -5,6 +5,7 @@
 {% set counts = snap.counts or {} %}
 {% set limits = snap.limits or {} %}
 {% set env = snap.env or {} %}
+{% set env_audit = snap.environment_audit or env.audit or {} %}
 {% set cron = snap.cron or {} %}
 {% set last_dispatch = cron.last_dispatch or {} %}
 {% set last_dispatch_result = last_dispatch.get('result') or {} %}
@@ -15,6 +16,7 @@
   <div class="kicker">Admin Â· Telegram Command Center</div>
   <h1>Fiabilidad Telegram</h1>
   <p class="lead">DiagnÃ³stico completo del flujo Cron â†’ picks â†’ cola â†’ Telegram, sin mostrar secrets y sin enviar pruebas automÃ¡ticas.</p>
+  <p class="small">El Cron real no depende de entrar al admin. Render ejecuta <code>python tools/render_cron_telegram_tick.py</code> y llama a <code>/api/automation/telegram/tick</code>. Los botones del admin son prueba manual, preview o dry-run: no certifican el Cron real.</p>
   <div class="admin-menu">
     <a class="btn primary" href="/admin/telegram/command-center">Command Center</a>
     <a class="btn" href="/admin/production-readiness">ProducciÃ³n</a>
@@ -52,6 +54,13 @@
     <div class="card metric-card"><div class="metric">{% if env.telegram_football_only %}football_only{% else %}multi{% endif %}</div><div class="muted">modo deporte</div></div>
     <div class="card metric-card"><div class="metric">{% if env.auto_send_telegram_picks or env.enable_telegram_auto %}ON{% else %}OFF{% endif %}</div><div class="muted">auto Telegram</div></div>
   </div>
+  <div class="card">
+    <strong>AuditorÃ­a Environment V753</strong>
+    <p class="small">PUBLIC_BASE_URL: {{ env_audit.public_base_url or 'No configurada' }} Â· TZ Madrid: {% if env_audit.timezone_ok %}SÃ­{% else %}No{% endif %} Â· Flags oficiales: {% if env_audit.auto_flags_ok %}OK{% else %}Revisar{% endif %}</p>
+    <p class="small">Faltantes: {% for item in env_audit.missing or [] %}<span class="pill">{{ item }}</span> {% else %}<span class="muted">Ninguno.</span>{% endfor %}</p>
+    <p class="small">Bloqueos auto: {% for item in (env_audit.auto.blocking_flags if env_audit.auto else []) or [] %}<span class="pill">{{ item }}</span> {% else %}<span class="muted">Ninguno.</span>{% endfor %}</p>
+    <p class="small">Secrets enmascarados: AUTOMATION_SECRET {{ (env_audit.masked or {}).AUTOMATION_SECRET or '-' }} Â· TELEGRAM_CHAT_ID {{ (env_audit.masked or {}).TELEGRAM_CHAT_ID or '-' }}</p>
+  </div>
 </section>
 <section class="band compact-band">
   <div class="section-head"><h2>Schema Telegram</h2><span class="pill">{% if schema.delivery_memory.ok %}OK{% else %}Revisar{% endif %}</span></div>
@@ -66,11 +75,22 @@
   <div class="section-head"><h2>Cron</h2><span class="pill">Render</span></div>
   <div class="grid compact-grid">
     <div class="card"><div class="kicker">Ultimo Telegram Tick</div><strong>{{ data.diagnostics.last_automation_tick_madrid or cron.last_telegram.time or 'Sin registro' }}</strong><p class="small">{{ cron.last_telegram.endpoint or '' }} · force={{ cron.last_telegram.force }}</p></div>
+    <div class="card"><div class="kicker">Cron real detectado</div><strong>{% if last_tick_result.cron_runner_detected %}SÃ­{% else %}No{% endif %}</strong><p class="small">Header/query del runner Render.</p></div>
     <div class="card"><div class="kicker">Proximo tick esperado</div><strong>{{ data.diagnostics.next_expected_tick_madrid or 'Pendiente' }}</strong><p class="small">Fuente: {{ data.diagnostics.automation_source or 'unknown' }}</p></div>
     <div class="card"><div class="kicker">Ultimo automatico</div><strong>{{ data.diagnostics.last_sent_auto_message_at or 'Sin envio automatico' }}</strong><p class="small">{{ data.diagnostics.last_auto_pick.title or data.diagnostics.last_auto_pick.message_type or '' }}</p></div>
     <div class="card"><div class="kicker">Ultimo manual</div><strong>{{ data.diagnostics.last_sent_manual_message_at or 'Sin envio manual' }}</strong><p class="small">Los botones admin no certifican el automatico.</p></div>
     <div class="card"><div class="kicker">Ultimo Daily Run</div><strong>{{ cron.last_daily.time or 'Sin registro' }}</strong><p class="small">{{ cron.last_daily.endpoint or '' }} · force={{ cron.last_daily.force }}</p></div>
     <div class="card"><div class="kicker">Ultimo dispatch</div><strong>{{ last_dispatch.get('time') or 'Sin registro' }}</strong><p class="small">{{ last_dispatch_result.get('message') or last_dispatch_result.get('status') or '' }}</p></div>
+  </div>
+</section>
+
+<section class="band compact-band">
+  <div class="section-head"><h2>SeparaciÃ³n de fuentes</h2><span class="pill">manual vs cron</span></div>
+  <div class="grid compact-grid">
+    <div class="card"><div class="kicker">manual_admin</div><strong>{{ data.diagnostics.last_sent_manual_message_at or 'Sin envÃ­o manual' }}</strong><p class="small">Botones admin y pruebas controladas.</p></div>
+    <div class="card"><div class="kicker">admin_preview</div><strong>No envÃ­a</strong><p class="small">Preview/dry-run solo muestran el mensaje.</p></div>
+    <div class="card"><div class="kicker">admin_simulated_cron</div><strong>No cuenta como Cron real</strong><p class="small">Una simulaciÃ³n admin nunca certifica Render Cron.</p></div>
+    <div class="card"><div class="kicker">automatic_cron</div><strong>{{ data.diagnostics.last_sent_auto_message_at or 'Sin envÃ­o Cron' }}</strong><p class="small">Solo Render Cron con secret y runner real.</p></div>
   </div>
 </section>
 

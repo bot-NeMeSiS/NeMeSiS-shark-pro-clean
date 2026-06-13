@@ -97,6 +97,10 @@ from engines.telegram_reliability_engine import (
     madrid_now as telegram_reliability_madrid_now,
     safe_preview_text,
 )
+from engines.telegram_environment_engine import (
+    get_telegram_environment_audit,
+    is_telegram_auto_enabled,
+)
 from engines.route_health_engine import route_health_snapshot
 from engines.client_experience_guard_engine import client_experience_snapshot
 from engines.production_readiness_engine import production_readiness_snapshot
@@ -147,7 +151,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V752_TELEGRAM_FULL_AUTO_ARTILLERY_PRODUCTION_CERTIFICATION"
+APP_VERSION = "V753_TELEGRAM_PRODUCTION_AUTOPILOT_ENVIRONMENT_AUDIT_AND_REAL_CRON_CERTIFICATION"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -263,12 +267,7 @@ def env_present(name):
 
 
 def telegram_env_auto_enabled():
-    return (
-        env_bool("ENABLE_TELEGRAM_AUTO", False)
-        or env_bool("ENABLE_TELEGRAM_AUTOMATION", False)
-        or env_bool("AUTO_SEND_TELEGRAM_PICKS", False)
-        or env_bool("TELEGRAM_AUTO_SEND_ENABLED", False)
-    )
+    return bool(is_telegram_auto_enabled().get("enabled"))
 
 
 def scheduler_env_enabled():
@@ -573,7 +572,18 @@ def _cron_compact_payload(endpoint, result, called_at, finished_at, force=False)
 
 def automation_cron_result(endpoint, state_keys, runner, force=False):
     called_at = now_iso()
-    state_payload = {"time": called_at, "force": bool(force), "source": "render_cron", "endpoint": endpoint, "version": APP_VERSION}
+    runner_header = request.headers.get("X-NeMeSiS-Cron-Runner", "") if has_request_context() else ""
+    runner_query = request.args.get("runner", "") if has_request_context() else ""
+    cron_runner_detected = str(runner_header).lower() == "render-cron" or str(runner_query).lower() == "render_cron"
+    state_payload = {
+        "time": called_at,
+        "force": bool(force),
+        "source": "automatic_cron",
+        "trigger_type": "render_cron" if cron_runner_detected else "direct_cron_endpoint",
+        "cron_runner": bool(cron_runner_detected),
+        "endpoint": endpoint,
+        "version": APP_VERSION,
+    }
     state_results = [automation_safe_set(key, state_payload) for key in state_keys]
     try:
         seed_core()
@@ -593,6 +603,15 @@ def automation_cron_result(endpoint, state_keys, runner, force=False):
         }
     finished_at = now_iso()
     compact = _cron_compact_payload(endpoint, result, called_at, finished_at, force=force)
+    compact["cron_runner_detected"] = bool(cron_runner_detected)
+    compact["last_cron_source"] = "automatic_cron"
+    compact["last_cron_runner_at"] = called_at if cron_runner_detected else ""
+    compact["last_cron_http_status"] = 200
+    compact["last_cron_result"] = compact.get("status")
+    compact["last_cron_sent_count"] = compact.get("sent_count", 0)
+    compact["last_cron_delivery_id"] = compact.get("last_delivery_id", "")
+    compact["last_cron_madrid_time"] = compact.get("now_madrid")
+    compact["last_cron_utc_time"] = datetime.utcnow().isoformat(timespec="seconds") + "Z"
     compact["state_saved"] = all(item.get("ok") for item in state_results)
     try:
         safe_memory_call(
@@ -636,6 +655,14 @@ def automation_cron_result(endpoint, state_keys, runner, force=False):
         automation_safe_set("last_automation_tick_at", called_at)
         automation_safe_set("last_automation_tick_madrid", compact.get("now_madrid"))
         automation_safe_set("last_automation_result", compact)
+        automation_safe_set("last_cron_runner_at", compact.get("last_cron_runner_at"))
+        automation_safe_set("last_cron_http_status", compact.get("last_cron_http_status"))
+        automation_safe_set("last_cron_result", compact.get("last_cron_result"))
+        automation_safe_set("last_cron_source", compact.get("last_cron_source"))
+        automation_safe_set("last_cron_sent_count", compact.get("last_cron_sent_count"))
+        automation_safe_set("last_cron_delivery_id", compact.get("last_cron_delivery_id"))
+        automation_safe_set("last_cron_madrid_time", compact.get("last_cron_madrid_time"))
+        automation_safe_set("last_cron_utc_time", compact.get("last_cron_utc_time"))
     return jsonify(compact), 200
 
 def telegram_env_ready():
@@ -7110,6 +7137,7 @@ def telegram_reliability_snapshot(limit=60):
     cfg = telegram_pro_calibration()
     settings = get_telegram_settings()
     now_madrid = telegram_reliability_madrid_now()
+    env_audit = get_telegram_environment_audit()
     env = {
         "bot_token_configured": env_present("TELEGRAM_BOT_TOKEN"),
         "chat_id_configured": env_present("TELEGRAM_CHAT_ID"),
@@ -7129,6 +7157,9 @@ def telegram_reliability_snapshot(limit=60):
         "daily_automation_enabled": daily_automation_env_enabled(),
         "telegram_sport_mode": os.getenv("TELEGRAM_SPORT_MODE", "football_only"),
         "telegram_football_only": telegram_sport_mode_summary().get("football_only"),
+        "audit": env_audit,
+        "required_flags": (env_audit.get("auto") or {}).get("required_flags", {}),
+        "blocking_flags": (env_audit.get("auto") or {}).get("blocking_flags", []),
     }
     try:
         raw_picks = get_picks(limit=max(int(limit), 40), status=["published"], include_admin=True)
@@ -7329,6 +7360,9 @@ def telegram_reliability_dry_run():
             preview = f"No se pudo generar preview: {str(exc)[:160]}"
     return {
         "ok": snapshot.get("ok", False),
+        "source": "admin_preview",
+        "trigger_type": "dry_run",
+        "sent": False,
         "madrid_now": snapshot.get("madrid_now"),
         "diagnosis": snapshot.get("diagnosis"),
         "candidates": snapshot.get("candidates", []),
@@ -7408,7 +7442,7 @@ def enqueue_daily_matches(force=False, forced_chat_id=""):
             body,
             chat_id=sub.get("chat_id"),
             user_id=sub.get("user_id"),
-            payload={"membership": sub.get("membership"), "target_key": today_iso(), "source": "automatic_cron", "trigger_type": "daily_matches", "auto_job_key": f"daily_matches:{today_iso()}", "app_url": telegram_absolute_url("/sports-hub"), "button_text": "📅 Ver partidos", "picks_url": telegram_absolute_url("/picks"), "include_picks_button": True, "include_live_button": True, "live_url": telegram_absolute_url("/live"), "enable_link_preview": False},
+            payload={"membership": sub.get("membership"), "target_key": today_iso(), "source": "automatic_cron", "trigger_type": "render_cron", "auto_job_key": f"daily_matches:{today_iso()}", "job_type": "daily_matches", "app_url": telegram_absolute_url("/sports-hub"), "button_text": "📅 Ver partidos", "picks_url": telegram_absolute_url("/picks"), "include_picks_button": True, "include_live_button": True, "live_url": telegram_absolute_url("/live"), "enable_link_preview": False},
             dedupe_key=telegram_dedupe_key("daily_matches", today_iso(), sub.get("chat_id"), source="automatic_cron"),
             force=force,
         )
@@ -7437,7 +7471,7 @@ def enqueue_daily_picks(force=False, force_empty=False, forced_chat_id=""):
             body,
             chat_id=sub.get("chat_id"),
             user_id=sub.get("user_id"),
-            payload={"membership": sub.get("membership"), "target_key": today_iso(), "source": "automatic_cron", "trigger_type": "daily_picks", "auto_job_key": f"daily_picks:{today_iso()}", "app_url": telegram_absolute_url("/picks"), "button_text": "🦈 Abrir picks SHARK", "include_picks_button": False, "include_live_button": True, "live_url": telegram_absolute_url("/live"), "enable_link_preview": False},
+            payload={"membership": sub.get("membership"), "target_key": today_iso(), "source": "automatic_cron", "trigger_type": "render_cron", "auto_job_key": f"daily_picks:{today_iso()}", "job_type": "daily_picks", "app_url": telegram_absolute_url("/picks"), "button_text": "🦈 Abrir picks SHARK", "include_picks_button": False, "include_live_button": True, "live_url": telegram_absolute_url("/live"), "enable_link_preview": False},
             dedupe_key=telegram_dedupe_key("daily_picks", today_iso(), sub.get("chat_id"), source="automatic_cron"),
             force=force,
         )
@@ -7515,7 +7549,7 @@ def enqueue_auto_pick_alerts(force=False, limit=4):
                 body,
                 chat_id=dest.get("chat_id"),
                 user_id=dest.get("user_id"),
-                payload={"membership": dest.get("membership"), "target_key": dest.get("target_key"), "source": "automatic_cron", "trigger_type": "auto_pick", "auto_job_key": f"auto_pick:{pick.get('id') or today_iso()}", "pick_id": pick.get("id"), "priority": 90, "auto": True, "target_kind": dest.get("target_kind"), "match_url": pick.get("match_url"), "home_logo": pick.get("home_logo"), "away_logo": pick.get("away_logo"), "button_text": "🦈 Ver análisis SHARK", "picks_url": telegram_absolute_url("/picks"), "include_picks_button": True, "include_live_button": True, "live_url": telegram_absolute_url("/live"), "enable_link_preview": bool(pick.get("home_logo") or pick.get("away_logo"))},
+                payload={"membership": dest.get("membership"), "target_key": dest.get("target_key"), "source": "automatic_cron", "trigger_type": "render_cron", "auto_job_key": f"auto_pick:{pick.get('id') or today_iso()}", "job_type": "auto_pick", "pick_id": pick.get("id"), "priority": 90, "auto": True, "target_kind": dest.get("target_kind"), "match_url": pick.get("match_url"), "home_logo": pick.get("home_logo"), "away_logo": pick.get("away_logo"), "button_text": "🦈 Ver análisis SHARK", "picks_url": telegram_absolute_url("/picks"), "include_picks_button": True, "include_live_button": True, "live_url": telegram_absolute_url("/live"), "enable_link_preview": bool(pick.get("home_logo") or pick.get("away_logo"))},
                 dedupe_key=telegram_dedupe_key(
                     "auto_pick",
                     today_iso(),
@@ -7556,7 +7590,7 @@ def enqueue_live_alerts(force=False):
                 body,
                 chat_id=sub.get("chat_id"),
                 user_id=sub.get("user_id"),
-                payload={"membership": sub.get("membership"), "target_key": match.get("id"), "source": "automatic_cron", "trigger_type": "live_alert", "auto_job_key": f"live_alert:{match.get('id') or today_iso()}", "match_id": match.get("id"), "match_url": match.get("match_url"), "home_logo": match.get("home_logo"), "away_logo": match.get("away_logo"), "button_text": "🔴 Abrir live SHARK", "picks_url": telegram_absolute_url("/picks"), "include_picks_button": True, "include_live_button": False, "enable_link_preview": bool(match.get("home_logo") or match.get("away_logo"))},
+                payload={"membership": sub.get("membership"), "target_key": match.get("id"), "source": "automatic_cron", "trigger_type": "render_cron", "auto_job_key": f"live_alert:{match.get('id') or today_iso()}", "job_type": "live_alert", "match_id": match.get("id"), "match_url": match.get("match_url"), "home_logo": match.get("home_logo"), "away_logo": match.get("away_logo"), "button_text": "🔴 Abrir live SHARK", "picks_url": telegram_absolute_url("/picks"), "include_picks_button": True, "include_live_button": False, "enable_link_preview": bool(match.get("home_logo") or match.get("away_logo"))},
                 dedupe_key=telegram_dedupe_key("live_alert", today_iso(), sub.get("chat_id"), match_id=match.get("id"), market=match.get("minute") or match.get("score"), source="automatic_cron"),
                 force=force,
             )
@@ -7822,6 +7856,7 @@ def telegram_diagnostics():
     last_error = one("SELECT * FROM telegram_logs WHERE lower(status) IN ('failed','error') ORDER BY created_at DESC LIMIT 1")
     last_sent = one("SELECT * FROM telegram_queue WHERE lower(status)=? ORDER BY sent_at DESC LIMIT 1", (QUEUE_SENT,))
     last_manual_sent = one("SELECT * FROM telegram_queue WHERE lower(status)=? AND lower(coalesce(source,''))='manual_admin' ORDER BY sent_at DESC LIMIT 1", (QUEUE_SENT,)) or {}
+    last_admin_simulated = one("SELECT * FROM telegram_queue WHERE lower(coalesce(source,''))='admin_simulated_cron' ORDER BY COALESCE(sent_at, created_at) DESC LIMIT 1") or {}
     last_auto_sent = one("SELECT * FROM telegram_queue WHERE lower(status)=? AND lower(coalesce(source,'')) IN ('automatic_cron','automatic_scheduler') ORDER BY sent_at DESC LIMIT 1", (QUEUE_SENT,)) or {}
     last_auto = one("SELECT * FROM telegram_logs WHERE event_type IN ('scheduler','queue','send','[AUTO_PICKS]','[QUEUE]','[TELEGRAM]','[AUTOMATION]','[QUEUE_LOAD]','[QUEUE_PROCESS]','[QUEUE_SENT]','[QUEUE_FAIL]','[QUEUE_SKIP_DUPLICATE]') OR message LIKE '%automatic%' OR message LIKE '%auto%' ORDER BY created_at DESC LIMIT 1")
     last_pick = one("SELECT * FROM telegram_queue WHERE lower(status)=? AND lower(coalesce(message_type,'')) LIKE '%pick%' ORDER BY sent_at DESC LIMIT 1", (QUEUE_SENT,))
@@ -7855,8 +7890,19 @@ def telegram_diagnostics():
         "last_automation_result": ((automation_get("telegram_tick_last_detail", {}) or {}).get("compact") or {}),
         "last_sent_auto_message_at": (last_auto_sent or {}).get("sent_at_madrid") or (last_auto_sent or {}).get("sent_at") or "",
         "last_sent_manual_message_at": (last_manual_sent or {}).get("sent_at_madrid") or (last_manual_sent or {}).get("sent_at") or "",
+        "last_admin_preview": {"source": "admin_preview", "trigger_type": "dry_run", "sent": False},
+        "last_admin_simulated_cron": last_admin_simulated,
         "next_expected_tick_madrid": format_telegram_match_time_madrid({"kickoff_iso": next_expected_tick}).get("datetime_label"),
         "render_cron_detected": bool(last_cron_telegram),
+        "cron_runner_detected": bool((((automation_get("telegram_tick_last_detail", {}) or {}).get("compact") or {}).get("cron_runner_detected"))),
+        "last_cron_runner_at": automation_get("last_cron_runner_at", "") or "",
+        "last_cron_http_status": automation_get("last_cron_http_status", "") or "",
+        "last_cron_result": automation_get("last_cron_result", "") or "",
+        "last_cron_source": automation_get("last_cron_source", "") or "",
+        "last_cron_sent_count": automation_get("last_cron_sent_count", 0) or 0,
+        "last_cron_delivery_id": automation_get("last_cron_delivery_id", "") or "",
+        "last_cron_madrid_time": automation_get("last_cron_madrid_time", "") or "",
+        "last_cron_utc_time": automation_get("last_cron_utc_time", "") or "",
         "automation_source": "cron" if last_cron_telegram else ("scheduler" if last_dispatch else "unknown"),
         "manual_ok_auto_not_running": manual_ok_auto_not_running,
         "manual_ok_auto_warning": "Telegram manual funciona, pero no se ha recibido ningun tick automatico reciente. Revisa Render Cron y AUTOMATION_SECRET." if manual_ok_auto_not_running else "",
@@ -7885,6 +7931,7 @@ def telegram_diagnostics():
         "queue_summary": queue_summary(rows("SELECT status FROM telegram_queue ORDER BY created_at DESC LIMIT 500")),
         "pro_calibration": telegram_pro_calibration(),
         "sport_filter": telegram_sport_mode_summary(),
+        "environment_audit": get_telegram_environment_audit(),
     }
 
 
@@ -9444,7 +9491,7 @@ def admin_telegram_page():
                 "Prueba Telegram",
                 build_system_test_message(),
                 chat_id=os.getenv("TELEGRAM_CHAT_ID", ""),
-                payload={"target_key": "admin-test", "priority": 95, "source": "manual_admin", "trigger_type": "admin_test_send"},
+                payload={"target_key": "admin-test", "priority": 95, "source": "manual_admin", "trigger_type": "admin_button", "job_type": "admin_test_send"},
                 dedupe_key=telegram_dedupe_key("system_test", now_iso(), os.getenv("TELEGRAM_CHAT_ID", "")),
                 force=True,
             )
@@ -9458,7 +9505,7 @@ def admin_telegram_page():
                 "Prueba privada NeMeSiS SHARK PRO: tu vinculación funciona.",
                 chat_id=(sub or {}).get("chat_id") or "",
                 user_id=(sub or {}).get("user_id") or "",
-                payload={"target_key": "private-test", "priority": 96, "source": "manual_admin", "trigger_type": "private_test_send"},
+                payload={"target_key": "private-test", "priority": 96, "source": "manual_admin", "trigger_type": "admin_button", "job_type": "private_test_send"},
                 dedupe_key=telegram_dedupe_key("private_test", now_iso(), (sub or {}).get("chat_id") or "none"),
                 force=True,
             ) if sub else {"ok": False, "message": "No hay usuarios vinculados para prueba privada.", "errors": ["sin_usuario_vinculado"]}
@@ -9470,7 +9517,7 @@ def admin_telegram_page():
                 "Prueba canal Telegram",
                 "Prueba de canal NeMeSiS SHARK PRO: el canal global sigue operativo.",
                 chat_id=os.getenv("TELEGRAM_CHAT_ID", ""),
-                payload={"target_key": "channel-test", "priority": 96, "source": "manual_admin", "trigger_type": "channel_test_send"},
+                payload={"target_key": "channel-test", "priority": 96, "source": "manual_admin", "trigger_type": "admin_button", "job_type": "channel_test_send"},
                 dedupe_key=telegram_dedupe_key("channel_test", now_iso(), os.getenv("TELEGRAM_CHAT_ID", "")),
                 force=True,
             )
@@ -9585,6 +9632,13 @@ def api_admin_telegram_status():
     })
 
 
+@app.route("/api/admin/telegram/environment-audit")
+def api_admin_telegram_environment_audit():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "version": APP_VERSION, "environment": get_telegram_environment_audit()})
+
+
 @app.route("/api/admin/telegram/dry-run", methods=["GET", "POST"])
 def api_admin_telegram_dry_run():
     if not is_admin_session():
@@ -9617,7 +9671,7 @@ def api_admin_telegram_test_send():
         "Test Telegram controlado",
         text,
         chat_id=os.getenv("TELEGRAM_CHAT_ID", ""),
-        payload={"target_key": "admin-connectivity-test", "priority": 99, "source": "manual_admin", "trigger_type": "admin_connectivity_test"},
+        payload={"target_key": "admin-connectivity-test", "priority": 99, "source": "manual_admin", "trigger_type": "admin_button", "job_type": "admin_connectivity_test"},
         dedupe_key=telegram_dedupe_key("admin_connectivity_test", now_iso(), os.getenv("TELEGRAM_CHAT_ID", "")),
         force=True,
     )

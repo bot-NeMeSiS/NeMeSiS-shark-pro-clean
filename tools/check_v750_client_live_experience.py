@@ -21,6 +21,7 @@ check("version_v750_or_newer", VERSION in {
     "V750_CLIENT_LIVE_DAY_RELEVANCE_MADRID_RESULT_POLISH",
     "V751_TELEGRAM_PICK_ULTRA_PRO_MESSAGE_EXPERIENCE",
     "V752_TELEGRAM_FULL_AUTO_ARTILLERY_PRODUCTION_CERTIFICATION",
+    "V753_TELEGRAM_PRODUCTION_AUTOPILOT_ENVIRONMENT_AUDIT_AND_REAL_CRON_CERTIFICATION",
 }, VERSION)
 check("live_day_groups_template", "live.day_groups" in live_template and "v750-live-day-group" in live_template)
 check("live_scorebox_template", "v750-live-scorebox" in live_template and "live_score_label" in live_template)

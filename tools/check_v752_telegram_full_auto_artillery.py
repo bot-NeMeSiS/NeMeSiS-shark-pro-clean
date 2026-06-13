@@ -13,7 +13,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = "V752_TELEGRAM_FULL_AUTO_ARTILLERY_PRODUCTION_CERTIFICATION"
+VERSION = "V753_TELEGRAM_PRODUCTION_AUTOPILOT_ENVIRONMENT_AUDIT_AND_REAL_CRON_CERTIFICATION"
 CHECKS: list[tuple[str, bool, str]] = []
 
 if str(ROOT) not in sys.path:
@@ -56,8 +56,8 @@ def static_checks() -> None:
     env_example = read(".env.example")
     env_render = read(".env.render.clean")
 
-    check("version_v752", version == VERSION, version)
-    check("app_version_v752", f'APP_VERSION = "{VERSION}"' in app_source)
+    check("version_v752_or_v753", version in {"V752_TELEGRAM_FULL_AUTO_ARTILLERY_PRODUCTION_CERTIFICATION", VERSION}, version)
+    check("app_version_v752_or_v753", f'APP_VERSION = "{version}"' in app_source)
     check("endpoint_exists", '@app.route("/api/automation/telegram/tick"' in app_source)
     check("secret_protected", "automation_cron_result" in app_source and "AUTOMATION_SECRET" in app_source)
     check("source_automatic_cron", "source\": \"automatic_cron\"" in app_source or "'source': 'automatic_cron'" in app_source)
