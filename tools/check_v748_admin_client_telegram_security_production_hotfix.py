@@ -60,6 +60,7 @@ def main() -> int:
             "V749B_RENDER_CRON_SIMPLE_RUNNER_FINAL_FIX",
             "V750_CLIENT_LIVE_DAY_RELEVANCE_MADRID_RESULT_POLISH",
             "V751_TELEGRAM_PICK_ULTRA_PRO_MESSAGE_EXPERIENCE",
+            "V752_TELEGRAM_FULL_AUTO_ARTILLERY_PRODUCTION_CERTIFICATION",
         },
         "partidos_not_duplicated": len(partidos_rules) == 1,
         "admin_templates_no_tilde_variable": "matches_dÃ­agnostics" not in admin_data and "matches_dÃ­agnostics" not in admin_sync,
@@ -89,4 +90,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

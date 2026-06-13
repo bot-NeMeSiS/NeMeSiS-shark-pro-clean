@@ -149,8 +149,13 @@ def compact_text(value, max_len=220) -> str:
     return text[: max(0, max_len - 1)].rstrip() + "…"
 
 
-def telegram_dedupe_key(message_type, date_key, target_key="global") -> str:
-    raw = f"{message_type}:{date_key}:{target_key}".lower()
+def telegram_dedupe_key(message_type, date_key, target_key="global", pick_id="", match_id="", market="", source="automatic") -> str:
+    """Build a Telegram dedupe key specific enough for automated picks.
+
+    Kept backward-compatible with older calls while allowing V752 automation to
+    distinguish source, pick, match, market, destination and Madrid date.
+    """
+    raw = f"telegram:{source}:{message_type}:{pick_id or date_key}:{match_id}:{market}:{target_key}:{date_key}".lower()
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:32]
 
 

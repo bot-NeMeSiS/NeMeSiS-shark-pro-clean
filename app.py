@@ -147,7 +147,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V749_TELEGRAM_AUTO_DELIVERY_MADRID_TIME_PRODUCTION_FIX"
+APP_VERSION = "V752_TELEGRAM_FULL_AUTO_ARTILLERY_PRODUCTION_CERTIFICATION"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -515,14 +515,28 @@ def _cron_compact_payload(endpoint, result, called_at, finished_at, force=False)
         for item in result.get("results") or (result.get("result") or {}).get("results") or []:
             if as_int(item.get("processed"), 0) or as_int(item.get("inserted"), 0) or as_int(item.get("sent"), 0):
                 due_jobs.append(item.get("message") or item.get("reason") or "telegram_job")
+    discard_reasons = telegram_collect_discard_reasons(result)
     no_work_status = "NO_DUE_JOBS"
     if endpoint == "telegram_tick" and not as_int(result.get("inserted"), 0) and not as_int(result.get("sent"), 0):
-        no_work_status = "QUEUE_EMPTY" if not due_jobs else "NO_SENDABLE_ITEMS"
+        if discard_reasons:
+            no_work_status = discard_reasons[0] if discard_reasons[0] in {"NO_ELIGIBLE_PICKS", "OUTSIDE_PRO_WINDOW", "QUEUE_EMPTY", "NO_LIVE_ALERTS"} else "NO_SENDABLE_ITEMS"
+        else:
+            no_work_status = "QUEUE_EMPTY" if not due_jobs else "NO_SENDABLE_ITEMS"
+    status = result.get("status") or no_work_status
+    if endpoint == "telegram_tick" and as_int(result.get("sent"), 0) > 0:
+        status = "SENT"
+    latest_delivery_id = ""
+    if endpoint == "telegram_tick" and as_int(result.get("sent"), 0) > 0:
+        try:
+            latest_delivery_id = (one("SELECT id FROM telegram_deliveries ORDER BY created_at DESC LIMIT 1") or {}).get("id", "")
+        except Exception:
+            latest_delivery_id = ""
     compact = {
         "ok": bool(result.get("ok", False)),
         "endpoint": endpoint,
         "version": APP_VERSION,
-        "status": result.get("status") or (no_work_status if endpoint == "telegram_tick" and not as_int(result.get("sent"), 0) else result.get("message")) or ("OK" if result.get("ok") else "ERROR"),
+        "status": status or ("OK" if result.get("ok") else "ERROR"),
+        "cron_status": "CRON_OK" if result.get("ok", False) else "CRON_ERROR",
         "cron": True,
         "automation_source": "cron",
         "automation_enabled": telegram_env_auto_enabled() if endpoint == "telegram_tick" else daily_automation_env_enabled(),
@@ -537,8 +551,8 @@ def _cron_compact_payload(endpoint, result, called_at, finished_at, force=False)
         "failed": as_int(result.get("failed"), 0),
         "skipped": as_int(result.get("skipped"), 0),
         "skipped_count": as_int(result.get("skipped"), 0),
-        "discard_reasons": result.get("discarded") or result.get("discard_reasons") or [],
-        "last_delivery_id": "",
+        "discard_reasons": discard_reasons,
+        "last_delivery_id": latest_delivery_id,
         "force": bool(force),
         "called_at": called_at,
         "finished_at": finished_at,
@@ -6821,7 +6835,7 @@ def enqueue_telegram_message(message_type, title, body, chat_id="", user_id="", 
     source = str(payload.get("source") or ("automatic_cron" if telegram_message_is_automatic(message_type) else "manual_admin"))
     trigger_type = str(payload.get("trigger_type") or message_type or "")
     auto_job_key = str(payload.get("auto_job_key") or payload.get("target_key") or dedupe_key or "")
-    dedupe_key = dedupe_key or telegram_dedupe_key(message_type, today_iso(), chat_id or user_id or "global")
+    dedupe_key = dedupe_key or telegram_dedupe_key(message_type, today_iso(), chat_id or user_id or "global", source=source)
     existing = one("SELECT * FROM telegram_queue WHERE dedupe_key=?", (dedupe_key,))
     if existing and not force:
         telegram_log("queue", "skipped", "Mensaje duplicado omitido.", {"dedupe_key": dedupe_key, "message_type": message_type})
@@ -6977,7 +6991,88 @@ def telegram_pick_sendability(pick):
                 reasons.append("calidad_insuficiente")
     except Exception:
         pass
-    return {"sendable": not reasons, "reasons": reasons}
+    return {"sendable": not reasons, "reasons": reasons, "reason_codes": telegram_discard_reason_codes(reasons)}
+
+
+TELEGRAM_DISCARD_REASON_CODES = {
+    "partido_antiguo": "OLD_MATCH",
+    "partido_no_valido": "MATCH_STARTED",
+    "sin_cuota_real": "MISSING_ODDS",
+    "cuota_demasiado_baja": "OUTSIDE_WINDOW",
+    "cuota_demasiado_alta": "OUTSIDE_WINDOW",
+    "sin_pick_recomendado": "MISSING_MARKET",
+    "sin_mercado": "MISSING_MARKET",
+    "pick_no_cerrado": "NOT_APPROVED",
+    "pick_demasiado_largo": "NOT_TELEGRAM_ELIGIBLE",
+    "calidad_insuficiente": "NOT_TELEGRAM_ELIGIBLE",
+    "deporte_no_futbol": "NOT_TELEGRAM_ELIGIBLE",
+    "horario_silencioso": "OUTSIDE_PRO_WINDOW",
+    "fuera_ventana_resumen": "OUTSIDE_PRO_WINDOW",
+    "fuera_ventana_picks": "OUTSIDE_PRO_WINDOW",
+    "sin_destinatarios": "NO_DESTINATION",
+    "duplicate": "DUPLICATE_ALREADY_SENT",
+    "score_bajo": "NOT_TELEGRAM_ELIGIBLE",
+    "riesgo_alto": "NOT_TELEGRAM_ELIGIBLE",
+    "sin_cuota_valida": "MISSING_ODDS",
+}
+
+
+def telegram_discard_reason_code(reason):
+    raw = str(reason or "").strip()
+    if not raw:
+        return "NOT_TELEGRAM_ELIGIBLE"
+    return TELEGRAM_DISCARD_REASON_CODES.get(raw, re.sub(r"[^A-Za-z0-9]+", "_", raw).strip("_").upper())
+
+
+def telegram_discard_reason_codes(reasons):
+    codes = []
+    for reason in reasons or []:
+        code = telegram_discard_reason_code(reason)
+        if code and code not in codes:
+            codes.append(code)
+    return codes or ["NOT_TELEGRAM_ELIGIBLE"]
+
+
+def telegram_collect_discard_reasons(result):
+    collected = []
+
+    def add(value):
+        if not value:
+            return
+        if isinstance(value, dict):
+            for key in ("reason_codes", "reasons", "discard_reasons", "discarded"):
+                add(value.get(key))
+            reason = value.get("reason") or value.get("status")
+            if reason:
+                collected.append(telegram_discard_reason_code(reason))
+            return
+        if isinstance(value, (list, tuple)):
+            for item in value:
+                add(item)
+            return
+        collected.append(telegram_discard_reason_code(value))
+
+    result = result or {}
+    add(result.get("discard_reasons"))
+    add(result.get("discarded"))
+    for item in result.get("results") or []:
+        add(item.get("discard_reasons"))
+        add(item.get("discarded"))
+        add(item.get("reason"))
+        add(item.get("status") if not as_int(item.get("inserted"), 0) and not as_int(item.get("sent"), 0) else "")
+    nested = result.get("result") or {}
+    if isinstance(nested, dict):
+        add(nested.get("discard_reasons"))
+        for item in nested.get("results") or []:
+            add(item.get("discard_reasons"))
+            add(item.get("discarded"))
+            add(item.get("reason"))
+            add(item.get("status") if not as_int(item.get("inserted"), 0) and not as_int(item.get("sent"), 0) else "")
+    ordered = []
+    for code in collected:
+        if code and code not in ordered:
+            ordered.append(code)
+    return ordered
 
 
 def telegram_auto_pick_health(limit=40):
@@ -7020,6 +7115,8 @@ def telegram_reliability_snapshot(limit=60):
         "chat_id_configured": env_present("TELEGRAM_CHAT_ID"),
         "bot_username_configured": env_present("TELEGRAM_BOT_USERNAME") or env_present("TELEGRAM_USERNAME"),
         "public_base_url_configured": env_present("PUBLIC_BASE_URL") or env_present("RENDER_EXTERNAL_URL"),
+        "tz_configured": env_present("TZ"),
+        "app_timezone_configured": env_present("APP_TIMEZONE"),
         "automation_secret_configured": automation_secret_configured(),
         "enable_telegram_auto": env_bool("ENABLE_TELEGRAM_AUTO", False),
         "enable_telegram_automation": env_bool("ENABLE_TELEGRAM_AUTOMATION", False),
@@ -7089,7 +7186,15 @@ def telegram_reliability_snapshot(limit=60):
         status = str(pick.get("status") or pick.get("match_status") or "").lower()
         if any(word in status for word in ("final", "finished", "ended", "cancelled", "postponed")):
             finished_matches += 1
-        dedupe = telegram_dedupe_key("auto_pick", str(pick.get("id") or today_iso()), dedupe_target)
+        dedupe = telegram_dedupe_key(
+            "auto_pick",
+            today_iso(),
+            dedupe_target,
+            pick_id=pick.get("id"),
+            match_id=pick.get("match_id"),
+            market=pick.get("market") or pick.get("pick_type"),
+            source="automatic_cron",
+        )
         existing = one("SELECT id,status,sent_at,error_message FROM telegram_queue WHERE dedupe_key=? ORDER BY created_at DESC LIMIT 1", (dedupe,))
         if existing:
             already_sent += 1
@@ -7288,12 +7393,12 @@ def build_system_test_message():
 def enqueue_daily_matches(force=False, forced_chat_id=""):
     cfg = telegram_pro_calibration()
     if not force and not telegram_time_window_active(cfg["daily_summary_start"], cfg["daily_summary_end"]):
-        return {"ok": True, "message": "Resumen diario fuera de ventana PRO; se mantiene pendiente para horario profesional.", "processed": 0, "sent": 0, "failed": 0, "skipped": 1, "errors": [], "reason": "fuera_ventana_resumen"}
+        return {"ok": True, "status": "OUTSIDE_PRO_WINDOW", "message": "Resumen diario fuera de ventana PRO; se mantiene pendiente para horario profesional.", "processed": 0, "sent": 0, "failed": 0, "skipped": 1, "errors": [], "reason": "fuera_ventana_resumen", "discard_reasons": ["OUTSIDE_PRO_WINDOW"]}
     subscribers = telegram_subscribers()
     if forced_chat_id and not subscribers:
         subscribers = [{"chat_id": forced_chat_id, "user_id": "", "membership": "ADMIN"}]
     if not subscribers:
-        return {"ok": False, "message": "No hay chat_id ni suscriptores activos.", "processed": 0, "sent": 0, "failed": 0, "skipped": 0, "errors": ["sin_destinatarios"]}
+        return {"ok": False, "status": "NO_DESTINATION", "message": "No hay chat_id ni suscriptores activos.", "processed": 0, "sent": 0, "failed": 0, "skipped": 0, "errors": ["sin_destinatarios"], "discard_reasons": ["NO_DESTINATION"]}
     body = build_daily_matches_message()
     inserted = skipped = 0
     for sub in subscribers:
@@ -7304,26 +7409,26 @@ def enqueue_daily_matches(force=False, forced_chat_id=""):
             chat_id=sub.get("chat_id"),
             user_id=sub.get("user_id"),
             payload={"membership": sub.get("membership"), "target_key": today_iso(), "source": "automatic_cron", "trigger_type": "daily_matches", "auto_job_key": f"daily_matches:{today_iso()}", "app_url": telegram_absolute_url("/sports-hub"), "button_text": "📅 Ver partidos", "picks_url": telegram_absolute_url("/picks"), "include_picks_button": True, "include_live_button": True, "live_url": telegram_absolute_url("/live"), "enable_link_preview": False},
-            dedupe_key=telegram_dedupe_key("daily_matches", today_iso(), sub.get("chat_id")),
+            dedupe_key=telegram_dedupe_key("daily_matches", today_iso(), sub.get("chat_id"), source="automatic_cron"),
             force=force,
         )
         inserted += 1 if result.get("queued") else 0
         skipped += 1 if result.get("skipped") else 0
-    return {"ok": True, "message": "Resumen de partidos encolado.", "processed": len(subscribers), "inserted": inserted, "updated": 0, "sent": 0, "failed": 0, "skipped": skipped, "errors": []}
+    return {"ok": True, "status": "QUEUED" if inserted else "DUPLICATE_ALREADY_SENT", "message": "Resumen de partidos encolado.", "processed": len(subscribers), "inserted": inserted, "updated": 0, "sent": 0, "failed": 0, "skipped": skipped, "errors": [], "discard_reasons": [] if inserted else ["DUPLICATE_ALREADY_SENT"]}
 
 
 def enqueue_daily_picks(force=False, force_empty=False, forced_chat_id=""):
     cfg = telegram_pro_calibration()
     if not force and not telegram_time_window_active(cfg["daily_picks_start"], cfg["daily_picks_end"]):
-        return {"ok": True, "message": "Picks diarios fuera de ventana PRO; no se fuerza envio.", "processed": 0, "inserted": 0, "sent": 0, "failed": 0, "skipped": 1, "errors": [], "reason": "fuera_ventana_picks"}
+        return {"ok": True, "status": "OUTSIDE_PRO_WINDOW", "message": "Picks diarios fuera de ventana PRO; no se fuerza envio.", "processed": 0, "inserted": 0, "sent": 0, "failed": 0, "skipped": 1, "errors": [], "reason": "fuera_ventana_picks", "discard_reasons": ["OUTSIDE_PRO_WINDOW"]}
     body = build_daily_picks_message(force_empty=force_empty)
     if not body:
-        return {"ok": True, "message": "No hay picks publicados; no se encola nada.", "processed": 0, "inserted": 0, "sent": 0, "failed": 0, "skipped": 1, "errors": []}
+        return {"ok": True, "status": "NO_ELIGIBLE_PICKS", "message": "No hay picks premium activos ahora mismo. SHARK esta esperando valor real.", "processed": 0, "inserted": 0, "sent": 0, "failed": 0, "skipped": 1, "errors": [], "discard_reasons": ["NO_ELIGIBLE_PICKS"]}
     subscribers = telegram_auto_destinations("PRO", include_global=True)
     if forced_chat_id and not subscribers:
         subscribers = [{"chat_id": forced_chat_id, "user_id": "", "membership": "ADMIN"}]
     if not subscribers:
-        return {"ok": False, "message": "No hay canal global ni suscriptores PRO/ELITE activos.", "processed": 0, "sent": 0, "failed": 0, "skipped": 0, "errors": ["sin_destinatarios"]}
+        return {"ok": False, "status": "NO_DESTINATION", "message": "No hay canal global ni suscriptores PRO/ELITE activos.", "processed": 0, "sent": 0, "failed": 0, "skipped": 0, "errors": ["sin_destinatarios"], "discard_reasons": ["NO_DESTINATION"]}
     inserted = skipped = 0
     for sub in subscribers:
         result = enqueue_telegram_message(
@@ -7333,18 +7438,18 @@ def enqueue_daily_picks(force=False, force_empty=False, forced_chat_id=""):
             chat_id=sub.get("chat_id"),
             user_id=sub.get("user_id"),
             payload={"membership": sub.get("membership"), "target_key": today_iso(), "source": "automatic_cron", "trigger_type": "daily_picks", "auto_job_key": f"daily_picks:{today_iso()}", "app_url": telegram_absolute_url("/picks"), "button_text": "🦈 Abrir picks SHARK", "include_picks_button": False, "include_live_button": True, "live_url": telegram_absolute_url("/live"), "enable_link_preview": False},
-            dedupe_key=telegram_dedupe_key("daily_picks", today_iso(), sub.get("chat_id")),
+            dedupe_key=telegram_dedupe_key("daily_picks", today_iso(), sub.get("chat_id"), source="automatic_cron"),
             force=force,
         )
         inserted += 1 if result.get("queued") else 0
         skipped += 1 if result.get("skipped") else 0
-    return {"ok": True, "message": "Picks destacados encolados.", "processed": len(subscribers), "inserted": inserted, "updated": 0, "sent": 0, "failed": 0, "skipped": skipped, "errors": []}
+    return {"ok": True, "status": "QUEUED" if inserted else "DUPLICATE_ALREADY_SENT", "message": "Picks destacados encolados.", "processed": len(subscribers), "inserted": inserted, "updated": 0, "sent": 0, "failed": 0, "skipped": skipped, "errors": [], "discard_reasons": [] if inserted else ["DUPLICATE_ALREADY_SENT"]}
 
 
 def enqueue_auto_pick_alerts(force=False, limit=4):
     cfg = telegram_pro_calibration()
     if telegram_should_delay_message("auto_pick", force=force):
-        return {"ok": True, "message": "Horario silencioso PRO activo; no se encolan picks automaticos.", "processed": 0, "inserted": 0, "sent": 0, "failed": 0, "skipped": 1, "errors": [], "reason": "horario_silencioso"}
+        return {"ok": True, "status": "OUTSIDE_PRO_WINDOW", "message": "Horario silencioso PRO activo; no se encolan picks automaticos.", "processed": 0, "inserted": 0, "sent": 0, "failed": 0, "skipped": 1, "errors": [], "reason": "horario_silencioso", "discard_reasons": ["OUTSIDE_PRO_WINDOW"]}
     min_score = cfg["min_pick_score"]
     limit = min(int(limit or cfg["max_auto_picks_per_tick"]), cfg["max_auto_picks_per_tick"]) if not force else int(limit or cfg["max_auto_picks_per_tick"])
     picks = get_picks(limit=max(20, int(limit) * 5), status=["published"], include_admin=True)
@@ -7356,21 +7461,22 @@ def enqueue_auto_pick_alerts(force=False, limit=4):
         odds = as_float(pick.get("odds"), 0.0)
         sendability = telegram_pick_sendability(pick)
         if not sendability.get("sendable"):
-            discard_reason = ",".join(sendability.get("reasons") or ["no_enviable"])
-            discarded.append({"pick_id": pick.get("id"), "reason": discard_reason})
+            reason_codes = sendability.get("reason_codes") or telegram_discard_reason_codes(sendability.get("reasons"))
+            discard_reason = ",".join(reason_codes)
+            discarded.append({"pick_id": pick.get("id"), "reason": discard_reason, "reason_codes": reason_codes})
             safe_memory_call(DB_PATH, "pick_discard", remember_pick_discard, candidate=pick, reason=discard_reason)
             continue
         if score < min_score and not force:
-            discarded.append({"pick_id": pick.get("id"), "reason": "score_bajo", "score": score})
+            discarded.append({"pick_id": pick.get("id"), "reason": "NOT_TELEGRAM_ELIGIBLE", "reason_codes": ["NOT_TELEGRAM_ELIGIBLE"], "score": score})
             safe_memory_call(DB_PATH, "pick_discard", remember_pick_discard, candidate=pick, reason="score_bajo")
             continue
         risk_raw = str(pick.get("risk_level") or pick.get("risk") or "").lower()
         if ("alto" in risk_raw or "high" in risk_raw) and score < cfg["elite_pick_score"] and not force:
-            discarded.append({"pick_id": pick.get("id"), "reason": "riesgo_alto", "score": score})
+            discarded.append({"pick_id": pick.get("id"), "reason": "NOT_TELEGRAM_ELIGIBLE", "reason_codes": ["NOT_TELEGRAM_ELIGIBLE"], "score": score})
             safe_memory_call(DB_PATH, "pick_discard", remember_pick_discard, candidate=pick, reason="riesgo_alto")
             continue
         if odds <= 1 and not force:
-            discarded.append({"pick_id": pick.get("id"), "reason": "sin_cuota_valida"})
+            discarded.append({"pick_id": pick.get("id"), "reason": "MISSING_ODDS", "reason_codes": ["MISSING_ODDS"]})
             safe_memory_call(DB_PATH, "pick_discard", remember_pick_discard, candidate=pick, reason="sin_cuota_valida")
             continue
         candidates.append(pick)
@@ -7379,7 +7485,7 @@ def enqueue_auto_pick_alerts(force=False, limit=4):
             break
     if not candidates:
         telegram_log("[AUTO_PICKS]", "skipped", "No hay picks automaticos elegibles para Telegram.", {"min_score": min_score, "discarded": discarded[:12]})
-        return {"ok": True, "message": "No hay picks automaticos elegibles.", "processed": len(picks), "inserted": 0, "sent": 0, "failed": 0, "skipped": len(discarded) or 1, "errors": [], "discarded": discarded[:12]}
+        return {"ok": True, "status": "NO_ELIGIBLE_PICKS", "message": "No hay picks automaticos elegibles.", "processed": len(picks), "inserted": 0, "sent": 0, "failed": 0, "skipped": len(discarded) or 1, "errors": [], "discarded": discarded[:12], "discard_reasons": telegram_collect_discard_reasons({"discarded": discarded}) or ["NO_ELIGIBLE_PICKS"]}
     inserted = skipped = blocked = 0
     errors = []
     for pick in candidates:
@@ -7410,21 +7516,30 @@ def enqueue_auto_pick_alerts(force=False, limit=4):
                 chat_id=dest.get("chat_id"),
                 user_id=dest.get("user_id"),
                 payload={"membership": dest.get("membership"), "target_key": dest.get("target_key"), "source": "automatic_cron", "trigger_type": "auto_pick", "auto_job_key": f"auto_pick:{pick.get('id') or today_iso()}", "pick_id": pick.get("id"), "priority": 90, "auto": True, "target_kind": dest.get("target_kind"), "match_url": pick.get("match_url"), "home_logo": pick.get("home_logo"), "away_logo": pick.get("away_logo"), "button_text": "🦈 Ver análisis SHARK", "picks_url": telegram_absolute_url("/picks"), "include_picks_button": True, "include_live_button": True, "live_url": telegram_absolute_url("/live"), "enable_link_preview": bool(pick.get("home_logo") or pick.get("away_logo"))},
-                dedupe_key=telegram_dedupe_key("auto_pick", str(pick.get("id") or today_iso()), dedupe_target),
+                dedupe_key=telegram_dedupe_key(
+                    "auto_pick",
+                    today_iso(),
+                    dedupe_target,
+                    pick_id=pick.get("id"),
+                    match_id=pick.get("match_id"),
+                    market=pick.get("market") or pick.get("pick_type"),
+                    source="automatic_cron",
+                ),
                 force=force,
             )
             inserted += 1 if result.get("queued") else 0
             skipped += 1 if result.get("skipped") else 0
     telegram_log("[QUEUE]", "pending", "Revision de picks automaticos para Telegram completada.", {"candidates": len(candidates), "inserted": inserted, "skipped": skipped, "blocked": blocked, "min_score": min_score})
-    return {"ok": not errors, "message": "Picks automaticos revisados.", "processed": len(candidates), "inserted": inserted, "updated": 0, "sent": 0, "failed": 0, "skipped": skipped + blocked, "errors": errors[:12], "candidates": len(candidates), "discarded": discarded[:12]}
+    status = "QUEUED" if inserted else ("NO_DESTINATION" if errors else "DUPLICATE_ALREADY_SENT")
+    return {"ok": not errors, "status": status, "message": "Picks automaticos revisados.", "processed": len(candidates), "inserted": inserted, "updated": 0, "sent": 0, "failed": 0, "skipped": skipped + blocked, "errors": errors[:12], "candidates": len(candidates), "discarded": discarded[:12], "discard_reasons": telegram_collect_discard_reasons({"discarded": discarded, "errors": errors}) or ([] if inserted else ["DUPLICATE_ALREADY_SENT"])}
 
 
 def enqueue_live_alerts(force=False):
     settings = get_telegram_settings()
     if telegram_should_delay_message("live_alert", force=force):
-        return {"ok": True, "message": "Horario silencioso PRO activo; no se encolan alertas live.", "processed": 0, "inserted": 0, "sent": 0, "failed": 0, "skipped": 1, "errors": [], "reason": "horario_silencioso"}
+        return {"ok": True, "status": "OUTSIDE_PRO_WINDOW", "message": "Horario silencioso PRO activo; no se encolan alertas live.", "processed": 0, "inserted": 0, "sent": 0, "failed": 0, "skipped": 1, "errors": [], "reason": "horario_silencioso", "discard_reasons": ["OUTSIDE_PRO_WINDOW"]}
     if not settings.get("auto_live_alerts") and not force:
-        return {"ok": True, "message": "Alertas live desactivadas.", "processed": 0, "inserted": 0, "sent": 0, "failed": 0, "skipped": 1, "errors": []}
+        return {"ok": True, "status": "NO_LIVE_ALERTS", "message": "Alertas live desactivadas.", "processed": 0, "inserted": 0, "sent": 0, "failed": 0, "skipped": 1, "errors": [], "discard_reasons": ["NO_LIVE_ALERTS"]}
     live_matches = match_hub(today_iso(), "live").get("live") or []
     subscribers = [s for s in telegram_subscribers() if str(s.get("membership") or "FREE").upper() in {"ELITE", "ADMIN"}]
     inserted = skipped = 0
@@ -7442,12 +7557,12 @@ def enqueue_live_alerts(force=False):
                 chat_id=sub.get("chat_id"),
                 user_id=sub.get("user_id"),
                 payload={"membership": sub.get("membership"), "target_key": match.get("id"), "source": "automatic_cron", "trigger_type": "live_alert", "auto_job_key": f"live_alert:{match.get('id') or today_iso()}", "match_id": match.get("id"), "match_url": match.get("match_url"), "home_logo": match.get("home_logo"), "away_logo": match.get("away_logo"), "button_text": "🔴 Abrir live SHARK", "picks_url": telegram_absolute_url("/picks"), "include_picks_button": True, "include_live_button": False, "enable_link_preview": bool(match.get("home_logo") or match.get("away_logo"))},
-                dedupe_key=telegram_dedupe_key("live_alert", today_iso(), f"{sub.get('chat_id')}:{match.get('id')}:{match.get('minute') or match.get('score')}"),
+                dedupe_key=telegram_dedupe_key("live_alert", today_iso(), sub.get("chat_id"), match_id=match.get("id"), market=match.get("minute") or match.get("score"), source="automatic_cron"),
                 force=force,
             )
             inserted += 1 if result.get("queued") else 0
             skipped += 1 if result.get("skipped") else 0
-    return {"ok": True, "message": "Alertas live revisadas.", "processed": len(live_matches), "inserted": inserted, "updated": 0, "sent": 0, "failed": 0, "skipped": skipped, "errors": []}
+    return {"ok": True, "status": "QUEUED" if inserted else "NO_LIVE_ALERTS", "message": "Alertas live revisadas.", "processed": len(live_matches), "inserted": inserted, "updated": 0, "sent": 0, "failed": 0, "skipped": skipped, "errors": [], "discard_reasons": [] if inserted else ["NO_LIVE_ALERTS"]}
 
 
 def telegram_plain_text_from_html(value):
@@ -7683,6 +7798,9 @@ def telegram_diagnostics():
         "RUN_DAILY_AUTOMATION": env_bool("RUN_DAILY_AUTOMATION", False),
         "RUN_STARTUP_SCHEDULER_NOW": env_bool("RUN_STARTUP_SCHEDULER_NOW", False),
         "AUTOMATION_SECRET": automation_secret_configured(),
+        "PUBLIC_BASE_URL": env_present("PUBLIC_BASE_URL") or env_present("RENDER_EXTERNAL_URL"),
+        "TZ": env_present("TZ"),
+        "APP_TIMEZONE": env_present("APP_TIMEZONE"),
     }
     missing_required = [key for key in ("TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID") if not env_flags.get(key)]
     if not telegram_env_auto_enabled():
@@ -7782,7 +7900,7 @@ def telegram_scheduler_delivery(force=False):
     settings = get_telegram_settings()
     cfg = telegram_pro_calibration()
     if not (settings.get("enabled") or telegram_env_should_enable()) and not force:
-        return {"ok": True, "message": "Telegram automatico desactivado.", "processed": 0, "inserted": 0, "sent": 0, "failed": 0, "skipped": 1, "errors": []}
+        return {"ok": True, "status": "AUTO_DISABLED", "message": "Telegram automatico desactivado.", "processed": 0, "inserted": 0, "sent": 0, "failed": 0, "skipped": 1, "errors": ["AUTO_DISABLED"], "discard_reasons": ["AUTO_DISABLED"]}
     results = []
     auto_env = telegram_env_auto_enabled()
     if (settings.get("auto_daily_matches") or auto_env) and telegram_time_due(settings.get("daily_matches_time"), force=force):
@@ -7799,8 +7917,27 @@ def telegram_scheduler_delivery(force=False):
     sent = as_int(processed_queue.get("sent"), 0)
     failed = as_int(processed_queue.get("failed"), 0)
     errors = [e for r in results + [processed_queue] for e in (r.get("errors") or [])]
+    discard_reasons = telegram_collect_discard_reasons({"results": results})
+    due_jobs = []
+    for item in results:
+        if as_int(item.get("inserted"), 0) or as_int(item.get("sent"), 0):
+            due_jobs.append(item.get("message") or item.get("status") or "telegram_job")
+    status = "SENT" if sent else ("QUEUED" if inserted else "QUEUE_EMPTY")
+    if failed:
+        status = "TELEGRAM_SEND_FAILED"
+    elif errors:
+        status = errors[0] if str(errors[0]).isupper() else "TELEGRAM_JOB_ERROR"
+    elif not inserted and not sent:
+        if discard_reasons:
+            priority = ["NO_ELIGIBLE_PICKS", "OUTSIDE_PRO_WINDOW", "NO_LIVE_ALERTS", "DUPLICATE_ALREADY_SENT", "NO_DESTINATION"]
+            status = next((code for code in priority if code in discard_reasons), discard_reasons[0])
+        elif not results and not as_int(processed_queue.get("processed"), 0):
+            status = "QUEUE_EMPTY"
+        else:
+            status = "NO_DUE_JOBS"
     return {
         "ok": failed == 0 and not errors,
+        "status": status,
         "message": "Telegram scheduler ejecutado.",
         "processed": processed,
         "inserted": inserted,
@@ -7809,6 +7946,8 @@ def telegram_scheduler_delivery(force=False):
         "failed": failed,
         "skipped": skipped,
         "errors": errors[:12],
+        "due_jobs": due_jobs,
+        "discard_reasons": discard_reasons,
         "queue": processed_queue,
         "results": results,
     }
@@ -7948,8 +8087,10 @@ def telegram_scheduler_tick(force=False):
     result = telegram_scheduler_delivery(force=force)
     dispatch = {"time": now_iso(), "time_madrid": datetime.now(TZ).isoformat(timespec="seconds"), "source": "automatic_cron" if automation_secret_valid() else "automatic_scheduler", "result": result}
     automation_set("telegram_last_dispatch", dispatch)
-    status = "QUEUE_PROCESSED"
-    if not as_int(result.get("inserted"), 0) and not as_int(result.get("sent"), 0):
+    status = result.get("status") or "QUEUE_PROCESSED"
+    if as_int(result.get("sent"), 0) > 0:
+        status = "SENT"
+    elif not as_int(result.get("inserted"), 0) and not as_int(result.get("sent"), 0) and status in {"QUEUED", "QUEUE_PROCESSED"}:
         status = "QUEUE_EMPTY" if not as_int(result.get("processed"), 0) else "NO_DUE_JOBS"
     return {
         "ok": result.get("ok"),
@@ -7960,7 +8101,8 @@ def telegram_scheduler_tick(force=False):
         "failed": as_int(result.get("failed"), 0),
         "skipped": as_int(result.get("skipped"), 0),
         "status": status,
-        "due_jobs": [r.get("message") or r.get("reason") for r in (result.get("results") or []) if r],
+        "due_jobs": result.get("due_jobs") or [r.get("message") or r.get("reason") for r in (result.get("results") or []) if r],
+        "discard_reasons": result.get("discard_reasons") or telegram_collect_discard_reasons(result),
         "errors": result.get("errors") or [],
         "result": result,
     }

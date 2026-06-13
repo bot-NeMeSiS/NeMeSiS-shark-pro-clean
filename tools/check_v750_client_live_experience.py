@@ -17,7 +17,11 @@ live_template = (ROOT / "templates" / "live.html").read_text(encoding="utf-8")
 live_engine = (ROOT / "engines" / "live_experience_engine.py").read_text(encoding="utf-8")
 css = (ROOT / "static" / "app.css").read_text(encoding="utf-8")
 
-check("version_v750", VERSION == "V750_CLIENT_LIVE_DAY_RELEVANCE_MADRID_RESULT_POLISH", VERSION)
+check("version_v750_or_newer", VERSION in {
+    "V750_CLIENT_LIVE_DAY_RELEVANCE_MADRID_RESULT_POLISH",
+    "V751_TELEGRAM_PICK_ULTRA_PRO_MESSAGE_EXPERIENCE",
+    "V752_TELEGRAM_FULL_AUTO_ARTILLERY_PRODUCTION_CERTIFICATION",
+}, VERSION)
 check("live_day_groups_template", "live.day_groups" in live_template and "v750-live-day-group" in live_template)
 check("live_scorebox_template", "v750-live-scorebox" in live_template and "live_score_label" in live_template)
 check("live_madrid_time_copy", "hora Madrid" in live_template or "Hora Madrid" in live_template)

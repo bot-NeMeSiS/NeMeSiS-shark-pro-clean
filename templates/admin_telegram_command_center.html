@@ -8,6 +8,7 @@
 {% set cron = snap.cron or {} %}
 {% set last_dispatch = cron.last_dispatch or {} %}
 {% set last_dispatch_result = last_dispatch.get('result') or {} %}
+{% set last_tick_result = data.diagnostics.last_automation_result or {} %}
 {% set memory = snap.data_memory or {} %}
 {% set schema = snap.schema or {} %}
 <section class="hero compact v638-tight-hero">
@@ -46,6 +47,8 @@
     <div class="card metric-card"><div class="metric">{% if env.chat_id_configured %}SÃ­{% else %}No{% endif %}</div><div class="muted">CHAT_ID / canal</div></div>
     <div class="card metric-card"><div class="metric">{% if env.public_base_url_configured %}SÃ­{% else %}No{% endif %}</div><div class="muted">PUBLIC_BASE_URL</div></div>
     <div class="card metric-card"><div class="metric">{% if env.automation_secret_configured %}SÃ­{% else %}No{% endif %}</div><div class="muted">AUTOMATION_SECRET</div></div>
+    <div class="card metric-card"><div class="metric">{% if env.tz_configured %}SÃ­{% else %}No{% endif %}</div><div class="muted">TZ</div></div>
+    <div class="card metric-card"><div class="metric">{% if env.app_timezone_configured %}SÃ­{% else %}No{% endif %}</div><div class="muted">APP_TIMEZONE</div></div>
     <div class="card metric-card"><div class="metric">{% if env.telegram_football_only %}football_only{% else %}multi{% endif %}</div><div class="muted">modo deporte</div></div>
     <div class="card metric-card"><div class="metric">{% if env.auto_send_telegram_picks or env.enable_telegram_auto %}ON{% else %}OFF{% endif %}</div><div class="muted">auto Telegram</div></div>
   </div>
@@ -68,6 +71,23 @@
     <div class="card"><div class="kicker">Ultimo manual</div><strong>{{ data.diagnostics.last_sent_manual_message_at or 'Sin envio manual' }}</strong><p class="small">Los botones admin no certifican el automatico.</p></div>
     <div class="card"><div class="kicker">Ultimo Daily Run</div><strong>{{ cron.last_daily.time or 'Sin registro' }}</strong><p class="small">{{ cron.last_daily.endpoint or '' }} · force={{ cron.last_daily.force }}</p></div>
     <div class="card"><div class="kicker">Ultimo dispatch</div><strong>{{ last_dispatch.get('time') or 'Sin registro' }}</strong><p class="small">{{ last_dispatch_result.get('message') or last_dispatch_result.get('status') or '' }}</p></div>
+  </div>
+</section>
+
+<section class="band compact-band">
+  <div class="section-head"><h2>Resultado del Ãºltimo tick</h2><span class="pill">{{ last_tick_result.status or 'Sin tick' }}</span></div>
+  <div class="grid compact-grid metric-row">
+    <div class="card metric-card"><div class="metric">{{ last_tick_result.sent_count or last_tick_result.sent or 0 }}</div><div class="muted">enviados</div></div>
+    <div class="card metric-card"><div class="metric">{{ last_tick_result.skipped_count or last_tick_result.skipped or 0 }}</div><div class="muted">saltados</div></div>
+    <div class="card metric-card"><div class="metric">{{ last_tick_result.failed or 0 }}</div><div class="muted">fallidos</div></div>
+    <div class="card metric-card"><div class="metric">{{ last_tick_result.processed or 0 }}</div><div class="muted">procesados</div></div>
+    <div class="card metric-card"><div class="metric">{{ last_tick_result.inserted or 0 }}</div><div class="muted">encolados</div></div>
+    <div class="card metric-card"><div class="metric">{{ last_tick_result.last_delivery_id or '-' }}</div><div class="muted">last_delivery_id</div></div>
+  </div>
+  <div class="card">
+    <strong>Lectura del estado</strong>
+    <p class="small"><code>NO_DUE_JOBS</code>, <code>QUEUE_EMPTY</code>, <code>NO_ELIGIBLE_PICKS</code>, <code>OUTSIDE_PRO_WINDOW</code>, <code>NO_LIVE_ALERTS</code> y <code>DUPLICATE_ALREADY_SENT</code> son estados controlados, no fallos de Telegram.</p>
+    <p class="small">Motivos detectados: {% for reason in last_tick_result.discard_reasons or [] %}<span class="pill">{{ reason }}</span> {% else %}<span class="muted">Sin descartes registrados.</span>{% endfor %}</p>
   </div>
 </section>
 

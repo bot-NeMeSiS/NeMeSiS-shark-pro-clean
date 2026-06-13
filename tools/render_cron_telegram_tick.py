@@ -91,7 +91,7 @@ def main() -> int:
     request = urllib.request.Request(
         url,
         headers={
-            "User-Agent": "NeMeSiS-SHARK-PRO-Render-Cron/749B",
+            "User-Agent": "NeMeSiS-SHARK-PRO-Render-Cron/752",
             "Accept": "application/json,text/plain,*/*",
         },
         method="GET",

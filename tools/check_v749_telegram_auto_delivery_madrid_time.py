@@ -20,7 +20,7 @@ def assert_true(condition, message):
 
 def main():
     current_version = (ROOT / "VERSION.txt").read_text(encoding="utf-8").strip()
-    assert_true(current_version in {VERSION, VERSION_B, "V750_CLIENT_LIVE_DAY_RELEVANCE_MADRID_RESULT_POLISH", "V751_TELEGRAM_PICK_ULTRA_PRO_MESSAGE_EXPERIENCE"}, "VERSION.txt no contiene V749/V749B/V750/V751.")
+    assert_true(current_version in {VERSION, VERSION_B, "V750_CLIENT_LIVE_DAY_RELEVANCE_MADRID_RESULT_POLISH", "V751_TELEGRAM_PICK_ULTRA_PRO_MESSAGE_EXPERIENCE", "V752_TELEGRAM_FULL_AUTO_ARTILLERY_PRODUCTION_CERTIFICATION"}, "VERSION.txt no contiene V749/V749B/V750/V751/V752.")
     source = (ROOT / "app.py").read_text(encoding="utf-8")
     telegram_source = (ROOT / "engines" / "telegram_delivery_engine.py").read_text(encoding="utf-8")
     madrid_source = (ROOT / "engines" / "madrid_time_engine.py").read_text(encoding="utf-8")
@@ -66,7 +66,7 @@ def main():
         payload = with_secret.get_json() or {}
         assert_true(payload.get("automation_source") == "cron", "Cron debe identificarse como fuente cron.")
         assert_true(payload.get("now_madrid"), "Cron debe devolver hora Madrid.")
-        assert_true(payload.get("status") in {"QUEUE_EMPTY", "NO_DUE_JOBS", "NO_SENDABLE_ITEMS", "QUEUE_PROCESSED", "Telegram scheduler ejecutado."}, "Estado Cron poco claro.")
+        assert_true(payload.get("status") in {"QUEUE_EMPTY", "NO_DUE_JOBS", "NO_SENDABLE_ITEMS", "QUEUE_PROCESSED", "NO_ELIGIBLE_PICKS", "OUTSIDE_PRO_WINDOW", "NO_LIVE_ALERTS", "DUPLICATE_ALREADY_SENT", "SENT", "Telegram scheduler ejecutado."}, "Estado Cron poco claro.")
 
         admin = client.get("/admin/telegram/diagnostics")
         assert_true(admin.status_code in {302, 403}, "Diagnostico admin sin login debe quedar protegido.")

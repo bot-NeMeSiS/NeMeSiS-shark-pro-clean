@@ -9,8 +9,11 @@ version = (ROOT / "VERSION.txt").read_text(encoding="utf-8").strip()
 source = source_path.read_text(encoding="utf-8")
 errors = []
 
-if "V751_TELEGRAM_PICK_ULTRA_PRO_MESSAGE_EXPERIENCE" not in version:
-    errors.append("VERSION.txt no contiene V751_TELEGRAM_PICK_ULTRA_PRO_MESSAGE_EXPERIENCE")
+if version not in {
+    "V751_TELEGRAM_PICK_ULTRA_PRO_MESSAGE_EXPERIENCE",
+    "V752_TELEGRAM_FULL_AUTO_ARTILLERY_PRODUCTION_CERTIFICATION",
+}:
+    errors.append("VERSION.txt no contiene V751/V752 compatible")
 
 required_tokens = [
     "_TELEGRAM_PICK_PRO_MARKER",
