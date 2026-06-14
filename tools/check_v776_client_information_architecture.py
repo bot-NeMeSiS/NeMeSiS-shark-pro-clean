@@ -2,6 +2,7 @@
 from pathlib import Path
 import re, sys
 ROOT = Path(__file__).resolve().parents[1]
+V780_VERSION = "V780_LIVE_DATA_RECOVERY_REALTIME_STABILITY_FIX"
 VERSION = (ROOT/'VERSION.txt').read_text(encoding='utf-8-sig').strip()
 errors=[]
 def read(rel):

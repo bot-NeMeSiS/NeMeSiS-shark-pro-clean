@@ -18,7 +18,7 @@ css = read('static/app.css')
 base = read('templates/base.html')
 partial = read('templates/partials/team_identity.html')
 
-require(version == 'V779_TEAM_IDENTITY_FLAGS_CRESTS_FINAL_POLISH', 'VERSION.txt no está en V779')
+require(version in {'V779_TEAM_IDENTITY_FLAGS_CRESTS_FINAL_POLISH', 'V780_LIVE_DATA_RECOVERY_REALTIME_STABILITY_FIX'}, 'VERSION.txt no está en V779/V780 compatible')
 require('def team_display_identity' in app and 'def team_identity_for_match' in app, 'Faltan helpers centrales de identidad V779')
 require('@app.template_filter("team_identity")' in app, 'Falta filtro Jinja team_identity')
 require('@app.template_filter("team_crest_url")' in app, 'Falta filtro Jinja team_crest_url')

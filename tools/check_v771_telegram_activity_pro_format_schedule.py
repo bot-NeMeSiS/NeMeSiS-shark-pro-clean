@@ -19,6 +19,7 @@ V776_VERSION = "V776_CLIENT_INFORMATION_ARCHITECTURE_FINAL_ORDER"
 V777_VERSION = "V777_CLIENT_PRODUCT_EXPERIENCE_FINAL_SYSTEM"
 V778_VERSION = "V778_CLIENT_PRODUCT_ORGANIZATION_MADRID_TIME_FINAL_STABILITY"
 V779_VERSION = "V779_TEAM_IDENTITY_FLAGS_CRESTS_FINAL_POLISH"
+V780_VERSION = "V780_LIVE_DATA_RECOVERY_REALTIME_STABILITY_FIX"
 sys.path.insert(0, str(ROOT))
 
 
@@ -55,8 +56,8 @@ def assert_no_secret_literals():
 def static_checks():
     version = read("VERSION.txt").strip()
     app = read("app.py")
-    ok(version in {VERSION, V772_VERSION, V773_VERSION, V774_VERSION, V775_VERSION, V776_VERSION, V777_VERSION, V778_VERSION, V779_VERSION}, "VERSION.txt no apunta a V771/V772/V773/V774/V775/V776/V777/V778/V779 compatible")
-    ok(f'APP_VERSION = "{VERSION}"' in app or f'APP_VERSION = "{V772_VERSION}"' in app or f'APP_VERSION = "{V773_VERSION}"' in app or f'APP_VERSION = "{V774_VERSION}"' in app or f'APP_VERSION = "{V775_VERSION}"' in app or f'APP_VERSION = "{V776_VERSION}"' in app or f'APP_VERSION = "{V777_VERSION}"' in app or f'APP_VERSION = "{V778_VERSION}"' in app or f'APP_VERSION = "{V779_VERSION}"' in app, "APP_VERSION no apunta a V771/V772/V773/V774/V775/V776/V777/V778/V779 compatible")
+    ok(version in {VERSION, V772_VERSION, V773_VERSION, V774_VERSION, V775_VERSION, V776_VERSION, V777_VERSION, V778_VERSION, V779_VERSION, V780_VERSION}, "VERSION.txt no apunta a V771/V772/V773/V774/V775/V776/V777/V778/V779/V780 compatible")
+    ok(f'APP_VERSION = "{VERSION}"' in app or f'APP_VERSION = "{V772_VERSION}"' in app or f'APP_VERSION = "{V773_VERSION}"' in app or f'APP_VERSION = "{V774_VERSION}"' in app or f'APP_VERSION = "{V775_VERSION}"' in app or f'APP_VERSION = "{V776_VERSION}"' in app or f'APP_VERSION = "{V777_VERSION}"' in app or f'APP_VERSION = "{V778_VERSION}"' in app or f'APP_VERSION = "{V779_VERSION}"' in app or f'APP_VERSION = "{V780_VERSION}"' in app, "APP_VERSION no apunta a V771/V772/V773/V774/V775/V776/V777/V778/V779/V780 compatible")
     ok('DB_PATH = os.getenv("DB_PATH", "/data/database.db")' in app, "DB_PATH fue alterado")
     ok("/api/automation/telegram/tick" in app, "tick Telegram no existe")
     ok("AUTOMATION_SECRET" in app, "AUTOMATION_SECRET no protegido")

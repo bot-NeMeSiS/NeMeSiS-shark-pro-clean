@@ -187,7 +187,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V779_TEAM_IDENTITY_FLAGS_CRESTS_FINAL_POLISH"
+APP_VERSION = "V780_LIVE_DATA_RECOVERY_REALTIME_STABILITY_FIX"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -2145,7 +2145,13 @@ def get_thesportsdb_last_error():
 
 
 def sportsdb_live_enabled():
-    return str(os.getenv("ENABLE_LIVE_API", "")).strip().lower() in {"1", "true", "yes", "on"}
+    # V780: Directo must not silently die because a Render flag is missing.
+    # If a TheSportsDB key exists, live is enabled by default unless explicitly disabled.
+    # TheSportsDB docs expose V2 livescores at /api/v2/json/livescore/soccer with X-API-KEY.
+    flag = str(os.getenv("ENABLE_LIVE_API", "")).strip().lower()
+    if flag in {"0", "false", "no", "off", "disabled"}:
+        return False
+    return bool(thesportsdb_key())
 
 
 def odds_enabled():
@@ -2391,7 +2397,7 @@ def sportsdb_match_status(event):
 
 
 FINISHED_STATUS_WORDS = {"ft", "final", "finalizado", "finished", "match finished", "aet", "pen", "after penalties"}
-LIVE_STATUS_WORDS = {"live", "directo", "1h", "2h", "ht", "descanso", "halftime", "half time", "in play", "inplay"}
+LIVE_STATUS_WORDS = {"live", "directo", "1h", "2h", "ht", "descanso", "halftime", "half time", "in play", "inplay", "in progress", "inprogress", "playing", "started", "first half", "second half", "1st half", "2nd half", "break"}
 SCHEDULED_STATUS_WORDS = {"programado", "scheduled", "not started", "ns", "fixture", "upcoming"}
 
 
@@ -2406,7 +2412,15 @@ def is_finished_status_value(status):
 
 def is_live_status_value(status):
     text = str(status or "").strip().lower()
-    return text in LIVE_STATUS_WORDS or any(x in text for x in ["live", "directo", "1h", "2h", "half"])
+    if not text:
+        return False
+    # V780: TheSportsDB/v2 and other feeds may use different live labels.
+    # Keep this deliberately broad for active football states, but never override finished checks.
+    if is_finished_status_value(text):
+        return False
+    return text in LIVE_STATUS_WORDS or any(x in text for x in [
+        "live", "directo", "1h", "2h", "half", "progress", "playing", "started", "descanso", "running"
+    ])
 
 
 def canonical_match_status(match):
@@ -2614,6 +2628,160 @@ def fetch_sportsdb_feed_events(limit=220):
             errors.append("livescore: " + str(exc)[:160])
     return events[: int(limit)], errors
 
+
+
+def live_cache_age_seconds(key="client-live-on-demand"):
+    row = one("SELECT updated_at FROM automation_state WHERE key=?", (key,))
+    if not row or not row.get("updated_at"):
+        return None
+    try:
+        updated = datetime.fromisoformat(str(row.get("updated_at")))
+        if updated.tzinfo is None:
+            updated = TZ.localize(updated) if hasattr(TZ, "localize") else updated.replace(tzinfo=TZ)
+        return max(0, int((datetime.now(TZ) - updated).total_seconds()))
+    except Exception:
+        return None
+
+
+def active_live_count_cached():
+    try:
+        status_clause = "(lower(COALESCE(status,'')) LIKE '%live%' OR lower(COALESCE(status,'')) LIKE '%directo%' OR lower(COALESCE(status,'')) LIKE '%progress%' OR lower(COALESCE(status,'')) IN ('1h','2h','ht','descanso','halftime','inplay','in play') OR COALESCE(minute,'')!='')"
+        matches_count = (one("SELECT COUNT(*) AS total FROM matches WHERE " + status_clause) or {}).get("total", 0)
+        live_table_count = (one("SELECT COUNT(*) AS total FROM live_matches WHERE COALESCE(updated_at,'')>=?", ((datetime.now(TZ)-timedelta(hours=6)).isoformat(timespec="seconds"),)) or {}).get("total", 0)
+        return int(matches_count or 0) + int(live_table_count or 0)
+    except Exception:
+        return 0
+
+
+def sync_sportsdb_live_scores_only(limit=120):
+    """Refresh only TheSportsDB V2 livescore feed for /live.
+
+    This is intentionally narrower than the calendar refresh: it avoids flooding APIs
+    and makes the Directo page recover when scheduler/cache is stale.
+    """
+    if not thesportsdb_key():
+        return {"ok": False, "skipped": True, "reason": "missing_thesportsdb_key", "processed": 0, "inserted": 0, "updated": 0, "errors": ["Falta THESPORTSDB_API_KEY o THESPORTSDB_KEY."]}
+    if not sportsdb_live_enabled():
+        return {"ok": True, "skipped": True, "reason": "live_api_disabled", "processed": 0, "inserted": 0, "updated": 0, "errors": []}
+    errors = []
+    events = []
+    try:
+        payload = sportsdb_v2("livescore/soccer")
+        events.extend([(item, {"key": slug(item.get("strLeague") or item.get("league") or "sportsdb-live"), "name": item.get("strLeague") or item.get("league") or "Live Soccer", "country": item.get("strCountry") or item.get("country") or ""}) for item in sportsdb_event_collection(payload)])
+    except Exception as exc:
+        save_thesportsdb_error(exc)
+        errors.append("livescore/soccer: " + str(exc)[:160])
+    match_rows = []
+    for event, fallback in events[: int(limit)]:
+        try:
+            match = sportsdb_event_to_match(event, fallback)
+            if match:
+                # Force a live status if it came from the live endpoint and is not explicitly finished.
+                if not is_finished_status_value(match.get("status")):
+                    match["status"] = "LIVE" if not is_live_status_value(match.get("status")) else match.get("status")
+                match_rows.append(match)
+        except Exception as exc:
+            errors.append(str(exc)[:160])
+    result = upsert_sportsdb_matches(match_rows) if match_rows else {"ok": not errors, "processed": len(events), "imported": 0, "updated": 0, "inserted": 0, "skipped": 0, "errors": errors[:10]}
+    result["source"] = "TheSportsDB V2 livescore"
+    result["sync_type"] = "live_scores_only"
+    result["processed"] = len(events)
+    result["errors"] = (result.get("errors") or []) + errors[:10]
+    try:
+        conn = db()
+        conn.execute("DELETE FROM persistent_cache WHERE key LIKE 'match-hub:%'")
+        conn.execute(
+            "INSERT OR REPLACE INTO automation_state(key,value_json,updated_at) VALUES (?,?,?)",
+            ("client-live-on-demand", json.dumps(result, ensure_ascii=False), now_iso()),
+        )
+        conn.commit()
+        conn.close()
+    except Exception:
+        pass
+    return result
+
+
+def ensure_client_live_fresh(force=False):
+    """Best-effort live refresh for client Directo routes with throttling.
+
+    It never invents matches. It only refreshes the legal live feed when configured,
+    and otherwise returns a visible diagnostic payload.
+    """
+    if not thesportsdb_key():
+        return {"ok": False, "skipped": True, "reason": "missing_thesportsdb_key"}
+    if not sportsdb_live_enabled():
+        return {"ok": True, "skipped": True, "reason": "live_api_disabled"}
+    min_seconds = max(30, as_int(os.getenv("LIVE_ON_DEMAND_MIN_SECONDS", os.getenv("LIVE_CACHE_MINUTES", "2")), 2) * 60)
+    age = live_cache_age_seconds()
+    cached_live = active_live_count_cached()
+    if not force and age is not None and age < min_seconds and cached_live > 0:
+        return {"ok": True, "skipped": True, "reason": "fresh_cache", "age_seconds": age, "cached_live": cached_live}
+    if not force and age is not None and age < max(30, min_seconds // 2):
+        return {"ok": True, "skipped": True, "reason": "throttled", "age_seconds": age, "cached_live": cached_live}
+    return sync_sportsdb_live_scores_only(limit=as_int(os.getenv("LIVE_ON_DEMAND_LIMIT", "120"), 120))
+
+
+def live_matches_from_live_table(limit=120):
+    """Return recent live rows joined with matches as a safety net.
+
+    Previous versions could have live_matches populated while /live only read the
+    match hub cache. V780 makes the live table a first-class fallback source.
+    """
+    seed_core()
+    cutoff = (datetime.now(TZ) - timedelta(hours=6)).isoformat(timespec="seconds")
+    data = []
+    sql = """
+        SELECT lm.match_id AS lm_match_id, lm.status AS lm_status, lm.minute AS lm_minute,
+               lm.home_score AS lm_home_score, lm.away_score AS lm_away_score, lm.payload_json AS lm_payload_json,
+               lm.source AS lm_source, lm.updated_at AS lm_updated_at, m.*
+        FROM live_matches lm
+        LEFT JOIN matches m ON m.id=lm.match_id OR m.external_id=lm.match_id
+        WHERE COALESCE(lm.updated_at,'')>=?
+        ORDER BY lm.updated_at DESC
+        LIMIT ?
+    """
+    for row in rows(sql, (cutoff, int(limit))):
+        item = dict(row)
+        payload_match = None
+        if not item.get("id") and item.get("lm_payload_json"):
+            try:
+                payload = json.loads(item.get("lm_payload_json") or "{}")
+                payload_match = sportsdb_event_to_match(payload, {"key": "sportsdb-live", "name": payload.get("strLeague") or "Live Soccer", "country": payload.get("strCountry") or ""})
+            except Exception:
+                payload_match = None
+        if payload_match:
+            item.update(payload_match)
+        if not item.get("id"):
+            item["id"] = item.get("lm_match_id") or "live-unknown"
+        item["status"] = item.get("lm_status") or item.get("status") or "LIVE"
+        item["minute"] = item.get("lm_minute") or item.get("minute") or ""
+        item["home_score"] = item.get("lm_home_score") if item.get("lm_home_score") not in {None, ""} else item.get("home_score")
+        item["away_score"] = item.get("lm_away_score") if item.get("lm_away_score") not in {None, ""} else item.get("away_score")
+        if not item.get("score") and (item.get("home_score") not in {None, ""} or item.get("away_score") not in {None, ""}):
+            item["score"] = sportsdb_score(item.get("home_score"), item.get("away_score"))
+        try:
+            item = annotate_match(item)
+        except Exception:
+            item.update(apply_match_localization(item))
+            item.update(apply_team_identities_to_match(item))
+        data.append(item)
+    return dedupe_matches_list(data)
+
+
+def live_matches_any_date(limit=160):
+    status_clause = "(lower(COALESCE(status,'')) LIKE '%live%' OR lower(COALESCE(status,'')) LIKE '%directo%' OR lower(COALESCE(status,'')) LIKE '%progress%' OR lower(COALESCE(status,'')) IN ('1h','2h','ht','descanso','halftime','inplay','in play') OR COALESCE(minute,'')!='')"
+    data = rows("SELECT * FROM matches WHERE " + status_clause + " ORDER BY updated_at DESC, match_date DESC, kickoff_time LIMIT ?", (int(limit),))
+    out = []
+    for item in data:
+        if is_fake_match(item):
+            continue
+        try:
+            out.append(annotate_match(item))
+        except Exception:
+            item.update(apply_match_localization(item))
+            item.update(apply_team_identities_to_match(item))
+            out.append(item)
+    return dedupe_matches_list(out)
 
 def upsert_sportsdb_matches(match_rows):
     conn = db()
@@ -3234,7 +3402,11 @@ def cleanup_scheduler_logs(max_rows=300):
 
 
 def refresh_live_basic(limit=80):
-    result = sync_sportsdb_calendar(limit=limit)
+    # V780: Live refresh must prioritize live scores, not only the broader calendar feed.
+    result = sync_sportsdb_live_scores_only(limit=limit)
+    if not result.get("processed") and result.get("reason") not in {"missing_thesportsdb_key", "live_api_disabled"}:
+        calendar_result = sync_sportsdb_calendar(limit=limit)
+        result = {**calendar_result, "live_scores_result": result}
     save_live_sync_state(
         "scheduler-live",
         {
@@ -3242,7 +3414,7 @@ def refresh_live_basic(limit=80):
             "result": result,
         },
     )
-    result["source"] = "live"
+    result["source"] = result.get("source") or "live"
     result["sync_type"] = "live"
     return result
 
@@ -11150,13 +11322,18 @@ def sports_hub_page():
 def live_page():
     lane = request.args.get("f") or request.args.get("filter") or request.args.get("lane") or "live"
     query = (request.args.get("q") or "").strip()
+    live_refresh = ensure_client_live_fresh(force=request.args.get("refresh") in {"1", "true", "yes"})
     data = dashboard_data("today", request.args.get("date") or today_iso())
     hub = data.get("match_hub") or {}
     source = []
+    # V780: include every reliable live source first. Dashboard cache alone is not enough.
+    source.extend(live_matches_any_date(limit=180))
+    source.extend(live_matches_from_live_table(limit=180))
     for key in ("live", "today", "upcoming", "finished"):
         source.extend(hub.get(key) or [])
     source = dedupe_matches_list(source)
     source = v766_enrich_matches_with_highlights(source)
+    data["live_refresh"] = live_refresh
     data["live_experience"] = build_live_experience(source, lane=lane, query=query)
     data["v766_highlights"] = v766_highlights_context(limit=8)
     data["v769_highlights_center"] = v769_highlights_content_center(data, current_session_user(), limit=12)
@@ -12461,6 +12638,24 @@ def api_scheduler_run_live():
     return jsonify({"version": APP_VERSION, **run_scheduler_task("live", force=True, limit=limit)})
 
 
+@app.route("/api/live/diagnostics")
+def api_live_diagnostics():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    refresh = ensure_client_live_fresh(force=request.args.get("refresh") in {"1", "true", "yes"})
+    return jsonify({
+        "ok": True,
+        "version": APP_VERSION,
+        "live_enabled": sportsdb_live_enabled(),
+        "key_present": bool(thesportsdb_key()),
+        "cached_live": active_live_count_cached(),
+        "refresh": refresh,
+        "live_table": len(live_matches_from_live_table(limit=300)),
+        "live_any_date": len(live_matches_any_date(limit=300)),
+        "last_error": get_thesportsdb_last_error(),
+    })
+
+
 @app.route("/api/calendar")
 def api_calendar():
     calendar = calendar_experience_data()
@@ -12470,9 +12665,13 @@ def api_calendar():
 @app.route("/api/live")
 def api_live():
     date = request.args.get("date") or today_iso()
-    matches = get_matches(date, "today")
-    enriched = [annotate_match(m) for m in matches]
-    return jsonify({"ok": True, "version": APP_VERSION, "date": date, "matches": split_live(enriched), "state_engine": ["LIVE", "HT", "FT", "UPCOMING", "SUSPENDED"]})
+    refresh = ensure_client_live_fresh(force=request.args.get("refresh") in {"1", "true", "yes"})
+    matches = []
+    matches.extend(live_matches_any_date(limit=180))
+    matches.extend(live_matches_from_live_table(limit=180))
+    matches.extend(get_matches(date, "today"))
+    enriched = [annotate_match(m) for m in dedupe_matches_list(matches)]
+    return jsonify({"ok": True, "version": APP_VERSION, "date": date, "refresh": refresh, "matches": split_live(enriched), "state_engine": ["LIVE", "HT", "FT", "UPCOMING", "SUSPENDED"]})
 
 
 @app.route("/api/match-hub")
@@ -15818,7 +16017,7 @@ def v778_client_organization_quality_snapshot():
     return {
         "ok": all(c["exists"] and not c["bad_copy"] and not c["raw_created_at_visible"] for c in checks),
         "version": APP_VERSION,
-        "status": "V779_TEAM_IDENTITY_FLAGS_CRESTS_FINAL_POLISH",
+        "status": "V780_LIVE_DATA_RECOVERY_REALTIME_STABILITY_FIX",
         "navigation": {
             "global_rail_removed": "v777-client-rail" not in base_raw,
             "mobile_bottom_nav": "bottom-nav-clean" in base_raw,

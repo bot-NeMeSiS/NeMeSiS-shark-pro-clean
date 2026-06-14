@@ -7,6 +7,7 @@ ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V777_CLIENT_PRODUCT_EXPERIENCE_FINAL_SYSTEM"
 V778_VERSION = "V778_CLIENT_PRODUCT_ORGANIZATION_MADRID_TIME_FINAL_STABILITY"
 V779_VERSION = "V779_TEAM_IDENTITY_FLAGS_CRESTS_FINAL_POLISH"
+V780_VERSION = "V780_LIVE_DATA_RECOVERY_REALTIME_STABILITY_FIX"
 
 def read(rel: str) -> str:
     return (ROOT / rel).read_text(encoding="utf-8-sig")
@@ -16,9 +17,9 @@ def require(cond: bool, msg: str) -> None:
         raise SystemExit(f"FAIL: {msg}")
 
 version = read("VERSION.txt").strip()
-require(version in {VERSION, V778_VERSION, V779_VERSION}, f"VERSION.txt debe ser V777/V778/V779 compatible, es {version}")
+require(version in {VERSION, V778_VERSION, V779_VERSION, V780_VERSION}, f"VERSION.txt debe ser V777/V778/V779/V780 compatible, es {version}")
 app = read("app.py")
-require(f'APP_VERSION = "{VERSION}"' in app or f'APP_VERSION = "{V778_VERSION}"' in app or f'APP_VERSION = "{V779_VERSION}"' in app, "APP_VERSION no actualizado")
+require(f'APP_VERSION = "{VERSION}"' in app or f'APP_VERSION = "{V778_VERSION}"' in app or f'APP_VERSION = "{V779_VERSION}"' in app or f'APP_VERSION = "{V780_VERSION}"' in app, "APP_VERSION no actualizado")
 require("v777_client_product_context" in app, "falta contexto V777")
 require("/api/client/product-experience" in app, "falta API cliente V777")
 base = read("templates/base.html")
