@@ -21,14 +21,14 @@ def require(cond: bool, msg: str) -> None:
 
 
 def main() -> None:
-    require(VERSION.startswith(("V783_HOME_MEMBERSHIP_CLIENT_EXPERIENCE_COMPACT_FINAL", "V784_SMOKE_PREFLIGHT_VALIDATION_FOUNDATION", "V785_MEMBERSHIP_STRIPE_FLOW_PRICE_POLISH")), f"VERSION inesperada: {VERSION}")
+    require(VERSION.startswith(("V783_HOME_MEMBERSHIP_CLIENT_EXPERIENCE_COMPACT_FINAL", "V784_SMOKE_PREFLIGHT_VALIDATION_FOUNDATION", "V785_MEMBERSHIP_STRIPE_FLOW_PRICE_POLISH","V786_STRIPE_CHECKOUT_RETURN_WEBHOOK_STATUS_POLISH")), f"VERSION inesperada: {VERSION}")
     app = read("app.py")
     home = read("templates/home.html")
     membership = read("templates/membership.html")
     app_center = read("templates/client_app_center.html")
     css = read("static/app.css")
 
-    require(('APP_VERSION = "V783_HOME_MEMBERSHIP_CLIENT_EXPERIENCE_COMPACT_FINAL"' in app) or ('APP_VERSION = "V784_SMOKE_PREFLIGHT_VALIDATION_FOUNDATION"' in app) or ('APP_VERSION = "V785_MEMBERSHIP_STRIPE_FLOW_PRICE_POLISH"' in app), "APP_VERSION no actualizado")
+    require(('APP_VERSION = "V783_HOME_MEMBERSHIP_CLIENT_EXPERIENCE_COMPACT_FINAL"' in app) or ('APP_VERSION = "V784_SMOKE_PREFLIGHT_VALIDATION_FOUNDATION"' in app) or ('APP_VERSION = "V785_MEMBERSHIP_STRIPE_FLOW_PRICE_POLISH"' in app) or ('APP_VERSION = "V786_STRIPE_CHECKOUT_RETURN_WEBHOOK_STATUS_POLISH"' in app), "APP_VERSION no actualizado")
     require('"payments_client": _payments_public' in app, "home_light_data no expone planes/pagos públicos")
     require('stripe_runtime_status(DB_PATH)' in app, "home_light_data no reutiliza estado Stripe")
 

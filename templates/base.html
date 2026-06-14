@@ -255,12 +255,22 @@
       document.querySelectorAll('.ns-touch').forEach(function(el){ el.classList.remove('ns-touch'); });
     },{passive:true});
 
+    function nsResetLoadingButtons(){
+      document.querySelectorAll('.is-loading,[aria-busy="true"]').forEach(function(el){
+        el.classList.remove('is-loading');
+        if(el.getAttribute('aria-busy')==='true') el.removeAttribute('aria-busy');
+      });
+      document.body.classList.remove('ns-route-loading');
+    }
+    window.addEventListener('pageshow', nsResetLoadingButtons);
+    document.addEventListener('visibilitychange', function(){ if(!document.hidden) nsResetLoadingButtons(); });
+
     document.querySelectorAll('form').forEach(function(form){
       const method=(form.getAttribute('method')||'get').toLowerCase();
       if(method !== 'post') return;
       form.addEventListener('submit',function(){
         const btn=form.querySelector('button[type="submit"],.btn.primary');
-        if(btn && !btn.dataset.nsNoLoading){
+        if(btn && !btn.dataset.nsNoLoading && !form.dataset.nsNoLoading){
           btn.classList.add('is-loading');
           btn.setAttribute('aria-busy','true');
         }

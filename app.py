@@ -195,7 +195,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V785_MEMBERSHIP_STRIPE_FLOW_PRICE_POLISH"
+APP_VERSION = "V786_STRIPE_CHECKOUT_RETURN_WEBHOOK_STATUS_POLISH"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -14223,10 +14223,20 @@ def payments_customer_portal():
 @app.route("/pagos/exito")
 def payments_success_page():
     user = current_session_user()
+    session_id = str(request.args.get("session_id") or "").strip()
     if not user:
-        return redirect("/cliente-login?next=/mi-cuenta")
-    # El webhook es la fuente de verdad; aquí solo refrescamos vista y explicamos que puede tardar unos segundos.
-    return redirect("/mi-cuenta?pago=exito")
+        next_url = "/membresias?pago=exito" + (("&session_id=" + urllib.parse.quote(session_id, safe="")) if session_id else "")
+        return redirect("/cliente-login?next=" + urllib.parse.quote(next_url, safe=""))
+    # V786: el webhook sigue siendo la fuente principal, pero al volver de Stripe
+    # sincronizamos la sesión como red de seguridad para no dejar al cliente esperando.
+    sync_result = sync_checkout_session(DB_PATH, user, session_id) if session_id else {"ok": False, "reason": "sin_session_id"}
+    plan = str(sync_result.get("plan") or request.args.get("plan") or "").upper()
+    qs = {"pago": "exito", "sync": "ok" if sync_result.get("ok") else "pendiente"}
+    if plan in {"PRO", "ELITE"}:
+        qs["plan"] = plan
+    if session_id:
+        qs["session_id"] = session_id
+    return redirect("/membresias?" + urllib.parse.urlencode(qs))
 
 
 @app.route("/pagos/cancelado")

@@ -324,6 +324,23 @@ def resolve_plan_from_price(price_id: str) -> str:
     return ""
 
 
+
+def stripe_object_to_dict(obj: Any) -> Dict[str, Any]:
+    """Best-effort conversion for StripeObject/dict so local checks do not need Stripe installed."""
+    if obj is None:
+        return {}
+    if isinstance(obj, dict):
+        return obj
+    try:
+        if hasattr(obj, "to_dict_recursive"):
+            return dict(obj.to_dict_recursive())
+    except Exception:
+        pass
+    try:
+        return dict(obj)
+    except Exception:
+        return {"id": str(getattr(obj, "id", "") or ""), "object": str(getattr(obj, "object", "") or "")}
+
 def extract_subscription_fields(subscription: Dict[str, Any]) -> Dict[str, Any]:
     sub_id = str(subscription.get("id") or "")
     customer_id = str(subscription.get("customer") or "")
@@ -435,6 +452,115 @@ def apply_subscription_to_user(conn: sqlite3.Connection, fields: Dict[str, Any],
     return {"applied": False, "reason": "estado_no_aplica_cambio", "user_id": user_id, "plan": plan, "status": status}
 
 
+def sync_checkout_session(db_path: str, user: Dict[str, Any], session_id: str) -> Dict[str, Any]:
+    """Synchronize a Stripe Checkout Session after return from Checkout.
+
+    This does not replace the webhook. It is a safety net for UX: if the client
+    returns before the webhook is delivered, we retrieve the Checkout Session
+    with the server secret key, verify it belongs to the logged user, and apply
+    the subscription state when Stripe confirms it.
+    """
+    ensure_stripe_schema(db_path)
+    session_id = str(session_id or "").strip()
+    user_id = str((user or {}).get("id") or "").strip()
+    if not session_id:
+        return {"ok": False, "reason": "sin_session_id"}
+    if not user_id:
+        return {"ok": False, "reason": "sin_usuario"}
+    stripe = stripe_sdk()
+    if stripe is None:
+        return {"ok": False, "reason": "stripe_sdk_no_instalado"}
+    if not env_present("STRIPE_SECRET_KEY"):
+        return {"ok": False, "reason": "falta_stripe_secret_key"}
+    stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
+    try:
+        session_obj = stripe.checkout.Session.retrieve(session_id, expand=["subscription"])
+        session = stripe_object_to_dict(session_obj)
+    except Exception as exc:
+        return {"ok": False, "reason": "stripe_session_retrieve_failed", "error": str(exc)[:500]}
+
+    metadata = session.get("metadata") if isinstance(session.get("metadata"), dict) else {}
+    ref_user_id = str(session.get("client_reference_id") or metadata.get("user_id") or "").strip()
+    if ref_user_id and ref_user_id != user_id:
+        return {"ok": False, "reason": "session_no_pertenece_usuario", "session_user_id": ref_user_id}
+
+    subscription_obj = session.get("subscription")
+    subscription = stripe_object_to_dict(subscription_obj)
+    subscription_id = ""
+    if isinstance(subscription_obj, str):
+        subscription_id = subscription_obj
+    else:
+        subscription_id = str(subscription.get("id") or "")
+    customer_id = str(session.get("customer") or subscription.get("customer") or "")
+    plan = normalize_plan(metadata.get("plan"))
+    price_id = ""
+    if subscription:
+        fields = extract_subscription_fields(subscription)
+        plan = normalize_plan(fields.get("plan")) or plan
+        price_id = str(fields.get("price_id") or "")
+    elif subscription_id:
+        try:
+            sub_obj = stripe.Subscription.retrieve(subscription_id)
+            subscription = stripe_object_to_dict(sub_obj)
+            fields = extract_subscription_fields(subscription)
+            plan = normalize_plan(fields.get("plan")) or plan
+            price_id = str(fields.get("price_id") or "")
+        except Exception:
+            fields = {}
+    else:
+        fields = {}
+
+    plan = plan or resolve_plan_from_price(price_id)
+    status = str((subscription or {}).get("status") or session.get("payment_status") or "active").lower()
+    if not fields:
+        fields = {
+            "user_id": user_id,
+            "plan": plan,
+            "customer_id": customer_id,
+            "subscription_id": subscription_id,
+            "status": "active" if status in {"paid", "complete"} else status,
+            "price_id": price_id or plan_price_id(plan),
+            "current_period_start": "",
+            "current_period_end": "",
+            "cancel_at_period_end": 0,
+        }
+    fields["user_id"] = str(fields.get("user_id") or user_id)
+    fields["plan"] = normalize_plan(fields.get("plan")) or plan
+    fields["customer_id"] = str(fields.get("customer_id") or customer_id)
+    fields["subscription_id"] = str(fields.get("subscription_id") or subscription_id)
+    fields["status"] = str(fields.get("status") or "active").lower()
+
+    conn = connect(db_path)
+    try:
+        conn.execute(
+            """UPDATE stripe_checkout_sessions
+                  SET status=?, completed_at=COALESCE(completed_at, ?), stripe_customer_id=COALESCE(NULLIF(?,''), stripe_customer_id),
+                      stripe_subscription_id=COALESCE(NULLIF(?,''), stripe_subscription_id)
+                WHERE stripe_session_id=?""",
+            ("returned_from_checkout", utc_now(), fields.get("customer_id") or "", fields.get("subscription_id") or "", session_id),
+        )
+        applied = apply_subscription_to_user(conn, fields, "checkout.return.sync", {"checkout_session": session, "subscription": subscription})
+        event = {
+            "id": stable_id("evt_checkout_return", session_id),
+            "type": "checkout.return.sync",
+            "data": {"object": session},
+        }
+        record_event(
+            conn,
+            event,
+            True,
+            "processed" if applied.get("applied") else "verified_not_applied",
+            user_id=user_id,
+            plan=str(fields.get("plan") or ""),
+            reason=safe_json(applied, 600),
+            processed=bool(applied.get("applied")),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+    return {"ok": bool(applied.get("applied")), "plan": fields.get("plan"), "status": fields.get("status"), "applied": applied, "session_id": session_id}
+
+
 def create_checkout_session(db_path: str, user: Dict[str, Any], plan: str) -> Dict[str, Any]:
     ensure_stripe_schema(db_path)
     plan = normalize_plan(plan)
@@ -455,7 +581,7 @@ def create_checkout_session(db_path: str, user: Dict[str, Any], plan: str) -> Di
     conn = connect(db_path)
     db_user = user_by_id(conn, user_id) or user
     customer_id = str(db_user.get("stripe_customer_id") or "")
-    metadata = {"user_id": user_id, "plan": plan, "app": "nemesis_shark_pro", "version": "V785"}
+    metadata = {"user_id": user_id, "plan": plan, "app": "nemesis_shark_pro", "version": "V786"}
     try:
         kwargs = {
             "mode": "subscription",

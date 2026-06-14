@@ -27,7 +27,7 @@
   {% set pay = data.payments_client or {} %}
   <div class="grid cards-3">
     <article class="mini-card"><strong>{{ pay.current_plan or data.account_center.plan }}</strong><span>Plan actual</span></article>
-    <article class="mini-card"><strong>{{ pay.stripe_subscription_status or 'Sin suscripción Stripe' }}</strong><span>Estado Stripe</span></article>
+    <article class="mini-card v786-billing-state"><span>Estado Stripe</span><strong>{{ pay.stripe_subscription_status or 'Sin suscripción Stripe' }}</strong></article>
     <article class="mini-card"><strong>{{ pay.stripe_current_period_end|madrid_datetime_label if pay.stripe_current_period_end else 'Sin fecha' }}</strong><span>Renovación/caducidad</span></article>
   </div>
   <div class="actions spacer-top">

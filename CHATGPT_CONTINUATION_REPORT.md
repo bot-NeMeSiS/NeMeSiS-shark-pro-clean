@@ -164,3 +164,9 @@ No tocado:
 - Stripe webhook V782
 - Smoke/preflight V784
 
+
+## V786_STRIPE_CHECKOUT_RETURN_WEBHOOK_STATUS_POLISH
+
+Se corrige el flujo Stripe observado en vídeo: al volver desde Checkout, `/pagos/exito` sincroniza la sesión con Stripe usando `session_id` como red de seguridad, sin reemplazar el webhook. Se resetean loaders al volver desde Stripe para evitar botones amarillos con spinner persistente. La pantalla de membresías muestra estado de pago más claro y mensajes de sincronización/pendiente webhook.
+
+ZIP final: NeMeSiS_SHARK_PRO_V786_STRIPE_CHECKOUT_RETURN_WEBHOOK_STATUS_POLISH_RENDER_READY.zip
