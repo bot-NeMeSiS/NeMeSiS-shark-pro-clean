@@ -52,6 +52,27 @@ def print_event(payload: dict) -> None:
     print(json.dumps(payload, ensure_ascii=False, sort_keys=True))
 
 
+def compact_response(body: str) -> dict:
+    try:
+        data = json.loads(body or "{}")
+    except Exception:
+        return {"raw": (body or "")[:800]}
+    modules = data.get("modules") or ((data.get("result") or {}).get("modules") if isinstance(data.get("result"), dict) else {}) or {}
+    return {
+        "ok": data.get("ok"),
+        "status": data.get("status"),
+        "sent_count": data.get("sent_count", data.get("sent", 0)),
+        "sent": data.get("sent", 0),
+        "inserted": data.get("inserted", 0),
+        "processed": data.get("processed", 0),
+        "deduped_or_skipped": data.get("skipped", 0),
+        "failed": data.get("failed", 0),
+        "modules": sorted(modules.keys()) if isinstance(modules, dict) else [],
+        "discard_reasons": data.get("discard_reasons") or [],
+        "errors": data.get("errors") or [],
+    }
+
+
 def main() -> int:
     public_base_url = (os.environ.get("PUBLIC_BASE_URL") or "").strip()
     automation_secret = (os.environ.get("AUTOMATION_SECRET") or "").strip()
@@ -103,6 +124,7 @@ def main() -> int:
             status = int(response.status)
             body_bytes = response.read(20000)
             body = body_bytes.decode("utf-8", errors="replace")
+            compact = compact_response(body)
             print_event({
                 "ok": status == 200,
                 "event": "CRON_TICK_RESPONSE",
@@ -110,7 +132,13 @@ def main() -> int:
                 "target": safe_target,
                 "utc_now": utc_now,
                 "madrid_now": madrid_now,
-                "body": body,
+                "sent_count": compact.get("sent_count", 0),
+                "modules": compact.get("modules", []),
+                "sent": compact.get("sent", 0),
+                "deduped": compact.get("deduped_or_skipped", 0),
+                "skipped": compact.get("deduped_or_skipped", 0),
+                "failed": compact.get("failed", 0),
+                "compact": compact,
             })
             return 0 if status == 200 else 5
     except urllib.error.HTTPError as exc:

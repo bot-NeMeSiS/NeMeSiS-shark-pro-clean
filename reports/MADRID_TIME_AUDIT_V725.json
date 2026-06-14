@@ -100,7 +100,7 @@
       "display_datetime": "Viernes 12/06 · 21:00",
       "kickoff_iso_madrid": "2026-06-12T21:00:00+02:00",
       "timezone_label": "Europe/Madrid",
-      "time_context": "Hora española",
+      "time_context": "Hora oficial de España (Madrid)",
       "time_source_field": "kickoff_iso",
       "time_source_value": "2026-06-12T19:00:00Z",
       "time_warnings": []
@@ -132,7 +132,7 @@
       "display_datetime": "Sábado 12/12 · 21:00",
       "kickoff_iso_madrid": "2026-12-12T21:00:00+01:00",
       "timezone_label": "Europe/Madrid",
-      "time_context": "Hora española",
+      "time_context": "Hora oficial de España (Madrid)",
       "time_source_field": "kickoff_iso",
       "time_source_value": "2026-12-12T20:00:00Z",
       "time_warnings": []

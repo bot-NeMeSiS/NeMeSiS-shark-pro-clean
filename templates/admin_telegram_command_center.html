@@ -14,6 +14,10 @@
 {% set auto_modules = last_tick_result.modules.auto_picks if last_tick_result.modules else {} %}
 {% set memory = snap.data_memory or {} %}
 {% set schema = snap.schema or {} %}
+{% set activity = data.activity or {} %}
+{% set activity_status = activity.status or {} %}
+{% set activity_config = activity.config or {} %}
+{% set activity_plan = activity.plan or {} %}
 <section class="hero compact v638-tight-hero">
   <div class="kicker">Admin Â· Telegram Command Center</div>
   <h1>Fiabilidad Telegram</h1>
@@ -25,6 +29,40 @@
     <a class="btn" href="/admin/telegram">Telegram</a>
     <a class="btn" href="/admin/telegram/diagnostics">DiagnÃ³stico JSON</a>
     <a class="btn" href="/admin/automation">AutomatizaciÃ³n</a>
+  </div>
+</section>
+
+<section class="band compact-band v771-telegram-activity">
+  <div class="section-head"><h2>Actividad Telegram V771</h2><span class="pill">{{ activity_status.status or 'Telegram listo' }}</span></div>
+  <div class="grid compact-grid metric-row">
+    <div class="card metric-card"><div class="metric">{{ activity_config.activity_level or 'medium_high' }}</div><div class="muted">nivel actividad</div></div>
+    <div class="card metric-card"><div class="metric">{{ activity_status.quiet_hours or 'inactivo' }}</div><div class="muted">quiet hours</div></div>
+    <div class="card metric-card"><div class="metric">{{ activity_status.world_cup_override or 'activo' }}</div><div class="muted">Mundial override</div></div>
+    <div class="card metric-card"><div class="metric">{{ activity_plan.candidate_count or 0 }}</div><div class="muted">candidatos ahora</div></div>
+    <div class="card metric-card"><div class="metric">{{ activity_config.cron_interval_minutes or 10 }} min</div><div class="muted">cron recomendado</div></div>
+    <div class="card metric-card"><div class="metric">{% if activity_config.send_live_images %}ON{% else %}OFF{% endif %}</div><div class="muted">imagenes live</div></div>
+  </div>
+  <div class="two-col">
+    <div class="card">
+      <h3>Proximos mensajes posibles</h3>
+      <div class="stack">
+        {% for item in (activity_plan.candidates or [])[:8] %}
+        <div class="list-row"><span>{{ item.title }}<small>{{ item.kind }} · prioridad {{ item.priority }}</small></span><strong>{{ item.dedupe_key[:24] if item.dedupe_key else 'sin dedupe' }}</strong></div>
+        {% else %}
+        <div class="empty">Sin candidatos reales en este tick. No se enviara relleno falso.</div>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="card">
+      <h3>Control seguro</h3>
+      <p class="small">Un solo Cron cada 10 o 15 minutos llama al tick protegido. La logica interna decide resumen diario, picks, live, resultados, highlights, recordatorios y cierre del dia.</p>
+      <div class="admin-menu">
+        <a class="btn" href="/api/admin/telegram/activity-plan">Plan actividad</a>
+        <a class="btn" href="/api/admin/telegram/schedule-status">Schedule</a>
+        <a class="btn" href="/api/admin/telegram/message-preview">Preview</a>
+        <a class="btn" href="/api/admin/telegram/dedupe-status">Dedupe</a>
+      </div>
+    </div>
   </div>
 </section>
 

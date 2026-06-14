@@ -101,6 +101,21 @@ from engines.telegram_environment_engine import (
     get_telegram_environment_audit,
     is_telegram_auto_enabled,
 )
+from engines.telegram_activity_engine import (
+    build_telegram_activity_plan,
+    telegram_activity_config,
+    telegram_activity_status,
+)
+from engines.telegram_message_formatter import (
+    format_daily_summary_message as format_v771_daily_summary_message,
+    format_midday_update_message as format_v771_midday_update_message,
+    format_live_alert_message as format_v771_live_alert_message,
+    format_pick_message as format_v771_pick_message,
+    format_result_message as format_v771_result_message,
+    format_highlight_message as format_v771_highlight_message,
+    format_prematch_message as format_v771_prematch_message,
+    format_evening_recap_message as format_v771_evening_recap_message,
+)
 from engines.route_health_engine import route_health_snapshot
 from engines.client_experience_guard_engine import client_experience_snapshot
 from engines.production_readiness_engine import production_readiness_snapshot
@@ -167,7 +182,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V769_HIGHLIGHTS_RESULTS_CONTENT_CENTER_FINAL"
+APP_VERSION = "V771_TELEGRAM_ACTIVITY_PRO_FORMAT_SCHEDULE_FINAL"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -8664,6 +8679,219 @@ def telegram_scheduler_module_payload(result=None, default_status="NO_DUE_JOBS")
     }
 
 
+def v771_telegram_activity_matches(limit=80):
+    try:
+        hub = match_hub(today_iso())
+    except Exception:
+        hub = {}
+    buckets = []
+    for key in ("live", "with_picks", "upcoming", "popular", "today", "matches", "finished"):
+        value = hub.get(key)
+        if isinstance(value, list):
+            buckets.extend(value)
+    if not buckets:
+        try:
+            buckets = get_matches(today_iso(), "today")[: int(limit or 80)]
+        except Exception:
+            buckets = []
+    seen = set()
+    items = []
+    for match in buckets:
+        if not isinstance(match, dict):
+            continue
+        item = telegram_enrich_match_for_message(match)
+        key = item.get("id") or f"{item.get('competition_name')}-{item.get('home_team')}-{item.get('away_team')}-{item.get('kickoff_time') or item.get('match_time')}"
+        if key in seen:
+            continue
+        seen.add(key)
+        items.append(item)
+        if len(items) >= int(limit or 80):
+            break
+    return items
+
+
+def v771_telegram_activity_picks(limit=40):
+    picks = []
+    for pick in get_picks(limit=limit, status=["published", "telegram_test"], include_admin=True):
+        try:
+            picks.append(telegram_enrich_pick_for_message(pick))
+        except Exception:
+            picks.append(pick)
+    return picks
+
+
+def v771_telegram_activity_highlights(limit=20):
+    try:
+        summary = sportsdb_highlights_summary(DB_PATH)
+        items = summary.get("latest_highlights") or []
+    except Exception:
+        items = []
+    return items[: int(limit or 20)]
+
+
+def v771_build_activity_plan():
+    return build_telegram_activity_plan(
+        matches=v771_telegram_activity_matches(),
+        picks=v771_telegram_activity_picks(),
+        highlights=v771_telegram_activity_highlights(),
+    )
+
+
+def v771_format_activity_candidate(candidate):
+    payload = candidate.get("payload") or {}
+    kind = candidate.get("kind") or ""
+    if kind == "daily_summary":
+        return format_v771_daily_summary_message(payload.get("matches") or [], focus="Mundial FIFA" if any("mundial" in str((m or {}).get("competition_name") or "").lower() for m in (payload.get("matches") or [])) else "Agenda deportiva")
+    if kind == "midday_update":
+        return format_v771_midday_update_message(payload.get("matches") or [], payload.get("picks_count") or 0)
+    if kind == "live_alert":
+        return format_v771_live_alert_message(payload.get("match") or {})
+    if kind == "pick_alert":
+        return format_v771_pick_message(payload.get("pick") or {})
+    if kind == "result_final":
+        return format_v771_result_message(payload.get("match") or {}, payload.get("pick") or {})
+    if kind == "highlight_available":
+        return format_v771_highlight_message(payload.get("match") or {}, payload.get("highlight") or {})
+    if kind == "prematch_reminder":
+        return format_v771_prematch_message(payload.get("match") or {})
+    if kind == "evening_recap":
+        return format_v771_evening_recap_message(payload.get("summary") or {})
+    return ""
+
+
+def v771_activity_payload(candidate, dest):
+    kind = candidate.get("kind") or "activity"
+    payload = dict(candidate.get("payload") or {})
+    match = payload.get("match") or {}
+    pick = payload.get("pick") or {}
+    highlight = payload.get("highlight") or {}
+    return {
+        "membership": dest.get("membership"),
+        "target_key": dest.get("target_key"),
+        "source": "automatic_cron",
+        "trigger_type": "render_cron",
+        "auto_job_key": candidate.get("dedupe_key"),
+        "job_type": kind,
+        "module": "v771_telegram_activity",
+        "match_id": match.get("id") or pick.get("match_id") or highlight.get("match_id") or "",
+        "pick_id": pick.get("id") or "",
+        "highlight_id": highlight.get("id") or "",
+        "priority": candidate.get("priority", 70),
+        "target_kind": dest.get("target_kind"),
+        "button_text": "Abrir NeMeSiS",
+        "app_url": telegram_absolute_url("/app") or telegram_absolute_url("/"),
+        "picks_url": telegram_absolute_url("/picks"),
+        "live_url": telegram_absolute_url("/live"),
+        "match_url": telegram_match_url(match.get("id") or pick.get("match_id")) if (match.get("id") or pick.get("match_id")) else telegram_absolute_url("/calendar"),
+        "include_picks_button": kind in {"daily_summary", "live_alert", "pick_alert", "prematch_reminder"},
+        "include_live_button": kind in {"daily_summary", "live_alert"},
+        "enable_link_preview": False,
+    }
+
+
+def enqueue_v771_telegram_activity(force=False, limit=6):
+    plan = v771_build_activity_plan()
+    candidates = list(plan.get("candidates") or [])[: int(limit or 6)]
+    cfg = telegram_activity_config()
+    if not candidates:
+        return {
+            "ok": True,
+            "module": "v771_activity",
+            "status": "NO_ACTIVITY_CANDIDATES",
+            "message": "Telegram V771 sin candidatos reales en este tick.",
+            "processed": 0,
+            "candidates": 0,
+            "inserted": 0,
+            "sent": 0,
+            "failed": 0,
+            "skipped": 1,
+            "errors": [],
+            "plan": plan,
+        }
+    destinations = telegram_auto_destinations("FREE", include_global=True)
+    if not destinations:
+        return {
+            "ok": False,
+            "module": "v771_activity",
+            "status": "NO_DESTINATION",
+            "message": "No hay canal global ni usuarios vinculados para actividad Telegram.",
+            "processed": len(candidates),
+            "candidates": len(candidates),
+            "inserted": 0,
+            "sent": 0,
+            "failed": 0,
+            "skipped": 0,
+            "errors": ["NO_DESTINATION"],
+            "plan": plan,
+        }
+    inserted = skipped = 0
+    queued = []
+    for candidate in candidates:
+        body = v771_format_activity_candidate(candidate)
+        if not body:
+            skipped += 1
+            continue
+        for dest in destinations:
+            kind = candidate.get("kind") or "activity"
+            dedupe_key = f"{candidate.get('dedupe_key')}:{dest.get('target_key') or dest.get('chat_id')}"
+            result = enqueue_telegram_message(
+                kind,
+                candidate.get("title") or "Actividad SHARK",
+                body,
+                chat_id=dest.get("chat_id"),
+                user_id=dest.get("user_id"),
+                payload=v771_activity_payload(candidate, dest),
+                dedupe_key=dedupe_key,
+                force=force,
+            )
+            inserted += 1 if result.get("queued") else 0
+            skipped += 1 if result.get("skipped") else 0
+            if result.get("queued"):
+                queued.append({"kind": kind, "target_kind": dest.get("target_kind"), "dedupe_key": dedupe_key})
+    status = "QUEUED" if inserted else "DUPLICATE_ALREADY_SENT"
+    automation_safe_set("telegram_v771_last_activity_plan", {"time": now_iso(), "config": cfg, "status": status, "queued": queued[:20], "candidate_count": len(candidates), "blockers": plan.get("blockers", [])[:20]})
+    return {
+        "ok": True,
+        "module": "v771_activity",
+        "status": status,
+        "message": "Actividad Telegram V771 revisada.",
+        "processed": len(candidates),
+        "candidates": len(candidates),
+        "inserted": inserted,
+        "sent": 0,
+        "failed": 0,
+        "skipped": skipped,
+        "errors": [],
+        "queued": queued[:20],
+        "plan": {k: v for k, v in plan.items() if k != "candidates"} | {"candidate_count": plan.get("candidate_count", 0)},
+    }
+
+
+def v771_telegram_activity_diagnostics():
+    plan = v771_build_activity_plan()
+    status = telegram_activity_status(plan)
+    last = automation_get("telegram_v771_last_activity_plan", {}) or {}
+    recent = rows("SELECT message_type,status,source,dedupe_key,created_at,sent_at,error_message FROM telegram_queue WHERE payload_json LIKE '%v771_telegram_activity%' ORDER BY COALESCE(sent_at, created_at) DESC LIMIT 20")
+    return {
+        "ok": True,
+        "version": APP_VERSION,
+        "status": status,
+        "config": telegram_activity_config(),
+        "plan": plan,
+        "last_activity_plan": last,
+        "recent_activity_messages": recent,
+        "dedupe_examples": [
+            "daily_summary_YYYY-MM-DD",
+            "live_alert_matchid_status_minute_bucket",
+            "pick_published_pickid",
+            "result_final_matchid",
+            "highlight_available_matchid",
+            "prematch_matchid_60min",
+            "evening_recap_YYYY-MM-DD",
+        ],
+    }
+
+
 def telegram_scheduler_delivery(force=False):
     settings = get_telegram_settings()
     cfg = telegram_pro_calibration()
@@ -8671,6 +8899,7 @@ def telegram_scheduler_delivery(force=False):
         "summary": telegram_scheduler_module_payload(default_status="NO_DUE_JOBS"),
         "auto_picks": telegram_scheduler_module_payload(default_status="NO_DUE_JOBS"),
         "live_alerts": telegram_scheduler_module_payload(default_status="NO_LIVE_ALERTS"),
+        "v771_activity": telegram_scheduler_module_payload(default_status="NO_ACTIVITY_CANDIDATES"),
     }
     if not (settings.get("enabled") or telegram_env_should_enable()) and not force:
         return {"ok": True, "status": "AUTO_DISABLED", "message": "Telegram automatico desactivado.", "processed": 0, "inserted": 0, "sent": 0, "failed": 0, "skipped": 1, "errors": ["AUTO_DISABLED"], "discard_reasons": ["AUTO_DISABLED"], "modules": modules}
@@ -8696,6 +8925,10 @@ def telegram_scheduler_delivery(force=False):
         live_result = enqueue_live_alerts(force=force)
         results.append(live_result)
         modules["live_alerts"] = telegram_scheduler_module_payload(live_result, default_status="NO_LIVE_ALERTS")
+    if telegram_env_auto_enabled() or env_bool("TELEGRAM_SEND_DAILY_SUMMARY", True) or env_bool("TELEGRAM_SEND_LIVE_ALERTS", True):
+        activity_result = enqueue_v771_telegram_activity(force=force, limit=as_int(os.getenv("TELEGRAM_MAX_ACTIVITY_MESSAGES_PER_TICK", "6"), 6))
+        results.append(activity_result)
+        modules["v771_activity"] = telegram_scheduler_module_payload(activity_result, default_status="NO_ACTIVITY_CANDIDATES")
     processed_queue = process_premium_telegram_queue(limit=cfg["max_queue_per_tick"], force=force)
     for item in processed_queue.get("sent_items") or []:
         message_type = str(item.get("message_type") or "").lower()
@@ -11156,6 +11389,7 @@ def admin_telegram_command_center_page():
     snapshot = telegram_reliability_snapshot(limit=80)
     dry_run = telegram_reliability_dry_run()
     diagnostics = telegram_diagnostics_safe()
+    activity = v771_telegram_activity_diagnostics()
     return render_template(
         "admin_telegram_command_center.html",
         data={
@@ -11163,6 +11397,7 @@ def admin_telegram_command_center_page():
             "snapshot": snapshot,
             "dry_run": dry_run,
             "diagnostics": diagnostics,
+            "activity": activity,
         },
     )
 
@@ -11172,6 +11407,74 @@ def api_admin_telegram_schema():
     if not is_admin_session():
         return admin_json_forbidden()
     return jsonify({"ok": True, "version": APP_VERSION, "schema": telegram_delivery_memory_schema_status()})
+
+
+@app.route("/api/admin/telegram/activity-plan")
+def api_admin_telegram_activity_plan():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify(v771_telegram_activity_diagnostics())
+
+
+@app.route("/api/admin/telegram/schedule-status")
+def api_admin_telegram_schedule_status():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    diagnostics = telegram_diagnostics()
+    activity = v771_telegram_activity_diagnostics()
+    return jsonify({
+        "ok": True,
+        "version": APP_VERSION,
+        "last_cron_telegram_call": diagnostics.get("last_cron_telegram_call"),
+        "last_cron_daily_call": diagnostics.get("last_cron_daily_call"),
+        "last_automation_result": diagnostics.get("last_automation_result"),
+        "activity_status": activity.get("status"),
+        "config": activity.get("config"),
+        "next_estimated": (activity.get("status") or {}).get("next_estimated"),
+    })
+
+
+@app.route("/api/admin/telegram/message-preview")
+def api_admin_telegram_message_preview():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    plan = v771_build_activity_plan()
+    candidates = plan.get("candidates") or []
+    candidate = candidates[0] if candidates else {
+        "kind": "daily_summary",
+        "title": "Resumen SHARK del dia",
+        "payload": {"matches": v771_telegram_activity_matches(limit=5)},
+    }
+    return jsonify({
+        "ok": True,
+        "version": APP_VERSION,
+        "candidate": {k: v for k, v in candidate.items() if k != "payload"},
+        "message_preview": v771_format_activity_candidate(candidate),
+    })
+
+
+@app.route("/api/admin/telegram/dedupe-status")
+def api_admin_telegram_dedupe_status():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    recent = rows(
+        """SELECT message_type,status,source,dedupe_key,created_at,sent_at,error_message
+           FROM telegram_queue
+           WHERE lower(coalesce(source,'')) IN ('automatic_cron','automatic_scheduler')
+           ORDER BY COALESCE(sent_at, created_at) DESC
+           LIMIT 80"""
+    )
+    by_type = {}
+    for item in recent:
+        key = item.get("message_type") or "unknown"
+        by_type[key] = by_type.get(key, 0) + 1
+    return jsonify({
+        "ok": True,
+        "version": APP_VERSION,
+        "dedupe_policy": "message_type + match_id + pick_id + market + status + madrid_date + module + destino",
+        "counts_by_type": by_type,
+        "recent": recent,
+    })
 
 
 @app.route("/api/admin/telegram/status")
