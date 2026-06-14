@@ -81,3 +81,7 @@ Render sigue listo para Web Service + Cron. `Pillow` se instala por requirements
 ## Conclusión
 
 V772 mejora Telegram como producto premium sin añadir complejidad peligrosa. La app está más preparada para enseñar a usuarios reales, pero antes de venta fuerte conviene probar en Render con bot real que `sendPhoto` funciona y que el canal recibe tarjetas visuales cuando haya picks reales.
+
+## V773 ChatGPT continuation
+
+ChatGPT detectó que el ZIP real subido ya estaba en V772, pero no incluía completamente la capa Data Marketplace / Automation Center descrita en el resumen. Se preparó V773 para consolidar esa capa sin romper V772 Telegram visual cards: nuevos motores de datos comerciales, automatización y calidad UX; nuevas rutas admin/API; limpieza de mojibake; CSS de navegación compacta; y exportaciones con privacidad por diseño.

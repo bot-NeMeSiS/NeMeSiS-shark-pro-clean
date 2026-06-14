@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block content %}
+{% set dm = data.data_marketplace or {} %}
+<section class="scoreboard-hero v773-quality-hero">
+  <div>
+    <div class="kicker">Admin · Datos comerciales</div>
+    <h1>Data Marketplace privado.</h1>
+    <p class="lead">Exporta inteligencia agregada de picks, mercados, ligas, tendencias y highlights sin exponer clientes, emails, Telegram IDs, tokens ni secrets.</p>
+    <div class="admin-menu">
+      <a class="btn primary" href="/admin/data-marketplace">Datos comerciales</a>
+      <a class="btn" href="/admin/data-vault">Data Vault</a>
+      <a class="btn" href="/admin/automation-center">Automatización</a>
+      <a class="btn" href="/api/admin/data-marketplace/summary">API resumen</a>
+    </div>
+  </div>
+  <div class="scoreboard-kpis">
+    <div><strong>{{ dm.readiness_score or 0 }}%</strong><span>Preparación</span></div>
+    <div><strong>{{ dm.exports|length if dm.exports else 0 }}</strong><span>Exports</span></div>
+    <div><strong>{{ dm.counts.picks or 0 }}</strong><span>Picks</span></div>
+    <div><strong>{{ dm.counts.data_export_audit or 0 }}</strong><span>Auditorías</span></div>
+  </div>
+</section>
+
+<section class="band compact-band v773-admin-rail">
+  <div class="section-head"><h2>Privacidad por diseño</h2><span class="pill">Sin datos personales</span></div>
+  <div class="grid compact-grid">
+    <article class="card"><span class="badge">Bloqueado</span><h3>Datos sensibles</h3><p class="small">Emails, passwords, Telegram/chat IDs, IPs, sesiones, tokens, secrets y IDs personales quedan fuera de exportación.</p></article>
+    <article class="card"><span class="badge">Auditoría</span><h3>Registro de export</h3><p class="small">Cada export registra tipo, admin, filas y columnas bloqueadas. Nunca guarda el CSV completo en la DB.</p></article>
+    <article class="card"><span class="badge">Madrid</span><h3>Hora España</h3><p class="small">Generado: {{ dm.generated_at_madrid or 'Pendiente' }}.</p></article>
+    <article class="card"><span class="badge">DB</span><h3>{{ 'OK' if dm.db_exists else 'Revisar' }}</h3><p class="small">DB_PATH: {{ dm.db_path_masked or 'Sin ruta' }}.</p></article>
+  </div>
+</section>
+
+<section class="band compact-band">
+  <div class="section-head"><h2>Exportaciones disponibles</h2><span class="pill">CSV / JSON</span></div>
+  <div class="grid compact-grid">
+    {% for export in dm.exports or [] %}
+    <article class="card v773-export-card">
+      <span class="badge">{{ export.format|upper }}</span>
+      <h3>{{ export.label }}</h3>
+      <p class="small">{{ export.description }}</p>
+      <p class="small">Filas estimadas: <strong>{{ export.rows_estimate or 0 }}</strong> · Estado: <strong>{{ 'Disponible' if export.available else 'Sin datos reales aún' }}</strong></p>
+      <div class="inline-actions">
+        <a class="btn primary" href="/api/admin/data-marketplace/export/{{ export.key }}">Descargar</a>
+        <a class="btn" href="/api/admin/data-marketplace/export/{{ export.key }}?format=json">JSON</a>
+      </div>
+    </article>
+    {% else %}
+    <article class="card"><h3>Sin exports</h3><p class="small">No hay tablas suficientes en este entorno. En Render se leerá desde DB_PATH persistente.</p></article>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="band compact-band">
+  <div class="section-head"><h2>Tablas detectadas</h2><span class="pill">{{ dm.tables|length if dm.tables else 0 }}</span></div>
+  <div class="stack">
+    {% for table, count in (dm.counts or {}).items() %}
+    <div class="route-row"><span>{{ table }}</span><strong>{{ count }}</strong></div>
+    {% else %}
+    <div class="empty">No se pudieron leer tablas en este entorno. Revisa DB_PATH en Render.</div>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="band compact-band">
+  <div class="section-head"><h2>Avisos</h2><span class="pill">QA</span></div>
+  <div class="stack">
+    {% for warning in dm.warnings or [] %}<div class="list-row"><span>{{ warning }}</span><strong>Revisar</strong></div>{% else %}<div class="list-row"><span>Sin avisos críticos de privacidad o DB.</span><strong>OK</strong></div>{% endfor %}
+  </div>
+</section>
+{% endblock %}

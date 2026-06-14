@@ -187,7 +187,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V772_TELEGRAM_VISUAL_CARDS_APP_GLOBAL_POLISH_CLEANUP"
+APP_VERSION = "V773_DATA_MARKETPLACE_AUTOMATION_VIDEO_UX_QUALITY_POLISH"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -14101,6 +14101,9 @@ def v566_admin_items():
         {"group": "Picks", "title": "Recomendaciones", "body": "Convertir señales SHARK en picks.", "href": "/admin/recommendations"},
         {"group": "Canal", "title": "Telegram", "body": "Cola, ajustes y pruebas.", "href": "/admin/telegram"},
         {"group": "Datos", "title": "Datos", "body": "Calendario, cuotas, escudos e imports.", "href": "/admin/data-center"},
+        {"group": "Datos", "title": "Datos comerciales", "body": "Exportaciones agregadas, ROI y privacidad sin datos personales.", "href": "/admin/data-marketplace"},
+        {"group": "Sistema", "title": "Automatización", "body": "Cron diario, Telegram, grading, highlights y backups en un solo centro.", "href": "/admin/automation-center"},
+        {"group": "Sistema", "title": "Calidad app", "body": "Revisión visual del vídeo, rutas críticas, textos y limpieza cliente/admin.", "href": "/admin/app-experience-quality"},
         {"group": "Live", "title": "Live", "body": "Profundidad de directo y estados.", "href": "/admin/live-depth"},
         {"group": "IA", "title": "SHARK Center", "body": "Memoria, señales y salud del copiloto SHARK.", "href": "/admin/shark-center"},
         {"group": "Sistema", "title": "QA", "body": "Auditoría final y salud del producto.", "href": "/admin/final-qa"},
@@ -15057,7 +15060,6 @@ def v745_top_app_readiness_context():
 
 @app.route("/admin/data-vault")
 @app.route("/admin/data-backups")
-@app.route("/admin/business-intelligence")
 def admin_data_vault_page():
     if not is_admin_session():
         return redirect("/admin-login?next=/admin/data-vault")
@@ -15288,7 +15290,116 @@ def register_optional_blueprints():
             pass
 
 
+
 register_optional_blueprints()
+
+
+# ===================== V773 DATA MARKETPLACE + AUTOMATION + VIDEO UX QUALITY POLISH =====================
+
+def v773_app_quality_context():
+    from engines.app_experience_quality_engine import build_v773_app_experience_quality_snapshot
+    registered = sorted({str(rule.rule) for rule in app.url_map.iter_rules()})
+    return build_v773_app_experience_quality_snapshot(
+        app_version=APP_VERSION,
+        registered_routes=registered,
+        template_root=os.path.join(project_root_path(), "templates"),
+        static_css_path=os.path.join(project_root_path(), "static", "app.css"),
+    )
+
+
+def v773_data_marketplace_context():
+    from engines.data_marketplace_engine import build_data_marketplace_summary
+    return build_data_marketplace_summary(DB_PATH, APP_VERSION)
+
+
+def v773_automation_center_context():
+    from engines.automation_orchestrator_engine import build_automation_center_summary
+    state = {
+        "last_cron_telegram_call": automation_get("last_cron_telegram_call", {}) or automation_get("cron_telegram_tick_last_call", {}) or {},
+        "last_cron_daily_call": automation_get("last_cron_daily_call", {}) or automation_get("cron_daily_run_last_call", {}) or {},
+        "last_cron_data_backup_call": automation_get("last_cron_data_backup_call", {}) or {},
+        "last_cron_highlights_sync": automation_get("last_cron_highlights_sync", {}) or automation_get("highlights_sync_last_call", {}) or {},
+        "telegram_tick_last_detail": automation_get("telegram_tick_last_detail", {}) or {},
+        "daily_run_last_detail": automation_get("daily_run_last_detail", {}) or {},
+    }
+    return build_automation_center_summary(DB_PATH, APP_VERSION, env=dict(os.environ), state=state)
+
+
+@app.route("/admin/app-experience-quality")
+@app.route("/admin/video-review")
+@app.route("/admin/global-polish")
+def admin_v773_app_experience_quality_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/app-experience-quality")
+    data = dashboard_data()
+    data["app_quality"] = v773_app_quality_context()
+    return render_template("admin_app_experience_quality.html", data=data)
+
+
+@app.route("/api/admin/app-experience-quality")
+@app.route("/api/admin/video-review")
+def api_admin_v773_app_experience_quality():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "version": APP_VERSION, "app_quality": v773_app_quality_context()})
+
+
+@app.route("/admin/data-marketplace")
+@app.route("/admin/export-center")
+@app.route("/admin/business-intelligence")
+@app.route("/admin/datos-comerciales")
+def admin_v773_data_marketplace_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/data-marketplace")
+    data = dashboard_data()
+    data["data_marketplace"] = v773_data_marketplace_context()
+    return render_template("admin_data_marketplace.html", data=data)
+
+
+@app.route("/api/admin/data-marketplace/summary")
+@app.route("/api/admin/data-marketplace/privacy-audit")
+def api_admin_v773_data_marketplace_summary():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "version": APP_VERSION, "data_marketplace": v773_data_marketplace_context()})
+
+
+@app.route("/api/admin/data-marketplace/export/<export_key>", methods=["GET", "POST"])
+def api_admin_v773_data_marketplace_export(export_key):
+    if not is_admin_session():
+        return admin_json_forbidden()
+    from engines.data_marketplace_engine import run_data_marketplace_export
+    body = request.get_json(silent=True) or {}
+    fmt = (request.args.get("format") or body.get("format") or "csv").lower()
+    result = run_data_marketplace_export(DB_PATH, export_key, fmt=fmt, actor=admin_actor_label(), app_version=APP_VERSION)
+    if not result.get("ok"):
+        return jsonify({"ok": False, "version": APP_VERSION, **result}), 400
+    if result.get("format") == "json":
+        return jsonify({"ok": True, "version": APP_VERSION, "export": result.get("key"), "generated_at_madrid": result.get("generated_at_madrid"), "data": result.get("data")})
+    csv_data = result.get("content") or ""
+    filename = result.get("filename") or f"nemesis_{export_key}.csv"
+    return Response(
+        csv_data,
+        mimetype="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
+    )
+
+
+@app.route("/admin/automation-center")
+@app.route("/admin/automatizacion")
+def admin_v773_automation_center_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/automation-center")
+    data = dashboard_data()
+    data["automation_center"] = v773_automation_center_context()
+    return render_template("admin_automation_center.html", data=data)
+
+
+@app.route("/api/admin/automation-center/summary")
+def api_admin_v773_automation_center_summary():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "version": APP_VERSION, "automation_center": v773_automation_center_context()})
 
 
 if __name__ == "__main__":

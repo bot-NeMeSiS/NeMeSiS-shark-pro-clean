@@ -12,6 +12,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V771_TELEGRAM_ACTIVITY_PRO_FORMAT_SCHEDULE_FINAL"
 V772_VERSION = "V772_TELEGRAM_VISUAL_CARDS_APP_GLOBAL_POLISH_CLEANUP"
+V773_VERSION = "V773_DATA_MARKETPLACE_AUTOMATION_VIDEO_UX_QUALITY_POLISH"
 sys.path.insert(0, str(ROOT))
 
 
@@ -48,8 +49,8 @@ def assert_no_secret_literals():
 def static_checks():
     version = read("VERSION.txt").strip()
     app = read("app.py")
-    ok(version in {VERSION, V772_VERSION}, "VERSION.txt no apunta a V771 o V772 compatible")
-    ok(f'APP_VERSION = "{VERSION}"' in app or f'APP_VERSION = "{V772_VERSION}"' in app, "APP_VERSION no apunta a V771 o V772 compatible")
+    ok(version in {VERSION, V772_VERSION, V773_VERSION}, "VERSION.txt no apunta a V771/V772/V773 compatible")
+    ok(f'APP_VERSION = "{VERSION}"' in app or f'APP_VERSION = "{V772_VERSION}"' in app or f'APP_VERSION = "{V773_VERSION}"' in app, "APP_VERSION no apunta a V771/V772/V773 compatible")
     ok('DB_PATH = os.getenv("DB_PATH", "/data/database.db")' in app, "DB_PATH fue alterado")
     ok("/api/automation/telegram/tick" in app, "tick Telegram no existe")
     ok("AUTOMATION_SECRET" in app, "AUTOMATION_SECRET no protegido")

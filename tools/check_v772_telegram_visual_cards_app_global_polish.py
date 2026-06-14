@@ -12,6 +12,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V772_TELEGRAM_VISUAL_CARDS_APP_GLOBAL_POLISH_CLEANUP"
+COMPATIBLE_VERSION_PREFIXES = {"V772", "V773"}
 ZIP_NAME = "NeMeSiS_SHARK_PRO_V772_TELEGRAM_VISUAL_CARDS_APP_GLOBAL_POLISH_CLEANUP_RENDER_READY.zip"
 sys.path.insert(0, str(ROOT))
 
@@ -47,8 +48,8 @@ def static_checks():
     visual = read("engines/telegram_visual_card_engine.py")
     env_example = read(".env.example")
     env_render = read(".env.render.clean")
-    ok(version == VERSION, "VERSION.txt no apunta a V772", version)
-    ok(f'APP_VERSION = "{VERSION}"' in app, "APP_VERSION no apunta a V772")
+    ok(version == VERSION or version.split("_", 1)[0] in COMPATIBLE_VERSION_PREFIXES, "VERSION.txt no apunta a V772 compatible", version)
+    ok(f'APP_VERSION = "{VERSION}"' in app or f'APP_VERSION = "{version}"' in app, "APP_VERSION no apunta a V772 compatible")
     ok('DB_PATH = os.getenv("DB_PATH", "/data/database.db")' in app, "DB_PATH fue alterado")
     ok("telegram_post_send_photo" in app and "build_visual_card_for_message" in app, "sendPhoto visual no queda integrado")
     ok("visual_card_type" in app and "visual_card_payload" in app, "payload visual no queda trazable")
