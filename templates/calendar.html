@@ -1,218 +1,64 @@
 {% extends "base.html" %}
 {% block content %}
-{% set calendar = data.calendar %}
-{% set filters = calendar.filters %}
-
-<section class="scoreboard-hero v701-scoreboard calendar-board calendar-command-center calendar-mobile-safe">
-  <div>
-    <div class="kicker">Calendario premium · búsqueda de partidos</div>
-    <h1>Partidos por día, liga y equipo</h1>
-    <p class="lead">Busca rápido, filtra por día, liga y equipo. Cada tarjeta muestra fecha, hora Madrid, estado, marcador y si tiene pick.</p>
-    <div class="calendar-hero-actions">
-      <a class="btn primary" href="/calendar?lane=today">Hoy</a>
-      <a class="btn" href="/calendar?lane=week">Semana</a>
-      <a class="btn" href="/calendar?lane=with_pick">Con pick</a>
-      <a class="btn" href="/calendar?lane=results">Resultados</a>
-      <a class="btn" href="/highlights">Resúmenes</a>
-      <a class="btn" href="/live">Directo</a>
-    </div>
+{% set calendar = data.get('calendar') or {} %}
+{% set filters = calendar.get('filters') or {} %}
+{% set counts = calendar.get('counts') or {} %}
+<section class="v774-client-hero compact v774-calendar-hero">
+  <div class="v774-hero-copy">
+    <div class="kicker">Calendario · Hora Madrid</div>
+    <h1>Partidos por día, estado y liga</h1>
+    <p class="lead">Una pantalla limpia: resultados, directo y próximos separados con fecha visible. Nada de horas sueltas sin día.</p>
+    <div class="v774-actions"><a class="btn primary" href="/calendar?lane=today">Hoy</a><a class="btn" href="/calendar?lane=live">Directo</a><a class="btn" href="/calendar?lane=results">Resultados</a><a class="btn" href="/calendar?lane=with_pick">Con pick</a></div>
   </div>
-  <div class="scoreboard-kpis calendar-kpis">
-    <div><strong>{{ calendar.counts.visible }}</strong><span>Visibles</span></div>
-    <div><strong>{{ calendar.counts.live }}</strong><span>Directo</span></div>
-    <div><strong>{{ calendar.counts.picks }}</strong><span>Con pick</span></div>
-    <div><strong>{{ calendar.counts.leagues }}</strong><span>Ligas</span></div>
-  </div>
+  <aside class="v774-day-card"><div class="v774-kpis"><a><strong>{{ counts.get('visible', 0) }}</strong><span>Visibles</span></a><a><strong>{{ counts.get('live', 0) }}</strong><span>Directo</span></a><a><strong>{{ counts.get('picks', 0) }}</strong><span>Picks</span></a><a><strong>{{ counts.get('leagues', 0) }}</strong><span>Ligas</span></a></div><p class="small">{{ calendar.get('lane_label') or 'Hoy' }}{% if calendar.get('has_filters') %} · filtros activos{% endif %}</p></aside>
 </section>
 
-{% set dm = data.dynamic_mode if data.dynamic_mode is defined else {} %}
-{% if dm %}
-<section class="band compact-band v764-auto-mode-strip client-only-context">
-  <div class="section-head"><div><h2>{{ dm.label }}</h2><p class="small">{{ dm.description }} · Madrid {{ dm.now_madrid }}</p></div><a class="pill" href="/modo-dinamico">Modo automático</a></div>
-  <div class="v764-mode-mini">
-    <span><strong>{{ (dm.counts or {}).get('live', 0) }}</strong><small>Directo</small></span>
-    <span><strong>{{ (dm.counts or {}).get('upcoming', 0) }}</strong><small>Próximos</small></span>
-    <span><strong>{{ (dm.counts or {}).get('picks', 0) }}</strong><small>Picks</small></span>
-    <a class="btn primary" href="{{ (dm.primary_action or {}).get('href','/calendar') }}">{{ (dm.primary_action or {}).get('label','Ver calendario') }}</a>
-  </div>
-</section>
-{% endif %}
+<section class="v774-tabs" aria-label="Filtros calendario">{% for tab in calendar.get('tabs') or [] %}<a class="{{ 'active' if filters.get('lane') == tab.key else '' }}" href="{{ tab.href }}">{{ tab.label }}</a>{% endfor %}</section>
 
-{% set v756_calendar = data.client_premium.calendar if data.client_premium is defined else {} %}
-<section class="band compact-band v756-calendar-guide client-only-context">
-  <div class="section-head"><div><h2>Agenda inteligente</h2><p class="small">{{ v756_calendar.guide or 'Directos, picks, favoritos y hora Madrid siempre primero.' }}</p></div><span class="pill">Agenda</span></div>
-  <div class="v756-kpi-grid compact">
-    {% for card in v756_calendar.get('summary', []) %}<div class="v756-kpi-card"><span>{{ card.label }}</span><strong>{{ card.value }}</strong><small>calendario</small></div>{% endfor %}
-  </div>
-  <div class="v756-action-rail">
-    {% for link in v756_calendar.get('smart_links', []) %}<a class="quick v756-quick" href="{{ link.href }}"><span>{{ link.label }}</span><strong>Ir</strong></a>{% endfor %}
-  </div>
-</section>
-
-<section class="band compact-band calendar-filter-panel">
-  <div class="section-head">
-    <div>
-      <h2>Buscar en el calendario</h2>
-      <p class="small">Todo se ordena por hora española, prioridad de liga, favoritos y señal SHARK.</p>
-    </div>
-    <a class="pill" href="/calendar">Limpiar filtros</a>
-  </div>
-
-  <form class="calendar-search-form" method="get" action="/calendar">
-    <input type="hidden" name="lane" value="{{ filters.lane }}">
-    <div class="calendar-search-grid">
-      <label>
-        <span>Partido, equipo o liga</span>
-        <input name="q" value="{{ filters.q }}" placeholder="Ej: Real Madrid, Premier, Betis..." autocomplete="off">
-      </label>
-      <label>
-        <span>Fecha</span>
-        <input type="date" name="date" value="{{ filters.date }}">
-      </label>
-      <label>
-        <span>Liga</span>
-        <input name="league" value="{{ filters.league }}" placeholder="LaLiga, Premier, Champions..." autocomplete="off">
-      </label>
-      <label>
-        <span>Equipo</span>
-        <input name="team" value="{{ filters.team }}" placeholder="Equipo local o visitante" autocomplete="off">
-      </label>
-      <label>
-        <span>Orden</span>
-        <select name="sort">
-          <option value="importance" {% if filters.sort == 'importance' %}selected{% endif %}>Importancia SHARK</option>
-          <option value="time" {% if filters.sort == 'time' %}selected{% endif %}>Hora</option>
-          <option value="league" {% if filters.sort == 'league' %}selected{% endif %}>Liga</option>
-          <option value="picks" {% if filters.sort == 'picks' %}selected{% endif %}>Picks primero</option>
-        </select>
-      </label>
-      <label>
-        <span>País / zona</span>
-        <input name="country" value="{{ filters.country }}" placeholder="España, Inglaterra, Brasil, Mundial..." autocomplete="off">
-      </label>
-    </div>
-    <div class="calendar-form-actions">
-      <button class="btn primary" type="submit">Buscar partidos</button>
-      <a class="btn" href="/calendar?lane=live">Ver directo</a>
-      <label class="calendar-check"><input type="checkbox" name="with_pick" value="1" {% if filters.with_pick %}checked{% endif %}> Solo partidos con pick</label>
-    </div>
+<section class="v774-panel">
+  <form class="v774-filter-form" method="get" action="/calendar">
+    <input type="hidden" name="lane" value="{{ filters.get('lane') or 'today' }}">
+    <input name="q" value="{{ filters.get('q') or '' }}" placeholder="Buscar equipo, liga o país">
+    <input type="date" name="date" value="{{ filters.get('date') or '' }}">
+    <input name="league" value="{{ filters.get('league') or '' }}" placeholder="Liga">
+    <select name="sort"><option value="importance" {% if filters.get('sort') == 'importance' %}selected{% endif %}>Importancia</option><option value="time" {% if filters.get('sort') == 'time' %}selected{% endif %}>Hora</option><option value="picks" {% if filters.get('sort') == 'picks' %}selected{% endif %}>Picks primero</option><option value="league" {% if filters.get('sort') == 'league' %}selected{% endif %}>Liga</option></select>
+    <button class="btn primary" type="submit">Buscar</button>
+    <a class="btn" href="/calendar">Limpiar</a>
   </form>
 </section>
 
+<section class="v774-date-rail">{% for chip in calendar.get('date_chips') or [] %}<a class="{{ 'active' if chip.active else '' }}" href="{{ chip.href }}"><strong>{{ chip.label }}</strong><span>{{ chip.date }}</span></a>{% endfor %}</section>
 
-{% set mk = data.v765_markets if data.v765_markets is defined else {} %}
-{% if mk %}
-<section class="band compact-band v765-screen-order-strip client-only-context">
-  <div class="section-head"><div><h2>Orden de lectura</h2><p class="small">Primero partido y hora Madrid, después estado, mercado y pick si existe. Fecha: visible para cada partido. Nada de apuestas sin contexto.</p></div><a class="pill" href="/mercados">Mercados</a></div>
-</section>
+{% if (calendar.get('facets') or {}).get('leagues') %}
+<section class="v774-league-rail"><span>Ligas</span>{% for league in (calendar.get('facets') or {}).get('leagues')[:12] %}<a href="/calendar?lane={{ filters.get('lane') }}&league={{ league.value|urlencode }}&sort={{ filters.get('sort') or 'importance' }}">{{ league.label }} <small>{{ league.count }}</small></a>{% endfor %}</section>
 {% endif %}
 
-{% set order = data.v766_calendar_order if data.v766_calendar_order is defined else {} %}
-{% if order %}
-<section class="band compact-band v766-calendar-order client-only-context">
-  <div class="section-head"><div><h2>{{ order.title }}</h2><p class="small">Directos, resultados, resúmenes y próximos partidos con una lectura única para cliente.</p></div><a class="pill" href="{{ (order.primary_action or {}).get('href','/calendar') }}">{{ (order.primary_action or {}).get('label','Ver calendario') }}</a></div>
-  <div class="v766-order-kpis">
-    <span><strong>{{ (order.counts or {}).get('live', 0) }}</strong><small>Directo</small></span>
-    <span><strong>{{ (order.counts or {}).get('finished', 0) }}</strong><small>Resultados</small></span>
-    <span><strong>{{ (order.counts or {}).get('with_highlights', 0) }}</strong><small>Resúmenes</small></span>
-    <span><strong>{{ (order.counts or {}).get('upcoming', 0) }}</strong><small>Próximos</small></span>
-  </div>
-</section>
-{% endif %}
-
-<section class="sports-tabs v701-tabs calendar-tabs">
-  {% for tab in calendar.tabs %}
-    <a class="tab-link {% if filters.lane == tab.key %}active{% endif %}" href="{{ tab.href }}">{{ tab.label }}</a>
-  {% endfor %}
-</section>
-
-<section class="calendar-date-rail">
-  {% for chip in calendar.date_chips %}
-    <a class="calendar-chip {% if chip.active %}active{% endif %}" href="{{ chip.href }}">
-      <strong>{{ chip.label }}</strong><span>{{ chip.date }}</span>
-    </a>
-  {% endfor %}
-</section>
-
-{% if calendar.facets.leagues %}
-<section class="calendar-league-rail" aria-label="Ligas principales">
-  <span class="rail-label">Ligas destacadas</span>
-  {% for league in calendar.facets.leagues[:14] %}
-    <a class="calendar-filter-chip {% if filters.league and filters.league|lower in league.label|lower %}active{% endif %}" href="/calendar?lane={{ filters.lane }}&league={{ league.value|urlencode }}&sort={{ filters.sort }}">
-      {{ league.label }} <small>{{ league.count }}</small>
-    </a>
-  {% endfor %}
-</section>
-{% endif %}
-
-<section class="band compact-band calendar-results-panel">
-  <div class="section-head">
-    <div>
-      <h2>{{ calendar.counts.visible }} partidos encontrados</h2>
-      <p class="small">{{ calendar.lane_label }}{% if calendar.has_filters %} · filtros aplicados{% endif %} · finalizados con resultado, próximos con hora Madrid.</p>
-    </div>
-    <span class="pill">Hora española</span>
-  </div>
-
-  {% if calendar.groups %}
-  <div class="calendar-stack">
-    {% for day in calendar.groups %}
-    <article class="calendar-day-group">
-      <header class="calendar-day-head">
-        <div><strong>{{ day.date_label }}</strong><small>{{ day.matches_count }} partidos ordenados por importancia y hora</small></div>
-        <span class="pill">{{ day.leagues|length }} ligas</span>
-      </header>
+<section class="v774-panel">
+  <div class="section-head"><div><h2>{{ counts.get('visible', 0) }} partidos encontrados</h2><p class="small">Finalizados con marcador, directos con minuto y próximos con hora Madrid.</p></div><span class="pill">Europe/Madrid</span></div>
+  {% if calendar.get('groups') %}
+  <div class="v774-day-stack">
+    {% for day in calendar.get('groups') %}
+    <article class="v774-day-group">
+      <header><div><strong>{{ day.date_label }}</strong><small>{{ day.matches_count }} partidos · {{ day.leagues|length }} ligas</small></div></header>
       {% for league in day.leagues %}
-      <div class="calendar-league-block">
-        <div class="calendar-league-head">
-          <div><strong>{{ league.name }}</strong><small>{{ league.country or 'Global' }}</small></div>
-          <span class="calendar-competition-pill">{{ league.matches|length }} partidos</span>
-        </div>
-        <div class="calendar-match-grid">
+      <div class="v774-league-block">
+        <div class="v774-league-head"><strong>{{ league.name }}</strong><small>{{ league.country or 'Global' }}</small></div>
+        <div class="v774-card-grid">
           {% for m in league.matches %}
-          {% set home_identity = m.home_identity|default({}) %}
-          {% set away_identity = m.away_identity|default({}) %}
-          {% set live_depth = m.live_depth|default({}) %}
-          <a class="calendar-match-card favorite-scope {% if live_depth.get('badge') == 'live' %}is-live{% endif %} {% if m.has_pick %}has-pick{% endif %}" href="/match/{{ m.id }}">
-            <button class="fav-star {% if m.is_favorite %}active{% endif %}" type="button" data-kind="match" data-value="{{ m.id }}" data-label="{{ m.safe_home }} vs {{ m.safe_away }}" aria-label="Favorito">★</button>
-            <div class="calendar-match-topline">
-              <span class="calendar-time {% if live_depth.get('badge') == 'live' %}live-time{% endif %}"><strong>{{ m.client_date_label or (m|match_date_label) }}</strong><small>{% if live_depth.get('badge') == 'live' %}{{ live_depth.get('minute') or 'En directo' }}{% else %}{{ m.client_time_label or (m|match_time_short) }}{% endif %}</small></span>
-              <span class="state-badge {{ live_depth.get('badge','upcoming') }}">{{ live_depth.get('label') or m.calendar_status }}</span>
+          {% set ctx = m|match_madrid_context %}
+          {% set live = m.get('live_depth') or {} %}
+          {% set home_identity = m.get('home_identity') or {} %}
+          {% set away_identity = m.get('away_identity') or {} %}
+          <a class="v774-match-card {{ 'is-live' if live.get('badge') == 'live' else 'is-finished' if live.get('badge') == 'finished' or ctx.client_status_label == 'Finalizado' else '' }} {{ 'has-pick' if m.get('has_pick') else '' }}" href="/match/{{ m.get('id') }}">
+            <div class="v774-card-top"><span><strong>{{ ctx.client_date_label }}</strong><small>{{ live.get('minute') if live.get('badge') == 'live' else ctx.client_time_label }}</small></span><em>{{ ctx.client_status_label }}</em></div>
+            <div class="v774-teams">
+              <span class="crest compact-crest {{ home_identity.get('ui_class','crest-fallback') }}"><img loading="lazy" src="{{ home_identity.get('crest_url','') }}" alt="{{ ctx.safe_home }}" onerror="this.style.display='none';this.parentElement.textContent='{{ home_identity.get('flag_emoji') or home_identity.get('initials', (ctx.safe_home or 'L')[:1]) }}'"></span>
+              <strong>{{ ctx.safe_home }}</strong><b>{{ ctx.client_score_label }}</b><strong>{{ ctx.safe_away }}</strong>
+              <span class="crest compact-crest {{ away_identity.get('ui_class','crest-fallback') }}"><img loading="lazy" src="{{ away_identity.get('crest_url','') }}" alt="{{ ctx.safe_away }}" onerror="this.style.display='none';this.parentElement.textContent='{{ away_identity.get('flag_emoji') or away_identity.get('initials', (ctx.safe_away or 'V')[:1]) }}'"></span>
             </div>
-            <div class="calendar-teams">
-              <div class="calendar-team">
-                <span class="crest compact-crest calendar-crest {{ home_identity.get('ui_class','crest-fallback') }}"><img loading="lazy" src="{{ home_identity.get('crest_url','') }}" alt="{{ m.safe_home }}" onerror="this.style.display='none';this.parentElement.textContent='{{ home_identity.get('flag_emoji') or home_identity.get('initials', (m.safe_home or 'L')[:1]) }}'"></span>
-                <strong class="calendar-team-name">{{ m.safe_home }}</strong>
-              </div>
-              <div class="calendar-scoreline"><strong>{{ m.calendar_score }}</strong><span>vs</span></div>
-              <div class="calendar-team away">
-                <span class="crest compact-crest calendar-crest {{ away_identity.get('ui_class','crest-fallback') }}"><img loading="lazy" src="{{ away_identity.get('crest_url','') }}" alt="{{ m.safe_away }}" onerror="this.style.display='none';this.parentElement.textContent='{{ away_identity.get('flag_emoji') or away_identity.get('initials', (m.safe_away or 'V')[:1]) }}'"></span>
-                <strong class="calendar-team-name">{{ m.safe_away }}</strong>
-              </div>
-            </div>
-            <div class="calendar-card-meta v761-calendar-meta v762-card-meta">
-              <span>{{ m.client_competition or m.calendar_competition|competition_es }}</span>
-              <span>{{ m.client_full_datetime_label or (m|match_full_datetime) }}</span>
-              {% if live_depth.get('badge') == 'finished' or m.calendar_status == 'Finalizado' %}
-                <strong>Finalizado · {{ m.calendar_score or 'resultado pendiente' }}</strong>
-              {% elif live_depth.get('badge') == 'live' %}
-                <strong>En directo · {{ live_depth.get('minute') or 'minuto pendiente' }}</strong>
-              {% elif m.has_pick %}
-                <strong>Pick SHARK</strong>
-              {% elif m.calendar_priority >= 70 %}
-                <strong>Alta prioridad</strong>
-              {% else %}
-                <strong>Programado</strong>
-              {% endif %}
-            </div>
-            {% if m.has_pick %}
-            <div class="calendar-pick-strip">{{ m.pick_label or 'Pick disponible' }}</div>
-            {% endif %}
-            {% if m.has_highlights %}
-            <div class="calendar-highlight-strip">▶ Resumen disponible · {{ m.highlight_provider or 'YouTube' }}</div>
-            {% elif live_depth.get('badge') == 'finished' or m.calendar_status == 'Finalizado' %}
-            <div class="calendar-highlight-strip muted">Resumen pendiente de API</div>
-            {% endif %}
+            <div class="v774-card-meta"><span>{{ ctx.client_competition }}</span><small>{{ ctx.client_full_datetime_label }}</small></div>
+            {% if m.get('has_pick') %}<div class="v774-card-note pick">Pick SHARK: {{ m.get('pick_label') or 'disponible' }}</div>{% endif %}
+            {% if m.get('has_highlights') %}<div class="v774-card-note">▶ Resumen disponible</div>{% elif live.get('badge') == 'finished' or ctx.client_status_label == 'Finalizado' %}<div class="v774-card-note muted">Resumen pendiente</div>{% endif %}
           </a>
           {% endfor %}
         </div>
@@ -222,27 +68,7 @@
     {% endfor %}
   </div>
   {% else %}
-  <div class="empty premium-empty calendar-empty-state">
-    <strong>No hay partidos para esta búsqueda.</strong>
-    <p>Prueba con Hoy, Mañana, Semana, otra liga o el buscador por equipo. Si la app acaba de actualizarse, los partidos aparecerán cuando se sincronicen los datos deportivos reales.</p>
-    <div class="actions"><a class="btn primary" href="/calendar?lane=today">Hoy</a><a class="btn" href="/calendar?lane=week">Semana</a><a class="btn" href="/sports-hub">Inicio deportivo</a></div>
-  </div>
+  <div class="empty premium-empty"><strong>No hay partidos para este filtro.</strong><p>Prueba Hoy, Semana, Resultados o limpia filtros. La app no inventa encuentros.</p><div class="actions"><a class="btn primary" href="/calendar?lane=today">Hoy</a><a class="btn" href="/calendar?lane=week">Semana</a></div></div>
   {% endif %}
 </section>
-
-{% set hi = data.v766_highlights if data.v766_highlights is defined else {} %}
-{% if hi %}
-<section class="band compact-band v766-highlights-band client-only-context">
-  <div class="section-head"><div><h2>Resúmenes de partidos pasados</h2><p class="small">{{ hi.client_note }} Estado: {{ hi.status }} · Enlaces guardados: {{ hi.with_video or 0 }}.</p></div><a class="pill" href="/highlights">Ver resúmenes</a></div>
-  {% if hi.latest %}
-  <div class="v766-highlight-grid">
-    {% for h in hi.latest[:4] %}
-    <a class="v766-highlight-card" href="{{ h.safe_url }}" target="_blank" rel="noopener noreferrer"><strong>{{ h.match_label }}</strong><small>{{ h.event_date or '' }} · {{ h.source_label }}</small><span>Ver resumen externo</span></a>
-    {% endfor %}
-  </div>
-  {% else %}
-  <div class="empty premium-empty">Todavía no hay resúmenes enlazados. El sincronizador los añadirá cuando la API los publique.</div>
-  {% endif %}
-</section>
-{% endif %}
 {% endblock %}

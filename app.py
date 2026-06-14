@@ -187,7 +187,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V773_DATA_MARKETPLACE_AUTOMATION_VIDEO_UX_QUALITY_POLISH"
+APP_VERSION = "V774_CLIENT_SCREEN_REORGANIZATION_MADRID_TIME_TOTAL_POLISH"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -10744,6 +10744,10 @@ def _calendar_enrich_matches(matches, picks):
             item = dict(raw)
             item.update(apply_match_localization(item))
             item.update(apply_team_identities_to_match(item))
+        try:
+            item.update(client_match_display_context(item))
+        except Exception:
+            pass
         pick = pick_map.get(str(item.get("id") or ""))
         comp = spanish_competition_name(item.get("safe_competition") or item.get("competition_name") or item.get("league_name") or item.get("competition_key") or "") or "Competición"
         country = spanish_country_name(item.get("country") or item.get("safe_country") or "") or item.get("country") or "Global"
@@ -10900,7 +10904,7 @@ def calendar_experience_data():
         "leagues": len(facets.get("leagues") or []),
     }
     date_chips = []
-    for offset, label in [(0, "Hoy"), (1, "Mañana"), (2, "Pasado"), (3, "+3 días"), (4, "+4 días"), (5, "+5 días"), (6, "+6 días")]:
+    for offset, label in [(0, "Hoy"), (1, "Mañana"), (2, "En 2 días"), (3, "En 3 días"), (4, "En 4 días"), (5, "En 5 días"), (6, "En 6 días")]:
         d = today_iso(offset)
         date_chips.append({"label": label, "date": d, "href": f"/calendar?lane=today&date={d}", "active": d == date and lane not in {"week", "upcoming", "live", "favorites", "with_pick", "picks"}})
     return {
@@ -15343,6 +15347,60 @@ def api_admin_v773_app_experience_quality():
         return admin_json_forbidden()
     return jsonify({"ok": True, "version": APP_VERSION, "app_quality": v773_app_quality_context()})
 
+
+
+
+# ===================== V774 CLIENT SCREEN REORGANIZATION / MADRID TIME TOTAL POLISH =====================
+
+def v774_client_screen_quality_snapshot():
+    client_templates = [
+        "home.html", "client_app_center.html", "calendar.html", "live.html", "picks.html",
+        "combis.html", "betting_markets.html", "highlights.html", "track_record.html",
+        "match_detail.html", "client_menu.html", "sports_hub.html",
+    ]
+    checks = []
+    for name in client_templates:
+        path = os.path.join(BASE_DIR, "templates", name)
+        raw = ""
+        try:
+            with open(path, "r", encoding="utf-8") as fh:
+                raw = fh.read()
+        except Exception:
+            pass
+        checks.append({
+            "template": name,
+            "exists": bool(raw),
+            "has_v774": "v774" in raw.lower(),
+            "uses_madrid_filter": ("match_time_short" in raw or "match_full_datetime" in raw or "client_full_datetime_label" in raw),
+            "admin_noise": any(x in raw.lower() for x in ["traceback", "json visible", "debug panel"]),
+        })
+    return {
+        "ok": True,
+        "version": APP_VERSION,
+        "status": "V774_CLIENT_SCREEN_REORGANIZED",
+        "screens": checks,
+        "rules": [
+            "Cliente primero: inicio, partidos, directo, picks, histórico y SHARK",
+            "Sin duplicar landing pública dentro de sesión cliente",
+            "Hora visible siempre por filtros/contexto Madrid",
+            "Menú cliente compacto, con extras agrupados en Más",
+        ],
+    }
+
+
+@app.route("/admin/client-screen-quality")
+@app.route("/admin/client-screens")
+def admin_client_screen_quality_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/client-screen-quality")
+    return render_template("admin_app_experience_quality.html", data={"quality": v774_client_screen_quality_snapshot(), "v774": True})
+
+
+@app.route("/api/admin/client-screen-quality")
+def api_admin_client_screen_quality():
+    if not is_admin_session():
+        return jsonify({"ok": False, "error": "admin_required"}), 403
+    return jsonify(v774_client_screen_quality_snapshot())
 
 @app.route("/admin/data-marketplace")
 @app.route("/admin/export-center")

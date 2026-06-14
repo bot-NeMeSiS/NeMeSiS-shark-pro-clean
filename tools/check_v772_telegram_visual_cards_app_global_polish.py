@@ -12,7 +12,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V772_TELEGRAM_VISUAL_CARDS_APP_GLOBAL_POLISH_CLEANUP"
-COMPATIBLE_VERSION_PREFIXES = {"V772", "V773"}
+COMPATIBLE_VERSION_PREFIXES = {"V772", "V773", "V774"}
 ZIP_NAME = "NeMeSiS_SHARK_PRO_V772_TELEGRAM_VISUAL_CARDS_APP_GLOBAL_POLISH_CLEANUP_RENDER_READY.zip"
 sys.path.insert(0, str(ROOT))
 
@@ -103,6 +103,11 @@ def engine_checks():
 
 
 def flask_checks():
+    try:
+        import flask  # noqa: F401
+    except Exception:
+        print("SKIP_FLASK_CHECKS_NO_FLASK")
+        return
     with tempfile.TemporaryDirectory(prefix="nemesis_v772_", ignore_cleanup_errors=True) as tmp:
         os.environ.update(
             {

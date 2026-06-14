@@ -1,92 +1,11 @@
 {% extends "base.html" %}
 {% block content %}
-{% set trust = data.v757_track if data.v757_track is defined else {} %}
-{% if trust %}
-<section class="band compact-band v757-track-trust">
-  <div class="section-head"><div><h2>{{ trust.title }}</h2><p class="small">{{ trust.note }}</p></div><span class="pill">{{ trust.status }}</span></div>
-  <div class="v757-mini-cards wide">
-    {% for c in trust.get('cards', []) %}<div><span>{{ c.label }}</span><strong>{{ c.value }}</strong><small>{{ c.hint }}</small></div>{% endfor %}
-  </div>
-  <p class="small">No se inventa ROI ni winrate: solo aparece cuando hay resultados reales auditables.</p>
-</section>
-{% endif %}
-
-{% set tr = data.track_record or {} %}
-<section class="hero compact-hero v734-hero v742-track-hero">
-  <div class="eyebrow">Transparencia SHARK</div>
-  <h1>Track Record real</h1>
-  <p>Rendimiento calculado solo con picks evaluables. Si faltan resultados fiables, queda pendiente y no se usa para vender humo.</p>
-</section>
-
-{% set cert = data.certification or {} %}
-{% if cert %}
-<section class="band compact-band v768-client-trust">
-  <div class="section-head"><div><h2>Estado de confianza</h2><p class="small">Solo se publica rendimiento con resultados reales. Si falta evidencia, queda como pendiente.</p></div><span class="pill">{{ cert.status }}</span></div>
-  <div class="grid compact-grid">
-    <article class="card"><span>Telegram</span><strong>{{ (cert.telegram or {}).status }}</strong><small>{{ (cert.telegram or {}).published_candidates or 0 }} candidatos</small></article>
-    <article class="card"><span>Resultados</span><strong>{{ (cert.track_record or {}).status }}</strong><small>{{ (cert.track_record or {}).graded_total or 0 }} auditados</small></article>
-    <article class="card"><span>Datos</span><strong>{{ (cert.data_richness or {}).status }}</strong><small>{{ (cert.data_richness or {}).matches_total or 0 }} partidos</small></article>
-  </div>
-</section>
-{% endif %}
-
-{% set hc = data.v769_highlights_center if data.v769_highlights_center is defined else {} %}
-{% if hc %}
-<section class="band compact-band v769-track-evidence client-only-context">
-  <div class="section-head"><div><h2>Evidencia visual de resultados</h2><p class="small">Resúmenes enlazados a partidos finalizados para reforzar transparencia. No se inventa ROI ni se rehostean vídeos.</p></div><a class="pill" href="/resumenes">Ver resúmenes</a></div>
-  <div class="v766-order-kpis"><span><strong>{{ (hc.counts or {}).get('videos', 0) }}</strong><small>Vídeos</small></span><span><strong>{{ (hc.counts or {}).get('pending', 0) }}</strong><small>Pendientes</small></span><span><strong>{{ (hc.counts or {}).get('linked_matches', 0) }}</strong><small>Enlazados</small></span></div>
-  {% if hc.available %}<div class="v769-home-highlight-list">{% for h in hc.available[:4] %}<a class="v769-home-highlight" href="{{ h.detail_url }}"><strong>{{ h.match_label }}</strong><small>{{ h.event_date_label }} · {{ h.competition_label }}</small><span>{{ h.client_status }}</span></a>{% endfor %}</div>{% endif %}
-</section>
-{% endif %}
-
-<section class="grid cards-4">
-  <article class="card stat-card"><span>Picks evaluables</span><strong>{{ tr.graded_total or 0 }}</strong><small>{{ tr.commercial_note or 'Pendiente de resultados reales' }}</small></article>
-  <article class="card stat-card"><span>Ganados / Perdidos</span><strong>{{ tr.won or 0 }} / {{ tr.lost or 0 }}</strong><small>Nulos {{ tr.void or 0 }} · Pendientes {{ tr.pending or tr.pending_review or 0 }}</small></article>
-  <article class="card stat-card"><span>Beneficio</span><strong>{{ tr.profit or 0 }} u</strong><small>Stake {{ tr.stake_total or 0 }} u</small></article>
-  <article class="card stat-card"><span>ROI</span><strong>{% if tr.roi is not none %}{{ tr.roi }}%{% else %}Pendiente{% endif %}</strong><small>Winrate {% if tr.winrate is not none %}{{ tr.winrate }}%{% else %}por validar{% endif %}</small></article>
-</section>
-
-<section class="band two-col compact-band">
-  <div class="card">
-    <div class="section-head"><h2>Últimos picks cerrados</h2><span class="pill">{{ tr.recent_results|length }}</span></div>
-    <div class="stack compact-list">
-      {% for row in tr.recent_results[:10] %}
-      <div class="mini-row v740-home-match">
-        <span class="v740-home-teams">
-          <span class="crest compact-crest crest-fallback">NS</span>
-          <span class="v740-home-team-text"><strong>{{ row.pick_label or ('Pick ' ~ row.pick_id) }}</strong><small>{{ row.reason or 'Resultado auditado' }}</small></span>
-        </span>
-        <span class="badge status-{{ row.result_status }}">{{ row.result_status or 'pendiente' }}</span>
-      </div>
-      {% else %}
-      <div class="empty-state">Pendiente de resultados reales. Cuando haya picks cerrados con evidencia fiable, aparecerán aquí.</div>
-      {% endfor %}
-    </div>
-  </div>
-  <div class="card">
-    <div class="section-head"><h2>Pendientes</h2><span class="pill">{{ tr.pending_results|length }}</span></div>
-    <div class="stack compact-list">
-      {% for row in tr.pending_results[:8] %}
-      <div class="list-row"><span>{{ row.pick_id }}<small>{{ row.reason or 'Pendiente de resultado fiable' }}</small></span><strong>Pendiente</strong></div>
-      {% else %}
-      <div class="empty-state">No hay picks pendientes de resultado en la muestra actual.</div>
-      {% endfor %}
-    </div>
-  </div>
-</section>
-
-<section class="band compact-band">
-  <div class="section-head"><h2>Lectura por categorías</h2><span class="pill">sin datos demo</span></div>
-  <div class="grid compact-grid">
-    <article class="card"><h3>Por mes</h3>{% for row in tr.by_month[:6] %}<div class="list-row"><span>{{ row.label }}</span><strong>{{ row.profit or 0 }} u</strong></div>{% else %}<div class="empty-state">Sin histórico mensual suficiente.</div>{% endfor %}</article>
-    <article class="card"><h3>Por liga</h3>{% for row in tr.by_league[:6] %}<div class="list-row"><span>{{ row.label|competition_es }}</span><strong>{{ row.total }}</strong></div>{% else %}<div class="empty-state">Sin ligas evaluables todavía.</div>{% endfor %}</article>
-    <article class="card"><h3>Por mercado</h3>{% for row in tr.by_market[:6] %}<div class="list-row"><span>{{ row.label }}</span><strong>{{ row.total }}</strong></div>{% else %}<div class="empty-state">Sin mercados evaluables todavía.</div>{% endfor %}</article>
-    <article class="card"><h3>Por plan</h3>{% for row in tr.by_plan[:6] %}<div class="list-row"><span>{{ row.label }}</span><strong>{{ row.total }}</strong></div>{% else %}<div class="empty-state">Sin segmentación por plan todavía.</div>{% endfor %}</article>
-  </div>
-</section>
-
-<section class="card responsible-note">
-  <h2>Juego responsable</h2>
-  <p>NeMeSiS SHARK PRO organiza datos y señales deportivas. No garantiza ganancias. Usa siempre stake responsable y no apuestes dinero que no puedas permitirte perder.</p>
-</section>
+{% set tr = data.get('track_record') or {} %}
+{% set cert = data.get('certification') or {} %}
+{% set recent = tr.get('recent_results') or [] %}
+{% set pending = tr.get('pending_results') or [] %}
+<section class="v774-client-hero compact v774-track-hero"><div class="v774-hero-copy"><div class="kicker">Histórico real</div><h1>Track Record sin humo</h1><p class="lead">ROI, winrate y beneficio solo cuando los picks están cerrados con resultado real. Lo pendiente queda pendiente.</p><div class="v774-actions"><a class="btn primary" href="/track-record">Histórico</a><a class="btn" href="/picks">Picks</a><a class="btn" href="/calendar?lane=results">Resultados</a><a class="btn" href="/highlights">Resúmenes</a></div></div><aside class="v774-day-card"><span class="v774-status {{ 'ready' if cert.get('status') else 'pending' }}">{{ cert.get('status') or 'Pendiente de datos reales' }}</span><p class="small">No se inventa rendimiento comercial para vender.</p></aside></section>
+<section class="grid cards-4 v774-stat-grid"><article class="stat-card"><span>Picks cerrados</span><strong>{{ tr.get('closed_count') or tr.get('graded_count') or recent|length }}</strong></article><article class="stat-card"><span>Winrate</span><strong>{% if tr.get('winrate') %}{{ tr.get('winrate') }}%{% else %}—{% endif %}</strong></article><article class="stat-card"><span>ROI</span><strong>{% if tr.get('roi') %}{{ tr.get('roi') }}%{% else %}—{% endif %}</strong></article><article class="stat-card"><span>Pendientes</span><strong>{{ pending|length }}</strong></article></section>
+<section class="v774-dashboard-grid"><article class="v774-panel"><div class="section-head"><h2>Últimos picks cerrados</h2><span class="pill">{{ recent|length }}</span></div><div class="v774-pick-list">{% for p in recent[:10] %}<div class="v774-pick-row"><span><strong>{{ p.get('selection_display') or p.get('selection') or p.get('pick_label') or 'Pick' }}</strong><small>{{ p.get('match_label') or p.get('client_match_label') or ((p.get('home_team') or 'Partido') ~ ' vs ' ~ (p.get('away_team') or '')) }}</small></span><em>{{ p.get('result') or p.get('status') or 'Cerrado' }}</em></div>{% else %}<div class="empty premium-empty">Aún no hay picks cerrados suficientes para mostrar rendimiento.</div>{% endfor %}</div></article><article class="v774-panel"><div class="section-head"><h2>Pendientes</h2><span class="pill">{{ pending|length }}</span></div><div class="v774-pick-list">{% for p in pending[:10] %}<div class="v774-pick-row"><span><strong>{{ p.get('selection_display') or p.get('selection') or 'Pick pendiente' }}</strong><small>{{ p.get('client_full_datetime_label') or p.get('match_date') or 'Fecha pendiente' }}</small></span><em>Pendiente</em></div>{% else %}<div class="empty premium-empty">No hay pendientes visibles.</div>{% endfor %}</div></article></section>
+<section class="v774-responsible-note"><strong>Regla de confianza</strong><span>Un pick no cuenta para ROI hasta estar finalizado y validado por el motor de grading.</span></section>
 {% endblock %}

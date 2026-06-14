@@ -50,13 +50,10 @@
           <a href="/logout">Salir</a>
         {% elif current_user %}
           <a href="/app">Inicio</a>
-          <a href="/mundial">Mundial</a>
-          <a href="/modo-dinamico">Momento</a>
           <a href="/calendar">Partidos</a>
           <a href="/live">Directo</a>
-          <a href="/highlights">Resúmenes</a>
           <a href="/picks">Picks</a>
-          <a href="/mercados">Mercados</a>
+          <a href="/track-record">Histórico</a>
           <a href="/shark">SHARK</a>
           <a href="/menu">Más</a>
           <a href="/logout">Salir</a>
@@ -91,9 +88,8 @@
       <a href="/app">Inicio</a>
       <a href="/calendar">Partidos</a>
       <a href="/live">Directo</a>
-      <a href="/highlights">Resúmenes</a>
       <a href="/picks">Picks</a>
-      {% if current_user %}<a href="/mercados">Mercados</a><a href="/shark">SHARK</a><a href="/menu">Más</a>{% else %}<a href="/cliente-login">Entrar</a>{% endif %}
+      {% if current_user %}<a href="/shark">SHARK</a><a href="/menu">Más</a>{% else %}<a href="/cliente-login">Entrar</a>{% endif %}
     {% endif %}
   </nav>
 

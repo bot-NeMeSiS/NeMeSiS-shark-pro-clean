@@ -1,87 +1,10 @@
 {% extends "base.html" %}
 {% block content %}
-{% set center = data.v769_highlights_center if data.v769_highlights_center is defined else {} %}
-{% set hi = data.v766_highlights if data.v766_highlights is defined else {} %}
-<section class="scoreboard-hero v701-scoreboard v769-highlights-hero">
-  <div>
-    <div class="kicker">Centro de resultados · resúmenes · highlights</div>
-    <h1>{{ center.headline or 'Centro de resúmenes SHARK' }}</h1>
-    <p class="lead">{{ center.description or 'Resultados pasados, vídeos externos permitidos, partido enlazado y contexto claro para el cliente.' }}</p>
-    <div class="v750-live-actions">
-      <a class="btn primary" href="/calendar?lane=results">Resultados</a>
-      <a class="btn" href="/live?f=finished">Finalizados</a>
-      <a class="btn" href="/track-record">Track Record</a>
-      <a class="btn" href="/calendar">Calendario</a>
-    </div>
-    <p class="small">Madrid {{ center.now_madrid or '' }} · {{ center.rights_note or hi.client_note }} · La app no descarga ni rehostea vídeos.</p>
-  </div>
-  <div class="scoreboard-kpis v769-kpis">
-    <div><strong>{{ (center.counts or {}).get('videos', hi.with_video or 0) }}</strong><span>Vídeos</span></div>
-    <div><strong>{{ (center.counts or {}).get('embeddable', 0) }}</strong><span>En app</span></div>
-    <div><strong>{{ (center.counts or {}).get('pending', 0) }}</strong><span>Pendientes</span></div>
-    <div><strong>{{ center.status or hi.status or 'Pendiente' }}</strong><span>Estado</span></div>
-  </div>
-</section>
-
-{% set dm = data.dynamic_mode if data.dynamic_mode is defined else {} %}
-{% if dm %}
-<section class="band compact-band v764-auto-mode-strip client-only-context">
-  <div class="section-head"><div><h2>{{ dm.label }}</h2><p class="small">{{ dm.description }} · Madrid {{ dm.now_madrid }}</p></div><a class="pill" href="/modo-dinamico">Modo automático</a></div>
-</section>
-{% endif %}
-
-<section class="band compact-band v769-highlight-feature">
-  <div class="section-head"><div><h2>Últimos vídeos disponibles</h2><p class="small">Se muestran como iframe externo cuando YouTube lo permite; si no, se abre la fuente original.</p></div><span class="pill">{{ (center.available or [])|length }} visibles</span></div>
-  {% if center.available %}
-  <div class="v769-highlight-grid">
-    {% for h in center.available[:12] %}
-    <article class="v769-highlight-card card">
-      {% if h.can_embed %}
-      <div class="v769-video-frame"><iframe loading="lazy" src="{{ h.embed_url }}" title="{{ h.title }}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>
-      {% elif h.thumbnail_url %}
-      <a href="{{ h.safe_url }}" target="_blank" rel="noopener noreferrer"><img loading="lazy" src="{{ h.thumbnail_url }}" alt="{{ h.title }}"></a>
-      {% endif %}
-      <div class="v769-highlight-body">
-        <strong>{{ h.match_label }}</strong>
-        <small>{{ h.event_date_label }} · {{ h.competition_label }} · {{ h.source_label }}</small>
-        <div class="v769-card-actions">
-          <a class="btn small-btn primary" href="{{ h.detail_url }}">Ver ficha</a>
-          {% if h.match_url %}<a class="btn small-btn" href="{{ h.match_url }}">Partido</a>{% endif %}
-          {% if h.safe_url %}<a class="btn small-btn" href="{{ h.safe_url }}" target="_blank" rel="noopener noreferrer">Fuente</a>{% endif %}
-        </div>
-      </div>
-    </article>
-    {% endfor %}
-  </div>
-  {% else %}
-  <div class="empty premium-empty">
-    <strong>Sin vídeos enlazados todavía.</strong>
-    <p>Cuando la API publique highlights y el sincronizador los detecte, aparecerán aquí, en el calendario de resultados y en el detalle del partido.</p>
-    {% if not center.key_present %}<p class="small">Falta configurar THESPORTSDB_API_KEY/THESPORTSDB_KEY en Render para activar esta capa.</p>{% endif %}
-  </div>
-  {% endif %}
-</section>
-
-<section class="band compact-band v769-pending-results">
-  <div class="section-head"><div><h2>Finalizados pendientes de resumen</h2><p class="small">Partidos ya terminados donde todavía no hay vídeo enlazado. Esto da orden al calendario y evita confundir al cliente.</p></div><span class="pill">Cron diario</span></div>
-  {% if center.pending_matches %}
-  <div class="v762-client-list">
-    {% for m in center.pending_matches[:10] %}
-    <a class="v762-match-row" href="/match/{{ m.id }}">
-      <span class="v762-datebox"><strong>{{ m.client_date_label or (m|match_date_label) }}</strong><small>{{ m.client_time_label or (m|match_time_short) }}</small></span>
-      <span class="v762-mainline"><strong>{{ m.v769_title }}</strong><small>{{ m.v769_competition }} · {{ m.v769_status }}</small></span>
-      <em class="v762-chip">Resumen pendiente</em>
-    </a>
-    {% endfor %}
-  </div>
-  {% else %}
-  <div class="empty premium-empty">No hay finalizados pendientes en la muestra actual o todavía no hay resultados recientes cargados.</div>
-  {% endif %}
-</section>
-
-<section class="band compact-band v769-sync-info">
-  <div class="section-head"><div><h2>Automatización diaria</h2><p class="small">Para Render Cron usa el comando <code>{{ (center.cron or {}).command }}</code>. Mantiene resúmenes sin tocar Telegram ni picks.</p></div><span class="pill">{{ (center.cron or {}).recommended }}</span></div>
-  <p class="small">Endpoint: <code>{{ (center.cron or {}).endpoint }}</code></p>
-  {% if center.last_run %}<p class="small">Última ejecución: {{ center.last_run.started_at or '' }} · Estado {{ center.last_run.status or '' }} · encontrados {{ center.last_run.highlights_found or 0 }}.</p>{% endif %}
-</section>
+{% set center = data.get('v769_highlights_center') or {} %}
+{% set hi = data.get('v766_highlights') or {} %}
+{% set available = center.get('available') or [] %}
+{% set pending = center.get('pending') or [] %}
+<section class="v774-client-hero compact v774-highlights-hero"><div class="v774-hero-copy"><div class="kicker">Resultados y resúmenes</div><h1>{{ center.get('headline') or 'Centro de resúmenes SHARK' }}</h1><p class="lead">Partidos finalizados con marcador y vídeo externo cuando exista. Nunca descargamos ni rehosteamos vídeos.</p><div class="v774-actions"><a class="btn primary" href="/calendar?lane=results">Resultados</a><a class="btn" href="/highlights">Resúmenes</a><a class="btn" href="/calendar">Calendario</a></div></div><aside class="v774-day-card"><div class="v774-kpis"><a><strong>{{ (center.get('counts') or {}).get('videos', available|length) }}</strong><span>Vídeos</span></a><a><strong>{{ (center.get('counts') or {}).get('pending', pending|length) }}</strong><span>Pendientes</span></a><a><strong>{{ (center.get('counts') or {}).get('linked_matches',0) }}</strong><span>Enlazados</span></a><a><strong>{{ (center.get('counts') or {}).get('embeddable',0) }}</strong><span>En app</span></a></div></aside></section>
+<section class="v774-panel"><div class="section-head"><div><h2>Últimos vídeos disponibles</h2><p class="small">Iframe externo cuando YouTube lo permite; si no, enlace a fuente original.</p></div><span class="pill">{{ available|length }}</span></div>{% if available %}<div class="v774-highlight-grid">{% for h in available %}<a class="v774-highlight-card" href="{{ h.detail_url }}">{% if h.thumbnail_url %}<img src="{{ h.thumbnail_url }}" alt="{{ h.match_label }}" loading="lazy">{% endif %}<strong>{{ h.match_label }}</strong><small>{{ h.event_date_label }} · {{ h.competition_label }}</small><span>{{ h.client_status }}</span></a>{% endfor %}</div>{% else %}<div class="empty premium-empty"><strong>No hay resúmenes visibles todavía.</strong><p>Cuando la API publique highlights y el sincronizador los detecte, aparecerán aquí.</p></div>{% endif %}</section>
+<section class="v774-panel"><div class="section-head"><h2>Finalizados pendientes de resumen</h2><span class="pill">{{ pending|length }}</span></div><div class="v774-match-list">{% for m in pending[:10] %}{% set ctx = m|match_madrid_context %}<a class="v774-match-row" href="/match/{{ m.get('id') }}"><span class="v774-date"><strong>{{ ctx.client_date_label }}</strong><small>{{ ctx.client_time_label }}</small></span><span class="v774-main"><strong>{{ ctx.safe_home }} vs {{ ctx.safe_away }}</strong><small>{{ ctx.client_competition }} · {{ ctx.client_score_label }}</small></span><em class="v774-chip">Pendiente</em></a>{% else %}<div class="empty premium-empty">No hay finalizados pendientes en este momento.</div>{% endfor %}</div></section>
 {% endblock %}
