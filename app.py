@@ -136,6 +136,13 @@ from engines.final_release_engine import final_release_snapshot, final_release_v
 from engines.client_visual_perfection_engine import client_visual_perfection_snapshot
 from engines.calendar_experience_engine import calendar_experience_snapshot
 from engines.payment_readiness_engine import payment_readiness_snapshot
+from engines.legal_compliance_engine import (
+    LEGAL_COMPLIANCE_VERSION,
+    legal_compliance_payload,
+    legal_page_payload,
+    checkout_legal_checklist,
+    legal_admin_snapshot,
+)
 from engines.stripe_payments_engine import (
     client_payments_context,
     create_checkout_session,
@@ -195,7 +202,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V786_STRIPE_CHECKOUT_RETURN_WEBHOOK_STATUS_POLISH"
+APP_VERSION = "V788_LEGAL_COMPLIANCE_LIVE_READABILITY_TOTAL_POLISH"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -11455,6 +11462,105 @@ def _post_auth_redirect(default: str = "/app"):
     next_value = request.form.get("next") or request.args.get("next") or session.pop("post_auth_next", "")
     return redirect(_safe_client_next(next_value, default))
 
+
+def ensure_legal_compliance_schema():
+    """Create lightweight legal acceptance audit table without exposing private data."""
+    conn = db()
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS user_legal_acceptances (
+            id TEXT PRIMARY KEY,
+            user_id TEXT,
+            email TEXT,
+            context TEXT,
+            plan TEXT,
+            legal_version TEXT,
+            accepted_age INTEGER DEFAULT 0,
+            accepted_terms INTEGER DEFAULT 0,
+            accepted_privacy INTEGER DEFAULT 0,
+            accepted_no_guarantee INTEGER DEFAULT 0,
+            accepted_not_betting_operator INTEGER DEFAULT 0,
+            ip_address TEXT,
+            user_agent TEXT,
+            created_at TEXT
+        )
+    """)
+    conn.commit()
+    conn.close()
+
+
+def _legal_truthy(value) -> bool:
+    return str(value or "").strip().lower() in {"1", "true", "yes", "si", "sí", "on", "acepto", "accepted"}
+
+
+def legal_checkout_acceptance_from_request(plan: str) -> dict:
+    """Collect the mandatory V788 legal confirmations before Stripe checkout."""
+    form = request.form or {}
+    payload = request.get_json(silent=True) or {}
+    source = payload if request.is_json else form
+    return {
+        "plan": _selected_paid_plan(plan),
+        "legal_version": str(source.get("legal_version") or LEGAL_COMPLIANCE_VERSION),
+        "accepted_age": _legal_truthy(source.get("accept_age") or source.get("accepted_age")),
+        "accepted_terms": _legal_truthy(source.get("accept_terms") or source.get("accepted_terms")),
+        "accepted_privacy": _legal_truthy(source.get("accept_privacy") or source.get("accepted_privacy")),
+        "accepted_no_guarantee": _legal_truthy(source.get("accept_no_guarantee") or source.get("accepted_no_guarantee")),
+        "accepted_not_betting_operator": _legal_truthy(source.get("accept_not_betting_operator") or source.get("accepted_not_betting_operator")),
+    }
+
+
+def legal_acceptance_complete(acceptance: dict) -> bool:
+    required = ["accepted_age", "accepted_terms", "accepted_privacy", "accepted_no_guarantee", "accepted_not_betting_operator"]
+    return all(bool(acceptance.get(key)) for key in required)
+
+
+def record_legal_checkout_acceptance(user: dict, acceptance: dict, context: str = "stripe_checkout"):
+    if not user or not user.get("id") or not legal_acceptance_complete(acceptance):
+        return {"ok": False, "reason": "legal_acceptance_incomplete"}
+    ensure_legal_compliance_schema()
+    payload = {
+        "id": secrets.token_hex(16),
+        "user_id": user.get("id"),
+        "email": user.get("email") or user.get("username") or "",
+        "context": context,
+        "plan": acceptance.get("plan") or "",
+        "legal_version": acceptance.get("legal_version") or LEGAL_COMPLIANCE_VERSION,
+        "accepted_age": 1 if acceptance.get("accepted_age") else 0,
+        "accepted_terms": 1 if acceptance.get("accepted_terms") else 0,
+        "accepted_privacy": 1 if acceptance.get("accepted_privacy") else 0,
+        "accepted_no_guarantee": 1 if acceptance.get("accepted_no_guarantee") else 0,
+        "accepted_not_betting_operator": 1 if acceptance.get("accepted_not_betting_operator") else 0,
+        "ip_address": security_client_ip() if has_request_context() else "",
+        "user_agent": (request.headers.get("User-Agent", "")[:500] if has_request_context() else ""),
+        "created_at": now_iso(),
+    }
+    conn = db()
+    conn.execute("""
+        INSERT INTO user_legal_acceptances
+        (id,user_id,email,context,plan,legal_version,accepted_age,accepted_terms,accepted_privacy,accepted_no_guarantee,accepted_not_betting_operator,ip_address,user_agent,created_at)
+        VALUES (:id,:user_id,:email,:context,:plan,:legal_version,:accepted_age,:accepted_terms,:accepted_privacy,:accepted_no_guarantee,:accepted_not_betting_operator,:ip_address,:user_agent,:created_at)
+    """, payload)
+    conn.commit()
+    conn.close()
+    return {"ok": True, "legal_version": payload["legal_version"], "plan": payload["plan"]}
+
+
+def enforce_checkout_legal_gate(user: dict, plan: str):
+    """Return (ok, redirect_or_json_response). The checkout cannot start without explicit legal consent."""
+    acceptance = legal_checkout_acceptance_from_request(plan)
+    if legal_acceptance_complete(acceptance):
+        record_legal_checkout_acceptance(user, acceptance)
+        return True, None
+    selected = _selected_paid_plan(plan)
+    if request.is_json:
+        return False, (jsonify({
+            "ok": False,
+            "version": APP_VERSION,
+            "error": "Antes de pagar debes aceptar +18, términos, privacidad, no garantía y que NeMeSiS no es casa de apuestas.",
+            "legal_required": checkout_legal_checklist(),
+        }), 400)
+    qs = {"plan": selected or "PRO", "legal_pendiente": "1"}
+    return False, redirect("/membresias?" + urllib.parse.urlencode(qs))
+
 @app.route("/registro", methods=["GET", "POST"])
 def register_page():
     selected_plan = _store_pending_checkout_plan(request.args.get("plan") or request.form.get("plan"))
@@ -12349,6 +12455,8 @@ def membership_page():
     data["selected_plan"] = selected_plan
     data["continue_payment"] = str(request.args.get("continuar_pago") or "").lower() in {"1", "true", "yes", "si", "sí"}
     data["payments_client"] = client_payments_context(DB_PATH, user) if user.get("id") else {"checkout_ready": False, "plans": stripe_runtime_status(DB_PATH).get("plans", {}), "blockers": []}
+    data["legal_compliance"] = legal_compliance_payload()
+    data["checkout_legal"] = checkout_legal_checklist()
     return render_template("membership.html", data=data)
 
 
@@ -14171,6 +14279,9 @@ def api_payments_checkout():
         return jsonify({"ok": False, "version": APP_VERSION, "error": "Inicia sesión antes de pagar."}), 401
     payload = request.get_json(silent=True) or request.form or {}
     plan = str(payload.get("plan") or request.args.get("plan") or "").upper()
+    ok_legal, legal_response = enforce_checkout_legal_gate(user, plan)
+    if not ok_legal:
+        return legal_response
     result = create_checkout_session(DB_PATH, user, plan)
     status_code = 200 if result.get("ok") else 400
     if request.form and result.get("ok") and result.get("url"):
@@ -14187,6 +14298,9 @@ def payments_checkout_plan(plan):
         target = _membership_next_for_plan(plan)
         encoded_next = urllib.parse.quote(target, safe="")
         return redirect(f"/cliente-login?plan={plan}&next={encoded_next}")
+    ok_legal, legal_response = enforce_checkout_legal_gate(user, plan)
+    if not ok_legal:
+        return legal_response
     result = create_checkout_session(DB_PATH, user, plan)
     if result.get("ok") and result.get("url"):
         return redirect(result["url"])
@@ -14602,6 +14716,7 @@ def v566_admin_items():
         {"group": "Lanzamiento", "title": "Público grande", "body": "Seis áreas para abrir a público grande sin improvisar.", "href": "/admin/public-launch"},
         {"group": "Credibilidad", "title": "Track Record", "body": "Resultados, ROI y picks auditados.", "href": "/admin/track-record"},
         {"group": "Pagos", "title": "Pagos PRO/ELITE", "body": "Stripe, suscripciones y monetización segura.", "href": "/admin/payments"},
+        {"group": "Legal", "title": "Legal real", "body": "+18, términos, privacidad, no garantías y checkout responsable.", "href": "/admin/legal-compliance"},
     ]
 
 
@@ -14755,14 +14870,69 @@ def v566_auto_picks_page():
 @app.route("/juego-responsable")
 @app.route("/responsible-gaming")
 def v566_responsible_betting_page():
-    return render_template("responsible_betting.html", rb=v566_responsible_payload())
+    return render_template("legal_compliance.html", legal=legal_page_payload("responsable"), rb=v566_responsible_payload())
 
 
 @app.route("/legal")
-@app.route("/privacy")
-@app.route("/terms")
+@app.route("/confianza")
 def v566_legal_page():
-    return render_template("legal_trust.html", rb=v566_responsible_payload())
+    return render_template("legal_compliance.html", legal=legal_page_payload("centro"), rb=v566_responsible_payload())
+
+
+@app.route("/aviso-legal")
+def v787_legal_notice_page():
+    return render_template("legal_compliance.html", legal=legal_page_payload("aviso"), rb=v566_responsible_payload())
+
+
+@app.route("/terminos")
+@app.route("/terms")
+def v787_terms_page():
+    return render_template("legal_compliance.html", legal=legal_page_payload("terminos"), rb=v566_responsible_payload())
+
+
+@app.route("/privacidad")
+@app.route("/privacy")
+def v787_privacy_page():
+    return render_template("legal_compliance.html", legal=legal_page_payload("privacidad"), rb=v566_responsible_payload())
+
+
+@app.route("/cookies")
+def v787_cookies_page():
+    return render_template("legal_compliance.html", legal=legal_page_payload("cookies"), rb=v566_responsible_payload())
+
+
+@app.route("/reembolsos")
+@app.route("/cancelaciones")
+def v787_refunds_page():
+    return render_template("legal_compliance.html", legal=legal_page_payload("reembolsos"), rb=v566_responsible_payload())
+
+
+@app.route("/no-somos-casa-de-apuestas")
+@app.route("/no-somos-bookmaker")
+def v787_not_bookmaker_page():
+    return render_template("legal_compliance.html", legal=legal_page_payload("no_bookmaker"), rb=v566_responsible_payload())
+
+
+@app.route("/api/legal/compliance")
+def api_v787_legal_compliance():
+    return jsonify({"ok": True, "version": APP_VERSION, "legal": legal_compliance_payload()})
+
+
+@app.route("/admin/legal-compliance")
+@app.route("/admin/compliance-legal")
+def admin_v787_legal_compliance_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/legal-compliance")
+    data = dashboard_data()
+    data["legal_compliance"] = legal_admin_snapshot(DB_PATH)
+    return render_template("admin_legal_compliance.html", data=data)
+
+
+@app.route("/api/admin/legal-compliance")
+def api_admin_v787_legal_compliance():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "version": APP_VERSION, "legal_compliance": legal_admin_snapshot(DB_PATH)})
 
 
 @app.route("/contact", methods=["GET", "POST"])

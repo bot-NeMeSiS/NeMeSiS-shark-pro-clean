@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block content %}
+{% set nav = legal.nav or [] %}
+<section class="v787-legal-hero">
+  <div>
+    <div class="kicker">{{ legal.eyebrow }}</div>
+    <h1>{{ legal.title }}</h1>
+    <p class="lead">{{ legal.lead }}</p>
+    <div class="v787-legal-actions">
+      <a class="btn primary" href="/membresias">Ver planes legales</a>
+      <a class="btn" href="/no-somos-casa-de-apuestas">No somos casa de apuestas</a>
+      <a class="btn" href="/juego-responsable">Juego responsable</a>
+    </div>
+  </div>
+  <aside class="v787-legal-stamp">
+    <span>+18</span>
+    <strong>No operador de apuestas</strong>
+    <small>{{ legal.positioning.not_operator }}</small>
+  </aside>
+</section>
+
+<nav class="v787-legal-tabs" aria-label="Secciones legales">
+  {% for item in nav %}
+  <a class="{{ 'active' if item.slug == legal.slug else '' }}" href="{{ item.href }}">{{ item.label }}</a>
+  {% endfor %}
+</nav>
+
+<section class="v787-legal-grid">
+  {% for card in legal.cards %}
+  <article class="v787-legal-card"><h2>{{ card.title }}</h2><p>{{ card.body }}</p></article>
+  {% endfor %}
+</section>
+
+<section class="v787-legal-layout">
+  <article class="v787-legal-panel">
+    <div class="section-head"><div><h2>Contenido principal</h2><p class="small">Versión {{ legal.version }}</p></div><span class="pill">Legal</span></div>
+    <div class="v787-legal-sections">
+      {% for section in legal.sections %}
+      <div><strong>{{ section.title }}</strong><p>{{ section.body }}</p></div>
+      {% endfor %}
+    </div>
+  </article>
+  <aside class="v787-legal-panel warn">
+    <h2>Regla de seguridad</h2>
+    <p>{{ legal.positioning.one_liner }}</p>
+    <p>{{ legal.positioning.risk }}</p>
+    <div class="v787-legal-note">{{ legal.disclaimer }}</div>
+  </aside>
+</section>
+{% endblock %}

@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block content %}
+{% set lc = data.legal_compliance or {} %}
+<section class="hero compact-hero v787-admin-legal-hero">
+  <div>
+    <p class="eyebrow">Admin · legalidad real</p>
+    <h1>Legal Compliance Center</h1>
+    <p class="lead">Control previo a pagos reales: +18, términos, privacidad, no garantías, Stripe live y posición legal del producto.</p>
+    <div class="actions"><a class="btn primary" href="/legal">Legal público</a><a class="btn" href="/membresias">Checkout cliente</a><a class="btn" href="/api/admin/legal-compliance">API</a></div>
+  </div>
+  <div class="score-card"><span>Preparación legal</span><strong>{{ lc.score or 0 }}%</strong><small>{{ lc.version }}</small></div>
+</section>
+
+<section class="grid cards-grid compact-grid v787-admin-checks">
+  {% for item in lc.checks %}
+  <article class="card compact-card v787-check {{ (item.status or '')|lower }}">
+    <span class="badge {{ 'ready' if item.status == 'READY' else 'warn' if item.status == 'ACTION' else '' }}">{{ item.status }}</span>
+    <h3>{{ item.title }}</h3>
+    <p>{{ item.detail }}</p>
+  </article>
+  {% endfor %}
+</section>
+
+<section class="grid two-col">
+  <article class="card">
+    <div class="section-head"><h2>Puerta antes de Stripe live</h2><span class="pill">No saltar</span></div>
+    <ul class="clean-list">{% for item in lc.gate %}<li>{{ item }}</li>{% endfor %}</ul>
+  </article>
+  <article class="card">
+    <div class="section-head"><h2>Lenguaje peligroso</h2><span class="pill">Evitar</span></div>
+    <p class="small">No usar promesas que conviertan el producto en algo parecido a garantía de beneficio.</p>
+    <div class="tag-row">{% for word in lc.unsafe_words %}<span class="tag danger">{{ word }}</span>{% endfor %}</div>
+  </article>
+</section>
+{% endblock %}

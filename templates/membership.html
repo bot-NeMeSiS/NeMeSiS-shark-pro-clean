@@ -5,6 +5,8 @@
 {% set pro = plans.PRO if plans.PRO else {} %}
 {% set elite = plans.ELITE if plans.ELITE else {} %}
 {% set selected = (data.selected_plan or request.args.get('plan') or '')|upper %}
+{% set checkout_legal = data.checkout_legal or [] %}
+{% set legal_version = (data.legal_compliance.version if data.legal_compliance else 'V788-LEGAL') %}
 <section class="v785-membership-hero">
   <div>
     <div class="kicker">Membresías · precios claros · Stripe seguro</div>
@@ -14,6 +16,7 @@
     {% if request.args.get('pago') == 'cancelado' %}<div class="empty-state">Pago cancelado. No se ha cambiado tu membresía.</div>{% endif %}
     {% if request.args.get('pago') == 'exito' and request.args.get('sync') == 'ok' %}<div class="v786-pay-ok">Pago recibido. Stripe ha sincronizado tu plan correctamente.</div>{% endif %}
     {% if request.args.get('pago') == 'exito' and request.args.get('sync') == 'pendiente' %}<div class="v786-pay-wait">Pago recibido. Estamos esperando la confirmación del webhook de Stripe; puede tardar unos segundos.</div>{% endif %}
+    {% if request.args.get('legal_pendiente') %}<div class="v787-legal-required">Antes de abrir Stripe debes aceptar los avisos legales obligatorios: +18, términos, privacidad, no garantía y que NeMeSiS no es casa de apuestas.</div>{% endif %}
   </div>
   <aside class="v785-payment-status">
     <span class="v774-status {{ 'ready' if pay.checkout_ready else 'pending' }}">{{ 'Stripe listo' if pay.checkout_ready else 'Stripe pendiente' }}</span>
@@ -28,7 +31,15 @@
   <div class="inline-actions">
     {% if current_user %}
       {% if pay.checkout_ready %}
-      <form method="post" action="/pagos/checkout/{{ selected }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn primary v786-stripe-btn" data-ns-no-loading="1" type="submit">Continuar a Stripe</button></form>
+      <form method="post" action="/pagos/checkout/{{ selected }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="v787-checkout-legal">
+          <strong>Confirmación legal antes de pagar</strong>
+          {% for item in checkout_legal %}
+          <label><input type="checkbox" name="{{ item.key }}" value="1" required> <span>{{ item.label }}</span></label>
+          {% endfor %}
+          <input type="hidden" name="legal_version" value="{{ legal_version }}">
+          <small>La suscripción compra acceso a una plataforma informativa. No compra apuestas, premios ni resultados garantizados.</small>
+        </div><button class="btn primary v786-stripe-btn" data-ns-no-loading="1" type="submit">Continuar a Stripe</button></form>
       {% else %}<a class="btn" href="/admin/payments">Stripe pendiente</a>{% endif %}
     {% else %}
       <a class="btn primary" href="/cliente-login?plan={{ selected }}&next={{ ('/membresias?plan=' ~ selected ~ '&continuar_pago=1')|urlencode }}">Entrar y pagar {{ selected }}</a>
@@ -54,7 +65,15 @@
     <ul><li>Picks PRO</li><li>Combis y mercados</li><li>Telegram premium</li><li>Lectura SHARK ampliada</li></ul>
     {% if current_user %}
       {% if pay.checkout_ready and (pro.configured if pro else false) %}
-      <form method="post" action="/pagos/checkout/PRO"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn primary v786-stripe-btn" data-ns-no-loading="1" type="submit">Pagar PRO</button></form>
+      <form method="post" action="/pagos/checkout/PRO"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="v787-checkout-legal">
+          <strong>Confirmación legal antes de pagar</strong>
+          {% for item in checkout_legal %}
+          <label><input type="checkbox" name="{{ item.key }}" value="1" required> <span>{{ item.label }}</span></label>
+          {% endfor %}
+          <input type="hidden" name="legal_version" value="{{ legal_version }}">
+          <small>La suscripción compra acceso a una plataforma informativa. No compra apuestas, premios ni resultados garantizados.</small>
+        </div><button class="btn primary v786-stripe-btn" data-ns-no-loading="1" type="submit">Pagar PRO</button></form>
       {% else %}<button class="btn" disabled>PRO pendiente de Stripe</button>{% endif %}
     {% else %}
       <a class="btn primary" href="/comprar/PRO">Elegir PRO</a>
@@ -69,7 +88,15 @@
     <ul><li>Picks ELITE</li><li>Alertas live y prepartido</li><li>Prioridad SHARK</li><li>Experiencia completa</li></ul>
     {% if current_user %}
       {% if pay.checkout_ready and (elite.configured if elite else false) %}
-      <form method="post" action="/pagos/checkout/ELITE"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn primary v786-stripe-btn" data-ns-no-loading="1" type="submit">Pagar ELITE</button></form>
+      <form method="post" action="/pagos/checkout/ELITE"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="v787-checkout-legal">
+          <strong>Confirmación legal antes de pagar</strong>
+          {% for item in checkout_legal %}
+          <label><input type="checkbox" name="{{ item.key }}" value="1" required> <span>{{ item.label }}</span></label>
+          {% endfor %}
+          <input type="hidden" name="legal_version" value="{{ legal_version }}">
+          <small>La suscripción compra acceso a una plataforma informativa. No compra apuestas, premios ni resultados garantizados.</small>
+        </div><button class="btn primary v786-stripe-btn" data-ns-no-loading="1" type="submit">Pagar ELITE</button></form>
       {% else %}<button class="btn" disabled>ELITE pendiente de Stripe</button>{% endif %}
     {% else %}
       <a class="btn primary" href="/comprar/ELITE">Elegir ELITE</a>
@@ -82,6 +109,13 @@
   <article><strong>Flujo limpio</strong><span>El cliente no pierde el plan elegido al entrar o registrarse.</span></article>
   <article><strong>Precio visible</strong><span>PRO y ELITE muestran importe mensual desde inicio y membresías.</span></article>
   <article><strong>Activación automática</strong><span>Stripe confirma el pago por webhook y actualiza la membresía.</span></article>
+  <article><strong>Checkout legal</strong><span>Antes de pagar hay aceptación expresa de +18, términos, privacidad y no garantía.</span></article>
+</section>
+
+
+<section class="v787-legal-prepay">
+  <div><strong>Antes de pagar en real</strong><span>NeMeSiS SHARK PRO es análisis deportivo informativo. No acepta apuestas, no gestiona saldos de juego y no garantiza beneficios.</span></div>
+  <div class="inline-actions"><a class="btn small-btn" href="/terminos">Términos</a><a class="btn small-btn" href="/privacidad">Privacidad</a><a class="btn small-btn" href="/no-somos-casa-de-apuestas">No somos casa de apuestas</a></div>
 </section>
 
 {% if current_user %}

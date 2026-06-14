@@ -170,3 +170,17 @@ No tocado:
 Se corrige el flujo Stripe observado en vídeo: al volver desde Checkout, `/pagos/exito` sincroniza la sesión con Stripe usando `session_id` como red de seguridad, sin reemplazar el webhook. Se resetean loaders al volver desde Stripe para evitar botones amarillos con spinner persistente. La pantalla de membresías muestra estado de pago más claro y mensajes de sincronización/pendiente webhook.
 
 ZIP final: NeMeSiS_SHARK_PRO_V786_STRIPE_CHECKOUT_RETURN_WEBHOOK_STATUS_POLISH_RENDER_READY.zip
+
+## V787_LEGAL_COMPLIANCE_RESPONSIBLE_SUBSCRIPTION_READY
+
+Capa legal y responsable añadida antes de pasar pagos a Stripe live. La app se posiciona como plataforma informativa/SaaS de análisis deportivo, no casa de apuestas. Se añaden páginas legales, juego responsable, no somos casa de apuestas, términos, privacidad, cookies, reembolsos, aviso legal, admin Legal Compliance Center, API legal, footer global +18 y protección real del checkout: PRO/ELITE no abre Stripe si el usuario no acepta +18, términos, privacidad, ausencia de garantías y que NeMeSiS no acepta apuestas ni paga premios. Se crea tabla `user_legal_acceptances` para auditoría.
+
+Preserva Telegram, Cron, DB_PATH, usuarios/sesiones/membresías, directos, escudos, picks, Track Record, Stripe core, highlights y Madrid Time. Antes de Stripe live real queda pendiente completar titular legal, revisar textos con asesoría y confirmar aceptación de Stripe para el modelo SaaS informativo.
+
+## V788_LEGAL_COMPLIANCE_LIVE_READABILITY_TOTAL_POLISH
+
+Se mantiene la capa legal V787 para avanzar hacia pagos reales dentro de una estructura prudente: plataforma informativa/SaaS de análisis deportivo, no casa de apuestas, +18, juego responsable, páginas legales, aceptación obligatoria antes del checkout y auditoría `user_legal_acceptances`.
+
+Además se corrige la queja visual del usuario en cliente/directo: partidos demasiado juntos y letra pequeña. Se añade CSS V788 de legibilidad global para cliente autenticado y una capa específica para Live/Directo: cards más grandes, más separación, equipos y marcador más claros, escudos más visibles, tabs/filtros más cómodos y grid menos apretado en desktop/móvil.
+
+Preserva Stripe core, webhook, Telegram/Cron, DB_PATH, usuarios/sesiones/membresías, directos V780, escudos V779, picks, Track Record, highlights, Data Marketplace, Automation Center y Madrid Time.

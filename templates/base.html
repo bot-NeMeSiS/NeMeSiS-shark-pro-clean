@@ -77,6 +77,13 @@
     {% block content %}{% endblock %}
   </main>
 
+
+  <footer class="v787-legal-footer" aria-label="Aviso legal y responsable">
+    <strong>+18 · Información deportiva, no casa de apuestas.</strong>
+    <span>NeMeSiS SHARK PRO no acepta apuestas, no custodia saldo de juego, no paga premios y no garantiza beneficios.</span>
+    <nav><a href="/legal">Legal</a><a href="/terminos">Términos</a><a href="/privacidad">Privacidad</a><a href="/juego-responsable">Juego responsable</a></nav>
+  </footer>
+
   <nav class="bottom-nav bottom-nav-clean" aria-label="Navegación rápida">
     {% if current_user and current_user.role == 'ADMIN' %}
       <a href="/admin/control-center">Control</a>
