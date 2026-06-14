@@ -2,67 +2,68 @@
 {% block content %}
 {% set pay = data.payments_client or {} %}
 {% set plans = pay.plans or {} %}
-<section class="v778-home-hero membership-hero v782-payments-hero">
+{% set pro = plans.PRO if plans.PRO else {} %}
+{% set elite = plans.ELITE if plans.ELITE else {} %}
+<section class="v783-membership-top">
   <div>
-    <div class="kicker">Membresías NeMeSiS · Stripe</div>
-    <h1>Sube a PRO o ELITE con pago seguro y acceso automático.</h1>
-    <p class="lead">FREE para explorar. PRO para picks, combinadas y Telegram premium. ELITE para la experiencia completa con prioridad SHARK.</p>
+    <div class="kicker">Membresías · Stripe · acceso automático</div>
+    <h1>Elige plan sin perderte.</h1>
+    <p class="lead">FREE para empezar. PRO para picks y Telegram. ELITE para prioridad SHARK y alertas completas.</p>
     {% if payment_error or data.payment_error %}<div class="empty-state warn">{{ payment_error or data.payment_error }}</div>{% endif %}
     {% if request.args.get('pago') == 'cancelado' %}<div class="empty-state">Pago cancelado. No se ha cambiado tu membresía.</div>{% endif %}
-    <div class="actions">
-      {% if current_user %}<a class="btn primary" href="/mi-cuenta">Mi cuenta</a>{% else %}<a class="btn primary" href="/registro">Crear cuenta</a><a class="btn" href="/cliente-login">Entrar</a>{% endif %}
-    </div>
-    <p class="small">Los pagos se procesan en Stripe Checkout. La membresía se activa con webhook verificado; si tarda unos segundos, refresca Mi cuenta.</p>
   </div>
-  <aside class="v778-priority-card">
-    <span class="v774-status ready">{{ 'Stripe listo' if pay.checkout_ready else 'Stripe pendiente' }}</span>
-    <strong>Acceso automático</strong>
-    <small>Sin tocar usuarios manualmente cuando el webhook queda configurado.</small>
+  <aside class="v783-payment-status">
+    <span class="v774-status {{ 'ready' if pay.checkout_ready else 'pending' }}">{{ 'Stripe listo' if pay.checkout_ready else 'Stripe pendiente' }}</span>
+    <small>La membresía se activa con webhook verificado.</small>
   </aside>
 </section>
 
-<section class="band">
-  <div class="grid membership-grid pricing-polish v782-pricing-grid">
-    <article class="card plan-card plan-free">
-      <div class="badge badge-free">FREE</div>
-      <h2>FREE</h2>
-      <div class="price-tag">0€</div>
-      <p class="small">Para explorar calendario, directos, resultados y SHARK base.</p>
-      <ul><li>Calendario y directo</li><li>Resultados reales</li><li>Favoritos básicos</li><li>SHARK base</li></ul>
-      {% if not current_user %}<a class="btn" href="/registro">Empezar gratis</a>{% else %}<a class="btn" href="/app">Abrir app</a>{% endif %}
-    </article>
+<section class="v783-pricing-row v782-pricing-grid">
+  <article class="v783-price-card free">
+    <div class="badge badge-free">FREE</div>
+    <h2>Gratis</h2>
+    <strong>0€</strong>
+    <p>Para explorar calendario, directos, resultados y SHARK base.</p>
+    <ul><li>Partidos y directos</li><li>Resultados reales</li><li>Favoritos básicos</li></ul>
+    {% if not current_user %}<a class="btn" href="/registro">Empezar gratis</a>{% else %}<a class="btn" href="/app">Abrir app</a>{% endif %}
+  </article>
 
-    <article class="card plan-card plan-pro featured-plan">
-      <div class="badge badge-pro">PRO</div>
-      <h2>PRO</h2>
-      <div class="price-tag">{{ (plans.PRO.price_label if plans.PRO else 'PRO mensual') }}</div>
-      <p class="small">Para seguir picks, combinadas, Telegram premium y análisis más accionable.</p>
-      <ul><li>Picks PRO</li><li>Combis y mercados básicos</li><li>Telegram premium</li><li>Más lectura SHARK</li></ul>
-      {% if current_user %}
-        {% if pay.checkout_ready and (plans.PRO.configured if plans.PRO else false) %}
-        <form method="post" action="/pagos/checkout/PRO"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn primary" type="submit">Activar PRO con Stripe</button></form>
-        {% else %}<button class="btn" disabled>PRO pendiente de configurar</button>{% endif %}
-      {% else %}<a class="btn primary" href="/registro">Crear cuenta para PRO</a>{% endif %}
-    </article>
+  <article class="v783-price-card pro featured">
+    <div class="badge badge-pro">PRO</div>
+    <h2>PRO</h2>
+    <strong>{{ pro.price_label if pro else 'PRO mensual' }}</strong>
+    <p>Picks, combinadas, mercados explicados y Telegram premium.</p>
+    <ul><li>Picks PRO</li><li>Combis y mercados</li><li>Telegram premium</li></ul>
+    {% if current_user %}
+      {% if pay.checkout_ready and (pro.configured if pro else false) %}
+      <form method="post" action="/pagos/checkout/PRO"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn primary" type="submit">Activar PRO</button></form>
+      {% else %}<button class="btn" disabled>PRO pendiente de configurar</button>{% endif %}
+    {% else %}<a class="btn primary" href="/registro">Crear cuenta para PRO</a>{% endif %}
+  </article>
 
-    <article class="card plan-card plan-elite">
-      <div class="badge badge-elite">ELITE</div>
-      <h2>ELITE</h2>
-      <div class="price-tag">{{ (plans.ELITE.price_label if plans.ELITE else 'ELITE mensual') }}</div>
-      <p class="small">Para acceso máximo: alertas live, prioridad Telegram y SHARK contextual completo.</p>
-      <ul><li>Picks ELITE</li><li>Alertas live</li><li>Prioridad Telegram</li><li>SHARK contextual premium</li></ul>
-      {% if current_user %}
-        {% if pay.checkout_ready and (plans.ELITE.configured if plans.ELITE else false) %}
-        <form method="post" action="/pagos/checkout/ELITE"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn primary" type="submit">Activar ELITE con Stripe</button></form>
-        {% else %}<button class="btn" disabled>ELITE pendiente de configurar</button>{% endif %}
-      {% else %}<a class="btn" href="/cliente-login">Entrar para ELITE</a>{% endif %}
-    </article>
-  </div>
+  <article class="v783-price-card elite">
+    <div class="badge badge-elite">ELITE</div>
+    <h2>ELITE</h2>
+    <strong>{{ elite.price_label if elite else 'ELITE mensual' }}</strong>
+    <p>Experiencia completa: alertas live, prioridad Telegram y SHARK contextual.</p>
+    <ul><li>Picks ELITE</li><li>Alertas live</li><li>Prioridad SHARK</li></ul>
+    {% if current_user %}
+      {% if pay.checkout_ready and (elite.configured if elite else false) %}
+      <form method="post" action="/pagos/checkout/ELITE"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn primary" type="submit">Activar ELITE</button></form>
+      {% else %}<button class="btn" disabled>ELITE pendiente de configurar</button>{% endif %}
+    {% else %}<a class="btn" href="/cliente-login">Entrar para ELITE</a>{% endif %}
+  </article>
+</section>
+
+<section class="v783-membership-explain">
+  <article><strong>PRO</strong><span>Para el cliente que quiere picks claros, combinadas y avisos útiles.</span></article>
+  <article><strong>ELITE</strong><span>Para quien quiere prioridad SHARK, live, Telegram y experiencia completa.</span></article>
+  <article><strong>Control</strong><span>Pagos por Stripe, activación automática y downgrade si se cancela la suscripción.</span></article>
 </section>
 
 {% if current_user %}
-<section class="card v782-billing-card">
-  <h2>Estado de pagos</h2>
+<section class="card v782-billing-card v783-billing-compact">
+  <div class="section-head"><div><h2>Estado de pagos</h2><p class="small">Facturación y renovación.</p></div><span class="pill">{{ pay.current_plan or current_user.membership }}</span></div>
   <div class="grid cards-3">
     <article class="mini-card"><strong>{{ pay.current_plan or current_user.membership }}</strong><span>Plan actual</span></article>
     <article class="mini-card"><strong>{{ pay.stripe_subscription_status or 'Sin suscripción Stripe' }}</strong><span>Estado Stripe</span></article>

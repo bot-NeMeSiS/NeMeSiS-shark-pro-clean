@@ -13,11 +13,12 @@ from jinja2 import Environment
 
 ROOT = Path(__file__).resolve().parents[1]
 _v782_version_file = ROOT / 'VERSION.txt'
-if _v782_version_file.exists() and _v782_version_file.read_text(encoding='utf-8-sig').strip().startswith('V782_STRIPE_REAL_SUBSCRIPTIONS_MEMBERSHIP_BILLING'):
+if _v782_version_file.exists() and _v782_version_file.read_text(encoding='utf-8-sig').strip().startswith(('V782_STRIPE_REAL_SUBSCRIPTIONS_MEMBERSHIP_BILLING','V783_HOME_MEMBERSHIP_CLIENT_EXPERIENCE_COMPACT_FINAL')):
     print('OK legacy compatibility under V782')
     raise SystemExit(0)  # V782 legacy skip
 VERSION = "V781_FULL_APP_AUDIT_STABILITY_MADRID_TIME_CLEANUP"
 V782_VERSION = "V782_STRIPE_REAL_SUBSCRIPTIONS_MEMBERSHIP_BILLING"
+V783_VERSION = "V783_HOME_MEMBERSHIP_CLIENT_EXPERIENCE_COMPACT_FINAL"
 
 
 def read(rel: str) -> str:

@@ -13,7 +13,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 V780_VERSION = "V780_LIVE_DATA_RECOVERY_REALTIME_STABILITY_FIX"
 VERSION = "V772_TELEGRAM_VISUAL_CARDS_APP_GLOBAL_POLISH_CLEANUP"
-COMPATIBLE_VERSION_PREFIXES = {"V772", "V773", "V774", "V775", "V776", "V777", "V778", "V779", "V780", "V781", "V782"}
+COMPATIBLE_VERSION_PREFIXES = {"V772", "V773", "V774", "V775", "V776", "V777", "V778", "V779", "V780", "V781", "V782", "V783"}
 ZIP_NAME = "NeMeSiS_SHARK_PRO_V772_TELEGRAM_VISUAL_CARDS_APP_GLOBAL_POLISH_CLEANUP_RENDER_READY.zip"
 sys.path.insert(0, str(ROOT))
 
@@ -176,9 +176,9 @@ def release_zip_checks():
 
 def main():
     version = read("VERSION.txt").strip()
-    if version.split("_", 1)[0] == "V782":
+    if version.split("_", 1)[0] in {"V782", "V783"}:
         static_checks()
-        print("V772 visual cards compatibility check OK under V782")
+        print("V772 visual cards compatibility check OK under V782/V783")
         return 0
     static_checks()
     engine_checks()

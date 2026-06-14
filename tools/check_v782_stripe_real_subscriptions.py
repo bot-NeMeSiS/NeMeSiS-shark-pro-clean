@@ -20,7 +20,7 @@ def read(path: str) -> str:
 
 
 def check_files() -> None:
-    if not VERSION.startswith("V782_STRIPE_REAL_SUBSCRIPTIONS_MEMBERSHIP_BILLING"):
+    if not VERSION.startswith(("V782_STRIPE_REAL_SUBSCRIPTIONS_MEMBERSHIP_BILLING","V783_HOME_MEMBERSHIP_CLIENT_EXPERIENCE_COMPACT_FINAL")):
         fail(f"VERSION inesperada: {VERSION}")
     app = read("app.py")
     required = [
@@ -123,7 +123,7 @@ def check_engine_schema_and_membership() -> None:
 def main() -> None:
     check_files()
     check_engine_schema_and_membership()
-    print("OK V782 Stripe real subscriptions/membership billing")
+    print("OK V782/V783 Stripe real subscriptions/membership billing compatibility")
 
 
 if __name__ == "__main__":

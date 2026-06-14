@@ -195,7 +195,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V782_STRIPE_REAL_SUBSCRIPTIONS_MEMBERSHIP_BILLING"
+APP_VERSION = "V783_HOME_MEMBERSHIP_CLIENT_EXPERIENCE_COMPACT_FINAL"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -10107,6 +10107,15 @@ def home_light_data():
         except Exception:
             pass
         client_alerts = []
+    try:
+        _stripe_public_status = stripe_runtime_status(DB_PATH)
+        _payments_public = {"checkout_ready": bool(_stripe_public_status.get("checkout_ready")), "plans": _stripe_public_status.get("plans", {}), "blockers": _stripe_public_status.get("blockers", [])}
+    except Exception as exc:
+        try:
+            print("[HOME_LIGHT][PAYMENTS_PUBLIC_SKIP]", str(exc)[:200])
+        except Exception:
+            pass
+        _payments_public = {"checkout_ready": False, "plans": {}, "blockers": []}
     return {
         "app_name": APP_NAME,
         "version": APP_VERSION,
@@ -10132,6 +10141,7 @@ def home_light_data():
         "picks": live.get("picks", []),
         "favorites": live.get("favorites", []),
         "upcoming_matches": live.get("upcoming_matches", []),
+        "payments_client": _payments_public,
         "daily_briefing": {"score": 72 if live.get("has_real_data") else 0},
         "readiness": {"calendar": 95, "live_foundation": 92, "shark_ai": 94},
     }
