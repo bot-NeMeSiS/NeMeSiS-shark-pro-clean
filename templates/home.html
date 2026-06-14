@@ -71,10 +71,18 @@
 {% endif %}
 
 {% set hi = data.v766_highlights if data.v766_highlights is defined else {} %}
-{% if hi %}
-<section class="band compact-band v766-highlights-band client-only-context">
-  <div class="section-head"><div><h2>Resultados y resúmenes</h2><p class="small">Partidos pasados con marcador y, cuando la API lo aporta, enlace externo al resumen/highlights.</p></div><a class="pill" href="/highlights">Abrir</a></div>
-  <div class="v766-order-kpis"><span><strong>{{ hi.with_video or 0 }}</strong><small>Vídeos</small></span><span><strong>{{ hi.linked_matches or 0 }}</strong><small>Enlazados</small></span><span><strong>{{ hi.enriched_matches or 0 }}</strong><small>Partidos</small></span></div>
+{% set hc = data.v769_highlights_center if data.v769_highlights_center is defined else {} %}
+{% if hi or hc %}
+<section class="band compact-band v769-home-highlights client-only-context">
+  <div class="section-head"><div><h2>Resultados y resúmenes</h2><p class="small">Partidos pasados con marcador, vídeo externo si existe y enlace al partido para entender qué pasó.</p></div><a class="pill" href="/resumenes">Abrir centro</a></div>
+  <div class="v766-order-kpis"><span><strong>{{ (hc.counts or {}).get('videos', hi.with_video or 0) }}</strong><small>Vídeos</small></span><span><strong>{{ (hc.counts or {}).get('pending', 0) }}</strong><small>Pendientes</small></span><span><strong>{{ (hc.counts or {}).get('linked_matches', hi.linked_matches or 0) }}</strong><small>Enlazados</small></span></div>
+  {% if hc.available %}
+  <div class="v769-home-highlight-list">
+    {% for h in hc.available[:3] %}
+    <a class="v769-home-highlight" href="{{ h.detail_url }}"><strong>{{ h.match_label }}</strong><small>{{ h.event_date_label }} · {{ h.competition_label }}</small><span>{{ h.client_status }}</span></a>
+    {% endfor %}
+  </div>
+  {% endif %}
 </section>
 {% endif %}
 

@@ -846,3 +846,88 @@ body.ns-authenticated .calendar-filter-panel input[name="country"]::placeholder{
   .v768-cert-grid,
   .v768-client-trust .compact-grid { grid-template-columns: 1fr !important; }
 }
+
+/* ===================== V769 Highlights / Results Content Center Final ===================== */
+.v769-highlights-hero {
+  border: 1px solid rgba(69,225,255,.24);
+  box-shadow: 0 22px 60px rgba(0,0,0,.30), inset 0 1px 0 rgba(255,255,255,.06);
+}
+.v769-kpis strong { font-size: clamp(1.15rem, 2vw, 1.7rem); }
+.v769-highlight-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+  gap: 16px;
+}
+.v769-highlight-grid.single { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+.v769-highlight-card {
+  overflow: hidden;
+  padding: 0;
+  border: 1px solid rgba(69,225,255,.18);
+  background: linear-gradient(180deg, rgba(15,28,50,.95), rgba(8,14,28,.96));
+}
+.v769-highlight-card img {
+  width: 100%;
+  aspect-ratio: 16/9;
+  object-fit: cover;
+  display: block;
+}
+.v769-video-frame {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16/9;
+  overflow: hidden;
+  background: rgba(0,0,0,.35);
+  border-radius: 16px 16px 0 0;
+}
+.v769-video-frame.xl { border-radius: 20px; }
+.v769-video-frame iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+}
+.v769-highlight-body {
+  padding: 14px 16px 16px;
+  display: grid;
+  gap: 8px;
+}
+.v769-highlight-body strong,
+.v769-home-highlight strong { color: rgba(248,252,255,.98); }
+.v769-highlight-body small,
+.v769-home-highlight small { color: rgba(210,225,245,.76); }
+.v769-card-actions,
+.v769-home-highlight-list {
+  display: flex;
+  gap: 9px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.v769-home-highlight-list { margin-top: 12px; }
+.v769-home-highlight {
+  flex: 1 1 220px;
+  min-width: 220px;
+  padding: 13px 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(69,225,255,.16);
+  background: rgba(255,255,255,.04);
+  display: grid;
+  gap: 5px;
+  text-decoration: none;
+}
+.v769-home-highlight span { color: #9ee8ff; font-size: .82rem; }
+.v769-highlight-detail img {
+  max-width: 100%;
+  border-radius: 18px;
+  display: block;
+}
+.v769-sync-info code,
+.v769-pending-results code {
+  white-space: normal;
+  word-break: break-word;
+}
+@media (max-width: 720px) {
+  .v769-highlight-grid,
+  .v769-highlight-grid.single { grid-template-columns: 1fr; }
+  .v769-card-actions .btn,
+  .v769-home-highlight { width: 100%; }
+}

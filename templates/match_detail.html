@@ -66,16 +66,22 @@
 
 {% set mk = data.v765_markets if data.v765_markets is defined else {} %}
 {% set match_hi = data.v766_highlights if data.v766_highlights is defined else {} %}
-{% if match_hi.highlights %}
-<section class="band compact-band v766-match-highlights client-only-context">
-  <div class="section-head"><div><h2>Resumen / highlights</h2><p class="small">Enlaces externos aportados por la API. No se descarga ni se rehostea vídeo.</p></div><span class="pill">{{ match_hi.highlights|length }} disponibles</span></div>
-  <div class="v766-highlight-grid">
-    {% for h in match_hi.highlights[:4] %}<a class="v766-highlight-card" href="{{ h.video_url }}" target="_blank" rel="noopener noreferrer"><strong>{{ h.title or 'Resumen del partido' }}</strong><small>{{ h.source or 'TheSportsDB' }} · {{ h.provider or 'YouTube' }}</small><span>Ver resumen externo</span></a>{% endfor %}
+{% set match_hi_cards = data.v769_match_highlights if data.v769_match_highlights is defined else [] %}
+{% if match_hi_cards %}
+<section class="band compact-band v769-match-highlights client-only-context">
+  <div class="section-head"><div><h2>Resumen / highlights</h2><p class="small">Vídeo externo enlazado al partido. Se puede ver en la app si YouTube lo permite; NeMeSiS no descarga ni rehostea.</p></div><span class="pill">{{ match_hi_cards|length }} disponibles</span></div>
+  <div class="v769-highlight-grid single">
+    {% for h in match_hi_cards[:2] %}
+    <article class="v769-highlight-card card">
+      {% if h.can_embed %}<div class="v769-video-frame"><iframe loading="lazy" src="{{ h.embed_url }}" title="{{ h.title }}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>{% endif %}
+      <div class="v769-highlight-body"><strong>{{ h.title }}</strong><small>{{ h.source_label }} · {{ h.event_date_label }}</small><div class="v769-card-actions"><a class="btn small-btn primary" href="{{ h.detail_url }}">Ficha</a>{% if h.safe_url %}<a class="btn small-btn" href="{{ h.safe_url }}" target="_blank" rel="noopener noreferrer">Fuente</a>{% endif %}</div></div>
+    </article>
+    {% endfor %}
   </div>
 </section>
 {% elif state.is_finished %}
 <section class="band compact-band v766-match-highlights client-only-context">
-  <div class="section-head"><div><h2>Resumen / highlights</h2><p class="small">Partido finalizado. Resumen pendiente de aparecer en la API.</p></div><span class="pill">Pendiente</span></div>
+  <div class="section-head"><div><h2>Resumen / highlights</h2><p class="small">Partido finalizado. Resumen pendiente de aparecer en la API y en el sincronizador diario.</p></div><a class="pill" href="/resumenes">Centro de resúmenes</a></div>
 </section>
 {% endif %}
 

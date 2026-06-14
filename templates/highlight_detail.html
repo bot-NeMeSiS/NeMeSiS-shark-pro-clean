@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block content %}
+{% set h = data.highlight if data.highlight is defined else {} %}
+{% if not h %}
+<section class="scoreboard-hero v701-scoreboard">
+  <div><div class="kicker">Resumen no encontrado</div><h1>No hemos encontrado este vídeo</h1><p class="lead">Puede que la API haya cambiado el enlace. Vuelve al centro de resúmenes.</p></div>
+  <div class="actions"><a class="btn primary" href="/resumenes">Volver a resúmenes</a></div>
+</section>
+{% else %}
+<section class="scoreboard-hero v701-scoreboard v769-highlights-hero">
+  <div>
+    <div class="kicker">Resumen del partido</div>
+    <h1>{{ h.match_label }}</h1>
+    <p class="lead">{{ h.competition_label }} · {{ h.event_date_label }} · {{ h.source_label }}</p>
+    <div class="v750-live-actions">
+      {% if h.match_url %}<a class="btn primary" href="{{ h.match_url }}">Ver partido</a>{% endif %}
+      <a class="btn" href="/calendar?lane=results">Resultados</a>
+      <a class="btn" href="/track-record">Track Record</a>
+      {% if h.safe_url %}<a class="btn" href="{{ h.safe_url }}" target="_blank" rel="noopener noreferrer">Abrir fuente</a>{% endif %}
+    </div>
+  </div>
+  <div class="scoreboard-kpis"><div><strong>{{ h.client_status }}</strong><span>Estado</span></div><div><strong>{{ h.provider or 'Video' }}</strong><span>Proveedor</span></div></div>
+</section>
+<section class="band compact-band v769-highlight-detail">
+  {% if h.can_embed %}
+  <div class="v769-video-frame xl"><iframe loading="lazy" src="{{ h.embed_url }}" title="{{ h.title }}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>
+  {% elif h.thumbnail_url %}
+  <a href="{{ h.safe_url }}" target="_blank" rel="noopener noreferrer"><img loading="lazy" src="{{ h.thumbnail_url }}" alt="{{ h.title }}"></a>
+  {% else %}
+  <div class="empty premium-empty">Este proveedor no permite incrustar el vídeo aquí. Usa el botón de fuente externa.</div>
+  {% endif %}
+  <p class="small">{{ h.rights_note }}</p>
+</section>
+{% endif %}
+{% endblock %}

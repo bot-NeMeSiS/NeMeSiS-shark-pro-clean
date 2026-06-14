@@ -167,12 +167,15 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V768_PICK_RESULTS_TRACK_RECORD_TELEGRAM_PRODUCTION_CERTIFICATION"
+APP_VERSION = "V769_HIGHLIGHTS_RESULTS_CONTENT_CENTER_FINAL"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
 COMBI_MIN_LEGS = 2
 COMBI_MAX_LEGS = 15
+
+def now_madrid_label():
+    return datetime.now(TZ).strftime("%d/%m/%Y %H:%M")
 
 app = Flask(__name__)
 app.secret_key = secure_secret_key()
@@ -10089,20 +10092,175 @@ def v766_sync_highlights_daily(force=False, days_back=5, limit=250):
     return result
 
 
+
+# ===================== V769 HIGHLIGHTS / RESULTS CONTENT CENTER FINAL =====================
+
+def v769_youtube_embed_url(url):
+    """Build a safe YouTube-nocookie embed URL from an external URL. No downloads, no rehosting."""
+    raw = str(url or "").strip()
+    if not raw:
+        return ""
+    try:
+        parsed = urllib.parse.urlparse(raw)
+        host = (parsed.netloc or "").lower().replace("www.", "")
+        video_id = ""
+        if host == "youtu.be":
+            video_id = parsed.path.strip("/").split("/")[0]
+        elif "youtube.com" in host:
+            if parsed.path.startswith("/watch"):
+                video_id = urllib.parse.parse_qs(parsed.query).get("v", [""])[0]
+            elif parsed.path.startswith("/embed/"):
+                video_id = parsed.path.split("/embed/", 1)[1].split("/")[0]
+            elif parsed.path.startswith("/shorts/"):
+                video_id = parsed.path.split("/shorts/", 1)[1].split("/")[0]
+        video_id = "".join(ch for ch in video_id if ch.isalnum() or ch in {"_", "-"})[:80]
+        if video_id:
+            return "https://www.youtube-nocookie.com/embed/" + video_id
+    except Exception:
+        return ""
+    return ""
+
+
+def v769_get_highlight_by_id(highlight_id):
+    hid = str(highlight_id or "").strip()[:80]
+    if not hid:
+        return {}
+    try:
+        ensure_sportsdb_highlights_schema(DB_PATH)
+        row = rows("SELECT * FROM sportsdb_match_highlights WHERE id=? LIMIT 1", (hid,))
+        item = dict(row[0]) if row else {}
+    except Exception:
+        item = {}
+    if not item:
+        return {}
+    return v769_highlight_card_from_row(item)
+
+
+def v769_highlight_card_from_row(row):
+    h = dict(row or {})
+    video_url = h.get("safe_url") or h.get("video_url") or ""
+    embed_url = h.get("embed_url") or v769_youtube_embed_url(video_url)
+    title = h.get("label") or h.get("title") or "Resumen del partido"
+    home = h.get("home_team") or ""
+    away = h.get("away_team") or ""
+    match_label = h.get("match_label") or (" vs ".join([x for x in [home, away] if x]) or title)
+    match_id = str(h.get("match_id") or "").strip()
+    source = h.get("source") or "TheSportsDB"
+    provider = h.get("provider") or ("YouTube" if "youtu" in str(video_url).lower() else "Vídeo externo")
+    return {
+        **h,
+        "id": h.get("id") or h.get("highlight_id") or hashlib.md5((video_url + title).encode()).hexdigest()[:22],
+        "title": title,
+        "match_label": match_label,
+        "competition_label": spanish_competition_name(h.get("league_name") or h.get("competition_name") or h.get("safe_competition") or "") or h.get("league_name") or "Competición",
+        "event_date_label": h.get("event_date") or "Fecha pendiente",
+        "safe_url": video_url,
+        "watch_url": video_url,
+        "embed_url": embed_url,
+        "can_embed": bool(embed_url),
+        "thumbnail_url": h.get("thumbnail_url") or "",
+        "source_label": f"{source} · {provider}",
+        "match_url": f"/match/{match_id}" if match_id else "/calendar?lane=results",
+        "detail_url": f"/resumen/{h.get('id') or h.get('highlight_id')}" if (h.get("id") or h.get("highlight_id")) else video_url,
+        "client_status": "Ver en la app" if embed_url else "Ver fuente externa",
+        "rights_note": h.get("rights_note") or "Vídeo externo enlazado/embebido desde proveedor permitido. NeMeSiS no descarga ni rehostea contenido.",
+    }
+
+
+def v769_pending_highlight_matches(days_back=10, limit=80):
+    """Finished matches that are useful in Results but still have no highlight linked."""
+    try:
+        matches = get_results_matches(today_iso(), days_back=days_back, limit=limit)
+        matches = v766_enrich_matches_with_highlights(matches)
+    except Exception:
+        matches = []
+    pending = []
+    for m in matches or []:
+        if m.get("has_highlights"):
+            continue
+        try:
+            item = client_match_display_context(dict(m))
+        except Exception:
+            item = dict(m)
+        item["v769_title"] = f"{item.get('client_home') or item.get('safe_home') or item.get('home_team') or 'Local'} vs {item.get('client_away') or item.get('safe_away') or item.get('away_team') or 'Visitante'}"
+        item["v769_competition"] = item.get("client_competition") or spanish_competition_name(item.get("competition_name") or item.get("league_name") or "") or "Competición"
+        item["v769_when"] = item.get("client_full_datetime_label") or jinja_match_full_datetime(item)
+        item["v769_status"] = item.get("client_result_label") or item.get("calendar_status") or item.get("status") or "Finalizado"
+        pending.append(item)
+    return pending[: int(limit or 80)]
+
+
+def v769_highlights_content_center(data=None, user=None, limit=24):
+    """Client/admin-ready highlights center: available videos, pending results, Cron state and actions."""
+    user = user or current_session_user() or {"membership": "FREE", "role": "FREE"}
+    base = v766_highlights_context(limit=limit)
+    available = [v769_highlight_card_from_row(h) for h in (base.get("latest") or []) if (h.get("safe_url") or h.get("video_url"))]
+    embedded = [h for h in available if h.get("can_embed")]
+    pending = v769_pending_highlight_matches(days_back=10, limit=36)
+    recent_runs = base.get("recent_runs") or []
+    last_run = recent_runs[0] if recent_runs else {}
+    status = "ACTIVO" if base.get("key_present") and (available or pending or recent_runs) else ("CONFIGURADO" if base.get("key_present") else "FALTA KEY")
+    if available:
+        headline = "Centro de resúmenes activo"
+        description = "Resultados pasados con vídeo externo, partido enlazado y contexto de la app."
+    elif base.get("key_present"):
+        headline = "Resúmenes listos para sincronizar"
+        description = "La key está configurada. El Cron añadirá vídeos cuando TheSportsDB/YouTube los publique."
+    else:
+        headline = "Activa la key de highlights"
+        description = "Configura THESPORTSDB_API_KEY o THESPORTSDB_KEY en Render para detectar resúmenes automáticamente."
+    return {
+        "version": APP_VERSION,
+        "status": status,
+        "headline": headline,
+        "description": description,
+        "now_madrid": now_madrid_label(),
+        "key_present": bool(base.get("key_present")),
+        "available": available,
+        "embedded": embedded,
+        "pending_matches": pending,
+        "recent_runs": recent_runs,
+        "last_run": last_run,
+        "counts": {
+            "videos": len(available),
+            "embeddable": len(embedded),
+            "pending": len(pending),
+            "linked_matches": base.get("linked_matches") or 0,
+            "enriched_matches": base.get("enriched_matches") or 0,
+        },
+        "primary_actions": [
+            {"label": "Ver resultados", "href": "/calendar?lane=results"},
+            {"label": "Ver directos", "href": "/live?f=live"},
+            {"label": "Track Record", "href": "/track-record"},
+        ],
+        "admin_actions": [
+            {"label": "Panel admin", "href": "/admin/highlights-center"},
+            {"label": "Sincronizar ahora", "href": "/api/admin/highlights/sync?force=1&days_back=7&limit=300"},
+        ],
+        "cron": {
+            "endpoint": "/api/automation/highlights/sync?secret=AUTOMATION_SECRET&days_back=7&limit=300",
+            "command": "python tools/render_cron_highlights_sync.py",
+            "recommended": "Cada día por la mañana y otra pasada por la noche en días con muchos partidos.",
+        },
+        "rights_note": "Los vídeos se enlazan o embeben desde el proveedor externo permitido. NeMeSiS no descarga, copia ni rehostea contenido.",
+    }
+
 @app.route("/highlights")
 @app.route("/resumenes")
 @app.route("/resumenes-partidos")
 def highlights_page():
     user = current_session_user() or {"membership": "FREE", "role": "FREE"}
     data = dashboard_data("results", today_iso())
-    data["v766_highlights"] = v766_highlights_context(limit=18)
+    data["v766_highlights"] = v766_highlights_context(limit=24)
+    data["v769_highlights_center"] = v769_highlights_content_center(data, user, limit=24)
     data["dynamic_mode"] = build_v764_dynamic_competition_mode(data, user, "highlights")
     return render_template("highlights.html", data=data)
 
 
 @app.route("/api/client/highlights")
 def api_client_highlights():
-    return jsonify({"ok": True, "version": APP_VERSION, "highlights": v766_highlights_context(limit=24)})
+    data = dashboard_data("results", today_iso())
+    return jsonify({"ok": True, "version": APP_VERSION, "highlights": v766_highlights_context(limit=24), "content_center": v769_highlights_content_center(data, current_session_user(), limit=24)})
 
 
 @app.route("/api/automation/highlights/sync", methods=["POST", "GET"])
@@ -10124,6 +10282,40 @@ def api_admin_highlights_sync():
     force = True
     return jsonify({"ok": True, "version": APP_VERSION, "highlights_sync": v766_sync_highlights_daily(force=force, days_back=days_back or 5, limit=limit or 250)})
 
+
+@app.route("/resumen/<highlight_id>")
+@app.route("/highlight/<highlight_id>")
+@app.route("/resumenes/<highlight_id>")
+def highlight_detail_page(highlight_id):
+    data = dashboard_data("results", today_iso())
+    data["highlight"] = v769_get_highlight_by_id(highlight_id)
+    data["v769_highlights_center"] = v769_highlights_content_center(data, current_session_user(), limit=8)
+    return render_template("highlight_detail.html", data=data)
+
+
+@app.route("/api/client/highlights/content-center")
+def api_client_highlights_content_center():
+    data = dashboard_data("results", today_iso())
+    return jsonify({"ok": True, "version": APP_VERSION, "content_center": v769_highlights_content_center(data, current_session_user(), limit=30)})
+
+
+@app.route("/admin/highlights-center")
+@app.route("/admin/resumenes")
+def admin_highlights_center_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/highlights-center")
+    data = dashboard_data("results", today_iso())
+    data["v769_highlights_center"] = v769_highlights_content_center(data, current_session_user(), limit=30)
+    return render_template("admin_highlights_center.html", data=data)
+
+
+@app.route("/api/admin/highlights/status")
+def api_admin_highlights_status():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    data = dashboard_data("results", today_iso())
+    return jsonify({"ok": True, "version": APP_VERSION, "content_center": v769_highlights_content_center(data, current_session_user(), limit=30)})
+
 @app.route("/")
 def home():
     if request.method == "HEAD":
@@ -10137,6 +10329,7 @@ def home():
     data["v765_markets"] = v765_markets_context(data, current_session_user())
     data["v765_combis"] = v765_combi_context(data, current_session_user(), 3)
     data["v766_highlights"] = v766_highlights_context(limit=6)
+    data["v769_highlights_center"] = v769_highlights_content_center(data, current_session_user(), limit=8)
     return render_template("home.html", data=data)
 
 
@@ -10442,6 +10635,7 @@ def calendar_page():
     data["v765_markets"] = v765_markets_context(data, current_session_user())
     data["v766_calendar_order"] = v766_calendar_order_context(data["calendar"])
     data["v766_highlights"] = v766_highlights_context(limit=8)
+    data["v769_highlights_center"] = v769_highlights_content_center(data, current_session_user(), limit=12)
     return render_template("calendar.html", data=data)
 
 
@@ -10522,6 +10716,7 @@ def live_page():
     source = v766_enrich_matches_with_highlights(source)
     data["live_experience"] = build_live_experience(source, lane=lane, query=query)
     data["v766_highlights"] = v766_highlights_context(limit=8)
+    data["v769_highlights_center"] = v769_highlights_content_center(data, current_session_user(), limit=12)
     data["dynamic_mode"] = build_v764_dynamic_competition_mode(data, current_session_user(), "live")
     data["v758_adaptive"] = v758_adaptive_context(data, current_session_user(), "live")
     data["v765_markets"] = v765_markets_context(data, current_session_user())
@@ -10551,6 +10746,7 @@ def match_detail_page(match_id):
     data["v758_adaptive"] = v758_adaptive_context(data, current_session_user(), "match")
     data["v765_markets"] = v765_markets_context(data, current_session_user())
     data["v766_highlights"] = sportsdb_highlights_for_match(DB_PATH, match_id) if detail else {"highlights": [], "summary_text": ""}
+    data["v769_match_highlights"] = [v769_highlight_card_from_row(h) for h in ((data.get("v766_highlights") or {}).get("highlights") or [])]
     if detail:
         detail["client_premium"] = data["client_premium"].get("match", {})
     return render_template("match_detail.html", data=data, detail=detail)
@@ -13045,6 +13241,7 @@ def public_track_record_page():
     data["v757_track"] = build_v757_trust_snapshot(data.get("track_record") or {})
     data["v757_app"] = build_v757_app_center(data, user, track_record=data.get("track_record"))
     data["v758_adaptive"] = v758_adaptive_context(data, user, "track_record")
+    data["v769_highlights_center"] = v769_highlights_content_center(data, user, limit=8)
     return render_template("track_record.html", data=data)
 
 

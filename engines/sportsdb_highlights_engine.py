@@ -56,6 +56,7 @@ def ensure_sportsdb_highlights_schema(db_path):
             away_team TEXT,
             title TEXT,
             video_url TEXT,
+            embed_url TEXT,
             thumbnail_url TEXT,
             source TEXT DEFAULT 'TheSportsDB',
             provider TEXT DEFAULT 'YouTube',
@@ -88,6 +89,13 @@ def ensure_sportsdb_highlights_schema(db_path):
             linked_matches INTEGER DEFAULT 0,
             errors TEXT
         )''')
+        cols = _cols(conn, 'sportsdb_match_highlights')
+        if 'embed_url' not in cols:
+            conn.execute("ALTER TABLE sportsdb_match_highlights ADD COLUMN embed_url TEXT DEFAULT ''")
+        if 'rights_note' not in cols:
+            conn.execute("ALTER TABLE sportsdb_match_highlights ADD COLUMN rights_note TEXT DEFAULT ''")
+        if 'client_status' not in cols:
+            conn.execute("ALTER TABLE sportsdb_match_highlights ADD COLUMN client_status TEXT DEFAULT 'READY'")
         conn.commit()
     return {'ok': True, 'schema': 'sportsdb_highlights'}
 
@@ -136,6 +144,32 @@ def _event_id(item):
 
 def _video_url(item):
     return item.get('strVideo') or item.get('strYoutube') or item.get('strURL') or item.get('url') or item.get('video') or ''
+
+
+def _youtube_embed_url(url):
+    """Return a privacy-friendly YouTube embed URL when possible; never downloads video."""
+    raw = str(url or '').strip()
+    if not raw:
+        return ''
+    try:
+        parsed = urllib.parse.urlparse(raw)
+        host = (parsed.netloc or '').lower().replace('www.', '')
+        video_id = ''
+        if host in {'youtu.be'}:
+            video_id = parsed.path.strip('/').split('/')[0]
+        elif 'youtube.com' in host:
+            if parsed.path.startswith('/watch'):
+                video_id = urllib.parse.parse_qs(parsed.query).get('v', [''])[0]
+            elif parsed.path.startswith('/embed/'):
+                video_id = parsed.path.split('/embed/', 1)[1].split('/')[0]
+            elif parsed.path.startswith('/shorts/'):
+                video_id = parsed.path.split('/shorts/', 1)[1].split('/')[0]
+        video_id = ''.join(ch for ch in video_id if ch.isalnum() or ch in {'_', '-'})[:80]
+        if video_id:
+            return 'https://www.youtube-nocookie.com/embed/' + video_id
+    except Exception:
+        return ''
+    return ''
 
 
 def _thumb(item):
@@ -188,16 +222,20 @@ def _upsert_highlight(conn, item):
     date_value = (item.get('dateEvent') or item.get('date') or '')[:10]
     home, away = _home_away(item)
     video = _video_url(item)
+    embed = _youtube_embed_url(video)
     if not sid and not video:
         return None
     hid = hashlib.md5(('sportsdb-highlight:' + (sid or video)).encode()).hexdigest()[:22]
     match_id = _find_match(conn, item) or ''
+    provider = 'YouTube' if 'youtu' in video.lower() else 'Video'
+    client_status = 'EMBED_READY' if embed else ('LINK_READY' if video else 'NO_VIDEO')
     conn.execute('''INSERT OR REPLACE INTO sportsdb_match_highlights
-        (id,sportsdb_event_id,match_id,event_date,league_id,league_name,home_team,away_team,title,video_url,thumbnail_url,source,provider,status,raw_json,created_at,updated_at)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)''', (
+        (id,sportsdb_event_id,match_id,event_date,league_id,league_name,home_team,away_team,title,video_url,embed_url,thumbnail_url,source,provider,status,client_status,rights_note,raw_json,created_at,updated_at)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)''', (
         hid, sid, match_id, date_value, str(item.get('idLeague') or ''), item.get('strLeague') or '', home, away,
-        _title(item), video, _thumb(item), 'TheSportsDB', 'YouTube' if 'youtu' in video.lower() else 'Video',
-        'READY' if video else 'NO_VIDEO', json.dumps(item, ensure_ascii=False), now, now))
+        _title(item), video, embed, _thumb(item), 'TheSportsDB', provider,
+        'READY' if video else 'NO_VIDEO', client_status, 'Enlace/iframe externo permitido por la plataforma; no se descarga ni se rehostea vídeo.',
+        json.dumps(item, ensure_ascii=False), now, now))
     return {'id': hid, 'match_id': match_id, 'sportsdb_event_id': sid}
 
 
