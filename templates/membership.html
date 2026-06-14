@@ -4,61 +4,82 @@
 {% set plans = pay.plans or {} %}
 {% set pro = plans.PRO if plans.PRO else {} %}
 {% set elite = plans.ELITE if plans.ELITE else {} %}
-<section class="v783-membership-top">
+{% set selected = (data.selected_plan or request.args.get('plan') or '')|upper %}
+<section class="v785-membership-hero">
   <div>
-    <div class="kicker">Membresías · Stripe · acceso automático</div>
-    <h1>Elige plan sin perderte.</h1>
-    <p class="lead">FREE para empezar. PRO para picks y Telegram. ELITE para prioridad SHARK y alertas completas.</p>
+    <div class="kicker">Membresías · precios claros · Stripe seguro</div>
+    <h1>Elige plan y continúa sin perderte.</h1>
+    <p class="lead">FREE para mirar la app. PRO y ELITE para desbloquear picks, Telegram y SHARK. Si no has iniciado sesión, guardamos el plan elegido y vuelves aquí al entrar.</p>
     {% if payment_error or data.payment_error %}<div class="empty-state warn">{{ payment_error or data.payment_error }}</div>{% endif %}
     {% if request.args.get('pago') == 'cancelado' %}<div class="empty-state">Pago cancelado. No se ha cambiado tu membresía.</div>{% endif %}
   </div>
-  <aside class="v783-payment-status">
+  <aside class="v785-payment-status">
     <span class="v774-status {{ 'ready' if pay.checkout_ready else 'pending' }}">{{ 'Stripe listo' if pay.checkout_ready else 'Stripe pendiente' }}</span>
-    <small>La membresía se activa con webhook verificado.</small>
+    <strong>{{ selected ~ ' seleccionado' if selected in ['PRO','ELITE'] else 'Planes visibles' }}</strong>
+    <small>PRO {{ pro.price_label if pro else '9,99 €/mes' }} · ELITE {{ elite.price_label if elite else '24,99 €/mes' }}</small>
   </aside>
 </section>
 
-<section class="v783-pricing-row v782-pricing-grid">
-  <article class="v783-price-card free">
-    <div class="badge badge-free">FREE</div>
-    <h2>Gratis</h2>
-    <strong>0€</strong>
-    <p>Para explorar calendario, directos, resultados y SHARK base.</p>
-    <ul><li>Partidos y directos</li><li>Resultados reales</li><li>Favoritos básicos</li></ul>
-    {% if not current_user %}<a class="btn" href="/registro">Empezar gratis</a>{% else %}<a class="btn" href="/app">Abrir app</a>{% endif %}
+{% if selected in ['PRO','ELITE'] %}
+<section class="v785-selected-plan {{ selected|lower }}">
+  <div><strong>Has elegido {{ selected }}</strong><span>Precio: {{ (pro.price_label if selected == 'PRO' else elite.price_label) if (pro or elite) else '' }}. {{ 'Pulsa continuar para abrir Stripe Checkout.' if current_user else 'Entra o crea cuenta y volverás automáticamente a este plan.' }}</span></div>
+  <div class="inline-actions">
+    {% if current_user %}
+      {% if pay.checkout_ready %}
+      <form method="post" action="/pagos/checkout/{{ selected }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn primary" type="submit">Continuar a Stripe</button></form>
+      {% else %}<a class="btn" href="/admin/payments">Stripe pendiente</a>{% endif %}
+    {% else %}
+      <a class="btn primary" href="/cliente-login?plan={{ selected }}&next={{ ('/membresias?plan=' ~ selected ~ '&continuar_pago=1')|urlencode }}">Entrar y pagar {{ selected }}</a>
+      <a class="btn" href="/registro?plan={{ selected }}&next={{ ('/membresias?plan=' ~ selected ~ '&continuar_pago=1')|urlencode }}">Crear cuenta y pagar</a>
+    {% endif %}
+  </div>
+</section>
+{% endif %}
+
+<section class="v785-pricing-grid">
+  <article class="v785-price-card free {{ 'active' if current_user and (current_user.membership or current_user.role)|upper == 'FREE' else '' }}">
+    <div class="v785-card-top"><span class="badge badge-free">FREE</span><strong>0€</strong></div>
+    <h2>Explorar</h2>
+    <p>Para entrar, ver partidos, directos, resultados y familiarizarte con la app.</p>
+    <ul><li>Calendario y directo</li><li>Resultados reales</li><li>SHARK base y favoritos básicos</li></ul>
+    {% if current_user %}<a class="btn" href="/app">Abrir app</a>{% else %}<a class="btn" href="/registro">Crear cuenta gratis</a>{% endif %}
   </article>
 
-  <article class="v783-price-card pro featured">
-    <div class="badge badge-pro">PRO</div>
-    <h2>PRO</h2>
-    <strong>{{ pro.price_label if pro else 'PRO mensual' }}</strong>
-    <p>Picks, combinadas, mercados explicados y Telegram premium.</p>
-    <ul><li>Picks PRO</li><li>Combis y mercados</li><li>Telegram premium</li></ul>
+  <article class="v785-price-card pro {{ 'selected' if selected == 'PRO' else '' }} {{ 'active' if current_user and (current_user.membership or current_user.role)|upper == 'PRO' else '' }}">
+    <div class="v785-card-top"><span class="badge badge-pro">PRO</span><strong>{{ pro.price_label if pro else '9,99 €/mes' }}</strong></div>
+    <h2>Plan recomendado</h2>
+    <p>Picks claros, combinadas, mercados explicados y Telegram premium.</p>
+    <ul><li>Picks PRO</li><li>Combis y mercados</li><li>Telegram premium</li><li>Lectura SHARK ampliada</li></ul>
     {% if current_user %}
       {% if pay.checkout_ready and (pro.configured if pro else false) %}
-      <form method="post" action="/pagos/checkout/PRO"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn primary" type="submit">Activar PRO</button></form>
-      {% else %}<button class="btn" disabled>PRO pendiente de configurar</button>{% endif %}
-    {% else %}<a class="btn primary" href="/registro">Crear cuenta para PRO</a>{% endif %}
+      <form method="post" action="/pagos/checkout/PRO"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn primary" type="submit">Pagar PRO</button></form>
+      {% else %}<button class="btn" disabled>PRO pendiente de Stripe</button>{% endif %}
+    {% else %}
+      <a class="btn primary" href="/comprar/PRO">Elegir PRO</a>
+      <a class="small" href="/registro?plan=PRO&next={{ '/membresias?plan=PRO&continuar_pago=1'|urlencode }}">Crear cuenta nueva</a>
+    {% endif %}
   </article>
 
-  <article class="v783-price-card elite">
-    <div class="badge badge-elite">ELITE</div>
-    <h2>ELITE</h2>
-    <strong>{{ elite.price_label if elite else 'ELITE mensual' }}</strong>
-    <p>Experiencia completa: alertas live, prioridad Telegram y SHARK contextual.</p>
-    <ul><li>Picks ELITE</li><li>Alertas live</li><li>Prioridad SHARK</li></ul>
+  <article class="v785-price-card elite {{ 'selected' if selected == 'ELITE' else '' }} {{ 'active' if current_user and (current_user.membership or current_user.role)|upper == 'ELITE' else '' }}">
+    <div class="v785-card-top"><span class="badge badge-elite">ELITE</span><strong>{{ elite.price_label if elite else '24,99 €/mes' }}</strong></div>
+    <h2>Máxima experiencia</h2>
+    <p>Prioridad SHARK, alertas live, Telegram completo y enfoque premium.</p>
+    <ul><li>Picks ELITE</li><li>Alertas live y prepartido</li><li>Prioridad SHARK</li><li>Experiencia completa</li></ul>
     {% if current_user %}
       {% if pay.checkout_ready and (elite.configured if elite else false) %}
-      <form method="post" action="/pagos/checkout/ELITE"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn primary" type="submit">Activar ELITE</button></form>
-      {% else %}<button class="btn" disabled>ELITE pendiente de configurar</button>{% endif %}
-    {% else %}<a class="btn" href="/cliente-login">Entrar para ELITE</a>{% endif %}
+      <form method="post" action="/pagos/checkout/ELITE"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn primary" type="submit">Pagar ELITE</button></form>
+      {% else %}<button class="btn" disabled>ELITE pendiente de Stripe</button>{% endif %}
+    {% else %}
+      <a class="btn primary" href="/comprar/ELITE">Elegir ELITE</a>
+      <a class="small" href="/registro?plan=ELITE&next={{ '/membresias?plan=ELITE&continuar_pago=1'|urlencode }}">Crear cuenta nueva</a>
+    {% endif %}
   </article>
 </section>
 
-<section class="v783-membership-explain">
-  <article><strong>PRO</strong><span>Para el cliente que quiere picks claros, combinadas y avisos útiles.</span></article>
-  <article><strong>ELITE</strong><span>Para quien quiere prioridad SHARK, live, Telegram y experiencia completa.</span></article>
-  <article><strong>Control</strong><span>Pagos por Stripe, activación automática y downgrade si se cancela la suscripción.</span></article>
+<section class="v785-membership-explain">
+  <article><strong>Flujo limpio</strong><span>El cliente no pierde el plan elegido al entrar o registrarse.</span></article>
+  <article><strong>Precio visible</strong><span>PRO y ELITE muestran importe mensual desde inicio y membresías.</span></article>
+  <article><strong>Activación automática</strong><span>Stripe confirma el pago por webhook y actualiza la membresía.</span></article>
 </section>
 
 {% if current_user %}

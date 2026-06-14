@@ -144,7 +144,7 @@ def plan_catalog() -> Dict[str, Dict[str, Any]]:
         "PRO": {
             "plan": "PRO",
             "title": "PRO",
-            "price_label": os.getenv("STRIPE_PRICE_PRO_LABEL", "PRO mensual"),
+            "price_label": os.getenv("STRIPE_PRICE_PRO_LABEL", "9,99 €/mes"),
             "price_id": plan_price_id("PRO"),
             "configured": bool(plan_price_id("PRO")),
             "features": ["Picks PRO", "Combis", "Telegram premium", "Más lectura SHARK"],
@@ -152,7 +152,7 @@ def plan_catalog() -> Dict[str, Dict[str, Any]]:
         "ELITE": {
             "plan": "ELITE",
             "title": "ELITE",
-            "price_label": os.getenv("STRIPE_PRICE_ELITE_LABEL", "ELITE mensual"),
+            "price_label": os.getenv("STRIPE_PRICE_ELITE_LABEL", "24,99 €/mes"),
             "price_id": plan_price_id("ELITE"),
             "configured": bool(plan_price_id("ELITE")),
             "features": ["Picks ELITE", "Alertas live", "Prioridad Telegram", "SHARK contextual"],
@@ -455,7 +455,7 @@ def create_checkout_session(db_path: str, user: Dict[str, Any], plan: str) -> Di
     conn = connect(db_path)
     db_user = user_by_id(conn, user_id) or user
     customer_id = str(db_user.get("stripe_customer_id") or "")
-    metadata = {"user_id": user_id, "plan": plan, "app": "nemesis_shark_pro", "version": "V782"}
+    metadata = {"user_id": user_id, "plan": plan, "app": "nemesis_shark_pro", "version": "V785"}
     try:
         kwargs = {
             "mode": "subscription",

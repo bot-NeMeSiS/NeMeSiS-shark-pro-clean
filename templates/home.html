@@ -37,8 +37,8 @@
 </section>
 
 <section class="v783-plan-inline">
-  <div><strong>Tu plan: {{ plan }}</strong><span>{{ 'FREE activo: puedes explorar la app. PRO/ELITE desbloquean más picks, Telegram y SHARK.' if plan == 'FREE' else 'Plan activo. Puedes revisar facturación, Telegram y ventajas desde tu cuenta.' }}</span></div>
-  <div class="v783-plan-inline-actions"><a class="btn small-btn primary" href="/membresias">Ver planes</a><a class="btn small-btn" href="/mi-cuenta">Mi cuenta</a></div>
+  <div><strong>Tu plan: {{ plan }}</strong><span>{{ ('FREE activo: PRO desde ' ~ (pro.get('price_label') or '9,99 €/mes') ~ ' y ELITE desde ' ~ (elite.get('price_label') or '24,99 €/mes') ~ ': picks, Telegram y SHARK.') if plan == 'FREE' else 'Plan activo. Puedes revisar facturación, Telegram y ventajas desde tu cuenta.' }}</span></div>
+  <div class="v783-plan-inline-actions"><a class="btn small-btn primary" href="/membresias">Planes y precios</a><a class="btn small-btn" href="/mi-cuenta">Mi cuenta</a></div>
 </section>
 
 <section class="v783-flow-compact" aria-label="Ruta recomendada">
@@ -97,12 +97,12 @@
     <div class="kicker">NeMeSiS SHARK PRO · app deportiva premium</div>
     <h1>Partidos, directos, picks y planes en una pantalla clara.</h1>
     <p class="lead">Sin bloques enormes: entra, mira qué hay hoy, entiende los picks y elige FREE, PRO o ELITE desde el inicio.</p>
-    <div class="v783-actions"><a class="btn primary" href="/registro">Crear cuenta gratis</a><a class="btn" href="/cliente-login">Entrar</a><a class="btn" href="/membresias">Ver planes</a></div>
+    <div class="v783-actions"><a class="btn primary" href="/registro">Crear cuenta gratis</a><a class="btn" href="/cliente-login">Entrar</a><a class="btn" href="/membresias">Planes y precios</a></div>
   </div>
   <aside class="v783-plan-stack" aria-label="Planes visibles">
     <a class="v783-plan-card free" href="/registro"><span>FREE</span><strong>0€</strong><small>Calendario, directos y resultados reales.</small></a>
-    <a class="v783-plan-card pro" href="/membresias?plan=PRO"><span>PRO</span><strong>{{ pro.get('price_label') or 'PRO' }}</strong><small>Picks, combis, mercados y Telegram premium.</small></a>
-    <a class="v783-plan-card elite" href="/membresias?plan=ELITE"><span>ELITE</span><strong>{{ elite.get('price_label') or 'ELITE' }}</strong><small>Prioridad SHARK, alertas live y experiencia completa.</small></a>
+    <a class="v783-plan-card pro" href="/comprar/PRO"><span>PRO</span><strong>{{ pro.get('price_label') or '9,99 €/mes' }}</strong><small>Picks, combis, mercados y Telegram premium.</small></a>
+    <a class="v783-plan-card elite" href="/comprar/ELITE"><span>ELITE</span><strong>{{ elite.get('price_label') or '24,99 €/mes' }}</strong><small>Prioridad SHARK, alertas live y experiencia completa.</small></a>
   </aside>
 </section>
 

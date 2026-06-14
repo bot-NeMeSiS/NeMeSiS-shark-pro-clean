@@ -1,25 +1,31 @@
 {% extends "base.html" %}
 {% block content %}
-<section class="hero auth-hero">
-  <div class="kicker">Crear cuenta</div>
-  <h1>Acceso cliente SHARK</h1>
-  <p class="lead">Registra tu cuenta FREE y conecta el perfil con favoritos, live, picks y futuras membresías premium.</p>
+{% set selected = (data.selected_plan or request.args.get('plan') or '')|upper %}
+{% set next_url = data.next_url or request.args.get('next') or '/app' %}
+<section class="hero auth-hero v785-auth-hero">
+  <div class="kicker">Crear cuenta{% if selected %} · {{ selected }} seleccionado{% endif %}</div>
+  <h1>{{ 'Crea cuenta para activar ' ~ selected if selected in ['PRO','ELITE'] else 'Acceso cliente SHARK' }}</h1>
+  <p class="lead">{{ 'La cuenta empieza en FREE y al terminar volverás al plan elegido para pagar con Stripe.' if selected in ['PRO','ELITE'] else 'Registra tu cuenta FREE y conecta el perfil con favoritos, live, picks y futuras membresías premium.' }}</p>
 </section>
-<section class="band auth-grid">
+<section class="band auth-grid v785-auth-grid">
   <form class="card auth-card" method="post" action="/registro">
     <h2>Registro</h2>
+    {% if selected in ['PRO','ELITE'] %}<div class="v785-selected-mini"><strong>{{ selected }}</strong><span>Después del registro continúas al pago.</span></div>{% endif %}
     {% if error %}<p class="notice danger">{{ error }}</p>{% endif %}
+    <input type="hidden" name="next" value="{{ next_url }}">
+    <input type="hidden" name="plan" value="{{ selected }}">
     <div class="field"><label>Nombre visible</label><input name="name" autocomplete="name" required></div>
     <div class="field"><label>Nombre de usuario</label><input name="username" autocomplete="username" pattern="[A-Za-z0-9_-]{3,32}" required></div>
     <div class="field"><label>Email</label><input type="email" name="email" autocomplete="email" required></div>
     <div class="field"><label>Contraseña</label><input type="password" name="password" autocomplete="new-password" required></div>
-    <button type="submit">Crear cuenta</button>
-    <p class="small">El plan inicial es FREE. Podrás mejorar a PRO o ELITE desde membresías.</p>
+    <button type="submit">{{ 'Crear cuenta y seguir con ' ~ selected if selected in ['PRO','ELITE'] else 'Crear cuenta' }}</button>
+    <p class="small">El plan inicial es FREE. PRO/ELITE se activan automáticamente cuando Stripe confirma el pago.</p>
   </form>
   <aside class="card auth-side">
     <h2>Ya tengo cuenta</h2>
-    <p class="small">Entra para volver a tu perfil y recuperar tu sesión premium.</p>
-    <a class="btn" href="/cliente-login">Entrar</a>
+    <p class="small">{{ 'Entra y volverás al plan ' ~ selected ~ ' para terminar el pago.' if selected in ['PRO','ELITE'] else 'Entra para volver a tu perfil y recuperar tu sesión premium.' }}</p>
+    <a class="btn" href="/cliente-login{% if selected in ['PRO','ELITE'] %}?plan={{ selected }}&next={{ next_url|urlencode }}{% endif %}">{{ 'Entrar y seguir' if selected in ['PRO','ELITE'] else 'Entrar' }}</a>
+    <a class="small" href="/membresias">Ver planes y precios</a>
   </aside>
 </section>
 {% endblock %}

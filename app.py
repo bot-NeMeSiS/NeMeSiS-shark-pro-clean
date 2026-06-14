@@ -195,7 +195,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V783_HOME_MEMBERSHIP_CLIENT_EXPERIENCE_COMPACT_FINAL"
+APP_VERSION = "V785_MEMBERSHIP_STRIPE_FLOW_PRICE_POLISH"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -11416,10 +11416,50 @@ def favorites_page():
     return render_template("favorites.html", data=dashboard_data())
 
 
+
+# ===================== V785 MEMBERSHIP / STRIPE FLOW POLISH =====================
+
+def _safe_client_next(value: str | None, default: str = "/app") -> str:
+    """Return an internal-only redirect target for auth/payment flows."""
+    raw = str(value or "").strip()
+    if not raw:
+        return default
+    if raw.startswith(("http://", "https://", "//")):
+        return default
+    if not raw.startswith("/"):
+        return default
+    if raw.startswith("/admin"):
+        return default
+    return raw
+
+
+def _selected_paid_plan(value: str | None) -> str:
+    plan = str(value or "").strip().upper()
+    return plan if plan in {"PRO", "ELITE"} else ""
+
+
+def _membership_next_for_plan(plan: str) -> str:
+    plan = _selected_paid_plan(plan)
+    return f"/membresias?plan={plan}&continuar_pago=1" if plan else "/membresias"
+
+
+def _store_pending_checkout_plan(plan: str) -> str:
+    plan = _selected_paid_plan(plan)
+    if plan:
+        session["pending_checkout_plan"] = plan
+        session["post_auth_next"] = _membership_next_for_plan(plan)
+    return plan
+
+
+def _post_auth_redirect(default: str = "/app"):
+    next_value = request.form.get("next") or request.args.get("next") or session.pop("post_auth_next", "")
+    return redirect(_safe_client_next(next_value, default))
+
 @app.route("/registro", methods=["GET", "POST"])
 def register_page():
+    selected_plan = _store_pending_checkout_plan(request.args.get("plan") or request.form.get("plan"))
     if current_session_user():
-        return redirect("/perfil")
+        return _post_auth_redirect("/app")
     error = ""
     if request.method == "POST":
         try:
@@ -11431,19 +11471,23 @@ def register_page():
             )
             security_event_for_auth("registration_attempt", True, request.form.get("username") or request.form.get("email"), "registro_correcto")
             set_login_session(user)
-            return redirect("/perfil")
+            return _post_auth_redirect("/app")
         except ValueError as exc:
             security_event_for_auth("registration_attempt", False, request.form.get("username") or request.form.get("email"), str(exc)[:180])
             error = str(exc)
-    return render_template("register.html", data=home_light_data(), error=error)
+    auth_data = home_light_data()
+    auth_data["selected_plan"] = selected_plan
+    auth_data["next_url"] = _safe_client_next(request.args.get("next") or request.form.get("next") or session.get("post_auth_next"), "/app")
+    return render_template("register.html", data=auth_data, error=error)
 
 
 @app.route("/cliente-login", methods=["GET", "POST"])
 @app.route("/login", methods=["GET", "POST"])
 @app.route("/entrar", methods=["GET", "POST"])
 def client_login_page():
+    selected_plan = _store_pending_checkout_plan(request.args.get("plan") or request.form.get("plan"))
     if current_session_user():
-        return redirect("/perfil")
+        return _post_auth_redirect("/app")
     error = ""
     if request.method == "POST":
         identifier = request.form.get("login") or request.form.get("email") or request.form.get("username")
@@ -11451,10 +11495,13 @@ def client_login_page():
         if user:
             security_event_for_auth("login_attempt", True, identifier, "cliente_login_correcto")
             set_login_session(user)
-            return redirect("/perfil")
+            return _post_auth_redirect("/app")
         security_event_for_auth("login_attempt", False, identifier, "credenciales_cliente_invalidas")
         error = "Email, usuario o contraseña incorrectos."
-    return render_template("client_login.html", data=home_light_data(), error=error)
+    auth_data = home_light_data()
+    auth_data["selected_plan"] = selected_plan
+    auth_data["next_url"] = _safe_client_next(request.args.get("next") or request.form.get("next") or session.get("post_auth_next"), "/app")
+    return render_template("client_login.html", data=auth_data, error=error)
 
 
 @app.route("/forgot-password", methods=["GET", "POST"])
@@ -12274,13 +12321,33 @@ def daily_briefing_page():
     return render_template("daily_briefing.html", data=data)
 
 
+
+@app.route("/comprar/<plan>")
+@app.route("/planes/<plan>")
+def membership_buy_plan(plan):
+    """Friendly plan entrypoint: remembers selected plan before login/register."""
+    plan = _store_pending_checkout_plan(plan)
+    if not plan:
+        return redirect("/membresias")
+    target = _membership_next_for_plan(plan)
+    if current_session_user():
+        return redirect(target)
+    encoded_next = urllib.parse.quote(target, safe="")
+    return redirect(f"/cliente-login?plan={plan}&next={encoded_next}")
+
 @app.route("/membresias")
 @app.route("/membresías")
 @app.route("/membership")
 def membership_page():
+    session_plan = session.pop("pending_checkout_plan", "") if current_session_user() else session.get("pending_checkout_plan", "")
+    selected_plan = _selected_paid_plan(request.args.get("plan") or session_plan)
+    if selected_plan and not current_session_user():
+        _store_pending_checkout_plan(selected_plan)
     user = current_session_user() or {"membership": "FREE", "role": "FREE"}
     data = dashboard_data()
     data["membership"] = v566_membership_ui(user)
+    data["selected_plan"] = selected_plan
+    data["continue_payment"] = str(request.args.get("continuar_pago") or "").lower() in {"1", "true", "yes", "si", "sí"}
     data["payments_client"] = client_payments_context(DB_PATH, user) if user.get("id") else {"checkout_ready": False, "plans": stripe_runtime_status(DB_PATH).get("plans", {}), "blockers": []}
     return render_template("membership.html", data=data)
 
@@ -14113,9 +14180,13 @@ def api_payments_checkout():
 
 @app.route("/pagos/checkout/<plan>", methods=["POST"])
 def payments_checkout_plan(plan):
+    plan = _selected_paid_plan(plan) or str(plan or "").upper()
     user = current_session_user()
     if not user:
-        return redirect("/cliente-login?next=/membresias")
+        plan = _store_pending_checkout_plan(plan)
+        target = _membership_next_for_plan(plan)
+        encoded_next = urllib.parse.quote(target, safe="")
+        return redirect(f"/cliente-login?plan={plan}&next={encoded_next}")
     result = create_checkout_session(DB_PATH, user, plan)
     if result.get("ok") and result.get("url"):
         return redirect(result["url"])

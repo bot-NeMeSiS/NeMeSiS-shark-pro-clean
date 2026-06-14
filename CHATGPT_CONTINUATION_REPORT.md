@@ -125,3 +125,42 @@ ChatGPT detectó que el ZIP real subido ya estaba en V772, pero no incluía comp
 - Build limpio actualizado para incluir reportes V779/V780/V781 y excluir basura de desarrollo.
 - No se tocaron DB_PATH, Telegram/Cron, usuarios/sesiones, membresías, pagos, Track Record, highlights, Data Marketplace ni Automation Center.
 
+
+
+## V784_SMOKE_PREFLIGHT_VALIDATION_FOUNDATION
+
+Se añade una capa de validación real de entorno y rutas para evitar repetir entregas con la limitación de “no pude hacer smoke Flask real”.
+
+- Nuevo `tools/smoke_flask_real_routes.py` para importar Flask/app con DB temporal y probar rutas críticas con `app.test_client()`.
+- Nuevo `tools/render_preflight_check.py` para validar rutas principales en Render después del deploy sin depender de Flask local.
+- Nuevo `tools/check_v784_smoke_preflight_validation.py`.
+- Mantiene V783 Home/Membresías, V782 Stripe, V781 auditoría, V780 Live, V779 escudos y todo lo crítico sin cambios.
+
+## V785_MEMBERSHIP_STRIPE_FLOW_PRICE_POLISH
+
+Fecha: 2026-06-14
+
+Objetivo: corregir el flujo comercial de membresías/Stripe para que PRO y ELITE no manden al cliente a login de forma seca, sino que conserven el plan elegido, muestren precios visibles y devuelvan al usuario al checkout tras entrar o registrarse.
+
+Cambios principales:
+- Nueva versión `V785_MEMBERSHIP_STRIPE_FLOW_PRICE_POLISH`.
+- Nuevo entrypoint `/comprar/<plan>` y alias `/planes/<plan>` para guardar PRO/ELITE antes del login.
+- Login y registro ahora respetan `next` seguro y plan seleccionado.
+- `/membresias` muestra banner del plan elegido y botón directo `Continuar a Stripe` cuando el usuario está autenticado.
+- Pantalla pública de inicio enlaza PRO/ELITE a `/comprar/PRO` y `/comprar/ELITE`.
+- Precios visibles por defecto: PRO `9,99 €/mes`, ELITE `24,99 €/mes`.
+- `.env.example` y `.env.render.clean` documentan `STRIPE_PRICE_PRO_LABEL` y `STRIPE_PRICE_ELITE_LABEL` con precios visibles.
+- Templates `client_login.html` y `register.html` informan al usuario de que volverá al plan elegido.
+- CSS V785 para pricing, plan seleccionado y flujo comercial compacto.
+- Check nuevo `tools/check_v785_membership_stripe_flow_price_polish.py`.
+
+No tocado:
+- DB_PATH
+- usuarios/sesiones salvo redirección post-login segura
+- Telegram/Cron
+- picks/resultados/Track Record
+- live V780
+- escudos V779
+- Stripe webhook V782
+- Smoke/preflight V784
+

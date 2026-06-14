@@ -1,0 +1,13 @@
+{
+  "ok": false,
+  "checked_at": "2026-06-14T18:47:56",
+  "stage": "dependencies",
+  "message": "Flask no está instalado. Ejecuta: python -m pip install -r requirements.txt",
+  "dependencies": {
+    "flask": false,
+    "werkzeug": false,
+    "jinja2": true,
+    "stripe": false
+  },
+  "routes": []
+}
