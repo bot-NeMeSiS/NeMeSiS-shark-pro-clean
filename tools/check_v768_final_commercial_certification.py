@@ -8,6 +8,12 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V768_PICK_RESULTS_TRACK_RECORD_TELEGRAM_PRODUCTION_CERTIFICATION"
+COMPATIBLE_VERSIONS = {
+    VERSION,
+    "V769_HIGHLIGHTS_RESULTS_CONTENT_CENTER_FINAL",
+    "V771_TELEGRAM_ACTIVITY_PRO_FORMAT_SCHEDULE_FINAL",
+    "V772_TELEGRAM_VISUAL_CARDS_APP_GLOBAL_POLISH_CLEANUP",
+}
 
 
 def read(rel: str) -> str:
@@ -26,8 +32,8 @@ def main() -> int:
     scheduler = read("engines/scheduler_engine.py")
     css = read("static/app.css")
 
-    require((ROOT / "VERSION.txt").read_text(encoding="utf-8-sig").strip() in {VERSION, "V769_HIGHLIGHTS_RESULTS_CONTENT_CENTER_FINAL"}, "VERSION.txt no está en V768", errors)
-    require((f'APP_VERSION = "{VERSION}"' in app or 'APP_VERSION = "V769_HIGHLIGHTS_RESULTS_CONTENT_CENTER_FINAL"' in app), "APP_VERSION no está en V768", errors)
+    require((ROOT / "VERSION.txt").read_text(encoding="utf-8-sig").strip() in COMPATIBLE_VERSIONS, "VERSION.txt no está en V768 o posterior compatible", errors)
+    require(any(f'APP_VERSION = "{item}"' in app for item in COMPATIBLE_VERSIONS), "APP_VERSION no está en V768 o posterior compatible", errors)
     require("commercial_launch_snapshot" in app and "final_launch_certification_engine" in app, "No se importa certificación final", errors)
     require('/api/automation/picks/grade' in app, "Falta endpoint cron /api/automation/picks/grade", errors)
     require('automation_cron_access_allowed()' in app and 'automation_json_forbidden()' in app, "El endpoint de grading no está protegido por AUTOMATION_SECRET", errors)

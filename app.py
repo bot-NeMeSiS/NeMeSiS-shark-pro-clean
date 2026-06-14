@@ -111,10 +111,15 @@ from engines.telegram_message_formatter import (
     format_midday_update_message as format_v771_midday_update_message,
     format_live_alert_message as format_v771_live_alert_message,
     format_pick_message as format_v771_pick_message,
+    format_combi_message as format_v772_combi_message,
     format_result_message as format_v771_result_message,
     format_highlight_message as format_v771_highlight_message,
     format_prematch_message as format_v771_prematch_message,
     format_evening_recap_message as format_v771_evening_recap_message,
+)
+from engines.telegram_visual_card_engine import (
+    build_visual_card_for_message,
+    telegram_visual_card_config,
 )
 from engines.route_health_engine import route_health_snapshot
 from engines.client_experience_guard_engine import client_experience_snapshot
@@ -182,7 +187,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V771_TELEGRAM_ACTIVITY_PRO_FORMAT_SCHEDULE_FINAL"
+APP_VERSION = "V772_TELEGRAM_VISUAL_CARDS_APP_GLOBAL_POLISH_CLEANUP"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -8372,6 +8377,40 @@ def telegram_post_send_message(url, data):
     return {"ok": True, "sent": True, "status": "SENT", "category": "SENT", "telegram": response}
 
 
+def telegram_post_send_photo(token, chat_id, photo_bytes, caption="", payload=None):
+    boundary = "----NemesisTelegramVisualCardBoundary"
+    payload = payload or {}
+    fields = {
+        "chat_id": str(chat_id),
+        "caption": str(caption or "NeMeSiS SHARK PRO")[:1024],
+        "parse_mode": "HTML",
+    }
+    reply_markup = payload.get("reply_markup") or telegram_reply_markup_from_payload(payload)
+    if reply_markup:
+        fields["reply_markup"] = json.dumps(reply_markup, ensure_ascii=False)
+    body = bytearray()
+    for name, value in fields.items():
+        body.extend(f"--{boundary}\r\n".encode("utf-8"))
+        body.extend(f'Content-Disposition: form-data; name="{name}"\r\n\r\n'.encode("utf-8"))
+        body.extend(str(value).encode("utf-8"))
+        body.extend(b"\r\n")
+    body.extend(f"--{boundary}\r\n".encode("utf-8"))
+    body.extend(b'Content-Disposition: form-data; name="photo"; filename="nemesis_card.png"\r\n')
+    body.extend(b"Content-Type: image/png\r\n\r\n")
+    body.extend(photo_bytes or b"")
+    body.extend(b"\r\n")
+    body.extend(f"--{boundary}--\r\n".encode("utf-8"))
+    req = urllib.request.Request(
+        f"https://api.telegram.org/bot{token}/sendPhoto",
+        data=bytes(body),
+        method="POST",
+        headers={"Content-Type": f"multipart/form-data; boundary={boundary}"},
+    )
+    with urllib.request.urlopen(req, timeout=18) as res:
+        response = json.loads(res.read().decode("utf-8", errors="replace"))
+    return {"ok": True, "sent": True, "status": "SENT_PHOTO", "category": "SENT", "telegram": response, "visual_card_sent": True}
+
+
 def telegram_send_http(chat_id, text, message_type="manual", payload=None):
     token = os.getenv("TELEGRAM_BOT_TOKEN", "")
     if not token or not chat_id:
@@ -8390,8 +8429,24 @@ def telegram_send_http(chat_id, text, message_type="manual", payload=None):
     reply_markup = payload.get("reply_markup") or telegram_reply_markup_from_payload(payload)
     if reply_markup:
         data["reply_markup"] = json.dumps(reply_markup, ensure_ascii=False)
+    visual_card_type = str(payload.get("visual_card_type") or "").strip()
+    if visual_card_type and payload.get("visual_card_enabled"):
+        try:
+            card_result = build_visual_card_for_message(visual_card_type, payload.get("visual_card_payload") or payload)
+            if card_result.get("ok") and card_result.get("png_bytes"):
+                sent_photo = telegram_post_send_photo(token, chat_id, card_result.get("png_bytes"), text, payload)
+                sent_photo["visual_card"] = {"mode": card_result.get("mode"), "type": visual_card_type}
+                return sent_photo
+            payload["visual_card_fallback_reason"] = card_result.get("fallback_reason") or card_result.get("mode") or "not_available"
+        except urllib.error.HTTPError as exc:
+            payload["visual_card_fallback_reason"] = (telegram_http_error_payload(exc).get("category") or "photo_http_error")[:120]
+        except Exception as exc:
+            payload["visual_card_fallback_reason"] = str(exc)[:120]
     try:
-        return telegram_post_send_message(url, data)
+        sent_message = telegram_post_send_message(url, data)
+        if payload.get("visual_card_fallback_reason"):
+            sent_message["visual_card"] = {"mode": "text_fallback", "reason": payload.get("visual_card_fallback_reason"), "type": visual_card_type}
+        return sent_message
     except urllib.error.HTTPError as exc:
         first = telegram_http_error_payload(exc)
         if first.get("category") == "HTML_PARSE_ERROR":
@@ -8541,6 +8596,8 @@ def telegram_diagnostics():
         "ENABLE_TELEGRAM_AUTOMATION": env_bool("ENABLE_TELEGRAM_AUTOMATION", False),
         "AUTO_SEND_TELEGRAM_PICKS": env_bool("AUTO_SEND_TELEGRAM_PICKS", False),
         "TELEGRAM_AUTO_SEND_ENABLED": env_bool("TELEGRAM_AUTO_SEND_ENABLED", False),
+        "TELEGRAM_VISUAL_CARDS_ENABLED": env_bool("TELEGRAM_VISUAL_CARDS_ENABLED", True),
+        "TELEGRAM_SEND_PICK_CARDS": env_bool("TELEGRAM_SEND_PICK_CARDS", True),
         "AUTO_GENERATE_PICKS": env_bool("AUTO_GENERATE_PICKS", False),
         "SCHEDULER_ENABLED": scheduler_enabled(),
         "DAILY_AUTOMATION_ENABLED": daily_automation_env_enabled(),
@@ -8650,6 +8707,7 @@ def telegram_diagnostics():
         "pro_calibration": telegram_pro_calibration(),
         "sport_filter": telegram_sport_mode_summary(),
         "environment_audit": get_telegram_environment_audit(),
+        "visual_cards": telegram_visual_card_config(),
     }
 
 
@@ -8729,11 +8787,31 @@ def v771_telegram_activity_highlights(limit=20):
     return items[: int(limit or 20)]
 
 
+def v772_telegram_activity_combis(limit=8):
+    try:
+        combis = get_combis(limit=limit)
+    except Exception:
+        combis = []
+    items = []
+    for combi in combis[: int(limit or 8)]:
+        if not isinstance(combi, dict):
+            continue
+        item = dict(combi)
+        if item.get("picks_json") and not item.get("picks"):
+            try:
+                item["picks"] = json.loads(item.get("picks_json") or "[]")
+            except Exception:
+                item["picks"] = []
+        items.append(item)
+    return items
+
+
 def v771_build_activity_plan():
     return build_telegram_activity_plan(
         matches=v771_telegram_activity_matches(),
         picks=v771_telegram_activity_picks(),
         highlights=v771_telegram_activity_highlights(),
+        combis=v772_telegram_activity_combis(),
     )
 
 
@@ -8748,6 +8826,8 @@ def v771_format_activity_candidate(candidate):
         return format_v771_live_alert_message(payload.get("match") or {})
     if kind == "pick_alert":
         return format_v771_pick_message(payload.get("pick") or {})
+    if kind == "combi_alert":
+        return format_v772_combi_message(payload.get("combi") or {})
     if kind == "result_final":
         return format_v771_result_message(payload.get("match") or {}, payload.get("pick") or {})
     if kind == "highlight_available":
@@ -8764,7 +8844,10 @@ def v771_activity_payload(candidate, dest):
     payload = dict(candidate.get("payload") or {})
     match = payload.get("match") or {}
     pick = payload.get("pick") or {}
+    combi = payload.get("combi") or {}
     highlight = payload.get("highlight") or {}
+    visual_type = kind if kind in {"pick_alert", "combi_alert", "result_final", "highlight_available", "live_alert"} else ""
+    visual_cfg = telegram_visual_card_config()
     return {
         "membership": dest.get("membership"),
         "target_key": dest.get("target_key"),
@@ -8772,9 +8855,10 @@ def v771_activity_payload(candidate, dest):
         "trigger_type": "render_cron",
         "auto_job_key": candidate.get("dedupe_key"),
         "job_type": kind,
-        "module": "v771_telegram_activity",
+        "module": "v771_telegram_activity:v772_visual_cards",
         "match_id": match.get("id") or pick.get("match_id") or highlight.get("match_id") or "",
         "pick_id": pick.get("id") or "",
+        "combi_id": combi.get("id") or "",
         "highlight_id": highlight.get("id") or "",
         "priority": candidate.get("priority", 70),
         "target_kind": dest.get("target_kind"),
@@ -8785,6 +8869,10 @@ def v771_activity_payload(candidate, dest):
         "match_url": telegram_match_url(match.get("id") or pick.get("match_id")) if (match.get("id") or pick.get("match_id")) else telegram_absolute_url("/calendar"),
         "include_picks_button": kind in {"daily_summary", "live_alert", "pick_alert", "prematch_reminder"},
         "include_live_button": kind in {"daily_summary", "live_alert"},
+        "visual_card_type": visual_type,
+        "visual_card_enabled": bool(visual_type and visual_cfg.get("visual_cards_enabled")),
+        "visual_card_payload": payload,
+        "visual_card_config": visual_cfg,
         "enable_link_preview": False,
     }
 
@@ -8877,6 +8965,7 @@ def v771_telegram_activity_diagnostics():
         "version": APP_VERSION,
         "status": status,
         "config": telegram_activity_config(),
+        "visual_cards": telegram_visual_card_config(),
         "plan": plan,
         "last_activity_plan": last,
         "recent_activity_messages": recent,

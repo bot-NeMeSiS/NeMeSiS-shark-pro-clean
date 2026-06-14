@@ -7,6 +7,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 APP = (ROOT / "app.py").read_text(encoding="utf-8")
 VERSION = (ROOT / "VERSION.txt").read_text(encoding="utf-8").strip()
+COMPATIBLE_VERSIONS = {
+    "V769_HIGHLIGHTS_RESULTS_CONTENT_CENTER_FINAL",
+    "V771_TELEGRAM_ACTIVITY_PRO_FORMAT_SCHEDULE_FINAL",
+    "V772_TELEGRAM_VISUAL_CARDS_APP_GLOBAL_POLISH_CLEANUP",
+}
 SPORTSDB = (ROOT / "engines" / "sportsdb_highlights_engine.py").read_text(encoding="utf-8")
 HIGHLIGHTS = (ROOT / "templates" / "highlights.html").read_text(encoding="utf-8")
 DETAIL = (ROOT / "templates" / "highlight_detail.html").read_text(encoding="utf-8")
@@ -22,7 +27,7 @@ checks = []
 def ok(name: str, cond: bool):
     checks.append((name, bool(cond)))
 
-ok("version_v769", VERSION == "V769_HIGHLIGHTS_RESULTS_CONTENT_CENTER_FINAL" and VERSION in APP)
+ok("version_v769", VERSION in COMPATIBLE_VERSIONS and any(f'APP_VERSION = "{item}"' in APP for item in COMPATIBLE_VERSIONS))
 ok("content_center_helpers", "def v769_highlights_content_center" in APP and "def v769_highlight_card_from_row" in APP)
 ok("highlight_detail_routes", '@app.route("/resumen/<highlight_id>")' in APP and 'highlight_detail.html' in APP)
 ok("client_api_center", "/api/client/highlights/content-center" in APP)

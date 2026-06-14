@@ -7,6 +7,13 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V767_MADRID_TIME_EVERYWHERE_CERTIFICATION"
+COMPATIBLE_VERSIONS = {
+    VERSION,
+    "V768_PICK_RESULTS_TRACK_RECORD_TELEGRAM_PRODUCTION_CERTIFICATION",
+    "V769_HIGHLIGHTS_RESULTS_CONTENT_CENTER_FINAL",
+    "V771_TELEGRAM_ACTIVITY_PRO_FORMAT_SCHEDULE_FINAL",
+    "V772_TELEGRAM_VISUAL_CARDS_APP_GLOBAL_POLISH_CLEANUP",
+}
 
 failures: list[str] = []
 
@@ -22,8 +29,8 @@ app = (ROOT / "app.py").read_text(encoding="utf-8")
 engine = (ROOT / "engines" / "madrid_time_engine.py").read_text(encoding="utf-8")
 spanish = (ROOT / "engines" / "spanish_localization_engine.py").read_text(encoding="utf-8")
 
-ok("version_v767", version in {VERSION, "V768_PICK_RESULTS_TRACK_RECORD_TELEGRAM_PRODUCTION_CERTIFICATION", "V769_HIGHLIGHTS_RESULTS_CONTENT_CENTER_FINAL"})
-ok("app_version_v767", f'APP_VERSION = "{VERSION}"' in app or 'APP_VERSION = "V768_PICK_RESULTS_TRACK_RECORD_TELEGRAM_PRODUCTION_CERTIFICATION"' in app or 'APP_VERSION = "V769_HIGHLIGHTS_RESULTS_CONTENT_CENTER_FINAL"' in app)
+ok("version_v767", version in COMPATIBLE_VERSIONS)
+ok("app_version_v767", any(f'APP_VERSION = "{item}"' in app for item in COMPATIBLE_VERSIONS))
 ok("madrid_engine_local_manual_parser", "parse_madrid_local_datetime" in engine and "madrid_local_from_parts" in engine)
 ok("manual_date_time_not_shifted", "manual_madrid_local" in engine and "match_date+time" in engine)
 ok("spanish_localization_respects_naive_madrid", "assume_naive_madrid" in spanish and "parse_madrid_local_datetime" in spanish)
@@ -82,7 +89,7 @@ for rel in [
     "tools/check_v769_highlights_content_center_final.py",
 ]:
     text = (ROOT / rel).read_text(encoding="utf-8")
-    ok(f"compat_{Path(rel).stem}", VERSION in text or "V769_HIGHLIGHTS_RESULTS_CONTENT_CENTER_FINAL" in text)
+    ok(f"compat_{Path(rel).stem}", VERSION in text or "V769_HIGHLIGHTS_RESULTS_CONTENT_CENTER_FINAL" in text or "V772_TELEGRAM_VISUAL_CARDS_APP_GLOBAL_POLISH_CLEANUP" in text)
 
 if failures:
     print("\nV767 Madrid Time audit failed:", ", ".join(failures))

@@ -1,4 +1,4 @@
-"""Telegram activity planning for NeMeSiS SHARK PRO V771.
+"""Telegram activity planning for NeMeSiS SHARK PRO V771/V772.
 
 The engine decides which premium Telegram messages are due on a frequent Render
 Cron tick. It does not send messages by itself and does not call external APIs.
@@ -17,6 +17,7 @@ ACTIVITY_MESSAGE_TYPES = {
     "midday_update",
     "live_alert",
     "pick_alert",
+    "combi_alert",
     "result_final",
     "highlight_available",
     "prematch_reminder",
@@ -132,11 +133,14 @@ def telegram_activity_config():
         "send_daily_summary": env_bool("TELEGRAM_SEND_DAILY_SUMMARY", True),
         "send_live_alerts": env_bool("TELEGRAM_SEND_LIVE_ALERTS", True),
         "send_pick_alerts": env_bool("TELEGRAM_SEND_PICK_ALERTS", True),
+        "send_combi_alerts": env_bool("TELEGRAM_SEND_COMBI_ALERTS", True),
         "send_result_alerts": env_bool("TELEGRAM_SEND_RESULT_ALERTS", True),
         "send_highlight_alerts": env_bool("TELEGRAM_SEND_HIGHLIGHT_ALERTS", True),
         "send_prematch_reminders": env_bool("TELEGRAM_SEND_PREMATCH_REMINDERS", True),
         "send_evening_recap": env_bool("TELEGRAM_SEND_EVENING_RECAP", True),
         "send_live_images": env_bool("TELEGRAM_SEND_LIVE_IMAGES", False),
+        "visual_cards_enabled": env_bool("TELEGRAM_VISUAL_CARDS_ENABLED", True),
+        "send_pick_cards": env_bool("TELEGRAM_SEND_PICK_CARDS", True),
         "cron_interval_minutes": env_int("TELEGRAM_CRON_INTERVAL_MINUTES", 10),
         "daily_summary_time": os.getenv("TELEGRAM_DAILY_SUMMARY_TIME", "09:00"),
         "midday_update_time": os.getenv("TELEGRAM_MIDDAY_UPDATE_TIME", "13:30"),
@@ -242,6 +246,25 @@ def should_send_pick_alert(pick=None, current=None):
     return (kickoff - (current or now_madrid())).total_seconds() >= -900
 
 
+def should_send_combi_alert(combi=None, current=None):
+    cfg = telegram_activity_config()
+    if not cfg["send_combi_alerts"]:
+        return False
+    combi = combi or {}
+    try:
+        odds = float(str(combi.get("total_odds") or combi.get("odds") or "0").replace(",", "."))
+    except Exception:
+        odds = 0.0
+    legs = combi.get("picks") or combi.get("legs") or []
+    if not legs and not combi.get("legs_count"):
+        return False
+    if odds <= 1.0:
+        return False
+    if is_quiet_hours_blocked("combi_alert", pick=combi, current=current):
+        return False
+    return True
+
+
 def should_send_result_alert(match=None, pick=None, current=None):
     cfg = telegram_activity_config()
     if not cfg["send_result_alerts"] or not _is_finished(match):
@@ -290,12 +313,13 @@ def _candidate(kind, title, priority, dedupe_key, payload):
     }
 
 
-def build_telegram_activity_plan(matches=None, picks=None, highlights=None, current=None):
+def build_telegram_activity_plan(matches=None, picks=None, highlights=None, combis=None, current=None):
     current = current or now_madrid()
     cfg = telegram_activity_config()
     matches = list(matches or [])
     picks = list(picks or [])
     highlights = list(highlights or [])
+    combis = list(combis or [])
     candidates = []
     blockers = []
     date_key = today_key(current)
@@ -313,6 +337,12 @@ def build_telegram_activity_plan(matches=None, picks=None, highlights=None, curr
             candidates.append(_candidate("pick_alert", "Pick premium SHARK", 95, build_dedupe_key("pick_alert", match_id=pick.get("match_id"), pick_id=pick.get("id"), market=pick.get("market"), madrid_date=date_key), {"pick": pick}))
         else:
             blockers.append({"kind": "pick_alert", "pick_id": pick.get("id"), "reason": "sin_cuota_mercado_riesgo_o_ventana"})
+
+    for combi in combis[:6]:
+        if should_send_combi_alert(combi, current):
+            candidates.append(_candidate("combi_alert", "Combi SHARK", 92, build_dedupe_key("combi_alert", pick_id=combi.get("id"), market=combi.get("title") or combi.get("name"), madrid_date=date_key), {"combi": combi}))
+        else:
+            blockers.append({"kind": "combi_alert", "combi_id": combi.get("id"), "reason": "sin_picks_cuota_o_ventana"})
 
     for match in matches[:30]:
         if should_send_live_alert(match, current):
@@ -334,6 +364,7 @@ def build_telegram_activity_plan(matches=None, picks=None, highlights=None, curr
     activity = {
         "results": any(_is_finished(m) for m in matches),
         "picks": bool(picks),
+        "combis": bool(combis),
         "highlights": bool(highlights),
     }
     if should_send_evening_recap(activity, current):
@@ -350,6 +381,7 @@ def build_telegram_activity_plan(matches=None, picks=None, highlights=None, curr
         "modules": sorted(ACTIVITY_MESSAGE_TYPES),
         "priority_order": [
             "pick_alert",
+            "combi_alert",
             "live_alert",
             "result_final",
             "highlight_available",

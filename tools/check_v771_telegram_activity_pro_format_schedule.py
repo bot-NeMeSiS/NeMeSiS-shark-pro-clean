@@ -11,6 +11,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V771_TELEGRAM_ACTIVITY_PRO_FORMAT_SCHEDULE_FINAL"
+V772_VERSION = "V772_TELEGRAM_VISUAL_CARDS_APP_GLOBAL_POLISH_CLEANUP"
 sys.path.insert(0, str(ROOT))
 
 
@@ -47,17 +48,19 @@ def assert_no_secret_literals():
 def static_checks():
     version = read("VERSION.txt").strip()
     app = read("app.py")
-    ok(version == VERSION, "VERSION.txt no apunta a V771")
-    ok(f'APP_VERSION = "{VERSION}"' in app, "APP_VERSION no apunta a V771")
+    ok(version in {VERSION, V772_VERSION}, "VERSION.txt no apunta a V771 o V772 compatible")
+    ok(f'APP_VERSION = "{VERSION}"' in app or f'APP_VERSION = "{V772_VERSION}"' in app, "APP_VERSION no apunta a V771 o V772 compatible")
     ok('DB_PATH = os.getenv("DB_PATH", "/data/database.db")' in app, "DB_PATH fue alterado")
     ok("/api/automation/telegram/tick" in app, "tick Telegram no existe")
     ok("AUTOMATION_SECRET" in app, "AUTOMATION_SECRET no protegido")
     ok((ROOT / "tools" / "render_cron_telegram_tick.py").exists(), "runner Render Cron no existe")
     ok((ROOT / "engines" / "telegram_activity_engine.py").exists(), "motor de actividad no existe")
     ok((ROOT / "engines" / "telegram_message_formatter.py").exists(), "formateador Telegram no existe")
+    ok((ROOT / "engines" / "telegram_visual_card_engine.py").exists(), "motor visual V772 no existe")
     ok("TELEGRAM_QUIET_HOURS_ENABLED=false" in read(".env.example"), "quiet hours no queda desactivable en env example")
     ok("TELEGRAM_WORLD_CUP_OVERRIDE=true" in read(".env.example"), "World Cup override no esta en env example")
     ok("TELEGRAM_SEND_LIVE_IMAGES=false" in read(".env.example"), "live images no quedan apagadas por defecto")
+    ok("TELEGRAM_VISUAL_CARDS_ENABLED=true" in read(".env.example"), "tarjetas visuales V772 no estan en env example")
     ok("/api/admin/telegram/activity-plan" in app, "endpoint activity-plan falta")
     ok("/api/admin/telegram/schedule-status" in app, "endpoint schedule-status falta")
     ok("/api/admin/telegram/message-preview" in app, "endpoint message-preview falta")
@@ -103,9 +106,9 @@ def formatter_checks():
     pick = format_pick_message({**match, "market": "Mas de 1.5 goles", "selection": "Mas de 1.5 goles", "odds": 1.62, "confidence": 78, "risk_level": "Medio", "stake_units": 1.5})
     for text in (daily, live, pick):
         ok("00:00" not in text, "mensaje usa 00:00 de forma no real")
-        ok("Madrid · Proximo ·" not in text and "Madrid · Próximo ·" not in text, "mensaje duplica Madrid/estado/hora")
+        ok("Madrid - Próximo -" not in text and "Madrid · Próximo ·" not in text, "mensaje duplica Madrid/estado/hora")
         ok("UTC" not in text, "mensaje muestra UTC")
-    ok("Hoy · 20:00 Madrid" in daily, "resumen no muestra hora Madrid limpia")
+    ok("Hoy - 20:00 Madrid" in daily, "resumen no muestra hora Madrid limpia")
     ok("ALERTA LIVE SHARK" in live and "Abrir directo" in live, "alerta live no tiene formato premium")
     ok("PICK PREMIUM SHARK" in pick and "Cuota: 1.62" in pick, "pick premium no tiene campos clave")
     keys = {
@@ -117,7 +120,8 @@ def formatter_checks():
         build_dedupe_key("prematch_reminder", match_id="m1", status="60min", madrid_date="2026-06-14"),
         build_dedupe_key("evening_recap", madrid_date="2026-06-14"),
     }
-    ok(len(keys) == 7, "dedupe no separa tipos de mensaje")
+    keys.add(build_dedupe_key("combi_alert", pick_id="c1", market="Combi", madrid_date="2026-06-14"))
+    ok(len(keys) == 8, "dedupe no separa tipos de mensaje")
 
 
 def flask_checks():
