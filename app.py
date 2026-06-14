@@ -136,6 +136,7 @@ from engines.betting_markets_engine import (
     build_combi_strategy_context,
     enrich_pick_market_context,
 )
+from engines.final_launch_certification_engine import commercial_launch_snapshot
 from engines.sportsdb_highlights_engine import (
     ensure_sportsdb_highlights_schema,
     rebuild_match_enrichment,
@@ -166,7 +167,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V767_MADRID_TIME_EVERYWHERE_CERTIFICATION"
+APP_VERSION = "V768_PICK_RESULTS_TRACK_RECORD_TELEGRAM_PRODUCTION_CERTIFICATION"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -3242,6 +3243,9 @@ def run_scheduler_task(task_name, force=False, limit=None):
             result = refresh_live_alerts_basic(limit=limit or 40)
         elif task_name == "warehouse":
             result = historical_snapshot(limit=limit or 120)
+        elif task_name == "pick_grading":
+            raw = run_pick_grading(DB_PATH, limit=limit or 500, apply=True)
+            result = {"ok": raw.get("ok", True), "processed": raw.get("picks_checked", 0), "inserted": raw.get("auto_validated", 0), "updated": raw.get("won", 0) + raw.get("lost", 0) + raw.get("voids", 0), "skipped": raw.get("pending", 0), "errors": raw.get("errors") or [], "raw": raw}
         elif task_name == "cleanup":
             result = cleanup_scheduler_logs(max_rows=as_int(os.getenv("SCHEDULER_LOG_MAX_ROWS", "300"), 300))
         elif task_name == "telegram":
@@ -3261,11 +3265,11 @@ def run_scheduler_task(task_name, force=False, limit=None):
 def run_due_scheduler_tasks(force=False, startup=False):
     if not force and not scheduler_enabled():
         return {"ok": True, "skipped": True, "reason": "auto_sync_disabled", "tasks": []}
-    tasks = ["calendar", "crests", "odds", "live", "highlights", "recommendations", "auto_picks", "live_alerts", "warehouse", "telegram", "cleanup"]
+    tasks = ["calendar", "crests", "odds", "live", "highlights", "recommendations", "auto_picks", "live_alerts", "warehouse", "pick_grading", "telegram", "cleanup"]
     if startup:
         total_matches = (one("SELECT COUNT(*) AS total FROM matches") or {}).get("total", 0)
         teams_with_crests = (one("SELECT COUNT(*) AS total FROM teams WHERE logo_url IS NOT NULL AND logo_url!=''") or {}).get("total", 0)
-        tasks = ["calendar", "live", "highlights", "odds", "recommendations", "auto_picks", "live_alerts", "warehouse", "telegram", "cleanup"]
+        tasks = ["calendar", "live", "highlights", "odds", "recommendations", "auto_picks", "live_alerts", "warehouse", "pick_grading", "telegram", "cleanup"]
         if not total_matches:
             tasks.insert(0, "calendar")
         if not teams_with_crests:
@@ -3409,6 +3413,7 @@ def run_daily_autonomous_system(force=False):
         "recommendations": run_scheduler_task("recommendations", force=force, limit=120),
         "auto_picks": run_scheduler_task("auto_picks", force=force, limit=80),
         "telegram": telegram_scheduler_delivery(force=force),
+        "pick_grading": run_scheduler_task("pick_grading", force=force, limit=600),
         "backup": create_database_backup(reason="daily_autonomous_system"),
     }
     errors = [f"{name}: {item.get('error') or item.get('message')}" for name, item in tasks.items() if isinstance(item, dict) and item.get("ok") is False]
@@ -13036,6 +13041,7 @@ def public_track_record_page():
     user = current_session_user()
     data = dashboard_data() if user else home_light_data()
     data["track_record"] = v742_track_record_context()
+    data["certification"] = commercial_launch_snapshot(DB_PATH, APP_VERSION)
     data["v757_track"] = build_v757_trust_snapshot(data.get("track_record") or {})
     data["v757_app"] = build_v757_app_center(data, user, track_record=data.get("track_record"))
     data["v758_adaptive"] = v758_adaptive_context(data, user, "track_record")
@@ -13087,6 +13093,43 @@ def api_admin_track_record():
         run = run_pick_grading(DB_PATH, limit=limit, apply=apply)
         return jsonify({"ok": True, "version": APP_VERSION, "run": run, "track_record": v742_track_record_context()})
     return jsonify({"ok": True, "version": APP_VERSION, "track_record": v742_track_record_context()})
+
+
+@app.route("/api/automation/picks/grade", methods=["GET", "POST"])
+def api_automation_picks_grade():
+    if not automation_cron_access_allowed():
+        return automation_json_forbidden()
+    limit = max(20, min(2500, as_int(request.values.get("limit"), 700)))
+    apply = str(request.values.get("apply") or "true").strip().lower() not in {"0", "false", "no"}
+    run = run_pick_grading(DB_PATH, limit=limit, apply=apply)
+    try:
+        telegram_log("[PICK_GRADING]", "ok" if run.get("ok") else "error", "Validación automática de picks ejecutada.", {"limit": limit, "apply": apply, "run": run})
+    except Exception:
+        pass
+    return jsonify({"ok": bool(run.get("ok", True)), "version": APP_VERSION, "run": run, "track_record": v742_track_record_context()})
+
+
+@app.route("/admin/final-certification")
+@app.route("/admin/launch-certification")
+def admin_final_certification_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/final-certification")
+    data = dashboard_data()
+    data["certification"] = commercial_launch_snapshot(DB_PATH, APP_VERSION)
+    return render_template("admin_final_certification.html", data=data)
+
+
+@app.route("/api/admin/final-certification", methods=["GET", "POST"])
+def api_admin_final_certification():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    run = None
+    if request.method == "POST":
+        payload = request.get_json(silent=True) or {}
+        if str(payload.get("run_grading") or "").lower() in {"1", "true", "yes", "si", "sí"}:
+            limit = max(20, min(2500, as_int(payload.get("limit"), 700)))
+            run = run_pick_grading(DB_PATH, limit=limit, apply=str(payload.get("apply") or "true").lower() not in {"0", "false", "no"})
+    return jsonify({"ok": True, "version": APP_VERSION, "run": run, "certification": commercial_launch_snapshot(DB_PATH, APP_VERSION)})
 
 
 @app.route("/admin/payments", methods=["GET", "POST"])

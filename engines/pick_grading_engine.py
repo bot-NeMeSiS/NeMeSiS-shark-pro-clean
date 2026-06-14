@@ -197,21 +197,98 @@ def _settle_1x2(selection: str, home_goals: int, away_goals: int, home: str, awa
     return "won" if wanted == outcome else "lost"
 
 
+def _line_number(text: str) -> float | None:
+    import re
+    m = re.search(r"(\d+(?:[\.,]\d+)?)", str(text or ""))
+    if not m:
+        return None
+    return as_float(m.group(1).replace(",", "."), 0.0)
+
+
+def _settle_total_goals(selection: str, market: str, home_goals: int, away_goals: int) -> str:
+    text = normalize_text(f"{market} {selection}")
+    line = _line_number(text)
+    if line is None:
+        return "pending"
+    total = home_goals + away_goals
+    is_over = any(x in text for x in ["over", "mas de", "más de", "+", "mayor de"])
+    is_under = any(x in text for x in ["under", "menos de", "-", "menor de"])
+    if is_over:
+        return "won" if total > line else "lost"
+    if is_under:
+        return "won" if total < line else "lost"
+    return "pending"
+
+
+def _settle_btts(selection: str, market: str, home_goals: int, away_goals: int) -> str:
+    text = normalize_text(f"{market} {selection}")
+    both = home_goals > 0 and away_goals > 0
+    if any(x in text for x in ["no", "not", "sin ambos"]):
+        return "won" if not both else "lost"
+    if any(x in text for x in ["ambos", "btts", "both teams"]):
+        return "won" if both else "lost"
+    return "pending"
+
+
+def _settle_dnb(selection: str, home_goals: int, away_goals: int, home: str, away: str) -> str:
+    if home_goals == away_goals:
+        return "void"
+    return _settle_1x2(selection, home_goals, away_goals, home, away)
+
+
+def _settle_double_chance(selection: str, home_goals: int, away_goals: int, home: str, away: str) -> str:
+    sel = normalize_text(selection)
+    home_t = normalize_text(home)
+    away_t = normalize_text(away)
+    if home_goals == away_goals:
+        outcome = "x"
+    elif home_goals > away_goals:
+        outcome = "1"
+    else:
+        outcome = "2"
+    wanted = set()
+    if "1x" in sel or "local o empate" in sel or (home_t and home_t in sel and "empate" in sel):
+        wanted = {"1", "x"}
+    elif "x2" in sel or "empate o visitante" in sel or (away_t and away_t in sel and "empate" in sel):
+        wanted = {"x", "2"}
+    elif "12" in sel or "local o visitante" in sel or "sin empate" in sel:
+        wanted = {"1", "2"}
+    if not wanted:
+        return "pending"
+    return "won" if outcome in wanted else "lost"
+
+
 def infer_result(pick: Dict[str, Any]) -> tuple[str, str, int]:
-    explicit = normalize_status(pick.get("result_status") or pick.get("pick_status"))
+    explicit = normalize_status(pick.get("result_status"))
     if explicit in {"won", "lost", "void"}:
         return explicit, "Resultado ya marcado en el pick.", 90
     match_status = normalize_status(pick.get("match_status"))
     home_goals, away_goals = parse_score(pick.get("score"), pick.get("home_score"), pick.get("away_score"))
     if match_status != "finished" or home_goals is None or away_goals is None:
         return "pending", "Partido sin resultado final fiable todavía.", 35
-    market = normalize_text(pick.get("pick_type"))
+    market = normalize_text(pick.get("pick_type") or pick.get("market"))
     selection = str(pick.get("selection") or "")
-    if any(x in market for x in ["1x2", "winner", "ganador", "moneyline", "resultado"]):
+    joined = normalize_text(f"{market} {selection}")
+    if any(x in joined for x in ["ambos marcan", "btts", "both teams"]):
+        res = _settle_btts(selection, market, home_goals, away_goals)
+        if res != "pending":
+            return res, "Validado automáticamente por marcador final: ambos marcan.", 84
+    if any(x in joined for x in ["over", "under", "mas de", "más de", "menos de", "+1.5", "+2.5", "goles"]):
+        res = _settle_total_goals(selection, market, home_goals, away_goals)
+        if res != "pending":
+            return res, "Validado automáticamente por marcador final: mercado de goles.", 84
+    if any(x in joined for x in ["dnb", "draw no bet", "empate no apuesta", "sin empate"]):
+        res = _settle_dnb(selection, home_goals, away_goals, pick.get("home_team"), pick.get("away_team"))
+        if res != "pending":
+            return res, "Validado automáticamente por marcador final: empate no apuesta/DNB.", 84
+    if any(x in joined for x in ["doble oportunidad", "double chance", "1x", "x2", "12"]):
+        res = _settle_double_chance(selection, home_goals, away_goals, pick.get("home_team"), pick.get("away_team"))
+        if res != "pending":
+            return res, "Validado automáticamente por marcador final: doble oportunidad.", 82
+    if any(x in joined for x in ["1x2", "winner", "ganador", "moneyline", "resultado", "gana", "local", "visitante"]):
         res = _settle_1x2(selection, home_goals, away_goals, pick.get("home_team"), pick.get("away_team"))
         if res != "pending":
             return res, "Validado automáticamente por marcador final 1X2.", 82
-    # Conservative fallback: finished match but market not understood.
     return "pending", "Marcador final detectado, pero el mercado necesita revisión manual.", 55
 
 
@@ -285,7 +362,7 @@ def run_pick_grading(db_path: str, limit: int = 500, apply: bool = False) -> Dic
              grade["grading_score"], grade["auto_validated"], grade["reason"], json_dumps({"pick": p, "grade": grade}), started))
         if apply and grade["auto_validated"] and p.get("pick_id"):
             try:
-                cur.execute("UPDATE picks SET status=?, updated_at=? WHERE id=?", (result.upper(), started, p.get("pick_id")))
+                cur.execute("UPDATE picks SET status=?, result_status=?, updated_at=? WHERE id=?", (result, result, started, p.get("pick_id")))
             except sqlite3.OperationalError:
                 pass
     run_id = stable_id("pgrun", started, len(picks), stats["auto_validated"])

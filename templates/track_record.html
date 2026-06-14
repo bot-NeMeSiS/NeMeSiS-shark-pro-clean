@@ -18,6 +18,18 @@
   <p>Rendimiento calculado solo con picks evaluables. Si faltan resultados fiables, queda pendiente y no se usa para vender humo.</p>
 </section>
 
+{% set cert = data.certification or {} %}
+{% if cert %}
+<section class="band compact-band v768-client-trust">
+  <div class="section-head"><div><h2>Estado de confianza</h2><p class="small">Solo se publica rendimiento con resultados reales. Si falta evidencia, queda como pendiente.</p></div><span class="pill">{{ cert.status }}</span></div>
+  <div class="grid compact-grid">
+    <article class="card"><span>Telegram</span><strong>{{ (cert.telegram or {}).status }}</strong><small>{{ (cert.telegram or {}).published_candidates or 0 }} candidatos</small></article>
+    <article class="card"><span>Resultados</span><strong>{{ (cert.track_record or {}).status }}</strong><small>{{ (cert.track_record or {}).graded_total or 0 }} auditados</small></article>
+    <article class="card"><span>Datos</span><strong>{{ (cert.data_richness or {}).status }}</strong><small>{{ (cert.data_richness or {}).matches_total or 0 }} partidos</small></article>
+  </div>
+</section>
+{% endif %}
+
 <section class="grid cards-4">
   <article class="card stat-card"><span>Picks evaluables</span><strong>{{ tr.graded_total or 0 }}</strong><small>{{ tr.commercial_note or 'Pendiente de resultados reales' }}</small></article>
   <article class="card stat-card"><span>Ganados / Perdidos</span><strong>{{ tr.won or 0 }} / {{ tr.lost or 0 }}</strong><small>Nulos {{ tr.void or 0 }} · Pendientes {{ tr.pending or tr.pending_review or 0 }}</small></article>

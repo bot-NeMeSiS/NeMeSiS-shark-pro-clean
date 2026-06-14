@@ -803,3 +803,46 @@ body.ns-public .v764-auto-mode-strip{display:none!important;}
 .v766-highlights-hero .scoreboard-kpis strong{font-size:1.1rem}
 body.ns-authenticated .calendar-filter-panel input[name="country"]::placeholder{color:#7891a4}
 @media (max-width:760px){.v766-order-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.v766-highlight-grid{grid-template-columns:1fr}.calendar-highlight-strip{font-size:.78rem}}
+
+/* V768 · Final commercial certification, pick results and Telegram readiness */
+.v768-cert-hero,
+.v768-client-trust {
+  border: 1px solid rgba(69, 225, 255, .22);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, .26), inset 0 1px 0 rgba(255,255,255,.05);
+}
+.v768-cert-score .stat-card strong,
+.v768-cert-grid .card strong,
+.v768-client-trust strong {
+  letter-spacing: -.02em;
+}
+.v768-cert-grid .list-row,
+.v768-client-trust .list-row {
+  align-items: center;
+  gap: 12px;
+}
+.v768-cert-grid .inline-actions {
+  margin-top: 14px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.success-state {
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(64, 255, 176, .22);
+  background: rgba(31, 191, 117, .08);
+  color: rgba(230,255,245,.95);
+}
+.badge.status-won,
+.status-won { border-color: rgba(64,255,176,.35); background: rgba(64,255,176,.10); color: #a9ffd8; }
+.badge.status-lost,
+.status-lost { border-color: rgba(255,94,122,.35); background: rgba(255,94,122,.10); color: #ffc0ca; }
+.badge.status-void,
+.status-void { border-color: rgba(255,215,128,.35); background: rgba(255,215,128,.10); color: #ffe1a6; }
+.badge.status-pending,
+.status-pending { border-color: rgba(120,190,255,.28); background: rgba(120,190,255,.08); color: #c7e6ff; }
+@media (max-width: 720px) {
+  .v768-cert-score,
+  .v768-cert-grid,
+  .v768-client-trust .compact-grid { grid-template-columns: 1fr !important; }
+}

@@ -19,8 +19,8 @@ def ok(name, cond):
     checks.append((name, bool(cond)))
 
 version = (ROOT / "VERSION.txt").read_text(encoding="utf-8-sig").strip()
-ok("version_v766", version in {"V766_CALENDAR_RESULTS_HIGHLIGHTS_ORDER_AUTOMATION", "V767_MADRID_TIME_EVERYWHERE_CERTIFICATION"})
-ok("app_version_v766", ('APP_VERSION = "V766_CALENDAR_RESULTS_HIGHLIGHTS_ORDER_AUTOMATION"' in APP or 'APP_VERSION = "V767_MADRID_TIME_EVERYWHERE_CERTIFICATION"' in APP))
+ok("version_v766", version in {"V768_PICK_RESULTS_TRACK_RECORD_TELEGRAM_PRODUCTION_CERTIFICATION", "V766_CALENDAR_RESULTS_HIGHLIGHTS_ORDER_AUTOMATION", "V767_MADRID_TIME_EVERYWHERE_CERTIFICATION"})
+ok("app_version_v766", ('APP_VERSION = "V766_CALENDAR_RESULTS_HIGHLIGHTS_ORDER_AUTOMATION"' in APP or 'APP_VERSION = "V767_MADRID_TIME_EVERYWHERE_CERTIFICATION"' in APP or 'APP_VERSION = "V768_PICK_RESULTS_TRACK_RECORD_TELEGRAM_PRODUCTION_CERTIFICATION"' in APP))
 ok("calendar_no_andalucia_tab", '"label": "Andalucía"' not in APP and 'href="/calendar?lane=andalucia"' not in CALENDAR)
 ok("calendar_results_lane", '"results": "Resultados"' in APP and '/calendar?lane=results' in CALENDAR)
 ok("calendar_highlight_badge", 'calendar-highlight-strip' in CALENDAR and 'Resumen disponible' in CALENDAR)
