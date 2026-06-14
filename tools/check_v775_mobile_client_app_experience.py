@@ -6,7 +6,7 @@ ROOT=Path(__file__).resolve().parents[1]
 def text(path): return (ROOT/path).read_text(encoding='utf-8')
 errors=[]
 version=text('VERSION.txt').strip()
-if not (version.startswith('V775_MOBILE_CLIENT_APP_EXPERIENCE_TOTAL_COMPLETION') or version.startswith('V776_CLIENT_INFORMATION_ARCHITECTURE_FINAL_ORDER') or version.startswith('V777_CLIENT_PRODUCT_EXPERIENCE_FINAL_SYSTEM')):
+if not (version.startswith('V775_MOBILE_CLIENT_APP_EXPERIENCE_TOTAL_COMPLETION') or version.startswith('V776_CLIENT_INFORMATION_ARCHITECTURE_FINAL_ORDER') or version.startswith('V777_CLIENT_PRODUCT_EXPERIENCE_FINAL_SYSTEM') or version.startswith('V778_CLIENT_PRODUCT_ORGANIZATION_MADRID_TIME_FINAL_STABILITY')):
     errors.append(f'VERSION incorrecta: {version}')
 base=text('templates/base.html')
 css=text('static/app.css')
@@ -20,8 +20,8 @@ for item in required_css:
     if item not in css: errors.append(f'app.css falta {item}')
 for path in ['templates/client_app_center.html','templates/client_menu.html','templates/telegram.html','templates/shark.html']:
     s=text(path)
-    if 'v774-client-hero' not in s and 'v775-' not in s and 'v777-' not in s:
-        errors.append(f'{path} no usa layout cliente V774/V775/V777')
+    if 'v774-client-hero' not in s and 'v775-' not in s and 'v777-' not in s and 'v778-' not in s:
+        errors.append(f'{path} no usa layout cliente V774/V775/V777/V778')
 # broken links that were visible in old video/code
 for path in ROOT.joinpath('templates').glob('*.html'):
     s=path.read_text(encoding='utf-8')
@@ -29,9 +29,15 @@ for path in ROOT.joinpath('templates').glob('*.html'):
         if bad in s:
             errors.append(f'enlace roto {bad} en {path.relative_to(ROOT)}')
 # page shortcut coverage
-for path in ['templates/calendar.html','templates/live.html','templates/picks.html','templates/combis.html','templates/betting_markets.html','templates/highlights.html','templates/track_record.html','templates/sports_hub.html']:
-    if 'v775-page-shortcuts' not in text(path):
-        errors.append(f'{path} sin accesos cortos V775')
+if not version.startswith('V778_'):
+    for path in ['templates/calendar.html','templates/live.html','templates/picks.html','templates/combis.html','templates/betting_markets.html','templates/highlights.html','templates/track_record.html','templates/sports_hub.html']:
+        if 'v775-page-shortcuts' not in text(path):
+            errors.append(f'{path} sin accesos cortos V775')
+else:
+    # V778 elimina shortcuts duplicados en las pantallas principales; la navegación única queda en top/bottom + filtros propios.
+    for path in ['templates/calendar.html','templates/live.html','templates/picks.html']:
+        if 'v775-page-shortcuts' in text(path):
+            errors.append(f'{path} conserva shortcuts duplicados en V778')
 if 'V775_MOBILE_CLIENT_EXPERIENCE_ENABLED=true' not in text('.env.example'):
     errors.append('.env.example sin bandera V775')
 if not (ROOT/'reports'/'V775_MOBILE_CLIENT_APP_EXPERIENCE_TOTAL_COMPLETION_REPORT.md').exists():

@@ -13,7 +13,7 @@
     <div class="card activity-card">
       <div class="comp-top"><strong>{{ act.label }}</strong><span class="pill">{{ act.activity_type }}</span></div>
       <p class="small">{{ act.target_type }} · {{ act.target_id }}</p>
-      <p class="muted">{{ act.created_at }}</p>
+      <p class="muted">{{ act.created_at|madrid_datetime_label }}</p>
     </div>
     {% else %}
     <div class="empty premium-empty"><strong>Sin actividad aún</strong><p>Cuando consultes partidos, picks, combinadas o favoritos, quedará registrado para mejorar tu experiencia.</p></div>

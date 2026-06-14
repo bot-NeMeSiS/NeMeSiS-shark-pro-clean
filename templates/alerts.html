@@ -29,7 +29,7 @@
   </div>
   <div>
     <div class="section-head"><h2>Actividad reciente</h2><a class="pill" href="/actividad">Ver actividad</a></div>
-    <div class="stack">{% for act in data.client_activity[:5] %}<div class="list-row"><span>{{ act.label }}</span><strong>{{ act.created_at[:10] }}</strong></div>{% else %}<div class="empty">Aún no hay actividad registrada.</div>{% endfor %}</div>
+    <div class="stack">{% for act in data.client_activity[:5] %}<div class="list-row"><span>{{ act.label }}</span><strong>{{ act.created_at|madrid_datetime_label }}</strong></div>{% else %}<div class="empty">Aún no hay actividad registrada.</div>{% endfor %}</div>
   </div>
 </section>
 {% endblock %}

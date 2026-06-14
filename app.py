@@ -187,7 +187,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V777_CLIENT_PRODUCT_EXPERIENCE_FINAL_SYSTEM"
+APP_VERSION = "V778_CLIENT_PRODUCT_ORGANIZATION_MADRID_TIME_FINAL_STABILITY"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -5655,6 +5655,33 @@ def jinja_match_time_label(value, status=None, minute=None):
 def jinja_match_date_label(value):
     item, _source = _jinja_match_time_source(value)
     return item.get("madrid_date_label") or item.get("safe_date") or item.get("match_date") or "Sin fecha Madrid"
+
+
+@app.template_filter("madrid_datetime_label")
+def jinja_madrid_datetime_label(value):
+    """Visible Spain/Madrid label for generic timestamps in client/admin templates.
+
+    Used for activity logs, saved combis and operational timestamps so the UI
+    never prints raw UTC/ISO strings to the user. The function is deliberately
+    best-effort: if a value cannot be parsed it returns a human pending label
+    instead of leaking technical data.
+    """
+    text = str(value or "").strip()
+    if not text:
+        return "Hora Madrid pendiente"
+    try:
+        label = format_madrid_match_time(text)
+        if label and label != "Hora pendiente":
+            return f"{label} · Madrid" if "Madrid" not in label else label
+    except Exception:
+        pass
+    try:
+        item = normalize_kickoff_for_display({"kickoff_iso": text})
+        if item.get("madrid_display"):
+            return f"{item.get('madrid_display')} · Madrid" if "Madrid" not in item.get("madrid_display") else item.get("madrid_display")
+    except Exception:
+        pass
+    return "Hora Madrid pendiente"
 
 
 # ===================== V762 CLIENT CLARITY / MADRID TIME / ADMIN NOISE POLISH =====================
@@ -13403,6 +13430,7 @@ def account_center_page():
         return redirect("/cliente-login")
     data = dashboard_data()
     data["onboarding"] = onboarding_status(user)
+    data["membership"] = v566_membership_ui(user)
     data["account_center"] = {
         "user": user,
         "plan": normalize_role(user.get("membership") or user.get("role")),
@@ -13410,6 +13438,7 @@ def account_center_page():
         "alerts": len(data.get("client_alerts") or []),
         "activity": len(data.get("client_activity") or []),
     }
+    data["v778_organization"] = v778_client_product_organization_context(data, user) if "v778_client_product_organization_context" in globals() else {}
     return render_template("account_center.html", data=data)
 
 
@@ -15222,6 +15251,7 @@ def v757_client_app_center_page():
     data["v757_trust"] = build_v757_trust_snapshot(data.get("track_record") or {})
     data["v758_adaptive"] = v758_adaptive_context(data, user, "app_center")
     data["v777_product"] = v777_client_product_context(data, user)
+    data["v778_organization"] = v778_client_product_organization_context(data, user) if "v778_client_product_organization_context" in globals() else {}
     return render_template("client_app_center.html", data=data)
 
 
@@ -15605,6 +15635,141 @@ def admin_v777_client_product_quality_page():
     if not is_admin_session():
         return redirect("/admin-login?next=/admin/client-product-quality")
     return render_template("admin_app_experience_quality.html", data={"quality": v777_client_product_quality_snapshot(), "v777": True})
+
+
+
+# ===================== V778 CLIENT PRODUCT ORGANIZATION + MADRID TIME FINAL STABILITY =====================
+
+def v778_client_product_organization_context(data=None, user=None):
+    """Final client organization layer: one route map, one navigation hierarchy and Madrid-time rules.
+
+    It does not mutate sports data, picks, Telegram queues, users, payments or DB_PATH.
+    """
+    data = data or {}
+    user = user or current_session_user() or {"membership": "FREE", "role": "FREE"}
+    membership = get_user_membership(user)
+    base = v777_client_product_context(data, user)
+    counts = base.get("counts") or {}
+    primary_flow = [
+        {"step": 1, "label": "Hoy", "title": "Partidos de hoy", "body": "Agenda clara con día, estado, liga y hora oficial de España.", "href": "/calendar?lane=today"},
+        {"step": 2, "label": "Directo", "title": "Seguir en vivo", "body": "Solo marcador/minuto real si la API lo aporta; si no, queda pendiente.", "href": "/live"},
+        {"step": 3, "label": "Picks", "title": "Qué apostar", "body": "Selección, mercado, cuota, stake, riesgo y motivo antes de entrar.", "href": "/picks"},
+        {"step": 4, "label": "SHARK", "title": "Resolver dudas", "body": "Explica picks, mercados, partidos y qué evitar sin inventar datos.", "href": "/shark"},
+        {"step": 5, "label": "Histórico", "title": "Comprobar resultados", "body": "ROI y Track Record solo con picks cerrados y resultados reales.", "href": "/track-record"},
+    ]
+    sections = [
+        {"key": "ver", "title": "Ver partidos", "body": "Hoy, calendario, directo y detalle de partido.", "href": "/calendar?lane=today", "items": ["Partidos de hoy", "Directo", "Calendario", "Detalle"]},
+        {"key": "apostar", "title": "Apostar", "body": "Picks, mercados básicos y combis responsables.", "href": "/picks", "items": ["Picks", "Mercados", "Combis", "Riesgo"]},
+        {"key": "resultados", "title": "Resultados", "body": "Finalizados, resúmenes externos e histórico real.", "href": "/track-record", "items": ["Resultados", "Resúmenes", "ROI", "Grading"]},
+        {"key": "asistente", "title": "Asistente", "body": "SHARK y Telegram como guía, no como ruido.", "href": "/shark", "items": ["SHARK", "Telegram", "Alertas", "Ayuda"]},
+    ]
+    if counts.get("live"):
+        next_action = {"label": "Prioridad: Directo", "body": "Hay partidos en vivo. Revisa marcador/minuto antes de mirar picks.", "href": "/live", "cta": "Abrir directo"}
+    elif counts.get("picks"):
+        next_action = {"label": "Prioridad: Picks", "body": "Hay picks cargados. Lee mercado, cuota, stake y riesgo.", "href": "/picks", "cta": "Ver picks"}
+    elif counts.get("today"):
+        next_action = {"label": "Prioridad: Hoy", "body": "Empieza por la agenda y marca favoritos si quieres seguimiento.", "href": "/calendar?lane=today", "cta": "Ver hoy"}
+    else:
+        next_action = {"label": "Sin datos críticos", "body": "No se inventa información. Usa el mapa, Telegram o SHARK hasta la siguiente sincronización.", "href": "/menu", "cta": "Ver mapa"}
+    return {
+        "version": APP_VERSION,
+        "status": "V778_PRODUCT_ORDER_STABLE",
+        "membership": membership,
+        "counts": counts,
+        "next_action": next_action,
+        "primary_flow": primary_flow,
+        "sections": sections,
+        "rules": [
+            "Una sola navegación principal: top en PC, bottom en móvil, sin rail duplicado.",
+            "Hora oficial de España/Madrid en todas las cards visibles.",
+            "Estados vacíos claros: pendiente no significa roto.",
+            "Todo lo avanzado existe, pero lo básico siempre aparece primero.",
+        ],
+    }
+
+
+def v778_client_organization_quality_snapshot():
+    templates = [
+        "base.html", "client_app_center.html", "client_menu.html", "calendar.html", "live.html",
+        "picks.html", "combis.html", "betting_markets.html", "highlights.html", "track_record.html",
+        "match_detail.html", "telegram.html", "shark.html", "account_center.html", "activity.html", "alerts.html",
+    ]
+    checks = []
+    forbidden_client_tokens = [" UTC", "utc", "debug", "json visible", "traceback", "Pasado para próximos"]
+    for name in templates:
+        path = os.path.join(BASE_DIR, "templates", name)
+        raw = ""
+        try:
+            with open(path, "r", encoding="utf-8") as fh:
+                raw = fh.read()
+        except Exception:
+            pass
+        raw_lower = raw.lower()
+        duplicate_rails = raw.count("v777-client-rail") + raw.count("v776-client-compass") + raw.count("v775-mobile-command")
+        checks.append({
+            "template": name,
+            "exists": bool(raw),
+            "has_v778_or_current": ("v778" in raw_lower or "v777" in raw_lower or "v774" in raw_lower),
+            "uses_madrid_display": ("match_madrid_context" in raw or "match_full_datetime" in raw or "match_time_label" in raw or "madrid_datetime_label" in raw or name in {"base.html", "client_menu.html"}),
+            "duplicate_navigation_risk": duplicate_rails,
+            "bad_copy": [token for token in forbidden_client_tokens if token in raw],
+            "raw_created_at_visible": ("created_at" in raw and "madrid_datetime_label" not in raw and not name.startswith("admin_")),
+        })
+    base_path = os.path.join(BASE_DIR, "templates", "base.html")
+    css_path = os.path.join(BASE_DIR, "static", "app.css")
+    try:
+        base_raw = open(base_path, "r", encoding="utf-8").read()
+    except Exception:
+        base_raw = ""
+    try:
+        css_raw = open(css_path, "r", encoding="utf-8").read()
+    except Exception:
+        css_raw = ""
+    return {
+        "ok": all(c["exists"] and not c["bad_copy"] and not c["raw_created_at_visible"] for c in checks),
+        "version": APP_VERSION,
+        "status": "V778_CLIENT_PRODUCT_ORGANIZATION_MADRID_TIME_FINAL_STABILITY",
+        "navigation": {
+            "global_rail_removed": "v777-client-rail" not in base_raw,
+            "mobile_bottom_nav": "bottom-nav-clean" in base_raw,
+            "desktop_top_nav": "nav-clean" in base_raw,
+            "legacy_rails_hidden": all(token in css_raw for token in [".v777-client-rail", ".v776-client-compass", ".v775-mobile-command"]),
+        },
+        "checks": checks,
+        "rules": [
+            "Sin barras duplicadas: PC usa top nav, móvil usa bottom nav y cada pantalla usa filtros propios.",
+            "Horarios visibles mediante contexto Madrid o filtro madrid_datetime_label.",
+            "Pantallas cliente con jerarquía: cabecera, prioridad, contenido y acción útil.",
+            "Nada crítico queda escondido en rutas raras: /app y /menu son los mapas oficiales.",
+        ],
+    }
+
+
+@app.route("/api/client/product-organization")
+def api_client_v778_product_organization():
+    user = current_session_user()
+    if not user:
+        return jsonify({"ok": False, "version": APP_VERSION, "error": "login_required"}), 403
+    data = dashboard_data()
+    data["track_record"] = v742_track_record_context()
+    data["v757_app"] = build_v757_app_center(data, user, track_record=data.get("track_record"))
+    return jsonify({"ok": True, "version": APP_VERSION, "organization": v778_client_product_organization_context(data, user)})
+
+
+@app.route("/api/admin/client-organization-quality")
+@app.route("/api/admin/v778-client-organization")
+def api_admin_v778_client_organization_quality():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify(v778_client_organization_quality_snapshot())
+
+
+@app.route("/admin/client-organization-quality")
+@app.route("/admin/v778-client-organization")
+def admin_v778_client_organization_quality_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/client-organization-quality")
+    return render_template("admin_app_experience_quality.html", data={"quality": v778_client_organization_quality_snapshot(), "v778": True})
 
 @app.route("/admin/data-marketplace")
 @app.route("/admin/export-center")

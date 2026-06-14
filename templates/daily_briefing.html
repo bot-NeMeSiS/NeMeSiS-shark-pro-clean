@@ -83,7 +83,7 @@
   <div class="section-head"><h2>Actividad reciente</h2><a class="pill" href="/actividad">Ver todo</a></div>
   <div class="stack activity-stack">
     {% for a in briefing.activity[:6] %}
-    <div class="list-row"><span>{{ a.label }}</span><strong>{{ a.created_at[:16] }}</strong></div>
+    <div class="list-row"><span>{{ a.label }}</span><strong>{{ a.created_at|madrid_datetime_label }}</strong></div>
     {% else %}
     <div class="empty">Tu actividad aparecerá al revisar partidos, picks, combinadas y favoritos.</div>
     {% endfor %}

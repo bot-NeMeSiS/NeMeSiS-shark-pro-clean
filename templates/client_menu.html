@@ -2,28 +2,26 @@
 {% block content %}
 {% set all_items = items or [] %}
 {% set groups = ['01 · Empezar','02 · Apostar','03 · Resultados','04 · Asistente','05 · Cuenta','06 · Ayuda'] %}
-<section class="v777-menu-hero">
-  <div>
-    <div class="kicker">Mapa final · nada escondido</div>
-    <h1>Todo ordenado por lo que quieres hacer</h1>
-    <p class="lead">Ya no es un cajón de páginas. Es el mapa de la super app: ver partidos, apostar con criterio, revisar resultados, preguntar a SHARK y controlar cuenta/Telegram.</p>
-    <div class="v777-primary-actions"><a class="btn primary" href="/app">Inicio</a><a class="btn" href="/calendar?lane=today">Hoy</a><a class="btn" href="/picks">Picks</a><a class="btn" href="/shark">SHARK</a></div>
+<section class="v778-home-hero v778-menu-hero">
+  <div class="v778-hero-main">
+    <div class="kicker">Mapa final · todo visible</div>
+    <h1>Todo visible, nada escondido y ordenado por intención</h1>
+    <p class="lead">Aquí está la super app completa sin esconder funciones: /mapa, /navegacion y /todo llevan al mismo sitio. Primero lo básico; después lo avanzado.</p>
+    <div class="v778-primary-actions"><a class="btn primary" href="/app">Inicio</a><a class="btn" href="/calendar?lane=today">Hoy</a><a class="btn" href="/picks">Picks</a><a class="btn" href="/shark">SHARK</a></div>
   </div>
-  <aside class="v777-now-card"><span class="v774-status ready">Mapa claro</span><p>La barra inferior te lleva a Inicio, Hoy, Directo, Picks y este mapa. Aquí está todo lo demás sin esconderlo.</p></aside>
+  <aside class="v778-priority-card"><span class="v774-status ready">Mapa limpio</span><p>PC usa la barra superior. Móvil usa la barra inferior. Esta pantalla guarda todo lo demás sin duplicar barras.</p></aside>
 </section>
-
-<section class="v777-intent-grid v777-menu-shortcuts">
-  <a class="v777-intent-card" href="/calendar?lane=today"><em>◷</em><strong>Ver partidos</strong><span>Calendario y directo</span></a>
-  <a class="v777-intent-card" href="/picks"><em>◆</em><strong>Apostar</strong><span>Picks, combis y mercados</span></a>
-  <a class="v777-intent-card" href="/track-record"><em>↗</em><strong>Resultados</strong><span>Histórico y resúmenes</span></a>
-  <a class="v777-intent-card" href="/telegram"><em>↯</em><strong>Alertas</strong><span>Telegram y cuenta</span></a>
+<section class="v778-section-grid">
+  <a class="v778-section-card" href="/calendar?lane=today"><strong>Ver partidos</strong><span>Hoy, directo y calendario.</span><small>Lo primero que mira el cliente.</small></a>
+  <a class="v778-section-card" href="/picks"><strong>Apostar</strong><span>Picks, combis y mercados.</span><small>Cuota, stake, riesgo y motivo.</small></a>
+  <a class="v778-section-card" href="/track-record"><strong>Resultados</strong><span>Histórico, ROI y resúmenes.</span><small>Solo datos reales cerrados.</small></a>
+  <a class="v778-section-card" href="/telegram"><strong>Alertas</strong><span>Telegram, cuenta y ayuda.</span><small>Seguimiento sin entrar cada minuto.</small></a>
 </section>
-
-<section class="v777-menu-sections">
+<section class="v778-menu-sections">
   {% for group in groups %}
-  <article class="v777-panel v777-menu-section">
-    <div class="section-head"><div><h2>{{ group.split('·')[-1].strip() }}</h2><p class="small">Bloque {{ group.split('·')[0].strip() }}</p></div></div>
-    <div class="v777-menu-grid">
+  <article class="v778-panel">
+    <div class="section-head"><div><h2>{{ group.split('·')[-1].strip() }}</h2><p class="small">Bloque {{ group.split('·')[0].strip() }} de la experiencia cliente.</p></div></div>
+    <div class="v778-menu-grid">
       {% for item in all_items if item.group == group %}
       <a href="{{ item.href }}"><b>{{ item.title }}</b><small>{{ item.body }}</small></a>
       {% endfor %}
@@ -31,5 +29,5 @@
   </article>
   {% endfor %}
 </section>
-<section class="v774-responsible-note v777-final-note"><strong>Uso ideal</strong><span>Inicio → Hoy → Directo → Picks → SHARK → Histórico. Telegram avisa cuando haya algo útil.</span></section>
+<section class="v774-responsible-note v778-final-note"><strong>Ruta ideal</strong><span>Inicio → Hoy → Directo → Picks → SHARK → Histórico. Telegram avisa cuando haya algo útil.</span></section>
 {% endblock %}

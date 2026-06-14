@@ -24,7 +24,7 @@
   {% set _visual_tier = 'free' %}
   {% set _tier_label = 'FREE' %}
 {% endif %}
-<body class="ns-app ns-tier-{{ _visual_tier }}{% if current_user %} ns-authenticated{% else %} ns-public{% endif %}{% if current_user and current_user.role == 'ADMIN' %} ns-admin{% endif %}" data-ns-route="{{ request.path }}" data-ns-plan="{{ _tier_label }}" data-v775-shell="true" data-v776-shell="true" data-v777-shell="true">
+<body class="ns-app ns-tier-{{ _visual_tier }}{% if current_user %} ns-authenticated{% else %} ns-public{% endif %}{% if current_user and current_user.role == 'ADMIN' %} ns-admin{% endif %}" data-ns-route="{{ request.path }}" data-ns-plan="{{ _tier_label }}" data-v775-shell="true" data-v776-shell="true" data-v777-shell="true" data-v778-shell="true">
   <div class="ns-ambient" aria-hidden="true"><i></i><i></i><i></i></div>
   <div class="membership-energy-bar" aria-hidden="true"></div>
   <div class="ns-route-glow" aria-hidden="true"></div>
@@ -55,7 +55,8 @@
           <a href="/calendar?lane=today" data-v775-icon="◷">Hoy</a>
           <a href="/live" data-v775-icon="●">Directo</a>
           <a href="/picks" data-v775-icon="◆">Picks</a>
-          <a href="/highlights" data-v775-icon="▶">Resultados</a>
+          <a href="/track-record" data-v775-icon="↗">Histórico</a>
+          <a href="/highlights" data-v775-icon="▶">Resúmenes</a>
           <a href="/shark" data-v775-icon="🦈">SHARK</a>
           <a href="/mi-cuenta" data-v775-icon="◎">Cuenta</a>
           <a href="/menu" data-v775-icon="☰">Todo</a>
@@ -70,23 +71,7 @@
     </div>
   </header>
 
-  {% if current_user and current_user.role != 'ADMIN' %}
-  <section class="v777-client-rail" aria-label="Navegación principal cliente">
-    <div class="v777-rail-title"><strong>Hoy primero</strong><span>Partidos · Picks · Resultados · SHARK</span></div>
-    <nav class="v777-rail-nav" aria-label="Accesos principales">
-      <a href="/app" data-intent="inicio"><b>Inicio</b><small>Centro</small></a>
-      <a href="/calendar?lane=today" data-intent="hoy"><b>Hoy</b><small>Agenda</small></a>
-      <a href="/live" data-intent="directo"><b>Directo</b><small>Live</small></a>
-      <a href="/picks" data-intent="picks"><b>Picks</b><small>Valor</small></a>
-      <a href="/highlights" data-intent="resultados"><b>Resultados</b><small>Resúmenes</small></a>
-      <a href="/track-record" data-intent="historico"><b>Histórico</b><small>ROI real</small></a>
-      <a href="/shark" data-intent="shark"><b>SHARK</b><small>IA</small></a>
-      <a href="/telegram" data-intent="telegram"><b>Telegram</b><small>Alertas</small></a>
-      <a href="/mi-cuenta" data-intent="cuenta"><b>Cuenta</b><small>Plan</small></a>
-      <a href="/menu" data-intent="todo"><b>Todo</b><small>Mapa</small></a>
-    </nav>
-  </section>
-  {% endif %}
+  {# V778: navegación global cliente consolidada. PC usa la barra superior; móvil usa la inferior. Sin rail duplicado. #}
 
   <main class="shell shark-shell ns-main-shell">
     {% block content %}{% endblock %}
@@ -105,12 +90,16 @@
       <a href="/admin/final-certification">Certificación</a>
       <a href="/sports-hub">Vista cliente</a>
       <a href="/logout">Salir</a>
-    {% else %}
+    {% elif current_user %}
       <a href="/app" data-v775-icon="⌂">Inicio</a>
       <a href="/calendar?lane=today" data-v775-icon="◷">Hoy</a>
       <a href="/live" data-v775-icon="●">Directo</a>
       <a href="/picks" data-v775-icon="◆">Picks</a>
-      {% if current_user %}<a href="/menu" data-v775-icon="☰">Todo</a>{% else %}<a href="/cliente-login" data-v775-icon="→">Entrar</a>{% endif %}
+      <a href="/menu" data-v775-icon="☰">Todo</a>
+    {% else %}
+      <a href="/" data-v775-icon="⌂">Inicio</a>
+      <a href="/membresias" data-v775-icon="★">Planes</a>
+      <a href="/cliente-login" data-v775-icon="→">Entrar</a>
     {% endif %}
   </nav>
 
@@ -234,7 +223,7 @@
     body.classList.add('ns-ready');
     body.dataset.nsEnhanced='true';
 
-    document.querySelectorAll('.nav a,.bottom-nav a,.v776-client-compass a,.v777-client-rail a').forEach(function(link){
+    document.querySelectorAll('.nav a,.bottom-nav a').forEach(function(link){
       try{
         const href=new URL(link.getAttribute('href'), window.location.origin).pathname.replace(/\/$/,'') || '/';
         if(href === '/' ? path === '/' : path === href || path.indexOf(href + '/') === 0){

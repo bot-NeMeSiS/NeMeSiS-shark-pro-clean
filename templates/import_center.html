@@ -47,7 +47,7 @@ LaLiga EA Sports,Real Madrid,FC Barcelona,2026-05-30,21:00,Spain,PROGRAMADO</tex
       {% for i in data.imports %}
       <div class="import-row">
         <div class="ok">{{ i.status }} - {{ i.rows_count }} filas</div>
-        <div class="small">{{ i.kind }} - {{ i.source_name }} - {{ i.created_at }}</div>
+        <div class="small">{{ i.kind }} - {{ i.source_name }} - {{ i.created_at|madrid_datetime_label }}</div>
         <div class="small">{{ i.legal_note }}</div>
       </div>
       {% endfor %}

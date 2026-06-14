@@ -1,21 +1,24 @@
 {% extends "base.html" %}
 {% block content %}
 {% set plan = data.account_center.plan %}
-<section class="v777-menu-hero v777-account-hero">
-  <div>
-    <div class="kicker">Mi cuenta · plan · Telegram · soporte</div>
+{% set membership = data.get('membership') or {} %}
+<section class="v778-home-hero v778-account-hero">
+  <div class="v778-hero-main">
+    <div class="kicker">Mi cuenta · plan · Telegram</div>
     <h1>{{ data.session_user.name }} · {{ plan }}</h1>
-    <p class="lead">Centro personal del cliente: plan activo, Telegram, favoritos, ayuda, SHARK y actividad sin pantallas escondidas.</p>
-    <div class="v777-primary-actions"><a class="btn primary" href="/telegram">Conectar Telegram</a><a class="btn" href="/membresias">Ver planes</a><a class="btn" href="/favorites">Favoritos</a><a class="btn" href="/logout">Salir</a></div>
+    <p class="lead">Todo lo personal en una pantalla: plan activo, Telegram, favoritos, actividad, soporte y salida. Sin ajustes escondidos.</p>
+    <div class="v778-primary-actions"><a class="btn primary" href="/telegram">Telegram</a><a class="btn" href="/membresias">Planes</a><a class="btn" href="/favorites">Favoritos</a><a class="btn" href="/ayuda">Ayuda</a></div>
   </div>
-  <aside class="v777-now-card"><span class="v774-status ready">{{ plan }}</span><div class="v777-kpi-grid"><a><strong>{{ data.account_center.favorites }}</strong><span>Favs</span></a><a><strong>{{ data.account_center.alerts }}</strong><span>Alertas</span></a><a><strong>{{ data.account_center.activity }}</strong><span>Actividad</span></a><a><strong>{{ data.onboarding.score }}%</strong><span>Setup</span></a></div></aside>
+  <aside class="v778-priority-card"><span class="v774-status ready">{{ plan }}</span><div class="v778-kpis"><a href="/favorites"><strong>{{ data.account_center.favorites }}</strong><span>Favs</span></a><a href="/telegram"><strong>{{ data.account_center.alerts }}</strong><span>Alertas</span></a><a href="/actividad"><strong>{{ data.account_center.activity }}</strong><span>Actividad</span></a><a href="/onboarding"><strong>{{ data.onboarding.score }}%</strong><span>Setup</span></a></div></aside>
 </section>
-<section class="v777-intent-grid">
-  <a class="v777-intent-card" href="/telegram"><em>↯</em><strong>Telegram</strong><span>Bot, código y alertas por plan.</span></a>
-  <a class="v777-intent-card" href="/membresias"><em>★</em><strong>Membresía</strong><span>FREE / PRO / ELITE y beneficios.</span></a>
-  <a class="v777-intent-card" href="/favorites"><em>♥</em><strong>Favoritos</strong><span>Partidos y equipos vigilados.</span></a>
-  <a class="v777-intent-card" href="/shark"><em>🦈</em><strong>SHARK IA</strong><span>Preguntas rápidas y control de riesgo.</span></a>
-  <a class="v777-intent-card" href="/actividad"><em>•</em><strong>Actividad</strong><span>Historial de uso y señales.</span></a>
-  <a class="v777-intent-card" href="/ayuda"><em>?</em><strong>Ayuda</strong><span>Soporte y primeros pasos.</span></a>
+<section class="v778-section-grid">
+  <a class="v778-section-card" href="/telegram"><strong>Telegram</strong><span>Bot, canal y alertas por plan.</span><small>Conectar y comprobar estado.</small></a>
+  <a class="v778-section-card" href="/membresias"><strong>Membresía</strong><span>{{ membership.get('headline') or 'FREE / PRO / ELITE' }}</span><small>{{ membership.get('next_cta') or 'Ver beneficios' }}</small></a>
+  <a class="v778-section-card" href="/favorites"><strong>Favoritos</strong><span>Partidos y equipos vigilados.</span><small>Seguimiento personalizado.</small></a>
+  <a class="v778-section-card" href="/actividad"><strong>Actividad</strong><span>Uso reciente y señales.</span><small>{{ data.account_center.activity }} eventos</small></a>
+</section>
+<section class="v778-home-layout">
+  <article class="v778-panel"><div class="section-head"><div><h2>Estado del plan</h2><p class="small">Preparado para pagos reales cuando se active Stripe completo.</p></div><span class="pill">{{ plan }}</span></div><p><strong>{{ membership.get('headline') or 'Plan activo' }}</strong></p><p class="small">{{ membership.get('body') or 'Controla tu acceso, Telegram, favoritos y soporte desde aquí.' }}</p><div class="inline-actions"><a class="btn small-btn" href="/membresias">Ver planes</a><a class="btn small-btn" href="/juego-responsable">Juego responsable</a></div></article>
+  <article class="v778-panel"><div class="section-head"><div><h2>Acciones rápidas</h2><p class="small">Lo que realmente necesita el cliente.</p></div></div><div class="v778-menu-grid"><a href="/shark"><b>Preguntar a SHARK</b><small>Picks, riesgo, mercados o directo.</small></a><a href="/telegram"><b>Configurar Telegram</b><small>Recibir avisos útiles.</small></a><a href="/logout"><b>Salir</b><small>Cerrar sesión con seguridad.</small></a></div></article>
 </section>
 {% endblock %}

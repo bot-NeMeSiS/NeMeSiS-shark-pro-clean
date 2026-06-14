@@ -1,29 +1,30 @@
 {% extends "base.html" %}
 {% block content %}
+{% set org = data.get('v778_organization') or {} %}
 {% set product = data.get('v777_product') or {} %}
 {% set v = data.get('v757_app') or {} %}
 {% set focus = v.get('focus') or [] %}
 {% set picks = v.get('picks') or [] %}
 {% set tr = data.get('track_record') or {} %}
-{% set counts = product.get('counts') or {} %}
-{% set next_action = product.get('next_action') or {} %}
+{% set counts = org.get('counts') or product.get('counts') or {} %}
+{% set next_action = org.get('next_action') or product.get('next_action') or {} %}
 {% set plan = product.get('plan') or {} %}
-<section class="v777-home-hero">
-  <div class="v777-hero-main">
-    <div class="kicker">Centro de mando · Hora Madrid · producto final</div>
-    <h1>Hoy, picks, directo y resultados en una sola ruta clara</h1>
-    <p class="lead">La app se usa así: revisas el día, miras directo si hay, lees picks con riesgo, preguntas a SHARK y cierras con histórico/Telegram. Sin pantallas perdidas ni datos inventados.</p>
-    <div class="v777-primary-actions">
-      <a class="btn primary" href="{{ next_action.get('href') or '/calendar?lane=today' }}">{{ next_action.get('cta') or 'Empezar ahora' }}</a>
+<section class="v778-home-hero">
+  <div class="v778-hero-main">
+    <div class="kicker">Centro de mando · orden final · hora España</div>
+    <h1>Abre, mira lo importante y actúa con orden</h1>
+    <p class="lead">Ruta única para no perderse: Hoy → Directo → Picks → SHARK → Histórico. Todo lo avanzado está en Todo, pero lo importante va primero.</p>
+    <div class="v778-primary-actions">
+      <a class="btn primary" href="{{ next_action.get('href') or '/calendar?lane=today' }}">{{ next_action.get('cta') or 'Empezar' }}</a>
       <a class="btn" href="/calendar?lane=today">Partidos de hoy</a>
       <a class="btn" href="/picks">Picks</a>
-      <a class="btn" href="/shark">Preguntar SHARK</a>
+      <a class="btn" href="/menu">Todo</a>
     </div>
   </div>
-  <aside class="v777-now-card">
-    <span class="v774-status ready">{{ next_action.get('label') or 'Centro listo' }}</span>
-    <p>{{ next_action.get('body') or 'Empieza por partidos de hoy y sigue el flujo recomendado.' }}</p>
-    <div class="v777-kpi-grid">
+  <aside class="v778-priority-card">
+    <span class="v774-status ready">{{ next_action.get('label') or 'Prioridad del día' }}</span>
+    <p>{{ next_action.get('body') or 'Empieza por partidos de hoy y sigue la ruta recomendada.' }}</p>
+    <div class="v778-kpis">
       <a href="/calendar?lane=today"><strong>{{ counts.get('today', focus|length) }}</strong><span>Hoy</span></a>
       <a href="/live"><strong>{{ counts.get('live', 0) }}</strong><span>Directo</span></a>
       <a href="/picks"><strong>{{ counts.get('picks', picks|length) }}</strong><span>Picks</span></a>
@@ -32,59 +33,70 @@
   </aside>
 </section>
 
-<section class="v777-intent-grid" aria-label="Qué quieres hacer">
-  {% for item in product.get('intents') or [] %}
-  <a class="v777-intent-card" href="{{ item.href }}"><em>{{ item.icon }}</em><strong>{{ item.title }}</strong><span>{{ item.body }}</span></a>
-  {% endfor %}
-</section>
-
-<section class="v777-route-card">
-  <div class="section-head"><div><h2>Ruta recomendada</h2><p class="small">El orden que debe entender cualquier cliente desde el primer minuto.</p></div><a class="pill" href="/menu">Ver todo</a></div>
-  <div class="v777-flowline">
-    <a href="/calendar?lane=today"><b>1</b><span><strong>Partidos</strong><small>día, liga, hora Madrid</small></span></a>
-    <a href="/live"><b>2</b><span><strong>Directo</strong><small>minuto y marcador real</small></span></a>
-    <a href="/picks"><b>3</b><span><strong>Picks</strong><small>mercado, cuota, stake, riesgo</small></span></a>
-    <a href="/shark"><b>4</b><span><strong>SHARK</strong><small>pregunta qué entrar o evitar</small></span></a>
-    <a href="/track-record"><b>5</b><span><strong>Histórico</strong><small>resultado y ROI real</small></span></a>
+<section class="v778-flow-card">
+  <div class="section-head"><div><h2>Ruta recomendada de hoy</h2><p class="small">Una guía simple para que la app no parezca enorme aunque tenga muchas capas.</p></div><span class="pill">Europe/Madrid</span></div>
+  <div class="v778-flowline">
+    {% for step in org.get('primary_flow') or [] %}
+      <a href="{{ step.href }}"><b>{{ step.step }}</b><span><strong>{{ step.label }}</strong><small>{{ step.body }}</small></span></a>
+    {% else %}
+      <a href="/calendar?lane=today"><b>1</b><span><strong>Hoy</strong><small>Partidos con hora Madrid</small></span></a>
+      <a href="/live"><b>2</b><span><strong>Directo</strong><small>Marcador real</small></span></a>
+      <a href="/picks"><b>3</b><span><strong>Picks</strong><small>Cuota, stake, riesgo</small></span></a>
+      <a href="/shark"><b>4</b><span><strong>SHARK</strong><small>Resolver dudas</small></span></a>
+      <a href="/track-record"><b>5</b><span><strong>Histórico</strong><small>ROI real</small></span></a>
+    {% endfor %}
   </div>
 </section>
 
-<section class="v777-home-layout">
-  <article class="v777-panel">
-    <div class="section-head"><div><h2>Partidos/focos</h2><p class="small">Acceso directo al detalle. Si no hay dato real, no se inventa.</p></div><a class="pill" href="/calendar">Calendario</a></div>
-    <div class="v777-list">
-      {% for m in focus[:6] %}
+<section class="v778-section-grid" aria-label="Organización principal">
+  {% for section in org.get('sections') or [] %}
+    <a class="v778-section-card" href="{{ section.href }}">
+      <strong>{{ section.title }}</strong>
+      <span>{{ section.body }}</span>
+      <small>{{ (section.items or [])|join(' · ') }}</small>
+    </a>
+  {% else %}
+    <a class="v778-section-card" href="/calendar?lane=today"><strong>Ver partidos</strong><span>Hoy, calendario y directo.</span><small>Partidos · Directo · Detalle</small></a>
+    <a class="v778-section-card" href="/picks"><strong>Apostar</strong><span>Picks, mercados y combis.</span><small>Picks · Mercados · Riesgo</small></a>
+    <a class="v778-section-card" href="/track-record"><strong>Resultados</strong><span>Histórico y resúmenes.</span><small>ROI · Resultados · Highlights</small></a>
+    <a class="v778-section-card" href="/shark"><strong>Asistente</strong><span>SHARK y Telegram.</span><small>IA · Alertas · Ayuda</small></a>
+  {% endfor %}
+</section>
+
+<section class="v778-home-layout">
+  <article class="v778-panel">
+    <div class="section-head"><div><h2>Focos del día</h2><p class="small">Partidos reales cargados. La hora siempre se muestra como España/Madrid.</p></div><a class="pill" href="/calendar">Calendario</a></div>
+    <div class="v778-list">
+      {% for m in focus[:5] %}
       {% set ctx = m|match_madrid_context %}
-      <a class="v777-match-row" href="/match/{{ m.get('id') }}">
-        <span class="v777-time"><b>{{ ctx.client_date_label }}</b><small>{{ ctx.client_time_label }}</small></span>
-        <span class="v777-main"><strong>{{ ctx.safe_home }} vs {{ ctx.safe_away }}</strong><small>{{ ctx.client_competition }} · {{ ctx.client_status_label }}</small></span>
+      <a class="v778-match-row" href="/match/{{ m.get('id') }}">
+        <span class="v778-time"><b>{{ ctx.client_date_label }}</b><small>{{ ctx.client_time_label }}</small></span>
+        <span><strong>{{ ctx.safe_home }} vs {{ ctx.safe_away }}</strong><small>{{ ctx.client_competition }} · {{ ctx.client_status_label }}</small></span>
         <em>Ver</em>
       </a>
-      {% else %}<div class="empty premium-empty">No hay focos cargados. Prueba Partidos de hoy o espera a la siguiente sincronización.</div>{% endfor %}
+      {% else %}<div class="empty premium-empty"><strong>No hay focos ahora mismo.</strong><p>La app no inventa partidos. Revisa el calendario o espera a la siguiente sincronización.</p></div>{% endfor %}
     </div>
   </article>
-  <article class="v777-panel">
-    <div class="section-head"><div><h2>Picks claros</h2><p class="small">Qué apostar y por qué, sin ruido.</p></div><a class="pill" href="/picks">Picks</a></div>
-    <div class="v777-list">
-      {% for p in picks[:5] %}
-      <a class="v777-pick-row" href="{{ p.get('client_match_url') or '/picks' }}"><span><strong>{{ p.get('client_selection_label') or p.get('selection_display') or p.get('selection') or 'Pick' }}</strong><small>{{ p.get('client_match_label') or 'Partido pendiente' }}</small></span><em>{{ p.get('client_odds_label') or p.get('odds') or 'Cuota pendiente' }}</em></a>
-      {% else %}<div class="empty premium-empty">No hay picks destacados ahora. Mejor esperar que rellenar por rellenar.</div>{% endfor %}
+  <article class="v778-panel">
+    <div class="section-head"><div><h2>Picks claros</h2><p class="small">Solo aparecen si hay señal real preparada/publicada.</p></div><a class="pill" href="/picks">Picks</a></div>
+    <div class="v778-list">
+      {% for p in picks[:4] %}
+      <a class="v778-pick-row" href="{{ p.get('client_match_url') or '/picks' }}"><span><strong>{{ p.get('client_selection_label') or p.get('selection_display') or p.get('selection') or 'Pick' }}</strong><small>{{ p.get('client_match_label') or 'Partido pendiente' }} · {{ p.get('client_full_datetime_label') or (p|match_full_datetime) }}</small></span><em>{{ p.get('client_odds_label') or p.get('odds') or 'Cuota pendiente' }}</em></a>
+      {% else %}<div class="empty premium-empty"><strong>No hay picks activos.</strong><p>Mejor esperar que rellenar por rellenar. SHARK te avisará cuando haya valor.</p></div>{% endfor %}
     </div>
   </article>
 </section>
 
-<section class="v777-home-layout">
-  <article class="v777-panel v777-plan-card">
-    <div class="section-head"><div><h2>Tu plan</h2><p class="small">Cuenta, Telegram y acceso comercial.</p></div><span class="pill">{{ plan.get('name') or 'FREE' }}</span></div>
-    <strong>{{ plan.get('headline') or 'Plan activo' }}</strong>
-    <p class="small">Controla Telegram, favoritos, soporte, membresía y actividad desde una pantalla limpia.</p>
-    <div class="inline-actions"><a class="btn small-btn" href="/mi-cuenta">Mi cuenta</a><a class="btn small-btn" href="{{ plan.get('href') or '/membresias' }}">{{ plan.get('cta') or 'Ver plan' }}</a></div>
+<section class="v778-home-layout">
+  <article class="v778-panel">
+    <div class="section-head"><div><h2>Cuenta y plan</h2><p class="small">Membresía, Telegram, favoritos y soporte en una zona clara.</p></div><span class="pill">{{ plan.get('name') or org.get('membership') or 'FREE' }}</span></div>
+    <p><strong>{{ plan.get('headline') or 'Plan activo' }}</strong></p>
+    <div class="inline-actions"><a class="btn small-btn" href="/mi-cuenta">Mi cuenta</a><a class="btn small-btn" href="/telegram">Telegram</a><a class="btn small-btn" href="/membresias">Planes</a></div>
   </article>
-  <article class="v777-panel v777-trust-card">
-    <div class="section-head"><div><h2>Confianza del producto</h2><p class="small">Regla base de NeMeSiS.</p></div><a class="pill" href="/legal">Legal</a></div>
-    <strong>Sin inventar partidos, cuotas, resultados ni ROI.</strong>
-    <p class="small">Cuando falte un dato, la app lo marca como pendiente. Si hay resultado cerrado, entra en Histórico y grading.</p>
-    <div class="inline-actions"><a class="btn small-btn" href="/track-record">Histórico</a><a class="btn small-btn" href="/telegram">Telegram</a></div>
+  <article class="v778-panel">
+    <div class="section-head"><div><h2>Regla de confianza</h2><p class="small">Lo que protege el producto.</p></div><a class="pill" href="/legal">Legal</a></div>
+    <p><strong>Sin inventar partidos, cuotas, resultados ni ROI.</strong></p>
+    <p class="small">Cuando falte un dato, se muestra pendiente. Cuando haya resultado real, entra en Histórico y grading.</p>
   </article>
 </section>
 {% endblock %}
