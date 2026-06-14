@@ -21,4 +21,20 @@
   <article class="v778-panel"><div class="section-head"><div><h2>Estado del plan</h2><p class="small">Preparado para pagos reales cuando se active Stripe completo.</p></div><span class="pill">{{ plan }}</span></div><p><strong>{{ membership.get('headline') or 'Plan activo' }}</strong></p><p class="small">{{ membership.get('body') or 'Controla tu acceso, Telegram, favoritos y soporte desde aquí.' }}</p><div class="inline-actions"><a class="btn small-btn" href="/membresias">Ver planes</a><a class="btn small-btn" href="/juego-responsable">Juego responsable</a></div></article>
   <article class="v778-panel"><div class="section-head"><div><h2>Acciones rápidas</h2><p class="small">Lo que realmente necesita el cliente.</p></div></div><div class="v778-menu-grid"><a href="/shark"><b>Preguntar a SHARK</b><small>Picks, riesgo, mercados o directo.</small></a><a href="/telegram"><b>Configurar Telegram</b><small>Recibir avisos útiles.</small></a><a href="/logout"><b>Salir</b><small>Cerrar sesión con seguridad.</small></a></div></article>
 </section>
+
+<section class="card v782-billing-card">
+  <div class="section-head"><h2>Pagos y membresía</h2><a class="pill" href="/membresias">Ver planes</a></div>
+  {% set pay = data.payments_client or {} %}
+  <div class="grid cards-3">
+    <article class="mini-card"><strong>{{ pay.current_plan or data.account_center.plan }}</strong><span>Plan actual</span></article>
+    <article class="mini-card"><strong>{{ pay.stripe_subscription_status or 'Sin suscripción Stripe' }}</strong><span>Estado Stripe</span></article>
+    <article class="mini-card"><strong>{{ pay.stripe_current_period_end|madrid_datetime_label if pay.stripe_current_period_end else 'Sin fecha' }}</strong><span>Renovación/caducidad</span></article>
+  </div>
+  <div class="actions spacer-top">
+    <a class="btn primary" href="/membresias">Mejorar plan</a>
+    {% if pay.portal_ready %}<form method="post" action="/pagos/portal"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn" type="submit">Gestionar Stripe</button></form>{% endif %}
+  </div>
+  <p class="small">La app aplica PRO/ELITE automáticamente solo cuando Stripe confirma el webhook verificado.</p>
+</section>
+
 {% endblock %}

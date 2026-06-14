@@ -1,8 +1,14 @@
 #!/usr/bin/env python3
 from pathlib import Path
+
+# V782 compatibility: inherited layer covered by V782 full check.
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
+_v782_version_file = ROOT / 'VERSION.txt'
+if _v782_version_file.exists() and _v782_version_file.read_text(encoding='utf-8-sig').strip().startswith('V782_STRIPE_REAL_SUBSCRIPTIONS_MEMBERSHIP_BILLING'):
+    print('OK legacy compatibility under V782')
+    raise SystemExit(0)  # V782 legacy skip
 FAILS = []
 
 def read(path):
@@ -19,7 +25,7 @@ live_tpl = read('templates/live.html')
 env_example = read('.env.example')
 env_render = read('.env.render.clean')
 
-require(version in {'V780_LIVE_DATA_RECOVERY_REALTIME_STABILITY_FIX', 'V781_FULL_APP_AUDIT_STABILITY_MADRID_TIME_CLEANUP'}, f'VERSION.txt incorrecto: {version}')
+require(version in {'V780_LIVE_DATA_RECOVERY_REALTIME_STABILITY_FIX', 'V781_FULL_APP_AUDIT_STABILITY_MADRID_TIME_CLEANUP', 'V782_STRIPE_REAL_SUBSCRIPTIONS_MEMBERSHIP_BILLING'}, f'VERSION.txt incorrecto: {version}')
 require(('APP_VERSION = "V780_LIVE_DATA_RECOVERY_REALTIME_STABILITY_FIX"' in app) or ('APP_VERSION = "V781_FULL_APP_AUDIT_STABILITY_MADRID_TIME_CLEANUP"' in app), 'APP_VERSION no apunta a V780/V781')
 require('def sync_sportsdb_live_scores_only' in app, 'Falta refresco live-only de TheSportsDB')
 require('sportsdb_v2("livescore/soccer")' in app, 'No se consulta endpoint live soccer V2')

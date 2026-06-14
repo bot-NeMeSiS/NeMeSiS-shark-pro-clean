@@ -1222,3 +1222,13 @@ body[data-v778-shell="true"].ns-authenticated:not(.ns-admin) .bottom-nav-clean a
 .ns-app .crest img[src=""],.ns-app .compact-crest img[src=""]{display:none!important;}
 .ns-app .crest[data-fallback]::after,.ns-app .compact-crest[data-fallback]::after{content:"";}
 @media(max-width:760px){.v779-row-main strong{gap:5px;font-size:.88rem!important;}.v779-row-main .v779-crest{width:22px!important;height:22px!important;min-width:22px!important;}.v774-teams .v779-crest{width:26px!important;height:26px!important;min-width:26px!important;}}
+
+/* V782 Stripe memberships */
+.v782-payments-hero .v778-priority-card,
+.v782-billing-card,
+.v782-admin-payments-hero { border-color: rgba(99, 179, 237, .35); }
+.v782-pricing-grid form { margin-top: 1rem; }
+.v782-pricing-grid button[disabled] { opacity: .65; cursor: not-allowed; }
+.v782-billing-card form { display:inline-flex; margin:0; }
+.v782-billing-card .actions { align-items:center; gap:.75rem; flex-wrap:wrap; }
+.code-card { white-space: pre-wrap; overflow:auto; max-height: 260px; background: rgba(0,0,0,.28); border:1px solid rgba(255,255,255,.1); border-radius:16px; padding:1rem; }

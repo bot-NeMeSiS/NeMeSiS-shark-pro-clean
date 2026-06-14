@@ -135,7 +135,15 @@ from engines.adaptive_experience_engine import build_v758_adaptive_experience, b
 from engines.final_release_engine import final_release_snapshot, final_release_validation_plan
 from engines.client_visual_perfection_engine import client_visual_perfection_snapshot
 from engines.calendar_experience_engine import calendar_experience_snapshot
-from engines.payment_readiness_engine import payment_readiness_snapshot, record_payment_webhook_event
+from engines.payment_readiness_engine import payment_readiness_snapshot
+from engines.stripe_payments_engine import (
+    client_payments_context,
+    create_checkout_session,
+    create_customer_portal_session,
+    ensure_stripe_schema,
+    process_stripe_webhook,
+    stripe_runtime_status,
+)
 from engines.pick_grading_engine import pick_grading_summary, run_pick_grading
 from engines.subscription_control_engine import subscription_summary, apply_subscription_rules
 from engines.team_identity_engine import (
@@ -187,7 +195,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V781_FULL_APP_AUDIT_STABILITY_MADRID_TIME_CLEANUP"
+APP_VERSION = "V782_STRIPE_REAL_SUBSCRIPTIONS_MEMBERSHIP_BILLING"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -12263,6 +12271,7 @@ def membership_page():
     user = current_session_user() or {"membership": "FREE", "role": "FREE"}
     data = dashboard_data()
     data["membership"] = v566_membership_ui(user)
+    data["payments_client"] = client_payments_context(DB_PATH, user) if user.get("id") else {"checkout_ready": False, "plans": stripe_runtime_status(DB_PATH).get("plans", {}), "blockers": []}
     return render_template("membership.html", data=data)
 
 
@@ -13727,6 +13736,7 @@ def account_center_page():
         "alerts": len(data.get("client_alerts") or []),
         "activity": len(data.get("client_activity") or []),
     }
+    data["payments_client"] = client_payments_context(DB_PATH, user)
     data["v778_organization"] = v778_client_product_organization_context(data, user) if "v778_client_product_organization_context" in globals() else {}
     return render_template("account_center.html", data=data)
 
@@ -14054,6 +14064,7 @@ def admin_payments_page():
             result = apply_subscription_rules(DB_PATH)
     data = dashboard_data()
     data["payments"] = payment_readiness_snapshot(DB_PATH)
+    data["stripe"] = stripe_runtime_status(DB_PATH)
     data["subscriptions"] = subscription_summary(DB_PATH, apply_rules=True)
     data["last_result"] = result
     return render_template("admin_payments.html", data=data)
@@ -14070,22 +14081,85 @@ def api_admin_payments():
         "ok": True,
         "version": APP_VERSION,
         "payments": payment_readiness_snapshot(DB_PATH),
+        "stripe": stripe_runtime_status(DB_PATH),
         "subscriptions": subscription_summary(DB_PATH, apply_rules=True),
         "result": result,
     })
 
 
+@app.route("/api/payments/checkout", methods=["POST"])
+def api_payments_checkout():
+    user = current_session_user()
+    if not user:
+        return jsonify({"ok": False, "version": APP_VERSION, "error": "Inicia sesión antes de pagar."}), 401
+    payload = request.get_json(silent=True) or request.form or {}
+    plan = str(payload.get("plan") or request.args.get("plan") or "").upper()
+    result = create_checkout_session(DB_PATH, user, plan)
+    status_code = 200 if result.get("ok") else 400
+    if request.form and result.get("ok") and result.get("url"):
+        return redirect(result["url"])
+    return jsonify({"version": APP_VERSION, **result}), status_code
+
+
+@app.route("/pagos/checkout/<plan>", methods=["POST"])
+def payments_checkout_plan(plan):
+    user = current_session_user()
+    if not user:
+        return redirect("/cliente-login?next=/membresias")
+    result = create_checkout_session(DB_PATH, user, plan)
+    if result.get("ok") and result.get("url"):
+        return redirect(result["url"])
+    data = dashboard_data()
+    data["membership"] = v566_membership_ui(user)
+    data["payments_client"] = client_payments_context(DB_PATH, user)
+    data["payment_error"] = result.get("error") or "No se pudo abrir Stripe Checkout."
+    return render_template("membership.html", data=data), 400
+
+
+@app.route("/api/payments/customer-portal", methods=["POST"])
+def api_payments_customer_portal():
+    user = current_session_user()
+    if not user:
+        return jsonify({"ok": False, "version": APP_VERSION, "error": "Inicia sesión para gestionar tu suscripción."}), 401
+    result = create_customer_portal_session(DB_PATH, user)
+    status_code = 200 if result.get("ok") else 400
+    if request.form and result.get("ok") and result.get("url"):
+        return redirect(result["url"])
+    return jsonify({"version": APP_VERSION, **result}), status_code
+
+
+@app.route("/pagos/portal", methods=["POST"])
+def payments_customer_portal():
+    user = current_session_user()
+    if not user:
+        return redirect("/cliente-login?next=/mi-cuenta")
+    result = create_customer_portal_session(DB_PATH, user)
+    if result.get("ok") and result.get("url"):
+        return redirect(result["url"])
+    return redirect("/mi-cuenta?billing=portal_unavailable")
+
+
+@app.route("/pagos/exito")
+def payments_success_page():
+    user = current_session_user()
+    if not user:
+        return redirect("/cliente-login?next=/mi-cuenta")
+    # El webhook es la fuente de verdad; aquí solo refrescamos vista y explicamos que puede tardar unos segundos.
+    return redirect("/mi-cuenta?pago=exito")
+
+
+@app.route("/pagos/cancelado")
+def payments_cancel_page():
+    return redirect("/membresias?pago=cancelado")
+
+
 @app.route("/api/payments/stripe-webhook", methods=["POST"])
 def api_payments_stripe_webhook():
-    payload = request.get_json(silent=True)
-    if payload is None:
-        try:
-            payload = json.loads((request.get_data(as_text=True) or "{}").strip() or "{}")
-        except Exception:
-            payload = {"type": "unreadable"}
-    signature_present = bool(request.headers.get("Stripe-Signature"))
-    result = record_payment_webhook_event(DB_PATH, "stripe", payload, signature_present=signature_present)
-    return jsonify({"ok": True, "version": APP_VERSION, **result})
+    payload_bytes = request.get_data() or b""
+    signature = request.headers.get("Stripe-Signature", "")
+    result = process_stripe_webhook(DB_PATH, payload_bytes, signature)
+    status_code = 200 if result.get("ok") else 400
+    return jsonify({"version": APP_VERSION, **result}), status_code
 
 
 

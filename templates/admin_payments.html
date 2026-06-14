@@ -1,58 +1,74 @@
 {% extends 'base.html' %}
 {% block content %}
-<section class="hero compact-hero admin-hero v734-hero">
-  <div class="eyebrow">Admin · Pagos</div>
+{% set stripe = data.stripe or {} %}
+<section class="hero compact-hero admin-hero v782-admin-payments-hero">
+  <div class="eyebrow">Admin · Stripe real</div>
   <h1>Pagos PRO/ELITE y suscripciones</h1>
-  <p>Base segura para monetización. V734 no cobra ni cambia membresías automáticamente: prepara configuración, auditoría y control antes del modo pago real.</p>
+  <p>V782 activa Stripe Checkout y webhooks verificados para aplicar membresías automáticamente, manteniendo auditoría y control admin.</p>
+  <div class="actions"><a class="btn" href="/membresias">Ver pantalla cliente</a><a class="btn" href="/api/admin/payments">API pagos</a></div>
 </section>
 
 <section class="grid cards-4">
-  <article class="card stat-card"><span>Pago readiness</span><strong>{{ data.payments.readiness_score }}%</strong><small>{{ data.payments.status }}</small></article>
-  <article class="card stat-card"><span>MRR estimado</span><strong>{{ data.subscriptions.estimated_mrr }}€</strong><small>{{ data.subscriptions.active_paid }} usuarios pagados</small></article>
-  <article class="card stat-card"><span>Conversión</span><strong>{{ data.subscriptions.conversion_rate }}%</strong><small>PRO/ELITE activos</small></article>
-  <article class="card stat-card"><span>Eventos webhook</span><strong>{{ data.payments.events_total }}</strong><small>auditoría recibida</small></article>
+  <article class="card stat-card"><span>Stripe Checkout</span><strong>{{ 'OK' if stripe.checkout_ready else 'Pendiente' }}</strong><small>{{ stripe.mode }}</small></article>
+  <article class="card stat-card"><span>Webhook verificado</span><strong>{{ 'OK' if stripe.webhook_ready else 'Pendiente' }}</strong><small>firma Stripe</small></article>
+  <article class="card stat-card"><span>Suscripciones Stripe</span><strong>{{ stripe.summary.active_subscriptions or 0 }}</strong><small>activas/gracia</small></article>
+  <article class="card stat-card"><span>Eventos webhook</span><strong>{{ stripe.summary.events_total or data.payments.events_total }}</strong><small>auditoría recibida</small></article>
 </section>
 
 <section class="grid two-col">
   <article class="card">
-    <h2>Variables necesarias</h2>
+    <h2>Variables Stripe</h2>
     <div class="checklist compact">
-      {% for key, present in data.payments.env_present.items() %}
+      {% for key, present in stripe.flags.items() %}
       <div class="check-row {{ 'ok' if present else 'warn' }}"><span>{{ '✅' if present else '⚠️' }}</span><div><strong>{{ key }}</strong><small>{{ 'configurada' if present else 'pendiente' }}</small></div></div>
       {% endfor %}
     </div>
   </article>
   <article class="card">
     <h2>Bloqueos</h2>
-    {% if data.payments.blockers %}
+    {% if stripe.blockers %}
       <div class="stack compact-list">
-        {% for b in data.payments.blockers %}<div class="mini-row"><div><strong>{{ b.key }}</strong><span>{{ b.message }}</span></div><span class="badge warn">{{ b.priority }}</span></div>{% endfor %}
+        {% for b in stripe.blockers %}<div class="mini-row"><div><strong>{{ b.key }}</strong><span>{{ b.message }}</span></div><span class="badge warn">{{ b.priority }}</span></div>{% endfor %}
       </div>
     {% else %}
-      <div class="empty-state success">Configuración mínima completa. Falta prueba real controlada antes de activar pagos públicos.</div>
+      <div class="empty-state success">Stripe mínimo listo. Haz una prueba con tarjeta test antes de vender público.</div>
     {% endif %}
   </article>
 </section>
 
 <section class="card">
-  <h2>Suscripciones internas</h2>
-  <div class="grid cards-4">
-    {% for tier, count in data.subscriptions.by_tier.items() %}<article class="mini-card"><strong>{{ tier }}</strong><span>{{ count }} usuarios</span></article>{% endfor %}
+  <h2>Planes enlazados</h2>
+  <div class="grid cards-3">
+    {% for key, plan in stripe.plans.items() %}
+    <article class="mini-card"><strong>{{ plan.title }}</strong><span>{{ plan.price_label }}</span><small>{{ 'price configurado' if plan.configured else 'sin price id' }}</small></article>
+    {% endfor %}
   </div>
-  {% if data.subscriptions.actions %}
-  <div class="stack compact-list spacer-top">
-    {% for action in data.subscriptions.actions %}<div class="mini-row"><div><strong>{{ action.title }}</strong><span>{{ action.detail }}</span></div><span class="badge warn">{{ action.priority }}</span></div>{% endfor %}
-  </div>
-  {% endif %}
+</section>
+
+<section class="card">
+  <h2>Suscripciones Stripe recientes</h2>
+  {% if stripe.summary.subscriptions %}
+  <div class="table-wrap"><table class="premium-table">
+    <thead><tr><th>Usuario</th><th>Plan</th><th>Estado</th><th>Fin periodo</th><th>Último evento</th></tr></thead>
+    <tbody>{% for s in stripe.summary.subscriptions %}<tr><td>{{ s.user_id }}</td><td>{{ s.plan }}</td><td>{{ s.status }}</td><td>{{ s.current_period_end|madrid_datetime_label if s.current_period_end else '—' }}</td><td>{{ s.last_event_at|madrid_datetime_label if s.last_event_at else '—' }}</td></tr>{% endfor %}</tbody>
+  </table></div>
+  {% else %}<div class="empty-state">Aún no hay suscripciones Stripe registradas.</div>{% endif %}
 </section>
 
 <section class="card">
   <h2>Últimos webhooks</h2>
-  {% if data.payments.recent_events %}
+  {% set events = stripe.summary.last_events or data.payments.recent_events %}
+  {% if events %}
   <div class="table-wrap"><table class="premium-table">
-    <thead><tr><th>Proveedor</th><th>Tipo</th><th>Verificado</th><th>Estado</th><th>Plan</th><th>Fecha</th></tr></thead>
-    <tbody>{% for e in data.payments.recent_events %}<tr><td>{{ e.provider }}</td><td>{{ e.event_type }}</td><td>{{ 'sí' if e.verified else 'no' }}</td><td>{{ e.status }}</td><td>{{ e.plan }}</td><td>{{ e.received_at }}</td></tr>{% endfor %}</tbody>
+    <thead><tr><th>Proveedor</th><th>Tipo</th><th>Verificado</th><th>Estado</th><th>Plan</th><th>Fecha Madrid</th></tr></thead>
+    <tbody>{% for e in events %}<tr><td>{{ e.provider }}</td><td>{{ e.event_type }}</td><td>{{ 'sí' if e.verified else 'no' }}</td><td>{{ e.status }}</td><td>{{ e.plan }}</td><td>{{ e.received_at|madrid_datetime_label if e.received_at else '—' }}</td></tr>{% endfor %}</tbody>
   </table></div>
   {% else %}<div class="empty-state">No hay webhooks recibidos todavía. Correcto si aún no has configurado Stripe.</div>{% endif %}
+</section>
+
+<section class="card">
+  <h2>Acciones seguras</h2>
+  <form method="post" action="/admin/payments"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="action" value="rules"><button class="btn" type="submit">Aplicar reglas internas de suscripción</button></form>
+  {% if data.last_result %}<pre class="code-card">{{ data.last_result }}</pre>{% endif %}
 </section>
 {% endblock %}

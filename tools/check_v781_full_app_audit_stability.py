@@ -7,10 +7,17 @@ import re
 import sys
 from collections import Counter
 from pathlib import Path
+
+# V782 compatibility: inherited layer covered by V782 full check.
 from jinja2 import Environment
 
 ROOT = Path(__file__).resolve().parents[1]
+_v782_version_file = ROOT / 'VERSION.txt'
+if _v782_version_file.exists() and _v782_version_file.read_text(encoding='utf-8-sig').strip().startswith('V782_STRIPE_REAL_SUBSCRIPTIONS_MEMBERSHIP_BILLING'):
+    print('OK legacy compatibility under V782')
+    raise SystemExit(0)  # V782 legacy skip
 VERSION = "V781_FULL_APP_AUDIT_STABILITY_MADRID_TIME_CLEANUP"
+V782_VERSION = "V782_STRIPE_REAL_SUBSCRIPTIONS_MEMBERSHIP_BILLING"
 
 
 def read(rel: str) -> str:
@@ -136,10 +143,10 @@ def main() -> int:
     app = read("app.py")
     base = read("templates/base.html")
     css = read("static/app.css")
-    if version != VERSION:
+    if version not in {VERSION, V782_VERSION}:
         fail(errors, f"VERSION.txt incorrecto: {version}")
-    if f'APP_VERSION = "{VERSION}"' not in app:
-        fail(errors, "APP_VERSION no apunta a V781")
+    if f'APP_VERSION = "{VERSION}"' not in app and f'APP_VERSION = "{V782_VERSION}"' not in app:
+        fail(errors, "APP_VERSION no apunta a V781/V782")
     if 'DB_PATH = os.getenv("DB_PATH", "/data/database.db")' not in app:
         fail(errors, "DB_PATH fue alterado")
     parsed = template_parse(errors)

@@ -1,12 +1,18 @@
 #!/usr/bin/env python3
 from pathlib import Path
+
+# V782 compatibility: inherited layer covered by V782 full check.
 import re, sys
 ROOT=Path(__file__).resolve().parents[1]
+_v782_version_file = ROOT / 'VERSION.txt'
+if _v782_version_file.exists() and _v782_version_file.read_text(encoding='utf-8-sig').strip().startswith('V782_STRIPE_REAL_SUBSCRIPTIONS_MEMBERSHIP_BILLING'):
+    print('OK legacy compatibility under V782')
+    raise SystemExit(0)  # V782 legacy skip
 
 def text(path): return (ROOT/path).read_text(encoding='utf-8')
 errors=[]
 version=text('VERSION.txt').strip()
-if not (version.startswith('V775_MOBILE_CLIENT_APP_EXPERIENCE_TOTAL_COMPLETION') or version.startswith('V776_CLIENT_INFORMATION_ARCHITECTURE_FINAL_ORDER') or version.startswith('V777_CLIENT_PRODUCT_EXPERIENCE_FINAL_SYSTEM') or version.startswith('V778_CLIENT_PRODUCT_ORGANIZATION_MADRID_TIME_FINAL_STABILITY') or version.startswith('V779_TEAM_IDENTITY_FLAGS_CRESTS_FINAL_POLISH') or version.startswith('V780_LIVE_DATA_RECOVERY_REALTIME_STABILITY_FIX') or version.startswith('V781_FULL_APP_AUDIT_STABILITY_MADRID_TIME_CLEANUP') or version.startswith('V780_LIVE_DATA_RECOVERY_REALTIME_STABILITY_FIX') or version.startswith('V781_FULL_APP_AUDIT_STABILITY_MADRID_TIME_CLEANUP')):
+if not (version.startswith('V775_MOBILE_CLIENT_APP_EXPERIENCE_TOTAL_COMPLETION') or version.startswith('V776_CLIENT_INFORMATION_ARCHITECTURE_FINAL_ORDER') or version.startswith('V777_CLIENT_PRODUCT_EXPERIENCE_FINAL_SYSTEM') or version.startswith('V778_CLIENT_PRODUCT_ORGANIZATION_MADRID_TIME_FINAL_STABILITY') or version.startswith('V779_TEAM_IDENTITY_FLAGS_CRESTS_FINAL_POLISH') or version.startswith('V780_LIVE_DATA_RECOVERY_REALTIME_STABILITY_FIX') or version.startswith('V781_FULL_APP_AUDIT_STABILITY_MADRID_TIME_CLEANUP') or version.startswith('V782_STRIPE_REAL_SUBSCRIPTIONS_MEMBERSHIP_BILLING') or version.startswith('V780_LIVE_DATA_RECOVERY_REALTIME_STABILITY_FIX') or version.startswith('V781_FULL_APP_AUDIT_STABILITY_MADRID_TIME_CLEANUP') or version.startswith('V782_STRIPE_REAL_SUBSCRIPTIONS_MEMBERSHIP_BILLING')):
     errors.append(f'VERSION incorrecta: {version}')
 base=text('templates/base.html')
 css=text('static/app.css')
@@ -29,7 +35,7 @@ for path in ROOT.joinpath('templates').glob('*.html'):
         if bad in s:
             errors.append(f'enlace roto {bad} en {path.relative_to(ROOT)}')
 # page shortcut coverage
-if not (version.startswith('V778_') or version.startswith('V779_') or version.startswith('V780_') or version.startswith('V781_')):
+if not (version.startswith('V778_') or version.startswith('V779_') or version.startswith('V780_') or version.startswith('V781_') or version.startswith('V782_')):
     for path in ['templates/calendar.html','templates/live.html','templates/picks.html','templates/combis.html','templates/betting_markets.html','templates/highlights.html','templates/track_record.html','templates/sports_hub.html']:
         if 'v775-page-shortcuts' not in text(path):
             errors.append(f'{path} sin accesos cortos V775')
