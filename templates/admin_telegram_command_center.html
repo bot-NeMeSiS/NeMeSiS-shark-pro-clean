@@ -253,7 +253,7 @@
       <h3>Últimos registros</h3>
       <div class="stack">
         {% for item in memory.recent[:8] %}
-        <div class="list-row"><span>{{ item.message_type or item.status }}<small>{{ item.created_at }} · {{ item.dedupe_key }}</small></span><strong>{{ item.status }}</strong></div>
+        <div class="list-row"><span>{{ item.message_type or item.status }}<small>{{ (item.created_at)|madrid_datetime_label }} · {{ item.dedupe_key }}</small></span><strong>{{ item.status }}</strong></div>
         {% else %}
         <div class="empty">Sin memoria Telegram todavía.</div>
         {% endfor %}
@@ -263,7 +263,7 @@
       <h3>Errores memoria</h3>
       <div class="stack">
         {% for item in memory.errors[:8] %}
-        <div class="list-row"><span>{{ item.context }}<small>{{ item.error_summary }}</small></span><strong>{{ item.created_at }}</strong></div>
+        <div class="list-row"><span>{{ item.context }}<small>{{ item.error_summary }}</small></span><strong>{{ (item.created_at)|madrid_datetime_label }}</strong></div>
         {% else %}
         <div class="empty">Sin errores de memoria Telegram.</div>
         {% endfor %}

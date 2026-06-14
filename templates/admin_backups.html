@@ -34,7 +34,7 @@
     <article class="card backup-row">
       <div>
         <strong>{{ backup.name }}</strong>
-        <p class="small">{{ backup.created_at }} · {{ backup.size_mb }} MB</p>
+        <p class="small">{{ (backup.created_at)|madrid_datetime_label }} · {{ backup.size_mb }} MB</p>
       </div>
       <div class="backup-actions">
         <a class="btn" href="/admin/backups/download/{{ backup.name }}">Descargar</a>
@@ -63,7 +63,7 @@
   <div class="stack">
     {% for event in data.backup_events %}
     <div class="list-row">
-      <span>{{ event.created_at }} · {{ event.event_type }}<small>{{ event.username or 'system' }} · {{ event.reason }}</small></span>
+      <span>{{ (event.created_at)|madrid_datetime_label }} · {{ event.event_type }}<small>{{ event.username or 'system' }} · {{ event.reason }}</small></span>
       <strong>{{ 'OK' if event.success else 'ERROR' }}</strong>
     </div>
     {% else %}

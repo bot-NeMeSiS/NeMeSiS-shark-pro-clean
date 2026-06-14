@@ -187,7 +187,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V780_LIVE_DATA_RECOVERY_REALTIME_STABILITY_FIX"
+APP_VERSION = "V781_FULL_APP_AUDIT_STABILITY_MADRID_TIME_CLEANUP"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -13835,7 +13835,7 @@ def v735_go_live_context():
 
 @app.route("/admin/go-live")
 @app.route("/admin/public-beta")
-@app.route("/admin/launch-certification")
+@app.route("/admin/go-live-certification")
 def admin_go_live_page():
     if not is_admin_session():
         return redirect("/admin-login?next=/admin/go-live")

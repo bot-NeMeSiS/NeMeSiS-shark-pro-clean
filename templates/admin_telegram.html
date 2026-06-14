@@ -80,10 +80,10 @@
 
 <section class="band compact-band">
   <div class="grid compact-grid">
-    <div class="card"><div class="kicker">Último automático</div><strong>{{ data.telegram_delivery.last_auto.message or 'Sin ejecución registrada' }}</strong><p class="small">{{ data.telegram_delivery.last_auto.created_at or '' }}</p></div>
-    <div class="card"><div class="kicker">Último envío</div><strong>{{ data.telegram_delivery.last_sent.title or data.telegram_delivery.last_sent.message_type or 'Sin envíos' }}</strong><p class="small">{{ data.telegram_delivery.last_sent.sent_at or '' }}</p></div>
-    <div class="card"><div class="kicker">Último pick</div><strong>{{ data.telegram_delivery.last_pick.title or 'Sin pick enviado' }}</strong><p class="small">{{ data.telegram_delivery.last_pick.sent_at or '' }}</p></div>
-    <div class="card"><div class="kicker">Último error</div><strong>{{ data.telegram_delivery.last_error or 'Sin errores' }}</strong><p class="small">{{ data.telegram_delivery.last_error_item.created_at or '' }}</p></div>
+    <div class="card"><div class="kicker">Último automático</div><strong>{{ data.telegram_delivery.last_auto.message or 'Sin ejecución registrada' }}</strong><p class="small">{{ (data.telegram_delivery.last_auto.created_at or '')|madrid_datetime_label }}</p></div>
+    <div class="card"><div class="kicker">Último envío</div><strong>{{ data.telegram_delivery.last_sent.title or data.telegram_delivery.last_sent.message_type or 'Sin envíos' }}</strong><p class="small">{{ (data.telegram_delivery.last_sent.sent_at or '')|madrid_datetime_label }}</p></div>
+    <div class="card"><div class="kicker">Último pick</div><strong>{{ data.telegram_delivery.last_pick.title or 'Sin pick enviado' }}</strong><p class="small">{{ (data.telegram_delivery.last_pick.sent_at or '')|madrid_datetime_label }}</p></div>
+    <div class="card"><div class="kicker">Último error</div><strong>{{ data.telegram_delivery.last_error or 'Sin errores' }}</strong><p class="small">{{ (data.telegram_delivery.last_error_item.created_at or '')|madrid_datetime_label }}</p></div>
   </div>
 </section>
 
@@ -92,7 +92,7 @@
     <div class="section-head"><h2>Cola</h2><span class="pill">{{ data.telegram_queue|length }}</span></div>
     <div class="stack">
       {% for item in data.telegram_queue[:12] %}
-      <div class="list-row"><span>{{ item.title or item.message_type }}<small>{{ item.status }} · {{ item.created_at }}</small></span><strong>{{ item.attempts }}/{{ item.max_attempts or 3 }}</strong></div>
+      <div class="list-row"><span>{{ item.title or item.message_type }}<small>{{ item.status }} · {{ (item.created_at)|madrid_datetime_label }}</small></span><strong>{{ item.attempts }}/{{ item.max_attempts or 3 }}</strong></div>
       {% else %}
       <div class="empty">No hay mensajes en cola.</div>
       {% endfor %}
@@ -102,7 +102,7 @@
     <div class="section-head"><h2>Últimos errores</h2><span class="pill">{{ data.telegram_delivery.recent_errors|length }}</span></div>
     <div class="stack">
       {% for log in data.telegram_delivery.recent_errors[:8] %}
-      <div class="list-row"><span>{{ log.message }}<small>{{ log.created_at }}</small></span><strong>{{ log.status }}</strong></div>
+      <div class="list-row"><span>{{ log.message }}<small>{{ (log.created_at)|madrid_datetime_label }}</small></span><strong>{{ log.status }}</strong></div>
       {% else %}
       <div class="empty">Sin errores Telegram.</div>
       {% endfor %}
@@ -114,7 +114,7 @@
   <div class="section-head"><h2>Usuarios vinculados</h2><span class="pill">{{ data.telegram_subscribers|length }}</span></div>
   <div class="stack">
     {% for sub in data.telegram_subscribers[:20] %}
-    <div class="list-row"><span>{{ sub.first_name or sub.username or 'Suscriptor' }}<small>{{ sub.chat_id }} · {{ sub.last_message_sent_at or 'sin envíos' }}</small></span><strong>{{ sub.membership }}</strong></div>
+    <div class="list-row"><span>{{ sub.first_name or sub.username or 'Suscriptor' }}<small>{{ sub.chat_id }} · {{ (sub.last_message_sent_at or 'sin envíos')|madrid_datetime_label }}</small></span><strong>{{ sub.membership }}</strong></div>
     {% else %}
     <div class="empty">No hay usuarios vinculados todavía.</div>
     {% endfor %}

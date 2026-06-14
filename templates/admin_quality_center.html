@@ -47,7 +47,7 @@
   <div class="table-lite">
     <div class="table-head"><span>Fuente</span><span>Tipo</span><span>Estado</span><span>Total</span><span>Fecha</span></div>
     {% for log in q.recent_logs %}
-    <div class="table-row"><span>{{ log.source or '-' }}</span><span>{{ log.sync_type or '-' }}</span><span>{{ log.status or '-' }}</span><span>{{ log.total_items or 0 }}</span><span>{{ log.created_at or '-' }}</span></div>
+    <div class="table-row"><span>{{ log.source or '-' }}</span><span>{{ log.sync_type or '-' }}</span><span>{{ log.status or '-' }}</span><span>{{ log.total_items or 0 }}</span><span>{{ (log.created_at or '-')|madrid_datetime_label }}</span></div>
     {% endfor %}
   </div>
   {% else %}

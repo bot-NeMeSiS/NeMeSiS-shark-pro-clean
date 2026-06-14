@@ -50,7 +50,7 @@
     <p class="small">Activa: {{ data.matches_diagnostics.active_data_source }}</p>
     <p class="small">SportsDB key: {{ data.matches_diagnostics.sportsdb_key_masked or 'sin configurar' }}</p>
     <p class="small">Odds key: {{ data.matches_diagnostics.odds_key_masked or 'sin configurar' }}</p>
-    <p class="small">Ultima sincronizacion: {{ data.matches_diagnostics.latest_sync.started_at or '-' }}</p>
+    <p class="small">Ultima sincronizacion: {{ (data.matches_diagnostics.latest_sync.started_at or '-')|madrid_datetime_label }}</p>
   </aside>
 </section>
 <section class="band">

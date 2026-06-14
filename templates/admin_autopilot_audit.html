@@ -58,7 +58,7 @@
     <div class="stack">
       {% for cycle in audit.cycles %}
       <div class="list-row">
-        <span>{{ cycle.created_at }}<br><small>analizados {{ cycle.matches_analyzed }} - candidatos {{ cycle.candidates }} - guardados {{ cycle.saved }} - cola {{ cycle.queued }} - enviados {{ cycle.sent }}</small></span>
+        <span>{{ (cycle.created_at)|madrid_datetime_label }}<br><small>analizados {{ cycle.matches_analyzed }} - candidatos {{ cycle.candidates }} - guardados {{ cycle.saved }} - cola {{ cycle.queued }} - enviados {{ cycle.sent }}</small></span>
         <strong>{{ cycle.status }}</strong>
       </div>
       {% else %}
@@ -97,7 +97,7 @@
     <div class="section-head"><h2>Cola pick publicado</h2><span class="pill">{{ audit.queue|length }}</span></div>
     <div class="stack">
       {% for q in audit.queue[:20] %}
-      <div class="list-row"><span>{{ q.title }}<br><small>{{ q.created_at }} - {{ q.error_message }}</small></span><strong>{{ q.status }}</strong></div>
+      <div class="list-row"><span>{{ q.title }}<br><small>{{ (q.created_at)|madrid_datetime_label }} - {{ q.error_message }}</small></span><strong>{{ q.status }}</strong></div>
       {% else %}
       <div class="empty">Sin mensajes de pick publicado recientes.</div>
       {% endfor %}
@@ -107,7 +107,7 @@
     <div class="section-head"><h2>Logs</h2><span class="pill">{{ audit.recent_logs|length }}</span></div>
     <div class="stack">
       {% for log in audit.recent_logs[:20] %}
-      <div class="list-row"><span>{{ log.message }}<br><small>{{ log.created_at }}</small></span><strong>{{ log.status }}</strong></div>
+      <div class="list-row"><span>{{ log.message }}<br><small>{{ (log.created_at)|madrid_datetime_label }}</small></span><strong>{{ log.status }}</strong></div>
       {% else %}
       <div class="empty">Sin registros del piloto automático todavía.</div>
       {% endfor %}

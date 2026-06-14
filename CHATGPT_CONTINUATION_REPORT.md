@@ -115,3 +115,13 @@ ChatGPT detectó que el ZIP real subido ya estaba en V772, pero no incluía comp
 - Reforzadas pantallas cliente principales: app, calendar, live, picks, match detail, sports hub, match hub, team detail, favoritos y daily briefing.
 - Añadido JS fallback `nsV779TeamIdentityFallback()` para que un img vacío/roto no deje huecos.
 - Validaciones: py_compile OK, compileall OK, Madrid Time OK, check V779 OK, checks V771-V778 compatibles OK, build clean release OK, ZIP audit OK con forbidden_count=0.
+
+## V781_FULL_APP_AUDIT_STABILITY_MADRID_TIME_CLEANUP
+- Auditoría completa sobre ZIP real V780 subido por usuario.
+- Corregida ruta duplicada `/admin/launch-certification`; Go Live usa `/admin/go-live-certification`.
+- Timestamps genéricos admin filtrados con `madrid_datetime_label` para España/Madrid.
+- Checks V771-V780 compatibilizados con V781.
+- Añadido `tools/check_v781_full_app_audit_stability.py`.
+- Build limpio actualizado para incluir reportes V779/V780/V781 y excluir basura de desarrollo.
+- No se tocaron DB_PATH, Telegram/Cron, usuarios/sesiones, membresías, pagos, Track Record, highlights, Data Marketplace ni Automation Center.
+

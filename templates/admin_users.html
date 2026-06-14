@@ -35,7 +35,7 @@
         <p class="small">Rol: <strong>{{ user.role }}</strong> · Membresía: <strong>{{ user.membership }}</strong></p>
         <p class="small">Caducidad: <strong>{{ user.membership_expires_label or 'Sin caducidad' }}</strong> · Origen: {{ user.membership_source or 'manual' }}</p>
         {% if user.membership_note %}<p class="small">Nota admin: {{ user.membership_note }}</p>{% endif %}
-        <p class="small">Alta: {{ user.created_at or '-' }} · Último login: {{ user.last_login or '-' }}</p>
+        <p class="small">Alta: {{ (user.created_at or '-')|madrid_datetime_label }} · Último login: {{ (user.last_login or '-')|madrid_datetime_label }}</p>
       </div>
       <form method="post" action="/admin/users" class="gift-form">
         <input type="hidden" name="user_id" value="{{ user.id }}">

@@ -39,7 +39,7 @@
     <div class="section-head"><h2>Últimas sincronizaciones</h2></div>
     <div class="stack">
       {% for run in summary.latest_sync_runs %}
-      <div class="list-row"><span>{{ run.source }}<small>{{ run.started_at }} · {{ run.status }}</small></span><strong>{{ run.matches_count or 0 }} / {{ run.picks_count or 0 }}</strong></div>
+      <div class="list-row"><span>{{ run.source }}<small>{{ (run.started_at)|madrid_datetime_label }} · {{ run.status }}</small></span><strong>{{ run.matches_count or 0 }} / {{ run.picks_count or 0 }}</strong></div>
       {% else %}<div class="empty">Aún no hay syncs en memoria.</div>{% endfor %}
     </div>
   </div>
@@ -58,7 +58,7 @@
     <div class="section-head"><h2>Últimas decisiones de picks</h2></div>
     <div class="stack">
       {% for pick in summary.latest_pick_decisions %}
-      <div class="list-row"><span>{{ pick.selection or 'Selección' }}<small>{{ pick.market }} · {{ pick.created_at }} · {{ pick.decision }}</small></span><strong>{{ pick.odds or '-' }}</strong></div>
+      <div class="list-row"><span>{{ pick.selection or 'Selección' }}<small>{{ pick.market }} · {{ (pick.created_at)|madrid_datetime_label }} · {{ pick.decision }}</small></span><strong>{{ pick.odds or '-' }}</strong></div>
       {% else %}<div class="empty">Sin decisiones registradas.</div>{% endfor %}
     </div>
   </div>
@@ -66,7 +66,7 @@
     <div class="section-head"><h2>Telegram memoria</h2></div>
     <div class="stack">
       {% for item in summary.latest_telegram %}
-      <div class="list-row"><span>{{ item.message_type }}<small>{{ item.created_at }} · {{ item.status }}</small></span><strong>{{ item.target_type }}</strong></div>
+      <div class="list-row"><span>{{ item.message_type }}<small>{{ (item.created_at)|madrid_datetime_label }} · {{ item.status }}</small></span><strong>{{ item.target_type }}</strong></div>
       {% else %}<div class="empty">Sin entregas Telegram en memoria.</div>{% endfor %}
     </div>
   </div>
@@ -76,7 +76,7 @@
   <div class="section-head"><h2>Errores controlados</h2><span class="pill">{{ summary.latest_errors|length }}</span></div>
   <div class="stack">
     {% for err in summary.latest_errors %}
-    <div class="list-row"><span>{{ err.context }}<small>{{ err.created_at }}</small></span><strong>{{ err.error_summary }}</strong></div>
+    <div class="list-row"><span>{{ err.context }}<small>{{ (err.created_at)|madrid_datetime_label }}</small></span><strong>{{ err.error_summary }}</strong></div>
     {% else %}<div class="empty premium-empty">Sin errores de memoria.</div>{% endfor %}
   </div>
 </section>

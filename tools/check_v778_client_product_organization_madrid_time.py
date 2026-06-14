@@ -5,7 +5,7 @@ import sys
 ROOT=Path(__file__).resolve().parents[1]
 errors=[]
 version=(ROOT/'VERSION.txt').read_text(encoding='utf-8-sig').strip()
-if not (version.startswith('V778_CLIENT_PRODUCT_ORGANIZATION_MADRID_TIME_FINAL_STABILITY') or version.startswith('V779_TEAM_IDENTITY_FLAGS_CRESTS_FINAL_POLISH')):
+if not (version.startswith('V778_CLIENT_PRODUCT_ORGANIZATION_MADRID_TIME_FINAL_STABILITY') or version.startswith('V779_TEAM_IDENTITY_FLAGS_CRESTS_FINAL_POLISH') or version.startswith('V780_LIVE_DATA_RECOVERY_REALTIME_STABILITY_FIX') or version.startswith('V781_FULL_APP_AUDIT_STABILITY_MADRID_TIME_CLEANUP') or version.startswith('V780_LIVE_DATA_RECOVERY_REALTIME_STABILITY_FIX') or version.startswith('V781_FULL_APP_AUDIT_STABILITY_MADRID_TIME_CLEANUP')):
     errors.append(f'VERSION.txt no es V778/V779/V780 compatible: {version}')
 base=(ROOT/'templates/base.html').read_text(encoding='utf-8')
 css=(ROOT/'static/app.css').read_text(encoding='utf-8')

@@ -32,7 +32,7 @@
     <h2>Auto Sync</h2>
     <p class="small">Estado: {% if data.data_center.scheduler.enabled %}activado{% else %}desactivado{% endif %}</p>
     <p class="small">Arranque automatico: {% if data.data_center.scheduler.startup %}activo{% else %}desactivado{% endif %}</p>
-    <p class="small">Ultimo scheduler: {{ data.data_center.scheduler.last_scheduler_log.started_at or '-' }}</p>
+    <p class="small">Ultimo scheduler: {{ (data.data_center.scheduler.last_scheduler_log.started_at or '-')|madrid_datetime_label }}</p>
   </aside>
   <aside class="card">
     <h2>Errores scheduler</h2>
@@ -89,8 +89,8 @@
   </aside>
   <aside class="card">
     <h2>Ultima actividad</h2>
-    <p class="small">SportsDB: {{ data.data_center.last_sportsdb_sync.started_at or '-' }}</p>
-    <p class="small">Odds: {{ data.data_center.last_odds_sync.started_at or '-' }}</p>
+    <p class="small">SportsDB: {{ (data.data_center.last_sportsdb_sync.started_at or '-')|madrid_datetime_label }}</p>
+    <p class="small">Odds: {{ (data.data_center.last_odds_sync.started_at or '-')|madrid_datetime_label }}</p>
     <p class="small">No data: {{ data.matches_diagnostics.competitions_no_data|length }} competiciones preparadas para import legal.</p>
   </aside>
 </section>

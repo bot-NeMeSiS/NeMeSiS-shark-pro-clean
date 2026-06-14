@@ -28,7 +28,7 @@
 {% endif %}
 
 <section class="band compact-band">
-  <div class="section-head"><h2>Última ejecución</h2><span class="pill">{{ last.finished_at or '-' }}</span></div>
+  <div class="section-head"><h2>Última ejecución</h2><span class="pill">{{ (last.finished_at or '-')|madrid_datetime_label }}</span></div>
   <div class="grid admin-executive-grid">
     <div class="card executive-card"><span>Duración</span><strong>{{ last.duration_seconds|default(0) }}s</strong></div>
     <div class="card executive-card"><span>Estado</span><strong>{{ last.status or 'Sin datos' }}</strong></div>

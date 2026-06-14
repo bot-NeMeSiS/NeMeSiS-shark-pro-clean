@@ -24,7 +24,7 @@
       {% for item in data.support.recent %}
         <div class="row-card">
           <div><strong>{{ item.subject }}</strong><p>{{ item.message }}</p></div>
-          <div><span class="badge">{{ item.category }}</span><span class="badge ghost">{{ item.priority }}</span><small>{{ item.created_at }}</small></div>
+          <div><span class="badge">{{ item.category }}</span><span class="badge ghost">{{ item.priority }}</span><small>{{ (item.created_at)|madrid_datetime_label }}</small></div>
         </div>
       {% endfor %}
       </div>

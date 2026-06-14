@@ -29,7 +29,7 @@
   <div class="section-head"><h2>Feedback reciente</h2><span class="pill">Últimos 10</span></div>
   <div class="stack">
     {% for item in beta.feedback %}
-    <div class="list-row"><span><strong>{{ item.name or item.email }}</strong><br><small>{{ item.focus_area }} · {{ item.message }}</small></span><strong>{{ item.created_at }}</strong></div>
+    <div class="list-row"><span><strong>{{ item.name or item.email }}</strong><br><small>{{ item.focus_area }} · {{ item.message }}</small></span><strong>{{ (item.created_at)|madrid_datetime_label }}</strong></div>
     {% else %}
     <div class="empty-state"><h3>Aún no hay feedback beta</h3><p>Comparte /beta con testers reales para empezar a recoger señales.</p></div>
     {% endfor %}

@@ -51,7 +51,7 @@
       <thead><tr><th>Tarea</th><th>Estado</th><th>Procesados</th><th>Fecha</th><th>Error</th></tr></thead>
       <tbody>
         {% for run in data.last_runs %}
-        <tr><td>{{ run.task_name }}</td><td>{{ run.status }}</td><td>{{ run.processed }}</td><td>{{ run.finished_at or run.started_at }}</td><td>{{ run.error_message }}</td></tr>
+        <tr><td>{{ run.task_name }}</td><td>{{ run.status }}</td><td>{{ run.processed }}</td><td>{{ (run.finished_at or run.started_at)|madrid_datetime_label }}</td><td>{{ run.error_message }}</td></tr>
         {% else %}
         <tr><td colspan="5">Sin ejecuciones todavía.</td></tr>
         {% endfor %}

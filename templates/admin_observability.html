@@ -48,7 +48,7 @@
     <div class="section-head"><h2>Últimos errores trazados</h2><span class="pill">error_id</span></div>
     {% for event in summary.latest_errors %}
       <div class="list-row">
-        <span>{{ event.created_at }} - {{ event.error_id }}<br><small>{{ event.path }} - {{ event.exception_type }} - {{ event.exception_message }}</small></span>
+        <span>{{ (event.created_at)|madrid_datetime_label }} - {{ event.error_id }}<br><small>{{ event.path }} - {{ event.exception_type }} - {{ event.exception_message }}</small></span>
         <a class="mini-link" href="/admin/observability/errorserror_id={{ event.error_id }}">Ver detalle</a>
       </div>
     {% else %}
@@ -62,7 +62,7 @@
     <div class="section-head"><h2>Últimos eventos registrados</h2><span class="pill">logs seguros</span></div>
     {% for event in summary.latest_events %}
       <div class="list-row">
-        <span>{{ event.created_at }} - {{ event.level }} - {{ event.event_type }}<br><small>{{ event.method }} {{ event.path }} - {{ event.message }}</small></span>
+        <span>{{ (event.created_at)|madrid_datetime_label }} - {{ event.level }} - {{ event.event_type }}<br><small>{{ event.method }} {{ event.path }} - {{ event.message }}</small></span>
         <strong>{{ event.status_code or '-' }}</strong>
       </div>
     {% else %}

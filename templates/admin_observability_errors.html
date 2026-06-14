@@ -3,7 +3,7 @@
 <section class="hero compact">
   <div class="kicker">Admin - Observabilidad</div>
   <h1>Errores trazados</h1>
-  <p class="lead">Últimos errores controlados con ruta, usuario, tipo, mensaje y traceback completo.</p>
+  <p class="lead">Últimos errores controlados con ruta, usuario, tipo, mensaje y traza técnica completa.</p>
   <div class="admin-menu">
     <a class="btn primary" href="/admin/observability">Resumen</a>
     <a class="btn" href="/api/observability/errors" target="_blank">API errores</a>
@@ -17,11 +17,11 @@
     {% for item in errors %}
     <div class="list-row">
       <span>
-        {{ item.created_at }} - {{ item.path or '-' }}<br>
+        {{ (item.created_at)|madrid_datetime_label }} - {{ item.path or '-' }}<br>
         <small>{{ item.error_id }} - {{ item.exception_type or 'Error' }} - {{ item.exception_message or 'Sin mensaje' }}</small><br>
         <small>{{ item.email or item.user_id or 'anonimo' }} - {{ item.membership or '-' }}</small>
       </span>
-      <a class="mini-link" href="/admin/observability/errorserror_id={{ item.error_id }}">Ver detalle</a>
+      <a class="mini-link" href="/admin/observability/errors?error_id={{ item.error_id }}">Ver detalle</a>
     </div>
     {% else %}
     <p class="small">Sin errores trazados todavía.</p>
@@ -32,7 +32,7 @@
     <div class="section-head"><h2>Detalle</h2><span class="pill">{{ selected_error_id or 'sin seleccion' }}</span></div>
     {% if detail %}
       <p class="small"><strong>ID:</strong> {{ detail.error_id }}</p>
-      <p class="small"><strong>Fecha:</strong> {{ detail.created_at }}</p>
+      <p class="small"><strong>Fecha:</strong> {{ (detail.created_at)|madrid_datetime_label }}</p>
       <p class="small"><strong>Ruta:</strong> {{ detail.method }} {{ detail.path }}</p>
       <p class="small"><strong>Endpoint:</strong> {{ detail.endpoint or '-' }}</p>
       <p class="small"><strong>Usuario:</strong> {{ detail.email or detail.user_id or 'anonimo' }}</p>
@@ -42,14 +42,14 @@
       <p class="small"><strong>User-Agent:</strong> {{ detail.user_agent or '-' }}</p>
       <p class="small"><strong>Tipo:</strong> {{ detail.exception_type or '-' }}</p>
       <p class="small"><strong>Mensaje:</strong> {{ detail.exception_message or '-' }}</p>
-      <pre style="white-space:pre-wrap;overflow:auto;max-height:28rem">{{ detail.traceback_full or 'Sin traceback.' }}</pre>
+      <pre style="white-space:pre-wrap;overflow:auto;max-height:28rem">{{ detail.traceback_full or 'Sin traza técnica.' }}</pre>
     {% elif detail_missing %}
       <div class="empty">
         <strong>Error ID no encontrado en esta base local.</strong>
         <p class="small">Si el ID procede de Render, consulta la base persistente de producción o los logs de Render. La API devuelve <code>found=false</code> para este caso.</p>
       </div>
     {% else %}
-      <p class="small">Selecciona un error para ver el traceback completo.</p>
+      <p class="small">Selecciona un error para ver el traza técnica completa.</p>
     {% endif %}
   </div>
 </section>

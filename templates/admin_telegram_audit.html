@@ -64,7 +64,7 @@
     <p class="small">Envío automático: {% if audit.settings.enabled %}activo{% else %}desactivado{% endif %}</p>
     <p class="small">Auto picks diarios: {% if audit.settings.auto_daily_picks %}activo{% else %}desactivado{% endif %} · hora {{ audit.settings.daily_picks_time }}</p>
     <p class="small">Enviables por plan: FREE {{ audit.membership_delivery.sendable['FREE'] }} · PRO {{ audit.membership_delivery.sendable['PRO'] }} · ELITE {{ audit.membership_delivery.sendable['ELITE'] }}</p>
-    <p class="small">Último envío: {{ audit.last_sent.sent_at or 'sin envío registrado' }}</p>
+    <p class="small">Último envío: {{ (audit.last_sent.sent_at or 'sin envío registrado')|madrid_datetime_label }}</p>
     <p class="small">Último error app: {{ audit.last_error.message or 'sin error registrado' }}</p>
     <p class="small">Último error Telegram: {{ audit.last_telegram_error.response_json or audit.last_telegram_error.payload_preview or 'sin error Telegram registrado' }}</p>
   </div>
@@ -86,7 +86,7 @@
     <div class="section-head"><h2>Cola picks</h2><span class="pill">{{ audit.pick_queue|length }}</span></div>
     <div class="stack">
       {% for item in audit.pick_queue[:20] %}
-      <div class="list-row"><span>{{ item.message_type }} - {{ item.title }}<br><small>{{ item.created_at }} · {{ item.error_message }}</small></span><strong>{{ item.status }}</strong></div>
+      <div class="list-row"><span>{{ item.message_type }} - {{ item.title }}<br><small>{{ (item.created_at)|madrid_datetime_label }} · {{ item.error_message }}</small></span><strong>{{ item.status }}</strong></div>
       {% else %}
       <div class="empty">No hay mensajes de picks en cola.</div>
       {% endfor %}
@@ -96,7 +96,7 @@
     <div class="section-head"><h2>Logs de flujo</h2><span class="pill">{{ audit.recent_logs|length }}</span></div>
     <div class="stack">
       {% for log in audit.recent_logs[:20] %}
-      <div class="list-row"><span>{{ log.message }}<br><small>{{ log.created_at }}</small></span><strong>{{ log.status }}</strong></div>
+      <div class="list-row"><span>{{ log.message }}<br><small>{{ (log.created_at)|madrid_datetime_label }}</small></span><strong>{{ log.status }}</strong></div>
       {% else %}
       <div class="empty">Aún no hay logs [TELEGRAM]/[PICKS]/[QUEUE]/[SEND].</div>
       {% endfor %}
