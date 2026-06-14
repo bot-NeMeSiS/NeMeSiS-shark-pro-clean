@@ -4,46 +4,70 @@
 {% set focus = v.get('focus') or [] %}
 {% set picks = v.get('picks') or [] %}
 {% set tr = data.get('track_record') or {} %}
-<section class="v775-mobile-home-hero v774-client-hero compact">
+{% set closed = (tr.get('summary') or {}).get('closed_picks', '—') %}
+<section class="v776-home-hero v774-client-hero compact">
   <div class="v774-hero-copy">
-    <div class="kicker">Inicio · móvil y PC · Hora Madrid</div>
-    <h1>Tu panel SHARK, limpio y directo</h1>
-    <p class="lead">Primero lo que importa: partidos de hoy, directo, picks, resultados e histórico. El resto queda en Más para no saturar la pantalla.</p>
-    <div class="v774-actions v775-primary-actions">
-      <a class="btn primary" href="/calendar?lane=today">Partidos de hoy</a>
-      <a class="btn" href="/live?f=live">Directo</a>
-      <a class="btn" href="/picks">Picks</a>
-      <a class="btn" href="/menu">Más</a>
+    <div class="kicker">Inicio cliente · todo a mano · Hora Madrid</div>
+    <h1>Tu app ordenada: mira, decide y entra solo si hay valor</h1>
+    <p class="lead">La pantalla inicial ya no es un cajón. Primero ves el flujo real: partidos de hoy, directo, picks, resultados, Telegram y SHARK. Nada importante queda escondido.</p>
+    <div class="v774-actions v776-main-actions">
+      <a class="btn primary" href="/calendar?lane=today">1 · Partidos de hoy</a>
+      <a class="btn" href="/live">2 · Directo</a>
+      <a class="btn" href="/picks">3 · Picks</a>
+      <a class="btn" href="/shark">Preguntar SHARK</a>
     </div>
   </div>
-  <aside class="v774-day-card v775-today-card">
-    <span class="v774-status ready">Vista cliente ordenada</span>
+  <aside class="v774-day-card v776-status-card">
+    <span class="v774-status ready">Panel cliente final</span>
     <div class="v775-mini-kpis">
       <a href="/calendar?lane=today"><strong>{{ focus|length }}</strong><span>Focos</span></a>
       <a href="/picks"><strong>{{ picks|length }}</strong><span>Picks</span></a>
-      <a href="/track-record"><strong>{{ (tr.get('summary') or {}).get('closed_picks', '—') }}</strong><span>Cerrados</span></a>
+      <a href="/track-record"><strong>{{ closed }}</strong><span>Cerrados</span></a>
     </div>
+    <p class="small">Si un dato no existe, se muestra pendiente. Sin partidos, cuotas, ROI ni resultados inventados.</p>
   </aside>
 </section>
 
-<section class="v775-mobile-command" aria-label="Acciones principales">
-  <a href="/calendar?lane=today"><b>Hoy</b><span>Partidos con día y hora</span></a>
-  <a href="/live"><b>Directo</b><span>Marcador y estado</span></a>
-  <a href="/picks"><b>Picks</b><span>Qué apostar y riesgo</span></a>
-  <a href="/track-record"><b>Histórico</b><span>ROI solo real</span></a>
+<section class="v776-priority-grid" aria-label="Flujo principal cliente">
+  <a class="v776-priority-card is-main" href="/calendar?lane=today"><em>01</em><strong>Partidos de hoy</strong><span>Agenda, liga, hora Madrid y detalle.</span></a>
+  <a class="v776-priority-card" href="/live"><em>02</em><strong>Directo</strong><span>Marcador, minuto y estado cuando haya dato real.</span></a>
+  <a class="v776-priority-card" href="/picks"><em>03</em><strong>Picks SHARK</strong><span>Qué apostar, mercado, cuota, stake y riesgo.</span></a>
+  <a class="v776-priority-card" href="/track-record"><em>04</em><strong>Histórico real</strong><span>ROI/winrate solo con resultados cerrados.</span></a>
+</section>
+
+<section class="v776-visible-map" aria-label="Mapa completo visible">
+  <div class="section-head"><div><h2>Todo lo que tiene la app</h2><p class="small">Accesos visibles para que no tengas que buscar pantallas escondidas.</p></div><a class="pill" href="/menu">Mapa completo</a></div>
+  <div class="v776-map-grid">
+    <a href="/calendar"><b>Calendario</b><small>Hoy, semana, favoritos y con pick.</small></a>
+    <a href="/live"><b>Directo</b><small>En vivo, próximos y finalizados.</small></a>
+    <a href="/picks"><b>Picks</b><small>Lectura antes de apostar.</small></a>
+    <a href="/combis"><b>Combis</b><small>Combinadas responsables.</small></a>
+    <a href="/mercados"><b>Mercados</b><small>1X2, DNB, goles, ambos marcan.</small></a>
+    <a href="/highlights"><b>Resúmenes</b><small>Resultados y vídeos externos.</small></a>
+    <a href="/mundial"><b>Mundial</b><small>Foco internacional cuando haya datos.</small></a>
+    <a href="/modo-dinamico"><b>Modo automático</b><small>La app prioriza lo importante.</small></a>
+    <a href="/telegram"><b>Telegram</b><small>Bot, canal y alertas.</small></a>
+    <a href="/shark"><b>SHARK IA</b><small>Preguntas rápidas y control de riesgo.</small></a>
+    <a href="/perfil"><b>Mi cuenta</b><small>Plan, perfil y ajustes.</small></a>
+    <a href="/ayuda"><b>Ayuda</b><small>Guía y soporte.</small></a>
+  </div>
 </section>
 
 <section class="v774-dashboard-grid v775-dashboard-grid">
-  <article class="v774-panel v775-next-card">
-    <div class="section-head"><div><h2>Siguiente acción</h2><p class="small">Guía rápida sin ruido.</p></div><span class="pill">Ahora</span></div>
-    <strong>{{ (v.get('next_action') or {}).get('title') or 'Revisar partidos de hoy' }}</strong>
-    <p class="small">{{ (v.get('next_action') or {}).get('description') or 'Empieza por calendario, después directo y por último picks si hay cuota/mercado claro.' }}</p>
-    <div class="inline-actions"><a class="btn primary small-btn" href="/calendar?lane=today">Abrir calendario</a><a class="btn small-btn" href="/shark">Preguntar a SHARK</a></div>
+  <article class="v774-panel v776-next-card">
+    <div class="section-head"><div><h2>Qué hacer ahora</h2><p class="small">Orden recomendado para no perderte.</p></div><span class="pill">Ruta</span></div>
+    <ol class="v776-step-list">
+      <li><strong>Abre Partidos</strong><span>comprueba hora, liga y estado.</span></li>
+      <li><strong>Mira Directo</strong><span>si hay marcador/minuto real.</span></li>
+      <li><strong>Lee Picks</strong><span>solo si hay mercado, cuota y motivo.</span></li>
+      <li><strong>Consulta SHARK</strong><span>para evitar ruido o combis forzadas.</span></li>
+    </ol>
   </article>
-  <article class="v774-panel v775-trust-card">
-    <div class="section-head"><div><h2>Transparencia</h2><p class="small">Sin humo comercial.</p></div><a class="pill" href="/track-record">Histórico</a></div>
+  <article class="v774-panel v776-trust-card">
+    <div class="section-head"><div><h2>Confianza</h2><p class="small">Regla del producto.</p></div><a class="pill" href="/track-record">Histórico</a></div>
     <strong>{{ (v.get('trust') or {}).get('title') or 'Sin datos inventados' }}</strong>
     <p class="small">{{ (v.get('trust') or {}).get('note') or 'ROI, resultados, picks y cuotas solo aparecen cuando existen datos reales o quedan marcados como pendientes.' }}</p>
+    <div class="inline-actions"><a class="btn small-btn" href="/track-record">Ver histórico</a><a class="btn small-btn" href="/legal">Transparencia</a></div>
   </article>
 </section>
 
@@ -62,7 +86,7 @@
     </div>
   </article>
   <article class="v774-panel">
-    <div class="section-head"><div><h2>Picks destacados</h2><p class="small">Solo selección, cuota y partido.</p></div><a class="pill" href="/picks">Picks</a></div>
+    <div class="section-head"><div><h2>Picks destacados</h2><p class="small">Selección, cuota y partido.</p></div><a class="pill" href="/picks">Picks</a></div>
     <div class="v774-pick-list v775-compact-list">
       {% for p in picks[:5] %}
       <a class="v774-pick-row" href="{{ p.get('client_match_url') or '/picks' }}"><span><strong>{{ p.get('client_selection_label') or p.get('selection_display') or p.get('selection') or 'Pick' }}</strong><small>{{ p.get('client_match_label') or 'Partido pendiente' }}</small></span><em>{{ p.get('client_odds_label') or p.get('odds') or 'Cuota pendiente' }}</em></a>

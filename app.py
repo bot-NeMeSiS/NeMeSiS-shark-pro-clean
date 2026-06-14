@@ -187,7 +187,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V775_MOBILE_CLIENT_APP_EXPERIENCE_TOTAL_COMPLETION"
+APP_VERSION = "V776_CLIENT_INFORMATION_ARCHITECTURE_FINAL_ORDER"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -14204,6 +14204,9 @@ def v566_dashboard_page():
 
 
 @app.route("/menu")
+@app.route("/mapa")
+@app.route("/navegacion")
+@app.route("/todo")
 def v566_client_menu_page():
     if not current_session_user():
         return redirect("/cliente-login")
@@ -15401,6 +15404,58 @@ def api_admin_client_screen_quality():
     if not is_admin_session():
         return jsonify({"ok": False, "error": "admin_required"}), 403
     return jsonify(v774_client_screen_quality_snapshot())
+
+
+# ===================== V776 CLIENT INFORMATION ARCHITECTURE FINAL ORDER =====================
+
+def v776_client_information_architecture_snapshot():
+    """Audit the final client information architecture without touching data flows."""
+    routes = [
+        ("Inicio", "/app", "panel diario"),
+        ("Hoy", "/calendar?lane=today", "partidos de hoy"),
+        ("Directo", "/live", "marcador y estado"),
+        ("Picks", "/picks", "qué apostar"),
+        ("Combis", "/combis", "combinadas"),
+        ("Mercados", "/mercados", "apuestas básicas"),
+        ("Resúmenes", "/highlights", "resultados y vídeos"),
+        ("Histórico", "/track-record", "ROI real"),
+        ("Telegram", "/telegram", "canal y bot"),
+        ("Cuenta", "/perfil", "plan y ajustes"),
+        ("Ayuda", "/ayuda", "soporte"),
+        ("Mapa", "/menu", "todo visible"),
+    ]
+    template_checks = []
+    for name in ["base.html", "client_app_center.html", "client_menu.html", "home.html", "calendar.html", "live.html", "picks.html"]:
+        path = os.path.join(BASE_DIR, "templates", name)
+        raw = ""
+        try:
+            with open(path, "r", encoding="utf-8") as fh:
+                raw = fh.read()
+        except Exception:
+            pass
+        template_checks.append({
+            "template": name,
+            "exists": bool(raw),
+            "v776_visible_map": "v776" in raw.lower(),
+            "has_client_routes": all(token in raw for token in ["/calendar", "/live", "/picks"]) if name in {"base.html", "client_app_center.html", "client_menu.html"} else True,
+            "bad_hidden_copy": "Todo lo secundario" in raw or "escond" in raw.lower(),
+        })
+    return {
+        "ok": True,
+        "version": APP_VERSION,
+        "status": "V776_CLIENT_MAP_VISIBLE",
+        "principle": "Nada importante escondido: flujo principal, mapa completo y accesos globales en cliente.",
+        "routes": [{"label": a, "href": b, "purpose": c} for a, b, c in routes],
+        "templates": template_checks,
+    }
+
+
+@app.route("/api/admin/client-information-architecture")
+@app.route("/api/admin/client-map-quality")
+def api_admin_v776_client_information_architecture():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify(v776_client_information_architecture_snapshot())
 
 @app.route("/admin/data-marketplace")
 @app.route("/admin/export-center")

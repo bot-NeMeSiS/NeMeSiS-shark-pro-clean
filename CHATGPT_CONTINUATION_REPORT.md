@@ -1,3 +1,9 @@
+# Continuación NeMeSiS SHARK PRO
+
+Última versión preparada por ChatGPT: V776_CLIENT_INFORMATION_ARCHITECTURE_FINAL_ORDER.
+
+Enfoque: orden final cliente, mapa visible, nada importante escondido, navegación coherente PC/móvil y conservación total de Telegram/Cron/DB_PATH/Madrid Time/datos.
+
 # CHATGPT CONTINUATION REPORT
 
 ## Estado actual

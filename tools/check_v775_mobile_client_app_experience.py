@@ -6,7 +6,7 @@ ROOT=Path(__file__).resolve().parents[1]
 def text(path): return (ROOT/path).read_text(encoding='utf-8')
 errors=[]
 version=text('VERSION.txt').strip()
-if not version.startswith('V775_MOBILE_CLIENT_APP_EXPERIENCE_TOTAL_COMPLETION'):
+if not (version.startswith('V775_MOBILE_CLIENT_APP_EXPERIENCE_TOTAL_COMPLETION') or version.startswith('V776_CLIENT_INFORMATION_ARCHITECTURE_FINAL_ORDER')):
     errors.append(f'VERSION incorrecta: {version}')
 base=text('templates/base.html')
 css=text('static/app.css')

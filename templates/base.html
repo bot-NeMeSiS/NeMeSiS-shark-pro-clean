@@ -24,13 +24,15 @@
   {% set _visual_tier = 'free' %}
   {% set _tier_label = 'FREE' %}
 {% endif %}
-<body class="ns-app ns-tier-{{ _visual_tier }}{% if current_user %} ns-authenticated{% else %} ns-public{% endif %}{% if current_user and current_user.role == 'ADMIN' %} ns-admin{% endif %}" data-ns-route="{{ request.path }}" data-ns-plan="{{ _tier_label }}" data-v775-shell="true">
+<body class="ns-app ns-tier-{{ _visual_tier }}{% if current_user %} ns-authenticated{% else %} ns-public{% endif %}{% if current_user and current_user.role == 'ADMIN' %} ns-admin{% endif %}" data-ns-route="{{ request.path }}" data-ns-plan="{{ _tier_label }}" data-v775-shell="true" data-v776-shell="true">
   <div class="ns-ambient" aria-hidden="true"><i></i><i></i><i></i></div>
   <div class="membership-energy-bar" aria-hidden="true"></div>
   <div class="ns-route-glow" aria-hidden="true"></div>
   <header class="top ns-topbar">
     <div class="topin">
-      <a class="brand" href="/"><span class="mark">NS</span><span>NeMeSiS SHARK PRO</span></a>
+      {% set _brand_href = '/app' if current_user else '/' %}
+      {% if current_user and current_user.role == 'ADMIN' %}{% set _brand_href = '/admin/control-center' %}{% endif %}
+      <a class="brand" href="{{ _brand_href }}"><span class="mark">NS</span><span>NeMeSiS SHARK PRO</span></a>
       <span class="tier-badge tier-badge-{{ _visual_tier }}">{{ _tier_label }}</span>
       <nav class="nav nav-clean">
         {% if current_user and current_user.role == 'ADMIN' %}
@@ -55,7 +57,7 @@
           <a href="/picks" data-v775-icon="◆">Picks</a>
           <a href="/track-record" data-v775-icon="↗">Histórico</a>
           <a href="/shark" data-v775-icon="🦈">SHARK</a>
-          <a href="/menu" data-v775-icon="☰">Más</a>
+          <a href="/menu" data-v775-icon="☰">Todo</a>
           <a href="/logout" data-v775-icon="×">Salir</a>
         {% else %}
           <a href="/membresias">Membresías</a>
@@ -66,6 +68,27 @@
       </nav>
     </div>
   </header>
+
+  {% if current_user and current_user.role != 'ADMIN' %}
+  <section class="v776-client-compass" aria-label="Centro rápido cliente">
+    <div class="v776-compass-head">
+      <strong>Centro rápido</strong>
+      <span>Todo visible · flujo cliente</span>
+    </div>
+    <nav class="v776-compass-nav" aria-label="Mapa rápido de la app">
+      <a href="/app"><b>Inicio</b><small>Resumen</small></a>
+      <a href="/calendar?lane=today"><b>Hoy</b><small>Partidos</small></a>
+      <a href="/live"><b>Directo</b><small>Marcador</small></a>
+      <a href="/picks"><b>Picks</b><small>Apostar</small></a>
+      <a href="/combis"><b>Combis</b><small>Estrategias</small></a>
+      <a href="/mercados"><b>Mercados</b><small>Explicado</small></a>
+      <a href="/highlights"><b>Resúmenes</b><small>Resultados</small></a>
+      <a href="/track-record"><b>Histórico</b><small>ROI real</small></a>
+      <a href="/telegram"><b>Telegram</b><small>Alertas</small></a>
+      <a href="/menu"><b>Mapa</b><small>Todo</small></a>
+    </nav>
+  </section>
+  {% endif %}
 
   <main class="shell shark-shell ns-main-shell">
     {% block content %}{% endblock %}
@@ -89,7 +112,7 @@
       <a href="/calendar" data-v775-icon="◷">Partidos</a>
       <a href="/live" data-v775-icon="●">Directo</a>
       <a href="/picks" data-v775-icon="◆">Picks</a>
-      {% if current_user %}<a href="/menu" data-v775-icon="☰">Más</a>{% else %}<a href="/cliente-login" data-v775-icon="→">Entrar</a>{% endif %}
+      {% if current_user %}<a href="/menu" data-v775-icon="☰">Todo</a>{% else %}<a href="/cliente-login" data-v775-icon="→">Entrar</a>{% endif %}
     {% endif %}
   </nav>
 
@@ -213,7 +236,7 @@
     body.classList.add('ns-ready');
     body.dataset.nsEnhanced='true';
 
-    document.querySelectorAll('.nav a,.bottom-nav a').forEach(function(link){
+    document.querySelectorAll('.nav a,.bottom-nav a,.v776-client-compass a').forEach(function(link){
       try{
         const href=new URL(link.getAttribute('href'), window.location.origin).pathname.replace(/\/$/,'') || '/';
         if(href === '/' ? path === '/' : path === href || path.indexOf(href + '/') === 0){
@@ -235,7 +258,7 @@
     };
 
     document.addEventListener('pointerdown',function(ev){
-      const target=ev.target.closest && ev.target.closest('.btn,button,.quick,.card,.sports-row,.list-row,.bottom-nav a');
+      const target=ev.target.closest && ev.target.closest('.btn,button,.quick,.card,.sports-row,.list-row,.bottom-nav a,.v776-client-compass a');
       if(target) target.classList.add('ns-touch');
     },{passive:true});
     document.addEventListener('pointerup',function(){
