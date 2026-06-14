@@ -7,8 +7,8 @@
 <section class="v774-client-hero compact v774-calendar-hero">
   <div class="v774-hero-copy">
     <div class="kicker">Calendario · Hora Madrid</div>
-    <h1>Partidos por día, estado y liga</h1>
-    <p class="lead">Una pantalla limpia: resultados, directo y próximos separados con fecha visible. Nada de horas sueltas sin día.</p>
+    <h1>Partidos</h1>
+    <p class="lead">Agenda ordenada por día y competición, con hora Madrid, estado y acceso al análisis.</p>
     <div class="v774-actions"><a class="btn primary" href="/calendar?lane=today">Hoy</a><a class="btn" href="/calendar?lane=live">Directo</a><a class="btn" href="/calendar?lane=results">Resultados</a><a class="btn" href="/calendar?lane=with_pick">Con pick</a></div>
   </div>
   <aside class="v774-day-card"><div class="v774-kpis"><a><strong>{{ counts.get('visible', 0) }}</strong><span>Visibles</span></a><a><strong>{{ counts.get('live', 0) }}</strong><span>Directo</span></a><a><strong>{{ counts.get('picks', 0) }}</strong><span>Picks</span></a><a><strong>{{ counts.get('leagues', 0) }}</strong><span>Ligas</span></a></div><p class="small">{{ calendar.get('lane_label') or 'Hoy' }}{% if calendar.get('has_filters') %} · filtros activos{% endif %}</p></aside>

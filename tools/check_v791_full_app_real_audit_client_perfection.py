@@ -31,10 +31,10 @@ def main() -> int:
     version_txt = read("VERSION.txt").strip()
     app_py = read("app.py")
     css = read("static/app.css")
-    if version_txt != VERSION:
+    if version_txt not in {VERSION, "V792_CLIENT_MOCKUP_VISUAL_SYSTEM_IMPLEMENTATION"}:
         errors.append(f"VERSION.txt incorrecto: {version_txt}")
-    if f'APP_VERSION = "{VERSION}"' not in app_py:
-        errors.append("APP_VERSION no apunta a V791")
+    if f'APP_VERSION = "{VERSION}"' not in app_py and 'APP_VERSION = "V792_CLIENT_MOCKUP_VISUAL_SYSTEM_IMPLEMENTATION"' not in app_py:
+        errors.append("APP_VERSION no apunta a V791/V792")
     if 'BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))' not in app_py:
         errors.append("BASE_DIR no está definido a nivel global")
     if 'client_screen_audit_snapshot' not in app_py:

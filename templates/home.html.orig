@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% block content %}
+{% set hs = data.get('home_summary') or {} %}
+{% set counts = hs.get('counts') or {} %}
+{% set plan = (current_user.membership if current_user else 'FREE')|upper %}
+{% set upcoming = data.get('upcoming_matches') or data.get('matches') or [] %}
+{% set picks = data.get('picks') or [] %}
+{% set hc = data.get('v769_highlights_center') or {} %}
+{% set highlights = hc.get('available') or [] %}
+{% set pay = data.get('payments_client') or {} %}
+{% set plans = pay.get('plans') or {} %}
+{% set pro = plans.get('PRO') or {} %}
+{% set elite = plans.get('ELITE') or {} %}
+
+{% if current_user %}
+<section class="v783-client-start">
+  <div class="v783-client-main">
+    <div class="kicker">Inicio · {{ plan }} · hora oficial España/Madrid</div>
+    <h1>Lo importante primero.</h1>
+    <p class="lead">Partidos de hoy, directos, picks y tu plan en una pantalla compacta. Sin bloques gigantes ni accesos escondidos.</p>
+    <div class="v783-actions">
+      <a class="btn primary" href="/calendar?lane=today">Hoy</a>
+      <a class="btn" href="/live?f=live&refresh=1">Directo</a>
+      <a class="btn" href="/picks">Picks</a>
+      <a class="btn" href="/menu">Todo</a>
+    </div>
+  </div>
+  <aside class="v783-client-status">
+    <span class="v774-status {{ 'ready' if hs.get('has_real_data') else 'pending' }}">{{ 'Datos reales cargados' if hs.get('has_real_data') else 'Sin datos reales ahora' }}</span>
+    <div class="v783-mini-kpis">
+      <a href="/calendar?lane=today"><b>{{ counts.get('today', 0) }}</b><small>Hoy</small></a>
+      <a href="/live"><b>{{ counts.get('live', 0) }}</b><small>Directo</small></a>
+      <a href="/picks"><b>{{ counts.get('picks', 0) }}</b><small>Picks</small></a>
+      <a href="/track-record"><b>{{ counts.get('finished', 0) or counts.get('results', 0) or 0 }}</b><small>Resultados</small></a>
+    </div>
+  </aside>
+</section>
+
+<section class="v783-plan-inline">
+  <div><strong>Tu plan: {{ plan }}</strong><span>{{ ('FREE activo: PRO desde ' ~ (pro.get('price_label') or '9,99 €/mes') ~ ' y ELITE desde ' ~ (elite.get('price_label') or '24,99 €/mes') ~ ': picks, Telegram y SHARK.') if plan == 'FREE' else 'Plan activo. Puedes revisar facturación, Telegram y ventajas desde tu cuenta.' }}</span></div>
+  <div class="v783-plan-inline-actions"><a class="btn small-btn primary" href="/membresias">Planes y precios</a><a class="btn small-btn" href="/mi-cuenta">Mi cuenta</a></div>
+</section>
+
+<section class="v783-flow-compact" aria-label="Ruta recomendada">
+  <a href="/calendar?lane=today"><b>1</b><span>Hoy</span></a>
+  <a href="/live"><b>2</b><span>Directo</span></a>
+  <a href="/picks"><b>3</b><span>Picks</span></a>
+  <a href="/shark"><b>4</b><span>SHARK</span></a>
+  <a href="/track-record"><b>5</b><span>Histórico</span></a>
+</section>
+
+<section class="v783-home-grid">
+  <article class="v783-panel">
+    <div class="section-head"><div><h2>Partidos importantes</h2><p class="small">Fecha, hora Madrid, estado y detalle.</p></div><a class="pill" href="/calendar">Calendario</a></div>
+    <div class="v783-list">
+      {% for m in upcoming[:5] %}
+      {% set ctx = m|match_madrid_context %}
+      {% set live = m.get('live_depth') or {} %}
+      <a class="v783-row" href="/match/{{ m.get('id') }}">
+        <span class="v783-time"><b>{{ ctx.client_date_label }}</b><small>{{ live.get('minute') if live.get('badge') == 'live' else ctx.client_time_label }}</small></span>
+        <span class="v783-row-main"><strong>{{ ctx.safe_home }} vs {{ ctx.safe_away }}</strong><small>{{ ctx.client_competition }} · {{ ctx.client_result_label }}</small></span>
+        <em>{{ 'Directo' if live.get('badge') == 'live' else 'Pick' if m.get('has_pick') or m.get('pick_id') else 'Ver' }}</em>
+      </a>
+      {% else %}
+      <div class="empty premium-empty"><strong>No hay partidos visibles.</strong><p>La app no inventa datos. Actualiza calendario o espera sincronización.</p></div>
+      {% endfor %}
+    </div>
+  </article>
+
+  <article class="v783-panel">
+    <div class="section-head"><div><h2>Picks activos</h2><p class="small">Selección, mercado, cuota y riesgo sin ruido.</p></div><a class="pill" href="/picks">Picks</a></div>
+    <div class="v783-list">
+      {% for p in picks[:5] %}
+      <a class="v783-row v783-pick" href="{{ p.get('client_match_url') or ('/match/' ~ (p.get('match_id') or p.get('id'))) }}">
+        <span class="v783-row-main"><strong>{{ p.get('client_selection_label') or p.get('selection_display') or p.get('selection') or 'Selección pendiente' }}</strong><small>{{ p.get('client_match_label') or ((p.get('home_team') or 'Partido') ~ ' vs ' ~ (p.get('away_team') or 'por confirmar')) }}</small></span>
+        <em>{{ p.get('client_odds_label') or ('Cuota ' ~ (p.get('odds') or 'pendiente')) }}</em>
+      </a>
+      {% else %}
+      <div class="empty premium-empty"><strong>No hay picks activos.</strong><p>Mejor esperar valor real que llenar la app con picks falsos.</p></div>
+      {% endfor %}
+    </div>
+  </article>
+</section>
+
+<section class="v783-quick-compact" aria-label="Accesos secundarios">
+  <a href="/combis"><strong>Combis</strong><small>Combinadas responsables</small></a>
+  <a href="/mercados"><strong>Mercados</strong><small>1X2, DNB, goles</small></a>
+  <a href="/highlights"><strong>Resúmenes</strong><small>Vídeos externos</small></a>
+  <a href="/telegram"><strong>Telegram</strong><small>Alertas y canal</small></a>
+  <a href="/mi-cuenta"><strong>Cuenta</strong><small>Plan y facturación</small></a>
+  <a href="/menu"><strong>Todo</strong><small>Mapa completo</small></a>
+</section>
+
+{% else %}
+<section class="v783-public-hero">
+  <div class="v783-public-copy">
+    <div class="kicker">NeMeSiS SHARK PRO · app deportiva premium</div>
+    <h1>Partidos, directos, picks y planes en una pantalla clara.</h1>
+    <p class="lead">Sin bloques enormes: entra, mira qué hay hoy, entiende los picks y elige FREE, PRO o ELITE desde el inicio.</p>
+    <div class="v783-actions"><a class="btn primary" href="/registro">Crear cuenta gratis</a><a class="btn" href="/cliente-login">Entrar</a><a class="btn" href="/membresias">Planes y precios</a></div>
+  </div>
+  <aside class="v783-plan-stack" aria-label="Planes visibles">
+    <a class="v783-plan-card free" href="/registro"><span>FREE</span><strong>0€</strong><small>Calendario, directos y resultados reales.</small></a>
+    <a class="v783-plan-card pro" href="/comprar/PRO"><span>PRO</span><strong>{{ pro.get('price_label') or '9,99 €/mes' }}</strong><small>Picks, combis, mercados y Telegram premium.</small></a>
+    <a class="v783-plan-card elite" href="/comprar/ELITE"><span>ELITE</span><strong>{{ elite.get('price_label') or '24,99 €/mes' }}</strong><small>Prioridad SHARK, alertas live y experiencia completa.</small></a>
+  </aside>
+</section>
+
+<section class="v783-public-value">
+  <a href="/calendar"><b>Partidos</b><span>Hora España/Madrid</span></a>
+  <a href="/live"><b>Directo</b><span>Marcador real cuando la API lo aporta</span></a>
+  <a href="/picks"><b>Picks</b><span>Mercado, cuota, stake y riesgo</span></a>
+  <a href="/track-record"><b>Histórico</b><span>ROI solo con resultados reales</span></a>
+</section>
+
+<section class="v783-public-trust">
+  <div class="section-head"><div><h2>Centro de confianza</h2><p class="small">La primera pantalla vende la idea sin esconder lo importante.</p></div><a class="pill" href="/legal">Confianza</a></div>
+  <div class="v783-trust-grid">
+    <article><strong>No inventamos datos</strong><span>Partidos, cuotas, resultados y ROI solo cuando existen.</span></article>
+    <article><strong>Planes visibles</strong><span>FREE, PRO y ELITE aparecen desde el inicio.</span></article>
+    <article><strong>Telegram y SHARK</strong><span>La app guía al cliente sin saturarlo.</span></article>
+    <article><strong>+18 y sin garantías</strong><span>No somos casa de apuestas: solo análisis informativo.</span></article>
+  </div>
+</section>
+{% endif %}
+{% endblock %}

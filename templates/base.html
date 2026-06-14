@@ -24,7 +24,7 @@
   {% set _visual_tier = 'free' %}
   {% set _tier_label = 'FREE' %}
 {% endif %}
-<body class="ns-app ns-tier-{{ _visual_tier }}{% if current_user %} ns-authenticated{% else %} ns-public{% endif %}{% if current_user and current_user.role == 'ADMIN' %} ns-admin{% endif %}" data-ns-route="{{ request.path }}" data-ns-plan="{{ _tier_label }}" data-v775-shell="true" data-v776-shell="true" data-v777-shell="true" data-v778-shell="true" data-v790-shell="true">
+<body class="ns-app ns-tier-{{ _visual_tier }}{% if current_user %} ns-authenticated{% else %} ns-public{% endif %}{% if current_user and current_user.role == 'ADMIN' %} ns-admin{% endif %}" data-ns-route="{{ request.path }}" data-ns-plan="{{ _tier_label }}" data-v775-shell="true" data-v776-shell="true" data-v777-shell="true" data-v778-shell="true" data-v790-shell="true" data-v792-shell="true">
   <div class="ns-ambient" aria-hidden="true"><i></i><i></i><i></i></div>
   <div class="membership-energy-bar" aria-hidden="true"></div>
   <div class="ns-route-glow" aria-hidden="true"></div>
@@ -54,15 +54,13 @@
           <a href="/logout">Salir</a>
         {% elif current_user %}
           <a href="/app" data-v775-icon="⌂">Inicio</a>
-          <a href="/calendar?lane=today" data-v775-icon="◷">Hoy</a>
+          <a href="/calendar?lane=today" data-v775-icon="▦">Partidos</a>
           <a href="/live" data-v775-icon="●">Directo</a>
           <a href="/picks" data-v775-icon="◆">Picks</a>
           <a href="/track-record" data-v775-icon="↗">Histórico</a>
-          <a href="/highlights" data-v775-icon="▶">Resúmenes</a>
-          <a href="/shark" data-v775-icon="🦈">SHARK</a>
+          <a href="/shark" data-v775-icon="◥">SHARK</a>
+          <a href="/telegram" data-v775-icon="✈">Telegram</a>
           <a href="/mi-cuenta" data-v775-icon="◎">Cuenta</a>
-          <a href="/menu" data-v775-icon="☰">Todo</a>
-          <a href="/logout" data-v775-icon="×">Salir</a>
         {% else %}
           <a href="/membresias">Membresías</a>
           <a href="/legal">Confianza</a>
@@ -103,10 +101,10 @@
       <a href="/logout">Salir</a>
     {% elif current_user %}
       <a href="/app" data-v775-icon="⌂">Inicio</a>
-      <a href="/calendar?lane=today" data-v775-icon="◷">Hoy</a>
+      <a href="/calendar?lane=today" data-v775-icon="▦">Partidos</a>
       <a href="/live" data-v775-icon="●">Directo</a>
       <a href="/picks" data-v775-icon="◆">Picks</a>
-      <a href="/menu" data-v775-icon="☰">Todo</a>
+      <a href="/mi-cuenta" data-v775-icon="◎">Cuenta</a>
     {% else %}
       <a href="/" data-v775-icon="⌂">Inicio</a>
       <a href="/membresias" data-v775-icon="★">Planes</a>

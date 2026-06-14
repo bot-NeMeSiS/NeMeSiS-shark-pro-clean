@@ -22,8 +22,8 @@ membership = read('templates/membership.html')
 legal_engine = read('engines/legal_compliance_engine.py')
 continuation = read('CHATGPT_CONTINUATION_REPORT.md')
 
-require(VERSION.startswith('V788_LEGAL_COMPLIANCE_LIVE_READABILITY_TOTAL_POLISH') or VERSION.startswith('V789_REAL_LAUNCH_CERTIFICATION_COMMAND_CENTER') or VERSION.startswith('V790_CLIENT_PROFESSIONAL_SCREEN_SYSTEM_TOTAL_POLISH') or VERSION.startswith('V791_FULL_APP_REAL_AUDIT_CLIENT_PERFECTION_FINAL'), f'VERSION inesperada: {VERSION}')
-require('APP_VERSION = "V791_FULL_APP_REAL_AUDIT_CLIENT_PERFECTION_FINAL"' in app, 'APP_VERSION no actualizado')
+require(VERSION.startswith('V788_LEGAL_COMPLIANCE_LIVE_READABILITY_TOTAL_POLISH') or VERSION.startswith('V789_REAL_LAUNCH_CERTIFICATION_COMMAND_CENTER') or VERSION.startswith('V790_CLIENT_PROFESSIONAL_SCREEN_SYSTEM_TOTAL_POLISH') or VERSION.startswith('V791_FULL_APP_REAL_AUDIT_CLIENT_PERFECTION_FINAL') or VERSION.startswith('V792_CLIENT_MOCKUP_VISUAL_SYSTEM_IMPLEMENTATION') or version.startswith('V792_CLIENT_MOCKUP_VISUAL_SYSTEM_IMPLEMENTATION'), f'VERSION inesperada: {VERSION}')
+require('APP_VERSION = "V792_CLIENT_MOCKUP_VISUAL_SYSTEM_IMPLEMENTATION"' in app or 'APP_VERSION = "V791_FULL_APP_REAL_AUDIT_CLIENT_PERFECTION_FINAL"' in app, 'APP_VERSION no actualizado')
 for token in ['enforce_checkout_legal_gate', 'user_legal_acceptances', 'record_legal_checkout_acceptance', '/no-somos-casa-de-apuestas']:
     require(token in app, f'protección legal ausente: {token}')
 for token in ['LEGAL_COMPLIANCE_VERSION = "V788-LEGAL-2026-06-14"', 'accept_not_betting_operator', 'accept_no_guarantee']:

@@ -6,7 +6,7 @@
 {% set lane = live.get('lane') or 'live' %}
 {% set lane_label = (live.get('lane_labels') or {}).get(lane, lane) %}
 <section class="v774-client-hero compact v774-live-hero">
-  <div class="v774-hero-copy"><div class="kicker">Directo · resultados · próximos</div><h1>Lo que está pasando ahora</h1><p class="lead">Directos primero, finalizados con resultado y próximos con día + hora Madrid. Si no hay directo real, se explica sin confundir.</p><div class="v774-actions"><a class="btn primary" href="/live?f=live">En directo</a><a class="btn" href="/live?f=today">Hoy</a><a class="btn" href="/live?f=finished">Finalizados</a><a class="btn" href="/calendar">Calendario</a><a class="btn" href="/live?f=live&refresh=1">Actualizar directo</a></div></div>
+  <div class="v774-hero-copy"><div class="kicker">Directo · resultados · próximos</div><h1>Directo</h1><p class="lead">Partidos en juego ahora, con marcador, minuto, estado y acciones claras.</p><div class="v774-actions"><a class="btn primary" href="/live?f=live">En directo</a><a class="btn" href="/live?f=today">Hoy</a><a class="btn" href="/live?f=finished">Finalizados</a><a class="btn" href="/calendar">Calendario</a><a class="btn" href="/live?f=live&refresh=1">Actualizar directo</a></div></div>
   <aside class="v774-day-card"><div class="v774-kpis"><a><strong>{{ counts.get('live',0) }}</strong><span>Directo</span></a><a><strong>{{ counts.get('upcoming',0) }}</strong><span>Próximos</span></a><a><strong>{{ counts.get('finished',0) }}</strong><span>Finalizados</span></a><a><strong>{{ counts.get('with_pick',0) }}</strong><span>Con pick</span></a></div><p class="small">Filtro actual: {{ lane_label }}</p></aside>
 </section>
 

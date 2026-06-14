@@ -216,3 +216,8 @@ Validación local:
 - check_madrid_times OK.
 - Checks V782-V791 OK.
 - client_screen_audit_snapshot READY con score 100/100 en rutas/templates/CSS críticos.
+
+
+## V792_CLIENT_MOCKUP_VISUAL_SYSTEM_IMPLEMENTATION
+
+Implementado sobre V791. Convierte los mockups aprobados en sistema visual real de pantallas cliente: navegación superior limpia, bottom nav móvil Inicio/Partidos/Directo/Picks/Cuenta, Home como centro de mando, Live con jerarquía clara, Calendario tipo agenda, Picks con hero destacado, Detalle más premium por layout/CSS, Membresías más comerciales, Cuenta/Telegram/Histórico más profesionales. Preserva Stripe, Telegram, Cron, DB_PATH, usuarios, sesiones, membresías, picks, resultados, highlights, escudos y Madrid Time.

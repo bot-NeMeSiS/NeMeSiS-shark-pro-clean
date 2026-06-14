@@ -10,8 +10,8 @@
 <section class="v785-membership-hero">
   <div>
     <div class="kicker">Membresías · precios claros · Stripe seguro</div>
-    <h1>Elige plan y continúa sin perderte.</h1>
-    <p class="lead">FREE para mirar la app. PRO y ELITE para desbloquear picks, Telegram y SHARK. Si no has iniciado sesión, guardamos el plan elegido y vuelves aquí al entrar.</p>
+    <h1>Elige tu plan</h1>
+    <p class="lead">Accede a análisis, alertas y funciones premium con precios claros y aceptación legal antes de pagar.</p>
     {% if payment_error or data.payment_error %}<div class="empty-state warn">{{ payment_error or data.payment_error }}</div>{% endif %}
     {% if request.args.get('pago') == 'cancelado' %}<div class="empty-state">Pago cancelado. No se ha cambiado tu membresía.</div>{% endif %}
     {% if request.args.get('pago') == 'exito' and request.args.get('sync') == 'ok' %}<div class="v786-pay-ok">Pago recibido. Stripe ha sincronizado tu plan correctamente.</div>{% endif %}
