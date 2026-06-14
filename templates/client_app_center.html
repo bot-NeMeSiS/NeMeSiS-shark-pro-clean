@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "partials/team_identity.html" import crest %}
 {% block content %}
 {% set org = data.get('v778_organization') or {} %}
 {% set product = data.get('v777_product') or {} %}
@@ -69,9 +70,11 @@
     <div class="v778-list">
       {% for m in focus[:5] %}
       {% set ctx = m|match_madrid_context %}
-      <a class="v778-match-row" href="/match/{{ m.get('id') }}">
+      {% set home_identity = m|team_identity('home') %}
+      {% set away_identity = m|team_identity('away') %}
+      <a class="v778-match-row v779-identity-row" href="/match/{{ m.get('id') }}">
         <span class="v778-time"><b>{{ ctx.client_date_label }}</b><small>{{ ctx.client_time_label }}</small></span>
-        <span><strong>{{ ctx.safe_home }} vs {{ ctx.safe_away }}</strong><small>{{ ctx.client_competition }} · {{ ctx.client_status_label }}</small></span>
+        <span class="v779-row-main"><strong>{{ crest(home_identity, ctx.safe_home, 'compact') }} {{ ctx.safe_home }} <em>vs</em> {{ crest(away_identity, ctx.safe_away, 'compact') }} {{ ctx.safe_away }}</strong><small>{{ ctx.client_competition }} · {{ ctx.client_status_label }}</small></span>
         <em>Ver</em>
       </a>
       {% else %}<div class="empty premium-empty"><strong>No hay focos ahora mismo.</strong><p>La app no inventa partidos. Revisa el calendario o espera a la siguiente sincronización.</p></div>{% endfor %}
@@ -81,7 +84,8 @@
     <div class="section-head"><div><h2>Picks claros</h2><p class="small">Solo aparecen si hay señal real preparada/publicada.</p></div><a class="pill" href="/picks">Picks</a></div>
     <div class="v778-list">
       {% for p in picks[:4] %}
-      <a class="v778-pick-row" href="{{ p.get('client_match_url') or '/picks' }}"><span><strong>{{ p.get('client_selection_label') or p.get('selection_display') or p.get('selection') or 'Pick' }}</strong><small>{{ p.get('client_match_label') or 'Partido pendiente' }} · {{ p.get('client_full_datetime_label') or (p|match_full_datetime) }}</small></span><em>{{ p.get('client_odds_label') or p.get('odds') or 'Cuota pendiente' }}</em></a>
+      {% set home_identity = p|team_identity('home') %}{% set away_identity = p|team_identity('away') %}
+      <a class="v778-pick-row v779-identity-row" href="{{ p.get('client_match_url') or '/picks' }}"><span><strong>{{ crest(home_identity, p.get('home_team') or 'Local', 'compact') }} {{ p.get('client_selection_label') or p.get('selection_display') or p.get('selection') or 'Pick' }}</strong><small>{{ p.get('client_match_label') or 'Partido pendiente' }} · {{ crest(away_identity, p.get('away_team') or 'Visitante', 'compact') }} {{ p.get('client_full_datetime_label') or (p|match_full_datetime) }}</small></span><em>{{ p.get('client_odds_label') or p.get('odds') or 'Cuota pendiente' }}</em></a>
       {% else %}<div class="empty premium-empty"><strong>No hay picks activos.</strong><p>Mejor esperar que rellenar por rellenar. SHARK te avisará cuando haya valor.</p></div>{% endfor %}
     </div>
   </article>

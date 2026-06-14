@@ -6,7 +6,7 @@ ROOT=Path(__file__).resolve().parents[1]
 def text(path): return (ROOT/path).read_text(encoding='utf-8')
 errors=[]
 version=text('VERSION.txt').strip()
-if not (version.startswith('V775_MOBILE_CLIENT_APP_EXPERIENCE_TOTAL_COMPLETION') or version.startswith('V776_CLIENT_INFORMATION_ARCHITECTURE_FINAL_ORDER') or version.startswith('V777_CLIENT_PRODUCT_EXPERIENCE_FINAL_SYSTEM') or version.startswith('V778_CLIENT_PRODUCT_ORGANIZATION_MADRID_TIME_FINAL_STABILITY')):
+if not (version.startswith('V775_MOBILE_CLIENT_APP_EXPERIENCE_TOTAL_COMPLETION') or version.startswith('V776_CLIENT_INFORMATION_ARCHITECTURE_FINAL_ORDER') or version.startswith('V777_CLIENT_PRODUCT_EXPERIENCE_FINAL_SYSTEM') or version.startswith('V778_CLIENT_PRODUCT_ORGANIZATION_MADRID_TIME_FINAL_STABILITY') or version.startswith('V779_TEAM_IDENTITY_FLAGS_CRESTS_FINAL_POLISH')):
     errors.append(f'VERSION incorrecta: {version}')
 base=text('templates/base.html')
 css=text('static/app.css')
@@ -29,7 +29,7 @@ for path in ROOT.joinpath('templates').glob('*.html'):
         if bad in s:
             errors.append(f'enlace roto {bad} en {path.relative_to(ROOT)}')
 # page shortcut coverage
-if not version.startswith('V778_'):
+if not (version.startswith('V778_') or version.startswith('V779_')):
     for path in ['templates/calendar.html','templates/live.html','templates/picks.html','templates/combis.html','templates/betting_markets.html','templates/highlights.html','templates/track_record.html','templates/sports_hub.html']:
         if 'v775-page-shortcuts' not in text(path):
             errors.append(f'{path} sin accesos cortos V775')

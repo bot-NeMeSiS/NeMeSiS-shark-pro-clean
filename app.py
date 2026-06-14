@@ -187,7 +187,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V778_CLIENT_PRODUCT_ORGANIZATION_MADRID_TIME_FINAL_STABILITY"
+APP_VERSION = "V779_TEAM_IDENTITY_FLAGS_CRESTS_FINAL_POLISH"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -1963,43 +1963,110 @@ def fallback_crest_url(name):
     return "/team-crest.svg?" + urllib.parse.urlencode({"name": name or "Equipo"})
 
 
+
+V779_COUNTRY_HINTS = {
+    "laliga": "España", "spain": "España", "españa": "España", "segunda": "España", "copa del rey": "España", "rfef": "España",
+    "premier": "Inglaterra", "england": "Inglaterra", "championship": "Inglaterra", "fa cup": "Inglaterra",
+    "serie a": "Italia", "italy": "Italia", "coppa": "Italia",
+    "bundesliga": "Alemania", "germany": "Alemania", "dfb": "Alemania",
+    "ligue 1": "Francia", "france": "Francia", "coupe de france": "Francia",
+    "primeira": "Portugal", "portugal": "Portugal",
+    "eredivisie": "Países Bajos", "netherlands": "Países Bajos",
+    "argentina": "Argentina", "brasil": "Brasil", "brazil": "Brasil", "libertadores": "Sudamérica", "sudamericana": "Sudamérica",
+    "mls": "Estados Unidos", "usa": "Estados Unidos", "united states": "Estados Unidos",
+    "mundial": "Global", "world cup": "Global", "champions": "Europa", "europa league": "Europa", "conference": "Europa",
+}
+
+
+def infer_country_hint(*values):
+    """Best-effort country/region hint for flags when APIs return no explicit country.
+
+    This never invents match data, results or odds; it only improves the visual identity
+    fallback so cards do not look empty when TheSportsDB badges are not yet synced.
+    """
+    blob = " ".join(str(v or "") for v in values).lower()
+    if not blob.strip():
+        return ""
+    for key, country in V779_COUNTRY_HINTS.items():
+        if key in blob:
+            return country
+    return ""
+
+
+def team_display_identity(name="", logo_url="", country="", competition="", source="ui"):
+    display = spanish_team_name(name) or str(name or "Equipo").strip() or "Equipo"
+    country_hint = spanish_country_name(country) or infer_country_hint(display, competition) or country or ""
+    identity = build_team_identity_payload(display, logo_url=safe_team_logo_url(logo_url), country=country_hint, source=source or "V779 identity")
+    # Absolute last safety net: every identity must have visible artwork.
+    if not identity.get("crest_url"):
+        identity["crest_url"] = fallback_crest_url(display)
+        identity["crest_mode"] = "fallback"
+        identity["ui_class"] = "crest-fallback"
+    identity["visible_badge"] = identity.get("flag_emoji") or identity.get("initials") or "NS"
+    identity["country_flag"] = team_flag_or_emoji(country_hint, country_hint) if country_hint else ""
+    return identity
+
+
+def team_identity_for_match(item, side="home"):
+    item = dict(item or {})
+    prefix = "away" if str(side).lower().startswith("away") else "home"
+    name = item.get(f"{prefix}_team") or item.get(f"safe_{prefix}") or item.get(prefix) or "Equipo"
+    logo = item.get(f"{prefix}_logo") or ((item.get(f"{prefix}_identity") or {}).get("logo_url")) or ((item.get(f"{prefix}_identity") or {}).get("crest_url"))
+    country = item.get("country") or item.get("safe_country") or infer_country_hint(item.get("competition_name"), item.get("league_name"), item.get("competition_key"))
+    comp = item.get("competition_name") or item.get("league_name") or item.get("safe_competition") or item.get("competition_key")
+    return professionalize_identity(item.get(f"{prefix}_identity"), name, logo, country, f"V779 {prefix} {comp or 'match'}")
+
 def professional_team_identity(name, explicit_logo="", country="", source=""):
     """Central UI identity payload for teams in cliente/admin/Telegram.
 
-    Always returns a safe crest_url: a validated real logo when available or the app-owned
-    SVG fallback. This avoids broken images and oversized raw initials in templates.
+    Always returns visible artwork: real crest if it exists, country/club emoji badge
+    if it can be inferred, or app-owned SVG initials.
     """
-    display = spanish_team_name(name) or str(name or "Equipo").strip() or "Equipo"
-    return build_team_identity_payload(display, logo_url=safe_team_logo_url(explicit_logo), country=spanish_country_name(country) or country or "", source=source or "NeMeSiS identity")
+    return team_display_identity(name, explicit_logo, country, "", source or "NeMeSiS identity")
 
 
 def professionalize_identity(identity, name="", explicit_logo="", country="", source=""):
     base = dict(identity or {})
     display = spanish_team_name(base.get("name") or base.get("display_name") or name) or base.get("name") or name or "Equipo"
-    merged = merge_team_identity_payload(base, name=display, logo_url=explicit_logo or base.get("crest_url") or base.get("logo_url"), country=country or base.get("country") or "", source=source or base.get("crest_source") or base.get("source") or "cache")
+    country_hint = spanish_country_name(country or base.get("country") or "") or infer_country_hint(display, source, base.get("league"), base.get("competition")) or (country or base.get("country") or "")
+    base_crest_url = safe_team_logo_url(base.get("crest_url"))
+    # Only true remote/provider URLs count as real logos. Data/app fallbacks remain visual fallbacks.
+    base_crest_as_logo = base_crest_url if str(base_crest_url).startswith(("http://", "https://")) else ""
+    logo = safe_team_logo_url(explicit_logo) or safe_team_logo_url(base.get("logo_url")) or base_crest_as_logo
+    merged = merge_team_identity_payload(base, name=display, logo_url=logo, country=country_hint, source=source or base.get("crest_source") or base.get("source") or "cache")
     merged["name"] = spanish_team_name(merged.get("name") or display) or display
     merged["display_name"] = merged["name"]
+    merged["country"] = spanish_country_name(merged.get("country") or country_hint) or country_hint or ""
     merged["flag_emoji"] = merged.get("flag_emoji") or team_flag_or_emoji(merged.get("name"), merged.get("country"))
     merged["team_emoji"] = merged.get("flag_emoji")
-    merged["crest_url"] = safe_team_logo_url(merged.get("crest_url")) or fallback_crest_url(merged.get("name") or display)
     merged["logo_url"] = safe_team_logo_url(merged.get("logo_url"))
-    merged["crest_mode"] = "logo" if merged.get("logo_url") or (str(merged.get("crest_url") or "").startswith(("http://", "https://", "data:image/"))) else ("flag" if merged.get("flag_emoji") else "fallback")
-    merged["ui_class"] = f"crest-{merged.get('crest_mode') or 'fallback'}"
-    merged["has_real_logo"] = merged.get("crest_mode") == "logo" and not str(merged.get("crest_url") or "").startswith("/team-crest.svg")
+    merged["crest_url"] = safe_team_logo_url(merged.get("crest_url")) or (build_team_identity_payload(merged.get("name"), country=merged.get("country"), source="V779 fallback").get("crest_url")) or fallback_crest_url(merged.get("name") or display)
+    if merged.get("logo_url"):
+        mode = "logo"
+    elif str(merged.get("crest_url") or "").startswith("data:image/") or merged.get("flag_emoji"):
+        mode = "flag"
+    else:
+        mode = "fallback"
+    merged["crest_mode"] = mode
+    merged["ui_class"] = f"crest-{mode}"
+    merged["has_real_logo"] = bool(merged.get("logo_url")) and not str(merged.get("logo_url") or "").startswith("/team-crest.svg")
+    merged["visible_badge"] = merged.get("flag_emoji") or merged.get("initials") or "NS"
+    merged["country_flag"] = team_flag_or_emoji(merged.get("country"), merged.get("country")) if merged.get("country") else ""
     return merged
 
 
 def apply_team_identities_to_match(item):
     item = dict(item or {})
-    home = item.get("home_team") or item.get("safe_home") or "Equipo local"
-    away = item.get("away_team") or item.get("safe_away") or "Equipo visitante"
-    country = item.get("country") or item.get("safe_country") or ""
-    item["home_identity"] = professionalize_identity(item.get("home_identity"), home, item.get("home_logo") or ((item.get("home_identity") or {}).get("logo_url")), country, "match")
-    item["away_identity"] = professionalize_identity(item.get("away_identity"), away, item.get("away_logo") or ((item.get("away_identity") or {}).get("logo_url")), country, "match")
-    item["home_logo"] = safe_team_logo_url(item.get("home_logo")) or item["home_identity"].get("logo_url") or ""
-    item["away_logo"] = safe_team_logo_url(item.get("away_logo")) or item["away_identity"].get("logo_url") or ""
-    item["home_badge_text"] = item["home_identity"].get("flag_emoji") or item["home_identity"].get("initials")
-    item["away_badge_text"] = item["away_identity"].get("flag_emoji") or item["away_identity"].get("initials")
+    item["home_identity"] = team_identity_for_match(item, "home")
+    item["away_identity"] = team_identity_for_match(item, "away")
+    item["home_logo"] = item["home_identity"].get("logo_url") or ""
+    item["away_logo"] = item["away_identity"].get("logo_url") or ""
+    item["home_crest_url"] = item["home_identity"].get("crest_url")
+    item["away_crest_url"] = item["away_identity"].get("crest_url")
+    item["home_badge_text"] = item["home_identity"].get("visible_badge") or item["home_identity"].get("initials")
+    item["away_badge_text"] = item["away_identity"].get("visible_badge") or item["away_identity"].get("initials")
+    item["home_country_flag"] = item["home_identity"].get("country_flag") or item["home_identity"].get("flag_emoji")
+    item["away_country_flag"] = item["away_identity"].get("country_flag") or item["away_identity"].get("flag_emoji")
     return item
 
 
@@ -5748,6 +5815,7 @@ def client_match_display_context(match):
         "safe_score": score,
         "safe_status": status_label,
     })
+    item.update(apply_team_identities_to_match(item))
     return item
 
 
@@ -5818,6 +5886,28 @@ def jinja_match_madrid_context(value):
 @app.template_filter("match_client_status")
 def jinja_match_client_status(value):
     return client_match_display_context(value).get("client_result_label")
+
+@app.template_filter("team_identity")
+def jinja_team_identity(value, side="home"):
+    """Template-safe identity: never returns an empty crest/flag payload."""
+    try:
+        if isinstance(value, dict):
+            return team_identity_for_match(value, side)
+        return professional_team_identity(value, source="template")
+    except Exception:
+        return professional_team_identity("Equipo", source="template-fallback")
+
+
+@app.template_filter("team_crest_url")
+def jinja_team_crest_url(value, side="home"):
+    return jinja_team_identity(value, side).get("crest_url") or fallback_crest_url("Equipo")
+
+
+@app.template_filter("team_visible_badge")
+def jinja_team_visible_badge(value, side="home"):
+    ident = jinja_team_identity(value, side)
+    return ident.get("visible_badge") or ident.get("flag_emoji") or ident.get("initials") or "NS"
+
 
 
 @app.template_filter("pick_client_title")
@@ -15728,7 +15818,7 @@ def v778_client_organization_quality_snapshot():
     return {
         "ok": all(c["exists"] and not c["bad_copy"] and not c["raw_created_at_visible"] for c in checks),
         "version": APP_VERSION,
-        "status": "V778_CLIENT_PRODUCT_ORGANIZATION_MADRID_TIME_FINAL_STABILITY",
+        "status": "V779_TEAM_IDENTITY_FLAGS_CRESTS_FINAL_POLISH",
         "navigation": {
             "global_rail_removed": "v777-client-rail" not in base_raw,
             "mobile_bottom_nav": "bottom-nav-clean" in base_raw,

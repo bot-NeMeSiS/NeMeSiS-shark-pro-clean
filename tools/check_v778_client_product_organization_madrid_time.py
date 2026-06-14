@@ -5,8 +5,8 @@ import sys
 ROOT=Path(__file__).resolve().parents[1]
 errors=[]
 version=(ROOT/'VERSION.txt').read_text(encoding='utf-8-sig').strip()
-if not version.startswith('V778_CLIENT_PRODUCT_ORGANIZATION_MADRID_TIME_FINAL_STABILITY'):
-    errors.append(f'VERSION.txt no es V778: {version}')
+if not (version.startswith('V778_CLIENT_PRODUCT_ORGANIZATION_MADRID_TIME_FINAL_STABILITY') or version.startswith('V779_TEAM_IDENTITY_FLAGS_CRESTS_FINAL_POLISH')):
+    errors.append(f'VERSION.txt no es V778/V779 compatible: {version}')
 base=(ROOT/'templates/base.html').read_text(encoding='utf-8')
 css=(ROOT/'static/app.css').read_text(encoding='utf-8')
 app=(ROOT/'app.py').read_text(encoding='utf-8')

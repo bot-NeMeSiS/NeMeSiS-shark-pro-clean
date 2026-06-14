@@ -132,24 +132,33 @@ CLUB_EMOJIS = {
 
 
 def safe_logo_url(url: Any) -> str:
-    """Return a safe web logo URL or empty string.
+    """Return a safe image URL for crests/logos or empty string.
 
-    Accepts https/http, app-local SVG fallback routes and data:image SVG/PNG/JPEG.
-    Rejects text placeholders and javascript-like values.
+    V779 hardens the identity layer for Render/HTTPS: many sports providers
+    store badge URLs as plain HTTP. Browsers can block those images as mixed
+    content, which made teams look as if they had no crest. We upgrade web
+    URLs to HTTPS when possible, keep app-owned/data fallbacks, and reject
+    script/text placeholders.
     """
     value = str(url or "").strip()
     if not value:
         return ""
     low = value.lower()
-    if low in {"none", "null", "undefined", "nan", "false", "0", "-"}:
+    if low in {"none", "null", "undefined", "nan", "false", "0", "-", "sin escudo", "pendiente"}:
         return ""
-    if any(bad in low for bad in ("javascript:", "<script", "data:text/html")):
+    if any(bad in low for bad in ("javascript:", "<script", "data:text/html", "vbscript:")):
         return ""
-    if value.startswith("/team-crest.svg"):
+    if value.startswith("//"):
+        value = "https:" + value
+        low = value.lower()
+    if value.startswith("/team-crest.svg") or value.startswith("/static/"):
         return value
     if value.startswith("data:image/"):
         return value
-    if value.startswith("https://") or value.startswith("http://"):
+    if value.startswith("http://"):
+        # Avoid mixed-content blocks in the deployed HTTPS app.
+        value = "https://" + value[len("http://"):]
+    if value.startswith("https://"):
         return value
     return ""
 

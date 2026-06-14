@@ -107,3 +107,11 @@ ChatGPT detectó que el ZIP real subido ya estaba en V772, pero no incluía comp
 - `/mi-cuenta` concentra plan, Telegram, favoritos, actividad y ayuda.
 - Refuerzo de `madrid_datetime_label` para timestamps genéricos y eliminación de shortcuts duplicados en Calendario/Directo/Picks.
 - No toca Telegram/Cron/DB_PATH/usuarios/membresías/pagos/highlights/Track Record/Data Marketplace/Automation Center.
+
+## V779_TEAM_IDENTITY_FLAGS_CRESTS_FINAL_POLISH
+- Corregida capa de identidad visual de equipos: escudos reales, banderas/emoji y fallback premium siempre visibles.
+- `safe_logo_url()` ahora convierte HTTP a HTTPS para evitar bloqueo de imágenes en Render HTTPS.
+- Añadidos filtros Jinja `team_identity`, `team_crest_url`, `team_visible_badge` y parcial `partials/team_identity.html`.
+- Reforzadas pantallas cliente principales: app, calendar, live, picks, match detail, sports hub, match hub, team detail, favoritos y daily briefing.
+- Añadido JS fallback `nsV779TeamIdentityFallback()` para que un img vacío/roto no deje huecos.
+- Validaciones: py_compile OK, compileall OK, Madrid Time OK, check V779 OK, checks V771-V778 compatibles OK, build clean release OK, ZIP audit OK con forbidden_count=0.
