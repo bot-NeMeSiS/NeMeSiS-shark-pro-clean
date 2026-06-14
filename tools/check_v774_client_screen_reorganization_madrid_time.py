@@ -11,6 +11,7 @@ from jinja2 import Environment
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V774_CLIENT_SCREEN_REORGANIZATION_MADRID_TIME_TOTAL_POLISH"
+V775_VERSION = "V775_MOBILE_CLIENT_APP_EXPERIENCE_TOTAL_COMPLETION"
 
 
 def read(path: str) -> str:
@@ -41,8 +42,8 @@ def static_checks():
     app = read("app.py")
     css = read("static/app.css")
     base = read("templates/base.html")
-    ok(version == VERSION, "VERSION.txt no apunta a V774", version)
-    ok(f'APP_VERSION = "{VERSION}"' in app, "APP_VERSION no apunta a V774")
+    ok(version in {VERSION, V775_VERSION}, "VERSION.txt no apunta a V774/V775 compatible", version)
+    ok(f'APP_VERSION = "{VERSION}"' in app or f'APP_VERSION = "{V775_VERSION}"' in app, "APP_VERSION no apunta a V774/V775 compatible")
     ok('DB_PATH = os.getenv("DB_PATH", "/data/database.db")' in app, "DB_PATH fue alterado")
     for route in ("/admin/client-screen-quality", "/api/admin/client-screen-quality"):
         ok(route in app, "ruta V774 faltante", route)

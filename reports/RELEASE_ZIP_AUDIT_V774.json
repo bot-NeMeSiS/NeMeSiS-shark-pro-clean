@@ -1,10 +1,10 @@
 {
   "ok": true,
-  "audited_at": "2026-06-14T12:32:41",
+  "audited_at": "2026-06-14T12:32:52",
   "zip": "/mnt/data/releases/NeMeSiS_SHARK_PRO_V774_CLIENT_SCREEN_REORGANIZATION_MADRID_TIME_TOTAL_POLISH_RENDER_READY.zip",
-  "zip_size_bytes": 990491,
-  "file_count": 559,
-  "content_size_bytes": 3085746,
+  "zip_size_bytes": 992179,
+  "file_count": 561,
+  "content_size_bytes": 3090661,
   "forbidden_count": 0,
   "forbidden": [],
   "top_files": [
@@ -117,8 +117,8 @@
     },
     {
       "folder": "reports",
-      "size": 136873,
-      "files": 70
+      "size": 141788,
+      "files": 72
     },
     {
       "folder": "V726_PROJECT_TREE_AUDIT.md",

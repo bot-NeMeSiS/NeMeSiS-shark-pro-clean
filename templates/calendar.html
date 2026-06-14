@@ -12,6 +12,8 @@
   </div>
   <aside class="v774-day-card"><div class="v774-kpis"><a><strong>{{ counts.get('visible', 0) }}</strong><span>Visibles</span></a><a><strong>{{ counts.get('live', 0) }}</strong><span>Directo</span></a><a><strong>{{ counts.get('picks', 0) }}</strong><span>Picks</span></a><a><strong>{{ counts.get('leagues', 0) }}</strong><span>Ligas</span></a></div><p class="small">{{ calendar.get('lane_label') or 'Hoy' }}{% if calendar.get('has_filters') %} · filtros activos{% endif %}</p></aside>
 </section>
+<section class="v775-page-shortcuts"><a href="/calendar?lane=today">Hoy</a><a href="/calendar?lane=live">Directo</a><a href="/calendar?lane=results">Resultados</a><a href="/calendar?lane=with_pick">Con pick</a></section>
+
 
 <section class="v774-tabs" aria-label="Filtros calendario">{% for tab in calendar.get('tabs') or [] %}<a class="{{ 'active' if filters.get('lane') == tab.key else '' }}" href="{{ tab.href }}">{{ tab.label }}</a>{% endfor %}</section>
 

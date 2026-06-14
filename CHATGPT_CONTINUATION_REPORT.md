@@ -85,7 +85,3 @@ V772 mejora Telegram como producto premium sin añadir complejidad peligrosa. La
 ## V773 ChatGPT continuation
 
 ChatGPT detectó que el ZIP real subido ya estaba en V772, pero no incluía completamente la capa Data Marketplace / Automation Center descrita en el resumen. Se preparó V773 para consolidar esa capa sin romper V772 Telegram visual cards: nuevos motores de datos comerciales, automatización y calidad UX; nuevas rutas admin/API; limpieza de mojibake; CSS de navegación compacta; y exportaciones con privacidad por diseño.
-
-## V774_CLIENT_SCREEN_REORGANIZATION_MADRID_TIME_TOTAL_POLISH
-
-Se crea una versión centrada de verdad en pantallas cliente tras revisar el vídeo: Home, App Center, Calendario, Directo, Picks, Combis, Mercados, Resúmenes, Track Record, Detalle de Partido, Sports Hub y Menú Más. Se reduce navegación cliente, se aísla landing pública para que no aparezca mezclada bajo sesión, se quitan bandas repetitivas de pantallas autenticadas, se corrige chip `Pasado` por `En 2 días`, se refuerza Madrid Time mediante `client_match_display_context` en calendario y se añade check V774. No se toca Telegram/Cron/DB_PATH/usuarios/membresías/Track Record/highlights/Data Marketplace/Automation Center.

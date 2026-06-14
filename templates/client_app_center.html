@@ -3,22 +3,71 @@
 {% set v = data.get('v757_app') or {} %}
 {% set focus = v.get('focus') or [] %}
 {% set picks = v.get('picks') or [] %}
-<section class="v774-client-hero compact">
+{% set tr = data.get('track_record') or {} %}
+<section class="v775-mobile-home-hero v774-client-hero compact">
   <div class="v774-hero-copy">
-    <div class="kicker">Mi app · vista cliente</div>
-    <h1>{{ v.get('headline') or 'Centro SHARK del cliente' }}</h1>
-    <p class="lead">Una sola puerta de entrada: qué mirar ahora, dónde están los picks y qué queda pendiente de resultados reales.</p>
-    <div class="v774-actions"><a class="btn primary" href="/calendar?lane=today">Partidos de hoy</a><a class="btn" href="/live">Directo</a><a class="btn" href="/picks">Picks</a><a class="btn" href="/menu">Más</a></div>
+    <div class="kicker">Inicio · móvil y PC · Hora Madrid</div>
+    <h1>Tu panel SHARK, limpio y directo</h1>
+    <p class="lead">Primero lo que importa: partidos de hoy, directo, picks, resultados e histórico. El resto queda en Más para no saturar la pantalla.</p>
+    <div class="v774-actions v775-primary-actions">
+      <a class="btn primary" href="/calendar?lane=today">Partidos de hoy</a>
+      <a class="btn" href="/live?f=live">Directo</a>
+      <a class="btn" href="/picks">Picks</a>
+      <a class="btn" href="/menu">Más</a>
+    </div>
   </div>
-  <aside class="v774-day-card"><span class="v774-status ready">Orden cliente</span><p class="small">La pantalla agrupa las opciones importantes y manda el resto al menú Más.</p></aside>
+  <aside class="v774-day-card v775-today-card">
+    <span class="v774-status ready">Vista cliente ordenada</span>
+    <div class="v775-mini-kpis">
+      <a href="/calendar?lane=today"><strong>{{ focus|length }}</strong><span>Focos</span></a>
+      <a href="/picks"><strong>{{ picks|length }}</strong><span>Picks</span></a>
+      <a href="/track-record"><strong>{{ (tr.get('summary') or {}).get('closed_picks', '—') }}</strong><span>Cerrados</span></a>
+    </div>
+  </aside>
 </section>
-<section class="v774-dashboard-grid">
-  <article class="v774-panel"><div class="section-head"><h2>Siguiente acción</h2><span class="pill">Guía</span></div><p>{{ (v.get('next_action') or {}).get('title') or 'Revisar calendario y directo' }}</p><p class="small">{{ (v.get('next_action') or {}).get('description') or 'Empieza por partidos de hoy, después revisa picks y resultados.' }}</p></article>
-  <article class="v774-panel"><div class="section-head"><h2>Transparencia</h2><a class="pill" href="/track-record">Histórico</a></div><p>{{ (v.get('trust') or {}).get('title') or 'Sin datos inventados' }}</p><p class="small">{{ (v.get('trust') or {}).get('note') or 'ROI y resultados solo se enseñan cuando están cerrados de verdad.' }}</p></article>
+
+<section class="v775-mobile-command" aria-label="Acciones principales">
+  <a href="/calendar?lane=today"><b>Hoy</b><span>Partidos con día y hora</span></a>
+  <a href="/live"><b>Directo</b><span>Marcador y estado</span></a>
+  <a href="/picks"><b>Picks</b><span>Qué apostar y riesgo</span></a>
+  <a href="/track-record"><b>Histórico</b><span>ROI solo real</span></a>
 </section>
-<section class="v774-dashboard-grid">
-  <article class="v774-panel"><div class="section-head"><h2>Focos deportivos</h2><a class="pill" href="/calendar">Calendario</a></div><div class="v774-match-list">{% for m in focus[:6] %}<a class="v774-match-row" href="/match/{{ m.get('id') }}"><span class="v774-date"><strong>{{ m|match_date_label }}</strong><small>{{ m|match_time_short }}</small></span><span class="v774-main"><strong>{{ m.get('safe_home') or m.get('home_team') }} vs {{ m.get('safe_away') or m.get('away_team') }}</strong><small>{{ (m.get('competition_name') or m.get('league_name') or 'Competición')|competition_es }}</small></span><em class="v774-chip">Ver</em></a>{% else %}<div class="empty premium-empty">No hay focos cargados todavía.</div>{% endfor %}</div></article>
-  <article class="v774-panel"><div class="section-head"><h2>Picks destacados</h2><a class="pill" href="/picks">Picks</a></div><div class="v774-pick-list">{% for p in picks[:5] %}<a class="v774-pick-row" href="{{ p.get('client_match_url') or '/picks' }}"><span><strong>{{ p.get('client_selection_label') or p.get('selection_display') or p.get('selection') or 'Pick' }}</strong><small>{{ p.get('client_match_label') or 'Partido pendiente' }}</small></span><em>{{ p.get('client_odds_label') or p.get('odds') or 'Cuota pendiente' }}</em></a>{% else %}<div class="empty premium-empty">Sin picks destacados ahora mismo.</div>{% endfor %}</div></article>
+
+<section class="v774-dashboard-grid v775-dashboard-grid">
+  <article class="v774-panel v775-next-card">
+    <div class="section-head"><div><h2>Siguiente acción</h2><p class="small">Guía rápida sin ruido.</p></div><span class="pill">Ahora</span></div>
+    <strong>{{ (v.get('next_action') or {}).get('title') or 'Revisar partidos de hoy' }}</strong>
+    <p class="small">{{ (v.get('next_action') or {}).get('description') or 'Empieza por calendario, después directo y por último picks si hay cuota/mercado claro.' }}</p>
+    <div class="inline-actions"><a class="btn primary small-btn" href="/calendar?lane=today">Abrir calendario</a><a class="btn small-btn" href="/shark">Preguntar a SHARK</a></div>
+  </article>
+  <article class="v774-panel v775-trust-card">
+    <div class="section-head"><div><h2>Transparencia</h2><p class="small">Sin humo comercial.</p></div><a class="pill" href="/track-record">Histórico</a></div>
+    <strong>{{ (v.get('trust') or {}).get('title') or 'Sin datos inventados' }}</strong>
+    <p class="small">{{ (v.get('trust') or {}).get('note') or 'ROI, resultados, picks y cuotas solo aparecen cuando existen datos reales o quedan marcados como pendientes.' }}</p>
+  </article>
 </section>
-<section class="v774-flow-strip"><a href="/calendar"><b>1</b><span><strong>Partidos</strong><small>Ver agenda.</small></span></a><a href="/picks"><b>2</b><span><strong>Picks</strong><small>Decidir con contexto.</small></span></a><a href="/shark"><b>3</b><span><strong>SHARK</strong><small>Resolver dudas.</small></span></a><a href="/telegram"><b>4</b><span><strong>Telegram</strong><small>Recibir alertas.</small></span></a></section>
+
+<section class="v774-dashboard-grid v775-dashboard-grid">
+  <article class="v774-panel">
+    <div class="section-head"><div><h2>Focos deportivos</h2><p class="small">Acceso rápido al detalle del partido.</p></div><a class="pill" href="/calendar">Calendario</a></div>
+    <div class="v774-match-list v775-compact-list">
+      {% for m in focus[:6] %}
+      {% set ctx = m|match_madrid_context %}
+      <a class="v774-match-row" href="/match/{{ m.get('id') }}">
+        <span class="v774-date"><strong>{{ ctx.client_date_label }}</strong><small>{{ ctx.client_time_label }}</small></span>
+        <span class="v774-main"><strong>{{ ctx.safe_home }} vs {{ ctx.safe_away }}</strong><small>{{ ctx.client_competition }} · {{ ctx.client_status_label }}</small></span>
+        <em class="v774-chip">Ver</em>
+      </a>
+      {% else %}<div class="empty premium-empty">No hay focos cargados todavía. La app no inventa partidos.</div>{% endfor %}
+    </div>
+  </article>
+  <article class="v774-panel">
+    <div class="section-head"><div><h2>Picks destacados</h2><p class="small">Solo selección, cuota y partido.</p></div><a class="pill" href="/picks">Picks</a></div>
+    <div class="v774-pick-list v775-compact-list">
+      {% for p in picks[:5] %}
+      <a class="v774-pick-row" href="{{ p.get('client_match_url') or '/picks' }}"><span><strong>{{ p.get('client_selection_label') or p.get('selection_display') or p.get('selection') or 'Pick' }}</strong><small>{{ p.get('client_match_label') or 'Partido pendiente' }}</small></span><em>{{ p.get('client_odds_label') or p.get('odds') or 'Cuota pendiente' }}</em></a>
+      {% else %}<div class="empty premium-empty">Sin picks destacados ahora mismo. Mejor esperar que rellenar.</div>{% endfor %}
+    </div>
+  </article>
+</section>
 {% endblock %}

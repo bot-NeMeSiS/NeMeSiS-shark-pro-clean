@@ -2,58 +2,18 @@
 {% block content %}
 {% set state = data.telegram_state or {} %}
 {% set tier = (current_user.membership if current_user else 'FREE')|upper %}
-<section class="scoreboard-hero v701-scoreboard">
-  <div>
-    <div class="kicker">Telegram</div>
-    <h1>{% if state.linked %}Telegram conectado{% else %}Conecta tus alertas SHARK{% endif %}</h1>
-    <p class="lead">Abre el bot, envía tu código y recibe alertas SHARK según tu plan.</p>
-    <div class="actions">
-      {% if state.deep_link %}<a class="btn primary" href="{{ state.deep_link }}" target="_blank" rel="noopener">Abrir bot</a>{% endif %}
-      <a class="btn" href="/picks">Picks</a>
-      <a class="btn" href="/sports-hub">Partidos</a>
-    </div>
+<section class="v774-client-hero compact v775-telegram-hero">
+  <div class="v774-hero-copy">
+    <div class="kicker">Telegram · alertas SHARK</div>
+    <h1>{% if state.linked %}Telegram conectado{% else %}Conecta tus alertas sin perderte{% endif %}</h1>
+    <p class="lead">Bot, canal y avisos según tu plan. En móvil lo importante queda en tres pasos: abrir bot, enviar código y recibir alertas.</p>
+    <div class="v774-actions">{% if state.deep_link %}<a class="btn primary" href="{{ state.deep_link }}" target="_blank" rel="noopener">Abrir bot</a>{% endif %}<a class="btn" href="/picks">Picks</a><a class="btn" href="/calendar">Partidos</a><a class="btn" href="/menu">Más</a></div>
   </div>
-  <div class="scoreboard-kpis">
-    <div><strong>{% if state.linked %}OK{% else %}Link{% endif %}</strong><span>Estado</span></div>
-    <div><strong>{{ tier }}</strong><span>Plan</span></div>
-    <div><strong>{% if data.telegram.enabled or data.telegram.legacy_enabled %}Activo{% else %}Pausa{% endif %}</strong><span>Alertas</span></div>
-    <div><strong>SHARK</strong><span>Canal</span></div>
-  </div>
+  <aside class="v774-day-card"><div class="v774-kpis"><a><strong>{% if state.linked %}OK{% else %}Link{% endif %}</strong><span>Estado</span></a><a><strong>{{ tier }}</strong><span>Plan</span></a><a><strong>{% if data.telegram.enabled or data.telegram.legacy_enabled %}Activo{% else %}Pausa{% endif %}</strong><span>Alertas</span></a><a><strong>SHARK</strong><span>Canal</span></a></div></aside>
 </section>
-
-<section class="band compact-band">
-  <div class="grid compact-grid v724-steps">
-    <article class="card shark-card"><span class="shark-pill">1</span><h3>Abre el bot</h3><p class="small">Usa el botón directo desde esta pantalla.</p></article>
-    <article class="card shark-card"><span class="shark-pill">2</span><h3>Envía tu código</h3><p class="small">Telegram vincula tu cuenta privada.</p></article>
-    <article class="card shark-card"><span class="shark-pill">3</span><h3>Recibe alertas</h3><p class="small">Picks, resumen diario y señales importantes.</p></article>
-  </div>
-</section>
-
-<section class="band compact-band telegram-status-grid-v637">
-  <div class="card telegram-status-card-v637 {% if state.linked %}ok{% else %}pending{% endif %}">
-    <div class="section-head"><h2>{% if state.linked %}Cuenta vinculada{% else %}Código de vinculación{% endif %}</h2><span class="pill">{{ tier }}</span></div>
-    {% if state.linked %}
-      <p class="small">Cuenta Telegram activa{% if state.username %} · @{{ state.username }}{% endif %}</p>
-      <p class="small muted">Vinculado: {{ state.linked_at or 'activo' }}</p>
-      <form method="post" action="/telegram/desvincular"><button class="btn danger" type="submit">Desvincular</button></form>
-    {% else %}
-      <div class="telegram-code-v637">{{ state.code }}</div>
-      <p class="small">Envía <strong>{{ state.command }}</strong> al bot. Caduca en 24 horas.</p>
-      <div class="actions compact-actions-v637">
-        <button class="btn" type="button" onclick="navigator.clipboard&&navigator.clipboard.writeText('{{ state.code }}')">Copiar código</button>
-        {% if state.deep_link %}<a class="btn primary" href="{{ state.deep_link }}" target="_blank" rel="noopener">Abrir bot y vincular</a>{% endif %}
-        <form method="post" action="/telegram/regenerar-codigo"><button class="btn" type="submit">Nuevo código</button></form>
-      </div>
-    {% endif %}
-  </div>
-  <div class="card telegram-status-card-v637">
-    <div class="section-head"><h2>Qué recibirás</h2><span class="pill">{{ tier }}</span></div>
-    <div class="stack">
-      <div class="list-row"><span>Partidos del día</span><strong>FREE</strong></div>
-      <div class="list-row"><span>Picks y recomendaciones SHARK</span><strong>PRO</strong></div>
-      <div class="list-row"><span>Alertas live, value y prioridad</span><strong>ELITE</strong></div>
-    </div>
-    <p class="small muted">Las alertas se adaptan a tu plan y solo se envían cuando SHARK detecta información útil.</p>
-  </div>
+<section class="v775-mobile-command"><a href="#paso-1"><b>1</b><span>Abrir bot</span></a><a href="#codigo"><b>2</b><span>Enviar código</span></a><a href="#recibiras"><b>3</b><span>Recibir alertas</span></a></section>
+<section class="v774-dashboard-grid v775-dashboard-grid">
+  <article class="v774-panel" id="codigo"><div class="section-head"><div><h2>{% if state.linked %}Cuenta vinculada{% else %}Código de vinculación{% endif %}</h2><p class="small">Privado para tu cuenta.</p></div><span class="pill">{{ tier }}</span></div>{% if state.linked %}<p class="small">Cuenta Telegram activa{% if state.username %} · @{{ state.username }}{% endif %}</p><p class="small muted">Vinculado: {{ state.linked_at or 'activo' }}</p><form method="post" action="/telegram/desvincular"><button class="btn danger" type="submit">Desvincular</button></form>{% else %}<div class="telegram-code-v637 v775-telegram-code">{{ state.code }}</div><p class="small">Envía <strong>{{ state.command }}</strong> al bot. Caduca en 24 horas.</p><div class="inline-actions"><button class="btn" type="button" onclick="navigator.clipboard&&navigator.clipboard.writeText('{{ state.code }}')">Copiar código</button>{% if state.deep_link %}<a class="btn primary" href="{{ state.deep_link }}" target="_blank" rel="noopener">Abrir bot</a>{% endif %}<form method="post" action="/telegram/regenerar-codigo"><button class="btn" type="submit">Nuevo código</button></form></div>{% endif %}</article>
+  <article class="v774-panel" id="recibiras"><div class="section-head"><div><h2>Qué recibirás</h2><p class="small">Según membresía.</p></div><span class="pill">{{ tier }}</span></div><div class="v774-match-list"><div class="list-row"><span>Partidos del día</span><strong>FREE</strong></div><div class="list-row"><span>Picks y recomendaciones SHARK</span><strong>PRO</strong></div><div class="list-row"><span>Alertas live, value y prioridad</span><strong>ELITE</strong></div></div><p class="small muted">Solo se envían alertas cuando SHARK detecta información útil y real.</p></article>
 </section>
 {% endblock %}

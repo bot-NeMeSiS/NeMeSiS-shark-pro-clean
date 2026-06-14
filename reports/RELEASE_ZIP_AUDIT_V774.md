@@ -1,8 +1,8 @@
 # Auditoría ZIP V774
 
 - ZIP: `NeMeSiS_SHARK_PRO_V774_CLIENT_SCREEN_REORGANIZATION_MADRID_TIME_TOTAL_POLISH_RENDER_READY.zip`
-- Archivos: 559
-- Tamaño ZIP: 990491 bytes
+- Archivos: 561
+- Tamaño ZIP: 992179 bytes
 - Prohibidos: 0
 - Resultado: OK
 
@@ -12,7 +12,7 @@
 - `templates`: 137 archivos, 453666 bytes
 - `tools`: 75 archivos, 287856 bytes
 - `static`: 1 archivos, 172553 bytes
-- `reports`: 70 archivos, 136873 bytes
+- `reports`: 72 archivos, 141788 bytes
 - `V726_PROJECT_TREE_AUDIT.md`: 1 archivos, 96394 bytes
 - `docs`: 56 archivos, 45463 bytes
 - `V726_PURGE_REPORT.md`: 1 archivos, 26158 bytes
