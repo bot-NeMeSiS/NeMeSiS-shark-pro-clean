@@ -1494,3 +1494,25 @@ body.ns-public[data-v790-shell="true"] .v783-plan-card strong{font-size:1.35rem!
   body.ns-authenticated:not(.ns-admin)[data-v790-shell="true"] .v774-teams{grid-template-columns:36px minmax(0,1fr) 58px!important;}
   body.ns-authenticated:not(.ns-admin)[data-v790-shell="true"] .v774-teams :is(.crest,.v779-crest,.compact-crest){width:34px!important;height:34px!important;min-width:34px!important;}
 }
+
+/* ===================== V791_FULL_APP_REAL_AUDIT_CLIENT_PERFECTION_FINAL ===================== */
+body.ns-authenticated:not(.ns-admin)[data-v790-shell="true"] :is(.v774-client-hero,.v783-client-start,.v778-home-hero){margin-top:4px!important;}
+body.ns-authenticated:not(.ns-admin)[data-v790-shell="true"] .v774-day-group>header{padding:3px 2px 12px!important;border-bottom:1px solid rgba(255,255,255,.075)!important;}
+body.ns-authenticated:not(.ns-admin)[data-v790-shell="true"] .v774-league-block+ .v774-league-block{margin-top:18px!important;}
+body.ns-authenticated:not(.ns-admin)[data-v790-shell="true"] .v774-match-card{transition:transform .16s ease,border-color .16s ease,background .16s ease;}
+body.ns-authenticated:not(.ns-admin)[data-v790-shell="true"] .v774-match-card:hover{transform:translateY(-2px);border-color:rgba(125,211,252,.36)!important;background:linear-gradient(180deg,rgba(15,36,63,.98),rgba(6,15,28,.96))!important;}
+body.ns-authenticated:not(.ns-admin)[data-v790-shell="true"] .v774-teams strong{white-space:normal!important;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;min-height:2.35em;align-content:center;}
+body.ns-authenticated:not(.ns-admin)[data-v790-shell="true"] .v774-teams b{font-variant-numeric:tabular-nums;letter-spacing:-.02em;}
+body.ns-authenticated:not(.ns-admin)[data-v790-shell="true"] .v774-card-meta span{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+body.ns-authenticated:not(.ns-admin)[data-v790-shell="true"] .v774-card-meta small{max-width:48%;}
+body.ns-authenticated:not(.ns-admin)[data-v790-shell="true"] .v774-pick-card{min-height:0!important;}
+body.ns-authenticated:not(.ns-admin)[data-v790-shell="true"] .v774-pick-main strong{white-space:normal!important;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
+body.ns-authenticated:not(.ns-admin)[data-v790-shell="true"] .v778-menu-grid a{min-height:94px!important;align-content:start;}
+body.ns-authenticated:not(.ns-admin)[data-v790-shell="true"] .v778-menu-grid a b{font-size:1.02rem;color:#fff;}
+body.ns-authenticated:not(.ns-admin)[data-v790-shell="true"] .v778-menu-grid a small{font-size:.9rem;line-height:1.42;color:#b8cadf;}
+body.ns-authenticated:not(.ns-admin)[data-v790-shell="true"] .v782-billing-card .mini-card strong{word-break:break-word;}
+body.ns-authenticated:not(.ns-admin)[data-v790-shell="true"] .v787-legal-footer{margin-top:12px;}
+body.ns-public[data-v790-shell="true"] .v783-actions .btn,body.ns-public[data-v790-shell="true"] .v783-public-copy .btn{min-height:46px;border-radius:16px;font-weight:950;}
+body.ns-public[data-v790-shell="true"] .v783-public-value article,body.ns-public[data-v790-shell="true"] .v783-public-trust article{min-height:92px;}
+@media(min-width:1180px){body.ns-authenticated:not(.ns-admin)[data-ns-route^="/live"][data-v790-shell="true"] .v774-card-grid,body.ns-authenticated:not(.ns-admin)[data-ns-route^="/calendar"][data-v790-shell="true"] .v774-card-grid{grid-template-columns:repeat(auto-fit,minmax(430px,1fr))!important;}body.ns-authenticated:not(.ns-admin)[data-v790-shell="true"] .v774-match-card{padding:18px!important;}}
+@media(max-width:760px){body.ns-authenticated:not(.ns-admin)[data-v790-shell="true"] .topin{gap:8px!important;}body.ns-authenticated:not(.ns-admin)[data-v790-shell="true"] .tier-badge{font-size:.68rem!important;padding:6px 8px!important;}body.ns-authenticated:not(.ns-admin)[data-v790-shell="true"] .v774-card-meta small{max-width:100%;}body.ns-authenticated:not(.ns-admin)[data-v790-shell="true"] .v774-teams strong{-webkit-line-clamp:2;min-height:auto;}body.ns-authenticated:not(.ns-admin)[data-v790-shell="true"] .v774-match-card{min-height:0!important;}body.ns-authenticated:not(.ns-admin)[data-v790-shell="true"] .v787-legal-footer{font-size:.78rem;line-height:1.35;padding:12px!important;}body.ns-authenticated:not(.ns-admin)[data-v790-shell="true"] .v787-legal-footer nav{gap:8px;flex-wrap:wrap;}}

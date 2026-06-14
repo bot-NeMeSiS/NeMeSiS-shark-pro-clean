@@ -112,7 +112,7 @@ def client_success_snapshot(stats: dict | None = None, root: str | Path | None =
             "status": "LISTO",
             "value": 15,
             "label": "máximo selecciones",
-            "body": "Combi segura, media y larga con aviso de riesgo y stake responsable.",
+            "body": "Combi prudente, media y larga con aviso de riesgo y stake responsable.",
             "href": "/combis",
             "cta": "Crear combi",
         },

@@ -193,3 +193,26 @@ Preparada sobre V788 para avanzar hacia pagos reales de forma controlada. Añade
 
 Versión preparada para profesionalizar todas las pantallas cliente sin tocar lógica crítica. Añade bandera `data-v790-shell="true"` y una capa global CSS V790 sobre `static/app.css` para unificar tipografía, espaciado, jerarquía visual, botones, filtros, tabs, cards, grids y responsive. Refuerza especialmente Directo/Live, Calendario, Picks, Membresías, Mi Cuenta y Telegram: cards más grandes, menos apretadas, marcadores y equipos más claros, picks más comerciales, planes más profesionales y código Telegram más visible. Mantiene intactos Telegram/Cron/DB_PATH/usuarios/sesiones/membresías, Stripe core/webhook/portal, legal V787/V788, Real Launch V789, directo V780, escudos V779, picks/resultados/Track Record, highlights y Madrid Time.
 
+
+## V791_FULL_APP_REAL_AUDIT_CLIENT_PERFECTION_FINAL
+
+Preparado sobre el ZIP real enviado por Damian. Objetivo: revisar la app completa y avanzar sin suposiciones hacia una experiencia cliente profesional, legalmente prudente y auditable.
+
+Cambios aplicados:
+- Se añade `engines/client_screen_audit_engine.py`.
+- Se añade `/admin/client-screen-audit`, alias `/admin/client-screens` y `/admin/cliente-qa`.
+- Se añade `/api/admin/client-screen-audit`.
+- Se añade `templates/admin_client_screen_audit.html`.
+- Se corrige `BASE_DIR` global, usado por auditorías V774/V776/V777/V778/V790.
+- Se actualiza navegación admin para acceder a Lanzamiento real y Auditoría cliente.
+- Se sustituyen textos cliente de riesgo comercial: “Combi segura” → “Combi responsable”, “Qué apostar” → “Selección recomendada / Qué recomienda SHARK”.
+- Se añade capa CSS V791 para más aire, legibilidad y orden en Live, Calendario, Picks, Menú, Cuenta y footer legal.
+- Se mantiene intacto DB_PATH, usuarios, sesiones, membresías, Telegram, Cron, Stripe core/webhook/portal, Madrid Time, directos, escudos, picks, resultados, highlights, Data Marketplace y Automation Center.
+
+Validación local:
+- py_compile OK.
+- compileall app.py/engines/tools OK.
+- Jinja parse OK: 140 templates, 0 errores.
+- check_madrid_times OK.
+- Checks V782-V791 OK.
+- client_screen_audit_snapshot READY con score 100/100 en rutas/templates/CSS críticos.

@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block content %}
+{% set audit = data.get('client_screen_audit') or {} %}
+{% set summary = audit.get('summary') or {} %}
+<section class="hero compact-hero v789-real-launch-hero">
+  <div>
+    <div class="kicker">V791 · auditoría cliente real</div>
+    <h1>Pantallas cliente profesionales</h1>
+    <p class="lead">Revisión de rutas, templates, CSS, legibilidad, Madrid Time, textos legales y ruido técnico antes de seguir escalando la venta.</p>
+    <div class="actions"><a class="btn primary" href="/api/admin/client-screen-audit">API</a><a class="btn" href="/app">Vista cliente</a><a class="btn" href="/admin/real-launch">Lanzamiento real</a></div>
+  </div>
+  <aside class="v789-launch-score {{ 'ready' if audit.get('status') == 'READY' else 'warn' if audit.get('status') == 'REVIEW' else 'danger' }}">
+    <span>Score cliente</span><strong>{{ audit.get('score', 0) }}</strong><small>{{ audit.get('status') or 'PENDIENTE' }}</small>
+  </aside>
+</section>
+
+<section class="grid cards-4 v789-launch-kpis">
+  <article class="stat-card"><strong>{{ summary.get('routes_ok', 0) }}/{{ summary.get('routes_total', 0) }}</strong><span>Rutas cliente</span></article>
+  <article class="stat-card"><strong>{{ summary.get('templates_ok', 0) }}/{{ summary.get('templates_total', 0) }}</strong><span>Templates limpios</span></article>
+  <article class="stat-card"><strong>{{ summary.get('css_tokens_ok', 0) }}/{{ summary.get('css_tokens_total', 0) }}</strong><span>CSS profesional</span></article>
+  <article class="stat-card"><strong>{{ audit.get('critical')|length }}</strong><span>Avisos críticos</span></article>
+</section>
+
+{% if audit.get('critical') %}
+<section class="card v789-critical-card"><div class="section-head"><h2>Acciones necesarias</h2><span class="badge danger">revisar</span></div>{% for item in audit.get('critical') %}<div class="mini-row danger"><span>{{ item }}</span></div>{% endfor %}</section>
+{% else %}
+<section class="card"><div class="empty-state success"><strong>Sin críticos cliente.</strong><p>Las rutas principales, textos sensibles y capa visual están preparadas para revisión en Render real.</p></div></section>
+{% endif %}
+
+<section class="card">
+  <div class="section-head"><h2>Rutas cliente críticas</h2><span class="pill">{{ summary.get('routes_ok', 0) }}/{{ summary.get('routes_total', 0) }}</span></div>
+  <div class="checklist-grid">
+    {% for item in audit.get('routes') or [] %}
+      <div class="check-row {{ 'ok' if item.ok else 'danger' }}"><strong>{{ item.route }}</strong><span>{{ 'OK' if item.ok else 'Falta ruta' }}</span></div>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="card">
+  <div class="section-head"><h2>Templates cliente</h2><span class="pill">legibilidad + legal</span></div>
+  <div class="checklist-grid">
+    {% for item in audit.get('templates') or [] %}
+      <div class="check-row {{ 'ok' if item.status == 'OK' else 'warn' }}">
+        <strong>{{ item.template }}</strong>
+        <span>{{ item.status }}</span>
+        {% if item.unsafe_phrases %}<em>Evitar: {{ item.unsafe_phrases|join(', ') }}</em>{% endif %}
+        {% if item.technical_markers %}<em>Técnico: {{ item.technical_markers|join(', ') }}</em>{% endif %}
+      </div>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="card">
+  <div class="section-head"><h2>Reglas de producto</h2><span class="pill">V791</span></div>
+  <div class="v774-match-list">{% for rule in audit.get('guardrails') or [] %}<div class="list-row"><span>{{ rule }}</span><strong>OK</strong></div>{% endfor %}</div>
+</section>
+{% endblock %}

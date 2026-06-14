@@ -190,7 +190,7 @@ def build_client_premium_picks(data: dict[str, Any], user: dict[str, Any] | None
             }
             for p in (hot or published)[:4]
         ],
-        "empty_message": "No hay picks premium listos. SHARK mantiene la disciplina y no publica apuestas sin mercado claro.",
+        "empty_message": "No hay picks premium listos. SHARK mantiene la disciplina y no publica picks sin mercado claro.",
     }
 
 

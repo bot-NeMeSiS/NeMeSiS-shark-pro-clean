@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
 {% set all_items = items or [] %}
-{% set groups = ['01 · Empezar','02 · Apostar','03 · Resultados','04 · Asistente','05 · Cuenta','06 · Ayuda'] %}
+{% set groups = ['01 · Empezar','02 · Picks','03 · Resultados','04 · Asistente','05 · Cuenta','06 · Ayuda'] %}
 <section class="v778-home-hero v778-menu-hero">
   <div class="v778-hero-main">
     <div class="kicker">Mapa final · todo visible</div>
@@ -13,7 +13,7 @@
 </section>
 <section class="v778-section-grid">
   <a class="v778-section-card" href="/calendar?lane=today"><strong>Ver partidos</strong><span>Hoy, directo y calendario.</span><small>Lo primero que mira el cliente.</small></a>
-  <a class="v778-section-card" href="/picks"><strong>Apostar</strong><span>Picks, combis y mercados.</span><small>Cuota, stake, riesgo y motivo.</small></a>
+  <a class="v778-section-card" href="/picks"><strong>Picks</strong><span>Picks, combis y mercados.</span><small>Cuota, stake, riesgo y motivo.</small></a>
   <a class="v778-section-card" href="/track-record"><strong>Resultados</strong><span>Histórico, ROI y resúmenes.</span><small>Solo datos reales cerrados.</small></a>
   <a class="v778-section-card" href="/telegram"><strong>Alertas</strong><span>Telegram, cuenta y ayuda.</span><small>Seguimiento sin entrar cada minuto.</small></a>
 </section>
@@ -29,5 +29,5 @@
   </article>
   {% endfor %}
 </section>
-<section class="v774-responsible-note v778-final-note"><strong>Ruta ideal</strong><span>Inicio → Hoy → Directo → Picks → SHARK → Histórico. Telegram avisa cuando haya algo útil.</span></section>
+<section class="v774-responsible-note v778-final-note"><strong>Ruta ideal</strong><span>Inicio → Hoy → Directo → Picks → SHARK → Histórico. Telegram avisa cuando haya información útil.</span></section>
 {% endblock %}

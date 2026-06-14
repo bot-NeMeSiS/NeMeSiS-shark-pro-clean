@@ -16,6 +16,7 @@ import urllib.error
 from datetime import datetime, timedelta
 from email.message import EmailMessage
 from zoneinfo import ZoneInfo
+from pathlib import Path
 
 from flask import Flask, Response, abort, has_request_context, jsonify, redirect, render_template, request, send_file, session, url_for
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -197,6 +198,8 @@ from engines.real_launch_engine import (
     REAL_LAUNCH_VERSION,
     real_launch_snapshot,
 )
+from engines.client_screen_audit_engine import client_screen_audit_snapshot
+
 
 from engines.madrid_time_engine import (
     format_telegram_match_time_madrid,
@@ -208,9 +211,10 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V790_CLIENT_PROFESSIONAL_SCREEN_SYSTEM_TOTAL_POLISH"
+APP_VERSION = "V791_FULL_APP_REAL_AUDIT_CLIENT_PERFECTION_FINAL"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
+BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 TZ = ZoneInfo("Europe/Madrid")
 COMBI_MIN_LEGS = 2
 COMBI_MAX_LEGS = 15
@@ -4532,7 +4536,7 @@ def ensure_auto_pick_from_recommendation(rec):
         "stake_units": 1 if str(rec.get("risk") or "").upper() == "BAJO" else 0.5,
         "risk_level": rec.get("risk") or "MEDIO",
         "reasoning": rec.get("reason") or "SHARK detecta valor con los datos disponibles.",
-        "warning_reason": rec.get("warning") or "No apostar si cambia la cuota o falta contexto clave.",
+        "warning_reason": rec.get("warning") or "No decidir si cambia la cuota o falta contexto clave.",
         "membership_required": rec.get("membership_required") or "PRO",
         "status": "published",
         "source": source,
@@ -6857,7 +6861,7 @@ def shark_answer(question):
             + ("\n".join(f"{i+1}. {line}" for i, line in enumerate(lines)) if lines else "No hay descartes relevantes visibles ahora mismo.")
         )
         next_url = "/picks"
-        actions = _shark_actions(("Ver picks filtrados", "/picks"), ("Crear combi segura", "/combis?tipo=segura&partidos=3"))
+        actions = _shark_actions(("Ver picks filtrados", "/picks"), ("Crear combi responsable", "/combis?tipo=responsable&partidos=3"))
 
     elif any(word in q_norm for word in ["combi", "combinada", "combinadas"]):
         focus = "combis"
@@ -6871,7 +6875,7 @@ def shark_answer(question):
             for pick in usable:
                 total *= max(1.0, as_float(pick.get("odds"), 1.0))
             risk = combi_risk(usable)
-            title = "Combi segura SHARK" if requested <= 4 else ("Combi media SHARK" if requested <= 8 else "Combi larga SHARK")
+            title = "Combi responsable SHARK" if requested <= 4 else ("Combi media SHARK" if requested <= 8 else "Combi larga SHARK")
             warning = "Stake bajo obligatorio: las combinadas largas no son seguras." if requested >= 9 else "Mantén stake bajo y no fuerces si una cuota baja demasiado."
             body = (
                 f"{title}\n\n"
@@ -6906,11 +6910,11 @@ def shark_answer(question):
             rec_lines = _shark_recommendation_lines(limit=4)
             body = (
                 "No tengo suficientes cuotas reales para darte un pick premium cerrado ahora mismo.\n"
-                "Puedo revisar partidos de hoy, directo o preparar una combi conservadora con los datos disponibles.\n\n"
+                "Puedo revisar partidos de hoy, directo o preparar una combi prudente con los datos disponibles.\n\n"
                 + ("Oportunidades en estudio:\n" + "\n".join(f"{i+1}. {line}" for i, line in enumerate(rec_lines)) if rec_lines else "No hay oportunidades claras con datos suficientes todavía.")
             )
         next_url = "/picks"
-        actions = _shark_actions(("Ver picks", "/picks"), ("Combi segura", "/combis?tipo=segura&partidos=3"))
+        actions = _shark_actions(("Ver picks", "/picks"), ("Combi responsable", "/combis?tipo=responsable&partidos=3"))
 
     elif value_intent:
         focus = "oportunidades"
@@ -6918,7 +6922,7 @@ def shark_answer(question):
         body = (
             "Radar SHARK de value:\n\n"
             + ("\n".join(f"{i+1}. {line}" for i, line in enumerate(rec_lines)) if rec_lines else "No hay señales de valor suficientes ahora mismo.")
-            + "\n\nValue no significa apuesta segura: si la cuota está pendiente o el mercado cambia, se queda en estudio."
+            + "\n\nValue no significa pick seguro: si la cuota está pendiente o el mercado cambia, se queda en estudio."
         )
         next_url = "/recommendations"
         actions = _shark_actions(("Ver oportunidades", "/recommendations"), ("Ver picks", "/picks"))
@@ -6974,7 +6978,7 @@ def shark_answer(question):
         "context": briefing.get("context"),
         "risk_note": briefing["risk"]["note"],
         "actions": actions,
-        "next_action": "Revisar la pantalla recomendada antes de apostar. SHARK no garantiza resultados.",
+        "next_action": "Revisar la pantalla recomendada antes de decidir. SHARK no garantiza resultados.",
         "next_url": next_url,
         "legal_policy": briefing["legal_policy"],
     }
@@ -14499,7 +14503,7 @@ def v565_recommendation_for_match(match):
         "membership_required": membership,
         "value_label": "Con cuota" if odds["available"] else "Esperando cuota",
         "reason": "Liga prioritaria y partido próximo con datos suficientes para análisis." if score >= 70 else "Candidato preparado; falta más información de cuotas/live para elevar confianza.",
-        "warning": "No apostar si la cuota cambia mucho o falta confirmación de alineaciones." if odds["available"] else "No publicar como pick real hasta tener cuota validada.",
+        "warning": "No decidir si la cuota cambia mucho o falta confirmación de alineaciones." if odds["available"] else "No publicar como pick real hasta tener cuota validada.",
         "league_rank": league_rank,
     }
 
@@ -14639,9 +14643,9 @@ def v566_client_menu_items():
         {"group": "01 · Empezar", "title": "Inicio inteligente", "body": "Centro de mando con hoy, directo, picks, resultados, Telegram y SHARK.", "href": "/app", "intent": "start"},
         {"group": "01 · Empezar", "title": "Partidos de hoy", "body": "Agenda clara con día, liga, estado y hora Madrid.", "href": "/calendar?lane=today", "intent": "matches"},
         {"group": "01 · Empezar", "title": "Directo ahora", "body": "Marcador, minuto y estado cuando exista dato real.", "href": "/live", "intent": "live"},
-        {"group": "02 · Apostar", "title": "Picks SHARK", "body": "Qué apostar, mercado, cuota, stake, riesgo y motivo.", "href": "/picks", "intent": "bet"},
-        {"group": "02 · Apostar", "title": "Combis responsables", "body": "Combinadas explicadas, sin rellenar por rellenar.", "href": "/combis", "intent": "bet"},
-        {"group": "02 · Apostar", "title": "Mercados básicos", "body": "1X2, doble oportunidad, DNB, goles y ambos marcan explicado simple.", "href": "/mercados", "intent": "learn"},
+        {"group": "02 · Picks", "title": "Picks SHARK", "body": "Selección recomendada, mercado, cuota, stake, riesgo y motivo.", "href": "/picks", "intent": "bet"},
+        {"group": "02 · Picks", "title": "Combis responsables", "body": "Combinadas explicadas, sin rellenar por rellenar.", "href": "/combis", "intent": "bet"},
+        {"group": "02 · Picks", "title": "Mercados básicos", "body": "1X2, doble oportunidad, DNB, goles y ambos marcan explicado simple.", "href": "/mercados", "intent": "learn"},
         {"group": "03 · Resultados", "title": "Resultados y resúmenes", "body": "Finalizados, highlights externos y contexto postpartido.", "href": "/highlights", "intent": "results"},
         {"group": "03 · Resultados", "title": "Histórico / ROI real", "body": "Track Record con picks cerrados y datos no inventados.", "href": "/track-record", "intent": "trust"},
         {"group": "03 · Resultados", "title": "Mundial / foco grande", "body": "Pantalla especial cuando haya partidos internacionales importantes.", "href": "/mundial", "intent": "focus"},
@@ -14713,6 +14717,7 @@ def v566_admin_items():
         {"group": "Datos", "title": "Datos comerciales", "body": "Exportaciones agregadas, ROI y privacidad sin datos personales.", "href": "/admin/data-marketplace"},
         {"group": "Sistema", "title": "Automatización", "body": "Cron diario, Telegram, grading, highlights y backups en un solo centro.", "href": "/admin/automation-center"},
         {"group": "Sistema", "title": "Calidad app", "body": "Revisión visual del vídeo, rutas críticas, textos y limpieza cliente/admin.", "href": "/admin/app-experience-quality"},
+        {"group": "Sistema", "title": "Cliente profesional", "body": "Audita pantallas cliente, enlaces, legibilidad, legal y ruido técnico.", "href": "/admin/client-screen-audit"},
         {"group": "Live", "title": "Live", "body": "Profundidad de directo y estados.", "href": "/admin/live-depth"},
         {"group": "IA", "title": "SHARK Center", "body": "Memoria, señales y salud del copiloto SHARK.", "href": "/admin/shark-center"},
         {"group": "Sistema", "title": "QA", "body": "Auditoría final y salud del producto.", "href": "/admin/final-qa"},
@@ -14960,6 +14965,39 @@ def api_admin_v789_real_launch():
         return admin_json_forbidden()
     return jsonify({"ok": True, "version": APP_VERSION, "real_launch": real_launch_snapshot(DB_PATH, APP_VERSION)})
 
+
+
+
+@app.route("/admin/client-screen-audit")
+@app.route("/admin/client-screens")
+@app.route("/admin/cliente-qa")
+def admin_v791_client_screen_audit_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/client-screen-audit")
+    data = dashboard_data()
+    data["client_screen_audit"] = client_screen_audit_snapshot(
+        app_version=APP_VERSION,
+        registered_routes=[rule.rule for rule in app.url_map.iter_rules()],
+        template_root=str(BASE_DIR / "templates"),
+        static_css_path=str(BASE_DIR / "static" / "app.css"),
+    )
+    return render_template("admin_client_screen_audit.html", data=data)
+
+
+@app.route("/api/admin/client-screen-audit")
+def api_admin_v791_client_screen_audit():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({
+        "ok": True,
+        "version": APP_VERSION,
+        "client_screen_audit": client_screen_audit_snapshot(
+            app_version=APP_VERSION,
+            registered_routes=[rule.rule for rule in app.url_map.iter_rules()],
+            template_root=str(BASE_DIR / "templates"),
+            static_css_path=str(BASE_DIR / "static" / "app.css"),
+        ),
+    })
 
 @app.route("/contact", methods=["GET", "POST"])
 @app.route("/soporte", methods=["GET", "POST"])
@@ -16097,9 +16135,9 @@ def v776_client_information_architecture_snapshot():
         ("Inicio", "/app", "panel diario"),
         ("Hoy", "/calendar?lane=today", "partidos de hoy"),
         ("Directo", "/live", "marcador y estado"),
-        ("Picks", "/picks", "qué apostar"),
+        ("Picks", "/picks", "selección recomendada"),
         ("Combis", "/combis", "combinadas"),
-        ("Mercados", "/mercados", "apuestas básicas"),
+        ("Mercados", "/mercados", "mercados básicos"),
         ("Resúmenes", "/highlights", "resultados y vídeos"),
         ("Histórico", "/track-record", "ROI real"),
         ("Telegram", "/telegram", "canal y bot"),
@@ -16198,7 +16236,7 @@ def v777_client_product_context(data=None, user=None):
     intents = [
         {"key": "matches", "title": "Ver partidos", "body": "Hoy, semana, liga, estado y hora Madrid.", "href": "/calendar?lane=today", "icon": "◷"},
         {"key": "live", "title": "Seguir directo", "body": "Marcador/minuto si la API lo aporta.", "href": "/live", "icon": "●"},
-        {"key": "bet", "title": "Apostar con criterio", "body": "Picks, combis y mercados explicados.", "href": "/picks", "icon": "◆"},
+        {"key": "bet", "title": "Analizar con criterio", "body": "Picks, combis y mercados explicados.", "href": "/picks", "icon": "◆"},
         {"key": "results", "title": "Ver resultados", "body": "Histórico, resúmenes y ROI real.", "href": "/track-record", "icon": "↗"},
         {"key": "shark", "title": "Preguntar a SHARK", "body": "Qué entrar, qué evitar y por qué.", "href": "/shark", "icon": "🦈"},
         {"key": "account", "title": "Configurar cuenta", "body": "Telegram, plan, ayuda y favoritos.", "href": "/mi-cuenta", "icon": "☰"},
@@ -16253,7 +16291,7 @@ def v777_client_product_quality_snapshot():
         "checks": checks,
         "rules": [
             "Home = centro de mando, no landing duplicada.",
-            "Navegación por intención: ver, apostar, resultados, SHARK y cuenta.",
+            "Navegación por intención: ver partidos, revisar picks, resultados, SHARK y cuenta.",
             "Nada crítico escondido detrás de textos ambiguos.",
             "Hora Madrid visible y sin UTC crudo en cliente.",
         ],
@@ -16303,13 +16341,13 @@ def v778_client_product_organization_context(data=None, user=None):
     primary_flow = [
         {"step": 1, "label": "Hoy", "title": "Partidos de hoy", "body": "Agenda clara con día, estado, liga y hora oficial de España.", "href": "/calendar?lane=today"},
         {"step": 2, "label": "Directo", "title": "Seguir en vivo", "body": "Solo marcador/minuto real si la API lo aporta; si no, queda pendiente.", "href": "/live"},
-        {"step": 3, "label": "Picks", "title": "Qué apostar", "body": "Selección, mercado, cuota, stake, riesgo y motivo antes de entrar.", "href": "/picks"},
+        {"step": 3, "label": "Picks", "title": "Qué recomienda SHARK", "body": "Selección, mercado, cuota, stake, riesgo y motivo antes de decidir.", "href": "/picks"},
         {"step": 4, "label": "SHARK", "title": "Resolver dudas", "body": "Explica picks, mercados, partidos y qué evitar sin inventar datos.", "href": "/shark"},
         {"step": 5, "label": "Histórico", "title": "Comprobar resultados", "body": "ROI y Track Record solo con picks cerrados y resultados reales.", "href": "/track-record"},
     ]
     sections = [
         {"key": "ver", "title": "Ver partidos", "body": "Hoy, calendario, directo y detalle de partido.", "href": "/calendar?lane=today", "items": ["Partidos de hoy", "Directo", "Calendario", "Detalle"]},
-        {"key": "apostar", "title": "Apostar", "body": "Picks, mercados básicos y combis responsables.", "href": "/picks", "items": ["Picks", "Mercados", "Combis", "Riesgo"]},
+        {"key": "picks", "title": "Picks", "body": "Picks, mercados básicos y combis responsables.", "href": "/picks", "items": ["Picks", "Mercados", "Combis", "Riesgo"]},
         {"key": "resultados", "title": "Resultados", "body": "Finalizados, resúmenes externos e histórico real.", "href": "/track-record", "items": ["Resultados", "Resúmenes", "ROI", "Grading"]},
         {"key": "asistente", "title": "Asistente", "body": "SHARK y Telegram como guía, no como ruido.", "href": "/shark", "items": ["SHARK", "Telegram", "Alertas", "Ayuda"]},
     ]
