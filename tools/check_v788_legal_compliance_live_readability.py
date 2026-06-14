@@ -22,8 +22,8 @@ membership = read('templates/membership.html')
 legal_engine = read('engines/legal_compliance_engine.py')
 continuation = read('CHATGPT_CONTINUATION_REPORT.md')
 
-require(VERSION.startswith('V788_LEGAL_COMPLIANCE_LIVE_READABILITY_TOTAL_POLISH'), f'VERSION inesperada: {VERSION}')
-require('APP_VERSION = "V788_LEGAL_COMPLIANCE_LIVE_READABILITY_TOTAL_POLISH"' in app, 'APP_VERSION no actualizado')
+require(VERSION.startswith('V788_LEGAL_COMPLIANCE_LIVE_READABILITY_TOTAL_POLISH') or VERSION.startswith('V789_REAL_LAUNCH_CERTIFICATION_COMMAND_CENTER') or VERSION.startswith('V790_CLIENT_PROFESSIONAL_SCREEN_SYSTEM_TOTAL_POLISH'), f'VERSION inesperada: {VERSION}')
+require('APP_VERSION = "V790_CLIENT_PROFESSIONAL_SCREEN_SYSTEM_TOTAL_POLISH"' in app, 'APP_VERSION no actualizado')
 for token in ['enforce_checkout_legal_gate', 'user_legal_acceptances', 'record_legal_checkout_acceptance', '/no-somos-casa-de-apuestas']:
     require(token in app, f'protección legal ausente: {token}')
 for token in ['LEGAL_COMPLIANCE_VERSION = "V788-LEGAL-2026-06-14"', 'accept_not_betting_operator', 'accept_no_guarantee']:

@@ -184,3 +184,12 @@ Se mantiene la capa legal V787 para avanzar hacia pagos reales dentro de una est
 Además se corrige la queja visual del usuario en cliente/directo: partidos demasiado juntos y letra pequeña. Se añade CSS V788 de legibilidad global para cliente autenticado y una capa específica para Live/Directo: cards más grandes, más separación, equipos y marcador más claros, escudos más visibles, tabs/filtros más cómodos y grid menos apretado en desktop/móvil.
 
 Preserva Stripe core, webhook, Telegram/Cron, DB_PATH, usuarios/sesiones/membresías, directos V780, escudos V779, picks, Track Record, highlights, Data Marketplace, Automation Center y Madrid Time.
+
+## V789_REAL_LAUNCH_CERTIFICATION_COMMAND_CENTER
+
+Preparada sobre V788 para avanzar hacia pagos reales de forma controlada. Añade Real Launch Command Center con `/admin/real-launch` y `/api/admin/real-launch`. El panel revisa Stripe live/test, price IDs, webhook, portal cliente, verificación manual de cuenta Stripe, SECRET_KEY, AUTOMATION_SECRET, URL pública, DB persistente, Madrid Time, TheSportsDB, The Odds API, Telegram, OpenAI, Push, páginas legales, copys peligrosos y herramientas de smoke/preflight. No expone secretos. No toca DB_PATH, usuarios, sesiones, membresías, Telegram, Cron, Stripe core, Directo, escudos, picks, highlights ni Track Record. Variables manuales nuevas no secretas: STRIPE_ACCOUNT_VERIFIED, LEGAL_OWNER_DETAILS_COMPLETED y LEGAL_REVIEW_COMPLETED.
+
+## V790_CLIENT_PROFESSIONAL_SCREEN_SYSTEM_TOTAL_POLISH
+
+Versión preparada para profesionalizar todas las pantallas cliente sin tocar lógica crítica. Añade bandera `data-v790-shell="true"` y una capa global CSS V790 sobre `static/app.css` para unificar tipografía, espaciado, jerarquía visual, botones, filtros, tabs, cards, grids y responsive. Refuerza especialmente Directo/Live, Calendario, Picks, Membresías, Mi Cuenta y Telegram: cards más grandes, menos apretadas, marcadores y equipos más claros, picks más comerciales, planes más profesionales y código Telegram más visible. Mantiene intactos Telegram/Cron/DB_PATH/usuarios/sesiones/membresías, Stripe core/webhook/portal, legal V787/V788, Real Launch V789, directo V780, escudos V779, picks/resultados/Track Record, highlights y Madrid Time.
+

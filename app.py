@@ -192,6 +192,12 @@ from engines.spanish_localization_engine import (
     spanish_pick_selection_name,
     spanish_team_name,
 )
+
+from engines.real_launch_engine import (
+    REAL_LAUNCH_VERSION,
+    real_launch_snapshot,
+)
+
 from engines.madrid_time_engine import (
     format_telegram_match_time_madrid,
     format_madrid_match_time,
@@ -202,7 +208,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V788_LEGAL_COMPLIANCE_LIVE_READABILITY_TOTAL_POLISH"
+APP_VERSION = "V790_CLIENT_PROFESSIONAL_SCREEN_SYSTEM_TOTAL_POLISH"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -14717,6 +14723,7 @@ def v566_admin_items():
         {"group": "Credibilidad", "title": "Track Record", "body": "Resultados, ROI y picks auditados.", "href": "/admin/track-record"},
         {"group": "Pagos", "title": "Pagos PRO/ELITE", "body": "Stripe, suscripciones y monetización segura.", "href": "/admin/payments"},
         {"group": "Legal", "title": "Legal real", "body": "+18, términos, privacidad, no garantías y checkout responsable.", "href": "/admin/legal-compliance"},
+        {"group": "Lanzamiento", "title": "Lanzamiento real", "body": "Certifica Stripe live, legal, Render, Telegram, Directo y datos antes de vender.", "href": "/admin/real-launch"},
     ]
 
 
@@ -14933,6 +14940,25 @@ def api_admin_v787_legal_compliance():
     if not is_admin_session():
         return admin_json_forbidden()
     return jsonify({"ok": True, "version": APP_VERSION, "legal_compliance": legal_admin_snapshot(DB_PATH)})
+
+
+@app.route("/admin/real-launch")
+@app.route("/admin/live-launch")
+@app.route("/admin/lanzamiento-real")
+@app.route("/admin/certificacion-real")
+def admin_v789_real_launch_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/real-launch")
+    data = dashboard_data()
+    data["real_launch"] = real_launch_snapshot(DB_PATH, APP_VERSION)
+    return render_template("admin_real_launch.html", data=data)
+
+
+@app.route("/api/admin/real-launch")
+def api_admin_v789_real_launch():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "version": APP_VERSION, "real_launch": real_launch_snapshot(DB_PATH, APP_VERSION)})
 
 
 @app.route("/contact", methods=["GET", "POST"])

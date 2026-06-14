@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% block content %}
+{% set rl = data.real_launch or {} %}
+{% set sections = rl.sections or {} %}
+<section class="hero compact-hero v789-real-launch-hero">
+  <div>
+    <p class="eyebrow">Admin · lanzamiento real</p>
+    <h1>Real Launch Command Center</h1>
+    <p class="lead">Panel final antes de cobrar en real: Stripe live, legal, Render, Telegram, Directo, datos y pruebas post-deploy sin exponer secretos.</p>
+    <div class="actions">
+      <a class="btn primary" href="/api/admin/real-launch">API</a>
+      <a class="btn" href="/admin/payments">Pagos</a>
+      <a class="btn" href="/admin/legal-compliance">Legal</a>
+      <a class="btn" href="/membresias">Membresías</a>
+    </div>
+  </div>
+  <div class="v789-launch-score {{ 'ready' if rl.live_go else 'warn' if rl.score and rl.score >= 75 else 'danger' }}">
+    <span>Estado lanzamiento</span>
+    <strong>{{ rl.score or 0 }}%</strong>
+    <small>{{ rl.state }}</small>
+  </div>
+</section>
+
+<section class="grid cards-4 v789-launch-kpis">
+  <article class="card stat-card"><span>Críticos</span><strong>{{ rl.critical_count or 0 }}</strong><small>No pasar a real si hay críticos</small></article>
+  <article class="card stat-card"><span>Acciones</span><strong>{{ rl.action_count or 0 }}</strong><small>Pendientes antes de escalar</small></article>
+  <article class="card stat-card"><span>Stripe</span><strong>{{ 'LIVE' if sections.stripe.live else 'TEST' if sections.stripe.test else 'NO' }}</strong><small>modo detectado sin mostrar claves</small></article>
+  <article class="card stat-card"><span>DB</span><strong>{{ sections.database.counts.users or 0 }}</strong><small>usuarios registrados</small></article>
+</section>
+
+{% if rl.critical %}
+<section class="card v789-critical-card">
+  <div class="section-head"><h2>Bloqueos críticos</h2><span class="badge danger">No cobrar real</span></div>
+  <div class="stack compact-list">
+    {% for item in rl.critical %}
+    <div class="mini-row danger"><div><strong>{{ item.title }}</strong><span>{{ item.detail }}</span><small>{{ item.action }}</small></div><span class="badge danger">{{ item.group }}</span></div>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+<section class="grid two-col v789-launch-sections">
+  <article class="card">
+    <div class="section-head"><h2>Stripe real</h2><span class="pill">dinero</span></div>
+    <div class="checklist compact">
+      {% for item in sections.stripe.items %}
+      <div class="check-row {{ 'ok' if item.status == 'READY' else 'danger' if item.status == 'CRITICAL' else 'warn' }}">
+        <span>{{ '✅' if item.status == 'READY' else '⛔' if item.status == 'CRITICAL' else '⚠️' }}</span>
+        <div><strong>{{ item.title }}</strong><small>{{ item.detail }}</small>{% if item.action %}<em>{{ item.action }}</em>{% endif %}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </article>
+
+  <article class="card">
+    <div class="section-head"><h2>Legal y responsabilidad</h2><span class="pill">protección</span></div>
+    <div class="checklist compact">
+      {% for item in sections.legal.items %}
+      <div class="check-row {{ 'ok' if item.status == 'READY' else 'danger' if item.status == 'CRITICAL' else 'warn' }}">
+        <span>{{ '✅' if item.status == 'READY' else '⛔' if item.status == 'CRITICAL' else '⚠️' }}</span>
+        <div><strong>{{ item.title }}</strong><small>{{ item.detail }}</small>{% if item.action %}<em>{{ item.action }}</em>{% endif %}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </article>
+
+  <article class="card">
+    <div class="section-head"><h2>Render y seguridad</h2><span class="pill">producción</span></div>
+    <div class="checklist compact">
+      {% for item in sections.environment.items %}
+      <div class="check-row {{ 'ok' if item.status == 'READY' else 'danger' if item.status == 'CRITICAL' else 'warn' }}">
+        <span>{{ '✅' if item.status == 'READY' else '⛔' if item.status == 'CRITICAL' else '⚠️' }}</span>
+        <div><strong>{{ item.title }}</strong><small>{{ item.detail }}</small>{% if item.action %}<em>{{ item.action }}</em>{% endif %}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </article>
+
+  <article class="card">
+    <div class="section-head"><h2>Datos, directo y Telegram</h2><span class="pill">servicio</span></div>
+    <div class="checklist compact">
+      {% for item in sections.channels.items %}
+      <div class="check-row {{ 'ok' if item.status == 'READY' else 'danger' if item.status == 'CRITICAL' else 'warn' }}">
+        <span>{{ '✅' if item.status == 'READY' else '⛔' if item.status == 'CRITICAL' else '⚠️' }}</span>
+        <div><strong>{{ item.title }}</strong><small>{{ item.detail }}</small>{% if item.action %}<em>{{ item.action }}</em>{% endif %}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </article>
+</section>
+
+<section class="grid two-col">
+  <article class="card">
+    <div class="section-head"><h2>Base de datos real</h2><span class="pill">persistencia</span></div>
+    <div class="v789-db-grid">
+      {% for key, value in sections.database.counts.items() %}
+      <div><span>{{ key }}</span><strong>{{ value }}</strong></div>
+      {% endfor %}
+    </div>
+    <p class="small">DB_PATH: <code>{{ sections.database.path }}</code></p>
+    {% if sections.database.error %}<p class="small danger-text">{{ sections.database.error }}</p>{% endif %}
+  </article>
+
+  <article class="card">
+    <div class="section-head"><h2>Pruebas post-deploy</h2><span class="pill">obligatorio</span></div>
+    <p class="small">Ejecutar después de subir a Render y antes de abrir ventas públicas.</p>
+    <pre class="code-card">{% for cmd in rl.production_commands %}{{ cmd }}
+{% endfor %}</pre>
+  </article>
+</section>
+
+<section class="card">
+  <div class="section-head"><h2>Copys peligrosos detectados</h2><span class="badge {{ 'ready' if sections.legal.copy_scan.ok else 'warn' }}">{{ sections.legal.copy_scan.total }} coincidencias</span></div>
+  {% if sections.legal.copy_scan.findings %}
+  <div class="table-wrap"><table class="premium-table"><thead><tr><th>Archivo</th><th>Término</th><th>Veces</th></tr></thead><tbody>
+    {% for f in sections.legal.copy_scan.findings %}<tr><td>{{ f.file }}</td><td>{{ f.term }}</td><td>{{ f.count }}</td></tr>{% endfor %}
+  </tbody></table></div>
+  {% else %}
+  <div class="empty-state success">No se detectan frases obvias tipo ganancia segura, sin riesgo o beneficio garantizado.</div>
+  {% endif %}
+</section>
+
+<section class="card v789-business-description">
+  <div class="section-head"><h2>Descripción segura del negocio</h2><span class="pill">Stripe / soporte</span></div>
+  <p>{{ rl.safe_business_description }}</p>
+  <ul class="clean-list">
+    {% for item in rl.manual_live_confirmations %}<li>{{ item }}</li>{% endfor %}
+  </ul>
+</section>
+{% endblock %}
