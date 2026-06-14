@@ -13,6 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V774_CLIENT_SCREEN_REORGANIZATION_MADRID_TIME_TOTAL_POLISH"
 V775_VERSION = "V775_MOBILE_CLIENT_APP_EXPERIENCE_TOTAL_COMPLETION"
 V776_VERSION = "V776_CLIENT_INFORMATION_ARCHITECTURE_FINAL_ORDER"
+V777_VERSION = "V777_CLIENT_PRODUCT_EXPERIENCE_FINAL_SYSTEM"
 
 
 def read(path: str) -> str:
@@ -43,8 +44,8 @@ def static_checks():
     app = read("app.py")
     css = read("static/app.css")
     base = read("templates/base.html")
-    ok(version in {VERSION, V775_VERSION, V776_VERSION}, "VERSION.txt no apunta a V774/V775/V776 compatible", version)
-    ok(f'APP_VERSION = "{VERSION}"' in app or f'APP_VERSION = "{V775_VERSION}"' in app or f'APP_VERSION = "{V776_VERSION}"' in app, "APP_VERSION no apunta a V774/V775/V776 compatible")
+    ok(version in {VERSION, V775_VERSION, V776_VERSION, V777_VERSION}, "VERSION.txt no apunta a V774/V775/V776/V777 compatible", version)
+    ok(f'APP_VERSION = "{VERSION}"' in app or f'APP_VERSION = "{V775_VERSION}"' in app or f'APP_VERSION = "{V776_VERSION}"' in app or f'APP_VERSION = "{V777_VERSION}"' in app, "APP_VERSION no apunta a V774/V775/V776/V777 compatible")
     ok('DB_PATH = os.getenv("DB_PATH", "/data/database.db")' in app, "DB_PATH fue alterado")
     for route in ("/admin/client-screen-quality", "/api/admin/client-screen-quality"):
         ok(route in app, "ruta V774 faltante", route)
@@ -53,12 +54,16 @@ def static_checks():
         ".v774-filter-form", ".v774-flow-strip", ".v774-match-detail-hero",
     ):
         ok(token in css, "CSS V774 incompleto", token)
-    # Client nav must be reduced; extra client routes live in /menu instead of cluttering every screen.
+    # Client nav must be reduced; V777 may expose Resultados/Cuenta but keeps the main flow compact.
     client_block = base.split("{% elif current_user %}", 1)[1].split("{% else %}", 1)[0]
-    for must in ('href="/app"', 'href="/calendar"', 'href="/live"', 'href="/picks"', 'href="/track-record"', 'href="/shark"', 'href="/menu"'):
-        ok(must in client_block, "nav cliente sin enlace principal", must)
-    for hidden in ('href="/modo-dinamico"', 'href="/highlights"', 'href="/mercados"'):
-        ok(hidden not in client_block, "nav cliente sigue saturada", hidden)
+    if version.startswith("V777"):
+        for must in ('href="/app"', 'href="/calendar?lane=today"', 'href="/live"', 'href="/picks"', 'href="/highlights"', 'href="/shark"', 'href="/menu"'):
+            ok(must in client_block, "nav cliente V777 sin enlace principal", must)
+    else:
+        for must in ('href="/app"', 'href="/calendar"', 'href="/live"', 'href="/picks"', 'href="/track-record"', 'href="/shark"', 'href="/menu"'):
+            ok(must in client_block, "nav cliente sin enlace principal", must)
+        for hidden in ('href="/modo-dinamico"', 'href="/highlights"', 'href="/mercados"'):
+            ok(hidden not in client_block, "nav cliente sigue saturada", hidden)
     home = read("templates/home.html")
     ok("{% if current_user %}" in home and "{% else %}" in home, "home no separa sesión cliente de landing pública")
     ok(home.count("v774-client-hero") >= 1, "home no usa hero V774")

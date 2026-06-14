@@ -16,6 +16,7 @@ VERSION = "V773_DATA_MARKETPLACE_AUTOMATION_VIDEO_UX_QUALITY_POLISH"
 V774_VERSION = "V774_CLIENT_SCREEN_REORGANIZATION_MADRID_TIME_TOTAL_POLISH"
 V775_VERSION = "V775_MOBILE_CLIENT_APP_EXPERIENCE_TOTAL_COMPLETION"
 V776_VERSION = "V776_CLIENT_INFORMATION_ARCHITECTURE_FINAL_ORDER"
+V777_VERSION = "V777_CLIENT_PRODUCT_EXPERIENCE_FINAL_SYSTEM"
 ZIP_NAME = f"NeMeSiS_SHARK_PRO_{VERSION}_RENDER_READY.zip"
 sys.path.insert(0, str(ROOT))
 
@@ -35,8 +36,8 @@ def static_checks():
     css = read("static/app.css")
     env_example = read(".env.example")
     env_render = read(".env.render.clean")
-    ok(version in {VERSION, V774_VERSION, V775_VERSION, V776_VERSION}, "VERSION.txt no apunta a V773/V774/V775/V776 compatible", version)
-    ok(f'APP_VERSION = "{VERSION}"' in app or f'APP_VERSION = "{V774_VERSION}"' in app or f'APP_VERSION = "{V775_VERSION}"' in app or f'APP_VERSION = "{V776_VERSION}"' in app, "APP_VERSION no apunta a V773/V774/V775/V776 compatible")
+    ok(version in {VERSION, V774_VERSION, V775_VERSION, V776_VERSION, V777_VERSION}, "VERSION.txt no apunta a V773/V774/V775/V776/V777 compatible", version)
+    ok(f'APP_VERSION = "{VERSION}"' in app or f'APP_VERSION = "{V774_VERSION}"' in app or f'APP_VERSION = "{V775_VERSION}"' in app or f'APP_VERSION = "{V776_VERSION}"' in app or f'APP_VERSION = "{V777_VERSION}"' in app, "APP_VERSION no apunta a V773/V774/V775/V776/V777 compatible")
     ok('DB_PATH = os.getenv("DB_PATH", "/data/database.db")' in app, "DB_PATH fue alterado")
     for path in (
         "engines/data_marketplace_engine.py",

@@ -1,28 +1,21 @@
 {% extends "base.html" %}
 {% block content %}
-<section class="app-hero compact-hero account-hero">
+{% set plan = data.account_center.plan %}
+<section class="v777-menu-hero v777-account-hero">
   <div>
-    <div class="kicker">Mi cuenta</div>
-    <h1>{{ data.session_user.name }} · {{ data.account_center.plan }}</h1>
-    <p class="lead">Centro simple para controlar tu perfil, favoritos, alertas, Telegram y SHARK desde una experiencia limpia de cliente.</p>
-    <div class="actions"><a class="btn primary" href="/onboarding">Completar configuración</a><a class="btn" href="/perfil">Dashboard</a><a class="btn" href="/logout">Salir</a></div>
+    <div class="kicker">Mi cuenta · plan · Telegram · soporte</div>
+    <h1>{{ data.session_user.name }} · {{ plan }}</h1>
+    <p class="lead">Centro personal del cliente: plan activo, Telegram, favoritos, ayuda, SHARK y actividad sin pantallas escondidas.</p>
+    <div class="v777-primary-actions"><a class="btn primary" href="/telegram">Conectar Telegram</a><a class="btn" href="/membresias">Ver planes</a><a class="btn" href="/favorites">Favoritos</a><a class="btn" href="/logout">Salir</a></div>
   </div>
-  <aside class="hero-panel">
-    <span class="pill">Personalización</span>
-    <div class="big-score">{{ data.onboarding.score }}%</div>
-    <div class="live-strip mini-live-strip"><div><span>Favs</span><strong>{{ data.account_center.favorites }}</strong></div><div><span>Alertas</span><strong>{{ data.account_center.alerts }}</strong></div><div><span>Actividad</span><strong>{{ data.account_center.activity }}</strong></div></div>
-  </aside>
+  <aside class="v777-now-card"><span class="v774-status ready">{{ plan }}</span><div class="v777-kpi-grid"><a><strong>{{ data.account_center.favorites }}</strong><span>Favs</span></a><a><strong>{{ data.account_center.alerts }}</strong><span>Alertas</span></a><a><strong>{{ data.account_center.activity }}</strong><span>Actividad</span></a><a><strong>{{ data.onboarding.score }}%</strong><span>Setup</span></a></div></aside>
 </section>
-<section class="band compact-band">
-  <div class="section-head"><h2>Accesos de cuenta</h2><span class="pill">Cliente</span></div>
-  <div class="quick-actions quick-actions-polish">
-    <a class="quick primary" href="/favorites"><span>Favoritos</span><strong>Editar</strong></a>
-    <a class="quick" href="/alertas"><span>Alertas</span><strong>Ver</strong></a>
-    <a class="quick" href="/telegram"><span>Telegram</span><strong>Conectar</strong></a>
-    <a class="quick" href="/guia"><span>Guía</span><strong>Primeros pasos</strong></a>
-    <a class="quick" href="/shark"><span>SHARK IA</span><strong>Preguntar</strong></a>
-    <a class="quick" href="/membresias"><span>Membresía</span><strong>{{ data.account_center.plan }}</strong></a>
-    <a class="quick" href="/actividad"><span>Actividad</span><strong>Historial</strong></a>
-  </div>
+<section class="v777-intent-grid">
+  <a class="v777-intent-card" href="/telegram"><em>↯</em><strong>Telegram</strong><span>Bot, código y alertas por plan.</span></a>
+  <a class="v777-intent-card" href="/membresias"><em>★</em><strong>Membresía</strong><span>FREE / PRO / ELITE y beneficios.</span></a>
+  <a class="v777-intent-card" href="/favorites"><em>♥</em><strong>Favoritos</strong><span>Partidos y equipos vigilados.</span></a>
+  <a class="v777-intent-card" href="/shark"><em>🦈</em><strong>SHARK IA</strong><span>Preguntas rápidas y control de riesgo.</span></a>
+  <a class="v777-intent-card" href="/actividad"><em>•</em><strong>Actividad</strong><span>Historial de uso y señales.</span></a>
+  <a class="v777-intent-card" href="/ayuda"><em>?</em><strong>Ayuda</strong><span>Soporte y primeros pasos.</span></a>
 </section>
 {% endblock %}

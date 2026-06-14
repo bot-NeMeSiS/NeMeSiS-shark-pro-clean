@@ -6,7 +6,7 @@ ROOT=Path(__file__).resolve().parents[1]
 def text(path): return (ROOT/path).read_text(encoding='utf-8')
 errors=[]
 version=text('VERSION.txt').strip()
-if not (version.startswith('V775_MOBILE_CLIENT_APP_EXPERIENCE_TOTAL_COMPLETION') or version.startswith('V776_CLIENT_INFORMATION_ARCHITECTURE_FINAL_ORDER')):
+if not (version.startswith('V775_MOBILE_CLIENT_APP_EXPERIENCE_TOTAL_COMPLETION') or version.startswith('V776_CLIENT_INFORMATION_ARCHITECTURE_FINAL_ORDER') or version.startswith('V777_CLIENT_PRODUCT_EXPERIENCE_FINAL_SYSTEM')):
     errors.append(f'VERSION incorrecta: {version}')
 base=text('templates/base.html')
 css=text('static/app.css')
@@ -20,8 +20,8 @@ for item in required_css:
     if item not in css: errors.append(f'app.css falta {item}')
 for path in ['templates/client_app_center.html','templates/client_menu.html','templates/telegram.html','templates/shark.html']:
     s=text(path)
-    if 'v774-client-hero' not in s and 'v775-' not in s:
-        errors.append(f'{path} no usa layout cliente V774/V775')
+    if 'v774-client-hero' not in s and 'v775-' not in s and 'v777-' not in s:
+        errors.append(f'{path} no usa layout cliente V774/V775/V777')
 # broken links that were visible in old video/code
 for path in ROOT.joinpath('templates').glob('*.html'):
     s=path.read_text(encoding='utf-8')

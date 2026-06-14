@@ -187,7 +187,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = "V776_CLIENT_INFORMATION_ARCHITECTURE_FINAL_ORDER"
+APP_VERSION = "V777_CLIENT_PRODUCT_EXPERIENCE_FINAL_SYSTEM"
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 TZ = ZoneInfo("Europe/Madrid")
@@ -14031,25 +14031,27 @@ def api_v565_convert_recommendation():
 # -----------------------------
 
 def v566_client_menu_items():
-    # V761: menú cliente ordenado para venta. Menos ruido, más acciones útiles y rutas principales primero.
+    # V777: mapa cliente final por intención. No esconder funciones clave ni mezclar páginas sueltas.
     return [
-        {"group": "Inicio", "title": "Mi panel", "body": "Resumen diario con partidos, picks, directo, Telegram y siguiente paso.", "href": "/app"},
-        {"group": "Mundial", "title": "Modo Mundial", "body": "Partidos clave, picks, directo y próximos focos con hora Madrid.", "href": "/mundial"},
-        {"group": "Inicio", "title": "Modo automático", "body": "NeMeSiS cambia el foco según directo, Mundial, Champions, picks, resultados o agenda.", "href": "/modo-dinamico"},
-        {"group": "Partidos", "title": "Calendario", "body": "Hoy, mañana, semana, favoritos, directos y partidos con pick.", "href": "/calendar"},
-        {"group": "Partidos", "title": "Directo", "body": "Marcador, minuto, estado y enlaces al detalle del partido.", "href": "/live"},
-        {"group": "Partidos", "title": "Resúmenes", "body": "Resultados pasados y highlights externos cuando la API los aporte.", "href": "/highlights"},
-        {"group": "Picks", "title": "Picks SHARK", "body": "Mercado, cuota, stake, riesgo, motivo y estado Telegram.", "href": "/picks"},
-        {"group": "Mercados", "title": "Mercados básicos", "body": "1X2, doble oportunidad, DNB, goles y ambos marcan explicados para cliente.", "href": "/mercados"},
-        {"group": "Mercados", "title": "Combis", "body": "Combis 1X2, de goles o mixtas con pocas selecciones y aviso de riesgo.", "href": "/combis"},
-        {"group": "Picks", "title": "Histórico real", "body": "Track Record con resultados auditables, sin ROI inventado.", "href": "/track-record"},
-        {"group": "SHARK", "title": "SHARK IA", "body": "Pregunta por el mejor pick, qué evitar, combis, directo o value.", "href": "/shark"},
-        {"group": "Canal", "title": "Telegram", "body": "Vinculación, estado y avisos cuando hay picks reales disponibles.", "href": "/telegram"},
-        {"group": "Cuenta", "title": "Mi cuenta", "body": "Perfil, plan, favoritos, actividad y datos de acceso.", "href": "/mi-cuenta"},
-        {"group": "Ayuda", "title": "Guía rápida", "body": "Cómo usar la app, qué mirar primero y cómo interpretar picks.", "href": "/guia"},
-        {"group": "Ayuda", "title": "Soporte", "body": "Enviar una duda o incidencia sobre cuenta, picks, Telegram o partidos.", "href": "/ayuda"},
-        {"group": "Legal", "title": "Juego responsable", "body": "Reglas de uso responsable, límites y advertencias honestas.", "href": "/juego-responsable"},
-        {"group": "Legal", "title": "Confianza", "body": "Datos permitidos, privacidad básica y transparencia del producto.", "href": "/legal"},
+        {"group": "01 · Empezar", "title": "Inicio inteligente", "body": "Centro de mando con hoy, directo, picks, resultados, Telegram y SHARK.", "href": "/app", "intent": "start"},
+        {"group": "01 · Empezar", "title": "Partidos de hoy", "body": "Agenda clara con día, liga, estado y hora Madrid.", "href": "/calendar?lane=today", "intent": "matches"},
+        {"group": "01 · Empezar", "title": "Directo ahora", "body": "Marcador, minuto y estado cuando exista dato real.", "href": "/live", "intent": "live"},
+        {"group": "02 · Apostar", "title": "Picks SHARK", "body": "Qué apostar, mercado, cuota, stake, riesgo y motivo.", "href": "/picks", "intent": "bet"},
+        {"group": "02 · Apostar", "title": "Combis responsables", "body": "Combinadas explicadas, sin rellenar por rellenar.", "href": "/combis", "intent": "bet"},
+        {"group": "02 · Apostar", "title": "Mercados básicos", "body": "1X2, doble oportunidad, DNB, goles y ambos marcan explicado simple.", "href": "/mercados", "intent": "learn"},
+        {"group": "03 · Resultados", "title": "Resultados y resúmenes", "body": "Finalizados, highlights externos y contexto postpartido.", "href": "/highlights", "intent": "results"},
+        {"group": "03 · Resultados", "title": "Histórico / ROI real", "body": "Track Record con picks cerrados y datos no inventados.", "href": "/track-record", "intent": "trust"},
+        {"group": "03 · Resultados", "title": "Mundial / foco grande", "body": "Pantalla especial cuando haya partidos internacionales importantes.", "href": "/mundial", "intent": "focus"},
+        {"group": "04 · Asistente", "title": "SHARK IA", "body": "Pregunta por picks, riesgo, value, directo o qué evitar.", "href": "/shark", "intent": "shark"},
+        {"group": "04 · Asistente", "title": "Modo automático", "body": "La app prioriza directo, picks, resultados, Mundial o agenda según el momento.", "href": "/modo-dinamico", "intent": "auto"},
+        {"group": "04 · Asistente", "title": "Favoritos", "body": "Partidos/equipos vigilados para no perder el seguimiento.", "href": "/favorites", "intent": "personal"},
+        {"group": "05 · Cuenta", "title": "Telegram", "body": "Conexión al bot, estado y alertas por membresía.", "href": "/telegram", "intent": "telegram"},
+        {"group": "05 · Cuenta", "title": "Mi cuenta", "body": "Plan, perfil, favoritos, actividad y accesos personales.", "href": "/mi-cuenta", "intent": "account"},
+        {"group": "05 · Cuenta", "title": "Membresías", "body": "FREE, PRO y ELITE con beneficios claros.", "href": "/membresias", "intent": "billing"},
+        {"group": "06 · Ayuda", "title": "Guía rápida", "body": "Primeros pasos: partidos, picks, riesgo, Telegram y SHARK.", "href": "/guia", "intent": "help"},
+        {"group": "06 · Ayuda", "title": "Soporte", "body": "Ayuda con cuenta, Telegram, picks o navegación.", "href": "/ayuda", "intent": "help"},
+        {"group": "06 · Ayuda", "title": "Juego responsable", "body": "Control, límites y recordatorio honesto de riesgo.", "href": "/juego-responsable", "intent": "safe"},
+        {"group": "06 · Ayuda", "title": "Legal y confianza", "body": "Privacidad, transparencia y reglas del producto.", "href": "/legal", "intent": "trust"},
     ]
 
 
@@ -15219,6 +15221,7 @@ def v757_client_app_center_page():
     data["v757_app"] = build_v757_app_center(data, user, track_record=data.get("track_record"))
     data["v757_trust"] = build_v757_trust_snapshot(data.get("track_record") or {})
     data["v758_adaptive"] = v758_adaptive_context(data, user, "app_center")
+    data["v777_product"] = v777_client_product_context(data, user)
     return render_template("client_app_center.html", data=data)
 
 
@@ -15456,6 +15459,152 @@ def api_admin_v776_client_information_architecture():
     if not is_admin_session():
         return admin_json_forbidden()
     return jsonify(v776_client_information_architecture_snapshot())
+
+
+# ===================== V777 CLIENT PRODUCT EXPERIENCE FINAL SYSTEM =====================
+
+def _v777_count(value, *keys):
+    """Best-effort safe count for mixed dict/list app contexts."""
+    try:
+        cur = value
+        for key in keys:
+            if isinstance(cur, dict):
+                cur = cur.get(key)
+            else:
+                cur = None
+        if isinstance(cur, (list, tuple, set)):
+            return len(cur)
+        if isinstance(cur, dict):
+            for candidate in ("visible", "total", "count", "published", "live", "finished", "closed_picks", "graded_count"):
+                if candidate in cur and cur.get(candidate) is not None:
+                    return cur.get(candidate)
+            return len(cur)
+        if cur is None:
+            return 0
+        return int(cur)
+    except Exception:
+        return 0
+
+
+def v777_client_product_context(data=None, user=None):
+    """Client-first product context: simple intent map, safe KPIs and next action.
+
+    It does not create matches, picks, results, ROI or odds. It only summarizes
+    existing contexts into a clear product experience for PC and mobile.
+    """
+    data = data or {}
+    user = user or current_session_user() or {"membership": "FREE", "role": "FREE"}
+    membership = get_user_membership(user)
+    calendar = data.get("calendar") or {}
+    live = data.get("live_experience") or {}
+    v757 = data.get("v757_app") or {}
+    track = data.get("track_record") or {}
+    picks = v757.get("picks") or data.get("picks") or []
+    focus = v757.get("focus") or []
+    counts = {
+        "today": _v777_count(calendar, "counts", "visible") or len(focus),
+        "live": _v777_count(live, "counts", "live"),
+        "picks": len(picks) if isinstance(picks, list) else _v777_count(picks),
+        "closed": _v777_count(track, "summary", "closed_picks") or _v777_count(track, "closed_count") or _v777_count(track, "graded_count"),
+    }
+    if counts["live"]:
+        next_action = {"label": "Hay directo", "body": "Empieza por marcador, minuto y estado real.", "href": "/live", "cta": "Ver directo"}
+    elif counts["picks"]:
+        next_action = {"label": "Hay picks", "body": "Lee mercado, cuota, stake y riesgo antes de entrar.", "href": "/picks", "cta": "Ver picks"}
+    elif counts["today"]:
+        next_action = {"label": "Hay agenda", "body": "Revisa partidos de hoy y marca favoritos.", "href": "/calendar?lane=today", "cta": "Ver partidos"}
+    else:
+        next_action = {"label": "Sin señal real", "body": "La app no inventa. Revisa resultados, guía o Telegram.", "href": "/menu", "cta": "Ver mapa"}
+    intents = [
+        {"key": "matches", "title": "Ver partidos", "body": "Hoy, semana, liga, estado y hora Madrid.", "href": "/calendar?lane=today", "icon": "◷"},
+        {"key": "live", "title": "Seguir directo", "body": "Marcador/minuto si la API lo aporta.", "href": "/live", "icon": "●"},
+        {"key": "bet", "title": "Apostar con criterio", "body": "Picks, combis y mercados explicados.", "href": "/picks", "icon": "◆"},
+        {"key": "results", "title": "Ver resultados", "body": "Histórico, resúmenes y ROI real.", "href": "/track-record", "icon": "↗"},
+        {"key": "shark", "title": "Preguntar a SHARK", "body": "Qué entrar, qué evitar y por qué.", "href": "/shark", "icon": "🦈"},
+        {"key": "account", "title": "Configurar cuenta", "body": "Telegram, plan, ayuda y favoritos.", "href": "/mi-cuenta", "icon": "☰"},
+    ]
+    plan = {
+        "name": membership,
+        "headline": "FREE activo" if membership == "FREE" else ("PRO activo" if membership == "PRO" else "ELITE activo"),
+        "cta": "Mejorar plan" if membership in {"FREE", "PRO"} else "Ver picks",
+        "href": "/membresias" if membership in {"FREE", "PRO"} else "/picks",
+    }
+    return {
+        "version": APP_VERSION,
+        "status": "V777_CLIENT_PRODUCT_EXPERIENCE_FINAL",
+        "counts": counts,
+        "next_action": next_action,
+        "intents": intents,
+        "plan": plan,
+        "principles": [
+            "Lo importante primero: Hoy, Directo, Picks, SHARK y Resultados.",
+            "Sin datos inventados: si falta partido, cuota, resultado o ROI se marca pendiente.",
+            "Móvil y PC comparten el mismo mapa de producto.",
+        ],
+    }
+
+
+def v777_client_product_quality_snapshot():
+    templates = [
+        "base.html", "client_app_center.html", "client_menu.html", "calendar.html", "live.html",
+        "picks.html", "combis.html", "betting_markets.html", "highlights.html", "track_record.html",
+        "shark.html", "telegram.html", "account_center.html",
+    ]
+    checks = []
+    for name in templates:
+        path = os.path.join(BASE_DIR, "templates", name)
+        raw = ""
+        try:
+            with open(path, "r", encoding="utf-8") as fh:
+                raw = fh.read()
+        except Exception:
+            pass
+        checks.append({
+            "template": name,
+            "exists": bool(raw),
+            "has_v777": "v777" in raw.lower(),
+            "has_core_links": all(token in raw for token in ["/calendar", "/picks"]) if name in {"base.html", "client_app_center.html", "client_menu.html"} else True,
+            "bad_copy": any(token in raw.lower() for token in ["utc", "json visible", "debug", "pasado para próximos"]),
+        })
+    return {
+        "ok": all(item["exists"] for item in checks),
+        "version": APP_VERSION,
+        "status": "V777_CLIENT_PRODUCT_EXPERIENCE_FINAL",
+        "checks": checks,
+        "rules": [
+            "Home = centro de mando, no landing duplicada.",
+            "Navegación por intención: ver, apostar, resultados, SHARK y cuenta.",
+            "Nada crítico escondido detrás de textos ambiguos.",
+            "Hora Madrid visible y sin UTC crudo en cliente.",
+        ],
+    }
+
+
+@app.route("/api/client/product-experience")
+def api_client_v777_product_experience():
+    user = current_session_user()
+    if not user:
+        return jsonify({"ok": False, "version": APP_VERSION, "error": "login_required"}), 403
+    data = dashboard_data()
+    data["track_record"] = v742_track_record_context()
+    data["v757_app"] = build_v757_app_center(data, user, track_record=data.get("track_record"))
+    return jsonify({"ok": True, "version": APP_VERSION, "product": v777_client_product_context(data, user)})
+
+
+@app.route("/api/admin/client-product-quality")
+@app.route("/api/admin/v777-client-quality")
+def api_admin_v777_client_product_quality():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify(v777_client_product_quality_snapshot())
+
+
+@app.route("/admin/client-product-quality")
+@app.route("/admin/v777-client-quality")
+def admin_v777_client_product_quality_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/client-product-quality")
+    return render_template("admin_app_experience_quality.html", data={"quality": v777_client_product_quality_snapshot(), "v777": True})
 
 @app.route("/admin/data-marketplace")
 @app.route("/admin/export-center")
