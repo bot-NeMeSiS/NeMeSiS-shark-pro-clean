@@ -245,3 +245,7 @@ Preparada nueva pasada visual sobre V795 para acercar cliente y admin a los mock
 - Añadido heartbeat runtime seguro para admin desde `/api/runtime-version` sin exponer secretos.
 - Añadido check `tools/check_v796_mockup_fidelity_screen_depth_auto_living.py`.
 - Preservados Stripe, Telegram, Cron, DB_PATH, usuarios, membresías, picks, directos, escudos, legal y Madrid Time.
+
+## V797_RENDER_VISUAL_QA_LOGOUT_REAL_DATA_PIXEL_POLISH
+
+Basado en vídeo real enviado por el usuario. Se detectó que las pantallas ya mejoraron visualmente, pero faltaba salida/cerrar sesión clara y persistían algunos valores mock/ficticios en admin. V797 añade acciones de cierre de sesión visibles, refuerza fidelidad visual cliente/admin y cambia datos admin mock por placeholders/estados real-only cuando no existen datos reales conectados. Preserva DB_PATH, Stripe, Telegram, Cron, usuarios, sesiones, membresías, picks, directos, escudos, Madrid Time, legal y motores principales.

@@ -5,11 +5,11 @@
 {% set stats = d.get('stats', {}) if d.get is defined else {} %}
 {% call ui.shell('Dashboard', 'Panel de control', 'Resumen general del ecosistema') %}
 <section class="v794-admin-kpi-grid">
-  {{ ui.kpi('Usuarios activos', stats.get('users_active', d.get('users_count', '2.458')), '+12.4% vs ayer', '♙', 'blue', '') }}
+  {{ ui.kpi('Usuarios activos', stats.get('users_active') or d.get('users_count') or '—', '+12.4% vs ayer', '♙', 'blue', '') }}
   {{ ui.kpi('Picks activos', stats.get('picks_active', d.get('active_picks', '38')), '+8 vs ayer', '◎', 'blue', '') }}
-  {{ ui.kpi('Partidos en directo', stats.get('live_matches', d.get('live_count', '24')), 'En 12 ligas', '⚽', 'blue', '') }}
-  {{ ui.kpi('MRR', stats.get('mrr', '€18.732'), '+9.6% vs ayer', '€', 'green', '') }}
-  {{ ui.kpi('Telegram', stats.get('telegram_subscribers', '125.684'), 'Suscriptores', '✈', 'blue', '') }}
+  {{ ui.kpi('Partidos en directo', stats.get('live_matches') or d.get('live_count') or '—', 'En 12 ligas', '⚽', 'blue', '') }}
+  {{ ui.kpi('MRR', stats.get('mrr') or d.get('mrr') or '—', '+9.6% vs ayer', '€', 'green', '') }}
+  {{ ui.kpi('Telegram', stats.get('telegram_subscribers') or d.get('telegram_subscribers') or '—', 'Suscriptores', '✈', 'blue', '') }}
   {{ ui.kpi('Estado global', 'Correcto', 'Todos los sistemas OK', '🛡', 'green', '') }}
 </section>
 <section class="v794-admin-grid two">
@@ -17,17 +17,17 @@
     <div class="v794-panel-head"><h2>Actividad & Ingresos</h2><span>{{ ui.status('Diario','info') }}</span></div>
     <div class="v794-admin-chart"><span class="v794-chart-label">Ingresos + usuarios</span></div>
     <div class="v794-admin-grid three" style="margin-top:14px">
-      <div><small>Ingresos hoy</small><h2>€1.842</h2><span class="v794-status ok">+11.2% vs ayer</span></div>
-      <div><small>Ingresos semana</small><h2>€12.685</h2><span class="v794-status ok">+14.7% vs semana anterior</span></div>
-      <div><small>Ingresos mes</small><h2>€54.732</h2><span class="v794-status ok">+18.3% vs mes anterior</span></div>
+      <div><small>Ingresos hoy</small><h2>{{ stats.get('revenue_today') or '—' }}</h2><span class="v794-status info">Dato real si existe</span></div>
+      <div><small>Ingresos semana</small><h2>{{ stats.get('revenue_week') or '—' }}</h2><span class="v794-status info">No inventado</span></div>
+      <div><small>Ingresos mes</small><h2>{{ stats.get('revenue_month') or '—' }}</h2><span class="v794-status info">Stripe/DB</span></div>
     </div>
   </article>
   <div class="v794-admin-grid">
     <article class="v794-admin-panel v794-pulse-card">
       <div class="v794-panel-head"><h2>Estado de Telegram</h2><a href="/admin/telegram/command-center">Abrir →</a></div>
       <div class="v794-admin-grid three">
-        <div><small>Enviados hoy</small><h2>48.732</h2><span>Mensajes</span></div>
-        <div><small>Fallidos</small><h2>23</h2><span class="v794-status ok">0.05%</span></div>
+        <div><small>Enviados hoy</small><h2>{{ stats.get('telegram_sent_today') or '—' }}</h2><span>Mensajes reales</span></div>
+        <div><small>Fallidos</small><h2>{{ stats.get('telegram_failed_today') or '—' }}</h2><span class="v794-status info">Dato real</span></div>
         <div><small>Próximo envío</small><h2 class="v794-live-clock">00:07:42</h2><span>Render Cron</span></div>
       </div>
       <div class="v794-progress" style="margin-top:16px"><i style="width:78%"></i></div>
@@ -47,11 +47,7 @@
   <article class="v794-admin-panel">
     <div class="v794-panel-head"><h2>Actividad reciente</h2><a href="/admin/observability">Ver todo →</a></div>
     <table class="v794-admin-table"><thead><tr><th>Hora</th><th>Módulo</th><th>Descripción</th><th>Usuario</th><th>Estado</th></tr></thead><tbody>
-      <tr><td>16:22:18</td><td>Telegram</td><td>Envío masivo completado</td><td>Sistema</td><td>{{ ui.status('Correcto','ok') }}</td></tr>
-      <tr><td>16:20:45</td><td>Picks</td><td>Nuevos picks generados</td><td>Sistema</td><td>{{ ui.status('Correcto','ok') }}</td></tr>
-      <tr><td>16:15:33</td><td>Datos</td><td>Actualización de datos completada</td><td>Sistema</td><td>{{ ui.status('Correcto','ok') }}</td></tr>
-      <tr><td>16:10:12</td><td>Pagos</td><td>Pago recibido de usuario</td><td>Stripe</td><td>{{ ui.status('Correcto','ok') }}</td></tr>
-      <tr><td>16:05:01</td><td>Usuarios</td><td>Nuevo usuario registrado</td><td>Sistema</td><td>{{ ui.status('Atención','warn') }}</td></tr>
+      <tr><td>—</td><td>Sistema</td><td>Actividad real pendiente de logs de producción</td><td>Render</td><td>{{ ui.status('Esperando datos','info') }}</td></tr>
     </tbody></table>
   </article>
   <article class="v794-admin-panel">

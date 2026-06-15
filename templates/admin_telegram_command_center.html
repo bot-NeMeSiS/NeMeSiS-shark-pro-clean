@@ -4,11 +4,11 @@
 {% call ui.shell('Telegram', 'Telegram Command Center', 'Automatización, actividad y entregas') %}
 <section class="v794-admin-kpi-grid">
   {{ ui.kpi('Canal principal', '@NemeSiS_Premium', 'Activo', '✈', 'blue') }}
-  {{ ui.kpi('Enviados hoy', '48.732', '+12.4% vs ayer', '✈', 'blue') }}
-  {{ ui.kpi('Fallidos', '23', '0.05%', '!', 'red') }}
-  {{ ui.kpi('Próximo envío', '00:07:42', '18/05/2025 16:30', '◷', 'blue') }}
-  {{ ui.kpi('Suscriptores', '125.684', '+1.287 vs ayer', '♙', 'blue') }}
-  {{ ui.kpi('Dedupe', '98.72%', 'OK', '▧', 'green') }}
+  {{ ui.kpi('Enviados hoy', (data.get('sent_today') if data is defined and data.get is defined else none) or '—', 'Telegram real', '✈', 'blue') }}
+  {{ ui.kpi('Fallidos', (data.get('failed_today') if data is defined and data.get is defined else none) or '—', 'Dato real', '!', 'red') }}
+  {{ ui.kpi('Próximo envío', (data.get('next_run_label') if data is defined and data.get is defined else none) or '—', 'Render Cron', '◷', 'blue') }}
+  {{ ui.kpi('Suscriptores', (data.get('subscribers') if data is defined and data.get is defined else none) or '—', 'Dato real', '♙', 'blue') }}
+  {{ ui.kpi('Dedupe', (data.get('dedupe_rate') if data is defined and data.get is defined else none) or '—', 'Dato real', '▧', 'green') }}
 </section>
 <section class="v794-admin-grid sidebar">
   <div class="v794-admin-grid">
@@ -26,7 +26,7 @@
     <article class="v794-admin-panel">
       <div class="v794-panel-head"><h2>Estado del cron runner</h2><span class="v794-live-dot"></span></div>
       <table class="v794-admin-table"><tbody>
-        <tr><td>Cron real detectado</td><td><strong>Sí</strong></td></tr><tr><td>Último tick</td><td>18/05/2025 16:22:18</td></tr><tr><td>Último resultado</td><td>{{ ui.status('Éxito','ok') }}</td></tr><tr><td>Último delivery_id</td><td>d_01JW3Z7QF3G6X4F8B7M9P2T1Y5</td></tr><tr><td>Runner</td><td>render-cron</td></tr><tr><td>Región</td><td>Oregon (US)</td></tr><tr><td>Próximo tick esperado</td><td>18/05/2025 16:30:00</td></tr><tr><td>Estado</td><td>{{ ui.status('Healthy','ok') }}</td></tr>
+        <tr><td>Cron real detectado</td><td>{{ (data.get('cron_runner_detected') if data is defined and data.get is defined else none) or '—' }}</td></tr><tr><td>Último tick</td><td>{{ (data.get('last_tick') if data is defined and data.get is defined else none) or '—' }}</td></tr><tr><td>Último resultado</td><td>{{ (data.get('last_result') if data is defined and data.get is defined else none) or ui.status('Sin dato','info') }}</td></tr><tr><td>Último delivery_id</td><td>{{ (data.get('last_delivery_id') if data is defined and data.get is defined else none) or '—' }}</td></tr><tr><td>Runner</td><td>{{ (data.get('runner') if data is defined and data.get is defined else none) or 'render-cron' }}</td></tr><tr><td>Estado</td><td>{{ ui.status('Esperando dato real','info') }}</td></tr>
       </tbody></table>
     </article>
   </div>
@@ -37,6 +37,6 @@
     <article class="v794-admin-panel"><div class="v794-panel-head"><h2>Motivos de descarte (24h)</h2></div><div class="v794-admin-list"><div class="v794-admin-list-row"><span>812</span><div><strong>Mensaje duplicado</strong><small>65.7%</small></div></div><div class="v794-admin-list-row"><span>214</span><div><strong>Fuera de ventana horaria</strong><small>17.3%</small></div></div><div class="v794-admin-list-row"><span>123</span><div><strong>Usuario inactivo</strong><small>10.0%</small></div></div></div></article>
   </aside>
 </section>
-<section class="v794-admin-panel" style="margin-top:16px"><div class="v794-panel-head"><h2>Entregas recientes de Telegram</h2><a href="/api/admin/telegram/dedupe-status">Ver todas</a></div><table class="v794-admin-table"><thead><tr><th>Hora</th><th>Tipo</th><th>Destino</th><th>Estado</th><th>Delivery ID</th></tr></thead><tbody><tr><td>16:22:18</td><td>Live Alert</td><td>@NemeSiS_Premium</td><td>{{ ui.status('Enviado','ok') }}</td><td>d_01JW3Z7Q...</td></tr><tr><td>16:02:45</td><td>Picks Premium</td><td>@NemeSiS_Premium</td><td>{{ ui.status('Enviado','ok') }}</td><td>d_01JW1X8N...</td></tr><tr><td>15:20:33</td><td>Live Alert</td><td>@NemeSiS_Premium</td><td>{{ ui.status('Fallido','danger') }}</td><td>d_01JVZ8M...</td></tr></tbody></table></section>
+<section class="v794-admin-panel" style="margin-top:16px"><div class="v794-panel-head"><h2>Entregas recientes de Telegram</h2><a href="/api/admin/telegram/dedupe-status">Ver todas</a></div><div class="v797-truth-empty"><strong>Esperando entregas reales.</strong><span>Cuando Render Cron envíe mensajes, aparecerán aquí con delivery_id real.</span></div></section>
 {% endcall %}
 {% endblock %}

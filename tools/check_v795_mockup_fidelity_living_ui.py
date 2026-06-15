@@ -2,9 +2,9 @@
 from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = ROOT.joinpath('VERSION.txt').read_text(encoding='utf-8-sig').strip()
-assert VERSION.startswith(('V795_','V796_')), VERSION
+assert VERSION.startswith(('V795_','V796_','V797_')), VERSION
 app = ROOT.joinpath('app.py').read_text(encoding='utf-8')
-assert ('V795_MOCKUP_FIDELITY_LIVING_UI_DEEP_POLISH' in app) or ('V796_MOCKUP_FIDELITY_SCREEN_DEPTH_AUTO_LIVING_POLISH' in app)
+assert ('V795_MOCKUP_FIDELITY_LIVING_UI_DEEP_POLISH' in app) or ('V796_MOCKUP_FIDELITY_SCREEN_DEPTH_AUTO_LIVING_POLISH' in app) or ('V797_RENDER_VISUAL_QA_LOGOUT_REAL_DATA_PIXEL_POLISH' in app)
 base = ROOT.joinpath('templates/base.html').read_text(encoding='utf-8')
 assert 'data-v795-shell="true"' in base
 assert 'function v795LivingUi' in base

@@ -24,7 +24,7 @@
   {% set _visual_tier = 'free' %}
   {% set _tier_label = 'FREE' %}
 {% endif %}
-<body class="ns-app ns-tier-{{ _visual_tier }}{% if current_user %} ns-authenticated{% else %} ns-public{% endif %}{% if current_user and current_user.role == 'ADMIN' %} ns-admin{% endif %}" data-ns-route="{{ request.path }}" data-ns-plan="{{ _tier_label }}" data-v775-shell="true" data-v776-shell="true" data-v777-shell="true" data-v778-shell="true" data-v790-shell="true" data-v792-shell="true" data-v793-shell="true" data-v795-shell="true" data-v796-shell="true">
+<body class="ns-app ns-tier-{{ _visual_tier }}{% if current_user %} ns-authenticated{% else %} ns-public{% endif %}{% if current_user and current_user.role == 'ADMIN' %} ns-admin{% endif %}" data-ns-route="{{ request.path }}" data-ns-plan="{{ _tier_label }}" data-v775-shell="true" data-v776-shell="true" data-v777-shell="true" data-v778-shell="true" data-v790-shell="true" data-v792-shell="true" data-v793-shell="true" data-v795-shell="true" data-v796-shell="true" data-v797-shell="true">
   <div class="ns-ambient" aria-hidden="true"><i></i><i></i><i></i></div>
   <div class="membership-energy-bar" aria-hidden="true"></div>
   <div class="ns-route-glow" aria-hidden="true"></div>
@@ -61,6 +61,7 @@
           <a href="/shark" data-v775-icon="◥">SHARK</a>
           <a href="/telegram" data-v775-icon="✈">Telegram</a>
           <a href="/mi-cuenta" data-v775-icon="◎">Cuenta</a>
+          <a class="v797-nav-logout" href="/logout" data-v775-icon="⏻">Salir</a>
         {% else %}
           <a href="/membresias">Membresías</a>
           <a href="/legal">Confianza</a>
@@ -72,6 +73,13 @@
   </header>
 
   {# V778: navegación global cliente consolidada. PC usa la barra superior; móvil usa la inferior. Sin rail duplicado. #}
+
+  {% if current_user and current_user.role != 'ADMIN' %}
+  <div class="v797-session-pills" aria-label="Acciones de sesión">
+    <a href="/mi-cuenta">Mi cuenta</a>
+    <a class="danger" href="/logout">Cerrar sesión</a>
+  </div>
+  {% endif %}
 
   <main class="shell shark-shell ns-main-shell">
     {% block content %}{% endblock %}

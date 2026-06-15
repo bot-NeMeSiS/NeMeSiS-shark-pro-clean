@@ -3,11 +3,11 @@
 {% block content %}
 {% call ui.shell('Pagos', 'Pagos y membresías', 'Suscripciones, Stripe y facturación') %}
 <section class="v794-admin-kpi-grid">
-  {{ ui.kpi('MRR','€18.732','+9.61% vs ayer','€','green') }}
-  {{ ui.kpi('Suscriptores PRO','2.148','+7.32% vs ayer','♙','blue') }}
-  {{ ui.kpi('Suscriptores ELITE','312','+4.50% vs ayer','♛','gold') }}
-  {{ ui.kpi('Pagos fallidos','23','-8.0% vs ayer','!','red') }}
-  {{ ui.kpi('Renovaciones hoy','87','+12.6% vs ayer','▣','blue') }}
+  {{ ui.kpi('MRR', (data.get('mrr') if data is defined and data.get is defined else none) or '—', 'Stripe real', '€','green') }}
+  {{ ui.kpi('Suscriptores PRO', (data.get('subscribers_pro') if data is defined and data.get is defined else none) or '—', 'Dato real', '♙','blue') }}
+  {{ ui.kpi('Suscriptores ELITE', (data.get('subscribers_elite') if data is defined and data.get is defined else none) or '—', 'Dato real', '♛','gold') }}
+  {{ ui.kpi('Pagos fallidos', (data.get('failed_payments') if data is defined and data.get is defined else none) or '—', 'Stripe real', '!','red') }}
+  {{ ui.kpi('Renovaciones hoy', (data.get('renewals_today') if data is defined and data.get is defined else none) or '—', 'Dato real', '▣','blue') }}
   {{ ui.kpi('Estado Stripe','Operativo','Todos los servicios OK','S','green') }}
 </section>
 <section class="v794-admin-grid sidebar">
@@ -17,12 +17,12 @@
       <article class="v794-admin-plan pro"><h3>PRO</h3><strong>€9,99 <small>/mes</small></strong><p>Acceso completo a funciones PRO.</p><ul><li>Picks destacados</li><li>Estadísticas avanzadas</li><li>Envío en tiempo real</li><li>Soporte prioritario</li></ul></article>
       <article class="v794-admin-plan elite"><h3>ELITE</h3><strong>€24,99 <small>/mes</small></strong><p>Máximo nivel de rendimiento.</p><ul><li>Todo PRO</li><li>Picks exclusivos</li><li>Alertas prioritarias</li><li>Acceso anticipado</li></ul></article>
     </section>
-    <article class="v794-admin-panel"><div class="v794-panel-head"><h2>Suscripciones activas</h2><span>{{ ui.status('Stripe live/test','info') }}</span></div><table class="v794-admin-table"><thead><tr><th>Usuario</th><th>Plan</th><th>Stripe status</th><th>Próxima renovación</th><th>Último pago</th><th>Método</th><th>Acciones</th></tr></thead><tbody>{% set rows=[('javier.martinez@pro.com','PRO','Activo','17/06/2025','€9,99','Visa •••• 4242'),('ana.garcia@elite.com','ELITE','Activo','21/06/2025','€24,99','Mastercard •••• 8888'),('luis.rodriguez@pro.com','PRO','Activo','16/06/2025','€9,99','Visa •••• 1111'),('maria.lopez@free.com','FREE','Activo','—','—','—'),('carlos.sanchez@pro.com','PRO','Pendiente','20/05/2025','€9,99','Amex •••• 1005')] %}{% for user,plan,status,renew,last,method in rows %}<tr><td><strong>{{ user }}</strong></td><td>{{ ui.status(plan, 'warn' if plan=='ELITE' else 'info' if plan=='PRO' else 'ok') }}</td><td>{{ ui.status(status, 'ok' if status=='Activo' else 'warn') }}</td><td>{{ renew }}</td><td>{{ last }}</td><td>{{ method }}</td><td>👁 · ⋮</td></tr>{% endfor %}</tbody></table></article>
+    <article class="v794-admin-panel"><div class="v794-panel-head"><h2>Suscripciones activas</h2><span>{{ ui.status('Datos reales','info') }}</span></div><div class="v797-truth-empty"><strong>Tabla preparada para Stripe/DB real.</strong><span>Cuando Render entregue suscripciones reales, se muestran aquí. No se insertan clientes ficticios.</span></div></article>
   </div>
   <aside class="v794-admin-grid">
-    <article class="v794-admin-panel"><div class="v794-panel-head"><h2>Facturas recientes</h2><a href="/admin/payments">Ver todas</a></div><table class="v794-admin-table"><tbody><tr><td>INV-2025-0518</td><td>PRO - Mensual</td><td>€9,99</td><td>{{ ui.status('Pagada','ok') }}</td></tr><tr><td>INV-2025-0517</td><td>ELITE - Mensual</td><td>€24,99</td><td>{{ ui.status('Pagada','ok') }}</td></tr><tr><td>INV-2025-0516</td><td>PRO - Mensual</td><td>€9,99</td><td>{{ ui.status('Pendiente','warn') }}</td></tr></tbody></table></article>
-    <article class="v794-admin-panel" style="border-color:rgba(255,84,103,.28)"><div class="v794-panel-head"><h2>Pagos fallidos recientes</h2><span>{{ ui.status('23','danger') }}</span></div><p>Importe total últimos 7 días: <strong>€667,00</strong></p><div class="v794-admin-list"><div class="v794-admin-list-row"><span>PRO</span><div><strong>maria.lopez@pro.com</strong><small>18/05/2025</small></div><b>€9,99</b></div><div class="v794-admin-list-row"><span>ELITE</span><div><strong>diego.perez@elite.com</strong><small>17/05/2025</small></div><b>€24,99</b></div></div></article>
-    <article class="v794-admin-panel"><div class="v794-panel-head"><h2>Configuración Stripe</h2><a href="/admin/real-launch">Gestionar</a></div><table class="v794-admin-table"><tbody><tr><td>Modo</td><td>{{ ui.status('LIVE / TEST','ok') }}</td></tr><tr><td>Webhook</td><td>{{ ui.status('Activo','ok') }}</td></tr><tr><td>Portal del cliente</td><td>{{ ui.status('Activo','ok') }}</td></tr><tr><td>Price ID PRO</td><td>price_PROxxxxxxxx</td></tr><tr><td>Price ID ELITE</td><td>price_ELITExxxxxxx</td></tr><tr><td>Verificación cuenta</td><td>{{ ui.status('Verificada','ok') }}</td></tr></tbody></table></article>
+    <article class="v794-admin-panel"><div class="v794-panel-head"><h2>Facturas recientes</h2><a href="/admin/payments">Ver todas</a></div><div class="v797-truth-empty"><strong>Sin facturas reales cargadas en esta vista.</strong><span>Se mostrará Stripe cuando exista historial real.</span></div></article>
+    <article class="v794-admin-panel" style="border-color:rgba(255,84,103,.28)"><div class="v794-panel-head"><h2>Pagos fallidos recientes</h2><span>{{ ui.status('Real','danger') }}</span></div><div class="v797-truth-empty"><strong>Sin fallos reales listados.</strong><span>No se muestran emails ni pagos de ejemplo.</span></div></article>
+    <article class="v794-admin-panel"><div class="v794-panel-head"><h2>Configuración Stripe</h2><a href="/admin/real-launch">Gestionar</a></div><table class="v794-admin-table"><tbody><tr><td>Modo</td><td>{{ ui.status('LIVE / TEST','ok') }}</td></tr><tr><td>Webhook</td><td>{{ ui.status('Activo','ok') }}</td></tr><tr><td>Portal del cliente</td><td>{{ ui.status('Activo','ok') }}</td></tr><tr><td>Price ID PRO</td><td>{{ (data.get('stripe_price_pro') if data is defined and data.get is defined else none) or 'Pendiente' }}</td></tr><tr><td>Price ID ELITE</td><td>{{ (data.get('stripe_price_elite') if data is defined and data.get is defined else none) or 'Pendiente' }}</td></tr><tr><td>Verificación cuenta</td><td>{{ ui.status('Verificada','ok') }}</td></tr></tbody></table></article>
   </aside>
 </section>
 {% endcall %}

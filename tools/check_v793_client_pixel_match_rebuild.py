@@ -8,8 +8,8 @@ def require(cond, msg):
 version = (ROOT/'VERSION.txt').read_text(encoding='utf-8').strip()
 app = (ROOT/'app.py').read_text(encoding='utf-8')
 css = (ROOT/'static/app.css').read_text(encoding='utf-8')
-require(version in ['V793_CLIENT_PIXEL_MATCH_SCREEN_REBUILD','V794_PIXEL_PERFECT_CLIENT_ADMIN_COMPONENT_SYSTEM','V795_MOCKUP_FIDELITY_LIVING_UI_DEEP_POLISH','V796_MOCKUP_FIDELITY_SCREEN_DEPTH_AUTO_LIVING_POLISH'], f'VERSION inesperada: {version}')
-require(('APP_VERSION = "V793_CLIENT_PIXEL_MATCH_SCREEN_REBUILD"' in app) or ("APP_VERSION = 'V794_PIXEL_PERFECT_CLIENT_ADMIN_COMPONENT_SYSTEM'" in app) or ('APP_VERSION = "V794_PIXEL_PERFECT_CLIENT_ADMIN_COMPONENT_SYSTEM"' in app) or ("APP_VERSION = 'V795_MOCKUP_FIDELITY_LIVING_UI_DEEP_POLISH'" in app) or ("APP_VERSION = 'V796_MOCKUP_FIDELITY_SCREEN_DEPTH_AUTO_LIVING_POLISH'" in app), 'APP_VERSION no actualizado')
+require(version in ['V793_CLIENT_PIXEL_MATCH_SCREEN_REBUILD','V794_PIXEL_PERFECT_CLIENT_ADMIN_COMPONENT_SYSTEM','V795_MOCKUP_FIDELITY_LIVING_UI_DEEP_POLISH','V796_MOCKUP_FIDELITY_SCREEN_DEPTH_AUTO_LIVING_POLISH','V797_RENDER_VISUAL_QA_LOGOUT_REAL_DATA_PIXEL_POLISH'], f'VERSION inesperada: {version}')
+require("APP_VERSION = 'V797_RENDER_VISUAL_QA_LOGOUT_REAL_DATA_PIXEL_POLISH'" in app or 'APP_VERSION = \"V797_RENDER_VISUAL_QA_LOGOUT_REAL_DATA_PIXEL_POLISH\"' in app, 'APP_VERSION no actualizado')
 require('data-v793-shell="true"' in (ROOT/'templates/base.html').read_text(encoding='utf-8'), 'base sin shell V793')
 need_css = ['v793-home-hero','v793-live-feature','v793-agenda-row','v793-pick-feature','v793-match-hero','v793-plan-card','v793-profile-card','v793-telegram-status','v793-track-screen']
 for token in need_css:
