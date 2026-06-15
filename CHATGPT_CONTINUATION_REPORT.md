@@ -266,3 +266,12 @@ Basado en vídeo real enviado por el usuario. Se detectó que las pantallas ya m
 - Protección: no se inventan partidos/cuotas/resultados/picks/ROI; si falta dato se muestran estados vacíos bonitos.
 - No tocado: DB_PATH, AUTOMATION_SECRET, Telegram/Cron, usuarios, sesiones, membresías, pagos, Stripe, picks core, Madrid Time.
 - Validación: py_compile OK, compileall OK, Jinja parse 144 templates OK, Madrid Time OK, check_v801 OK. Flask smoke no ejecutado por falta de Flask en sandbox.
+
+## V802_CLIENT_REFERENCE_FLOW_LINKED_EXPERIENCE_PERFECTION
+
+- Avance visual/UX sobre V801 centrado en dejar el cliente como una app deportiva premium enlazada.
+- Añadido flujo común cliente: Inicio → Partidos → Directo → Picks → Detalle → SHARK.
+- Calendario/Partidos reforzado con resumen de filtro seleccionado, días ampliados a 14, ligas agrupadas por bloques importantes y foco rápido de partidos visibles.
+- Directo, Picks y Detalle reciben comandos de lectura para que el cliente siempre sepa qué hacer y dónde ir.
+- No se inventan partidos, cuotas, resultados, ROI ni picks: si falta dato, se muestra pendiente/estado vacío.
+- Preservados DB_PATH, secretos, Telegram/Cron, usuarios, membresías, pagos y Madrid Time.

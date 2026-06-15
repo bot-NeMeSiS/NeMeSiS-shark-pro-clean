@@ -1,0 +1,9 @@
+{% set _route = request.path if request is defined else '' %}
+<section class="v802-client-flow" aria-label="Flujo principal del cliente">
+  <a class="{{ 'active' if _route in ['/app','/sports-hub','/sports','/today'] else '' }}" href="/app"><span>01</span><strong>Inicio</strong><small>Resumen real</small></a>
+  <a class="{{ 'active' if _route.startswith('/calendar') or _route.startswith('/calendario') or _route.startswith('/partidos') else '' }}" href="/calendar?lane=today"><span>02</span><strong>Partidos</strong><small>Calendario</small></a>
+  <a class="{{ 'active' if _route.startswith('/live') or _route.startswith('/directo') else '' }}" href="/live"><span>03</span><strong>Directo</strong><small>Marcador</small></a>
+  <a class="{{ 'active' if _route.startswith('/picks') or _route.startswith('/combis') else '' }}" href="/picks"><span>04</span><strong>Picks</strong><small>Señales</small></a>
+  <a class="{{ 'active' if _route.startswith('/match') else '' }}" href="/calendar?lane=with_pick"><span>05</span><strong>Detalle</strong><small>Análisis</small></a>
+  <a class="{{ 'active' if _route.startswith('/shark') else '' }}" href="/shark"><span>06</span><strong>SHARK</strong><small>Consulta</small></a>
+</section>

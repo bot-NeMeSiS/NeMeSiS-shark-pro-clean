@@ -211,7 +211,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V801_CALENDAR_MATCHES_REFERENCE_FLOW_REAL_DATA_PERFECTION'
+APP_VERSION = 'V802_CLIENT_REFERENCE_FLOW_LINKED_EXPERIENCE_PERFECTION'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
@@ -11296,9 +11296,75 @@ def _calendar_important_shortcuts(matches, filters, limit=18):
     return shortcuts[:limit]
 
 
+
+
+def _calendar_league_collections(shortcuts):
+    """Agrupa accesos de ligas importantes para la experiencia cliente V802.
+
+    Solo reordena accesos ya calculados sobre datos reales/sincronizados; no crea partidos.
+    """
+    groups = [
+        ("spain", "España", "LaLiga, Copa, RFEF y foco Andalucía si está sincronizado"),
+        ("england", "Inglaterra", "Premier y competiciones inglesas principales"),
+        ("europe", "Europa", "Champions, Europa League, Conference y grandes ligas"),
+        ("national", "Selecciones", "Mundial, Euro, Nations y ventanas internacionales"),
+        ("international", "Mundial", "Competiciones globales y torneos top"),
+        ("other", "Más ligas", "Resto sincronizado en la base real"),
+    ]
+    buckets = {key: {"key": key, "label": label, "hint": hint, "items": [], "count": 0} for key, label, hint in groups}
+    for item in shortcuts or []:
+        group = str(item.get("group") or "other").lower()
+        label_norm = normalized_label(item.get("label") or "")
+        if group in {"andalucia", "spain"} or any(token in label_norm for token in ["laliga", "copa del rey", "primera federacion", "segunda federacion", "andalucia"]):
+            key = "spain"
+        elif group == "england" or any(token in label_norm for token in ["premier", "championship", "facup", "efl"]):
+            key = "england"
+        elif group in {"europe", "uefa", "italy", "germany", "france", "portugal"} or any(token in label_norm for token in ["champions", "europa league", "conference", "serie a", "bundesliga", "ligue 1", "primeira"]):
+            key = "europe"
+        elif group in {"national", "world"} or any(token in label_norm for token in ["world cup", "mundial", "euro", "nations"]):
+            key = "national"
+        elif group == "international":
+            key = "international"
+        else:
+            key = "other"
+        buckets.setdefault(key, {"key": key, "label": key.title(), "hint": "", "items": [], "count": 0})["items"].append(item)
+        try:
+            buckets[key]["count"] += int(item.get("count") or 0)
+        except Exception:
+            pass
+    out = []
+    for key, _, _ in groups:
+        bucket = buckets.get(key)
+        if bucket and bucket.get("items"):
+            bucket["items"] = sorted(bucket["items"], key=lambda x: (0 if x.get("count") else 1, x.get("label") or ""))[:7]
+            out.append(bucket)
+    return out
+
+
+def _calendar_selected_summary(filters, counts):
+    lane = filters.get("lane") or "today"
+    lane_label = CALENDAR_LANE_LABELS.get(lane, "Calendario")
+    pieces = [lane_label]
+    if filters.get("date") and lane in {"today", "tomorrow"}:
+        pieces.append(filters.get("date"))
+    if filters.get("league"):
+        pieces.append(filters.get("league"))
+    if filters.get("country"):
+        pieces.append(filters.get("country"))
+    if filters.get("q"):
+        pieces.append(f"Búsqueda: {filters.get('q')}")
+    return {
+        "label": lane_label,
+        "title": " · ".join([str(p) for p in pieces if p]) or "Calendario",
+        "visible": int(counts.get("visible") or 0),
+        "total": int(counts.get("all") or 0),
+        "source": "Datos reales sincronizados" if counts.get("visible") else "Sin datos para este filtro",
+    }
+
+
 def _calendar_day_chips(date, lane):
     chips = []
-    for offset, label in [(0, "Hoy"), (1, "Mañana"), (2, "En 2 días"), (3, "En 3 días"), (4, "En 4 días"), (5, "En 5 días"), (6, "En 6 días"), (7, "En 7 días")]:
+    for offset, label in [(0, "Hoy"), (1, "Mañana"), (2, "En 2 días"), (3, "En 3 días"), (4, "En 4 días"), (5, "En 5 días"), (6, "En 6 días"), (7, "En 7 días"), (8, "En 8 días"), (9, "En 9 días"), (10, "En 10 días"), (11, "En 11 días"), (12, "En 12 días"), (13, "En 13 días"), (14, "En 14 días")]:
         d = today_iso(offset)
         chips.append({
             "label": label,
@@ -11379,14 +11445,18 @@ def calendar_experience_data():
         {"key": "favorites", "label": "Favoritos", "href": _calendar_href(lane="favorites"), "count": counts["favorites"]},
         {"key": "upcoming", "label": "21 días", "href": _calendar_href(lane="upcoming"), "count": counts["upcoming"]},
     ]
+    league_shortcuts = _calendar_important_shortcuts(all_matches, filters, limit=24)
     return {
         "version": APP_VERSION,
         "title": "Calendario de partidos",
         "filters": filters,
         "lane_label": CALENDAR_LANE_LABELS.get(lane, "Calendario"),
+        "selected_summary": _calendar_selected_summary(filters, counts),
         "tabs": tabs,
         "date_chips": _calendar_day_chips(date, lane),
-        "league_shortcuts": _calendar_important_shortcuts(all_matches, filters, limit=18),
+        "league_shortcuts": league_shortcuts,
+        "league_groups": _calendar_league_collections(league_shortcuts),
+        "highlight_matches": sorted_matches[:6],
         "matches": sorted_matches,
         "groups": day_groups,
         "day_groups": day_groups,

@@ -16,6 +16,17 @@
     <div class="v799-appbar-actions"><a href="/live">Directo</a><a class="primary" href="/picks">Picks</a></div>
   </div>
 
+  {% include "partials/client_flow_bar.html" %}
+
+  <section class="v802-calendar-command" aria-label="Resumen de calendario seleccionado">
+    {% set selected = calendar.get('selected_summary') or {} %}
+    <article class="v802-command-main"><span>Calendario seleccionado</span><h2>{{ selected.get('title') or calendar.get('lane_label') or 'Partidos' }}</h2><p>{{ calendar.get('source_summary') or 'Datos reales sincronizados.' }}</p></article>
+    <article><strong>{{ selected.get('visible', counts.get('visible',0)) }}</strong><span>visibles</span></article>
+    <article><strong>{{ counts.get('today',0) }}</strong><span>hoy</span></article>
+    <article><strong>{{ counts.get('live',0) }}</strong><span>directo</span></article>
+    <article><strong>{{ counts.get('picks',0) }}</strong><span>con pick</span></article>
+  </section>
+
   <section class="v799-kpi-strip v801-calendar-kpis">
     <a href="/calendar?lane=today"><i>▦</i><span>Hoy</span><strong>{{ counts.get('today',0) }}</strong><small>partidos reales</small></a>
     <a href="/calendar?lane=week"><i>◷</i><span>Semana</span><strong>{{ counts.get('week',0) }}</strong><small>agenda</small></a>
@@ -70,6 +81,29 @@
     </div>
   </section>
 
+  <section class="v802-league-groups" aria-label="Bloques de ligas importantes">
+    {% for group in calendar.get('league_groups') or [] %}
+    <article>
+      <header><span>{{ group.label }}</span><strong>{{ group.count }}</strong><small>{{ group.hint }}</small></header>
+      <div>
+        {% for item in (group.get('items') or [])[:5] %}
+          <a class="{{ 'active' if item.active else '' }}" href="{{ item.href }}">{{ item.label|competition_es }} <em>{{ item.count or '—' }}</em></a>
+        {% endfor %}
+      </div>
+    </article>
+    {% endfor %}
+  </section>
+
+  <section class="v802-focus-strip" aria-label="Próximos partidos visibles">
+    <div><span>Foco rápido</span><strong>Abre partido, pick o SHARK desde la misma fila</strong></div>
+    {% for m in calendar.get('highlight_matches') or [] %}
+      {% set ctx = m|match_madrid_context %}
+      <a href="/match/{{ m.get('id') }}"><small>{{ ctx.client_time_label or ctx.client_status_label or 'Pendiente' }}</small><strong>{{ ctx.safe_home }} vs {{ ctx.safe_away }}</strong><em>{{ ctx.client_competition|competition_es }}</em></a>
+    {% else %}
+      <p>Sin partidos visibles para este filtro. Cambia día, liga o semana.</p>
+    {% endfor %}
+  </section>
+
   <section class="v800-command-row v801-command-row" aria-label="Flujo de uso en partidos">
     <a href="/calendar?lane=today"><b>{{ counts.get('today',0) }}</b><span>Hoy</span><small>Agenda por día</small></a>
     <a href="/calendar?lane=week"><b>{{ counts.get('week',0) }}</b><span>Semana</span><small>Próximos reales</small></a>
@@ -99,12 +133,12 @@
               <span class="v799-team v801-team away">{{ crest(away_identity, ctx.safe_away, 'compact') }}<strong>{{ ctx.safe_away }}</strong></span>
               <em>{{ '◆ Pick publicado' if m.get('has_pick') or m.get('pick_id') else ctx.client_competition|competition_es }}</em>
             </a>
-            <div class="v801-row-meta">
+            <div class="v800-row-ribbon v801-row-meta">
               <span>{{ ctx.client_status_label or 'Pendiente' }}</span>
               <span>{{ ctx.client_competition|competition_es }}</span>
               {% if m.get('has_pick') or m.get('pick_id') %}<em>Pick</em>{% endif %}
             </div>
-            <div class="v799-row-actions v801-row-actions"><a href="/match/{{ m.get('id') }}">Detalle</a><a class="primary" href="/match/{{ m.get('id') }}#shark">SHARK</a></div>
+            <div class="v799-row-actions v801-row-actions"><a href="/match/{{ m.get('id') }}">Detalle</a><a class="primary" href="/match/{{ m.get('id') }}#shark">Analizar partido</a></div>
           </article>
           {% endfor %}
         </section>

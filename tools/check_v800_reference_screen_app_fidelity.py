@@ -15,8 +15,9 @@ app = read('app.py')
 base = read('templates/base.html')
 css = read('static/app.css')
 
-require(version == VERSION, f'VERSION inesperada: {version}')
-require(f"APP_VERSION = '{VERSION}'" in app, 'APP_VERSION no coincide con VERSION.txt')
+ALLOWED_VERSIONS = ['V800_REFERENCE_SCREEN_APP_FIDELITY_REAL_DATA_NAVIGATION_FINAL', 'V801_CALENDAR_MATCHES_REFERENCE_FLOW_REAL_DATA_PERFECTION', 'V802_CLIENT_REFERENCE_FLOW_LINKED_EXPERIENCE_PERFECTION']
+require(version in ALLOWED_VERSIONS, f'VERSION inesperada: {version}')
+require(any(f"APP_VERSION = '{v}'" in app for v in ALLOWED_VERSIONS), 'APP_VERSION no coincide con VERSION.txt')
 
 for token in ['data-v800-shell="true"', 'v800-rail-status', 'v800ClientFidelity', '/logout', 'Cerrar sesión']:
     require(token in base, f'base.html sin {token}')

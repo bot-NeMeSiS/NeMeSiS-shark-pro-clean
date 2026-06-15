@@ -14,6 +14,15 @@
     <div class="v799-appbar-actions"><a href="/combis">Combis</a><a class="primary" href="/shark">Preguntar SHARK</a></div>
   </div>
 
+  {% include "partials/client_flow_bar.html" %}
+
+  <section class="v802-pick-command" aria-label="Cómo leer los picks">
+    <article><span>1</span><strong>Qué apostar</strong><small>selección clara</small></article>
+    <article><span>2</span><strong>Cuota y stake</strong><small>si existen en el pick real</small></article>
+    <article><span>3</span><strong>Riesgo</strong><small>motivo y cuidado</small></article>
+    <article><span>4</span><strong>SHARK</strong><small>pregunta antes de entrar</small></article>
+  </section>
+
   <section class="v799-kpi-strip">
     <a class="picks" href="/picks"><i>◆</i><span>Activos</span><strong>{{ stats.get('published', picks|length) }}</strong><small>picks</small></a>
     <a href="/picks"><i>◈</i><span>Cuota media</span><strong>{{ stats.get('avg_odds') or '—' }}</strong><small>real</small></a>

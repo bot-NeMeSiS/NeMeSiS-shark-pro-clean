@@ -17,6 +17,14 @@
     <div class="v799-appbar-actions"><a href="/calendar?lane=today">Agenda</a><a class="primary" href="/shark">Preguntar SHARK</a></div>
   </div>
 
+  {% include "partials/client_flow_bar.html" %}
+
+  <section class="v802-live-command" aria-label="Uso de directo">
+    <article><span>Ahora</span><strong>{{ counts.get('live',0) }}</strong><small>partidos en vivo</small></article>
+    <article><span>Resultados</span><strong>{{ counts.get('finished',0) }}</strong><small>cerrados reales</small></article>
+    <article><span>Ruta</span><strong>Directo → Detalle → SHARK</strong><small>sin enlaces sueltos</small></article>
+  </section>
+
   <section class="v799-kpi-strip">
     <a class="live" href="/live"><i>●</i><span>En directo</span><strong>{{ counts.get('live',0) }}</strong><small>jugándose</small></a>
     <a href="/live?f=break"><i>◷</i><span>Descanso</span><strong>{{ counts.get('halftime', counts.get('break',0)) }}</strong><small>HT</small></a>

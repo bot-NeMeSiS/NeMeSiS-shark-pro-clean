@@ -31,6 +31,15 @@
 
 
 
+  {% include "partials/client_flow_bar.html" %}
+
+  <section class="v802-match-command" aria-label="Flujo del partido">
+    <a href="/calendar?lane=today"><span>Calendario</span><strong>Volver a partidos</strong></a>
+    <a href="/live"><span>Directo</span><strong>Marcador real</strong></a>
+    <a href="/picks"><span>Picks</span><strong>{{ 'Publicado' if pick else 'Sin pick' }}</strong></a>
+    <a href="/shark?match={{ m.get('id') }}"><span>SHARK</span><strong>Analizar</strong></a>
+  </section>
+
   <section class="v800-match-strip" aria-label="Acciones principales del partido">
     <a href="#resumen"><span>Resumen</span><strong>{{ ctx.client_status_label or 'Pendiente' }}</strong></a>
     <a href="#picks"><span>Pick</span><strong>{{ 'Publicado' if pick else 'Sin pick' }}</strong></a>
