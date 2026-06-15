@@ -211,7 +211,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V800_REFERENCE_SCREEN_APP_FIDELITY_REAL_DATA_NAVIGATION_FINAL'
+APP_VERSION = 'V801_CALENDAR_MATCHES_REFERENCE_FLOW_REAL_DATA_PERFECTION'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
@@ -10995,6 +10995,11 @@ CALENDAR_LANE_LABELS = {
     "picks": "Con pick",
     "top": "Top mundial",
     "spain": "España",
+    "andalucia": "Andalucía",
+    "international": "Internacional",
+    "uefa": "UEFA",
+    "national": "Selecciones",
+    "world": "Selecciones",
 }
 
 
@@ -11168,15 +11173,17 @@ def _calendar_facets(matches):
     }
 
 
+
 def _calendar_group(matches):
     date_buckets = []
     by_date = {}
     for item in matches:
         key = item.get("match_date") or normalize_kickoff_for_display(item).get("match_date") or "sin-fecha"
         label = item.get("calendar_date_label") or jinja_match_date_label(item)
-        by_date.setdefault(key, {"date_key": key, "date_label": label, "matches_count": 0, "leagues": {}})
+        by_date.setdefault(key, {"date_key": key, "date": key, "date_label": label, "label": label, "matches_count": 0, "total": 0, "leagues": {}})
         bucket = by_date[key]
         bucket["matches_count"] += 1
+        bucket["total"] += 1
         league_name = item.get("calendar_competition") or "Competición"
         league_key = normalized_label(league_name) or "competicion"
         league = bucket["leagues"].setdefault(league_key, {
@@ -11184,6 +11191,7 @@ def _calendar_group(matches):
             "name": league_name,
             "country": item.get("calendar_country") or "Global",
             "rank": int(item.get("calendar_rank") or 80),
+            "category": league_category(item),
             "matches": [],
         })
         league["matches"].append(item)
@@ -11191,15 +11199,135 @@ def _calendar_group(matches):
         bucket = by_date[key]
         leagues = list(bucket["leagues"].values())
         leagues.sort(key=lambda g: (g["rank"], g["name"]))
+        for league in leagues:
+            league["count"] = len(league.get("matches") or [])
+            league["matches"].sort(key=match_sort_tuple)
         bucket["leagues"] = leagues
         date_buckets.append(bucket)
     return date_buckets
 
 
+def _calendar_safe_count(matches):
+    try:
+        return len([m for m in dedupe_matches_list(matches or []) if not is_fake_match(m)])
+    except Exception:
+        return len(matches or [])
+
+
+def _calendar_date_count(date_value):
+    try:
+        row = one(
+            """SELECT COUNT(*) AS total FROM matches
+               WHERE match_date=? AND lower(COALESCE(source,'')) NOT LIKE '%seed%'""",
+            (date_value,),
+        )
+        return int((row or {}).get("total") or 0)
+    except Exception:
+        return 0
+
+
+def _calendar_href(**params):
+    clean = {k: v for k, v in params.items() if v not in (None, "")}
+    return "/calendar" + ("?" + urllib.parse.urlencode(clean) if clean else "")
+
+
+def _calendar_base_matches(lane, date):
+    lane = (lane or "today").strip().lower()
+    if lane == "andalucia":
+        # Andalucía vive dentro de España pero filtrada por nombre/competición.
+        base = get_upcoming_matches(today_iso(), days=21, limit=520) + get_results_matches(today_iso(), days_back=10, limit=180)
+        return [m for m in dedupe_matches_list(base) if match_lane_filter(m, "andalucia")]
+    date = _safe_date_value(date)
+    if lane == "tomorrow":
+        return get_matches(today_iso(1), "today")
+    if lane == "week":
+        return get_upcoming_matches(today_iso(), days=7, limit=420)
+    if lane == "upcoming":
+        return get_upcoming_matches(today_iso(), days=21, limit=620)
+    if lane == "live":
+        return live_matches_any_date(limit=180) + get_matches(today_iso(), "live")
+    if lane in {"results", "finished"}:
+        return get_results_matches(date, days_back=21, limit=420)
+    if lane == "favorites":
+        return favorite_feed_full().get("matches") or []
+    if lane in {"with_pick", "picks"}:
+        # No limitar a hoy: el usuario necesita ver todos los partidos reales con señal.
+        return get_upcoming_matches(today_iso(), days=21, limit=620) + get_results_matches(today_iso(), days_back=7, limit=160)
+    if lane in {"top", "international", "uefa", "national", "world", "spain"}:
+        base = get_upcoming_matches(today_iso(), days=21, limit=620) + get_results_matches(today_iso(), days_back=7, limit=160)
+        return [m for m in dedupe_matches_list(base) if match_lane_filter(m, lane)]
+    return get_matches(date, "today")
+
+
+def _calendar_important_shortcuts(matches, filters, limit=18):
+    current_lane = filters.get("lane") or "upcoming"
+    date = filters.get("date") or today_iso()
+    shortcuts = []
+    seen = set()
+    counts_by_name = {}
+    for item in matches or []:
+        name = item.get("calendar_competition") or item.get("competition_name") or item.get("league_name") or ""
+        norm = normalized_label(name)
+        if not norm:
+            continue
+        counts_by_name[norm] = counts_by_name.get(norm, 0) + 1
+    for comp in IMPORTANT_COMPETITIONS:
+        name = spanish_competition_name(comp.get("name") or comp.get("key") or "") or comp.get("name") or comp.get("key")
+        norm = normalized_label(name)
+        if not norm or norm in seen:
+            continue
+        seen.add(norm)
+        group = comp.get("group") or "international"
+        lane = "spain" if group in {"spain", "andalucia"} else ("national" if group == "national" else "upcoming")
+        if "champions" in norm or "europa" in norm or "conference" in norm:
+            lane = "uefa"
+        if "world cup" in norm or "mundial" in norm or "euro" in norm or "nations" in norm:
+            lane = "national"
+        shortcuts.append({
+            "label": name,
+            "country": spanish_country_name(comp.get("country") or "") or comp.get("country") or "Global",
+            "group": group,
+            "count": counts_by_name.get(norm, 0),
+            "href": _calendar_href(lane=lane, date=date, league=name),
+            "active": normalized_label(filters.get("league") or "") == norm,
+        })
+    # Prioriza las que tienen partidos reales en esta ventana, sin ocultar las top si aún no han sincronizado.
+    shortcuts.sort(key=lambda x: (0 if x.get("count") else 1, x.get("group") != "spain", x.get("label")))
+    return shortcuts[:limit]
+
+
+def _calendar_day_chips(date, lane):
+    chips = []
+    for offset, label in [(0, "Hoy"), (1, "Mañana"), (2, "En 2 días"), (3, "En 3 días"), (4, "En 4 días"), (5, "En 5 días"), (6, "En 6 días"), (7, "En 7 días")]:
+        d = today_iso(offset)
+        chips.append({
+            "label": label,
+            "date": d,
+            "count": _calendar_date_count(d),
+            "href": _calendar_href(lane="today", date=d),
+            "active": d == date and lane not in {"week", "upcoming", "live", "favorites", "with_pick", "picks", "results", "finished"},
+        })
+    return chips
+
+
+def _calendar_source_summary(filters, counts):
+    lane = filters.get("lane") or "today"
+    if counts.get("visible"):
+        return "Calendario real agrupado por día, competición y hora Madrid."
+    if lane in {"today", "tomorrow"}:
+        return "No hay partidos reales para este día en la base sincronizada. Cambia de día, semana o liga."
+    if lane == "live":
+        return "No hay directo real ahora mismo. La app no fabrica marcadores."
+    if lane in {"with_pick", "picks"}:
+        return "No hay picks publicados para esta ventana. SHARK no muestra señales falsas."
+    return "Esperando sincronización real de SportsDB, Odds API o importación legal."
+
+
 def calendar_experience_data():
     lane = _safe_query_value(request.args.get("lane") or "today", 32).lower() or "today"
     if lane == "andalucia":
-        lane = "spain"
+        # Se mantiene alias para enlaces antiguos, pero se filtra como categoría propia.
+        lane = "andalucia"
     date = _safe_date_value(request.args.get("date"), today_iso(1) if lane == "tomorrow" else today_iso())
     filters = {
         "lane": lane,
@@ -11213,48 +11341,60 @@ def calendar_experience_data():
         "with_pick": "1" if request.args.get("with_pick") in {"1", "true", "yes"} else "",
     }
     user = current_session_user() or {"membership": "FREE", "role": "FREE"}
-    picks = published_picks_for_user(user, limit=180)
+    picks = published_picks_for_user(user, limit=220)
     raw_matches = _calendar_base_matches(lane, date)
     all_matches = _calendar_enrich_matches(raw_matches, picks)
     filtered = _calendar_apply_filters(all_matches, filters)
-    sorted_matches = _calendar_sort(filtered, filters.get("sort"))[:420]
+    sorted_matches = _calendar_sort(filtered, filters.get("sort"))[:520]
     facets = _calendar_facets(all_matches)
+    day_groups = _calendar_group(sorted_matches)
+    today_count = _calendar_safe_count(get_matches(today_iso(), "today"))
+    tomorrow_count = _calendar_safe_count(get_matches(today_iso(1), "today"))
+    week_base = get_upcoming_matches(today_iso(), days=7, limit=420)
+    upcoming_base = get_upcoming_matches(today_iso(), days=21, limit=620)
     counts = {
         "all": len(all_matches),
         "visible": len(sorted_matches),
+        "today": today_count,
+        "tomorrow": tomorrow_count,
+        "week": _calendar_safe_count(week_base),
+        "upcoming": _calendar_safe_count(upcoming_base),
         "picks": len([m for m in all_matches if m.get("has_pick")]),
-        "live": len([m for m in all_matches if (m.get("live_depth") or {}).get("badge") == "live"]),
+        "live": len([m for m in all_matches if (m.get("live_depth") or {}).get("badge") == "live" or (m.get("status_info") or {}).get("is_live")]),
         "favorites": len([m for m in all_matches if m.get("is_favorite")]),
         "leagues": len(facets.get("leagues") or []),
+        "days": len(day_groups),
     }
-    date_chips = []
-    for offset, label in [(0, "Hoy"), (1, "Mañana"), (2, "En 2 días"), (3, "En 3 días"), (4, "En 4 días"), (5, "En 5 días"), (6, "En 6 días")]:
-        d = today_iso(offset)
-        date_chips.append({"label": label, "date": d, "href": f"/calendar?lane=today&date={d}", "active": d == date and lane not in {"week", "upcoming", "live", "favorites", "with_pick", "picks"}})
+    tabs = [
+        {"key": "today", "label": "Hoy", "href": _calendar_href(lane="today", date=today_iso()), "count": today_count},
+        {"key": "tomorrow", "label": "Mañana", "href": _calendar_href(lane="tomorrow", date=today_iso(1)), "count": tomorrow_count},
+        {"key": "week", "label": "Semana", "href": _calendar_href(lane="week"), "count": counts["week"]},
+        {"key": "live", "label": "Directo", "href": _calendar_href(lane="live"), "count": counts["live"]},
+        {"key": "with_pick", "label": "Con pick", "href": _calendar_href(lane="with_pick"), "count": counts["picks"]},
+        {"key": "top", "label": "Top mundial", "href": _calendar_href(lane="top"), "count": ""},
+        {"key": "spain", "label": "España", "href": _calendar_href(lane="spain"), "count": ""},
+        {"key": "uefa", "label": "UEFA", "href": _calendar_href(lane="uefa"), "count": ""},
+        {"key": "national", "label": "Selecciones", "href": _calendar_href(lane="national"), "count": ""},
+        {"key": "results", "label": "Resultados", "href": _calendar_href(lane="results"), "count": ""},
+        {"key": "favorites", "label": "Favoritos", "href": _calendar_href(lane="favorites"), "count": counts["favorites"]},
+        {"key": "upcoming", "label": "21 días", "href": _calendar_href(lane="upcoming"), "count": counts["upcoming"]},
+    ]
     return {
         "version": APP_VERSION,
         "title": "Calendario de partidos",
         "filters": filters,
-        "lane_label": CALENDAR_LANE_LABELS.get(lane, "Hoy"),
-        "tabs": [
-            {"key": "today", "label": "Hoy", "href": "/calendar?lane=today"},
-            {"key": "tomorrow", "label": "Mañana", "href": "/calendar?lane=tomorrow"},
-            {"key": "week", "label": "Semana", "href": "/calendar?lane=week"},
-            {"key": "live", "label": "Directo", "href": "/calendar?lane=live"},
-            {"key": "results", "label": "Resultados", "href": "/calendar?lane=results"},
-            {"key": "with_pick", "label": "Con pick", "href": "/calendar?lane=with_pick"},
-            {"key": "favorites", "label": "Favoritos", "href": "/calendar?lane=favorites"},
-            {"key": "spain", "label": "España", "href": "/calendar?lane=spain"},
-            {"key": "upcoming", "label": "21 días", "href": "/calendar?lane=upcoming"},
-        ],
-        "date_chips": date_chips,
+        "lane_label": CALENDAR_LANE_LABELS.get(lane, "Calendario"),
+        "tabs": tabs,
+        "date_chips": _calendar_day_chips(date, lane),
+        "league_shortcuts": _calendar_important_shortcuts(all_matches, filters, limit=18),
         "matches": sorted_matches,
-        "groups": _calendar_group(sorted_matches),
+        "groups": day_groups,
+        "day_groups": day_groups,
         "facets": facets,
         "counts": counts,
+        "source_summary": _calendar_source_summary(filters, counts),
         "has_filters": any(filters.get(k) for k in ["q", "league", "team", "country", "status", "with_pick"]),
     }
-
 
 def v741_calendar_experience_context():
     return calendar_experience_snapshot(app_version=APP_VERSION)

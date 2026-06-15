@@ -257,3 +257,12 @@ Basado en vídeo real enviado por el usuario. Se detectó que las pantallas ya m
 - Tocado: `base.html`, `home.html`, `client_app_center.html`, `calendar.html`, `live.html`, `picks.html`, `match_detail.html`, `account_center.html`, `telegram.html`, `static/app.css`, checks y reports.
 - No tocado: DB_PATH, secretos, usuarios, membresías, pagos, Telegram/Cron automático ni datos reales.
 - Regla: datos reales siempre; si falta dato, mostrar pendiente/sin pick/sin sincronización.
+
+## V801_CALENDAR_MATCHES_REFERENCE_FLOW_REAL_DATA_PERFECTION
+- Base: V800 reference screen app fidelity.
+- Objetivo: reparar/restructurar Partidos para que sea el calendario central real de la app, como en las referencias visuales.
+- Cambios: backend calendario devuelve `day_groups` + `groups`, selector de días con conteos reales, filtros por Hoy/Mañana/Semana/Directo/Con pick/Top/España/UEFA/Selecciones/Resultados/Favoritos/21 días, búsqueda real por equipo/liga/país, selectores de liga/país/orden, rail de ligas importantes desde `IMPORTANT_COMPETITIONS`, y enlaces partido → detalle → SHARK.
+- Visual: CSS V801 con calendario agrupado por día y liga, filas tipo marcador, panel lateral de estado real y responsive móvil.
+- Protección: no se inventan partidos/cuotas/resultados/picks/ROI; si falta dato se muestran estados vacíos bonitos.
+- No tocado: DB_PATH, AUTOMATION_SECRET, Telegram/Cron, usuarios, sesiones, membresías, pagos, Stripe, picks core, Madrid Time.
+- Validación: py_compile OK, compileall OK, Jinja parse 144 templates OK, Madrid Time OK, check_v801 OK. Flask smoke no ejecutado por falta de Flask en sandbox.
