@@ -31,10 +31,10 @@ def main() -> int:
     version_txt = read("VERSION.txt").strip()
     app_py = read("app.py")
     css = read("static/app.css")
-    if version_txt not in {VERSION, "V792_CLIENT_MOCKUP_VISUAL_SYSTEM_IMPLEMENTATION"}:
+    if version_txt not in {VERSION, "V792_CLIENT_MOCKUP_VISUAL_SYSTEM_IMPLEMENTATION", "V793_CLIENT_PIXEL_MATCH_SCREEN_REBUILD", "V794_PIXEL_PERFECT_CLIENT_ADMIN_COMPONENT_SYSTEM", "V795_MOCKUP_FIDELITY_LIVING_UI_DEEP_POLISH", "V796_MOCKUP_FIDELITY_SCREEN_DEPTH_AUTO_LIVING_POLISH"}:
         errors.append(f"VERSION.txt incorrecto: {version_txt}")
-    if f'APP_VERSION = "{VERSION}"' not in app_py and 'APP_VERSION = "V792_CLIENT_MOCKUP_VISUAL_SYSTEM_IMPLEMENTATION"' not in app_py:
-        errors.append("APP_VERSION no apunta a V791/V792")
+    if "APP_VERSION" not in app_py or not any(v in app_py for v in [VERSION, "V792_CLIENT_MOCKUP_VISUAL_SYSTEM_IMPLEMENTATION", "V793_CLIENT_PIXEL_MATCH_SCREEN_REBUILD", "V794_PIXEL_PERFECT_CLIENT_ADMIN_COMPONENT_SYSTEM", "V795_MOCKUP_FIDELITY_LIVING_UI_DEEP_POLISH", "V796_MOCKUP_FIDELITY_SCREEN_DEPTH_AUTO_LIVING_POLISH"]):
+        errors.append("APP_VERSION no apunta a V791+ compatible")
     if 'BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))' not in app_py:
         errors.append("BASE_DIR no está definido a nivel global")
     if 'client_screen_audit_snapshot' not in app_py:

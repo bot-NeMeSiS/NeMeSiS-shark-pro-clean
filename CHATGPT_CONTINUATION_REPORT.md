@@ -234,3 +234,14 @@ Validación local:
 ## V792_CLIENT_MOCKUP_VISUAL_SYSTEM_IMPLEMENTATION
 
 Implementado sobre V791. Convierte los mockups aprobados en sistema visual real de pantallas cliente: navegación superior limpia, bottom nav móvil Inicio/Partidos/Directo/Picks/Cuenta, Home como centro de mando, Live con jerarquía clara, Calendario tipo agenda, Picks con hero destacado, Detalle más premium por layout/CSS, Membresías más comerciales, Cuenta/Telegram/Histórico más profesionales. Preserva Stripe, Telegram, Cron, DB_PATH, usuarios, sesiones, membresías, picks, resultados, highlights, escudos y Madrid Time.
+
+## V796_MOCKUP_FIDELITY_SCREEN_DEPTH_AUTO_LIVING_POLISH
+
+Preparada nueva pasada visual sobre V795 para acercar cliente y admin a los mockups aprobados sin tocar lógica crítica.
+
+- Añadida bandera `data-v796-shell="true"`.
+- Admin reforzado como command center standalone con mayor fidelidad visual: sidebar, titlebar, KPIs, tablas, paneles, acciones y estados.
+- Cliente reforzado visualmente: heroes, KPIs, cards, live, calendario, picks, match detail, membresías, cuenta, Telegram e histórico.
+- Añadido heartbeat runtime seguro para admin desde `/api/runtime-version` sin exponer secretos.
+- Añadido check `tools/check_v796_mockup_fidelity_screen_depth_auto_living.py`.
+- Preservados Stripe, Telegram, Cron, DB_PATH, usuarios, membresías, picks, directos, escudos, legal y Madrid Time.

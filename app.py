@@ -211,7 +211,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V795_MOCKUP_FIDELITY_LIVING_UI_DEEP_POLISH'
+APP_VERSION = 'V796_MOCKUP_FIDELITY_SCREEN_DEPTH_AUTO_LIVING_POLISH'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))

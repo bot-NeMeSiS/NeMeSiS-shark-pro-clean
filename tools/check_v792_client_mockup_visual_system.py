@@ -3,8 +3,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 errors=[]
 version=(ROOT/'VERSION.txt').read_text(encoding='utf-8').strip()
-if 'V792_CLIENT_MOCKUP_VISUAL_SYSTEM_IMPLEMENTATION' not in version:
-    errors.append('VERSION.txt no contiene V792')
+if not any(v in version for v in ['V792_CLIENT_MOCKUP_VISUAL_SYSTEM_IMPLEMENTATION','V793_CLIENT_PIXEL_MATCH_SCREEN_REBUILD','V794_PIXEL_PERFECT_CLIENT_ADMIN_COMPONENT_SYSTEM','V795_MOCKUP_FIDELITY_LIVING_UI_DEEP_POLISH','V796_MOCKUP_FIDELITY_SCREEN_DEPTH_AUTO_LIVING_POLISH']):
+    errors.append('VERSION.txt no contiene V792+ compatible')
 base=(ROOT/'templates'/'base.html').read_text(encoding='utf-8')
 for token in ['data-v792-shell="true"','Partidos</a>','/mi-cuenta" data-v775-icon="◎">Cuenta']:
     if token not in base:

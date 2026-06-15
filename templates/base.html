@@ -24,7 +24,7 @@
   {% set _visual_tier = 'free' %}
   {% set _tier_label = 'FREE' %}
 {% endif %}
-<body class="ns-app ns-tier-{{ _visual_tier }}{% if current_user %} ns-authenticated{% else %} ns-public{% endif %}{% if current_user and current_user.role == 'ADMIN' %} ns-admin{% endif %}" data-ns-route="{{ request.path }}" data-ns-plan="{{ _tier_label }}" data-v775-shell="true" data-v776-shell="true" data-v777-shell="true" data-v778-shell="true" data-v790-shell="true" data-v792-shell="true" data-v793-shell="true" data-v795-shell="true">
+<body class="ns-app ns-tier-{{ _visual_tier }}{% if current_user %} ns-authenticated{% else %} ns-public{% endif %}{% if current_user and current_user.role == 'ADMIN' %} ns-admin{% endif %}" data-ns-route="{{ request.path }}" data-ns-plan="{{ _tier_label }}" data-v775-shell="true" data-v776-shell="true" data-v777-shell="true" data-v778-shell="true" data-v790-shell="true" data-v792-shell="true" data-v793-shell="true" data-v795-shell="true" data-v796-shell="true">
   <div class="ns-ambient" aria-hidden="true"><i></i><i></i><i></i></div>
   <div class="membership-energy-bar" aria-hidden="true"></div>
   <div class="ns-route-glow" aria-hidden="true"></div>
@@ -393,6 +393,27 @@
       let left=parseInt(el.getAttribute('data-v795-refresh-label')||'30',10)||30;
       setInterval(function(){left=left<=1?(parseInt(el.getAttribute('data-v795-refresh-label')||'30',10)||30):left-1; el.textContent='Auto-refresh visual en '+left+'s';},1000);
     });
+  })();
+  </script>
+
+
+  <script>
+  (function v796RuntimeHeartbeat(){
+    function ping(){
+      var nodes=document.querySelectorAll('[data-v796-runtime]');
+      if(!nodes.length || !window.fetch) return;
+      fetch('/api/runtime-version',{headers:{'Accept':'application/json'},cache:'no-store'})
+        .then(function(r){return r.ok?r.json():null;})
+        .then(function(j){
+          if(!j) return;
+          var label=(j.version||'runtime') + ' · ' + (j.status||'OK');
+          nodes.forEach(function(el){el.textContent=label; el.classList.add('is-fresh');});
+        }).catch(function(){nodes.forEach(function(el){el.textContent='Runtime pendiente';});});
+    }
+    function breathe(){
+      document.querySelectorAll('.v796-breathe,.v796-live-card').forEach(function(el){el.classList.toggle('is-alive');});
+    }
+    ping(); setInterval(ping,60000); setInterval(breathe,4800);
   })();
   </script>
 
