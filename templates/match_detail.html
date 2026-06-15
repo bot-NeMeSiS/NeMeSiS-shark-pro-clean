@@ -2,7 +2,7 @@
 {% from "partials/team_identity.html" import crest %}
 {% block content %}
 {% if not detail %}
-<section class="v793-screen"><div class="v793-card"><h1>No hemos encontrado este partido</h1><p>Puede haber cambiado el calendario.</p><a class="v793-button primary" href="/calendar">Volver a partidos</a></div></section>
+<section class="v799-screen"><div class="v799-empty hero"><strong>No hemos encontrado este partido.</strong><p>Puede haber cambiado el calendario o faltar sincronización.</p><a class="v799-button primary" href="/calendar">Volver a partidos</a></div></section>
 {% else %}
 {% set m = detail.get('match') or {} %}
 {% set ctx = m|match_madrid_context %}
@@ -12,38 +12,84 @@
 {% set related = detail.get('related_picks') or [] %}
 {% set pick = related[0] if related else none %}
 {% set dq = detail.get('data_quality') or {} %}
-<section class="v793-screen v793-match-screen v798-match-screen">
-  <div class="v798-match-top-actions"><a class="v793-back" href="/calendar">← Volver a partidos</a><button class="fav-star" type="button" data-kind="match" data-value="{{ m.get('id') }}" data-label="{{ ctx.safe_home }} vs {{ ctx.safe_away }}">☆</button></div>
-  <section class="v793-match-hero v798-match-hero">
-    <div class="v793-big-team">{{ crest(home_identity, ctx.safe_home, 'compact') }}<strong>{{ ctx.safe_home }}</strong></div>
-    <div class="v793-match-vs"><span>{{ ctx.client_competition|competition_es }}</span><b>{{ ctx.client_score_label or 'VS' }}</b><small>{{ ctx.client_full_datetime_label }}</small><em>{{ ctx.client_status_label }}</em></div>
-    <div class="v793-big-team">{{ crest(away_identity, ctx.safe_away, 'compact') }}<strong>{{ ctx.safe_away }}</strong></div>
-  </section>
-  <section class="v798-match-meta-grid">
-    <article><span>Competición</span><strong>{{ ctx.client_competition|competition_es }}</strong></article>
-    <article><span>Hora</span><strong>{{ ctx.client_full_datetime_label or ctx.client_time_label or 'Pendiente' }}</strong></article>
-    <article><span>Estado</span><strong>{{ ctx.client_status_label }}</strong></article>
-    <article><span>Riesgo</span><strong>{{ (pick.get('risk_level') if pick else '') or 'Sin pick' }}</strong></article>
-  </section>
-  <nav class="v793-tabs"><a class="active" href="#resumen">Resumen</a><a href="#picks">Picks</a><a href="#estadisticas">Datos</a><a href="#historial">Histórico</a><a href="#shark">SHARK</a></nav>
-  <section class="v793-match-grid" id="resumen">
-    <article class="v793-card v798-match-summary"><div class="v793-section-title"><h2>Resumen SHARK</h2><span class="v793-chip blue">{{ state.get('label') or ctx.client_status_label }}</span></div>
-      <div class="v793-gauge"><b>{% if pick and (pick.get('confidence') or pick.get('quality_score')) %}{{ pick.get('confidence') or pick.get('quality_score') }}%{% else %}—{% endif %}</b><span>Confianza SHARK</span></div>
-      <p>{{ (detail.get('shark_notes') or ['SHARK muestra contexto cuando hay datos suficientes.'])[0] }}</p>
-      <dl class="v793-card-metrics"><div><dt>Estado</dt><dd>{{ ctx.client_status_label }}</dd></div><div><dt>Hora</dt><dd>{{ ctx.client_time_label or 'Pendiente' }}</dd></div><div><dt>Resultado</dt><dd>{{ ctx.client_score_label or 'Pendiente' }}</dd></div></dl>
-    </article>
-    <article class="v793-card"><div class="v793-section-title"><h2>Datos disponibles</h2><a href="#estadisticas">Ver →</a></div><ul class="v793-check-list"><li>{{ 'Resultado disponible' if dq.get('has_score') else 'Resultado pendiente o no disponible' }}</li><li>{{ 'Hora sincronizada' if dq.get('has_time') else 'Hora pendiente de sincronización' }}</li><li>{{ 'Escudos cargados' if dq.get('has_crests') else 'Escudos con fallback seguro' }}</li><li>{{ 'Pick conectado' if dq.get('has_picks') else 'Sin pick publicado para este partido' }}</li></ul></article>
-    <article class="v793-card v793-pick-hero" id="picks"><div class="v793-section-title"><h2>Pick recomendado</h2><span class="v793-chip gold">{{ (pick.get('membership_required') if pick else 'ELITE') or 'ELITE' }}</span></div>{% if pick %}<strong>{{ pick.get('selection_display') or pick.get('selection') or 'Selección' }}</strong><dl class="v793-metrics"><div><dt>Cuota</dt><dd class="blue">{{ pick.get('client_odds_label') or pick.get('odds') or '—' }}</dd></div><div><dt>Riesgo</dt><dd class="gold">{{ pick.get('risk_level') or 'Medio' }}</dd></div><div><dt>Confianza</dt><dd class="green">{{ pick.get('confidence') or pick.get('quality_score') or '—' }}{% if pick.get('confidence') or pick.get('quality_score') %}%{% endif %}</dd></div></dl><p>{{ pick.get('reasoning') or pick.get('analysis_summary') or 'Revisa cuota y riesgo antes de decidir.' }}</p>{% else %}<p>No hay pick recomendado publicado para este partido. La app no inventa selecciones.</p>{% endif %}<a class="v793-button primary" href="/picks">Ver picks</a></article>
-  </section>
-  <section class="v793-card v798-data-panel" id="estadisticas"><div class="v793-section-title"><h2>Datos reales del partido</h2><a href="/shark?match={{ m.get('id') }}">Preguntar a SHARK →</a></div>
-    <div class="v798-real-data-grid">
-      <article><strong>Forma local</strong>{% if detail.get('home_form') %}<span>{{ detail.get('home_form') }}</span>{% else %}<span>Sin forma suficiente guardada</span>{% endif %}</article>
-      <article><strong>Forma visitante</strong>{% if detail.get('away_form') %}<span>{{ detail.get('away_form') }}</span>{% else %}<span>Sin forma suficiente guardada</span>{% endif %}</article>
-      <article><strong>Histórico H2H</strong><span>{% if detail.get('head_to_head') %}{{ detail.get('head_to_head')|length }} cruces guardados{% else %}Sin histórico directo suficiente{% endif %}</span></article>
-      <article><strong>Timeline</strong><span>{% if detail.get('timeline') %}{{ detail.get('timeline')|length }} eventos{% else %}Sin eventos sincronizados{% endif %}</span></article>
+<section class="v799-screen v799-match-screen">
+  <div class="v799-match-top">
+    <a class="v799-back" href="/calendar">← Volver a partidos</a>
+    <div class="v799-match-actions"><a href="/shark?match={{ m.get('id') }}">Preguntar SHARK</a><button class="fav-star" type="button" data-kind="match" data-value="{{ m.get('id') }}" data-label="{{ ctx.safe_home }} vs {{ ctx.safe_away }}">☆ Favorito</button></div>
+  </div>
+
+  <section class="v799-match-hero">
+    <div class="v799-big-team">{{ crest(home_identity, ctx.safe_home, 'compact') }}<strong>{{ ctx.safe_home }}</strong><small>Local</small></div>
+    <div class="v799-match-center">
+      <span>{{ ctx.client_competition|competition_es }}</span>
+      <b>{{ ctx.client_score_label or 'VS' }}</b>
+      <small>{{ ctx.client_full_datetime_label or ctx.client_time_label or 'Hora pendiente' }}</small>
+      <em>{{ ctx.client_status_label or 'Estado pendiente' }}</em>
     </div>
+    <div class="v799-big-team">{{ crest(away_identity, ctx.safe_away, 'compact') }}<strong>{{ ctx.safe_away }}</strong><small>Visitante</small></div>
   </section>
-  <section class="v793-card" id="shark"><div class="v793-section-title"><h2>Lectura SHARK</h2><a href="/shark?match={{ m.get('id') }}">Abrir SHARK →</a></div><div class="v798-notes-list">{% for note in detail.get('shark_notes') or [] %}<p>{{ note }}</p>{% else %}<p>SHARK mostrará lectura cuando haya datos suficientes.</p>{% endfor %}</div></section>
+
+
+
+  <section class="v800-match-strip" aria-label="Acciones principales del partido">
+    <a href="#resumen"><span>Resumen</span><strong>{{ ctx.client_status_label or 'Pendiente' }}</strong></a>
+    <a href="#picks"><span>Pick</span><strong>{{ 'Publicado' if pick else 'Sin pick' }}</strong></a>
+    <a href="#datos"><span>Datos</span><strong>{{ 'Disponibles' if dq.get('has_time') or dq.get('has_score') else 'Pendientes' }}</strong></a>
+    <a href="/shark?match={{ m.get('id') }}"><span>SHARK</span><strong>Analizar</strong></a>
+  </section>
+
+  <section class="v799-match-meta-grid">
+    <article><span>Competición</span><strong>{{ ctx.client_competition|competition_es }}</strong></article>
+    <article><span>Hora Madrid</span><strong>{{ ctx.client_full_datetime_label or ctx.client_time_label or 'Pendiente' }}</strong></article>
+    <article><span>Estado</span><strong>{{ ctx.client_status_label or 'Pendiente' }}</strong></article>
+    <article><span>Pick</span><strong>{{ 'Publicado' if pick else 'Sin pick' }}</strong></article>
+  </section>
+
+  <nav class="v799-tabs"><a class="active" href="#resumen">Resumen</a><a href="#picks">Pick</a><a href="#datos">Datos</a><a href="#shark">SHARK</a></nav>
+
+  <section class="v799-match-layout">
+    <div class="v799-match-main">
+      <article class="v799-card" id="resumen">
+        <div class="v799-section-head"><div><span>Resumen</span><h2>Lectura del partido</h2></div><em>{{ state.get('label') or ctx.client_status_label or 'Estado pendiente' }}</em></div>
+        <div class="v799-gauge-row">
+          <div class="v799-gauge"><b>{% if pick and (pick.get('confidence') or pick.get('quality_score')) %}{{ pick.get('confidence') or pick.get('quality_score') }}%{% else %}—{% endif %}</b><span>Confianza SHARK</span></div>
+          <p>{{ (detail.get('shark_notes') or ['SHARK mostrará contexto cuando haya datos reales suficientes para este partido.'])[0] }}</p>
+        </div>
+        <dl class="v799-card-metrics"><div><dt>Resultado</dt><dd>{{ ctx.client_score_label or 'Pendiente' }}</dd></div><div><dt>Hora</dt><dd>{{ ctx.client_time_label or 'Pendiente' }}</dd></div><div><dt>Estado</dt><dd>{{ ctx.client_status_label or 'Pendiente' }}</dd></div></dl>
+      </article>
+
+      <article class="v799-card v799-pick-detail" id="picks">
+        <div class="v799-section-head"><div><span>Señal conectada</span><h2>Pick recomendado</h2></div><a href="/picks">Ver picks →</a></div>
+        {% if pick %}
+        <strong class="v799-pick-market">{{ pick.get('selection_display') or pick.get('selection') or 'Selección pendiente' }}</strong>
+        <dl class="v799-pick-metrics"><div><dt>Cuota</dt><dd>{{ pick.get('client_odds_label') or pick.get('odds') or '—' }}</dd></div><div><dt>Stake</dt><dd>{{ pick.get('stake_units') or pick.get('stake') or '—' }}{% if pick.get('stake_units') or pick.get('stake') %}u{% endif %}</dd></div><div><dt>Riesgo</dt><dd>{{ pick.get('risk_level') or '—' }}</dd></div><div><dt>Confianza</dt><dd>{{ pick.get('confidence') or pick.get('quality_score') or '—' }}{% if pick.get('confidence') or pick.get('quality_score') %}%{% endif %}</dd></div></dl>
+        <p>{{ pick.get('reasoning') or pick.get('analysis_summary') or 'Motivo ampliado pendiente en los datos del pick.' }}</p>
+        <div class="v799-actions"><a class="primary" href="/shark?pick={{ pick.get('id') }}">Preguntar a SHARK por este pick</a></div>
+        {% else %}
+        <div class="v799-empty"><strong>Sin pick publicado para este partido.</strong><p>La app no generará una selección falsa. Cuando exista un pick real aparecerá aquí.</p></div>
+        {% endif %}
+      </article>
+
+      <article class="v799-card" id="datos">
+        <div class="v799-section-head"><div><span>Datos reales</span><h2>Disponibilidad</h2></div></div>
+        <div class="v799-real-data-grid">
+          <article><strong>Resultado</strong><span>{{ 'Disponible' if dq.get('has_score') else 'Pendiente o no sincronizado' }}</span></article>
+          <article><strong>Hora</strong><span>{{ 'Sincronizada' if dq.get('has_time') else 'Pendiente' }}</span></article>
+          <article><strong>Escudos</strong><span>{{ 'Cargados' if dq.get('has_crests') else 'Fallback seguro' }}</span></article>
+          <article><strong>Pick</strong><span>{{ 'Conectado' if dq.get('has_picks') else 'No publicado' }}</span></article>
+          <article><strong>Forma local</strong><span>{{ detail.get('home_form') or 'Sin forma suficiente guardada' }}</span></article>
+          <article><strong>Forma visitante</strong><span>{{ detail.get('away_form') or 'Sin forma suficiente guardada' }}</span></article>
+          <article><strong>Histórico H2H</strong><span>{% if detail.get('head_to_head') %}{{ detail.get('head_to_head')|length }} cruces guardados{% else %}Sin histórico directo suficiente{% endif %}</span></article>
+          <article><strong>Timeline</strong><span>{% if detail.get('timeline') %}{{ detail.get('timeline')|length }} eventos{% else %}Sin eventos sincronizados{% endif %}</span></article>
+        </div>
+      </article>
+    </div>
+
+    <aside class="v799-context-panel">
+      <article class="v799-card v800-side-cta" id="shark"><div class="v799-section-head"><div><span>SHARK</span><h2>Lectura</h2></div><a href="/shark?match={{ m.get('id') }}">Abrir →</a></div><div class="v799-notes-list">{% for note in detail.get('shark_notes') or [] %}<p>{{ note }}</p>{% else %}<p>SHARK mostrará lectura cuando haya datos suficientes.</p>{% endfor %}</div><a class="v799-button primary" href="/shark?match={{ m.get('id') }}">Preguntar por este partido</a></article>
+      <article class="v799-mobile-preview mini"><div class="v799-phone-top"><span>Partido</span><strong>{{ ctx.client_status_label or 'Estado' }}</strong></div><div class="v799-phone-match"><strong>{{ ctx.safe_home }}</strong><b>{{ ctx.client_score_label or 'VS' }}</b><em>{{ ctx.safe_away }}</em><small>{{ ctx.client_time_label or 'Hora pendiente' }}</small></div><div class="v799-phone-nav"><i>▦</i><i>●</i><i>◆</i><i>◥</i></div></article>
+    </aside>
+  </section>
 </section>
 {% endif %}
 {% endblock %}

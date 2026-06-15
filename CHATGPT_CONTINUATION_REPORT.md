@@ -249,3 +249,11 @@ Preparada nueva pasada visual sobre V795 para acercar cliente y admin a los mock
 ## V797_RENDER_VISUAL_QA_LOGOUT_REAL_DATA_PIXEL_POLISH
 
 Basado en vídeo real enviado por el usuario. Se detectó que las pantallas ya mejoraron visualmente, pero faltaba salida/cerrar sesión clara y persistían algunos valores mock/ficticios en admin. V797 añade acciones de cierre de sesión visibles, refuerza fidelidad visual cliente/admin y cambia datos admin mock por placeholders/estados real-only cuando no existen datos reales conectados. Preserva DB_PATH, Stripe, Telegram, Cron, usuarios, sesiones, membresías, picks, directos, escudos, Madrid Time, legal y motores principales.
+
+
+## V800_REFERENCE_SCREEN_APP_FIDELITY_REAL_DATA_NAVIGATION_FINAL
+- Base: V799 reference screen visual polish.
+- Objetivo: acercar pantallas cliente a las referencias con más sensación app, navegación activa, foco visual de partido/pick/SHARK y estados vacíos bonitos.
+- Tocado: `base.html`, `home.html`, `client_app_center.html`, `calendar.html`, `live.html`, `picks.html`, `match_detail.html`, `account_center.html`, `telegram.html`, `static/app.css`, checks y reports.
+- No tocado: DB_PATH, secretos, usuarios, membresías, pagos, Telegram/Cron automático ni datos reales.
+- Regla: datos reales siempre; si falta dato, mostrar pendiente/sin pick/sin sincronización.

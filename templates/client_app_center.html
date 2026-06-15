@@ -8,86 +8,111 @@
 {% set picks = v.get('picks') or data.get('picks') or [] %}
 {% set counts = org.get('counts') or product.get('counts') or {} %}
 {% set plan = product.get('plan') or {} %}
-{% set user_name = (current_user.name or current_user.username or 'Damian') if current_user else 'Damian' %}
+{% set plan_name = plan.get('name') or org.get('membership') or (current_user.membership if current_user else 'FREE') %}
+{% set user_name = (current_user.name or current_user.username or 'Cliente') if current_user else 'Cliente' %}
 {% set featured_pick = picks[0] if picks else none %}
-<section class="v793-screen v798-dashboard v793-home-screen">
-  <section class="v793-hero v793-home-hero v798-hero-shark">
+{% set today_count = counts.get('today', focus|length) %}
+{% set live_count = counts.get('live', 0) %}
+{% set picks_count = counts.get('picks', picks|length) %}
+{% set telegram_count = counts.get('alerts', counts.get('telegram', 0)) %}
+<section class="v799-screen v799-home-screen v799-app-center-screen">
+  <div class="v799-appbar">
     <div>
-      <span class="v793-kicker">Centro de mando · Hoy · hora Madrid</span>
-      <h1>Buenos días, {{ user_name }} 👋</h1>
-      <p>Tu centro de mando de hoy: partidos reales, directos, picks publicados y SHARK en una pantalla limpia.</p>
-      <span class="v793-chip blue">Plan actual: {{ plan.get('name') or org.get('membership') or (current_user.membership if current_user else 'FREE') }}</span>
+      <span class="v799-kicker">Inicio cliente · panel visual premium</span>
+      <h1>Buenos días, {{ user_name }}</h1>
+      <p>Tu pantalla principal: partidos reales, directos, picks publicados, SHARK y cuenta, todo conectado.</p>
     </div>
-    <div class="v798-real-note"><strong>Datos reales</strong><span>Si no hay dato sincronizado, se muestra pendiente. Nunca inventado.</span></div>
+    <div class="v799-appbar-actions"><a href="/mi-cuenta">Mi cuenta</a><a class="primary" href="/calendar?lane=today">Partidos de hoy</a></div>
+  </div>
+
+  <section class="v800-stage v800-app-stage" aria-label="Centro visual de uso rápido">
+    <article class="v800-stage-main">
+      <div class="v800-stage-top"><span>Partido recomendado para abrir</span><a href="/calendar?lane=today">Todos los partidos →</a></div>
+      {% if focus %}
+        {% set fm = focus[0] %}
+        {% set fctx = fm|match_madrid_context %}
+        {% set fhome = fm|team_identity('home') %}
+        {% set faway = fm|team_identity('away') %}
+        <a class="v800-feature-match" href="/match/{{ fm.get('id') }}">
+          <span class="v800-feature-team">{{ crest(fhome, fctx.safe_home, 'compact') }}<strong>{{ fctx.safe_home }}</strong></span>
+          <span class="v800-feature-score"><b>{{ fctx.client_score_label or 'VS' }}</b><small>{{ fctx.client_full_datetime_label or fctx.client_time_label or 'Hora pendiente' }}</small><em>{{ fctx.client_status_label or 'Pendiente' }}</em></span>
+          <span class="v800-feature-team away">{{ crest(faway, fctx.safe_away, 'compact') }}<strong>{{ fctx.safe_away }}</strong></span>
+        </a>
+      {% else %}
+        <div class="v800-empty-panel"><strong>Sin foco cargado</strong><span>Esperando partidos reales de la sincronización.</span></div>
+      {% endif %}
+    </article>
+    <article class="v800-stage-card"><span>Ruta</span><strong>Partido → Pick → SHARK</strong><small>Todo enlazado, sin pantallas sueltas.</small><a href="/calendar?lane=today">Empezar</a></article>
+    <article class="v800-stage-card shark"><span>Plan</span><strong>{{ plan_name }}</strong><small>Experiencia adaptada a tu cuenta.</small><a href="/mi-cuenta">Mi cuenta</a></article>
   </section>
 
-  <section class="v793-kpi-grid four v798-kpi-row">
-    <a class="v793-kpi" href="/calendar?lane=today"><i>▦</i><span>Partidos hoy</span><strong>{{ counts.get('today', focus|length) }}</strong><small>Ver calendario →</small></a>
-    <a class="v793-kpi live" href="/live"><i>●</i><span>En directo</span><strong>{{ counts.get('live', 0) }}</strong><small>Ver ahora →</small></a>
-    <a class="v793-kpi picks" href="/picks"><i>◆</i><span>Picks activos</span><strong>{{ counts.get('picks', picks|length) }}</strong><small>Ver picks →</small></a>
-    <a class="v793-kpi telegram" href="/telegram"><i>✈</i><span>Alertas Telegram</span><strong>{{ counts.get('alerts', counts.get('telegram', 0)) }}</strong><small>Ver alertas →</small></a>
-  </section>
-
-  <section class="v793-home-grid v798-home-grid">
-    <div class="v793-stack">
-      <article class="v793-card v793-route v798-route-card">
-        <div class="v793-section-title"><h2>Ruta recomendada de hoy</h2><a href="/menu">Todo →</a></div>
-        <div class="v793-route-steps v798-route-steps">
-          <a href="/calendar?lane=today"><b>1</b><i>🎮</i><strong>Mira partidos</strong><span>Explora la agenda real del día</span></a>
-          <a href="/picks"><b>2</b><i>📋</i><strong>Revisa picks</strong><span>Mercado, cuota, stake y riesgo</span></a>
-          <a href="/shark"><b>3</b><i>◥</i><strong>Consulta SHARK</strong><span>Resuelve dudas antes de decidir</span></a>
-          <a href="/track-record"><b>4</b><i>📈</i><strong>Sigue resultados</strong><span>Histórico con resultados reales</span></a>
+  <section class="v799-dashboard-grid">
+    <div class="v799-main-column">
+      <section class="v799-hero-card">
+        <div class="v799-hero-copy">
+          <span class="v799-live-pill {{ 'on' if live_count else '' }}">{{ '● Directo activo' if live_count else '○ Esperando directos' }}</span>
+          <h2>Panel SHARK</h2>
+          <p>Orden claro para usar la app: mira el partido, abre el detalle, revisa pick y pregunta a SHARK.</p>
+          <div class="v799-hero-actions"><a class="primary" href="/calendar?lane=today">Partidos</a><a href="/picks">Picks</a><a href="/live">Directo</a></div>
         </div>
-      </article>
+        <div class="v799-score-glow" aria-hidden="true"><strong>NS</strong><span>{{ plan_name }}</span></div>
+      </section>
 
-      <article class="v793-card v798-panel">
-        <div class="v793-section-title"><h2>Partidos destacados</h2><a href="/calendar">Ver todos →</a></div>
-        <div class="v793-feature-grid v798-feature-grid">
-          {% for m in focus[:3] %}
+      <section class="v799-kpi-strip" aria-label="Resumen real del cliente">
+        <a href="/calendar?lane=today"><i>▦</i><span>Partidos hoy</span><strong>{{ today_count }}</strong><small>agenda real</small></a>
+        <a class="live" href="/live"><i>●</i><span>Directo</span><strong>{{ live_count }}</strong><small>marcador</small></a>
+        <a class="picks" href="/picks"><i>◆</i><span>Picks</span><strong>{{ picks_count }}</strong><small>publicados</small></a>
+        <a class="telegram" href="/telegram"><i>✈</i><span>Telegram</span><strong>{{ telegram_count }}</strong><small>alertas</small></a>
+      </section>
+
+      <section class="v799-card v799-flow-card">
+        <div class="v799-section-head"><div><span>Ruta ideal</span><h2>Todo enlazado</h2></div><a href="/menu">Ver menú →</a></div>
+        <div class="v799-flow-steps">
+          <a href="/calendar?lane=today"><b>1</b><strong>Partidos</strong><small>Agenda real</small></a>
+          <a href="/live"><b>2</b><strong>Directo</strong><small>Marcador y minuto</small></a>
+          <a href="/picks"><b>3</b><strong>Picks</strong><small>Cuota, stake, riesgo</small></a>
+          <a href="/shark"><b>4</b><strong>SHARK</strong><small>Consulta final</small></a>
+        </div>
+      </section>
+
+      <section class="v799-card">
+        <div class="v799-section-head"><div><span>Foco del día</span><h2>Partidos destacados</h2></div><a href="/calendar">Ver todos →</a></div>
+        <div class="v799-match-list">
+          {% for m in focus[:5] %}
           {% set ctx = m|match_madrid_context %}
           {% set home_identity = m|team_identity('home') %}
           {% set away_identity = m|team_identity('away') %}
-          <article class="v793-match-card v798-match-tile {{ 'has-pick' if m.get('has_pick') or m.get('pick_id') else '' }}">
-            <div class="v793-meta"><span>{{ ctx.client_competition|competition_es }}</span><button class="fav-star" type="button" data-kind="match" data-value="{{ m.get('id') }}" data-label="{{ ctx.safe_home }} vs {{ ctx.safe_away }}">☆</button></div>
-            <a class="v793-versus" href="/match/{{ m.get('id') }}">
-              <span>{{ crest(home_identity, ctx.safe_home, 'compact') }}<strong>{{ ctx.safe_home }}</strong></span>
-              <b>VS<br><small>{{ ctx.client_time_label or ctx.client_score_label }}</small></b>
-              <span>{{ crest(away_identity, ctx.safe_away, 'compact') }}<strong>{{ ctx.safe_away }}</strong></span>
-            </a>
-            <div class="v793-actions"><a href="/match/{{ m.get('id') }}">Ver previa</a><a class="primary" href="/match/{{ m.get('id') }}#shark">Análisis SHARK</a></div>
-          </article>
+          <a class="v799-match-row {{ 'has-pick' if m.get('has_pick') or m.get('pick_id') else '' }}" href="/match/{{ m.get('id') }}">
+            <span class="v799-time"><b>{{ ctx.client_time_label or ctx.client_score_label or '—' }}</b><small>{{ ctx.client_status_label or 'Pendiente' }}</small></span>
+            <span class="v799-team">{{ crest(home_identity, ctx.safe_home, 'compact') }}<strong>{{ ctx.safe_home }}</strong></span>
+            <span class="v799-vs">{{ ctx.client_score_label or 'VS' }}</span>
+            <span class="v799-team away">{{ crest(away_identity, ctx.safe_away, 'compact') }}<strong>{{ ctx.safe_away }}</strong></span>
+            <em>{{ ctx.client_competition|competition_es }}</em>
+            <small class="v799-row-cta">Abrir</small>
+          </a>
           {% else %}
-          <div class="v793-empty">No hay partidos destacados cargados. La app no inventa datos.</div>
+          <div class="v799-empty"><strong>No hay partidos destacados cargados.</strong><p>La app no inventa datos. Esperando sincronización real.</p></div>
           {% endfor %}
         </div>
-      </article>
+      </section>
     </div>
 
-    <aside class="v793-stack">
-      <article class="v793-card v793-pick-hero v798-pick-spotlight">
-        <div class="v793-section-title"><h2>⭐ Pick destacado</h2><span class="v793-chip gold">{{ (featured_pick.get('membership_required') if featured_pick else 'ELITE') or 'ELITE' }}</span></div>
+    <aside class="v799-side-column">
+      <article class="v799-card v799-pick-card-main">
+        <div class="v799-section-head"><div><span>Pick destacado</span><h2>Oportunidad</h2></div><a href="/picks">Picks →</a></div>
         {% if featured_pick %}
         {% set p = featured_pick %}
-        {% set home_identity = p|team_identity('home') %}{% set away_identity = p|team_identity('away') %}
-        <div class="v793-pick-match">{{ crest(home_identity, p.get('home_team') or 'Local', 'compact') }} <span>{{ p.get('client_match_label') or ((p.get('home_team') or 'Local') ~ ' vs ' ~ (p.get('away_team') or 'Visitante')) }}</span> {{ crest(away_identity, p.get('away_team') or 'Visitante', 'compact') }}</div>
-        <dl class="v793-metrics">
-          <div><dt>Mercado recomendado</dt><dd>{{ p.get('client_selection_label') or p.get('selection_display') or p.get('selection') or 'Selección pendiente' }}</dd></div>
-          <div><dt>Cuota</dt><dd class="blue">{{ p.get('client_odds_label') or p.get('odds') or 'Pendiente' }}</dd></div>
-          <div><dt>Riesgo</dt><dd class="gold">{{ p.get('risk_level') or 'Medio' }}</dd></div>
-          <div><dt>Confianza SHARK</dt><dd class="green">{{ p.get('confidence') or p.get('quality_score') or '—' }}{% if p.get('confidence') or p.get('quality_score') %}%{% endif %}</dd></div>
-        </dl>
-        <p>{{ p.get('analysis_summary') or p.get('reasoning') or 'Pick publicado con control de riesgo. Revisa cuota real antes de decidir.' }}</p>
-        <a class="v793-button primary" href="{{ p.get('client_match_url') or ('/match/' ~ (p.get('match_id') or p.get('id'))) }}">Ver análisis completo</a>
+        <strong class="v799-pick-match">{{ p.get('client_match_label') or ((p.get('home_team') or 'Local') ~ ' vs ' ~ (p.get('away_team') or 'Visitante')) }}</strong>
+        <div class="v799-pick-market">{{ p.get('client_selection_label') or p.get('selection_display') or p.get('selection') or 'Selección pendiente' }}</div>
+        <dl class="v799-pick-metrics"><div><dt>Cuota</dt><dd>{{ p.get('client_odds_label') or p.get('odds') or '—' }}</dd></div><div><dt>Stake</dt><dd>{{ p.get('stake_units') or p.get('stake') or '—' }}{% if p.get('stake_units') or p.get('stake') %}u{% endif %}</dd></div><div><dt>Riesgo</dt><dd>{{ p.get('risk_level') or '—' }}</dd></div><div><dt>Confianza</dt><dd>{{ p.get('confidence') or p.get('quality_score') or '—' }}{% if p.get('confidence') or p.get('quality_score') %}%{% endif %}</dd></div></dl>
+        <p>{{ p.get('analysis_summary') or p.get('reasoning') or 'Análisis ampliado pendiente en los datos del pick.' }}</p>
+        <a class="v799-button primary" href="{{ p.get('client_match_url') or ('/match/' ~ (p.get('match_id') or p.get('id'))) }}">Ver análisis</a>
         {% else %}
-        <div class="v793-empty">No hay pick destacado ahora mismo. Cuando exista un pick real publicado aparecerá aquí.</div>
-        <a class="v793-button primary" href="/calendar">Ver partidos</a>
+        <div class="v799-empty"><strong>Sin pick destacado.</strong><p>Cuando exista un pick real publicado aparecerá aquí.</p></div><a class="v799-button primary" href="/calendar?lane=today">Ver partidos</a>
         {% endif %}
       </article>
+      <article class="v799-mobile-preview"><div class="v799-phone-top"><span>NeMeSiS</span><strong>{{ plan_name }}</strong></div><div class="v799-phone-hero"><b>{{ live_count }}</b><span>directos ahora</span></div><div class="v799-phone-list">{% for m in focus[:3] %}{% set ctx = m|match_madrid_context %}<a href="/match/{{ m.get('id') }}"><strong>{{ ctx.safe_home }}</strong><small>{{ ctx.client_time_label or '—' }}</small><em>{{ ctx.safe_away }}</em></a>{% else %}<span>Esperando partidos reales</span>{% endfor %}</div><div class="v799-phone-nav"><i>⌂</i><i>▦</i><i>●</i><i>◆</i><i>◥</i></div></article>
     </aside>
-  </section>
-
-  <section class="v793-quick-row v798-quick-row">
-    <a href="/calendar"><i>▦</i><strong>Calendario</strong></a><a href="/live"><i>●</i><strong>Directo</strong></a><a href="/picks"><i>◆</i><strong>Picks</strong></a><a href="/highlights"><i>▶</i><strong>Resúmenes</strong></a><a href="/mi-cuenta"><i>◎</i><strong>Mi cuenta</strong></a><a class="gold" href="/membresias"><i>♛</i><strong>Membresías</strong><small>Ver planes</small></a>
   </section>
 </section>
 {% endblock %}

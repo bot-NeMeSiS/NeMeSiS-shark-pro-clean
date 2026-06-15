@@ -24,7 +24,7 @@
   {% set _visual_tier = 'free' %}
   {% set _tier_label = 'FREE' %}
 {% endif %}
-<body class="ns-app ns-tier-{{ _visual_tier }}{% if current_user %} ns-authenticated{% else %} ns-public{% endif %}{% if current_user and current_user.role == 'ADMIN' %} ns-admin{% endif %}" data-ns-route="{{ request.path }}" data-ns-plan="{{ _tier_label }}" data-v775-shell="true" data-v776-shell="true" data-v777-shell="true" data-v778-shell="true" data-v790-shell="true" data-v792-shell="true" data-v793-shell="true" data-v795-shell="true" data-v796-shell="true" data-v797-shell="true" data-v798-shell="true">
+<body class="ns-app ns-tier-{{ _visual_tier }}{% if current_user %} ns-authenticated{% else %} ns-public{% endif %}{% if current_user and current_user.role == 'ADMIN' %} ns-admin{% endif %}" data-ns-route="{{ request.path }}" data-ns-plan="{{ _tier_label }}" data-v775-shell="true" data-v776-shell="true" data-v777-shell="true" data-v778-shell="true" data-v790-shell="true" data-v792-shell="true" data-v793-shell="true" data-v795-shell="true" data-v796-shell="true" data-v797-shell="true" data-v798-shell="true" data-v799-shell="true" data-v800-shell="true">
   <div class="ns-ambient" aria-hidden="true"><i></i><i></i><i></i></div>
   <div class="membership-energy-bar" aria-hidden="true"></div>
   <div class="ns-route-glow" aria-hidden="true"></div>
@@ -75,15 +75,21 @@
   {# V778: navegación global cliente consolidada. PC usa la barra superior; móvil usa la inferior. Sin rail duplicado. #}
 
   {% if current_user and current_user.role != 'ADMIN' %}
-  <aside class="v798-client-rail" aria-label="Navegación cliente premium">
+  <aside class="v798-client-rail v799-client-rail" aria-label="Navegación cliente premium">
+    <div class="v799-rail-brand"><span>NS</span><strong>SHARK</strong><small>{{ _tier_label }}</small></div>
     <a href="/app" data-v775-icon="⌂"><span>Inicio</span></a>
     <a href="/calendar?lane=today" data-v775-icon="▦"><span>Partidos</span></a>
     <a href="/live" data-v775-icon="●"><span>Directo</span></a>
     <a href="/picks" data-v775-icon="◆"><span>Picks</span></a>
-    <a href="/track-record" data-v775-icon="↗"><span>Histórico</span></a>
     <a href="/shark" data-v775-icon="◥"><span>SHARK</span></a>
+    <a href="/track-record" data-v775-icon="↗"><span>Histórico</span></a>
     <a href="/telegram" data-v775-icon="✈"><span>Telegram</span></a>
     <a href="/mi-cuenta" data-v775-icon="◎"><span>Cuenta</span></a>
+    <a class="v799-rail-logout" href="/logout" data-v775-icon="⏻"><span>Salir</span></a>
+    <div class="v800-rail-status" aria-label="Estado cliente">
+      <span>Datos reales</span>
+      <small>Hora Madrid</small>
+    </div>
   </aside>
   {% endif %}
 
@@ -125,7 +131,7 @@
       <a href="/calendar?lane=today" data-v775-icon="▦">Partidos</a>
       <a href="/live" data-v775-icon="●">Directo</a>
       <a href="/picks" data-v775-icon="◆">Picks</a>
-      <a href="/mi-cuenta" data-v775-icon="◎">Cuenta</a>
+      <a href="/shark" data-v775-icon="◥">SHARK</a>
     {% else %}
       <a href="/" data-v775-icon="⌂">Inicio</a>
       <a href="/membresias" data-v775-icon="★">Planes</a>
@@ -435,6 +441,28 @@
       document.querySelectorAll('.v796-breathe,.v796-live-card').forEach(function(el){el.classList.toggle('is-alive');});
     }
     ping(); setInterval(ping,60000); setInterval(breathe,4800);
+  })();
+  </script>
+
+
+  <script>
+  (function v800ClientFidelity(){
+    var body=document.body;
+    if(!body || !body.matches('.ns-authenticated:not(.ns-admin)[data-v800-shell="true"]')) return;
+    var path=window.location.pathname;
+    document.querySelectorAll('.v799-client-rail a,.bottom-nav-clean a,.nav-clean a').forEach(function(a){
+      try{
+        var href=(a.getAttribute('href')||'').split('?')[0];
+        if(!href || href==='/') return;
+        if(path===href || (href!=='/app' && path.indexOf(href)===0)){ a.classList.add('v800-active'); }
+      }catch(e){}
+    });
+    document.querySelectorAll('.v800-copy-link').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var text=btn.getAttribute('data-copy')||'';
+        if(navigator.clipboard && text){ navigator.clipboard.writeText(text).then(function(){ if(window.nsToast) nsToast('Copiado','success'); }); }
+      });
+    });
   })();
   </script>
 

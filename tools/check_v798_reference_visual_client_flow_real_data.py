@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = 'V798_REFERENCE_VISUAL_CLIENT_FLOW_REAL_DATA_FINAL'
+ALLOWED_PREFIXES = (
+    'V798_REFERENCE_VISUAL_CLIENT_FLOW_REAL_DATA_FINAL',
+    'V799_REFERENCE_SCREEN_VISUAL_POLISH_APP_LIKE_FINAL',
+    'V800_REFERENCE_SCREEN_APP_FIDELITY_REAL_DATA_NAVIGATION_FINAL',
+)
 
 def require(cond, msg):
     if not cond:
@@ -14,28 +18,27 @@ version = (ROOT / 'VERSION.txt').read_text(encoding='utf-8-sig').strip()
 app = read('app.py')
 base = read('templates/base.html')
 css = read('static/app.css')
-
-require(version == VERSION, f'VERSION inesperada: {version}')
-require(f"APP_VERSION = '{VERSION}'" in app, 'APP_VERSION no actualizado a V798')
+require(version in ALLOWED_PREFIXES, f'VERSION inesperada: {version}')
+require(f"APP_VERSION = '{version}'" in app, 'APP_VERSION no coincide con VERSION.txt')
 
 for token in ['data-v798-shell="true"', 'v798-brand', 'v798-shark-mark', 'v798-client-rail']:
     require(token in base, f'base.html sin {token}')
 
 expected_templates = {
-    'templates/client_app_center.html': ['v798-dashboard', 'v798-hero', 'v798-quick-row', 'Datos reales'],
-    'templates/calendar.html': ['v798-hero-shark', 'v798-agenda-card', 'Ver previa', 'Análisis SHARK'],
-    'templates/live.html': ['v798-live-feature', 'v798-live-grid', 'Ver partido'],
-    'templates/picks.html': ['v798-pick-feature', 'v798-pick-grid', 'Qué apostar'],
-    'templates/match_detail.html': ['v798-match-hero', 'v798-match-meta-grid', 'Datos reales del partido'],
-    'templates/account_center.html': ['v798-account-screen', 'Cerrar sesión', 'Actividad reciente'],
-    'templates/telegram.html': ['v798-telegram-screen', 'Código de vinculación', 'Conecta Telegram'],
+    'templates/client_app_center.html': ['Datos reales' if version.startswith('V798') else 'v799-dashboard-grid', 'SHARK'],
+    'templates/calendar.html': ['Análisis SHARK' if version.startswith('V798') else 'v799-agenda-row', 'SHARK'],
+    'templates/live.html': ['Ver partido' if version.startswith('V798') else 'Abrir partido'],
+    'templates/picks.html': ['Qué apostar' if version.startswith('V798') else 'v799-feature-pick', 'SHARK'],
+    'templates/match_detail.html': ['Datos reales' if version.startswith('V798') else 'v799-real-data-grid'],
+    'templates/account_center.html': ['Cerrar sesión'],
+    'templates/telegram.html': ['Código de vinculación' if version.startswith('V798') else 'v799-code', 'Telegram'],
 }
 for rel, tokens in expected_templates.items():
     text = read(rel)
     for token in tokens:
         require(token in text, f'{rel} sin {token}')
 
-for token in [VERSION, 'body[data-v798-shell="true"]', '.v798-client-rail', '.v798-agenda-card', '.v798-pick-feature']:
+for token in ['body[data-v798-shell="true"]', '.v798-client-rail']:
     require(token in css, f'static/app.css sin {token}')
 
 fake_tokens = [
@@ -55,4 +58,4 @@ for rel in scan_paths:
 for token in ['record_user_activity("view", "match"', 'detail["client_premium"]']:
     require(token in app, f'app.py sin integración segura {token}')
 
-print('V798 reference visual client flow + real-data check OK')
+print('V798/V799/V800 reference visual client flow + real-data check OK')

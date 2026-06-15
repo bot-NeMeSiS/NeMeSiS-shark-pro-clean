@@ -1,11 +1,45 @@
 {% extends "base.html" %}
 {% block content %}
-{% set plan = data.account_center.plan %}{% set membership = data.get('membership') or {} %}{% set pay = data.payments_client or {} %}{% set user_name = data.session_user.name or data.session_user.username or 'Cliente' %}
+{% set plan = data.account_center.plan %}
+{% set membership = data.get('membership') or {} %}
+{% set pay = data.payments_client or {} %}
+{% set user_name = data.session_user.name or data.session_user.username or 'Cliente' %}
 {% set activity = data.get('client_activity') or [] %}
-<section class="v793-screen v793-account-screen v798-account-screen">
-  <div class="v793-page-head v798-hero-shark compact"><div><span class="v793-kicker">Tu plan, ajustes y actividad real</span><h1>Mi cuenta</h1><p>Gestiona tu plan, Telegram, favoritos, seguridad y sesión.</p></div><a class="v793-button danger" href="/logout">Cerrar sesión</a></div>
-  <section class="v793-profile-card"><div class="v793-avatar">◥</div><div><h2>{{ user_name }}</h2><span class="v793-chip blue">{{ plan }}</span> <span class="v793-chip green">Activo</span><p>Miembro desde · {{ data.session_user.created_at|madrid_datetime_label if data.session_user.created_at else 'activo' }}</p></div><div class="v793-profile-stats"><span><b>{{ data.account_center.activity }}</b> Actividad</span><span><b>{{ data.account_center.favorites }}</b> Favoritos</span></div></section>
-  <section class="v793-account-grid"><article class="v793-card"><h2>Plan actual</h2><strong class="v793-big">{{ plan }}</strong><p>{{ membership.get('headline') or 'Acceso activo a tu plan.' }}</p><ul class="v793-check-list"><li>Partidos y calendario real</li><li>Picks según plan</li><li>Análisis SHARK</li><li>Telegram configurable</li></ul><a class="v793-button" href="/membresias">Gestionar suscripción</a></article><article class="v793-card"><h2>Telegram</h2><strong>@{{ data.telegram_state.username if data.telegram_state and data.telegram_state.username else 'pendiente' }}</strong><p>Recibe alertas, picks y resúmenes según tu plan.</p><a class="v793-button" href="/telegram">Conectar Telegram</a></article><article class="v793-card"><h2>Renovación</h2><strong>{{ pay.stripe_current_period_end|madrid_datetime_label if pay.stripe_current_period_end else 'Sin fecha' }}</strong><p>Estado Stripe: {{ pay.stripe_subscription_status or 'Sin suscripción Stripe' }}</p>{% if pay.portal_ready %}<form method="post" action="/pagos/portal"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="v793-button" type="submit">Ver pagos</button></form>{% else %}<a class="v793-button" href="/membresias">Ver pagos</a>{% endif %}</article><article class="v793-card"><h2>Favoritos</h2><p>{{ data.account_center.favorites }} elementos guardados.</p><a class="v793-button" href="/favorites">Gestionar favoritos</a></article></section>
-  <section class="v793-account-bottom"><article class="v793-card"><div class="v793-section-title"><h2>Actividad reciente</h2><a href="/actividad">Ver historial →</a></div><div class="v793-activity-list">{% for item in activity[:6] %}<div><span>{{ item.created_at|madrid_datetime_label if item.created_at else 'Reciente' }}</span><strong>{{ item.label or 'Actividad registrada' }}</strong><em>{{ item.target_type or item.activity_type or 'Cuenta' }}</em></div>{% else %}<div class="v793-empty">Todavía no hay actividad suficiente. Cuando abras partidos, picks o favoritos aparecerá aquí.</div>{% endfor %}</div></article><article class="v793-card"><h2>Seguridad y ajustes</h2><a class="v793-row-link" href="/password-reset">Cambiar contraseña →</a><a class="v793-row-link" href="/notificaciones">Notificaciones →</a><a class="v793-row-link" href="/soporte">Soporte →</a><a class="v797-logout-card" href="/logout"><span>⏻</span><strong>Cerrar sesión</strong><small>Salir de tu cuenta de forma segura</small></a></article></section>
+<section class="v799-screen v799-account-screen">
+  <div class="v799-appbar">
+    <div><span class="v799-kicker">Perfil cliente · sesión segura</span><h1>Mi cuenta</h1><p>Plan, Telegram, favoritos, pagos y salida de sesión en una pantalla clara.</p></div>
+    <div class="v799-appbar-actions"><a href="/telegram">Telegram</a><a class="danger" href="/logout">Cerrar sesión</a></div>
+  </div>
+
+  <section class="v799-profile-hero">
+    <div class="v799-avatar">◥</div>
+    <div><span class="v799-kicker">{{ plan }}</span><h2>{{ user_name }}</h2><p>Miembro desde · {{ data.session_user.created_at|madrid_datetime_label if data.session_user.created_at else 'activo' }}</p></div>
+    <div class="v799-profile-stats"><span><b>{{ data.account_center.activity }}</b><small>Actividad</small></span><span><b>{{ data.account_center.favorites }}</b><small>Favoritos</small></span><span><b>{{ data.account_center.alerts }}</b><small>Alertas</small></span></div>
+  </section>
+
+  <section class="v800-account-safe" aria-label="Acciones seguras de cuenta">
+    <a href="/telegram"><span>Telegram</span><strong>{{ 'Vinculado' if data.telegram_state and data.telegram_state.linked else 'Pendiente' }}</strong></a>
+    <a href="/membresias"><span>Plan</span><strong>{{ plan }}</strong></a>
+    <a href="/favorites"><span>Favoritos</span><strong>{{ data.account_center.favorites }}</strong></a>
+    <a class="danger" href="/logout"><span>Sesión</span><strong>Cerrar sesión</strong></a>
+  </section>
+
+  <section class="v799-account-layout">
+    <div class="v799-account-main">
+      <section class="v799-account-grid">
+        <article class="v799-card"><span>Plan actual</span><strong>{{ plan }}</strong><p>{{ membership.get('headline') or 'Acceso activo a tu plan.' }}</p><a class="v799-button" href="/membresias">Gestionar plan</a></article>
+        <article class="v799-card"><span>Telegram</span><strong>@{{ data.telegram_state.username if data.telegram_state and data.telegram_state.username else 'pendiente' }}</strong><p>Alertas, picks y resúmenes según tu plan.</p><a class="v799-button" href="/telegram">Configurar</a></article>
+        <article class="v799-card"><span>Renovación</span><strong>{{ pay.stripe_current_period_end|madrid_datetime_label if pay.stripe_current_period_end else 'Sin fecha' }}</strong><p>Estado Stripe: {{ pay.stripe_subscription_status or 'Sin suscripción Stripe' }}</p>{% if pay.portal_ready %}<form method="post" action="/pagos/portal"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="v799-button" type="submit">Ver pagos</button></form>{% else %}<a class="v799-button" href="/membresias">Ver pagos</a>{% endif %}</article>
+        <article class="v799-card"><span>Favoritos</span><strong>{{ data.account_center.favorites }}</strong><p>Partidos, equipos o picks guardados.</p><a class="v799-button" href="/favorites">Abrir favoritos</a></article>
+      </section>
+
+      <article class="v799-card"><div class="v799-section-head"><div><span>Actividad real</span><h2>Últimos movimientos</h2></div><a href="/actividad">Ver todo →</a></div><div class="v799-activity-list">{% for item in activity[:7] %}<div><span>{{ item.created_at|madrid_datetime_label if item.created_at else 'Reciente' }}</span><strong>{{ item.label or 'Actividad registrada' }}</strong><em>{{ item.target_type or item.activity_type or 'Cuenta' }}</em></div>{% else %}<div class="v799-empty">Todavía no hay actividad suficiente. Cuando abras partidos, picks o favoritos aparecerá aquí.</div>{% endfor %}</div></article>
+    </div>
+
+    <aside class="v799-context-panel">
+      <article class="v799-card"><div class="v799-section-head"><div><span>Accesos</span><h2>Cuenta</h2></div></div><div class="v799-action-stack"><a href="/password-reset"><strong>Cambiar contraseña</strong><small>Seguridad</small></a><a href="/notificaciones"><strong>Notificaciones</strong><small>Preferencias</small></a><a href="/soporte"><strong>Soporte</strong><small>Ayuda</small></a><a class="danger" href="/logout"><strong>Cerrar sesión</strong><small>Salir de forma segura</small></a></div></article>
+      <article class="v799-mobile-preview mini"><div class="v799-phone-top"><span>Cuenta</span><strong>{{ plan }}</strong></div><div class="v799-phone-hero"><b>{{ data.account_center.favorites }}</b><span>favoritos</span></div><div class="v799-phone-list compact"><a href="/telegram"><strong>Telegram</strong><small>configurar</small><em>→</em></a><a href="/membresias"><strong>Plan</strong><small>{{ plan }}</small><em>→</em></a><a href="/logout"><strong>Salir</strong><small>sesión segura</small><em>⏻</em></a></div></article>
+    </aside>
+  </section>
 </section>
 {% endblock %}
