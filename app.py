@@ -211,7 +211,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V797_RENDER_VISUAL_QA_LOGOUT_REAL_DATA_PIXEL_POLISH'
+APP_VERSION = 'V798_REFERENCE_VISUAL_CLIENT_FLOW_REAL_DATA_FINAL'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
@@ -11404,6 +11404,10 @@ def match_detail_page(match_id):
     data["v769_match_highlights"] = [v769_highlight_card_from_row(h) for h in ((data.get("v766_highlights") or {}).get("highlights") or [])]
     if detail:
         detail["client_premium"] = data["client_premium"].get("match", {})
+        try:
+            record_user_activity("view", "match", str(match_id), {"label": f"{(detail.get('match') or {}).get('home_team') or ''} vs {(detail.get('match') or {}).get('away_team') or ''}"})
+        except Exception:
+            pass
     return render_template("match_detail.html", data=data, detail=detail)
 
 

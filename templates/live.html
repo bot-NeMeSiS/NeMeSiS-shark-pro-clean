@@ -7,33 +7,33 @@
 {% set ns = namespace(matches=[]) %}
 {% for day in live.get('day_groups') or [] %}{% for league in day.leagues %}{% for m in league.matches %}{% set _ = ns.matches.append(m) %}{% endfor %}{% endfor %}{% endfor %}
 {% set featured = ns.matches[0] if ns.matches else none %}
-<section class="v793-screen v793-live-screen">
-  <div class="v793-page-head">
-    <div><span class="v793-kicker">Directo · Partidos en juego ahora</span><h1>Directo</h1><p>Marcador, minuto, estado y acceso a análisis sin tarjetas apelotonadas.</p></div>
+<section class="v793-screen v793-live-screen v798-live-screen">
+  <div class="v793-page-head v798-hero-shark compact">
+    <div><span class="v793-kicker">Directo · Partidos en juego ahora</span><h1>Directo</h1><p>Marcador, minuto, estado y acceso a análisis sin datos inventados.</p></div>
     <div class="v793-live-summary"><span><b>{{ counts.get('live',0) }}</b> En directo</span><span><b>{{ counts.get('halftime', counts.get('break',0)) }}</b> Descanso</span><span><b>{{ counts.get('finished',0) }}</b> Finalizados</span></div>
   </div>
-  <nav class="v793-filterbar">{% for key,label in live.get('filters') or [] %}<a class="{{ 'active' if lane == key else '' }}" href="/live?f={{ key }}">{{ label }}</a>{% endfor %}</nav>
+  <nav class="v793-filterbar v798-filterbar">{% for key,label in live.get('filters') or [] %}<a class="{{ 'active' if lane == key else '' }}" href="/live?f={{ key }}">{{ label }}</a>{% endfor %}</nav>
   {% if featured %}
   {% set home_identity = featured.get('home_identity') or {} %}{% set away_identity = featured.get('away_identity') or {} %}
-  <article class="v793-live-feature {{ 'is-live' if featured.get('live_bucket') == 'live' else '' }}">
+  <article class="v793-live-feature v798-live-feature {{ 'is-live' if featured.get('live_bucket') == 'live' else '' }}">
     <div class="v793-live-league"><strong>{{ (featured.get('live_competition_display') or featured.get('competition_name') or 'Competición')|competition_es }}</strong><span>{{ featured.get('live_status_label') or 'Estado' }}</span></div>
     <a class="v793-scoreboard" href="/match/{{ featured.get('id') }}">
       <span>{{ crest(home_identity, featured.get('safe_home') or featured.get('home_team') or 'Local', 'compact') }}<strong>{{ featured.get('safe_home') or featured.get('home_team') or 'Local' }}</strong></span>
-      <b>{{ featured.get('live_score_label') or 'vs' }}</b>
+      <b>{{ featured.get('live_score_label') or 'vs' }}<small>{{ featured.get('live_clock_label') or featured.get('calendar_time') or '' }}</small></b>
       <span>{{ crest(away_identity, featured.get('safe_away') or featured.get('away_team') or 'Visitante', 'compact') }}<strong>{{ featured.get('safe_away') or featured.get('away_team') or 'Visitante' }}</strong></span>
     </a>
     <div class="v793-live-actions"><a class="primary" href="/match/{{ featured.get('id') }}">Ver partido</a><a href="/match/{{ featured.get('id') }}#shark">Análisis SHARK</a><button class="fav-star" type="button" data-kind="match" data-value="{{ featured.get('id') }}">☆ Favorito</button></div>
   </article>
   {% endif %}
-  <section class="v793-live-grid">
-    {% for m in ns.matches[1:9] %}
+  <section class="v793-live-grid v798-live-grid">
+    {% for m in ns.matches[1:13] %}
     {% set home_identity = m.get('home_identity') or {} %}{% set away_identity = m.get('away_identity') or {} %}
-    <article class="v793-live-card {{ 'is-live' if m.get('live_bucket') == 'live' else 'is-finished' if m.get('live_bucket') == 'finished' else '' }}">
+    <article class="v793-live-card v798-live-card {{ 'is-live' if m.get('live_bucket') == 'live' else 'is-finished' if m.get('live_bucket') == 'finished' else '' }}">
       <div class="v793-live-league"><strong>{{ (m.get('live_competition_display') or m.get('competition_name') or 'Competición')|competition_es }}</strong><span>{{ m.get('live_status_label') or m.get('live_clock_label') }}</span></div>
-      <a class="v793-scoreboard compact" href="/match/{{ m.get('id') }}"><span>{{ crest(home_identity, m.get('safe_home') or m.get('home_team') or 'Local', 'compact') }}<strong>{{ m.get('safe_home') or m.get('home_team') or 'Local' }}</strong></span><b>{{ m.get('live_score_label') or 'vs' }}</b><span>{{ crest(away_identity, m.get('safe_away') or m.get('away_team') or 'Visitante', 'compact') }}<strong>{{ m.get('safe_away') or m.get('away_team') or 'Visitante' }}</strong></span></a>
+      <a class="v793-scoreboard compact" href="/match/{{ m.get('id') }}"><span>{{ crest(home_identity, m.get('safe_home') or m.get('home_team') or 'Local', 'compact') }}<strong>{{ m.get('safe_home') or m.get('home_team') or 'Local' }}</strong></span><b>{{ m.get('live_score_label') or 'vs' }}<small>{{ m.get('live_clock_label') or '' }}</small></b><span>{{ crest(away_identity, m.get('safe_away') or m.get('away_team') or 'Visitante', 'compact') }}<strong>{{ m.get('safe_away') or m.get('away_team') or 'Visitante' }}</strong></span></a>
       <div class="v793-actions"><a class="primary" href="/match/{{ m.get('id') }}">Ver partido</a><a href="/match/{{ m.get('id') }}#shark">SHARK</a></div>
     </article>
-    {% else %}{% if not featured %}<div class="v793-empty">No hay partidos para este filtro. La app no inventa directos.</div>{% endif %}{% endfor %}
+    {% else %}{% if not featured %}<div class="v793-empty">Ahora mismo no hay partidos en directo para este filtro. Mira los próximos partidos de hoy.</div>{% endif %}{% endfor %}
   </section>
 </section>
 {% endblock %}

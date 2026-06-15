@@ -1,23 +1,49 @@
 {% extends "base.html" %}
 {% from "partials/team_identity.html" import crest %}
 {% block content %}
-{% set calendar = data.get('calendar') or {} %}{% set filters = calendar.get('filters') or {} %}{% set counts = calendar.get('counts') or {} %}
-<section class="v793-screen v793-calendar-screen">
-  <div class="v793-page-head"><div><span class="v793-kicker">Agenda ordenada por día y competición</span><h1>Partidos</h1><p>Hora Madrid, estado, picks y accesos claros a la previa.</p></div></div>
-  <section class="v793-kpi-grid four"><a class="v793-kpi" href="/calendar?lane=today"><i>▦</i><span>Hoy</span><strong>{{ counts.get('today', counts.get('visible',0)) }}</strong><small>partidos</small></a><a class="v793-kpi" href="/calendar?lane=tomorrow"><i>▦</i><span>Mañana</span><strong>{{ counts.get('tomorrow',0) }}</strong><small>partidos</small></a><a class="v793-kpi picks" href="/calendar?lane=with_pick"><i>◆</i><span>Con pick</span><strong>{{ counts.get('picks',0) }}</strong><small>partidos</small></a><a class="v793-kpi gold" href="/favorites"><i>★</i><span>Favoritos</span><strong>{{ counts.get('favorites',0) }}</strong><small>guardados</small></a></section>
-  <nav class="v793-filterbar">{% for tab in calendar.get('tabs') or [] %}<a class="{{ 'active' if filters.get('lane') == tab.key else '' }}" href="{{ tab.href }}">{{ tab.label }}</a>{% endfor %}<form method="get" action="/calendar" class="v793-search"><input type="hidden" name="lane" value="{{ filters.get('lane') or 'today' }}"><input name="q" value="{{ filters.get('q') or '' }}" placeholder="Buscar partido o equipo..."></form></nav>
-  <section class="v793-agenda">
+{% set calendar = data.get('calendar') or {} %}
+{% set filters = calendar.get('filters') or {} %}
+{% set counts = calendar.get('counts') or {} %}
+<section class="v793-screen v793-calendar-screen v798-calendar-screen">
+  <div class="v793-page-head v798-hero-shark compact">
+    <div><span class="v793-kicker">Agenda ordenada por día y competición</span><h1>Partidos</h1><p>Hora Madrid, estado, picks y acceso claro a cada previa.</p></div>
+  </div>
+  <section class="v793-kpi-grid four v798-kpi-row">
+    <a class="v793-kpi" href="/calendar?lane=today"><i>▦</i><span>Hoy</span><strong>{{ counts.get('today', counts.get('visible',0)) }}</strong><small>partidos</small></a>
+    <a class="v793-kpi" href="/calendar?lane=tomorrow"><i>▦</i><span>Mañana</span><strong>{{ counts.get('tomorrow',0) }}</strong><small>partidos</small></a>
+    <a class="v793-kpi picks" href="/calendar?lane=with_pick"><i>◆</i><span>Con pick</span><strong>{{ counts.get('picks',0) }}</strong><small>partidos</small></a>
+    <a class="v793-kpi gold" href="/favorites"><i>★</i><span>Favoritos</span><strong>{{ counts.get('favorites',0) }}</strong><small>guardados</small></a>
+  </section>
+  <nav class="v793-filterbar v798-filterbar">
+    {% for tab in calendar.get('tabs') or [] %}<a class="{{ 'active' if filters.get('lane') == tab.key else '' }}" href="{{ tab.href }}">{{ tab.label }}</a>{% endfor %}
+    <form method="get" action="/calendar" class="v793-search"><input type="hidden" name="lane" value="{{ filters.get('lane') or 'today' }}"><input name="q" value="{{ filters.get('q') or '' }}" placeholder="Buscar partido o equipo..."></form>
+  </nav>
+  <section class="v793-agenda v798-agenda">
   {% for day in calendar.get('day_groups') or [] %}
-    <article class="v793-day-block"><h2>{{ day.date_label }}</h2>
+    <article class="v793-day-block v798-day-block">
+      <h2>▦ {{ day.date_label }}</h2>
       {% for league in day.leagues %}
-      <div class="v793-league-block"><header><strong>{{ league.name|competition_es }}</strong><small>{{ league.country or 'Global' }}</small></header>
-        {% for m in league.matches %}{% set ctx = m|match_madrid_context %}{% set home_identity = m.get('home_identity') or {} %}{% set away_identity = m.get('away_identity') or {} %}
-        <a class="v793-agenda-row" href="/match/{{ m.get('id') }}"><button class="fav-star" type="button" data-kind="match" data-value="{{ m.get('id') }}">☆</button><span class="time"><b>{{ ctx.client_time_label }}</b><small>Madrid</small></span><span class="team">{{ crest(home_identity, ctx.safe_home, 'compact') }} {{ ctx.safe_home }}</span><b class="vs">vs</b><span class="team">{{ crest(away_identity, ctx.safe_away, 'compact') }} {{ ctx.safe_away }}</span><em>{{ ctx.client_status_label }}</em><strong>{{ '◆' if m.get('has_pick') or m.get('pick_id') else '—' }}</strong></a>
+      <div class="v793-league-block v798-league-block">
+        <header><strong>{{ league.name|competition_es }}</strong><small>{{ league.country or 'Global' }}</small></header>
+        {% for m in league.matches %}
+        {% set ctx = m|match_madrid_context %}{% set home_identity = m.get('home_identity') or {} %}{% set away_identity = m.get('away_identity') or {} %}
+        <article class="v798-agenda-card {{ 'has-pick' if m.get('has_pick') or m.get('pick_id') else '' }} {{ 'is-live' if (m.get('live_depth') or {}).get('state') in ['LIVE','HT'] else '' }}">
+          <button class="fav-star" type="button" data-kind="match" data-value="{{ m.get('id') }}" data-label="{{ ctx.safe_home }} vs {{ ctx.safe_away }}">☆</button>
+          <a class="v798-agenda-main" href="/match/{{ m.get('id') }}">
+            <span class="v798-time"><b>{{ ctx.client_time_label or ctx.client_score_label }}</b><small>Madrid</small></span>
+            <span class="v798-team home">{{ crest(home_identity, ctx.safe_home, 'compact') }}<strong>{{ ctx.safe_home }}</strong></span>
+            <b class="v798-vs">{{ ctx.client_score_label or 'VS' }}</b>
+            <span class="v798-team away">{{ crest(away_identity, ctx.safe_away, 'compact') }}<strong>{{ ctx.safe_away }}</strong></span>
+            <em>{{ ctx.client_status_label }}</em>
+            <strong class="v798-pick-dot">{{ '◆ Pick' if m.get('has_pick') or m.get('pick_id') else '—' }}</strong>
+          </a>
+          <div class="v798-row-actions"><a href="/match/{{ m.get('id') }}">Ver previa</a><a class="primary" href="/match/{{ m.get('id') }}#shark">Análisis SHARK</a></div>
+        </article>
         {% endfor %}
       </div>
       {% endfor %}
     </article>
-  {% else %}<div class="v793-empty">No hay partidos para este filtro.</div>{% endfor %}
+  {% else %}<div class="v793-empty">No hay partidos para este filtro. La app no inventa calendario.</div>{% endfor %}
   </section>
 </section>
 {% endblock %}

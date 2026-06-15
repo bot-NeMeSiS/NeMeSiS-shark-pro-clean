@@ -1,13 +1,51 @@
 {% extends "base.html" %}
 {% from "partials/team_identity.html" import crest %}
 {% block content %}
-{% set stats = data.get('pick_stats') or {} %}{% set smart = data.get('smart_picks') or {} %}{% set picks = data.get('picks') or [] %}{% set featured = picks[0] if picks else none %}
-<section class="v793-screen v793-picks-screen">
-  <div class="v793-page-head"><div><span class="v793-kicker">Selecciones recomendadas del día</span><h1>Picks SHARK</h1><p>Qué recomienda SHARK, por qué, riesgo, cuota y stake con lectura sencilla.</p></div><div class="v793-live-summary"><span><b>{{ stats.get('published', picks|length) }}</b> Picks activos</span><span><b>{{ stats.get('avg_odds') or '—' }}</b> Cuota media</span><span><b>{{ stats.get('avg_confidence') or stats.get('confidence') or '—' }}</b> Confianza</span></div></div>
-  <nav class="v793-filterbar"><a class="active" href="/picks">Destacados</a><a href="/picks#activos">Activos</a><a href="/track-record">Cerrados</a><a href="/combis">Combis</a><a href="/mercados">Valor</a></nav>
-  {% if featured %}{% set home_identity = featured|team_identity('home') %}{% set away_identity = featured|team_identity('away') %}
-  <article class="v793-card v793-pick-feature"><div class="v793-section-title"><h2>⭐ Pick destacado</h2><span class="v793-chip gold">{{ featured.get('membership_required') or 'ELITE' }}</span></div><div class="v793-pick-feature-grid"><div class="v793-pick-teams"><span>{{ crest(home_identity, featured.get('home_team') or 'Local', 'compact') }}<strong>{{ featured.get('home_team') or 'Local' }}</strong></span><b>VS</b><span>{{ crest(away_identity, featured.get('away_team') or 'Visitante', 'compact') }}<strong>{{ featured.get('away_team') or 'Visitante' }}</strong></span><small>{{ featured.get('client_full_datetime_label') or (featured|match_full_datetime) }}</small></div><dl class="v793-metrics"><div><dt>Mercado recomendado</dt><dd>{{ featured.get('client_selection_label') or featured.get('selection_display') or featured.get('selection') or 'Selección' }}</dd></div><div><dt>Cuota</dt><dd class="blue">{{ featured.get('client_odds_label') or featured.get('odds') or 'Pendiente' }}</dd></div><div><dt>Riesgo</dt><dd class="gold">{{ featured.get('risk_level') or 'Medio' }}</dd></div><div><dt>Confianza SHARK</dt><dd class="green">{{ featured.get('confidence') or featured.get('quality_score') or 0 }}%</dd></div><div><dt>Stake sugerido</dt><dd>{{ featured.get('stake_units') or '1' }}u</dd></div></dl><div class="v793-pick-reasons"><section><strong>Por qué entrar</strong><p>{{ featured.get('reasoning') or featured.get('analysis_summary') or 'Condiciones favorables según SHARK.' }}</p></section><section><strong>Riesgos</strong><p>{{ featured.get('risk_note') or 'Revisa alineaciones, cuota final y estado del partido.' }}</p></section><section><strong>Conclusión</strong><p>Valor válido si la cuota y el contexto se mantienen.</p></section></div></div><a class="v793-button primary" href="{{ featured.get('client_match_url') or '/picks' }}">Ver análisis completo</a></article>
+{% set stats = data.get('pick_stats') or {} %}{% set picks = data.get('picks') or [] %}{% set featured = picks[0] if picks else none %}
+<section class="v793-screen v793-picks-screen v798-picks-screen">
+  <div class="v793-page-head v798-hero-shark compact">
+    <div><span class="v793-kicker">Selecciones recomendadas del día</span><h1>Picks SHARK</h1><p>Qué apostar, partido, hora, cuota, stake, riesgo y motivo explicado claro.</p></div>
+    <div class="v793-live-summary"><span><b>{{ stats.get('published', picks|length) }}</b> Picks activos</span><span><b>{{ stats.get('avg_odds') or '—' }}</b> Cuota media</span><span><b>{{ stats.get('avg_confidence') or stats.get('confidence') or '—' }}</b> Confianza</span></div>
+  </div>
+  <nav class="v793-filterbar v798-filterbar"><a class="active" href="/picks">Destacados</a><a href="/picks#activos">Activos</a><a href="/track-record">Cerrados</a><a href="/combis">Combis</a><a href="/mercados">Valor</a></nav>
+  {% if featured %}
+  {% set home_identity = featured|team_identity('home') %}{% set away_identity = featured|team_identity('away') %}
+  <article class="v793-card v793-pick-feature v798-pick-feature">
+    <div class="v793-section-title"><h2>⭐ Pick destacado</h2><span class="v793-chip gold">{{ featured.get('membership_required') or 'ELITE' }}</span></div>
+    <div class="v793-pick-feature-grid">
+      <div class="v793-pick-teams">
+        <span>{{ crest(home_identity, featured.get('home_team') or 'Local', 'compact') }}<strong>{{ featured.get('home_team') or 'Local' }}</strong></span><b>VS</b><span>{{ crest(away_identity, featured.get('away_team') or 'Visitante', 'compact') }}<strong>{{ featured.get('away_team') or 'Visitante' }}</strong></span>
+        <small>{{ featured.get('client_full_datetime_label') or (featured|match_full_datetime) }}</small>
+      </div>
+      <dl class="v793-metrics">
+        <div><dt>Mercado recomendado</dt><dd>{{ featured.get('client_selection_label') or featured.get('selection_display') or featured.get('selection') or 'Selección' }}</dd></div>
+        <div><dt>Cuota</dt><dd class="blue">{{ featured.get('client_odds_label') or featured.get('odds') or 'Pendiente' }}</dd></div>
+        <div><dt>Riesgo</dt><dd class="gold">{{ featured.get('risk_level') or 'Medio' }}</dd></div>
+        <div><dt>Confianza SHARK</dt><dd class="green">{{ featured.get('confidence') or featured.get('quality_score') or '—' }}{% if featured.get('confidence') or featured.get('quality_score') %}%{% endif %}</dd></div>
+        <div><dt>Stake sugerido</dt><dd>{{ featured.get('stake_units') or featured.get('stake') or '1' }}u</dd></div>
+      </dl>
+      <div class="v793-pick-reasons">
+        <section><strong>Por qué entrar</strong><p>{{ featured.get('reasoning') or featured.get('analysis_summary') or 'Condiciones favorables según SHARK si la cuota real se mantiene.' }}</p></section>
+        <section><strong>Riesgos</strong><p>{{ featured.get('risk_note') or 'Revisa alineaciones, cuota final y estado del partido antes de entrar.' }}</p></section>
+        <section><strong>Conclusión</strong><p>{{ featured.get('conclusion') or 'Valor válido solo con mercado, cuota y contexto confirmados.' }}</p></section>
+      </div>
+    </div>
+    <div class="v793-actions"><a class="v793-button primary" href="{{ featured.get('client_match_url') or ('/match/' ~ (featured.get('match_id') or featured.get('id'))) }}">Ver análisis completo</a><button class="fav-star" type="button" data-kind="pick" data-value="{{ featured.get('id') }}" data-label="{{ featured.get('selection_display') or featured.get('selection') or 'Pick' }}">☆ Guardar</button></div>
+  </article>
   {% endif %}
-  <section class="v793-pick-grid" id="activos">{% for p in picks[1:] %}{% set home_identity = p|team_identity('home') %}{% set away_identity = p|team_identity('away') %}<article class="v793-pick-card"><div class="v793-meta"><span>{{ p.get('client_competition') or (p.get('competition_name') or 'Competición')|competition_es }}</span><button class="fav-star" type="button" data-kind="pick" data-value="{{ p.get('id') }}">☆</button></div><div class="v793-pick-mini-teams">{{ crest(home_identity, p.get('home_team') or 'Local', 'compact') }}<b>VS</b>{{ crest(away_identity, p.get('away_team') or 'Visitante', 'compact') }}</div><strong>{{ p.get('client_selection_label') or p.get('selection_display') or p.get('selection') or 'Selección' }}</strong><dl class="v793-card-metrics"><div><dt>Cuota</dt><dd>{{ p.get('client_odds_label') or p.get('odds') or '—' }}</dd></div><div><dt>Riesgo</dt><dd>{{ p.get('risk_level') or 'Medio' }}</dd></div><div><dt>Estado</dt><dd class="green">Activo</dd></div></dl><div class="v793-actions"><a href="{{ p.get('client_match_url') or '/picks' }}">Ver partido</a><a class="primary" href="/shark?pick={{ p.get('id') }}">Guardar</a></div></article>{% else %}{% if not featured %}<div class="v793-empty">No hay picks activos ahora mismo.</div>{% endif %}{% endfor %}</section>
+  <section class="v793-pick-grid v798-pick-grid" id="activos">
+    {% for p in picks[1:] %}
+    {% set home_identity = p|team_identity('home') %}{% set away_identity = p|team_identity('away') %}
+    <article class="v793-pick-card v798-pick-card">
+      <div class="v793-meta"><span>{{ p.get('client_competition') or (p.get('competition_name') or 'Competición')|competition_es }}</span><button class="fav-star" type="button" data-kind="pick" data-value="{{ p.get('id') }}" data-label="{{ p.get('selection_display') or p.get('selection') or 'Pick' }}">☆</button></div>
+      <div class="v793-pick-mini-teams">{{ crest(home_identity, p.get('home_team') or 'Local', 'compact') }}<b>VS</b>{{ crest(away_identity, p.get('away_team') or 'Visitante', 'compact') }}</div>
+      <strong>{{ p.get('client_selection_label') or p.get('selection_display') or p.get('selection') or 'Selección' }}</strong>
+      <small>{{ p.get('client_full_datetime_label') or (p|match_full_datetime) }}</small>
+      <dl class="v793-card-metrics"><div><dt>Cuota</dt><dd>{{ p.get('client_odds_label') or p.get('odds') or '—' }}</dd></div><div><dt>Riesgo</dt><dd>{{ p.get('risk_level') or 'Medio' }}</dd></div><div><dt>Estado</dt><dd class="green">Activo</dd></div></dl>
+      <p>{{ p.get('analysis_summary') or p.get('reasoning') or 'Pick publicado con explicación pendiente de abrir detalle.' }}</p>
+      <div class="v793-actions"><a href="{{ p.get('client_match_url') or ('/match/' ~ (p.get('match_id') or p.get('id'))) }}">Ver partido</a><a class="primary" href="/shark?pick={{ p.get('id') }}">Preguntar SHARK</a></div>
+    </article>
+    {% else %}{% if not featured %}<div class="v793-empty">No hay picks activos ahora mismo. SHARK solo mostrará picks reales publicados.</div>{% endif %}{% endfor %}
+  </section>
 </section>
 {% endblock %}

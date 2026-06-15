@@ -4,51 +4,55 @@
 {% set org = data.get('v778_organization') or {} %}
 {% set product = data.get('v777_product') or {} %}
 {% set v = data.get('v757_app') or {} %}
-{% set focus = v.get('focus') or [] %}
+{% set focus = v.get('focus') or data.get('upcoming_matches') or data.get('matches') or [] %}
 {% set picks = v.get('picks') or data.get('picks') or [] %}
 {% set counts = org.get('counts') or product.get('counts') or {} %}
 {% set plan = product.get('plan') or {} %}
 {% set user_name = (current_user.name or current_user.username or 'Damian') if current_user else 'Damian' %}
-<section class="v793-screen v793-home-screen">
-  <div class="v793-hero v793-home-hero">
+{% set featured_pick = picks[0] if picks else none %}
+<section class="v793-screen v798-dashboard v793-home-screen">
+  <section class="v793-hero v793-home-hero v798-hero-shark">
     <div>
-      <span class="v793-kicker">Centro de mando · Hoy</span>
+      <span class="v793-kicker">Centro de mando · Hoy · hora Madrid</span>
       <h1>Buenos días, {{ user_name }} 👋</h1>
-      <p>Tu centro de mando de hoy. Mira lo importante, entra al directo, revisa picks y sigue resultados sin perderte.</p>
+      <p>Tu centro de mando de hoy: partidos reales, directos, picks publicados y SHARK en una pantalla limpia.</p>
       <span class="v793-chip blue">Plan actual: {{ plan.get('name') or org.get('membership') or (current_user.membership if current_user else 'FREE') }}</span>
     </div>
-  </div>
+    <div class="v798-real-note"><strong>Datos reales</strong><span>Si no hay dato sincronizado, se muestra pendiente. Nunca inventado.</span></div>
+  </section>
 
-  <section class="v793-kpi-grid four">
+  <section class="v793-kpi-grid four v798-kpi-row">
     <a class="v793-kpi" href="/calendar?lane=today"><i>▦</i><span>Partidos hoy</span><strong>{{ counts.get('today', focus|length) }}</strong><small>Ver calendario →</small></a>
     <a class="v793-kpi live" href="/live"><i>●</i><span>En directo</span><strong>{{ counts.get('live', 0) }}</strong><small>Ver ahora →</small></a>
     <a class="v793-kpi picks" href="/picks"><i>◆</i><span>Picks activos</span><strong>{{ counts.get('picks', picks|length) }}</strong><small>Ver picks →</small></a>
     <a class="v793-kpi telegram" href="/telegram"><i>✈</i><span>Alertas Telegram</span><strong>{{ counts.get('alerts', counts.get('telegram', 0)) }}</strong><small>Ver alertas →</small></a>
   </section>
 
-  <section class="v793-home-grid">
+  <section class="v793-home-grid v798-home-grid">
     <div class="v793-stack">
-      <article class="v793-card v793-route">
+      <article class="v793-card v793-route v798-route-card">
         <div class="v793-section-title"><h2>Ruta recomendada de hoy</h2><a href="/menu">Todo →</a></div>
-        <div class="v793-route-steps">
-          <a href="/calendar?lane=today"><b>1</b><i>🎮</i><strong>Mira partidos</strong><span>Explora destacados del día</span></a>
-          <a href="/picks"><b>2</b><i>📋</i><strong>Revisa picks</strong><span>Analiza selecciones claras</span></a>
-          <a href="/shark"><b>3</b><i>◥</i><strong>Consulta SHARK</strong><span>Resuelve dudas de riesgo</span></a>
-          <a href="/track-record"><b>4</b><i>📈</i><strong>Sigue resultados</strong><span>Transparencia real</span></a>
+        <div class="v793-route-steps v798-route-steps">
+          <a href="/calendar?lane=today"><b>1</b><i>🎮</i><strong>Mira partidos</strong><span>Explora la agenda real del día</span></a>
+          <a href="/picks"><b>2</b><i>📋</i><strong>Revisa picks</strong><span>Mercado, cuota, stake y riesgo</span></a>
+          <a href="/shark"><b>3</b><i>◥</i><strong>Consulta SHARK</strong><span>Resuelve dudas antes de decidir</span></a>
+          <a href="/track-record"><b>4</b><i>📈</i><strong>Sigue resultados</strong><span>Histórico con resultados reales</span></a>
         </div>
       </article>
 
-      <article class="v793-card">
+      <article class="v793-card v798-panel">
         <div class="v793-section-title"><h2>Partidos destacados</h2><a href="/calendar">Ver todos →</a></div>
-        <div class="v793-feature-grid">
+        <div class="v793-feature-grid v798-feature-grid">
           {% for m in focus[:3] %}
           {% set ctx = m|match_madrid_context %}
           {% set home_identity = m|team_identity('home') %}
           {% set away_identity = m|team_identity('away') %}
-          <article class="v793-match-card">
+          <article class="v793-match-card v798-match-tile {{ 'has-pick' if m.get('has_pick') or m.get('pick_id') else '' }}">
             <div class="v793-meta"><span>{{ ctx.client_competition|competition_es }}</span><button class="fav-star" type="button" data-kind="match" data-value="{{ m.get('id') }}" data-label="{{ ctx.safe_home }} vs {{ ctx.safe_away }}">☆</button></div>
             <a class="v793-versus" href="/match/{{ m.get('id') }}">
-              <span>{{ crest(home_identity, ctx.safe_home, 'compact') }}<strong>{{ ctx.safe_home }}</strong></span><b>VS<br><small>{{ ctx.client_time_label }}</small></b><span>{{ crest(away_identity, ctx.safe_away, 'compact') }}<strong>{{ ctx.safe_away }}</strong></span>
+              <span>{{ crest(home_identity, ctx.safe_home, 'compact') }}<strong>{{ ctx.safe_home }}</strong></span>
+              <b>VS<br><small>{{ ctx.client_time_label or ctx.client_score_label }}</small></b>
+              <span>{{ crest(away_identity, ctx.safe_away, 'compact') }}<strong>{{ ctx.safe_away }}</strong></span>
             </a>
             <div class="v793-actions"><a href="/match/{{ m.get('id') }}">Ver previa</a><a class="primary" href="/match/{{ m.get('id') }}#shark">Análisis SHARK</a></div>
           </article>
@@ -60,29 +64,29 @@
     </div>
 
     <aside class="v793-stack">
-      {% set p = picks[0] if picks else {} %}
-      <article class="v793-card v793-pick-hero">
-        <div class="v793-section-title"><h2>Pick destacado</h2><span class="v793-chip gold">ELITE</span></div>
-        {% if p %}
+      <article class="v793-card v793-pick-hero v798-pick-spotlight">
+        <div class="v793-section-title"><h2>⭐ Pick destacado</h2><span class="v793-chip gold">{{ (featured_pick.get('membership_required') if featured_pick else 'ELITE') or 'ELITE' }}</span></div>
+        {% if featured_pick %}
+        {% set p = featured_pick %}
         {% set home_identity = p|team_identity('home') %}{% set away_identity = p|team_identity('away') %}
         <div class="v793-pick-match">{{ crest(home_identity, p.get('home_team') or 'Local', 'compact') }} <span>{{ p.get('client_match_label') or ((p.get('home_team') or 'Local') ~ ' vs ' ~ (p.get('away_team') or 'Visitante')) }}</span> {{ crest(away_identity, p.get('away_team') or 'Visitante', 'compact') }}</div>
         <dl class="v793-metrics">
           <div><dt>Mercado recomendado</dt><dd>{{ p.get('client_selection_label') or p.get('selection_display') or p.get('selection') or 'Selección pendiente' }}</dd></div>
           <div><dt>Cuota</dt><dd class="blue">{{ p.get('client_odds_label') or p.get('odds') or 'Pendiente' }}</dd></div>
           <div><dt>Riesgo</dt><dd class="gold">{{ p.get('risk_level') or 'Medio' }}</dd></div>
-          <div><dt>Confianza SHARK</dt><dd class="green">{{ p.get('confidence') or p.get('quality_score') or 0 }}%</dd></div>
+          <div><dt>Confianza SHARK</dt><dd class="green">{{ p.get('confidence') or p.get('quality_score') or '—' }}{% if p.get('confidence') or p.get('quality_score') %}%{% endif %}</dd></div>
         </dl>
         <p>{{ p.get('analysis_summary') or p.get('reasoning') or 'Pick publicado con control de riesgo. Revisa cuota real antes de decidir.' }}</p>
-        <a class="v793-button primary" href="{{ p.get('client_match_url') or '/picks' }}">Ver análisis completo</a>
+        <a class="v793-button primary" href="{{ p.get('client_match_url') or ('/match/' ~ (p.get('match_id') or p.get('id'))) }}">Ver análisis completo</a>
         {% else %}
-        <div class="v793-empty">No hay pick destacado ahora mismo.</div>
+        <div class="v793-empty">No hay pick destacado ahora mismo. Cuando exista un pick real publicado aparecerá aquí.</div>
         <a class="v793-button primary" href="/calendar">Ver partidos</a>
         {% endif %}
       </article>
     </aside>
   </section>
 
-  <section class="v793-quick-row">
+  <section class="v793-quick-row v798-quick-row">
     <a href="/calendar"><i>▦</i><strong>Calendario</strong></a><a href="/live"><i>●</i><strong>Directo</strong></a><a href="/picks"><i>◆</i><strong>Picks</strong></a><a href="/highlights"><i>▶</i><strong>Resúmenes</strong></a><a href="/mi-cuenta"><i>◎</i><strong>Mi cuenta</strong></a><a class="gold" href="/membresias"><i>♛</i><strong>Membresías</strong><small>Ver planes</small></a>
   </section>
 </section>

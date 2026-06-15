@@ -24,7 +24,7 @@
   {% set _visual_tier = 'free' %}
   {% set _tier_label = 'FREE' %}
 {% endif %}
-<body class="ns-app ns-tier-{{ _visual_tier }}{% if current_user %} ns-authenticated{% else %} ns-public{% endif %}{% if current_user and current_user.role == 'ADMIN' %} ns-admin{% endif %}" data-ns-route="{{ request.path }}" data-ns-plan="{{ _tier_label }}" data-v775-shell="true" data-v776-shell="true" data-v777-shell="true" data-v778-shell="true" data-v790-shell="true" data-v792-shell="true" data-v793-shell="true" data-v795-shell="true" data-v796-shell="true" data-v797-shell="true">
+<body class="ns-app ns-tier-{{ _visual_tier }}{% if current_user %} ns-authenticated{% else %} ns-public{% endif %}{% if current_user and current_user.role == 'ADMIN' %} ns-admin{% endif %}" data-ns-route="{{ request.path }}" data-ns-plan="{{ _tier_label }}" data-v775-shell="true" data-v776-shell="true" data-v777-shell="true" data-v778-shell="true" data-v790-shell="true" data-v792-shell="true" data-v793-shell="true" data-v795-shell="true" data-v796-shell="true" data-v797-shell="true" data-v798-shell="true">
   <div class="ns-ambient" aria-hidden="true"><i></i><i></i><i></i></div>
   <div class="membership-energy-bar" aria-hidden="true"></div>
   <div class="ns-route-glow" aria-hidden="true"></div>
@@ -32,7 +32,7 @@
     <div class="topin">
       {% set _brand_href = '/app' if current_user else '/' %}
       {% if current_user and current_user.role == 'ADMIN' %}{% set _brand_href = '/admin/control-center' %}{% endif %}
-      <a class="brand" href="{{ _brand_href }}"><span class="mark">NS</span><span>NeMeSiS SHARK PRO</span></a>
+      <a class="brand v798-brand" href="{{ _brand_href }}"><span class="mark v798-shark-mark">NS</span><span>NeMeSiS<br><b>SHARK PRO</b></span></a>
       <span class="tier-badge tier-badge-{{ _visual_tier }}">{{ _tier_label }}</span>
       <nav class="nav nav-clean">
         {% if current_user and current_user.role == 'ADMIN' %}
@@ -73,6 +73,19 @@
   </header>
 
   {# V778: navegación global cliente consolidada. PC usa la barra superior; móvil usa la inferior. Sin rail duplicado. #}
+
+  {% if current_user and current_user.role != 'ADMIN' %}
+  <aside class="v798-client-rail" aria-label="Navegación cliente premium">
+    <a href="/app" data-v775-icon="⌂"><span>Inicio</span></a>
+    <a href="/calendar?lane=today" data-v775-icon="▦"><span>Partidos</span></a>
+    <a href="/live" data-v775-icon="●"><span>Directo</span></a>
+    <a href="/picks" data-v775-icon="◆"><span>Picks</span></a>
+    <a href="/track-record" data-v775-icon="↗"><span>Histórico</span></a>
+    <a href="/shark" data-v775-icon="◥"><span>SHARK</span></a>
+    <a href="/telegram" data-v775-icon="✈"><span>Telegram</span></a>
+    <a href="/mi-cuenta" data-v775-icon="◎"><span>Cuenta</span></a>
+  </aside>
+  {% endif %}
 
   {% if current_user and current_user.role != 'ADMIN' %}
   <div class="v797-session-pills" aria-label="Acciones de sesión">
@@ -373,7 +386,7 @@
     }
     function highlightActive(){
       var path=window.location.pathname;
-      document.querySelectorAll('.v794-admin-sidebar a,.nav-clean a,.bottom-nav-clean a').forEach(function(a){
+      document.querySelectorAll('.v794-admin-sidebar a,.nav-clean a,.bottom-nav-clean a,.v798-client-rail a').forEach(function(a){
         try{ var href=a.getAttribute('href')||''; if(href && path!== '/' && path.indexOf(href.split('?')[0])===0) a.classList.add('is-active'); }catch(e){}
       });
     }
