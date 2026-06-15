@@ -250,6 +250,10 @@ def enrich_live_match(match: dict) -> dict:
         priority_label = "Liga destacada"
     else:
         priority_label = "Calendario"
+    tracker = dict(item.get("api_football_live_tracker") or item.get("live_tracker") or {})
+    pressure = dict(tracker.get("pressure") or {})
+    tracker_stats = dict(tracker.get("stats") or {})
+    tracker_events = tracker.get("events") or []
     item.update(
         {
             "live_bucket": bucket,
@@ -267,6 +271,17 @@ def enrich_live_match(match: dict) -> dict:
             "live_country_display": text(item.get("safe_country") or item.get("country") or "Global"),
             "home_identity": item.get("home_identity") or {},
             "away_identity": item.get("away_identity") or {},
+            "live_tracker": tracker,
+            "live_tracker_source": tracker.get("source_label") or ("API-Football Pro" if tracker else ""),
+            "live_pressure": pressure,
+            "live_pressure_label": pressure.get("label") or "Presión pendiente",
+            "live_pressure_available": bool(pressure.get("available")),
+            "live_home_pressure_pct": int(pressure.get("home_pct") or 50),
+            "live_away_pressure_pct": int(pressure.get("away_pct") or 50),
+            "live_advanced_stats_available": bool(tracker_stats.get("available") or tracker.get("has_advanced_stats")),
+            "live_events_available": bool(tracker_events or tracker.get("has_events")),
+            "live_events_count": len(tracker_events) if isinstance(tracker_events, list) else 0,
+            "live_ball_position_available": bool(tracker.get("ball_position_available")),
         }
     )
     return item
@@ -387,5 +402,8 @@ def live_experience_snapshot(app_version: str = "") -> dict:
             "day_grouping": True,
             "relevance_order": True,
             "score_status_clarity": True,
+            "api_football_live_tracker": True,
+            "pressure_from_real_stats": True,
+            "no_fake_ball_position": True,
         },
     }

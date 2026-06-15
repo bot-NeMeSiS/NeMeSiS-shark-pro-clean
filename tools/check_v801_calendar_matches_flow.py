@@ -16,7 +16,7 @@ base = read('templates/base.html')
 calendar = read('templates/calendar.html')
 css = read('static/app.css')
 
-ALLOWED_VERSIONS = ['V801_CALENDAR_MATCHES_REFERENCE_FLOW_REAL_DATA_PERFECTION', 'V802_CLIENT_REFERENCE_FLOW_LINKED_EXPERIENCE_PERFECTION']
+ALLOWED_VERSIONS = ['V801_CALENDAR_MATCHES_REFERENCE_FLOW_REAL_DATA_PERFECTION', 'V802_CLIENT_REFERENCE_FLOW_LINKED_EXPERIENCE_PERFECTION', 'V803_API_FOOTBALL_LIVE_TRACKER_REFERENCE_EXPERIENCE']
 require(version in ALLOWED_VERSIONS, f'VERSION inesperada: {version}')
 require(any(f"APP_VERSION = '{v}'" in app for v in ALLOWED_VERSIONS), 'APP_VERSION no coincide')
 require('data-v801-shell="true"' in base, 'base sin data-v801-shell')

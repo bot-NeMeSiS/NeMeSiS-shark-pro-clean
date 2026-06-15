@@ -2,6 +2,7 @@
 {% from "partials/team_identity.html" import crest %}
 {% block content %}
 {% set live = data.get('live_experience') or {} %}
+{% set api_tracker = data.get('api_football_live_tracker') or {} %}
 {% set counts = live.get('counts') or {} %}
 {% set lane = live.get('lane') or 'live' %}
 {% set ns = namespace(matches=[]) %}
@@ -18,6 +19,25 @@
   </div>
 
   {% include "partials/client_flow_bar.html" %}
+
+  <section class="v803-live-provider-strip" aria-label="Estado API-Football Live Tracker">
+    <article class="{{ 'is-on' if api_tracker.get('configured') else 'is-off' }}">
+      <span>API-Football Pro</span>
+      <strong>{{ 'Activo' if api_tracker.get('configured') else 'Pendiente de clave en Render' }}</strong>
+      <small>{{ api_tracker.get('message') or 'Live tracker con caché segura y datos reales.' }}</small>
+    </article>
+    <article>
+      <span>Live avanzado</span>
+      <strong>{{ api_tracker.get('fixtures_count',0) or counts.get('live',0) }}</strong>
+      <small>partidos desde fuentes reales</small>
+    </article>
+    <article>
+      <span>Caché</span>
+      <strong>{% if api_tracker.get('cache_age_seconds') is not none %}{{ api_tracker.get('cache_age_seconds') }}s{% else %}—{% endif %}</strong>
+      <small>protege llamadas y créditos</small>
+    </article>
+    <a href="/live?refresh=1" class="v803-refresh-live">Actualizar directo</a>
+  </section>
 
   <section class="v802-live-command" aria-label="Uso de directo">
     <article><span>Ahora</span><strong>{{ counts.get('live',0) }}</strong><small>partidos en vivo</small></article>
@@ -58,7 +78,29 @@
           <b>{{ featured.get('live_score_label') or 'vs' }}<small>{{ featured.get('live_clock_label') or featured.get('calendar_time') or 'Minuto pendiente' }}</small></b>
           <span>{{ crest(away_identity, featured.get('safe_away') or featured.get('away_team') or 'Visitante', 'compact') }}<strong>{{ featured.get('safe_away') or featured.get('away_team') or 'Visitante' }}</strong></span>
         </a>
-        <div class="v799-live-actions"><a class="primary" href="/match/{{ featured.get('id') }}">Abrir partido</a><a href="/match/{{ featured.get('id') }}#shark">Análisis SHARK</a><button class="fav-star" type="button" data-kind="match" data-value="{{ featured.get('id') }}">☆ Favorito</button></div>
+        {% set tracker = featured.get('live_tracker') or {} %}
+        {% set pressure = featured.get('live_pressure') or {} %}
+        <section class="v803-live-field {{ 'has-pressure' if featured.get('live_pressure_available') else 'no-pressure' }}" aria-label="Campo live basado en datos reales">
+          <div class="v803-field-head"><span>Campo SHARK Live</span><strong>{{ featured.get('live_pressure_label') or 'Presión pendiente' }}</strong></div>
+          <div class="v803-pitch" style="--home-p: {{ featured.get('live_home_pressure_pct') or 50 }}%; --away-p: {{ featured.get('live_away_pressure_pct') or 50 }}%;">
+            <div class="v803-pitch-zone home"><b>{{ featured.get('safe_home') or featured.get('home_team') or 'Local' }}</b></div>
+            <div class="v803-pitch-mid"><span>{{ 'Presión real' if featured.get('live_pressure_available') else 'Sin estadísticas avanzadas aún' }}</span></div>
+            <div class="v803-pitch-zone away"><b>{{ featured.get('safe_away') or featured.get('away_team') or 'Visitante' }}</b></div>
+          </div>
+          <div class="v803-live-evidence">
+            <span>{{ 'Estadísticas API-Football' if featured.get('live_advanced_stats_available') else 'Estadísticas pendientes' }}</span>
+            <span>{{ featured.get('live_events_count') or 0 }} eventos</span>
+            <span>{{ 'Balón exacto disponible' if featured.get('live_ball_position_available') else 'Balón exacto no disponible: no se inventa' }}</span>
+          </div>
+          {% if tracker.get('events') %}
+          <div class="v803-event-timeline">
+            {% for ev in tracker.get('events')[:4] %}
+            <a href="/match/{{ featured.get('id') }}#live-tracker"><b>{{ ev.get('elapsed') }}'</b><span>{{ ev.get('team_name') or 'Equipo' }}</span><strong>{{ ev.get('event_type') or 'Evento' }}</strong><small>{{ ev.get('detail') or ev.get('player_name') or 'Detalle real' }}</small></a>
+            {% endfor %}
+          </div>
+          {% endif %}
+        </section>
+        <div class="v799-live-actions"><a class="primary" href="/match/{{ featured.get('id') }}">Abrir partido</a><a href="/match/{{ featured.get('id') }}#live-tracker">Live tracker</a><a href="/match/{{ featured.get('id') }}#shark">Análisis SHARK</a><button class="fav-star" type="button" data-kind="match" data-value="{{ featured.get('id') }}">☆ Favorito</button></div>
       </article>
       {% else %}
       <div class="v799-empty hero"><strong>No hay partidos en directo ahora mismo.</strong><p>Mira los próximos partidos de hoy o vuelve cuando la API sincronice marcadores en vivo.</p><a class="v799-button primary" href="/calendar?lane=today">Ver próximos partidos</a></div>
@@ -70,7 +112,11 @@
         <article class="v799-live-card {{ 'is-live' if m.get('live_bucket') == 'live' else 'is-finished' if m.get('live_bucket') == 'finished' else '' }}">
           <div class="v799-live-league"><strong>{{ (m.get('live_competition_display') or m.get('competition_name') or 'Competición')|competition_es }}</strong><span>{{ m.get('live_status_label') or m.get('live_clock_label') or 'Estado pendiente' }}</span></div>
           <a class="v799-scoreboard compact" href="/match/{{ m.get('id') }}"><span>{{ crest(home_identity, m.get('safe_home') or m.get('home_team') or 'Local', 'compact') }}<strong>{{ m.get('safe_home') or m.get('home_team') or 'Local' }}</strong></span><b>{{ m.get('live_score_label') or 'vs' }}<small>{{ m.get('live_clock_label') or '' }}</small></b><span>{{ crest(away_identity, m.get('safe_away') or m.get('away_team') or 'Visitante', 'compact') }}<strong>{{ m.get('safe_away') or m.get('away_team') or 'Visitante' }}</strong></span></a>
-          <div class="v799-actions"><a class="primary" href="/match/{{ m.get('id') }}">Ver</a><a href="/match/{{ m.get('id') }}#shark">SHARK</a></div>
+          <div class="v803-card-live-meta">
+            <span>{{ m.get('live_pressure_label') or 'Presión pendiente' }}</span>
+            <span>{{ m.get('live_events_count') or 0 }} eventos</span>
+          </div>
+          <div class="v799-actions"><a class="primary" href="/match/{{ m.get('id') }}">Ver</a><a href="/match/{{ m.get('id') }}#live-tracker">Tracker</a><a href="/match/{{ m.get('id') }}#shark">SHARK</a></div>
         </article>
         {% endfor %}
       </section>

@@ -4,6 +4,7 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = 'V802_CLIENT_REFERENCE_FLOW_LINKED_EXPERIENCE_PERFECTION'
+CURRENT_VERSION = 'V803_API_FOOTBALL_LIVE_TRACKER_REFERENCE_EXPERIENCE'
 checks = []
 
 def require(path, text, label):
@@ -12,8 +13,9 @@ def require(path, text, label):
     checks.append((label, ok))
     return ok
 
-require('VERSION.txt', VERSION, 'version file')
-require('app.py', f"APP_VERSION = '{VERSION}'", 'app version')
+checks.append(('version file', ((ROOT / 'VERSION.txt').read_text(encoding='utf-8-sig').strip() in {VERSION, CURRENT_VERSION})))
+app_text = (ROOT / 'app.py').read_text(encoding='utf-8', errors='ignore')
+checks.append(('app version', (f"APP_VERSION = '{VERSION}'" in app_text or f"APP_VERSION = '{CURRENT_VERSION}'" in app_text)))
 require('templates/base.html', 'data-v802-shell="true"', 'base shell marker')
 require('templates/partials/client_flow_bar.html', 'v802-client-flow', 'client flow partial')
 require('templates/calendar.html', 'v802-calendar-command', 'calendar command summary')

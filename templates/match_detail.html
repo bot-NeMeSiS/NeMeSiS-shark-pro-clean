@@ -12,6 +12,8 @@
 {% set related = detail.get('related_picks') or [] %}
 {% set pick = related[0] if related else none %}
 {% set dq = detail.get('data_quality') or {} %}
+{% set live_tracker = detail.get('api_football_live_tracker') or data.get('api_football_live_tracker') or {} %}
+{% set pressure = live_tracker.get('pressure') or {} %}
 <section class="v799-screen v799-match-screen">
   <div class="v799-match-top">
     <a class="v799-back" href="/calendar">← Volver a partidos</a>
@@ -56,6 +58,39 @@
 
   <nav class="v799-tabs"><a class="active" href="#resumen">Resumen</a><a href="#picks">Pick</a><a href="#datos">Datos</a><a href="#shark">SHARK</a></nav>
 
+  <section class="v803-match-live-tracker {{ 'is-available' if live_tracker.get('available') else 'is-pending' }}" id="live-tracker" aria-label="Live tracker API-Football">
+    <div class="v803-tracker-head">
+      <div><span>Live tracker real</span><h2>Campo, presión y eventos</h2></div>
+      <em>{{ live_tracker.get('source_label') or 'API-Football Pro' }}</em>
+    </div>
+    <div class="v803-live-field {{ 'has-pressure' if pressure.get('available') else 'no-pressure' }}">
+      <div class="v803-field-head"><span>Lectura SHARK</span><strong>{{ pressure.get('label') or live_tracker.get('message') or 'Esperando datos avanzados' }}</strong></div>
+      <div class="v803-pitch" style="--home-p: {{ pressure.get('home_pct') or 50 }}%; --away-p: {{ pressure.get('away_pct') or 50 }}%;">
+        <div class="v803-pitch-zone home"><b>{{ ctx.safe_home }}</b></div>
+        <div class="v803-pitch-mid"><span>{{ 'Presión calculada con estadísticas reales' if pressure.get('available') else 'Sin presión avanzada disponible aún' }}</span></div>
+        <div class="v803-pitch-zone away"><b>{{ ctx.safe_away }}</b></div>
+      </div>
+      <div class="v803-live-evidence">
+        <span>{{ 'Eventos reales' if live_tracker.get('has_events') else 'Eventos pendientes' }}</span>
+        <span>{{ 'Estadísticas reales' if live_tracker.get('has_advanced_stats') else 'Estadísticas pendientes' }}</span>
+        <span>{{ 'Balón exacto disponible' if live_tracker.get('ball_position_available') else 'Balón exacto no disponible: no se inventa' }}</span>
+      </div>
+    </div>
+    <div class="v803-tracker-grid">
+      <article><strong>Eventos</strong><span>{% if live_tracker.get('events') %}{{ live_tracker.get('events')|length }} eventos sincronizados{% else %}Pendiente{% endif %}</span></article>
+      <article><strong>Estadísticas</strong><span>{% if (live_tracker.get('stats') or {}).get('available') %}Disponibles API-Football{% else %}Pendientes{% endif %}</span></article>
+      <article><strong>Fuente</strong><span>{{ live_tracker.get('source_label') or 'API-Football Pro' }}</span></article>
+      <article><strong>Ubicación del balón</strong><span>{{ 'Disponible por proveedor' if live_tracker.get('ball_position_available') else 'No disponible; no se simula' }}</span></article>
+    </div>
+    {% if live_tracker.get('events') %}
+    <div class="v803-event-timeline detail">
+      {% for ev in live_tracker.get('events')[:10] %}
+      <div><b>{{ ev.get('elapsed') }}'</b><span>{{ ev.get('team_name') or 'Equipo' }}</span><strong>{{ ev.get('event_type') or 'Evento' }}</strong><small>{{ ev.get('detail') or ev.get('player_name') or ev.get('comments') or 'Dato real' }}</small></div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </section>
+
   <section class="v799-match-layout">
     <div class="v799-match-main">
       <article class="v799-card" id="resumen">
@@ -90,6 +125,8 @@
           <article><strong>Forma visitante</strong><span>{{ detail.get('away_form') or 'Sin forma suficiente guardada' }}</span></article>
           <article><strong>Histórico H2H</strong><span>{% if detail.get('head_to_head') %}{{ detail.get('head_to_head')|length }} cruces guardados{% else %}Sin histórico directo suficiente{% endif %}</span></article>
           <article><strong>Timeline</strong><span>{% if detail.get('timeline') %}{{ detail.get('timeline')|length }} eventos{% else %}Sin eventos sincronizados{% endif %}</span></article>
+          <article><strong>API-Football live</strong><span>{{ 'Activo' if live_tracker.get('available') else 'Sin tracker para este partido' }}</span></article>
+          <article><strong>Presión</strong><span>{{ pressure.get('label') or 'Pendiente' }}</span></article>
         </div>
       </article>
     </div>

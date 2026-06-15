@@ -275,3 +275,17 @@ Basado en vídeo real enviado por el usuario. Se detectó que las pantallas ya m
 - Directo, Picks y Detalle reciben comandos de lectura para que el cliente siempre sepa qué hacer y dónde ir.
 - No se inventan partidos, cuotas, resultados, ROI ni picks: si falta dato, se muestra pendiente/estado vacío.
 - Preservados DB_PATH, secretos, Telegram/Cron, usuarios, membresías, pagos y Madrid Time.
+
+
+## V803_API_FOOTBALL_LIVE_TRACKER_REFERENCE_EXPERIENCE
+
+- Base: V802 cliente enlazado.
+- Objetivo: aprovechar la API-Football de pago del usuario para elevar Directo y Detalle hacia una experiencia tipo 365Scores/SofaScore, sin scraping ni datos inventados.
+- Nuevo motor: `engines/api_football_live_tracker_engine.py`.
+- Integra `fixtures?live=all`, `fixtures/events` y `fixtures/statistics` con caché SQLite y límites de llamadas.
+- `/live` prioriza API-Football Pro cuando está configurado y conserva SportsDB/DB local como fallback.
+- `/match/<id>` muestra Live Tracker real, campo SHARK Live, presión calculada con estadísticas reales, timeline de eventos y aviso claro de balón exacto no disponible si la API no lo aporta.
+- Nuevos endpoints cliente protegidos: `/api/live-tracker` y `/api/live-tracker/status`.
+- Flags Render: `ENABLE_API_FOOTBALL_LIVE_TRACKER=true`, `API_FOOTBALL_LIVE_CACHE_SECONDS=55`, `API_FOOTBALL_LIVE_DEEP_LIMIT=8`.
+- Regla: no se inventan coordenadas de balón, ataques peligrosos, posesión, tiros, eventos ni marcadores. Si falta dato, estado pendiente.
+- No tocado: DB_PATH, AUTOMATION_SECRET, Telegram/Cron, usuarios, sesiones, membresías, pagos, picks core, Madrid Time.
