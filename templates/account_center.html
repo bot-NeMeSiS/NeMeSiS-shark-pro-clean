@@ -1,40 +1,10 @@
 {% extends "base.html" %}
 {% block content %}
-{% set plan = data.account_center.plan %}
-{% set membership = data.get('membership') or {} %}
-<section class="v778-home-hero v778-account-hero">
-  <div class="v778-hero-main">
-    <div class="kicker">Mi cuenta · plan · Telegram</div>
-    <h1>{{ data.session_user.name }} · {{ plan }}</h1>
-    <p class="lead">Todo lo personal en una pantalla: plan activo, Telegram, favoritos, actividad, soporte y salida. Sin ajustes escondidos.</p>
-    <div class="v778-primary-actions"><a class="btn primary" href="/telegram">Telegram</a><a class="btn" href="/membresias">Planes</a><a class="btn" href="/favorites">Favoritos</a><a class="btn" href="/ayuda">Ayuda</a></div>
-  </div>
-  <aside class="v778-priority-card"><span class="v774-status ready">{{ plan }}</span><div class="v778-kpis"><a href="/favorites"><strong>{{ data.account_center.favorites }}</strong><span>Favs</span></a><a href="/telegram"><strong>{{ data.account_center.alerts }}</strong><span>Alertas</span></a><a href="/actividad"><strong>{{ data.account_center.activity }}</strong><span>Actividad</span></a><a href="/onboarding"><strong>{{ data.onboarding.score }}%</strong><span>Setup</span></a></div></aside>
+{% set plan = data.account_center.plan %}{% set membership = data.get('membership') or {} %}{% set pay = data.payments_client or {} %}{% set user_name = data.session_user.name or 'Damian Alonso' %}
+<section class="v793-screen v793-account-screen">
+  <div class="v793-page-head"><div><span class="v793-kicker">Tu plan, ajustes y actividad</span><h1>Mi cuenta</h1></div></div>
+  <section class="v793-profile-card"><div class="v793-avatar">◥</div><div><h2>{{ user_name }}</h2><span class="v793-chip blue">{{ plan }}</span> <span class="v793-chip green">Activo</span><p>Miembro desde · {{ data.session_user.created_at|madrid_datetime_label if data.session_user.created_at else 'activo' }}</p></div><div class="v793-profile-stats"><span><b>{{ data.account_center.activity }}</b> Actividad</span><span><b>{{ data.account_center.favorites }}</b> Favoritos</span></div></section>
+  <section class="v793-account-grid"><article class="v793-card"><h2>Plan actual</h2><strong class="v793-big">{{ plan }}</strong><p>{{ membership.get('headline') or 'Acceso activo a tu plan.' }}</p><ul class="v793-check-list"><li>Picks premium diarios</li><li>Análisis SHARK</li><li>Alertas Telegram</li><li>Histórico avanzado</li></ul><a class="v793-button" href="/membresias">Gestionar suscripción</a></article><article class="v793-card"><h2>Telegram conectado</h2><strong>@{{ data.telegram_state.username if data.telegram_state and data.telegram_state.username else 'pendiente' }}</strong><p>Recibe alertas, picks y noticias directamente en Telegram.</p><a class="v793-button" href="/telegram">Conectar Telegram</a></article><article class="v793-card"><h2>Renovación</h2><strong>{{ pay.stripe_current_period_end|madrid_datetime_label if pay.stripe_current_period_end else 'Sin fecha' }}</strong><p>Estado Stripe: {{ pay.stripe_subscription_status or 'Sin suscripción Stripe' }}</p>{% if pay.portal_ready %}<form method="post" action="/pagos/portal"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="v793-button" type="submit">Ver pagos</button></form>{% else %}<a class="v793-button" href="/membresias">Ver pagos</a>{% endif %}</article><article class="v793-card"><h2>Favoritos</h2><p>{{ data.account_center.favorites }} elementos guardados.</p><a class="v793-button" href="/favorites">Gestionar favoritos</a></article></section>
+  <section class="v793-account-bottom"><article class="v793-card"><div class="v793-section-title"><h2>Actividad reciente</h2><a href="/actividad">Ver historial →</a></div><div class="v793-activity-list"><div><span>Hoy</span><strong>Pick generado</strong><em>Ganador</em></div><div><span>Hoy</span><strong>Alerta enviada por Telegram</strong><em>Enviado</em></div><div><span>Ayer</span><strong>Cuenta actualizada</strong><em>Actualizado</em></div></div></article><article class="v793-card"><h2>Seguridad y ajustes</h2><a class="v793-row-link" href="/password-reset">Cambiar contraseña →</a><a class="v793-row-link" href="/notificaciones">Notificaciones →</a><a class="v793-row-link" href="/logout">Cerrar sesión →</a></article></section>
 </section>
-<section class="v778-section-grid">
-  <a class="v778-section-card" href="/telegram"><strong>Telegram</strong><span>Bot, canal y alertas por plan.</span><small>Conectar y comprobar estado.</small></a>
-  <a class="v778-section-card" href="/membresias"><strong>Membresía</strong><span>{{ membership.get('headline') or 'FREE / PRO / ELITE' }}</span><small>{{ membership.get('next_cta') or 'Ver beneficios' }}</small></a>
-  <a class="v778-section-card" href="/favorites"><strong>Favoritos</strong><span>Partidos y equipos vigilados.</span><small>Seguimiento personalizado.</small></a>
-  <a class="v778-section-card" href="/actividad"><strong>Actividad</strong><span>Uso reciente y señales.</span><small>{{ data.account_center.activity }} eventos</small></a>
-</section>
-<section class="v778-home-layout">
-  <article class="v778-panel"><div class="section-head"><div><h2>Estado del plan</h2><p class="small">Preparado para pagos reales cuando se active Stripe completo.</p></div><span class="pill">{{ plan }}</span></div><p><strong>{{ membership.get('headline') or 'Plan activo' }}</strong></p><p class="small">{{ membership.get('body') or 'Controla tu acceso, Telegram, favoritos y soporte desde aquí.' }}</p><div class="inline-actions"><a class="btn small-btn" href="/membresias">Ver planes</a><a class="btn small-btn" href="/juego-responsable">Juego responsable</a></div></article>
-  <article class="v778-panel"><div class="section-head"><div><h2>Acciones rápidas</h2><p class="small">Lo que realmente necesita el cliente.</p></div></div><div class="v778-menu-grid"><a href="/shark"><b>Preguntar a SHARK</b><small>Picks, riesgo, mercados o directo.</small></a><a href="/telegram"><b>Configurar Telegram</b><small>Recibir avisos útiles.</small></a><a href="/logout"><b>Salir</b><small>Cerrar sesión con seguridad.</small></a></div></article>
-</section>
-
-<section class="card v782-billing-card">
-  <div class="section-head"><h2>Pagos y membresía</h2><a class="pill" href="/membresias">Ver planes</a></div>
-  {% set pay = data.payments_client or {} %}
-  <div class="grid cards-3">
-    <article class="mini-card"><strong>{{ pay.current_plan or data.account_center.plan }}</strong><span>Plan actual</span></article>
-    <article class="mini-card v786-billing-state"><span>Estado Stripe</span><strong>{{ pay.stripe_subscription_status or 'Sin suscripción Stripe' }}</strong></article>
-    <article class="mini-card"><strong>{{ pay.stripe_current_period_end|madrid_datetime_label if pay.stripe_current_period_end else 'Sin fecha' }}</strong><span>Renovación/caducidad</span></article>
-  </div>
-  <div class="actions spacer-top">
-    <a class="btn primary" href="/membresias">Mejorar plan</a>
-    {% if pay.portal_ready %}<form method="post" action="/pagos/portal"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn" type="submit">Gestionar Stripe</button></form>{% endif %}
-  </div>
-  <p class="small">La app aplica PRO/ELITE automáticamente solo cuando Stripe confirma el webhook verificado.</p>
-</section>
-
 {% endblock %}

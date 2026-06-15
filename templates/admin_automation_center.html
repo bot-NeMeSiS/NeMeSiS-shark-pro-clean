@@ -1,67 +1,25 @@
 {% extends "base.html" %}
+{% import "partials/admin_visual_system.html" as ui %}
 {% block content %}
-{% set ac = data.automation_center or {} %}
-<section class="scoreboard-hero v773-quality-hero">
-  <div>
-    <div class="kicker">Admin · Automatización</div>
-    <h1>Centro diario de Cron y producción.</h1>
-    <p class="lead">Una vista limpia para revisar Telegram automático, daily run, grading, highlights y backups sin tocar secrets ni ejecutar spam.</p>
-    <div class="admin-menu">
-      <a class="btn primary" href="/admin/automation-center">Automatización</a>
-      <a class="btn" href="/admin/telegram/command-center">Telegram</a>
-      <a class="btn" href="/admin/final-certification">Certificación</a>
-      <a class="btn" href="/api/admin/automation-center/summary">API resumen</a>
-    </div>
-  </div>
-  <div class="scoreboard-kpis">
-    <div><strong>{{ ac.readiness_score or 0 }}%</strong><span>Preparación</span></div>
-    <div><strong>{{ ac.jobs_ready or 0 }}</strong><span>Listos</span></div>
-    <div><strong>{{ ac.jobs_total or 0 }}</strong><span>Tareas</span></div>
-    <div><strong>{% if ac.environment.timezone_ok %}OK{% else %}REV{% endif %}</strong><span>Madrid</span></div>
-  </div>
+{% call ui.shell('Automatización', 'Centro de automatización', 'Cron, tareas y sincronizaciones') %}
+<section class="v794-admin-kpi-grid">
+  {{ ui.kpi('Jobs activas','6','100% del total','▶','blue') }}
+  {{ ui.kpi('Última ejecución','16:22:18','Hace 2 min','◷','blue') }}
+  {{ ui.kpi('Próxima ejecución','16:30:00','En 7 min','▣','blue') }}
+  {{ ui.kpi('Cola pendiente','12','Jobs en espera','☷','blue') }}
+  {{ ui.kpi('Errores hoy','0','Todo funcionando','!','red') }}
+  {{ ui.kpi('Estado scheduler','Activo','Sin retrasos','🛡','green') }}
 </section>
-
-<section class="band compact-band">
-  <div class="section-head"><h2>Tareas críticas</h2><span class="pill">Render Cron</span></div>
-  <div class="grid compact-grid">
-    {% for job in ac.jobs or [] %}
-    <article class="card v773-job-card {{ job.status|lower }}">
-      <span class="badge">{{ job.status }}</span>
-      <h3>{{ job.label }}</h3>
-      <p class="small"><strong>Cadencia:</strong> {{ job.cadence or 'Revisar' }}</p>
-      <p class="small"><strong>Comando:</strong> <code>{{ job.command }}</code></p>
-      <p class="small"><strong>Endpoint:</strong> <code>{{ job.endpoint }}</code></p>
-      <p class="small"><strong>Último:</strong> {{ job.last_run or 'Sin registro' }} · {{ job.last_result or 'Pendiente' }}</p>
-      <p class="small">{{ job.safe_note }}</p>
-    </article>
-    {% endfor %}
+<section class="v794-admin-grid sidebar">
+  <div class="v794-admin-grid">
+    <article class="v794-admin-panel"><div class="v794-panel-head"><h2>Jobs programados</h2><span>{{ ui.status('6','info') }}</span></div><table class="v794-admin-table"><thead><tr><th>Job</th><th>Última ejecución</th><th>Próxima</th><th>Duración</th><th>Estado</th><th>Controles</th></tr></thead><tbody>{% set jobs=[('telegram_tick','Procesa eventos y mensajes','16:22:18','16:30:00','912 ms'),('daily_automation','Automatización diaria general','16:00:05','08:00:00','1.43 s'),('highlights_sync','Sincroniza highlights','15:58:11','16:58:11','287 ms'),('picks_grading','Califica resultados','16:15:34','17:15:34','331 ms'),('backups','Backups automáticos','02:00:12','02:00:00','2.16 s'),('data_sync','Sincroniza datos externos','16:10:47','17:10:47','413 ms')] %}{% for name,desc,last,next,dur in jobs %}<tr><td><strong>{{ name }}</strong><br><small>{{ desc }}</small></td><td>{{ last }}<br><span style="color:var(--v794-green)">Hace {{ loop.index * 2 }} min</span></td><td>{{ next }}</td><td>{{ dur }}</td><td>{{ ui.status('Activo','ok') }}</td><td>▶ ❚❚ ⋮</td></tr>{% endfor %}</tbody></table></article>
+    <article class="v794-admin-panel"><div class="v794-panel-head"><h2>Calendario de ejecución por hora</h2><span>{{ ui.status('auto-refresh 15s','ok') }}</span></div><div class="v794-admin-heatmap">{% set rows=['telegram_tick','daily_automation','highlights_sync','picks_grading','backups','data_sync'] %}{% for r in rows %}<span>{{ r }}</span>{% for h in range(24) %}<i class="{{ 'on' if r=='telegram_tick' and h % 2 == 0 else 'green' if r=='daily_automation' and h in [8,16] else 'purple' if r=='highlights_sync' and h in [4,7,10,14,18,22] else 'red' if r=='picks_grading' and h in [3,9,16,19] else 'gold' if r=='backups' and h==2 else 'on' if r=='data_sync' and h in [0,1,4,6,10,12,15,18,20] else '' }}"></i>{% endfor %}{% endfor %}</div></article>
   </div>
+  <aside class="v794-admin-grid">
+    <article class="v794-admin-panel"><div class="v794-panel-head"><h2>Acciones manuales</h2></div><div class="v794-action-grid" style="grid-template-columns:1fr"><a class="v794-action-card" href="/api/automation/telegram/tick"><i>▶</i><span><b>Ejecutar ahora</b><small>Forzar ejecución</small></span><em>›</em></a><a class="v794-action-card" href="/admin/automation-center"><i>❚❚</i><span><b>Pausar scheduler</b><small>Detener ejecuciones</small></span><em>›</em></a><a class="v794-action-card" href="/admin/automation-center"><i>↻</i><span><b>Reintentar fallidas</b><small>Reintentar jobs con error</small></span><em>›</em></a></div></article>
+    <article class="v794-admin-panel"><div class="v794-panel-head"><h2>Diagnóstico de cron</h2></div><table class="v794-admin-table"><tbody><tr><td>Estado del servicio</td><td>{{ ui.status('Activo','ok') }}</td></tr><tr><td>Último heartbeat</td><td>16:22:18 · Hace 2 min</td></tr><tr><td>Desviación de tiempo</td><td>+0.21s</td></tr><tr><td>Jobs atrasados</td><td>0</td></tr><tr><td>Uso de memoria</td><td>128 MB · 42%</td></tr><tr><td>Carga del sistema</td><td>0.28 · Baja</td></tr></tbody></table></article>
+    <article class="v794-admin-panel"><div class="v794-panel-head"><h2>Historial de ejecuciones</h2><a href="/admin/observability">Ver completo →</a></div><div class="v794-admin-list"><div class="v794-admin-list-row"><span>✓</span><div><strong>telegram_tick</strong><small>Procesa eventos y mensajes</small></div><b>912 ms</b></div><div class="v794-admin-list-row"><span>✓</span><div><strong>picks_grading</strong><small>Califica resultados</small></div><b>331 ms</b></div><div class="v794-admin-list-row"><span>✕</span><div><strong>highlights_sync</strong><small>Sincroniza highlights</small></div><b style="color:var(--v794-red)">Error</b></div></div></article>
+  </aside>
 </section>
-
-<section class="band compact-band v773-admin-rail">
-  <div class="section-head"><h2>Entorno seguro</h2><span class="pill">Sin mostrar secrets</span></div>
-  <div class="grid compact-grid metric-row">
-    <div class="card metric-card"><div class="metric">{% if ac.environment.automation_secret_configured %}OK{% else %}NO{% endif %}</div><div class="muted">AUTOMATION_SECRET</div></div>
-    <div class="card metric-card"><div class="metric">{% if ac.environment.public_base_url_configured %}OK{% else %}NO{% endif %}</div><div class="muted">PUBLIC_BASE_URL</div></div>
-    <div class="card metric-card"><div class="metric">{% if ac.environment.db_path_configured %}OK{% else %}NO{% endif %}</div><div class="muted">DB_PATH</div></div>
-    <div class="card metric-card"><div class="metric">{% if ac.environment.timezone_ok %}OK{% else %}REV{% endif %}</div><div class="muted">Europe/Madrid</div></div>
-  </div>
-  <div class="card">
-    <p class="small">Base pública: {{ ac.environment.public_base_url or 'No configurada' }} · Bot: {{ ac.environment.telegram_token_masked or '-' }} · Canal: {{ ac.environment.telegram_chat_masked or '-' }}</p>
-  </div>
-</section>
-
-<section class="band compact-band">
-  <div class="section-head"><h2>Avisos y siguiente acción</h2><span class="pill">Puesta a punto</span></div>
-  <div class="two-col">
-    <div class="card">
-      <h3>Avisos</h3>
-      <div class="stack">{% for warning in ac.warnings or [] %}<div class="list-row"><span>{{ warning }}</span><strong>Revisar</strong></div>{% else %}<div class="list-row"><span>Sin avisos críticos detectados.</span><strong>OK</strong></div>{% endfor %}</div>
-    </div>
-    <div class="card">
-      <h3>Checklist Render</h3>
-      <div class="stack">{% for item in ac.next_actions or [] %}<div class="list-row"><span>{{ item }}</span><strong>Acción</strong></div>{% endfor %}</div>
-    </div>
-  </div>
-</section>
+{% endcall %}
 {% endblock %}

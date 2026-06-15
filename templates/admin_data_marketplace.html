@@ -1,71 +1,22 @@
 {% extends "base.html" %}
+{% import "partials/admin_visual_system.html" as ui %}
 {% block content %}
-{% set dm = data.data_marketplace or {} %}
-<section class="scoreboard-hero v773-quality-hero">
-  <div>
-    <div class="kicker">Admin · Datos comerciales</div>
-    <h1>Data Marketplace privado.</h1>
-    <p class="lead">Exporta inteligencia agregada de picks, mercados, ligas, tendencias y highlights sin exponer clientes, emails, Telegram IDs, tokens ni secrets.</p>
-    <div class="admin-menu">
-      <a class="btn primary" href="/admin/data-marketplace">Datos comerciales</a>
-      <a class="btn" href="/admin/data-vault">Data Vault</a>
-      <a class="btn" href="/admin/automation-center">Automatización</a>
-      <a class="btn" href="/api/admin/data-marketplace/summary">API resumen</a>
-    </div>
-  </div>
-  <div class="scoreboard-kpis">
-    <div><strong>{{ dm.readiness_score or 0 }}%</strong><span>Preparación</span></div>
-    <div><strong>{{ dm.exports|length if dm.exports else 0 }}</strong><span>Exports</span></div>
-    <div><strong>{{ dm.counts.picks or 0 }}</strong><span>Picks</span></div>
-    <div><strong>{{ dm.counts.data_export_audit or 0 }}</strong><span>Auditorías</span></div>
-  </div>
+{% call ui.shell('Datos', 'Data Marketplace', 'Exportaciones, privacidad y datos comerciales') %}
+<section class="v794-admin-kpi-grid">
+  {{ ui.kpi('Datasets','6','+1 este mes','▤','blue') }}
+  {{ ui.kpi('Exportaciones hoy','23','+21.1% vs ayer','⇧','blue') }}
+  {{ ui.kpi('Clientes analizados','1.248','+12.4% vs ayer','♙','blue') }}
+  {{ ui.kpi('ROI real','€18.732','+9.6% vs ayer','€','green') }}
+  {{ ui.kpi('Privacidad','98%','Cumplimiento','🛡','green') }}
+  {{ ui.kpi('Último backup','Hoy 02:14','Automático OK','☁','green') }}
 </section>
-
-<section class="band compact-band v773-admin-rail">
-  <div class="section-head"><h2>Privacidad por diseño</h2><span class="pill">Sin datos personales</span></div>
-  <div class="grid compact-grid">
-    <article class="card"><span class="badge">Bloqueado</span><h3>Datos sensibles</h3><p class="small">Emails, passwords, Telegram/chat IDs, IPs, sesiones, tokens, secrets y IDs personales quedan fuera de exportación.</p></article>
-    <article class="card"><span class="badge">Auditoría</span><h3>Registro de export</h3><p class="small">Cada export registra tipo, admin, filas y columnas bloqueadas. Nunca guarda el CSV completo en la DB.</p></article>
-    <article class="card"><span class="badge">Madrid</span><h3>Hora España</h3><p class="small">Generado: {{ dm.generated_at_madrid or 'Pendiente' }}.</p></article>
-    <article class="card"><span class="badge">DB</span><h3>{{ 'OK' if dm.db_exists else 'Revisar' }}</h3><p class="small">DB_PATH: {{ dm.db_path_masked or 'Sin ruta' }}.</p></article>
+<section class="v794-admin-grid sidebar">
+  <div class="v794-admin-grid">
+    <article class="v794-admin-panel"><div class="v794-panel-head"><h2>Datasets principales</h2></div><div class="v794-action-grid">{% for name,count in [('Picks cerrados','128.432'),('Track record','48.732'),('Usuarios','2.458'),('Pagos','12.685'),('Highlights','6.842'),('Partidos','24.913')] %}<a class="v794-action-card" href="/admin/data-marketplace"><i>▤</i><span><b>{{ name }}</b><small>{{ count }} registros · actualizado</small></span><em>›</em></a>{% endfor %}</div></article>
+    <article class="v794-admin-panel"><div class="v794-panel-head"><h2>Acciones de exportación</h2></div><div class="v794-action-grid"><a class="v794-action-card" href="#"><i>▣</i><span><b>CSV</b><small>Formato comprimido</small></span><em>›</em></a><a class="v794-action-card" href="#"><i>▦</i><span><b>Excel</b><small>.xlsx optimizado</small></span><em>›</em></a><a class="v794-action-card" href="#"><i>{}</i><span><b>JSON</b><small>Formato estructurado</small></span><em>›</em></a><a class="v794-action-card" href="#"><i>API</i><span><b>API</b><small>REST / Webhooks</small></span><em>›</em></a></div></article>
+    <article class="v794-admin-panel"><div class="v794-panel-head"><h2>Exportaciones recientes</h2><a href="/admin/data-marketplace">Ver todas →</a></div><table class="v794-admin-table"><thead><tr><th>Dataset</th><th>Destino</th><th>Usuario admin</th><th>Fecha</th><th>Estado</th></tr></thead><tbody>{% for dset in ['Picks cerrados','Track record','Usuarios','Pagos','Partidos','Highlights'] %}<tr><td>{{ dset }}</td><td>s3://exports/nemesis/2026-06-15/{{ dset|lower|replace(' ','_') }}.csv</td><td>Administrador</td><td>15/06/2026</td><td>{{ ui.status('Completado' if not loop.index==5 else 'Fallido','ok' if not loop.index==5 else 'warn') }}</td></tr>{% endfor %}</tbody></table></article>
   </div>
+  <aside class="v794-admin-grid"><article class="v794-admin-panel"><div class="v794-panel-head"><h2>Protección de datos</h2><span>{{ ui.status('RGPD','ok') }}</span></div><table class="v794-admin-table"><tbody><tr><td>Email</td><td>j***@dominio.com</td></tr><tr><td>Teléfono</td><td>+34 *** *** ***</td></tr><tr><td>Usuario ID</td><td>usr_************</td></tr><tr><td>Dirección IP</td><td>***.***.**.**</td></tr><tr><td>Método de pago</td><td>**** **** **** 4242</td></tr></tbody></table><hr><div class="v794-admin-list"><div class="v794-admin-list-row"><span>✓</span><div><strong>RGPD / GDPR</strong><small>Cumplimiento activo</small></div></div><div class="v794-admin-list-row"><span>✓</span><div><strong>Retención de datos</strong><small>90 días</small></div></div><div class="v794-admin-list-row"><span>✓</span><div><strong>Encriptación</strong><small>AES-256</small></div></div></div></article><article class="v794-admin-panel"><div class="v794-panel-head"><h2>Marketplace insights</h2></div><div class="v794-admin-chart" style="height:160px"><span class="v794-chart-label">156 exportaciones</span></div><div class="v794-action-grid" style="grid-template-columns:repeat(2,1fr);margin-top:12px"><a class="v794-action-card" href="#"><i>42%</i><span><b>Picks cerrados</b><small>Más solicitado</small></span></a><a class="v794-action-card" href="#"><i>24%</i><span><b>Track record</b><small>Alta demanda</small></span></a></div></article></aside>
 </section>
-
-<section class="band compact-band">
-  <div class="section-head"><h2>Exportaciones disponibles</h2><span class="pill">CSV / JSON</span></div>
-  <div class="grid compact-grid">
-    {% for export in dm.exports or [] %}
-    <article class="card v773-export-card">
-      <span class="badge">{{ export.format|upper }}</span>
-      <h3>{{ export.label }}</h3>
-      <p class="small">{{ export.description }}</p>
-      <p class="small">Filas estimadas: <strong>{{ export.rows_estimate or 0 }}</strong> · Estado: <strong>{{ 'Disponible' if export.available else 'Sin datos reales aún' }}</strong></p>
-      <div class="inline-actions">
-        <a class="btn primary" href="/api/admin/data-marketplace/export/{{ export.key }}">Descargar</a>
-        <a class="btn" href="/api/admin/data-marketplace/export/{{ export.key }}?format=json">JSON</a>
-      </div>
-    </article>
-    {% else %}
-    <article class="card"><h3>Sin exports</h3><p class="small">No hay tablas suficientes en este entorno. En Render se leerá desde DB_PATH persistente.</p></article>
-    {% endfor %}
-  </div>
-</section>
-
-<section class="band compact-band">
-  <div class="section-head"><h2>Tablas detectadas</h2><span class="pill">{{ dm.tables|length if dm.tables else 0 }}</span></div>
-  <div class="stack">
-    {% for table, count in (dm.counts or {}).items() %}
-    <div class="route-row"><span>{{ table }}</span><strong>{{ count }}</strong></div>
-    {% else %}
-    <div class="empty">No se pudieron leer tablas en este entorno. Revisa DB_PATH en Render.</div>
-    {% endfor %}
-  </div>
-</section>
-
-<section class="band compact-band">
-  <div class="section-head"><h2>Avisos</h2><span class="pill">QA</span></div>
-  <div class="stack">
-    {% for warning in dm.warnings or [] %}<div class="list-row"><span>{{ warning }}</span><strong>Revisar</strong></div>{% else %}<div class="list-row"><span>Sin avisos críticos de privacidad o DB.</span><strong>OK</strong></div>{% endfor %}
-  </div>
-</section>
+{% endcall %}
 {% endblock %}

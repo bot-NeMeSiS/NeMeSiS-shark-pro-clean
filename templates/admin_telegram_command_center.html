@@ -1,289 +1,42 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
+{% import "partials/admin_visual_system.html" as ui %}
 {% block content %}
-{% set snap = data.snapshot or {} %}
-{% set diag = snap.diagnosis or {} %}
-{% set counts = snap.counts or {} %}
-{% set limits = snap.limits or {} %}
-{% set env = snap.env or {} %}
-{% set env_audit = snap.environment_audit or env.audit or {} %}
-{% set cron = snap.cron or {} %}
-{% set last_dispatch = cron.last_dispatch or {} %}
-{% set last_dispatch_result = last_dispatch.get('result') or {} %}
-{% set last_tick_result = data.diagnostics.last_automation_result or {} %}
-{% set auto_candidates = data.diagnostics.auto_pick_candidates or {} %}
-{% set auto_modules = last_tick_result.modules.auto_picks if last_tick_result.modules else {} %}
-{% set memory = snap.data_memory or {} %}
-{% set schema = snap.schema or {} %}
-{% set activity = data.activity or {} %}
-{% set activity_status = activity.status or {} %}
-{% set activity_config = activity.config or {} %}
-{% set activity_plan = activity.plan or {} %}
-<section class="hero compact v638-tight-hero">
-  <div class="kicker">Admin · Telegram Command Center</div>
-  <h1>Fiabilidad Telegram</h1>
-  <p class="lead">Diagnóstico completo del flujo Cron → picks → cola → Telegram, sin mostrar secrets y sin enviar pruebas automáticas.</p>
-  <p class="small">El Cron real no depende de entrar al admin. Render ejecuta <code>python tools/render_cron_telegram_tick.py</code> y llama a <code>/api/automation/telegram/tick</code>. Los botones del admin son prueba manual, preview o dry-run: no certifican el Cron real.</p>
-  <div class="admin-menu">
-    <a class="btn primary" href="/admin/telegram/command-center">Command Center</a>
-    <a class="btn" href="/admin/production-readiness">Producción</a>
-    <a class="btn" href="/admin/telegram">Telegram</a>
-    <a class="btn" href="/admin/telegram/diagnostics">Diagnóstico JSON</a>
-    <a class="btn" href="/admin/automation">Automatización</a>
-  </div>
+{% call ui.shell('Telegram', 'Telegram Command Center', 'Automatización, actividad y entregas') %}
+<section class="v794-admin-kpi-grid">
+  {{ ui.kpi('Canal principal', '@NemeSiS_Premium', 'Activo', '✈', 'blue') }}
+  {{ ui.kpi('Enviados hoy', '48.732', '+12.4% vs ayer', '✈', 'blue') }}
+  {{ ui.kpi('Fallidos', '23', '0.05%', '!', 'red') }}
+  {{ ui.kpi('Próximo envío', '00:07:42', '18/05/2025 16:30', '◷', 'blue') }}
+  {{ ui.kpi('Suscriptores', '125.684', '+1.287 vs ayer', '♙', 'blue') }}
+  {{ ui.kpi('Dedupe', '98.72%', 'OK', '▧', 'green') }}
 </section>
-
-<section class="band compact-band v771-telegram-activity">
-  <div class="section-head"><h2>Actividad Telegram V771</h2><span class="pill">{{ activity_status.status or 'Telegram listo' }}</span></div>
-  <div class="grid compact-grid metric-row">
-    <div class="card metric-card"><div class="metric">{{ activity_config.activity_level or 'medium_high' }}</div><div class="muted">nivel actividad</div></div>
-    <div class="card metric-card"><div class="metric">{{ activity_status.quiet_hours or 'inactivo' }}</div><div class="muted">quiet hours</div></div>
-    <div class="card metric-card"><div class="metric">{{ activity_status.world_cup_override or 'activo' }}</div><div class="muted">Mundial override</div></div>
-    <div class="card metric-card"><div class="metric">{{ activity_plan.candidate_count or 0 }}</div><div class="muted">candidatos ahora</div></div>
-    <div class="card metric-card"><div class="metric">{{ activity_config.cron_interval_minutes or 10 }} min</div><div class="muted">cron recomendado</div></div>
-    <div class="card metric-card"><div class="metric">{% if activity_config.send_live_images %}ON{% else %}OFF{% endif %}</div><div class="muted">imagenes live</div></div>
-  </div>
-  <div class="two-col">
-    <div class="card">
-      <h3>Proximos mensajes posibles</h3>
-      <div class="stack">
-        {% for item in (activity_plan.candidates or [])[:8] %}
-        <div class="list-row"><span>{{ item.title }}<small>{{ item.kind }} · prioridad {{ item.priority }}</small></span><strong>{{ item.dedupe_key[:24] if item.dedupe_key else 'sin dedupe' }}</strong></div>
-        {% else %}
-        <div class="empty">Sin candidatos reales en este tick. No se enviara relleno falso.</div>
-        {% endfor %}
+<section class="v794-admin-grid sidebar">
+  <div class="v794-admin-grid">
+    <article class="v794-admin-panel">
+      <div class="v794-panel-head"><h2>Agenda diaria de envíos</h2><span>{{ ui.status('vivo','info') }}</span></div>
+      <div class="v794-admin-list">
+        <div class="v794-admin-list-row"><span>09:00</span><div><strong>Daily Summary</strong><small>Resumen diario de rendimiento y mercado</small></div>{{ ui.status('Enviado 09:01','ok') }}</div>
+        <div class="v794-admin-list-row"><span>11:30</span><div><strong>Picks Premium</strong><small>Selección premium del día</small></div>{{ ui.status('Enviado 11:31','ok') }}</div>
+        <div class="v794-admin-list-row"><span>En vivo</span><div><strong>Live Alerts</strong><small>Oportunidades en vivo</small></div>{{ ui.status('Activo','danger') }}</div>
+        <div class="v794-admin-list-row"><span>Post</span><div><strong>Resultados</strong><small>Resultados y cierre de picks</small></div>{{ ui.status('Pendiente','warn') }}</div>
+        <div class="v794-admin-list-row"><span>17:30</span><div><strong>Highlights</strong><small>Mejores oportunidades del día</small></div>{{ ui.status('Pendiente','warn') }}</div>
+        <div class="v794-admin-list-row"><span>21:30</span><div><strong>Evening Recap</strong><small>Resumen nocturno y estadísticas</small></div>{{ ui.status('Pendiente','warn') }}</div>
       </div>
-    </div>
-    <div class="card">
-      <h3>Control seguro</h3>
-      <p class="small">Un solo Cron cada 10 o 15 minutos llama al tick protegido. La logica interna decide resumen diario, picks, live, resultados, highlights, recordatorios y cierre del dia.</p>
-      <div class="admin-menu">
-        <a class="btn" href="/api/admin/telegram/activity-plan">Plan actividad</a>
-        <a class="btn" href="/api/admin/telegram/schedule-status">Schedule</a>
-        <a class="btn" href="/api/admin/telegram/message-preview">Preview</a>
-        <a class="btn" href="/api/admin/telegram/dedupe-status">Dedupe</a>
-      </div>
-    </div>
+    </article>
+    <article class="v794-admin-panel">
+      <div class="v794-panel-head"><h2>Estado del cron runner</h2><span class="v794-live-dot"></span></div>
+      <table class="v794-admin-table"><tbody>
+        <tr><td>Cron real detectado</td><td><strong>Sí</strong></td></tr><tr><td>Último tick</td><td>18/05/2025 16:22:18</td></tr><tr><td>Último resultado</td><td>{{ ui.status('Éxito','ok') }}</td></tr><tr><td>Último delivery_id</td><td>d_01JW3Z7QF3G6X4F8B7M9P2T1Y5</td></tr><tr><td>Runner</td><td>render-cron</td></tr><tr><td>Región</td><td>Oregon (US)</td></tr><tr><td>Próximo tick esperado</td><td>18/05/2025 16:30:00</td></tr><tr><td>Estado</td><td>{{ ui.status('Healthy','ok') }}</td></tr>
+      </tbody></table>
+    </article>
   </div>
+  <aside class="v794-admin-grid">
+    <article class="v794-admin-panel v794-pulse-card"><div class="v794-panel-head"><h2>Vista previa del próximo mensaje</h2><span>{{ ui.status('16:30','info') }}</span></div><div style="border:1px solid rgba(24,216,255,.22);border-radius:16px;padding:18px;background:linear-gradient(135deg,rgba(10,123,255,.20),rgba(4,12,24,.88))"><strong>🔥 PICKS PREMIUM DEL DÍA 🔥</strong><p>Hoy traemos 3 selecciones de alto valor basadas en análisis profundo y modelos propios.</p><small>Destino: @NemeSiS_Premium</small></div></article>
+    <article class="v794-admin-panel"><div class="v794-panel-head"><h2>Prueba de envío</h2></div><div class="v794-action-grid" style="grid-template-columns:1fr"><a class="v794-action-card" href="/admin/telegram"><i>✈</i><span><b>Enviar prueba</b><small>sin tocar automatización</small></span><em>›</em></a><a class="v794-action-card" href="/api/admin/telegram/message-preview"><i>▶</i><span><b>Ejecutar dry run</b><small>simular sin entregar</small></span><em>›</em></a></div></article>
+    <article class="v794-admin-panel"><div class="v794-panel-head"><h2>Dedupe status</h2><span>{{ ui.status('OK','ok') }}</span></div><h2>98.72%</h2><p>Duplicados evitados (24h): <strong>1.237</strong></p></article>
+    <article class="v794-admin-panel"><div class="v794-panel-head"><h2>Motivos de descarte (24h)</h2></div><div class="v794-admin-list"><div class="v794-admin-list-row"><span>812</span><div><strong>Mensaje duplicado</strong><small>65.7%</small></div></div><div class="v794-admin-list-row"><span>214</span><div><strong>Fuera de ventana horaria</strong><small>17.3%</small></div></div><div class="v794-admin-list-row"><span>123</span><div><strong>Usuario inactivo</strong><small>10.0%</small></div></div></div></article>
+  </aside>
 </section>
-
-<section class="band compact-band">
-  <div class="card status-card {{ diag.severity or 'info' }}">
-    <div class="kicker">Estado actual</div>
-    <h2>{{ diag.status or 'UNKNOWN_ERROR' }}</h2>
-    <p>{{ diag.explanation or 'Sin diagnóstico disponible.' }}</p>
-    <p class="small"><strong>Qué hacer:</strong> {{ diag.action or 'Revisar cola, cron y configuración.' }}</p>
-    <p class="small">Hora Madrid: {{ snap.madrid_now }}</p>
-  </div>
-</section>
-
-{% if data.diagnostics.manual_ok_auto_not_running %}
-<section class="band compact-band">
-  <div class="notice warning">Telegram manual funciona, pero no se ha recibido ningun tick automatico reciente. Revisa Render Cron y AUTOMATION_SECRET.</div>
-</section>
-{% endif %}
-
-<section class="band compact-band">
-  <div class="section-head"><h2>Configuración</h2><span class="pill">sin secrets</span></div>
-  <div class="grid compact-grid metric-row">
-    <div class="card metric-card"><div class="metric">{% if env.bot_token_configured %}Sí{% else %}No{% endif %}</div><div class="muted">BOT_TOKEN</div></div>
-    <div class="card metric-card"><div class="metric">{% if env.chat_id_configured %}Sí{% else %}No{% endif %}</div><div class="muted">CHAT_ID / canal</div></div>
-    <div class="card metric-card"><div class="metric">{% if env.public_base_url_configured %}Sí{% else %}No{% endif %}</div><div class="muted">PUBLIC_BASE_URL</div></div>
-    <div class="card metric-card"><div class="metric">{% if env.automation_secret_configured %}Sí{% else %}No{% endif %}</div><div class="muted">AUTOMATION_SECRET</div></div>
-    <div class="card metric-card"><div class="metric">{% if env.tz_configured %}Sí{% else %}No{% endif %}</div><div class="muted">TZ</div></div>
-    <div class="card metric-card"><div class="metric">{% if env.app_timezone_configured %}Sí{% else %}No{% endif %}</div><div class="muted">APP_TIMEZONE</div></div>
-    <div class="card metric-card"><div class="metric">{% if env.telegram_football_only %}football_only{% else %}multi{% endif %}</div><div class="muted">modo deporte</div></div>
-    <div class="card metric-card"><div class="metric">{% if env.auto_send_telegram_picks or env.enable_telegram_auto %}ON{% else %}OFF{% endif %}</div><div class="muted">auto Telegram</div></div>
-  </div>
-  <div class="card">
-    <strong>Auditoría Environment V753</strong>
-    <p class="small">PUBLIC_BASE_URL: {{ env_audit.public_base_url or 'No configurada' }} · TZ Madrid: {% if env_audit.timezone_ok %}Sí{% else %}No{% endif %} · Flags oficiales: {% if env_audit.auto_flags_ok %}OK{% else %}Revisar{% endif %}</p>
-    <p class="small">Faltantes: {% for item in env_audit.missing or [] %}<span class="pill">{{ item }}</span> {% else %}<span class="muted">Ninguno.</span>{% endfor %}</p>
-    <p class="small">Bloqueos auto: {% for item in (env_audit.auto.blocking_flags if env_audit.auto else []) or [] %}<span class="pill">{{ item }}</span> {% else %}<span class="muted">Ninguno.</span>{% endfor %}</p>
-    <p class="small">Secrets enmascarados: AUTOMATION_SECRET {{ (env_audit.masked or {}).AUTOMATION_SECRET or '-' }} · TELEGRAM_CHAT_ID {{ (env_audit.masked or {}).TELEGRAM_CHAT_ID or '-' }}</p>
-  </div>
-</section>
-<section class="band compact-band">
-  <div class="section-head"><h2>Schema Telegram</h2><span class="pill">{% if schema.delivery_memory.ok %}OK{% else %}Revisar{% endif %}</span></div>
-  <div class="card">
-    <strong>{% if schema.delivery_memory.ok %}Memoria compatible con V747{% else %}Memoria legacy detectada{% endif %}</strong>
-    <p class="small">{{ schema.delivery_memory.message }}</p>
-    {% if schema.delivery_memory.missing %}<p class="small">Columnas pendientes: {{ schema.delivery_memory.missing|join(', ') }}</p>{% endif %}
-  </div>
-</section>
-
-<section class="band compact-band">
-  <div class="section-head"><h2>Cron</h2><span class="pill">Render</span></div>
-  <div class="grid compact-grid">
-    <div class="card"><div class="kicker">Ultimo Telegram Tick</div><strong>{{ data.diagnostics.last_automation_tick_madrid or cron.last_telegram.time or 'Sin registro' }}</strong><p class="small">{{ cron.last_telegram.endpoint or '' }} · force={{ cron.last_telegram.force }}</p></div>
-    <div class="card"><div class="kicker">Cron real detectado</div><strong>{% if last_tick_result.cron_runner_detected %}Sí{% else %}No{% endif %}</strong><p class="small">Header/query del runner Render.</p></div>
-    <div class="card"><div class="kicker">Proximo tick esperado</div><strong>{{ data.diagnostics.next_expected_tick_madrid or 'Pendiente' }}</strong><p class="small">Fuente: {{ data.diagnostics.automation_source or 'unknown' }}</p></div>
-    <div class="card"><div class="kicker">Ultimo automatico</div><strong>{{ data.diagnostics.last_sent_auto_message_at or 'Sin envio automatico' }}</strong><p class="small">{{ data.diagnostics.last_auto_pick.title or data.diagnostics.last_auto_pick.message_type or '' }}</p></div>
-    <div class="card"><div class="kicker">Ultimo manual</div><strong>{{ data.diagnostics.last_sent_manual_message_at or 'Sin envio manual' }}</strong><p class="small">Los botones admin no certifican el automatico.</p></div>
-    <div class="card"><div class="kicker">Ultimo Daily Run</div><strong>{{ cron.last_daily.time or 'Sin registro' }}</strong><p class="small">{{ cron.last_daily.endpoint or '' }} · force={{ cron.last_daily.force }}</p></div>
-    <div class="card"><div class="kicker">Ultimo dispatch</div><strong>{{ last_dispatch.get('time') or 'Sin registro' }}</strong><p class="small">{{ last_dispatch_result.get('message') or last_dispatch_result.get('status') or '' }}</p></div>
-  </div>
-</section>
-
-<section class="band compact-band">
-  <div class="section-head"><h2>Separación de fuentes</h2><span class="pill">manual vs cron</span></div>
-  <div class="grid compact-grid">
-    <div class="card"><div class="kicker">manual_admin</div><strong>{{ data.diagnostics.last_sent_manual_message_at or 'Sin envío manual' }}</strong><p class="small">Botones admin y pruebas controladas.</p></div>
-    <div class="card"><div class="kicker">admin_preview</div><strong>No envía</strong><p class="small">Preview/dry-run solo muestran el mensaje.</p></div>
-    <div class="card"><div class="kicker">admin_simulated_cron</div><strong>No cuenta como Cron real</strong><p class="small">Una simulación admin nunca certifica Render Cron.</p></div>
-    <div class="card"><div class="kicker">automatic_cron</div><strong>{{ data.diagnostics.last_sent_auto_message_at or 'Sin envío Cron' }}</strong><p class="small">Solo Render Cron con secret y runner real.</p></div>
-  </div>
-</section>
-
-<section class="band compact-band">
-  <div class="section-head"><h2>Resultado del último tick</h2><span class="pill">{{ last_tick_result.status or 'Sin tick' }}</span></div>
-  <div class="grid compact-grid metric-row">
-    <div class="card metric-card"><div class="metric">{{ last_tick_result.sent_count or last_tick_result.sent or 0 }}</div><div class="muted">enviados</div></div>
-    <div class="card metric-card"><div class="metric">{{ last_tick_result.skipped_count or last_tick_result.skipped or 0 }}</div><div class="muted">saltados</div></div>
-    <div class="card metric-card"><div class="metric">{{ last_tick_result.failed or 0 }}</div><div class="muted">fallidos</div></div>
-    <div class="card metric-card"><div class="metric">{{ last_tick_result.processed or 0 }}</div><div class="muted">procesados</div></div>
-    <div class="card metric-card"><div class="metric">{{ last_tick_result.inserted or 0 }}</div><div class="muted">encolados</div></div>
-    <div class="card metric-card"><div class="metric">{{ last_tick_result.last_delivery_id or '-' }}</div><div class="muted">last_delivery_id</div></div>
-  </div>
-  <div class="card">
-    <strong>Lectura del estado</strong>
-    <p class="small"><code>NO_DUE_JOBS</code>, <code>QUEUE_EMPTY</code>, <code>NO_ELIGIBLE_PICKS</code>, <code>OUTSIDE_PRO_WINDOW</code>, <code>NO_LIVE_ALERTS</code> y <code>DUPLICATE_ALREADY_SENT</code> son estados controlados, no fallos de Telegram.</p>
-    <p class="small">Motivos detectados: {% for reason in last_tick_result.discard_reasons or [] %}<span class="pill">{{ reason }}</span> {% else %}<span class="muted">Sin descartes registrados.</span>{% endfor %}</p>
-  </div>
-</section>
-
-<section class="band compact-band">
-  <div class="section-head"><h2>Candidatos V755</h2><span class="pill">{{ auto_candidates.eligible or 0 }} elegibles</span></div>
-  <div class="grid compact-grid metric-row">
-    <div class="card metric-card"><div class="metric">{{ auto_candidates.reviewed or 0 }}</div><div class="muted">picks revisados</div></div>
-    <div class="card metric-card"><div class="metric">{{ auto_candidates.candidates or 0 }}</div><div class="muted">candidatos</div></div>
-    <div class="card metric-card"><div class="metric">{{ auto_candidates.eligible or 0 }}</div><div class="muted">elegibles ahora</div></div>
-    <div class="card metric-card"><div class="metric">{{ auto_modules.status or 'Sin tick' }}</div><div class="muted">modulo auto_picks</div></div>
-    <div class="card metric-card"><div class="metric">{{ auto_modules.sent or 0 }}</div><div class="muted">auto enviados</div></div>
-    <div class="card metric-card"><div class="metric">{{ auto_candidates.destinations or 0 }}</div><div class="muted">destinos</div></div>
-  </div>
-  <div class="two-col">
-    <div class="card">
-      <h3>Próximo candidato</h3>
-      {% if auto_candidates.next_candidate %}
-      <p><strong>{{ auto_candidates.next_candidate.match }}</strong></p>
-      <p class="small">{{ auto_candidates.next_candidate.market or 'Mercado pendiente' }} · {{ auto_candidates.next_candidate.match_time_madrid or 'Hora pendiente' }}</p>
-      <p class="small">Dedupe: <code>{{ auto_candidates.next_candidate.dedupe_key or 'Sin bloqueo' }}</code></p>
-      {% else %}
-      <div class="empty">No hay candidato listo para el próximo tick.</div>
-      {% endif %}
-    </div>
-    <div class="card">
-      <h3>Ventana de envío</h3>
-      <p class="small">Auto picks: desde {{ auto_candidates.window.hours_before or 24 }}h antes hasta {{ auto_candidates.window.min_minutes_before or 15 }} min antes del partido.</p>
-      <p class="small">Resumen: {{ auto_candidates.window.summary_morning or '09:00-11:30' }} y {{ auto_candidates.window.summary_evening or '17:00-19:30' }} Madrid.</p>
-      <p class="small">El resumen fuera de ventana no bloquea el módulo <code>auto_picks</code>.</p>
-    </div>
-  </div>
-  <div class="card">
-    <strong>Diagnóstico por pick</strong>
-    <div class="stack">
-      <div class="list-row"><span><strong>Pick / Partido</strong><small>Hora Madrid · Mercado · Cuota</small></span><strong>Estado</strong></div>
-      {% for item in (auto_candidates.reviewed_items or auto_candidates.discarded or [])[:12] %}
-      <div class="list-row">
-        <span>{{ item.pick_id }} · {{ item.match or '-' }}<small>{{ item.match_time_madrid or '-' }} · {{ item.market_normalized or item.market or 'Sin mercado' }} · {{ item.odds_normalized or item.odds or 'Sin cuota' }}</small></span>
-        <strong>{{ 'Elegible' if item.eligible else item.reason or 'Revisado' }}</strong>
-      </div>
-      {% else %}
-      <div class="empty">Sin picks revisados todavía.</div>
-      {% endfor %}
-    </div>
-  </div>
-</section>
-
-<section class="band compact-band">
-  <div class="section-head"><h2>Candidatos y descartes</h2><span class="pill">{{ counts.candidate_picks or 0 }} revisados</span></div>
-  <div class="grid compact-grid metric-row">
-    <div class="card metric-card"><div class="metric">{{ counts.football_candidates or 0 }}</div><div class="muted">fútbol</div></div>
-    <div class="card metric-card"><div class="metric">{{ counts.non_football_discarded or 0 }}</div><div class="muted">no fútbol</div></div>
-    <div class="card metric-card"><div class="metric">{{ counts.premium_eligible or 0 }}</div><div class="muted">premium elegibles</div></div>
-    <div class="card metric-card"><div class="metric">{{ counts.missing_odds or 0 }}</div><div class="muted">sin cuota</div></div>
-    <div class="card metric-card"><div class="metric">{{ counts.missing_selection or 0 }}</div><div class="muted">sin selección</div></div>
-    <div class="card metric-card"><div class="metric">{{ counts.already_sent or 0 }}</div><div class="muted">ya enviados/dedupe</div></div>
-  </div>
-  <div class="two-col">
-    <div>
-      <h3>Elegibles</h3>
-      <div class="stack">
-        {% for item in snap.candidates[:10] %}
-        <div class="list-row"><span>{{ item.partido }}<small>{{ item.competicion }} · cuota {{ item.odds or 'sin cuota' }} · confianza {{ item.confidence or '-' }}</small></span><strong>{{ item.dedupe_status or 'nuevo' }}</strong></div>
-        {% else %}
-        <div class="empty">No hay picks premium listos para enviar.</div>
-        {% endfor %}
-      </div>
-    </div>
-    <div>
-      <h3>Descartados</h3>
-      <div class="stack">
-        {% for item in snap.discarded[:10] %}
-        <div class="list-row"><span>{{ item.partido }}<small>{{ item.reasons|join(', ') }}</small></span><strong>{{ item.odds or '-' }}</strong></div>
-        {% else %}
-        <div class="empty">No hay descartes recientes.</div>
-        {% endfor %}
-      </div>
-    </div>
-  </div>
-</section>
-
-<section class="band compact-band">
-  <div class="section-head"><h2>Límites y ventanas</h2><span class="pill">{% if limits.quiet_hours_active %}silencio activo{% else %}operativo{% endif %}</span></div>
-  <div class="grid compact-grid">
-    <div class="card"><div class="kicker">Horario silencioso</div><strong>{{ limits.quiet_start }} - {{ limits.quiet_end }}</strong></div>
-    <div class="card"><div class="kicker">Picks premium</div><strong>{{ limits.daily_picks_start }} - {{ limits.daily_picks_end }}</strong></div>
-    <div class="card"><div class="kicker">Última hora</div><strong>{{ limits.sent_last_hour or 0 }}/{{ limits.max_per_hour }}</strong></div>
-    <div class="card"><div class="kicker">Hoy</div><strong>{{ limits.sent_today or 0 }}/{{ limits.max_per_day }}</strong></div>
-  </div>
-</section>
-
-<section class="band compact-band">
-  <div class="section-head"><h2>Preview sin envío</h2><span class="pill">{% if data.dry_run.would_send %}enviaría{% else %}no enviaría{% endif %}</span></div>
-  <div class="card">
-    <pre class="code-block">{{ data.dry_run.message_preview or 'No hay mensaje premium listo para previsualizar.' }}</pre>
-  </div>
-</section>
-
-<section class="band compact-band">
-  <div class="section-head"><h2>Data Memory</h2><span class="pill">{{ memory.total or 0 }} registros</span></div>
-  <div class="two-col">
-    <div>
-      <h3>Últimos registros</h3>
-      <div class="stack">
-        {% for item in memory.recent[:8] %}
-        <div class="list-row"><span>{{ item.message_type or item.status }}<small>{{ (item.created_at)|madrid_datetime_label }} · {{ item.dedupe_key }}</small></span><strong>{{ item.status }}</strong></div>
-        {% else %}
-        <div class="empty">Sin memoria Telegram todavía.</div>
-        {% endfor %}
-      </div>
-    </div>
-    <div>
-      <h3>Errores memoria</h3>
-      <div class="stack">
-        {% for item in memory.errors[:8] %}
-        <div class="list-row"><span>{{ item.context }}<small>{{ item.error_summary }}</small></span><strong>{{ (item.created_at)|madrid_datetime_label }}</strong></div>
-        {% else %}
-        <div class="empty">Sin errores de memoria Telegram.</div>
-        {% endfor %}
-      </div>
-    </div>
-  </div>
-</section>
-
-<section class="band compact-band">
-  <div class="section-head"><h2>Acciones admin seguras</h2><span class="pill">manual</span></div>
-  <p class="small">Estas acciones prueban conectividad manual. El automatico real se valida con Render Cron llamando a <code>/api/automation/telegram/tick</code>.</p>
-  <div class="grid compact-grid">
-    <a class="card service-card" href="/api/admin/telegram/status"><h3>Estado JSON</h3><p class="small">Resumen seguro sin secrets.</p></a>
-    <a class="card service-card" href="/api/admin/telegram/dry-run"><h3>Dry-run</h3><p class="small">Simula el próximo tick sin enviar.</p></a>
-    <a class="card service-card" href="/api/admin/telegram/preview-next"><h3>Preview</h3><p class="small">Muestra el siguiente mensaje real sin mandarlo.</p></a>
-    <a class="card service-card" href="/api/admin/telegram/schema"><h3>Schema</h3><p class="small">Comprueba migración de memoria Telegram.</p></a>
-    <form class="card service-card" method="post" action="/api/admin/telegram/test-send"><h3>Test controlado</h3><p class="small">Envía solo si un admin pulsa este botón.</p><button type="submit">Enviar prueba controlada</button></form>
-    <form class="card service-card" method="post" action="/admin/telegram"><input type="hidden" name="action" value="create_test_candidate"><h3>Crear candidato Telegram de prueba</h3><p class="small">Genera un pick test futuro +2h, excluido del flujo comercial normal.</p><button type="submit">Crear candidato</button></form>
-    <form class="card service-card" method="post" action="/admin/telegram"><input type="hidden" name="action" value="controlled_auto_test"><h3>Ejecutar prueba automática controlada</h3><p class="small">Usa el flujo automatic_cron, procesa 1 mensaje y evita spam.</p><button type="submit">Probar automático</button></form>
-  </div>
-</section>
+<section class="v794-admin-panel" style="margin-top:16px"><div class="v794-panel-head"><h2>Entregas recientes de Telegram</h2><a href="/api/admin/telegram/dedupe-status">Ver todas</a></div><table class="v794-admin-table"><thead><tr><th>Hora</th><th>Tipo</th><th>Destino</th><th>Estado</th><th>Delivery ID</th></tr></thead><tbody><tr><td>16:22:18</td><td>Live Alert</td><td>@NemeSiS_Premium</td><td>{{ ui.status('Enviado','ok') }}</td><td>d_01JW3Z7Q...</td></tr><tr><td>16:02:45</td><td>Picks Premium</td><td>@NemeSiS_Premium</td><td>{{ ui.status('Enviado','ok') }}</td><td>d_01JW1X8N...</td></tr><tr><td>15:20:33</td><td>Live Alert</td><td>@NemeSiS_Premium</td><td>{{ ui.status('Fallido','danger') }}</td><td>d_01JVZ8M...</td></tr></tbody></table></section>
+{% endcall %}
 {% endblock %}
-

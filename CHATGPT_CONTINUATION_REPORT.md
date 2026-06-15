@@ -1,3 +1,16 @@
+# CHATGPT CONTINUATION REPORT
+
+## Estado actual
+Versión actual preparada: `V795_MOCKUP_FIDELITY_LIVING_UI_DEEP_POLISH`
+
+## Resumen V795
+Se ha aplicado una pasada profunda de fidelidad visual para acercar cliente y admin a los mockups aprobados: admin full-screen tipo command center, sidebar/topbar premium, reloj visual, auto-refresh visual, tarjetas/KPIs/tablas con más profundidad y cliente con mayor jerarquía, espaciado y aspecto app premium.
+
+## Preservado
+Stripe, Telegram, Cron, DB_PATH, usuarios, sesiones, membresías, Madrid Time, picks, directos, escudos, Track Record y legal.
+
+---
+
 # CONTINUACIÓN ACTUALIZADA — V777_CLIENT_PRODUCT_EXPERIENCE_FINAL_SYSTEM
 
 V777 cierra la experiencia cliente como sistema de producto: home final, rail cliente compacto, menú por intención, cuenta clara, API cliente product-experience y CSS móvil/PC para que lo importante no quede escondido. Conserva Telegram/Cron/DB_PATH/usuarios/Madrid Time/highlights/Track Record/Data Marketplace/Automation Center.

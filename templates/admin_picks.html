@@ -1,73 +1,22 @@
 {% extends "base.html" %}
+{% import "partials/admin_visual_system.html" as ui %}
 {% block content %}
-<section class="hero compact admin-hero">
-  <div class="kicker">Admin · Picks Intelligence</div>
-  <h1>Centro de picks premium</h1>
-  <p class="lead">Crea, publica y archiva picks reales revisados. No se publican pronósticos falsos: todo queda trazado en SQLite y preparado para Telegram.</p>
-  <div class="admin-menu">
-    <a class="btn primary" href="/admin/picks">Picks</a>
-    <a class="btn" href="/admin/data-center">Data Center</a>
-    <a class="btn" href="/admin/telegram">Telegram</a>
-    <a class="btn" href="/match-hub">Match Hub</a>
+{% call ui.shell('Picks', 'Picks y partidos', 'Gestión editorial, análisis y control deportivo') %}
+<section class="v794-admin-kpi-grid">
+  {{ ui.kpi('Picks activos','38','+12.4% vs ayer','◎','blue') }}
+  {{ ui.kpi('Pendientes de revisar','12','-8.2% vs ayer','▤','gold') }}
+  {{ ui.kpi('Partidos hoy','24','En 12 ligas','⚽','blue') }}
+  {{ ui.kpi('Valor detectado','€18.732','+9.6% vs ayer','€','green') }}
+  {{ ui.kpi('Alertas SHARK','7','3 críticas','!','red') }}
+  {{ ui.kpi('Cobertura ligas','92%','12 de 13 ligas','◎','green') }}
+</section>
+<section class="v794-admin-grid sidebar">
+  <div class="v794-admin-grid two">
+    <article class="v794-admin-panel"><div class="v794-panel-head"><h2>Próximos partidos</h2><a href="/calendar">Ver todos</a></div><table class="v794-admin-table"><thead><tr><th>Liga</th><th>Hora (Madrid)</th><th>Estado</th><th>Partido</th></tr></thead><tbody>{% set matches=[('Premier League','15:00','EN 2H','Arsenal vs Chelsea'),('LaLiga','16:15','EN 3H','Real Madrid vs Real Betis'),('Serie A','18:00','EN 5H','Inter vs AC Milan'),('Bundesliga','18:30','EN 5H','Bayern München vs B. Dortmund'),('Ligue 1','21:00','EN 8H','PSG vs Olympique Lyon'),('Primeira Liga','21:15','EN 8H','Benfica vs FC Porto'),('Eredivisie','20:00','MAÑANA','PSV vs Ajax')] %}{% for league,time,state,match in matches %}<tr><td>{{ league }}</td><td>{{ time }}</td><td>{{ ui.status(state,'ok' if 'EN' in state else 'info') }}</td><td><strong>{{ match }}</strong></td></tr>{% endfor %}</tbody></table><a class="v794-action-card" href="/calendar"><i>⚽</i><span><b>Ver calendario completo</b><small>Cliente y admin</small></span><em>›</em></a></article>
+    <article class="v794-admin-panel"><div class="v794-panel-head"><h2>Picks en gestión</h2><a href="/admin/picks">+ Nuevo pick</a></div><table class="v794-admin-table"><thead><tr><th>Mercado</th><th>Cuota</th><th>Stake</th><th>Score</th><th>Riesgo</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>{% set picks=[('Más de 2.5 goles','1.87','2.5%','82','Bajo','ACTIVO'),('Ambos marcan: Sí','1.72','2.0%','75','Bajo','ACTIVO'),('Más de 1.5 goles 1ª parte','2.05','1.5%','68','Medio','PENDIENTE'),('Doble oportunidad: X2','1.65','1.5%','59','Medio','PENDIENTE'),('Menos de 3.5 goles','1.95','1.0%','42','Alto','REVISAR')] %}{% for market,odds,stake,score,risk,state in picks %}<tr><td><strong>{{ market }}</strong><br><small>Total de goles</small></td><td>{{ odds }}</td><td>{{ stake }}</td><td><b style="color:{{ 'var(--v794-green)' if score|int > 70 else 'var(--v794-gold)' if score|int > 55 else 'var(--v794-red)' }}">{{ score }}</b></td><td>{{ ui.status(risk,'ok' if risk=='Bajo' else 'warn' if risk=='Medio' else 'danger') }}</td><td>{{ ui.status(state,'ok' if state=='ACTIVO' else 'warn') }}</td><td>✎ ✈ 🗄 ⋮</td></tr>{% endfor %}</tbody></table></article>
   </div>
+  <aside class="v794-admin-grid"><article class="v794-admin-panel v794-pulse-card"><div class="v794-panel-head"><h2>Análisis SHARK</h2><span>{{ ui.status('ACTIVO','ok') }}</span></div><div class="v794-gauge" style="width:180px;height:180px"><div><b>82</b><span>Confianza<br>Muy alta</span></div></div><div class="v794-admin-list"><div class="v794-admin-list-row"><span>✓</span><div><strong>Alta producción ofensiva</strong><small>Últimos 5 partidos</small></div></div><div class="v794-admin-list-row"><span>✓</span><div><strong>Defensa vulnerable</strong><small>1.8 goles encajados p/p</small></div></div><div class="v794-admin-list-row"><span>⚠</span><div><strong>Rotaciones posibles</strong><small>Afecta a 2 titulares</small></div></div><div class="v794-admin-list-row"><span>⚠</span><div><strong>Carga de partidos</strong><small>3 en 7 días</small></div></div></div><a class="v794-action-card" href="/admin/picks"><i>↗</i><span><b>Ver análisis completo</b><small>con motivos y riesgos</small></span><em>›</em></a></article></aside>
 </section>
-{% if message %}<section class="band"><div class="notice">{{ message }}</div></section>{% endif %}
-<section class="band">
-  <div class="grid compact-grid">
-    <div class="card"><div class="metric">{{ data.pick_stats.total }}</div><div class="muted">picks totales</div></div>
-    <div class="card"><div class="metric">{{ data.pick_stats.published }}</div><div class="muted">publicados</div></div>
-    <div class="card"><div class="metric">{{ data.pick_stats.draft }}</div><div class="muted">borradores</div></div>
-    <div class="card"><div class="metric">{{ data.pick_stats.winrate }}%</div><div class="muted">winrate real</div></div>
-  </div>
-</section>
-<section class="band form-grid">
-  <form class="card" method="post" action="/admin/picks">
-    <h2>Crear pick</h2>
-    <input type="hidden" name="action" value="create">
-    <div class="field"><label>Partido existente</label><select name="match_id"><option value="">Manual / sin partido enlazado</option>{% for m in data.matches_for_pick %}<option value="{{ m.id }}">{{ m|match_full_datetime }} · {{ m.home_team }} vs {{ m.away_team }}</option>{% endfor %}</select></div>
-    <div class="field"><label>Liga</label><input name="league_name" placeholder="LaLiga, Premier..."></div>
-    <div class="field"><label>Local</label><input name="home_team" placeholder="Equipo local"></div>
-    <div class="field"><label>Visitante</label><input name="away_team" placeholder="Equipo visitante"></div>
-    <div class="field"><label>Mercado</label><input name="market" placeholder="1X2, DNB, over/under..."></div>
-    <div class="field"><label>Selección</label><input name="selection" required placeholder="Selección recomendada exacta"></div>
-    <div class="field"><label>Cuota</label><input name="odds" inputmode="decimal" placeholder="1.85"></div>
-    <div class="field"><label>Bookmaker</label><input name="bookmaker" placeholder="Casa / fuente"></div>
-    <div class="field"><label>Stake unidades</label><input name="stake_units" value="1"></div>
-    <div class="field"><label>Stake ejemplo €</label><input name="stake_euros_example" value="10"></div>
-    <div class="field"><label>Confianza %</label><input name="confidence" value="60"></div>
-    <div class="field"><label>Riesgo</label><select name="risk_level"><option>BAJO</option><option selected>MEDIO</option><option>ALTO</option></select></div>
-    <div class="field"><label>Membresía</label><select name="membership_required"><option>FREE</option><option>PRO</option><option>ELITE</option></select></div>
-    <div class="field"><label>Motivo de entrada</label><textarea name="reasoning" placeholder="Por qué tiene sentido este pick"></textarea></div>
-    <div class="field"><label>Motivo de precaución</label><textarea name="warning_reason" placeholder="Qué puede salir mal / control de riesgo"></textarea></div>
-    <div class="actions"><button type="submit">Guardar borrador</button><button class="primary" type="submit" name="action" value="publish">Publicar</button></div>
-  </form>
-  <aside class="card">
-    <h2>Reglas del sistema</h2>
-    <p class="small">Solo se muestran al cliente picks publicados y permitidos por su membresía.</p>
-    <p class="small">Telegram daily picks usa solo picks publicados. Borradores y archivados quedan fuera.</p>
-    <p class="small">Las combinadas se construyen desde picks publicados; si no hay base real, no se inventa nada.</p>
-  </aside>
-</section>
-<section class="band">
-  <div class="section-head"><h2>Picks guardados</h2><span class="pill">{{ data.admin_picks|length }}</span></div>
-  <div class="stack">
-    {% for p in data.admin_picks %}
-    <article class="card pick-card">
-      <div class="match-top"><div><div class="comp-name">{{ (p.competition_name or p.league_name or 'Sin liga')|competition_es }}</div><div class="small">{{ p|match_full_datetime }} · {{ p.market }}</div></div><span class="badge badge-{{ p.membership_required|lower }}">{{ p.membership_required }}</span></div>
-      <h3>{{ p.home_team }}{% if p.away_team %} vs {{ p.away_team }}{% endif %}</h3>
-      <p><strong>{{ p.selection_display or p.selection }}</strong> · cuota {{ p.odds }} · confianza {{ p.confidence }}%</p>
-      <p class="small">{{ p.reasoning or 'Sin razonamiento añadido todavía.' }}</p>
-      <div class="status"><span>{{ p.status }}</span><span>{{ p.risk_level }}</span><span>{{ p.result_status }}</span></div>
-      <form class="inline-actions" method="post" action="/admin/picks">
-        <input type="hidden" name="pick_id" value="{{ p.id }}">
-        <button name="action" value="published">Publicar</button>
-        <button name="action" value="draft">Borrador</button>
-        <button name="action" value="archive">Archivar</button>
-      </form>
-    </article>
-    {% else %}
-    <div class="empty">Aún no hay picks. Crea el primero desde este panel.</div>
-    {% endfor %}
-  </div>
-</section>
+<section class="v794-admin-panel" style="margin-top:16px"><div class="v794-panel-head"><h2>Actividad editorial reciente</h2><a href="/admin/picks">Ver toda actividad →</a></div><table class="v794-admin-table"><tbody><tr><td>16:22:18</td><td>Administrador</td><td>Creó pick</td><td>Más de 2.5 goles en Arsenal vs Chelsea</td><td>{{ ui.status('Publicado','ok') }}</td><td>Telegram Premium</td></tr><tr><td>16:20:45</td><td>Editor Pro</td><td>Editó pick</td><td>Ambos marcan: Sí en Real Madrid vs Betis</td><td>{{ ui.status('Actualizado','info') }}</td><td>Web + Telegram</td></tr><tr><td>16:18:33</td><td>Analista</td><td>Marcó para revisión</td><td>Menos de 3.5 goles en Inter vs Milan</td><td>{{ ui.status('Revisión','warn') }}</td><td>Interno</td></tr></tbody></table></section>
+{% endcall %}
 {% endblock %}

@@ -1,0 +1,63 @@
+{% macro status(label, tone='ok') -%}
+  <span class="v794-status {{ tone }}">{{ label }}</span>
+{%- endmacro %}
+
+{% macro kpi(title, value, hint='', icon='●', tone='blue', trend='') -%}
+  <article class="v794-admin-kpi {{ tone }}">
+    <div class="v794-kpi-icon">{{ icon }}</div>
+    <div>
+      <span>{{ title }}</span>
+      <strong>{{ value }}</strong>
+      {% if hint %}<small>{{ hint }}</small>{% endif %}
+      {% if trend %}<em>{{ trend }}</em>{% endif %}
+    </div>
+    <i class="v794-spark"></i>
+  </article>
+{%- endmacro %}
+
+{% macro shell(active='Dashboard', title='Panel admin', subtitle='Centro de control') -%}
+<section class="v794-admin-shell" data-v794-admin="true" data-v794-refresh="30">
+  <aside class="v794-admin-sidebar">
+    <a class="v794-admin-brand" href="/admin/dashboard">
+      <span class="v794-shark-mark">◢</span>
+      <b>NeMeSiS</b><strong>SHARK PRO</strong>
+    </a>
+    {% set nav = [
+      ('Dashboard','/admin/dashboard','▦'),
+      ('Telegram','/admin/telegram/command-center','✈'),
+      ('Pagos','/admin/payments','▣'),
+      ('Usuarios','/admin/users','♙'),
+      ('Picks','/admin/picks','◎'),
+      ('Partidos','/admin/matches-sync','⚽'),
+      ('Datos','/admin/data-marketplace','▤'),
+      ('Automatización','/admin/automation-center','▣'),
+      ('Lanzamiento real','/admin/real-launch','🚀'),
+      ('Auditoría cliente','/admin/client-screen-audit','🛡'),
+      ('Ajustes','/admin/system','⚙')
+    ] %}
+    <nav>
+      {% for label, href, icon in nav %}
+        <a class="{{ 'active' if active == label else '' }}" href="{{ href }}"><i>{{ icon }}</i><span>{{ label }}</span></a>
+      {% endfor %}
+    </nav>
+    <div class="v794-admin-system-card">
+      <span class="v794-live-dot"></span>
+      <div><b>Sistema operativo</b><small>Todos los sistemas</small></div>
+      <strong>Correcto</strong>
+    </div>
+    <footer>© 2026 NeMeSiS SHARK PRO<br>Panel interno</footer>
+  </aside>
+  <main class="v794-admin-main v795-admin-main">
+    <div class="v794-admin-topbar v795-admin-topbar">
+      <label class="v794-admin-search"><i>⌕</i><input placeholder="Buscar en el panel..." aria-label="Buscar en el panel"><kbd>⌘ K</kbd></label>
+      <div class="v794-admin-top-actions"><span class="v795-live-chip"><i></i>Sistema vivo</span><span class="v794-bell">◦<b>7</b></span><span class="v794-admin-avatar">◉</span><div><b>Administrador</b><small>Super Admin</small></div><span>⌄</span></div>
+    </div>
+    <header class="v794-admin-titlebar">
+      <div><h1>{{ title }}</h1><p>{{ subtitle }}</p></div>
+      <div class="v795-title-actions"><span class="v795-clock-card"><small>Madrid</small><b data-v795-clock>--:--:--</b></span><button class="v794-date-pill" type="button">▣ Hoy</button></div>
+    </header>
+    <div class="v795-command-ribbon"><span><i></i>Panel vivo</span><span data-v795-refresh-label="30">Auto-refresh visual en 30s</span><span>Datos reales cuando existen · sin inventar</span></div>
+    {{ caller() }}
+  </main>
+</section>
+{%- endmacro %}

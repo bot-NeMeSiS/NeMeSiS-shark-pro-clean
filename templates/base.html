@@ -24,7 +24,7 @@
   {% set _visual_tier = 'free' %}
   {% set _tier_label = 'FREE' %}
 {% endif %}
-<body class="ns-app ns-tier-{{ _visual_tier }}{% if current_user %} ns-authenticated{% else %} ns-public{% endif %}{% if current_user and current_user.role == 'ADMIN' %} ns-admin{% endif %}" data-ns-route="{{ request.path }}" data-ns-plan="{{ _tier_label }}" data-v775-shell="true" data-v776-shell="true" data-v777-shell="true" data-v778-shell="true" data-v790-shell="true" data-v792-shell="true">
+<body class="ns-app ns-tier-{{ _visual_tier }}{% if current_user %} ns-authenticated{% else %} ns-public{% endif %}{% if current_user and current_user.role == 'ADMIN' %} ns-admin{% endif %}" data-ns-route="{{ request.path }}" data-ns-plan="{{ _tier_label }}" data-v775-shell="true" data-v776-shell="true" data-v777-shell="true" data-v778-shell="true" data-v790-shell="true" data-v792-shell="true" data-v793-shell="true" data-v795-shell="true">
   <div class="ns-ambient" aria-hidden="true"><i></i><i></i><i></i></div>
   <div class="membership-energy-bar" aria-hidden="true"></div>
   <div class="ns-route-glow" aria-hidden="true"></div>
@@ -340,6 +340,59 @@
       });
     }
     if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', fixCrests); else fixCrests();
+  })();
+  </script>
+
+  <script>
+  (function nsV794LivingAdmin(){
+    function tick(){
+      var now=new Date();
+      document.querySelectorAll('.v794-live-clock').forEach(function(el){
+        var base=el.dataset.seconds ? parseInt(el.dataset.seconds,10) : null;
+        if(base!==null && !isNaN(base)){
+          base=Math.max(0, base-1); el.dataset.seconds=String(base);
+          var m=String(Math.floor(base/60)).padStart(2,'0'), sec=String(base%60).padStart(2,'0');
+          el.textContent='00:'+m+':'+sec;
+        } else if(el.textContent && /^\d{2}:\d{2}:\d{2}$/.test(el.textContent.trim())){
+          return;
+        } else {
+          el.textContent=now.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+        }
+      });
+      document.querySelectorAll('[data-v794-timestamp]').forEach(function(el){
+        el.textContent=now.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+      });
+    }
+    function highlightActive(){
+      var path=window.location.pathname;
+      document.querySelectorAll('.v794-admin-sidebar a,.nav-clean a,.bottom-nav-clean a').forEach(function(a){
+        try{ var href=a.getAttribute('href')||''; if(href && path!== '/' && path.indexOf(href.split('?')[0])===0) a.classList.add('is-active'); }catch(e){}
+      });
+    }
+    tick(); highlightActive();
+    setInterval(tick,1000);
+    setInterval(function(){
+      document.querySelectorAll('.v794-admin-shell[data-v794-admin="true"]').forEach(function(shell){
+        shell.classList.toggle('v794-live-flash'); setTimeout(function(){shell.classList.remove('v794-live-flash')}, 450);
+      });
+    },30000);
+  })();
+  </script>
+
+  <script>
+  (function v795LivingUi(){
+    function pad(n){return String(n).padStart(2,'0');}
+    function tick(){
+      const d=new Date();
+      const label=pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds());
+      document.querySelectorAll('[data-v795-clock]').forEach(el=>{el.textContent=label;});
+      document.querySelectorAll('[data-v795-date]').forEach(el=>{el.textContent=d.toLocaleDateString('es-ES',{day:'2-digit',month:'short',year:'numeric'});});
+    }
+    tick(); setInterval(tick,1000);
+    document.querySelectorAll('[data-v795-refresh-label]').forEach(function(el){
+      let left=parseInt(el.getAttribute('data-v795-refresh-label')||'30',10)||30;
+      setInterval(function(){left=left<=1?(parseInt(el.getAttribute('data-v795-refresh-label')||'30',10)||30):left-1; el.textContent='Auto-refresh visual en '+left+'s';},1000);
+    });
   })();
   </script>
 

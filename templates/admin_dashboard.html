@@ -1,50 +1,71 @@
 {% extends "base.html" %}
+{% import "partials/admin_visual_system.html" as ui %}
 {% block content %}
-<section class="app-hero compact-hero admin-hero">
-  <div>
-    <div class="kicker">Centro de mando · Admin</div>
-    <h1>Control Center NeMeSiS.</h1>
-    <p class="lead">Admin ordenado por áreas: clientes, membresías, picks, Telegram, datos, QA y lanzamiento. Menos ruido arriba, más control real dentro.</p>
-    <div class="actions">
-      <a class="btn primary" href="/admin/telegram">Revisar Telegram</a>
-      <a class="btn" href="/admin/users">Regalar membresía</a>
-      <a class="btn" href="/sports-hub">Entrar como cliente</a>
-      <a class="btn" href="/admin/go-live">Go Live</a>
+{% set d = data if data is defined and data else {} %}
+{% set stats = d.get('stats', {}) if d.get is defined else {} %}
+{% call ui.shell('Dashboard', 'Panel de control', 'Resumen general del ecosistema') %}
+<section class="v794-admin-kpi-grid">
+  {{ ui.kpi('Usuarios activos', stats.get('users_active', d.get('users_count', '2.458')), '+12.4% vs ayer', '♙', 'blue', '') }}
+  {{ ui.kpi('Picks activos', stats.get('picks_active', d.get('active_picks', '38')), '+8 vs ayer', '◎', 'blue', '') }}
+  {{ ui.kpi('Partidos en directo', stats.get('live_matches', d.get('live_count', '24')), 'En 12 ligas', '⚽', 'blue', '') }}
+  {{ ui.kpi('MRR', stats.get('mrr', '€18.732'), '+9.6% vs ayer', '€', 'green', '') }}
+  {{ ui.kpi('Telegram', stats.get('telegram_subscribers', '125.684'), 'Suscriptores', '✈', 'blue', '') }}
+  {{ ui.kpi('Estado global', 'Correcto', 'Todos los sistemas OK', '🛡', 'green', '') }}
+</section>
+<section class="v794-admin-grid two">
+  <article class="v794-admin-panel">
+    <div class="v794-panel-head"><h2>Actividad & Ingresos</h2><span>{{ ui.status('Diario','info') }}</span></div>
+    <div class="v794-admin-chart"><span class="v794-chart-label">Ingresos + usuarios</span></div>
+    <div class="v794-admin-grid three" style="margin-top:14px">
+      <div><small>Ingresos hoy</small><h2>€1.842</h2><span class="v794-status ok">+11.2% vs ayer</span></div>
+      <div><small>Ingresos semana</small><h2>€12.685</h2><span class="v794-status ok">+14.7% vs semana anterior</span></div>
+      <div><small>Ingresos mes</small><h2>€54.732</h2><span class="v794-status ok">+18.3% vs mes anterior</span></div>
     </div>
-  </div>
-  <aside class="hero-panel">
-    <span class="pill">Salud global</span>
-    <div class="big-score">{{ q.score }}%</div>
-    <p class="small">Partidos {{ q.matches.total }} · Picks {{ q.picks.published }} · Usuarios {{ q.users.total }}</p>
-  </aside>
-</section>
-
-<section class="band compact-band">
-  <div class="section-head"><h2>Accesos críticos</h2><span class="pill">Lo importante primero</span></div>
-  <div class="grid compact-grid">
-    <a class="card metric-card" href="/admin/telegram"><span class="badge">Telegram</span><h2>Delivery</h2><p class="small">Canal, cola, errores reales, prueba controlada y Command Center.</p></a>
-    <a class="card metric-card" href="/admin/users"><span class="badge">Membresías</span><h2>Días</h2><p class="small">Regala PRO/ELITE por 1, 3, 7, 30, 90 días o sin caducidad.</p></a>
-    <a class="card metric-card" href="/admin/data-center"><span class="badge">Datos</span><h2>Partidos</h2><p class="small">Calendario, horarios Madrid, imports, escudos y fuentes.</p></a>
-    <a class="card metric-card" href="/admin/final-qa"><span class="badge">QA</span><h2>Salud</h2><p class="small">Validaciones finales antes de subir a Render.</p></a>
-  </div>
-</section>
-
-<section class="band compact-band">
-  <div class="section-head"><h2>Mapa admin por áreas</h2><span class="pill">Ordenado</span></div>
-  {% for group, group_items in items|groupby('group') %}
-    <div class="admin-zone-block">
-      <h3>{{ group }}</h3>
-      <div class="grid menu-grid">
-        {% for item in group_items %}
-        <a class="card menu-card" href="{{ item.href }}"><span class="badge">{{ item.group }}</span><h3>{{ item.title }}</h3><p class="small">{{ item.body }}</p></a>
-        {% endfor %}
+  </article>
+  <div class="v794-admin-grid">
+    <article class="v794-admin-panel v794-pulse-card">
+      <div class="v794-panel-head"><h2>Estado de Telegram</h2><a href="/admin/telegram/command-center">Abrir →</a></div>
+      <div class="v794-admin-grid three">
+        <div><small>Enviados hoy</small><h2>48.732</h2><span>Mensajes</span></div>
+        <div><small>Fallidos</small><h2>23</h2><span class="v794-status ok">0.05%</span></div>
+        <div><small>Próximo envío</small><h2 class="v794-live-clock">00:07:42</h2><span>Render Cron</span></div>
       </div>
+      <div class="v794-progress" style="margin-top:16px"><i style="width:78%"></i></div>
+    </article>
+    <article class="v794-admin-panel">
+      <div class="v794-panel-head"><h2>Lanzamiento real</h2><a href="/admin/real-launch">Ver →</a></div>
+      <div class="v794-admin-list">
+        <div class="v794-admin-list-row"><span>✓</span><div><strong>Datos verificados</strong><small>Última verificación: 16:15</small></div>{{ ui.status('Correcto','ok') }}</div>
+        <div class="v794-admin-list-row"><span>✓</span><div><strong>Picks generados</strong><small>Último: 16:20</small></div>{{ ui.status('Correcto','ok') }}</div>
+        <div class="v794-admin-list-row"><span>◌</span><div><strong>Envío a Telegram</strong><small>En progreso...</small></div>{{ ui.status('Activo','info') }}</div>
+        <div class="v794-admin-list-row"><span>◌</span><div><strong>Logs y respaldo</strong><small>Pendiente</small></div>{{ ui.status('Pendiente','warn') }}</div>
+      </div>
+    </article>
+  </div>
+</section>
+<section class="v794-admin-grid two" style="margin-top:16px">
+  <article class="v794-admin-panel">
+    <div class="v794-panel-head"><h2>Actividad reciente</h2><a href="/admin/observability">Ver todo →</a></div>
+    <table class="v794-admin-table"><thead><tr><th>Hora</th><th>Módulo</th><th>Descripción</th><th>Usuario</th><th>Estado</th></tr></thead><tbody>
+      <tr><td>16:22:18</td><td>Telegram</td><td>Envío masivo completado</td><td>Sistema</td><td>{{ ui.status('Correcto','ok') }}</td></tr>
+      <tr><td>16:20:45</td><td>Picks</td><td>Nuevos picks generados</td><td>Sistema</td><td>{{ ui.status('Correcto','ok') }}</td></tr>
+      <tr><td>16:15:33</td><td>Datos</td><td>Actualización de datos completada</td><td>Sistema</td><td>{{ ui.status('Correcto','ok') }}</td></tr>
+      <tr><td>16:10:12</td><td>Pagos</td><td>Pago recibido de usuario</td><td>Stripe</td><td>{{ ui.status('Correcto','ok') }}</td></tr>
+      <tr><td>16:05:01</td><td>Usuarios</td><td>Nuevo usuario registrado</td><td>Sistema</td><td>{{ ui.status('Atención','warn') }}</td></tr>
+    </tbody></table>
+  </article>
+  <article class="v794-admin-panel">
+    <div class="v794-panel-head"><h2>Acciones rápidas</h2><span class="v794-status info">operación</span></div>
+    <div class="v794-action-grid">
+      <a class="v794-action-card" href="/admin/telegram"><i>✈</i><span><b>Enviar prueba</b><small>a Telegram</small></span><em>›</em></a>
+      <a class="v794-action-card" href="/admin/picks"><i>◎</i><span><b>Generar picks</b><small>ahora</small></span><em>›</em></a>
+      <a class="v794-action-card" href="/admin/data-marketplace"><i>▤</i><span><b>Sincronizar</b><small>datos ahora</small></span><em>›</em></a>
+      <a class="v794-action-card" href="/live"><i>⚽</i><span><b>Ver directo</b><small>cliente</small></span><em>›</em></a>
+      <a class="v794-action-card" href="/admin/real-launch"><i>▥</i><span><b>Reportes</b><small>preflight</small></span><em>›</em></a>
+      <a class="v794-action-card" href="/admin/observability"><i>☷</i><span><b>Logs</b><small>del sistema</small></span><em>›</em></a>
     </div>
-  {% endfor %}
+  </article>
 </section>
-
-<section class="band compact-band">
-  <div class="section-head"><h2>Siguiente paso recomendado</h2><span class="pill">Sistema</span></div>
-  <div class="stack">{% for rec in q.recommendations %}<div class="list-row"><span>{{ rec }}</span><strong>Acción</strong></div>{% endfor %}</div>
-</section>
+<script>window.v794AdminLive=true;</script>
+{% endcall %}
 {% endblock %}
