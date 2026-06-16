@@ -218,7 +218,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V809_REFERENCE_PHOTO_EXACT_UI_ADMIN_CLIENT_BUTTONS_FINAL'
+APP_VERSION = 'V810_TELEGRAM_PRO_CHANNEL_REFERENCE_TOPBAR_SHARK_UI_FINAL_POLISH'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
@@ -15032,6 +15032,7 @@ def v566_admin_items():
 
         {"group": "Telegram y automatización", "title": "Telegram", "body": "Configuración, cola y pruebas.", "href": "/admin/telegram"},
         {"group": "Telegram y automatización", "title": "Command Center Telegram", "body": "Diagnóstico visual de Telegram y automatización.", "href": "/admin/telegram/command-center"},
+        {"group": "Telegram y automatización", "title": "Mensajes PRO", "body": "Preview del robot profesional y filtro de competiciones TOP.", "href": "/admin/telegram/pro-preview"},
         {"group": "Telegram y automatización", "title": "Auditoría Telegram", "body": "Estado de envíos y producción.", "href": "/admin/telegram/diagnostics"},
         {"group": "Telegram y automatización", "title": "Automatización", "body": "Cron diario, grading, Telegram, highlights y backups.", "href": "/admin/automation-center"},
         {"group": "Telegram y automatización", "title": "Automatización clásica", "body": "Panel histórico de tareas automáticas.", "href": "/admin/automation"},
@@ -17165,6 +17166,62 @@ def admin_v808_beta_center_page():
     data["beta"] = {"score": 0, "users": v808_admin_real_count("users"), "checks": [], "actions": ["Probar usuario", "Probar admin", "Probar Telegram", "Probar directo"]}
     return render_template("admin_beta_center.html", data=data)
 
+
+
+# ===================== V810 TELEGRAM PRO CHANNEL + REFERENCE UI POLISH =====================
+
+def v810_telegram_preview_samples():
+    """Admin-only preview data. These samples are visual examples and are never sent."""
+    sample_match = {
+        "competition_name": "UEFA Champions League",
+        "home_team": "Manchester City",
+        "away_team": "Real Madrid",
+        "home_score": 1,
+        "away_score": 1,
+        "status": "live",
+        "possession": "54",
+        "shots_on_goal": "5-3",
+        "corners": "4-2",
+        "dangerous_attacks": "38-25",
+        "kickoff_iso": now_iso(),
+    }
+    sample_pick = {
+        **sample_match,
+        "status": "upcoming",
+        "selection": "Más de 1.5 goles",
+        "market": "Total goles",
+        "odds": "1.62",
+        "stake_units": "1.5",
+        "confidence": "78",
+        "risk_level": "Medio",
+        "reasoning": "Partido TOP con ritmo ofensivo y cuota real dentro del rango profesional.",
+        "caution": "Esperar alineaciones si la cuota se mueve fuerte antes del inicio.",
+    }
+    sample_day = [sample_match, {**sample_match, "home_team": "Barcelona", "away_team": "PSG", "status": "upcoming", "home_score": "", "away_score": ""}]
+    return {
+        "daily_summary": format_v771_daily_summary_message(sample_day, focus="Agenda TOP"),
+        "live_alert": format_v771_live_alert_message(sample_match),
+        "pick_alert": format_v771_pick_message(sample_pick),
+        "config": telegram_activity_config(),
+        "note": "Vista previa visual: no se envía, no toca cola y no inventa mensajes de producción.",
+    }
+
+
+@app.route("/admin/telegram/pro-preview")
+def admin_v810_telegram_pro_preview_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/telegram/pro-preview")
+    data = dashboard_data()
+    data["telegram_pro_preview"] = v810_telegram_preview_samples()
+    data["telegram_activity"] = v771_telegram_activity_diagnostics()
+    return render_template("admin_telegram_pro_preview.html", data=data)
+
+
+@app.route("/api/admin/telegram/pro-preview")
+def api_admin_v810_telegram_pro_preview():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "version": APP_VERSION, "preview": v810_telegram_preview_samples(), "activity": v771_telegram_activity_diagnostics()})
 
 if __name__ == "__main__":
     seed_core()

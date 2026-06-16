@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block content %}
+{% set d = data if data is defined and data.get is defined else {} %}
+{% set p = d.get('telegram_pro_preview') or {} %}
+<section class="v810-admin-pro-telegram">
+  <div class="v810-admin-pro-hero">
+    <div>
+      <span class="v810-eyebrow">Telegram PRO</span>
+      <h1>Robot profesional, sin ligas raras</h1>
+      <p>El canal queda enfocado en primeras ligas y campeonatos importantes. La app puede seguir mostrando más competiciones, pero Telegram solo publica señales TOP y picks reales.</p>
+      <div class="v810-hero-actions"><a class="primary" href="/admin/telegram/command-center">Command Center</a><a href="/api/admin/telegram/pro-preview">API preview</a><a href="/admin/map">Mapa admin</a></div>
+    </div>
+    <aside><img src="/static/img/shark-logo.svg" alt=""><strong>SHARK Bot</strong><span>Modo canal profesional</span></aside>
+  </div>
+  <div class="v810-telegram-config-grid">
+    <article><span>Filtro</span><strong>{{ p.get('config', {}).get('professional_competitions_only') }}</strong><small>Solo competiciones TOP para Telegram</small></article>
+    <article><span>Máx. partidos</span><strong>{{ p.get('config', {}).get('top_match_limit') or '—' }}</strong><small>Evita saturar el canal</small></article>
+    <article><span>Máx. picks</span><strong>{{ p.get('config', {}).get('top_pick_limit') or '—' }}</strong><small>Solo picks con cuota real</small></article>
+    <article><span>Dedupe</span><strong>Activo</strong><small>No repite mensajes</small></article>
+  </div>
+  <div class="v810-telegram-preview-grid">
+    <article><header><b>Resumen diario</b><span>Ejemplo visual</span></header><pre>{{ p.get('daily_summary') }}</pre></article>
+    <article><header><b>Alerta live</b><span>Ejemplo visual</span></header><pre>{{ p.get('live_alert') }}</pre></article>
+    <article><header><b>Pick premium</b><span>Ejemplo visual</span></header><pre>{{ p.get('pick_alert') }}</pre></article>
+  </div>
+  <p class="v810-preview-note">{{ p.get('note') }}</p>
+</section>
+{% endblock %}

@@ -123,6 +123,31 @@ def status_label(item):
     return _text((item or {}).get("status") or (item or {}).get("state"), "Próximo")
 
 
+def _clean_metric(value, suffix=""):
+    if value in (None, "", "None"):
+        return "—"
+    text = str(value).strip()
+    return f"{text}{suffix}" if suffix and not text.endswith(suffix) else text
+
+
+def _pressure_line(item):
+    item = item or {}
+    possession = item.get("possession") or item.get("ball_possession")
+    shots = item.get("shots_on_goal") or item.get("shots_on_target")
+    corners = item.get("corners") or item.get("corner_kicks")
+    attacks = item.get("dangerous_attacks") or item.get("attacks")
+    bits = []
+    if possession not in (None, ""):
+        bits.append(f"posesión {_clean_metric(possession, '%') if str(possession).isdigit() else possession}")
+    if shots not in (None, ""):
+        bits.append(f"tiros a puerta {_clean_metric(shots)}")
+    if corners not in (None, ""):
+        bits.append(f"córners {_clean_metric(corners)}")
+    if attacks not in (None, ""):
+        bits.append(f"ataques {_clean_metric(attacks)}")
+    return " · ".join(bits) if bits else "Live básico: sin estadísticas avanzadas del proveedor todavía"
+
+
 def _confidence_label(value):
     if value in (None, ""):
         return "Pendiente"
@@ -130,66 +155,63 @@ def _confidence_label(value):
     return f"{text}/100" if text.isdigit() else text
 
 
-def format_daily_summary_message(matches=None, focus="Agenda deportiva"):
+def format_daily_summary_message(matches=None, focus="Agenda TOP"):
     matches = list(matches or [])[:5]
     lines = [
-        "SHARK - RESUMEN DEL DÍA",
+        "🦈 NeMeSiS SHARK PRO",
+        "📅 Agenda TOP del día",
         madrid_date_label(),
         "",
-        f"{len(matches)} partidos monitorizados",
-        f"Foco principal: {_text(focus, 'Agenda deportiva')}",
+        "Canal profesional: solo primeras ligas y campeonatos importantes.",
         "",
     ]
-    for index, match in enumerate(matches, 1):
-        lines.extend([
-            f"{index}. {match_title(match)}",
-            f"   {competition_label(match)}",
-            f"   {madrid_match_time_label(match)}",
-            f"   Estado: {status_label(match)}",
-            "",
-        ])
-    if not matches:
-        lines.extend(["Sin partidos destacados ahora mismo.", ""])
+    if matches:
+        for index, match in enumerate(matches, 1):
+            lines.extend([
+                f"{index}. ⚽ {match_title(match)}",
+                f"   🏆 {competition_label(match)}",
+                f"   🕘 {madrid_match_time_label(match)} · {status_label(match)}",
+            ])
+    else:
+        lines.append("Sin partidos TOP publicados ahora mismo.")
     lines.extend([
-        "SHARK solo publica picks premium cuando hay cuota real, mercado claro y riesgo controlado.",
-        "Apuesta siempre con responsabilidad.",
         "",
-        "Ver partidos - Ver picks - Directo",
+        "SHARK no publica ligas raras ni partidos sin contexto suficiente.",
+        "Picks solo con cuota real, mercado claro y riesgo controlado.",
+        "",
+        "Abrir app: Partidos · Picks · Directo",
     ])
     return "\n".join(lines).strip()
 
-
 def format_midday_update_message(matches=None, picks_count=0):
     matches = list(matches or [])[:4]
-    lines = ["SHARK - ACTUALIZACIÓN DE MEDIODÍA", madrid_date_label(include_hour=True), ""]
+    lines = ["🦈 SHARK PRO · Actualización", madrid_date_label(include_hour=True), ""]
     if matches:
-        lines.append("Partidos relevantes:")
+        lines.append("Partidos TOP vigilados:")
         for match in matches:
-            lines.append(f"- {match_title(match)} - {madrid_match_time_label(match)}")
+            lines.append(f"• {match_title(match)} · {competition_label(match)} · {madrid_match_time_label(match)}")
     else:
-        lines.append("Sin cambios relevantes ahora mismo.")
+        lines.append("Sin cambios relevantes en competiciones TOP.")
     lines.append(f"Picks premium activos: {int(picks_count or 0)}")
-    lines.append("Ver partidos - Ver picks")
+    lines.append("Abrir app: Partidos · Picks · Directo")
     return "\n".join(lines)
-
 
 def format_live_alert_message(match=None):
     match = match or {}
     lines = [
-        "ALERTA LIVE SHARK",
+        "🔴 LIVE SHARK · Partido TOP",
         "",
-        competition_label(match),
-        f"{status_label(match)} - {score_label(match)}",
+        f"🏆 {competition_label(match)}",
+        f"⚽ {match_title(match)}",
+        f"📊 {score_label(match)} · {status_label(match)}",
         "",
-        f"Local: {_text(match.get('home_team'), 'Local')}",
-        f"Visitante: {_text(match.get('away_team'), 'Visitante')}",
+        f"Lectura real: {_pressure_line(match)}",
         "",
-        "Seguimiento en directo activo.",
+        "SHARK sigue el directo con datos reales. Si no hay tracking avanzado, no se simula.",
         "",
-        "Abrir directo - Ver picks",
+        "Abrir directo · Ver partido",
     ]
     return "\n".join(lines)
-
 
 def format_pick_message(pick=None):
     pick = pick or {}
@@ -200,36 +222,37 @@ def format_pick_message(pick=None):
     risk = _text(pick.get("risk_level") or pick.get("risk"), "Medio")
     stake = pick.get("stake_units") or pick.get("stake") or "Pendiente"
     value = pick.get("value") or pick.get("value_score") or pick.get("edge") or ""
-    reason = _text(pick.get("reasoning") or pick.get("reason") or pick.get("main_reason"), "Lectura SHARK disponible cuando haya contexto suficiente.")
-    caution = _text(pick.get("caution") or pick.get("warning") or pick.get("precaution"), "No aumentar stake si cambia la cuota o falta confirmación de alineaciones.")
+    reason = _text(pick.get("reasoning") or pick.get("reason") or pick.get("main_reason"), "Lectura SHARK pendiente de contexto suficiente.")
+    caution = _text(pick.get("caution") or pick.get("warning") or pick.get("precaution") or pick.get("warning_reason"), "No aumentar stake si cambia la cuota o falta confirmación de alineaciones.")
+    odds_label = odds if odds not in (None, "", 0, 0.0) else "No disponible"
+    stake_label = f"{stake} uds" if str(stake) != "Pendiente" else "Pendiente"
     lines = [
-        "PICK PREMIUM SHARK",
+        "🦈 PICK SHARK PRO",
         "",
-        competition_label(pick),
-        match_title(pick),
-        madrid_match_time_label(pick),
+        f"🏆 {competition_label(pick)}",
+        f"⚽ {match_title(pick)}",
+        f"🕘 {madrid_match_time_label(pick)}",
         "",
-        f"Entrada: {selection}",
-        f"Mercado: {market}",
-        f"Cuota: {odds if odds not in (None, '', 0, 0.0) else 'No disponible'}",
-        f"Stake sugerido: {stake} uds" if str(stake) != "Pendiente" else "Stake sugerido: Pendiente",
-        f"Confianza SHARK: {_confidence_label(confidence)}",
-        f"Riesgo: {risk}",
+        f"🎯 Qué apostar: {selection}",
+        f"📌 Mercado: {market}",
+        f"💰 Cuota real: {odds_label}",
+        f"📏 Stake sugerido: {stake_label}",
+        f"🧠 Confianza SHARK: {_confidence_label(confidence)}",
+        f"⚠️ Riesgo: {risk}",
     ]
     if value not in (None, ""):
-        lines.append(f"Value detectado: {value}")
+        lines.append(f"📈 Value: {value}")
     lines.extend([
         "",
-        "Por qué entrar:",
+        "✅ Por qué entra SHARK:",
         reason,
         "",
-        "Precaución:",
+        "⚠️ Cuidado:",
         caution,
         "",
-        "Ver pick - Ver partido",
+        "Abrir pick · Ver partido · Juego responsable",
     ])
     return "\n".join(lines)
-
 
 def format_combi_message(combi=None):
     combi = combi or {}

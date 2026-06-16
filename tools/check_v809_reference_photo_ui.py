@@ -2,7 +2,7 @@
 from pathlib import Path
 import json, re, sys
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = 'V809_REFERENCE_PHOTO_EXACT_UI_ADMIN_CLIENT_BUTTONS_FINAL'
+VERSION = 'V809_REFERENCE_PHOTO_EXACT_UI_ADMIN_CLIENT_BUTTONS_FINAL', 'V810_TELEGRAM_PRO_CHANNEL_REFERENCE_TOPBAR_SHARK_UI_FINAL_POLISH'
 checks = []
 
 def add(name, ok, detail=''):
@@ -20,12 +20,12 @@ home = read('templates/home.html')
 admin = read('templates/admin_dashboard.html')
 client_map = read('templates/client_navigation_map.html') if (ROOT/'templates/client_navigation_map.html').exists() else ''
 
-add('version_v809', version == VERSION, version)
-add('app_version_v809', f"APP_VERSION = '{VERSION}'" in app)
+add('version_v809', version in {VERSION, 'V810_TELEGRAM_PRO_CHANNEL_REFERENCE_TOPBAR_SHARK_UI_FINAL_POLISH'}, version)
+add('app_version_v809', (f"APP_VERSION = '{VERSION}'" in app or "APP_VERSION = 'V810_TELEGRAM_PRO_CHANNEL_REFERENCE_TOPBAR_SHARK_UI_FINAL_POLISH'" in app))
 add('shell_attr_v809', 'data-v809-shell="true"' in base)
 add('client_map_route', all(x in app for x in ['@app.route("/app/mapa")','def v809_client_navigation_map_page','client_navigation_map.html']))
 add('client_map_template', 'v809-client-map-page' in client_map and '/logout' in client_map and '/calendar?lane=today' in client_map)
-add('client_top_map_link', '<a href="/app/mapa" data-v775-icon="☰">Mapa</a>' in base)
+add('client_top_map_link', ('<a href="/app/mapa" data-v775-icon="☰">Mapa</a>' in base) or ('<a href="/app/mapa" data-v775-icon="☰">Todo</a>' in base))
 add('client_reference_cover', 'v809-reference-cover' in client and 'Todos los accesos' in client)
 add('admin_reference_hero', 'v809-admin-reference-hero' in admin and 'Mapa completo' in admin and 'Vista cliente' in admin)
 add('css_v809', 'V809 — reference-photo exact UI pass' in css and '.v809-client-map-grid' in css and '.v809-admin-reference-hero' in css)

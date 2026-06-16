@@ -125,6 +125,84 @@ def _is_world_cup_or_top(item):
     return any(term in text for term in top_terms) or int((item or {}).get("priority") or 0) >= 85
 
 
+# V810: Telegram profesional. La app puede listar muchas ligas, pero el canal solo
+# debe publicar partidos/picks de competiciones top o campeonatos claros. No llama
+# APIs externas; solo filtra los datos reales ya recibidos por el ecosistema.
+DEFAULT_TELEGRAM_TOP_COMPETITION_TERMS = (
+    "fifa world cup", "world cup", "mundial", "copa mundial", "fifa",
+    "uefa euro", "eurocopa", "nations league", "copa america",
+    "champions league", "uefa champions", "europa league", "conference league",
+    "laliga", "la liga", "primera division spain", "primera división spain",
+    "premier league", "serie a", "bundesliga", "ligue 1", "liga portugal",
+    "eredivisie", "copa del rey", "fa cup", "supercopa", "super cup",
+    "libertadores", "sudamericana",
+)
+DEFAULT_TELEGRAM_BLOCKED_COMPETITION_TERMS = (
+    "u23", "u21", "u20", "u19", "u18", "u17", "youth", "juvenil",
+    "reserve", "reserves", "primavera", "academy", "amistoso", "friendly",
+    "regional", "amateur", "segunda", "tercera", "fourth", "league two",
+    "women", "femen", "femenino", "feminine", "sub-", "sub ", "andaluza",
+)
+
+
+def _split_env_terms(name, defaults):
+    raw = os.getenv(name, "")
+    if not raw:
+        return tuple(defaults)
+    return tuple(term.strip().lower() for term in raw.split(",") if term.strip()) or tuple(defaults)
+
+
+def _competition_text(item):
+    item = item or {}
+    fields = (
+        "competition_name", "league_name", "league", "competition", "country",
+        "sport_key", "title", "home_team", "away_team", "name",
+    )
+    return " ".join(str(item.get(key) or "") for key in fields).lower()
+
+
+def _competition_has_blocked_term(item):
+    text = _competition_text(item)
+    blocked = _split_env_terms("TELEGRAM_BLOCKED_COMPETITION_TERMS", DEFAULT_TELEGRAM_BLOCKED_COMPETITION_TERMS)
+    return any(term and term in text for term in blocked)
+
+
+def is_telegram_professional_competition(item):
+    """True only for top leagues/championships suitable for the public Telegram channel."""
+    item = item or {}
+    if _competition_has_blocked_term(item):
+        return False
+    text = _competition_text(item)
+    allowed = _split_env_terms("TELEGRAM_TOP_COMPETITION_TERMS", DEFAULT_TELEGRAM_TOP_COMPETITION_TERMS)
+    if any(term and term in text for term in allowed):
+        return True
+    try:
+        return int(item.get("priority") or item.get("importance") or 0) >= 90
+    except Exception:
+        return False
+
+
+def filter_telegram_professional_items(items, kind="match", limit=None):
+    """Return allowed items and blockers for admin diagnostics; never invents replacements."""
+    allowed_items = []
+    blockers = []
+    for item in list(items or []):
+        if not isinstance(item, dict):
+            continue
+        if is_telegram_professional_competition(item):
+            allowed_items.append(item)
+            continue
+        blockers.append({
+            "kind": kind,
+            "id": item.get("id") or item.get("match_id") or item.get("fixture_id"),
+            "competition": item.get("competition_name") or item.get("league_name") or item.get("competition") or "—",
+            "reason": "competicion_no_top_para_canal_telegram",
+        })
+    if limit:
+        allowed_items = allowed_items[: int(limit)]
+    return allowed_items, blockers
+
+
 def telegram_activity_config():
     return {
         "activity_level": os.getenv("TELEGRAM_ACTIVITY_LEVEL", "medium_high"),
@@ -146,6 +224,9 @@ def telegram_activity_config():
         "midday_update_time": os.getenv("TELEGRAM_MIDDAY_UPDATE_TIME", "13:30"),
         "evening_recap_time": os.getenv("TELEGRAM_EVENING_RECAP_TIME", "23:30"),
         "prematch_minutes_before": env_int("TELEGRAM_PREMATCH_REMINDER_MINUTES", 60),
+        "professional_competitions_only": env_bool("TELEGRAM_PROFESSIONAL_COMPETITIONS_ONLY", True),
+        "top_match_limit": env_int("TELEGRAM_TOP_MATCH_LIMIT", 18),
+        "top_pick_limit": env_int("TELEGRAM_TOP_PICK_LIMIT", 8),
         "quiet_start": os.getenv("TELEGRAM_QUIET_START", "00:30"),
         "quiet_end": os.getenv("TELEGRAM_QUIET_END", "09:30"),
     }
@@ -322,6 +403,12 @@ def build_telegram_activity_plan(matches=None, picks=None, highlights=None, comb
     combis = list(combis or [])
     candidates = []
     blockers = []
+    if cfg.get("professional_competitions_only", True):
+        matches, match_blockers = filter_telegram_professional_items(matches, kind="match", limit=cfg.get("top_match_limit") or 18)
+        picks, pick_blockers = filter_telegram_professional_items(picks, kind="pick", limit=cfg.get("top_pick_limit") or 8)
+        filtered_highlights, highlight_blockers = filter_telegram_professional_items(highlights, kind="highlight", limit=cfg.get("top_match_limit") or 18)
+        highlights = filtered_highlights
+        blockers.extend(match_blockers[:18] + pick_blockers[:12] + highlight_blockers[:8])
     date_key = today_key(current)
 
     if should_send_daily_summary(current):
@@ -407,6 +494,7 @@ def telegram_activity_status(plan=None):
         "activity_level": cfg.get("activity_level"),
         "quiet_hours": "activo" if cfg.get("quiet_hours_enabled") else "inactivo",
         "world_cup_override": "activo" if cfg.get("world_cup_override") else "inactivo",
+        "professional_competitions_only": "activo" if cfg.get("professional_competitions_only", True) else "inactivo",
         "candidate_count": plan.get("candidate_count", 0),
         "next_estimated": "Siguiente tick Render Cron",
     }

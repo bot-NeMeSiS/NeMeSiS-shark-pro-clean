@@ -240,6 +240,7 @@ def include(path: Path) -> bool:
     if parts[0] == "reports":
         return (
             rel_posix == "reports/CODEX_DAILY_PROMPT_CURRENT.txt"
+            or rel_posix.startswith("reports/v810_telegram_previews/")
             or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V759")
             or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V760")
             or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V761")
@@ -303,7 +304,15 @@ def include(path: Path) -> bool:
             or rel_posix.startswith("reports/V804_")
             or rel_posix.startswith("reports/V805_")
             or rel_posix.startswith("reports/V806_")
+            or rel_posix.startswith("reports/V810_")
+            or rel_posix.startswith("reports/V809_")
+            or rel_posix.startswith("reports/V808_")
+            or rel_posix.startswith("reports/V807_")
             or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V806")
+            or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V810")
+            or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V809")
+            or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V808")
+            or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V807")
             or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V765")
             or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V766")
             or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V767")
