@@ -21,7 +21,7 @@ required_base = [
     '/sports-hub',
 ]
 required_dash = [
-    'V808 · Ecosistema final conectado',
+    'V809 · panel final tipo referencia',
     'v807-admin-route-catalog',
     'items|default([])|groupby',
     'no simula valores',

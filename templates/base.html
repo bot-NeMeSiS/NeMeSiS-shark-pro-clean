@@ -24,7 +24,7 @@
   {% set _visual_tier = 'free' %}
   {% set _tier_label = 'FREE' %}
 {% endif %}
-<body class="ns-app ns-tier-{{ _visual_tier }}{% if current_user %} ns-authenticated{% else %} ns-public{% endif %}{% if current_user and current_user.role == 'ADMIN' %} ns-admin{% endif %}" data-ns-route="{{ request.path }}" data-ns-plan="{{ _tier_label }}" data-v775-shell="true" data-v776-shell="true" data-v777-shell="true" data-v778-shell="true" data-v790-shell="true" data-v792-shell="true" data-v793-shell="true" data-v795-shell="true" data-v796-shell="true" data-v797-shell="true" data-v798-shell="true" data-v799-shell="true" data-v800-shell="true" data-v801-shell="true" data-v802-shell="true" data-v806-shell="true" data-v807-shell="true">
+<body class="ns-app ns-tier-{{ _visual_tier }}{% if current_user %} ns-authenticated{% else %} ns-public{% endif %}{% if current_user and current_user.role == 'ADMIN' %} ns-admin{% endif %}" data-ns-route="{{ request.path }}" data-ns-plan="{{ _tier_label }}" data-v775-shell="true" data-v776-shell="true" data-v777-shell="true" data-v778-shell="true" data-v790-shell="true" data-v792-shell="true" data-v793-shell="true" data-v795-shell="true" data-v796-shell="true" data-v797-shell="true" data-v798-shell="true" data-v799-shell="true" data-v800-shell="true" data-v801-shell="true" data-v802-shell="true" data-v806-shell="true" data-v807-shell="true" data-v809-shell="true">
   <div class="ns-ambient" aria-hidden="true"><i></i><i></i><i></i></div>
   <div class="membership-energy-bar" aria-hidden="true"></div>
   <div class="ns-route-glow" aria-hidden="true"></div>
@@ -53,6 +53,7 @@
           <a href="/live" data-v775-icon="●">Directo</a>
           <a href="/picks" data-v775-icon="◆">Picks</a>
           <a href="/track-record" data-v775-icon="↗">Histórico</a>
+          <a href="/app/mapa" data-v775-icon="☰">Mapa</a>
           <a href="/shark" data-v775-icon="◥">SHARK</a>
           <a href="/telegram" data-v775-icon="✈">Telegram</a>
           <a href="/mi-cuenta" data-v775-icon="◎">Cuenta</a>
@@ -100,6 +101,7 @@
     <div><strong>Centro de mando</strong><span>Todos los módulos reales enlazados</span></div>
     <nav>
       <a href="/admin/map">Mapa completo</a>
+      <a href="/admin/dashboard">Dashboard</a>
       <a href="/admin/data-center">Sincronizar datos</a>
       <a href="/admin/matches-sync">Partidos</a>
       <a href="/admin/picks">Picks</a>

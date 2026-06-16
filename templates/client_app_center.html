@@ -22,8 +22,23 @@
       <h1>Buenos días, {{ user_name }}</h1>
       <p>Tu pantalla principal: partidos reales, directos, picks publicados, SHARK y cuenta, todo conectado.</p>
     </div>
-    <div class="v799-appbar-actions"><a href="/mi-cuenta">Mi cuenta</a><a class="primary" href="/calendar?lane=today">Partidos de hoy</a></div>
+    <div class="v799-appbar-actions"><a href="/app/mapa">Mapa app</a><a href="/mi-cuenta">Mi cuenta</a><a class="primary" href="/calendar?lane=today">Partidos de hoy</a></div>
   </div>
+
+  <section class="v809-reference-cover" aria-label="Experiencia visual principal estilo referencia">
+    <div class="v809-reference-copy">
+      <span class="v809-eyebrow">App final · flujo conectado</span>
+      <h2>Inicio limpio, visual y directo.</h2>
+      <p>Desde aquí el cliente debe saber qué hacer: ver partidos, abrir directo, revisar picks y preguntar a SHARK sin perderse.</p>
+      <div class="v809-reference-actions"><a class="primary" href="/calendar?lane=today">Partidos</a><a href="/live">Directo</a><a href="/picks">Picks</a><a href="/app/mapa">Todos los accesos</a></div>
+    </div>
+    <aside class="v809-reference-phone" aria-label="Resumen rápido tipo app móvil">
+      <div class="v809-phone-brand"><img src="/static/img/shark-logo.svg" alt=""><span>{{ plan_name }}</span></div>
+      <div class="v809-phone-score"><b>{{ live_count }}</b><small>directos ahora</small></div>
+      <div class="v809-phone-metrics"><span>{{ today_count }} hoy</span><span>{{ picks_count }} picks</span><span>{{ telegram_count }} alertas</span></div>
+      <nav><a href="/calendar?lane=today">Partidos</a><a href="/shark">SHARK</a></nav>
+    </aside>
+  </section>
 
   <section class="v800-stage v800-app-stage" aria-label="Centro visual de uso rápido">
     <article class="v800-stage-main">
@@ -66,7 +81,7 @@
       </section>
 
       <section class="v799-card v799-flow-card">
-        <div class="v799-section-head"><div><span>Ruta ideal</span><h2>Todo enlazado</h2></div><a href="/menu">Ver menú →</a></div>
+        <div class="v799-section-head"><div><span>Ruta ideal</span><h2>Todo enlazado</h2></div><a href="/app/mapa">Ver mapa →</a></div>
         <div class="v799-flow-steps">
           <a href="/calendar?lane=today"><b>1</b><strong>Partidos</strong><small>Agenda real</small></a>
           <a href="/live"><b>2</b><strong>Directo</strong><small>Marcador y minuto</small></a>

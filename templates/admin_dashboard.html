@@ -5,11 +5,25 @@
 {% set stats = d.get('stats', {}) if d.get is defined else {} %}
 {% set grouped = items|default([])|groupby('group') %}
 {% call ui.shell('Dashboard', 'Panel de control', 'Centro operativo real del ecosistema') %}
-<section class="v807-admin-hero">
+<section class="v809-admin-reference-hero">
   <div>
-    <p class="eyebrow">V808 · Ecosistema final conectado</p>
-    <h1>Panel admin tipo command center con todos los accesos recuperados.</h1>
-    <p>Logo SHARK restaurado, navegación completa, mapa global y datos reales. Si Render, DB o API no traen un dato, aparece pendiente: no se inventa nada.</p>
+    <p class="eyebrow">V809 · panel final tipo referencia</p>
+    <h1>Centro de mando limpio, visual y con todos los botones.</h1>
+    <p>Admin debe funcionar como una app de control: accesos visibles, módulos agrupados, vista cliente a un toque y datos reales sin métricas inventadas.</p>
+    <div class="v809-admin-hero-actions"><a class="primary" href="/admin/map">Mapa completo</a><a href="/sports-hub">Vista cliente</a><a href="/admin/matches-sync">Partidos</a><a href="/admin/telegram/command-center">Telegram</a></div>
+  </div>
+  <aside>
+    <img src="/static/img/shark-logo.svg" alt="">
+    <strong>{{ d.get('version') or d.get('app_version') or 'Versión activa' }}</strong>
+    <small>Madrid · producción · sin datos inventados</small>
+  </aside>
+</section>
+
+<section class="v807-admin-hero compact">
+  <div>
+    <p class="eyebrow">Ecosistema conectado</p>
+    <h1>Panel admin tipo command center con accesos recuperados.</h1>
+    <p>Logo SHARK, navegación completa, mapa global y datos reales. Si Render, DB o API no traen un dato, aparece pendiente.</p>
   </div>
   <aside>
     <span class="v807-live-dot"></span>

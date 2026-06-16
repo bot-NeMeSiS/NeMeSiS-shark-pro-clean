@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block content %}
+{% set groups = items|default([])|groupby('group') %}
+<section class="v809-client-map-page">
+  <section class="v809-client-map-hero">
+    <div>
+      <span class="v809-eyebrow">Mapa cliente · experiencia final</span>
+      <h1>Todo el camino de la app en una pantalla.</h1>
+      <p>Accesos claros para no perder botones: partidos, directo, picks, SHARK, histórico, Telegram, cuenta y salir. Solo enlaza pantallas reales del proyecto.</p>
+      <div class="v809-hero-actions"><a class="primary" href="/calendar?lane=today">Partidos de hoy</a><a href="/live">Directo</a><a href="/shark">SHARK</a></div>
+    </div>
+    <aside class="v809-shark-device" aria-label="Vista estilo app">
+      <img src="/static/img/shark-logo.svg" alt="">
+      <strong>NeMeSiS SHARK PRO</strong>
+      <span>Cliente conectado</span>
+    </aside>
+  </section>
+
+  <section class="v809-route-strip" aria-label="Ruta recomendada">
+    <a href="/calendar?lane=today"><b>1</b><span>Partido</span><small>elige encuentro real</small></a>
+    <a href="/live"><b>2</b><span>Directo</span><small>minuto y marcador</small></a>
+    <a href="/picks"><b>3</b><span>Pick</span><small>cuota y riesgo</small></a>
+    <a href="/shark"><b>4</b><span>SHARK</span><small>consulta final</small></a>
+  </section>
+
+  <section class="v809-client-map-grid">
+    {% for group, group_items in groups %}
+    <article class="v809-map-group">
+      <header><h2>{{ group }}</h2><span>{{ group_items|list|length }}</span></header>
+      <div>
+        {% for item in group_items %}
+        <a href="{{ item.href }}" class="{{ 'danger' if item.href == '/logout' else '' }}">
+          <i>{{ item.icon }}</i>
+          <b>{{ item.title }}</b>
+          <small>{{ item.body }}</small>
+          <em>Abrir →</em>
+        </a>
+        {% endfor %}
+      </div>
+    </article>
+    {% endfor %}
+  </section>
+</section>
+{% endblock %}

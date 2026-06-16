@@ -218,7 +218,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V808_FULL_ECOSYSTEM_REFERENCE_UI_ADMIN_CLIENT_FINAL_PERFECTION'
+APP_VERSION = 'V809_REFERENCE_PHOTO_EXACT_UI_ADMIN_CLIENT_BUTTONS_FINAL'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
@@ -17037,6 +17037,39 @@ def api_v808_telegram_enqueue_recommendations():
         queued.append(enqueue_telegram_message("recommendation", title, body, chat_id=chat_id, payload=rec, dedupe_key=dedupe, force=request.args.get("force") in {"1","true","yes"}))
     return jsonify({"ok": True, "version": APP_VERSION, "queued": queued, "count": len(queued)})
 
+
+
+
+# ===================== V809 REFERENCE PHOTO EXACT UI ADMIN/CLIENT BUTTON RECOVERY =====================
+
+def v809_client_navigation_items():
+    return [
+        {"group":"Inicio y uso diario","title":"Inicio","body":"Resumen cliente con partidos, directo, picks y SHARK.","href":"/app","icon":"⌂"},
+        {"group":"Inicio y uso diario","title":"Partidos","body":"Calendario real por días, ligas y búsqueda.","href":"/calendar?lane=today","icon":"▦"},
+        {"group":"Inicio y uso diario","title":"Directo","body":"Marcador live, minuto, presión y tracker si API-Football lo aporta.","href":"/live","icon":"●"},
+        {"group":"Inicio y uso diario","title":"Picks","body":"Picks publicados con cuota, stake, riesgo y explicación.","href":"/picks","icon":"◆"},
+        {"group":"SHARK y análisis","title":"SHARK IA","body":"Preguntar por partido, pick, riesgo o combinada responsable.","href":"/shark","icon":"◥"},
+        {"group":"SHARK y análisis","title":"SHARK Core","body":"Centro avanzado de lectura SHARK cuando tu plan lo permita.","href":"/shark-core","icon":"🦈"},
+        {"group":"Seguimiento","title":"Histórico","body":"Track record y resultados solo cuando estén cerrados con datos reales.","href":"/track-record","icon":"↗"},
+        {"group":"Seguimiento","title":"Favoritos","body":"Tus equipos, partidos o focos guardados.","href":"/favorites","icon":"★"},
+        {"group":"Alertas y cuenta","title":"Telegram","body":"Conexión, alertas y canal sin inventar envíos.","href":"/telegram","icon":"✈"},
+        {"group":"Alertas y cuenta","title":"Mi cuenta","body":"Plan, sesión, ajustes y cierre de sesión.","href":"/mi-cuenta","icon":"◎"},
+        {"group":"Alertas y cuenta","title":"Soporte","body":"Ayuda y contacto para el cliente.","href":"/soporte","icon":"?"},
+        {"group":"Alertas y cuenta","title":"Salir","body":"Cerrar sesión de forma visible y segura.","href":"/logout","icon":"⏻"},
+    ]
+
+
+@app.route("/app/mapa")
+@app.route("/mi-app/mapa")
+@app.route("/mapa-cliente")
+def v809_client_navigation_map_page():
+    user = current_session_user()
+    if not user:
+        return redirect("/cliente-login?next=/app/mapa")
+    data = dashboard_data()
+    data["membership"] = v566_membership_ui(user)
+    data["client_navigation_items"] = v809_client_navigation_items()
+    return render_template("client_navigation_map.html", data=data, items=data["client_navigation_items"])
 
 # V808 route aliases for buttons found in legacy/client/admin templates.
 @app.route("/password-reset")
