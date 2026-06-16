@@ -13,15 +13,15 @@ css = read('static/app.css')
 
 required_base = [
     'data-v807-shell="true"',
-    'v807-admin-launchpad',
-    'v807_admin_groups',
+    'v808-admin-rail',
+    'v808_admin_groups',
     '/admin/matches-sync',
     '/admin/live-depth',
     '/admin/telegram/command-center',
     '/sports-hub',
 ]
 required_dash = [
-    'V807 · Admin Reference System',
+    'V808 · Ecosistema final conectado',
     'v807-admin-route-catalog',
     'items|default([])|groupby',
     'no simula valores',
@@ -35,10 +35,10 @@ required_app = [
     '/admin/real-launch',
 ]
 required_css = [
-    'V807_ADMIN_CLIENT_REFERENCE_NAVIGATION_COMMAND_CENTER_REAL_DATA_FINAL',
-    '.v807-admin-launchpad',
+    'V808 — final reference UI pass',
+    '.v808-admin-rail',
     '.v807-admin-route-catalog',
-    '.ns-authenticated:not(.ns-admin)[data-v807-shell="true"] .v798-client-rail',
+    '.v808-admin-map-cards',
 ]
 
 for needle in required_base:

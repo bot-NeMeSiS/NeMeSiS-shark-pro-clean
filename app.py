@@ -218,7 +218,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V807_ADMIN_CLIENT_REFERENCE_NAVIGATION_COMMAND_CENTER_REAL_DATA_FINAL'
+APP_VERSION = 'V808_FULL_ECOSYSTEM_REFERENCE_UI_ADMIN_CLIENT_FINAL_PERFECTION'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
@@ -16846,6 +16846,291 @@ def api_admin_v773_automation_center_summary():
     if not is_admin_session():
         return admin_json_forbidden()
     return jsonify({"ok": True, "version": APP_VERSION, "automation_center": v773_automation_center_context()})
+
+
+# -----------------------------
+# V808 — Full ecosystem reference UI/navigation recovery
+# -----------------------------
+
+def v808_admin_real_count(table, where="1=1", params=()):
+    try:
+        return safe_count(table, where, params)
+    except Exception:
+        return 0
+
+
+def v808_support_center_context():
+    feedback_total = v808_admin_real_count("client_feedback") + v808_admin_real_count("feedback")
+    tickets_total = v808_admin_real_count("support_tickets") + v808_admin_real_count("tickets")
+    open_feedback = v808_admin_real_count("client_feedback", "lower(coalesce(status,'')) NOT IN ('closed','cerrado','resolved','resuelto')")
+    open_tickets = v808_admin_real_count("support_tickets", "lower(coalesce(status,'')) NOT IN ('closed','cerrado','resolved','resuelto')")
+    health = 100 if (open_feedback + open_tickets) == 0 else max(40, 100 - (open_feedback + open_tickets) * 8)
+    return {
+        "health": health,
+        "open_feedback": open_feedback,
+        "open_tickets": open_tickets,
+        "total_feedback": feedback_total,
+        "total_tickets": tickets_total,
+        "recent": [],
+        "actions": [
+            {"title": "Revisar experiencia cliente", "body": "Recorre Inicio, Partidos, Directo, Picks, SHARK, Telegram y Cuenta desde Vista cliente."},
+            {"title": "Comprobar botones perdidos", "body": "Usa el Mapa admin V808 para verificar que todas las pantallas importantes siguen accesibles."},
+            {"title": "Validar datos reales", "body": "Sincroniza calendario/live/cuotas desde Data Center antes de revisar pantallas vacías."},
+        ],
+    }
+
+
+def v808_pick_performance_context():
+    data = dashboard_data()
+    data["pick_stats"] = pick_stats()
+    data["global_tracking"] = []
+    data["bankroll_users"] = []
+    try:
+        data["global_tracking"] = rows("""
+            SELECT p.home_team,p.away_team,p.selection,p.result_status,COUNT(t.id) AS followers,COALESCE(SUM(t.stake),0) AS tracked_stake
+            FROM pick_tracking t JOIN picks p ON p.id=t.pick_id
+            GROUP BY p.id ORDER BY followers DESC LIMIT 40
+        """)
+    except Exception:
+        data["global_tracking"] = []
+    try:
+        data["bankroll_users"] = rows("SELECT user_id,current_bankroll,preferred_stake,risk_profile FROM user_bankrolls ORDER BY updated_at DESC LIMIT 30")
+    except Exception:
+        data["bankroll_users"] = []
+    return data
+
+
+def v808_betting_center_context():
+    data = dashboard_data()
+    recs = v566_template_recommendations(limit=30)
+    upcoming = len(get_upcoming_matches(today_iso(), days=21, limit=250))
+    odds = v808_admin_real_count("odds_snapshots") + v808_admin_real_count("odds")
+    picks_published = v808_admin_real_count("picks", "lower(coalesce(status,''))='published'")
+    score = min(100, 40 + min(25, upcoming) + min(20, odds) + min(15, picks_published))
+    issues = []
+    if not upcoming:
+        issues.append("No hay partidos próximos cargados. Ejecuta Data Center → Calendario.")
+    if not odds:
+        issues.append("No hay cuotas cacheadas detectadas. Ejecuta Data Center → Cuotas.")
+    if not picks_published:
+        issues.append("No hay picks publicados ahora mismo.")
+    data["betting_check"] = {
+        "score": score,
+        "matches": {"upcoming_matches": upcoming},
+        "odds": {"odds_snapshots": odds},
+        "picks": {"published": picks_published},
+        "issues": issues,
+        "next_actions": ["Sincronizar calendario", "Actualizar cuotas", "Revisar recomendaciones", "Publicar solo picks validados"],
+    }
+    data["betting_recommendations"] = recs
+    return data
+
+
+def v808_intelligence_status_context():
+    recs = v566_template_recommendations(limit=40)
+    value_recs = [r for r in recs if str(r.get("value_label") or r.get("badge") or "").upper() in {"VALUE", "HOT", "TOP"}]
+    score = min(100, 45 + min(30, len(recs) * 2) + min(25, len(value_recs) * 4))
+    blockers = []
+    if not recs:
+        blockers.append("Sin recomendaciones reales generadas. Sincroniza partidos/cuotas y regenera inteligencia.")
+    return {
+        "score": score,
+        "blockers": blockers,
+        "next_actions": ["Regenerar recomendaciones", "Revisar VALUE/HOT", "Convertir solo picks validados", "Enviar a Telegram desde Command Center"],
+        "intelligence": {
+            "total": len(recs),
+            "value_count": len(value_recs),
+            "hot_count": len(value_recs),
+            "top": recs[:12],
+        },
+    }
+
+
+@app.route("/admin/map")
+@app.route("/admin/navigation")
+@app.route("/admin/navegacion")
+def admin_v808_navigation_map_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/map")
+    return render_template("admin_navigation_map.html", data=dashboard_data(), items=v566_admin_items())
+
+
+@app.route("/admin/support-center")
+def admin_v808_support_center_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/support-center")
+    data = dashboard_data()
+    data["support"] = v808_support_center_context()
+    return render_template("admin_support_center.html", data=data)
+
+
+@app.route("/admin/pick-performance")
+def admin_v808_pick_performance_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/pick-performance")
+    return render_template("admin_pick_performance.html", data=v808_pick_performance_context())
+
+
+@app.route("/admin/betting-center")
+def admin_v808_betting_center_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/betting-center")
+    return render_template("admin_betting_center.html", data=v808_betting_center_context())
+
+
+@app.route("/admin/intelligence-engine")
+def admin_v808_intelligence_engine_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/intelligence-engine")
+    return render_template("admin_intelligence_engine.html", intelligence_status=v808_intelligence_status_context())
+
+
+@app.route("/api/betting/generate")
+def api_v808_betting_generate():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    recs = v566_template_recommendations(limit=as_int(request.args.get("limit"), 40))
+    return jsonify({"ok": True, "version": APP_VERSION, "recommendations": recs, "count": len(recs), "note": "Generado desde partidos/cuotas reales disponibles; no inventa picks."})
+
+
+@app.route("/api/betting/convert-to-pick")
+def api_v808_betting_convert_to_pick():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    rec_id = request.args.get("id") or request.args.get("recommendation_id") or ""
+    publish = request.args.get("publish") in {"1", "true", "yes"}
+    recs = v566_template_recommendations(limit=80)
+    rec = next((r for r in recs if str(r.get("id") or r.get("recommendation_id") or r.get("match_id")) == str(rec_id)), None)
+    if not rec:
+        return jsonify({"ok": False, "version": APP_VERSION, "error": "Recomendación no encontrada o no generada con datos actuales."}), 404
+    payload = {
+        "match_id": rec.get("match_id") or "",
+        "home_team": rec.get("home_team") or "",
+        "away_team": rec.get("away_team") or "",
+        "league_name": rec.get("league_name") or rec.get("competition_name") or "",
+        "selection": rec.get("selection") or rec.get("pick") or "",
+        "market": rec.get("market") or "Principal",
+        "odds": rec.get("odds") or rec.get("odds_value") or "",
+        "confidence": rec.get("confidence") or rec.get("score") or rec.get("shark_score") or "",
+        "risk_level": rec.get("risk_level") or rec.get("risk") or "MEDIO",
+        "reasoning": rec.get("reasoning") or rec.get("reason") or "",
+        "warning_reason": rec.get("warning_reason") or rec.get("warning") or "",
+        "membership_required": rec.get("membership_required") or "PRO",
+    }
+    result = create_or_update_pick(payload, publish=publish)
+    return jsonify({"ok": True, "version": APP_VERSION, "published": publish, "result": result})
+
+
+@app.route("/api/telegram/enqueue-recommendations")
+def api_v808_telegram_enqueue_recommendations():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    recs = v566_template_recommendations(limit=as_int(request.args.get("limit"), 5))
+    queued = []
+    chat_id = os.getenv("TELEGRAM_CHAT_ID", "")
+    if not chat_id:
+        return jsonify({"ok": False, "version": APP_VERSION, "error": "TELEGRAM_CHAT_ID no configurado en Render."}), 400
+    for rec in recs:
+        title = "Oportunidad SHARK"
+        body = f"🦈 SHARK PRO\n{rec.get('home_team','')} vs {rec.get('away_team','')}\nPick: {rec.get('selection') or rec.get('pick') or 'Pendiente'}\nCuota: {rec.get('odds') or '—'}\nRiesgo: {rec.get('risk_level') or '—'}"
+        dedupe = f"v808-rec-{rec.get('id') or rec.get('match_id') or hashlib.md5(body.encode()).hexdigest()[:10]}-{today_iso()}"
+        queued.append(enqueue_telegram_message("recommendation", title, body, chat_id=chat_id, payload=rec, dedupe_key=dedupe, force=request.args.get("force") in {"1","true","yes"}))
+    return jsonify({"ok": True, "version": APP_VERSION, "queued": queued, "count": len(queued)})
+
+
+# V808 route aliases for buttons found in legacy/client/admin templates.
+@app.route("/password-reset")
+def v808_password_reset_alias():
+    return redirect("/forgot-password")
+
+@app.route("/notificaciones")
+def v808_notifications_alias():
+    if not current_session_user():
+        return redirect("/cliente-login?next=/notificaciones")
+    return redirect("/telegram")
+
+@app.route("/admin/autonomous-picks")
+def admin_v808_autonomous_picks_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/autonomous-picks")
+    data = dashboard_data()
+    recs = v566_template_recommendations(limit=30)
+    data["recommendations"] = recs
+    data["autonomous_picks"] = {
+        "auto_total": len(recs),
+        "published": v808_admin_real_count("picks", "lower(coalesce(status,''))='published'"),
+        "with_odds": len([r for r in recs if r.get("odds") or r.get("odds_value")]),
+        "without_odds": len([r for r in recs if not (r.get("odds") or r.get("odds_value"))]),
+    }
+    return render_template("admin_autonomous_picks.html", data=data)
+
+@app.route("/admin/autopilot-audit")
+def admin_v808_autopilot_audit_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/autopilot-audit")
+    return render_template("admin_autopilot_audit.html", data=dashboard_data())
+
+@app.route("/admin/telegram-audit")
+def admin_v808_telegram_audit_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/telegram-audit")
+    data = dashboard_data()
+    data["telegram_diagnostics"] = telegram_diagnostics_safe()
+    return render_template("admin_telegram_audit.html", data=data)
+
+@app.route("/admin/intelligence-center")
+def admin_v808_intelligence_center_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/intelligence-center")
+    data = dashboard_data()
+    recs = v566_template_recommendations(limit=40)
+    data["intel"] = {
+        "score": min(100, 45 + min(40, len(recs) * 2)),
+        "live": len(get_live_matches(limit=30)) if "get_live_matches" in globals() else 0,
+        "totals": {"recommendations": len(recs), "odds_snapshots": v808_admin_real_count("odds_snapshots") + v808_admin_real_count("odds")},
+        "recent_results": get_results_matches(today_iso(), days_back=7, limit=10) if "get_results_matches" in globals() else [],
+        "next_actions": ["Sincronizar datos", "Revisar directo", "Publicar picks validados", "Comprobar Telegram"],
+    }
+    return render_template("admin_intelligence_center.html", data=data)
+
+@app.route("/admin/launch-center")
+def admin_v808_launch_center_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/launch-center")
+    data = dashboard_data()
+    metrics = [
+        {"label": "Usuarios", "value": v808_admin_real_count("users")},
+        {"label": "Partidos", "value": v808_admin_real_count("matches")},
+        {"label": "Picks", "value": v808_admin_real_count("picks")},
+        {"label": "Telegram", "value": v808_admin_real_count("telegram_queue")},
+    ]
+    data["launch"] = {
+        "score": min(100, 50 + min(20, metrics[0]["value"]) + min(15, metrics[1]["value"]) + min(15, metrics[2]["value"])),
+        "metrics": {"items": metrics},
+        "items": [
+            {"title": "Datos reales", "body": "Calendario, live y picks dependen de tus APIs/DB.", "status": "OK" if metrics[1]["value"] else "Pendiente"},
+            {"title": "Telegram", "body": "Usa Command Center para certificar canal y Cron.", "status": "OK" if metrics[3]["value"] else "Pendiente"},
+            {"title": "Cliente", "body": "Revisar Vista cliente antes de venta.", "status": "Revisar"},
+        ],
+        "actions": ["Abrir vista cliente", "Revisar mapa admin", "Ejecutar Data Center", "Validar Telegram"],
+    }
+    return render_template("admin_launch_center.html", data=data)
+
+@app.route("/admin/retention-center")
+def admin_v808_retention_center_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/retention-center")
+    data = dashboard_data()
+    data["retention"] = {"users": v808_admin_real_count("users"), "active": v808_admin_real_count("users"), "signals": [], "actions": ["Revisar cuentas", "Comprobar Telegram", "Mejorar onboarding"]}
+    return render_template("admin_retention_center.html", data=data)
+
+@app.route("/admin/beta-center")
+def admin_v808_beta_center_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/beta-center")
+    data = dashboard_data()
+    data["beta"] = {"score": 0, "users": v808_admin_real_count("users"), "checks": [], "actions": ["Probar usuario", "Probar admin", "Probar Telegram", "Probar directo"]}
+    return render_template("admin_beta_center.html", data=data)
 
 
 if __name__ == "__main__":

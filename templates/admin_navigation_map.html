@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block content %}
+{% set groups = items|default([])|groupby('group') %}
+<section class="v808-admin-map-hero">
+  <div>
+    <p class="eyebrow">Admin · mapa global</p>
+    <h1>Todos los botones del ecosistema en un solo sitio.</h1>
+    <p>Centro de navegación para no perder pantallas: cliente, datos, directo, picks, Telegram, calidad y venta. Solo enlaza rutas reales del proyecto.</p>
+  </div>
+  <aside>
+    <img src="/static/img/shark-logo.svg" alt="">
+    <strong>NeMeSiS SHARK PRO</strong>
+    <span>Mapa operativo</span>
+  </aside>
+</section>
+
+<section class="v808-admin-map-actions">
+  <a href="/admin/control-center">Panel</a>
+  <a href="/sports-hub">Vista cliente</a>
+  <a href="/calendar?lane=today">Calendario cliente</a>
+  <a href="/live">Directo cliente</a>
+  <a href="/picks">Picks cliente</a>
+  <a href="/logout" class="danger">Salir</a>
+</section>
+
+<section class="v808-admin-map-page">
+  {% for group, group_items in groups %}
+  <article class="v808-admin-map-section">
+    <div class="v808-map-section-head"><h2>{{ group }}</h2><span>{{ group_items|list|length }} pantallas</span></div>
+    <div class="v808-admin-map-cards">
+      {% for item in group_items %}
+      <a href="{{ item.href }}">
+        <b>{{ item.title }}</b>
+        <small>{{ item.body }}</small>
+        <em>Abrir →</em>
+      </a>
+      {% endfor %}
+    </div>
+  </article>
+  {% endfor %}
+</section>
+{% endblock %}

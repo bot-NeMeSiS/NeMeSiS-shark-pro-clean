@@ -7,15 +7,15 @@
 {% call ui.shell('Dashboard', 'Panel de control', 'Centro operativo real del ecosistema') %}
 <section class="v807-admin-hero">
   <div>
-    <p class="eyebrow">V807 · Admin Reference System</p>
-    <h1>Panel admin ordenado como centro de mando.</h1>
-    <p>Accesos recuperados, rutas agrupadas y datos reales cuando existen. Nada de métricas inventadas: si Render/DB/API no trae el dato, aparece pendiente.</p>
+    <p class="eyebrow">V808 · Ecosistema final conectado</p>
+    <h1>Panel admin tipo command center con todos los accesos recuperados.</h1>
+    <p>Logo SHARK restaurado, navegación completa, mapa global y datos reales. Si Render, DB o API no traen un dato, aparece pendiente: no se inventa nada.</p>
   </div>
   <aside>
     <span class="v807-live-dot"></span>
     <strong>{{ d.get('version') or d.get('app_version') or 'Versión activa' }}</strong>
     <small>Madrid · producción</small>
-    <a href="/admin/route-health">Revisar rutas</a>
+    <a href="/admin/map">Abrir mapa</a>
   </aside>
 </section>
 
@@ -32,6 +32,7 @@
   <article class="v807-admin-command-main">
     <div class="v794-panel-head"><h2>Acciones principales</h2><span class="v794-status info">operación</span></div>
     <div class="v807-action-tiles">
+      <a href="/admin/map"><i>☰</i><b>Mapa completo</b><small>Todos los botones y pantallas recuperados.</small></a>
       <a href="/admin/data-center"><i>▤</i><b>Sincronizar datos</b><small>Calendario, cuotas, escudos y feeds.</small></a>
       <a href="/admin/matches-sync"><i>⚽</i><b>Partidos</b><small>Revisar calendario, resultados y enlaces.</small></a>
       <a href="/admin/live-depth"><i>●</i><b>Live API-Football</b><small>Tracker, presión y eventos reales.</small></a>

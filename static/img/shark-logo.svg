@@ -1,0 +1,19 @@
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="NeMeSiS SHARK PRO">
+  <defs>
+    <linearGradient id="g" x1="18" y1="20" x2="106" y2="108" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#24E6FF"/>
+      <stop offset="0.52" stop-color="#0B7CFF"/>
+      <stop offset="1" stop-color="#8B5CF6"/>
+    </linearGradient>
+    <filter id="glow" x="-30" y="-30" width="188" height="188" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="5" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="0 0 0 0 0.078 0 0 0 0 0.78 0 0 0 0 1 0 0 0 .55 0"/>
+      <feBlend in="SourceGraphic" mode="screen"/>
+    </filter>
+  </defs>
+  <rect x="10" y="10" width="108" height="108" rx="28" fill="#06111F" stroke="url(#g)" stroke-width="3"/>
+  <path filter="url(#glow)" d="M23 72C44 42 75 26 111 31C94 38 83 48 80 62C93 62 103 67 112 76C95 73 81 75 69 84C54 95 39 94 26 83C37 83 45 80 51 72C41 74 32 74 23 72Z" fill="url(#g)"/>
+  <path d="M51 72C61 57 74 47 91 42C82 51 78 60 81 70C69 64 59 65 51 72Z" fill="#DFFAFF" fill-opacity=".84"/>
+  <path d="M34 82C44 85 53 84 61 79" stroke="#04111B" stroke-width="4" stroke-linecap="round" opacity=".65"/>
+  <circle cx="83" cy="44" r="3" fill="#03101E"/>
+</svg>
