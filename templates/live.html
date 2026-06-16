@@ -3,6 +3,7 @@
 {% block content %}
 {% set live = data.get('live_experience') or {} %}
 {% set api_tracker = data.get('api_football_live_tracker') or {} %}
+{% set api_quality = data.get('api_football_live_quality') or {} %}
 {% set counts = live.get('counts') or {} %}
 {% set lane = live.get('lane') or 'live' %}
 {% set ns = namespace(matches=[]) %}
@@ -21,22 +22,34 @@
   {% include "partials/client_flow_bar.html" %}
 
   <section class="v803-live-provider-strip" aria-label="Estado API-Football Live Tracker">
-    <article class="{{ 'is-on' if api_tracker.get('configured') else 'is-off' }}">
+    <article class="{{ 'is-on' if api_tracker.get('configured') or api_quality.get('configured') else 'is-off' }}">
       <span>API-Football Pro</span>
-      <strong>{{ 'Activo' if api_tracker.get('configured') else 'Pendiente de clave en Render' }}</strong>
-      <small>{{ api_tracker.get('message') or 'Live tracker con caché segura y datos reales.' }}</small>
+      <strong>{{ 'Activo' if api_tracker.get('configured') or api_quality.get('configured') else 'Pendiente de clave en Render' }}</strong>
+      <small>{{ api_tracker.get('message') or api_quality.get('message') or 'Live tracker con caché segura y datos reales.' }}</small>
     </article>
     <article>
       <span>Live avanzado</span>
-      <strong>{{ api_tracker.get('fixtures_count',0) or counts.get('live',0) }}</strong>
+      <strong>{{ api_quality.get('fixtures_live', api_tracker.get('fixtures_count',0)) or counts.get('live',0) }}</strong>
       <small>partidos desde fuentes reales</small>
     </article>
     <article>
       <span>Caché</span>
-      <strong>{% if api_tracker.get('cache_age_seconds') is not none %}{{ api_tracker.get('cache_age_seconds') }}s{% else %}—{% endif %}</strong>
+      <strong>{% if api_quality.get('cache_age_seconds') is not none %}{{ api_quality.get('cache_age_seconds') }}s{% elif api_tracker.get('cache_age_seconds') is not none %}{{ api_tracker.get('cache_age_seconds') }}s{% else %}—{% endif %}</strong>
       <small>protege llamadas y créditos</small>
     </article>
     <a href="/live?refresh=1" class="v803-refresh-live">Actualizar directo</a>
+  </section>
+
+  <section class="v805-live-quality-board" aria-label="Calidad del directo API-Football">
+    <article class="status-{{ api_quality.get('status') or 'pending' }}">
+      <span>Calidad de directo</span>
+      <strong>{{ api_quality.get('status') or 'Esperando datos' }}</strong>
+      <small>{{ api_quality.get('message') or 'La app muestra solo datos reales disponibles.' }}</small>
+    </article>
+    <article><span>Con estadísticas</span><strong>{{ api_quality.get('fixtures_with_stats',0) }}</strong><small>fixtures con datos API</small></article>
+    <article><span>Con eventos</span><strong>{{ api_quality.get('fixtures_with_events',0) }}</strong><small>timeline real</small></article>
+    <article><span>Presión SHARK</span><strong>{{ api_quality.get('fixtures_with_pressure',0) }}</strong><small>calculada con datos reales</small></article>
+    <article><span>Ataques peligrosos</span><strong>{{ api_quality.get('fixtures_with_dangerous_attacks',0) }}</strong><small>solo si el feed lo trae</small></article>
   </section>
 
   <section class="v802-live-command" aria-label="Uso de directo">
@@ -90,8 +103,23 @@
           <div class="v803-live-evidence">
             <span>{{ 'Estadísticas API-Football' if featured.get('live_advanced_stats_available') else 'Estadísticas pendientes' }}</span>
             <span>{{ featured.get('live_events_count') or 0 }} eventos</span>
+            <span>{{ featured.get('live_game_flow_phase') or 'Lectura pendiente' }}</span>
+            <span>{{ 'Ataques peligrosos reales' if featured.get('live_dangerous_attacks_available') else 'Ataques peligrosos no disponibles' }}</span>
             <span>{{ 'Balón exacto disponible' if featured.get('live_ball_position_available') else 'Balón exacto no disponible: no se inventa' }}</span>
+            <span>{{ featured.get('live_data_quality_label') or 'Marcador básico' }}</span>
           </div>
+          {% if featured.get('live_data_evidence') %}
+          <div class="v805-evidence-chips" aria-label="Evidencias reales del live tracker">
+            {% for ev in featured.get('live_data_evidence')[:7] %}<span>{{ ev }}</span>{% endfor %}
+          </div>
+          {% endif %}
+          {% if featured.get('live_stat_cards') %}
+          <div class="v804-stat-ribbon" aria-label="Estadísticas rápidas API-Football">
+            {% for stat in featured.get('live_stat_cards')[:6] %}
+            <article class="leader-{{ stat.get('leader') }}"><span>{{ stat.get('label') }}</span><strong>{{ stat.get('home') }}</strong><em>{{ stat.get('away') }}</em></article>
+            {% endfor %}
+          </div>
+          {% endif %}
           {% if tracker.get('events') %}
           <div class="v803-event-timeline">
             {% for ev in tracker.get('events')[:4] %}
@@ -114,7 +142,10 @@
           <a class="v799-scoreboard compact" href="/match/{{ m.get('id') }}"><span>{{ crest(home_identity, m.get('safe_home') or m.get('home_team') or 'Local', 'compact') }}<strong>{{ m.get('safe_home') or m.get('home_team') or 'Local' }}</strong></span><b>{{ m.get('live_score_label') or 'vs' }}<small>{{ m.get('live_clock_label') or '' }}</small></b><span>{{ crest(away_identity, m.get('safe_away') or m.get('away_team') or 'Visitante', 'compact') }}<strong>{{ m.get('safe_away') or m.get('away_team') or 'Visitante' }}</strong></span></a>
           <div class="v803-card-live-meta">
             <span>{{ m.get('live_pressure_label') or 'Presión pendiente' }}</span>
+            <span>{{ m.get('live_game_flow_phase') or 'Lectura pendiente' }}</span>
+            <span>{{ m.get('live_data_quality_label') or 'Marcador básico' }}</span>
             <span>{{ m.get('live_events_count') or 0 }} eventos</span>
+            {% if m.get('live_dangerous_attacks_available') %}<span>Ataques peligrosos</span>{% endif %}
           </div>
           <div class="v799-actions"><a class="primary" href="/match/{{ m.get('id') }}">Ver</a><a href="/match/{{ m.get('id') }}#live-tracker">Tracker</a><a href="/match/{{ m.get('id') }}#shark">SHARK</a></div>
         </article>

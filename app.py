@@ -59,7 +59,9 @@ from engines.live_engine import build_live_depth, build_live_flow, build_match_d
 from engines.live_experience_engine import build_live_experience, live_experience_snapshot
 from engines.api_football_live_tracker_engine import (
     live_tracker_for_match,
+    live_tracker_quality_summary,
     live_tracker_status,
+    sync_api_football_fixture_detail,
     sync_api_football_live_tracker,
 )
 from engines.content_rights_engine import content_rights_policy_summary
@@ -216,7 +218,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V803_API_FOOTBALL_LIVE_TRACKER_REFERENCE_EXPERIENCE'
+APP_VERSION = 'V806_CLIENT_REFERENCE_UI_NO_LEFT_RAIL_FLOW_PERFECTION'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
@@ -11588,6 +11590,7 @@ def live_page():
     source = v766_enrich_matches_with_highlights(source)
     data["live_refresh"] = live_refresh
     data["api_football_live_tracker"] = api_live_tracker
+    data["api_football_live_quality"] = live_tracker_quality_summary(DB_PATH)
     data["live_experience"] = build_live_experience(source, lane=lane, query=query)
     data["v766_highlights"] = v766_highlights_context(limit=8)
     data["v769_highlights_center"] = v769_highlights_content_center(data, current_session_user(), limit=12)
@@ -11612,9 +11615,10 @@ def match_hub_page():
 @app.route("/match/<match_id>")
 @app.route("/partido/<match_id>")
 def match_detail_page(match_id):
-    # V803: before opening a live API-Football fixture detail, refresh the cached tracker safely.
+    # V804: deep-sync selected API-Football fixture detail with a short per-match cache.
+    detail_force_refresh = request.args.get("refresh") in {"1", "true", "yes"}
     if str(match_id or "").startswith("af-"):
-        sync_api_football_live_tracker(DB_PATH, force=False)
+        sync_api_football_fixture_detail(DB_PATH, match_id, force=detail_force_refresh)
     detail = match_detail(match_id)
     data = dashboard_data()
     data["match_detail"] = detail
@@ -11625,6 +11629,16 @@ def match_detail_page(match_id):
     data["v766_highlights"] = sportsdb_highlights_for_match(DB_PATH, match_id) if detail else {"highlights": [], "summary_text": ""}
     data["v769_match_highlights"] = [v769_highlight_card_from_row(h) for h in ((data.get("v766_highlights") or {}).get("highlights") or [])]
     data["api_football_live_tracker"] = live_tracker_for_match(DB_PATH, match_id)
+    data["api_football_live_quality"] = live_tracker_quality_summary(DB_PATH)
+    if detail and not data["api_football_live_tracker"].get("available"):
+        try:
+            m_for_tracker = detail.get("match") or {}
+            external_id = m_for_tracker.get("external_id") or m_for_tracker.get("fixture_id") or ""
+            if external_id and (m_for_tracker.get("source") == "api_football_live" or str(m_for_tracker.get("id") or "").startswith("af-")):
+                sync_api_football_fixture_detail(DB_PATH, str(external_id), force=detail_force_refresh)
+                data["api_football_live_tracker"] = live_tracker_for_match(DB_PATH, str(external_id))
+        except Exception:
+            pass
     if detail:
         detail["client_premium"] = data["client_premium"].get("match", {})
         detail["api_football_live_tracker"] = data["api_football_live_tracker"]
@@ -13100,13 +13114,14 @@ def api_live():
     force_refresh = request.args.get("refresh") in {"1", "true", "yes"}
     refresh = ensure_client_live_fresh(force=force_refresh)
     api_live_tracker = sync_api_football_live_tracker(DB_PATH, force=force_refresh)
+    api_live_quality = live_tracker_quality_summary(DB_PATH)
     matches = []
     matches.extend(api_live_tracker.get("matches") or [])
     matches.extend(live_matches_any_date(limit=180))
     matches.extend(live_matches_from_live_table(limit=180))
     matches.extend(get_matches(date, "today"))
     enriched = [annotate_match(m) for m in dedupe_matches_list(matches)]
-    return jsonify({"ok": True, "version": APP_VERSION, "date": date, "refresh": refresh, "api_football_live_tracker": api_live_tracker, "matches": split_live(enriched), "state_engine": ["LIVE", "HT", "FT", "UPCOMING", "SUSPENDED"]})
+    return jsonify({"ok": True, "version": APP_VERSION, "date": date, "refresh": refresh, "api_football_live_tracker": api_live_tracker, "api_football_live_quality": api_live_quality, "matches": split_live(enriched), "state_engine": ["LIVE", "HT", "FT", "UPCOMING", "SUSPENDED"]})
 
 
 @app.route("/api/live-tracker")
@@ -13117,11 +13132,28 @@ def api_live_tracker():
     return jsonify(sync_api_football_live_tracker(DB_PATH, force=force))
 
 
+@app.route("/api/live-tracker/match/<match_id>")
+def api_live_tracker_match(match_id):
+    if not current_session_user():
+        return jsonify({"ok": False, "error": "login_required"}), 401
+    force = request.args.get("refresh") in {"1", "true", "yes"}
+    return jsonify(sync_api_football_fixture_detail(DB_PATH, match_id, force=force))
+
+
 @app.route("/api/live-tracker/status")
 def api_live_tracker_status():
     if not current_session_user():
         return jsonify({"ok": False, "error": "login_required"}), 401
-    return jsonify(live_tracker_status(DB_PATH))
+    status = live_tracker_status(DB_PATH)
+    status["quality"] = live_tracker_quality_summary(DB_PATH)
+    return jsonify(status)
+
+
+@app.route("/api/live-tracker/quality")
+def api_live_tracker_quality():
+    if not current_session_user():
+        return jsonify({"ok": False, "error": "login_required"}), 401
+    return jsonify(live_tracker_quality_summary(DB_PATH))
 
 
 @app.route("/api/match-hub")
@@ -15777,6 +15809,7 @@ def v742_live_experience_admin_context():
     return {
         "version": APP_VERSION,
         "snapshot": live_experience_snapshot(app_version=APP_VERSION),
+        "api_football_quality": live_tracker_quality_summary(DB_PATH),
         "source_total": len(source),
         "lanes": lanes,
         "counts": {

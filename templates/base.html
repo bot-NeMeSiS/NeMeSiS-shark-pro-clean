@@ -24,7 +24,7 @@
   {% set _visual_tier = 'free' %}
   {% set _tier_label = 'FREE' %}
 {% endif %}
-<body class="ns-app ns-tier-{{ _visual_tier }}{% if current_user %} ns-authenticated{% else %} ns-public{% endif %}{% if current_user and current_user.role == 'ADMIN' %} ns-admin{% endif %}" data-ns-route="{{ request.path }}" data-ns-plan="{{ _tier_label }}" data-v775-shell="true" data-v776-shell="true" data-v777-shell="true" data-v778-shell="true" data-v790-shell="true" data-v792-shell="true" data-v793-shell="true" data-v795-shell="true" data-v796-shell="true" data-v797-shell="true" data-v798-shell="true" data-v799-shell="true" data-v800-shell="true" data-v801-shell="true" data-v802-shell="true">
+<body class="ns-app ns-tier-{{ _visual_tier }}{% if current_user %} ns-authenticated{% else %} ns-public{% endif %}{% if current_user and current_user.role == 'ADMIN' %} ns-admin{% endif %}" data-ns-route="{{ request.path }}" data-ns-plan="{{ _tier_label }}" data-v775-shell="true" data-v776-shell="true" data-v777-shell="true" data-v778-shell="true" data-v790-shell="true" data-v792-shell="true" data-v793-shell="true" data-v795-shell="true" data-v796-shell="true" data-v797-shell="true" data-v798-shell="true" data-v799-shell="true" data-v800-shell="true" data-v801-shell="true" data-v802-shell="true" data-v806-shell="true">
   <div class="ns-ambient" aria-hidden="true"><i></i><i></i><i></i></div>
   <div class="membership-energy-bar" aria-hidden="true"></div>
   <div class="ns-route-glow" aria-hidden="true"></div>
@@ -72,26 +72,7 @@
     </div>
   </header>
 
-  {# V778: navegación global cliente consolidada. PC usa la barra superior; móvil usa la inferior. Sin rail duplicado. #}
-
-  {% if current_user and current_user.role != 'ADMIN' %}
-  <aside class="v798-client-rail v799-client-rail" aria-label="Navegación cliente premium">
-    <div class="v799-rail-brand"><span>NS</span><strong>SHARK</strong><small>{{ _tier_label }}</small></div>
-    <a href="/app" data-v775-icon="⌂"><span>Inicio</span></a>
-    <a href="/calendar?lane=today" data-v775-icon="▦"><span>Partidos</span></a>
-    <a href="/live" data-v775-icon="●"><span>Directo</span></a>
-    <a href="/picks" data-v775-icon="◆"><span>Picks</span></a>
-    <a href="/shark" data-v775-icon="◥"><span>SHARK</span></a>
-    <a href="/track-record" data-v775-icon="↗"><span>Histórico</span></a>
-    <a href="/telegram" data-v775-icon="✈"><span>Telegram</span></a>
-    <a href="/mi-cuenta" data-v775-icon="◎"><span>Cuenta</span></a>
-    <a class="v799-rail-logout" href="/logout" data-v775-icon="⏻"><span>Salir</span></a>
-    <div class="v800-rail-status v802-rail-status" aria-label="Estado cliente">
-      <span>Flujo conectado</span>
-      <small>Partidos · picks · SHARK</small>
-    </div>
-  </aside>
-  {% endif %}
+  {# V806: navegación cliente sin barra lateral izquierda. PC usa la barra superior y móvil usa la inferior. #}
 
   {% if current_user and current_user.role != 'ADMIN' %}
   <div class="v797-session-pills" aria-label="Acciones de sesión">
@@ -131,7 +112,7 @@
       <a href="/calendar?lane=today" data-v775-icon="▦">Partidos</a>
       <a href="/live" data-v775-icon="●">Directo</a>
       <a href="/picks" data-v775-icon="◆">Picks</a>
-      <a href="/shark" data-v775-icon="◥">SHARK</a>
+      <a href="/mi-cuenta" data-v775-icon="◎">Cuenta</a>
     {% else %}
       <a href="/" data-v775-icon="⌂">Inicio</a>
       <a href="/membresias" data-v775-icon="★">Planes</a>

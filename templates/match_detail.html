@@ -14,6 +14,10 @@
 {% set dq = detail.get('data_quality') or {} %}
 {% set live_tracker = detail.get('api_football_live_tracker') or data.get('api_football_live_tracker') or {} %}
 {% set pressure = live_tracker.get('pressure') or {} %}
+{% set live_stat_cards = live_tracker.get('stat_cards') or [] %}
+{% set game_flow = live_tracker.get('game_flow') or {} %}
+{% set tracker_quality = live_tracker.get('quality') or {} %}
+{% set tracker_evidence = tracker_quality.get('evidence') or live_tracker.get('evidence') or [] %}
 <section class="v799-screen v799-match-screen">
   <div class="v799-match-top">
     <a class="v799-back" href="/calendar">← Volver a partidos</a>
@@ -44,6 +48,7 @@
 
   <section class="v800-match-strip" aria-label="Acciones principales del partido">
     <a href="#resumen"><span>Resumen</span><strong>{{ ctx.client_status_label or 'Pendiente' }}</strong></a>
+    <a href="#live-tracker"><span>Live tracker</span><strong>{{ tracker_quality.get('label') or ('Activo' if live_tracker.get('available') else 'Pendiente') }}</strong></a>
     <a href="#picks"><span>Pick</span><strong>{{ 'Publicado' if pick else 'Sin pick' }}</strong></a>
     <a href="#datos"><span>Datos</span><strong>{{ 'Disponibles' if dq.get('has_time') or dq.get('has_score') else 'Pendientes' }}</strong></a>
     <a href="/shark?match={{ m.get('id') }}"><span>SHARK</span><strong>Analizar</strong></a>
@@ -62,9 +67,14 @@
     <div class="v803-tracker-head">
       <div><span>Live tracker real</span><h2>Campo, presión y eventos</h2></div>
       <em>{{ live_tracker.get('source_label') or 'API-Football Pro' }}</em>
+      <a class="v804-detail-refresh" href="/match/{{ m.get('id') }}?refresh=1#live-tracker">Actualizar tracker</a>
     </div>
     <div class="v803-live-field {{ 'has-pressure' if pressure.get('available') else 'no-pressure' }}">
       <div class="v803-field-head"><span>Lectura SHARK</span><strong>{{ pressure.get('label') or live_tracker.get('message') or 'Esperando datos avanzados' }}</strong></div>
+      <div class="v805-match-quality-line">
+        <span>{{ tracker_quality.get('label') or 'Marcador básico' }}</span>
+        <strong>{{ tracker_quality.get('message') or 'La pantalla solo enseña evidencias reales del proveedor.' }}</strong>
+      </div>
       <div class="v803-pitch" style="--home-p: {{ pressure.get('home_pct') or 50 }}%; --away-p: {{ pressure.get('away_pct') or 50 }}%;">
         <div class="v803-pitch-zone home"><b>{{ ctx.safe_home }}</b></div>
         <div class="v803-pitch-mid"><span>{{ 'Presión calculada con estadísticas reales' if pressure.get('available') else 'Sin presión avanzada disponible aún' }}</span></div>
@@ -73,13 +83,35 @@
       <div class="v803-live-evidence">
         <span>{{ 'Eventos reales' if live_tracker.get('has_events') else 'Eventos pendientes' }}</span>
         <span>{{ 'Estadísticas reales' if live_tracker.get('has_advanced_stats') else 'Estadísticas pendientes' }}</span>
+        <span>{{ game_flow.get('phase') or 'Lectura pendiente' }}</span>
+        <span>{{ 'Ataques peligrosos reales' if live_tracker.get('dangerous_attacks_available') else 'Ataques peligrosos no disponibles' }}</span>
         <span>{{ 'Balón exacto disponible' if live_tracker.get('ball_position_available') else 'Balón exacto no disponible: no se inventa' }}</span>
       </div>
+      {% if tracker_evidence %}
+      <div class="v805-evidence-chips" aria-label="Evidencias reales API-Football">
+        {% for ev in tracker_evidence[:8] %}<span>{{ ev }}</span>{% endfor %}
+      </div>
+      {% endif %}
+      {% if live_stat_cards %}
+      <div class="v804-stat-comparison" aria-label="Comparativa live API-Football">
+        <div class="v804-stat-title"><span>Comparativa real</span><strong>{{ game_flow.get('title') or pressure.get('label') or 'Datos live' }}</strong></div>
+        {% for stat in live_stat_cards[:10] %}
+        <article class="leader-{{ stat.get('leader') }}">
+          <b>{{ stat.get('home') }}</b>
+          <span>{{ stat.get('label') }}</span>
+          <strong>{{ stat.get('away') }}</strong>
+        </article>
+        {% endfor %}
+      </div>
+      {% endif %}
     </div>
     <div class="v803-tracker-grid">
       <article><strong>Eventos</strong><span>{% if live_tracker.get('events') %}{{ live_tracker.get('events')|length }} eventos sincronizados{% else %}Pendiente{% endif %}</span></article>
-      <article><strong>Estadísticas</strong><span>{% if (live_tracker.get('stats') or {}).get('available') %}Disponibles API-Football{% else %}Pendientes{% endif %}</span></article>
+      <article><strong>Estadísticas</strong><span>{% if (live_tracker.get('stats') or {}).get('available') %}{{ live_tracker.get('stats_count') or (live_tracker.get('stat_cards') or [])|length }} datos API-Football{% else %}Pendientes{% endif %}</span></article>
+      <article><strong>Fase SHARK</strong><span>{{ game_flow.get('phase') or 'Pendiente' }}</span></article>
+      <article><strong>Ataques peligrosos</strong><span>{{ 'Disponibles por API' if live_tracker.get('dangerous_attacks_available') else 'No disponibles en este feed' }}</span></article>
       <article><strong>Fuente</strong><span>{{ live_tracker.get('source_label') or 'API-Football Pro' }}</span></article>
+      <article><strong>Calidad</strong><span>{{ tracker_quality.get('label') or 'Marcador básico' }}</span></article>
       <article><strong>Ubicación del balón</strong><span>{{ 'Disponible por proveedor' if live_tracker.get('ball_position_available') else 'No disponible; no se simula' }}</span></article>
     </div>
     {% if live_tracker.get('events') %}
@@ -126,6 +158,7 @@
           <article><strong>Histórico H2H</strong><span>{% if detail.get('head_to_head') %}{{ detail.get('head_to_head')|length }} cruces guardados{% else %}Sin histórico directo suficiente{% endif %}</span></article>
           <article><strong>Timeline</strong><span>{% if detail.get('timeline') %}{{ detail.get('timeline')|length }} eventos{% else %}Sin eventos sincronizados{% endif %}</span></article>
           <article><strong>API-Football live</strong><span>{{ 'Activo' if live_tracker.get('available') else 'Sin tracker para este partido' }}</span></article>
+          <article><strong>Calidad live</strong><span>{{ tracker_quality.get('label') or 'Marcador básico' }}</span></article>
           <article><strong>Presión</strong><span>{{ pressure.get('label') or 'Pendiente' }}</span></article>
         </div>
       </article>

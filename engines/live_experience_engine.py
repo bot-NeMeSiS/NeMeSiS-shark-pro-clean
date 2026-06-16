@@ -254,6 +254,17 @@ def enrich_live_match(match: dict) -> dict:
     pressure = dict(tracker.get("pressure") or {})
     tracker_stats = dict(tracker.get("stats") or {})
     tracker_events = tracker.get("events") or []
+    tracker_flow = dict(tracker.get("game_flow") or {})
+    tracker_stat_cards = list(tracker.get("stat_cards") or [])
+    tracker_quality = dict(tracker.get("quality") or {})
+    tracker_evidence = list(tracker_quality.get("evidence") or tracker.get("evidence") or [])
+    if not tracker_quality:
+        if tracker_stats.get("available") and tracker_events:
+            tracker_quality = {"level": "advanced", "label": "Live avanzado", "evidence": tracker_evidence}
+        elif tracker_stats.get("available") or tracker_events:
+            tracker_quality = {"level": "basic_plus", "label": "Live con señales", "evidence": tracker_evidence}
+        else:
+            tracker_quality = {"level": "basic", "label": "Marcador básico", "evidence": tracker_evidence}
     item.update(
         {
             "live_bucket": bucket,
@@ -282,6 +293,17 @@ def enrich_live_match(match: dict) -> dict:
             "live_events_available": bool(tracker_events or tracker.get("has_events")),
             "live_events_count": len(tracker_events) if isinstance(tracker_events, list) else 0,
             "live_ball_position_available": bool(tracker.get("ball_position_available")),
+            "live_stat_cards": tracker_stat_cards,
+            "live_game_flow": tracker_flow,
+            "live_game_flow_phase": tracker_flow.get("phase") or "Esperando datos live",
+            "live_game_flow_title": tracker_flow.get("title") or pressure.get("label") or "Lectura pendiente",
+            "live_dangerous_attacks_available": bool(tracker.get("dangerous_attacks_available")),
+            "live_attacks_available": bool(tracker.get("attacks_available")),
+            "live_data_quality": tracker_quality,
+            "live_data_quality_label": tracker_quality.get("label") or "Marcador básico",
+            "live_data_quality_level": tracker_quality.get("level") or "basic",
+            "live_data_evidence": tracker_evidence,
+            "live_tracker_ready_label": "Tracker completo" if (tracker_quality.get("level") in {"premium", "advanced"}) else ("Tracker parcial" if tracker else "Sin tracker avanzado"),
         }
     )
     return item
@@ -404,6 +426,8 @@ def live_experience_snapshot(app_version: str = "") -> dict:
             "score_status_clarity": True,
             "api_football_live_tracker": True,
             "pressure_from_real_stats": True,
+            "live_data_quality_labels": True,
+            "credit_safe_cache": True,
             "no_fake_ball_position": True,
         },
     }

@@ -18,7 +18,7 @@ match_tpl = read('templates/match_detail.html')
 css = read('static/app.css')
 env = read('.env.render.clean')
 
-ok('version_v803', 'V803_API_FOOTBALL_LIVE_TRACKER_REFERENCE_EXPERIENCE' in app)
+ok('version_v803_or_newer', 'V803_API_FOOTBALL_LIVE_TRACKER_REFERENCE_EXPERIENCE' in app or 'V804_API_FOOTBALL_LIVE_DEEP_TRACKER_PRESSURE_FIELD_FINAL' in app or 'V805_API_FOOTBALL_LIVE_OPERATIONS_CLIENT_PERFECTION' in app or 'V806_CLIENT_REFERENCE_UI_NO_LEFT_RAIL_FLOW_PERFECTION' in app)
 ok('engine_exists', (ROOT/'engines/api_football_live_tracker_engine.py').exists())
 ok('api_football_live_fixtures', 'fixtures' in engine and 'live' in engine and 'all' in engine)
 ok('api_football_events', 'fixtures/events' in engine)

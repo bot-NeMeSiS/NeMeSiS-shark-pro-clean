@@ -1,4 +1,4 @@
-"""API-Football live tracker integration for NeMeSiS SHARK PRO V803.
+"""API-Football live tracker integration for NeMeSiS SHARK PRO V805.
 
 This module is intentionally conservative:
 - It only uses API-Football when the paid key is configured in Render.
@@ -12,6 +12,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import sqlite3
 import urllib.parse
 import urllib.request
@@ -429,8 +430,8 @@ def _upsert_statistics(conn: sqlite3.Connection, fixture_id: str, stats_payload:
     return inserted
 
 
-def _last_sync_age(conn: sqlite3.Connection) -> int:
-    row = conn.execute("SELECT last_sync_at FROM api_football_live_sync_state WHERE key='live'").fetchone()
+def _last_sync_age_for_key(conn: sqlite3.Connection, key: str) -> int:
+    row = conn.execute("SELECT last_sync_at FROM api_football_live_sync_state WHERE key=?", (str(key or "live"),)).fetchone()
     if not row or not row["last_sync_at"]:
         return 10**9
     try:
@@ -441,6 +442,10 @@ def _last_sync_age(conn: sqlite3.Connection) -> int:
         return max(0, int((datetime.now(timezone.utc) - last).total_seconds()))
     except Exception:
         return 10**9
+
+
+def _last_sync_age(conn: sqlite3.Connection) -> int:
+    return _last_sync_age_for_key(conn, "live")
 
 
 def sync_api_football_live_tracker(db_path: str, force: bool = False, deep_limit: Optional[int] = None) -> dict[str, Any]:
@@ -530,15 +535,39 @@ def _write_sync_state(conn: sqlite3.Connection, state: Mapping[str, Any], fixtur
 
 
 def _stat_key(name: str) -> str:
-    clean = str(name or "").lower().replace(" ", "_").replace("-", "_")
+    clean = re.sub(r"[^a-z0-9]+", "_", str(name or "").lower()).strip("_")
     aliases = {
         "ball_possession": "possession",
+        "possession": "possession",
         "shots_on_goal": "shots_on_goal",
+        "shots_on_target": "shots_on_goal",
+        "shots_off_goal": "shots_off_goal",
+        "shots_off_target": "shots_off_goal",
         "total_shots": "total_shots",
+        "blocked_shots": "blocked_shots",
+        "shots_insidebox": "shots_inside_box",
+        "shots_inside_box": "shots_inside_box",
+        "shots_outsidebox": "shots_outside_box",
+        "shots_outside_box": "shots_outside_box",
         "corner_kicks": "corners",
+        "corners": "corners",
+        "fouls": "fouls",
+        "offsides": "offsides",
         "yellow_cards": "yellow_cards",
         "red_cards": "red_cards",
         "goalkeeper_saves": "saves",
+        "saves": "saves",
+        "total_passes": "total_passes",
+        "passes_accurate": "passes_accurate",
+        "passes": "total_passes",
+        "passes_percentage": "passes_pct",
+        "passes_percent": "passes_pct",
+        "passes_accuracy": "passes_pct",
+        "expected_goals": "expected_goals",
+        "xg": "expected_goals",
+        "attacks": "attacks",
+        "dangerous_attacks": "dangerous_attacks",
+        "dangerous_attack": "dangerous_attacks",
     }
     return aliases.get(clean, clean)
 
@@ -561,6 +590,203 @@ def _events_for_fixture(conn: sqlite3.Connection, fixture_id: str, limit: int = 
     return [_rowdict(r) for r in rows]
 
 
+
+def _team_blocks(stats: Mapping[str, Any], home_name: str = "", away_name: str = "") -> tuple[dict[str, Any], dict[str, Any]]:
+    teams = list(stats.get("teams") or [])
+    if not teams:
+        return {}, {}
+    home = away = None
+    for team in teams:
+        name = str(team.get("team") or "").lower()
+        if home_name and name == str(home_name).lower():
+            home = team
+        if away_name and name == str(away_name).lower():
+            away = team
+    if home is None:
+        home = teams[0] if teams else {}
+    if away is None:
+        away = teams[1] if len(teams) > 1 else {}
+    return dict(home or {}), dict(away or {})
+
+
+def _stat_obj(team: Mapping[str, Any], key: str) -> dict[str, Any]:
+    stats = team.get("stats") or {}
+    return dict(stats.get(key) or {})
+
+
+def _stat_display(team: Mapping[str, Any], key: str) -> str:
+    obj = _stat_obj(team, key)
+    value = obj.get("value")
+    if value is None or value == "":
+        return ""
+    return str(value)
+
+
+def _has_stat(stats: Mapping[str, Any], key: str) -> bool:
+    for team in stats.get("teams") or []:
+        if key in (team.get("stats") or {}):
+            return True
+    return False
+
+
+def _stat_cards(stats: Mapping[str, Any], home_name: str, away_name: str) -> list[dict[str, Any]]:
+    if not stats.get("available"):
+        return []
+    home, away = _team_blocks(stats, home_name, away_name)
+    definitions = [
+        ("possession", "Posesión"),
+        ("shots_on_goal", "Tiros a puerta"),
+        ("total_shots", "Tiros totales"),
+        ("shots_inside_box", "Tiros en área"),
+        ("corners", "Córners"),
+        ("expected_goals", "xG"),
+        ("fouls", "Faltas"),
+        ("yellow_cards", "Amarillas"),
+        ("red_cards", "Rojas"),
+        ("saves", "Paradas"),
+        ("attacks", "Ataques"),
+        ("dangerous_attacks", "Ataques peligrosos"),
+        ("passes_accurate", "Pases buenos"),
+        ("passes_pct", "Precisión pase"),
+    ]
+    cards: list[dict[str, Any]] = []
+    for key, label in definitions:
+        hv = _stat_display(home, key)
+        av = _stat_display(away, key)
+        if not hv and not av:
+            continue
+        hn = _as_float(_stat_obj(home, key).get("numeric"), 0)
+        an = _as_float(_stat_obj(away, key).get("numeric"), 0)
+        leader = "even"
+        if hn > an:
+            leader = "home"
+        elif an > hn:
+            leader = "away"
+        cards.append({
+            "key": key,
+            "label": label,
+            "home": hv or "—",
+            "away": av or "—",
+            "home_numeric": hn,
+            "away_numeric": an,
+            "leader": leader,
+        })
+    return cards
+
+
+def _event_minute(event: Mapping[str, Any]) -> int:
+    return _as_int(event.get("elapsed"), 0)
+
+
+def _game_flow(stats: Mapping[str, Any], events: list[dict[str, Any]], pressure: Mapping[str, Any], home_name: str, away_name: str) -> dict[str, Any]:
+    cards = _stat_cards(stats, home_name, away_name)
+    event_count = len(events or [])
+    latest = max([_event_minute(e) for e in events or []] or [0])
+    recent = [e for e in (events or []) if latest and _event_minute(e) >= max(0, latest - 15)]
+    title = pressure.get("label") or "Lectura pendiente"
+    if pressure.get("available"):
+        diff = abs(int(pressure.get("home_pct") or 50) - int(pressure.get("away_pct") or 50))
+        phase = "Dominio claro" if diff >= 24 else "Presión ligera" if diff >= 10 else "Equilibrado"
+    elif event_count:
+        phase = "Eventos sincronizados"
+        title = "Timeline real disponible"
+    else:
+        phase = "Esperando datos live"
+    evidence = []
+    for key, label in [("possession", "posesión"), ("shots_on_goal", "tiros a puerta"), ("corners", "córners"), ("dangerous_attacks", "ataques peligrosos"), ("attacks", "ataques")]:
+        if _has_stat(stats, key):
+            evidence.append(label)
+    return {
+        "available": bool(cards or events or pressure.get("available")),
+        "title": title,
+        "phase": phase,
+        "event_count": event_count,
+        "recent_event_count": len(recent),
+        "evidence": evidence,
+        "latest_minute": latest,
+    }
+
+
+
+def _tracker_quality_payload(stats: Mapping[str, Any], events: list[dict[str, Any]], pressure: Mapping[str, Any]) -> dict[str, Any]:
+    """Readable real-data quality label for client UI.
+
+    This is intentionally evidence-based. It never upgrades a tracker to a high
+    level unless the normalized API-Football payload really contains stats/events.
+    """
+    evidence: list[str] = []
+    if stats.get("available"):
+        evidence.append("estadísticas")
+    if events:
+        evidence.append("eventos")
+    if pressure.get("available"):
+        evidence.append("presión")
+    if _has_stat(stats, "possession"):
+        evidence.append("posesión")
+    if _has_stat(stats, "shots_on_goal") or _has_stat(stats, "total_shots"):
+        evidence.append("tiros")
+    if _has_stat(stats, "dangerous_attacks"):
+        evidence.append("ataques peligrosos")
+    if _has_stat(stats, "attacks"):
+        evidence.append("ataques")
+    if len(evidence) >= 5:
+        level = "premium"
+        label = "Live profundo"
+        message = "Eventos y estadísticas avanzadas reales disponibles."
+    elif len(evidence) >= 3:
+        level = "advanced"
+        label = "Live avanzado"
+        message = "Datos suficientes para lectura SHARK real."
+    elif len(evidence) >= 1:
+        level = "basic_plus"
+        label = "Live con señales"
+        message = "Hay datos reales parciales; faltan algunas estadísticas del feed."
+    else:
+        level = "basic"
+        label = "Marcador básico"
+        message = "Esperando eventos/estadísticas avanzadas del proveedor."
+    return {
+        "level": level,
+        "label": label,
+        "message": message,
+        "evidence": evidence,
+        "evidence_count": len(evidence),
+        "ball_position_policy": "No se muestra balón exacto si API-Football no entrega coordenadas reales.",
+        "safe_to_show": True,
+    }
+
+def _build_tracker_payload(row: Mapping[str, Any], stats: Mapping[str, Any], events: list[dict[str, Any]], pressure: Mapping[str, Any]) -> dict[str, Any]:
+    home_name = str(row.get("home_team") or "")
+    away_name = str(row.get("away_team") or "")
+    cards = _stat_cards(stats, home_name, away_name)
+    flow = _game_flow(stats, events, pressure, home_name, away_name)
+    dangerous_available = _has_stat(stats, "dangerous_attacks")
+    attacks_available = _has_stat(stats, "attacks")
+    quality = _tracker_quality_payload(stats, events, pressure)
+    return {
+        "provider": "api_football",
+        "source_label": "API-Football Pro",
+        "fixture_id": row.get("fixture_id"),
+        "stats": stats,
+        "events": events,
+        "pressure": pressure,
+        "stat_cards": cards,
+        "game_flow": flow,
+        "quality": quality,
+        "quality_label": quality.get("label"),
+        "quality_level": quality.get("level"),
+        "evidence": quality.get("evidence") or [],
+        "has_advanced_stats": bool(stats.get("available")),
+        "has_events": bool(events),
+        "stats_count": stats.get("total") or 0,
+        "events_count": len(events or []),
+        "dangerous_attacks_available": dangerous_available,
+        "attacks_available": attacks_available,
+        "ball_position_available": False,
+        "message": "Live tracker real disponible" if (stats.get("available") or events) else "Marcador live disponible, esperando eventos/estadísticas.",
+        "legal_note": "API-Football autorizado. Campo SHARK calculado con estadísticas/eventos reales; no se inventa ubicación exacta de balón.",
+    }
+
 def _pressure_from_stats(stats: Mapping[str, Any], home_name: str, away_name: str) -> dict[str, Any]:
     teams = stats.get("teams") or []
     if len(teams) < 2:
@@ -569,11 +795,15 @@ def _pressure_from_stats(stats: Mapping[str, Any], home_name: str, away_name: st
     def score(team: Mapping[str, Any]) -> float:
         s = team.get("stats") or {}
         possession = _as_float((s.get("possession") or {}).get("numeric"), 0)
-        shots = _as_float((s.get("shots_on_goal") or {}).get("numeric"), 0) * 7 + _as_float((s.get("total_shots") or {}).get("numeric"), 0) * 2
+        shots = _as_float((s.get("shots_on_goal") or {}).get("numeric"), 0) * 8 + _as_float((s.get("total_shots") or {}).get("numeric"), 0) * 2
+        box = _as_float((s.get("shots_inside_box") or {}).get("numeric"), 0) * 3
         corners = _as_float((s.get("corners") or {}).get("numeric"), 0) * 3
-        red = _as_float((s.get("red_cards") or {}).get("numeric"), 0) * -8
+        attacks = _as_float((s.get("attacks") or {}).get("numeric"), 0) * 0.8
+        dangerous = _as_float((s.get("dangerous_attacks") or {}).get("numeric"), 0) * 1.8
+        xg = _as_float((s.get("expected_goals") or {}).get("numeric"), 0) * 12
+        red = _as_float((s.get("red_cards") or {}).get("numeric"), 0) * -9
         yellow = _as_float((s.get("yellow_cards") or {}).get("numeric"), 0) * -1
-        return max(0.0, possession + shots + corners + red + yellow)
+        return max(0.0, possession + shots + box + corners + attacks + dangerous + xg + red + yellow)
 
     home = None
     away = None
@@ -620,19 +850,7 @@ def _live_tracker_matches_from_conn(conn: sqlite3.Connection, limit: int = 80) -
         score = ""
         if r.get("home_score") is not None or r.get("away_score") is not None:
             score = f"{r.get('home_score') if r.get('home_score') is not None else 0}-{r.get('away_score') if r.get('away_score') is not None else 0}"
-        tracker = {
-            "fixture_id": fixture_id,
-            "provider": "api_football",
-            "source_label": "API-Football Pro",
-            "stats": stats,
-            "events": events,
-            "pressure": pressure,
-            "has_advanced_stats": bool(stats.get("available")),
-            "has_events": bool(events),
-            "ball_position_available": False,
-            "dangerous_attacks_available": any(_stat_key(((s or {}).get("label") or "")) in {"dangerous_attacks", "dangerous-attacks"} for t in stats.get("teams") or [] for s in (t.get("raw") or [])),
-            "legal_note": "Live tracker construido con datos API-Football autorizados. Sin inventar coordenadas de balón.",
-        }
+        tracker = _build_tracker_payload(r, stats, events, pressure)
         out.append(
             {
                 "id": r.get("match_id") or _match_id_for_fixture(fixture_id),
@@ -694,19 +912,190 @@ def live_tracker_for_match(db_path: str, match_id: str) -> dict[str, Any]:
         stats = _stats_for_fixture(conn, str(r.get("fixture_id") or ""))
         events = _events_for_fixture(conn, str(r.get("fixture_id") or ""), limit=18)
         pressure = _pressure_from_stats(stats, r.get("home_team") or "", r.get("away_team") or "")
+        tracker = _build_tracker_payload(r, stats, events, pressure)
+        tracker["available"] = True
+        return tracker
+    finally:
+        conn.close()
+
+
+
+def sync_api_football_fixture_detail(db_path: str, match_id: str, force: bool = False) -> dict[str, Any]:
+    """Deep-sync one API-Football fixture when the user opens its detail.
+
+    This keeps /live cheap while allowing the selected match to load events/statistics.
+    It never calls the provider if the tracker is disabled or the short per-fixture cache is fresh.
+    """
+    ensure_live_tracker_schema(db_path)
+    text = str(match_id or "")
+    fixture_id = text[3:] if text.startswith("af-") else text
+    if not fixture_id:
+        return {"ok": False, "status": "missing_fixture_id", "message": "Sin id de fixture API-Football."}
+    conn = _connect(db_path)
+    key = f"fixture:{fixture_id}"
+    try:
+        cache_seconds = _as_int(os.getenv("API_FOOTBALL_LIVE_DETAIL_CACHE_SECONDS", "75"), 75)
+        age = _last_sync_age_for_key(conn, key)
+        if not tracker_enabled():
+            state = {"ok": False, "configured": api_key_configured(), "enabled": tracker_enabled(), "status": "pendiente_api_football", "message": "Detalle live API-Football no configurado o desactivado."}
+            _write_sync_state(conn, state, 0, 0, 0, 0, "")
+            conn.commit()
+            return state
+        if not force and age < cache_seconds:
+            cached = live_tracker_for_match(db_path, text)
+            cached.update({"ok": True, "status": "cache_detail", "cache_age_seconds": age, "external_calls": 0})
+            return cached
+        existing = conn.execute("SELECT fixture_id FROM api_football_live_snapshots WHERE fixture_id=? OR match_id=? LIMIT 1", (fixture_id, text)).fetchone()
+        external_calls = 0
+        fixtures_count = 0
+        errors: list[str] = []
+        if not existing:
+            timezone_name = os.getenv("APP_TIMEZONE") or os.getenv("TZ") or DEFAULT_TIMEZONE
+            fixture_payload = _api_get("fixtures", {"id": fixture_id, "timezone": timezone_name})
+            external_calls += 1
+            if fixture_payload.get("ok"):
+                for item in fixture_payload.get("response") or []:
+                    fixtures_count += _upsert_fixture(conn, item)
+            else:
+                errors.append(str(fixture_payload.get("error") or fixture_payload.get("errors") or "Fixture no disponible")[:180])
+        ev_payload = _api_get("fixtures/events", {"fixture": fixture_id})
+        external_calls += 1
+        events_count = 0
+        if ev_payload.get("ok"):
+            events_count = _upsert_events(conn, fixture_id, ev_payload.get("response") or [])
+        else:
+            errors.append(str(ev_payload.get("error") or ev_payload.get("errors") or "Eventos no disponibles")[:180])
+        st_payload = _api_get("fixtures/statistics", {"fixture": fixture_id})
+        external_calls += 1
+        stats_count = 0
+        if st_payload.get("ok"):
+            stats_count = _upsert_statistics(conn, fixture_id, st_payload.get("response") or [])
+        else:
+            errors.append(str(st_payload.get("error") or st_payload.get("errors") or "Estadísticas no disponibles")[:180])
+        state = {
+            "ok": True,
+            "configured": True,
+            "enabled": True,
+            "status": "ok" if not errors else "partial",
+            "fixtures_count": fixtures_count,
+            "events_count": events_count,
+            "stats_count": stats_count,
+            "external_calls": external_calls,
+            "cache_age_seconds": 0,
+            "errors": errors[:6],
+            "message": "Detalle live API-Football sincronizado con caché por partido.",
+        }
+        _write_sync_state(conn, {**state, "status": state["status"]}, fixtures_count, events_count, stats_count, external_calls, "; ".join(errors[:3]))
+        conn.execute(
+            "INSERT INTO api_football_live_sync_state(key, last_sync_at, status, fixtures_count, events_count, stats_count, external_calls, error, payload_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(key) DO UPDATE SET last_sync_at=excluded.last_sync_at,status=excluded.status,fixtures_count=excluded.fixtures_count,events_count=excluded.events_count,stats_count=excluded.stats_count,external_calls=excluded.external_calls,error=excluded.error,payload_json=excluded.payload_json",
+            (key, _now_iso(), state["status"], fixtures_count, events_count, stats_count, external_calls, "; ".join(errors[:3]), _json(state)),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+    tracker = live_tracker_for_match(db_path, text)
+    tracker.update({"ok": True, "status": "detail_synced", "external_calls": external_calls, "errors": errors[:6]})
+    return tracker
+
+
+
+def live_tracker_quality_summary(db_path: str) -> dict[str, Any]:
+    """Return a no-network quality summary for the API-Football live tracker.
+
+    The UI and admin can call this safely; it reads normalized cache only and does
+    not consume API-Football credits.
+    """
+    ensure_live_tracker_schema(db_path)
+    conn = _connect(db_path)
+    try:
+        rows = conn.execute("SELECT * FROM api_football_live_snapshots ORDER BY last_synced_at DESC LIMIT 300").fetchall()
+        live_rows = [r for r in rows if str(r["status_short"] or "").upper() in LIVE_STATUS_SHORT]
+        finished_rows = [r for r in rows if str(r["status_short"] or "").upper() in FINISHED_STATUS_SHORT]
+        with_stats = with_events = with_pressure = with_dangerous = with_attacks = 0
+        evidence_counter = {"estadísticas": 0, "eventos": 0, "presión": 0, "posesión": 0, "tiros": 0, "ataques": 0, "ataques peligrosos": 0}
+        sample: list[dict[str, Any]] = []
+        for row in rows:
+            r = _rowdict(row)
+            fid = str(r.get("fixture_id") or "")
+            stats = _stats_for_fixture(conn, fid)
+            events = _events_for_fixture(conn, fid, limit=8)
+            pressure = _pressure_from_stats(stats, r.get("home_team") or "", r.get("away_team") or "")
+            quality = _tracker_quality_payload(stats, events, pressure)
+            if stats.get("available"):
+                with_stats += 1
+            if events:
+                with_events += 1
+            if pressure.get("available"):
+                with_pressure += 1
+            if _has_stat(stats, "dangerous_attacks"):
+                with_dangerous += 1
+            if _has_stat(stats, "attacks"):
+                with_attacks += 1
+            for item in quality.get("evidence") or []:
+                evidence_counter[item] = evidence_counter.get(item, 0) + 1
+            if len(sample) < 6:
+                sample.append({
+                    "match_id": r.get("match_id") or _match_id_for_fixture(fid),
+                    "fixture_id": fid,
+                    "home_team": r.get("home_team") or "Local",
+                    "away_team": r.get("away_team") or "Visitante",
+                    "status": r.get("status_short") or r.get("status_long") or "",
+                    "minute": r.get("elapsed") or 0,
+                    "quality": quality,
+                    "pressure_label": pressure.get("label") or "Presión pendiente",
+                })
+        total = len(rows)
+        advanced = len([s for s in sample if (s.get("quality") or {}).get("level") in {"premium", "advanced"}])
+        status_row = conn.execute("SELECT * FROM api_football_live_sync_state WHERE key='live'").fetchone()
+        state = _rowdict(status_row)
+        if total and (with_stats or with_events):
+            status = "REAL_LIVE_DATA_READY"
+            message = "API-Football live aporta datos reales aprovechables para directo premium."
+        elif total:
+            status = "BASIC_LIVE_READY"
+            message = "Hay marcador live real; faltan eventos/estadísticas avanzadas en el feed actual."
+        elif tracker_enabled():
+            status = "WAITING_FOR_LIVE_FIXTURES"
+            message = "API-Football está configurada; no hay partidos live cacheados ahora mismo."
+        elif api_key_configured():
+            status = "PROVIDER_DISABLED"
+            message = "La key existe, pero el live tracker o proveedor está desactivado por variable de entorno."
+        else:
+            status = "MISSING_API_FOOTBALL_KEY"
+            message = "Falta API_FOOTBALL_KEY en Render para usar el live avanzado."
         return {
-            "available": True,
+            "ok": True,
             "provider": "api_football",
-            "source_label": "API-Football Pro",
-            "fixture_id": r.get("fixture_id"),
-            "stats": stats,
-            "events": events,
-            "pressure": pressure,
-            "has_advanced_stats": bool(stats.get("available")),
-            "has_events": bool(events),
+            "configured": api_key_configured(),
+            "enabled": tracker_enabled(),
+            "status": status,
+            "message": message,
+            "last_sync_at": state.get("last_sync_at") or "",
+            "cache_age_seconds": _last_sync_age(conn),
+            "external_calls_last_sync": state.get("external_calls") or 0,
+            "fixtures_total": total,
+            "fixtures_live": len(live_rows),
+            "fixtures_finished": len(finished_rows),
+            "fixtures_with_stats": with_stats,
+            "fixtures_with_events": with_events,
+            "fixtures_with_pressure": with_pressure,
+            "fixtures_with_attacks": with_attacks,
+            "fixtures_with_dangerous_attacks": with_dangerous,
             "ball_position_available": False,
-            "message": "Live tracker real disponible" if (stats.get("available") or events) else "Marcador live disponible, esperando eventos/estadísticas.",
-            "legal_note": "API-Football autorizado. No se inventa ubicación exacta de balón.",
+            "advanced_sample_count": advanced,
+            "evidence_counter": evidence_counter,
+            "sample": sample,
+            "credit_policy": {
+                "live_cache_seconds": _as_int(os.getenv("API_FOOTBALL_LIVE_CACHE_SECONDS", "55"), 55),
+                "detail_cache_seconds": _as_int(os.getenv("API_FOOTBALL_LIVE_DETAIL_CACHE_SECONDS", "75"), 75),
+                "deep_limit": _as_int(os.getenv("API_FOOTBALL_LIVE_DEEP_LIMIT", "8"), 8),
+                "note": "La pantalla lee caché y solo refresca proveedor si se fuerza o expira la ventana configurada.",
+            },
+            "safe_rules": [
+                "No se inventa posición exacta del balón.",
+                "No se inventan ataques peligrosos si el feed no los trae.",
+                "No se inventan eventos, estadísticas, resultados, cuotas ni picks.",
+            ],
         }
     finally:
         conn.close()
