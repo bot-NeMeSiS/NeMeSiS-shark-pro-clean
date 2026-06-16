@@ -1,7 +1,7 @@
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSIONS = ['V805_API_FOOTBALL_LIVE_OPERATIONS_CLIENT_PERFECTION', 'V806_CLIENT_REFERENCE_UI_NO_LEFT_RAIL_FLOW_PERFECTION']
+VERSION = 'V805_API_FOOTBALL_LIVE_OPERATIONS_CLIENT_PERFECTION'
 
 def read(rel):
     return (ROOT / rel).read_text(encoding='utf-8', errors='ignore')
@@ -19,7 +19,7 @@ match_tpl = read('templates/match_detail.html')
 css = read('static/app.css')
 build = read('tools/build_clean_release.py')
 
-ok('version_v805_or_newer', any(v in read('VERSION.txt') for v in VERSIONS) and any(v in app for v in VERSIONS))
+ok('version_v805', VERSION in read('VERSION.txt') and VERSION in app)
 ok('quality_summary_function', 'def live_tracker_quality_summary' in engine and 'fixtures_with_dangerous_attacks' in engine)
 ok('quality_payload_function', 'def _tracker_quality_payload' in engine and 'ball_position_policy' in engine)
 ok('no_fake_ball_policy', 'ball_position_available' in engine and 'False' in engine and 'No se inventa posición exacta del balón' in engine)

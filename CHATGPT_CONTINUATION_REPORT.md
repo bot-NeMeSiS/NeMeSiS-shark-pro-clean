@@ -1,21 +1,5 @@
 # CHATGPT CONTINUATION REPORT
 
-Estado actual: `V806_CLIENT_REFERENCE_UI_NO_LEFT_RAIL_FLOW_PERFECTION`
-
-## Último avance
-V806 corrige el fallo visual reportado en vídeo: la barra lateral izquierda cliente ya no debe aparecer. La experiencia queda orientada a las referencias: navegación superior en PC, navegación inferior en móvil, contenido centrado y estilo premium oscuro.
-
-## Mantener en próximos avances
-- Seguir acercando cada pantalla al mockup de referencia.
-- Mantener `/partidos` como calendario central real.
-- Mantener `/live` con API-Football Pro + caché + sin inventar balón/ataques.
-- Validar siempre enlaces: partido → detalle → SHARK → picks → Telegram/cuenta.
-- No tocar DB_PATH, secretos, usuarios, membresías, pagos ni cron salvo petición expresa.
-
----
-
-# CHATGPT CONTINUATION REPORT
-
 ## Estado actual
 Versión actual preparada: `V795_MOCKUP_FIDELITY_LIVING_UI_DEEP_POLISH`
 
@@ -309,4 +293,3 @@ Basado en vídeo real enviado por el usuario. Se detectó que las pantallas ya m
 ## V804_API_FOOTBALL_LIVE_DEEP_TRACKER_PRESSURE_FIELD_FINAL
 
 Build prepared by ChatGPT after V803. Main purpose: continue improving the live/directo experience with the paid API-Football provider while preserving real-data-only behavior. Added deep per-fixture API-Football syncing, per-match detail cache, richer stat normalization, SHARK pressure field, stat comparisons, game-flow phase, and protected endpoint `/api/live-tracker/match/<match_id>`. Live and match detail screens now show real possession/shots/corners/cards/events/xG/attacks/dangerous attacks when API-Football returns them, and explicitly show unavailable/pending when not returned. It still never simulates exact ball location. Preserved DB_PATH, secrets, Render Cron, Telegram, users, sessions, memberships, payments, picks core and Madrid Time.
-
