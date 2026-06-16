@@ -218,7 +218,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V805_API_FOOTBALL_LIVE_OPERATIONS_CLIENT_PERFECTION'
+APP_VERSION = 'V807_ADMIN_CLIENT_REFERENCE_NAVIGATION_COMMAND_CENTER_REAL_DATA_FINAL'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
@@ -11972,7 +11972,7 @@ def logout_page():
 def admin_redirect():
     if not is_admin_session():
         return redirect("/admin-login?next=/admin/data-center")
-    return redirect("/admin/data-center")
+    return redirect("/admin/control-center")
 
 
 @app.route("/admin/intelligence")
@@ -14985,30 +14985,82 @@ def v566_dashboard_summary(user=None):
 
 
 def v566_admin_items():
-    return [
-        {"group": "Clientes", "title": "Usuarios", "body": "Altas, roles y estado de cuenta.", "href": "/admin/users"},
-        {"group": "Clientes", "title": "Membresías", "body": "FREE, PRO, ELITE y potencial comercial.", "href": "/admin/memberships"},
-        {"group": "Picks", "title": "Picks", "body": "Publicar y revisar picks reales.", "href": "/admin/picks"},
-        {"group": "Picks", "title": "Recomendaciones", "body": "Convertir señales SHARK en picks.", "href": "/admin/recommendations"},
-        {"group": "Canal", "title": "Telegram", "body": "Cola, ajustes y pruebas.", "href": "/admin/telegram"},
-        {"group": "Datos", "title": "Datos", "body": "Calendario, cuotas, escudos e imports.", "href": "/admin/data-center"},
-        {"group": "Datos", "title": "Datos comerciales", "body": "Exportaciones agregadas, ROI y privacidad sin datos personales.", "href": "/admin/data-marketplace"},
-        {"group": "Sistema", "title": "Automatización", "body": "Cron diario, Telegram, grading, highlights y backups en un solo centro.", "href": "/admin/automation-center"},
-        {"group": "Sistema", "title": "Calidad app", "body": "Revisión visual del vídeo, rutas críticas, textos y limpieza cliente/admin.", "href": "/admin/app-experience-quality"},
-        {"group": "Sistema", "title": "Cliente profesional", "body": "Audita pantallas cliente, enlaces, legibilidad, legal y ruido técnico.", "href": "/admin/client-screen-audit"},
-        {"group": "Live", "title": "Live", "body": "Profundidad de directo y estados.", "href": "/admin/live-depth"},
-        {"group": "IA", "title": "SHARK Center", "body": "Memoria, señales y salud del copiloto SHARK.", "href": "/admin/shark-center"},
-        {"group": "Sistema", "title": "QA", "body": "Auditoría final y salud del producto.", "href": "/admin/final-qa"},
-        {"group": "Cliente", "title": "Client Success", "body": "Guía, onboarding, soporte y claridad de uso para cliente.", "href": "/admin/client-success"},
-        {"group": "Lanzamiento", "title": "Go Live", "body": "Certificación final para beta pública, Telegram, Data Memory y producción.", "href": "/admin/go-live"},
-        {"group": "Lanzamiento", "title": "Versión final", "body": "Release candidate comercial con checklist final, visual, seguridad y producción.", "href": "/admin/final-release"},
-        {"group": "Lanzamiento", "title": "Público grande", "body": "Seis áreas para abrir a público grande sin improvisar.", "href": "/admin/public-launch"},
-        {"group": "Credibilidad", "title": "Track Record", "body": "Resultados, ROI y picks auditados.", "href": "/admin/track-record"},
-        {"group": "Pagos", "title": "Pagos PRO/ELITE", "body": "Stripe, suscripciones y monetización segura.", "href": "/admin/payments"},
-        {"group": "Legal", "title": "Legal real", "body": "+18, términos, privacidad, no garantías y checkout responsable.", "href": "/admin/legal-compliance"},
-        {"group": "Lanzamiento", "title": "Lanzamiento real", "body": "Certifica Stripe live, legal, Render, Telegram, Directo y datos antes de vender.", "href": "/admin/real-launch"},
-    ]
+    """Admin navigation map used by the V807 command center.
 
+    It is intentionally explicit so lost buttons/routes are easy to find from the
+    dashboard and from the global admin launchpad. Only real pages/routes are
+    linked; no fake data sources are introduced.
+    """
+    return [
+        {"group": "Centro", "title": "Control Center", "body": "Entrada principal del administrador y estado global.", "href": "/admin/control-center"},
+        {"group": "Centro", "title": "Dashboard", "body": "Resumen visual del ecosistema.", "href": "/admin/dashboard"},
+        {"group": "Centro", "title": "Sistema", "body": "Diagnóstico interno, versión y estado general.", "href": "/admin/system"},
+        {"group": "Centro", "title": "Salud de rutas", "body": "Comprueba accesos críticos y botones perdidos.", "href": "/admin/route-health"},
+        {"group": "Centro", "title": "Observabilidad", "body": "Errores, logs y señales operativas.", "href": "/admin/observability"},
+        {"group": "Centro", "title": "Errores", "body": "Vista directa de errores detectados.", "href": "/admin/observability/errors"},
+
+        {"group": "Clientes", "title": "Usuarios", "body": "Altas, roles, regalos y estado de cuenta.", "href": "/admin/users"},
+        {"group": "Clientes", "title": "Membresías", "body": "FREE, PRO, ELITE, caducidad y origen.", "href": "/admin/memberships"},
+        {"group": "Clientes", "title": "Importar usuarios", "body": "Importación controlada de clientes.", "href": "/admin/user-import"},
+        {"group": "Clientes", "title": "Client Success", "body": "Guía, soporte, onboarding y claridad para cliente.", "href": "/admin/client-success"},
+        {"group": "Clientes", "title": "Auditoría cliente", "body": "Pantallas cliente, enlaces, legibilidad y ruido técnico.", "href": "/admin/client-screen-audit"},
+        {"group": "Clientes", "title": "Calidad cliente", "body": "Mapa visual y organización de experiencia cliente.", "href": "/admin/client-screen-quality"},
+        {"group": "Clientes", "title": "Vista cliente", "body": "Entrar a la experiencia real de usuario.", "href": "/sports-hub"},
+
+        {"group": "Partidos y datos", "title": "Data Center", "body": "Sync de calendario, cuotas, escudos y fuentes.", "href": "/admin/data-center"},
+        {"group": "Partidos y datos", "title": "Partidos", "body": "Calendario, resultados y sincronización.", "href": "/admin/matches-sync"},
+        {"group": "Partidos y datos", "title": "SportsDB Sync", "body": "Escudos, equipos y feed legal.", "href": "/admin/sportsdb-sync"},
+        {"group": "Partidos y datos", "title": "SportsDB Feed", "body": "Inspección de feed y datos guardados.", "href": "/admin/sportsdb-feed"},
+        {"group": "Partidos y datos", "title": "Import Center", "body": "CSV/JSON legales para datos deportivos.", "href": "/admin/import-center"},
+        {"group": "Partidos y datos", "title": "Data Memory", "body": "Memoria persistente y auditoría de datos.", "href": "/admin/data-memory"},
+        {"group": "Partidos y datos", "title": "Data Vault", "body": "Backups, manifiestos y protección.", "href": "/admin/data-vault"},
+        {"group": "Partidos y datos", "title": "Datos comerciales", "body": "Exportaciones agregadas, ROI y privacidad.", "href": "/admin/data-marketplace"},
+
+        {"group": "Directo y SHARK", "title": "Live Experience", "body": "Experiencia live, estados y lectura visual.", "href": "/admin/live-experience"},
+        {"group": "Directo y SHARK", "title": "Live Depth", "body": "Profundidad de directo, API-Football y tracker.", "href": "/admin/live-depth"},
+        {"group": "Directo y SHARK", "title": "Match Intelligence", "body": "Lectura avanzada por partido.", "href": "/admin/match-intelligence"},
+        {"group": "Directo y SHARK", "title": "SHARK Center", "body": "Motor SHARK, memoria, señales y salud.", "href": "/admin/shark-center"},
+        {"group": "Directo y SHARK", "title": "Inteligencia", "body": "Centro de inteligencia unificado.", "href": "/admin/unified-intelligence"},
+        {"group": "Directo y SHARK", "title": "Motor picks", "body": "Value, riesgo, confianza y picks revisados.", "href": "/admin/intelligence-engine"},
+
+        {"group": "Picks y rendimiento", "title": "Picks", "body": "Crear, publicar y archivar picks reales.", "href": "/admin/picks"},
+        {"group": "Picks y rendimiento", "title": "Recomendaciones", "body": "Convertir señales en picks revisados.", "href": "/admin/recommendations"},
+        {"group": "Picks y rendimiento", "title": "Picks deportivos", "body": "Data picks desde fuentes deportivas.", "href": "/admin/sports-data-picks"},
+        {"group": "Picks y rendimiento", "title": "Rendimiento picks", "body": "Resultados, ROI y control de picks.", "href": "/admin/pick-performance"},
+        {"group": "Picks y rendimiento", "title": "Track Record", "body": "Histórico auditado y credibilidad.", "href": "/admin/track-record"},
+        {"group": "Picks y rendimiento", "title": "Betting Center", "body": "Recomendaciones y mercados.", "href": "/admin/betting-center"},
+
+        {"group": "Telegram y automatización", "title": "Telegram", "body": "Configuración, cola y pruebas.", "href": "/admin/telegram"},
+        {"group": "Telegram y automatización", "title": "Command Center Telegram", "body": "Diagnóstico visual de Telegram y automatización.", "href": "/admin/telegram/command-center"},
+        {"group": "Telegram y automatización", "title": "Auditoría Telegram", "body": "Estado de envíos y producción.", "href": "/admin/telegram/diagnostics"},
+        {"group": "Telegram y automatización", "title": "Automatización", "body": "Cron diario, grading, Telegram, highlights y backups.", "href": "/admin/automation-center"},
+        {"group": "Telegram y automatización", "title": "Automatización clásica", "body": "Panel histórico de tareas automáticas.", "href": "/admin/automation"},
+        {"group": "Telegram y automatización", "title": "Backups", "body": "Respaldos y descargas controladas.", "href": "/admin/backups"},
+
+        {"group": "Contenido", "title": "Resúmenes", "body": "Highlights seguros y contenido enlazado.", "href": "/admin/highlights-center"},
+        {"group": "Contenido", "title": "Video highlights", "body": "Control de vídeos externos permitidos.", "href": "/admin/video-highlights"},
+        {"group": "Contenido", "title": "Alertas", "body": "Base de alertas futuras y actividad.", "href": "/admin/alerts"},
+        {"group": "Contenido", "title": "Identidad equipos", "body": "Escudos, nombres y calidad visual.", "href": "/admin/team-identity"},
+        {"group": "Contenido", "title": "Derechos de contenido", "body": "Política legal de logos, vídeos y fuentes.", "href": "/admin/content-rights"},
+
+        {"group": "Calidad y lanzamiento", "title": "Calidad app", "body": "Revisión visual, rutas, textos y limpieza.", "href": "/admin/app-experience-quality"},
+        {"group": "Calidad y lanzamiento", "title": "Visual Experience", "body": "Sistema visual cliente/admin.", "href": "/admin/visual-experience"},
+        {"group": "Calidad y lanzamiento", "title": "Client Visual QA", "body": "QA visual de pantallas cliente.", "href": "/admin/client-visual-qa"},
+        {"group": "Calidad y lanzamiento", "title": "Calendar QA", "body": "Calendario, filtros y búsquedas de partidos.", "href": "/admin/calendar-experience"},
+        {"group": "Calidad y lanzamiento", "title": "QA final", "body": "Auditoría final y salud del producto.", "href": "/admin/final-qa"},
+        {"group": "Calidad y lanzamiento", "title": "Production Readiness", "body": "Render, env y producción.", "href": "/admin/production-readiness"},
+        {"group": "Calidad y lanzamiento", "title": "Go Live", "body": "Certificación beta pública.", "href": "/admin/go-live"},
+        {"group": "Calidad y lanzamiento", "title": "Final Release", "body": "Release candidate comercial.", "href": "/admin/final-release"},
+        {"group": "Calidad y lanzamiento", "title": "Certificación final", "body": "Checklist final de producción.", "href": "/admin/final-certification"},
+        {"group": "Calidad y lanzamiento", "title": "Lanzamiento real", "body": "Stripe, legal, Render, Telegram y datos antes de vender.", "href": "/admin/real-launch"},
+        {"group": "Calidad y lanzamiento", "title": "Sale Ready", "body": "Estado comercial y venta.", "href": "/admin/sale-ready"},
+
+        {"group": "Negocio", "title": "Pagos", "body": "Stripe, suscripciones y monetización segura.", "href": "/admin/payments"},
+        {"group": "Negocio", "title": "Public Launch", "body": "Apertura a público grande sin improvisar.", "href": "/admin/public-launch"},
+        {"group": "Negocio", "title": "Top App Readiness", "body": "Preparación top app y crecimiento.", "href": "/admin/top-app-readiness"},
+        {"group": "Negocio", "title": "Legal real", "body": "+18, términos, privacidad y checkout responsable.", "href": "/admin/legal-compliance"},
+        {"group": "Negocio", "title": "Soporte", "body": "Feedback e incidencias de clientes.", "href": "/admin/support-center"},
+    ]
 
 def v566_product_polish_report():
     client_routes = ["/", "/dashboard", "/menu", "/live", "/live-depth", "/match-hub", "/resultados", "/highlights", "/picks", "/recomendaciones", "/auto-picks", "/combis", "/favorites", "/shark", "/telegram", "/perfil", "/membresias", "/juego-responsable", "/legal"]

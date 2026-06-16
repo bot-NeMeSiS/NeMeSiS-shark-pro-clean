@@ -18,7 +18,7 @@ match_tpl = read('templates/match_detail.html')
 css = read('static/app.css')
 env = read('.env.render.clean')
 
-ok('version_v804_or_newer', ('V804_API_FOOTBALL_LIVE_DEEP_TRACKER_PRESSURE_FIELD_FINAL' in app or 'V805_API_FOOTBALL_LIVE_OPERATIONS_CLIENT_PERFECTION' in app) and ('V804_API_FOOTBALL_LIVE_DEEP_TRACKER_PRESSURE_FIELD_FINAL' in read('VERSION.txt') or 'V805_API_FOOTBALL_LIVE_OPERATIONS_CLIENT_PERFECTION' in read('VERSION.txt')))
+ok('version_v804_or_newer', ('V804_API_FOOTBALL_LIVE_DEEP_TRACKER_PRESSURE_FIELD_FINAL' in app or 'V805_API_FOOTBALL_LIVE_OPERATIONS_CLIENT_PERFECTION' in app or 'V806_CLIENT_REFERENCE_UI_NO_LEFT_RAIL_FLOW_PERFECTION' in app or 'V807_ADMIN_CLIENT_REFERENCE_NAVIGATION_COMMAND_CENTER_REAL_DATA_FINAL' in app) and ('V804_API_FOOTBALL_LIVE_DEEP_TRACKER_PRESSURE_FIELD_FINAL' in read('VERSION.txt') or 'V805_API_FOOTBALL_LIVE_OPERATIONS_CLIENT_PERFECTION' in read('VERSION.txt') or 'V806_CLIENT_REFERENCE_UI_NO_LEFT_RAIL_FLOW_PERFECTION' in read('VERSION.txt') or 'V807_ADMIN_CLIENT_REFERENCE_NAVIGATION_COMMAND_CENTER_REAL_DATA_FINAL' in read('VERSION.txt')))
 ok('detail_sync_function', 'def sync_api_football_fixture_detail' in engine and 'API_FOOTBALL_LIVE_DETAIL_CACHE_SECONDS' in engine)
 ok('detail_sync_imported', 'sync_api_football_fixture_detail' in app)
 ok('match_detail_uses_deep_sync', 'detail_force_refresh' in app and 'sync_api_football_fixture_detail(DB_PATH, match_id' in app)

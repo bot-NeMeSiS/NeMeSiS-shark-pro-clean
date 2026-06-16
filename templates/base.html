@@ -24,7 +24,7 @@
   {% set _visual_tier = 'free' %}
   {% set _tier_label = 'FREE' %}
 {% endif %}
-<body class="ns-app ns-tier-{{ _visual_tier }}{% if current_user %} ns-authenticated{% else %} ns-public{% endif %}{% if current_user and current_user.role == 'ADMIN' %} ns-admin{% endif %}" data-ns-route="{{ request.path }}" data-ns-plan="{{ _tier_label }}" data-v775-shell="true" data-v776-shell="true" data-v777-shell="true" data-v778-shell="true" data-v790-shell="true" data-v792-shell="true" data-v793-shell="true" data-v795-shell="true" data-v796-shell="true" data-v797-shell="true" data-v798-shell="true" data-v799-shell="true" data-v800-shell="true" data-v801-shell="true" data-v802-shell="true">
+<body class="ns-app ns-tier-{{ _visual_tier }}{% if current_user %} ns-authenticated{% else %} ns-public{% endif %}{% if current_user and current_user.role == 'ADMIN' %} ns-admin{% endif %}" data-ns-route="{{ request.path }}" data-ns-plan="{{ _tier_label }}" data-v775-shell="true" data-v776-shell="true" data-v777-shell="true" data-v778-shell="true" data-v790-shell="true" data-v792-shell="true" data-v793-shell="true" data-v795-shell="true" data-v796-shell="true" data-v797-shell="true" data-v798-shell="true" data-v799-shell="true" data-v800-shell="true" data-v801-shell="true" data-v802-shell="true" data-v806-shell="true" data-v807-shell="true">
   <div class="ns-ambient" aria-hidden="true"><i></i><i></i><i></i></div>
   <div class="membership-energy-bar" aria-hidden="true"></div>
   <div class="ns-route-glow" aria-hidden="true"></div>
@@ -36,21 +36,16 @@
       <span class="tier-badge tier-badge-{{ _visual_tier }}">{{ _tier_label }}</span>
       <nav class="nav nav-clean">
         {% if current_user and current_user.role == 'ADMIN' %}
-          <a href="/admin/control-center">Control</a>
+          <a href="/admin/control-center">Panel</a>
           <a href="/admin/users">Clientes</a>
-          <a href="/admin/memberships">Membresías</a>
-          <a href="/admin/picks">Picks</a>
-          <a href="/admin/telegram">Telegram</a>
           <a href="/admin/data-center">Datos</a>
-          <a href="/admin/data-marketplace">Datos comerciales</a>
-          <a href="/admin/automation-center">Automatización</a>
+          <a href="/admin/matches-sync">Partidos</a>
+          <a href="/admin/picks">Picks</a>
+          <a href="/admin/telegram/command-center">Telegram</a>
+          <a href="/admin/automation-center">Auto</a>
           <a href="/admin/app-experience-quality">Calidad</a>
-          <a href="/admin/highlights-center">Resúmenes</a>
-          <a href="/admin/final-qa">QA/Venta</a>
-          <a href="/admin/final-certification">Certificación</a>
-          <a href="/admin/real-launch">Lanzamiento real</a>
-          <a href="/admin/client-screen-audit">Cliente</a>
           <a href="/sports-hub">Vista cliente</a>
+          <a class="v807-admin-map-link" href="#v807-admin-map">Mapa</a>
           <a href="/logout">Salir</a>
         {% elif current_user %}
           <a href="/app" data-v775-icon="⌂">Inicio</a>
@@ -72,25 +67,38 @@
     </div>
   </header>
 
-  {# V778: navegación global cliente consolidada. PC usa la barra superior; móvil usa la inferior. Sin rail duplicado. #}
+  {# V806: navegación cliente sin barra lateral izquierda. PC usa la barra superior y móvil usa la inferior. #}
 
-  {% if current_user and current_user.role != 'ADMIN' %}
-  <aside class="v798-client-rail v799-client-rail" aria-label="Navegación cliente premium">
-    <div class="v799-rail-brand"><span>NS</span><strong>SHARK</strong><small>{{ _tier_label }}</small></div>
-    <a href="/app" data-v775-icon="⌂"><span>Inicio</span></a>
-    <a href="/calendar?lane=today" data-v775-icon="▦"><span>Partidos</span></a>
-    <a href="/live" data-v775-icon="●"><span>Directo</span></a>
-    <a href="/picks" data-v775-icon="◆"><span>Picks</span></a>
-    <a href="/shark" data-v775-icon="◥"><span>SHARK</span></a>
-    <a href="/track-record" data-v775-icon="↗"><span>Histórico</span></a>
-    <a href="/telegram" data-v775-icon="✈"><span>Telegram</span></a>
-    <a href="/mi-cuenta" data-v775-icon="◎"><span>Cuenta</span></a>
-    <a class="v799-rail-logout" href="/logout" data-v775-icon="⏻"><span>Salir</span></a>
-    <div class="v800-rail-status v802-rail-status" aria-label="Estado cliente">
-      <span>Flujo conectado</span>
-      <small>Partidos · picks · SHARK</small>
-    </div>
-  </aside>
+
+  {% if current_user and current_user.role == 'ADMIN' %}
+  {% set v807_admin_groups = [
+    ('Centro', [('Panel','/admin/control-center'),('Dashboard','/admin/dashboard'),('Sistema','/admin/system'),('Rutas','/admin/route-health'),('Errores','/admin/observability/errors')]),
+    ('Clientes', [('Usuarios','/admin/users'),('Membresías','/admin/memberships'),('Importar','/admin/user-import'),('Soporte','/admin/support-center'),('Auditoría cliente','/admin/client-screen-audit')]),
+    ('Datos', [('Data Center','/admin/data-center'),('Partidos','/admin/matches-sync'),('SportsDB','/admin/sportsdb-sync'),('Data Memory','/admin/data-memory'),('Data Vault','/admin/data-vault'),('Datos comerciales','/admin/data-marketplace')]),
+    ('Live / SHARK', [('Live Experience','/admin/live-experience'),('Live Depth','/admin/live-depth'),('Match Intelligence','/admin/match-intelligence'),('SHARK Center','/admin/shark-center'),('Inteligencia','/admin/unified-intelligence')]),
+    ('Picks', [('Picks','/admin/picks'),('Recomendaciones','/admin/recommendations'),('Rendimiento','/admin/pick-performance'),('Track Record','/admin/track-record'),('Betting Center','/admin/betting-center')]),
+    ('Telegram / Auto', [('Telegram','/admin/telegram/command-center'),('Telegram config','/admin/telegram'),('Automatización','/admin/automation-center'),('Backups','/admin/backups'),('QA Telegram','/admin/telegram/diagnostics')]),
+    ('Calidad / Venta', [('Calidad app','/admin/app-experience-quality'),('Visual','/admin/visual-experience'),('QA final','/admin/final-qa'),('Go Live','/admin/go-live'),('Lanzamiento real','/admin/real-launch'),('Pagos','/admin/payments')]),
+    ('Cliente', [('Vista cliente','/sports-hub'),('Inicio app','/app'),('Partidos','/calendar?lane=today'),('Directo','/live'),('Picks','/picks'),('Cuenta','/mi-cuenta')])
+  ] %}
+  <section id="v807-admin-map" class="v807-admin-launchpad" aria-label="Mapa rápido admin">
+    <details {% if request.path in ['/admin/control-center','/admin/dashboard'] %}open{% endif %}>
+      <summary>
+        <span><b>Mapa admin</b><small>Todos los accesos importantes recuperados y agrupados</small></span>
+        <em>Abrir / cerrar</em>
+      </summary>
+      <div class="v807-admin-map-grid">
+        {% for group, links in v807_admin_groups %}
+        <article class="v807-admin-map-group">
+          <h3>{{ group }}</h3>
+          <div>
+            {% for label, href in links %}<a href="{{ href }}">{{ label }}</a>{% endfor %}
+          </div>
+        </article>
+        {% endfor %}
+      </div>
+    </details>
+  </section>
   {% endif %}
 
   {% if current_user and current_user.role != 'ADMIN' %}
@@ -113,25 +121,21 @@
 
   <nav class="bottom-nav bottom-nav-clean" aria-label="Navegación rápida">
     {% if current_user and current_user.role == 'ADMIN' %}
-      <a href="/admin/control-center">Control</a>
+      <a href="/admin/control-center">Panel</a>
       <a href="/admin/users">Clientes</a>
-      <a href="/admin/memberships">Membresías</a>
-      <a href="/admin/telegram">Telegram</a>
       <a href="/admin/data-center">Datos</a>
-      <a href="/admin/data-marketplace">Datos</a>
+      <a href="/admin/matches-sync">Partidos</a>
+      <a href="/admin/picks">Picks</a>
+      <a href="/admin/telegram/command-center">Telegram</a>
       <a href="/admin/automation-center">Auto</a>
-      <a href="/admin/highlights-center">Resúmenes</a>
-      <a href="/admin/final-certification">Certificación</a>
-          <a href="/admin/real-launch">Lanzamiento real</a>
-          <a href="/admin/client-screen-audit">Cliente</a>
-      <a href="/sports-hub">Vista cliente</a>
+      <a href="/sports-hub">Cliente</a>
       <a href="/logout">Salir</a>
     {% elif current_user %}
       <a href="/app" data-v775-icon="⌂">Inicio</a>
       <a href="/calendar?lane=today" data-v775-icon="▦">Partidos</a>
       <a href="/live" data-v775-icon="●">Directo</a>
       <a href="/picks" data-v775-icon="◆">Picks</a>
-      <a href="/shark" data-v775-icon="◥">SHARK</a>
+      <a href="/mi-cuenta" data-v775-icon="◎">Cuenta</a>
     {% else %}
       <a href="/" data-v775-icon="⌂">Inicio</a>
       <a href="/membresias" data-v775-icon="★">Planes</a>

@@ -3,65 +3,71 @@
 {% block content %}
 {% set d = data if data is defined and data else {} %}
 {% set stats = d.get('stats', {}) if d.get is defined else {} %}
-{% call ui.shell('Dashboard', 'Panel de control', 'Resumen general del ecosistema') %}
-<section class="v794-admin-kpi-grid">
-  {{ ui.kpi('Usuarios activos', stats.get('users_active') or d.get('users_count') or '—', '+12.4% vs ayer', '♙', 'blue', '') }}
-  {{ ui.kpi('Picks activos', stats.get('picks_active', d.get('active_picks', '38')), '+8 vs ayer', '◎', 'blue', '') }}
-  {{ ui.kpi('Partidos en directo', stats.get('live_matches') or d.get('live_count') or '—', 'En 12 ligas', '⚽', 'blue', '') }}
-  {{ ui.kpi('MRR', stats.get('mrr') or d.get('mrr') or '—', '+9.6% vs ayer', '€', 'green', '') }}
-  {{ ui.kpi('Telegram', stats.get('telegram_subscribers') or d.get('telegram_subscribers') or '—', 'Suscriptores', '✈', 'blue', '') }}
-  {{ ui.kpi('Estado global', 'Correcto', 'Todos los sistemas OK', '🛡', 'green', '') }}
-</section>
-<section class="v794-admin-grid two">
-  <article class="v794-admin-panel">
-    <div class="v794-panel-head"><h2>Actividad & Ingresos</h2><span>{{ ui.status('Diario','info') }}</span></div>
-    <div class="v794-admin-chart"><span class="v794-chart-label">Ingresos + usuarios</span></div>
-    <div class="v794-admin-grid three" style="margin-top:14px">
-      <div><small>Ingresos hoy</small><h2>{{ stats.get('revenue_today') or '—' }}</h2><span class="v794-status info">Dato real si existe</span></div>
-      <div><small>Ingresos semana</small><h2>{{ stats.get('revenue_week') or '—' }}</h2><span class="v794-status info">No inventado</span></div>
-      <div><small>Ingresos mes</small><h2>{{ stats.get('revenue_month') or '—' }}</h2><span class="v794-status info">Stripe/DB</span></div>
-    </div>
-  </article>
-  <div class="v794-admin-grid">
-    <article class="v794-admin-panel v794-pulse-card">
-      <div class="v794-panel-head"><h2>Estado de Telegram</h2><a href="/admin/telegram/command-center">Abrir →</a></div>
-      <div class="v794-admin-grid three">
-        <div><small>Enviados hoy</small><h2>{{ stats.get('telegram_sent_today') or '—' }}</h2><span>Mensajes reales</span></div>
-        <div><small>Fallidos</small><h2>{{ stats.get('telegram_failed_today') or '—' }}</h2><span class="v794-status info">Dato real</span></div>
-        <div><small>Próximo envío</small><h2 class="v794-live-clock">00:07:42</h2><span>Render Cron</span></div>
-      </div>
-      <div class="v794-progress" style="margin-top:16px"><i style="width:78%"></i></div>
-    </article>
-    <article class="v794-admin-panel">
-      <div class="v794-panel-head"><h2>Lanzamiento real</h2><a href="/admin/real-launch">Ver →</a></div>
-      <div class="v794-admin-list">
-        <div class="v794-admin-list-row"><span>✓</span><div><strong>Datos verificados</strong><small>Última verificación: 16:15</small></div>{{ ui.status('Correcto','ok') }}</div>
-        <div class="v794-admin-list-row"><span>✓</span><div><strong>Picks generados</strong><small>Último: 16:20</small></div>{{ ui.status('Correcto','ok') }}</div>
-        <div class="v794-admin-list-row"><span>◌</span><div><strong>Envío a Telegram</strong><small>En progreso...</small></div>{{ ui.status('Activo','info') }}</div>
-        <div class="v794-admin-list-row"><span>◌</span><div><strong>Logs y respaldo</strong><small>Pendiente</small></div>{{ ui.status('Pendiente','warn') }}</div>
-      </div>
-    </article>
+{% set grouped = items|default([])|groupby('group') %}
+{% call ui.shell('Dashboard', 'Panel de control', 'Centro operativo real del ecosistema') %}
+<section class="v807-admin-hero">
+  <div>
+    <p class="eyebrow">V807 · Admin Reference System</p>
+    <h1>Panel admin ordenado como centro de mando.</h1>
+    <p>Accesos recuperados, rutas agrupadas y datos reales cuando existen. Nada de métricas inventadas: si Render/DB/API no trae el dato, aparece pendiente.</p>
   </div>
+  <aside>
+    <span class="v807-live-dot"></span>
+    <strong>{{ d.get('version') or d.get('app_version') or 'Versión activa' }}</strong>
+    <small>Madrid · producción</small>
+    <a href="/admin/route-health">Revisar rutas</a>
+  </aside>
 </section>
-<section class="v794-admin-grid two" style="margin-top:16px">
-  <article class="v794-admin-panel">
-    <div class="v794-panel-head"><h2>Actividad reciente</h2><a href="/admin/observability">Ver todo →</a></div>
-    <table class="v794-admin-table"><thead><tr><th>Hora</th><th>Módulo</th><th>Descripción</th><th>Usuario</th><th>Estado</th></tr></thead><tbody>
-      <tr><td>—</td><td>Sistema</td><td>Actividad real pendiente de logs de producción</td><td>Render</td><td>{{ ui.status('Esperando datos','info') }}</td></tr>
-    </tbody></table>
-  </article>
-  <article class="v794-admin-panel">
-    <div class="v794-panel-head"><h2>Acciones rápidas</h2><span class="v794-status info">operación</span></div>
-    <div class="v794-action-grid">
-      <a class="v794-action-card" href="/admin/telegram"><i>✈</i><span><b>Enviar prueba</b><small>a Telegram</small></span><em>›</em></a>
-      <a class="v794-action-card" href="/admin/picks"><i>◎</i><span><b>Generar picks</b><small>ahora</small></span><em>›</em></a>
-      <a class="v794-action-card" href="/admin/data-marketplace"><i>▤</i><span><b>Sincronizar</b><small>datos ahora</small></span><em>›</em></a>
-      <a class="v794-action-card" href="/live"><i>⚽</i><span><b>Ver directo</b><small>cliente</small></span><em>›</em></a>
-      <a class="v794-action-card" href="/admin/real-launch"><i>▥</i><span><b>Reportes</b><small>preflight</small></span><em>›</em></a>
-      <a class="v794-action-card" href="/admin/observability"><i>☷</i><span><b>Logs</b><small>del sistema</small></span><em>›</em></a>
+
+<section class="v794-admin-kpi-grid v807-admin-kpis">
+  {{ ui.kpi('Usuarios', stats.get('users_active') or d.get('users_count') or '—', 'DB real si existe', '♙', 'blue', '') }}
+  {{ ui.kpi('Picks activos', stats.get('picks_active') or d.get('active_picks') or '—', 'Publicados reales', '◎', 'blue', '') }}
+  {{ ui.kpi('Directos', stats.get('live_matches') or d.get('live_count') or '—', 'Feed live real', '⚽', 'blue', '') }}
+  {{ ui.kpi('Ingresos', stats.get('mrr') or stats.get('revenue_month') or d.get('mrr') or '—', 'Stripe/DB si existe', '€', 'green', '') }}
+  {{ ui.kpi('Telegram', stats.get('telegram_sent_today') or stats.get('telegram_subscribers') or '—', 'Envíos reales', '✈', 'blue', '') }}
+  {{ ui.kpi('Alertas', stats.get('errors_today') or d.get('errors_today') or '—', 'Observabilidad', '🛡', 'gold', '') }}
+</section>
+
+<section class="v807-admin-command-grid">
+  <article class="v807-admin-command-main">
+    <div class="v794-panel-head"><h2>Acciones principales</h2><span class="v794-status info">operación</span></div>
+    <div class="v807-action-tiles">
+      <a href="/admin/data-center"><i>▤</i><b>Sincronizar datos</b><small>Calendario, cuotas, escudos y feeds.</small></a>
+      <a href="/admin/matches-sync"><i>⚽</i><b>Partidos</b><small>Revisar calendario, resultados y enlaces.</small></a>
+      <a href="/admin/live-depth"><i>●</i><b>Live API-Football</b><small>Tracker, presión y eventos reales.</small></a>
+      <a href="/admin/picks"><i>◎</i><b>Picks</b><small>Publicar y revisar picks reales.</small></a>
+      <a href="/admin/telegram/command-center"><i>✈</i><b>Telegram</b><small>Automatización, cola y diagnósticos.</small></a>
+      <a href="/sports-hub"><i>◉</i><b>Vista cliente</b><small>Comprobar experiencia del usuario.</small></a>
     </div>
   </article>
+  <article class="v807-admin-command-side">
+    <div class="v794-panel-head"><h2>Estado real</h2><a href="/admin/observability">Ver logs →</a></div>
+    <div class="v807-real-state-list">
+      <div><span>DB</span><strong>{{ 'Con datos' if d.get('users_count') or d.get('match_hub') else 'Pendiente' }}</strong></div>
+      <div><span>Live</span><strong>{{ stats.get('live_matches') or d.get('live_count') or '—' }}</strong></div>
+      <div><span>Picks</span><strong>{{ stats.get('picks_active') or d.get('active_picks') or '—' }}</strong></div>
+      <div><span>API</span><strong>Según Render</strong></div>
+    </div>
+    <p class="muted small">El panel no simula valores. Las métricas dependen de SQLite, Stripe, Telegram, API-Football y Render.</p>
+  </article>
 </section>
-<script>window.v794AdminLive=true;</script>
+
+<section class="v807-admin-route-catalog">
+  <div class="v794-panel-head"><h2>Mapa completo de pantallas admin</h2><span class="v794-status info">accesos recuperados</span></div>
+  <p class="muted">Todo lo importante queda agrupado para no perder botones ni pantallas mientras seguimos puliendo el ecosistema.</p>
+  {% for group, group_items in grouped %}
+  <article class="v807-route-group">
+    <h3>{{ group }}</h3>
+    <div class="v807-route-cards">
+      {% for item in group_items %}
+      <a href="{{ item.href }}">
+        <b>{{ item.title }}</b>
+        <small>{{ item.body }}</small>
+      </a>
+      {% endfor %}
+    </div>
+  </article>
+  {% endfor %}
+</section>
 {% endcall %}
 {% endblock %}
