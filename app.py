@@ -219,7 +219,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V811_CLIENT_MATCH_LIFECYCLE_LIVE_FIELD_REFERENCE_UI_FINAL'
+APP_VERSION = 'V812_CLIENT_REFERENCE_REBUILD_REAL_LIFECYCLE_TOPBAR_SHARK_FINAL'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
@@ -2533,8 +2533,14 @@ def canonical_match_status(match):
             return {"key": "HT", "label": "Descanso", "badge": "halftime", "is_live": True, "is_finished": False, "is_result_pending": False, "is_upcoming": False}
         return {"key": "LIVE", "label": "En directo", "badge": "live", "is_live": True, "is_finished": False, "is_result_pending": False, "is_upcoming": False}
     if minute and not is_finished_status_value(status):
-        # Solo tratar minuto como live si el estado no indica finalizado.
         return {"key": "LIVE", "label": "En directo", "badge": "live", "is_live": True, "is_finished": False, "is_result_pending": False, "is_upcoming": False}
+    # V812: si la hora de inicio ya pasó, nunca se debe presentar como "Próximo".
+    # Mientras el proveedor no confirme marcador/minuto, se etiqueta como actualización en curso;
+    # cuando supera el margen normal de partido, pasa a Resultado pendiente.
+    if elapsed is not None and elapsed >= 0 and not has_score:
+        if elapsed >= 150:
+            return {"key": "RESULT_PENDING", "label": "Resultado pendiente", "badge": "result_pending", "is_live": False, "is_finished": True, "is_result_pending": True, "is_upcoming": False}
+        return {"key": "LIVE_PENDING", "label": "En juego · actualizando", "badge": "live_pending", "is_live": True, "is_finished": False, "is_result_pending": False, "is_upcoming": False}
     if match_is_stale_without_result(match):
         return {"key": "RESULT_PENDING", "label": "Resultado pendiente", "badge": "result_pending", "is_live": False, "is_finished": True, "is_result_pending": True, "is_upcoming": False}
     if date_value and date_value > today_iso() and not is_live_status_value(status):
@@ -9743,7 +9749,7 @@ def get_upcoming_matches(start_date=None, days=7, limit=300):
         info = canonical_match_status(item)
         # V811: get_upcoming_matches ya no deja que partidos de madrugada/pasados
         # sigan saliendo como próximos. Se van a Resultados / Resultado pendiente.
-        if info.get("is_finished") or info.get("is_result_pending"):
+        if not info.get("is_upcoming"):
             continue
         data.append(item)
     return data
