@@ -8,7 +8,7 @@ def ok(cond,msg):
         raise SystemExit(f"FAIL: {msg}")
 
 version=(ROOT/'VERSION.txt').read_text(encoding='utf-8-sig').strip()
-ok(version.startswith('V810_'), 'VERSION no es V810')
+ok(version.startswith('V810_') or version.startswith('V811_'), 'VERSION no es V810/V811')
 base=(ROOT/'templates/base.html').read_text(encoding='utf-8')
 css=(ROOT/'static/app.css').read_text(encoding='utf-8')
 activity=(ROOT/'engines/telegram_activity_engine.py').read_text(encoding='utf-8')

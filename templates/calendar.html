@@ -13,7 +13,7 @@
       <h1>Partidos</h1>
       <p>La pantalla de partidos ahora funciona como calendario central: días, ligas importantes, búsqueda, directo, picks y detalle conectado sin inventar datos.</p>
     </div>
-    <div class="v799-appbar-actions"><a href="/live">Directo</a><a class="primary" href="/picks">Picks</a></div>
+    <div class="v799-appbar-actions"><a href="/calendar?lane=results">Resultados</a><a href="/live">Directo</a><a class="primary" href="/picks">Picks</a></div>
   </div>
 
   {% include "partials/client_flow_bar.html" %}
@@ -124,7 +124,7 @@
           {% set home_identity = m.get('home_identity') or {} %}
           {% set away_identity = m.get('away_identity') or {} %}
           {% set is_live = (m.get('live_depth') or {}).get('state') in ['LIVE','HT'] or (m.get('status_info') or {}).get('is_live') %}
-          <article class="v799-agenda-row v801-agenda-row {{ 'has-pick' if m.get('has_pick') or m.get('pick_id') else '' }} {{ 'is-live' if is_live else '' }}">
+          <article class="v799-agenda-row v801-agenda-row {{ 'has-pick' if m.get('has_pick') or m.get('pick_id') else '' }} {{ 'is-live' if is_live else '' }} {{ 'is-result-pending' if (m.get('status_info') or {}).get('is_result_pending') else '' }}">
             <button class="fav-star" type="button" data-kind="match" data-value="{{ m.get('id') }}" data-label="{{ ctx.safe_home }} vs {{ ctx.safe_away }}">☆</button>
             <a class="v799-agenda-link v801-agenda-link" href="/match/{{ m.get('id') }}">
               <span class="v799-time v801-time"><b>{{ ctx.client_time_label or ctx.client_score_label or '—' }}</b><small>{{ ctx.client_status_label or 'Pendiente' }}</small></span>

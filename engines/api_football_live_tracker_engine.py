@@ -16,7 +16,7 @@ import re
 import sqlite3
 import urllib.parse
 import urllib.request
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Any, Iterable, Mapping, Optional
 
 API_FOOTBALL_BASE_URL = "https://v3.football.api-sports.io"
@@ -755,11 +755,98 @@ def _tracker_quality_payload(stats: Mapping[str, Any], events: list[dict[str, An
         "safe_to_show": True,
     }
 
+def _last_event_label(events: list[dict[str, Any]]) -> str:
+    if not events:
+        return "Sin evento reciente"
+    ev = events[0]
+    minute = str(ev.get("elapsed") or "").strip()
+    etype = str(ev.get("event_type") or "Evento").strip()
+    detail = str(ev.get("detail") or ev.get("comments") or ev.get("player_name") or "").strip()
+    team = str(ev.get("team_name") or "").strip()
+    prefix = (minute + "' · ") if minute else ""
+    middle = f"{etype}" + (f" · {detail}" if detail else "")
+    return f"{prefix}{team} · {middle}" if team else f"{prefix}{middle}"
+
+
+def _stat_pair(stats: Mapping[str, Any], key: str) -> tuple[float, float]:
+    block = stats.get(key) if isinstance(stats, Mapping) else None
+    if not isinstance(block, Mapping):
+        return 0.0, 0.0
+    return _stat_numeric((block.get("home") or {}).get("numeric")), _stat_numeric((block.get("away") or {}).get("numeric"))
+
+
+def _field_state(stats: Mapping[str, Any], events: list[dict[str, Any]], pressure: Mapping[str, Any], home_name: str, away_name: str) -> dict[str, Any]:
+    """Client field interpretation from real API-Football signals only.
+
+    API-Football does not provide exact ball x/y coordinates in this integration, so
+    NeMeSiS shows pressure zone, latest real event and stat evidence instead of an invented ball marker.
+    """
+    home_p = int(pressure.get("home_pct") or 50)
+    away_p = int(pressure.get("away_pct") or 50)
+    dominant = home_name if home_p >= away_p else away_name
+    side = "home" if home_p >= away_p else "away"
+    diff = abs(home_p - away_p)
+    da_home, da_away = _stat_pair(stats, "dangerous_attacks")
+    attacks_home, attacks_away = _stat_pair(stats, "attacks")
+    corners_home, corners_away = _stat_pair(stats, "corners")
+    latest = _last_event_label(events)
+    if da_home or da_away:
+        if da_home > da_away:
+            headline = f"Ataque peligroso: {home_name}"
+            side = "home"
+        elif da_away > da_home:
+            headline = f"Ataque peligroso: {away_name}"
+            side = "away"
+        else:
+            headline = "Ataques peligrosos equilibrados"
+        mode = "danger"
+    elif corners_home or corners_away:
+        headline = "Córners reales disponibles"
+        mode = "corner"
+    elif pressure.get("available"):
+        headline = f"Presión de {dominant}" if diff >= 8 else "Partido equilibrado"
+        mode = "pressure"
+    elif events:
+        headline = "Últimos eventos reales disponibles"
+        mode = "events"
+    else:
+        headline = "Tracker básico: esperando estadísticas"
+        mode = "basic"
+    chips = []
+    if da_home or da_away:
+        chips.append(f"Ataques peligrosos {int(da_home)}-{int(da_away)}")
+    if attacks_home or attacks_away:
+        chips.append(f"Ataques {int(attacks_home)}-{int(attacks_away)}")
+    if corners_home or corners_away:
+        chips.append(f"Córners {int(corners_home)}-{int(corners_away)}")
+    if events:
+        chips.append(f"{len(events)} eventos reales")
+    if pressure.get("available"):
+        chips.append(f"Presión {home_p}-{away_p}")
+    return {
+        "available": bool(chips or pressure.get("available") or events),
+        "mode": mode,
+        "headline": headline,
+        "dominant_team": dominant,
+        "dominant_side": side,
+        "home_pressure_pct": home_p,
+        "away_pressure_pct": away_p,
+        "last_event_label": latest,
+        "dangerous_attacks_available": bool(da_home or da_away),
+        "attacks_available": bool(attacks_home or attacks_away),
+        "corners_available": bool(corners_home or corners_away),
+        "chips": chips,
+        "ball_position_available": False,
+        "ball_note": "Balón exacto no disponible en el feed actual: no se dibuja marcador de balón inventado.",
+    }
+
+
 def _build_tracker_payload(row: Mapping[str, Any], stats: Mapping[str, Any], events: list[dict[str, Any]], pressure: Mapping[str, Any]) -> dict[str, Any]:
     home_name = str(row.get("home_team") or "")
     away_name = str(row.get("away_team") or "")
     cards = _stat_cards(stats, home_name, away_name)
     flow = _game_flow(stats, events, pressure, home_name, away_name)
+    field_state = _field_state(stats, events, pressure, home_name, away_name)
     dangerous_available = _has_stat(stats, "dangerous_attacks")
     attacks_available = _has_stat(stats, "attacks")
     quality = _tracker_quality_payload(stats, events, pressure)
@@ -997,6 +1084,100 @@ def sync_api_football_fixture_detail(db_path: str, match_id: str, force: bool = 
     tracker.update({"ok": True, "status": "detail_synced", "external_calls": external_calls, "errors": errors[:6]})
     return tracker
 
+
+
+def _state_key_for_window() -> str:
+    return "match_window"
+
+
+def _date_range(days_back: int, days_ahead: int) -> list[str]:
+    today = datetime.now(timezone.utc).date()
+    back = max(0, min(5, int(days_back)))
+    ahead = max(0, min(7, int(days_ahead)))
+    return [(today + timedelta(days=offset)).isoformat() for offset in range(-back, ahead + 1)]
+
+
+def sync_api_football_match_window(db_path: str, days_back: int = 2, days_ahead: int = 2, force: bool = False) -> dict[str, Any]:
+    """Refresh nearby fixtures/results using API-Football with a conservative cache.
+
+    Purpose: a match played at dawn should stop appearing as upcoming and move to
+    results once API-Football returns FT/score. This updates only normalized cache
+    and the matches table; it never invents scores.
+    """
+    ensure_live_tracker_schema(db_path)
+    cache_seconds = _as_int(os.getenv("API_FOOTBALL_MATCH_WINDOW_CACHE_SECONDS", "900"), 900)
+    conn = _connect(db_path)
+    try:
+        if not tracker_enabled():
+            state = {"ok": False, "configured": api_key_configured(), "enabled": tracker_enabled(), "status": "pendiente_api_football", "message": "API-Football no configurado o desactivado para ventana de partidos."}
+            conn.execute("INSERT OR REPLACE INTO api_football_live_sync_state(key,last_sync_at,status,fixtures_count,events_count,stats_count,external_calls,error,payload_json) VALUES (?,?,?,?,?,?,?,?,?)", (_state_key_for_window(), _now_iso(), state["status"], 0, 0, 0, 0, state.get("message"), _json(state)))
+            conn.commit()
+            return state
+        age = _cache_age_seconds(conn, _state_key_for_window())
+        if not force and age is not None and age < cache_seconds:
+            return {"ok": True, "configured": True, "enabled": True, "status": "cache", "cache_age_seconds": age, "external_calls": 0, "message": "Ventana API-Football reutilizada para proteger créditos."}
+        dates = _date_range(days_back, days_ahead)
+        fixtures_count = stats_count = events_count = calls = 0
+        errors = []
+        all_fixtures = []
+        for date_value in dates:
+            payload = _api_get("fixtures", {"date": date_value, "timezone": os.getenv("APP_TIMEZONE", DEFAULT_TIMEZONE)})
+            calls += 1
+            if not payload.get("ok"):
+                errors.append(str(payload.get("error") or payload.get("errors") or f"error_fixtures_{date_value}")[:220])
+                continue
+            fixtures = [_normalize_fixture(item) for item in (payload.get("response") or [])]
+            all_fixtures.extend(fixtures)
+        fixtures_count = len(all_fixtures)
+        if all_fixtures:
+            fixtures_count = _upsert_snapshots(conn, all_fixtures)
+            _upsert_matches(conn, all_fixtures)
+        # Deep data only for live/recent finished fixtures to avoid wasting calls.
+        deep_limit = _as_int(os.getenv("API_FOOTBALL_MATCH_WINDOW_DEEP_LIMIT", "10"), 10)
+        deep_done = 0
+        for f in all_fixtures:
+            if deep_done >= deep_limit:
+                break
+            status = str(f.get("status_short") or "").upper()
+            if status not in LIVE_STATUS_SHORT and status not in FINISHED_STATUS_SHORT:
+                continue
+            fixture_id = str(f.get("fixture_id") or "")
+            if not fixture_id:
+                continue
+            ev_payload = _api_get("fixtures/events", {"fixture": fixture_id})
+            calls += 1
+            if ev_payload.get("ok"):
+                events_count += _upsert_events(conn, fixture_id, ev_payload.get("response") or [])
+            st_payload = _api_get("fixtures/statistics", {"fixture": fixture_id})
+            calls += 1
+            if st_payload.get("ok"):
+                stats_count += _upsert_statistics(conn, fixture_id, st_payload.get("response") or [])
+            deep_done += 1
+        state = {
+            "ok": not bool(errors),
+            "configured": True,
+            "enabled": True,
+            "status": "OK" if not errors else "PARTIAL",
+            "fixtures_count": fixtures_count,
+            "events_count": events_count,
+            "stats_count": stats_count,
+            "external_calls": calls,
+            "cache_seconds": cache_seconds,
+            "dates": dates,
+            "message": "Ventana API-Football sincronizada: resultados/minutos/caché actualizados sin inventar datos.",
+            "errors": errors[:8],
+        }
+        conn.execute("""
+            INSERT INTO api_football_live_sync_state(key,last_sync_at,status,fixtures_count,events_count,stats_count,external_calls,error,payload_json)
+            VALUES (?,?,?,?,?,?,?,?,?)
+            ON CONFLICT(key) DO UPDATE SET last_sync_at=excluded.last_sync_at,status=excluded.status,fixtures_count=excluded.fixtures_count,events_count=excluded.events_count,stats_count=excluded.stats_count,external_calls=excluded.external_calls,error=excluded.error,payload_json=excluded.payload_json
+        """, (_state_key_for_window(), _now_iso(), state["status"], fixtures_count, events_count, stats_count, calls, "; ".join(errors[:4])[:500], _json(state)))
+        conn.commit()
+        return state
+    except Exception as exc:
+        return {"ok": False, "configured": api_key_configured(), "enabled": tracker_enabled(), "status": "ERROR", "error": str(exc)[:220]}
+    finally:
+        conn.close()
 
 
 def live_tracker_quality_summary(db_path: str) -> dict[str, Any]:

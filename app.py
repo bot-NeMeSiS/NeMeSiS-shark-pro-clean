@@ -63,6 +63,7 @@ from engines.api_football_live_tracker_engine import (
     live_tracker_status,
     sync_api_football_fixture_detail,
     sync_api_football_live_tracker,
+    sync_api_football_match_window,
 )
 from engines.content_rights_engine import content_rights_policy_summary
 from engines.data_vault_engine import create_sqlite_backup, db_vault_status, export_table_csv, list_backups as data_vault_list_backups, validate_backup as data_vault_validate_backup
@@ -218,7 +219,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V810_TELEGRAM_PRO_CHANNEL_REFERENCE_TOPBAR_SHARK_UI_FINAL_POLISH'
+APP_VERSION = 'V811_CLIENT_MATCH_LIFECYCLE_LIVE_FIELD_REFERENCE_UI_FINAL'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
@@ -2455,25 +2456,92 @@ def is_live_status_value(status):
     ])
 
 
+def match_kickoff_madrid_dt(match):
+    """Best-effort kickoff datetime in Europe/Madrid for lifecycle decisions.
+
+    Used only to decide where a match belongs visually (upcoming/live/results).
+    It never fabricates scores or events.
+    """
+    item = dict(match or {})
+    raw_iso = str(item.get("kickoff_iso") or item.get("commence_time") or "").strip()
+    candidates = []
+    if raw_iso:
+        candidates.append(raw_iso)
+    date_value = str(item.get("match_date") or item.get("date") or "").strip()[:10]
+    time_value = str(item.get("kickoff_time") or item.get("match_time") or item.get("time") or "").strip()[:5]
+    if date_value:
+        candidates.append(f"{date_value}T{time_value or '00:00'}")
+    for raw in candidates:
+        try:
+            iso = raw.replace("Z", "+00:00")
+            dt = datetime.fromisoformat(iso)
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=TZ)
+            return dt.astimezone(TZ)
+        except Exception:
+            continue
+    return None
+
+
+def match_elapsed_minutes(match):
+    dt = match_kickoff_madrid_dt(match)
+    if not dt:
+        return None
+    try:
+        return int((datetime.now(TZ) - dt).total_seconds() // 60)
+    except Exception:
+        return None
+
+
+def has_real_match_score(match):
+    item = match or {}
+    score = str(item.get("score") or "").strip().lower()
+    if score and score not in {"vs", "none", "null", "-", "—"}:
+        return True
+    return item.get("home_score") not in {None, ""} and item.get("away_score") not in {None, ""}
+
+
+def match_is_stale_without_result(match, grace_minutes=135):
+    """True when kickoff has clearly passed but no provider score/status arrived yet."""
+    if is_live_status_value((match or {}).get("status")) or is_finished_status_value((match or {}).get("status")):
+        return False
+    if has_real_match_score(match):
+        return False
+    elapsed = match_elapsed_minutes(match)
+    return elapsed is not None and elapsed >= int(grace_minutes)
+
+
+def match_is_already_kicked_off(match):
+    elapsed = match_elapsed_minutes(match)
+    return elapsed is not None and elapsed >= 0
+
+
 def canonical_match_status(match):
     status = str((match or {}).get("status") or "").strip()
     minute = str((match or {}).get("minute") or "").strip()
     score = str((match or {}).get("score") or "").strip()
     date_value = str((match or {}).get("match_date") or "").strip()
+    elapsed = match_elapsed_minutes(match)
+    has_score = has_real_match_score(match)
+    status_lower = status.lower()
     if is_finished_status_value(status):
-        return {"key": "FT", "label": "Finalizado", "badge": "finished", "is_live": False, "is_finished": True, "is_upcoming": False}
-    if date_value and date_value > today_iso() and not is_live_status_value(status):
-        return {"key": "UPCOMING", "label": "Próximo", "badge": "upcoming", "is_live": False, "is_finished": False, "is_upcoming": True}
+        return {"key": "FT", "label": "Finalizado", "badge": "finished", "is_live": False, "is_finished": True, "is_result_pending": False, "is_upcoming": False}
+    if has_score and (date_value < today_iso() or (elapsed is not None and elapsed >= 105)):
+        return {"key": "FT", "label": "Finalizado", "badge": "finished", "is_live": False, "is_finished": True, "is_result_pending": False, "is_upcoming": False}
     if is_live_status_value(status):
-        if "half" in status.lower() or "descanso" in status.lower() or status.lower() == "ht":
-            return {"key": "HT", "label": "Descanso", "badge": "halftime", "is_live": True, "is_finished": False, "is_upcoming": False}
-        return {"key": "LIVE", "label": "En directo", "badge": "live", "is_live": True, "is_finished": False, "is_upcoming": False}
+        if "half" in status_lower or "descanso" in status_lower or status_lower == "ht":
+            return {"key": "HT", "label": "Descanso", "badge": "halftime", "is_live": True, "is_finished": False, "is_result_pending": False, "is_upcoming": False}
+        return {"key": "LIVE", "label": "En directo", "badge": "live", "is_live": True, "is_finished": False, "is_result_pending": False, "is_upcoming": False}
     if minute and not is_finished_status_value(status):
         # Solo tratar minuto como live si el estado no indica finalizado.
-        return {"key": "LIVE", "label": "En directo", "badge": "live", "is_live": True, "is_finished": False, "is_upcoming": False}
+        return {"key": "LIVE", "label": "En directo", "badge": "live", "is_live": True, "is_finished": False, "is_result_pending": False, "is_upcoming": False}
+    if match_is_stale_without_result(match):
+        return {"key": "RESULT_PENDING", "label": "Resultado pendiente", "badge": "result_pending", "is_live": False, "is_finished": True, "is_result_pending": True, "is_upcoming": False}
+    if date_value and date_value > today_iso() and not is_live_status_value(status):
+        return {"key": "UPCOMING", "label": "Próximo", "badge": "upcoming", "is_live": False, "is_finished": False, "is_result_pending": False, "is_upcoming": True}
     if score and date_value and date_value < today_iso():
-        return {"key": "FT", "label": "Finalizado", "badge": "finished", "is_live": False, "is_finished": True, "is_upcoming": False}
-    return {"key": "UPCOMING", "label": "Próximo", "badge": "upcoming", "is_live": False, "is_finished": False, "is_upcoming": True}
+        return {"key": "FT", "label": "Finalizado", "badge": "finished", "is_live": False, "is_finished": True, "is_result_pending": False, "is_upcoming": False}
+    return {"key": "UPCOMING", "label": "Próximo", "badge": "upcoming", "is_live": False, "is_finished": False, "is_result_pending": False, "is_upcoming": True}
 
 def sportsdb_event_time(event):
     timestamp = str(event.get("strTimestamp") or "").strip()
@@ -5040,7 +5108,12 @@ def annotate_match(match, favs=None):
     match["real_time_state"] = real_time_state(match)
     match["timeline"] = match_timeline(match)
     match["live_depth"] = live_depth(match)
-    if match["status_info"].get("is_finished"):
+    if match["status_info"].get("is_result_pending"):
+        match["live_depth"]["state"] = "RESULT_PENDING"
+        match["live_depth"]["label"] = "Resultado pendiente"
+        match["live_depth"]["badge"] = "result_pending"
+        match["live_depth"]["minute"] = "Pendiente"
+    elif match["status_info"].get("is_finished"):
         match["live_depth"]["state"] = "FT"
         match["live_depth"]["label"] = "Finalizado"
         match["live_depth"]["badge"] = "finished"
@@ -5483,23 +5556,32 @@ def get_results_matches(start_date=None, days_back=14, limit=150):
     start_date = start_date or today_iso()
     start = (datetime.fromisoformat(start_date).date() - timedelta(days=int(days_back))).isoformat()
     query = """SELECT * FROM matches
-               WHERE match_date>=? AND match_date<?
-               ORDER BY match_date DESC, kickoff_time, competition_name
+               WHERE match_date>=? AND match_date<=?
+               ORDER BY match_date DESC, kickoff_time DESC, competition_name
                LIMIT ?"""
     data = dedupe_matches_list([item for item in rows(query, (start, start_date, int(limit))) if not is_fake_match(item)])
     enriched = []
     for item in data:
         item["kickoff_time"] = item.get("kickoff_time") or item.get("match_time") or ""
-        if not item.get("score") and (item.get("home_score") or item.get("away_score")):
+        if not item.get("score") and (item.get("home_score") not in {None, ""} or item.get("away_score") not in {None, ""}):
             item["score"] = sportsdb_score(item.get("home_score"), item.get("away_score"))
+        info = canonical_match_status(item)
+        if not (info.get("is_finished") or info.get("is_result_pending")):
+            continue
         item["home_identity"] = resolve_team(item.get("home_team"))
         item["away_identity"] = resolve_team(item.get("away_team"))
         item = annotate_match(item)
         item.update(apply_match_localization(item))
-        item["live_depth"]["state"] = "FT"
-        item["live_depth"]["label"] = "Finalizado"
-        item["live_depth"]["badge"] = "finished"
-        item["live_depth"]["minute"] = "FT"
+        if item.get("status_info", {}).get("is_result_pending"):
+            item["live_depth"]["state"] = "RESULT_PENDING"
+            item["live_depth"]["label"] = "Resultado pendiente"
+            item["live_depth"]["badge"] = "result_pending"
+            item["live_depth"]["minute"] = "Pendiente"
+        else:
+            item["live_depth"]["state"] = "FT"
+            item["live_depth"]["label"] = "Finalizado"
+            item["live_depth"]["badge"] = "finished"
+            item["live_depth"]["minute"] = "FT"
         enriched.append(item)
     return enriched
 
@@ -5987,9 +6069,12 @@ def client_match_display_context(match):
     raw_status = _client_str(item.get("status") or item.get("safe_status") or item.get("calendar_status") or item.get("live_status_label"))
     status_key = raw_status.lower()
     minute = _client_str(item.get("minute") or (item.get("live_depth") or {}).get("minute") or item.get("live_clock_label"))
-    if any(x in status_key for x in ("final", "finished", "ft", "acabado")) or score != "vs" and any(x in status_key for x in ("final", "finished", "ft")):
+    status_info = canonical_match_status(item)
+    if status_info.get("is_result_pending"):
+        status_label = "Resultado pendiente"
+    elif status_info.get("is_finished") or any(x in status_key for x in ("final", "finished", "ft", "acabado")) or (score != "vs" and any(x in status_key for x in ("final", "finished", "ft"))):
         status_label = "Finalizado"
-    elif any(x in status_key for x in ("live", "directo", "inplay", "1h", "2h")) or minute:
+    elif status_info.get("is_live") or any(x in status_key for x in ("live", "directo", "inplay", "1h", "2h")) or minute:
         status_label = f"En directo · {minute}" if minute else "En directo"
     else:
         status_label = "Próximo"
@@ -9645,15 +9730,22 @@ def get_upcoming_matches(start_date=None, days=7, limit=300):
                WHERE match_date>=? AND match_date<=?
                ORDER BY match_date, kickoff_time, priority DESC, competition_name
                LIMIT ?"""
-    data = dedupe_matches_list([item for item in rows(query, (start_date, end_date, int(limit))) if not is_fake_match(item)])
-    for item in data:
+    raw_data = dedupe_matches_list([item for item in rows(query, (start_date, end_date, int(limit))) if not is_fake_match(item)])
+    data = []
+    for item in raw_data:
         item["kickoff_time"] = item.get("kickoff_time") or item.get("match_time") or ""
-        if not item.get("score") and (item.get("home_score") or item.get("away_score")):
+        if not item.get("score") and (item.get("home_score") not in {None, ""} or item.get("away_score") not in {None, ""}):
             item["score"] = sportsdb_score(item.get("home_score"), item.get("away_score"))
         item.update(apply_match_localization(item))
         item["home_identity"] = resolve_team(item.get("home_team"))
         item["away_identity"] = resolve_team(item.get("away_team"))
         item.update(apply_team_identities_to_match(item))
+        info = canonical_match_status(item)
+        # V811: get_upcoming_matches ya no deja que partidos de madrugada/pasados
+        # sigan saliendo como próximos. Se van a Resultados / Resultado pendiente.
+        if info.get("is_finished") or info.get("is_result_pending"):
+            continue
+        data.append(item)
     return data
 
 
@@ -9888,8 +9980,21 @@ def annotate_sports_hub_matches(matches, picks=None):
     return out
 
 
+def ensure_client_match_lifecycle_fresh(force=False):
+    """Best-effort API-Football window sync for results/minutes.
+
+    Cheap cached call: keeps madrugada/yesterday/today/tomorrow matches in the right lane.
+    It only runs when API_FOOTBALL_KEY and provider flags exist in Render.
+    """
+    try:
+        return sync_api_football_match_window(DB_PATH, days_back=2, days_ahead=2, force=bool(force))
+    except Exception as exc:
+        return {"ok": False, "skipped": True, "reason": "client_lifecycle_sync_error", "error": str(exc)[:180]}
+
+
 def dashboard_data(lane="today", date=None):
     date = date or today_iso()
+    lifecycle_sync = ensure_client_match_lifecycle_fresh(force=(request.args.get("refresh") in {"1", "true", "yes"}) if has_request_context() else False)
     matches = get_matches(date, lane)
     upcoming_matches = get_upcoming_matches(date, days=7)
     comps = competitions()
@@ -9942,6 +10047,7 @@ def dashboard_data(lane="today", date=None):
         "sportsdb_feed": sportsdb_feed_status(),
         "odds": odds_diagnostics(),
         "matches_diagnostics": matches_diag,
+        "client_lifecycle_sync": lifecycle_sync,
         "client_source_label": client_source_label(matches_diag),
         "data_center": data_center_summary(),
         "live": split_live([annotate_match(m) for m in get_matches(date, "today")]),
@@ -10059,7 +10165,7 @@ def home_live_summary_data():
              AND COALESCE(home_team,'')!=''
              AND COALESCE(away_team,'')!=''
            ORDER BY match_date, kickoff_time, priority DESC, competition_name
-           LIMIT 8""",
+           LIMIT 18""",
         (today,),
         limit=8,
     )
@@ -10072,6 +10178,9 @@ def home_live_summary_data():
             item.update(apply_match_localization(item))
             item.update(apply_team_identities_to_match(item))
             item = client_match_display_context(item)
+            info = canonical_match_status(item)
+            if info.get("is_finished") or info.get("is_result_pending"):
+                continue
             upcoming_matches.append(item)
         except Exception:
             upcoming_matches.append(item)
@@ -11147,13 +11256,24 @@ def _calendar_sort(matches, sort_key):
             item.get("calendar_competition") or "",
             item.get("safe_home") or "",
         )
+    def lifecycle_order(item):
+        info = item.get("status_info") or canonical_match_status(item)
+        if info.get("is_live"):
+            return 0
+        if info.get("is_upcoming"):
+            return 1
+        if info.get("is_result_pending"):
+            return 3
+        if info.get("is_finished"):
+            return 4
+        return 2
     if sort_key == "time":
-        return sorted(matches, key=time_key)
+        return sorted(matches, key=lambda item: (item.get("match_date") or "9999-99-99", lifecycle_order(item), time_key(item)))
     if sort_key == "league":
-        return sorted(matches, key=lambda item: (int(item.get("calendar_rank") or 80), item.get("calendar_competition") or "", item.get("match_date") or "", item.get("calendar_time") or ""))
+        return sorted(matches, key=lambda item: (int(item.get("calendar_rank") or 80), item.get("calendar_competition") or "", item.get("match_date") or "", lifecycle_order(item), item.get("calendar_time") or ""))
     if sort_key == "picks":
-        return sorted(matches, key=lambda item: (0 if item.get("has_pick") else 1, int(item.get("calendar_rank") or 80), time_key(item)))
-    return sorted(matches, key=lambda item: (item.get("match_date") or "9999-99-99", 0 if item.get("has_pick") else 1, int(item.get("calendar_rank") or 80), normalize_kickoff_for_display(item).get("madrid_time") or item.get("kickoff_time") or "99:99"))
+        return sorted(matches, key=lambda item: (0 if item.get("has_pick") else 1, lifecycle_order(item), int(item.get("calendar_rank") or 80), time_key(item)))
+    return sorted(matches, key=lambda item: (item.get("match_date") or "9999-99-99", lifecycle_order(item), 0 if item.get("has_pick") else 1, int(item.get("calendar_rank") or 80), normalize_kickoff_for_display(item).get("madrid_time") or item.get("kickoff_time") or "99:99"))
 
 
 def _calendar_facets(matches):
@@ -11490,6 +11610,8 @@ def global_football():
 @app.route("/partidos")
 @app.route("/partidos/calendario")
 def calendar_page():
+    if request.args.get("refresh") in {"1", "true", "yes"}:
+        ensure_client_match_lifecycle_fresh(force=True)
     data = dashboard_data("today", request.args.get("date") or today_iso())
     data["calendar"] = calendar_experience_data()
     data["matches"] = data["calendar"].get("matches", [])
@@ -11575,6 +11697,7 @@ def live_page():
     lane = request.args.get("f") or request.args.get("filter") or request.args.get("lane") or "live"
     query = (request.args.get("q") or "").strip()
     force_refresh = request.args.get("refresh") in {"1", "true", "yes"}
+    lifecycle_refresh = ensure_client_match_lifecycle_fresh(force=force_refresh)
     live_refresh = ensure_client_live_fresh(force=force_refresh)
     api_live_tracker = sync_api_football_live_tracker(DB_PATH, force=force_refresh)
     data = dashboard_data("today", request.args.get("date") or today_iso())
@@ -11588,6 +11711,7 @@ def live_page():
         source.extend(hub.get(key) or [])
     source = dedupe_matches_list(source)
     source = v766_enrich_matches_with_highlights(source)
+    data["client_lifecycle_sync"] = lifecycle_refresh
     data["live_refresh"] = live_refresh
     data["api_football_live_tracker"] = api_live_tracker
     data["api_football_live_quality"] = live_tracker_quality_summary(DB_PATH)

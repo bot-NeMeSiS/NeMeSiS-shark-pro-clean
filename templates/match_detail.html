@@ -39,6 +39,16 @@
 
   {% include "partials/client_flow_bar.html" %}
 
+{% set tracker = data.get('api_football_live_tracker') or detail.get('api_football_live_tracker') or {} %}
+{% set field_state = tracker.get('field_state') or {} %}
+{% if tracker.get('available') %}
+<section class="v811-match-field-summary" id="live-tracker">
+  <div><span>Campo SHARK Live</span><strong>{{ field_state.get('headline') or (tracker.get('pressure') or {}).get('label') or 'Lectura pendiente' }}</strong><small>{{ field_state.get('last_event_label') or 'Sin evento reciente' }}</small></div>
+  <aside>{% for chip in (field_state.get('chips') or [])[:6] %}<b>{{ chip }}</b>{% endfor %}<em>{{ field_state.get('ball_note') or 'Balón exacto no disponible: no se inventa.' }}</em></aside>
+</section>
+{% endif %}
+
+
   <section class="v802-match-command" aria-label="Flujo del partido">
     <a href="/calendar?lane=today"><span>Calendario</span><strong>Volver a partidos</strong></a>
     <a href="/live"><span>Directo</span><strong>Marcador real</strong></a>

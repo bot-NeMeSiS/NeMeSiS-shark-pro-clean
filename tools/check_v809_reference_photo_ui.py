@@ -2,7 +2,7 @@
 from pathlib import Path
 import json, re, sys
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = 'V809_REFERENCE_PHOTO_EXACT_UI_ADMIN_CLIENT_BUTTONS_FINAL', 'V810_TELEGRAM_PRO_CHANNEL_REFERENCE_TOPBAR_SHARK_UI_FINAL_POLISH'
+VERSIONS = {'V809_REFERENCE_PHOTO_EXACT_UI_ADMIN_CLIENT_BUTTONS_FINAL', 'V810_TELEGRAM_PRO_CHANNEL_REFERENCE_TOPBAR_SHARK_UI_FINAL_POLISH', 'V811_CLIENT_MATCH_LIFECYCLE_LIVE_FIELD_REFERENCE_UI_FINAL'}
 checks = []
 
 def add(name, ok, detail=''):
@@ -20,8 +20,8 @@ home = read('templates/home.html')
 admin = read('templates/admin_dashboard.html')
 client_map = read('templates/client_navigation_map.html') if (ROOT/'templates/client_navigation_map.html').exists() else ''
 
-add('version_v809', version in {VERSION, 'V810_TELEGRAM_PRO_CHANNEL_REFERENCE_TOPBAR_SHARK_UI_FINAL_POLISH'}, version)
-add('app_version_v809', (f"APP_VERSION = '{VERSION}'" in app or "APP_VERSION = 'V810_TELEGRAM_PRO_CHANNEL_REFERENCE_TOPBAR_SHARK_UI_FINAL_POLISH'" in app))
+add('version_v809', version in VERSIONS, version)
+add('app_version_v809', any(f"APP_VERSION = '{v}'" in app for v in VERSIONS))
 add('shell_attr_v809', 'data-v809-shell="true"' in base)
 add('client_map_route', all(x in app for x in ['@app.route("/app/mapa")','def v809_client_navigation_map_page','client_navigation_map.html']))
 add('client_map_template', 'v809-client-map-page' in client_map and '/logout' in client_map and '/calendar?lane=today' in client_map)

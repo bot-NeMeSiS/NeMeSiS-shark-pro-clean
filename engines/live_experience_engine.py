@@ -85,7 +85,7 @@ def state_bucket(match: dict) -> str:
     label = text(depth.get("label") or match.get("safe_status") or match.get("status") or "").lower()
     if badge in {"live", "halftime"} or any(word in label for word in ("directo", "live", "descanso", "1h", "2h")):
         return "live"
-    if badge in {"finished", "finalizado"} or any(word in label for word in ("final", "finished", "terminado")):
+    if badge in {"finished", "finalizado", "result_pending"} or any(word in label for word in ("final", "finished", "terminado", "resultado pendiente")):
         return "finished"
     if any(word in label for word in ("aplaz", "suspend", "postpon", "cancel")):
         return "postponed"
@@ -255,6 +255,7 @@ def enrich_live_match(match: dict) -> dict:
     tracker_stats = dict(tracker.get("stats") or {})
     tracker_events = tracker.get("events") or []
     tracker_flow = dict(tracker.get("game_flow") or {})
+    tracker_field = dict(tracker.get("field_state") or {})
     tracker_stat_cards = list(tracker.get("stat_cards") or [])
     tracker_quality = dict(tracker.get("quality") or {})
     tracker_evidence = list(tracker_quality.get("evidence") or tracker.get("evidence") or [])
@@ -295,6 +296,12 @@ def enrich_live_match(match: dict) -> dict:
             "live_ball_position_available": bool(tracker.get("ball_position_available")),
             "live_stat_cards": tracker_stat_cards,
             "live_game_flow": tracker_flow,
+            "live_field_state": tracker_field,
+            "live_field_headline": tracker_field.get("headline") or tracker_flow.get("title") or pressure.get("label") or "Lectura pendiente",
+            "live_field_mode": tracker_field.get("mode") or "basic",
+            "live_field_chips": tracker_field.get("chips") or [],
+            "live_field_last_event": tracker_field.get("last_event_label") or "Sin evento reciente",
+            "live_field_ball_note": tracker_field.get("ball_note") or "Balón exacto no disponible: no se inventa.",
             "live_game_flow_phase": tracker_flow.get("phase") or "Esperando datos live",
             "live_game_flow_title": tracker_flow.get("title") or pressure.get("label") or "Lectura pendiente",
             "live_dangerous_attacks_available": bool(tracker.get("dangerous_attacks_available")),

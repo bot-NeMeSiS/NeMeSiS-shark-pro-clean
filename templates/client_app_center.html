@@ -15,15 +15,22 @@
 {% set live_count = counts.get('live', 0) %}
 {% set picks_count = counts.get('picks', picks|length) %}
 {% set telegram_count = counts.get('alerts', counts.get('telegram', 0)) %}
-<section class="v799-screen v799-home-screen v799-app-center-screen">
-  <div class="v799-appbar">
+<section class="v799-screen v799-home-screen v799-app-center-screen v811-client-screen">
+  <div class="v799-appbar v811-client-appbar">
     <div>
       <span class="v799-kicker">Inicio cliente · panel visual premium</span>
       <h1>Buenos días, {{ user_name }}</h1>
-      <p>Tu pantalla principal: partidos reales, directos, picks publicados, SHARK y cuenta, todo conectado.</p>
+      <p>Agenda viva con resultados, directos, picks y SHARK. Los partidos ya jugados pasan a resultados o quedan pendientes de marcador real.</p>
     </div>
     <div class="v799-appbar-actions"><a href="/app/mapa">Mapa app</a><a href="/mi-cuenta">Mi cuenta</a><a class="primary" href="/calendar?lane=today">Partidos de hoy</a></div>
   </div>
+
+  {% set lifecycle = data.get('client_lifecycle_sync') or {} %}
+  <section class="v811-lifecycle-strip" aria-label="Actualización automática de partidos">
+    <article><span>Resultados</span><strong>{{ 'Auto' if lifecycle.get('configured') or lifecycle.get('ok') else 'Pendiente' }}</strong><small>{{ lifecycle.get('message') or 'API-Football actualiza marcador/minuto cuando Render lo permita.' }}</small></article>
+    <a href="/app?refresh=1">Actualizar ahora</a>
+    <a href="/calendar?lane=results">Ver resultados</a>
+  </section>
 
   <section class="v809-reference-cover" aria-label="Experiencia visual principal estilo referencia">
     <div class="v809-reference-copy">
@@ -42,7 +49,7 @@
 
   <section class="v800-stage v800-app-stage" aria-label="Centro visual de uso rápido">
     <article class="v800-stage-main">
-      <div class="v800-stage-top"><span>Partido recomendado para abrir</span><a href="/calendar?lane=today">Todos los partidos →</a></div>
+      <div class="v800-stage-top"><span>Próximo foco real</span><a href="/calendar?lane=today">Todos los partidos →</a></div>
       {% if focus %}
         {% set fm = focus[0] %}
         {% set fctx = fm|match_madrid_context %}
@@ -54,7 +61,7 @@
           <span class="v800-feature-team away">{{ crest(faway, fctx.safe_away, 'compact') }}<strong>{{ fctx.safe_away }}</strong></span>
         </a>
       {% else %}
-        <div class="v800-empty-panel"><strong>Sin foco cargado</strong><span>Esperando partidos reales de la sincronización.</span></div>
+        <div class="v800-empty-panel"><strong>Sin próximo foco cargado</strong><span>Si los partidos ya se jugaron, estarán en Resultados. La app no los deja como próximos.</span><a href="/calendar?lane=results">Ver resultados</a></div>
       {% endif %}
     </article>
     <article class="v800-stage-card"><span>Ruta</span><strong>Partido → Pick → SHARK</strong><small>Todo enlazado, sin pantallas sueltas.</small><a href="/calendar?lane=today">Empezar</a></article>

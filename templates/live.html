@@ -9,8 +9,8 @@
 {% set ns = namespace(matches=[]) %}
 {% for day in live.get('day_groups') or [] %}{% for league in day.leagues %}{% for m in league.matches %}{% set _ = ns.matches.append(m) %}{% endfor %}{% endfor %}{% endfor %}
 {% set featured = ns.matches[0] if ns.matches else none %}
-<section class="v799-screen v799-live-screen">
-  <div class="v799-appbar">
+<section class="v799-screen v799-live-screen v811-client-screen">
+  <div class="v799-appbar v811-client-appbar">
     <div>
       <span class="v799-kicker">Marcador real · live center</span>
       <h1>Directo</h1>
@@ -94,7 +94,7 @@
         {% set tracker = featured.get('live_tracker') or {} %}
         {% set pressure = featured.get('live_pressure') or {} %}
         <section class="v803-live-field {{ 'has-pressure' if featured.get('live_pressure_available') else 'no-pressure' }}" aria-label="Campo live basado en datos reales">
-          <div class="v803-field-head"><span>Campo SHARK Live</span><strong>{{ featured.get('live_pressure_label') or 'Presión pendiente' }}</strong></div>
+          <div class="v803-field-head v811-field-head"><span>Campo SHARK Live</span><strong>{{ featured.get('live_field_headline') or featured.get('live_pressure_label') or 'Lectura pendiente' }}</strong><small>{{ featured.get('live_field_last_event') or 'Sin evento reciente' }}</small></div>
           <div class="v803-pitch" style="--home-p: {{ featured.get('live_home_pressure_pct') or 50 }}%; --away-p: {{ featured.get('live_away_pressure_pct') or 50 }}%;">
             <div class="v803-pitch-zone home"><b>{{ featured.get('safe_home') or featured.get('home_team') or 'Local' }}</b></div>
             <div class="v803-pitch-mid"><span>{{ 'Presión real' if featured.get('live_pressure_available') else 'Sin estadísticas avanzadas aún' }}</span></div>
@@ -108,6 +108,7 @@
             <span>{{ 'Balón exacto disponible' if featured.get('live_ball_position_available') else 'Balón exacto no disponible: no se inventa' }}</span>
             <span>{{ featured.get('live_data_quality_label') or 'Marcador básico' }}</span>
           </div>
+          {% if featured.get('live_field_chips') %}<div class="v811-field-chips" aria-label="Señales reales del campo">{% for chip in featured.get('live_field_chips')[:6] %}<span>{{ chip }}</span>{% endfor %}<em>{{ featured.get('live_field_ball_note') }}</em></div>{% endif %}
           {% if featured.get('live_data_evidence') %}
           <div class="v805-evidence-chips" aria-label="Evidencias reales del live tracker">
             {% for ev in featured.get('live_data_evidence')[:7] %}<span>{{ ev }}</span>{% endfor %}
