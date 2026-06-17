@@ -51,6 +51,11 @@ FORBIDDEN_SUFFIXES = {
     ".mov",
     ".avi",
     ".mkv",
+    ".orig",
+    ".bak",
+    ".backup",
+    ".old",
+    ".tmp",
 }
 FORBIDDEN_NAMES = {".DS_Store", "Thumbs.db", ".env"}
 SECRET_MARKERS = ("secret", "token", "private_key", "id_rsa")

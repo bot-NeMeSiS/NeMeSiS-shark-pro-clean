@@ -30,8 +30,8 @@ def main() -> int:
     from engines.telegram_sport_filter_engine import telegram_sport_filter_reason
 
     version = (ROOT / "VERSION.txt").read_text(encoding="utf-8-sig").strip()
-    failures += not ok("VERSION.txt V813", version == "V813_CODEX_FULL_ECOSYSTEM_RESTRUCTURE_REFERENCE_SELL_READY")
-    failures += not ok("APP_VERSION V813", nemesis_app.APP_VERSION == version)
+    failures += not ok("VERSION.txt V813/V814", version in {"V813_CODEX_FULL_ECOSYSTEM_RESTRUCTURE_REFERENCE_SELL_READY", "V814_CODEX_DEEP_PROJECT_RECONCILIATION_CLIENT_ADMIN_REFERENCE_FINAL"})
+    failures += not ok("APP_VERSION coincide con VERSION", nemesis_app.APP_VERSION == version)
     failures += not ok("DB_PATH no cambia en código", "DB_PATH = os.getenv(\"DB_PATH\", \"/data/database.db\")" in (ROOT / "app.py").read_text(encoding="utf-8", errors="replace"))
 
     now = datetime.now(nemesis_app.TZ)

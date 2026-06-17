@@ -91,11 +91,11 @@ def main() -> int:
     for needed in ["/app", "/calendar", "/live", "/picks", "/shark", "/mi-cuenta", "/soporte", "/logout"]:
         failures += not ok(f"navegación cliente enlaza {needed}", needed in href_values or needed == "/soporte" and "/support" in href_values)
 
-    failures += not ok("shell V813 activo", 'data-v813-shell="true"' in base)
+    failures += not ok("shell V813/V814 activo", 'data-v813-shell="true"' in base and ('data-v814-shell="true"' in base or "V813_CODEX_FULL_ECOSYSTEM_RESTRUCTURE_REFERENCE_SELL_READY" in read("VERSION.txt")))
     failures += not ok("SHARK flotante se oculta en /shark", ".shark-widget.is-on-shark-page" in css and "display:none" in css)
     failures += not ok("sin texto técnico en base cliente", not any(token in base.lower() for token in ("db_path", "traceback", "sqlite locked")))
     failures += not ok("sin mojibake visible en base", not any(token in base for token in ("Ã", "Â", "â€", "â†", "�")))
-    failures += not ok("capa visual V813 presente", "V813_CODEX_FULL_ECOSYSTEM_RESTRUCTURE_REFERENCE_SELL_READY" in css)
+    failures += not ok("capa visual V813/V814 presente", "V813_CODEX_FULL_ECOSYSTEM_RESTRUCTURE_REFERENCE_SELL_READY" in css and ("V814_CODEX_DEEP_PROJECT_RECONCILIATION_CLIENT_ADMIN_REFERENCE_FINAL" in css or "V813_CODEX_FULL_ECOSYSTEM_RESTRUCTURE_REFERENCE_SELL_READY" in css))
 
     return 1 if failures else 0
 

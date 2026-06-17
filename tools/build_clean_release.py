@@ -217,6 +217,11 @@ EXCLUDE_SUFFIXES = {
     ".mov",
     ".avi",
     ".mkv",
+    ".orig",
+    ".bak",
+    ".backup",
+    ".old",
+    ".tmp",
 }
 EXCLUDE_NAMES = {".DS_Store", "Thumbs.db"}
 SECRET_NAME_MARKERS = ("secret", "token", "private_key", "id_rsa")
@@ -306,6 +311,7 @@ def include(path: Path) -> bool:
             or rel_posix.startswith("reports/V806_")
             or rel_posix.startswith("reports/V812_")
             or rel_posix.startswith("reports/V813_")
+            or rel_posix.startswith("reports/V814_")
             or rel_posix.startswith("reports/V811_")
             or rel_posix.startswith("reports/V810_")
             or rel_posix.startswith("reports/V809_")
@@ -359,6 +365,7 @@ def include(path: Path) -> bool:
             or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V805")
             or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V812")
             or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V813")
+            or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V814")
         )
     if any(part in EXCLUDE_DIRS for part in parts):
         return False

@@ -337,4 +337,28 @@ La app mantiene Render, DB_PATH, Telegram, Cron, Madrid Time, pagos, membresías
 ## Siguiente paso recomendado
 
 Usar V813 como base estable y concentrar la siguiente revisión en QA real de producción: rutas con sesión, datos deportivos reales del día y verificación de cron/Telegram en Render.
+# V814 Continuation Summary
+
+Estado actual: `V814_CODEX_DEEP_PROJECT_RECONCILIATION_CLIENT_ADMIN_REFERENCE_FINAL`.
+
+## Qué cambió en V814
+
+- Se confirmó que V813 era la base funcional real.
+- Se detectó mezcla histórica en carpeta: ZIPs antiguos, `.venv`, cachés, `v636work`, informes antiguos y módulos legacy duplicados en raíz.
+- Se actualizó `VERSION.txt` y `APP_VERSION` a V814.
+- Se activó `data-v814-shell` en `templates/base.html`.
+- Se añadió una capa visual V814 final en `static/app.css` para decidir la estética activa sobre V812/V813.
+- Se mantuvo DB_PATH, Telegram, Cron, pagos, sesiones, usuarios, API-Football, The Odds API y Madrid Time.
+- Se añadieron checks:
+  - `tools/check_v814_routes_links_navigation.py`
+  - `tools/check_v814_full_ecosystem_reconciliation.py`
+- Se generaron informes V814 en `reports/`.
+
+## Estado real
+
+La app activa no está mezclada funcionalmente: V814 manda como capa final y las capas anteriores quedan como soporte histórico/acotado. La carpeta sí conserva basura y legado, pero el ZIP final debe excluirlo con `forbidden_count = 0`.
+
+## Riesgo pendiente
+
+La carpeta raíz sigue siendo pesada por historia acumulada. Para no romper nada, V814 no borra módulos legacy dudosos; los excluye del release y los marca para revisión manual.
 

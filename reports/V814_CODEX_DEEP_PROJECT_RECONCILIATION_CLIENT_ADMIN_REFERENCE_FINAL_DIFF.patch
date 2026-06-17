@@ -1,0 +1,34 @@
+﻿# V814 Diff Patch Notice
+
+No se pudo generar un diff Git real desde esta sesión porque `git.exe` no está disponible en PATH ni en rutas habituales de GitHub Desktop/Git for Windows.
+
+Archivos modificados o añadidos en V814:
+
+- `VERSION.txt`
+- `app.py`
+- `templates/base.html`
+- `static/app.css`
+- `tools/build_clean_release.py`
+- `tools/audit_release_zip.py`
+- `tools/check_v813_routes_links_navigation.py`
+- `tools/check_v813_full_ecosystem_restructure.py`
+- `tools/check_v814_routes_links_navigation.py`
+- `tools/check_v814_full_ecosystem_reconciliation.py`
+- `reports/V814_DEEP_PROJECT_RECONCILIATION_AUDIT.md`
+- `reports/V814_PROJECT_PURGE_AND_STRUCTURE_REPORT.md`
+- `reports/V814_CODEX_DEEP_PROJECT_RECONCILIATION_CLIENT_ADMIN_REFERENCE_FINAL_REPORT.md`
+- `reports/V814_VISUAL_CLIENT_ADMIN_REFERENCE_QA.md`
+- `reports/V814_MATCH_LIFECYCLE_AND_LIVE_DATA_QA.md`
+- `reports/V814_TELEGRAM_PRO_CHANNEL_QA.md`
+- `reports/V814_ROUTES_LINKS_NAVIGATION_QA.md`
+- `CHATGPT_CONTINUATION_REPORT.md`
+
+Resumen de cambios:
+
+- Versión elevada de V813 a V814.
+- `data-v814-shell` activado.
+- Capa visual final V814 añadida.
+- Checks V813 compatibles con V814.
+- Checks V814 nuevos añadidos.
+- Builder y auditoría de ZIP endurecidos para backups `.orig/.bak/.old/.tmp`.
+- Informes V814 generados.
