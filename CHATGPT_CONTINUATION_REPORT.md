@@ -309,4 +309,32 @@ Basado en vídeo real enviado por el usuario. Se detectó que las pantallas ya m
 ## V804_API_FOOTBALL_LIVE_DEEP_TRACKER_PRESSURE_FIELD_FINAL
 
 Build prepared by ChatGPT after V803. Main purpose: continue improving the live/directo experience with the paid API-Football provider while preserving real-data-only behavior. Added deep per-fixture API-Football syncing, per-match detail cache, richer stat normalization, SHARK pressure field, stat comparisons, game-flow phase, and protected endpoint `/api/live-tracker/match/<match_id>`. Live and match detail screens now show real possession/shots/corners/cards/events/xG/attacks/dangerous attacks when API-Football returns them, and explicitly show unavailable/pending when not returned. It still never simulates exact ball location. Preserved DB_PATH, secrets, Render Cron, Telegram, users, sessions, memberships, payments, picks core and Madrid Time.
+# V813 Continuation Summary
+
+Estado actual: `V813_CODEX_FULL_ECOSYSTEM_RESTRUCTURE_REFERENCE_SELL_READY`.
+
+## Qué cambió en V813
+
+- Se actualizó versión en `VERSION.txt` y `APP_VERSION`.
+- Se añadió alias `/support` a la pantalla existente de soporte.
+- Se activó `data-v813-shell` en `templates/base.html`.
+- Se añadió una capa CSS V813 para compactar cliente, móvil y admin sin rehacer V812.
+- Se corrigió el lifecycle de partidos: un partido de fecha pasada sin marcador ya no vuelve al fallback `Próximo`; queda como `Resultado pendiente`.
+- Se endureció Telegram automático para bloquear ligas/deportes de bajo valor comercial en el canal premium.
+- Se añadieron checks V813 de rutas/enlaces y ecosistema.
+- Se añadieron informes V813 en `reports/`.
+
+## Estado del producto
+
+La app mantiene Render, DB_PATH, Telegram, Cron, Madrid Time, pagos, membresías, SHARK, Sports Hub, calendario, live, picks y admin. V813 es una consolidación de venta, no un módulo nuevo.
+
+## Riesgos reales
+
+- La carpeta oficial conserva mucha documentación histórica y herramientas de versiones anteriores. El ZIP limpio lo controla con allowlist/exclusiones.
+- La certificación real de Telegram en producción sigue dependiendo de variables Render y Cron activo.
+- La cobertura deportiva depende de datos reales disponibles en las APIs y warehouse.
+
+## Siguiente paso recomendado
+
+Usar V813 como base estable y concentrar la siguiente revisión en QA real de producción: rutas con sesión, datos deportivos reales del día y verificación de cron/Telegram en Render.
 

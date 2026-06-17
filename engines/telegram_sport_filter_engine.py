@@ -37,6 +37,30 @@ _FOOTBALL_RE = re.compile(
     flags=re.I,
 )
 
+# V813: el producto puede mostrar ligas amplias dentro de la app, pero el canal
+# Telegram comercial debe ser más selectivo. Esto evita que picks automáticos de
+# juveniles, reservas, regionales o amistosos menores degraden la percepción del canal.
+_TELEGRAM_LOW_VALUE_RE = re.compile(
+    r"\b("
+    r"u19|u20|u21|u23|youth|juvenil|academy|reserves?|reserve|b\s+team|filial|"
+    r"friendly|friendlies|amistoso|amateur|regional|preferente|division\s+honor|"
+    r"tercera|segunda\s+rfef|primera\s+rfef|rfef|andalu|andaluc|county|state\s+league|"
+    r"women|womens|femenino|femenina"
+    r")\b",
+    flags=re.I,
+)
+
+_TELEGRAM_TOP_COMPETITION_RE = re.compile(
+    r"\b("
+    r"laliga|primera\s+division|segunda\s+division|premier\s+league|championship|"
+    r"serie\s*a|serie\s*b|bundesliga|bundesliga\s*2|ligue\s*1|ligue\s*2|"
+    r"primeira\s+liga|champions\s+league|europa\s+league|conference\s+league|"
+    r"copa\s+del\s+rey|fa\s+cup|supercopa|world\s+cup|mundial|eurocopa|euro|"
+    r"nations\s+league|libertadores|sudamericana|mls|eredivisie"
+    r")\b",
+    flags=re.I,
+)
+
 _EXPLICIT_SPORT_FIELDS = (
     "sport",
     "strSport",
@@ -83,6 +107,13 @@ def telegram_football_only_enabled(env: Mapping[str, str] | None = None) -> bool
     return mode not in _FALSE_VALUES
 
 
+def telegram_professional_channel_enabled(env: Mapping[str, str] | None = None) -> bool:
+    """Return whether automatic channel delivery should avoid low-value leagues."""
+    env = env or os.environ
+    explicit = _text(env.get("TELEGRAM_PRO_CHANNEL_STRICT") or "true").lower()
+    return explicit not in _FALSE_VALUES
+
+
 def _raw_json_text(item: Mapping[str, Any]) -> str:
     raw = item.get("raw_json") or item.get("payload_json") or ""
     if isinstance(raw, (dict, list)):
@@ -115,6 +146,8 @@ def telegram_sport_filter_reason(item: Mapping[str, Any] | None, env: Mapping[st
     context = _context_text(item)
     if _NON_FOOTBALL_RE.search(context):
         return "deporte_no_futbol"
+    if telegram_professional_channel_enabled(env) and _TELEGRAM_LOW_VALUE_RE.search(context):
+        return "competicion_no_profesional"
     # The Odds API football keys start with soccer_. If there is an explicit
     # non-soccer sport key, block it even if team/league text is ambiguous.
     explicit = " | ".join(_text(item.get(k)).lower() for k in _EXPLICIT_SPORT_FIELDS if item.get(k))
@@ -123,6 +156,8 @@ def telegram_sport_filter_reason(item: Mapping[str, Any] | None, env: Mapping[st
     # Known football context passes.
     if _FOOTBALL_RE.search(context):
         return ""
+    if telegram_professional_channel_enabled(env) and context and not _TELEGRAM_TOP_COMPETITION_RE.search(context):
+        return "competicion_no_prioritaria"
     # Legacy rows may not have sport fields. Do not block unknown legacy data,
     # but all clear basketball/other-sport signals above are rejected.
     return ""
@@ -141,6 +176,7 @@ def telegram_sport_mode_summary(env: Mapping[str, str] | None = None) -> dict:
     return {
         "mode": "football_only" if enabled else "multi_sport",
         "football_only": enabled,
+        "professional_channel": telegram_professional_channel_enabled(env),
         "allowed": ["football", "soccer", "fútbol"] if enabled else ["multi_sport"],
-        "blocked_examples": ["basketball", "NBA", "WNBA", "tennis", "baseball"] if enabled else [],
+        "blocked_examples": ["basketball", "NBA", "WNBA", "tennis", "baseball", "juveniles", "reservas", "amistosos menores", "regional"] if enabled else [],
     }

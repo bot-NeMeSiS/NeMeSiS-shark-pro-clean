@@ -219,7 +219,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V812_CLIENT_REFERENCE_REBUILD_REAL_LIFECYCLE_TOPBAR_SHARK_FINAL'
+APP_VERSION = 'V813_CODEX_FULL_ECOSYSTEM_RESTRUCTURE_REFERENCE_SELL_READY'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
@@ -2542,6 +2542,8 @@ def canonical_match_status(match):
             return {"key": "RESULT_PENDING", "label": "Resultado pendiente", "badge": "result_pending", "is_live": False, "is_finished": True, "is_result_pending": True, "is_upcoming": False}
         return {"key": "LIVE_PENDING", "label": "En juego · actualizando", "badge": "live_pending", "is_live": True, "is_finished": False, "is_result_pending": False, "is_upcoming": False}
     if match_is_stale_without_result(match):
+        return {"key": "RESULT_PENDING", "label": "Resultado pendiente", "badge": "result_pending", "is_live": False, "is_finished": True, "is_result_pending": True, "is_upcoming": False}
+    if date_value and date_value < today_iso() and not has_score:
         return {"key": "RESULT_PENDING", "label": "Resultado pendiente", "badge": "result_pending", "is_live": False, "is_finished": True, "is_result_pending": True, "is_upcoming": False}
     if date_value and date_value > today_iso() and not is_live_status_value(status):
         return {"key": "UPCOMING", "label": "Próximo", "badge": "upcoming", "is_live": False, "is_finished": False, "is_result_pending": False, "is_upcoming": True}
@@ -15461,6 +15463,7 @@ def api_admin_v791_client_screen_audit():
     })
 
 @app.route("/contact", methods=["GET", "POST"])
+@app.route("/support", methods=["GET", "POST"])
 @app.route("/soporte", methods=["GET", "POST"])
 def v724_contact_alias_page():
     data = home_light_data()

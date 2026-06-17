@@ -1,0 +1,31 @@
+# Auditoría ZIP V813
+
+- ZIP: `NeMeSiS_SHARK_PRO_V813_CODEX_FULL_ECOSYSTEM_RESTRUCTURE_REFERENCE_SELL_READY_RENDER_READY.zip`
+- Archivos: 674
+- Tamaño ZIP: 1514138 bytes
+- Prohibidos: 0
+- Resultado: OK
+
+## Carpetas principales
+- `engines`: 83 archivos, 1008263 bytes
+- `app.py`: 1 archivos, 807190 bytes
+- `static`: 2 archivos, 550939 bytes
+- `templates`: 149 archivos, 532520 bytes
+- `reports`: 125 archivos, 498724 bytes
+- `tools`: 117 archivos, 435279 bytes
+- `V726_PROJECT_TREE_AUDIT.md`: 1 archivos, 96394 bytes
+- `docs`: 56 archivos, 45463 bytes
+- `V726_PURGE_REPORT.md`: 1 archivos, 26158 bytes
+- `CHATGPT_CONTINUATION_REPORT.md`: 1 archivos, 23780 bytes
+
+## Archivos pesados
+- `app.py`: 807190 bytes
+- `static/app.css`: 549613 bytes
+- `reports/v810_telegram_previews/telegram_pick_pro_v810.png`: 107837 bytes
+- `reports/v810_telegram_previews/telegram_resumen_top_v810.png`: 96929 bytes
+- `V726_PROJECT_TREE_AUDIT.md`: 96394 bytes
+- `reports/v810_telegram_previews/telegram_live_top_v810.png`: 72835 bytes
+- `engines/api_football_live_tracker_engine.py`: 60440 bytes
+- `engines/api_exploitation_engine.py`: 41823 bytes
+- `engines/football_data_warehouse_engine.py`: 38480 bytes
+- `engines/stripe_payments_engine.py`: 36321 bytes

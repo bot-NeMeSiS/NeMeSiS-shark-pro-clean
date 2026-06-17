@@ -1,0 +1,32 @@
+﻿# V813 Diff Patch Notice
+
+No se pudo generar un diff Git completo desde esta sesión porque `git.exe` no está disponible en PATH ni en las rutas habituales de GitHub Desktop o Git for Windows.
+
+Archivos modificados en V813:
+
+- `VERSION.txt`
+- `app.py`
+- `templates/base.html`
+- `static/app.css`
+- `engines/telegram_sport_filter_engine.py`
+- `tools/build_clean_release.py`
+- `tools/check_v813_routes_links_navigation.py`
+- `tools/check_v813_full_ecosystem_restructure.py`
+- `reports/V813_INITIAL_AUDIT_AND_RESTRUCTURE_PLAN.md`
+- `reports/V813_PROJECT_CLEANUP_REPORT.md`
+- `reports/V813_CODEX_FULL_ECOSYSTEM_RESTRUCTURE_REFERENCE_SELL_READY_REPORT.md`
+- `reports/V813_VISUAL_REFERENCE_QA_REPORT.md`
+- `reports/V813_ROUTES_AND_LINKS_QA_REPORT.md`
+- `reports/V813_TELEGRAM_PROFESSIONAL_CHANNEL_QA_REPORT.md`
+- `CHATGPT_CONTINUATION_REPORT.md`
+
+Resumen de cambios:
+
+- Versión elevada a V813.
+- Alias `/support` añadido a soporte.
+- `data-v813-shell` activado.
+- Capa visual final V813 añadida.
+- Lifecycle reforzado para impedir pasados como próximos.
+- Telegram automático endurecido para canal profesional.
+- Builder de release actualizado para incluir informes V812/V813.
+- Checks V813 añadidos.
