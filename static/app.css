@@ -953,6 +953,12 @@ body[data-v821-shell="true"] .crest.v820-crest.crest-image-error img {
 }
 /* V821 PRODUCTION 502 CRESTS RUNTIME HOTFIX END */
 
+/* V822 PRODUCTION STABILITY RUNTIME AUTOMATION CRESTS START */
+body[data-v822-shell="true"] .crest.v820-crest {
+  contain: layout paint;
+}
+/* V822 PRODUCTION STABILITY RUNTIME AUTOMATION CRESTS END */
+
 /* V816_RENDER_LIVE_REFERENCE_VISUAL_DIFF_CLIENT_ADMIN_FINAL
    Final visible reference diff: the active layer Render should show after V816 deploy. */
 body[data-v816-shell="true"]{

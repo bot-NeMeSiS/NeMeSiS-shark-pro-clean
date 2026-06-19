@@ -1,5 +1,39 @@
 # CHATGPT CONTINUATION REPORT
 
+## Estado actual V822
+
+Version preparada: `V822_PRODUCTION_STABILITY_RUNTIME_AUTOMATION_CRESTS_FINAL`.
+
+V822 es una version de estabilizacion total de produccion construida sobre `V821_PRODUCTION_502_CRESTS_RUNTIME_HOTFIX`. No introduce una nueva capa visual grande. Su objetivo es dejar Render, runtime, automatizacion V818 y escudos V820/V821 comprobables y seguros.
+
+Cambios principales:
+
+- `VERSION.txt` y `APP_VERSION` actualizados a V822.
+- `templates/base.html` actualiza meta version, cache busting CSS, `data-v822-shell="true"` y comentario V822.
+- `/api/runtime-version` devuelve V822 y confirma:
+  - `has_v821_hotfix`
+  - `has_v820_crests`
+  - `has_v819_dedup`
+  - `has_v818_automation`
+  - `crest_engine_loaded`
+  - `logo_cache_tables_ok`
+  - `logo_routes_ok`
+  - `last_502_hotfix`
+- `/api/automation/health-check` añade `runtime_stability` sin exponer secretos.
+- Se conserva el hotfix V821: rutas de logos ligeras, sin migraciones y sin escrituras de DB durante render.
+- Se conserva V820 visual/escudos, V819 dedup y V818 master tick.
+- Se añaden checks V822:
+  - `tools/check_v822_runtime_visibility.py`
+  - `tools/check_v822_crest_runtime_safety.py`
+  - `tools/check_v822_automation_runtime_safety.py`
+  - `tools/check_v822_visual_regression_safety.py`
+
+Objetivo de validacion:
+
+- `/cliente-login`, `/app`, `/calendar`, `/partidos`, `/live`, `/picks` y assets de logos sin 500/502.
+- `master-tick` sin secret 403 y con secret 200.
+- ZIP final con `forbidden_count=0`.
+
 ## Estado actual V821
 
 Version preparada: `V821_PRODUCTION_502_CRESTS_RUNTIME_HOTFIX`.

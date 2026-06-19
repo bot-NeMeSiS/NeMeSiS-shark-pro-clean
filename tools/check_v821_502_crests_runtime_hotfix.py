@@ -10,6 +10,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 VERSION = "V821_PRODUCTION_502_CRESTS_RUNTIME_HOTFIX"
+CURRENT = "V822_PRODUCTION_STABILITY_RUNTIME_AUTOMATION_CRESTS_FINAL"
+ACCEPTED_ACTIVE = {VERSION, CURRENT}
 
 
 def read(rel: str) -> str:
@@ -29,10 +31,10 @@ def main() -> int:
     apply_block = app.split("def apply_team_identities_to_match", 1)[1].split("def thesportsdb_key", 1)[0]
 
     checks = {
-        "version_txt_v821": read("VERSION.txt").strip() == VERSION,
-        "app_version_v821": f"APP_VERSION = '{VERSION}'" in app or f'APP_VERSION = "{VERSION}"' in app,
+        "version_txt_v821_or_newer": read("VERSION.txt").strip() in ACCEPTED_ACTIVE,
+        "app_version_v821_or_newer": any(f"APP_VERSION = '{value}'" in app or f'APP_VERSION = "{value}"' in app for value in ACCEPTED_ACTIVE),
         "runtime_reports_v821": all(key in app for key in ["has_v821_shell", "last_502_hotfix", "crest_engine_loaded", "logo_cache_tables_ok", "logo_routes_ok"]),
-        "base_cache_busting_v821": f"?v={VERSION}" in base,
+        "base_cache_busting_v821_or_newer": any(f"?v={value}" in base for value in ACCEPTED_ACTIVE),
         "base_v821_marker": 'data-v821-shell="true"' in base and "NEMESIS V821 PRODUCTION 502 CRESTS RUNTIME HOTFIX ACTIVE" in base,
         "css_v821_marker": "V821 PRODUCTION 502 CRESTS RUNTIME HOTFIX START" in css,
         "asset_routes_light": '"asset_team_logo"' in app and '"asset_league_logo"' in app and 'request.path.startswith("/asset/")' in app,
