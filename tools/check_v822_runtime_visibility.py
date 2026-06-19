@@ -7,6 +7,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V822_PRODUCTION_STABILITY_RUNTIME_AUTOMATION_CRESTS_FINAL"
+CURRENT_VERSION = "V823_RENDER_VIDEO_REFERENCE_REAL_CRESTS_PIXEL_EXPERIENCE_FINAL"
 
 
 def read(rel: str) -> str:
@@ -19,10 +20,16 @@ def main() -> int:
     css_bytes = (ROOT / "static" / "app.css").read_bytes()
     css = css_bytes.decode("utf-8", errors="replace")
     checks = {
-        "version_txt_v822": read("VERSION.txt").strip() == VERSION,
-        "app_version_v822": f"APP_VERSION = '{VERSION}'" in app or f'APP_VERSION = "{VERSION}"' in app,
-        "base_meta_v822": f'name="nemesis-version" content="{VERSION}"' in base,
-        "base_cache_v822": f"?v={VERSION}" in base,
+        "version_txt_current_or_v822": read("VERSION.txt").strip() in {VERSION, CURRENT_VERSION},
+        "app_version_current_or_v822": any(token in app for token in [
+            f"APP_VERSION = '{VERSION}'", f'APP_VERSION = "{VERSION}"',
+            f"APP_VERSION = '{CURRENT_VERSION}'", f'APP_VERSION = "{CURRENT_VERSION}"',
+        ]),
+        "base_meta_current_or_v822": any(token in base for token in [
+            f'name="nemesis-version" content="{VERSION}"',
+            f'name="nemesis-version" content="{CURRENT_VERSION}"',
+        ]),
+        "base_cache_current_or_v822": f"?v={VERSION}" in base or f"?v={CURRENT_VERSION}" in base,
         "base_shell_v822": 'data-v822-shell="true"' in base,
         "base_comment_v822": "NEMESIS V822 PRODUCTION STABILITY RUNTIME AUTOMATION CRESTS ACTIVE" in base,
         "css_marker_v822": "V822 PRODUCTION STABILITY RUNTIME AUTOMATION CRESTS START" in css,

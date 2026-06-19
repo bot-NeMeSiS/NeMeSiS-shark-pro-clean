@@ -238,7 +238,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V822_PRODUCTION_STABILITY_RUNTIME_AUTOMATION_CRESTS_FINAL'
+APP_VERSION = 'V823_RENDER_VIDEO_REFERENCE_REAL_CRESTS_PIXEL_EXPERIENCE_FINAL'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
@@ -13111,6 +13111,8 @@ def public_version():
 def v822_runtime_stability_snapshot():
     db_accessible = False
     logo_cache_tables_ok = False
+    team_logo_cache_count = 0
+    league_logo_cache_count = 0
     warnings = []
     try:
         conn = sqlite3.connect(DB_PATH, timeout=0.2)
@@ -13124,6 +13126,10 @@ def v822_runtime_stability_snapshot():
                 ).fetchall()
             }
             logo_cache_tables_ok = {"team_logo_cache", "league_logo_cache"}.issubset(existing)
+            if "team_logo_cache" in existing:
+                team_logo_cache_count = (conn.execute("SELECT COUNT(*) FROM team_logo_cache").fetchone() or [0])[0]
+            if "league_logo_cache" in existing:
+                league_logo_cache_count = (conn.execute("SELECT COUNT(*) FROM league_logo_cache").fetchone() or [0])[0]
         finally:
             conn.close()
     except Exception as exc:
@@ -13138,6 +13144,9 @@ def v822_runtime_stability_snapshot():
         "crest_engine_loaded": True,
         "logo_routes_ok": True,
         "logo_cache_tables_ok": logo_cache_tables_ok,
+        "team_logo_cache_count": team_logo_cache_count,
+        "league_logo_cache_count": league_logo_cache_count,
+        "logo_cache_ready": bool(logo_cache_tables_ok),
         "last_master_tick": automation_get("v818_master_tick_last") or automation_get("master_tick_last") or automation_get("daily_run_last_detail") or {},
         "warnings": warnings,
     }
@@ -13212,13 +13221,19 @@ def api_runtime_version():
         "has_v821_css": "V820 REAL CRESTS REFERENCE VISUAL PIXEL POLISH START" in css_text,
         "has_v822_shell": "data-v822-shell" in base_template and "NEMESIS V822 PRODUCTION STABILITY RUNTIME AUTOMATION CRESTS ACTIVE" in base_template,
         "has_v822_css": "V822 PRODUCTION STABILITY RUNTIME AUTOMATION CRESTS START" in css_text,
+        "has_v823_shell": "data-v823-shell" in base_template and "NEMESIS V823 RENDER VIDEO REFERENCE REAL CRESTS PIXEL EXPERIENCE ACTIVE" in base_template,
+        "has_v823_css": "V823 RENDER VIDEO REFERENCE REAL CRESTS PIXEL EXPERIENCE START" in css_text,
+        "has_v822_stability": "v822_runtime_stability_snapshot" in app_py_text and "/api/automation/health-check" in app_py_text,
         "has_v821_hotfix": "data-v821-shell" in base_template and "last_502_hotfix" in app_py_text,
         "has_v820_crests": "data-v820-shell" in base_template and "V820 REAL CRESTS REFERENCE VISUAL PIXEL POLISH START" in css_text,
         "has_v819_dedup": "data-v819-shell" in base_template and "V819 REFERENCE UI DEDUP LAYER PURGE START" in css_text,
         "has_v818_automation": "/api/automation/master-tick" in app_py_text and "daily_automation_engine" in app_py_text,
-        "static_css_cache_busting": "V822_PRODUCTION_STABILITY_RUNTIME_AUTOMATION_CRESTS_FINAL" in base_template,
+        "static_css_cache_busting": "V823_RENDER_VIDEO_REFERENCE_REAL_CRESTS_PIXEL_EXPERIENCE_FINAL" in base_template,
         "crest_engine_loaded": runtime_stability.get("crest_engine_loaded"),
         "logo_cache_tables_ok": runtime_stability.get("logo_cache_tables_ok"),
+        "team_logo_cache_count": runtime_stability.get("team_logo_cache_count"),
+        "league_logo_cache_count": runtime_stability.get("league_logo_cache_count"),
+        "logo_cache_ready": runtime_stability.get("logo_cache_ready"),
         "logo_routes_ok": runtime_stability.get("logo_routes_ok"),
         "last_502_hotfix": True,
         "render_service_hint": os.getenv("RENDER_SERVICE_NAME") or os.getenv("RENDER_EXTERNAL_HOSTNAME") or "",

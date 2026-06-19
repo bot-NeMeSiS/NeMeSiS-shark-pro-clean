@@ -398,6 +398,243 @@ body[data-v815-shell="true"].ns-authenticated:not(.ns-admin)[data-ns-route="/sha
   display:none!important;
 }
 
+/* V823 RENDER VIDEO REFERENCE REAL CRESTS PIXEL EXPERIENCE START
+   Capa final de pulido visual: conserva V818-V822 y mejora densidad, escudos y lectura sin tocar lógica. */
+body[data-v823-shell="true"]{
+  --v823-bg:#020814;
+  --v823-panel:rgba(6,18,34,.9);
+  --v823-panel-strong:rgba(8,25,45,.95);
+  --v823-line:rgba(58,216,255,.22);
+  --v823-line-strong:rgba(58,216,255,.42);
+  --v823-text:#f2fbff;
+  --v823-muted:#9eb8c9;
+  --v823-cyan:#31e6ff;
+  --v823-blue:#1677ff;
+  --v823-green:#45ef9b;
+  --v823-gold:#ffd36a;
+}
+body[data-v823-shell="true"].ns-authenticated:not(.ns-admin){
+  background:
+    radial-gradient(circle at 82% 0,rgba(49,230,255,.14),transparent 30%),
+    radial-gradient(circle at 12% 8%,rgba(22,119,255,.16),transparent 34%),
+    linear-gradient(180deg,#020814 0,#061522 52%,#020713 100%)!important;
+}
+body[data-v823-shell="true"] :is(h1,h2,h3,.brand span,.v799-appbar h1,.v812-hero-copy h1){
+  letter-spacing:0!important;
+}
+body[data-v823-shell="true"].ns-authenticated:not(.ns-admin) :is(.v797-session-pills,.v798-client-rail,.v799-client-rail,.v799-client-sidebar,.client-sidebar,.sidebar-client){
+  display:none!important;
+}
+body[data-v823-shell="true"].ns-authenticated:not(.ns-admin) .top.ns-topbar{
+  padding:7px 10px 0!important;
+  background:linear-gradient(180deg,rgba(2,8,20,.98),rgba(2,8,20,.55))!important;
+}
+body[data-v823-shell="true"].ns-authenticated:not(.ns-admin) .topin{
+  width:min(100% - 12px,1480px)!important;
+  min-height:56px!important;
+  border-radius:19px!important;
+  border:1px solid var(--v823-line)!important;
+  background:linear-gradient(135deg,rgba(8,25,45,.95),rgba(3,12,24,.92))!important;
+  box-shadow:0 18px 55px rgba(0,0,0,.32),inset 0 1px 0 rgba(255,255,255,.06)!important;
+}
+body[data-v823-shell="true"].ns-authenticated:not(.ns-admin) .brand.v808-brand .mark{
+  width:38px!important;
+  height:38px!important;
+  border-radius:14px!important;
+}
+body[data-v823-shell="true"].ns-authenticated:not(.ns-admin) .nav-clean,
+body[data-v823-shell="true"].ns-authenticated:not(.ns-admin) .v812-top-actions{
+  gap:6px!important;
+}
+body[data-v823-shell="true"].ns-authenticated:not(.ns-admin) .nav-clean a,
+body[data-v823-shell="true"].ns-authenticated:not(.ns-admin) .v812-top-actions a{
+  min-height:34px!important;
+  border-radius:999px!important;
+  border:1px solid rgba(255,255,255,.08)!important;
+  background:rgba(255,255,255,.04)!important;
+  padding:7px 10px!important;
+  font-size:.72rem!important;
+  line-height:1!important;
+}
+body[data-v823-shell="true"].ns-authenticated:not(.ns-admin) .ns-main-shell{
+  width:min(100% - 20px,1480px)!important;
+  margin:12px auto 0!important;
+}
+body[data-v823-shell="true"].ns-authenticated:not(.ns-admin) .v823-certified-screen{
+  outline:0!important;
+  border:1px solid rgba(49,230,255,.16)!important;
+  border-radius:24px!important;
+  background:linear-gradient(180deg,rgba(5,18,32,.58),rgba(2,8,18,.42))!important;
+  box-shadow:0 24px 70px rgba(0,0,0,.24)!important;
+}
+body[data-v823-shell="true"].ns-authenticated:not(.ns-admin) :is(.v799-appbar,.v812-hero-shell,.v799-match-hero){
+  min-height:auto!important;
+  padding:clamp(14px,2.1vw,24px)!important;
+  border-radius:22px!important;
+  border:1px solid var(--v823-line-strong)!important;
+  background:
+    radial-gradient(circle at 88% 5%,rgba(49,230,255,.16),transparent 30%),
+    linear-gradient(135deg,rgba(8,28,50,.96),rgba(3,12,25,.96))!important;
+}
+body[data-v823-shell="true"].ns-authenticated:not(.ns-admin) :is(.v799-appbar h1,.v812-hero-copy h1){
+  font-size:clamp(1.85rem,4vw,4rem)!important;
+  line-height:1!important;
+  margin:.14em 0!important;
+}
+body[data-v823-shell="true"].ns-authenticated:not(.ns-admin) :is(.v799-appbar p,.v812-hero-copy p){
+  max-width:760px!important;
+  font-size:.98rem!important;
+  line-height:1.45!important;
+}
+body[data-v823-shell="true"].ns-authenticated:not(.ns-admin) :is(.v812-kpi-row,.v799-kpi-strip,.v802-calendar-command,.v803-live-provider-strip,.v805-live-quality-board,.v812-lifecycle){
+  gap:8px!important;
+  margin:10px 0!important;
+}
+body[data-v823-shell="true"].ns-authenticated:not(.ns-admin) :is(.v812-kpi-row a,.v799-kpi-strip a,.v802-calendar-command article,.v803-live-provider-strip article,.v805-live-quality-board article,.v812-lifecycle article){
+  border-radius:16px!important;
+  padding:11px!important;
+  min-height:74px!important;
+}
+body[data-v823-shell="true"].ns-authenticated:not(.ns-admin) :is(.v812-main-grid,.v799-calendar-layout,.v799-live-layout,.v799-match-layout){
+  gap:12px!important;
+}
+body[data-v823-shell="true"].ns-authenticated:not(.ns-admin) :is(.v812-feature-card,.v812-pick-card,.v812-mini-card,.v799-card,.v799-feature-pick,.v799-live-card,.v799-live-feature,.v799-day-block,.v801-league-block,.v799-pick-card){
+  border-radius:18px!important;
+  border:1px solid rgba(49,230,255,.18)!important;
+  background:linear-gradient(180deg,var(--v823-panel),rgba(3,11,22,.9))!important;
+  box-shadow:0 16px 48px rgba(0,0,0,.25)!important;
+}
+body[data-v823-shell="true"].ns-authenticated:not(.ns-admin) :is(.v812-feature-card,.v812-pick-card,.v799-card,.v799-feature-pick,.v799-live-feature){
+  padding:14px!important;
+}
+body[data-v823-shell="true"].ns-authenticated:not(.ns-admin) :is(.v812-row,.v799-agenda-row,.v801-agenda-row){
+  min-height:50px!important;
+  border-radius:15px!important;
+  padding:8px!important;
+  grid-gap:8px!important;
+}
+body[data-v823-shell="true"].ns-authenticated:not(.ns-admin) :is(.v812-row,.v799-agenda-link,.v801-agenda-link,.v799-scoreboard,.v812-match-spotlight){
+  align-items:center!important;
+}
+body[data-v823-shell="true"].ns-authenticated:not(.ns-admin) :is(.v799-team,.v801-team,.v812-row span,.v799-scoreboard span,.v812-match-spotlight span,.v799-pick-teams span,.v799-big-team){
+  min-width:0!important;
+}
+body[data-v823-shell="true"].ns-authenticated:not(.ns-admin) :is(.v799-team strong,.v801-team strong,.v812-row span,.v799-scoreboard strong,.v812-match-spotlight strong,.v799-big-team strong){
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+}
+body[data-v823-shell="true"].ns-authenticated:not(.ns-admin) :is(.crest,.v820-crest,.team-crest,.identity-crest,img.team-logo,img.league-logo){
+  flex:0 0 auto!important;
+  object-fit:contain!important;
+  background:rgba(255,255,255,.06)!important;
+  border:1px solid rgba(255,255,255,.1)!important;
+}
+body[data-v823-shell="true"].ns-authenticated:not(.ns-admin) :is(.v799-scoreboard .crest,.v812-match-spotlight .crest,.v799-big-team .crest){
+  width:46px!important;
+  height:46px!important;
+}
+body[data-v823-shell="true"].ns-authenticated:not(.ns-admin) :is(.v812-row .crest,.v799-agenda-row .crest,.v799-live-card .crest,.v799-pick-card .crest){
+  width:32px!important;
+  height:32px!important;
+}
+body[data-v823-shell="true"].ns-authenticated:not(.ns-admin) .v799-live-grid{
+  grid-template-columns:repeat(auto-fit,minmax(260px,1fr))!important;
+  gap:10px!important;
+}
+body[data-v823-shell="true"].ns-authenticated:not(.ns-admin) .v799-pick-grid{
+  grid-template-columns:repeat(auto-fit,minmax(260px,1fr))!important;
+  gap:10px!important;
+}
+body[data-v823-shell="true"].ns-authenticated:not(.ns-admin) :is(.v799-filterbar,.v801-day-rail,.v801-league-scroll){
+  scrollbar-width:thin;
+}
+body[data-v823-shell="true"].ns-authenticated:not(.ns-admin) .shark-widget:nth-of-type(n+2),
+body[data-v823-shell="true"].ns-authenticated:not(.ns-admin)[data-ns-route="/shark"] .shark-widget,
+body[data-v823-shell="true"].ns-authenticated:not(.ns-admin)[data-ns-route="/shark-ai"] .shark-widget{
+  display:none!important;
+}
+body[data-v823-shell="true"].ns-authenticated:not(.ns-admin) .v812-shark-fab{
+  right:16px!important;
+  bottom:78px!important;
+  min-width:50px!important;
+  height:50px!important;
+  border-radius:17px!important;
+}
+body[data-v823-shell="true"].ns-admin{
+  background:linear-gradient(180deg,#020814,#071421 55%,#020814)!important;
+}
+body[data-v823-shell="true"].ns-admin .v823-admin-dashboard :is(.v809-admin-reference-hero,.v807-admin-hero){
+  min-height:auto!important;
+  padding:18px!important;
+  border-radius:22px!important;
+}
+body[data-v823-shell="true"].ns-admin :is(.v807-admin-command-main,.v807-admin-command-side,.v807-admin-route-catalog,.v808-admin-map-section,.v794-admin-kpi-grid > *){
+  border-color:rgba(49,230,255,.16)!important;
+  background:linear-gradient(180deg,rgba(7,19,34,.94),rgba(3,10,20,.9))!important;
+}
+body[data-v823-shell="true"].ns-admin .v807-action-tiles{
+  grid-template-columns:repeat(auto-fit,minmax(170px,1fr))!important;
+  gap:10px!important;
+}
+body[data-v823-shell="true"].ns-admin .v808-admin-dock{
+  border-color:rgba(49,230,255,.18)!important;
+  background:rgba(3,13,25,.94)!important;
+}
+@media(max-width:960px){
+  body[data-v823-shell="true"].ns-authenticated:not(.ns-admin) .topin{
+    grid-template-columns:auto 1fr auto!important;
+    gap:6px!important;
+  }
+  body[data-v823-shell="true"].ns-authenticated:not(.ns-admin) .nav-clean{
+    grid-column:1/-1!important;
+    overflow-x:auto!important;
+    justify-content:flex-start!important;
+    padding-bottom:3px!important;
+  }
+  body[data-v823-shell="true"].ns-authenticated:not(.ns-admin) .nav-clean a:nth-child(n+7){
+    display:none!important;
+  }
+  body[data-v823-shell="true"].ns-authenticated:not(.ns-admin) .bottom-nav-clean{
+    display:grid!important;
+    grid-template-columns:repeat(5,minmax(0,1fr))!important;
+    left:8px!important;
+    right:8px!important;
+    bottom:8px!important;
+    max-width:560px!important;
+    margin:auto!important;
+  }
+  body[data-v823-shell="true"].ns-authenticated:not(.ns-admin) .v812-phone-card,
+  body[data-v823-shell="true"].ns-authenticated:not(.ns-admin) .v799-context-panel{
+    display:none!important;
+  }
+}
+@media(max-width:560px){
+  body[data-v823-shell="true"].ns-authenticated:not(.ns-admin) .ns-main-shell{
+    width:calc(100% - 12px)!important;
+    margin-top:8px!important;
+  }
+  body[data-v823-shell="true"].ns-authenticated:not(.ns-admin) .topin{
+    border-radius:16px!important;
+    padding:7px!important;
+  }
+  body[data-v823-shell="true"].ns-authenticated:not(.ns-admin) :is(.v799-appbar,.v812-hero-shell,.v799-match-hero,.v812-feature-card,.v812-pick-card,.v812-mini-card,.v799-card,.v799-feature-pick,.v799-live-feature,.v799-pick-card){
+    padding:11px!important;
+    border-radius:16px!important;
+  }
+  body[data-v823-shell="true"].ns-authenticated:not(.ns-admin) :is(.v799-appbar h1,.v812-hero-copy h1){
+    font-size:1.9rem!important;
+  }
+  body[data-v823-shell="true"].ns-authenticated:not(.ns-admin) :is(.v812-kpi-row,.v799-kpi-strip,.v805-live-quality-board){
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  }
+  body[data-v823-shell="true"].ns-authenticated:not(.ns-admin) .bottom-nav-clean a{
+    min-height:42px!important;
+    font-size:.61rem!important;
+  }
+}
+/* V823 RENDER VIDEO REFERENCE REAL CRESTS PIXEL EXPERIENCE END */
+
 /* V817_REFERENCE_PIXEL_POLISH_CLIENT_ADMIN_FINAL
    V818_DAILY_AUTOMATION_OPERATING_SYSTEM_FINAL
    Final reference polish layer. It intentionally sits after older visual layers

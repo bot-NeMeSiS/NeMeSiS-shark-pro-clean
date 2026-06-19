@@ -1,5 +1,52 @@
 # CHATGPT CONTINUATION REPORT
 
+## Estado actual V823
+
+Version preparada: `V823_RENDER_VIDEO_REFERENCE_REAL_CRESTS_PIXEL_EXPERIENCE_FINAL`.
+
+La fuente oficial usada fue la carpeta real `C:\Users\aloha\OneDrive\Escritorio\NeMeSiS shark pro`. No se usaron ZIPs antiguos como base. V823 se construyo encima de V822 y conserva V818 master tick, V819 dedup, V820 escudos, V821 hotfix anti-502 y V822 runtime stability.
+
+Objetivo de V823:
+
+- pulido visual cliente/admin basado en la experiencia real de Render y video/referencias;
+- mas densidad en `/app`, `/calendar`, `/partidos`, `/live`, `/picks` y detalle de partido;
+- mejor integracion visual de escudos reales sin tocar el flujo de datos;
+- navegacion cliente/admin sin duplicados: una topbar, una bottom nav movil y un SHARK flotante unico;
+- mantener Render estable, sin escrituras SQLite ni descargas externas durante render.
+
+Cambios principales:
+
+- `VERSION.txt` y `APP_VERSION` actualizados a V823.
+- `templates/base.html` actualiza meta version, cache busting CSS, `data-v823-shell="true"` y comentario V823.
+- Las plantillas reales `client_app_center`, `calendar`, `live`, `picks`, `match_detail` y `admin_dashboard` tienen marcador `data-v823-template`.
+- `static/app.css` incorpora una capa V823 final, acotada por `body[data-v823-shell="true"]`, para compactar heroes, cards, listados, live, picks, match detail, escudos, mobile y admin.
+- `/api/runtime-version` informa `has_v823_shell`, `has_v823_css`, `has_v822_stability`, cache busting V823 y metricas ligeras de cache de escudos.
+- `v822_runtime_stability_snapshot()` conserva su objetivo, pero ahora expone conteos ligeros de `team_logo_cache` y `league_logo_cache` con timeout corto.
+- Se crearon checks V823:
+  - `tools/check_v823_runtime_visibility.py`
+  - `tools/check_v823_real_crests_render_safe.py`
+  - `tools/check_v823_client_visual_reference.py`
+  - `tools/check_v823_v822_stability_compatibility.py`
+  - `tools/check_v823_navigation_mobile_dedup.py`
+- `tools/check_v822_runtime_visibility.py` acepta V823 como version actual sin dejar de comprobar V822.
+- `tools/build_clean_release.py` incluye informes/auditorias V823 y sigue excluyendo basura del ZIP.
+
+Validacion V823 realizada:
+
+- `py_compile app.py` OK con el runtime Python local.
+- Checks V823 OK:
+  - runtime visibility;
+  - crests render safe;
+  - client visual reference;
+  - V822 compatibility;
+  - navigation/mobile dedup.
+
+Pendiente de la siguiente sesion si se quiere cerrar aun mas fino:
+
+- QA visual con capturas reales si hay navegador disponible.
+- Smoke Flask completo con sesion cliente/admin real y `AUTOMATION_SECRET` configurado.
+- Limpieza linguistica masiva de mojibake heredado si se decide abrir una version especifica solo de textos.
+
 ## Estado actual V822
 
 Version preparada: `V822_PRODUCTION_STABILITY_RUNTIME_AUTOMATION_CRESTS_FINAL`.
