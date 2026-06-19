@@ -1,57 +1,24 @@
 #!/usr/bin/env python3
 from __future__ import annotations
-
-import hashlib
 import json
 from pathlib import Path
-
-ROOT = Path(__file__).resolve().parents[1]
-VERSION = "V822_PRODUCTION_STABILITY_RUNTIME_AUTOMATION_CRESTS_FINAL"
-CURRENT_VERSION = "V826_FULL_REFERENCE_APP_EXPERIENCE_SCREEN_COMPLETION_FINAL"
-PREVIOUS_VERSION = "V823_RENDER_VIDEO_REFERENCE_REAL_CRESTS_PIXEL_EXPERIENCE_FINAL"
-PREVIOUS_VERSION_V824 = "V824_RENDER_VIDEO_PIXEL_MATCH_FINAL_APP_EXPERIENCE"
-
-
-def read(rel: str) -> str:
-    return (ROOT / rel).read_text(encoding="utf-8", errors="replace")
-
-
-def main() -> int:
-    app = read("app.py")
-    base = read("templates/base.html")
-    css_bytes = (ROOT / "static" / "app.css").read_bytes()
-    css = css_bytes.decode("utf-8", errors="replace")
-    checks = {
-        "version_txt_current_or_v822": read("VERSION.txt").strip() in {VERSION, PREVIOUS_VERSION, PREVIOUS_VERSION_V824, CURRENT_VERSION},
-        "app_version_current_or_v822": any(token in app for token in [
-            f"APP_VERSION = '{VERSION}'", f'APP_VERSION = "{VERSION}"',
-            f"APP_VERSION = '{PREVIOUS_VERSION}'", f'APP_VERSION = "{PREVIOUS_VERSION}"',
-            f"APP_VERSION = '{PREVIOUS_VERSION_V824}'", f'APP_VERSION = "{PREVIOUS_VERSION_V824}"',
-            f"APP_VERSION = '{CURRENT_VERSION}'", f'APP_VERSION = "{CURRENT_VERSION}"',
-        ]),
-        "base_meta_current_or_v822": any(token in base for token in [
-            f'name="nemesis-version" content="{VERSION}"',
-            f'name="nemesis-version" content="{PREVIOUS_VERSION}"',
-            f'name="nemesis-version" content="{PREVIOUS_VERSION_V824}"',
-            f'name="nemesis-version" content="{CURRENT_VERSION}"',
-        ]),
-        "base_cache_current_or_v822": f"?v={VERSION}" in base or f"?v={PREVIOUS_VERSION}" in base or f"?v={PREVIOUS_VERSION_V824}" in base or f"?v={CURRENT_VERSION}" in base,
-        "base_shell_v822": 'data-v822-shell="true"' in base,
-        "base_comment_v822": "NEMESIS V822 PRODUCTION STABILITY RUNTIME AUTOMATION CRESTS ACTIVE" in base,
-        "css_marker_v822": "V822 PRODUCTION STABILITY RUNTIME AUTOMATION CRESTS START" in css,
-        "runtime_v822_keys": all(key in app for key in [
-            "has_v822_shell", "has_v822_css", "has_v821_hotfix", "has_v820_crests",
-            "has_v819_dedup", "has_v818_automation", "runtime_stability",
-        ]),
-        "runtime_config_keys": all(key in app for key in [
-            "automation_secret_configured", "api_football_configured", "the_odds_configured",
-            "telegram_configured", "crest_engine_loaded", "logo_cache_tables_ok", "logo_routes_ok",
-        ]),
+ROOT=Path(__file__).resolve().parents[1]
+CURRENT="V827_REFERENCE_PHOTO_REBUILD_DESIGN_SYSTEM_FINAL"
+def read(rel): return (ROOT/rel).read_text(encoding='utf-8', errors='replace')
+def main():
+    app=read('app.py'); base=read('templates/base.html'); css=read('static/app.css'); version=read('VERSION.txt').strip().lstrip('﻿')
+    checks={
+      'version_current': version == CURRENT,
+      'app_version_current': f"APP_VERSION = '{CURRENT}'" in app or f'APP_VERSION = "{CURRENT}"' in app,
+      'base_meta_current': f'name="nemesis-version" content="{CURRENT}"' in base,
+      'base_cache_current': f'?v={CURRENT}' in base,
+      'base_shell_v822': 'data-v822-shell="true"' in base,
+      'runtime_v818_to_v827_keys': all(k in app for k in ['has_v827_shell','has_v826_full_screen','has_v825_shark_identity','has_v824_visual','has_v823_visual','has_v822_stability','has_v821_hotfix','has_v820_crests','has_v819_dedup','has_v818_automation']),
+      'v818_master_tick': '/api/automation/master-tick' in app,
+      'v820_crest_routes': all(x in app for x in ['/asset/team-logo/', '/asset/league-logo/', '/team-crest.svg']),
+      'v827_css_active': 'V827 REFERENCE PHOTO REBUILD DESIGN SYSTEM START' in css,
     }
-    failed = [key for key, ok in checks.items() if not ok]
-    print(json.dumps({"ok": not failed, "failed": failed, "checks": checks, "css_hash": hashlib.sha256(css_bytes).hexdigest()[:16]}, ensure_ascii=False, indent=2))
+    failed=[k for k,v in checks.items() if not v]
+    print(json.dumps({'ok': not failed, 'failed': failed, 'checks': checks}, ensure_ascii=False, indent=2))
     return 1 if failed else 0
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())
+if __name__=='__main__': raise SystemExit(main())

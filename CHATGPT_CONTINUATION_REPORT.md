@@ -1,4 +1,26 @@
-﻿# Continuación NeMeSiS SHARK PRO — V826
+﻿# Continuación NeMeSiS SHARK PRO — V827
+
+## Estado actual
+
+La carpeta oficial está en `V827_REFERENCE_PHOTO_REBUILD_DESIGN_SYSTEM_FINAL`, construida directamente sobre V826. No se usaron ZIPs antiguos.
+
+## Qué hizo V827
+
+- Reconstruyó el sistema visual con tokens V827 en `static/app.css`.
+- Añadió `data-v827-shell` y comentario activo V827 en `base.html`.
+- Añadió claves V827 a `/api/runtime-version`.
+- Marcó pantallas reales con `data-v827-template`.
+- Creó `templates/components/v827_design_system.html` con macros ligeras.
+- Reforzó fondo SHARK, marca, topbar, bottom nav, cards, live cards, pick cards, empty states, botones, admin command cards y móvil.
+- Neutralizó visualmente duplicados antiguos como acciones secundarias cliente y floating SHARK en páginas SHARK.
+- No tocó Telegram, cron, pagos, membresías, DB_PATH ni Madrid Time.
+
+## Limitación honesta
+
+No se generaron screenshots reales. No se declara pixel-perfect.
+
+---
+# Continuación NeMeSiS SHARK PRO — V826
 
 ## Estado actual
 
@@ -886,4 +908,5 @@ No se declara pixel-perfect si no hay navegador/capturas reales en la sesion. La
 - Añadido scheduler profesional Telegram en `engines/telegram_professional_scheduler.py`, reutilizando filtros football-only existentes.
 - Añadidos endpoints `/api/automation/master-tick`, `/api/automation/health-check`, panel `/admin/daily-automation` y APIs admin V818.
 - Añadidos checks `tools/check_v818_*.py` y reportes QA V818.
+
 

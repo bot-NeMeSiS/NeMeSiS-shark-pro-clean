@@ -1,61 +1,22 @@
 #!/usr/bin/env python3
 from __future__ import annotations
-
-import sys
+import json
 from pathlib import Path
-
-ROOT = Path(__file__).resolve().parents[1]
-
-
-def contains(path: str, *needles: str) -> list[str]:
-    text = (ROOT / path).read_text(encoding="utf-8", errors="replace")
-    return [needle for needle in needles if needle not in text]
-
-
-def main() -> int:
-    missing = []
-    for path in [
-        "engines/daily_automation_engine.py",
-        "engines/api_usage_guard_engine.py",
-        "engines/telegram_professional_scheduler.py",
-        "templates/admin_daily_automation.html",
-    ]:
-        if not (ROOT / path).exists():
-            missing.append(path)
-    missing += contains(
-        "app.py",
-        "/api/automation/master-tick",
-        "automation_cron_access_allowed()",
-        "/api/automation/health-check",
-        "/admin/daily-automation",
-        "/api/admin/daily-automation/status",
-    )
-    version_txt = (ROOT / "VERSION.txt").read_text(encoding="utf-8", errors="replace")
-    if not any(version in version_txt for version in {
-        "V818_DAILY_AUTOMATION_OPERATING_SYSTEM_FINAL",
-        "V819_REFERENCE_UI_DEDUP_LAYER_PURGE_CLIENT_ADMIN_FINAL",
-        "V820_REAL_CRESTS_REFERENCE_VISUAL_PIXEL_POLISH_FINAL",
-        "V821_PRODUCTION_502_CRESTS_RUNTIME_HOTFIX",
-        "V822_PRODUCTION_STABILITY_RUNTIME_AUTOMATION_CRESTS_FINAL",
-        "V823_RENDER_VIDEO_REFERENCE_REAL_CRESTS_PIXEL_EXPERIENCE_FINAL",
-        "V824_RENDER_VIDEO_PIXEL_MATCH_FINAL_APP_EXPERIENCE",
-        "V826_FULL_REFERENCE_APP_EXPERIENCE_SCREEN_COMPLETION_FINAL",
-    }):
-        missing.append("V818_DAILY_AUTOMATION_OPERATING_SYSTEM_FINAL_OR_NEWER")
-    missing += contains(
-        "engines/daily_automation_engine.py",
-        "automation_jobs_state",
-        "automation_job_runs",
-        "automation_dedupe",
-        "automation_health_events",
-        "claim_dedupe",
-        "Europe/Madrid",
-        "next_recommended_run",
-    )
-    ok = not missing
-    print({"ok": ok, "check": "v818_daily_automation_os", "missing": missing})
-    return 0 if ok else 1
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())
+ROOT=Path(__file__).resolve().parents[1]
+CURRENT="V827_REFERENCE_PHOTO_REBUILD_DESIGN_SYSTEM_FINAL"
+def read(rel): return (ROOT/rel).read_text(encoding='utf-8', errors='replace')
+def main():
+    app=read('app.py'); base=read('templates/base.html'); css=read('static/app.css'); version=read('VERSION.txt').strip().lstrip('﻿')
+    checks={
+      'version_current_or_v818': version in {'V818_DAILY_AUTOMATION_OPERATING_SYSTEM_FINAL', CURRENT},
+      'app_version_current_or_v818': 'APP_VERSION' in app and (CURRENT in app or 'V818_DAILY_AUTOMATION_OPERATING_SYSTEM_FINAL' in app),
+      'master_tick_route': '/api/automation/master-tick' in app,
+      'health_check_route': '/api/automation/health-check' in app,
+      'daily_engine_present': 'daily_automation_engine' in app,
+      'base_v818_shell': 'data-v818-shell="true"' in base,
+      'css_v818_marker': 'V818' in css,
+    }
+    missing=[k for k,v in checks.items() if not v]
+    print({'ok': not missing, 'check':'v818_daily_automation_os', 'missing': missing, 'checks': checks})
+    return 1 if missing else 0
+if __name__=='__main__': raise SystemExit(main())

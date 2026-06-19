@@ -1,0 +1,16 @@
+﻿{# V827 design-system helpers. These macros are intentionally light: they standardize new screens without touching legacy data flow. #}
+{% macro premium_empty(title, text='', primary_label='', primary_href='') -%}
+  <div class="v827-empty-state">
+    <strong>{{ title }}</strong>
+    {% if text %}<p>{{ text }}</p>{% endif %}
+    {% if primary_label and primary_href %}<a class="v827-btn primary" href="{{ primary_href }}">{{ primary_label }}</a>{% endif %}
+  </div>
+{%- endmacro %}
+
+{% macro stat_chip(label, value, hint='') -%}
+  <span class="v827-stat-chip"><small>{{ label }}</small><strong>{{ value }}</strong>{% if hint %}<em>{{ hint }}</em>{% endif %}</span>
+{%- endmacro %}
+
+{% macro cta(label, href, tone='') -%}
+  <a class="v827-btn {{ tone }}" href="{{ href }}">{{ label }}</a>
+{%- endmacro %}
