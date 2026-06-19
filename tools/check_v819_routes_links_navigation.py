@@ -9,6 +9,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V819_REFERENCE_UI_DEDUP_LAYER_PURGE_CLIENT_ADMIN_FINAL"
+CURRENT = "V820_REAL_CRESTS_REFERENCE_VISUAL_PIXEL_POLISH_FINAL"
+ACCEPTED_ACTIVE = {VERSION, CURRENT}
 
 
 def read(rel: str) -> str:
@@ -51,7 +53,7 @@ def main() -> int:
     missing_api = [r for r in api_routes if not route_exists(app, r)]
 
     checks = {
-        "version_v819": VERSION in read("VERSION.txt") and VERSION in app,
+        "version_v819_or_newer": read("VERSION.txt").strip() in ACCEPTED_ACTIVE and any(value in app for value in ACCEPTED_ACTIVE),
         "nav_has_support": 'href="/support"' in base,
         "nav_has_logout": 'href="/logout"' in base,
         "nav_no_client_admin_mix": "/admin/control-center" in base and "/sports-hub" in base,

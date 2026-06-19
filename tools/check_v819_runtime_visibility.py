@@ -11,7 +11,9 @@ import zipfile
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 VERSION = "V819_REFERENCE_UI_DEDUP_LAYER_PURGE_CLIENT_ADMIN_FINAL"
+CURRENT = "V820_REAL_CRESTS_REFERENCE_VISUAL_PIXEL_POLISH_FINAL"
 PREVIOUS = "V818_DAILY_AUTOMATION_OPERATING_SYSTEM_FINAL"
+ACCEPTED_ACTIVE = {VERSION, CURRENT}
 
 
 def read_text(path: pathlib.Path) -> str:
@@ -32,15 +34,21 @@ def main() -> None:
     css = css_bytes.decode("utf-8", errors="replace")
 
     checks = {
-        "version_txt_v819": version_txt == VERSION,
-        "app_version_v819": f"APP_VERSION = '{VERSION}'" in app_py or f'APP_VERSION = "{VERSION}"' in app_py,
+        "version_txt_v819_or_newer": version_txt in ACCEPTED_ACTIVE,
+        "app_version_v819_or_newer": any(
+            f"APP_VERSION = '{value}'" in app_py or f'APP_VERSION = "{value}"' in app_py
+            for value in ACCEPTED_ACTIVE
+        ),
         "runtime_endpoint_exists": '@app.route("/api/runtime-version")' in app_py,
         "runtime_reports_v819": "has_v819_shell" in app_py and "has_v819_css" in app_py,
         "runtime_preserves_v818": "has_v818_shell" in app_py and "has_v818_css" in app_py and PREVIOUS in app_py,
-        "meta_version_v819": f'name="nemesis-version" content="{VERSION}"' in base,
+        "meta_version_v819_or_newer": any(
+            f'name="nemesis-version" content="{value}"' in base
+            for value in ACCEPTED_ACTIVE
+        ),
         "body_v819": 'data-v819-shell="true"' in base,
         "source_comment_v819": "NEMESIS V819 REFERENCE UI DEDUP LAYER PURGE ACTIVE" in base,
-        "css_cache_busting_v819": f"?v={VERSION}" in base,
+        "css_cache_busting_v819_or_newer": any(f"?v={value}" in base for value in ACCEPTED_ACTIVE),
         "css_v819_layer": "V819 REFERENCE UI DEDUP LAYER PURGE START" in css and "data-v819-shell" in css,
         "css_preserves_v818_marker": PREVIOUS in css,
     }

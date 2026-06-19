@@ -2,8 +2,8 @@
   {% set ident = identity or {} %}
   {% set fallback = ident.get('visible_badge') or ident.get('flag_emoji') or ident.get('initials') or (name or 'NS')[:2]|upper %}
   {% set src = ident.get('crest_url') or (name|team_crest_url) %}
-  <span class="crest {{ size }}-crest {{ ident.get('ui_class','crest-fallback') }} v779-crest" data-fallback="{{ fallback }}" title="{{ ident.get('display_name') or ident.get('name') or name }}">
-    <img loading="lazy" src="{{ src }}" alt="{{ ident.get('display_name') or ident.get('name') or name }}" onerror="this.remove();">
+  <span class="crest {{ size }}-crest {{ ident.get('ui_class','crest-fallback') }} v779-crest v820-crest" data-fallback="{{ fallback }}" data-real-logo="{{ 'true' if ident.get('has_real_logo') else 'false' }}" data-provider="{{ ident.get('provider') or ident.get('crest_source') or 'fallback' }}" title="{{ ident.get('display_name') or ident.get('name') or name }}">
+    <img loading="lazy" src="{{ src }}" alt="{{ ident.get('display_name') or ident.get('name') or name }}" onerror="this.closest('.crest').classList.add('crest-image-error'); this.remove();">
     <em aria-hidden="true">{{ fallback }}</em>
   </span>
 {%- endmacro %}

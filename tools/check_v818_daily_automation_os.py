@@ -34,6 +34,7 @@ def main() -> int:
     if not any(version in version_txt for version in {
         "V818_DAILY_AUTOMATION_OPERATING_SYSTEM_FINAL",
         "V819_REFERENCE_UI_DEDUP_LAYER_PURGE_CLIENT_ADMIN_FINAL",
+        "V820_REAL_CRESTS_REFERENCE_VISUAL_PIXEL_POLISH_FINAL",
     }):
         missing.append("V818_DAILY_AUTOMATION_OPERATING_SYSTEM_FINAL_OR_NEWER")
     missing += contains(

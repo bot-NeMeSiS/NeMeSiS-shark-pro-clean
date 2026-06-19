@@ -30,7 +30,15 @@ from engines.security_engine import (
     validate_csrf,
 )
 from engines.cache_engine import cache_health
-from engines.crest_engine import crest_status
+from engines.crest_engine import (
+    crest_status,
+    ensure_crest_logo_schema,
+    resolve_league_logo_payload,
+    resolve_team_crest_payload,
+    safe_logo_url as safe_crest_logo_url,
+    upsert_league_logo_cache,
+    upsert_team_logo_cache,
+)
 from engines.data_memory_engine import (
     cleanup_old_memory,
     data_memory_summary,
@@ -227,7 +235,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V819_REFERENCE_UI_DEDUP_LAYER_PURGE_CLIENT_ADMIN_FINAL'
+APP_VERSION = 'V820_REAL_CRESTS_REFERENCE_VISUAL_PIXEL_POLISH_FINAL'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
@@ -822,6 +830,10 @@ def add_column_if_missing(conn, table, column, definition):
 
 def run_schema_migrations(conn):
     try:
+        ensure_crest_logo_schema(conn)
+    except sqlite3.OperationalError:
+        pass
+    try:
         conn.execute("""CREATE TABLE IF NOT EXISTS telegram_delivery_memory(
             id TEXT PRIMARY KEY,
             created_at TEXT,
@@ -1160,6 +1172,10 @@ def run_schema_migrations(conn):
 def init_db():
     conn = db()
     cur = conn.cursor()
+    try:
+        ensure_crest_logo_schema(conn)
+    except sqlite3.OperationalError:
+        pass
     cur.execute(
         """CREATE TABLE IF NOT EXISTS competitions(
             key TEXT PRIMARY KEY,
@@ -2038,7 +2054,9 @@ def infer_country_hint(*values):
 def team_display_identity(name="", logo_url="", country="", competition="", source="ui"):
     display = spanish_team_name(name) or str(name or "Equipo").strip() or "Equipo"
     country_hint = spanish_country_name(country) or infer_country_hint(display, competition) or country or ""
-    identity = build_team_identity_payload(display, logo_url=safe_team_logo_url(logo_url), country=country_hint, source=source or "V779 identity")
+    v820_identity = resolve_team_crest_payload(display, safe_crest_logo_url(logo_url), country=country_hint, provider=source or "V820 identity")
+    identity = build_team_identity_payload(display, logo_url=v820_identity.get("logo_url") or safe_team_logo_url(logo_url), country=country_hint, source=source or "V820 identity")
+    identity.update({key: value for key, value in v820_identity.items() if value and key not in {"visible_badge"}})
     # Absolute last safety net: every identity must have visible artwork.
     if not identity.get("crest_url"):
         identity["crest_url"] = fallback_crest_url(display)
@@ -2075,7 +2093,9 @@ def professionalize_identity(identity, name="", explicit_logo="", country="", so
     # Only true remote/provider URLs count as real logos. Data/app fallbacks remain visual fallbacks.
     base_crest_as_logo = base_crest_url if str(base_crest_url).startswith(("http://", "https://")) else ""
     logo = safe_team_logo_url(explicit_logo) or safe_team_logo_url(base.get("logo_url")) or base_crest_as_logo
+    v820_identity = resolve_team_crest_payload(display, logo, country=country_hint, provider=source or base.get("crest_source") or base.get("source") or "V820 cache")
     merged = merge_team_identity_payload(base, name=display, logo_url=logo, country=country_hint, source=source or base.get("crest_source") or base.get("source") or "cache")
+    merged.update({key: value for key, value in v820_identity.items() if value and key not in {"visible_badge"}})
     merged["name"] = spanish_team_name(merged.get("name") or display) or display
     merged["display_name"] = merged["name"]
     merged["country"] = spanish_country_name(merged.get("country") or country_hint) or country_hint or ""
@@ -2109,6 +2129,17 @@ def apply_team_identities_to_match(item):
     item["away_badge_text"] = item["away_identity"].get("visible_badge") or item["away_identity"].get("initials")
     item["home_country_flag"] = item["home_identity"].get("country_flag") or item["home_identity"].get("flag_emoji")
     item["away_country_flag"] = item["away_identity"].get("country_flag") or item["away_identity"].get("flag_emoji")
+    try:
+        conn = db()
+        if item["home_identity"].get("logo_url"):
+            upsert_team_logo_cache(conn, item.get("home_team"), item["home_identity"].get("logo_url"), provider=item.get("source") or "match", is_fallback=False)
+        if item["away_identity"].get("logo_url"):
+            upsert_team_logo_cache(conn, item.get("away_team"), item["away_identity"].get("logo_url"), provider=item.get("source") or "match", is_fallback=False)
+        league_logo = item.get("league_logo") or item.get("competition_logo") or ""
+        if item.get("competition_name") or item.get("league_name") or league_logo:
+            upsert_league_logo_cache(conn, item.get("competition_name") or item.get("league_name"), league_logo, provider=item.get("source") or "match", is_fallback=not bool(league_logo))
+    except Exception:
+        pass
     return item
 
 
@@ -13089,6 +13120,7 @@ def api_runtime_version():
     css_size = 0
     css_hash = ""
     css_mtime = ""
+    css_text = ""
     try:
         version_txt = (BASE_DIR / "VERSION.txt").read_text(encoding="utf-8").strip()
     except Exception:
@@ -13099,6 +13131,7 @@ def api_runtime_version():
         base_template = ""
     try:
         css_bytes = css_path.read_bytes()
+        css_text = css_bytes.decode("utf-8", errors="replace")
         css_size = len(css_bytes)
         css_hash = hashlib.sha256(css_bytes).hexdigest()[:16]
         css_mtime = datetime.fromtimestamp(css_path.stat().st_mtime, TZ).isoformat(timespec="seconds")
@@ -13121,23 +13154,30 @@ def api_runtime_version():
         "template_base_path": str(base_path),
         "template_base_detected": bool(base_template),
         "has_v815_shell": "data-v815-shell" in base_template,
-        "has_v815_css": "data-v815-shell" in (css_path.read_text(encoding="utf-8", errors="replace") if css_path.exists() else ""),
+        "has_v815_css": "data-v815-shell" in css_text,
         "static_css_hash": css_hash,
         "static_css_size": css_size,
         "static_app_css_hash": css_hash,
         "static_app_css_size": css_size,
         "static_app_css_mtime": css_mtime,
         "has_v816_shell": "data-v816-shell" in base_template and "NEMESIS V816 LIVE REFERENCE VISUAL DIFF ACTIVE" in base_template,
-        "has_v816_css": "V816_RENDER_LIVE_REFERENCE_VISUAL_DIFF_CLIENT_ADMIN_FINAL" in (css_path.read_text(encoding="utf-8", errors="replace") if css_path.exists() else ""),
+        "has_v816_css": "V816_RENDER_LIVE_REFERENCE_VISUAL_DIFF_CLIENT_ADMIN_FINAL" in css_text,
         "has_v817_shell": "data-v817-shell" in base_template and "NEMESIS V817 REFERENCE PIXEL POLISH ACTIVE" in base_template,
-        "has_v817_css": "V817_REFERENCE_PIXEL_POLISH_CLIENT_ADMIN_FINAL" in (css_path.read_text(encoding="utf-8", errors="replace") if css_path.exists() else ""),
+        "has_v817_css": "V817_REFERENCE_PIXEL_POLISH_CLIENT_ADMIN_FINAL" in css_text,
         "has_v818_shell": "data-v818-shell" in base_template and "NEMESIS V818 DAILY AUTOMATION OS ACTIVE" in base_template,
-        "has_v818_css": "V818_DAILY_AUTOMATION_OPERATING_SYSTEM_FINAL" in (css_path.read_text(encoding="utf-8", errors="replace") if css_path.exists() else ""),
+        "has_v818_css": "V818_DAILY_AUTOMATION_OPERATING_SYSTEM_FINAL" in css_text,
         "has_v819_shell": "data-v819-shell" in base_template and "NEMESIS V819 REFERENCE UI DEDUP LAYER PURGE ACTIVE" in base_template,
-        "has_v819_css": "V819_REFERENCE_UI_DEDUP_LAYER_PURGE_CLIENT_ADMIN_FINAL" in (css_path.read_text(encoding="utf-8", errors="replace") if css_path.exists() else ""),
-        "static_css_cache_busting": "V819_REFERENCE_UI_DEDUP_LAYER_PURGE_CLIENT_ADMIN_FINAL" in base_template,
+        "has_v819_css": "V819_REFERENCE_UI_DEDUP_LAYER_PURGE_CLIENT_ADMIN_FINAL" in css_text,
+        "has_v820_shell": "data-v820-shell" in base_template and "NEMESIS V820 REAL CRESTS REFERENCE VISUAL PIXEL POLISH ACTIVE" in base_template,
+        "has_v820_css": "V820_REAL_CRESTS_REFERENCE_VISUAL_PIXEL_POLISH_FINAL" in css_text,
+        "static_css_cache_busting": "V820_REAL_CRESTS_REFERENCE_VISUAL_PIXEL_POLISH_FINAL" in base_template,
         "render_service_hint": os.getenv("RENDER_SERVICE_NAME") or os.getenv("RENDER_EXTERNAL_HOSTNAME") or "",
         "db_path": DB_PATH,
+        "base_template_path": str(base_path),
+        "automation_secret_configured": automation_secret_configured(),
+        "api_football_configured": env_present("API_FOOTBALL_KEY") or env_present("API_FOOTBALL_API_KEY"),
+        "the_odds_configured": env_present("THE_ODDS_API_KEY") or env_present("ODDS_API_KEY"),
+        "telegram_configured": env_present("TELEGRAM_BOT_TOKEN") and env_present("TELEGRAM_CHAT_ID"),
         "flags": {
             "api_football_configured": env_present("API_FOOTBALL_KEY") or env_present("API_FOOTBALL_API_KEY"),
             "telegram_configured": env_present("TELEGRAM_BOT_TOKEN") and env_present("TELEGRAM_CHAT_ID"),
@@ -13443,6 +13483,60 @@ def team_crest_svg():
   <text x="48" y="57" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="24" font-weight="900" fill="#eef6ff">{text}</text>
 </svg>"""
     return Response(svg, mimetype="image/svg+xml")
+
+
+@app.route("/asset/team-logo/<team_key>")
+def asset_team_logo(team_key):
+    name = request.args.get("name") or team_key.replace("-", " ").title()
+    try:
+        conn = db()
+        try:
+            ensure_crest_logo_schema(conn)
+        finally:
+            conn.close()
+        found = one(
+            """SELECT logo_url, team_name, provider, is_fallback
+               FROM team_logo_cache
+               WHERE team_key=? AND COALESCE(logo_url,'')!='' AND COALESCE(is_fallback,0)=0
+               LIMIT 1""",
+            (team_key,),
+        ) or one(
+            """SELECT logo_url, name AS team_name, source AS provider, 0 AS is_fallback
+               FROM teams
+               WHERE key=? AND COALESCE(logo_url,'')!=''
+               LIMIT 1""",
+            (team_key,),
+        )
+        logo = safe_crest_logo_url((found or {}).get("logo_url"))
+        if logo and logo.startswith("https://"):
+            return redirect(logo, code=302)
+    except Exception:
+        pass
+    return redirect(fallback_crest_url(name), code=302)
+
+
+@app.route("/asset/league-logo/<league_key>")
+def asset_league_logo(league_key):
+    name = request.args.get("name") or league_key.replace("-", " ").title()
+    try:
+        conn = db()
+        try:
+            ensure_crest_logo_schema(conn)
+        finally:
+            conn.close()
+        found = one(
+            """SELECT logo_url, league_name, provider, is_fallback
+               FROM league_logo_cache
+               WHERE league_key=? AND COALESCE(logo_url,'')!='' AND COALESCE(is_fallback,0)=0
+               LIMIT 1""",
+            (league_key,),
+        )
+        logo = safe_crest_logo_url((found or {}).get("logo_url"))
+        if logo and logo.startswith("https://"):
+            return redirect(logo, code=302)
+    except Exception:
+        pass
+    return redirect(fallback_crest_url(name), code=302)
 
 
 def team_identity_diagnostics(limit=20):

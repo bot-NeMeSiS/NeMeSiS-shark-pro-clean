@@ -6,9 +6,9 @@
   <meta name="theme-color" content="#06111f">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="nemesis-version" content="V819_REFERENCE_UI_DEDUP_LAYER_PURGE_CLIENT_ADMIN_FINAL">
+  <meta name="nemesis-version" content="V820_REAL_CRESTS_REFERENCE_VISUAL_PIXEL_POLISH_FINAL">
   <title>{{ title or 'NeMeSiS SHARK PRO' }}</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}?v=V819_REFERENCE_UI_DEDUP_LAYER_PURGE_CLIENT_ADMIN_FINAL">
+  <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}?v=V820_REAL_CRESTS_REFERENCE_VISUAL_PIXEL_POLISH_FINAL">
   <meta name="csrf-token" content="{{ csrf_token() }}">
 </head>
 {% set _raw_tier = (current_user.membership if current_user else 'FREE')|upper %}
@@ -25,10 +25,11 @@
   {% set _visual_tier = 'free' %}
   {% set _tier_label = 'FREE' %}
 {% endif %}
-<body class="ns-app ns-tier-{{ _visual_tier }}{% if current_user %} ns-authenticated{% else %} ns-public{% endif %}{% if current_user and current_user.role == 'ADMIN' %} ns-admin{% endif %}" data-ns-route="{{ request.path }}" data-ns-plan="{{ _tier_label }}" data-v775-shell="true" data-v776-shell="true" data-v777-shell="true" data-v778-shell="true" data-v790-shell="true" data-v792-shell="true" data-v793-shell="true" data-v795-shell="true" data-v796-shell="true" data-v797-shell="true" data-v798-shell="true" data-v799-shell="true" data-v800-shell="true" data-v801-shell="true" data-v802-shell="true" data-v806-shell="true" data-v807-shell="true" data-v809-shell="true" data-v810-shell="true" data-v811-shell="true" data-v812-shell="true" data-v813-shell="true" data-v814-shell="true" data-v815-shell="true" data-v816-shell="true" data-v817-shell="true" data-v818-shell="true" data-v819-shell="true">
+<body class="ns-app ns-tier-{{ _visual_tier }}{% if current_user %} ns-authenticated{% else %} ns-public{% endif %}{% if current_user and current_user.role == 'ADMIN' %} ns-admin{% endif %}" data-ns-route="{{ request.path }}" data-ns-plan="{{ _tier_label }}" data-v775-shell="true" data-v776-shell="true" data-v777-shell="true" data-v778-shell="true" data-v790-shell="true" data-v792-shell="true" data-v793-shell="true" data-v795-shell="true" data-v796-shell="true" data-v797-shell="true" data-v798-shell="true" data-v799-shell="true" data-v800-shell="true" data-v801-shell="true" data-v802-shell="true" data-v806-shell="true" data-v807-shell="true" data-v809-shell="true" data-v810-shell="true" data-v811-shell="true" data-v812-shell="true" data-v813-shell="true" data-v814-shell="true" data-v815-shell="true" data-v816-shell="true" data-v817-shell="true" data-v818-shell="true" data-v819-shell="true" data-v820-shell="true">
   <!-- NEMESIS V817 REFERENCE PIXEL POLISH ACTIVE -->
   <!-- NEMESIS V818 DAILY AUTOMATION OS ACTIVE -->
   <!-- NEMESIS V819 REFERENCE UI DEDUP LAYER PURGE ACTIVE -->
+  <!-- NEMESIS V820 REAL CRESTS REFERENCE VISUAL PIXEL POLISH ACTIVE -->
   <div class="ns-ambient" aria-hidden="true"><i></i><i></i><i></i></div>
   {% if current_user and current_user.role != 'ADMIN' %}<div class="v815-client-shark-backdrop" aria-hidden="true"><img src="/static/img/shark-logo.svg" alt=""></div>{% endif %}
   {% if current_user %}<div class="v810-big-shark-decoration" aria-hidden="true"><img src="/static/img/shark-logo.svg" alt=""></div>{% endif %}

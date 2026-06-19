@@ -1,5 +1,72 @@
 # CHATGPT CONTINUATION REPORT
 
+## Estado actual V820
+
+Version preparada: `V820_REAL_CRESTS_REFERENCE_VISUAL_PIXEL_POLISH_FINAL`.
+
+La fuente oficial sigue siendo `C:\Users\aloha\OneDrive\Escritorio\NeMeSiS shark pro`. No se uso ningun ZIP antiguo como base. V820 se construyo encima de V819, manteniendo V818/V819 y sin tocar los flujos estables de Telegram, Cron, pagos, membresias, DB_PATH ni Madrid Time.
+
+Objetivo de V820:
+
+- resolver escudos y logos reales desde una capa central;
+- evitar imagenes rotas y logos falsos;
+- mejorar densidad visual cliente/admin sin crear nuevas pantallas;
+- pulir mobile, tarjetas, crests y sensacion premium;
+- preservar la automatizacion diaria V818 y la limpieza visual V819;
+- producir ZIP limpio Render Ready.
+
+Cambios principales V820:
+
+- `VERSION.txt` y `APP_VERSION` sincronizados en V820.
+- `/api/runtime-version` reporta V820, flags V818/V819/V820, rutas base, estado de secrets/configuracion sin exponer valores.
+- Nuevo motor central `engines/crest_engine.py` para normalizar claves, validar URLs, cachear logos reales y generar fallback limpio.
+- Nuevas tablas seguras `team_logo_cache` y `league_logo_cache`, creadas por migracion ligera.
+- Nuevas rutas internas `/asset/team-logo/<team_key>` y `/asset/league-logo/<league_key>` con redireccion segura a logo real o fallback.
+- `templates/partials/team_identity.html` ahora marca crests V820, protege errores de imagen y deja fallback visible.
+- Templates reales cliente marcados con `data-v820-template`.
+- `static/app.css` incorpora capa `V820 REAL CRESTS REFERENCE VISUAL PIXEL POLISH` para cards, crests, topbar, mobile y densidad visual.
+- Checks V819 adaptados para validar que V819 sigue preservado aunque V820 sea la version activa.
+
+Archivos principales tocados V820:
+
+- `VERSION.txt`
+- `app.py`
+- `engines/crest_engine.py`
+- `templates/base.html`
+- `templates/partials/team_identity.html`
+- `templates/home.html`
+- `templates/client_login.html`
+- `templates/client_app_center.html`
+- `templates/calendar.html`
+- `templates/live.html`
+- `templates/picks.html`
+- `templates/match_detail.html`
+- `templates/shark.html`
+- `templates/profile.html`
+- `templates/telegram.html`
+- `static/app.css`
+- herramientas `tools/check_v820_*.py`
+- informes `reports/V820_*.md`
+
+Validaciones V820:
+
+- `py_compile app.py` OK.
+- `compileall app.py engines tools` OK.
+- Parseo Jinja de 144 templates OK.
+- Madrid Time OK.
+- Checks V818 OK.
+- Checks V819 OK.
+- Checks V820 OK.
+- Smoke cliente/admin/API OK: rutas cliente principales 200, admin principales 200 con sesion admin, Cron sin secret 403 y con secret 200.
+- ZIP final previsto: `release_output/NeMeSiS_SHARK_PRO_V820_REAL_CRESTS_REFERENCE_VISUAL_PIXEL_POLISH_FINAL_RENDER_READY.zip`.
+
+Estado honesto:
+
+- V820 mejora la capa visual y la resolucion de escudos sin descargar datos externos en runtime.
+- Si no existe logo real en cache/tablas, se muestra fallback premium; no se inventan escudos.
+- No se generaron capturas de navegador en esta pasada; la QA visual fue por HTML/CSS/checks/smoke.
+- Telegram automatico y V818 master tick quedan conservados, no redisenados.
+
 ## Estado actual V819
 
 Version preparada: `V819_REFERENCE_UI_DEDUP_LAYER_PURGE_CLIENT_ADMIN_FINAL`.
