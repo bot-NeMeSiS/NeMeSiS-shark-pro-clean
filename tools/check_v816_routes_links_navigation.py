@@ -8,6 +8,7 @@ import re
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 VERSION = "V816_RENDER_LIVE_REFERENCE_VISUAL_DIFF_CLIENT_ADMIN_FINAL"
 CURRENT_VERSION = "V817_REFERENCE_PIXEL_POLISH_CLIENT_ADMIN_FINAL"
+V818_VERSION = "V818_DAILY_AUTOMATION_OPERATING_SYSTEM_FINAL"
 
 CLIENT_ROUTES = {
     "/": "home.html",
@@ -72,14 +73,14 @@ def main() -> None:
     hrefs = re.findall(r'href=["\']([^"\']+)["\']', "\n".join(read(p) for p in (ROOT / "templates").glob("*.html")))
     malformed = [h for h in hrefs if ("None" in h or "undefined" in h.lower()) and not h.strip().startswith("{{")]
     checks = {
-        "version": read(ROOT / "VERSION.txt").strip() in {VERSION, CURRENT_VERSION} and (VERSION in app_py or CURRENT_VERSION in app_py),
+        "version": read(ROOT / "VERSION.txt").strip() in {VERSION, CURRENT_VERSION, V818_VERSION} and any(v in app_py for v in [VERSION, CURRENT_VERSION, V818_VERSION]),
         "client_routes_templates": all(v["route_exists"] and v["template_exists"] for v in route_results.values()),
         "admin_routes_exist": all(admin_results.values()),
         "base_links_core": all(link in base for link in ["/app", "/calendar", "/live", "/picks", "/shark", "/logout"]),
         "admin_links_core": all(link in base for link in ["/admin/control-center", "/admin/users", "/admin/data-center", "/admin/telegram/command-center"]),
         "no_malformed_hrefs": not malformed,
         "v816_css_active": "data-v816-shell" in css and "v816-certified-screen" in css,
-        "css_cache_busting": VERSION in base or CURRENT_VERSION in base,
+        "css_cache_busting": VERSION in base or CURRENT_VERSION in base or V818_VERSION in base,
         "runtime_v816": "has_v816_shell" in app_py and "has_v816_css" in app_py,
     }
     failed = [name for name, ok in checks.items() if not ok]
