@@ -1,20 +1,20 @@
 {
   "ok": true,
-  "audited_at": "2026-06-18T00:46:43",
-  "zip": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\release_output\\NeMeSiS_SHARK_PRO_V815_RENDER_VISIBLE_CLIENT_ADMIN_REFERENCE_REBUILD_CERTIFIED_RENDER_READY.zip",
-  "zip_size_bytes": 1541553,
-  "file_count": 697,
-  "content_size_bytes": 4390710,
+  "audited_at": "2026-06-19T09:35:52",
+  "zip": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\release_output\\NeMeSiS_SHARK_PRO_V815_RENDER_VISIBLE_REFERENCE_REBUILD_REPO_RECONCILIATION_FINAL_RENDER_READY.zip",
+  "zip_size_bytes": 1550668,
+  "file_count": 707,
+  "content_size_bytes": 4410201,
   "forbidden_count": 0,
   "forbidden": [],
   "top_files": [
     {
       "path": "app.py",
-      "size": 808982
+      "size": 809575
     },
     {
       "path": "static/app.css",
-      "size": 570689
+      "size": 570692
     },
     {
       "path": "reports/v810_telegram_previews/telegram_pick_pro_v810.png",
@@ -58,11 +58,11 @@
     },
     {
       "path": "templates/base.html",
-      "size": 27973
+      "size": 27979
     },
     {
       "path": "CHATGPT_CONTINUATION_REPORT.md",
-      "size": 27737
+      "size": 27746
     },
     {
       "path": "V726_PURGE_REPORT.md",
@@ -97,28 +97,28 @@
     },
     {
       "folder": "app.py",
-      "size": 808982,
+      "size": 809575,
       "files": 1
     },
     {
       "folder": "static",
-      "size": 572015,
+      "size": 572018,
       "files": 2
     },
     {
       "folder": "reports",
-      "size": 528103,
-      "files": 144
+      "size": 543405,
+      "files": 153
     },
     {
       "folder": "templates",
-      "size": 525667,
+      "size": 525673,
       "files": 148
     },
     {
       "folder": "tools",
-      "size": 453661,
-      "files": 122
+      "size": 457227,
+      "files": 123
     },
     {
       "folder": "V726_PROJECT_TREE_AUDIT.md",
@@ -132,7 +132,7 @@
     },
     {
       "folder": "CHATGPT_CONTINUATION_REPORT.md",
-      "size": 27737,
+      "size": 27746,
       "files": 1
     },
     {
@@ -152,7 +152,7 @@
     },
     {
       "folder": "RELEASE_MANIFEST_V815.json",
-      "size": 7315,
+      "size": 7324,
       "files": 1
     },
     {

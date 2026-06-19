@@ -1,0 +1,17 @@
+Git no esta disponible en este entorno, por lo que no se pudo generar un diff real con `git diff`.
+
+Resumen de cambios V815_RENDER_VISIBLE_REFERENCE_REBUILD_REPO_RECONCILIATION_FINAL:
+
+- VERSION.txt actualizado a V815 final.
+- APP_VERSION actualizado a V815 final.
+- /api/runtime-version ampliado con version_txt, app_py_path, cwd, template_base_path, has_v815_shell, has_v815_css, hash/tamano/mtime CSS y flags sin secretos.
+- templates/base.html actualizado con meta V815, comentario fuente V815, data-v815-shell y cache-busting CSS.
+- templates cliente reales marcados con data-v815-template: home, app center, calendar, live, picks, match detail, shark, profile y telegram.
+- static/app.css contiene capa V815 activada por data-v815-shell y ajustes finales para topbar, fondo, tiburon decorativo, cards, bottom nav y SHARK flotante.
+- tools/check_v815_runtime_visibility.py creado/actualizado.
+- tools/check_v815_client_visual_shell.py creado/actualizado.
+- tools/check_v815_routes_links_navigation.py creado/actualizado.
+- tools/check_v815_match_lifecycle_real_data.py creado.
+- tools/build_clean_release.py actualizado para incluir reports V815 y audit V815.
+- reports V815 finales creados.
+- CHATGPT_CONTINUATION_REPORT.md actualizado con el estado V815 final.

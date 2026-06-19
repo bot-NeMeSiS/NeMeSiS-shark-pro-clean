@@ -219,7 +219,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V815_RENDER_VISIBLE_CLIENT_ADMIN_REFERENCE_REBUILD_CERTIFIED'
+APP_VERSION = 'V815_RENDER_VISIBLE_REFERENCE_REBUILD_REPO_RECONCILIATION_FINAL'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
@@ -13079,6 +13079,7 @@ def api_runtime_version():
     base_path = BASE_DIR / "templates" / "base.html"
     css_size = 0
     css_hash = ""
+    css_mtime = ""
     try:
         version_txt = (BASE_DIR / "VERSION.txt").read_text(encoding="utf-8").strip()
     except Exception:
@@ -13091,9 +13092,11 @@ def api_runtime_version():
         css_bytes = css_path.read_bytes()
         css_size = len(css_bytes)
         css_hash = hashlib.sha256(css_bytes).hexdigest()[:16]
+        css_mtime = datetime.fromtimestamp(css_path.stat().st_mtime, TZ).isoformat(timespec="seconds")
     except Exception:
         css_size = 0
         css_hash = ""
+        css_mtime = ""
     return jsonify({
         "ok": True,
         "app": APP_NAME,
@@ -13102,13 +13105,20 @@ def api_runtime_version():
         "version_txt": version_txt,
         "time": now_iso(),
         "generated_at": now_iso(),
+        "build_generated_at": now_iso(),
         "python_file_path": os.path.abspath(__file__),
+        "app_py_path": os.path.abspath(__file__),
         "current_working_directory": os.getcwd(),
+        "template_base_path": str(base_path),
         "template_base_detected": bool(base_template),
         "has_v815_shell": "data-v815-shell" in base_template and "NEMESIS V815 CLIENT SHELL ACTIVE" in base_template,
+        "has_v815_css": "V815_RENDER_VISIBLE_REFERENCE_REBUILD_REPO_RECONCILIATION_FINAL" in (css_path.read_text(encoding="utf-8", errors="replace") if css_path.exists() else ""),
         "static_css_hash": css_hash,
         "static_css_size": css_size,
-        "static_css_cache_busting": "V815_RENDER_VISIBLE_CLIENT_ADMIN_REFERENCE_REBUILD_CERTIFIED" in base_template,
+        "static_app_css_hash": css_hash,
+        "static_app_css_size": css_size,
+        "static_app_css_mtime": css_mtime,
+        "static_css_cache_busting": "V815_RENDER_VISIBLE_REFERENCE_REBUILD_REPO_RECONCILIATION_FINAL" in base_template,
         "render_service_hint": os.getenv("RENDER_SERVICE_NAME") or os.getenv("RENDER_EXTERNAL_HOSTNAME") or "",
         "db_path": DB_PATH,
         "flags": {

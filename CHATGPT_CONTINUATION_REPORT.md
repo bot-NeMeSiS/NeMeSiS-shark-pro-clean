@@ -2,7 +2,7 @@
 
 ## Estado actual V815
 
-Version preparada: `V815_RENDER_VISIBLE_CLIENT_ADMIN_REFERENCE_REBUILD_CERTIFIED`.
+Version preparada: `V815_RENDER_VISIBLE_REFERENCE_REBUILD_REPO_RECONCILIATION_FINAL`.
 
 V815 nace porque despues de V814 Render podia seguir viendose igual por cuatro causas posibles: despliegue de ZIP anterior, carpeta raiz incorrecta dentro del ZIP, cache de CSS/JS o cambios aplicados a templates que no eran los renderizados por las rutas reales.
 
@@ -13,7 +13,7 @@ La prioridad de V815 no es crear nuevas funciones, sino certificar runtime y vis
 - `base.html` incluye `<meta name="nemesis-version" ...>`.
 - `body` incluye `data-v815-shell="true"`.
 - El codigo fuente incluye `<!-- NEMESIS V815 CLIENT SHELL ACTIVE -->`.
-- `static/app.css` carga con `?v=V815_RENDER_VISIBLE_CLIENT_ADMIN_REFERENCE_REBUILD_CERTIFIED`.
+- `static/app.css` carga con `?v=V815_RENDER_VISIBLE_REFERENCE_REBUILD_REPO_RECONCILIATION_FINAL`.
 - Las rutas reales de cliente fueron marcadas: `home.html`, `client_app_center.html`, `calendar.html`, `live.html`, `picks.html`, `match_detail.html`, `shark.html`, `profile.html`, `telegram.html`.
 - Se anadio una capa visual V815 activada por `data-v815-shell`, con topbar de cristal, fondo premium oscuro, tiburon decorativo grande solo cliente, cards densas, bottom nav movil y ocultacion del SHARK flotante en `/shark`.
 - Admin se mantiene estable y sin tiburon decorativo grande.
@@ -42,7 +42,7 @@ En Render, tras desplegar, comprobar primero:
 2. codigo fuente de `/app`
 3. `data-v815-shell="true"`
 4. `NEMESIS V815 CLIENT SHELL ACTIVE`
-5. `app.css?v=V815_RENDER_VISIBLE_CLIENT_ADMIN_REFERENCE_REBUILD_CERTIFIED`
+5. `app.css?v=V815_RENDER_VISIBLE_REFERENCE_REBUILD_REPO_RECONCILIATION_FINAL`
 
 Si Render sigue mostrando V814/V812/V805, el problema ya no es el codigo V815: es deploy/cache/ZIP raiz/servicio incorrecto.
 
