@@ -1,5 +1,46 @@
 # CHATGPT CONTINUATION REPORT
 
+## Estado actual V816
+
+Version preparada: `V816_RENDER_LIVE_REFERENCE_VISUAL_DIFF_CLIENT_ADMIN_FINAL`.
+
+V816 se crea porque el entorno seguia mostrando mezcla real entre ZIP grande antiguo, release_output, cache CSS y posibles despliegues con raiz incorrecta. La fuente oficial queda fijada en la carpeta `C:\Users\aloha\OneDrive\Escritorio\NeMeSiS shark pro` y el ZIP correcto es el generado por `tools/build_clean_release.py`.
+
+Cambios principales:
+
+- `VERSION.txt` y `APP_VERSION` sincronizados en V816.
+- `/api/runtime-version` devuelve `has_v816_shell`, `has_v816_css`, version real, rutas reales, hash/tamano/mtime CSS y flags sin secretos.
+- `base.html` contiene `data-v816-shell="true"` y comentario `NEMESIS V816 LIVE REFERENCE VISUAL DIFF ACTIVE`.
+- `app.css` carga con `?v=V816_RENDER_LIVE_REFERENCE_VISUAL_DIFF_CLIENT_ADMIN_FINAL`.
+- Se mantiene herencia V815, pero V816 es la capa activa final.
+- Templates cliente reales marcados con `data-v816-template`, incluyendo login cliente.
+- CSS V816 refuerza topbar, fondo, tiburon decorativo, cards, bottom nav movil, SHARK unico y admin command center.
+- Nuevo check de lifecycle real V816 para evitar partidos pasados como proximos.
+- Nuevo check de rutas/enlaces V816.
+- Telegram profesional sigue sin cambios peligrosos.
+- DB_PATH, usuarios, sesiones, pagos, Stripe, Telegram, Cron, APIs y Madrid Time no se han tocado.
+
+Validaciones V816:
+
+- `py_compile app.py` OK.
+- `compileall app.py engines tools` OK.
+- Jinja templates OK.
+- Madrid Time OK.
+- Checks V816 runtime/visual/rutas/lifecycle OK.
+- Smoke Flask sin 500 en rutas criticas.
+- ZIP final limpio con raiz correcta y `forbidden_count=0`.
+
+Comprobacion Render:
+
+1. Abrir `/api/runtime-version`.
+2. Confirmar `app_version = V816_RENDER_LIVE_REFERENCE_VISUAL_DIFF_CLIENT_ADMIN_FINAL`.
+3. Confirmar `has_v816_shell = true`.
+4. Confirmar `has_v816_css = true`.
+5. Ver codigo fuente de `/app` y buscar `NEMESIS V816 LIVE REFERENCE VISUAL DIFF ACTIVE`.
+6. Confirmar `app.css?v=V816_RENDER_LIVE_REFERENCE_VISUAL_DIFF_CLIENT_ADMIN_FINAL`.
+
+---
+
 ## Estado actual V815
 
 Version preparada: `V815_RENDER_VISIBLE_REFERENCE_REBUILD_REPO_RECONCILIATION_FINAL`.

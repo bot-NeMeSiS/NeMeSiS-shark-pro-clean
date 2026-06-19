@@ -219,7 +219,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V815_RENDER_VISIBLE_REFERENCE_REBUILD_REPO_RECONCILIATION_FINAL'
+APP_VERSION = 'V816_RENDER_LIVE_REFERENCE_VISUAL_DIFF_CLIENT_ADMIN_FINAL'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
@@ -13111,14 +13111,16 @@ def api_runtime_version():
         "current_working_directory": os.getcwd(),
         "template_base_path": str(base_path),
         "template_base_detected": bool(base_template),
-        "has_v815_shell": "data-v815-shell" in base_template and "NEMESIS V815 CLIENT SHELL ACTIVE" in base_template,
-        "has_v815_css": "V815_RENDER_VISIBLE_REFERENCE_REBUILD_REPO_RECONCILIATION_FINAL" in (css_path.read_text(encoding="utf-8", errors="replace") if css_path.exists() else ""),
+        "has_v815_shell": "data-v815-shell" in base_template,
+        "has_v815_css": "data-v815-shell" in (css_path.read_text(encoding="utf-8", errors="replace") if css_path.exists() else ""),
         "static_css_hash": css_hash,
         "static_css_size": css_size,
         "static_app_css_hash": css_hash,
         "static_app_css_size": css_size,
         "static_app_css_mtime": css_mtime,
-        "static_css_cache_busting": "V815_RENDER_VISIBLE_REFERENCE_REBUILD_REPO_RECONCILIATION_FINAL" in base_template,
+        "has_v816_shell": "data-v816-shell" in base_template and "NEMESIS V816 LIVE REFERENCE VISUAL DIFF ACTIVE" in base_template,
+        "has_v816_css": "V816_RENDER_LIVE_REFERENCE_VISUAL_DIFF_CLIENT_ADMIN_FINAL" in (css_path.read_text(encoding="utf-8", errors="replace") if css_path.exists() else ""),
+        "static_css_cache_busting": "V816_RENDER_LIVE_REFERENCE_VISUAL_DIFF_CLIENT_ADMIN_FINAL" in base_template,
         "render_service_hint": os.getenv("RENDER_SERVICE_NAME") or os.getenv("RENDER_EXTERNAL_HOSTNAME") or "",
         "db_path": DB_PATH,
         "flags": {

@@ -15,6 +15,7 @@ if str(ROOT) not in sys.path:
 
 EXPECTED_VERSION = "V814_CODEX_DEEP_PROJECT_RECONCILIATION_CLIENT_ADMIN_REFERENCE_FINAL"
 CURRENT_ACCEPTED_VERSION = "V815_RENDER_VISIBLE_REFERENCE_REBUILD_REPO_RECONCILIATION_FINAL"
+CURRENT_V816_VERSION = "V816_RENDER_LIVE_REFERENCE_VISUAL_DIFF_CLIENT_ADMIN_FINAL"
 
 
 def ok(name: str, condition: bool, detail: str = "") -> bool:
@@ -37,7 +38,7 @@ def main() -> int:
     css = (ROOT / "static" / "app.css").read_text(encoding="utf-8", errors="replace")
     build = (ROOT / "tools" / "build_clean_release.py").read_text(encoding="utf-8", errors="replace")
 
-    failures += not ok("VERSION.txt V814/V815", version in {EXPECTED_VERSION, CURRENT_ACCEPTED_VERSION})
+    failures += not ok("VERSION.txt V814/V815/V816", version in {EXPECTED_VERSION, CURRENT_ACCEPTED_VERSION, CURRENT_V816_VERSION})
     failures += not ok("APP_VERSION coincide", nemesis_app.APP_VERSION == version)
     failures += not ok("DB_PATH Render intacto", 'DB_PATH = os.getenv("DB_PATH", "/data/database.db")' in app_text)
     failures += not ok("shell V814 base", 'data-v814-shell="true"' in base)
