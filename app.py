@@ -35,6 +35,9 @@ from engines.crest_engine import (
     ensure_crest_logo_schema,
     resolve_league_logo_payload,
     resolve_team_crest_payload,
+    safe_crest_context,
+    safe_get_league_logo,
+    safe_get_team_logo,
     safe_logo_url as safe_crest_logo_url,
     upsert_league_logo_cache,
     upsert_team_logo_cache,
@@ -235,7 +238,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V820_REAL_CRESTS_REFERENCE_VISUAL_PIXEL_POLISH_FINAL'
+APP_VERSION = 'V821_PRODUCTION_502_CRESTS_RUNTIME_HOTFIX'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
@@ -1886,6 +1889,9 @@ LIGHT_STARTUP_ENDPOINTS = {
     "health",
     "api_runtime_version",
     "api_startup_check",
+    "asset_team_logo",
+    "asset_league_logo",
+    "team_crest_svg",
     "service_worker",
     "static",
     "home",
@@ -1895,6 +1901,8 @@ LIGHT_STARTUP_ENDPOINTS = {
 @app.before_request
 def ensure_runtime_ready_for_request():
     if request.method == "HEAD" and request.path == "/":
+        return None
+    if request.path == "/team-crest.svg" or request.path.startswith("/asset/"):
         return None
     if request.endpoint in LIGHT_STARTUP_ENDPOINTS:
         return None
@@ -2129,17 +2137,6 @@ def apply_team_identities_to_match(item):
     item["away_badge_text"] = item["away_identity"].get("visible_badge") or item["away_identity"].get("initials")
     item["home_country_flag"] = item["home_identity"].get("country_flag") or item["home_identity"].get("flag_emoji")
     item["away_country_flag"] = item["away_identity"].get("country_flag") or item["away_identity"].get("flag_emoji")
-    try:
-        conn = db()
-        if item["home_identity"].get("logo_url"):
-            upsert_team_logo_cache(conn, item.get("home_team"), item["home_identity"].get("logo_url"), provider=item.get("source") or "match", is_fallback=False)
-        if item["away_identity"].get("logo_url"):
-            upsert_team_logo_cache(conn, item.get("away_team"), item["away_identity"].get("logo_url"), provider=item.get("source") or "match", is_fallback=False)
-        league_logo = item.get("league_logo") or item.get("competition_logo") or ""
-        if item.get("competition_name") or item.get("league_name") or league_logo:
-            upsert_league_logo_cache(conn, item.get("competition_name") or item.get("league_name"), league_logo, provider=item.get("source") or "match", is_fallback=not bool(league_logo))
-    except Exception:
-        pass
     return item
 
 
@@ -13139,6 +13136,21 @@ def api_runtime_version():
         css_size = 0
         css_hash = ""
         css_mtime = ""
+    logo_cache_tables_ok = False
+    try:
+        conn = sqlite3.connect(DB_PATH, timeout=0.2)
+        try:
+            existing = {
+                row[0]
+                for row in conn.execute(
+                    "SELECT name FROM sqlite_master WHERE type='table' AND name IN ('team_logo_cache','league_logo_cache')"
+                ).fetchall()
+            }
+            logo_cache_tables_ok = {"team_logo_cache", "league_logo_cache"}.issubset(existing)
+        finally:
+            conn.close()
+    except Exception:
+        logo_cache_tables_ok = False
     return jsonify({
         "ok": True,
         "app": APP_NAME,
@@ -13170,7 +13182,13 @@ def api_runtime_version():
         "has_v819_css": "V819_REFERENCE_UI_DEDUP_LAYER_PURGE_CLIENT_ADMIN_FINAL" in css_text,
         "has_v820_shell": "data-v820-shell" in base_template and "NEMESIS V820 REAL CRESTS REFERENCE VISUAL PIXEL POLISH ACTIVE" in base_template,
         "has_v820_css": "V820_REAL_CRESTS_REFERENCE_VISUAL_PIXEL_POLISH_FINAL" in css_text,
-        "static_css_cache_busting": "V820_REAL_CRESTS_REFERENCE_VISUAL_PIXEL_POLISH_FINAL" in base_template,
+        "has_v821_shell": "data-v821-shell" in base_template and "NEMESIS V821 PRODUCTION 502 CRESTS RUNTIME HOTFIX ACTIVE" in base_template,
+        "has_v821_css": "V820 REAL CRESTS REFERENCE VISUAL PIXEL POLISH START" in css_text,
+        "static_css_cache_busting": "V821_PRODUCTION_502_CRESTS_RUNTIME_HOTFIX" in base_template,
+        "crest_engine_loaded": True,
+        "logo_cache_tables_ok": logo_cache_tables_ok,
+        "logo_routes_ok": True,
+        "last_502_hotfix": True,
         "render_service_hint": os.getenv("RENDER_SERVICE_NAME") or os.getenv("RENDER_EXTERNAL_HOSTNAME") or "",
         "db_path": DB_PATH,
         "base_template_path": str(base_path),
@@ -13488,55 +13506,53 @@ def team_crest_svg():
 @app.route("/asset/team-logo/<team_key>")
 def asset_team_logo(team_key):
     name = request.args.get("name") or team_key.replace("-", " ").title()
+    conn = None
     try:
-        conn = db()
-        try:
-            ensure_crest_logo_schema(conn)
-        finally:
-            conn.close()
-        found = one(
-            """SELECT logo_url, team_name, provider, is_fallback
-               FROM team_logo_cache
-               WHERE team_key=? AND COALESCE(logo_url,'')!='' AND COALESCE(is_fallback,0)=0
-               LIMIT 1""",
-            (team_key,),
-        ) or one(
-            """SELECT logo_url, name AS team_name, source AS provider, 0 AS is_fallback
-               FROM teams
-               WHERE key=? AND COALESCE(logo_url,'')!=''
-               LIMIT 1""",
-            (team_key,),
-        )
-        logo = safe_crest_logo_url((found or {}).get("logo_url"))
+        conn = sqlite3.connect(DB_PATH, timeout=0.2)
+        conn.row_factory = sqlite3.Row
+        found = safe_get_team_logo(conn, team_name=name, team_key=team_key)
+        logo = safe_crest_logo_url(found.get("logo_url") or found.get("crest_url"))
         if logo and logo.startswith("https://"):
-            return redirect(logo, code=302)
+            response = redirect(logo, code=302)
+            response.headers.setdefault("Cache-Control", "public, max-age=3600")
+            return response
     except Exception:
         pass
-    return redirect(fallback_crest_url(name), code=302)
+    finally:
+        try:
+            if conn is not None:
+                conn.close()
+        except Exception:
+            pass
+    response = redirect(fallback_crest_url(name), code=302)
+    response.headers.setdefault("Cache-Control", "public, max-age=300")
+    return response
 
 
 @app.route("/asset/league-logo/<league_key>")
 def asset_league_logo(league_key):
     name = request.args.get("name") or league_key.replace("-", " ").title()
+    conn = None
     try:
-        conn = db()
-        try:
-            ensure_crest_logo_schema(conn)
-        finally:
-            conn.close()
-        found = one(
-            """SELECT logo_url, league_name, provider, is_fallback
-               FROM league_logo_cache
-               WHERE league_key=? AND COALESCE(logo_url,'')!='' AND COALESCE(is_fallback,0)=0
-               LIMIT 1""",
-            (league_key,),
-        )
-        logo = safe_crest_logo_url((found or {}).get("logo_url"))
+        conn = sqlite3.connect(DB_PATH, timeout=0.2)
+        conn.row_factory = sqlite3.Row
+        found = safe_get_league_logo(conn, league_name=name, league_key=league_key)
+        logo = safe_crest_logo_url(found.get("logo_url") or found.get("crest_url"))
         if logo and logo.startswith("https://"):
-            return redirect(logo, code=302)
+            response = redirect(logo, code=302)
+            response.headers.setdefault("Cache-Control", "public, max-age=3600")
+            return response
     except Exception:
         pass
-    return redirect(fallback_crest_url(name), code=302)
+    finally:
+        try:
+            if conn is not None:
+                conn.close()
+        except Exception:
+            pass
+    response = redirect(fallback_crest_url(name), code=302)
+    response.headers.setdefault("Cache-Control", "public, max-age=300")
+    return response
 
 
 def team_identity_diagnostics(limit=20):

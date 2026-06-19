@@ -1,9 +1,8 @@
 """Central crest/logo resolver for NeMeSiS SHARK PRO.
 
-V820 keeps this module stdlib-only and non-blocking: it never downloads images
-while rendering a page. It only validates existing provider URLs, records a
-cache when a DB connection is supplied, and returns an elegant local fallback
-when no real logo is available.
+V821 keeps this module stdlib-only and non-blocking: it never downloads images
+while rendering a page. Runtime helpers always return a valid local fallback if
+SQLite is locked, a table is missing, a URL is invalid, or input is incomplete.
 """
 from __future__ import annotations
 
@@ -13,6 +12,9 @@ import unicodedata
 import urllib.parse
 from datetime import datetime
 from typing import Any
+
+
+_LOGO_TABLES_READY = False
 
 
 def _now_iso() -> str:
@@ -49,6 +51,10 @@ def fallback_crest_url(name: Any) -> str:
     return "/team-crest.svg?" + urllib.parse.urlencode({"name": str(name or "Equipo")})
 
 
+def fallback_crest_svg(name: Any) -> str:
+    return fallback_crest_url(name)
+
+
 def crest_status(team: dict[str, Any] | None) -> dict[str, Any]:
     team = dict(team or {})
     logo = safe_logo_url(team.get("logo_url") or team.get("crest_url"))
@@ -58,6 +64,9 @@ def crest_status(team: dict[str, Any] | None) -> dict[str, Any]:
 
 
 def ensure_crest_logo_schema(conn: sqlite3.Connection) -> None:
+    global _LOGO_TABLES_READY
+    if _LOGO_TABLES_READY:
+        return
     conn.execute(
         """CREATE TABLE IF NOT EXISTS team_logo_cache(
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -87,6 +96,17 @@ def ensure_crest_logo_schema(conn: sqlite3.Connection) -> None:
     )
     conn.execute("CREATE INDEX IF NOT EXISTS idx_team_logo_cache_key ON team_logo_cache(team_key)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_league_logo_cache_key ON league_logo_cache(league_key)")
+    _LOGO_TABLES_READY = True
+
+
+def ensure_logo_tables_once(conn: sqlite3.Connection | None) -> bool:
+    if conn is None:
+        return False
+    try:
+        ensure_crest_logo_schema(conn)
+        return True
+    except (sqlite3.Error, RuntimeError, OSError):
+        return False
 
 
 def upsert_team_logo_cache(
@@ -179,3 +199,80 @@ def resolve_league_logo_payload(league_name: Any, explicit_logo: Any = "", *, pr
         "has_real_logo": is_real_logo,
         "is_fallback": not is_real_logo,
     }
+
+
+def _fetch_one(conn: sqlite3.Connection | None, sql: str, params: tuple[Any, ...]) -> dict[str, Any]:
+    if conn is None:
+        return {}
+    try:
+        cur = conn.execute(sql, params)
+        row = cur.fetchone()
+        if row is None:
+            return {}
+        if hasattr(row, "keys"):
+            return {key: row[key] for key in row.keys()}
+        columns = [col[0] for col in cur.description or []]
+        return dict(zip(columns, row))
+    except (sqlite3.Error, RuntimeError, OSError):
+        return {}
+
+
+def safe_get_team_logo(conn: sqlite3.Connection | None, team_name: Any = "", team_key: Any = "") -> dict[str, Any]:
+    name = str(team_name or team_key or "Equipo").strip() or "Equipo"
+    key = normalize_logo_key(team_key or name)
+    fallback = resolve_team_crest_payload(name, "", provider="fallback")
+    fallback["team_key"] = key
+    try:
+        row = _fetch_one(
+            conn,
+            """SELECT logo_url, team_name, provider, is_fallback
+               FROM team_logo_cache
+               WHERE team_key=? AND COALESCE(logo_url,'')!='' AND COALESCE(is_fallback,0)=0
+               LIMIT 1""",
+            (key,),
+        )
+        logo = safe_logo_url(row.get("logo_url"))
+        if logo:
+            return resolve_team_crest_payload(row.get("team_name") or name, logo, provider=row.get("provider") or "cache")
+        row = _fetch_one(
+            conn,
+            """SELECT logo_url, name AS team_name, source AS provider
+               FROM teams
+               WHERE key=? AND COALESCE(logo_url,'')!=''
+               LIMIT 1""",
+            (key,),
+        )
+        logo = safe_logo_url(row.get("logo_url"))
+        if logo:
+            return resolve_team_crest_payload(row.get("team_name") or name, logo, provider=row.get("provider") or "teams")
+    except Exception:
+        return fallback
+    return fallback
+
+
+def safe_get_league_logo(conn: sqlite3.Connection | None, league_name: Any = "", league_key: Any = "") -> dict[str, Any]:
+    name = str(league_name or league_key or "Competicion").strip() or "Competicion"
+    key = normalize_logo_key(league_key or name)
+    fallback = resolve_league_logo_payload(name, "", provider="fallback")
+    fallback["league_key"] = key
+    try:
+        row = _fetch_one(
+            conn,
+            """SELECT logo_url, league_name, provider, is_fallback
+               FROM league_logo_cache
+               WHERE league_key=? AND COALESCE(logo_url,'')!='' AND COALESCE(is_fallback,0)=0
+               LIMIT 1""",
+            (key,),
+        )
+        logo = safe_logo_url(row.get("logo_url"))
+        if logo:
+            return resolve_league_logo_payload(row.get("league_name") or name, logo, provider=row.get("provider") or "cache")
+    except Exception:
+        return fallback
+    return fallback
+
+
+def safe_crest_context(conn: sqlite3.Connection | None, *, team_name: Any = "", team_key: Any = "", league_name: Any = "", league_key: Any = "") -> dict[str, Any]:
+    if team_name or team_key:
+        return safe_get_team_logo(conn, team_name=team_name, team_key=team_key)
+    return safe_get_league_logo(conn, league_name=league_name, league_key=league_key)

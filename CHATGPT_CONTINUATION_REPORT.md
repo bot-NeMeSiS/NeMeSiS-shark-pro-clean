@@ -1,5 +1,37 @@
 # CHATGPT CONTINUATION REPORT
 
+## Estado actual V821
+
+Version preparada: `V821_PRODUCTION_502_CRESTS_RUNTIME_HOTFIX`.
+
+V821 es un hotfix urgente de produccion construido encima de V820. No anade capa visual nueva ni rehace la app. Su objetivo es corregir el 502/timeout detectado tras V820, manteniendo V818, V819 y V820.
+
+Problema detectado:
+
+- V820 introdujo cache/resolucion de logos reales.
+- La auditoria V821 detecto que las rutas `/asset/team-logo/<team_key>` y `/asset/league-logo/<league_key>` podian disparar inicializacion pesada si no eran rutas ligeras.
+- Tambien se detecto que `apply_team_identities_to_match()` escribia en cache SQLite durante el render de partidos.
+- En produccion Render, muchas imagenes/tarjetas cargando a la vez podian generar locks, migraciones o timeout del worker.
+
+Cambios V821:
+
+- `VERSION.txt` y `APP_VERSION` actualizados a V821.
+- `/api/runtime-version` reporta V821, `last_502_hotfix=true`, `crest_engine_loaded`, `logo_cache_tables_ok` y `logo_routes_ok`.
+- `/asset/team-logo/<team_key>`, `/asset/league-logo/<league_key>` y `/team-crest.svg` quedan como rutas ligeras.
+- Las rutas de logos ya no ejecutan migraciones ni `ensure_crest_logo_schema()`.
+- Las rutas de logos usan lectura SQLite con timeout corto y fallback inmediato.
+- `apply_team_identities_to_match()` ya no escribe en cache durante render.
+- `engines/crest_engine.py` anade `safe_get_team_logo`, `safe_get_league_logo`, `safe_crest_context`, `fallback_crest_svg` y `ensure_logo_tables_once`.
+- Si falta DB, tabla, campo, logo o hay lock: fallback premium local.
+- No se hacen descargas externas de logos durante render.
+
+Estado:
+
+- V818 master tick y health-check conservados.
+- V819 dedup visual conservado.
+- V820 visual polish y escudos reales conservados.
+- Prioridad V821: ninguna ruta debe caer por logos/cache.
+
 ## Estado actual V820
 
 Version preparada: `V820_REAL_CRESTS_REFERENCE_VISUAL_PIXEL_POLISH_FINAL`.

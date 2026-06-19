@@ -940,6 +940,19 @@ body[data-v820-shell="true"].ns-admin :is(.v799-appbar,.admin-hero,.v808-admin-r
 }
 /* V820 REAL CRESTS REFERENCE VISUAL PIXEL POLISH END */
 
+/* V821 PRODUCTION 502 CRESTS RUNTIME HOTFIX START */
+body[data-v821-shell="true"] .crest.v820-crest img {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+body[data-v821-shell="true"] .crest.v820-crest.crest-image-error img {
+  display: none !important;
+}
+/* V821 PRODUCTION 502 CRESTS RUNTIME HOTFIX END */
+
 /* V816_RENDER_LIVE_REFERENCE_VISUAL_DIFF_CLIENT_ADMIN_FINAL
    Final visible reference diff: the active layer Render should show after V816 deploy. */
 body[data-v816-shell="true"]{
