@@ -1,0 +1,194 @@
+{
+  "ok": true,
+  "audited_at": "2026-06-19T13:27:17",
+  "zip": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\release_output\\NeMeSiS_SHARK_PRO_V819_REFERENCE_UI_DEDUP_LAYER_PURGE_CLIENT_ADMIN_FINAL_RENDER_READY.zip",
+  "zip_size_bytes": 1616932,
+  "file_count": 772,
+  "content_size_bytes": 4577814,
+  "forbidden_count": 0,
+  "forbidden": [],
+  "top_files": [
+    {
+      "path": "app.py",
+      "size": 819484
+    },
+    {
+      "path": "static/app.css",
+      "size": 595155
+    },
+    {
+      "path": "reports/v810_telegram_previews/telegram_pick_pro_v810.png",
+      "size": 107837
+    },
+    {
+      "path": "reports/v810_telegram_previews/telegram_resumen_top_v810.png",
+      "size": 96929
+    },
+    {
+      "path": "V726_PROJECT_TREE_AUDIT.md",
+      "size": 96394
+    },
+    {
+      "path": "reports/v810_telegram_previews/telegram_live_top_v810.png",
+      "size": 72835
+    },
+    {
+      "path": "engines/api_football_live_tracker_engine.py",
+      "size": 60440
+    },
+    {
+      "path": "engines/api_exploitation_engine.py",
+      "size": 41823
+    },
+    {
+      "path": "engines/football_data_warehouse_engine.py",
+      "size": 38480
+    },
+    {
+      "path": "engines/stripe_payments_engine.py",
+      "size": 36321
+    },
+    {
+      "path": "CHATGPT_CONTINUATION_REPORT.md",
+      "size": 35664
+    },
+    {
+      "path": "engines/telegram_delivery_engine.py",
+      "size": 31032
+    },
+    {
+      "path": "engines/shark_historical_intelligence_engine.py",
+      "size": 30018
+    },
+    {
+      "path": "templates/base.html",
+      "size": 27998
+    },
+    {
+      "path": "V726_PURGE_REPORT.md",
+      "size": 26158
+    },
+    {
+      "path": "engines/spanish_localization_engine.py",
+      "size": 23699
+    },
+    {
+      "path": "engines/shark_prediction_engine.py",
+      "size": 23584
+    },
+    {
+      "path": "engines/data_memory_engine.py",
+      "size": 22764
+    },
+    {
+      "path": "engines/telegram_activity_engine.py",
+      "size": 20393
+    },
+    {
+      "path": "engines/player_intelligence_engine.py",
+      "size": 20270
+    }
+  ],
+  "top_folders": [
+    {
+      "folder": "engines",
+      "size": 1035557,
+      "files": 86
+    },
+    {
+      "folder": "app.py",
+      "size": 819484,
+      "files": 1
+    },
+    {
+      "folder": "static",
+      "size": 596481,
+      "files": 2
+    },
+    {
+      "folder": "reports",
+      "size": 593338,
+      "files": 197
+    },
+    {
+      "folder": "templates",
+      "size": 532080,
+      "files": 149
+    },
+    {
+      "folder": "tools",
+      "size": 498952,
+      "files": 140
+    },
+    {
+      "folder": "V726_PROJECT_TREE_AUDIT.md",
+      "size": 96394,
+      "files": 1
+    },
+    {
+      "folder": "docs",
+      "size": 45463,
+      "files": 56
+    },
+    {
+      "folder": "CHATGPT_CONTINUATION_REPORT.md",
+      "size": 35664,
+      "files": 1
+    },
+    {
+      "folder": "V726_PURGE_REPORT.md",
+      "size": 26158,
+      "files": 1
+    },
+    {
+      "folder": "tests",
+      "size": 12961,
+      "files": 11
+    },
+    {
+      "folder": "services",
+      "size": 7327,
+      "files": 6
+    },
+    {
+      "folder": "RELEASE_MANIFEST_V819.json",
+      "size": 7297,
+      "files": 1
+    },
+    {
+      "folder": "RELEASE_MANIFEST_V762.json",
+      "size": 6907,
+      "files": 1
+    },
+    {
+      "folder": "RELEASE_MANIFEST_V761.json",
+      "size": 6873,
+      "files": 1
+    },
+    {
+      "folder": "RELEASE_MANIFEST_V760.json",
+      "size": 6844,
+      "files": 1
+    },
+    {
+      "folder": "RELEASE_MANIFEST_V758.json",
+      "size": 6763,
+      "files": 1
+    },
+    {
+      "folder": "RELEASE_MANIFEST_V757.json",
+      "size": 6758,
+      "files": 1
+    },
+    {
+      "folder": "V742_DUPLICATES_AND_LEGACY_AUDIT.md",
+      "size": 6694,
+      "files": 1
+    },
+    {
+      "folder": ".env.render.clean",
+      "size": 6685,
+      "files": 1
+    }
+  ]
+}

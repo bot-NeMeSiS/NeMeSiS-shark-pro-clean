@@ -1,5 +1,94 @@
 # CHATGPT CONTINUATION REPORT
 
+## Estado actual V819
+
+Version preparada: `V819_REFERENCE_UI_DEDUP_LAYER_PURGE_CLIENT_ADMIN_FINAL`.
+
+La fuente oficial sigue siendo `C:\Users\aloha\OneDrive\Escritorio\NeMeSiS shark pro`. No se uso ningun ZIP antiguo como base. La base real detectada antes del cierre V819 era `V818_DAILY_AUTOMATION_OPERATING_SYSTEM_FINAL`, con automatizacion diaria, Telegram profesional y endpoints Cron ya presentes.
+
+Objetivo de V819:
+
+- limpiar capas visuales acumuladas;
+- reducir duplicados de topbar, nav, rails, dock admin y SHARK flotante;
+- acercar cliente/admin a una experiencia mas premium;
+- mantener V818 intacto;
+- producir ZIP limpio Render Ready sin basura.
+
+Cambios principales:
+
+- `VERSION.txt` y `APP_VERSION` sincronizados en V819.
+- `/api/runtime-version` reporta `has_v819_shell`, `has_v819_css` y conserva flags V818.
+- `templates/base.html` activa `data-v819-shell="true"` y cache busting CSS V819.
+- Topbar admin compactada.
+- Enlace cliente heredado `Todo` sustituido por `Soporte`.
+- Soporte visible en shell.
+- `static/app.css` incorpora la capa final `V819 REFERENCE UI DEDUP LAYER PURGE`.
+- V819 neutraliza acciones cliente V811/V812, pastillas V797, rails cliente V798/V799/V800/V812, dock admin V808, bottom nav admin y SHARK flotante en `/shark`.
+- Se neutralizan iconos corruptos heredados generados por pseudoelementos.
+- Templates reales cliente marcados con `data-v819-template`.
+
+Plantillas reales tocadas:
+
+- `templates/base.html`
+- `templates/home.html`
+- `templates/client_login.html`
+- `templates/client_app_center.html`
+- `templates/calendar.html`
+- `templates/live.html`
+- `templates/picks.html`
+- `templates/match_detail.html`
+- `templates/shark.html`
+- `templates/profile.html`
+- `templates/telegram.html`
+- `static/app.css`
+
+Herramientas V819 creadas:
+
+- `tools/check_v819_runtime_visibility.py`
+- `tools/check_v819_visual_dedup.py`
+- `tools/check_v819_routes_links_navigation.py`
+- `tools/check_v819_client_reference_shell.py`
+- `tools/check_v819_admin_command_center.py`
+
+Informes V819 creados:
+
+- `reports/V819_REAL_BASE_AND_LAYER_AUDIT.md`
+- `reports/V819_VIDEO_REAL_ISSUES_AUDIT.md`
+- `reports/V819_REFERENCE_PHOTO_TO_TEMPLATE_MAP.md`
+- `reports/V819_CLIENT_REFERENCE_UI_REBUILD_REPORT.md`
+- `reports/V819_TOPBAR_NAV_DEDUP_REPORT.md`
+- `reports/V819_ADMIN_COMMAND_CENTER_REPORT.md`
+- `reports/V819_AUTOMATION_V818_COMPATIBILITY_QA.md`
+- `reports/V819_TELEGRAM_PRO_FILTER_COMPATIBILITY_QA.md`
+- `reports/V819_RUNTIME_STABILITY_AND_502_QA.md`
+- `reports/V819_ROUTES_LINKS_NAVIGATION_QA.md`
+- `reports/V819_SCREENSHOT_REFERENCE_QA.md`
+
+Validaciones V819:
+
+- `tools/check_v819_runtime_visibility.py` OK.
+- `tools/check_v819_visual_dedup.py` OK.
+- `tools/check_v819_routes_links_navigation.py` OK.
+- `tools/check_v819_client_reference_shell.py` OK.
+- `tools/check_v819_admin_command_center.py` OK.
+
+V818 conservado:
+
+- `/api/automation/master-tick`
+- `/api/automation/health-check`
+- `/admin/daily-automation`
+- `/admin/automation-os`
+- `daily_automation_engine`
+- `telegram_professional_scheduler`
+- proteccion `AUTOMATION_SECRET`
+
+Pendiente honesto:
+
+- Hacer una pasada V820 con capturas reales desktop/movil si se quiere pixel polish fino.
+- El CSS conserva capas antiguas historicas, pero V819 las neutraliza donde causan duplicados. No se borraron por seguridad.
+
+---
+
 ## Estado actual V816
 
 Version preparada: `V816_RENDER_LIVE_REFERENCE_VISUAL_DIFF_CLIENT_ADMIN_FINAL`.

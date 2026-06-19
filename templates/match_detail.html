@@ -18,7 +18,7 @@
 {% set game_flow = live_tracker.get('game_flow') or {} %}
 {% set tracker_quality = live_tracker.get('quality') or {} %}
 {% set tracker_evidence = tracker_quality.get('evidence') or live_tracker.get('evidence') or [] %}
-<section class="v799-screen v799-match-screen v815-certified-screen v815-match-screen v816-certified-screen v816-match-screen v817-certified-screen v817-match-screen" data-v815-template="match_detail" data-v816-template="match_detail" data-v817-template="match_detail">
+<section class="v799-screen v799-match-screen v815-certified-screen v815-match-screen v816-certified-screen v816-match-screen v817-certified-screen v817-match-screen v819-certified-screen v819-match-screen" data-v815-template="match_detail" data-v816-template="match_detail" data-v817-template="match_detail" data-v819-template="match_detail">
   <div class="v799-match-top">
     <a class="v799-back" href="/calendar">← Volver a partidos</a>
     <div class="v799-match-actions"><a href="/shark?match={{ m.get('id') }}">Preguntar SHARK</a><button class="fav-star" type="button" data-kind="match" data-value="{{ m.get('id') }}" data-label="{{ ctx.safe_home }} vs {{ ctx.safe_away }}">☆ Favorito</button></div>

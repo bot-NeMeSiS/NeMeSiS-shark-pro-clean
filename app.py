@@ -227,7 +227,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V818_DAILY_AUTOMATION_OPERATING_SYSTEM_FINAL'
+APP_VERSION = 'V819_REFERENCE_UI_DEDUP_LAYER_PURGE_CLIENT_ADMIN_FINAL'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
@@ -13133,7 +13133,9 @@ def api_runtime_version():
         "has_v817_css": "V817_REFERENCE_PIXEL_POLISH_CLIENT_ADMIN_FINAL" in (css_path.read_text(encoding="utf-8", errors="replace") if css_path.exists() else ""),
         "has_v818_shell": "data-v818-shell" in base_template and "NEMESIS V818 DAILY AUTOMATION OS ACTIVE" in base_template,
         "has_v818_css": "V818_DAILY_AUTOMATION_OPERATING_SYSTEM_FINAL" in (css_path.read_text(encoding="utf-8", errors="replace") if css_path.exists() else ""),
-        "static_css_cache_busting": "V818_DAILY_AUTOMATION_OPERATING_SYSTEM_FINAL" in base_template,
+        "has_v819_shell": "data-v819-shell" in base_template and "NEMESIS V819 REFERENCE UI DEDUP LAYER PURGE ACTIVE" in base_template,
+        "has_v819_css": "V819_REFERENCE_UI_DEDUP_LAYER_PURGE_CLIENT_ADMIN_FINAL" in (css_path.read_text(encoding="utf-8", errors="replace") if css_path.exists() else ""),
+        "static_css_cache_busting": "V819_REFERENCE_UI_DEDUP_LAYER_PURGE_CLIENT_ADMIN_FINAL" in base_template,
         "render_service_hint": os.getenv("RENDER_SERVICE_NAME") or os.getenv("RENDER_EXTERNAL_HOSTNAME") or "",
         "db_path": DB_PATH,
         "flags": {

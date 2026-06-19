@@ -30,8 +30,12 @@ def main() -> int:
         "/admin/daily-automation",
         "/api/admin/daily-automation/status",
     )
-    if "V818_DAILY_AUTOMATION_OPERATING_SYSTEM_FINAL" not in (ROOT / "VERSION.txt").read_text(encoding="utf-8", errors="replace"):
-        missing.append("V818_DAILY_AUTOMATION_OPERATING_SYSTEM_FINAL")
+    version_txt = (ROOT / "VERSION.txt").read_text(encoding="utf-8", errors="replace")
+    if not any(version in version_txt for version in {
+        "V818_DAILY_AUTOMATION_OPERATING_SYSTEM_FINAL",
+        "V819_REFERENCE_UI_DEDUP_LAYER_PURGE_CLIENT_ADMIN_FINAL",
+    }):
+        missing.append("V818_DAILY_AUTOMATION_OPERATING_SYSTEM_FINAL_OR_NEWER")
     missing += contains(
         "engines/daily_automation_engine.py",
         "automation_jobs_state",
