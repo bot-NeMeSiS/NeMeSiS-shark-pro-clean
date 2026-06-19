@@ -238,7 +238,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V824_RENDER_VIDEO_PIXEL_MATCH_FINAL_APP_EXPERIENCE'
+APP_VERSION = 'V825_SHARK_IDENTITY_FLOATING_BACKGROUND_REFERENCE_FINAL'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
@@ -13225,13 +13225,16 @@ def api_runtime_version():
         "has_v823_css": "V823 RENDER VIDEO REFERENCE REAL CRESTS PIXEL EXPERIENCE START" in css_text,
         "has_v824_shell": "data-v824-shell" in base_template and "NEMESIS V824 RENDER VIDEO PIXEL MATCH FINAL APP EXPERIENCE ACTIVE" in base_template,
         "has_v824_css": "V824 RENDER VIDEO PIXEL MATCH FINAL APP EXPERIENCE START" in css_text,
+        "has_v825_shell": "data-v825-shell" in base_template and "NEMESIS V825 SHARK IDENTITY FLOATING BACKGROUND REFERENCE ACTIVE" in base_template,
+        "has_v825_css": "V825 SHARK IDENTITY FLOATING BACKGROUND REFERENCE START" in css_text,
+        "has_v824_visual": "data-v824-shell" in base_template and "V824 RENDER VIDEO PIXEL MATCH FINAL APP EXPERIENCE START" in css_text,
         "has_v823_visual": "data-v823-shell" in base_template and "V823 RENDER VIDEO REFERENCE REAL CRESTS PIXEL EXPERIENCE START" in css_text,
         "has_v822_stability": "v822_runtime_stability_snapshot" in app_py_text and "/api/automation/health-check" in app_py_text,
         "has_v821_hotfix": "data-v821-shell" in base_template and "last_502_hotfix" in app_py_text,
         "has_v820_crests": "data-v820-shell" in base_template and "V820 REAL CRESTS REFERENCE VISUAL PIXEL POLISH START" in css_text,
         "has_v819_dedup": "data-v819-shell" in base_template and "V819 REFERENCE UI DEDUP LAYER PURGE START" in css_text,
         "has_v818_automation": "/api/automation/master-tick" in app_py_text and "daily_automation_engine" in app_py_text,
-        "static_css_cache_busting": "V824_RENDER_VIDEO_PIXEL_MATCH_FINAL_APP_EXPERIENCE" in base_template,
+        "static_css_cache_busting": "V825_SHARK_IDENTITY_FLOATING_BACKGROUND_REFERENCE_FINAL" in base_template,
         "crest_engine_loaded": runtime_stability.get("crest_engine_loaded"),
         "logo_cache_tables_ok": runtime_stability.get("logo_cache_tables_ok"),
         "team_logo_cache_count": runtime_stability.get("team_logo_cache_count"),

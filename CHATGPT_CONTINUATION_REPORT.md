@@ -1,5 +1,55 @@
 # CHATGPT CONTINUATION REPORT
 
+## Estado actual V825
+
+Version preparada: `V825_SHARK_IDENTITY_FLOATING_BACKGROUND_REFERENCE_FINAL`.
+
+La fuente oficial usada fue `C:\Users\aloha\OneDrive\Escritorio\NeMeSiS shark pro`. No se uso ningun ZIP antiguo como base. V825 se construyo encima de V824 y conserva V818 master tick, V819 dedup, V820 escudos, V821 hotfix 502, V822 runtime stability, V823 visual/crest polish y V824 final app experience.
+
+Objetivo de V825:
+
+- recuperar/reforzar identidad visual SHARK;
+- anadir tiburon flotante premium visible sin duplicados;
+- anadir fondo SHARK con silueta, puntos, brillo y textura;
+- dar mas presencia de marca a cliente y movil;
+- mantener admin sobrio y separado;
+- no tocar flujos de datos, Telegram, Cron, DB ni escudos.
+
+Cambios principales:
+
+- `VERSION.txt` y `APP_VERSION` actualizados a V825.
+- `templates/base.html` actualiza meta version, cache busting CSS, `data-v825-shell="true"` y comentario V825.
+- `/api/runtime-version` devuelve `has_v825_shell`, `has_v825_css`, `has_v824_visual`, `has_v823_visual` y conserva flags V818-V822.
+- Capa global cliente `v825-shark-background` con:
+  - `shark-dot-watermark`
+  - `shark-grid-texture`
+  - `shark-glow-orb`
+- SHARK flotante autenticado reforzado visualmente.
+- SHARK flotante publico ligero hacia `/shark`, oculto en `/shark`.
+- Admin no recibe floating shark cliente ni fondo SHARK gigante.
+- Templates reales marcados con `data-v825-template`.
+- `static/app.css` incorpora capa final V825.
+- Checks nuevos:
+  - `tools/check_v825_runtime_visibility.py`
+  - `tools/check_v825_floating_shark.py`
+  - `tools/check_v825_shark_background.py`
+  - `tools/check_v825_client_visual_identity.py`
+  - `tools/check_v825_v818_to_v824_compatibility.py`
+
+Validacion V825:
+
+- `py_compile app.py`: OK.
+- `compileall app.py engines tools`: OK.
+- Parse Jinja: OK.
+- `check_madrid_times.py`: OK.
+- Checks V818-V825: OK.
+- Smoke Flask con DB temporal local: OK, sin 500/502/incidencias.
+
+Limitaciones:
+
+- No hubo navegador conectado; no se generaron screenshots ni se declara pixel-perfect.
+- Telegram real de produccion no se probo; se preservaron flujos y compatibilidad.
+
 ## Estado actual V824
 
 Version preparada: `V824_RENDER_VIDEO_PIXEL_MATCH_FINAL_APP_EXPERIENCE`.
