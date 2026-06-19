@@ -399,6 +399,7 @@ body[data-v815-shell="true"].ns-authenticated:not(.ns-admin)[data-ns-route="/sha
 }
 
 /* V817_REFERENCE_PIXEL_POLISH_CLIENT_ADMIN_FINAL
+   V818_DAILY_AUTOMATION_OPERATING_SYSTEM_FINAL
    Final reference polish layer. It intentionally sits after older visual layers
    so Render shows the V817 shell without changing data, Telegram, payments or APIs. */
 body[data-v817-shell="true"]{
