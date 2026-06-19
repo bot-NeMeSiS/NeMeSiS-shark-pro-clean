@@ -450,3 +450,48 @@ La app activa no está mezclada funcionalmente: V814 manda como capa final y las
 ## Riesgo pendiente
 
 La carpeta raíz sigue siendo pesada por historia acumulada. Para no romper nada, V814 no borra módulos legacy dudosos; los excluye del release y los marca para revisión manual.
+# V817 REFERENCE PIXEL POLISH CLIENT ADMIN FINAL
+
+## Estado de partida
+
+La base previa era `V816_RENDER_LIVE_REFERENCE_VISUAL_DIFF_CLIENT_ADMIN_FINAL`, con runtime visible, ZIP limpio, checks V816 y shell cliente/admin ya reconciliado. La nueva fase V817 se centra exclusivamente en aproximar mas la UI real a las referencias visuales, sin tocar datos, Telegram, pagos, membresias, Cron, DB_PATH ni logica deportiva.
+
+## Cambios V817
+
+- Version actualizada a `V817_REFERENCE_PIXEL_POLISH_CLIENT_ADMIN_FINAL`.
+- `VERSION.txt` y `APP_VERSION` sincronizados.
+- `base.html` expone `data-v817-shell="true"`, meta V817, comentario `NEMESIS V817 REFERENCE PIXEL POLISH ACTIVE` y cache-busting V817.
+- `/api/runtime-version` informa `has_v817_shell`, `has_v817_css`, hash/tamano CSS y conserva indicadores V816 heredados.
+- Plantillas reales cliente marcadas con `data-v817-template`: home, login, app, calendar, live, picks, match detail, SHARK, profile y Telegram.
+- `static/app.css` incorpora una capa final V817 al final del archivo para que tenga prioridad real sobre V815/V816.
+- Admin mantiene funcionamiento y recibe polish visual command center sin mostrar tiburon cliente.
+
+## Validacion esperada V817
+
+Herramientas nuevas:
+
+- `tools/check_v817_runtime_visibility.py`
+- `tools/check_v817_client_visual_shell.py`
+- `tools/check_v817_routes_links_navigation.py`
+- `tools/check_v817_match_lifecycle_real_data.py`
+
+Reportes nuevos:
+
+- `reports/V817_REFERENCE_PHOTO_TO_SCREEN_MAPPING.md`
+- `reports/V817_CLIENT_PIXEL_POLISH_REPORT.md`
+- `reports/V817_MOBILE_REFERENCE_QA.md`
+- `reports/V817_ADMIN_COMMAND_CENTER_POLISH_REPORT.md`
+- `reports/V817_ROUTES_LINKS_QA.md`
+- `reports/V817_RUNTIME_VISIBILITY_QA.md`
+- `reports/V817_SCREENSHOT_REFERENCE_QA.md`
+
+## Limitacion honesta
+
+No se declara pixel-perfect si no hay navegador/capturas reales en la sesion. La mejora es visual fuerte sobre pantallas reales, verificada por runtime, HTML renderizado, smoke tests y checks.
+# V818_DAILY_AUTOMATION_OPERATING_SYSTEM_FINAL
+
+- Creado motor maestro `engines/daily_automation_engine.py` con ventanas Madrid Time, dedupe SQLite, memoria de runs y health events.
+- Añadido guard de uso API en `engines/api_usage_guard_engine.py`.
+- Añadido scheduler profesional Telegram en `engines/telegram_professional_scheduler.py`, reutilizando filtros football-only existentes.
+- Añadidos endpoints `/api/automation/master-tick`, `/api/automation/health-check`, panel `/admin/daily-automation` y APIs admin V818.
+- Añadidos checks `tools/check_v818_*.py` y reportes QA V818.

@@ -207,6 +207,14 @@ from engines.real_launch_engine import (
     real_launch_snapshot,
 )
 from engines.client_screen_audit_engine import client_screen_audit_snapshot
+from engines.daily_automation_engine import (
+    automation_runs as v818_automation_runs,
+    automation_status as v818_automation_status,
+    ensure_automation_schema_conn,
+    run_master_tick as v818_run_master_tick,
+    system_health as v818_system_health,
+)
+from engines.telegram_professional_scheduler import professional_telegram_summary
 
 
 from engines.madrid_time_engine import (
@@ -219,7 +227,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V816_RENDER_LIVE_REFERENCE_VISUAL_DIFF_CLIENT_ADMIN_FINAL'
+APP_VERSION = 'V817_REFERENCE_PIXEL_POLISH_CLIENT_ADMIN_FINAL'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
@@ -1598,6 +1606,7 @@ def init_db():
         ),
     )
     ensure_data_memory_schema(conn)
+    ensure_automation_schema_conn(conn)
     bootstrap_admin_from_env(conn)
     conn.commit()
     conn.close()
@@ -13120,7 +13129,9 @@ def api_runtime_version():
         "static_app_css_mtime": css_mtime,
         "has_v816_shell": "data-v816-shell" in base_template and "NEMESIS V816 LIVE REFERENCE VISUAL DIFF ACTIVE" in base_template,
         "has_v816_css": "V816_RENDER_LIVE_REFERENCE_VISUAL_DIFF_CLIENT_ADMIN_FINAL" in (css_path.read_text(encoding="utf-8", errors="replace") if css_path.exists() else ""),
-        "static_css_cache_busting": "V816_RENDER_LIVE_REFERENCE_VISUAL_DIFF_CLIENT_ADMIN_FINAL" in base_template,
+        "has_v817_shell": "data-v817-shell" in base_template and "NEMESIS V817 REFERENCE PIXEL POLISH ACTIVE" in base_template,
+        "has_v817_css": "V817_REFERENCE_PIXEL_POLISH_CLIENT_ADMIN_FINAL" in (css_path.read_text(encoding="utf-8", errors="replace") if css_path.exists() else ""),
+        "static_css_cache_busting": "V817_REFERENCE_PIXEL_POLISH_CLIENT_ADMIN_FINAL" in base_template,
         "render_service_hint": os.getenv("RENDER_SERVICE_NAME") or os.getenv("RENDER_EXTERNAL_HOSTNAME") or "",
         "db_path": DB_PATH,
         "flags": {
@@ -17406,6 +17417,185 @@ def api_admin_v810_telegram_pro_preview():
     if not is_admin_session():
         return admin_json_forbidden()
     return jsonify({"ok": True, "version": APP_VERSION, "preview": v810_telegram_preview_samples(), "activity": v771_telegram_activity_diagnostics()})
+
+
+# ===================== V818 DAILY AUTOMATION OPERATING SYSTEM FINAL =====================
+
+def v818_callback_result(label, fn, *args, **kwargs):
+    try:
+        result = fn(*args, **kwargs)
+        if isinstance(result, dict):
+            return result
+        return {"ok": True, label: result}
+    except Exception as exc:
+        return {"ok": False, "error": str(exc)[:300], "source": label}
+
+
+def v818_daily_close_previous_day():
+    lifecycle = v818_callback_result("lifecycle", ensure_client_match_lifecycle_fresh, True)
+    grading = v818_callback_result("pick_grading", run_pick_grading, DB_PATH, limit=500, apply=True)
+    track = v818_callback_result("track_record", v742_track_record_context)
+    return {
+        "ok": not any(item.get("ok") is False for item in [lifecycle, grading]),
+        "lifecycle": lifecycle,
+        "pick_grading": grading,
+        "track_record_ready": bool(track.get("ok", True)),
+        "no_invented_results": True,
+    }
+
+
+def v818_backup_maintenance():
+    cleanup = v818_callback_result("data_memory_cleanup", cleanup_old_memory, DB_PATH)
+    if env_bool("DATA_BACKUP_ENABLED", False):
+        backup = v818_callback_result("data_vault_backup", create_sqlite_backup, DB_PATH, project_root_path(), APP_VERSION, backup_type="auto", created_by="v818_master_tick")
+    else:
+        backup = {"ok": True, "backup_created": False, "status": "DISABLED", "message": "DATA_BACKUP_ENABLED no esta activo."}
+    return {"ok": cleanup.get("ok", True) and backup.get("ok", True), "cleanup": cleanup, "backup": backup}
+
+
+def v818_fixtures_sync():
+    return v818_callback_result("api_football_match_window", sync_api_football_match_window, DB_PATH, days_back=0, days_ahead=2, force=False)
+
+
+def v818_odds_and_candidates():
+    odds = v818_callback_result("the_odds_api", sync_odds_events, limit=80, force=False)
+    candidates = v818_callback_result("auto_pick_candidates", enqueue_auto_pick_alerts, force=False, limit=as_int(os.getenv("MAX_AUTO_PICKS_PER_DAY", "4"), 4))
+    return {"ok": odds.get("ok", True) is not False, "odds": odds, "candidates": candidates, "no_invented_picks": True}
+
+
+def v818_telegram_daily_top_agenda():
+    if env_bool("DAILY_AUTOMATION_DRY_RUN", False):
+        return {"ok": True, "skipped": True, "reason": "DAILY_AUTOMATION_DRY_RUN", "telegram_sent": 0}
+    result = v818_callback_result("telegram_scheduler_tick", telegram_scheduler_tick, force=False)
+    return {"ok": result.get("ok", True) is not False, "telegram_sent": as_int(result.get("sent") or result.get("sent_count"), 0), "result": result}
+
+
+def v818_live_tracker_smart_sync():
+    if not env_bool("ENABLE_AUTO_LIVE_SYNC", True):
+        return {"ok": True, "skipped": True, "reason": "ENABLE_AUTO_LIVE_SYNC=false"}
+    return v818_callback_result("api_football_live_tracker", sync_api_football_live_tracker, DB_PATH, force=False)
+
+
+def v818_results_sync_and_top_results():
+    lifecycle = v818_callback_result("lifecycle", ensure_client_match_lifecycle_fresh, False)
+    grading = v818_callback_result("pick_grading", run_pick_grading, DB_PATH, limit=500, apply=True)
+    return {"ok": lifecycle.get("ok", True) is not False and grading.get("ok", True) is not False, "lifecycle": lifecycle, "pick_grading": grading, "no_invented_score": True}
+
+
+def v818_evening_recap():
+    status = v818_automation_status(DB_PATH, APP_VERSION, env=dict(os.environ))
+    sent = 0
+    if env_bool("ENABLE_AUTO_TELEGRAM_PRO", True) and not env_bool("DAILY_AUTOMATION_DRY_RUN", False):
+        # The existing scheduler owns quiet hours, dedupe and delivery limits.
+        telegram = v818_callback_result("telegram_scheduler_tick", telegram_scheduler_tick, force=False)
+        sent = as_int(telegram.get("sent") or telegram.get("sent_count"), 0)
+    return {"ok": True, "telegram_sent": sent, "summary": {"jobs_failed": len(status.get("jobs_failed") or []), "telegram_sent_today": status.get("telegram_sent_today")}}
+
+
+def v818_master_callbacks():
+    return {
+        "daily_close_previous_day": v818_daily_close_previous_day,
+        "daily_data_backup_maintenance": v818_backup_maintenance,
+        "morning_fixtures_sync": v818_fixtures_sync,
+        "morning_odds_and_pick_candidates": v818_odds_and_candidates,
+        "telegram_daily_top_agenda": v818_telegram_daily_top_agenda,
+        "live_tracker_smart_sync": v818_live_tracker_smart_sync,
+        "results_sync_and_telegram_top_results": v818_results_sync_and_top_results,
+        "daily_evening_recap": v818_evening_recap,
+        "system_health_daily_check": lambda: v818_system_health(DB_PATH, APP_VERSION, env=dict(os.environ)),
+        "telegram_prematch_top_alerts": lambda: {"ok": True, "skipped": True, "reason": "handled_by_professional_scheduler_dedupe"},
+        "telegram_live_top_alerts": lambda: {"ok": True, "skipped": True, "reason": "handled_by_professional_scheduler_dedupe"},
+    }
+
+
+def v818_daily_automation_context():
+    status = v818_automation_status(DB_PATH, APP_VERSION, env=dict(os.environ))
+    runs = v818_automation_runs(DB_PATH, limit=20)
+    return {
+        "status": status,
+        "runs": runs.get("runs") or [],
+        "telegram_policy": professional_telegram_summary(dict(os.environ)),
+        "master_endpoint": "/api/automation/master-tick?secret=AUTOMATION_SECRET",
+        "health_endpoint": "/api/automation/health-check?secret=AUTOMATION_SECRET",
+        "legacy_endpoints": [
+            "/api/automation/telegram/tick",
+            "/api/automation/highlights/sync",
+            "/api/automation/data-backup/run",
+        ],
+    }
+
+
+@app.route("/api/automation/master-tick", methods=["GET", "POST"])
+def api_v818_automation_master_tick():
+    if not automation_cron_access_allowed():
+        return automation_json_forbidden()
+    force = request.args.get("force") in {"1", "true", "yes"}
+    dry_run = request.args.get("dry_run") in {"1", "true", "yes"} or env_bool("DAILY_AUTOMATION_DRY_RUN", False)
+    result = v818_run_master_tick(
+        DB_PATH,
+        APP_VERSION,
+        env=dict(os.environ),
+        callbacks=v818_master_callbacks(),
+        trigger_type=request.args.get("trigger") or "master_tick",
+        force=force,
+        dry_run=dry_run,
+    )
+    automation_safe_set("v818_last_master_tick", result)
+    return jsonify(result)
+
+
+@app.route("/api/automation/health-check", methods=["GET", "POST"])
+def api_v818_automation_health_check():
+    if not automation_cron_access_allowed():
+        return automation_json_forbidden()
+    return jsonify({"ok": True, "version": APP_VERSION, "health": v818_system_health(DB_PATH, APP_VERSION, env=dict(os.environ))})
+
+
+@app.route("/admin/daily-automation")
+@app.route("/admin/automation-os")
+def admin_v818_daily_automation_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/daily-automation")
+    data = {"app_name": APP_NAME, "version": APP_VERSION, "session_user": current_session_user()}
+    data["daily_automation_os"] = v818_daily_automation_context()
+    return render_template("admin_daily_automation.html", data=data)
+
+
+@app.route("/api/admin/daily-automation/status")
+def api_admin_v818_daily_automation_status():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "version": APP_VERSION, "daily_automation": v818_automation_status(DB_PATH, APP_VERSION, env=dict(os.environ))})
+
+
+@app.route("/api/admin/daily-automation/runs")
+def api_admin_v818_daily_automation_runs():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "version": APP_VERSION, **v818_automation_runs(DB_PATH, limit=as_int(request.args.get("limit"), 80))})
+
+
+@app.route("/api/admin/daily-automation/dry-run", methods=["GET", "POST"])
+def api_admin_v818_daily_automation_dry_run():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    result = v818_run_master_tick(
+        DB_PATH,
+        APP_VERSION,
+        env=dict(os.environ),
+        callbacks=v818_master_callbacks(),
+        trigger_type="admin_dry_run",
+        force=request.args.get("force") in {"1", "true", "yes"},
+        dry_run=True,
+    )
+    return jsonify(result)
+
+
+@app.route("/api/admin/daily-automation/health")
+def api_admin_v818_daily_automation_health():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "version": APP_VERSION, "health": v818_system_health(DB_PATH, APP_VERSION, env=dict(os.environ))})
 
 if __name__ == "__main__":
     seed_core()

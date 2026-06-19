@@ -9,7 +9,7 @@
 {% set ns = namespace(matches=[]) %}
 {% for day in live.get('day_groups') or [] %}{% for league in day.leagues %}{% for m in league.matches %}{% set _ = ns.matches.append(m) %}{% endfor %}{% endfor %}{% endfor %}
 {% set featured = ns.matches[0] if ns.matches else none %}
-<section class="v799-screen v799-live-screen v811-client-screen v815-certified-screen v815-live-screen v816-certified-screen v816-live-screen" data-v815-template="live" data-v816-template="live">
+<section class="v799-screen v799-live-screen v811-client-screen v815-certified-screen v815-live-screen v816-certified-screen v816-live-screen v817-certified-screen v817-live-screen" data-v815-template="live" data-v816-template="live" data-v817-template="live">
   <div class="v799-appbar v811-client-appbar">
     <div>
       <span class="v799-kicker">Marcador real · live center</span>

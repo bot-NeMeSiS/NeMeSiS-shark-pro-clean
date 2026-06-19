@@ -6,6 +6,7 @@ import pathlib
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 VERSION = "V816_RENDER_LIVE_REFERENCE_VISUAL_DIFF_CLIENT_ADMIN_FINAL"
+CURRENT_VERSION = "V817_REFERENCE_PIXEL_POLISH_CLIENT_ADMIN_FINAL"
 
 CLIENT_TEMPLATES = {
     "home.html": ["home", "home-public"],
@@ -38,8 +39,8 @@ def main() -> None:
         }
     checks = {
         "body_has_v816": 'data-v816-shell="true"' in base,
-        "source_comment": "NEMESIS V816 LIVE REFERENCE VISUAL DIFF ACTIVE" in base,
-        "css_cache_busting": VERSION in base,
+        "source_comment": "NEMESIS V816 LIVE REFERENCE VISUAL DIFF ACTIVE" in base or "NEMESIS V817 REFERENCE PIXEL POLISH ACTIVE" in base,
+        "css_cache_busting": VERSION in base or CURRENT_VERSION in base,
         "decorative_shark": "v815-client-shark-backdrop" in base and "v815-client-shark-backdrop" in css,
         "single_widget_markup": base.count('class="shark-widget"') == 1,
         "shark_page_hides_widget": '[data-ns-route="/shark"] .shark-widget' in css,

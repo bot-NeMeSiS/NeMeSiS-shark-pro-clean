@@ -1,0 +1,47 @@
+{
+  "version": "V818_DAILY_AUTOMATION_OPERATING_SYSTEM_FINAL",
+  "release_name": "NeMeSiS SHARK PRO V818 Daily Automation Operating System Final",
+  "zip_name": "NeMeSiS_SHARK_PRO_V818_DAILY_AUTOMATION_OPERATING_SYSTEM_FINAL_RENDER_READY.zip",
+  "madrid_time": "Europe/Madrid",
+  "new_engines": [
+    "engines/daily_automation_engine.py",
+    "engines/api_usage_guard_engine.py",
+    "engines/telegram_professional_scheduler.py"
+  ],
+  "new_routes": [
+    "/api/automation/master-tick",
+    "/api/automation/health-check",
+    "/admin/daily-automation",
+    "/admin/automation-os",
+    "/api/admin/daily-automation/status",
+    "/api/admin/daily-automation/runs",
+    "/api/admin/daily-automation/dry-run",
+    "/api/admin/daily-automation/health"
+  ],
+  "preserved_routes": [
+    "/api/automation/telegram/tick",
+    "/api/automation/highlights/sync",
+    "/api/automation/data-backup/run"
+  ],
+  "automation_tables": [
+    "automation_jobs_state",
+    "automation_job_runs",
+    "automation_dedupe",
+    "automation_health_events",
+    "api_usage_guard",
+    "api_response_cache"
+  ],
+  "checks": [
+    "tools/check_v818_daily_automation_os.py",
+    "tools/check_v818_telegram_professional_scheduler.py",
+    "tools/check_v818_api_usage_guard.py",
+    "tools/check_v818_match_lifecycle_automation.py"
+  ],
+  "safety": {
+    "no_secret_exposure": true,
+    "no_fake_results": true,
+    "telegram_public_top_only": true,
+    "idempotent_dedupe": "madrid_date + job_key + destination/type/match context",
+    "db_path_preserved": true
+  }
+}

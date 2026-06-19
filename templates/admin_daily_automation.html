@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% import "partials/admin_visual_system.html" as ui %}
+{% block content %}
+{% set os = data.daily_automation_os %}
+{% set status = os.status %}
+{% call ui.shell('Automation OS', 'Daily Automation OS', 'V818 master tick, jobs, Telegram y salud') %}
+<section class="v794-admin-kpi-grid">
+  {{ ui.kpi('Estado general', 'OK' if status.ok else 'Revisar', status.madrid_now, 'A', 'green' if status.ok else 'red') }}
+  {{ ui.kpi('Telegram hoy', status.telegram_sent_today, 'Mensajes enviados', 'T', 'blue') }}
+  {{ ui.kpi('Fallos hoy', status.jobs_failed|length, 'Jobs con error', '!', 'red' if status.jobs_failed else 'green') }}
+  {{ ui.kpi('Resultados pendientes', status.results_pending, 'Sin marcador real', 'R', 'gold') }}
+  {{ ui.kpi('API Football', status.api_usage.remaining_estimated.api_football, 'Estimadas restantes', 'F', 'blue') }}
+  {{ ui.kpi('Odds API', status.api_usage.remaining_estimated.odds_api, 'Estimadas restantes', 'O', 'blue') }}
+</section>
+
+<section class="v794-admin-grid sidebar">
+  <div class="v794-admin-grid">
+    <article class="v794-admin-panel">
+      <div class="v794-panel-head"><h2>Proximos jobs</h2><span>{{ ui.status('Madrid Time','ok') }}</span></div>
+      <table class="v794-admin-table">
+        <thead><tr><th>Job</th><th>Ventana</th><th>Estado</th></tr></thead>
+        <tbody>
+        {% for job in status.next_jobs %}
+          <tr><td><strong>{{ job.name }}</strong><br><small>{{ job.job_key }}</small></td><td>{{ job.window }}</td><td>{{ ui.status('Programado','info') }}</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </article>
+
+    <article class="v794-admin-panel">
+      <div class="v794-panel-head"><h2>Ejecuciones recientes</h2><a href="/api/admin/daily-automation/runs">JSON</a></div>
+      <table class="v794-admin-table">
+        <thead><tr><th>Job</th><th>Estado</th><th>Inicio</th><th>Duracion</th></tr></thead>
+        <tbody>
+        {% for run in os.runs[:12] %}
+          <tr><td>{{ run.job_key }}</td><td>{{ ui.status(run.status, 'ok' if run.status in ['OK','SKIPPED','DRY_RUN'] else 'red') }}</td><td>{{ run.started_at }}</td><td>{{ run.duration_ms }} ms</td></tr>
+        {% else %}
+          <tr><td colspan="4">Sin ejecuciones V818 registradas todavia.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </article>
+  </div>
+
+  <aside class="v794-admin-grid">
+    <article class="v794-admin-panel">
+      <div class="v794-panel-head"><h2>Controles seguros</h2></div>
+      <div class="v794-action-grid" style="grid-template-columns:1fr">
+        <a class="v794-action-card" href="/api/admin/daily-automation/dry-run"><i>D</i><span><b>Dry-run</b><small>Calcula jobs sin enviar Telegram real</small></span><em>&gt;</em></a>
+        <a class="v794-action-card" href="/api/admin/daily-automation/health"><i>H</i><span><b>Health</b><small>DB, APIs, Telegram y secret</small></span><em>&gt;</em></a>
+        <a class="v794-action-card" href="/admin/automation-center"><i>C</i><span><b>Centro legacy</b><small>Cron anterior conservado</small></span><em>&gt;</em></a>
+      </div>
+    </article>
+
+    <article class="v794-admin-panel">
+      <div class="v794-panel-head"><h2>Render Cron</h2></div>
+      <table class="v794-admin-table">
+        <tbody>
+          <tr><td>Endpoint master</td><td><code>{{ os.master_endpoint }}</code></td></tr>
+          <tr><td>Health</td><td><code>{{ os.health_endpoint }}</code></td></tr>
+          <tr><td>Frecuencia</td><td>Cada 15 minutos</td></tr>
+        </tbody>
+      </table>
+    </article>
+
+    <article class="v794-admin-panel">
+      <div class="v794-panel-head"><h2>Telegram profesional</h2></div>
+      <table class="v794-admin-table">
+        <tbody>
+          <tr><td>Modo</td><td>{{ os.telegram_policy.mode }}</td></tr>
+          <tr><td>Canal publico</td><td>{{ os.telegram_policy.public_channel_policy }}</td></tr>
+          <tr><td>Errores tecnicos</td><td>Solo admin/panel</td></tr>
+        </tbody>
+      </table>
+    </article>
+  </aside>
+</section>
+{% endcall %}
+{% endblock %}
