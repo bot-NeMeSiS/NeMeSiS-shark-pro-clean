@@ -1,6 +1,6 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 {% block content %}
-<section class="hero compact-hero">
+<section class="hero compact-hero v826-certified-screen" data-v826-template="shark_core">
   <div>
     <p class="eyebrow">SHARK Intelligence Core</p>
     <h1>Tu cerebro deportivo del día</h1>
@@ -13,7 +13,7 @@
   </div>
 </section>
 
-<section class="grid cards-3">
+<section class="grid cards-3 v826-certified-screen" data-v826-template="shark_core">
   <article class="card">
     <p class="eyebrow">Pick destacado</p>
     {% if shark.top_pick %}
@@ -47,7 +47,7 @@
   </article>
 </section>
 
-<section class="card">
+<section class="card v826-certified-screen" data-v826-template="shark_core">
   <div class="section-head">
     <div>
       <p class="eyebrow">Preguntas rápidas</p>
@@ -61,7 +61,7 @@
   </div>
 </section>
 
-<section class="grid cards-2">
+<section class="grid cards-2 v826-certified-screen" data-v826-template="shark_core">
   <article class="card">
     <h2>Próximos importantes</h2>
     {% if shark.sections.upcoming %}
@@ -87,3 +87,4 @@
   </article>
 </section>
 {% endblock %}
+

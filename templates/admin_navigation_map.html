@@ -1,7 +1,7 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 {% block content %}
 {% set groups = items|default([])|groupby('group') %}
-<section class="v808-admin-map-hero">
+<section class="v808-admin-map-hero v826-certified-screen" data-v826-template="admin_navigation_map">
   <div>
     <p class="eyebrow">Admin · mapa global V809</p>
     <h1>Todos los botones reales del ecosistema en una sola pantalla.</h1>
@@ -14,7 +14,7 @@
   </aside>
 </section>
 
-<section class="v808-admin-map-actions">
+<section class="v808-admin-map-actions v826-certified-screen" data-v826-template="admin_navigation_map">
   <a href="/admin/control-center">Panel</a>
   <a href="/sports-hub">Vista cliente</a>
   <a href="/app/mapa">Mapa cliente</a>
@@ -24,7 +24,7 @@
   <a href="/logout" class="danger">Salir</a>
 </section>
 
-<section class="v808-admin-map-page">
+<section class="v808-admin-map-page v826-certified-screen" data-v826-template="admin_navigation_map">
   {% for group, group_items in groups %}
   <article class="v808-admin-map-section">
     <div class="v808-map-section-head"><h2>{{ group }}</h2><span>{{ group_items|list|length }} pantallas</span></div>
@@ -41,3 +41,4 @@
   {% endfor %}
 </section>
 {% endblock %}
+

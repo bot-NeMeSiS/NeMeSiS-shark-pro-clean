@@ -1,7 +1,7 @@
-{% extends 'base.html' %}
+﻿{% extends 'base.html' %}
 {% block content %}
 {% set cert = data.certification or {} %}
-<section class="hero compact-hero admin-hero v768-cert-hero">
+<section class="hero compact-hero admin-hero v768-cert-hero v826-certified-screen" data-v826-template="admin_final_certification">
   <div class="eyebrow">Admin · V768</div>
   <h1>Certificación final de venta</h1>
   <p>Unifica Telegram automático, resultados de picks, ROI real, datos deportivos y puntos críticos antes de vender. No expone secretos ni inventa resultados.</p>
@@ -12,14 +12,14 @@
   </div>
 </section>
 
-<section class="grid cards-4 v768-cert-score">
+<section class="grid cards-4 v768-cert-score v826-certified-screen" data-v826-template="admin_final_certification">
   <article class="card stat-card"><span>Estado</span><strong>{{ cert.status or 'Pendiente' }}</strong><small>{{ cert.title or 'Certificación comercial' }}</small></article>
   <article class="card stat-card"><span>Score lanzamiento</span><strong>{{ cert.score or 0 }}%</strong><small>Según datos reales actuales</small></article>
   <article class="card stat-card"><span>Telegram</span><strong>{{ (cert.telegram or {}).status or 'Revisar' }}</strong><small>Auto {{ 'ON' if ((cert.telegram or {}).env or {}).enable_auto else 'OFF' }}</small></article>
   <article class="card stat-card"><span>Track Record</span><strong>{{ (cert.track_record or {}).status or 'Pendiente' }}</strong><small>{{ (cert.track_record or {}).graded_total or 0 }} picks auditados</small></article>
 </section>
 
-<section class="grid three-col v768-cert-grid">
+<section class="grid three-col v768-cert-grid v826-certified-screen" data-v826-template="admin_final_certification">
   <article class="card">
     <div class="section-head"><h2>Telegram automático</h2><span class="pill">{{ (cert.telegram or {}).ready_score or 0 }}%</span></div>
     {% set tg = cert.telegram or {} %}
@@ -57,7 +57,7 @@
   </article>
 </section>
 
-<section class="band compact-band">
+<section class="band compact-band v826-certified-screen" data-v826-template="admin_final_certification">
   <div class="section-head"><h2>Bloqueos antes de vender fuerte</h2><span class="pill">{{ (cert.blockers or [])|length }}</span></div>
   <div class="stack compact-list">
     {% for item in cert.blockers or [] %}
@@ -68,7 +68,7 @@
   </div>
 </section>
 
-<section class="band compact-band">
+<section class="band compact-band v826-certified-screen" data-v826-template="admin_final_certification">
   <div class="section-head"><h2>Plan de cierre</h2><span class="pill">Madrid Time</span></div>
   <p class="small">{{ cert.madrid_note }}</p>
   <div class="grid compact-grid">
@@ -78,3 +78,4 @@
   </div>
 </section>
 {% endblock %}
+

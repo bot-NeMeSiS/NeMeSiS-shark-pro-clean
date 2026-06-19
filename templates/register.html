@@ -1,13 +1,13 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 {% block content %}
 {% set selected = (data.selected_plan or request.args.get('plan') or '')|upper %}
 {% set next_url = data.next_url or request.args.get('next') or '/app' %}
-<section class="hero auth-hero v785-auth-hero">
+<section class="hero auth-hero v785-auth-hero v826-certified-screen" data-v826-template="register">
   <div class="kicker">Crear cuenta{% if selected %} · {{ selected }} seleccionado{% endif %}</div>
   <h1>{{ 'Crea cuenta para activar ' ~ selected if selected in ['PRO','ELITE'] else 'Acceso cliente SHARK' }}</h1>
   <p class="lead">{{ 'La cuenta empieza en FREE y al terminar volverás al plan elegido para pagar con Stripe.' if selected in ['PRO','ELITE'] else 'Registra tu cuenta FREE y conecta el perfil con favoritos, live, picks y futuras membresías premium.' }}</p>
 </section>
-<section class="band auth-grid v785-auth-grid">
+<section class="band auth-grid v785-auth-grid v826-certified-screen" data-v826-template="register">
   <form class="card auth-card" method="post" action="/registro">
     <h2>Registro</h2>
     {% if selected in ['PRO','ELITE'] %}<div class="v785-selected-mini"><strong>{{ selected }}</strong><span>Después del registro continúas al pago.</span></div>{% endif %}
@@ -29,3 +29,4 @@
   </aside>
 </section>
 {% endblock %}
+

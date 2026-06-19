@@ -1,3 +1,35 @@
+﻿# Continuación NeMeSiS SHARK PRO — V826
+
+## Estado actual
+
+La carpeta oficial está en `V826_FULL_REFERENCE_APP_EXPERIENCE_SCREEN_COMPLETION_FINAL`, construida directamente sobre V825. No se usaron ZIPs antiguos ni se rehizo la aplicación.
+
+## Qué hizo V826
+
+- Cerró versionado: `VERSION.txt`, `APP_VERSION`, `base.html` y `/api/runtime-version` apuntan a V826.
+- Añadió `data-v826-shell` y comentario activo V826 en `base.html`.
+- Conservó V825: fondo SHARK, silueta, puntos, brillo y floating button único.
+- Añadió un bloque CSS final `V826 FULL REFERENCE EXPERIENCE` para unificar topbar, bottom nav, cards, fondos, empty states, escudos, móvil y separación admin/cliente.
+- Marcó pantallas reales con `data-v826-template` para cliente y admin.
+- Corrigió mojibake visible en templates clave: España, próximos, búsqueda, selección, señales, flechas, símbolos y textos similares.
+- Generó checks V826 para runtime, consistencia visual, cobertura de pantallas, móvil y compatibilidad V818-V825.
+- Generó informes V826 en `reports/`.
+
+## Pantallas cubiertas
+
+Cliente: `/`, `/cliente-login`, `/registro`, `/app`, `/calendar`, `/partidos`, `/live`, `/directo`, `/picks`, `/match/<id>`, `/shark`, `/shark-core`, `/profile`, `/telegram`, `/support`, `/favorites`, `/track-record`, `/combis`, `/mercados`, `/highlights`.
+
+Admin: `/admin/dashboard`, `/admin/control-center`, `/admin/map`, `/admin/daily-automation`, `/admin/automation-os`, `/admin/telegram/command-center`, `/admin/users`, `/admin/memberships`, `/admin/matches-sync`, `/admin/data-center`, `/admin/payments`, `/admin/final-certification`.
+
+## Compatibilidad preservada
+
+V818 master tick, V819 dedupe, V820 crests, V821 502 hotfix, V822 stability, V823/V824 visual safety y V825 SHARK identity siguen presentes. No se tocó DB_PATH, Madrid Time, Telegram automático, pagos, usuarios, sesiones, membresías ni cron.
+
+## Limitación honesta
+
+No se generaron screenshots reales de navegador en la sesión. V826 queda validada por código, templates, checks y smoke tests; la comparación pixel-perfect con fotos debe hacerse con navegador o manualmente.
+
+---
 # CHATGPT CONTINUATION REPORT
 
 ## Estado actual V825
@@ -854,3 +886,4 @@ No se declara pixel-perfect si no hay navegador/capturas reales en la sesion. La
 - Añadido scheduler profesional Telegram en `engines/telegram_professional_scheduler.py`, reutilizando filtros football-only existentes.
 - Añadidos endpoints `/api/automation/master-tick`, `/api/automation/health-check`, panel `/admin/daily-automation` y APIs admin V818.
 - Añadidos checks `tools/check_v818_*.py` y reportes QA V818.
+

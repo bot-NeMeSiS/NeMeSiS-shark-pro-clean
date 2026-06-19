@@ -1,7 +1,7 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 {% from "partials/team_identity.html" import crest %}
 {% block content %}
-<section class="scoreboard-hero v701-scoreboard">
+<section class="scoreboard-hero v701-scoreboard v826-certified-screen" data-v826-template="favorites">
   <div>
     <div class="kicker">Favoritos</div>
     <h1>Tu radar personal</h1>
@@ -15,7 +15,7 @@
   </div>
 </section>
 
-<section class="band compact-band">
+<section class="band compact-band v826-certified-screen" data-v826-template="favorites">
   <div class="section-head"><h2>Partidos relacionados</h2><span class="pill">{{ data.favorite_feed|length }}</span></div>
   {% if data.favorite_feed %}
   <div class="sports-list v701-match-list">
@@ -42,7 +42,7 @@
   {% endif %}
 </section>
 
-<section class="band two-col compact-band">
+<section class="band two-col compact-band v826-certified-screen" data-v826-template="favorites">
   <div>
     <div class="section-head"><h2>Live relacionados</h2><span class="pill">{{ data.favorite_bundle.live|length }}</span></div>
     <div class="stack">
@@ -68,7 +68,7 @@
   </div>
 </section>
 
-<section class="band compact-band">
+<section class="band compact-band v826-certified-screen" data-v826-template="favorites">
   <div class="section-head"><h2>Guardados</h2><span class="pill">{{ data.favorites|length }}</span></div>
   {% if data.favorites %}
   <div class="grid dense-grid">
@@ -93,7 +93,7 @@
   {% endif %}
 </section>
 
-<section class="band compact-band">
+<section class="band compact-band v826-certified-screen" data-v826-template="favorites">
   <details class="card">
     <summary><strong>Añadir favorito manualmente</strong></summary>
     <form method="post" action="/favorites" style="margin-top:12px">
@@ -106,3 +106,4 @@
   </details>
 </section>
 {% endblock %}
+

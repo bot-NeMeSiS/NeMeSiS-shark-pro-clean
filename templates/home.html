@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 {% from "partials/team_identity.html" import crest %}
 {% block content %}
 {% set hs = data.get('home_summary') or {} %}
@@ -19,7 +19,7 @@
 
 {% if current_user %}
 {% set display_name = current_user.name or current_user.username or 'Cliente' %}
-<section class="v799-screen v799-home-screen v815-certified-screen v815-home-screen v816-certified-screen v816-home-screen v817-certified-screen v817-home-screen v819-certified-screen v819-home-screen v820-certified-screen v820-home-screen" data-v815-template="home" data-v816-template="home" data-v817-template="home" data-v819-template="home" data-v820-template="home">
+<section class="v799-screen v799-home-screen v815-certified-screen v815-home-screen v816-certified-screen v816-home-screen v817-certified-screen v817-home-screen v819-certified-screen v819-home-screen v820-certified-screen v820-home-screen v826-certified-screen" data-v826-template="home" data-v815-template="home" data-v816-template="home" data-v817-template="home" data-v819-template="home" data-v820-template="home">
   <div class="v799-appbar">
     <div>
       <span class="v799-kicker">Panel cliente · datos reales · hora España/Madrid</span>
@@ -35,7 +35,7 @@
 
   {% include "partials/client_flow_bar.html" %}
 
-  <section class="v800-stage" aria-label="Panel visual principal con datos reales">
+  <section class="v800-stage v826-certified-screen" data-v826-template="home" aria-label="Panel visual principal con datos reales">
     <article class="v800-stage-main">
       <div class="v800-stage-top"><span>Foco principal</span><a href="/calendar?lane=today">Abrir agenda →</a></div>
       {% if upcoming %}
@@ -68,9 +68,9 @@
     </article>
   </section>
 
-  <section class="v799-dashboard-grid">
+  <section class="v799-dashboard-grid v826-certified-screen" data-v826-template="home">
     <div class="v799-main-column">
-      <section class="v799-hero-card">
+      <section class="v799-hero-card v826-certified-screen" data-v826-template="home">
         <div class="v799-hero-copy">
           <span class="v799-live-pill {{ 'on' if live_count else '' }}">{{ '● Hay directo' if live_count else '○ Sin directo ahora' }}</span>
           <h2>Centro SHARK de hoy</h2>
@@ -80,14 +80,14 @@
         <div class="v799-score-glow v808-shark-glow" aria-hidden="true"><img src="/static/img/shark-logo.svg" alt=""><span>SHARK PRO</span></div>
       </section>
 
-      <section class="v799-kpi-strip" aria-label="Resumen real de hoy">
+      <section class="v799-kpi-strip v826-certified-screen" data-v826-template="home" aria-label="Resumen real de hoy">
         <a href="/calendar?lane=today"><i>▦</i><span>Partidos hoy</span><strong>{{ today_count }}</strong><small>calendario real</small></a>
         <a class="live" href="/live"><i>●</i><span>En directo</span><strong>{{ live_count }}</strong><small>marcador real si existe</small></a>
         <a class="picks" href="/picks"><i>◆</i><span>Picks activos</span><strong>{{ picks_count }}</strong><small>publicados</small></a>
         <a class="telegram" href="/telegram"><i>✈</i><span>Telegram</span><strong>{{ telegram_count }}</strong><small>alertas reales</small></a>
       </section>
 
-      <section class="v799-card v799-flow-card">
+      <section class="v799-card v799-flow-card v826-certified-screen" data-v826-template="home">
         <div class="v799-section-head"><div><span>Ruta recomendada</span><h2>Úsalo como una app pro</h2></div><a href="/app/mapa">Mapa app →</a></div>
         <div class="v799-flow-steps">
           <a href="/calendar?lane=today"><b>1</b><strong>Partidos</strong><small>Elige el encuentro real</small></a>
@@ -97,7 +97,7 @@
         </div>
       </section>
 
-      <section class="v799-card">
+      <section class="v799-card v826-certified-screen" data-v826-template="home">
         <div class="v799-section-head"><div><span>Próximos focos</span><h2>Partidos destacados</h2></div><a href="/calendar">Ver calendario →</a></div>
         <div class="v799-match-list">
           {% for m in upcoming[:5] %}
@@ -158,7 +158,7 @@
 </section>
 
 {% else %}
-<section class="v783-public-hero v799-public-hero v815-public-hero v816-certified-screen v816-public-hero v817-certified-screen v817-public-hero v819-certified-screen v819-public-hero v820-certified-screen v820-public-hero" data-v815-template="home-public" data-v816-template="home-public" data-v817-template="home-public" data-v819-template="home-public" data-v820-template="home-public">
+<section class="v783-public-hero v799-public-hero v815-public-hero v816-certified-screen v816-public-hero v817-certified-screen v817-public-hero v819-certified-screen v819-public-hero v820-certified-screen v820-public-hero v826-certified-screen" data-v826-template="home" data-v815-template="home-public" data-v816-template="home-public" data-v817-template="home-public" data-v819-template="home-public" data-v820-template="home-public">
   <div class="v783-public-copy">
     <div class="kicker">NeMeSiS SHARK PRO · app deportiva premium</div>
     <h1>Partidos, directos, picks y planes en una pantalla clara.</h1>
@@ -171,13 +171,13 @@
     <a class="v783-plan-card elite" href="/comprar/ELITE"><span>ELITE</span><strong>{{ elite.get('price_label') or '24,99 €/mes' }}</strong><small>Prioridad SHARK, alertas live y experiencia completa.</small></a>
   </aside>
 </section>
-<section class="v783-public-value v799-public-value">
+<section class="v783-public-value v799-public-value v826-certified-screen" data-v826-template="home">
   <a href="/calendar"><b>Partidos</b><span>Hora España/Madrid</span></a>
   <a href="/live"><b>Directo</b><span>Marcador real cuando la API lo aporta</span></a>
   <a href="/picks"><b>Picks</b><span>Mercado, cuota, stake y riesgo</span></a>
   <a href="/track-record"><b>Histórico</b><span>ROI solo con resultados reales</span></a>
 </section>
-<section class="v783-public-trust">
+<section class="v783-public-trust v826-certified-screen" data-v826-template="home">
   <div class="section-head"><div><h2>Centro de confianza</h2><p class="small">La primera pantalla vende la idea sin esconder lo importante.</p></div><a class="pill" href="/legal">Confianza</a></div>
   <div class="v783-trust-grid">
     <article><strong>No inventamos datos</strong><span>Partidos, cuotas, resultados y ROI solo cuando existen.</span></article>
@@ -188,3 +188,4 @@
 </section>
 {% endif %}
 {% endblock %}
+

@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 {% import "partials/admin_visual_system.html" as ui %}
 {% block content %}
 {% set d = data if data is defined and data.get is defined else {} %}
@@ -6,7 +6,7 @@
 {% set schedule_items = d.get('schedule_items') or d.get('activity_plan') or [] %}
 {% set discard_reasons = d.get('discard_reasons') or d.get('discard_reasons_24h') or [] %}
 {% call ui.shell('Telegram', 'Telegram Command Center', 'Automatización, actividad y entregas') %}
-<section class="v794-admin-kpi-grid">
+<section class="v794-admin-kpi-grid v826-certified-screen" data-v826-template="admin_telegram_command_center">
   {{ ui.kpi('Canal principal', channel_label, 'Destino configurado en Render', '✈', 'blue') }}
   {{ ui.kpi('Enviados hoy', d.get('sent_today') or d.get('last_cron_sent_count') or '—', 'Telegram real', '✈', 'blue') }}
   {{ ui.kpi('Fallidos', d.get('failed_today') or d.get('last_failed_count') or '—', 'Dato real', '!', 'red') }}
@@ -14,7 +14,7 @@
   {{ ui.kpi('Suscriptores', d.get('subscribers') or d.get('linked_users') or '—', 'Dato real', '♙', 'blue') }}
   {{ ui.kpi('Dedupe', d.get('dedupe_rate') or d.get('dedupe_status') or '—', 'Dato real', '▧', 'green') }}
 </section>
-<section class="v794-admin-grid sidebar">
+<section class="v794-admin-grid sidebar v826-certified-screen" data-v826-template="admin_telegram_command_center">
   <div class="v794-admin-grid">
     <article class="v794-admin-panel">
       <div class="v794-panel-head"><h2>Agenda diaria de envíos</h2><span>{{ ui.status('Configurada','info') }}</span></div>
@@ -59,6 +59,7 @@
     <article class="v794-admin-panel"><div class="v794-panel-head"><h2>Motivos de descarte (24h)</h2></div>{% if discard_reasons %}<div class="v794-admin-list">{% for reason in discard_reasons %}<div class="v794-admin-list-row"><span>{{ reason.count or reason.total or '—' }}</span><div><strong>{{ reason.label or reason.reason or 'Motivo registrado' }}</strong><small>{{ reason.percent or reason.percentage or 'Dato real' }}</small></div></div>{% endfor %}</div>{% else %}<div class="v797-truth-empty"><strong>Sin descartes reales en las últimas 24h.</strong><span>No se muestran ejemplos ficticios: solo motivos registrados por la automatización.</span></div>{% endif %}</article>
   </aside>
 </section>
-<section class="v794-admin-panel" style="margin-top:16px"><div class="v794-panel-head"><h2>Entregas recientes de Telegram</h2><a href="/api/admin/telegram/dedupe-status">Ver todas</a></div><div class="v797-truth-empty"><strong>Esperando entregas reales.</strong><span>Cuando Render Cron envíe mensajes, aparecerán aquí con delivery_id real.</span></div></section>
+<section class="v794-admin-panel v826-certified-screen" data-v826-template="admin_telegram_command_center" style="margin-top:16px"><div class="v794-panel-head"><h2>Entregas recientes de Telegram</h2><a href="/api/admin/telegram/dedupe-status">Ver todas</a></div><div class="v797-truth-empty"><strong>Esperando entregas reales.</strong><span>Cuando Render Cron envíe mensajes, aparecerán aquí con delivery_id real.</span></div></section>
 {% endcall %}
 {% endblock %}
+

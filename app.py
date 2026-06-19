@@ -1,4 +1,4 @@
-import csv
+﻿import csv
 import hashlib
 import html
 import io
@@ -238,7 +238,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V825_SHARK_IDENTITY_FLOATING_BACKGROUND_REFERENCE_FINAL'
+APP_VERSION = 'V826_FULL_REFERENCE_APP_EXPERIENCE_SCREEN_COMPLETION_FINAL'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
@@ -13114,6 +13114,7 @@ def v822_runtime_stability_snapshot():
     team_logo_cache_count = 0
     league_logo_cache_count = 0
     warnings = []
+    last_master_tick = {}
     try:
         conn = sqlite3.connect(DB_PATH, timeout=0.2)
         try:
@@ -13134,6 +13135,10 @@ def v822_runtime_stability_snapshot():
             conn.close()
     except Exception as exc:
         warnings.append(f"db_light_check: {str(exc)[:120]}")
+    try:
+        last_master_tick = automation_get("v818_master_tick_last") or automation_get("master_tick_last") or automation_get("daily_run_last_detail") or {}
+    except Exception as exc:
+        warnings.append(f"automation_state_light_check: {str(exc)[:120]}")
     return {
         "db_accessible": db_accessible,
         "db_path": DB_PATH,
@@ -13147,7 +13152,7 @@ def v822_runtime_stability_snapshot():
         "team_logo_cache_count": team_logo_cache_count,
         "league_logo_cache_count": league_logo_cache_count,
         "logo_cache_ready": bool(logo_cache_tables_ok),
-        "last_master_tick": automation_get("v818_master_tick_last") or automation_get("master_tick_last") or automation_get("daily_run_last_detail") or {},
+        "last_master_tick": last_master_tick,
         "warnings": warnings,
     }
 
@@ -13227,6 +13232,9 @@ def api_runtime_version():
         "has_v824_css": "V824 RENDER VIDEO PIXEL MATCH FINAL APP EXPERIENCE START" in css_text,
         "has_v825_shell": "data-v825-shell" in base_template and "NEMESIS V825 SHARK IDENTITY FLOATING BACKGROUND REFERENCE ACTIVE" in base_template,
         "has_v825_css": "V825 SHARK IDENTITY FLOATING BACKGROUND REFERENCE START" in css_text,
+        "has_v826_shell": "data-v826-shell" in base_template and "NEMESIS V826 FULL REFERENCE APP EXPERIENCE SCREEN COMPLETION ACTIVE" in base_template,
+        "has_v826_css": "V826 FULL REFERENCE EXPERIENCE START" in css_text,
+        "has_v825_shark_identity": "data-v825-shell" in base_template and "V825 SHARK IDENTITY FLOATING BACKGROUND REFERENCE START" in css_text,
         "has_v824_visual": "data-v824-shell" in base_template and "V824 RENDER VIDEO PIXEL MATCH FINAL APP EXPERIENCE START" in css_text,
         "has_v823_visual": "data-v823-shell" in base_template and "V823 RENDER VIDEO REFERENCE REAL CRESTS PIXEL EXPERIENCE START" in css_text,
         "has_v822_stability": "v822_runtime_stability_snapshot" in app_py_text and "/api/automation/health-check" in app_py_text,
@@ -13234,7 +13242,7 @@ def api_runtime_version():
         "has_v820_crests": "data-v820-shell" in base_template and "V820 REAL CRESTS REFERENCE VISUAL PIXEL POLISH START" in css_text,
         "has_v819_dedup": "data-v819-shell" in base_template and "V819 REFERENCE UI DEDUP LAYER PURGE START" in css_text,
         "has_v818_automation": "/api/automation/master-tick" in app_py_text and "daily_automation_engine" in app_py_text,
-        "static_css_cache_busting": "V825_SHARK_IDENTITY_FLOATING_BACKGROUND_REFERENCE_FINAL" in base_template,
+        "static_css_cache_busting": "V826_FULL_REFERENCE_APP_EXPERIENCE_SCREEN_COMPLETION_FINAL" in base_template,
         "crest_engine_loaded": runtime_stability.get("crest_engine_loaded"),
         "logo_cache_tables_ok": runtime_stability.get("logo_cache_tables_ok"),
         "team_logo_cache_count": runtime_stability.get("team_logo_cache_count"),
@@ -17785,3 +17793,4 @@ def api_admin_v818_daily_automation_health():
 if __name__ == "__main__":
     seed_core()
     app.run(host="0.0.0.0", port=int(os.getenv("PORT", "5000")), debug=os.getenv("FLASK_DEBUG") == "1")
+

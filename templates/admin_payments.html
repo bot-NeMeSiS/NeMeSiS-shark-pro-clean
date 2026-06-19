@@ -1,8 +1,8 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 {% import "partials/admin_visual_system.html" as ui %}
 {% block content %}
 {% call ui.shell('Pagos', 'Pagos y membresías', 'Suscripciones, Stripe y facturación') %}
-<section class="v794-admin-kpi-grid">
+<section class="v794-admin-kpi-grid v826-certified-screen" data-v826-template="admin_payments">
   {{ ui.kpi('MRR', (data.get('mrr') if data is defined and data.get is defined else none) or '—', 'Stripe real', '€','green') }}
   {{ ui.kpi('Suscriptores PRO', (data.get('subscribers_pro') if data is defined and data.get is defined else none) or '—', 'Dato real', '♙','blue') }}
   {{ ui.kpi('Suscriptores ELITE', (data.get('subscribers_elite') if data is defined and data.get is defined else none) or '—', 'Dato real', '♛','gold') }}
@@ -10,9 +10,9 @@
   {{ ui.kpi('Renovaciones hoy', (data.get('renewals_today') if data is defined and data.get is defined else none) or '—', 'Dato real', '▣','blue') }}
   {{ ui.kpi('Estado Stripe','Operativo','Todos los servicios OK','S','green') }}
 </section>
-<section class="v794-admin-grid sidebar">
+<section class="v794-admin-grid sidebar v826-certified-screen" data-v826-template="admin_payments">
   <div class="v794-admin-grid">
-    <section class="v794-admin-plan-grid">
+    <section class="v794-admin-plan-grid v826-certified-screen" data-v826-template="admin_payments">
       <article class="v794-admin-plan"><h3>FREE</h3><strong>€0 <small>/mes</small></strong><p>Acceso básico al sistema.</p><ul><li>Picks limitados por día</li><li>Acceso a Telegram</li><li>Estadísticas básicas</li></ul></article>
       <article class="v794-admin-plan pro"><h3>PRO</h3><strong>€9,99 <small>/mes</small></strong><p>Acceso completo a funciones PRO.</p><ul><li>Picks destacados</li><li>Estadísticas avanzadas</li><li>Envío en tiempo real</li><li>Soporte prioritario</li></ul></article>
       <article class="v794-admin-plan elite"><h3>ELITE</h3><strong>€24,99 <small>/mes</small></strong><p>Máximo nivel de rendimiento.</p><ul><li>Todo PRO</li><li>Picks exclusivos</li><li>Alertas prioritarias</li><li>Acceso anticipado</li></ul></article>
@@ -27,3 +27,4 @@
 </section>
 {% endcall %}
 {% endblock %}
+

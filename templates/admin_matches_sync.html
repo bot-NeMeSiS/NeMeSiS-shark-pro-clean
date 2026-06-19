@@ -1,6 +1,6 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 {% block content %}
-<section class="hero compact">
+<section class="hero compact v826-certified-screen" data-v826-template="admin_matches_sync">
   <div class="kicker">Calendario real</div>
   <h1>Sincronizar partidos</h1>
   <p class="lead">Control admin para cargar calendario real desde SportsDB, Odds API o importaciones legales. No inventa partidos si una fuente no devuelve datos.</p>
@@ -12,7 +12,7 @@
     <a class="btn" href="/admin/import-center">Import Center</a>
   </div>
 </section>
-<section class="band">
+<section class="band v826-certified-screen" data-v826-template="admin_matches_sync">
   <div class="grid compact-grid">
     <div class="card"><div class="metric">{{ data.matches_diagnostics.total_matches }}</div><div class="muted">partidos guardados</div></div>
     <div class="card"><div class="metric">{{ data.matches_diagnostics.upcoming_matches }}</div><div class="muted">próximos</div></div>
@@ -20,7 +20,7 @@
     <div class="card"><div class="metric">{{ data.matches_diagnostics.total_competitions }}</div><div class="muted">competiciones</div></div>
   </div>
 </section>
-<section class="band two-col">
+<section class="band two-col v826-certified-screen" data-v826-template="admin_matches_sync">
   {% if message %}<div class="notice">{{ message }}</div>{% endif %}
   <form class="card" method="post" action="/admin/matches-sync">
     <h2>SportsDB</h2>
@@ -37,7 +37,7 @@
     <button type="submit">Sincronizar Odds</button>
   </form>
 </section>
-<section class="band two-col">
+<section class="band two-col v826-certified-screen" data-v826-template="admin_matches_sync">
   <form class="card" method="post" action="/admin/matches-sync">
     <h2>Escudos</h2>
     <p class="small">Refresca escudos para equipos cacheados desde partidos.</p>
@@ -53,7 +53,7 @@
     <p class="small">Ultima sincronizacion: {{ (data.matches_diagnostics.latest_sync.started_at or '-')|madrid_datetime_label }}</p>
   </aside>
 </section>
-<section class="band">
+<section class="band v826-certified-screen" data-v826-template="admin_matches_sync">
   <div class="section-head"><h2>Errores recientes</h2><span class="pill">{{ data.matches_diagnostics.errors_recent|length }}</span></div>
   <div class="stack">
     {% for error in data.matches_diagnostics.errors_recent %}
@@ -64,4 +64,5 @@
   </div>
 </section>
 {% endblock %}
+
 

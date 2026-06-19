@@ -1,10 +1,10 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 {% import "partials/admin_visual_system.html" as ui %}
 {% block content %}
 {% set os = data.daily_automation_os %}
 {% set status = os.status %}
 {% call ui.shell('Automation OS', 'Daily Automation OS', 'V818 master tick, jobs, Telegram y salud') %}
-<section class="v794-admin-kpi-grid">
+<section class="v794-admin-kpi-grid v826-certified-screen" data-v826-template="admin_daily_automation">
   {{ ui.kpi('Estado general', 'OK' if status.ok else 'Revisar', status.madrid_now, 'A', 'green' if status.ok else 'red') }}
   {{ ui.kpi('Telegram hoy', status.telegram_sent_today, 'Mensajes enviados', 'T', 'blue') }}
   {{ ui.kpi('Fallos hoy', status.jobs_failed|length, 'Jobs con error', '!', 'red' if status.jobs_failed else 'green') }}
@@ -13,7 +13,7 @@
   {{ ui.kpi('Odds API', status.api_usage.remaining_estimated.odds_api, 'Estimadas restantes', 'O', 'blue') }}
 </section>
 
-<section class="v794-admin-grid sidebar">
+<section class="v794-admin-grid sidebar v826-certified-screen" data-v826-template="admin_daily_automation">
   <div class="v794-admin-grid">
     <article class="v794-admin-panel">
       <div class="v794-panel-head"><h2>Proximos jobs</h2><span>{{ ui.status('Madrid Time','ok') }}</span></div>
@@ -77,3 +77,4 @@
 </section>
 {% endcall %}
 {% endblock %}
+

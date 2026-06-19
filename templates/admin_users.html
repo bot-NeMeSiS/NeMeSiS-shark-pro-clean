@@ -1,6 +1,6 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 {% block content %}
-<section class="hero compact admin-hero">
+<section class="hero compact admin-hero v826-certified-screen" data-v826-template="admin_users">
   <div class="kicker">Panel admin · Clientes</div>
   <h1>Usuarios, roles y regalos por días · Regalar membresía</h1>
   <p class="lead">Gestiona cuentas reales, cambia membresías y concede PRO/ELITE temporal para amigos, ofertas, betas o promociones sin tocar pagos.</p>
@@ -12,9 +12,9 @@
   </div>
 </section>
 
-{% if message %}<section class="band compact-band"><p class="notice">{{ message }}</p></section>{% endif %}
+{% if message %}<section class="band compact-band v826-certified-screen" data-v826-template="admin_users"><p class="notice">{{ message }}</p></section>{% endif %}
 
-<section class="band compact-band">
+<section class="band compact-band v826-certified-screen" data-v826-template="admin_users">
   <div class="grid compact-grid metric-row">
     <article class="card metric-card"><div class="metric">{{ data.users|length }}</div><div class="muted">usuarios</div></article>
     <article class="card metric-card"><div class="metric">{{ data.membership_admin.active_temporal or 0 }}</div><div class="muted">temporales activos</div></article>
@@ -24,7 +24,7 @@
   <p class="small">{{ data.membership_admin.note }}</p>
 </section>
 
-<section class="band compact-band">
+<section class="band compact-band v826-certified-screen" data-v826-template="admin_users">
   <div class="section-head"><h2>{{ data.users|length }} usuarios</h2><span class="pill">ADMIN</span></div>
   <div class="stack">
     {% for user in data.users %}
@@ -63,3 +63,4 @@
   </div>
 </section>
 {% endblock %}
+
