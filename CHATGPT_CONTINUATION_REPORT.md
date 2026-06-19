@@ -1,5 +1,45 @@
 # CHATGPT CONTINUATION REPORT
 
+## Estado actual V824
+
+Version preparada: `V824_RENDER_VIDEO_PIXEL_MATCH_FINAL_APP_EXPERIENCE`.
+
+La fuente oficial usada fue `C:\Users\aloha\OneDrive\Escritorio\NeMeSiS shark pro`. No se uso ningun ZIP antiguo como base. V824 se construyo encima de V823 y conserva V818 master tick, V819 dedup, V820 escudos, V821 hotfix 502, V822 runtime stability y V823 visual/crest polish.
+
+Objetivo de V824:
+
+- acercar la app al acabado visual de las referencias y video real;
+- reforzar dashboard `/app`, partidos, directo, picks, SHARK, perfil, Telegram, soporte y admin;
+- dar mas protagonismo a escudos/fallbacks sin cambiar seguridad de render;
+- mantener una sola topbar, una bottom nav y un SHARK flotante unico;
+- no inventar datos ni tocar flujos criticos.
+
+Cambios principales:
+
+- `VERSION.txt` y `APP_VERSION` actualizados a V824.
+- `templates/base.html` actualiza meta version, cache busting CSS, `data-v824-shell="true"` y comentario V824.
+- `/api/runtime-version` devuelve `has_v824_shell`, `has_v824_css`, `has_v823_visual` y conserva flags V818-V822.
+- Templates reales marcados con `data-v824-template`: `client_app_center`, `calendar`, `live`, `picks`, `match_detail`, `shark`, `profile`, `telegram`, `support` y `admin_dashboard`.
+- `static/app.css` incorpora capa final V824 con mayor profundidad, heroes mas potentes, topbar mas visible, cards deportivas, escudos mas consistentes, bottom nav app-like y admin mas compacto.
+- Se crearon checks V824:
+  - `tools/check_v824_runtime_visibility.py`
+  - `tools/check_v824_crests_visual_safety.py`
+  - `tools/check_v824_client_visual_reference.py`
+  - `tools/check_v824_navigation_mobile_dedup.py`
+  - `tools/check_v824_v818_to_v823_compatibility.py`
+
+Validacion V824:
+
+- `py_compile app.py`: OK.
+- Checks V824: OK.
+- Pendiente en cierre: smoke completo, build ZIP final y auditoria ZIP.
+
+Limitaciones honestas:
+
+- No se generaron screenshots porque no habia navegador disponible.
+- No se declara pixel-perfect.
+- No se verifico Telegram real en produccion desde esta sesion; solo se preservo el flujo y compatibilidad.
+
 ## Estado actual V823
 
 Version preparada: `V823_RENDER_VIDEO_REFERENCE_REAL_CRESTS_PIXEL_EXPERIENCE_FINAL`.

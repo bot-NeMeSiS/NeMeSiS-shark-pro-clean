@@ -635,6 +635,244 @@ body[data-v823-shell="true"].ns-admin .v808-admin-dock{
 }
 /* V823 RENDER VIDEO REFERENCE REAL CRESTS PIXEL EXPERIENCE END */
 
+/* V824 RENDER VIDEO PIXEL MATCH FINAL APP EXPERIENCE START
+   Pixel match final sobre V823: mas profundidad, jerarquia deportiva y lectura mobile sin tocar datos. */
+body[data-v824-shell="true"]{
+  --v824-deep:#020611;
+  --v824-panel:rgba(7,20,36,.91);
+  --v824-panel-strong:rgba(10,30,54,.96);
+  --v824-line:rgba(72,224,255,.24);
+  --v824-line-strong:rgba(72,224,255,.48);
+  --v824-text:#f4fbff;
+  --v824-muted:#a9c0d2;
+  --v824-blue:#1587ff;
+  --v824-cyan:#39e8ff;
+  --v824-green:#4af0a2;
+  --v824-gold:#ffd36c;
+}
+body[data-v824-shell="true"].ns-authenticated:not(.ns-admin){
+  background:
+    linear-gradient(110deg,rgba(3,10,22,.96),rgba(5,19,34,.9) 46%,rgba(2,6,16,.98)),
+    radial-gradient(circle at 76% -8%,rgba(57,232,255,.22),transparent 34%),
+    radial-gradient(circle at 6% 18%,rgba(21,135,255,.18),transparent 33%)!important;
+}
+body[data-v824-shell="true"].ns-authenticated:not(.ns-admin)::before{
+  opacity:.55!important;
+}
+body[data-v824-shell="true"].ns-authenticated:not(.ns-admin) .top.ns-topbar{
+  padding:8px 10px 0!important;
+}
+body[data-v824-shell="true"].ns-authenticated:not(.ns-admin) .topin{
+  min-height:60px!important;
+  border-radius:22px!important;
+  border:1px solid var(--v824-line-strong)!important;
+  background:linear-gradient(135deg,rgba(9,31,55,.96),rgba(3,10,22,.94))!important;
+}
+body[data-v824-shell="true"].ns-authenticated:not(.ns-admin) .brand.v808-brand .mark{
+  width:44px!important;
+  height:44px!important;
+  box-shadow:0 0 28px rgba(57,232,255,.18)!important;
+}
+body[data-v824-shell="true"].ns-authenticated:not(.ns-admin) .brand.v808-brand span{
+  font-size:.78rem!important;
+  line-height:1.05!important;
+}
+body[data-v824-shell="true"].ns-authenticated:not(.ns-admin) .nav-clean a,
+body[data-v824-shell="true"].ns-authenticated:not(.ns-admin) .v812-top-actions a{
+  font-size:.76rem!important;
+  min-height:36px!important;
+  padding:8px 12px!important;
+}
+body[data-v824-shell="true"].ns-authenticated:not(.ns-admin) .nav-clean a:is(:hover,.is-active),
+body[data-v824-shell="true"].ns-authenticated:not(.ns-admin) .v812-top-actions a.shark{
+  background:linear-gradient(135deg,rgba(21,135,255,.48),rgba(57,232,255,.18))!important;
+  border-color:var(--v824-line-strong)!important;
+}
+body[data-v824-shell="true"].ns-authenticated:not(.ns-admin) .ns-main-shell{
+  width:min(100% - 18px,1500px)!important;
+}
+body[data-v824-shell="true"].ns-authenticated:not(.ns-admin) .v824-certified-screen{
+  border:1px solid rgba(72,224,255,.18)!important;
+  background:
+    radial-gradient(circle at 88% 0,rgba(57,232,255,.09),transparent 31%),
+    linear-gradient(180deg,rgba(4,15,28,.66),rgba(2,7,16,.48))!important;
+}
+body[data-v824-shell="true"].ns-authenticated:not(.ns-admin) :is(.v812-hero-shell,.v799-appbar,.v774-client-hero,.client-hero){
+  position:relative!important;
+  overflow:hidden!important;
+  min-height:auto!important;
+  border-radius:26px!important;
+  padding:clamp(16px,2.4vw,28px)!important;
+  background:
+    linear-gradient(135deg,rgba(10,33,60,.98),rgba(4,12,25,.97) 58%,rgba(3,8,18,.98)),
+    radial-gradient(circle at 84% 18%,rgba(57,232,255,.2),transparent 28%)!important;
+  box-shadow:0 24px 80px rgba(0,0,0,.34),inset 0 1px 0 rgba(255,255,255,.07)!important;
+}
+body[data-v824-shell="true"].ns-authenticated:not(.ns-admin) :is(.v812-hero-shell,.v799-appbar,.v774-client-hero,.client-hero)::after{
+  content:""!important;
+  position:absolute!important;
+  inset:0!important;
+  pointer-events:none!important;
+  background:linear-gradient(90deg,rgba(255,255,255,.055) 1px,transparent 1px),linear-gradient(180deg,rgba(255,255,255,.04) 1px,transparent 1px)!important;
+  background-size:48px 48px!important;
+  mask-image:linear-gradient(90deg,transparent,black 18%,black 72%,transparent)!important;
+  opacity:.34!important;
+}
+body[data-v824-shell="true"].ns-authenticated:not(.ns-admin) :is(.v812-hero-copy,.v799-appbar > div:first-child,.v774-hero-copy,.client-hero > div:first-child){
+  position:relative!important;
+  z-index:1!important;
+}
+body[data-v824-shell="true"].ns-authenticated:not(.ns-admin) :is(.v799-appbar h1,.v812-hero-copy h1,.v774-client-hero h1,.client-hero h1){
+  font-size:clamp(2rem,4.2vw,4.35rem)!important;
+  max-width:900px!important;
+}
+body[data-v824-shell="true"].ns-authenticated:not(.ns-admin) :is(.v812-hero-actions a,.v799-appbar-actions a,.v774-actions .btn,.client-hero .btn,.btn.primary,.v799-button.primary){
+  border-radius:999px!important;
+  border:1px solid rgba(72,224,255,.32)!important;
+  box-shadow:0 10px 34px rgba(21,135,255,.18)!important;
+}
+body[data-v824-shell="true"].ns-authenticated:not(.ns-admin) :is(.v812-kpi-row a,.v799-kpi-strip a,.quick,.card,.v774-panel,.v799-card,.v812-feature-card,.v812-pick-card,.v799-feature-pick,.v799-live-feature,.v799-live-card,.v799-pick-card,.v799-day-block,.v801-league-block){
+  border-radius:20px!important;
+  border:1px solid rgba(72,224,255,.19)!important;
+  background:
+    radial-gradient(circle at 95% 0,rgba(57,232,255,.075),transparent 34%),
+    linear-gradient(180deg,var(--v824-panel),rgba(3,10,21,.9))!important;
+}
+body[data-v824-shell="true"].ns-authenticated:not(.ns-admin) :is(.v812-kpi-row a,.v799-kpi-strip a,.quick){
+  min-height:78px!important;
+  padding:12px!important;
+}
+body[data-v824-shell="true"].ns-authenticated:not(.ns-admin) :is(.v812-kpi-row strong,.v799-kpi-strip strong,.quick strong,.metric,.big-score){
+  color:#fff!important;
+  text-shadow:0 0 18px rgba(57,232,255,.18)!important;
+}
+body[data-v824-shell="true"].ns-authenticated:not(.ns-admin) :is(.v799-agenda-row,.v801-agenda-row,.v812-row,.list-row){
+  min-height:54px!important;
+  border-radius:17px!important;
+  border:1px solid rgba(255,255,255,.08)!important;
+  background:linear-gradient(90deg,rgba(8,24,42,.92),rgba(4,12,24,.84))!important;
+}
+body[data-v824-shell="true"].ns-authenticated:not(.ns-admin) :is(.v799-vs,.v801-vs,.v799-scoreboard b,.v812-match-spotlight b){
+  border-radius:16px!important;
+  background:rgba(255,255,255,.06)!important;
+  border:1px solid rgba(255,255,255,.1)!important;
+  padding:7px 10px!important;
+  color:#fff!important;
+}
+body[data-v824-shell="true"].ns-authenticated:not(.ns-admin) :is(.crest,.v820-crest,.team-crest,.identity-crest,img.team-logo,img.league-logo){
+  border-radius:50%!important;
+  background:linear-gradient(135deg,rgba(255,255,255,.09),rgba(72,224,255,.06))!important;
+  border:1px solid rgba(255,255,255,.16)!important;
+  box-shadow:0 8px 22px rgba(0,0,0,.22)!important;
+}
+body[data-v824-shell="true"].ns-authenticated:not(.ns-admin) :is(.v799-scoreboard .crest,.v812-match-spotlight .crest,.v799-big-team .crest){
+  width:52px!important;
+  height:52px!important;
+}
+body[data-v824-shell="true"].ns-authenticated:not(.ns-admin) :is(.v812-row .crest,.v799-agenda-row .crest,.v799-live-card .crest,.v799-pick-card .crest,.list-row .crest){
+  width:34px!important;
+  height:34px!important;
+}
+body[data-v824-shell="true"].ns-authenticated:not(.ns-admin) .v799-live-feature{
+  border-color:rgba(74,240,162,.28)!important;
+}
+body[data-v824-shell="true"].ns-authenticated:not(.ns-admin) .v799-live-card.is-live{
+  border-color:rgba(74,240,162,.36)!important;
+  box-shadow:0 0 0 1px rgba(74,240,162,.08),0 18px 52px rgba(0,0,0,.28)!important;
+}
+body[data-v824-shell="true"].ns-authenticated:not(.ns-admin) :is(.v803-live-field,.v803-pitch){
+  border-radius:20px!important;
+}
+body[data-v824-shell="true"].ns-authenticated:not(.ns-admin) .v799-feature-pick{
+  display:grid!important;
+  grid-template-columns:minmax(0,1.3fr) minmax(250px,.7fr)!important;
+  gap:14px!important;
+}
+body[data-v824-shell="true"].ns-authenticated:not(.ns-admin) .v799-pick-grid{
+  grid-template-columns:repeat(auto-fit,minmax(280px,1fr))!important;
+}
+body[data-v824-shell="true"].ns-authenticated:not(.ns-admin) .v775-shark-hero{
+  border-color:rgba(255,211,108,.32)!important;
+}
+body[data-v824-shell="true"].ns-authenticated:not(.ns-admin) .shark-action-grid a{
+  min-height:118px!important;
+  border-radius:20px!important;
+  border:1px solid rgba(255,211,108,.18)!important;
+  background:linear-gradient(180deg,rgba(10,28,48,.94),rgba(4,12,24,.9))!important;
+}
+body[data-v824-shell="true"].ns-authenticated:not(.ns-admin) :is(.v824-profile-screen,.v824-telegram-screen,.v824-support-screen){
+  border-radius:24px!important;
+}
+body[data-v824-shell="true"].ns-authenticated:not(.ns-admin) .v824-support-screen + .premium-alert,
+body[data-v824-shell="true"].ns-authenticated:not(.ns-admin) .premium-alert{
+  border-radius:18px!important;
+}
+body[data-v824-shell="true"].ns-authenticated:not(.ns-admin) .bottom-nav-clean{
+  border-radius:24px!important;
+  border:1px solid rgba(72,224,255,.42)!important;
+  background:linear-gradient(180deg,rgba(8,25,44,.96),rgba(3,10,21,.96))!important;
+  box-shadow:0 18px 50px rgba(0,0,0,.38)!important;
+}
+body[data-v824-shell="true"].ns-authenticated:not(.ns-admin) .v812-shark-fab{
+  bottom:82px!important;
+  box-shadow:0 18px 48px rgba(21,135,255,.36)!important;
+}
+body[data-v824-shell="true"].ns-authenticated:not(.ns-admin)[data-ns-route="/shark"] .shark-widget,
+body[data-v824-shell="true"].ns-authenticated:not(.ns-admin)[data-ns-route="/shark-ai"] .shark-widget{
+  display:none!important;
+}
+body[data-v824-shell="true"].ns-admin .v824-admin-dashboard :is(.v809-admin-reference-hero,.v807-admin-hero){
+  border-radius:24px!important;
+  border:1px solid rgba(72,224,255,.2)!important;
+  background:linear-gradient(135deg,rgba(9,30,52,.96),rgba(3,10,21,.94))!important;
+}
+body[data-v824-shell="true"].ns-admin :is(.v807-action-tiles a,.v807-route-cards a,.v794-admin-kpi-grid > *){
+  border-radius:18px!important;
+}
+@media(max-width:960px){
+  body[data-v824-shell="true"].ns-authenticated:not(.ns-admin) .topin{
+    min-height:58px!important;
+  }
+  body[data-v824-shell="true"].ns-authenticated:not(.ns-admin) .v799-feature-pick{
+    grid-template-columns:1fr!important;
+  }
+  body[data-v824-shell="true"].ns-authenticated:not(.ns-admin) :is(.v812-main-grid,.v799-calendar-layout,.v799-live-layout,.v799-match-layout,.v774-dashboard-grid){
+    grid-template-columns:1fr!important;
+  }
+}
+@media(max-width:560px){
+  body[data-v824-shell="true"].ns-authenticated:not(.ns-admin) .brand.v808-brand .mark{
+    width:38px!important;
+    height:38px!important;
+  }
+  body[data-v824-shell="true"].ns-authenticated:not(.ns-admin) .topin{
+    padding:7px!important;
+    border-radius:18px!important;
+  }
+  body[data-v824-shell="true"].ns-authenticated:not(.ns-admin) :is(.v812-hero-shell,.v799-appbar,.v774-client-hero,.client-hero){
+    padding:13px!important;
+    border-radius:20px!important;
+  }
+  body[data-v824-shell="true"].ns-authenticated:not(.ns-admin) :is(.v799-appbar h1,.v812-hero-copy h1,.v774-client-hero h1,.client-hero h1){
+    font-size:2rem!important;
+  }
+  body[data-v824-shell="true"].ns-authenticated:not(.ns-admin) :is(.v799-scoreboard .crest,.v812-match-spotlight .crest,.v799-big-team .crest){
+    width:42px!important;
+    height:42px!important;
+  }
+  body[data-v824-shell="true"].ns-authenticated:not(.ns-admin) :is(.v799-agenda-link,.v801-agenda-link,.v799-scoreboard.compact){
+    grid-template-columns:auto minmax(0,1fr) auto minmax(0,1fr)!important;
+  }
+  body[data-v824-shell="true"].ns-authenticated:not(.ns-admin) .v799-row-actions,
+  body[data-v824-shell="true"].ns-authenticated:not(.ns-admin) .v801-row-actions{
+    display:none!important;
+  }
+  body[data-v824-shell="true"].ns-authenticated:not(.ns-admin) .bottom-nav-clean a{
+    min-height:44px!important;
+  }
+}
+/* V824 RENDER VIDEO PIXEL MATCH FINAL APP EXPERIENCE END */
+
 /* V817_REFERENCE_PIXEL_POLISH_CLIENT_ADMIN_FINAL
    V818_DAILY_AUTOMATION_OPERATING_SYSTEM_FINAL
    Final reference polish layer. It intentionally sits after older visual layers
