@@ -1,5 +1,53 @@
 # CHATGPT CONTINUATION REPORT
 
+## Estado actual V815
+
+Version preparada: `V815_RENDER_VISIBLE_CLIENT_ADMIN_REFERENCE_REBUILD_CERTIFIED`.
+
+V815 nace porque despues de V814 Render podia seguir viendose igual por cuatro causas posibles: despliegue de ZIP anterior, carpeta raiz incorrecta dentro del ZIP, cache de CSS/JS o cambios aplicados a templates que no eran los renderizados por las rutas reales.
+
+La prioridad de V815 no es crear nuevas funciones, sino certificar runtime y visibilidad real:
+
+- `VERSION.txt` y `APP_VERSION` estan sincronizados en V815.
+- `/api/runtime-version` devuelve `app_version`, `version_txt`, ruta real de `app.py`, cwd, `has_v815_shell`, hash/tamano CSS y flags sin secretos.
+- `base.html` incluye `<meta name="nemesis-version" ...>`.
+- `body` incluye `data-v815-shell="true"`.
+- El codigo fuente incluye `<!-- NEMESIS V815 CLIENT SHELL ACTIVE -->`.
+- `static/app.css` carga con `?v=V815_RENDER_VISIBLE_CLIENT_ADMIN_REFERENCE_REBUILD_CERTIFIED`.
+- Las rutas reales de cliente fueron marcadas: `home.html`, `client_app_center.html`, `calendar.html`, `live.html`, `picks.html`, `match_detail.html`, `shark.html`, `profile.html`, `telegram.html`.
+- Se anadio una capa visual V815 activada por `data-v815-shell`, con topbar de cristal, fondo premium oscuro, tiburon decorativo grande solo cliente, cards densas, bottom nav movil y ocultacion del SHARK flotante en `/shark`.
+- Admin se mantiene estable y sin tiburon decorativo grande.
+- Telegram profesional V814 se conserva: no NBA, no deportes ajenos, no reservas/juveniles/regionales menores/amistosos flojos.
+- `DB_PATH`, Render, Cron, pagos, membresias, sesiones, Telegram y Madrid Time no se han cambiado.
+
+Checks V815:
+
+- `tools/check_v815_runtime_visibility.py`
+- `tools/check_v815_client_visual_shell.py`
+- `tools/check_v815_routes_links_navigation.py`
+
+Validacion local realizada:
+
+- `py_compile app.py` OK.
+- `compileall app.py engines tools` OK.
+- Parseo Jinja de 143 templates OK.
+- `tools/check_madrid_times.py` OK.
+- Checks V814 compatibles OK tras aceptar V815 como version actual.
+- Checks V815 OK.
+- Smoke Flask sin 500 en `/`, `/api/runtime-version`, `/api/health`, `/api/startup-check`, `/login`, `/admin-login`, `/calendar`, `/partidos`, `/live`, `/picks`, `/shark`, `/profile`, `/telegram`, rutas admin protegidas.
+
+En Render, tras desplegar, comprobar primero:
+
+1. `/api/runtime-version`
+2. codigo fuente de `/app`
+3. `data-v815-shell="true"`
+4. `NEMESIS V815 CLIENT SHELL ACTIVE`
+5. `app.css?v=V815_RENDER_VISIBLE_CLIENT_ADMIN_REFERENCE_REBUILD_CERTIFIED`
+
+Si Render sigue mostrando V814/V812/V805, el problema ya no es el codigo V815: es deploy/cache/ZIP raiz/servicio incorrecto.
+
+---
+
 Estado actual: `V806_CLIENT_REFERENCE_UI_NO_LEFT_RAIL_FLOW_PERFECTION`
 
 ## Último avance
@@ -361,4 +409,3 @@ La app activa no está mezclada funcionalmente: V814 manda como capa final y las
 ## Riesgo pendiente
 
 La carpeta raíz sigue siendo pesada por historia acumulada. Para no romper nada, V814 no borra módulos legacy dudosos; los excluye del release y los marca para revisión manual.
-

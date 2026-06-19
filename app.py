@@ -219,7 +219,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V814_CODEX_DEEP_PROJECT_RECONCILIATION_CLIENT_ADMIN_REFERENCE_FINAL'
+APP_VERSION = 'V815_RENDER_VISIBLE_CLIENT_ADMIN_REFERENCE_REBUILD_CERTIFIED'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
@@ -13073,11 +13073,50 @@ def public_version():
 
 @app.route("/api/runtime-version")
 def api_runtime_version():
+    version_txt = ""
+    base_template = ""
+    css_path = BASE_DIR / "static" / "app.css"
+    base_path = BASE_DIR / "templates" / "base.html"
+    css_size = 0
+    css_hash = ""
+    try:
+        version_txt = (BASE_DIR / "VERSION.txt").read_text(encoding="utf-8").strip()
+    except Exception:
+        version_txt = ""
+    try:
+        base_template = base_path.read_text(encoding="utf-8")
+    except Exception:
+        base_template = ""
+    try:
+        css_bytes = css_path.read_bytes()
+        css_size = len(css_bytes)
+        css_hash = hashlib.sha256(css_bytes).hexdigest()[:16]
+    except Exception:
+        css_size = 0
+        css_hash = ""
     return jsonify({
         "ok": True,
         "app": APP_NAME,
         "version": APP_VERSION,
+        "app_version": APP_VERSION,
+        "version_txt": version_txt,
         "time": now_iso(),
+        "generated_at": now_iso(),
+        "python_file_path": os.path.abspath(__file__),
+        "current_working_directory": os.getcwd(),
+        "template_base_detected": bool(base_template),
+        "has_v815_shell": "data-v815-shell" in base_template and "NEMESIS V815 CLIENT SHELL ACTIVE" in base_template,
+        "static_css_hash": css_hash,
+        "static_css_size": css_size,
+        "static_css_cache_busting": "V815_RENDER_VISIBLE_CLIENT_ADMIN_REFERENCE_REBUILD_CERTIFIED" in base_template,
+        "render_service_hint": os.getenv("RENDER_SERVICE_NAME") or os.getenv("RENDER_EXTERNAL_HOSTNAME") or "",
+        "db_path": DB_PATH,
+        "flags": {
+            "api_football_configured": env_present("API_FOOTBALL_KEY") or env_present("API_FOOTBALL_API_KEY"),
+            "telegram_configured": env_present("TELEGRAM_BOT_TOKEN") and env_present("TELEGRAM_CHAT_ID"),
+            "the_odds_configured": env_present("THE_ODDS_API_KEY") or env_present("ODDS_API_KEY"),
+            "automation_secret_configured": automation_secret_configured(),
+        },
         "render": {
             "db_path": DB_PATH,
             "db_exists": os.path.exists(DB_PATH),
