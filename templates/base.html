@@ -6,9 +6,9 @@
   <meta name="theme-color" content="#06111f">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="nemesis-version" content="V827_REFERENCE_PHOTO_REBUILD_DESIGN_SYSTEM_FINAL">
-  <title>{{ title or 'NeMeSiS SHARK PRO' }}</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}?v=V827_REFERENCE_PHOTO_REBUILD_DESIGN_SYSTEM_FINAL">
+  <meta name="nemesis-version" content="V828_REFERENCE_PIXEL_PARITY_FULL_ECOSYSTEM_FINAL">
+  <title>{% if title is defined and title %}{{ title }}{% else %}NeMeSiS SHARK PRO{% endif %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}?v=V828_REFERENCE_PIXEL_PARITY_FULL_ECOSYSTEM_FINAL">
   <meta name="csrf-token" content="{{ csrf_token() }}">
 </head>
 {% set _raw_tier = (current_user.membership if current_user else 'FREE')|upper %}
@@ -25,7 +25,7 @@
   {% set _visual_tier = 'free' %}
   {% set _tier_label = 'FREE' %}
 {% endif %}
-<body class="ns-app ns-tier-{{ _visual_tier }}{% if current_user %} ns-authenticated{% else %} ns-public{% endif %}{% if current_user and current_user.role == 'ADMIN' %} ns-admin{% endif %}" data-ns-route="{{ request.path }}" data-ns-plan="{{ _tier_label }}" data-v775-shell="true" data-v776-shell="true" data-v777-shell="true" data-v778-shell="true" data-v790-shell="true" data-v792-shell="true" data-v793-shell="true" data-v795-shell="true" data-v796-shell="true" data-v797-shell="true" data-v798-shell="true" data-v799-shell="true" data-v800-shell="true" data-v801-shell="true" data-v802-shell="true" data-v806-shell="true" data-v807-shell="true" data-v809-shell="true" data-v810-shell="true" data-v811-shell="true" data-v812-shell="true" data-v813-shell="true" data-v814-shell="true" data-v815-shell="true" data-v816-shell="true" data-v817-shell="true" data-v818-shell="true" data-v819-shell="true" data-v820-shell="true" data-v821-shell="true" data-v822-shell="true" data-v823-shell="true" data-v824-shell="true" data-v825-shell="true" data-v826-shell="true" data-v827-shell="true">
+<body class="ns-app ns-tier-{{ _visual_tier }}{% if current_user %} ns-authenticated{% else %} ns-public{% endif %}{% if current_user and current_user.role == 'ADMIN' %} ns-admin{% endif %}" data-ns-route="{{ request.path }}" data-ns-plan="{{ _tier_label }}" data-v775-shell="true" data-v776-shell="true" data-v777-shell="true" data-v778-shell="true" data-v790-shell="true" data-v792-shell="true" data-v793-shell="true" data-v795-shell="true" data-v796-shell="true" data-v797-shell="true" data-v798-shell="true" data-v799-shell="true" data-v800-shell="true" data-v801-shell="true" data-v802-shell="true" data-v806-shell="true" data-v807-shell="true" data-v809-shell="true" data-v810-shell="true" data-v811-shell="true" data-v812-shell="true" data-v813-shell="true" data-v814-shell="true" data-v815-shell="true" data-v816-shell="true" data-v817-shell="true" data-v818-shell="true" data-v819-shell="true" data-v820-shell="true" data-v821-shell="true" data-v822-shell="true" data-v823-shell="true" data-v824-shell="true" data-v825-shell="true" data-v826-shell="true" data-v827-shell="true" data-v828-shell="true">
   <!-- NEMESIS V817 REFERENCE PIXEL POLISH ACTIVE -->
   <!-- NEMESIS V818 DAILY AUTOMATION OS ACTIVE -->
   <!-- NEMESIS V819 REFERENCE UI DEDUP LAYER PURGE ACTIVE -->
@@ -37,6 +37,7 @@
   <!-- NEMESIS V825 SHARK IDENTITY FLOATING BACKGROUND REFERENCE ACTIVE -->
   <!-- NEMESIS V826 FULL REFERENCE APP EXPERIENCE SCREEN COMPLETION ACTIVE -->
   <!-- NEMESIS V827 REFERENCE PHOTO REBUILD DESIGN SYSTEM ACTIVE -->
+  <!-- NEMESIS V828 REFERENCE PIXEL PARITY FULL ECOSYSTEM ACTIVE -->
   <div class="ns-ambient" aria-hidden="true"><i></i><i></i><i></i></div>
   {% if not current_user or current_user.role != 'ADMIN' %}
   <div class="v825-shark-background" aria-hidden="true">
@@ -51,7 +52,7 @@
   <div class="membership-energy-bar" aria-hidden="true"></div>
   <div class="ns-route-glow" aria-hidden="true"></div>
   <header class="top ns-topbar">
-    <div class="topin">
+    <div class="topin" data-plan="{{ _tier_label }}">
       {% set _brand_href = '/app' if current_user else '/' %}
       {% if current_user and current_user.role == 'ADMIN' %}{% set _brand_href = '/admin/control-center' %}{% endif %}
       <a class="brand v798-brand v808-brand" href="{{ _brand_href }}"><span class="mark v798-shark-mark v808-shark-mark"><img src="/static/img/shark-logo.svg" alt="" loading="eager"></span><span>NeMeSiS<br><b>SHARK PRO</b></span></a>
@@ -96,6 +97,30 @@
   </header>
 
   {# V806: navegación cliente sin barra lateral izquierda. PC usa la barra superior y móvil usa la inferior. #}
+
+  {% if current_user and current_user.role != 'ADMIN' %}
+  <aside class="v828-client-rail" aria-label="Navegación principal cliente V828">
+    <a class="v828-rail-brand" href="/app">
+      <img src="/static/img/shark-logo.svg" alt="" loading="eager">
+      <span>NeMeSiS<b>SHARK PRO</b></span>
+    </a>
+    <nav>
+      <a href="/app"><span>⌂</span><strong>Dashboard</strong></a>
+      <a href="/calendar?lane=today"><span>▦</span><strong>Partidos</strong></a>
+      <a href="/live"><span>●</span><strong>Directo</strong></a>
+      <a href="/picks"><span>◆</span><strong>Picks</strong></a>
+      <a href="/shark"><span>◥</span><strong>SHARK</strong></a>
+      <a href="/track-record"><span>↗</span><strong>Histórico</strong></a>
+      <a href="/telegram"><span>✈</span><strong>Telegram</strong></a>
+      <a href="/profile"><span>◎</span><strong>Perfil</strong></a>
+      <a href="/support"><span>?</span><strong>Soporte</strong></a>
+    </nav>
+    <footer>
+      <span class="v828-plan-chip">{{ _tier_label }}</span>
+      <a href="/logout">Salir</a>
+    </footer>
+  </aside>
+  {% endif %}
 
 
   {% if current_user and current_user.role == 'ADMIN' %}
@@ -208,7 +233,7 @@
     </div>
   </div>
   {% endif %}
-  {% if not current_user and request.path not in ['/shark', '/shark-ai'] %}
+  {% if not current_user and request.path not in ['/shark', '/shark-ai', '/shark-core'] %}
   <a class="v825-public-floating-shark" href="/shark" title="Abrir SHARK" aria-label="Abrir SHARK">
     <img src="/static/img/shark-logo.svg" alt="">
     <span>Abrir SHARK</span>

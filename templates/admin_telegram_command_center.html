@@ -6,7 +6,7 @@
 {% set schedule_items = d.get('schedule_items') or d.get('activity_plan') or [] %}
 {% set discard_reasons = d.get('discard_reasons') or d.get('discard_reasons_24h') or [] %}
 {% call ui.shell('Telegram', 'Telegram Command Center', 'Automatización, actividad y entregas') %}
-<section class="v794-admin-kpi-grid v826-certified-screen v827-certified-screen" data-v827-template="admin_telegram_command_center" data-v826-template="admin_telegram_command_center">
+<section class="v794-admin-kpi-grid v826-certified-screen v827-certified-screen v828-certified-screen" data-v827-template="admin_telegram_command_center" data-v828-template="admin_telegram_command_center" data-v826-template="admin_telegram_command_center">
   {{ ui.kpi('Canal principal', channel_label, 'Destino configurado en Render', '✈', 'blue') }}
   {{ ui.kpi('Enviados hoy', d.get('sent_today') or d.get('last_cron_sent_count') or '—', 'Telegram real', '✈', 'blue') }}
   {{ ui.kpi('Fallidos', d.get('failed_today') or d.get('last_failed_count') or '—', 'Dato real', '!', 'red') }}
@@ -62,4 +62,5 @@
 <section class="v794-admin-panel v826-certified-screen" data-v826-template="admin_telegram_command_center" style="margin-top:16px"><div class="v794-panel-head"><h2>Entregas recientes de Telegram</h2><a href="/api/admin/telegram/dedupe-status">Ver todas</a></div><div class="v797-truth-empty"><strong>Esperando entregas reales.</strong><span>Cuando Render Cron envíe mensajes, aparecerán aquí con delivery_id real.</span></div></section>
 {% endcall %}
 {% endblock %}
+
 

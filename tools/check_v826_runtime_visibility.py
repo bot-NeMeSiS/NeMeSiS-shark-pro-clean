@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 from __future__ import annotations
 
 import json
@@ -6,7 +6,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V826_FULL_REFERENCE_APP_EXPERIENCE_SCREEN_COMPLETION_FINAL"
-CURRENT_VERSION = "V827_REFERENCE_PHOTO_REBUILD_DESIGN_SYSTEM_FINAL"
+CURRENT_VERSION = "V828_REFERENCE_PIXEL_PARITY_FULL_ECOSYSTEM_FINAL"
 
 def read(rel: str) -> str:
     return (ROOT / rel).read_text(encoding="utf-8", errors="replace")
@@ -35,3 +35,4 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+

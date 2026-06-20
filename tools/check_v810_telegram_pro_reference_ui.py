@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 from pathlib import Path
 import re
 ROOT = Path(__file__).resolve().parents[1]
@@ -22,7 +22,7 @@ ok('/shark?team=' in (ROOT/'templates/team_detail.html').read_text(encoding='utf
 ok('TELEGRAM_PROFESSIONAL_COMPETITIONS_ONLY' in activity, 'falta filtro profesional Telegram')
 ok('filter_telegram_professional_items' in activity, 'falta funcion filtro items Telegram')
 ok('competicion_no_top_para_canal_telegram' in activity, 'falta motivo descarte ligas no top')
-ok('Agenda TOP del día' in formatter and 'PICK SHARK PRO' in formatter and 'LIVE SHARK' in formatter, 'formatos Telegram PRO no aplicados')
+ok('Agenda TOP del dÃ­a' in formatter and 'PICK SHARK PRO' in formatter and 'LIVE SHARK' in formatter, 'formatos Telegram PRO no aplicados')
 ok('/admin/telegram/pro-preview' in app, 'falta ruta preview Telegram PRO')
 ok((ROOT/'templates/admin_telegram_pro_preview.html').exists(), 'falta template preview Telegram PRO')
 for env in ['.env.example','.env.render.clean']:
@@ -37,3 +37,4 @@ for p in (ROOT/'templates').rglob('*.html'):
             bad.append((str(p.relative_to(ROOT)), href))
 ok(not bad, 'href malformados: '+repr(bad[:10]))
 print('V810 Telegram PRO + reference UI check OK')
+

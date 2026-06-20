@@ -238,7 +238,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V827_REFERENCE_PHOTO_REBUILD_DESIGN_SYSTEM_FINAL'
+APP_VERSION = 'V828_REFERENCE_PIXEL_PARITY_FULL_ECOSYSTEM_FINAL'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
@@ -13236,6 +13236,9 @@ def api_runtime_version():
         "has_v826_css": "V826 FULL REFERENCE EXPERIENCE START" in css_text,
         "has_v827_shell": "data-v827-shell" in base_template and "NEMESIS V827 REFERENCE PHOTO REBUILD DESIGN SYSTEM ACTIVE" in base_template,
         "has_v827_css": "V827 REFERENCE PHOTO REBUILD DESIGN SYSTEM START" in css_text,
+        "has_v828_shell": "data-v828-shell" in base_template and "NEMESIS V828 REFERENCE PIXEL PARITY FULL ECOSYSTEM ACTIVE" in base_template,
+        "has_v828_css": "V828 REFERENCE PIXEL PARITY FULL ECOSYSTEM START" in css_text,
+        "has_v827_design_system": "data-v827-shell" in base_template and "V827 REFERENCE PHOTO REBUILD DESIGN SYSTEM START" in css_text,
         "has_v826_full_screen": "data-v826-shell" in base_template and "V826 FULL REFERENCE EXPERIENCE START" in css_text,
         "has_v825_shark_identity": "data-v825-shell" in base_template and "V825 SHARK IDENTITY FLOATING BACKGROUND REFERENCE START" in css_text,
         "has_v824_visual": "data-v824-shell" in base_template and "V824 RENDER VIDEO PIXEL MATCH FINAL APP EXPERIENCE START" in css_text,
@@ -13245,7 +13248,7 @@ def api_runtime_version():
         "has_v820_crests": "data-v820-shell" in base_template and "V820 REAL CRESTS REFERENCE VISUAL PIXEL POLISH START" in css_text,
         "has_v819_dedup": "data-v819-shell" in base_template and "V819 REFERENCE UI DEDUP LAYER PURGE START" in css_text,
         "has_v818_automation": "/api/automation/master-tick" in app_py_text and "daily_automation_engine" in app_py_text,
-        "static_css_cache_busting": "V827_REFERENCE_PHOTO_REBUILD_DESIGN_SYSTEM_FINAL" in base_template,
+        "static_css_cache_busting": "V828_REFERENCE_PIXEL_PARITY_FULL_ECOSYSTEM_FINAL" in base_template,
         "crest_engine_loaded": runtime_stability.get("crest_engine_loaded"),
         "logo_cache_tables_ok": runtime_stability.get("logo_cache_tables_ok"),
         "team_logo_cache_count": runtime_stability.get("team_logo_cache_count"),

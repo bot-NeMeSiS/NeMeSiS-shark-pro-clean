@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import hashlib
 import json
@@ -81,3 +81,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+

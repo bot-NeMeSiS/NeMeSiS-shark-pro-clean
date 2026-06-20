@@ -1,4 +1,32 @@
-﻿# Continuación NeMeSiS SHARK PRO — V827
+﻿# Continuidad NeMeSiS SHARK PRO - V828
+
+## Estado actual
+
+La base oficial usada es `V827_REFERENCE_PHOTO_REBUILD_DESIGN_SYSTEM_FINAL` en `C:\Users\aloha\OneDrive\Escritorio\NeMeSiS shark pro`. No se usó el ZIP viejo mezclado con V818, cachés o proyecto anidado.
+
+La nueva versión activa es `V828_REFERENCE_PIXEL_PARITY_FULL_ECOSYSTEM_FINAL`.
+
+## Objetivo V828
+
+V828 no añade lógica nueva. Es una reconstrucción visual de paridad con las referencias: rail desktop, topbar más limpia, fondo SHARK más integrado, cards compactas, live/picks/partidos más densos, cliente/admin separados y móvil con bottom nav única.
+
+## Cambios principales
+
+- `VERSION.txt`, `APP_VERSION`, `base.html` y `/api/runtime-version` actualizados a V828.
+- Shell cliente desktop con `v828-client-rail`.
+- Topbar cliente menos cargada en escritorio.
+- Bottom nav móvil única.
+- SHARK flotante único y oculto en `/shark`, `/shark-ai` y `/shark-core`.
+- CSS V828 final en `static/app.css`, sin borrar compatibilidad V818-V827.
+- Templates reales marcados con `data-v828-template`.
+- Informes V828 creados en `reports/`.
+
+## Nota honesta
+
+Se inspeccionaron imágenes de referencia desde `imagenes bot proyecto.zip`, pero no se generaron screenshots reales de navegador. Por tanto, no se declara pixel-perfect. V828 sí acerca la app al lenguaje visual de las referencias.
+
+---
+# Continuación NeMeSiS SHARK PRO — V827
 
 ## Estado actual
 
@@ -908,5 +936,6 @@ No se declara pixel-perfect si no hay navegador/capturas reales en la sesion. La
 - Añadido scheduler profesional Telegram en `engines/telegram_professional_scheduler.py`, reutilizando filtros football-only existentes.
 - Añadidos endpoints `/api/automation/master-tick`, `/api/automation/health-check`, panel `/admin/daily-automation` y APIs admin V818.
 - Añadidos checks `tools/check_v818_*.py` y reportes QA V818.
+
 
 

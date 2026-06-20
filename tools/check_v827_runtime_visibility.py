@@ -4,15 +4,16 @@ import json
 from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V827_REFERENCE_PHOTO_REBUILD_DESIGN_SYSTEM_FINAL"
+CURRENT = "V828_REFERENCE_PIXEL_PARITY_FULL_ECOSYSTEM_FINAL"
 def read(rel: str) -> str:
     return (ROOT / rel).read_text(encoding="utf-8", errors="replace")
 def main() -> int:
     app, base, css = read('app.py'), read('templates/base.html'), read('static/app.css')
     checks = {
-        'version_txt_v827': (ROOT/'VERSION.txt').read_text(encoding='utf-8-sig').strip() == VERSION,
-        'app_version_v827': f"APP_VERSION = '{VERSION}'" in app or f'APP_VERSION = "{VERSION}"' in app,
-        'base_meta_v827': f'name="nemesis-version" content="{VERSION}"' in base,
-        'base_cache_v827': f'?v={VERSION}' in base,
+        'version_txt_current_or_v827': (ROOT/'VERSION.txt').read_text(encoding='utf-8-sig').strip() in {VERSION, CURRENT},
+        'app_version_current_or_v827': any(token in app for token in [f"APP_VERSION = '{VERSION}'", f'APP_VERSION = "{VERSION}"', f"APP_VERSION = '{CURRENT}'", f'APP_VERSION = "{CURRENT}"']),
+        'base_meta_current_or_v827': f'name="nemesis-version" content="{VERSION}"' in base or f'name="nemesis-version" content="{CURRENT}"' in base,
+        'base_cache_current_or_v827': f'?v={VERSION}' in base or f'?v={CURRENT}' in base,
         'base_shell_v827': 'data-v827-shell="true"' in base,
         'base_comment_v827': 'NEMESIS V827 REFERENCE PHOTO REBUILD DESIGN SYSTEM ACTIVE' in base,
         'css_marker_v827': 'V827 REFERENCE PHOTO REBUILD DESIGN SYSTEM START' in css and 'V827 REFERENCE PHOTO REBUILD DESIGN SYSTEM END' in css,
@@ -24,3 +25,4 @@ def main() -> int:
     return 1 if failed else 0
 if __name__ == '__main__':
     raise SystemExit(main())
+

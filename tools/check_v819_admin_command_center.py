@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """V819 admin command center and V818 automation compatibility checks."""
 from __future__ import annotations
 
@@ -49,3 +49,4 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+

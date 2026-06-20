@@ -1,12 +1,12 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 {% block content %}
 {% set auto = data.automation %}
 {% set last = auto.last or {} %}
 <section class="app-hero compact-hero admin-hero">
   <div>
-    <div class="kicker">Admin · Automatización diaria</div>
-    <h1>Sistema autónomo 10:00</h1>
-    <p class="lead">Actualiza partidos, live, resultados, SHARK, recomendaciones, Auto Picks, Telegram, membresías, backups, Warehouse y ROI.</p>
+    <div class="kicker">Admin Â· AutomatizaciÃ³n diaria</div>
+    <h1>Sistema autÃ³nomo 10:00</h1>
+    <p class="lead">Actualiza partidos, live, resultados, SHARK, recomendaciones, Auto Picks, Telegram, membresÃ­as, backups, Warehouse y ROI.</p>
     <div class="actions">
       <form method="post" action="/admin/automation">
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
@@ -19,7 +19,7 @@
   <aside class="hero-panel">
     <span class="pill">{{ 'Pendiente' if auto.due_now else 'Programado' }}</span>
     <div class="big-score">{{ last.status or 'Sin ciclo' }}</div>
-    <p class="small">Próxima referencia: {{ auto.next_run_label }}</p>
+    <p class="small">PrÃ³xima referencia: {{ auto.next_run_label }}</p>
   </aside>
 </section>
 
@@ -28,9 +28,9 @@
 {% endif %}
 
 <section class="band compact-band">
-  <div class="section-head"><h2>Última ejecución</h2><span class="pill">{{ (last.finished_at or '-')|madrid_datetime_label }}</span></div>
+  <div class="section-head"><h2>Ãšltima ejecuciÃ³n</h2><span class="pill">{{ (last.finished_at or '-')|madrid_datetime_label }}</span></div>
   <div class="grid admin-executive-grid">
-    <div class="card executive-card"><span>Duración</span><strong>{{ last.duration_seconds|default(0) }}s</strong></div>
+    <div class="card executive-card"><span>DuraciÃ³n</span><strong>{{ last.duration_seconds|default(0) }}s</strong></div>
     <div class="card executive-card"><span>Estado</span><strong>{{ last.status or 'Sin datos' }}</strong></div>
     <div class="card executive-card"><span>Partidos sincronizados</span><strong>{{ last.matches_synced|default(0) }}</strong></div>
     <div class="card executive-card"><span>Picks generados</span><strong>{{ last.picks_generated|default(0) }}</strong></div>
@@ -46,7 +46,7 @@
       {% for err in last.errors or [] %}
       <div class="list-row"><span>{{ err }}</span><strong>Revisar</strong></div>
       {% else %}
-      <div class="empty premium-empty">Sin errores registrados en el último ciclo.</div>
+      <div class="empty premium-empty">Sin errores registrados en el Ãºltimo ciclo.</div>
       {% endfor %}
     </div>
   </div>
@@ -54,7 +54,7 @@
     <div class="section-head"><h2>Tareas</h2><span class="pill">scheduler</span></div>
     <div class="stack">
       {% for name,item in (last.tasks or {}).items() %}
-      <div class="list-row"><span>{{ name }}<small>{{ item.processed|default(0) }} procesados · {{ item.inserted|default(0) }} nuevos</small></span><strong>{{ 'OK' if item.ok else 'ERROR' }}</strong></div>
+      <div class="list-row"><span>{{ name }}<small>{{ item.processed|default(0) }} procesados Â· {{ item.inserted|default(0) }} nuevos</small></span><strong>{{ 'OK' if item.ok else 'ERROR' }}</strong></div>
       {% else %}
       <div class="empty premium-empty">Ejecuta el primer ciclo para ver trazabilidad.</div>
       {% endfor %}
@@ -62,3 +62,4 @@
   </div>
 </section>
 {% endblock %}
+
