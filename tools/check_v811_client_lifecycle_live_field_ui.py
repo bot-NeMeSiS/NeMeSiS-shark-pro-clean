@@ -1,4 +1,4 @@
-﻿from pathlib import Path
+from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 app = (ROOT/'app.py').read_text(encoding='utf-8')
 engine = (ROOT/'engines/api_football_live_tracker_engine.py').read_text(encoding='utf-8')

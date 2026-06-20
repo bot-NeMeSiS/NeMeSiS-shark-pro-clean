@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """V814 route, link and navigation QA."""
 from __future__ import annotations
 

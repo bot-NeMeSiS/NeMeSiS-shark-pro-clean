@@ -1,4 +1,4 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 {% import "partials/admin_visual_system.html" as ui %}
 {% block content %}
 {% set d = data if data is defined and data.get is defined else {} %}
@@ -6,7 +6,7 @@
 {% set schedule_items = d.get('schedule_items') or d.get('activity_plan') or [] %}
 {% set discard_reasons = d.get('discard_reasons') or d.get('discard_reasons_24h') or [] %}
 {% call ui.shell('Telegram', 'Telegram Command Center', 'Automatización, actividad y entregas') %}
-<section class="v794-admin-kpi-grid v826-certified-screen v827-certified-screen v828-certified-screen v829-certified-screen" data-v827-template="admin_telegram_command_center" data-v828-template="admin_telegram_command_center" data-v829-template="admin_telegram_command_center" data-v826-template="admin_telegram_command_center">
+<section class="v794-admin-kpi-grid v826-certified-screen v827-certified-screen v828-certified-screen v829-certified-screen v832-certified-screen v830-certified-screen v832-certified-screen" data-v827-template="admin_telegram_command_center" data-v828-template="admin_telegram_command_center" data-v829-template="admin_telegram_command_center" data-v830-template="admin_telegram_command_center" data-v832-template="admin_telegram_command_center" data-v826-template="admin_telegram_command_center">
   {{ ui.kpi('Canal principal', channel_label, 'Destino configurado en Render', '✈', 'blue') }}
   {{ ui.kpi('Enviados hoy', d.get('sent_today') or d.get('last_cron_sent_count') or '—', 'Telegram real', '✈', 'blue') }}
   {{ ui.kpi('Fallidos', d.get('failed_today') or d.get('last_failed_count') or '—', 'Dato real', '!', 'red') }}

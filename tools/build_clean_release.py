@@ -327,6 +327,8 @@ def include(path: Path) -> bool:
             or rel_posix.startswith("reports/V827_")
             or rel_posix.startswith("reports/V828_")
             or rel_posix.startswith("reports/V829_")
+            or rel_posix.startswith("reports/V830_")
+            or rel_posix.startswith("reports/V832_")
             or rel_posix.startswith("reports/V811_")
             or rel_posix.startswith("reports/V810_")
             or rel_posix.startswith("reports/V809_")
@@ -396,6 +398,8 @@ def include(path: Path) -> bool:
             or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V827")
             or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V828")
             or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V829")
+            or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V830")
+            or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V832")
         )
     if any(part in EXCLUDE_DIRS for part in parts):
         return False

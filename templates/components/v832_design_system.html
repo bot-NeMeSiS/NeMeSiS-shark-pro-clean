@@ -1,0 +1,30 @@
+{# V832 lightweight visual helpers. Optional macros for future templates; no data writes, no side effects. #}
+{% macro premium_empty(title, text, primary_href='/partidos', primary_label='Ver partidos', secondary_href='/shark', secondary_label='Abrir SHARK') -%}
+  <section class="v832-premium-empty empty-state">
+    <strong>{{ title }}</strong>
+    <p>{{ text }}</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{ primary_href }}">{{ primary_label }}</a>
+      <a class="btn" href="{{ secondary_href }}">{{ secondary_label }}</a>
+    </div>
+  </section>
+{%- endmacro %}
+
+{% macro action_grid(items) -%}
+  <nav class="v832-action-grid" aria-label="Accesos rápidos">
+    {% for item in items %}
+      <a class="card" href="{{ item.href }}">
+        <span>{{ item.kicker }}</span>
+        <strong>{{ item.label }}</strong>
+      </a>
+    {% endfor %}
+  </nav>
+{%- endmacro %}
+
+{% macro admin_command_card(title, value, detail='', href='#') -%}
+  <a class="v832-admin-command card" href="{{ href }}">
+    <span>{{ title }}</span>
+    <strong>{{ value }}</strong>
+    {% if detail %}<small>{{ detail }}</small>{% endif %}
+  </a>
+{%- endmacro %}

@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """V814 full ecosystem reconciliation checks."""
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """V813 full ecosystem certification checks."""
 from __future__ import annotations
 

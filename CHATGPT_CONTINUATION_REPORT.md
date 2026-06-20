@@ -966,3 +966,53 @@ No se declara pixel-perfect si no hay navegador/capturas reales en la sesion. La
 
 
 
+# Continuación V830 - Mobile Bottom Nav Pixel QA Reference Final
+
+## Estado inicial
+
+La base real aplicada era `V829_MOBILE_LINKED_ECOSYSTEM_FINAL_APP_EXPERIENCE`. La app ya tenía sistema visual móvil y ecosistema enlazado, pero la captura real del usuario mostraba un fallo grave en móvil: la barra inferior aparecía desplazada/cortada y solo se veían parcialmente `Directo`, `Picks` y `SHARK`. También aparecía una flecha flotante inferior que no encajaba con el diseño premium.
+
+## Cambios realizados
+
+- Versionado actualizado a `V830_MOBILE_BOTTOM_NAV_PIXEL_QA_REFERENCE_FINAL`.
+- `base.html` actualizado con meta, cache busting y `data-v830-shell`.
+- `/api/runtime-version` ampliado con `has_v830_shell` y `has_v830_css`.
+- `static/app.css` recibe una capa final `V830 MOBILE BOTTOM NAV PIXEL QA`.
+- Bottom nav móvil centrada con `left:50%`, `transform:translateX(-50%)`, ancho controlado y 5 enlaces visibles.
+- Scroll-to-top oculto en móvil para eliminar la flecha rara.
+- Floating SHARK recolocado por encima de la barra inferior y oculto en `/shark`, `/shark-ai`, `/shark-core` y admin.
+- Protección extra contra overflow horizontal en móvil.
+- Plantillas reales marcadas con `data-v830-template` y `v830-certified-screen`.
+- Checks V830 añadidos para runtime, bottom nav, floating SHARK, overflow, cobertura de pantallas y compatibilidad V818-V829.
+
+## Estado real
+
+V830 no añade funciones. Es una corrección quirúrgica de experiencia móvil y estabilidad visual. Conserva V818-V829, Render Cron, Telegram automático, DB_PATH, Madrid Time, pagos, sesiones, picks, live, partidos, SHARK y escudos ligeros.
+
+## Pendiente recomendado
+
+Abrir en móvil real 390px/430px `/app`, `/partidos`, `/live`, `/picks`, `/shark`, `/profile`, `/telegram` y `/support` para confirmar visualmente que la bottom nav queda centrada y completa. No se declara pixel-perfect si no hay screenshots reales.
+# Continuación V832 - Full App Reference Visual GitHub Render Workflow Final
+
+## Estado inicial
+
+La base real detectada fue `V830_MOBILE_BOTTOM_NAV_PIXEL_QA_REFERENCE_FINAL`. V830 dejó corregida la barra inferior móvil, el floating SHARK y el overflow horizontal. No había V831 aplicada en la carpeta oficial.
+
+## Cambios realizados
+
+- Versión activa actualizada a `V832_FULL_APP_REFERENCE_VISUAL_GITHUB_RENDER_WORKFLOW_FINAL`.
+- `/api/runtime-version` ampliado con `has_v832_shell`, `has_v832_css` y `has_v830_bottom_nav_fix`.
+- `base.html` actualizado con meta, cache busting, comentario y `data-v832-shell`.
+- `static/app.css` recibe una capa final V832 para unificar cliente, admin, cards, botones, formularios, crests, desktop y móvil.
+- Plantillas reales marcadas con `data-v832-template` y `v832-certified-screen`.
+- Añadido `templates/components/v832_design_system.html` con macros opcionales ligeras.
+- Añadidos informes V832 sobre fuente real, fotos/rutas, diseño, móvil, desktop, enlaces, workflow GitHub/Render/Codex, limpieza visual, screenshots y estabilidad.
+- Añadidos checks V832 para runtime, visual mobile/desktop, enlaces, limpieza de capas, workflow y compatibilidad V818-V832.
+
+## GitHub / Render
+
+Git no estaba disponible en PATH durante esta ejecución, así que no se hizo commit ni push. Queda documentado usar GitHub Desktop con rama sugerida `v832-full-app-reference-workflow-final`, sin subir secretos, DB, `.venv`, caches, ZIPs viejos ni capturas.
+
+## Estado
+
+V832 no añade datos ficticios ni toca lógica crítica. Es una consolidación visual y operativa para que la app esté más unida y el flujo de release sea más claro.

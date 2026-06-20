@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 from __future__ import annotations
 
 import json
@@ -8,6 +8,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V829_MOBILE_LINKED_ECOSYSTEM_FINAL_APP_EXPERIENCE"
+CURRENT_VERSION = "V832_FULL_APP_REFERENCE_VISUAL_GITHUB_RENDER_WORKFLOW_FINAL"
 
 
 def main() -> int:
@@ -35,7 +36,7 @@ def main() -> int:
         "has_v818_automation",
     ]
     missing = [key for key in required if not data.get(key)]
-    ok = response.status_code == 200 and data.get("app_version") == VERSION and data.get("version_txt") == VERSION and not missing
+    ok = response.status_code == 200 and data.get("app_version") in {VERSION, CURRENT_VERSION} and data.get("version_txt") in {VERSION, CURRENT_VERSION} and not missing
     print(json.dumps({"ok": ok, "status": response.status_code, "version": data.get("app_version"), "missing": missing}, ensure_ascii=False, indent=2))
     return 0 if ok else 1
 
