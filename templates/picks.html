@@ -7,17 +7,17 @@
 <section class="v799-screen v799-picks-screen v815-certified-screen v815-picks-screen v816-certified-screen v816-picks-screen v817-certified-screen v817-picks-screen v819-certified-screen v819-picks-screen v820-certified-screen v820-picks-screen v823-certified-screen v823-picks-screen v824-certified-screen v824-picks-screen v825-certified-screen v826-certified-screen v827-certified-screen v828-certified-screen v829-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v830-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v825-picks-screen" data-v815-template="picks" data-v816-template="picks" data-v817-template="picks" data-v819-template="picks" data-v820-template="picks" data-v823-template="picks" data-v824-template="picks" data-v825-template="picks" data-v827-template="picks" data-v828-template="picks" data-v829-template="picks" data-v830-template="picks" data-v832-template="picks" data-v833-template="picks" data-v836-template="picks" data-v837-template="picks" data-v826-template="picks">
   <div class="v799-appbar">
     <div>
-      <span class="v799-kicker">Picks publicados ? selecciÁn real</span>
+      <span class="v799-kicker">Picks publicados · selección real</span>
       <h1>Picks SHARK</h1>
-      <p>QuÁ apostar, partido, hora Madrid, cuota, stake, riesgo y motivo. Sin pick real, no se muestra selecciÁn inventada.</p>
+      <p>Qué apostar, partido, hora Madrid, cuota, stake, riesgo y motivo. Sin pick real, no se muestra selección inventada.</p>
     </div>
     <div class="v799-appbar-actions"><a href="/combis">Combis</a><a class="primary" href="/shark">Preguntar SHARK</a></div>
   </div>
 
   {% include "partials/client_flow_bar.html" %}
 
-  <section class="v802-pick-command" aria-label="C?mo leer los picks">
-    <article><span>1</span><strong>QuÁ apostar</strong><small>selecciÁn clara</small></article>
+  <section class="v802-pick-command" aria-label="Cómo leer los picks">
+    <article><span>1</span><strong>Qué apostar</strong><small>selección clara</small></article>
     <article><span>2</span><strong>Cuota y stake</strong><small>si existen en el pick real</small></article>
     <article><span>3</span><strong>Riesgo</strong><small>motivo y cuidado</small></article>
     <article><span>4</span><strong>SHARK</strong><small>pregunta antes de entrar</small></article>
@@ -32,11 +32,11 @@
 
   <nav class="v799-filterbar"><a class="active" href="/picks">Destacados</a><a href="#activos">Activos</a><a href="/track-record">Cerrados</a><a href="/combis">Combis</a><a href="/mercados">Mercados</a></nav>
 
-  <section class="v800-command-row v800-pick-command" aria-label="Uso r?pido de picks">
+  <section class="v800-command-row v800-pick-command" aria-label="Uso rápido de picks">
     <a href="#activos"><b>{{ stats.get('published', picks|length) }}</b><span>Activos</span><small>Picks publicados</small></a>
-    <a href="/calendar?lane=with_pick"><b>▦</b><span>Partidos</span><small>Con se?al</small></a>
+    <a href="/calendar?lane=with_pick"><b>▦</b><span>Partidos</span><small>Con señal</small></a>
     <a href="/combis"><b>♛</b><span>Combis</span><small>Responsables</small></a>
-    <a href="/track-record"><b>↗</b><span>HistÁrico</span><small>Resultados reales</small></a>
+    <a href="/track-record"><b>↗</b><span>Histórico</span><small>Resultados reales</small></a>
   </section>
 
   {% if featured %}
@@ -45,15 +45,15 @@
   <article class="v799-feature-pick">
     <div class="v799-feature-pick-left">
       <span class="v799-live-pill on">Pick destacado</span>
-      <h2>{{ featured.get('client_selection_label') or featured.get('selection_display') or featured.get('selection') or 'SelecciÁn pendiente' }}</h2>
+      <h2>{{ featured.get('client_selection_label') or featured.get('selection_display') or featured.get('selection') or 'Selección pendiente' }}</h2>
       <p>{{ featured.get('analysis_summary') or featured.get('reasoning') or 'Motivo pendiente en los datos del pick. Revisa el detalle antes de decidir.' }}</p>
 
       <div class="v800-decision-grid" aria-label="Lectura r?pida del pick">
-        <article><span>QuÁ apostar</span><strong>{{ featured.get('client_selection_label') or featured.get('selection_display') or featured.get('selection') or 'SelecciÁn pendiente' }}</strong></article>
-        <article><span>Por quÁ entrar</span><strong>{{ featured.get('analysis_summary') or featured.get('reasoning') or 'Motivo pendiente en el pick real' }}</strong></article>
+        <article><span>Qué apostar</span><strong>{{ featured.get('client_selection_label') or featured.get('selection_display') or featured.get('selection') or 'Selección pendiente' }}</strong></article>
+        <article><span>Por qué entrar</span><strong>{{ featured.get('analysis_summary') or featured.get('reasoning') or 'Motivo pendiente en el pick real' }}</strong></article>
         <article><span>Cuidado</span><strong>{{ featured.get('risk_note') or featured.get('risk_level') or 'Riesgo pendiente' }}</strong></article>
       </div>
-      <div class="v799-feature-actions"><a class="primary" href="{{ featured.get('client_match_url') or ('/match/' ~ (featured.get('match_id') or featured.get('id'))) }}">Ver anÁlisis completo</a><a href="/shark?pick={{ featured.get('id') }}">Preguntar SHARK</a></div>
+      <div class="v799-feature-actions"><a class="primary" href="{{ featured.get('client_match_url') or ('/match/' ~ (featured.get('match_id') or featured.get('id'))) }}">Ver análisis completo</a><a href="/shark?pick={{ featured.get('id') }}">Preguntar SHARK</a></div>
     </div>
     <div class="v799-feature-teams">
       <span>{{ crest(home_identity, featured.get('home_team') or 'Local', 'compact') }}<strong>{{ featured.get('home_team') or 'Local' }}</strong></span>
@@ -68,13 +68,13 @@
       <div><dt>Confianza</dt><dd>{{ featured.get('confidence') or featured.get('quality_score') or '—' }}{% if featured.get('confidence') or featured.get('quality_score') %}%{% endif %}</dd></div>
     </dl>
     <div class="v799-reason-grid">
-      <section><strong>Por quÁ entrar</strong><p>{{ featured.get('reasoning') or featured.get('analysis_summary') or 'Sin motivo real ampliado todavÁa.' }}</p></section>
+      <section><strong>Por qué entrar</strong><p>{{ featured.get('reasoning') or featured.get('analysis_summary') or 'Sin motivo real ampliado todavía.' }}</p></section>
       <section><strong>Riesgos</strong><p>{{ featured.get('risk_note') or 'Sin nota de riesgo ampliada. Revisa cuota, alineaciones y mercado antes de decidir.' }}</p></section>
-      <section><strong>ConclusiÁn</strong><p>{{ featured.get('conclusion') or 'Valor pendiente de confirmar con datos completos del pick.' }}</p></section>
+      <section><strong>Conclusión</strong><p>{{ featured.get('conclusion') or 'Valor pendiente de confirmar con datos completos del pick.' }}</p></section>
     </div>
   </article>
   {% else %}
-  <div class="v799-empty hero"><strong>No hay picks activos ahora mismo.</strong><p>SHARK solo mostrarÁ picks publicados con datos reales. Puedes revisar partidos o volver m?s tarde.</p><a class="v799-button primary" href="/calendar?lane=today">Ver partidos de hoy</a></div>
+  <div class="v799-empty hero"><strong>No hay picks activos ahora mismo.</strong><p>SHARK solo mostrará picks publicados con datos reales. Cuotas pendientes si el proveedor aún no las trae. Puedes revisar partidos o volver más tarde.</p><a class="v799-button primary" href="/calendar?lane=today">Ver partidos de hoy</a></div>
   {% endif %}
 
   <section class="v799-pick-grid" id="activos">
@@ -82,12 +82,12 @@
     {% set home_identity = p|team_identity('home') %}
     {% set away_identity = p|team_identity('away') %}
     <article class="v799-pick-card">
-      <div class="v799-card-top"><span>{{ p.get('client_competition') or (p.get('competition_name') or 'CompeticiÁn')|competition_es }}</span><button class="fav-star" type="button" data-kind="pick" data-value="{{ p.get('id') }}" data-label="{{ p.get('selection_display') or p.get('selection') or 'Pick' }}">☆</button></div>
+      <div class="v799-card-top"><span>{{ p.get('client_competition') or (p.get('competition_name') or 'Competición')|competition_es }}</span><button class="fav-star" type="button" data-kind="pick" data-value="{{ p.get('id') }}" data-label="{{ p.get('selection_display') or p.get('selection') or 'Pick' }}">☆</button></div>
       <div class="v799-pick-teams">{{ crest(home_identity, p.get('home_team') or 'Local', 'compact') }}<b>VS</b>{{ crest(away_identity, p.get('away_team') or 'Visitante', 'compact') }}</div>
-      <strong>{{ p.get('client_selection_label') or p.get('selection_display') or p.get('selection') or 'SelecciÁn pendiente' }}</strong>
+      <strong>{{ p.get('client_selection_label') or p.get('selection_display') or p.get('selection') or 'Selección pendiente' }}</strong>
       <small>{{ p.get('client_full_datetime_label') or (p|match_full_datetime) }}</small>
       <dl><div><dt>Cuota</dt><dd>{{ p.get('client_odds_label') or p.get('odds') or '—' }}</dd></div><div><dt>Stake</dt><dd>{{ p.get('stake_units') or p.get('stake') or '—' }}{% if p.get('stake_units') or p.get('stake') %}u{% endif %}</dd></div><div><dt>Riesgo</dt><dd>{{ p.get('risk_level') or '—' }}</dd></div></dl>
-      <p>{{ p.get('analysis_summary') or p.get('reasoning') or 'ExplicaciÁn ampliada pendiente en los datos del pick.' }}</p>
+      <p>{{ p.get('analysis_summary') or p.get('reasoning') or 'Explicación ampliada pendiente en los datos del pick.' }}</p>
       <div class="v799-actions"><a href="{{ p.get('client_match_url') or ('/match/' ~ (p.get('match_id') or p.get('id'))) }}">Partido</a><a class="primary" href="/shark?pick={{ p.get('id') }}">SHARK</a></div>
     </article>
     {% endfor %}

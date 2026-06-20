@@ -1,0 +1,48 @@
+-- templates/admin_automation_center.html:15
+14: '  <div class="v794-admin-grid">'
+15: '    <article class="v794-admin-panel"><div class="v794-panel-head"><h2>Jobs programados</h2><span>{{ ui.status(\'6\',\'info\') }}</span></div><table class="v794-admin-table"><thead><tr><th>Job</th><th>Última ejecuciÁn</th><th>PrÁxima</th><th>DuraciÁn</th><th>Estado</th><th>Controles</th></tr></thead><tbody>{% set jobs=[(\'telegram_tick\',\'Procesa eventos y mensajes\',\'16:22:18\',\'16:30:00\',\'912 ms\'),(\'daily_automation\',\'AutomatizaciÁn diaria general\',\'16:00:05\',\'08:00:00\',\'1.43 s\'),(\'highlights_sync\',\'Sincroniza highlights\',\'15:58:11\',\'16:58:11\',\'287 ms\'),(\'picks_grading\',\'Califica resultados\',\'16:15:34\',\'17:15:34\',\'331 ms\'),(\'backups\',\'Backups automÁticos\',\'02:00:12\',\'02:00:00\',\'2.16 s\'),(\'data_sync\',\'Sincroniza datos externos\',\'16:10:47\',\'17:10:47\',\'413 ms\')] %}{% for name,desc,last,next,dur in jobs %}<tr><td><strong>{{ name }}</strong><br><small>{{ desc }}</small></td><td>—<br><span style="color:var(--v794-blue)">Esperando ejecuciÁn real</span></td><td>—</td><td>—</td><td>{{ ui.status(\'Activo\',\'ok\') }}</td><td>▶ â\x9dšâ\x9dš ⋮</td></tr>{% endfor %}</tbody></table></article>'
+16: '    <article class="v794-admin-panel"><div class="v794-panel-head"><h2>Calendario de ejecuciÁn por hora</h2><span>{{ ui.status(\'auto-refresh 15s\',\'ok\') }}</span></div><div class="v794-admin-heatmap">{% set rows=[\'telegram_tick\',\'daily_automation\',\'highlights_sync\',\'picks_grading\',\'backups\',\'data_sync\'] %}{% for r in rows %}<span>{{ r }}</span>{% for h in range(24) %}<i class="{{ \'on\' if r==\'telegram_tick\' and h % 2 == 0 else \'green\' if r==\'daily_automation\' and h in [8,16] else \'purple\' if r==\'highlights_sync\' and h in [4,7,10,14,18,22] else \'red\' if r==\'picks_grading\' and h in [3,9,16,19] else \'gold\' if r==\'backups\' and h==2 else \'on\' if r==\'data_sync\' and h in [0,1,4,6,10,12,15,18,20] else \'\' }}"></i>{% endfor %}{% endfor %}</div></article>'
+-- templates/admin_automation_center.html:19
+18: '  <aside class="v794-admin-grid">'
+19: '    <article class="v794-admin-panel"><div class="v794-panel-head"><h2>Acciones manuales</h2></div><div class="v794-action-grid" style="grid-template-columns:1fr"><a class="v794-action-card" href="/api/automation/telegram/tick"><i>▶</i><span><b>Ejecutar ahora</b><small>Forzar ejecuciÁn</small></span><em>›</em></a><a class="v794-action-card" href="/admin/automation-center"><i>â\x9dšâ\x9dš</i><span><b>Pausar scheduler</b><small>Detener ejecuciones</small></span><em>›</em></a><a class="v794-action-card" href="/admin/automation-center"><i>↻</i><span><b>Reintentar fallidas</b><small>Reintentar jobs con error</small></span><em>›</em></a></div></article>'
+20: '    <article class="v794-admin-panel"><div class="v794-panel-head"><h2>Diagn?stico de cron</h2></div><table class="v794-admin-table"><tbody><tr><td>Estado del servicio</td><td>{{ ui.status(\'Activo\',\'ok\') }}</td></tr><tr><td>Último heartbeat</td><td>—</td></tr><tr><td>Desviaci?n de tiempo</td><td>—</td></tr><tr><td>Jobs atrasados</td><td>—</td></tr><tr><td>Uso de memoria</td><td>—</td></tr><tr><td>Carga del sistema</td><td>—</td></tr></tbody></table></article>'
+-- templates/admin_dashboard.html:53
+52: '      <a href="/admin/matches-sync"><i>⚽</i><b>Partidos</b><small>Revisar calendario, resultados y enlaces.</small></a>'
+53: '      <a href="/admin/live-depth"><i>â—\x8f</i><b>Live API-Football</b><small>Tracker, presi?n y eventos reales.</small></a>'
+54: '      <a href="/admin/picks"><i>◎</i><b>Picks</b><small>Publicar y revisar picks reales.</small></a>'
+-- templates/calendar.html:33
+32: '    <a href="/calendar?lane=week"><i>◷</i><span>Semana</span><strong>{{ counts.get(\'week\',0) }}</strong><small>agenda</small></a>'
+33: '    <a class="live" href="/live"><i>â—\x8f</i><span>Directo</span><strong>{{ counts.get(\'live\',0) }}</strong><small>en juego</small></a>'
+34: '    <a class="picks" href="/calendar?lane=with_pick"><i>◆</i><span>Con pick</span><strong>{{ counts.get(\'picks\',0) }}</strong><small>seÁales</small></a>'
+-- templates/client_app_center.html:56
+55: '    <a href="/calendar?lane=today"><i>▦</i><span>Hoy</span><strong>{{ today_count }}</strong><small>partidos reales</small></a>'
+56: '    <a href="/live" class="live"><i>â—\x8f</i><span>Directo</span><strong>{{ live_count }}</strong><small>minuto/marcador</small></a>'
+57: '    <a href="/picks" class="pick"><i>◆</i><span>Picks</span><strong>{{ picks_count }}</strong><small>publicados</small></a>'
+-- templates/home.html:75
+74: '        <div class="v799-hero-copy">'
+75: '          <span class="v799-live-pill {{ \'on\' if live_count else \'\' }}">{{ \'â—\x8f Hay directo\' if live_count else \'○ Sin directo ahora\' }}</span>'
+76: '          <h2>Centro SHARK de hoy</h2>'
+-- templates/home.html:85
+84: '        <a href="/calendar?lane=today"><i>▦</i><span>Partidos hoy</span><strong>{{ today_count }}</strong><small>calendario real</small></a>'
+85: '        <a class="live" href="/live"><i>â—\x8f</i><span>En directo</span><strong>{{ live_count }}</strong><small>marcador real si existe</small></a>'
+86: '        <a class="picks" href="/picks"><i>◆</i><span>Picks activos</span><strong>{{ picks_count }}</strong><small>publicados</small></a>'
+-- templates/home.html:154
+153: '        </div>'
+154: '        <div class="v799-phone-nav"><i>⌂</i><i>▦</i><i>â—\x8f</i><i>◆</i><i>◥</i></div>'
+155: '      </article>'
+-- templates/live.html:62
+61: '  <section class="v799-kpi-strip">'
+62: '    <a class="live" href="/live"><i>â—\x8f</i><span>En directo</span><strong>{{ counts.get(\'live\',0) }}</strong><small>jug?ndose</small></a>'
+63: '    <a href="/live?f=break"><i>◷</i><span>Descanso</span><strong>{{ counts.get(\'halftime\', counts.get(\'break\',0)) }}</strong><small>HT</small></a>'
+-- templates/match_detail.html:23
+22: '  <div class="v799-match-top">'
+23: '    <a class="v799-back" href="/calendar">â†\x90 Volver a partidos</a>'
+24: '    <div class="v799-match-actions"><a href="/shark?match={{ m.get(\'id\') }}">Preguntar SHARK</a><button class="fav-star" type="button" data-kind="match" data-value="{{ m.get(\'id\') }}" data-label="{{ ctx.safe_home }} vs {{ ctx.safe_away }}">☆ Favorito</button></div>'
+-- templates/match_detail.html:179
+178: '      <article class="v799-card v800-side-cta" id="shark"><div class="v799-section-head"><div><span>SHARK</span><h2>Lectura</h2></div><a href="/shark?match={{ m.get(\'id\') }}">Abrir →</a></div><div class="v799-notes-list">{% for note in detail.get(\'shark_notes\') or [] %}<p>{{ note }}</p>{% else %}<p>SHARK mostrarÁ lectura cuando haya datos suficientes.</p>{% endfor %}</div><a class="v799-button primary" href="/shark?match={{ m.get(\'id\') }}">Preguntar por este partido</a></article>'
+179: '      <article class="v799-mobile-preview mini"><div class="v799-phone-top"><span>Partido</span><strong>{{ ctx.client_status_label or \'Estado\' }}</strong></div><div class="v799-phone-match"><strong>{{ ctx.safe_home }}</strong><b>{{ ctx.client_score_label or \'VS\' }}</b><em>{{ ctx.safe_away }}</em><small>{{ ctx.client_time_label or \'Hora pendiente\' }}</small></div><div class="v799-phone-nav"><i>▦</i><i>â—\x8f</i><i>◆</i><i>◥</i></div></article>'
+180: '    </aside>'
+-- templates/telegram.html:13
+12: '    <a class="telegram" href="/telegram"><i>✈</i><span>Bot</span><strong>{{ \'S?\' if state.linked else \'Pendiente\' }}</strong><small>vinculaci?n</small></a>'
+13: '    <a href="/telegram"><i>â—\x8f</i><span>Canal</span><strong>{{ \'Activo\' if data.telegram.enabled or data.telegram.legacy_enabled else \'Pausa\' }}</strong><small>estado</small></a>'
+14: '    <a href="/telegram"><i>◷</i><span>Último env?o</span><strong>{{ data.telegram.last_sent_at|madrid_datetime_label if data.telegram.last_sent_at else \'—\' }}</strong><small>Madrid</small></a>'

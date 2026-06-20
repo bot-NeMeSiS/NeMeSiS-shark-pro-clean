@@ -1,79 +1,28 @@
-# CHATGPT CONTINUATION REPORT
+# CHATGPT CONTINUATION REPORT - V838
 
-## Proyecto
+## Estado actual
 
-NeMeSiS SHARK PRO.
+NeMeSiS SHARK PRO queda en `V838_FULL_PRODUCT_ARCHITECTURE_FINAL_REVIEW_AND_COMPLETION`, sobre base real V837 y carpeta oficial. No se usaron ZIPs antiguos como base.
 
-Carpeta oficial:
+## Cambios V838
 
-`C:\Users\aloha\OneDrive\Escritorio\NeMeSiS shark pro`
+- Revisi?n de arquitectura, producto, m?vil, desktop, admin, Telegram/Cron, datos reales y release.
+- Versionado V838 en `VERSION.txt`, `APP_VERSION`, `base.html` y `/api/runtime-version`.
+- Capa CSS final de cohesi?n visual para cliente/admin, m?vil/desktop, bottom nav, floating SHARK, cards, botones, formularios y empty states.
+- Checks V838 nuevos para runtime, m?vil, desktop, rutas, datos reales, Telegram/Cron, seguridad y limpieza.
 
-## Versión actual
+## Estado Telegram/Cron
 
-`V837_REFERENCE_PHOTO_PERFECTION_REAL_QA_FINAL`
-
-Base real usada:
-
-`V836_AUTONOMOUS_REFERENCE_VISUAL_REVIEW_FINAL_QA`
-
-## Resumen ejecutivo
-
-V837 continúa la línea V836, pero orientada a perfección visual frente a las referencias locales. No se rehizo la app ni se tocaron flujos sensibles. Se reforzó branding, favicon, topbar, rail, bottom nav, floating SHARK, cards, botones, admin command center, responsive móvil/desktop y checks finales.
-
-## Referencias usadas
-
-Carpeta:
-
-`reports\screenshots_v828\reference_samples\`
-
-Referencias:
-
-- `reference_1.png`: command center admin.
-- `reference_2.png`: Telegram command center.
-- `reference_3.png`: pagos y membresías.
-- `reference_4.png`: centro de automatización.
-
-## Cambios V837
-
-- `VERSION.txt`, `APP_VERSION`, `base.html` y `/api/runtime-version` actualizados a V837.
-- Añadido `data-v837-shell="true"`.
-- Añadido favicon SVG con `static/img/shark-logo.svg`.
-- Añadido bloque CSS `V837 REFERENCE PHOTO PERFECTION REAL QA`.
-- Plantillas reales marcadas con `data-v837-template` y `v837-certified-screen`.
-- Añadidos reports V837.
-- Añadidos checks V837.
-- `tools/build_clean_release.py` actualizado para incluir reports V837 y auditorías V837.
-
-## Estado Telegram
-
-Telegram automático, Render Cron, cola y dedupe se preservan. V837 no modifica la lógica de Telegram.
+La l?gica estable no se ha tocado. Master tick y health-check siguen protegidos por secret. En local no se env?an mensajes reales.
 
 ## Estado SHARK
 
-SHARK se mantiene como identidad central. Floating SHARK queda en cliente, no aparece en admin y se oculta en páginas SHARK para evitar duplicado.
+SHARK sigue como identidad visual central. Floating SHARK no se duplica en rutas SHARK ni aparece en admin.
 
-## Datos reales
+## Estado Render/GitHub
 
-Reglas preservadas:
+La release limpia se genera con `tools/build_clean_release.py`. No se hace push autom?tico ni se incluyen secretos.
 
-- No inventar partidos.
-- No inventar resultados.
-- No inventar cuotas.
-- No inventar picks.
-- No inventar minutos/eventos/stats.
-- Pasado sin marcador = Resultado pendiente.
-- Sin picks = estado premium.
-- Sin cuotas = cuotas pendientes.
-- Madrid Time siempre.
+## Nota honesta
 
-## Estado admin
-
-Admin queda como command center separado: rail propio, dock propio, sin bottom nav cliente, sin floating SHARK cliente, tablas responsive y botones principales enlazados.
-
-## Pendiente honesto
-
-No declarar pixel-perfect si no se generan screenshots reales de navegador. V837 deja checks, reports y CSS para validación final.
-
-## ZIP objetivo
-
-`NeMeSiS_SHARK_PRO_V837_REFERENCE_PHOTO_PERFECTION_REAL_QA_FINAL_RENDER_READY.zip`
+No hay screenshots reales generados en navegador, por lo que no se declara pixel-perfect. La QA se basa en CSS/templates/rutas/checks/smoke tests.
