@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 {% from "partials/team_identity.html" import crest %}
 {% block content %}
 {% set live = data.get('live_experience') or {} %}
@@ -9,12 +9,12 @@
 {% set ns = namespace(matches=[]) %}
 {% for day in live.get('day_groups') or [] %}{% for league in day.leagues %}{% for m in league.matches %}{% set _ = ns.matches.append(m) %}{% endfor %}{% endfor %}{% endfor %}
 {% set featured = ns.matches[0] if ns.matches else none %}
-<section class="v799-screen v799-live-screen v811-client-screen v815-certified-screen v815-live-screen v816-certified-screen v816-live-screen v817-certified-screen v817-live-screen v819-certified-screen v819-live-screen v820-certified-screen v820-live-screen v823-certified-screen v823-live-screen v824-certified-screen v824-live-screen v825-certified-screen v826-certified-screen v827-certified-screen v828-certified-screen v829-certified-screen v832-certified-screen v833-certified-screen v830-certified-screen v833-certified-screen v832-certified-screen v833-certified-screen v825-live-screen" data-v815-template="live" data-v816-template="live" data-v817-template="live" data-v819-template="live" data-v820-template="live" data-v823-template="live" data-v824-template="live" data-v825-template="live" data-v827-template="live" data-v828-template="live" data-v829-template="live" data-v830-template="live" data-v832-template="live" data-v833-template="live" data-v826-template="live">
+<section class="v799-screen v799-live-screen v811-client-screen v815-certified-screen v815-live-screen v816-certified-screen v816-live-screen v817-certified-screen v817-live-screen v819-certified-screen v819-live-screen v820-certified-screen v820-live-screen v823-certified-screen v823-live-screen v824-certified-screen v824-live-screen v825-certified-screen v826-certified-screen v827-certified-screen v828-certified-screen v829-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v830-certified-screen v833-certified-screen v836-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v825-live-screen" data-v815-template="live" data-v816-template="live" data-v817-template="live" data-v819-template="live" data-v820-template="live" data-v823-template="live" data-v824-template="live" data-v825-template="live" data-v827-template="live" data-v828-template="live" data-v829-template="live" data-v830-template="live" data-v832-template="live" data-v833-template="live" data-v836-template="live" data-v826-template="live">
   <div class="v799-appbar v811-client-appbar">
     <div>
-      <span class="v799-kicker">Marcador real · live center</span>
+      <span class="v799-kicker">Marcador real ? live center</span>
       <h1>Directo</h1>
-      <p>Marcador, minuto, estado y acceso al partido. Si no hay directo real, se muestra vacío claro.</p>
+      <p>Marcador, minuto, estado y acceso al partido. Si no hay directo real, se muestra vac?o claro.</p>
     </div>
     <div class="v799-appbar-actions"><a href="/calendar?lane=today">Agenda</a><a class="primary" href="/shark">Preguntar SHARK</a></div>
   </div>
@@ -25,7 +25,7 @@
     <article class="{{ 'is-on' if api_tracker.get('configured') or api_quality.get('configured') else 'is-off' }}">
       <span>API-Football Pro</span>
       <strong>{{ 'Activo' if api_tracker.get('configured') or api_quality.get('configured') else 'Pendiente de clave en Render' }}</strong>
-      <small>{{ api_tracker.get('message') or api_quality.get('message') or 'Live tracker con caché segura y datos reales.' }}</small>
+      <small>{{ api_tracker.get('message') or api_quality.get('message') or 'Live tracker con cach? segura y datos reales.' }}</small>
     </article>
     <article>
       <span>Live avanzado</span>
@@ -33,9 +33,9 @@
       <small>partidos desde fuentes reales</small>
     </article>
     <article>
-      <span>Caché</span>
-      <strong>{% if api_quality.get('cache_age_seconds') is not none %}{{ api_quality.get('cache_age_seconds') }}s{% elif api_tracker.get('cache_age_seconds') is not none %}{{ api_tracker.get('cache_age_seconds') }}s{% else %}—{% endif %}</strong>
-      <small>protege llamadas y créditos</small>
+      <span>Cach?</span>
+      <strong>{% if api_quality.get('cache_age_seconds') is not none %}{{ api_quality.get('cache_age_seconds') }}s{% elif api_tracker.get('cache_age_seconds') is not none %}{{ api_tracker.get('cache_age_seconds') }}s{% else %}â€”{% endif %}</strong>
+      <small>protege llamadas y cr?ditos</small>
     </article>
     <a href="/live?refresh=1" class="v803-refresh-live">Actualizar directo</a>
   </section>
@@ -46,23 +46,23 @@
       <strong>{{ api_quality.get('status') or 'Esperando datos' }}</strong>
       <small>{{ api_quality.get('message') or 'La app muestra solo datos reales disponibles.' }}</small>
     </article>
-    <article><span>Con estadísticas</span><strong>{{ api_quality.get('fixtures_with_stats',0) }}</strong><small>fixtures con datos API</small></article>
+    <article><span>Con estad?sticas</span><strong>{{ api_quality.get('fixtures_with_stats',0) }}</strong><small>fixtures con datos API</small></article>
     <article><span>Con eventos</span><strong>{{ api_quality.get('fixtures_with_events',0) }}</strong><small>timeline real</small></article>
-    <article><span>Presión SHARK</span><strong>{{ api_quality.get('fixtures_with_pressure',0) }}</strong><small>calculada con datos reales</small></article>
+    <article><span>Presi?n SHARK</span><strong>{{ api_quality.get('fixtures_with_pressure',0) }}</strong><small>calculada con datos reales</small></article>
     <article><span>Ataques peligrosos</span><strong>{{ api_quality.get('fixtures_with_dangerous_attacks',0) }}</strong><small>solo si el feed lo trae</small></article>
   </section>
 
   <section class="v802-live-command" aria-label="Uso de directo">
     <article><span>Ahora</span><strong>{{ counts.get('live',0) }}</strong><small>partidos en vivo</small></article>
     <article><span>Resultados</span><strong>{{ counts.get('finished',0) }}</strong><small>cerrados reales</small></article>
-    <article><span>Ruta</span><strong>Directo → Detalle → SHARK</strong><small>sin enlaces sueltos</small></article>
+    <article><span>Ruta</span><strong>Directo â†’ Detalle â†’ SHARK</strong><small>sin enlaces sueltos</small></article>
   </section>
 
   <section class="v799-kpi-strip">
-    <a class="live" href="/live"><i>●</i><span>En directo</span><strong>{{ counts.get('live',0) }}</strong><small>jugándose</small></a>
-    <a href="/live?f=break"><i>◷</i><span>Descanso</span><strong>{{ counts.get('halftime', counts.get('break',0)) }}</strong><small>HT</small></a>
-    <a href="/live?f=finished"><i>✓</i><span>Finalizados</span><strong>{{ counts.get('finished',0) }}</strong><small>resultado</small></a>
-    <a class="picks" href="/picks"><i>◆</i><span>Picks</span><strong>{{ counts.get('picks',0) or '—' }}</strong><small>si existen</small></a>
+    <a class="live" href="/live"><i>â—</i><span>En directo</span><strong>{{ counts.get('live',0) }}</strong><small>jug?ndose</small></a>
+    <a href="/live?f=break"><i>â—·</i><span>Descanso</span><strong>{{ counts.get('halftime', counts.get('break',0)) }}</strong><small>HT</small></a>
+    <a href="/live?f=finished"><i>âœ“</i><span>Finalizados</span><strong>{{ counts.get('finished',0) }}</strong><small>resultado</small></a>
+    <a class="picks" href="/picks"><i>â—†</i><span>Picks</span><strong>{{ counts.get('picks',0) or 'â€”' }}</strong><small>si existen</small></a>
   </section>
 
   <nav class="v799-filterbar">{% for key,label in live.get('filters') or [] %}<a class="{{ 'active' if lane == key else '' }}" href="/live?f={{ key }}">{{ label }}</a>{% endfor %}</nav>
@@ -76,7 +76,7 @@
       <strong>{{ m.get('safe_away') or m.get('away_team') or 'Visitante' }}</strong>
     </a>
     {% else %}
-    <div><strong>Sin directos reales ahora</strong><span>La app mostrará marcador cuando la API lo aporte.</span></div>
+    <div><strong>Sin directos reales ahora</strong><span>La app mostrar? marcador cuando la API lo aporte.</span></div>
     {% endfor %}
   </section>
 
@@ -85,7 +85,7 @@
       {% if featured %}
       {% set home_identity = featured.get('home_identity') or {} %}{% set away_identity = featured.get('away_identity') or {} %}
       <article class="v799-live-feature {{ 'is-live' if featured.get('live_bucket') == 'live' else '' }}">
-        <div class="v799-live-league"><strong>{{ (featured.get('live_competition_display') or featured.get('competition_name') or 'Competición')|competition_es }}</strong><span>{{ featured.get('live_status_label') or 'Estado pendiente' }}</span></div>
+        <div class="v799-live-league"><strong>{{ (featured.get('live_competition_display') or featured.get('competition_name') or 'Competici?n')|competition_es }}</strong><span>{{ featured.get('live_status_label') or 'Estado pendiente' }}</span></div>
         <a class="v799-scoreboard" href="/match/{{ featured.get('id') }}">
           <span>{{ crest(home_identity, featured.get('safe_home') or featured.get('home_team') or 'Local', 'compact') }}<strong>{{ featured.get('safe_home') or featured.get('home_team') or 'Local' }}</strong></span>
           <b>{{ featured.get('live_score_label') or 'vs' }}<small>{{ featured.get('live_clock_label') or featured.get('calendar_time') or 'Minuto pendiente' }}</small></b>
@@ -97,25 +97,25 @@
           <div class="v803-field-head v811-field-head"><span>Campo SHARK Live</span><strong>{{ featured.get('live_field_headline') or featured.get('live_pressure_label') or 'Lectura pendiente' }}</strong><small>{{ featured.get('live_field_last_event') or 'Sin evento reciente' }}</small></div>
           <div class="v803-pitch" style="--home-p: {{ featured.get('live_home_pressure_pct') or 50 }}%; --away-p: {{ featured.get('live_away_pressure_pct') or 50 }}%;">
             <div class="v803-pitch-zone home"><b>{{ featured.get('safe_home') or featured.get('home_team') or 'Local' }}</b></div>
-            <div class="v803-pitch-mid"><span>{{ 'Presión real' if featured.get('live_pressure_available') else 'Sin estadísticas avanzadas aún' }}</span></div>
+            <div class="v803-pitch-mid"><span>{{ 'Presi?n real' if featured.get('live_pressure_available') else 'Sin estad?sticas avanzadas a?n' }}</span></div>
             <div class="v803-pitch-zone away"><b>{{ featured.get('safe_away') or featured.get('away_team') or 'Visitante' }}</b></div>
           </div>
           <div class="v803-live-evidence">
-            <span>{{ 'Estadísticas API-Football' if featured.get('live_advanced_stats_available') else 'Estadísticas pendientes' }}</span>
+            <span>{{ 'Estad?sticas API-Football' if featured.get('live_advanced_stats_available') else 'Estad?sticas pendientes' }}</span>
             <span>{{ featured.get('live_events_count') or 0 }} eventos</span>
             <span>{{ featured.get('live_game_flow_phase') or 'Lectura pendiente' }}</span>
             <span>{{ 'Ataques peligrosos reales' if featured.get('live_dangerous_attacks_available') else 'Ataques peligrosos no disponibles' }}</span>
-            <span>{{ 'Balón exacto disponible' if featured.get('live_ball_position_available') else 'Balón exacto no disponible: no se inventa' }}</span>
-            <span>{{ featured.get('live_data_quality_label') or 'Marcador básico' }}</span>
+            <span>{{ 'Bal?n exacto disponible' if featured.get('live_ball_position_available') else 'Bal?n exacto no disponible: no se inventa' }}</span>
+            <span>{{ featured.get('live_data_quality_label') or 'Marcador b?sico' }}</span>
           </div>
-          {% if featured.get('live_field_chips') %}<div class="v811-field-chips" aria-label="Señales reales del campo">{% for chip in featured.get('live_field_chips')[:6] %}<span>{{ chip }}</span>{% endfor %}<em>{{ featured.get('live_field_ball_note') }}</em></div>{% endif %}
+          {% if featured.get('live_field_chips') %}<div class="v811-field-chips" aria-label="Se?ales reales del campo">{% for chip in featured.get('live_field_chips')[:6] %}<span>{{ chip }}</span>{% endfor %}<em>{{ featured.get('live_field_ball_note') }}</em></div>{% endif %}
           {% if featured.get('live_data_evidence') %}
           <div class="v805-evidence-chips" aria-label="Evidencias reales del live tracker">
             {% for ev in featured.get('live_data_evidence')[:7] %}<span>{{ ev }}</span>{% endfor %}
           </div>
           {% endif %}
           {% if featured.get('live_stat_cards') %}
-          <div class="v804-stat-ribbon" aria-label="Estadísticas rápidas API-Football">
+          <div class="v804-stat-ribbon" aria-label="Estad?sticas r?pidas API-Football">
             {% for stat in featured.get('live_stat_cards')[:6] %}
             <article class="leader-{{ stat.get('leader') }}"><span>{{ stat.get('label') }}</span><strong>{{ stat.get('home') }}</strong><em>{{ stat.get('away') }}</em></article>
             {% endfor %}
@@ -129,22 +129,22 @@
           </div>
           {% endif %}
         </section>
-        <div class="v799-live-actions"><a class="primary" href="/match/{{ featured.get('id') }}">Abrir partido</a><a href="/match/{{ featured.get('id') }}#live-tracker">Live tracker</a><a href="/match/{{ featured.get('id') }}#shark">Análisis SHARK</a><button class="fav-star" type="button" data-kind="match" data-value="{{ featured.get('id') }}">☆ Favorito</button></div>
+        <div class="v799-live-actions"><a class="primary" href="/match/{{ featured.get('id') }}">Abrir partido</a><a href="/match/{{ featured.get('id') }}#live-tracker">Live tracker</a><a href="/match/{{ featured.get('id') }}#shark">An?lisis SHARK</a><button class="fav-star" type="button" data-kind="match" data-value="{{ featured.get('id') }}">â˜† Favorito</button></div>
       </article>
       {% else %}
-      <div class="v799-empty hero"><strong>No hay partidos en directo ahora mismo.</strong><p>Mira los próximos partidos de hoy o vuelve cuando la API sincronice marcadores en vivo.</p><a class="v799-button primary" href="/calendar?lane=today">Ver próximos partidos</a></div>
+      <div class="v799-empty hero"><strong>No hay partidos en directo ahora mismo.</strong><p>Mira los pr?ximos partidos de hoy o vuelve cuando la API sincronice marcadores en vivo.</p><a class="v799-button primary" href="/calendar?lane=today">Ver pr?ximos partidos</a></div>
       {% endif %}
 
       <section class="v799-live-grid">
         {% for m in ns.matches[1:13] %}
         {% set home_identity = m.get('home_identity') or {} %}{% set away_identity = m.get('away_identity') or {} %}
         <article class="v799-live-card {{ 'is-live' if m.get('live_bucket') == 'live' else 'is-finished' if m.get('live_bucket') == 'finished' else '' }}">
-          <div class="v799-live-league"><strong>{{ (m.get('live_competition_display') or m.get('competition_name') or 'Competición')|competition_es }}</strong><span>{{ m.get('live_status_label') or m.get('live_clock_label') or 'Estado pendiente' }}</span></div>
+          <div class="v799-live-league"><strong>{{ (m.get('live_competition_display') or m.get('competition_name') or 'Competici?n')|competition_es }}</strong><span>{{ m.get('live_status_label') or m.get('live_clock_label') or 'Estado pendiente' }}</span></div>
           <a class="v799-scoreboard compact" href="/match/{{ m.get('id') }}"><span>{{ crest(home_identity, m.get('safe_home') or m.get('home_team') or 'Local', 'compact') }}<strong>{{ m.get('safe_home') or m.get('home_team') or 'Local' }}</strong></span><b>{{ m.get('live_score_label') or 'vs' }}<small>{{ m.get('live_clock_label') or '' }}</small></b><span>{{ crest(away_identity, m.get('safe_away') or m.get('away_team') or 'Visitante', 'compact') }}<strong>{{ m.get('safe_away') or m.get('away_team') or 'Visitante' }}</strong></span></a>
           <div class="v803-card-live-meta">
-            <span>{{ m.get('live_pressure_label') or 'Presión pendiente' }}</span>
+            <span>{{ m.get('live_pressure_label') or 'Presi?n pendiente' }}</span>
             <span>{{ m.get('live_game_flow_phase') or 'Lectura pendiente' }}</span>
-            <span>{{ m.get('live_data_quality_label') or 'Marcador básico' }}</span>
+            <span>{{ m.get('live_data_quality_label') or 'Marcador b?sico' }}</span>
             <span>{{ m.get('live_events_count') or 0 }} eventos</span>
             {% if m.get('live_dangerous_attacks_available') %}<span>Ataques peligrosos</span>{% endif %}
           </div>
@@ -155,12 +155,13 @@
     </div>
 
     <aside class="v799-context-panel">
-      <article class="v799-card"><div class="v799-section-head"><div><span>Modo directo</span><h2>Lectura rápida</h2></div></div><div class="v799-action-stack"><a href="/live?f=live"><strong>Solo live</strong><small>Partidos en juego</small></a><a href="/live?f=finished"><strong>Resultados</strong><small>Cierres reales</small></a><a href="/picks"><strong>Picks</strong><small>Señales publicadas</small></a></div></article>
+      <article class="v799-card"><div class="v799-section-head"><div><span>Modo directo</span><h2>Lectura r?pida</h2></div></div><div class="v799-action-stack"><a href="/live?f=live"><strong>Solo live</strong><small>Partidos en juego</small></a><a href="/live?f=finished"><strong>Resultados</strong><small>Cierres reales</small></a><a href="/picks"><strong>Picks</strong><small>Se?ales publicadas</small></a></div></article>
       <article class="v799-mobile-preview mini"><div class="v799-phone-top"><span>Directo</span><strong>{{ counts.get('live',0) }}</strong></div><div class="v799-phone-hero"><b>{{ counts.get('live',0) }}</b><span>live</span></div><div class="v799-phone-list compact">{% for m in ns.matches[:3] %}<a href="/match/{{ m.get('id') }}"><strong>{{ m.get('safe_home') or m.get('home_team') or 'Local' }}</strong><small>{{ m.get('live_score_label') or 'vs' }}</small><em>{{ m.get('safe_away') or m.get('away_team') or 'Visitante' }}</em></a>{% else %}<span>Sin directos reales</span>{% endfor %}</div></article>
     </aside>
   </section>
 </section>
 {% endblock %}
+
 
 
 

@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 {% from "partials/team_identity.html" import crest %}
 {% block content %}
 {% set calendar = data.get('calendar') or {} %}
@@ -6,12 +6,12 @@
 {% set counts = calendar.get('counts') or {} %}
 {% set lane = filters.get('lane') or 'today' %}
 {% set day_groups = calendar.get('day_groups') or calendar.get('groups') or [] %}
-<section class="v799-screen v801-calendar-screen v815-certified-screen v815-calendar-screen v816-certified-screen v816-calendar-screen v817-certified-screen v817-calendar-screen v819-certified-screen v819-calendar-screen v820-certified-screen v820-calendar-screen v823-certified-screen v823-calendar-screen v824-certified-screen v824-calendar-screen v825-certified-screen v826-certified-screen v827-certified-screen v828-certified-screen v829-certified-screen v832-certified-screen v833-certified-screen v830-certified-screen v833-certified-screen v832-certified-screen v833-certified-screen v825-calendar-screen" data-v815-template="calendar" data-v816-template="calendar" data-v817-template="calendar" data-v819-template="calendar" data-v820-template="calendar" data-v823-template="calendar" data-v824-template="calendar" data-v825-template="calendar" data-v827-template="calendar" data-v828-template="calendar" data-v829-template="calendar" data-v830-template="calendar" data-v832-template="calendar" data-v833-template="calendar" data-v826-template="calendar">
+<section class="v799-screen v801-calendar-screen v815-certified-screen v815-calendar-screen v816-certified-screen v816-calendar-screen v817-certified-screen v817-calendar-screen v819-certified-screen v819-calendar-screen v820-certified-screen v820-calendar-screen v823-certified-screen v823-calendar-screen v824-certified-screen v824-calendar-screen v825-certified-screen v826-certified-screen v827-certified-screen v828-certified-screen v829-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v830-certified-screen v833-certified-screen v836-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v825-calendar-screen" data-v815-template="calendar" data-v816-template="calendar" data-v817-template="calendar" data-v819-template="calendar" data-v820-template="calendar" data-v823-template="calendar" data-v824-template="calendar" data-v825-template="calendar" data-v827-template="calendar" data-v828-template="calendar" data-v829-template="calendar" data-v830-template="calendar" data-v832-template="calendar" data-v833-template="calendar" data-v836-template="calendar" data-v826-template="calendar">
   <div class="v799-appbar v801-calendar-hero">
     <div>
-      <span class="v799-kicker">Calendario real · hora España/Madrid</span>
+      <span class="v799-kicker">Calendario real ? hora Espa?a/Madrid</span>
       <h1>Partidos</h1>
-      <p>La pantalla de partidos ahora funciona como calendario central: días, ligas importantes, búsqueda, directo, picks y detalle conectado sin inventar datos.</p>
+      <p>La pantalla de partidos ahora funciona como calendario central: d?as, ligas importantes, b?squeda, directo, picks y detalle conectado sin inventar datos.</p>
     </div>
     <div class="v799-appbar-actions"><a href="/calendar?lane=results">Resultados</a><a href="/live">Directo</a><a class="primary" href="/picks">Picks</a></div>
   </div>
@@ -28,19 +28,19 @@
   </section>
 
   <section class="v799-kpi-strip v801-calendar-kpis">
-    <a href="/calendar?lane=today"><i>▦</i><span>Hoy</span><strong>{{ counts.get('today',0) }}</strong><small>partidos reales</small></a>
-    <a href="/calendar?lane=week"><i>◷</i><span>Semana</span><strong>{{ counts.get('week',0) }}</strong><small>agenda</small></a>
-    <a class="live" href="/live"><i>●</i><span>Directo</span><strong>{{ counts.get('live',0) }}</strong><small>en juego</small></a>
-    <a class="picks" href="/calendar?lane=with_pick"><i>◆</i><span>Con pick</span><strong>{{ counts.get('picks',0) }}</strong><small>señales</small></a>
+    <a href="/calendar?lane=today"><i>â–¦</i><span>Hoy</span><strong>{{ counts.get('today',0) }}</strong><small>partidos reales</small></a>
+    <a href="/calendar?lane=week"><i>â—·</i><span>Semana</span><strong>{{ counts.get('week',0) }}</strong><small>agenda</small></a>
+    <a class="live" href="/live"><i>â—</i><span>Directo</span><strong>{{ counts.get('live',0) }}</strong><small>en juego</small></a>
+    <a class="picks" href="/calendar?lane=with_pick"><i>â—†</i><span>Con pick</span><strong>{{ counts.get('picks',0) }}</strong><small>se?ales</small></a>
   </section>
 
-  <section class="v801-day-rail" aria-label="Selector de días">
+  <section class="v801-day-rail" aria-label="Selector de d?as">
     {% for chip in calendar.get('date_chips') or [] %}
       <a class="{{ 'active' if chip.active else '' }}" href="{{ chip.href }}"><strong>{{ chip.label }}</strong><span>{{ chip.date }}</span><em>{{ chip.count }}</em></a>
     {% endfor %}
   </section>
 
-  <nav class="v799-filterbar v801-filterbar" aria-label="Filtros rápidos de calendario">
+  <nav class="v799-filterbar v801-filterbar" aria-label="Filtros r?pidos de calendario">
     {% for tab in calendar.get('tabs') or [] %}
       <a class="{{ 'active' if lane == tab.key else '' }}" href="{{ tab.href }}">{{ tab.label }}{% if tab.count is not none and tab.count != '' %}<small>{{ tab.count }}</small>{% endif %}</a>
     {% endfor %}
@@ -49,17 +49,17 @@
   <form method="get" action="/calendar" class="v801-calendar-search" aria-label="Buscar partidos reales">
     <input type="hidden" name="lane" value="{{ lane }}">
     <input type="hidden" name="date" value="{{ filters.get('date') or '' }}">
-    <label><span>Buscar</span><input name="q" value="{{ filters.get('q') or '' }}" placeholder="Equipo, liga, país o competición"></label>
+    <label><span>Buscar</span><input name="q" value="{{ filters.get('q') or '' }}" placeholder="Equipo, liga, pa?s o competici?n"></label>
     <label><span>Liga</span><select name="league">
       <option value="">Todas las ligas</option>
       {% for league in (calendar.get('facets') or {}).get('leagues') or [] %}
-        <option value="{{ league.value }}" {{ 'selected' if filters.get('league') == league.value else '' }}>{{ league.label }} · {{ league.count }}</option>
+        <option value="{{ league.value }}" {{ 'selected' if filters.get('league') == league.value else '' }}>{{ league.label }} ? {{ league.count }}</option>
       {% endfor %}
     </select></label>
-    <label><span>País</span><select name="country">
+    <label><span>Pa?s</span><select name="country">
       <option value="">Todos</option>
       {% for country in (calendar.get('facets') or {}).get('countries') or [] %}
-        <option value="{{ country.value }}" {{ 'selected' if filters.get('country') == country.value else '' }}>{{ country.label }} · {{ country.count }}</option>
+        <option value="{{ country.value }}" {{ 'selected' if filters.get('country') == country.value else '' }}>{{ country.label }} ? {{ country.count }}</option>
       {% endfor %}
     </select></label>
     <label><span>Orden</span><select name="sort">
@@ -73,10 +73,10 @@
   </form>
 
   <section class="v801-league-rail" aria-label="Ligas importantes">
-    <div><strong>Ligas importantes</strong><span>Búsqueda rápida sin gastar créditos extra: filtra lo sincronizado en la base real.</span></div>
+    <div><strong>Ligas importantes</strong><span>B?squeda r?pida sin gastar cr?ditos extra: filtra lo sincronizado en la base real.</span></div>
     <div class="v801-league-scroll">
       {% for item in calendar.get('league_shortcuts') or [] %}
-        <a class="{{ 'active' if item.active else '' }}" href="{{ item.href }}"><strong>{{ item.label|competition_es }}</strong><small>{{ item.country }}{% if item.count %} · {{ item.count }}{% else %} · pendiente{% endif %}</small></a>
+        <a class="{{ 'active' if item.active else '' }}" href="{{ item.href }}"><strong>{{ item.label|competition_es }}</strong><small>{{ item.country }}{% if item.count %} ? {{ item.count }}{% else %} ? pendiente{% endif %}</small></a>
       {% endfor %}
     </div>
   </section>
@@ -87,51 +87,51 @@
       <header><span>{{ group.label }}</span><strong>{{ group.count }}</strong><small>{{ group.hint }}</small></header>
       <div>
         {% for item in (group.get('items') or [])[:5] %}
-          <a class="{{ 'active' if item.active else '' }}" href="{{ item.href }}">{{ item.label|competition_es }} <em>{{ item.count or '—' }}</em></a>
+          <a class="{{ 'active' if item.active else '' }}" href="{{ item.href }}">{{ item.label|competition_es }} <em>{{ item.count or 'â€”' }}</em></a>
         {% endfor %}
       </div>
     </article>
     {% endfor %}
   </section>
 
-  <section class="v802-focus-strip" aria-label="Próximos partidos visibles">
-    <div><span>Foco rápido</span><strong>Abre partido, pick o SHARK desde la misma fila</strong></div>
+  <section class="v802-focus-strip" aria-label="Pr?ximos partidos visibles">
+    <div><span>Foco r?pido</span><strong>Abre partido, pick o SHARK desde la misma fila</strong></div>
     {% for m in calendar.get('highlight_matches') or [] %}
       {% set ctx = m|match_madrid_context %}
       <a href="/match/{{ m.get('id') }}"><small>{{ ctx.client_time_label or ctx.client_status_label or 'Pendiente' }}</small><strong>{{ ctx.safe_home }} vs {{ ctx.safe_away }}</strong><em>{{ ctx.client_competition|competition_es }}</em></a>
     {% else %}
-      <p>Sin partidos visibles para este filtro. Cambia día, liga o semana.</p>
+      <p>Sin partidos visibles para este filtro. Cambia d?a, liga o semana.</p>
     {% endfor %}
   </section>
 
   <section class="v800-command-row v801-command-row" aria-label="Flujo de uso en partidos">
-    <a href="/calendar?lane=today"><b>{{ counts.get('today',0) }}</b><span>Hoy</span><small>Agenda por día</small></a>
-    <a href="/calendar?lane=week"><b>{{ counts.get('week',0) }}</b><span>Semana</span><small>Próximos reales</small></a>
-    <a href="/calendar?lane=with_pick"><b>{{ counts.get('picks',0) }}</b><span>Con pick</span><small>Señal publicada</small></a>
-    <a href="/shark"><b>◥</b><span>SHARK</span><small>Analizar partido</small></a>
+    <a href="/calendar?lane=today"><b>{{ counts.get('today',0) }}</b><span>Hoy</span><small>Agenda por d?a</small></a>
+    <a href="/calendar?lane=week"><b>{{ counts.get('week',0) }}</b><span>Semana</span><small>Pr?ximos reales</small></a>
+    <a href="/calendar?lane=with_pick"><b>{{ counts.get('picks',0) }}</b><span>Con pick</span><small>Se?al publicada</small></a>
+    <a href="/shark"><b>â—¥</b><span>SHARK</span><small>Analizar partido</small></a>
   </section>
 
   <section class="v799-calendar-layout v801-calendar-layout">
     <div class="v799-calendar-list v801-calendar-list">
       {% for day in day_groups %}
       <article class="v799-day-block v801-day-block">
-        <header class="v799-day-head v801-day-head"><div><span>Día</span><h2>{{ day.date_label or day.label }}</h2></div><small>{{ day.matches_count or day.total }} partidos · {{ day.leagues|length }} competiciones</small></header>
+        <header class="v799-day-head v801-day-head"><div><span>D?a</span><h2>{{ day.date_label or day.label }}</h2></div><small>{{ day.matches_count or day.total }} partidos ? {{ day.leagues|length }} competiciones</small></header>
         {% for league in day.leagues %}
         <section class="v799-league-block v801-league-block">
-          <header><div><strong>{{ league.name|competition_es }}</strong><small>{{ league.country or 'Global' }} · {{ league.count or league.matches|length }} partidos</small></div><a href="/calendar?lane={{ lane }}&league={{ league.name|urlencode }}">Ver liga</a></header>
+          <header><div><strong>{{ league.name|competition_es }}</strong><small>{{ league.country or 'Global' }} ? {{ league.count or league.matches|length }} partidos</small></div><a href="/calendar?lane={{ lane }}&league={{ league.name|urlencode }}">Ver liga</a></header>
           {% for m in league.matches %}
           {% set ctx = m|match_madrid_context %}
           {% set home_identity = m.get('home_identity') or {} %}
           {% set away_identity = m.get('away_identity') or {} %}
           {% set is_live = (m.get('live_depth') or {}).get('state') in ['LIVE','HT'] or (m.get('status_info') or {}).get('is_live') %}
           <article class="v799-agenda-row v801-agenda-row {{ 'has-pick' if m.get('has_pick') or m.get('pick_id') else '' }} {{ 'is-live' if is_live else '' }} {{ 'is-result-pending' if (m.get('status_info') or {}).get('is_result_pending') else '' }}">
-            <button class="fav-star" type="button" data-kind="match" data-value="{{ m.get('id') }}" data-label="{{ ctx.safe_home }} vs {{ ctx.safe_away }}">☆</button>
+            <button class="fav-star" type="button" data-kind="match" data-value="{{ m.get('id') }}" data-label="{{ ctx.safe_home }} vs {{ ctx.safe_away }}">â˜†</button>
             <a class="v799-agenda-link v801-agenda-link" href="/match/{{ m.get('id') }}">
-              <span class="v799-time v801-time"><b>{{ ctx.client_time_label or ctx.client_score_label or '—' }}</b><small>{{ ctx.client_status_label or 'Pendiente' }}</small></span>
+              <span class="v799-time v801-time"><b>{{ ctx.client_time_label or ctx.client_score_label or 'â€”' }}</b><small>{{ ctx.client_status_label or 'Pendiente' }}</small></span>
               <span class="v799-team v801-team">{{ crest(home_identity, ctx.safe_home, 'compact') }}<strong>{{ ctx.safe_home }}</strong></span>
               <b class="v799-vs v801-vs">{{ ctx.client_score_label or 'VS' }}</b>
               <span class="v799-team v801-team away">{{ crest(away_identity, ctx.safe_away, 'compact') }}<strong>{{ ctx.safe_away }}</strong></span>
-              <em>{{ '◆ Pick publicado' if m.get('has_pick') or m.get('pick_id') else ctx.client_competition|competition_es }}</em>
+              <em>{{ 'â—† Pick publicado' if m.get('has_pick') or m.get('pick_id') else ctx.client_competition|competition_es }}</em>
             </a>
             <div class="v800-row-ribbon v801-row-meta">
               <span>{{ ctx.client_status_label or 'Pendiente' }}</span>
@@ -145,7 +145,7 @@
         {% endfor %}
       </article>
       {% else %}
-      <div class="v799-empty v801-empty"><strong>No hay partidos para este filtro.</strong><p>{{ calendar.get('source_summary') or 'La app no inventa calendario. Cambia de día, liga o espera la siguiente sincronización real.' }}</p><div><a href="/calendar?lane=week">Ver semana</a><a href="/calendar?lane=upcoming">Ver 21 días</a><a href="/live">Directo</a></div></div>
+      <div class="v799-empty v801-empty"><strong>No hay partidos para este filtro.</strong><p>{{ calendar.get('source_summary') or 'La app no inventa calendario. Cambia de d?a, liga o espera la siguiente sincronizaci?n real.' }}</p><div><a href="/calendar?lane=week">Ver semana</a><a href="/calendar?lane=upcoming">Ver 21 d?as</a><a href="/live">Directo</a></div></div>
       {% endfor %}
     </div>
 
@@ -155,18 +155,18 @@
         <p>{{ calendar.get('source_summary') }}</p>
         <dl class="v801-mini-stats">
           <div><dt>Visibles</dt><dd>{{ counts.get('visible',0) }}</dd></div>
-          <div><dt>Días</dt><dd>{{ counts.get('days',0) }}</dd></div>
+          <div><dt>D?as</dt><dd>{{ counts.get('days',0) }}</dd></div>
           <div><dt>Ligas</dt><dd>{{ counts.get('leagues',0) }}</dd></div>
           <div><dt>Con pick</dt><dd>{{ counts.get('picks',0) }}</dd></div>
         </dl>
       </article>
       <article class="v799-card v801-side-card">
-        <div class="v799-section-head"><div><span>Acción rápida</span><h2>Qué hacer ahora</h2></div></div>
+        <div class="v799-section-head"><div><span>Acci?n r?pida</span><h2>Qu? hacer ahora</h2></div></div>
         <div class="v799-action-stack">
           <a href="/calendar?lane=today"><strong>Hoy</strong><small>Ver agenda actual</small></a>
-          <a href="/calendar?lane=week"><strong>Semana</strong><small>Calendario de próximos días</small></a>
+          <a href="/calendar?lane=week"><strong>Semana</strong><small>Calendario de pr?ximos d?as</small></a>
           <a href="/calendar?lane=top"><strong>Top mundial</strong><small>Prioriza ligas importantes</small></a>
-          <a href="/calendar?lane=with_pick"><strong>Con pick</strong><small>Solo partidos con señal</small></a>
+          <a href="/calendar?lane=with_pick"><strong>Con pick</strong><small>Solo partidos con se?al</small></a>
           <a href="/shark"><strong>SHARK</strong><small>Consultar antes de decidir</small></a>
         </div>
       </article>
@@ -175,7 +175,7 @@
         <div class="v799-phone-hero"><b>{{ counts.get('visible',0) }}</b><span>visibles</span></div>
         <div class="v799-phone-list compact">
           {% for day in day_groups[:1] %}{% for league in day.leagues[:1] %}{% for m in league.matches[:3] %}
-          {% set ctx = m|match_madrid_context %}<a href="/match/{{ m.get('id') }}"><strong>{{ ctx.safe_home }}</strong><small>{{ ctx.client_time_label or '—' }}</small><em>{{ ctx.safe_away }}</em></a>
+          {% set ctx = m|match_madrid_context %}<a href="/match/{{ m.get('id') }}"><strong>{{ ctx.safe_home }}</strong><small>{{ ctx.client_time_label or 'â€”' }}</small><em>{{ ctx.safe_away }}</em></a>
           {% endfor %}{% endfor %}{% endfor %}
         </div>
       </article>
@@ -183,6 +183,7 @@
   </section>
 </section>
 {% endblock %}
+
 
 
 

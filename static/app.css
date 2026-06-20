@@ -5511,3 +5511,222 @@ body[data-v833-shell="true"].ns-admin :is(.btn,.button,a.btn,button){
   }
 }
 /* V833 REFERENCE ECOSYSTEM VISUAL COMPLETION END */
+
+/* V836 AUTONOMOUS REFERENCE VISUAL REVIEW FINAL QA START */
+body[data-v836-shell="true"]{
+  --v836-panel:rgba(7,22,42,.90);
+  --v836-panel-strong:rgba(10,30,56,.96);
+  --v836-line:rgba(101,232,255,.22);
+  --v836-cyan:#42e9ff;
+  --v836-green:#57f5b4;
+  --v836-gold:#ffd46a;
+  --v836-muted:#a9bfd4;
+  overflow-x:hidden!important;
+}
+html:has(body[data-v836-shell="true"]){
+  overflow-x:hidden!important;
+}
+body[data-v836-shell="true"] *,
+body[data-v836-shell="true"] *::before,
+body[data-v836-shell="true"] *::after{
+  box-sizing:border-box;
+}
+body[data-v836-shell="true"] :is(img,svg,video,canvas){
+  max-width:100%;
+}
+body[data-v836-shell="true"] :is(.top.ns-topbar,.ns-main-shell,.v787-legal-footer){
+  max-width:100%;
+}
+body[data-v836-shell="true"] .brand img,
+body[data-v836-shell="true"] :is(.v828-rail-brand,.v808-admin-rail-brand) img{
+  object-fit:contain;
+  filter:drop-shadow(0 0 18px rgba(66,233,255,.25));
+}
+body[data-v836-shell="true"] .topin{
+  min-width:0;
+}
+body[data-v836-shell="true"] :is(.nav-clean a,.bottom-nav-clean a,.v828-client-rail a,.v808-admin-rail a,.v829-mobile-quick a){
+  min-height:42px;
+  align-items:center;
+}
+body[data-v836-shell="true"] :is(.card,.panel,.sports-row,.match-card,.v799-feature-card,.v799-live-card,.v799-pick-card,.v812-feature-card,.v812-pick-card,.v836-certified-screen){
+  border-color:var(--v836-line)!important;
+  background:linear-gradient(180deg,var(--v836-panel-strong),rgba(3,12,24,.88))!important;
+  box-shadow:0 18px 52px rgba(0,0,0,.27),inset 0 1px 0 rgba(255,255,255,.05)!important;
+}
+body[data-v836-shell="true"] :is(.sports-row,.match-card,.v701-row){
+  min-width:0;
+  overflow:hidden;
+}
+body[data-v836-shell="true"] :is(.sports-team,.match-team,.team-name,.team-block,.scoreline){
+  min-width:0;
+}
+body[data-v836-shell="true"] :is(.sports-team strong,.match-team strong,.team-name,strong.team){
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+body[data-v836-shell="true"] :is(.btn,.button,a.btn,button,.cta-primary,.primary){
+  min-height:42px;
+  border-radius:14px!important;
+}
+body[data-v836-shell="true"] :is(.cta-primary,.primary,.btn-primary){
+  background:linear-gradient(135deg,var(--v836-cyan),var(--v836-green))!important;
+  color:#03111d!important;
+}
+body[data-v836-shell="true"] :is(.empty-state,.premium-empty,.v829-empty,.v832-premium-empty){
+  border:1px dashed rgba(101,232,255,.28)!important;
+  background:linear-gradient(180deg,rgba(7,22,42,.72),rgba(2,9,19,.68))!important;
+}
+body[data-v836-shell="true"] .ns-scroll-top{
+  border-color:rgba(101,232,255,.28);
+  background:rgba(5,17,33,.86);
+}
+body[data-v836-shell="true"].ns-admin{
+  background:linear-gradient(180deg,#020712,#071424 58%,#020712)!important;
+}
+body[data-v836-shell="true"].ns-admin :is(.v808-admin-rail,.v808-admin-dock,.v794-admin-panel,.v794-admin-card,.admin-hero,.admin-card,.v836-certified-screen){
+  border-color:rgba(101,232,255,.16)!important;
+  background:linear-gradient(180deg,rgba(8,19,35,.95),rgba(3,9,18,.95))!important;
+}
+body[data-v836-shell="true"].ns-admin :is(.shark-widget,.v825-public-floating-shark,.bottom-nav-clean){
+  display:none!important;
+}
+body[data-v836-shell="true"].ns-admin :is(table,.table,.admin-table){
+  max-width:100%;
+}
+@media(min-width:1024px){
+  body[data-v836-shell="true"].ns-authenticated:not(.ns-admin) .ns-main-shell{
+    width:min(100% - 36px,1480px)!important;
+  }
+  body[data-v836-shell="true"].ns-authenticated:not(.ns-admin) .v828-client-rail{
+    display:flex;
+  }
+  body[data-v836-shell="true"].ns-authenticated:not(.ns-admin) .bottom-nav-clean{
+    display:none!important;
+  }
+  body[data-v836-shell="true"].ns-admin .ns-main-shell{
+    width:min(100% - 32px,1500px)!important;
+  }
+}
+@media(max-width:768px){
+  body[data-v836-shell="true"]{
+    --v836-safe-bottom:max(env(safe-area-inset-bottom),0px);
+  }
+  body[data-v836-shell="true"] :is(.v828-client-rail,.v808-admin-rail,.v808-admin-dock){
+    display:none!important;
+  }
+  body[data-v836-shell="true"] .top.ns-topbar{
+    padding-top:calc(6px + env(safe-area-inset-top))!important;
+  }
+  body[data-v836-shell="true"] .topin{
+    width:calc(100% - 16px)!important;
+    min-height:56px!important;
+    border-radius:20px!important;
+    padding:8px 10px!important;
+  }
+  body[data-v836-shell="true"] .brand{
+    min-width:0;
+  }
+  body[data-v836-shell="true"] .brand span:last-child{
+    font-size:.78rem!important;
+  }
+  body[data-v836-shell="true"] .ns-main-shell{
+    width:calc(100% - 16px)!important;
+    padding-left:8px!important;
+    padding-right:8px!important;
+    padding-bottom:calc(132px + var(--v836-safe-bottom))!important;
+  }
+  body[data-v836-shell="true"] :is(.v774-client-hero,.v799-hero,.v812-hero-shell,.admin-hero,.v836-certified-screen){
+    border-radius:22px!important;
+    padding:15px!important;
+  }
+  body[data-v836-shell="true"] :is(h1,.hero-title){
+    font-size:clamp(1.55rem,8vw,2.25rem)!important;
+    line-height:1.04!important;
+  }
+  body[data-v836-shell="true"] :is(.lead,.hero-copy p,.muted){
+    font-size:.91rem!important;
+  }
+  body[data-v836-shell="true"].ns-authenticated:not(.ns-admin) .bottom-nav-clean{
+    left:50%!important;
+    right:auto!important;
+    transform:translateX(-50%)!important;
+    width:calc(100vw - 20px)!important;
+    max-width:430px!important;
+    bottom:calc(10px + var(--v836-safe-bottom))!important;
+    display:grid!important;
+    grid-template-columns:repeat(5,minmax(0,1fr))!important;
+    gap:4px!important;
+    overflow:hidden!important;
+    z-index:150!important;
+  }
+  body[data-v836-shell="true"] .bottom-nav-clean a{
+    min-height:44px!important;
+    min-width:0!important;
+    white-space:nowrap!important;
+    overflow:hidden!important;
+    text-overflow:ellipsis!important;
+    font-size:.58rem!important;
+  }
+  body[data-v836-shell="true"] .shark-widget{
+    right:14px!important;
+    bottom:calc(82px + var(--v836-safe-bottom))!important;
+    z-index:136!important;
+    max-width:calc(100vw - 28px)!important;
+  }
+  body[data-v836-shell="true"][data-ns-route="/shark"] .shark-widget,
+  body[data-v836-shell="true"][data-ns-route="/shark-ai"] .shark-widget,
+  body[data-v836-shell="true"][data-ns-route="/shark-core"] .shark-widget{
+    display:none!important;
+  }
+  body[data-v836-shell="true"] .ns-scroll-top{
+    display:none!important;
+  }
+  body[data-v836-shell="true"] :is(.actions,.quick-grid,.v812-hero-actions,.v799-actions,.v833-action-grid){
+    display:grid!important;
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    gap:10px!important;
+  }
+  body[data-v836-shell="true"] :is(.actions a,.quick-grid a,.v812-hero-actions a,.v799-actions a,.v833-action-grid a){
+    min-width:0!important;
+    min-height:44px!important;
+  }
+  body[data-v836-shell="true"] :is(table,.table,.admin-table){
+    display:block!important;
+    width:100%!important;
+    max-width:100%!important;
+    overflow-x:auto!important;
+  }
+  body[data-v836-shell="true"].ns-admin .ns-main-shell{
+    padding-bottom:24px!important;
+  }
+}
+@media(max-width:430px){
+  body[data-v836-shell="true"].ns-authenticated:not(.ns-admin) .bottom-nav-clean{
+    width:calc(100vw - 16px)!important;
+    padding:5px!important;
+    border-radius:20px!important;
+  }
+  body[data-v836-shell="true"] .bottom-nav-clean a{
+    font-size:.55rem!important;
+    padding-left:2px!important;
+    padding-right:2px!important;
+  }
+  body[data-v836-shell="true"] .shark-fab{
+    width:48px!important;
+    height:48px!important;
+  }
+}
+@media(max-width:390px){
+  body[data-v836-shell="true"] :is(.actions,.quick-grid,.v812-hero-actions,.v799-actions,.v833-action-grid){
+    grid-template-columns:1fr!important;
+  }
+  body[data-v836-shell="true"].ns-authenticated:not(.ns-admin) .bottom-nav-clean{
+    width:calc(100vw - 12px)!important;
+    gap:3px!important;
+  }
+  body[data-v836-shell="true"] .bottom-nav-clean a{
+    font-size:.53rem!important;
+  }
+}
+/* V836 AUTONOMOUS REFERENCE VISUAL REVIEW FINAL QA END */

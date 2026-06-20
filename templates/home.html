@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 {% from "partials/team_identity.html" import crest %}
 {% block content %}
 {% set hs = data.get('home_summary') or {} %}
@@ -19,12 +19,12 @@
 
 {% if current_user %}
 {% set display_name = current_user.name or current_user.username or 'Cliente' %}
-<section class="v799-screen v799-home-screen v815-certified-screen v815-home-screen v816-certified-screen v816-home-screen v817-certified-screen v817-home-screen v819-certified-screen v819-home-screen v820-certified-screen v820-home-screen v826-certified-screen v827-certified-screen v828-certified-screen v829-certified-screen v832-certified-screen v833-certified-screen v830-certified-screen v833-certified-screen v832-certified-screen v833-certified-screen" data-v827-template="home" data-v828-template="home" data-v829-template="home" data-v830-template="home" data-v832-template="home" data-v833-template="home" data-v826-template="home" data-v815-template="home" data-v816-template="home" data-v817-template="home" data-v819-template="home" data-v820-template="home">
+<section class="v799-screen v799-home-screen v815-certified-screen v815-home-screen v816-certified-screen v816-home-screen v817-certified-screen v817-home-screen v819-certified-screen v819-home-screen v820-certified-screen v820-home-screen v826-certified-screen v827-certified-screen v828-certified-screen v829-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v830-certified-screen v833-certified-screen v836-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen" data-v827-template="home" data-v828-template="home" data-v829-template="home" data-v830-template="home" data-v832-template="home" data-v833-template="home" data-v836-template="home" data-v826-template="home" data-v815-template="home" data-v816-template="home" data-v817-template="home" data-v819-template="home" data-v820-template="home">
   <div class="v799-appbar">
     <div>
-      <span class="v799-kicker">Panel cliente · datos reales · hora España/Madrid</span>
-      <h1>Buenos días, {{ display_name }}</h1>
-      <p>Partidos, directo, picks y SHARK en una experiencia única. Si la API no trae un dato, la app lo deja pendiente y no lo inventa.</p>
+      <span class="v799-kicker">Panel cliente ? datos reales ? hora Espa?a/Madrid</span>
+      <h1>Buenos d?as, {{ display_name }}</h1>
+      <p>Partidos, directo, picks y SHARK en una experiencia ?nica. Si la API no trae un dato, la app lo deja pendiente y no lo inventa.</p>
     </div>
     <div class="v799-appbar-actions">
       <a href="/app/mapa">Mapa app</a>
@@ -37,7 +37,7 @@
 
   <section class="v800-stage v826-certified-screen" data-v826-template="home" aria-label="Panel visual principal con datos reales">
     <article class="v800-stage-main">
-      <div class="v800-stage-top"><span>Foco principal</span><a href="/calendar?lane=today">Abrir agenda →</a></div>
+      <div class="v800-stage-top"><span>Foco principal</span><a href="/calendar?lane=today">Abrir agenda â†’</a></div>
       {% if upcoming %}
         {% set fm = upcoming[0] %}
         {% set fctx = fm|match_madrid_context %}
@@ -49,14 +49,14 @@
           <span class="v800-feature-team away">{{ crest(faway, fctx.safe_away, 'compact') }}<strong>{{ fctx.safe_away }}</strong></span>
         </a>
       {% else %}
-        <div class="v800-empty-panel"><strong>Esperando calendario real</strong><span>Cuando la API sincronice partidos, el foco principal aparecerá aquí.</span></div>
+        <div class="v800-empty-panel"><strong>Esperando calendario real</strong><span>Cuando la API sincronice partidos, el foco principal aparecer? aqu?.</span></div>
       {% endif %}
     </article>
     <article class="v800-stage-card">
       <span>Pick</span>
       {% if picks %}
         {% set sp = picks[0] %}
-        <strong>{{ sp.get('client_selection_label') or sp.get('selection_display') or sp.get('selection') or 'Selección pendiente' }}</strong>
+        <strong>{{ sp.get('client_selection_label') or sp.get('selection_display') or sp.get('selection') or 'Selecci?n pendiente' }}</strong>
         <small>{{ sp.get('client_match_label') or ((sp.get('home_team') or 'Partido') ~ ' vs ' ~ (sp.get('away_team') or '')) }}</small>
         <a href="{{ sp.get('client_match_url') or ('/match/' ~ (sp.get('match_id') or sp.get('id'))) }}">Ver pick real</a>
       {% else %}
@@ -72,7 +72,7 @@
     <div class="v799-main-column">
       <section class="v799-hero-card v826-certified-screen" data-v826-template="home">
         <div class="v799-hero-copy">
-          <span class="v799-live-pill {{ 'on' if live_count else '' }}">{{ '● Hay directo' if live_count else '○ Sin directo ahora' }}</span>
+          <span class="v799-live-pill {{ 'on' if live_count else '' }}">{{ 'â— Hay directo' if live_count else 'â—‹ Sin directo ahora' }}</span>
           <h2>Centro SHARK de hoy</h2>
           <p>Empieza por los partidos de hoy, revisa picks activos y entra al detalle real de cada encuentro.</p>
           <div class="v799-hero-actions"><a class="primary" href="/calendar?lane=today">Partidos de hoy</a><a href="/picks">Picks activos</a><a href="/live">Directo</a></div>
@@ -81,14 +81,14 @@
       </section>
 
       <section class="v799-kpi-strip v826-certified-screen" data-v826-template="home" aria-label="Resumen real de hoy">
-        <a href="/calendar?lane=today"><i>▦</i><span>Partidos hoy</span><strong>{{ today_count }}</strong><small>calendario real</small></a>
-        <a class="live" href="/live"><i>●</i><span>En directo</span><strong>{{ live_count }}</strong><small>marcador real si existe</small></a>
-        <a class="picks" href="/picks"><i>◆</i><span>Picks activos</span><strong>{{ picks_count }}</strong><small>publicados</small></a>
-        <a class="telegram" href="/telegram"><i>✈</i><span>Telegram</span><strong>{{ telegram_count }}</strong><small>alertas reales</small></a>
+        <a href="/calendar?lane=today"><i>â–¦</i><span>Partidos hoy</span><strong>{{ today_count }}</strong><small>calendario real</small></a>
+        <a class="live" href="/live"><i>â—</i><span>En directo</span><strong>{{ live_count }}</strong><small>marcador real si existe</small></a>
+        <a class="picks" href="/picks"><i>â—†</i><span>Picks activos</span><strong>{{ picks_count }}</strong><small>publicados</small></a>
+        <a class="telegram" href="/telegram"><i>âœˆ</i><span>Telegram</span><strong>{{ telegram_count }}</strong><small>alertas reales</small></a>
       </section>
 
       <section class="v799-card v799-flow-card v826-certified-screen" data-v826-template="home">
-        <div class="v799-section-head"><div><span>Ruta recomendada</span><h2>Úsalo como una app pro</h2></div><a href="/app/mapa">Mapa app →</a></div>
+        <div class="v799-section-head"><div><span>Ruta recomendada</span><h2>Ãšsalo como una app pro</h2></div><a href="/app/mapa">Mapa app â†’</a></div>
         <div class="v799-flow-steps">
           <a href="/calendar?lane=today"><b>1</b><strong>Partidos</strong><small>Elige el encuentro real</small></a>
           <a href="/match-hub"><b>2</b><strong>Detalle</strong><small>Hora, estado y contexto</small></a>
@@ -98,14 +98,14 @@
       </section>
 
       <section class="v799-card v826-certified-screen" data-v826-template="home">
-        <div class="v799-section-head"><div><span>Próximos focos</span><h2>Partidos destacados</h2></div><a href="/calendar">Ver calendario →</a></div>
+        <div class="v799-section-head"><div><span>Pr?ximos focos</span><h2>Partidos destacados</h2></div><a href="/calendar">Ver calendario â†’</a></div>
         <div class="v799-match-list">
           {% for m in upcoming[:5] %}
           {% set ctx = m|match_madrid_context %}
           {% set home_identity = m.get('home_identity') or {} %}
           {% set away_identity = m.get('away_identity') or {} %}
           <a class="v799-match-row {{ 'has-pick' if m.get('has_pick') or m.get('pick_id') else '' }}" href="/match/{{ m.get('id') }}">
-            <span class="v799-time"><b>{{ ctx.client_time_label or ctx.client_score_label or '—' }}</b><small>{{ ctx.client_status_label or 'Estado pendiente' }}</small></span>
+            <span class="v799-time"><b>{{ ctx.client_time_label or ctx.client_score_label or 'â€”' }}</b><small>{{ ctx.client_status_label or 'Estado pendiente' }}</small></span>
             <span class="v799-team">{{ crest(home_identity, ctx.safe_home, 'compact') }}<strong>{{ ctx.safe_home }}</strong></span>
             <span class="v799-vs">{{ ctx.client_score_label or 'VS' }}</span>
             <span class="v799-team away">{{ crest(away_identity, ctx.safe_away, 'compact') }}<strong>{{ ctx.safe_away }}</strong></span>
@@ -113,7 +113,7 @@
             <small class="v799-row-cta">Ver partido</small>
           </a>
           {% else %}
-          <div class="v799-empty"><strong>Sin partidos destacados ahora mismo.</strong><p>Cuando la sincronización real traiga calendario, aparecerá aquí.</p></div>
+          <div class="v799-empty"><strong>Sin partidos destacados ahora mismo.</strong><p>Cuando la sincronizaci?n real traiga calendario, aparecer? aqu?.</p></div>
           {% endfor %}
         </div>
       </section>
@@ -121,26 +121,26 @@
 
     <aside class="v799-side-column">
       <article class="v799-card v799-pick-card-main">
-        <div class="v799-section-head"><div><span>Mejor oportunidad</span><h2>Pick destacado</h2></div><a href="/picks">Todos →</a></div>
+        <div class="v799-section-head"><div><span>Mejor oportunidad</span><h2>Pick destacado</h2></div><a href="/picks">Todos â†’</a></div>
         {% if picks %}
         {% set p = picks[0] %}
         <strong class="v799-pick-match">{{ p.get('client_match_label') or ((p.get('home_team') or 'Partido') ~ ' vs ' ~ (p.get('away_team') or '')) }}</strong>
-        <div class="v799-pick-market">{{ p.get('client_selection_label') or p.get('selection_display') or p.get('selection') or 'Selección pendiente' }}</div>
+        <div class="v799-pick-market">{{ p.get('client_selection_label') or p.get('selection_display') or p.get('selection') or 'Selecci?n pendiente' }}</div>
         <dl class="v799-pick-metrics">
-          <div><dt>Cuota</dt><dd>{{ p.get('client_odds_label') or p.get('odds') or '—' }}</dd></div>
-          <div><dt>Stake</dt><dd>{{ p.get('stake_units') or p.get('stake') or '—' }}{% if p.get('stake_units') or p.get('stake') %}u{% endif %}</dd></div>
-          <div><dt>Riesgo</dt><dd>{{ p.get('risk_level') or '—' }}</dd></div>
-          <div><dt>Confianza</dt><dd>{{ p.get('confidence') or p.get('quality_score') or '—' }}{% if p.get('confidence') or p.get('quality_score') %}%{% endif %}</dd></div>
+          <div><dt>Cuota</dt><dd>{{ p.get('client_odds_label') or p.get('odds') or 'â€”' }}</dd></div>
+          <div><dt>Stake</dt><dd>{{ p.get('stake_units') or p.get('stake') or 'â€”' }}{% if p.get('stake_units') or p.get('stake') %}u{% endif %}</dd></div>
+          <div><dt>Riesgo</dt><dd>{{ p.get('risk_level') or 'â€”' }}</dd></div>
+          <div><dt>Confianza</dt><dd>{{ p.get('confidence') or p.get('quality_score') or 'â€”' }}{% if p.get('confidence') or p.get('quality_score') %}%{% endif %}</dd></div>
         </dl>
-        <p>{{ p.get('analysis_summary') or p.get('reasoning') or 'Motivo pendiente en los datos del pick. Abre el análisis para revisar contexto real.' }}</p>
-        <a class="v799-button primary" href="{{ p.get('client_match_url') or ('/match/' ~ (p.get('match_id') or p.get('id'))) }}">Ver análisis</a>
+        <p>{{ p.get('analysis_summary') or p.get('reasoning') or 'Motivo pendiente en los datos del pick. Abre el an?lisis para revisar contexto real.' }}</p>
+        <a class="v799-button primary" href="{{ p.get('client_match_url') or ('/match/' ~ (p.get('match_id') or p.get('id'))) }}">Ver an?lisis</a>
         {% else %}
-        <div class="v799-empty"><strong>Sin pick destacado publicado.</strong><p>No se mostrará ninguna oportunidad hasta que exista un pick real.</p></div>
+        <div class="v799-empty"><strong>Sin pick destacado publicado.</strong><p>No se mostrar? ninguna oportunidad hasta que exista un pick real.</p></div>
         <a class="v799-button primary" href="/picks">Abrir picks</a>
         {% endif %}
       </article>
 
-      <article class="v799-mobile-preview" aria-label="Vista móvil resumida">
+      <article class="v799-mobile-preview" aria-label="Vista m?vil resumida">
         <div class="v799-phone-top"><span>NeMeSiS</span><strong>{{ plan }}</strong></div>
         <div class="v799-phone-hero"><b>{{ live_count }}</b><span>Directos ahora</span></div>
         <div class="v799-phone-list">
@@ -151,7 +151,7 @@
           <span>Esperando partidos reales</span>
           {% endfor %}
         </div>
-        <div class="v799-phone-nav"><i>⌂</i><i>▦</i><i>●</i><i>◆</i><i>◥</i></div>
+        <div class="v799-phone-nav"><i>âŒ‚</i><i>â–¦</i><i>â—</i><i>â—†</i><i>â—¥</i></div>
       </article>
     </aside>
   </section>
@@ -160,34 +160,35 @@
 {% else %}
 <section class="v783-public-hero v799-public-hero v815-public-hero v816-certified-screen v816-public-hero v817-certified-screen v817-public-hero v819-certified-screen v819-public-hero v820-certified-screen v820-public-hero v826-certified-screen" data-v826-template="home" data-v815-template="home-public" data-v816-template="home-public" data-v817-template="home-public" data-v819-template="home-public" data-v820-template="home-public">
   <div class="v783-public-copy">
-    <div class="kicker">NeMeSiS SHARK PRO · app deportiva premium</div>
+    <div class="kicker">NeMeSiS SHARK PRO ? app deportiva premium</div>
     <h1>Partidos, directos, picks y planes en una pantalla clara.</h1>
-    <p class="lead">Sin bloques enormes: entra, mira qué hay hoy, entiende los picks y elige FREE, PRO o ELITE desde el inicio.</p>
+    <p class="lead">Sin bloques enormes: entra, mira qu? hay hoy, entiende los picks y elige FREE, PRO o ELITE desde el inicio.</p>
     <div class="v783-actions"><a class="btn primary" href="/registro">Crear cuenta gratis</a><a class="btn" href="/cliente-login">Entrar</a><a class="btn" href="/membresias">Planes y precios</a></div>
   </div>
   <aside class="v783-plan-stack" aria-label="Planes visibles">
-    <a class="v783-plan-card free" href="/registro"><span>FREE</span><strong>0€</strong><small>Calendario, directos y resultados reales.</small></a>
-    <a class="v783-plan-card pro" href="/comprar/PRO"><span>PRO</span><strong>{{ pro.get('price_label') or '9,99 €/mes' }}</strong><small>Picks, combis, mercados y Telegram premium.</small></a>
-    <a class="v783-plan-card elite" href="/comprar/ELITE"><span>ELITE</span><strong>{{ elite.get('price_label') or '24,99 €/mes' }}</strong><small>Prioridad SHARK, alertas live y experiencia completa.</small></a>
+    <a class="v783-plan-card free" href="/registro"><span>FREE</span><strong>0â‚¬</strong><small>Calendario, directos y resultados reales.</small></a>
+    <a class="v783-plan-card pro" href="/comprar/PRO"><span>PRO</span><strong>{{ pro.get('price_label') or '9,99 â‚¬/mes' }}</strong><small>Picks, combis, mercados y Telegram premium.</small></a>
+    <a class="v783-plan-card elite" href="/comprar/ELITE"><span>ELITE</span><strong>{{ elite.get('price_label') or '24,99 â‚¬/mes' }}</strong><small>Prioridad SHARK, alertas live y experiencia completa.</small></a>
   </aside>
 </section>
 <section class="v783-public-value v799-public-value v826-certified-screen" data-v826-template="home">
-  <a href="/calendar"><b>Partidos</b><span>Hora España/Madrid</span></a>
+  <a href="/calendar"><b>Partidos</b><span>Hora Espa?a/Madrid</span></a>
   <a href="/live"><b>Directo</b><span>Marcador real cuando la API lo aporta</span></a>
   <a href="/picks"><b>Picks</b><span>Mercado, cuota, stake y riesgo</span></a>
-  <a href="/track-record"><b>Histórico</b><span>ROI solo con resultados reales</span></a>
+  <a href="/track-record"><b>Hist?rico</b><span>ROI solo con resultados reales</span></a>
 </section>
 <section class="v783-public-trust v826-certified-screen" data-v826-template="home">
   <div class="section-head"><div><h2>Centro de confianza</h2><p class="small">La primera pantalla vende la idea sin esconder lo importante.</p></div><a class="pill" href="/legal">Confianza</a></div>
   <div class="v783-trust-grid">
     <article><strong>No inventamos datos</strong><span>Partidos, cuotas, resultados y ROI solo cuando existen.</span></article>
     <article><strong>Planes visibles</strong><span>FREE, PRO y ELITE aparecen desde el inicio.</span></article>
-    <article><strong>Telegram y SHARK</strong><span>La app guía al cliente sin saturarlo.</span></article>
-    <article><strong>+18 y sin garantías</strong><span>No somos casa de apuestas: solo análisis informativo.</span></article>
+    <article><strong>Telegram y SHARK</strong><span>La app gu?a al cliente sin saturarlo.</span></article>
+    <article><strong>+18 y sin garant?as</strong><span>No somos casa de apuestas: solo an?lisis informativo.</span></article>
   </div>
 </section>
 {% endif %}
 {% endblock %}
+
 
 
 

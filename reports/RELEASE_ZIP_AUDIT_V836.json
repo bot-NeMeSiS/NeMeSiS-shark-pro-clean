@@ -1,0 +1,194 @@
+{
+  "ok": true,
+  "audited_at": "2026-06-20T19:54:51",
+  "zip": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\release_output\\NeMeSiS_SHARK_PRO_V836_AUTONOMOUS_REFERENCE_VISUAL_REVIEW_FINAL_QA_RENDER_READY.zip",
+  "zip_size_bytes": 1811035,
+  "file_count": 1002,
+  "content_size_bytes": 5025138,
+  "forbidden_count": 0,
+  "forbidden": [],
+  "top_files": [
+    {
+      "path": "app.py",
+      "size": 832110
+    },
+    {
+      "path": "static/app.css",
+      "size": 707293
+    },
+    {
+      "path": "reports/v810_telegram_previews/telegram_pick_pro_v810.png",
+      "size": 107837
+    },
+    {
+      "path": "reports/v810_telegram_previews/telegram_resumen_top_v810.png",
+      "size": 96929
+    },
+    {
+      "path": "V726_PROJECT_TREE_AUDIT.md",
+      "size": 96394
+    },
+    {
+      "path": "reports/v810_telegram_previews/telegram_live_top_v810.png",
+      "size": 72835
+    },
+    {
+      "path": "engines/api_football_live_tracker_engine.py",
+      "size": 60440
+    },
+    {
+      "path": "engines/api_exploitation_engine.py",
+      "size": 41823
+    },
+    {
+      "path": "engines/football_data_warehouse_engine.py",
+      "size": 38480
+    },
+    {
+      "path": "engines/stripe_payments_engine.py",
+      "size": 36321
+    },
+    {
+      "path": "templates/base.html",
+      "size": 31748
+    },
+    {
+      "path": "engines/telegram_delivery_engine.py",
+      "size": 31032
+    },
+    {
+      "path": "engines/shark_historical_intelligence_engine.py",
+      "size": 30018
+    },
+    {
+      "path": "V726_PURGE_REPORT.md",
+      "size": 26158
+    },
+    {
+      "path": "engines/spanish_localization_engine.py",
+      "size": 23699
+    },
+    {
+      "path": "engines/shark_prediction_engine.py",
+      "size": 23584
+    },
+    {
+      "path": "engines/data_memory_engine.py",
+      "size": 22764
+    },
+    {
+      "path": "tools/build_clean_release.py",
+      "size": 20407
+    },
+    {
+      "path": "engines/telegram_activity_engine.py",
+      "size": 20393
+    },
+    {
+      "path": "engines/player_intelligence_engine.py",
+      "size": 20270
+    }
+  ],
+  "top_folders": [
+    {
+      "folder": "engines",
+      "size": 1046044,
+      "files": 86
+    },
+    {
+      "folder": "app.py",
+      "size": 832110,
+      "files": 1
+    },
+    {
+      "folder": "reports",
+      "size": 794320,
+      "files": 351
+    },
+    {
+      "folder": "static",
+      "size": 708619,
+      "files": 2
+    },
+    {
+      "folder": "tools",
+      "size": 611854,
+      "files": 214
+    },
+    {
+      "folder": "templates",
+      "size": 562830,
+      "files": 151
+    },
+    {
+      "folder": "V726_PROJECT_TREE_AUDIT.md",
+      "size": 96394,
+      "files": 1
+    },
+    {
+      "folder": "docs",
+      "size": 45463,
+      "files": 56
+    },
+    {
+      "folder": "V726_PURGE_REPORT.md",
+      "size": 26158,
+      "files": 1
+    },
+    {
+      "folder": "tests",
+      "size": 12961,
+      "files": 11
+    },
+    {
+      "folder": "services",
+      "size": 7327,
+      "files": 6
+    },
+    {
+      "folder": "RELEASE_MANIFEST_V836.json",
+      "size": 7280,
+      "files": 1
+    },
+    {
+      "folder": "RELEASE_MANIFEST_V762.json",
+      "size": 6907,
+      "files": 1
+    },
+    {
+      "folder": "RELEASE_MANIFEST_V761.json",
+      "size": 6873,
+      "files": 1
+    },
+    {
+      "folder": "RELEASE_MANIFEST_V760.json",
+      "size": 6844,
+      "files": 1
+    },
+    {
+      "folder": "RELEASE_MANIFEST_V758.json",
+      "size": 6763,
+      "files": 1
+    },
+    {
+      "folder": "RELEASE_MANIFEST_V757.json",
+      "size": 6758,
+      "files": 1
+    },
+    {
+      "folder": "V742_DUPLICATES_AND_LEGACY_AUDIT.md",
+      "size": 6694,
+      "files": 1
+    },
+    {
+      "folder": ".env.render.clean",
+      "size": 6685,
+      "files": 1
+    },
+    {
+      "folder": "RELEASE_MANIFEST_V745.json",
+      "size": 6435,
+      "files": 1
+    }
+  ]
+}

@@ -1,19 +1,19 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 {% block content %}
-<section class="hero compact-hero v824-certified-screen v824-support-screen v825-certified-screen v826-certified-screen v827-certified-screen v828-certified-screen v829-certified-screen v832-certified-screen v833-certified-screen v830-certified-screen v833-certified-screen v832-certified-screen v833-certified-screen v825-support-screen" data-v824-template="support" data-v825-template="support" data-v827-template="support" data-v828-template="support" data-v829-template="support" data-v830-template="support" data-v832-template="support" data-v833-template="support" data-v826-template="support">
+<section class="hero compact-hero v824-certified-screen v824-support-screen v825-certified-screen v826-certified-screen v827-certified-screen v828-certified-screen v829-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v830-certified-screen v833-certified-screen v836-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v825-support-screen" data-v824-template="support" data-v825-template="support" data-v827-template="support" data-v828-template="support" data-v829-template="support" data-v830-template="support" data-v832-template="support" data-v833-template="support" data-v836-template="support" data-v826-template="support">
   <div>
     <p class="eyebrow">Centro de ayuda</p>
     <h1>Soporte NeMeSiS SHARK PRO</h1>
-    <p>Cuéntanos cualquier fallo de partidos, picks, live, Telegram o cuenta. Lo guardamos para revisarlo y mejorar la app.</p>
+    <p>Cu?ntanos cualquier fallo de partidos, picks, live, Telegram o cuenta. Lo guardamos para revisarlo y mejorar la app.</p>
   </div>
   <div class="hero-actions">
-    <a class="btn" href="/mi-dia">Volver a Mi día</a>
+    <a class="btn" href="/mi-dia">Volver a Mi d?a</a>
     <a class="btn ghost" href="/shark">Preguntar a SHARK</a>
   </div>
 </section>
 
 {% if data.sent %}
-  <div class="premium-alert ok">Mensaje recibido. Lo hemos guardado en el centro de soporte para revisión.</div>
+  <div class="premium-alert ok">Mensaje recibido. Lo hemos guardado en el centro de soporte para revisi?n.</div>
 {% endif %}
 {% if data.error %}
   <div class="premium-alert danger">{{ data.error }}</div>
@@ -29,7 +29,7 @@
           <option value="live">Directo / resultados</option>
           <option value="picks">Picks / combinadas</option>
           <option value="telegram">Telegram</option>
-          <option value="cuenta">Cuenta / membresía</option>
+          <option value="cuenta">Cuenta / membres?a</option>
           <option value="general">General</option>
         </select>
       </label>
@@ -44,7 +44,7 @@
         <input name="subject" placeholder="Ej: No veo picks para los partidos de hoy">
       </label>
       <label>Mensaje
-        <textarea name="message" rows="6" placeholder="Explica qué estabas viendo, qué botón pulsaste o qué dato falta."></textarea>
+        <textarea name="message" rows="6" placeholder="Explica qu? estabas viendo, qu? bot?n pulsaste o qu? dato falta."></textarea>
       </label>
       <button class="btn primary" type="submit">Enviar al soporte</button>
     </form>
@@ -59,11 +59,12 @@
     {% endfor %}
     <div class="mini-card accent">
       <strong>Privacidad</strong>
-      <p>No mostramos ruido técnico ni claves al cliente. El equipo SHARK revisa incidencias desde un entorno privado.</p>
+      <p>No mostramos ruido t?cnico ni claves al cliente. El equipo SHARK revisa incidencias desde un entorno privado.</p>
     </div>
   </div>
 </section>
 {% endblock %}
+
 
 
 
