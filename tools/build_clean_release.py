@@ -200,6 +200,8 @@ EXCLUDE_DIRS = {
     "backups",
     "logs",
     "v636work",
+    "archive_legacy",
+    "reports/archive",
 }
 EXCLUDE_SUFFIXES = {
     ".pyc",
@@ -333,6 +335,7 @@ def include(path: Path) -> bool:
             or rel_posix.startswith("reports/V836_")
             or rel_posix.startswith("reports/V837_")
             or rel_posix.startswith("reports/V838_")
+            or rel_posix.startswith("reports/V840_")
             or rel_posix.startswith("reports/V811_")
             or rel_posix.startswith("reports/V810_")
             or rel_posix.startswith("reports/V809_")
@@ -408,6 +411,7 @@ def include(path: Path) -> bool:
             or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V836")
             or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V837")
             or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V838")
+            or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V840")
         )
     if any(part in EXCLUDE_DIRS for part in parts):
         return False

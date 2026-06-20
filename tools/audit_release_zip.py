@@ -35,6 +35,8 @@ FORBIDDEN_PARTS = {
     "tmp",
     "temp",
     "v636work",
+    "archive_legacy",
+    "reports/archive",
 }
 FORBIDDEN_SUFFIXES = {
     ".pyc",

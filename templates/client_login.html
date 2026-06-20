@@ -1,23 +1,23 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 {% block content %}
 {% set selected = (data.selected_plan or request.args.get('plan') or '')|upper %}
 {% set next_url = data.next_url or request.args.get('next') or '/app' %}
 <section class="hero auth-hero v785-auth-hero v816-certified-screen v816-login-screen v817-certified-screen v817-login-screen v819-certified-screen v819-login-screen v820-certified-screen v820-login-screen v826-certified-screen v827-certified-screen v828-certified-screen v829-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v830-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen" data-v827-template="client_login" data-v828-template="client_login" data-v829-template="client_login" data-v830-template="client_login" data-v832-template="client_login" data-v833-template="client_login" data-v836-template="client_login" data-v837-template="client_login" data-v826-template="client_login" data-v816-template="client_login" data-v817-template="client_login" data-v819-template="client_login" data-v820-template="client_login">
   <div class="kicker">Entrar{% if selected %} ? {{ selected }} seleccionado{% endif %}</div>
   <h1>{{ 'Entra para activar ' ~ selected if selected in ['PRO','ELITE'] else 'Login cliente' }}</h1>
-  <p class="lead">{{ 'Guardamos tu plan elegido. Al entrar volver?s a membresÁas para continuar con Stripe.' if selected in ['PRO','ELITE'] else 'Accede a tu perfil para continuar con tu feed, favoritos, picks y experiencia premium.' }}</p>
+  <p class="lead">{{ 'Guardamos tu plan elegido. Al entrar volver?s a membres?as para continuar con Stripe.' if selected in ['PRO','ELITE'] else 'Accede a tu perfil para continuar con tu feed, favoritos, picks y experiencia premium.' }}</p>
 </section>
 <section class="band auth-grid v785-auth-grid v826-certified-screen" data-v826-template="client_login">
-  <form class="card auth-card" method="post" action="/cliente-login">
+  <form class="card auth-card" method="post" action="/cliente-login" autocomplete="on">
     <h2>Acceso</h2>
     {% if selected in ['PRO','ELITE'] %}<div class="v785-selected-mini"><strong>{{ selected }}</strong><span>Vuelves al pago tras entrar.</span></div>{% endif %}
     {% if error %}<p class="notice danger">{{ error }}</p>{% endif %}
     <input type="hidden" name="next" value="{{ next_url }}">
     <input type="hidden" name="plan" value="{{ selected }}">
-    <div class="field"><label>Email o nombre de usuario</label><input name="login" autocomplete="username" required></div>
-    <div class="field"><label>Contrase?a</label><input type="password" name="password" autocomplete="current-password" required></div>
+    <div class="field"><label for="client-login-user">Email o nombre de usuario</label><input id="client-login-user" name="login" autocomplete="username" required></div>
+    <div class="field"><label for="client-login-password">Contraseña</label><input id="client-login-password" type="password" name="password" autocomplete="current-password" required></div>
     <button type="submit">{{ 'Entrar y seguir con ' ~ selected if selected in ['PRO','ELITE'] else 'Entrar' }}</button>
-    <a class="small" href="/forgot-password">He olvidado mi contrase?a</a>
+    <a class="small" href="/forgot-password">He olvidado mi contraseña</a>
   </form>
   <aside class="card auth-side">
     <h2>Nuevo cliente</h2>
@@ -27,8 +27,3 @@
   </aside>
 </section>
 {% endblock %}
-
-
-
-
-
