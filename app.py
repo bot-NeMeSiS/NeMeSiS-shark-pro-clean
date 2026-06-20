@@ -238,7 +238,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V836_AUTONOMOUS_REFERENCE_VISUAL_REVIEW_FINAL_QA'
+APP_VERSION = 'V837_REFERENCE_PHOTO_PERFECTION_REAL_QA_FINAL'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
@@ -13251,6 +13251,9 @@ def api_runtime_version():
         "has_v835_project_restructure": "data-v835-shell" in base_template and "V835" in css_text,
         "has_v836_shell": "data-v836-shell" in base_template and "NEMESIS V836 AUTONOMOUS REFERENCE VISUAL REVIEW FINAL QA ACTIVE" in base_template,
         "has_v836_css": "V836 AUTONOMOUS REFERENCE VISUAL REVIEW FINAL QA START" in css_text,
+        "has_v837_shell": "data-v837-shell" in base_template and "NEMESIS V837 REFERENCE PHOTO PERFECTION REAL QA ACTIVE" in base_template,
+        "has_v837_css": "V837 REFERENCE PHOTO PERFECTION REAL QA START" in css_text,
+        "has_v836_autonomous_qa": "data-v836-shell" in base_template and "V836 AUTONOMOUS REFERENCE VISUAL REVIEW FINAL QA START" in css_text,
         "has_v833_visual_completion": "data-v833-shell" in base_template and "V833 REFERENCE ECOSYSTEM VISUAL COMPLETION START" in css_text,
         "has_v832_visual_workflow": "data-v832-shell" in base_template and "V832 FULL APP REFERENCE VISUAL GITHUB RENDER WORKFLOW START" in css_text,
         "has_v830_bottom_nav_fix": "data-v830-shell" in base_template and "V830 MOBILE BOTTOM NAV PIXEL QA START" in css_text,
@@ -13264,7 +13267,7 @@ def api_runtime_version():
         "has_v820_crests": "data-v820-shell" in base_template and "V820 REAL CRESTS REFERENCE VISUAL PIXEL POLISH START" in css_text,
         "has_v819_dedup": "data-v819-shell" in base_template and "V819 REFERENCE UI DEDUP LAYER PURGE START" in css_text,
         "has_v818_automation": "/api/automation/master-tick" in app_py_text and "daily_automation_engine" in app_py_text,
-        "static_css_cache_busting": "V836_AUTONOMOUS_REFERENCE_VISUAL_REVIEW_FINAL_QA" in base_template,
+        "static_css_cache_busting": "V837_REFERENCE_PHOTO_PERFECTION_REAL_QA_FINAL" in base_template,
         "crest_engine_loaded": runtime_stability.get("crest_engine_loaded"),
         "logo_cache_tables_ok": runtime_stability.get("logo_cache_tables_ok"),
         "team_logo_cache_count": runtime_stability.get("team_logo_cache_count"),

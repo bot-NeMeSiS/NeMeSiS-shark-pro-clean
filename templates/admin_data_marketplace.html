@@ -12,11 +12,63 @@
 </section>
 <section class="v794-admin-grid sidebar">
   <div class="v794-admin-grid">
-    <article class="v794-admin-panel"><div class="v794-panel-head"><h2>Datasets principales</h2></div><div class="v794-action-grid">{% for name,count in [('Picks cerrados','—'),('Track record','—'),('Usuarios','—'),('Pagos','—'),('Highlights','—'),('Partidos','—')] %}<a class="v794-action-card" href="/admin/data-marketplace"><i>▤</i><span><b>{{ name }}</b><small>{{ count }} registros · actualizado</small></span><em>›</em></a>{% endfor %}</div></article>
-    <article class="v794-admin-panel"><div class="v794-panel-head"><h2>Acciones de exportación</h2></div><div class="v794-action-grid"><a class="v794-action-card" href="#"><i>▣</i><span><b>CSV</b><small>Formato comprimido</small></span><em>›</em></a><a class="v794-action-card" href="#"><i>▦</i><span><b>Excel</b><small>.xlsx optimizado</small></span><em>›</em></a><a class="v794-action-card" href="#"><i>{}</i><span><b>JSON</b><small>Formato estructurado</small></span><em>›</em></a><a class="v794-action-card" href="#"><i>API</i><span><b>API</b><small>REST / Webhooks</small></span><em>›</em></a></div></article>
-    <article class="v794-admin-panel"><div class="v794-panel-head"><h2>Exportaciones recientes</h2><a href="/admin/data-marketplace">Ver todas →</a></div><table class="v794-admin-table"><thead><tr><th>Dataset</th><th>Destino</th><th>Usuario admin</th><th>Fecha</th><th>Estado</th></tr></thead><tbody>{% for dset in ['Picks cerrados','Track record','Usuarios','Pagos','Partidos','Highlights'] %}<tr><td>{{ dset }}</td><td>Destino real pendiente / {{ dset|lower|replace(' ','_') }}.csv</td><td>Administrador</td><td>—</td><td>{{ ui.status('Completado' if not loop.index==5 else 'Fallido','ok' if not loop.index==5 else 'warn') }}</td></tr>{% endfor %}</tbody></table></article>
+    <article class="v794-admin-panel">
+      <div class="v794-panel-head"><h2>Datasets principales</h2></div>
+      <div class="v794-action-grid">
+        {% for name,count in [('Picks cerrados','—'),('Track record','—'),('Usuarios','—'),('Pagos','—'),('Highlights','—'),('Partidos','—')] %}
+        <a class="v794-action-card" href="/admin/data-marketplace"><i>▤</i><span><b>{{ name }}</b><small>{{ count }} registros · actualizado</small></span><em>›</em></a>
+        {% endfor %}
+      </div>
+    </article>
+    <article class="v794-admin-panel">
+      <div class="v794-panel-head"><h2>Acciones de exportación</h2></div>
+      <div class="v794-action-grid">
+        <a class="v794-action-card" href="/admin/data-marketplace?format=csv"><i>▣</i><span><b>CSV</b><small>Formato comprimido</small></span><em>›</em></a>
+        <a class="v794-action-card" href="/admin/data-marketplace?format=xlsx"><i>▦</i><span><b>Excel</b><small>.xlsx optimizado</small></span><em>›</em></a>
+        <a class="v794-action-card" href="/admin/data-marketplace?format=json"><i>{}</i><span><b>JSON</b><small>Formato estructurado</small></span><em>›</em></a>
+        <a class="v794-action-card" href="/admin/data-marketplace?format=api"><i>API</i><span><b>API</b><small>REST / Webhooks</small></span><em>›</em></a>
+      </div>
+    </article>
+    <article class="v794-admin-panel">
+      <div class="v794-panel-head"><h2>Exportaciones recientes</h2><a href="/admin/data-marketplace">Ver todas →</a></div>
+      <table class="v794-admin-table">
+        <thead><tr><th>Dataset</th><th>Destino</th><th>Usuario admin</th><th>Fecha</th><th>Estado</th></tr></thead>
+        <tbody>
+          {% for dset in ['Picks cerrados','Track record','Usuarios','Pagos','Partidos','Highlights'] %}
+          <tr><td>{{ dset }}</td><td>Destino real pendiente / {{ dset|lower|replace(' ','_') }}.csv</td><td>Administrador</td><td>—</td><td>{{ ui.status('Completado' if not loop.index==5 else 'Fallido','ok' if not loop.index==5 else 'warn') }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </article>
   </div>
-  <aside class="v794-admin-grid"><article class="v794-admin-panel"><div class="v794-panel-head"><h2>Protección de datos</h2><span>{{ ui.status('RGPD','ok') }}</span></div><table class="v794-admin-table"><tbody><tr><td>Email</td><td>j***@dominio.com</td></tr><tr><td>Teléfono</td><td>+34 *** *** ***</td></tr><tr><td>Usuario ID</td><td>usr_************</td></tr><tr><td>Dirección IP</td><td>***.***.**.**</td></tr><tr><td>Método de pago</td><td>**** **** **** 4242</td></tr></tbody></table><hr><div class="v794-admin-list"><div class="v794-admin-list-row"><span>✓</span><div><strong>RGPD / GDPR</strong><small>Cumplimiento activo</small></div></div><div class="v794-admin-list-row"><span>✓</span><div><strong>Retención de datos</strong><small>90 días</small></div></div><div class="v794-admin-list-row"><span>✓</span><div><strong>Encriptación</strong><small>AES-256</small></div></div></div></article><article class="v794-admin-panel"><div class="v794-panel-head"><h2>Marketplace insights</h2></div><div class="v794-admin-chart" style="height:160px"><span class="v794-chart-label">156 exportaciones</span></div><div class="v794-action-grid" style="grid-template-columns:repeat(2,1fr);margin-top:12px"><a class="v794-action-card" href="#"><i>42%</i><span><b>Picks cerrados</b><small>Más solicitado</small></span></a><a class="v794-action-card" href="#"><i>24%</i><span><b>Track record</b><small>Alta demanda</small></span></a></div></article></aside>
+  <aside class="v794-admin-grid">
+    <article class="v794-admin-panel">
+      <div class="v794-panel-head"><h2>Protección de datos</h2><span>{{ ui.status('RGPD','ok') }}</span></div>
+      <table class="v794-admin-table">
+        <tbody>
+          <tr><td>Email</td><td>j***@dominio.com</td></tr>
+          <tr><td>Teléfono</td><td>+34 *** *** ***</td></tr>
+          <tr><td>Usuario ID</td><td>usr_************</td></tr>
+          <tr><td>Dirección IP</td><td>***.***.**.**</td></tr>
+          <tr><td>Método de pago</td><td>**** **** **** 4242</td></tr>
+        </tbody>
+      </table>
+      <hr>
+      <div class="v794-admin-list">
+        <div class="v794-admin-list-row"><span>✓</span><div><strong>RGPD / GDPR</strong><small>Cumplimiento activo</small></div></div>
+        <div class="v794-admin-list-row"><span>✓</span><div><strong>Retención de datos</strong><small>90 días</small></div></div>
+        <div class="v794-admin-list-row"><span>✓</span><div><strong>Encriptación</strong><small>AES-256</small></div></div>
+      </div>
+    </article>
+    <article class="v794-admin-panel">
+      <div class="v794-panel-head"><h2>Marketplace insights</h2></div>
+      <div class="v794-admin-chart" style="height:160px"><span class="v794-chart-label">156 exportaciones</span></div>
+      <div class="v794-action-grid" style="grid-template-columns:repeat(2,1fr);margin-top:12px">
+        <a class="v794-action-card" href="/admin/data-marketplace?dataset=picks"><i>42%</i><span><b>Picks cerrados</b><small>Más solicitado</small></span></a>
+        <a class="v794-action-card" href="/admin/data-marketplace?dataset=track-record"><i>24%</i><span><b>Track record</b><small>Alta demanda</small></span></a>
+      </div>
+    </article>
+  </aside>
 </section>
 {% endcall %}
 {% endblock %}

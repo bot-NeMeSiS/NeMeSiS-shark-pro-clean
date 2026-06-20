@@ -1,12 +1,12 @@
 ﻿{% extends "base.html" %}
 {% block content %}
-<section class="hero compact admin-hero v826-certified-screen v827-certified-screen v828-certified-screen v829-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v830-certified-screen v833-certified-screen v836-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen" data-v827-template="admin_users" data-v828-template="admin_users" data-v829-template="admin_users" data-v830-template="admin_users" data-v832-template="admin_users" data-v833-template="admin_users" data-v836-template="admin_users" data-v826-template="admin_users">
+<section class="hero compact admin-hero v826-certified-screen v827-certified-screen v828-certified-screen v829-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v830-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen" data-v827-template="admin_users" data-v828-template="admin_users" data-v829-template="admin_users" data-v830-template="admin_users" data-v832-template="admin_users" data-v833-template="admin_users" data-v836-template="admin_users" data-v837-template="admin_users" data-v826-template="admin_users">
   <div class="kicker">Panel admin ? Clientes</div>
-  <h1>Usuarios, roles y regalos por d?as ? Regalar membres?a</h1>
-  <p class="lead">Gestiona cuentas reales, cambia membres?as y concede PRO/ELITE temporal para amigos, ofertas, betas o promociones sin tocar pagos.</p>
+  <h1>Usuarios, roles y regalos por dÁas ? Regalar membresÁa</h1>
+  <p class="lead">Gestiona cuentas reales, cambia membresÁas y concede PRO/ELITE temporal para amigos, ofertas, betas o promociones sin tocar pagos.</p>
   <div class="admin-menu compact-admin-menu">
     <a class="btn primary" href="/admin/control-center">Control</a>
-    <a class="btn" href="/admin/memberships">Membres?as</a>
+    <a class="btn" href="/admin/memberships">MembresÁas</a>
     <a class="btn" href="/admin/user-import">Importar usuarios</a>
     <a class="btn" href="/admin/telegram">Telegram</a>
   </div>
@@ -18,7 +18,7 @@
   <div class="grid compact-grid metric-row">
     <article class="card metric-card"><div class="metric">{{ data.users|length }}</div><div class="muted">usuarios</div></article>
     <article class="card metric-card"><div class="metric">{{ data.membership_admin.active_temporal or 0 }}</div><div class="muted">temporales activos</div></article>
-    <article class="card metric-card"><div class="metric">{{ data.membership_admin.expiring_soon or 0 }}</div><div class="muted">caducan en 7 d?as</div></article>
+    <article class="card metric-card"><div class="metric">{{ data.membership_admin.expiring_soon or 0 }}</div><div class="muted">caducan en 7 dÁas</div></article>
     <article class="card metric-card"><div class="metric">{{ data.membership_admin.expired_today or 0 }}</div><div class="muted">caducadas hoy</div></article>
   </div>
   <p class="small">{{ data.membership_admin.note }}</p>
@@ -35,7 +35,7 @@
         <p class="small">Rol: <strong>{{ user.role }}</strong> ? Membres?a: <strong>{{ user.membership }}</strong></p>
         <p class="small">Caducidad: <strong>{{ user.membership_expires_label or 'Sin caducidad' }}</strong> ? Origen: {{ user.membership_source or 'manual' }}</p>
         {% if user.membership_note %}<p class="small">Nota admin: {{ user.membership_note }}</p>{% endif %}
-        <p class="small">Alta: {{ (user.created_at or '-')|madrid_datetime_label }} ? Ãšltimo login: {{ (user.last_login or '-')|madrid_datetime_label }}</p>
+        <p class="small">Alta: {{ (user.created_at or '-')|madrid_datetime_label }} ? Último login: {{ (user.last_login or '-')|madrid_datetime_label }}</p>
       </div>
       <form method="post" action="/admin/users" class="gift-form">
         <input type="hidden" name="user_id" value="{{ user.id }}">
@@ -45,16 +45,16 @@
           <option value="{{ role }}" {% if user.membership == role or user.role == role %}selected{% endif %}>{{ role }}</option>
           {% endfor %}
         </select>
-        <label>Duraci?n</label>
+        <label>DuraciÁn</label>
         <select name="membership_days">
           <option value="0">Sin caducidad</option>
           {% for days in data.membership_admin.quick_days %}
-          <option value="{{ days }}">{{ days }} d?a{% if days != 1 %}s{% endif %}</option>
+          <option value="{{ days }}">{{ days }} dÁa{% if days != 1 %}s{% endif %}</option>
           {% endfor %}
         </select>
         <label>Nota interna</label>
-        <input name="membership_note" maxlength="220" placeholder="Ej: regalo amigo, oferta 7 d?as, beta...">
-        <button type="submit">Guardar membres?a</button>
+        <input name="membership_note" maxlength="220" placeholder="Ej: regalo amigo, oferta 7 dÁas, beta...">
+        <button type="submit">Guardar membresÁa</button>
       </form>
     </article>
     {% else %}
@@ -63,6 +63,7 @@
   </div>
 </section>
 {% endblock %}
+
 
 
 

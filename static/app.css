@@ -5730,3 +5730,270 @@ body[data-v836-shell="true"].ns-admin :is(table,.table,.admin-table){
   }
 }
 /* V836 AUTONOMOUS REFERENCE VISUAL REVIEW FINAL QA END */
+
+/* V837 REFERENCE PHOTO PERFECTION REAL QA START */
+body[data-v837-shell="true"]{
+  --v837-bg:#020712;
+  --v837-ink:#f4fbff;
+  --v837-muted:#9eb6cc;
+  --v837-line:rgba(91,226,255,.20);
+  --v837-line-strong:rgba(91,226,255,.34);
+  --v837-panel:rgba(6,18,34,.88);
+  --v837-panel-strong:rgba(8,25,48,.95);
+  --v837-blue:#1f7cff;
+  --v837-cyan:#35e8ff;
+  --v837-green:#37e783;
+  --v837-gold:#ffd166;
+  --v837-red:#ff5b6c;
+  background:
+    radial-gradient(circle at 90% 2%,rgba(29,124,255,.18),transparent 24%),
+    radial-gradient(circle at 8% 15%,rgba(53,232,255,.12),transparent 28%),
+    linear-gradient(180deg,#020712 0%,#061326 56%,#020712 100%)!important;
+  color:var(--v837-ink)!important;
+  overflow-x:hidden!important;
+}
+body[data-v837-shell="true"]::before{
+  content:"";
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  z-index:-3;
+  background:
+    radial-gradient(circle,rgba(75,211,255,.18) 0 1px,transparent 1.8px) 0 0/34px 34px,
+    linear-gradient(135deg,rgba(53,232,255,.055),transparent 40%);
+  opacity:.28;
+}
+body[data-v837-shell="true"] :is(.brand,.v828-rail-brand,.v808-admin-rail-brand){
+  letter-spacing:0!important;
+}
+body[data-v837-shell="true"] :is(.brand img,.v828-rail-brand img,.v808-admin-rail-brand img,.shark-fab img){
+  object-fit:contain;
+  filter:drop-shadow(0 0 14px rgba(53,232,255,.34));
+}
+body[data-v837-shell="true"] .topin{
+  border-color:var(--v837-line)!important;
+  background:linear-gradient(135deg,rgba(7,22,42,.96),rgba(2,9,19,.90))!important;
+  box-shadow:0 18px 54px rgba(0,0,0,.34)!important;
+}
+body[data-v837-shell="true"] :is(.nav-clean a,.bottom-nav-clean a,.v829-mobile-quick a,.v828-client-rail a,.v808-admin-rail a){
+  border-color:rgba(91,226,255,.14)!important;
+  text-decoration:none!important;
+}
+body[data-v837-shell="true"] :is(.nav-clean a,.bottom-nav-clean a,.v828-client-rail a,.v808-admin-rail a):is(.is-active,.v800-active,:hover,:focus-visible){
+  border-color:var(--v837-line-strong)!important;
+  background:linear-gradient(135deg,rgba(31,124,255,.24),rgba(53,232,255,.12))!important;
+  color:#fff!important;
+  box-shadow:0 0 26px rgba(31,124,255,.18)!important;
+}
+body[data-v837-shell="true"] :is(.card,.panel,.sports-row,.match-card,.v799-feature-card,.v799-live-card,.v799-pick-card,.v812-feature-card,.v812-pick-card,.v837-certified-screen){
+  border:1px solid var(--v837-line)!important;
+  background:linear-gradient(180deg,var(--v837-panel-strong),rgba(2,10,22,.90))!important;
+  box-shadow:0 20px 60px rgba(0,0,0,.30),inset 0 1px 0 rgba(255,255,255,.05)!important;
+}
+body[data-v837-shell="true"] :is(.card,.panel,.sports-row,.match-card,.v799-pick-card,.v799-live-card):hover{
+  border-color:var(--v837-line-strong)!important;
+  transform:translateY(-1px);
+}
+body[data-v837-shell="true"] :is(.badge,.pill,.state-badge,.shark-pill,.tier-badge){
+  border-radius:999px!important;
+  border:1px solid rgba(91,226,255,.24)!important;
+  background:rgba(31,124,255,.14)!important;
+  color:#e8fbff!important;
+  font-weight:900!important;
+}
+body[data-v837-shell="true"] :is(.btn,.button,a.btn,button,.cta-primary,.primary){
+  min-height:42px;
+  border-radius:14px!important;
+  font-weight:900!important;
+}
+body[data-v837-shell="true"] :is(.cta-primary,.primary,.btn-primary,.nav-cta){
+  background:linear-gradient(135deg,var(--v837-blue),var(--v837-cyan))!important;
+  border-color:transparent!important;
+  color:#f8fdff!important;
+}
+body[data-v837-shell="true"] :is(input,select,textarea){
+  border-color:rgba(91,226,255,.20)!important;
+  background:rgba(3,12,26,.86)!important;
+  color:#effaff!important;
+}
+body[data-v837-shell="true"] :is(.crest,.compact-crest,.small-crest,.team-crest){
+  width:auto;
+  max-width:58px;
+  border-color:rgba(255,255,255,.15)!important;
+  background:radial-gradient(circle at 30% 18%,rgba(255,255,255,.18),rgba(53,232,255,.10) 48%,rgba(3,12,26,.92))!important;
+}
+body[data-v837-shell="true"] :is(.empty-state,.premium-empty,.v799-empty,.v829-empty,.v832-premium-empty){
+  border:1px dashed rgba(91,226,255,.28)!important;
+  background:linear-gradient(180deg,rgba(7,22,42,.72),rgba(2,9,19,.68))!important;
+  color:#d8ecf8!important;
+}
+body[data-v837-shell="true"] :is(.sports-team strong,.match-team strong,.team-name,strong.team,.v799-card-top span){
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+body[data-v837-shell="true"].ns-admin{
+  background:linear-gradient(180deg,#020611,#07111f 58%,#020611)!important;
+}
+body[data-v837-shell="true"].ns-admin::before{
+  opacity:.12;
+}
+body[data-v837-shell="true"].ns-admin :is(.v808-admin-rail,.v808-admin-dock){
+  border-color:rgba(91,226,255,.18)!important;
+  background:linear-gradient(180deg,rgba(4,13,28,.98),rgba(2,8,18,.96))!important;
+}
+body[data-v837-shell="true"].ns-admin .v808-admin-rail a{
+  min-height:46px!important;
+  justify-content:flex-start!important;
+}
+body[data-v837-shell="true"].ns-admin :is(.v794-admin-panel,.v794-admin-card,.admin-card,.admin-hero,.v837-certified-screen){
+  border-color:rgba(91,226,255,.17)!important;
+  background:linear-gradient(180deg,rgba(8,20,38,.95),rgba(3,10,20,.95))!important;
+}
+body[data-v837-shell="true"].ns-admin :is(.bottom-nav-clean,.shark-widget,.v825-public-floating-shark){
+  display:none!important;
+}
+body[data-v837-shell="true"].ns-admin :is(table,.table,.admin-table){
+  width:100%;
+  border-collapse:separate;
+  border-spacing:0;
+}
+body[data-v837-shell="true"].ns-admin :is(th,td){
+  border-color:rgba(91,226,255,.10)!important;
+}
+@media(min-width:1024px){
+  body[data-v837-shell="true"].ns-authenticated:not(.ns-admin) .ns-main-shell{
+    width:min(100% - 40px,1480px)!important;
+  }
+  body[data-v837-shell="true"].ns-authenticated:not(.ns-admin) .v828-client-rail{
+    display:flex!important;
+    width:244px;
+  }
+  body[data-v837-shell="true"].ns-authenticated:not(.ns-admin) .bottom-nav-clean{
+    display:none!important;
+  }
+  body[data-v837-shell="true"] :is(.v799-grid,.v812-main-grid,.dashboard-grid,.admin-grid,.grid){
+    gap:16px!important;
+  }
+}
+@media(max-width:768px){
+  body[data-v837-shell="true"]{
+    --v837-safe-bottom:max(env(safe-area-inset-bottom),0px);
+  }
+  body[data-v837-shell="true"] :is(.v828-client-rail,.v808-admin-rail,.v808-admin-dock){
+    display:none!important;
+  }
+  body[data-v837-shell="true"] .top.ns-topbar{
+    padding-top:calc(6px + env(safe-area-inset-top))!important;
+  }
+  body[data-v837-shell="true"] .topin{
+    width:calc(100% - 16px)!important;
+    min-height:56px!important;
+    border-radius:20px!important;
+    padding:8px 10px!important;
+  }
+  body[data-v837-shell="true"] .brand span:last-child{
+    font-size:.76rem!important;
+    line-height:1.05!important;
+  }
+  body[data-v837-shell="true"] .ns-main-shell{
+    width:calc(100% - 16px)!important;
+    padding:8px 8px calc(134px + var(--v837-safe-bottom))!important;
+  }
+  body[data-v837-shell="true"] :is(h1,.hero-title){
+    font-size:clamp(1.52rem,8vw,2.18rem)!important;
+    line-height:1.04!important;
+  }
+  body[data-v837-shell="true"] :is(.lead,.hero-copy p,.muted,small){
+    font-size:.90rem!important;
+  }
+  body[data-v837-shell="true"] :is(.v774-client-hero,.v799-hero,.v812-hero-shell,.admin-hero,.v837-certified-screen){
+    padding:14px!important;
+    border-radius:22px!important;
+  }
+  body[data-v837-shell="true"].ns-authenticated:not(.ns-admin) .bottom-nav-clean{
+    display:grid!important;
+    grid-template-columns:repeat(5,minmax(0,1fr))!important;
+    left:50%!important;
+    right:auto!important;
+    width:calc(100vw - 18px)!important;
+    max-width:430px!important;
+    transform:translateX(-50%)!important;
+    bottom:calc(10px + var(--v837-safe-bottom))!important;
+    gap:4px!important;
+    padding:6px!important;
+    border-radius:22px!important;
+    overflow:hidden!important;
+    z-index:160!important;
+  }
+  body[data-v837-shell="true"].ns-authenticated:not(.ns-admin) .bottom-nav-clean a{
+    min-width:0!important;
+    min-height:44px!important;
+    font-size:.57rem!important;
+    letter-spacing:0!important;
+    white-space:nowrap!important;
+    overflow:hidden!important;
+    text-overflow:ellipsis!important;
+  }
+  body[data-v837-shell="true"] .shark-widget{
+    right:14px!important;
+    bottom:calc(82px + var(--v837-safe-bottom))!important;
+    z-index:145!important;
+    max-width:calc(100vw - 28px)!important;
+  }
+  body[data-v837-shell="true"][data-ns-route="/shark"] .shark-widget,
+  body[data-v837-shell="true"][data-ns-route="/shark-ai"] .shark-widget,
+  body[data-v837-shell="true"][data-ns-route="/shark-core"] .shark-widget{
+    display:none!important;
+  }
+  body[data-v837-shell="true"] .ns-scroll-top{
+    display:none!important;
+  }
+  body[data-v837-shell="true"] :is(.actions,.quick-grid,.v812-hero-actions,.v799-actions,.v833-action-grid,.v832-action-grid){
+    display:grid!important;
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    gap:10px!important;
+  }
+  body[data-v837-shell="true"] :is(.actions a,.quick-grid a,.v812-hero-actions a,.v799-actions a,.v833-action-grid a,.v832-action-grid a){
+    min-width:0!important;
+    min-height:44px!important;
+    text-align:center!important;
+    justify-content:center!important;
+  }
+  body[data-v837-shell="true"] :is(table,.table,.admin-table){
+    display:block!important;
+    width:100%!important;
+    max-width:100%!important;
+    overflow-x:auto!important;
+  }
+  body[data-v837-shell="true"].ns-admin .ns-main-shell{
+    padding-bottom:24px!important;
+  }
+}
+@media(max-width:430px){
+  body[data-v837-shell="true"].ns-authenticated:not(.ns-admin) .bottom-nav-clean{
+    width:calc(100vw - 14px)!important;
+    gap:3px!important;
+    padding:5px!important;
+  }
+  body[data-v837-shell="true"].ns-authenticated:not(.ns-admin) .bottom-nav-clean a{
+    font-size:.53rem!important;
+    padding:4px 2px!important;
+  }
+  body[data-v837-shell="true"] .shark-fab{
+    width:48px!important;
+    height:48px!important;
+  }
+}
+@media(max-width:390px){
+  body[data-v837-shell="true"] :is(.actions,.quick-grid,.v812-hero-actions,.v799-actions,.v833-action-grid,.v832-action-grid){
+    grid-template-columns:1fr!important;
+  }
+  body[data-v837-shell="true"].ns-authenticated:not(.ns-admin) .bottom-nav-clean{
+    width:calc(100vw - 12px)!important;
+  }
+  body[data-v837-shell="true"].ns-authenticated:not(.ns-admin) .bottom-nav-clean a{
+    font-size:.51rem!important;
+  }
+}
+/* V837 REFERENCE PHOTO PERFECTION REAL QA END */

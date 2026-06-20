@@ -1,6 +1,6 @@
 ﻿{% extends "base.html" %}
 {% block content %}
-<section class="hero compact v826-certified-screen v827-certified-screen v828-certified-screen v829-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v830-certified-screen v833-certified-screen v836-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen" data-v827-template="admin_data_center" data-v828-template="admin_data_center" data-v829-template="admin_data_center" data-v830-template="admin_data_center" data-v832-template="admin_data_center" data-v833-template="admin_data_center" data-v836-template="admin_data_center" data-v826-template="admin_data_center">
+<section class="hero compact v826-certified-screen v827-certified-screen v828-certified-screen v829-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v830-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen" data-v827-template="admin_data_center" data-v828-template="admin_data_center" data-v829-template="admin_data_center" data-v830-template="admin_data_center" data-v832-template="admin_data_center" data-v833-template="admin_data_center" data-v836-template="admin_data_center" data-v837-template="admin_data_center" data-v826-template="admin_data_center">
   <div class="kicker">Admin - Data Center</div>
   <h1>Poblacion masiva de futbol</h1>
   <p class="lead">Centro seguro para poblar competiciones, equipos, escudos, calendario, resultados y cuotas desde fuentes legales y cache SQLite.</p>
@@ -19,7 +19,7 @@
     <div class="card"><div class="metric">{{ data.data_center.total_competitions }}</div><div class="muted">competiciones</div></div>
     <div class="card"><div class="metric">{{ data.data_center.total_teams }}</div><div class="muted">equipos</div></div>
     <div class="card"><div class="metric">{{ data.data_center.total_matches }}</div><div class="muted">partidos</div></div>
-    <div class="card"><div class="metric">{{ data.data_center.upcoming_matches }}</div><div class="muted">pr?ximos</div></div>
+    <div class="card"><div class="metric">{{ data.data_center.upcoming_matches }}</div><div class="muted">prÁximos</div></div>
     <div class="card"><div class="metric">{{ data.data_center.live_matches }}</div><div class="muted">live</div></div>
     <div class="card"><div class="metric">{{ data.data_center.teams_with_crests }}</div><div class="muted">con escudo</div></div>
     <div class="card"><div class="metric">{{ data.data_center.odds_snapshots }}</div><div class="muted">cuotas</div></div>
@@ -63,8 +63,8 @@
   {% for action,label,detail in [
     ('competitions','Sincronizar competiciones','Prepara las ligas prioritarias sin inventar partidos.'),
     ('teams','Sincronizar equipos/escudos','Carga equipos reales y escudos si SportsDB devuelve datos.'),
-    ('calendar','Sincronizar calendario','Trae pr?ximos eventos y live permitidos por SportsDB.'),
-    ('live','Refresh live','Actualiza live b?sico y pr?ximos destacados.'),
+    ('calendar','Sincronizar calendario','Trae prÁximos eventos y live permitidos por SportsDB.'),
+    ('live','Refresh live','Actualiza live b?sico y prÁximos destacados.'),
     ('results','Sincronizar resultados','Guarda resultados recientes si la API los ofrece.'),
     ('odds','Sincronizar cuotas','Trae eventos/cuotas H2H respetando cache.'),
     ('warmup','Warmup general','Ejecuta competiciones, equipos, calendario y cuotas con control de intervalo.')
@@ -106,6 +106,7 @@
   </div>
 </section>
 {% endblock %}
+
 
 
 

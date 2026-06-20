@@ -2,10 +2,10 @@
 {% block content %}
 {% set selected = (data.selected_plan or request.args.get('plan') or '')|upper %}
 {% set next_url = data.next_url or request.args.get('next') or '/app' %}
-<section class="hero auth-hero v785-auth-hero v826-certified-screen v827-certified-screen v828-certified-screen v829-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v830-certified-screen v833-certified-screen v836-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen" data-v827-template="register" data-v828-template="register" data-v829-template="register" data-v830-template="register" data-v832-template="register" data-v833-template="register" data-v836-template="register" data-v826-template="register">
+<section class="hero auth-hero v785-auth-hero v826-certified-screen v827-certified-screen v828-certified-screen v829-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v830-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen" data-v827-template="register" data-v828-template="register" data-v829-template="register" data-v830-template="register" data-v832-template="register" data-v833-template="register" data-v836-template="register" data-v837-template="register" data-v826-template="register">
   <div class="kicker">Crear cuenta{% if selected %} ? {{ selected }} seleccionado{% endif %}</div>
   <h1>{{ 'Crea cuenta para activar ' ~ selected if selected in ['PRO','ELITE'] else 'Acceso cliente SHARK' }}</h1>
-  <p class="lead">{{ 'La cuenta empieza en FREE y al terminar volver?s al plan elegido para pagar con Stripe.' if selected in ['PRO','ELITE'] else 'Registra tu cuenta FREE y conecta el perfil con favoritos, live, picks y futuras membres?as premium.' }}</p>
+  <p class="lead">{{ 'La cuenta empieza en FREE y al terminar volver?s al plan elegido para pagar con Stripe.' if selected in ['PRO','ELITE'] else 'Registra tu cuenta FREE y conecta el perfil con favoritos, live, picks y futuras membresÁas premium.' }}</p>
 </section>
 <section class="band auth-grid v785-auth-grid v826-certified-screen" data-v826-template="register">
   <form class="card auth-card" method="post" action="/registro">
@@ -29,6 +29,7 @@
   </aside>
 </section>
 {% endblock %}
+
 
 
 

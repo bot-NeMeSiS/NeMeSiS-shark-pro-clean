@@ -20,12 +20,12 @@
 {% set picks_count = counts.get('picks', picks|length) %}
 {% set telegram_count = counts.get('alerts', counts.get('telegram', 0)) %}
 {% set lifecycle = data.get('client_lifecycle_sync') or {} %}
-<section class="v812-screen v812-home v815-certified-screen v815-app-screen v816-certified-screen v816-app-screen v817-certified-screen v817-app-screen v819-certified-screen v819-app-screen v820-certified-screen v820-app-screen v823-certified-screen v823-app-screen v824-certified-screen v824-app-screen v825-certified-screen v826-certified-screen v827-certified-screen v828-certified-screen v829-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v830-certified-screen v833-certified-screen v836-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v825-app-screen" data-v815-template="client_app_center" data-v816-template="client_app_center" data-v817-template="client_app_center" data-v819-template="client_app_center" data-v820-template="client_app_center" data-v823-template="client_app_center" data-v824-template="client_app_center" data-v825-template="client_app_center" data-v827-template="client_app_center" data-v828-template="client_app_center" data-v829-template="client_app_center" data-v830-template="client_app_center" data-v832-template="client_app_center" data-v833-template="client_app_center" data-v836-template="client_app_center" data-v826-template="client_app_center">
+<section class="v812-screen v812-home v815-certified-screen v815-app-screen v816-certified-screen v816-app-screen v817-certified-screen v817-app-screen v819-certified-screen v819-app-screen v820-certified-screen v820-app-screen v823-certified-screen v823-app-screen v824-certified-screen v824-app-screen v825-certified-screen v826-certified-screen v827-certified-screen v828-certified-screen v829-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v830-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v825-app-screen" data-v815-template="client_app_center" data-v816-template="client_app_center" data-v817-template="client_app_center" data-v819-template="client_app_center" data-v820-template="client_app_center" data-v823-template="client_app_center" data-v824-template="client_app_center" data-v825-template="client_app_center" data-v827-template="client_app_center" data-v828-template="client_app_center" data-v829-template="client_app_center" data-v830-template="client_app_center" data-v832-template="client_app_center" data-v833-template="client_app_center" data-v836-template="client_app_center" data-v837-template="client_app_center" data-v826-template="client_app_center">
   <section class="v812-hero-shell" aria-label="Inicio cliente estilo app final">
     <div class="v812-hero-bg-shark" aria-hidden="true"><img src="/static/img/shark-logo.svg" alt=""></div>
     <div class="v812-hero-copy">
       <span class="v812-eyebrow">NeMeSiS SHARK PRO ? {{ plan_name }}</span>
-      <h1>Buenos d?as, {{ user_name }}</h1>
+      <h1>Buenos dÁas, {{ user_name }}</h1>
       <p>Partidos importantes, directos reales, picks y SHARK en una sola ruta. Lo jugado pasa a resultados; lo pr?ximo queda limpio.</p>
       <nav class="v812-hero-actions" aria-label="Acciones principales">
         <a class="primary" href="/calendar?lane=today">Partidos</a>
@@ -34,7 +34,7 @@
         <a href="/shark">SHARK</a>
       </nav>
     </div>
-    <aside class="v812-phone-card" aria-label="Vista m?vil de referencia">
+    <aside class="v812-phone-card" aria-label="Vista mÁvil de referencia">
       <header><img src="/static/img/shark-logo.svg" alt=""><span>{{ plan_name }}</span><b>{{ live_count }} live</b></header>
       {% if featured_match %}
         {% set fm = featured_match %}{% set fctx = fm|match_madrid_context %}
@@ -52,14 +52,14 @@
   </section>
 
   <section class="v812-kpi-row" aria-label="Resumen real">
-    <a href="/calendar?lane=today"><i>â–¦</i><span>Hoy</span><strong>{{ today_count }}</strong><small>partidos reales</small></a>
+    <a href="/calendar?lane=today"><i>▦</i><span>Hoy</span><strong>{{ today_count }}</strong><small>partidos reales</small></a>
     <a href="/live" class="live"><i>â—</i><span>Directo</span><strong>{{ live_count }}</strong><small>minuto/marcador</small></a>
-    <a href="/picks" class="pick"><i>â—†</i><span>Picks</span><strong>{{ picks_count }}</strong><small>publicados</small></a>
-    <a href="/telegram" class="telegram"><i>âœˆ</i><span>Telegram</span><strong>{{ telegram_count }}</strong><small>alertas pro</small></a>
+    <a href="/picks" class="pick"><i>◆</i><span>Picks</span><strong>{{ picks_count }}</strong><small>publicados</small></a>
+    <a href="/telegram" class="telegram"><i>✈</i><span>Telegram</span><strong>{{ telegram_count }}</strong><small>alertas pro</small></a>
   </section>
 
-  <section class="v812-lifecycle" aria-label="Automatizaci?n de resultados y calendario">
-    <article><span>Sin partidos pasados como pr?ximos</span><strong>{{ 'Activo' if lifecycle.get('ok') or lifecycle.get('configured') else 'Pendiente de Render' }}</strong><small>{{ lifecycle.get('message') or 'API-Football actualiza resultados/minuto cuando la key est? activa.' }}</small></article>
+  <section class="v812-lifecycle" aria-label="AutomatizaciÁn de resultados y calendario">
+    <article><span>Sin partidos pasados como prÁximos</span><strong>{{ 'Activo' if lifecycle.get('ok') or lifecycle.get('configured') else 'Pendiente de Render' }}</strong><small>{{ lifecycle.get('message') or 'API-Football actualiza resultados/minuto cuando la key est? activa.' }}</small></article>
     <nav><a href="/app?refresh=1">Actualizar</a><a href="/calendar?lane=results">Resultados</a><a href="/calendar?lane=week">Semana</a></nav>
   </section>
 
@@ -87,7 +87,7 @@
           <a href="/calendar?lane=today"><b>1</b><strong>Partidos</strong><small>agenda real</small></a>
           <a href="/live"><b>2</b><strong>Directo</strong><small>minuto y se?al</small></a>
           <a href="/picks"><b>3</b><strong>Pick</strong><small>cuota y riesgo</small></a>
-          <a href="/shark"><b>4</b><strong>SHARK</strong><small>an?lisis final</small></a>
+          <a href="/shark"><b>4</b><strong>SHARK</strong><small>anÁlisis final</small></a>
         </div>
       </article>
 
@@ -97,14 +97,14 @@
           {% for m in focus[:6] %}
             {% set ctx = m|match_madrid_context %}{% set home_identity = m|team_identity('home') %}{% set away_identity = m|team_identity('away') %}
             <a class="v812-row" href="/match/{{ m.get('id') }}">
-              <time>{{ ctx.client_time_label or 'â€”' }}<small>{{ ctx.client_status_label or 'Pendiente' }}</small></time>
+              <time>{{ ctx.client_time_label or '—' }}<small>{{ ctx.client_status_label or 'Pendiente' }}</small></time>
               <span>{{ crest(home_identity, ctx.safe_home, 'compact') }}{{ ctx.safe_home }}</span>
               <b>{{ ctx.client_score_label or 'VS' }}</b>
               <span>{{ crest(away_identity, ctx.safe_away, 'compact') }}{{ ctx.safe_away }}</span>
               <em>{{ ctx.client_competition|competition_es }}</em>
             </a>
           {% else %}
-            <div class="v812-empty compact">Esperando pr?ximos partidos reales.</div>
+            <div class="v812-empty compact">Esperando prÁximos partidos reales.</div>
           {% endfor %}
         </div>
       </article>
@@ -116,10 +116,10 @@
         {% if featured_pick %}
           {% set p = featured_pick %}
           <strong>{{ p.get('client_match_label') or ((p.get('home_team') or 'Partido') ~ ' vs ' ~ (p.get('away_team') or '')) }}</strong>
-          <b>{{ p.get('client_selection_label') or p.get('selection_display') or p.get('selection') or 'Selecci?n pendiente' }}</b>
-          <dl><div><dt>Cuota</dt><dd>{{ p.get('client_odds_label') or p.get('odds') or 'â€”' }}</dd></div><div><dt>Stake</dt><dd>{{ p.get('stake_units') or p.get('stake') or 'â€”' }}{% if p.get('stake_units') or p.get('stake') %}u{% endif %}</dd></div><div><dt>Riesgo</dt><dd>{{ p.get('risk_level') or 'â€”' }}</dd></div></dl>
+          <b>{{ p.get('client_selection_label') or p.get('selection_display') or p.get('selection') or 'SelecciÁn pendiente' }}</b>
+          <dl><div><dt>Cuota</dt><dd>{{ p.get('client_odds_label') or p.get('odds') or '—' }}</dd></div><div><dt>Stake</dt><dd>{{ p.get('stake_units') or p.get('stake') or '—' }}{% if p.get('stake_units') or p.get('stake') %}u{% endif %}</dd></div><div><dt>Riesgo</dt><dd>{{ p.get('risk_level') or '—' }}</dd></div></dl>
           <p>{{ p.get('analysis_summary') or p.get('reasoning') or 'An?lisis pendiente en los datos reales del pick.' }}</p>
-          <a class="primary" href="{{ p.get('client_match_url') or ('/match/' ~ (p.get('match_id') or p.get('id'))) }}">Ver an?lisis</a>
+          <a class="primary" href="{{ p.get('client_match_url') or ('/match/' ~ (p.get('match_id') or p.get('id'))) }}">Ver anÁlisis</a>
         {% else %}
           <div class="v812-empty"><strong>Sin pick destacado.</strong><p>No se inventa oportunidad hasta que exista pick real.</p></div>
           <a class="primary" href="/picks">Abrir picks</a>
@@ -133,7 +133,7 @@
       </article>
       <article class="v812-mini-card results">
         <span>Resultados</span>
-        <strong>Lo jugado va aqu?</strong>
+        <strong>Lo jugado va aquÁ</strong>
         <p>Si una API a?n no trae marcador, quedar? como resultado pendiente.</p>
         <a href="/calendar?lane=results">Ver resultados</a>
       </article>
@@ -141,6 +141,7 @@
   </section>
 </section>
 {% endblock %}
+
 
 
 

@@ -1,10 +1,10 @@
 ﻿{% extends 'base.html' %}
 {% block content %}
 {% set cert = data.certification or {} %}
-<section class="hero compact-hero admin-hero v768-cert-hero v826-certified-screen v827-certified-screen v828-certified-screen v829-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v830-certified-screen v833-certified-screen v836-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen" data-v827-template="admin_final_certification" data-v828-template="admin_final_certification" data-v829-template="admin_final_certification" data-v830-template="admin_final_certification" data-v832-template="admin_final_certification" data-v833-template="admin_final_certification" data-v836-template="admin_final_certification" data-v826-template="admin_final_certification">
+<section class="hero compact-hero admin-hero v768-cert-hero v826-certified-screen v827-certified-screen v828-certified-screen v829-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v830-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen" data-v827-template="admin_final_certification" data-v828-template="admin_final_certification" data-v829-template="admin_final_certification" data-v830-template="admin_final_certification" data-v832-template="admin_final_certification" data-v833-template="admin_final_certification" data-v836-template="admin_final_certification" data-v837-template="admin_final_certification" data-v826-template="admin_final_certification">
   <div class="eyebrow">Admin ? V768</div>
-  <h1>Certificaci?n final de venta</h1>
-  <p>Unifica Telegram autom?tico, resultados de picks, ROI real, datos deportivos y puntos cr?ticos antes de vender. No expone secretos ni inventa resultados.</p>
+  <h1>CertificaciÁn final de venta</h1>
+  <p>Unifica Telegram automÁtico, resultados de picks, ROI real, datos deportivos y puntos cr?ticos antes de vender. No expone secretos ni inventa resultados.</p>
   <div class="hero-actions">
     <a class="btn primary" href="/admin/telegram/command-center">Telegram</a>
     <a class="btn" href="/admin/track-record">Track Record</a>
@@ -13,7 +13,7 @@
 </section>
 
 <section class="grid cards-4 v768-cert-score v826-certified-screen" data-v826-template="admin_final_certification">
-  <article class="card stat-card"><span>Estado</span><strong>{{ cert.status or 'Pendiente' }}</strong><small>{{ cert.title or 'Certificaci?n comercial' }}</small></article>
+  <article class="card stat-card"><span>Estado</span><strong>{{ cert.status or 'Pendiente' }}</strong><small>{{ cert.title or 'CertificaciÁn comercial' }}</small></article>
   <article class="card stat-card"><span>Score lanzamiento</span><strong>{{ cert.score or 0 }}%</strong><small>Seg?n datos reales actuales</small></article>
   <article class="card stat-card"><span>Telegram</span><strong>{{ (cert.telegram or {}).status or 'Revisar' }}</strong><small>Auto {{ 'ON' if ((cert.telegram or {}).env or {}).enable_auto else 'OFF' }}</small></article>
   <article class="card stat-card"><span>Track Record</span><strong>{{ (cert.track_record or {}).status or 'Pendiente' }}</strong><small>{{ (cert.track_record or {}).graded_total or 0 }} picks auditados</small></article>
@@ -21,13 +21,13 @@
 
 <section class="grid three-col v768-cert-grid v826-certified-screen" data-v826-template="admin_final_certification">
   <article class="card">
-    <div class="section-head"><h2>Telegram autom?tico</h2><span class="pill">{{ (cert.telegram or {}).ready_score or 0 }}%</span></div>
+    <div class="section-head"><h2>Telegram automÁtico</h2><span class="pill">{{ (cert.telegram or {}).ready_score or 0 }}%</span></div>
     {% set tg = cert.telegram or {} %}
     <div class="list-row"><span>Bot token</span><strong>{{ 'OK' if (tg.env or {}).bot_token else 'Falta' }}</strong></div>
     <div class="list-row"><span>Chat destino</span><strong>{{ 'OK' if (tg.env or {}).chat_id else 'Falta' }}</strong></div>
     <div class="list-row"><span>Automation secret</span><strong>{{ 'OK' if (tg.env or {}).automation_secret else 'Falta' }}</strong></div>
     <div class="list-row"><span>Candidatos publicados</span><strong>{{ tg.published_candidates or 0 }}</strong></div>
-    <div class="list-row"><span>Ãšltimo auto</span><strong>{{ (tg.last_auto or {}).status or 'Sin registro' }}</strong></div>
+    <div class="list-row"><span>Último auto</span><strong>{{ (tg.last_auto or {}).status or 'Sin registro' }}</strong></div>
     <p class="small">{{ tg.next_action }}</p>
   </article>
 
@@ -78,6 +78,7 @@
   </div>
 </section>
 {% endblock %}
+
 
 
 

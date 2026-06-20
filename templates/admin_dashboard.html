@@ -4,7 +4,7 @@
 {% set d = data if data is defined and data else {} %}
 {% set stats = d.get('stats', {}) if d.get is defined else {} %}
 {% set grouped = items|default([])|groupby('group') %}
-<section class="v823-certified-screen v823-admin-dashboard v824-certified-screen v824-admin-dashboard v825-certified-screen v826-certified-screen v827-certified-screen v828-certified-screen v829-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v830-certified-screen v833-certified-screen v836-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v825-admin-dashboard" data-v823-template="admin_dashboard" data-v824-template="admin_dashboard" data-v825-template="admin_dashboard" data-v827-template="admin_dashboard" data-v828-template="admin_dashboard" data-v829-template="admin_dashboard" data-v830-template="admin_dashboard" data-v832-template="admin_dashboard" data-v833-template="admin_dashboard" data-v836-template="admin_dashboard" data-v826-template="admin_dashboard">
+<section class="v823-certified-screen v823-admin-dashboard v824-certified-screen v824-admin-dashboard v825-certified-screen v826-certified-screen v827-certified-screen v828-certified-screen v829-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v830-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v825-admin-dashboard" data-v823-template="admin_dashboard" data-v824-template="admin_dashboard" data-v825-template="admin_dashboard" data-v827-template="admin_dashboard" data-v828-template="admin_dashboard" data-v829-template="admin_dashboard" data-v830-template="admin_dashboard" data-v832-template="admin_dashboard" data-v833-template="admin_dashboard" data-v836-template="admin_dashboard" data-v837-template="admin_dashboard" data-v826-template="admin_dashboard">
 {% call ui.shell('Dashboard', 'Panel de control', 'Centro operativo real del ecosistema') %}
 <section class="v809-admin-reference-hero">
   <div>
@@ -15,8 +15,8 @@
   </div>
   <aside>
     <img src="/static/img/shark-logo.svg" alt="">
-    <strong>{{ d.get('version') or d.get('app_version') or 'Versi?n activa' }}</strong>
-    <small>Madrid ? producci?n ? sin datos inventados</small>
+    <strong>{{ d.get('version') or d.get('app_version') or 'VersiÁn activa' }}</strong>
+    <small>Madrid ? producciÁn ? sin datos inventados</small>
   </aside>
 </section>
 
@@ -24,44 +24,44 @@
   <div>
     <p class="eyebrow">Ecosistema conectado</p>
     <h1>Panel admin tipo command center con accesos recuperados.</h1>
-    <p>Logo SHARK, navegaci?n completa, mapa global y datos reales. Si Render, DB o API no traen un dato, aparece pendiente.</p>
+    <p>Logo SHARK, navegaciÁn completa, mapa global y datos reales. Si Render, DB o API no traen un dato, aparece pendiente.</p>
   </div>
   <aside>
     <span class="v807-live-dot"></span>
-    <strong>{{ d.get('version') or d.get('app_version') or 'Versi?n activa' }}</strong>
-    <small>Madrid ? producci?n</small>
+    <strong>{{ d.get('version') or d.get('app_version') or 'VersiÁn activa' }}</strong>
+    <small>Madrid ? producciÁn</small>
     <a href="/admin/map">Abrir mapa</a>
   </aside>
 </section>
 
 <section class="v794-admin-kpi-grid v807-admin-kpis">
-  {{ ui.kpi('Usuarios', stats.get('users_active') or d.get('users_count') or 'â€”', 'DB real si existe', 'â™™', 'blue', '') }}
-  {{ ui.kpi('Picks activos', stats.get('picks_active') or d.get('active_picks') or 'â€”', 'Publicados reales', 'â—Ž', 'blue', '') }}
-  {{ ui.kpi('Directos', stats.get('live_matches') or d.get('live_count') or 'â€”', 'Feed live real', 'âš½', 'blue', '') }}
-  {{ ui.kpi('Ingresos', stats.get('mrr') or stats.get('revenue_month') or d.get('mrr') or 'â€”', 'Stripe/DB si existe', 'â‚¬', 'green', '') }}
-  {{ ui.kpi('Telegram', stats.get('telegram_sent_today') or stats.get('telegram_subscribers') or 'â€”', 'Env?os reales', 'âœˆ', 'blue', '') }}
-  {{ ui.kpi('Alertas', stats.get('errors_today') or d.get('errors_today') or 'â€”', 'Observabilidad', 'ðŸ›¡', 'gold', '') }}
+  {{ ui.kpi('Usuarios', stats.get('users_active') or d.get('users_count') or '—', 'DB real si existe', '♙', 'blue', '') }}
+  {{ ui.kpi('Picks activos', stats.get('picks_active') or d.get('active_picks') or '—', 'Publicados reales', '◎', 'blue', '') }}
+  {{ ui.kpi('Directos', stats.get('live_matches') or d.get('live_count') or '—', 'Feed live real', '⚽', 'blue', '') }}
+  {{ ui.kpi('Ingresos', stats.get('mrr') or stats.get('revenue_month') or d.get('mrr') or '—', 'Stripe/DB si existe', '€', 'green', '') }}
+  {{ ui.kpi('Telegram', stats.get('telegram_sent_today') or stats.get('telegram_subscribers') or '—', 'EnvÁos reales', '✈', 'blue', '') }}
+  {{ ui.kpi('Alertas', stats.get('errors_today') or d.get('errors_today') or '—', 'Observabilidad', '🛡', 'gold', '') }}
 </section>
 
 <section class="v807-admin-command-grid">
   <article class="v807-admin-command-main">
-    <div class="v794-panel-head"><h2>Acciones principales</h2><span class="v794-status info">operaci?n</span></div>
+    <div class="v794-panel-head"><h2>Acciones principales</h2><span class="v794-status info">operaciÁn</span></div>
     <div class="v807-action-tiles">
-      <a href="/admin/map"><i>â˜°</i><b>Mapa completo</b><small>Todos los botones y pantallas recuperados.</small></a>
-      <a href="/admin/data-center"><i>â–¤</i><b>Sincronizar datos</b><small>Calendario, cuotas, escudos y feeds.</small></a>
-      <a href="/admin/matches-sync"><i>âš½</i><b>Partidos</b><small>Revisar calendario, resultados y enlaces.</small></a>
+      <a href="/admin/map"><i>☰</i><b>Mapa completo</b><small>Todos los botones y pantallas recuperados.</small></a>
+      <a href="/admin/data-center"><i>▤</i><b>Sincronizar datos</b><small>Calendario, cuotas, escudos y feeds.</small></a>
+      <a href="/admin/matches-sync"><i>⚽</i><b>Partidos</b><small>Revisar calendario, resultados y enlaces.</small></a>
       <a href="/admin/live-depth"><i>â—</i><b>Live API-Football</b><small>Tracker, presi?n y eventos reales.</small></a>
-      <a href="/admin/picks"><i>â—Ž</i><b>Picks</b><small>Publicar y revisar picks reales.</small></a>
-      <a href="/admin/telegram/command-center"><i>âœˆ</i><b>Telegram</b><small>Automatizaci?n, cola y diagn?sticos.</small></a>
-      <a href="/sports-hub"><i>â—‰</i><b>Vista cliente</b><small>Comprobar experiencia del usuario.</small></a>
+      <a href="/admin/picks"><i>◎</i><b>Picks</b><small>Publicar y revisar picks reales.</small></a>
+      <a href="/admin/telegram/command-center"><i>✈</i><b>Telegram</b><small>AutomatizaciÁn, cola y diagn?sticos.</small></a>
+      <a href="/sports-hub"><i>◉</i><b>Vista cliente</b><small>Comprobar experiencia del usuario.</small></a>
     </div>
   </article>
   <article class="v807-admin-command-side">
-    <div class="v794-panel-head"><h2>Estado real</h2><a href="/admin/observability">Ver logs â†’</a></div>
+    <div class="v794-panel-head"><h2>Estado real</h2><a href="/admin/observability">Ver logs →</a></div>
     <div class="v807-real-state-list">
       <div><span>DB</span><strong>{{ 'Con datos' if d.get('users_count') or d.get('match_hub') else 'Pendiente' }}</strong></div>
-      <div><span>Live</span><strong>{{ stats.get('live_matches') or d.get('live_count') or 'â€”' }}</strong></div>
-      <div><span>Picks</span><strong>{{ stats.get('picks_active') or d.get('active_picks') or 'â€”' }}</strong></div>
+      <div><span>Live</span><strong>{{ stats.get('live_matches') or d.get('live_count') or '—' }}</strong></div>
+      <div><span>Picks</span><strong>{{ stats.get('picks_active') or d.get('active_picks') or '—' }}</strong></div>
       <div><span>API</span><strong>Seg?n Render</strong></div>
     </div>
     <p class="muted small">El panel no simula valores. Las m?tricas dependen de SQLite, Stripe, Telegram, API-Football y Render.</p>
@@ -88,6 +88,7 @@
 {% endcall %}
 </section>
 {% endblock %}
+
 
 
 

@@ -4,7 +4,7 @@
 {% set os = data.daily_automation_os %}
 {% set status = os.status %}
 {% call ui.shell('Automation OS', 'Daily Automation OS', 'V818 master tick, jobs, Telegram y salud') %}
-<section class="v794-admin-kpi-grid v826-certified-screen v827-certified-screen v828-certified-screen v829-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v830-certified-screen v833-certified-screen v836-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen" data-v827-template="admin_daily_automation" data-v828-template="admin_daily_automation" data-v829-template="admin_daily_automation" data-v830-template="admin_daily_automation" data-v832-template="admin_daily_automation" data-v833-template="admin_daily_automation" data-v836-template="admin_daily_automation" data-v826-template="admin_daily_automation">
+<section class="v794-admin-kpi-grid v826-certified-screen v827-certified-screen v828-certified-screen v829-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v830-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen" data-v827-template="admin_daily_automation" data-v828-template="admin_daily_automation" data-v829-template="admin_daily_automation" data-v830-template="admin_daily_automation" data-v832-template="admin_daily_automation" data-v833-template="admin_daily_automation" data-v836-template="admin_daily_automation" data-v837-template="admin_daily_automation" data-v826-template="admin_daily_automation">
   {{ ui.kpi('Estado general', 'OK' if status.ok else 'Revisar', status.madrid_now, 'A', 'green' if status.ok else 'red') }}
   {{ ui.kpi('Telegram hoy', status.telegram_sent_today, 'Mensajes enviados', 'T', 'blue') }}
   {{ ui.kpi('Fallos hoy', status.jobs_failed|length, 'Jobs con error', '!', 'red' if status.jobs_failed else 'green') }}
@@ -77,6 +77,7 @@
 </section>
 {% endcall %}
 {% endblock %}
+
 
 
 

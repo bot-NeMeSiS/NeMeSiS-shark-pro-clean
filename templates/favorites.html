@@ -1,11 +1,11 @@
 ﻿{% extends "base.html" %}
 {% from "partials/team_identity.html" import crest %}
 {% block content %}
-<section class="scoreboard-hero v701-scoreboard v826-certified-screen v827-certified-screen v828-certified-screen v829-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v830-certified-screen v833-certified-screen v836-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen" data-v827-template="favorites" data-v828-template="favorites" data-v829-template="favorites" data-v830-template="favorites" data-v832-template="favorites" data-v833-template="favorites" data-v836-template="favorites" data-v826-template="favorites">
+<section class="scoreboard-hero v701-scoreboard v826-certified-screen v827-certified-screen v828-certified-screen v829-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v830-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen" data-v827-template="favorites" data-v828-template="favorites" data-v829-template="favorites" data-v830-template="favorites" data-v832-template="favorites" data-v833-template="favorites" data-v836-template="favorites" data-v837-template="favorites" data-v826-template="favorites">
   <div>
     <div class="kicker">Favoritos</div>
     <h1>Tu radar personal</h1>
-    <p class="lead">Equipos, ligas y partidos guardados para ver pr?ximos, live, picks y se?ales SHARK relacionadas.</p>
+    <p class="lead">Equipos, ligas y partidos guardados para ver prÁximos, live, picks y seÁales SHARK relacionadas.</p>
   </div>
   <div class="scoreboard-kpis">
     <div><strong>{{ data.favorite_insights.by_kind.team|length }}</strong><span>Equipos</span></div>
@@ -24,10 +24,10 @@
     {% set away_identity = m.away_identity|default({}) %}
     {% set live_depth = m.live_depth|default({}) %}
     <a class="sports-row v701-row favorite-scope" href="/match/{{ m.id }}">
-      <button class="fav-star active" type="button" data-kind="match" data-value="{{ m.id }}" data-label="{{ m.home_team }} vs {{ m.away_team }}" aria-label="Favorito">â˜…</button>
+      <button class="fav-star active" type="button" data-kind="match" data-value="{{ m.id }}" data-label="{{ m.home_team }} vs {{ m.away_team }}" aria-label="Favorito">★</button>
       <div class="sports-time"><strong>{% if live_depth.get('badge') == 'live' %}{{ live_depth.get('minute') or 'En directo' }}{% else %}{{ m|match_time_short }}{% endif %}</strong><span>{{ live_depth.get('label') or (m|match_date_label) }}</span></div>
       <div class="sports-team home"><span class="crest compact-crest {{ home_identity.get('ui_class','crest-fallback') }}"><img loading="lazy" src="{{ home_identity.get('crest_url','') }}" alt="{{ m.home_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ home_identity.get('flag_emoji') or home_identity.get('initials', (m.home_team or 'L')[:1]) }}'"></span><strong>{{ m.home_team or 'Equipo local' }}</strong></div>
-      <div class="sports-score"><strong>{{ live_depth.get('score') or m.score or 'vs' }}</strong><span>{{ (m.competition_name or m.league_name or 'Competici?n')|competition_es }}</span></div>
+      <div class="sports-score"><strong>{{ live_depth.get('score') or m.score or 'vs' }}</strong><span>{{ (m.competition_name or m.league_name or 'CompeticiÁn')|competition_es }}</span></div>
       <div class="sports-team away"><span class="crest compact-crest {{ away_identity.get('ui_class','crest-fallback') }}"><img loading="lazy" src="{{ away_identity.get('crest_url','') }}" alt="{{ m.away_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ away_identity.get('flag_emoji') or away_identity.get('initials', (m.away_team or 'V')[:1]) }}'"></span><strong>{{ m.away_team or 'Equipo visitante' }}</strong></div>
       <div class="sports-meta v701-meta"><span class="shark-pill">SHARK</span></div>
     </a>
@@ -62,7 +62,7 @@
       {% for p in data.favorite_bundle.picks %}
       <a class="list-row" href="/picks"><span>{{ p.selection_display or p.selection or 'Pick SHARK' }}<small>{{ p.home_team }} vs {{ p.away_team }} ? {{ p.analysis_badge or 'An?lisis' }}</small></span><strong>{{ p.confidence or 0 }}%</strong></a>
       {% else %}
-      <div class="empty premium-empty">Sin picks conectados a tus favoritos todav?a.</div>
+      <div class="empty premium-empty">Sin picks conectados a tus favoritos todavÁa.</div>
       {% endfor %}
     </div>
   </div>
@@ -106,6 +106,7 @@
   </details>
 </section>
 {% endblock %}
+
 
 
 

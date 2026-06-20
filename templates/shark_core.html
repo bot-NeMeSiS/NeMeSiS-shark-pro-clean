@@ -1,9 +1,9 @@
 ﻿{% extends "base.html" %}
 {% block content %}
-<section class="hero compact-hero v826-certified-screen v827-certified-screen v828-certified-screen v829-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v830-certified-screen v833-certified-screen v836-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen" data-v827-template="shark_core" data-v828-template="shark_core" data-v829-template="shark_core" data-v830-template="shark_core" data-v832-template="shark_core" data-v833-template="shark_core" data-v836-template="shark_core" data-v826-template="shark_core">
+<section class="hero compact-hero v826-certified-screen v827-certified-screen v828-certified-screen v829-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v830-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen" data-v827-template="shark_core" data-v828-template="shark_core" data-v829-template="shark_core" data-v830-template="shark_core" data-v832-template="shark_core" data-v833-template="shark_core" data-v836-template="shark_core" data-v837-template="shark_core" data-v826-template="shark_core">
   <div>
     <p class="eyebrow">SHARK Intelligence Core</p>
-    <h1>Tu cerebro deportivo del d?a</h1>
+    <h1>Tu cerebro deportivo del dÁa</h1>
     <p class="muted">{{ shark.main_message }}</p>
   </div>
   <div class="score-card">
@@ -22,7 +22,7 @@
       <a class="btn" href="/picks">Ver picks</a>
     {% else %}
       <h3>Sin pick publicado ahora</h3>
-      <p class="muted">SHARK mostrar? picks cuando existan datos y picks publicados.</p>
+      <p class="muted">SHARK mostrarÁ picks cuando existan datos y picks publicados.</p>
       <a class="btn ghost" href="/auto-picks">Ver auto picks</a>
     {% endif %}
   </article>
@@ -34,7 +34,7 @@
       <p>Score {{ shark.top_recommendation.shark_score or shark.top_recommendation.score or '-' }} ? Riesgo {{ shark.top_recommendation.risk_level or shark.top_recommendation.risk or 'MEDIO' }}</p>
       <a class="btn" href="/recomendaciones">Ver recomendaciones</a>
     {% else %}
-      <h3>Analizando pr?ximos partidos</h3>
+      <h3>Analizando prÁximos partidos</h3>
       <p class="muted">No se inventan recomendaciones si faltan datos reales.</p>
     {% endif %}
   </article>
@@ -50,8 +50,8 @@
 <section class="card v826-certified-screen" data-v826-template="shark_core">
   <div class="section-head">
     <div>
-      <p class="eyebrow">Preguntas r?pidas</p>
-      <h2>Qu? puedes pedirle a SHARK</h2>
+      <p class="eyebrow">Preguntas rÁpidas</p>
+      <h2>QuÁ puedes pedirle a SHARK</h2>
     </div>
   </div>
   <div class="quick-grid">
@@ -72,13 +72,13 @@
         </div>
       {% endfor %}
     {% else %}
-      <p class="muted">No hay pr?ximos partidos cacheados todav?a.</p>
+      <p class="muted">No hay prÁximos partidos cacheados todavÁa.</p>
     {% endif %}
   </article>
 
   <article class="card">
     <h2>Memoria preparada</h2>
-    <p class="muted">SHARK ya guarda actividad b?sica para personalizar favoritos, picks y recomendaciones futuras.</p>
+    <p class="muted">SHARK ya guarda actividad bÁsica para personalizar favoritos, picks y recomendaciones futuras.</p>
     <ul class="clean-list">
       <li>Favoritos consultados</li>
       <li>Picks y recomendaciones abiertas</li>
@@ -87,6 +87,7 @@
   </article>
 </section>
 {% endblock %}
+
 
 
 
