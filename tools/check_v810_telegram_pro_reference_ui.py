@@ -38,3 +38,4 @@ for p in (ROOT/'templates').rglob('*.html'):
 ok(not bad, 'href malformados: '+repr(bad[:10]))
 print('V810 Telegram PRO + reference UI check OK')
 
+

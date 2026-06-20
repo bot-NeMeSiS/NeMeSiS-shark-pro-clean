@@ -29,3 +29,4 @@ if failed:
     raise SystemExit(1)
 print('V812 client reference rebuild check OK')
 
+

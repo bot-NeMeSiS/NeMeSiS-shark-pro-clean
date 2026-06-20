@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
-CURRENT="V828_REFERENCE_PIXEL_PARITY_FULL_ECOSYSTEM_FINAL"
+CURRENT="V829_MOBILE_LINKED_ECOSYSTEM_FINAL_APP_EXPERIENCE"
 def read(rel): return (ROOT/rel).read_text(encoding='utf-8', errors='replace')
 def main():
     app=read('app.py'); base=read('templates/base.html'); css=read('static/app.css'); version=read('VERSION.txt').strip().lstrip('ï»¿')
@@ -20,4 +20,5 @@ def main():
     print({'ok': not missing, 'check':'v818_daily_automation_os', 'missing': missing, 'checks': checks})
     return 1 if missing else 0
 if __name__=='__main__': raise SystemExit(main())
+
 

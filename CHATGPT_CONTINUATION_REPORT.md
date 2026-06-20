@@ -1,4 +1,30 @@
-﻿# Continuidad NeMeSiS SHARK PRO - V828
+﻿# Continuidad NeMeSiS SHARK PRO - V829
+
+## Estado actual
+
+La base oficial usada es la carpeta real `C:\Users\aloha\OneDrive\Escritorio\NeMeSiS shark pro`, detectada en V828 antes de empezar. No se usaron ZIPs antiguos como base.
+
+La nueva versión activa es `V829_MOBILE_LINKED_ECOSYSTEM_FINAL_APP_EXPERIENCE`.
+
+## Objetivo V829
+
+V829 cierra una pasada mobile-first y de ecosistema enlazado. No añade lógica nueva: refuerza navegación móvil, quick links, SHARK flotante seguro, cards compactas, admin responsive y checks de rutas/enlaces.
+
+## Cambios principales
+
+- `VERSION.txt`, `APP_VERSION`, `base.html`, CSS cache busting y `/api/runtime-version` actualizados a V829.
+- Añadido `data-v829-shell` y comentario V829 en `base.html`.
+- Añadida barra móvil secundaria `v829-mobile-quick`: Perfil, Telegram, Favoritos, Histórico y Soporte.
+- Añadido bloque CSS `V829 MOBILE LINKED ECOSYSTEM EXPERIENCE` con safe-area, bottom nav única, cards mobile, filtros horizontales, forms, admin responsive y SHARK flotante seguro.
+- Templates reales marcados con `data-v829-template`.
+- Checks V829 creados para runtime, mobile shell, SHARK flotante, botones/enlaces, overflow, ecosistema y compatibilidad.
+
+## Nota honesta
+
+No se generaron screenshots reales de navegador en esta ejecución, por lo que no se declara pixel-perfect. La validación se apoya en checks, smoke Flask y revisión de templates/CSS.
+
+---
+# Continuidad NeMeSiS SHARK PRO - V828
 
 ## Estado actual
 
@@ -936,6 +962,7 @@ No se declara pixel-perfect si no hay navegador/capturas reales en la sesion. La
 - Añadido scheduler profesional Telegram en `engines/telegram_professional_scheduler.py`, reutilizando filtros football-only existentes.
 - Añadidos endpoints `/api/automation/master-tick`, `/api/automation/health-check`, panel `/admin/daily-automation` y APIs admin V818.
 - Añadidos checks `tools/check_v818_*.py` y reportes QA V818.
+
 
 
 

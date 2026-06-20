@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V827_REFERENCE_PHOTO_REBUILD_DESIGN_SYSTEM_FINAL"
-CURRENT = "V828_REFERENCE_PIXEL_PARITY_FULL_ECOSYSTEM_FINAL"
+CURRENT = "V829_MOBILE_LINKED_ECOSYSTEM_FINAL_APP_EXPERIENCE"
 def read(rel: str) -> str:
     return (ROOT / rel).read_text(encoding="utf-8", errors="replace")
 def main() -> int:
@@ -25,4 +25,5 @@ def main() -> int:
     return 1 if failed else 0
 if __name__ == '__main__':
     raise SystemExit(main())
+
 

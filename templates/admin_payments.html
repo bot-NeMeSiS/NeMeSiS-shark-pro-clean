@@ -2,7 +2,7 @@
 {% import "partials/admin_visual_system.html" as ui %}
 {% block content %}
 {% call ui.shell('Pagos', 'Pagos y membresías', 'Suscripciones, Stripe y facturación') %}
-<section class="v794-admin-kpi-grid v826-certified-screen v827-certified-screen v828-certified-screen" data-v827-template="admin_payments" data-v828-template="admin_payments" data-v826-template="admin_payments">
+<section class="v794-admin-kpi-grid v826-certified-screen v827-certified-screen v828-certified-screen v829-certified-screen" data-v827-template="admin_payments" data-v828-template="admin_payments" data-v829-template="admin_payments" data-v826-template="admin_payments">
   {{ ui.kpi('MRR', (data.get('mrr') if data is defined and data.get is defined else none) or '—', 'Stripe real', '€','green') }}
   {{ ui.kpi('Suscriptores PRO', (data.get('subscribers_pro') if data is defined and data.get is defined else none) or '—', 'Dato real', '♙','blue') }}
   {{ ui.kpi('Suscriptores ELITE', (data.get('subscribers_elite') if data is defined and data.get is defined else none) or '—', 'Dato real', '♛','gold') }}
@@ -27,5 +27,6 @@
 </section>
 {% endcall %}
 {% endblock %}
+
 
 

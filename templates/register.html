@@ -2,7 +2,7 @@
 {% block content %}
 {% set selected = (data.selected_plan or request.args.get('plan') or '')|upper %}
 {% set next_url = data.next_url or request.args.get('next') or '/app' %}
-<section class="hero auth-hero v785-auth-hero v826-certified-screen v827-certified-screen v828-certified-screen" data-v827-template="register" data-v828-template="register" data-v826-template="register">
+<section class="hero auth-hero v785-auth-hero v826-certified-screen v827-certified-screen v828-certified-screen v829-certified-screen" data-v827-template="register" data-v828-template="register" data-v829-template="register" data-v826-template="register">
   <div class="kicker">Crear cuenta{% if selected %} · {{ selected }} seleccionado{% endif %}</div>
   <h1>{{ 'Crea cuenta para activar ' ~ selected if selected in ['PRO','ELITE'] else 'Acceso cliente SHARK' }}</h1>
   <p class="lead">{{ 'La cuenta empieza en FREE y al terminar volverás al plan elegido para pagar con Stripe.' if selected in ['PRO','ELITE'] else 'Registra tu cuenta FREE y conecta el perfil con favoritos, live, picks y futuras membresías premium.' }}</p>
@@ -29,5 +29,6 @@
   </aside>
 </section>
 {% endblock %}
+
 
 
