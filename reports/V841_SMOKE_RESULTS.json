@@ -1,0 +1,157 @@
+[
+  {
+    "route": "/",
+    "status": 200,
+    "ok": true
+  },
+  {
+    "route": "/cliente-login",
+    "status": 200,
+    "ok": true
+  },
+  {
+    "route": "/registro",
+    "status": 200,
+    "ok": true
+  },
+  {
+    "route": "/app",
+    "status": 302,
+    "ok": true
+  },
+  {
+    "route": "/partidos",
+    "status": 200,
+    "ok": true
+  },
+  {
+    "route": "/calendar",
+    "status": 200,
+    "ok": true
+  },
+  {
+    "route": "/live",
+    "status": 200,
+    "ok": true
+  },
+  {
+    "route": "/directo",
+    "status": 200,
+    "ok": true
+  },
+  {
+    "route": "/picks",
+    "status": 200,
+    "ok": true
+  },
+  {
+    "route": "/shark",
+    "status": 200,
+    "ok": true
+  },
+  {
+    "route": "/shark-core",
+    "status": 302,
+    "ok": true
+  },
+  {
+    "route": "/profile",
+    "status": 302,
+    "ok": true
+  },
+  {
+    "route": "/telegram",
+    "status": 302,
+    "ok": true
+  },
+  {
+    "route": "/support",
+    "status": 200,
+    "ok": true
+  },
+  {
+    "route": "/favorites",
+    "status": 302,
+    "ok": true
+  },
+  {
+    "route": "/track-record",
+    "status": 200,
+    "ok": true
+  },
+  {
+    "route": "/combis",
+    "status": 200,
+    "ok": true
+  },
+  {
+    "route": "/mercados",
+    "status": 200,
+    "ok": true
+  },
+  {
+    "route": "/highlights",
+    "status": 200,
+    "ok": true
+  },
+  {
+    "route": "/api/runtime-version",
+    "status": 200,
+    "ok": true
+  },
+  {
+    "route": "/admin/dashboard",
+    "status": 302,
+    "ok": true
+  },
+  {
+    "route": "/admin/daily-automation",
+    "status": 302,
+    "ok": true
+  },
+  {
+    "route": "/admin/automation-os",
+    "status": 302,
+    "ok": true
+  },
+  {
+    "route": "/admin/data-center",
+    "status": 302,
+    "ok": true
+  },
+  {
+    "route": "/admin/telegram/command-center",
+    "status": 302,
+    "ok": true
+  },
+  {
+    "route": "/admin/users",
+    "status": 302,
+    "ok": true
+  },
+  {
+    "route": "/admin/memberships",
+    "status": 302,
+    "ok": true
+  },
+  {
+    "route": "/admin/payments",
+    "status": 302,
+    "ok": true
+  },
+  {
+    "route": "/api/automation/master-tick no secret",
+    "status": 403,
+    "ok": true
+  },
+  {
+    "route": "/api/automation/master-tick with secret",
+    "status": 200,
+    "ok": true
+  },
+  {
+    "route": "/api/automation/health-check with secret",
+    "status": 200,
+    "ok": true
+  }
+]

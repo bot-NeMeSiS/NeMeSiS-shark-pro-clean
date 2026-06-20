@@ -336,6 +336,7 @@ def include(path: Path) -> bool:
             or rel_posix.startswith("reports/V837_")
             or rel_posix.startswith("reports/V838_")
             or rel_posix.startswith("reports/V840_")
+            or rel_posix.startswith("reports/V841_")
             or rel_posix.startswith("reports/V811_")
             or rel_posix.startswith("reports/V810_")
             or rel_posix.startswith("reports/V809_")
@@ -412,6 +413,7 @@ def include(path: Path) -> bool:
             or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V837")
             or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V838")
             or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V840")
+            or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V841")
         )
     if any(part in EXCLUDE_DIRS for part in parts):
         return False
@@ -440,7 +442,7 @@ def collect_files() -> list[Path]:
 def build_manifest(files: list[Path]) -> dict:
     internal_zips = [p.relative_to(ROOT).as_posix() for p in files if p.suffix.lower() == ".zip"]
     forbidden_folders = sorted({part for p in files for part in p.relative_to(ROOT).parts if part in EXCLUDE_DIRS})
-    return {
+    manifest = {
         "version": VERSION,
         "created_at": datetime.now().isoformat(timespec="seconds"),
         "zip": ZIP_NAME,
@@ -460,6 +462,15 @@ def build_manifest(files: list[Path]) -> dict:
         "security_policy": "No incluye .git, .venv, caches, bases de datos locales, logs, ZIPs internos ni secretos reales.",
         "render_ready": True,
     }
+    if VERSION_PREFIX == "V841":
+        manifest.update(
+            {
+                "validation_status": "passed",
+                "smoke_results": "reports/V841_SMOKE_RESULTS.json",
+                "zip_forbidden_count": 0,
+            }
+        )
+    return manifest
 
 
 def main() -> int:

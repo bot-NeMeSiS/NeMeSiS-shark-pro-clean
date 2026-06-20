@@ -1,18 +1,20 @@
-# CHATGPT CONTINUATION REPORT - V840
+# CHATGPT CONTINUATION REPORT - V841
 
 ## Estado
 
-Versi?n actual: `V840_PC_VIDEO_LAYOUT_TEXT_NAV_FIX_FINAL`. Base real: `V839_REAL_CHATGPT_REVIEW_CLEAN_PRODUCT_FINAL`.
+Versi?n actual: `V841_REFERENCE_PRODUCT_TEAM_FINAL_POLISH_AND_SOURCE_SANITY`. Base real: `V840_PC_VIDEO_LAYOUT_TEXT_NAV_FIX_FINAL`.
 
-## Correcciones V840
+## Fuente de verdad
 
-- Layout desktop: main separado del sidebar cliente/admin.
-- Mojibake visible corregido en formularios clave y picks.
-- Flecha flotante de subir ocultada.
-- Scroll horizontal controlado en cards/filtros.
-- Login, registro y admin-login con autocomplete correcto.
-- Botones/chips/cards con alineaci?n y altura m?nima.
+La carpeta oficial es la ?nica base. No se usa ning?n ZIP viejo V822 como base.
+
+## Cambios V841
+
+- Versionado y runtime V841.
+- Capa CSS final de pulido PC/m?vil sin tocar l?gica estable.
+- Reports y checks V841 para fuente, referencias, PC, m?vil, textos, enlaces, datos reales, Telegram/Cron y release.
+- Refuerzo anti-regresi?n para sidebar, overflow, mojibake y floating SHARK.
 
 ## Preservado
 
-V818-V839, Render Cron, Telegram autom?tico, DB_PATH, Madrid Time, usuarios/sesiones/membres?as/pagos, API-Football, The Odds API, escudos ligeros, picks/live/partidos/SHARK.
+V818-V840, Render Cron, Telegram autom?tico, DB_PATH, Madrid Time, usuarios, sesiones, membres?as, pagos, API-Football, The Odds API, picks, live, partidos, SHARK y escudos ligeros.
