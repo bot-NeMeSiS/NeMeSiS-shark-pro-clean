@@ -238,7 +238,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V832_FULL_APP_REFERENCE_VISUAL_GITHUB_RENDER_WORKFLOW_FINAL'
+APP_VERSION = 'V833_REFERENCE_ECOSYSTEM_VISUAL_COMPLETION_FINAL'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
@@ -13245,6 +13245,9 @@ def api_runtime_version():
         "has_v830_css": "V830 MOBILE BOTTOM NAV PIXEL QA START" in css_text,
         "has_v832_shell": "data-v832-shell" in base_template and "NEMESIS V832 FULL APP REFERENCE VISUAL GITHUB RENDER WORKFLOW ACTIVE" in base_template,
         "has_v832_css": "V832 FULL APP REFERENCE VISUAL GITHUB RENDER WORKFLOW START" in css_text,
+        "has_v833_shell": "data-v833-shell" in base_template and "NEMESIS V833 REFERENCE ECOSYSTEM VISUAL COMPLETION ACTIVE" in base_template,
+        "has_v833_css": "V833 REFERENCE ECOSYSTEM VISUAL COMPLETION START" in css_text,
+        "has_v832_visual_workflow": "data-v832-shell" in base_template and "V832 FULL APP REFERENCE VISUAL GITHUB RENDER WORKFLOW START" in css_text,
         "has_v830_bottom_nav_fix": "data-v830-shell" in base_template and "V830 MOBILE BOTTOM NAV PIXEL QA START" in css_text,
         "has_v827_design_system": "data-v827-shell" in base_template and "V827 REFERENCE PHOTO REBUILD DESIGN SYSTEM START" in css_text,
         "has_v826_full_screen": "data-v826-shell" in base_template and "V826 FULL REFERENCE EXPERIENCE START" in css_text,
@@ -13256,7 +13259,7 @@ def api_runtime_version():
         "has_v820_crests": "data-v820-shell" in base_template and "V820 REAL CRESTS REFERENCE VISUAL PIXEL POLISH START" in css_text,
         "has_v819_dedup": "data-v819-shell" in base_template and "V819 REFERENCE UI DEDUP LAYER PURGE START" in css_text,
         "has_v818_automation": "/api/automation/master-tick" in app_py_text and "daily_automation_engine" in app_py_text,
-        "static_css_cache_busting": "V832_FULL_APP_REFERENCE_VISUAL_GITHUB_RENDER_WORKFLOW_FINAL" in base_template,
+        "static_css_cache_busting": "V833_REFERENCE_ECOSYSTEM_VISUAL_COMPLETION_FINAL" in base_template,
         "crest_engine_loaded": runtime_stability.get("crest_engine_loaded"),
         "logo_cache_tables_ok": runtime_stability.get("logo_cache_tables_ok"),
         "team_logo_cache_count": runtime_stability.get("team_logo_cache_count"),

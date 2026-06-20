@@ -1016,3 +1016,22 @@ Git no estaba disponible en PATH durante esta ejecución, así que no se hizo co
 ## Estado
 
 V832 no añade datos ficticios ni toca lógica crítica. Es una consolidación visual y operativa para que la app esté más unida y el flujo de release sea más claro.
+# Continuación V833 - Reference Ecosystem Visual Completion Final
+
+## Estado inicial
+
+La base real confirmada fue `V832_FULL_APP_REFERENCE_VISUAL_GITHUB_RENDER_WORKFLOW_FINAL`. V832 ya dejaba runtime, workflow GitHub/Render/Codex, visual cliente/admin y ZIP limpio. V833 continúa por la misma línea, sin usar ZIPs antiguos como base.
+
+## Cambios realizados
+
+- Versión activa actualizada a `V833_REFERENCE_ECOSYSTEM_VISUAL_COMPLETION_FINAL`.
+- `/api/runtime-version` ampliado con `has_v833_shell`, `has_v833_css` y `has_v832_visual_workflow`.
+- `base.html` actualizado con meta, cache busting, comentario y `data-v833-shell`.
+- `static/app.css` recibe bloque final `V833 REFERENCE ECOSYSTEM VISUAL COMPLETION`.
+- Plantillas reales marcadas con `data-v833-template` y `v833-certified-screen`.
+- Se añadieron informes V833: continuidad V832, matriz de referencias, mobile QA, desktop QA, enlaces, admin, capas visuales, estados reales, workflow GitHub/Render, screenshots y estabilidad.
+- Se añadieron checks V833: runtime, mobile, desktop, enlaces, capas visuales, estados reales y compatibilidad V818-V832.
+
+## Estado del producto
+
+V833 no inventa datos ni toca lógica crítica. Refuerza coherencia de cliente/admin, botones, cards, acciones, badges, estados visuales y documentación de release.

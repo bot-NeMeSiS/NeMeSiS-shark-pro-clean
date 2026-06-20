@@ -5386,3 +5386,128 @@ body[data-v832-shell="true"].ns-admin :is(.bottom-nav-clean,.shark-widget,.v825-
   }
 }
 /* V832 FULL APP REFERENCE VISUAL GITHUB RENDER WORKFLOW END */
+
+/* V833 REFERENCE ECOSYSTEM VISUAL COMPLETION START */
+body[data-v833-shell="true"]{
+  --v833-glass:rgba(7,22,42,.86);
+  --v833-glass-strong:rgba(9,28,52,.94);
+  --v833-line:rgba(96,232,255,.20);
+  --v833-text:#f2fbff;
+  --v833-muted:#a8bdd2;
+  --v833-cyan:#3ee8ff;
+  --v833-green:#55f4b0;
+  --v833-warning:#ffd166;
+}
+body[data-v833-shell="true"] :is(.v829-certified-screen,.v830-certified-screen,.v832-certified-screen,.v833-certified-screen){
+  position:relative;
+}
+body[data-v833-shell="true"] :is(.v829-certified-screen,.v830-certified-screen,.v832-certified-screen,.v833-certified-screen)::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  border-radius:inherit;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.045);
+}
+body[data-v833-shell="true"] :is(.card,.panel,.sports-row,.match-card,.v799-feature-card,.v799-live-card,.v799-pick-card,.v812-feature-card,.v812-pick-card){
+  transition:border-color .18s ease,transform .18s ease,box-shadow .18s ease;
+}
+body[data-v833-shell="true"] :is(.card,.panel,.sports-row,.match-card,.v799-feature-card,.v799-live-card,.v799-pick-card,.v812-feature-card,.v812-pick-card):hover{
+  border-color:rgba(96,232,255,.30)!important;
+  box-shadow:0 20px 58px rgba(0,0,0,.30),0 0 26px rgba(62,232,255,.08)!important;
+}
+body[data-v833-shell="true"] :is(.actions,.quick-grid,.v829-mobile-quick,.v812-hero-actions,.v799-actions){
+  gap:10px!important;
+}
+body[data-v833-shell="true"] :is(.actions a,.quick-grid a,.v829-mobile-quick a,.v812-hero-actions a,.v799-actions a){
+  text-decoration:none!important;
+}
+body[data-v833-shell="true"] :is(.state-badge,.badge,.shark-pill,.pick-dot,.tier-badge){
+  border-radius:999px!important;
+  border:1px solid rgba(96,232,255,.22)!important;
+  background:rgba(62,232,255,.10)!important;
+  color:#dff8ff!important;
+  font-weight:950!important;
+}
+body[data-v833-shell="true"] :is(.muted,.small,.hint,small){
+  color:var(--v833-muted);
+}
+body[data-v833-shell="true"] :is(.empty-state,.premium-empty,.v829-empty,.v832-premium-empty){
+  padding:18px!important;
+  border-radius:22px!important;
+}
+body[data-v833-shell="true"] .v832-action-grid,
+body[data-v833-shell="true"] .v833-action-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+  gap:12px;
+}
+body[data-v833-shell="true"] .v832-action-grid a,
+body[data-v833-shell="true"] .v833-action-grid a{
+  min-height:86px;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  gap:5px;
+}
+body[data-v833-shell="true"] .v832-action-grid span,
+body[data-v833-shell="true"] .v833-action-grid span{
+  color:var(--v833-muted);
+  font-size:.72rem;
+  text-transform:uppercase;
+  font-weight:950;
+}
+body[data-v833-shell="true"] :is(.sports-row,.match-card){
+  overflow:hidden!important;
+}
+body[data-v833-shell="true"] :is(.sports-team strong,.team-name,.match-team){
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+body[data-v833-shell="true"] :is(.telegram-status,.telegram-card,.profile-card,.support-card){
+  border-color:var(--v833-line)!important;
+  background:linear-gradient(180deg,var(--v833-glass-strong),rgba(3,12,24,.88))!important;
+}
+body[data-v833-shell="true"].ns-admin :is(.admin-grid,.v794-admin-kpi-grid,.v808-admin-grid){
+  gap:14px!important;
+}
+body[data-v833-shell="true"].ns-admin :is(table,.table,.admin-table){
+  border-radius:16px!important;
+  border:1px solid rgba(96,232,255,.14)!important;
+}
+body[data-v833-shell="true"].ns-admin :is(.btn,.button,a.btn,button){
+  min-height:40px;
+}
+@media(max-width:768px){
+  body[data-v833-shell="true"] .v829-mobile-quick{
+    display:grid!important;
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  }
+  body[data-v833-shell="true"] :is(.actions,.v812-hero-actions,.v799-actions){
+    display:flex;
+    flex-wrap:wrap;
+  }
+  body[data-v833-shell="true"] :is(.actions a,.v812-hero-actions a,.v799-actions a){
+    flex:1 1 140px;
+    justify-content:center;
+    text-align:center;
+  }
+  body[data-v833-shell="true"] :is(.sports-row,.match-card,.v701-row){
+    border-radius:18px!important;
+  }
+  body[data-v833-shell="true"] :is(.empty-state,.premium-empty,.v829-empty,.v832-premium-empty){
+    padding:15px!important;
+  }
+  body[data-v833-shell="true"].ns-admin :is(table,.table,.admin-table){
+    display:block;
+    max-width:100%;
+    overflow-x:auto;
+  }
+}
+@media(min-width:1024px){
+  body[data-v833-shell="true"].ns-authenticated:not(.ns-admin) :is(.v799-screen,.v812-screen,.v829-certified-screen,.v830-certified-screen,.v832-certified-screen,.v833-certified-screen){
+    scroll-margin-top:96px;
+  }
+}
+/* V833 REFERENCE ECOSYSTEM VISUAL COMPLETION END */

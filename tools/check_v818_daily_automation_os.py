@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
-CURRENT="V832_FULL_APP_REFERENCE_VISUAL_GITHUB_RENDER_WORKFLOW_FINAL"
+CURRENT="V833_REFERENCE_ECOSYSTEM_VISUAL_COMPLETION_FINAL"
 def read(rel): return (ROOT/rel).read_text(encoding='utf-8', errors='replace')
 def main():
     app=read('app.py'); base=read('templates/base.html'); css=read('static/app.css'); version=read('VERSION.txt').strip().lstrip('ï»¿')

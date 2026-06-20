@@ -9,6 +9,7 @@ APP = ROOT / "app.py"
 BASE = ROOT / "templates" / "base.html"
 CSS = ROOT / "static" / "app.css"
 VERSION = "V832_FULL_APP_REFERENCE_VISUAL_GITHUB_RENDER_WORKFLOW_FINAL"
+CURRENT_VERSION = "V833_REFERENCE_ECOSYSTEM_VISUAL_COMPLETION_FINAL"
 
 
 def main() -> int:
@@ -17,7 +18,7 @@ def main() -> int:
     css = CSS.read_text(encoding="utf-8", errors="replace")
     version_txt = (ROOT / "VERSION.txt").read_text(encoding="utf-8-sig").strip()
     checks = {
-        "version_v832": version_txt == VERSION and f"APP_VERSION = '{VERSION}'" in app,
+        "version_v832_or_current": version_txt in {VERSION, CURRENT_VERSION} and (f"APP_VERSION = '{VERSION}'" in app or f"APP_VERSION = '{CURRENT_VERSION}'" in app),
         "v818_master_tick": "/api/automation/master-tick" in app and "daily_automation_engine" in app,
         "v819_dedup": "data-v819-shell" in base and "V819" in css,
         "v820_crests": "data-v820-shell" in base and "team-crest.svg" in app,
