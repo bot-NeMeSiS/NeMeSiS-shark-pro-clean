@@ -6685,3 +6685,37 @@ body[data-v842-shell="true"].ns-admin :is(.v808-admin-rail,.v794-admin-panel,.v8
   }
 }
 /* V842 SPANISH TEXT LOGOS BRAND IDENTITY FINAL QA END */
+
+/* V843 PRODUCT TEAM COMMERCIAL READY FINAL REVIEW START */
+body[data-v843-shell="true"] :is(.v799-card,.v774-panel,.v794-admin-panel,.v812-card,.card,.premium-empty){
+  border-color:rgba(90,220,255,.18);
+}
+body[data-v843-shell="true"] :is(.v799-empty,.premium-empty,.empty){
+  background:linear-gradient(135deg,rgba(7,19,34,.88),rgba(9,32,52,.72));
+  border:1px solid rgba(90,220,255,.16);
+  color:#dff7ff;
+}
+body[data-v843-shell="true"] :is(.v799-empty strong,.premium-empty strong,.empty strong){
+  color:#ffffff;
+}
+body[data-v843-shell="true"] :is(.v799-button.primary,.btn.primary,.v774-actions .btn.primary,.v799-hero-actions .primary){
+  box-shadow:0 14px 36px rgba(20,184,255,.18);
+}
+body[data-v843-shell="true"] :is(.v799-action-stack a,.v775-menu-grid a,.v778-section-card,.v794-action-card){
+  min-height:54px;
+}
+body[data-v843-shell="true"] :is(.v799-action-stack a small,.v775-menu-grid a small,.v794-action-card small){
+  color:rgba(225,247,255,.72);
+}
+body[data-v843-shell="true"] :is(.v799-kicker,.kicker,.v793-kicker){
+  letter-spacing:.08em;
+}
+body[data-v843-shell="true"].ns-admin :is(.v794-admin-panel,.v807-admin-card,.v808-admin-card){
+  background:linear-gradient(145deg,rgba(7,15,27,.96),rgba(10,24,39,.90));
+}
+@media (max-width:768px){
+  body[data-v843-shell="true"] :is(.v799-screen,.v774-screen,.v793-screen){
+    padding-bottom:calc(110px + env(safe-area-inset-bottom));
+  }
+}
+/* V843 PRODUCT TEAM COMMERCIAL READY FINAL REVIEW END */

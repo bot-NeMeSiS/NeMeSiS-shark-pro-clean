@@ -145,7 +145,7 @@
         {% endfor %}
       </article>
       {% else %}
-      <div class="v799-empty v801-empty"><strong>No hay partidos para este filtro.</strong><p>{{ calendar.get('source_summary') or 'La app no inventa calendario. Cambia de día, liga o espera la siguiente sincronización real.' }}</p><div><a href="/calendar?lane=week">Ver semana</a><a href="/calendar?lane=upcoming">Ver 21 días</a><a href="/live">Directo</a></div></div>
+      <div class="v799-empty v801-empty"><strong>Sin datos reales para este filtro.</strong><p>{{ calendar.get('source_summary') or 'Esperando proveedor o próxima sincronización real. La app no inventa calendario.' }}</p><div><a href="/calendar?lane=week">Ver semana</a><a href="/calendar?lane=upcoming">Ver 21 días</a><a href="/live">Directo</a></div></div>
       {% endfor %}
     </div>
 
@@ -155,7 +155,7 @@
         <p>{{ calendar.get('source_summary') }}</p>
         <dl class="v801-mini-stats">
           <div><dt>Visibles</dt><dd>{{ counts.get('visible',0) }}</dd></div>
-          <div><dt>Das</dt><dd>{{ counts.get('days',0) }}</dd></div>
+          <div><dt>Días</dt><dd>{{ counts.get('days',0) }}</dd></div>
           <div><dt>Ligas</dt><dd>{{ counts.get('leagues',0) }}</dd></div>
           <div><dt>Con pick</dt><dd>{{ counts.get('picks',0) }}</dd></div>
         </dl>

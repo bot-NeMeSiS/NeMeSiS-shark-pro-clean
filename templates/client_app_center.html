@@ -75,7 +75,7 @@
             <span>{{ crest(away_identity, ctx.safe_away, 'compact') }}<strong>{{ ctx.safe_away }}</strong></span>
             <em>{{ ctx.client_competition|competition_es }}</em>
           </a>
-          <div class="v812-card-actions"><a href="/match/{{ m.get('id') }}">Detalle</a><a href="/match/{{ m.get('id') }}#shark">SHARK</a><a href="/calendarleague={{ (ctx.client_competition or '')|urlencode }}">Liga</a></div>
+          <div class="v812-card-actions"><a href="/match/{{ m.get('id') }}">Detalle</a><a href="/match/{{ m.get('id') }}#shark">SHARK</a><a href="/calendar?league={{ (ctx.client_competition or '')|urlencode }}">Liga</a></div>
         {% else %}
           <div class="v812-empty"><strong>No hay próximo foco limpio.</strong><p>Si el partido ya empezó o terminó, no se muestra como próximo. Revisa resultados o semana.</p><a href="/calendar?lane=results">Ver resultados</a></div>
         {% endif %}

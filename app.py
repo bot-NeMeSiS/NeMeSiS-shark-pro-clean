@@ -238,7 +238,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V842_SPANISH_TEXT_LOGOS_BRAND_IDENTITY_FINAL_QA'
+APP_VERSION = 'V843_PRODUCT_TEAM_COMMERCIAL_READY_FINAL_REVIEW'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
@@ -13268,6 +13268,9 @@ def api_runtime_version():
         "has_v842_shell": "data-v842-shell" in base_template and "NEMESIS V842 SPANISH TEXT LOGOS BRAND IDENTITY FINAL QA ACTIVE" in base_template,
         "has_v842_css": "V842 SPANISH TEXT LOGOS BRAND IDENTITY FINAL QA START" in css_text,
         "has_v842_spanish_text_logo_qa": "data-v842-shell" in base_template and "V842 SPANISH TEXT LOGOS BRAND IDENTITY FINAL QA START" in css_text,
+        "has_v843_shell": "data-v843-shell" in base_template and "NEMESIS V843 PRODUCT TEAM COMMERCIAL READY FINAL REVIEW ACTIVE" in base_template,
+        "has_v843_css": "V843 PRODUCT TEAM COMMERCIAL READY FINAL REVIEW START" in css_text,
+        "has_v843_commercial_product_review": "data-v843-shell" in base_template and "V843 PRODUCT TEAM COMMERCIAL READY FINAL REVIEW START" in css_text,
         "has_v837_reference_photo_qa": "data-v837-shell" in base_template and "V837 REFERENCE PHOTO PERFECTION REAL QA START" in css_text,
         "has_v836_autonomous_qa": "data-v836-shell" in base_template and "V836 AUTONOMOUS REFERENCE VISUAL REVIEW FINAL QA START" in css_text,
         "has_v833_visual_completion": "data-v833-shell" in base_template and "V833 REFERENCE ECOSYSTEM VISUAL COMPLETION START" in css_text,
@@ -13283,7 +13286,7 @@ def api_runtime_version():
         "has_v820_crests": "data-v820-shell" in base_template and "V820 REAL CRESTS REFERENCE VISUAL PIXEL POLISH START" in css_text,
         "has_v819_dedup": "data-v819-shell" in base_template and "V819 REFERENCE UI DEDUP LAYER PURGE START" in css_text,
         "has_v818_automation": "/api/automation/master-tick" in app_py_text and "daily_automation_engine" in app_py_text,
-        "static_css_cache_busting": "V842_SPANISH_TEXT_LOGOS_BRAND_IDENTITY_FINAL_QA" in base_template,
+        "static_css_cache_busting": "V843_PRODUCT_TEAM_COMMERCIAL_READY_FINAL_REVIEW" in base_template,
         "crest_engine_loaded": runtime_stability.get("crest_engine_loaded"),
         "logo_cache_tables_ok": runtime_stability.get("logo_cache_tables_ok"),
         "team_logo_cache_count": runtime_stability.get("team_logo_cache_count"),

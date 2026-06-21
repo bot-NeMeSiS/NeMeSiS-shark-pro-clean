@@ -150,7 +150,7 @@
         <strong class="v799-pick-market">{{ pick.get('selection_display') or pick.get('selection') or 'Selección pendiente' }}</strong>
         <dl class="v799-pick-metrics"><div><dt>Cuota</dt><dd>{{ pick.get('client_odds_label') or pick.get('odds') or '—' }}</dd></div><div><dt>Stake</dt><dd>{{ pick.get('stake_units') or pick.get('stake') or '—' }}{% if pick.get('stake_units') or pick.get('stake') %}u{% endif %}</dd></div><div><dt>Riesgo</dt><dd>{{ pick.get('risk_level') or '—' }}</dd></div><div><dt>Confianza</dt><dd>{{ pick.get('confidence') or pick.get('quality_score') or '—' }}{% if pick.get('confidence') or pick.get('quality_score') %}%{% endif %}</dd></div></dl>
         <p>{{ pick.get('reasoning') or pick.get('analysis_summary') or 'Motivo ampliado pendiente en los datos del pick.' }}</p>
-        <div class="v799-actions"><a class="primary" href="/sharkpick={{ pick.get('id') }}">Preguntar a SHARK por este pick</a></div>
+        <div class="v799-actions"><a class="primary" href="/shark?pick={{ pick.get('id') }}">Preguntar a SHARK por este pick</a></div>
         {% else %}
         <div class="v799-empty"><strong>Sin pick publicado para este partido.</strong><p>La app no generará una selección falsa. Cuando exista un pick real aparecerá aquí.</p></div>
         {% endif %}

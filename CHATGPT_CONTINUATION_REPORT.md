@@ -1,21 +1,20 @@
-# V842_SPANISH_TEXT_LOGOS_BRAND_IDENTITY_FINAL_QA
+﻿@"
+# CHATGPT CONTINUATION REPORT - V843
 
-Generado: 2026-06-21T07:25:34
+## Estado base
+La carpeta oficial estaba en V842, centrada en español, textos, logos y marca.
 
-Base real usada: V841_REFERENCE_PRODUCT_TEAM_FINAL_POLISH_AND_SOURCE_SANITY. Fuente: carpeta oficial `C:\Users\aloha\OneDrive\Escritorio\NeMeSiS shark pro`. No se usaron ZIPs antiguos mezclados como base.
+## Qué hizo V843
+V843 revisó NeMeSiS SHARK PRO como producto comercial: cliente, admin, rutas, botones, estados de datos reales, visual móvil/PC y preparación Render/GitHub.
 
-## Resumen para continuar en ChatGPT
+## Correcciones principales
+- URLs heredadas mal formadas corregidas.
+- Estados comerciales exactos añadidos para ausencia de datos reales.
+- Checks V843 creados para rutas, estados reales, runtime y limpieza de release.
+- CSS V843 ligero para mejorar calidad percibida sin romper capas anteriores.
 
-V842 se centr? en texto espa?ol, ortograf?a, mojibake, logos y marca. La base real usada fue V841 desde la carpeta oficial. No se usaron ZIPs antiguos mezclados.
+## Estado Telegram/Cron
+No se cambiaron módulos Telegram ni Cron. Se conserva el comportamiento certificado de versiones anteriores.
 
-### Cambios principales
-
-- Actualizado `VERSION.txt`, `APP_VERSION`, `base.html`, cache CSS y `/api/runtime-version` a V842.
-- A?adido bloque CSS V842 para logos, brand wrappers, crest sizing, tipograf?a y botones.
-- Corregidos textos visibles y mojibake en plantillas clave.
-- Creados checks V842 de runtime, texto, logos, Telegram, admin, enlaces, limpieza y compatibilidad.
-- Detectado y corregido un problema cr?tico surgido durante la limpieza: placeholders SQL perdidos. Se restaur? `app.py` y `engines/` desde el ZIP limpio oficial V841 y se reaplic? V842 de forma segura.
-
-### Estado
-
-Runtime V842 OK, texto visible sin mojibake seg?n check, logos b?sicos OK, master tick/health-check OK, smoke Flask OK. Pendiente solo revisi?n visual humana si se quiere comparar p?xel a p?xel.
+## Estado de lanzamiento
+La app queda más coherente y vendible. Pendiente real: probar en Render con variables reales y datos deportivos reales de producción antes de venta abierta.
