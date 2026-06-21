@@ -1,20 +1,21 @@
-# CHATGPT CONTINUATION REPORT - V841
+# V842_SPANISH_TEXT_LOGOS_BRAND_IDENTITY_FINAL_QA
 
-## Estado
+Generado: 2026-06-21T07:25:34
 
-Versi?n actual: `V841_REFERENCE_PRODUCT_TEAM_FINAL_POLISH_AND_SOURCE_SANITY`. Base real: `V840_PC_VIDEO_LAYOUT_TEXT_NAV_FIX_FINAL`.
+Base real usada: V841_REFERENCE_PRODUCT_TEAM_FINAL_POLISH_AND_SOURCE_SANITY. Fuente: carpeta oficial `C:\Users\aloha\OneDrive\Escritorio\NeMeSiS shark pro`. No se usaron ZIPs antiguos mezclados como base.
 
-## Fuente de verdad
+## Resumen para continuar en ChatGPT
 
-La carpeta oficial es la ?nica base. No se usa ning?n ZIP viejo V822 como base.
+V842 se centr? en texto espa?ol, ortograf?a, mojibake, logos y marca. La base real usada fue V841 desde la carpeta oficial. No se usaron ZIPs antiguos mezclados.
 
-## Cambios V841
+### Cambios principales
 
-- Versionado y runtime V841.
-- Capa CSS final de pulido PC/m?vil sin tocar l?gica estable.
-- Reports y checks V841 para fuente, referencias, PC, m?vil, textos, enlaces, datos reales, Telegram/Cron y release.
-- Refuerzo anti-regresi?n para sidebar, overflow, mojibake y floating SHARK.
+- Actualizado `VERSION.txt`, `APP_VERSION`, `base.html`, cache CSS y `/api/runtime-version` a V842.
+- A?adido bloque CSS V842 para logos, brand wrappers, crest sizing, tipograf?a y botones.
+- Corregidos textos visibles y mojibake en plantillas clave.
+- Creados checks V842 de runtime, texto, logos, Telegram, admin, enlaces, limpieza y compatibilidad.
+- Detectado y corregido un problema cr?tico surgido durante la limpieza: placeholders SQL perdidos. Se restaur? `app.py` y `engines/` desde el ZIP limpio oficial V841 y se reaplic? V842 de forma segura.
 
-## Preservado
+### Estado
 
-V818-V840, Render Cron, Telegram autom?tico, DB_PATH, Madrid Time, usuarios, sesiones, membres?as, pagos, API-Football, The Odds API, picks, live, partidos, SHARK y escudos ligeros.
+Runtime V842 OK, texto visible sin mojibake seg?n check, logos b?sicos OK, master tick/health-check OK, smoke Flask OK. Pendiente solo revisi?n visual humana si se quiere comparar p?xel a p?xel.

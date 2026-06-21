@@ -6,20 +6,20 @@
   <div>
     <div class="kicker">Área cliente</div>
     <h1>Tu panel SHARK</h1>
-    <p class="lead">Hola, {{ data.session_user.name }} ? @{{ data.session_user.username }} ? plan {{ data.session_user.membership }}</p>
+    <p class="lead">Hola, {{ data.session_user.name }}  @{{ data.session_user.username }}  plan {{ data.session_user.membership }}</p>
     <div class="actions">
-      <a class="btn primary" href="/mi-dia">Mi dÁa SHARK</a>
+      <a class="btn primary" href="/mi-dia">Mi día SHARK</a>
       <a class="btn" href="/match-hub">Ver partidos</a>
       <a class="btn" href="/favorites">Favoritos</a>
       <a class="btn" href="/shark">Preguntar a SHARK</a>
-      <a class="btn" href="/logout">Cerrar sesi?n</a>
+      <a class="btn" href="/logout">Cerrar sesin</a>
     </div>
   </div>
   <aside class="membership-card plan-{{ plan }}">
-    <span>MEMBRES?A</span>
+    <span>MEMBRESA</span>
     <strong>{{ data.session_user.membership }}</strong>
     {% if data.session_user.membership == 'FREE' %}
-    <p>Acceso base activo. PRO desbloquea m?s picks, combinadas y avisos.</p>
+    <p>Acceso base activo. PRO desbloquea ms picks, combinadas y avisos.</p>
     {% elif data.session_user.membership == 'PRO' %}
     <p>Picks ampliados, combinadas y mejor contexto de partido.</p>
     {% else %}
@@ -30,7 +30,7 @@
 
 <section class="band compact-band">
   <div class="quick-actions client-actions">
-    <a class="quick primary" href="/mi-dia"><span>Mi dÁa</span><strong>{{ data.daily_briefing.score }}%</strong></a>
+    <a class="quick primary" href="/mi-dia"><span>Mi día</span><strong>{{ data.daily_briefing.score }}%</strong></a>
     <a class="quick" href="/match-hub"><span>Partidos</span><strong>{{ data.upcoming_matches|length }}</strong></a>
     <a class="quick" href="/live"><span>Directo</span><strong>{{ data.match_hub.counts.live }}</strong></a>
     <a class="quick" href="/picks"><span>Picks</span><strong>{{ data.picks|length }}</strong></a>
@@ -51,7 +51,7 @@
       <p class="small">{{ alert.body }}</p>
     </a>
     {% else %}
-    <div class="empty premium-empty"><strong>Sin alertas pendientes</strong><p>Tu panel se activar? cuando haya favoritos, picks, partidos o Telegram conectado.</p></div>
+    <div class="empty premium-empty"><strong>Sin alertas pendientes</strong><p>Tu panel se activar cuando haya favoritos, picks, partidos o Telegram conectado.</p></div>
     {% endfor %}
   </div>
 </section>
@@ -83,7 +83,7 @@
       {% for p in data.picks[:4] %}
       <div class="list-row"><span>{{ p.selection_display or p.selection }}</span><strong>{{ p.confidence }}%</strong></div>
       {% else %}
-      <div class="empty">No hay picks publicados ahora mismo; SHARK mostrarÁ partidos prÁximos reales para anÁlisis en la secci?n Picks.</div>
+      <div class="empty">No hay picks publicados ahora mismo; SHARK mostrará partidos próximos reales para análisis en la sección Picks.</div>
       {% endfor %}
     </div>
   </div>
@@ -96,19 +96,19 @@
       {% set profile_matches = data.matches if data.matches else data.upcoming_matches %}
       {% for m in profile_matches[:5] %}
       {% set live_depth = m.live_depth|default({}) %}
-      <a class="list-row" href="/match/{{ m.id }}"><span>{{ m.safe_home or m.home_team or 'Equipo local' }} vs {{ m.safe_away or m.away_team or 'Equipo visitante' }}</span><strong>{{ live_depth.get('label') or m.status or 'Pr?ximo' }}</strong></a>
+      <a class="list-row" href="/match/{{ m.id }}"><span>{{ m.safe_home or m.home_team or 'Equipo local' }} vs {{ m.safe_away or m.away_team or 'Equipo visitante' }}</span><strong>{{ live_depth.get('label') or m.status or 'Próximo' }}</strong></a>
       {% else %}
-      <div class="empty">No hay partidos disponibles todavÁa. El calendario se completar? cuando haya datos suficientes.</div>
+      <div class="empty">No hay partidos disponibles todavía. El calendario se completar cuando haya datos suficientes.</div>
       {% endfor %}
     </div>
   </div>
   <div>
     <div class="section-head"><h2>Servicios premium</h2><span class="pill">{{ data.session_user.membership }}</span></div>
     <div class="grid compact-grid">
-      <a class="card service-card" href="/telegram"><div class="name">Telegram</div><p class="small">Partidos del dÁa, picks y alertas segÁn tu plan.</p></a>
+      <a class="card service-card" href="/telegram"><div class="name">Telegram</div><p class="small">Partidos del día, picks y alertas según tu plan.</p></a>
       <a class="card service-card" href="/shark"><div class="name">SHARK IA</div><p class="small">Pregunta por partidos, picks, combinadas, cuotas y favoritos.</p></a>
       <a class="card service-card" href="/match-hub"><div class="name">Calendario</div><p class="small">{{ data.client_source_label }}.</p></a>
-      <a class="card service-card" href="/combis"><div class="name">Combinadas</div><p class="small">Elige n?mero de partidos y modo de riesgo.</p></a>
+      <a class="card service-card" href="/combis"><div class="name">Combinadas</div><p class="small">Elige nmero de partidos y modo de riesgo.</p></a>
     </div>
   </div>
 </section>

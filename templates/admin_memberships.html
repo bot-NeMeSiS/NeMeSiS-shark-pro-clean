@@ -2,13 +2,13 @@
 {% block content %}
 <section class="app-hero compact-hero admin-hero v826-certified-screen v827-certified-screen v828-certified-screen v829-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v830-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen" data-v827-template="admin_memberships" data-v828-template="admin_memberships" data-v829-template="admin_memberships" data-v830-template="admin_memberships" data-v832-template="admin_memberships" data-v833-template="admin_memberships" data-v836-template="admin_memberships" data-v837-template="admin_memberships" data-v826-template="admin_memberships">
   <div>
-    <div class="kicker">Admin ? MembresÁas</div>
-    <h1>Centro comercial de membresÁas.</h1>
-    <p class="lead">Control FREE, PRO y ELITE con regalos por dÁas para amigos, promociones, pruebas y ofertas sin activar pagos reales.</p>
-    <div class="actions"><a class="btn primary" href="/admin/users">Regalar por dÁas</a><a class="btn" href="/membresias">Ver landing p?blica</a></div>
+    <div class="kicker">Admin  Membresías</div>
+    <h1>Centro comercial de membresías.</h1>
+    <p class="lead">Control FREE, PRO y ELITE con regalos por días para amigos, promociones, pruebas y ofertas sin activar pagos reales.</p>
+    <div class="actions"><a class="btn primary" href="/admin/users">Regalar por días</a><a class="btn" href="/membresias">Ver landing pública</a></div>
   </div>
   <aside class="hero-panel">
-    <span class="pill">Conversi?n</span>
+    <span class="pill">Conversin</span>
     <div class="big-score">{{ data.membership_revenue.conversion }}%</div>
     <p class="small">MRR estimado interno: {{ data.membership_revenue.estimated_mrr }} €/mes</p>
   </aside>
@@ -18,14 +18,14 @@
   <div class="section-head"><h2>Regalos, ofertas y caducidades</h2><span class="pill">Nuevo</span></div>
   <div class="grid compact-grid metric-row">
     <article class="card metric-card"><div class="metric">{{ data.membership_admin.active_temporal or 0 }}</div><div class="muted">temporales activos</div></article>
-    <article class="card metric-card"><div class="metric">{{ data.membership_admin.expiring_soon or 0 }}</div><div class="muted">caducan en 7 dÁas</div></article>
+    <article class="card metric-card"><div class="metric">{{ data.membership_admin.expiring_soon or 0 }}</div><div class="muted">caducan en 7 días</div></article>
     <article class="card metric-card"><div class="metric">{{ data.membership_admin.expired_today or 0 }}</div><div class="muted">bajadas a FREE hoy</div></article>
   </div>
   <div class="card">
-    <h3>Duraciones rÁpidas</h3>
-    <p class="small">Desde Usuarios puedes conceder PRO o ELITE por dÁas concretos. Al caducar, el sistema lo baja a FREE autom?ticamente y deja nota interna.</p>
+    <h3>Duraciones rápidas</h3>
+    <p class="small">Desde Usuarios puedes conceder PRO o ELITE por días concretos. Al caducar, el sistema lo baja a FREE automáticamente y deja nota interna.</p>
     <div class="quick-days">
-      {% for days in data.membership_admin.quick_days %}<span class="pill">{{ days }} dÁa{% if days != 1 %}s{% endif %}</span>{% endfor %}
+      {% for days in data.membership_admin.quick_days %}<span class="pill">{{ days }} día{% if days != 1 %}s{% endif %}</span>{% endfor %}
       <span class="pill">Sin caducidad</span>
     </div>
     <div class="actions"><a class="btn primary" href="/admin/users">Abrir usuarios</a></div>
@@ -33,7 +33,7 @@
 </section>
 
 <section class="band compact-band v826-certified-screen" data-v826-template="admin_memberships">
-  <div class="section-head"><h2>Distribuci?n actual</h2><span class="pill">Usuarios</span></div>
+  <div class="section-head"><h2>Distribucin actual</h2><span class="pill">Usuarios</span></div>
   <div class="grid compact-grid">
     {% for plan,total in data.membership_revenue.distribution.items() %}
     <article class="card metric-card"><span class="badge">{{ plan }}</span><h2>{{ total }}</h2><p class="small">Usuarios en este nivel.</p></article>
@@ -42,10 +42,10 @@
 </section>
 
 <section class="band compact-band v826-certified-screen" data-v826-template="admin_memberships">
-  <div class="section-head"><h2>Usuarios con membresÁa temporal</h2><span class="pill">Seguimiento</span></div>
+  <div class="section-head"><h2>Usuarios con membresía temporal</h2><span class="pill">Seguimiento</span></div>
   <div class="stack">
     {% for user in data.users if user.membership_is_temporal %}
-    <div class="list-row"><span>{{ user.name or user.username }}<small>{{ user.email }} ? {{ user.membership }} ? {{ user.membership_source or 'admin' }}</small></span><strong>{{ user.membership_expires_label }}</strong></div>
+    <div class="list-row"><span>{{ user.name or user.username }}<small>{{ user.email }}  {{ user.membership }}  {{ user.membership_source or 'admin' }}</small></span><strong>{{ user.membership_expires_label }}</strong></div>
     {% else %}
     <div class="empty">No hay regalos/ofertas temporales activos.</div>
     {% endfor %}

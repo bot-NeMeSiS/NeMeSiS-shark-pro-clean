@@ -21,7 +21,7 @@
         <small>{{ item.error_id }} - {{ item.exception_type or 'Error' }} - {{ item.exception_message or 'Sin mensaje' }}</small><br>
         <small>{{ item.email or item.user_id or 'anonimo' }} - {{ item.membership or '-' }}</small>
       </span>
-      <a class="mini-link" href="/admin/observability/errors?error_id={{ item.error_id }}">Ver detalle</a>
+      <a class="mini-link" href="/admin/observability/errorserror_id={{ item.error_id }}">Ver detalle</a>
     </div>
     {% else %}
     <p class="small">Sin errores trazados todavía.</p>

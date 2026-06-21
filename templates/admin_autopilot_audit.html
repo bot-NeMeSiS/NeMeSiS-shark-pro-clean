@@ -26,20 +26,20 @@
 
 <section class="band two-col">
   <div class="card">
-    <h2>Configuracion</h2>
+    <h2>Configuración</h2>
     <p class="small">Generar picks: {% if audit.config.auto_generate_picks %}activo{% else %}desactivado{% endif %}</p>
     <p class="small">Enviar Telegram: {% if audit.config.auto_send_telegram_picks %}activo{% else %}desactivado{% endif %}</p>
-    <p class="small">Score mnimo: {{ audit.config.min_shark_score_for_auto_send }}</p>
-    <p class="small">Mximo diario: {{ audit.config.max_auto_picks_per_day }}</p>
+    <p class="small">Score mínimo: {{ audit.config.min_shark_score_for_auto_send }}</p>
+    <p class="small">Máximo diario: {{ audit.config.max_auto_picks_per_day }}</p>
     <p class="small">Ventana Telegram: {{ audit.config.telegram_auto_send_window_hours }} h</p>
-    <p class="small">Proximo ciclo estimado: {{ audit.next_cycle_estimated or 'pendiente' }}</p>
+    <p class="small">Próximo ciclo estimado: {{ audit.next_cycle_estimated or 'pendiente' }}</p>
   </div>
   <div class="card">
-    <h2>Acciones de verificacion</h2>
+    <h2>Acciones de verificación</h2>
     <form method="post">
     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
       <input type="hidden" name="action" value="run">
-      <label>Limite de candidatos</label>
+      <label>Límite de candidatos</label>
       <input name="limit" value="40">
       <label><input type="checkbox" name="force" value="1"> Forzar ciclo ignorando ventana diaria</label>
       <button class="primary" type="submit">Ejecutar ciclo ahora</button>

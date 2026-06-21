@@ -48,12 +48,12 @@
       <h2>{{ featured.get('client_selection_label') or featured.get('selection_display') or featured.get('selection') or 'Selección pendiente' }}</h2>
       <p>{{ featured.get('analysis_summary') or featured.get('reasoning') or 'Motivo pendiente en los datos del pick. Revisa el detalle antes de decidir.' }}</p>
 
-      <div class="v800-decision-grid" aria-label="Lectura r?pida del pick">
+      <div class="v800-decision-grid" aria-label="Lectura rápida del pick">
         <article><span>Qué apostar</span><strong>{{ featured.get('client_selection_label') or featured.get('selection_display') or featured.get('selection') or 'Selección pendiente' }}</strong></article>
         <article><span>Por qué entrar</span><strong>{{ featured.get('analysis_summary') or featured.get('reasoning') or 'Motivo pendiente en el pick real' }}</strong></article>
         <article><span>Cuidado</span><strong>{{ featured.get('risk_note') or featured.get('risk_level') or 'Riesgo pendiente' }}</strong></article>
       </div>
-      <div class="v799-feature-actions"><a class="primary" href="{{ featured.get('client_match_url') or ('/match/' ~ (featured.get('match_id') or featured.get('id'))) }}">Ver análisis completo</a><a href="/shark?pick={{ featured.get('id') }}">Preguntar SHARK</a></div>
+      <div class="v799-feature-actions"><a class="primary" href="{{ featured.get('client_match_url') or ('/match/' ~ (featured.get('match_id') or featured.get('id'))) }}">Ver análisis completo</a><a href="/sharkpick={{ featured.get('id') }}">Preguntar SHARK</a></div>
     </div>
     <div class="v799-feature-teams">
       <span>{{ crest(home_identity, featured.get('home_team') or 'Local', 'compact') }}<strong>{{ featured.get('home_team') or 'Local' }}</strong></span>
@@ -88,7 +88,7 @@
       <small>{{ p.get('client_full_datetime_label') or (p|match_full_datetime) }}</small>
       <dl><div><dt>Cuota</dt><dd>{{ p.get('client_odds_label') or p.get('odds') or '—' }}</dd></div><div><dt>Stake</dt><dd>{{ p.get('stake_units') or p.get('stake') or '—' }}{% if p.get('stake_units') or p.get('stake') %}u{% endif %}</dd></div><div><dt>Riesgo</dt><dd>{{ p.get('risk_level') or '—' }}</dd></div></dl>
       <p>{{ p.get('analysis_summary') or p.get('reasoning') or 'Explicación ampliada pendiente en los datos del pick.' }}</p>
-      <div class="v799-actions"><a href="{{ p.get('client_match_url') or ('/match/' ~ (p.get('match_id') or p.get('id'))) }}">Partido</a><a class="primary" href="/shark?pick={{ p.get('id') }}">SHARK</a></div>
+      <div class="v799-actions"><a href="{{ p.get('client_match_url') or ('/match/' ~ (p.get('match_id') or p.get('id'))) }}">Partido</a><a class="primary" href="/sharkpick={{ p.get('id') }}">SHARK</a></div>
     </article>
     {% endfor %}
   </section>

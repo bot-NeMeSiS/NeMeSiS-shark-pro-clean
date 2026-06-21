@@ -5,7 +5,7 @@
   <div>
     <div class="kicker">Favoritos</div>
     <h1>Tu radar personal</h1>
-    <p class="lead">Equipos, ligas y partidos guardados para ver prÁximos, live, picks y seÁales SHARK relacionadas.</p>
+    <p class="lead">Equipos, ligas y partidos guardados para ver próximos, live, picks y señales SHARK relacionadas.</p>
   </div>
   <div class="scoreboard-kpis">
     <div><strong>{{ data.favorite_insights.by_kind.team|length }}</strong><span>Equipos</span></div>
@@ -27,7 +27,7 @@
       <button class="fav-star active" type="button" data-kind="match" data-value="{{ m.id }}" data-label="{{ m.home_team }} vs {{ m.away_team }}" aria-label="Favorito">★</button>
       <div class="sports-time"><strong>{% if live_depth.get('badge') == 'live' %}{{ live_depth.get('minute') or 'En directo' }}{% else %}{{ m|match_time_short }}{% endif %}</strong><span>{{ live_depth.get('label') or (m|match_date_label) }}</span></div>
       <div class="sports-team home"><span class="crest compact-crest {{ home_identity.get('ui_class','crest-fallback') }}"><img loading="lazy" src="{{ home_identity.get('crest_url','') }}" alt="{{ m.home_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ home_identity.get('flag_emoji') or home_identity.get('initials', (m.home_team or 'L')[:1]) }}'"></span><strong>{{ m.home_team or 'Equipo local' }}</strong></div>
-      <div class="sports-score"><strong>{{ live_depth.get('score') or m.score or 'vs' }}</strong><span>{{ (m.competition_name or m.league_name or 'CompeticiÁn')|competition_es }}</span></div>
+      <div class="sports-score"><strong>{{ live_depth.get('score') or m.score or 'vs' }}</strong><span>{{ (m.competition_name or m.league_name or 'Competición')|competition_es }}</span></div>
       <div class="sports-team away"><span class="crest compact-crest {{ away_identity.get('ui_class','crest-fallback') }}"><img loading="lazy" src="{{ away_identity.get('crest_url','') }}" alt="{{ m.away_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ away_identity.get('flag_emoji') or away_identity.get('initials', (m.away_team or 'V')[:1]) }}'"></span><strong>{{ m.away_team or 'Equipo visitante' }}</strong></div>
       <div class="sports-meta v701-meta"><span class="shark-pill">SHARK</span></div>
     </a>
@@ -35,7 +35,7 @@
   </div>
   {% else %}
   <div class="empty premium-empty">
-    <strong>A?n no hay partidos relacionados con tus favoritos.</strong>
+    <strong>Aún no hay partidos relacionados con tus favoritos.</strong>
     <p>Marca estrellas desde Sports Hub, Live, Calendar o el detalle de partido para construir tu radar.</p>
     <div class="actions"><a class="btn primary" href="/sports-hub">Ver partidos</a><a class="btn" href="/picks">Ver picks</a></div>
   </div>
@@ -60,9 +60,9 @@
     <div class="section-head"><h2>Picks relacionados</h2><span class="pill">{{ data.favorite_bundle.picks|length }}</span></div>
     <div class="stack">
       {% for p in data.favorite_bundle.picks %}
-      <a class="list-row" href="/picks"><span>{{ p.selection_display or p.selection or 'Pick SHARK' }}<small>{{ p.home_team }} vs {{ p.away_team }} ? {{ p.analysis_badge or 'An?lisis' }}</small></span><strong>{{ p.confidence or 0 }}%</strong></a>
+      <a class="list-row" href="/picks"><span>{{ p.selection_display or p.selection or 'Pick SHARK' }}<small>{{ p.home_team }} vs {{ p.away_team }}  {{ p.analysis_badge or 'Anlisis' }}</small></span><strong>{{ p.confidence or 0 }}%</strong></a>
       {% else %}
-      <div class="empty premium-empty">Sin picks conectados a tus favoritos todavÁa.</div>
+      <div class="empty premium-empty">Sin picks conectados a tus favoritos todavía.</div>
       {% endfor %}
     </div>
   </div>
@@ -89,16 +89,16 @@
     {% endfor %}
   </div>
   {% else %}
-  <div class="empty premium-empty">Todav?a no tienes favoritos guardados.</div>
+  <div class="empty premium-empty">Todavía no tienes favoritos guardados.</div>
   {% endif %}
 </section>
 
 <section class="band compact-band v826-certified-screen" data-v826-template="favorites">
   <details class="card">
-    <summary><strong>A?adir favorito manualmente</strong></summary>
+    <summary><strong>Aadir favorito manualmente</strong></summary>
     <form method="post" action="/favorites" style="margin-top:12px">
       <input type="hidden" name="action" value="add">
-      <div class="field"><label>Tipo</label><select name="kind"><option value="team">Equipo</option><option value="league">Liga / competici?n</option><option value="match">Partido</option></select></div>
+      <div class="field"><label>Tipo</label><select name="kind"><option value="team">Equipo</option><option value="league">Liga / competición</option><option value="match">Partido</option></select></div>
       <div class="field"><label>Nombre o ID</label><input name="value" placeholder="Real Madrid, LaLiga, Premier League..."></div>
       <div class="field"><label>Etiqueta visible</label><input name="label" placeholder="Mi equipo, liga favorita..."></div>
       <button type="submit">Guardar favorito</button>

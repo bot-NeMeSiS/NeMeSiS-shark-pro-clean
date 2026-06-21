@@ -19,7 +19,7 @@
     <div class="card"><div class="metric">{{ data.data_center.total_competitions }}</div><div class="muted">competiciones</div></div>
     <div class="card"><div class="metric">{{ data.data_center.total_teams }}</div><div class="muted">equipos</div></div>
     <div class="card"><div class="metric">{{ data.data_center.total_matches }}</div><div class="muted">partidos</div></div>
-    <div class="card"><div class="metric">{{ data.data_center.upcoming_matches }}</div><div class="muted">prÁximos</div></div>
+    <div class="card"><div class="metric">{{ data.data_center.upcoming_matches }}</div><div class="muted">próximos</div></div>
     <div class="card"><div class="metric">{{ data.data_center.live_matches }}</div><div class="muted">live</div></div>
     <div class="card"><div class="metric">{{ data.data_center.teams_with_crests }}</div><div class="muted">con escudo</div></div>
     <div class="card"><div class="metric">{{ data.data_center.odds_snapshots }}</div><div class="muted">cuotas</div></div>
@@ -32,7 +32,7 @@
     <h2>Auto Sync</h2>
     <p class="small">Estado: {% if data.data_center.scheduler.enabled %}activado{% else %}desactivado{% endif %}</p>
     <p class="small">Arranque automatico: {% if data.data_center.scheduler.startup %}activo{% else %}desactivado{% endif %}</p>
-    <p class="small">Ultimo scheduler: {{ (data.data_center.scheduler.last_scheduler_log.started_at or '-')|madrid_datetime_label }}</p>
+    <p class="small">Último scheduler: {{ (data.data_center.scheduler.last_scheduler_log.started_at or '-')|madrid_datetime_label }}</p>
   </aside>
   <aside class="card">
     <h2>Errores scheduler</h2>
@@ -45,12 +45,12 @@
 </section>
 
 <section class="band v826-certified-screen" data-v826-template="admin_data_center">
-  <div class="section-head"><h2>Tareas autom?ticas</h2><span class="pill">{{ data.data_center.scheduler.tasks|length }}</span></div>
+  <div class="section-head"><h2>Tareas automticas</h2><span class="pill">{{ data.data_center.scheduler.tasks|length }}</span></div>
   <div class="grid">
     {% for task in data.data_center.scheduler.tasks %}
     <article class="card">
       <div class="section-head"><h2>{{ task.label }}</h2><span class="state-badge {{ 'live' if task.status == 'OK' else 'half' if task.status == 'RUNNING' else 'upcoming' }}">{{ task.status }}</span></div>
-      <p class="small">Ultima: {{ task.last_run or '-' }}</p>
+      <p class="small">Última: {{ task.last_run or '-' }}</p>
       <p class="small">Proxima: {{ task.next_run or '-' }}</p>
       <p class="small">Intervalo: {{ task.interval_seconds }}s</p>
       {% if task.error_message %}<p class="small">{{ task.error_message }}</p>{% endif %}
@@ -63,8 +63,8 @@
   {% for action,label,detail in [
     ('competitions','Sincronizar competiciones','Prepara las ligas prioritarias sin inventar partidos.'),
     ('teams','Sincronizar equipos/escudos','Carga equipos reales y escudos si SportsDB devuelve datos.'),
-    ('calendar','Sincronizar calendario','Trae prÁximos eventos y live permitidos por SportsDB.'),
-    ('live','Refresh live','Actualiza live b?sico y prÁximos destacados.'),
+    ('calendar','Sincronizar calendario','Trae próximos eventos y live permitidos por SportsDB.'),
+    ('live','Refresh live','Actualiza live básico y próximos destacados.'),
     ('results','Sincronizar resultados','Guarda resultados recientes si la API los ofrece.'),
     ('odds','Sincronizar cuotas','Trae eventos/cuotas H2H respetando cache.'),
     ('warmup','Warmup general','Ejecuta competiciones, equipos, calendario y cuotas con control de intervalo.')
@@ -73,7 +73,7 @@
     <h2>{{ label }}</h2>
     <p class="small">{{ detail }}</p>
     <input type="hidden" name="action" value="{{ action }}">
-    <div class="field"><label>Limite</label><input name="limit" value="120"></div>
+    <div class="field"><label>Límite</label><input name="limit" value="120"></div>
     {% if action == 'warmup' %}<label class="check"><input type="checkbox" name="force" value="1"> Forzar ahora</label>{% endif %}
     <button type="submit">{{ label }}</button>
   </form>
@@ -88,7 +88,7 @@
     <p class="small">Fuente activa: {{ data.matches_diagnostics.active_data_source }}</p>
   </aside>
   <aside class="card">
-    <h2>Ultima actividad</h2>
+    <h2>Última actividad</h2>
     <p class="small">SportsDB: {{ (data.data_center.last_sportsdb_sync.started_at or '-')|madrid_datetime_label }}</p>
     <p class="small">Odds: {{ (data.data_center.last_odds_sync.started_at or '-')|madrid_datetime_label }}</p>
     <p class="small">No data: {{ data.matches_diagnostics.competitions_no_data|length }} competiciones preparadas para import legal.</p>
@@ -101,7 +101,7 @@
     {% for log in data.data_center.recent_logs %}
     <div class="list-row"><span>{{ log.source }} / {{ log.sync_type }} / {{ log.status }}</span><strong>{{ log.total_items }}</strong></div>
     {% else %}
-    <div class="empty">Aun no hay sincronizaciones registradas.</div>
+    <div class="empty">Aún no hay sincronizaciones registradas.</div>
     {% endfor %}
   </div>
 </section>

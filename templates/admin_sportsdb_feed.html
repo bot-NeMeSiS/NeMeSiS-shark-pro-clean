@@ -3,7 +3,7 @@
 <section class="hero compact">
   <div class="kicker">SportsDB Feed</div>
   <h1>Sincronizar partidos reales</h1>
-  <p class="lead">Importa próximos partidos y livescores permitidos por TheSportsDB Premium, los guarda en SQLite y deja Match Hub/Live leyendo datos cacheados.</p>
+  <p class="lead">Importa próximos partidos y livescores permitidos por TheSportsDB Premium, los guarda en SQLite y deja Centro de partidos/Live leyendo datos cacheados.</p>
   <div class="admin-menu">
     <a class="btn" href="/admin/users">Usuarios</a>
     <a class="btn" href="/admin/sportsdb-sync">Escudos</a>
@@ -15,8 +15,8 @@
   <div class="grid compact-grid">
     <div class="card"><div class="metric">{% if data.sportsdb_feed.key_present %}OK{% else %}NO{% endif %}</div><div class="muted">key {{ data.sportsdb_feed.key_masked or 'sin configurar' }}</div></div>
     <div class="card"><div class="metric">{{ data.sportsdb_feed.cached_matches }}</div><div class="muted">partidos cacheados</div></div>
-    <div class="card"><div class="metric">{{ data.sportsdb_feed.last_sync.imported or 0 }}</div><div class="muted">importados ultimo sync</div></div>
-    <div class="card"><div class="metric">{{ data.sportsdb_feed.last_sync.updated or 0 }}</div><div class="muted">actualizados ultimo sync</div></div>
+    <div class="card"><div class="metric">{{ data.sportsdb_feed.last_sync.imported or 0 }}</div><div class="muted">importados Último sync</div></div>
+    <div class="card"><div class="metric">{{ data.sportsdb_feed.last_sync.updated or 0 }}</div><div class="muted">actualizados Último sync</div></div>
   </div>
 </section>
 <section class="band two-col">
@@ -24,15 +24,15 @@
   <form class="card" method="post" action="/admin/sportsdb-feed">
     <h2>Sincronizar partidos reales</h2>
     <p class="small">Usa eventos de día, próximos partidos por liga y livescores si `ENABLE_LIVE_API=true` está activo.</p>
-    <div class="field"><label>Limite por ejecucion</label><input name="limit" value="80"></div>
+    <div class="field"><label>Límite por ejecución</label><input name="limit" value="80"></div>
     <button type="submit">Sincronizar partidos reales</button>
   </form>
   <aside class="card">
     <h2>Estado</h2>
     <p class="small">Live API: {% if data.sportsdb_feed.live_enabled %}activo{% else %}inactivo{% endif %}</p>
-    <p class="small">Ultimo sync: {{ data.sportsdb_feed.last_sync.time or '-' }}</p>
-    <p class="small">Ultima cache: {{ data.sportsdb_feed.last_cached_update or '-' }}</p>
-    <p class="small">Ultimo error: {{ data.sportsdb_feed.last_error or '-' }}</p>
+    <p class="small">Último sync: {{ data.sportsdb_feed.last_sync.time or '-' }}</p>
+    <p class="small">Última caché: {{ data.sportsdb_feed.last_cached_update or '-' }}</p>
+    <p class="small">Último error: {{ data.sportsdb_feed.last_error or '-' }}</p>
   </aside>
 </section>
 <section class="band">
@@ -42,7 +42,7 @@
     {% for error in feed_errors %}
     <div class="list-row"><span>{{ error }}</span><strong>revisar</strong></div>
     {% else %}
-    <div class="empty">Sin errores registrados en el ultimo sync.</div>
+    <div class="empty">Sin errores registrados en el Último sync.</div>
     {% endfor %}
   </div>
 </section>

@@ -49,7 +49,7 @@
     {% for event in summary.latest_errors %}
       <div class="list-row">
         <span>{{ (event.created_at)|madrid_datetime_label }} - {{ event.error_id }}<br><small>{{ event.path }} - {{ event.exception_type }} - {{ event.exception_message }}</small></span>
-        <a class="mini-link" href="/admin/observability/errors?error_id={{ event.error_id }}">Ver detalle</a>
+        <a class="mini-link" href="/admin/observability/errorserror_id={{ event.error_id }}">Ver detalle</a>
       </div>
     {% else %}
       <p class="small">Sin errores trazados todavía.</p>

@@ -8,15 +8,15 @@
 {% call ui.shell('Dashboard', 'Panel de control', 'Centro operativo real del ecosistema') %}
 <section class="v809-admin-reference-hero">
   <div>
-    <p class="eyebrow">V809 ? panel final tipo referencia</p>
+    <p class="eyebrow">V809  panel final tipo referencia</p>
     <h1>Centro de mando limpio, visual y con todos los botones.</h1>
-    <p>Admin debe funcionar como una app de control: accesos visibles, m?dulos agrupados, vista cliente a un toque y datos reales sin m?tricas inventadas.</p>
+    <p>Admin debe funcionar como una app de control: accesos visibles, módulos agrupados, vista cliente a un toque y datos reales sin métricas inventadas.</p>
     <div class="v809-admin-hero-actions"><a class="primary" href="/admin/map">Mapa completo</a><a href="/sports-hub">Vista cliente</a><a href="/admin/matches-sync">Partidos</a><a href="/admin/telegram/command-center">Telegram</a></div>
   </div>
   <aside>
     <img src="/static/img/shark-logo.svg" alt="">
-    <strong>{{ d.get('version') or d.get('app_version') or 'VersiÁn activa' }}</strong>
-    <small>Madrid ? producciÁn ? sin datos inventados</small>
+    <strong>{{ d.get('version') or d.get('app_version') or 'Versión activa' }}</strong>
+    <small>Madrid  producción  sin datos inventados</small>
   </aside>
 </section>
 
@@ -24,12 +24,12 @@
   <div>
     <p class="eyebrow">Ecosistema conectado</p>
     <h1>Panel admin tipo command center con accesos recuperados.</h1>
-    <p>Logo SHARK, navegaciÁn completa, mapa global y datos reales. Si Render, DB o API no traen un dato, aparece pendiente.</p>
+    <p>Logo SHARK, navegación completa, mapa global y datos reales. Si Render, DB o API no traen un dato, aparece pendiente.</p>
   </div>
   <aside>
     <span class="v807-live-dot"></span>
-    <strong>{{ d.get('version') or d.get('app_version') or 'VersiÁn activa' }}</strong>
-    <small>Madrid ? producciÁn</small>
+    <strong>{{ d.get('version') or d.get('app_version') or 'Versión activa' }}</strong>
+    <small>Madrid  producción</small>
     <a href="/admin/map">Abrir mapa</a>
   </aside>
 </section>
@@ -39,20 +39,20 @@
   {{ ui.kpi('Picks activos', stats.get('picks_active') or d.get('active_picks') or '—', 'Publicados reales', '◎', 'blue', '') }}
   {{ ui.kpi('Directos', stats.get('live_matches') or d.get('live_count') or '—', 'Feed live real', '⚽', 'blue', '') }}
   {{ ui.kpi('Ingresos', stats.get('mrr') or stats.get('revenue_month') or d.get('mrr') or '—', 'Stripe/DB si existe', '€', 'green', '') }}
-  {{ ui.kpi('Telegram', stats.get('telegram_sent_today') or stats.get('telegram_subscribers') or '—', 'EnvÁos reales', '✈', 'blue', '') }}
+  {{ ui.kpi('Telegram', stats.get('telegram_sent_today') or stats.get('telegram_subscribers') or '—', 'Envíos reales', '✈', 'blue', '') }}
   {{ ui.kpi('Alertas', stats.get('errors_today') or d.get('errors_today') or '—', 'Observabilidad', '🛡', 'gold', '') }}
 </section>
 
 <section class="v807-admin-command-grid">
   <article class="v807-admin-command-main">
-    <div class="v794-panel-head"><h2>Acciones principales</h2><span class="v794-status info">operaciÁn</span></div>
+    <div class="v794-panel-head"><h2>Acciones principales</h2><span class="v794-status info">operación</span></div>
     <div class="v807-action-tiles">
       <a href="/admin/map"><i>☰</i><b>Mapa completo</b><small>Todos los botones y pantallas recuperados.</small></a>
       <a href="/admin/data-center"><i>▤</i><b>Sincronizar datos</b><small>Calendario, cuotas, escudos y feeds.</small></a>
       <a href="/admin/matches-sync"><i>⚽</i><b>Partidos</b><small>Revisar calendario, resultados y enlaces.</small></a>
-      <a href="/admin/live-depth"><i>â—</i><b>Live API-Football</b><small>Tracker, presi?n y eventos reales.</small></a>
+      <a href="/admin/live-depth"><i>●</i><b>Live API-Football</b><small>Tracker, presión y eventos reales.</small></a>
       <a href="/admin/picks"><i>◎</i><b>Picks</b><small>Publicar y revisar picks reales.</small></a>
-      <a href="/admin/telegram/command-center"><i>✈</i><b>Telegram</b><small>AutomatizaciÁn, cola y diagn?sticos.</small></a>
+      <a href="/admin/telegram/command-center"><i>✈</i><b>Telegram</b><small>Automatización, cola y diagnsticos.</small></a>
       <a href="/sports-hub"><i>◉</i><b>Vista cliente</b><small>Comprobar experiencia del usuario.</small></a>
     </div>
   </article>
@@ -62,9 +62,9 @@
       <div><span>DB</span><strong>{{ 'Con datos' if d.get('users_count') or d.get('match_hub') else 'Pendiente' }}</strong></div>
       <div><span>Live</span><strong>{{ stats.get('live_matches') or d.get('live_count') or '—' }}</strong></div>
       <div><span>Picks</span><strong>{{ stats.get('picks_active') or d.get('active_picks') or '—' }}</strong></div>
-      <div><span>API</span><strong>Seg?n Render</strong></div>
+      <div><span>API</span><strong>Segn Render</strong></div>
     </div>
-    <p class="muted small">El panel no simula valores. Las m?tricas dependen de SQLite, Stripe, Telegram, API-Football y Render.</p>
+    <p class="muted small">El panel no simula valores. Las métricas dependen de SQLite, Stripe, Telegram, API-Football y Render.</p>
   </article>
 </section>
 

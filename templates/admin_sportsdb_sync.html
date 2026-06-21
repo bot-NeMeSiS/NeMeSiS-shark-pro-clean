@@ -9,7 +9,7 @@
     <a class="btn" href="/admin/sportsdb-feed">SportsDB Feed</a>
     <a class="btn" href="/admin/import-center">Import Center</a>
     <a class="btn primary" href="/admin/sportsdb-sync">SportsDB Sync</a>
-    <a class="btn" href="/api/thesportsdb/diagnostics">Diagnosticos</a>
+    <a class="btn" href="/api/thesportsdb/diagnostics">Diagnósticos</a>
   </div>
 </section>
 <section class="band">
@@ -23,18 +23,18 @@
 <section class="band two-col">
   {% if message %}<div class="notice">{{ message }}</div>{% endif %}
   <form class="card" method="post" action="/admin/sportsdb-sync">
-    <h2>Forzar sincronizacion</h2>
+    <h2>Forzar sincronización</h2>
     <p class="small">Usa TheSportsDB con la key configurada y actualiza solo equipos sin escudo o marcados para refresco.</p>
-    <div class="field"><label>Limite por ejecucion</label><input name="limit" value="40"></div>
+    <div class="field"><label>Límite por ejecución</label><input name="limit" value="40"></div>
     <input type="hidden" name="refresh" value="1">
-    <button type="submit">Forzar sincronizacion</button>
+    <button type="submit">Forzar sincronización</button>
   </form>
   <aside class="card">
     <h2>Estado</h2>
     <p class="small">Live API: {% if data.sportsdb.live_enabled %}activo{% else %}inactivo{% endif %}</p>
-    <p class="small">Ultimo sync: {{ data.sportsdb.last_sync.time or '-' }}</p>
+    <p class="small">Último sync: {{ data.sportsdb.last_sync.time or '-' }}</p>
     <p class="small">Actualizados: {{ data.sportsdb.last_sync.updated or 0 }} - Fallidos: {{ data.sportsdb.last_sync.failed or 0 }}</p>
-    <p class="small">Ultimo error: {{ data.sportsdb.last_error or '-' }}</p>
+    <p class="small">Último error: {{ data.sportsdb.last_error or '-' }}</p>
   </aside>
 </section>
 <section class="band">
