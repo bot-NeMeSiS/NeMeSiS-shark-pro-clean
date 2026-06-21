@@ -1,10 +1,11 @@
 {% extends "base.html" %}
 {% block content %}
-<section class="hero compact-hero">
+{% set v845 = shark.get('v845') or {} %}
+<section class="hero compact-hero" data-v845-template="admin_shark_center">
   <div>
-    <p class="eyebrow">Admin · SHARK Center</p>
+    <p class="eyebrow">Admin · SHARK AI</p>
     <h1>Centro de inteligencia SHARK</h1>
-    <p class="muted">Supervisa memoria, datos, recomendaciones y preparación del copiloto deportivo.</p>
+    <p class="muted">Supervisa el asistente, la memoria, el fallback interno, las reglas de no inventar y la conexión con Telegram V844.</p>
   </div>
   <div class="score-card">
     <span class="score-number">{{ shark.score }}</span>
@@ -17,7 +18,28 @@
   <article class="card"><p class="eyebrow">Memoria</p><h2>{{ shark.memory_total }}</h2><p class="muted">Eventos guardados</p></article>
   <article class="card"><p class="eyebrow">Usuarios</p><h2>{{ shark.users }}</h2><p class="muted">Base cliente</p></article>
   <article class="card"><p class="eyebrow">Picks</p><h2>{{ shark.picks }}</h2><p class="muted">Registros</p></article>
-  <article class="card"><p class="eyebrow">Recomendaciones</p><h2>{{ shark.recommendations }}</h2><p class="muted">Candidatas</p></article>
+  <article class="card"><p class="eyebrow">IA</p><h2>{{ 'OpenAI' if v845.get('openai_configured') else 'Interno' }}</h2><p class="muted">Sin exponer claves</p></article>
+</section>
+
+<section class="grid cards-2">
+  <article class="card v845-admin-card">
+    <h2>Reglas V845</h2>
+    <div class="stack">
+      {% for rule in v845.get('rules') or [] %}
+        <div class="notice">{{ rule }}</div>
+      {% endfor %}
+    </div>
+  </article>
+  <article class="card v845-admin-card">
+    <h2>Respuesta dry-run segura</h2>
+    <p class="muted">{{ v845.get('test_answer') }}</p>
+    <div class="quick-grid">
+      <a class="chip" href="/api/admin/shark-center">API estado SHARK</a>
+      <a class="chip" href="/api/shark/ask?q=estado">API pregunta</a>
+      <a class="chip" href="/admin/telegram/command-center">Telegram V844</a>
+      <a class="chip" href="/app">Vista cliente</a>
+    </div>
+  </article>
 </section>
 
 <section class="card">
@@ -26,15 +48,6 @@
     {% for action in shark.actions %}
       <div class="notice">{{ action }}</div>
     {% endfor %}
-  </div>
-</section>
-
-<section class="card">
-  <h2>APIs de control</h2>
-  <div class="quick-grid">
-    <a class="chip" href="/api/admin/shark-center">/api/admin/shark-center</a>
-    <a class="chip" href="/api/system/v570-check">/api/system/v570-check</a>
-    <a class="chip" href="/api/shark/core-summarypublic=1">/api/shark/core-summary</a>
   </div>
 </section>
 {% endblock %}

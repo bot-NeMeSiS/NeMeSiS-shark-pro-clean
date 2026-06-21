@@ -89,6 +89,14 @@ from engines.membership_engine import can_access_feature, get_membership_limits,
 from engines.observability_engine import latest_observability_errors, observability_error_detail, observability_summary
 from engines.scheduler_engine import is_due, is_stale_running, next_run_iso, normalize_result, scheduler_config, task_definition
 from engines.shark_engine import build_shark_context, explain_pick_risk
+from engines.shark_ai_product_assistant_engine import (
+    answer_shark_question as v845_answer_shark_question,
+    build_fallback_answer as v845_build_fallback_answer,
+    build_shark_context as v845_build_shark_context,
+    explain_match as v845_explain_match,
+    explain_pick as v845_explain_pick,
+    explain_risk as v845_explain_risk,
+)
 from engines.shark_intelligence_core import build_daily_briefing, build_quick_questions, memory_event_payload
 from engines.telegram_delivery_engine import (
     DEFAULT_SETTINGS as TELEGRAM_DEFAULT_SETTINGS,
@@ -245,7 +253,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V844_TELEGRAM_TOP_PICK_QUALITY_CARDS_FILTER_FINAL'
+APP_VERSION = 'V845_SHARK_AI_INTELLIGENCE_PRODUCT_ASSISTANT_FINAL'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
@@ -6976,8 +6984,105 @@ def _shark_actions(*items):
     return actions
 
 
+def v845_openai_configured():
+    return env_present("OPENAI_API_KEY")
+
+
+def _v845_pick_by_id(pick_id):
+    if not pick_id:
+        return None
+    pick = one("SELECT * FROM picks WHERE id=?", (str(pick_id),))
+    return normalize_pick_row(pick) if pick else None
+
+
+def _v845_pick_for_match(match_id):
+    if not match_id:
+        return None
+    pick = one(
+        """SELECT * FROM picks
+           WHERE match_id=? AND lower(status) IN ('published','won','lost','void')
+           ORDER BY COALESCE(published_at, updated_at, created_at) DESC LIMIT 1""",
+        (str(match_id),),
+    )
+    return normalize_pick_row(pick) if pick else None
+
+
+def v845_build_product_assistant_context(question="", payload=None, page=None):
+    payload = dict(payload or {})
+    args = request.args if has_request_context() else {}
+    match_id = payload.get("match_id") or payload.get("match") or args.get("match") or args.get("match_id") or ""
+    pick_id = payload.get("pick_id") or payload.get("pick") or args.get("pick") or args.get("pick_id") or ""
+    match = one("SELECT * FROM matches WHERE id=?", (str(match_id),)) if match_id else None
+    if match:
+        match = annotate_match(apply_match_localization(dict(match)))
+        try:
+            match.update(client_match_display_context(match))
+        except Exception:
+            pass
+    pick = _v845_pick_by_id(pick_id) if pick_id else None
+    if not pick and match:
+        pick = _v845_pick_for_match(match.get("id"))
+    try:
+        telegram_quality = explain_telegram_filter_decision(pick or match or {})
+    except Exception:
+        telegram_quality = {}
+    user = current_session_user() or {"membership": "FREE", "role": "FREE"}
+    try:
+        recent_picks = _shark_visible_picks(user, limit=6, min_score=68)
+    except Exception:
+        recent_picks = []
+    try:
+        recent_matches = filter_telegram_candidates(get_matches(today_iso(), "today"), limit=6)
+    except Exception:
+        recent_matches = []
+    try:
+        briefing = shark_briefing()
+    except Exception:
+        briefing = {"summary": {}, "risk": {}, "legal_policy": ""}
+    return v845_build_shark_context(
+        user,
+        match=match,
+        pick=pick,
+        page=page or (request.path if has_request_context() else "shark"),
+        recent_picks=recent_picks,
+        recent_matches=recent_matches,
+        telegram_quality=telegram_quality,
+        briefing=briefing,
+        openai_configured=v845_openai_configured(),
+        question=question,
+    )
+
+
+def v845_shark_admin_summary():
+    base = v570_shark_admin_summary()
+    sample_context = v845_build_product_assistant_context("estado", page="admin")
+    base["v845"] = {
+        "assistant": "SHARK Product Assistant",
+        "openai_configured": v845_openai_configured(),
+        "fallback_mode": not v845_openai_configured(),
+        "no_hallucination_policy": True,
+        "telegram_v844_connected": True,
+        "safe_answers": True,
+        "test_answer": v845_build_fallback_answer("estado", sample_context).get("answer", "")[:420],
+        "rules": [
+            "No inventa picks, cuotas, marcadores, minutos, estadísticas ni ROI.",
+            "Explica riesgo y recomienda esperar si faltan datos.",
+            "Usa Telegram V844 solo como criterio de calidad, no envía mensajes reales desde SHARK.",
+            "No expone claves ni errores técnicos al cliente.",
+        ],
+    }
+    return base
+
+
 def shark_answer(question):
     q = str(question or "").strip() or "resumen"
+    payload = {}
+    if has_request_context():
+        payload = request.get_json(silent=True) or dict(request.form or request.args or {})
+    context = v845_build_product_assistant_context(q, payload=payload, page="api")
+    answer = v845_answer_shark_question(q, context)
+    save_shark_context("v845_ask", answer.get("focus"), answer.get("context") or {})
+    return answer
     q_norm = normalized_label(q)
     user = current_session_user() or {"membership": "FREE", "role": "FREE"}
     briefing = shark_briefing()
@@ -12937,6 +13042,12 @@ def shark_page():
     user = current_session_user() or {"membership": "FREE", "role": "FREE"}
     data["membership"] = v566_membership_ui(user)
     data["briefing"] = shark_briefing()
+    data["shark_assistant"] = {
+        "context": v845_build_product_assistant_context(request.args.get("q") or "resumen", page="/shark"),
+        "answer": shark_answer(request.args.get("q") or "resumen"),
+        "openai_configured": v845_openai_configured(),
+        "fallback_mode": not v845_openai_configured(),
+    }
     return render_template("shark.html", data=data)
 
 
@@ -13323,6 +13434,9 @@ def api_runtime_version():
         "has_v844_shell": "data-v844-shell" in base_template and "NEMESIS V844 TELEGRAM TOP PICK QUALITY CARDS FILTER ACTIVE" in base_template,
         "has_v844_css": "V844 TELEGRAM TOP PICK QUALITY CARDS FILTER START" in css_text,
         "has_v844_telegram_quality_filter": "telegram_quality_filter_engine" in app_py_text and "V844 TELEGRAM TOP PICK QUALITY CARDS FILTER START" in css_text,
+        "has_v845_shell": "data-v845-shell" in base_template and "NEMESIS V845 SHARK AI INTELLIGENCE PRODUCT ASSISTANT ACTIVE" in base_template,
+        "has_v845_css": "V845 SHARK AI INTELLIGENCE PRODUCT ASSISTANT START" in css_text,
+        "has_v845_shark_ai_product_assistant": "shark_ai_product_assistant_engine" in app_py_text and "V845 SHARK AI INTELLIGENCE PRODUCT ASSISTANT START" in css_text,
         "has_v837_reference_photo_qa": "data-v837-shell" in base_template and "V837 REFERENCE PHOTO PERFECTION REAL QA START" in css_text,
         "has_v836_autonomous_qa": "data-v836-shell" in base_template and "V836 AUTONOMOUS REFERENCE VISUAL REVIEW FINAL QA START" in css_text,
         "has_v833_visual_completion": "data-v833-shell" in base_template and "V833 REFERENCE ECOSYSTEM VISUAL COMPLETION START" in css_text,
@@ -13338,7 +13452,7 @@ def api_runtime_version():
         "has_v820_crests": "data-v820-shell" in base_template and "V820 REAL CRESTS REFERENCE VISUAL PIXEL POLISH START" in css_text,
         "has_v819_dedup": "data-v819-shell" in base_template and "V819 REFERENCE UI DEDUP LAYER PURGE START" in css_text,
         "has_v818_automation": "/api/automation/master-tick" in app_py_text and "daily_automation_engine" in app_py_text,
-        "static_css_cache_busting": "V844_TELEGRAM_TOP_PICK_QUALITY_CARDS_FILTER_FINAL" in base_template,
+        "static_css_cache_busting": "V845_SHARK_AI_INTELLIGENCE_PRODUCT_ASSISTANT_FINAL" in base_template,
         "crest_engine_loaded": runtime_stability.get("crest_engine_loaded"),
         "logo_cache_tables_ok": runtime_stability.get("logo_cache_tables_ok"),
         "team_logo_cache_count": runtime_stability.get("team_logo_cache_count"),
@@ -13353,12 +13467,14 @@ def api_runtime_version():
         "api_football_configured": runtime_stability.get("api_football_configured"),
         "the_odds_configured": runtime_stability.get("the_odds_configured"),
         "telegram_configured": runtime_stability.get("telegram_configured"),
+        "openai_configured": env_present("OPENAI_API_KEY"),
         "runtime_stability": runtime_stability,
         "flags": {
             "api_football_configured": env_present("API_FOOTBALL_KEY") or env_present("API_FOOTBALL_API_KEY"),
             "telegram_configured": env_present("TELEGRAM_BOT_TOKEN") and env_present("TELEGRAM_CHAT_ID"),
             "the_odds_configured": env_present("THE_ODDS_API_KEY") or env_present("ODDS_API_KEY"),
             "automation_secret_configured": automation_secret_configured(),
+            "openai_configured": env_present("OPENAI_API_KEY"),
         },
         "render": {
             "db_path": DB_PATH,
@@ -16137,10 +16253,12 @@ def v570_inteligencia_alias():
 
 
 @app.route("/admin/shark-center")
+@app.route("/admin/shark")
+@app.route("/admin/shark-ai")
 def v570_admin_shark_center():
     if not is_admin_session():
-        return redirect("/admin-login?next=/admin/shark-center")
-    return render_template("admin_shark_center.html", data=dashboard_data(), shark=v570_shark_admin_summary())
+        return redirect("/admin-login?next=/admin/shark-ai")
+    return render_template("admin_shark_center.html", data=dashboard_data(), shark=v845_shark_admin_summary())
 
 
 @app.route("/api/shark/core-summary")
@@ -16156,7 +16274,7 @@ def api_v570_shark_core_summary():
 def api_v570_admin_shark_center():
     if not is_admin_session():
         return admin_json_forbidden()
-    return jsonify({"ok": True, "version": APP_VERSION, "shark": v570_shark_admin_summary()})
+    return jsonify({"ok": True, "version": APP_VERSION, "shark": v845_shark_admin_summary()})
 
 
 @app.route("/api/system/v570-check")

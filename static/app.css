@@ -6743,3 +6743,166 @@ body[data-v843-shell="true"].ns-admin :is(.v794-admin-panel,.v807-admin-card,.v8
   color: rgba(230, 245, 255, .72);
 }
 /* V844 TELEGRAM TOP PICK QUALITY CARDS FILTER END */
+
+/* V845 SHARK AI INTELLIGENCE PRODUCT ASSISTANT START */
+body[data-v845-shell="true"] .v845-shark-screen{
+  display:grid;
+  gap:18px;
+  width:100%;
+  max-width:1180px;
+  margin-inline:auto;
+}
+.v845-shark-hero{
+  display:grid;
+  grid-template-columns:minmax(0,1.35fr) minmax(240px,.65fr);
+  gap:18px;
+  padding:clamp(20px,3vw,34px);
+  border:1px solid rgba(83,224,255,.20);
+  border-radius:24px;
+  background:
+    radial-gradient(circle at 18% 0%,rgba(62,220,255,.22),transparent 34%),
+    linear-gradient(145deg,rgba(5,16,31,.96),rgba(8,30,50,.84));
+  box-shadow:0 24px 70px rgba(0,0,0,.34), inset 0 1px 0 rgba(255,255,255,.06);
+}
+.v845-kicker{
+  display:inline-flex;
+  color:#5ee2ff;
+  font-size:12px;
+  font-weight:900;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+.v845-shark-hero h1{
+  margin:10px 0;
+  font-size:clamp(30px,5vw,62px);
+  line-height:.96;
+  letter-spacing:0;
+}
+.v845-shark-hero p,
+.v845-data-state p,
+.v845-mini-card p{
+  color:rgba(229,247,255,.76);
+}
+.v845-assistant-status,
+.v845-answer-card,
+.v845-data-state,
+.v845-quick-panel,
+.v845-mini-card,
+.v845-admin-card{
+  border:1px solid rgba(94,226,255,.18);
+  border-radius:20px;
+  background:linear-gradient(145deg,rgba(7,20,37,.94),rgba(3,10,22,.90));
+  box-shadow:0 18px 48px rgba(0,0,0,.28);
+}
+.v845-assistant-status{
+  padding:20px;
+  align-self:stretch;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  gap:8px;
+}
+.v845-assistant-status strong{
+  font-size:30px;
+}
+.v845-shark-grid{
+  display:grid;
+  grid-template-columns:minmax(0,1.35fr) minmax(260px,.65fr);
+  gap:18px;
+}
+.v845-answer-card,
+.v845-data-state,
+.v845-quick-panel,
+.v845-mini-card{
+  padding:20px;
+}
+.v845-answer-text{
+  white-space:pre-wrap;
+  font-family:inherit;
+  margin:0;
+  color:#f4fbff;
+  line-height:1.55;
+  background:rgba(0,0,0,.18);
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:16px;
+  padding:16px;
+  overflow-x:auto;
+}
+.v845-action-row{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  margin-top:16px;
+}
+.v845-action-row a,
+.v845-question-grid a,
+.v845-mini-card a{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:44px;
+  padding:10px 14px;
+  border-radius:14px;
+  border:1px solid rgba(94,226,255,.20);
+  background:rgba(255,255,255,.06);
+  color:#eaffff;
+  text-decoration:none;
+  font-weight:800;
+}
+.v845-action-row a.primary{
+  background:linear-gradient(135deg,#15c7ff,#1a78ff);
+  color:#041321;
+}
+.v845-action-row.compact a{
+  min-height:38px;
+  font-size:13px;
+}
+.v845-state-grid{
+  display:grid;
+  gap:10px;
+}
+.v845-state-grid span{
+  display:grid;
+  gap:3px;
+  padding:12px;
+  border-radius:14px;
+  background:rgba(255,255,255,.055);
+  color:rgba(232,249,255,.78);
+}
+.v845-state-grid b{
+  color:#fff;
+}
+.v845-question-grid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:10px;
+}
+.v845-mini-card strong{
+  display:block;
+  font-size:34px;
+  margin:8px 0;
+}
+body[data-v845-shell="true"][data-ns-route="/shark"] .v825-public-floating-shark,
+body[data-v845-shell="true"][data-ns-route="/shark-ai"] .v825-public-floating-shark,
+body[data-v845-shell="true"][data-ns-route="/shark-core"] .v825-public-floating-shark,
+body[data-v845-shell="true"][data-ns-route="/shark"] .shark-widget,
+body[data-v845-shell="true"][data-ns-route="/shark-ai"] .shark-widget,
+body[data-v845-shell="true"][data-ns-route="/shark-core"] .shark-widget{
+  display:none!important;
+}
+@media(max-width:760px){
+  .v845-shark-hero,
+  .v845-shark-grid,
+  .v845-question-grid{
+    grid-template-columns:1fr;
+  }
+  .v845-shark-hero{
+    border-radius:20px;
+    padding:18px;
+  }
+  .v845-answer-text{
+    font-size:14px;
+    max-height:none;
+  }
+}
+/* V845 SHARK AI INTELLIGENCE PRODUCT ASSISTANT END */
