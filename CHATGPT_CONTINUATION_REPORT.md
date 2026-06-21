@@ -1,20 +1,17 @@
 ﻿@"
-# CHATGPT CONTINUATION REPORT - V843
+# CHATGPT CONTINUATION REPORT - V844
 
 ## Estado base
-La carpeta oficial estaba en V842, centrada en español, textos, logos y marca.
+La carpeta oficial estaba en V843, con producto comercial revisado, rutas corregidas y ZIP limpio.
 
-## Qué hizo V843
-V843 revisó NeMeSiS SHARK PRO como producto comercial: cliente, admin, rutas, botones, estados de datos reales, visual móvil/PC y preparación Render/GitHub.
+## Qué cambia V844
+V844 se centra en Telegram: calidad de candidatos, no-filler, bloqueo de ligas raras/deportes no permitidos y diagnóstico admin.
 
-## Correcciones principales
-- URLs heredadas mal formadas corregidas.
-- Estados comerciales exactos añadidos para ausencia de datos reales.
-- Checks V843 creados para rutas, estados reales, runtime y limpieza de release.
-- CSS V843 ligero para mejorar calidad percibida sin romper capas anteriores.
+## Filtro creado
+engines/telegram_quality_filter_engine.py permite fútbol top, bloquea NBA/otros deportes/youth/reserves/regional/amateur/friendly débil y penaliza segundas extranjeras o competiciones desconocidas.
 
-## Estado Telegram/Cron
-No se cambiaron módulos Telegram ni Cron. Se conserva el comportamiento certificado de versiones anteriores.
+## Telegram
+No se envían mensajes reales en local. El canal público queda más conservador: si no hay contenido top, no se manda relleno.
 
-## Estado de lanzamiento
-La app queda más coherente y vendible. Pendiente real: probar en Render con variables reales y datos deportivos reales de producción antes de venta abierta.
+## Pendiente real
+Probar en Render con datos reales y TELEGRAM_CHAT_ID real para confirmar qué candidatos aparecen bloqueados y cuáles salen al canal.

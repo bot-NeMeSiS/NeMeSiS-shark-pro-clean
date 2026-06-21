@@ -6,10 +6,10 @@
   <meta name="theme-color" content="#06111f">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="nemesis-version" content="V843_PRODUCT_TEAM_COMMERCIAL_READY_FINAL_REVIEW">
+  <meta name="nemesis-version" content="V844_TELEGRAM_TOP_PICK_QUALITY_CARDS_FILTER_FINAL">
   <title>{% if title is defined and title %}{{ title }}{% else %}NeMeSiS SHARK PRO{% endif %}</title>
   <link rel="icon" href="{{ url_for('static', filename='img/shark-logo.svg') }}" type="image/svg+xml">
-  <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}?v=V843_PRODUCT_TEAM_COMMERCIAL_READY_FINAL_REVIEW">
+  <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}?v=V844_TELEGRAM_TOP_PICK_QUALITY_CARDS_FILTER_FINAL">
   <meta name="csrf-token" content="{{ csrf_token() }}">
 </head>
 {% set _raw_tier = (current_user.membership if current_user else 'FREE')|upper %}
@@ -26,7 +26,7 @@
   {% set _visual_tier = 'free' %}
   {% set _tier_label = 'FREE' %}
 {% endif %}
-<body class="ns-app ns-tier-{{ _visual_tier }}{% if current_user %} ns-authenticated{% else %} ns-public{% endif %}{% if current_user and current_user.role == 'ADMIN' %} ns-admin{% endif %}" data-ns-route="{{ request.path }}" data-ns-plan="{{ _tier_label }}" data-v775-shell="true" data-v776-shell="true" data-v777-shell="true" data-v778-shell="true" data-v790-shell="true" data-v792-shell="true" data-v793-shell="true" data-v795-shell="true" data-v796-shell="true" data-v797-shell="true" data-v798-shell="true" data-v799-shell="true" data-v800-shell="true" data-v801-shell="true" data-v802-shell="true" data-v806-shell="true" data-v807-shell="true" data-v809-shell="true" data-v810-shell="true" data-v811-shell="true" data-v812-shell="true" data-v813-shell="true" data-v814-shell="true" data-v815-shell="true" data-v816-shell="true" data-v817-shell="true" data-v818-shell="true" data-v819-shell="true" data-v820-shell="true" data-v821-shell="true" data-v822-shell="true" data-v823-shell="true" data-v824-shell="true" data-v825-shell="true" data-v826-shell="true" data-v827-shell="true" data-v828-shell="true" data-v829-shell="true" data-v830-shell="true" data-v832-shell="true" data-v833-shell="true" data-v836-shell="true" data-v837-shell="true" data-v838-shell="true" data-v839-shell="true" data-v840-shell="true" data-v841-shell="true" data-v842-shell="true" data-v843-shell="true">
+<body class="ns-app ns-tier-{{ _visual_tier }}{% if current_user %} ns-authenticated{% else %} ns-public{% endif %}{% if current_user and current_user.role == 'ADMIN' %} ns-admin{% endif %}" data-ns-route="{{ request.path }}" data-ns-plan="{{ _tier_label }}" data-v775-shell="true" data-v776-shell="true" data-v777-shell="true" data-v778-shell="true" data-v790-shell="true" data-v792-shell="true" data-v793-shell="true" data-v795-shell="true" data-v796-shell="true" data-v797-shell="true" data-v798-shell="true" data-v799-shell="true" data-v800-shell="true" data-v801-shell="true" data-v802-shell="true" data-v806-shell="true" data-v807-shell="true" data-v809-shell="true" data-v810-shell="true" data-v811-shell="true" data-v812-shell="true" data-v813-shell="true" data-v814-shell="true" data-v815-shell="true" data-v816-shell="true" data-v817-shell="true" data-v818-shell="true" data-v819-shell="true" data-v820-shell="true" data-v821-shell="true" data-v822-shell="true" data-v823-shell="true" data-v824-shell="true" data-v825-shell="true" data-v826-shell="true" data-v827-shell="true" data-v828-shell="true" data-v829-shell="true" data-v830-shell="true" data-v832-shell="true" data-v833-shell="true" data-v836-shell="true" data-v837-shell="true" data-v838-shell="true" data-v839-shell="true" data-v840-shell="true" data-v841-shell="true" data-v842-shell="true" data-v843-shell="true" data-v844-shell="true">
   <!-- NEMESIS V817 REFERENCE PIXEL POLISH ACTIVE -->
   <!-- NEMESIS V818 DAILY AUTOMATION OS ACTIVE -->
   <!-- NEMESIS V819 REFERENCE UI DEDUP LAYER PURGE ACTIVE -->
@@ -51,6 +51,7 @@
   <!-- NEMESIS V841 REFERENCE PRODUCT TEAM FINAL POLISH ACTIVE -->
   <!-- NEMESIS V842 SPANISH TEXT LOGOS BRAND IDENTITY FINAL QA ACTIVE -->
   <!-- NEMESIS V843 PRODUCT TEAM COMMERCIAL READY FINAL REVIEW ACTIVE -->
+  <!-- NEMESIS V844 TELEGRAM TOP PICK QUALITY CARDS FILTER ACTIVE -->
   <div class="ns-ambient" aria-hidden="true"><i></i><i></i><i></i></div>
   {% if not current_user or current_user.role != 'ADMIN' %}
   <div class="v825-shark-background" aria-hidden="true">

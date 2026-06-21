@@ -112,6 +112,13 @@ from engines.telegram_sport_filter_engine import (
     telegram_sport_filter_reason,
     telegram_sport_mode_summary,
 )
+from engines.telegram_quality_filter_engine import (
+    explain_telegram_filter_decision,
+    filter_telegram_candidates,
+    is_top_football_match,
+    rejected_telegram_candidates,
+    telegram_match_quality_score,
+)
 from engines.telegram_reliability_engine import (
     explain_telegram_state,
     madrid_now as telegram_reliability_madrid_now,
@@ -238,7 +245,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V843_PRODUCT_TEAM_COMMERCIAL_READY_FINAL_REVIEW'
+APP_VERSION = 'V844_TELEGRAM_TOP_PICK_QUALITY_CARDS_FILTER_FINAL'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
@@ -7805,6 +7812,10 @@ def telegram_pick_sendability(pick):
     sport_reason = telegram_sport_filter_reason(item)
     if sport_reason:
         reasons.append(sport_reason)
+    quality_decision = explain_telegram_filter_decision(item)
+    if not quality_decision.get("allowed"):
+        reasons.append(quality_decision.get("reason") or "skipped_low_quality")
+    item["_telegram_quality"] = quality_decision
     diag = item.get("_telegram_candidate") or {}
     odds = as_float(item.get("odds"), 0)
     selection = str(item.get("selection") or item.get("pick") or item.get("recommendation") or "").strip()
@@ -7860,6 +7871,13 @@ TELEGRAM_DISCARD_REASON_CODES = {
     "pick_demasiado_largo": "NOT_TELEGRAM_ELIGIBLE",
     "calidad_insuficiente": "NOT_TELEGRAM_ELIGIBLE",
     "deporte_no_futbol": "NOT_TELEGRAM_ELIGIBLE",
+    "skipped_low_quality": "SKIPPED_LOW_QUALITY",
+    "skipped_no_top_matches": "SKIPPED_NO_TOP_MATCHES",
+    "skipped_no_real_pick": "SKIPPED_NO_REAL_PICK",
+    "skipped_duplicate": "DUPLICATE_ALREADY_SENT",
+    "skipped_blocked_competition": "SKIPPED_BLOCKED_COMPETITION",
+    "skipped_blocked_sport": "SKIPPED_BLOCKED_SPORT",
+    "skipped_missing_reliable_time": "MISSING_MATCH_TIME",
     "horario_silencioso": "OUTSIDE_PRO_WINDOW",
     "fuera_ventana_resumen": "OUTSIDE_PRO_WINDOW",
     "fuera_ventana_picks": "OUTSIDE_PRO_WINDOW",
@@ -8479,7 +8497,10 @@ def build_daily_matches_message():
     if not matches:
         matches = get_upcoming_matches(today_iso(), days=2, limit=10)
     matches = [telegram_enrich_match_for_message(match) for match in matches]
-    matches = filter_telegram_football_items(matches)
+    matches = filter_telegram_candidates(filter_telegram_football_items(matches), limit=5)
+    if not matches:
+        automation_safe_set("telegram_v844_last_no_filler", {"status": "skipped_no_top_matches", "created_at": now_iso(), "source": "daily_matches"})
+        return ""
     return format_daily_matches_message(matches, today_iso(), APP_NAME)
 
 
@@ -8490,6 +8511,9 @@ def build_daily_picks_message(force_empty=False):
         pick = telegram_enrich_pick_for_message(raw)
         if telegram_pick_sendability(pick).get("sendable"):
             picks.append(pick)
+    if not picks and not force_empty:
+        automation_safe_set("telegram_v844_last_no_filler", {"status": "skipped_no_real_pick", "created_at": now_iso(), "source": "daily_picks"})
+        return ""
     return format_daily_picks_message(picks, force_empty=force_empty, premium_name=APP_NAME)
 
 
@@ -8615,6 +8639,8 @@ def enqueue_daily_matches(force=False, forced_chat_id=""):
     if not subscribers:
         return {"ok": False, "status": "NO_DESTINATION", "message": "No hay chat_id ni suscriptores activos.", "processed": 0, "sent": 0, "failed": 0, "skipped": 0, "errors": ["sin_destinatarios"], "discard_reasons": ["NO_DESTINATION"]}
     body = build_daily_matches_message()
+    if not body:
+        return {"ok": True, "status": "SKIPPED_NO_TOP_MATCHES", "message": "No se envió nada: no había partidos top suficientes para Telegram.", "processed": 0, "inserted": 0, "updated": 0, "sent": 0, "failed": 0, "skipped": 1, "errors": [], "discard_reasons": ["SKIPPED_NO_TOP_MATCHES"]}
     inserted = skipped = 0
     for sub in subscribers:
         result = enqueue_telegram_message(
@@ -8742,7 +8768,7 @@ def enqueue_live_alerts(force=False):
     inserted = skipped = 0
     for match in live_matches[:8]:
         match = telegram_enrich_match_for_message(match)
-        if not is_telegram_football_item(match):
+        if not is_telegram_football_item(match) or not is_top_football_match(match):
             skipped += 1
             continue
         body = format_live_alert_message(match, internal_url=telegram_absolute_url("/live") or "/live")
@@ -9089,6 +9115,12 @@ def telegram_diagnostics():
     auto_pick_health = telegram_auto_pick_health(limit=40)
     auto_pick_candidates = find_auto_telegram_pick_candidates(limit=40)
     auto_pick_candidates.pop("_eligible_items", None)
+    try:
+        quality_source_matches = [telegram_enrich_match_for_message(item) for item in (match_hub(today_iso()).get("today") or get_matches(today_iso(), "today") or [])[:40]]
+    except Exception:
+        quality_source_matches = []
+    quality_allowed = filter_telegram_candidates(quality_source_matches, limit=8)
+    quality_rejected = rejected_telegram_candidates(quality_source_matches, limit=20)
     last_cron_telegram = automation_get("last_cron_telegram_call", {}) or automation_get("cron_telegram_tick_last_call", {}) or {}
     last_dispatch = automation_get("telegram_last_dispatch", {}) or {}
     manual_ok_auto_not_running = bool(last_manual_sent) and not bool(last_cron_telegram)
@@ -9151,6 +9183,21 @@ def telegram_diagnostics():
         "auto_pick_pending": auto_pick_pending,
         "auto_pick_health": auto_pick_health,
         "auto_pick_candidates": auto_pick_candidates,
+        "v844_quality": {
+            "policy": "top_football_only_no_filler",
+            "allowed_preview": [
+                {
+                    "id": item.get("id") or item.get("match_id"),
+                    "competition": item.get("competition_name") or item.get("league_name") or item.get("competition"),
+                    "match": f"{item.get('home_team') or 'Local'} vs {item.get('away_team') or 'Visitante'}",
+                    "score": (item.get("_telegram_quality") or {}).get("score") or telegram_match_quality_score(item),
+                    "reason": (item.get("_telegram_quality") or {}).get("reason") or "allowed_top_football",
+                }
+                for item in quality_allowed
+            ],
+            "blocked_preview": quality_rejected,
+            "last_no_filler": automation_get("telegram_v844_last_no_filler", {}) or {},
+        },
         "duplicates_avoided": duplicate_logs,
         "recent_sent": rows("SELECT * FROM telegram_queue WHERE lower(status)=? ORDER BY sent_at DESC LIMIT 8", (QUEUE_SENT,)),
         "recent_errors": rows("SELECT * FROM telegram_logs WHERE lower(status) IN ('failed','error') ORDER BY created_at DESC LIMIT 8"),
@@ -9258,9 +9305,11 @@ def v772_telegram_activity_combis(limit=8):
 
 
 def v771_build_activity_plan():
+    matches = filter_telegram_candidates(v771_telegram_activity_matches(), limit=18)
+    picks = [pick for pick in v771_telegram_activity_picks() if telegram_pick_sendability(pick).get("sendable")]
     return build_telegram_activity_plan(
-        matches=v771_telegram_activity_matches(),
-        picks=v771_telegram_activity_picks(),
+        matches=matches,
+        picks=picks,
         highlights=v771_telegram_activity_highlights(),
         combis=v772_telegram_activity_combis(),
     )
@@ -13271,6 +13320,9 @@ def api_runtime_version():
         "has_v843_shell": "data-v843-shell" in base_template and "NEMESIS V843 PRODUCT TEAM COMMERCIAL READY FINAL REVIEW ACTIVE" in base_template,
         "has_v843_css": "V843 PRODUCT TEAM COMMERCIAL READY FINAL REVIEW START" in css_text,
         "has_v843_commercial_product_review": "data-v843-shell" in base_template and "V843 PRODUCT TEAM COMMERCIAL READY FINAL REVIEW START" in css_text,
+        "has_v844_shell": "data-v844-shell" in base_template and "NEMESIS V844 TELEGRAM TOP PICK QUALITY CARDS FILTER ACTIVE" in base_template,
+        "has_v844_css": "V844 TELEGRAM TOP PICK QUALITY CARDS FILTER START" in css_text,
+        "has_v844_telegram_quality_filter": "telegram_quality_filter_engine" in app_py_text and "V844 TELEGRAM TOP PICK QUALITY CARDS FILTER START" in css_text,
         "has_v837_reference_photo_qa": "data-v837-shell" in base_template and "V837 REFERENCE PHOTO PERFECTION REAL QA START" in css_text,
         "has_v836_autonomous_qa": "data-v836-shell" in base_template and "V836 AUTONOMOUS REFERENCE VISUAL REVIEW FINAL QA START" in css_text,
         "has_v833_visual_completion": "data-v833-shell" in base_template and "V833 REFERENCE ECOSYSTEM VISUAL COMPLETION START" in css_text,
@@ -13286,7 +13338,7 @@ def api_runtime_version():
         "has_v820_crests": "data-v820-shell" in base_template and "V820 REAL CRESTS REFERENCE VISUAL PIXEL POLISH START" in css_text,
         "has_v819_dedup": "data-v819-shell" in base_template and "V819 REFERENCE UI DEDUP LAYER PURGE START" in css_text,
         "has_v818_automation": "/api/automation/master-tick" in app_py_text and "daily_automation_engine" in app_py_text,
-        "static_css_cache_busting": "V843_PRODUCT_TEAM_COMMERCIAL_READY_FINAL_REVIEW" in base_template,
+        "static_css_cache_busting": "V844_TELEGRAM_TOP_PICK_QUALITY_CARDS_FILTER_FINAL" in base_template,
         "crest_engine_loaded": runtime_stability.get("crest_engine_loaded"),
         "logo_cache_tables_ok": runtime_stability.get("logo_cache_tables_ok"),
         "team_logo_cache_count": runtime_stability.get("team_logo_cache_count"),

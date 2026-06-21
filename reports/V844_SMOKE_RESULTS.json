@@ -1,0 +1,70 @@
+{
+  "ok": true,
+  "results": [
+    {
+      "route": "/",
+      "status": 200,
+      "ok": true
+    },
+    {
+      "route": "/app",
+      "status": 302,
+      "ok": true
+    },
+    {
+      "route": "/partidos",
+      "status": 200,
+      "ok": true
+    },
+    {
+      "route": "/live",
+      "status": 200,
+      "ok": true
+    },
+    {
+      "route": "/picks",
+      "status": 200,
+      "ok": true
+    },
+    {
+      "route": "/shark",
+      "status": 200,
+      "ok": true
+    },
+    {
+      "route": "/telegram",
+      "status": 302,
+      "ok": true
+    },
+    {
+      "route": "/admin/telegram/command-center",
+      "status": 302,
+      "ok": true
+    },
+    {
+      "route": "/admin/daily-automation",
+      "status": 302,
+      "ok": true
+    },
+    {
+      "route": "/api/runtime-version",
+      "status": 200,
+      "ok": true
+    },
+    {
+      "route": "/api/automation/master-tick",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "/api/automation/master-tick?secret=codex-v844-secret&dry_run=1",
+      "status": 200,
+      "ok": true
+    },
+    {
+      "route": "/api/automation/health-check?secret=codex-v844-secret",
+      "status": 200,
+      "ok": true
+    }
+  ]
+}
