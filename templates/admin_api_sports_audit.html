@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="v847-provider-page" data-v847-template="admin_api_sports_audit">
+  <div class="v847-provider-hero">
+    <p class="eyebrow">Proveedor de datos real</p>
+    <h1>API-SPORTS / API-Football</h1>
+    <p>Auditoría segura del proveedor pagado, caché y uso real en calendario, directo y detalle de partido. No se muestran secretos.</p>
+    <div class="actions">
+      <a class="btn primary" href="/api/admin/api-sports/status">Ver JSON seguro</a>
+      <a class="btn" href="/admin/data-center">Data Center</a>
+      <a class="btn" href="/admin/daily-automation">Daily Automation</a>
+    </div>
+  </div>
+
+  <div class="v847-provider-grid">
+    <article class="v847-provider-card">
+      <span>Proveedor activo</span>
+      <strong>{{ status.get('provider_active') }}</strong>
+      <small>{{ 'Clave detectada' if status.get('api_sports_configured') else 'Falta API_FOOTBALL_KEY o API_SPORTS_KEY en Render' }}</small>
+    </article>
+    <article class="v847-provider-card">
+      <span>Fixtures cacheados</span>
+      <strong>{{ status.get('fixtures_cached', 0) }}</strong>
+      <small>Calendario/cache proveedor</small>
+    </article>
+    <article class="v847-provider-card">
+      <span>Live cacheado</span>
+      <strong>{{ status.get('live_cached', 0) }}</strong>
+      <small>Snapshots API-Football live</small>
+    </article>
+    <article class="v847-provider-card">
+      <span>Guard anti-gasto</span>
+      <strong>{{ 'Activo' if status.get('api_sports_credit_guard_enabled') else 'Pendiente' }}</strong>
+      <small>No llama al proveedor en cada render</small>
+    </article>
+  </div>
+
+  <div class="v847-provider-panels">
+    <article class="v847-provider-panel">
+      <h2>Estado seguro</h2>
+      <dl>
+        <dt>API-SPORTS configurada</dt><dd>{{ 'Sí' if status.get('api_sports_configured') else 'No' }}</dd>
+        <dt>API-Football configurada</dt><dd>{{ 'Sí' if status.get('api_football_configured') else 'No' }}</dd>
+        <dt>Último sync conocido</dt><dd>{{ status.get('last_sync') or 'Sin sync visible' }}</dd>
+        <dt>Último error</dt><dd>{{ status.get('last_error') or 'Sin error registrado' }}</dd>
+        <dt>Tablas detectadas</dt><dd>{{ (status.get('tables_detected') or [])|join(', ') or 'Sin tablas API detectadas' }}</dd>
+      </dl>
+    </article>
+
+    <article class="v847-provider-panel">
+      <h2>Uso controlado</h2>
+      {% set guard = status.get('usage_guard') or {} %}
+      <dl>
+        <dt>Cache primero</dt><dd>{{ 'Sí' if guard.get('cache_first') else 'No' }}</dd>
+        <dt>Sin llamadas por render</dt><dd>{{ 'Sí' if guard.get('no_page_render_calls') else 'No' }}</dd>
+        <dt>Dry-run</dt><dd>{{ 'Sí' if guard.get('dry_run_supported') else 'No' }}</dd>
+        <dt>TTL por defecto</dt><dd>{{ guard.get('default_ttl_seconds') }} s</dd>
+        <dt>Presupuesto diario</dt><dd>{{ guard.get('daily_call_budget') }}</dd>
+      </dl>
+    </article>
+
+    <article class="v847-provider-panel">
+      <h2>Dry-run sin gastar crédito</h2>
+      <p>Estas pruebas confirman qué se llamaría sin ejecutar petición externa.</p>
+      <pre>{{ {'fixtures': dry_fixtures, 'live': dry_live}|tojson(indent=2) }}</pre>
+    </article>
+  </div>
+</section>
+{% endblock %}

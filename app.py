@@ -76,6 +76,13 @@ from engines.api_football_live_tracker_engine import (
     sync_api_football_live_tracker,
     sync_api_football_match_window,
 )
+from engines.api_sports_provider_engine import (
+    explain_api_sports_provider_state,
+    get_api_sports_status,
+    get_cached_api_sports_provider_summary,
+    sync_api_sports_fixtures,
+    sync_api_sports_live,
+)
 from engines.content_rights_engine import content_rights_policy_summary
 from engines.data_vault_engine import create_sqlite_backup, db_vault_status, export_table_csv, list_backups as data_vault_list_backups, validate_backup as data_vault_validate_backup
 from engines.match_intelligence_engine import build_match_intelligence, match_intelligence_snapshot
@@ -253,7 +260,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V845_SHARK_AI_INTELLIGENCE_PRODUCT_ASSISTANT_FINAL'
+APP_VERSION = 'V847_COMPANY_BRAIN_API_SPORTS_DATA_PROVIDER_AND_PRODUCT_QA_FINAL'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
@@ -3426,6 +3433,7 @@ def data_center_summary():
             "last_sportsdb_sync": latest_sync_log("sportsdb") or latest_sync_log("TheSportsDB"),
             "last_odds_sync": latest_sync_log("odds") or latest_sync_log("The Odds API"),
             "recent_logs": rows("SELECT * FROM api_sync_logs ORDER BY started_at DESC LIMIT 12"),
+            "api_sports_provider": get_cached_api_sports_provider_summary(DB_PATH),
             "population": {
                 "competitions_prepared": len(PRIORITY_COMPETITIONS),
                 "sportsdb_competitions": len(sportsdb_competitions()),
@@ -7039,7 +7047,7 @@ def v845_build_product_assistant_context(question="", payload=None, page=None):
         briefing = shark_briefing()
     except Exception:
         briefing = {"summary": {}, "risk": {}, "legal_policy": ""}
-    return v845_build_shark_context(
+    context = v845_build_shark_context(
         user,
         match=match,
         pick=pick,
@@ -7051,6 +7059,11 @@ def v845_build_product_assistant_context(question="", payload=None, page=None):
         openai_configured=v845_openai_configured(),
         question=question,
     )
+    try:
+        context["api_sports_provider"] = explain_api_sports_provider_state(DB_PATH)
+    except Exception:
+        context["api_sports_provider"] = {"label": "Proveedor pendiente", "message": "No se pudo leer el estado API-SPORTS."}
+    return context
 
 
 def v845_shark_admin_summary():
@@ -12838,6 +12851,26 @@ def admin_data_center_page():
     return render_template("admin_data_center.html", data=data, message=message, result=result)
 
 
+@app.route("/admin/api-sports")
+@app.route("/admin/api-sports-audit")
+def admin_api_sports_audit_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/api-sports")
+    status = get_api_sports_status(DB_PATH)
+    dry_fixtures = sync_api_sports_fixtures(days=2, dry_run=True)
+    dry_live = sync_api_sports_live(dry_run=True)
+    data = dashboard_data()
+    data["api_sports_provider"] = status
+    return render_template(
+        "admin_api_sports_audit.html",
+        data=data,
+        status=status,
+        dry_fixtures=dry_fixtures,
+        dry_live=dry_live,
+        version=APP_VERSION,
+    )
+
+
 @app.route("/admin/system")
 def admin_system_page():
     if not is_admin_session():
@@ -12876,6 +12909,20 @@ def api_admin_route_health():
     if not is_admin_session():
         return admin_json_forbidden()
     return jsonify({"ok": True, "version": APP_VERSION, **route_health_snapshot(app)})
+
+
+@app.route("/api/admin/api-sports/status")
+@app.route("/api/admin/api-sports-audit")
+def api_admin_api_sports_status():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    status = get_api_sports_status(DB_PATH)
+    state = explain_api_sports_provider_state(DB_PATH)
+    dry_run = {
+        "fixtures": sync_api_sports_fixtures(days=2, dry_run=True),
+        "live": sync_api_sports_live(dry_run=True),
+    }
+    return jsonify({"ok": True, "version": APP_VERSION, "provider": status, "state": state, "dry_run": dry_run})
 
 
 @app.route("/admin/client-experience")
@@ -13299,11 +13346,21 @@ def v822_runtime_stability_snapshot():
         last_master_tick = automation_get("v818_master_tick_last") or automation_get("master_tick_last") or automation_get("daily_run_last_detail") or {}
     except Exception as exc:
         warnings.append(f"automation_state_light_check: {str(exc)[:120]}")
+    api_sports_status = get_api_sports_status(DB_PATH)
     return {
         "db_accessible": db_accessible,
         "db_path": DB_PATH,
         "automation_secret_configured": automation_secret_configured(),
         "api_football_configured": env_present("API_FOOTBALL_KEY") or env_present("API_FOOTBALL_API_KEY"),
+        "api_sports_configured": api_sports_status.get("api_sports_configured"),
+        "api_sports_provider_available": api_sports_status.get("api_sports_provider_available"),
+        "api_sports_cache_enabled": api_sports_status.get("api_sports_cache_enabled"),
+        "api_sports_credit_guard_enabled": api_sports_status.get("api_sports_credit_guard_enabled"),
+        "api_sports_last_sync_known": bool(api_sports_status.get("last_sync")),
+        "provider_active": api_sports_status.get("provider_active"),
+        "last_sync": api_sports_status.get("last_sync"),
+        "last_error": api_sports_status.get("last_error"),
+        "usage_guard": api_sports_status.get("usage_guard"),
         "the_odds_configured": env_present("THE_ODDS_API_KEY") or env_present("ODDS_API_KEY"),
         "telegram_configured": env_present("TELEGRAM_BOT_TOKEN") and env_present("TELEGRAM_CHAT_ID"),
         "crest_engine_loaded": True,
@@ -13437,6 +13494,9 @@ def api_runtime_version():
         "has_v845_shell": "data-v845-shell" in base_template and "NEMESIS V845 SHARK AI INTELLIGENCE PRODUCT ASSISTANT ACTIVE" in base_template,
         "has_v845_css": "V845 SHARK AI INTELLIGENCE PRODUCT ASSISTANT START" in css_text,
         "has_v845_shark_ai_product_assistant": "shark_ai_product_assistant_engine" in app_py_text and "V845 SHARK AI INTELLIGENCE PRODUCT ASSISTANT START" in css_text,
+        "has_v847_shell": "data-v847-shell" in base_template and "NEMESIS V847 COMPANY BRAIN API SPORTS DATA PROVIDER PRODUCT QA ACTIVE" in base_template,
+        "has_v847_css": "V847 COMPANY BRAIN API SPORTS DATA PROVIDER PRODUCT QA START" in css_text,
+        "has_v847_company_brain_api_sports_provider_qa": "api_sports_provider_engine" in app_py_text and "V847 COMPANY BRAIN API SPORTS DATA PROVIDER PRODUCT QA START" in css_text,
         "has_v837_reference_photo_qa": "data-v837-shell" in base_template and "V837 REFERENCE PHOTO PERFECTION REAL QA START" in css_text,
         "has_v836_autonomous_qa": "data-v836-shell" in base_template and "V836 AUTONOMOUS REFERENCE VISUAL REVIEW FINAL QA START" in css_text,
         "has_v833_visual_completion": "data-v833-shell" in base_template and "V833 REFERENCE ECOSYSTEM VISUAL COMPLETION START" in css_text,
@@ -13452,7 +13512,7 @@ def api_runtime_version():
         "has_v820_crests": "data-v820-shell" in base_template and "V820 REAL CRESTS REFERENCE VISUAL PIXEL POLISH START" in css_text,
         "has_v819_dedup": "data-v819-shell" in base_template and "V819 REFERENCE UI DEDUP LAYER PURGE START" in css_text,
         "has_v818_automation": "/api/automation/master-tick" in app_py_text and "daily_automation_engine" in app_py_text,
-        "static_css_cache_busting": "V845_SHARK_AI_INTELLIGENCE_PRODUCT_ASSISTANT_FINAL" in base_template,
+        "static_css_cache_busting": "V847_COMPANY_BRAIN_API_SPORTS_DATA_PROVIDER_AND_PRODUCT_QA_FINAL" in base_template,
         "crest_engine_loaded": runtime_stability.get("crest_engine_loaded"),
         "logo_cache_tables_ok": runtime_stability.get("logo_cache_tables_ok"),
         "team_logo_cache_count": runtime_stability.get("team_logo_cache_count"),
@@ -13465,12 +13525,23 @@ def api_runtime_version():
         "base_template_path": str(base_path),
         "automation_secret_configured": runtime_stability.get("automation_secret_configured"),
         "api_football_configured": runtime_stability.get("api_football_configured"),
+        "api_sports_configured": runtime_stability.get("api_sports_configured"),
+        "api_sports_provider_available": runtime_stability.get("api_sports_provider_available"),
+        "api_sports_cache_enabled": runtime_stability.get("api_sports_cache_enabled"),
+        "api_sports_credit_guard_enabled": runtime_stability.get("api_sports_credit_guard_enabled"),
+        "api_sports_last_sync_known": runtime_stability.get("api_sports_last_sync_known"),
+        "provider_active": runtime_stability.get("provider_active"),
+        "last_sync": runtime_stability.get("last_sync"),
+        "last_error": runtime_stability.get("last_error"),
+        "usage_guard": runtime_stability.get("usage_guard"),
         "the_odds_configured": runtime_stability.get("the_odds_configured"),
         "telegram_configured": runtime_stability.get("telegram_configured"),
         "openai_configured": env_present("OPENAI_API_KEY"),
         "runtime_stability": runtime_stability,
         "flags": {
             "api_football_configured": env_present("API_FOOTBALL_KEY") or env_present("API_FOOTBALL_API_KEY"),
+            "api_sports_configured": runtime_stability.get("api_sports_configured"),
+            "api_sports_provider_available": runtime_stability.get("api_sports_provider_available"),
             "telegram_configured": env_present("TELEGRAM_BOT_TOKEN") and env_present("TELEGRAM_CHAT_ID"),
             "the_odds_configured": env_present("THE_ODDS_API_KEY") or env_present("ODDS_API_KEY"),
             "automation_secret_configured": automation_secret_configured(),

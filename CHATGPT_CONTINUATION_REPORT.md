@@ -38,3 +38,18 @@ Política de seguridad:
 Pendiente real:
 - Probar visualmente en navegador real si se quiere declarar una revisión pixel-perfect.
 - Con datos reales abundantes en producción, se puede ajustar el tono y longitud de las respuestas.
+# V847_COMPANY_BRAIN_API_SPORTS_DATA_PROVIDER_AND_PRODUCT_QA_FINAL
+
+Base real usada: V845_SHARK_AI_INTELLIGENCE_PRODUCT_ASSISTANT_FINAL desde la carpeta oficial. No se usó ZIP viejo como base.
+
+Qué se hizo:
+
+- Se auditó el uso real de API-SPORTS/API-Football en código, live, match detail, cron y engines.
+- Se añadió `engines/api_sports_provider_engine.py` como fachada segura con cache, dry-run y guard anti-gasto.
+- Se añadió `/admin/api-sports` y `/api/admin/api-sports/status` sin exponer secretos.
+- `/api/runtime-version` ahora muestra `api_football_configured`, `api_sports_configured`, `the_odds_configured`, `provider_active`, `last_sync`, `last_error` y `usage_guard`.
+- SHARK V845 recibe contexto seguro del proveedor.
+- Telegram V844 queda intacto y sigue filtrando candidatos top.
+- Queda documentado el backlog visual V848 para fondo SHARK/puntitos y pantallas de referencia.
+
+Validaciones: ver `reports/V847_PRODUCTION_STABILITY_QA.md` y `RELEASE_MANIFEST_V847.json`.

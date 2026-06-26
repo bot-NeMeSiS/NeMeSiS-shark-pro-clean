@@ -6906,3 +6906,85 @@ body[data-v845-shell="true"][data-ns-route="/shark-core"] .shark-widget{
   }
 }
 /* V845 SHARK AI INTELLIGENCE PRODUCT ASSISTANT END */
+
+/* V847 COMPANY BRAIN API SPORTS DATA PROVIDER PRODUCT QA START */
+.v847-provider-page{
+  width:min(1180px,100%);
+  margin:0 auto;
+  padding:22px 0 80px;
+}
+.v847-provider-hero,
+.v847-provider-card,
+.v847-provider-panel{
+  border:1px solid rgba(102,225,255,.18);
+  background:linear-gradient(145deg,rgba(8,24,42,.86),rgba(3,10,20,.94));
+  box-shadow:0 20px 70px rgba(0,0,0,.34), inset 0 1px 0 rgba(255,255,255,.06);
+  border-radius:18px;
+}
+.v847-provider-hero{
+  padding:24px;
+  margin-bottom:16px;
+}
+.v847-provider-hero h1{
+  margin:4px 0 8px;
+  font-size:clamp(28px,4vw,48px);
+}
+.v847-provider-grid{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:12px;
+  margin:14px 0;
+}
+.v847-provider-card{
+  padding:16px;
+}
+.v847-provider-card span,
+.v847-provider-panel dt{
+  color:rgba(218,246,255,.72);
+  font-size:12px;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+}
+.v847-provider-card strong{
+  display:block;
+  margin:7px 0;
+  font-size:24px;
+  color:#fff;
+}
+.v847-provider-card small,
+.v847-provider-panel dd{
+  color:rgba(232,249,255,.78);
+}
+.v847-provider-panels{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:12px;
+}
+.v847-provider-panel{
+  padding:18px;
+  min-width:0;
+}
+.v847-provider-panel dl{
+  display:grid;
+  grid-template-columns:minmax(110px,.8fr) 1fr;
+  gap:10px 14px;
+}
+.v847-provider-panel pre{
+  max-height:360px;
+  overflow:auto;
+  white-space:pre-wrap;
+  border-radius:12px;
+  padding:12px;
+  background:rgba(0,0,0,.28);
+  color:#dff9ff;
+}
+@media(max-width:900px){
+  .v847-provider-grid,
+  .v847-provider-panels{
+    grid-template-columns:1fr;
+  }
+  .v847-provider-page{
+    padding:14px 0 96px;
+  }
+}
+/* V847 COMPANY BRAIN API SPORTS DATA PROVIDER PRODUCT QA END */
