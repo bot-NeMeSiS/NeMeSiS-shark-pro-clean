@@ -53,3 +53,36 @@ Qué se hizo:
 - Queda documentado el backlog visual V848 para fondo SHARK/puntitos y pantallas de referencia.
 
 Validaciones: ver `reports/V847_PRODUCTION_STABILITY_QA.md` y `RELEASE_MANIFEST_V847.json`.
+# V848_REFERENCE_SHARK_VISUAL_PC_MOBILE_FINAL
+
+Base real usada: V847_COMPANY_BRAIN_API_SPORTS_DATA_PROVIDER_AND_PRODUCT_QA_FINAL.
+
+No se usó ZIP viejo como base.
+
+Qué se hizo:
+
+- Se reforzó el fondo SHARK con patrón de puntitos, halo, glow y textura oscura premium.
+- Se mejoró la profundidad visual de topbar, sidebar/rail, bottom nav, cards, botones, empty states y panel API-SPORTS.
+- Se mantuvo móvil con safe-area, bottom nav centrada y floating SHARK por encima de la navegación.
+- Se mantuvo admin sobrio, sin bottom nav cliente ni floating SHARK.
+- Se preservó API-SPORTS V847, Telegram V844, SHARK V845 y master tick V818.
+- Se añadieron checks V848 de runtime, visual, mobile, desktop, SHARK, admin, rutas y regresiones.
+
+ZIP final esperado:
+NeMeSiS_SHARK_PRO_V848_REFERENCE_SHARK_VISUAL_PC_MOBILE_FINAL_RENDER_READY.zip
+# V849_FULL_COMPANY_VISUAL_PRODUCT_EXPERIENCE_ADVANCEMENT
+
+Base real usada: V848_REFERENCE_SHARK_VISUAL_PC_MOBILE_FINAL.
+
+No se usó ZIP viejo como base.
+
+Qué se hizo:
+
+- Avance visual controlado sobre V848: más densidad en cards, botones, chips, inputs y tablas.
+- Móvil preserva bottom nav, safe-area y floating SHARK.
+- PC preserva rail/dashboard y mejora command center.
+- SHARK V845, Telegram V844 y API-SPORTS V847 quedan preservados por checks de regresión.
+- Se añadieron checks V849 y reportes de producto/visual/rutas/regresiones.
+
+ZIP final esperado:
+NeMeSiS_SHARK_PRO_V849_FULL_COMPANY_VISUAL_PRODUCT_EXPERIENCE_ADVANCEMENT_RENDER_READY.zip

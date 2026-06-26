@@ -6988,3 +6988,398 @@ body[data-v845-shell="true"][data-ns-route="/shark-core"] .shark-widget{
   }
 }
 /* V847 COMPANY BRAIN API SPORTS DATA PROVIDER PRODUCT QA END */
+
+/* V848 SHARK REFERENCE BACKGROUND PC MOBILE START */
+:root{
+  --v848-bg:#030914;
+  --v848-panel:rgba(5,18,32,.78);
+  --v848-panel-strong:rgba(7,27,48,.9);
+  --v848-line:rgba(115,231,255,.18);
+  --v848-cyan:#65e8ff;
+  --v848-blue:#1d79ff;
+  --v848-text:#eefcff;
+  --v848-muted:rgba(226,248,255,.72);
+}
+html,
+body{
+  overflow-x:hidden;
+  background:
+    radial-gradient(circle at 76% 10%, rgba(33,139,255,.22), transparent 30%),
+    radial-gradient(circle at 18% 20%, rgba(72,231,255,.12), transparent 28%),
+    linear-gradient(180deg,#061120 0%,#020711 58%,#01040a 100%)!important;
+}
+body[data-v848-shell="true"]::before{
+  content:"";
+  position:fixed;
+  inset:0;
+  z-index:-3;
+  pointer-events:none;
+  background-image:
+    radial-gradient(rgba(113,232,255,.22) 1px, transparent 1.4px),
+    linear-gradient(135deg,rgba(4,24,44,.78),rgba(2,7,14,.94));
+  background-size:22px 22px,100% 100%;
+  mask-image:linear-gradient(180deg,rgba(0,0,0,.94),rgba(0,0,0,.52));
+}
+body[data-v848-shell="true"]::after{
+  content:"";
+  position:fixed;
+  right:max(-90px,-8vw);
+  top:9vh;
+  width:min(560px,64vw);
+  height:min(560px,64vw);
+  z-index:-2;
+  pointer-events:none;
+  opacity:.18;
+  background:url("/static/img/shark-logo.svg") center/contain no-repeat;
+  filter:drop-shadow(0 0 44px rgba(88,227,255,.75));
+}
+body[data-v848-shell="true"].ns-admin::before{
+  opacity:.45;
+  background-image:
+    radial-gradient(rgba(98,204,255,.12) 1px, transparent 1.5px),
+    linear-gradient(180deg,rgba(5,13,24,.96),rgba(2,7,14,.98));
+}
+body[data-v848-shell="true"].ns-admin::after{
+  opacity:.06;
+}
+body[data-v848-shell="true"] .shell,
+body[data-v848-shell="true"] .ns-main-shell{
+  position:relative;
+  z-index:1;
+}
+body[data-v848-shell="true"] .top.ns-topbar,
+body[data-v848-shell="true"] .v828-client-rail,
+body[data-v848-shell="true"] .v808-admin-rail,
+body[data-v848-shell="true"] .v808-admin-dock,
+body[data-v848-shell="true"] .bottom-nav{
+  border-color:var(--v848-line)!important;
+  background:linear-gradient(145deg,rgba(5,17,31,.9),rgba(2,8,16,.82))!important;
+  box-shadow:0 18px 70px rgba(0,0,0,.36), inset 0 1px 0 rgba(255,255,255,.07);
+  backdrop-filter:blur(18px);
+}
+body[data-v848-shell="true"] .brand img,
+body[data-v848-shell="true"] .v828-rail-brand img,
+body[data-v848-shell="true"] .v808-admin-rail-brand img{
+  filter:drop-shadow(0 0 18px rgba(101,232,255,.55));
+}
+body[data-v848-shell="true"] .card,
+body[data-v848-shell="true"] article,
+body[data-v848-shell="true"] .match-card,
+body[data-v848-shell="true"] .pick-card,
+body[data-v848-shell="true"] .live-card,
+body[data-v848-shell="true"] .v845-action-card,
+body[data-v848-shell="true"] .v845-mini-card,
+body[data-v848-shell="true"] .v847-provider-card,
+body[data-v848-shell="true"] .v847-provider-panel{
+  border-color:var(--v848-line);
+  background:
+    linear-gradient(145deg,rgba(10,31,52,.82),rgba(3,10,20,.9)),
+    radial-gradient(circle at 80% 0%,rgba(101,232,255,.12),transparent 32%);
+  box-shadow:0 18px 60px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.06);
+}
+body[data-v848-shell="true"] .btn,
+body[data-v848-shell="true"] button,
+body[data-v848-shell="true"] input[type="submit"]{
+  min-height:44px;
+  border-color:rgba(101,232,255,.22);
+  text-wrap:balance;
+}
+body[data-v848-shell="true"] .btn.primary,
+body[data-v848-shell="true"] .nav-cta{
+  background:linear-gradient(135deg,var(--v848-cyan),var(--v848-blue))!important;
+  color:#02101e!important;
+  box-shadow:0 12px 34px rgba(45,169,255,.28);
+}
+body[data-v848-shell="true"] .eyebrow,
+body[data-v848-shell="true"] .tier-badge,
+body[data-v848-shell="true"] .v828-plan-chip{
+  letter-spacing:.06em;
+}
+body[data-v848-shell="true"] img,
+body[data-v848-shell="true"] svg{
+  max-width:100%;
+}
+body[data-v848-shell="true"] .team-crest,
+body[data-v848-shell="true"] .crest,
+body[data-v848-shell="true"] .team-logo,
+body[data-v848-shell="true"] .league-logo{
+  object-fit:contain;
+  background:rgba(255,255,255,.06);
+  border:1px solid rgba(101,232,255,.2);
+  box-shadow:0 0 18px rgba(101,232,255,.12);
+}
+body[data-v848-shell="true"] .empty,
+body[data-v848-shell="true"] .empty-state,
+body[data-v848-shell="true"] .premium-empty{
+  border:1px solid rgba(101,232,255,.2);
+  background:linear-gradient(145deg,rgba(8,28,48,.72),rgba(2,8,16,.88));
+  color:var(--v848-muted);
+}
+body[data-v848-shell="true"] .v825-public-floating-shark,
+body[data-v848-shell="true"] .shark-widget{
+  filter:drop-shadow(0 0 20px rgba(101,232,255,.55));
+}
+body[data-v848-shell="true"][data-ns-route="/shark"] .v825-public-floating-shark,
+body[data-v848-shell="true"][data-ns-route="/shark-ai"] .v825-public-floating-shark,
+body[data-v848-shell="true"][data-ns-route="/shark-core"] .v825-public-floating-shark,
+body[data-v848-shell="true"][data-ns-route="/shark"] .shark-widget,
+body[data-v848-shell="true"][data-ns-route="/shark-ai"] .shark-widget,
+body[data-v848-shell="true"][data-ns-route="/shark-core"] .shark-widget,
+body[data-v848-shell="true"].ns-admin .v825-public-floating-shark,
+body[data-v848-shell="true"].ns-admin .shark-widget,
+body[data-v848-shell="true"].ns-admin .bottom-nav{
+  display:none!important;
+}
+body[data-v848-shell="true"] .v845-shark-hero{
+  background:
+    radial-gradient(circle at 85% 5%,rgba(101,232,255,.24),transparent 34%),
+    linear-gradient(145deg,rgba(8,29,51,.92),rgba(1,7,14,.96))!important;
+}
+body[data-v848-shell="true"] .v845-shark-hero::after{
+  content:"";
+  position:absolute;
+  inset:auto 2% -8% auto;
+  width:min(280px,48vw);
+  height:min(280px,48vw);
+  pointer-events:none;
+  opacity:.16;
+  background:url("/static/img/shark-logo.svg") center/contain no-repeat;
+}
+body[data-v848-shell="true"] .v845-shark-hero{
+  overflow:hidden;
+}
+@media(min-width:1024px){
+  body[data-v848-shell="true"]:not(.ns-admin) .ns-main-shell{
+    padding-left:clamp(92px,9vw,148px);
+  }
+  body[data-v848-shell="true"] .v828-client-rail,
+  body[data-v848-shell="true"] .v808-admin-rail{
+    transform:translateZ(0);
+  }
+}
+@media(max-width:760px){
+  body[data-v848-shell="true"]{
+    padding-bottom:calc(env(safe-area-inset-bottom) + 84px);
+  }
+  body[data-v848-shell="true"]::after{
+    width:78vw;
+    height:78vw;
+    right:-30vw;
+    top:10vh;
+    opacity:.12;
+  }
+  body[data-v848-shell="true"] .top.ns-topbar{
+    margin:8px 10px 0;
+    border-radius:18px;
+  }
+  body[data-v848-shell="true"] .bottom-nav{
+    left:50%!important;
+    right:auto!important;
+    transform:translateX(-50%)!important;
+    width:calc(100% - 24px)!important;
+    max-width:430px!important;
+    bottom:calc(env(safe-area-inset-bottom) + 10px)!important;
+    display:grid!important;
+    grid-template-columns:repeat(5,minmax(0,1fr));
+    gap:4px;
+    padding:8px!important;
+  }
+  body[data-v848-shell="true"] .bottom-nav a{
+    min-width:0;
+    min-height:44px;
+    font-size:11px;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  body[data-v848-shell="true"] .shell,
+  body[data-v848-shell="true"] .ns-main-shell{
+    width:100%;
+    max-width:100%;
+    padding-inline:12px;
+  }
+  body[data-v848-shell="true"] .card,
+  body[data-v848-shell="true"] article,
+  body[data-v848-shell="true"] .match-card,
+  body[data-v848-shell="true"] .pick-card,
+  body[data-v848-shell="true"] .live-card{
+    min-width:0;
+    border-radius:16px;
+  }
+  body[data-v848-shell="true"] table{
+    display:block;
+    max-width:100%;
+    overflow-x:auto;
+  }
+  body[data-v848-shell="true"] .v825-public-floating-shark,
+  body[data-v848-shell="true"] .shark-widget{
+    bottom:calc(env(safe-area-inset-bottom) + 78px)!important;
+    right:14px!important;
+  }
+}
+/* V848 SHARK REFERENCE BACKGROUND PC MOBILE END */
+
+/* V849 FULL COMPANY VISUAL PRODUCT ADVANCEMENT START */
+body[data-v849-shell="true"]{
+  color:var(--v848-text);
+}
+body[data-v849-shell="true"]::before{
+  background-size:18px 18px,100% 100%;
+  opacity:.98;
+}
+body[data-v849-shell="true"]::after{
+  opacity:.22;
+  transform:rotate(-8deg);
+}
+body[data-v849-shell="true"] .ns-main-shell{
+  min-height:calc(100vh - 120px);
+}
+body[data-v849-shell="true"] .topin{
+  gap:12px;
+}
+body[data-v849-shell="true"] .nav-clean a,
+body[data-v849-shell="true"] .v828-client-rail nav a,
+body[data-v849-shell="true"] .v808-admin-rail nav a,
+body[data-v849-shell="true"] .bottom-nav a{
+  border-radius:14px;
+  transition:transform .16s ease, background .16s ease, border-color .16s ease;
+}
+body[data-v849-shell="true"] .nav-clean a:hover,
+body[data-v849-shell="true"] .v828-client-rail nav a:hover,
+body[data-v849-shell="true"] .v808-admin-rail nav a:hover{
+  transform:translateY(-1px);
+  background:rgba(101,232,255,.1);
+  border-color:rgba(101,232,255,.24);
+}
+body[data-v849-shell="true"] .card,
+body[data-v849-shell="true"] article,
+body[data-v849-shell="true"] .match-card,
+body[data-v849-shell="true"] .pick-card,
+body[data-v849-shell="true"] .live-card{
+  position:relative;
+  overflow:hidden;
+}
+body[data-v849-shell="true"] .card::before,
+body[data-v849-shell="true"] article::before,
+body[data-v849-shell="true"] .match-card::before,
+body[data-v849-shell="true"] .pick-card::before,
+body[data-v849-shell="true"] .live-card::before{
+  content:"";
+  position:absolute;
+  inset:0 0 auto;
+  height:1px;
+  background:linear-gradient(90deg,transparent,rgba(101,232,255,.42),transparent);
+  pointer-events:none;
+}
+body[data-v849-shell="true"] h1,
+body[data-v849-shell="true"] h2,
+body[data-v849-shell="true"] h3{
+  text-wrap:balance;
+}
+body[data-v849-shell="true"] p,
+body[data-v849-shell="true"] small,
+body[data-v849-shell="true"] li{
+  color:var(--v848-muted);
+}
+body[data-v849-shell="true"] .btn,
+body[data-v849-shell="true"] button,
+body[data-v849-shell="true"] input,
+body[data-v849-shell="true"] select,
+body[data-v849-shell="true"] textarea{
+  border-radius:14px;
+}
+body[data-v849-shell="true"] input,
+body[data-v849-shell="true"] select,
+body[data-v849-shell="true"] textarea{
+  border:1px solid rgba(101,232,255,.18);
+  background:rgba(2,10,20,.72);
+  color:var(--v848-text);
+}
+body[data-v849-shell="true"] .chip,
+body[data-v849-shell="true"] .badge,
+body[data-v849-shell="true"] .status,
+body[data-v849-shell="true"] .tier-badge{
+  border:1px solid rgba(101,232,255,.22);
+  background:rgba(101,232,255,.08);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.05);
+}
+body[data-v849-shell="true"] .empty,
+body[data-v849-shell="true"] .empty-state,
+body[data-v849-shell="true"] .premium-empty{
+  padding:clamp(16px,3vw,24px);
+  border-radius:18px;
+}
+body[data-v849-shell="true"] .v847-provider-hero,
+body[data-v849-shell="true"] .v845-shark-hero{
+  border:1px solid rgba(101,232,255,.24);
+  box-shadow:0 24px 90px rgba(0,0,0,.38), 0 0 0 1px rgba(255,255,255,.04) inset;
+}
+body[data-v849-shell="true"] .v847-provider-grid,
+body[data-v849-shell="true"] .v845-action-grid,
+body[data-v849-shell="true"] .v845-state-grid{
+  align-items:stretch;
+}
+body[data-v849-shell="true"].ns-admin table{
+  border-collapse:separate;
+  border-spacing:0;
+  border:1px solid rgba(101,232,255,.14);
+  border-radius:16px;
+  overflow:hidden;
+  background:rgba(3,10,20,.62);
+}
+body[data-v849-shell="true"].ns-admin th{
+  background:rgba(101,232,255,.08);
+  color:#eaffff;
+}
+body[data-v849-shell="true"].ns-admin td,
+body[data-v849-shell="true"].ns-admin th{
+  border-bottom:1px solid rgba(101,232,255,.1);
+}
+body[data-v849-shell="true"][data-ns-route="/shark"]::after,
+body[data-v849-shell="true"][data-ns-route="/shark-ai"]::after{
+  opacity:.28;
+}
+body[data-v849-shell="true"] a[href="/logout"],
+body[data-v849-shell="true"] .danger{
+  border-color:rgba(255,117,117,.28)!important;
+}
+@media(min-width:1200px){
+  body[data-v849-shell="true"] .shell,
+  body[data-v849-shell="true"] .ns-main-shell{
+    max-width:1280px;
+  }
+  body[data-v849-shell="true"].ns-admin .shell,
+  body[data-v849-shell="true"].ns-admin .ns-main-shell{
+    max-width:1360px;
+  }
+}
+@media(max-width:760px){
+  body[data-v849-shell="true"] .topin{
+    min-width:0;
+  }
+  body[data-v849-shell="true"] .brand span{
+    line-height:1.05;
+  }
+  body[data-v849-shell="true"] .v829-mobile-quick{
+    width:calc(100% - 24px);
+    margin-inline:auto;
+    overflow-x:auto;
+    scrollbar-width:none;
+  }
+  body[data-v849-shell="true"] .v829-mobile-quick a{
+    white-space:nowrap;
+    min-height:38px;
+  }
+  body[data-v849-shell="true"] .btn,
+  body[data-v849-shell="true"] button{
+    width:auto;
+    max-width:100%;
+  }
+  body[data-v849-shell="true"] .v847-provider-panel dl{
+    grid-template-columns:1fr;
+  }
+  body[data-v849-shell="true"] .bottom-nav a{
+    padding-inline:4px;
+  }
+}
+/* V849 FULL COMPANY VISUAL PRODUCT ADVANCEMENT END */

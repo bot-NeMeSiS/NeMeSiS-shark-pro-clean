@@ -10,12 +10,13 @@ os.environ.setdefault("DB_PATH", str(Path(tempfile.gettempdir()) / "nemesis_v847
 import app as nemesis  # noqa: E402
 
 VERSION = "V847_COMPANY_BRAIN_API_SPORTS_DATA_PROVIDER_AND_PRODUCT_QA_FINAL"
+CURRENT_VERSION = "V848_REFERENCE_SHARK_VISUAL_PC_MOBILE_FINAL"
 
 client = nemesis.app.test_client()
 data = client.get("/api/runtime-version").get_json() or {}
 checks = {
-    "app_version": data.get("app_version") == VERSION,
-    "version_txt": data.get("version_txt") == VERSION,
+    "app_version": data.get("app_version") in {VERSION, CURRENT_VERSION},
+    "version_txt": data.get("version_txt") in {VERSION, CURRENT_VERSION},
     "has_v847_shell": data.get("has_v847_shell") is True,
     "has_v847_css": data.get("has_v847_css") is True,
     "runtime_provider_flags": all(k in data for k in ["api_sports_configured", "api_football_configured", "the_odds_configured", "provider_active", "last_sync", "last_error", "usage_guard"]),

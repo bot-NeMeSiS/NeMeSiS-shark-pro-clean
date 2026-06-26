@@ -103,6 +103,8 @@ SAFE_PROVIDER_EMPTY_STATES = {
     "waiting_provider": "Esperando proveedor",
     "pending_odds": "Cuotas pendientes",
     "pending_result": "Resultado pendiente",
+    "no_active_picks": "Sin picks activos",
+    "not_enough_data": "No hay datos suficientes",
     "not_configured": "API-SPORTS no configurada",
 }
 
