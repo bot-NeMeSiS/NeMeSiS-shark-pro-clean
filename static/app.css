@@ -8083,3 +8083,134 @@ body[data-v853-shell="true"].ns-admin .scroll-to-top {
   }
 }
 /* V853 ADMIN PC COMMAND CENTER REFERENCE FINAL END */
+
+/* V854 CLIENT ADMIN REAL RENDER FINAL POLISH START */
+body[data-v854-shell="true"] {
+  --v854-line: rgba(101, 232, 255, .18);
+  --v854-line-strong: rgba(101, 232, 255, .30);
+  --v854-panel: rgba(4, 17, 30, .84);
+  --v854-panel-strong: rgba(6, 23, 39, .92);
+  --v854-text: #edfaff;
+  --v854-muted: rgba(222, 244, 250, .76);
+  text-rendering: geometricPrecision;
+}
+
+body[data-v854-shell="true"] .shell,
+body[data-v854-shell="true"] .shark-shell,
+body[data-v854-shell="true"] .ns-main-shell {
+  min-width: 0;
+}
+
+body[data-v854-shell="true"]:not(.ns-admin) .v799-card,
+body[data-v854-shell="true"]:not(.ns-admin) .v799-pick-card,
+body[data-v854-shell="true"]:not(.ns-admin) .v799-live-card,
+body[data-v854-shell="true"]:not(.ns-admin) .v799-feature-pick,
+body[data-v854-shell="true"]:not(.ns-admin) .v799-live-feature,
+body[data-v854-shell="true"]:not(.ns-admin) .card,
+body[data-v854-shell="true"]:not(.ns-admin) .panel {
+  border-color: var(--v854-line);
+  background:
+    radial-gradient(circle at 12% 0%, rgba(94, 231, 255, .12), transparent 35%),
+    linear-gradient(145deg, rgba(6, 23, 39, .88), rgba(2, 8, 16, .94));
+  box-shadow: 0 18px 54px rgba(0, 0, 0, .28);
+}
+
+body[data-v854-shell="true"] .v799-filterbar,
+body[data-v854-shell="true"] .v807-action-tiles,
+body[data-v854-shell="true"] .v807-route-cards,
+body[data-v854-shell="true"] .v853-admin-command-strip nav {
+  min-width: 0;
+}
+
+body[data-v854-shell="true"] .v799-filterbar a,
+body[data-v854-shell="true"] .v829-mobile-bottom-nav a,
+body[data-v854-shell="true"] .v807-action-tiles a,
+body[data-v854-shell="true"] .v807-route-cards a,
+body[data-v854-shell="true"] .v853-admin-command-strip a,
+body[data-v854-shell="true"] .btn,
+body[data-v854-shell="true"] .button {
+  text-wrap: balance;
+}
+
+body[data-v854-shell="true"] .muted,
+body[data-v854-shell="true"] .small,
+body[data-v854-shell="true"] .v852-pick-note,
+body[data-v854-shell="true"] .v852-live-empty-diagnostic p {
+  color: var(--v854-muted);
+}
+
+body[data-v854-shell="true"] .team-logo,
+body[data-v854-shell="true"] .team-crest,
+body[data-v854-shell="true"] .league-logo,
+body[data-v854-shell="true"] img[class*="crest"],
+body[data-v854-shell="true"] img[class*="logo"] {
+  max-width: 100%;
+  object-fit: contain;
+}
+
+body[data-v854-shell="true"] .v852-live-empty-diagnostic,
+body[data-v854-shell="true"] .empty-state,
+body[data-v854-shell="true"] .premium-empty-state {
+  border-color: var(--v854-line-strong);
+  background:
+    radial-gradient(circle at 20% 0%, rgba(92, 231, 255, .14), transparent 34%),
+    var(--v854-panel);
+}
+
+body[data-v854-shell="true"].ns-admin .v853-admin-command-strip {
+  border-color: var(--v854-line-strong);
+  background:
+    radial-gradient(circle at 18% 0%, rgba(92, 231, 255, .18), transparent 36%),
+    linear-gradient(145deg, rgba(6, 24, 41, .94), rgba(2, 8, 16, .97));
+}
+
+body[data-v854-shell="true"].ns-admin .v808-admin-dock,
+body[data-v854-shell="true"].ns-admin .v853-admin-command-strip,
+body[data-v854-shell="true"].ns-admin .v809-admin-reference-hero,
+body[data-v854-shell="true"].ns-admin .v807-admin-hero,
+body[data-v854-shell="true"].ns-admin .v794-admin-kpi-grid {
+  max-width: 1380px;
+}
+
+body[data-v854-shell="true"].ns-admin .v808-admin-rail nav a span,
+body[data-v854-shell="true"].ns-admin .v808-admin-rail-foot a,
+body[data-v854-shell="true"].ns-admin .v853-admin-command-strip a {
+  white-space: normal;
+}
+
+body[data-v854-shell="true"].ns-admin .v829-mobile-bottom-nav,
+body[data-v854-shell="true"].ns-admin .mobile-bottom-nav,
+body[data-v854-shell="true"].ns-admin .bottom-nav,
+body[data-v854-shell="true"].ns-admin .floating-shark,
+body[data-v854-shell="true"].ns-admin .v825-floating-shark,
+body[data-v854-shell="true"].ns-admin .scroll-to-top {
+  display: none !important;
+}
+
+@media (max-width: 768px) {
+  body[data-v854-shell="true"] .topin,
+  body[data-v854-shell="true"] .v799-card,
+  body[data-v854-shell="true"] .v799-pick-card,
+  body[data-v854-shell="true"] .v799-live-card,
+  body[data-v854-shell="true"] .card,
+  body[data-v854-shell="true"] .panel {
+    min-width: 0;
+  }
+
+  body[data-v854-shell="true"]:not(.ns-admin) .shell,
+  body[data-v854-shell="true"]:not(.ns-admin) .shark-shell {
+    padding-bottom: calc(env(safe-area-inset-bottom) + 104px);
+  }
+
+  body[data-v854-shell="true"] .v799-filterbar {
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  body[data-v854-shell="true"] h1,
+  body[data-v854-shell="true"] h2,
+  body[data-v854-shell="true"] h3 {
+    overflow-wrap: anywhere;
+  }
+}
+/* V854 CLIENT ADMIN REAL RENDER FINAL POLISH END */

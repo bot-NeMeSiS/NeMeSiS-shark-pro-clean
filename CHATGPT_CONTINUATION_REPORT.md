@@ -168,3 +168,22 @@ Preservado:
 - V850 live/escudos.
 - V851 branding.
 - V852 live/picks/visual QA.
+## V854_CLIENT_ADMIN_REAL_RENDER_FINAL_POLISH_AND_PRODUCT_QA
+
+Base real detectada: V853_ADMIN_PC_COMMAND_CENTER_REFERENCE_PERFECTION_FINAL.
+
+Trabajo aplicado:
+- Se elevó VERSION.txt, APP_VERSION, base.html, cache CSS y runtime a V854.
+- Se añadió capa CSS V854 acotada para cliente/admin: cards, estados vacíos, safe-area móvil, logos/escudos y separación admin/cliente.
+- Se añadieron checks V854 para cliente, admin, live/API-SPORTS, picks, logos/escudos, SHARK, Telegram, visual PC/móvil, textos, rutas, regresión y release cleanliness.
+- Se añadieron reportes V854 y manifest V854.
+
+Preservado:
+- V818 master tick.
+- V844 Telegram.
+- V845 SHARK AI.
+- V847 API-SPORTS provider guard.
+- V850 live/escudos.
+- V851 logo/header.
+- V852 live/picks/video polish.
+- V853 admin command center.
