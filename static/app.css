@@ -7552,3 +7552,180 @@ body[data-v849-shell="true"] .danger{
   }
 }
 /* V850 LIVE CRESTS API SPORTS FINAL END */
+
+/* V851 LOGO BRAND HEADER MOBILE PC FIX START */
+body[data-v851-shell="true"] .ns-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  max-width: 100%;
+  color: #f5fbff;
+  text-decoration: none;
+  isolation: isolate;
+}
+
+body[data-v851-shell="true"] .ns-brand-mark {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  border-radius: 14px;
+  border: 1px solid rgba(107, 232, 255, .34);
+  background:
+    radial-gradient(circle at 35% 15%, rgba(112, 240, 255, .28), transparent 35%),
+    linear-gradient(145deg, rgba(7, 30, 49, .92), rgba(2, 9, 18, .98));
+  box-shadow: 0 14px 34px rgba(0, 0, 0, .32), 0 0 26px rgba(54, 220, 255, .16);
+  overflow: hidden;
+}
+
+body[data-v851-shell="true"] .ns-brand-mark img {
+  display: block;
+  width: 76%;
+  height: 76%;
+  object-fit: contain;
+  filter: drop-shadow(0 0 10px rgba(92, 231, 255, .4));
+}
+
+body[data-v851-shell="true"] .ns-brand-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: .96;
+  text-transform: none;
+}
+
+body[data-v851-shell="true"] .ns-brand-name,
+body[data-v851-shell="true"] .ns-brand-pro {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+body[data-v851-shell="true"] .ns-brand-name {
+  color: #ffffff;
+  font-size: clamp(1rem, 1.1vw, 1.22rem);
+  font-weight: 950;
+}
+
+body[data-v851-shell="true"] .ns-brand-pro {
+  margin-top: 3px;
+  color: #66e9ff;
+  font-size: clamp(.68rem, .72vw, .8rem);
+  font-weight: 950;
+  letter-spacing: .12em;
+}
+
+body[data-v851-shell="true"] .ns-brand-topbar {
+  flex: 0 1 auto;
+}
+
+body[data-v851-shell="true"] .ns-topbar .topin {
+  align-items: center;
+}
+
+body[data-v851-shell="true"] .tier-badge {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+body[data-v851-shell="true"] .ns-brand-sidebar,
+body[data-v851-shell="true"] .ns-brand-admin {
+  justify-content: flex-start;
+  width: 100%;
+  padding: 10px;
+  border-radius: 18px;
+  border: 1px solid rgba(101, 232, 255, .16);
+  background: rgba(4, 17, 29, .58);
+}
+
+body[data-v851-shell="true"] .v828-client-rail .ns-brand-sidebar,
+body[data-v851-shell="true"] .v808-admin-rail .ns-brand-admin {
+  margin-bottom: 12px;
+}
+
+body[data-v851-shell="true"] .v808-admin-rail .ns-brand-mark {
+  width: 38px;
+  height: 38px;
+  flex-basis: 38px;
+  border-radius: 13px;
+}
+
+body[data-v851-shell="true"] .v808-admin-rail .ns-brand-name {
+  font-size: .96rem;
+}
+
+body[data-v851-shell="true"] .v808-admin-rail .ns-brand-pro {
+  font-size: .62rem;
+}
+
+body[data-v851-shell="true"] .v799-phone-top span,
+body[data-v851-shell="true"] .v783-public-copy .kicker,
+body[data-v851-shell="true"] .v799-kicker {
+  letter-spacing: .02em;
+}
+
+@media (max-width: 768px) {
+  body[data-v851-shell="true"] .ns-topbar {
+    padding-top: max(8px, env(safe-area-inset-top));
+  }
+
+  body[data-v851-shell="true"] .ns-topbar .topin {
+    min-width: 0;
+    gap: 8px;
+  }
+
+  body[data-v851-shell="true"] .ns-brand-topbar {
+    max-width: min(58vw, 235px);
+  }
+
+  body[data-v851-shell="true"] .ns-brand-mark {
+    width: 38px;
+    height: 38px;
+    flex-basis: 38px;
+    border-radius: 13px;
+  }
+
+  body[data-v851-shell="true"] .ns-brand-name {
+    font-size: .98rem;
+  }
+
+  body[data-v851-shell="true"] .ns-brand-pro {
+    font-size: .62rem;
+    letter-spacing: .1em;
+  }
+
+  body[data-v851-shell="true"] .tier-badge {
+    padding-inline: 9px;
+    min-height: 32px;
+    font-size: .7rem;
+  }
+
+  body[data-v851-shell="true"] .v811-top-actions,
+  body[data-v851-shell="true"] .v812-top-actions {
+    width: 100%;
+  }
+}
+
+@media (max-width: 390px) {
+  body[data-v851-shell="true"] .ns-brand-topbar {
+    max-width: 205px;
+  }
+
+  body[data-v851-shell="true"] .ns-brand-mark {
+    width: 35px;
+    height: 35px;
+    flex-basis: 35px;
+  }
+
+  body[data-v851-shell="true"] .ns-brand-name {
+    font-size: .9rem;
+  }
+
+  body[data-v851-shell="true"] .ns-brand-pro {
+    font-size: .58rem;
+  }
+}
+/* V851 LOGO BRAND HEADER MOBILE PC FIX END */
