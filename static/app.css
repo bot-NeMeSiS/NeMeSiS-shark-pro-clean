@@ -7729,3 +7729,109 @@ body[data-v851-shell="true"] .v799-kicker {
   }
 }
 /* V851 LOGO BRAND HEADER MOBILE PC FIX END */
+
+/* V852 REAL VIDEO PRODUCT PERFECTION FINAL START */
+body[data-v852-shell="true"] .v825-shark-background {
+  opacity: .96;
+}
+
+body[data-v852-shell="true"] .shark-dot-watermark,
+body[data-v852-shell="true"] .shark-grid-texture {
+  opacity: .34;
+}
+
+body[data-v852-shell="true"] .v799-card,
+body[data-v852-shell="true"] .v799-pick-card,
+body[data-v852-shell="true"] .v799-live-card,
+body[data-v852-shell="true"] .v799-feature-pick,
+body[data-v852-shell="true"] .v799-live-feature {
+  border-color: rgba(104, 232, 255, .22);
+  background:
+    radial-gradient(circle at 12% 0%, rgba(83, 219, 255, .10), transparent 34%),
+    linear-gradient(145deg, rgba(7, 24, 40, .88), rgba(2, 8, 16, .94));
+}
+
+body[data-v852-shell="true"] .v852-pick-note,
+body[data-v852-shell="true"] .v852-live-empty-diagnostic p {
+  color: rgba(221, 243, 250, .78);
+  line-height: 1.45;
+}
+
+body[data-v852-shell="true"] .v852-pick-state,
+body[data-v852-shell="true"] .v799-live-pill.v852-review {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 5px 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 204, 94, .32);
+  background: rgba(255, 204, 94, .10);
+  color: #ffe4a8;
+  font-size: .72rem;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+body[data-v852-shell="true"] .v852-pick-muted {
+  opacity: .86;
+}
+
+body[data-v852-shell="true"] .v852-pick-muted .v799-card-top span,
+body[data-v852-shell="true"] .v852-pick-muted > strong {
+  color: rgba(235, 248, 255, .82);
+}
+
+body[data-v852-shell="true"] .v852-live-empty-diagnostic {
+  margin: 14px 0;
+  padding: clamp(16px, 3vw, 24px);
+  border-radius: 20px;
+  border: 1px solid rgba(101, 232, 255, .24);
+  background:
+    radial-gradient(circle at 20% 0%, rgba(67, 219, 255, .16), transparent 36%),
+    rgba(4, 17, 30, .78);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, .30);
+}
+
+body[data-v852-shell="true"] .v852-live-empty-diagnostic strong {
+  display: block;
+  color: #ffffff;
+  font-size: clamp(1.05rem, 2vw, 1.35rem);
+}
+
+body[data-v852-shell="true"] .v852-live-empty-diagnostic div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+body[data-v852-shell="true"] .v852-live-empty-diagnostic span {
+  padding: 7px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(101, 232, 255, .18);
+  background: rgba(101, 232, 255, .08);
+  color: #dff8ff;
+  font-size: .78rem;
+  font-weight: 800;
+}
+
+body[data-v852-shell="true"] .v799-filterbar a {
+  min-width: max-content;
+}
+
+@media (max-width: 768px) {
+  body[data-v852-shell="true"] .v799-filterbar {
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  body[data-v852-shell="true"] .v799-pick-card,
+  body[data-v852-shell="true"] .v799-live-card {
+    min-width: 0;
+  }
+
+  body[data-v852-shell="true"] .v852-pick-state {
+    white-space: normal;
+  }
+}
+/* V852 REAL VIDEO PRODUCT PERFECTION FINAL END */

@@ -59,6 +59,51 @@ Base real usada: V847_COMPANY_BRAIN_API_SPORTS_DATA_PROVIDER_AND_PRODUCT_QA_FINA
 
 No se usó ZIP viejo como base.
 
+# V851_LOGO_BRAND_HEADER_MOBILE_PC_FIX
+
+Base real usada: `V850_LIVE_CRESTS_API_SPORTS_MATCH_DETAIL_FINAL`.
+
+No se usó ZIP viejo como base.
+
+Objetivo de V851: corregir la marca superior detectada en captura móvil y dejar el logo NeMeSiS SHARK PRO coherente en móvil, PC y admin.
+
+Cambios principales:
+- Se creó `templates/partials/brand_logo.html` con el componente reutilizable `nemesis_brand`.
+- `templates/base.html` usa la misma marca en topbar, rail cliente y rail admin.
+- Se añadió el bloque CSS `V851 LOGO BRAND HEADER MOBILE PC FIX` para proporciones, alineación, responsive y no deformación.
+- Se corrigió `EspaÁa/Madrid` a `Hora España/Madrid`.
+- `/api/runtime-version` expone `has_v851_logo_brand_header_fix`.
+
+Preservado:
+- V850 live/escudos.
+- V847 API-SPORTS guard.
+- V845 SHARK AI.
+- V844 Telegram.
+- V818 master tick.
+
+# V852_REAL_VIDEO_PRODUCT_PERFECTION_LIVE_PICKS_VISUAL_QA_FINAL
+
+Base real usada: `V851_LOGO_BRAND_HEADER_MOBILE_PC_FIX`.
+
+No se usó ZIP viejo como base.
+
+Objetivo de V852: corregir puntos detectados en vídeo real: copy visible, picks raros o caducados, live con proveedor activo pero 0 directos, y pulido visual PC/móvil sin romper V851/V850/V847/V845/V844/V818.
+
+Cambios principales:
+- `engines/picks_quality_engine.py` degrada competiciones de baja relevancia y picks pasados.
+- `/picks` ordena por calidad, prioriza picks premium listos y marca como `Pick en revisión`, `Archivado` o `Liga baja relevancia` lo que no debe ocupar protagonismo.
+- `/live` muestra un diagnóstico premium cuando API-Football está activo pero no devuelve directos: `Sin directos reales ahora mismo`.
+- Se añadió CSS V852 para fondo/cards, picks en revisión, diagnóstico live y filtros móviles.
+- Se validó que no quedan textos objetivo rotos como `lo primo`, `Result ados` o `EspaÁa/Madrid`.
+
+Preservado:
+- V851 logo/header.
+- V850 live/escudos.
+- V847 API-SPORTS guard.
+- V845 SHARK AI.
+- V844 Telegram.
+- V818 master tick.
+
 Qué se hizo:
 
 - Se reforzó el fondo SHARK con patrón de puntitos, halo, glow y textura oscura premium.

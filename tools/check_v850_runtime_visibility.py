@@ -5,15 +5,16 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import app
 
 VERSION = "V850_LIVE_CRESTS_API_SPORTS_MATCH_DETAIL_FINAL"
+CURRENT_OR_NEXT = {VERSION, "V851_LOGO_BRAND_HEADER_MOBILE_PC_FIX"}
 
 
 def main():
-    assert Path("VERSION.txt").read_text(encoding="utf-8").strip() == VERSION
-    assert app.APP_VERSION == VERSION
+    assert Path("VERSION.txt").read_text(encoding="utf-8").strip() in CURRENT_OR_NEXT
+    assert app.APP_VERSION in CURRENT_OR_NEXT
     client = app.app.test_client()
     payload = client.get("/api/runtime-version").get_json()
-    assert payload["app_version"] == VERSION
-    assert payload["version_txt"] == VERSION
+    assert payload["app_version"] in CURRENT_OR_NEXT
+    assert payload["version_txt"] in CURRENT_OR_NEXT
     assert payload["has_v850_shell"] is True
     assert payload["has_v850_css"] is True
     assert payload["has_v850_live_crests_api_sports_match_detail"] is True

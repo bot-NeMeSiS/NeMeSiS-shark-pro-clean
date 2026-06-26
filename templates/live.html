@@ -8,6 +8,8 @@
 {% set lane = live.get('lane') or 'live' %}
 {% set v850_state = data.get('v850_live_state') or {} %}
 {% set v850_cache = data.get('v850_live_cache') or {} %}
+{% set v852_provider_ok = api_tracker.get('configured') or api_quality.get('configured') %}
+{% set v852_live_count = api_quality.get('fixtures_live', api_tracker.get('fixtures_count',0)) or counts.get('live',0) %}
 {% set ns = namespace(matches=[]) %}
 {% for day in live.get('day_groups') or [] %}{% for league in day.leagues %}{% for m in league.matches %}{% set _ = ns.matches.append(m) %}{% endfor %}{% endfor %}{% endfor %}
 {% set featured = ns.matches[0] if ns.matches else none %}
@@ -24,7 +26,7 @@
   {% include "partials/client_flow_bar.html" %}
 
   <section class="v850-live-state" aria-label="Estado V850 de directos y proveedor">
-    <article><span>Estado live</span><strong>{{ v850_state.get('label') or 'Esperando proveedor' }}</strong><small>{{ v850_state.get('message') or 'La app no inventa marcador ni minuto.' }}</small></article>
+    <article><span>Estado live</span><strong>{% if v852_provider_ok and not v852_live_count %}Sin directos reales ahora mismo{% else %}{{ v850_state.get('label') or 'Esperando proveedor' }}{% endif %}</strong><small>{% if v852_provider_ok and not v852_live_count %}API-Football está activo, pero no devuelve partidos live top en este momento.{% else %}{{ v850_state.get('message') or 'La app no inventa marcador ni minuto.' }}{% endif %}</small></article>
     <article><span>Caché live</span><strong>{{ v850_cache.get('cached_live', 0) }}</strong><small>{{ v850_cache.get('cached_total', 0) }} registros cacheados · sin llamadas por render</small></article>
     <article><span>Proveedor</span><strong>{{ 'API-SPORTS/API-Football' if api_tracker.get('configured') or api_quality.get('configured') else 'API-SPORTS no configurada' }}</strong><small>Cache-first, TTL y guard anti-gasto activos.</small></article>
   </section>
@@ -33,11 +35,11 @@
     <article class="{{ 'is-on' if api_tracker.get('configured') or api_quality.get('configured') else 'is-off' }}">
       <span>API-Football Pro</span>
       <strong>{{ 'Activo' if api_tracker.get('configured') or api_quality.get('configured') else 'Pendiente de clave en Render' }}</strong>
-      <small>{{ api_tracker.get('message') or api_quality.get('message') or 'Live tracker con caché segura y datos reales.' }}</small>
+      <small>{% if v852_provider_ok and not v852_live_count %}Proveedor activo sin directos reales devueltos ahora. No se inventan marcadores.{% else %}{{ api_tracker.get('message') or api_quality.get('message') or 'Live tracker con caché segura y datos reales.' }}{% endif %}</small>
     </article>
     <article>
       <span>Live avanzado</span>
-      <strong>{{ api_quality.get('fixtures_live', api_tracker.get('fixtures_count',0)) or counts.get('live',0) }}</strong>
+      <strong>{{ v852_live_count }}</strong>
       <small>partidos desde fuentes reales</small>
     </article>
     <article>
@@ -65,6 +67,14 @@
     <article><span>Resultados</span><strong>{{ counts.get('finished',0) }}</strong><small>cerrados reales</small></article>
     <article><span>Ruta</span><strong>Directo → Detalle → SHARK</strong><small>sin enlaces sueltos</small></article>
   </section>
+
+  {% if v852_provider_ok and not v852_live_count %}
+  <section class="v852-live-empty-diagnostic" aria-label="Diagnóstico live seguro">
+    <strong>Sin directos reales ahora mismo</strong>
+    <p>La conexión API-Football aparece activa, pero el proveedor no ha devuelto partidos en vivo para mostrar. Se mantiene caché segura y no se fuerza ninguna llamada por render.</p>
+    <div><span>Proveedor activo</span><span>Caché live {{ v850_cache.get('cached_live', 0) }}</span><span>Guard anti-gasto activo</span></div>
+  </section>
+  {% endif %}
 
   <section class="v799-kpi-strip">
     <a class="live" href="/live"><i>●</i><span>En directo</span><strong>{{ counts.get('live',0) }}</strong><small>jugándose</small></a>

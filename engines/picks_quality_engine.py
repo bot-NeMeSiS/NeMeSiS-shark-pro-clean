@@ -55,6 +55,28 @@ _SOLID_COMPETITIONS = (
     "Brasileirão",
 )
 
+_LOW_RELEVANCE_TERMS = (
+    "georgian erovnuli",
+    "erovnuli liga",
+    "latvian higher",
+    "finnish ykk",
+    "ykkonen",
+    "ykkönen",
+    "reserve",
+    "reserves",
+    "youth",
+    "u19",
+    "u20",
+    "u21",
+    "u23",
+    "regional",
+    "amateur",
+    "friendly",
+    "segunda extranjera",
+    "tercera",
+    "cuarta",
+)
+
 _RISK_MAP = {
     "low": "Bajo",
     "bajo": "Bajo",
@@ -105,6 +127,8 @@ def _risk_label(value) -> str:
 def competition_priority(competition) -> int:
     comp = spanish_competition_name(competition) or "Competición"
     low = comp.lower()
+    if any(x in low for x in _LOW_RELEVANCE_TERMS):
+        return 1
     if any(x.lower() in low for x in _HIGH_VALUE_COMPETITIONS):
         return 14
     if any(x.lower() in low for x in _SOLID_COMPETITIONS):
@@ -112,6 +136,34 @@ def competition_priority(competition) -> int:
     if any(x in low for x in ("amistoso", "friendly", "regional", "provincial")):
         return 2
     return 5
+
+
+def is_low_relevance_competition(competition) -> bool:
+    low = (spanish_competition_name(competition) or str(competition or "")).lower()
+    return any(x in low for x in _LOW_RELEVANCE_TERMS) or competition_priority(competition) <= 2
+
+
+def _pick_datetime(item):
+    item = dict(item or {})
+    for key in ("kickoff_iso", "match_datetime", "start_time", "published_at"):
+        dt = parse_datetime_to_madrid(item.get(key) or "")
+        if dt:
+            return dt
+    date = str(item.get("match_date") or item.get("date") or "").strip()
+    time = str(item.get("kickoff_time") or item.get("match_time") or "").strip()
+    if date:
+        dt = parse_datetime_to_madrid((date + ("T" + time if time else "T00:00:00")).strip())
+        if dt:
+            return dt
+    return None
+
+
+def is_stale_pick(item, hours_grace=6) -> bool:
+    dt = _pick_datetime(item)
+    if not dt:
+        return False
+    now = datetime.now(dt.tzinfo or timezone.utc)
+    return (now - dt).total_seconds() > int(hours_grace) * 3600
 
 
 def odds_quality_points(odds) -> int:
@@ -130,7 +182,7 @@ def odds_quality_points(odds) -> int:
 
 
 def timing_points(item) -> int:
-    dt = parse_datetime_to_madrid(item.get("kickoff_iso") or "")
+    dt = _pick_datetime(item)
     if not dt:
         return 0
     now = datetime.now(dt.tzinfo or timezone.utc)
@@ -172,8 +224,13 @@ def pick_quality_score(item) -> int:
     else:
         score += 4
     score += odds_quality_points(odds)
-    score += competition_priority(item.get("competition_name") or item.get("league_name"))
+    comp = item.get("competition_name") or item.get("league_name")
+    score += competition_priority(comp)
+    if is_low_relevance_competition(comp):
+        score -= 42
     score += timing_points(item)
+    if is_stale_pick(item):
+        score -= 38
 
     risk = _risk_label(item.get("risk_level") or item.get("risk"))
     if risk == "Bajo":
@@ -230,6 +287,10 @@ def pick_is_premium_ready(item, min_score=68) -> bool:
         return False
     if any(x in status for x in ("final", "finished", "ended", "cancelled", "postponed")):
         return False
+    if is_stale_pick(item):
+        return False
+    if is_low_relevance_competition(item.get("competition_name") or item.get("league_name")):
+        return False
     return pick_quality_score(item) >= int(min_score)
 
 
@@ -249,6 +310,20 @@ def enrich_pick_quality(item) -> dict:
     item["quality_bucket"] = quality_bucket(score, item)
     item["premium_ready"] = pick_is_premium_ready(item)
     item["competition_priority"] = competition_priority(item.get("competition_name") or item.get("league_name"))
+    item["low_relevance_competition"] = is_low_relevance_competition(item.get("competition_name") or item.get("league_name"))
+    item["stale_pick"] = is_stale_pick(item)
+    if item["stale_pick"]:
+        item["app_pick_state"] = "Archivado"
+        item["app_pick_note"] = "Pick pasado: no aparece como activo premium."
+    elif item["low_relevance_competition"]:
+        item["app_pick_state"] = "Liga baja relevancia"
+        item["app_pick_note"] = "Se degrada para no ocupar protagonismo comercial."
+    elif not item.get("premium_ready"):
+        item["app_pick_state"] = "Pick en revisión"
+        item["app_pick_note"] = "Faltan cuota, selección o contexto suficiente."
+    else:
+        item["app_pick_state"] = "Pick activo"
+        item["app_pick_note"] = "Publicado con datos suficientes para mostrarse arriba."
     if not item.get("reasoning"):
         item["reasoning"] = "SHARK prioriza este pick por cuota real, mercado claro y señal deportiva disponible."
     if not item.get("warning_reason"):
@@ -262,6 +337,8 @@ def sort_picks_by_quality(picks):
         enriched,
         key=lambda p: (
             int(bool(p.get("premium_ready"))),
+            -int(bool(p.get("stale_pick"))),
+            -int(bool(p.get("low_relevance_competition"))),
             int(p.get("quality_score") or 0),
             int(p.get("competition_priority") or 0),
             _as_float(p.get("odds"), 0),
