@@ -6,10 +6,10 @@
 {% set counts = calendar.get('counts') or {} %}
 {% set lane = filters.get('lane') or 'today' %}
 {% set day_groups = calendar.get('day_groups') or calendar.get('groups') or [] %}
-<section class="v799-screen v801-calendar-screen v815-certified-screen v815-calendar-screen v816-certified-screen v816-calendar-screen v817-certified-screen v817-calendar-screen v819-certified-screen v819-calendar-screen v820-certified-screen v820-calendar-screen v823-certified-screen v823-calendar-screen v824-certified-screen v824-calendar-screen v825-certified-screen v826-certified-screen v827-certified-screen v828-certified-screen v829-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v830-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v825-calendar-screen" data-v815-template="calendar" data-v816-template="calendar" data-v817-template="calendar" data-v819-template="calendar" data-v820-template="calendar" data-v823-template="calendar" data-v824-template="calendar" data-v825-template="calendar" data-v827-template="calendar" data-v828-template="calendar" data-v829-template="calendar" data-v830-template="calendar" data-v832-template="calendar" data-v833-template="calendar" data-v836-template="calendar" data-v837-template="calendar" data-v826-template="calendar">
+<section class="v799-screen v801-calendar-screen v850-calendar-screen v815-certified-screen v815-calendar-screen v816-certified-screen v816-calendar-screen v817-certified-screen v817-calendar-screen v819-certified-screen v819-calendar-screen v820-certified-screen v820-calendar-screen v823-certified-screen v823-calendar-screen v824-certified-screen v824-calendar-screen v825-certified-screen v826-certified-screen v827-certified-screen v828-certified-screen v829-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v830-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v825-calendar-screen" data-v815-template="calendar" data-v816-template="calendar" data-v817-template="calendar" data-v819-template="calendar" data-v820-template="calendar" data-v823-template="calendar" data-v824-template="calendar" data-v825-template="calendar" data-v827-template="calendar" data-v828-template="calendar" data-v829-template="calendar" data-v830-template="calendar" data-v832-template="calendar" data-v833-template="calendar" data-v836-template="calendar" data-v837-template="calendar" data-v826-template="calendar" data-v850-template="calendar">
   <div class="v799-appbar v801-calendar-hero">
     <div>
-      <span class="v799-kicker">Calendario real  hora EspaÁa/Madrid</span>
+      <span class="v799-kicker">Calendario real · hora España/Madrid</span>
       <h1>Partidos</h1>
       <p>La pantalla de partidos ahora funciona como calendario central: días, ligas importantes, búsqueda, directo, picks y detalle conectado sin inventar datos.</p>
     </div>
@@ -40,7 +40,7 @@
     {% endfor %}
   </section>
 
-  <nav class="v799-filterbar v801-filterbar" aria-label="Filtros rpidos de calendario">
+  <nav class="v799-filterbar v801-filterbar" aria-label="Filtros rápidos de calendario">
     {% for tab in calendar.get('tabs') or [] %}
       <a class="{{ 'active' if lane == tab.key else '' }}" href="{{ tab.href }}">{{ tab.label }}{% if tab.count is not none and tab.count != '' %}<small>{{ tab.count }}</small>{% endif %}</a>
     {% endfor %}
@@ -56,7 +56,7 @@
         <option value="{{ league.value }}" {{ 'selected' if filters.get('league') == league.value else '' }}>{{ league.label }}  {{ league.count }}</option>
       {% endfor %}
     </select></label>
-    <label><span>Pas</span><select name="country">
+    <label><span>País</span><select name="country">
       <option value="">Todos</option>
       {% for country in (calendar.get('facets') or {}).get('countries') or [] %}
         <option value="{{ country.value }}" {{ 'selected' if filters.get('country') == country.value else '' }}>{{ country.label }}  {{ country.count }}</option>
@@ -95,7 +95,7 @@
   </section>
 
   <section class="v802-focus-strip" aria-label="Próximos partidos visibles">
-    <div><span>Foco rpido</span><strong>Abre partido, pick o SHARK desde la misma fila</strong></div>
+    <div><span>Foco rápido</span><strong>Abre partido, pick o SHARK desde la misma fila</strong></div>
     {% for m in calendar.get('highlight_matches') or [] %}
       {% set ctx = m|match_madrid_context %}
       <a href="/match/{{ m.get('id') }}"><small>{{ ctx.client_time_label or ctx.client_status_label or 'Pendiente' }}</small><strong>{{ ctx.safe_home }} vs {{ ctx.safe_away }}</strong><em>{{ ctx.client_competition|competition_es }}</em></a>
@@ -115,26 +115,28 @@
     <div class="v799-calendar-list v801-calendar-list">
       {% for day in day_groups %}
       <article class="v799-day-block v801-day-block">
-        <header class="v799-day-head v801-day-head"><div><span>Da</span><h2>{{ day.date_label or day.label }}</h2></div><small>{{ day.matches_count or day.total }} partidos  {{ day.leagues|length }} competiciones</small></header>
+        <header class="v799-day-head v801-day-head"><div><span>Día</span><h2>{{ day.date_label or day.label }}</h2></div><small>{{ day.matches_count or day.total }} partidos · {{ day.leagues|length }} competiciones</small></header>
         {% for league in day.leagues %}
         <section class="v799-league-block v801-league-block">
           <header><div><strong>{{ league.name|competition_es }}</strong><small>{{ league.country or 'Global' }}  {{ league.count or league.matches|length }} partidos</small></div><a href="/calendar?lane={{ lane }}&league={{ league.name|urlencode }}">Ver liga</a></header>
           {% for m in league.matches %}
           {% set ctx = m|match_madrid_context %}
+          {% set v850_card = m|v850_live_card %}
           {% set home_identity = m.get('home_identity') or {} %}
           {% set away_identity = m.get('away_identity') or {} %}
           {% set is_live = (m.get('live_depth') or {}).get('state') in ['LIVE','HT'] or (m.get('status_info') or {}).get('is_live') %}
           <article class="v799-agenda-row v801-agenda-row {{ 'has-pick' if m.get('has_pick') or m.get('pick_id') else '' }} {{ 'is-live' if is_live else '' }} {{ 'is-result-pending' if (m.get('status_info') or {}).get('is_result_pending') else '' }}">
             <button class="fav-star" type="button" data-kind="match" data-value="{{ m.get('id') }}" data-label="{{ ctx.safe_home }} vs {{ ctx.safe_away }}">☆</button>
             <a class="v799-agenda-link v801-agenda-link" href="/match/{{ m.get('id') }}">
-              <span class="v799-time v801-time"><b>{{ ctx.client_time_label or ctx.client_score_label or '—' }}</b><small>{{ ctx.client_status_label or 'Pendiente' }}</small></span>
+              <span class="v799-time v801-time"><b>{{ ctx.client_time_label or ctx.client_score_label or '—' }}</b><small>{{ v850_card.get('status_label') or ctx.client_status_label or 'Pendiente' }}</small></span>
               <span class="v799-team v801-team">{{ crest(home_identity, ctx.safe_home, 'compact') }}<strong>{{ ctx.safe_home }}</strong></span>
               <b class="v799-vs v801-vs">{{ ctx.client_score_label or 'VS' }}</b>
               <span class="v799-team v801-team away">{{ crest(away_identity, ctx.safe_away, 'compact') }}<strong>{{ ctx.safe_away }}</strong></span>
               <em>{{ '◆ Pick publicado' if m.get('has_pick') or m.get('pick_id') else ctx.client_competition|competition_es }}</em>
             </a>
-            <div class="v800-row-ribbon v801-row-meta">
-              <span>{{ ctx.client_status_label or 'Pendiente' }}</span>
+            <div class="v800-row-ribbon v801-row-meta v850-state-row">
+              <span class="v850-live-pill {{ 'is-live' if v850_card.get('is_live') else '' }}">{{ v850_card.get('status_label') or ctx.client_status_label or 'Pendiente' }}</span>
+              {% if v850_card.get('minute_label') %}<span class="v850-live-pill">{{ v850_card.get('minute_label') }}</span>{% endif %}
               <span>{{ ctx.client_competition|competition_es }}</span>
               {% if m.get('has_pick') or m.get('pick_id') %}<em>Pick</em>{% endif %}
             </div>

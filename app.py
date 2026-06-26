@@ -68,6 +68,28 @@ from engines.football_population_engine import (
 )
 from engines.live_engine import build_live_depth, build_live_flow, build_match_detail, fallback_timeline, normalize_live_state, shark_live_alerts, shark_momentum
 from engines.live_experience_engine import build_live_experience, live_experience_snapshot
+from engines.live_match_experience_engine import (
+    build_live_card_payload as v850_build_live_card_payload,
+    explain_live_data_state as v850_explain_live_data_state,
+    get_live_matches_cached as v850_get_live_matches_cached,
+    get_live_matches_from_api_sports_safe as v850_get_live_matches_from_api_sports_safe,
+    get_match_minute_label as v850_get_match_minute_label,
+    get_match_status_label as v850_get_match_status_label,
+    get_score_label as v850_get_score_label,
+    live_cache_summary as v850_live_cache_summary,
+    normalize_live_match as v850_normalize_live_match,
+    should_refresh_live_cache as v850_should_refresh_live_cache,
+)
+from engines.crest_logo_experience_engine import (
+    build_league_logo_payload as v850_build_league_logo_payload,
+    build_team_crest_payload as v850_build_team_crest_payload,
+    cache_logo_reference as v850_cache_logo_reference,
+    explain_logo_state as v850_explain_logo_state,
+    get_league_logo as v850_get_league_logo,
+    get_logo_fallback as v850_get_logo_fallback,
+    get_team_logo as v850_get_team_logo,
+    normalize_logo_url as v850_normalize_logo_url,
+)
 from engines.api_football_live_tracker_engine import (
     live_tracker_for_match,
     live_tracker_quality_summary,
@@ -260,7 +282,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V849_FULL_COMPANY_VISUAL_PRODUCT_EXPERIENCE_ADVANCEMENT'
+APP_VERSION = 'V850_LIVE_CRESTS_API_SPORTS_MATCH_DETAIL_FINAL'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
@@ -6266,6 +6288,54 @@ def jinja_team_visible_badge(value, side="home"):
     return ident.get("visible_badge") or ident.get("flag_emoji") or ident.get("initials") or "NS"
 
 
+@app.template_filter("v850_live_card")
+def jinja_v850_live_card(value):
+    try:
+        return v850_build_live_card_payload(value if isinstance(value, dict) else {})
+    except Exception:
+        return v850_build_live_card_payload({})
+
+
+@app.template_filter("v850_match_status")
+def jinja_v850_match_status(value):
+    try:
+        return v850_get_match_status_label(value if isinstance(value, dict) else {})
+    except Exception:
+        return "Estado pendiente"
+
+
+@app.template_filter("v850_match_minute")
+def jinja_v850_match_minute(value):
+    try:
+        return v850_get_match_minute_label(value if isinstance(value, dict) else {})
+    except Exception:
+        return ""
+
+
+@app.template_filter("v850_match_score")
+def jinja_v850_match_score(value):
+    try:
+        return v850_get_score_label(value if isinstance(value, dict) else {})
+    except Exception:
+        return "VS"
+
+
+@app.template_filter("v850_team_crest")
+def jinja_v850_team_crest(value):
+    try:
+        return v850_build_team_crest_payload(value)
+    except Exception:
+        return v850_build_team_crest_payload("Equipo")
+
+
+@app.template_filter("v850_league_logo")
+def jinja_v850_league_logo(value):
+    try:
+        return v850_build_league_logo_payload(value)
+    except Exception:
+        return v850_build_league_logo_payload("Competición")
+
+
 
 @app.template_filter("pick_client_title")
 def jinja_pick_client_title(value):
@@ -11928,6 +11998,10 @@ def live_page():
     data["api_football_live_tracker"] = api_live_tracker
     data["api_football_live_quality"] = live_tracker_quality_summary(DB_PATH)
     data["live_experience"] = build_live_experience(source, lane=lane, query=query)
+    data["v850_live_cache"] = v850_live_cache_summary(DB_PATH)
+    data["v850_live_state"] = v850_explain_live_data_state(DB_PATH)
+    data["v850_live_cards"] = [v850_build_live_card_payload(m) for m in (data["live_experience"].get("matches") or [])[:24]]
+    data["v850_api_sports_dry_live"] = v850_get_live_matches_from_api_sports_safe(dry_run=True)
     data["v766_highlights"] = v766_highlights_context(limit=8)
     data["v769_highlights_center"] = v769_highlights_content_center(data, current_session_user(), limit=12)
     data["dynamic_mode"] = build_v764_dynamic_competition_mode(data, current_session_user(), "live")
@@ -11966,6 +12040,9 @@ def match_detail_page(match_id):
     data["v769_match_highlights"] = [v769_highlight_card_from_row(h) for h in ((data.get("v766_highlights") or {}).get("highlights") or [])]
     data["api_football_live_tracker"] = live_tracker_for_match(DB_PATH, match_id)
     data["api_football_live_quality"] = live_tracker_quality_summary(DB_PATH)
+    data["v850_live_card"] = v850_build_live_card_payload((detail or {}).get("match") if detail else {})
+    data["v850_live_state"] = v850_explain_live_data_state(DB_PATH)
+    data["v850_logo_state"] = v850_explain_logo_state((detail or {}).get("match") if detail else {})
     if detail and not data["api_football_live_tracker"].get("available"):
         try:
             m_for_tracker = detail.get("match") or {}
@@ -11978,6 +12055,8 @@ def match_detail_page(match_id):
     if detail:
         detail["client_premium"] = data["client_premium"].get("match", {})
         detail["api_football_live_tracker"] = data["api_football_live_tracker"]
+        detail["v850_live_card"] = data["v850_live_card"]
+        detail["v850_logo_state"] = data["v850_logo_state"]
         try:
             record_user_activity("view", "match", str(match_id), {"label": f"{(detail.get('match') or {}).get('home_team') or ''} vs {(detail.get('match') or {}).get('away_team') or ''}"})
         except Exception:
@@ -12859,14 +12938,20 @@ def admin_api_sports_audit_page():
     status = get_api_sports_status(DB_PATH)
     dry_fixtures = sync_api_sports_fixtures(days=2, dry_run=True)
     dry_live = sync_api_sports_live(dry_run=True)
+    v850_live_summary = v850_live_cache_summary(DB_PATH)
+    v850_live_state = v850_explain_live_data_state(DB_PATH)
     data = dashboard_data()
     data["api_sports_provider"] = status
+    data["v850_live_summary"] = v850_live_summary
+    data["v850_live_state"] = v850_live_state
     return render_template(
         "admin_api_sports_audit.html",
         data=data,
         status=status,
         dry_fixtures=dry_fixtures,
         dry_live=dry_live,
+        v850_live_summary=v850_live_summary,
+        v850_live_state=v850_live_state,
         version=APP_VERSION,
     )
 
@@ -13503,6 +13588,9 @@ def api_runtime_version():
         "has_v849_shell": "data-v849-shell" in base_template and "NEMESIS V849 FULL COMPANY VISUAL PRODUCT EXPERIENCE ADVANCEMENT ACTIVE" in base_template,
         "has_v849_css": "V849 FULL COMPANY VISUAL PRODUCT ADVANCEMENT START" in css_text,
         "has_v849_full_company_visual_product_experience": "data-v849-shell" in base_template and "V849 FULL COMPANY VISUAL PRODUCT ADVANCEMENT START" in css_text,
+        "has_v850_shell": "data-v850-shell" in base_template and "NEMESIS V850 LIVE CRESTS API SPORTS MATCH DETAIL FINAL ACTIVE" in base_template,
+        "has_v850_css": "V850 LIVE CRESTS API SPORTS FINAL START" in css_text,
+        "has_v850_live_crests_api_sports_match_detail": "live_match_experience_engine" in app_py_text and "crest_logo_experience_engine" in app_py_text and "V850 LIVE CRESTS API SPORTS FINAL START" in css_text,
         "has_v837_reference_photo_qa": "data-v837-shell" in base_template and "V837 REFERENCE PHOTO PERFECTION REAL QA START" in css_text,
         "has_v836_autonomous_qa": "data-v836-shell" in base_template and "V836 AUTONOMOUS REFERENCE VISUAL REVIEW FINAL QA START" in css_text,
         "has_v833_visual_completion": "data-v833-shell" in base_template and "V833 REFERENCE ECOSYSTEM VISUAL COMPLETION START" in css_text,

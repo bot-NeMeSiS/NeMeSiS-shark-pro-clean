@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 {% block content %}
-<section class="v847-provider-page" data-v847-template="admin_api_sports_audit">
+<section class="v847-provider-page v850-provider-page" data-v847-template="admin_api_sports_audit" data-v850-template="admin_api_sports_audit">
   <div class="v847-provider-hero">
     <p class="eyebrow">Proveedor de datos real</p>
     <h1>API-SPORTS / API-Football</h1>
-    <p>Auditoría segura del proveedor pagado, caché y uso real en calendario, directo y detalle de partido. No se muestran secretos.</p>
+    <p>Auditoría segura del proveedor pagado, caché y uso real en calendario, directo, escudos y detalle de partido. No se muestran secretos.</p>
     <div class="actions">
       <a class="btn primary" href="/api/admin/api-sports/status">Ver JSON seguro</a>
       <a class="btn" href="/admin/data-center">Data Center</a>
@@ -63,6 +63,24 @@
       <h2>Dry-run sin gastar crédito</h2>
       <p>Estas pruebas confirman qué se llamaría sin ejecutar petición externa.</p>
       <pre>{{ {'fixtures': dry_fixtures, 'live': dry_live}|tojson(indent=2) }}</pre>
+    </article>
+  </div>
+
+  <div class="v850-admin-live-grid" aria-label="V850 live y escudos">
+    <article class="v847-provider-card">
+      <span>Live cacheado V850</span>
+      <strong>{{ v850_live_summary.get('cached_live', 0) if v850_live_summary else 0 }}</strong>
+      <small>{{ v850_live_summary.get('cached_total', 0) if v850_live_summary else 0 }} registros disponibles sin llamar al proveedor por render.</small>
+    </article>
+    <article class="v847-provider-card">
+      <span>Estado live</span>
+      <strong>{{ v850_live_state.get('label') if v850_live_state else 'Esperando proveedor' }}</strong>
+      <small>{{ v850_live_state.get('message') if v850_live_state else 'No se inventan directos, marcadores ni minutos.' }}</small>
+    </article>
+    <article class="v847-provider-card">
+      <span>Escudos/logos</span>
+      <strong>Fallback premium</strong>
+      <small>Si API-SPORTS aporta logo se usa referencia cacheada; si no, escudo local sin inventar oficial.</small>
     </article>
   </div>
 </section>

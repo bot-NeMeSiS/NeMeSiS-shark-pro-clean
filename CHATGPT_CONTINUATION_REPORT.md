@@ -86,3 +86,21 @@ Qué se hizo:
 
 ZIP final esperado:
 NeMeSiS_SHARK_PRO_V849_FULL_COMPANY_VISUAL_PRODUCT_EXPERIENCE_ADVANCEMENT_RENDER_READY.zip
+# V850 LIVE CRESTS API SPORTS MATCH DETAIL FINAL
+
+Fecha: 2026-06-26
+
+Base real usada: `V849_FULL_COMPANY_VISUAL_PRODUCT_EXPERIENCE_ADVANCEMENT`.
+
+Nueva version: `V850_LIVE_CRESTS_API_SPORTS_MATCH_DETAIL_FINAL`.
+
+Resumen:
+
+- Se reforzo live/directo con payload seguro de marcador, minuto y estado.
+- Se agrego `engines/live_match_experience_engine.py` con helpers cache-first y dry-run.
+- Se agrego `engines/crest_logo_experience_engine.py` para escudos/logos/fallbacks sin descargas en render.
+- Se mejoraron `/live`, `/directo`, `/calendar`, `/match/` y admin API-SPORTS.
+- Se preservan V818, V844, V845, V847, V848 y V849.
+- No se tocaron DB_PATH, usuarios, sesiones, membresias, pagos ni secretos.
+
+Pendiente del cierre de turno: validaciones completas y ZIP Render Ready V850.

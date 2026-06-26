@@ -7383,3 +7383,172 @@ body[data-v849-shell="true"] .danger{
   }
 }
 /* V849 FULL COMPANY VISUAL PRODUCT ADVANCEMENT END */
+
+/* V850 LIVE CRESTS API SPORTS FINAL START */
+.v850-live-provider,
+.v850-live-state,
+.v850-logo-state {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+  margin: 14px 0;
+}
+
+.v850-live-provider > *,
+.v850-live-state > *,
+.v850-logo-state > *,
+.v850-live-chip {
+  border: 1px solid rgba(86, 217, 255, .22);
+  background: linear-gradient(145deg, rgba(6, 19, 33, .92), rgba(9, 34, 51, .76));
+  box-shadow: 0 18px 45px rgba(0, 0, 0, .22), inset 0 1px 0 rgba(255, 255, 255, .05);
+  border-radius: 18px;
+  padding: 14px;
+  color: #eaf7ff;
+}
+
+.v850-live-provider span,
+.v850-live-state span,
+.v850-logo-state span,
+.v850-live-chip span {
+  display: block;
+  color: rgba(177, 216, 231, .78);
+  font-size: .78rem;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.v850-live-provider strong,
+.v850-live-state strong,
+.v850-logo-state strong,
+.v850-live-chip strong {
+  display: block;
+  margin-top: 4px;
+  color: #ffffff;
+  font-size: 1.02rem;
+}
+
+.v850-live-provider small,
+.v850-live-state small,
+.v850-logo-state small,
+.v850-live-chip small {
+  display: block;
+  margin-top: 4px;
+  color: rgba(214, 237, 246, .76);
+  line-height: 1.4;
+}
+
+.v850-live-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 30px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(86, 217, 255, .28);
+  background: rgba(5, 22, 35, .7);
+  color: #dff7ff;
+  font-size: .78rem;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+.v850-live-pill.is-live {
+  color: #ffffff;
+  background: linear-gradient(135deg, rgba(255, 64, 95, .34), rgba(14, 209, 255, .18));
+  border-color: rgba(255, 90, 120, .42);
+  box-shadow: 0 0 24px rgba(255, 64, 95, .18);
+}
+
+.v850-score-focus {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 82px;
+  min-height: 66px;
+  padding: 8px 12px;
+  border-radius: 18px;
+  background: radial-gradient(circle at 50% 0%, rgba(80, 226, 255, .18), rgba(5, 16, 29, .94));
+  border: 1px solid rgba(111, 229, 255, .28);
+  color: #fff;
+  text-align: center;
+}
+
+.v850-score-focus b {
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.v850-score-focus small {
+  margin-top: 5px;
+  color: rgba(219, 242, 250, .76);
+  font-size: .72rem;
+}
+
+.v850-live-card-enhanced {
+  position: relative;
+  overflow: hidden;
+}
+
+.v850-live-card-enhanced::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 18% 18%, rgba(44, 214, 255, .18), transparent 28%),
+    radial-gradient(circle at 88% 12%, rgba(47, 111, 255, .12), transparent 30%);
+  opacity: .78;
+}
+
+.v850-live-card-enhanced > * {
+  position: relative;
+  z-index: 1;
+}
+
+.v850-logo-ring .crest,
+.v850-logo-ring.crest {
+  border-color: rgba(109, 226, 255, .42);
+  background: linear-gradient(145deg, rgba(8, 31, 50, .92), rgba(2, 12, 22, .96));
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, .04), 0 10px 26px rgba(0, 0, 0, .28);
+}
+
+.v850-state-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-top: 10px;
+}
+
+.v850-admin-live-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-top: 18px;
+}
+
+@media (max-width: 768px) {
+  .v850-live-provider,
+  .v850-live-state,
+  .v850-logo-state,
+  .v850-admin-live-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .v850-score-focus {
+    min-width: 70px;
+    min-height: 58px;
+  }
+
+  .v850-score-focus b {
+    font-size: 1.12rem;
+  }
+
+  .v850-live-pill {
+    max-width: 100%;
+    white-space: normal;
+  }
+}
+/* V850 LIVE CRESTS API SPORTS FINAL END */
