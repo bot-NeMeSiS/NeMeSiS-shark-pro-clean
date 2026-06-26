@@ -7835,3 +7835,251 @@ body[data-v852-shell="true"] .v799-filterbar a {
   }
 }
 /* V852 REAL VIDEO PRODUCT PERFECTION FINAL END */
+
+/* V853 ADMIN PC COMMAND CENTER REFERENCE FINAL START */
+body[data-v853-shell="true"].ns-admin {
+  --v853-admin-panel: rgba(4, 17, 30, .88);
+  --v853-admin-panel-strong: rgba(7, 29, 47, .94);
+  --v853-admin-line: rgba(104, 232, 255, .20);
+  --v853-admin-line-soft: rgba(104, 232, 255, .12);
+  --v853-admin-text: #edfaff;
+  --v853-admin-muted: rgba(220, 244, 250, .72);
+  color: var(--v853-admin-text);
+}
+
+body[data-v853-shell="true"].ns-admin .v808-admin-rail {
+  width: 112px;
+  padding: 12px 8px;
+  border-right: 1px solid rgba(104, 232, 255, .12);
+  background:
+    radial-gradient(circle at 50% 0%, rgba(81, 229, 255, .16), transparent 34%),
+    linear-gradient(180deg, rgba(4, 18, 31, .96), rgba(2, 8, 16, .98));
+  box-shadow: 18px 0 48px rgba(0, 0, 0, .28);
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+body[data-v853-shell="true"].ns-admin .v808-admin-rail nav {
+  gap: 7px;
+}
+
+body[data-v853-shell="true"].ns-admin .v808-admin-rail nav a {
+  min-height: 42px;
+  border-radius: 14px;
+  padding: 8px 6px;
+  border: 1px solid rgba(104, 232, 255, .10);
+  background: rgba(104, 232, 255, .045);
+  color: rgba(236, 250, 255, .88);
+  font-size: .68rem;
+  line-height: 1.05;
+}
+
+body[data-v853-shell="true"].ns-admin .v808-admin-rail nav a:hover,
+body[data-v853-shell="true"].ns-admin .v808-admin-rail nav a:focus-visible {
+  border-color: rgba(104, 232, 255, .34);
+  background: rgba(104, 232, 255, .12);
+  color: #ffffff;
+}
+
+body[data-v853-shell="true"].ns-admin .v853-admin-command-strip {
+  display: grid;
+  grid-template-columns: minmax(250px, .72fr) 1.6fr;
+  gap: 14px;
+  max-width: 1360px;
+  margin: 14px auto 0;
+  padding: 14px;
+  border: 1px solid var(--v853-admin-line);
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at 10% 0%, rgba(87, 230, 255, .18), transparent 34%),
+    linear-gradient(145deg, rgba(5, 20, 34, .92), rgba(2, 9, 17, .95));
+  box-shadow: 0 22px 70px rgba(0, 0, 0, .34), inset 0 1px 0 rgba(255, 255, 255, .05);
+}
+
+body[data-v853-shell="true"].ns-admin .v853-admin-command-strip > div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+body[data-v853-shell="true"].ns-admin .v853-admin-command-strip span {
+  color: #65e8ff;
+  font-size: .72rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+body[data-v853-shell="true"].ns-admin .v853-admin-command-strip strong {
+  color: #ffffff;
+  font-size: clamp(1rem, 1.4vw, 1.35rem);
+}
+
+body[data-v853-shell="true"].ns-admin .v853-admin-command-strip small {
+  color: var(--v853-admin-muted);
+  line-height: 1.35;
+}
+
+body[data-v853-shell="true"].ns-admin .v853-admin-command-strip nav {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(108px, 1fr));
+  gap: 8px;
+  align-items: stretch;
+}
+
+body[data-v853-shell="true"].ns-admin .v853-admin-command-strip a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  padding: 8px 10px;
+  border-radius: 13px;
+  border: 1px solid rgba(104, 232, 255, .16);
+  background: rgba(104, 232, 255, .075);
+  color: #eafdff;
+  font-size: .76rem;
+  font-weight: 850;
+  text-align: center;
+}
+
+body[data-v853-shell="true"].ns-admin .v853-admin-command-strip a:hover,
+body[data-v853-shell="true"].ns-admin .v853-admin-command-strip a:focus-visible {
+  border-color: rgba(104, 232, 255, .42);
+  background: rgba(104, 232, 255, .16);
+  color: #ffffff;
+}
+
+body[data-v853-shell="true"].ns-admin .ns-main,
+body[data-v853-shell="true"].ns-admin main,
+body[data-v853-shell="true"].ns-admin .shell {
+  min-width: 0;
+}
+
+body[data-v853-shell="true"].ns-admin .v794-admin-shell,
+body[data-v853-shell="true"].ns-admin .v809-admin-shell,
+body[data-v853-shell="true"].ns-admin .v823-certified-screen,
+body[data-v853-shell="true"].ns-admin .v824-certified-screen,
+body[data-v853-shell="true"].ns-admin .v825-certified-screen,
+body[data-v853-shell="true"].ns-admin .v826-certified-screen,
+body[data-v853-shell="true"].ns-admin .v827-certified-screen,
+body[data-v853-shell="true"].ns-admin .v828-certified-screen,
+body[data-v853-shell="true"].ns-admin .v829-certified-screen,
+body[data-v853-shell="true"].ns-admin .v830-certified-screen,
+body[data-v853-shell="true"].ns-admin .v832-certified-screen,
+body[data-v853-shell="true"].ns-admin .v833-certified-screen,
+body[data-v853-shell="true"].ns-admin .v836-certified-screen,
+body[data-v853-shell="true"].ns-admin .v837-certified-screen {
+  max-width: 1360px;
+  margin-inline: auto;
+}
+
+body[data-v853-shell="true"].ns-admin .v809-admin-reference-hero,
+body[data-v853-shell="true"].ns-admin .v807-admin-hero,
+body[data-v853-shell="true"].ns-admin .admin-hero,
+body[data-v853-shell="true"].ns-admin .app-hero,
+body[data-v853-shell="true"].ns-admin .hero.compact,
+body[data-v853-shell="true"].ns-admin .compact-hero {
+  min-height: unset;
+  padding: clamp(18px, 2.6vw, 30px);
+  border: 1px solid var(--v853-admin-line);
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 16% 0%, rgba(87, 230, 255, .16), transparent 36%),
+    linear-gradient(145deg, rgba(6, 22, 37, .90), rgba(2, 9, 17, .96));
+  box-shadow: 0 22px 70px rgba(0, 0, 0, .30);
+}
+
+body[data-v853-shell="true"].ns-admin .v809-admin-reference-hero h1,
+body[data-v853-shell="true"].ns-admin .v807-admin-hero h1,
+body[data-v853-shell="true"].ns-admin .admin-hero h1,
+body[data-v853-shell="true"].ns-admin .app-hero h1 {
+  max-width: 760px;
+  line-height: 1.05;
+}
+
+body[data-v853-shell="true"].ns-admin .v794-admin-kpi-grid,
+body[data-v853-shell="true"].ns-admin .v807-admin-command-grid,
+body[data-v853-shell="true"].ns-admin .v807-route-cards,
+body[data-v853-shell="true"].ns-admin .grid,
+body[data-v853-shell="true"].ns-admin .cards {
+  gap: 14px;
+}
+
+body[data-v853-shell="true"].ns-admin .card,
+body[data-v853-shell="true"].ns-admin .panel,
+body[data-v853-shell="true"].ns-admin .v794-admin-panel,
+body[data-v853-shell="true"].ns-admin .v794-action-card,
+body[data-v853-shell="true"].ns-admin .v807-route-group,
+body[data-v853-shell="true"].ns-admin .v807-admin-command-main,
+body[data-v853-shell="true"].ns-admin .v807-admin-command-side,
+body[data-v853-shell="true"].ns-admin .v809-admin-reference-hero aside,
+body[data-v853-shell="true"].ns-admin .v807-admin-hero aside {
+  border: 1px solid var(--v853-admin-line-soft);
+  background:
+    radial-gradient(circle at 14% 0%, rgba(93, 231, 255, .11), transparent 32%),
+    var(--v853-admin-panel);
+  box-shadow: 0 18px 54px rgba(0, 0, 0, .24);
+}
+
+body[data-v853-shell="true"].ns-admin .v807-action-tiles a,
+body[data-v853-shell="true"].ns-admin .v807-route-cards a,
+body[data-v853-shell="true"].ns-admin .button,
+body[data-v853-shell="true"].ns-admin .btn,
+body[data-v853-shell="true"].ns-admin button {
+  min-height: 40px;
+}
+
+body[data-v853-shell="true"].ns-admin table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  overflow: hidden;
+  border-radius: 16px;
+  background: var(--v853-admin-panel);
+}
+
+body[data-v853-shell="true"].ns-admin th,
+body[data-v853-shell="true"].ns-admin td {
+  border-bottom: 1px solid rgba(104, 232, 255, .10);
+}
+
+body[data-v853-shell="true"].ns-admin .v829-mobile-bottom-nav,
+body[data-v853-shell="true"].ns-admin .bottom-nav,
+body[data-v853-shell="true"].ns-admin .mobile-bottom-nav,
+body[data-v853-shell="true"].ns-admin .floating-shark,
+body[data-v853-shell="true"].ns-admin .v825-floating-shark,
+body[data-v853-shell="true"].ns-admin .scroll-to-top {
+  display: none !important;
+}
+
+@media (max-width: 980px) {
+  body[data-v853-shell="true"].ns-admin .v808-admin-rail {
+    position: sticky;
+    top: 0;
+    width: 100%;
+    min-height: auto;
+    display: block;
+    border-right: 0;
+    border-bottom: 1px solid rgba(104, 232, 255, .12);
+  }
+
+  body[data-v853-shell="true"].ns-admin .v808-admin-rail nav {
+    display: flex;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+
+  body[data-v853-shell="true"].ns-admin .v808-admin-rail nav a {
+    flex: 0 0 auto;
+    min-width: 92px;
+  }
+
+  body[data-v853-shell="true"].ns-admin .v853-admin-command-strip {
+    grid-template-columns: 1fr;
+    margin: 10px 12px 0;
+  }
+
+  body[data-v853-shell="true"].ns-admin .v853-admin-command-strip nav {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+/* V853 ADMIN PC COMMAND CENTER REFERENCE FINAL END */

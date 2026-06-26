@@ -4,13 +4,14 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 EXPECTED = "V852_REAL_VIDEO_PRODUCT_PERFECTION_LIVE_PICKS_VISUAL_QA_FINAL"
+CURRENT_OR_NEXT = {EXPECTED, "V853_ADMIN_PC_COMMAND_CENTER_REFERENCE_PERFECTION_FINAL"}
 
 
 def main():
     import app
     payload = app.app.test_client().get("/api/runtime-version").get_json()
-    assert payload["app_version"] == EXPECTED
-    assert payload["version_txt"] == EXPECTED
+    assert payload["app_version"] in CURRENT_OR_NEXT
+    assert payload["version_txt"] in CURRENT_OR_NEXT
     for key in [
         "has_v852_real_video_product_perfection",
         "has_v851_logo_brand_header_fix",

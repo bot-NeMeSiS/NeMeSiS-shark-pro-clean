@@ -16,7 +16,7 @@
   <aside>
     <img src="/static/img/shark-logo.svg" alt="">
     <strong>{{ d.get('version') or d.get('app_version') or 'Versión activa' }}</strong>
-    <small>Madrid  producción  sin datos inventados</small>
+    <small>Madrid · producción · sin datos inventados</small>
   </aside>
 </section>
 
@@ -29,7 +29,7 @@
   <aside>
     <span class="v807-live-dot"></span>
     <strong>{{ d.get('version') or d.get('app_version') or 'Versión activa' }}</strong>
-    <small>Madrid  producción</small>
+    <small>Madrid · producción</small>
     <a href="/admin/map">Abrir mapa</a>
   </aside>
 </section>
@@ -52,7 +52,7 @@
       <a href="/admin/matches-sync"><i>⚽</i><b>Partidos</b><small>Revisar calendario, resultados y enlaces.</small></a>
       <a href="/admin/live-depth"><i>●</i><b>Live API-Football</b><small>Tracker, presión y eventos reales.</small></a>
       <a href="/admin/picks"><i>◎</i><b>Picks</b><small>Publicar y revisar picks reales.</small></a>
-      <a href="/admin/telegram/command-center"><i>✈</i><b>Telegram</b><small>Automatización, cola y diagnsticos.</small></a>
+      <a href="/admin/telegram/command-center"><i>✈</i><b>Telegram</b><small>Automatización, cola y diagnósticos.</small></a>
       <a href="/sports-hub"><i>◉</i><b>Vista cliente</b><small>Comprobar experiencia del usuario.</small></a>
     </div>
   </article>
@@ -62,7 +62,7 @@
       <div><span>DB</span><strong>{{ 'Con datos' if d.get('users_count') or d.get('match_hub') else 'Pendiente' }}</strong></div>
       <div><span>Live</span><strong>{{ stats.get('live_matches') or d.get('live_count') or '—' }}</strong></div>
       <div><span>Picks</span><strong>{{ stats.get('picks_active') or d.get('active_picks') or '—' }}</strong></div>
-      <div><span>API</span><strong>Segn Render</strong></div>
+      <div><span>API</span><strong>Según Render</strong></div>
     </div>
     <p class="muted small">El panel no simula valores. Las métricas dependen de SQLite, Stripe, Telegram, API-Football y Render.</p>
   </article>

@@ -149,3 +149,22 @@ Resumen:
 - No se tocaron DB_PATH, usuarios, sesiones, membresias, pagos ni secretos.
 
 Pendiente del cierre de turno: validaciones completas y ZIP Render Ready V850.
+## V853_ADMIN_PC_COMMAND_CENTER_REFERENCE_PERFECTION_FINAL
+
+Base real detectada: V852_REAL_VIDEO_PRODUCT_PERFECTION_LIVE_PICKS_VISUAL_QA_FINAL.
+
+Trabajo aplicado:
+- Se elevó VERSION.txt, APP_VERSION, base.html y runtime a V853.
+- Se añadió banda admin `v853-admin-command-strip` con accesos a Dashboard, Datos, API-SPORTS, Telegram, SHARK AI, Master tick, Usuarios, Membresías, Pagos y Runtime.
+- Se añadió CSS V853 para rail admin, headers, cards, tablas y ocultación de bottom nav/floating SHARK cliente dentro de admin.
+- Se corrigieron textos visibles rotos en admin: `diagnsticos`, `Segn Render` y separadores Madrid/producción.
+- Se añadieron checks V853 y reportes V853.
+
+Preservado:
+- V818 master tick.
+- V844 Telegram.
+- V845 SHARK AI.
+- V847 API-SPORTS provider guard.
+- V850 live/escudos.
+- V851 branding.
+- V852 live/picks/visual QA.
