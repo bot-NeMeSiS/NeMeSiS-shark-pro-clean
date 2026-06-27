@@ -46,7 +46,7 @@
   </div>
   <aside class="v794-admin-grid">
     <article class="v794-admin-panel v794-pulse-card">
-      <div class="v794-panel-head"><h2>Vista previa del prximo mensaje</h2><span>{{ ui.status(d.get('preview_time') or 'Preview real','info') }}</span></div>
+      <div class="v794-panel-head"><h2>Vista previa del próximo mensaje</h2><span>{{ ui.status(d.get('preview_time') or 'Preview real','info') }}</span></div>
       {% set preview = d.get('message_preview') or d.get('next_message_preview') or d.get('preview_text') %}
       {% if preview %}
       <div style="border:1px solid rgba(24,216,255,.22);border-radius:16px;padding:18px;background:linear-gradient(135deg,rgba(10,123,255,.20),rgba(4,12,24,.88))"><p>{{ preview }}</p><small>Destino: {{ channel_label }}</small></div>

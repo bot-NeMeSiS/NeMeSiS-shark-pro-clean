@@ -8214,3 +8214,174 @@ body[data-v854-shell="true"].ns-admin .scroll-to-top {
   }
 }
 /* V854 CLIENT ADMIN REAL RENDER FINAL POLISH END */
+
+/* V855 FULL ECOSYSTEM REFERENCE REBUILD START */
+body[data-v855-shell="true"] {
+  --v855-cyan: #65e8ff;
+  --v855-gold: #ffd56b;
+  --v855-ink: #020814;
+  --v855-card: rgba(4, 18, 32, .88);
+  --v855-card-strong: rgba(7, 28, 47, .94);
+  --v855-line: rgba(101, 232, 255, .20);
+  --v855-muted: rgba(224, 245, 250, .76);
+  overflow-x: hidden;
+}
+
+body[data-v855-shell="true"] .ns-main-shell,
+body[data-v855-shell="true"] .shell,
+body[data-v855-shell="true"] main,
+body[data-v855-shell="true"] section,
+body[data-v855-shell="true"] article,
+body[data-v855-shell="true"] .card,
+body[data-v855-shell="true"] .panel {
+  min-width: 0;
+}
+
+body[data-v855-shell="true"]:not(.ns-admin)::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -3;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 80% 8%, rgba(87, 230, 255, .18), transparent 32%),
+    radial-gradient(circle at 18% 18%, rgba(21, 134, 255, .14), transparent 36%),
+    linear-gradient(180deg, #06111f, #020814 58%, #01050c);
+}
+
+body[data-v855-shell="true"]:not(.ns-admin)::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  opacity: .22;
+  background-image: radial-gradient(circle, rgba(151, 238, 255, .42) 1px, transparent 1.6px);
+  background-size: 22px 22px;
+  mask-image: linear-gradient(180deg, rgba(0,0,0,.95), rgba(0,0,0,.22));
+}
+
+body[data-v855-shell="true"] .ns-brand,
+body[data-v855-shell="true"] .ns-topbar,
+body[data-v855-shell="true"] .v828-client-rail,
+body[data-v855-shell="true"] .v808-admin-rail,
+body[data-v855-shell="true"] .v853-admin-command-strip {
+  isolation: isolate;
+}
+
+body[data-v855-shell="true"] .v799-card,
+body[data-v855-shell="true"] .v799-pick-card,
+body[data-v855-shell="true"] .v799-live-card,
+body[data-v855-shell="true"] .v799-feature-pick,
+body[data-v855-shell="true"] .v799-live-feature,
+body[data-v855-shell="true"] .card,
+body[data-v855-shell="true"] .panel,
+body[data-v855-shell="true"] .v794-admin-panel,
+body[data-v855-shell="true"] .v807-route-group,
+body[data-v855-shell="true"] .premium-empty-state,
+body[data-v855-shell="true"] .empty-state {
+  border: 1px solid var(--v855-line);
+  background:
+    radial-gradient(circle at 12% 0%, rgba(101, 232, 255, .13), transparent 34%),
+    linear-gradient(145deg, rgba(6, 24, 41, .88), rgba(2, 8, 16, .94));
+  box-shadow: 0 20px 62px rgba(0, 0, 0, .28);
+}
+
+body[data-v855-shell="true"] .tier-badge-pro,
+body[data-v855-shell="true"] [data-ns-plan="PRO"] .tier-badge {
+  border-color: rgba(101, 232, 255, .38);
+}
+
+body[data-v855-shell="true"] .tier-badge-elite,
+body[data-v855-shell="true"] .tier-badge-eliteplus,
+body[data-v855-shell="true"] [data-ns-plan="ELITE"] .tier-badge,
+body[data-v855-shell="true"] [data-ns-plan="ELITE+"] .tier-badge {
+  border-color: rgba(255, 213, 107, .48);
+  box-shadow: 0 0 24px rgba(255, 213, 107, .14);
+}
+
+body[data-v855-shell="true"] a,
+body[data-v855-shell="true"] button,
+body[data-v855-shell="true"] .btn,
+body[data-v855-shell="true"] .button {
+  text-wrap: balance;
+}
+
+body[data-v855-shell="true"] .v799-filterbar {
+  gap: 8px;
+  min-width: 0;
+}
+
+body[data-v855-shell="true"] .v799-filterbar a,
+body[data-v855-shell="true"] .v829-mobile-bottom-nav a,
+body[data-v855-shell="true"] .v853-admin-command-strip a {
+  min-height: 42px;
+}
+
+body[data-v855-shell="true"] .team-logo,
+body[data-v855-shell="true"] .team-crest,
+body[data-v855-shell="true"] .league-logo,
+body[data-v855-shell="true"] img[class*="crest"],
+body[data-v855-shell="true"] img[class*="logo"] {
+  max-width: 100%;
+  object-fit: contain;
+}
+
+body[data-v855-shell="true"] .muted,
+body[data-v855-shell="true"] .small,
+body[data-v855-shell="true"] small {
+  color: var(--v855-muted);
+}
+
+body[data-v855-shell="true"].ns-admin::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -3;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 85% 0%, rgba(101, 232, 255, .14), transparent 32%),
+    linear-gradient(180deg, rgba(3, 14, 25, .99), rgba(1, 5, 12, .99));
+}
+
+body[data-v855-shell="true"].ns-admin .v808-admin-dock,
+body[data-v855-shell="true"].ns-admin .v853-admin-command-strip,
+body[data-v855-shell="true"].ns-admin .v809-admin-reference-hero,
+body[data-v855-shell="true"].ns-admin .v807-admin-hero {
+  max-width: 1400px;
+}
+
+body[data-v855-shell="true"].ns-admin .bottom-nav,
+body[data-v855-shell="true"].ns-admin .mobile-bottom-nav,
+body[data-v855-shell="true"].ns-admin .v829-mobile-bottom-nav,
+body[data-v855-shell="true"].ns-admin .floating-shark,
+body[data-v855-shell="true"].ns-admin .v825-floating-shark,
+body[data-v855-shell="true"].ns-admin .scroll-to-top {
+  display: none !important;
+}
+
+@media (max-width: 768px) {
+  body[data-v855-shell="true"] .ns-topbar .topin {
+    gap: 8px;
+  }
+
+  body[data-v855-shell="true"]:not(.ns-admin) .shell,
+  body[data-v855-shell="true"]:not(.ns-admin) .shark-shell,
+  body[data-v855-shell="true"]:not(.ns-admin) .ns-main-shell {
+    padding-bottom: calc(env(safe-area-inset-bottom) + 112px);
+  }
+
+  body[data-v855-shell="true"] .v799-filterbar {
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  body[data-v855-shell="true"] h1,
+  body[data-v855-shell="true"] h2,
+  body[data-v855-shell="true"] h3,
+  body[data-v855-shell="true"] .ns-brand-name,
+  body[data-v855-shell="true"] .ns-brand-pro {
+    overflow-wrap: anywhere;
+  }
+}
+/* V855 FULL ECOSYSTEM REFERENCE REBUILD END */

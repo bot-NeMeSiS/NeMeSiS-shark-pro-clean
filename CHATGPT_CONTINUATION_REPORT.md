@@ -187,3 +187,22 @@ Preservado:
 - V851 logo/header.
 - V852 live/picks/video polish.
 - V853 admin command center.
+## V855_FULL_ECOSYSTEM_REFERENCE_REBUILD_CLIENT_ADMIN_MEMBERSHIPS_FINAL
+
+Base real detectada: V854_CLIENT_ADMIN_REAL_RENDER_FINAL_POLISH_AND_PRODUCT_QA.
+
+Trabajo aplicado:
+- Se elevó VERSION.txt, APP_VERSION, base.html, cache CSS y runtime a V855.
+- Se creó `engines/membership_experience_engine.py` como motor de presentación para FREE, PRO, ELITE, ELITE+ y ADMIN.
+- Se añadió capa CSS V855 para coordinar cliente, admin, móvil, PC, cards, filtros, estados vacíos, logos y separación admin/cliente.
+- Se creó `tools/check_v855_full_ecosystem_reference_rebuild.py`.
+- Se añadieron reportes V855 de preflight, gap audit, membresías, admin command center, rutas, cliente y estabilidad.
+
+Preservado:
+- V818 master tick.
+- V844 Telegram.
+- V845 SHARK.
+- V847 API-SPORTS.
+- V850 live/escudos.
+- V853 admin command center.
+- V854 polish global.

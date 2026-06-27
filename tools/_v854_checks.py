@@ -6,6 +6,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 VERSION = "V854_CLIENT_ADMIN_REAL_RENDER_FINAL_POLISH_AND_PRODUCT_QA"
+CURRENT_OR_NEXT = {VERSION, "V855_FULL_ECOSYSTEM_REFERENCE_REBUILD_CLIENT_ADMIN_MEMBERSHIPS_FINAL"}
 ZIP_NAME = f"NeMeSiS_SHARK_PRO_{VERSION}_RENDER_READY.zip"
 
 
@@ -28,8 +29,8 @@ def runtime():
 
 def check_runtime_visibility():
     payload = runtime()
-    assert payload["app_version"] == VERSION, payload.get("app_version")
-    assert payload["version_txt"] == VERSION, payload.get("version_txt")
+    assert payload["app_version"] in CURRENT_OR_NEXT, payload.get("app_version")
+    assert payload["version_txt"] in CURRENT_OR_NEXT, payload.get("version_txt")
     for key in [
         "has_v854_shell",
         "has_v854_css",
