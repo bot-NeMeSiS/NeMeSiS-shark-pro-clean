@@ -124,6 +124,7 @@ from engines.pick_presentation_engine import build_pick_presentation_state
 from engines.telegram_presentation_engine import build_telegram_presentation_state
 from engines.shark_context_presentation_engine import build_shark_context_state
 from engines.company_operating_system_engine import build_company_os_summary
+from engines.company_audit_board_engine import build_company_audit_summary
 from engines.observability_engine import latest_observability_errors, observability_error_detail, observability_summary
 from engines.scheduler_engine import is_due, is_stale_running, next_run_iso, normalize_result, scheduler_config, task_definition
 from engines.shark_engine import build_shark_context, explain_pick_risk
@@ -291,7 +292,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V857_COMPANY_OPERATING_SYSTEM_PRODUCT_PERFECTION_FINAL'
+APP_VERSION = 'V859_COMPANY_WIDE_ECOSYSTEM_AUDIT_AND_PRODUCT_BOARD_FINAL'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
@@ -12984,6 +12985,25 @@ def api_admin_company_os_summary():
     return jsonify({"ok": True, **build_company_os_summary(APP_VERSION, runtime)})
 
 
+@app.route("/admin/company-audit")
+@app.route("/admin/auditoria-empresa")
+@app.route("/admin/product-board")
+def admin_company_audit_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/company-audit")
+    runtime = v822_runtime_stability_snapshot()
+    summary = build_company_audit_summary(APP_VERSION, runtime)
+    return render_template("admin_company_audit.html", data=dashboard_data(), summary=summary)
+
+
+@app.route("/api/admin/company-audit/summary")
+def api_admin_company_audit_summary():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    runtime = v822_runtime_stability_snapshot()
+    return jsonify({"ok": True, **build_company_audit_summary(APP_VERSION, runtime)})
+
+
 @app.route("/admin/system")
 def admin_system_page():
     if not is_admin_session():
@@ -13640,6 +13660,12 @@ def api_runtime_version():
         "has_v857_shell": "data-v857-shell" in base_template and "NEMESIS V857 COMPANY OPERATING SYSTEM PRODUCT PERFECTION ACTIVE" in base_template,
         "has_v857_css": "V857 COMPANY OPERATING SYSTEM PRODUCT PERFECTION START" in css_text,
         "has_v857_company_os": "company_operating_system_engine" in app_py_text and "/admin/company-os" in app_py_text and "V857 COMPANY OPERATING SYSTEM PRODUCT PERFECTION START" in css_text,
+        "has_v858_shell": "data-v858-shell" in base_template and "NEMESIS V858 VISUAL DIRECTION LOCK FULL APP REFERENCE ACTIVE" in base_template,
+        "has_v858_css": "V858 VISUAL DIRECTION LOCK FULL APP REFERENCE START" in css_text,
+        "has_v858_visual_direction_lock": "data-v858-shell" in base_template and "V858 VISUAL DIRECTION LOCK FULL APP REFERENCE START" in css_text,
+        "has_v859_shell": "data-v859-shell" in base_template and "NEMESIS V859 COMPANY WIDE ECOSYSTEM AUDIT PRODUCT BOARD ACTIVE" in base_template,
+        "has_v859_css": "V859 COMPANY WIDE ECOSYSTEM AUDIT PRODUCT BOARD START" in css_text,
+        "has_v859_company_audit_board": "company_audit_board_engine" in app_py_text and "/admin/company-audit" in app_py_text and "V859 COMPANY WIDE ECOSYSTEM AUDIT PRODUCT BOARD START" in css_text,
         "has_v837_reference_photo_qa": "data-v837-shell" in base_template and "V837 REFERENCE PHOTO PERFECTION REAL QA START" in css_text,
         "has_v836_autonomous_qa": "data-v836-shell" in base_template and "V836 AUTONOMOUS REFERENCE VISUAL REVIEW FINAL QA START" in css_text,
         "has_v833_visual_completion": "data-v833-shell" in base_template and "V833 REFERENCE ECOSYSTEM VISUAL COMPLETION START" in css_text,
@@ -13655,7 +13681,7 @@ def api_runtime_version():
         "has_v820_crests": "data-v820-shell" in base_template and "V820 REAL CRESTS REFERENCE VISUAL PIXEL POLISH START" in css_text,
         "has_v819_dedup": "data-v819-shell" in base_template and "V819 REFERENCE UI DEDUP LAYER PURGE START" in css_text,
         "has_v818_automation": "/api/automation/master-tick" in app_py_text and "daily_automation_engine" in app_py_text,
-        "static_css_cache_busting": "V857_COMPANY_OPERATING_SYSTEM_PRODUCT_PERFECTION_FINAL" in base_template,
+        "static_css_cache_busting": "V859_COMPANY_WIDE_ECOSYSTEM_AUDIT_AND_PRODUCT_BOARD_FINAL" in base_template,
         "crest_engine_loaded": runtime_stability.get("crest_engine_loaded"),
         "logo_cache_tables_ok": runtime_stability.get("logo_cache_tables_ok"),
         "team_logo_cache_count": runtime_stability.get("team_logo_cache_count"),

@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="v859-company-audit">
+  <header class="v859-audit-hero">
+    <span>Company Audit Board</span>
+    <h1>Product Board NeMeSiS SHARK PRO</h1>
+    <p>Auditoría global de producto, negocio, cliente, admin, membresías, datos reales, SHARK, Telegram, arquitectura, visual y release. No ejecuta acciones peligrosas ni llama proveedores.</p>
+    <div class="v859-audit-actions">
+      <a href="/admin/company-os">Empresa OS</a>
+      <a href="/admin/dashboard">Dashboard</a>
+      <a href="/admin/data-center">Datos</a>
+      <a href="/admin/telegram/command-center">Telegram</a>
+      <a href="/admin/shark-ai">SHARK</a>
+      <a href="/api/runtime-version">Runtime</a>
+    </div>
+  </header>
+
+  <section class="v859-audit-summary">
+    <article>
+      <span>Score global</span>
+      <strong>{{ summary.global_score }}/10</strong>
+      <small>{{ summary.global_status|replace('_', ' ') }}</small>
+    </article>
+    <article>
+      <span>Boards</span>
+      <strong>{{ summary.audit_boards|length }}</strong>
+      <small>Producto completo revisado</small>
+    </article>
+    <article>
+      <span>Bloqueos reales</span>
+      <strong>{{ summary.blocked_by_real_world_validation|length }}</strong>
+      <small>Dependen de Render/API/Telegram/pagos reales</small>
+    </article>
+    <article>
+      <span>Seguridad</span>
+      <strong>{{ 'Sin secretos' if not summary.secrets_exposed else 'Revisar' }}</strong>
+      <small>Sin llamadas externas desde el board</small>
+    </article>
+  </section>
+
+  <section class="v859-board-grid">
+    {% for board in summary.audit_boards %}
+    <article class="v859-board-card status-{{ board.status }}">
+      <div class="v859-board-head">
+        <div>
+          <span>{{ board.status|replace('_', ' ') }}</span>
+          <h2>{{ board.area }}</h2>
+        </div>
+        <strong>{{ board.score }}/10</strong>
+      </div>
+      <h3>Hallazgos</h3>
+      <ul>
+        {% for item in board.findings %}
+        <li>{{ item }}</li>
+        {% endfor %}
+      </ul>
+      <h3>Riesgos</h3>
+      <ul>
+        {% for risk in board.risks %}
+        <li>{{ risk }}</li>
+        {% endfor %}
+      </ul>
+      <p><strong>Próximo foco:</strong> {{ board.next_version_focus }}</p>
+      <a href="{{ board.href }}">Abrir área</a>
+    </article>
+    {% endfor %}
+  </section>
+
+  <section class="v859-roadmap">
+    <article>
+      <h2>Prioridad recomendada</h2>
+      <ol>
+        {% for item in summary.priority_roadmap %}
+        <li>{{ item }}</li>
+        {% endfor %}
+      </ol>
+    </article>
+    <article>
+      <h2>Riesgos principales</h2>
+      <ul>
+        {% for risk in summary.top_risks %}
+        <li>{{ risk }}</li>
+        {% endfor %}
+      </ul>
+    </article>
+  </section>
+</section>
+{% endblock %}

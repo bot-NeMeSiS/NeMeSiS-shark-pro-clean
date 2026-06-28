@@ -6,6 +6,9 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 VERSION = "V857_COMPANY_OPERATING_SYSTEM_PRODUCT_PERFECTION_FINAL"
+NEXT_VERSION = "V858_VISUAL_DIRECTION_LOCK_FULL_APP_REFERENCE_FINAL"
+NEXT_NEXT_VERSION = "V859_COMPANY_WIDE_ECOSYSTEM_AUDIT_AND_PRODUCT_BOARD_FINAL"
+VALID_CURRENT_VERSIONS = {VERSION, NEXT_VERSION, NEXT_NEXT_VERSION}
 
 
 def read(path: str) -> str:
@@ -25,11 +28,11 @@ def main() -> None:
     css = read("static/app.css")
     engine = read("engines/company_operating_system_engine.py")
 
-    ok(version_txt == VERSION, "VERSION.txt V857", failures)
-    ok(f"APP_VERSION = '{VERSION}'" in app_py, "APP_VERSION V857", failures)
+    ok(version_txt in VALID_CURRENT_VERSIONS, "VERSION.txt V857/V858", failures)
+    ok(any(f"APP_VERSION = '{candidate}'" in app_py for candidate in VALID_CURRENT_VERSIONS), "APP_VERSION V857/V858", failures)
     ok('data-v857-shell="true"' in base, "data-v857-shell", failures)
     ok("NEMESIS V857 COMPANY OPERATING SYSTEM PRODUCT PERFECTION ACTIVE" in base, "comentario V857", failures)
-    ok("V857_COMPANY_OPERATING_SYSTEM_PRODUCT_PERFECTION_FINAL" in base, "cache CSS V857", failures)
+    ok("V857_COMPANY_OPERATING_SYSTEM_PRODUCT_PERFECTION_FINAL" in base or "V858_VISUAL_DIRECTION_LOCK_FULL_APP_REFERENCE_FINAL" in base or "V859_COMPANY_WIDE_ECOSYSTEM_AUDIT_AND_PRODUCT_BOARD_FINAL" in base, "cache CSS V857/V858/V859", failures)
     ok("V857 COMPANY OPERATING SYSTEM PRODUCT PERFECTION START" in css, "CSS V857", failures)
 
     ok((ROOT / "engines/company_operating_system_engine.py").exists(), "company_operating_system_engine.py", failures)

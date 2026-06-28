@@ -251,3 +251,49 @@ Preservado:
 - V850 live/escudos.
 - V853 admin command center.
 - V854/V855/V856.
+
+## V858_VISUAL_DIRECTION_LOCK_FULL_APP_REFERENCE_FINAL
+
+Base real detectada: V857_COMPANY_OPERATING_SYSTEM_PRODUCT_PERFECTION_FINAL.
+
+Trabajo aplicado:
+- Se elevó VERSION.txt, APP_VERSION, base.html, cache CSS y runtime a V858.
+- Se añadió `data-v858-shell` y runtime flag `has_v858_visual_direction_lock`.
+- Se creó una capa visual V858 para bloquear dirección final: tokens globales, fondo oscuro premium, puntos SHARK, glow, cards, botones, chips, tablas, forms, empty states, móvil, PC, admin y Company OS.
+- Se reforzó la separación admin/cliente: sin bottom nav, floating SHARK ni scroll-to-top cliente en admin.
+- Se marcó Company OS con `v858-visual-lock`.
+- Se creó `tools/check_v858_visual_direction_lock.py`.
+- Se añadieron reportes V858 de preflight, auditoría visual, visual lock, móvil, PC, admin, membresías, picks/live/SHARK/Telegram y notas Render.
+
+Preservado:
+- V818 master tick.
+- V844 Telegram premium/no filler.
+- V845 SHARK.
+- V847 API-SPORTS.
+- V850 live/escudos.
+- V853 admin command center.
+- V857 Company OS.
+
+## V859_COMPANY_WIDE_ECOSYSTEM_AUDIT_AND_PRODUCT_BOARD_FINAL
+
+Base real detectada: V858_VISUAL_DIRECTION_LOCK_FULL_APP_REFERENCE_FINAL.
+
+Trabajo aplicado:
+- Se elevó VERSION.txt, APP_VERSION, base.html, cache CSS y runtime a V859.
+- Se creó `engines/company_audit_board_engine.py` como motor de auditoría global por boards.
+- Se añadió `/admin/company-audit` con alias `/admin/auditoria-empresa` y `/admin/product-board`.
+- Se añadió `/api/admin/company-audit/summary`, protegido por sesión admin.
+- Se creó `templates/admin_company_audit.html`.
+- Se integró Product Board en navegación admin y desde Company OS.
+- Se añadió capa CSS V859 específica para el board de auditoría.
+- Se creó `tools/check_v859_company_wide_audit_board.py`.
+- Se añadieron reportes V859 y roadmap de prioridades.
+
+Preservado:
+- V818 master tick.
+- V844 Telegram premium/no filler.
+- V845 SHARK.
+- V847 API-SPORTS.
+- V850 live/escudos.
+- V857 Company OS.
+- V858 visual direction lock.
