@@ -8385,3 +8385,303 @@ body[data-v855-shell="true"].ns-admin .scroll-to-top {
   }
 }
 /* V855 FULL ECOSYSTEM REFERENCE REBUILD END */
+
+/* V856 REAL APP REFERENCE GAP SECOND PASS START */
+body[data-v856-shell="true"] {
+  --v856-bg: #030812;
+  --v856-panel: rgba(7, 18, 32, .82);
+  --v856-panel-strong: rgba(9, 25, 42, .92);
+  --v856-line: rgba(117, 236, 255, .2);
+  --v856-line-soft: rgba(255, 255, 255, .09);
+  --v856-text: #edfaff;
+  --v856-muted: rgba(223, 245, 255, .72);
+  --v856-accent: #50e6ff;
+  --v856-gold: #f3c760;
+  background: var(--v856-bg);
+  color: var(--v856-text);
+  overflow-x: hidden;
+}
+
+body[data-v856-shell="true"]::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -4;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 16% 10%, rgba(80, 230, 255, .18), transparent 26%),
+    radial-gradient(circle at 82% 12%, rgba(243, 199, 96, .12), transparent 24%),
+    radial-gradient(circle at 50% 110%, rgba(30, 88, 150, .28), transparent 42%),
+    radial-gradient(circle, rgba(255, 255, 255, .12) 1px, transparent 1.5px);
+  background-size: auto, auto, auto, 24px 24px;
+  opacity: .84;
+}
+
+body[data-v856-shell="true"] .card,
+body[data-v856-shell="true"] .panel,
+body[data-v856-shell="true"] .ns-card,
+body[data-v856-shell="true"] .match-card,
+body[data-v856-shell="true"] .pick-card,
+body[data-v856-shell="true"] .v856-client-premium {
+  border: 1px solid var(--v856-line-soft);
+  background: linear-gradient(145deg, rgba(9, 25, 42, .9), rgba(4, 12, 24, .82));
+  box-shadow: 0 18px 42px rgba(0, 0, 0, .28), inset 0 1px 0 rgba(255, 255, 255, .06);
+}
+
+body[data-v856-shell="true"] .card:hover,
+body[data-v856-shell="true"] .match-card:hover,
+body[data-v856-shell="true"] .pick-card:hover {
+  border-color: rgba(80, 230, 255, .35);
+}
+
+body[data-v856-shell="true"] a.btn,
+body[data-v856-shell="true"] button,
+body[data-v856-shell="true"] .btn,
+body[data-v856-shell="true"] .cta {
+  min-height: 42px;
+  border-radius: 12px;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-align: center;
+}
+
+body[data-v856-shell="true"] .chip,
+body[data-v856-shell="true"] .badge,
+body[data-v856-shell="true"] .pill,
+body[data-v856-shell="true"] [class*="status"] {
+  border: 1px solid rgba(80, 230, 255, .22);
+  background: rgba(80, 230, 255, .09);
+  color: var(--v856-text);
+}
+
+body[data-v856-shell="true"] .v856-plan-pro .membership-badge,
+body[data-v856-shell="true"] [data-ns-plan="PRO"] .membership-badge {
+  border-color: rgba(80, 230, 255, .45);
+  box-shadow: 0 0 24px rgba(80, 230, 255, .14);
+}
+
+body[data-v856-shell="true"] .v856-plan-elite .membership-badge,
+body[data-v856-shell="true"] [data-ns-plan="ELITE"] .membership-badge,
+body[data-v856-shell="true"] [data-ns-plan="ELITE+"] .membership-badge {
+  border-color: rgba(243, 199, 96, .52);
+  color: #fff3c1;
+  box-shadow: 0 0 28px rgba(243, 199, 96, .18);
+}
+
+body[data-v856-shell="true"] .empty-state,
+body[data-v856-shell="true"] .v856-empty-state,
+body[data-v856-shell="true"] [class*="empty"] {
+  border: 1px dashed rgba(80, 230, 255, .26);
+  background: rgba(4, 14, 27, .72);
+  color: var(--v856-muted);
+}
+
+body[data-v856-shell="true"] .team-logo,
+body[data-v856-shell="true"] .team-crest,
+body[data-v856-shell="true"] .league-logo,
+body[data-v856-shell="true"] .crest-fallback {
+  flex: 0 0 auto;
+  object-fit: contain;
+  filter: drop-shadow(0 8px 16px rgba(0, 0, 0, .28));
+}
+
+body[data-v856-shell="true"] .v856-live-card,
+body[data-v856-shell="true"] .live-card,
+body[data-v856-shell="true"] .v856-match-card {
+  display: grid;
+  gap: 10px;
+}
+
+body[data-v856-shell="true"] .v856-pick-quality,
+body[data-v856-shell="true"] .pick-quality,
+body[data-v856-shell="true"] .telegram-quality {
+  border-left: 3px solid var(--v856-accent);
+}
+
+body[data-v856-shell="true"] .v856-shark-star,
+body[data-v856-shell="true"] .shark-hero,
+body[data-v856-shell="true"] .shark-panel {
+  background:
+    radial-gradient(circle at 24% 20%, rgba(80, 230, 255, .2), transparent 34%),
+    linear-gradient(135deg, rgba(5, 20, 36, .96), rgba(1, 7, 16, .94));
+  border-color: rgba(80, 230, 255, .28);
+}
+
+body[data-v856-shell="true"] .v856-telegram-premium,
+body[data-v856-shell="true"] .telegram-card {
+  border-color: rgba(80, 230, 255, .24);
+  background: linear-gradient(145deg, rgba(7, 32, 47, .9), rgba(4, 12, 24, .88));
+}
+
+body[data-v856-shell="true"].ns-admin {
+  --v856-panel: rgba(6, 17, 30, .9);
+}
+
+body[data-v856-shell="true"].ns-admin .bottom-nav,
+body[data-v856-shell="true"].ns-admin .mobile-bottom-nav,
+body[data-v856-shell="true"].ns-admin .v829-mobile-bottom-nav,
+body[data-v856-shell="true"].ns-admin .floating-shark,
+body[data-v856-shell="true"].ns-admin .v825-floating-shark,
+body[data-v856-shell="true"].ns-admin .scroll-to-top {
+  display: none !important;
+}
+
+body[data-v856-shell="true"].ns-admin .admin-card,
+body[data-v856-shell="true"].ns-admin .v853-admin-command-strip,
+body[data-v856-shell="true"].ns-admin .v856-admin-command-center {
+  border: 1px solid rgba(80, 230, 255, .18);
+  background: linear-gradient(145deg, rgba(6, 18, 31, .94), rgba(2, 8, 17, .94));
+}
+
+@media (min-width: 1024px) {
+  body[data-v856-shell="true"] .dashboard-grid,
+  body[data-v856-shell="true"] .cards-grid,
+  body[data-v856-shell="true"] .admin-grid {
+    gap: 16px;
+  }
+
+  body[data-v856-shell="true"] main,
+  body[data-v856-shell="true"] .ns-main-shell,
+  body[data-v856-shell="true"] .shell {
+    max-width: 1480px;
+  }
+}
+
+@media (max-width: 768px) {
+  body[data-v856-shell="true"] {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body[data-v856-shell="true"]:not(.ns-admin) main,
+  body[data-v856-shell="true"]:not(.ns-admin) .shell,
+  body[data-v856-shell="true"]:not(.ns-admin) .ns-main-shell {
+    padding-left: max(14px, env(safe-area-inset-left));
+    padding-right: max(14px, env(safe-area-inset-right));
+    padding-bottom: calc(env(safe-area-inset-bottom) + 116px);
+  }
+
+  body[data-v856-shell="true"] .card,
+  body[data-v856-shell="true"] .panel,
+  body[data-v856-shell="true"] .match-card,
+  body[data-v856-shell="true"] .pick-card {
+    border-radius: 14px;
+    padding: 14px;
+  }
+
+  body[data-v856-shell="true"] .v799-filterbar,
+  body[data-v856-shell="true"] .filterbar,
+  body[data-v856-shell="true"] .tabs {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  body[data-v856-shell="true"] h1,
+  body[data-v856-shell="true"] h2,
+  body[data-v856-shell="true"] h3,
+  body[data-v856-shell="true"] p,
+  body[data-v856-shell="true"] a,
+  body[data-v856-shell="true"] button {
+    overflow-wrap: anywhere;
+  }
+}
+/* V856 REAL APP REFERENCE GAP SECOND PASS END */
+
+/* V857 COMPANY OPERATING SYSTEM PRODUCT PERFECTION START */
+body[data-v857-shell="true"] .v857-company-os {
+  display: grid;
+  gap: 18px;
+}
+
+body[data-v857-shell="true"] .v857-company-hero,
+body[data-v857-shell="true"] .v857-company-summary article,
+body[data-v857-shell="true"] .v857-worker-card,
+body[data-v857-shell="true"] .v857-company-panels article {
+  border: 1px solid rgba(80, 230, 255, .2);
+  background:
+    radial-gradient(circle at 12% 0%, rgba(80, 230, 255, .16), transparent 34%),
+    linear-gradient(145deg, rgba(6, 18, 32, .94), rgba(2, 8, 18, .92));
+  box-shadow: 0 20px 48px rgba(0, 0, 0, .3), inset 0 1px 0 rgba(255, 255, 255, .06);
+  border-radius: 18px;
+}
+
+body[data-v857-shell="true"] .v857-company-hero {
+  padding: clamp(22px, 4vw, 44px);
+}
+
+body[data-v857-shell="true"] .v857-company-hero > span,
+body[data-v857-shell="true"] .v857-worker-card span,
+body[data-v857-shell="true"] .v857-company-summary span {
+  color: #71edff;
+  font-weight: 900;
+  text-transform: uppercase;
+  font-size: .76rem;
+}
+
+body[data-v857-shell="true"] .v857-company-actions,
+body[data-v857-shell="true"] .v857-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+body[data-v857-shell="true"] .v857-company-actions a,
+body[data-v857-shell="true"] .v857-worker-card a,
+body[data-v857-shell="true"] .v857-chip-list span {
+  border: 1px solid rgba(80, 230, 255, .24);
+  background: rgba(80, 230, 255, .09);
+  color: #edfaff;
+  border-radius: 999px;
+  padding: 10px 13px;
+  text-decoration: none;
+  font-weight: 800;
+}
+
+body[data-v857-shell="true"] .v857-company-summary,
+body[data-v857-shell="true"] .v857-workers-grid,
+body[data-v857-shell="true"] .v857-company-panels {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+body[data-v857-shell="true"] .v857-workers-grid {
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+body[data-v857-shell="true"] .v857-company-panels {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+body[data-v857-shell="true"] .v857-company-summary article,
+body[data-v857-shell="true"] .v857-worker-card,
+body[data-v857-shell="true"] .v857-company-panels article {
+  padding: 16px;
+}
+
+body[data-v857-shell="true"] .v857-worker-card.risk-medio {
+  border-color: rgba(243, 199, 96, .45);
+}
+
+body[data-v857-shell="true"] .v857-worker-card ul {
+  padding-left: 18px;
+  color: rgba(237, 250, 255, .78);
+}
+
+body[data-v857-shell="true"] .v857-worker-card p,
+body[data-v857-shell="true"] .v857-company-hero p {
+  color: rgba(237, 250, 255, .74);
+}
+
+@media (max-width: 860px) {
+  body[data-v857-shell="true"] .v857-company-summary,
+  body[data-v857-shell="true"] .v857-company-panels {
+    grid-template-columns: 1fr;
+  }
+
+  body[data-v857-shell="true"] .v857-company-hero {
+    padding: 18px;
+  }
+}
+/* V857 COMPANY OPERATING SYSTEM PRODUCT PERFECTION END */

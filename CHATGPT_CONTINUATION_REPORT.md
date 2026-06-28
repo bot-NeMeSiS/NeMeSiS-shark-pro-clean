@@ -206,3 +206,48 @@ Preservado:
 - V850 live/escudos.
 - V853 admin command center.
 - V854 polish global.
+
+## V856_REAL_APP_REFERENCE_GAP_SECOND_PASS_TOTAL_REBUILD_FINAL
+
+Base real detectada: V855_FULL_ECOSYSTEM_REFERENCE_REBUILD_CLIENT_ADMIN_MEMBERSHIPS_FINAL.
+
+Trabajo aplicado:
+- Se elevó VERSION.txt, APP_VERSION, base.html, cache CSS y runtime a V856.
+- Se añadió capa CSS V856 de segunda pasada para cliente, móvil, PC, admin, SHARK, Telegram, picks, live, empty states y membresías.
+- Se crearon motores de presentación puros para cliente, admin, match, live, picks, Telegram y SHARK.
+- Se creó `tools/check_v856_real_app_reference_gap_second_pass.py`.
+- Se añadieron reportes V856 de preflight, gap audit, admin, membresías, rutas, copy y estabilidad.
+
+Preservado:
+- V818 master tick.
+- V844 Telegram.
+- V845 SHARK.
+- V847 API-SPORTS.
+- V850 live/escudos.
+- V853 admin command center.
+- V854 polish global.
+- V855 full ecosystem rebuild.
+
+## V857_COMPANY_OPERATING_SYSTEM_PRODUCT_PERFECTION_FINAL
+
+Base real detectada: V856_REAL_APP_REFERENCE_GAP_SECOND_PASS_TOTAL_REBUILD_FINAL.
+
+Trabajo aplicado:
+- Se elevó VERSION.txt, APP_VERSION, base.html, cache CSS y runtime a V857.
+- Se creó `engines/company_operating_system_engine.py` como motor central de workers internos.
+- Se añadió `/admin/company-os` con alias `/admin/empresa` y `/admin/operating-system`.
+- Se añadió `/api/admin/company-os/summary` protegido por sesión admin.
+- Se creó `templates/admin_company_os.html`.
+- Se integró acceso a Empresa OS desde navegación admin, rail, dock y command strip.
+- Se añadió capa CSS V857 para el panel Company OS.
+- Se creó `tools/check_v857_company_operating_system_product_perfection.py`.
+- Se añadieron reportes V857 de preflight, matriz de workers, QA, datos reales, rutas y notas Render.
+
+Preservado:
+- V818 master tick.
+- V844 Telegram premium/no filler.
+- V845 SHARK.
+- V847 API-SPORTS.
+- V850 live/escudos.
+- V853 admin command center.
+- V854/V855/V856.

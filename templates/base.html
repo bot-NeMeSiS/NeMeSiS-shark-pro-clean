@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="es">
 <head>
   <meta charset="utf-8">
@@ -6,10 +6,10 @@
   <meta name="theme-color" content="#06111f">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="nemesis-version" content="V855_FULL_ECOSYSTEM_REFERENCE_REBUILD_CLIENT_ADMIN_MEMBERSHIPS_FINAL">
+  <meta name="nemesis-version" content="V857_COMPANY_OPERATING_SYSTEM_PRODUCT_PERFECTION_FINAL">
   <title>{% if title is defined and title %}{{ title }}{% else %}NeMeSiS SHARK PRO{% endif %}</title>
   <link rel="icon" href="{{ url_for('static', filename='img/shark-logo.svg') }}" type="image/svg+xml">
-  <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}?v=V855_FULL_ECOSYSTEM_REFERENCE_REBUILD_CLIENT_ADMIN_MEMBERSHIPS_FINAL">
+  <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}?v=V857_COMPANY_OPERATING_SYSTEM_PRODUCT_PERFECTION_FINAL">
   <meta name="csrf-token" content="{{ csrf_token() }}">
 </head>
 {% from "partials/brand_logo.html" import nemesis_brand %}
@@ -27,7 +27,7 @@
   {% set _visual_tier = 'free' %}
   {% set _tier_label = 'FREE' %}
 {% endif %}
-<body class="ns-app ns-tier-{{ _visual_tier }}{% if current_user %} ns-authenticated{% else %} ns-public{% endif %}{% if current_user and current_user.role == 'ADMIN' %} ns-admin{% endif %}" data-ns-route="{{ request.path }}" data-ns-plan="{{ _tier_label }}" data-v775-shell="true" data-v776-shell="true" data-v777-shell="true" data-v778-shell="true" data-v790-shell="true" data-v792-shell="true" data-v793-shell="true" data-v795-shell="true" data-v796-shell="true" data-v797-shell="true" data-v798-shell="true" data-v799-shell="true" data-v800-shell="true" data-v801-shell="true" data-v802-shell="true" data-v806-shell="true" data-v807-shell="true" data-v809-shell="true" data-v810-shell="true" data-v811-shell="true" data-v812-shell="true" data-v813-shell="true" data-v814-shell="true" data-v815-shell="true" data-v816-shell="true" data-v817-shell="true" data-v818-shell="true" data-v819-shell="true" data-v820-shell="true" data-v821-shell="true" data-v822-shell="true" data-v823-shell="true" data-v824-shell="true" data-v825-shell="true" data-v826-shell="true" data-v827-shell="true" data-v828-shell="true" data-v829-shell="true" data-v830-shell="true" data-v832-shell="true" data-v833-shell="true" data-v836-shell="true" data-v837-shell="true" data-v838-shell="true" data-v839-shell="true" data-v840-shell="true" data-v841-shell="true" data-v842-shell="true" data-v843-shell="true" data-v844-shell="true" data-v845-shell="true" data-v847-shell="true" data-v848-shell="true" data-v849-shell="true" data-v850-shell="true" data-v851-shell="true" data-v852-shell="true" data-v853-shell="true" data-v854-shell="true" data-v855-shell="true">
+<body class="ns-app ns-tier-{{ _visual_tier }}{% if current_user %} ns-authenticated{% else %} ns-public{% endif %}{% if current_user and current_user.role == 'ADMIN' %} ns-admin{% endif %}" data-ns-route="{{ request.path }}" data-ns-plan="{{ _tier_label }}" data-v775-shell="true" data-v776-shell="true" data-v777-shell="true" data-v778-shell="true" data-v790-shell="true" data-v792-shell="true" data-v793-shell="true" data-v795-shell="true" data-v796-shell="true" data-v797-shell="true" data-v798-shell="true" data-v799-shell="true" data-v800-shell="true" data-v801-shell="true" data-v802-shell="true" data-v806-shell="true" data-v807-shell="true" data-v809-shell="true" data-v810-shell="true" data-v811-shell="true" data-v812-shell="true" data-v813-shell="true" data-v814-shell="true" data-v815-shell="true" data-v816-shell="true" data-v817-shell="true" data-v818-shell="true" data-v819-shell="true" data-v820-shell="true" data-v821-shell="true" data-v822-shell="true" data-v823-shell="true" data-v824-shell="true" data-v825-shell="true" data-v826-shell="true" data-v827-shell="true" data-v828-shell="true" data-v829-shell="true" data-v830-shell="true" data-v832-shell="true" data-v833-shell="true" data-v836-shell="true" data-v837-shell="true" data-v838-shell="true" data-v839-shell="true" data-v840-shell="true" data-v841-shell="true" data-v842-shell="true" data-v843-shell="true" data-v844-shell="true" data-v845-shell="true" data-v847-shell="true" data-v848-shell="true" data-v849-shell="true" data-v850-shell="true" data-v851-shell="true" data-v852-shell="true" data-v853-shell="true" data-v854-shell="true" data-v855-shell="true" data-v856-shell="true" data-v857-shell="true">
   <!-- NEMESIS V817 REFERENCE PIXEL POLISH ACTIVE -->
   <!-- NEMESIS V818 DAILY AUTOMATION OS ACTIVE -->
   <!-- NEMESIS V819 REFERENCE UI DEDUP LAYER PURGE ACTIVE -->
@@ -63,6 +63,8 @@
   <!-- NEMESIS V853 ADMIN PC COMMAND CENTER REFERENCE PERFECTION ACTIVE -->
   <!-- NEMESIS V854 CLIENT ADMIN REAL RENDER FINAL POLISH PRODUCT QA ACTIVE -->
   <!-- NEMESIS V855 FULL ECOSYSTEM REFERENCE REBUILD CLIENT ADMIN MEMBERSHIPS ACTIVE -->
+  <!-- NEMESIS V856 REAL APP REFERENCE GAP SECOND PASS ACTIVE -->
+  <!-- NEMESIS V857 COMPANY OPERATING SYSTEM PRODUCT PERFECTION ACTIVE -->
   <div class="ns-ambient" aria-hidden="true"><i></i><i></i><i></i></div>
   {% if not current_user or current_user.role != 'ADMIN' %}
   <div class="v825-shark-background" aria-hidden="true">
@@ -85,6 +87,7 @@
       <nav class="nav nav-clean">
         {% if current_user and current_user.role == 'ADMIN' %}
           <a href="/admin/control-center">Panel</a>
+          <a href="/admin/company-os">Empresa OS</a>
           <a href="/admin/users">Clientes</a>
           <a href="/admin/data-center">Datos</a>
           <a href="/admin/api-sports">API-SPORTS</a>
@@ -97,14 +100,14 @@
           <a href="/admin/map">Mapa</a>
           <a href="/logout">Salir</a>
         {% elif current_user %}
-          <a href="/app" data-v775-icon="⌂">Inicio</a>
-          <a href="/calendar?lane=today" data-v775-icon="▦">Partidos</a>
-          <a href="/live" data-v775-icon="●">Directo</a>
-          <a href="/picks" data-v775-icon="◆">Picks</a>
-          <a href="/shark" data-v775-icon="◥">SHARK</a>
-          <a href="/mi-cuenta" data-v775-icon="◎">Cuenta</a>
+          <a href="/app" data-v775-icon="Inicio">Inicio</a>
+          <a href="/calendar?lane=today" data-v775-icon="Partidos">Partidos</a>
+          <a href="/live" data-v775-icon="Directo">Directo</a>
+          <a href="/picks" data-v775-icon="Picks">Picks</a>
+          <a href="/shark" data-v775-icon="SHARK">SHARK</a>
+          <a href="/mi-cuenta" data-v775-icon="Cuenta">Cuenta</a>
           <a href="/support">Soporte</a>
-          <a class="v797-nav-logout" href="/logout" data-v775-icon="⏻">Salir</a>
+          <a class="v797-nav-logout" href="/logout" data-v775-icon="Salir">Salir</a>
         {% else %}
           <a href="/membresias">Membresías</a>
           <a href="/legal">Confianza</a>
@@ -130,14 +133,14 @@
   <aside class="v828-client-rail" aria-label="Navegación principal cliente V828">
     {{ nemesis_brand('/app', 'sidebar') }}
     <nav>
-      <a href="/app"><span>⌂</span><strong>Dashboard</strong></a>
-      <a href="/partidos"><span>▦</span><strong>Partidos</strong></a>
-      <a href="/live"><span>●</span><strong>Directo</strong></a>
-      <a href="/picks"><span>◆</span><strong>Picks</strong></a>
-      <a href="/shark"><span>◥</span><strong>SHARK</strong></a>
-      <a href="/track-record"><span>↗</span><strong>Histórico</strong></a>
-      <a href="/telegram"><span>✈</span><strong>Telegram</strong></a>
-      <a href="/profile"><span>◎</span><strong>Perfil</strong></a>
+      <a href="/app"><span>Inicio</span><strong>Dashboard</strong></a>
+      <a href="/partidos"><span>Partidos</span><strong>Partidos</strong></a>
+      <a href="/live"><span>Directo</span><strong>Directo</strong></a>
+      <a href="/picks"><span>Picks</span><strong>Picks</strong></a>
+      <a href="/shark"><span>SHARK</span><strong>SHARK</strong></a>
+      <a href="/track-record"><span>Histórico</span><strong>Histórico</strong></a>
+      <a href="/telegram"><span>Telegram</span><strong>Telegram</strong></a>
+      <a href="/profile"><span>Perfil</span><strong>Perfil</strong></a>
       <a href="/support"><span></span><strong>Soporte</strong></a>
     </nav>
     <footer>
@@ -150,7 +153,7 @@
 
   {% if current_user and current_user.role == 'ADMIN' %}
   {% set v808_admin_groups = [
-    ('Centro', [('Panel','/admin/control-center'),('Mapa','/admin/map'),('Sistema','/admin/system'),('Rutas','/admin/route-health')]),
+    ('Centro', [('Panel','/admin/control-center'),('Empresa OS','/admin/company-os'),('Mapa','/admin/map'),('Sistema','/admin/system'),('Rutas','/admin/route-health')]),
     ('Clientes', [('Usuarios','/admin/users'),('Membresías','/admin/memberships'),('Importar','/admin/user-import'),('Soporte','/admin/support-center')]),
     ('Datos', [('Data Center','/admin/data-center'),('API-SPORTS','/admin/api-sports'),('Partidos','/admin/matches-sync'),('SportsDB','/admin/sportsdb-sync'),('Data Memory','/admin/data-memory')]),
     ('Live / SHARK', [('Live','/admin/live-depth'),('Match IQ','/admin/match-intelligence'),('SHARK','/admin/shark-center'),('Visual','/admin/visual-experience')]),
@@ -161,20 +164,21 @@
   <aside class="v808-admin-rail" aria-label="Navegación admin premium">
     {{ nemesis_brand('/admin/control-center', 'admin') }}
     <nav>
-      <a href="/admin/control-center">▣ <span>Panel</span></a>
-      <a href="/admin/map">☰ <span>Mapa</span></a>
-      <a href="/admin/users">♙ <span>Clientes</span></a>
-      <a href="/admin/data-center">▤ <span>Datos</span></a>
+      <a href="/admin/control-center">Panel <span>Panel</span></a>
+      <a href="/admin/company-os">Workers <span>Empresa OS</span></a>
+      <a href="/admin/map">Mapa <span>Mapa</span></a>
+      <a href="/admin/users">Clientes <span>Clientes</span></a>
+      <a href="/admin/data-center">Datos <span>Datos</span></a>
       <a href="/admin/api-sports">API <span>Sports</span></a>
-      <a href="/admin/matches-sync">⚽ <span>Partidos</span></a>
-      <a href="/admin/live-depth">● <span>Directo</span></a>
-      <a href="/admin/picks">◆ <span>Picks</span></a>
-      <a href="/admin/telegram/command-center">✈ <span>Telegram</span></a>
-      <a href="/admin/telegram/pro-preview">▧ <span>PRO Msg</span></a>
-      <a href="/admin/automation-center">↻ <span>Auto</span></a>
-      <a href="/admin/daily-automation">☀ <span>Daily</span></a>
-      <a href="/admin/automation-os">⚙ <span>OS</span></a>
-      <a href="/admin/app-experience-quality">✓ <span>Calidad</span></a>
+      <a href="/admin/matches-sync">Partidos <span>Partidos</span></a>
+      <a href="/admin/live-depth">Directo <span>Directo</span></a>
+      <a href="/admin/picks">Picks <span>Picks</span></a>
+      <a href="/admin/telegram/command-center">Telegram <span>Telegram</span></a>
+      <a href="/admin/telegram/pro-preview">PRO <span>PRO Msg</span></a>
+      <a href="/admin/automation-center">Auto <span>Auto</span></a>
+      <a href="/admin/daily-automation">Daily <span>Daily</span></a>
+      <a href="/admin/automation-os">OS <span>OS</span></a>
+      <a href="/admin/app-experience-quality">Calidad <span>Calidad</span></a>
     </nav>
     <div class="v808-admin-rail-foot"><a href="/sports-hub">Vista cliente</a><a href="/logout">Salir</a></div>
   </aside>
@@ -182,6 +186,7 @@
     <div><strong>Centro de mando</strong><span>Todos los módulos reales enlazados</span></div>
     <nav>
       <a href="/admin/map">Mapa completo</a>
+      <a href="/admin/company-os">Empresa OS</a>
       <a href="/admin/dashboard">Dashboard</a>
       <a href="/admin/data-center">Sincronizar datos</a>
       <a href="/admin/api-sports">API-SPORTS</a>
@@ -202,6 +207,7 @@
     </div>
     <nav>
       <a href="/admin/dashboard">Dashboard</a>
+      <a href="/admin/company-os">Empresa OS</a>
       <a href="/admin/data-center">Datos</a>
       <a href="/admin/api-sports">API-SPORTS</a>
       <a href="/admin/telegram/command-center">Telegram</a>
@@ -252,15 +258,15 @@
       <a href="/sports-hub">Cliente</a>
       <a href="/logout">Salir</a>
     {% elif current_user %}
-      <a href="/app" data-v775-icon="⌂">Inicio</a>
-      <a href="/partidos" data-v775-icon="▦">Partidos</a>
-      <a href="/live" data-v775-icon="●">Directo</a>
-      <a href="/picks" data-v775-icon="◆">Picks</a>
-      <a href="/shark" data-v775-icon="◥">SHARK</a>
+      <a href="/app" data-v775-icon="Inicio">Inicio</a>
+      <a href="/partidos" data-v775-icon="Partidos">Partidos</a>
+      <a href="/live" data-v775-icon="Directo">Directo</a>
+      <a href="/picks" data-v775-icon="Picks">Picks</a>
+      <a href="/shark" data-v775-icon="SHARK">SHARK</a>
     {% else %}
-      <a href="/" data-v775-icon="⌂">Inicio</a>
-      <a href="/membresias" data-v775-icon="★">Planes</a>
-      <a href="/cliente-login" data-v775-icon="→">Entrar</a>
+      <a href="/" data-v775-icon="Inicio">Inicio</a>
+      <a href="/membresias" data-v775-icon="Planes">Planes</a>
+      <a href="/cliente-login" data-v775-icon="Entrar">Entrar</a>
     {% endif %}
   </nav>
 
@@ -393,7 +399,7 @@
   })();
   </script>
 
-  <button class="ns-scroll-top" id="nsScrollTop" type="button" aria-label="Volver arriba">↑</button>
+  <button class="ns-scroll-top" id="nsScrollTop" type="button" aria-label="Volver arriba">Arriba</button>
   <div class="ns-toast-host" id="nsToastHost" aria-live="polite" aria-atomic="true"></div>
   <script>
   (function nsAppEnhance(){
@@ -627,3 +633,5 @@
   </script>
 </body>
 </html>
+
+

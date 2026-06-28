@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="v857-company-os">
+  <header class="v857-company-hero">
+    <span>Empresa OS</span>
+    <h1>NeMeSiS SHARK PRO Operating System</h1>
+    <p>Workers internos para revisar producto, datos reales, SHARK, Telegram, membresías, rutas, admin, cliente y release sin tocar secretos ni llamar proveedores.</p>
+    <div class="v857-company-actions">
+      <a href="/admin/dashboard">Dashboard</a>
+      <a href="/admin/data-center">Centro de datos</a>
+      <a href="/admin/telegram/command-center">Telegram</a>
+      <a href="/admin/shark-ai">SHARK AI</a>
+      <a href="/api/runtime-version">Runtime</a>
+    </div>
+  </header>
+
+  <section class="v857-company-summary">
+    <article>
+      <span>Estado global</span>
+      <strong>{{ summary.global_status|replace('_', ' ') }}</strong>
+      <small>Modo seguro: {{ 'activo' if summary.safe_mode else 'revisar' }}</small>
+    </article>
+    <article>
+      <span>Workers</span>
+      <strong>{{ summary.workers|length }}</strong>
+      <small>Sin llamadas externas desde este panel</small>
+    </article>
+    <article>
+      <span>Datos</span>
+      <strong>{{ 'No inventar' if not summary.data_invention_allowed else 'Revisar' }}</strong>
+      <small>Estados premium si falta proveedor</small>
+    </article>
+    <article>
+      <span>Seguridad</span>
+      <strong>{{ 'Sin secretos' if not summary.secrets_exposed else 'Revisar' }}</strong>
+      <small>Diagnóstico administrativo protegido</small>
+    </article>
+  </section>
+
+  <section class="v857-workers-grid" aria-label="Workers internos">
+    {% for worker in summary.workers %}
+    <article class="v857-worker-card risk-{{ worker.risk_level }}">
+      <div>
+        <span>{{ worker.area }}</span>
+        <h2>{{ worker.worker_name }}</h2>
+      </div>
+      <strong>{{ worker.status }}</strong>
+      <ul>
+        {% for finding in worker.findings %}
+        <li>{{ finding }}</li>
+        {% endfor %}
+      </ul>
+      <p>{{ worker.safe_next_step }}</p>
+      <a href="{{ worker.href }}">Abrir área</a>
+    </article>
+    {% endfor %}
+  </section>
+
+  <section class="v857-company-panels">
+    <article>
+      <h2>Estados seguros</h2>
+      <div class="v857-chip-list">
+        {% for state in summary.safe_states %}
+        <span>{{ state }}</span>
+        {% endfor %}
+      </div>
+    </article>
+    <article>
+      <h2>Base protegida</h2>
+      <div class="v857-chip-list">
+        {% for item in summary.protected_foundations %}
+        <span>{{ item }}</span>
+        {% endfor %}
+      </div>
+    </article>
+  </section>
+</section>
+{% endblock %}

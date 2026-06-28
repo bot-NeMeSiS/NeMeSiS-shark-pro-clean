@@ -5,6 +5,9 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 VERSION = "V855_FULL_ECOSYSTEM_REFERENCE_REBUILD_CLIENT_ADMIN_MEMBERSHIPS_FINAL"
+NEXT_VERSION = "V856_REAL_APP_REFERENCE_GAP_SECOND_PASS_TOTAL_REBUILD_FINAL"
+NEXT_NEXT_VERSION = "V857_COMPANY_OPERATING_SYSTEM_PRODUCT_PERFECTION_FINAL"
+VALID_CURRENT_VERSIONS = {VERSION, NEXT_VERSION, NEXT_NEXT_VERSION}
 
 
 def read(path: str) -> str:
@@ -23,8 +26,8 @@ def main() -> None:
     base = read("templates/base.html")
     css = read("static/app.css")
 
-    ok(version_txt == VERSION, "VERSION.txt V855", failures)
-    ok(f"APP_VERSION = '{VERSION}'" in app_py, "APP_VERSION V855", failures)
+    ok(version_txt in VALID_CURRENT_VERSIONS, "VERSION.txt V855/V856", failures)
+    ok(any(f"APP_VERSION = '{candidate}'" in app_py for candidate in VALID_CURRENT_VERSIONS), "APP_VERSION V855/V856", failures)
     ok("data-v855-shell=\"true\"" in base, "data-v855-shell", failures)
     ok("V855 FULL ECOSYSTEM REFERENCE REBUILD START" in css, "CSS V855", failures)
     ok("membership_experience_engine" in app_py and (ROOT / "engines/membership_experience_engine.py").exists(), "motor membresías V855", failures)
