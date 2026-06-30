@@ -7,9 +7,7 @@ import sys
 import zipfile
 from collections import Counter, defaultdict
 from datetime import datetime
-from pathlib import PurePosixPath
-
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -37,6 +35,8 @@ FORBIDDEN_PARTS = {
     "v636work",
     "archive_legacy",
     "reports/archive",
+    ".codex",
+    ".agents",
 }
 FORBIDDEN_SUFFIXES = {
     ".pyc",
@@ -48,6 +48,8 @@ FORBIDDEN_SUFFIXES = {
     ".db-shm",
     ".sqlite-wal",
     ".sqlite-shm",
+    ".db-journal",
+    ".sqlite-journal",
     ".log",
     ".mp4",
     ".mov",
@@ -61,11 +63,12 @@ FORBIDDEN_SUFFIXES = {
 }
 FORBIDDEN_NAMES = {".DS_Store", "Thumbs.db", ".env"}
 SECRET_MARKERS = ("secret", "token", "private_key", "id_rsa")
+REQUIRED_ROOT = {"app.py", "VERSION.txt", "requirements.txt", "templates", "static", "engines", "tools", "reports"}
 
 
 def latest_zip() -> Path:
     search_dirs = [ROOT.parent / "releases", ROOT / "release_output", ROOT]
-    zips = []
+    zips: list[Path] = []
     for directory in search_dirs:
         if directory.exists():
             zips.extend(directory.glob("*RENDER_READY.zip"))
@@ -83,7 +86,6 @@ def latest_zip() -> Path:
 def is_forbidden(filename: str) -> tuple[bool, str]:
     path = PurePosixPath(filename)
     parts = set(path.parts)
-    lower = filename.lower()
     lower_name = path.name.lower()
     if parts & FORBIDDEN_PARTS:
         return True, "directorio prohibido"
@@ -108,21 +110,25 @@ def audit_zip(target: Path) -> dict:
             if info.is_dir():
                 continue
             sizes.append((info.file_size, info.filename))
-            first = PurePosixPath(info.filename).parts[0] if PurePosixPath(info.filename).parts else "."
+            parts = PurePosixPath(info.filename).parts
+            first = parts[0] if parts else "."
             folder_sizes[first] += info.file_size
             folder_counts[first] += 1
             forbidden, reason = is_forbidden(info.filename)
             if forbidden:
                 bad.append({"path": info.filename, "reason": reason, "size": info.file_size})
     sizes.sort(reverse=True)
+    names = {PurePosixPath(name).parts[0] for _, name in sizes if PurePosixPath(name).parts}
+    missing_required = sorted(item for item in REQUIRED_ROOT if item not in names)
     return {
-        "ok": not bad,
+        "ok": not bad and not missing_required,
         "audited_at": datetime.now().isoformat(timespec="seconds"),
         "zip": str(target),
         "zip_size_bytes": target.stat().st_size,
         "file_count": len(sizes),
         "content_size_bytes": sum(size for size, _ in sizes),
         "forbidden_count": len(bad),
+        "missing_required_root": missing_required,
         "forbidden": bad[:200],
         "top_files": [{"path": name, "size": size} for size, name in sizes[:20]],
         "top_folders": [
@@ -135,7 +141,8 @@ def audit_zip(target: Path) -> dict:
 def write_reports(report: dict) -> None:
     REPORT_DIR.mkdir(exist_ok=True)
     (REPORT_DIR / f"RELEASE_ZIP_AUDIT_{VERSION_PREFIX}.json").write_text(
-        json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+        json.dumps(report, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
     )
     lines = [
         f"# Auditoría ZIP {VERSION_PREFIX}",
@@ -145,6 +152,7 @@ def write_reports(report: dict) -> None:
         f"- Tamaño ZIP: {report['zip_size_bytes']} bytes",
         f"- Prohibidos: {report['forbidden_count']}",
         f"- Resultado: {'OK' if report['ok'] else 'FAIL'}",
+        f"- Root obligatorio ausente: {', '.join(report.get('missing_required_root') or []) or 'ninguno'}",
         "",
         "## Carpetas principales",
     ]

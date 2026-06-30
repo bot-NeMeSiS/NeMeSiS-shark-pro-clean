@@ -297,3 +297,94 @@ Preservado:
 - V850 live/escudos.
 - V857 Company OS.
 - V858 visual direction lock.
+
+## V861_SELF_IMPROVING_OPERATIONS_OS_SAFE_AUTOMATION_FINAL
+
+Base real detectada: V860_PROJECT_CLEANUP_LEGACY_PURGE_VISUAL_REFERENCE_ALIGNMENT_FINAL.
+
+Trabajo aplicado:
+- Se elevó VERSION.txt, APP_VERSION, base.html, cache CSS y runtime a V861.
+- Se creó `engines/auto_improvement_engine.py` como motor seguro de mejora continua.
+- Se añadió `/admin/auto-improvement` con alias `/admin/mejora-continua`, `/admin/shark-ops` y `/admin/continuous-improvement`.
+- Se añadió `/api/admin/auto-improvement/summary`, protegido por sesión admin.
+- Se añadió `/api/automation/auto-improvement/run`, protegido por AUTOMATION_SECRET.
+- Se creó `templates/admin_auto_improvement.html`.
+- Se integró Mejora continua en navegación admin, Company OS y Product Board.
+- Se añadió capa CSS V861 específica para Auto-Improvement OS.
+- Se creó `tools/check_v861_self_improving_operations_os.py`.
+- Se añadieron reportes V861 de seguridad, niveles de acción, runbook cron, prompts Codex y notas Render.
+
+Preservado:
+- V818 master tick y health-check.
+- V844 Telegram premium/no filler.
+- V845 SHARK IA.
+- V847 API-SPORTS guard.
+- V850 live/escudos.
+- V857 Company OS.
+- V859 Product Board.
+- V860 cleanup/visual alignment.
+
+## V862_SHARK_SENTINEL_REAL_USER_APP_INSPECTOR_FINAL
+
+Base real detectada: V861_SELF_IMPROVING_OPERATIONS_OS_SAFE_AUTOMATION_FINAL.
+
+Trabajo aplicado:
+- Se elevó VERSION.txt, APP_VERSION, base.html, cache CSS y runtime a V862.
+- Se creó `engines/shark_sentinel_engine.py` como motor seguro de inspección de usuario real simulado.
+- Se añadió `/admin/shark-sentinel` con alias `/admin/app-inspector`, `/admin/qa-bot` y `/admin/bot-auditor`.
+- Se añadió `/api/admin/shark-sentinel/summary`, protegido por sesión admin.
+- Se añadió `/api/admin/shark-sentinel/run`, protegido por sesión admin.
+- Se añadió `/api/automation/shark-sentinel/run`, protegido por AUTOMATION_SECRET.
+- Se creó `templates/admin_shark_sentinel.html`.
+- Se creó `tools/run_shark_sentinel_static.py` para inspección local con Flask test client.
+- Se integró Sentinel en navegación admin y Auto-Improvement OS.
+- Se añadió capa CSS V862 específica para el panel Sentinel.
+- Se creó `tools/check_v862_shark_sentinel_real_user_app_inspector.py`.
+- Se añadieron reportes V862 de journeys, modelo de incidencias, política de autofix, admin QA, cron runbook y prompts Codex.
+
+Preservado:
+- V818 master tick y health-check.
+- V844 Telegram premium/no filler.
+- V845 SHARK IA.
+- V847 API-SPORTS guard.
+- V850 live/escudos.
+- V857 Company OS.
+- V859 Product Board.
+- V861 Auto-Improvement OS.
+
+## V862_CONTINUOUS_SHARK_SENTINEL_AUTO_IMPROVEMENT_LOOP_FINAL
+
+Base real detectada: V862_SHARK_SENTINEL_REAL_USER_APP_INSPECTOR_FINAL, evolucionada de forma controlada sobre la carpeta oficial.
+
+Trabajo aplicado:
+- Se elevó VERSION.txt, APP_VERSION, base.html, cache CSS y runtime a V862 Continuous.
+- Se creó `engines/continuous_shark_sentinel_engine.py` como motor de ciclo continuo seguro.
+- Se añadió `/admin/continuous-sentinel` con alias `/admin/shark-sentinel`, `/admin/app-inspector`, `/admin/qa-bot`, `/admin/bot-auditor` y `/admin/mejora-continua`.
+- Se añadieron `/api/admin/continuous-sentinel/summary`, `/api/admin/continuous-sentinel/run` y `/api/admin/continuous-sentinel/issues`, protegidos por sesión admin.
+- Se añadió `/api/automation/continuous-sentinel/run`, protegido por AUTOMATION_SECRET y limitado a diagnóstico dry-run.
+- Se creó `templates/admin_continuous_sentinel.html`.
+- Se creó `tools/run_continuous_sentinel_static.py` para ciclo local seguro con Flask test client.
+- Se integró Continuous Sentinel en navegación admin, rail, dock y command strip.
+- Se añadió capa CSS V862 Continuous específica para el panel.
+- Se creó `tools/check_v862_continuous_shark_sentinel_loop.py`.
+- Se añadieron reportes V862 Continuous de loop, seguridad, tracking, perfiles, Browser QA opcional, Company OS y Render Ready.
+
+Modelo de seguridad:
+- No modifica código automáticamente.
+- No ejecuta deploys.
+- No envía Telegram real.
+- No llama APIs externas.
+- No toca secretos.
+- No escribe SQLite durante render.
+- Genera diagnósticos, incidencias y prompts seguros para revisión humana.
+
+Preservado:
+- V818 master tick y health-check.
+- V844 Telegram premium/no filler.
+- V845 SHARK IA.
+- V847 API-SPORTS guard.
+- V850 live/escudos.
+- V857 Company OS.
+- V859 Product Board.
+- V861 Auto-Improvement OS.
+- V862 SHARK Sentinel real user inspector.

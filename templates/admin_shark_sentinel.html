@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% from "partials/ui_components.html" import stat_card, empty_state, status_chip, action_button %}
+{% block content %}
+<section class="v862-shark-sentinel v860-admin-board">
+  <header class="v862-sentinel-hero">
+    <span>SHARK Sentinel Bot</span>
+    <h1>Bot Auditor de Experiencia Real</h1>
+    <p>Inspector seguro que simula perfiles de usuario, revisa rutas y pantallas, clasifica incidencias y genera prompts para Codex. No modifica código, no despliega, no toca secretos y no inventa datos.</p>
+    <div class="v862-sentinel-actions">
+      {{ action_button('Ejecutar diagnóstico admin', '/api/admin/shark-sentinel/run', 'brand') }}
+      {{ action_button('Mejora continua', '/admin/auto-improvement', 'neutral') }}
+      {{ action_button('Empresa OS', '/admin/company-os', 'neutral') }}
+      {{ action_button('Product Board', '/admin/company-audit', 'neutral') }}
+      {{ action_button('Runtime', '/api/runtime-version', 'success') }}
+    </div>
+  </header>
+
+  <section class="v862-sentinel-summary v860-kpi-row">
+    {{ stat_card('Estado Sentinel', summary.sentinel_status|replace('_', ' '), 'Modo seguro', 'brand') }}
+    {{ stat_card('Perfiles', summary.profiles|length, 'Visitor, FREE, PRO, ELITE, ADMIN', 'info') }}
+    {{ stat_card('Score global', summary.global_score if summary.global_score is not none else 'Pendiente', 'Disponible tras ejecutar diagnóstico', 'warning') }}
+    {{ stat_card('Seguridad', 'Sin secretos', 'Sin deploy ni cambios de código', 'success') }}
+  </section>
+
+  <section class="v862-sentinel-grid">
+    {% for journey in summary.journeys %}
+    <article class="v862-sentinel-card">
+      <div class="v862-sentinel-card-head">
+        {{ status_chip(journey.profile, 'info') }}
+        <strong>{{ journey.routes|length }} rutas</strong>
+      </div>
+      <h2>{{ journey.profile }}</h2>
+      <p>Revisión de rutas, navegación, estados vacíos, textos, botones, membresía y señales de datos reales.</p>
+      <div class="v862-route-list">
+        {% for route in journey.routes %}
+        <code>{{ route }}</code>
+        {% endfor %}
+      </div>
+    </article>
+    {% else %}
+    {{ empty_state('Sin journeys', 'No hay perfiles de inspección cargados.', '', '', 'muted') }}
+    {% endfor %}
+  </section>
+
+  <section class="v862-sentinel-panels">
+    <article>
+      <h2>Modelo de incidencias</h2>
+      <p>Cada incidencia incluye perfil, ruta, categoría, severidad, evidencia, comportamiento esperado, comportamiento real, fix sugerido y prompt Codex.</p>
+      <div class="v862-chip-list">
+        {{ status_chip('critical', 'danger') }}
+        {{ status_chip('high', 'warning') }}
+        {{ status_chip('medium', 'info') }}
+        {{ status_chip('low', 'neutral') }}
+        {{ status_chip('info', 'neutral') }}
+      </div>
+    </article>
+    <article>
+      <h2>Acciones seguras</h2>
+      <ul>
+        {% for action in summary.safe_actions %}
+        <li>{{ action }}</li>
+        {% endfor %}
+      </ul>
+      <h3>Requiere aprobación</h3>
+      <ul>
+        {% for action in summary.approval_required_actions %}
+        <li>{{ action }}</li>
+        {% endfor %}
+      </ul>
+    </article>
+  </section>
+
+  <section class="v862-prompt-panel">
+    <h2>Prompts sugeridos para Codex</h2>
+    <p>El Sentinel los prepara como texto copiable. No ejecuta Codex ni cambia producción.</p>
+    <div class="v862-prompt-list">
+      {% for prompt in summary.codex_prompt_suggestions %}
+      <code>{{ prompt }}</code>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="v862-sentinel-panels">
+    <article>
+      <h2>APIs seguras</h2>
+      <p><code>/api/admin/shark-sentinel/summary</code> requiere sesión admin.</p>
+      <p><code>/api/admin/shark-sentinel/run</code> requiere sesión admin.</p>
+      <p><code>/api/automation/shark-sentinel/run?dry_run=1</code> requiere AUTOMATION_SECRET.</p>
+    </article>
+    <article>
+      <h2>Modo navegador</h2>
+      <p>{{ summary.browser_note }}</p>
+      <p>La versión actual no exige Playwright ni navegador real para pasar QA local.</p>
+    </article>
+  </section>
+</section>
+{% endblock %}

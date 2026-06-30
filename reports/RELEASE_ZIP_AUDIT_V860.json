@@ -1,0 +1,195 @@
+{
+  "ok": true,
+  "audited_at": "2026-06-28T22:28:49",
+  "zip": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\release_output\\NeMeSiS_SHARK_PRO_V860_PROJECT_CLEANUP_LEGACY_PURGE_VISUAL_REFERENCE_ALIGNMENT_FINAL_RENDER_READY.zip",
+  "zip_size_bytes": 2176010,
+  "file_count": 1509,
+  "content_size_bytes": 5785798,
+  "forbidden_count": 0,
+  "missing_required_root": [],
+  "forbidden": [],
+  "top_files": [
+    {
+      "path": "app.py",
+      "size": 858421
+    },
+    {
+      "path": "static/app.css",
+      "size": 831354
+    },
+    {
+      "path": "reports/v810_telegram_previews/telegram_pick_pro_v810.png",
+      "size": 107837
+    },
+    {
+      "path": "reports/v810_telegram_previews/telegram_resumen_top_v810.png",
+      "size": 96929
+    },
+    {
+      "path": "V726_PROJECT_TREE_AUDIT.md",
+      "size": 96394
+    },
+    {
+      "path": "reports/v810_telegram_previews/telegram_live_top_v810.png",
+      "size": 72835
+    },
+    {
+      "path": "engines/api_football_live_tracker_engine.py",
+      "size": 60440
+    },
+    {
+      "path": "engines/api_exploitation_engine.py",
+      "size": 41823
+    },
+    {
+      "path": "engines/football_data_warehouse_engine.py",
+      "size": 38480
+    },
+    {
+      "path": "engines/stripe_payments_engine.py",
+      "size": 36321
+    },
+    {
+      "path": "templates/base.html",
+      "size": 35933
+    },
+    {
+      "path": "engines/telegram_delivery_engine.py",
+      "size": 31032
+    },
+    {
+      "path": "engines/shark_historical_intelligence_engine.py",
+      "size": 30018
+    },
+    {
+      "path": "V726_PURGE_REPORT.md",
+      "size": 26158
+    },
+    {
+      "path": "engines/spanish_localization_engine.py",
+      "size": 23699
+    },
+    {
+      "path": "engines/shark_prediction_engine.py",
+      "size": 23584
+    },
+    {
+      "path": "tools/build_clean_release.py",
+      "size": 23506
+    },
+    {
+      "path": "engines/data_memory_engine.py",
+      "size": 22764
+    },
+    {
+      "path": "engines/telegram_activity_engine.py",
+      "size": 20393
+    },
+    {
+      "path": "engines/player_intelligence_engine.py",
+      "size": 20270
+    }
+  ],
+  "top_folders": [
+    {
+      "folder": "engines",
+      "size": 1128803,
+      "files": 101
+    },
+    {
+      "folder": "reports",
+      "size": 1076975,
+      "files": 648
+    },
+    {
+      "folder": "app.py",
+      "size": 858421,
+      "files": 1
+    },
+    {
+      "folder": "static",
+      "size": 832680,
+      "files": 2
+    },
+    {
+      "folder": "tools",
+      "size": 819519,
+      "files": 404
+    },
+    {
+      "folder": "templates",
+      "size": 588755,
+      "files": 156
+    },
+    {
+      "folder": "V726_PROJECT_TREE_AUDIT.md",
+      "size": 96394,
+      "files": 1
+    },
+    {
+      "folder": "docs",
+      "size": 45463,
+      "files": 56
+    },
+    {
+      "folder": "V726_PURGE_REPORT.md",
+      "size": 26158,
+      "files": 1
+    },
+    {
+      "folder": "CHATGPT_CONTINUATION_REPORT.md",
+      "size": 14034,
+      "files": 1
+    },
+    {
+      "folder": "tests",
+      "size": 12961,
+      "files": 11
+    },
+    {
+      "folder": "RELEASE_MANIFEST_V860.json",
+      "size": 7456,
+      "files": 1
+    },
+    {
+      "folder": "services",
+      "size": 7327,
+      "files": 6
+    },
+    {
+      "folder": "RELEASE_MANIFEST_V762.json",
+      "size": 6907,
+      "files": 1
+    },
+    {
+      "folder": "RELEASE_MANIFEST_V761.json",
+      "size": 6873,
+      "files": 1
+    },
+    {
+      "folder": "RELEASE_MANIFEST_V760.json",
+      "size": 6844,
+      "files": 1
+    },
+    {
+      "folder": "RELEASE_MANIFEST_V758.json",
+      "size": 6763,
+      "files": 1
+    },
+    {
+      "folder": "RELEASE_MANIFEST_V757.json",
+      "size": 6758,
+      "files": 1
+    },
+    {
+      "folder": "V742_DUPLICATES_AND_LEGACY_AUDIT.md",
+      "size": 6694,
+      "files": 1
+    },
+    {
+      "folder": ".env.render.clean",
+      "size": 6685,
+      "files": 1
+    }
+  ]
+}

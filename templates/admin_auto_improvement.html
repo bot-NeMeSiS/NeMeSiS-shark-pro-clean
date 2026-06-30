@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% from "partials/ui_components.html" import stat_card, empty_state, status_chip, action_button %}
+{% block content %}
+<section class="v861-auto-improvement v860-admin-board">
+  <header class="v861-auto-hero">
+    <span>NeMeSiS Auto-Improvement OS</span>
+    <h1>Mejora Continua SHARK</h1>
+    <p>Sistema interno de diagnostico, priorizacion y prompts para Codex. No modifica codigo, no despliega, no toca secretos, no borra datos y no envia Telegram real.</p>
+    <div class="v861-auto-actions">
+      {{ action_button('Empresa OS', '/admin/company-os', 'neutral') }}
+      {{ action_button('Product Board', '/admin/company-audit', 'neutral') }}
+      {{ action_button('SHARK Sentinel', '/admin/shark-sentinel', 'brand') }}
+      {{ action_button('Dashboard', '/admin/dashboard', 'neutral') }}
+      {{ action_button('Runtime', '/api/runtime-version', 'success') }}
+    </div>
+  </header>
+
+  <section class="v861-auto-summary v860-kpi-row">
+    {{ stat_card('Estado global', summary.global_status|replace('_', ' '), 'Diagnostico seguro', 'brand') }}
+    {{ stat_card('Health score', summary.health_score ~ '/10', 'Score interno, no comercial', 'info') }}
+    {{ stat_card('Modo', summary.mode, 'dry_run=' ~ summary.dry_run, 'warning') }}
+    {{ stat_card('Seguridad', 'Sin secretos', 'Sin deploy ni cambios de codigo', 'success') }}
+  </section>
+
+  <section class="v861-auto-grid">
+    {% for area in summary.areas %}
+    <article class="v861-auto-card status-{{ area.status }}">
+      <div class="v861-auto-card-head">
+        <div>
+          {{ status_chip(area.status|replace('_', ' '), 'success' if area.status == 'strong' else 'warning') }}
+          <h2>{{ area.area }}</h2>
+        </div>
+        <strong>{{ area.score }}/10</strong>
+      </div>
+      <h3>Hallazgos</h3>
+      <ul>
+        {% for finding in area.findings %}
+        <li>{{ finding }}</li>
+        {% endfor %}
+      </ul>
+      <h3>Acciones seguras</h3>
+      <ul>
+        {% for action in area.safe_auto_actions %}
+        <li>{{ action }}</li>
+        {% endfor %}
+      </ul>
+      <p><strong>Siguiente foco:</strong> {{ area.next_focus }}</p>
+    </article>
+    {% else %}
+    {{ empty_state('Sin diagnostico', 'No hay areas cargadas en Auto-Improvement OS.', '', '', 'muted') }}
+    {% endfor %}
+  </section>
+
+  <section class="v861-auto-panels">
+    <article>
+      <h2>Requiere aprobacion admin</h2>
+      <ul>
+        {% for action in summary.approval_required_actions %}
+        <li>{{ action }}</li>
+        {% endfor %}
+      </ul>
+    </article>
+    <article>
+      <h2>Prohibido automatico</h2>
+      <ul>
+        {% for action in summary.forbidden_automatic_actions %}
+        <li>{{ action }}</li>
+        {% endfor %}
+      </ul>
+    </article>
+  </section>
+
+  <section class="v861-prompt-panel">
+    <h2>Prompts sugeridos para Codex</h2>
+    <p>Texto copiable. El sistema no ejecuta estos prompts por si solo.</p>
+    <div class="v861-prompt-list">
+      {% for prompt in summary.codex_prompt_suggestions %}
+      <code>{{ prompt }}</code>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="v861-auto-panels">
+    <article>
+      <h2>Bloqueos reales</h2>
+      <div class="v861-chip-list">
+        {{ status_chip('Render real pendiente' if summary.blocked_by_real_render else 'Render detectado', 'warning' if summary.blocked_by_real_render else 'success') }}
+        {{ status_chip('API real pendiente' if summary.blocked_by_real_api else 'API configurada', 'warning' if summary.blocked_by_real_api else 'success') }}
+        {{ status_chip('Telegram real pendiente' if summary.blocked_by_real_telegram else 'Telegram configurado', 'warning' if summary.blocked_by_real_telegram else 'success') }}
+        {{ status_chip('Pagos reales pendientes' if summary.blocked_by_real_payment else 'Pagos configurados', 'warning' if summary.blocked_by_real_payment else 'success') }}
+      </div>
+    </article>
+    <article>
+      <h2>Endpoints seguros</h2>
+      <p><code>/api/admin/auto-improvement/summary</code> requiere sesion admin.</p>
+      <p><code>/api/automation/auto-improvement/run?dry_run=1</code> requiere AUTOMATION_SECRET.</p>
+    </article>
+  </section>
+</section>
+{% endblock %}

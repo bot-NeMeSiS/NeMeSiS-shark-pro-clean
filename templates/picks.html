@@ -1,11 +1,12 @@
 ﻿{% extends "base.html" %}
 {% from "partials/team_identity.html" import crest %}
+{% from "partials/ui_components.html" import empty_state, status_chip, stat_card %}
 {% block content %}
 {% set stats = data.get('pick_stats') or {} %}
 {% set picks = data.get('picks') or [] %}
 {% set ready_picks = picks|selectattr('premium_ready')|list %}
 {% set featured = ready_picks[0] if ready_picks else (picks[0] if picks else none) %}
-<section class="v799-screen v799-picks-screen v815-certified-screen v815-picks-screen v816-certified-screen v816-picks-screen v817-certified-screen v817-picks-screen v819-certified-screen v819-picks-screen v820-certified-screen v820-picks-screen v823-certified-screen v823-picks-screen v824-certified-screen v824-picks-screen v825-certified-screen v826-certified-screen v827-certified-screen v828-certified-screen v829-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v830-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v825-picks-screen" data-v815-template="picks" data-v816-template="picks" data-v817-template="picks" data-v819-template="picks" data-v820-template="picks" data-v823-template="picks" data-v824-template="picks" data-v825-template="picks" data-v827-template="picks" data-v828-template="picks" data-v829-template="picks" data-v830-template="picks" data-v832-template="picks" data-v833-template="picks" data-v836-template="picks" data-v837-template="picks" data-v826-template="picks">
+<section class="v799-screen v799-picks-screen v815-certified-screen v815-picks-screen v816-certified-screen v816-picks-screen v817-certified-screen v817-picks-screen v819-certified-screen v819-picks-screen v820-certified-screen v820-picks-screen v823-certified-screen v823-picks-screen v824-certified-screen v824-picks-screen v825-certified-screen v826-certified-screen v827-certified-screen v828-certified-screen v829-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v830-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v825-picks-screen v860-app-shell" data-v815-template="picks" data-v816-template="picks" data-v817-template="picks" data-v819-template="picks" data-v820-template="picks" data-v823-template="picks" data-v824-template="picks" data-v825-template="picks" data-v827-template="picks" data-v828-template="picks" data-v829-template="picks" data-v830-template="picks" data-v832-template="picks" data-v833-template="picks" data-v836-template="picks" data-v837-template="picks" data-v826-template="picks">
   <div class="v799-appbar">
     <div>
       <span class="v799-kicker">Picks publicados · calidad SHARK · Hora España/Madrid</span>
@@ -24,11 +25,11 @@
     <article><span>4</span><strong>SHARK</strong><small>pregunta antes de entrar</small></article>
   </section>
 
-  <section class="v799-kpi-strip">
-    <a class="picks" href="/picks"><i>◆</i><span>Activos</span><strong>{{ ready_picks|length }}</strong><small>premium</small></a>
-    <a href="/picks"><i>◈</i><span>Cuota media</span><strong>{{ stats.get('avg_odds') or '—' }}</strong><small>real</small></a>
-    <a class="live" href="/track-record"><i>↗</i><span>Confianza</span><strong>{{ stats.get('avg_confidence') or stats.get('confidence') or '—' }}</strong><small>si existe</small></a>
-    <a class="gold" href="/combis"><i>♛</i><span>Combis</span><strong>{{ stats.get('combis') or '—' }}</strong><small>responsables</small></a>
+  <section class="v799-kpi-strip v860-kpi-row">
+    {{ stat_card('Activos', ready_picks|length, 'premium', 'warning', '/picks') }}
+    {{ stat_card('Cuota media', stats.get('avg_odds') or '—', 'real', 'info', '/picks') }}
+    {{ stat_card('Confianza', stats.get('avg_confidence') or stats.get('confidence') or '—', 'si existe', 'success', '/track-record') }}
+    {{ stat_card('Combis', stats.get('combis') or '—', 'responsables', 'brand', '/combis') }}
   </section>
 
   <nav class="v799-filterbar"><a class="active" href="/picks">Destacados</a><a href="#activos">Activos</a><a href="/track-record">Cerrados</a><a href="/combis">Combis</a><a href="/mercados">Mercados</a></nav>
@@ -45,7 +46,7 @@
   {% set away_identity = featured|team_identity('away') %}
   <article class="v799-feature-pick">
     <div class="v799-feature-pick-left">
-      <span class="v799-live-pill {{ 'on' if featured.get('premium_ready') else 'v852-review' }}">{{ featured.get('app_pick_state') or ('Pick destacado' if featured.get('premium_ready') else 'Pick en revisión') }}</span>
+      {{ status_chip(featured.get('app_pick_state') or ('Pick destacado' if featured.get('premium_ready') else 'Pick en revisión'), 'success' if featured.get('premium_ready') else 'warning') }}
       <h2>{{ featured.get('client_selection_label') or featured.get('selection_display') or featured.get('selection') or 'Selección pendiente' }}</h2>
       {% if not featured.get('premium_ready') %}<p class="v852-pick-note">{{ featured.get('app_pick_note') or 'Faltan datos reales para mostrarlo como entrada fuerte.' }}</p>{% endif %}
       <p>{{ featured.get('analysis_summary') or featured.get('reasoning') or 'Motivo pendiente en los datos del pick. Revisa el detalle antes de decidir.' }}</p>
@@ -76,7 +77,7 @@
     </div>
   </article>
   {% else %}
-  <div class="v799-empty hero"><strong>Sin picks activos ahora mismo.</strong><p>SHARK solo mostrará picks publicados con datos reales. Cuotas pendientes si el proveedor aún no las trae. Puedes revisar partidos o volver más tarde.</p><a class="v799-button primary" href="/calendar?lane=today">Ver partidos de hoy</a></div>
+  {{ empty_state('Sin picks activos ahora mismo.', 'SHARK solo mostrará picks publicados con datos reales. Si el proveedor no trae cuotas, se mantendrá el estado pendiente.', 'Ver partidos de hoy', '/calendar?lane=today', 'muted') }}
   {% endif %}
 
   <section class="v799-pick-grid" id="activos">

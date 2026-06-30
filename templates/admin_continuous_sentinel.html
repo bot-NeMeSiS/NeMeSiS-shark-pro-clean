@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% from "partials/ui_components.html" import stat_card, empty_state, status_chip, action_button %}
+{% block content %}
+<section class="v862-continuous-sentinel v862-shark-sentinel v860-admin-board">
+  <header class="v862-sentinel-hero">
+    <span>Continuous SHARK Sentinel</span>
+    <h1>Mejora Continua SHARK</h1>
+    <p>Loop permanente de inspección segura: revisa rutas, perfiles, visual, datos, Telegram, SHARK, admin y prioridades. Observa y prepara; no modifica código ni producción sin aprobación.</p>
+    <div class="v862-sentinel-actions">
+      {{ action_button('Quick cycle', '/api/admin/continuous-sentinel/run?mode=quick&dry_run=1', 'brand') }}
+      {{ action_button('Client cycle', '/api/admin/continuous-sentinel/run?mode=client&dry_run=1', 'neutral') }}
+      {{ action_button('Admin cycle', '/api/admin/continuous-sentinel/run?mode=admin&dry_run=1', 'neutral') }}
+      {{ action_button('Visual cycle', '/api/admin/continuous-sentinel/run?mode=visual&dry_run=1', 'neutral') }}
+      {{ action_button('Company OS', '/admin/company-os', 'neutral') }}
+      {{ action_button('Product Board', '/admin/company-audit', 'neutral') }}
+    </div>
+  </header>
+
+  <section class="v862-sentinel-summary v860-kpi-row">
+    {{ stat_card('Estado', summary.sentinel_status|replace('_', ' '), 'Loop seguro', 'brand') }}
+    {{ stat_card('Ciclos', summary.cycles|length, 'Quick, client, admin, visual, data, Telegram, full', 'info') }}
+    {{ stat_card('Issues abiertos', summary.issues_open, 'Último ciclo pendiente o en memoria', 'warning') }}
+    {{ stat_card('Seguridad', 'Sin deploy', 'Sin código automático ni secretos', 'success') }}
+  </section>
+
+  <section class="v862-sentinel-grid">
+    {% for name, checks in summary.cycles.items() %}
+    <article class="v862-sentinel-card">
+      <div class="v862-sentinel-card-head">
+        {{ status_chip(name, 'info') }}
+        <strong>{{ checks|length }}</strong>
+      </div>
+      <h2>{{ name|replace('_', ' ') }}</h2>
+      <div class="v862-route-list">
+        {% for check in checks %}
+        <code>{{ check }}</code>
+        {% endfor %}
+      </div>
+    </article>
+    {% endfor %}
+  </section>
+
+  <section class="v862-sentinel-panels">
+    <article>
+      <h2>Acciones seguras</h2>
+      <ul>
+        {% for action in summary.safe_actions %}
+        <li>{{ action }}</li>
+        {% endfor %}
+      </ul>
+    </article>
+    <article>
+      <h2>Requiere aprobación</h2>
+      <ul>
+        {% for action in summary.approval_required_actions %}
+        <li>{{ action }}</li>
+        {% endfor %}
+      </ul>
+    </article>
+  </section>
+
+  <section class="v862-prompt-panel">
+    <h2>Prompts Codex sugeridos</h2>
+    <div class="v862-prompt-list">
+      {% for prompt in summary.codex_prompts %}
+      <code>{{ prompt }}</code>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="v862-sentinel-panels">
+    <article>
+      <h2>Endpoints</h2>
+      <p><code>/api/admin/continuous-sentinel/summary</code> requiere sesión admin.</p>
+      <p><code>/api/admin/continuous-sentinel/run?mode=quick&dry_run=1</code> requiere sesión admin.</p>
+      <p><code>/api/automation/continuous-sentinel/run?mode=quick&dry_run=1</code> requiere AUTOMATION_SECRET.</p>
+    </article>
+    <article>
+      <h2>Browser QA opcional</h2>
+      <p>{{ summary.browser_note }}</p>
+      <p>El modo estático funciona siempre con Flask test client. Playwright no es obligatorio.</p>
+    </article>
+  </section>
+</section>
+{% endblock %}

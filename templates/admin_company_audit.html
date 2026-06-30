@@ -1,49 +1,35 @@
 {% extends "base.html" %}
+{% from "partials/ui_components.html" import stat_card, empty_state, status_chip, action_button %}
 {% block content %}
-<section class="v859-company-audit">
+<section class="v859-company-audit v860-admin-board">
   <header class="v859-audit-hero">
     <span>Company Audit Board</span>
     <h1>Product Board NeMeSiS SHARK PRO</h1>
     <p>Auditoría global de producto, negocio, cliente, admin, membresías, datos reales, SHARK, Telegram, arquitectura, visual y release. No ejecuta acciones peligrosas ni llama proveedores.</p>
     <div class="v859-audit-actions">
-      <a href="/admin/company-os">Empresa OS</a>
-      <a href="/admin/dashboard">Dashboard</a>
-      <a href="/admin/data-center">Datos</a>
-      <a href="/admin/telegram/command-center">Telegram</a>
-      <a href="/admin/shark-ai">SHARK</a>
-      <a href="/api/runtime-version">Runtime</a>
+      {{ action_button('Empresa OS', '/admin/company-os', 'neutral') }}
+      {{ action_button('Mejora continua', '/admin/auto-improvement', 'brand') }}
+      {{ action_button('Dashboard', '/admin/dashboard', 'neutral') }}
+      {{ action_button('Datos', '/admin/data-center', 'neutral') }}
+      {{ action_button('Telegram', '/admin/telegram/command-center', 'neutral') }}
+      {{ action_button('SHARK', '/admin/shark-ai', 'neutral') }}
+      {{ action_button('Runtime', '/api/runtime-version', 'success') }}
     </div>
   </header>
 
-  <section class="v859-audit-summary">
-    <article>
-      <span>Score global</span>
-      <strong>{{ summary.global_score }}/10</strong>
-      <small>{{ summary.global_status|replace('_', ' ') }}</small>
-    </article>
-    <article>
-      <span>Boards</span>
-      <strong>{{ summary.audit_boards|length }}</strong>
-      <small>Producto completo revisado</small>
-    </article>
-    <article>
-      <span>Bloqueos reales</span>
-      <strong>{{ summary.blocked_by_real_world_validation|length }}</strong>
-      <small>Dependen de Render/API/Telegram/pagos reales</small>
-    </article>
-    <article>
-      <span>Seguridad</span>
-      <strong>{{ 'Sin secretos' if not summary.secrets_exposed else 'Revisar' }}</strong>
-      <small>Sin llamadas externas desde el board</small>
-    </article>
+  <section class="v859-audit-summary v860-kpi-row">
+    {{ stat_card('Score global', summary.global_score ~ '/10', summary.global_status|replace('_', ' '), 'brand') }}
+    {{ stat_card('Boards', summary.audit_boards|length, 'Producto completo revisado', 'info') }}
+    {{ stat_card('Bloqueos reales', summary.blocked_by_real_world_validation|length, 'Dependen de Render/API/Telegram/pagos reales', 'warning') }}
+    {{ stat_card('Seguridad', 'Sin secretos' if not summary.secrets_exposed else 'Revisar', 'Sin llamadas externas desde el board', 'success') }}
   </section>
 
   <section class="v859-board-grid">
     {% for board in summary.audit_boards %}
-    <article class="v859-board-card status-{{ board.status }}">
+    <article class="v859-board-card v860-board-card status-{{ board.status }}">
       <div class="v859-board-head">
         <div>
-          <span>{{ board.status|replace('_', ' ') }}</span>
+          {{ status_chip(board.status|replace('_', ' '), 'warning' if board.status != 'ready' else 'success') }}
           <h2>{{ board.area }}</h2>
         </div>
         <strong>{{ board.score }}/10</strong>
@@ -63,6 +49,8 @@
       <p><strong>Próximo foco:</strong> {{ board.next_version_focus }}</p>
       <a href="{{ board.href }}">Abrir área</a>
     </article>
+    {% else %}
+    {{ empty_state('Sin boards visibles', 'No hay boards cargados en este resumen.', '', '', 'muted') }}
     {% endfor %}
   </section>
 

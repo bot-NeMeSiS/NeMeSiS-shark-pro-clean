@@ -1,48 +1,34 @@
 {% extends "base.html" %}
+{% from "partials/ui_components.html" import stat_card, empty_state, status_chip, action_button %}
 {% block content %}
-<section class="v857-company-os v858-visual-lock">
+<section class="v857-company-os v858-visual-lock v860-admin-board">
   <header class="v857-company-hero">
-    <span>Empresa OS · Visual Lock V858</span>
+    <span>Empresa OS · Visual Lock V860</span>
     <h1>NeMeSiS SHARK PRO Operating System</h1>
     <p>Workers internos para revisar producto, datos reales, SHARK, Telegram, membresías, rutas, admin, cliente y release sin tocar secretos ni llamar proveedores.</p>
     <div class="v857-company-actions">
-      <a href="/admin/dashboard">Dashboard</a>
-      <a href="/admin/company-audit">Product Board</a>
-      <a href="/admin/data-center">Centro de datos</a>
-      <a href="/admin/telegram/command-center">Telegram</a>
-      <a href="/admin/shark-ai">SHARK AI</a>
-      <a href="/api/runtime-version">Runtime</a>
+      {{ action_button('Dashboard', '/admin/dashboard', 'neutral') }}
+      {{ action_button('Product Board', '/admin/company-audit', 'brand') }}
+      {{ action_button('Mejora continua', '/admin/auto-improvement', 'brand') }}
+      {{ action_button('Centro de datos', '/admin/data-center', 'neutral') }}
+      {{ action_button('Telegram', '/admin/telegram/command-center', 'neutral') }}
+      {{ action_button('SHARK AI', '/admin/shark-ai', 'neutral') }}
+      {{ action_button('Runtime', '/api/runtime-version', 'success') }}
     </div>
   </header>
 
-  <section class="v857-company-summary">
-    <article>
-      <span>Estado global</span>
-      <strong>{{ summary.global_status|replace('_', ' ') }}</strong>
-      <small>Modo seguro: {{ 'activo' if summary.safe_mode else 'revisar' }}</small>
-    </article>
-    <article>
-      <span>Workers</span>
-      <strong>{{ summary.workers|length }}</strong>
-      <small>Sin llamadas externas desde este panel</small>
-    </article>
-    <article>
-      <span>Datos</span>
-      <strong>{{ 'No inventar' if not summary.data_invention_allowed else 'Revisar' }}</strong>
-      <small>Estados premium si falta proveedor</small>
-    </article>
-    <article>
-      <span>Seguridad</span>
-      <strong>{{ 'Sin secretos' if not summary.secrets_exposed else 'Revisar' }}</strong>
-      <small>Diagnóstico administrativo protegido</small>
-    </article>
+  <section class="v857-company-summary v860-kpi-row">
+    {{ stat_card('Estado global', summary.global_status|replace('_', ' '), 'Modo seguro: ' ~ ('activo' if summary.safe_mode else 'revisar'), 'brand') }}
+    {{ stat_card('Workers', summary.workers|length, 'Sin llamadas externas desde este panel', 'info') }}
+    {{ stat_card('Datos', 'No inventar' if not summary.data_invention_allowed else 'Revisar', 'Estados premium si falta proveedor', 'warning') }}
+    {{ stat_card('Seguridad', 'Sin secretos' if not summary.secrets_exposed else 'Revisar', 'Diagnóstico administrativo protegido', 'success') }}
   </section>
 
   <section class="v857-workers-grid" aria-label="Workers internos">
     {% for worker in summary.workers %}
-    <article class="v857-worker-card risk-{{ worker.risk_level }}">
+    <article class="v857-worker-card v860-board-card risk-{{ worker.risk_level }}">
       <div>
-        <span>{{ worker.area }}</span>
+        {{ status_chip(worker.area, 'neutral') }}
         <h2>{{ worker.worker_name }}</h2>
       </div>
       <strong>{{ worker.status }}</strong>
@@ -54,23 +40,25 @@
       <p>{{ worker.safe_next_step }}</p>
       <a href="{{ worker.href }}">Abrir área</a>
     </article>
+    {% else %}
+    {{ empty_state('Sin workers visibles', 'No hay workers listados en este resumen.', '', '', 'muted') }}
     {% endfor %}
   </section>
 
   <section class="v857-company-panels">
     <article>
       <h2>Estados seguros</h2>
-      <div class="v857-chip-list">
+      <div class="v857-chip-list v860-chip-grid">
         {% for state in summary.safe_states %}
-        <span>{{ state }}</span>
+        {{ status_chip(state, 'info') }}
         {% endfor %}
       </div>
     </article>
     <article>
       <h2>Base protegida</h2>
-      <div class="v857-chip-list">
+      <div class="v857-chip-list v860-chip-grid">
         {% for item in summary.protected_foundations %}
-        <span>{{ item }}</span>
+        {{ status_chip(item, 'success') }}
         {% endfor %}
       </div>
     </article>

@@ -202,6 +202,8 @@ EXCLUDE_DIRS = {
     "v636work",
     "archive_legacy",
     "reports/archive",
+    ".codex",
+    ".agents",
 }
 EXCLUDE_SUFFIXES = {
     ".pyc",
@@ -213,6 +215,8 @@ EXCLUDE_SUFFIXES = {
     ".db-shm",
     ".sqlite-wal",
     ".sqlite-shm",
+    ".db-journal",
+    ".sqlite-journal",
     ".log",
     ".zip",
     ".mp4",
@@ -354,6 +358,9 @@ def include(path: Path) -> bool:
             or rel_posix.startswith("reports/V857_")
             or rel_posix.startswith("reports/V858_")
             or rel_posix.startswith("reports/V859_")
+            or rel_posix.startswith("reports/V860_")
+            or rel_posix.startswith("reports/V861_")
+            or rel_posix.startswith("reports/V862_")
             or rel_posix.startswith("reports/V811_")
             or rel_posix.startswith("reports/V810_")
             or rel_posix.startswith("reports/V809_")
@@ -448,6 +455,9 @@ def include(path: Path) -> bool:
             or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V857")
             or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V858")
             or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V859")
+            or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V860")
+            or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V861")
+            or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V862")
         )
     if any(part in EXCLUDE_DIRS for part in parts):
         return False

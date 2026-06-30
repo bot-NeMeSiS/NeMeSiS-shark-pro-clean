@@ -1,5 +1,6 @@
 ﻿{% extends "base.html" %}
 {% from "partials/team_identity.html" import crest %}
+{% from "partials/ui_components.html" import empty_state, stat_card %}
 {% block content %}
 {% set live = data.get('live_experience') or {} %}
 {% set api_tracker = data.get('api_football_live_tracker') or {} %}
@@ -13,7 +14,7 @@
 {% set ns = namespace(matches=[]) %}
 {% for day in live.get('day_groups') or [] %}{% for league in day.leagues %}{% for m in league.matches %}{% set _ = ns.matches.append(m) %}{% endfor %}{% endfor %}{% endfor %}
 {% set featured = ns.matches[0] if ns.matches else none %}
-<section class="v799-screen v799-live-screen v811-client-screen v815-certified-screen v815-live-screen v816-certified-screen v816-live-screen v817-certified-screen v817-live-screen v819-certified-screen v819-live-screen v820-certified-screen v820-live-screen v823-certified-screen v823-live-screen v824-certified-screen v824-live-screen v825-certified-screen v826-certified-screen v827-certified-screen v828-certified-screen v829-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v830-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v825-live-screen v850-live-screen" data-v815-template="live" data-v816-template="live" data-v817-template="live" data-v819-template="live" data-v820-template="live" data-v823-template="live" data-v824-template="live" data-v825-template="live" data-v827-template="live" data-v828-template="live" data-v829-template="live" data-v830-template="live" data-v832-template="live" data-v833-template="live" data-v836-template="live" data-v837-template="live" data-v826-template="live" data-v850-template="live">
+<section class="v799-screen v799-live-screen v811-client-screen v815-certified-screen v815-live-screen v816-certified-screen v816-live-screen v817-certified-screen v817-live-screen v819-certified-screen v819-live-screen v820-certified-screen v820-live-screen v823-certified-screen v823-live-screen v824-certified-screen v824-live-screen v825-certified-screen v826-certified-screen v827-certified-screen v828-certified-screen v829-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v830-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v825-live-screen v850-live-screen v860-app-shell" data-v815-template="live" data-v816-template="live" data-v817-template="live" data-v819-template="live" data-v820-template="live" data-v823-template="live" data-v824-template="live" data-v825-template="live" data-v827-template="live" data-v828-template="live" data-v829-template="live" data-v830-template="live" data-v832-template="live" data-v833-template="live" data-v836-template="live" data-v837-template="live" data-v826-template="live" data-v850-template="live">
   <div class="v799-appbar v811-client-appbar">
     <div>
       <span class="v799-kicker">Marcador real · live center</span>
@@ -76,11 +77,11 @@
   </section>
   {% endif %}
 
-  <section class="v799-kpi-strip">
-    <a class="live" href="/live"><i>●</i><span>En directo</span><strong>{{ counts.get('live',0) }}</strong><small>jugándose</small></a>
-    <a href="/live?f=break"><i>◷</i><span>Descanso</span><strong>{{ counts.get('halftime', counts.get('break',0)) }}</strong><small>HT</small></a>
-    <a href="/live?f=finished"><i>✓</i><span>Finalizados</span><strong>{{ counts.get('finished',0) }}</strong><small>resultado</small></a>
-    <a class="picks" href="/picks"><i>◆</i><span>Picks</span><strong>{{ counts.get('picks',0) or '—' }}</strong><small>si existen</small></a>
+  <section class="v799-kpi-strip v860-kpi-row">
+    {{ stat_card('En directo', counts.get('live',0), 'jugándose', 'success', '/live') }}
+    {{ stat_card('Descanso', counts.get('halftime', counts.get('break',0)), 'HT', 'warning', '/live?f=break') }}
+    {{ stat_card('Finalizados', counts.get('finished',0), 'resultado', 'info', '/live?f=finished') }}
+    {{ stat_card('Picks', counts.get('picks',0) or '—', 'si existen', 'brand', '/picks') }}
   </section>
 
   <nav class="v799-filterbar">{% for key,label in live.get('filters') or [] %}<a class="{{ 'active' if lane == key else '' }}" href="/live?f={{ key }}">{{ label }}</a>{% endfor %}</nav>
@@ -94,7 +95,7 @@
       <strong>{{ m.get('safe_away') or m.get('away_team') or 'Visitante' }}</strong>
     </a>
     {% else %}
-    <div><strong>Sin directos reales ahora</strong><span>La app mostrará marcador cuando la API lo aporte.</span></div>
+    {{ empty_state('Sin directos reales ahora', 'La app mostrará marcador cuando la API lo aporte.', '', '', 'muted') }}
     {% endfor %}
   </section>
 
@@ -152,7 +153,7 @@
         <div class="v799-live-actions"><a class="primary" href="/match/{{ featured.get('id') }}">Abrir partido</a><a href="/match/{{ featured.get('id') }}#live-tracker">Live tracker</a><a href="/match/{{ featured.get('id') }}#shark">Análisis SHARK</a><button class="fav-star" type="button" data-kind="match" data-value="{{ featured.get('id') }}">☆ Favorito</button></div>
       </article>
       {% else %}
-      <div class="v799-empty hero"><strong>No hay partidos en directo ahora mismo.</strong><p>Mira los próximos partidos de hoy o vuelve cuando la API sincronice marcadores en vivo.</p><a class="v799-button primary" href="/calendar?lane=today">Ver próximos partidos</a></div>
+      {{ empty_state('No hay partidos en directo ahora mismo.', 'Mira los próximos partidos de hoy o vuelve cuando la API sincronice marcadores en vivo.', 'Ver próximos partidos', '/calendar?lane=today', 'muted') }}
       {% endif %}
 
       <section class="v799-live-grid">

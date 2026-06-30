@@ -1,0 +1,35 @@
+{% macro status_chip(label, tone='neutral') -%}
+<span class="v860-status-chip v860-tone-{{ tone }}">{{ label }}</span>
+{%- endmacro %}
+
+{% macro action_button(label, href, tone='neutral') -%}
+<a class="v860-action-btn v860-tone-{{ tone }}" href="{{ href }}">{{ label }}</a>
+{%- endmacro %}
+
+{% macro stat_card(title, value, detail='', tone='neutral', href='') -%}
+{% if href %}<a class="v860-stat-card v860-tone-{{ tone }}" href="{{ href }}">{% else %}<article class="v860-stat-card v860-tone-{{ tone }}">{% endif %}
+  <span>{{ title }}</span>
+  <strong>{{ value }}</strong>
+  {% if detail %}<small>{{ detail }}</small>{% endif %}
+{% if href %}</a>{% else %}</article>{% endif %}
+{%- endmacro %}
+
+{% macro empty_state(title, text='', primary_label='', primary_href='', tone='neutral') -%}
+<div class="v860-empty-state v860-tone-{{ tone }}">
+  <strong>{{ title }}</strong>
+  {% if text %}<p>{{ text }}</p>{% endif %}
+  {% if primary_label and primary_href %}<a class="v860-action-btn v860-tone-brand" href="{{ primary_href }}">{{ primary_label }}</a>{% endif %}
+</div>
+{%- endmacro %}
+
+{% macro board_card(title, value='', detail='', tone='neutral') -%}
+<article class="v860-board-card v860-tone-{{ tone }}">
+  <span>{{ title }}</span>
+  {% if value %}<strong>{{ value }}</strong>{% endif %}
+  {% if detail %}<small>{{ detail }}</small>{% endif %}
+</article>
+{%- endmacro %}
+
+{% macro plan_badge(label, tone='neutral') -%}
+<span class="v860-plan-badge v860-tone-{{ tone }}">{{ label }}</span>
+{%- endmacro %}
