@@ -71,3 +71,13 @@ reports/archive/
 .env.production
 .env.render
 .env.secret
+
+# V870 PRO MAX workspace purge guardrails
+*.bak
+*.backup
+*.old
+*.orig
+reports/archive/
+archive_legacy/
+video_review_frames/
+cron_video_frames/

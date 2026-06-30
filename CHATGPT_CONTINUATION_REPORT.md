@@ -632,3 +632,53 @@ Honestidad operativa:
 - No se envió Telegram real.
 - No se probaron pagos reales.
 - No se afirma pixel-perfect; queda pendiente Browser QA con capturas V869 si el usuario lo pide.
+
+## V870_REFERENCE_STYLE_MATCH_AND_WORKSPACE_PURGE_PRO_FINAL
+
+Fecha local: 2026-07-01.
+
+Base real usada: `V869_FULL_COMPANY_REFERENCE_ALIGNMENT_DEEP_CLEAN_VISUAL_REBUILD_FINAL` en carpeta oficial.
+
+Trabajo aplicado:
+
+- Versionado actualizado a V870 en `VERSION.txt`, `APP_VERSION`, `app.py` y `templates/base.html`.
+- Runtime añade `has_v870_reference_style_match_workspace_purge`.
+- CSS cache busting actualizado a V870.
+- Capa CSS V870 para dirección visual de referencia: topbar, navegación, densidad de dashboard, widgets, mini charts seguros, cards compactas, tablas, picks/live, admin, Sentinel y móvil.
+- `templates/partials/ui_components.html` añade macros V870: `v870_mini_chart`, `v870_reference_widget`, `v870_status_board`, `v870_admin_workbench`, `v870_client_workbench`.
+- Checks V862-V869 quedan compatibles con V870.
+- Nuevo check `tools/check_v870_reference_style_match_workspace_purge.py`.
+- Nuevos reportes V870 para vídeo vs referencia, purge workspace, cleaner hardening, cliente PC, móvil, admin, sports/picks/live, SHARK/Telegram/membresías y Sentinel.
+
+Honestidad operativa:
+
+- No se borró nada a ciegas.
+- No se hizo deploy.
+- No se hizo push.
+- No se envió Telegram real.
+- No se probaron pagos reales.
+- No se generaron nuevas capturas V870 porque no había herramientas locales de extracción de vídeo disponibles (`ffmpeg`, `cv2`, `moviepy`, `imageio` no disponibles).
+
+## V870_REFERENCE_STYLE_MATCH_AND_WORKSPACE_PURGE_PRO_MAX_FINAL
+
+Base efectiva: la carpeta oficial ya estaba en `V870_REFERENCE_STYLE_MATCH_AND_WORKSPACE_PURGE_PRO_FINAL`; el prompt PRO MAX citaba V869 como base solicitada, así que se aplicó una pasada incremental segura encima de la carpeta oficial actual, sin usar ZIP viejo ni carpeta anidada.
+
+Cambios principales:
+- Versionado actualizado a `V870_REFERENCE_STYLE_MATCH_AND_WORKSPACE_PURGE_PRO_MAX_FINAL`.
+- `app.py`, `VERSION.txt`, `APP_VERSION`, `templates/base.html` y cache CSS actualizados a PRO MAX.
+- CSS V870 renombrado con marcador `V870 REFERENCE STYLE MATCH AND WORKSPACE PURGE PRO MAX`.
+- `build_clean_release.py` reforzado para incluir reportes V869/V870 y auditorías ZIP V869/V870 de forma explícita.
+- `.gitignore` añade guardrails PRO MAX para backups, frames y legacy.
+- Nuevo check `tools/check_v870_reference_style_match_workspace_purge_pro_max.py`.
+- Reportes PRO MAX creados para preflight, auditoría del árbol local, plan de purga, vídeo vs referencia, cliente PC, móvil, admin, sports/picks/live, SHARK/Telegram/membresías, Sentinel y próximos pasos.
+
+Auditoría local PRO MAX:
+- 11.269 archivos locales detectados.
+- 72 ZIPs locales, 63 DB/SQLite/WAL/SHM/journal, 109 carpetas `__pycache__`.
+- No se borró nada a ciegas; se reforzó exclusión de release.
+
+Honestidad:
+- No se hizo deploy ni push.
+- No se envió Telegram real.
+- No se probaron pagos reales.
+- No se afirma pixel-perfect ni Render real.

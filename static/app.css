@@ -10582,3 +10582,201 @@ body[data-v869-shell="true"].ns-admin :is(.bottom-nav, .mobile-bottom-nav, .floa
   }
 }
 /* V869 FULL COMPANY REFERENCE ALIGNMENT DEEP CLEAN VISUAL REBUILD END */
+
+/* V870 REFERENCE STYLE MATCH AND WORKSPACE PURGE PRO MAX START */
+body[data-v870-shell="true"] {
+  --v870-bg-deep: #020b15;
+  --v870-card: rgba(4, 15, 27, 0.94);
+  --v870-card-hot: rgba(9, 34, 53, 0.88);
+  --v870-line: rgba(103, 232, 255, 0.2);
+  --v870-line-hot: rgba(103, 232, 255, 0.42);
+  --v870-ink: rgba(244, 252, 255, 0.96);
+  --v870-muted: rgba(180, 209, 224, 0.74);
+  --v870-gold: #f2c66a;
+  --v870-cyan: #67e8ff;
+  --v870-green: #75efb8;
+  --v870-red: #ff728a;
+  --v870-tight: clamp(10px, 1.2vw, 14px);
+}
+
+body[data-v870-shell="true"] :is(.top, .ns-topbar) {
+  backdrop-filter: blur(18px);
+  border-bottom: 1px solid rgba(103, 232, 255, 0.14);
+}
+
+body[data-v870-shell="true"] :is(.topin, .ns-topbar .topin) {
+  min-height: 58px;
+  gap: 10px;
+}
+
+body[data-v870-shell="true"] :is(.nav-clean a, .v853-admin-command-strip a, .v869-reference-sidebar-item) {
+  border: 1px solid rgba(103, 232, 255, 0.14);
+  background: rgba(4, 16, 29, 0.58);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+}
+
+body[data-v870-shell="true"] :is(.v812-hero-shell, .v799-appbar, .v862-sentinel-hero) {
+  display: grid;
+  gap: 14px;
+}
+
+body[data-v870-shell="true"] :is(.v812-hero-copy p, .v799-appbar p, .v862-sentinel-hero p) {
+  max-width: 760px;
+}
+
+body[data-v870-shell="true"] :is(.v799-kpi-strip, .v812-kpi-row, .v860-kpi-row, .v862-sentinel-summary, .v869-reference-metric-strip, .v870-reference-widget-grid) {
+  grid-template-columns: repeat(auto-fit, minmax(136px, 1fr));
+  gap: 9px;
+}
+
+body[data-v870-shell="true"] :is(.v860-stat-card, .v868-pro-stat-card, .v869-reference-stat-tile, .v870-reference-widget) {
+  min-height: 82px;
+  padding: 12px;
+  border-radius: 16px;
+}
+
+body[data-v870-shell="true"] :is(.v860-stat-card small, .v868-pro-stat-card small, .v869-reference-stat-tile small) {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--v870-muted);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+body[data-v870-shell="true"] :is(.v870-mini-chart, .v869-reference-chart, .mini-chart, .sparkline, .chart-placeholder) {
+  position: relative;
+  overflow: hidden;
+  min-height: 44px;
+  border-color: rgba(103, 232, 255, 0.18);
+}
+
+body[data-v870-shell="true"] :is(.v870-mini-chart, .v869-reference-chart, .mini-chart, .sparkline, .chart-placeholder)::after {
+  content: "Esperando proveedor";
+  position: absolute;
+  right: 8px;
+  bottom: 6px;
+  color: rgba(194, 223, 236, 0.58);
+  font-size: 0.68rem;
+  font-weight: 800;
+}
+
+body[data-v870-shell="true"] :is(.v812-main-grid, .v799-live-layout, .v862-sentinel-panels, .v869-reference-dashboard-grid) {
+  gap: 12px;
+}
+
+body[data-v870-shell="true"] :is(.v812-feature-card, .v799-card, .v799-feature-pick, .v799-pick-card, .v799-live-card, .v860-board-card, .v868-pro-board-card, .v869-reference-dashboard-card, .admin-card) {
+  padding: var(--v870-tight);
+}
+
+body[data-v870-shell="true"] :is(.v868-pro-match-row, .v869-reference-match-row, .v864-match-row, .match-row) {
+  min-height: 58px;
+  padding: 10px;
+}
+
+body[data-v870-shell="true"] :is(.v868-pro-pick-card, .v869-reference-pick-card, .v864-pick-card, .pick-card) {
+  gap: 9px;
+  padding: 12px;
+}
+
+body[data-v870-shell="true"] :is(.v868-pro-action-btn, .v869-reference-action-button, .v860-action-btn, .v864-action-button, .action-button) {
+  min-height: 36px;
+  padding: 8px 12px;
+  font-size: 0.88rem;
+}
+
+body[data-v870-shell="true"] :is(.v868-pro-status-chip, .v860-status-chip, .v864-status-chip, .status-chip) {
+  padding: 4px 8px;
+  font-size: 0.72rem;
+}
+
+body[data-v870-shell="true"] :is(.v870-status-board, .v870-admin-workbench, .v870-client-workbench) {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 10px;
+}
+
+body[data-v870-shell="true"] :is(.v870-reference-widget, .v870-status-board > *, .v870-admin-workbench > *, .v870-client-workbench > *) {
+  border: 1px solid var(--v870-line);
+  border-radius: 16px;
+  background:
+    radial-gradient(circle at top left, rgba(103, 232, 255, 0.12), transparent 36%),
+    linear-gradient(145deg, var(--v870-card), rgba(4, 11, 21, 0.9));
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.28);
+}
+
+body[data-v870-shell="true"] :is(table, .admin-table, .v794-admin-table) :is(td, th) {
+  padding: 9px 10px;
+}
+
+body[data-v870-shell="true"].ns-admin :is(.v862-sentinel-card, .v865-workflow-task, .v869-reference-sentinel-issue-card) {
+  border-left: 3px solid rgba(103, 232, 255, 0.4);
+}
+
+body[data-v870-shell="true"] :is(.v870-pro-max-board, .admin-grid, .command-grid, .v853-command-grid, .v859-board-grid) {
+  align-items: stretch;
+  gap: clamp(10px, 1.2vw, 16px);
+}
+
+body[data-v870-shell="true"] :is(.v870-pro-max-board, .admin-grid, .command-grid, .v853-command-grid, .v859-board-grid) > * {
+  min-width: 0;
+}
+
+body[data-v870-shell="true"] :is(.v812-feature-card, .v799-card, .admin-card, .v870-reference-widget) :is(h2, h3, strong) {
+  letter-spacing: 0;
+  line-height: 1.08;
+}
+
+body[data-v870-shell="true"] :is(.admin-table, .v794-admin-table, table) {
+  border-collapse: separate;
+  border-spacing: 0 6px;
+}
+
+body[data-v870-shell="true"] :is(.admin-table, .v794-admin-table, table) tr {
+  background: rgba(4, 15, 27, 0.58);
+}
+
+body[data-v870-shell="true"] :is(.admin-table, .v794-admin-table, table) :is(td:first-child, th:first-child) {
+  border-radius: 10px 0 0 10px;
+}
+
+body[data-v870-shell="true"] :is(.admin-table, .v794-admin-table, table) :is(td:last-child, th:last-child) {
+  border-radius: 0 10px 10px 0;
+}
+
+body[data-v870-shell="true"] :is(.v870-mini-chart, .v869-reference-chart, .mini-chart, .sparkline, .chart-placeholder) {
+  position: relative;
+  overflow: hidden;
+}
+
+body[data-v870-shell="true"].ns-admin :is(.bottom-nav, .mobile-bottom-nav, .floating-shark, .ns-floating-shark, .shark-fab, .scroll-top) {
+  display: none !important;
+}
+
+@media (min-width: 1180px) {
+  body[data-v870-shell="true"] :is(.v799-pick-grid, .v799-live-grid, .v862-sentinel-grid) {
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  body[data-v870-shell="true"] :is(.v812-hero-copy h1, .v799-appbar h1, .v862-sentinel-hero h1) {
+    font-size: clamp(1.35rem, 7vw, 1.9rem);
+  }
+
+  body[data-v870-shell="true"] :is(.v799-kpi-strip, .v812-kpi-row, .v860-kpi-row, .v862-sentinel-summary, .v869-reference-metric-strip, .v870-reference-widget-grid) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  body[data-v870-shell="true"] :is(.v860-stat-card, .v868-pro-stat-card, .v869-reference-stat-tile, .v870-reference-widget) {
+    min-height: 74px;
+  }
+
+  body[data-v870-shell="true"] :is(.bottom-nav, .mobile-bottom-nav) {
+    max-width: calc(100vw - 16px);
+  }
+
+  body[data-v870-shell="true"] :is(.v870-status-board, .v870-admin-workbench, .v870-client-workbench) {
+    grid-template-columns: 1fr;
+  }
+}
+/* V870 REFERENCE STYLE MATCH AND WORKSPACE PURGE PRO MAX END */

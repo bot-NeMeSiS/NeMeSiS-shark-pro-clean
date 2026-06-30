@@ -171,3 +171,40 @@
   {% if subtitle %}<p>{{ subtitle }}</p>{% endif %}
 </header>
 {%- endmacro %}
+
+{% macro v870_mini_chart(label='Esperando proveedor') -%}
+<div class="v870-mini-chart" aria-label="{{ label }}"></div>
+{%- endmacro %}
+
+{% macro v870_reference_widget(title, value='Sin datos reales', detail='Requiere sincronización real', tone='neutral') -%}
+<article class="v870-reference-widget v860-tone-{{ tone }}">
+  <span>{{ title }}</span>
+  <strong>{{ value }}</strong>
+  <small>{{ detail }}</small>
+  {{ v870_mini_chart(detail) }}
+</article>
+{%- endmacro %}
+
+{% macro v870_status_board(items) -%}
+<div class="v870-status-board">
+  {% for item in items %}
+    {{ v870_reference_widget(item.title, item.value|default('Sin datos reales'), item.detail|default('Esperando proveedor'), item.tone|default('neutral')) }}
+  {% endfor %}
+</div>
+{%- endmacro %}
+
+{% macro v870_admin_workbench(title, items) -%}
+<section class="v870-admin-workbench" aria-label="{{ title }}">
+  {% for item in items %}
+    {{ reference_admin_status_card(item.title, item.value|default('Acción pendiente'), item.detail|default('Revisión segura'), item.tone|default('neutral')) }}
+  {% endfor %}
+</section>
+{%- endmacro %}
+
+{% macro v870_client_workbench(title, items) -%}
+<section class="v870-client-workbench" aria-label="{{ title }}">
+  {% for item in items %}
+    {{ v870_reference_widget(item.title, item.value|default('Sin datos reales'), item.detail|default('Esperando proveedor'), item.tone|default('neutral')) }}
+  {% endfor %}
+</section>
+{%- endmacro %}
