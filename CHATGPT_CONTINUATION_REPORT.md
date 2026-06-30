@@ -565,3 +565,44 @@ Honestidad operativa:
 - No se envió Telegram real.
 - No se probaron pagos reales.
 - No se afirma pixel-perfect.
+
+## V868_PRO_MAX_CLIENT_ADMIN_MOBILE_VISUAL_REVENUE_SENTINEL_FINAL
+
+Fecha local: 2026-07-01.
+
+Base real usada: la carpeta oficial ya estaba en `V868_REAL_CLIENT_ADMIN_VISUAL_PRODUCTION_POLISH_AND_SENTINEL_VALUE_FINAL`, creada desde V867. Esta nueva pasada sustituye la V868 anterior por la V868 Pro Max solicitada, sin usar ZIP viejo V827 ni carpeta anidada.
+
+Trabajo aplicado:
+
+- Versionado actualizado a `V868_PRO_MAX_CLIENT_ADMIN_MOBILE_VISUAL_REVENUE_SENTINEL_FINAL` en `VERSION.txt`, `APP_VERSION`, `app.py` y `templates/base.html`.
+- Runtime añade `has_v868_pro_max_client_admin_mobile_visual_revenue_sentinel`.
+- CSS cache busting actualizado a V868 Pro Max.
+- Capa CSS `V868 PRO MAX CLIENT ADMIN MOBILE VISUAL REVENUE SENTINEL` para cards, botones, chips, membresías, picks/live, admin y Sentinel.
+- `templates/partials/ui_components.html` recibe clases `v868-pro-*` reutilizables.
+- Se corrigió mojibake visible en el estado compartido `Pick en revisión`.
+- Se corrigió copy visible en soporte: `revisión`.
+- Se ajustó una respuesta SHARK live para usar `Sin directos reales ahora mismo` y acentos correctos.
+- Checks V862/V863/V865/V866/V867 aceptan la V868 Pro Max como versión compatible.
+- Nuevo check `tools/check_v868_pro_max_client_admin_mobile_visual_revenue_sentinel.py`.
+- Nuevos reportes Pro Max V868.
+
+Validaciones:
+
+- `py_compile app.py`: OK.
+- `compileall app.py engines tools`: OK.
+- Jinja parse: 160 templates OK.
+- Madrid Time: OK.
+- Checks V862, V863, V865, V866, V867 y V868 Pro Max: OK.
+- Smoke local cliente/admin/API: OK con rutas 200/302/401/403 esperadas.
+- Master tick sin secret: 403.
+- Master tick con secret dry-run: 200.
+- Health-check con secret: 200.
+- Continuous Sentinel static: score 10.0, 0 issues, 0 críticos.
+
+Honestidad operativa:
+
+- No se hizo deploy.
+- No se hizo push.
+- No se envió Telegram real.
+- No se probaron pagos reales.
+- Producción pública revisada previamente seguía en V867, no en V868 Pro Max.

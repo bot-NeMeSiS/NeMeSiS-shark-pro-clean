@@ -7321,7 +7321,7 @@ def shark_answer(question):
         lines = [_shark_line_match(m) for m in live_matches[:6]]
         body = (
             f"Directo SHARK:\n{hub['counts'].get('live', len(live_matches))} partidos en directo y {hub['counts'].get('upcoming', 0)} próximos.\n\n"
-            + ("\n".join(f"{i+1}. {line}" for i, line in enumerate(lines)) if lines else "No detecto directos reales ahora mismo. En cuanto entren minuto y marcador, los priorizo aquí.")
+            + ("\n".join(f"{i+1}. {line}" for i, line in enumerate(lines)) if lines else "Sin directos reales ahora mismo. En cuanto entren minuto y marcador, los priorizo aquí.")
             + "\n\nEn live solo entraría con señal fuerte y stake mínimo."
         )
         next_url = "/live"

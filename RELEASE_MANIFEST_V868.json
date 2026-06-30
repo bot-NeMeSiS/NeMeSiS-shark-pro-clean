@@ -1,12 +1,12 @@
 {
-  "version": "V868_REAL_CLIENT_ADMIN_VISUAL_PRODUCTION_POLISH_AND_SENTINEL_VALUE_FINAL",
-  "created_at": "2026-07-01T00:10:15",
-  "zip": "NeMeSiS_SHARK_PRO_V868_REAL_CLIENT_ADMIN_VISUAL_PRODUCTION_POLISH_AND_SENTINEL_VALUE_FINAL_RENDER_READY.zip",
-  "zip_path": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\release_output\\NeMeSiS_SHARK_PRO_V868_REAL_CLIENT_ADMIN_VISUAL_PRODUCTION_POLISH_AND_SENTINEL_VALUE_FINAL_RENDER_READY.zip",
+  "version": "V868_PRO_MAX_CLIENT_ADMIN_MOBILE_VISUAL_REVENUE_SENTINEL_FINAL",
+  "created_at": "2026-07-01T00:23:07",
+  "zip": "NeMeSiS_SHARK_PRO_V868_PRO_MAX_CLIENT_ADMIN_MOBILE_VISUAL_REVENUE_SENTINEL_FINAL_RENDER_READY.zip",
+  "zip_path": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\release_output\\NeMeSiS_SHARK_PRO_V868_PRO_MAX_CLIENT_ADMIN_MOBILE_VISUAL_REVENUE_SENTINEL_FINAL_RENDER_READY.zip",
   "zip_inside_project_tree": true,
   "output_dir": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\release_output",
   "manifest": "RELEASE_MANIFEST_V868.json",
-  "files": 1666,
+  "files": 1680,
   "internal_zips": [],
   "has_internal_zips": false,
   "forbidden_folders_included": [],
@@ -207,6 +207,6 @@
   ],
   "security_policy": "No incluye .git, .venv, caches, bases de datos locales, logs, ZIPs internos ni secretos reales.",
   "render_ready": true,
-  "zip_size_bytes": 3181670,
-  "zip_file_count": 1666
+  "zip_size_bytes": 3194490,
+  "zip_file_count": 1680
 }

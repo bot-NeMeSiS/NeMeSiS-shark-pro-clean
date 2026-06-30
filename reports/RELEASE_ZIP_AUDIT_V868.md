@@ -1,27 +1,27 @@
 # Auditoría ZIP V868
 
-- ZIP: `NeMeSiS_SHARK_PRO_V868_REAL_CLIENT_ADMIN_VISUAL_PRODUCTION_POLISH_AND_SENTINEL_VALUE_FINAL_RENDER_READY.zip`
-- Archivos: 1666
-- Tamaño ZIP: 3181670 bytes
+- ZIP: `NeMeSiS_SHARK_PRO_V868_PRO_MAX_CLIENT_ADMIN_MOBILE_VISUAL_REVENUE_SENTINEL_FINAL_RENDER_READY.zip`
+- Archivos: 1680
+- Tamaño ZIP: 3194490 bytes
 - Prohibidos: 0
 - Resultado: OK
 - Root obligatorio ausente: ninguno
 
 ## Carpetas principales
-- `reports`: 782 archivos, 2124293 bytes
+- `reports`: 795 archivos, 2135018 bytes
 - `engines`: 105 archivos, 1177964 bytes
-- `tools`: 419 archivos, 887724 bytes
-- `app.py`: 1 archivos, 870332 bytes
-- `static`: 2 archivos, 859720 bytes
-- `templates`: 160 archivos, 610045 bytes
+- `tools`: 420 archivos, 894802 bytes
+- `app.py`: 1 archivos, 870740 bytes
+- `static`: 2 archivos, 867479 bytes
+- `templates`: 160 archivos, 610373 bytes
 - `V726_PROJECT_TREE_AUDIT.md`: 1 archivos, 96394 bytes
 - `docs`: 56 archivos, 45463 bytes
-- `CHATGPT_CONTINUATION_REPORT.md`: 1 archivos, 26706 bytes
+- `CHATGPT_CONTINUATION_REPORT.md`: 1 archivos, 28676 bytes
 - `V726_PURGE_REPORT.md`: 1 archivos, 26158 bytes
 
 ## Archivos pesados
-- `app.py`: 870332 bytes
-- `static/app.css`: 858394 bytes
+- `app.py`: 870740 bytes
+- `static/app.css`: 866153 bytes
 - `reports/V866_mobile_live.png`: 189139 bytes
 - `reports/V866_mobile_shark.png`: 185648 bytes
 - `reports/v810_telegram_previews/telegram_pick_pro_v810.png`: 107837 bytes

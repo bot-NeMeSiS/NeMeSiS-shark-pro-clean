@@ -1,21 +1,21 @@
 {
   "ok": true,
-  "audited_at": "2026-07-01T00:10:24",
-  "zip": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\release_output\\NeMeSiS_SHARK_PRO_V868_REAL_CLIENT_ADMIN_VISUAL_PRODUCTION_POLISH_AND_SENTINEL_VALUE_FINAL_RENDER_READY.zip",
-  "zip_size_bytes": 3181670,
-  "file_count": 1666,
-  "content_size_bytes": 7023419,
+  "audited_at": "2026-07-01T00:23:12",
+  "zip": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\release_output\\NeMeSiS_SHARK_PRO_V868_PRO_MAX_CLIENT_ADMIN_MOBILE_VISUAL_REVENUE_SENTINEL_FINAL_RENDER_READY.zip",
+  "zip_size_bytes": 3194490,
+  "file_count": 1680,
+  "content_size_bytes": 7051647,
   "forbidden_count": 0,
   "missing_required_root": [],
   "forbidden": [],
   "top_files": [
     {
       "path": "app.py",
-      "size": 870332
+      "size": 870740
     },
     {
       "path": "static/app.css",
-      "size": 858394
+      "size": 866153
     },
     {
       "path": "reports/V866_mobile_live.png",
@@ -83,7 +83,7 @@
     },
     {
       "path": "templates/base.html",
-      "size": 37939
+      "size": 37913
     },
     {
       "path": "engines/stripe_payments_engine.py",
@@ -93,8 +93,8 @@
   "top_folders": [
     {
       "folder": "reports",
-      "size": 2124293,
-      "files": 782
+      "size": 2135018,
+      "files": 795
     },
     {
       "folder": "engines",
@@ -103,22 +103,22 @@
     },
     {
       "folder": "tools",
-      "size": 887724,
-      "files": 419
+      "size": 894802,
+      "files": 420
     },
     {
       "folder": "app.py",
-      "size": 870332,
+      "size": 870740,
       "files": 1
     },
     {
       "folder": "static",
-      "size": 859720,
+      "size": 867479,
       "files": 2
     },
     {
       "folder": "templates",
-      "size": 610045,
+      "size": 610373,
       "files": 160
     },
     {
@@ -133,7 +133,7 @@
     },
     {
       "folder": "CHATGPT_CONTINUATION_REPORT.md",
-      "size": 26706,
+      "size": 28676,
       "files": 1
     },
     {
@@ -148,7 +148,7 @@
     },
     {
       "folder": "RELEASE_MANIFEST_V868.json",
-      "size": 7474,
+      "size": 7444,
       "files": 1
     },
     {
