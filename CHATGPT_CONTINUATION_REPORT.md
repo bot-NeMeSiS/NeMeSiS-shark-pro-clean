@@ -388,3 +388,30 @@ Preservado:
 - V859 Product Board.
 - V861 Auto-Improvement OS.
 - V862 SHARK Sentinel real user inspector.
+
+## V863_REAL_WORLD_FULL_APP_CERTIFICATION_MAX_QA_FINAL
+
+Base real detectada: V862_CONTINUOUS_SHARK_SENTINEL_AUTO_IMPROVEMENT_LOOP_FINAL.
+
+Trabajo aplicado:
+- Se elevó VERSION.txt, APP_VERSION, base.html, cache CSS y runtime a V863.
+- Se comprobó producción real en `https://bot-apuestas-crgf.onrender.com/api/runtime-version`.
+- Producción real devolvió V862 Continuous con HTTP 200 y flags críticos activos.
+- Se documentó que V863 no queda certificada en Render hasta ejecutar deploy autorizado.
+- Se añadió saneamiento de cabeceras y runtime para evitar valores con saltos de línea.
+- Se creó `tools/check_v863_runtime_header_sanitization.py`.
+- Se creó `tools/check_v863_real_world_certification.py`.
+- Se probaron rutas públicas reales de Render y rutas protegidas/admin sin sesión.
+- Se documentaron bloqueos exactos para admin autenticado, secrets de cron, Telegram real, APIs con gasto, Stripe test y QA visual con navegador.
+- Se añadieron reportes V863 de certificación real máxima.
+
+Preservado:
+- V818 master tick y health-check.
+- V844 Telegram premium/no filler.
+- V845 SHARK IA.
+- V847 API-SPORTS guard.
+- V850 live/escudos.
+- V857 Company OS.
+- V859 Product Board.
+- V861 Auto-Improvement OS.
+- V862 Continuous Sentinel.

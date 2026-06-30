@@ -5,6 +5,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 VERSION = "V862_CONTINUOUS_SHARK_SENTINEL_AUTO_IMPROVEMENT_LOOP_FINAL"
+NEXT_VERSION = "V863_REAL_WORLD_FULL_APP_CERTIFICATION_MAX_QA_FINAL"
 
 
 def read(path: str) -> str:
@@ -25,13 +26,13 @@ def main() -> None:
     engine = read("engines/continuous_shark_sentinel_engine.py")
     template = read("templates/admin_continuous_sentinel.html")
 
-    ok(version_txt == VERSION, "VERSION.txt V862 continuous", failures)
-    ok(f"APP_VERSION = '{VERSION}'" in app_py, "APP_VERSION V862 continuous", failures)
+    ok(version_txt in {VERSION, NEXT_VERSION}, "VERSION.txt V862 continuous/V863", failures)
+    ok(any(f"APP_VERSION = '{candidate}'" in app_py for candidate in {VERSION, NEXT_VERSION}), "APP_VERSION V862 continuous/V863", failures)
     ok('data-v862-shell="true"' in base, "data-v862-shell", failures)
     ok("NEMESIS V862 CONTINUOUS SHARK SENTINEL AUTO IMPROVEMENT LOOP ACTIVE" in base, "comentario V862 continuous", failures)
     ok("V862 CONTINUOUS SHARK SENTINEL AUTO IMPROVEMENT LOOP START" in css, "CSS V862 continuous start", failures)
     ok("V862 CONTINUOUS SHARK SENTINEL AUTO IMPROVEMENT LOOP END" in css, "CSS V862 continuous end", failures)
-    ok("V862_CONTINUOUS_SHARK_SENTINEL_AUTO_IMPROVEMENT_LOOP_FINAL" in base, "cache CSS V862 continuous", failures)
+    ok("V862_CONTINUOUS_SHARK_SENTINEL_AUTO_IMPROVEMENT_LOOP_FINAL" in base or "V863_REAL_WORLD_FULL_APP_CERTIFICATION_MAX_QA_FINAL" in base, "cache CSS V862 continuous/V863", failures)
 
     for path in [
         "engines/continuous_shark_sentinel_engine.py",

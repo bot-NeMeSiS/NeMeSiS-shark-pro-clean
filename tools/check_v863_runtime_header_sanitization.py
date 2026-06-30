@@ -1,0 +1,54 @@
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def fail(message: str) -> None:
+    raise SystemExit(f"V863 runtime header sanitization FAILED: {message}")
+
+
+def main() -> None:
+    app_py = (ROOT / "app.py").read_text(encoding="utf-8", errors="replace")
+    required = [
+        "def sanitize_http_header_value",
+        "def sanitize_runtime_value",
+        "response.headers[key] = sanitize_http_header_value",
+        "sanitize_runtime_value(v822_runtime_stability_snapshot())",
+        "return jsonify(sanitize_runtime_value({",
+    ]
+    for needle in required:
+        if needle not in app_py:
+            fail(f"missing {needle}")
+
+    import sys
+
+    sys.path.insert(0, str(ROOT))
+    import app  # noqa: WPS433
+
+    client = app.app.test_client()
+    response = client.get("/api/runtime-version")
+    if response.status_code != 200:
+        fail(f"runtime returned {response.status_code}")
+
+    for key, value in response.headers.items():
+        if "\n" in str(value) or "\r" in str(value):
+            fail(f"header {key} contains a line break")
+
+    payload = response.get_json() or json.loads(response.get_data(as_text=True))
+    if payload.get("app_version") != "V863_REAL_WORLD_FULL_APP_CERTIFICATION_MAX_QA_FINAL":
+        fail("runtime app_version is not V863")
+    if payload.get("has_v863_real_world_certification") is not True:
+        fail("runtime flag has_v863_real_world_certification is not true")
+
+    serialized = json.dumps(payload, ensure_ascii=False)
+    if "Invalid header value b'" in serialized and "\\n" not in serialized:
+        fail("unsafe raw header error serialization detected")
+    print("V863 runtime header sanitization OK")
+
+
+if __name__ == "__main__":
+    main()

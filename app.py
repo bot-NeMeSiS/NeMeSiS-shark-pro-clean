@@ -295,7 +295,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V862_CONTINUOUS_SHARK_SENTINEL_AUTO_IMPROVEMENT_LOOP_FINAL'
+APP_VERSION = 'V863_REAL_WORLD_FULL_APP_CERTIFICATION_MAX_QA_FINAL'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
@@ -401,6 +401,23 @@ def masked_admin_text(value, limit=500):
         if os.getenv(key):
             text = text.replace(os.getenv(key, ""), "***hidden***")
     return text
+
+
+def sanitize_http_header_value(value, limit=1000):
+    text = str(value or "")[: int(limit)]
+    return text.replace("\r", "").replace("\n", "").strip()
+
+
+def sanitize_runtime_value(value):
+    if isinstance(value, dict):
+        return {sanitize_http_header_value(key): sanitize_runtime_value(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [sanitize_runtime_value(item) for item in value]
+    if isinstance(value, tuple):
+        return [sanitize_runtime_value(item) for item in value]
+    if isinstance(value, str):
+        return value.replace("\r", "\\r").replace("\n", "\\n").strip()
+    return value
 
 
 def env_bool(name, default=False):
@@ -2010,6 +2027,11 @@ def apply_security_headers_and_csrf(response):
                 body = re.sub(r'(<form\b(?=[^>]*method=["\']?post["\']?)[^>]*>)', r'\1' + hidden, body, flags=re.IGNORECASE)
             response.set_data(body)
             response.headers["Content-Length"] = str(len(response.get_data()))
+    except Exception:
+        pass
+    try:
+        for key, value in list(response.headers.items()):
+            response.headers[key] = sanitize_http_header_value(value, limit=2000)
     except Exception:
         pass
     return response
@@ -13613,8 +13635,8 @@ def api_runtime_version():
         app_py_text = Path(__file__).read_text(encoding="utf-8", errors="replace")
     except Exception:
         app_py_text = ""
-    runtime_stability = v822_runtime_stability_snapshot()
-    return jsonify({
+    runtime_stability = sanitize_runtime_value(v822_runtime_stability_snapshot())
+    return jsonify(sanitize_runtime_value({
         "ok": True,
         "app": APP_NAME,
         "version": APP_VERSION,
@@ -13749,6 +13771,7 @@ def api_runtime_version():
         "has_v862_css": "V862 SHARK SENTINEL REAL USER APP INSPECTOR START" in css_text,
         "has_v862_shark_sentinel": "shark_sentinel_engine" in app_py_text and "/admin/shark-sentinel" in app_py_text and "/api/automation/shark-sentinel/run" in app_py_text,
         "has_v862_continuous_sentinel_loop": "continuous_shark_sentinel_engine" in app_py_text and "/admin/continuous-sentinel" in app_py_text and "/api/automation/continuous-sentinel/run" in app_py_text,
+        "has_v863_real_world_certification": "V863_REAL_WORLD_FULL_APP_CERTIFICATION_MAX_QA_FINAL" in version_txt and "sanitize_http_header_value" in app_py_text and "data-v863-shell" in base_template,
         "has_v837_reference_photo_qa": "data-v837-shell" in base_template and "V837 REFERENCE PHOTO PERFECTION REAL QA START" in css_text,
         "has_v836_autonomous_qa": "data-v836-shell" in base_template and "V836 AUTONOMOUS REFERENCE VISUAL REVIEW FINAL QA START" in css_text,
         "has_v833_visual_completion": "data-v833-shell" in base_template and "V833 REFERENCE ECOSYSTEM VISUAL COMPLETION START" in css_text,
@@ -13764,7 +13787,7 @@ def api_runtime_version():
         "has_v820_crests": "data-v820-shell" in base_template and "V820 REAL CRESTS REFERENCE VISUAL PIXEL POLISH START" in css_text,
         "has_v819_dedup": "data-v819-shell" in base_template and "V819 REFERENCE UI DEDUP LAYER PURGE START" in css_text,
         "has_v818_automation": "/api/automation/master-tick" in app_py_text and "daily_automation_engine" in app_py_text,
-        "static_css_cache_busting": "V862_CONTINUOUS_SHARK_SENTINEL_AUTO_IMPROVEMENT_LOOP_FINAL" in base_template,
+        "static_css_cache_busting": "V863_REAL_WORLD_FULL_APP_CERTIFICATION_MAX_QA_FINAL" in base_template,
         "crest_engine_loaded": runtime_stability.get("crest_engine_loaded"),
         "logo_cache_tables_ok": runtime_stability.get("logo_cache_tables_ok"),
         "team_logo_cache_count": runtime_stability.get("team_logo_cache_count"),
@@ -13809,7 +13832,7 @@ def api_runtime_version():
             "daily_automation_enabled": daily_automation_env_enabled(),
             "data_backup_enabled": env_bool("DATA_BACKUP_ENABLED", False),
         },
-    })
+    }))
 
 
 @app.route("/api/startup-check")
