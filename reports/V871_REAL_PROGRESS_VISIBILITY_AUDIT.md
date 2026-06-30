@@ -1,16 +1,12 @@
-# V871 Real Progress Visibility Audit
+# V871 Auditoría de Progreso Visible
 
-## Causas detectadas
-- CSS V870 sí se cargaba, pero algunos defectos estaban en templates y JS base.
-- El cache busting cambia ahora a V871.
-- Varias mejoras estaban en macros, pero las macros tenían mojibake en defaults.
-- La navegación lateral repetía label + label, reduciendo percepción premium.
-- JavaScript con ternarias dañadas podía romper comportamientos que hacen que la UI se sienta viva.
+## Confirmado
+- `base.html` carga `app.css` con cache busting V871 exacto.
+- `body` mantiene `data-v871-shell="true"`.
+- CSS contiene marcadores `V871 VISIBLE UI DEFECTS EMPTY SPACE REAL PROGRESS FIX`.
+- Runtime expone `has_v871_visible_ui_defects_empty_space_fix`.
+- Sentinel detecta CTAs duplicados reales y evita falsos positivos de filas deportivas.
 
-## Correcciones V871
-- Cache CSS V871.
-- `data-v871-shell`.
-- CSS V871 pequeño para acciones limpias.
-- Macros saneadas.
-- Nav cliente/admin saneada.
-- Sentinel reforzado para detectar defectos similares.
+## Corregido
+- El nombre de versión se alineó con el prompt final.
+- La capa V871 ahora no solo limpia copy: también reduce huecos visibles.

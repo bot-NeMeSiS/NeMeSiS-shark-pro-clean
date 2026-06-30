@@ -74,7 +74,7 @@ def static_checks():
     bad_templates = []
     for p in (ROOT / "templates").glob("*.html"):
         text = p.read_text(encoding="utf-8", errors="replace")
-        if any(marker in text for marker in ("Ã", "Â", "â€™", "â€œ", "â€", "â†")):
+        if any(marker in text for marker in ("\u00c3", "\u00c2", "\ufffd", "\u00e2\u20ac")):
             bad_templates.append(p.name)
     ok(not bad_templates, "templates con mojibake", bad_templates[:10])
     combined = "\n".join(read(p) for p in [".env.example", ".env.render.clean", "engines/data_marketplace_engine.py", "engines/automation_orchestrator_engine.py"])

@@ -683,15 +683,15 @@ Honestidad:
 - No se probaron pagos reales.
 - No se afirma pixel-perfect ni Render real.
 
-## V871_VISIBLE_UI_DEFECTS_BUTTONS_COPY_AND_REAL_PROGRESS_FIX_FINAL
+## V871_VISIBLE_UI_DEFECTS_EMPTY_SPACE_SCREEN_BY_SCREEN_PRO_MAX_FINAL
 
 Base real usada: `V870_REFERENCE_STYLE_MATCH_AND_WORKSPACE_PURGE_PRO_MAX_FINAL` en la carpeta oficial.
 
-Objetivo: corregir defectos visibles que los checks anteriores no capturaban: botones/labels duplicados, CTAs raros, mojibake en UI compartida y comportamientos visuales rotos por JavaScript base.
+Objetivo: corregir defectos visibles que los checks anteriores no capturaban: botones/labels duplicados, CTAs raros, mojibake en UI compartida, comportamientos visuales rotos por JavaScript base y exceso de espacio vacío en cliente/admin.
 
 Cambios principales:
-- Versionado actualizado a `V871_VISIBLE_UI_DEFECTS_BUTTONS_COPY_AND_REAL_PROGRESS_FIX_FINAL`.
-- Runtime añade `has_v871_visible_ui_defects_buttons_copy_fix`.
+- Versionado actualizado a `V871_VISIBLE_UI_DEFECTS_EMPTY_SPACE_SCREEN_BY_SCREEN_PRO_MAX_FINAL`.
+- Runtime añade `has_v871_visible_ui_empty_space_screen_fix`.
 - `base.html` añade `data-v871-shell`, cache busting V871 y comentario activo.
 - Rail cliente corregido: deja de mostrar `Partidos/Partidos`, `Picks/Picks`, `SHARK/SHARK`, etc.
 - Rail admin corregido: deja de mostrar `Panel/Panel`, `Mapa/Mapa`, `Datos/Datos`, `Picks/Picks`, etc.
@@ -699,10 +699,14 @@ Cambios principales:
 - `templates/partials/ui_components.html` saneado: sin mojibake, botones con `aria-label` y clase `v871-action-clean`.
 - JavaScript base reparado: ternarias de CSRF, favoritos, navegación activa, device mode y reloj.
 - Sentinel incorpora detector de texto duplicado en links/botones.
-- Nuevo check `tools/check_v871_visible_ui_defects_buttons_copy.py`.
+- CSS V871 refuerza densidad visual: headers más compactos, cards menos infladas, empty states reducidos, tablas admin más densas, grids con gaps menores y móvil con `overflow-x: clip`.
+- Nuevo check principal `tools/check_v871_visible_ui_empty_space_fix.py`.
+- El check anterior de botones queda como wrapper de compatibilidad hacia el check nuevo.
 
 Honestidad:
 - No se hizo deploy ni push.
 - No se envió Telegram real.
 - No se probaron pagos reales.
 - No se afirma pixel-perfect ni Render real.
+
+

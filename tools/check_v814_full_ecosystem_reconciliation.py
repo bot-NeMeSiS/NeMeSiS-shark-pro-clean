@@ -70,7 +70,7 @@ def main() -> int:
     env = {"TELEGRAM_PRO_CHANNEL_STRICT": "true"}
     failures += not ok("Telegram modo profesional activo", telegram_sport_mode_summary(env).get("professional_channel") is True)
     failures += not ok("Telegram bloquea NBA", telegram_sport_filter_reason({"sport_key": "basketball_nba"}, env) == "deporte_no_futbol")
-    failures += not ok("Telegram bloquea regional", telegram_sport_filter_reason({"league_name": "AndalucÃ­a Regional"}, env) == "competicion_no_profesional")
+    failures += not ok("Telegram bloquea regional", telegram_sport_filter_reason({"league_name": "Andalucía Regional"}, env) == "competicion_no_profesional")
     failures += not ok("Telegram bloquea reservas", telegram_sport_filter_reason({"league_name": "Premier League Reserves"}, env) == "competicion_no_profesional")
     failures += not ok("Telegram bloquea amistoso menor", telegram_sport_filter_reason({"league_name": "Club Friendly"}, env) == "competicion_no_profesional")
     failures += not ok("Telegram permite LaLiga", telegram_sport_filter_reason({"league_name": "LaLiga", "sport_key": "soccer_spain_la_liga"}, env) == "")

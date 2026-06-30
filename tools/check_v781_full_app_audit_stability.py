@@ -65,7 +65,7 @@ def madrid_template_audit(errors: list[str]) -> dict:
     technical_text = []
     for template in sorted((ROOT / "templates").glob("*.html")):
         text = template.read_text(encoding="utf-8", errors="replace")
-        if any(marker in text for marker in ("Ã", "Â", "â€™", "â€œ", "â€", "�")):
+        if any(marker in text for marker in ("\u00c3", "\u00c2", "\ufffd", "\u00e2\u20ac")):
             mojibake.append(template.name)
         lower = text.lower()
         if template.name not in allowed_files and any(token in lower for token in ("traceback", "debug", "json visible", " utc")):

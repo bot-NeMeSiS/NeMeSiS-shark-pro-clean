@@ -104,7 +104,7 @@ def main() -> None:
         "templates/admin_company_os.html",
         "templates/admin_company_audit.html",
     ])
-    for bad in ["Ã", "Â", "�", "membresÃ", "AuditorÃ", "PrÃ", "acciÃ", "sin riesgo garantizado"]:
+    for bad in ["Ã", "Â", "", "membresÃ", "AuditorÃ", "PrÃ", "acciÃ", "sin riesgo garantizado"]:
         ok(bad not in visible, f"sin mojibake {bad}", failures)
 
     all_text = (app_py + base + css + template + engine).lower()

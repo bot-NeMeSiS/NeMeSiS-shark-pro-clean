@@ -21,7 +21,7 @@ ok('upcoming_filters_past', 'get_upcoming_matches ya no deja que partidos de mad
 ok('results_today', 'WHERE match_date>=? AND match_date<=?' in app and 'is_result_pending' in app)
 ok('field_state', 'def _field_state' in engine and 'dangerous_attacks_available' in engine and 'corners_available' in engine)
 ok('live_experience_field', 'live_field_headline' in le and 'live_field_chips' in le)
-ok('base_dedupe_shark', 'un Ãºnico SHARK flotante' in base and 'data-v811-shell="true"' in base)
+ok('base_dedupe_shark', 'un único SHARK flotante' in base and 'data-v811-shell="true"' in base)
 ok('topbar_reference', '.v811-top-actions' in css and '.v811-client-appbar' in css)
 ok('swimming_shark', 'v811SharkFloat' in css and '.v810-big-shark-decoration' in css)
 ok('client_lifecycle_strip', 'v811-lifecycle-strip' in client)

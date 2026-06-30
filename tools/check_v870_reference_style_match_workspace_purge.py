@@ -103,7 +103,7 @@ def main() -> None:
     require('".mp4"' in build and '".mp4"' in audit, "video exclusion missing")
 
     client_templates = "\n".join(path.read_text(encoding="utf-8", errors="replace") for path in (ROOT / "templates").glob("*.html") if not path.name.startswith("admin"))
-    for bad in ["Ã", "Â", "�", ">None<", ">null<", ">undefined<"]:
+    for bad in ["Ã", "Â", "", ">None<", ">null<", ">undefined<"]:
         require(bad not in client_templates, f"bad visible client token found: {bad}")
 
     lower_templates = templates.lower()

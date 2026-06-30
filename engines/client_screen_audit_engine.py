@@ -34,7 +34,7 @@ UNSAFE_CLIENT_PHRASES = [
     "sin riesgo", "te hacemos ganar", "cuota segura", "combi segura",
 ]
 TECHNICAL_CLIENT_MARKERS = ["Traceback", "UndefinedError", "sqlite3.", "NoneType", "UTC crudo", "json visible", "debug panel"]
-MOJIBAKE_MARKERS = ["�", "Ã", "Â", "â€™", "â€œ", "â€", "producci?n"]
+MOJIBAKE_MARKERS = ["\ufffd", "\u00c3", "\u00c2", "\u00e2\u20ac", "producci?n"]
 
 
 def _read(path: Path) -> str:

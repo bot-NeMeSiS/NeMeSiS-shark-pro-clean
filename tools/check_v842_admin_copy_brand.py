@@ -2,7 +2,7 @@ from pathlib import Path
 import json
 
 ROOT = Path(__file__).resolve().parents[1]
-bad = ["Ã", "Â", "�", "Configuraci?", "Pr?ximo", "L?mite", "?ltim", "membresÁa"]
+bad = ["Ã", "Â", "", "Configuraci?", "Pr?ximo", "L?mite", "?ltim", "membresÁa"]
 findings = []
 for path in (ROOT / "templates").glob("admin*.html"):
     text = path.read_text(encoding="utf-8", errors="ignore")

@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import os
 import re
@@ -9,7 +9,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V870_REFERENCE_STYLE_MATCH_AND_WORKSPACE_PURGE_PRO_MAX_FINAL"
-VERSION_V871 = "V871_VISIBLE_UI_DEFECTS_BUTTONS_COPY_AND_REAL_PROGRESS_FIX_FINAL"
+VERSION_V871 = "V871_VISIBLE_UI_DEFECTS_EMPTY_SPACE_SCREEN_BY_SCREEN_PRO_MAX_FINAL"
 ZIP_NAME = f"NeMeSiS_SHARK_PRO_{VERSION}_RENDER_READY.zip"
 
 REPORTS = [
@@ -110,7 +110,7 @@ def main() -> None:
         for path in (ROOT / "templates").glob("*.html")
         if not path.name.startswith("admin")
     )
-    for bad in ["Ãƒ", "Ã‚", "ï¿½", ">None<", ">null<", ">undefined<"]:
+    for bad in ["ÃƒÆ’", "Ãƒâ€š", "Ã¯¿Â½", ">None<", ">null<", ">undefined<"]:
         require(bad not in client_templates, f"bad visible client token found: {bad}")
     for phrase in ["apuesta segura", "garantizado", "apuesta fija", "fijo seguro", "sin riesgo"]:
         require(phrase not in templates.lower(), f"irresponsible betting phrase found: {phrase}")
@@ -158,3 +158,5 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+

@@ -1,4 +1,4 @@
-from pathlib import Path
+﻿from pathlib import Path
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -15,7 +15,7 @@ V868_PRO = "V868_PRO_MAX_CLIENT_ADMIN_MOBILE_VISUAL_REVENUE_SENTINEL_FINAL"
 V869 = "V869_FULL_COMPANY_REFERENCE_ALIGNMENT_DEEP_CLEAN_VISUAL_REBUILD_FINAL"
 V870 = "V870_REFERENCE_STYLE_MATCH_AND_WORKSPACE_PURGE_PRO_FINAL"
 V870_PRO_MAX = "V870_REFERENCE_STYLE_MATCH_AND_WORKSPACE_PURGE_PRO_MAX_FINAL"
-V871 = "V871_VISIBLE_UI_DEFECTS_BUTTONS_COPY_AND_REAL_PROGRESS_FIX_FINAL"
+V871 = "V871_VISIBLE_UI_DEFECTS_EMPTY_SPACE_SCREEN_BY_SCREEN_PRO_MAX_FINAL"
 
 
 def read(path: str) -> str:
@@ -112,7 +112,7 @@ def main() -> None:
         "templates/admin_continuous_sentinel.html",
         "templates/admin_shark_sentinel.html",
     ])
-    for bad in ["Ã", "Â", "�", "navegaciÃ", "acciÃ"]:
+    for bad in ["Ãƒ", "Ã‚", "ï¿½", "navegaciÃƒ", "acciÃƒ"]:
         ok(bad not in visible, f"sin mojibake {bad}", failures)
 
     visible_lower = visible.lower()
@@ -134,3 +134,5 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+

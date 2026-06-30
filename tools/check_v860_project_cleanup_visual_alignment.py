@@ -82,7 +82,7 @@ def main() -> None:
         "templates/admin_company_audit.html",
         "templates/admin_memberships.html",
     ])
-    for bad in ["Ãƒ", "Ã‚", "ï¿½", "TambiÃ", "membresÃ", "AuditorÃ", "Conversin", "PrÃ³ximo foco", "Anlisis"]:
+    for bad in ["Ãƒ", "Ã‚", "ï¿½", "TambiÃ", "membresÃ", "AuditorÃ", "Conversin", "Próximo foco", "Anlisis"]:
         ok(bad not in visible, f"sin mojibake {bad}", failures)
     for phrase in ["garantizado", "apuesta segura", "sin riesgo", "apuesta fija"]:
         ok(phrase not in (base + css + visible).lower(), f"sin promesa irresponsable {phrase}", failures)

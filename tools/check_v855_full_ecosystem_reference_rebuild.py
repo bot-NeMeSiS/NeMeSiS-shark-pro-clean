@@ -83,7 +83,7 @@ def main() -> None:
         "templates/support.html",
         "templates/admin_dashboard.html",
     ])
-    for bad in ["Ã", "Â", "�", "diagnsticos", "produccin", "sincronizacin", "sesin", "prximo"]:
+    for bad in ["Ã", "Â", "", "diagnsticos", "produccin", "sincronizacin", "sesin", "prximo"]:
         ok(bad not in visible_text, f"sin mojibake común {bad}", failures)
 
     ok("body[data-v855-shell=\"true\"].ns-admin .bottom-nav" in css, "sin bottom nav cliente en admin", failures)

@@ -95,7 +95,7 @@ def main() -> None:
         for p in [ROOT / "templates" / "base.html", ROOT / "static" / "app.css"]
         if p.exists()
     )
-    for bad in ["Ã", "Â", "�"]:
+    for bad in ["Ã", "Â", ""]:
         if bad in visible:
             fail(f"visible shell contains suspicious token {bad}")
 

@@ -32,7 +32,7 @@ def main() -> int:
     version = (ROOT / "VERSION.txt").read_text(encoding="utf-8-sig").strip()
     failures += not ok("VERSION.txt V813/V814", version in {"V813_CODEX_FULL_ECOSYSTEM_RESTRUCTURE_REFERENCE_SELL_READY", "V814_CODEX_DEEP_PROJECT_RECONCILIATION_CLIENT_ADMIN_REFERENCE_FINAL"})
     failures += not ok("APP_VERSION coincide con VERSION", nemesis_app.APP_VERSION == version)
-    failures += not ok("DB_PATH no cambia en cÃ³digo", "DB_PATH = os.getenv(\"DB_PATH\", \"/data/database.db\")" in (ROOT / "app.py").read_text(encoding="utf-8", errors="replace"))
+    failures += not ok("DB_PATH no cambia en código", "DB_PATH = os.getenv(\"DB_PATH\", \"/data/database.db\")" in (ROOT / "app.py").read_text(encoding="utf-8", errors="replace"))
 
     now = datetime.now(nemesis_app.TZ)
     future = {"match_date": (now + timedelta(days=1)).date().isoformat(), "kickoff_time": "21:00", "status": "NS"}
@@ -40,18 +40,18 @@ def main() -> int:
     finished = {"match_date": (now - timedelta(days=1)).date().isoformat(), "kickoff_time": "20:00", "status": "FT", "score": "2-1"}
     past_without_result = {"match_date": (now - timedelta(days=2)).date().isoformat(), "kickoff_time": "20:00", "status": "NS"}
 
-    failures += not ok("partido futuro sigue prÃ³ximo", nemesis_app.canonical_match_status(future)["is_upcoming"])
-    failures += not ok("partido live no es prÃ³ximo", nemesis_app.canonical_match_status(live)["is_live"])
+    failures += not ok("partido futuro sigue próximo", nemesis_app.canonical_match_status(future)["is_upcoming"])
+    failures += not ok("partido live no es próximo", nemesis_app.canonical_match_status(live)["is_live"])
     failures += not ok("partido finalizado no es live", nemesis_app.canonical_match_status(finished)["is_finished"])
     failures += not ok(
-        "partido pasado sin resultado no vuelve a prÃ³ximos",
+        "partido pasado sin resultado no vuelve a próximos",
         nemesis_app.canonical_match_status(past_without_result)["key"] == "RESULT_PENDING",
         nemesis_app.canonical_match_status(past_without_result).get("label", ""),
     )
 
     env = {"TELEGRAM_PRO_CHANNEL_STRICT": "true"}
     failures += not ok("Telegram bloquea NBA", telegram_sport_filter_reason({"sport_key": "basketball_nba"}, env) == "deporte_no_futbol")
-    failures += not ok("Telegram bloquea regional", telegram_sport_filter_reason({"league_name": "AndalucÃ­a Regional"}, env) == "competicion_no_profesional")
+    failures += not ok("Telegram bloquea regional", telegram_sport_filter_reason({"league_name": "Andalucía Regional"}, env) == "competicion_no_profesional")
     failures += not ok("Telegram bloquea juveniles", telegram_sport_filter_reason({"league_name": "Spain U19 Youth"}, env) == "competicion_no_profesional")
     failures += not ok("Telegram permite Champions", telegram_sport_filter_reason({"league_name": "UEFA Champions League", "sport_key": "soccer_uefa_champs_league"}, env) == "")
 

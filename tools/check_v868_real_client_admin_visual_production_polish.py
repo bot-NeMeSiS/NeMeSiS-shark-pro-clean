@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import os
 import re
@@ -13,7 +13,7 @@ V868_PRO = "V868_PRO_MAX_CLIENT_ADMIN_MOBILE_VISUAL_REVENUE_SENTINEL_FINAL"
 V869 = "V869_FULL_COMPANY_REFERENCE_ALIGNMENT_DEEP_CLEAN_VISUAL_REBUILD_FINAL"
 V870 = "V870_REFERENCE_STYLE_MATCH_AND_WORKSPACE_PURGE_PRO_FINAL"
 V870_PRO_MAX = "V870_REFERENCE_STYLE_MATCH_AND_WORKSPACE_PURGE_PRO_MAX_FINAL"
-V871 = "V871_VISIBLE_UI_DEFECTS_BUTTONS_COPY_AND_REAL_PROGRESS_FIX_FINAL"
+V871 = "V871_VISIBLE_UI_DEFECTS_EMPTY_SPACE_SCREEN_BY_SCREEN_PRO_MAX_FINAL"
 ZIP_NAME = "NeMeSiS_SHARK_PRO_V868_REAL_CLIENT_ADMIN_VISUAL_PRODUCTION_POLISH_AND_SENTINEL_VALUE_FINAL_RENDER_READY.zip"
 
 REPORTS = [
@@ -76,7 +76,7 @@ def main() -> None:
     for report in REPORTS:
         require((ROOT / "reports" / report).exists(), f"missing report {report}")
 
-    for bad in ["Ã", "Â", "�", "ESPAÃ", "EspaÁa"]:
+    for bad in ["Ãƒ", "Ã‚", "ï¿½", "ESPAÃƒ", "EspaÁa"]:
         require(bad not in templates, f"visible mojibake found: {bad}")
 
     client_visible = re.sub(r"\{#[\s\S]*?#\}", "", client_templates)
@@ -118,3 +118,5 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+

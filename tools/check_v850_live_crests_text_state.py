@@ -7,7 +7,7 @@ def main():
     combined = "\n".join(p.read_text(encoding="utf-8") for p in files)
     for item in required:
         assert item in combined, item
-    for bad in ["Ã", "Â", "�", "Baln", "Anlisis"]:
+    for bad in ["Ã", "Â", "", "Baln", "Anlisis"]:
         assert bad not in combined, bad
     print("check_v850_live_crests_text_state OK")
 

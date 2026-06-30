@@ -6,7 +6,7 @@ from pathlib import Path
 CLIENT_CRITICAL_ROUTES = ["/", "/app", "/calendar", "/partidos", "/live", "/picks", "/combis", "/mercados", "/highlights", "/track-record", "/shark", "/menu"]
 ADMIN_CRITICAL_ROUTES = ["/admin/control-center", "/admin/telegram/command-center", "/admin/data-marketplace", "/admin/automation-center", "/admin/app-experience-quality", "/admin/final-certification", "/admin/highlights-center"]
 TECH_MARKERS = ["Traceback", "sqlite3.OperationalError", "UndefinedError", "NoneType", "admin 123", "demo Damian", "UTC crudo"]
-MOJIBAKE_MARKERS = ["Ã", "Â", "â€™", "â€œ", "â€", "â†"]
+MOJIBAKE_MARKERS = ["\u00c3", "\u00c2", "\ufffd", "\u00e2\u20ac"]
 
 
 def _read(path: str) -> str:

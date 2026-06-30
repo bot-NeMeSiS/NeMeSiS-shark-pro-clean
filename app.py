@@ -1,4 +1,4 @@
-import csv
+﻿import csv
 import hashlib
 import html
 import io
@@ -296,7 +296,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V871_VISIBLE_UI_DEFECTS_BUTTONS_COPY_AND_REAL_PROGRESS_FIX_FINAL'
+APP_VERSION = 'V871_VISIBLE_UI_DEFECTS_EMPTY_SPACE_SCREEN_BY_SCREEN_PRO_MAX_FINAL'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
@@ -2618,7 +2618,7 @@ def match_elapsed_minutes(match):
 def has_real_match_score(match):
     item = match or {}
     score = str(item.get("score") or "").strip().lower()
-    if score and score not in {"vs", "none", "null", "-", "—"}:
+    if score and score not in {"vs", "none", "null", "-", "-"}:
         return True
     return item.get("home_score") not in {None, ""} and item.get("away_score") not in {None, ""}
 
@@ -2688,7 +2688,7 @@ def kickoff_iso_value(match_date, match_time):
     if not date:
         return ""
     # Admin/manual date+hour values are already Spanish/Madrid hour.
-    # Store them with timezone to avoid a second UTC→Madrid conversion later.
+    # Store them with timezone to avoid a second UTCâ†’Madrid conversion later.
     return madrid_local_iso(date, time) if time else madrid_local_iso(date, "00:00")
 
 
@@ -4983,7 +4983,7 @@ def build_client_alerts(limit=12, user_id=None):
             "title": "Próximo partido destacado",
             "body": f"{first.get('home_team')} vs {first.get('away_team')} · {first.get('competition_name') or first.get('league_name') or 'Competición'}",
             "href": f"/match/{first.get('id')}",
-            "badge": "PRÓXIMO",
+            "badge": "PRÃ“XIMO",
         })
     alerts = sorted(alerts, key=lambda x: x.get("priority", 0), reverse=True)
     return alerts[: int(limit)]
@@ -8721,13 +8721,13 @@ def telegram_reply_markup_from_payload(payload):
     buttons = []
     primary_url = telegram_absolute_url(payload.get("match_url") or payload.get("app_url") or "")
     if primary_url:
-        buttons.append({"text": str(payload.get("button_text") or "📲 Abrir en NeMeSiS")[:60], "url": primary_url})
+        buttons.append({"text": str(payload.get("button_text") or "ðŸ“² Abrir en NeMeSiS")[:60], "url": primary_url})
     picks_url = telegram_absolute_url(payload.get("picks_url") or "/picks") if payload.get("include_picks_button", True) else ""
     if picks_url and picks_url != primary_url:
-        buttons.append({"text": "🦈 Ver picks", "url": picks_url})
+        buttons.append({"text": "ðŸ¦ˆ Ver picks", "url": picks_url})
     live_url = telegram_absolute_url(payload.get("live_url") or "/live") if payload.get("include_live_button") else ""
     if live_url and live_url not in {primary_url, picks_url}:
-        buttons.append({"text": "🔴 Directo SHARK", "url": live_url})
+        buttons.append({"text": "ðŸ”´ Directo SHARK", "url": live_url})
     if not buttons:
         return None
     keyboard = []
@@ -8893,7 +8893,7 @@ def enqueue_daily_matches(force=False, forced_chat_id=""):
             body,
             chat_id=sub.get("chat_id"),
             user_id=sub.get("user_id"),
-            payload={"membership": sub.get("membership"), "target_key": today_iso(), "source": "automatic_cron", "trigger_type": "render_cron", "auto_job_key": f"daily_matches:{today_iso()}", "job_type": "daily_matches", "app_url": telegram_absolute_url("/sports-hub"), "button_text": "📅 Ver partidos", "picks_url": telegram_absolute_url("/picks"), "include_picks_button": True, "include_live_button": True, "live_url": telegram_absolute_url("/live"), "enable_link_preview": False},
+            payload={"membership": sub.get("membership"), "target_key": today_iso(), "source": "automatic_cron", "trigger_type": "render_cron", "auto_job_key": f"daily_matches:{today_iso()}", "job_type": "daily_matches", "app_url": telegram_absolute_url("/sports-hub"), "button_text": "ðŸ“… Ver partidos", "picks_url": telegram_absolute_url("/picks"), "include_picks_button": True, "include_live_button": True, "live_url": telegram_absolute_url("/live"), "enable_link_preview": False},
             dedupe_key=telegram_dedupe_key("daily_matches", today_iso(), sub.get("chat_id"), source="automatic_cron"),
             force=force,
         )
@@ -8922,7 +8922,7 @@ def enqueue_daily_picks(force=False, force_empty=False, forced_chat_id=""):
             body,
             chat_id=sub.get("chat_id"),
             user_id=sub.get("user_id"),
-            payload={"membership": sub.get("membership"), "target_key": today_iso(), "source": "automatic_cron", "trigger_type": "render_cron", "auto_job_key": f"daily_picks:{today_iso()}", "job_type": "daily_picks", "app_url": telegram_absolute_url("/picks"), "button_text": "🦈 Abrir picks SHARK", "include_picks_button": False, "include_live_button": True, "live_url": telegram_absolute_url("/live"), "enable_link_preview": False},
+            payload={"membership": sub.get("membership"), "target_key": today_iso(), "source": "automatic_cron", "trigger_type": "render_cron", "auto_job_key": f"daily_picks:{today_iso()}", "job_type": "daily_picks", "app_url": telegram_absolute_url("/picks"), "button_text": "ðŸ¦ˆ Abrir picks SHARK", "include_picks_button": False, "include_live_button": True, "live_url": telegram_absolute_url("/live"), "enable_link_preview": False},
             dedupe_key=telegram_dedupe_key("daily_picks", today_iso(), sub.get("chat_id"), source="automatic_cron"),
             force=force,
         )
@@ -9023,7 +9023,7 @@ def enqueue_live_alerts(force=False):
                 body,
                 chat_id=sub.get("chat_id"),
                 user_id=sub.get("user_id"),
-                payload={"membership": sub.get("membership"), "target_key": match.get("id"), "source": "automatic_cron", "trigger_type": "render_cron", "auto_job_key": f"live_alert:{match.get('id') or today_iso()}", "job_type": "live_alert", "match_id": match.get("id"), "match_url": match.get("match_url"), "home_logo": match.get("home_logo"), "away_logo": match.get("away_logo"), "button_text": "🔴 Abrir live SHARK", "picks_url": telegram_absolute_url("/picks"), "include_picks_button": True, "include_live_button": False, "enable_link_preview": bool(match.get("home_logo") or match.get("away_logo"))},
+                payload={"membership": sub.get("membership"), "target_key": match.get("id"), "source": "automatic_cron", "trigger_type": "render_cron", "auto_job_key": f"live_alert:{match.get('id') or today_iso()}", "job_type": "live_alert", "match_id": match.get("id"), "match_url": match.get("match_url"), "home_logo": match.get("home_logo"), "away_logo": match.get("away_logo"), "button_text": "ðŸ”´ Abrir live SHARK", "picks_url": telegram_absolute_url("/picks"), "include_picks_button": True, "include_live_button": False, "enable_link_preview": bool(match.get("home_logo") or match.get("away_logo"))},
                 dedupe_key=telegram_dedupe_key("live_alert", today_iso(), sub.get("chat_id"), match_id=match.get("id"), market=match.get("minute") or match.get("score"), source="automatic_cron"),
                 force=force,
             )
@@ -9140,7 +9140,7 @@ def telegram_send_http(chat_id, text, message_type="manual", payload=None):
     url = f"https://api.telegram.org/bot{token}/sendMessage"
     text = str(text or "").strip()
     if len(text) > 3900:
-        text = text[:3860].rstrip() + "\n\n…mensaje recortado por seguridad."
+        text = text[:3860].rstrip() + "\n\nâ€¦mensaje recortado por seguridad."
     data = {
         "chat_id": chat_id,
         "text": text or "Mensaje NeMeSiS SHARK PRO",
@@ -12856,7 +12856,7 @@ def api_admin_telegram_preview_next():
 def api_admin_telegram_test_send():
     if not is_admin_session():
         return admin_json_forbidden()
-    text = f"✅ Test Telegram NeMeSiS SHARK PRO — conexión correcta — hora Madrid {datetime.now(TZ).strftime('%H:%M')}"
+    text = f"âœ… Test Telegram NeMeSiS SHARK PRO - conexión correcta - hora Madrid {datetime.now(TZ).strftime('%H:%M')}"
     result = enqueue_telegram_message(
         "admin_connectivity_test",
         "Test Telegram controlado",
@@ -13455,11 +13455,11 @@ def telegram_webhook():
     code = parts[1] if len(parts) > 1 else ""
     if command in {"/start", "/link"} and code:
         result = link_telegram_chat_by_code(code, chat_id, username=username, first_name=first_name)
-        reply = "✅ Telegram vinculado a tu cuenta NeMeSiS SHARK PRO." if result.get("ok") else f"⚠️ {result.get('message') or 'No se pudo vincular Telegram.'}"
+        reply = "âœ… Telegram vinculado a tu cuenta NeMeSiS SHARK PRO." if result.get("ok") else f"âš ï¸ {result.get('message') or 'No se pudo vincular Telegram.'}"
         telegram_send_http(chat_id, reply, message_type="link_reply")
         return jsonify({"ok": result.get("ok"), "version": APP_VERSION, "result": result})
     if command == "/start":
-        telegram_send_http(chat_id, "🦈 Entra en NeMeSiS > Telegram y envíame el comando /link CODIGO para vincular tu cuenta.", message_type="start_reply")
+        telegram_send_http(chat_id, "ðŸ¦ˆ Entra en NeMeSiS > Telegram y envíame el comando /link CODIGO para vincular tu cuenta.", message_type="start_reply")
         return jsonify({"ok": True, "version": APP_VERSION, "message": "start_help"})
     telegram_log("webhook", "received", "Mensaje Telegram recibido sin accion.", {"chat_id": chat_id, "text": text[:120]})
     return jsonify({"ok": True, "version": APP_VERSION, "message": "ignored"})
@@ -13853,7 +13853,7 @@ def api_runtime_version():
         "has_v868_pro_max_client_admin_mobile_visual_revenue_sentinel": "data-v868-shell" in base_template and "V868 PRO MAX CLIENT ADMIN MOBILE VISUAL REVENUE SENTINEL" in base_template and "V868 PRO MAX CLIENT ADMIN MOBILE VISUAL REVENUE SENTINEL START" in css_text,
         "has_v869_full_company_reference_alignment": "data-v869-shell" in base_template and "V869 FULL COMPANY REFERENCE ALIGNMENT DEEP CLEAN VISUAL REBUILD" in base_template and "V869 FULL COMPANY REFERENCE ALIGNMENT DEEP CLEAN VISUAL REBUILD START" in css_text,
         "has_v870_reference_style_match_workspace_purge": "data-v870-shell" in base_template and "V870 REFERENCE STYLE MATCH AND WORKSPACE PURGE PRO MAX" in base_template and "V870 REFERENCE STYLE MATCH AND WORKSPACE PURGE PRO MAX START" in css_text,
-        "has_v871_visible_ui_defects_buttons_copy_fix": "data-v871-shell" in base_template and "V871 VISIBLE UI DEFECTS BUTTONS COPY REAL PROGRESS FIX" in base_template and "V871 VISIBLE UI DEFECTS BUTTONS COPY REAL PROGRESS FIX START" in css_text,
+        "has_v871_visible_ui_empty_space_screen_fix": "data-v871-shell" in base_template and "V871 VISIBLE UI DEFECTS EMPTY SPACE SCREEN BY SCREEN PRO MAX" in base_template and "V871 VISIBLE UI DEFECTS EMPTY SPACE SCREEN BY SCREEN PRO MAX START" in css_text,
         "has_v837_reference_photo_qa": "data-v837-shell" in base_template and "V837 REFERENCE PHOTO PERFECTION REAL QA START" in css_text,
         "has_v836_autonomous_qa": "data-v836-shell" in base_template and "V836 AUTONOMOUS REFERENCE VISUAL REVIEW FINAL QA START" in css_text,
         "has_v833_visual_completion": "data-v833-shell" in base_template and "V833 REFERENCE ECOSYSTEM VISUAL COMPLETION START" in css_text,
@@ -13869,7 +13869,7 @@ def api_runtime_version():
         "has_v820_crests": "data-v820-shell" in base_template and "V820 REAL CRESTS REFERENCE VISUAL PIXEL POLISH START" in css_text,
         "has_v819_dedup": "data-v819-shell" in base_template and "V819 REFERENCE UI DEDUP LAYER PURGE START" in css_text,
         "has_v818_automation": "/api/automation/master-tick" in app_py_text and "daily_automation_engine" in app_py_text,
-        "static_css_cache_busting": "V871_VISIBLE_UI_DEFECTS_BUTTONS_COPY_AND_REAL_PROGRESS_FIX_FINAL" in base_template,
+        "static_css_cache_busting": "V871_VISIBLE_UI_DEFECTS_EMPTY_SPACE_SCREEN_BY_SCREEN_PRO_MAX_FINAL" in base_template,
         "crest_engine_loaded": runtime_stability.get("crest_engine_loaded"),
         "logo_cache_tables_ok": runtime_stability.get("logo_cache_tables_ok"),
         "team_logo_cache_count": runtime_stability.get("team_logo_cache_count"),
@@ -15027,7 +15027,7 @@ def api_product_experience_check():
 
 
 # -----------------------------
-# V538 — Quality Center + Data Health Polish
+# V538 - Quality Center + Data Health Polish
 # -----------------------------
 
 def safe_count(table, where="1=1", params=()):
@@ -15127,7 +15127,7 @@ def api_client_app_pulse():
 
 
 # -----------------------------
-# V539 — Membership Revenue + Onboarding Polish
+# V539 - Membership Revenue + Onboarding Polish
 # -----------------------------
 
 def membership_distribution():
@@ -15922,7 +15922,7 @@ def api_v565_convert_recommendation():
 
 
 # -----------------------------
-# V566 — Final Client/Admin Product Polish + Route Repair
+# V566 - Final Client/Admin Product Polish + Route Repair
 # -----------------------------
 
 def v566_client_menu_items():
@@ -16556,7 +16556,7 @@ def api_v566_timezone_check():
 
 
 # ================================
-# V570 — SHARK Intelligence Core
+# V570 - SHARK Intelligence Core
 # ================================
 
 def ensure_shark_memory_table():
@@ -17579,12 +17579,12 @@ def v777_client_product_context(data=None, user=None):
     else:
         next_action = {"label": "Sin señal real", "body": "La app no inventa. Revisa resultados, guía o Telegram.", "href": "/menu", "cta": "Ver mapa"}
     intents = [
-        {"key": "matches", "title": "Ver partidos", "body": "Hoy, semana, liga, estado y hora Madrid.", "href": "/calendar?lane=today", "icon": "◷"},
-        {"key": "live", "title": "Seguir directo", "body": "Marcador/minuto si la API lo aporta.", "href": "/live", "icon": "●"},
-        {"key": "bet", "title": "Analizar con criterio", "body": "Picks, combis y mercados explicados.", "href": "/picks", "icon": "◆"},
-        {"key": "results", "title": "Ver resultados", "body": "Histórico, resúmenes y ROI real.", "href": "/track-record", "icon": "↗"},
-        {"key": "shark", "title": "Preguntar a SHARK", "body": "Qué entrar, qué evitar y por qué.", "href": "/shark", "icon": "🦈"},
-        {"key": "account", "title": "Configurar cuenta", "body": "Telegram, plan, ayuda y favoritos.", "href": "/mi-cuenta", "icon": "☰"},
+        {"key": "matches", "title": "Ver partidos", "body": "Hoy, semana, liga, estado y hora Madrid.", "href": "/calendar?lane=today", "icon": "â—·"},
+        {"key": "live", "title": "Seguir directo", "body": "Marcador/minuto si la API lo aporta.", "href": "/live", "icon": "â—"},
+        {"key": "bet", "title": "Analizar con criterio", "body": "Picks, combis y mercados explicados.", "href": "/picks", "icon": "â—†"},
+        {"key": "results", "title": "Ver resultados", "body": "Histórico, resúmenes y ROI real.", "href": "/track-record", "icon": "â†—"},
+        {"key": "shark", "title": "Preguntar a SHARK", "body": "Qué entrar, qué evitar y por qué.", "href": "/shark", "icon": "ðŸ¦ˆ"},
+        {"key": "account", "title": "Configurar cuenta", "body": "Telegram, plan, ayuda y favoritos.", "href": "/mi-cuenta", "icon": "â˜°"},
     ]
     plan = {
         "name": membership,
@@ -17863,7 +17863,7 @@ def api_admin_v773_automation_center_summary():
 
 
 # -----------------------------
-# V808 — Full ecosystem reference UI/navigation recovery
+# V808 - Full ecosystem reference UI/navigation recovery
 # -----------------------------
 
 def v808_admin_real_count(table, where="1=1", params=()):
@@ -17923,9 +17923,9 @@ def v808_betting_center_context():
     score = min(100, 40 + min(25, upcoming) + min(20, odds) + min(15, picks_published))
     issues = []
     if not upcoming:
-        issues.append("No hay partidos próximos cargados. Ejecuta Data Center → Calendario.")
+        issues.append("No hay partidos próximos cargados. Ejecuta Data Center â†’ Calendario.")
     if not odds:
-        issues.append("No hay cuotas cacheadas detectadas. Ejecuta Data Center → Cuotas.")
+        issues.append("No hay cuotas cacheadas detectadas. Ejecuta Data Center â†’ Cuotas.")
     if not picks_published:
         issues.append("No hay picks publicados ahora mismo.")
     data["betting_check"] = {
@@ -18046,7 +18046,7 @@ def api_v808_telegram_enqueue_recommendations():
         return jsonify({"ok": False, "version": APP_VERSION, "error": "TELEGRAM_CHAT_ID no configurado en Render."}), 400
     for rec in recs:
         title = "Oportunidad SHARK"
-        body = f"🦈 SHARK PRO\n{rec.get('home_team','')} vs {rec.get('away_team','')}\nPick: {rec.get('selection') or rec.get('pick') or 'Pendiente'}\nCuota: {rec.get('odds') or '—'}\nRiesgo: {rec.get('risk_level') or '—'}"
+        body = f"ðŸ¦ˆ SHARK PRO\n{rec.get('home_team','')} vs {rec.get('away_team','')}\nPick: {rec.get('selection') or rec.get('pick') or 'Pendiente'}\nCuota: {rec.get('odds') or '-'}\nRiesgo: {rec.get('risk_level') or '-'}"
         dedupe = f"v808-rec-{rec.get('id') or rec.get('match_id') or hashlib.md5(body.encode()).hexdigest()[:10]}-{today_iso()}"
         queued.append(enqueue_telegram_message("recommendation", title, body, chat_id=chat_id, payload=rec, dedupe_key=dedupe, force=request.args.get("force") in {"1","true","yes"}))
     return jsonify({"ok": True, "version": APP_VERSION, "queued": queued, "count": len(queued)})
@@ -18058,18 +18058,18 @@ def api_v808_telegram_enqueue_recommendations():
 
 def v809_client_navigation_items():
     return [
-        {"group":"Inicio y uso diario","title":"Inicio","body":"Resumen cliente con partidos, directo, picks y SHARK.","href":"/app","icon":"⌂"},
-        {"group":"Inicio y uso diario","title":"Partidos","body":"Calendario real por días, ligas y búsqueda.","href":"/calendar?lane=today","icon":"▦"},
-        {"group":"Inicio y uso diario","title":"Directo","body":"Marcador live, minuto, presión y tracker si API-Football lo aporta.","href":"/live","icon":"●"},
-        {"group":"Inicio y uso diario","title":"Picks","body":"Picks publicados con cuota, stake, riesgo y explicación.","href":"/picks","icon":"◆"},
-        {"group":"SHARK y análisis","title":"SHARK IA","body":"Preguntar por partido, pick, riesgo o combinada responsable.","href":"/shark","icon":"◥"},
-        {"group":"SHARK y análisis","title":"SHARK Core","body":"Centro avanzado de lectura SHARK cuando tu plan lo permita.","href":"/shark-core","icon":"🦈"},
-        {"group":"Seguimiento","title":"Histórico","body":"Track record y resultados solo cuando estén cerrados con datos reales.","href":"/track-record","icon":"↗"},
-        {"group":"Seguimiento","title":"Favoritos","body":"Tus equipos, partidos o focos guardados.","href":"/favorites","icon":"★"},
-        {"group":"Alertas y cuenta","title":"Telegram","body":"Conexión, alertas y canal sin inventar envíos.","href":"/telegram","icon":"✈"},
-        {"group":"Alertas y cuenta","title":"Mi cuenta","body":"Plan, sesión, ajustes y cierre de sesión.","href":"/mi-cuenta","icon":"◎"},
+        {"group":"Inicio y uso diario","title":"Inicio","body":"Resumen cliente con partidos, directo, picks y SHARK.","href":"/app","icon":"âŒ‚"},
+        {"group":"Inicio y uso diario","title":"Partidos","body":"Calendario real por días, ligas y búsqueda.","href":"/calendar?lane=today","icon":"â–¦"},
+        {"group":"Inicio y uso diario","title":"Directo","body":"Marcador live, minuto, presión y tracker si API-Football lo aporta.","href":"/live","icon":"â—"},
+        {"group":"Inicio y uso diario","title":"Picks","body":"Picks publicados con cuota, stake, riesgo y explicación.","href":"/picks","icon":"â—†"},
+        {"group":"SHARK y análisis","title":"SHARK IA","body":"Preguntar por partido, pick, riesgo o combinada responsable.","href":"/shark","icon":"â—¥"},
+        {"group":"SHARK y análisis","title":"SHARK Core","body":"Centro avanzado de lectura SHARK cuando tu plan lo permita.","href":"/shark-core","icon":"ðŸ¦ˆ"},
+        {"group":"Seguimiento","title":"Histórico","body":"Track record y resultados solo cuando estén cerrados con datos reales.","href":"/track-record","icon":"â†—"},
+        {"group":"Seguimiento","title":"Favoritos","body":"Tus equipos, partidos o focos guardados.","href":"/favorites","icon":"â˜…"},
+        {"group":"Alertas y cuenta","title":"Telegram","body":"Conexión, alertas y canal sin inventar envíos.","href":"/telegram","icon":"âœˆ"},
+        {"group":"Alertas y cuenta","title":"Mi cuenta","body":"Plan, sesión, ajustes y cierre de sesión.","href":"/mi-cuenta","icon":"â—Ž"},
         {"group":"Alertas y cuenta","title":"Soporte","body":"Ayuda y contacto para el cliente.","href":"/soporte","icon":"?"},
-        {"group":"Alertas y cuenta","title":"Salir","body":"Cerrar sesión de forma visible y segura.","href":"/logout","icon":"⏻"},
+        {"group":"Alertas y cuenta","title":"Salir","body":"Cerrar sesión de forma visible y segura.","href":"/logout","icon":"â»"},
     ]
 
 
@@ -18471,3 +18471,4 @@ def api_admin_v818_daily_automation_health():
 if __name__ == "__main__":
     seed_core()
     app.run(host="0.0.0.0", port=int(os.getenv("PORT", "5000")), debug=os.getenv("FLASK_DEBUG") == "1")
+

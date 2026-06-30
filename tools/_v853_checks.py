@@ -151,7 +151,7 @@ def check_admin_pc_visual_reference():
 
 
 def check_admin_text_orthography():
-    bad_terms = ["diagnsticos", "Segn", "ESPAÃ", "Ã", "Â", "�", "undefined"]
+    bad_terms = ["diagnsticos", "Segn", "ESPAÃ", "Ã", "Â", "", "undefined"]
     for path in ["templates/base.html", "templates/admin_dashboard.html", "templates/admin_data_center.html", "templates/admin_telegram_command_center.html", "templates/admin_shark_center.html"]:
         text = read_text(path)
         for bad in bad_terms:

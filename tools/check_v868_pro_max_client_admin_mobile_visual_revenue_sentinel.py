@@ -83,7 +83,7 @@ def main() -> None:
         "templates/admin_continuous_sentinel.html",
         "static/app.css",
     ])
-    for bad in ["Ã", "Â", "�", "None visible", ">None<", ">null<", ">undefined<"]:
+    for bad in ["Ã", "Â", "", "None visible", ">None<", ">null<", ">undefined<"]:
         require(bad not in visible, f"visible bad token found: {bad}")
 
     lower_visible = visible.lower()

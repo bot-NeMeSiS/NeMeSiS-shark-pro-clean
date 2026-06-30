@@ -12,7 +12,7 @@ FILES = [
     "templates/telegram.html",
     "templates/support.html",
 ]
-BAD = ["ESPAÃ", "EspaÁa", "Ã", "Â", "�", "lo primo", "undefined"]
+BAD = ["ESPAÃ", "EspaÁa", "Ã", "Â", "", "lo primo", "undefined"]
 
 
 def main():

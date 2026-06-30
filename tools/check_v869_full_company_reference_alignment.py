@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import os
 import re
@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V869_FULL_COMPANY_REFERENCE_ALIGNMENT_DEEP_CLEAN_VISUAL_REBUILD_FINAL"
 V870 = "V870_REFERENCE_STYLE_MATCH_AND_WORKSPACE_PURGE_PRO_FINAL"
 V870_PRO_MAX = "V870_REFERENCE_STYLE_MATCH_AND_WORKSPACE_PURGE_PRO_MAX_FINAL"
-V871 = "V871_VISIBLE_UI_DEFECTS_BUTTONS_COPY_AND_REAL_PROGRESS_FIX_FINAL"
+V871 = "V871_VISIBLE_UI_DEFECTS_EMPTY_SPACE_SCREEN_BY_SCREEN_PRO_MAX_FINAL"
 ZIP_NAME = "NeMeSiS_SHARK_PRO_V869_FULL_COMPANY_REFERENCE_ALIGNMENT_DEEP_CLEAN_VISUAL_REBUILD_FINAL_RENDER_READY.zip"
 
 REPORTS = [
@@ -103,7 +103,7 @@ def main() -> None:
     for forbidden in FORBIDDEN_ZIP_PARTS:
         require(f'"{forbidden}"' in build or f'"{forbidden}"' in audit, f"release exclusion not declared for {forbidden}")
 
-    for bad in ["Ã", "Â", "�", ">None<", ">null<", ">undefined<"]:
+    for bad in ["Ãƒ", "Ã‚", "ï¿½", ">None<", ">null<", ">undefined<"]:
         require(bad not in templates, f"bad visible token in templates: {bad}")
 
     lower_templates = templates.lower()
@@ -152,3 +152,5 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+

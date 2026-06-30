@@ -103,7 +103,7 @@ def main() -> None:
         "templates/admin_shark_sentinel.html",
         "templates/admin_auto_improvement.html",
     ])
-    for bad in ["Ã", "Â", "�", "membresÃ", "acciÃ", "navegaciÃ"]:
+    for bad in ["Ã", "Â", "", "membresÃ", "acciÃ", "navegaciÃ"]:
         ok(bad not in visible, f"sin mojibake {bad}", failures)
 
     all_text = (app_py + base + css + template).lower()

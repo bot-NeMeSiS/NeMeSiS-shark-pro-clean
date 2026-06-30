@@ -66,7 +66,7 @@ def main() -> int:
         "/admin/final-release",
     }
     for route in sorted(critical_client | critical_admin):
-        failures += not ok(f"ruta crÃ­tica {route}", route in routes)
+        failures += not ok(f"ruta crítica {route}", route in routes)
 
     malformed = [
         f"{name}:{value}"
@@ -86,7 +86,7 @@ def main() -> int:
     failures += not ok("un solo widget SHARK en base", base.count('class="shark-widget"') == 1)
     failures += not ok("SHARK flotante ocultable en /shark", ".shark-widget.is-on-shark-page" in css and "display:none" in css)
     failures += not ok("salir visible", "/logout" in base)
-    failures += not ok("sin texto tÃ©cnico base", not any(token in base.lower() for token in ("db_path", "traceback", "sqlite locked", "internal server error")))
+    failures += not ok("sin texto técnico base", not any(token in base.lower() for token in ("db_path", "traceback", "sqlite locked", "internal server error")))
     failures += not ok("sin mojibake visible base", not any(token in base for token in ("Ãƒ", "Ã‚", "Ã¢â‚¬", "Ã¢â€ ", "ï¿½")))
 
     return 1 if failures else 0

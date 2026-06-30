@@ -8,7 +8,7 @@ files = [
     ROOT / "app.py",
 ] + list((ROOT / "engines").glob("*telegram*.py"))
 
-bad = ["Ã", "Â", "�", "env?o", "conexi?", "autom?tico", "seg?n"]
+bad = ["Ã", "Â", "", "env?o", "conexi?", "autom?tico", "seg?n"]
 findings = []
 for path in files:
     if not path.exists():

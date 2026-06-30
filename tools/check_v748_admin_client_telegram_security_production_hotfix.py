@@ -65,7 +65,7 @@ def main() -> int:
             "V754_TELEGRAM_AUTO_PICK_CANDIDATE_WINDOW_DELIVERY_FIX", "V755_TELEGRAM_PICK_CANDIDATE_NORMALIZATION_SCHEDULE_CERTIFICATION_FIX", "V756_CLIENT_APP_PREMIUM_EXPERIENCE_TOTAL_POLISH", "V757_GLOBAL_APP_EXPERIENCE_TRUST_NAVIGATION_POLISH", "V758_ADAPTIVE_DESKTOP_MOBILE_TOP_APP_EXPERIENCE", "V759_GLOBAL_TOP_APP_MERGED_QUALITY_EXPERIENCE_RELEASE", "V760_SALE_READY_CLIENT_ORDER_SHARK_TELEGRAM_FIX",
         },
         "partidos_not_duplicated": len(partidos_rules) == 1,
-        "admin_templates_no_tilde_variable": "matches_dÃ­agnostics" not in admin_data and "matches_dÃ­agnostics" not in admin_sync,
+        "admin_templates_no_tilde_variable": "matches_díagnostics" not in admin_data and "matches_díagnostics" not in admin_sync,
         "shark_briefing_signature_accepts_context": "def build_daily_briefing(user=None, favorites=None, recommendations=None, picks=None, live_matches=None, upcoming=None, membership=None)" in app_text,
         "api_admin_control_center_exists": "/api/admin/control-center" in app_text,
         "admin_routes_200": all(code == 200 for code in admin_statuses.values()),

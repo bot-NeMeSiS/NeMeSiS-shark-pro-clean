@@ -10781,7 +10781,7 @@ body[data-v870-shell="true"].ns-admin :is(.bottom-nav, .mobile-bottom-nav, .floa
 }
 /* V870 REFERENCE STYLE MATCH AND WORKSPACE PURGE PRO MAX END */
 
-/* V871 VISIBLE UI DEFECTS BUTTONS COPY REAL PROGRESS FIX START */
+/* V871 VISIBLE UI DEFECTS EMPTY SPACE SCREEN BY SCREEN PRO MAX START */
 body[data-v871-shell="true"] :is(a, button) {
   letter-spacing: 0;
 }
@@ -10822,10 +10822,88 @@ body[data-v871-shell="true"].ns-admin :is(.bottom-nav, .mobile-bottom-nav, .shar
   display: none !important;
 }
 
+body[data-v871-shell="true"] :is(.v799-appbar, .v812-hero, .v862-sentinel-hero, .v864-reference-hero, .v868-pro-hero, .v870-reference-hero) {
+  min-height: 0;
+  padding-block: clamp(16px, 2.6vw, 30px);
+}
+
+body[data-v871-shell="true"] :is(.v799-appbar h1, .v812-hero h1, .v862-sentinel-hero h1, .v864-reference-hero h1, .v868-pro-hero h1) {
+  margin-block: 0 8px;
+  line-height: 1.04;
+}
+
+body[data-v871-shell="true"] :is(.v799-screen, .v812-screen, .v853-admin-screen, .v855-screen, .v856-screen, .v858-screen, main, .main-content) {
+  row-gap: clamp(14px, 2vw, 22px);
+}
+
+body[data-v871-shell="true"] :is(.card, .premium-card, .v799-card, .v812-card, .v853-admin-card, .v855-card, .v856-card, .v858-card, .v870-reference-widget, .v870-status-board > *, .v870-admin-workbench > *) {
+  padding: clamp(14px, 1.8vw, 22px);
+}
+
+body[data-v871-shell="true"] :is(.empty, .premium-empty, .v793-empty, .v862-empty, .v870-empty) {
+  min-height: 0;
+  padding: clamp(16px, 2vw, 24px);
+}
+
+body[data-v871-shell="true"] :is(.v799-kpi-strip, .v812-kpi-row, .v860-kpi-row, .v862-sentinel-summary, .v869-reference-metric-strip, .v870-reference-widget-grid, .v870-status-board, .v870-admin-workbench, .v870-client-workbench) {
+  gap: clamp(10px, 1.4vw, 16px);
+}
+
+body[data-v871-shell="true"] :is(.v799-kpi-strip, .v812-kpi-row, .v860-kpi-row, .v862-sentinel-summary, .v869-reference-metric-strip, .v870-reference-widget-grid) > * {
+  min-height: 72px;
+}
+
+body[data-v871-shell="true"] :is(.v774-match-row, .v860-mini-row, .match-row, .list-row, .v868-pro-match-row, .v869-reference-match-row) {
+  min-height: 0;
+  padding-block: 10px;
+  gap: 10px;
+}
+
+body[data-v871-shell="true"] :is(.v799-pick-grid, .v799-live-grid, .v862-sentinel-grid, .v855-client-grid, .v856-client-grid, .v858-client-grid) {
+  gap: clamp(10px, 1.5vw, 16px);
+}
+
+body[data-v871-shell="true"] :is(.admin-table, .v794-admin-table, table) :is(th, td) {
+  padding-block: 9px;
+}
+
+body[data-v871-shell="true"].ns-admin :is(.v853-admin-hero, .admin-hero, .v862-sentinel-hero, .v865-workflow-hero) {
+  padding-block: 14px;
+  min-height: 0;
+}
+
+body[data-v871-shell="true"].ns-admin :is(.v853-admin-grid, .admin-grid, .v862-sentinel-grid, .v865-workflow-grid) {
+  gap: 12px;
+}
+
 @media (max-width: 760px) {
   body[data-v871-shell="true"] :is(.v871-action-clean, .v864-action-button, .v868-pro-action-btn, .v860-action-btn) {
     white-space: normal;
     min-height: 38px;
   }
+
+  body[data-v871-shell="true"] :is(.v799-appbar, .v812-hero, .v862-sentinel-hero, .v864-reference-hero, .v868-pro-hero, .v870-reference-hero) {
+    padding-block: 14px;
+  }
+
+  body[data-v871-shell="true"] :is(.card, .premium-card, .v799-card, .v812-card, .v853-admin-card, .v855-card, .v856-card, .v858-card, .v870-reference-widget) {
+    padding: 14px;
+  }
+
+  body[data-v871-shell="true"] :is(.v799-pick-grid, .v799-live-grid, .v862-sentinel-grid, .v855-client-grid, .v856-client-grid, .v858-client-grid) {
+    grid-template-columns: 1fr;
+  }
+
+  body[data-v871-shell="true"] :is(.v799-actions, .actions, .v864-card-actions) > * {
+    flex: 1 1 auto;
+  }
+
+  body[data-v871-shell="true"] :is(.empty, .premium-empty, .v793-empty, .v862-empty, .v870-empty) {
+    padding: 14px;
+  }
+
+  body[data-v871-shell="true"] {
+    overflow-x: clip;
+  }
 }
-/* V871 VISIBLE UI DEFECTS BUTTONS COPY REAL PROGRESS FIX END */
+/* V871 VISIBLE UI DEFECTS EMPTY SPACE SCREEN BY SCREEN PRO MAX END */

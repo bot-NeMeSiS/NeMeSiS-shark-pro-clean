@@ -26,7 +26,7 @@ def main() -> int:
     client = nemesis_app.app.test_client()
     response = client.get("/api/runtime-version")
     if response.status_code != 200:
-        return fail(f"/api/runtime-version devolviÃ³ {response.status_code}")
+        return fail(f"/api/runtime-version devolvió {response.status_code}")
     data = response.get_json() or {}
     required_true = [
         "has_v828_shell",

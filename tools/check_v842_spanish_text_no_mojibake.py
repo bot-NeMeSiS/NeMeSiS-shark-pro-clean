@@ -13,7 +13,7 @@ SCAN_PATHS = [
 FORBIDDEN = [
     "Ã",
     "Â",
-    "�",
+    "",
     "Contrase?",
     "Configuraci?",
     "Pr?ximo",

@@ -126,7 +126,7 @@ def main() -> None:
             fail(f"missing report {report}")
 
     visible_shell = base + "\n" + css
-    for bad in ["Ã", "Â", "�"]:
+    for bad in ["Ã", "Â", ""]:
         if bad in visible_shell:
             fail(f"mojibake marker found in shell/CSS: {bad}")
 

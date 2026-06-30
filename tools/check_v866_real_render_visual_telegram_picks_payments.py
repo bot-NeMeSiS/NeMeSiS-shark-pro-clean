@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import re
 from pathlib import Path
@@ -12,7 +12,7 @@ V868_PRO = "V868_PRO_MAX_CLIENT_ADMIN_MOBILE_VISUAL_REVENUE_SENTINEL_FINAL"
 V869 = "V869_FULL_COMPANY_REFERENCE_ALIGNMENT_DEEP_CLEAN_VISUAL_REBUILD_FINAL"
 V870 = "V870_REFERENCE_STYLE_MATCH_AND_WORKSPACE_PURGE_PRO_FINAL"
 V870_PRO_MAX = "V870_REFERENCE_STYLE_MATCH_AND_WORKSPACE_PURGE_PRO_MAX_FINAL"
-V871 = "V871_VISIBLE_UI_DEFECTS_BUTTONS_COPY_AND_REAL_PROGRESS_FIX_FINAL"
+V871 = "V871_VISIBLE_UI_DEFECTS_EMPTY_SPACE_SCREEN_BY_SCREEN_PRO_MAX_FINAL"
 
 REPORTS = [
     "V866_REAL_RENDER_VISUAL_TELEGRAM_PICKS_PAYMENTS_HOTFIX_QA_REPORT.md",
@@ -75,7 +75,7 @@ def main() -> None:
     for text in ["Cuota pendiente", "Selección pendiente", "Pick en revisión", "Sin pick real publicado", "Proveedor sin datos ahora mismo"]:
         require(text in app_py or text in combined_templates, f"safe pick/provider state missing: {text}")
 
-    bad_visible = ["ESPAÃ", "Ã", "Â", "�"]
+    bad_visible = ["ESPAÃƒ", "Ãƒ", "Ã‚", "ï¿½"]
     for bad in bad_visible:
         require(bad not in combined_templates, f"visible mojibake found: {bad}")
 
@@ -97,3 +97,5 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+

@@ -108,7 +108,7 @@ def check_visual_pc_mobile_final():
 
 
 def check_text_orthography_global():
-    bad = ["Ã", "Â", "�", "lo primo", "Result ados", "EspaÁa", "undefined"]
+    bad = ["Ã", "Â", "", "lo primo", "Result ados", "EspaÁa", "undefined"]
     for path in ["templates/base.html", "templates/client_app_center.html", "templates/live.html", "templates/picks.html", "templates/admin_dashboard.html", "templates/admin_data_center.html"]:
         blob = text(path)
         for token in bad:

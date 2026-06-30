@@ -104,7 +104,7 @@ def static_checks():
     bad = []
     for p in (ROOT / "templates").glob("*.html"):
         text = p.read_text(encoding="utf-8", errors="replace")
-        if any(marker in text for marker in ("Ã", "Â", "â€™", "â€œ", "â€", "â†")):
+        if any(marker in text for marker in ("\u00c3", "\u00c2", "\ufffd", "\u00e2\u20ac")):
             bad.append(p.name)
     ok(not bad, "mojibake en plantillas", bad[:12])
     forbidden = []
