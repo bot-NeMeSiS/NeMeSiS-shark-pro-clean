@@ -8,6 +8,7 @@ ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V864_PC_MOBILE_VISUAL_REFERENCE_BIG_LEAP_REAL_SCREEN_QA_FINAL"
 NEXT_VERSION = "V865_SENTINEL_ISSUE_TO_IMPROVEMENT_WORKFLOW_FINAL"
 V866 = "V866_REAL_RENDER_VISUAL_TELEGRAM_PICKS_PAYMENTS_HOTFIX_QA_FINAL"
+V867 = "V867_RENDER_DEPLOYMENT_ALIGNMENT_AND_REAL_V866_CERTIFICATION_FINAL"
 
 REPORTS = [
     "V864_PREFLIGHT_FROM_V863.md",
@@ -44,12 +45,12 @@ def main() -> None:
     components = read("templates/partials/ui_components.html")
     sentinel = read("engines/continuous_shark_sentinel_engine.py")
 
-    if version_txt not in {VERSION, NEXT_VERSION, V866}:
-        fail("VERSION.txt is not V864/V865/V866")
-    if app_version_txt not in {VERSION, NEXT_VERSION, V866}:
-        fail("APP_VERSION is not V864/V865/V866")
-    if not any(f"APP_VERSION = '{candidate}'" in app_py for candidate in {VERSION, NEXT_VERSION, V866}):
-        fail("app.py APP_VERSION is not V864/V865/V866")
+    if version_txt not in {VERSION, NEXT_VERSION, V866, V867}:
+        fail("VERSION.txt is not V864/V865/V866/V867")
+    if app_version_txt not in {VERSION, NEXT_VERSION, V866, V867}:
+        fail("APP_VERSION is not V864/V865/V866/V867")
+    if not any(f"APP_VERSION = '{candidate}'" in app_py for candidate in {VERSION, NEXT_VERSION, V866, V867}):
+        fail("app.py APP_VERSION is not V864/V865/V866/V867")
     if "data-v864-shell" not in base:
         fail("base.html missing data-v864-shell")
     if VERSION not in base and NEXT_VERSION not in base and V866 not in base:

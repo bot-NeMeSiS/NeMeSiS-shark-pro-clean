@@ -9,6 +9,7 @@ VERSION = "V863_REAL_WORLD_FULL_APP_CERTIFICATION_MAX_QA_FINAL"
 NEXT_VERSION = "V864_PC_MOBILE_VISUAL_REFERENCE_BIG_LEAP_REAL_SCREEN_QA_FINAL"
 NEXT_NEXT_VERSION = "V865_SENTINEL_ISSUE_TO_IMPROVEMENT_WORKFLOW_FINAL"
 V866 = "V866_REAL_RENDER_VISUAL_TELEGRAM_PICKS_PAYMENTS_HOTFIX_QA_FINAL"
+V867 = "V867_RENDER_DEPLOYMENT_ALIGNMENT_AND_REAL_V866_CERTIFICATION_FINAL"
 
 
 def fail(message: str) -> None:
@@ -43,8 +44,8 @@ def main() -> None:
             fail(f"header {key} contains a line break")
 
     payload = response.get_json() or json.loads(response.get_data(as_text=True))
-    if payload.get("app_version") not in {VERSION, NEXT_VERSION, NEXT_NEXT_VERSION, V866}:
-        fail("runtime app_version is not V863/V864/V865/V866")
+    if payload.get("app_version") not in {VERSION, NEXT_VERSION, NEXT_NEXT_VERSION, V866, V867}:
+        fail("runtime app_version is not V863/V864/V865/V866/V867")
     if payload.get("has_v863_real_world_certification") is not True:
         fail("runtime flag has_v863_real_world_certification is not true")
 

@@ -514,3 +514,28 @@ Preservado:
 - V863 header sanitization.
 - V864 visual.
 - V865 Sentinel Workflow.
+
+## V867_RENDER_DEPLOYMENT_ALIGNMENT_AND_REAL_V866_CERTIFICATION_FINAL
+
+Base real continuada: V866_REAL_RENDER_VISUAL_TELEGRAM_PICKS_PAYMENTS_HOTFIX_QA_FINAL.
+
+Trabajo aplicado:
+- Se consultó Render real en `https://bot-apuestas-crgf.onrender.com/api/runtime-version`.
+- Producción real ya devolvía V866, no V862, durante esta comprobación.
+- Se verificó que `last_error` ya no contiene salto de línea peligroso: el diagnóstico aparece saneado.
+- Se probaron rutas públicas reales principales en Render con HTTP 200.
+- Se probaron endpoints admin/Sentinel/cron sin sesión ni secret con 403 correcto.
+- Se revisó el ZIP V866: `app.py`, `VERSION.txt`, `templates`, `static`, `engines`, `tools` en raíz; sin ZIP interno ni carpeta anidada.
+- Se creó V867 como certificación de alineación y paquete listo para deploy manual.
+- Se añadió runtime flag `has_v867_render_deployment_alignment`.
+- Se añadieron reportes V867, check V867 y manifest V867.
+
+No realizado:
+- No se hizo push.
+- No se hizo deploy automático.
+- No se usó `AUTOMATION_SECRET`.
+- No se enviaron Telegram reales.
+- No se probaron pagos reales.
+
+Pendiente:
+- Deploy manual de V867 si se quiere que producción pase de V866 a V867 en `/api/runtime-version`.

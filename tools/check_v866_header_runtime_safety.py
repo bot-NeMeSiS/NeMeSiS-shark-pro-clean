@@ -7,6 +7,7 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V866_REAL_RENDER_VISUAL_TELEGRAM_PICKS_PAYMENTS_HOTFIX_QA_FINAL"
+V867 = "V867_RENDER_DEPLOYMENT_ALIGNMENT_AND_REAL_V866_CERTIFICATION_FINAL"
 
 
 def fail(message: str) -> None:
@@ -30,9 +31,9 @@ def main() -> None:
     require("sanitize_http_header_value" in app_py, "header sanitizer missing")
     require("sanitize_runtime_error_value" in app_py, "runtime error sanitizer missing")
     require("last_error" in app_py and "sanitize_runtime_error_value" in app_py, "last_error not sanitized")
-    require(VERSION in read("VERSION.txt"), "VERSION.txt not V866")
-    require(VERSION in read("APP_VERSION"), "APP_VERSION not V866")
-    require(VERSION in base, "base cache marker not V866")
+    require(read("VERSION.txt").strip() in {VERSION, V867}, "VERSION.txt not V866/V867")
+    require(read("APP_VERSION").strip() in {VERSION, V867}, "APP_VERSION not V866/V867")
+    require(VERSION in base or V867 in base, "base cache marker not V866/V867")
     require('data-v866-shell="true"' in base, "base missing data-v866-shell")
     require("V866 REAL RENDER VISUAL TELEGRAM PICKS PAYMENTS HOTFIX QA START" in css, "CSS V866 marker missing")
 
@@ -44,7 +45,7 @@ def main() -> None:
     response = client.get("/api/runtime-version")
     require(response.status_code == 200, f"runtime status {response.status_code}")
     payload = response.get_json() or {}
-    require(payload.get("app_version") == VERSION, "runtime app_version not V866")
+    require(payload.get("app_version") in {VERSION, V867}, "runtime app_version not V866/V867")
     require(payload.get("has_v866_real_render_visual_telegram_picks_payments") is True, "runtime V866 flag false")
     require("\n" not in str(payload.get("last_error", "")), "runtime last_error contains newline")
     require("\r" not in str(payload.get("last_error", "")), "runtime last_error contains carriage return")
