@@ -539,3 +539,29 @@ No realizado:
 
 Pendiente:
 - Deploy manual de V867 si se quiere que producción pase de V866 a V867 en `/api/runtime-version`.
+## V868_REAL_CLIENT_ADMIN_VISUAL_PRODUCTION_POLISH_AND_SENTINEL_VALUE_FINAL
+
+Fecha local: 2026-06-30.
+
+Base usada: `V867_RENDER_DEPLOYMENT_ALIGNMENT_AND_REAL_V866_CERTIFICATION_FINAL` en la carpeta oficial `C:\Users\aloha\OneDrive\Escritorio\NeMeSiS shark pro`.
+
+Objetivo: avanzar la experiencia visual real de cliente/admin/móvil y mejorar la utilidad visual del Sentinel Workflow sin crear features grandes, sin deploy automático, sin push, sin secretos y sin inventar datos.
+
+Cambios aplicados:
+
+- Versionado actualizado a V868 en `VERSION.txt`, `APP_VERSION`, `app.py` y `templates/base.html`.
+- Runtime añade `has_v868_real_client_admin_visual_polish`.
+- CSS cache busting actualizado a V868.
+- Capa CSS V868 compacta para cliente PC, móvil, admin, picks/live y Sentinel.
+- Protección extra contra scroll horizontal móvil.
+- Admin protegido contra bottom nav/floating cliente.
+- Textos Sentinel revisados para evitar mojibake visible.
+- Release builder incluye reportes/auditorías V868.
+- Nuevo check `tools/check_v868_real_client_admin_visual_production_polish.py`.
+
+Honestidad operativa:
+
+- Render real no se desplegó con V868; durante V868 producción respondió V867.
+- No se envió Telegram real.
+- No se probaron pagos reales.
+- No se afirma pixel-perfect.

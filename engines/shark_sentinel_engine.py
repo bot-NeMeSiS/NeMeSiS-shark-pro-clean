@@ -31,7 +31,7 @@ EXPECTED_ROUTE_RULES = {
 }
 
 FORBIDDEN_AUTOMATIC_ACTIONS = [
-    "Modificar app.py o templates automáticamente en produccion",
+    "Modificar app.py o templates automáticamente en producción",
     "Deploy automático",
     "Tocar secretos",
     "Borrar DB o usuarios",
@@ -198,7 +198,7 @@ def run_static_flask_inspection(client: Any, version: str = "") -> dict[str, Any
         "recommended_actions": build_recommended_actions(issues),
         "codex_prompt_suggestions": build_codex_prompts(issues),
         "safe_actions": ["refrescar diagnostico", "generar reporte", "marcar issue como revisado", "preparar prompt Codex"],
-        "approval_required_actions": ["crear prompt Codex como tarea", "ejecutar sync", "enviar Telegram test", "tocar membresias", "archivar picks", "preparar release"],
+        "approval_required_actions": ["crear prompt Codex como tarea", "ejecutar sync", "enviar Telegram test", "tocar membresías", "archivar picks", "preparar release"],
         "forbidden_automatic_actions": FORBIDDEN_AUTOMATIC_ACTIONS,
         "no_secrets": True,
         "no_code_writes": True,
@@ -222,7 +222,7 @@ def build_static_sentinel_summary(version: str = "") -> dict[str, Any]:
         "issues_by_severity": {},
         "issues_by_category": {},
         "recommended_actions": [
-            "Ejecutar inspeccion estatica con Flask test client.",
+            "Ejecutar inspección estática con Flask test client.",
             "Revisar incidencias por severidad antes de abrir cambios.",
             "Usar prompts Codex generados como tareas controladas.",
         ],
@@ -232,12 +232,12 @@ def build_static_sentinel_summary(version: str = "") -> dict[str, Any]:
             "Elimina navegacion cliente en admin si aparece.",
             "Corrige mojibake detectado en templates.",
             "Revisa empty states sin datos reales.",
-            "Corrige visual de membresia PRO/ELITE.",
+            "Corrige visual de membresía PRO/ELITE.",
             "Arregla boton que no lleva a ruta esperada.",
             "Revisa fallback de escudos en directo.",
         ],
         "safe_actions": ["diagnostico", "reporte", "prompt sugerido"],
-        "approval_required_actions": ["sync", "Telegram test", "membresias", "picks", "release"],
+        "approval_required_actions": ["sync", "Telegram test", "membresías", "picks", "release"],
         "forbidden_automatic_actions": FORBIDDEN_AUTOMATIC_ACTIONS,
         "browser_ready": True,
         "browser_note": "MODE_BROWSER_READY preparado como opcion, no obligatorio",

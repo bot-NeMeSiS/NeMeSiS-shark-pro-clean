@@ -53,7 +53,7 @@ ISSUE_STATUSES = [
 ACTION_LEVELS = {
     "level_1_diagnostic": ["detectar", "reportar", "priorizar", "generar prompt"],
     "level_2_safe_internal_fix": ["limpiar cache propia", "marcar issue revisado", "regenerar reporte", "deduplicar incidencias", "recalcular score interno"],
-    "level_3_approval_required": ["sync datos", "Telegram test", "archivar picks", "tocar membresias", "preparar release", "ejecutar prompt Codex", "cambios visuales/templates/CSS", "cambios DB real"],
+    "level_3_approval_required": ["sync datos", "Telegram test", "archivar picks", "tocar membresías", "preparar release", "ejecutar prompt Codex", "cambios visuales/templates/CSS", "cambios DB real"],
     "level_4_forbidden_automatic": FORBIDDEN_AUTOMATIC_ACTIONS,
 }
 
@@ -176,7 +176,7 @@ def run_continuous_sentinel_cycle(client: Any, version: str = "", mode: str = "q
             "No browser real ejecutado en modo static.",
             "No se ejecutan acciones peligrosas.",
             "Los hallazgos de texto técnico son candidatos a revisar, no datos inventados.",
-            "Reglas visuales V864 revisadas por marcadores estaticos; browser QA es opcional.",
+            "Reglas visuales V864 revisadas por marcadores estáticos; browser QA es opcional.",
         ],
         "issues_by_severity": by_severity,
         "issues_by_category": by_category,
