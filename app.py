@@ -296,7 +296,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V868_REAL_CLIENT_ADMIN_VISUAL_PRODUCTION_POLISH_AND_SENTINEL_VALUE_FINAL'
+APP_VERSION = 'V868_PRO_MAX_CLIENT_ADMIN_MOBILE_VISUAL_REVENUE_SENTINEL_FINAL'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
@@ -13849,7 +13849,8 @@ def api_runtime_version():
         "has_v865_sentinel_improvement_workflow": "sentinel_improvement_workflow_engine" in app_py_text and "/admin/sentinel-workflow" in app_py_text and "/api/admin/sentinel-workflow/summary" in app_py_text and "data-v865-shell" in base_template,
         "has_v866_real_render_visual_telegram_picks_payments": "sanitize_runtime_error_value" in app_py_text and "data-v866-shell" in base_template and "V866 REAL RENDER VISUAL TELEGRAM PICKS PAYMENTS HOTFIX QA START" in css_text,
         "has_v867_render_deployment_alignment": "data-v867-shell" in base_template and "V867 RENDER DEPLOYMENT ALIGNMENT REAL V866 CERTIFICATION" in base_template,
-        "has_v868_real_client_admin_visual_polish": "data-v868-shell" in base_template and "V868 REAL CLIENT ADMIN VISUAL PRODUCTION POLISH SENTINEL VALUE" in base_template and "V868 REAL CLIENT ADMIN VISUAL PRODUCTION POLISH START" in css_text,
+        "has_v868_real_client_admin_visual_polish": "data-v868-shell" in base_template and (("V868 REAL CLIENT ADMIN VISUAL PRODUCTION POLISH SENTINEL VALUE" in base_template and "V868 REAL CLIENT ADMIN VISUAL PRODUCTION POLISH START" in css_text) or ("V868 PRO MAX CLIENT ADMIN MOBILE VISUAL REVENUE SENTINEL" in base_template and "V868 PRO MAX CLIENT ADMIN MOBILE VISUAL REVENUE SENTINEL START" in css_text)),
+        "has_v868_pro_max_client_admin_mobile_visual_revenue_sentinel": "data-v868-shell" in base_template and "V868 PRO MAX CLIENT ADMIN MOBILE VISUAL REVENUE SENTINEL" in base_template and "V868 PRO MAX CLIENT ADMIN MOBILE VISUAL REVENUE SENTINEL START" in css_text,
         "has_v837_reference_photo_qa": "data-v837-shell" in base_template and "V837 REFERENCE PHOTO PERFECTION REAL QA START" in css_text,
         "has_v836_autonomous_qa": "data-v836-shell" in base_template and "V836 AUTONOMOUS REFERENCE VISUAL REVIEW FINAL QA START" in css_text,
         "has_v833_visual_completion": "data-v833-shell" in base_template and "V833 REFERENCE ECOSYSTEM VISUAL COMPLETION START" in css_text,
@@ -13865,7 +13866,7 @@ def api_runtime_version():
         "has_v820_crests": "data-v820-shell" in base_template and "V820 REAL CRESTS REFERENCE VISUAL PIXEL POLISH START" in css_text,
         "has_v819_dedup": "data-v819-shell" in base_template and "V819 REFERENCE UI DEDUP LAYER PURGE START" in css_text,
         "has_v818_automation": "/api/automation/master-tick" in app_py_text and "daily_automation_engine" in app_py_text,
-        "static_css_cache_busting": "V868_REAL_CLIENT_ADMIN_VISUAL_PRODUCTION_POLISH_AND_SENTINEL_VALUE_FINAL" in base_template,
+        "static_css_cache_busting": "V868_PRO_MAX_CLIENT_ADMIN_MOBILE_VISUAL_REVENUE_SENTINEL_FINAL" in base_template,
         "crest_engine_loaded": runtime_stability.get("crest_engine_loaded"),
         "logo_cache_tables_ok": runtime_stability.get("logo_cache_tables_ok"),
         "team_logo_cache_count": runtime_stability.get("team_logo_cache_count"),
