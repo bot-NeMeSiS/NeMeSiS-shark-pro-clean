@@ -10780,3 +10780,52 @@ body[data-v870-shell="true"].ns-admin :is(.bottom-nav, .mobile-bottom-nav, .floa
   }
 }
 /* V870 REFERENCE STYLE MATCH AND WORKSPACE PURGE PRO MAX END */
+
+/* V871 VISIBLE UI DEFECTS BUTTONS COPY REAL PROGRESS FIX START */
+body[data-v871-shell="true"] :is(a, button) {
+  letter-spacing: 0;
+}
+
+body[data-v871-shell="true"] .v871-action-clean {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  white-space: nowrap;
+  text-wrap: balance;
+}
+
+body[data-v871-shell="true"] :is(.v828-client-rail nav a, .v808-admin-rail nav a) {
+  min-width: 0;
+}
+
+body[data-v871-shell="true"] :is(.v828-client-rail nav a, .v808-admin-rail nav a) span,
+body[data-v871-shell="true"] :is(.v828-client-rail nav a, .v808-admin-rail nav a) strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+body[data-v871-shell="true"] :is(.v828-client-rail nav a span, .v808-admin-rail nav a > span) {
+  opacity: 0.7;
+}
+
+body[data-v871-shell="true"] :is(.v864-card-actions, .v799-actions, .actions, .v799-appbar-actions) {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+body[data-v871-shell="true"] :is(.v864-card-actions a, .v799-actions a, .actions a, .v799-appbar-actions a, .v799-actions button) {
+  min-width: 0;
+}
+
+body[data-v871-shell="true"].ns-admin :is(.bottom-nav, .mobile-bottom-nav, .shark-widget, .v829-mobile-quick, .v797-session-pills) {
+  display: none !important;
+}
+
+@media (max-width: 760px) {
+  body[data-v871-shell="true"] :is(.v871-action-clean, .v864-action-button, .v868-pro-action-btn, .v860-action-btn) {
+    white-space: normal;
+    min-height: 38px;
+  }
+}
+/* V871 VISIBLE UI DEFECTS BUTTONS COPY REAL PROGRESS FIX END */

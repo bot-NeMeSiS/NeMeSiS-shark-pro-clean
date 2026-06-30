@@ -2,8 +2,8 @@
 <span class="v860-status-chip v864-status-chip v868-pro-status-chip status-chip v860-tone-{{ tone }}">{{ label }}</span>
 {%- endmacro %}
 
-{% macro action_button(label, href, tone='neutral') -%}
-<a class="v860-action-btn v864-action-button v868-pro-action-btn action-button v860-tone-{{ tone }}" href="{{ href }}">{{ label }}</a>
+{% macro action_button(label, href, tone='neutral', aria_label='') -%}
+<a class="v860-action-btn v864-action-button v868-pro-action-btn action-button v871-action-clean v860-tone-{{ tone }}" href="{{ href }}" aria-label="{{ aria_label or label }}">{{ label }}</a>
 {%- endmacro %}
 
 {% macro stat_card(title, value, detail='', tone='neutral', href='') -%}
@@ -18,7 +18,7 @@
 <div class="v860-empty-state v864-empty-state v868-pro-empty-state empty-state v860-tone-{{ tone }}">
   <strong>{{ title }}</strong>
   {% if text %}<p>{{ text }}</p>{% endif %}
-  {% if primary_label and primary_href %}<a class="v860-action-btn v864-action-button v868-pro-action-btn v860-tone-brand" href="{{ primary_href }}">{{ primary_label }}</a>{% endif %}
+  {% if primary_label and primary_href %}<a class="v860-action-btn v864-action-button v868-pro-action-btn v871-action-clean v860-tone-brand" href="{{ primary_href }}" aria-label="{{ primary_label }}">{{ primary_label }}</a>{% endif %}
 </div>
 {%- endmacro %}
 
@@ -40,7 +40,7 @@
     <h2>{{ title }}</h2>
     {% if subtitle %}<p>{{ subtitle }}</p>{% endif %}
   </div>
-  {% if action_label and action_href %}<a class="v864-action-button v868-pro-action-btn" href="{{ action_href }}">{{ action_label }}</a>{% endif %}
+  {% if action_label and action_href %}<a class="v864-action-button v868-pro-action-btn v871-action-clean" href="{{ action_href }}" aria-label="{{ action_label }}">{{ action_label }}</a>{% endif %}
 </header>
 {%- endmacro %}
 
@@ -48,7 +48,7 @@
 <article class="v864-match-row v868-pro-match-row match-row v860-tone-{{ tone }}">
   <div><strong>{{ home }}</strong><small>{{ status }}</small></div>
   <span class="v864-score-chip score-chip">{{ score or 'Pendiente' }}</span>
-  <div><strong>{{ away }}</strong>{% if href %}<a href="{{ href }}">Ver partido</a>{% endif %}</div>
+  <div><strong>{{ away }}</strong>{% if href %}<a href="{{ href }}" aria-label="Ver partido {{ home }} vs {{ away }}">Ver partido</a>{% endif %}</div>
 </article>
 {%- endmacro %}
 
@@ -60,8 +60,8 @@
     <p>{{ market }}</p>
   </div>
   <div class="v864-card-actions">
-    {% if href %}<a class="v864-action-button v868-pro-action-btn" href="{{ href }}">Ver partido</a>{% endif %}
-    <a class="v864-action-button v868-pro-action-btn is-primary" href="{{ shark_href }}">SHARK</a>
+    {% if href %}<a class="v864-action-button v868-pro-action-btn v871-action-clean" href="{{ href }}" aria-label="Ver partido de {{ title }}">Ver partido</a>{% endif %}
+    <a class="v864-action-button v868-pro-action-btn v871-action-clean is-primary" href="{{ shark_href }}" aria-label="Abrir SHARK para {{ title }}">Abrir SHARK</a>
   </div>
 </article>
 {%- endmacro %}
@@ -75,8 +75,8 @@
 </article>
 {%- endmacro %}
 
-{% macro reference_action_button(label, href, tone='neutral') -%}
-<a class="v869-reference-action-button v868-pro-action-btn v864-action-button v860-tone-{{ tone }}" href="{{ href }}">{{ label }}</a>
+{% macro reference_action_button(label, href, tone='neutral', aria_label='') -%}
+<a class="v869-reference-action-button v868-pro-action-btn v864-action-button v871-action-clean v860-tone-{{ tone }}" href="{{ href }}" aria-label="{{ aria_label or label }}">{{ label }}</a>
 {%- endmacro %}
 
 {% macro reference_stat_tile(title, value, detail='', tone='neutral') -%}
@@ -109,7 +109,7 @@
 <article class="v869-reference-match-row v868-pro-match-row v864-match-row v860-tone-{{ tone }}">
   <div><strong>{{ home }}</strong><small>{{ status }}</small></div>
   <span class="v864-score-chip score-chip">{{ score or 'Pendiente' }}</span>
-  <div><strong>{{ away }}</strong>{% if href %}{{ reference_action_button('Ver partido', href, 'brand') }}{% endif %}</div>
+  <div><strong>{{ away }}</strong>{% if href %}{{ reference_action_button('Ver partido', href, 'brand', 'Ver partido ' ~ home ~ ' vs ' ~ away) }}{% endif %}</div>
 </article>
 {%- endmacro %}
 
@@ -121,8 +121,8 @@
     <p>{{ market }}</p>
   </div>
   <div class="v864-card-actions">
-    {% if href %}{{ reference_action_button('Ver partido', href, 'neutral') }}{% endif %}
-    {{ reference_action_button('Abrir SHARK', shark_href, 'brand') }}
+    {% if href %}{{ reference_action_button('Ver partido', href, 'neutral', 'Ver partido de ' ~ title) }}{% endif %}
+    {{ reference_action_button('Abrir SHARK', shark_href, 'brand', 'Abrir SHARK para ' ~ title) }}
   </div>
 </article>
 {%- endmacro %}

@@ -1,0 +1,195 @@
+{
+  "ok": true,
+  "audited_at": "2026-07-01T01:29:10",
+  "zip": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\release_output\\NeMeSiS_SHARK_PRO_V871_VISIBLE_UI_DEFECTS_BUTTONS_COPY_AND_REAL_PROGRESS_FIX_FINAL_RENDER_READY.zip",
+  "zip_size_bytes": 3246778,
+  "file_count": 1736,
+  "content_size_bytes": 7164772,
+  "forbidden_count": 0,
+  "missing_required_root": [],
+  "forbidden": [],
+  "top_files": [
+    {
+      "path": "static/app.css",
+      "size": 881458
+    },
+    {
+      "path": "app.py",
+      "size": 871508
+    },
+    {
+      "path": "reports/V866_mobile_live.png",
+      "size": 189139
+    },
+    {
+      "path": "reports/V866_mobile_shark.png",
+      "size": 185648
+    },
+    {
+      "path": "reports/v810_telegram_previews/telegram_pick_pro_v810.png",
+      "size": 107837
+    },
+    {
+      "path": "reports/V866_mobile_home.png",
+      "size": 98873
+    },
+    {
+      "path": "reports/v810_telegram_previews/telegram_resumen_top_v810.png",
+      "size": 96929
+    },
+    {
+      "path": "V726_PROJECT_TREE_AUDIT.md",
+      "size": 96394
+    },
+    {
+      "path": "reports/V866_mobile_picks.png",
+      "size": 95393
+    },
+    {
+      "path": "reports/v810_telegram_previews/telegram_live_top_v810.png",
+      "size": 72835
+    },
+    {
+      "path": "engines/api_football_live_tracker_engine.py",
+      "size": 60440
+    },
+    {
+      "path": "reports/V868_mobile_shark.png",
+      "size": 45166
+    },
+    {
+      "path": "reports/V868_mobile_home.png",
+      "size": 44571
+    },
+    {
+      "path": "engines/api_exploitation_engine.py",
+      "size": 41823
+    },
+    {
+      "path": "reports/V866_mobile_app.png",
+      "size": 41524
+    },
+    {
+      "path": "reports/V868_mobile_live.png",
+      "size": 41046
+    },
+    {
+      "path": "reports/V868_mobile_picks.png",
+      "size": 39386
+    },
+    {
+      "path": "engines/football_data_warehouse_engine.py",
+      "size": 38480
+    },
+    {
+      "path": "templates/base.html",
+      "size": 38236
+    },
+    {
+      "path": "engines/stripe_payments_engine.py",
+      "size": 36321
+    }
+  ],
+  "top_folders": [
+    {
+      "folder": "reports",
+      "size": 2184078,
+      "files": 847
+    },
+    {
+      "folder": "engines",
+      "size": 1180092,
+      "files": 105
+    },
+    {
+      "folder": "tools",
+      "size": 928017,
+      "files": 424
+    },
+    {
+      "folder": "static",
+      "size": 882784,
+      "files": 2
+    },
+    {
+      "folder": "app.py",
+      "size": 871508,
+      "files": 1
+    },
+    {
+      "folder": "templates",
+      "size": 616926,
+      "files": 160
+    },
+    {
+      "folder": "V726_PROJECT_TREE_AUDIT.md",
+      "size": 96394,
+      "files": 1
+    },
+    {
+      "folder": "docs",
+      "size": 45463,
+      "files": 56
+    },
+    {
+      "folder": "CHATGPT_CONTINUATION_REPORT.md",
+      "size": 34620,
+      "files": 1
+    },
+    {
+      "folder": "V726_PURGE_REPORT.md",
+      "size": 26158,
+      "files": 1
+    },
+    {
+      "folder": "tests",
+      "size": 12961,
+      "files": 11
+    },
+    {
+      "folder": "RELEASE_MANIFEST_V871.json",
+      "size": 7450,
+      "files": 1
+    },
+    {
+      "folder": "services",
+      "size": 7327,
+      "files": 6
+    },
+    {
+      "folder": "RELEASE_MANIFEST_V762.json",
+      "size": 6907,
+      "files": 1
+    },
+    {
+      "folder": "RELEASE_MANIFEST_V761.json",
+      "size": 6873,
+      "files": 1
+    },
+    {
+      "folder": "RELEASE_MANIFEST_V760.json",
+      "size": 6844,
+      "files": 1
+    },
+    {
+      "folder": "RELEASE_MANIFEST_V758.json",
+      "size": 6763,
+      "files": 1
+    },
+    {
+      "folder": "RELEASE_MANIFEST_V757.json",
+      "size": 6758,
+      "files": 1
+    },
+    {
+      "folder": "V742_DUPLICATES_AND_LEGACY_AUDIT.md",
+      "size": 6694,
+      "files": 1
+    },
+    {
+      "folder": ".env.render.clean",
+      "size": 6685,
+      "files": 1
+    }
+  ]
+}

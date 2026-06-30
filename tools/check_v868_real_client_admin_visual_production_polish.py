@@ -13,6 +13,7 @@ V868_PRO = "V868_PRO_MAX_CLIENT_ADMIN_MOBILE_VISUAL_REVENUE_SENTINEL_FINAL"
 V869 = "V869_FULL_COMPANY_REFERENCE_ALIGNMENT_DEEP_CLEAN_VISUAL_REBUILD_FINAL"
 V870 = "V870_REFERENCE_STYLE_MATCH_AND_WORKSPACE_PURGE_PRO_FINAL"
 V870_PRO_MAX = "V870_REFERENCE_STYLE_MATCH_AND_WORKSPACE_PURGE_PRO_MAX_FINAL"
+V871 = "V871_VISIBLE_UI_DEFECTS_BUTTONS_COPY_AND_REAL_PROGRESS_FIX_FINAL"
 ZIP_NAME = "NeMeSiS_SHARK_PRO_V868_REAL_CLIENT_ADMIN_VISUAL_PRODUCTION_POLISH_AND_SENTINEL_VALUE_FINAL_RENDER_READY.zip"
 
 REPORTS = [
@@ -52,7 +53,7 @@ def main() -> None:
     admin_templates = "\n".join(path.read_text(encoding="utf-8", errors="replace") for path in (ROOT / "templates").glob("admin*.html"))
     client_templates = "\n".join(path.read_text(encoding="utf-8", errors="replace") for path in (ROOT / "templates").glob("*.html") if not path.name.startswith("admin"))
 
-    valid_versions = {VERSION, V868_PRO, V869, V870, V870_PRO_MAX}
+    valid_versions = {VERSION, V868_PRO, V869, V870, V870_PRO_MAX, V871}
     require(read("VERSION.txt").strip() in valid_versions, "VERSION.txt is not V868/V869")
     require(read("APP_VERSION").strip() in valid_versions, "APP_VERSION is not V868/V869")
     require(any(f"APP_VERSION = '{candidate}'" in app_py for candidate in valid_versions), "app.py APP_VERSION is not V868/V869")

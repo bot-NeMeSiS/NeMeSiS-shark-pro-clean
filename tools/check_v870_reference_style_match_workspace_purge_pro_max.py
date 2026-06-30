@@ -9,6 +9,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V870_REFERENCE_STYLE_MATCH_AND_WORKSPACE_PURGE_PRO_MAX_FINAL"
+VERSION_V871 = "V871_VISIBLE_UI_DEFECTS_BUTTONS_COPY_AND_REAL_PROGRESS_FIX_FINAL"
 ZIP_NAME = f"NeMeSiS_SHARK_PRO_{VERSION}_RENDER_READY.zip"
 
 REPORTS = [
@@ -65,10 +66,11 @@ def main() -> None:
     gitignore = read(".gitignore")
     templates = "\n".join(path.read_text(encoding="utf-8", errors="replace") for path in (ROOT / "templates").glob("*.html"))
 
-    require(read("VERSION.txt").strip() == VERSION, "VERSION.txt is not V870 PRO MAX")
-    require(read("APP_VERSION").strip() == VERSION, "APP_VERSION is not V870 PRO MAX")
-    require(f"APP_VERSION = '{VERSION}'" in app_py, "app.py APP_VERSION is not V870 PRO MAX")
-    require(VERSION in base, "base.html missing V870 PRO MAX cache/version")
+    valid_versions = {VERSION, VERSION_V871}
+    require(read("VERSION.txt").strip() in valid_versions, "VERSION.txt is not V870 PRO MAX/V871")
+    require(read("APP_VERSION").strip() in valid_versions, "APP_VERSION is not V870 PRO MAX/V871")
+    require(any(f"APP_VERSION = '{candidate}'" in app_py for candidate in valid_versions), "app.py APP_VERSION is not V870 PRO MAX/V871")
+    require(any(candidate in base for candidate in valid_versions), "base.html missing V870 PRO MAX/V871 cache/version")
     require('data-v870-shell="true"' in base, "base.html missing data-v870-shell")
     require("NEMESIS V870 REFERENCE STYLE MATCH AND WORKSPACE PURGE PRO MAX ACTIVE" in base, "base.html missing V870 PRO MAX comment")
     require("has_v870_reference_style_match_workspace_purge" in app_py, "runtime V870 flag missing")
@@ -126,8 +128,8 @@ def main() -> None:
     runtime = client.get("/api/runtime-version")
     require(runtime.status_code == 200, f"runtime status {runtime.status_code}")
     payload = runtime.get_json() or {}
-    require(payload.get("app_version") == VERSION, "runtime app_version not V870 PRO MAX")
-    require(payload.get("version_txt") == VERSION, "runtime version_txt not V870 PRO MAX")
+    require(payload.get("app_version") in valid_versions, "runtime app_version not V870 PRO MAX/V871")
+    require(payload.get("version_txt") in valid_versions, "runtime version_txt not V870 PRO MAX/V871")
     require(payload.get("has_v870_reference_style_match_workspace_purge") is True, "runtime V870 flag false")
     require(payload.get("has_v869_full_company_reference_alignment") is True, "runtime V869 flag false")
     require(payload.get("has_v818_automation") is True, "runtime V818 flag false")

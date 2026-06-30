@@ -100,6 +100,48 @@ def _visible_text_from_html(html: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
 
+def _interactive_texts_from_html(html: str) -> list[str]:
+    """Return visible CTA text inside links/buttons for static copy QA.
+
+    Match rows are usually full-card links that contain teams, league, country
+    and status. They are visible, but they are not button labels; checking them
+    as CTAs creates noisy false positives such as league + country repetition.
+    """
+    texts: list[str] = []
+    row_link_markers = (
+        "match-row", "match-card", "fixture", "list-row", "v774-match-row",
+        "v860-mini-row", "v855-match", "v856-match", "v858-match",
+    )
+    cta_markers = (
+        "btn", "button", "action", "cta", "pill", "chip", "tab", "nav",
+        "quick", "ghost", "primary", "secondary",
+    )
+    for match in re.finditer(r"(?is)<(a|button)\b([^>]*)>(.*?)</\1>", html or ""):
+        tag = (match.group(1) or "").lower()
+        attrs = (match.group(2) or "").lower()
+        if tag == "a":
+            if any(marker in attrs for marker in row_link_markers):
+                continue
+            if not any(marker in attrs for marker in cta_markers):
+                continue
+        text = _visible_text_from_html(match.group(3))
+        if text:
+            texts.append(text)
+    return texts
+
+
+def _has_duplicate_cta_text(text: str) -> bool:
+    normalized = re.sub(r"\s+", " ", text or "").strip()
+    if not normalized:
+        return False
+    words = [w.strip("·:|/-").lower() for w in normalized.split() if w.strip("·:|/-")]
+    if len(words) >= 2 and any(words[i] == words[i + 1] for i in range(len(words) - 1)):
+        return True
+    if len(words) == 2 and words[0] == words[1]:
+        return True
+    return False
+
+
 def build_sentinel_journeys() -> list[dict[str, Any]]:
     journeys: list[dict[str, Any]] = []
     for profile, routes in PROFILES.items():
@@ -156,6 +198,9 @@ def _inspect_html(profile: str, route: str, status_code: int, html: str) -> list
     if re.search(r"\b(none|null|undefined)\b", visible_lower):
         if route not in {"/api/runtime-version"}:
             issues.append(_issue(profile, route, "copy", "low", "Texto técnico posible", "Aparecen tokens técnicos que podrían ser visibles.", "None/null/undefined", "Cliente debe ver estados premium.", "Token técnico detectado.", "Revisar si el token es visible al usuario.", f"Revisa tokens técnicos visibles en {route}."))
+    for text in _interactive_texts_from_html(html):
+        if _has_duplicate_cta_text(text):
+            issues.append(_issue(profile, route, "button", "medium", "Texto duplicado en botón", "Un enlace o botón contiene palabras repetidas de forma visible.", text, "Cada CTA debe tener una etiqueta limpia y una sola intención.", "CTA con texto duplicado.", "Revisar macro/template que construye el botón.", f"Corrige texto duplicado en botones de {route}."))
     return issues
 
 

@@ -6,10 +6,10 @@
   <meta name="theme-color" content="#06111f">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="nemesis-version" content="V870_REFERENCE_STYLE_MATCH_AND_WORKSPACE_PURGE_PRO_MAX_FINAL">
+  <meta name="nemesis-version" content="V871_VISIBLE_UI_DEFECTS_BUTTONS_COPY_AND_REAL_PROGRESS_FIX_FINAL">
   <title>{% if title is defined and title %}{{ title }}{% else %}NeMeSiS SHARK PRO{% endif %}</title>
   <link rel="icon" href="{{ url_for('static', filename='img/shark-logo.svg') }}" type="image/svg+xml">
-  <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}?v=V870_REFERENCE_STYLE_MATCH_AND_WORKSPACE_PURGE_PRO_MAX_FINAL">
+  <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}?v=V871_VISIBLE_UI_DEFECTS_BUTTONS_COPY_AND_REAL_PROGRESS_FIX_FINAL">
   <meta name="csrf-token" content="{{ csrf_token() }}">
 </head>
 {% from "partials/brand_logo.html" import nemesis_brand %}
@@ -27,7 +27,7 @@
   {% set _visual_tier = 'free' %}
   {% set _tier_label = 'FREE' %}
 {% endif %}
-<body class="ns-app ns-tier-{{ _visual_tier }}{% if current_user %} ns-authenticated{% else %} ns-public{% endif %}{% if current_user and current_user.role == 'ADMIN' %} ns-admin{% endif %}" data-ns-route="{{ request.path }}" data-ns-plan="{{ _tier_label }}" data-v775-shell="true" data-v776-shell="true" data-v777-shell="true" data-v778-shell="true" data-v790-shell="true" data-v792-shell="true" data-v793-shell="true" data-v795-shell="true" data-v796-shell="true" data-v797-shell="true" data-v798-shell="true" data-v799-shell="true" data-v800-shell="true" data-v801-shell="true" data-v802-shell="true" data-v806-shell="true" data-v807-shell="true" data-v809-shell="true" data-v810-shell="true" data-v811-shell="true" data-v812-shell="true" data-v813-shell="true" data-v814-shell="true" data-v815-shell="true" data-v816-shell="true" data-v817-shell="true" data-v818-shell="true" data-v819-shell="true" data-v820-shell="true" data-v821-shell="true" data-v822-shell="true" data-v823-shell="true" data-v824-shell="true" data-v825-shell="true" data-v826-shell="true" data-v827-shell="true" data-v828-shell="true" data-v829-shell="true" data-v830-shell="true" data-v832-shell="true" data-v833-shell="true" data-v836-shell="true" data-v837-shell="true" data-v838-shell="true" data-v839-shell="true" data-v840-shell="true" data-v841-shell="true" data-v842-shell="true" data-v843-shell="true" data-v844-shell="true" data-v845-shell="true" data-v847-shell="true" data-v848-shell="true" data-v849-shell="true" data-v850-shell="true" data-v851-shell="true" data-v852-shell="true" data-v853-shell="true" data-v854-shell="true" data-v855-shell="true" data-v856-shell="true" data-v857-shell="true" data-v858-shell="true" data-v859-shell="true" data-v860-shell="true" data-v861-shell="true" data-v862-shell="true" data-v863-shell="true" data-v864-shell="true" data-v865-shell="true" data-v866-shell="true" data-v867-shell="true" data-v868-shell="true" data-v869-shell="true" data-v870-shell="true">
+<body class="ns-app ns-tier-{{ _visual_tier }}{% if current_user %} ns-authenticated{% else %} ns-public{% endif %}{% if current_user and current_user.role == 'ADMIN' %} ns-admin{% endif %}" data-ns-route="{{ request.path }}" data-ns-plan="{{ _tier_label }}" data-v775-shell="true" data-v776-shell="true" data-v777-shell="true" data-v778-shell="true" data-v790-shell="true" data-v792-shell="true" data-v793-shell="true" data-v795-shell="true" data-v796-shell="true" data-v797-shell="true" data-v798-shell="true" data-v799-shell="true" data-v800-shell="true" data-v801-shell="true" data-v802-shell="true" data-v806-shell="true" data-v807-shell="true" data-v809-shell="true" data-v810-shell="true" data-v811-shell="true" data-v812-shell="true" data-v813-shell="true" data-v814-shell="true" data-v815-shell="true" data-v816-shell="true" data-v817-shell="true" data-v818-shell="true" data-v819-shell="true" data-v820-shell="true" data-v821-shell="true" data-v822-shell="true" data-v823-shell="true" data-v824-shell="true" data-v825-shell="true" data-v826-shell="true" data-v827-shell="true" data-v828-shell="true" data-v829-shell="true" data-v830-shell="true" data-v832-shell="true" data-v833-shell="true" data-v836-shell="true" data-v837-shell="true" data-v838-shell="true" data-v839-shell="true" data-v840-shell="true" data-v841-shell="true" data-v842-shell="true" data-v843-shell="true" data-v844-shell="true" data-v845-shell="true" data-v847-shell="true" data-v848-shell="true" data-v849-shell="true" data-v850-shell="true" data-v851-shell="true" data-v852-shell="true" data-v853-shell="true" data-v854-shell="true" data-v855-shell="true" data-v856-shell="true" data-v857-shell="true" data-v858-shell="true" data-v859-shell="true" data-v860-shell="true" data-v861-shell="true" data-v862-shell="true" data-v863-shell="true" data-v864-shell="true" data-v865-shell="true" data-v866-shell="true" data-v867-shell="true" data-v868-shell="true" data-v869-shell="true" data-v870-shell="true" data-v871-shell="true">
   <!-- NEMESIS V817 REFERENCE PIXEL POLISH ACTIVE -->
   <!-- NEMESIS V818 DAILY AUTOMATION OS ACTIVE -->
   <!-- NEMESIS V819 REFERENCE UI DEDUP LAYER PURGE ACTIVE -->
@@ -79,6 +79,7 @@
   <!-- NEMESIS V868 PRO MAX CLIENT ADMIN MOBILE VISUAL REVENUE SENTINEL ACTIVE -->
   <!-- NEMESIS V869 FULL COMPANY REFERENCE ALIGNMENT DEEP CLEAN VISUAL REBUILD ACTIVE -->
   <!-- NEMESIS V870 REFERENCE STYLE MATCH AND WORKSPACE PURGE PRO MAX ACTIVE -->
+  <!-- NEMESIS V871 VISIBLE UI DEFECTS BUTTONS COPY REAL PROGRESS FIX ACTIVE -->
   <div class="ns-ambient" aria-hidden="true"><i></i><i></i><i></i></div>
   {% if not current_user or current_user.role != 'ADMIN' %}
   <div class="v825-shark-background" aria-hidden="true">
@@ -153,14 +154,14 @@
     {{ nemesis_brand('/app', 'sidebar') }}
     <nav>
       <a href="/app"><span>Inicio</span><strong>Dashboard</strong></a>
-      <a href="/partidos"><span>Partidos</span><strong>Partidos</strong></a>
-      <a href="/live"><span>Directo</span><strong>Directo</strong></a>
-      <a href="/picks"><span>Picks</span><strong>Picks</strong></a>
-      <a href="/shark"><span>SHARK</span><strong>SHARK</strong></a>
-      <a href="/track-record"><span>Histórico</span><strong>Histórico</strong></a>
-      <a href="/telegram"><span>Telegram</span><strong>Telegram</strong></a>
-      <a href="/profile"><span>Perfil</span><strong>Perfil</strong></a>
-      <a href="/support"><span></span><strong>Soporte</strong></a>
+      <a href="/partidos"><span>Partidos</span><strong>Calendario</strong></a>
+      <a href="/live"><span>Directo</span><strong>Live</strong></a>
+      <a href="/picks"><span>Picks</span><strong>Premium</strong></a>
+      <a href="/shark"><span>SHARK</span><strong>IA</strong></a>
+      <a href="/track-record"><span>Histórico</span><strong>Resultados</strong></a>
+      <a href="/telegram"><span>Telegram</span><strong>Canal</strong></a>
+      <a href="/profile"><span>Perfil</span><strong>Cuenta</strong></a>
+      <a href="/support"><span>Ayuda</span><strong>Soporte</strong></a>
     </nav>
     <footer>
       <span class="v828-plan-chip">{{ _tier_label }}</span>
@@ -183,26 +184,26 @@
   <aside class="v808-admin-rail" aria-label="Navegación admin premium">
     {{ nemesis_brand('/admin/control-center', 'admin') }}
     <nav>
-      <a href="/admin/control-center">Panel <span>Panel</span></a>
+      <a href="/admin/control-center">Panel <span>Control</span></a>
       <a href="/admin/company-os">Workers <span>Empresa OS</span></a>
       <a href="/admin/company-audit">Board <span>Product Board</span></a>
       <a href="/admin/auto-improvement">Mejora <span>Auto OS</span></a>
       <a href="/admin/shark-sentinel">Sentinel <span>QA Bot</span></a>
       <a href="/admin/continuous-sentinel">Loop <span>QA Loop</span></a>
       <a href="/admin/sentinel-workflow">Workflow <span>Fix OS</span></a>
-      <a href="/admin/map">Mapa <span>Mapa</span></a>
-      <a href="/admin/users">Clientes <span>Clientes</span></a>
-      <a href="/admin/data-center">Datos <span>Datos</span></a>
+      <a href="/admin/map">Mapa <span>Rutas</span></a>
+      <a href="/admin/users">Clientes <span>Usuarios</span></a>
+      <a href="/admin/data-center">Datos <span>Centro</span></a>
       <a href="/admin/api-sports">API <span>Sports</span></a>
-      <a href="/admin/matches-sync">Partidos <span>Partidos</span></a>
-      <a href="/admin/live-depth">Directo <span>Directo</span></a>
-      <a href="/admin/picks">Picks <span>Picks</span></a>
-      <a href="/admin/telegram/command-center">Telegram <span>Telegram</span></a>
-      <a href="/admin/telegram/pro-preview">PRO <span>PRO Msg</span></a>
-      <a href="/admin/automation-center">Auto <span>Auto</span></a>
-      <a href="/admin/daily-automation">Daily <span>Daily</span></a>
-      <a href="/admin/automation-os">OS <span>OS</span></a>
-      <a href="/admin/app-experience-quality">Calidad <span>Calidad</span></a>
+      <a href="/admin/matches-sync">Partidos <span>Sync</span></a>
+      <a href="/admin/live-depth">Directo <span>Live</span></a>
+      <a href="/admin/picks">Picks <span>Control</span></a>
+      <a href="/admin/telegram/command-center">Telegram <span>Canal</span></a>
+      <a href="/admin/telegram/pro-preview">Preview <span>Mensajes</span></a>
+      <a href="/admin/automation-center">Auto <span>Jobs</span></a>
+      <a href="/admin/daily-automation">Daily <span>Cron</span></a>
+      <a href="/admin/automation-os">OS <span>Motor</span></a>
+      <a href="/admin/app-experience-quality">Calidad <span>QA</span></a>
     </nav>
     <div class="v808-admin-rail-foot"><a href="/sports-hub">Vista cliente</a><a href="/logout">Salir</a></div>
   </aside>
@@ -339,7 +340,7 @@
   <script>
   window.nemesisCsrfToken = function(){
     const meta = document.querySelector('meta[name="csrf-token"]');
-    return meta  meta.getAttribute('content') : '';
+    return meta ? meta.getAttribute('content') : '';
   };
   window.nemesisJsonHeaders = function(extra){
     return Object.assign({'Content-Type':'application/json','X-CSRF-Token': window.nemesisCsrfToken()}, extra || {});
@@ -383,7 +384,7 @@
       if(!payload.value) return;
       btn.disabled=true;
       try{
-        const res=await fetch('/api/favorites',{method: active  'DELETE' : 'POST',headers:window.nemesisJsonHeaders(),body:JSON.stringify(payload)});
+        const res=await fetch('/api/favorites',{method: active ? 'DELETE' : 'POST',headers:window.nemesisJsonHeaders(),body:JSON.stringify(payload)});
         const data=await res.json();
         if(data.ok!==false){
           btn.classList.toggle('active',!active);
@@ -445,7 +446,7 @@
     document.querySelectorAll('.nav a,.bottom-nav a').forEach(function(link){
       try{
         const href=new URL(link.getAttribute('href'), window.location.origin).pathname.replace(/\/$/,'') || '/';
-        if(href === '/'  path === '/' : path === href || path.indexOf(href + '/') === 0){
+        if(href === '/' ? path === '/' : path === href || path.indexOf(href + '/') === 0){
           link.classList.add('is-active');
           link.setAttribute('aria-current','page');
         }
@@ -515,9 +516,9 @@
     function classify(){
       const w=window.innerWidth||0;
       const touch=('ontouchstart' in window)||navigator.maxTouchPoints>0;
-      const kind = w < 720  'mobile' : (w < 1120  'tablet' : 'desktop');
+      const kind = w < 720 ? 'mobile' : (w < 1120 ? 'tablet' : 'desktop');
       body.classList.remove('ns-device-mobile','ns-device-tablet','ns-device-desktop','ns-input-touch','ns-input-pointer');
-      body.classList.add('ns-device-' + kind, touch  'ns-input-touch' : 'ns-input-pointer');
+      body.classList.add('ns-device-' + kind, touch ? 'ns-input-touch' : 'ns-input-pointer');
       root.style.setProperty('--v758-vh', (window.innerHeight*0.01)+'px');
       root.style.setProperty('--v758-vw', w+'px');
       body.dataset.nsDevice=kind;
@@ -558,7 +559,7 @@
     function tick(){
       var now=new Date();
       document.querySelectorAll('.v794-live-clock').forEach(function(el){
-        var base=el.dataset.seconds  parseInt(el.dataset.seconds,10) : null;
+        var base=el.dataset.seconds ? parseInt(el.dataset.seconds,10) : null;
         if(base!==null && !isNaN(base)){
           base=Math.max(0, base-1); el.dataset.seconds=String(base);
           var m=String(Math.floor(base/60)).padStart(2,'0'), sec=String(base%60).padStart(2,'0');

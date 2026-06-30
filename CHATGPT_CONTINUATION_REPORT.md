@@ -682,3 +682,27 @@ Honestidad:
 - No se envió Telegram real.
 - No se probaron pagos reales.
 - No se afirma pixel-perfect ni Render real.
+
+## V871_VISIBLE_UI_DEFECTS_BUTTONS_COPY_AND_REAL_PROGRESS_FIX_FINAL
+
+Base real usada: `V870_REFERENCE_STYLE_MATCH_AND_WORKSPACE_PURGE_PRO_MAX_FINAL` en la carpeta oficial.
+
+Objetivo: corregir defectos visibles que los checks anteriores no capturaban: botones/labels duplicados, CTAs raros, mojibake en UI compartida y comportamientos visuales rotos por JavaScript base.
+
+Cambios principales:
+- Versionado actualizado a `V871_VISIBLE_UI_DEFECTS_BUTTONS_COPY_AND_REAL_PROGRESS_FIX_FINAL`.
+- Runtime añade `has_v871_visible_ui_defects_buttons_copy_fix`.
+- `base.html` añade `data-v871-shell`, cache busting V871 y comentario activo.
+- Rail cliente corregido: deja de mostrar `Partidos/Partidos`, `Picks/Picks`, `SHARK/SHARK`, etc.
+- Rail admin corregido: deja de mostrar `Panel/Panel`, `Mapa/Mapa`, `Datos/Datos`, `Picks/Picks`, etc.
+- Telegram corrige textos visibles de conexión, vinculación, envío y código.
+- `templates/partials/ui_components.html` saneado: sin mojibake, botones con `aria-label` y clase `v871-action-clean`.
+- JavaScript base reparado: ternarias de CSRF, favoritos, navegación activa, device mode y reloj.
+- Sentinel incorpora detector de texto duplicado en links/botones.
+- Nuevo check `tools/check_v871_visible_ui_defects_buttons_copy.py`.
+
+Honestidad:
+- No se hizo deploy ni push.
+- No se envió Telegram real.
+- No se probaron pagos reales.
+- No se afirma pixel-perfect ni Render real.
