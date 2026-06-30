@@ -6,6 +6,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V863_REAL_WORLD_FULL_APP_CERTIFICATION_MAX_QA_FINAL"
+NEXT_VERSION = "V864_PC_MOBILE_VISUAL_REFERENCE_BIG_LEAP_REAL_SCREEN_QA_FINAL"
 
 
 REPORTS = [
@@ -45,18 +46,18 @@ def main() -> None:
     app_py = read("app.py")
     base_html = read("templates/base.html")
 
-    if version_txt != VERSION:
-        fail("VERSION.txt is not V863")
-    if app_version_txt != VERSION:
-        fail("APP_VERSION file is not V863")
-    if f"APP_VERSION = '{VERSION}'" not in app_py:
-        fail("app.py APP_VERSION is not V863")
+    if version_txt not in {VERSION, NEXT_VERSION}:
+        fail("VERSION.txt is not V863/V864")
+    if app_version_txt not in {VERSION, NEXT_VERSION}:
+        fail("APP_VERSION file is not V863/V864")
+    if not any(f"APP_VERSION = '{candidate}'" in app_py for candidate in {VERSION, NEXT_VERSION}):
+        fail("app.py APP_VERSION is not V863/V864")
     if "has_v863_real_world_certification" not in app_py:
         fail("runtime flag V863 missing")
     if "data-v863-shell" not in base_html:
         fail("base.html missing data-v863-shell")
-    if VERSION not in base_html:
-        fail("base.html cache/version marker missing V863")
+    if VERSION not in base_html and NEXT_VERSION not in base_html:
+        fail("base.html cache/version marker missing V863/V864")
 
     critical_markers = [
         "has_v862_continuous_sentinel_loop",

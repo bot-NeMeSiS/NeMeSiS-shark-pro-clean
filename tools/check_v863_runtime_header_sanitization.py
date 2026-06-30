@@ -5,6 +5,8 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
+VERSION = "V863_REAL_WORLD_FULL_APP_CERTIFICATION_MAX_QA_FINAL"
+NEXT_VERSION = "V864_PC_MOBILE_VISUAL_REFERENCE_BIG_LEAP_REAL_SCREEN_QA_FINAL"
 
 
 def fail(message: str) -> None:
@@ -39,8 +41,8 @@ def main() -> None:
             fail(f"header {key} contains a line break")
 
     payload = response.get_json() or json.loads(response.get_data(as_text=True))
-    if payload.get("app_version") != "V863_REAL_WORLD_FULL_APP_CERTIFICATION_MAX_QA_FINAL":
-        fail("runtime app_version is not V863")
+    if payload.get("app_version") not in {VERSION, NEXT_VERSION}:
+        fail("runtime app_version is not V863/V864")
     if payload.get("has_v863_real_world_certification") is not True:
         fail("runtime flag has_v863_real_world_certification is not true")
 

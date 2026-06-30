@@ -9498,3 +9498,304 @@ body[data-v862-shell="true"] .v862-continuous-sentinel .v862-sentinel-card h2 {
   text-transform: capitalize;
 }
 /* V862 CONTINUOUS SHARK SENTINEL AUTO IMPROVEMENT LOOP END */
+
+/* V864 PC MOBILE VISUAL REFERENCE BIG LEAP START */
+body[data-v864-shell="true"] {
+  --v864-bg: #030713;
+  --v864-surface: rgba(8, 17, 32, 0.86);
+  --v864-surface-strong: rgba(11, 26, 48, 0.94);
+  --v864-border: rgba(113, 240, 255, 0.16);
+  --v864-border-strong: rgba(113, 240, 255, 0.28);
+  --v864-text: #eef8ff;
+  --v864-muted: #94a9ba;
+  --v864-accent: #44d8ff;
+  --v864-accent-2: #39f2b6;
+  --v864-elite: #f5c85b;
+  --v864-danger: #ff6b7a;
+  --v864-radius: 18px;
+  --v864-radius-sm: 12px;
+  --v864-shadow: 0 22px 70px rgba(0, 0, 0, 0.42);
+  background:
+    radial-gradient(circle at 16% 0%, rgba(68, 216, 255, 0.18), transparent 28rem),
+    radial-gradient(circle at 86% 8%, rgba(57, 242, 182, 0.10), transparent 24rem),
+    linear-gradient(180deg, #040817 0%, #06101d 48%, #030713 100%);
+  color: var(--v864-text);
+  overflow-x: hidden;
+}
+
+body[data-v864-shell="true"]::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+  background-image:
+    radial-gradient(circle, rgba(151, 235, 255, 0.14) 1px, transparent 1.4px),
+    linear-gradient(140deg, rgba(68, 216, 255, 0.08), transparent 42%);
+  background-size: 22px 22px, 100% 100%;
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.88), rgba(0, 0, 0, 0.24));
+}
+
+body[data-v864-shell="true"] :is(.ns-main-shell, main, .wrap, .page, .container, .admin-main) {
+  max-width: 1240px;
+}
+
+body[data-v864-shell="true"] :is(.top.ns-topbar, .admin-topbar, .v857-admin-rail, .v859-board-shell, .ns-sidebar) {
+  border-color: var(--v864-border);
+  background: linear-gradient(180deg, rgba(7, 16, 31, 0.94), rgba(5, 12, 24, 0.86));
+  box-shadow: 0 12px 38px rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(18px);
+}
+
+body[data-v864-shell="true"] :is(.card, .panel, .glass, .premium-card, .v799-card, .v812-card, .v855-card, .v856-card, .v858-visual-lock, .v862-sentinel-card, .v862-prompt-panel, .admin-card, .board-card, .metric-card, .command-center-card) {
+  border: 1px solid var(--v864-border);
+  border-radius: var(--v864-radius);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.018)),
+    var(--v864-surface);
+  box-shadow: var(--v864-shadow);
+  color: var(--v864-text);
+}
+
+body[data-v864-shell="true"] :is(.card, .panel, .premium-card, .admin-card, .board-card) :is(p, small, .muted, .sub, .helper) {
+  color: var(--v864-muted);
+}
+
+body[data-v864-shell="true"] :is(h1, h2, h3) {
+  letter-spacing: 0;
+}
+
+body[data-v864-shell="true"] :is(.section-head, .section-header, .admin-section-head, .v864-section-header) {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 14px;
+  margin: 0 0 14px;
+}
+
+body[data-v864-shell="true"] :is(.section-head h1, .section-head h2, .section-header h2, .admin-section-head h2) {
+  font-size: clamp(1.25rem, 2vw, 2rem);
+  line-height: 1.05;
+  margin: 0;
+}
+
+body[data-v864-shell="true"] :is(.btn, button, .button, .primary, .secondary, .ghost, .action-button, .v864-action-button, .nav-clean a, .admin-action, .v862-route-list code) {
+  min-height: 38px;
+  border-radius: 12px;
+  border: 1px solid var(--v864-border);
+  text-align: center;
+  text-wrap: balance;
+}
+
+body[data-v864-shell="true"] :is(.primary, .btn.primary, .v864-action-button.is-primary, .upgrade, .shark-action) {
+  background: linear-gradient(135deg, rgba(68, 216, 255, 0.95), rgba(57, 242, 182, 0.82));
+  color: #03111c;
+  border-color: transparent;
+  font-weight: 850;
+  box-shadow: 0 14px 36px rgba(68, 216, 255, 0.20);
+}
+
+body[data-v864-shell="true"] :is(.chip, .badge, .pill, .status, .status-chip, .v864-status-chip, .plan-badge) {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 26px;
+  max-width: 100%;
+  border: 1px solid var(--v864-border);
+  border-radius: 999px;
+  padding: 5px 10px;
+  background: rgba(255, 255, 255, 0.055);
+  color: #dff8ff;
+  font-size: 0.78rem;
+  line-height: 1.1;
+  white-space: normal;
+}
+
+body[data-v864-shell="true"] :is(.match-row, .sports-row, .fixture-row, .live-row, .agenda-row, .v864-match-row) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--v864-border);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+body[data-v864-shell="true"] :is(.team-logo, .crest, .team-crest, .league-logo, .v864-crest) {
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+}
+
+body[data-v864-shell="true"] :is(.score, .score-chip, .live-score, .v864-score-chip) {
+  display: inline-flex;
+  justify-content: center;
+  min-width: 56px;
+  border-radius: 12px;
+  padding: 8px 10px;
+  background: rgba(68, 216, 255, 0.10);
+  border: 1px solid rgba(68, 216, 255, 0.20);
+  color: #f5fbff;
+  font-weight: 900;
+}
+
+body[data-v864-shell="true"] :is(.pick-card, .v864-pick-card, .premium-pick, .v799-feature-pick) {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border-left: 3px solid var(--v864-accent);
+}
+
+body[data-v864-shell="true"] :is(.plan-pro, [data-plan="PRO"], .ns-tier-pro) :is(.plan-badge, .membership-card),
+body[data-v864-shell="true"] .plan-badge.is-pro {
+  border-color: rgba(68, 216, 255, 0.36);
+  box-shadow: 0 0 0 1px rgba(68, 216, 255, 0.10) inset;
+}
+
+body[data-v864-shell="true"] :is(.plan-elite, [data-plan="ELITE"], .ns-tier-elite) :is(.plan-badge, .membership-card),
+body[data-v864-shell="true"] .plan-badge.is-elite {
+  border-color: rgba(245, 200, 91, 0.42);
+  box-shadow: 0 0 0 1px rgba(245, 200, 91, 0.12) inset;
+}
+
+body[data-v864-shell="true"] :is(.empty-state, .v864-empty-state, .no-data, .placeholder) {
+  border: 1px dashed rgba(113, 240, 255, 0.22);
+  border-radius: var(--v864-radius);
+  padding: 18px;
+  background: rgba(6, 15, 29, 0.66);
+  color: var(--v864-muted);
+}
+
+body[data-v864-shell="true"] :is(.shark-panel, .shark-card, .v864-shark-panel, .telegram-panel, .v864-telegram-panel, .v862-sentinel-hero) {
+  position: relative;
+  overflow: hidden;
+}
+
+body[data-v864-shell="true"] :is(.v864-sentinel-issue-card, .v862-sentinel-card, .v862-continuous-sentinel) {
+  border-color: rgba(113, 240, 255, 0.22);
+}
+
+body[data-v864-shell="true"] :is(.shark-panel, .shark-card, .v864-shark-panel, .telegram-panel, .v864-telegram-panel, .v862-sentinel-hero)::after {
+  content: "";
+  position: absolute;
+  inset: auto -20% -40% 35%;
+  height: 120px;
+  pointer-events: none;
+  background: radial-gradient(circle, rgba(68, 216, 255, 0.22), transparent 64%);
+}
+
+body[data-v864-shell="true"].ns-admin {
+  background:
+    radial-gradient(circle at 100% 0%, rgba(68, 216, 255, 0.12), transparent 30rem),
+    linear-gradient(180deg, #050b16, #030713);
+}
+
+body[data-v864-shell="true"].ns-admin :is(.bottom-nav, .floating-shark, .v825-public-floating-shark, .shark-widget:not(.admin-shark-widget)) {
+  display: none;
+}
+
+body[data-v864-shell="true"].ns-admin :is(.admin-card, .board-card, .v862-sentinel-card) {
+  border-radius: 14px;
+  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.34);
+}
+
+body[data-v864-shell="true"] :is(table, .admin-table) {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0 8px;
+}
+
+body[data-v864-shell="true"] :is(td, th) {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+body[data-v864-shell="true"] .bottom-nav {
+  left: max(10px, env(safe-area-inset-left));
+  right: max(10px, env(safe-area-inset-right));
+  bottom: max(10px, env(safe-area-inset-bottom));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+  padding: 8px;
+  border-radius: 18px;
+  border: 1px solid var(--v864-border-strong);
+  background: rgba(5, 12, 24, 0.92);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.46);
+  backdrop-filter: blur(18px);
+}
+
+body[data-v864-shell="true"] .bottom-nav a {
+  min-width: 0;
+  min-height: 44px;
+  padding: 6px 4px;
+  border-radius: 13px;
+  font-size: 0.72rem;
+  line-height: 1.05;
+  overflow: hidden;
+}
+
+@media (min-width: 980px) {
+  body[data-v864-shell="true"] :is(.dashboard-grid, .app-grid, .content-grid, .v864-dashboard-grid) {
+    display: grid;
+    grid-template-columns: minmax(0, 1.45fr) minmax(300px, 0.7fr);
+    gap: 18px;
+    align-items: start;
+  }
+
+  body[data-v864-shell="true"] :is(.kpi-grid, .stats-grid, .metrics-grid, .v864-stat-grid) {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+  }
+}
+
+@media (max-width: 760px) {
+  body[data-v864-shell="true"] {
+    font-size: 15px;
+    padding-bottom: 82px;
+  }
+
+  body[data-v864-shell="true"] :is(.ns-main-shell, main, .wrap, .page, .container, .admin-main) {
+    width: min(100%, 100vw);
+    padding-inline: 12px;
+  }
+
+  body[data-v864-shell="true"] :is(.top.ns-topbar, .admin-topbar) {
+    min-height: 58px;
+  }
+
+  body[data-v864-shell="true"] :is(.card, .panel, .premium-card, .v799-card, .v812-card, .v855-card, .v856-card, .v862-sentinel-card, .admin-card, .board-card) {
+    border-radius: 15px;
+    padding: 14px;
+    box-shadow: 0 12px 34px rgba(0, 0, 0, 0.32);
+  }
+
+  body[data-v864-shell="true"] :is(.hero, .app-hero, .landing-hero, .v812-hero-shell, .v862-sentinel-hero) {
+    min-height: auto;
+    padding: 16px;
+  }
+
+  body[data-v864-shell="true"] :is(.match-row, .sports-row, .fixture-row, .live-row, .agenda-row, .v864-match-row) {
+    grid-template-columns: 1fr auto;
+    gap: 8px;
+    padding: 11px;
+  }
+
+  body[data-v864-shell="true"] :is(.kpi-grid, .stats-grid, .metrics-grid, .cards, .grid, .v862-sentinel-panels) {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  body[data-v864-shell="true"] :is(.chip, .badge, .pill, .status, .status-chip, .plan-badge) {
+    font-size: 0.72rem;
+    padding: 5px 8px;
+  }
+
+  body[data-v864-shell="true"] :is(.btn, button, .button, .primary, .secondary, .ghost, .action-button) {
+    min-height: 42px;
+  }
+}
+/* V864 PC MOBILE VISUAL REFERENCE BIG LEAP END */

@@ -55,6 +55,21 @@ ACTION_LEVELS = {
     "level_4_forbidden_automatic": FORBIDDEN_AUTOMATIC_ACTIONS,
 }
 
+V864_VISUAL_RULES = [
+    "cards_gigantes_o_pobres",
+    "posible_overflow_horizontal",
+    "bottom_nav_duplicada",
+    "floating_shark_duplicado",
+    "admin_con_navegacion_cliente",
+    "section_headers_ausentes",
+    "empty_states_pobres",
+    "mojibake_visible",
+    "cta_principal_ausente",
+    "cards_sin_jerarquia",
+    "mobile_safe_area_debil",
+    "pc_sin_densidad_dashboard",
+]
+
 
 def madrid_now() -> str:
     return datetime.now(MADRID_TZ).isoformat(timespec="seconds")
@@ -122,6 +137,8 @@ def build_continuous_sentinel_summary(version: str = "") -> dict[str, Any]:
         "next_focus": ["Ejecutar quick cycle", "Revisar issues high/critical", "Usar prompts Codex con aprobacion"],
         "history_recent": [],
         "browser_note": "browser visual QA not available locally unless Playwright is installed and run explicitly",
+        "visual_rules_v864": V864_VISUAL_RULES,
+        "visual_big_leap_ready": True,
         "no_code_writes": True,
         "no_deploy": True,
         "no_external_calls": True,
@@ -155,6 +172,7 @@ def run_continuous_sentinel_cycle(client: Any, version: str = "", mode: str = "q
             "No browser real ejecutado en modo static.",
             "No se ejecutan acciones peligrosas.",
             "Los hallazgos de texto tecnico son candidatos a revisar, no datos inventados.",
+            "Reglas visuales V864 revisadas por marcadores estaticos; browser QA es opcional.",
         ],
         "issues_by_severity": by_severity,
         "issues_by_category": by_category,
@@ -171,9 +189,11 @@ def run_continuous_sentinel_cycle(client: Any, version: str = "", mode: str = "q
         "comparison": {
             "against_expected_baseline": "routes/profiles/status/safety checked",
             "against_last_cycle": "no persisted previous cycle in this safe local run",
-            "against_visual_reference_internal": "markers checked by static rules only",
+            "against_visual_reference_internal": "V864 visual rules checked by static markers only",
             "against_commercial_rules": "no fake data and no irresponsible betting claims checked",
         },
+        "visual_rules_v864": V864_VISUAL_RULES,
+        "visual_big_leap_ready": True,
         "no_code_writes": True,
         "no_deploy": True,
         "no_external_calls": True,

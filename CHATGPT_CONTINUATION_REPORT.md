@@ -415,3 +415,28 @@ Preservado:
 - V859 Product Board.
 - V861 Auto-Improvement OS.
 - V862 Continuous Sentinel.
+
+## V864_PC_MOBILE_VISUAL_REFERENCE_BIG_LEAP_REAL_SCREEN_QA_FINAL
+
+Base real detectada: V863_REAL_WORLD_FULL_APP_CERTIFICATION_MAX_QA_FINAL.
+
+Trabajo aplicado:
+- Se elevó VERSION.txt, APP_VERSION, base.html, cache CSS y runtime a V864.
+- Se añadió flag runtime `has_v864_pc_mobile_visual_big_leap`.
+- Se añadió bloque CSS `V864 PC MOBILE VISUAL REFERENCE BIG LEAP`.
+- Se reforzaron variables visuales, fondo, cards, botones, chips, match rows, pick cards, admin, bottom nav, responsive y safe-area.
+- Se reforzó `templates/partials/ui_components.html` con macros/clases V864.
+- Se amplió Continuous Sentinel con reglas visuales V864.
+- Se creó `tools/check_v864_pc_mobile_visual_reference_big_leap.py`.
+- Se añadieron reportes V864 de PC, móvil, admin, picks, live, SHARK, Telegram, Sentinel, membresías, componentes y próximos pasos.
+
+Preservado:
+- V818 master tick y health-check.
+- V844 Telegram premium/no filler.
+- V845 SHARK IA.
+- V847 API-SPORTS guard.
+- V850 live/escudos.
+- V857 Company OS.
+- V859 Product Board.
+- V862 Continuous Sentinel.
+- V863 real world certification/header sanitization.
