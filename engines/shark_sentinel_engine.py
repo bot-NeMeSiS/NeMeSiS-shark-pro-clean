@@ -1,4 +1,4 @@
-"""SHARK Sentinel: safe real-user app inspection model.
+﻿"""SHARK Sentinel: safe real-user app inspection model.
 
 The Sentinel behaves like a simulated QA user. It never changes code, deploys,
 touches secrets, mutates payments, deletes data, sends Telegram messages, or
@@ -30,8 +30,8 @@ EXPECTED_ROUTE_RULES = {
 }
 
 FORBIDDEN_AUTOMATIC_ACTIONS = [
-    "Modificar app.py o templates automaticamente en produccion",
-    "Deploy automatico",
+    "Modificar app.py o templates automáticamente en produccion",
+    "Deploy automático",
     "Tocar secretos",
     "Borrar DB o usuarios",
     "Modificar pagos reales",
@@ -131,8 +131,9 @@ def _inspect_html(profile: str, route: str, status_code: int, html: str) -> list
     lower = html.lower()
     if status_code >= 500:
         issues.append(_issue(profile, route, "route", "critical", "Ruta con error 500", "La ruta devuelve error de servidor.", str(status_code), "La pantalla debe cargar o redirigir de forma segura.", f"HTTP {status_code}", f"Revisar handler de {route}.", f"Corrige el 500 detectado en {route}."))
-    if any(token in html for token in ["Ã", "Â", "�"]):
-        issues.append(_issue(profile, route, "copy", "high", "Mojibake visible", "Hay caracteres rotos visibles en HTML.", "Ã/Â/�", "Texto limpio en español.", "Texto con mojibake.", f"Corregir encoding/textos en {route}.", f"Corrige mojibake detectado en {route}."))
+    mojibake_tokens = [chr(195), chr(194), chr(65533)]
+    if any(token in html for token in mojibake_tokens):
+        issues.append(_issue(profile, route, "copy", "high", "Mojibake visible", "Hay caracteres rotos visibles en HTML.", "caracteres mojibake", "Texto limpio en español.", "Texto con mojibake.", f"Corregir encoding/textos en {route}.", f"Corrige mojibake detectado en {route}."))
     for phrase in ["apuesta segura", "garantizado", "apuesta fija", "sin riesgo"]:
         if phrase in lower:
             issues.append(_issue(profile, route, "security", "critical", "Claim de apuesta irresponsable", "La pantalla contiene una promesa prohibida.", phrase, "Lenguaje responsable, sin garantías.", f"Contiene {phrase}.", "Sustituir por copy responsable con riesgo.", f"Elimina claim irresponsable '{phrase}' en {route}."))

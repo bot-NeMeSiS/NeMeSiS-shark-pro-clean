@@ -9799,3 +9799,67 @@ body[data-v864-shell="true"] .bottom-nav a {
   }
 }
 /* V864 PC MOBILE VISUAL REFERENCE BIG LEAP END */
+
+/* V865 SENTINEL ISSUE TO IMPROVEMENT WORKFLOW START */
+body[data-v865-shell="true"] .v865-sentinel-workflow {
+  --v865-surface: rgba(4, 13, 25, 0.84);
+  --v865-border: rgba(80, 228, 255, 0.22);
+}
+
+body[data-v865-shell="true"] .v865-sentinel-workflow .v862-sentinel-hero {
+  border: 1px solid var(--v865-border);
+  background:
+    radial-gradient(circle at 15% 10%, rgba(0, 224, 255, 0.18), transparent 30%),
+    linear-gradient(135deg, rgba(7, 21, 38, 0.95), rgba(4, 10, 20, 0.92));
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.48), 0 0 0 1px rgba(255, 255, 255, 0.03) inset;
+}
+
+body[data-v865-shell="true"] .v865-workflow-task,
+body[data-v865-shell="true"] .v865-sentinel-workflow article {
+  border: 1px solid var(--v865-border);
+  background: var(--v865-surface);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.34);
+}
+
+body[data-v865-shell="true"] .v865-workflow-task {
+  padding: 14px;
+  border-radius: 16px;
+  margin-block: 10px;
+}
+
+body[data-v865-shell="true"] .v865-workflow-task h3 {
+  margin: 8px 0 6px;
+  font-size: 1rem;
+  line-height: 1.25;
+}
+
+body[data-v865-shell="true"] .v865-workflow-task p,
+body[data-v865-shell="true"] .v865-workflow-task li {
+  color: rgba(232, 246, 255, 0.82);
+}
+
+body[data-v865-shell="true"] .v862-prompt-list code {
+  display: block;
+  white-space: pre-wrap;
+  word-break: break-word;
+  border-color: rgba(80, 228, 255, 0.18);
+  background: rgba(1, 8, 18, 0.72);
+}
+
+body[data-v865-shell="true"] .v862-route-list code {
+  border-color: rgba(83, 226, 255, 0.22);
+  background: rgba(11, 30, 48, 0.7);
+}
+
+@media (max-width: 760px) {
+  body[data-v865-shell="true"] .v865-sentinel-workflow .v862-sentinel-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  body[data-v865-shell="true"] .v865-workflow-task {
+    padding: 12px;
+    border-radius: 14px;
+  }
+}
+/* V865 SENTINEL ISSUE TO IMPROVEMENT WORKFLOW END */

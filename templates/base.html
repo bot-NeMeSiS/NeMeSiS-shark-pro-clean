@@ -167,7 +167,7 @@
 
   {% if current_user and current_user.role == 'ADMIN' %}
   {% set v808_admin_groups = [
-    ('Centro', [('Panel','/admin/control-center'),('Empresa OS','/admin/company-os'),('Product Board','/admin/company-audit'),('Mejora continua','/admin/auto-improvement'),('Sentinel','/admin/shark-sentinel'),('Loop','/admin/continuous-sentinel'),('Mapa','/admin/map'),('Sistema','/admin/system'),('Rutas','/admin/route-health')]),
+    ('Centro', [('Panel','/admin/control-center'),('Empresa OS','/admin/company-os'),('Product Board','/admin/company-audit'),('Mejora continua','/admin/auto-improvement'),('Sentinel','/admin/shark-sentinel'),('Loop','/admin/continuous-sentinel'),('Workflow','/admin/sentinel-workflow'),('Mapa','/admin/map'),('Sistema','/admin/system'),('Rutas','/admin/route-health')]),
     ('Clientes', [('Usuarios','/admin/users'),('Membresías','/admin/memberships'),('Importar','/admin/user-import'),('Soporte','/admin/support-center')]),
     ('Datos', [('Data Center','/admin/data-center'),('API-SPORTS','/admin/api-sports'),('Partidos','/admin/matches-sync'),('SportsDB','/admin/sportsdb-sync'),('Data Memory','/admin/data-memory')]),
     ('Live / SHARK', [('Live','/admin/live-depth'),('Match IQ','/admin/match-intelligence'),('SHARK','/admin/shark-center'),('Visual','/admin/visual-experience')]),
@@ -184,6 +184,7 @@
       <a href="/admin/auto-improvement">Mejora <span>Auto OS</span></a>
       <a href="/admin/shark-sentinel">Sentinel <span>QA Bot</span></a>
       <a href="/admin/continuous-sentinel">Loop <span>QA Loop</span></a>
+      <a href="/admin/sentinel-workflow">Workflow <span>Fix OS</span></a>
       <a href="/admin/map">Mapa <span>Mapa</span></a>
       <a href="/admin/users">Clientes <span>Clientes</span></a>
       <a href="/admin/data-center">Datos <span>Datos</span></a>
@@ -209,6 +210,7 @@
       <a href="/admin/auto-improvement">Mejora continua</a>
       <a href="/admin/shark-sentinel">Sentinel</a>
       <a href="/admin/continuous-sentinel">Loop</a>
+      <a href="/admin/sentinel-workflow">Workflow</a>
       <a href="/admin/dashboard">Dashboard</a>
       <a href="/admin/data-center">Sincronizar datos</a>
       <a href="/admin/api-sports">API-SPORTS</a>
@@ -234,6 +236,7 @@
       <a href="/admin/auto-improvement">Mejora continua</a>
       <a href="/admin/shark-sentinel">Sentinel</a>
       <a href="/admin/continuous-sentinel">Loop</a>
+      <a href="/admin/sentinel-workflow">Workflow</a>
       <a href="/admin/data-center">Datos</a>
       <a href="/admin/api-sports">API-SPORTS</a>
       <a href="/admin/telegram/command-center">Telegram</a>

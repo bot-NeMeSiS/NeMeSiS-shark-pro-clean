@@ -1,4 +1,4 @@
-"""Continuous SHARK Sentinel loop.
+﻿"""Continuous SHARK Sentinel loop.
 
 Safe permanent inspection layer. It coordinates route/user/profile diagnostics
 using the existing SHARK Sentinel engine, compares against an internal baseline,
@@ -136,7 +136,7 @@ def build_continuous_sentinel_summary(version: str = "") -> dict[str, Any]:
         "approval_required_actions": ACTION_LEVELS["level_3_approval_required"],
         "forbidden_automatic_actions": ACTION_LEVELS["level_4_forbidden_automatic"],
         "codex_prompts": base["codex_prompt_suggestions"],
-        "next_focus": ["Ejecutar quick cycle", "Revisar issues high/critical", "Usar prompts Codex con aprobacion"],
+        "next_focus": ["Ejecutar quick cycle", "Revisar issues high/critical", "Usar prompts Codex con aprobación"],
         "history_recent": [],
         "browser_note": "browser visual QA not available locally unless Playwright is installed and run explicitly",
         "visual_rules_v864": V864_VISUAL_RULES,
@@ -175,7 +175,7 @@ def run_continuous_sentinel_cycle(client: Any, version: str = "", mode: str = "q
         "warnings": [
             "No browser real ejecutado en modo static.",
             "No se ejecutan acciones peligrosas.",
-            "Los hallazgos de texto tecnico son candidatos a revisar, no datos inventados.",
+            "Los hallazgos de texto técnico son candidatos a revisar, no datos inventados.",
             "Reglas visuales V864 revisadas por marcadores estaticos; browser QA es opcional.",
         ],
         "issues_by_severity": by_severity,
@@ -189,7 +189,7 @@ def run_continuous_sentinel_cycle(client: Any, version: str = "", mode: str = "q
         "forbidden_automatic_actions": ACTION_LEVELS["level_4_forbidden_automatic"],
         "codex_prompts": build_codex_prompts(static_result.get("issues", [])),
         "recommended_actions": build_recommended_actions(static_result.get("issues", [])),
-        "next_focus": ["Resolver high/critical primero", "Deduplicar issues recurrentes", "Preparar prompt Codex solo con aprobacion"],
+        "next_focus": ["Resolver high/critical primero", "Deduplicar issues recurrentes", "Preparar prompt Codex solo con aprobación"],
         "comparison": {
             "against_expected_baseline": "routes/profiles/status/safety checked",
             "against_last_cycle": "no persisted previous cycle in this safe local run",

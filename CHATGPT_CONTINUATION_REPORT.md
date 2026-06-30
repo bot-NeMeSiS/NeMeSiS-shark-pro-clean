@@ -440,3 +440,40 @@ Preservado:
 - V859 Product Board.
 - V862 Continuous Sentinel.
 - V863 real world certification/header sanitization.
+
+## V865_SENTINEL_ISSUE_TO_IMPROVEMENT_WORKFLOW_FINAL
+
+Base real continuada: V864/V865 local en carpeta oficial.
+
+Trabajo aplicado:
+- Se creó `engines/sentinel_improvement_workflow_engine.py`.
+- Se extendió Continuous Sentinel con `mode=workflow`.
+- Se añadió `improvement_workflow_ready` al resumen Sentinel.
+- Se crearon rutas admin `/admin/sentinel-workflow`, `/admin/issue-to-improvement` y `/admin/fix-pipeline`.
+- Se crearon APIs protegidas `/api/admin/sentinel-workflow/summary`, `/tasks`, `/generate-prompt` y `/update-issue`.
+- Se creó `templates/admin_sentinel_workflow.html`.
+- Se integró Workflow en topbar, rail, dock y command strip admin.
+- Se añadió flag runtime `has_v865_sentinel_improvement_workflow`.
+- Se añadió bloque CSS `V865 SENTINEL ISSUE TO IMPROVEMENT WORKFLOW`.
+- Se creó `tools/check_v865_sentinel_issue_to_improvement_workflow.py`.
+- Se añadieron reportes V865 de preflight, workflow, seguridad, prompts, lifecycle, admin QA, cron runbook y próximos pasos.
+
+Modelo de seguridad:
+- No modifica código automáticamente.
+- No ejecuta deploys.
+- No envía Telegram real.
+- No llama APIs externas caras.
+- No toca secretos, pagos, usuarios ni DB real.
+- Genera tareas y prompts para Codex con aprobación humana.
+
+Preservado:
+- V818 master tick y health-check.
+- V844 Telegram premium/no filler.
+- V845 SHARK IA.
+- V847 API-SPORTS guard.
+- V850 live/escudos.
+- V857 Company OS.
+- V859 Product Board.
+- V862 Continuous Sentinel.
+- V863 real world certification/header sanitization.
+- V864 PC/mobile visual big leap.
