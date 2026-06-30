@@ -606,3 +606,29 @@ Honestidad operativa:
 - No se envió Telegram real.
 - No se probaron pagos reales.
 - Producción pública revisada previamente seguía en V867, no en V868 Pro Max.
+
+## V869_FULL_COMPANY_REFERENCE_ALIGNMENT_DEEP_CLEAN_VISUAL_REBUILD_FINAL
+
+Fecha local: 2026-07-01.
+
+Base real usada: `V868_PRO_MAX_CLIENT_ADMIN_MOBILE_VISUAL_REVENUE_SENTINEL_FINAL` en la carpeta oficial. El prompt citaba la V868 visual polish anterior, pero la carpeta local ya estaba en la V868 Pro Max; V869 se aplicó sobre la base más reciente sin usar ZIP viejo ni carpeta anidada.
+
+Trabajo aplicado:
+
+- Versionado actualizado a V869 en `VERSION.txt`, `APP_VERSION`, `app.py` y `templates/base.html`.
+- Runtime añade `has_v869_full_company_reference_alignment`.
+- CSS cache busting actualizado a V869.
+- Capa CSS V869 para referencia visual: root variables, dashboard PC, mobile guardrails, cards, stat tiles, match rows, pick cards, admin command cards, tablas, empty states y Sentinel.
+- `templates/partials/ui_components.html` añade macros `reference_*` para dashboard, stat tiles, metric strips, match rows, pick cards, admin status cards, sentinel issue cards, plan cards, empty states, action buttons, sidebar items y mobile sections.
+- Checks V862/V863/V865/V866/V867/V868 quedan compatibles con V869.
+- Nuevo check `tools/check_v869_full_company_reference_alignment.py`.
+- Reportes V869 creados para preflight, árbol oculto, limpieza, brecha visual, cliente PC, móvil, admin, componentes, picks/live, SHARK/Telegram/membresías, Sentinel y release.
+
+Honestidad operativa:
+
+- No se borró nada a ciegas.
+- No se hizo deploy.
+- No se hizo push.
+- No se envió Telegram real.
+- No se probaron pagos reales.
+- No se afirma pixel-perfect; queda pendiente Browser QA con capturas V869 si el usuario lo pide.

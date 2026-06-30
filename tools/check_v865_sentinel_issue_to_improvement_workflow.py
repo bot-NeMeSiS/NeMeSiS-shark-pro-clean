@@ -10,6 +10,7 @@ V866 = "V866_REAL_RENDER_VISUAL_TELEGRAM_PICKS_PAYMENTS_HOTFIX_QA_FINAL"
 V867 = "V867_RENDER_DEPLOYMENT_ALIGNMENT_AND_REAL_V866_CERTIFICATION_FINAL"
 V868 = "V868_REAL_CLIENT_ADMIN_VISUAL_PRODUCTION_POLISH_AND_SENTINEL_VALUE_FINAL"
 V868_PRO = "V868_PRO_MAX_CLIENT_ADMIN_MOBILE_VISUAL_REVENUE_SENTINEL_FINAL"
+V869 = "V869_FULL_COMPANY_REFERENCE_ALIGNMENT_DEEP_CLEAN_VISUAL_REBUILD_FINAL"
 
 
 def fail(message: str) -> None:
@@ -33,11 +34,11 @@ def main() -> None:
     continuous = read("engines/continuous_shark_sentinel_engine.py")
     build_release = read("tools/build_clean_release.py")
 
-    require(read("VERSION.txt").strip() in {VERSION, V866, V867, V868, V868_PRO}, "VERSION.txt is not V865/V866/V867/V868")
-    require(read("APP_VERSION").strip() in {VERSION, V866, V867, V868, V868_PRO}, "APP_VERSION is not V865/V866/V867/V868")
-    require(any(f"APP_VERSION = '{candidate}'" in app for candidate in {VERSION, V866, V867, V868, V868_PRO}), "app.py APP_VERSION is not V865/V866/V867/V868")
+    require(read("VERSION.txt").strip() in {VERSION, V866, V867, V868, V868_PRO, V869}, "VERSION.txt is not V865/V866/V867/V869")
+    require(read("APP_VERSION").strip() in {VERSION, V866, V867, V868, V868_PRO, V869}, "APP_VERSION is not V865/V866/V867/V869")
+    require(any(f"APP_VERSION = '{candidate}'" in app for candidate in {VERSION, V866, V867, V868, V868_PRO, V869}), "app.py APP_VERSION is not V865/V866/V867/V869")
     require("data-v865-shell=\"true\"" in base, "base.html missing data-v865-shell")
-    require(VERSION in base or V866 in base or V867 in base or V868 in base or V868_PRO in base, "base.html missing V865/V866/V867/V868 cache marker")
+    require(VERSION in base or V866 in base or V867 in base or V868 in base or V868_PRO in base or V869 in base, "base.html missing V865/V866/V867/V869 cache marker")
 
     for route in [
         "/admin/sentinel-workflow",

@@ -9,6 +9,7 @@ VERSION = "V866_REAL_RENDER_VISUAL_TELEGRAM_PICKS_PAYMENTS_HOTFIX_QA_FINAL"
 V867 = "V867_RENDER_DEPLOYMENT_ALIGNMENT_AND_REAL_V866_CERTIFICATION_FINAL"
 V868 = "V868_REAL_CLIENT_ADMIN_VISUAL_PRODUCTION_POLISH_AND_SENTINEL_VALUE_FINAL"
 V868_PRO = "V868_PRO_MAX_CLIENT_ADMIN_MOBILE_VISUAL_REVENUE_SENTINEL_FINAL"
+V869 = "V869_FULL_COMPANY_REFERENCE_ALIGNMENT_DEEP_CLEAN_VISUAL_REBUILD_FINAL"
 
 REPORTS = [
     "V866_REAL_RENDER_VISUAL_TELEGRAM_PICKS_PAYMENTS_HOTFIX_QA_REPORT.md",
@@ -44,9 +45,9 @@ def main() -> None:
     build = read("tools/build_clean_release.py")
     combined_templates = "\n".join(path.read_text(encoding="utf-8", errors="replace") for path in (ROOT / "templates").glob("*.html"))
 
-    require(version_txt in {VERSION, V867, V868, V868_PRO}, "VERSION.txt not V866/V867/V868")
-    require(app_version in {VERSION, V867, V868, V868_PRO}, "APP_VERSION not V866/V867/V868")
-    require(any(f"APP_VERSION = '{candidate}'" in app_py for candidate in {VERSION, V867, V868, V868_PRO}), "app.py APP_VERSION not V866/V867/V868")
+    require(version_txt in {VERSION, V867, V868, V868_PRO, V869}, "VERSION.txt not V866/V867/V869")
+    require(app_version in {VERSION, V867, V868, V868_PRO, V869}, "APP_VERSION not V866/V867/V869")
+    require(any(f"APP_VERSION = '{candidate}'" in app_py for candidate in {VERSION, V867, V868, V868_PRO, V869}), "app.py APP_VERSION not V866/V867/V869")
     require('data-v866-shell="true"' in base, "base missing V866 shell")
     require("has_v866_real_render_visual_telegram_picks_payments" in app_py, "runtime V866 flag missing")
     require("V866 REAL RENDER VISUAL TELEGRAM PICKS PAYMENTS HOTFIX QA START" in css, "CSS V866 marker missing")

@@ -9,6 +9,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V868_REAL_CLIENT_ADMIN_VISUAL_PRODUCTION_POLISH_AND_SENTINEL_VALUE_FINAL"
+V868_PRO = "V868_PRO_MAX_CLIENT_ADMIN_MOBILE_VISUAL_REVENUE_SENTINEL_FINAL"
+V869 = "V869_FULL_COMPANY_REFERENCE_ALIGNMENT_DEEP_CLEAN_VISUAL_REBUILD_FINAL"
 ZIP_NAME = "NeMeSiS_SHARK_PRO_V868_REAL_CLIENT_ADMIN_VISUAL_PRODUCTION_POLISH_AND_SENTINEL_VALUE_FINAL_RENDER_READY.zip"
 
 REPORTS = [
@@ -48,12 +50,13 @@ def main() -> None:
     admin_templates = "\n".join(path.read_text(encoding="utf-8", errors="replace") for path in (ROOT / "templates").glob("admin*.html"))
     client_templates = "\n".join(path.read_text(encoding="utf-8", errors="replace") for path in (ROOT / "templates").glob("*.html") if not path.name.startswith("admin"))
 
-    require(read("VERSION.txt").strip() == VERSION, "VERSION.txt is not V868")
-    require(read("APP_VERSION").strip() == VERSION, "APP_VERSION is not V868")
-    require(f"APP_VERSION = '{VERSION}'" in app_py, "app.py APP_VERSION is not V868")
+    valid_versions = {VERSION, V868_PRO, V869}
+    require(read("VERSION.txt").strip() in valid_versions, "VERSION.txt is not V868/V869")
+    require(read("APP_VERSION").strip() in valid_versions, "APP_VERSION is not V868/V869")
+    require(any(f"APP_VERSION = '{candidate}'" in app_py for candidate in valid_versions), "app.py APP_VERSION is not V868/V869")
     require("has_v868_real_client_admin_visual_polish" in app_py, "runtime V868 flag missing")
     require('data-v868-shell="true"' in base, "base missing data-v868-shell")
-    require(VERSION in base, "base missing V868 cache/version")
+    require(any(candidate in base for candidate in valid_versions), "base missing V868/V869 cache/version")
     require("V868 REAL CLIENT ADMIN VISUAL PRODUCTION POLISH START" in css, "CSS V868 start marker missing")
     require("V868 REAL CLIENT ADMIN VISUAL PRODUCTION POLISH END" in css, "CSS V868 end marker missing")
 
@@ -91,8 +94,8 @@ def main() -> None:
     response = client.get("/api/runtime-version")
     require(response.status_code == 200, f"runtime status {response.status_code}")
     payload = response.get_json() or {}
-    require(payload.get("app_version") == VERSION, "runtime app_version not V868")
-    require(payload.get("version_txt") == VERSION, "runtime version_txt not V868")
+    require(payload.get("app_version") in valid_versions, "runtime app_version not V868/V869")
+    require(payload.get("version_txt") in valid_versions, "runtime version_txt not V868/V869")
     require(payload.get("has_v868_real_client_admin_visual_polish") is True, "runtime V868 flag false")
     require(payload.get("has_v867_render_deployment_alignment") is True, "runtime V867 flag false")
     require(payload.get("has_v866_real_render_visual_telegram_picks_payments") is True, "runtime V866 flag false")

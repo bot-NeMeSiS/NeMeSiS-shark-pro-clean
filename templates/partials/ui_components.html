@@ -74,3 +74,100 @@
   <p>{{ action }}</p>
 </article>
 {%- endmacro %}
+
+{% macro reference_action_button(label, href, tone='neutral') -%}
+<a class="v869-reference-action-button v868-pro-action-btn v864-action-button v860-tone-{{ tone }}" href="{{ href }}">{{ label }}</a>
+{%- endmacro %}
+
+{% macro reference_stat_tile(title, value, detail='', tone='neutral') -%}
+<article class="v869-reference-stat-tile v868-pro-stat-card v860-stat-card v860-tone-{{ tone }}">
+  <span>{{ title }}</span>
+  <strong>{{ value }}</strong>
+  {% if detail %}<small>{{ detail }}</small>{% endif %}
+</article>
+{%- endmacro %}
+
+{% macro reference_metric_strip(items) -%}
+<div class="v869-reference-metric-strip">
+  {% for item in items %}
+    {{ reference_stat_tile(item.title, item.value, item.detail|default(''), item.tone|default('neutral')) }}
+  {% endfor %}
+</div>
+{%- endmacro %}
+
+{% macro reference_dashboard_card(title, detail='', action_label='', action_href='') -%}
+<article class="v869-reference-dashboard-card v868-pro-board-card">
+  <header class="v869-reference-card-head">
+    <h3>{{ title }}</h3>
+    {% if action_label and action_href %}{{ reference_action_button(action_label, action_href, 'brand') }}{% endif %}
+  </header>
+  {% if detail %}<p>{{ detail }}</p>{% endif %}
+</article>
+{%- endmacro %}
+
+{% macro reference_match_row(home, away, status='Resultado pendiente', score='', href='', tone='neutral') -%}
+<article class="v869-reference-match-row v868-pro-match-row v864-match-row v860-tone-{{ tone }}">
+  <div><strong>{{ home }}</strong><small>{{ status }}</small></div>
+  <span class="v864-score-chip score-chip">{{ score or 'Pendiente' }}</span>
+  <div><strong>{{ away }}</strong>{% if href %}{{ reference_action_button('Ver partido', href, 'brand') }}{% endif %}</div>
+</article>
+{%- endmacro %}
+
+{% macro reference_pick_card(title, status='Pick en revisión', market='Cuotas pendientes', href='', shark_href='/shark') -%}
+<article class="v869-reference-pick-card v868-pro-pick-card v864-pick-card">
+  <div>
+    <span class="v868-pro-status-chip v864-status-chip status-chip">{{ status }}</span>
+    <h3>{{ title }}</h3>
+    <p>{{ market }}</p>
+  </div>
+  <div class="v864-card-actions">
+    {% if href %}{{ reference_action_button('Ver partido', href, 'neutral') }}{% endif %}
+    {{ reference_action_button('Abrir SHARK', shark_href, 'brand') }}
+  </div>
+</article>
+{%- endmacro %}
+
+{% macro reference_admin_status_card(title, value, detail='', tone='neutral') -%}
+<article class="v869-reference-admin-status-card v868-pro-board-card v860-tone-{{ tone }}">
+  <span>{{ title }}</span>
+  <strong>{{ value }}</strong>
+  {% if detail %}<small>{{ detail }}</small>{% endif %}
+</article>
+{%- endmacro %}
+
+{% macro reference_sentinel_issue_card(title, severity='info', route='', action='Revisar') -%}
+<article class="v869-reference-sentinel-issue-card v868-pro-sentinel-issue-card v862-sentinel-card">
+  <span class="v868-pro-status-chip v864-status-chip status-chip">{{ severity }}</span>
+  <h3>{{ title }}</h3>
+  {% if route %}<code>{{ route }}</code>{% endif %}
+  <p>{{ action }}</p>
+</article>
+{%- endmacro %}
+
+{% macro reference_plan_card(name, price, detail='', tone='neutral', action_label='Ver plan', action_href='/profile') -%}
+<article class="v869-reference-plan-card v868-pro-board-card v860-tone-{{ tone }}">
+  {{ plan_badge(name, tone) }}
+  <strong>{{ price }}</strong>
+  {% if detail %}<p>{{ detail }}</p>{% endif %}
+  {{ reference_action_button(action_label, action_href, 'brand') }}
+</article>
+{%- endmacro %}
+
+{% macro reference_empty_state(title, text='', primary_label='', primary_href='') -%}
+<div class="v869-reference-empty-state v868-pro-empty-state v860-empty-state">
+  <strong>{{ title }}</strong>
+  {% if text %}<p>{{ text }}</p>{% endif %}
+  {% if primary_label and primary_href %}{{ reference_action_button(primary_label, primary_href, 'brand') }}{% endif %}
+</div>
+{%- endmacro %}
+
+{% macro reference_sidebar_item(label, href, active=false) -%}
+<a class="v869-reference-sidebar-item{% if active %} is-active{% endif %}" href="{{ href }}">{{ label }}</a>
+{%- endmacro %}
+
+{% macro reference_mobile_section(title, subtitle='') -%}
+<header class="v869-reference-mobile-section v868-pro-section-header">
+  <h2>{{ title }}</h2>
+  {% if subtitle %}<p>{{ subtitle }}</p>{% endif %}
+</header>
+{%- endmacro %}
