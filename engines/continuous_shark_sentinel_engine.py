@@ -21,6 +21,7 @@ from engines.shark_sentinel_engine import (
     run_static_flask_inspection,
     summarize_issues_by,
 )
+from engines.sentinel_improvement_workflow_engine import build_workflow_from_sentinel_result
 
 
 MADRID_TZ = ZoneInfo("Europe/Madrid")
@@ -33,6 +34,7 @@ CYCLES = {
     "data": ["picks", "live", "fixtures", "odds", "safe states", "API guard"],
     "telegram": ["configuration", "dedupe", "no filler", "real-send honesty"],
     "improvement": ["priorities", "safe actions", "approval required", "Codex prompts"],
+    "workflow": ["issue detection", "dedupe", "grouping", "tasks", "Codex prompts", "revalidation"],
     "full": ["quick", "client", "admin", "visual", "data", "telegram", "improvement"],
 }
 
@@ -139,6 +141,8 @@ def build_continuous_sentinel_summary(version: str = "") -> dict[str, Any]:
         "browser_note": "browser visual QA not available locally unless Playwright is installed and run explicitly",
         "visual_rules_v864": V864_VISUAL_RULES,
         "visual_big_leap_ready": True,
+        "improvement_workflow_ready": True,
+        "workflow_cycle": "Detectar -> Priorizar -> Proponer -> Aplicar con Codex/Admin -> Revalidar -> Resolver",
         "no_code_writes": True,
         "no_deploy": True,
         "no_external_calls": True,
@@ -157,7 +161,7 @@ def run_continuous_sentinel_cycle(client: Any, version: str = "", mode: str = "q
     by_profile = summarize_issues_by(issues, "profile")
     high_or_critical = sum(1 for issue in issues if issue["severity"] in {"critical", "high"})
     score = max(0, round(10 - high_or_critical * 1.5 - len(issues) * 0.05, 1))
-    return {
+    result = {
         "run_id": run_id,
         "timestamp_madrid": madrid_now(),
         "version": version,
@@ -194,9 +198,13 @@ def run_continuous_sentinel_cycle(client: Any, version: str = "", mode: str = "q
         },
         "visual_rules_v864": V864_VISUAL_RULES,
         "visual_big_leap_ready": True,
+        "improvement_workflow_ready": True,
         "no_code_writes": True,
         "no_deploy": True,
         "no_external_calls": True,
         "no_db_write_during_render": True,
         "no_fake_data": True,
     }
+    if mode == "workflow":
+        result["workflow"] = build_workflow_from_sentinel_result(result, version)
+    return result

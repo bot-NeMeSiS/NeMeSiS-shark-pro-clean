@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% from "partials/ui_components.html" import stat_card, status_chip, action_button, empty_state, sentinel_issue_card %}
+{% block content %}
+<section class="v865-sentinel-workflow v862-continuous-sentinel v860-admin-board">
+  <header class="v862-sentinel-hero">
+    <span>Sentinel Improvement Workflow</span>
+    <h1>Flujo de Mejora Continua SHARK</h1>
+    <p>Convierte hallazgos en incidencias, incidencias en tareas, tareas en prompts Codex y cada mejora en revalidación. No modifica código, no despliega y no toca secretos sin aprobación.</p>
+    <div class="v862-sentinel-actions">
+      {{ action_button('Ejecutar diagnóstico', '/api/admin/continuous-sentinel/run?mode=workflow&dry_run=1', 'brand') }}
+      {{ action_button('Tareas', '/api/admin/sentinel-workflow/tasks', 'neutral') }}
+      {{ action_button('Generar prompt', '/api/admin/sentinel-workflow/generate-prompt', 'neutral') }}
+      {{ action_button('Continuous Sentinel', '/admin/continuous-sentinel', 'neutral') }}
+      {{ action_button('Company OS', '/admin/company-os', 'neutral') }}
+      {{ action_button('Product Board', '/admin/company-audit', 'neutral') }}
+    </div>
+  </header>
+
+  <section class="v862-sentinel-summary v860-kpi-row">
+    {{ stat_card('Issues', workflow.summary.issues_total, 'Detectados en ciclo dry-run', 'warning') }}
+    {{ stat_card('Grupos', workflow.summary.groups_total, 'Incidencias deduplicadas', 'info') }}
+    {{ stat_card('Tareas', workflow.summary.tasks_total, 'Mejoras propuestas', 'brand') }}
+    {{ stat_card('Próxima versión', workflow.suggested_next_version, 'Sugerida, no creada automáticamente', 'success') }}
+  </section>
+
+  <section class="v862-sentinel-panels">
+    <article>
+      <h2>Estados del lifecycle</h2>
+      <div class="v862-route-list">
+        {% for state in workflow.issue_lifecycle %}
+        <code>{{ state }}</code>
+        {% endfor %}
+      </div>
+    </article>
+    <article>
+      <h2>Acciones seguras</h2>
+      <ul>
+        {% for action in workflow.safe_actions %}
+        <li>{{ action }}</li>
+        {% endfor %}
+      </ul>
+    </article>
+    <article>
+      <h2>Requiere aprobación</h2>
+      <ul>
+        {% for action in workflow.approval_required_actions %}
+        <li>{{ action }}</li>
+        {% endfor %}
+      </ul>
+    </article>
+  </section>
+
+  <section class="v862-sentinel-grid">
+    {% for issue in workflow.open_issues[:8] %}
+      {{ sentinel_issue_card(issue.title, issue.severity, issue.affected_routes|join(', '), issue.suggested_fix) }}
+    {% else %}
+      {{ empty_state('Sin incidencias abiertas', 'El ciclo actual no generó incidencias persistidas. Ejecuta diagnóstico para revisar.', 'Ejecutar workflow', '/api/admin/continuous-sentinel/run?mode=workflow&dry_run=1') }}
+    {% endfor %}
+  </section>
+
+  <section class="v862-sentinel-panels">
+    <article>
+      <h2>Tareas de mejora</h2>
+      {% for task in workflow.improvement_tasks[:6] %}
+      <div class="v865-workflow-task">
+        {{ status_chip(task.category, 'info') }}
+        <h3>{{ task.title }}</h3>
+        <p>Prioridad: {{ task.priority_score }} · Severidad: {{ task.severity }}</p>
+        <ul>
+          {% for item in task.checklist %}
+          <li>{{ item }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% else %}
+      <p>No hay tareas generadas en este ciclo.</p>
+      {% endfor %}
+    </article>
+    <article>
+      <h2>Prompts Codex</h2>
+      <div class="v862-prompt-list">
+        {% for prompt in workflow.codex_prompts[:4] %}
+        <code>{{ prompt }}</code>
+        {% else %}
+        <code>Sin prompt pendiente. Ejecuta workflow cuando haya incidencias abiertas.</code>
+        {% endfor %}
+      </div>
+    </article>
+  </section>
+
+  <section class="v862-sentinel-panels">
+    <article>
+      <h2>Bloqueado automáticamente</h2>
+      <ul>
+        {% for action in workflow.blocked_actions %}
+        <li>{{ action }}</li>
+        {% endfor %}
+      </ul>
+    </article>
+    <article>
+      <h2>Endpoints seguros</h2>
+      <p><code>/api/admin/sentinel-workflow/summary</code> requiere sesión admin.</p>
+      <p><code>/api/admin/sentinel-workflow/tasks</code> requiere sesión admin.</p>
+      <p><code>/api/admin/sentinel-workflow/generate-prompt</code> requiere sesión admin.</p>
+      <p><code>/api/admin/sentinel-workflow/update-issue</code> requiere sesión admin.</p>
+    </article>
+  </section>
+</section>
+{% endblock %}

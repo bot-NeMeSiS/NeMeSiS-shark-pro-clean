@@ -128,6 +128,7 @@ from engines.company_audit_board_engine import build_company_audit_summary
 from engines.auto_improvement_engine import build_auto_improvement_summary, run_auto_improvement_diagnostic
 from engines.shark_sentinel_engine import build_static_sentinel_summary, run_static_flask_inspection
 from engines.continuous_shark_sentinel_engine import build_continuous_sentinel_summary, run_continuous_sentinel_cycle
+from engines.sentinel_improvement_workflow_engine import build_workflow_summary, update_issue_state
 from engines.observability_engine import latest_observability_errors, observability_error_detail, observability_summary
 from engines.scheduler_engine import is_due, is_stale_running, next_run_iso, normalize_result, scheduler_config, task_definition
 from engines.shark_engine import build_shark_context, explain_pick_risk
@@ -295,7 +296,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V864_PC_MOBILE_VISUAL_REFERENCE_BIG_LEAP_REAL_SCREEN_QA_FINAL'
+APP_VERSION = 'V865_SENTINEL_ISSUE_TO_IMPROVEMENT_WORKFLOW_FINAL'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
@@ -13061,6 +13062,17 @@ def admin_continuous_sentinel_page():
     return render_template("admin_continuous_sentinel.html", data=dashboard_data(), summary=summary)
 
 
+@app.route("/admin/sentinel-workflow")
+@app.route("/admin/issue-to-improvement")
+@app.route("/admin/fix-pipeline")
+def admin_sentinel_workflow_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/sentinel-workflow")
+    sentinel_run = run_continuous_sentinel_cycle(app.test_client(), APP_VERSION, mode="workflow", dry_run=True)
+    workflow = sentinel_run.get("workflow") or build_workflow_summary(APP_VERSION, sentinel_run)
+    return render_template("admin_sentinel_workflow.html", data=dashboard_data(), sentinel=sentinel_run, workflow=workflow)
+
+
 @app.route("/api/admin/shark-sentinel/summary")
 def api_admin_shark_sentinel_summary():
     if not is_admin_session():
@@ -13097,6 +13109,44 @@ def api_admin_continuous_sentinel_issues():
         return admin_json_forbidden()
     summary = build_continuous_sentinel_summary(APP_VERSION)
     return jsonify({"ok": True, "version": APP_VERSION, "issues": [], "summary": summary})
+
+
+@app.route("/api/admin/sentinel-workflow/summary")
+def api_admin_sentinel_workflow_summary():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    sentinel_run = run_continuous_sentinel_cycle(app.test_client(), APP_VERSION, mode="workflow", dry_run=True)
+    workflow = sentinel_run.get("workflow") or build_workflow_summary(APP_VERSION, sentinel_run)
+    return jsonify({"ok": True, **workflow})
+
+
+@app.route("/api/admin/sentinel-workflow/tasks")
+def api_admin_sentinel_workflow_tasks():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    sentinel_run = run_continuous_sentinel_cycle(app.test_client(), APP_VERSION, mode="workflow", dry_run=True)
+    workflow = sentinel_run.get("workflow") or build_workflow_summary(APP_VERSION, sentinel_run)
+    return jsonify({"ok": True, "version": APP_VERSION, "tasks": workflow.get("improvement_tasks", [])})
+
+
+@app.route("/api/admin/sentinel-workflow/generate-prompt", methods=["GET", "POST"])
+def api_admin_sentinel_workflow_generate_prompt():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    sentinel_run = run_continuous_sentinel_cycle(app.test_client(), APP_VERSION, mode="workflow", dry_run=True)
+    workflow = sentinel_run.get("workflow") or build_workflow_summary(APP_VERSION, sentinel_run)
+    prompts = workflow.get("codex_prompts", [])
+    return jsonify({"ok": True, "version": APP_VERSION, "prompt": prompts[0] if prompts else "", "prompts": prompts})
+
+
+@app.route("/api/admin/sentinel-workflow/update-issue", methods=["POST"])
+def api_admin_sentinel_workflow_update_issue():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    payload = request.get_json(silent=True) or {}
+    issue = payload.get("issue") if isinstance(payload.get("issue"), dict) else payload
+    status = str(payload.get("status") or request.args.get("status") or "acknowledged")
+    return jsonify({"ok": True, "version": APP_VERSION, "issue": update_issue_state(issue, status), "dangerous_actions_executed": False})
 
 
 @app.route("/admin/system")
