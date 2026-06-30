@@ -6,6 +6,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V865_SENTINEL_ISSUE_TO_IMPROVEMENT_WORKFLOW_FINAL"
+V866 = "V866_REAL_RENDER_VISUAL_TELEGRAM_PICKS_PAYMENTS_HOTFIX_QA_FINAL"
 
 
 def fail(message: str) -> None:
@@ -29,11 +30,11 @@ def main() -> None:
     continuous = read("engines/continuous_shark_sentinel_engine.py")
     build_release = read("tools/build_clean_release.py")
 
-    require(read("VERSION.txt").strip() == VERSION, "VERSION.txt is not V865")
-    require(read("APP_VERSION").strip() == VERSION, "APP_VERSION is not V865")
-    require(f"APP_VERSION = '{VERSION}'" in app, "app.py APP_VERSION is not V865")
+    require(read("VERSION.txt").strip() in {VERSION, V866}, "VERSION.txt is not V865/V866")
+    require(read("APP_VERSION").strip() in {VERSION, V866}, "APP_VERSION is not V865/V866")
+    require(any(f"APP_VERSION = '{candidate}'" in app for candidate in {VERSION, V866}), "app.py APP_VERSION is not V865/V866")
     require("data-v865-shell=\"true\"" in base, "base.html missing data-v865-shell")
-    require(VERSION in base, "base.html missing V865 cache marker")
+    require(VERSION in base or V866 in base, "base.html missing V865/V866 cache marker")
 
     for route in [
         "/admin/sentinel-workflow",

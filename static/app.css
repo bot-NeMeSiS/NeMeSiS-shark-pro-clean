@@ -9863,3 +9863,103 @@ body[data-v865-shell="true"] .v862-route-list code {
   }
 }
 /* V865 SENTINEL ISSUE TO IMPROVEMENT WORKFLOW END */
+
+/* V866 REAL RENDER VISUAL TELEGRAM PICKS PAYMENTS HOTFIX QA START */
+html,
+body[data-v866-shell="true"] {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+body[data-v866-shell="true"] *,
+body[data-v866-shell="true"] *::before,
+body[data-v866-shell="true"] *::after {
+  box-sizing: border-box;
+}
+
+body[data-v866-shell="true"] .app-shell,
+body[data-v866-shell="true"] .ns-main,
+body[data-v866-shell="true"] main,
+body[data-v866-shell="true"] section,
+body[data-v866-shell="true"] article,
+body[data-v866-shell="true"] .card,
+body[data-v866-shell="true"] .panel,
+body[data-v866-shell="true"] .v862-sentinel-card,
+body[data-v866-shell="true"] .v865-workflow-task {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+body[data-v866-shell="true"] pre,
+body[data-v866-shell="true"] code,
+body[data-v866-shell="true"] .mono,
+body[data-v866-shell="true"] .v862-prompt-list code,
+body[data-v866-shell="true"] .v862-route-list code {
+  max-width: 100%;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+body[data-v866-shell="true"] table {
+  width: 100%;
+  max-width: 100%;
+}
+
+body[data-v866-shell="true"] .table-wrap,
+body[data-v866-shell="true"] .admin-table-wrap {
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+body[data-v866-shell="true"] .v865-sentinel-workflow .v862-sentinel-actions,
+body[data-v866-shell="true"] .v866-admin-actions {
+  align-items: stretch;
+  gap: 10px;
+}
+
+body[data-v866-shell="true"] .v865-workflow-task {
+  border-color: rgba(80, 228, 255, 0.18);
+  background:
+    linear-gradient(145deg, rgba(10, 30, 50, 0.88), rgba(4, 12, 24, 0.92)),
+    radial-gradient(circle at top left, rgba(80, 228, 255, 0.13), transparent 34%);
+}
+
+body[data-v866-shell="true"] .pick-state,
+body[data-v866-shell="true"] .odds-state,
+body[data-v866-shell="true"] .provider-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  min-height: 28px;
+  padding: 5px 9px;
+  border: 1px solid rgba(80, 228, 255, 0.2);
+  border-radius: 999px;
+  color: rgba(236, 250, 255, 0.9);
+  background: rgba(5, 20, 34, 0.78);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+@media (max-width: 760px) {
+  body[data-v866-shell="true"] .ns-topbar,
+  body[data-v866-shell="true"] .top {
+    max-width: 100vw;
+  }
+
+  body[data-v866-shell="true"] .content,
+  body[data-v866-shell="true"] .ns-main,
+  body[data-v866-shell="true"] main {
+    padding-left: max(14px, env(safe-area-inset-left));
+    padding-right: max(14px, env(safe-area-inset-right));
+  }
+
+  body[data-v866-shell="true"] .bottom-nav,
+  body[data-v866-shell="true"] .mobile-bottom-nav {
+    max-width: calc(100vw - 16px);
+    left: 8px;
+    right: 8px;
+  }
+}
+/* V866 REAL RENDER VISUAL TELEGRAM PICKS PAYMENTS HOTFIX QA END */

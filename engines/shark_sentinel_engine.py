@@ -9,6 +9,7 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 from datetime import datetime
 from hashlib import sha1
+import re
 from typing import Any
 from zoneinfo import ZoneInfo
 
@@ -91,6 +92,14 @@ def _issue(profile: str, route: str, category: str, severity: str, title: str, d
     ))
 
 
+def _visible_text_from_html(html: str) -> str:
+    text = re.sub(r"(?is)<(script|style|template|svg|noscript)\b.*?</\1>", " ", html or "")
+    text = re.sub(r"(?is)<!--.*?-->", " ", text)
+    text = re.sub(r"(?is)<[^>]+>", " ", text)
+    text = text.replace("&nbsp;", " ")
+    return re.sub(r"\s+", " ", text).strip()
+
+
 def build_sentinel_journeys() -> list[dict[str, Any]]:
     journeys: list[dict[str, Any]] = []
     for profile, routes in PROFILES.items():
@@ -129,6 +138,7 @@ def build_sentinel_journeys() -> list[dict[str, Any]]:
 def _inspect_html(profile: str, route: str, status_code: int, html: str) -> list[dict[str, Any]]:
     issues: list[dict[str, Any]] = []
     lower = html.lower()
+    visible_lower = _visible_text_from_html(html).lower()
     if status_code >= 500:
         issues.append(_issue(profile, route, "route", "critical", "Ruta con error 500", "La ruta devuelve error de servidor.", str(status_code), "La pantalla debe cargar o redirigir de forma segura.", f"HTTP {status_code}", f"Revisar handler de {route}.", f"Corrige el 500 detectado en {route}."))
     mojibake_tokens = [chr(195), chr(194), chr(65533)]
@@ -143,7 +153,7 @@ def _inspect_html(profile: str, route: str, status_code: int, html: str) -> list
         issues.append(_issue(profile, route, "navigation", "medium", "Link admin en cliente", "Una ruta cliente expone enlace admin en HTML.", "/admin/", "Cliente no debe ver enlaces de operación admin.", "Link admin detectado.", "Revisar navegación y CTAs cliente.", f"Oculta links admin detectados en {route}."))
     if status_code == 200 and len(html.strip()) < 300:
         issues.append(_issue(profile, route, "visual", "medium", "Pantalla demasiado vacía", "La respuesta HTML es muy corta para una pantalla visible.", f"len={len(html)}", "Pantalla con estructura, estado o redirección clara.", "HTML muy corto.", "Añadir empty state premium o revisar template.", f"Revisa empty state pobre en {route}."))
-    if "none" in lower or "undefined" in lower or "null" in lower:
+    if re.search(r"\b(none|null|undefined)\b", visible_lower):
         if route not in {"/api/runtime-version"}:
             issues.append(_issue(profile, route, "copy", "low", "Texto técnico posible", "Aparecen tokens técnicos que podrían ser visibles.", "None/null/undefined", "Cliente debe ver estados premium.", "Token técnico detectado.", "Revisar si el token es visible al usuario.", f"Revisa tokens técnicos visibles en {route}."))
     return issues

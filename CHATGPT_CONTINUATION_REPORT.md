@@ -477,3 +477,40 @@ Preservado:
 - V862 Continuous Sentinel.
 - V863 real world certification/header sanitization.
 - V864 PC/mobile visual big leap.
+
+## V866_REAL_RENDER_VISUAL_TELEGRAM_PICKS_PAYMENTS_HOTFIX_QA_FINAL
+
+Base real continuada: V865_SENTINEL_ISSUE_TO_IMPROVEMENT_WORKFLOW_FINAL.
+
+Trabajo aplicado:
+- Se auditó Render real contra runtime local sin tocar secretos.
+- Render respondió `/api/runtime-version` con V865, APIs/Telegram/Odds configurados y `last_error` por cabecera inválida con salto de línea.
+- Se añadió `sanitize_runtime_error_value` y se saneó `last_error` en runtime sin ocultar el diagnóstico.
+- Se elevó VERSION.txt, APP_VERSION, base.html, cache CSS y runtime a V866.
+- Se añadió flag runtime `has_v866_real_render_visual_telegram_picks_payments`.
+- Se reforzaron estados de picks: `Cuota pendiente`, `Selección pendiente`, `Pick en revisión`, `Sin pick real publicado` y `Proveedor sin datos ahora mismo`.
+- Se ajustó Sentinel para revisar `None/null/undefined` solo en texto visible, cerrando los 19 low como falsos positivos.
+- Sentinel V866 quedó en score 10.0, 0 issues y 0 críticos.
+- Se ejecutó browser QA móvil local con viewport 390x844 y capturas para `/`, `/app` redirigido a login, `/picks`, `/live` y `/shark`; sin scroll horizontal detectado.
+- Se corrigió admin pagos para no afirmar Stripe operativo si `stripe_runtime_status` no lo confirma.
+- Se añadieron reportes V866, checks V866 y manifiesto V866.
+
+No realizado:
+- No se hizo deploy.
+- No se hizo push.
+- No se envió Telegram real.
+- No se probaron pagos reales.
+- No se afirmó pixel-perfect.
+
+Preservado:
+- V818 master tick y health-check.
+- V844 Telegram premium/no filler.
+- V845 SHARK IA.
+- V847 API-SPORTS guard.
+- V850 live/escudos.
+- V857 Company OS.
+- V859 Product Board.
+- V862 Continuous Sentinel.
+- V863 header sanitization.
+- V864 visual.
+- V865 Sentinel Workflow.

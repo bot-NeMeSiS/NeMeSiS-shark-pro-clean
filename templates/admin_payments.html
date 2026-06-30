@@ -1,14 +1,18 @@
 ﻿{% extends "base.html" %}
 {% import "partials/admin_visual_system.html" as ui %}
 {% block content %}
-{% call ui.shell('Pagos', 'Pagos y membresías', 'Suscripciones, Stripe y facturacin') %}
+{% set stripe = data.get('stripe') if data is defined and data.get is defined else {} %}
+{% set stripe_flags = stripe.get('flags') if stripe and stripe.get is defined else {} %}
+{% set checkout_ready = stripe.get('checkout_ready') if stripe and stripe.get is defined else false %}
+{% set portal_enabled = stripe_flags.get('customer_portal_enabled') if stripe_flags and stripe_flags.get is defined else false %}
+{% call ui.shell('Pagos', 'Pagos y membresías', 'Suscripciones, Stripe y facturación') %}
 <section class="v794-admin-kpi-grid v826-certified-screen v827-certified-screen v828-certified-screen v829-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v830-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen" data-v827-template="admin_payments" data-v828-template="admin_payments" data-v829-template="admin_payments" data-v830-template="admin_payments" data-v832-template="admin_payments" data-v833-template="admin_payments" data-v836-template="admin_payments" data-v837-template="admin_payments" data-v826-template="admin_payments">
   {{ ui.kpi('MRR', (data.get('mrr') if data is defined and data.get is defined else none) or '—', 'Stripe real', '€','green') }}
   {{ ui.kpi('Suscriptores PRO', (data.get('subscribers_pro') if data is defined and data.get is defined else none) or '—', 'Dato real', '♙','blue') }}
   {{ ui.kpi('Suscriptores ELITE', (data.get('subscribers_elite') if data is defined and data.get is defined else none) or '—', 'Dato real', '♛','gold') }}
   {{ ui.kpi('Pagos fallidos', (data.get('failed_payments') if data is defined and data.get is defined else none) or '—', 'Stripe real', '!','red') }}
   {{ ui.kpi('Renovaciones hoy', (data.get('renewals_today') if data is defined and data.get is defined else none) or '—', 'Dato real', '▣','blue') }}
-  {{ ui.kpi('Estado Stripe','Operativo','Todos los servicios OK','S','green') }}
+  {{ ui.kpi('Estado Stripe','Configurado' if checkout_ready else 'No configurado','Checkout real listo' if checkout_ready else 'Acción pendiente antes de vender','S','green' if checkout_ready else 'warning') }}
 </section>
 <section class="v794-admin-grid sidebar v826-certified-screen" data-v826-template="admin_payments">
   <div class="v794-admin-grid">
@@ -22,7 +26,7 @@
   <aside class="v794-admin-grid">
     <article class="v794-admin-panel"><div class="v794-panel-head"><h2>Facturas recientes</h2><a href="/admin/payments">Ver todas</a></div><div class="v797-truth-empty"><strong>Sin facturas reales cargadas en esta vista.</strong><span>Se mostrará Stripe cuando exista historial real.</span></div></article>
     <article class="v794-admin-panel" style="border-color:rgba(255,84,103,.28)"><div class="v794-panel-head"><h2>Pagos fallidos recientes</h2><span>{{ ui.status('Real','danger') }}</span></div><div class="v797-truth-empty"><strong>Sin fallos reales listados.</strong><span>No se muestran emails ni pagos de ejemplo.</span></div></article>
-    <article class="v794-admin-panel"><div class="v794-panel-head"><h2>Configuracin Stripe</h2><a href="/admin/real-launch">Gestionar</a></div><table class="v794-admin-table"><tbody><tr><td>Modo</td><td>{{ ui.status('LIVE / TEST','ok') }}</td></tr><tr><td>Webhook</td><td>{{ ui.status('Activo','ok') }}</td></tr><tr><td>Portal del cliente</td><td>{{ ui.status('Activo','ok') }}</td></tr><tr><td>Price ID PRO</td><td>{{ (data.get('stripe_price_pro') if data is defined and data.get is defined else none) or 'Pendiente' }}</td></tr><tr><td>Price ID ELITE</td><td>{{ (data.get('stripe_price_elite') if data is defined and data.get is defined else none) or 'Pendiente' }}</td></tr><tr><td>Verificacin cuenta</td><td>{{ ui.status('Verificada','ok') }}</td></tr></tbody></table></article>
+    <article class="v794-admin-panel"><div class="v794-panel-head"><h2>Configuración Stripe</h2><a href="/admin/real-launch">Gestionar</a></div><table class="v794-admin-table"><tbody><tr><td>Checkout</td><td>{{ ui.status('Configurado' if checkout_ready else 'No configurado','ok' if checkout_ready else 'warning') }}</td></tr><tr><td>Webhook</td><td>{{ ui.status('Configurado' if stripe_flags.get('webhook_secret') else 'No configurado','ok' if stripe_flags.get('webhook_secret') else 'warning') }}</td></tr><tr><td>Portal del cliente</td><td>{{ ui.status('Disponible' if portal_enabled else 'Acción pendiente','ok' if portal_enabled else 'warning') }}</td></tr><tr><td>Price ID PRO</td><td>{{ ((stripe.get('plans', {}) if stripe and stripe.get is defined else {}).get('PRO', {}) or {}).get('price_id') or 'Pendiente' }}</td></tr><tr><td>Price ID ELITE</td><td>{{ ((stripe.get('plans', {}) if stripe and stripe.get is defined else {}).get('ELITE', {}) or {}).get('price_id') or 'Pendiente' }}</td></tr><tr><td>Verificación cuenta</td><td>{{ ui.status('Pendiente de validación real','warning') }}</td></tr></tbody></table></article>
   </aside>
 </section>
 {% endcall %}

@@ -296,7 +296,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V865_SENTINEL_ISSUE_TO_IMPROVEMENT_WORKFLOW_FINAL'
+APP_VERSION = 'V866_REAL_RENDER_VISUAL_TELEGRAM_PICKS_PAYMENTS_HOTFIX_QA_FINAL'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
@@ -407,6 +407,11 @@ def masked_admin_text(value, limit=500):
 def sanitize_http_header_value(value, limit=1000):
     text = str(value or "")[: int(limit)]
     return text.replace("\r", "").replace("\n", "").strip()
+
+
+def sanitize_runtime_error_value(value, limit=700):
+    text = sanitize_http_header_value(value, limit=limit)
+    return text.replace("\\r", "").replace("\\n", "").strip()
 
 
 def sanitize_runtime_value(value):
@@ -6274,10 +6279,25 @@ def enrich_pick_client_context(pick):
     market = spanish_market_name(pick.get("market") or pick.get("pick_type") or "") or "Mercado pendiente"
     selection = spanish_pick_selection_name(pick.get("selection_display") or pick.get("selection") or pick.get("pick_label") or "") or "Selección pendiente"
     odds = pick.get("odds")
+    odds_missing = odds in (None, "", 0, 0.0, "0", "0.0") or str(odds).strip().lower() in {"none", "null", "undefined", "nan"}
+    selection_pending = selection == "Selección pendiente"
+    raw_status = _client_str(pick.get("app_pick_state") or pick.get("status_label") or pick.get("status") or "").lower()
+    if selection_pending:
+        pick_state = "Selección pendiente"
+    elif odds_missing:
+        pick_state = "Cuota pendiente"
+    elif any(token in raw_status for token in ("revision", "revisión", "review", "draft", "study", "pending")):
+        pick_state = "Pick en revisión"
+    else:
+        pick_state = pick.get("app_pick_state") or "Pick en revisión"
     pick["client_market_label"] = market
     pick["client_selection_label"] = selection
     pick["client_pick_title"] = f"{selection} · {market}" if market and market != selection else selection
-    pick["client_odds_label"] = str(odds) if odds not in (None, "", 0, 0.0, "0", "0.0") else "Cuota no disponible · revisar antes de entrar"
+    pick["client_odds_label"] = str(odds) if not odds_missing else "Cuota pendiente"
+    pick["client_pick_state"] = pick_state
+    pick["app_pick_state"] = pick_state
+    pick["client_no_pick_label"] = "Sin pick real publicado"
+    pick["client_provider_empty_label"] = "Proveedor sin datos ahora mismo"
     pick["client_summary_line"] = f"{pick.get('client_match_label')} · {pick.get('client_datetime_label')} · {pick.get('client_competition')}"
     return pick
 
@@ -13625,6 +13645,7 @@ def v822_runtime_stability_snapshot():
     except Exception as exc:
         warnings.append(f"automation_state_light_check: {str(exc)[:120]}")
     api_sports_status = get_api_sports_status(DB_PATH)
+    last_provider_error = sanitize_runtime_error_value(api_sports_status.get("last_error"))
     return {
         "db_accessible": db_accessible,
         "db_path": DB_PATH,
@@ -13637,7 +13658,7 @@ def v822_runtime_stability_snapshot():
         "api_sports_last_sync_known": bool(api_sports_status.get("last_sync")),
         "provider_active": api_sports_status.get("provider_active"),
         "last_sync": api_sports_status.get("last_sync"),
-        "last_error": api_sports_status.get("last_error"),
+        "last_error": last_provider_error,
         "usage_guard": api_sports_status.get("usage_guard"),
         "the_odds_configured": env_present("THE_ODDS_API_KEY") or env_present("ODDS_API_KEY"),
         "telegram_configured": env_present("TELEGRAM_BOT_TOKEN") and env_present("TELEGRAM_CHAT_ID"),
@@ -13686,6 +13707,8 @@ def api_runtime_version():
     except Exception:
         app_py_text = ""
     runtime_stability = sanitize_runtime_value(v822_runtime_stability_snapshot())
+    if isinstance(runtime_stability, dict) and runtime_stability.get("last_error"):
+        runtime_stability["last_error"] = sanitize_runtime_error_value(runtime_stability.get("last_error"))
     return jsonify(sanitize_runtime_value({
         "ok": True,
         "app": APP_NAME,
@@ -13824,6 +13847,7 @@ def api_runtime_version():
         "has_v863_real_world_certification": "sanitize_http_header_value" in app_py_text and "data-v863-shell" in base_template,
         "has_v864_pc_mobile_visual_big_leap": "V864 PC MOBILE VISUAL REFERENCE BIG LEAP START" in css_text and "data-v864-shell" in base_template,
         "has_v865_sentinel_improvement_workflow": "sentinel_improvement_workflow_engine" in app_py_text and "/admin/sentinel-workflow" in app_py_text and "/api/admin/sentinel-workflow/summary" in app_py_text and "data-v865-shell" in base_template,
+        "has_v866_real_render_visual_telegram_picks_payments": "sanitize_runtime_error_value" in app_py_text and "data-v866-shell" in base_template and "V866 REAL RENDER VISUAL TELEGRAM PICKS PAYMENTS HOTFIX QA START" in css_text,
         "has_v837_reference_photo_qa": "data-v837-shell" in base_template and "V837 REFERENCE PHOTO PERFECTION REAL QA START" in css_text,
         "has_v836_autonomous_qa": "data-v836-shell" in base_template and "V836 AUTONOMOUS REFERENCE VISUAL REVIEW FINAL QA START" in css_text,
         "has_v833_visual_completion": "data-v833-shell" in base_template and "V833 REFERENCE ECOSYSTEM VISUAL COMPLETION START" in css_text,
@@ -13839,7 +13863,7 @@ def api_runtime_version():
         "has_v820_crests": "data-v820-shell" in base_template and "V820 REAL CRESTS REFERENCE VISUAL PIXEL POLISH START" in css_text,
         "has_v819_dedup": "data-v819-shell" in base_template and "V819 REFERENCE UI DEDUP LAYER PURGE START" in css_text,
         "has_v818_automation": "/api/automation/master-tick" in app_py_text and "daily_automation_engine" in app_py_text,
-        "static_css_cache_busting": "V865_SENTINEL_ISSUE_TO_IMPROVEMENT_WORKFLOW_FINAL" in base_template,
+        "static_css_cache_busting": "V866_REAL_RENDER_VISUAL_TELEGRAM_PICKS_PAYMENTS_HOTFIX_QA_FINAL" in base_template,
         "crest_engine_loaded": runtime_stability.get("crest_engine_loaded"),
         "logo_cache_tables_ok": runtime_stability.get("logo_cache_tables_ok"),
         "team_logo_cache_count": runtime_stability.get("team_logo_cache_count"),
