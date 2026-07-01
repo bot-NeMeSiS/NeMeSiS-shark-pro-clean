@@ -122,6 +122,21 @@ V880_PROBLEM_SWEEP_RULES = [
     "sentinel_score_high_with_real_problem",
 ]
 
+V881_NAV_DUPLICATION_RULES = [
+    "duplicate_sidebar_container",
+    "duplicate_nav_href_in_same_zone",
+    "duplicate_nav_label_in_same_zone",
+    "client_nav_visible_in_admin",
+    "admin_nav_visible_in_client",
+    "bottom_nav_visible_in_admin",
+    "floating_shark_visible_in_admin",
+    "command_strip_duplicate",
+    "legacy_client_rail_rendered",
+    "duplicated_label_picks_picks",
+    "duplicated_label_shark_shark",
+    "duplicated_label_telegram_telegram",
+]
+
 
 def madrid_now() -> str:
     return datetime.now(MADRID_TZ).isoformat(timespec="seconds")
@@ -193,6 +208,7 @@ def build_continuous_sentinel_summary(version: str = "") -> dict[str, Any]:
         "visual_rules_v878": V878_LAYER_PURGE_RULES,
         "visual_rules_v879": V879_FINAL_PRODUCT_RULES,
         "problem_sweep_rules_v880": V880_PROBLEM_SWEEP_RULES,
+        "nav_duplication_rules_v881": V881_NAV_DUPLICATION_RULES,
         "visual_big_leap_ready": True,
         "improvement_workflow_ready": True,
         "workflow_cycle": "Detectar -> Priorizar -> Proponer -> Aplicar con Codex/Admin -> Revalidar -> Resolver",
@@ -233,6 +249,7 @@ def run_continuous_sentinel_cycle(client: Any, version: str = "", mode: str = "q
             "Reglas V878 de purga visual revisadas por contrato ns-* y marcadores deprecated.",
             "Reglas V879 finales revisan producto visible, CTAs, espacios, copy y estados seguros.",
             "Reglas V880 revisan problemas reales de deploy, datos, rutas, protección y release.",
+            "Reglas V881 revisan duplicación real de navegación, rail, bottom nav, dock y floating SHARK.",
         ],
         "issues_by_severity": by_severity,
         "issues_by_category": by_category,
@@ -256,6 +273,7 @@ def run_continuous_sentinel_cycle(client: Any, version: str = "", mode: str = "q
         "visual_rules_v878": V878_LAYER_PURGE_RULES,
         "visual_rules_v879": V879_FINAL_PRODUCT_RULES,
         "problem_sweep_rules_v880": V880_PROBLEM_SWEEP_RULES,
+        "nav_duplication_rules_v881": V881_NAV_DUPLICATION_RULES,
         "visual_big_leap_ready": True,
         "improvement_workflow_ready": True,
         "no_code_writes": True,

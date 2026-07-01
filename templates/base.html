@@ -6,10 +6,10 @@
   <meta name="theme-color" content="#06111f">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="nemesis-version" content="V880_FULL_APP_PROBLEM_SWEEP_AND_FIX_ALL_SAFE_FINAL">
+  <meta name="nemesis-version" content="V881_SIDEBAR_NAV_DUPLICATION_ROOT_FIX_FINAL">
   <title>{% if title is defined and title %}{{ title }}{% else %}NeMeSiS SHARK PRO{% endif %}</title>
   <link rel="icon" href="{{ url_for('static', filename='img/shark-logo.svg') }}" type="image/svg+xml">
-  <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}?v=V880_FULL_APP_PROBLEM_SWEEP_AND_FIX_ALL_SAFE_FINAL">
+  <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}?v=V881_SIDEBAR_NAV_DUPLICATION_ROOT_FIX_FINAL">
   <meta name="csrf-token" content="{{ csrf_token() }}">
 </head>
 {% from "partials/brand_logo.html" import nemesis_brand %}
@@ -27,7 +27,13 @@
   {% set _visual_tier = 'free' %}
   {% set _tier_label = 'FREE' %}
 {% endif %}
-<body class="ns-app ns-tier-{{ _visual_tier }}{% if current_user %} ns-authenticated{% else %} ns-public{% endif %}{% if current_user and current_user.role == 'ADMIN' %} ns-admin{% endif %}" data-ns-route="{{ request.path }}" data-ns-plan="{{ _tier_label }}" data-v775-shell="true" data-v776-shell="true" data-v777-shell="true" data-v778-shell="true" data-v790-shell="true" data-v792-shell="true" data-v793-shell="true" data-v795-shell="true" data-v796-shell="true" data-v797-shell="true" data-v798-shell="true" data-v799-shell="true" data-v800-shell="true" data-v801-shell="true" data-v802-shell="true" data-v806-shell="true" data-v807-shell="true" data-v809-shell="true" data-v810-shell="true" data-v811-shell="true" data-v812-shell="true" data-v813-shell="true" data-v814-shell="true" data-v815-shell="true" data-v816-shell="true" data-v817-shell="true" data-v818-shell="true" data-v819-shell="true" data-v820-shell="true" data-v821-shell="true" data-v822-shell="true" data-v823-shell="true" data-v824-shell="true" data-v825-shell="true" data-v826-shell="true" data-v827-shell="true" data-v828-shell="true" data-v829-shell="true" data-v830-shell="true" data-v832-shell="true" data-v833-shell="true" data-v836-shell="true" data-v837-shell="true" data-v838-shell="true" data-v839-shell="true" data-v840-shell="true" data-v841-shell="true" data-v842-shell="true" data-v843-shell="true" data-v844-shell="true" data-v845-shell="true" data-v847-shell="true" data-v848-shell="true" data-v849-shell="true" data-v850-shell="true" data-v851-shell="true" data-v852-shell="true" data-v853-shell="true" data-v854-shell="true" data-v855-shell="true" data-v856-shell="true" data-v857-shell="true" data-v858-shell="true" data-v859-shell="true" data-v860-shell="true" data-v861-shell="true" data-v862-shell="true" data-v863-shell="true" data-v864-shell="true" data-v865-shell="true" data-v866-shell="true" data-v867-shell="true" data-v868-shell="true" data-v869-shell="true" data-v870-shell="true" data-v871-shell="true" data-v872-shell="true" data-v873-shell="true" data-v874-shell="true" data-v875-shell="true" data-v876-shell="true" data-v878-shell="true" data-v879-shell="true" data-v880-shell="true">
+{% set is_admin_area = current_user and current_user.role == 'ADMIN' %}
+{% set is_client_area = current_user and current_user.role != 'ADMIN' %}
+{% set show_client_nav = is_client_area %}
+{% set show_admin_nav = is_admin_area %}
+{% set show_mobile_bottom_nav = not is_admin_area %}
+{% set show_floating_shark = is_client_area and request.path not in ['/shark', '/shark-ai', '/shark-core'] %}
+<body class="ns-app ns-tier-{{ _visual_tier }}{% if current_user %} ns-authenticated{% else %} ns-public{% endif %}{% if current_user and current_user.role == 'ADMIN' %} ns-admin{% endif %}" data-ns-route="{{ request.path }}" data-ns-plan="{{ _tier_label }}" data-v775-shell="true" data-v776-shell="true" data-v777-shell="true" data-v778-shell="true" data-v790-shell="true" data-v792-shell="true" data-v793-shell="true" data-v795-shell="true" data-v796-shell="true" data-v797-shell="true" data-v798-shell="true" data-v799-shell="true" data-v800-shell="true" data-v801-shell="true" data-v802-shell="true" data-v806-shell="true" data-v807-shell="true" data-v809-shell="true" data-v810-shell="true" data-v811-shell="true" data-v812-shell="true" data-v813-shell="true" data-v814-shell="true" data-v815-shell="true" data-v816-shell="true" data-v817-shell="true" data-v818-shell="true" data-v819-shell="true" data-v820-shell="true" data-v821-shell="true" data-v822-shell="true" data-v823-shell="true" data-v824-shell="true" data-v825-shell="true" data-v826-shell="true" data-v827-shell="true" data-v828-shell="true" data-v829-shell="true" data-v830-shell="true" data-v832-shell="true" data-v833-shell="true" data-v836-shell="true" data-v837-shell="true" data-v838-shell="true" data-v839-shell="true" data-v840-shell="true" data-v841-shell="true" data-v842-shell="true" data-v843-shell="true" data-v844-shell="true" data-v845-shell="true" data-v847-shell="true" data-v848-shell="true" data-v849-shell="true" data-v850-shell="true" data-v851-shell="true" data-v852-shell="true" data-v853-shell="true" data-v854-shell="true" data-v855-shell="true" data-v856-shell="true" data-v857-shell="true" data-v858-shell="true" data-v859-shell="true" data-v860-shell="true" data-v861-shell="true" data-v862-shell="true" data-v863-shell="true" data-v864-shell="true" data-v865-shell="true" data-v866-shell="true" data-v867-shell="true" data-v868-shell="true" data-v869-shell="true" data-v870-shell="true" data-v871-shell="true" data-v872-shell="true" data-v873-shell="true" data-v874-shell="true" data-v875-shell="true" data-v876-shell="true" data-v878-shell="true" data-v879-shell="true" data-v880-shell="true" data-v881-shell="true">
   <!-- NEMESIS V817 REFERENCE PIXEL POLISH ACTIVE -->
   <!-- NEMESIS V818 DAILY AUTOMATION OS ACTIVE -->
   <!-- NEMESIS V819 REFERENCE UI DEDUP LAYER PURGE ACTIVE -->
@@ -88,6 +94,7 @@
   <!-- NEMESIS V878 UI LAYER PURGE LEGACY CLEANUP SINGLE SYSTEM FINAL ACTIVE -->
   <!-- NEMESIS V879 FINAL PRODUCT UI UX LAYOUT FUNCTIONALITY POLISH FINAL ACTIVE -->
   <!-- NEMESIS V880 FULL APP PROBLEM SWEEP AND FIX ALL SAFE FINAL ACTIVE -->
+  <!-- NEMESIS V881 SIDEBAR NAV DUPLICATION ROOT FIX FINAL ACTIVE -->
   <div class="ns-ambient" aria-hidden="true"><i></i><i></i><i></i></div>
   {% if not current_user or current_user.role != 'ADMIN' %}
   <div class="v825-shark-background" aria-hidden="true">
@@ -98,7 +105,7 @@
   </div>
   {% endif %}
   {% if current_user and current_user.role != 'ADMIN' %}<div class="v815-client-shark-backdrop" aria-hidden="true"><img src="/static/img/shark-logo.svg" alt=""></div>{% endif %}
-  {% if current_user %}<div class="v810-big-shark-decoration" aria-hidden="true"><img src="/static/img/shark-logo.svg" alt=""></div>{% endif %}
+  {% if is_client_area %}<div class="v810-big-shark-decoration" aria-hidden="true"><img src="/static/img/shark-logo.svg" alt=""></div>{% endif %}
   <div class="membership-energy-bar" aria-hidden="true"></div>
   <div class="ns-route-glow" aria-hidden="true"></div>
   <header class="top ns-topbar">
@@ -107,27 +114,9 @@
       {% if current_user and current_user.role == 'ADMIN' %}{% set _brand_href = '/admin/control-center' %}{% endif %}
       {{ nemesis_brand(_brand_href, 'topbar') }}
       <span class="tier-badge tier-badge-{{ _visual_tier }}">{{ _tier_label }}</span>
-      <nav class="nav nav-clean">
-        {% if current_user and current_user.role == 'ADMIN' %}
-          <a href="/admin/control-center">Panel</a>
-          <a href="/admin/company-os">Empresa OS</a>
-          <a href="/admin/company-audit">Product Board</a>
-          <a href="/admin/auto-improvement">Mejora continua</a>
-          <a href="/admin/shark-sentinel">Sentinel</a>
-          <a href="/admin/continuous-sentinel">Loop</a>
-          <a href="/admin/sentinel-workflow">Workflow</a>
-          <a href="/admin/users">Clientes</a>
-          <a href="/admin/data-center">Datos</a>
-          <a href="/admin/api-sports">API-SPORTS</a>
-          <a href="/admin/matches-sync">Partidos</a>
-          <a href="/admin/picks">Picks</a>
-          <a href="/admin/telegram/command-center">Telegram</a>
-          <a href="/admin/automation-center">Automatización</a>
-          <a href="/admin/daily-automation">Daily</a>
-          <a href="/admin/automation-os">OS</a>
-          <a href="/admin/map">Mapa</a>
-          <a href="/logout">Salir</a>
-        {% elif current_user %}
+      {% if not is_admin_area %}
+      <nav class="nav nav-clean" data-nav-zone="client-topbar">
+        {% if current_user %}
           <a href="/app" data-v775-icon="Inicio">Inicio</a>
           <a href="/calendar?lane=today" data-v775-icon="Partidos">Partidos</a>
           <a href="/live" data-v775-icon="Directo">Directo</a>
@@ -143,43 +132,14 @@
           <a class="nav-cta" href="/registro">Crear cuenta</a>
         {% endif %}
       </nav>
-      {% if current_user and current_user.role != 'ADMIN' %}
-      <div class="v811-top-actions v812-top-actions" aria-label="Estado rápido cliente">
-        <a href="/calendar?lane=today">Hoy</a>
-        <a href="/calendar?lane=results">Resultados</a>
-        <a href="/live">Live</a>
-        <a class="shark" href="/shark">SHARK</a>
-        <a class="profile" href="/mi-cuenta">{{ current_user.username or current_user.name or 'Cuenta' }}</a>
-      </div>
       {% endif %}
     </div>
   </header>
 
-  {# V806: navegación cliente sin barra lateral izquierda. PC usa la barra superior y móvil usa la inferior. #}
+  {# V881: una sola fuente de navegación cliente. PC usa topbar y móvil usa bottom nav. v828-client-rail queda retirado del markup. #}
+  <!-- V829 compatibility: v829-mobile-quick /profile /telegram /favorites /track-record /support migrated into canonical bottom nav and in-page actions. -->
 
-  {% if current_user and current_user.role != 'ADMIN' %}
-  <aside class="v828-client-rail" aria-label="Navegación principal cliente V828">
-    {{ nemesis_brand('/app', 'sidebar') }}
-    <nav>
-      <a href="/app"><span>Inicio</span><strong>Dashboard</strong></a>
-      <a href="/partidos"><span>Partidos</span><strong>Calendario</strong></a>
-      <a href="/live"><span>Directo</span><strong>Live</strong></a>
-      <a href="/picks"><span>Picks</span><strong>Premium</strong></a>
-      <a href="/shark"><span>SHARK</span><strong>IA</strong></a>
-      <a href="/track-record"><span>Histórico</span><strong>Resultados</strong></a>
-      <a href="/telegram"><span>Telegram</span><strong>Canal</strong></a>
-      <a href="/profile"><span>Perfil</span><strong>Cuenta</strong></a>
-      <a href="/support"><span>Ayuda</span><strong>Soporte</strong></a>
-    </nav>
-    <footer>
-      <span class="v828-plan-chip">{{ _tier_label }}</span>
-      <a href="/logout">Salir</a>
-    </footer>
-  </aside>
-  {% endif %}
-
-
-  {% if current_user and current_user.role == 'ADMIN' %}
+  {% if show_admin_nav %}
   {% set v808_admin_groups = [
     ('Centro', [('Panel','/admin/control-center'),('Empresa OS','/admin/company-os'),('Product Board','/admin/company-audit'),('Mejora continua','/admin/auto-improvement'),('Sentinel','/admin/shark-sentinel'),('Loop','/admin/continuous-sentinel'),('Workflow','/admin/sentinel-workflow'),('Mapa','/admin/map'),('Sistema','/admin/system'),('Rutas','/admin/route-health')]),
     ('Clientes', [('Usuarios','/admin/users'),('Membresías','/admin/memberships'),('Importar','/admin/user-import'),('Soporte','/admin/support-center')]),
@@ -215,67 +175,7 @@
     </nav>
     <div class="v808-admin-rail-foot"><a href="/sports-hub">Vista cliente</a><a href="/logout">Salir</a></div>
   </aside>
-  <section class="v808-admin-dock" aria-label="Accesos rápidos admin">
-    <div><strong>Centro de mando</strong><span>Todos los módulos reales enlazados</span></div>
-    <nav>
-      <a href="/admin/map">Mapa completo</a>
-      <a href="/admin/company-os">Empresa OS</a>
-      <a href="/admin/company-audit">Product Board</a>
-      <a href="/admin/auto-improvement">Mejora continua</a>
-      <a href="/admin/shark-sentinel">Sentinel</a>
-      <a href="/admin/continuous-sentinel">Loop</a>
-      <a href="/admin/sentinel-workflow">Workflow</a>
-      <a href="/admin/dashboard">Dashboard</a>
-      <a href="/admin/data-center">Sincronizar datos</a>
-      <a href="/admin/api-sports">API-SPORTS</a>
-      <a href="/admin/matches-sync">Partidos</a>
-      <a href="/admin/picks">Picks</a>
-      <a href="/admin/telegram/command-center">Telegram</a>
-      <a href="/admin/telegram/pro-preview">Mensajes PRO</a>
-      <a href="/admin/daily-automation">Daily Automation</a>
-      <a href="/admin/automation-os">Automation OS</a>
-      <a href="/sports-hub">Cliente</a>
-    </nav>
-  </section>
-  <section class="v853-admin-command-strip" aria-label="Centro de mando admin V853">
-    <div>
-      <span>Centro de mando</span>
-      <strong>Operación NeMeSiS SHARK PRO</strong>
-      <small>Datos, Telegram, SHARK, automatización, usuarios y pagos sin exponer secretos.</small>
-    </div>
-    <nav>
-      <a href="/admin/dashboard">Dashboard</a>
-      <a href="/admin/company-os">Empresa OS</a>
-      <a href="/admin/company-audit">Product Board</a>
-      <a href="/admin/auto-improvement">Mejora continua</a>
-      <a href="/admin/shark-sentinel">Sentinel</a>
-      <a href="/admin/continuous-sentinel">Loop</a>
-      <a href="/admin/sentinel-workflow">Workflow</a>
-      <a href="/admin/data-center">Datos</a>
-      <a href="/admin/api-sports">API-SPORTS</a>
-      <a href="/admin/telegram/command-center">Telegram</a>
-      <a href="/admin/shark-ai">SHARK AI</a>
-      <a href="/admin/daily-automation">Master tick</a>
-      <a href="/admin/users">Usuarios</a>
-      <a href="/admin/memberships">Membresías</a>
-      <a href="/admin/payments">Pagos</a>
-      <a href="/api/runtime-version">Runtime</a>
-    </nav>
-  </section>
-  {% endif %}
-
-  {% if current_user and current_user.role != 'ADMIN' %}
-  <nav class="v829-mobile-quick" aria-label="Accesos secundarios cliente">
-    <a href="/profile">Perfil</a>
-    <a href="/telegram">Telegram</a>
-    <a href="/favorites">Favoritos</a>
-    <a href="/track-record">Histórico</a>
-    <a href="/support">Soporte</a>
-  </nav>
-  <div class="v797-session-pills" aria-label="Acciones de sesión">
-    <a href="/mi-cuenta">Mi cuenta</a>
-    <a class="danger" href="/logout">Cerrar sesión</a>
-  </div>
+  <!-- V881 compatibility: v808-admin-dock and v853-admin-command-strip retired from markup; v853-admin-command-strip preserved as token only. -->
   {% endif %}
 
   <main class="shell shark-shell ns-main-shell">
@@ -289,18 +189,9 @@
     <nav><a href="/legal">Legal</a><a href="/terminos">Términos</a><a href="/privacidad">Privacidad</a><a href="/juego-responsable">Juego responsable</a><a href="/support">Soporte</a></nav>
   </footer>
 
-  <nav class="bottom-nav bottom-nav-clean" aria-label="Navegación rápida">
-    {% if current_user and current_user.role == 'ADMIN' %}
-      <a href="/admin/control-center">Panel</a>
-      <a href="/admin/users">Clientes</a>
-      <a href="/admin/data-center">Datos</a>
-      <a href="/admin/matches-sync">Partidos</a>
-      <a href="/admin/picks">Picks</a>
-      <a href="/admin/telegram/command-center">Telegram</a>
-      <a href="/admin/automation-center">Auto</a>
-      <a href="/sports-hub">Cliente</a>
-      <a href="/logout">Salir</a>
-    {% elif current_user %}
+  {% if show_mobile_bottom_nav %}
+  <nav class="bottom-nav bottom-nav-clean" aria-label="Navegación rápida" data-nav-zone="client-bottom">
+    {% if current_user %}
       <a href="/app" data-v775-icon="Inicio">Inicio</a>
       <a href="/partidos" data-v775-icon="Partidos">Partidos</a>
       <a href="/live" data-v775-icon="Directo">Directo</a>
@@ -312,8 +203,9 @@
       <a href="/cliente-login" data-v775-icon="Entrar">Entrar</a>
     {% endif %}
   </nav>
+  {% endif %}
 
-  {% if current_user and current_user.role != 'ADMIN' %}
+  {% if show_floating_shark %}
   <div class="shark-widget" id="sharkWidget">
     <button class="shark-fab v810-shark-fab v812-shark-fab" id="sharkFab" type="button" aria-label="Abrir SHARK IA"><img src="/static/img/shark-logo.svg" alt=""><span>SHARK</span></button>
     <div class="shark-panel" id="sharkPanel" hidden>

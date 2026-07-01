@@ -9,7 +9,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = "V880_FULL_APP_PROBLEM_SWEEP_AND_FIX_ALL_SAFE_FINAL"
+VERSION = "V881_SIDEBAR_NAV_DUPLICATION_ROOT_FIX_FINAL"
 ZIP_NAME = f"NeMeSiS_SHARK_PRO_{VERSION}_RENDER_READY.zip"
 
 REPORTS = [
@@ -69,6 +69,7 @@ def main() -> None:
     require('data-v880-shell="true"' in base, "base.html missing data-v880-shell")
     require("has_v880_full_app_problem_sweep" in app_py, "runtime V880 flag missing")
     require("V880 FULL APP PROBLEM SWEEP AND FIX ALL SAFE START" in css, "CSS V880 marker missing")
+    require("V881 SIDEBAR NAV DUPLICATION ROOT FIX START" in css, "CSS V881 marker missing")
     require("V880_PROBLEM_SWEEP_RULES" in sentinel, "Sentinel V880 rules missing")
 
     for report in REPORTS:
@@ -133,6 +134,7 @@ def main() -> None:
     require(payload.get("app_version") == VERSION, "runtime app_version is not V880")
     require(payload.get("version_txt") == VERSION, "runtime version_txt is not V880")
     require(payload.get("has_v880_full_app_problem_sweep") is True, "runtime V880 flag false")
+    require(payload.get("has_v881_sidebar_nav_duplication_fix") is True, "runtime V881 flag false")
     require(payload.get("has_v818_automation") is True, "runtime V818 flag false")
     require(client.get("/api/automation/master-tick").status_code == 403, "master tick without secret is not 403")
 

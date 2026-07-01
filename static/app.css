@@ -11403,3 +11403,49 @@ body[data-v880-shell="true"] :is(.ns-table, table) {
   }
 }
 /* V880 FULL APP PROBLEM SWEEP AND FIX ALL SAFE END */
+
+/* V881 SIDEBAR NAV DUPLICATION ROOT FIX START */
+body[data-v881-shell="true"] {
+  --ns-nav-height: 58px;
+}
+
+body[data-v881-shell="true"] :is(.v828-client-rail, .v798-client-rail, .v799-client-rail, .v799-client-sidebar, .client-sidebar, .sidebar-client, .v829-mobile-quick, .v797-session-pills, .v811-top-actions, .v812-top-actions) {
+  display: none !important;
+}
+
+body[data-v881-shell="true"].ns-admin :is(.nav-clean, .bottom-nav, .bottom-nav-clean, .mobile-bottom-nav, .v829-mobile-quick, .v797-session-pills, .shark-widget, .ns-floating-shark, .v825-public-floating-shark, .v815-client-shark-backdrop, .v810-big-shark-decoration) {
+  display: none !important;
+}
+
+body[data-v881-shell="true"]:not(.ns-admin) :is(.v808-admin-rail, .v808-admin-dock, .v853-admin-command-strip, .admin-command-strip, .v794-admin-sidebar) {
+  display: none !important;
+}
+
+body[data-v881-shell="true"] .nav-clean[data-nav-zone="client-topbar"] a,
+body[data-v881-shell="true"] .bottom-nav-clean[data-nav-zone="client-bottom"] a,
+body[data-v881-shell="true"] .v808-admin-rail nav a {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+@media (min-width: 769px) {
+  body[data-v881-shell="true"] .bottom-nav-clean[data-nav-zone="client-bottom"] {
+    display: none !important;
+  }
+}
+
+@media (max-width: 768px) {
+  body[data-v881-shell="true"] .nav-clean[data-nav-zone="client-topbar"] {
+    display: none !important;
+  }
+
+  body[data-v881-shell="true"]:not(.ns-admin) .bottom-nav-clean[data-nav-zone="client-bottom"] {
+    display: grid;
+  }
+
+  body[data-v881-shell="true"].ns-admin .v808-admin-rail {
+    position: static;
+    max-height: none;
+  }
+}
+/* V881 SIDEBAR NAV DUPLICATION ROOT FIX END */

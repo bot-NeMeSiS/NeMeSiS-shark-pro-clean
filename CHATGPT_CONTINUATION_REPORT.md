@@ -857,3 +857,18 @@ Honestidad:
 - Se crearon reportes V880 de inventario, Render/GitHub, rutas/seguridad, UI/copy, partidos/live, picks/odds, Sentinel, admin, SHARK, Telegram, pagos/membresías, logos y release.
 - Nuevo check: `tools/check_v880_full_app_problem_sweep.py`.
 - No se hicieron llamadas caras API, Telegram real, pagos reales, deploy ni push.
+
+## V881_SIDEBAR_NAV_DUPLICATION_ROOT_FIX_FINAL
+
+- Base local: `V880_FULL_APP_PROBLEM_SWEEP_AND_FIX_ALL_SAFE_FINAL`.
+- Objetivo: corregir de raíz botones laterales repetidos y navegación mezclada.
+- Causa encontrada en `templates/base.html`: cliente y admin tenían varias fuentes globales de navegación renderizadas a la vez.
+- Se añadieron flags centrales: `is_admin_area`, `is_client_area`, `show_client_nav`, `show_admin_nav`, `show_mobile_bottom_nav`, `show_floating_shark`.
+- Cliente desktop queda con una fuente: `nav-clean[data-nav-zone="client-topbar"]`.
+- Cliente móvil queda con una fuente: `bottom-nav-clean[data-nav-zone="client-bottom"]`.
+- Admin queda con una fuente: `v808-admin-rail`.
+- Se retiraron del markup: `v828-client-rail`, `v829-mobile-quick`, `v797-session-pills`, `v808-admin-dock`, `v853-admin-command-strip` y bottom nav admin.
+- Se añadió CSS `V881 SIDEBAR NAV DUPLICATION ROOT FIX`.
+- Sentinel añade `V881_NAV_DUPLICATION_RULES`.
+- Nuevo check: `tools/check_v881_sidebar_nav_duplication_fix.py`.
+- No se hizo deploy, push, Telegram real, pagos reales ni llamadas caras API.
