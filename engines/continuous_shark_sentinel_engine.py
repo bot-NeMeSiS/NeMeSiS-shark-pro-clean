@@ -106,6 +106,22 @@ V879_FINAL_PRODUCT_RULES = [
     "missing_safe_state_for_real_data_absence",
 ]
 
+V880_PROBLEM_SWEEP_RULES = [
+    "render_local_version_mismatch",
+    "runtime_last_error_active",
+    "configured_api_without_visible_data_state",
+    "matches_empty_without_safe_explanation",
+    "live_empty_without_safe_explanation",
+    "picks_without_odds_or_selection_state",
+    "logo_cache_zero_without_fallback",
+    "admin_api_unprotected",
+    "cron_unprotected",
+    "traceback_or_debug_visible",
+    "workspace_release_contains_forbidden_files",
+    "old_checks_reject_current_version",
+    "sentinel_score_high_with_real_problem",
+]
+
 
 def madrid_now() -> str:
     return datetime.now(MADRID_TZ).isoformat(timespec="seconds")
@@ -176,6 +192,7 @@ def build_continuous_sentinel_summary(version: str = "") -> dict[str, Any]:
         "visual_rules_v864": V864_VISUAL_RULES,
         "visual_rules_v878": V878_LAYER_PURGE_RULES,
         "visual_rules_v879": V879_FINAL_PRODUCT_RULES,
+        "problem_sweep_rules_v880": V880_PROBLEM_SWEEP_RULES,
         "visual_big_leap_ready": True,
         "improvement_workflow_ready": True,
         "workflow_cycle": "Detectar -> Priorizar -> Proponer -> Aplicar con Codex/Admin -> Revalidar -> Resolver",
@@ -215,6 +232,7 @@ def run_continuous_sentinel_cycle(client: Any, version: str = "", mode: str = "q
             "Reglas visuales V864 revisadas por marcadores estáticos; browser QA es opcional.",
             "Reglas V878 de purga visual revisadas por contrato ns-* y marcadores deprecated.",
             "Reglas V879 finales revisan producto visible, CTAs, espacios, copy y estados seguros.",
+            "Reglas V880 revisan problemas reales de deploy, datos, rutas, protección y release.",
         ],
         "issues_by_severity": by_severity,
         "issues_by_category": by_category,
@@ -237,6 +255,7 @@ def run_continuous_sentinel_cycle(client: Any, version: str = "", mode: str = "q
         "visual_rules_v864": V864_VISUAL_RULES,
         "visual_rules_v878": V878_LAYER_PURGE_RULES,
         "visual_rules_v879": V879_FINAL_PRODUCT_RULES,
+        "problem_sweep_rules_v880": V880_PROBLEM_SWEEP_RULES,
         "visual_big_leap_ready": True,
         "improvement_workflow_ready": True,
         "no_code_writes": True,

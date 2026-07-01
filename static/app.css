@@ -11320,3 +11320,86 @@ body[data-v879-shell="true"] :is(.ns-chip, .ns-badge, .status-chip, .plan-badge)
   }
 }
 /* V879 FINAL PRODUCT UI UX LAYOUT FUNCTIONALITY POLISH END */
+
+/* V880 FULL APP PROBLEM SWEEP AND FIX ALL SAFE START */
+body[data-v880-shell="true"] {
+  --ns-problem-gap: clamp(10px, 1.3vw, 16px);
+  --ns-problem-pad: clamp(10px, 1.35vw, 16px);
+}
+
+body[data-v880-shell="true"] :is(.ns-card, .ns-admin-card, .ns-command-card, .ns-plan-card, .ns-pick-card, .ns-sentinel-card, .ns-stat) {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+body[data-v880-shell="true"] :is(.ns-card, .ns-admin-card, .ns-command-card, .ns-plan-card, .ns-pick-card, .ns-sentinel-card, .metric-card, .command-center-card) {
+  padding: var(--ns-problem-pad);
+}
+
+body[data-v880-shell="true"] :is(.ns-empty, .empty-state, .v860-empty-state, .v868-pro-empty-state) {
+  min-height: 0;
+  gap: 7px;
+}
+
+body[data-v880-shell="true"] :is(.ns-empty, .empty-state, .v860-empty-state, .v868-pro-empty-state) p {
+  max-width: 68ch;
+}
+
+body[data-v880-shell="true"] :is(.ns-button, .action-button, .v860-action-btn, .v864-action-button, .v868-pro-action-btn, .v871-action-clean) {
+  text-align: center;
+}
+
+body[data-v880-shell="true"] :is(.ns-match-row, .match-row, .v864-match-row, .v868-pro-match-row) {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+body[data-v880-shell="true"] :is(.crest-fallback, .team-crest-fallback, .league-logo-fallback, .ns-logo-fallback) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 34px;
+  min-height: 34px;
+  border: 1px solid rgba(32, 215, 255, .24);
+  border-radius: 50%;
+  background: rgba(32, 215, 255, .08);
+  color: #dff8ff;
+  font-weight: 900;
+}
+
+body[data-v880-shell="true"] :is(img[src=""], img:not([src])) {
+  display: none !important;
+}
+
+body[data-v880-shell="true"].ns-admin :is(.bottom-nav, .mobile-bottom-nav, .shark-widget, .ns-floating-shark, .v825-public-floating-shark, .v829-mobile-quick) {
+  display: none !important;
+}
+
+body[data-v880-shell="true"]:not(.ns-admin) :is(.v808-admin-rail, .v808-admin-dock, .v853-admin-command-strip, .admin-command-strip) {
+  display: none !important;
+}
+
+body[data-v880-shell="true"] :is(.table-wrap, .ns-table-wrap, .admin-table-wrap) {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+body[data-v880-shell="true"] :is(.ns-table, table) {
+  max-width: 100%;
+}
+
+@media (max-width: 760px) {
+  body[data-v880-shell="true"] {
+    overflow-x: hidden;
+  }
+
+  body[data-v880-shell="true"] :is(.dashboard-grid, .cards-grid, .grid, .v864-grid, .v868-pro-grid, .v871-compact-grid, .ns-grid) {
+    gap: 10px;
+  }
+
+  body[data-v880-shell="true"] :is(.ns-card, .ns-admin-card, .ns-command-card, .ns-plan-card, .ns-pick-card, .ns-sentinel-card, .metric-card, .command-center-card) {
+    padding: 11px;
+  }
+}
+/* V880 FULL APP PROBLEM SWEEP AND FIX ALL SAFE END */

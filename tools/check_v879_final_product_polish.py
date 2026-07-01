@@ -9,7 +9,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = "V879_FINAL_PRODUCT_UI_UX_LAYOUT_FUNCTIONALITY_POLISH_FINAL"
+VERSION = "V880_FULL_APP_PROBLEM_SWEEP_AND_FIX_ALL_SAFE_FINAL"
 ZIP_NAME = f"NeMeSiS_SHARK_PRO_{VERSION}_RENDER_READY.zip"
 
 REPORTS = [
@@ -113,6 +113,7 @@ def main() -> None:
     require(VERSION in base, "base.html missing V879 final cache/version")
     require('data-v879-shell="true"' in base, "base.html missing data-v879-shell")
     require("NEMESIS V879 FINAL PRODUCT UI UX LAYOUT FUNCTIONALITY POLISH FINAL ACTIVE" in base, "base.html missing V879 final comment")
+    require("NEMESIS V880 FULL APP PROBLEM SWEEP AND FIX ALL SAFE FINAL ACTIVE" in base, "base.html missing V880 active comment")
     require("has_v879_final_product_polish" in app_py, "runtime V879 final flag missing")
 
     for report in REPORTS:
@@ -175,6 +176,7 @@ def main() -> None:
     require(payload.get("app_version") == VERSION, "runtime app_version is not V879 final")
     require(payload.get("version_txt") == VERSION, "runtime version_txt is not V879 final")
     require(payload.get("has_v879_final_product_polish") is True, "runtime V879 final flag false")
+    require(payload.get("has_v880_full_app_problem_sweep") is True, "runtime V880 flag false")
     require(payload.get("has_v878_ui_layer_purge_single_system") is True, "runtime V878 flag false")
     require(payload.get("has_v818_automation") is True, "runtime V818 flag false")
 

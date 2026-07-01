@@ -296,7 +296,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V879_FINAL_PRODUCT_UI_UX_LAYOUT_FUNCTIONALITY_POLISH_FINAL'
+APP_VERSION = 'V880_FULL_APP_PROBLEM_SWEEP_AND_FIX_ALL_SAFE_FINAL'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
@@ -13884,6 +13884,7 @@ def api_runtime_version():
         "has_v878_ui_layer_purge_single_system": "data-v878-shell" in base_template and "V878 UI LAYER PURGE LEGACY CLEANUP SINGLE SYSTEM FINAL" in base_template and "V878 UI LAYER PURGE LEGACY CLEANUP SINGLE SYSTEM START" in css_text,
         "has_v879_render_v878_browser_qa": "data-v879-shell" in base_template and ("V879 RENDER DEPLOY V878 BROWSER QA AND LEGACY REMOVAL PLAN FINAL" in base_template or "V879 FINAL PRODUCT UI UX LAYOUT FUNCTIONALITY POLISH FINAL" in base_template) and "has_v878_ui_layer_purge_single_system" in app_py_text,
         "has_v879_final_product_polish": "data-v879-shell" in base_template and "V879 FINAL PRODUCT UI UX LAYOUT FUNCTIONALITY POLISH FINAL" in base_template and "V879 FINAL PRODUCT UI UX LAYOUT FUNCTIONALITY POLISH START" in css_text,
+        "has_v880_full_app_problem_sweep": "data-v880-shell" in base_template and "V880 FULL APP PROBLEM SWEEP AND FIX ALL SAFE FINAL" in base_template and "V880 FULL APP PROBLEM SWEEP AND FIX ALL SAFE START" in css_text,
         "has_v837_reference_photo_qa": "data-v837-shell" in base_template and "V837 REFERENCE PHOTO PERFECTION REAL QA START" in css_text,
         "has_v836_autonomous_qa": "data-v836-shell" in base_template and "V836 AUTONOMOUS REFERENCE VISUAL REVIEW FINAL QA START" in css_text,
         "has_v833_visual_completion": "data-v833-shell" in base_template and "V833 REFERENCE ECOSYSTEM VISUAL COMPLETION START" in css_text,
@@ -13899,7 +13900,7 @@ def api_runtime_version():
         "has_v820_crests": "data-v820-shell" in base_template and "V820 REAL CRESTS REFERENCE VISUAL PIXEL POLISH START" in css_text,
         "has_v819_dedup": "data-v819-shell" in base_template and "V819 REFERENCE UI DEDUP LAYER PURGE START" in css_text,
         "has_v818_automation": "/api/automation/master-tick" in app_py_text and "daily_automation_engine" in app_py_text,
-        "static_css_cache_busting": "V879_FINAL_PRODUCT_UI_UX_LAYOUT_FUNCTIONALITY_POLISH_FINAL" in base_template,
+        "static_css_cache_busting": "V880_FULL_APP_PROBLEM_SWEEP_AND_FIX_ALL_SAFE_FINAL" in base_template,
         "crest_engine_loaded": runtime_stability.get("crest_engine_loaded"),
         "logo_cache_tables_ok": runtime_stability.get("logo_cache_tables_ok"),
         "team_logo_cache_count": runtime_stability.get("team_logo_cache_count"),
