@@ -1,4 +1,4 @@
-from pathlib import Path
+﻿from pathlib import Path
 
 root = Path(__file__).resolve().parents[1]
 text = (root / "app.py").read_text(encoding="utf-8", errors="ignore")

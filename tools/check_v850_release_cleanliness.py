@@ -1,4 +1,4 @@
-from pathlib import Path
+﻿from pathlib import Path
 from zipfile import ZipFile
 
 ZIP = Path("release_output/NeMeSiS_SHARK_PRO_V850_LIVE_CRESTS_API_SPORTS_MATCH_DETAIL_FINAL_RENDER_READY.zip")

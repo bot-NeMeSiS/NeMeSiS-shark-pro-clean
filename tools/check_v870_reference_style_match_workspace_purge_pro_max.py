@@ -10,6 +10,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V870_REFERENCE_STYLE_MATCH_AND_WORKSPACE_PURGE_PRO_MAX_FINAL"
 VERSION_V871 = "V871_VISIBLE_UI_DEFECTS_EMPTY_SPACE_SCREEN_BY_SCREEN_PRO_MAX_FINAL"
+VERSION_V872 = "V872_REAL_RENDER_SCREEN_CAPTURE_REFERENCE_FINAL_PASS"
+VERSION_V873 = "V873_REAL_PRODUCTION_VISUAL_LOGOS_SHARK_HEADER_FINAL"
+V874 = "V874_COMPANY_WIDE_PRODUCT_POLISH_VISUAL_DATA_SENTINEL_FINAL"
+VERSION_V874 = "V874_COMPANY_WIDE_PRODUCT_POLISH_VISUAL_DATA_SENTINEL_FINAL"
 ZIP_NAME = f"NeMeSiS_SHARK_PRO_{VERSION}_RENDER_READY.zip"
 
 REPORTS = [
@@ -66,7 +70,7 @@ def main() -> None:
     gitignore = read(".gitignore")
     templates = "\n".join(path.read_text(encoding="utf-8", errors="replace") for path in (ROOT / "templates").glob("*.html"))
 
-    valid_versions = {VERSION, VERSION_V871}
+    valid_versions = {VERSION, VERSION_V871, VERSION_V872, VERSION_V873, VERSION_V874}
     require(read("VERSION.txt").strip() in valid_versions, "VERSION.txt is not V870 PRO MAX/V871")
     require(read("APP_VERSION").strip() in valid_versions, "APP_VERSION is not V870 PRO MAX/V871")
     require(any(f"APP_VERSION = '{candidate}'" in app_py for candidate in valid_versions), "app.py APP_VERSION is not V870 PRO MAX/V871")

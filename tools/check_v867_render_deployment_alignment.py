@@ -16,6 +16,9 @@ V869 = "V869_FULL_COMPANY_REFERENCE_ALIGNMENT_DEEP_CLEAN_VISUAL_REBUILD_FINAL"
 V870 = "V870_REFERENCE_STYLE_MATCH_AND_WORKSPACE_PURGE_PRO_FINAL"
 V870_PRO_MAX = "V870_REFERENCE_STYLE_MATCH_AND_WORKSPACE_PURGE_PRO_MAX_FINAL"
 V871 = "V871_VISIBLE_UI_DEFECTS_EMPTY_SPACE_SCREEN_BY_SCREEN_PRO_MAX_FINAL"
+V872 = "V872_REAL_RENDER_SCREEN_CAPTURE_REFERENCE_FINAL_PASS"
+V873 = "V873_REAL_PRODUCTION_VISUAL_LOGOS_SHARK_HEADER_FINAL"
+V874 = "V874_COMPANY_WIDE_PRODUCT_POLISH_VISUAL_DATA_SENTINEL_FINAL"
 ZIP_NAME = "NeMeSiS_SHARK_PRO_V867_RENDER_DEPLOYMENT_ALIGNMENT_AND_REAL_V866_CERTIFICATION_FINAL_RENDER_READY.zip"
 
 REPORTS = [
@@ -46,14 +49,14 @@ def main() -> None:
     base = read("templates/base.html")
     build = read("tools/build_clean_release.py")
 
-    require(read("VERSION.txt").strip() in {VERSION, V868, V868_PRO, V869, V870, V870_PRO_MAX, V871}, "VERSION.txt is not V867/V871")
-    require(read("APP_VERSION").strip() in {VERSION, V868, V868_PRO, V869, V870, V870_PRO_MAX, V871}, "APP_VERSION is not V867/V871")
-    require(any(f"APP_VERSION = '{candidate}'" in app_py for candidate in {VERSION, V868, V868_PRO, V869, V870, V870_PRO_MAX, V871}), "app.py APP_VERSION is not V867/V871")
+    require(read("VERSION.txt").strip() in {VERSION, V868, V868_PRO, V869, V870, V870_PRO_MAX, V871, V872, V873, V874}, "VERSION.txt is not V867/V873")
+    require(read("APP_VERSION").strip() in {VERSION, V868, V868_PRO, V869, V870, V870_PRO_MAX, V871, V872, V873, V874}, "APP_VERSION is not V867/V873")
+    require(any(f"APP_VERSION = '{candidate}'" in app_py for candidate in {VERSION, V868, V868_PRO, V869, V870, V870_PRO_MAX, V871, V872, V873, V874}), "app.py APP_VERSION is not V867/V873")
     require("has_v867_render_deployment_alignment" in app_py, "runtime V867 flag missing")
     require("has_v866_real_render_visual_telegram_picks_payments" in app_py, "V866 flag missing")
     require('data-v866-shell="true"' in base, "V866 shell marker missing")
     require('data-v867-shell="true"' in base, "V867 shell marker missing")
-    require(VERSION in base or V868 in base or V868_PRO in base or V869 in base or V870 in base or V870_PRO_MAX in base or V871 in base, "base cache/version marker missing V867/V871")
+    require(VERSION in base or V868 in base or V868_PRO in base or V869 in base or V870 in base or V870_PRO_MAX in base or V871 in base or V872 in base or V873 in base or V874 in base, "base cache/version marker missing V867/V874")
     require("sanitize_runtime_error_value" in app_py, "header runtime sanitizer missing")
     require("reports/V867_" in build and "reports/RELEASE_ZIP_AUDIT_V867" in build, "release builder missing V867 reports")
 
@@ -68,8 +71,8 @@ def main() -> None:
     response = client.get("/api/runtime-version")
     require(response.status_code == 200, f"runtime status {response.status_code}")
     payload = response.get_json() or {}
-    require(payload.get("app_version") in {VERSION, V868, V868_PRO, V869, V870, V870_PRO_MAX, V871}, "runtime app_version not V867/V871")
-    require(payload.get("version_txt") in {VERSION, V868, V868_PRO, V869, V870, V870_PRO_MAX, V871}, "runtime version_txt not V867/V871")
+    require(payload.get("app_version") in {VERSION, V868, V868_PRO, V869, V870, V870_PRO_MAX, V871, V872, V873, V874}, "runtime app_version not V867/V873")
+    require(payload.get("version_txt") in {VERSION, V868, V868_PRO, V869, V870, V870_PRO_MAX, V871, V872, V873, V874}, "runtime version_txt not V867/V873")
     require(payload.get("has_v867_render_deployment_alignment") is True, "runtime V867 flag false")
     require(payload.get("has_v866_real_render_visual_telegram_picks_payments") is True, "runtime V866 flag false")
     require("\n" not in str(payload.get("last_error", "")) and "\r" not in str(payload.get("last_error", "")), "runtime last_error contains unsafe newline")

@@ -109,6 +109,14 @@ SAFE_PROVIDER_EMPTY_STATES = {
 }
 
 
+def sanitize_provider_error(value: Any, limit: int = 220) -> str:
+    text = str(value or "")[: int(limit)]
+    text = text.replace("\r", "").replace("\n", "").replace("\\r", "").replace("\\n", "").strip()
+    if "Invalid header value" in text:
+        return "Invalid header value histórico saneado; validar cabeceras tras deploy."
+    return text
+
+
 def get_api_sports_status(db_path: str | None = None) -> dict[str, Any]:
     configured = is_api_sports_configured()
     enabled = configured and _env_bool("ENABLE_API_FOOTBALL_PROVIDER", True)
@@ -158,12 +166,12 @@ def get_api_sports_status(db_path: str | None = None) -> dict[str, Any]:
                 _one_value(conn, "api_football_live_sync_state", "error", "last_sync_at"),
                 _one_value(conn, "api_exploitation_runs", "error_message", "id"),
             ]
-            summary["last_error"] = next((item for item in errors if item), "")
+            summary["last_error"] = sanitize_provider_error(next((item for item in errors if item), ""))
         finally:
             conn.close()
     except Exception as exc:
         summary["ok"] = False
-        summary["last_error"] = str(exc)[:220]
+        summary["last_error"] = sanitize_provider_error(exc)
     return summary
 
 

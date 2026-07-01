@@ -1,4 +1,4 @@
-from pathlib import Path
+﻿from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 BAD = ["lo primo", "Result ados", "EspaÁa", "ESPAÃ", "Ã", "Â", "", "undefined"]

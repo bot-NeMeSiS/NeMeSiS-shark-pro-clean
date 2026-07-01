@@ -1,4 +1,4 @@
-from pathlib import Path
+﻿from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 css = (ROOT / "static" / "app.css").read_text(encoding="utf-8", errors="replace")
 base = (ROOT / "templates" / "base.html").read_text(encoding="utf-8", errors="replace")

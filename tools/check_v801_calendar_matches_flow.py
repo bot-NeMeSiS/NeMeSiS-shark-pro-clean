@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = 'V801_CALENDAR_MATCHES_REFERENCE_FLOW_REAL_DATA_PERFECTION'

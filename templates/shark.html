@@ -4,6 +4,7 @@
 {% set answer = assistant.get('answer') or {} %}
 {% set context = assistant.get('context') or {} %}
 {% set state = context.get('data_state') or {} %}
+{% set openai_ready = assistant.get('openai_configured') %}
 <section class="v845-shark-screen v825-shark-screen" data-v845-template="shark" data-v844-template="shark">
   <div class="v845-shark-hero">
     <div>
@@ -18,9 +19,9 @@
       </div>
     </div>
     <aside class="v845-assistant-status">
-      <span>{{ 'Modo OpenAI configurado' if assistant.get('openai_configured') else 'Modo análisis interno' }}</span>
+      <span>{{ 'Modo OpenAI configurado' if openai_ready else 'Modo seguro activo' }}</span>
       <strong>Responsable</strong>
-      <small>Sin promesas, sin apuestas garantizadas y siempre con riesgo visible.</small>
+      <small>{{ 'Proveedor IA configurado sin exponer clave.' if openai_ready else 'SHARK IA avanzada pendiente de configuración. Análisis limitado sin proveedor IA.' }}</small>
     </aside>
   </div>
 
@@ -50,6 +51,9 @@
         <span><b>Resultado</b>{{ state.get('result') or 'Resultado pendiente' }}</span>
       </div>
       <p>Si falta un dato real, SHARK lo dice y recomienda esperar antes de forzar una entrada.</p>
+      {% if not openai_ready %}
+        <p><strong>Modo seguro activo:</strong> SHARK mantiene fallback interno y no promete IA avanzada hasta configurar el proveedor.</p>
+      {% endif %}
     </aside>
   </section>
 

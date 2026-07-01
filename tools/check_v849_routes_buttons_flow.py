@@ -1,4 +1,4 @@
-from pathlib import Path
+﻿from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 templates="\n".join(p.read_text(encoding="utf-8", errors="replace") for p in (ROOT/"templates").glob("*.html"))
 app=(ROOT/"app.py").read_text(encoding="utf-8", errors="replace")

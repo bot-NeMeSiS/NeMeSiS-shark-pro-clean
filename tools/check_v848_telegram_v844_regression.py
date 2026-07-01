@@ -1,4 +1,4 @@
-from pathlib import Path
+﻿from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 app = (ROOT / "app.py").read_text(encoding="utf-8", errors="replace")
 engine = (ROOT / "engines" / "telegram_quality_filter_engine.py").read_text(encoding="utf-8", errors="replace")

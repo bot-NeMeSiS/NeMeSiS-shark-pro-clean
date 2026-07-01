@@ -1,4 +1,4 @@
-from pathlib import Path
+﻿from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 text = "\n".join(p.read_text(encoding="utf-8", errors="replace") for p in [ROOT / "app.py", ROOT / "engines" / "api_sports_provider_engine.py"])

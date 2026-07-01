@@ -1,4 +1,4 @@
-from pathlib import Path
+﻿from pathlib import Path
 from zipfile import ZipFile
 
 ROOT = Path(__file__).resolve().parents[1]

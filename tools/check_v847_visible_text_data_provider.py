@@ -1,4 +1,4 @@
-from pathlib import Path
+﻿from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 targets = [ROOT / "templates" / "admin_api_sports_audit.html", ROOT / "engines" / "api_sports_provider_engine.py"]

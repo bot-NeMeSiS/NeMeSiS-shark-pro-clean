@@ -18,7 +18,7 @@
   <article class="card"><p class="eyebrow">Memoria</p><h2>{{ shark.memory_total }}</h2><p class="muted">Eventos guardados</p></article>
   <article class="card"><p class="eyebrow">Usuarios</p><h2>{{ shark.users }}</h2><p class="muted">Base cliente</p></article>
   <article class="card"><p class="eyebrow">Picks</p><h2>{{ shark.picks }}</h2><p class="muted">Registros</p></article>
-  <article class="card"><p class="eyebrow">IA</p><h2>{{ 'OpenAI' if v845.get('openai_configured') else 'Interno' }}</h2><p class="muted">Sin exponer claves</p></article>
+  <article class="card"><p class="eyebrow">IA</p><h2>{{ 'OpenAI' if v845.get('openai_configured') else 'Modo seguro' }}</h2><p class="muted">{{ 'Proveedor configurado sin exponer claves' if v845.get('openai_configured') else 'SHARK IA avanzada pendiente de configuración' }}</p></article>
 </section>
 
 <section class="grid cards-2">

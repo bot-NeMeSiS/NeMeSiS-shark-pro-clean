@@ -10907,3 +10907,172 @@ body[data-v871-shell="true"].ns-admin :is(.v853-admin-grid, .admin-grid, .v862-s
   }
 }
 /* V871 VISIBLE UI DEFECTS EMPTY SPACE SCREEN BY SCREEN PRO MAX END */
+
+/* V872 REAL RENDER SCREEN CAPTURE REFERENCE FINAL PASS START */
+body[data-v872-shell="true"] {
+  overflow-x: clip;
+}
+
+body[data-v872-shell="true"] :is(.v799-actions, .actions, .v864-card-actions, .v871-action-row) {
+  max-width: 100%;
+}
+
+body[data-v872-shell="true"] :is(.v799-actions, .actions, .v864-card-actions, .v871-action-row) :is(a, button) {
+  min-width: 0;
+  max-width: 100%;
+}
+
+body[data-v872-shell="true"] :is(.v799-empty, .premium-empty, .v870-empty, .v871-empty-state) {
+  min-height: 0;
+}
+
+body[data-v872-shell="true"] :is(.v799-empty, .premium-empty, .v870-empty, .v871-empty-state) p {
+  max-width: 62ch;
+}
+
+body[data-v872-shell="true"].ns-admin :is(.bottom-nav, .mobile-bottom-nav, .v829-mobile-quick, .v797-session-pills, .shark-widget, .ns-floating-shark) {
+  display: none !important;
+}
+
+@media (max-width: 760px) {
+  body[data-v872-shell="true"] :is(.v799-appbar-actions, .v799-actions, .actions, .v864-card-actions, .v871-action-row) {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  body[data-v872-shell="true"] :is(.v799-card, .v870-panel, .v871-density-card) {
+    max-width: 100%;
+  }
+}
+/* V872 REAL RENDER SCREEN CAPTURE REFERENCE FINAL PASS END */
+
+/* V873 REAL PRODUCTION VISUAL LOGOS SHARK HEADER FINAL START */
+body[data-v873-shell="true"] .crest.crest-image-error,
+body[data-v873-shell="true"] .crest[data-real-logo="false"],
+body[data-v873-shell="true"] .compact-crest.crest-image-error,
+body[data-v873-shell="true"] .compact-crest[data-real-logo="false"] {
+  background:
+    radial-gradient(circle at 30% 18%, rgba(32, 215, 255, .18), transparent 40%),
+    linear-gradient(145deg, #17324e, #08111d) !important;
+  border-color: rgba(32, 215, 255, .22) !important;
+}
+
+body[data-v873-shell="true"] .crest.crest-image-error em,
+body[data-v873-shell="true"] .crest[data-real-logo="false"] em,
+body[data-v873-shell="true"] .compact-crest.crest-image-error em,
+body[data-v873-shell="true"] .compact-crest[data-real-logo="false"] em {
+  display: grid;
+  place-items: center;
+  color: #eefaff;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, .55);
+}
+
+body[data-v873-shell="true"] :is(.v845-assistant-status, .v845-data-state, .v845-mini-card) {
+  border-color: rgba(32, 215, 255, .18);
+}
+
+body[data-v873-shell="true"].ns-admin :is(.bottom-nav, .mobile-bottom-nav, .v829-mobile-quick, .v797-session-pills, .shark-widget, .ns-floating-shark) {
+  display: none !important;
+}
+/* V873 REAL PRODUCTION VISUAL LOGOS SHARK HEADER FINAL END */
+
+/* V874 COMPANY WIDE PRODUCT POLISH VISUAL DATA SENTINEL FINAL START */
+body[data-v874-shell="true"] {
+  overflow-x: clip;
+}
+
+body[data-v874-shell="true"] :is(.v799-appbar, .client-hero, .v862-sentinel-hero, .v853-admin-hero) {
+  min-height: 0;
+  padding-block: clamp(14px, 2.2vw, 26px);
+}
+
+body[data-v874-shell="true"] :is(.v799-card, .card, .premium-card, .v794-admin-panel, .v862-sentinel-card, .v865-workflow-task) {
+  border-color: rgba(147, 197, 253, .14);
+  box-shadow: 0 16px 44px rgba(0, 0, 0, .22);
+}
+
+body[data-v874-shell="true"] :is(.v799-kpi-strip, .v860-kpi-row, .v862-sentinel-summary, .v862-sentinel-grid, .v799-pick-grid, .v799-live-grid) {
+  gap: clamp(9px, 1.3vw, 14px);
+}
+
+body[data-v874-shell="true"] :is(.v799-benefits-grid article, .v862-route-list code, .v862-prompt-list code) {
+  overflow-wrap: anywhere;
+}
+
+body[data-v874-shell="true"] :is(.v799-benefits-grid article i) {
+  min-width: 34px;
+  min-height: 34px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 10px;
+  border: 1px solid rgba(32, 215, 255, .18);
+  background: rgba(32, 215, 255, .08);
+  color: #dff8ff;
+  font-size: .68rem;
+  font-style: normal;
+  font-weight: 900;
+}
+
+body[data-v874-shell="true"] :is(.crest[data-real-logo="false"], .crest.crest-image-error, .compact-crest[data-real-logo="false"], .compact-crest.crest-image-error) {
+  position: relative;
+}
+
+body[data-v874-shell="true"] :is(.crest[data-real-logo="false"], .crest.crest-image-error)::after {
+  content: "Escudo pendiente";
+  position: absolute;
+  left: 50%;
+  top: calc(100% + 4px);
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-size: .55rem;
+  color: #9db2c9;
+  opacity: .72;
+  pointer-events: none;
+}
+
+body[data-v874-shell="true"].ns-admin :is(.bottom-nav, .bottom-nav-clean, .mobile-bottom-nav, .v829-mobile-quick, .v797-session-pills, .shark-widget, .ns-floating-shark, .v825-public-floating-shark) {
+  display: none !important;
+}
+
+body[data-v874-shell="true"].ns-admin :is(.v794-admin-table, .admin-table, table) {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+body[data-v874-shell="true"].ns-admin :is(.v794-admin-table, .admin-table, table) :is(th, td) {
+  padding-block: 8px;
+  vertical-align: top;
+}
+
+body[data-v874-shell="true"] :is(.v845-assistant-status, .v845-data-state, .v799-card:has(.v799-code)) {
+  border-color: rgba(32, 215, 255, .22);
+}
+
+@media (max-width: 760px) {
+  body[data-v874-shell="true"] {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  body[data-v874-shell="true"] :is(.v799-appbar, .client-hero, .v862-sentinel-hero) {
+    padding-block: 12px;
+  }
+
+  body[data-v874-shell="true"] :is(.v799-card, .card, .premium-card, .v794-admin-panel, .v862-sentinel-card) {
+    padding: 12px;
+  }
+
+  body[data-v874-shell="true"] :is(.v799-appbar-actions, .v799-actions, .actions, .v862-sentinel-actions) {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+  }
+
+  body[data-v874-shell="true"] :is(.v799-appbar-actions a, .v799-actions a, .actions a, .v862-sentinel-actions a, .v862-sentinel-actions button) {
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+}
+/* V874 COMPANY WIDE PRODUCT POLISH VISUAL DATA SENTINEL FINAL END */

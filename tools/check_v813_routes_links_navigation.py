@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """V813 route, link and navigation QA for NeMeSiS SHARK PRO."""
 from __future__ import annotations
 

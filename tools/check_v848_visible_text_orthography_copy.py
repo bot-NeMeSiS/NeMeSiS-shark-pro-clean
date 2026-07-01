@@ -1,4 +1,4 @@
-from pathlib import Path
+﻿from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 targets = [ROOT / "templates" / "base.html", ROOT / "templates" / "admin_api_sports_audit.html", ROOT / "static" / "app.css"]
 bad_tokens = ["", "undefined", "lo primo", "proximo ", "analisis ", "competicion ", "conexion ", "membresia ", "senales "]

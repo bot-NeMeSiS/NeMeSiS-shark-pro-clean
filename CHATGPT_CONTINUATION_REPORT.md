@@ -710,3 +710,67 @@ Honestidad:
 - No se afirma pixel-perfect ni Render real.
 
 
+## V872_REAL_RENDER_SCREEN_CAPTURE_REFERENCE_FINAL_PASS
+
+Base local usada: `V871_VISIBLE_UI_DEFECTS_EMPTY_SPACE_SCREEN_BY_SCREEN_PRO_MAX_FINAL`.
+
+Estado Render real consultado: producción en `V871_VISIBLE_UI_DEFECTS_EMPTY_SPACE_SCREEN_BY_SCREEN_PRO_MAX_FINAL`, no V872. Endpoint revisado: `https://bot-apuestas-crgf.onrender.com/api/runtime-version`.
+
+Cambios V872:
+- Versionado local actualizado a `V872_REAL_RENDER_SCREEN_CAPTURE_REFERENCE_FINAL_PASS`.
+- Runtime añade `has_v872_real_screen_capture_reference_pass`.
+- `sanitize_runtime_error_value` sanea el caso `Invalid header value` para no exponer el valor crudo observado en Render.
+- CSS V872 acotado: prevención de overflow móvil, acciones compactas, empty states menos altos y bloqueo defensivo de nav/widget cliente en admin.
+- Reportes V872 creados con separación entre probado en Render, probado local y no probado.
+- Checks V862-V871 aceptan V872 como versión actual preservando sus flags.
+- Nuevo check: `tools/check_v872_real_screen_capture_reference_pass.py`.
+
+Honestidad operativa:
+- No hubo deploy ni push.
+- No se declaró Render V872.
+- No se enviaron Telegram reales.
+- No se probaron pagos reales.
+- Playwright no estuvo disponible por permisos del runtime Node; no se declaró pixel-perfect.
+
+ZIP esperado:
+`release_output/NeMeSiS_SHARK_PRO_V872_REAL_RENDER_SCREEN_CAPTURE_REFERENCE_FINAL_PASS_RENDER_READY.zip`.
+
+## V873_REAL_PRODUCTION_VISUAL_LOGOS_SHARK_HEADER_FINAL
+
+Base real producción consultada: `V871_VISIBLE_UI_DEFECTS_EMPTY_SPACE_SCREEN_BY_SCREEN_PRO_MAX_FINAL`.
+Base local usada: `V872_REAL_RENDER_SCREEN_CAPTURE_REFERENCE_FINAL_PASS`.
+
+Runtime Render observado:
+- Producción sigue en V871, no V873.
+- `last_error` mostraba `Invalid header value ...`.
+- `openai_configured=false`.
+- `team_logo_cache_count=0` y `league_logo_cache_count=0`.
+- API-SPORTS/API-Football, The Odds API, Telegram y automation secret aparecen configurados.
+
+Cambios V873:
+- Versionado local a `V873_REAL_PRODUCTION_VISUAL_LOGOS_SHARK_HEADER_FINAL`.
+- Runtime añade `has_v873_real_production_visual_logos_shark_header`.
+- Se añadió `sanitize_provider_error()` en `engines/api_sports_provider_engine.py`.
+- Runtime añade `last_error_state`, `openai_state`, `shark_ai_mode`, `shark_ai_note`, `logo_cache_state` y `logo_cache_note`.
+- `/shark` y `/admin/shark-ai` comunican modo seguro si OpenAI no está configurado.
+- CSS V873 refuerza fallback premium para logos/escudos cuando no hay cache real.
+- Checks nuevos: `tools/check_v873_invalid_header_root_cause.py` y `tools/check_v873_real_production_visual_logos_shark_header.py`.
+
+Validaciones locales:
+- compile, Jinja, smoke, V862-V873 checks y Sentinel 10.0 con 0 issues.
+- ZIP limpio esperado: `release_output/NeMeSiS_SHARK_PRO_V873_REAL_PRODUCTION_VISUAL_LOGOS_SHARK_HEADER_FINAL_RENDER_READY.zip`.
+
+Honestidad:
+- No se hizo deploy ni push.
+- No se declaró Render V873.
+- No hubo capturas reales nuevas porque el navegador/Playwright no está disponible en este entorno.
+- No se enviaron Telegram reales ni se tocaron pagos/secretos.
+## V874_COMPANY_WIDE_PRODUCT_POLISH_VISUAL_DATA_SENTINEL_FINAL
+
+- Base local: V873_REAL_PRODUCTION_VISUAL_LOGOS_SHARK_HEADER_FINAL.
+- Producción Render observada: V871_VISIBLE_UI_DEFECTS_EMPTY_SPACE_SCREEN_BY_SCREEN_PRO_MAX_FINAL.
+- Se corrigió mojibake visible en Sentinel/Workflow/Telegram/soporte y textos auxiliares de app.py.
+- Se añadió runtime flag `has_v874_company_wide_product_polish`.
+- Se añadió capa CSS V874 controlada para densidad, fallback logos, acciones móviles y admin sin nav cliente.
+- Se preservan OpenAI safe mode, logo fallback, Telegram no filler/dedupe, master tick y runtime/header sanitization.
+- No se hizo deploy, push, Telegram real, pagos reales ni llamadas caras API.

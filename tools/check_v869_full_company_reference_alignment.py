@@ -12,6 +12,9 @@ VERSION = "V869_FULL_COMPANY_REFERENCE_ALIGNMENT_DEEP_CLEAN_VISUAL_REBUILD_FINAL
 V870 = "V870_REFERENCE_STYLE_MATCH_AND_WORKSPACE_PURGE_PRO_FINAL"
 V870_PRO_MAX = "V870_REFERENCE_STYLE_MATCH_AND_WORKSPACE_PURGE_PRO_MAX_FINAL"
 V871 = "V871_VISIBLE_UI_DEFECTS_EMPTY_SPACE_SCREEN_BY_SCREEN_PRO_MAX_FINAL"
+V872 = "V872_REAL_RENDER_SCREEN_CAPTURE_REFERENCE_FINAL_PASS"
+V873 = "V873_REAL_PRODUCTION_VISUAL_LOGOS_SHARK_HEADER_FINAL"
+V874 = "V874_COMPANY_WIDE_PRODUCT_POLISH_VISUAL_DATA_SENTINEL_FINAL"
 ZIP_NAME = "NeMeSiS_SHARK_PRO_V869_FULL_COMPANY_REFERENCE_ALIGNMENT_DEEP_CLEAN_VISUAL_REBUILD_FINAL_RENDER_READY.zip"
 
 REPORTS = [
@@ -67,7 +70,7 @@ def main() -> None:
     audit = read("tools/audit_release_zip.py")
     templates = "\n".join(path.read_text(encoding="utf-8", errors="replace") for path in (ROOT / "templates").glob("*.html"))
 
-    valid_versions = {VERSION, V870, V870_PRO_MAX, V871}
+    valid_versions = {VERSION, V870, V870_PRO_MAX, V871, V872, V873, V874}
     require(read("VERSION.txt").strip() in valid_versions, "VERSION.txt is not V869/V870")
     require(read("APP_VERSION").strip() in valid_versions, "APP_VERSION is not V869/V870")
     require(any(f"APP_VERSION = '{candidate}'" in app_py for candidate in valid_versions), "app.py APP_VERSION is not V869/V870")

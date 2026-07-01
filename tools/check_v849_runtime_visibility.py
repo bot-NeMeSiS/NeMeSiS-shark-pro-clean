@@ -1,4 +1,4 @@
-from pathlib import Path
+﻿from pathlib import Path
 import os, sys, tempfile
 ROOT = Path(__file__).resolve().parents[1]; sys.path.insert(0, str(ROOT))
 os.environ.setdefault("DB_PATH", str(Path(tempfile.gettempdir()) / "nemesis_v849_runtime.db"))

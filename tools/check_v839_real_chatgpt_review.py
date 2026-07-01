@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 from pathlib import Path
 import re, sys, zipfile
 ROOT=Path(__file__).resolve().parents[1]

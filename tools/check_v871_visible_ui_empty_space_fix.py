@@ -9,6 +9,10 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V871_VISIBLE_UI_DEFECTS_EMPTY_SPACE_SCREEN_BY_SCREEN_PRO_MAX_FINAL"
+VERSION_V872 = "V872_REAL_RENDER_SCREEN_CAPTURE_REFERENCE_FINAL_PASS"
+VERSION_V873 = "V873_REAL_PRODUCTION_VISUAL_LOGOS_SHARK_HEADER_FINAL"
+V874 = "V874_COMPANY_WIDE_PRODUCT_POLISH_VISUAL_DATA_SENTINEL_FINAL"
+VERSION_V874 = "V874_COMPANY_WIDE_PRODUCT_POLISH_VISUAL_DATA_SENTINEL_FINAL"
 ZIP_NAME = f"NeMeSiS_SHARK_PRO_{VERSION}_RENDER_READY.zip"
 
 REPORTS = [
@@ -74,10 +78,11 @@ def main() -> None:
     sentinel = read("engines/shark_sentinel_engine.py")
     templates = "\n".join(path.read_text(encoding="utf-8", errors="replace") for path in (ROOT / "templates").glob("*.html"))
 
-    require(read("VERSION.txt").strip() == VERSION, "VERSION.txt is not V871")
-    require(read("APP_VERSION").strip() == VERSION, "APP_VERSION is not V871")
-    require(f"APP_VERSION = '{VERSION}'" in app_py, "app.py APP_VERSION is not V871")
-    require(VERSION in base, "base.html missing V871 cache/version")
+    valid_versions = {VERSION, VERSION_V872, VERSION_V873, VERSION_V874}
+    require(read("VERSION.txt").strip() in valid_versions, "VERSION.txt is not V871/V872")
+    require(read("APP_VERSION").strip() in valid_versions, "APP_VERSION is not V871/V872")
+    require(any(f"APP_VERSION = '{candidate}'" in app_py for candidate in valid_versions), "app.py APP_VERSION is not V871/V872")
+    require(any(candidate in base for candidate in valid_versions), "base.html missing V871/V872/V873 cache/version")
     require('data-v871-shell="true"' in base, "base.html missing data-v871-shell")
     require("has_v871_visible_ui_empty_space_screen_fix" in app_py, "runtime V871 flag missing")
     require("V871 VISIBLE UI DEFECTS EMPTY SPACE SCREEN BY SCREEN PRO MAX START" in css, "CSS V871 marker missing")
@@ -145,8 +150,8 @@ def main() -> None:
     runtime = client.get("/api/runtime-version")
     require(runtime.status_code == 200, f"runtime status {runtime.status_code}")
     payload = runtime.get_json() or {}
-    require(payload.get("app_version") == VERSION, "runtime app_version not V871")
-    require(payload.get("version_txt") == VERSION, "runtime version_txt not V871")
+    require(payload.get("app_version") in valid_versions, "runtime app_version not V871/V872")
+    require(payload.get("version_txt") in valid_versions, "runtime version_txt not V871/V872")
     require(payload.get("has_v871_visible_ui_empty_space_screen_fix") is True, "runtime V871 flag false")
     require(payload.get("has_v870_reference_style_match_workspace_purge") is True, "runtime V870 flag false")
     require(client.get("/api/automation/master-tick?dry_run=1").status_code == 403, "master tick without secret is not 403")
