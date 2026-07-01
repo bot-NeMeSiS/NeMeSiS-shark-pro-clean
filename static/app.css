@@ -11076,3 +11076,144 @@ body[data-v874-shell="true"] :is(.v845-assistant-status, .v845-data-state, .v799
   }
 }
 /* V874 COMPANY WIDE PRODUCT POLISH VISUAL DATA SENTINEL FINAL END */
+
+/* V878 UI LAYER PURGE LEGACY CLEANUP SINGLE SYSTEM START */
+body[data-v878-shell="true"] {
+  --ns-surface: rgba(5, 14, 27, .86);
+  --ns-surface-strong: rgba(7, 20, 38, .94);
+  --ns-line: rgba(135, 210, 255, .16);
+  --ns-line-strong: rgba(32, 215, 255, .32);
+  --ns-text: #eef8ff;
+  --ns-muted: #99aec5;
+  --ns-cyan: #20d7ff;
+  --ns-green: #35f1a0;
+  --ns-gold: #ffd166;
+}
+
+body[data-v878-shell="true"] :is(.ns-card, .ns-admin-card, .ns-command-card, .ns-plan-card, .ns-pick-card, .ns-sentinel-card, .ns-stat) {
+  border: 1px solid var(--ns-line);
+  border-radius: 16px;
+  background: linear-gradient(180deg, var(--ns-surface), rgba(3, 10, 21, .78));
+  box-shadow: 0 18px 52px rgba(0, 0, 0, .26), inset 0 1px 0 rgba(255, 255, 255, .05);
+  color: var(--ns-text);
+}
+
+body[data-v878-shell="true"] :is(.ns-card-compact, .ns-match-row, .ns-pick-card, .ns-sentinel-card) {
+  padding: clamp(10px, 1.4vw, 16px);
+}
+
+body[data-v878-shell="true"] .ns-button,
+body[data-v878-shell="true"] :is(.action-button, .v860-action-btn, .v864-action-button, .v868-pro-action-btn, .v869-reference-action-button, .v871-action-clean) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 36px;
+  max-width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--ns-line);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .045);
+  color: var(--ns-text);
+  font-weight: 800;
+  line-height: 1.05;
+  text-decoration: none;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+body[data-v878-shell="true"] :is(.ns-button-primary, .ns-button-brand, .is-primary, .primary, .nav-cta) {
+  border-color: transparent;
+  background: linear-gradient(135deg, var(--ns-cyan), var(--ns-green));
+  color: #02101d;
+}
+
+body[data-v878-shell="true"] :is(.ns-button-secondary, .ns-button-neutral) {
+  border-color: var(--ns-line-strong);
+  background: rgba(32, 215, 255, .09);
+}
+
+body[data-v878-shell="true"] .ns-button-ghost {
+  background: transparent;
+}
+
+body[data-v878-shell="true"] :is(.ns-chip, .ns-badge, .status-chip, .plan-badge, .v864-score-chip) {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  max-width: 100%;
+  min-height: 26px;
+  padding: 5px 9px;
+  border: 1px solid var(--ns-line);
+  border-radius: 999px;
+  background: rgba(32, 215, 255, .08);
+  color: #dff8ff;
+  font-size: .72rem;
+  font-weight: 900;
+  line-height: 1;
+  overflow-wrap: anywhere;
+}
+
+body[data-v878-shell="true"] .ns-empty {
+  display: grid;
+  gap: 8px;
+  min-height: 0;
+  padding: clamp(14px, 2vw, 20px);
+  border: 1px dashed var(--ns-line-strong);
+  border-radius: 16px;
+  background: rgba(4, 14, 27, .62);
+}
+
+body[data-v878-shell="true"] .ns-section-header,
+body[data-v878-shell="true"] .ns-mobile-section {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  margin-block: 0 12px;
+}
+
+body[data-v878-shell="true"] :is(.ns-section-header h2, .ns-mobile-section h2) {
+  margin: 0;
+  letter-spacing: 0;
+}
+
+body[data-v878-shell="true"] .ns-table,
+body[data-v878-shell="true"].ns-admin table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+body[data-v878-shell="true"].ns-admin :is(.bottom-nav, .bottom-nav-clean, .mobile-bottom-nav, .v828-client-rail, .v829-mobile-quick, .shark-widget, .ns-floating-shark, .v825-public-floating-shark) {
+  display: none !important;
+}
+
+body[data-v878-shell="true"]:not(.ns-admin) :is(.v808-admin-rail, .v808-admin-dock, .v853-admin-command-strip) {
+  display: none !important;
+}
+
+body[data-v878-shell="true"] .v878-deprecated-visual-class {
+  /* Deprecated bridge: kept only for templates not fully migrated yet. New UI must use ns-* classes. */
+}
+
+@media (max-width: 760px) {
+  body[data-v878-shell="true"] {
+    overflow-x: hidden;
+  }
+
+  body[data-v878-shell="true"] :is(.ns-section-header, .ns-mobile-section) {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  body[data-v878-shell="true"] :is(.ns-button, .action-button, .v864-action-button, .v868-pro-action-btn) {
+    min-height: 38px;
+    padding-inline: 11px;
+  }
+
+  body[data-v878-shell="true"] :is(.ns-card, .ns-admin-card, .ns-command-card, .ns-plan-card, .ns-pick-card, .ns-sentinel-card, .ns-stat) {
+    border-radius: 14px;
+  }
+}
+/* V878 UI LAYER PURGE LEGACY CLEANUP SINGLE SYSTEM END */

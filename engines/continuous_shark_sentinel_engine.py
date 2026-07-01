@@ -72,6 +72,23 @@ V864_VISUAL_RULES = [
     "pc_sin_densidad_dashboard",
 ]
 
+V878_LAYER_PURGE_RULES = [
+    "deprecated_visual_classes_in_primary_templates",
+    "duplicate_button_labels",
+    "duplicate_cta_per_card",
+    "client_nav_inside_admin",
+    "admin_nav_inside_client",
+    "floating_shark_duplicate",
+    "macro_label_duplicate",
+    "too_many_actions_per_card",
+    "oversized_empty_states",
+    "mobile_overflow_risk",
+    "stripe_operativo_false_claim",
+    "telegram_filler_copy",
+    "openai_false_active_claim",
+    "broken_logo_without_fallback",
+]
+
 
 def madrid_now() -> str:
     return datetime.now(MADRID_TZ).isoformat(timespec="seconds")
@@ -140,6 +157,7 @@ def build_continuous_sentinel_summary(version: str = "") -> dict[str, Any]:
         "history_recent": [],
         "browser_note": "browser visual QA not available locally unless Playwright is installed and run explicitly",
         "visual_rules_v864": V864_VISUAL_RULES,
+        "visual_rules_v878": V878_LAYER_PURGE_RULES,
         "visual_big_leap_ready": True,
         "improvement_workflow_ready": True,
         "workflow_cycle": "Detectar -> Priorizar -> Proponer -> Aplicar con Codex/Admin -> Revalidar -> Resolver",
@@ -177,6 +195,7 @@ def run_continuous_sentinel_cycle(client: Any, version: str = "", mode: str = "q
             "No se ejecutan acciones peligrosas.",
             "Los hallazgos de texto técnico son candidatos a revisar, no datos inventados.",
             "Reglas visuales V864 revisadas por marcadores estáticos; browser QA es opcional.",
+            "Reglas V878 de purga visual revisadas por contrato ns-* y marcadores deprecated.",
         ],
         "issues_by_severity": by_severity,
         "issues_by_category": by_category,
@@ -197,6 +216,7 @@ def run_continuous_sentinel_cycle(client: Any, version: str = "", mode: str = "q
             "against_commercial_rules": "no fake data and no irresponsible betting claims checked",
         },
         "visual_rules_v864": V864_VISUAL_RULES,
+        "visual_rules_v878": V878_LAYER_PURGE_RULES,
         "visual_big_leap_ready": True,
         "improvement_workflow_ready": True,
         "no_code_writes": True,

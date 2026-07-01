@@ -1,13 +1,13 @@
-{% macro status_chip(label, tone='neutral') -%}
-<span class="v860-status-chip v864-status-chip v868-pro-status-chip status-chip v860-tone-{{ tone }}">{{ label }}</span>
+﻿{% macro status_chip(label, tone='neutral') -%}
+<span class="ns-chip ns-badge v878-ui-current v860-status-chip v864-status-chip v868-pro-status-chip status-chip v860-tone-{{ tone }}">{{ label }}</span>
 {%- endmacro %}
 
 {% macro action_button(label, href, tone='neutral', aria_label='') -%}
-<a class="v860-action-btn v864-action-button v868-pro-action-btn action-button v871-action-clean v860-tone-{{ tone }}" href="{{ href }}" aria-label="{{ aria_label or label }}">{{ label }}</a>
+<a class="ns-button ns-button-{{ tone }} v878-ui-current v860-action-btn v864-action-button v868-pro-action-btn action-button v871-action-clean v860-tone-{{ tone }}" href="{{ href }}" aria-label="{{ aria_label or label }}">{{ label }}</a>
 {%- endmacro %}
 
 {% macro stat_card(title, value, detail='', tone='neutral', href='') -%}
-{% if href %}<a class="v860-stat-card v864-stat-card v868-pro-stat-card metric-card v860-tone-{{ tone }}" href="{{ href }}">{% else %}<article class="v860-stat-card v864-stat-card v868-pro-stat-card metric-card v860-tone-{{ tone }}">{% endif %}
+{% if href %}<a class="ns-card ns-stat v878-ui-current v860-stat-card v864-stat-card v868-pro-stat-card metric-card v860-tone-{{ tone }}" href="{{ href }}">{% else %}<article class="ns-card ns-stat v878-ui-current v860-stat-card v864-stat-card v868-pro-stat-card metric-card v860-tone-{{ tone }}">{% endif %}
   <span>{{ title }}</span>
   <strong>{{ value }}</strong>
   {% if detail %}<small>{{ detail }}</small>{% endif %}
@@ -15,15 +15,15 @@
 {%- endmacro %}
 
 {% macro empty_state(title, text='', primary_label='', primary_href='', tone='neutral') -%}
-<div class="v860-empty-state v864-empty-state v868-pro-empty-state empty-state v860-tone-{{ tone }}">
+<div class="ns-empty v878-ui-current v860-empty-state v864-empty-state v868-pro-empty-state empty-state v860-tone-{{ tone }}">
   <strong>{{ title }}</strong>
   {% if text %}<p>{{ text }}</p>{% endif %}
-  {% if primary_label and primary_href %}<a class="v860-action-btn v864-action-button v868-pro-action-btn v871-action-clean v860-tone-brand" href="{{ primary_href }}" aria-label="{{ primary_label }}">{{ primary_label }}</a>{% endif %}
+  {% if primary_label and primary_href %}<a class="ns-button ns-button-primary v878-ui-current v860-action-btn v864-action-button v868-pro-action-btn v871-action-clean v860-tone-brand" href="{{ primary_href }}" aria-label="{{ primary_label }}">{{ primary_label }}</a>{% endif %}
 </div>
 {%- endmacro %}
 
 {% macro board_card(title, value='', detail='', tone='neutral') -%}
-<article class="v860-board-card v864-command-center-card v868-pro-board-card command-center-card v860-tone-{{ tone }}">
+<article class="ns-card ns-command-card v878-ui-current v860-board-card v864-command-center-card v868-pro-board-card command-center-card v860-tone-{{ tone }}">
   <span>{{ title }}</span>
   {% if value %}<strong>{{ value }}</strong>{% endif %}
   {% if detail %}<small>{{ detail }}</small>{% endif %}
@@ -31,44 +31,44 @@
 {%- endmacro %}
 
 {% macro plan_badge(label, tone='neutral') -%}
-<span class="v860-plan-badge v864-plan-badge v868-pro-plan-badge plan-badge v860-tone-{{ tone }}">{{ label }}</span>
+<span class="ns-badge ns-plan-badge v878-ui-current v860-plan-badge v864-plan-badge v868-pro-plan-badge plan-badge v860-tone-{{ tone }}">{{ label }}</span>
 {%- endmacro %}
 
 {% macro section_header(title, subtitle='', action_label='', action_href='') -%}
-<header class="v864-section-header v868-pro-section-header section-header">
+<header class="ns-section-header v878-ui-current v864-section-header v868-pro-section-header section-header">
   <div>
     <h2>{{ title }}</h2>
     {% if subtitle %}<p>{{ subtitle }}</p>{% endif %}
   </div>
-  {% if action_label and action_href %}<a class="v864-action-button v868-pro-action-btn v871-action-clean" href="{{ action_href }}" aria-label="{{ action_label }}">{{ action_label }}</a>{% endif %}
+  {% if action_label and action_href %}<a class="ns-button ns-button-secondary v878-ui-current v864-action-button v868-pro-action-btn v871-action-clean" href="{{ action_href }}" aria-label="{{ action_label }}">{{ action_label }}</a>{% endif %}
 </header>
 {%- endmacro %}
 
 {% macro match_row(home, away, status='Resultado pendiente', score='', href='', tone='neutral') -%}
-<article class="v864-match-row v868-pro-match-row match-row v860-tone-{{ tone }}">
+<article class="ns-card ns-match-row v878-ui-current v864-match-row v868-pro-match-row match-row v860-tone-{{ tone }}">
   <div><strong>{{ home }}</strong><small>{{ status }}</small></div>
   <span class="v864-score-chip score-chip">{{ score or 'Pendiente' }}</span>
-  <div><strong>{{ away }}</strong>{% if href %}<a href="{{ href }}" aria-label="Ver partido {{ home }} vs {{ away }}">Ver partido</a>{% endif %}</div>
+  <div><strong>{{ away }}</strong>{% if href %}<a class="ns-button ns-button-secondary v878-ui-current" href="{{ href }}" aria-label="Ver partido {{ home }} vs {{ away }}">Ver partido</a>{% endif %}</div>
 </article>
 {%- endmacro %}
 
 {% macro pick_card(title, status='Pick en revisión', market='Cuotas pendientes', href='', shark_href='/shark') -%}
-<article class="v864-pick-card v868-pro-pick-card pick-card">
+<article class="ns-card ns-pick-card v878-ui-current v864-pick-card v868-pro-pick-card pick-card">
   <div>
-    <span class="v864-status-chip v868-pro-status-chip status-chip">{{ status }}</span>
+    <span class="ns-chip ns-badge v878-ui-current v864-status-chip v868-pro-status-chip status-chip">{{ status }}</span>
     <h3>{{ title }}</h3>
     <p>{{ market }}</p>
   </div>
   <div class="v864-card-actions">
-    {% if href %}<a class="v864-action-button v868-pro-action-btn v871-action-clean" href="{{ href }}" aria-label="Ver partido de {{ title }}">Ver partido</a>{% endif %}
-    <a class="v864-action-button v868-pro-action-btn v871-action-clean is-primary" href="{{ shark_href }}" aria-label="Abrir SHARK para {{ title }}">Abrir SHARK</a>
+    {% if href %}<a class="ns-button ns-button-secondary v878-ui-current v864-action-button v868-pro-action-btn v871-action-clean" href="{{ href }}" aria-label="Ver partido de {{ title }}">Ver partido</a>{% endif %}
+    <a class="ns-button ns-button-primary v878-ui-current v864-action-button v868-pro-action-btn v871-action-clean is-primary" href="{{ shark_href }}" aria-label="Abrir SHARK para {{ title }}">Abrir SHARK</a>
   </div>
 </article>
 {%- endmacro %}
 
 {% macro sentinel_issue_card(title, severity='info', route='', action='Revisar') -%}
-<article class="v864-sentinel-issue-card v868-pro-sentinel-issue-card v862-sentinel-card">
-  <span class="v864-status-chip v868-pro-status-chip status-chip">{{ severity }}</span>
+<article class="ns-card ns-sentinel-card v878-ui-current v864-sentinel-issue-card v868-pro-sentinel-issue-card v862-sentinel-card">
+  <span class="ns-chip ns-badge v878-ui-current v864-status-chip v868-pro-status-chip status-chip">{{ severity }}</span>
   <h3>{{ title }}</h3>
   {% if route %}<code>{{ route }}</code>{% endif %}
   <p>{{ action }}</p>
@@ -76,11 +76,11 @@
 {%- endmacro %}
 
 {% macro reference_action_button(label, href, tone='neutral', aria_label='') -%}
-<a class="v869-reference-action-button v868-pro-action-btn v864-action-button v871-action-clean v860-tone-{{ tone }}" href="{{ href }}" aria-label="{{ aria_label or label }}">{{ label }}</a>
+<a class="ns-button ns-button-{{ tone }} v878-ui-current v869-reference-action-button v878-deprecated-visual-class v868-pro-action-btn v864-action-button v871-action-clean v860-tone-{{ tone }}" href="{{ href }}" aria-label="{{ aria_label or label }}">{{ label }}</a>
 {%- endmacro %}
 
 {% macro reference_stat_tile(title, value, detail='', tone='neutral') -%}
-<article class="v869-reference-stat-tile v868-pro-stat-card v860-stat-card v860-tone-{{ tone }}">
+<article class="ns-card ns-stat v878-ui-current v869-reference-stat-tile v878-deprecated-visual-class v868-pro-stat-card v860-stat-card v860-tone-{{ tone }}">
   <span>{{ title }}</span>
   <strong>{{ value }}</strong>
   {% if detail %}<small>{{ detail }}</small>{% endif %}
@@ -96,7 +96,7 @@
 {%- endmacro %}
 
 {% macro reference_dashboard_card(title, detail='', action_label='', action_href='') -%}
-<article class="v869-reference-dashboard-card v868-pro-board-card">
+<article class="ns-card ns-command-card v878-ui-current v869-reference-dashboard-card v878-deprecated-visual-class v868-pro-board-card">
   <header class="v869-reference-card-head">
     <h3>{{ title }}</h3>
     {% if action_label and action_href %}{{ reference_action_button(action_label, action_href, 'brand') }}{% endif %}
@@ -106,7 +106,7 @@
 {%- endmacro %}
 
 {% macro reference_match_row(home, away, status='Resultado pendiente', score='', href='', tone='neutral') -%}
-<article class="v869-reference-match-row v868-pro-match-row v864-match-row v860-tone-{{ tone }}">
+<article class="ns-card ns-match-row v878-ui-current v869-reference-match-row v878-deprecated-visual-class v868-pro-match-row v864-match-row v860-tone-{{ tone }}">
   <div><strong>{{ home }}</strong><small>{{ status }}</small></div>
   <span class="v864-score-chip score-chip">{{ score or 'Pendiente' }}</span>
   <div><strong>{{ away }}</strong>{% if href %}{{ reference_action_button('Ver partido', href, 'brand', 'Ver partido ' ~ home ~ ' vs ' ~ away) }}{% endif %}</div>
@@ -114,9 +114,9 @@
 {%- endmacro %}
 
 {% macro reference_pick_card(title, status='Pick en revisión', market='Cuotas pendientes', href='', shark_href='/shark') -%}
-<article class="v869-reference-pick-card v868-pro-pick-card v864-pick-card">
+<article class="ns-card ns-pick-card v878-ui-current v869-reference-pick-card v878-deprecated-visual-class v868-pro-pick-card v864-pick-card">
   <div>
-    <span class="v868-pro-status-chip v864-status-chip status-chip">{{ status }}</span>
+    <span class="ns-chip ns-badge v878-ui-current v868-pro-status-chip v864-status-chip status-chip">{{ status }}</span>
     <h3>{{ title }}</h3>
     <p>{{ market }}</p>
   </div>
@@ -128,7 +128,7 @@
 {%- endmacro %}
 
 {% macro reference_admin_status_card(title, value, detail='', tone='neutral') -%}
-<article class="v869-reference-admin-status-card v868-pro-board-card v860-tone-{{ tone }}">
+<article class="ns-card ns-admin-card v878-ui-current v869-reference-admin-status-card v878-deprecated-visual-class v868-pro-board-card v860-tone-{{ tone }}">
   <span>{{ title }}</span>
   <strong>{{ value }}</strong>
   {% if detail %}<small>{{ detail }}</small>{% endif %}
@@ -136,8 +136,8 @@
 {%- endmacro %}
 
 {% macro reference_sentinel_issue_card(title, severity='info', route='', action='Revisar') -%}
-<article class="v869-reference-sentinel-issue-card v868-pro-sentinel-issue-card v862-sentinel-card">
-  <span class="v868-pro-status-chip v864-status-chip status-chip">{{ severity }}</span>
+<article class="ns-card ns-sentinel-card v878-ui-current v869-reference-sentinel-issue-card v878-deprecated-visual-class v868-pro-sentinel-issue-card v862-sentinel-card">
+  <span class="ns-chip ns-badge v878-ui-current v868-pro-status-chip v864-status-chip status-chip">{{ severity }}</span>
   <h3>{{ title }}</h3>
   {% if route %}<code>{{ route }}</code>{% endif %}
   <p>{{ action }}</p>
@@ -145,7 +145,7 @@
 {%- endmacro %}
 
 {% macro reference_plan_card(name, price, detail='', tone='neutral', action_label='Ver plan', action_href='/profile') -%}
-<article class="v869-reference-plan-card v868-pro-board-card v860-tone-{{ tone }}">
+<article class="ns-card ns-plan-card v878-ui-current v869-reference-plan-card v878-deprecated-visual-class v868-pro-board-card v860-tone-{{ tone }}">
   {{ plan_badge(name, tone) }}
   <strong>{{ price }}</strong>
   {% if detail %}<p>{{ detail }}</p>{% endif %}
@@ -154,7 +154,7 @@
 {%- endmacro %}
 
 {% macro reference_empty_state(title, text='', primary_label='', primary_href='') -%}
-<div class="v869-reference-empty-state v868-pro-empty-state v860-empty-state">
+<div class="ns-empty v878-ui-current v869-reference-empty-state v878-deprecated-visual-class v868-pro-empty-state v860-empty-state">
   <strong>{{ title }}</strong>
   {% if text %}<p>{{ text }}</p>{% endif %}
   {% if primary_label and primary_href %}{{ reference_action_button(primary_label, primary_href, 'brand') }}{% endif %}
@@ -162,11 +162,11 @@
 {%- endmacro %}
 
 {% macro reference_sidebar_item(label, href, active=false) -%}
-<a class="v869-reference-sidebar-item{% if active %} is-active{% endif %}" href="{{ href }}">{{ label }}</a>
+<a class="ns-button ns-button-ghost v878-ui-current v869-reference-sidebar-item v878-deprecated-visual-class{% if active %} is-active{% endif %}" href="{{ href }}">{{ label }}</a>
 {%- endmacro %}
 
 {% macro reference_mobile_section(title, subtitle='') -%}
-<header class="v869-reference-mobile-section v868-pro-section-header">
+<header class="ns-mobile-section v878-ui-current v869-reference-mobile-section v878-deprecated-visual-class v868-pro-section-header">
   <h2>{{ title }}</h2>
   {% if subtitle %}<p>{{ subtitle }}</p>{% endif %}
 </header>
@@ -177,7 +177,7 @@
 {%- endmacro %}
 
 {% macro v870_reference_widget(title, value='Sin datos reales', detail='Requiere sincronización real', tone='neutral') -%}
-<article class="v870-reference-widget v860-tone-{{ tone }}">
+<article class="ns-card ns-card-compact v878-ui-current v870-reference-widget v878-deprecated-visual-class v860-tone-{{ tone }}">
   <span>{{ title }}</span>
   <strong>{{ value }}</strong>
   <small>{{ detail }}</small>
@@ -208,3 +208,4 @@
   {% endfor %}
 </section>
 {%- endmacro %}
+

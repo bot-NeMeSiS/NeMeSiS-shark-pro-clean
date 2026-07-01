@@ -807,3 +807,15 @@ Honestidad:
 - Nuevo check: `tools/check_v876_render_version_alignment.py`.
 - Acción exacta pendiente: subir contenido descomprimido del ZIP V876 a la raíz GitHub correcta, confirmar `VERSION.txt`/`app.py`, ejecutar `Clear build cache & deploy` en Render y volver a consultar `/api/runtime-version`.
 - No se hizo deploy, push, Telegram real, pagos reales ni llamadas caras API.
+
+## V878_UI_LAYER_PURGE_LEGACY_CLEANUP_SINGLE_SYSTEM_FINAL
+
+- Base local: `V876_RENDER_VERSION_ALIGNMENT_AND_FINAL_VISUAL_DEPLOY_CHECK_FINAL`.
+- Objetivo: limpiar capas visuales mezcladas y consolidar un sistema `ns-*` sin crear features nuevas.
+- Se actualizo `templates/partials/ui_components.html` para que las macros principales emitan `ns-card`, `ns-button`, `ns-chip`, `ns-badge`, `ns-empty`, `ns-match-row`, `ns-pick-card`, `ns-admin-card`, `ns-command-card`, `ns-plan-card`, `ns-sentinel-card` y `ns-mobile-section`.
+- Las macros `reference_*` quedan como puente de compatibilidad con `v878-deprecated-visual-class`.
+- Se añadio bloque CSS `V878 UI LAYER PURGE LEGACY CLEANUP SINGLE SYSTEM` para normalizar botones, cards, chips, badges, tablas y empty states.
+- Se añadieron reglas V878 a `continuous_shark_sentinel_engine.py`.
+- Nuevo check: `tools/check_v878_ui_layer_purge_single_system.py`.
+- No se borraron templates, rutas, motores ni CSS legacy a ciegas. La purga destructiva queda pendiente de browser QA real.
+- No se hizo deploy, push, Telegram real, pagos reales ni llamadas caras API.
