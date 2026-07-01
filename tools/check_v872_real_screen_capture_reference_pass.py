@@ -13,6 +13,7 @@ VERSION = "V872_REAL_RENDER_SCREEN_CAPTURE_REFERENCE_FINAL_PASS"
 VERSION_V873 = "V873_REAL_PRODUCTION_VISUAL_LOGOS_SHARK_HEADER_FINAL"
 V874 = "V874_COMPANY_WIDE_PRODUCT_POLISH_VISUAL_DATA_SENTINEL_FINAL"
 VERSION_V874 = "V874_COMPANY_WIDE_PRODUCT_POLISH_VISUAL_DATA_SENTINEL_FINAL"
+VERSION_V875 = "V875_REAL_PRODUCT_READINESS_RENDER_VISUAL_REVENUE_FINAL"
 ZIP_NAME = f"NeMeSiS_SHARK_PRO_{VERSION}_RENDER_READY.zip"
 
 REPORTS = [
@@ -73,11 +74,11 @@ def main() -> None:
     telegram = read("templates/telegram.html")
     templates = "\n".join(path.read_text(encoding="utf-8", errors="replace") for path in (ROOT / "templates").glob("*.html"))
 
-    valid_versions = {VERSION, VERSION_V873, VERSION_V874}
+    valid_versions = {VERSION, VERSION_V873, VERSION_V874, VERSION_V875}
     require(read("VERSION.txt").strip() in valid_versions, "VERSION.txt is not V872/V873")
     require(read("APP_VERSION").strip() in valid_versions, "APP_VERSION is not V872/V873")
     require(any(f"APP_VERSION = '{candidate}'" in app_py for candidate in valid_versions), "app.py APP_VERSION is not V872/V873")
-    require(VERSION in base or VERSION_V873 in base or VERSION_V874 in base, "base.html missing V872/V873/V874 cache/version")
+    require(VERSION in base or VERSION_V873 in base or VERSION_V874 in base or VERSION_V875 in base, "base.html missing V872/V873/V874 cache/version")
     require('data-v872-shell="true"' in base, "base.html missing data-v872-shell")
     require("NEMESIS V872 REAL RENDER SCREEN CAPTURE REFERENCE FINAL PASS ACTIVE" in base, "base.html missing V872 comment")
     require("has_v872_real_screen_capture_reference_pass" in app_py, "runtime V872 flag missing")
@@ -156,3 +157,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+

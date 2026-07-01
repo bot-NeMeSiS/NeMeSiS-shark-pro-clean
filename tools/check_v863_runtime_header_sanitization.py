@@ -19,6 +19,7 @@ V871 = "V871_VISIBLE_UI_DEFECTS_EMPTY_SPACE_SCREEN_BY_SCREEN_PRO_MAX_FINAL"
 V872 = "V872_REAL_RENDER_SCREEN_CAPTURE_REFERENCE_FINAL_PASS"
 V873 = "V873_REAL_PRODUCTION_VISUAL_LOGOS_SHARK_HEADER_FINAL"
 V874 = "V874_COMPANY_WIDE_PRODUCT_POLISH_VISUAL_DATA_SENTINEL_FINAL"
+V875 = "V875_REAL_PRODUCT_READINESS_RENDER_VISUAL_REVENUE_FINAL"
 
 
 def fail(message: str) -> None:
@@ -53,7 +54,7 @@ def main() -> None:
             fail(f"header {key} contains a line break")
 
     payload = response.get_json() or json.loads(response.get_data(as_text=True))
-    if payload.get("app_version") not in {VERSION, NEXT_VERSION, NEXT_NEXT_VERSION, V866, V867, V868, V868_PRO, V869, V870, V870_PRO_MAX, V871, V872, V873, V874}:
+    if payload.get("app_version") not in {VERSION, NEXT_VERSION, NEXT_NEXT_VERSION, V866, V867, V868, V868_PRO, V869, V870, V870_PRO_MAX, V871, V872, V873, V874, V875}:
         fail("runtime app_version is not V863/V864/V865/V866/V867/V868")
     if payload.get("has_v863_real_world_certification") is not True:
         fail("runtime flag has_v863_real_world_certification is not true")
@@ -66,5 +67,6 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
 
 

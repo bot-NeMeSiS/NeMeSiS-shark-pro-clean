@@ -19,6 +19,7 @@ V871 = "V871_VISIBLE_UI_DEFECTS_EMPTY_SPACE_SCREEN_BY_SCREEN_PRO_MAX_FINAL"
 V872 = "V872_REAL_RENDER_SCREEN_CAPTURE_REFERENCE_FINAL_PASS"
 V873 = "V873_REAL_PRODUCTION_VISUAL_LOGOS_SHARK_HEADER_FINAL"
 V874 = "V874_COMPANY_WIDE_PRODUCT_POLISH_VISUAL_DATA_SENTINEL_FINAL"
+V875 = "V875_REAL_PRODUCT_READINESS_RENDER_VISUAL_REVENUE_FINAL"
 
 
 def read(path: str) -> str:
@@ -39,13 +40,13 @@ def main() -> None:
     engine = read("engines/continuous_shark_sentinel_engine.py")
     template = read("templates/admin_continuous_sentinel.html")
 
-    ok(version_txt in {VERSION, NEXT_VERSION, V864, V865, V866, V867, V868, V868_PRO, V869, V870, V870_PRO_MAX, V871, V872, V873, V874}, "VERSION.txt V862 continuous/V863/V873", failures)
-    ok(any(f"APP_VERSION = '{candidate}'" in app_py for candidate in {VERSION, NEXT_VERSION, V864, V865, V866, V867, V868, V868_PRO, V869, V870, V870_PRO_MAX, V871, V872, V873, V874}), "APP_VERSION V862 continuous/V863/V873", failures)
+    ok(version_txt in {VERSION, NEXT_VERSION, V864, V865, V866, V867, V868, V868_PRO, V869, V870, V870_PRO_MAX, V871, V872, V873, V874, V875}, "VERSION.txt V862 continuous/V863/V873", failures)
+    ok(any(f"APP_VERSION = '{candidate}'" in app_py for candidate in {VERSION, NEXT_VERSION, V864, V865, V866, V867, V868, V868_PRO, V869, V870, V870_PRO_MAX, V871, V872, V873, V874, V875}), "APP_VERSION V862 continuous/V863/V873", failures)
     ok('data-v862-shell="true"' in base, "data-v862-shell", failures)
     ok("NEMESIS V862 CONTINUOUS SHARK SENTINEL AUTO IMPROVEMENT LOOP ACTIVE" in base, "comentario V862 continuous", failures)
     ok("V862 CONTINUOUS SHARK SENTINEL AUTO IMPROVEMENT LOOP START" in css, "CSS V862 continuous start", failures)
     ok("V862 CONTINUOUS SHARK SENTINEL AUTO IMPROVEMENT LOOP END" in css, "CSS V862 continuous end", failures)
-    ok("V862_CONTINUOUS_SHARK_SENTINEL_AUTO_IMPROVEMENT_LOOP_FINAL" in base or "V863_REAL_WORLD_FULL_APP_CERTIFICATION_MAX_QA_FINAL" in base or "V864_PC_MOBILE_VISUAL_REFERENCE_BIG_LEAP_REAL_SCREEN_QA_FINAL" in base or "V865_SENTINEL_ISSUE_TO_IMPROVEMENT_WORKFLOW_FINAL" in base or "V866_REAL_RENDER_VISUAL_TELEGRAM_PICKS_PAYMENTS_HOTFIX_QA_FINAL" in base or "V867_RENDER_DEPLOYMENT_ALIGNMENT_AND_REAL_V866_CERTIFICATION_FINAL" in base or V868 in base or V868_PRO in base or V869 in base or V870 in base or V870_PRO_MAX in base or V871 in base or V872 in base or V873 in base or V874 in base, "cache CSS V862 continuous/V863/V874", failures)
+    ok("V862_CONTINUOUS_SHARK_SENTINEL_AUTO_IMPROVEMENT_LOOP_FINAL" in base or "V863_REAL_WORLD_FULL_APP_CERTIFICATION_MAX_QA_FINAL" in base or "V864_PC_MOBILE_VISUAL_REFERENCE_BIG_LEAP_REAL_SCREEN_QA_FINAL" in base or "V865_SENTINEL_ISSUE_TO_IMPROVEMENT_WORKFLOW_FINAL" in base or "V866_REAL_RENDER_VISUAL_TELEGRAM_PICKS_PAYMENTS_HOTFIX_QA_FINAL" in base or "V867_RENDER_DEPLOYMENT_ALIGNMENT_AND_REAL_V866_CERTIFICATION_FINAL" in base or V868 in base or V868_PRO in base or V869 in base or V870 in base or V870_PRO_MAX in base or V871 in base or V872 in base or V873 in base or V874 in base or V875 in base, "cache CSS V862 continuous/V863/V874", failures)
 
     for path in [
         "engines/continuous_shark_sentinel_engine.py",
@@ -137,5 +138,6 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
 
 

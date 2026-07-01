@@ -16,6 +16,7 @@ V871 = "V871_VISIBLE_UI_DEFECTS_EMPTY_SPACE_SCREEN_BY_SCREEN_PRO_MAX_FINAL"
 V872 = "V872_REAL_RENDER_SCREEN_CAPTURE_REFERENCE_FINAL_PASS"
 V873 = "V873_REAL_PRODUCTION_VISUAL_LOGOS_SHARK_HEADER_FINAL"
 V874 = "V874_COMPANY_WIDE_PRODUCT_POLISH_VISUAL_DATA_SENTINEL_FINAL"
+V875 = "V875_REAL_PRODUCT_READINESS_RENDER_VISUAL_REVENUE_FINAL"
 
 REPORTS = [
     "V866_REAL_RENDER_VISUAL_TELEGRAM_PICKS_PAYMENTS_HOTFIX_QA_REPORT.md",
@@ -51,9 +52,9 @@ def main() -> None:
     build = read("tools/build_clean_release.py")
     combined_templates = "\n".join(path.read_text(encoding="utf-8", errors="replace") for path in (ROOT / "templates").glob("*.html"))
 
-    require(version_txt in {VERSION, V867, V868, V868_PRO, V869, V870, V870_PRO_MAX, V871, V872, V873, V874}, "VERSION.txt not V866/V867/V873")
-    require(app_version in {VERSION, V867, V868, V868_PRO, V869, V870, V870_PRO_MAX, V871, V872, V873, V874}, "APP_VERSION not V866/V867/V873")
-    require(any(f"APP_VERSION = '{candidate}'" in app_py for candidate in {VERSION, V867, V868, V868_PRO, V869, V870, V870_PRO_MAX, V871, V872, V873, V874}), "app.py APP_VERSION not V866/V867/V873")
+    require(version_txt in {VERSION, V867, V868, V868_PRO, V869, V870, V870_PRO_MAX, V871, V872, V873, V874, V875}, "VERSION.txt not V866/V867/V873")
+    require(app_version in {VERSION, V867, V868, V868_PRO, V869, V870, V870_PRO_MAX, V871, V872, V873, V874, V875}, "APP_VERSION not V866/V867/V873")
+    require(any(f"APP_VERSION = '{candidate}'" in app_py for candidate in {VERSION, V867, V868, V868_PRO, V869, V870, V870_PRO_MAX, V871, V872, V873, V874, V875}), "app.py APP_VERSION not V866/V867/V873")
     require('data-v866-shell="true"' in base, "base missing V866 shell")
     require("has_v866_real_render_visual_telegram_picks_payments" in app_py, "runtime V866 flag missing")
     require("V866 REAL RENDER VISUAL TELEGRAM PICKS PAYMENTS HOTFIX QA START" in css, "CSS V866 marker missing")
@@ -100,5 +101,6 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
 
 

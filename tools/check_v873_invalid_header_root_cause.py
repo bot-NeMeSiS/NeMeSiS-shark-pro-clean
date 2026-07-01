@@ -9,6 +9,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V873_REAL_PRODUCTION_VISUAL_LOGOS_SHARK_HEADER_FINAL"
 VERSION_V874 = "V874_COMPANY_WIDE_PRODUCT_POLISH_VISUAL_DATA_SENTINEL_FINAL"
+VERSION_V875 = "V875_REAL_PRODUCT_READINESS_RENDER_VISUAL_REVENUE_FINAL"
 
 
 def read(path: str) -> str:
@@ -55,7 +56,7 @@ def main() -> None:
         require("\n" not in str(value) and "\r" not in str(value), f"unsafe header value in {key}")
     payload = response.get_json() or json.loads(response.get_data(as_text=True))
     serialized = json.dumps(payload, ensure_ascii=False)
-    require(payload.get("app_version") in {VERSION, VERSION_V874}, "runtime app_version not V873/V874")
+    require(payload.get("app_version") in {VERSION, VERSION_V874, VERSION_V875}, "runtime app_version not V873/V874")
     require(payload.get("has_v873_real_production_visual_logos_shark_header") is True, "runtime V873 flag false")
     require("Invalid header value b'" not in serialized, "runtime exposes raw invalid-header value")
     require(payload.get("static_css_cache_busting") is True, "CSS cache busting false")
@@ -64,3 +65,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+

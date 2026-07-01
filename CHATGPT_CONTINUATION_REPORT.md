@@ -774,3 +774,23 @@ Honestidad:
 - Se añadió capa CSS V874 controlada para densidad, fallback logos, acciones móviles y admin sin nav cliente.
 - Se preservan OpenAI safe mode, logo fallback, Telegram no filler/dedupe, master tick y runtime/header sanitization.
 - No se hizo deploy, push, Telegram real, pagos reales ni llamadas caras API.
+## V875_REAL_RENDER_V874_PRODUCTION_VISUAL_AND_OPERATIONS_CERTIFICATION_FINAL
+
+- Base local: V874_COMPANY_WIDE_PRODUCT_POLISH_VISUAL_DATA_SENTINEL_FINAL.
+- Runtime Render real consultado: producción está en V855, no en V874.
+- Se documentó blocker de despliegue en `reports/V875_RENDER_VERSION_MISMATCH_BLOCKER.md`.
+- No se certificó visual V874/V875 en producción porque el deploy manual está pendiente.
+- Navegador interno no disponible para capturas: `Browser is not available: iab`.
+- Se añadió flag runtime `has_v875_real_render_v874_certification`.
+- No se hizo deploy, push, Telegram real, pagos reales ni llamadas caras API.
+
+## V875_REAL_PRODUCT_READINESS_RENDER_VISUAL_REVENUE_FINAL
+
+- Esta V875 sustituye el entregable V875 anterior como versión final solicitada por el usuario.
+- Base declarada: `V874_COMPANY_WIDE_PRODUCT_POLISH_VISUAL_DATA_SENTINEL_FINAL`; el workspace ya contenía una V875 de certificación y se adaptó sin borrar evidencia.
+- Runtime Render real consultado: producción sigue en `V855_FULL_ECOSYSTEM_REFERENCE_REBUILD_CLIENT_ADMIN_MEMBERSHIPS_FINAL`, no en V874/V875.
+- Se mantiene como blocker: no se puede certificar visual ni operaciones V874/V875 en producción hasta deploy manual.
+- Se añadió runtime flag `has_v875_real_product_readiness`.
+- Se crearon reportes V875 de readiness: Render, cliente, móvil, admin, SHARK/OpenAI, logos, picks/live, Telegram, pagos/membresías, Sentinel y próximos pasos.
+- Nuevo check: `tools/check_v875_real_product_readiness.py`.
+- No se hizo deploy, push, Telegram real, pagos reales ni llamadas caras API.

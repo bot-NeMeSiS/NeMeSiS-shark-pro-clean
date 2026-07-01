@@ -11,6 +11,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V873_REAL_PRODUCTION_VISUAL_LOGOS_SHARK_HEADER_FINAL"
 VERSION_V874 = "V874_COMPANY_WIDE_PRODUCT_POLISH_VISUAL_DATA_SENTINEL_FINAL"
+VERSION_V875 = "V875_REAL_PRODUCT_READINESS_RENDER_VISUAL_REVENUE_FINAL"
 ZIP_NAME = f"NeMeSiS_SHARK_PRO_{VERSION}_RENDER_READY.zip"
 
 REPORTS = [
@@ -71,10 +72,10 @@ def main() -> None:
     provider_engine = read("engines/api_sports_provider_engine.py")
     templates = "\n".join(path.read_text(encoding="utf-8", errors="replace") for path in (ROOT / "templates").glob("*.html"))
 
-    require(read("VERSION.txt").strip() in {VERSION, VERSION_V874}, "VERSION.txt is not V873/V874")
-    require(read("APP_VERSION").strip() in {VERSION, VERSION_V874}, "APP_VERSION is not V873/V874")
-    require(any(f"APP_VERSION = '{candidate}'" in app_py for candidate in {VERSION, VERSION_V874}), "app.py APP_VERSION is not V873/V874")
-    require(VERSION in base or VERSION_V874 in base, "base.html missing V873/V874 cache/version")
+    require(read("VERSION.txt").strip() in {VERSION, VERSION_V874, VERSION_V875}, "VERSION.txt is not V873/V874")
+    require(read("APP_VERSION").strip() in {VERSION, VERSION_V874, VERSION_V875}, "APP_VERSION is not V873/V874")
+    require(any(f"APP_VERSION = '{candidate}'" in app_py for candidate in {VERSION, VERSION_V874, VERSION_V875}), "app.py APP_VERSION is not V873/V874")
+    require(VERSION in base or VERSION_V874 in base or VERSION_V875 in base, "base.html missing V873/V874 cache/version")
     require('data-v873-shell="true"' in base, "base.html missing data-v873-shell")
     require("NEMESIS V873 REAL PRODUCTION VISUAL LOGOS SHARK HEADER FINAL ACTIVE" in base, "base.html missing V873 comment")
     require("has_v873_real_production_visual_logos_shark_header" in app_py, "runtime V873 flag missing")
@@ -135,8 +136,8 @@ def main() -> None:
     require(runtime.status_code == 200, f"runtime status {runtime.status_code}")
     payload = runtime.get_json() or json.loads(runtime.get_data(as_text=True))
     serialized = json.dumps(payload, ensure_ascii=False)
-    require(payload.get("app_version") in {VERSION, VERSION_V874}, "runtime app_version not V873/V874")
-    require(payload.get("version_txt") in {VERSION, VERSION_V874}, "runtime version_txt not V873/V874")
+    require(payload.get("app_version") in {VERSION, VERSION_V874, VERSION_V875}, "runtime app_version not V873/V874")
+    require(payload.get("version_txt") in {VERSION, VERSION_V874, VERSION_V875}, "runtime version_txt not V873/V874")
     require(payload.get("has_v873_real_production_visual_logos_shark_header") is True, "runtime V873 flag false")
     require(payload.get("has_v872_real_screen_capture_reference_pass") is True, "runtime V872 flag false")
     require(payload.get("has_v818_automation") is True, "runtime V818 flag false")
@@ -160,3 +161,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+

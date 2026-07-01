@@ -17,6 +17,7 @@ V871 = "V871_VISIBLE_UI_DEFECTS_EMPTY_SPACE_SCREEN_BY_SCREEN_PRO_MAX_FINAL"
 V872 = "V872_REAL_RENDER_SCREEN_CAPTURE_REFERENCE_FINAL_PASS"
 V873 = "V873_REAL_PRODUCTION_VISUAL_LOGOS_SHARK_HEADER_FINAL"
 V874 = "V874_COMPANY_WIDE_PRODUCT_POLISH_VISUAL_DATA_SENTINEL_FINAL"
+V875 = "V875_REAL_PRODUCT_READINESS_RENDER_VISUAL_REVENUE_FINAL"
 
 
 def fail(message: str) -> None:
@@ -40,11 +41,11 @@ def main() -> None:
     continuous = read("engines/continuous_shark_sentinel_engine.py")
     build_release = read("tools/build_clean_release.py")
 
-    require(read("VERSION.txt").strip() in {VERSION, V866, V867, V868, V868_PRO, V869, V870, V870_PRO_MAX, V871, V872, V873, V874}, "VERSION.txt is not V865/V866/V867/V873")
-    require(read("APP_VERSION").strip() in {VERSION, V866, V867, V868, V868_PRO, V869, V870, V870_PRO_MAX, V871, V872, V873, V874}, "APP_VERSION is not V865/V866/V867/V873")
-    require(any(f"APP_VERSION = '{candidate}'" in app for candidate in {VERSION, V866, V867, V868, V868_PRO, V869, V870, V870_PRO_MAX, V871, V872, V873, V874}), "app.py APP_VERSION is not V865/V866/V867/V873")
+    require(read("VERSION.txt").strip() in {VERSION, V866, V867, V868, V868_PRO, V869, V870, V870_PRO_MAX, V871, V872, V873, V874, V875}, "VERSION.txt is not V865/V866/V867/V873")
+    require(read("APP_VERSION").strip() in {VERSION, V866, V867, V868, V868_PRO, V869, V870, V870_PRO_MAX, V871, V872, V873, V874, V875}, "APP_VERSION is not V865/V866/V867/V873")
+    require(any(f"APP_VERSION = '{candidate}'" in app for candidate in {VERSION, V866, V867, V868, V868_PRO, V869, V870, V870_PRO_MAX, V871, V872, V873, V874, V875}), "app.py APP_VERSION is not V865/V866/V867/V873")
     require("data-v865-shell=\"true\"" in base, "base.html missing data-v865-shell")
-    require(VERSION in base or V866 in base or V867 in base or V868 in base or V868_PRO in base or V869 in base or V870 in base or V870_PRO_MAX in base or V871 in base or V872 in base or V873 in base or V874 in base, "base.html missing V865/V866/V867/V874 cache marker")
+    require(VERSION in base or V866 in base or V867 in base or V868 in base or V868_PRO in base or V869 in base or V870 in base or V870_PRO_MAX in base or V871 in base or V872 in base or V873 in base or V874 in base or V875 in base, "base.html missing V865/V866/V867/V874 cache marker")
 
     for route in [
         "/admin/sentinel-workflow",
@@ -111,5 +112,6 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
 
 
