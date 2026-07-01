@@ -794,3 +794,16 @@ Honestidad:
 - Se crearon reportes V875 de readiness: Render, cliente, móvil, admin, SHARK/OpenAI, logos, picks/live, Telegram, pagos/membresías, Sentinel y próximos pasos.
 - Nuevo check: `tools/check_v875_real_product_readiness.py`.
 - No se hizo deploy, push, Telegram real, pagos reales ni llamadas caras API.
+
+## V876_RENDER_VERSION_ALIGNMENT_AND_FINAL_VISUAL_DEPLOY_CHECK_FINAL
+
+- Base local: `V875_REAL_PRODUCT_READINESS_RENDER_VISUAL_REVENUE_FINAL`.
+- Objetivo: detener avances ciegos y resolver alineación Render/local.
+- Runtime Render consultado durante V876: `V855_FULL_ECOSYSTEM_REFERENCE_REBUILD_CLIENT_ADMIN_MEMBERSHIPS_FINAL`; el usuario había reportado V871, pero el endpoint devolvió V855 en esta ejecución. En ambos casos producción no sirve V875/V876.
+- ZIP V875 inspeccionado: `app.py` y `VERSION.txt` estaban en raíz, sin proyecto anidado, sin ZIPs internos y sin DB local.
+- `.git/config` local indica origin `https://github.com/bot-NeMeSiS/NeMeSiS-shark-pro-clean.git` y branch `main`; `git.exe` no estuvo disponible para estado/log.
+- `render.yaml` local usa start command `gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --threads 3 --worker-class gthread --timeout 90`.
+- Se añadió runtime flag `has_v876_render_version_alignment`.
+- Nuevo check: `tools/check_v876_render_version_alignment.py`.
+- Acción exacta pendiente: subir contenido descomprimido del ZIP V876 a la raíz GitHub correcta, confirmar `VERSION.txt`/`app.py`, ejecutar `Clear build cache & deploy` en Render y volver a consultar `/api/runtime-version`.
+- No se hizo deploy, push, Telegram real, pagos reales ni llamadas caras API.

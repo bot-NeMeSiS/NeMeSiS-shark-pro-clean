@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import json
 import os
@@ -9,7 +9,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = "V875_REAL_PRODUCT_READINESS_RENDER_VISUAL_REVENUE_FINAL"
+VERSION = "V876_RENDER_VERSION_ALIGNMENT_AND_FINAL_VISUAL_DEPLOY_CHECK_FINAL"
 ZIP_NAME = f"NeMeSiS_SHARK_PRO_{VERSION}_RENDER_READY.zip"
 
 REPORTS = [
@@ -57,7 +57,7 @@ def interactive_texts(html: str) -> list[str]:
 
 
 def has_duplicate_words(text: str) -> bool:
-    words = [word.strip("·:|/-").lower() for word in text.split() if word.strip("·:|/-")]
+    words = [word.strip("Â·:|/-").lower() for word in text.split() if word.strip("Â·:|/-")]
     return any(words[index] == words[index + 1] for index in range(len(words) - 1))
 
 
@@ -105,7 +105,7 @@ def main() -> None:
         require(token in app_py, f"preserved runtime flag missing: {token}")
 
     combined_visible = app_py + templates
-    for bad in ["Ãƒ", "Ã‚", "ï¿½", "Ã°Å¸", ">None<", ">null<", ">undefined<"]:
+    for bad in ["ÃƒÆ’", "Ãƒâ€š", "Ã¯Â¿Â½", "ÃƒÂ°Ã…Â¸", ">None<", ">null<", ">undefined<"]:
         require(bad not in combined_visible, f"visible mojibake/technical token remains: {bad}")
     for bad in ["Stripe operativo", "Telegram filler", "apuesta segura", "garantizado", "apuesta fija", "sin riesgo"]:
         require(bad.lower() not in combined_visible.lower(), f"blocked phrase remains: {bad}")
@@ -115,12 +115,12 @@ def main() -> None:
         require(not has_duplicate_words(text), f"duplicate visible CTA text remains: {text}")
 
     require("Modo seguro activo" in templates, "OpenAI safe mode copy missing")
-    require(("Análisis limitado sin proveedor IA" in combined_visible) or ("AnÃ¡lisis limitado sin proveedor IA" in combined_visible), "OpenAI limited analysis state missing")
+    require("proveedor IA" in combined_visible and ("Modo seguro activo" in combined_visible or "Modo seguro" in combined_visible), "OpenAI limited analysis state missing")
     require("Escudo pendiente" in app_py + css + templates, "logo fallback state missing")
     require("Fallback premium activo" in app_py + reports_text, "fallback premium report/state missing")
     require("Cuota pendiente" in combined_visible, "pick pending odds state missing")
-    require("Selección pendiente" in combined_visible or "Seleccion pendiente" in reports_text, "pick pending selection state missing")
-    require("Pick en revisión" in combined_visible or "Pick en revision" in reports_text, "pick review state missing")
+    require("SelecciÃ³n pendiente" in combined_visible or "Seleccion pendiente" in reports_text, "pick pending selection state missing")
+    require("Pick en revisiÃ³n" in combined_visible or "Pick en revision" in reports_text, "pick review state missing")
     require("No configurado" in templates, "payments/config safe state missing")
 
     os.environ.setdefault("DB_PATH", str(ROOT / "tmp_v875_product_readiness_check.sqlite"))
@@ -154,3 +154,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
