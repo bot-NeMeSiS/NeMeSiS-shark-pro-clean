@@ -71,6 +71,25 @@ PROMPT_TYPES = {
     "generic": "Fix producto general",
 }
 
+V883_VISUAL_WORKER_WORKFLOW = {
+    "name": "SHARK Visual Worker",
+    "modes": ["visual-worker", "company-worker", "full-company-qa"],
+    "creates": ["issues", "grouped_issues", "improvement_tasks", "codex_prompts", "revalidation_notes"],
+    "safe_actions": [
+        "deduplicar incidencias",
+        "generar tarea",
+        "crear tarea del Visual Company Worker",
+        "marcar pendiente de browser QA",
+        "marcar pendiente de Render real",
+    ],
+    "approval_required_actions": APPROVAL_REQUIRED_ACTIONS,
+    "blocked_actions": BLOCKED_ACTIONS,
+    "no_auto_code": True,
+    "no_auto_deploy": True,
+    "no_secret_access": True,
+    "no_fake_data": True,
+}
+
 
 @dataclass(frozen=True)
 class WorkflowTask:
@@ -275,6 +294,7 @@ def build_workflow_from_sentinel_result(sentinel_result: dict[str, Any], version
             "no_external_api_calls": True,
             "no_fake_data": True,
         },
+        "visual_company_worker_v883": V883_VISUAL_WORKER_WORKFLOW,
     }
 
 

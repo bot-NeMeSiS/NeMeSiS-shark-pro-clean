@@ -878,3 +878,16 @@ Honestidad:
 - Cambios: versionado V882, estados seguros más claros en calendario/app/picks, Sentinel endurecido para pantallas deportivas vacías sin explicación, reportes V882 y check V882.
 - No se inventaron datos, no se llamaron APIs caras, no se hizo deploy ni push.
 
+## V883_VISUAL_COMPANY_WORKER_BOT_CONTINUOUS_IMPROVEMENT_FINAL
+- Base local: `V882_CORE_PRODUCT_RECOVERY_MATCHES_VISUAL_ORDER_FINAL`.
+- Objetivo: crear un trabajador interno permanente que revise cliente, admin, visual, datos, rutas, Sentinel, Workflow y Render como empresa completa.
+- Se creó `engines/visual_company_worker_engine.py` con workers internos, reglas visuales/producto, scoring, issues, tareas, prompts Codex, acciones seguras, acciones con aprobación y acciones bloqueadas.
+- Se integró con `engines/continuous_shark_sentinel_engine.py` en modos `visual-worker`, `company-worker` y `full-company-qa`.
+- Se integró con `engines/sentinel_improvement_workflow_engine.py` como modelo de workflow V883.
+- Nueva pantalla admin protegida: `/admin/visual-worker` con alias `/admin/company-worker`, `/admin/app-worker`, `/admin/qa-visual` y `/admin/visual-inspector`.
+- Nuevas APIs admin protegidas: `/api/admin/visual-worker/summary`, `/run`, `/issues`, `/tasks`.
+- Nuevo cron protegido: `/api/automation/visual-worker/run`, con 403 sin secret y 200 con `AUTOMATION_SECRET`.
+- Runtime flag: `has_v883_visual_company_worker`.
+- Render público observado en esta pasada: `V874_COMPANY_WIDE_PRODUCT_POLISH_VISUAL_DATA_SENTINEL_FINAL`, por lo que V883 no se declara desplegada.
+- No se hizo deploy, push, Telegram real, pagos reales, llamadas caras API ni escritura de DB real.
+

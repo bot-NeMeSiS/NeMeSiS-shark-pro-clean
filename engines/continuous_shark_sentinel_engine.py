@@ -22,6 +22,7 @@ from engines.shark_sentinel_engine import (
     summarize_issues_by,
 )
 from engines.sentinel_improvement_workflow_engine import build_workflow_from_sentinel_result
+from engines.visual_company_worker_engine import run_visual_company_worker
 
 
 MADRID_TZ = ZoneInfo("Europe/Madrid")
@@ -35,6 +36,9 @@ CYCLES = {
     "telegram": ["configuration", "dedupe", "no filler", "real-send honesty"],
     "improvement": ["priorities", "safe actions", "approval required", "Codex prompts"],
     "workflow": ["issue detection", "dedupe", "grouping", "tasks", "Codex prompts", "revalidation"],
+    "visual-worker": ["visual worker", "routes", "tasks", "Codex prompts", "safe revalidation"],
+    "company-worker": ["company worker", "client", "admin", "data", "revenue", "release"],
+    "full-company-qa": ["full company QA", "visual", "product", "data", "admin", "workflow"],
     "full": ["quick", "client", "admin", "visual", "data", "telegram", "improvement"],
 }
 
@@ -148,6 +152,21 @@ V882_CORE_PRODUCT_RULES = [
     "sentinel_score_high_with_core_product_gap",
 ]
 
+V883_VISUAL_COMPANY_WORKER_RULES = [
+    "visual_worker_detects_duplicate_cta",
+    "visual_worker_detects_mojibake",
+    "visual_worker_detects_none_null_undefined_visible",
+    "visual_worker_detects_client_nav_in_admin",
+    "visual_worker_detects_admin_nav_in_client",
+    "visual_worker_detects_sports_empty_without_safe_state",
+    "visual_worker_detects_render_version_mismatch",
+    "visual_worker_creates_grouped_issues",
+    "visual_worker_creates_tasks",
+    "visual_worker_creates_codex_prompts",
+    "visual_worker_never_auto_codes",
+    "visual_worker_never_auto_deploys",
+]
+
 
 def madrid_now() -> str:
     return datetime.now(MADRID_TZ).isoformat(timespec="seconds")
@@ -221,6 +240,8 @@ def build_continuous_sentinel_summary(version: str = "") -> dict[str, Any]:
         "problem_sweep_rules_v880": V880_PROBLEM_SWEEP_RULES,
         "nav_duplication_rules_v881": V881_NAV_DUPLICATION_RULES,
         "core_product_rules_v882": V882_CORE_PRODUCT_RULES,
+        "visual_company_worker_rules_v883": V883_VISUAL_COMPANY_WORKER_RULES,
+        "visual_company_worker_ready": True,
         "visual_big_leap_ready": True,
         "improvement_workflow_ready": True,
         "workflow_cycle": "Detectar -> Priorizar -> Proponer -> Aplicar con Codex/Admin -> Revalidar -> Resolver",
@@ -237,6 +258,11 @@ def run_continuous_sentinel_cycle(client: Any, version: str = "", mode: str = "q
     run_id = make_run_id(mode)
     static_result = run_static_flask_inspection(client, version)
     issues = [_decorate_issue(issue, run_id) for issue in static_result.get("issues", [])]
+    visual_worker_result = {}
+    if mode in {"visual-worker", "company-worker", "full-company-qa"}:
+        worker_mode = "full" if mode in {"company-worker", "full-company-qa"} else "visual"
+        visual_worker_result = run_visual_company_worker(client, version, mode=worker_mode, dry_run=dry_run)
+        issues.extend(_decorate_issue(issue, run_id) for issue in visual_worker_result.get("issues", []))
     by_severity = summarize_issues_by(issues, "severity")
     by_category = summarize_issues_by(issues, "category")
     by_profile = summarize_issues_by(issues, "profile")
@@ -263,6 +289,7 @@ def run_continuous_sentinel_cycle(client: Any, version: str = "", mode: str = "q
             "Reglas V880 revisan problemas reales de deploy, datos, rutas, protección y release.",
             "Reglas V881 revisan duplicación real de navegación, rail, bottom nav, dock y floating SHARK.",
             "Reglas V882 revisan núcleo deportivo: partidos, directo, picks, sync, cache y estados seguros.",
+            "Reglas V883 integran Visual Company Worker: issues, tasks, prompts y revalidacion sin auto-code ni auto-deploy.",
         ],
         "issues_by_severity": by_severity,
         "issues_by_category": by_category,
@@ -288,6 +315,9 @@ def run_continuous_sentinel_cycle(client: Any, version: str = "", mode: str = "q
         "problem_sweep_rules_v880": V880_PROBLEM_SWEEP_RULES,
         "nav_duplication_rules_v881": V881_NAV_DUPLICATION_RULES,
         "core_product_rules_v882": V882_CORE_PRODUCT_RULES,
+        "visual_company_worker_rules_v883": V883_VISUAL_COMPANY_WORKER_RULES,
+        "visual_company_worker_v883": visual_worker_result,
+        "visual_company_worker_ready": True,
         "visual_big_leap_ready": True,
         "improvement_workflow_ready": True,
         "no_code_writes": True,
@@ -296,6 +326,9 @@ def run_continuous_sentinel_cycle(client: Any, version: str = "", mode: str = "q
         "no_db_write_during_render": True,
         "no_fake_data": True,
     }
-    if mode == "workflow":
+    if mode in {"workflow", "visual-worker", "company-worker", "full-company-qa"}:
         result["workflow"] = build_workflow_from_sentinel_result(result, version)
+        if visual_worker_result:
+            result["worker_tasks"] = visual_worker_result.get("suggested_tasks", [])
+            result["worker_codex_prompts"] = visual_worker_result.get("codex_prompts", [])
     return result

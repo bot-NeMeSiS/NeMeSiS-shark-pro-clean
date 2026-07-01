@@ -129,6 +129,7 @@ from engines.auto_improvement_engine import build_auto_improvement_summary, run_
 from engines.shark_sentinel_engine import build_static_sentinel_summary, run_static_flask_inspection
 from engines.continuous_shark_sentinel_engine import build_continuous_sentinel_summary, run_continuous_sentinel_cycle
 from engines.sentinel_improvement_workflow_engine import build_workflow_summary, update_issue_state
+from engines.visual_company_worker_engine import build_visual_company_worker_summary, run_visual_company_worker
 from engines.observability_engine import latest_observability_errors, observability_error_detail, observability_summary
 from engines.scheduler_engine import is_due, is_stale_running, next_run_iso, normalize_result, scheduler_config, task_definition
 from engines.shark_engine import build_shark_context, explain_pick_risk
@@ -296,7 +297,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V882_CORE_PRODUCT_RECOVERY_MATCHES_VISUAL_ORDER_FINAL'
+APP_VERSION = 'V883_VISUAL_COMPANY_WORKER_BOT_CONTINUOUS_IMPROVEMENT_FINAL'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
@@ -13109,6 +13110,19 @@ def admin_sentinel_workflow_page():
     return render_template("admin_sentinel_workflow.html", data=dashboard_data(), sentinel=sentinel_run, workflow=workflow)
 
 
+@app.route("/admin/visual-worker")
+@app.route("/admin/company-worker")
+@app.route("/admin/app-worker")
+@app.route("/admin/qa-visual")
+@app.route("/admin/visual-inspector")
+def admin_visual_company_worker_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/visual-worker")
+    mode = request.args.get("mode") or "quick"
+    summary = run_visual_company_worker(app.test_client(), APP_VERSION, mode=mode, dry_run=True)
+    return render_template("admin_visual_worker.html", data=dashboard_data(), summary=summary)
+
+
 @app.route("/api/admin/shark-sentinel/summary")
 def api_admin_shark_sentinel_summary():
     if not is_admin_session():
@@ -13183,6 +13197,40 @@ def api_admin_sentinel_workflow_update_issue():
     issue = payload.get("issue") if isinstance(payload.get("issue"), dict) else payload
     status = str(payload.get("status") or request.args.get("status") or "acknowledged")
     return jsonify({"ok": True, "version": APP_VERSION, "issue": update_issue_state(issue, status), "dangerous_actions_executed": False})
+
+
+@app.route("/api/admin/visual-worker/summary")
+def api_admin_visual_worker_summary():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({"ok": True, **build_visual_company_worker_summary(APP_VERSION, mode="quick", dry_run=True)})
+
+
+@app.route("/api/admin/visual-worker/run", methods=["GET", "POST"])
+def api_admin_visual_worker_run():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    mode = request.args.get("mode") or "quick"
+    dry_run = request.args.get("dry_run", "1").lower() in {"1", "true", "yes", "on"}
+    return jsonify({"ok": True, **run_visual_company_worker(app.test_client(), APP_VERSION, mode=mode, dry_run=dry_run)})
+
+
+@app.route("/api/admin/visual-worker/issues")
+def api_admin_visual_worker_issues():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    mode = request.args.get("mode") or "visual"
+    result = run_visual_company_worker(app.test_client(), APP_VERSION, mode=mode, dry_run=True)
+    return jsonify({"ok": True, "version": APP_VERSION, "issues": result.get("issues", []), "grouped_issues": result.get("grouped_issues", [])})
+
+
+@app.route("/api/admin/visual-worker/tasks")
+def api_admin_visual_worker_tasks():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    mode = request.args.get("mode") or "visual"
+    result = run_visual_company_worker(app.test_client(), APP_VERSION, mode=mode, dry_run=True)
+    return jsonify({"ok": True, "version": APP_VERSION, "tasks": result.get("suggested_tasks", []), "codex_prompts": result.get("codex_prompts", [])})
 
 
 @app.route("/admin/system")
@@ -13887,6 +13935,7 @@ def api_runtime_version():
         "has_v880_full_app_problem_sweep": "data-v880-shell" in base_template and "V880 FULL APP PROBLEM SWEEP AND FIX ALL SAFE FINAL" in base_template and "V880 FULL APP PROBLEM SWEEP AND FIX ALL SAFE START" in css_text,
         "has_v881_sidebar_nav_duplication_fix": "data-v881-shell" in base_template and "V881 SIDEBAR NAV DUPLICATION ROOT FIX FINAL" in base_template and "V881 SIDEBAR NAV DUPLICATION ROOT FIX START" in css_text,
         "has_v882_core_product_recovery": "data-v882-shell" in base_template and "V882 CORE PRODUCT RECOVERY MATCHES VISUAL ORDER FINAL" in base_template and "V882 CORE PRODUCT RECOVERY MATCHES VISUAL ORDER START" in css_text,
+        "has_v883_visual_company_worker": "visual_company_worker_engine" in app_py_text and "/admin/visual-worker" in app_py_text and "/api/automation/visual-worker/run" in app_py_text and "data-v883-shell" in base_template,
         "has_v837_reference_photo_qa": "data-v837-shell" in base_template and "V837 REFERENCE PHOTO PERFECTION REAL QA START" in css_text,
         "has_v836_autonomous_qa": "data-v836-shell" in base_template and "V836 AUTONOMOUS REFERENCE VISUAL REVIEW FINAL QA START" in css_text,
         "has_v833_visual_completion": "data-v833-shell" in base_template and "V833 REFERENCE ECOSYSTEM VISUAL COMPLETION START" in css_text,
@@ -13902,7 +13951,7 @@ def api_runtime_version():
         "has_v820_crests": "data-v820-shell" in base_template and "V820 REAL CRESTS REFERENCE VISUAL PIXEL POLISH START" in css_text,
         "has_v819_dedup": "data-v819-shell" in base_template and "V819 REFERENCE UI DEDUP LAYER PURGE START" in css_text,
         "has_v818_automation": "/api/automation/master-tick" in app_py_text and "daily_automation_engine" in app_py_text,
-        "static_css_cache_busting": "V882_CORE_PRODUCT_RECOVERY_MATCHES_VISUAL_ORDER_FINAL" in base_template,
+        "static_css_cache_busting": "V883_VISUAL_COMPANY_WORKER_BOT_CONTINUOUS_IMPROVEMENT_FINAL" in base_template,
         "crest_engine_loaded": runtime_stability.get("crest_engine_loaded"),
         "logo_cache_tables_ok": runtime_stability.get("logo_cache_tables_ok"),
         "team_logo_cache_count": runtime_stability.get("team_logo_cache_count"),
@@ -18458,6 +18507,16 @@ def api_v862_continuous_sentinel_run():
     mode = request.args.get("mode") or "quick"
     dry_run = request.args.get("dry_run") in {"1", "true", "yes"} or True
     result = run_continuous_sentinel_cycle(app.test_client(), APP_VERSION, mode=mode, dry_run=dry_run)
+    return jsonify({"ok": True, **result})
+
+
+@app.route("/api/automation/visual-worker/run", methods=["GET", "POST"])
+def api_v883_visual_worker_run():
+    if not automation_cron_access_allowed():
+        return automation_json_forbidden()
+    mode = request.args.get("mode") or "quick"
+    dry_run = request.args.get("dry_run", "1").lower() in {"1", "true", "yes", "on"}
+    result = run_visual_company_worker(app.test_client(), APP_VERSION, mode=mode, dry_run=dry_run)
     return jsonify({"ok": True, **result})
 
 

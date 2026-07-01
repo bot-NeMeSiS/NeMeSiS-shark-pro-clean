@@ -11484,3 +11484,119 @@ body[data-v882-shell="true"] .v882-data-state {
   }
 }
 /* V882 CORE PRODUCT RECOVERY MATCHES VISUAL ORDER END */
+
+/* V883 VISUAL COMPANY WORKER BOT CONTINUOUS IMPROVEMENT START */
+body[data-v883-shell="true"] .v883-worker-page {
+  display: grid;
+  gap: clamp(14px, 2vw, 22px);
+}
+
+body[data-v883-shell="true"] .v883-worker-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: clamp(16px, 2.4vw, 28px);
+}
+
+body[data-v883-shell="true"] .v883-worker-hero h1 {
+  margin: 8px 0 6px;
+}
+
+body[data-v883-shell="true"] .v883-score-ring {
+  width: 128px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  border: 1px solid rgba(32, 215, 255, .34);
+  background: radial-gradient(circle at 50% 35%, rgba(32, 215, 255, .24), rgba(5, 13, 24, .92) 68%);
+  box-shadow: 0 18px 42px rgba(0, 0, 0, .32), inset 0 0 28px rgba(32, 215, 255, .12);
+}
+
+body[data-v883-shell="true"] .v883-score-ring strong {
+  display: block;
+  font-size: clamp(2rem, 5vw, 3.1rem);
+  line-height: .9;
+}
+
+body[data-v883-shell="true"] .v883-score-ring span {
+  font-size: .72rem;
+  color: rgba(226, 247, 255, .72);
+  text-transform: uppercase;
+  font-weight: 800;
+}
+
+body[data-v883-shell="true"] .v883-score-grid,
+body[data-v883-shell="true"] .v883-worker-grid,
+body[data-v883-shell="true"] .v883-workers {
+  display: grid;
+  gap: clamp(10px, 1.4vw, 16px);
+}
+
+body[data-v883-shell="true"] .v883-score-grid {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+body[data-v883-shell="true"] .v883-worker-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+body[data-v883-shell="true"] .v883-workers {
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+}
+
+body[data-v883-shell="true"] .v883-issue-counts,
+body[data-v883-shell="true"] .v883-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+body[data-v883-shell="true"] .v883-list {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+body[data-v883-shell="true"] .v883-list li {
+  display: grid;
+  gap: 3px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, .08);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, .035);
+}
+
+body[data-v883-shell="true"] .v883-list span {
+  color: rgba(226, 247, 255, .68);
+  font-size: .82rem;
+}
+
+body[data-v883-shell="true"] .v883-prompt {
+  margin: 10px 0 0;
+  max-width: 100%;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  border: 1px solid rgba(32, 215, 255, .18);
+  border-radius: 8px;
+  padding: 12px;
+  background: rgba(0, 0, 0, .28);
+  color: #e8fbff;
+}
+
+@media (max-width: 820px) {
+  body[data-v883-shell="true"] .v883-worker-hero,
+  body[data-v883-shell="true"] .v883-worker-grid,
+  body[data-v883-shell="true"] .v883-score-grid {
+    grid-template-columns: 1fr;
+  }
+
+  body[data-v883-shell="true"] .v883-score-ring {
+    width: 112px;
+    justify-self: start;
+  }
+}
+/* V883 VISUAL COMPANY WORKER BOT CONTINUOUS IMPROVEMENT END */

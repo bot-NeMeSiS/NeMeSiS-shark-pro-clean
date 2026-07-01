@@ -9,7 +9,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = "V882_CORE_PRODUCT_RECOVERY_MATCHES_VISUAL_ORDER_FINAL"
+VERSION = "V883_VISUAL_COMPANY_WORKER_BOT_CONTINUOUS_IMPROVEMENT_FINAL"
 ZIP_NAME = f"NeMeSiS_SHARK_PRO_{VERSION}_RENDER_READY.zip"
 
 REPORTS = [
@@ -154,6 +154,7 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
 
 
 

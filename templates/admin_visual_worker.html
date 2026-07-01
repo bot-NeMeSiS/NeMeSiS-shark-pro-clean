@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% block content %}
+<main class="ns-page v883-worker-page">
+  <section class="ns-card ns-card-compact v883-worker-hero">
+    <div>
+      <span class="ns-chip">V883 · empleado QA visual permanente</span>
+      <h1>SHARK Visual Worker</h1>
+      <p>Inspecciona cliente, admin, datos, rutas y señales visuales. Solo diagnostica, crea tareas y propone prompts seguros.</p>
+    </div>
+    <div class="v883-score-ring">
+      <strong>{{ summary.global_score }}</strong>
+      <span>score global</span>
+    </div>
+  </section>
+
+  <section class="v883-score-grid" aria-label="Scores principales">
+    <article class="ns-stat"><span>Visual</span><strong>{{ summary.visual_score }}</strong></article>
+    <article class="ns-stat"><span>Producto</span><strong>{{ summary.product_score }}</strong></article>
+    <article class="ns-stat"><span>Datos</span><strong>{{ summary.data_score }}</strong></article>
+    <article class="ns-stat"><span>Admin</span><strong>{{ summary.admin_score }}</strong></article>
+    <article class="ns-stat"><span>Móvil</span><strong>{{ summary.mobile_score }}</strong></article>
+  </section>
+
+  <section class="v883-worker-grid">
+    <article class="ns-admin-card">
+      <h2>Estado del ciclo</h2>
+      <div class="ns-table-wrap">
+        <table class="ns-table">
+          <tbody>
+            <tr><th>Modo</th><td>{{ summary.mode }}</td></tr>
+            <tr><th>Rutas revisadas</th><td>{{ summary.routes_reviewed }}</td></tr>
+            <tr><th>Dry-run</th><td>{{ 'Sí' if summary.dry_run else 'No' }}</td></tr>
+            <tr><th>Auto-code</th><td>{{ 'Bloqueado' if summary.no_auto_code else 'Revisar' }}</td></tr>
+            <tr><th>Auto-deploy</th><td>{{ 'Bloqueado' if summary.no_auto_deploy else 'Revisar' }}</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="v883-actions">
+        <a class="ns-button ns-button-primary" href="/api/admin/visual-worker/run?mode=visual-worker&dry_run=1">Ejecutar visual</a>
+        <a class="ns-button ns-button-secondary" href="/api/admin/visual-worker/run?mode=full-company-qa&dry_run=1">Full company QA</a>
+      </div>
+    </article>
+
+    <article class="ns-admin-card">
+      <h2>Issues abiertos</h2>
+      <div class="v883-issue-counts">
+        <span class="ns-badge">Críticos {{ summary.critical_issues|length }}</span>
+        <span class="ns-badge">Altos {{ summary.high_issues|length }}</span>
+        <span class="ns-badge">Medios {{ summary.medium_issues|length }}</span>
+        <span class="ns-badge">Bajos {{ summary.low_issues|length }}</span>
+      </div>
+      {% set issues = (summary.critical_issues + summary.high_issues + summary.medium_issues + summary.low_issues)[:6] %}
+      {% if issues %}
+        <ul class="v883-list">
+          {% for issue in issues %}
+          <li><strong>{{ issue.title }}</strong><span>{{ issue.route }} · {{ issue.severity }}</span></li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <div class="ns-empty">Sin incidencias reales detectadas en este ciclo local. Pendiente de browser QA y Render real para certificación visual.</div>
+      {% endif %}
+    </article>
+  </section>
+
+  <section class="ns-card ns-card-compact">
+    <h2>Workers internos</h2>
+    <div class="v883-workers">
+      {% for worker in summary.workers %}
+      <article class="ns-command-card">
+        <span class="ns-chip">{{ worker.area }}</span>
+        <h3>{{ worker.worker_name }}</h3>
+        <p><strong>Estado:</strong> {{ worker.status }}</p>
+        <p>{{ worker.next_action }}</p>
+      </article>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="v883-worker-grid">
+    <article class="ns-admin-card">
+      <h2>Tareas sugeridas</h2>
+      {% if summary.suggested_tasks %}
+        <ul class="v883-list">
+          {% for task in summary.suggested_tasks[:8] %}
+          <li><strong>{{ task.title }}</strong><span>{{ task.priority }} · {{ task.status }}</span></li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <div class="ns-empty">Sin tareas nuevas. Mantener vigilancia continua y revisar producción después de deploy.</div>
+      {% endif %}
+    </article>
+    <article class="ns-admin-card">
+      <h2>Próximo foco</h2>
+      <ul class="v883-list">
+        {% for focus in summary.next_focus %}
+        <li><strong>{{ focus }}</strong></li>
+        {% endfor %}
+      </ul>
+    </article>
+  </section>
+
+  <section class="ns-card ns-card-compact">
+    <h2>Prompts Codex</h2>
+    {% if summary.codex_prompts %}
+      {% for prompt in summary.codex_prompts[:4] %}
+      <pre class="v883-prompt">{{ prompt }}</pre>
+      {% endfor %}
+    {% else %}
+      <div class="ns-empty">No hay prompts pendientes. El worker generará prompts cuando detecte incidencias reales.</div>
+    {% endif %}
+  </section>
+
+  <section class="v883-worker-grid">
+    <article class="ns-admin-card">
+      <h2>Acciones seguras</h2>
+      <ul class="v883-list">{% for action in summary.safe_actions %}<li>{{ action }}</li>{% endfor %}</ul>
+    </article>
+    <article class="ns-admin-card">
+      <h2>Requieren aprobación</h2>
+      <ul class="v883-list">{% for action in summary.approval_required_actions %}<li>{{ action }}</li>{% endfor %}</ul>
+    </article>
+    <article class="ns-admin-card">
+      <h2>Bloqueadas</h2>
+      <ul class="v883-list">{% for action in summary.blocked_actions %}<li>{{ action }}</li>{% endfor %}</ul>
+    </article>
+  </section>
+</main>
+{% endblock %}

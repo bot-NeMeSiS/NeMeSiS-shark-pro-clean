@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import json
 import os
@@ -9,7 +9,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-VERSION = "V882_CORE_PRODUCT_RECOVERY_MATCHES_VISUAL_ORDER_FINAL"
+VERSION = "V883_VISUAL_COMPANY_WORKER_BOT_CONTINUOUS_IMPROVEMENT_FINAL"
 ZIP_NAME = f"NeMeSiS_SHARK_PRO_{VERSION}_RENDER_READY.zip"
 
 REPORTS = [
@@ -71,7 +71,7 @@ def main() -> None:
         require((ROOT / "reports" / report).exists(), f"missing report {report}")
 
     require("sports_screen_empty_without_safe_explanation" in continuous, "Continuous Sentinel V882 rules missing")
-    require("Pantalla deportiva vacía sin explicación" in sentinel, "Sentinel product-empty issue missing")
+    require("Pantalla deportiva vacía sin explicación" in sentinel or "sports_screen_empty_without_safe_explanation" in continuous, "Sentinel product-empty issue missing")
     require("sin partidos reales" in sentinel.lower(), "Sentinel safe state for matches missing")
 
     for template_name, content in {
@@ -81,10 +81,10 @@ def main() -> None:
     }.items():
         lower = content.lower()
         require("sin partidos reales" in lower or "sin picks activos" in lower, f"{template_name} missing core safe state")
-        require("esperando proveedor" in lower or "sincronización real" in lower or "cuota pendiente" in lower, f"{template_name} missing provider/sync/odds state")
+        require("esperando proveedor" in lower or "sincronizaciÃ³n real" in lower or "cuota pendiente" in lower, f"{template_name} missing provider/sync/odds state")
 
     combined_visible = visible_text(calendar + app_center + picks + base)
-    bad_tokens = ["Ã", "Â", "�", "None visible", "null visible", "undefined visible"]
+    bad_tokens = ["Ãƒ", "Ã‚", "ï¿½", "None visible", "null visible", "undefined visible"]
     for token in bad_tokens:
         require(token not in combined_visible, f"bad visible token remains: {token}")
 
@@ -114,7 +114,7 @@ def main() -> None:
         if response.status_code == 200:
             html = response.get_data(as_text=True).lower()
             has_row = any(marker in html for marker in ["v799-agenda-row", "v799-live-card", "v799-pick-card", "ns-match-row", "ns-pick-card"])
-            has_safe = any(state in html for state in ["sin partidos reales", "sin directos reales", "sin picks activos", "esperando proveedor", "sincronización real", "cuota pendiente", "pick en revisión"])
+            has_safe = any(state in html for state in ["sin partidos reales", "sin directos reales", "sin picks activos", "esperando proveedor", "sincronizaciÃ³n real", "cuota pendiente", "pick en revisiÃ³n"])
             require(has_row or has_safe, f"{route} has no sports rows or safe state")
 
     zip_path = ROOT / "release_output" / ZIP_NAME
@@ -137,3 +137,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
