@@ -819,3 +819,29 @@ Honestidad:
 - Nuevo check: `tools/check_v878_ui_layer_purge_single_system.py`.
 - No se borraron templates, rutas, motores ni CSS legacy a ciegas. La purga destructiva queda pendiente de browser QA real.
 - No se hizo deploy, push, Telegram real, pagos reales ni llamadas caras API.
+
+## V879_RENDER_DEPLOY_V878_BROWSER_QA_AND_LEGACY_REMOVAL_PLAN_FINAL
+
+- Base local: `V878_UI_LAYER_PURGE_LEGACY_CLEANUP_SINGLE_SYSTEM_FINAL`.
+- Objetivo: preparar deploy correcto de V878/V879, documentar el bloqueo Render y dejar plan de retirada legacy para V880.
+- Runtime Render consultado: producción sigue sirviendo `V855_FULL_ECOSYSTEM_REFERENCE_REBUILD_CLIENT_ADMIN_MEMBERSHIPS_FINAL`, no V878/V879.
+- No se certificó visual real en producción porque Render no sirve esta línea local y no hubo navegador/capturas reales disponibles.
+- Se añadió runtime flag `has_v879_render_v878_browser_qa`.
+- Se preservó el sistema visual `ns-*` de V878 y el puente `v878-deprecated-visual-class` queda solo como compatibilidad en partials.
+- Se crearon reportes V879 de runtime Render, browser QA bloqueado, auditoría de clases deprecated, migración `ns-*`, Sentinel y próximos pasos.
+- Nuevo check: `tools/check_v879_render_v878_browser_qa.py`.
+- Próximo paso real: desplegar el contenido descomprimido del ZIP V879 en la raíz GitHub correcta, limpiar cache de build en Render y validar `/api/runtime-version`.
+- No se hizo deploy, push, Telegram real, pagos reales ni llamadas caras API.
+
+## V879_FINAL_PRODUCT_UI_UX_LAYOUT_FUNCTIONALITY_POLISH_FINAL
+
+- Esta V879 final sustituye el nombre de V879 anterior por instrucción del usuario.
+- Base local: V878/V879 con sistema `ns-*` aplicado.
+- Objetivo: dejar una versión local de producto final más limpia, compacta, usable y vendible sin crear features nuevas.
+- Se actualizó `VERSION.txt`, `APP_VERSION`, `app.py`, `templates/base.html` y runtime con `has_v879_final_product_polish`.
+- Se añadió bloque CSS `V879 FINAL PRODUCT UI UX LAYOUT FUNCTIONALITY POLISH` para compactar heroes, cards, grids, tablas, empty states y acciones, además de reforzar separación cliente/admin.
+- Se añadieron reglas `V879_FINAL_PRODUCT_RULES` en `continuous_shark_sentinel_engine.py`.
+- Nuevo check principal: `tools/check_v879_final_product_polish.py`.
+- Se mantienen V878 `ns-*`, V818 master tick, Telegram no filler/dedupe, SHARK safe mode, API guards, Company OS, Company Audit y Sentinel Workflow.
+- Render real seguía en V855 en la consulta anterior, por lo que V879 no se declara desplegada ni pixel-perfect.
+- No se hizo deploy, push, Telegram real, pagos reales ni llamadas caras API.

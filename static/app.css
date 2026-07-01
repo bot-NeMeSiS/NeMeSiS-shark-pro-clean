@@ -11217,3 +11217,106 @@ body[data-v878-shell="true"] .v878-deprecated-visual-class {
   }
 }
 /* V878 UI LAYER PURGE LEGACY CLEANUP SINGLE SYSTEM END */
+
+/* V879 FINAL PRODUCT UI UX LAYOUT FUNCTIONALITY POLISH START */
+body[data-v879-shell="true"] {
+  --ns-final-gap: clamp(12px, 1.6vw, 18px);
+  --ns-final-card-pad: clamp(12px, 1.5vw, 18px);
+  --ns-final-tight-pad: clamp(10px, 1.2vw, 14px);
+}
+
+body[data-v879-shell="true"] :is(.hero, .hero-section, .v869-hero, .v870-hero, .v871-hero, .ns-hero) {
+  min-height: auto;
+  padding-block: clamp(22px, 4vw, 44px);
+}
+
+body[data-v879-shell="true"] :is(.dashboard-grid, .cards-grid, .grid, .v864-grid, .v868-pro-grid, .v871-compact-grid, .ns-grid) {
+  gap: var(--ns-final-gap);
+  align-items: stretch;
+}
+
+body[data-v879-shell="true"] :is(.ns-card, .ns-admin-card, .ns-command-card, .ns-plan-card, .ns-pick-card, .ns-sentinel-card, .ns-stat, .metric-card, .command-center-card) {
+  padding: var(--ns-final-card-pad);
+}
+
+body[data-v879-shell="true"] :is(.ns-card, .ns-admin-card, .ns-command-card, .ns-plan-card, .ns-pick-card, .ns-sentinel-card, .ns-stat) > :first-child {
+  margin-top: 0;
+}
+
+body[data-v879-shell="true"] :is(.ns-card, .ns-admin-card, .ns-command-card, .ns-plan-card, .ns-pick-card, .ns-sentinel-card, .ns-stat) > :last-child {
+  margin-bottom: 0;
+}
+
+body[data-v879-shell="true"] :is(.ns-empty, .empty-state, .v860-empty-state, .v868-pro-empty-state) {
+  min-height: 0;
+  padding: var(--ns-final-tight-pad);
+}
+
+body[data-v879-shell="true"] :is(.ns-button, .action-button, .v860-action-btn, .v864-action-button, .v868-pro-action-btn, .v871-action-clean) {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
+}
+
+body[data-v879-shell="true"] :is(.actions, .card-actions, .v799-actions, .v862-sentinel-actions, .ns-actions) {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+body[data-v879-shell="true"] :is(.actions, .card-actions, .v799-actions, .v862-sentinel-actions, .ns-actions) :is(.ns-button, a, button):nth-child(n+4) {
+  flex-basis: 100%;
+}
+
+body[data-v879-shell="true"].ns-admin :is(.v825-shark-background, .v815-client-shark-backdrop, .v810-big-shark-decoration, .bottom-nav, .bottom-nav-clean, .mobile-bottom-nav, .v829-mobile-quick, .shark-widget, .ns-floating-shark) {
+  display: none !important;
+}
+
+body[data-v879-shell="true"]:not(.ns-admin) :is(.v808-admin-rail, .v808-admin-dock, .v853-admin-command-strip, .admin-command-strip) {
+  display: none !important;
+}
+
+body[data-v879-shell="true"] :is(table, .ns-table) {
+  font-size: .92rem;
+}
+
+body[data-v879-shell="true"] :is(td, th) {
+  padding: 10px 12px;
+}
+
+body[data-v879-shell="true"] :is(.ns-chip, .ns-badge, .status-chip, .plan-badge) {
+  letter-spacing: 0;
+}
+
+@media (max-width: 760px) {
+  body[data-v879-shell="true"] {
+    overflow-x: hidden;
+  }
+
+  body[data-v879-shell="true"] :is(.container, .wrap, .page, .main, main, .content) {
+    max-width: 100%;
+  }
+
+  body[data-v879-shell="true"] :is(.ns-card, .ns-admin-card, .ns-command-card, .ns-plan-card, .ns-pick-card, .ns-sentinel-card, .ns-stat, .metric-card, .command-center-card) {
+    padding: 12px;
+  }
+
+  body[data-v879-shell="true"] :is(.hero, .hero-section, .v869-hero, .v870-hero, .v871-hero, .ns-hero) {
+    padding-block: 18px;
+  }
+
+  body[data-v879-shell="true"] :is(.ns-button, .action-button, .v864-action-button, .v868-pro-action-btn) {
+    min-height: 38px;
+    font-size: .86rem;
+  }
+
+  body[data-v879-shell="true"] :is(.actions, .card-actions, .v799-actions, .v862-sentinel-actions, .ns-actions) {
+    gap: 7px;
+  }
+
+  body[data-v879-shell="true"] :is(.actions, .card-actions, .v799-actions, .v862-sentinel-actions, .ns-actions) :is(.ns-button, a, button) {
+    flex: 1 1 130px;
+  }
+}
+/* V879 FINAL PRODUCT UI UX LAYOUT FUNCTIONALITY POLISH END */
