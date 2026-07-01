@@ -137,6 +137,17 @@ V881_NAV_DUPLICATION_RULES = [
     "duplicated_label_telegram_telegram",
 ]
 
+V882_CORE_PRODUCT_RULES = [
+    "sports_screen_empty_without_safe_explanation",
+    "matches_empty_without_sync_context",
+    "live_empty_without_provider_context",
+    "picks_empty_without_review_state",
+    "api_configured_cache_zero_without_admin_task",
+    "filters_hide_all_without_reset_cta",
+    "logo_cache_zero_without_fallback",
+    "sentinel_score_high_with_core_product_gap",
+]
+
 
 def madrid_now() -> str:
     return datetime.now(MADRID_TZ).isoformat(timespec="seconds")
@@ -209,6 +220,7 @@ def build_continuous_sentinel_summary(version: str = "") -> dict[str, Any]:
         "visual_rules_v879": V879_FINAL_PRODUCT_RULES,
         "problem_sweep_rules_v880": V880_PROBLEM_SWEEP_RULES,
         "nav_duplication_rules_v881": V881_NAV_DUPLICATION_RULES,
+        "core_product_rules_v882": V882_CORE_PRODUCT_RULES,
         "visual_big_leap_ready": True,
         "improvement_workflow_ready": True,
         "workflow_cycle": "Detectar -> Priorizar -> Proponer -> Aplicar con Codex/Admin -> Revalidar -> Resolver",
@@ -250,6 +262,7 @@ def run_continuous_sentinel_cycle(client: Any, version: str = "", mode: str = "q
             "Reglas V879 finales revisan producto visible, CTAs, espacios, copy y estados seguros.",
             "Reglas V880 revisan problemas reales de deploy, datos, rutas, protección y release.",
             "Reglas V881 revisan duplicación real de navegación, rail, bottom nav, dock y floating SHARK.",
+            "Reglas V882 revisan núcleo deportivo: partidos, directo, picks, sync, cache y estados seguros.",
         ],
         "issues_by_severity": by_severity,
         "issues_by_category": by_category,
@@ -274,6 +287,7 @@ def run_continuous_sentinel_cycle(client: Any, version: str = "", mode: str = "q
         "visual_rules_v879": V879_FINAL_PRODUCT_RULES,
         "problem_sweep_rules_v880": V880_PROBLEM_SWEEP_RULES,
         "nav_duplication_rules_v881": V881_NAV_DUPLICATION_RULES,
+        "core_product_rules_v882": V882_CORE_PRODUCT_RULES,
         "visual_big_leap_ready": True,
         "improvement_workflow_ready": True,
         "no_code_writes": True,

@@ -46,7 +46,7 @@
           <small>{{ fctx.client_time_label or fctx.client_status_label or 'Pendiente' }}</small>
         </a>
       {% else %}
-        {{ empty_state('Sin foco próximo', 'Revisa resultados o la semana cuando haya agenda real.', '', '', 'muted') }}
+        {{ empty_state('Sin partidos reales ahora mismo', 'Esperando proveedor o sincronización real. No mostramos partidos inventados; puedes revisar semana, resultados o directo.', '', '', 'muted') }}
       {% endif %}
       <nav><a href="/calendar?lane=today">Hoy</a><a href="/calendar?lane=results">Resultados</a><a href="/shark">AI</a></nav>
     </aside>
@@ -78,7 +78,7 @@
           </a>
           <div class="v812-card-actions"><a href="/match/{{ m.get('id') }}">Detalle</a><a href="/match/{{ m.get('id') }}#shark">SHARK</a><a href="/calendar?league={{ (ctx.client_competition or '')|urlencode }}">Liga</a></div>
         {% else %}
-          {{ empty_state('No hay próximo foco limpio.', 'Si el partido ya empezó o terminó, no se muestra como próximo. Revisa resultados o semana.', 'Ver resultados', '/calendar?lane=results', 'muted') }}
+          {{ empty_state('Sin partidos reales ahora mismo.', 'No hay próximo foco limpio en caché. Revisa semana/resultados o espera sincronización real del proveedor.', 'Ver semana', '/calendar?lane=week', 'muted') }}
         {% endif %}
       </article>
 
@@ -105,7 +105,7 @@
               <em>{{ ctx.client_competition|competition_es }}</em>
             </a>
           {% else %}
-            {{ empty_state('Esperando próximos partidos reales.', '', '', '', 'muted') }}
+            {{ empty_state('Sin partidos reales visibles.', 'Esperando proveedor, caché o sincronización real. La app no inventa agenda.', 'Abrir calendario', '/calendar?lane=week', 'muted') }}
           {% endfor %}
         </div>
       </article>

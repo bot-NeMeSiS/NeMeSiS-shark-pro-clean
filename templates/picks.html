@@ -77,7 +77,7 @@
     </div>
   </article>
   {% else %}
-  {{ empty_state('Sin picks activos ahora mismo.', 'SHARK solo mostrará picks publicados con datos reales. Si el proveedor no trae cuotas, se mantendrá el estado pendiente.', 'Ver partidos de hoy', '/calendar?lane=today', 'muted') }}
+  {{ empty_state('Sin picks activos ahora mismo.', 'No hay pick real publicado con cuota y selección válidas. Los candidatos quedan como cuota pendiente, selección pendiente o pick en revisión hasta tener datos suficientes.', 'Ver partidos reales', '/calendar?lane=today', 'muted') }}
   {% endif %}
 
   <section class="v799-pick-grid" id="activos">

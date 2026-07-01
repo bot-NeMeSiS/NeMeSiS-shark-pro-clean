@@ -11449,3 +11449,38 @@ body[data-v881-shell="true"] .v808-admin-rail nav a {
   }
 }
 /* V881 SIDEBAR NAV DUPLICATION ROOT FIX END */
+
+/* V882 CORE PRODUCT RECOVERY MATCHES VISUAL ORDER START */
+body[data-v882-shell="true"] :is(.v882-core-empty, .v799-empty, .v801-empty, .ns-empty) {
+  min-height: 0;
+  align-content: start;
+}
+
+body[data-v882-shell="true"] :is(.v799-calendar-list, .v799-live-main, .v799-pick-grid, .v812-match-list) .ns-empty {
+  padding: clamp(12px, 1.5vw, 18px);
+  border-style: solid;
+}
+
+body[data-v882-shell="true"] :is(.v802-calendar-command, .v850-live-state, .v802-pick-command) article strong {
+  overflow-wrap: anywhere;
+}
+
+body[data-v882-shell="true"] .v882-data-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid rgba(32, 215, 255, .22);
+  border-radius: 999px;
+  padding: 6px 10px;
+  background: rgba(32, 215, 255, .08);
+  color: #dff9ff;
+  font-size: .82rem;
+  font-weight: 800;
+}
+
+@media (max-width: 760px) {
+  body[data-v882-shell="true"] :is(.v799-empty, .v801-empty, .ns-empty) {
+    padding: 12px;
+  }
+}
+/* V882 CORE PRODUCT RECOVERY MATCHES VISUAL ORDER END */

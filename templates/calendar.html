@@ -20,7 +20,7 @@
 
   <section class="v802-calendar-command" aria-label="Resumen de calendario seleccionado">
     {% set selected = calendar.get('selected_summary') or {} %}
-    <article class="v802-command-main"><span>Calendario seleccionado</span><h2>{{ selected.get('title') or calendar.get('lane_label') or 'Partidos' }}</h2><p>{{ calendar.get('source_summary') or 'Datos reales sincronizados.' }}</p></article>
+    <article class="v802-command-main"><span>Calendario seleccionado</span><h2>{{ selected.get('title') or calendar.get('lane_label') or 'Partidos' }}</h2><p>{% if not counts.get('visible',0) %}Sin partidos reales ahora mismo. Requiere sincronización real o un filtro menos restrictivo.{% else %}{{ calendar.get('source_summary') or 'Datos reales sincronizados.' }}{% endif %}</p></article>
     <article><strong>{{ selected.get('visible', counts.get('visible',0)) }}</strong><span>visibles</span></article>
     <article><strong>{{ counts.get('today',0) }}</strong><span>hoy</span></article>
     <article><strong>{{ counts.get('live',0) }}</strong><span>directo</span></article>
@@ -100,7 +100,7 @@
       {% set ctx = m|match_madrid_context %}
       <a href="/match/{{ m.get('id') }}"><small>{{ ctx.client_time_label or ctx.client_status_label or 'Pendiente' }}</small><strong>{{ ctx.safe_home }} vs {{ ctx.safe_away }}</strong><em>{{ ctx.client_competition|competition_es }}</em></a>
     {% else %}
-      <p>Sin partidos visibles para este filtro. Cambia día, liga o semana.</p>
+      <p>Sin partidos reales visibles para este filtro. Cambia día, liga o semana; si sigue vacío, el admin debe revisar última sincronización y caché.</p>
     {% endfor %}
   </section>
 
@@ -147,14 +147,14 @@
         {% endfor %}
       </article>
       {% else %}
-      <div class="v799-empty v801-empty"><strong>Sin datos reales para este filtro.</strong><p>{{ calendar.get('source_summary') or 'Esperando proveedor o próxima sincronización real. La app no inventa calendario.' }}</p><div><a href="/calendar?lane=week">Ver semana</a><a href="/calendar?lane=upcoming">Ver 21 días</a><a href="/live">Directo</a></div></div>
+      <div class="v799-empty v801-empty ns-empty v882-core-empty"><strong>Sin partidos reales ahora mismo.</strong><p>{{ calendar.get('source_summary') or 'Esperando proveedor, caché o próxima sincronización real. La app no inventa calendario.' }} Si hay APIs configuradas y sigue vacío, revisa Data Center, último sync y filtros activos.</p><div><a href="/calendar?lane=week">Ver semana</a><a href="/calendar?lane=upcoming">Ver 21 días</a><a href="/live">Directo</a></div></div>
       {% endfor %}
     </div>
 
     <aside class="v799-context-panel v801-context-panel">
       <article class="v799-card v801-side-card">
         <div class="v799-section-head"><div><span>Estado real</span><h2>Calendario</h2></div></div>
-        <p>{{ calendar.get('source_summary') }}</p>
+        <p>{% if not counts.get('visible',0) %}Sin partidos reales ahora mismo. Estado seguro: esperando proveedor, caché o sincronización real.{% else %}{{ calendar.get('source_summary') }}{% endif %}</p>
         <dl class="v801-mini-stats">
           <div><dt>Visibles</dt><dd>{{ counts.get('visible',0) }}</dd></div>
           <div><dt>Días</dt><dd>{{ counts.get('days',0) }}</dd></div>

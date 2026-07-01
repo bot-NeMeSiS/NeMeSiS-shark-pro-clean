@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import json
 import os
@@ -9,7 +9,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = "V881_SIDEBAR_NAV_DUPLICATION_ROOT_FIX_FINAL"
+VERSION = "V882_CORE_PRODUCT_RECOVERY_MATCHES_VISUAL_ORDER_FINAL"
 ZIP_NAME = f"NeMeSiS_SHARK_PRO_{VERSION}_RENDER_READY.zip"
 
 REPORTS = [
@@ -110,7 +110,7 @@ def main() -> None:
     ]:
         require(state in app_py + templates + "\n".join(read(f"reports/{r}") for r in REPORTS), f"safe state missing: {state}")
 
-    for bad in [">None<", ">null<", ">undefined<", "ÃƒÆ’", "Ãƒâ€š", "Ã¯Â¿Â½", "EspaÃ", "EspaÁ"]:
+    for bad in [">None<", ">null<", ">undefined<", "ÃƒÆ’Ã†â€™", "ÃƒÆ’Ã¢â‚¬Å¡", "ÃƒÂ¯Ã‚Â¿Ã‚Â½", "EspaÃƒ", "EspaÃ"]:
         require(bad not in app_py + templates, f"technical/mojibake token remains: {bad}")
 
     for bad in ["Stripe operativo", "Telegram filler", "OpenAI operativo", "apuesta segura", "garantizado", "apuesta fija", "sin riesgo"]:
@@ -152,3 +152,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+

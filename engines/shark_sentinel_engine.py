@@ -181,6 +181,29 @@ def _inspect_html(profile: str, route: str, status_code: int, html: str) -> list
     issues: list[dict[str, Any]] = []
     lower = html.lower()
     visible_lower = _visible_text_from_html(html).lower()
+    sports_routes = {"/partidos", "/calendar", "/live", "/directo", "/picks"}
+    sports_safe_states = [
+        "sin partidos reales",
+        "esperando proveedor",
+        "sin sincronización reciente",
+        "requiere sincronización real",
+        "proveedor sin datos",
+        "sin directos reales",
+        "sin picks activos",
+        "cuota pendiente",
+        "selección pendiente",
+        "pick en revisión",
+        "sin pick real publicado",
+    ]
+    sports_row_markers = [
+        "v799-agenda-row",
+        "v801-agenda-row",
+        "v799-live-card",
+        "v850-live-card",
+        "v799-pick-card",
+        "ns-match-row",
+        "ns-pick-card",
+    ]
     if status_code >= 500:
         issues.append(_issue(profile, route, "route", "critical", "Ruta con error 500", "La ruta devuelve error de servidor.", str(status_code), "La pantalla debe cargar o redirigir de forma segura.", f"HTTP {status_code}", f"Revisar handler de {route}.", f"Corrige el 500 detectado en {route}."))
     mojibake_tokens = [chr(195), chr(194), chr(65533)]
@@ -195,6 +218,23 @@ def _inspect_html(profile: str, route: str, status_code: int, html: str) -> list
         issues.append(_issue(profile, route, "navigation", "medium", "Link admin en cliente", "Una ruta cliente expone enlace admin en HTML.", "/admin/", "Cliente no debe ver enlaces de operación admin.", "Link admin detectado.", "Revisar navegación y CTAs cliente.", f"Oculta links admin detectados en {route}."))
     if status_code == 200 and len(html.strip()) < 300:
         issues.append(_issue(profile, route, "visual", "medium", "Pantalla demasiado vacía", "La respuesta HTML es muy corta para una pantalla visible.", f"len={len(html)}", "Pantalla con estructura, estado o redirección clara.", "HTML muy corto.", "Añadir empty state premium o revisar template.", f"Revisa empty state pobre en {route}."))
+    if status_code == 200 and route in sports_routes:
+        has_sports_rows = any(marker in lower for marker in sports_row_markers)
+        has_safe_explanation = any(state in visible_lower for state in sports_safe_states)
+        if not has_sports_rows and not has_safe_explanation:
+            issues.append(_issue(
+                profile,
+                route,
+                "data_reality",
+                "high",
+                "Pantalla deportiva vacía sin explicación",
+                "La ruta central no muestra partidos/picks/directos ni explica proveedor, sync, caché o filtros.",
+                route,
+                "Si no hay datos reales, debe mostrarse un estado seguro y una acción clara.",
+                "No hay filas deportivas ni estado seguro reconocible.",
+                "Añadir estado Sin partidos reales / Esperando proveedor / Requiere sincronización real y CTAs útiles.",
+                f"Corrige el estado vacío deportivo de {route} sin inventar datos.",
+            ))
     if re.search(r"\b(none|null|undefined)\b", visible_lower):
         if route not in {"/api/runtime-version"}:
             issues.append(_issue(profile, route, "copy", "low", "Texto técnico posible", "Aparecen tokens técnicos que podrían ser visibles.", "None/null/undefined", "Cliente debe ver estados premium.", "Token técnico detectado.", "Revisar si el token es visible al usuario.", f"Revisa tokens técnicos visibles en {route}."))

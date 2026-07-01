@@ -872,3 +872,9 @@ Honestidad:
 - Sentinel añade `V881_NAV_DUPLICATION_RULES`.
 - Nuevo check: `tools/check_v881_sidebar_nav_duplication_fix.py`.
 - No se hizo deploy, push, Telegram real, pagos reales ni llamadas caras API.
+
+## V882_CORE_PRODUCT_RECOVERY_MATCHES_VISUAL_ORDER_FINAL
+- Foco: recuperar núcleo deportivo: partidos, directos, picks, estados reales y admin operativo.
+- Cambios: versionado V882, estados seguros más claros en calendario/app/picks, Sentinel endurecido para pantallas deportivas vacías sin explicación, reportes V882 y check V882.
+- No se inventaron datos, no se llamaron APIs caras, no se hizo deploy ni push.
+
