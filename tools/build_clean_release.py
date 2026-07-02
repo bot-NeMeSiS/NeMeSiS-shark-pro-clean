@@ -50,6 +50,7 @@ INCLUDE_TOP_LEVEL_FILES = {
     ".env.example",
     ".env.render.clean",
     ".gitignore",
+    "APP_VERSION",
     "app.py",
     "database_manager.py",
     "Procfile",
@@ -485,6 +486,7 @@ def include(path: Path) -> bool:
             or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V881")
             or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V882")
             or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V883")
+            or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V884")
             or rel_posix.startswith("reports/V869_")
             or rel_posix.startswith("reports/V870_")
             or rel_posix.startswith("reports/V871_")
@@ -499,6 +501,7 @@ def include(path: Path) -> bool:
             or rel_posix.startswith("reports/V881_")
             or rel_posix.startswith("reports/V882_")
             or rel_posix.startswith("reports/V883_")
+            or rel_posix.startswith("reports/V884_")
         )
     if any(part in EXCLUDE_DIRS for part in parts):
         return False

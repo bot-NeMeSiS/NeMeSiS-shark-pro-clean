@@ -891,3 +891,28 @@ Honestidad:
 - Render público observado en esta pasada: `V874_COMPANY_WIDE_PRODUCT_POLISH_VISUAL_DATA_SENTINEL_FINAL`, por lo que V883 no se declara desplegada.
 - No se hizo deploy, push, Telegram real, pagos reales, llamadas caras API ni escritura de DB real.
 
+## V884_REAL_RENDER_VISUAL_WORKER_MATCHES_QA_AND_FIX_FINAL
+- Base local: `V883_VISUAL_COMPANY_WORKER_BOT_CONTINUOUS_IMPROVEMENT_FINAL`.
+- Objetivo: probar que Visual Worker y Sentinel detectan problemas reales de Render, partidos, directos, picks y admin/data operations.
+- Render real consultado: produccion sigue en `V855_FULL_ECOSYSTEM_REFERENCE_REBUILD_CLIENT_ADMIN_MEMBERSHIPS_FINAL`, no V883/V884.
+- Se reforzo `engines/visual_company_worker_engine.py`: si una ruta deportiva no tiene filas/cards reales, crea issue low aunque exista estado seguro.
+- Se reforzo `engines/shark_sentinel_engine.py`: Sentinel tambien marca pantallas deportivas sin filas reales visibles.
+- Se corrigio estabilidad SHARK en inspecciones repetidas: `save_shark_context` ahora evita choque por snapshot duplicado con ID aleatorio e `INSERT OR IGNORE`.
+- Visual Worker local: modo full score 9.2, 5 issues low, 1 tarea y 1 prompt para `/partidos`, `/calendar`, `/live`, `/directo`, `/picks`.
+- Sentinel static: score 9.6, 8 issues low de datos deportivos, 0 criticos.
+- Nuevo check: `tools/check_v884_real_render_visual_worker_matches.py`.
+- No se hizo deploy, push, Telegram real, pagos reales ni llamadas caras API.
+
+## V884_CLIENT_ADMIN_FUNCTIONAL_FLOW_AND_SCREEN_EXPERIENCE_FINAL
+
+- Esta V884 funcional sustituye el nombre operativo anterior por instruccion del usuario.
+- Objetivo: revisar cliente/admin como flujo real de producto: botones, CTAs, rutas, pantallas, estados, deportes, SHARK, Telegram, pagos/membresias y Sentinel sin crear features nuevas.
+- Se actualizo `VERSION.txt`, `APP_VERSION`, `app.py`, `templates/base.html` y runtime con `has_v884_client_admin_functional_flow`.
+- Se preserva `has_v884_real_render_visual_worker_matches_qa` para compatibilidad con la pasada previa.
+- Se reforzo `engines/visual_company_worker_engine.py` con `FUNCTIONAL_FLOW_RULES`, `BAD_HREFS` y extraccion de enlaces HTML para detectar botones sin destino, href `#`, JavaScript sin accion real y cruces cliente/admin.
+- Se reforzo `engines/continuous_shark_sentinel_engine.py` con reglas V884 para flujo funcional, estados seguros, pagos honestos, Telegram sin filler y SHARK safe mode.
+- Se crearon reportes V884 funcionales de preflight, botones, journey cliente, flujo admin, deportes, layout, Sentinel, seguridad, Render y proximos pasos.
+- Nuevo check: `tools/check_v884_client_admin_functional_flow.py`.
+- Render real consultado: produccion sigue en `V855_FULL_ECOSYSTEM_REFERENCE_REBUILD_CLIENT_ADMIN_MEMBERSHIPS_FINAL`, por lo que V884 no se declara desplegada.
+- No se hizo deploy, push, Telegram real, pagos reales, browser QA ni llamadas caras API.
+

@@ -235,6 +235,20 @@ def _inspect_html(profile: str, route: str, status_code: int, html: str) -> list
                 "Añadir estado Sin partidos reales / Esperando proveedor / Requiere sincronización real y CTAs útiles.",
                 f"Corrige el estado vacío deportivo de {route} sin inventar datos.",
             ))
+        elif not has_sports_rows and has_safe_explanation:
+            issues.append(_issue(
+                profile,
+                route,
+                "data_reality",
+                "low",
+                "Pantalla deportiva sin filas reales visibles",
+                "La ruta muestra un estado seguro, pero no hay partidos/picks/directos reales visibles.",
+                route,
+                "Si no hay datos reales, debe existir estado seguro y tarea admin de sync/filtros/cache.",
+                "Estado seguro presente, sin filas deportivas reales.",
+                "Mantener estado seguro y revisar proveedor, cache, filtros o temporada desde admin.",
+                f"Revisa por qué {route} no muestra datos deportivos reales aunque tenga estado seguro.",
+            ))
     if re.search(r"\b(none|null|undefined)\b", visible_lower):
         if route not in {"/api/runtime-version"}:
             issues.append(_issue(profile, route, "copy", "low", "Texto técnico posible", "Aparecen tokens técnicos que podrían ser visibles.", "None/null/undefined", "Cliente debe ver estados premium.", "Token técnico detectado.", "Revisar si el token es visible al usuario.", f"Revisa tokens técnicos visibles en {route}."))

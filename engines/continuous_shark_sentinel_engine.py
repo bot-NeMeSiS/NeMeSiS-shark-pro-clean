@@ -167,6 +167,21 @@ V883_VISUAL_COMPANY_WORKER_RULES = [
     "visual_worker_never_auto_deploys",
 ]
 
+V884_CLIENT_ADMIN_FUNCTIONAL_FLOW_RULES = [
+    "client_buttons_need_real_destination",
+    "admin_buttons_need_operational_destination",
+    "empty_href_or_hash_href_detected",
+    "javascript_href_detected",
+    "client_admin_navigation_crossing_detected",
+    "duplicate_cta_labels_detected",
+    "sports_screens_need_rows_or_safe_state",
+    "picks_need_pending_odds_or_review_state",
+    "shark_safe_mode_must_be_visible_when_openai_missing",
+    "payments_must_not_claim_operational_without_stripe",
+    "telegram_must_not_claim_fake_sends",
+    "admin_apis_and_cron_must_stay_protected",
+]
+
 
 def madrid_now() -> str:
     return datetime.now(MADRID_TZ).isoformat(timespec="seconds")
@@ -241,6 +256,7 @@ def build_continuous_sentinel_summary(version: str = "") -> dict[str, Any]:
         "nav_duplication_rules_v881": V881_NAV_DUPLICATION_RULES,
         "core_product_rules_v882": V882_CORE_PRODUCT_RULES,
         "visual_company_worker_rules_v883": V883_VISUAL_COMPANY_WORKER_RULES,
+        "client_admin_functional_flow_rules_v884": V884_CLIENT_ADMIN_FUNCTIONAL_FLOW_RULES,
         "visual_company_worker_ready": True,
         "visual_big_leap_ready": True,
         "improvement_workflow_ready": True,

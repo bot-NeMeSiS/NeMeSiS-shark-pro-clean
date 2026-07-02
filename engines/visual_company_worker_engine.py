@@ -95,6 +95,8 @@ FORBIDDEN_PROMISES = [
     "fijo",
 ]
 
+BAD_HREFS = {"", "#", "javascript:void(0)", "javascript:void(0);", "javascript:;"}
+
 TECHNICAL_VISIBLE_TOKENS = ["None", "undefined", "Traceback", "sqlite3.", "werkzeug."]
 MOJIBAKE_TOKENS = ["Ã", "Â", "�", "EspaÁa", "Result ados"]
 
@@ -121,6 +123,19 @@ VISUAL_RULES = [
     "endpoint_tecnico_visible",
     "sentinel_parece_json",
     "pantalla_sin_cta_principal",
+]
+
+FUNCTIONAL_FLOW_RULES = [
+    "button_without_destination",
+    "empty_href",
+    "hash_href",
+    "javascript_href",
+    "duplicate_cta_label",
+    "client_button_to_admin",
+    "admin_button_to_client_without_context",
+    "too_many_primary_actions",
+    "missing_return_path",
+    "missing_safe_next_action",
 ]
 
 PRODUCT_DATA_RULES = [
@@ -217,9 +232,18 @@ def _visible_text(html: str) -> str:
     return re.sub(r"\s+", " ", html).strip()
 
 
+def _links_from_html(html: str) -> list[tuple[str, str]]:
+    links: list[tuple[str, str]] = []
+    for match in re.finditer(r"(?is)<a\b[^>]*href=[\"']([^\"']*)[\"'][^>]*>(.*?)</a>", html or ""):
+        href = (match.group(1) or "").strip()
+        label = _visible_text(match.group(2) or "")
+        links.append((href, label))
+    return links
+
+
 def _issue(route: str, profile: str, category: str, severity: str, title: str, evidence: str, fix: str) -> dict[str, Any]:
     return {
-        "id": stable_id("V883", route, profile, category, title, evidence),
+        "id": stable_id("V884", route, profile, category, title, evidence),
         "timestamp_madrid": madrid_now(),
         "profile": profile,
         "route": route,
@@ -243,7 +267,7 @@ def build_codex_prompt(route: str, category: str, severity: str, evidence: str) 
         "Actua como equipo completo de NeMeSiS SHARK PRO. "
         f"Prioridad {severity}. Ruta afectada: {route}. Categoria: {category}. "
         f"Evidencia: {evidence[:220]}. "
-        "Corrige solo el defecto real, preserva V818-V882, DB_PATH, usuarios, pagos, Telegram, SHARK, "
+        "Corrige solo el defecto real, preserva V818-V883, DB_PATH, usuarios, pagos, Telegram, SHARK, "
         "API-SPORTS y seguridad. No inventes datos, no toques secretos, no hagas deploy automatico. "
         "Valida py_compile, compileall, Sentinel, smoke local y ZIP limpio."
     )
@@ -292,12 +316,28 @@ def inspect_route(client: Any, route: str, profile: str) -> dict[str, Any]:
     if repeated:
         issues.append(_issue(route, profile, "visual", "medium", "CTAs repetidos", "Etiquetas repetidas: " + ", ".join(repeated[:4]), "Reducir acciones duplicadas o agruparlas."))
 
+    links = _links_from_html(html)
+    bad_links = [(href, label) for href, label in links if href.strip().lower() in BAD_HREFS]
+    if bad_links:
+        sample = ", ".join((label or href or "sin texto")[:36] for href, label in bad_links[:5])
+        issues.append(_issue(route, profile, "flow", "medium", "Boton o enlace sin destino real", sample, "Asignar ruta real, ocultar accion o moverla a estado pendiente."))
+    if route.startswith("/admin/"):
+        client_links = [href for href, _label in links if href in {"/app", "/picks", "/live", "/telegram", "/profile"}]
+        if len(client_links) > 2:
+            issues.append(_issue(route, profile, "flow", "low", "Demasiados enlaces cliente dentro de admin", ", ".join(client_links[:5]), "Mantener solo Vista cliente/Salir como acciones secundarias."))
+    else:
+        admin_links = [href for href, _label in links if href.startswith("/admin/")]
+        if admin_links:
+            issues.append(_issue(route, profile, "flow", "high", "Enlace admin visible en cliente", ", ".join(admin_links[:5]), "Ocultar rutas admin del flujo cliente."))
+
     sports_route = route in {"/partidos", "/calendar", "/live", "/directo", "/picks"}
     if sports_route and status == 200:
         has_rows = any(token in html for token in ("ns-match-row", "ns-pick-card", "match-row", "pick-card", "v882-core-grid"))
         has_safe_state = any(state in text for state in SAFE_STATES)
         if not has_rows and not has_safe_state:
             issues.append(_issue(route, profile, "data", "high", "Pantalla deportiva vacia sin estado seguro", "No hay filas/cards ni estado seguro visible.", "Mostrar estado premium y tarea admin sin inventar datos."))
+        elif not has_rows and has_safe_state:
+            issues.append(_issue(route, profile, "data", "low", "Pantalla deportiva sin datos reales visibles", "Hay estado seguro, pero no hay filas/cards deportivas reales visibles.", "Mantener el estado seguro y crear tarea admin de sync/filtros/cache."))
 
     return {
         "route": route,
@@ -463,6 +503,7 @@ def build_visual_company_worker_summary(
         "routes_reviewed": len(route_results),
         "route_results": route_results,
         "visual_rules": VISUAL_RULES,
+        "functional_flow_rules": FUNCTIONAL_FLOW_RULES,
         "product_data_rules": PRODUCT_DATA_RULES,
         "render_awareness": {
             "local_version": version,
