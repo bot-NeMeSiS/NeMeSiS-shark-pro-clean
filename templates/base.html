@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="es">
 <head>
   <meta charset="utf-8">
@@ -6,10 +6,10 @@
   <meta name="theme-color" content="#06111f">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="nemesis-version" content="V884_CLIENT_ADMIN_FUNCTIONAL_FLOW_AND_SCREEN_EXPERIENCE_FINAL">
+  <meta name="nemesis-version" content="V886_REAL_BROWSER_NAV_VISUAL_QA_AFTER_V885_FINAL">
   <title>{% if title is defined and title %}{{ title }}{% else %}NeMeSiS SHARK PRO{% endif %}</title>
   <link rel="icon" href="{{ url_for('static', filename='img/shark-logo.svg') }}" type="image/svg+xml">
-  <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}?v=V884_CLIENT_ADMIN_FUNCTIONAL_FLOW_AND_SCREEN_EXPERIENCE_FINAL">
+  <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}?v=V886_REAL_BROWSER_NAV_VISUAL_QA_AFTER_V885_FINAL">
   <meta name="csrf-token" content="{{ csrf_token() }}">
 </head>
 {% from "partials/brand_logo.html" import nemesis_brand %}
@@ -29,11 +29,13 @@
 {% endif %}
 {% set is_admin_area = current_user and current_user.role == 'ADMIN' %}
 {% set is_client_area = current_user and current_user.role != 'ADMIN' %}
+{% set show_client_sidebar = is_client_area %}
 {% set show_client_nav = is_client_area %}
+{% set show_client_topbar_nav = not current_user and not is_admin_area %}
 {% set show_admin_nav = is_admin_area %}
 {% set show_mobile_bottom_nav = not is_admin_area %}
 {% set show_floating_shark = is_client_area and request.path not in ['/shark', '/shark-ai', '/shark-core'] %}
-<body class="ns-app ns-tier-{{ _visual_tier }}{% if current_user %} ns-authenticated{% else %} ns-public{% endif %}{% if current_user and current_user.role == 'ADMIN' %} ns-admin{% endif %}" data-ns-route="{{ request.path }}" data-ns-plan="{{ _tier_label }}" data-v775-shell="true" data-v776-shell="true" data-v777-shell="true" data-v778-shell="true" data-v790-shell="true" data-v792-shell="true" data-v793-shell="true" data-v795-shell="true" data-v796-shell="true" data-v797-shell="true" data-v798-shell="true" data-v799-shell="true" data-v800-shell="true" data-v801-shell="true" data-v802-shell="true" data-v806-shell="true" data-v807-shell="true" data-v809-shell="true" data-v810-shell="true" data-v811-shell="true" data-v812-shell="true" data-v813-shell="true" data-v814-shell="true" data-v815-shell="true" data-v816-shell="true" data-v817-shell="true" data-v818-shell="true" data-v819-shell="true" data-v820-shell="true" data-v821-shell="true" data-v822-shell="true" data-v823-shell="true" data-v824-shell="true" data-v825-shell="true" data-v826-shell="true" data-v827-shell="true" data-v828-shell="true" data-v829-shell="true" data-v830-shell="true" data-v832-shell="true" data-v833-shell="true" data-v836-shell="true" data-v837-shell="true" data-v838-shell="true" data-v839-shell="true" data-v840-shell="true" data-v841-shell="true" data-v842-shell="true" data-v843-shell="true" data-v844-shell="true" data-v845-shell="true" data-v847-shell="true" data-v848-shell="true" data-v849-shell="true" data-v850-shell="true" data-v851-shell="true" data-v852-shell="true" data-v853-shell="true" data-v854-shell="true" data-v855-shell="true" data-v856-shell="true" data-v857-shell="true" data-v858-shell="true" data-v859-shell="true" data-v860-shell="true" data-v861-shell="true" data-v862-shell="true" data-v863-shell="true" data-v864-shell="true" data-v865-shell="true" data-v866-shell="true" data-v867-shell="true" data-v868-shell="true" data-v869-shell="true" data-v870-shell="true" data-v871-shell="true" data-v872-shell="true" data-v873-shell="true" data-v874-shell="true" data-v875-shell="true" data-v876-shell="true" data-v878-shell="true" data-v879-shell="true" data-v880-shell="true" data-v881-shell="true" data-v882-shell="true" data-v883-shell="true" data-v884-shell="true">
+<body class="ns-app ns-tier-{{ _visual_tier }}{% if current_user %} ns-authenticated{% else %} ns-public{% endif %}{% if current_user and current_user.role == 'ADMIN' %} ns-admin{% endif %}" data-ns-route="{{ request.path }}" data-ns-plan="{{ _tier_label }}" data-v775-shell="true" data-v776-shell="true" data-v777-shell="true" data-v778-shell="true" data-v790-shell="true" data-v792-shell="true" data-v793-shell="true" data-v795-shell="true" data-v796-shell="true" data-v797-shell="true" data-v798-shell="true" data-v799-shell="true" data-v800-shell="true" data-v801-shell="true" data-v802-shell="true" data-v806-shell="true" data-v807-shell="true" data-v809-shell="true" data-v810-shell="true" data-v811-shell="true" data-v812-shell="true" data-v813-shell="true" data-v814-shell="true" data-v815-shell="true" data-v816-shell="true" data-v817-shell="true" data-v818-shell="true" data-v819-shell="true" data-v820-shell="true" data-v821-shell="true" data-v822-shell="true" data-v823-shell="true" data-v824-shell="true" data-v825-shell="true" data-v826-shell="true" data-v827-shell="true" data-v828-shell="true" data-v829-shell="true" data-v830-shell="true" data-v832-shell="true" data-v833-shell="true" data-v836-shell="true" data-v837-shell="true" data-v838-shell="true" data-v839-shell="true" data-v840-shell="true" data-v841-shell="true" data-v842-shell="true" data-v843-shell="true" data-v844-shell="true" data-v845-shell="true" data-v847-shell="true" data-v848-shell="true" data-v849-shell="true" data-v850-shell="true" data-v851-shell="true" data-v852-shell="true" data-v853-shell="true" data-v854-shell="true" data-v855-shell="true" data-v856-shell="true" data-v857-shell="true" data-v858-shell="true" data-v859-shell="true" data-v860-shell="true" data-v861-shell="true" data-v862-shell="true" data-v863-shell="true" data-v864-shell="true" data-v865-shell="true" data-v866-shell="true" data-v867-shell="true" data-v868-shell="true" data-v869-shell="true" data-v870-shell="true" data-v871-shell="true" data-v872-shell="true" data-v873-shell="true" data-v874-shell="true" data-v875-shell="true" data-v876-shell="true" data-v878-shell="true" data-v879-shell="true" data-v880-shell="true" data-v881-shell="true" data-v882-shell="true" data-v883-shell="true" data-v884-shell="true" data-v885-shell="true" data-v886-shell="true">
   <!-- NEMESIS V817 REFERENCE PIXEL POLISH ACTIVE -->
   <!-- NEMESIS V818 DAILY AUTOMATION OS ACTIVE -->
   <!-- NEMESIS V819 REFERENCE UI DEDUP LAYER PURGE ACTIVE -->
@@ -98,6 +100,8 @@
   <!-- NEMESIS V882 CORE PRODUCT RECOVERY MATCHES VISUAL ORDER FINAL ACTIVE -->
   <!-- NEMESIS V883 VISUAL COMPANY WORKER BOT CONTINUOUS IMPROVEMENT ACTIVE -->
   <!-- NEMESIS V884 CLIENT ADMIN FUNCTIONAL FLOW SCREEN EXPERIENCE ACTIVE -->
+  <!-- NEMESIS V885 CLIENT SIDEBAR RESTORE BEST POSITION NAV ACTIVE -->
+  <!-- NEMESIS V886 REAL BROWSER NAV VISUAL QA AFTER V885 ACTIVE -->
   <div class="ns-ambient" aria-hidden="true"><i></i><i></i><i></i></div>
   {% if not current_user or current_user.role != 'ADMIN' %}
   <div class="v825-shark-background" aria-hidden="true">
@@ -117,30 +121,48 @@
       {% if current_user and current_user.role == 'ADMIN' %}{% set _brand_href = '/admin/control-center' %}{% endif %}
       {{ nemesis_brand(_brand_href, 'topbar') }}
       <span class="tier-badge tier-badge-{{ _visual_tier }}">{{ _tier_label }}</span>
-      {% if not is_admin_area %}
+      {% if show_client_topbar_nav %}
       <nav class="nav nav-clean" data-nav-zone="client-topbar">
-        {% if current_user %}
-          <a href="/app" data-v775-icon="Inicio">Inicio</a>
-          <a href="/calendar?lane=today" data-v775-icon="Partidos">Partidos</a>
-          <a href="/live" data-v775-icon="Directo">Directo</a>
-          <a href="/picks" data-v775-icon="Picks">Picks</a>
-          <a href="/shark" data-v775-icon="SHARK">SHARK</a>
-          <a href="/mi-cuenta" data-v775-icon="Cuenta">Cuenta</a>
-          <a href="/support">Soporte</a>
-          <a class="v797-nav-logout" href="/logout" data-v775-icon="Salir">Salir</a>
-        {% else %}
-          <a href="/membresias">Membresías</a>
-          <a href="/legal">Confianza</a>
-          <a href="/cliente-login">Entrar</a>
-          <a class="nav-cta" href="/registro">Crear cuenta</a>
-        {% endif %}
+        <a href="/membresias">Membresías</a>
+        <a href="/legal">Confianza</a>
+        <a href="/cliente-login">Entrar</a>
+        <a class="nav-cta" href="/registro">Crear cuenta</a>
       </nav>
       {% endif %}
     </div>
   </header>
 
-  {# V881: una sola fuente de navegación cliente. PC usa topbar y móvil usa bottom nav. v828-client-rail queda retirado del markup. #}
+  {# V885: una sola fuente de navegación cliente por viewport. PC usa sidebar premium y móvil usa bottom nav. #}
   <!-- V829 compatibility: v829-mobile-quick /profile /telegram /favorites /track-record /support migrated into canonical bottom nav and in-page actions. -->
+
+  {% if show_client_sidebar %}
+  {% set client_sidebar_links = [
+    ('Inicio', '/app', 'Inicio'),
+    ('Partidos', '/partidos', 'Partidos'),
+    ('Live', '/live', 'Directo'),
+    ('Picks', '/picks', 'Picks'),
+    ('SHARK', '/shark', 'SHARK'),
+    ('Telegram', '/telegram', 'Telegram'),
+    ('Perfil', '/profile', 'Perfil'),
+    ('Track Record', '/track-record', 'Historial'),
+    ('Soporte', '/support', 'Soporte')
+  ] %}
+  <aside class="ns-client-sidebar" aria-label="Navegación cliente premium" data-nav-zone="client-sidebar">
+    {{ nemesis_brand('/app', 'sidebar', True) }}
+    <span class="ns-client-sidebar-plan tier-badge tier-badge-{{ _visual_tier }}">{{ _tier_label }}</span>
+    <nav>
+      {% for label, href, icon in client_sidebar_links %}
+      {% set active = request.path == href or (href == '/partidos' and request.path == '/calendar') or (href != '/app' and request.path.startswith(href ~ '/')) %}
+      <a href="{{ href }}" data-v775-icon="{{ icon }}" class="{% if active %}is-active{% endif %}">
+        <span>{{ label }}</span>
+      </a>
+      {% endfor %}
+    </nav>
+    <div class="ns-client-sidebar-foot">
+      <a href="/logout" class="ns-client-sidebar-logout">Salir</a>
+    </div>
+  </aside>
+  {% endif %}
 
   {% if show_admin_nav %}
   {% set v808_admin_groups = [
@@ -347,7 +369,7 @@
     body.classList.add('ns-ready');
     body.dataset.nsEnhanced='true';
 
-    document.querySelectorAll('.nav a,.bottom-nav a').forEach(function(link){
+    document.querySelectorAll('.nav a,.bottom-nav a,.ns-client-sidebar a').forEach(function(link){
       try{
         const href=new URL(link.getAttribute('href'), window.location.origin).pathname.replace(/\/$/,'') || '/';
         if(href === '/' ? path === '/' : path === href || path.indexOf(href + '/') === 0){
@@ -369,7 +391,7 @@
     };
 
     document.addEventListener('pointerdown',function(ev){
-      const target=ev.target.closest && ev.target.closest('.btn,button,.quick,.card,.sports-row,.list-row,.bottom-nav a,.v776-client-compass a');
+      const target=ev.target.closest && ev.target.closest('.btn,button,.quick,.card,.sports-row,.list-row,.bottom-nav a,.ns-client-sidebar a,.v776-client-compass a');
       if(target) target.classList.add('ns-touch');
     },{passive:true});
     document.addEventListener('pointerup',function(){
@@ -430,7 +452,7 @@
     classify();
     let timer=null;
     window.addEventListener('resize', function(){ clearTimeout(timer); timer=setTimeout(classify, 120); }, {passive:true});
-    document.querySelectorAll('[data-v758-adaptive] .v758-quick, .bottom-nav a, .nav a').forEach(function(a){
+    document.querySelectorAll('[data-v758-adaptive] .v758-quick, .bottom-nav a, .nav a, .ns-client-sidebar a').forEach(function(a){
       a.addEventListener('click', function(){ document.body.classList.add('ns-navigating'); setTimeout(function(){document.body.classList.remove('ns-navigating')}, 900); }, {passive:true});
     });
   })();
@@ -480,7 +502,7 @@
     }
     function highlightActive(){
       var path=window.location.pathname;
-      document.querySelectorAll('.v794-admin-sidebar a,.nav-clean a,.bottom-nav-clean a,.v798-client-rail a').forEach(function(a){
+      document.querySelectorAll('.v794-admin-sidebar a,.nav-clean a,.bottom-nav-clean a,.ns-client-sidebar a,.v798-client-rail a').forEach(function(a){
         try{ var href=a.getAttribute('href')||''; if(href && path!== '/' && path.indexOf(href.split('')[0])===0) a.classList.add('is-active'); }catch(e){}
       });
     }
@@ -538,7 +560,7 @@
     var body=document.body;
     if(!body || !body.matches('.ns-authenticated:not(.ns-admin)[data-v800-shell="true"]')) return;
     var path=window.location.pathname;
-    document.querySelectorAll('.v799-client-rail a,.bottom-nav-clean a,.nav-clean a').forEach(function(a){
+    document.querySelectorAll('.v799-client-rail a,.bottom-nav-clean a,.nav-clean a,.ns-client-sidebar a').forEach(function(a){
       try{
         var href=(a.getAttribute('href')||'').split('')[0];
         if(!href || href==='/') return;
@@ -564,7 +586,7 @@
       var fabs=[].slice.call(document.querySelectorAll('.shark-fab'));
       if(fabs.length>1){ fabs.slice(0,-1).forEach(function(el){ el.remove(); }); }
       if(location.pathname.indexOf('/shark')===0){ document.querySelectorAll('.shark-widget').forEach(function(el){ el.classList.add('is-on-shark-page'); }); }
-      document.querySelectorAll('.nav-clean a,.bottom-nav-clean a').forEach(function(a){
+      document.querySelectorAll('.nav-clean a,.bottom-nav-clean a,.ns-client-sidebar a').forEach(function(a){
         try{ var url=new URL(a.href, location.origin); if(url.pathname===location.pathname || (url.pathname==='/calendar' && (location.pathname==='/partidos'||location.pathname==='/calendario'))){ a.classList.add('is-active'); }}catch(e){}
       });
     }catch(e){}

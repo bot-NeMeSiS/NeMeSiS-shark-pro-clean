@@ -916,3 +916,30 @@ Honestidad:
 - Render real consultado: produccion sigue en `V855_FULL_ECOSYSTEM_REFERENCE_REBUILD_CLIENT_ADMIN_MEMBERSHIPS_FINAL`, por lo que V884 no se declara desplegada.
 - No se hizo deploy, push, Telegram real, pagos reales, browser QA ni llamadas caras API.
 
+## V885_CLIENT_SIDEBAR_RESTORE_BEST_POSITION_NAV_FINAL
+
+- Base local: `V884_CLIENT_ADMIN_FUNCTIONAL_FLOW_AND_SCREEN_EXPERIENCE_FINAL`.
+- Objetivo: restaurar una sidebar cliente útil en PC sin volver a duplicar navegación ni mezclar cliente/admin.
+- Se actualizo `VERSION.txt`, `APP_VERSION`, `app.py`, `templates/base.html` y runtime con `has_v885_client_sidebar_restore`.
+- Cliente autenticado en PC vuelve a tener `ns-client-sidebar` con enlaces reales a Inicio, Partidos, Live, Picks, SHARK, Telegram, Perfil, Track Record y Soporte.
+- Cliente móvil conserva una única bottom nav compacta; admin mantiene solo su rail/command center, sin sidebar cliente, bottom nav cliente ni SHARK flotante cliente.
+- Se añadió bloque CSS `V885 CLIENT SIDEBAR RESTORE BEST POSITION NAV` para posicionamiento desktop, responsive móvil, active state, plan badge y aislamiento admin/cliente.
+- Visual Company Worker y Continuous Sentinel incorporan reglas V885 para sidebar cliente, bottom nav móvil, rutas reales, duplicados y cruces cliente/admin.
+- Sentinel queda en score 10.0 con 0 incidencias abiertas; las pantallas deportivas sin filas reales pero con estados seguros quedan como aviso operativo, no como dato inventado.
+- Nuevo check: `tools/check_v885_client_sidebar_restore.py`.
+- No se hizo deploy, push, Telegram real, pagos reales, browser QA ni llamadas caras API.
+
+## V886_REAL_BROWSER_NAV_VISUAL_QA_AFTER_V885_FINAL
+
+- Base local: `V885_CLIENT_SIDEBAR_RESTORE_BEST_POSITION_NAV_FINAL`.
+- Objetivo: certificar si V885 corrigio el menu lateral cliente y la navegacion duplicada.
+- Playwright no estuvo disponible de forma usable en este entorno; no se declaro pixel-perfect ni se generaron capturas reales.
+- Se valido con Flask test client, HTML renderizado y contrato CSS responsive.
+- Cliente desktop: `client-sidebar` aparece una sola vez en rutas cliente autenticadas.
+- Cliente movil: `client-bottom` aparece una sola vez y el CSS oculta `.ns-client-sidebar` en `max-width: 1023px`.
+- Admin: rutas/admin APIs sin sesion no renderizan sidebar cliente, bottom nav cliente ni floating SHARK cliente.
+- Runtime flag nuevo: `has_v886_real_browser_nav_visual_qa`.
+- Nuevo check: `tools/check_v886_nav_visual_qa_after_v885.py`.
+- Sentinel local: score 10.0, 0 issues, 0 criticos.
+- No se hizo deploy, push, Telegram real, pagos reales ni llamadas caras API.
+

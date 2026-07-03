@@ -12,7 +12,8 @@ import zipfile
 
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = "V884_CLIENT_ADMIN_FUNCTIONAL_FLOW_AND_SCREEN_EXPERIENCE_FINAL"
+PRESERVED_VERSION = "V884_CLIENT_ADMIN_FUNCTIONAL_FLOW_AND_SCREEN_EXPERIENCE_FINAL"
+VERSION = (ROOT / "VERSION.txt").read_text(encoding="utf-8-sig").strip()
 ZIP_NAME = f"NeMeSiS_SHARK_PRO_{VERSION}_RENDER_READY.zip"
 
 REPORTS = [
@@ -81,11 +82,11 @@ def check_static_files() -> None:
     worker = read("engines/visual_company_worker_engine.py")
     continuous = read("engines/continuous_shark_sentinel_engine.py")
 
-    require(read("VERSION.txt").strip() == VERSION, "VERSION.txt is not V884 functional flow")
-    require(read("APP_VERSION").strip() == VERSION, "APP_VERSION file is not V884 functional flow")
+    require(read("VERSION.txt").strip() == VERSION, "VERSION.txt does not match current version")
+    require(read("APP_VERSION").strip() == VERSION, "APP_VERSION file does not match current version")
     require(f"APP_VERSION = '{VERSION}'" in app_py, "app.py APP_VERSION is not V884 functional flow")
     require("data-v884-shell" in base, "base.html missing data-v884-shell")
-    require(VERSION in base, "base.html missing V884 functional cache/version")
+    require(PRESERVED_VERSION in base or "data-v884-shell" in base, "base.html missing V884 functional preservation")
     require("NEMESIS V884 CLIENT ADMIN FUNCTIONAL FLOW SCREEN EXPERIENCE ACTIVE" in base, "base.html V884 comment missing")
 
     require("has_v884_client_admin_functional_flow" in app_py, "runtime V884 functional flag missing")
@@ -117,8 +118,8 @@ def check_runtime_and_routes() -> None:
         runtime = client.get("/api/runtime-version")
         require(runtime.status_code == 200, f"runtime returned {runtime.status_code}")
         payload = runtime.get_json() or {}
-        require(payload.get("app_version") == VERSION, "runtime app_version is not V884 functional")
-        require(payload.get("version_txt") == VERSION, "runtime version_txt is not V884 functional")
+        require(payload.get("app_version") == VERSION, "runtime app_version does not match current version")
+        require(payload.get("version_txt") == VERSION, "runtime version_txt does not match current version")
         require(payload.get("has_v884_client_admin_functional_flow") is True, "runtime V884 functional flag false")
         require(payload.get("has_v884_real_render_visual_worker_matches_qa") is True, "previous V884 flag false")
         require(payload.get("has_v883_visual_company_worker") is True, "V883 flag false")

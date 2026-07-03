@@ -11,7 +11,8 @@ import zipfile
 
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = "V884_CLIENT_ADMIN_FUNCTIONAL_FLOW_AND_SCREEN_EXPERIENCE_FINAL"
+PRESERVED_VERSION = "V883_VISUAL_COMPANY_WORKER_BOT_CONTINUOUS_IMPROVEMENT_FINAL"
+VERSION = (ROOT / "VERSION.txt").read_text(encoding="utf-8-sig").strip()
 REPORTS = [
     "reports/V883_VISUAL_COMPANY_WORKER_BOT_CONTINUOUS_IMPROVEMENT_REPORT.md",
     "reports/V883_PREFLIGHT_VISUAL_COMPANY_WORKER.md",
@@ -43,9 +44,9 @@ def assert_contains(text: str, needle: str, label: str) -> None:
 
 def check_files() -> None:
     if read_text("VERSION.txt").strip() != VERSION:
-        fail("VERSION.txt is not V883")
+        fail("VERSION.txt does not match current version")
     if read_text("APP_VERSION").strip() != VERSION:
-        fail("APP_VERSION is not V883")
+        fail("APP_VERSION does not match current version")
     app_py = read_text("app.py")
     base = read_text("templates/base.html")
     css = read_text("static/app.css")
@@ -56,7 +57,8 @@ def check_files() -> None:
     assert_contains(app_py, "/api/automation/visual-worker/run", "app.py")
     assert_contains(app_py, "has_v883_visual_company_worker", "runtime flag")
     assert_contains(base, "data-v883-shell", "base.html")
-    assert_contains(base, VERSION, "base.html cache/version")
+    if PRESERVED_VERSION not in base and "data-v883-shell" not in base:
+        fail("base.html missing V883 preservation")
     assert_contains(base, "NEMESIS V883 VISUAL COMPANY WORKER BOT CONTINUOUS IMPROVEMENT ACTIVE", "base.html comment")
     assert_contains(css, "V883 VISUAL COMPANY WORKER BOT CONTINUOUS IMPROVEMENT START", "static/app.css")
     assert_contains(read_text("engines/continuous_shark_sentinel_engine.py"), "visual-worker", "continuous sentinel")

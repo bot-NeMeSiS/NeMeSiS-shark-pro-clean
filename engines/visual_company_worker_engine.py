@@ -138,6 +138,19 @@ FUNCTIONAL_FLOW_RULES = [
     "missing_safe_next_action",
 ]
 
+V885_NAV_RULES = [
+    "client_desktop_sidebar_required",
+    "client_mobile_bottom_nav_required",
+    "admin_must_not_render_client_sidebar",
+    "admin_must_not_render_client_bottom_nav",
+    "client_must_not_render_admin_nav",
+    "single_client_sidebar_instance",
+    "single_bottom_nav_instance",
+    "single_floating_shark_instance",
+    "active_route_marker_required",
+    "primary_client_links_required",
+]
+
 PRODUCT_DATA_RULES = [
     "partidos_vacio_sin_explicacion",
     "calendar_vacio_sin_explicacion",
@@ -308,8 +321,24 @@ def inspect_route(client: Any, route: str, profile: str) -> dict[str, Any]:
 
     if route.startswith("/admin/") and ("bottom-nav-clean" in html or "floating-shark" in html or "v810-big-shark-decoration" in html):
         issues.append(_issue(route, profile, "admin", "high", "Elemento cliente dentro de admin", "Se detecta nav/floating cliente en HTML admin.", "Aislar layout admin."))
+    if route.startswith("/admin/") and "ns-client-sidebar" in html:
+        issues.append(_issue(route, profile, "admin", "high", "Sidebar cliente dentro de admin", "Se detecta ns-client-sidebar en HTML admin.", "Ocultar sidebar cliente en admin."))
     if not route.startswith("/admin/") and "v808-admin-rail" in html:
         issues.append(_issue(route, profile, "client", "high", "Navegacion admin dentro de cliente", "Se detecta rail admin en HTML cliente.", "Aislar layout cliente."))
+
+    authenticated_client_html = "ns-authenticated" in html and "ns-admin" not in html
+    if authenticated_client_html:
+        sidebar_count = html.count('data-nav-zone="client-sidebar"')
+        bottom_count = html.count('data-nav-zone="client-bottom"')
+        shark_count = html.count('class="shark-widget"') + html.count("class='shark-widget'")
+        if sidebar_count == 0:
+            issues.append(_issue(route, profile, "navigation", "high", "Cliente autenticado sin sidebar principal", "No se detecta data-nav-zone=\"client-sidebar\".", "Restaurar sidebar cliente desktop sin duplicar bottom nav."))
+        if sidebar_count > 1:
+            issues.append(_issue(route, profile, "navigation", "high", "Sidebar cliente duplicado", f"Instancias client-sidebar: {sidebar_count}", "Dejar una sola instancia canonica."))
+        if bottom_count > 1:
+            issues.append(_issue(route, profile, "navigation", "medium", "Bottom nav cliente duplicada", f"Instancias client-bottom: {bottom_count}", "Dejar una sola bottom nav canonica para movil."))
+        if shark_count > 1 and route not in {"/shark", "/shark-ai", "/shark-core"}:
+            issues.append(_issue(route, profile, "navigation", "medium", "SHARK flotante duplicado", f"Instancias shark-widget: {shark_count}", "Dejar una sola instancia cliente y ocultarla en pantallas SHARK."))
 
     duplicate_buttons = re.findall(r">\s*([^<>]{3,42})\s*</a>", html)
     repeated = [label for label in set(duplicate_buttons) if duplicate_buttons.count(label) > 3 and label.strip().lower() not in {"inicio", "picks"}]
@@ -504,6 +533,7 @@ def build_visual_company_worker_summary(
         "route_results": route_results,
         "visual_rules": VISUAL_RULES,
         "functional_flow_rules": FUNCTIONAL_FLOW_RULES,
+        "nav_rules_v885": V885_NAV_RULES,
         "product_data_rules": PRODUCT_DATA_RULES,
         "render_awareness": {
             "local_version": version,

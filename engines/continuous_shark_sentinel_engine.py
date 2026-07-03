@@ -182,6 +182,19 @@ V884_CLIENT_ADMIN_FUNCTIONAL_FLOW_RULES = [
     "admin_apis_and_cron_must_stay_protected",
 ]
 
+V885_CLIENT_SIDEBAR_RESTORE_RULES = [
+    "client_desktop_requires_single_sidebar",
+    "client_mobile_requires_single_bottom_nav",
+    "admin_must_not_render_client_sidebar",
+    "admin_must_not_render_client_bottom_nav",
+    "admin_must_not_render_client_floating_shark",
+    "client_must_not_render_admin_rail",
+    "client_sidebar_links_must_be_real",
+    "client_sidebar_must_mark_active_route",
+    "no_duplicate_sidebar_labels",
+    "no_hash_or_javascript_nav_links",
+]
+
 
 def madrid_now() -> str:
     return datetime.now(MADRID_TZ).isoformat(timespec="seconds")
@@ -257,6 +270,7 @@ def build_continuous_sentinel_summary(version: str = "") -> dict[str, Any]:
         "core_product_rules_v882": V882_CORE_PRODUCT_RULES,
         "visual_company_worker_rules_v883": V883_VISUAL_COMPANY_WORKER_RULES,
         "client_admin_functional_flow_rules_v884": V884_CLIENT_ADMIN_FUNCTIONAL_FLOW_RULES,
+        "client_sidebar_restore_rules_v885": V885_CLIENT_SIDEBAR_RESTORE_RULES,
         "visual_company_worker_ready": True,
         "visual_big_leap_ready": True,
         "improvement_workflow_ready": True,
@@ -273,7 +287,16 @@ def run_continuous_sentinel_cycle(client: Any, version: str = "", mode: str = "q
     mode = _normalize_mode(mode)
     run_id = make_run_id(mode)
     static_result = run_static_flask_inspection(client, version)
-    issues = [_decorate_issue(issue, run_id) for issue in static_result.get("issues", [])]
+    static_issues = static_result.get("issues", [])
+    safe_data_notes = [
+        issue
+        for issue in static_issues
+        if issue.get("category") == "data_reality"
+        and issue.get("severity") == "low"
+        and "estado seguro" in f"{issue.get('description', '')} {issue.get('actual_behavior', '')}".lower()
+    ]
+    actionable_static_issues = [issue for issue in static_issues if issue not in safe_data_notes]
+    issues = [_decorate_issue(issue, run_id) for issue in actionable_static_issues]
     visual_worker_result = {}
     if mode in {"visual-worker", "company-worker", "full-company-qa"}:
         worker_mode = "full" if mode in {"company-worker", "full-company-qa"} else "visual"
@@ -299,6 +322,7 @@ def run_continuous_sentinel_cycle(client: Any, version: str = "", mode: str = "q
             "No browser real ejecutado en modo static.",
             "No se ejecutan acciones peligrosas.",
             "Los hallazgos de texto técnico son candidatos a revisar, no datos inventados.",
+            "Las pantallas deportivas sin filas reales pero con estado seguro se tratan como aviso operativo, no incidencia.",
             "Reglas visuales V864 revisadas por marcadores estáticos; browser QA es opcional.",
             "Reglas V878 de purga visual revisadas por contrato ns-* y marcadores deprecated.",
             "Reglas V879 finales revisan producto visible, CTAs, espacios, copy y estados seguros.",
@@ -316,8 +340,17 @@ def run_continuous_sentinel_cycle(client: Any, version: str = "", mode: str = "q
         "safe_actions": ACTION_LEVELS["level_2_safe_internal_fix"],
         "approval_required_actions": ACTION_LEVELS["level_3_approval_required"],
         "forbidden_automatic_actions": ACTION_LEVELS["level_4_forbidden_automatic"],
-        "codex_prompts": build_codex_prompts(static_result.get("issues", [])),
-        "recommended_actions": build_recommended_actions(static_result.get("issues", [])),
+        "codex_prompts": build_codex_prompts(actionable_static_issues),
+        "recommended_actions": build_recommended_actions(actionable_static_issues),
+        "safe_data_reality_notes": [
+            {
+                "route": issue.get("route"),
+                "profile": issue.get("profile"),
+                "title": issue.get("title"),
+                "state": "Estado seguro presente; requiere proveedor/cache para filas reales.",
+            }
+            for issue in safe_data_notes
+        ],
         "next_focus": ["Resolver high/critical primero", "Deduplicar issues recurrentes", "Preparar prompt Codex solo con aprobación"],
         "comparison": {
             "against_expected_baseline": "routes/profiles/status/safety checked",

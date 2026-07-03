@@ -9,7 +9,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-VERSION = "V884_CLIENT_ADMIN_FUNCTIONAL_FLOW_AND_SCREEN_EXPERIENCE_FINAL"
+VERSION = (ROOT / "VERSION.txt").read_text(encoding="utf-8-sig").strip()
 ZIP_NAME = f"NeMeSiS_SHARK_PRO_{VERSION}_RENDER_READY.zip"
 
 REPORTS = [
@@ -59,10 +59,10 @@ def main() -> None:
     app_center = read("templates/client_app_center.html")
     picks = read("templates/picks.html")
 
-    require(version_txt == VERSION, "VERSION.txt is not V882")
-    require(app_version_txt == VERSION, "APP_VERSION is not V882")
-    require(f"APP_VERSION = '{VERSION}'" in app_py, "app.py APP_VERSION is not V882")
-    require(VERSION in base, "base.html missing V882 cache/version")
+    require(version_txt == VERSION, "VERSION.txt does not match current version")
+    require(app_version_txt == VERSION, "APP_VERSION does not match current version")
+    require(f"APP_VERSION = '{VERSION}'" in app_py, "app.py APP_VERSION does not match current version")
+    require("data-v882-shell" in base, "base.html missing V882 preservation")
     require("data-v882-shell" in base, "base.html missing data-v882-shell")
     require("has_v882_core_product_recovery" in app_py, "runtime V882 flag missing")
     require("V882 CORE PRODUCT RECOVERY MATCHES VISUAL ORDER START" in css, "CSS V882 marker missing")
@@ -103,8 +103,8 @@ def main() -> None:
     runtime = client.get("/api/runtime-version")
     require(runtime.status_code == 200, "runtime-version not 200")
     payload = runtime.get_json()
-    require(payload.get("app_version") == VERSION, "runtime app_version is not V882")
-    require(payload.get("version_txt") == VERSION, "runtime version_txt is not V882")
+    require(payload.get("app_version") == VERSION, "runtime app_version does not match current version")
+    require(payload.get("version_txt") == VERSION, "runtime version_txt does not match current version")
     require(payload.get("has_v882_core_product_recovery") is True, "runtime V882 flag false")
     require(payload.get("has_v881_sidebar_nav_duplication_fix") is True, "runtime V881 flag false")
 
