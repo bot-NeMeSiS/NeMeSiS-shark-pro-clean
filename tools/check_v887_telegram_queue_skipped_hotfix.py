@@ -12,6 +12,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V887_TELEGRAM_QUEUE_SKIPPED_RUNTIME_HOTFIX_FINAL"
+CURRENT_VERSION = "V888_REAL_ERRORS_SWEEP_TELEGRAM_MATCHES_PICKS_NAV_SENTINEL_FINAL"
 REPORTS = [
     "V887_TELEGRAM_QUEUE_SKIPPED_RUNTIME_HOTFIX_REPORT.md",
     "V887_TELEGRAM_QUEUE_SKIPPED_ERROR_AUDIT.md",
@@ -38,9 +39,11 @@ def check_static_contract() -> None:
     delivery_engine = read("engines/telegram_delivery_engine.py")
     base = read("templates/base.html")
 
-    require(read("VERSION.txt").strip() == VERSION, "VERSION.txt is not V887")
-    require(read("APP_VERSION").strip() == VERSION, "APP_VERSION file is not V887")
-    require(f"APP_VERSION = '{VERSION}'" in app_py, "app.py APP_VERSION is not V887")
+    version_txt = read("VERSION.txt").strip()
+    app_version_file = read("APP_VERSION").strip()
+    require(version_txt in {VERSION, CURRENT_VERSION} or version_txt.startswith("V88"), "VERSION.txt does not preserve V887+ lineage")
+    require(app_version_file == version_txt, "APP_VERSION file does not match VERSION.txt")
+    require(f"APP_VERSION = '{version_txt}'" in app_py, "app.py APP_VERSION does not match VERSION.txt")
     require("data-v887-shell" in base, "base.html missing data-v887-shell")
     require("has_v887_telegram_queue_skipped_hotfix" in app_py, "runtime V887 flag missing")
 
@@ -86,8 +89,8 @@ def check_runtime_cron_endpoint() -> None:
         runtime = client.get("/api/runtime-version")
         require(runtime.status_code == 200, f"runtime status {runtime.status_code}")
         runtime_json = runtime.get_json() or {}
-        require(runtime_json.get("app_version") == VERSION, "runtime app_version is not V887")
-        require(runtime_json.get("version_txt") == VERSION, "runtime version_txt is not V887")
+        require(str(runtime_json.get("app_version") or "").startswith("V88"), "runtime app_version is not V887+")
+        require(runtime_json.get("version_txt") == runtime_json.get("app_version"), "runtime version_txt mismatch")
         require(runtime_json.get("has_v887_telegram_queue_skipped_hotfix") is True, "runtime V887 flag is false")
 
         no_secret = client.get("/api/automation/telegram/tick")

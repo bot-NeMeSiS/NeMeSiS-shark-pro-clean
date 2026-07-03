@@ -130,6 +130,15 @@ from engines.shark_sentinel_engine import build_static_sentinel_summary, run_sta
 from engines.continuous_shark_sentinel_engine import build_continuous_sentinel_summary, run_continuous_sentinel_cycle
 from engines.sentinel_improvement_workflow_engine import build_workflow_summary, update_issue_state
 from engines.visual_company_worker_engine import build_visual_company_worker_summary, run_visual_company_worker
+from engines.sentinel_autopilot_engine import (
+    build_autopilot_daily_report,
+    build_autopilot_snapshot,
+    generate_codex_prompt_for_issue,
+    load_autopilot_memory,
+    mark_autopilot_issue_resolved,
+    run_autopilot_scan,
+    save_autopilot_memory,
+)
 from engines.observability_engine import latest_observability_errors, observability_error_detail, observability_summary
 from engines.scheduler_engine import is_due, is_stale_running, next_run_iso, normalize_result, scheduler_config, task_definition
 from engines.shark_engine import build_shark_context, explain_pick_risk
@@ -298,7 +307,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V887_TELEGRAM_QUEUE_SKIPPED_RUNTIME_HOTFIX_FINAL'
+APP_VERSION = 'V888_SENTINEL_AUTOPILOT_SELF_IMPROVEMENT_ENGINE_FINAL'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
@@ -9158,7 +9167,7 @@ def telegram_send_http(chat_id, text, message_type="manual", payload=None):
     url = f"https://api.telegram.org/bot{token}/sendMessage"
     text = str(text or "").strip()
     if len(text) > 3900:
-        text = text[:3860].rstrip() + "\n\nâ€¦mensaje recortado por seguridad."
+        text = text[:3860].rstrip() + "\n\n...mensaje recortado por seguridad."
     data = {
         "chat_id": chat_id,
         "text": text or "Mensaje NeMeSiS SHARK PRO",
@@ -11451,6 +11460,11 @@ def home():
     return render_template("home.html", data=data)
 
 
+@app.route("/favicon.ico")
+def favicon_ico():
+    return redirect(url_for("static", filename="img/shark-logo.svg"))
+
+
 
 # ===================== V741 CALENDAR SEARCH EXPERIENCE PERFECTION =====================
 
@@ -13124,6 +13138,114 @@ def admin_visual_company_worker_page():
     return render_template("admin_visual_worker.html", data=dashboard_data(), summary=summary)
 
 
+def _v888_runtime_autopilot_state():
+    def _count(table):
+        try:
+            return int((one(f"SELECT COUNT(*) AS total FROM {table}") or {}).get("total") or 0)
+        except Exception:
+            return 0
+
+    return {
+        "app_version": APP_VERSION,
+        "openai_configured": bool(str(os.getenv("OPENAI_API_KEY") or "").strip()),
+        "telegram_configured": bool(str(os.getenv("TELEGRAM_BOT_TOKEN") or "").strip()),
+        "api_sports_configured": bool(str(os.getenv("API_SPORTS_KEY") or os.getenv("APISPORTS_KEY") or os.getenv("API_FOOTBALL_KEY") or "").strip()),
+        "the_odds_configured": bool(str(os.getenv("THE_ODDS_API_KEY") or "").strip()),
+        "automation_secret_configured": automation_secret_configured(),
+        "stripe_configured": bool(str(os.getenv("STRIPE_SECRET_KEY") or "").strip()),
+        "payments_configured": bool(str(os.getenv("STRIPE_SECRET_KEY") or "").strip()),
+        "team_logo_cache_count": _count("team_logo_cache"),
+        "league_logo_cache_count": _count("league_logo_cache"),
+        "matches_count": _count("matches"),
+        "picks_count": _count("picks"),
+        "db_path": DB_PATH,
+    }
+
+
+def _v888_build_autopilot_scan(save_memory=False, mode="quick"):
+    sentinel_run = run_continuous_sentinel_cycle(app.test_client(), APP_VERSION, mode="workflow", dry_run=True)
+    visual_run = run_visual_company_worker(app.test_client(), APP_VERSION, mode=mode or "quick", dry_run=True)
+    return run_autopilot_scan(
+        flask_client=app.test_client(),
+        app_version=APP_VERSION,
+        runtime=_v888_runtime_autopilot_state(),
+        sentinel_result=sentinel_run,
+        visual_result=visual_run,
+        save_memory=save_memory,
+        memory_root=Path(__file__).resolve().parent,
+    )
+
+
+@app.route("/admin/sentinel-autopilot")
+@app.route("/admin/autopilot")
+@app.route("/admin/self-improvement")
+@app.route("/admin/mejoras-automaticas")
+def admin_sentinel_autopilot_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/sentinel-autopilot")
+    scan = _v888_build_autopilot_scan(save_memory=False, mode=request.args.get("mode") or "quick")
+    memory = load_autopilot_memory(Path(__file__).resolve().parent)
+    return render_template("admin_sentinel_autopilot.html", data=dashboard_data(), summary=scan, memory=memory)
+
+
+@app.route("/api/admin/sentinel-autopilot/summary")
+def api_admin_sentinel_autopilot_summary():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    scan = _v888_build_autopilot_scan(save_memory=False, mode="quick")
+    return jsonify({"ok": True, **scan, "daily_report": build_autopilot_daily_report(scan)})
+
+
+@app.route("/api/admin/sentinel-autopilot/run", methods=["GET", "POST"])
+def api_admin_sentinel_autopilot_run():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    mode = request.args.get("mode") or "quick"
+    scan = _v888_build_autopilot_scan(save_memory=True, mode=mode)
+    return jsonify({"ok": True, **scan})
+
+
+@app.route("/api/admin/sentinel-autopilot/issues")
+def api_admin_sentinel_autopilot_issues():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    scan = _v888_build_autopilot_scan(save_memory=False, mode=request.args.get("mode") or "quick")
+    return jsonify({"ok": True, "version": APP_VERSION, "issues": scan.get("issues", []), "priority_matrix": scan.get("priority_matrix", {})})
+
+
+@app.route("/api/admin/sentinel-autopilot/tasks")
+def api_admin_sentinel_autopilot_tasks():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    scan = _v888_build_autopilot_scan(save_memory=False, mode=request.args.get("mode") or "quick")
+    return jsonify({"ok": True, "version": APP_VERSION, "tasks": scan.get("tasks", []), "safe_actions": scan.get("safe_actions", []), "approval_required_actions": scan.get("approval_required_actions", [])})
+
+
+@app.route("/api/admin/sentinel-autopilot/generate-prompt", methods=["GET", "POST"])
+def api_admin_sentinel_autopilot_generate_prompt():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    payload = request.get_json(silent=True) or {}
+    scan = _v888_build_autopilot_scan(save_memory=False, mode=request.args.get("mode") or "quick")
+    issues = scan.get("issues", [])
+    issue_id = str(payload.get("issue_id") or request.args.get("issue_id") or "")
+    issue = next((item for item in issues if item.get("issue_id") == issue_id), issues[0] if issues else {})
+    prompt = generate_codex_prompt_for_issue(issue) if issue else ""
+    return jsonify({"ok": True, "version": APP_VERSION, "issue": issue, "prompt": prompt, "prompts": scan.get("codex_prompts", [])})
+
+
+@app.route("/api/admin/sentinel-autopilot/mark-resolved", methods=["POST"])
+def api_admin_sentinel_autopilot_mark_resolved():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    payload = request.get_json(silent=True) or {}
+    issue_id = str(payload.get("issue_id") or request.args.get("issue_id") or "")
+    if not issue_id:
+        return jsonify({"ok": False, "version": APP_VERSION, "error": "issue_id_required"}), 400
+    result = mark_autopilot_issue_resolved(issue_id, Path(__file__).resolve().parent)
+    return jsonify({"version": APP_VERSION, **result, "dangerous_actions_executed": False})
+
+
 @app.route("/api/admin/shark-sentinel/summary")
 def api_admin_shark_sentinel_summary():
     if not is_admin_session():
@@ -13942,6 +14064,8 @@ def api_runtime_version():
         "has_v885_client_sidebar_restore": "data-v885-shell" in base_template and "ns-client-sidebar" in base_template and "V885 CLIENT SIDEBAR RESTORE BEST POSITION NAV START" in css_text,
         "has_v886_real_browser_nav_visual_qa": "data-v886-shell" in base_template and "check_v886_nav_visual_qa_after_v885.py" in "\n".join(sorted(p.name for p in (Path(__file__).resolve().parent / "tools").glob("check_v886*.py"))) and "ns-client-sidebar" in base_template,
         "has_v887_telegram_queue_skipped_hotfix": "data-v887-shell" in base_template and "QUEUE_SKIPPED" in app_py_text and "check_v887_telegram_queue_skipped_hotfix.py" in "\n".join(sorted(p.name for p in (Path(__file__).resolve().parent / "tools").glob("check_v887*.py"))),
+        "has_v888_real_errors_sweep": "data-v888-shell" in base_template and "check_v888_real_errors_sweep.py" in "\n".join(sorted(p.name for p in (Path(__file__).resolve().parent / "tools").glob("check_v888*.py"))),
+        "has_v888_sentinel_autopilot_self_improvement": "sentinel_autopilot_engine" in app_py_text and "/admin/sentinel-autopilot" in app_py_text and "/api/automation/sentinel-autopilot/run" in app_py_text and "data-v888-autopilot-shell" in base_template,
         "has_v837_reference_photo_qa": "data-v837-shell" in base_template and "V837 REFERENCE PHOTO PERFECTION REAL QA START" in css_text,
         "has_v836_autonomous_qa": "data-v836-shell" in base_template and "V836 AUTONOMOUS REFERENCE VISUAL REVIEW FINAL QA START" in css_text,
         "has_v833_visual_completion": "data-v833-shell" in base_template and "V833 REFERENCE ECOSYSTEM VISUAL COMPLETION START" in css_text,
@@ -18163,7 +18287,7 @@ def v809_client_navigation_items():
         {"group":"Alertas y cuenta","title":"Telegram","body":"Conexión, alertas y canal sin inventar envíos.","href":"/telegram","icon":"Telegram"},
         {"group":"Alertas y cuenta","title":"Mi cuenta","body":"Plan, sesión, ajustes y cierre de sesión.","href":"/mi-cuenta","icon":"Cuenta"},
         {"group":"Alertas y cuenta","title":"Soporte","body":"Ayuda y contacto para el cliente.","href":"/soporte","icon":"?"},
-        {"group":"Alertas y cuenta","title":"Salir","body":"Cerrar sesión de forma visible y segura.","href":"/logout","icon":"â»"},
+        {"group":"Alertas y cuenta","title":"Salir","body":"Cerrar sesión de forma visible y segura.","href":"/logout","icon":"Salir"},
     ]
 
 
@@ -18526,6 +18650,15 @@ def api_v883_visual_worker_run():
     return jsonify({"ok": True, **result})
 
 
+@app.route("/api/automation/sentinel-autopilot/run", methods=["GET", "POST"])
+def api_v888_sentinel_autopilot_run():
+    if not automation_cron_access_allowed():
+        return automation_json_forbidden()
+    mode = request.args.get("mode") or "quick"
+    scan = _v888_build_autopilot_scan(save_memory=True, mode=mode)
+    return jsonify({"ok": True, **scan, "cron": "sentinel_autopilot", "dry_run": True, "dangerous_actions_executed": False})
+
+
 @app.route("/admin/daily-automation")
 @app.route("/admin/automation-os")
 def admin_v818_daily_automation_page():
@@ -18575,5 +18708,6 @@ def api_admin_v818_daily_automation_health():
 if __name__ == "__main__":
     seed_core()
     app.run(host="0.0.0.0", port=int(os.getenv("PORT", "5000")), debug=os.getenv("FLASK_DEBUG") == "1")
+
 
 

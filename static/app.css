@@ -11761,3 +11761,19 @@ body[data-v885-shell="true"].ns-admin :is(.ns-client-sidebar, .bottom-nav-clean[
   display: none !important;
 }
 /* V885 CLIENT SIDEBAR RESTORE BEST POSITION NAV END */
+
+/* V888 SENTINEL AUTOPILOT SELF IMPROVEMENT ENGINE START */
+.v888-autopilot .ns-page-header { margin-bottom: 18px; }
+.v888-autopilot .ns-grid { display: grid; gap: 14px; margin: 14px 0; }
+.v888-autopilot .ns-grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.v888-autopilot .ns-grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.v888-autopilot .ns-section-title { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.v888-autopilot .ns-stack { display: grid; gap: 10px; }
+.v888-autopilot .ns-table-wrap { overflow-x: auto; }
+.v888-autopilot .ns-code-block { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 260px; overflow: auto; padding: 12px; border: 1px solid rgba(79, 209, 197, .22); border-radius: 8px; background: rgba(2, 8, 18, .78); color: #dffcff; }
+.v888-autopilot .ns-empty-compact { padding: 10px 12px; min-height: auto; }
+.v888-autopilot .ns-chip-critical { border-color: rgba(255, 91, 91, .55); color: #ffb4b4; }
+.v888-autopilot .ns-chip-high { border-color: rgba(255, 183, 77, .55); color: #ffd39b; }
+.v888-autopilot .ns-chip-medium { border-color: rgba(79, 209, 197, .45); color: #b9fff8; }
+@media (max-width: 760px) { .v888-autopilot .ns-grid-2, .v888-autopilot .ns-grid-4 { grid-template-columns: 1fr; } }
+/* V888 SENTINEL AUTOPILOT SELF IMPROVEMENT ENGINE END */

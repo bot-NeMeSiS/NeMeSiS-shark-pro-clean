@@ -1,22 +1,85 @@
 {% extends "base.html" %}
 {% import "partials/admin_visual_system.html" as ui %}
 {% block content %}
-{% call ui.shell('Lanzamiento real', 'Lanzamiento real', 'Checklist final para pasar a producción') %}
+{% call ui.shell('Lanzamiento real', 'Lanzamiento real', 'Checklist honesto antes de producción') %}
 <section class="v794-admin-kpi-grid">
-  {{ ui.kpi('Stripe','Listo','Pagos operativos','S','green') }}
-  {{ ui.kpi('Telegram','Listo','Bot y notificaciones','✈','green') }}
-  {{ ui.kpi('Directos','Listo','Envíos en vivo','●','green') }}
-  {{ ui.kpi('Legal','Pendiente','Términos y políticas','⚖','gold') }}
-  {{ ui.kpi('DB persistente','Listo','SQLite /data OK','▤','green') }}
-  {{ ui.kpi('Entorno','Listo','Producción preparada','☁','green') }}
+  {{ ui.kpi('Stripe','No configurado','Checkout pendiente de validación real','S','warning') }}
+  {{ ui.kpi('Telegram','Revisar','No enviar real sin autorización','T','warning') }}
+  {{ ui.kpi('Directos','Proveedor/cache','Sin inventar minutos ni resultados','L','blue') }}
+  {{ ui.kpi('Legal','Pendiente','Términos y políticas por validar','L','gold') }}
+  {{ ui.kpi('DB persistente','Configurar en Render','Mantener DB_PATH sin tocar','D','blue') }}
+  {{ ui.kpi('Entorno','Deploy pendiente','Validar runtime real tras deploy','R','warning') }}
 </section>
+
 <section class="v794-admin-grid sidebar">
   <div class="v794-admin-grid two">
-    <article class="v794-admin-panel"><div class="v794-panel-head"><h2>Certificación de Go-Live</h2><span>{{ ui.status('Listo para producción','ok') }}</span></div><div class="v794-gauge"><div><b>92%</b><span>LISTO PARA<br>PRODUCCIÓN</span></div></div><p>La plataforma cumple los requisitos mínimos para operar en producción controlada.</p><table class="v794-admin-table"><tbody><tr><td>Listo</td><td>28</td></tr><tr><td>Pendiente</td><td>2</td></tr><tr><td>Atención</td><td>1</td></tr><tr><td>No aplicable</td><td>0</td></tr></tbody></table></article>
-    <article class="v794-admin-panel"><div class="v794-panel-head"><h2>Checklist de lanzamiento</h2><a href="/api/admin/real-launch">API →</a></div>{% set rows=[('⚖','Pagos','Stripe, webhooks, reembolsos','6/6','100','ok'),('✈','Telegram','Bot, suscripciones, notificaciones','7/7','100','ok'),('●','Directo','Envío, recepción, reconexión','5/6','83','warn'),('▤','Datos','Integridad, migraciones, backups','5/5','100','ok'),('⚖','Legal','Términos, privacidad, cookies','2/4','50','warn'),('♙','Soporte','Contactos, FAQs, tiempos SLA','4/4','100','ok'),('🛡','Seguridad','Claves, roles, 2FA, rate limit','6/6','100','ok')] %}{% for icon,title,desc,count,pct,tone in rows %}<div class="v794-check-row"><span>{{ icon }}</span><div><b>{{ title }}</b><small>{{ desc }}</small></div><strong>{{ count }}</strong><div class="v794-progress {{ tone }}"><i style="width:{{ pct }}%"></i></div>{{ ui.status(pct ~ '%', tone) }}</div>{% endfor %}</article>
+    <article class="v794-admin-panel">
+      <div class="v794-panel-head"><h2>Certificación de Go-Live</h2><span>{{ ui.status('Acción pendiente','warning') }}</span></div>
+      <div class="v794-gauge"><div><b>QA</b><span>VALIDACIÓN<br>REAL</span></div></div>
+      <p>Esta pantalla no certifica cobros, envíos Telegram ni APIs reales por sí sola. Sirve para revisar qué falta antes de abrir producción.</p>
+      <table class="v794-admin-table">
+        <tbody>
+          <tr><td>Render runtime</td><td>{{ ui.status('Validar tras deploy','warning') }}</td></tr>
+          <tr><td>Telegram real</td><td>{{ ui.status('Requiere autorización','warning') }}</td></tr>
+          <tr><td>Stripe real</td><td>{{ ui.status('No configurado si faltan claves','warning') }}</td></tr>
+          <tr><td>Datos deportivos</td><td>{{ ui.status('Proveedor/cache','info') }}</td></tr>
+        </tbody>
+      </table>
+    </article>
+
+    <article class="v794-admin-panel">
+      <div class="v794-panel-head"><h2>Checklist de lanzamiento</h2><a href="/api/admin/real-launch">API</a></div>
+      {% set rows=[
+        ('Pagos','Stripe, webhooks y Price IDs','Acción pendiente','warning'),
+        ('Telegram','Bot, canal, dedupe y no filler','Revisar con autorización','warning'),
+        ('Directo','Estado, marcador y minuto reales','Proveedor/cache','info'),
+        ('Datos','Migraciones, backups y DB_PATH','Validar entorno','info'),
+        ('Legal','Términos, privacidad y juego responsable','Pendiente','warning'),
+        ('Soporte','Contacto y ayuda cliente','Disponible','ok'),
+        ('Seguridad','Secretos, roles y cron protegido','Protegido','ok')
+      ] %}
+      {% for title, desc, state, tone in rows %}
+      <div class="v794-check-row"><span>•</span><div><b>{{ title }}</b><small>{{ desc }}</small></div><strong>{{ state }}</strong>{{ ui.status(state, tone) }}</div>
+      {% endfor %}
+    </article>
   </div>
-  <aside class="v794-admin-grid"><article class="v794-admin-panel"><div class="v794-panel-head"><h2>Resumen ejecutivo</h2></div><table class="v794-admin-table"><tbody><tr><td>Total de verificaciones</td><td>32</td></tr><tr><td>Completadas</td><td style="color:var(--v794-green)">28</td></tr><tr><td>Pendientes</td><td style="color:var(--v794-gold)">2</td></tr><tr><td>Atención</td><td style="color:var(--v794-red)">1</td></tr></tbody></table></article><article class="v794-admin-panel"><div class="v794-panel-head"><h2>Bloqueadores</h2><span>{{ ui.status('1','danger') }}</span></div><div class="v794-admin-list-row"><span>●</span><div><strong>Legal: Términos y Condiciones</strong><small>Pendiente de revisión legal final.</small></div><em>›</em></div></article><article class="v794-admin-panel"><div class="v794-panel-head"><h2>Siguiente paso recomendado</h2></div><p>Ejecuta el preflight completo antes de abrir producción.</p><a class="v794-action-card" href="/admin/real-launch"><i>🚀</i><span><b>Ejecutar preflight</b><small>Validar estado actual</small></span><em>›</em></a></article></aside>
+
+  <aside class="v794-admin-grid">
+    <article class="v794-admin-panel">
+      <div class="v794-panel-head"><h2>Bloqueadores reales</h2><span>{{ ui.status('Sin maquillar','warning') }}</span></div>
+      <div class="v794-admin-list-row"><span>•</span><div><strong>Deploy/runtime</strong><small>Confirmar que Render sirve la versión local esperada.</small></div><em>›</em></div>
+      <div class="v794-admin-list-row"><span>•</span><div><strong>Pagos</strong><small>No afirmar operativo hasta validar Stripe real.</small></div><em>›</em></div>
+      <div class="v794-admin-list-row"><span>•</span><div><strong>Telegram</strong><small>No enviar mensajes reales sin autorización explícita.</small></div><em>›</em></div>
+    </article>
+    <article class="v794-admin-panel">
+      <div class="v794-panel-head"><h2>Siguiente paso recomendado</h2></div>
+      <p>Desplegar el ZIP limpio, validar `/api/runtime-version` y ejecutar Cron Telegram en modo controlado.</p>
+      <a class="v794-action-card" href="/admin/continuous-sentinel"><i>QA</i><span><b>Abrir Sentinel</b><small>Revisar incidencias reales</small></span><em>›</em></a>
+    </article>
+  </aside>
 </section>
-<section class="v794-admin-grid two" style="margin-top:16px"><article class="v794-admin-panel"><div class="v794-panel-head"><h2>Actividad: verificaciones finales</h2><a href="/admin/observability">Ver todas →</a></div><table class="v794-admin-table"><thead><tr><th>Hora</th><th>Sección</th><th>Verificación</th><th>Resultado</th><th>Responsable</th></tr></thead><tbody><tr><td>16:22:18</td><td>Pagos</td><td>Webhook de Stripe</td><td>{{ ui.status('Correcto','ok') }}</td><td>Sistema</td></tr><tr><td>16:21:45</td><td>Telegram</td><td>Entrega de mensajes</td><td>{{ ui.status('Correcto','ok') }}</td><td>Sistema</td></tr><tr><td>16:20:33</td><td>Directo</td><td>Envío a canal en vivo</td><td>{{ ui.status('Atención','warn') }}</td><td>Sistema</td></tr><tr><td>16:18:42</td><td>Legal</td><td>Política de privacidad publicada</td><td>{{ ui.status('Pendiente','warn') }}</td><td>Admin</td></tr></tbody></table></article><article class="v794-admin-panel"><div class="v794-panel-head"><h2>Acciones de lanzamiento</h2></div><div class="v794-admin-list"><a class="v794-action-card" href="/admin/real-launch"><i>▶</i><span><b>Ejecutar preflight</b><small>Verifica todo el sistema</small></span><em>›</em></a><a class="v794-action-card" href="/admin/client-screen-audit"><i>🛡</i><span><b>Ver smoke QA</b><small>Resultados de pruebas clave</small></span><em>›</em></a><a class="v794-action-card" href="/admin/real-launch" style="background:rgba(54,232,120,.16)"><i>🚀</i><span><b>Abrir producción</b><small>Requiere certificación completa</small></span><em>›</em></a></div></article></section>
+
+<section class="v794-admin-grid two" style="margin-top:16px">
+  <article class="v794-admin-panel">
+    <div class="v794-panel-head"><h2>Actividad: verificaciones finales</h2><a href="/admin/observability">Ver todas</a></div>
+    <table class="v794-admin-table">
+      <thead><tr><th>Área</th><th>Verificación</th><th>Resultado</th><th>Acción</th></tr></thead>
+      <tbody>
+        <tr><td>Pagos</td><td>Stripe real</td><td>{{ ui.status('No configurado','warning') }}</td><td>Configurar claves y webhooks</td></tr>
+        <tr><td>Telegram</td><td>Entrega real</td><td>{{ ui.status('No probado aquí','warning') }}</td><td>Probar solo con autorización</td></tr>
+        <tr><td>Directo</td><td>Datos live</td><td>{{ ui.status('Proveedor/cache','info') }}</td><td>Sin inventar resultados</td></tr>
+        <tr><td>Legal</td><td>Políticas visibles</td><td>{{ ui.status('Revisar','warning') }}</td><td>Validación final</td></tr>
+      </tbody>
+    </table>
+  </article>
+  <article class="v794-admin-panel">
+    <div class="v794-panel-head"><h2>Acciones seguras</h2></div>
+    <div class="v794-admin-list">
+      <a class="v794-action-card" href="/admin/continuous-sentinel"><i>QA</i><span><b>Ejecutar diagnóstico</b><small>Sin deploy ni secretos</small></span><em>›</em></a>
+      <a class="v794-action-card" href="/admin/telegram/command-center"><i>TG</i><span><b>Revisar Telegram</b><small>No enviar real sin permiso</small></span><em>›</em></a>
+      <a class="v794-action-card" href="/admin/payments"><i>€</i><span><b>Revisar pagos</b><small>Sin cobros inventados</small></span><em>›</em></a>
+    </div>
+  </article>
+</section>
 {% endcall %}
 {% endblock %}

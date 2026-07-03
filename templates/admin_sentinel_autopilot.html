@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="ns-admin-page v888-autopilot">
+  <div class="ns-page-header">
+    <span class="ns-chip">V888 Sentinel AutoPilot</span>
+    <h1>AutoPilot de mejora interna</h1>
+    <p>Radar seguro de producto: detecta incidencias, crea tareas y prepara prompts Codex sin tocar secretos, pagos, Telegram real, deploy ni datos reales.</p>
+    <div class="ns-actions">
+      <a class="ns-button ns-button-primary" href="/api/admin/sentinel-autopilot/run?dry_run=1" target="_blank">Ejecutar revisión segura</a>
+      <a class="ns-button ns-button-secondary" href="/api/admin/sentinel-autopilot/generate-prompt" target="_blank">Generar prompt Codex</a>
+      <a class="ns-button ns-button-ghost" href="/api/admin/sentinel-autopilot/summary" target="_blank">Exportar reporte</a>
+    </div>
+  </div>
+
+  <section class="ns-grid ns-grid-4">
+    <article class="ns-stat">
+      <span>Score real</span>
+      <strong>{{ summary.score }}</strong>
+      <small>{{ summary.status }}</small>
+    </article>
+    <article class="ns-stat">
+      <span>Incidencias</span>
+      <strong>{{ (summary.issues or [])|length }}</strong>
+      <small>abiertas detectadas</small>
+    </article>
+    <article class="ns-stat">
+      <span>Críticas / altas</span>
+      <strong>{{ (summary.priority_matrix.counts.critical if summary.priority_matrix is defined else 0) or 0 }} / {{ (summary.priority_matrix.counts.high if summary.priority_matrix is defined else 0) or 0 }}</strong>
+      <small>prioridad operativa</small>
+    </article>
+    <article class="ns-stat">
+      <span>Render/local</span>
+      <strong>{{ 'Alineado' if summary.render_local_aligned else 'Mismatch' }}</strong>
+      <small>{{ summary.render_version or 'Render no consultado desde este panel' }}</small>
+    </article>
+  </section>
+
+  <section class="ns-grid ns-grid-2">
+    <article class="ns-admin-card">
+      <div class="ns-section-title">
+        <h2>Próximas acciones</h2>
+        <span class="ns-badge">prioridad</span>
+      </div>
+      <div class="ns-stack">
+        {% for action in summary.next_best_actions or [] %}
+          <div class="ns-empty ns-empty-compact">{{ action }}</div>
+        {% else %}
+          <div class="ns-empty ns-empty-compact">Sin acciones pendientes. Mantener revisión diaria.</div>
+        {% endfor %}
+      </div>
+    </article>
+
+    <article class="ns-admin-card">
+      <div class="ns-section-title">
+        <h2>Política segura</h2>
+        <span class="ns-badge">sin autopeligro</span>
+      </div>
+      <div class="ns-stack">
+        <span class="ns-chip">No auto deploy</span>
+        <span class="ns-chip">No auto push</span>
+        <span class="ns-chip">No Telegram real</span>
+        <span class="ns-chip">No pagos reales</span>
+        <span class="ns-chip">No secretos</span>
+        <span class="ns-chip">No datos inventados</span>
+      </div>
+    </article>
+  </section>
+
+  <section class="ns-admin-card">
+    <div class="ns-section-title">
+      <h2>Incidencias abiertas</h2>
+      <span class="ns-badge">{{ (summary.issues or [])|length }}</span>
+    </div>
+    <div class="ns-table-wrap">
+      <table class="ns-table">
+        <thead>
+          <tr>
+            <th>Severidad</th>
+            <th>Categoría</th>
+            <th>Ruta</th>
+            <th>Incidencia</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for issue in (summary.issues or [])[:20] %}
+          <tr>
+            <td><span class="ns-chip ns-chip-{{ issue.severity }}">{{ issue.severity }}</span></td>
+            <td>{{ issue.category }}</td>
+            <td><code>{{ issue.route or issue.screen or '-' }}</code></td>
+            <td>{{ issue.title }}<br><small>{{ issue.evidence }}</small></td>
+            <td>{{ issue.status }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="5"><div class="ns-empty ns-empty-compact">Sin incidencias abiertas en este scan seguro.</div></td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="ns-grid ns-grid-2">
+    <article class="ns-admin-card">
+      <div class="ns-section-title">
+        <h2>Tareas seguras</h2>
+        <span class="ns-badge">{{ (summary.safe_actions or [])|length }}</span>
+      </div>
+      <div class="ns-stack">
+        {% for task in (summary.safe_actions or [])[:8] %}
+          <div class="ns-command-card">
+            <strong>{{ task.title }}</strong>
+            <p>{{ task.suggested_fix }}</p>
+          </div>
+        {% else %}
+          <div class="ns-empty ns-empty-compact">No hay auto-fix seguro candidato ahora mismo.</div>
+        {% endfor %}
+      </div>
+    </article>
+
+    <article class="ns-admin-card">
+      <div class="ns-section-title">
+        <h2>Requiere aprobación</h2>
+        <span class="ns-badge">{{ (summary.approval_required_actions or [])|length }}</span>
+      </div>
+      <div class="ns-stack">
+        {% for task in (summary.approval_required_actions or [])[:8] %}
+          <div class="ns-command-card">
+            <strong>{{ task.title }}</strong>
+            <p>{{ task.safe_fix_plan.recommended_step }}</p>
+          </div>
+        {% else %}
+          <div class="ns-empty ns-empty-compact">Sin acciones peligrosas propuestas.</div>
+        {% endfor %}
+      </div>
+    </article>
+  </section>
+
+  <section class="ns-admin-card">
+    <div class="ns-section-title">
+      <h2>Prompts Codex listos</h2>
+      <span class="ns-badge">{{ (summary.codex_prompts or [])|length }}</span>
+    </div>
+    <div class="ns-stack">
+      {% for prompt in (summary.codex_prompts or [])[:5] %}
+        <pre class="ns-code-block">{{ prompt }}</pre>
+      {% else %}
+        <div class="ns-empty ns-empty-compact">Sin prompts necesarios. AutoPilot seguirá vigilando.</div>
+      {% endfor %}
+    </div>
+  </section>
+</section>
+{% endblock %}

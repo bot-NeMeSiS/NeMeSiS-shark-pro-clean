@@ -5,7 +5,7 @@
   <div class="eyebrow">Admin · Highlights</div>
   <h1>Centro de resúmenes</h1>
   <p>Estado real de highlights, vídeos enlazados, pendientes y sincronización. No expone secrets ni descarga vídeos.</p>
-  <div class="actions"><a class="btn primary" href="/api/admin/highlights/syncforce=1&days_back=7&limit=300" target="_blank">Sincronizar ahora</a><a class="btn" href="/resumenes">Vista cliente</a><a class="btn" href="/api/admin/highlights/status" target="_blank">API estado</a></div>
+  <div class="actions"><a class="btn primary" href="/api/admin/highlights/sync?force=1&days_back=7&limit=300" target="_blank">Sincronizar ahora</a><a class="btn" href="/resumenes">Vista cliente</a><a class="btn" href="/api/admin/highlights/status" target="_blank">API estado</a></div>
 </section>
 <section class="grid cards-4">
   <article class="card stat-card"><span>Estado</span><strong>{{ center.status }}</strong><small>{{ center.key_present and 'Key configurada' or 'Falta key' }}</small></article>

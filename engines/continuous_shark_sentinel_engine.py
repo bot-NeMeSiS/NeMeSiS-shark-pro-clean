@@ -195,6 +195,36 @@ V885_CLIENT_SIDEBAR_RESTORE_RULES = [
     "no_hash_or_javascript_nav_links",
 ]
 
+V888_REAL_ERRORS_SWEEP_RULES = [
+    "render_local_version_mismatch_must_be_reported",
+    "telegram_cron_nameerror_or_internal_error_must_fail",
+    "queue_skipped_state_must_be_defined",
+    "matches_need_real_data_or_safe_empty_state",
+    "live_needs_real_score_minute_or_safe_pending_state",
+    "picks_need_odds_selection_or_review_state",
+    "client_admin_navigation_must_stay_isolated",
+    "mobile_must_not_have_horizontal_overflow",
+    "openai_missing_must_show_safe_mode",
+    "stripe_missing_must_not_show_operational",
+    "logo_cache_zero_requires_fallback",
+    "mojibake_none_null_undefined_visible_are_issues",
+    "favicon_must_not_404",
+    "sentinel_score_must_reflect_real_blockers",
+]
+
+V888_SENTINEL_AUTOPILOT_RULES = [
+    "autopilot_converts_sentinel_issues_to_tasks",
+    "autopilot_converts_visual_worker_findings_to_tasks",
+    "autopilot_generates_codex_prompts",
+    "autopilot_prioritizes_critical_high_medium_low",
+    "autopilot_keeps_memory_without_secrets",
+    "autopilot_requires_approval_for_code_routes_db_payments_telegram_deploy",
+    "autopilot_never_auto_deploys",
+    "autopilot_never_auto_pushes",
+    "autopilot_never_sends_real_telegram",
+    "autopilot_never_invents_sports_data",
+]
+
 
 def madrid_now() -> str:
     return datetime.now(MADRID_TZ).isoformat(timespec="seconds")
@@ -271,6 +301,9 @@ def build_continuous_sentinel_summary(version: str = "") -> dict[str, Any]:
         "visual_company_worker_rules_v883": V883_VISUAL_COMPANY_WORKER_RULES,
         "client_admin_functional_flow_rules_v884": V884_CLIENT_ADMIN_FUNCTIONAL_FLOW_RULES,
         "client_sidebar_restore_rules_v885": V885_CLIENT_SIDEBAR_RESTORE_RULES,
+        "real_errors_sweep_rules_v888": V888_REAL_ERRORS_SWEEP_RULES,
+        "sentinel_autopilot_rules_v888": V888_SENTINEL_AUTOPILOT_RULES,
+        "sentinel_autopilot_ready": True,
         "visual_company_worker_ready": True,
         "visual_big_leap_ready": True,
         "improvement_workflow_ready": True,
@@ -365,6 +398,9 @@ def run_continuous_sentinel_cycle(client: Any, version: str = "", mode: str = "q
         "nav_duplication_rules_v881": V881_NAV_DUPLICATION_RULES,
         "core_product_rules_v882": V882_CORE_PRODUCT_RULES,
         "visual_company_worker_rules_v883": V883_VISUAL_COMPANY_WORKER_RULES,
+        "real_errors_sweep_rules_v888": V888_REAL_ERRORS_SWEEP_RULES,
+        "sentinel_autopilot_rules_v888": V888_SENTINEL_AUTOPILOT_RULES,
+        "sentinel_autopilot_ready": True,
         "visual_company_worker_v883": visual_worker_result,
         "visual_company_worker_ready": True,
         "visual_big_leap_ready": True,

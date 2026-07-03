@@ -1,0 +1,191 @@
+{
+  "ok": true,
+  "checked_at": "2026-07-03T21:53:19",
+  "stage": "flask_routes",
+  "version": "V888_SENTINEL_AUTOPILOT_SELF_IMPROVEMENT_ENGINE_FINAL",
+  "dependencies": {
+    "flask": true,
+    "werkzeug": true,
+    "jinja2": true,
+    "stripe": false
+  },
+  "route_count": 547,
+  "tested_routes": 29,
+  "failed_routes": [],
+  "routes": [
+    {
+      "path": "/",
+      "status_code": 200,
+      "ok": true,
+      "note": "OK"
+    },
+    {
+      "path": "/login",
+      "status_code": 200,
+      "ok": true,
+      "note": "OK"
+    },
+    {
+      "path": "/cliente-login",
+      "status_code": 200,
+      "ok": true,
+      "note": "OK"
+    },
+    {
+      "path": "/registro",
+      "status_code": 200,
+      "ok": true,
+      "note": "OK"
+    },
+    {
+      "path": "/membresias",
+      "status_code": 200,
+      "ok": true,
+      "note": "OK"
+    },
+    {
+      "path": "/live",
+      "status_code": 200,
+      "ok": true,
+      "note": "OK"
+    },
+    {
+      "path": "/calendar",
+      "status_code": 200,
+      "ok": true,
+      "note": "OK"
+    },
+    {
+      "path": "/picks",
+      "status_code": 200,
+      "ok": true,
+      "note": "OK"
+    },
+    {
+      "path": "/combis",
+      "status_code": 200,
+      "ok": true,
+      "note": "OK"
+    },
+    {
+      "path": "/mercados",
+      "status_code": 200,
+      "ok": true,
+      "note": "OK"
+    },
+    {
+      "path": "/highlights",
+      "status_code": 200,
+      "ok": true,
+      "note": "OK"
+    },
+    {
+      "path": "/track-record",
+      "status_code": 200,
+      "ok": true,
+      "note": "OK"
+    },
+    {
+      "path": "/telegram",
+      "status_code": 302,
+      "ok": true,
+      "note": "OK"
+    },
+    {
+      "path": "/shark",
+      "status_code": 200,
+      "ok": true,
+      "note": "OK"
+    },
+    {
+      "path": "/api/health",
+      "status_code": 200,
+      "ok": true,
+      "note": "OK"
+    },
+    {
+      "path": "/api/runtime-version",
+      "status_code": 200,
+      "ok": true,
+      "note": "OK"
+    },
+    {
+      "path": "/api/live",
+      "status_code": 200,
+      "ok": true,
+      "note": "OK"
+    },
+    {
+      "path": "/app",
+      "status_code": 302,
+      "ok": true,
+      "note": "OK"
+    },
+    {
+      "path": "/mi-cuenta",
+      "status_code": 302,
+      "ok": true,
+      "note": "OK"
+    },
+    {
+      "path": "/todo",
+      "status_code": 302,
+      "ok": true,
+      "note": "OK"
+    },
+    {
+      "path": "/mapa",
+      "status_code": 302,
+      "ok": true,
+      "note": "OK"
+    },
+    {
+      "path": "/admin-login",
+      "status_code": 200,
+      "ok": true,
+      "note": "OK"
+    },
+    {
+      "path": "/admin/dashboard",
+      "status_code": 302,
+      "ok": true,
+      "note": "OK"
+    },
+    {
+      "path": "/admin/payments",
+      "status_code": 302,
+      "ok": true,
+      "note": "OK"
+    },
+    {
+      "path": "/admin/telegram/command-center",
+      "status_code": 302,
+      "ok": true,
+      "note": "OK"
+    },
+    {
+      "path": "/admin/final-certification",
+      "status_code": 302,
+      "ok": true,
+      "note": "OK"
+    },
+    {
+      "path": "/pagos/checkout/PRO",
+      "status_code": 403,
+      "ok": true,
+      "note": "OK"
+    },
+    {
+      "path": "/pagos/checkout/ELITE",
+      "status_code": 403,
+      "ok": true,
+      "note": "OK"
+    },
+    {
+      "path": "/pagos/portal",
+      "status_code": 403,
+      "ok": true,
+      "note": "OK"
+    }
+  ]
+}
