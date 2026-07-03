@@ -148,6 +148,7 @@ from engines.telegram_delivery_engine import (
     QUEUE_PENDING,
     QUEUE_SENT,
     QUEUE_SENDING,
+    QUEUE_SKIPPED,
     build_daily_matches_message as format_daily_matches_message,
     build_daily_picks_message as format_daily_picks_message,
     build_live_alert_message as format_live_alert_message,
@@ -297,7 +298,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V886_REAL_BROWSER_NAV_VISUAL_QA_AFTER_V885_FINAL'
+APP_VERSION = 'V887_TELEGRAM_QUEUE_SKIPPED_RUNTIME_HOTFIX_FINAL'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
@@ -13940,6 +13941,7 @@ def api_runtime_version():
         "has_v884_client_admin_functional_flow": "visual_company_worker_engine" in app_py_text and "data-v884-shell" in base_template and "/admin/visual-worker" in app_py_text,
         "has_v885_client_sidebar_restore": "data-v885-shell" in base_template and "ns-client-sidebar" in base_template and "V885 CLIENT SIDEBAR RESTORE BEST POSITION NAV START" in css_text,
         "has_v886_real_browser_nav_visual_qa": "data-v886-shell" in base_template and "check_v886_nav_visual_qa_after_v885.py" in "\n".join(sorted(p.name for p in (Path(__file__).resolve().parent / "tools").glob("check_v886*.py"))) and "ns-client-sidebar" in base_template,
+        "has_v887_telegram_queue_skipped_hotfix": "data-v887-shell" in base_template and "QUEUE_SKIPPED" in app_py_text and "check_v887_telegram_queue_skipped_hotfix.py" in "\n".join(sorted(p.name for p in (Path(__file__).resolve().parent / "tools").glob("check_v887*.py"))),
         "has_v837_reference_photo_qa": "data-v837-shell" in base_template and "V837 REFERENCE PHOTO PERFECTION REAL QA START" in css_text,
         "has_v836_autonomous_qa": "data-v836-shell" in base_template and "V836 AUTONOMOUS REFERENCE VISUAL REVIEW FINAL QA START" in css_text,
         "has_v833_visual_completion": "data-v833-shell" in base_template and "V833 REFERENCE ECOSYSTEM VISUAL COMPLETION START" in css_text,
