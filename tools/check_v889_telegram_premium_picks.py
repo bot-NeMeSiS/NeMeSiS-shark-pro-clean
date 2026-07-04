@@ -8,7 +8,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V889_TELEGRAM_PREMIUM_PICKS_INTELLIGENCE_DELIVERY_FINAL"
-CURRENT_COMPATIBLE_PREFIXES = ("V889_", "V890_", "V891_", "V892_", "V893_", "V894_", "V895_")
+CURRENT_COMPATIBLE_PREFIXES = ("V889_", "V890_", "V891_", "V892_", "V893_", "V894_", "V895_", "V896_")
 sys.path.insert(0, str(ROOT))
 
 
@@ -29,7 +29,7 @@ def main() -> int:
     formatter = read("engines/telegram_message_formatter.py")
     quality = read("engines/telegram_pick_quality_engine.py")
 
-    require(version_txt.startswith(CURRENT_COMPATIBLE_PREFIXES), "VERSION.txt is not compatible with V889-V895 lineage", failures)
+    require(version_txt.startswith(CURRENT_COMPATIBLE_PREFIXES), "VERSION.txt is not compatible with V889-V896 lineage", failures)
     require(app_version_file == version_txt, "APP_VERSION does not match VERSION.txt", failures)
     require(f"APP_VERSION = '{version_txt}'" in app_py, "app.py APP_VERSION mismatch", failures)
     require("has_v889_telegram_premium_picks_intelligence" in app_py, "runtime V889 flag missing", failures)

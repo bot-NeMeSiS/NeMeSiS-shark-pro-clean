@@ -1255,6 +1255,271 @@ Entrega:
 
 ---
 
+# SENT-2026-E03A0A09
+
+Corrige esta incidencia en NeMeSiS SHARK PRO sin romper nada anterior.
+
+ID:
+SENT-2026-E03A0A09
+
+Area:
+buttons_routes
+
+Severidad:
+medium
+
+Problema:
+Ruta devuelve Not Found
+
+Ruta afectada:
+/ruta-inventada-v896
+
+Archivo probable:
+Por determinar
+
+Evidencia:
+path=/ruta-inventada-v896 count=1 referrer=sin referrer
+
+Impacto:
+Puede dejar al usuario en una pantalla seca si llega desde PWA, enlace viejo o acceso directo.
+
+Reglas:
+
+* No inventar datos.
+* No tocar secretos.
+* No romper usuarios, sesiones, membresias, pagos, DB_PATH, Madrid Time, Render Cron ni Telegram dedupe.
+* Mantener navegacion cliente/admin separada.
+* Mantener estados seguros si faltan datos reales.
+
+Que debes hacer:
+Crear alias o corregir enlace de origen y revalidar smoke de rutas.
+
+Validaciones obligatorias:
+* python -m py_compile app.py
+* python tools/check_v896_not_found_route_recovery.py
+
+Entrega:
+
+* resumen de cambios;
+* archivos tocados;
+* validaciones pasadas;
+* limitaciones honestas;
+* ZIP limpio si corresponde.
+
+---
+
+# SENT-2026-089FE273
+
+Corrige esta incidencia en NeMeSiS SHARK PRO sin romper nada anterior.
+
+ID:
+SENT-2026-089FE273
+
+Area:
+buttons_routes
+
+Severidad:
+medium
+
+Problema:
+Ruta devuelve Not Found
+
+Ruta afectada:
+/api/ruta-inventada-v896
+
+Archivo probable:
+Por determinar
+
+Evidencia:
+path=/api/ruta-inventada-v896 count=1 referrer=sin referrer
+
+Impacto:
+Puede dejar al usuario en una pantalla seca si llega desde PWA, enlace viejo o acceso directo.
+
+Reglas:
+
+* No inventar datos.
+* No tocar secretos.
+* No romper usuarios, sesiones, membresias, pagos, DB_PATH, Madrid Time, Render Cron ni Telegram dedupe.
+* Mantener navegacion cliente/admin separada.
+* Mantener estados seguros si faltan datos reales.
+
+Que debes hacer:
+Crear alias o corregir enlace de origen y revalidar smoke de rutas.
+
+Validaciones obligatorias:
+* python -m py_compile app.py
+* python tools/check_v896_not_found_route_recovery.py
+
+Entrega:
+
+* resumen de cambios;
+* archivos tocados;
+* validaciones pasadas;
+* limitaciones honestas;
+* ZIP limpio si corresponde.
+
+---
+
+# SENT-2026-817D5BFC
+
+Corrige esta incidencia en NeMeSiS SHARK PRO sin romper nada anterior.
+
+ID:
+SENT-2026-817D5BFC
+
+Area:
+buttons_routes
+
+Severidad:
+medium
+
+Problema:
+Ruta devuelve Not Found
+
+Ruta afectada:
+/dashboard
+
+Archivo probable:
+Por determinar
+
+Evidencia:
+path=/dashboard count=1 referrer=sin referrer
+
+Impacto:
+Puede dejar al usuario en una pantalla seca si llega desde PWA, enlace viejo o acceso directo.
+
+Reglas:
+
+* No inventar datos.
+* No tocar secretos.
+* No romper usuarios, sesiones, membresias, pagos, DB_PATH, Madrid Time, Render Cron ni Telegram dedupe.
+* Mantener navegacion cliente/admin separada.
+* Mantener estados seguros si faltan datos reales.
+
+Que debes hacer:
+Crear alias o corregir enlace de origen y revalidar smoke de rutas.
+
+Validaciones obligatorias:
+* python -m py_compile app.py
+* python tools/check_v896_not_found_route_recovery.py
+
+Entrega:
+
+* resumen de cambios;
+* archivos tocados;
+* validaciones pasadas;
+* limitaciones honestas;
+* ZIP limpio si corresponde.
+
+---
+
+# SENT-2026-247C9AF9
+
+Corrige esta incidencia en NeMeSiS SHARK PRO sin romper nada anterior.
+
+ID:
+SENT-2026-247C9AF9
+
+Area:
+buttons_routes
+
+Severidad:
+medium
+
+Problema:
+Ruta devuelve Not Found
+
+Ruta afectada:
+/admin-panel
+
+Archivo probable:
+Por determinar
+
+Evidencia:
+path=/admin-panel count=1 referrer=sin referrer
+
+Impacto:
+Puede dejar al usuario en una pantalla seca si llega desde PWA, enlace viejo o acceso directo.
+
+Reglas:
+
+* No inventar datos.
+* No tocar secretos.
+* No romper usuarios, sesiones, membresias, pagos, DB_PATH, Madrid Time, Render Cron ni Telegram dedupe.
+* Mantener navegacion cliente/admin separada.
+* Mantener estados seguros si faltan datos reales.
+
+Que debes hacer:
+Crear alias o corregir enlace de origen y revalidar smoke de rutas.
+
+Validaciones obligatorias:
+* python -m py_compile app.py
+* python tools/check_v896_not_found_route_recovery.py
+
+Entrega:
+
+* resumen de cambios;
+* archivos tocados;
+* validaciones pasadas;
+* limitaciones honestas;
+* ZIP limpio si corresponde.
+
+---
+
+# SENT-2026-88A7957E
+
+Corrige esta incidencia en NeMeSiS SHARK PRO sin romper nada anterior.
+
+ID:
+SENT-2026-88A7957E
+
+Area:
+buttons_routes
+
+Severidad:
+medium
+
+Problema:
+Ruta devuelve Not Found
+
+Ruta afectada:
+/directos
+
+Archivo probable:
+Por determinar
+
+Evidencia:
+path=/directos count=1 referrer=sin referrer
+
+Impacto:
+Puede dejar al usuario en una pantalla seca si llega desde PWA, enlace viejo o acceso directo.
+
+Reglas:
+
+* No inventar datos.
+* No tocar secretos.
+* No romper usuarios, sesiones, membresias, pagos, DB_PATH, Madrid Time, Render Cron ni Telegram dedupe.
+* Mantener navegacion cliente/admin separada.
+* Mantener estados seguros si faltan datos reales.
+
+Que debes hacer:
+Crear alias o corregir enlace de origen y revalidar smoke de rutas.
+
+Validaciones obligatorias:
+* python -m py_compile app.py
+* python tools/check_v896_not_found_route_recovery.py
+
+Entrega:
+
+* resumen de cambios;
+* archivos tocados;
+* validaciones pasadas;
+* limitaciones honestas;
+* ZIP limpio si corresponde.
+
+---
+
 # AP-33190C902467
 
 Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: Pantalla deportiva sin datos reales visibles Categoria: visual_layout Ruta/pantalla: /partidos Evidencia: Hay estado seguro, pero no hay filas/cards deportivas reales visibles.  Reglas sagradas: no tocar secretos, no enviar Telegram real, no inventar partidos/picks/cuotas/resultados, no tocar pagos reales, no borrar DB/usuarios, no hacer push/deploy automatico y preservar V818+.  Tarea: localizar la causa real, proponer un fix seguro, aplicar solo cambios controlados si son necesarios, ejecutar checks locales y documentar resultado, bloqueadores y siguiente accion.
@@ -1357,6 +1622,271 @@ Mantener copy honesto de modo seguro sin prometer OpenAI real.
 Validaciones obligatorias:
 * GET /api/runtime-version
 * Smoke /shark
+
+Entrega:
+
+* resumen de cambios;
+* archivos tocados;
+* validaciones pasadas;
+* limitaciones honestas;
+* ZIP limpio si corresponde.
+
+---
+
+# SENT-2026-C1ADA844
+
+Corrige esta incidencia en NeMeSiS SHARK PRO sin romper nada anterior.
+
+ID:
+SENT-2026-C1ADA844
+
+Area:
+buttons_routes
+
+Severidad:
+medium
+
+Problema:
+Ruta devuelve Not Found
+
+Ruta afectada:
+/ruta-inventada-v896
+
+Archivo probable:
+Por determinar
+
+Evidencia:
+path=/ruta-inventada-v896 count=2 referrer=sin referrer
+
+Impacto:
+Puede dejar al usuario en una pantalla seca si llega desde PWA, enlace viejo o acceso directo.
+
+Reglas:
+
+* No inventar datos.
+* No tocar secretos.
+* No romper usuarios, sesiones, membresias, pagos, DB_PATH, Madrid Time, Render Cron ni Telegram dedupe.
+* Mantener navegacion cliente/admin separada.
+* Mantener estados seguros si faltan datos reales.
+
+Que debes hacer:
+Crear alias o corregir enlace de origen y revalidar smoke de rutas.
+
+Validaciones obligatorias:
+* python -m py_compile app.py
+* python tools/check_v896_not_found_route_recovery.py
+
+Entrega:
+
+* resumen de cambios;
+* archivos tocados;
+* validaciones pasadas;
+* limitaciones honestas;
+* ZIP limpio si corresponde.
+
+---
+
+# SENT-2026-F9CE11D6
+
+Corrige esta incidencia en NeMeSiS SHARK PRO sin romper nada anterior.
+
+ID:
+SENT-2026-F9CE11D6
+
+Area:
+buttons_routes
+
+Severidad:
+medium
+
+Problema:
+Ruta devuelve Not Found
+
+Ruta afectada:
+/api/ruta-inventada-v896
+
+Archivo probable:
+Por determinar
+
+Evidencia:
+path=/api/ruta-inventada-v896 count=2 referrer=sin referrer
+
+Impacto:
+Puede dejar al usuario en una pantalla seca si llega desde PWA, enlace viejo o acceso directo.
+
+Reglas:
+
+* No inventar datos.
+* No tocar secretos.
+* No romper usuarios, sesiones, membresias, pagos, DB_PATH, Madrid Time, Render Cron ni Telegram dedupe.
+* Mantener navegacion cliente/admin separada.
+* Mantener estados seguros si faltan datos reales.
+
+Que debes hacer:
+Crear alias o corregir enlace de origen y revalidar smoke de rutas.
+
+Validaciones obligatorias:
+* python -m py_compile app.py
+* python tools/check_v896_not_found_route_recovery.py
+
+Entrega:
+
+* resumen de cambios;
+* archivos tocados;
+* validaciones pasadas;
+* limitaciones honestas;
+* ZIP limpio si corresponde.
+
+---
+
+# SENT-2026-E86B9412
+
+Corrige esta incidencia en NeMeSiS SHARK PRO sin romper nada anterior.
+
+ID:
+SENT-2026-E86B9412
+
+Area:
+buttons_routes
+
+Severidad:
+medium
+
+Problema:
+Ruta devuelve Not Found
+
+Ruta afectada:
+/dashboard
+
+Archivo probable:
+Por determinar
+
+Evidencia:
+path=/dashboard count=2 referrer=sin referrer
+
+Impacto:
+Puede dejar al usuario en una pantalla seca si llega desde PWA, enlace viejo o acceso directo.
+
+Reglas:
+
+* No inventar datos.
+* No tocar secretos.
+* No romper usuarios, sesiones, membresias, pagos, DB_PATH, Madrid Time, Render Cron ni Telegram dedupe.
+* Mantener navegacion cliente/admin separada.
+* Mantener estados seguros si faltan datos reales.
+
+Que debes hacer:
+Crear alias o corregir enlace de origen y revalidar smoke de rutas.
+
+Validaciones obligatorias:
+* python -m py_compile app.py
+* python tools/check_v896_not_found_route_recovery.py
+
+Entrega:
+
+* resumen de cambios;
+* archivos tocados;
+* validaciones pasadas;
+* limitaciones honestas;
+* ZIP limpio si corresponde.
+
+---
+
+# SENT-2026-665EB0FB
+
+Corrige esta incidencia en NeMeSiS SHARK PRO sin romper nada anterior.
+
+ID:
+SENT-2026-665EB0FB
+
+Area:
+buttons_routes
+
+Severidad:
+medium
+
+Problema:
+Ruta devuelve Not Found
+
+Ruta afectada:
+/admin-panel
+
+Archivo probable:
+Por determinar
+
+Evidencia:
+path=/admin-panel count=2 referrer=sin referrer
+
+Impacto:
+Puede dejar al usuario en una pantalla seca si llega desde PWA, enlace viejo o acceso directo.
+
+Reglas:
+
+* No inventar datos.
+* No tocar secretos.
+* No romper usuarios, sesiones, membresias, pagos, DB_PATH, Madrid Time, Render Cron ni Telegram dedupe.
+* Mantener navegacion cliente/admin separada.
+* Mantener estados seguros si faltan datos reales.
+
+Que debes hacer:
+Crear alias o corregir enlace de origen y revalidar smoke de rutas.
+
+Validaciones obligatorias:
+* python -m py_compile app.py
+* python tools/check_v896_not_found_route_recovery.py
+
+Entrega:
+
+* resumen de cambios;
+* archivos tocados;
+* validaciones pasadas;
+* limitaciones honestas;
+* ZIP limpio si corresponde.
+
+---
+
+# SENT-2026-F64BFD02
+
+Corrige esta incidencia en NeMeSiS SHARK PRO sin romper nada anterior.
+
+ID:
+SENT-2026-F64BFD02
+
+Area:
+buttons_routes
+
+Severidad:
+medium
+
+Problema:
+Ruta devuelve Not Found
+
+Ruta afectada:
+/directos
+
+Archivo probable:
+Por determinar
+
+Evidencia:
+path=/directos count=2 referrer=sin referrer
+
+Impacto:
+Puede dejar al usuario en una pantalla seca si llega desde PWA, enlace viejo o acceso directo.
+
+Reglas:
+
+* No inventar datos.
+* No tocar secretos.
+* No romper usuarios, sesiones, membresias, pagos, DB_PATH, Madrid Time, Render Cron ni Telegram dedupe.
+* Mantener navegacion cliente/admin separada.
+* Mantener estados seguros si faltan datos reales.
+
+Que debes hacer:
+Crear alias o corregir enlace de origen y revalidar smoke de rutas.
+
+Validaciones obligatorias:
+* python -m py_compile app.py
+* python tools/check_v896_not_found_route_recovery.py
 
 Entrega:
 

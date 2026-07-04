@@ -8,7 +8,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V888_SENTINEL_AUTOPILOT_SELF_IMPROVEMENT_ENGINE_FINAL"
-CURRENT_COMPATIBLE_PREFIXES = ("V888_", "V889_", "V890_", "V891_", "V892_", "V893_", "V894_", "V895_")
+CURRENT_COMPATIBLE_PREFIXES = ("V888_", "V889_", "V890_", "V891_", "V892_", "V893_", "V894_", "V895_", "V896_")
 sys.path.insert(0, str(ROOT))
 
 
@@ -31,7 +31,7 @@ def main() -> int:
     engine = read("engines/sentinel_autopilot_engine.py")
     continuous = read("engines/continuous_shark_sentinel_engine.py")
 
-    require(version_txt.startswith(CURRENT_COMPATIBLE_PREFIXES), "VERSION.txt is not compatible with V888-V895 lineage", failures)
+    require(version_txt.startswith(CURRENT_COMPATIBLE_PREFIXES), "VERSION.txt is not compatible with V888-V896 lineage", failures)
     require(app_version_file == version_txt, "APP_VERSION does not match VERSION.txt", failures)
     require(f"APP_VERSION = '{version_txt}'" in app_py, "app.py APP_VERSION mismatch", failures)
     require("has_v888_sentinel_autopilot_self_improvement" in app_py, "runtime V888 AutoPilot flag missing", failures)

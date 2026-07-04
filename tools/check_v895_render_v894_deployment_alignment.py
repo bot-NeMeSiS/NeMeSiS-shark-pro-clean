@@ -8,6 +8,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 CURRENT_VERSION = "V895_RENDER_V894_DEPLOYMENT_ALIGNMENT_FINAL"
+COMPATIBLE_CURRENT_PREFIXES = ("V895_", "V896_")
 V894_VERSION = "V894_AUTONOMOUS_COMPANY_SENTINEL_REFERENCE_CODEX_WORKFORCE_FINAL"
 V894_ZIP = ROOT / "release_output" / "NeMeSiS_SHARK_PRO_V894_AUTONOMOUS_COMPANY_SENTINEL_REFERENCE_CODEX_WORKFORCE_FINAL_RENDER_READY.zip"
 
@@ -75,10 +76,10 @@ def main() -> int:
     app_py = read_text(ROOT / "app.py")
     base_html = read_text(ROOT / "templates" / "base.html")
 
-    require(version_txt == CURRENT_VERSION, f"VERSION.txt is {version_txt}", failures)
-    require(app_version_file == CURRENT_VERSION, f"APP_VERSION file is {app_version_file}", failures)
-    require(app_version_from_source(app_py) == CURRENT_VERSION, "app.py APP_VERSION is not V895", failures)
-    require(CURRENT_VERSION in base_html, "base.html does not expose V895 cache/runtime marker", failures)
+    require(version_txt.startswith(COMPATIBLE_CURRENT_PREFIXES), f"VERSION.txt is {version_txt}", failures)
+    require(app_version_file == version_txt, f"APP_VERSION file is {app_version_file}", failures)
+    require(app_version_from_source(app_py) == version_txt, "app.py APP_VERSION is not compatible with V895/V896", failures)
+    require(version_txt in base_html, "base.html does not expose current cache/runtime marker", failures)
 
     for rel in [
         "engines/autonomous_company_sentinel_engine.py",
@@ -132,9 +133,9 @@ def main() -> int:
     response = client.get("/api/runtime-version")
     require(response.status_code == 200, f"/api/runtime-version status {response.status_code}", failures)
     payload = response.get_json(silent=True) or {}
-    require(payload.get("app_version") == CURRENT_VERSION, f"runtime app_version is {payload.get('app_version')}", failures)
-    require(payload.get("runtime_version") == CURRENT_VERSION, f"runtime_version is {payload.get('runtime_version')}", failures)
-    require(payload.get("version_txt") == CURRENT_VERSION, f"runtime version_txt is {payload.get('version_txt')}", failures)
+    require(str(payload.get("app_version") or "").startswith(COMPATIBLE_CURRENT_PREFIXES), f"runtime app_version is {payload.get('app_version')}", failures)
+    require(payload.get("runtime_version") == payload.get("app_version"), f"runtime_version is {payload.get('runtime_version')}", failures)
+    require(payload.get("version_txt") == payload.get("app_version"), f"runtime version_txt is {payload.get('version_txt')}", failures)
     require(payload.get("version_files_match") is True, "runtime version_files_match is not true", failures)
     require(payload.get("has_v895_render_v894_deployment_alignment") is True, "runtime V895 flag false", failures)
     require(payload.get("has_v894_autonomous_company_sentinel_workforce") is True, "runtime V894 flag false", failures)

@@ -1,0 +1,83 @@
+{
+  "version": "V896_PRODUCTION_NOT_FOUND_ROUTE_RECOVERY_FULL_APP_SMOKE_FINAL",
+  "events": [
+    {
+      "path": "/dashboard",
+      "method": "GET",
+      "referrer": "",
+      "user_agent": "Werkzeug/3.0.3",
+      "resolved_alias": "/app",
+      "source": "legacy_alias",
+      "count": 3,
+      "first_seen_madrid": "2026-07-05T00:56:22+02:00",
+      "last_seen_madrid": "2026-07-05T00:58:56+02:00"
+    },
+    {
+      "path": "/admin-panel",
+      "method": "GET",
+      "referrer": "",
+      "user_agent": "Werkzeug/3.0.3",
+      "resolved_alias": "/admin/dashboard",
+      "source": "legacy_alias",
+      "count": 3,
+      "first_seen_madrid": "2026-07-05T00:56:22+02:00",
+      "last_seen_madrid": "2026-07-05T00:58:56+02:00"
+    },
+    {
+      "path": "/directos",
+      "method": "GET",
+      "referrer": "",
+      "user_agent": "Werkzeug/3.0.3",
+      "resolved_alias": "/live",
+      "source": "legacy_alias",
+      "count": 3,
+      "first_seen_madrid": "2026-07-05T00:56:22+02:00",
+      "last_seen_madrid": "2026-07-05T00:58:56+02:00"
+    },
+    {
+      "path": "/ruta-inventada-v896-smoke",
+      "method": "GET",
+      "referrer": "",
+      "user_agent": "Werkzeug/3.0.3",
+      "resolved_alias": "",
+      "source": "flask_404",
+      "count": 1,
+      "first_seen_madrid": "2026-07-05T00:58:55+02:00",
+      "last_seen_madrid": "2026-07-05T00:58:55+02:00"
+    },
+    {
+      "path": "/api/ruta-inventada-v896-smoke",
+      "method": "GET",
+      "referrer": "",
+      "user_agent": "Werkzeug/3.0.3",
+      "resolved_alias": "",
+      "source": "api_404",
+      "count": 1,
+      "first_seen_madrid": "2026-07-05T00:58:55+02:00",
+      "last_seen_madrid": "2026-07-05T00:58:55+02:00"
+    },
+    {
+      "path": "/ruta-inventada-v896",
+      "method": "GET",
+      "referrer": "",
+      "user_agent": "Werkzeug/3.0.3",
+      "resolved_alias": "",
+      "source": "flask_404",
+      "count": 2,
+      "first_seen_madrid": "2026-07-05T00:56:22+02:00",
+      "last_seen_madrid": "2026-07-05T00:57:41+02:00"
+    },
+    {
+      "path": "/api/ruta-inventada-v896",
+      "method": "GET",
+      "referrer": "",
+      "user_agent": "Werkzeug/3.0.3",
+      "resolved_alias": "",
+      "source": "api_404",
+      "count": 2,
+      "first_seen_madrid": "2026-07-05T00:56:22+02:00",
+      "last_seen_madrid": "2026-07-05T00:57:41+02:00"
+    }
+  ],
+  "updated_at_madrid": "2026-07-05T00:58:56+02:00"
+}

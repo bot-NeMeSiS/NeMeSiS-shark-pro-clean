@@ -339,7 +339,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V895_RENDER_V894_DEPLOYMENT_ALIGNMENT_FINAL'
+APP_VERSION = 'V896_PRODUCTION_NOT_FOUND_ROUTE_RECOVERY_FULL_APP_SMOKE_FINAL'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 
@@ -2044,6 +2044,7 @@ LIGHT_STARTUP_ENDPOINTS = {
     "asset_league_logo",
     "team_crest_svg",
     "service_worker",
+    "manifest_json",
     "static",
     "home",
 }
@@ -10490,10 +10491,306 @@ def dashboard_data(lane="today", date=None):
 @app.route("/service-worker.js")
 def service_worker():
     body = (
-        "self.addEventListener('install',event=>self.skipWaiting());\n"
-        "self.addEventListener('activate',event=>event.waitUntil(self.clients.claim()));\n"
+        "const NEMESIS_CACHE='NEMESIS_CACHE_V896';\n"
+        "self.addEventListener('install',event=>{self.skipWaiting();});\n"
+        "self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==NEMESIS_CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));});\n"
+        "self.addEventListener('fetch',event=>{const req=event.request;if(req.mode==='navigate'){event.respondWith(fetch(req).catch(()=>fetch('/')));}});\n"
     )
     return Response(body, mimetype="application/javascript")
+
+
+@app.route("/manifest.json")
+def manifest_json():
+    return jsonify({
+        "name": "NeMeSiS SHARK PRO",
+        "short_name": "NeMeSiS",
+        "description": "NeMeSiS SHARK PRO: app premium de picks, directos, SHARK IA y Telegram.",
+        "start_url": "/",
+        "scope": "/",
+        "display": "standalone",
+        "theme_color": "#06111f",
+        "background_color": "#06111f",
+        "icons": [
+            {
+                "src": "/static/img/shark-logo.svg",
+                "sizes": "any",
+                "type": "image/svg+xml",
+                "purpose": "any maskable",
+            }
+        ],
+    })
+
+
+V896_ROUTE_ALIASES = {
+    "/dashboard": "/app",
+    "/client": "/app",
+    "/cliente": "/app",
+    "/client-dashboard": "/app",
+    "/home": "/",
+    "/inicio-cliente": "/app",
+    "/mi-cuenta": "/profile",
+    "/perfil": "/profile",
+    "/soporte": "/support",
+    "/ayuda": "/support",
+    "/partidos-hoy": "/calendar",
+    "/calendario": "/calendar",
+    "/directos": "/live",
+    "/en-vivo": "/live",
+    "/recomendaciones": "/picks",
+    "/pick": "/picks",
+    "/apuestas": "/picks",
+    "/admin-panel": "/admin/dashboard",
+    "/admin/home": "/admin/dashboard",
+    "/admin/control": "/admin/dashboard",
+    "/admin/sentinel": "/admin/autonomous-company-sentinel",
+    "/admin/qa": "/admin/autonomous-company-sentinel",
+    "/admin/autopilot": "/admin/sentinel-autopilot",
+    "/admin/issues": "/admin/sentinel-issues",
+    "/admin/prompts": "/admin/sentinel-codex-outbox",
+}
+
+
+V896_PRIMARY_ROUTE_SMOKE = [
+    "/",
+    "/app",
+    "/cliente-login",
+    "/registro",
+    "/calendar",
+    "/live",
+    "/picks",
+    "/profile",
+    "/telegram",
+    "/support",
+    "/admin-login",
+    "/admin/dashboard",
+    "/admin/autonomous-company-sentinel",
+    "/admin/sentinel-issues",
+    "/admin/sentinel-codex-outbox",
+    "/api/runtime-version",
+]
+
+
+V896_LEGACY_ROUTE_SMOKE = [
+    "/dashboard",
+    "/client",
+    "/cliente",
+    "/admin-panel",
+    "/admin/sentinel",
+    "/admin/prompts",
+    "/directos",
+    "/recomendaciones",
+]
+
+
+def v896_not_found_memory_path():
+    return BASE_DIR / "data" / "runtime" / "not_found_events.json"
+
+
+def v896_safe_request_text(value, limit=220):
+    text = str(value or "").replace("\r", " ").replace("\n", " ").strip()
+    for token in ["secret=", "token=", "api_key=", "apikey=", "password="]:
+        if token in text.lower():
+            text = text[: text.lower().find(token)] + token + "[redacted]"
+    return text[:limit]
+
+
+def v896_load_not_found_events():
+    path = v896_not_found_memory_path()
+    if not path.exists():
+        return {"version": APP_VERSION, "events": []}
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        if not isinstance(payload, dict):
+            return {"version": APP_VERSION, "events": []}
+        payload.setdefault("events", [])
+        return payload
+    except Exception:
+        return {"version": APP_VERSION, "events": []}
+
+
+def v896_save_not_found_events(payload):
+    path = v896_not_found_memory_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload["version"] = APP_VERSION
+    payload["updated_at_madrid"] = now_iso()
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def v896_not_found_severity(path, count=1):
+    important = set(V896_PRIMARY_ROUTE_SMOKE + V896_LEGACY_ROUTE_SMOKE)
+    if path in important or str(path or "").startswith("/admin"):
+        return "high"
+    if int(count or 1) >= 3:
+        return "high"
+    return "medium"
+
+
+def v896_record_not_found(path, method="GET", referrer="", user_agent="", resolved_alias="", source="flask_404"):
+    safe_path = v896_safe_request_text(path, 260) or "/"
+    payload = v896_load_not_found_events()
+    events = [item for item in payload.get("events", []) if isinstance(item, dict)]
+    existing = None
+    for item in events:
+        if item.get("path") == safe_path and item.get("method") == method:
+            existing = item
+            break
+    if existing is None:
+        existing = {
+            "path": safe_path,
+            "method": v896_safe_request_text(method, 12),
+            "referrer": v896_safe_request_text(referrer, 260),
+            "user_agent": v896_safe_request_text(user_agent, 160),
+            "resolved_alias": v896_safe_request_text(resolved_alias, 260),
+            "source": source,
+            "count": 0,
+            "first_seen_madrid": now_iso(),
+        }
+        events.append(existing)
+    existing["count"] = int(existing.get("count") or 0) + 1
+    existing["last_seen_madrid"] = now_iso()
+    existing["referrer"] = v896_safe_request_text(referrer, 260)
+    existing["user_agent"] = v896_safe_request_text(user_agent, 160)
+    existing["resolved_alias"] = v896_safe_request_text(resolved_alias, 260)
+    payload["events"] = sorted(events, key=lambda item: str(item.get("last_seen_madrid") or ""), reverse=True)[:250]
+    v896_save_not_found_events(payload)
+    v896_upsert_not_found_issue(existing)
+    return existing
+
+
+def v896_upsert_not_found_issue(event):
+    try:
+        issue = {
+            "title": "Ruta devuelve Not Found",
+            "area": "navigation",
+            "severity": v896_not_found_severity(event.get("path"), event.get("count")),
+            "route": event.get("path"),
+            "evidence": f"path={event.get('path')} count={event.get('count')} referrer={event.get('referrer') or 'sin referrer'}",
+            "impact": "Puede dejar al usuario en una pantalla seca si llega desde PWA, enlace viejo o acceso directo.",
+            "recommendation": "Crear alias o corregir enlace de origen y revalidar smoke de rutas.",
+            "validation": [
+                "python -m py_compile app.py",
+                "python tools/check_v896_not_found_route_recovery.py",
+            ],
+            "tags": ["navigation", "not_found", "v896"],
+        }
+        run_sentinel_issues_scan(
+            APP_VERSION,
+            Path(__file__).resolve().parent,
+            sentinel_result={"issues": [issue]},
+            save_memory=True,
+        )
+    except Exception as exc:
+        try:
+            print("[V896_NOT_FOUND_SENTINEL_SKIP]", str(exc)[:220])
+        except Exception:
+            pass
+
+
+def v896_route_alias_target(path):
+    clean = "/" + str(path or "").strip().lstrip("/")
+    return V896_ROUTE_ALIASES.get(clean.rstrip("/") if clean != "/" else clean)
+
+
+@app.route("/dashboard")
+@app.route("/client")
+@app.route("/cliente")
+@app.route("/client-dashboard")
+@app.route("/home")
+@app.route("/inicio-cliente")
+@app.route("/mi-cuenta")
+@app.route("/perfil")
+@app.route("/soporte")
+@app.route("/ayuda")
+@app.route("/partidos-hoy")
+@app.route("/calendario")
+@app.route("/directos")
+@app.route("/en-vivo")
+@app.route("/recomendaciones")
+@app.route("/pick")
+@app.route("/apuestas")
+@app.route("/admin-panel")
+@app.route("/admin/home")
+@app.route("/admin/control")
+@app.route("/admin/sentinel")
+@app.route("/admin/qa")
+@app.route("/admin/prompts")
+def v896_legacy_route_alias():
+    target = v896_route_alias_target(request.path) or "/"
+    v896_record_not_found(request.path, request.method, request.referrer or "", request.headers.get("User-Agent", ""), resolved_alias=target, source="legacy_alias")
+    return redirect(target)
+
+
+def v896_route_map_items():
+    items = []
+    for rule in sorted(app.url_map.iter_rules(), key=lambda item: item.rule):
+        route = str(rule.rule)
+        if route.startswith("/static/"):
+            continue
+        category = "api" if route.startswith("/api/") else "admin" if route.startswith("/admin") else "client"
+        items.append({
+            "route": route,
+            "endpoint": rule.endpoint,
+            "methods": sorted(method for method in rule.methods if method not in {"HEAD", "OPTIONS"}),
+            "category": category,
+            "requires_admin": route.startswith("/admin") or route.startswith("/api/admin"),
+            "requires_login": route in {"/app", "/profile", "/telegram", "/favorites"},
+            "alias_target": V896_ROUTE_ALIASES.get(route, ""),
+        })
+    return items
+
+
+@app.route("/api/admin/route-map")
+def api_admin_route_map():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    items = v896_route_map_items()
+    return jsonify({
+        "ok": True,
+        "version": APP_VERSION,
+        "routes": items,
+        "aliases": [{"source": source, "target": target} for source, target in sorted(V896_ROUTE_ALIASES.items())],
+        "counts": {
+            "client": sum(1 for item in items if item["category"] == "client"),
+            "admin": sum(1 for item in items if item["category"] == "admin"),
+            "api": sum(1 for item in items if item["category"] == "api"),
+        },
+    })
+
+
+@app.route("/api/admin/route-smoke")
+def api_admin_route_smoke():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    client = app.test_client()
+    checks = []
+    for path in V896_PRIMARY_ROUTE_SMOKE + V896_LEGACY_ROUTE_SMOKE:
+        response = client.get(path, follow_redirects=False)
+        checks.append({
+            "path": path,
+            "status_code": response.status_code,
+            "location": response.headers.get("Location", ""),
+            "ok": response.status_code in {200, 301, 302, 303, 307, 308, 401, 403},
+        })
+    return jsonify({
+        "ok": all(item["ok"] for item in checks),
+        "version": APP_VERSION,
+        "checks": checks,
+        "dangerous_actions_executed": False,
+    })
+
+
+@app.route("/api/admin/not-found-events")
+def api_admin_not_found_events():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    payload = v896_load_not_found_events()
+    return jsonify({
+        "ok": True,
+        "version": APP_VERSION,
+        "memory_path": str(v896_not_found_memory_path()),
+        "events": payload.get("events", []),
+        "count": len(payload.get("events", [])),
+    })
 
 
 def _home_count_sql(query, params=()):
@@ -14451,8 +14748,8 @@ def api_runtime_version():
     base_template = ""
     css_path = BASE_DIR / "static" / "app.css"
     base_path = BASE_DIR / "templates" / "base.html"
-    manifest_path = BASE_DIR / "RELEASE_MANIFEST_V895.json"
-    fallback_manifest_path = BASE_DIR / "RELEASE_MANIFEST_V894.json"
+    manifest_path = BASE_DIR / "RELEASE_MANIFEST_V896.json"
+    fallback_manifest_path = BASE_DIR / "RELEASE_MANIFEST_V895.json"
     css_size = 0
     css_hash = ""
     css_mtime = ""
@@ -14691,6 +14988,7 @@ def api_runtime_version():
         "has_v892_user_admin_journey_worker": "sentinel_user_admin_journey_engine" in app_py_text and "run_user_admin_journey_scan" in app_py_text,
         "has_v894_autonomous_company_sentinel_workforce": "autonomous_company_sentinel_engine" in app_py_text and "V894_AUTONOMOUS_COMPANY_SENTINEL_REFERENCE_CODEX_WORKFORCE_FINAL" in app_py_text,
         "has_v895_render_v894_deployment_alignment": "V895_RENDER_V894_DEPLOYMENT_ALIGNMENT_FINAL" in app_py_text and "deployment_alignment_status" in app_py_text,
+        "has_v896_not_found_route_recovery": "V896_PRODUCTION_NOT_FOUND_ROUTE_RECOVERY_FULL_APP_SMOKE_FINAL" in app_py_text and "client_safe_404" in app_py_text and "/api/admin/not-found-events" in app_py_text,
         "has_v837_reference_photo_qa": "data-v837-shell" in base_template and "V837 REFERENCE PHOTO PERFECTION REAL QA START" in css_text,
         "has_v836_autonomous_qa": "data-v836-shell" in base_template and "V836 AUTONOMOUS REFERENCE VISUAL REVIEW FINAL QA START" in css_text,
         "has_v833_visual_completion": "data-v833-shell" in base_template and "V833 REFERENCE ECOSYSTEM VISUAL COMPLETION START" in css_text,
@@ -15800,6 +16098,52 @@ if os.getenv("RUN_STARTUP_SCHEDULER_NOW", "").strip().lower() in {"1", "true", "
     schedule_auto_sync_if_needed()
 
 
+
+
+@app.errorhandler(404)
+def client_safe_404(error):
+    path = request.path or "/"
+    alias_target = v896_route_alias_target(path)
+    event = v896_record_not_found(
+        path,
+        request.method,
+        request.referrer or "",
+        request.headers.get("User-Agent", ""),
+        resolved_alias=alias_target or "",
+        source="api_404" if path.startswith("/api/") else "flask_404",
+    )
+    if path.startswith("/api/"):
+        return jsonify({
+            "ok": False,
+            "error": "not_found",
+            "safe_message": "Ruta API no encontrada",
+            "path": v896_safe_request_text(path, 260),
+            "version": APP_VERSION,
+            "event_count": event.get("count"),
+        }), 404
+    if alias_target:
+        return redirect(alias_target)
+    is_admin_path = path.startswith("/admin")
+    safe_links = [
+        {"label": "Inicio", "href": "/"},
+        {"label": "Entrar", "href": "/cliente-login"},
+        {"label": "Crear cuenta", "href": "/registro"},
+        {"label": "Mi app", "href": "/app"},
+        {"label": "Partidos", "href": "/calendar"},
+        {"label": "Directo", "href": "/live"},
+        {"label": "Picks", "href": "/picks"},
+        {"label": "Soporte", "href": "/support"},
+    ]
+    if is_admin_path:
+        safe_links.append({"label": "Admin", "href": "/admin-login"})
+    return render_template(
+        "404.html",
+        title="Ruta no encontrada",
+        path=v896_safe_request_text(path, 260),
+        is_admin_path=is_admin_path,
+        safe_links=safe_links,
+        event=event,
+    ), 404
 
 
 @app.errorhandler(500)

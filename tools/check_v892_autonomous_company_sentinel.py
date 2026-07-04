@@ -6,7 +6,7 @@ import sys
 
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION_PREFIXES = ("V892_", "V894_", "V895_")
+VERSION_PREFIXES = ("V892_", "V894_", "V895_", "V896_")
 sys.path.insert(0, str(ROOT))
 
 
@@ -27,7 +27,7 @@ def main() -> int:
     css = read("static/app.css")
     template = read("templates/admin_autonomous_company_sentinel.html")
 
-    require(version_txt.startswith(VERSION_PREFIXES), "VERSION.txt is not V892/V894/V895 company sentinel lineage", failures)
+    require(version_txt.startswith(VERSION_PREFIXES), "VERSION.txt is not V892/V894/V895/V896 company sentinel lineage", failures)
     require(app_version_file == version_txt, "APP_VERSION does not match VERSION.txt", failures)
     require(f"APP_VERSION = '{version_txt}'" in app_py, "app.py APP_VERSION mismatch", failures)
     for flag in [

@@ -1,6 +1,6 @@
 {
   "autofix_apply_env": "0",
-  "safe_autofix_count": 25,
+  "safe_autofix_count": 35,
   "requires_codex_count": 45,
   "applied_changes": [],
   "dangerous_actions_executed": false,
@@ -411,6 +411,51 @@
       "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
     },
     {
+      "issue_id": "SENT-2026-E03A0A09",
+      "title": "Ruta devuelve Not Found",
+      "area": "buttons_routes",
+      "severity": "medium",
+      "level": "SAFE_AUTOFIX",
+      "may_apply": false,
+      "recommended_action": "Preparar microfix seguro local"
+    },
+    {
+      "issue_id": "SENT-2026-089FE273",
+      "title": "Ruta devuelve Not Found",
+      "area": "buttons_routes",
+      "severity": "medium",
+      "level": "SAFE_AUTOFIX",
+      "may_apply": false,
+      "recommended_action": "Preparar microfix seguro local"
+    },
+    {
+      "issue_id": "SENT-2026-817D5BFC",
+      "title": "Ruta devuelve Not Found",
+      "area": "buttons_routes",
+      "severity": "medium",
+      "level": "SAFE_AUTOFIX",
+      "may_apply": false,
+      "recommended_action": "Preparar microfix seguro local"
+    },
+    {
+      "issue_id": "SENT-2026-247C9AF9",
+      "title": "Ruta devuelve Not Found",
+      "area": "buttons_routes",
+      "severity": "medium",
+      "level": "SAFE_AUTOFIX",
+      "may_apply": false,
+      "recommended_action": "Preparar microfix seguro local"
+    },
+    {
+      "issue_id": "SENT-2026-88A7957E",
+      "title": "Ruta devuelve Not Found",
+      "area": "buttons_routes",
+      "severity": "medium",
+      "level": "SAFE_AUTOFIX",
+      "may_apply": false,
+      "recommended_action": "Preparar microfix seguro local"
+    },
+    {
       "issue_id": "AP-33190C902467",
       "title": "Pantalla deportiva sin datos reales visibles",
       "area": "visual",
@@ -504,6 +549,51 @@
       "issue_id": "SENT-2026-5FB6DDF2",
       "title": "SHARK IA avanzada pendiente de configuracion",
       "area": "shark",
+      "severity": "medium",
+      "level": "SAFE_AUTOFIX",
+      "may_apply": false,
+      "recommended_action": "Preparar microfix seguro local"
+    },
+    {
+      "issue_id": "SENT-2026-C1ADA844",
+      "title": "Ruta devuelve Not Found",
+      "area": "buttons_routes",
+      "severity": "medium",
+      "level": "SAFE_AUTOFIX",
+      "may_apply": false,
+      "recommended_action": "Preparar microfix seguro local"
+    },
+    {
+      "issue_id": "SENT-2026-F9CE11D6",
+      "title": "Ruta devuelve Not Found",
+      "area": "buttons_routes",
+      "severity": "medium",
+      "level": "SAFE_AUTOFIX",
+      "may_apply": false,
+      "recommended_action": "Preparar microfix seguro local"
+    },
+    {
+      "issue_id": "SENT-2026-E86B9412",
+      "title": "Ruta devuelve Not Found",
+      "area": "buttons_routes",
+      "severity": "medium",
+      "level": "SAFE_AUTOFIX",
+      "may_apply": false,
+      "recommended_action": "Preparar microfix seguro local"
+    },
+    {
+      "issue_id": "SENT-2026-665EB0FB",
+      "title": "Ruta devuelve Not Found",
+      "area": "buttons_routes",
+      "severity": "medium",
+      "level": "SAFE_AUTOFIX",
+      "may_apply": false,
+      "recommended_action": "Preparar microfix seguro local"
+    },
+    {
+      "issue_id": "SENT-2026-F64BFD02",
+      "title": "Ruta devuelve Not Found",
+      "area": "buttons_routes",
       "severity": "medium",
       "level": "SAFE_AUTOFIX",
       "may_apply": false,

@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block content %}
+<main class="ns-page ns-not-found-page" data-v896-not-found="true">
+  <section class="ns-card ns-empty ns-not-found-card">
+    <div class="ns-chip ns-chip-warning">Ruta no encontrada</div>
+    <h1>Esta pantalla no existe o pertenece a una versión anterior.</h1>
+    <p>
+      Te llevamos de vuelta a una zona segura de NeMeSiS SHARK PRO. Si has llegado desde un acceso directo,
+      una PWA instalada o un enlace antiguo, puedes entrar de nuevo desde aquí.
+    </p>
+    {% if is_admin_path %}
+      <p class="ns-muted">La ruta parece de administración. Por seguridad, usa el acceso admin.</p>
+    {% else %}
+      <p class="ns-muted">No se muestran datos técnicos ni se inventa información.</p>
+    {% endif %}
+    <div class="ns-action-row ns-not-found-actions">
+      {% for item in safe_links %}
+        <a class="ns-button {% if loop.first %}ns-button-primary{% else %}ns-button-secondary{% endif %}" href="{{ item.href }}">{{ item.label }}</a>
+      {% endfor %}
+    </div>
+  </section>
+</main>
+{% endblock %}

@@ -1,10 +1,10 @@
 {
-  "version": "V895_RENDER_V894_DEPLOYMENT_ALIGNMENT_FINAL",
+  "version": "V896_PRODUCTION_NOT_FOUND_ROUTE_RECOVERY_FULL_APP_SMOKE_FINAL",
   "engine_version": "V893_AUTONOMOUS_SENTINEL_USER_ADMIN_REFERENCE_QA_WORKER_FINAL",
-  "last_run_id": "ASW-20260705003644",
-  "last_run_madrid": "2026-07-05T00:36:44+02:00",
+  "last_run_id": "ASW-20260705005723",
+  "last_run_madrid": "2026-07-05T00:57:23+02:00",
   "last_mode": "safe_scan",
   "last_runner": "render_cron",
-  "last_issue_count": 70,
+  "last_issue_count": 75,
   "next_recommended_mode": "functional_scan"
 }
