@@ -319,6 +319,10 @@ from engines.sentinel_issues_engine import (
     run_sentinel_issues_scan,
     update_issue_status,
 )
+from engines.autonomous_sentinel_worker_engine import (
+    build_autonomous_status,
+    run_autonomous_sentinel_worker,
+)
 
 
 from engines.madrid_time_engine import (
@@ -331,7 +335,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V892_SENTINEL_ISSUES_COMMAND_CENTER_COPY_FIX_PROMPTS_FINAL'
+APP_VERSION = 'V893_AUTONOMOUS_SENTINEL_USER_ADMIN_REFERENCE_QA_WORKER_FINAL'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 
@@ -13431,6 +13435,105 @@ def _v892_sentinel_issues_summary(save_memory=False, mode="quick", include_autop
     )
 
 
+def _v893_autonomous_runtime_state():
+    runtime = _v888_runtime_autopilot_state()
+    runtime["local_app_version"] = APP_VERSION
+    return runtime
+
+
+def _v893_run_autonomous_sentinel(mode="safe_scan", runner="local", dry_run=True):
+    visual = run_visual_company_worker(app.test_client(), APP_VERSION, mode="visual" if mode == "visual_scan" else "quick", dry_run=True)
+    autopilot = _v888_build_autopilot_scan(save_memory=False, mode="quick")
+    return run_autonomous_sentinel_worker(
+        app.test_client(),
+        APP_VERSION,
+        Path(__file__).resolve().parent,
+        mode=mode,
+        runner=runner,
+        dry_run=dry_run,
+        runtime=_v893_autonomous_runtime_state(),
+        visual_result=visual,
+        autopilot_result=autopilot,
+    )
+
+
+@app.route("/admin/autonomous-sentinel")
+@app.route("/admin/sentinel-worker")
+@app.route("/admin/qa-worker")
+@app.route("/admin/revision-automatica")
+def admin_autonomous_sentinel_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/autonomous-sentinel")
+    status = build_autonomous_status(APP_VERSION, Path(__file__).resolve().parent)
+    return render_template("admin_autonomous_sentinel.html", data=dashboard_data(), status=status)
+
+
+@app.route("/api/admin/autonomous-sentinel/status")
+def api_admin_autonomous_sentinel_status():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({"ok": True, **build_autonomous_status(APP_VERSION, Path(__file__).resolve().parent)})
+
+
+@app.route("/api/admin/autonomous-sentinel/latest-run")
+def api_admin_autonomous_sentinel_latest_run():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "version": APP_VERSION, "latest_run": build_autonomous_status(APP_VERSION, Path(__file__).resolve().parent).get("latest_run")})
+
+
+@app.route("/api/admin/autonomous-sentinel/issues")
+def api_admin_autonomous_sentinel_issues():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    status = build_autonomous_status(APP_VERSION, Path(__file__).resolve().parent)
+    return jsonify({"ok": True, "version": APP_VERSION, "issues": (status.get("issues_summary") or {}).get("issues", [])})
+
+
+@app.route("/api/admin/autonomous-sentinel/outbox")
+def api_admin_autonomous_sentinel_outbox():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    outbox_path = Path(__file__).resolve().parent / "data" / "runtime" / "autonomous_sentinel" / "outbox" / "codex_prompts.md"
+    text = outbox_path.read_text(encoding="utf-8", errors="replace") if outbox_path.exists() else "Sin prompts Codex pendientes."
+    return jsonify({"ok": True, "version": APP_VERSION, "path": str(outbox_path), "content": text})
+
+
+@app.route("/api/admin/autonomous-sentinel/autofix-plan")
+def api_admin_autonomous_sentinel_autofix_plan():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    plan_path = Path(__file__).resolve().parent / "data" / "runtime" / "autonomous_sentinel" / "autofix_plan.json"
+    plan = json.loads(plan_path.read_text(encoding="utf-8")) if plan_path.exists() else {"plans": [], "dangerous_actions_executed": False}
+    return jsonify({"ok": True, "version": APP_VERSION, "autofix_plan": plan})
+
+
+@app.route("/api/admin/autonomous-sentinel/run", methods=["GET", "POST"])
+def api_admin_autonomous_sentinel_run():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    mode = request.args.get("mode") or request.form.get("mode") or "safe_scan"
+    dry_run = request.args.get("dry_run", "1").lower() in {"1", "true", "yes", "on"}
+    result = _v893_run_autonomous_sentinel(mode=mode, runner="admin", dry_run=dry_run)
+    return jsonify({"ok": True, **result})
+
+
+@app.route("/api/admin/autonomous-sentinel/generate-codex-prompts", methods=["GET", "POST"])
+def api_admin_autonomous_sentinel_generate_codex_prompts():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    result = _v893_run_autonomous_sentinel(mode="autofix_plan", runner="admin", dry_run=True)
+    return jsonify({"ok": True, "version": APP_VERSION, "outbox": result.get("outbox"), "dangerous_actions_executed": False})
+
+
+@app.route("/api/admin/autonomous-sentinel/sync-issues", methods=["GET", "POST"])
+def api_admin_autonomous_sentinel_sync_issues():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    result = _v893_run_autonomous_sentinel(mode="safe_scan", runner="admin", dry_run=True)
+    return jsonify({"ok": True, "version": APP_VERSION, "issues_summary": result.get("issues_summary"), "dangerous_actions_executed": False})
+
+
 @app.route("/admin/sentinel-issues")
 @app.route("/admin/issues")
 @app.route("/admin/incidencias")
@@ -14427,6 +14530,8 @@ def api_runtime_version():
         "has_v890_sentinel_issues_command_center": "sentinel_issues_engine" in app_py_text and "/admin/sentinel-issues" in app_py_text,
         "has_v891_telegram_premium_admin_endpoint_compatibility": "/api/admin/telegram/pick-quality" in app_py_text and "/api/admin/telegram/dry-run-premium-picks" in app_py_text and "/api/admin/telegram/blocked-picks" in app_py_text,
         "has_v892_sentinel_issues_command_center": "sentinel_issues_engine" in app_py_text and "/admin/sentinel-issues" in app_py_text and "/api/admin/sentinel/issues/scan" in app_py_text,
+        "has_v891_autonomous_sentinel_user_admin_reference_worker": "autonomous_sentinel_worker_engine" in app_py_text and "/api/automation/autonomous-sentinel/run" in app_py_text and "/admin/autonomous-sentinel" in app_py_text,
+        "has_v893_autonomous_sentinel_worker": "autonomous_sentinel_worker_engine" in app_py_text and "/api/automation/autonomous-sentinel/run" in app_py_text and "sentinel_reference_qa_engine" in app_py_text,
         "has_v837_reference_photo_qa": "data-v837-shell" in base_template and "V837 REFERENCE PHOTO PERFECTION REAL QA START" in css_text,
         "has_v836_autonomous_qa": "data-v836-shell" in base_template and "V836 AUTONOMOUS REFERENCE VISUAL REVIEW FINAL QA START" in css_text,
         "has_v833_visual_completion": "data-v833-shell" in base_template and "V833 REFERENCE ECOSYSTEM VISUAL COMPLETION START" in css_text,
@@ -14442,7 +14547,7 @@ def api_runtime_version():
         "has_v820_crests": "data-v820-shell" in base_template and "V820 REAL CRESTS REFERENCE VISUAL PIXEL POLISH START" in css_text,
         "has_v819_dedup": "data-v819-shell" in base_template and "V819 REFERENCE UI DEDUP LAYER PURGE START" in css_text,
         "has_v818_automation": "/api/automation/master-tick" in app_py_text and "daily_automation_engine" in app_py_text,
-        "static_css_cache_busting": "V892_SENTINEL_ISSUES_COMMAND_CENTER_COPY_FIX_PROMPTS_FINAL" in base_template,
+        "static_css_cache_busting": "V893_AUTONOMOUS_SENTINEL_USER_ADMIN_REFERENCE_QA_WORKER_FINAL" in base_template,
         "crest_engine_loaded": runtime_stability.get("crest_engine_loaded"),
         "logo_cache_tables_ok": runtime_stability.get("logo_cache_tables_ok"),
         "team_logo_cache_count": runtime_stability.get("team_logo_cache_count"),
@@ -19018,6 +19123,17 @@ def api_v888_sentinel_autopilot_run():
     mode = request.args.get("mode") or "quick"
     scan = _v888_build_autopilot_scan(save_memory=True, mode=mode)
     return jsonify({"ok": True, **scan, "cron": "sentinel_autopilot", "dry_run": True, "dangerous_actions_executed": False})
+
+
+@app.route("/api/automation/autonomous-sentinel/run", methods=["GET", "POST"])
+def api_v893_autonomous_sentinel_run():
+    if not automation_cron_access_allowed():
+        return automation_json_forbidden()
+    mode = request.args.get("mode") or request.form.get("mode") or "safe_scan"
+    runner = request.args.get("runner") or request.form.get("runner") or "render_cron"
+    dry_run = request.args.get("dry_run", "1").lower() in {"1", "true", "yes", "on"}
+    result = _v893_run_autonomous_sentinel(mode=mode, runner=runner, dry_run=dry_run)
+    return jsonify({"ok": True, **result})
 
 
 @app.route("/admin/daily-automation")

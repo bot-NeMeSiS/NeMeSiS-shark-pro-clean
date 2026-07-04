@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="ns-admin-page v893-autonomous-sentinel">
+  <div class="ns-page-header">
+    <span class="ns-chip">V893 Autonomous Sentinel Worker</span>
+    <h1>Inspector autónomo permanente</h1>
+    <p>Revisa cliente, admin, rutas, botones, datos reales, visual, Telegram, SHARK, pagos y release. Genera incidencias y prompts Codex sin deploy, push, Telegram real, pagos ni secretos.</p>
+    <div class="ns-actions">
+      <a class="ns-button ns-button-primary" href="/api/admin/autonomous-sentinel/run?mode=safe_scan&dry_run=1" target="_blank">Ejecutar revisión ahora</a>
+      <a class="ns-button ns-button-secondary" href="/api/admin/autonomous-sentinel/outbox" target="_blank">Ver outbox Codex</a>
+      <a class="ns-button ns-button-secondary" href="/api/admin/autonomous-sentinel/autofix-plan" target="_blank">Ver autofix plan</a>
+      <a class="ns-button ns-button-ghost" href="/admin/sentinel-issues">Ver incidencias</a>
+    </div>
+  </div>
+
+  {% set latest = status.latest_run or {} %}
+  {% set issue_summary = status.issues_summary or {} %}
+  {% set counts = issue_summary.counts or {} %}
+  <section class="ns-grid ns-grid-4">
+    <article class="ns-stat"><span>Última ejecución</span><strong>{{ status.state.last_mode or 'Pendiente' }}</strong><small>{{ status.state.last_run_madrid or 'Sin run guardado' }}</small></article>
+    <article class="ns-stat"><span>Rutas revisadas</span><strong>{{ latest.routes_checked or 0 }}</strong><small>cliente/admin</small></article>
+    <article class="ns-stat"><span>Incidencias abiertas</span><strong>{{ counts.open or 0 }}</strong><small>centro común</small></article>
+    <article class="ns-stat"><span>Prompts outbox</span><strong>{{ (latest.outbox or {}).prompt_count or 0 }}</strong><small>listos para Codex</small></article>
+  </section>
+
+  <section class="ns-grid ns-grid-2">
+    <article class="ns-admin-card">
+      <div class="ns-section-title">
+        <h2>Estado del trabajador</h2>
+        <span class="ns-badge">{{ status.engine_version }}</span>
+      </div>
+      <div class="ns-table-wrap">
+        <table class="ns-table">
+          <tbody>
+            <tr><th>Endpoint cron</th><td><code>{{ status.cron.endpoint }}</code></td></tr>
+            <tr><th>Safe scan</th><td>{{ status.cron.safe_scan }}</td></tr>
+            <tr><th>Functional scan</th><td>{{ status.cron.functional_scan }}</td></tr>
+            <tr><th>Visual scan</th><td>{{ status.cron.visual_scan }}</td></tr>
+            <tr><th>Runner último</th><td>{{ latest.runner or 'Pendiente' }}</td></tr>
+            <tr><th>Dry-run</th><td>{{ 'Si' if latest.dry_run else 'Pendiente' }}</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </article>
+
+    <article class="ns-admin-card">
+      <div class="ns-section-title">
+        <h2>Politica segura</h2>
+        <span class="ns-badge">sin autopeligro</span>
+      </div>
+      <div class="ns-stack">
+        {% for note in latest.safe_notes or ['No auto deploy','No auto push','No Telegram real','No pagos reales','No secretos','No datos inventados'] %}
+          <span class="ns-chip">{{ note }}</span>
+        {% endfor %}
+      </div>
+    </article>
+  </section>
+
+  <section class="ns-grid ns-grid-2">
+    <article class="ns-admin-card">
+      <h2>Journeys revisados</h2>
+      <div class="ns-stack">
+        {% for role in latest.roles_reviewed or ['anonymous','FREE','PRO','ELITE','ADMIN'] %}
+          <span class="ns-chip">{{ role }}</span>
+        {% endfor %}
+      </div>
+      <div class="ns-stack">
+        {% for device in latest.devices_reviewed or ['desktop_1440x900','mobile_390x844'] %}
+          <span class="ns-badge">{{ device }}</span>
+        {% endfor %}
+      </div>
+    </article>
+    <article class="ns-admin-card">
+      <h2>Referencia visual</h2>
+      {% set ref = latest.reference or {} %}
+      <p>Referencias detectadas: <strong>{{ ref.reference_count or 0 }}</strong></p>
+      <p>Browser/capturas: <strong>{{ 'Disponible' if ref.browser_available else 'No ejecutado' }}</strong></p>
+      <p>No se declara pixel-perfect sin capturas reales.</p>
+    </article>
+  </section>
+
+  <section class="ns-admin-card">
+    <div class="ns-section-title">
+      <h2>Últimas incidencias</h2>
+      <a class="ns-button ns-button-secondary" href="/admin/sentinel-issues">Abrir centro común</a>
+    </div>
+    <div class="ns-table-wrap">
+      <table class="ns-table">
+        <thead><tr><th>Severidad</th><th>Area</th><th>Ruta</th><th>Incidencia</th><th>Estado</th></tr></thead>
+        <tbody>
+        {% for issue in (issue_summary.open_issues or [])[:12] %}
+          <tr>
+            <td><span class="ns-chip ns-chip-{{ issue.severity }}">{{ issue.severity }}</span></td>
+            <td>{{ issue.area }}</td>
+            <td><code>{{ issue.route or '-' }}</code></td>
+            <td>{{ issue.title }}<br><small>{{ issue.evidence }}</small></td>
+            <td>{{ issue.status }}</td>
+          </tr>
+        {% else %}
+          <tr><td colspan="5"><div class="ns-empty ns-empty-compact">Sin incidencias abiertas guardadas. El cron poblará esta vista cuando detecte hallazgos accionables.</div></td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="ns-grid ns-grid-2">
+    <article class="ns-admin-card">
+      <h2>Outbox Codex</h2>
+      <p><code>{{ ((latest.outbox or {}).combined_path) or (status.paths.outbox ~ '/codex_prompts.md') }}</code></p>
+      <a class="ns-button ns-button-primary" href="/api/admin/autonomous-sentinel/generate-codex-prompts" target="_blank">Generar prompts</a>
+    </article>
+    <article class="ns-admin-card">
+      <h2>Autofix</h2>
+      {% set plan = latest.autofix_plan or {} %}
+      <p>SAFE_AUTOFIX: <strong>{{ plan.safe_autofix_count or 0 }}</strong></p>
+      <p>DANGEROUS_REQUIRES_CODEX: <strong>{{ plan.requires_codex_count or 0 }}</strong></p>
+      <p>Por defecto no aplica cambios: <code>AUTONOMOUS_SENTINEL_AUTOFIX=0</code>.</p>
+    </article>
+  </section>
+</section>
+{% endblock %}

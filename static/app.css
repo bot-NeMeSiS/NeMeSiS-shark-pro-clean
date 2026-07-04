@@ -11803,3 +11803,27 @@ body[data-v885-shell="true"].ns-admin :is(.ns-client-sidebar, .bottom-nav-clean[
   .v892-sentinel-issues .ns-grid-4 { grid-template-columns: 1fr; }
 }
 /* V892 SENTINEL ISSUES COMMAND CENTER COPY FIX PROMPTS END */
+
+/* V893 AUTONOMOUS SENTINEL USER ADMIN REFERENCE QA WORKER START */
+.v893-autonomous-sentinel .ns-page-header { margin-bottom: 18px; }
+.v893-autonomous-sentinel .ns-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.v893-autonomous-sentinel .ns-grid { display: grid; gap: 14px; margin: 14px 0; }
+.v893-autonomous-sentinel .ns-grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.v893-autonomous-sentinel .ns-grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.v893-autonomous-sentinel .ns-section-title { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.v893-autonomous-sentinel .ns-stack { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.v893-autonomous-sentinel .ns-table-wrap { overflow-x: auto; }
+.v893-autonomous-sentinel .ns-table td,
+.v893-autonomous-sentinel .ns-table th { vertical-align: top; }
+.v893-autonomous-sentinel code { white-space: normal; overflow-wrap: anywhere; }
+.v893-autonomous-sentinel .ns-empty-compact { min-height: auto; padding: 10px 12px; }
+.v893-autonomous-sentinel .ns-chip-critical { border-color: rgba(255, 91, 91, .55); color: #ffb4b4; }
+.v893-autonomous-sentinel .ns-chip-high { border-color: rgba(255, 183, 77, .55); color: #ffd39b; }
+.v893-autonomous-sentinel .ns-chip-medium { border-color: rgba(79, 209, 197, .45); color: #b9fff8; }
+.v893-autonomous-sentinel .ns-chip-low { border-color: rgba(148, 163, 184, .4); color: #d8e6f2; }
+body.ns-admin .v893-autonomous-sentinel :is(.bottom-nav-clean, .ns-client-sidebar, .v825-public-floating-shark) { display: none !important; }
+@media (max-width: 920px) {
+  .v893-autonomous-sentinel .ns-grid-2,
+  .v893-autonomous-sentinel .ns-grid-4 { grid-template-columns: 1fr; }
+}
+/* V893 AUTONOMOUS SENTINEL USER ADMIN REFERENCE QA WORKER END */

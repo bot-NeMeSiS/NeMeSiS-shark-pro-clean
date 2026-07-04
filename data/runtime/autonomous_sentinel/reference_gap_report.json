@@ -1,0 +1,169 @@
+{
+  "reference_assets": [],
+  "reference_count": 0,
+  "browser_available": false,
+  "visual_worker_issues": [
+    {
+      "id": "V884-6B1176B0FBC7",
+      "timestamp_madrid": "2026-07-05T00:05:00+02:00",
+      "profile": "CLIENT",
+      "route": "/partidos",
+      "category": "data",
+      "severity": "low",
+      "title": "Pantalla deportiva sin datos reales visibles",
+      "description": "Hay estado seguro, pero no hay filas/cards deportivas reales visibles.",
+      "evidence": "Hay estado seguro, pero no hay filas/cards deportivas reales visibles.",
+      "expected_behavior": "La pantalla debe verse premium, clara, segura y sin datos inventados.",
+      "actual_behavior": "Hay estado seguro, pero no hay filas/cards deportivas reales visibles.",
+      "suggested_fix": "Mantener el estado seguro y crear tarea admin de sync/filtros/cache.",
+      "safe_auto_fix_possible": false,
+      "requires_admin_approval": true,
+      "revalidation_notes": "Revisar ruta, ejecutar Sentinel y validar visual/browser si procede.",
+      "codex_prompt_suggestion": "Actua como equipo completo de NeMeSiS SHARK PRO. Prioridad low. Ruta afectada: /partidos. Categoria: data. Evidencia: Hay estado seguro, pero no hay filas/cards deportivas reales visibles.. Corrige solo el defecto real, preserva V818-V883, DB_PATH, usuarios, pagos, Telegram, SHARK, API-SPORTS y seguridad. No inventes datos, no toques secretos, no hagas deploy automatico. Valida py_compile, compileall, Sentinel, smoke local y ZIP limpio."
+    },
+    {
+      "id": "V884-F33A60811EE0",
+      "timestamp_madrid": "2026-07-05T00:05:00+02:00",
+      "profile": "CLIENT",
+      "route": "/calendar",
+      "category": "data",
+      "severity": "low",
+      "title": "Pantalla deportiva sin datos reales visibles",
+      "description": "Hay estado seguro, pero no hay filas/cards deportivas reales visibles.",
+      "evidence": "Hay estado seguro, pero no hay filas/cards deportivas reales visibles.",
+      "expected_behavior": "La pantalla debe verse premium, clara, segura y sin datos inventados.",
+      "actual_behavior": "Hay estado seguro, pero no hay filas/cards deportivas reales visibles.",
+      "suggested_fix": "Mantener el estado seguro y crear tarea admin de sync/filtros/cache.",
+      "safe_auto_fix_possible": false,
+      "requires_admin_approval": true,
+      "revalidation_notes": "Revisar ruta, ejecutar Sentinel y validar visual/browser si procede.",
+      "codex_prompt_suggestion": "Actua como equipo completo de NeMeSiS SHARK PRO. Prioridad low. Ruta afectada: /calendar. Categoria: data. Evidencia: Hay estado seguro, pero no hay filas/cards deportivas reales visibles.. Corrige solo el defecto real, preserva V818-V883, DB_PATH, usuarios, pagos, Telegram, SHARK, API-SPORTS y seguridad. No inventes datos, no toques secretos, no hagas deploy automatico. Valida py_compile, compileall, Sentinel, smoke local y ZIP limpio."
+    },
+    {
+      "id": "V884-2F503B203B7C",
+      "timestamp_madrid": "2026-07-05T00:05:01+02:00",
+      "profile": "CLIENT",
+      "route": "/live",
+      "category": "data",
+      "severity": "low",
+      "title": "Pantalla deportiva sin datos reales visibles",
+      "description": "Hay estado seguro, pero no hay filas/cards deportivas reales visibles.",
+      "evidence": "Hay estado seguro, pero no hay filas/cards deportivas reales visibles.",
+      "expected_behavior": "La pantalla debe verse premium, clara, segura y sin datos inventados.",
+      "actual_behavior": "Hay estado seguro, pero no hay filas/cards deportivas reales visibles.",
+      "suggested_fix": "Mantener el estado seguro y crear tarea admin de sync/filtros/cache.",
+      "safe_auto_fix_possible": false,
+      "requires_admin_approval": true,
+      "revalidation_notes": "Revisar ruta, ejecutar Sentinel y validar visual/browser si procede.",
+      "codex_prompt_suggestion": "Actua como equipo completo de NeMeSiS SHARK PRO. Prioridad low. Ruta afectada: /live. Categoria: data. Evidencia: Hay estado seguro, pero no hay filas/cards deportivas reales visibles.. Corrige solo el defecto real, preserva V818-V883, DB_PATH, usuarios, pagos, Telegram, SHARK, API-SPORTS y seguridad. No inventes datos, no toques secretos, no hagas deploy automatico. Valida py_compile, compileall, Sentinel, smoke local y ZIP limpio."
+    },
+    {
+      "group_id": "GROUP-73767CFDE3AC",
+      "category": "data",
+      "severity": "low",
+      "title": "Pantalla deportiva sin datos reales visibles",
+      "routes": [
+        "/calendar",
+        "/live",
+        "/partidos"
+      ],
+      "issues": [
+        {
+          "id": "V884-6B1176B0FBC7",
+          "timestamp_madrid": "2026-07-05T00:05:00+02:00",
+          "profile": "CLIENT",
+          "route": "/partidos",
+          "category": "data",
+          "severity": "low",
+          "title": "Pantalla deportiva sin datos reales visibles",
+          "description": "Hay estado seguro, pero no hay filas/cards deportivas reales visibles.",
+          "evidence": "Hay estado seguro, pero no hay filas/cards deportivas reales visibles.",
+          "expected_behavior": "La pantalla debe verse premium, clara, segura y sin datos inventados.",
+          "actual_behavior": "Hay estado seguro, pero no hay filas/cards deportivas reales visibles.",
+          "suggested_fix": "Mantener el estado seguro y crear tarea admin de sync/filtros/cache.",
+          "safe_auto_fix_possible": false,
+          "requires_admin_approval": true,
+          "revalidation_notes": "Revisar ruta, ejecutar Sentinel y validar visual/browser si procede.",
+          "codex_prompt_suggestion": "Actua como equipo completo de NeMeSiS SHARK PRO. Prioridad low. Ruta afectada: /partidos. Categoria: data. Evidencia: Hay estado seguro, pero no hay filas/cards deportivas reales visibles.. Corrige solo el defecto real, preserva V818-V883, DB_PATH, usuarios, pagos, Telegram, SHARK, API-SPORTS y seguridad. No inventes datos, no toques secretos, no hagas deploy automatico. Valida py_compile, compileall, Sentinel, smoke local y ZIP limpio."
+        },
+        {
+          "id": "V884-F33A60811EE0",
+          "timestamp_madrid": "2026-07-05T00:05:00+02:00",
+          "profile": "CLIENT",
+          "route": "/calendar",
+          "category": "data",
+          "severity": "low",
+          "title": "Pantalla deportiva sin datos reales visibles",
+          "description": "Hay estado seguro, pero no hay filas/cards deportivas reales visibles.",
+          "evidence": "Hay estado seguro, pero no hay filas/cards deportivas reales visibles.",
+          "expected_behavior": "La pantalla debe verse premium, clara, segura y sin datos inventados.",
+          "actual_behavior": "Hay estado seguro, pero no hay filas/cards deportivas reales visibles.",
+          "suggested_fix": "Mantener el estado seguro y crear tarea admin de sync/filtros/cache.",
+          "safe_auto_fix_possible": false,
+          "requires_admin_approval": true,
+          "revalidation_notes": "Revisar ruta, ejecutar Sentinel y validar visual/browser si procede.",
+          "codex_prompt_suggestion": "Actua como equipo completo de NeMeSiS SHARK PRO. Prioridad low. Ruta afectada: /calendar. Categoria: data. Evidencia: Hay estado seguro, pero no hay filas/cards deportivas reales visibles.. Corrige solo el defecto real, preserva V818-V883, DB_PATH, usuarios, pagos, Telegram, SHARK, API-SPORTS y seguridad. No inventes datos, no toques secretos, no hagas deploy automatico. Valida py_compile, compileall, Sentinel, smoke local y ZIP limpio."
+        },
+        {
+          "id": "V884-2F503B203B7C",
+          "timestamp_madrid": "2026-07-05T00:05:01+02:00",
+          "profile": "CLIENT",
+          "route": "/live",
+          "category": "data",
+          "severity": "low",
+          "title": "Pantalla deportiva sin datos reales visibles",
+          "description": "Hay estado seguro, pero no hay filas/cards deportivas reales visibles.",
+          "evidence": "Hay estado seguro, pero no hay filas/cards deportivas reales visibles.",
+          "expected_behavior": "La pantalla debe verse premium, clara, segura y sin datos inventados.",
+          "actual_behavior": "Hay estado seguro, pero no hay filas/cards deportivas reales visibles.",
+          "suggested_fix": "Mantener el estado seguro y crear tarea admin de sync/filtros/cache.",
+          "safe_auto_fix_possible": false,
+          "requires_admin_approval": true,
+          "revalidation_notes": "Revisar ruta, ejecutar Sentinel y validar visual/browser si procede.",
+          "codex_prompt_suggestion": "Actua como equipo completo de NeMeSiS SHARK PRO. Prioridad low. Ruta afectada: /live. Categoria: data. Evidencia: Hay estado seguro, pero no hay filas/cards deportivas reales visibles.. Corrige solo el defecto real, preserva V818-V883, DB_PATH, usuarios, pagos, Telegram, SHARK, API-SPORTS y seguridad. No inventes datos, no toques secretos, no hagas deploy automatico. Valida py_compile, compileall, Sentinel, smoke local y ZIP limpio."
+        }
+      ],
+      "priority": 45
+    }
+  ],
+  "issues": [
+    {
+      "title": "Browser capture unavailable",
+      "area": "visual",
+      "severity": "low",
+      "source": "reference_qa",
+      "route": "browser",
+      "evidence": "BROWSER_CAPTURE_UNAVAILABLE",
+      "impact": "No se puede declarar pixel-perfect ni validar capturas reales en esta ejecucion.",
+      "recommendation": "Ejecutar browser QA con Playwright cuando este disponible.",
+      "validation": [
+        "Browser QA desktop/mobile"
+      ],
+      "tags": [
+        "visual",
+        "browser"
+      ]
+    },
+    {
+      "title": "No hay imagenes de referencia locales",
+      "area": "visual",
+      "severity": "low",
+      "source": "reference_qa",
+      "route": "reference_images",
+      "evidence": "REFERENCE_IMAGES_MISSING",
+      "impact": "La comparacion visual queda limitada a reglas estaticas y no a fotos reales.",
+      "recommendation": "Anadir referencias en reports/reference_images o docs/reference_ui.",
+      "validation": [
+        "Verificar carpeta de referencias"
+      ],
+      "tags": [
+        "visual",
+        "reference"
+      ]
+    }
+  ],
+  "notes": [
+    "No se inventa comparacion visual si faltan referencias.",
+    "Capturas reales requieren browser disponible."
+  ]
+}

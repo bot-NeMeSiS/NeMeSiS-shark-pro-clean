@@ -1,0 +1,621 @@
+{
+  "autofix_apply_env": "0",
+  "safe_autofix_count": 25,
+  "requires_codex_count": 43,
+  "applied_changes": [],
+  "dangerous_actions_executed": false,
+  "plans": [
+    {
+      "issue_id": "SENT-2026-BD766D7A",
+      "title": "Pantalla deportiva sin datos reales visibles",
+      "area": "data",
+      "severity": "critical",
+      "level": "DANGEROUS_REQUIRES_CODEX",
+      "may_apply": false,
+      "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
+    },
+    {
+      "issue_id": "AP-3C673A27B2AB",
+      "title": "Ruta con error 500",
+      "area": "route",
+      "severity": "critical",
+      "level": "DANGEROUS_REQUIRES_CODEX",
+      "may_apply": false,
+      "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
+    },
+    {
+      "issue_id": "AP-CA5965DC1A4B",
+      "title": "Ruta con error 500",
+      "area": "route",
+      "severity": "critical",
+      "level": "DANGEROUS_REQUIRES_CODEX",
+      "may_apply": false,
+      "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
+    },
+    {
+      "issue_id": "AP-BE9581754C93",
+      "title": "Ruta con error 500",
+      "area": "route",
+      "severity": "critical",
+      "level": "DANGEROUS_REQUIRES_CODEX",
+      "may_apply": false,
+      "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
+    },
+    {
+      "issue_id": "AP-C6D8FD182771",
+      "title": "Ruta con error 500",
+      "area": "route",
+      "severity": "critical",
+      "level": "DANGEROUS_REQUIRES_CODEX",
+      "may_apply": false,
+      "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
+    },
+    {
+      "issue_id": "AP-D089823FEA9F",
+      "title": "Ruta con error 500",
+      "area": "route",
+      "severity": "critical",
+      "level": "DANGEROUS_REQUIRES_CODEX",
+      "may_apply": false,
+      "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
+    },
+    {
+      "issue_id": "AP-7DBD262A2E0B",
+      "title": "Ruta con error 500",
+      "area": "route",
+      "severity": "critical",
+      "level": "DANGEROUS_REQUIRES_CODEX",
+      "may_apply": false,
+      "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
+    },
+    {
+      "issue_id": "AP-9A2158F9BD47",
+      "title": "Ruta con error 5xx",
+      "area": "visual",
+      "severity": "critical",
+      "level": "DANGEROUS_REQUIRES_CODEX",
+      "may_apply": false,
+      "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
+    },
+    {
+      "issue_id": "AP-0A4A87FF0A33",
+      "title": "Ruta cliente con estado inesperado",
+      "area": "visual",
+      "severity": "critical",
+      "level": "DANGEROUS_REQUIRES_CODEX",
+      "may_apply": false,
+      "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
+    },
+    {
+      "issue_id": "AP-C17F5C4145A6",
+      "title": "Ruta con error 5xx",
+      "area": "visual",
+      "severity": "critical",
+      "level": "DANGEROUS_REQUIRES_CODEX",
+      "may_apply": false,
+      "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
+    },
+    {
+      "issue_id": "AP-F84E77682758",
+      "title": "Ruta cliente con estado inesperado",
+      "area": "visual",
+      "severity": "critical",
+      "level": "DANGEROUS_REQUIRES_CODEX",
+      "may_apply": false,
+      "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
+    },
+    {
+      "issue_id": "AP-CEC758DF0429",
+      "title": "Ruta con error 5xx",
+      "area": "visual",
+      "severity": "critical",
+      "level": "DANGEROUS_REQUIRES_CODEX",
+      "may_apply": false,
+      "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
+    },
+    {
+      "issue_id": "AP-BBB9F4335CA3",
+      "title": "Ruta cliente con estado inesperado",
+      "area": "visual",
+      "severity": "critical",
+      "level": "DANGEROUS_REQUIRES_CODEX",
+      "may_apply": false,
+      "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
+    },
+    {
+      "issue_id": "AP-FD12300B29F1",
+      "title": "500 en ruta cliente",
+      "area": "buttons_routes",
+      "severity": "critical",
+      "level": "DANGEROUS_REQUIRES_CODEX",
+      "may_apply": false,
+      "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
+    },
+    {
+      "issue_id": "AP-48F4A8C1D841",
+      "title": "500 en ruta cliente",
+      "area": "buttons_routes",
+      "severity": "critical",
+      "level": "DANGEROUS_REQUIRES_CODEX",
+      "may_apply": false,
+      "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
+    },
+    {
+      "issue_id": "AP-41122B9C703C",
+      "title": "500 en ruta cliente",
+      "area": "buttons_routes",
+      "severity": "critical",
+      "level": "DANGEROUS_REQUIRES_CODEX",
+      "may_apply": false,
+      "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
+    },
+    {
+      "issue_id": "AP-7F8F8A4345FC",
+      "title": "500 en ruta cliente",
+      "area": "buttons_routes",
+      "severity": "critical",
+      "level": "DANGEROUS_REQUIRES_CODEX",
+      "may_apply": false,
+      "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
+    },
+    {
+      "issue_id": "AP-56016D4BB833",
+      "title": "500 en ruta cliente",
+      "area": "buttons_routes",
+      "severity": "critical",
+      "level": "DANGEROUS_REQUIRES_CODEX",
+      "may_apply": false,
+      "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
+    },
+    {
+      "issue_id": "AP-F63099368262",
+      "title": "500 en ruta cliente",
+      "area": "buttons_routes",
+      "severity": "critical",
+      "level": "DANGEROUS_REQUIRES_CODEX",
+      "may_apply": false,
+      "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
+    },
+    {
+      "issue_id": "SENT-2026-9138CA59",
+      "title": "Texto tecnico visible",
+      "area": "texts",
+      "severity": "critical",
+      "level": "DANGEROUS_REQUIRES_CODEX",
+      "may_apply": false,
+      "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
+    },
+    {
+      "issue_id": "SENT-2026-AD0A6385",
+      "title": "Texto tecnico visible",
+      "area": "texts",
+      "severity": "critical",
+      "level": "DANGEROUS_REQUIRES_CODEX",
+      "may_apply": false,
+      "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
+    },
+    {
+      "issue_id": "SENT-2026-3CB57AF2",
+      "title": "Texto tecnico visible",
+      "area": "texts",
+      "severity": "critical",
+      "level": "DANGEROUS_REQUIRES_CODEX",
+      "may_apply": false,
+      "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
+    },
+    {
+      "issue_id": "SENT-2026-38B0D1A6",
+      "title": "Texto tecnico visible",
+      "area": "texts",
+      "severity": "critical",
+      "level": "DANGEROUS_REQUIRES_CODEX",
+      "may_apply": false,
+      "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
+    },
+    {
+      "issue_id": "SENT-2026-F936E17B",
+      "title": "Texto tecnico visible",
+      "area": "texts",
+      "severity": "critical",
+      "level": "DANGEROUS_REQUIRES_CODEX",
+      "may_apply": false,
+      "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
+    },
+    {
+      "issue_id": "SENT-2026-1D55FABA",
+      "title": "Texto tecnico visible",
+      "area": "texts",
+      "severity": "critical",
+      "level": "DANGEROUS_REQUIRES_CODEX",
+      "may_apply": false,
+      "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
+    },
+    {
+      "issue_id": "SENT-2026-67B70AAE",
+      "title": "Texto tecnico visible",
+      "area": "texts",
+      "severity": "critical",
+      "level": "DANGEROUS_REQUIRES_CODEX",
+      "may_apply": false,
+      "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
+    },
+    {
+      "issue_id": "SENT-2026-F04C5824",
+      "title": "Texto tecnico visible",
+      "area": "texts",
+      "severity": "critical",
+      "level": "DANGEROUS_REQUIRES_CODEX",
+      "may_apply": false,
+      "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
+    },
+    {
+      "issue_id": "SENT-2026-E718BAFC",
+      "title": "Texto tecnico visible",
+      "area": "texts",
+      "severity": "critical",
+      "level": "DANGEROUS_REQUIRES_CODEX",
+      "may_apply": false,
+      "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
+    },
+    {
+      "issue_id": "SENT-2026-EE011673",
+      "title": "Texto tecnico visible",
+      "area": "texts",
+      "severity": "critical",
+      "level": "DANGEROUS_REQUIRES_CODEX",
+      "may_apply": false,
+      "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
+    },
+    {
+      "issue_id": "SENT-2026-2BDEB690",
+      "title": "Texto tecnico visible",
+      "area": "texts",
+      "severity": "critical",
+      "level": "DANGEROUS_REQUIRES_CODEX",
+      "may_apply": false,
+      "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
+    },
+    {
+      "issue_id": "SENT-2026-1A56C543",
+      "title": "Texto tecnico visible",
+      "area": "texts",
+      "severity": "critical",
+      "level": "DANGEROUS_REQUIRES_CODEX",
+      "may_apply": false,
+      "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
+    },
+    {
+      "issue_id": "SENT-2026-CC572586",
+      "title": "Texto tecnico visible",
+      "area": "texts",
+      "severity": "critical",
+      "level": "DANGEROUS_REQUIRES_CODEX",
+      "may_apply": false,
+      "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
+    },
+    {
+      "issue_id": "SENT-2026-695E5A9F",
+      "title": "Texto tecnico visible",
+      "area": "texts",
+      "severity": "critical",
+      "level": "DANGEROUS_REQUIRES_CODEX",
+      "may_apply": false,
+      "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
+    },
+    {
+      "issue_id": "AP-5B710C53C96F",
+      "title": "Pagos pendientes de configuracion",
+      "area": "payments",
+      "severity": "high",
+      "level": "DANGEROUS_REQUIRES_CODEX",
+      "may_apply": false,
+      "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
+    },
+    {
+      "issue_id": "AP-EC27D88ACEAE",
+      "title": "Pantalla deportiva sin estado seguro claro",
+      "area": "sports",
+      "severity": "high",
+      "level": "DANGEROUS_REQUIRES_CODEX",
+      "may_apply": false,
+      "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
+    },
+    {
+      "issue_id": "AP-53093D351C7C",
+      "title": "Pantalla deportiva sin estado seguro claro",
+      "area": "sports",
+      "severity": "high",
+      "level": "DANGEROUS_REQUIRES_CODEX",
+      "may_apply": false,
+      "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
+    },
+    {
+      "issue_id": "AP-CB5A393FFB9C",
+      "title": "Pantalla deportiva sin estado seguro claro",
+      "area": "sports",
+      "severity": "high",
+      "level": "DANGEROUS_REQUIRES_CODEX",
+      "may_apply": false,
+      "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
+    },
+    {
+      "issue_id": "AP-3FFC8C799B34",
+      "title": "Pantalla deportiva sin estado seguro claro",
+      "area": "sports",
+      "severity": "high",
+      "level": "DANGEROUS_REQUIRES_CODEX",
+      "may_apply": false,
+      "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
+    },
+    {
+      "issue_id": "AP-0A27B99CDA6D",
+      "title": "Pantalla deportiva sin estado seguro claro",
+      "area": "sports",
+      "severity": "high",
+      "level": "DANGEROUS_REQUIRES_CODEX",
+      "may_apply": false,
+      "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
+    },
+    {
+      "issue_id": "AP-33190C902467",
+      "title": "Pantalla deportiva sin datos reales visibles",
+      "area": "visual",
+      "severity": "medium",
+      "level": "SAFE_AUTOFIX",
+      "may_apply": false,
+      "recommended_action": "Preparar microfix seguro local"
+    },
+    {
+      "issue_id": "AP-79B06E4D8626",
+      "title": "Pantalla deportiva sin datos reales visibles",
+      "area": "visual",
+      "severity": "medium",
+      "level": "SAFE_AUTOFIX",
+      "may_apply": false,
+      "recommended_action": "Preparar microfix seguro local"
+    },
+    {
+      "issue_id": "AP-C7DB52036243",
+      "title": "Pantalla deportiva sin datos reales visibles",
+      "area": "visual",
+      "severity": "medium",
+      "level": "SAFE_AUTOFIX",
+      "may_apply": false,
+      "recommended_action": "Preparar microfix seguro local"
+    },
+    {
+      "issue_id": "AP-1DF1484884AA",
+      "title": "Pantalla deportiva sin datos reales visibles",
+      "area": "visual",
+      "severity": "medium",
+      "level": "SAFE_AUTOFIX",
+      "may_apply": false,
+      "recommended_action": "Preparar microfix seguro local"
+    },
+    {
+      "issue_id": "AP-D8881CCD1440",
+      "title": "Texto tecnico o mojibake visible",
+      "area": "texts",
+      "severity": "medium",
+      "level": "SAFE_AUTOFIX",
+      "may_apply": false,
+      "recommended_action": "Preparar microfix seguro local"
+    },
+    {
+      "issue_id": "AP-9F4C7FA7D4DE",
+      "title": "Texto tecnico o mojibake visible",
+      "area": "texts",
+      "severity": "medium",
+      "level": "SAFE_AUTOFIX",
+      "may_apply": false,
+      "recommended_action": "Preparar microfix seguro local"
+    },
+    {
+      "issue_id": "AP-1B6FEB81DD17",
+      "title": "Texto tecnico o mojibake visible",
+      "area": "texts",
+      "severity": "medium",
+      "level": "SAFE_AUTOFIX",
+      "may_apply": false,
+      "recommended_action": "Preparar microfix seguro local"
+    },
+    {
+      "issue_id": "AP-8955C54BDCC7",
+      "title": "Texto tecnico o mojibake visible",
+      "area": "texts",
+      "severity": "medium",
+      "level": "SAFE_AUTOFIX",
+      "may_apply": false,
+      "recommended_action": "Preparar microfix seguro local"
+    },
+    {
+      "issue_id": "AP-F5801ADD52BD",
+      "title": "Texto tecnico o mojibake visible",
+      "area": "texts",
+      "severity": "medium",
+      "level": "SAFE_AUTOFIX",
+      "may_apply": false,
+      "recommended_action": "Preparar microfix seguro local"
+    },
+    {
+      "issue_id": "AP-C19F434A05CE",
+      "title": "Texto tecnico o mojibake visible",
+      "area": "texts",
+      "severity": "medium",
+      "level": "SAFE_AUTOFIX",
+      "may_apply": false,
+      "recommended_action": "Preparar microfix seguro local"
+    },
+    {
+      "issue_id": "SENT-2026-5FB6DDF2",
+      "title": "SHARK IA avanzada pendiente de configuracion",
+      "area": "shark",
+      "severity": "medium",
+      "level": "SAFE_AUTOFIX",
+      "may_apply": false,
+      "recommended_action": "Preparar microfix seguro local"
+    },
+    {
+      "issue_id": "SENT-2026-A5A55C7D",
+      "title": "Cache de logos en cero con fallback obligatorio",
+      "area": "logos",
+      "severity": "medium",
+      "level": "SAFE_AUTOFIX",
+      "may_apply": false,
+      "recommended_action": "Preparar microfix seguro local"
+    },
+    {
+      "issue_id": "AP-BE15CF323912",
+      "title": "SHARK IA en modo seguro",
+      "area": "shark",
+      "severity": "medium",
+      "level": "SAFE_AUTOFIX",
+      "may_apply": false,
+      "recommended_action": "Preparar microfix seguro local"
+    },
+    {
+      "issue_id": "AP-8D48F463630F",
+      "title": "Cache de logos en cero",
+      "area": "logos",
+      "severity": "medium",
+      "level": "SAFE_AUTOFIX",
+      "may_apply": false,
+      "recommended_action": "Preparar microfix seguro local"
+    },
+    {
+      "issue_id": "AP-C79FC4AE2FE2",
+      "title": "Texto tecnico o mojibake visible",
+      "area": "texts",
+      "severity": "medium",
+      "level": "SAFE_AUTOFIX",
+      "may_apply": false,
+      "recommended_action": "Preparar microfix seguro local"
+    },
+    {
+      "issue_id": "AP-00789718AAAF",
+      "title": "Texto tecnico o mojibake visible",
+      "area": "texts",
+      "severity": "medium",
+      "level": "SAFE_AUTOFIX",
+      "may_apply": false,
+      "recommended_action": "Preparar microfix seguro local"
+    },
+    {
+      "issue_id": "AP-6660CC69ED67",
+      "title": "Texto tecnico o mojibake visible",
+      "area": "texts",
+      "severity": "medium",
+      "level": "SAFE_AUTOFIX",
+      "may_apply": false,
+      "recommended_action": "Preparar microfix seguro local"
+    },
+    {
+      "issue_id": "AP-81E3EC4D665F",
+      "title": "Ruta con error 5xx",
+      "area": "visual",
+      "severity": "medium",
+      "level": "SAFE_AUTOFIX",
+      "may_apply": false,
+      "recommended_action": "Preparar microfix seguro local"
+    },
+    {
+      "issue_id": "AP-80F52E08F849",
+      "title": "Ruta cliente con estado inesperado",
+      "area": "visual",
+      "severity": "medium",
+      "level": "SAFE_AUTOFIX",
+      "may_apply": false,
+      "recommended_action": "Preparar microfix seguro local"
+    },
+    {
+      "issue_id": "SENT-2026-9F239E39",
+      "title": "Ruta redirige y requiere revision de flujo",
+      "area": "buttons_routes",
+      "severity": "medium",
+      "level": "SAFE_AUTOFIX",
+      "may_apply": false,
+      "recommended_action": "Preparar microfix seguro local"
+    },
+    {
+      "issue_id": "SENT-2026-A19DDAAB",
+      "title": "Ruta redirige y requiere revision de flujo",
+      "area": "buttons_routes",
+      "severity": "medium",
+      "level": "SAFE_AUTOFIX",
+      "may_apply": false,
+      "recommended_action": "Preparar microfix seguro local"
+    },
+    {
+      "issue_id": "SENT-2026-4E993B9A",
+      "title": "Ruta redirige y requiere revision de flujo",
+      "area": "buttons_routes",
+      "severity": "medium",
+      "level": "SAFE_AUTOFIX",
+      "may_apply": false,
+      "recommended_action": "Preparar microfix seguro local"
+    },
+    {
+      "issue_id": "SENT-2026-92B8377D",
+      "title": "Ruta redirige y requiere revision de flujo",
+      "area": "buttons_routes",
+      "severity": "medium",
+      "level": "SAFE_AUTOFIX",
+      "may_apply": false,
+      "recommended_action": "Preparar microfix seguro local"
+    },
+    {
+      "issue_id": "SENT-2026-B2A70FA7",
+      "title": "Navegacion cliente aparece en admin",
+      "area": "admin",
+      "severity": "medium",
+      "level": "DANGEROUS_REQUIRES_CODEX",
+      "may_apply": false,
+      "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
+    },
+    {
+      "issue_id": "SENT-2026-4632ABE7",
+      "title": "Browser capture unavailable",
+      "area": "visual",
+      "severity": "medium",
+      "level": "SAFE_AUTOFIX",
+      "may_apply": false,
+      "recommended_action": "Preparar microfix seguro local"
+    },
+    {
+      "issue_id": "SENT-2026-DC078E31",
+      "title": "No hay imagenes de referencia locales",
+      "area": "visual",
+      "severity": "medium",
+      "level": "SAFE_AUTOFIX",
+      "may_apply": false,
+      "recommended_action": "Preparar microfix seguro local"
+    },
+    {
+      "issue_id": "V884-6B1176B0FBC7",
+      "title": "Pantalla deportiva sin datos reales visibles",
+      "area": "data",
+      "severity": "low",
+      "level": "DANGEROUS_REQUIRES_CODEX",
+      "may_apply": false,
+      "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
+    },
+    {
+      "issue_id": "V884-F33A60811EE0",
+      "title": "Pantalla deportiva sin datos reales visibles",
+      "area": "data",
+      "severity": "low",
+      "level": "DANGEROUS_REQUIRES_CODEX",
+      "may_apply": false,
+      "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
+    },
+    {
+      "issue_id": "V884-2F503B203B7C",
+      "title": "Pantalla deportiva sin datos reales visibles",
+      "area": "data",
+      "severity": "low",
+      "level": "DANGEROUS_REQUIRES_CODEX",
+      "may_apply": false,
+      "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
+    }
+  ]
+}
