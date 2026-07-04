@@ -1,7 +1,7 @@
 {
   "autofix_apply_env": "0",
   "safe_autofix_count": 25,
-  "requires_codex_count": 43,
+  "requires_codex_count": 45,
   "applied_changes": [],
   "dangerous_actions_executed": false,
   "plans": [
@@ -303,6 +303,15 @@
       "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
     },
     {
+      "issue_id": "SENT-2026-B97FFAF1",
+      "title": "Render runtime no consultado en este scan",
+      "area": "render",
+      "severity": "high",
+      "level": "DANGEROUS_REQUIRES_CODEX",
+      "may_apply": false,
+      "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
+    },
+    {
       "issue_id": "AP-5B710C53C96F",
       "title": "Pagos pendientes de configuracion",
       "area": "payments",
@@ -355,6 +364,24 @@
       "level": "DANGEROUS_REQUIRES_CODEX",
       "may_apply": false,
       "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
+    },
+    {
+      "issue_id": "SENT-2026-4632ABE7",
+      "title": "Browser capture unavailable",
+      "area": "visual",
+      "severity": "medium",
+      "level": "SAFE_AUTOFIX",
+      "may_apply": false,
+      "recommended_action": "Preparar microfix seguro local"
+    },
+    {
+      "issue_id": "SENT-2026-DC078E31",
+      "title": "No hay imagenes de referencia locales",
+      "area": "visual",
+      "severity": "medium",
+      "level": "SAFE_AUTOFIX",
+      "may_apply": false,
+      "recommended_action": "Preparar microfix seguro local"
     },
     {
       "issue_id": "AP-33190C902467",
@@ -573,24 +600,6 @@
       "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
     },
     {
-      "issue_id": "SENT-2026-4632ABE7",
-      "title": "Browser capture unavailable",
-      "area": "visual",
-      "severity": "medium",
-      "level": "SAFE_AUTOFIX",
-      "may_apply": false,
-      "recommended_action": "Preparar microfix seguro local"
-    },
-    {
-      "issue_id": "SENT-2026-DC078E31",
-      "title": "No hay imagenes de referencia locales",
-      "area": "visual",
-      "severity": "medium",
-      "level": "SAFE_AUTOFIX",
-      "may_apply": false,
-      "recommended_action": "Preparar microfix seguro local"
-    },
-    {
       "issue_id": "V884-6B1176B0FBC7",
       "title": "Pantalla deportiva sin datos reales visibles",
       "area": "data",
@@ -613,6 +622,15 @@
       "title": "Pantalla deportiva sin datos reales visibles",
       "area": "data",
       "severity": "low",
+      "level": "DANGEROUS_REQUIRES_CODEX",
+      "may_apply": false,
+      "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
+    },
+    {
+      "issue_id": "SENT-2026-D26F0608",
+      "title": "Telegram no configurado",
+      "area": "telegram",
+      "severity": "info",
       "level": "DANGEROUS_REQUIRES_CODEX",
       "may_apply": false,
       "recommended_action": "Generar prompt Codex y esperar aprobacion humana"

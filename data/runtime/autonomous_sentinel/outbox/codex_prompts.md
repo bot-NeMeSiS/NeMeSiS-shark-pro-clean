@@ -901,6 +901,59 @@ Entrega:
 
 ---
 
+# SENT-2026-B97FFAF1
+
+Corrige esta incidencia en NeMeSiS SHARK PRO sin romper nada anterior.
+
+ID:
+SENT-2026-B97FFAF1
+
+Area:
+render
+
+Severidad:
+high
+
+Problema:
+Render runtime no consultado en este scan
+
+Ruta afectada:
+Sin ruta concreta
+
+Archivo probable:
+Por determinar
+
+Evidencia:
+El worker no hace llamadas externas por defecto.
+
+Impacto:
+Afecta a claridad, operacion o confianza del producto si permanece activo.
+
+Reglas:
+
+* No inventar datos.
+* No tocar secretos.
+* No romper usuarios, sesiones, membresias, pagos, DB_PATH, Madrid Time, Render Cron ni Telegram dedupe.
+* Mantener navegacion cliente/admin separada.
+* Mantener estados seguros si faltan datos reales.
+
+Que debes hacer:
+Consultar /api/runtime-version durante QA de despliegue.
+
+Validaciones obligatorias:
+* python -m py_compile app.py
+* python tools/run_continuous_sentinel_static.py
+
+Entrega:
+
+* resumen de cambios;
+* archivos tocados;
+* validaciones pasadas;
+* limitaciones honestas;
+* ZIP limpio si corresponde.
+
+---
+
 # AP-5B710C53C96F
 
 Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: Pagos pendientes de configuracion Categoria: payments Ruta/pantalla: /admin/payments Evidencia: Stripe/checkout no debe mostrarse como operativo.  Reglas sagradas: no tocar secretos, no enviar Telegram real, no inventar partidos/picks/cuotas/resultados, no tocar pagos reales, no borrar DB/usuarios, no hacer push/deploy automatico y preservar V818+.  Tarea: localizar la causa real, proponer un fix seguro, aplicar solo cambios controlados si son necesarios, ejecutar checks locales y documentar resultado, bloqueadores y siguiente accion.
@@ -934,6 +987,110 @@ Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: Pantalla deportiva
 # AP-0A27B99CDA6D
 
 Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: Pantalla deportiva sin estado seguro claro Categoria: sports_data Ruta/pantalla: /picks Evidencia: No se encontro estado seguro para ausencia de datos reales.  Reglas sagradas: no tocar secretos, no enviar Telegram real, no inventar partidos/picks/cuotas/resultados, no tocar pagos reales, no borrar DB/usuarios, no hacer push/deploy automatico y preservar V818+.  Tarea: localizar la causa real, proponer un fix seguro, aplicar solo cambios controlados si son necesarios, ejecutar checks locales y documentar resultado, bloqueadores y siguiente accion.
+
+---
+
+# SENT-2026-4632ABE7
+
+Corrige esta incidencia en NeMeSiS SHARK PRO sin romper nada anterior.
+
+ID:
+SENT-2026-4632ABE7
+
+Area:
+visual
+
+Severidad:
+medium
+
+Problema:
+Browser capture unavailable
+
+Ruta afectada:
+browser
+
+Archivo probable:
+Por determinar
+
+Evidencia:
+BROWSER_CAPTURE_UNAVAILABLE
+
+Impacto:
+No se puede declarar pixel-perfect ni validar capturas reales en esta ejecucion.
+
+Reglas:
+
+* No inventar datos.
+* No tocar secretos.
+* No romper usuarios, sesiones, membresias, pagos, DB_PATH, Madrid Time, Render Cron ni Telegram dedupe.
+* Mantener navegacion cliente/admin separada.
+* Mantener estados seguros si faltan datos reales.
+
+Que debes hacer:
+Ejecutar browser QA con Playwright cuando este disponible.
+
+Validaciones obligatorias:
+* Browser QA desktop/mobile
+
+Entrega:
+
+* resumen de cambios;
+* archivos tocados;
+* validaciones pasadas;
+* limitaciones honestas;
+* ZIP limpio si corresponde.
+
+---
+
+# SENT-2026-DC078E31
+
+Corrige esta incidencia en NeMeSiS SHARK PRO sin romper nada anterior.
+
+ID:
+SENT-2026-DC078E31
+
+Area:
+visual
+
+Severidad:
+medium
+
+Problema:
+No hay imagenes de referencia locales
+
+Ruta afectada:
+reference_images
+
+Archivo probable:
+Por determinar
+
+Evidencia:
+REFERENCE_IMAGES_MISSING
+
+Impacto:
+La comparacion visual queda limitada a reglas estaticas y no a fotos reales.
+
+Reglas:
+
+* No inventar datos.
+* No tocar secretos.
+* No romper usuarios, sesiones, membresias, pagos, DB_PATH, Madrid Time, Render Cron ni Telegram dedupe.
+* Mantener navegacion cliente/admin separada.
+* Mantener estados seguros si faltan datos reales.
+
+Que debes hacer:
+Anadir referencias en reports/reference_images o docs/reference_ui.
+
+Validaciones obligatorias:
+* Verificar carpeta de referencias
+
+Entrega:
+
+* resumen de cambios;
+* archivos tocados;
+* validaciones pasadas;
+* limitaciones honestas;
+* ZIP limpio si corresponde.
 
 ---
 
@@ -1411,110 +1568,6 @@ Entrega:
 
 ---
 
-# SENT-2026-4632ABE7
-
-Corrige esta incidencia en NeMeSiS SHARK PRO sin romper nada anterior.
-
-ID:
-SENT-2026-4632ABE7
-
-Area:
-visual
-
-Severidad:
-medium
-
-Problema:
-Browser capture unavailable
-
-Ruta afectada:
-browser
-
-Archivo probable:
-Por determinar
-
-Evidencia:
-BROWSER_CAPTURE_UNAVAILABLE
-
-Impacto:
-No se puede declarar pixel-perfect ni validar capturas reales en esta ejecucion.
-
-Reglas:
-
-* No inventar datos.
-* No tocar secretos.
-* No romper usuarios, sesiones, membresias, pagos, DB_PATH, Madrid Time, Render Cron ni Telegram dedupe.
-* Mantener navegacion cliente/admin separada.
-* Mantener estados seguros si faltan datos reales.
-
-Que debes hacer:
-Ejecutar browser QA con Playwright cuando este disponible.
-
-Validaciones obligatorias:
-* Browser QA desktop/mobile
-
-Entrega:
-
-* resumen de cambios;
-* archivos tocados;
-* validaciones pasadas;
-* limitaciones honestas;
-* ZIP limpio si corresponde.
-
----
-
-# SENT-2026-DC078E31
-
-Corrige esta incidencia en NeMeSiS SHARK PRO sin romper nada anterior.
-
-ID:
-SENT-2026-DC078E31
-
-Area:
-visual
-
-Severidad:
-medium
-
-Problema:
-No hay imagenes de referencia locales
-
-Ruta afectada:
-reference_images
-
-Archivo probable:
-Por determinar
-
-Evidencia:
-REFERENCE_IMAGES_MISSING
-
-Impacto:
-La comparacion visual queda limitada a reglas estaticas y no a fotos reales.
-
-Reglas:
-
-* No inventar datos.
-* No tocar secretos.
-* No romper usuarios, sesiones, membresias, pagos, DB_PATH, Madrid Time, Render Cron ni Telegram dedupe.
-* Mantener navegacion cliente/admin separada.
-* Mantener estados seguros si faltan datos reales.
-
-Que debes hacer:
-Anadir referencias en reports/reference_images o docs/reference_ui.
-
-Validaciones obligatorias:
-* Verificar carpeta de referencias
-
-Entrega:
-
-* resumen de cambios;
-* archivos tocados;
-* validaciones pasadas;
-* limitaciones honestas;
-* ZIP limpio si corresponde.
-
----
-
 # V884-6B1176B0FBC7
 
 Corrige esta incidencia en NeMeSiS SHARK PRO sin romper nada anterior.
@@ -1659,6 +1712,59 @@ Reglas:
 
 Que debes hacer:
 Mantener el estado seguro y crear tarea admin de sync/filtros/cache.
+
+Validaciones obligatorias:
+* python -m py_compile app.py
+* python tools/run_continuous_sentinel_static.py
+
+Entrega:
+
+* resumen de cambios;
+* archivos tocados;
+* validaciones pasadas;
+* limitaciones honestas;
+* ZIP limpio si corresponde.
+
+---
+
+# SENT-2026-D26F0608
+
+Corrige esta incidencia en NeMeSiS SHARK PRO sin romper nada anterior.
+
+ID:
+SENT-2026-D26F0608
+
+Area:
+telegram
+
+Severidad:
+info
+
+Problema:
+Telegram no configurado
+
+Ruta afectada:
+Sin ruta concreta
+
+Archivo probable:
+Por determinar
+
+Evidencia:
+Runtime no confirma Telegram configurado.
+
+Impacto:
+Afecta a claridad, operacion o confianza del producto si permanece activo.
+
+Reglas:
+
+* No inventar datos.
+* No tocar secretos.
+* No romper usuarios, sesiones, membresias, pagos, DB_PATH, Madrid Time, Render Cron ni Telegram dedupe.
+* Mantener navegacion cliente/admin separada.
+* Mantener estados seguros si faltan datos reales.
+
+Que debes hacer:
+Mostrar estado No configurado y no prometer envios reales.
 
 Validaciones obligatorias:
 * python -m py_compile app.py

@@ -5,7 +5,7 @@
   "visual_worker_issues": [
     {
       "id": "V884-6B1176B0FBC7",
-      "timestamp_madrid": "2026-07-05T00:05:00+02:00",
+      "timestamp_madrid": "2026-07-05T00:17:16+02:00",
       "profile": "CLIENT",
       "route": "/partidos",
       "category": "data",
@@ -23,7 +23,7 @@
     },
     {
       "id": "V884-F33A60811EE0",
-      "timestamp_madrid": "2026-07-05T00:05:00+02:00",
+      "timestamp_madrid": "2026-07-05T00:17:17+02:00",
       "profile": "CLIENT",
       "route": "/calendar",
       "category": "data",
@@ -41,7 +41,7 @@
     },
     {
       "id": "V884-2F503B203B7C",
-      "timestamp_madrid": "2026-07-05T00:05:01+02:00",
+      "timestamp_madrid": "2026-07-05T00:17:17+02:00",
       "profile": "CLIENT",
       "route": "/live",
       "category": "data",
@@ -70,7 +70,7 @@
       "issues": [
         {
           "id": "V884-6B1176B0FBC7",
-          "timestamp_madrid": "2026-07-05T00:05:00+02:00",
+          "timestamp_madrid": "2026-07-05T00:17:16+02:00",
           "profile": "CLIENT",
           "route": "/partidos",
           "category": "data",
@@ -88,7 +88,7 @@
         },
         {
           "id": "V884-F33A60811EE0",
-          "timestamp_madrid": "2026-07-05T00:05:00+02:00",
+          "timestamp_madrid": "2026-07-05T00:17:17+02:00",
           "profile": "CLIENT",
           "route": "/calendar",
           "category": "data",
@@ -106,7 +106,7 @@
         },
         {
           "id": "V884-2F503B203B7C",
-          "timestamp_madrid": "2026-07-05T00:05:01+02:00",
+          "timestamp_madrid": "2026-07-05T00:17:17+02:00",
           "profile": "CLIENT",
           "route": "/live",
           "category": "data",

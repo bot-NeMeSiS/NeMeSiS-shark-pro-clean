@@ -1,10 +1,10 @@
 {
-  "version": "V893_AUTONOMOUS_SENTINEL_USER_ADMIN_REFERENCE_QA_WORKER_FINAL",
+  "version": "V894_AUTONOMOUS_COMPANY_SENTINEL_REFERENCE_CODEX_WORKFORCE_FINAL",
   "engine_version": "V893_AUTONOMOUS_SENTINEL_USER_ADMIN_REFERENCE_QA_WORKER_FINAL",
-  "last_run_id": "ASW-20260705000514",
-  "last_run_madrid": "2026-07-05T00:05:14+02:00",
+  "last_run_id": "ASW-20260705001731",
+  "last_run_madrid": "2026-07-05T00:17:31+02:00",
   "last_mode": "safe_scan",
   "last_runner": "render_cron",
-  "last_issue_count": 68,
+  "last_issue_count": 70,
   "next_recommended_mode": "functional_scan"
 }

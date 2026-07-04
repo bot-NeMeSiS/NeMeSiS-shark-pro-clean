@@ -1,0 +1,18 @@
+{
+  "engine_version": "V892_AUTONOMOUS_COMPANY_SENTINEL_REFERENCE_CODEX_WORKFORCE_FINAL",
+  "local_version": "V894_AUTONOMOUS_COMPANY_SENTINEL_REFERENCE_CODEX_WORKFORCE_FINAL",
+  "render_version": "No consultado",
+  "aligned": false,
+  "issues": [
+    {
+      "title": "Render runtime no consultado en este scan",
+      "area": "render",
+      "severity": "info",
+      "evidence": "El worker no hace llamadas externas por defecto.",
+      "recommendation": "Consultar /api/runtime-version durante QA de despliegue."
+    }
+  ],
+  "safe_notes": [
+    "No se declara produccion alineada sin runtime Render real."
+  ]
+}

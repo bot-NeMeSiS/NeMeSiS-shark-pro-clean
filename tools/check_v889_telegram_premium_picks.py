@@ -8,7 +8,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V889_TELEGRAM_PREMIUM_PICKS_INTELLIGENCE_DELIVERY_FINAL"
-CURRENT_COMPATIBLE_PREFIXES = ("V889_", "V890_", "V891_", "V892_", "V893_")
+CURRENT_COMPATIBLE_PREFIXES = ("V889_", "V890_", "V891_", "V892_", "V893_", "V894_")
 sys.path.insert(0, str(ROOT))
 
 

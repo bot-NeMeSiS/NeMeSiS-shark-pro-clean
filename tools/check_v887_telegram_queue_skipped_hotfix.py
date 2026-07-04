@@ -41,7 +41,7 @@ def check_static_contract() -> None:
 
     version_txt = read("VERSION.txt").strip()
     app_version_file = read("APP_VERSION").strip()
-    require(version_txt in {VERSION, CURRENT_VERSION} or version_txt.startswith("V88"), "VERSION.txt does not preserve V887+ lineage")
+    require(version_txt in {VERSION, CURRENT_VERSION} or version_txt.startswith(("V88", "V89")), "VERSION.txt does not preserve V887+ lineage")
     require(app_version_file == version_txt, "APP_VERSION file does not match VERSION.txt")
     require(f"APP_VERSION = '{version_txt}'" in app_py, "app.py APP_VERSION does not match VERSION.txt")
     require("data-v887-shell" in base, "base.html missing data-v887-shell")
@@ -89,7 +89,7 @@ def check_runtime_cron_endpoint() -> None:
         runtime = client.get("/api/runtime-version")
         require(runtime.status_code == 200, f"runtime status {runtime.status_code}")
         runtime_json = runtime.get_json() or {}
-        require(str(runtime_json.get("app_version") or "").startswith("V88"), "runtime app_version is not V887+")
+        require(str(runtime_json.get("app_version") or "").startswith(("V88", "V89")), "runtime app_version is not V887+")
         require(runtime_json.get("version_txt") == runtime_json.get("app_version"), "runtime version_txt mismatch")
         require(runtime_json.get("has_v887_telegram_queue_skipped_hotfix") is True, "runtime V887 flag is false")
 

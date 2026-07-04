@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="ns-admin-page v894-company-sentinel">
+  <div class="ns-page-header">
+    <span class="ns-chip">Codex Outbox</span>
+    <h1>Prompts Codex del Sentinel</h1>
+    <p>Prompts listos para revisar y copiar. Este panel no aplica cambios, no hace push, no despliega y no toca secretos.</p>
+    <div class="ns-actions">
+      <a class="ns-button ns-button-primary" href="/api/admin/autonomous-company-sentinel/generate-codex-prompts" target="_blank">Regenerar outbox</a>
+      <a class="ns-button ns-button-secondary" href="/api/admin/autonomous-company-sentinel/outbox" target="_blank">Ver JSON</a>
+      <a class="ns-button ns-button-ghost" href="/admin/autonomous-company-sentinel">Volver al Sentinel</a>
+    </div>
+  </div>
+
+  {% set latest = status.latest_run or {} %}
+  {% set outbox = latest.outbox or {} %}
+  <section class="ns-grid ns-grid-3">
+    <article class="ns-stat"><span>Prompts</span><strong>{{ outbox.prompt_count or 0 }}</strong><small>generados</small></article>
+    <article class="ns-stat"><span>Ruta</span><strong>outbox</strong><small>{{ outbox.combined_path or 'Pendiente' }}</small></article>
+    <article class="ns-stat"><span>Seguridad</span><strong>Manual</strong><small>sin auto-code</small></article>
+  </section>
+
+  <section class="ns-admin-card">
+    <h2>Archivos generados</h2>
+    <div class="ns-table-wrap">
+      <table class="ns-table">
+        <thead><tr><th>Archivo</th></tr></thead>
+        <tbody>
+        {% for file in outbox.files or [] %}
+          <tr><td><code>{{ file }}</code></td></tr>
+        {% else %}
+          <tr><td><div class="ns-empty ns-empty-compact">Sin prompts generados todavía. Ejecuta una revisión segura para poblar el outbox.</div></td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+</section>
+{% endblock %}

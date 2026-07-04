@@ -7,7 +7,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION_PREFIXES = ("V890_", "V892_", "V893_")
+VERSION_PREFIXES = ("V890_", "V892_", "V893_", "V894_")
 sys.path.insert(0, str(ROOT))
 
 
@@ -28,7 +28,7 @@ def main() -> int:
     engine = read("engines/sentinel_issues_engine.py")
     template = read("templates/admin_sentinel_issues.html")
 
-    require(version_txt.startswith(VERSION_PREFIXES), "VERSION.txt is not V890/V892/V893 Sentinel issues lineage", failures)
+    require(version_txt.startswith(VERSION_PREFIXES), "VERSION.txt is not V890/V892/V893/V894 Sentinel issues lineage", failures)
     require(app_version_file == version_txt, "APP_VERSION does not match VERSION.txt", failures)
     require(f"APP_VERSION = '{version_txt}'" in app_py, "app.py APP_VERSION mismatch", failures)
     require((ROOT / "engines" / "sentinel_issues_engine.py").exists(), "sentinel_issues_engine.py missing", failures)

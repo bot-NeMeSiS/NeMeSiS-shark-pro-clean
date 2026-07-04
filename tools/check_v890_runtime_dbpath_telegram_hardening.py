@@ -8,7 +8,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V890_RUNTIME_DBPATH_TELEGRAM_PREMIUM_QA_HARDENING_FINAL"
-CURRENT_COMPATIBLE_PREFIXES = ("V890_", "V891_", "V892_", "V893_")
+CURRENT_COMPATIBLE_PREFIXES = ("V890_", "V891_", "V892_", "V893_", "V894_")
 sys.path.insert(0, str(ROOT))
 
 
@@ -28,7 +28,7 @@ def main() -> int:
     app_py = read("app.py")
     base = read("templates/base.html")
 
-    require(version_txt.startswith(CURRENT_COMPATIBLE_PREFIXES), "VERSION.txt is not compatible with V890/V891/V892/V893 lineage", failures)
+    require(version_txt.startswith(CURRENT_COMPATIBLE_PREFIXES), "VERSION.txt is not compatible with V890/V891/V892/V893/V894 lineage", failures)
     require(app_version_file == version_txt, "APP_VERSION does not match VERSION.txt", failures)
     require(f"APP_VERSION = '{version_txt}'" in app_py, "app.py APP_VERSION mismatch", failures)
     require("def resolve_default_db_path" in app_py, "resolve_default_db_path missing", failures)

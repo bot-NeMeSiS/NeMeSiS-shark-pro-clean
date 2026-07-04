@@ -1,0 +1,72 @@
+"""V892 Codex outbox writer for Autonomous Company Sentinel."""
+from __future__ import annotations
+
+from pathlib import Path
+from typing import Any
+
+
+SENTINEL_CODEX_OUTBOX_VERSION = "V892_AUTONOMOUS_COMPANY_SENTINEL_REFERENCE_CODEX_WORKFORCE_FINAL"
+
+
+def company_sentinel_outbox_dir(root: str | Path) -> Path:
+    return Path(root) / "data" / "runtime" / "autonomous_company_sentinel" / "outbox"
+
+
+def build_codex_prompt(issue: dict[str, Any]) -> str:
+    return str(issue.get("codex_prompt") or "").strip() or (
+        "Corrige esta incidencia en NeMeSiS SHARK PRO sin romper nada anterior.\n\n"
+        f"ID:\n{issue.get('id') or 'SENT-PENDING'}\n\n"
+        f"Area:\n{issue.get('area') or 'general'}\n\n"
+        f"Severidad:\n{issue.get('severity') or 'low'}\n\n"
+        f"Problema:\n{issue.get('title') or 'Incidencia pendiente de revisar'}\n\n"
+        f"Evidencia:\n{issue.get('evidence') or 'Sin evidencia adicional'}\n\n"
+        f"Ruta afectada:\n{issue.get('route') or 'Sin ruta concreta'}\n\n"
+        f"Rol afectado:\n{issue.get('role') or issue.get('profile') or 'No especificado'}\n\n"
+        f"Dispositivo afectado:\n{issue.get('device') or 'No especificado'}\n\n"
+        f"Archivo probable:\n{issue.get('file') or 'Por determinar'}\n\n"
+        "Reglas obligatorias:\n"
+        "* No inventar datos.\n"
+        "* No tocar secretos.\n"
+        "* No romper usuarios, sesiones, membresias, pagos, DB_PATH, Madrid Time, Render Cron ni Telegram dedupe.\n"
+        "* Mantener navegacion cliente/admin separada.\n"
+        "* Mantener cliente PC con sidebar y cliente movil con bottom nav.\n"
+        "* No enviar Telegram real.\n"
+        "* No hacer pagos reales.\n"
+        "* No hacer push/deploy automatico.\n\n"
+        "Validaciones obligatorias:\n"
+        "* python -m py_compile app.py\n"
+        "* python tools/run_continuous_sentinel_static.py\n\n"
+        "Entrega esperada:\n"
+        "* resumen de cambios;\n"
+        "* archivos tocados;\n"
+        "* checks pasados;\n"
+        "* limitaciones honestas;\n"
+        "* estado Render real.\n"
+    )
+
+
+def write_codex_outbox(root: str | Path, issues: list[dict[str, Any]]) -> dict[str, Any]:
+    outbox = company_sentinel_outbox_dir(root)
+    outbox.mkdir(parents=True, exist_ok=True)
+    prompts = []
+    files = []
+    for issue in issues:
+        issue_id = str(issue.get("id") or "SENT-PENDING").replace("/", "-")
+        prompt = build_codex_prompt(issue)
+        path = outbox / f"{issue_id}_codex_prompt.md"
+        path.write_text(prompt, encoding="utf-8")
+        files.append(str(path))
+        prompts.append(f"# {issue_id}\n\n{prompt}")
+    combined = "\n\n---\n\n".join(prompts) if prompts else "Sin prompts Codex pendientes."
+    combined_path = outbox / "codex_outbox.md"
+    combined_path.write_text(combined, encoding="utf-8")
+    runtime_copy = Path(root) / "data" / "runtime" / "autonomous_company_sentinel" / "codex_outbox.md"
+    runtime_copy.parent.mkdir(parents=True, exist_ok=True)
+    runtime_copy.write_text(combined, encoding="utf-8")
+    return {
+        "engine_version": SENTINEL_CODEX_OUTBOX_VERSION,
+        "prompt_count": len(prompts),
+        "files": files,
+        "combined_path": str(combined_path),
+        "runtime_copy": str(runtime_copy),
+    }

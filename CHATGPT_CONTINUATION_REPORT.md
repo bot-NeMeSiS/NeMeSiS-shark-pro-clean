@@ -943,3 +943,33 @@ Honestidad:
 - Sentinel local: score 10.0, 0 issues, 0 criticos.
 - No se hizo deploy, push, Telegram real, pagos reales ni llamadas caras API.
 
+## V893_AUTONOMOUS_SENTINEL_USER_ADMIN_REFERENCE_QA_WORKER_FINAL
+
+- Esta version implementa la peticion V891 sobre base local V892, conservando numeracion ascendente como V893.
+- Se añadieron motores autonomos seguros: `autonomous_sentinel_worker_engine.py`, `sentinel_user_journey_engine.py`, `sentinel_reference_qa_engine.py` y `sentinel_autofix_planner_engine.py`.
+- Nueva pantalla admin protegida: `/admin/autonomous-sentinel` con alias `/admin/sentinel-worker`, `/admin/qa-worker` y `/admin/revision-automatica`.
+- Nuevas APIs admin protegidas: estado, ultima ejecucion, incidencias, outbox, autofix plan, run, generar prompts y sync issues.
+- Nuevo cron protegido: `/api/automation/autonomous-sentinel/run`, con 403 sin secret y 200 con `AUTOMATION_SECRET` en `dry_run=1`.
+- El worker revisa journeys cliente/admin, referencias visuales, rutas, textos, seguridad de datos, outbox Codex y plan de autofix sin deploy, push, Telegram real, pagos reales ni secretos.
+- Outbox generado en `data/runtime/autonomous_sentinel/outbox/codex_prompts.md`.
+- Runtime flags nuevos: `has_v891_autonomous_sentinel_user_admin_reference_worker` y `has_v893_autonomous_sentinel_worker`.
+- Render real consultado: produccion sigue en `V883_VISUAL_COMPANY_WORKER_BOT_CONTINUOUS_IMPROVEMENT_FINAL`, por lo que V893 no se declara desplegada.
+- Sentinel static: score 10.0, 0 issues, 0 criticos.
+- No se hizo deploy, push, Telegram real, pagos reales, browser QA ni llamadas caras API.
+
+## V894_AUTONOMOUS_COMPANY_SENTINEL_REFERENCE_CODEX_WORKFORCE_FINAL
+
+- Esta version implementa la peticion V892 sobre base local V893, conservando numeracion ascendente como V894.
+- Se crea el sistema `Autonomous Company Sentinel` / `Sentinel Empresa`.
+- Motores nuevos: `autonomous_company_sentinel_engine.py`, `sentinel_user_admin_journey_engine.py`, `sentinel_reference_visual_engine.py`, `sentinel_codex_outbox_engine.py`, `sentinel_safe_autofix_engine.py`, `sentinel_render_alignment_engine.py` y `sentinel_telegram_quality_watch_engine.py`.
+- Panel admin nuevo: `/admin/autonomous-company-sentinel` con alias `/admin/company-sentinel`, `/admin/auto-qa`, `/admin/sentinel-empresa` y `/admin/autonomous-sentinel`.
+- Outbox admin nuevo: `/admin/sentinel-codex-outbox` con alias `/admin/codex-outbox` y `/admin/prompts-codex`.
+- APIs admin protegidas: estado, ultima ejecucion, issues, outbox, autofix plan, reference gaps, render alignment, run, generar prompts, sync issues y export outbox.
+- Cron protegido nuevo: `/api/automation/autonomous-company-sentinel/run`, con 403 sin secret y 200 con secret local en `dry_run=1`.
+- Memoria propia: `data/runtime/autonomous_company_sentinel/`, sin borrar memorias anteriores de Sentinel/AutoPilot.
+- Outbox Codex: `data/runtime/autonomous_company_sentinel/codex_outbox.md`.
+- El journey nuevo revisa 29 rutas y queda sin incidencias nuevas tras filtrar falsos positivos de CSS/JS; la memoria historica conserva issues anteriores para no borrar trabajo sin autorizacion.
+- Render real consultado: produccion sigue en `V883_VISUAL_COMPANY_WORKER_BOT_CONTINUOUS_IMPROVEMENT_FINAL`, por lo que V894 no se declara desplegada.
+- Sentinel static: score 10.0, 0 issues, 0 criticos.
+- No se hizo deploy, push, Telegram real, pagos reales, browser QA ni llamadas caras API.
+

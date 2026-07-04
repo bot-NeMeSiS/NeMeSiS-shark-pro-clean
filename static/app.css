@@ -11827,3 +11827,27 @@ body.ns-admin .v893-autonomous-sentinel :is(.bottom-nav-clean, .ns-client-sideba
   .v893-autonomous-sentinel .ns-grid-4 { grid-template-columns: 1fr; }
 }
 /* V893 AUTONOMOUS SENTINEL USER ADMIN REFERENCE QA WORKER END */
+
+/* V894 AUTONOMOUS COMPANY SENTINEL REFERENCE CODEX WORKFORCE START */
+.v894-company-sentinel .ns-page-header { margin-bottom: 18px; }
+.v894-company-sentinel .ns-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.v894-company-sentinel .ns-grid { display: grid; gap: 14px; margin: 14px 0; }
+.v894-company-sentinel .ns-grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.v894-company-sentinel .ns-grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.v894-company-sentinel .ns-grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.v894-company-sentinel .ns-section-title { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.v894-company-sentinel .ns-stack { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.v894-company-sentinel .ns-table-wrap { overflow-x: auto; }
+.v894-company-sentinel code { white-space: normal; overflow-wrap: anywhere; }
+.v894-company-sentinel .ns-empty-compact { min-height: auto; padding: 10px 12px; }
+.v894-company-sentinel .ns-chip-critical { border-color: rgba(255, 91, 91, .55); color: #ffb4b4; }
+.v894-company-sentinel .ns-chip-high { border-color: rgba(255, 183, 77, .55); color: #ffd39b; }
+.v894-company-sentinel .ns-chip-medium { border-color: rgba(79, 209, 197, .45); color: #b9fff8; }
+.v894-company-sentinel .ns-chip-low { border-color: rgba(148, 163, 184, .4); color: #d8e6f2; }
+body.ns-admin .v894-company-sentinel :is(.bottom-nav-clean, .ns-client-sidebar, .v825-public-floating-shark) { display: none !important; }
+@media (max-width: 920px) {
+  .v894-company-sentinel .ns-grid-2,
+  .v894-company-sentinel .ns-grid-3,
+  .v894-company-sentinel .ns-grid-4 { grid-template-columns: 1fr; }
+}
+/* V894 AUTONOMOUS COMPANY SENTINEL REFERENCE CODEX WORKFORCE END */

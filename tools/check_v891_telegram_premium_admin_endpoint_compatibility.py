@@ -8,7 +8,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V891_TELEGRAM_PREMIUM_ADMIN_ENDPOINT_COMPATIBILITY_FINAL"
-CURRENT_COMPATIBLE_PREFIXES = ("V891_", "V892_", "V893_")
+CURRENT_COMPATIBLE_PREFIXES = ("V891_", "V892_", "V893_", "V894_")
 sys.path.insert(0, str(ROOT))
 
 
@@ -27,7 +27,7 @@ def main() -> int:
     app_version_file = read("APP_VERSION").strip().lstrip("\ufeff")
     app_py = read("app.py")
 
-    require(version_txt.startswith(CURRENT_COMPATIBLE_PREFIXES), "VERSION.txt is not compatible with V891/V892/V893 lineage", failures)
+    require(version_txt.startswith(CURRENT_COMPATIBLE_PREFIXES), "VERSION.txt is not compatible with V891/V892/V893/V894 lineage", failures)
     require(app_version_file == version_txt, "APP_VERSION does not match VERSION.txt", failures)
     require(f"APP_VERSION = '{version_txt}'" in app_py, "app.py APP_VERSION mismatch", failures)
     require("has_v891_telegram_premium_admin_endpoint_compatibility" in app_py, "runtime V891 flag missing", failures)
