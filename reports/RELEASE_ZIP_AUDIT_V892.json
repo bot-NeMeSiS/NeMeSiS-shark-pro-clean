@@ -1,10 +1,10 @@
 {
   "ok": true,
-  "audited_at": "2026-07-04T23:45:10",
+  "audited_at": "2026-07-04T23:47:43",
   "zip": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\release_output\\NeMeSiS_SHARK_PRO_V892_SENTINEL_ISSUES_COMMAND_CENTER_COPY_FIX_PROMPTS_FINAL_RENDER_READY.zip",
-  "zip_size_bytes": 3789714,
+  "zip_size_bytes": 3790237,
   "file_count": 2005,
-  "content_size_bytes": 8109442,
+  "content_size_bytes": 8111396,
   "forbidden_count": 0,
   "missing_required_root": [],
   "forbidden": [],
@@ -103,7 +103,7 @@
     },
     {
       "folder": "tools",
-      "size": 1124035,
+      "size": 1124232,
       "files": 450
     },
     {
@@ -118,7 +118,7 @@
     },
     {
       "folder": "templates",
-      "size": 639396,
+      "size": 641153,
       "files": 163
     },
     {

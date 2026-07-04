@@ -117,6 +117,10 @@
                 <button class="ns-button ns-button-primary" type="button" data-copy="{{ issue.codex_prompt|e }}">Copiar prompt</button>
                 <button class="ns-button ns-button-ghost" type="button" data-copy="{{ issue.evidence|e }}">Copiar evidencia</button>
                 <button class="ns-button ns-button-ghost" type="button" data-copy="{{ (issue.validation or [])|join('\n')|e }}">Checklist</button>
+                <button class="ns-button ns-button-ghost" type="button" data-issue-status="{{ issue.id }}" data-status="IN_REVIEW">Marcar en revision</button>
+                <button class="ns-button ns-button-ghost" type="button" data-issue-status="{{ issue.id }}" data-status="FIXED_PENDING_VALIDATION">Marcar como corregido</button>
+                <button class="ns-button ns-button-ghost" type="button" data-issue-status="{{ issue.id }}" data-status="FALSE_POSITIVE">Falso positivo</button>
+                <button class="ns-button ns-button-ghost" type="button" data-issue-status="{{ issue.id }}" data-status="REOPENED">Reabrir incidencia</button>
                 <a class="ns-button ns-button-ghost" href="/api/admin/sentinel/issues/{{ issue.id }}" target="_blank">Ver JSON</a>
                 {% if issue.route %}
                   <a class="ns-button ns-button-ghost" href="{{ issue.route }}">Ver ruta</a>
@@ -176,6 +180,33 @@
       btn.classList.add('is-copied');
       btn.textContent='Copiado';
       setTimeout(function(){ btn.classList.remove('is-copied'); }, 1200);
+    });
+  });
+  document.querySelectorAll('[data-issue-status]').forEach(function(btn){
+    btn.addEventListener('click', async function(){
+      var id=btn.getAttribute('data-issue-status');
+      var status=btn.getAttribute('data-status');
+      if(!id || !status) return;
+      btn.disabled=true;
+      var old=btn.textContent;
+      try{
+        var res=await fetch('/api/admin/sentinel/issues/'+encodeURIComponent(id)+'/status',{
+          method:'POST',
+          headers:window.nemesisJsonHeaders ? window.nemesisJsonHeaders() : {'Content-Type':'application/json'},
+          body:JSON.stringify({status:status,note:'Actualizado desde Centro de Incidencias'})
+        });
+        var data=await res.json();
+        if(data.ok){
+          btn.textContent='Estado actualizado';
+          var row=btn.closest('[data-v892-issue-row]');
+          if(row){ row.dataset.status=status; }
+        }else{
+          btn.textContent='No actualizado';
+        }
+      }catch(err){
+        btn.textContent='Error seguro';
+      }
+      setTimeout(function(){ btn.textContent=old; btn.disabled=false; }, 1400);
     });
   });
   var search=document.querySelector('[data-v892-search]');

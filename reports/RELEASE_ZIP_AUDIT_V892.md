@@ -2,7 +2,7 @@
 
 - ZIP: `NeMeSiS_SHARK_PRO_V892_SENTINEL_ISSUES_COMMAND_CENTER_COPY_FIX_PROMPTS_FINAL_RENDER_READY.zip`
 - Archivos: 2005
-- Tamaño ZIP: 3789714 bytes
+- Tamaño ZIP: 3790237 bytes
 - Prohibidos: 0
 - Resultado: OK
 - Root obligatorio ausente: ninguno
@@ -10,10 +10,10 @@
 ## Carpetas principales
 - `reports`: 1082 archivos, 2707789 bytes
 - `engines`: 109 archivos, 1278583 bytes
-- `tools`: 450 archivos, 1124035 bytes
+- `tools`: 450 archivos, 1124232 bytes
 - `app.py`: 1 archivos, 922275 bytes
 - `static`: 2 archivos, 916398 bytes
-- `templates`: 163 archivos, 639396 bytes
+- `templates`: 163 archivos, 641153 bytes
 - `V726_PROJECT_TREE_AUDIT.md`: 1 archivos, 96394 bytes
 - `CHATGPT_CONTINUATION_REPORT.md`: 1 archivos, 54097 bytes
 - `docs`: 56 archivos, 45463 bytes

@@ -73,10 +73,17 @@ def main() -> int:
     for token in [
         "Copiar fallo",
         "Copiar prompt",
+        "Copiar evidencia",
+        "Checklist",
+        "Marcar en revision",
+        "Marcar como corregido",
+        "Falso positivo",
+        "Reabrir incidencia",
         "Escanear ahora",
         "Sincronizar AutoPilot",
         "Sincronizar Visual Worker",
         "data-copy",
+        "data-issue-status",
     ]:
         require(token in template, f"template token missing: {token}", failures)
 

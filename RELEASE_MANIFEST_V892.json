@@ -1,6 +1,6 @@
 {
   "version": "V892_SENTINEL_ISSUES_COMMAND_CENTER_COPY_FIX_PROMPTS_FINAL",
-  "created_at": "2026-07-04T23:45:05",
+  "created_at": "2026-07-04T23:47:35",
   "zip": "NeMeSiS_SHARK_PRO_V892_SENTINEL_ISSUES_COMMAND_CENTER_COPY_FIX_PROMPTS_FINAL_RENDER_READY.zip",
   "zip_path": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\release_output\\NeMeSiS_SHARK_PRO_V892_SENTINEL_ISSUES_COMMAND_CENTER_COPY_FIX_PROMPTS_FINAL_RENDER_READY.zip",
   "zip_inside_project_tree": true,
@@ -208,6 +208,6 @@
   ],
   "security_policy": "No incluye .git, .venv, caches, bases de datos locales, logs, ZIPs internos ni secretos reales.",
   "render_ready": true,
-  "zip_size_bytes": 3789714,
+  "zip_size_bytes": 3790237,
   "zip_file_count": 2005
 }
