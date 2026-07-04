@@ -254,6 +254,135 @@ def format_pick_message(pick=None):
     ])
     return "\n".join(lines)
 
+
+def _v889_odds_label(value):
+    try:
+        odds = float(str(value).replace(",", "."))
+    except Exception:
+        return "Cuota pendiente"
+    if odds <= 1.01:
+        return "Cuota pendiente"
+    return f"{odds:.2f}".rstrip("0").rstrip(".")
+
+
+def _v889_value(value, fallback="Pendiente"):
+    text = str(value or "").strip()
+    if not text or text.lower() in {"none", "null", "undefined", "nan"}:
+        return fallback
+    return text
+
+
+def format_premium_pick_message(pick=None, quality=None, membership="PRO"):
+    """V889 premium pick message: real data only, no filler."""
+    pick = pick or {}
+    quality = quality or {}
+    normalized = quality.get("pick") or pick
+    membership = str(membership or "PRO").upper()
+    home = _v889_value(normalized.get("home_team") or pick.get("home_team") or pick.get("home"), "Equipo local")
+    away = _v889_value(normalized.get("away_team") or pick.get("away_team") or pick.get("away"), "Equipo visitante")
+    competition = _v889_value(normalized.get("competition") or competition_label(pick), "Competicion pendiente")
+    market = _v889_value(normalized.get("market") or pick.get("market"), "Mercado pendiente")
+    selection = _v889_value(normalized.get("selection") or pick.get("selection") or pick.get("recommendation"), "Seleccion pendiente")
+    odds = _v889_odds_label(normalized.get("odds") or pick.get("odds"))
+    bookmaker = _v889_value(normalized.get("bookmaker") or pick.get("bookmaker"), "")
+    stake = _v889_value(normalized.get("stake") or pick.get("stake_units") or pick.get("stake"), "Stake pendiente")
+    risk = _v889_value(normalized.get("risk") or pick.get("risk_level") or pick.get("risk"), "Riesgo pendiente")
+    confidence = _v889_value(normalized.get("confidence") or pick.get("confidence") or pick.get("shark_score"), "Confianza pendiente")
+    reason = _v889_value(normalized.get("reason") or pick.get("reason") or pick.get("reasoning"), "Motivo pendiente por datos reales insuficientes.")
+    counter = _v889_value(normalized.get("counterargument") or pick.get("caution") or pick.get("warning"), "Riesgo pendiente de confirmacion.")
+    time_label = madrid_match_time_label({**pick, "kickoff_iso": normalized.get("kickoff_iso") or pick.get("kickoff_iso") or pick.get("kickoff_time")})
+    status = "En revision" if not quality.get("sendable") else "Prepartido"
+    lines = [
+        "SHARK NeMeSiS SHARK PRO",
+        f"Pick Premium {membership}",
+        "",
+        f"{home} vs {away}",
+        competition,
+        time_label,
+        "",
+        "Apuesta:",
+        f"- Mercado: {market}",
+        f"- Seleccion: {selection}",
+        f"- Cuota: {odds}" + (f" ({bookmaker})" if bookmaker else ""),
+        "",
+        f"Stake recomendado: {stake}",
+        f"Riesgo: {risk}",
+        f"Confianza: {confidence}",
+        "",
+        "Motivo:",
+        reason,
+        "",
+        "Riesgo a vigilar:",
+        counter,
+        "",
+        "Gestion:",
+        "No sobreexponerse. Validar que la cuota no haya caido demasiado antes de entrar.",
+        "",
+        f"Estado: {status}",
+        "Abrir app: Ver partido | Picks | SHARK",
+    ]
+    return "\n".join(lines).strip()
+
+
+def format_membership_pick_message(pick=None, quality=None, membership="PRO"):
+    membership = str(membership or "PRO").upper()
+    if membership == "FREE":
+        pick = pick or {}
+        quality = quality or {}
+        normalized = quality.get("pick") or pick
+        home = _v889_value(normalized.get("home_team") or pick.get("home_team"), "Equipo local")
+        away = _v889_value(normalized.get("away_team") or pick.get("away_team"), "Equipo visitante")
+        selection = _v889_value(normalized.get("selection") or pick.get("selection"), "Seleccion pendiente")
+        return "\n".join([
+            "NeMeSiS SHARK PRO",
+            "Preview FREE",
+            "",
+            f"{home} vs {away}",
+            f"Lectura detectada: {selection}",
+            "",
+            "Stake, motivo completo y lectura SHARK avanzada disponibles en PRO.",
+            "Abrir app: mejorar plan",
+        ])
+    return format_premium_pick_message(pick, quality=quality, membership=membership)
+
+
+def format_premium_combi_message(picks=None, quality=None, membership="ELITE"):
+    picks = list(picks or [])[:3]
+    quality = quality or {}
+    lines = [
+        "NeMeSiS SHARK PRO",
+        f"Combi Premium {str(membership or 'ELITE').upper()}",
+        "",
+        f"Estado: {quality.get('status') or 'Combi en revision'}",
+        f"Riesgo: {quality.get('risk') or 'Alto'}",
+        f"Stake: {quality.get('stake') or 'Bajo'}",
+        "",
+    ]
+    if not picks:
+        lines.append("Combi no enviada por datos insuficientes.")
+    for index, pick in enumerate(picks, 1):
+        lines.append(f"{index}. {match_title(pick)} - {_v889_value(pick.get('selection') or pick.get('recommendation'), 'Seleccion pendiente')} - {_v889_odds_label(pick.get('odds'))}")
+    lines.extend(["", "No combinar picks sin cuota real ni seleccion confirmada."])
+    return "\n".join(lines).strip()
+
+
+def format_pick_result_tracking_message(pick=None, match=None):
+    pick = pick or {}
+    match = match or {}
+    result = _v889_value(match.get("pick_result") or match.get("result_status"), "Resultado pendiente")
+    score = _v889_value(match.get("score") or match.get("final_score"), "Marcador pendiente")
+    return "\n".join([
+        "NeMeSiS SHARK PRO",
+        "Seguimiento de pick",
+        "",
+        match_title({**pick, **match}),
+        f"Resultado: {result}",
+        f"Marcador real: {score}",
+        f"Cuota: {_v889_odds_label(pick.get('odds'))}",
+        "",
+        "Sin dato real de cierre, el pick queda pendiente.",
+    ]).strip()
+
 def format_combi_message(combi=None):
     combi = combi or {}
     picks = combi.get("picks") or combi.get("legs") or []

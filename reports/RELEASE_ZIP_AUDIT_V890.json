@@ -1,0 +1,195 @@
+{
+  "ok": true,
+  "audited_at": "2026-07-04T23:21:13",
+  "zip": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\release_output\\NeMeSiS_SHARK_PRO_V890_RUNTIME_DBPATH_TELEGRAM_PREMIUM_QA_HARDENING_FINAL_RENDER_READY.zip",
+  "zip_size_bytes": 3775388,
+  "file_count": 2001,
+  "content_size_bytes": 8055953,
+  "forbidden_count": 0,
+  "missing_required_root": [],
+  "forbidden": [],
+  "top_files": [
+    {
+      "path": "static/app.css",
+      "size": 913046
+    },
+    {
+      "path": "app.py",
+      "size": 912407
+    },
+    {
+      "path": "reports/V866_mobile_live.png",
+      "size": 189139
+    },
+    {
+      "path": "reports/V866_mobile_shark.png",
+      "size": 185648
+    },
+    {
+      "path": "reports/v810_telegram_previews/telegram_pick_pro_v810.png",
+      "size": 107837
+    },
+    {
+      "path": "reports/V871_desktop_home.png",
+      "size": 100299
+    },
+    {
+      "path": "reports/V866_mobile_home.png",
+      "size": 98873
+    },
+    {
+      "path": "reports/v810_telegram_previews/telegram_resumen_top_v810.png",
+      "size": 96929
+    },
+    {
+      "path": "V726_PROJECT_TREE_AUDIT.md",
+      "size": 96394
+    },
+    {
+      "path": "reports/V866_mobile_picks.png",
+      "size": 95393
+    },
+    {
+      "path": "reports/v810_telegram_previews/telegram_live_top_v810.png",
+      "size": 72835
+    },
+    {
+      "path": "reports/V871_desktop_app.png",
+      "size": 62081
+    },
+    {
+      "path": "engines/api_football_live_tracker_engine.py",
+      "size": 60440
+    },
+    {
+      "path": "CHATGPT_CONTINUATION_REPORT.md",
+      "size": 54097
+    },
+    {
+      "path": "reports/V871_mobile_shark.png",
+      "size": 45968
+    },
+    {
+      "path": "reports/V868_mobile_shark.png",
+      "size": 45166
+    },
+    {
+      "path": "reports/V868_mobile_home.png",
+      "size": 44571
+    },
+    {
+      "path": "engines/api_exploitation_engine.py",
+      "size": 41823
+    },
+    {
+      "path": "reports/V866_mobile_app.png",
+      "size": 41524
+    },
+    {
+      "path": "reports/V868_mobile_live.png",
+      "size": 41046
+    }
+  ],
+  "top_folders": [
+    {
+      "folder": "reports",
+      "size": 2707789,
+      "files": 1082
+    },
+    {
+      "folder": "engines",
+      "size": 1257835,
+      "files": 108
+    },
+    {
+      "folder": "tools",
+      "size": 1113239,
+      "files": 448
+    },
+    {
+      "folder": "static",
+      "size": 914372,
+      "files": 2
+    },
+    {
+      "folder": "app.py",
+      "size": 912407,
+      "files": 1
+    },
+    {
+      "folder": "templates",
+      "size": 629427,
+      "files": 162
+    },
+    {
+      "folder": "V726_PROJECT_TREE_AUDIT.md",
+      "size": 96394,
+      "files": 1
+    },
+    {
+      "folder": "CHATGPT_CONTINUATION_REPORT.md",
+      "size": 54097,
+      "files": 1
+    },
+    {
+      "folder": "docs",
+      "size": 45463,
+      "files": 56
+    },
+    {
+      "folder": "V726_PURGE_REPORT.md",
+      "size": 26158,
+      "files": 1
+    },
+    {
+      "folder": "tests",
+      "size": 12961,
+      "files": 11
+    },
+    {
+      "folder": "RELEASE_MANIFEST_V890.json",
+      "size": 7443,
+      "files": 1
+    },
+    {
+      "folder": "services",
+      "size": 7327,
+      "files": 6
+    },
+    {
+      "folder": "RELEASE_MANIFEST_V762.json",
+      "size": 6907,
+      "files": 1
+    },
+    {
+      "folder": "RELEASE_MANIFEST_V761.json",
+      "size": 6873,
+      "files": 1
+    },
+    {
+      "folder": "RELEASE_MANIFEST_V760.json",
+      "size": 6844,
+      "files": 1
+    },
+    {
+      "folder": "RELEASE_MANIFEST_V758.json",
+      "size": 6763,
+      "files": 1
+    },
+    {
+      "folder": "RELEASE_MANIFEST_V757.json",
+      "size": 6758,
+      "files": 1
+    },
+    {
+      "folder": "V742_DUPLICATES_AND_LEGACY_AUDIT.md",
+      "size": 6694,
+      "files": 1
+    },
+    {
+      "folder": ".env.render.clean",
+      "size": 6685,
+      "files": 1
+    }
+  ]
+}

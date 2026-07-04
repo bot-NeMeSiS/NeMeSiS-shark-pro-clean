@@ -23,6 +23,7 @@ AUTOPILOT_VERSION = "V888_SENTINEL_AUTOPILOT_SELF_IMPROVEMENT_ENGINE_FINAL"
 CATEGORIES = [
     "production_alignment",
     "telegram",
+    "telegram_premium_picks",
     "sports_data",
     "picks_odds",
     "live",
@@ -54,6 +55,7 @@ SAFE_FIX_CANDIDATES = {
 REQUIRES_APPROVAL_CATEGORIES = {
     "production_alignment",
     "telegram",
+    "telegram_premium_picks",
     "payments",
     "security",
     "admin_ops",
@@ -358,6 +360,8 @@ def build_next_best_actions(issues: list[dict[str, Any]]) -> list[str]:
         return ["Resolver criticos antes de cualquier mejora visual.", "Repetir Sentinel y AutoPilot tras el fix."]
     if any(i.get("category") == "telegram" for i in issues):
         return ["Validar Cron Telegram en dry-run y revisar dedupe/no filler."]
+    if any(i.get("category") == "telegram_premium_picks" for i in issues):
+        return ["Revisar preview V889 y bloquear picks sin cuota, seleccion, partido real o score premium."]
     if issues:
         return ["Atender incidencias high/medium primero.", "Generar prompt Codex por issue y aplicar solo fixes aprobados."]
     return ["Mantener AutoPilot en diagnostico diario.", "Ejecutar browser QA real antes de declarar pixel-perfect."]

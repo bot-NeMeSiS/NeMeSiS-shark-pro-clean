@@ -186,6 +186,18 @@ from engines.telegram_reliability_engine import (
     madrid_now as telegram_reliability_madrid_now,
     safe_preview_text,
 )
+from engines.telegram_pick_quality_engine import (
+    PREMIUM_SEND,
+    REVIEW_REQUIRED,
+    SAFE_EMPTY_STATE as TELEGRAM_PICK_SAFE_EMPTY_STATE,
+    build_combi_quality as build_v889_combi_quality,
+    build_membership_message_variant as build_v889_membership_message_variant,
+    build_pick_result_payload as build_v889_pick_result_payload,
+    build_telegram_pick_dedupe_key as build_v889_telegram_pick_dedupe_key,
+    build_telegram_pick_quality_summary as build_v889_telegram_pick_quality_summary,
+    classify_telegram_pick as classify_v889_telegram_pick,
+    filter_premium_telegram_picks as filter_v889_premium_telegram_picks,
+)
 from engines.telegram_environment_engine import (
     get_telegram_environment_audit,
     is_telegram_auto_enabled,
@@ -205,6 +217,10 @@ from engines.telegram_message_formatter import (
     format_highlight_message as format_v771_highlight_message,
     format_prematch_message as format_v771_prematch_message,
     format_evening_recap_message as format_v771_evening_recap_message,
+    format_membership_pick_message as format_v889_membership_pick_message,
+    format_pick_result_tracking_message as format_v889_pick_result_tracking_message,
+    format_premium_combi_message as format_v889_premium_combi_message,
+    format_premium_pick_message as format_v889_premium_pick_message,
 )
 from engines.telegram_visual_card_engine import (
     build_visual_card_for_message,
@@ -307,10 +323,22 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V888_SENTINEL_AUTOPILOT_SELF_IMPROVEMENT_ENGINE_FINAL'
+APP_VERSION = 'V890_RUNTIME_DBPATH_TELEGRAM_PREMIUM_QA_HARDENING_FINAL'
 SEED_VERSION = "v528-client-login-route-stability-seed"
-DB_PATH = os.getenv("DB_PATH", "/data/database.db")
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
+
+
+def resolve_default_db_path() -> str:
+    """Preserve Render DB_PATH while keeping local Windows smoke tests usable."""
+    explicit = os.getenv("DB_PATH")
+    if explicit:
+        return explicit
+    if os.getenv("RENDER") or os.getenv("RENDER_SERVICE_NAME") or os.getenv("RENDER_EXTERNAL_HOSTNAME"):
+        return "/data/database.db"
+    return str(BASE_DIR / "data" / "database.db")
+
+
+DB_PATH = resolve_default_db_path()
 TZ = ZoneInfo("Europe/Madrid")
 COMBI_MIN_LEGS = 2
 COMBI_MAX_LEGS = 15
@@ -12862,6 +12890,133 @@ def api_admin_telegram_auto_candidates():
     return jsonify({"ok": True, "version": APP_VERSION, "auto_candidates": audit})
 
 
+def v889_telegram_premium_pick_candidates(limit=60, membership="PRO"):
+    """Return real stored picks classified for premium Telegram delivery."""
+    limit = max(5, min(as_int(limit, 60), 160))
+    membership = str(membership or "PRO").upper()
+    try:
+        picks = get_picks(limit=limit, status=["published", "review", "pending", "won", "lost", "void"], membership=membership, include_admin=True)
+    except Exception as exc:
+        return {
+            "ok": False,
+            "status": "ERROR",
+            "message": "No se pudieron revisar picks reales para Telegram.",
+            "error": str(exc)[:240],
+            "sendable": [],
+            "blocked": [],
+        }
+    sent_keys = set()
+    try:
+        for item in rows(
+            """SELECT dedupe_key FROM telegram_queue
+               WHERE dedupe_key IS NOT NULL AND dedupe_key!=''
+               ORDER BY created_at DESC LIMIT 500"""
+        ):
+            sent_keys.add(item.get("dedupe_key"))
+    except Exception:
+        sent_keys = set()
+    result = filter_v889_premium_telegram_picks(picks, membership=membership, limit=5, sent_dedupe_keys=sent_keys)
+    result["version"] = APP_VERSION
+    result["source"] = "stored_real_picks"
+    result["safe_state"] = TELEGRAM_PICK_SAFE_EMPTY_STATE if not result.get("sendable") else "Picks premium listos"
+    return result
+
+
+def v889_telegram_pick_preview_payload(membership="PRO", pick_id=""):
+    membership = str(membership or "PRO").upper()
+    candidates = v889_telegram_premium_pick_candidates(limit=80, membership=membership)
+    sendable = candidates.get("sendable") or []
+    blocked = candidates.get("blocked") or []
+    chosen = None
+    if pick_id:
+        for item in sendable + blocked:
+            pick = item.get("pick") or {}
+            if str(pick.get("pick_id") or "") == str(pick_id):
+                chosen = item
+                break
+    if not chosen:
+        chosen = sendable[0] if sendable else (blocked[0] if blocked else None)
+    if not chosen:
+        return {
+            "ok": True,
+            "version": APP_VERSION,
+            "would_send": False,
+            "status": TELEGRAM_PICK_SAFE_EMPTY_STATE,
+            "message_preview": "No hay picks premium suficientes. Mejor no enviar nada que mandar relleno.",
+            "score": 0,
+            "reasons": ["Sin pick real publicado con cuota, seleccion y partido suficientes."],
+            "dedupe_key": "",
+            "membership_variant": {"membership": membership, "includes": [], "locked": []},
+            "dry_run": True,
+            "sent": False,
+        }
+    pick = chosen.get("pick") or {}
+    message = format_v889_membership_pick_message(pick, quality=chosen, membership=membership)
+    return {
+        "ok": True,
+        "version": APP_VERSION,
+        "would_send": bool(chosen.get("sendable")),
+        "status": chosen.get("status"),
+        "score": chosen.get("score"),
+        "reasons": chosen.get("reasons") or [],
+        "dedupe_key": chosen.get("dedupe_key") or build_v889_telegram_pick_dedupe_key(pick, membership=membership),
+        "membership_variant": build_v889_membership_message_variant(pick, quality=chosen, membership=membership),
+        "message_preview": message,
+        "dry_run": True,
+        "sent": False,
+        "no_filler_policy": "Si el score no alcanza umbral premium, no se envia.",
+    }
+
+
+@app.route("/api/admin/telegram/pick-candidates")
+def api_admin_telegram_pick_candidates():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    membership = request.args.get("membership") or "PRO"
+    limit = as_int(request.args.get("limit"), 60)
+    return jsonify(v889_telegram_premium_pick_candidates(limit=limit, membership=membership))
+
+
+@app.route("/api/admin/telegram/pick-preview")
+def api_admin_telegram_pick_preview():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify(v889_telegram_pick_preview_payload(request.args.get("membership") or "PRO", request.args.get("pick_id") or ""))
+
+
+@app.route("/api/admin/telegram/pick-dry-run", methods=["POST"])
+def api_admin_telegram_pick_dry_run():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    payload = request.get_json(silent=True) or request.form or {}
+    membership = payload.get("membership") or request.args.get("membership") or "PRO"
+    pick_id = payload.get("pick_id") or request.args.get("pick_id") or ""
+    preview = v889_telegram_pick_preview_payload(membership, pick_id)
+    preview["dry_run"] = True
+    preview["sent"] = False
+    preview["queue_touched"] = False
+    preview["safe_note"] = "Dry-run V889: no envia Telegram real ni escribe en la cola."
+    return jsonify(preview)
+
+
+@app.route("/api/admin/telegram/pick-quality-summary")
+def api_admin_telegram_pick_quality_summary():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    membership = request.args.get("membership") or "PRO"
+    try:
+        picks = get_picks(limit=max(5, min(as_int(request.args.get("limit"), 80), 160)), status=["published", "review", "pending"], membership=membership, include_admin=True)
+    except Exception:
+        picks = []
+    summary = build_v889_telegram_pick_quality_summary(picks)
+    summary.update({
+        "version": APP_VERSION,
+        "membership": str(membership or "PRO").upper(),
+        "no_filler_policy": "No hay envio si faltan cuota, seleccion, partido real o calidad suficiente.",
+    })
+    return jsonify(summary)
+
+
 @app.route("/api/admin/telegram/dry-run", methods=["GET", "POST"])
 def api_admin_telegram_dry_run():
     if not is_admin_session():
@@ -14066,6 +14221,8 @@ def api_runtime_version():
         "has_v887_telegram_queue_skipped_hotfix": "data-v887-shell" in base_template and "QUEUE_SKIPPED" in app_py_text and "check_v887_telegram_queue_skipped_hotfix.py" in "\n".join(sorted(p.name for p in (Path(__file__).resolve().parent / "tools").glob("check_v887*.py"))),
         "has_v888_real_errors_sweep": "data-v888-shell" in base_template and "check_v888_real_errors_sweep.py" in "\n".join(sorted(p.name for p in (Path(__file__).resolve().parent / "tools").glob("check_v888*.py"))),
         "has_v888_sentinel_autopilot_self_improvement": "sentinel_autopilot_engine" in app_py_text and "/admin/sentinel-autopilot" in app_py_text and "/api/automation/sentinel-autopilot/run" in app_py_text and "data-v888-autopilot-shell" in base_template,
+        "has_v889_telegram_premium_picks_intelligence": "telegram_pick_quality_engine" in app_py_text and "/api/admin/telegram/pick-preview" in app_py_text and "format_premium_pick_message" in app_py_text,
+        "has_v890_runtime_dbpath_telegram_hardening": "resolve_default_db_path" in app_py_text and "V890_RUNTIME_DBPATH_TELEGRAM_PREMIUM_QA_HARDENING_FINAL" in base_template,
         "has_v837_reference_photo_qa": "data-v837-shell" in base_template and "V837 REFERENCE PHOTO PERFECTION REAL QA START" in css_text,
         "has_v836_autonomous_qa": "data-v836-shell" in base_template and "V836 AUTONOMOUS REFERENCE VISUAL REVIEW FINAL QA START" in css_text,
         "has_v833_visual_completion": "data-v833-shell" in base_template and "V833 REFERENCE ECOSYSTEM VISUAL COMPLETION START" in css_text,
@@ -14081,7 +14238,7 @@ def api_runtime_version():
         "has_v820_crests": "data-v820-shell" in base_template and "V820 REAL CRESTS REFERENCE VISUAL PIXEL POLISH START" in css_text,
         "has_v819_dedup": "data-v819-shell" in base_template and "V819 REFERENCE UI DEDUP LAYER PURGE START" in css_text,
         "has_v818_automation": "/api/automation/master-tick" in app_py_text and "daily_automation_engine" in app_py_text,
-        "static_css_cache_busting": "V886_REAL_BROWSER_NAV_VISUAL_QA_AFTER_V885_FINAL" in base_template,
+        "static_css_cache_busting": "V890_RUNTIME_DBPATH_TELEGRAM_PREMIUM_QA_HARDENING_FINAL" in base_template,
         "crest_engine_loaded": runtime_stability.get("crest_engine_loaded"),
         "logo_cache_tables_ok": runtime_stability.get("logo_cache_tables_ok"),
         "team_logo_cache_count": runtime_stability.get("team_logo_cache_count"),

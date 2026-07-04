@@ -8,6 +8,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V888_SENTINEL_AUTOPILOT_SELF_IMPROVEMENT_ENGINE_FINAL"
+CURRENT_COMPATIBLE_PREFIXES = ("V888_", "V889_")
 sys.path.insert(0, str(ROOT))
 
 
@@ -30,9 +31,9 @@ def main() -> int:
     engine = read("engines/sentinel_autopilot_engine.py")
     continuous = read("engines/continuous_shark_sentinel_engine.py")
 
-    require(version_txt == VERSION, "VERSION.txt is not V888 Sentinel AutoPilot", failures)
-    require(app_version_file == VERSION, "APP_VERSION is not V888 Sentinel AutoPilot", failures)
-    require(f"APP_VERSION = '{VERSION}'" in app_py, "app.py APP_VERSION mismatch", failures)
+    require(version_txt.startswith(CURRENT_COMPATIBLE_PREFIXES), "VERSION.txt is not compatible with V888/V889 lineage", failures)
+    require(app_version_file == version_txt, "APP_VERSION does not match VERSION.txt", failures)
+    require(f"APP_VERSION = '{version_txt}'" in app_py, "app.py APP_VERSION mismatch", failures)
     require("has_v888_sentinel_autopilot_self_improvement" in app_py, "runtime V888 AutoPilot flag missing", failures)
     require("has_v887_telegram_queue_skipped_hotfix" in app_py, "V887 Telegram hotfix flag not preserved", failures)
 
@@ -128,7 +129,7 @@ def main() -> int:
     runtime = client.get("/api/runtime-version")
     require(runtime.status_code == 200, "runtime-version not 200", failures)
     runtime_json = runtime.get_json() or {}
-    require(runtime_json.get("app_version") == VERSION, "runtime app_version mismatch", failures)
+    require(runtime_json.get("app_version") == version_txt, "runtime app_version mismatch", failures)
     require(runtime_json.get("has_v888_sentinel_autopilot_self_improvement") is True, "runtime AutoPilot flag false", failures)
     require(runtime_json.get("has_v887_telegram_queue_skipped_hotfix") is True, "runtime V887 flag false", failures)
 

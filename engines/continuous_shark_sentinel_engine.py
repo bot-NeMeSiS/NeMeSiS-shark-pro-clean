@@ -225,6 +225,23 @@ V888_SENTINEL_AUTOPILOT_RULES = [
     "autopilot_never_invents_sports_data",
 ]
 
+V889_TELEGRAM_PREMIUM_PICK_RULES = [
+    "telegram_pick_requires_real_match",
+    "telegram_pick_requires_real_odds",
+    "telegram_pick_requires_clear_selection",
+    "telegram_pick_requires_quality_score",
+    "telegram_pick_below_threshold_must_not_send",
+    "telegram_pick_duplicate_must_skip",
+    "telegram_pick_low_league_must_skip",
+    "telegram_membership_variants_must_not_invent_extra_data",
+    "telegram_pick_preview_api_must_be_admin_protected",
+    "telegram_pick_dry_run_must_not_send_or_queue",
+    "telegram_combi_requires_all_legs_with_real_odds",
+    "telegram_result_tracking_must_not_invent_settlement",
+    "telegram_visual_card_must_have_text_fallback",
+    "telegram_no_filler_policy_must_win_over_empty_send",
+]
+
 
 def madrid_now() -> str:
     return datetime.now(MADRID_TZ).isoformat(timespec="seconds")
@@ -303,6 +320,7 @@ def build_continuous_sentinel_summary(version: str = "") -> dict[str, Any]:
         "client_sidebar_restore_rules_v885": V885_CLIENT_SIDEBAR_RESTORE_RULES,
         "real_errors_sweep_rules_v888": V888_REAL_ERRORS_SWEEP_RULES,
         "sentinel_autopilot_rules_v888": V888_SENTINEL_AUTOPILOT_RULES,
+        "telegram_premium_pick_rules_v889": V889_TELEGRAM_PREMIUM_PICK_RULES,
         "sentinel_autopilot_ready": True,
         "visual_company_worker_ready": True,
         "visual_big_leap_ready": True,
@@ -400,6 +418,7 @@ def run_continuous_sentinel_cycle(client: Any, version: str = "", mode: str = "q
         "visual_company_worker_rules_v883": V883_VISUAL_COMPANY_WORKER_RULES,
         "real_errors_sweep_rules_v888": V888_REAL_ERRORS_SWEEP_RULES,
         "sentinel_autopilot_rules_v888": V888_SENTINEL_AUTOPILOT_RULES,
+        "telegram_premium_pick_rules_v889": V889_TELEGRAM_PREMIUM_PICK_RULES,
         "sentinel_autopilot_ready": True,
         "visual_company_worker_v883": visual_worker_result,
         "visual_company_worker_ready": True,
