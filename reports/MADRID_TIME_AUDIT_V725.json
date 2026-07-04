@@ -1,7 +1,7 @@
 {
   "ok": true,
-  "source": "fixtures",
-  "db_path": "\\data\\database.db",
+  "source": "fixtures_empty_database",
+  "db_path": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\data\\database.db",
   "selftest": {
     "ok": true,
     "timezone": "Europe/Madrid",

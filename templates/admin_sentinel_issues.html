@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="ns-admin-page v892-sentinel-issues">
+  <div class="ns-page-header">
+    <span class="ns-chip">V892 Centro de Incidencias</span>
+    <h1>Sentinel Issues Command Center</h1>
+    <p>Incidencias reales de Sentinel, AutoPilot y Visual Worker convertidas en tareas, evidencia y prompts Codex copiables. No ejecuta deploy, Telegram real, pagos ni acciones peligrosas.</p>
+    <div class="ns-actions">
+      <form method="get" action="/api/admin/sentinel/issues/scan" target="_blank">
+        <button class="ns-button ns-button-primary" type="submit">Escanear ahora</button>
+      </form>
+      <form method="get" action="/api/admin/sentinel/issues/sync-autopilot" target="_blank">
+        <button class="ns-button ns-button-secondary" type="submit">Sincronizar AutoPilot</button>
+      </form>
+      <form method="get" action="/api/admin/sentinel/issues/sync-visual-worker" target="_blank">
+        <button class="ns-button ns-button-ghost" type="submit">Sincronizar Visual Worker</button>
+      </form>
+      <a class="ns-button ns-button-ghost" href="/api/admin/sentinel/issues/summary" target="_blank">Ver JSON</a>
+    </div>
+  </div>
+
+  <section class="ns-grid ns-grid-4">
+    <article class="ns-stat"><span>Abiertas</span><strong>{{ summary.counts.open }}</strong><small>incidencias activas</small></article>
+    <article class="ns-stat"><span>Criticas</span><strong>{{ summary.counts.severity.critical }}</strong><small>bloqueo real</small></article>
+    <article class="ns-stat"><span>Altas</span><strong>{{ summary.counts.severity.high }}</strong><small>prioridad operativa</small></article>
+    <article class="ns-stat"><span>Codex Ready</span><strong>{{ summary.codex_ready_issues|length }}</strong><small>prompt preparado</small></article>
+  </section>
+
+  <section class="ns-grid ns-grid-3">
+    <article class="ns-admin-card">
+      <h2>Resumen operativo</h2>
+      <div class="ns-table-wrap">
+        <table class="ns-table">
+          <tbody>
+            <tr><th>Ultimo scan</th><td>{{ summary.last_scan_madrid or 'Pendiente' }}</td></tr>
+            <tr><th>Area mas afectada</th><td>{{ summary.top_area }}</td></tr>
+            <tr><th>Origen principal</th><td>{{ summary.top_source }}</td></tr>
+            <tr><th>Reabiertas</th><td>{{ summary.reopened_issues|length }}</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </article>
+    <article class="ns-admin-card">
+      <h2>Filtros</h2>
+      <div class="ns-actions" data-v892-filters>
+        <button class="ns-button ns-button-secondary" type="button" data-filter="all">Todas</button>
+        <button class="ns-button ns-button-secondary" type="button" data-filter="critical">Solo criticas</button>
+        <button class="ns-button ns-button-secondary" type="button" data-filter="open">Abiertas</button>
+        <button class="ns-button ns-button-secondary" type="button" data-filter="codex">Codex Ready</button>
+      </div>
+      <label class="ns-form-label" for="v892-search">Buscar incidencia</label>
+      <input class="ns-input" id="v892-search" type="search" placeholder="Ruta, area, evidencia o titulo" data-v892-search>
+    </article>
+    <article class="ns-admin-card">
+      <h2>Politica segura</h2>
+      <div class="ns-stack">
+        {% for action in summary.forbidden_actions %}
+          <span class="ns-chip">{{ action }}</span>
+        {% endfor %}
+      </div>
+    </article>
+  </section>
+
+  {% if summary.critical_issues or summary.high_issues %}
+  <section class="ns-admin-card">
+    <div class="ns-section-title">
+      <h2>Prioridad alta</h2>
+      <span class="ns-badge">{{ (summary.critical_issues|length) + (summary.high_issues|length) }}</span>
+    </div>
+    <div class="ns-grid ns-grid-2">
+      {% for issue in (summary.critical_issues + summary.high_issues)[:6] %}
+      <article class="ns-command-card" data-v892-issue-card data-severity="{{ issue.severity }}" data-status="{{ issue.status }}" data-codex="true">
+        <span class="ns-chip ns-chip-{{ issue.severity }}">{{ issue.severity|upper }}</span>
+        <h3>{{ issue.title }}</h3>
+        <p>{{ issue.evidence }}</p>
+        <small>{{ issue.area }} · {{ issue.route or 'Sin ruta concreta' }}</small>
+        <div class="ns-actions">
+          <button class="ns-button ns-button-secondary" type="button" data-copy="{{ issue.copy_text|e }}">Copiar fallo</button>
+          <button class="ns-button ns-button-primary" type="button" data-copy="{{ issue.codex_prompt|e }}">Copiar prompt Codex</button>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  <section class="ns-admin-card">
+    <div class="ns-section-title">
+      <h2>Lista de incidencias</h2>
+      <span class="ns-badge">{{ summary.issues|length }}</span>
+    </div>
+    <div class="ns-table-wrap">
+      <table class="ns-table v892-issues-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Severidad</th>
+            <th>Estado</th>
+            <th>Area</th>
+            <th>Ruta / archivo</th>
+            <th>Evidencia</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for issue in summary.issues %}
+          <tr data-v892-issue-row data-severity="{{ issue.severity }}" data-status="{{ issue.status }}" data-codex="{{ 'true' if issue.codex_prompt else 'false' }}" data-search="{{ (issue.id ~ ' ' ~ issue.title ~ ' ' ~ issue.area ~ ' ' ~ issue.route ~ ' ' ~ issue.file ~ ' ' ~ issue.evidence)|lower|e }}">
+            <td><code>{{ issue.id }}</code><br><small>{{ issue.source }}</small></td>
+            <td><span class="ns-chip ns-chip-{{ issue.severity }}">{{ issue.severity }}</span></td>
+            <td><span class="ns-badge">{{ issue.status }}</span><br><small>{{ issue.last_seen_madrid }}</small></td>
+            <td>{{ issue.area }}<br><small>{{ issue.occurrences }} vez/veces</small></td>
+            <td><code>{{ issue.route or 'Sin ruta' }}</code><br><small>{{ issue.file or 'Archivo por determinar' }}</small></td>
+            <td><strong>{{ issue.title }}</strong><br><small>{{ issue.evidence }}</small></td>
+            <td>
+              <div class="ns-actions">
+                <button class="ns-button ns-button-secondary" type="button" data-copy="{{ issue.copy_text|e }}">Copiar fallo</button>
+                <button class="ns-button ns-button-primary" type="button" data-copy="{{ issue.codex_prompt|e }}">Copiar prompt</button>
+                <button class="ns-button ns-button-ghost" type="button" data-copy="{{ issue.evidence|e }}">Copiar evidencia</button>
+                <button class="ns-button ns-button-ghost" type="button" data-copy="{{ (issue.validation or [])|join('\n')|e }}">Checklist</button>
+                <a class="ns-button ns-button-ghost" href="/api/admin/sentinel/issues/{{ issue.id }}" target="_blank">Ver JSON</a>
+                {% if issue.route %}
+                  <a class="ns-button ns-button-ghost" href="{{ issue.route }}">Ver ruta</a>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="7"><div class="ns-empty ns-empty-compact">Sin incidencias reales guardadas. Ejecuta un escaneo seguro para poblar el centro si Sentinel detecta algo accionable.</div></td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="ns-grid ns-grid-2">
+    <article class="ns-admin-card">
+      <h2>Acciones seguras</h2>
+      <ul class="v883-list">
+        {% for action in summary.safe_actions %}
+        <li>{{ action }}</li>
+        {% endfor %}
+      </ul>
+    </article>
+    <article class="ns-admin-card">
+      <h2>Estados permitidos</h2>
+      <div class="ns-stack">
+        {% for status in statuses %}
+          <span class="ns-chip">{{ status }}</span>
+        {% endfor %}
+      </div>
+    </article>
+  </section>
+</section>
+
+<script>
+(function(){
+  function copyText(text){
+    if(!text) return;
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text);
+      return;
+    }
+    var ta=document.createElement('textarea');
+    ta.value=text;
+    ta.setAttribute('readonly','readonly');
+    ta.style.position='fixed';
+    ta.style.left='-9999px';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+  }
+  document.querySelectorAll('[data-copy]').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      copyText(btn.getAttribute('data-copy') || '');
+      btn.classList.add('is-copied');
+      btn.textContent='Copiado';
+      setTimeout(function(){ btn.classList.remove('is-copied'); }, 1200);
+    });
+  });
+  var search=document.querySelector('[data-v892-search]');
+  var rows=[].slice.call(document.querySelectorAll('[data-v892-issue-row],[data-v892-issue-card]'));
+  function applyFilter(kind){
+    var q=(search && search.value || '').toLowerCase().trim();
+    rows.forEach(function(row){
+      var matchText=!q || (row.getAttribute('data-search') || row.textContent || '').toLowerCase().indexOf(q) >= 0;
+      var matchKind=kind==='all' || !kind || (kind==='critical' && row.dataset.severity==='critical') || (kind==='open' && !['RESOLVED','FALSE_POSITIVE','IGNORED_SAFE'].includes(row.dataset.status)) || (kind==='codex' && row.dataset.codex==='true');
+      row.style.display=(matchText && matchKind) ? '' : 'none';
+    });
+  }
+  document.querySelectorAll('[data-v892-filters] button').forEach(function(btn){
+    btn.addEventListener('click', function(){ applyFilter(btn.dataset.filter || 'all'); });
+  });
+  if(search) search.addEventListener('input', function(){ applyFilter('all'); });
+})();
+</script>
+{% endblock %}

@@ -311,6 +311,14 @@ from engines.daily_automation_engine import (
     system_health as v818_system_health,
 )
 from engines.telegram_professional_scheduler import professional_telegram_summary
+from engines.sentinel_issues_engine import (
+    ISSUE_STATUSES as SENTINEL_ISSUE_STATUSES,
+    build_sentinel_issues_summary,
+    get_sentinel_issue,
+    load_sentinel_issues_memory,
+    run_sentinel_issues_scan,
+    update_issue_status,
+)
 
 
 from engines.madrid_time_engine import (
@@ -323,7 +331,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V890_RUNTIME_DBPATH_TELEGRAM_PREMIUM_QA_HARDENING_FINAL'
+APP_VERSION = 'V892_SENTINEL_ISSUES_COMMAND_CENTER_COPY_FIX_PROMPTS_FINAL'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 
@@ -13017,6 +13025,82 @@ def api_admin_telegram_pick_quality_summary():
     return jsonify(summary)
 
 
+@app.route("/api/admin/telegram/pick-quality")
+def api_admin_telegram_pick_quality():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    membership = request.args.get("membership") or "PRO"
+    candidates = v889_telegram_premium_pick_candidates(limit=as_int(request.args.get("limit"), 80), membership=membership)
+    return jsonify({
+        "ok": candidates.get("ok", True),
+        "version": APP_VERSION,
+        "membership": str(membership or "PRO").upper(),
+        "approved": candidates.get("sendable") or [],
+        "blocked": candidates.get("blocked") or [],
+        "status": candidates.get("status"),
+        "safe_state": candidates.get("safe_state"),
+        "no_filler_policy": candidates.get("no_filler_policy"),
+    })
+
+
+@app.route("/api/admin/telegram/premium-preview")
+def api_admin_telegram_premium_preview():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify(v889_telegram_pick_preview_payload(request.args.get("membership") or "PRO", request.args.get("pick_id") or ""))
+
+
+@app.route("/api/admin/telegram/dry-run-premium-picks", methods=["GET", "POST"])
+def api_admin_telegram_dry_run_premium_picks():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    payload = request.get_json(silent=True) or request.form or request.args or {}
+    preview = v889_telegram_pick_preview_payload(payload.get("membership") or "PRO", payload.get("pick_id") or "")
+    preview.update({
+        "dry_run": True,
+        "sent": False,
+        "queue_touched": False,
+        "safe_note": "Dry-run premium V891: preview sin envio real y sin escribir cola.",
+    })
+    return jsonify(preview)
+
+
+@app.route("/api/admin/telegram/blocked-picks")
+def api_admin_telegram_blocked_picks():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    membership = request.args.get("membership") or "PRO"
+    candidates = v889_telegram_premium_pick_candidates(limit=as_int(request.args.get("limit"), 80), membership=membership)
+    return jsonify({
+        "ok": candidates.get("ok", True),
+        "version": APP_VERSION,
+        "membership": str(membership or "PRO").upper(),
+        "blocked": candidates.get("blocked") or [],
+        "blocked_count": len(candidates.get("blocked") or []),
+        "safe_state": TELEGRAM_PICK_SAFE_EMPTY_STATE,
+    })
+
+
+@app.route("/api/admin/telegram/quality-status")
+def api_admin_telegram_quality_status():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    membership = request.args.get("membership") or "PRO"
+    candidates = v889_telegram_premium_pick_candidates(limit=as_int(request.args.get("limit"), 80), membership=membership)
+    approved = candidates.get("sendable") or []
+    blocked = candidates.get("blocked") or []
+    return jsonify({
+        "ok": candidates.get("ok", True),
+        "version": APP_VERSION,
+        "status": "premium_ready" if approved else "no_premium_candidates",
+        "approved_count": len(approved),
+        "blocked_count": len(blocked),
+        "queue_skipped_state": QUEUE_SKIPPED,
+        "no_filler_policy": "Mejor no enviar nada que enviar un pick malo.",
+        "dry_run_available": True,
+    })
+
+
 @app.route("/api/admin/telegram/dry-run", methods=["GET", "POST"])
 def api_admin_telegram_dry_run():
     if not is_admin_session():
@@ -13329,6 +13413,123 @@ def _v888_build_autopilot_scan(save_memory=False, mode="quick"):
         save_memory=save_memory,
         memory_root=Path(__file__).resolve().parent,
     )
+
+
+def _v892_sentinel_issues_summary(save_memory=False, mode="quick", include_autopilot=True, include_visual=True):
+    sentinel_run = run_continuous_sentinel_cycle(app.test_client(), APP_VERSION, mode="workflow", dry_run=True)
+    autopilot_run = _v888_build_autopilot_scan(save_memory=False, mode=mode) if include_autopilot else None
+    visual_run = run_visual_company_worker(app.test_client(), APP_VERSION, mode=mode or "quick", dry_run=True) if include_visual else None
+    runtime = _v888_runtime_autopilot_state()
+    return run_sentinel_issues_scan(
+        APP_VERSION,
+        Path(__file__).resolve().parent,
+        sentinel_result=sentinel_run,
+        autopilot_result=autopilot_run,
+        visual_result=visual_run,
+        runtime=runtime,
+        save_memory=save_memory,
+    )
+
+
+@app.route("/admin/sentinel-issues")
+@app.route("/admin/issues")
+@app.route("/admin/incidencias")
+@app.route("/admin/centro-incidencias")
+@app.route("/admin/sentinel-command-center")
+def admin_sentinel_issues_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/sentinel-issues")
+    summary = _v892_sentinel_issues_summary(save_memory=False, mode=request.args.get("mode") or "quick")
+    return render_template("admin_sentinel_issues.html", data=dashboard_data(), summary=summary, statuses=SENTINEL_ISSUE_STATUSES)
+
+
+@app.route("/api/admin/sentinel/issues")
+def api_admin_sentinel_issues():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    memory = load_sentinel_issues_memory(Path(__file__).resolve().parent)
+    summary = build_sentinel_issues_summary(APP_VERSION, memory)
+    return jsonify({"ok": True, **summary})
+
+
+@app.route("/api/admin/sentinel/issues/summary")
+def api_admin_sentinel_issues_summary():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    memory = load_sentinel_issues_memory(Path(__file__).resolve().parent)
+    summary = build_sentinel_issues_summary(APP_VERSION, memory)
+    return jsonify({"ok": True, "version": APP_VERSION, "summary": summary})
+
+
+@app.route("/api/admin/sentinel/issues/scan", methods=["GET", "POST"])
+def api_admin_sentinel_issues_scan():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    mode = request.args.get("mode") or "quick"
+    summary = _v892_sentinel_issues_summary(save_memory=True, mode=mode)
+    return jsonify({"ok": True, "dangerous_actions_executed": False, **summary})
+
+
+@app.route("/api/admin/sentinel/issues/sync-autopilot", methods=["GET", "POST"])
+def api_admin_sentinel_issues_sync_autopilot():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    summary = _v892_sentinel_issues_summary(save_memory=True, mode=request.args.get("mode") or "quick", include_autopilot=True, include_visual=False)
+    return jsonify({"ok": True, "source": "autopilot", "dangerous_actions_executed": False, **summary})
+
+
+@app.route("/api/admin/sentinel/issues/sync-visual-worker", methods=["GET", "POST"])
+def api_admin_sentinel_issues_sync_visual_worker():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    summary = _v892_sentinel_issues_summary(save_memory=True, mode=request.args.get("mode") or "visual", include_autopilot=False, include_visual=True)
+    return jsonify({"ok": True, "source": "visual_worker", "dangerous_actions_executed": False, **summary})
+
+
+@app.route("/api/admin/sentinel/issues/<issue_id>")
+def api_admin_sentinel_issue_detail(issue_id):
+    if not is_admin_session():
+        return admin_json_forbidden()
+    issue = get_sentinel_issue(issue_id, Path(__file__).resolve().parent)
+    if not issue:
+        return jsonify({"ok": False, "version": APP_VERSION, "error": "issue_not_found"}), 404
+    return jsonify({"ok": True, "version": APP_VERSION, "issue": issue})
+
+
+@app.route("/api/admin/sentinel/issues/<issue_id>/status", methods=["POST"])
+def api_admin_sentinel_issue_status(issue_id):
+    if not is_admin_session():
+        return admin_json_forbidden()
+    payload = request.get_json(silent=True) or request.form or {}
+    status = str(payload.get("status") or request.args.get("status") or "IN_REVIEW")
+    result = update_issue_status(issue_id, status, Path(__file__).resolve().parent, note=str(payload.get("note") or ""))
+    return jsonify({"version": APP_VERSION, "dangerous_actions_executed": False, **result}), (200 if result.get("ok") else 400)
+
+
+@app.route("/api/admin/sentinel/issues/<issue_id>/resolve", methods=["POST"])
+def api_admin_sentinel_issue_resolve(issue_id):
+    if not is_admin_session():
+        return admin_json_forbidden()
+    result = update_issue_status(issue_id, "RESOLVED", Path(__file__).resolve().parent, note="Marcada como resuelta desde Centro de Incidencias")
+    return jsonify({"version": APP_VERSION, "dangerous_actions_executed": False, **result}), (200 if result.get("ok") else 404)
+
+
+@app.route("/api/admin/sentinel/issues/<issue_id>/reopen", methods=["POST"])
+def api_admin_sentinel_issue_reopen(issue_id):
+    if not is_admin_session():
+        return admin_json_forbidden()
+    result = update_issue_status(issue_id, "REOPENED", Path(__file__).resolve().parent, note="Reabierta desde Centro de Incidencias")
+    return jsonify({"version": APP_VERSION, "dangerous_actions_executed": False, **result}), (200 if result.get("ok") else 404)
+
+
+@app.route("/api/admin/sentinel/issues/<issue_id>/codex-prompt")
+def api_admin_sentinel_issue_codex_prompt(issue_id):
+    if not is_admin_session():
+        return admin_json_forbidden()
+    issue = get_sentinel_issue(issue_id, Path(__file__).resolve().parent)
+    if not issue:
+        return jsonify({"ok": False, "version": APP_VERSION, "error": "issue_not_found"}), 404
+    return jsonify({"ok": True, "version": APP_VERSION, "issue_id": issue_id, "prompt": issue.get("codex_prompt") or "", "copy_text": issue.get("copy_text") or ""})
 
 
 @app.route("/admin/sentinel-autopilot")
@@ -14222,7 +14423,10 @@ def api_runtime_version():
         "has_v888_real_errors_sweep": "data-v888-shell" in base_template and "check_v888_real_errors_sweep.py" in "\n".join(sorted(p.name for p in (Path(__file__).resolve().parent / "tools").glob("check_v888*.py"))),
         "has_v888_sentinel_autopilot_self_improvement": "sentinel_autopilot_engine" in app_py_text and "/admin/sentinel-autopilot" in app_py_text and "/api/automation/sentinel-autopilot/run" in app_py_text and "data-v888-autopilot-shell" in base_template,
         "has_v889_telegram_premium_picks_intelligence": "telegram_pick_quality_engine" in app_py_text and "/api/admin/telegram/pick-preview" in app_py_text and "format_premium_pick_message" in app_py_text,
-        "has_v890_runtime_dbpath_telegram_hardening": "resolve_default_db_path" in app_py_text and "V890_RUNTIME_DBPATH_TELEGRAM_PREMIUM_QA_HARDENING_FINAL" in base_template,
+        "has_v890_runtime_dbpath_telegram_hardening": "resolve_default_db_path" in app_py_text and 'return "/data/database.db"' in app_py_text and 'BASE_DIR / "data" / "database.db"' in app_py_text,
+        "has_v890_sentinel_issues_command_center": "sentinel_issues_engine" in app_py_text and "/admin/sentinel-issues" in app_py_text,
+        "has_v891_telegram_premium_admin_endpoint_compatibility": "/api/admin/telegram/pick-quality" in app_py_text and "/api/admin/telegram/dry-run-premium-picks" in app_py_text and "/api/admin/telegram/blocked-picks" in app_py_text,
+        "has_v892_sentinel_issues_command_center": "sentinel_issues_engine" in app_py_text and "/admin/sentinel-issues" in app_py_text and "/api/admin/sentinel/issues/scan" in app_py_text,
         "has_v837_reference_photo_qa": "data-v837-shell" in base_template and "V837 REFERENCE PHOTO PERFECTION REAL QA START" in css_text,
         "has_v836_autonomous_qa": "data-v836-shell" in base_template and "V836 AUTONOMOUS REFERENCE VISUAL REVIEW FINAL QA START" in css_text,
         "has_v833_visual_completion": "data-v833-shell" in base_template and "V833 REFERENCE ECOSYSTEM VISUAL COMPLETION START" in css_text,
@@ -14238,7 +14442,7 @@ def api_runtime_version():
         "has_v820_crests": "data-v820-shell" in base_template and "V820 REAL CRESTS REFERENCE VISUAL PIXEL POLISH START" in css_text,
         "has_v819_dedup": "data-v819-shell" in base_template and "V819 REFERENCE UI DEDUP LAYER PURGE START" in css_text,
         "has_v818_automation": "/api/automation/master-tick" in app_py_text and "daily_automation_engine" in app_py_text,
-        "static_css_cache_busting": "V890_RUNTIME_DBPATH_TELEGRAM_PREMIUM_QA_HARDENING_FINAL" in base_template,
+        "static_css_cache_busting": "V892_SENTINEL_ISSUES_COMMAND_CENTER_COPY_FIX_PROMPTS_FINAL" in base_template,
         "crest_engine_loaded": runtime_stability.get("crest_engine_loaded"),
         "logo_cache_tables_ok": runtime_stability.get("logo_cache_tables_ok"),
         "team_logo_cache_count": runtime_stability.get("team_logo_cache_count"),
