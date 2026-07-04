@@ -6,7 +6,7 @@ import sys
 
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION_PREFIXES = ("V891_", "V893_", "V894_")
+VERSION_PREFIXES = ("V891_", "V893_", "V894_", "V895_")
 sys.path.insert(0, str(ROOT))
 
 
@@ -28,7 +28,7 @@ def main() -> int:
     template = read("templates/admin_autonomous_sentinel.html")
     engine = read("engines/autonomous_sentinel_worker_engine.py")
 
-    require(version_txt.startswith(VERSION_PREFIXES), "VERSION.txt is not V891/V893/V894 autonomous worker lineage", failures)
+    require(version_txt.startswith(VERSION_PREFIXES), "VERSION.txt is not V891/V893/V894/V895 autonomous worker lineage", failures)
     require(app_version_file == version_txt, "APP_VERSION does not match VERSION.txt", failures)
     require(f"APP_VERSION = '{version_txt}'" in app_py, "app.py APP_VERSION mismatch", failures)
     require("has_v891_autonomous_sentinel_user_admin_reference_worker" in app_py, "runtime requested V891 flag missing", failures)

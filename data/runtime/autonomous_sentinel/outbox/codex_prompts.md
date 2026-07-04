@@ -1,164 +1,3 @@
-# SENT-2026-BD766D7A
-
-Corrige esta incidencia en NeMeSiS SHARK PRO sin romper nada anterior.
-
-ID:
-SENT-2026-BD766D7A
-
-Area:
-data
-
-Severidad:
-critical
-
-Problema:
-Pantalla deportiva sin datos reales visibles
-
-Ruta afectada:
-Sin ruta concreta
-
-Archivo probable:
-Por determinar
-
-Evidencia:
-Sin evidencia adicional
-
-Impacto:
-Afecta a claridad, operacion o confianza del producto si permanece activo.
-
-Reglas:
-
-* No inventar datos.
-* No tocar secretos.
-* No romper usuarios, sesiones, membresias, pagos, DB_PATH, Madrid Time, Render Cron ni Telegram dedupe.
-* Mantener navegacion cliente/admin separada.
-* Mantener estados seguros si faltan datos reales.
-
-Que debes hacer:
-Revisar causa real y corregir sin tocar secretos ni datos reales.
-
-Validaciones obligatorias:
-* python -m py_compile app.py
-* python tools/run_continuous_sentinel_static.py
-
-Entrega:
-
-* resumen de cambios;
-* archivos tocados;
-* validaciones pasadas;
-* limitaciones honestas;
-* ZIP limpio si corresponde.
-
----
-
-# AP-3C673A27B2AB
-
-Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: Ruta con error 500 Categoria: route Ruta/pantalla: /partidos Evidencia: 500  Reglas sagradas: no tocar secretos, no enviar Telegram real, no inventar partidos/picks/cuotas/resultados, no tocar pagos reales, no borrar DB/usuarios, no hacer push/deploy automatico y preservar V818+.  Tarea: localizar la causa real, proponer un fix seguro, aplicar solo cambios controlados si son necesarios, ejecutar checks locales y documentar resultado, bloqueadores y siguiente accion.
-
----
-
-# AP-CA5965DC1A4B
-
-Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: Ruta con error 500 Categoria: route Ruta/pantalla: /calendar Evidencia: 500  Reglas sagradas: no tocar secretos, no enviar Telegram real, no inventar partidos/picks/cuotas/resultados, no tocar pagos reales, no borrar DB/usuarios, no hacer push/deploy automatico y preservar V818+.  Tarea: localizar la causa real, proponer un fix seguro, aplicar solo cambios controlados si son necesarios, ejecutar checks locales y documentar resultado, bloqueadores y siguiente accion.
-
----
-
-# AP-BE9581754C93
-
-Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: Ruta con error 500 Categoria: route Ruta/pantalla: /live Evidencia: 500  Reglas sagradas: no tocar secretos, no enviar Telegram real, no inventar partidos/picks/cuotas/resultados, no tocar pagos reales, no borrar DB/usuarios, no hacer push/deploy automatico y preservar V818+.  Tarea: localizar la causa real, proponer un fix seguro, aplicar solo cambios controlados si son necesarios, ejecutar checks locales y documentar resultado, bloqueadores y siguiente accion.
-
----
-
-# AP-C6D8FD182771
-
-Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: Ruta con error 500 Categoria: route Ruta/pantalla: /directo Evidencia: 500  Reglas sagradas: no tocar secretos, no enviar Telegram real, no inventar partidos/picks/cuotas/resultados, no tocar pagos reales, no borrar DB/usuarios, no hacer push/deploy automatico y preservar V818+.  Tarea: localizar la causa real, proponer un fix seguro, aplicar solo cambios controlados si son necesarios, ejecutar checks locales y documentar resultado, bloqueadores y siguiente accion.
-
----
-
-# AP-D089823FEA9F
-
-Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: Ruta con error 500 Categoria: route Ruta/pantalla: /picks Evidencia: 500  Reglas sagradas: no tocar secretos, no enviar Telegram real, no inventar partidos/picks/cuotas/resultados, no tocar pagos reales, no borrar DB/usuarios, no hacer push/deploy automatico y preservar V818+.  Tarea: localizar la causa real, proponer un fix seguro, aplicar solo cambios controlados si son necesarios, ejecutar checks locales y documentar resultado, bloqueadores y siguiente accion.
-
----
-
-# AP-7DBD262A2E0B
-
-Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: Ruta con error 500 Categoria: route Ruta/pantalla: /shark Evidencia: 500  Reglas sagradas: no tocar secretos, no enviar Telegram real, no inventar partidos/picks/cuotas/resultados, no tocar pagos reales, no borrar DB/usuarios, no hacer push/deploy automatico y preservar V818+.  Tarea: localizar la causa real, proponer un fix seguro, aplicar solo cambios controlados si son necesarios, ejecutar checks locales y documentar resultado, bloqueadores y siguiente accion.
-
----
-
-# AP-9A2158F9BD47
-
-Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: Ruta con error 5xx Categoria: visual_layout Ruta/pantalla: /partidos Evidencia: HTTP 500  Reglas sagradas: no tocar secretos, no enviar Telegram real, no inventar partidos/picks/cuotas/resultados, no tocar pagos reales, no borrar DB/usuarios, no hacer push/deploy automatico y preservar V818+.  Tarea: localizar la causa real, proponer un fix seguro, aplicar solo cambios controlados si son necesarios, ejecutar checks locales y documentar resultado, bloqueadores y siguiente accion.
-
----
-
-# AP-0A4A87FF0A33
-
-Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: Ruta cliente con estado inesperado Categoria: visual_layout Ruta/pantalla: /partidos Evidencia: HTTP 500  Reglas sagradas: no tocar secretos, no enviar Telegram real, no inventar partidos/picks/cuotas/resultados, no tocar pagos reales, no borrar DB/usuarios, no hacer push/deploy automatico y preservar V818+.  Tarea: localizar la causa real, proponer un fix seguro, aplicar solo cambios controlados si son necesarios, ejecutar checks locales y documentar resultado, bloqueadores y siguiente accion.
-
----
-
-# AP-C17F5C4145A6
-
-Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: Ruta con error 5xx Categoria: visual_layout Ruta/pantalla: /calendar Evidencia: HTTP 500  Reglas sagradas: no tocar secretos, no enviar Telegram real, no inventar partidos/picks/cuotas/resultados, no tocar pagos reales, no borrar DB/usuarios, no hacer push/deploy automatico y preservar V818+.  Tarea: localizar la causa real, proponer un fix seguro, aplicar solo cambios controlados si son necesarios, ejecutar checks locales y documentar resultado, bloqueadores y siguiente accion.
-
----
-
-# AP-F84E77682758
-
-Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: Ruta cliente con estado inesperado Categoria: visual_layout Ruta/pantalla: /calendar Evidencia: HTTP 500  Reglas sagradas: no tocar secretos, no enviar Telegram real, no inventar partidos/picks/cuotas/resultados, no tocar pagos reales, no borrar DB/usuarios, no hacer push/deploy automatico y preservar V818+.  Tarea: localizar la causa real, proponer un fix seguro, aplicar solo cambios controlados si son necesarios, ejecutar checks locales y documentar resultado, bloqueadores y siguiente accion.
-
----
-
-# AP-CEC758DF0429
-
-Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: Ruta con error 5xx Categoria: visual_layout Ruta/pantalla: /live Evidencia: HTTP 500  Reglas sagradas: no tocar secretos, no enviar Telegram real, no inventar partidos/picks/cuotas/resultados, no tocar pagos reales, no borrar DB/usuarios, no hacer push/deploy automatico y preservar V818+.  Tarea: localizar la causa real, proponer un fix seguro, aplicar solo cambios controlados si son necesarios, ejecutar checks locales y documentar resultado, bloqueadores y siguiente accion.
-
----
-
-# AP-BBB9F4335CA3
-
-Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: Ruta cliente con estado inesperado Categoria: visual_layout Ruta/pantalla: /live Evidencia: HTTP 500  Reglas sagradas: no tocar secretos, no enviar Telegram real, no inventar partidos/picks/cuotas/resultados, no tocar pagos reales, no borrar DB/usuarios, no hacer push/deploy automatico y preservar V818+.  Tarea: localizar la causa real, proponer un fix seguro, aplicar solo cambios controlados si son necesarios, ejecutar checks locales y documentar resultado, bloqueadores y siguiente accion.
-
----
-
-# AP-FD12300B29F1
-
-Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: 500 en ruta cliente Categoria: navigation Ruta/pantalla: /partidos Evidencia: HTTP 500  Reglas sagradas: no tocar secretos, no enviar Telegram real, no inventar partidos/picks/cuotas/resultados, no tocar pagos reales, no borrar DB/usuarios, no hacer push/deploy automatico y preservar V818+.  Tarea: localizar la causa real, proponer un fix seguro, aplicar solo cambios controlados si son necesarios, ejecutar checks locales y documentar resultado, bloqueadores y siguiente accion.
-
----
-
-# AP-48F4A8C1D841
-
-Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: 500 en ruta cliente Categoria: navigation Ruta/pantalla: /calendar Evidencia: HTTP 500  Reglas sagradas: no tocar secretos, no enviar Telegram real, no inventar partidos/picks/cuotas/resultados, no tocar pagos reales, no borrar DB/usuarios, no hacer push/deploy automatico y preservar V818+.  Tarea: localizar la causa real, proponer un fix seguro, aplicar solo cambios controlados si son necesarios, ejecutar checks locales y documentar resultado, bloqueadores y siguiente accion.
-
----
-
-# AP-41122B9C703C
-
-Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: 500 en ruta cliente Categoria: navigation Ruta/pantalla: /live Evidencia: HTTP 500  Reglas sagradas: no tocar secretos, no enviar Telegram real, no inventar partidos/picks/cuotas/resultados, no tocar pagos reales, no borrar DB/usuarios, no hacer push/deploy automatico y preservar V818+.  Tarea: localizar la causa real, proponer un fix seguro, aplicar solo cambios controlados si son necesarios, ejecutar checks locales y documentar resultado, bloqueadores y siguiente accion.
-
----
-
-# AP-7F8F8A4345FC
-
-Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: 500 en ruta cliente Categoria: navigation Ruta/pantalla: /directo Evidencia: HTTP 500  Reglas sagradas: no tocar secretos, no enviar Telegram real, no inventar partidos/picks/cuotas/resultados, no tocar pagos reales, no borrar DB/usuarios, no hacer push/deploy automatico y preservar V818+.  Tarea: localizar la causa real, proponer un fix seguro, aplicar solo cambios controlados si son necesarios, ejecutar checks locales y documentar resultado, bloqueadores y siguiente accion.
-
----
-
-# AP-56016D4BB833
-
-Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: 500 en ruta cliente Categoria: navigation Ruta/pantalla: /picks Evidencia: HTTP 500  Reglas sagradas: no tocar secretos, no enviar Telegram real, no inventar partidos/picks/cuotas/resultados, no tocar pagos reales, no borrar DB/usuarios, no hacer push/deploy automatico y preservar V818+.  Tarea: localizar la causa real, proponer un fix seguro, aplicar solo cambios controlados si son necesarios, ejecutar checks locales y documentar resultado, bloqueadores y siguiente accion.
-
----
-
-# AP-F63099368262
-
-Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: 500 en ruta cliente Categoria: navigation Ruta/pantalla: /shark Evidencia: HTTP 500  Reglas sagradas: no tocar secretos, no enviar Telegram real, no inventar partidos/picks/cuotas/resultados, no tocar pagos reales, no borrar DB/usuarios, no hacer push/deploy automatico y preservar V818+.  Tarea: localizar la causa real, proponer un fix seguro, aplicar solo cambios controlados si son necesarios, ejecutar checks locales y documentar resultado, bloqueadores y siguiente accion.
-
----
-
 # SENT-2026-9138CA59
 
 Corrige esta incidencia en NeMeSiS SHARK PRO sin romper nada anterior.
@@ -901,6 +740,167 @@ Entrega:
 
 ---
 
+# SENT-2026-BD766D7A
+
+Corrige esta incidencia en NeMeSiS SHARK PRO sin romper nada anterior.
+
+ID:
+SENT-2026-BD766D7A
+
+Area:
+data
+
+Severidad:
+critical
+
+Problema:
+Pantalla deportiva sin datos reales visibles
+
+Ruta afectada:
+Sin ruta concreta
+
+Archivo probable:
+Por determinar
+
+Evidencia:
+Sin evidencia adicional
+
+Impacto:
+Afecta a claridad, operacion o confianza del producto si permanece activo.
+
+Reglas:
+
+* No inventar datos.
+* No tocar secretos.
+* No romper usuarios, sesiones, membresias, pagos, DB_PATH, Madrid Time, Render Cron ni Telegram dedupe.
+* Mantener navegacion cliente/admin separada.
+* Mantener estados seguros si faltan datos reales.
+
+Que debes hacer:
+Revisar causa real y corregir sin tocar secretos ni datos reales.
+
+Validaciones obligatorias:
+* python -m py_compile app.py
+* python tools/run_continuous_sentinel_static.py
+
+Entrega:
+
+* resumen de cambios;
+* archivos tocados;
+* validaciones pasadas;
+* limitaciones honestas;
+* ZIP limpio si corresponde.
+
+---
+
+# AP-3C673A27B2AB
+
+Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: Ruta con error 500 Categoria: route Ruta/pantalla: /partidos Evidencia: 500  Reglas sagradas: no tocar secretos, no enviar Telegram real, no inventar partidos/picks/cuotas/resultados, no tocar pagos reales, no borrar DB/usuarios, no hacer push/deploy automatico y preservar V818+.  Tarea: localizar la causa real, proponer un fix seguro, aplicar solo cambios controlados si son necesarios, ejecutar checks locales y documentar resultado, bloqueadores y siguiente accion.
+
+---
+
+# AP-CA5965DC1A4B
+
+Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: Ruta con error 500 Categoria: route Ruta/pantalla: /calendar Evidencia: 500  Reglas sagradas: no tocar secretos, no enviar Telegram real, no inventar partidos/picks/cuotas/resultados, no tocar pagos reales, no borrar DB/usuarios, no hacer push/deploy automatico y preservar V818+.  Tarea: localizar la causa real, proponer un fix seguro, aplicar solo cambios controlados si son necesarios, ejecutar checks locales y documentar resultado, bloqueadores y siguiente accion.
+
+---
+
+# AP-BE9581754C93
+
+Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: Ruta con error 500 Categoria: route Ruta/pantalla: /live Evidencia: 500  Reglas sagradas: no tocar secretos, no enviar Telegram real, no inventar partidos/picks/cuotas/resultados, no tocar pagos reales, no borrar DB/usuarios, no hacer push/deploy automatico y preservar V818+.  Tarea: localizar la causa real, proponer un fix seguro, aplicar solo cambios controlados si son necesarios, ejecutar checks locales y documentar resultado, bloqueadores y siguiente accion.
+
+---
+
+# AP-C6D8FD182771
+
+Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: Ruta con error 500 Categoria: route Ruta/pantalla: /directo Evidencia: 500  Reglas sagradas: no tocar secretos, no enviar Telegram real, no inventar partidos/picks/cuotas/resultados, no tocar pagos reales, no borrar DB/usuarios, no hacer push/deploy automatico y preservar V818+.  Tarea: localizar la causa real, proponer un fix seguro, aplicar solo cambios controlados si son necesarios, ejecutar checks locales y documentar resultado, bloqueadores y siguiente accion.
+
+---
+
+# AP-D089823FEA9F
+
+Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: Ruta con error 500 Categoria: route Ruta/pantalla: /picks Evidencia: 500  Reglas sagradas: no tocar secretos, no enviar Telegram real, no inventar partidos/picks/cuotas/resultados, no tocar pagos reales, no borrar DB/usuarios, no hacer push/deploy automatico y preservar V818+.  Tarea: localizar la causa real, proponer un fix seguro, aplicar solo cambios controlados si son necesarios, ejecutar checks locales y documentar resultado, bloqueadores y siguiente accion.
+
+---
+
+# AP-7DBD262A2E0B
+
+Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: Ruta con error 500 Categoria: route Ruta/pantalla: /shark Evidencia: 500  Reglas sagradas: no tocar secretos, no enviar Telegram real, no inventar partidos/picks/cuotas/resultados, no tocar pagos reales, no borrar DB/usuarios, no hacer push/deploy automatico y preservar V818+.  Tarea: localizar la causa real, proponer un fix seguro, aplicar solo cambios controlados si son necesarios, ejecutar checks locales y documentar resultado, bloqueadores y siguiente accion.
+
+---
+
+# AP-9A2158F9BD47
+
+Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: Ruta con error 5xx Categoria: visual_layout Ruta/pantalla: /partidos Evidencia: HTTP 500  Reglas sagradas: no tocar secretos, no enviar Telegram real, no inventar partidos/picks/cuotas/resultados, no tocar pagos reales, no borrar DB/usuarios, no hacer push/deploy automatico y preservar V818+.  Tarea: localizar la causa real, proponer un fix seguro, aplicar solo cambios controlados si son necesarios, ejecutar checks locales y documentar resultado, bloqueadores y siguiente accion.
+
+---
+
+# AP-0A4A87FF0A33
+
+Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: Ruta cliente con estado inesperado Categoria: visual_layout Ruta/pantalla: /partidos Evidencia: HTTP 500  Reglas sagradas: no tocar secretos, no enviar Telegram real, no inventar partidos/picks/cuotas/resultados, no tocar pagos reales, no borrar DB/usuarios, no hacer push/deploy automatico y preservar V818+.  Tarea: localizar la causa real, proponer un fix seguro, aplicar solo cambios controlados si son necesarios, ejecutar checks locales y documentar resultado, bloqueadores y siguiente accion.
+
+---
+
+# AP-C17F5C4145A6
+
+Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: Ruta con error 5xx Categoria: visual_layout Ruta/pantalla: /calendar Evidencia: HTTP 500  Reglas sagradas: no tocar secretos, no enviar Telegram real, no inventar partidos/picks/cuotas/resultados, no tocar pagos reales, no borrar DB/usuarios, no hacer push/deploy automatico y preservar V818+.  Tarea: localizar la causa real, proponer un fix seguro, aplicar solo cambios controlados si son necesarios, ejecutar checks locales y documentar resultado, bloqueadores y siguiente accion.
+
+---
+
+# AP-F84E77682758
+
+Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: Ruta cliente con estado inesperado Categoria: visual_layout Ruta/pantalla: /calendar Evidencia: HTTP 500  Reglas sagradas: no tocar secretos, no enviar Telegram real, no inventar partidos/picks/cuotas/resultados, no tocar pagos reales, no borrar DB/usuarios, no hacer push/deploy automatico y preservar V818+.  Tarea: localizar la causa real, proponer un fix seguro, aplicar solo cambios controlados si son necesarios, ejecutar checks locales y documentar resultado, bloqueadores y siguiente accion.
+
+---
+
+# AP-CEC758DF0429
+
+Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: Ruta con error 5xx Categoria: visual_layout Ruta/pantalla: /live Evidencia: HTTP 500  Reglas sagradas: no tocar secretos, no enviar Telegram real, no inventar partidos/picks/cuotas/resultados, no tocar pagos reales, no borrar DB/usuarios, no hacer push/deploy automatico y preservar V818+.  Tarea: localizar la causa real, proponer un fix seguro, aplicar solo cambios controlados si son necesarios, ejecutar checks locales y documentar resultado, bloqueadores y siguiente accion.
+
+---
+
+# AP-BBB9F4335CA3
+
+Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: Ruta cliente con estado inesperado Categoria: visual_layout Ruta/pantalla: /live Evidencia: HTTP 500  Reglas sagradas: no tocar secretos, no enviar Telegram real, no inventar partidos/picks/cuotas/resultados, no tocar pagos reales, no borrar DB/usuarios, no hacer push/deploy automatico y preservar V818+.  Tarea: localizar la causa real, proponer un fix seguro, aplicar solo cambios controlados si son necesarios, ejecutar checks locales y documentar resultado, bloqueadores y siguiente accion.
+
+---
+
+# AP-FD12300B29F1
+
+Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: 500 en ruta cliente Categoria: navigation Ruta/pantalla: /partidos Evidencia: HTTP 500  Reglas sagradas: no tocar secretos, no enviar Telegram real, no inventar partidos/picks/cuotas/resultados, no tocar pagos reales, no borrar DB/usuarios, no hacer push/deploy automatico y preservar V818+.  Tarea: localizar la causa real, proponer un fix seguro, aplicar solo cambios controlados si son necesarios, ejecutar checks locales y documentar resultado, bloqueadores y siguiente accion.
+
+---
+
+# AP-48F4A8C1D841
+
+Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: 500 en ruta cliente Categoria: navigation Ruta/pantalla: /calendar Evidencia: HTTP 500  Reglas sagradas: no tocar secretos, no enviar Telegram real, no inventar partidos/picks/cuotas/resultados, no tocar pagos reales, no borrar DB/usuarios, no hacer push/deploy automatico y preservar V818+.  Tarea: localizar la causa real, proponer un fix seguro, aplicar solo cambios controlados si son necesarios, ejecutar checks locales y documentar resultado, bloqueadores y siguiente accion.
+
+---
+
+# AP-41122B9C703C
+
+Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: 500 en ruta cliente Categoria: navigation Ruta/pantalla: /live Evidencia: HTTP 500  Reglas sagradas: no tocar secretos, no enviar Telegram real, no inventar partidos/picks/cuotas/resultados, no tocar pagos reales, no borrar DB/usuarios, no hacer push/deploy automatico y preservar V818+.  Tarea: localizar la causa real, proponer un fix seguro, aplicar solo cambios controlados si son necesarios, ejecutar checks locales y documentar resultado, bloqueadores y siguiente accion.
+
+---
+
+# AP-7F8F8A4345FC
+
+Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: 500 en ruta cliente Categoria: navigation Ruta/pantalla: /directo Evidencia: HTTP 500  Reglas sagradas: no tocar secretos, no enviar Telegram real, no inventar partidos/picks/cuotas/resultados, no tocar pagos reales, no borrar DB/usuarios, no hacer push/deploy automatico y preservar V818+.  Tarea: localizar la causa real, proponer un fix seguro, aplicar solo cambios controlados si son necesarios, ejecutar checks locales y documentar resultado, bloqueadores y siguiente accion.
+
+---
+
+# AP-56016D4BB833
+
+Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: 500 en ruta cliente Categoria: navigation Ruta/pantalla: /picks Evidencia: HTTP 500  Reglas sagradas: no tocar secretos, no enviar Telegram real, no inventar partidos/picks/cuotas/resultados, no tocar pagos reales, no borrar DB/usuarios, no hacer push/deploy automatico y preservar V818+.  Tarea: localizar la causa real, proponer un fix seguro, aplicar solo cambios controlados si son necesarios, ejecutar checks locales y documentar resultado, bloqueadores y siguiente accion.
+
+---
+
+# AP-F63099368262
+
+Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: 500 en ruta cliente Categoria: navigation Ruta/pantalla: /shark Evidencia: HTTP 500  Reglas sagradas: no tocar secretos, no enviar Telegram real, no inventar partidos/picks/cuotas/resultados, no tocar pagos reales, no borrar DB/usuarios, no hacer push/deploy automatico y preservar V818+.  Tarea: localizar la causa real, proponer un fix seguro, aplicar solo cambios controlados si son necesarios, ejecutar checks locales y documentar resultado, bloqueadores y siguiente accion.
+
+---
+
 # SENT-2026-B97FFAF1
 
 Corrige esta incidencia en NeMeSiS SHARK PRO sin romper nada anterior.
@@ -987,6 +987,271 @@ Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: Pantalla deportiva
 # AP-0A27B99CDA6D
 
 Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: Pantalla deportiva sin estado seguro claro Categoria: sports_data Ruta/pantalla: /picks Evidencia: No se encontro estado seguro para ausencia de datos reales.  Reglas sagradas: no tocar secretos, no enviar Telegram real, no inventar partidos/picks/cuotas/resultados, no tocar pagos reales, no borrar DB/usuarios, no hacer push/deploy automatico y preservar V818+.  Tarea: localizar la causa real, proponer un fix seguro, aplicar solo cambios controlados si son necesarios, ejecutar checks locales y documentar resultado, bloqueadores y siguiente accion.
+
+---
+
+# SENT-2026-9F239E39
+
+Corrige esta incidencia en NeMeSiS SHARK PRO sin romper nada anterior.
+
+ID:
+SENT-2026-9F239E39
+
+Area:
+buttons_routes
+
+Severidad:
+medium
+
+Problema:
+Ruta redirige y requiere revision de flujo
+
+Ruta afectada:
+/app
+
+Archivo probable:
+Por determinar
+
+Evidencia:
+HTTP 302
+
+Impacto:
+Puede degradar experiencia cliente/admin o generar falsa confianza operativa.
+
+Reglas:
+
+* No inventar datos.
+* No tocar secretos.
+* No romper usuarios, sesiones, membresias, pagos, DB_PATH, Madrid Time, Render Cron ni Telegram dedupe.
+* Mantener navegacion cliente/admin separada.
+* Mantener estados seguros si faltan datos reales.
+
+Que debes hacer:
+Revisar la causa real, corregir de forma segura y revalidar con Sentinel.
+
+Validaciones obligatorias:
+* python -m py_compile app.py
+* python tools/run_continuous_sentinel_static.py
+
+Entrega:
+
+* resumen de cambios;
+* archivos tocados;
+* validaciones pasadas;
+* limitaciones honestas;
+* ZIP limpio si corresponde.
+
+---
+
+# SENT-2026-A19DDAAB
+
+Corrige esta incidencia en NeMeSiS SHARK PRO sin romper nada anterior.
+
+ID:
+SENT-2026-A19DDAAB
+
+Area:
+buttons_routes
+
+Severidad:
+medium
+
+Problema:
+Ruta redirige y requiere revision de flujo
+
+Ruta afectada:
+/profile
+
+Archivo probable:
+Por determinar
+
+Evidencia:
+HTTP 302
+
+Impacto:
+Puede degradar experiencia cliente/admin o generar falsa confianza operativa.
+
+Reglas:
+
+* No inventar datos.
+* No tocar secretos.
+* No romper usuarios, sesiones, membresias, pagos, DB_PATH, Madrid Time, Render Cron ni Telegram dedupe.
+* Mantener navegacion cliente/admin separada.
+* Mantener estados seguros si faltan datos reales.
+
+Que debes hacer:
+Revisar la causa real, corregir de forma segura y revalidar con Sentinel.
+
+Validaciones obligatorias:
+* python -m py_compile app.py
+* python tools/run_continuous_sentinel_static.py
+
+Entrega:
+
+* resumen de cambios;
+* archivos tocados;
+* validaciones pasadas;
+* limitaciones honestas;
+* ZIP limpio si corresponde.
+
+---
+
+# SENT-2026-4E993B9A
+
+Corrige esta incidencia en NeMeSiS SHARK PRO sin romper nada anterior.
+
+ID:
+SENT-2026-4E993B9A
+
+Area:
+buttons_routes
+
+Severidad:
+medium
+
+Problema:
+Ruta redirige y requiere revision de flujo
+
+Ruta afectada:
+/telegram
+
+Archivo probable:
+Por determinar
+
+Evidencia:
+HTTP 302
+
+Impacto:
+Puede degradar experiencia cliente/admin o generar falsa confianza operativa.
+
+Reglas:
+
+* No inventar datos.
+* No tocar secretos.
+* No romper usuarios, sesiones, membresias, pagos, DB_PATH, Madrid Time, Render Cron ni Telegram dedupe.
+* Mantener navegacion cliente/admin separada.
+* Mantener estados seguros si faltan datos reales.
+
+Que debes hacer:
+Revisar la causa real, corregir de forma segura y revalidar con Sentinel.
+
+Validaciones obligatorias:
+* python -m py_compile app.py
+* python tools/run_continuous_sentinel_static.py
+
+Entrega:
+
+* resumen de cambios;
+* archivos tocados;
+* validaciones pasadas;
+* limitaciones honestas;
+* ZIP limpio si corresponde.
+
+---
+
+# SENT-2026-92B8377D
+
+Corrige esta incidencia en NeMeSiS SHARK PRO sin romper nada anterior.
+
+ID:
+SENT-2026-92B8377D
+
+Area:
+buttons_routes
+
+Severidad:
+medium
+
+Problema:
+Ruta redirige y requiere revision de flujo
+
+Ruta afectada:
+/favorites
+
+Archivo probable:
+Por determinar
+
+Evidencia:
+HTTP 302
+
+Impacto:
+Puede degradar experiencia cliente/admin o generar falsa confianza operativa.
+
+Reglas:
+
+* No inventar datos.
+* No tocar secretos.
+* No romper usuarios, sesiones, membresias, pagos, DB_PATH, Madrid Time, Render Cron ni Telegram dedupe.
+* Mantener navegacion cliente/admin separada.
+* Mantener estados seguros si faltan datos reales.
+
+Que debes hacer:
+Revisar la causa real, corregir de forma segura y revalidar con Sentinel.
+
+Validaciones obligatorias:
+* python -m py_compile app.py
+* python tools/run_continuous_sentinel_static.py
+
+Entrega:
+
+* resumen de cambios;
+* archivos tocados;
+* validaciones pasadas;
+* limitaciones honestas;
+* ZIP limpio si corresponde.
+
+---
+
+# SENT-2026-B2A70FA7
+
+Corrige esta incidencia en NeMeSiS SHARK PRO sin romper nada anterior.
+
+ID:
+SENT-2026-B2A70FA7
+
+Area:
+admin
+
+Severidad:
+medium
+
+Problema:
+Navegacion cliente aparece en admin
+
+Ruta afectada:
+/admin-login
+
+Archivo probable:
+Por determinar
+
+Evidencia:
+bottom nav/sidebar/floating SHARK detectado en admin
+
+Impacto:
+Puede degradar experiencia cliente/admin o generar falsa confianza operativa.
+
+Reglas:
+
+* No inventar datos.
+* No tocar secretos.
+* No romper usuarios, sesiones, membresias, pagos, DB_PATH, Madrid Time, Render Cron ni Telegram dedupe.
+* Mantener navegacion cliente/admin separada.
+* Mantener estados seguros si faltan datos reales.
+
+Que debes hacer:
+Revisar la causa real, corregir de forma segura y revalidar con Sentinel.
+
+Validaciones obligatorias:
+* python -m py_compile app.py
+* python tools/run_continuous_sentinel_static.py
+
+Entrega:
+
+* resumen de cambios;
+* archivos tocados;
+* validaciones pasadas;
+* limitaciones honestas;
+* ZIP limpio si corresponde.
 
 ---
 
@@ -1300,271 +1565,6 @@ Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: Ruta con error 5xx
 # AP-80F52E08F849
 
 Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: Ruta cliente con estado inesperado Categoria: visual_layout Ruta/pantalla: sin ruta concreta Evidencia: Sin evidencia textual adicional.  Reglas sagradas: no tocar secretos, no enviar Telegram real, no inventar partidos/picks/cuotas/resultados, no tocar pagos reales, no borrar DB/usuarios, no hacer push/deploy automatico y preservar V818+.  Tarea: localizar la causa real, proponer un fix seguro, aplicar solo cambios controlados si son necesarios, ejecutar checks locales y documentar resultado, bloqueadores y siguiente accion.
-
----
-
-# SENT-2026-9F239E39
-
-Corrige esta incidencia en NeMeSiS SHARK PRO sin romper nada anterior.
-
-ID:
-SENT-2026-9F239E39
-
-Area:
-buttons_routes
-
-Severidad:
-medium
-
-Problema:
-Ruta redirige y requiere revision de flujo
-
-Ruta afectada:
-/app
-
-Archivo probable:
-Por determinar
-
-Evidencia:
-HTTP 302
-
-Impacto:
-Puede degradar experiencia cliente/admin o generar falsa confianza operativa.
-
-Reglas:
-
-* No inventar datos.
-* No tocar secretos.
-* No romper usuarios, sesiones, membresias, pagos, DB_PATH, Madrid Time, Render Cron ni Telegram dedupe.
-* Mantener navegacion cliente/admin separada.
-* Mantener estados seguros si faltan datos reales.
-
-Que debes hacer:
-Revisar la causa real, corregir de forma segura y revalidar con Sentinel.
-
-Validaciones obligatorias:
-* python -m py_compile app.py
-* python tools/run_continuous_sentinel_static.py
-
-Entrega:
-
-* resumen de cambios;
-* archivos tocados;
-* validaciones pasadas;
-* limitaciones honestas;
-* ZIP limpio si corresponde.
-
----
-
-# SENT-2026-A19DDAAB
-
-Corrige esta incidencia en NeMeSiS SHARK PRO sin romper nada anterior.
-
-ID:
-SENT-2026-A19DDAAB
-
-Area:
-buttons_routes
-
-Severidad:
-medium
-
-Problema:
-Ruta redirige y requiere revision de flujo
-
-Ruta afectada:
-/profile
-
-Archivo probable:
-Por determinar
-
-Evidencia:
-HTTP 302
-
-Impacto:
-Puede degradar experiencia cliente/admin o generar falsa confianza operativa.
-
-Reglas:
-
-* No inventar datos.
-* No tocar secretos.
-* No romper usuarios, sesiones, membresias, pagos, DB_PATH, Madrid Time, Render Cron ni Telegram dedupe.
-* Mantener navegacion cliente/admin separada.
-* Mantener estados seguros si faltan datos reales.
-
-Que debes hacer:
-Revisar la causa real, corregir de forma segura y revalidar con Sentinel.
-
-Validaciones obligatorias:
-* python -m py_compile app.py
-* python tools/run_continuous_sentinel_static.py
-
-Entrega:
-
-* resumen de cambios;
-* archivos tocados;
-* validaciones pasadas;
-* limitaciones honestas;
-* ZIP limpio si corresponde.
-
----
-
-# SENT-2026-4E993B9A
-
-Corrige esta incidencia en NeMeSiS SHARK PRO sin romper nada anterior.
-
-ID:
-SENT-2026-4E993B9A
-
-Area:
-buttons_routes
-
-Severidad:
-medium
-
-Problema:
-Ruta redirige y requiere revision de flujo
-
-Ruta afectada:
-/telegram
-
-Archivo probable:
-Por determinar
-
-Evidencia:
-HTTP 302
-
-Impacto:
-Puede degradar experiencia cliente/admin o generar falsa confianza operativa.
-
-Reglas:
-
-* No inventar datos.
-* No tocar secretos.
-* No romper usuarios, sesiones, membresias, pagos, DB_PATH, Madrid Time, Render Cron ni Telegram dedupe.
-* Mantener navegacion cliente/admin separada.
-* Mantener estados seguros si faltan datos reales.
-
-Que debes hacer:
-Revisar la causa real, corregir de forma segura y revalidar con Sentinel.
-
-Validaciones obligatorias:
-* python -m py_compile app.py
-* python tools/run_continuous_sentinel_static.py
-
-Entrega:
-
-* resumen de cambios;
-* archivos tocados;
-* validaciones pasadas;
-* limitaciones honestas;
-* ZIP limpio si corresponde.
-
----
-
-# SENT-2026-92B8377D
-
-Corrige esta incidencia en NeMeSiS SHARK PRO sin romper nada anterior.
-
-ID:
-SENT-2026-92B8377D
-
-Area:
-buttons_routes
-
-Severidad:
-medium
-
-Problema:
-Ruta redirige y requiere revision de flujo
-
-Ruta afectada:
-/favorites
-
-Archivo probable:
-Por determinar
-
-Evidencia:
-HTTP 302
-
-Impacto:
-Puede degradar experiencia cliente/admin o generar falsa confianza operativa.
-
-Reglas:
-
-* No inventar datos.
-* No tocar secretos.
-* No romper usuarios, sesiones, membresias, pagos, DB_PATH, Madrid Time, Render Cron ni Telegram dedupe.
-* Mantener navegacion cliente/admin separada.
-* Mantener estados seguros si faltan datos reales.
-
-Que debes hacer:
-Revisar la causa real, corregir de forma segura y revalidar con Sentinel.
-
-Validaciones obligatorias:
-* python -m py_compile app.py
-* python tools/run_continuous_sentinel_static.py
-
-Entrega:
-
-* resumen de cambios;
-* archivos tocados;
-* validaciones pasadas;
-* limitaciones honestas;
-* ZIP limpio si corresponde.
-
----
-
-# SENT-2026-B2A70FA7
-
-Corrige esta incidencia en NeMeSiS SHARK PRO sin romper nada anterior.
-
-ID:
-SENT-2026-B2A70FA7
-
-Area:
-admin
-
-Severidad:
-medium
-
-Problema:
-Navegacion cliente aparece en admin
-
-Ruta afectada:
-/admin-login
-
-Archivo probable:
-Por determinar
-
-Evidencia:
-bottom nav/sidebar/floating SHARK detectado en admin
-
-Impacto:
-Puede degradar experiencia cliente/admin o generar falsa confianza operativa.
-
-Reglas:
-
-* No inventar datos.
-* No tocar secretos.
-* No romper usuarios, sesiones, membresias, pagos, DB_PATH, Madrid Time, Render Cron ni Telegram dedupe.
-* Mantener navegacion cliente/admin separada.
-* Mantener estados seguros si faltan datos reales.
-
-Que debes hacer:
-Revisar la causa real, corregir de forma segura y revalidar con Sentinel.
-
-Validaciones obligatorias:
-* python -m py_compile app.py
-* python tools/run_continuous_sentinel_static.py
-
-Entrega:
-
-* resumen de cambios;
-* archivos tocados;
-* validaciones pasadas;
-* limitaciones honestas;
-* ZIP limpio si corresponde.
 
 ---
 

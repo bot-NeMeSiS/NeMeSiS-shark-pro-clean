@@ -339,7 +339,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V894_AUTONOMOUS_COMPANY_SENTINEL_REFERENCE_CODEX_WORKFORCE_FINAL'
+APP_VERSION = 'V895_RENDER_V894_DEPLOYMENT_ALIGNMENT_FINAL'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 
@@ -14447,18 +14447,37 @@ def v822_runtime_stability_snapshot():
 @app.route("/api/runtime-version")
 def api_runtime_version():
     version_txt = ""
+    app_version_file = ""
     base_template = ""
     css_path = BASE_DIR / "static" / "app.css"
     base_path = BASE_DIR / "templates" / "base.html"
+    manifest_path = BASE_DIR / "RELEASE_MANIFEST_V895.json"
+    fallback_manifest_path = BASE_DIR / "RELEASE_MANIFEST_V894.json"
     css_size = 0
     css_hash = ""
     css_mtime = ""
     css_text = ""
     app_py_text = ""
+    build_generated_at = ""
+    git_commit_hint = ""
     try:
         version_txt = (BASE_DIR / "VERSION.txt").read_text(encoding="utf-8").strip()
     except Exception:
         version_txt = ""
+    try:
+        app_version_file = (BASE_DIR / "APP_VERSION").read_text(encoding="utf-8").strip()
+    except Exception:
+        app_version_file = ""
+    try:
+        if not manifest_path.exists():
+            manifest_path = fallback_manifest_path
+        if manifest_path.exists():
+            manifest_payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+            build_generated_at = str(manifest_payload.get("created_at") or manifest_payload.get("generated_at") or "").strip()
+            git_commit_hint = str(manifest_payload.get("git_commit") or "").strip()
+    except Exception:
+        build_generated_at = ""
+        git_commit_hint = ""
     try:
         base_template = base_path.read_text(encoding="utf-8")
     except Exception:
@@ -14485,15 +14504,23 @@ def api_runtime_version():
     openai_state = "Configurado" if openai_ready else "SHARK IA avanzada pendiente de configuración"
     logo_cache_count = int((runtime_stability or {}).get("team_logo_cache_count") or 0) + int((runtime_stability or {}).get("league_logo_cache_count") or 0)
     logo_cache_state = "Cache de logos disponible" if logo_cache_count else "Fallback premium activo"
+    version_files_match = bool(version_txt == APP_VERSION and (not app_version_file or app_version_file == APP_VERSION))
+    deployment_alignment_status = "aligned_local_files" if version_files_match else "version_file_mismatch"
     return jsonify(sanitize_runtime_value({
         "ok": True,
         "app": APP_NAME,
+        "expected_version": APP_VERSION,
+        "runtime_version": APP_VERSION,
         "version": APP_VERSION,
         "app_version": APP_VERSION,
         "version_txt": version_txt,
+        "app_version_file": app_version_file,
+        "version_files_match": version_files_match,
+        "deployment_alignment_status": deployment_alignment_status,
         "time": now_iso(),
         "generated_at": now_iso(),
-        "build_generated_at": now_iso(),
+        "build_generated_at": build_generated_at or now_iso(),
+        "git_commit_hint": os.getenv("RENDER_GIT_COMMIT") or os.getenv("GIT_COMMIT") or os.getenv("COMMIT_SHA") or git_commit_hint or "unavailable",
         "python_file_path": os.path.abspath(__file__),
         "app_py_path": os.path.abspath(__file__),
         "current_working_directory": os.getcwd(),
@@ -14663,6 +14690,7 @@ def api_runtime_version():
         "has_v892_safe_autofix_planner": "sentinel_safe_autofix_engine" in app_py_text and "/api/admin/autonomous-company-sentinel/autofix-plan" in app_py_text,
         "has_v892_user_admin_journey_worker": "sentinel_user_admin_journey_engine" in app_py_text and "run_user_admin_journey_scan" in app_py_text,
         "has_v894_autonomous_company_sentinel_workforce": "autonomous_company_sentinel_engine" in app_py_text and "V894_AUTONOMOUS_COMPANY_SENTINEL_REFERENCE_CODEX_WORKFORCE_FINAL" in app_py_text,
+        "has_v895_render_v894_deployment_alignment": "V895_RENDER_V894_DEPLOYMENT_ALIGNMENT_FINAL" in app_py_text and "deployment_alignment_status" in app_py_text,
         "has_v837_reference_photo_qa": "data-v837-shell" in base_template and "V837 REFERENCE PHOTO PERFECTION REAL QA START" in css_text,
         "has_v836_autonomous_qa": "data-v836-shell" in base_template and "V836 AUTONOMOUS REFERENCE VISUAL REVIEW FINAL QA START" in css_text,
         "has_v833_visual_completion": "data-v833-shell" in base_template and "V833 REFERENCE ECOSYSTEM VISUAL COMPLETION START" in css_text,
@@ -14678,7 +14706,7 @@ def api_runtime_version():
         "has_v820_crests": "data-v820-shell" in base_template and "V820 REAL CRESTS REFERENCE VISUAL PIXEL POLISH START" in css_text,
         "has_v819_dedup": "data-v819-shell" in base_template and "V819 REFERENCE UI DEDUP LAYER PURGE START" in css_text,
         "has_v818_automation": "/api/automation/master-tick" in app_py_text and "daily_automation_engine" in app_py_text,
-        "static_css_cache_busting": "V894_AUTONOMOUS_COMPANY_SENTINEL_REFERENCE_CODEX_WORKFORCE_FINAL" in base_template,
+        "static_css_cache_busting": APP_VERSION in base_template,
         "crest_engine_loaded": runtime_stability.get("crest_engine_loaded"),
         "logo_cache_tables_ok": runtime_stability.get("logo_cache_tables_ok"),
         "team_logo_cache_count": runtime_stability.get("team_logo_cache_count"),

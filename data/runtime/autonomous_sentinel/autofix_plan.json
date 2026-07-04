@@ -6,6 +6,132 @@
   "dangerous_actions_executed": false,
   "plans": [
     {
+      "issue_id": "SENT-2026-9138CA59",
+      "title": "Texto tecnico visible",
+      "area": "texts",
+      "severity": "critical",
+      "level": "DANGEROUS_REQUIRES_CODEX",
+      "may_apply": false,
+      "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
+    },
+    {
+      "issue_id": "SENT-2026-AD0A6385",
+      "title": "Texto tecnico visible",
+      "area": "texts",
+      "severity": "critical",
+      "level": "DANGEROUS_REQUIRES_CODEX",
+      "may_apply": false,
+      "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
+    },
+    {
+      "issue_id": "SENT-2026-3CB57AF2",
+      "title": "Texto tecnico visible",
+      "area": "texts",
+      "severity": "critical",
+      "level": "DANGEROUS_REQUIRES_CODEX",
+      "may_apply": false,
+      "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
+    },
+    {
+      "issue_id": "SENT-2026-38B0D1A6",
+      "title": "Texto tecnico visible",
+      "area": "texts",
+      "severity": "critical",
+      "level": "DANGEROUS_REQUIRES_CODEX",
+      "may_apply": false,
+      "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
+    },
+    {
+      "issue_id": "SENT-2026-F936E17B",
+      "title": "Texto tecnico visible",
+      "area": "texts",
+      "severity": "critical",
+      "level": "DANGEROUS_REQUIRES_CODEX",
+      "may_apply": false,
+      "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
+    },
+    {
+      "issue_id": "SENT-2026-1D55FABA",
+      "title": "Texto tecnico visible",
+      "area": "texts",
+      "severity": "critical",
+      "level": "DANGEROUS_REQUIRES_CODEX",
+      "may_apply": false,
+      "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
+    },
+    {
+      "issue_id": "SENT-2026-67B70AAE",
+      "title": "Texto tecnico visible",
+      "area": "texts",
+      "severity": "critical",
+      "level": "DANGEROUS_REQUIRES_CODEX",
+      "may_apply": false,
+      "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
+    },
+    {
+      "issue_id": "SENT-2026-F04C5824",
+      "title": "Texto tecnico visible",
+      "area": "texts",
+      "severity": "critical",
+      "level": "DANGEROUS_REQUIRES_CODEX",
+      "may_apply": false,
+      "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
+    },
+    {
+      "issue_id": "SENT-2026-E718BAFC",
+      "title": "Texto tecnico visible",
+      "area": "texts",
+      "severity": "critical",
+      "level": "DANGEROUS_REQUIRES_CODEX",
+      "may_apply": false,
+      "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
+    },
+    {
+      "issue_id": "SENT-2026-EE011673",
+      "title": "Texto tecnico visible",
+      "area": "texts",
+      "severity": "critical",
+      "level": "DANGEROUS_REQUIRES_CODEX",
+      "may_apply": false,
+      "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
+    },
+    {
+      "issue_id": "SENT-2026-2BDEB690",
+      "title": "Texto tecnico visible",
+      "area": "texts",
+      "severity": "critical",
+      "level": "DANGEROUS_REQUIRES_CODEX",
+      "may_apply": false,
+      "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
+    },
+    {
+      "issue_id": "SENT-2026-1A56C543",
+      "title": "Texto tecnico visible",
+      "area": "texts",
+      "severity": "critical",
+      "level": "DANGEROUS_REQUIRES_CODEX",
+      "may_apply": false,
+      "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
+    },
+    {
+      "issue_id": "SENT-2026-CC572586",
+      "title": "Texto tecnico visible",
+      "area": "texts",
+      "severity": "critical",
+      "level": "DANGEROUS_REQUIRES_CODEX",
+      "may_apply": false,
+      "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
+    },
+    {
+      "issue_id": "SENT-2026-695E5A9F",
+      "title": "Texto tecnico visible",
+      "area": "texts",
+      "severity": "critical",
+      "level": "DANGEROUS_REQUIRES_CODEX",
+      "may_apply": false,
+      "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
+    },
+    {
       "issue_id": "SENT-2026-BD766D7A",
       "title": "Pantalla deportiva sin datos reales visibles",
       "area": "data",
@@ -177,132 +303,6 @@
       "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
     },
     {
-      "issue_id": "SENT-2026-9138CA59",
-      "title": "Texto tecnico visible",
-      "area": "texts",
-      "severity": "critical",
-      "level": "DANGEROUS_REQUIRES_CODEX",
-      "may_apply": false,
-      "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
-    },
-    {
-      "issue_id": "SENT-2026-AD0A6385",
-      "title": "Texto tecnico visible",
-      "area": "texts",
-      "severity": "critical",
-      "level": "DANGEROUS_REQUIRES_CODEX",
-      "may_apply": false,
-      "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
-    },
-    {
-      "issue_id": "SENT-2026-3CB57AF2",
-      "title": "Texto tecnico visible",
-      "area": "texts",
-      "severity": "critical",
-      "level": "DANGEROUS_REQUIRES_CODEX",
-      "may_apply": false,
-      "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
-    },
-    {
-      "issue_id": "SENT-2026-38B0D1A6",
-      "title": "Texto tecnico visible",
-      "area": "texts",
-      "severity": "critical",
-      "level": "DANGEROUS_REQUIRES_CODEX",
-      "may_apply": false,
-      "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
-    },
-    {
-      "issue_id": "SENT-2026-F936E17B",
-      "title": "Texto tecnico visible",
-      "area": "texts",
-      "severity": "critical",
-      "level": "DANGEROUS_REQUIRES_CODEX",
-      "may_apply": false,
-      "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
-    },
-    {
-      "issue_id": "SENT-2026-1D55FABA",
-      "title": "Texto tecnico visible",
-      "area": "texts",
-      "severity": "critical",
-      "level": "DANGEROUS_REQUIRES_CODEX",
-      "may_apply": false,
-      "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
-    },
-    {
-      "issue_id": "SENT-2026-67B70AAE",
-      "title": "Texto tecnico visible",
-      "area": "texts",
-      "severity": "critical",
-      "level": "DANGEROUS_REQUIRES_CODEX",
-      "may_apply": false,
-      "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
-    },
-    {
-      "issue_id": "SENT-2026-F04C5824",
-      "title": "Texto tecnico visible",
-      "area": "texts",
-      "severity": "critical",
-      "level": "DANGEROUS_REQUIRES_CODEX",
-      "may_apply": false,
-      "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
-    },
-    {
-      "issue_id": "SENT-2026-E718BAFC",
-      "title": "Texto tecnico visible",
-      "area": "texts",
-      "severity": "critical",
-      "level": "DANGEROUS_REQUIRES_CODEX",
-      "may_apply": false,
-      "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
-    },
-    {
-      "issue_id": "SENT-2026-EE011673",
-      "title": "Texto tecnico visible",
-      "area": "texts",
-      "severity": "critical",
-      "level": "DANGEROUS_REQUIRES_CODEX",
-      "may_apply": false,
-      "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
-    },
-    {
-      "issue_id": "SENT-2026-2BDEB690",
-      "title": "Texto tecnico visible",
-      "area": "texts",
-      "severity": "critical",
-      "level": "DANGEROUS_REQUIRES_CODEX",
-      "may_apply": false,
-      "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
-    },
-    {
-      "issue_id": "SENT-2026-1A56C543",
-      "title": "Texto tecnico visible",
-      "area": "texts",
-      "severity": "critical",
-      "level": "DANGEROUS_REQUIRES_CODEX",
-      "may_apply": false,
-      "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
-    },
-    {
-      "issue_id": "SENT-2026-CC572586",
-      "title": "Texto tecnico visible",
-      "area": "texts",
-      "severity": "critical",
-      "level": "DANGEROUS_REQUIRES_CODEX",
-      "may_apply": false,
-      "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
-    },
-    {
-      "issue_id": "SENT-2026-695E5A9F",
-      "title": "Texto tecnico visible",
-      "area": "texts",
-      "severity": "critical",
-      "level": "DANGEROUS_REQUIRES_CODEX",
-      "may_apply": false,
-      "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
-    },
-    {
       "issue_id": "SENT-2026-B97FFAF1",
       "title": "Render runtime no consultado en este scan",
       "area": "render",
@@ -361,6 +361,51 @@
       "title": "Pantalla deportiva sin estado seguro claro",
       "area": "sports",
       "severity": "high",
+      "level": "DANGEROUS_REQUIRES_CODEX",
+      "may_apply": false,
+      "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
+    },
+    {
+      "issue_id": "SENT-2026-9F239E39",
+      "title": "Ruta redirige y requiere revision de flujo",
+      "area": "buttons_routes",
+      "severity": "medium",
+      "level": "SAFE_AUTOFIX",
+      "may_apply": false,
+      "recommended_action": "Preparar microfix seguro local"
+    },
+    {
+      "issue_id": "SENT-2026-A19DDAAB",
+      "title": "Ruta redirige y requiere revision de flujo",
+      "area": "buttons_routes",
+      "severity": "medium",
+      "level": "SAFE_AUTOFIX",
+      "may_apply": false,
+      "recommended_action": "Preparar microfix seguro local"
+    },
+    {
+      "issue_id": "SENT-2026-4E993B9A",
+      "title": "Ruta redirige y requiere revision de flujo",
+      "area": "buttons_routes",
+      "severity": "medium",
+      "level": "SAFE_AUTOFIX",
+      "may_apply": false,
+      "recommended_action": "Preparar microfix seguro local"
+    },
+    {
+      "issue_id": "SENT-2026-92B8377D",
+      "title": "Ruta redirige y requiere revision de flujo",
+      "area": "buttons_routes",
+      "severity": "medium",
+      "level": "SAFE_AUTOFIX",
+      "may_apply": false,
+      "recommended_action": "Preparar microfix seguro local"
+    },
+    {
+      "issue_id": "SENT-2026-B2A70FA7",
+      "title": "Navegacion cliente aparece en admin",
+      "area": "admin",
+      "severity": "medium",
       "level": "DANGEROUS_REQUIRES_CODEX",
       "may_apply": false,
       "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
@@ -553,51 +598,6 @@
       "level": "SAFE_AUTOFIX",
       "may_apply": false,
       "recommended_action": "Preparar microfix seguro local"
-    },
-    {
-      "issue_id": "SENT-2026-9F239E39",
-      "title": "Ruta redirige y requiere revision de flujo",
-      "area": "buttons_routes",
-      "severity": "medium",
-      "level": "SAFE_AUTOFIX",
-      "may_apply": false,
-      "recommended_action": "Preparar microfix seguro local"
-    },
-    {
-      "issue_id": "SENT-2026-A19DDAAB",
-      "title": "Ruta redirige y requiere revision de flujo",
-      "area": "buttons_routes",
-      "severity": "medium",
-      "level": "SAFE_AUTOFIX",
-      "may_apply": false,
-      "recommended_action": "Preparar microfix seguro local"
-    },
-    {
-      "issue_id": "SENT-2026-4E993B9A",
-      "title": "Ruta redirige y requiere revision de flujo",
-      "area": "buttons_routes",
-      "severity": "medium",
-      "level": "SAFE_AUTOFIX",
-      "may_apply": false,
-      "recommended_action": "Preparar microfix seguro local"
-    },
-    {
-      "issue_id": "SENT-2026-92B8377D",
-      "title": "Ruta redirige y requiere revision de flujo",
-      "area": "buttons_routes",
-      "severity": "medium",
-      "level": "SAFE_AUTOFIX",
-      "may_apply": false,
-      "recommended_action": "Preparar microfix seguro local"
-    },
-    {
-      "issue_id": "SENT-2026-B2A70FA7",
-      "title": "Navegacion cliente aparece en admin",
-      "area": "admin",
-      "severity": "medium",
-      "level": "DANGEROUS_REQUIRES_CODEX",
-      "may_apply": false,
-      "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
     },
     {
       "issue_id": "V884-6B1176B0FBC7",
