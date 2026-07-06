@@ -1,6 +1,13 @@
 {
   "engine_version": "V892_AUTONOMOUS_COMPANY_SENTINEL_REFERENCE_CODEX_WORKFORCE_FINAL",
   "configured": false,
+  "local_env_status": {
+    "telegram_configured": false
+  },
+  "render_runtime_status": {
+    "telegram_configured": false,
+    "available": false
+  },
   "no_filler_policy": true,
   "dedupe_required": true,
   "real_send_allowed": false,

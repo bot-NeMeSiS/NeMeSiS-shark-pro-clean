@@ -22,7 +22,7 @@
       ]
     },
     {
-      "title": "No hay imagenes de referencia locales",
+      "title": "REFERENCE_IMAGES_MISSING",
       "area": "visual",
       "severity": "low",
       "source": "reference_qa",

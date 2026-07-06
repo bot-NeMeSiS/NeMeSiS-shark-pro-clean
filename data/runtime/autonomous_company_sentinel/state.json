@@ -1,11 +1,11 @@
 {
-  "version": "V896_PRODUCTION_NOT_FOUND_ROUTE_RECOVERY_FULL_APP_SMOKE_FINAL",
+  "version": "V897_SENTINEL_TRUTHFUL_ISSUES_ROUTE_ALIAS_REFERENCE_QA_FIX_FINAL",
   "engine_version": "V892_AUTONOMOUS_COMPANY_SENTINEL_REFERENCE_CODEX_WORKFORCE_FINAL",
-  "last_run_id": "ACS-20260705005835",
-  "last_run_madrid": "2026-07-05T00:58:35+02:00",
+  "last_run_id": "ACS-20260706103642",
+  "last_run_madrid": "2026-07-06T10:36:42+02:00",
   "last_mode": "safe_scan",
   "last_runner": "local",
-  "issues_open": 80,
+  "issues_open": 32,
   "critical": 0,
   "high": 0
 }

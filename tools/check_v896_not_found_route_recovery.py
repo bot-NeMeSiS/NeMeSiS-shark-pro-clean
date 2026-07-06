@@ -8,6 +8,10 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V896_PRODUCTION_NOT_FOUND_ROUTE_RECOVERY_FULL_APP_SMOKE_FINAL"
+CURRENT_ALLOWED = {
+    VERSION,
+    "V897_SENTINEL_TRUTHFUL_ISSUES_ROUTE_ALIAS_REFERENCE_QA_FIX_FINAL",
+}
 
 
 def read(path: str) -> str:
@@ -33,10 +37,10 @@ def main() -> int:
     css = read("static/app.css")
     not_found_template = read("templates/404.html")
 
-    require(version_txt == VERSION, f"VERSION.txt is {version_txt}", failures)
-    require(app_version_file == VERSION, f"APP_VERSION file is {app_version_file}", failures)
-    require(app_version_from_source(app_py) == VERSION, "app.py APP_VERSION mismatch", failures)
-    require(VERSION in base, "base.html cache marker is not V896", failures)
+    require(version_txt in CURRENT_ALLOWED, f"VERSION.txt is {version_txt}", failures)
+    require(app_version_file in CURRENT_ALLOWED, f"APP_VERSION file is {app_version_file}", failures)
+    require(app_version_from_source(app_py) in CURRENT_ALLOWED, "app.py APP_VERSION mismatch", failures)
+    require(version_txt in base, "base.html cache marker does not match current version", failures)
     require("has_v896_not_found_route_recovery" in app_py, "runtime V896 flag missing", failures)
     require("client_safe_404" in app_py and "@app.errorhandler(404)" in app_py, "404 handler missing", failures)
     require((ROOT / "templates" / "404.html").exists(), "templates/404.html missing", failures)
@@ -45,7 +49,7 @@ def main() -> int:
     require("javascript:void" not in not_found_template.lower(), "404 template contains javascript:void", failures)
     require("V896 PRODUCTION NOT FOUND ROUTE RECOVERY" in css, "V896 CSS marker missing", failures)
     require("/manifest.json" in app_py and "manifest_json" in app_py, "manifest route missing", failures)
-    require("/service-worker.js" in app_py and "NEMESIS_CACHE_V896" in app_py, "service worker V896 cache missing", failures)
+    require("/service-worker.js" in app_py and ("NEMESIS_CACHE_V896" in app_py or "NEMESIS_CACHE_V897" in app_py), "service worker V896/V897 cache missing", failures)
     require("data/runtime/not_found_events.json" in app_py or "not_found_events.json" in app_py, "not found memory path missing", failures)
     require("run_sentinel_issues_scan" in app_py and "Ruta devuelve Not Found" in app_py, "Sentinel Not Found integration missing", failures)
     require("V896_PRIMARY_ROUTE_SMOKE" in app_py and "/admin/autonomous-company-sentinel" in app_py, "autonomous route smoke list missing", failures)
@@ -75,7 +79,8 @@ def main() -> int:
         "/admin/qa",
         "/admin/prompts",
     ]:
-        require(f'@app.route("{route}")' in app_py, f"alias route missing: {route}", failures)
+        require(route in app_py, f"alias route missing: {route}", failures)
+    require("register_alias_if_missing" in app_py, "safe alias helper missing", failures)
 
     for route in [
         "/api/admin/route-map",
@@ -94,7 +99,7 @@ def main() -> int:
     runtime = client.get("/api/runtime-version")
     require(runtime.status_code == 200, f"runtime status {runtime.status_code}", failures)
     runtime_json = runtime.get_json(silent=True) or {}
-    require(runtime_json.get("app_version") == VERSION, f"runtime app_version is {runtime_json.get('app_version')}", failures)
+    require(runtime_json.get("app_version") in CURRENT_ALLOWED, f"runtime app_version is {runtime_json.get('app_version')}", failures)
     require(runtime_json.get("has_v896_not_found_route_recovery") is True, "runtime V896 flag false", failures)
 
     manifest = client.get("/manifest.json")
@@ -105,7 +110,7 @@ def main() -> int:
 
     sw = client.get("/service-worker.js")
     require(sw.status_code == 200, f"service worker status {sw.status_code}", failures)
-    require("NEMESIS_CACHE_V896" in sw.get_data(as_text=True), "service worker does not expose V896 cache", failures)
+    require("NEMESIS_CACHE_V896" in sw.get_data(as_text=True) or "NEMESIS_CACHE_V897" in sw.get_data(as_text=True), "service worker does not expose V896/V897 cache", failures)
 
     expected_status = {
         "/": {200},

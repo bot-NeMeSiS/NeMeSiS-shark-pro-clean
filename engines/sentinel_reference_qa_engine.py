@@ -6,8 +6,8 @@ from typing import Any
 
 
 REFERENCE_DIRS = [
-    "reports/reference_images",
     "reference_images",
+    "reports/reference_images",
     "docs/reference_ui",
     "imagenes bot proyecto",
     "static/reference",
@@ -44,7 +44,7 @@ def build_reference_gap_report(root: str | Path, visual_result: dict[str, Any] |
         })
     if not references:
         issues.append({
-            "title": "No hay imagenes de referencia locales",
+            "title": "REFERENCE_IMAGES_MISSING",
             "area": "visual",
             "severity": "low",
             "source": "reference_qa",

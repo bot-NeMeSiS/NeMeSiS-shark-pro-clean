@@ -27,6 +27,8 @@ ISSUE_STATUSES = [
     "FIX_IN_PROGRESS",
     "FIXED_PENDING_VALIDATION",
     "RESOLVED",
+    "STALE_NEEDS_REVALIDATION",
+    "RESOLVED_BY_RESCAN",
     "IGNORED_SAFE",
     "FALSE_POSITIVE",
     "REOPENED",
@@ -269,6 +271,46 @@ def upsert_sentinel_issues(existing: list[dict[str, Any]], candidates: list[dict
     return sorted(by_fp.values(), key=lambda item: (severity_rank.get(str(item.get("severity")), 9), str(item.get("updated_at_madrid") or "")), reverse=False)
 
 
+def reconcile_sentinel_issues(existing: list[dict[str, Any]], candidates: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Keep Sentinel memory truthful after a fresh scan.
+
+    If an old issue is not reproduced, it stops being counted as an active
+    critical/high problem. After repeated clean scans, it becomes resolved by
+    rescan while keeping its history for audit.
+    """
+    seen = {candidate.get("fingerprint") for candidate in candidates if candidate.get("fingerprint")}
+    inactive_statuses = {"RESOLVED", "RESOLVED_BY_RESCAN", "FALSE_POSITIVE", "IGNORED_SAFE"}
+    for issue in existing:
+        if not isinstance(issue, dict):
+            continue
+        fp = issue.get("fingerprint") or issue_fingerprint(issue)
+        issue["fingerprint"] = fp
+        if fp in seen:
+            issue["missed_scans"] = 0
+            continue
+        if issue.get("status") in inactive_statuses:
+            continue
+        missed = int(issue.get("missed_scans") or 0) + 1
+        issue["missed_scans"] = missed
+        issue["updated_at_madrid"] = _now()
+        history = _safe_list(issue.get("history"))
+        if missed >= 3:
+            issue["status"] = "RESOLVED_BY_RESCAN"
+            issue["resolved_at_madrid"] = issue.get("resolved_at_madrid") or _now()
+            event = "resolved_by_rescan"
+        else:
+            issue["status"] = "STALE_NEEDS_REVALIDATION"
+            event = "not_reproduced_needs_revalidation"
+        history.append({
+            "at_madrid": _now(),
+            "event": event,
+            "missed_scans": missed,
+            "note": "El scan actual no reprodujo esta incidencia.",
+        })
+        issue["history"] = history[-20:]
+    return existing
+
+
 def update_issue_status(issue_id: str, status: str, root: str | Path | None = None, note: str = "") -> dict[str, Any]:
     status = status.upper()
     if status not in ISSUE_STATUSES:
@@ -369,10 +411,8 @@ def run_sentinel_issues_scan(
     candidates.extend(_issues_from_autopilot_memory(root))
 
     memory = load_sentinel_issues_memory(root)
-    if candidates:
-        issues = upsert_sentinel_issues(_safe_list(memory.get("issues")), candidates)
-    else:
-        issues = _safe_list(memory.get("issues"))
+    issues = upsert_sentinel_issues(_safe_list(memory.get("issues")), candidates) if candidates else _safe_list(memory.get("issues"))
+    issues = reconcile_sentinel_issues(issues, candidates)
     memory["issues"] = issues
     memory["last_scan_madrid"] = _now()
     memory["app_version"] = app_version
@@ -390,7 +430,10 @@ def run_sentinel_issues_scan(
 
 def build_sentinel_issues_summary(app_version: str, memory: dict[str, Any], transient_candidates: int = 0) -> dict[str, Any]:
     issues = [item for item in _safe_list(memory.get("issues")) if isinstance(item, dict)]
-    open_issues = [item for item in issues if item.get("status") not in {"RESOLVED", "FALSE_POSITIVE", "IGNORED_SAFE"}]
+    open_issues = [
+        item for item in issues
+        if item.get("status") not in {"RESOLVED", "RESOLVED_BY_RESCAN", "FALSE_POSITIVE", "IGNORED_SAFE", "STALE_NEEDS_REVALIDATION"}
+    ]
     counts_by_severity = {severity: 0 for severity in SEVERITIES}
     counts_by_status = {status: 0 for status in ISSUE_STATUSES}
     counts_by_area: dict[str, int] = {}

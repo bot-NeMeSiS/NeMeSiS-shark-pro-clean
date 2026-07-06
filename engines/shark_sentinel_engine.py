@@ -92,12 +92,17 @@ def _issue(profile: str, route: str, category: str, severity: str, title: str, d
     ))
 
 
-def _visible_text_from_html(html: str) -> str:
+def extract_visible_user_text(html: str) -> str:
+    """Return only text a user can read, excluding scripts/styles/metadata."""
     text = re.sub(r"(?is)<(script|style|template|svg|noscript)\b.*?</\1>", " ", html or "")
     text = re.sub(r"(?is)<!--.*?-->", " ", text)
     text = re.sub(r"(?is)<[^>]+>", " ", text)
     text = text.replace("&nbsp;", " ")
     return re.sub(r"\s+", " ", text).strip()
+
+
+def _visible_text_from_html(html: str) -> str:
+    return extract_visible_user_text(html)
 
 
 def _interactive_texts_from_html(html: str) -> list[str]:

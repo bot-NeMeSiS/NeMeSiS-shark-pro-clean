@@ -135,7 +135,17 @@ def run_autonomous_company_sentinel(
     journey = run_user_admin_journey_scan(flask_client, mode=mode)
     reference = run_reference_visual_scan(root, visual_result=visual_result, browser_available=False)
     render_alignment = build_render_alignment(local_runtime, render_runtime=render_runtime)
-    telegram_watch = build_telegram_quality_watch(local_runtime)
+    telegram_watch = build_telegram_quality_watch(local_runtime, render_runtime=render_runtime)
+    local_env_status = {
+        "telegram_configured": bool(local_runtime.get("telegram_configured") or (local_runtime.get("flags") or {}).get("telegram_configured")),
+        "openai_configured": bool(local_runtime.get("openai_configured") or (local_runtime.get("flags") or {}).get("openai_configured")),
+    }
+    render_runtime_status = {
+        "available": bool(render_runtime),
+        "app_version": (render_runtime or {}).get("app_version") or (render_runtime or {}).get("version"),
+        "telegram_configured": bool((render_runtime or {}).get("telegram_configured") or ((render_runtime or {}).get("flags") or {}).get("telegram_configured")),
+        "openai_configured": bool((render_runtime or {}).get("openai_configured") or ((render_runtime or {}).get("flags") or {}).get("openai_configured")),
+    }
     issue_sources = _merge_issue_sources(journey, reference, render_alignment, telegram_watch)
     if autopilot_result:
         issue_sources.extend(autopilot_result.get("issues") or [])
@@ -169,6 +179,8 @@ def run_autonomous_company_sentinel(
         "journey": journey,
         "reference": reference,
         "render_alignment": render_alignment,
+        "local_env_status": local_env_status,
+        "render_runtime_status": render_runtime_status,
         "telegram_quality_watch": telegram_watch,
         "issues_summary": issues_summary,
         "outbox": outbox,

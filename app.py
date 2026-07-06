@@ -339,7 +339,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V896_PRODUCTION_NOT_FOUND_ROUTE_RECOVERY_FULL_APP_SMOKE_FINAL'
+APP_VERSION = 'V897_SENTINEL_TRUTHFUL_ISSUES_ROUTE_ALIAS_REFERENCE_QA_FIX_FINAL'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 
@@ -10491,7 +10491,7 @@ def dashboard_data(lane="today", date=None):
 @app.route("/service-worker.js")
 def service_worker():
     body = (
-        "const NEMESIS_CACHE='NEMESIS_CACHE_V896';\n"
+        "const NEMESIS_CACHE='NEMESIS_CACHE_V897';\n"
         "self.addEventListener('install',event=>{self.skipWaiting();});\n"
         "self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==NEMESIS_CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));});\n"
         "self.addEventListener('fetch',event=>{const req=event.request;if(req.mode==='navigate'){event.respondWith(fetch(req).catch(()=>fetch('/')));}});\n"
@@ -10691,33 +10691,38 @@ def v896_route_alias_target(path):
     return V896_ROUTE_ALIASES.get(clean.rstrip("/") if clean != "/" else clean)
 
 
-@app.route("/dashboard")
-@app.route("/client")
-@app.route("/cliente")
-@app.route("/client-dashboard")
-@app.route("/home")
-@app.route("/inicio-cliente")
-@app.route("/mi-cuenta")
-@app.route("/perfil")
-@app.route("/soporte")
-@app.route("/ayuda")
-@app.route("/partidos-hoy")
-@app.route("/calendario")
-@app.route("/directos")
-@app.route("/en-vivo")
-@app.route("/recomendaciones")
-@app.route("/pick")
-@app.route("/apuestas")
-@app.route("/admin-panel")
-@app.route("/admin/home")
-@app.route("/admin/control")
-@app.route("/admin/sentinel")
-@app.route("/admin/qa")
-@app.route("/admin/prompts")
 def v896_legacy_route_alias():
     target = v896_route_alias_target(request.path) or "/"
     v896_record_not_found(request.path, request.method, request.referrer or "", request.headers.get("User-Agent", ""), resolved_alias=target, source="legacy_alias")
     return redirect(target)
+
+
+def route_exists(path):
+    clean = "/" + str(path or "").strip().lstrip("/")
+    return any(str(rule.rule).rstrip("/") == clean.rstrip("/") for rule in app.url_map.iter_rules())
+
+
+def register_alias_if_missing(source, target):
+    """Register a legacy alias only when no real route already owns source."""
+    clean_source = "/" + str(source or "").strip().lstrip("/")
+    if route_exists(clean_source):
+        return {"source": clean_source, "target": target, "registered": False, "reason": "real_route_exists"}
+    endpoint = f"v897_alias_{clean_source.strip('/').replace('/', '_').replace('-', '_') or 'root'}"
+
+    def _alias_handler(target=target):
+        v896_record_not_found(request.path, request.method, request.referrer or "", request.headers.get("User-Agent", ""), resolved_alias=target, source="legacy_alias")
+        return redirect(target)
+
+    _alias_handler.__name__ = endpoint
+    app.add_url_rule(clean_source, endpoint, _alias_handler, methods=["GET"])
+    return {"source": clean_source, "target": target, "registered": True, "reason": "alias_registered"}
+
+
+def register_v897_safe_aliases():
+    results = []
+    for source, target in sorted(V896_ROUTE_ALIASES.items()):
+        results.append(register_alias_if_missing(source, target))
+    return results
 
 
 def v896_route_map_items():
@@ -14748,8 +14753,8 @@ def api_runtime_version():
     base_template = ""
     css_path = BASE_DIR / "static" / "app.css"
     base_path = BASE_DIR / "templates" / "base.html"
-    manifest_path = BASE_DIR / "RELEASE_MANIFEST_V896.json"
-    fallback_manifest_path = BASE_DIR / "RELEASE_MANIFEST_V895.json"
+    manifest_path = BASE_DIR / "RELEASE_MANIFEST_V897.json"
+    fallback_manifest_path = BASE_DIR / "RELEASE_MANIFEST_V896.json"
     css_size = 0
     css_hash = ""
     css_mtime = ""
@@ -14814,6 +14819,7 @@ def api_runtime_version():
         "app_version_file": app_version_file,
         "version_files_match": version_files_match,
         "deployment_alignment_status": deployment_alignment_status,
+        "v897_alias_registration": globals().get("V897_ALIAS_REGISTRATION", []),
         "time": now_iso(),
         "generated_at": now_iso(),
         "build_generated_at": build_generated_at or now_iso(),
@@ -14989,6 +14995,7 @@ def api_runtime_version():
         "has_v894_autonomous_company_sentinel_workforce": "autonomous_company_sentinel_engine" in app_py_text and "V894_AUTONOMOUS_COMPANY_SENTINEL_REFERENCE_CODEX_WORKFORCE_FINAL" in app_py_text,
         "has_v895_render_v894_deployment_alignment": "V895_RENDER_V894_DEPLOYMENT_ALIGNMENT_FINAL" in app_py_text and "deployment_alignment_status" in app_py_text,
         "has_v896_not_found_route_recovery": "V896_PRODUCTION_NOT_FOUND_ROUTE_RECOVERY_FULL_APP_SMOKE_FINAL" in app_py_text and "client_safe_404" in app_py_text and "/api/admin/not-found-events" in app_py_text,
+        "has_v897_truthful_sentinel_route_alias_reference_qa": "V897_SENTINEL_TRUTHFUL_ISSUES_ROUTE_ALIAS_REFERENCE_QA_FIX_FINAL" in app_py_text and "register_alias_if_missing" in app_py_text and "data-v897-shell" in base_template,
         "has_v837_reference_photo_qa": "data-v837-shell" in base_template and "V837 REFERENCE PHOTO PERFECTION REAL QA START" in css_text,
         "has_v836_autonomous_qa": "data-v836-shell" in base_template and "V836 AUTONOMOUS REFERENCE VISUAL REVIEW FINAL QA START" in css_text,
         "has_v833_visual_completion": "data-v833-shell" in base_template and "V833 REFERENCE ECOSYSTEM VISUAL COMPLETION START" in css_text,
@@ -17332,9 +17339,7 @@ def v566_template_recommendations(limit=20):
 
 @app.route("/dashboard")
 def v566_dashboard_page():
-    if not current_session_user():
-        return redirect("/cliente-login")
-    return redirect("/sports-hub")
+    return redirect("/app")
     user = current_session_user()
     data = dashboard_data()
     summary = v566_dashboard_summary(user)
@@ -19716,6 +19721,9 @@ def api_admin_v818_daily_automation_health():
     if not is_admin_session():
         return admin_json_forbidden()
     return jsonify({"ok": True, "version": APP_VERSION, "health": v818_system_health(DB_PATH, APP_VERSION, env=dict(os.environ))})
+
+
+V897_ALIAS_REGISTRATION = register_v897_safe_aliases()
 
 if __name__ == "__main__":
     seed_core()
