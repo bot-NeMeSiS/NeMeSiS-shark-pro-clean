@@ -1,6 +1,28 @@
 {
-  "version": "V899_REFERENCE_VISUAL_BROWSER_QA_PRODUCT_GAP_WORKER_FINAL",
+  "version": "V900_REFERENCE_IMAGES_IMPORT_FIRST_REAL_VISUAL_GAP_AUDIT_FINAL",
   "events": [
+    {
+      "path": "/ruta-inventada-v898",
+      "method": "GET",
+      "referrer": "",
+      "user_agent": "Werkzeug/3.0.3",
+      "resolved_alias": "",
+      "source": "flask_404",
+      "count": 16,
+      "first_seen_madrid": "2026-07-06T11:37:54+02:00",
+      "last_seen_madrid": "2026-07-06T13:07:23+02:00"
+    },
+    {
+      "path": "/api/ruta-inventada-v898",
+      "method": "GET",
+      "referrer": "",
+      "user_agent": "Werkzeug/3.0.3",
+      "resolved_alias": "",
+      "source": "api_404",
+      "count": 16,
+      "first_seen_madrid": "2026-07-06T11:37:54+02:00",
+      "last_seen_madrid": "2026-07-06T13:07:23+02:00"
+    },
     {
       "path": "/ruta-inventada-v896",
       "method": "GET",
@@ -44,28 +66,6 @@
       "count": 13,
       "first_seen_madrid": "2026-07-05T00:56:22+02:00",
       "last_seen_madrid": "2026-07-06T12:32:23+02:00"
-    },
-    {
-      "path": "/ruta-inventada-v898",
-      "method": "GET",
-      "referrer": "",
-      "user_agent": "Werkzeug/3.0.3",
-      "resolved_alias": "",
-      "source": "flask_404",
-      "count": 14,
-      "first_seen_madrid": "2026-07-06T11:37:54+02:00",
-      "last_seen_madrid": "2026-07-06T12:32:20+02:00"
-    },
-    {
-      "path": "/api/ruta-inventada-v898",
-      "method": "GET",
-      "referrer": "",
-      "user_agent": "Werkzeug/3.0.3",
-      "resolved_alias": "",
-      "source": "api_404",
-      "count": 14,
-      "first_seen_madrid": "2026-07-06T11:37:54+02:00",
-      "last_seen_madrid": "2026-07-06T12:32:20+02:00"
     },
     {
       "path": "/ruta-inventada-v897",
@@ -145,5 +145,5 @@
       "last_seen_madrid": "2026-07-05T00:58:55+02:00"
     }
   ],
-  "updated_at_madrid": "2026-07-06T12:32:23+02:00"
+  "updated_at_madrid": "2026-07-06T13:07:23+02:00"
 }

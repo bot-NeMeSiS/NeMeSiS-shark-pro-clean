@@ -119,6 +119,28 @@ NeMeSiS_SHARK_PRO_V848_REFERENCE_SHARK_VISUAL_PC_MOBILE_FINAL_RENDER_READY.zip
 
 Base real usada: V848_REFERENCE_SHARK_VISUAL_PC_MOBILE_FINAL.
 
+# V900_REFERENCE_IMAGES_IMPORT_FIRST_REAL_VISUAL_GAP_AUDIT_FINAL
+
+Base local usada: V899_REFERENCE_VISUAL_BROWSER_QA_PRODUCT_GAP_WORKER_FINAL.
+
+Objetivo de V900: importar las imagenes reales de referencia del ZIP externo `imagenes bot proyecto.zip` y convertirlas en base operativa para auditoria visual real, sin seguir avanzando a ciegas.
+
+Cambios principales:
+- Se importaron 16 imagenes reales a `reference_images/`, clasificadas en admin, client, live, calendar, picks, shark, track-record, memberships, profile y telegram.
+- `engines/reference_image_manifest_engine.py` genera manifiesto con categoria, pantalla objetivo, dimensiones PNG/JPEG, origen e import timestamp Madrid.
+- `engines/product_gap_engine.py` y `engines/sentinel_reference_visual_engine.py` usan las referencias reales y dejan de tratar el banco de imagenes como ausente.
+- `engines/sentinel_codex_outbox_engine.py` reactiva gaps visuales de referencia que necesitan revalidacion para que el outbox tenga trabajo visual accionable.
+- `data/runtime/autonomous_company_sentinel/outbox/codex_outbox.md` queda con 24 prompts activos, 11 visuales y 13 funcionales.
+- `/api/runtime-version` expone `has_v900_reference_images_import_first_real_visual_gap_audit`.
+
+Validaciones locales:
+- Runtime local V900 OK.
+- Sentinel estatico score 10.0, 0 issues, 0 criticos.
+- Reference gap scan: 16 referencias, 13 gaps, browser real no disponible.
+
+Limitacion honesta:
+- No se declara pixel-perfect ni equivalencia visual exacta porque no hubo capturas Playwright/browser reales en esta ejecucion.
+
 No se usó ZIP viejo como base.
 
 Qué se hizo:

@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any
 
 
-SENTINEL_CODEX_OUTBOX_VERSION = "V892_AUTONOMOUS_COMPANY_SENTINEL_REFERENCE_CODEX_WORKFORCE_FINAL"
+SENTINEL_CODEX_OUTBOX_VERSION = "V900_REFERENCE_IMAGES_IMPORT_FIRST_REAL_VISUAL_GAP_AUDIT_FINAL"
 
 
 def company_sentinel_outbox_dir(root: str | Path) -> Path:
@@ -69,6 +69,21 @@ def write_codex_outbox(root: str | Path, issues: list[dict[str, Any]], archived_
     archived_issues = archived_issues or []
     archived_lines = []
     for issue in archived_issues:
+        tags = set(issue.get("tags") or [])
+        area = str(issue.get("area") or "")
+        status = str(issue.get("status") or "")
+        issue_id = str(issue.get("id") or "SENT-PENDING").replace("/", "-")
+        is_reference_gap = "reference_gap" in tags or area == "reference_visual" or issue_id.startswith("REFGAP-")
+        should_reactivate = is_reference_gap and status in {"STALE_NEEDS_REVALIDATION", "NEEDS_REVALIDATION"}
+        if should_reactivate:
+            prompt = build_codex_prompt(issue)
+            path = outbox / f"{issue_id}_codex_prompt.md"
+            path.write_text(prompt, encoding="utf-8")
+            files.append(str(path))
+            block = f"# {issue_id}\n\n{prompt}"
+            prompts.append(block)
+            visual_prompts.append(block)
+            continue
         archived_lines.append(
             f"- {issue.get('id') or 'SIN-ID'} | {issue.get('status') or 'ARCHIVED'} | "
             f"{issue.get('route') or 'Sin ruta'} | {issue.get('title') or 'Incidencia obsoleta'}"

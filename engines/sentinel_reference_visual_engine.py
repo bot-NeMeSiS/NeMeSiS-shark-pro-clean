@@ -1,4 +1,4 @@
-"""V899 reference visual QA wrapper for Autonomous Company Sentinel."""
+"""V900 reference visual QA wrapper for Autonomous Company Sentinel."""
 from __future__ import annotations
 
 from pathlib import Path
@@ -10,7 +10,7 @@ from engines.reference_image_manifest_engine import build_reference_manifest
 from engines.sentinel_reference_qa_engine import build_reference_gap_report
 
 
-SENTINEL_REFERENCE_VISUAL_VERSION = "V899_REFERENCE_VISUAL_BROWSER_QA_PRODUCT_GAP_WORKER_FINAL"
+SENTINEL_REFERENCE_VISUAL_VERSION = "V900_REFERENCE_IMAGES_IMPORT_FIRST_REAL_VISUAL_GAP_AUDIT_FINAL"
 
 
 def run_reference_visual_scan(
@@ -27,6 +27,12 @@ def run_reference_visual_scan(
         browser_available = bool(browser_result.get("browser_available"))
     gap_report = build_product_gap_report(root, manifest, browser_result or {"browser_available": browser_available}, write=True)
     result = build_reference_gap_report(root, visual_result=visual_result, browser_available=bool(browser_available))
+    if manifest.get("reference_count"):
+        result["issues"] = [
+            issue for issue in (result.get("issues") or [])
+            if issue.get("evidence") != "REFERENCE_IMAGES_MISSING" and issue.get("title") != "REFERENCE_IMAGES_MISSING"
+        ]
+        result["reference_count"] = manifest.get("reference_count", 0)
     result["manifest"] = manifest
     result["reference_manifest_path"] = str(Path(root) / "reference_images" / "reference_manifest.json")
     result["product_gap_report"] = gap_report

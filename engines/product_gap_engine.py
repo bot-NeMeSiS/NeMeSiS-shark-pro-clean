@@ -13,7 +13,7 @@ from typing import Any
 from zoneinfo import ZoneInfo
 
 
-PRODUCT_GAP_ENGINE_VERSION = "V899_REFERENCE_VISUAL_BROWSER_QA_PRODUCT_GAP_WORKER_FINAL"
+PRODUCT_GAP_ENGINE_VERSION = "V900_REFERENCE_IMAGES_IMPORT_FIRST_REAL_VISUAL_GAP_AUDIT_FINAL"
 MADRID_TZ = ZoneInfo("Europe/Madrid")
 
 TARGETS = [
@@ -26,6 +26,8 @@ TARGETS = [
     {"route": "/telegram", "category": "telegram", "device": "desktop", "priority": "medium", "objective": "Telegram premium sin filler ni envios inventados"},
     {"route": "/shark", "category": "shark", "device": "desktop", "priority": "medium", "objective": "SHARK como cerebro del producto y modo seguro si falta OpenAI"},
     {"route": "/membresias", "category": "memberships", "device": "desktop", "priority": "medium", "objective": "planes diferenciados con valor comercial real"},
+    {"route": "/profile", "category": "profile", "device": "desktop", "priority": "medium", "objective": "perfil claro con plan, Telegram, seguridad y salida visible"},
+    {"route": "/track-record", "category": "track-record", "device": "desktop", "priority": "medium", "objective": "historico honesto con resultados reales y sin ROI inventado"},
 ]
 
 HEURISTICS = [
@@ -96,7 +98,16 @@ def _prompt(issue: dict[str, Any]) -> str:
 
 
 def _references_for_category(manifest: dict[str, Any], category: str) -> list[dict[str, Any]]:
-    return [item for item in manifest.get("items", []) if item.get("category") == category]
+    if category == "mobile":
+        direct_client = [item for item in manifest.get("items", []) if item.get("category") == "client"]
+        secondary_mobile = [item for item in manifest.get("items", []) if "mobile" in (item.get("secondary_categories") or []) and item not in direct_client]
+        return direct_client + secondary_mobile
+    refs = []
+    for item in manifest.get("items", []):
+        secondary = item.get("secondary_categories") or []
+        if item.get("category") == category or category in secondary:
+            refs.append(item)
+    return refs
 
 
 def build_product_gap_report(
@@ -151,6 +162,26 @@ def build_product_gap_report(
             "validation": ["python tools/run_reference_visual_gap_scan.py --dry-run"],
             "tags": ["reference_gap", "reference_images"],
         })
+    else:
+        known_categories = sorted({item.get("category") for item in manifest.get("items", []) if item.get("category")})
+        gaps.append({
+            "id": _id("reference_images", "reference", "REFERENCE_IMAGES_IMPORTED"),
+            "title": "REFERENCE_IMAGES_IMPORTED",
+            "area": "reference_visual",
+            "severity": "low",
+            "status": "OPEN",
+            "source": "reference_visual_gap_worker",
+            "route": "reference_images",
+            "screen": "Banco de referencias",
+            "category": "reference",
+            "device": "all",
+            "reference": "reference_images/",
+            "evidence": f"{manifest.get('reference_count', 0)} imagenes reales importadas; categorias: {', '.join(known_categories) or 'unknown'}.",
+            "objective": "Usar referencias reales como base de gap visual.",
+            "recommendation": "Comparar rutas objetivo contra referencias importadas y corregir solo diferencias visibles verificables.",
+            "validation": ["python tools/run_reference_visual_gap_scan.py --dry-run"],
+            "tags": ["reference_gap", "reference_images", "v900_imported"],
+        })
 
     for target in TARGETS:
         refs = _references_for_category(manifest, target["category"])
@@ -164,6 +195,8 @@ def build_product_gap_report(
         if not evidence_parts:
             evidence_parts.append("Requiere comparacion visual humana contra captura y referencia.")
         severity = "high" if target["priority"] == "high" and (not refs or target["route"] in overflow_routes) else "medium"
+        if refs and not target["route"] in overflow_routes:
+            severity = target["priority"]
         issue = {
             "id": _id(target["route"], target["category"], "|".join(evidence_parts)),
             "title": f"Gap visual de referencia en {target['route']}",

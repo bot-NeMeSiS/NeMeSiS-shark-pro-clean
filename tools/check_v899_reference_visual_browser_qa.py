@@ -7,6 +7,10 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V899_REFERENCE_VISUAL_BROWSER_QA_PRODUCT_GAP_WORKER_FINAL"
+CURRENT_ALLOWED = {
+    VERSION,
+    "V900_REFERENCE_IMAGES_IMPORT_FIRST_REAL_VISUAL_GAP_AUDIT_FINAL",
+}
 
 
 def read(rel: str) -> str:
@@ -26,11 +30,11 @@ def main() -> int:
     failures: list[str] = []
     app_py = read("app.py")
     base = read("templates/base.html")
-    version_txt = read("VERSION.txt").strip()
-    app_version_file = read("APP_VERSION").strip()
-    require(version_txt == VERSION, "VERSION.txt is not V899", failures)
-    require(app_version_file == VERSION, "APP_VERSION is not V899", failures)
-    require(f"APP_VERSION = '{VERSION}'" in app_py or f'APP_VERSION = "{VERSION}"' in app_py, "app.py APP_VERSION is not V899", failures)
+    version_txt = read("VERSION.txt").strip().lstrip("\ufeff")
+    app_version_file = read("APP_VERSION").strip().lstrip("\ufeff")
+    require(version_txt in CURRENT_ALLOWED, "VERSION.txt is not V899/V900", failures)
+    require(app_version_file in CURRENT_ALLOWED, "APP_VERSION is not V899/V900", failures)
+    require(any((f"APP_VERSION = '{item}'" in app_py or f'APP_VERSION = "{item}"' in app_py) for item in CURRENT_ALLOWED), "app.py APP_VERSION is not V899/V900", failures)
     require("has_v899_reference_visual_browser_qa_product_gap_worker" in app_py, "runtime flag V899 missing", failures)
     require('data-v899-shell="true"' in base, "base V899 shell marker missing", failures)
 

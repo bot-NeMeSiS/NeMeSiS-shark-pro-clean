@@ -1,10 +1,257 @@
 {
-  "version": "V899_REFERENCE_VISUAL_BROWSER_QA_PRODUCT_GAP_WORKER_FINAL",
-  "generated_at_madrid": "2026-07-06T12:36:18+02:00",
+  "version": "V900_REFERENCE_IMAGES_IMPORT_FIRST_REAL_VISUAL_GAP_AUDIT_FINAL",
+  "generated_at_madrid": "2026-07-06T13:06:27+02:00",
   "reference_root": "reference_images",
-  "reference_count": 0,
-  "categories": {},
-  "items": [],
+  "reference_count": 16,
+  "categories": {
+    "admin": 7,
+    "calendar": 1,
+    "client": 1,
+    "live": 1,
+    "memberships": 1,
+    "picks": 1,
+    "profile": 1,
+    "shark": 1,
+    "telegram": 1,
+    "track-record": 1
+  },
+  "items": [
+    {
+      "filename": "reference_images/admin/reference_import_v900_01.png",
+      "category": "admin",
+      "secondary_categories": [],
+      "screen_target": "/admin/dashboard",
+      "notes": "Clasificada por carpeta/nombre; requiere browser QA para comparacion real.",
+      "priority": "high",
+      "size_bytes": 1491597,
+      "width": 1672,
+      "height": 941,
+      "source": "reference_images",
+      "imported_at_madrid": "2026-07-06T13:06:27+02:00"
+    },
+    {
+      "filename": "reference_images/admin/reference_import_v900_02.png",
+      "category": "admin",
+      "secondary_categories": [],
+      "screen_target": "/admin/dashboard",
+      "notes": "Clasificada por carpeta/nombre; requiere browser QA para comparacion real.",
+      "priority": "high",
+      "size_bytes": 1502637,
+      "width": 1672,
+      "height": 941,
+      "source": "reference_images",
+      "imported_at_madrid": "2026-07-06T13:06:27+02:00"
+    },
+    {
+      "filename": "reference_images/admin/reference_import_v900_03.png",
+      "category": "admin",
+      "secondary_categories": [],
+      "screen_target": "/admin/dashboard",
+      "notes": "Clasificada por carpeta/nombre; requiere browser QA para comparacion real.",
+      "priority": "high",
+      "size_bytes": 1498094,
+      "width": 1672,
+      "height": 941,
+      "source": "reference_images",
+      "imported_at_madrid": "2026-07-06T13:06:27+02:00"
+    },
+    {
+      "filename": "reference_images/admin/reference_import_v900_04.png",
+      "category": "admin",
+      "secondary_categories": [],
+      "screen_target": "/admin/dashboard",
+      "notes": "Clasificada por carpeta/nombre; requiere browser QA para comparacion real.",
+      "priority": "high",
+      "size_bytes": 1585209,
+      "width": 1672,
+      "height": 941,
+      "source": "reference_images",
+      "imported_at_madrid": "2026-07-06T13:06:27+02:00"
+    },
+    {
+      "filename": "reference_images/admin/reference_import_v900_05.png",
+      "category": "admin",
+      "secondary_categories": [],
+      "screen_target": "/admin/dashboard",
+      "notes": "Clasificada por carpeta/nombre; requiere browser QA para comparacion real.",
+      "priority": "high",
+      "size_bytes": 1693018,
+      "width": 1672,
+      "height": 941,
+      "source": "reference_images",
+      "imported_at_madrid": "2026-07-06T13:06:27+02:00"
+    },
+    {
+      "filename": "reference_images/admin/reference_import_v900_06.png",
+      "category": "admin",
+      "secondary_categories": [],
+      "screen_target": "/admin/dashboard",
+      "notes": "Clasificada por carpeta/nombre; requiere browser QA para comparacion real.",
+      "priority": "high",
+      "size_bytes": 1455452,
+      "width": 1672,
+      "height": 941,
+      "source": "reference_images",
+      "imported_at_madrid": "2026-07-06T13:06:27+02:00"
+    },
+    {
+      "filename": "reference_images/admin/reference_import_v900_07.png",
+      "category": "admin",
+      "secondary_categories": [],
+      "screen_target": "/admin/dashboard",
+      "notes": "Clasificada por carpeta/nombre; requiere browser QA para comparacion real.",
+      "priority": "high",
+      "size_bytes": 1580901,
+      "width": 1672,
+      "height": 941,
+      "source": "reference_images",
+      "imported_at_madrid": "2026-07-06T13:06:27+02:00"
+    },
+    {
+      "filename": "reference_images/calendar/reference_import_v900_10.png",
+      "category": "calendar",
+      "secondary_categories": [
+        "desktop",
+        "mobile"
+      ],
+      "screen_target": "/calendar",
+      "notes": "Clasificada por carpeta/nombre; requiere browser QA para comparacion real.",
+      "priority": "medium",
+      "size_bytes": 1468841,
+      "width": 1672,
+      "height": 941,
+      "source": "reference_images",
+      "imported_at_madrid": "2026-07-06T13:06:27+02:00"
+    },
+    {
+      "filename": "reference_images/client/reference_import_v900_08.png",
+      "category": "client",
+      "secondary_categories": [
+        "desktop",
+        "mobile"
+      ],
+      "screen_target": "/app",
+      "notes": "Clasificada por carpeta/nombre; requiere browser QA para comparacion real.",
+      "priority": "high",
+      "size_bytes": 1532522,
+      "width": 1672,
+      "height": 941,
+      "source": "reference_images",
+      "imported_at_madrid": "2026-07-06T13:06:27+02:00"
+    },
+    {
+      "filename": "reference_images/live/reference_import_v900_09.png",
+      "category": "live",
+      "secondary_categories": [
+        "desktop",
+        "mobile"
+      ],
+      "screen_target": "/live",
+      "notes": "Clasificada por carpeta/nombre; requiere browser QA para comparacion real.",
+      "priority": "high",
+      "size_bytes": 1487807,
+      "width": 1672,
+      "height": 941,
+      "source": "reference_images",
+      "imported_at_madrid": "2026-07-06T13:06:27+02:00"
+    },
+    {
+      "filename": "reference_images/memberships/reference_import_v900_14.png",
+      "category": "memberships",
+      "secondary_categories": [
+        "desktop",
+        "mobile"
+      ],
+      "screen_target": "/membresias",
+      "notes": "Clasificada por carpeta/nombre; requiere browser QA para comparacion real.",
+      "priority": "medium",
+      "size_bytes": 1682129,
+      "width": 1672,
+      "height": 941,
+      "source": "reference_images",
+      "imported_at_madrid": "2026-07-06T13:06:27+02:00"
+    },
+    {
+      "filename": "reference_images/picks/reference_import_v900_11.png",
+      "category": "picks",
+      "secondary_categories": [
+        "desktop",
+        "mobile"
+      ],
+      "screen_target": "/picks",
+      "notes": "Clasificada por carpeta/nombre; requiere browser QA para comparacion real.",
+      "priority": "high",
+      "size_bytes": 1630836,
+      "width": 1672,
+      "height": 941,
+      "source": "reference_images",
+      "imported_at_madrid": "2026-07-06T13:06:27+02:00"
+    },
+    {
+      "filename": "reference_images/profile/reference_import_v900_15.png",
+      "category": "profile",
+      "secondary_categories": [
+        "desktop",
+        "mobile"
+      ],
+      "screen_target": "/profile",
+      "notes": "Clasificada por carpeta/nombre; requiere browser QA para comparacion real.",
+      "priority": "medium",
+      "size_bytes": 1511204,
+      "width": 1672,
+      "height": 941,
+      "source": "reference_images",
+      "imported_at_madrid": "2026-07-06T13:06:27+02:00"
+    },
+    {
+      "filename": "reference_images/shark/reference_import_v900_12.png",
+      "category": "shark",
+      "secondary_categories": [
+        "desktop",
+        "mobile"
+      ],
+      "screen_target": "/shark",
+      "notes": "Clasificada por carpeta/nombre; requiere browser QA para comparacion real.",
+      "priority": "medium",
+      "size_bytes": 1674388,
+      "width": 1672,
+      "height": 941,
+      "source": "reference_images",
+      "imported_at_madrid": "2026-07-06T13:06:27+02:00"
+    },
+    {
+      "filename": "reference_images/telegram/reference_import_v900_16.png",
+      "category": "telegram",
+      "secondary_categories": [
+        "desktop",
+        "mobile"
+      ],
+      "screen_target": "/telegram",
+      "notes": "Clasificada por carpeta/nombre; requiere browser QA para comparacion real.",
+      "priority": "medium",
+      "size_bytes": 1539372,
+      "width": 1672,
+      "height": 941,
+      "source": "reference_images",
+      "imported_at_madrid": "2026-07-06T13:06:27+02:00"
+    },
+    {
+      "filename": "reference_images/track-record/reference_import_v900_13.png",
+      "category": "track-record",
+      "secondary_categories": [
+        "desktop",
+        "mobile"
+      ],
+      "screen_target": "/track-record",
+      "notes": "Clasificada por carpeta/nombre; requiere browser QA para comparacion real.",
+      "priority": "medium",
+      "size_bytes": 1577822,
+      "width": 1672,
+      "height": 941,
+      "source": "reference_images",
+      "imported_at_madrid": "2026-07-06T13:06:27+02:00"
+    }
+  ],
   "safe_notes": [
     "No se mueven ni borran imagenes.",
     "No se declara similitud visual sin capturas reales.",
