@@ -2,7 +2,7 @@
 
 - ZIP: `NeMeSiS_SHARK_PRO_V898_PRODUCTION_404_PWA_REFERENCE_OUTBOX_TRUTH_FINAL_RENDER_READY.zip`
 - Archivos: 2039
-- Tamaño ZIP: 3840947 bytes
+- Tamaño ZIP: 3840948 bytes
 - Prohibidos: 0
 - Resultado: OK
 - Root obligatorio ausente: ninguno
