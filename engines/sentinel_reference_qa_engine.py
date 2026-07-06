@@ -26,8 +26,35 @@ def find_reference_assets(root: str | Path) -> list[str]:
     return sorted(set(assets))
 
 
+REFERENCE_TARGETS = [
+    {"category": "client", "screen_target": "/app", "expected_reference_folder": "reference_images/client"},
+    {"category": "mobile", "screen_target": "/app mobile", "expected_reference_folder": "reference_images/mobile"},
+    {"category": "admin", "screen_target": "/admin/dashboard", "expected_reference_folder": "reference_images/admin"},
+    {"category": "picks", "screen_target": "/picks", "expected_reference_folder": "reference_images/picks"},
+    {"category": "live", "screen_target": "/live", "expected_reference_folder": "reference_images/live"},
+    {"category": "telegram", "screen_target": "/telegram", "expected_reference_folder": "reference_images/telegram"},
+]
+
+
+def classify_reference(path: str) -> dict[str, Any]:
+    lower = path.lower()
+    category = "general"
+    for candidate in ("admin", "client", "mobile", "telegram", "picks", "live"):
+        if f"/{candidate}/" in lower or lower.startswith(f"reference_images/{candidate}/"):
+            category = candidate
+            break
+    target = next((item["screen_target"] for item in REFERENCE_TARGETS if item["category"] == category), "producto general")
+    return {
+        "filename": path,
+        "category": category,
+        "screen_target": target,
+        "notes": "Referencia disponible para comparación visual cuando existan capturas reales.",
+    }
+
+
 def build_reference_gap_report(root: str | Path, visual_result: dict[str, Any] | None = None, browser_available: bool = False) -> dict[str, Any]:
     references = find_reference_assets(root)
+    reference_items = [classify_reference(path) for path in references]
     issues: list[dict[str, Any]] = []
     if not browser_available:
         issues.append({
@@ -55,12 +82,37 @@ def build_reference_gap_report(root: str | Path, visual_result: dict[str, Any] |
             "validation": ["Verificar carpeta de referencias"],
             "tags": ["visual", "reference"],
         })
+    else:
+        issues.append({
+            "title": "Referencia visual pendiente de browser QA",
+            "area": "visual",
+            "severity": "info",
+            "source": "reference_qa",
+            "route": "reference_images",
+            "evidence": f"reference_count={len(references)}",
+            "impact": "Hay referencias disponibles, pero la brecha visual requiere capturas reales para compararlas.",
+            "recommendation": "Ejecutar tools/run_browser_reference_qa.py y comparar pantalla por pantalla.",
+            "validation": ["Browser QA desktop/mobile"],
+            "tags": ["visual", "reference", "browser"],
+        })
     visual_issues = []
     if isinstance(visual_result, dict):
         visual_issues = [item for key in ("issues", "grouped_issues") for item in (visual_result.get(key) or []) if isinstance(item, dict)]
     return {
         "reference_assets": references,
+        "reference_items": reference_items,
         "reference_count": len(references),
+        "screen_targets": REFERENCE_TARGETS,
+        "reference_gap_report": [
+            {
+                "screen_target": item["screen_target"],
+                "references_available": [ref for ref in reference_items if ref["category"] == item["category"]],
+                "gap_visual_detected": "Pendiente de capturas reales" if not browser_available else "Revisar captura real contra referencia",
+                "priority": "high" if item["category"] in {"client", "mobile", "admin"} else "medium",
+                "codex_prompt": f"Compara {item['screen_target']} contra referencias de {item['category']} y corrige solo diferencias visibles reales.",
+            }
+            for item in REFERENCE_TARGETS
+        ],
         "browser_available": browser_available,
         "visual_worker_issues": visual_issues,
         "issues": issues,

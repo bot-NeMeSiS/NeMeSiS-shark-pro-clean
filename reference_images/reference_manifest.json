@@ -1,0 +1,12 @@
+{
+  "version": "V898_PRODUCTION_404_PWA_REFERENCE_OUTBOX_TRUTH_FINAL",
+  "notes": "Manifest inicial. Añadir aquí las imágenes oficiales cuando estén disponibles en reference_images/.",
+  "references": [
+    {
+      "filename": "reference_images/README.md",
+      "category": "general",
+      "screen_target": "todas",
+      "notes": "Carpeta oficial de referencias visuales."
+    }
+  ]
+}

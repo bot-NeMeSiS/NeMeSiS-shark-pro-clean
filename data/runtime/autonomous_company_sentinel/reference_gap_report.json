@@ -1,6 +1,83 @@
 {
   "reference_assets": [],
+  "reference_items": [],
   "reference_count": 0,
+  "screen_targets": [
+    {
+      "category": "client",
+      "screen_target": "/app",
+      "expected_reference_folder": "reference_images/client"
+    },
+    {
+      "category": "mobile",
+      "screen_target": "/app mobile",
+      "expected_reference_folder": "reference_images/mobile"
+    },
+    {
+      "category": "admin",
+      "screen_target": "/admin/dashboard",
+      "expected_reference_folder": "reference_images/admin"
+    },
+    {
+      "category": "picks",
+      "screen_target": "/picks",
+      "expected_reference_folder": "reference_images/picks"
+    },
+    {
+      "category": "live",
+      "screen_target": "/live",
+      "expected_reference_folder": "reference_images/live"
+    },
+    {
+      "category": "telegram",
+      "screen_target": "/telegram",
+      "expected_reference_folder": "reference_images/telegram"
+    }
+  ],
+  "reference_gap_report": [
+    {
+      "screen_target": "/app",
+      "references_available": [],
+      "gap_visual_detected": "Pendiente de capturas reales",
+      "priority": "high",
+      "codex_prompt": "Compara /app contra referencias de client y corrige solo diferencias visibles reales."
+    },
+    {
+      "screen_target": "/app mobile",
+      "references_available": [],
+      "gap_visual_detected": "Pendiente de capturas reales",
+      "priority": "high",
+      "codex_prompt": "Compara /app mobile contra referencias de mobile y corrige solo diferencias visibles reales."
+    },
+    {
+      "screen_target": "/admin/dashboard",
+      "references_available": [],
+      "gap_visual_detected": "Pendiente de capturas reales",
+      "priority": "high",
+      "codex_prompt": "Compara /admin/dashboard contra referencias de admin y corrige solo diferencias visibles reales."
+    },
+    {
+      "screen_target": "/picks",
+      "references_available": [],
+      "gap_visual_detected": "Pendiente de capturas reales",
+      "priority": "medium",
+      "codex_prompt": "Compara /picks contra referencias de picks y corrige solo diferencias visibles reales."
+    },
+    {
+      "screen_target": "/live",
+      "references_available": [],
+      "gap_visual_detected": "Pendiente de capturas reales",
+      "priority": "medium",
+      "codex_prompt": "Compara /live contra referencias de live y corrige solo diferencias visibles reales."
+    },
+    {
+      "screen_target": "/telegram",
+      "references_available": [],
+      "gap_visual_detected": "Pendiente de capturas reales",
+      "priority": "medium",
+      "codex_prompt": "Compara /telegram contra referencias de telegram y corrige solo diferencias visibles reales."
+    }
+  ],
   "browser_available": false,
   "visual_worker_issues": [],
   "issues": [

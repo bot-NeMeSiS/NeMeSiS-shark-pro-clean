@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="ns-page ns-admin-page" data-v898-not-found-admin="true">
+  <div class="ns-page-head">
+    <div>
+      <span class="ns-chip">Admin</span>
+      <h1>Eventos Not Found</h1>
+      <p>Rutas antiguas, PWA o enlaces guardados que llegan a la recuperación premium.</p>
+    </div>
+    <a class="ns-button ns-button-secondary" href="/admin/sentinel-issues">Ver Sentinel</a>
+  </div>
+
+  <div class="ns-card ns-admin-card">
+    <div class="ns-table-wrap">
+      <table class="ns-table">
+        <thead>
+          <tr>
+            <th>Ruta</th>
+            <th>Veces</th>
+            <th>Primera vez</th>
+            <th>Última vez</th>
+            <th>Alias</th>
+            <th>Referrer</th>
+            <th>User agent</th>
+            <th>Acción</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for event in events %}
+          <tr>
+            <td><code>{{ event.path }}</code></td>
+            <td>{{ event.count }}</td>
+            <td>{{ event.first_seen_madrid }}</td>
+            <td>{{ event.last_seen_madrid }}</td>
+            <td>{{ event.resolved_alias or 'Sin alias' }}</td>
+            <td>{{ event.referrer or 'Sin referrer' }}</td>
+            <td>{{ event.user_agent or 'Sin user agent' }}</td>
+            <td>
+              <button class="ns-button ns-button-ghost" type="button" data-copy-prompt="Crear o revisar alias seguro para {{ event.path }} si el usuario sigue llegando ahí. No tocar secretos ni datos reales.">Copiar prompt Codex</button>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="8">Sin eventos Not Found registrados.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <p class="ns-muted">Memoria local: {{ memory_path }}</p>
+  </div>
+</section>
+<script>
+(function(){
+  document.querySelectorAll('[data-copy-prompt]').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var text=btn.getAttribute('data-copy-prompt') || '';
+      if(navigator.clipboard){ navigator.clipboard.writeText(text); }
+      btn.textContent='Copiado';
+    });
+  });
+})();
+</script>
+{% endblock %}

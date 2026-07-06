@@ -45,7 +45,7 @@ def build_codex_prompt(issue: dict[str, Any]) -> str:
     )
 
 
-def write_codex_outbox(root: str | Path, issues: list[dict[str, Any]]) -> dict[str, Any]:
+def write_codex_outbox(root: str | Path, issues: list[dict[str, Any]], archived_issues: list[dict[str, Any]] | None = None) -> dict[str, Any]:
     outbox = company_sentinel_outbox_dir(root)
     outbox.mkdir(parents=True, exist_ok=True)
     prompts = []
@@ -57,7 +57,19 @@ def write_codex_outbox(root: str | Path, issues: list[dict[str, Any]]) -> dict[s
         path.write_text(prompt, encoding="utf-8")
         files.append(str(path))
         prompts.append(f"# {issue_id}\n\n{prompt}")
-    combined = "\n\n---\n\n".join(prompts) if prompts else "Sin prompts Codex pendientes."
+    archived_issues = archived_issues or []
+    archived_lines = []
+    for issue in archived_issues:
+        archived_lines.append(
+            f"- {issue.get('id') or 'SIN-ID'} | {issue.get('status') or 'ARCHIVED'} | "
+            f"{issue.get('route') or 'Sin ruta'} | {issue.get('title') or 'Incidencia obsoleta'}"
+        )
+    active_section = "\n\n---\n\n".join(prompts) if prompts else "Sin prompts Codex pendientes."
+    archived_section = (
+        "\n\n## Prompts archivados / obsoletos\n\n" + "\n".join(archived_lines)
+        if archived_lines else "\n\n## Prompts archivados / obsoletos\n\nSin prompts archivados."
+    )
+    combined = active_section + archived_section
     combined_path = outbox / "codex_outbox.md"
     combined_path.write_text(combined, encoding="utf-8")
     runtime_copy = Path(root) / "data" / "runtime" / "autonomous_company_sentinel" / "codex_outbox.md"
@@ -66,6 +78,7 @@ def write_codex_outbox(root: str | Path, issues: list[dict[str, Any]]) -> dict[s
     return {
         "engine_version": SENTINEL_CODEX_OUTBOX_VERSION,
         "prompt_count": len(prompts),
+        "archived_prompt_count": len(archived_lines),
         "files": files,
         "combined_path": str(combined_path),
         "runtime_copy": str(runtime_copy),

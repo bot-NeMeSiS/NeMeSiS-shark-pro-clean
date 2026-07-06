@@ -339,7 +339,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V897_SENTINEL_TRUTHFUL_ISSUES_ROUTE_ALIAS_REFERENCE_QA_FIX_FINAL'
+APP_VERSION = 'V898_PRODUCTION_404_PWA_REFERENCE_OUTBOX_TRUTH_FINAL'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 
@@ -10491,10 +10491,10 @@ def dashboard_data(lane="today", date=None):
 @app.route("/service-worker.js")
 def service_worker():
     body = (
-        "const NEMESIS_CACHE='NEMESIS_CACHE_V897';\n"
+        "const NEMESIS_CACHE='NEMESIS_CACHE_V898';\n"
         "self.addEventListener('install',event=>{self.skipWaiting();});\n"
         "self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==NEMESIS_CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));});\n"
-        "self.addEventListener('fetch',event=>{const req=event.request;if(req.mode==='navigate'){event.respondWith(fetch(req).catch(()=>fetch('/')));}});\n"
+        "self.addEventListener('fetch',event=>{const req=event.request;if(req.mode==='navigate'){event.respondWith(fetch(req).then(res=>{if(res.status===404){return fetch('/');}return res;}).catch(()=>fetch('/')));return;}event.respondWith(fetch(req).then(res=>{if(res.status===404){return res;}return res;}));});\n"
     )
     return Response(body, mimetype="application/javascript")
 
@@ -14753,8 +14753,8 @@ def api_runtime_version():
     base_template = ""
     css_path = BASE_DIR / "static" / "app.css"
     base_path = BASE_DIR / "templates" / "base.html"
-    manifest_path = BASE_DIR / "RELEASE_MANIFEST_V897.json"
-    fallback_manifest_path = BASE_DIR / "RELEASE_MANIFEST_V896.json"
+    manifest_path = BASE_DIR / "RELEASE_MANIFEST_V898.json"
+    fallback_manifest_path = BASE_DIR / "RELEASE_MANIFEST_V897.json"
     css_size = 0
     css_hash = ""
     css_mtime = ""
@@ -14996,6 +14996,7 @@ def api_runtime_version():
         "has_v895_render_v894_deployment_alignment": "V895_RENDER_V894_DEPLOYMENT_ALIGNMENT_FINAL" in app_py_text and "deployment_alignment_status" in app_py_text,
         "has_v896_not_found_route_recovery": "V896_PRODUCTION_NOT_FOUND_ROUTE_RECOVERY_FULL_APP_SMOKE_FINAL" in app_py_text and "client_safe_404" in app_py_text and "/api/admin/not-found-events" in app_py_text,
         "has_v897_truthful_sentinel_route_alias_reference_qa": "V897_SENTINEL_TRUTHFUL_ISSUES_ROUTE_ALIAS_REFERENCE_QA_FIX_FINAL" in app_py_text and "register_alias_if_missing" in app_py_text and "data-v897-shell" in base_template,
+        "has_v898_404_pwa_reference_outbox_truth": "V898_PRODUCTION_404_PWA_REFERENCE_OUTBOX_TRUTH_FINAL" in app_py_text and "NEMESIS_CACHE_V898" in app_py_text and "/admin/not-found-events" in app_py_text,
         "has_v837_reference_photo_qa": "data-v837-shell" in base_template and "V837 REFERENCE PHOTO PERFECTION REAL QA START" in css_text,
         "has_v836_autonomous_qa": "data-v836-shell" in base_template and "V836 AUTONOMOUS REFERENCE VISUAL REVIEW FINAL QA START" in css_text,
         "has_v833_visual_completion": "data-v833-shell" in base_template and "V833 REFERENCE ECOSYSTEM VISUAL COMPLETION START" in css_text,
@@ -16132,7 +16133,7 @@ def client_safe_404(error):
         return redirect(alias_target)
     is_admin_path = path.startswith("/admin")
     safe_links = [
-        {"label": "Inicio", "href": "/"},
+        {"label": "Inicio seguro", "href": "/"},
         {"label": "Entrar", "href": "/cliente-login"},
         {"label": "Crear cuenta", "href": "/registro"},
         {"label": "Mi app", "href": "/app"},
@@ -16151,6 +16152,20 @@ def client_safe_404(error):
         safe_links=safe_links,
         event=event,
     ), 404
+
+
+@app.route("/admin/not-found-events")
+def admin_not_found_events_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/not-found-events")
+    payload = v896_load_not_found_events()
+    return render_template(
+        "admin_not_found_events.html",
+        title="Eventos Not Found",
+        events=payload.get("events", []),
+        memory_path=str(v896_not_found_memory_path()),
+        version=APP_VERSION,
+    )
 
 
 @app.errorhandler(500)

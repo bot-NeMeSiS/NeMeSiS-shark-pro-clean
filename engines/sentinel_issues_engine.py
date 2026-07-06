@@ -348,6 +348,14 @@ def _issues_from_result(result: dict[str, Any] | None, source: str) -> list[dict
     return issues
 
 
+def _is_obsolete_route_500_issue(issue: dict[str, Any], healthy_routes: set[str]) -> bool:
+    route = str(issue.get("route") or "").strip()
+    if not route or route not in healthy_routes:
+        return False
+    text = " ".join(str(issue.get(key) or "") for key in ("title", "evidence", "risk", "impact", "recommendation")).lower()
+    return "500" in text or "5xx" in text
+
+
 def build_runtime_issues(runtime: dict[str, Any] | None) -> list[dict[str, Any]]:
     if not isinstance(runtime, dict):
         return []
@@ -401,6 +409,7 @@ def run_sentinel_issues_scan(
     autopilot_result: dict[str, Any] | None = None,
     visual_result: dict[str, Any] | None = None,
     runtime: dict[str, Any] | None = None,
+    healthy_routes: set[str] | None = None,
     save_memory: bool = False,
 ) -> dict[str, Any]:
     candidates: list[dict[str, Any]] = []
@@ -409,6 +418,9 @@ def run_sentinel_issues_scan(
     candidates.extend(_issues_from_result(visual_result, "visual_worker"))
     candidates.extend(build_runtime_issues(runtime))
     candidates.extend(_issues_from_autopilot_memory(root))
+    healthy_routes = healthy_routes or set()
+    if healthy_routes:
+        candidates = [issue for issue in candidates if not _is_obsolete_route_500_issue(issue, healthy_routes)]
 
     memory = load_sentinel_issues_memory(root)
     issues = upsert_sentinel_issues(_safe_list(memory.get("issues")), candidates) if candidates else _safe_list(memory.get("issues"))

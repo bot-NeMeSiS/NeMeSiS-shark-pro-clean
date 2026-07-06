@@ -11,6 +11,7 @@ VERSION = "V896_PRODUCTION_NOT_FOUND_ROUTE_RECOVERY_FULL_APP_SMOKE_FINAL"
 CURRENT_ALLOWED = {
     VERSION,
     "V897_SENTINEL_TRUTHFUL_ISSUES_ROUTE_ALIAS_REFERENCE_QA_FIX_FINAL",
+    "V898_PRODUCTION_404_PWA_REFERENCE_OUTBOX_TRUTH_FINAL",
 }
 
 
@@ -49,7 +50,7 @@ def main() -> int:
     require("javascript:void" not in not_found_template.lower(), "404 template contains javascript:void", failures)
     require("V896 PRODUCTION NOT FOUND ROUTE RECOVERY" in css, "V896 CSS marker missing", failures)
     require("/manifest.json" in app_py and "manifest_json" in app_py, "manifest route missing", failures)
-    require("/service-worker.js" in app_py and ("NEMESIS_CACHE_V896" in app_py or "NEMESIS_CACHE_V897" in app_py), "service worker V896/V897 cache missing", failures)
+    require("/service-worker.js" in app_py and ("NEMESIS_CACHE_V896" in app_py or "NEMESIS_CACHE_V897" in app_py or "NEMESIS_CACHE_V898" in app_py), "service worker V896/V897/V898 cache missing", failures)
     require("data/runtime/not_found_events.json" in app_py or "not_found_events.json" in app_py, "not found memory path missing", failures)
     require("run_sentinel_issues_scan" in app_py and "Ruta devuelve Not Found" in app_py, "Sentinel Not Found integration missing", failures)
     require("V896_PRIMARY_ROUTE_SMOKE" in app_py and "/admin/autonomous-company-sentinel" in app_py, "autonomous route smoke list missing", failures)
@@ -110,7 +111,7 @@ def main() -> int:
 
     sw = client.get("/service-worker.js")
     require(sw.status_code == 200, f"service worker status {sw.status_code}", failures)
-    require("NEMESIS_CACHE_V896" in sw.get_data(as_text=True) or "NEMESIS_CACHE_V897" in sw.get_data(as_text=True), "service worker does not expose V896/V897 cache", failures)
+    require("NEMESIS_CACHE_V896" in sw.get_data(as_text=True) or "NEMESIS_CACHE_V897" in sw.get_data(as_text=True) or "NEMESIS_CACHE_V898" in sw.get_data(as_text=True), "service worker does not expose V896/V897/V898 cache", failures)
 
     expected_status = {
         "/": {200},

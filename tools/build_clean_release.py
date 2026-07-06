@@ -45,6 +45,7 @@ INCLUDE_TOP_LEVEL_DIRS = {
     "tests",
     "tools",
     "reports",
+    "reference_images",
 }
 INCLUDE_TOP_LEVEL_FILES = {
     ".env.example",

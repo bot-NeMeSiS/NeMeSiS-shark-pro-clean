@@ -973,3 +973,18 @@ Honestidad:
 - Sentinel static: score 10.0, 0 issues, 0 criticos.
 - No se hizo deploy, push, Telegram real, pagos reales, browser QA ni llamadas caras API.
 
+## V898_PRODUCTION_404_PWA_REFERENCE_OUTBOX_TRUTH_FINAL
+
+- Base local: `V897_SENTINEL_TRUTHFUL_ISSUES_ROUTE_ALIAS_REFERENCE_QA_FIX_FINAL`.
+- Objetivo: cerrar 404/PWA/cache, trazabilidad de rutas no encontradas, `reference_images` en release y verdad del outbox Sentinel.
+- Se actualizo `VERSION.txt`, `APP_VERSION`, `app.py`, `templates/base.html` y runtime con `has_v898_404_pwa_reference_outbox_truth`.
+- `templates/404.html` ahora muestra la ruta solicitada de forma segura, ofrece enlaces reales y añade boton para restablecer app/PWA limpiando service workers y Cache Storage.
+- `/service-worker.js` usa `NEMESIS_CACHE_V898`, evita cachear 404 y hace fallback seguro a `/` en navegacion.
+- Se añadio `/admin/not-found-events` para revisar eventos 404 protegidos en admin.
+- `reference_images/` queda incluido en build limpio con README, subcarpetas por area y `reference_manifest.json`.
+- El Sentinel separa issues abiertos de prompts archivados/obsoletos; el outbox combinado conserva historico sin presentar rutas ya sanas como accion activa.
+- Validaciones locales: `py_compile`, `compileall`, Madrid Time, checks V896/V897/V898, `verify_imports_and_routes`, smoke Flask real, Sentinel static score 10.0 y audit ZIP OK.
+- Browser QA no disponible: Playwright no instalado; no se declara pixel-perfect.
+- Render real consultado: produccion sigue en `V896_PRODUCTION_NOT_FOUND_ROUTE_RECOVERY_FULL_APP_SMOKE_FINAL`, por lo que V898 no se declara desplegada.
+- ZIP final: `release_output/NeMeSiS_SHARK_PRO_V898_PRODUCTION_404_PWA_REFERENCE_OUTBOX_TRUTH_FINAL_RENDER_READY.zip`.
+

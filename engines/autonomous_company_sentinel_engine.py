@@ -133,6 +133,11 @@ def run_autonomous_company_sentinel(
     dirs = ensure_company_sentinel_dirs(root)
     local_runtime = runtime or {"app_version": app_version}
     journey = run_user_admin_journey_scan(flask_client, mode=mode)
+    healthy_routes = {
+        str(item.get("route") or "")
+        for item in (journey.get("checked") or [])
+        if int(item.get("status_code") or 0) in {200, 301, 302, 303, 307, 308, 401, 403}
+    }
     reference = run_reference_visual_scan(root, visual_result=visual_result, browser_available=False)
     render_alignment = build_render_alignment(local_runtime, render_runtime=render_runtime)
     telegram_watch = build_telegram_quality_watch(local_runtime, render_runtime=render_runtime)
@@ -158,10 +163,16 @@ def run_autonomous_company_sentinel(
         autopilot_result=autopilot_result,
         visual_result=visual_result,
         runtime=local_runtime,
+        healthy_routes=healthy_routes,
         save_memory=True,
     )
-    open_issues = issues_summary.get("open_issues") or issues_summary.get("issues") or []
-    outbox = write_codex_outbox(root, open_issues)
+    all_issues = issues_summary.get("issues") or []
+    open_issues = issues_summary.get("open_issues") or []
+    archived_issues = [
+        issue for issue in all_issues
+        if issue.get("status") in {"STALE_NEEDS_REVALIDATION", "RESOLVED_BY_RESCAN", "RESOLVED", "FALSE_POSITIVE", "IGNORED_SAFE"}
+    ]
+    outbox = write_codex_outbox(root, open_issues, archived_issues=archived_issues)
     autofix = build_safe_autofix_plan(open_issues)
     run = {
         "ok": True,
@@ -211,8 +222,12 @@ def run_autonomous_company_sentinel(
         "last_mode": mode,
         "last_runner": runner,
         "issues_open": (issues_summary.get("counts") or {}).get("open", 0),
-        "critical": (issues_summary.get("counts") or {}).get("critical", 0),
-        "high": (issues_summary.get("counts") or {}).get("high", 0),
+        "active_issues_open": len(open_issues),
+        "stale_issues": len([issue for issue in all_issues if issue.get("status") == "STALE_NEEDS_REVALIDATION"]),
+        "resolved_by_rescan": len([issue for issue in all_issues if issue.get("status") == "RESOLVED_BY_RESCAN"]),
+        "archived_prompts": outbox.get("archived_prompt_count", 0),
+        "critical": len([issue for issue in open_issues if issue.get("severity") == "critical"]),
+        "high": len([issue for issue in open_issues if issue.get("severity") == "high"]),
     }
     _write_json(dirs["base"] / "latest_run.json", run)
     _write_json(dirs["base"] / "state.json", state)
