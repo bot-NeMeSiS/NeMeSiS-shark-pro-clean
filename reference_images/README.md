@@ -17,6 +17,5 @@ Reglas:
 
 - No incluir secretos ni datos personales.
 - No meter videos pesados.
-- No declarar pixel-perfect si no hay capturas reales comparadas.
+- No declarar equivalencia visual exacta si no hay capturas reales comparadas.
 - Si esta carpeta no contiene imagenes, Sentinel debe reportar `REFERENCE_IMAGES_MISSING`.
-

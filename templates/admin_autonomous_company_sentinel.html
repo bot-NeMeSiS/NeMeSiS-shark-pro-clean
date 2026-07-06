@@ -76,10 +76,52 @@
     <article class="ns-admin-card">
       <h2>Referencia visual</h2>
       {% set ref = latest.reference or {} %}
-      <p>Referencias: <strong>{{ ref.reference_count or 0 }}</strong></p>
+      {% set gap = ref.product_gap_report or {} %}
+      <p>Referencias detectadas: <strong>{{ (ref.manifest or {}).reference_count or ref.reference_count or 0 }}</strong></p>
+      <p>Pantallas revisadas: <strong>{{ (gap.targets_reviewed or [])|length }}</strong></p>
       <p>Capturas reales: <strong>{{ 'Disponibles' if ref.browser_available else 'No ejecutadas' }}</strong></p>
-      <p>No se declara pixel-perfect sin screenshots reales.</p>
+      <p>Gaps altos: <strong>{{ (gap.high_gaps or [])|length }}</strong></p>
+      <p>Prompts generados: <strong>{{ (gap.codex_prompts or [])|length }}</strong></p>
+      <p>Score honesto: <strong>{{ gap.score_honest or 'Pendiente' }}</strong></p>
+      <div class="ns-actions">
+        <a class="ns-button ns-button-secondary" href="/api/admin/autonomous-company-sentinel/reference-gaps" target="_blank">Ver gaps</a>
+        <a class="ns-button ns-button-ghost" href="/admin/sentinel-codex-outbox">Ver outbox</a>
+      </div>
+      <p>No se declara equivalencia exacta sin capturas reales comparadas.</p>
     </article>
+  </section>
+
+  {% set ref = latest.reference or {} %}
+  {% set gap = ref.product_gap_report or {} %}
+  <section class="ns-admin-card v899-reference-visual-panel">
+    <div class="ns-section-title">
+      <h2>Referencia visual V899</h2>
+      <span class="ns-badge">reference gap</span>
+    </div>
+    <div class="ns-grid ns-grid-4">
+      <article class="ns-stat"><span>Referencias</span><strong>{{ (ref.manifest or {}).reference_count or 0 }}</strong><small>reference_images</small></article>
+      <article class="ns-stat"><span>Gaps</span><strong>{{ (gap.gaps or [])|length }}</strong><small>pantalla por pantalla</small></article>
+      <article class="ns-stat"><span>Browser QA</span><strong>{{ 'Disponible' if ref.browser_available else 'No disponible' }}</strong><small>sin afirmar equivalencia exacta</small></article>
+      <article class="ns-stat"><span>Prompts visuales</span><strong>{{ (gap.codex_prompts or [])|length }}</strong><small>Codex outbox</small></article>
+    </div>
+    <div class="ns-table-wrap">
+      <table class="ns-table">
+        <thead><tr><th>Severidad</th><th>Ruta</th><th>Referencia</th><th>Gap</th><th>Accion</th></tr></thead>
+        <tbody>
+        {% for item in (gap.gaps or [])[:8] %}
+          <tr>
+            <td><span class="ns-chip ns-chip-{{ item.severity }}">{{ item.severity }}</span></td>
+            <td><code>{{ item.route }}</code></td>
+            <td>{{ item.reference }}</td>
+            <td>{{ item.evidence }}</td>
+            <td><button class="ns-button ns-button-secondary" type="button" data-copy="{{ item.codex_prompt|e }}">Copiar prompt</button></td>
+          </tr>
+        {% else %}
+          <tr><td colspan="5"><div class="ns-empty ns-empty-compact">Ejecuta mode=reference_scan para poblar gaps visuales accionables.</div></td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
   </section>
 
   <section class="ns-grid ns-grid-2">

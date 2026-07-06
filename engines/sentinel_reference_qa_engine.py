@@ -64,7 +64,7 @@ def build_reference_gap_report(root: str | Path, visual_result: dict[str, Any] |
             "source": "reference_qa",
             "route": "browser",
             "evidence": "BROWSER_CAPTURE_UNAVAILABLE",
-            "impact": "No se puede declarar pixel-perfect ni validar capturas reales en esta ejecucion.",
+            "impact": "No se puede declarar equivalencia visual exacta ni validar capturas reales en esta ejecucion.",
             "recommendation": "Ejecutar browser QA con Playwright cuando este disponible.",
             "validation": ["Browser QA desktop/mobile"],
             "tags": ["visual", "browser"],

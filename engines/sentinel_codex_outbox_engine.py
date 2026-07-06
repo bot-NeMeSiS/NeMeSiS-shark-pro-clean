@@ -49,6 +49,8 @@ def write_codex_outbox(root: str | Path, issues: list[dict[str, Any]], archived_
     outbox = company_sentinel_outbox_dir(root)
     outbox.mkdir(parents=True, exist_ok=True)
     prompts = []
+    visual_prompts = []
+    functional_prompts = []
     files = []
     for issue in issues:
         issue_id = str(issue.get("id") or "SENT-PENDING").replace("/", "-")
@@ -56,7 +58,14 @@ def write_codex_outbox(root: str | Path, issues: list[dict[str, Any]], archived_
         path = outbox / f"{issue_id}_codex_prompt.md"
         path.write_text(prompt, encoding="utf-8")
         files.append(str(path))
-        prompts.append(f"# {issue_id}\n\n{prompt}")
+        block = f"# {issue_id}\n\n{prompt}"
+        prompts.append(block)
+        tags = set(issue.get("tags") or [])
+        area = str(issue.get("area") or "")
+        if "reference_gap" in tags or area == "reference_visual":
+            visual_prompts.append(block)
+        else:
+            functional_prompts.append(block)
     archived_issues = archived_issues or []
     archived_lines = []
     for issue in archived_issues:
@@ -64,12 +73,14 @@ def write_codex_outbox(root: str | Path, issues: list[dict[str, Any]], archived_
             f"- {issue.get('id') or 'SIN-ID'} | {issue.get('status') or 'ARCHIVED'} | "
             f"{issue.get('route') or 'Sin ruta'} | {issue.get('title') or 'Incidencia obsoleta'}"
         )
-    active_section = "\n\n---\n\n".join(prompts) if prompts else "Sin prompts Codex pendientes."
+    active_section = "\n\n## Prompts activos\n\n" + ("\n\n---\n\n".join(prompts) if prompts else "Sin prompts Codex pendientes.")
+    visual_section = "\n\n## Prompts visuales / referencia\n\n" + ("\n\n---\n\n".join(visual_prompts) if visual_prompts else "Sin prompts visuales activos.")
+    functional_section = "\n\n## Prompts funcionales / producto\n\n" + ("\n\n---\n\n".join(functional_prompts) if functional_prompts else "Sin prompts funcionales activos.")
     archived_section = (
         "\n\n## Prompts archivados / obsoletos\n\n" + "\n".join(archived_lines)
         if archived_lines else "\n\n## Prompts archivados / obsoletos\n\nSin prompts archivados."
     )
-    combined = active_section + archived_section
+    combined = active_section + visual_section + functional_section + archived_section
     combined_path = outbox / "codex_outbox.md"
     combined_path.write_text(combined, encoding="utf-8")
     runtime_copy = Path(root) / "data" / "runtime" / "autonomous_company_sentinel" / "codex_outbox.md"
@@ -78,6 +89,8 @@ def write_codex_outbox(root: str | Path, issues: list[dict[str, Any]], archived_
     return {
         "engine_version": SENTINEL_CODEX_OUTBOX_VERSION,
         "prompt_count": len(prompts),
+        "visual_prompt_count": len(visual_prompts),
+        "functional_prompt_count": len(functional_prompts),
         "archived_prompt_count": len(archived_lines),
         "files": files,
         "combined_path": str(combined_path),

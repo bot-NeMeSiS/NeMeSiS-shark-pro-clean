@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="es">
 <head>
   <meta charset="utf-8">
@@ -6,11 +6,11 @@
   <meta name="theme-color" content="#06111f">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="nemesis-version" content="V898_PRODUCTION_404_PWA_REFERENCE_OUTBOX_TRUTH_FINAL">
+  <meta name="nemesis-version" content="V899_REFERENCE_VISUAL_BROWSER_QA_PRODUCT_GAP_WORKER_FINAL">
   <title>{% if title is defined and title %}{{ title }}{% else %}NeMeSiS SHARK PRO{% endif %}</title>
   <link rel="icon" href="{{ url_for('static', filename='img/shark-logo.svg') }}" type="image/svg+xml">
   <link rel="manifest" href="{{ url_for('manifest_json') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}?v=V898_PRODUCTION_404_PWA_REFERENCE_OUTBOX_TRUTH_FINAL">
+  <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}?v=V899_REFERENCE_VISUAL_BROWSER_QA_PRODUCT_GAP_WORKER_FINAL">
   <meta name="csrf-token" content="{{ csrf_token() }}">
 </head>
 {% from "partials/brand_logo.html" import nemesis_brand %}
@@ -37,7 +37,7 @@
 {% set show_admin_nav = is_admin_area %}
 {% set show_mobile_bottom_nav = not is_admin_surface %}
 {% set show_floating_shark = is_client_area and request.path not in ['/shark', '/shark-ai', '/shark-core'] %}
-<body class="ns-app ns-tier-{{ _visual_tier }}{% if current_user %} ns-authenticated{% else %} ns-public{% endif %}{% if is_admin_surface %} ns-admin{% endif %}" data-ns-route="{{ request.path }}" data-ns-plan="{{ _tier_label }}" data-v775-shell="true" data-v776-shell="true" data-v777-shell="true" data-v778-shell="true" data-v790-shell="true" data-v792-shell="true" data-v793-shell="true" data-v795-shell="true" data-v796-shell="true" data-v797-shell="true" data-v798-shell="true" data-v799-shell="true" data-v800-shell="true" data-v801-shell="true" data-v802-shell="true" data-v806-shell="true" data-v807-shell="true" data-v809-shell="true" data-v810-shell="true" data-v811-shell="true" data-v812-shell="true" data-v813-shell="true" data-v814-shell="true" data-v815-shell="true" data-v816-shell="true" data-v817-shell="true" data-v818-shell="true" data-v819-shell="true" data-v820-shell="true" data-v821-shell="true" data-v822-shell="true" data-v823-shell="true" data-v824-shell="true" data-v825-shell="true" data-v826-shell="true" data-v827-shell="true" data-v828-shell="true" data-v829-shell="true" data-v830-shell="true" data-v832-shell="true" data-v833-shell="true" data-v836-shell="true" data-v837-shell="true" data-v838-shell="true" data-v839-shell="true" data-v840-shell="true" data-v841-shell="true" data-v842-shell="true" data-v843-shell="true" data-v844-shell="true" data-v845-shell="true" data-v847-shell="true" data-v848-shell="true" data-v849-shell="true" data-v850-shell="true" data-v851-shell="true" data-v852-shell="true" data-v853-shell="true" data-v854-shell="true" data-v855-shell="true" data-v856-shell="true" data-v857-shell="true" data-v858-shell="true" data-v859-shell="true" data-v860-shell="true" data-v861-shell="true" data-v862-shell="true" data-v863-shell="true" data-v864-shell="true" data-v865-shell="true" data-v866-shell="true" data-v867-shell="true" data-v868-shell="true" data-v869-shell="true" data-v870-shell="true" data-v871-shell="true" data-v872-shell="true" data-v873-shell="true" data-v874-shell="true" data-v875-shell="true" data-v876-shell="true" data-v878-shell="true" data-v879-shell="true" data-v880-shell="true" data-v881-shell="true" data-v882-shell="true" data-v883-shell="true" data-v884-shell="true" data-v885-shell="true" data-v886-shell="true" data-v887-shell="true" data-v888-shell="true" data-v888-autopilot-shell="true" data-v897-shell="true" data-v898-shell="true">
+<body class="ns-app ns-tier-{{ _visual_tier }}{% if current_user %} ns-authenticated{% else %} ns-public{% endif %}{% if is_admin_surface %} ns-admin{% endif %}" data-ns-route="{{ request.path }}" data-ns-plan="{{ _tier_label }}" data-v775-shell="true" data-v776-shell="true" data-v777-shell="true" data-v778-shell="true" data-v790-shell="true" data-v792-shell="true" data-v793-shell="true" data-v795-shell="true" data-v796-shell="true" data-v797-shell="true" data-v798-shell="true" data-v799-shell="true" data-v800-shell="true" data-v801-shell="true" data-v802-shell="true" data-v806-shell="true" data-v807-shell="true" data-v809-shell="true" data-v810-shell="true" data-v811-shell="true" data-v812-shell="true" data-v813-shell="true" data-v814-shell="true" data-v815-shell="true" data-v816-shell="true" data-v817-shell="true" data-v818-shell="true" data-v819-shell="true" data-v820-shell="true" data-v821-shell="true" data-v822-shell="true" data-v823-shell="true" data-v824-shell="true" data-v825-shell="true" data-v826-shell="true" data-v827-shell="true" data-v828-shell="true" data-v829-shell="true" data-v830-shell="true" data-v832-shell="true" data-v833-shell="true" data-v836-shell="true" data-v837-shell="true" data-v838-shell="true" data-v839-shell="true" data-v840-shell="true" data-v841-shell="true" data-v842-shell="true" data-v843-shell="true" data-v844-shell="true" data-v845-shell="true" data-v847-shell="true" data-v848-shell="true" data-v849-shell="true" data-v850-shell="true" data-v851-shell="true" data-v852-shell="true" data-v853-shell="true" data-v854-shell="true" data-v855-shell="true" data-v856-shell="true" data-v857-shell="true" data-v858-shell="true" data-v859-shell="true" data-v860-shell="true" data-v861-shell="true" data-v862-shell="true" data-v863-shell="true" data-v864-shell="true" data-v865-shell="true" data-v866-shell="true" data-v867-shell="true" data-v868-shell="true" data-v869-shell="true" data-v870-shell="true" data-v871-shell="true" data-v872-shell="true" data-v873-shell="true" data-v874-shell="true" data-v875-shell="true" data-v876-shell="true" data-v878-shell="true" data-v879-shell="true" data-v880-shell="true" data-v881-shell="true" data-v882-shell="true" data-v883-shell="true" data-v884-shell="true" data-v885-shell="true" data-v886-shell="true" data-v887-shell="true" data-v888-shell="true" data-v888-autopilot-shell="true" data-v897-shell="true" data-v898-shell="true" data-v899-shell="true">
   <!-- NEMESIS V817 REFERENCE PIXEL POLISH ACTIVE -->
   <!-- NEMESIS V818 DAILY AUTOMATION OS ACTIVE -->
   <!-- NEMESIS V819 REFERENCE UI DEDUP LAYER PURGE ACTIVE -->
@@ -127,7 +127,7 @@
       <span class="tier-badge tier-badge-{{ _visual_tier }}">{{ _tier_label }}</span>
       {% if show_client_topbar_nav %}
       <nav class="nav nav-clean" data-nav-zone="client-topbar">
-        <a href="/membresias">Membresías</a>
+        <a href="/membresias">Membresias</a>
         <a href="/legal">Confianza</a>
         <a href="/cliente-login">Entrar</a>
         <a class="nav-cta" href="/registro">Crear cuenta</a>
@@ -136,7 +136,7 @@
     </div>
   </header>
 
-  {# V885: una sola fuente de navegación cliente por viewport. PC usa sidebar premium y móvil usa bottom nav. #}
+  {# V885: una sola fuente de navegacion cliente por viewport. PC usa sidebar premium y movil usa bottom nav. #}
   <!-- V829 compatibility: v829-mobile-quick /profile /telegram /favorites /track-record /support migrated into canonical bottom nav and in-page actions. -->
 
   {% if show_client_sidebar %}
@@ -151,7 +151,7 @@
     ('Track Record', '/track-record', 'Historial'),
     ('Soporte', '/support', 'Soporte')
   ] %}
-  <aside class="ns-client-sidebar" aria-label="Navegación cliente premium" data-nav-zone="client-sidebar">
+  <aside class="ns-client-sidebar" aria-label="Navegacion cliente premium" data-nav-zone="client-sidebar">
     {{ nemesis_brand('/app', 'sidebar', True) }}
     <span class="ns-client-sidebar-plan tier-badge tier-badge-{{ _visual_tier }}">{{ _tier_label }}</span>
     <nav>
@@ -171,14 +171,14 @@
   {% if show_admin_nav %}
   {% set v808_admin_groups = [
     ('Centro', [('Panel','/admin/control-center'),('Empresa OS','/admin/company-os'),('Product Board','/admin/company-audit'),('AutoPilot','/admin/sentinel-autopilot'),('Visual Worker','/admin/visual-worker'),('Mejora continua','/admin/auto-improvement'),('Sentinel','/admin/shark-sentinel'),('Loop','/admin/continuous-sentinel'),('Workflow','/admin/sentinel-workflow'),('Mapa','/admin/map'),('Sistema','/admin/system'),('Rutas','/admin/route-health')]),
-    ('Clientes', [('Usuarios','/admin/users'),('Membresías','/admin/memberships'),('Importar','/admin/user-import'),('Soporte','/admin/support-center')]),
+    ('Clientes', [('Usuarios','/admin/users'),('Membresias','/admin/memberships'),('Importar','/admin/user-import'),('Soporte','/admin/support-center')]),
     ('Datos', [('Data Center','/admin/data-center'),('API-SPORTS','/admin/api-sports'),('Partidos','/admin/matches-sync'),('SportsDB','/admin/sportsdb-sync'),('Data Memory','/admin/data-memory')]),
     ('Live / SHARK', [('Live','/admin/live-depth'),('Match IQ','/admin/match-intelligence'),('SHARK','/admin/shark-center'),('Visual','/admin/visual-experience')]),
     ('Picks', [('Picks','/admin/picks'),('Recomendaciones','/admin/recommendations'),('Rendimiento','/admin/pick-performance'),('Track Record','/admin/track-record')]),
-    ('Telegram / Auto', [('Telegram','/admin/telegram/command-center'),('Mensajes PRO','/admin/telegram/pro-preview'),('Config','/admin/telegram'),('Automatización','/admin/automation-center'),('Backups','/admin/backups')]),
+    ('Telegram / Auto', [('Telegram','/admin/telegram/command-center'),('Mensajes PRO','/admin/telegram/pro-preview'),('Config','/admin/telegram'),('Automatizacion','/admin/automation-center'),('Backups','/admin/backups')]),
     ('Venta / Calidad', [('Calidad','/admin/app-experience-quality'),('QA final','/admin/final-qa'),('Pagos','/admin/payments'),('Go Live','/admin/go-live')])
   ] %}
-  <aside class="v808-admin-rail" aria-label="Navegación admin premium">
+  <aside class="v808-admin-rail" aria-label="Navegacion admin premium">
     {{ nemesis_brand('/admin/control-center', 'admin') }}
     <nav>
       <a href="/admin/control-center">Panel <span>Control</span></a>
@@ -215,13 +215,13 @@
 
 
   <footer class="v787-legal-footer" aria-label="Aviso legal y responsable">
-    <strong>+18 · Información deportiva, no casa de apuestas.</strong>
+    <strong>+18 - Informacion deportiva, no casa de apuestas.</strong>
     <span>NeMeSiS SHARK PRO no acepta apuestas, no custodia saldo de juego, no paga premios y no garantiza beneficios.</span>
-    <nav><a href="/legal">Legal</a><a href="/terminos">Términos</a><a href="/privacidad">Privacidad</a><a href="/juego-responsable">Juego responsable</a><a href="/support">Soporte</a></nav>
+    <nav><a href="/legal">Legal</a><a href="/terminos">Terminos</a><a href="/privacidad">Privacidad</a><a href="/juego-responsable">Juego responsable</a><a href="/support">Soporte</a></nav>
   </footer>
 
   {% if show_mobile_bottom_nav %}
-  <nav class="bottom-nav bottom-nav-clean" aria-label="Navegación rápida" data-nav-zone="client-bottom">
+  <nav class="bottom-nav bottom-nav-clean" aria-label="Navegacion rapida" data-nav-zone="client-bottom">
     {% if current_user %}
       <a href="/app" data-v775-icon="Inicio">Inicio</a>
       <a href="/partidos" data-v775-icon="Partidos">Partidos</a>
@@ -242,13 +242,13 @@
     <div class="shark-panel" id="sharkPanel" hidden>
       <div class="shark-panel-head">
         <strong>SHARK IA</strong>
-        <button type="button" id="sharkClose" aria-label="Cerrar SHARK">×</button>
+        <button type="button" id="sharkClose" aria-label="Cerrar SHARK">x</button>
       </div>
       <div class="shark-messages" id="sharkMessages">
-        <div class="shark-msg bot">Pregúntame por picks, combinadas hasta 15, favoritos, directo u oportunidades. SHARK no inventa: si falta cuota o dato real, te lo dirá claro.</div>
+        <div class="shark-msg bot">Preguntame por picks, combinadas hasta 15, favoritos, directo u oportunidades. SHARK no inventa: si falta cuota o dato real, te lo dira claro.</div>
         <div class="shark-quick">
           <button type="button" data-q="Dame el mejor pick de hoy con cuota, stake, riesgo y motivo">Pick de hoy</button>
-          <button type="button" data-q="Qué NO tocaría hoy y qué dejarías en estudio">No tocar</button>
+          <button type="button" data-q="Que NO tocaria hoy y que dejarias en estudio">No tocar</button>
           <button type="button" data-q="Prepara una combi responsable de 3 partidos y avisa del riesgo">Combi responsable</button>
           <button type="button" data-q="Prepara una combinada larga de hasta 15 partidos y avisa del riesgo">Combi 15</button>
           <button type="button" data-q="Resume el directo con marcador minuto y riesgo">Directo</button>
@@ -289,7 +289,7 @@
     function add(text, cls){ const d=document.createElement('div'); d.className='shark-msg '+cls; d.textContent=text; msgs.appendChild(d); msgs.scrollTop=msgs.scrollHeight; return d; }
     async function ask(q){
       q=(q||'').trim(); if(!q) return; add(q,'user'); if(input) input.value='';
-      const thinking=add('SHARK está revisando partidos, picks, cuotas y riesgo...', 'bot thinking');
+      const thinking=add('SHARK esta revisando partidos, picks, cuotas y riesgo...', 'bot thinking');
       try{
         let r=await fetch('/api/shark/ask',{method:'POST',headers:window.nemesisJsonHeaders(),body:JSON.stringify({question:q})});
         if(r.status===403){
@@ -299,7 +299,7 @@
         let answer=(j.shark&&j.shark.answer)||j.message||'SHARK no pudo responder ahora mismo.';
         thinking.textContent=answer; thinking.classList.remove('thinking');
       }
-      catch(err){ thinking.textContent='No puedo conectar con SHARK ahora mismo. Abre la página SHARK desde el menú o recarga si la sesión caducó.'; thinking.classList.remove('thinking'); }
+      catch(err){ thinking.textContent='No puedo conectar con SHARK ahora mismo. Abre la pagina SHARK desde el menu o recarga si la sesion caduco.'; thinking.classList.remove('thinking'); }
     }
     fab.addEventListener('click',()=>{panel.hidden=!panel.hidden; document.body.classList.toggle('shark-open',!panel.hidden); if(!panel.hidden&&input) input.focus();});
     close&&close.addEventListener('click',()=>{panel.hidden=true; document.body.classList.remove('shark-open');});
@@ -548,7 +548,7 @@
         .then(function(r){return r.ok ? r.json() : null;})
         .then(function(j){
           if(!j) return;
-          var label=(j.version||'runtime') + ' · ' + (j.status||'OK');
+          var label=(j.version||'runtime') + ' - ' + (j.status||'OK');
           nodes.forEach(function(el){el.textContent=label; el.classList.add('is-fresh');});
         }).catch(function(){nodes.forEach(function(el){el.textContent='Runtime pendiente';});});
     }
@@ -583,7 +583,7 @@
 
 
   <script>
-  // V812: mantener un único SHARK flotante, corregir duplicados y marcar navegación activa sin romper rutas.
+  // V812: mantener un unico SHARK flotante, corregir duplicados y marcar navegacion activa sin romper rutas.
   (function(){
     try{
       var widgets=[].slice.call(document.querySelectorAll('.shark-widget'));
@@ -599,6 +599,7 @@
   </script>
 </body>
 </html>
+
 
 
 

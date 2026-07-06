@@ -14,10 +14,11 @@
 
   {% set latest = status.latest_run or {} %}
   {% set outbox = latest.outbox or {} %}
-  <section class="ns-grid ns-grid-3">
+  <section class="ns-grid ns-grid-4">
     <article class="ns-stat"><span>Prompts</span><strong>{{ outbox.prompt_count or 0 }}</strong><small>generados</small></article>
+    <article class="ns-stat"><span>Visuales</span><strong>{{ outbox.visual_prompt_count or 0 }}</strong><small>reference gap</small></article>
+    <article class="ns-stat"><span>Funcionales</span><strong>{{ outbox.functional_prompt_count or 0 }}</strong><small>producto/rutas</small></article>
     <article class="ns-stat"><span>Ruta</span><strong>outbox</strong><small>{{ outbox.combined_path or 'Pendiente' }}</small></article>
-    <article class="ns-stat"><span>Seguridad</span><strong>Manual</strong><small>sin auto-code</small></article>
   </section>
 
   <section class="ns-admin-card">
@@ -33,6 +34,15 @@
         {% endfor %}
         </tbody>
       </table>
+    </div>
+  </section>
+
+  <section class="ns-admin-card v899-outbox-sections">
+    <h2>Prompts visuales / funcionales / archivados</h2>
+    <p>El outbox combinado separa prompts activos, prompts visuales de referencia, prompts funcionales y prompts archivados u obsoletos. Este panel no ejecuta cambios.</p>
+    <div class="ns-actions">
+      <a class="ns-button ns-button-secondary" href="/api/admin/autonomous-company-sentinel/outbox" target="_blank">Abrir outbox JSON</a>
+      <a class="ns-button ns-button-ghost" href="/api/admin/autonomous-company-sentinel/reference-gaps" target="_blank">Ver gaps visuales</a>
     </div>
   </section>
 </section>

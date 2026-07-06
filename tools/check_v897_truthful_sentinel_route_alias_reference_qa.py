@@ -11,6 +11,7 @@ VERSION = "V897_SENTINEL_TRUTHFUL_ISSUES_ROUTE_ALIAS_REFERENCE_QA_FIX_FINAL"
 CURRENT_ALLOWED = {
     VERSION,
     "V898_PRODUCTION_404_PWA_REFERENCE_OUTBOX_TRUTH_FINAL",
+    "V899_REFERENCE_VISUAL_BROWSER_QA_PRODUCT_GAP_WORKER_FINAL",
 }
 
 
@@ -36,9 +37,9 @@ def main() -> int:
     shark_sentinel = read("engines/shark_sentinel_engine.py")
     reference_engine = read("engines/sentinel_reference_qa_engine.py")
 
-    require(read("VERSION.txt").strip().lstrip("\ufeff") in CURRENT_ALLOWED, "VERSION.txt is not V897/V898", failures)
-    require(read("APP_VERSION").strip().lstrip("\ufeff") in CURRENT_ALLOWED, "APP_VERSION file is not V897/V898", failures)
-    require(app_version_from_source(app_py) in CURRENT_ALLOWED, "app.py APP_VERSION is not V897/V898", failures)
+    require(read("VERSION.txt").strip().lstrip("\ufeff") in CURRENT_ALLOWED, "VERSION.txt is not V897/V898/V899", failures)
+    require(read("APP_VERSION").strip().lstrip("\ufeff") in CURRENT_ALLOWED, "APP_VERSION file is not V897/V898/V899", failures)
+    require(app_version_from_source(app_py) in CURRENT_ALLOWED, "app.py APP_VERSION is not V897/V898/V899", failures)
     require("has_v897_truthful_sentinel_route_alias_reference_qa" in app_py, "runtime V897 flag missing", failures)
     require("register_alias_if_missing" in app_py, "safe alias helper missing", failures)
     require("V897_ALIAS_REGISTRATION" in app_py, "alias registration summary missing", failures)

@@ -47,6 +47,12 @@
         <button class="ns-button ns-button-secondary" type="button" data-filter="critical">Solo criticas</button>
         <button class="ns-button ns-button-secondary" type="button" data-filter="open">Abiertas</button>
         <button class="ns-button ns-button-secondary" type="button" data-filter="codex">Codex Ready</button>
+        <button class="ns-button ns-button-secondary" type="button" data-filter="reference">Reference gap</button>
+        <button class="ns-button ns-button-secondary" type="button" data-filter="browser">Browser QA</button>
+        <button class="ns-button ns-button-secondary" type="button" data-filter="mobile">Mobile</button>
+        <button class="ns-button ns-button-secondary" type="button" data-filter="desktop">Desktop</button>
+        <button class="ns-button ns-button-secondary" type="button" data-filter="admin">Admin</button>
+        <button class="ns-button ns-button-secondary" type="button" data-filter="client">Client</button>
       </div>
       <label class="ns-form-label" for="v892-search">Buscar incidencia</label>
       <input class="ns-input" id="v892-search" type="search" placeholder="Ruta, area, evidencia o titulo" data-v892-search>
@@ -215,7 +221,8 @@
     var q=(search && search.value || '').toLowerCase().trim();
     rows.forEach(function(row){
       var matchText=!q || (row.getAttribute('data-search') || row.textContent || '').toLowerCase().indexOf(q) >= 0;
-      var matchKind=kind==='all' || !kind || (kind==='critical' && row.dataset.severity==='critical') || (kind==='open' && !['RESOLVED','FALSE_POSITIVE','IGNORED_SAFE'].includes(row.dataset.status)) || (kind==='codex' && row.dataset.codex==='true');
+      var text=(row.getAttribute('data-search') || row.textContent || '').toLowerCase();
+      var matchKind=kind==='all' || !kind || (kind==='critical' && row.dataset.severity==='critical') || (kind==='open' && !['RESOLVED','FALSE_POSITIVE','IGNORED_SAFE'].includes(row.dataset.status)) || (kind==='codex' && row.dataset.codex==='true') || (kind==='reference' && text.indexOf('reference')>=0) || (kind==='browser' && text.indexOf('browser')>=0) || (kind==='mobile' && text.indexOf('mobile')>=0) || (kind==='desktop' && text.indexOf('desktop')>=0) || (kind==='admin' && text.indexOf('admin')>=0) || (kind==='client' && text.indexOf('client')>=0);
       row.style.display=(matchText && matchKind) ? '' : 'none';
     });
   }

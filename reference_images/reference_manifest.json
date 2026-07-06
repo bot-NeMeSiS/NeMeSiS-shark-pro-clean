@@ -1,12 +1,13 @@
 {
-  "version": "V898_PRODUCTION_404_PWA_REFERENCE_OUTBOX_TRUTH_FINAL",
-  "notes": "Manifest inicial. Añadir aquí las imágenes oficiales cuando estén disponibles en reference_images/.",
-  "references": [
-    {
-      "filename": "reference_images/README.md",
-      "category": "general",
-      "screen_target": "todas",
-      "notes": "Carpeta oficial de referencias visuales."
-    }
+  "version": "V899_REFERENCE_VISUAL_BROWSER_QA_PRODUCT_GAP_WORKER_FINAL",
+  "generated_at_madrid": "2026-07-06T12:36:18+02:00",
+  "reference_root": "reference_images",
+  "reference_count": 0,
+  "categories": {},
+  "items": [],
+  "safe_notes": [
+    "No se mueven ni borran imagenes.",
+    "No se declara similitud visual sin capturas reales.",
+    "Si no hay imagenes, se genera manifest vacio y gap seguro."
   ]
 }

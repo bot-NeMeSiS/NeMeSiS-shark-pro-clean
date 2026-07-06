@@ -988,3 +988,19 @@ Honestidad:
 - Render real consultado: produccion sigue en `V896_PRODUCTION_NOT_FOUND_ROUTE_RECOVERY_FULL_APP_SMOKE_FINAL`, por lo que V898 no se declara desplegada.
 - ZIP final: `release_output/NeMeSiS_SHARK_PRO_V898_PRODUCTION_404_PWA_REFERENCE_OUTBOX_TRUTH_FINAL_RENDER_READY.zip`.
 
+## V899_REFERENCE_VISUAL_BROWSER_QA_PRODUCT_GAP_WORKER_FINAL
+
+- Base local: `V898_PRODUCTION_404_PWA_REFERENCE_OUTBOX_TRUTH_FINAL`.
+- Objetivo: convertir `reference_images/` en un worker real de manifest, gaps visuales/producto, prompts Codex y QA browser honesta.
+- Nuevos motores: `reference_image_manifest_engine.py`, `product_gap_engine.py` y `browser_visual_qa_engine.py`.
+- `sentinel_reference_visual_engine.py` integra manifest, gaps V899 y browser QA opcional sin afirmar equivalencia visual exacta sin capturas.
+- `sentinel_codex_outbox_engine.py` separa prompts activos, visuales, funcionales y archivados.
+- `autonomous_company_sentinel_engine.py` integra modo `reference_scan`, estado de gaps de referencia y cron dry-run sugerido.
+- Paneles admin reforzados: Sentinel Empresa, Issues y Codex Outbox muestran gaps/prompt visuales V899.
+- Se saneo `templates/base.html` para eliminar mojibake visible comun en navegacion, footer legal y microcopy SHARK.
+- `reference_images/reference_manifest.json` se genera correctamente; en esta ejecucion no hay imagenes reales, por lo que el manifest queda con 0 referencias y el sistema lo reporta como gap honesto.
+- Browser QA no disponible: Playwright no instalado; no se declara equivalencia visual exacta.
+- Sentinel static: score 10.0, 0 issues, 0 criticos despues del saneo de textos.
+- Render real consultado: produccion sigue en `V897_SENTINEL_TRUTHFUL_ISSUES_ROUTE_ALIAS_REFERENCE_QA_FIX_FINAL`, por lo que V899 no se declara desplegada.
+- ZIP final: `release_output/NeMeSiS_SHARK_PRO_V899_REFERENCE_VISUAL_BROWSER_QA_PRODUCT_GAP_WORKER_FINAL_RENDER_READY.zip`.
+

@@ -95,6 +95,8 @@ def build_company_sentinel_status(app_version: str, root: str | Path) -> dict[st
             "safe_scan": "*/15 * * * *",
             "functional_scan": "0 * * * *",
             "full_scan": "0 8 * * *",
+            "reference_scan": "0 9 * * *",
+            "reference_scan_endpoint": "/api/automation/autonomous-company-sentinel/run?secret=$AUTOMATION_SECRET&mode=reference_scan&dry_run=1&runner=render_cron",
         },
         "safety": {
             "no_auto_deploy": True,
@@ -138,7 +140,12 @@ def run_autonomous_company_sentinel(
         for item in (journey.get("checked") or [])
         if int(item.get("status_code") or 0) in {200, 301, 302, 303, 307, 308, 401, 403}
     }
-    reference = run_reference_visual_scan(root, visual_result=visual_result, browser_available=False)
+    reference = run_reference_visual_scan(
+        root,
+        visual_result=visual_result,
+        browser_available=False,
+        run_browser=(mode == "reference_scan" and not dry_run),
+    )
     render_alignment = build_render_alignment(local_runtime, render_runtime=render_runtime)
     telegram_watch = build_telegram_quality_watch(local_runtime, render_runtime=render_runtime)
     local_env_status = {
@@ -197,12 +204,12 @@ def run_autonomous_company_sentinel(
         "outbox": outbox,
         "autofix_plan": autofix,
         "screenshots": {
-            "available": False,
-            "reason": "Browser/capturas no ejecutados en este entorno.",
+            "available": bool((reference.get("browser_result") or {}).get("browser_available")),
+            "reason": "Browser/capturas no ejecutados en este entorno." if not (reference.get("browser_result") or {}).get("browser_available") else "Capturas locales disponibles en runtime.",
             "path": str(dirs["screenshots"]),
         },
         "warnings": [
-            "No se declara pixel-perfect sin capturas reales.",
+            "No se declara equivalencia visual exacta sin capturas reales.",
             "No se declara produccion alineada sin runtime Render real.",
         ],
         "safe_notes": [
@@ -228,6 +235,9 @@ def run_autonomous_company_sentinel(
         "archived_prompts": outbox.get("archived_prompt_count", 0),
         "critical": len([issue for issue in open_issues if issue.get("severity") == "critical"]),
         "high": len([issue for issue in open_issues if issue.get("severity") == "high"]),
+        "reference_gaps": len((reference.get("product_gap_report") or {}).get("gaps") or []),
+        "browser_qa_available": bool((reference.get("browser_result") or {}).get("browser_available")),
+        "visual_prompts": outbox.get("visual_prompt_count", 0),
     }
     _write_json(dirs["base"] / "latest_run.json", run)
     _write_json(dirs["base"] / "state.json", state)

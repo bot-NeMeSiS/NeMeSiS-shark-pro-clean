@@ -1,15 +1,18 @@
 {
-  "version": "V898_PRODUCTION_404_PWA_REFERENCE_OUTBOX_TRUTH_FINAL",
+  "version": "V899_REFERENCE_VISUAL_BROWSER_QA_PRODUCT_GAP_WORKER_FINAL",
   "engine_version": "V892_AUTONOMOUS_COMPANY_SENTINEL_REFERENCE_CODEX_WORKFORCE_FINAL",
-  "last_run_id": "ACS-20260706114137",
-  "last_run_madrid": "2026-07-06T11:41:37+02:00",
+  "last_run_id": "ACS-20260706123618",
+  "last_run_madrid": "2026-07-06T12:36:18+02:00",
   "last_mode": "safe_scan",
   "last_runner": "local",
   "issues_open": 13,
   "active_issues_open": 13,
   "stale_issues": 20,
-  "resolved_by_rescan": 108,
-  "archived_prompts": 128,
+  "resolved_by_rescan": 164,
+  "archived_prompts": 184,
   "critical": 0,
-  "high": 6
+  "high": 6,
+  "reference_gaps": 11,
+  "browser_qa_available": false,
+  "visual_prompts": 0
 }
