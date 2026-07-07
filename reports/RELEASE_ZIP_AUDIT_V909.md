@@ -2,7 +2,7 @@
 
 - ZIP: `NeMeSiS_SHARK_PRO_V909_BROWSER_QA_EXECUTION_PIPELINE_AND_VISUAL_FIX_QUEUE_FINAL_RENDER_READY.zip`
 - Archivos: 2071
-- Tamaño ZIP: 27241624 bytes
+- Tamaño ZIP: 27241692 bytes
 - Prohibidos: 0
 - Resultado: OK
 - Root obligatorio ausente: ninguno
@@ -11,7 +11,7 @@
 - `reference_images`: 24 archivos, 24921842 bytes
 - `engines`: 124 archivos, 1374281 bytes
 - `tools`: 478 archivos, 1315313 bytes
-- `reports`: 1068 archivos, 1233795 bytes
+- `reports`: 1068 archivos, 1233931 bytes
 - `app.py`: 1 archivos, 976999 bytes
 - `static`: 2 archivos, 926824 bytes
 - `templates`: 168 archivos, 689585 bytes

@@ -10,7 +10,8 @@
 ## Version Render real antes
 
 - Endpoint consultado: `https://bot-apuestas-crgf.onrender.com/api/runtime-version`
-- Version real observada: `V902_SENTINEL_FULL_ACTIVE_ISSUES_FIX_AND_TRUTH_CLEANUP_FINAL`
+- Version real observada el 2026-07-07: `V907_BROWSER_QA_ENABLEMENT_FIRST_SCREENSHOT_GAP_FIX_FINAL`
+- Nota de realidad: el usuario esperaba V908 como referencia previa, pero el runtime real consultado devuelve V907 en este momento.
 - Estado: Render todavia no sirve V909. No declarar V909 en produccion hasta que runtime lo confirme.
 
 ## Raiz correcta confirmada en deploy root
@@ -92,7 +93,7 @@ La carpeta deploy root no debe contener:
    - `has_v909_browser_qa_pipeline = true`
    - `has_v909_visual_fix_queue = true`
 
-## Si Render sigue en V902
+## Si Render sigue sin V909
 
 Revisar:
 
