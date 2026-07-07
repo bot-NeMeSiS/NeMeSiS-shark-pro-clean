@@ -1,10 +1,10 @@
 {
   "ok": true,
-  "audited_at": "2026-07-07T20:48:08",
+  "audited_at": "2026-07-07T20:49:59",
   "zip": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\release_output\\NeMeSiS_SHARK_PRO_V909_BROWSER_QA_EXECUTION_PIPELINE_AND_VISUAL_FIX_QUEUE_FINAL_RENDER_READY.zip",
-  "zip_size_bytes": 27235536,
-  "file_count": 2064,
-  "content_size_bytes": 31966173,
+  "zip_size_bytes": 27241624,
+  "file_count": 2071,
+  "content_size_bytes": 31979378,
   "forbidden_count": 0,
   "missing_required_root": [],
   "forbidden": [],
@@ -103,13 +103,13 @@
     },
     {
       "folder": "tools",
-      "size": 1315190,
+      "size": 1315313,
       "files": 478
     },
     {
       "folder": "reports",
-      "size": 1220713,
-      "files": 1061
+      "size": 1233795,
+      "files": 1068
     },
     {
       "folder": "app.py",
