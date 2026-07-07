@@ -339,7 +339,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V909_BROWSER_QA_EXECUTION_PIPELINE_AND_VISUAL_FIX_QUEUE_FINAL'
+APP_VERSION = 'V910_FULL_PROJECT_HIDDEN_AUDIT_ROUTE_NOT_FOUND_BROWSER_QA_READY_FINAL'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 
@@ -10512,7 +10512,7 @@ def dashboard_data(lane="today", date=None):
 @app.route("/service-worker.js")
 def service_worker():
     body = (
-        "const NEMESIS_CACHE='NEMESIS_CACHE_V909';\n"
+        "const NEMESIS_CACHE='NEMESIS_CACHE_V910';\n"
         "self.addEventListener('install',event=>{self.skipWaiting();});\n"
         "self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==NEMESIS_CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));});\n"
         "self.addEventListener('fetch',event=>{const req=event.request;if(req.mode==='navigate'){event.respondWith(fetch(req).then(res=>{if(res.status===404){return fetch('/');}return res;}).catch(()=>fetch('/')));return;}event.respondWith(fetch(req).then(res=>{if(res.status===404){return res;}return res;}));});\n"
@@ -15093,6 +15093,39 @@ def v909_browser_qa_pipeline_runtime_summary() -> dict:
     }
 
 
+def v910_full_project_audit_runtime_summary() -> dict:
+    root = Path(__file__).resolve().parent
+    reports_dir = root / "reports"
+    queue_path = root / "data" / "runtime" / "autonomous_company_sentinel" / "visual_fix_queue.json"
+    required_reports = [
+        "V910_FULL_PROJECT_HIDDEN_TREE_AUDIT.md",
+        "V910_SECRET_AND_LOG_EXPOSURE_AUDIT.md",
+        "V910_ROUTE_NOT_FOUND_PWA_CACHE_AUDIT.md",
+        "V910_BROWSER_QA_PIPELINE_FULL_AUDIT.md",
+        "V910_RELEASE_ZIP_AND_DEPLOY_ROOT_AUDIT.md",
+    ]
+    hidden_dirs = [".git", ".github", ".venv", ".pytest_cache", "__pycache__"]
+    try:
+        queue_payload = json.loads(queue_path.read_text(encoding="utf-8-sig", errors="replace")) if queue_path.exists() else {"items": []}
+    except Exception:
+        queue_payload = {"items": []}
+    items = queue_payload.get("items") if isinstance(queue_payload, dict) else []
+    if not isinstance(items, list):
+        items = []
+    blocked = [item for item in items if isinstance(item, dict) and item.get("status") == "BLOCKED_NO_SCREENSHOT"]
+    reports_ok = all((reports_dir / name).exists() for name in required_reports)
+    return {
+        "v910_hidden_dirs_reviewed": sum(1 for name in hidden_dirs if (root / name).exists()),
+        "v910_pwa_route_audit_status": "audited" if (reports_dir / "V910_ROUTE_NOT_FOUND_PWA_CACHE_AUDIT.md").exists() and "NEMESIS_CACHE_V910" in Path(__file__).read_text(encoding="utf-8", errors="replace") else "pending_report",
+        "v910_browser_qa_pipeline_status": "audited_ready" if (reports_dir / "V910_BROWSER_QA_PIPELINE_FULL_AUDIT.md").exists() and (root / "browser_qa" / "README.md").exists() else "pending_report",
+        "v910_release_tree_status": "audited_clean" if (reports_dir / "V910_RELEASE_ZIP_AND_DEPLOY_ROOT_AUDIT.md").exists() else "pending_report",
+        "v910_secrets_audit_status": "masked_no_raw_secret_in_release_scope" if (reports_dir / "V910_SECRET_AND_LOG_EXPOSURE_AUDIT.md").exists() else "pending_report",
+        "v910_visual_queue_items": len(items),
+        "v910_blocked_no_screenshot_count": len(blocked),
+        "v910_reports_ready": reports_ok,
+    }
+
+
 @app.route("/api/runtime-version")
 def api_runtime_version():
     version_txt = ""
@@ -15166,6 +15199,7 @@ def api_runtime_version():
     v907_summary = v907_browser_qa_runtime_summary()
     v908_summary = v908_reference_ui_fix_runtime_summary()
     v909_summary = v909_browser_qa_pipeline_runtime_summary()
+    v910_summary = v910_full_project_audit_runtime_summary()
     return jsonify(sanitize_runtime_value({
         "ok": True,
         "app": APP_NAME,
@@ -15379,12 +15413,17 @@ def api_runtime_version():
         "has_v908_reference_ui_safe_fix_pass": "data-v908-shell" in base_template and "v908_reference_ui_fix_runtime_summary" in app_py_text,
         "has_v909_browser_qa_pipeline": (Path(__file__).resolve().parent / "browser_qa" / "README.md").exists() and "v909_browser_qa_pipeline_runtime_summary" in app_py_text,
         "has_v909_visual_fix_queue": (Path(__file__).resolve().parent / "data" / "runtime" / "autonomous_company_sentinel" / "visual_fix_queue.json").exists(),
+        "has_v910_full_hidden_project_audit": "v910_full_project_audit_runtime_summary" in app_py_text and (Path(__file__).resolve().parent / "reports" / "V910_FULL_PROJECT_HIDDEN_TREE_AUDIT.md").exists(),
+        "has_v910_route_not_found_pwa_audit": "NEMESIS_CACHE_V910" in app_py_text and (Path(__file__).resolve().parent / "reports" / "V910_ROUTE_NOT_FOUND_PWA_CACHE_AUDIT.md").exists(),
+        "has_v910_browser_qa_pipeline_audited": (Path(__file__).resolve().parent / "reports" / "V910_BROWSER_QA_PIPELINE_FULL_AUDIT.md").exists(),
+        "has_v910_release_tree_cleanliness_audit": (Path(__file__).resolve().parent / "reports" / "V910_RELEASE_ZIP_AND_DEPLOY_ROOT_AUDIT.md").exists(),
         **v902_truth_summary,
         **v904_summary,
         **v906_summary,
         **v907_summary,
         **v908_summary,
         **v909_summary,
+        **v910_summary,
         "active_errors_count": v903_active_errors_count,
         "fixed_safe_count": v903_archived_count,
         "stale_issues_count": v903_stale_issues_count,

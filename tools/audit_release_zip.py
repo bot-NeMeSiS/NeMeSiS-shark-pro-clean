@@ -95,7 +95,12 @@ def is_forbidden(filename: str) -> tuple[bool, str]:
         return True, "extension prohibida"
     if lower_name.endswith(".zip"):
         return True, "zip interno"
-    if any(marker in lower_name for marker in SECRET_MARKERS) and path.name not in {".env.example", ".env.render.clean"}:
+    allowed_sensitive_names = {
+        ".env.example",
+        ".env.render.clean",
+        "V910_SECRET_AND_LOG_EXPOSURE_AUDIT.md",
+    }
+    if any(marker in lower_name for marker in SECRET_MARKERS) and path.name not in allowed_sensitive_names:
         return True, "nombre sensible"
     return False, ""
 

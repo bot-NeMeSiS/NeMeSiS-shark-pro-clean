@@ -1339,7 +1339,47 @@ Sin prompts Telegram activos.
 
 ---
 
-- SENT-2026-CE3184E3 | STALE_NEEDS_REVALIDATION | /api/ruta-inventada | Ruta devuelve Not Found
+- SENT-2026-CE3184E3 | RESOLVED_BY_RESCAN | /api/ruta-inventada | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-344606BA | RESOLVED_BY_RESCAN | /ruta-inventada | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-994D117A | RESOLVED_BY_RESCAN | /api/ruta-inventada | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-723AE00D | RESOLVED_BY_RESCAN | /ruta-inventada-v910 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-93B992DA | RESOLVED_BY_RESCAN | /api/ruta-inventada-v910 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-4C3E81E2 | RESOLVED_BY_RESCAN | /ruta-inventada-v910 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-EA053319 | RESOLVED_BY_RESCAN | /api/ruta-inventada-v910 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-3B9D70C1 | RESOLVED_BY_RESCAN | /ruta-inventada-v910 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-F824D84D | STALE_NEEDS_REVALIDATION | /api/ruta-inventada-v910 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-7297DAB7 | RESOLVED_BY_RESCAN | /api/ruta-inventada-v910 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-6598641D | RESOLVED_BY_RESCAN | /ruta-inventada-v910 | Ruta devuelve Not Found
 
 ---
 
@@ -1436,14 +1476,14 @@ Sin falsos positivos pendientes.
 
 ## V904_REFERENCE_GAPS_WORKFORCE_STATUS
 
-- mode: safe_scan
+- mode: reference_scan
 - gaps_read: 13
 - gaps_addressed: 8
 - gaps_pending: 13
 - prompts_active: 0
 - deploy_status: pending_runtime_confirmation
 - secret_masking_status: masked_configured_missing_only
-- next_step: Revisar incidencias abiertas y ejecutar solo cambios seguros.
+- next_step: Revisar gaps visuales y aplicar solo correcciones seguras con Browser QA pendiente.
 
 ### action_policy
 

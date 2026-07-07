@@ -11,6 +11,10 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V909_BROWSER_QA_EXECUTION_PIPELINE_AND_VISUAL_FIX_QUEUE_FINAL"
+CURRENT_COMPATIBLE_VERSIONS = {
+    VERSION,
+    "V910_FULL_PROJECT_HIDDEN_AUDIT_ROUTE_NOT_FOUND_BROWSER_QA_READY_FINAL",
+}
 ZIP_NAME = f"NeMeSiS_SHARK_PRO_{VERSION}_RENDER_READY.zip"
 REPORTS = [
     "reports/V909_BROWSER_QA_EXECUTION_PIPELINE_REPORT.md",
@@ -89,9 +93,9 @@ def main() -> int:
 
     version_bytes = (ROOT / "VERSION.txt").read_bytes()
     require(not version_bytes.startswith(b"\xef\xbb\xbf"), "VERSION.txt has BOM", failures)
-    require(version_bytes.decode("utf-8").strip() == VERSION, "VERSION.txt is not V909", failures)
-    require(read("APP_VERSION").strip().lstrip("\ufeff") == VERSION, "APP_VERSION is not V909", failures)
-    require(app_version_from_source(app_py) == VERSION, "app.py APP_VERSION is not V909", failures)
+    require(version_bytes.decode("utf-8").strip() in CURRENT_COMPATIBLE_VERSIONS, "VERSION.txt is not V909-compatible", failures)
+    require(read("APP_VERSION").strip().lstrip("\ufeff") in CURRENT_COMPATIBLE_VERSIONS, "APP_VERSION is not V909-compatible", failures)
+    require(app_version_from_source(app_py) in CURRENT_COMPATIBLE_VERSIONS, "app.py APP_VERSION is not V909-compatible", failures)
 
     require("data-v909-shell" in base, "base V909 shell marker missing", failures)
     require("has_v909_browser_qa_pipeline" in app_py, "runtime V909 pipeline flag missing", failures)
@@ -142,7 +146,7 @@ def main() -> int:
     runtime_resp = client.get("/api/runtime-version")
     runtime = runtime_resp.get_json(silent=True) or {}
     require(runtime_resp.status_code == 200, "runtime-version not 200", failures)
-    require(runtime.get("version") == VERSION, "runtime version is not V909", failures)
+    require(runtime.get("version") in CURRENT_COMPATIBLE_VERSIONS, "runtime version is not V909-compatible", failures)
     require(runtime.get("version_files_match") is True, "runtime version_files_match false", failures)
     require(runtime.get("deployment_alignment_status") == "aligned_local_files", "runtime deployment alignment not aligned", failures)
     require(runtime.get("has_v907_browser_qa_enablement") is True, "V907 flag not preserved", failures)

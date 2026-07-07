@@ -12,7 +12,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 
-REQUIRED_ROOT = ["app.py", "VERSION.txt", "APP_VERSION", "requirements.txt", "templates", "static", "engines", "tools", "reports", "reference_images"]
+REQUIRED_ROOT = ["app.py", "VERSION.txt", "APP_VERSION", "requirements.txt", "templates", "static", "engines", "tools", "reports", "reference_images", "browser_qa"]
 FORBIDDEN_DIRS = {".git", ".venv", "__pycache__", ".pytest_cache", "release_output", "logs", "v636work", "tmp", "temp", "backups"}
 FORBIDDEN_SUFFIXES = {".db", ".sqlite", ".sqlite3", ".db-wal", ".db-shm", ".log", ".zip"}
 
@@ -90,6 +90,7 @@ def main() -> int:
         "deploy_root_v907": inspect_tree(ROOT / "release_output" / "V907_DEPLOY_ROOT_CONTENTS"),
         "deploy_root_v908": inspect_tree(ROOT / "release_output" / "V908_DEPLOY_ROOT_CONTENTS"),
         "deploy_root_v909": inspect_tree(ROOT / "release_output" / "V909_DEPLOY_ROOT_CONTENTS"),
+        "deploy_root_v910": inspect_tree(ROOT / "release_output" / "V910_DEPLOY_ROOT_CONTENTS"),
         "latest_zip": zip_info,
     }
     payload["ok"] = not payload["current_root"]["missing_required_root"]
