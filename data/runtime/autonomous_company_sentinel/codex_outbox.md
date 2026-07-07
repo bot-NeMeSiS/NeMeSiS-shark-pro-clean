@@ -1331,7 +1331,15 @@ Sin prompts Telegram activos.
 
 ---
 
-- SENT-2026-DD82C443 | STALE_NEEDS_REVALIDATION | /api/ruta-inventada | Ruta devuelve Not Found
+- SENT-2026-DD82C443 | RESOLVED_BY_RESCAN | /api/ruta-inventada | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-D401942C | RESOLVED_BY_RESCAN | /ruta-inventada | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-CE3184E3 | STALE_NEEDS_REVALIDATION | /api/ruta-inventada | Ruta devuelve Not Found
 
 ---
 
@@ -1428,14 +1436,14 @@ Sin falsos positivos pendientes.
 
 ## V904_REFERENCE_GAPS_WORKFORCE_STATUS
 
-- mode: reference_scan
+- mode: safe_scan
 - gaps_read: 13
 - gaps_addressed: 8
 - gaps_pending: 13
 - prompts_active: 0
 - deploy_status: pending_runtime_confirmation
 - secret_masking_status: masked_configured_missing_only
-- next_step: Revisar gaps visuales y aplicar solo correcciones seguras con Browser QA pendiente.
+- next_step: Revisar incidencias abiertas y ejecutar solo cambios seguros.
 
 ### action_policy
 

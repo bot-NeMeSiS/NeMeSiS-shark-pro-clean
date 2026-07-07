@@ -36,7 +36,9 @@ OUT_DIR = release_output_dir()
 OUT = OUT_DIR / ZIP_NAME
 
 INCLUDE_TOP_LEVEL_DIRS = {
+    ".github",
     "blueprints",
+    "browser_qa",
     "docs",
     "engines",
     "services",

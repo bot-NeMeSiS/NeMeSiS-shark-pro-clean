@@ -31,6 +31,31 @@
   </section>
 
   {% set browser = status.browser_qa or {} %}
+  {% set v909 = status.v909_pipeline or {} %}
+  <section class="ns-admin-card v909-browser-pipeline-panel" data-v909-browser-qa-pipeline="true">
+    <div class="ns-section-title">
+      <h2>Browser QA Pipeline V909</h2>
+      <span class="ns-badge">{{ 'Listo' if v909.pipeline_ready else 'Pendiente' }}</span>
+    </div>
+    <div class="ns-grid ns-grid-4">
+      <article class="ns-stat"><span>Runner local</span><strong>{{ 'Listo' if v909.local_runner_available else 'Pendiente' }}</strong><small>PowerShell / bat / sh</small></article>
+      <article class="ns-stat"><span>GitHub Action</span><strong>{{ 'Disponible' if v909.github_action_available else 'Ejemplo pendiente' }}</strong><small>workflow_dispatch</small></article>
+      <article class="ns-stat"><span>Cola visual</span><strong>{{ v909.visual_fix_queue_count or 0 }}</strong><small>{{ v909.blocked_no_screenshot_count or 0 }} sin screenshot</small></article>
+      <article class="ns-stat"><span>Capturas</span><strong>{{ browser.screenshots_captured or 0 }}</strong><small>pixel-perfect bloqueado</small></article>
+    </div>
+    <div class="ns-table-wrap">
+      <table class="ns-table">
+        <tbody>
+          <tr><th>Ejecutar local</th><td><code>browser_qa/run_local_browser_qa.ps1</code></td></tr>
+          <tr><th>Base URL Render</th><td><code>https://bot-apuestas-crgf.onrender.com</code></td></tr>
+          <tr><th>Salida</th><td><code>reports/browser_qa_render/</code></td></tr>
+          <tr><th>Queue</th><td><code>data/runtime/autonomous_company_sentinel/visual_fix_queue.json</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>V909 no ejecuta deploy ni acciones peligrosas: solo captura, compara, genera cola y deja prompts accionables.</p>
+  </section>
+
   <section class="ns-admin-card v906-browser-qa-panel v907-browser-qa-enablement" data-v906-browser-qa="true" data-v907-browser-qa="true">
     <div class="ns-section-title">
       <h2>Browser QA V907</h2>

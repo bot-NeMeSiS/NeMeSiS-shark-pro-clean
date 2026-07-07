@@ -188,6 +188,13 @@ def build_company_sentinel_status(app_version: str, root: str | Path) -> dict[st
     state = _read_json(dirs["base"] / "state.json", {})
     browser_qa = _read_json(dirs["base"] / "browser_reference_comparison.json", {})
     browser_status = _read_json(dirs["base"] / "browser_qa_status.json", {})
+    visual_queue = _read_json(dirs["base"] / "visual_fix_queue.json", {"items": []})
+    queue_items = visual_queue.get("items") if isinstance(visual_queue, dict) else []
+    if not isinstance(queue_items, list):
+        queue_items = []
+    browser_qa_dir = Path(root) / "browser_qa"
+    workflow_path = Path(root) / ".github" / "workflows" / "browser-qa.yml"
+    workflow_example_path = Path(root) / "docs" / "browser_qa_github_action_example.yml"
     issues_summary = build_sentinel_issues_summary(app_version, load_sentinel_issues_memory(root))
     return {
         "version": app_version,
@@ -204,6 +211,14 @@ def build_company_sentinel_status(app_version: str, root: str | Path) -> dict[st
             "routes_captured": browser_qa.get("routes_captured") or browser_status.get("routes_captured") or [],
             "playwright_status": browser_status.get("browser_qa_status") or browser_qa.get("browser_qa_status") or "BROWSER_QA_UNAVAILABLE",
             "pixel_perfect_claim": False,
+        },
+        "v909_pipeline": {
+            "pipeline_ready": (browser_qa_dir / "README.md").exists() and (browser_qa_dir / "playwright_requirements.txt").exists(),
+            "local_runner_available": (browser_qa_dir / "run_local_browser_qa.ps1").exists() and (browser_qa_dir / "run_local_browser_qa.bat").exists() and (browser_qa_dir / "run_local_browser_qa.sh").exists(),
+            "github_action_available": workflow_path.exists() or workflow_example_path.exists(),
+            "visual_fix_queue_count": len(queue_items),
+            "blocked_no_screenshot_count": len([item for item in queue_items if isinstance(item, dict) and item.get("status") == "BLOCKED_NO_SCREENSHOT"]),
+            "ready_for_codex_count": len([item for item in queue_items if isinstance(item, dict) and item.get("status") == "READY_FOR_CODEX"]),
         },
         "issues_summary": issues_summary,
         "paths": {name: str(path) for name, path in dirs.items()},

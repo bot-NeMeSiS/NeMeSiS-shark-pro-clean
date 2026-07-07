@@ -15,11 +15,29 @@
 
   {% set latest = status.latest_run or {} %}
   {% set outbox = latest.outbox or {} %}
+  {% set v909 = status.v909_pipeline or {} %}
   <section class="ns-grid ns-grid-4">
     <article class="ns-stat"><span>Prompts</span><strong>{{ outbox.prompt_count or 0 }}</strong><small>generados</small></article>
     <article class="ns-stat"><span>Visuales</span><strong>{{ outbox.visual_prompt_count or 0 }}</strong><small>reference gap</small></article>
     <article class="ns-stat"><span>Funcionales</span><strong>{{ outbox.functional_prompt_count or 0 }}</strong><small>producto/rutas</small></article>
     <article class="ns-stat"><span>Ruta</span><strong>outbox</strong><small>{{ outbox.combined_path or 'Pendiente' }}</small></article>
+  </section>
+
+  <section class="ns-admin-card v909-visual-fix-queue-panel" data-v909-visual-fix-queue="true">
+    <div class="ns-section-title">
+      <h2>Visual Fix Queue V909</h2>
+      <span class="ns-badge">{{ v909.blocked_no_screenshot_count or 0 }} bloqueados sin screenshot</span>
+    </div>
+    <p>La cola convierte capturas reales en prompts Codex. Si no hay capturas, los items quedan como <code>BLOCKED_NO_SCREENSHOT</code> y no se cierran como pixel-perfect.</p>
+    <div class="ns-grid ns-grid-3">
+      <article class="ns-stat"><span>Items</span><strong>{{ v909.visual_fix_queue_count or 0 }}</strong><small>queue total</small></article>
+      <article class="ns-stat"><span>Runner local</span><strong>{{ 'Listo' if v909.local_runner_available else 'Pendiente' }}</strong><small>browser_qa/</small></article>
+      <article class="ns-stat"><span>Workflow</span><strong>{{ 'Manual' if v909.github_action_available else 'Pendiente' }}</strong><small>GitHub Actions</small></article>
+    </div>
+    <div class="ns-actions">
+      <a class="ns-button ns-button-secondary" href="/admin/autonomous-company-sentinel">Ver pipeline</a>
+      <button class="ns-button ns-button-ghost" type="button" data-v904-fetch="/api/admin/autonomous-company-sentinel/reference-gaps">Ver gaps</button>
+    </div>
   </section>
 
   <section class="ns-admin-card">

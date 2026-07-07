@@ -1,52 +1,36 @@
-# Codex Outbox - V908 Screenshot Based Reference UI Fix Pass
+# V909_VISUAL_FIX_QUEUE
 
-version: V908_SCREENSHOT_BASED_REFERENCE_UI_FIX_PASS_FINAL
-browser_qa_status: BROWSER_QA_UNAVAILABLE
+version: V909_BROWSER_QA_EXECUTION_PIPELINE_AND_VISUAL_FIX_QUEUE_FINAL
+browser_qa_status: PACKAGE_MISSING
 screenshots_captured: 0
+visual_fix_queue_count: 18
+blocked_no_screenshot_count: 18
 pixel_perfect_claim_allowed: false
-pixel_perfect_claim: false
-note: BROWSER_QA_REQUIRED_BEFORE_PIXEL_CLAIM
 
-## V908_APPLIED_STATIC_FIXES
-- /admin/dashboard: Static safe UI preparation applied; requires Browser QA recheck.
-- /admin/autonomous-company-sentinel: Static safe UI preparation applied; requires Browser QA recheck.
-- /admin/sentinel-issues: Static safe UI preparation applied; requires Browser QA recheck.
-- /admin/sentinel-codex-outbox: Static safe UI preparation applied; requires Browser QA recheck.
-- /admin/not-found-events: Static safe UI preparation applied; requires Browser QA recheck.
-- /admin/telegram/command-center: Static safe UI preparation applied; requires Browser QA recheck.
-- /app: Static safe UI preparation applied; requires Browser QA recheck.
-- /calendar: Static safe UI preparation applied; requires Browser QA recheck.
-- /live: Static safe UI preparation applied; requires Browser QA recheck.
-- /picks: Static safe UI preparation applied; requires Browser QA recheck.
-- /shark: Static safe UI preparation applied; requires Browser QA recheck.
-- /telegram: Static safe UI preparation applied; requires Browser QA recheck.
-- /profile: Static safe UI preparation applied; requires Browser QA recheck.
+## V909_BROWSER_QA_FINDINGS
+- Pipeline local creado en `browser_qa/`.
+- Workflow manual creado en `.github/workflows/browser-qa.yml`.
+- La cola visual existe y no cierra gaps sin captura real.
 
-## V908_SCREENSHOT_BASED_FIXES
-- None. No real screenshots were available in this environment.
+## V909_BLOCKED_NO_SCREENSHOT
+- V909-001: `/` desktop -> BLOCKED_NO_SCREENSHOT (reference_images/client/reference_import_v900_08.png)
+- V909-002: `/admin-login` desktop -> BLOCKED_NO_SCREENSHOT (reference_images/admin/reference_import_v900_01.png)
+- V909-003: `/admin/autonomous-company-sentinel` desktop -> BLOCKED_NO_SCREENSHOT (reference_images/admin/reference_import_v900_01.png)
+- V909-004: `/admin/dashboard` desktop -> BLOCKED_NO_SCREENSHOT (reference_images/admin/reference_import_v900_01.png)
+- V909-005: `/admin/not-found-events` desktop -> BLOCKED_NO_SCREENSHOT (reference_images/admin/reference_import_v900_01.png)
+- V909-006: `/admin/sentinel-codex-outbox` desktop -> BLOCKED_NO_SCREENSHOT (reference_images/admin/reference_import_v900_01.png)
+- V909-007: `/admin/sentinel-issues` desktop -> BLOCKED_NO_SCREENSHOT (reference_images/admin/reference_import_v900_01.png)
+- V909-008: `/admin/telegram/command-center` desktop -> BLOCKED_NO_SCREENSHOT (reference_images/admin/reference_import_v900_01.png)
+- V909-009: `/app` desktop -> BLOCKED_NO_SCREENSHOT (reference_images/client/reference_import_v900_08.png)
+- V909-010: `/calendar` desktop -> BLOCKED_NO_SCREENSHOT (reference_images/calendar/reference_import_v900_10.png)
+- V909-011: `/cliente-login` desktop -> BLOCKED_NO_SCREENSHOT (reference_images/client/reference_import_v900_08.png)
+- V909-012: `/live` desktop -> BLOCKED_NO_SCREENSHOT (reference_images/live/reference_import_v900_09.png)
+- V909-013: `/picks` desktop -> BLOCKED_NO_SCREENSHOT (reference_images/picks/reference_import_v900_11.png)
+- V909-014: `/profile` desktop -> BLOCKED_NO_SCREENSHOT (reference_images/profile/reference_import_v900_15.png)
+- V909-015: `/registro` desktop -> BLOCKED_NO_SCREENSHOT (reference_images/client/reference_import_v900_08.png)
+- V909-016: `/shark` desktop -> BLOCKED_NO_SCREENSHOT (reference_images/shark/reference_import_v900_12.png)
+- V909-017: `/support` desktop -> BLOCKED_NO_SCREENSHOT (reference_images/client/reference_import_v900_08.png)
+- V909-018: `/telegram` desktop -> BLOCKED_NO_SCREENSHOT (reference_images/telegram/reference_import_v900_16.png)
 
-## V908_NEEDS_BROWSER_QA
-- /: NEEDS_BROWSER_QA using reference_images/client/reference_import_v900_08.png.
-- /admin-login: NEEDS_BROWSER_QA using reference_images/admin/reference_import_v900_01.png.
-- /admin/autonomous-company-sentinel: IMPROVED_STATICALLY_NEEDS_BROWSER_QA using reference_images/admin/reference_import_v900_01.png.
-- /admin/dashboard: IMPROVED_STATICALLY_NEEDS_BROWSER_QA using reference_images/admin/reference_import_v900_01.png.
-- /admin/not-found-events: IMPROVED_STATICALLY_NEEDS_BROWSER_QA using reference_images/admin/reference_import_v900_01.png.
-- /admin/sentinel-codex-outbox: IMPROVED_STATICALLY_NEEDS_BROWSER_QA using reference_images/admin/reference_import_v900_01.png.
-- /admin/sentinel-issues: IMPROVED_STATICALLY_NEEDS_BROWSER_QA using reference_images/admin/reference_import_v900_01.png.
-- /admin/telegram/command-center: IMPROVED_STATICALLY_NEEDS_BROWSER_QA using reference_images/admin/reference_import_v900_01.png.
-- /app: IMPROVED_STATICALLY_NEEDS_BROWSER_QA using reference_images/client/reference_import_v900_08.png.
-- /calendar: IMPROVED_STATICALLY_NEEDS_BROWSER_QA using reference_images/calendar/reference_import_v900_10.png.
-- /cliente-login: NEEDS_BROWSER_QA using reference_images/client/reference_import_v900_08.png.
-- /live: IMPROVED_STATICALLY_NEEDS_BROWSER_QA using reference_images/live/reference_import_v900_09.png.
-- /picks: IMPROVED_STATICALLY_NEEDS_BROWSER_QA using reference_images/picks/reference_import_v900_11.png.
-- /profile: IMPROVED_STATICALLY_NEEDS_BROWSER_QA using reference_images/profile/reference_import_v900_15.png.
-- /registro: NEEDS_BROWSER_QA using reference_images/client/reference_import_v900_08.png.
-- /shark: IMPROVED_STATICALLY_NEEDS_BROWSER_QA using reference_images/shark/reference_import_v900_12.png.
-- /support: NEEDS_BROWSER_QA using reference_images/client/reference_import_v900_08.png.
-- /telegram: IMPROVED_STATICALLY_NEEDS_BROWSER_QA using reference_images/telegram/reference_import_v900_16.png.
-
-## V908_PENDING_HUMAN_VISUAL_REVIEW
-- Review screenshots after Playwright/Chromium is available and V908 is captured.
-
-## V908_DANGEROUS_REQUIRES_APPROVAL
-- No dangerous automatic changes were applied. Payments, DB, users, Telegram real sends, secrets, and deploy remain untouched.
+## V909_DANGEROUS_REQUIRES_APPROVAL
+- No payments, DB, users, secrets, Telegram real sends, deploy or push were executed.

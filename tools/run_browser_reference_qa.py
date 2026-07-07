@@ -13,7 +13,7 @@ from engines.browser_reference_comparison_engine import build_browser_reference_
 from tools.check_browser_qa_environment import detect_browser_qa_environment
 
 
-VERSION = "V907_BROWSER_QA_ENABLEMENT_FIRST_SCREENSHOT_GAP_FIX_FINAL"
+VERSION = "V909_BROWSER_QA_EXECUTION_PIPELINE_AND_VISUAL_FIX_QUEUE_FINAL"
 PUBLIC_ROUTES = ["/", "/cliente-login", "/registro"]
 CLIENT_ROUTES = ["/app", "/calendar", "/live", "/picks", "/shark", "/telegram", "/profile", "/support"]
 ADMIN_SAFE_ROUTES = ["/admin-login"]
@@ -169,6 +169,49 @@ def _write_outbox(comparison: dict) -> None:
     outbox.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
+def _write_visual_fix_queue(comparison: dict) -> dict:
+    queue_path = ROOT / "data" / "runtime" / "autonomous_company_sentinel" / "visual_fix_queue.json"
+    queue_path.parent.mkdir(parents=True, exist_ok=True)
+    comparisons = comparison.get("comparisons") or []
+    items = []
+    for index, item in enumerate(comparisons, start=1):
+        route = item.get("route") or "unknown"
+        device = str(item.get("profile") or item.get("device") or "desktop")
+        has_screenshot = bool(item.get("screenshot_path") or item.get("screenshot"))
+        severity = "high" if route.startswith("/admin") or route in {"/app", "/picks", "/live", "/calendar"} else "medium"
+        status = "READY_FOR_CODEX" if has_screenshot else "BLOCKED_NO_SCREENSHOT"
+        items.append({
+            "id": f"V909-{index:03d}",
+            "route": route,
+            "device": "mobile" if "mobile" in device else "desktop",
+            "screenshot": item.get("screenshot_path") or item.get("screenshot") or "",
+            "reference": item.get("reference_used") or item.get("reference") or "reference_manifest",
+            "gap": "; ".join(item.get("notes") or ["Browser QA screenshot pending"]),
+            "severity": severity,
+            "safe_fix_type": "STRUCTURAL_UI_FIX" if has_screenshot else "WAIT_FOR_SCREENSHOT",
+            "codex_prompt": item.get("codex_prompt") or f"Capture and compare {route} before applying a visual fix.",
+            "status": status,
+        })
+    payload = {
+        "version": VERSION,
+        "generated_at_madrid": _now_label(),
+        "items": items,
+        "queue_count": len(items),
+        "blocked_no_screenshot_count": len([item for item in items if item["status"] == "BLOCKED_NO_SCREENSHOT"]),
+        "ready_for_codex_count": len([item for item in items if item["status"] == "READY_FOR_CODEX"]),
+        "pixel_perfect_claim_allowed": False,
+    }
+    queue_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return payload
+
+
+def _write_standard_outputs(output: Path, payload: dict, comparison: dict) -> None:
+    output.mkdir(parents=True, exist_ok=True)
+    (output / "browser_qa_result.json").write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    (output / "reference_comparison.json").write_text(json.dumps(comparison, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    _write_visual_fix_queue(comparison)
+
+
 def _write_payload(output: Path, payload: dict, comparison: dict | None = None) -> dict:
     report_path, status_path, _ = _status_paths(output)
     payload["version"] = VERSION
@@ -180,6 +223,7 @@ def _write_payload(output: Path, payload: dict, comparison: dict | None = None) 
             "visual_gaps_resolved": comparison.get("visual_gaps_resolved"),
             "visual_gaps_pending": comparison.get("visual_gaps_pending"),
         }
+        _write_standard_outputs(output, payload, comparison)
     report_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     status_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     _write_markdown_status(payload, output)
@@ -218,6 +262,7 @@ def _unavailable_payload(output: Path, reason: str, env: dict | None = None) -> 
     comparison = build_browser_reference_comparison(ROOT, qa_payload=payload, output_dir=output)
     _write_reference_gap_status(comparison)
     _write_outbox(comparison)
+    _write_standard_outputs(output, payload, comparison)
     _write_payload(output, payload, comparison)
     return payload
 
@@ -314,6 +359,7 @@ def run_browser_reference_qa(
     comparison = build_browser_reference_comparison(ROOT, qa_payload=payload, output_dir=output)
     _write_reference_gap_status(comparison)
     _write_outbox(comparison)
+    _write_visual_fix_queue(comparison)
     if write_json:
         _write_payload(output, payload, comparison)
     return payload

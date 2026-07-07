@@ -1,6 +1,6 @@
 {
   "ok": true,
-  "checked_at": "2026-07-07T20:05:36",
+  "checked_at": "2026-07-07T20:24:46",
   "templates_referenced": [
     "404.html",
     "account_center.html",
@@ -139,7 +139,7 @@
   ],
   "missing_static": [],
   "import_ok": true,
-  "version": "V908_SCREENSHOT_BASED_REFERENCE_UI_FIX_PASS_FINAL",
+  "version": "V909_BROWSER_QA_EXECUTION_PIPELINE_AND_VISUAL_FIX_QUEUE_FINAL",
   "route_count": 595,
   "routes": [
     "/",

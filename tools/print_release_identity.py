@@ -55,7 +55,8 @@ def main() -> int:
         "has_v906b": "data-v906b-shell" in base and "has_v906b_public_home_html_artifact_cleanup" in app_py,
         "has_v907": "data-v907-shell" in base and "has_v907_browser_qa_enablement" in app_py,
         "has_v908": "data-v908-shell" in base and "has_v908_screenshot_based_reference_ui_fix" in app_py,
-        "service_worker_cache": "V908" if "NEMESIS_CACHE_V908" in app_py else ("V907" if "NEMESIS_CACHE_V907" in app_py else ("V906B" if "NEMESIS_CACHE_V906B" in app_py else ("V906" if "NEMESIS_CACHE_V906" in app_py else ("V905" if "NEMESIS_CACHE_V905" in app_py else ("V904" if "NEMESIS_CACHE_V904" in app_py else ("V903" if "NEMESIS_CACHE_V903" in app_py else ("V902B" if "NEMESIS_CACHE_V902B" in app_py else "unknown"))))))),
+        "has_v909": "data-v909-shell" in base and "has_v909_browser_qa_pipeline" in app_py,
+        "service_worker_cache": "V909" if "NEMESIS_CACHE_V909" in app_py else ("V908" if "NEMESIS_CACHE_V908" in app_py else ("V907" if "NEMESIS_CACHE_V907" in app_py else ("V906B" if "NEMESIS_CACHE_V906B" in app_py else ("V906" if "NEMESIS_CACHE_V906" in app_py else ("V905" if "NEMESIS_CACHE_V905" in app_py else ("V904" if "NEMESIS_CACHE_V904" in app_py else ("V903" if "NEMESIS_CACHE_V903" in app_py else ("V902B" if "NEMESIS_CACHE_V902B" in app_py else "unknown")))))))),
         "secret_policy": "safe_placeholders_only",
     }
     print(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True))

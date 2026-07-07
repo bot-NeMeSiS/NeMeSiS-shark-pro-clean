@@ -1,0 +1,49 @@
+name: Browser QA
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: "Base URL to capture"
+        required: true
+        default: "https://bot-apuestas-crgf.onrender.com"
+
+jobs:
+  browser-qa:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install app dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r browser_qa/playwright_requirements.txt
+
+      - name: Install Chromium
+        run: python -m playwright install chromium
+
+      - name: Check browser environment
+        run: python tools/check_browser_qa_environment.py
+
+      - name: Run Browser QA
+        run: python tools/run_browser_reference_qa.py --base-url "${{ inputs.base_url }}" --output reports/browser_qa_render --mobile --desktop --write-json
+
+      - name: Upload Browser QA artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-qa-render
+          path: |
+            reports/browser_qa_render
+            data/runtime/autonomous_company_sentinel/browser_qa_status.json
+            data/runtime/autonomous_company_sentinel/browser_reference_comparison.json
+            data/runtime/autonomous_company_sentinel/reference_gap_report.json
+            data/runtime/autonomous_company_sentinel/visual_fix_queue.json

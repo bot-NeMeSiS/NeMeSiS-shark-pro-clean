@@ -1,0 +1,3 @@
+# Optional GitHub Actions example for Browser QA.
+# The real workflow is available at .github/workflows/browser-qa.yml.
+# It is manual-only and uses no repository secrets by default.
