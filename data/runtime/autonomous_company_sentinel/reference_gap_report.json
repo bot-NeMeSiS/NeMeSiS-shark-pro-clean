@@ -79,130 +79,7 @@
     }
   ],
   "browser_available": false,
-  "visual_worker_issues": [
-    {
-      "id": "V884-6B1176B0FBC7",
-      "timestamp_madrid": "2026-07-07T18:00:01+02:00",
-      "profile": "CLIENT",
-      "route": "/partidos",
-      "category": "data",
-      "severity": "low",
-      "title": "Pantalla deportiva sin datos reales visibles",
-      "description": "Hay estado seguro, pero no hay filas/cards deportivas reales visibles.",
-      "evidence": "Hay estado seguro, pero no hay filas/cards deportivas reales visibles.",
-      "expected_behavior": "La pantalla debe verse premium, clara, segura y sin datos inventados.",
-      "actual_behavior": "Hay estado seguro, pero no hay filas/cards deportivas reales visibles.",
-      "suggested_fix": "Mantener el estado seguro y crear tarea admin de sync/filtros/cache.",
-      "safe_auto_fix_possible": false,
-      "requires_admin_approval": true,
-      "revalidation_notes": "Revisar ruta, ejecutar Sentinel y validar visual/browser si procede.",
-      "codex_prompt_suggestion": "Actua como equipo completo de NeMeSiS SHARK PRO. Prioridad low. Ruta afectada: /partidos. Categoria: data. Evidencia: Hay estado seguro, pero no hay filas/cards deportivas reales visibles.. Corrige solo el defecto real, preserva V818-V883, DB_PATH, usuarios, pagos, Telegram, SHARK, API-SPORTS y seguridad. No inventes datos, no toques secretos, no hagas deploy automatico. Valida py_compile, compileall, Sentinel, smoke local y ZIP limpio."
-    },
-    {
-      "id": "V884-F33A60811EE0",
-      "timestamp_madrid": "2026-07-07T18:00:01+02:00",
-      "profile": "CLIENT",
-      "route": "/calendar",
-      "category": "data",
-      "severity": "low",
-      "title": "Pantalla deportiva sin datos reales visibles",
-      "description": "Hay estado seguro, pero no hay filas/cards deportivas reales visibles.",
-      "evidence": "Hay estado seguro, pero no hay filas/cards deportivas reales visibles.",
-      "expected_behavior": "La pantalla debe verse premium, clara, segura y sin datos inventados.",
-      "actual_behavior": "Hay estado seguro, pero no hay filas/cards deportivas reales visibles.",
-      "suggested_fix": "Mantener el estado seguro y crear tarea admin de sync/filtros/cache.",
-      "safe_auto_fix_possible": false,
-      "requires_admin_approval": true,
-      "revalidation_notes": "Revisar ruta, ejecutar Sentinel y validar visual/browser si procede.",
-      "codex_prompt_suggestion": "Actua como equipo completo de NeMeSiS SHARK PRO. Prioridad low. Ruta afectada: /calendar. Categoria: data. Evidencia: Hay estado seguro, pero no hay filas/cards deportivas reales visibles.. Corrige solo el defecto real, preserva V818-V883, DB_PATH, usuarios, pagos, Telegram, SHARK, API-SPORTS y seguridad. No inventes datos, no toques secretos, no hagas deploy automatico. Valida py_compile, compileall, Sentinel, smoke local y ZIP limpio."
-    },
-    {
-      "id": "V884-2F503B203B7C",
-      "timestamp_madrid": "2026-07-07T18:00:02+02:00",
-      "profile": "CLIENT",
-      "route": "/live",
-      "category": "data",
-      "severity": "low",
-      "title": "Pantalla deportiva sin datos reales visibles",
-      "description": "Hay estado seguro, pero no hay filas/cards deportivas reales visibles.",
-      "evidence": "Hay estado seguro, pero no hay filas/cards deportivas reales visibles.",
-      "expected_behavior": "La pantalla debe verse premium, clara, segura y sin datos inventados.",
-      "actual_behavior": "Hay estado seguro, pero no hay filas/cards deportivas reales visibles.",
-      "suggested_fix": "Mantener el estado seguro y crear tarea admin de sync/filtros/cache.",
-      "safe_auto_fix_possible": false,
-      "requires_admin_approval": true,
-      "revalidation_notes": "Revisar ruta, ejecutar Sentinel y validar visual/browser si procede.",
-      "codex_prompt_suggestion": "Actua como equipo completo de NeMeSiS SHARK PRO. Prioridad low. Ruta afectada: /live. Categoria: data. Evidencia: Hay estado seguro, pero no hay filas/cards deportivas reales visibles.. Corrige solo el defecto real, preserva V818-V883, DB_PATH, usuarios, pagos, Telegram, SHARK, API-SPORTS y seguridad. No inventes datos, no toques secretos, no hagas deploy automatico. Valida py_compile, compileall, Sentinel, smoke local y ZIP limpio."
-    },
-    {
-      "group_id": "GROUP-73767CFDE3AC",
-      "category": "data",
-      "severity": "low",
-      "title": "Pantalla deportiva sin datos reales visibles",
-      "routes": [
-        "/calendar",
-        "/live",
-        "/partidos"
-      ],
-      "issues": [
-        {
-          "id": "V884-6B1176B0FBC7",
-          "timestamp_madrid": "2026-07-07T18:00:01+02:00",
-          "profile": "CLIENT",
-          "route": "/partidos",
-          "category": "data",
-          "severity": "low",
-          "title": "Pantalla deportiva sin datos reales visibles",
-          "description": "Hay estado seguro, pero no hay filas/cards deportivas reales visibles.",
-          "evidence": "Hay estado seguro, pero no hay filas/cards deportivas reales visibles.",
-          "expected_behavior": "La pantalla debe verse premium, clara, segura y sin datos inventados.",
-          "actual_behavior": "Hay estado seguro, pero no hay filas/cards deportivas reales visibles.",
-          "suggested_fix": "Mantener el estado seguro y crear tarea admin de sync/filtros/cache.",
-          "safe_auto_fix_possible": false,
-          "requires_admin_approval": true,
-          "revalidation_notes": "Revisar ruta, ejecutar Sentinel y validar visual/browser si procede.",
-          "codex_prompt_suggestion": "Actua como equipo completo de NeMeSiS SHARK PRO. Prioridad low. Ruta afectada: /partidos. Categoria: data. Evidencia: Hay estado seguro, pero no hay filas/cards deportivas reales visibles.. Corrige solo el defecto real, preserva V818-V883, DB_PATH, usuarios, pagos, Telegram, SHARK, API-SPORTS y seguridad. No inventes datos, no toques secretos, no hagas deploy automatico. Valida py_compile, compileall, Sentinel, smoke local y ZIP limpio."
-        },
-        {
-          "id": "V884-F33A60811EE0",
-          "timestamp_madrid": "2026-07-07T18:00:01+02:00",
-          "profile": "CLIENT",
-          "route": "/calendar",
-          "category": "data",
-          "severity": "low",
-          "title": "Pantalla deportiva sin datos reales visibles",
-          "description": "Hay estado seguro, pero no hay filas/cards deportivas reales visibles.",
-          "evidence": "Hay estado seguro, pero no hay filas/cards deportivas reales visibles.",
-          "expected_behavior": "La pantalla debe verse premium, clara, segura y sin datos inventados.",
-          "actual_behavior": "Hay estado seguro, pero no hay filas/cards deportivas reales visibles.",
-          "suggested_fix": "Mantener el estado seguro y crear tarea admin de sync/filtros/cache.",
-          "safe_auto_fix_possible": false,
-          "requires_admin_approval": true,
-          "revalidation_notes": "Revisar ruta, ejecutar Sentinel y validar visual/browser si procede.",
-          "codex_prompt_suggestion": "Actua como equipo completo de NeMeSiS SHARK PRO. Prioridad low. Ruta afectada: /calendar. Categoria: data. Evidencia: Hay estado seguro, pero no hay filas/cards deportivas reales visibles.. Corrige solo el defecto real, preserva V818-V883, DB_PATH, usuarios, pagos, Telegram, SHARK, API-SPORTS y seguridad. No inventes datos, no toques secretos, no hagas deploy automatico. Valida py_compile, compileall, Sentinel, smoke local y ZIP limpio."
-        },
-        {
-          "id": "V884-2F503B203B7C",
-          "timestamp_madrid": "2026-07-07T18:00:02+02:00",
-          "profile": "CLIENT",
-          "route": "/live",
-          "category": "data",
-          "severity": "low",
-          "title": "Pantalla deportiva sin datos reales visibles",
-          "description": "Hay estado seguro, pero no hay filas/cards deportivas reales visibles.",
-          "evidence": "Hay estado seguro, pero no hay filas/cards deportivas reales visibles.",
-          "expected_behavior": "La pantalla debe verse premium, clara, segura y sin datos inventados.",
-          "actual_behavior": "Hay estado seguro, pero no hay filas/cards deportivas reales visibles.",
-          "suggested_fix": "Mantener el estado seguro y crear tarea admin de sync/filtros/cache.",
-          "safe_auto_fix_possible": false,
-          "requires_admin_approval": true,
-          "revalidation_notes": "Revisar ruta, ejecutar Sentinel y validar visual/browser si procede.",
-          "codex_prompt_suggestion": "Actua como equipo completo de NeMeSiS SHARK PRO. Prioridad low. Ruta afectada: /live. Categoria: data. Evidencia: Hay estado seguro, pero no hay filas/cards deportivas reales visibles.. Corrige solo el defecto real, preserva V818-V883, DB_PATH, usuarios, pagos, Telegram, SHARK, API-SPORTS y seguridad. No inventes datos, no toques secretos, no hagas deploy automatico. Valida py_compile, compileall, Sentinel, smoke local y ZIP limpio."
-        }
-      ],
-      "priority": 45
-    }
-  ],
+  "visual_worker_issues": [],
   "issues": [
     {
       "title": "Browser capture unavailable",
@@ -818,7 +695,7 @@
   ],
   "manifest": {
     "version": "V900_REFERENCE_IMAGES_IMPORT_FIRST_REAL_VISUAL_GAP_AUDIT_FINAL",
-    "generated_at_madrid": "2026-07-07T18:00:14+02:00",
+    "generated_at_madrid": "2026-07-07T19:06:30+02:00",
     "reference_root": "reference_images",
     "reference_count": 16,
     "categories": {
@@ -845,7 +722,7 @@
         "width": 1672,
         "height": 941,
         "source": "reference_images",
-        "imported_at_madrid": "2026-07-07T18:00:14+02:00"
+        "imported_at_madrid": "2026-07-07T19:06:30+02:00"
       },
       {
         "filename": "reference_images/admin/reference_import_v900_02.png",
@@ -858,7 +735,7 @@
         "width": 1672,
         "height": 941,
         "source": "reference_images",
-        "imported_at_madrid": "2026-07-07T18:00:14+02:00"
+        "imported_at_madrid": "2026-07-07T19:06:30+02:00"
       },
       {
         "filename": "reference_images/admin/reference_import_v900_03.png",
@@ -871,7 +748,7 @@
         "width": 1672,
         "height": 941,
         "source": "reference_images",
-        "imported_at_madrid": "2026-07-07T18:00:14+02:00"
+        "imported_at_madrid": "2026-07-07T19:06:30+02:00"
       },
       {
         "filename": "reference_images/admin/reference_import_v900_04.png",
@@ -884,7 +761,7 @@
         "width": 1672,
         "height": 941,
         "source": "reference_images",
-        "imported_at_madrid": "2026-07-07T18:00:14+02:00"
+        "imported_at_madrid": "2026-07-07T19:06:30+02:00"
       },
       {
         "filename": "reference_images/admin/reference_import_v900_05.png",
@@ -897,7 +774,7 @@
         "width": 1672,
         "height": 941,
         "source": "reference_images",
-        "imported_at_madrid": "2026-07-07T18:00:14+02:00"
+        "imported_at_madrid": "2026-07-07T19:06:30+02:00"
       },
       {
         "filename": "reference_images/admin/reference_import_v900_06.png",
@@ -910,7 +787,7 @@
         "width": 1672,
         "height": 941,
         "source": "reference_images",
-        "imported_at_madrid": "2026-07-07T18:00:14+02:00"
+        "imported_at_madrid": "2026-07-07T19:06:30+02:00"
       },
       {
         "filename": "reference_images/admin/reference_import_v900_07.png",
@@ -923,7 +800,7 @@
         "width": 1672,
         "height": 941,
         "source": "reference_images",
-        "imported_at_madrid": "2026-07-07T18:00:14+02:00"
+        "imported_at_madrid": "2026-07-07T19:06:30+02:00"
       },
       {
         "filename": "reference_images/calendar/reference_import_v900_10.png",
@@ -939,7 +816,7 @@
         "width": 1672,
         "height": 941,
         "source": "reference_images",
-        "imported_at_madrid": "2026-07-07T18:00:14+02:00"
+        "imported_at_madrid": "2026-07-07T19:06:30+02:00"
       },
       {
         "filename": "reference_images/client/reference_import_v900_08.png",
@@ -955,7 +832,7 @@
         "width": 1672,
         "height": 941,
         "source": "reference_images",
-        "imported_at_madrid": "2026-07-07T18:00:14+02:00"
+        "imported_at_madrid": "2026-07-07T19:06:30+02:00"
       },
       {
         "filename": "reference_images/live/reference_import_v900_09.png",
@@ -971,7 +848,7 @@
         "width": 1672,
         "height": 941,
         "source": "reference_images",
-        "imported_at_madrid": "2026-07-07T18:00:14+02:00"
+        "imported_at_madrid": "2026-07-07T19:06:30+02:00"
       },
       {
         "filename": "reference_images/memberships/reference_import_v900_14.png",
@@ -987,7 +864,7 @@
         "width": 1672,
         "height": 941,
         "source": "reference_images",
-        "imported_at_madrid": "2026-07-07T18:00:14+02:00"
+        "imported_at_madrid": "2026-07-07T19:06:30+02:00"
       },
       {
         "filename": "reference_images/picks/reference_import_v900_11.png",
@@ -1003,7 +880,7 @@
         "width": 1672,
         "height": 941,
         "source": "reference_images",
-        "imported_at_madrid": "2026-07-07T18:00:14+02:00"
+        "imported_at_madrid": "2026-07-07T19:06:30+02:00"
       },
       {
         "filename": "reference_images/profile/reference_import_v900_15.png",
@@ -1019,7 +896,7 @@
         "width": 1672,
         "height": 941,
         "source": "reference_images",
-        "imported_at_madrid": "2026-07-07T18:00:14+02:00"
+        "imported_at_madrid": "2026-07-07T19:06:30+02:00"
       },
       {
         "filename": "reference_images/shark/reference_import_v900_12.png",
@@ -1035,7 +912,7 @@
         "width": 1672,
         "height": 941,
         "source": "reference_images",
-        "imported_at_madrid": "2026-07-07T18:00:14+02:00"
+        "imported_at_madrid": "2026-07-07T19:06:30+02:00"
       },
       {
         "filename": "reference_images/telegram/reference_import_v900_16.png",
@@ -1051,7 +928,7 @@
         "width": 1672,
         "height": 941,
         "source": "reference_images",
-        "imported_at_madrid": "2026-07-07T18:00:14+02:00"
+        "imported_at_madrid": "2026-07-07T19:06:30+02:00"
       },
       {
         "filename": "reference_images/track-record/reference_import_v900_13.png",
@@ -1067,7 +944,7 @@
         "width": 1672,
         "height": 941,
         "source": "reference_images",
-        "imported_at_madrid": "2026-07-07T18:00:14+02:00"
+        "imported_at_madrid": "2026-07-07T19:06:30+02:00"
       }
     ],
     "safe_notes": [
@@ -1079,7 +956,7 @@
   "reference_manifest_path": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\reference_images\\reference_manifest.json",
   "product_gap_report": {
     "version": "V900_REFERENCE_IMAGES_IMPORT_FIRST_REAL_VISUAL_GAP_AUDIT_FINAL",
-    "generated_at_madrid": "2026-07-07T18:00:14+02:00",
+    "generated_at_madrid": "2026-07-07T19:06:30+02:00",
     "browser_available": false,
     "reference_count": 16,
     "targets_reviewed": [
@@ -3230,7 +3107,7 @@
     ]
   },
   "v904_automation_modes": {
-    "last_mode": "post_deploy_check",
+    "last_mode": "reference_scan",
     "supported_modes": [
       "reference_scan",
       "daily_reference_review",
@@ -3243,7 +3120,7 @@
       "needs_browser_qa": true
     },
     "action_policy": {
-      "mode": "post_deploy_check",
+      "mode": "reference_scan",
       "dangerous_actions_executed": false,
       "SAFE_AUTOFIX": [],
       "CODEX_PROMPT_REQUIRED": [],
@@ -3260,182 +3137,771 @@
       ]
     }
   },
-  "v906_browser_reference_status": {
+  "v907_browser_reference_status": {
+    "version": "V907_BROWSER_QA_ENABLEMENT_FIRST_SCREENSHOT_GAP_FIX_FINAL",
     "browser_qa_status": "BROWSER_QA_UNAVAILABLE",
     "screenshots_captured": 0,
-    "reference_comparisons": 14,
+    "reference_comparisons": 18,
     "visual_gaps_resolved": 0,
-    "visual_gaps_pending": 14,
-    "pixel_perfect_claim": false
+    "visual_gaps_pending": 18,
+    "pixel_perfect_claim": false,
+    "updated_at_madrid": "2026-07-07T19:06:38+02:00"
   },
-  "v906_browser_gap_report": [
+  "v907_browser_gap_report": [
     {
       "route": "/",
-      "browser_qa_status": "BROWSER_QA_UNAVAILABLE",
+      "profile": "pending",
       "screenshot_path": "",
       "reference_used": "reference_images/client/reference_import_v900_08.png",
       "visual_gap_score": 0,
       "classification": "NEEDS_BROWSER_QA",
+      "browser_qa_status": "BROWSER_QA_UNAVAILABLE",
       "addressed_by_v904": false,
       "addressed_by_v905": true,
-      "needs_v906_followup": true,
+      "addressed_by_v906b": true,
+      "needs_v907_followup": true,
+      "density": "pending_capture",
+      "hierarchy": "pending_capture",
+      "navigation": "pending_capture",
+      "notes": [
+        "Captura real pendiente."
+      ],
       "codex_prompt": "Captura y compara / contra referencias reales antes de declarar cierre visual."
     },
     {
       "route": "/admin-login",
-      "browser_qa_status": "BROWSER_QA_UNAVAILABLE",
+      "profile": "pending",
       "screenshot_path": "",
       "reference_used": "reference_images/admin/reference_import_v900_01.png",
       "visual_gap_score": 0,
       "classification": "NEEDS_BROWSER_QA",
+      "browser_qa_status": "BROWSER_QA_UNAVAILABLE",
       "addressed_by_v904": false,
       "addressed_by_v905": false,
-      "needs_v906_followup": true,
+      "addressed_by_v906b": false,
+      "needs_v907_followup": true,
+      "density": "pending_capture",
+      "hierarchy": "pending_capture",
+      "navigation": "pending_capture",
+      "notes": [
+        "Captura real pendiente."
+      ],
       "codex_prompt": "Captura y compara /admin-login contra referencias reales antes de declarar cierre visual."
     },
     {
       "route": "/admin/autonomous-company-sentinel",
-      "browser_qa_status": "BROWSER_QA_UNAVAILABLE",
+      "profile": "pending",
       "screenshot_path": "",
       "reference_used": "reference_images/admin/reference_import_v900_01.png",
       "visual_gap_score": 0,
       "classification": "NEEDS_BROWSER_QA",
+      "browser_qa_status": "BROWSER_QA_UNAVAILABLE",
       "addressed_by_v904": false,
       "addressed_by_v905": false,
-      "needs_v906_followup": true,
+      "addressed_by_v906b": false,
+      "needs_v907_followup": true,
+      "density": "pending_capture",
+      "hierarchy": "pending_capture",
+      "navigation": "pending_capture",
+      "notes": [
+        "Captura real pendiente."
+      ],
       "codex_prompt": "Captura y compara /admin/autonomous-company-sentinel contra referencias reales antes de declarar cierre visual."
     },
     {
       "route": "/admin/dashboard",
-      "browser_qa_status": "BROWSER_QA_UNAVAILABLE",
+      "profile": "pending",
       "screenshot_path": "",
       "reference_used": "reference_images/admin/reference_import_v900_01.png",
       "visual_gap_score": 0,
       "classification": "NEEDS_BROWSER_QA",
+      "browser_qa_status": "BROWSER_QA_UNAVAILABLE",
       "addressed_by_v904": true,
       "addressed_by_v905": false,
-      "needs_v906_followup": true,
+      "addressed_by_v906b": false,
+      "needs_v907_followup": true,
+      "density": "pending_capture",
+      "hierarchy": "pending_capture",
+      "navigation": "pending_capture",
+      "notes": [
+        "Captura real pendiente."
+      ],
       "codex_prompt": "Captura y compara /admin/dashboard contra referencias reales antes de declarar cierre visual."
     },
     {
       "route": "/admin/not-found-events",
-      "browser_qa_status": "BROWSER_QA_UNAVAILABLE",
+      "profile": "pending",
       "screenshot_path": "",
       "reference_used": "reference_images/admin/reference_import_v900_01.png",
       "visual_gap_score": 0,
       "classification": "NEEDS_BROWSER_QA",
+      "browser_qa_status": "BROWSER_QA_UNAVAILABLE",
       "addressed_by_v904": false,
       "addressed_by_v905": false,
-      "needs_v906_followup": true,
+      "addressed_by_v906b": false,
+      "needs_v907_followup": true,
+      "density": "pending_capture",
+      "hierarchy": "pending_capture",
+      "navigation": "pending_capture",
+      "notes": [
+        "Captura real pendiente."
+      ],
       "codex_prompt": "Captura y compara /admin/not-found-events contra referencias reales antes de declarar cierre visual."
     },
     {
       "route": "/admin/sentinel-codex-outbox",
-      "browser_qa_status": "BROWSER_QA_UNAVAILABLE",
+      "profile": "pending",
       "screenshot_path": "",
       "reference_used": "reference_images/admin/reference_import_v900_01.png",
       "visual_gap_score": 0,
       "classification": "NEEDS_BROWSER_QA",
+      "browser_qa_status": "BROWSER_QA_UNAVAILABLE",
       "addressed_by_v904": false,
       "addressed_by_v905": false,
-      "needs_v906_followup": true,
+      "addressed_by_v906b": false,
+      "needs_v907_followup": true,
+      "density": "pending_capture",
+      "hierarchy": "pending_capture",
+      "navigation": "pending_capture",
+      "notes": [
+        "Captura real pendiente."
+      ],
       "codex_prompt": "Captura y compara /admin/sentinel-codex-outbox contra referencias reales antes de declarar cierre visual."
     },
     {
       "route": "/admin/sentinel-issues",
-      "browser_qa_status": "BROWSER_QA_UNAVAILABLE",
+      "profile": "pending",
       "screenshot_path": "",
       "reference_used": "reference_images/admin/reference_import_v900_01.png",
       "visual_gap_score": 0,
       "classification": "NEEDS_BROWSER_QA",
+      "browser_qa_status": "BROWSER_QA_UNAVAILABLE",
       "addressed_by_v904": false,
       "addressed_by_v905": false,
-      "needs_v906_followup": true,
+      "addressed_by_v906b": false,
+      "needs_v907_followup": true,
+      "density": "pending_capture",
+      "hierarchy": "pending_capture",
+      "navigation": "pending_capture",
+      "notes": [
+        "Captura real pendiente."
+      ],
       "codex_prompt": "Captura y compara /admin/sentinel-issues contra referencias reales antes de declarar cierre visual."
     },
     {
-      "route": "/app",
+      "route": "/admin/telegram/command-center",
+      "profile": "pending",
+      "screenshot_path": "",
+      "reference_used": "reference_images/admin/reference_import_v900_01.png",
+      "visual_gap_score": 0,
+      "classification": "NEEDS_BROWSER_QA",
       "browser_qa_status": "BROWSER_QA_UNAVAILABLE",
+      "addressed_by_v904": false,
+      "addressed_by_v905": false,
+      "addressed_by_v906b": false,
+      "needs_v907_followup": true,
+      "density": "pending_capture",
+      "hierarchy": "pending_capture",
+      "navigation": "pending_capture",
+      "notes": [
+        "Captura real pendiente."
+      ],
+      "codex_prompt": "Captura y compara /admin/telegram/command-center contra referencias reales antes de declarar cierre visual."
+    },
+    {
+      "route": "/app",
+      "profile": "pending",
       "screenshot_path": "",
       "reference_used": "reference_images/client/reference_import_v900_08.png",
       "visual_gap_score": 0,
       "classification": "NEEDS_BROWSER_QA",
+      "browser_qa_status": "BROWSER_QA_UNAVAILABLE",
       "addressed_by_v904": true,
       "addressed_by_v905": false,
-      "needs_v906_followup": true,
+      "addressed_by_v906b": false,
+      "needs_v907_followup": true,
+      "density": "pending_capture",
+      "hierarchy": "pending_capture",
+      "navigation": "pending_capture",
+      "notes": [
+        "Captura real pendiente."
+      ],
       "codex_prompt": "Captura y compara /app contra referencias reales antes de declarar cierre visual."
     },
     {
       "route": "/calendar",
-      "browser_qa_status": "BROWSER_QA_UNAVAILABLE",
+      "profile": "pending",
       "screenshot_path": "",
       "reference_used": "reference_images/calendar/reference_import_v900_10.png",
       "visual_gap_score": 0,
       "classification": "NEEDS_BROWSER_QA",
+      "browser_qa_status": "BROWSER_QA_UNAVAILABLE",
       "addressed_by_v904": true,
       "addressed_by_v905": false,
-      "needs_v906_followup": true,
+      "addressed_by_v906b": false,
+      "needs_v907_followup": true,
+      "density": "pending_capture",
+      "hierarchy": "pending_capture",
+      "navigation": "pending_capture",
+      "notes": [
+        "Captura real pendiente."
+      ],
       "codex_prompt": "Captura y compara /calendar contra referencias reales antes de declarar cierre visual."
     },
     {
-      "route": "/live",
+      "route": "/cliente-login",
+      "profile": "pending",
+      "screenshot_path": "",
+      "reference_used": "reference_images/client/reference_import_v900_08.png",
+      "visual_gap_score": 0,
+      "classification": "NEEDS_BROWSER_QA",
       "browser_qa_status": "BROWSER_QA_UNAVAILABLE",
+      "addressed_by_v904": false,
+      "addressed_by_v905": false,
+      "addressed_by_v906b": false,
+      "needs_v907_followup": true,
+      "density": "pending_capture",
+      "hierarchy": "pending_capture",
+      "navigation": "pending_capture",
+      "notes": [
+        "Captura real pendiente."
+      ],
+      "codex_prompt": "Captura y compara /cliente-login contra referencias reales antes de declarar cierre visual."
+    },
+    {
+      "route": "/live",
+      "profile": "pending",
       "screenshot_path": "",
       "reference_used": "reference_images/live/reference_import_v900_09.png",
       "visual_gap_score": 0,
       "classification": "NEEDS_BROWSER_QA",
+      "browser_qa_status": "BROWSER_QA_UNAVAILABLE",
       "addressed_by_v904": true,
       "addressed_by_v905": false,
-      "needs_v906_followup": true,
+      "addressed_by_v906b": false,
+      "needs_v907_followup": true,
+      "density": "pending_capture",
+      "hierarchy": "pending_capture",
+      "navigation": "pending_capture",
+      "notes": [
+        "Captura real pendiente."
+      ],
       "codex_prompt": "Captura y compara /live contra referencias reales antes de declarar cierre visual."
     },
     {
       "route": "/picks",
-      "browser_qa_status": "BROWSER_QA_UNAVAILABLE",
+      "profile": "pending",
       "screenshot_path": "",
       "reference_used": "reference_images/picks/reference_import_v900_11.png",
       "visual_gap_score": 0,
       "classification": "NEEDS_BROWSER_QA",
+      "browser_qa_status": "BROWSER_QA_UNAVAILABLE",
       "addressed_by_v904": true,
       "addressed_by_v905": false,
-      "needs_v906_followup": true,
+      "addressed_by_v906b": false,
+      "needs_v907_followup": true,
+      "density": "pending_capture",
+      "hierarchy": "pending_capture",
+      "navigation": "pending_capture",
+      "notes": [
+        "Captura real pendiente."
+      ],
       "codex_prompt": "Captura y compara /picks contra referencias reales antes de declarar cierre visual."
     },
     {
       "route": "/profile",
-      "browser_qa_status": "BROWSER_QA_UNAVAILABLE",
+      "profile": "pending",
       "screenshot_path": "",
       "reference_used": "reference_images/profile/reference_import_v900_15.png",
       "visual_gap_score": 0,
       "classification": "NEEDS_BROWSER_QA",
+      "browser_qa_status": "BROWSER_QA_UNAVAILABLE",
       "addressed_by_v904": false,
       "addressed_by_v905": false,
-      "needs_v906_followup": true,
+      "addressed_by_v906b": false,
+      "needs_v907_followup": true,
+      "density": "pending_capture",
+      "hierarchy": "pending_capture",
+      "navigation": "pending_capture",
+      "notes": [
+        "Captura real pendiente."
+      ],
       "codex_prompt": "Captura y compara /profile contra referencias reales antes de declarar cierre visual."
     },
     {
-      "route": "/shark",
+      "route": "/registro",
+      "profile": "pending",
+      "screenshot_path": "",
+      "reference_used": "reference_images/client/reference_import_v900_08.png",
+      "visual_gap_score": 0,
+      "classification": "NEEDS_BROWSER_QA",
       "browser_qa_status": "BROWSER_QA_UNAVAILABLE",
+      "addressed_by_v904": false,
+      "addressed_by_v905": false,
+      "addressed_by_v906b": false,
+      "needs_v907_followup": true,
+      "density": "pending_capture",
+      "hierarchy": "pending_capture",
+      "navigation": "pending_capture",
+      "notes": [
+        "Captura real pendiente."
+      ],
+      "codex_prompt": "Captura y compara /registro contra referencias reales antes de declarar cierre visual."
+    },
+    {
+      "route": "/shark",
+      "profile": "pending",
       "screenshot_path": "",
       "reference_used": "reference_images/shark/reference_import_v900_12.png",
       "visual_gap_score": 0,
       "classification": "NEEDS_BROWSER_QA",
+      "browser_qa_status": "BROWSER_QA_UNAVAILABLE",
       "addressed_by_v904": true,
       "addressed_by_v905": false,
-      "needs_v906_followup": true,
+      "addressed_by_v906b": false,
+      "needs_v907_followup": true,
+      "density": "pending_capture",
+      "hierarchy": "pending_capture",
+      "navigation": "pending_capture",
+      "notes": [
+        "Captura real pendiente."
+      ],
       "codex_prompt": "Captura y compara /shark contra referencias reales antes de declarar cierre visual."
     },
     {
-      "route": "/telegram",
+      "route": "/support",
+      "profile": "pending",
+      "screenshot_path": "",
+      "reference_used": "reference_images/client/reference_import_v900_08.png",
+      "visual_gap_score": 0,
+      "classification": "NEEDS_BROWSER_QA",
       "browser_qa_status": "BROWSER_QA_UNAVAILABLE",
+      "addressed_by_v904": false,
+      "addressed_by_v905": false,
+      "addressed_by_v906b": false,
+      "needs_v907_followup": true,
+      "density": "pending_capture",
+      "hierarchy": "pending_capture",
+      "navigation": "pending_capture",
+      "notes": [
+        "Captura real pendiente."
+      ],
+      "codex_prompt": "Captura y compara /support contra referencias reales antes de declarar cierre visual."
+    },
+    {
+      "route": "/telegram",
+      "profile": "pending",
       "screenshot_path": "",
       "reference_used": "reference_images/telegram/reference_import_v900_16.png",
       "visual_gap_score": 0,
       "classification": "NEEDS_BROWSER_QA",
+      "browser_qa_status": "BROWSER_QA_UNAVAILABLE",
       "addressed_by_v904": true,
       "addressed_by_v905": false,
-      "needs_v906_followup": true,
+      "addressed_by_v906b": false,
+      "needs_v907_followup": true,
+      "density": "pending_capture",
+      "hierarchy": "pending_capture",
+      "navigation": "pending_capture",
+      "notes": [
+        "Captura real pendiente."
+      ],
       "codex_prompt": "Captura y compara /telegram contra referencias reales antes de declarar cierre visual."
     }
-  ]
+  ],
+  "v906_browser_status": {
+    "version": "V907_BROWSER_QA_ENABLEMENT_FIRST_SCREENSHOT_GAP_FIX_FINAL",
+    "browser_qa_status": "BROWSER_QA_UNAVAILABLE",
+    "screenshots_captured": 0,
+    "reference_comparisons": 18,
+    "visual_gaps_resolved": 0,
+    "visual_gaps_pending": 18,
+    "pixel_perfect_claim": false,
+    "updated_by": "V907 browser QA enablement",
+    "updated_at_madrid": "2026-07-07T19:06:38+02:00"
+  },
+  "v906_browser_reference_status": {
+    "version": "V907_BROWSER_QA_ENABLEMENT_FIRST_SCREENSHOT_GAP_FIX_FINAL",
+    "browser_qa_status": "BROWSER_QA_UNAVAILABLE",
+    "screenshots_captured": 0,
+    "reference_comparisons": 18,
+    "visual_gaps_resolved": 0,
+    "visual_gaps_pending": 18,
+    "pixel_perfect_claim": false,
+    "updated_by": "V907 browser QA enablement",
+    "updated_at_madrid": "2026-07-07T19:06:38+02:00"
+  },
+  "v906_browser_gap_report": [
+    {
+      "route": "/",
+      "profile": "pending",
+      "screenshot_path": "",
+      "reference_used": "reference_images/client/reference_import_v900_08.png",
+      "visual_gap_score": 0,
+      "classification": "NEEDS_BROWSER_QA",
+      "browser_qa_status": "BROWSER_QA_UNAVAILABLE",
+      "addressed_by_v904": false,
+      "addressed_by_v905": true,
+      "addressed_by_v906b": true,
+      "needs_v907_followup": true,
+      "density": "pending_capture",
+      "hierarchy": "pending_capture",
+      "navigation": "pending_capture",
+      "notes": [
+        "Captura real pendiente."
+      ],
+      "codex_prompt": "Captura y compara / contra referencias reales antes de declarar cierre visual."
+    },
+    {
+      "route": "/admin-login",
+      "profile": "pending",
+      "screenshot_path": "",
+      "reference_used": "reference_images/admin/reference_import_v900_01.png",
+      "visual_gap_score": 0,
+      "classification": "NEEDS_BROWSER_QA",
+      "browser_qa_status": "BROWSER_QA_UNAVAILABLE",
+      "addressed_by_v904": false,
+      "addressed_by_v905": false,
+      "addressed_by_v906b": false,
+      "needs_v907_followup": true,
+      "density": "pending_capture",
+      "hierarchy": "pending_capture",
+      "navigation": "pending_capture",
+      "notes": [
+        "Captura real pendiente."
+      ],
+      "codex_prompt": "Captura y compara /admin-login contra referencias reales antes de declarar cierre visual."
+    },
+    {
+      "route": "/admin/autonomous-company-sentinel",
+      "profile": "pending",
+      "screenshot_path": "",
+      "reference_used": "reference_images/admin/reference_import_v900_01.png",
+      "visual_gap_score": 0,
+      "classification": "NEEDS_BROWSER_QA",
+      "browser_qa_status": "BROWSER_QA_UNAVAILABLE",
+      "addressed_by_v904": false,
+      "addressed_by_v905": false,
+      "addressed_by_v906b": false,
+      "needs_v907_followup": true,
+      "density": "pending_capture",
+      "hierarchy": "pending_capture",
+      "navigation": "pending_capture",
+      "notes": [
+        "Captura real pendiente."
+      ],
+      "codex_prompt": "Captura y compara /admin/autonomous-company-sentinel contra referencias reales antes de declarar cierre visual."
+    },
+    {
+      "route": "/admin/dashboard",
+      "profile": "pending",
+      "screenshot_path": "",
+      "reference_used": "reference_images/admin/reference_import_v900_01.png",
+      "visual_gap_score": 0,
+      "classification": "NEEDS_BROWSER_QA",
+      "browser_qa_status": "BROWSER_QA_UNAVAILABLE",
+      "addressed_by_v904": true,
+      "addressed_by_v905": false,
+      "addressed_by_v906b": false,
+      "needs_v907_followup": true,
+      "density": "pending_capture",
+      "hierarchy": "pending_capture",
+      "navigation": "pending_capture",
+      "notes": [
+        "Captura real pendiente."
+      ],
+      "codex_prompt": "Captura y compara /admin/dashboard contra referencias reales antes de declarar cierre visual."
+    },
+    {
+      "route": "/admin/not-found-events",
+      "profile": "pending",
+      "screenshot_path": "",
+      "reference_used": "reference_images/admin/reference_import_v900_01.png",
+      "visual_gap_score": 0,
+      "classification": "NEEDS_BROWSER_QA",
+      "browser_qa_status": "BROWSER_QA_UNAVAILABLE",
+      "addressed_by_v904": false,
+      "addressed_by_v905": false,
+      "addressed_by_v906b": false,
+      "needs_v907_followup": true,
+      "density": "pending_capture",
+      "hierarchy": "pending_capture",
+      "navigation": "pending_capture",
+      "notes": [
+        "Captura real pendiente."
+      ],
+      "codex_prompt": "Captura y compara /admin/not-found-events contra referencias reales antes de declarar cierre visual."
+    },
+    {
+      "route": "/admin/sentinel-codex-outbox",
+      "profile": "pending",
+      "screenshot_path": "",
+      "reference_used": "reference_images/admin/reference_import_v900_01.png",
+      "visual_gap_score": 0,
+      "classification": "NEEDS_BROWSER_QA",
+      "browser_qa_status": "BROWSER_QA_UNAVAILABLE",
+      "addressed_by_v904": false,
+      "addressed_by_v905": false,
+      "addressed_by_v906b": false,
+      "needs_v907_followup": true,
+      "density": "pending_capture",
+      "hierarchy": "pending_capture",
+      "navigation": "pending_capture",
+      "notes": [
+        "Captura real pendiente."
+      ],
+      "codex_prompt": "Captura y compara /admin/sentinel-codex-outbox contra referencias reales antes de declarar cierre visual."
+    },
+    {
+      "route": "/admin/sentinel-issues",
+      "profile": "pending",
+      "screenshot_path": "",
+      "reference_used": "reference_images/admin/reference_import_v900_01.png",
+      "visual_gap_score": 0,
+      "classification": "NEEDS_BROWSER_QA",
+      "browser_qa_status": "BROWSER_QA_UNAVAILABLE",
+      "addressed_by_v904": false,
+      "addressed_by_v905": false,
+      "addressed_by_v906b": false,
+      "needs_v907_followup": true,
+      "density": "pending_capture",
+      "hierarchy": "pending_capture",
+      "navigation": "pending_capture",
+      "notes": [
+        "Captura real pendiente."
+      ],
+      "codex_prompt": "Captura y compara /admin/sentinel-issues contra referencias reales antes de declarar cierre visual."
+    },
+    {
+      "route": "/admin/telegram/command-center",
+      "profile": "pending",
+      "screenshot_path": "",
+      "reference_used": "reference_images/admin/reference_import_v900_01.png",
+      "visual_gap_score": 0,
+      "classification": "NEEDS_BROWSER_QA",
+      "browser_qa_status": "BROWSER_QA_UNAVAILABLE",
+      "addressed_by_v904": false,
+      "addressed_by_v905": false,
+      "addressed_by_v906b": false,
+      "needs_v907_followup": true,
+      "density": "pending_capture",
+      "hierarchy": "pending_capture",
+      "navigation": "pending_capture",
+      "notes": [
+        "Captura real pendiente."
+      ],
+      "codex_prompt": "Captura y compara /admin/telegram/command-center contra referencias reales antes de declarar cierre visual."
+    },
+    {
+      "route": "/app",
+      "profile": "pending",
+      "screenshot_path": "",
+      "reference_used": "reference_images/client/reference_import_v900_08.png",
+      "visual_gap_score": 0,
+      "classification": "NEEDS_BROWSER_QA",
+      "browser_qa_status": "BROWSER_QA_UNAVAILABLE",
+      "addressed_by_v904": true,
+      "addressed_by_v905": false,
+      "addressed_by_v906b": false,
+      "needs_v907_followup": true,
+      "density": "pending_capture",
+      "hierarchy": "pending_capture",
+      "navigation": "pending_capture",
+      "notes": [
+        "Captura real pendiente."
+      ],
+      "codex_prompt": "Captura y compara /app contra referencias reales antes de declarar cierre visual."
+    },
+    {
+      "route": "/calendar",
+      "profile": "pending",
+      "screenshot_path": "",
+      "reference_used": "reference_images/calendar/reference_import_v900_10.png",
+      "visual_gap_score": 0,
+      "classification": "NEEDS_BROWSER_QA",
+      "browser_qa_status": "BROWSER_QA_UNAVAILABLE",
+      "addressed_by_v904": true,
+      "addressed_by_v905": false,
+      "addressed_by_v906b": false,
+      "needs_v907_followup": true,
+      "density": "pending_capture",
+      "hierarchy": "pending_capture",
+      "navigation": "pending_capture",
+      "notes": [
+        "Captura real pendiente."
+      ],
+      "codex_prompt": "Captura y compara /calendar contra referencias reales antes de declarar cierre visual."
+    },
+    {
+      "route": "/cliente-login",
+      "profile": "pending",
+      "screenshot_path": "",
+      "reference_used": "reference_images/client/reference_import_v900_08.png",
+      "visual_gap_score": 0,
+      "classification": "NEEDS_BROWSER_QA",
+      "browser_qa_status": "BROWSER_QA_UNAVAILABLE",
+      "addressed_by_v904": false,
+      "addressed_by_v905": false,
+      "addressed_by_v906b": false,
+      "needs_v907_followup": true,
+      "density": "pending_capture",
+      "hierarchy": "pending_capture",
+      "navigation": "pending_capture",
+      "notes": [
+        "Captura real pendiente."
+      ],
+      "codex_prompt": "Captura y compara /cliente-login contra referencias reales antes de declarar cierre visual."
+    },
+    {
+      "route": "/live",
+      "profile": "pending",
+      "screenshot_path": "",
+      "reference_used": "reference_images/live/reference_import_v900_09.png",
+      "visual_gap_score": 0,
+      "classification": "NEEDS_BROWSER_QA",
+      "browser_qa_status": "BROWSER_QA_UNAVAILABLE",
+      "addressed_by_v904": true,
+      "addressed_by_v905": false,
+      "addressed_by_v906b": false,
+      "needs_v907_followup": true,
+      "density": "pending_capture",
+      "hierarchy": "pending_capture",
+      "navigation": "pending_capture",
+      "notes": [
+        "Captura real pendiente."
+      ],
+      "codex_prompt": "Captura y compara /live contra referencias reales antes de declarar cierre visual."
+    },
+    {
+      "route": "/picks",
+      "profile": "pending",
+      "screenshot_path": "",
+      "reference_used": "reference_images/picks/reference_import_v900_11.png",
+      "visual_gap_score": 0,
+      "classification": "NEEDS_BROWSER_QA",
+      "browser_qa_status": "BROWSER_QA_UNAVAILABLE",
+      "addressed_by_v904": true,
+      "addressed_by_v905": false,
+      "addressed_by_v906b": false,
+      "needs_v907_followup": true,
+      "density": "pending_capture",
+      "hierarchy": "pending_capture",
+      "navigation": "pending_capture",
+      "notes": [
+        "Captura real pendiente."
+      ],
+      "codex_prompt": "Captura y compara /picks contra referencias reales antes de declarar cierre visual."
+    },
+    {
+      "route": "/profile",
+      "profile": "pending",
+      "screenshot_path": "",
+      "reference_used": "reference_images/profile/reference_import_v900_15.png",
+      "visual_gap_score": 0,
+      "classification": "NEEDS_BROWSER_QA",
+      "browser_qa_status": "BROWSER_QA_UNAVAILABLE",
+      "addressed_by_v904": false,
+      "addressed_by_v905": false,
+      "addressed_by_v906b": false,
+      "needs_v907_followup": true,
+      "density": "pending_capture",
+      "hierarchy": "pending_capture",
+      "navigation": "pending_capture",
+      "notes": [
+        "Captura real pendiente."
+      ],
+      "codex_prompt": "Captura y compara /profile contra referencias reales antes de declarar cierre visual."
+    },
+    {
+      "route": "/registro",
+      "profile": "pending",
+      "screenshot_path": "",
+      "reference_used": "reference_images/client/reference_import_v900_08.png",
+      "visual_gap_score": 0,
+      "classification": "NEEDS_BROWSER_QA",
+      "browser_qa_status": "BROWSER_QA_UNAVAILABLE",
+      "addressed_by_v904": false,
+      "addressed_by_v905": false,
+      "addressed_by_v906b": false,
+      "needs_v907_followup": true,
+      "density": "pending_capture",
+      "hierarchy": "pending_capture",
+      "navigation": "pending_capture",
+      "notes": [
+        "Captura real pendiente."
+      ],
+      "codex_prompt": "Captura y compara /registro contra referencias reales antes de declarar cierre visual."
+    },
+    {
+      "route": "/shark",
+      "profile": "pending",
+      "screenshot_path": "",
+      "reference_used": "reference_images/shark/reference_import_v900_12.png",
+      "visual_gap_score": 0,
+      "classification": "NEEDS_BROWSER_QA",
+      "browser_qa_status": "BROWSER_QA_UNAVAILABLE",
+      "addressed_by_v904": true,
+      "addressed_by_v905": false,
+      "addressed_by_v906b": false,
+      "needs_v907_followup": true,
+      "density": "pending_capture",
+      "hierarchy": "pending_capture",
+      "navigation": "pending_capture",
+      "notes": [
+        "Captura real pendiente."
+      ],
+      "codex_prompt": "Captura y compara /shark contra referencias reales antes de declarar cierre visual."
+    },
+    {
+      "route": "/support",
+      "profile": "pending",
+      "screenshot_path": "",
+      "reference_used": "reference_images/client/reference_import_v900_08.png",
+      "visual_gap_score": 0,
+      "classification": "NEEDS_BROWSER_QA",
+      "browser_qa_status": "BROWSER_QA_UNAVAILABLE",
+      "addressed_by_v904": false,
+      "addressed_by_v905": false,
+      "addressed_by_v906b": false,
+      "needs_v907_followup": true,
+      "density": "pending_capture",
+      "hierarchy": "pending_capture",
+      "navigation": "pending_capture",
+      "notes": [
+        "Captura real pendiente."
+      ],
+      "codex_prompt": "Captura y compara /support contra referencias reales antes de declarar cierre visual."
+    },
+    {
+      "route": "/telegram",
+      "profile": "pending",
+      "screenshot_path": "",
+      "reference_used": "reference_images/telegram/reference_import_v900_16.png",
+      "visual_gap_score": 0,
+      "classification": "NEEDS_BROWSER_QA",
+      "browser_qa_status": "BROWSER_QA_UNAVAILABLE",
+      "addressed_by_v904": true,
+      "addressed_by_v905": false,
+      "addressed_by_v906b": false,
+      "needs_v907_followup": true,
+      "density": "pending_capture",
+      "hierarchy": "pending_capture",
+      "navigation": "pending_capture",
+      "notes": [
+        "Captura real pendiente."
+      ],
+      "codex_prompt": "Captura y compara /telegram contra referencias reales antes de declarar cierre visual."
+    }
+  ],
+  "v905_final_reference_gap_status": {
+    "version": "V907_BROWSER_QA_ENABLEMENT_FIRST_SCREENSHOT_GAP_FIX_FINAL",
+    "browser_qa_status": "BROWSER_QA_UNAVAILABLE",
+    "screenshots_captured": 0,
+    "reference_comparisons": 18,
+    "visual_gaps_resolved": 0,
+    "visual_gaps_pending": 18,
+    "pixel_perfect_claim": false,
+    "updated_by": "V907 browser QA enablement",
+    "updated_at_madrid": "2026-07-07T19:06:38+02:00"
+  }
 }

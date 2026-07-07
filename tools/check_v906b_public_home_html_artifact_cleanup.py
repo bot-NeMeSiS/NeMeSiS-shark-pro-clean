@@ -9,6 +9,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V906B_PUBLIC_HOME_HTML_ARTIFACT_CLEANUP_FINAL"
+ALLOWED_CURRENT_VERSIONS = {VERSION, "V907_BROWSER_QA_ENABLEMENT_FIRST_SCREENSHOT_GAP_FIX_FINAL"}
 ZIP_NAME = f"NeMeSiS_SHARK_PRO_{VERSION}_RENDER_READY.zip"
 REPORTS = [
     "reports/V906B_PUBLIC_HOME_HTML_ARTIFACT_CLEANUP_REPORT.md",
@@ -59,9 +60,9 @@ def main() -> int:
 
     require(not version_bytes.startswith(b"\xef\xbb\xbf"), "VERSION.txt has UTF-8 BOM", failures)
     require(not css_bytes.startswith(b"\xef\xbb\xbf"), "static/app.css has UTF-8 BOM", failures)
-    require(read("VERSION.txt").strip().lstrip("\ufeff") == VERSION, "VERSION.txt is not V906B", failures)
-    require(read("APP_VERSION").strip().lstrip("\ufeff") == VERSION, "APP_VERSION is not V906B", failures)
-    require(app_version_from_source(app_py) == VERSION, "app.py APP_VERSION is not V906B", failures)
+    require(read("VERSION.txt").strip().lstrip("\ufeff") in ALLOWED_CURRENT_VERSIONS, "VERSION.txt is not V906B-compatible", failures)
+    require(read("APP_VERSION").strip().lstrip("\ufeff") in ALLOWED_CURRENT_VERSIONS, "APP_VERSION is not V906B-compatible", failures)
+    require(app_version_from_source(app_py) in ALLOWED_CURRENT_VERSIONS, "app.py APP_VERSION is not V906B-compatible", failures)
     require("data-v906b-shell" in base, "base V906B shell marker missing", failures)
     require("has_v906b_public_home_html_artifact_cleanup" in app_py, "runtime V906B flag missing", failures)
     require("`r`n" not in base and "rn rn" not in base.lower(), "base still contains visible newline artifact", failures)
@@ -77,9 +78,9 @@ def main() -> int:
     runtime_resp = client.get("/api/runtime-version")
     runtime = runtime_resp.get_json(silent=True) or {}
     require(runtime_resp.status_code == 200, "runtime-version not 200", failures)
-    require(runtime.get("version") == VERSION, "runtime version is not V906B", failures)
-    require(runtime.get("version_txt") == VERSION, "runtime version_txt is not V906B", failures)
-    require(runtime.get("app_version") == VERSION, "runtime app_version is not V906B", failures)
+    require(runtime.get("version") in ALLOWED_CURRENT_VERSIONS, "runtime version is not V906B-compatible", failures)
+    require(runtime.get("version_txt") in ALLOWED_CURRENT_VERSIONS, "runtime version_txt is not V906B-compatible", failures)
+    require(runtime.get("app_version") in ALLOWED_CURRENT_VERSIONS, "runtime app_version is not V906B-compatible", failures)
     require(runtime.get("version_files_match") is True, "runtime version_files_match is not true", failures)
     require(runtime.get("deployment_alignment_status") == "aligned_local_files", "runtime deployment alignment is not aligned", failures)
     require(runtime.get("has_v906b_public_home_html_artifact_cleanup") is True, "runtime V906B flag is not true", failures)

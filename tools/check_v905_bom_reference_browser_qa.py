@@ -14,6 +14,7 @@ ALLOWED_CURRENT_VERSIONS = {
     VERSION,
     "V906_REAL_BROWSER_QA_SCREENSHOT_REFERENCE_COMPARISON_FINAL",
     "V906B_PUBLIC_HOME_HTML_ARTIFACT_CLEANUP_FINAL",
+    "V907_BROWSER_QA_ENABLEMENT_FIRST_SCREENSHOT_GAP_FIX_FINAL",
 }
 ZIP_NAME = f"NeMeSiS_SHARK_PRO_{VERSION}_RENDER_READY.zip"
 REPORTS = [
@@ -95,7 +96,7 @@ def main() -> int:
     require("has_v905_bom_version_alignment_fix" in app_py, "V905 BOM runtime flag missing", failures)
     require("has_v905_final_reference_gaps_browser_qa" in app_py, "V905 browser QA runtime flag missing", failures)
     require("data-v905-shell" in base, "base V905 shell marker missing", failures)
-    require(("NEMESIS_CACHE_V905" in app_py or "NEMESIS_CACHE_V906" in app_py or "NEMESIS_CACHE_V906B" in app_py) and "res.status===404" in app_py, "service worker V905 404 safety missing", failures)
+    require(("NEMESIS_CACHE_V905" in app_py or "NEMESIS_CACHE_V906" in app_py or "NEMESIS_CACHE_V906B" in app_py or "NEMESIS_CACHE_V907" in app_py) and "res.status===404" in app_py, "service worker V905 404 safety missing", failures)
     require("experiencia nica" not in home, "home still has broken 'experiencia nica' copy", failures)
     require("Membresias" not in base, "base still has visible Membresias without accent", failures)
 
@@ -127,7 +128,11 @@ def main() -> int:
     require(outbox.exists(), "codex outbox missing", failures)
     if outbox.exists():
         outbox_text = outbox.read_text(encoding="utf-8", errors="replace")
-        require("V905_FINAL_REFERENCE_GAPS_BROWSER_QA_STATUS" in outbox_text, "outbox V905 status section missing", failures)
+        require(
+            "V905_FINAL_REFERENCE_GAPS_BROWSER_QA_STATUS" in outbox_text or "V907_BROWSER_QA_FINDINGS" in outbox_text,
+            "outbox V905/V907 status section missing",
+            failures,
+        )
         require("pixel_perfect_claim: false" in outbox_text, "outbox must keep pixel-perfect claim false", failures)
 
     for report in REPORTS:

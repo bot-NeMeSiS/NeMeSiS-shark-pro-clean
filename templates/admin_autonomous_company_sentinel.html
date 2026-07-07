@@ -31,16 +31,25 @@
   </section>
 
   {% set browser = status.browser_qa or {} %}
-  <section class="ns-admin-card v906-browser-qa-panel" data-v906-browser-qa="true">
+  <section class="ns-admin-card v906-browser-qa-panel v907-browser-qa-enablement" data-v906-browser-qa="true" data-v907-browser-qa="true">
     <div class="ns-section-title">
-      <h2>Browser QA V906</h2>
-      <span class="ns-badge">{{ browser.status or 'BROWSER_QA_UNAVAILABLE' }}</span>
+      <h2>Browser QA V907</h2>
+      <span class="ns-badge">{{ browser.status or browser.browser_qa_status or 'BROWSER_QA_UNAVAILABLE' }}</span>
     </div>
     <div class="ns-grid ns-grid-4">
       <article class="ns-stat"><span>Capturas</span><strong>{{ browser.screenshots_captured or 0 }}</strong><small>desktop/mobile</small></article>
       <article class="ns-stat"><span>Comparaciones</span><strong>{{ browser.reference_comparisons or 0 }}</strong><small>reference_images</small></article>
       <article class="ns-stat"><span>Gaps resueltos</span><strong>{{ browser.visual_gaps_resolved or 0 }}</strong><small>por captura</small></article>
       <article class="ns-stat"><span>Gaps pendientes</span><strong>{{ browser.visual_gaps_pending or 0 }}</strong><small>requieren browser real</small></article>
+    </div>
+    <div class="ns-table-wrap">
+      <table class="ns-table">
+        <tbody>
+          <tr><th>Playwright</th><td>{{ browser.playwright_status or browser.status or 'Pendiente de detectar' }}</td></tr>
+          <tr><th>Rutas capturadas</th><td>{{ (browser.routes_captured or [])|join(', ') if browser.routes_captured else 'Sin capturas reales todavia' }}</td></tr>
+          <tr><th>Reporte</th><td><code>reports/V907_browser_qa</code></td></tr>
+        </tbody>
+      </table>
     </div>
     <p>No se declara pixel-perfect sin capturas reales comparadas contra las referencias.</p>
     <div class="ns-actions">

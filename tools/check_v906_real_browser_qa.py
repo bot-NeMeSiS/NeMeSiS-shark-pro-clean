@@ -10,6 +10,11 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V906_REAL_BROWSER_QA_SCREENSHOT_REFERENCE_COMPARISON_FINAL"
+ALLOWED_CURRENT_VERSIONS = {
+    VERSION,
+    "V906B_PUBLIC_HOME_HTML_ARTIFACT_CLEANUP_FINAL",
+    "V907_BROWSER_QA_ENABLEMENT_FIRST_SCREENSHOT_GAP_FIX_FINAL",
+}
 ZIP_NAME = f"NeMeSiS_SHARK_PRO_{VERSION}_RENDER_READY.zip"
 REPORTS = [
     "reports/V906_REAL_BROWSER_QA_SCREENSHOT_REFERENCE_COMPARISON_REPORT.md",
@@ -87,11 +92,11 @@ def main() -> int:
     base = read("templates/base.html")
 
     require(not version_bytes.startswith(b"\xef\xbb\xbf"), "VERSION.txt has BOM", failures)
-    require(version_bytes.decode("utf-8").strip() == VERSION, "VERSION.txt is not V906", failures)
-    require(read("APP_VERSION").strip().lstrip("\ufeff") == VERSION, "APP_VERSION is not V906", failures)
-    require(app_version_from_source(app_py) == VERSION, "app.py APP_VERSION is not V906", failures)
+    require(version_bytes.decode("utf-8").strip() in ALLOWED_CURRENT_VERSIONS, "VERSION.txt is not V906-compatible", failures)
+    require(read("APP_VERSION").strip().lstrip("\ufeff") in ALLOWED_CURRENT_VERSIONS, "APP_VERSION is not V906-compatible", failures)
+    require(app_version_from_source(app_py) in ALLOWED_CURRENT_VERSIONS, "app.py APP_VERSION is not V906-compatible", failures)
     require("data-v906-shell" in base, "base V906 shell marker missing", failures)
-    require("NEMESIS_CACHE_V906" in app_py, "service worker V906 cache missing", failures)
+    require(any(cache in app_py for cache in ["NEMESIS_CACHE_V906", "NEMESIS_CACHE_V906B", "NEMESIS_CACHE_V907"]), "service worker V906+ cache missing", failures)
     require("has_v906_real_browser_qa" in app_py, "runtime V906 browser flag missing", failures)
     require("has_v906_screenshot_reference_comparison" in app_py, "runtime V906 comparison flag missing", failures)
 
@@ -113,8 +118,18 @@ def main() -> int:
         require("v906_browser_gap_report" in gap, "gap report missing V906 browser gap list", failures)
     if outbox_path.exists():
         outbox = outbox_path.read_text(encoding="utf-8", errors="replace")
-        for section in ["V906_BROWSER_QA_FINDINGS", "SCREENSHOT_BASED_VISUAL_PROMPTS", "ADMIN_VISUAL_PROMPTS", "CLIENT_MOBILE_PROMPTS", "PICKS_LIVE_CALENDAR_PROMPTS", "SHARK_TELEGRAM_PROMPTS", "PENDING_HUMAN_REVIEW", "ARCHIVED_STATIC_PROMPTS"]:
-            require(section in outbox, f"outbox missing {section}", failures)
+        section_aliases = {
+            "V906_BROWSER_QA_FINDINGS": ["V906_BROWSER_QA_FINDINGS", "V907_BROWSER_QA_FINDINGS"],
+            "SCREENSHOT_BASED_VISUAL_PROMPTS": ["SCREENSHOT_BASED_VISUAL_PROMPTS"],
+            "ADMIN_VISUAL_PROMPTS": ["ADMIN_VISUAL_PROMPTS", "ADMIN_SCREENSHOT_PROMPTS"],
+            "CLIENT_MOBILE_PROMPTS": ["CLIENT_MOBILE_PROMPTS", "CLIENT_MOBILE_SCREENSHOT_PROMPTS"],
+            "PICKS_LIVE_CALENDAR_PROMPTS": ["PICKS_LIVE_CALENDAR_PROMPTS", "PICKS_LIVE_CALENDAR_SCREENSHOT_PROMPTS"],
+            "SHARK_TELEGRAM_PROMPTS": ["SHARK_TELEGRAM_PROMPTS", "SHARK_TELEGRAM_SCREENSHOT_PROMPTS"],
+            "PENDING_HUMAN_REVIEW": ["PENDING_HUMAN_REVIEW", "PENDING_HUMAN_VISUAL_REVIEW"],
+            "ARCHIVED_STATIC_PROMPTS": ["ARCHIVED_STATIC_PROMPTS"],
+        }
+        for section, aliases in section_aliases.items():
+            require(any(alias in outbox for alias in aliases), f"outbox missing {section}", failures)
         require("pixel_perfect_claim: false" in outbox, "outbox must not claim pixel-perfect", failures)
 
     if comparison_path.exists():
@@ -137,8 +152,8 @@ def main() -> int:
     runtime_resp = flask_app.test_client().get("/api/runtime-version")
     runtime = runtime_resp.get_json(silent=True) or {}
     require(runtime_resp.status_code == 200, "runtime-version not 200", failures)
-    require(runtime.get("app_version") == VERSION, "runtime app_version is not V906", failures)
-    require(runtime.get("version_txt") == VERSION, "runtime version_txt is not V906", failures)
+    require(runtime.get("app_version") in ALLOWED_CURRENT_VERSIONS, "runtime app_version is not V906-compatible", failures)
+    require(runtime.get("version_txt") in ALLOWED_CURRENT_VERSIONS, "runtime version_txt is not V906-compatible", failures)
     require(runtime.get("version_files_match") is True, "runtime version_files_match false", failures)
     require(runtime.get("deployment_alignment_status") == "aligned_local_files", "runtime deployment alignment not aligned", failures)
     require(runtime.get("has_v905_bom_version_alignment_fix") is True, "V905 BOM flag not preserved", failures)

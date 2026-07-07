@@ -1,5 +1,5 @@
 {
-  "version": "V906B_PUBLIC_HOME_HTML_ARTIFACT_CLEANUP_FINAL",
+  "version": "V907_BROWSER_QA_ENABLEMENT_FIRST_SCREENSHOT_GAP_FIX_FINAL",
   "events": [
     {
       "path": "/ruta-inventada",
@@ -8,9 +8,9 @@
       "user_agent": "Werkzeug/3.0.3",
       "resolved_alias": "",
       "source": "flask_404",
-      "count": 15,
+      "count": 16,
       "first_seen_madrid": "2026-07-06T10:37:04+02:00",
-      "last_seen_madrid": "2026-07-07T18:38:30+02:00"
+      "last_seen_madrid": "2026-07-07T19:07:23+02:00"
     },
     {
       "path": "/api/ruta-inventada",
@@ -19,9 +19,9 @@
       "user_agent": "Werkzeug/3.0.3",
       "resolved_alias": "",
       "source": "api_404",
-      "count": 15,
+      "count": 16,
       "first_seen_madrid": "2026-07-06T10:37:04+02:00",
-      "last_seen_madrid": "2026-07-07T18:38:30+02:00"
+      "last_seen_madrid": "2026-07-07T19:07:23+02:00"
     },
     {
       "path": "/ruta-inventada-v904",
@@ -189,5 +189,5 @@
       "last_seen_madrid": "2026-07-05T00:58:55+02:00"
     }
   ],
-  "updated_at_madrid": "2026-07-07T18:38:30+02:00"
+  "updated_at_madrid": "2026-07-07T19:07:23+02:00"
 }

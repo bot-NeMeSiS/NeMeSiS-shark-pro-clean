@@ -8,10 +8,12 @@ from zoneinfo import ZoneInfo
 
 
 MADRID_TZ = ZoneInfo("Europe/Madrid")
-ENGINE_VERSION = "V906_REAL_BROWSER_QA_SCREENSHOT_REFERENCE_COMPARISON_FINAL"
+ENGINE_VERSION = "V907_BROWSER_QA_ENABLEMENT_FIRST_SCREENSHOT_GAP_FIX_FINAL"
 
 REFERENCE_BY_ROUTE = {
     "/": "reference_images/client",
+    "/cliente-login": "reference_images/client",
+    "/registro": "reference_images/client",
     "/app": "reference_images/client",
     "/calendar": "reference_images/calendar",
     "/live": "reference_images/live",
@@ -19,12 +21,14 @@ REFERENCE_BY_ROUTE = {
     "/shark": "reference_images/shark",
     "/telegram": "reference_images/telegram",
     "/profile": "reference_images/profile",
+    "/support": "reference_images/client",
     "/admin-login": "reference_images/admin",
     "/admin/dashboard": "reference_images/admin",
     "/admin/autonomous-company-sentinel": "reference_images/admin",
     "/admin/sentinel-issues": "reference_images/admin",
     "/admin/sentinel-codex-outbox": "reference_images/admin",
     "/admin/not-found-events": "reference_images/admin",
+    "/admin/telegram/command-center": "reference_images/admin",
 }
 
 
@@ -51,26 +55,45 @@ def _reference_for_route(root: Path, route: str) -> str:
     return ""
 
 
+def _capture_notes(capture: dict[str, Any]) -> list[str]:
+    notes: list[str] = []
+    status = int(capture.get("status") or 0)
+    text = str(capture.get("body_text_sample") or "")
+    if capture.get("error"):
+        notes.append(str(capture.get("error"))[:220])
+    if status in {301, 302, 303, 307, 308, 401, 403}:
+        notes.append("Ruta protegida o redirigida de forma segura.")
+    elif status and status != 200:
+        notes.append(f"Estado HTTP inesperado: {status}.")
+    if capture.get("overflow_x"):
+        notes.append("Posible scroll horizontal detectado.")
+    if "None" in text or "undefined" in text or "null" in text:
+        notes.append("Texto técnico visible candidato a revisión.")
+    if any(token in text for token in ("Ã", "Â", "�", "`r`n")):
+        notes.append("Mojibake o artefacto visible candidato a revisión.")
+    if capture.get("screenshot") and not capture.get("error"):
+        notes.append("Captura real disponible.")
+    return notes
+
+
 def _score_capture(capture: dict[str, Any], browser_available: bool) -> tuple[int, str, list[str]]:
     if not browser_available:
         return 0, "NEEDS_BROWSER_QA", ["No hay captura real disponible."]
+    notes = _capture_notes(capture)
     if capture.get("error"):
-        return 2, "STILL_PENDING", [str(capture.get("error"))[:220]]
+        return 2, "STILL_PENDING", notes
     score = 7
-    notes: list[str] = []
     status = int(capture.get("status") or 0)
     if status in {301, 302, 303, 307, 308, 401, 403}:
         score -= 1
-        notes.append("Ruta protegida o redirigida de forma segura.")
     elif status != 200:
         score -= 3
-        notes.append(f"Estado HTTP inesperado: {status}.")
     if capture.get("overflow_x"):
         score -= 2
-        notes.append("Posible scroll horizontal detectado.")
     if capture.get("screenshot"):
         score += 1
-        notes.append("Captura real disponible.")
+    if any("técnico visible" in note or "Mojibake" in note for note in notes):
+        score -= 2
     status_label = "RESOLVED_VISUALLY" if score >= 8 else "IMPROVED_NEEDS_REVIEW" if score >= 5 else "STILL_PENDING"
     return max(0, min(10, score)), status_label, notes
 
@@ -82,7 +105,7 @@ def build_browser_reference_comparison(
     output_dir: str | Path | None = None,
 ) -> dict[str, Any]:
     base = Path(root)
-    qa_payload = qa_payload or _load_json(base / "reports" / "V906_browser_qa" / "browser_reference_qa_report.json", {})
+    qa_payload = qa_payload or _load_json(base / "reports" / "V907_browser_qa" / "browser_reference_qa_report.json", {})
     manifest = _load_json(base / "reference_images" / "reference_manifest.json", {})
     browser_available = bool(qa_payload.get("browser_available"))
     captures = [item for item in qa_payload.get("screenshots", []) if isinstance(item, dict)]
@@ -100,8 +123,12 @@ def build_browser_reference_comparison(
             "classification": status,
             "browser_qa_status": "CAPTURED" if browser_available and capture.get("screenshot") else "BROWSER_QA_UNAVAILABLE",
             "addressed_by_v904": route in {"/app", "/calendar", "/live", "/picks", "/shark", "/telegram", "/admin/dashboard"},
-            "addressed_by_v905": route in {"/", "/admin-login"} or "V905" in str(capture.get("screenshot") or ""),
-            "needs_v906_followup": status not in {"RESOLVED_VISUALLY"},
+            "addressed_by_v905": route in {"/", "/admin-login"},
+            "addressed_by_v906b": route == "/",
+            "needs_v907_followup": status not in {"RESOLVED_VISUALLY"},
+            "density": "captured",
+            "hierarchy": "needs_human_review" if status != "RESOLVED_VISUALLY" else "acceptable_by_heuristic",
+            "navigation": "overflow_warning" if capture.get("overflow_x") else "no_overflow_detected",
             "notes": notes,
             "codex_prompt": (
                 "Revisa la captura real de NeMeSiS SHARK PRO sin inventar datos.\n"
@@ -128,7 +155,11 @@ def build_browser_reference_comparison(
             "browser_qa_status": "BROWSER_QA_UNAVAILABLE",
             "addressed_by_v904": route in {"/app", "/calendar", "/live", "/picks", "/shark", "/telegram", "/admin/dashboard"},
             "addressed_by_v905": route in {"/"},
-            "needs_v906_followup": True,
+            "addressed_by_v906b": route == "/",
+            "needs_v907_followup": True,
+            "density": "pending_capture",
+            "hierarchy": "pending_capture",
+            "navigation": "pending_capture",
             "notes": ["Captura real pendiente."],
             "codex_prompt": f"Captura y compara {route} contra referencias reales antes de declarar cierre visual.",
         })
@@ -141,7 +172,8 @@ def build_browser_reference_comparison(
         "generated_at_madrid": _now(),
         "browser_qa_status": "CAPTURED" if browser_available else "BROWSER_QA_UNAVAILABLE",
         "reference_manifest_count": manifest.get("reference_count") or len(manifest.get("references", []) or []),
-        "screenshots_captured": len([item for item in captures if item.get("screenshot")]),
+        "screenshots_captured": len([item for item in captures if item.get("screenshot") and not item.get("error")]),
+        "routes_captured": sorted({str(item.get("route") or "") for item in captures if item.get("screenshot") and not item.get("error")}),
         "reference_comparisons": len(comparisons),
         "visual_gaps_resolved": len(resolved),
         "visual_gaps_pending": len(pending),
