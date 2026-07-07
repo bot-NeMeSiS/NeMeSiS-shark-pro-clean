@@ -50,7 +50,8 @@ def main() -> int:
         "has_v902b": "data-v902b-shell" in base and "mask_secret_for_url" in app_py,
         "has_v903": "data-v903-shell" in base and "has_v903_total_sentinel_auto_fix_render_alignment" in app_py,
         "has_v904": "data-v904-shell" in base and "has_v904_autonomous_reference_gaps_rebuild" in app_py,
-        "service_worker_cache": "V904" if "NEMESIS_CACHE_V904" in app_py else ("V903" if "NEMESIS_CACHE_V903" in app_py else ("V902B" if "NEMESIS_CACHE_V902B" in app_py else "unknown")),
+        "has_v905": "data-v905-shell" in base and "has_v905_bom_version_alignment_fix" in app_py,
+        "service_worker_cache": "V905" if "NEMESIS_CACHE_V905" in app_py else ("V904" if "NEMESIS_CACHE_V904" in app_py else ("V903" if "NEMESIS_CACHE_V903" in app_py else ("V902B" if "NEMESIS_CACHE_V902B" in app_py else "unknown"))),
         "secret_policy": "safe_placeholders_only",
     }
     print(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True))

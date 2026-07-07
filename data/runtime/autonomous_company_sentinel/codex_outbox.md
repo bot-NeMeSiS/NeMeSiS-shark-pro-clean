@@ -87,6 +87,10 @@ Sin prompts Telegram activos.
 
 ---
 
+- SENT-2026-BD766D7A | RESOLVED_BY_RESCAN | Sin ruta | Pantalla deportiva sin datos reales visibles
+
+---
+
 - AP-3C673A27B2AB | RESOLVED_BY_RESCAN | /partidos | Ruta con error 500
 
 ---
@@ -156,10 +160,6 @@ Sin prompts Telegram activos.
 ---
 
 - AP-F63099368262 | RESOLVED_BY_RESCAN | /shark | 500 en ruta cliente
-
----
-
-- SENT-2026-BD766D7A | RESOLVED_BY_RESCAN | Sin ruta | Pantalla deportiva sin datos reales visibles
 
 ---
 
@@ -1187,6 +1187,34 @@ Sin prompts Telegram activos.
 
 ---
 
+- SENT-2026-12418568 | RESOLVED_BY_RESCAN | /api/ruta-inventada-v904 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-3391A84A | RESOLVED_BY_RESCAN | /ruta-inventada-v904 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-00523840 | RESOLVED_BY_RESCAN | /api/ruta-inventada-v903 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-751A4E11 | RESOLVED_BY_RESCAN | /ruta-inventada-v903 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-10289756 | RESOLVED_BY_RESCAN | /api/ruta-inventada-v904 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-CA8517B9 | RESOLVED_BY_RESCAN | /ruta-inventada-v904 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-405ADB1A | RESOLVED_BY_RESCAN | /api/ruta-inventada-v903 | Ruta devuelve Not Found
+
+---
+
 - AP-33190C902467 | RESOLVED_BY_RESCAN | /partidos | Pantalla deportiva sin datos reales visibles
 
 ---
@@ -1228,6 +1256,18 @@ Sin prompts Telegram activos.
 ---
 
 - SENT-2026-5FB6DDF2 | RESOLVED_BY_RESCAN | /shark | SHARK IA avanzada pendiente de configuracion
+
+---
+
+- SENT-2026-F6C810AA | RESOLVED_BY_RESCAN | /ruta-inventada-v903 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-0B275539 | RESOLVED_BY_RESCAN | /api/ruta-inventada-v904 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-9A94EAF5 | STALE_NEEDS_REVALIDATION | /ruta-inventada-v904 | Ruta devuelve Not Found
 
 ---
 
@@ -1324,14 +1364,14 @@ Sin falsos positivos pendientes.
 
 ## V904_REFERENCE_GAPS_WORKFORCE_STATUS
 
-- mode: post_deploy_check
+- mode: reference_scan
 - gaps_read: 13
 - gaps_addressed: 8
 - gaps_pending: 13
 - prompts_active: 0
 - deploy_status: pending_runtime_confirmation
 - secret_masking_status: masked_configured_missing_only
-- next_step: Confirmar /api/runtime-version en Render antes de declarar producción alineada.
+- next_step: Revisar gaps visuales y aplicar solo correcciones seguras con Browser QA pendiente.
 
 ### action_policy
 
@@ -1343,3 +1383,29 @@ Sin falsos positivos pendientes.
 
 Pagos, secretos, Telegram real, DB, usuarios, sesiones, deploy, push y llamadas caras quedan fuera del autofix automatico.
 
+## V905_FINAL_REFERENCE_GAPS_BROWSER_QA_STATUS
+
+- version: V905_FINAL_REFERENCE_GAPS_BROWSER_QA_AND_BOM_FIX_FINAL
+- addressed_in_v905:
+  - VERSION.txt reescrito sin BOM UTF-8.
+  - APP_VERSION alineado a V905.
+  - Runtime endurecido con clean_version_text para comparar versiones sin BOM ni caracteres invisibles.
+  - Portada pública revisada para quitar restos visibles tipo rn/mojibake conocidos.
+  - Cache PWA actualizado a NEMESIS_CACHE_V905.
+  - Gaps visuales pendientes clasificados sin afirmar pixel-perfect.
+- pending_browser_qa:
+  - /app contra referencias reales con capturas.
+  - /app mobile contra referencias reales con capturas.
+  - /admin/dashboard contra referencias reales con capturas.
+  - /picks contra referencias reales con capturas.
+  - /live contra referencias reales con capturas.
+  - /telegram contra referencias reales con capturas.
+- dangerous_requires_approval:
+  - Pagos reales.
+  - Secrets/env vars.
+  - Telegram real.
+  - DB, usuarios, sesiones.
+  - Deploy/push.
+  - Llamadas caras a proveedores.
+- browser_qa_status: BROWSER_QA_UNAVAILABLE_MODULE_NOT_FOUND
+- pixel_perfect_claim: false until Browser QA real.

@@ -1,7 +1,7 @@
 {
   "ok": true,
   "version": "V899_REFERENCE_VISUAL_BROWSER_QA_PRODUCT_GAP_WORKER_FINAL",
-  "generated_at_madrid": "2026-07-06T13:07:31+02:00",
+  "generated_at_madrid": "2026-07-07T17:33:29+02:00",
   "browser_available": false,
   "reason": "Playwright no disponible: ModuleNotFoundError",
   "screenshots": [],

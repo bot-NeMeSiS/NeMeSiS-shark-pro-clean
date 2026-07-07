@@ -1,6 +1,6 @@
 {
   "ok": true,
-  "checked_at": "2026-07-07T16:51:06",
+  "checked_at": "2026-07-07T17:39:10",
   "templates_referenced": [
     "404.html",
     "account_center.html",
@@ -139,7 +139,7 @@
   ],
   "missing_static": [],
   "import_ok": true,
-  "version": "V904_AUTONOMOUS_REFERENCE_GAPS_REBUILD_AND_SENTINEL_WORKFORCE_FINAL",
+  "version": "V905_FINAL_REFERENCE_GAPS_BROWSER_QA_AND_BOM_FIX_FINAL",
   "route_count": 595,
   "routes": [
     "/",

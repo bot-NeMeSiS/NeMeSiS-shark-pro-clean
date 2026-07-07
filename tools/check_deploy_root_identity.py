@@ -84,6 +84,7 @@ def main() -> int:
         "deploy_root_v902b": inspect_tree(ROOT / "release_output" / "V902B_DEPLOY_ROOT_CONTENTS"),
         "deploy_root_v903": inspect_tree(ROOT / "release_output" / "V903_DEPLOY_ROOT_CONTENTS"),
         "deploy_root_v904": inspect_tree(ROOT / "release_output" / "V904_DEPLOY_ROOT_CONTENTS"),
+        "deploy_root_v905": inspect_tree(ROOT / "release_output" / "V905_DEPLOY_ROOT_CONTENTS"),
         "latest_zip": zip_info,
     }
     payload["ok"] = not payload["current_root"]["missing_required_root"]

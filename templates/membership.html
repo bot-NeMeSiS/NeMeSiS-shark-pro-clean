@@ -1,4 +1,4 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 {% block content %}
 {% set pay = data.payments_client or {} %}{% set plans = pay.plans or {} %}{% set pro = plans.PRO if plans.PRO else {} %}{% set elite = plans.ELITE if plans.ELITE else {} %}{% set selected = (data.selected_plan or request.args.get('plan') or '')|upper %}{% set checkout_legal = data.checkout_legal or [] %}{% set legal_version = (data.legal_compliance.version if data.legal_compliance else 'V788-LEGAL') %}
 <section class="v793-screen v793-membership-screen">

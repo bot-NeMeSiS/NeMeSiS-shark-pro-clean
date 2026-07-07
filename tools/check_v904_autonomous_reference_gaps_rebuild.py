@@ -10,6 +10,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V904_AUTONOMOUS_REFERENCE_GAPS_REBUILD_AND_SENTINEL_WORKFORCE_FINAL"
+CURRENT_VERSION = "V905_FINAL_REFERENCE_GAPS_BROWSER_QA_AND_BOM_FIX_FINAL"
 ZIP_NAME = f"NeMeSiS_SHARK_PRO_{VERSION}_RENDER_READY.zip"
 REPORTS = [
     "reports/V904_AUTONOMOUS_REFERENCE_GAPS_REBUILD_REPORT.md",
@@ -97,12 +98,13 @@ def main() -> int:
     base = read("templates/base.html")
     css = read("static/app.css")
 
-    require(read("VERSION.txt").strip().lstrip("\ufeff") == VERSION, "VERSION.txt is not V904", failures)
-    require(read("APP_VERSION").strip().lstrip("\ufeff") == VERSION, "APP_VERSION file is not V904", failures)
-    require(app_version_from_source(app_py) == VERSION, "app.py APP_VERSION is not V904", failures)
+    allowed_versions = {VERSION, CURRENT_VERSION}
+    require(read("VERSION.txt").strip().lstrip("\ufeff") in allowed_versions, "VERSION.txt is not V904-compatible", failures)
+    require(read("APP_VERSION").strip().lstrip("\ufeff") in allowed_versions, "APP_VERSION file is not V904-compatible", failures)
+    require(app_version_from_source(app_py) in allowed_versions, "app.py APP_VERSION is not V904-compatible", failures)
     require("data-v904-shell" in base, "base V904 shell marker missing", failures)
     require("V904 AUTONOMOUS REFERENCE GAPS REBUILD" in css, "V904 CSS block missing", failures)
-    require("NEMESIS_CACHE_V904" in app_py and "res.status===404" in app_py, "service worker V904 404 safety missing", failures)
+    require(("NEMESIS_CACHE_V904" in app_py or "NEMESIS_CACHE_V905" in app_py) and "res.status===404" in app_py, "service worker V904+ 404 safety missing", failures)
     require("has_v904_autonomous_reference_gaps_rebuild" in app_py, "runtime V904 main flag missing", failures)
     require("has_v904_sentinel_workforce" in app_py, "runtime V904 workforce flag missing", failures)
     require("has_v904_reference_gaps_addressed" in app_py, "runtime V904 gaps flag missing", failures)
@@ -170,7 +172,7 @@ def main() -> int:
     client = flask_app.test_client()
     runtime_resp = client.get("/api/runtime-version")
     runtime = runtime_resp.get_json() or {}
-    require(runtime_resp.status_code == 200 and runtime.get("app_version") == VERSION, "runtime is not V904", failures)
+    require(runtime_resp.status_code == 200 and runtime.get("app_version") in allowed_versions, "runtime is not V904-compatible", failures)
     require(runtime.get("has_v904_autonomous_reference_gaps_rebuild") is True, "runtime V904 main flag false", failures)
     require(runtime.get("has_v904_sentinel_workforce") is True, "runtime V904 workforce flag false", failures)
     require(runtime.get("has_v904_reference_gaps_addressed") is True, "runtime V904 gaps flag false", failures)

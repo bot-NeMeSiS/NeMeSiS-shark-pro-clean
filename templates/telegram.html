@@ -1,4 +1,4 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 {% block content %}
 {% set state = data.telegram_state or {} %}
 {% set tier = (current_user.membership if current_user else 'FREE')|upper %}
