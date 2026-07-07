@@ -339,7 +339,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V900_REFERENCE_IMAGES_IMPORT_FIRST_REAL_VISUAL_GAP_AUDIT_FINAL'
+APP_VERSION = 'V901_ADMIN_CONTINUOUS_SENTINEL_API_LAYOUT_RECOVERY_FINAL'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 
@@ -10491,7 +10491,7 @@ def dashboard_data(lane="today", date=None):
 @app.route("/service-worker.js")
 def service_worker():
     body = (
-        "const NEMESIS_CACHE='NEMESIS_CACHE_V900';\n"
+        "const NEMESIS_CACHE='NEMESIS_CACHE_V901';\n"
         "self.addEventListener('install',event=>{self.skipWaiting();});\n"
         "self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==NEMESIS_CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));});\n"
         "self.addEventListener('fetch',event=>{const req=event.request;if(req.mode==='navigate'){event.respondWith(fetch(req).then(res=>{if(res.status===404){return fetch('/');}return res;}).catch(()=>fetch('/')));return;}event.respondWith(fetch(req).then(res=>{if(res.status===404){return res;}return res;}));});\n"
@@ -14153,13 +14153,108 @@ def api_admin_continuous_sentinel_summary():
     return jsonify({"ok": True, **build_continuous_sentinel_summary(APP_VERSION)})
 
 
+def v901_sentinel_payload_value(name, default=""):
+    payload = request.get_json(silent=True) if request.is_json else {}
+    payload = payload if isinstance(payload, dict) else {}
+    return request.args.get(name) or payload.get(name) or request.form.get(name) or default
+
+
+def v901_bool_value(value, default=True):
+    if value is None or value == "":
+        return bool(default)
+    return str(value).strip().lower() in {"1", "true", "yes", "on", "si", "sí"}
+
+
+def v901_safe_continuous_mode(value):
+    mode = str(value or "quick").strip().lower()
+    aliases = {
+        "cliente": "client",
+        "admin_cycle": "admin",
+        "visual_cycle": "visual",
+        "full_cycle": "full",
+        "workflow_cycle": "workflow",
+    }
+    mode = aliases.get(mode, mode)
+    allowed = {"quick", "client", "admin", "visual", "full", "workflow"}
+    return mode if mode in allowed else "quick"
+
+
+def v901_register_admin_api_issue(route, exc, mode="", dry_run=True):
+    try:
+        error_type = type(exc).__name__
+        evidence = v896_safe_request_text(f"{error_type}: {str(exc)}", 320)
+        issue = {
+            "title": "Endpoint admin devolvió error interno",
+            "area": "admin_api",
+            "severity": "critical",
+            "route": route,
+            "evidence": evidence,
+            "impact": "Un botón admin puede terminar en error interno si el endpoint no captura fallos.",
+            "recommendation": "Corregir el endpoint para devolver JSON seguro y revisar el ciclo Sentinel afectado.",
+            "validation": [
+                "python -m py_compile app.py",
+                "python tools/check_v901_admin_continuous_sentinel_api_layout_recovery.py",
+            ],
+            "tags": ["admin_api", "sentinel", "v901", "controlled_500"],
+            "mode": mode,
+            "dry_run": bool(dry_run),
+            "codex_prompt": (
+                "Corrige /api/admin/continuous-sentinel/run para que nunca devuelva Internal Server Error "
+                "visual, mantenga protección admin, use dry_run seguro y registre incidencias sin exponer secretos."
+            ),
+        }
+        run_sentinel_issues_scan(
+            APP_VERSION,
+            Path(__file__).resolve().parent,
+            sentinel_result={"issues": [issue]},
+            save_memory=True,
+        )
+        return True
+    except Exception as register_exc:
+        try:
+            print("[V901_ADMIN_API_ISSUE_REGISTER_SKIP]", str(register_exc)[:220])
+        except Exception:
+            pass
+        return False
+
+
 @app.route("/api/admin/continuous-sentinel/run", methods=["GET", "POST"])
 def api_admin_continuous_sentinel_run():
     if not is_admin_session():
         return admin_json_forbidden()
-    mode = request.args.get("mode") or "quick"
-    dry_run = request.args.get("dry_run") in {"1", "true", "yes"} or True
-    return jsonify({"ok": True, **run_continuous_sentinel_cycle(app.test_client(), APP_VERSION, mode=mode, dry_run=dry_run)})
+    mode = v901_safe_continuous_mode(v901_sentinel_payload_value("mode", "quick"))
+    dry_run = v901_bool_value(v901_sentinel_payload_value("dry_run", "1"), default=True)
+    try:
+        result = run_continuous_sentinel_cycle(app.test_client(), APP_VERSION, mode=mode, dry_run=dry_run)
+        issues = result.get("issues") if isinstance(result, dict) else []
+        prompts = result.get("codex_prompts") if isinstance(result, dict) else []
+        return jsonify({
+            "ok": True,
+            "mode": mode,
+            "dry_run": bool(dry_run),
+            "issues_created": len(issues or []),
+            "prompts_generated": len(prompts or []),
+            "last_run_madrid": (result or {}).get("timestamp_madrid") or (result or {}).get("last_run_madrid") or now_iso(),
+            "version": APP_VERSION,
+            "dangerous_actions_executed": False,
+            "result": result,
+        })
+    except Exception as exc:
+        issue_created = v901_register_admin_api_issue(request.path, exc, mode=mode, dry_run=dry_run)
+        try:
+            print("[V901_CONTINUOUS_SENTINEL_RUN_FAILED]", type(exc).__name__, str(exc)[:240])
+        except Exception:
+            pass
+        return jsonify({
+            "ok": False,
+            "error": "continuous_sentinel_run_failed",
+            "safe_message": "No se pudo ejecutar la revisión. Se ha registrado la incidencia.",
+            "mode": mode,
+            "dry_run": bool(dry_run),
+            "version": APP_VERSION,
+            "issue_created": bool(issue_created),
+            "dangerous_actions_executed": False,
+        }), 200
 
 
 @app.route("/api/admin/continuous-sentinel/issues")
@@ -14996,9 +15091,10 @@ def api_runtime_version():
         "has_v895_render_v894_deployment_alignment": "V895_RENDER_V894_DEPLOYMENT_ALIGNMENT_FINAL" in app_py_text and "deployment_alignment_status" in app_py_text,
         "has_v896_not_found_route_recovery": "V896_PRODUCTION_NOT_FOUND_ROUTE_RECOVERY_FULL_APP_SMOKE_FINAL" in app_py_text and "client_safe_404" in app_py_text and "/api/admin/not-found-events" in app_py_text,
         "has_v897_truthful_sentinel_route_alias_reference_qa": "V897_SENTINEL_TRUTHFUL_ISSUES_ROUTE_ALIAS_REFERENCE_QA_FIX_FINAL" in app_py_text and "register_alias_if_missing" in app_py_text and "data-v897-shell" in base_template,
-        "has_v898_404_pwa_reference_outbox_truth": "V898_PRODUCTION_404_PWA_REFERENCE_OUTBOX_TRUTH_FINAL" in app_py_text and ("NEMESIS_CACHE_V898" in app_py_text or "NEMESIS_CACHE_V900" in app_py_text) and "/admin/not-found-events" in app_py_text,
+        "has_v898_404_pwa_reference_outbox_truth": "V898_PRODUCTION_404_PWA_REFERENCE_OUTBOX_TRUTH_FINAL" in app_py_text and ("NEMESIS_CACHE_V898" in app_py_text or "NEMESIS_CACHE_V900" in app_py_text or "NEMESIS_CACHE_V901" in app_py_text) and "/admin/not-found-events" in app_py_text,
         "has_v899_reference_visual_browser_qa_product_gap_worker": "reference_scan" in app_py_text and "product_gap_engine" in app_py_text and "reference_image_manifest_engine" in app_py_text,
         "has_v900_reference_images_import_first_real_visual_gap_audit": "V900_REFERENCE_IMAGES_IMPORT_FIRST_REAL_VISUAL_GAP_AUDIT_FINAL" in app_py_text and "data-v900-shell" in base_template and "product_gap_engine" in app_py_text,
+        "has_v901_admin_continuous_sentinel_api_layout_recovery": "V901_ADMIN_CONTINUOUS_SENTINEL_API_LAYOUT_RECOVERY_FINAL" in app_py_text and "data-v901-shell" in base_template and "v901_register_admin_api_issue" in app_py_text,
         "has_v837_reference_photo_qa": "data-v837-shell" in base_template and "V837 REFERENCE PHOTO PERFECTION REAL QA START" in css_text,
         "has_v836_autonomous_qa": "data-v836-shell" in base_template and "V836 AUTONOMOUS REFERENCE VISUAL REVIEW FINAL QA START" in css_text,
         "has_v833_visual_completion": "data-v833-shell" in base_template and "V833 REFERENCE ECOSYSTEM VISUAL COMPLETION START" in css_text,
@@ -16178,7 +16274,29 @@ def client_safe_500(error):
     except Exception:
         pass
     if request.path.startswith("/api/"):
-        return jsonify({"ok": False, "error": "internal_error", "message": "Error interno controlado. Revisa logs Render.", "path": request.path, "version": APP_VERSION}), 500
+        issue_created = False
+        if request.path.startswith("/api/admin/"):
+            issue_created = v901_register_admin_api_issue(request.path, error, mode=request.args.get("mode") or "", dry_run=True)
+        return jsonify({
+            "ok": False,
+            "error": "internal_error",
+            "safe_message": "Se ha producido un error controlado. Se ha registrado la incidencia.",
+            "path": v896_safe_request_text(request.path, 260),
+            "version": APP_VERSION,
+            "issue_created": bool(issue_created),
+        }), 500
+    if request.path.startswith("/admin"):
+        return (
+            "<!doctype html><html lang='es'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>"
+            "<title>Error controlado admin</title><style>body{margin:0;background:#06111f;color:#eef6ff;font-family:Arial,sans-serif}"
+            ".box{max-width:760px;margin:8vh auto;padding:28px;border:1px solid rgba(91,214,255,.25);border-radius:18px;background:rgba(8,20,36,.92)}"
+            "a{display:inline-block;margin:10px 10px 0 0;color:#06111f;background:#5bd6ff;padding:10px 14px;border-radius:10px;text-decoration:none;font-weight:800}"
+            ".ghost{background:transparent;color:#bfefff;border:1px solid rgba(91,214,255,.35)}</style></head><body><main class='box'>"
+            "<p>Admin SHARK</p><h1>Se ha producido un error controlado.</h1>"
+            "<p>No se muestran detalles técnicos ni secretos. Revisa incidencias o vuelve al panel.</p>"
+            "<a href='/admin/dashboard'>Volver al panel admin</a><a class='ghost' href='/admin/sentinel-issues'>Ver incidencias</a><a class='ghost' href='/'>Ir al inicio</a>"
+            "</main></body></html>"
+        ), 500
     try:
         return render_template("home.html", data=dashboard_data(), controlled_error="Hemos detectado un error temporal y hemos vuelto al inicio de forma segura."), 500
     except Exception:

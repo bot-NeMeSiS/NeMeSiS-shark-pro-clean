@@ -1,24 +1,25 @@
 {% extends "base.html" %}
 {% block content %}
-<section class="hero auth-hero">
+<section class="hero auth-hero ns-admin-login-hero">
   <div class="kicker">Acceso privado</div>
   <h1>Admin SHARK</h1>
-  <p class="lead">Entrada discreta para gestionar importaciones legales, Telegram y datos autorizados.</p>
+  <p class="lead">Entrada privada para gestionar Sentinel, Telegram, datos autorizados y operación del producto.</p>
 </section>
 <section class="band auth-grid">
-  <form class="card auth-card" method="post" action="/admin-login{% if request.args.get('next') %}next={{ request.args.get('next')|urlencode }}{% endif %}" autocomplete="on">
-    <h2>Admin login</h2>
+  <form class="card auth-card ns-admin-login-card" method="post" action="/admin-login{% if request.args.get('next') %}?next={{ request.args.get('next')|urlencode }}{% endif %}" autocomplete="on">
+    <h2>Acceso admin</h2>
     {% if error %}<p class="notice danger">{{ error }}</p>{% endif %}
     {% if not configured %}<p class="notice">Configura ADMIN_EMAIL y ADMIN_PASSWORD en Render, o entra con un usuario ADMIN existente.</p>{% endif %}
     <div class="field"><label for="admin-login-user">Email o usuario admin</label><input id="admin-login-user" name="login" autocomplete="username" required></div>
     <div class="field"><label for="admin-login-password">Contraseña</label><input id="admin-login-password" type="password" name="password" autocomplete="current-password" required></div>
     <button type="submit">Entrar como admin</button>
     <a class="small" href="/admin-forgot-password">Recuperar acceso admin</a>
+    <a class="small" href="/">Volver al inicio</a>
   </form>
   <aside class="card auth-side">
-    <h2>Cliente</h2>
-    <p class="small">Si no eres admin, vuelve al acceso normal de cliente.</p>
-    <a class="btn" href="/cliente-login">Login cliente</a>
+    <h2>Operación segura</h2>
+    <p class="small">Esta zona no muestra secretos, no ejecuta pagos reales y no envía Telegram real sin autorización.</p>
+    <a class="btn" href="/">Inicio público</a>
   </aside>
 </section>
 {% endblock %}

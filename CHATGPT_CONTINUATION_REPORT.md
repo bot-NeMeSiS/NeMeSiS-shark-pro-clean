@@ -141,6 +141,29 @@ Validaciones locales:
 Limitacion honesta:
 - No se declara pixel-perfect ni equivalencia visual exacta porque no hubo capturas Playwright/browser reales en esta ejecucion.
 
+# V901_ADMIN_CONTINUOUS_SENTINEL_API_LAYOUT_RECOVERY_FINAL
+
+Base local usada: V900_REFERENCE_IMAGES_IMPORT_FIRST_REAL_VISUAL_GAP_AUDIT_FINAL.
+
+Objetivo de V901: corregir el fallo urgente de admin donde acciones de Continuous SHARK Sentinel navegaban directamente a `/api/admin/continuous-sentinel/run?mode=client&dry_run=1` y podian terminar en pantalla blanca/Internal Server Error.
+
+Cambios principales:
+- `/api/admin/continuous-sentinel/run` queda protegido, acepta GET/POST, normaliza modo, usa dry-run seguro y devuelve JSON controlado.
+- Si el ciclo falla, devuelve `ok=false` con `safe_message` y registra incidencia Sentinel segura en vez de mostrar traceback.
+- `admin_continuous_sentinel.html` cambia enlaces API por botones `data-sentinel-run` con `fetch`, CSRF y panel de resultado.
+- `admin_sentinel_workflow.html` deja de enlazar directamente al endpoint API y usa boton seguro.
+- `admin_shark_sentinel.html` se reescribe sin mojibake y usa `fetch` para diagnostico admin.
+- `/admin-login` corrige `?next=`, `Contraseña`, copy y evita rail admin sin sesion real.
+- `base.html` mantiene superficie admin separada: sin bottom nav cliente y sin floating SHARK cliente en admin.
+
+Validaciones locales:
+- `py_compile`, `compileall`, Madrid Time, Jinja parse y smoke Flask OK.
+- Checks V896, V897, V898, V899, V900 y V901 OK.
+- Sentinel estatico: score 10.0, 0 issues, 0 criticos.
+
+Limitacion honesta:
+- Render real consultado durante la ejecucion devolvio V897, no V901. No se hizo push ni deploy automatico.
+
 No se usó ZIP viejo como base.
 
 Qué se hizo:

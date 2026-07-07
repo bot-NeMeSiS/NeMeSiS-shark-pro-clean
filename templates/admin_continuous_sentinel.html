@@ -7,14 +7,32 @@
     <h1>Mejora Continua SHARK</h1>
     <p>Loop permanente de inspección segura: revisa rutas, perfiles, visual, datos, Telegram, SHARK, admin y prioridades. Observa y prepara; no modifica código ni producción sin aprobación.</p>
     <div class="v862-sentinel-actions">
-      {{ action_button('Quick cycle', '/api/admin/continuous-sentinel/run?mode=quick&dry_run=1', 'brand') }}
-      {{ action_button('Client cycle', '/api/admin/continuous-sentinel/run?mode=client&dry_run=1', 'neutral') }}
-      {{ action_button('Admin cycle', '/api/admin/continuous-sentinel/run?mode=admin&dry_run=1', 'neutral') }}
-      {{ action_button('Visual cycle', '/api/admin/continuous-sentinel/run?mode=visual&dry_run=1', 'neutral') }}
+      <button class="ns-button ns-button-primary" type="button" data-sentinel-run="quick">Quick cycle</button>
+      <button class="ns-button ns-button-secondary" type="button" data-sentinel-run="client">Client cycle</button>
+      <button class="ns-button ns-button-secondary" type="button" data-sentinel-run="admin">Admin cycle</button>
+      <button class="ns-button ns-button-secondary" type="button" data-sentinel-run="visual">Visual cycle</button>
       {{ action_button('Company OS', '/admin/company-os', 'neutral') }}
       {{ action_button('Product Board', '/admin/company-audit', 'neutral') }}
     </div>
   </header>
+
+  <section class="v862-sentinel-panels" data-v901-sentinel-result-panel>
+    <article class="ns-admin-card">
+      <h2>Resultado del ciclo</h2>
+      <p id="v901-sentinel-status">Sin ejecución en esta vista.</p>
+      <div class="v862-route-list">
+        <code>Modo: <span id="v901-sentinel-mode">Pendiente</span></code>
+        <code>Dry-run: <span id="v901-sentinel-dry-run">Sí</span></code>
+        <code>Issues creadas: <span id="v901-sentinel-issues">0</span></code>
+        <code>Prompts generados: <span id="v901-sentinel-prompts">0</span></code>
+        <code>Última ejecución: <span id="v901-sentinel-last-run">Sin datos</span></code>
+      </div>
+      <div class="v862-sentinel-actions">
+        {{ action_button('Ver incidencias', '/admin/sentinel-issues', 'neutral') }}
+        {{ action_button('Ver outbox Codex', '/admin/sentinel-codex-outbox', 'neutral') }}
+      </div>
+    </article>
+  </section>
 
   <section class="v862-sentinel-summary v860-kpi-row">
     {{ stat_card('Estado', summary.sentinel_status|replace('_', ' '), 'Loop seguro', 'brand') }}
@@ -82,4 +100,61 @@
     </article>
   </section>
 </section>
+<script>
+(() => {
+  const buttons = document.querySelectorAll("[data-sentinel-run]");
+  const statusEl = document.getElementById("v901-sentinel-status");
+  const modeEl = document.getElementById("v901-sentinel-mode");
+  const dryRunEl = document.getElementById("v901-sentinel-dry-run");
+  const issuesEl = document.getElementById("v901-sentinel-issues");
+  const promptsEl = document.getElementById("v901-sentinel-prompts");
+  const lastRunEl = document.getElementById("v901-sentinel-last-run");
+  const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute("content") || "";
+
+  function setText(el, value) {
+    if (el) el.textContent = String(value ?? "Sin datos");
+  }
+
+  async function runSentinel(mode, button) {
+    buttons.forEach((btn) => { btn.disabled = true; });
+    if (button) button.textContent = "Ejecutando...";
+    setText(statusEl, "Ejecutando revisión segura...");
+    setText(modeEl, mode);
+    try {
+      const response = await fetch(`/api/admin/continuous-sentinel/run?mode=${encodeURIComponent(mode)}&dry_run=1`, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRF-Token": csrf
+        },
+        body: JSON.stringify({mode, dry_run: true, csrf_token: csrf})
+      });
+      const payload = await response.json().catch(() => ({
+        ok: false,
+        safe_message: "No se pudo leer la respuesta segura del servidor."
+      }));
+      setText(statusEl, payload.ok ? "Revisión completada en modo seguro." : (payload.safe_message || "No se pudo ejecutar la revisión. Se ha registrado el fallo para corregirlo."));
+      setText(modeEl, payload.mode || mode);
+      setText(dryRunEl, payload.dry_run === false ? "No" : "Sí");
+      setText(issuesEl, payload.issues_created ?? 0);
+      setText(promptsEl, payload.prompts_generated ?? 0);
+      setText(lastRunEl, payload.last_run_madrid || "Sin datos");
+    } catch (error) {
+      setText(statusEl, "No se pudo ejecutar la revisión. Se ha registrado el fallo para corregirlo.");
+      setText(lastRunEl, "Error controlado en navegador");
+    } finally {
+      buttons.forEach((btn) => { btn.disabled = false; });
+      buttons.forEach((btn) => {
+        const modeName = btn.getAttribute("data-sentinel-run") || "quick";
+        btn.textContent = `${modeName.charAt(0).toUpperCase()}${modeName.slice(1)} cycle`;
+      });
+    }
+  }
+
+  buttons.forEach((button) => {
+    button.addEventListener("click", () => runSentinel(button.getAttribute("data-sentinel-run") || "quick", button));
+  });
+})();
+</script>
 {% endblock %}

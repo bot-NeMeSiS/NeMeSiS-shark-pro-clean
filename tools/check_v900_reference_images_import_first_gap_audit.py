@@ -8,6 +8,10 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V900_REFERENCE_IMAGES_IMPORT_FIRST_REAL_VISUAL_GAP_AUDIT_FINAL"
+CURRENT_ALLOWED = {
+    VERSION,
+    "V901_ADMIN_CONTINUOUS_SENTINEL_API_LAYOUT_RECOVERY_FINAL",
+}
 IMAGE_SUFFIXES = {".png", ".jpg", ".jpeg", ".webp"}
 
 
@@ -32,9 +36,9 @@ def main() -> int:
     version_txt = read("VERSION.txt").strip().lstrip("\ufeff")
     app_version_file = read("APP_VERSION").strip().lstrip("\ufeff")
 
-    require(version_txt == VERSION, "VERSION.txt is not V900", failures)
-    require(app_version_file == VERSION, "APP_VERSION file is not V900", failures)
-    require(app_version_from_source(app_py) == VERSION, "app.py APP_VERSION is not V900", failures)
+    require(version_txt in CURRENT_ALLOWED, "VERSION.txt is not V900/V901", failures)
+    require(app_version_file in CURRENT_ALLOWED, "APP_VERSION file is not V900/V901", failures)
+    require(app_version_from_source(app_py) in CURRENT_ALLOWED, "app.py APP_VERSION is not V900/V901", failures)
     require("has_v900_reference_images_import_first_real_visual_gap_audit" in app_py, "runtime V900 flag missing", failures)
     require('data-v900-shell="true"' in base, "base V900 shell marker missing", failures)
 

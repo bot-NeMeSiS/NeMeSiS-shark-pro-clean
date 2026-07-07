@@ -7,13 +7,29 @@
     <h1>Bot Auditor de Experiencia Real</h1>
     <p>Inspector seguro que simula perfiles de usuario, revisa rutas y pantallas, clasifica incidencias y genera prompts para Codex. No modifica código, no despliega, no toca secretos y no inventa datos.</p>
     <div class="v862-sentinel-actions">
-      {{ action_button('Ejecutar diagnóstico admin', '/api/admin/shark-sentinel/run', 'brand') }}
+      <button class="ns-button ns-button-primary" type="button" data-shark-sentinel-run="quick">Ejecutar diagnóstico admin</button>
       {{ action_button('Mejora continua', '/admin/auto-improvement', 'neutral') }}
       {{ action_button('Empresa OS', '/admin/company-os', 'neutral') }}
       {{ action_button('Product Board', '/admin/company-audit', 'neutral') }}
       {{ action_button('Runtime', '/api/runtime-version', 'success') }}
     </div>
   </header>
+
+  <section class="v862-sentinel-panels" data-v901-shark-sentinel-result-panel>
+    <article class="ns-admin-card">
+      <h2>Resultado del diagnóstico</h2>
+      <p id="v901-shark-sentinel-status">Sin ejecución en esta vista.</p>
+      <div class="v862-route-list">
+        <code>Estado: <span id="v901-shark-sentinel-ok">Pendiente</span></code>
+        <code>Rutas revisadas: <span id="v901-shark-sentinel-routes">0</span></code>
+        <code>Modo: Seguro</code>
+      </div>
+      <div class="v862-sentinel-actions">
+        {{ action_button('Ver incidencias', '/admin/sentinel-issues', 'neutral') }}
+        {{ action_button('Continuous Sentinel', '/admin/continuous-sentinel', 'neutral') }}
+      </div>
+    </article>
+  </section>
 
   <section class="v862-sentinel-summary v860-kpi-row">
     {{ stat_card('Estado Sentinel', summary.sentinel_status|replace('_', ' '), 'Modo seguro', 'brand') }}
@@ -94,4 +110,43 @@
     </article>
   </section>
 </section>
+<script>
+(() => {
+  const button = document.querySelector("[data-shark-sentinel-run]");
+  const statusEl = document.getElementById("v901-shark-sentinel-status");
+  const okEl = document.getElementById("v901-shark-sentinel-ok");
+  const routesEl = document.getElementById("v901-shark-sentinel-routes");
+  const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute("content") || "";
+  function setText(el, value) {
+    if (el) el.textContent = String(value ?? "Sin datos");
+  }
+  if (!button) return;
+  button.addEventListener("click", async () => {
+    const original = button.textContent;
+    button.disabled = true;
+    button.textContent = "Ejecutando...";
+    setText(statusEl, "Ejecutando diagnóstico seguro...");
+    try {
+      const response = await fetch("/api/admin/shark-sentinel/run", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: {"Content-Type": "application/json", "X-CSRF-Token": csrf},
+        body: JSON.stringify({dry_run: true, csrf_token: csrf})
+      });
+      const payload = await response.json().catch(() => ({ok: false}));
+      setText(statusEl, payload.ok ? "Diagnóstico completado en modo seguro." : "No se pudo ejecutar el diagnóstico. Revisa incidencias.");
+      setText(okEl, payload.ok ? "OK" : "Error controlado");
+      setText(routesEl, payload.routes_checked || payload.summary?.routes_checked || 0);
+    } catch (error) {
+      setText(statusEl, "No se pudo ejecutar el diagnóstico. Revisa incidencias.");
+      setText(okEl, "Error controlado");
+    } finally {
+      setTimeout(() => {
+        button.disabled = false;
+        button.textContent = original;
+      }, 1400);
+    }
+  });
+})();
+</script>
 {% endblock %}

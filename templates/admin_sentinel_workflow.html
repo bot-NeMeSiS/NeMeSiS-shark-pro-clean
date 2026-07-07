@@ -7,9 +7,9 @@
     <h1>Flujo de Mejora Continua SHARK</h1>
     <p>Convierte hallazgos en incidencias, incidencias en tareas, tareas en prompts Codex y cada mejora en revalidación. No modifica código, no despliega y no toca secretos sin aprobación.</p>
     <div class="v862-sentinel-actions">
-      {{ action_button('Ejecutar diagnóstico', '/api/admin/continuous-sentinel/run?mode=workflow&dry_run=1', 'brand') }}
-      {{ action_button('Tareas', '/api/admin/sentinel-workflow/tasks', 'neutral') }}
-      {{ action_button('Generar prompt', '/api/admin/sentinel-workflow/generate-prompt', 'neutral') }}
+      <button class="ns-button ns-button-primary" type="button" data-sentinel-run="workflow">Ejecutar diagnóstico</button>
+      {{ action_button('Incidencias', '/admin/sentinel-issues', 'neutral') }}
+      {{ action_button('Outbox Codex', '/admin/sentinel-codex-outbox', 'neutral') }}
       {{ action_button('Continuous Sentinel', '/admin/continuous-sentinel', 'neutral') }}
       {{ action_button('Company OS', '/admin/company-os', 'neutral') }}
       {{ action_button('Product Board', '/admin/company-audit', 'neutral') }}
@@ -54,7 +54,11 @@
     {% for issue in workflow.open_issues[:8] %}
       {{ sentinel_issue_card(issue.title, issue.severity, issue.affected_routes|join(', '), issue.suggested_fix) }}
     {% else %}
-      {{ empty_state('Sin incidencias abiertas', 'El ciclo actual no generó incidencias persistidas. Ejecuta diagnóstico para revisar.', 'Ejecutar workflow', '/api/admin/continuous-sentinel/run?mode=workflow&dry_run=1') }}
+      <article class="ns-empty">
+        <h3>Sin incidencias abiertas</h3>
+        <p>El ciclo actual no generó incidencias persistidas. Ejecuta diagnóstico para revisar sin salir de esta pantalla.</p>
+        <button class="ns-button ns-button-primary" type="button" data-sentinel-run="workflow">Ejecutar workflow</button>
+      </article>
     {% endfor %}
   </section>
 
@@ -106,4 +110,34 @@
     </article>
   </section>
 </section>
+<script>
+(() => {
+  const buttons = document.querySelectorAll("[data-sentinel-run]");
+  const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute("content") || "";
+  async function runWorkflow(button) {
+    const mode = button.getAttribute("data-sentinel-run") || "workflow";
+    const original = button.textContent;
+    button.disabled = true;
+    button.textContent = "Ejecutando...";
+    try {
+      const response = await fetch(`/api/admin/continuous-sentinel/run?mode=${encodeURIComponent(mode)}&dry_run=1`, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: {"Content-Type": "application/json", "X-CSRF-Token": csrf},
+        body: JSON.stringify({mode, dry_run: true, csrf_token: csrf})
+      });
+      const payload = await response.json().catch(() => ({ok: false}));
+      button.textContent = payload.ok ? "Diagnóstico completado" : "Error controlado";
+    } catch (error) {
+      button.textContent = "Error controlado";
+    } finally {
+      setTimeout(() => {
+        button.disabled = false;
+        button.textContent = original;
+      }, 1800);
+    }
+  }
+  buttons.forEach((button) => button.addEventListener("click", () => runWorkflow(button)));
+})();
+</script>
 {% endblock %}
