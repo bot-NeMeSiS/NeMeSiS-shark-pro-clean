@@ -7,12 +7,13 @@
 - ZIP V909: `C:\Users\aloha\OneDrive\Escritorio\NeMeSiS shark pro\release_output\NeMeSiS_SHARK_PRO_V909_BROWSER_QA_EXECUTION_PIPELINE_AND_VISUAL_FIX_QUEUE_FINAL_RENDER_READY.zip`
 - Deploy root: `C:\Users\aloha\OneDrive\Escritorio\NeMeSiS shark pro\release_output\V909_DEPLOY_ROOT_CONTENTS`
 
-## Version Render real antes
+## Version Render real antes y estado actual
 
 - Endpoint consultado: `https://bot-apuestas-crgf.onrender.com/api/runtime-version`
-- Version real observada el 2026-07-07: `V907_BROWSER_QA_ENABLEMENT_FIRST_SCREENSHOT_GAP_FIX_FINAL`
-- Nota de realidad: el usuario esperaba V908 como referencia previa, pero el runtime real consultado devuelve V907 en este momento.
-- Estado: Render todavia no sirve V909. No declarar V909 en produccion hasta que runtime lo confirme.
+- Version Render real antes indicada por Damian: `V908_SCREENSHOT_BASED_REFERENCE_UI_FIX_PASS_FINAL`
+- Version real observada el 2026-07-07 tras consultar runtime: `V909_BROWSER_QA_EXECUTION_PIPELINE_AND_VISUAL_FIX_QUEUE_FINAL`
+- Estado actual: Render ya sirve V909 con `version_files_match=true` y `deployment_alignment_status=aligned_local_files`.
+- Nota de honestidad: V909 solo debe declararse en produccion mientras `/api/runtime-version` siga devolviendo V909.
 
 ## Raiz correcta confirmada en deploy root
 
