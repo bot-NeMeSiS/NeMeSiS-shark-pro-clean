@@ -160,7 +160,7 @@
       "active_now": false,
       "v902_truth_note": "Brecha visual conservada para QA con navegador; no es fallo funcional activo.",
       "last_revalidated_version": "V902_SENTINEL_FULL_ACTIVE_ISSUES_FIX_AND_TRUTH_CLEANUP_FINAL",
-      "last_revalidated_at_madrid": "2026-07-07T12:11:45+02:00"
+      "last_revalidated_at_madrid": "2026-07-07T12:50:24+02:00"
     },
     {
       "title": "Gap visual de referencia en /admin/dashboard",
@@ -298,7 +298,7 @@
       "active_now": false,
       "v902_truth_note": "Brecha visual conservada para QA con navegador; no es fallo funcional activo.",
       "last_revalidated_version": "V902_SENTINEL_FULL_ACTIVE_ISSUES_FIX_AND_TRUTH_CLEANUP_FINAL",
-      "last_revalidated_at_madrid": "2026-07-07T12:11:45+02:00"
+      "last_revalidated_at_madrid": "2026-07-07T12:50:24+02:00"
     },
     {
       "title": "Gap visual de referencia en /picks",
@@ -436,7 +436,7 @@
       "active_now": false,
       "v902_truth_note": "Brecha visual conservada para QA con navegador; no es fallo funcional activo.",
       "last_revalidated_version": "V902_SENTINEL_FULL_ACTIVE_ISSUES_FIX_AND_TRUTH_CLEANUP_FINAL",
-      "last_revalidated_at_madrid": "2026-07-07T12:11:45+02:00"
+      "last_revalidated_at_madrid": "2026-07-07T12:50:24+02:00"
     },
     {
       "title": "Gap visual de referencia en /live",
@@ -574,7 +574,7 @@
       "active_now": false,
       "v902_truth_note": "Brecha visual conservada para QA con navegador; no es fallo funcional activo.",
       "last_revalidated_version": "V902_SENTINEL_FULL_ACTIVE_ISSUES_FIX_AND_TRUTH_CLEANUP_FINAL",
-      "last_revalidated_at_madrid": "2026-07-07T12:11:45+02:00"
+      "last_revalidated_at_madrid": "2026-07-07T12:50:24+02:00"
     },
     {
       "title": "Gap visual de referencia en /calendar",
@@ -712,7 +712,7 @@
       "active_now": false,
       "v902_truth_note": "Brecha visual conservada para QA con navegador; no es fallo funcional activo.",
       "last_revalidated_version": "V902_SENTINEL_FULL_ACTIVE_ISSUES_FIX_AND_TRUTH_CLEANUP_FINAL",
-      "last_revalidated_at_madrid": "2026-07-07T12:11:45+02:00"
+      "last_revalidated_at_madrid": "2026-07-07T12:50:24+02:00"
     },
     {
       "title": "Gap visual de referencia en /telegram",
@@ -850,7 +850,7 @@
       "active_now": false,
       "v902_truth_note": "Brecha visual conservada para QA con navegador; no es fallo funcional activo.",
       "last_revalidated_version": "V902_SENTINEL_FULL_ACTIVE_ISSUES_FIX_AND_TRUTH_CLEANUP_FINAL",
-      "last_revalidated_at_madrid": "2026-07-07T12:11:45+02:00"
+      "last_revalidated_at_madrid": "2026-07-07T12:50:24+02:00"
     },
     {
       "title": "Gap visual de referencia en /shark",
@@ -988,7 +988,7 @@
       "active_now": false,
       "v902_truth_note": "Brecha visual conservada para QA con navegador; no es fallo funcional activo.",
       "last_revalidated_version": "V902_SENTINEL_FULL_ACTIVE_ISSUES_FIX_AND_TRUTH_CLEANUP_FINAL",
-      "last_revalidated_at_madrid": "2026-07-07T12:11:45+02:00"
+      "last_revalidated_at_madrid": "2026-07-07T12:50:24+02:00"
     },
     {
       "title": "Gap visual de referencia en /membresias",
@@ -1126,7 +1126,7 @@
       "active_now": false,
       "v902_truth_note": "Brecha visual conservada para QA con navegador; no es fallo funcional activo.",
       "last_revalidated_version": "V902_SENTINEL_FULL_ACTIVE_ISSUES_FIX_AND_TRUTH_CLEANUP_FINAL",
-      "last_revalidated_at_madrid": "2026-07-07T12:11:45+02:00"
+      "last_revalidated_at_madrid": "2026-07-07T12:50:24+02:00"
     },
     {
       "title": "Gap visual de referencia en /profile",
@@ -1264,7 +1264,7 @@
       "active_now": false,
       "v902_truth_note": "Brecha visual conservada para QA con navegador; no es fallo funcional activo.",
       "last_revalidated_version": "V902_SENTINEL_FULL_ACTIVE_ISSUES_FIX_AND_TRUTH_CLEANUP_FINAL",
-      "last_revalidated_at_madrid": "2026-07-07T12:11:45+02:00"
+      "last_revalidated_at_madrid": "2026-07-07T12:50:24+02:00"
     },
     {
       "title": "Gap visual de referencia en /track-record",
@@ -1402,7 +1402,7 @@
       "active_now": false,
       "v902_truth_note": "Brecha visual conservada para QA con navegador; no es fallo funcional activo.",
       "last_revalidated_version": "V902_SENTINEL_FULL_ACTIVE_ISSUES_FIX_AND_TRUTH_CLEANUP_FINAL",
-      "last_revalidated_at_madrid": "2026-07-07T12:11:45+02:00"
+      "last_revalidated_at_madrid": "2026-07-07T12:50:24+02:00"
     },
     {
       "title": "BROWSER_QA_UNAVAILABLE",
@@ -1544,7 +1544,7 @@
       "active_now": false,
       "v902_truth_note": "Brecha visual conservada para QA con navegador; no es fallo funcional activo.",
       "last_revalidated_version": "V902_SENTINEL_FULL_ACTIVE_ISSUES_FIX_AND_TRUTH_CLEANUP_FINAL",
-      "last_revalidated_at_madrid": "2026-07-07T12:11:45+02:00"
+      "last_revalidated_at_madrid": "2026-07-07T12:50:24+02:00"
     },
     {
       "title": "REFERENCE_IMAGES_IMPORTED",
@@ -1681,7 +1681,7 @@
       "active_now": false,
       "v902_truth_note": "Brecha visual conservada para QA con navegador; no es fallo funcional activo.",
       "last_revalidated_version": "V902_SENTINEL_FULL_ACTIVE_ISSUES_FIX_AND_TRUTH_CLEANUP_FINAL",
-      "last_revalidated_at_madrid": "2026-07-07T12:11:45+02:00"
+      "last_revalidated_at_madrid": "2026-07-07T12:50:24+02:00"
     }
   ],
   "summary": {
@@ -29871,7 +29871,7 @@
       "No datos deportivos inventados"
     ]
   },
-  "updated_at_madrid": "2026-07-07T12:11:45+02:00",
+  "updated_at_madrid": "2026-07-07T12:50:24+02:00",
   "v902_truth_cleanup": {
     "total": 12,
     "changed": 0,

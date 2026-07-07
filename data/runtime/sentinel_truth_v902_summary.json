@@ -1,6 +1,6 @@
 {
   "version": "V902_SENTINEL_FULL_ACTIVE_ISSUES_FIX_AND_TRUTH_CLEANUP_FINAL",
-  "generated_at_madrid": "2026-07-07T12:11:45+02:00",
+  "generated_at_madrid": "2026-07-07T12:50:24+02:00",
   "files": {
     "data\\runtime\\sentinel_issues_memory.json": {
       "total": 260,

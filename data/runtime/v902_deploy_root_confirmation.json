@@ -1,0 +1,37 @@
+{
+  "zip_exists": true,
+  "zip_path": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\release_output\\NeMeSiS_SHARK_PRO_V902_SENTINEL_FULL_ACTIVE_ISSUES_FIX_AND_TRUTH_CLEANUP_FINAL_RENDER_READY.zip",
+  "deploy_root": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\release_output\\V902_DEPLOY_ROOT_CONTENTS",
+  "root_required": {
+    "app.py": true,
+    "VERSION.txt": true,
+    "requirements.txt": true,
+    "templates": true,
+    "static": true,
+    "engines": true,
+    "tools": true,
+    "reports": true,
+    "reference_images": true
+  },
+  "nested_project_root": false,
+  "internal_zips": [],
+  "version_txt": "V902_SENTINEL_FULL_ACTIVE_ISSUES_FIX_AND_TRUTH_CLEANUP_FINAL",
+  "app_version": "V902_SENTINEL_FULL_ACTIVE_ISSUES_FIX_AND_TRUTH_CLEANUP_FINAL",
+  "has_v902_runtime_flag": true,
+  "deploy_root_required": {
+    "app.py": true,
+    "VERSION.txt": true,
+    "requirements.txt": true,
+    "templates": true,
+    "static": true,
+    "engines": true,
+    "tools": true,
+    "reports": true,
+    "reference_images": true
+  },
+  "deploy_forbidden_count": 0,
+  "deploy_forbidden_sample": [],
+  "deploy_version_txt": "V902_SENTINEL_FULL_ACTIVE_ISSUES_FIX_AND_TRUTH_CLEANUP_FINAL",
+  "deploy_app_version": "V902_SENTINEL_FULL_ACTIVE_ISSUES_FIX_AND_TRUTH_CLEANUP_FINAL",
+  "ok": true
+}
