@@ -339,7 +339,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V906_REAL_BROWSER_QA_SCREENSHOT_REFERENCE_COMPARISON_FINAL'
+APP_VERSION = 'V906B_PUBLIC_HOME_HTML_ARTIFACT_CLEANUP_FINAL'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 
@@ -10512,7 +10512,7 @@ def dashboard_data(lane="today", date=None):
 @app.route("/service-worker.js")
 def service_worker():
     body = (
-        "const NEMESIS_CACHE='NEMESIS_CACHE_V906';\n"
+        "const NEMESIS_CACHE='NEMESIS_CACHE_V906B';\n"
         "self.addEventListener('install',event=>{self.skipWaiting();});\n"
         "self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==NEMESIS_CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));});\n"
         "self.addEventListener('fetch',event=>{const req=event.request;if(req.mode==='navigate'){event.respondWith(fetch(req).then(res=>{if(res.status===404){return fetch('/');}return res;}).catch(()=>fetch('/')));return;}event.respondWith(fetch(req).then(res=>{if(res.status===404){return res;}return res;}));});\n"
@@ -15255,6 +15255,7 @@ def api_runtime_version():
         "has_v905_final_reference_gaps_browser_qa": "data-v905-shell" in base_template and (Path(__file__).resolve().parent / "tools" / "check_v905_bom_reference_browser_qa.py").exists(),
         "has_v906_real_browser_qa": "data-v906-shell" in base_template and (Path(__file__).resolve().parent / "tools" / "check_browser_qa_environment.py").exists(),
         "has_v906_screenshot_reference_comparison": "browser_reference_comparison_engine" in app_py_text and (Path(__file__).resolve().parent / "engines" / "browser_reference_comparison_engine.py").exists(),
+        "has_v906b_public_home_html_artifact_cleanup": "data-v906b-shell" in base_template and (Path(__file__).resolve().parent / "tools" / "check_no_visible_artifacts.py").exists(),
         **v902_truth_summary,
         **v904_summary,
         **v906_summary,

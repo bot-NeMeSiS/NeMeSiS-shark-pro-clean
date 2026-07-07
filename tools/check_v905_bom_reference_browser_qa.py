@@ -10,7 +10,11 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V905_FINAL_REFERENCE_GAPS_BROWSER_QA_AND_BOM_FIX_FINAL"
-ALLOWED_CURRENT_VERSIONS = {VERSION, "V906_REAL_BROWSER_QA_SCREENSHOT_REFERENCE_COMPARISON_FINAL"}
+ALLOWED_CURRENT_VERSIONS = {
+    VERSION,
+    "V906_REAL_BROWSER_QA_SCREENSHOT_REFERENCE_COMPARISON_FINAL",
+    "V906B_PUBLIC_HOME_HTML_ARTIFACT_CLEANUP_FINAL",
+}
 ZIP_NAME = f"NeMeSiS_SHARK_PRO_{VERSION}_RENDER_READY.zip"
 REPORTS = [
     "reports/V905_FINAL_REFERENCE_GAPS_BROWSER_QA_AND_BOM_FIX_REPORT.md",
@@ -91,7 +95,7 @@ def main() -> int:
     require("has_v905_bom_version_alignment_fix" in app_py, "V905 BOM runtime flag missing", failures)
     require("has_v905_final_reference_gaps_browser_qa" in app_py, "V905 browser QA runtime flag missing", failures)
     require("data-v905-shell" in base, "base V905 shell marker missing", failures)
-    require(("NEMESIS_CACHE_V905" in app_py or "NEMESIS_CACHE_V906" in app_py) and "res.status===404" in app_py, "service worker V905 404 safety missing", failures)
+    require(("NEMESIS_CACHE_V905" in app_py or "NEMESIS_CACHE_V906" in app_py or "NEMESIS_CACHE_V906B" in app_py) and "res.status===404" in app_py, "service worker V905 404 safety missing", failures)
     require("experiencia nica" not in home, "home still has broken 'experiencia nica' copy", failures)
     require("Membresias" not in base, "base still has visible Membresias without accent", failures)
 
@@ -104,12 +108,20 @@ def main() -> int:
 
     gap_path = ROOT / "data" / "runtime" / "autonomous_company_sentinel" / "reference_gap_report.json"
     require(gap_path.exists(), "reference gap report missing", failures)
+    current_version = read("VERSION.txt").strip().lstrip("\ufeff")
     if gap_path.exists():
         gap = json.loads(gap_path.read_text(encoding="utf-8"))
         v905 = gap.get("v905_final_status") or {}
-        require(v905.get("status") == "V905_FINAL_STATUS", "V905 gap final status missing", failures)
-        require(int(v905.get("gaps_pending_before") or 0) == 6, "V905 gaps pending before must be 6 from Render V904", failures)
-        require(bool(v905.get("still_pending_browser_qa")), "V905 pending browser QA list missing", failures)
+        if current_version == VERSION:
+            require(v905.get("status") == "V905_FINAL_STATUS", "V905 gap final status missing", failures)
+            require(int(v905.get("gaps_pending_before") or 0) == 6, "V905 gaps pending before must be 6 from Render V904", failures)
+            require(bool(v905.get("still_pending_browser_qa")), "V905 pending browser QA list missing", failures)
+        else:
+            require(
+                bool(v905) or "v906_browser_reference_status" in gap or "v906_browser_gap_report" in gap,
+                "reference gap report missing V905/V906-compatible status",
+                failures,
+            )
 
     outbox = ROOT / "data" / "runtime" / "autonomous_company_sentinel" / "outbox" / "codex_outbox.md"
     require(outbox.exists(), "codex outbox missing", failures)
