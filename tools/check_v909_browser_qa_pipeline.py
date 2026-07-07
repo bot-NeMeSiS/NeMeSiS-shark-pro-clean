@@ -14,6 +14,7 @@ VERSION = "V909_BROWSER_QA_EXECUTION_PIPELINE_AND_VISUAL_FIX_QUEUE_FINAL"
 CURRENT_COMPATIBLE_VERSIONS = {
     VERSION,
     "V910_FULL_PROJECT_HIDDEN_AUDIT_ROUTE_NOT_FOUND_BROWSER_QA_READY_FINAL",
+    "V911_REAL_BROWSER_SCREENSHOT_VISUAL_FIX_EXECUTION_FINAL",
 }
 ZIP_NAME = f"NeMeSiS_SHARK_PRO_{VERSION}_RENDER_READY.zip"
 REPORTS = [
@@ -121,7 +122,7 @@ def main() -> int:
     require(queue_path.exists(), "visual_fix_queue.json missing", failures)
     if queue_path.exists():
         queue = json.loads(queue_path.read_text(encoding="utf-8-sig", errors="replace"))
-        require(queue.get("version") == VERSION, "visual fix queue version is not V909", failures)
+        require(queue.get("version") in CURRENT_COMPATIBLE_VERSIONS, "visual fix queue version is not V909-compatible", failures)
         require(isinstance(queue.get("items"), list), "visual fix queue items missing", failures)
         require(int(queue.get("blocked_no_screenshot_count") or 0) >= 1, "visual fix queue should show blocked screenshots when Browser QA unavailable", failures)
         require(queue.get("pixel_perfect_claim_allowed") is False, "visual fix queue allows pixel-perfect", failures)

@@ -32,9 +32,9 @@
 
   {% set browser = status.browser_qa or {} %}
   {% set v909 = status.v909_pipeline or {} %}
-  <section class="ns-admin-card v909-browser-pipeline-panel" data-v909-browser-qa-pipeline="true">
+  <section class="ns-admin-card v909-browser-pipeline-panel v911-browser-execution-panel" data-v909-browser-qa-pipeline="true" data-v911-browser-execution="true">
     <div class="ns-section-title">
-      <h2>Browser QA Pipeline V909</h2>
+      <h2>Browser QA Pipeline V909/V911</h2>
       <span class="ns-badge">{{ 'Listo' if v909.pipeline_ready else 'Pendiente' }}</span>
     </div>
     <div class="ns-grid ns-grid-4">
@@ -53,7 +53,7 @@
         </tbody>
       </table>
     </div>
-    <p>V909 no ejecuta deploy ni acciones peligrosas: solo captura, compara, genera cola y deja prompts accionables.</p>
+    <p>V911 intenta la ejecución real; si Playwright no está disponible mantiene la cola visual bloqueada por screenshot y no declara pixel-perfect.</p>
   </section>
 
   <section class="ns-admin-card v906-browser-qa-panel v907-browser-qa-enablement" data-v906-browser-qa="true" data-v907-browser-qa="true">

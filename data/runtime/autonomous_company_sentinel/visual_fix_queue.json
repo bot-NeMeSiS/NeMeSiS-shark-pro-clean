@@ -1,6 +1,6 @@
 {
-  "version": "V909_BROWSER_QA_EXECUTION_PIPELINE_AND_VISUAL_FIX_QUEUE_FINAL",
-  "generated_at_madrid": "2026-07-07T20:24:23+02:00",
+  "version": "V911_REAL_BROWSER_SCREENSHOT_VISUAL_FIX_EXECUTION_FINAL",
+  "generated_at_madrid": "2026-07-08T01:04:10",
   "items": [
     {
       "id": "V909-001",
@@ -11,8 +11,14 @@
       "gap": "Captura real pendiente.",
       "severity": "medium",
       "safe_fix_type": "WAIT_FOR_SCREENSHOT",
-      "codex_prompt": "Captura y compara / contra referencias reales antes de declarar cierre visual.",
-      "status": "BLOCKED_NO_SCREENSHOT"
+      "codex_prompt": "Ejecuta Browser QA real, captura / en desktop, compara contra reference_images/client/reference_import_v900_08.png y corrige solo diferencias visibles verificadas.",
+      "status": "BLOCKED_NO_SCREENSHOT",
+      "screenshot_path": "",
+      "v911_status": "BLOCKED_NO_SCREENSHOT",
+      "v911_evidence": "BROWSER_QA_PACKAGE_MISSING: Playwright no disponible en este entorno.",
+      "v911_needs_browser_qa": true,
+      "v911_fix_type": "NO_VISUAL_FIX_WITHOUT_SCREENSHOT",
+      "v911_notes": "No se desbloquea ni se declara resuelto sin captura real de la ruta/dispositivo."
     },
     {
       "id": "V909-002",
@@ -23,8 +29,14 @@
       "gap": "Captura real pendiente.",
       "severity": "high",
       "safe_fix_type": "WAIT_FOR_SCREENSHOT",
-      "codex_prompt": "Captura y compara /admin-login contra referencias reales antes de declarar cierre visual.",
-      "status": "BLOCKED_NO_SCREENSHOT"
+      "codex_prompt": "Ejecuta Browser QA real, captura /admin-login en desktop, compara contra reference_images/admin/reference_import_v900_01.png y corrige solo diferencias visibles verificadas.",
+      "status": "BLOCKED_NO_SCREENSHOT",
+      "screenshot_path": "",
+      "v911_status": "BLOCKED_NO_SCREENSHOT",
+      "v911_evidence": "BROWSER_QA_PACKAGE_MISSING: Playwright no disponible en este entorno.",
+      "v911_needs_browser_qa": true,
+      "v911_fix_type": "NO_VISUAL_FIX_WITHOUT_SCREENSHOT",
+      "v911_notes": "No se desbloquea ni se declara resuelto sin captura real de la ruta/dispositivo."
     },
     {
       "id": "V909-003",
@@ -35,8 +47,14 @@
       "gap": "Captura real pendiente.",
       "severity": "high",
       "safe_fix_type": "WAIT_FOR_SCREENSHOT",
-      "codex_prompt": "Captura y compara /admin/autonomous-company-sentinel contra referencias reales antes de declarar cierre visual.",
-      "status": "BLOCKED_NO_SCREENSHOT"
+      "codex_prompt": "Ejecuta Browser QA real, captura /admin/autonomous-company-sentinel en desktop, compara contra reference_images/admin/reference_import_v900_01.png y corrige solo diferencias visibles verificadas.",
+      "status": "BLOCKED_NO_SCREENSHOT",
+      "screenshot_path": "",
+      "v911_status": "BLOCKED_NO_SCREENSHOT",
+      "v911_evidence": "BROWSER_QA_PACKAGE_MISSING: Playwright no disponible en este entorno.",
+      "v911_needs_browser_qa": true,
+      "v911_fix_type": "NO_VISUAL_FIX_WITHOUT_SCREENSHOT",
+      "v911_notes": "No se desbloquea ni se declara resuelto sin captura real de la ruta/dispositivo."
     },
     {
       "id": "V909-004",
@@ -47,8 +65,14 @@
       "gap": "Captura real pendiente.",
       "severity": "high",
       "safe_fix_type": "WAIT_FOR_SCREENSHOT",
-      "codex_prompt": "Captura y compara /admin/dashboard contra referencias reales antes de declarar cierre visual.",
-      "status": "BLOCKED_NO_SCREENSHOT"
+      "codex_prompt": "Ejecuta Browser QA real, captura /admin/dashboard en desktop, compara contra reference_images/admin/reference_import_v900_01.png y corrige solo diferencias visibles verificadas.",
+      "status": "BLOCKED_NO_SCREENSHOT",
+      "screenshot_path": "",
+      "v911_status": "BLOCKED_NO_SCREENSHOT",
+      "v911_evidence": "BROWSER_QA_PACKAGE_MISSING: Playwright no disponible en este entorno.",
+      "v911_needs_browser_qa": true,
+      "v911_fix_type": "NO_VISUAL_FIX_WITHOUT_SCREENSHOT",
+      "v911_notes": "No se desbloquea ni se declara resuelto sin captura real de la ruta/dispositivo."
     },
     {
       "id": "V909-005",
@@ -59,8 +83,14 @@
       "gap": "Captura real pendiente.",
       "severity": "high",
       "safe_fix_type": "WAIT_FOR_SCREENSHOT",
-      "codex_prompt": "Captura y compara /admin/not-found-events contra referencias reales antes de declarar cierre visual.",
-      "status": "BLOCKED_NO_SCREENSHOT"
+      "codex_prompt": "Ejecuta Browser QA real, captura /admin/not-found-events en desktop, compara contra reference_images/admin/reference_import_v900_01.png y corrige solo diferencias visibles verificadas.",
+      "status": "BLOCKED_NO_SCREENSHOT",
+      "screenshot_path": "",
+      "v911_status": "BLOCKED_NO_SCREENSHOT",
+      "v911_evidence": "BROWSER_QA_PACKAGE_MISSING: Playwright no disponible en este entorno.",
+      "v911_needs_browser_qa": true,
+      "v911_fix_type": "NO_VISUAL_FIX_WITHOUT_SCREENSHOT",
+      "v911_notes": "No se desbloquea ni se declara resuelto sin captura real de la ruta/dispositivo."
     },
     {
       "id": "V909-006",
@@ -71,8 +101,14 @@
       "gap": "Captura real pendiente.",
       "severity": "high",
       "safe_fix_type": "WAIT_FOR_SCREENSHOT",
-      "codex_prompt": "Captura y compara /admin/sentinel-codex-outbox contra referencias reales antes de declarar cierre visual.",
-      "status": "BLOCKED_NO_SCREENSHOT"
+      "codex_prompt": "Ejecuta Browser QA real, captura /admin/sentinel-codex-outbox en desktop, compara contra reference_images/admin/reference_import_v900_01.png y corrige solo diferencias visibles verificadas.",
+      "status": "BLOCKED_NO_SCREENSHOT",
+      "screenshot_path": "",
+      "v911_status": "BLOCKED_NO_SCREENSHOT",
+      "v911_evidence": "BROWSER_QA_PACKAGE_MISSING: Playwright no disponible en este entorno.",
+      "v911_needs_browser_qa": true,
+      "v911_fix_type": "NO_VISUAL_FIX_WITHOUT_SCREENSHOT",
+      "v911_notes": "No se desbloquea ni se declara resuelto sin captura real de la ruta/dispositivo."
     },
     {
       "id": "V909-007",
@@ -83,8 +119,14 @@
       "gap": "Captura real pendiente.",
       "severity": "high",
       "safe_fix_type": "WAIT_FOR_SCREENSHOT",
-      "codex_prompt": "Captura y compara /admin/sentinel-issues contra referencias reales antes de declarar cierre visual.",
-      "status": "BLOCKED_NO_SCREENSHOT"
+      "codex_prompt": "Ejecuta Browser QA real, captura /admin/sentinel-issues en desktop, compara contra reference_images/admin/reference_import_v900_01.png y corrige solo diferencias visibles verificadas.",
+      "status": "BLOCKED_NO_SCREENSHOT",
+      "screenshot_path": "",
+      "v911_status": "BLOCKED_NO_SCREENSHOT",
+      "v911_evidence": "BROWSER_QA_PACKAGE_MISSING: Playwright no disponible en este entorno.",
+      "v911_needs_browser_qa": true,
+      "v911_fix_type": "NO_VISUAL_FIX_WITHOUT_SCREENSHOT",
+      "v911_notes": "No se desbloquea ni se declara resuelto sin captura real de la ruta/dispositivo."
     },
     {
       "id": "V909-008",
@@ -95,8 +137,14 @@
       "gap": "Captura real pendiente.",
       "severity": "high",
       "safe_fix_type": "WAIT_FOR_SCREENSHOT",
-      "codex_prompt": "Captura y compara /admin/telegram/command-center contra referencias reales antes de declarar cierre visual.",
-      "status": "BLOCKED_NO_SCREENSHOT"
+      "codex_prompt": "Ejecuta Browser QA real, captura /admin/telegram/command-center en desktop, compara contra reference_images/admin/reference_import_v900_01.png y corrige solo diferencias visibles verificadas.",
+      "status": "BLOCKED_NO_SCREENSHOT",
+      "screenshot_path": "",
+      "v911_status": "BLOCKED_NO_SCREENSHOT",
+      "v911_evidence": "BROWSER_QA_PACKAGE_MISSING: Playwright no disponible en este entorno.",
+      "v911_needs_browser_qa": true,
+      "v911_fix_type": "NO_VISUAL_FIX_WITHOUT_SCREENSHOT",
+      "v911_notes": "No se desbloquea ni se declara resuelto sin captura real de la ruta/dispositivo."
     },
     {
       "id": "V909-009",
@@ -107,8 +155,14 @@
       "gap": "Captura real pendiente.",
       "severity": "high",
       "safe_fix_type": "WAIT_FOR_SCREENSHOT",
-      "codex_prompt": "Captura y compara /app contra referencias reales antes de declarar cierre visual.",
-      "status": "BLOCKED_NO_SCREENSHOT"
+      "codex_prompt": "Ejecuta Browser QA real, captura /app en desktop, compara contra reference_images/client/reference_import_v900_08.png y corrige solo diferencias visibles verificadas.",
+      "status": "BLOCKED_NO_SCREENSHOT",
+      "screenshot_path": "",
+      "v911_status": "BLOCKED_NO_SCREENSHOT",
+      "v911_evidence": "BROWSER_QA_PACKAGE_MISSING: Playwright no disponible en este entorno.",
+      "v911_needs_browser_qa": true,
+      "v911_fix_type": "NO_VISUAL_FIX_WITHOUT_SCREENSHOT",
+      "v911_notes": "No se desbloquea ni se declara resuelto sin captura real de la ruta/dispositivo."
     },
     {
       "id": "V909-010",
@@ -119,8 +173,14 @@
       "gap": "Captura real pendiente.",
       "severity": "high",
       "safe_fix_type": "WAIT_FOR_SCREENSHOT",
-      "codex_prompt": "Captura y compara /calendar contra referencias reales antes de declarar cierre visual.",
-      "status": "BLOCKED_NO_SCREENSHOT"
+      "codex_prompt": "Ejecuta Browser QA real, captura /calendar en desktop, compara contra reference_images/calendar/reference_import_v900_10.png y corrige solo diferencias visibles verificadas.",
+      "status": "BLOCKED_NO_SCREENSHOT",
+      "screenshot_path": "",
+      "v911_status": "BLOCKED_NO_SCREENSHOT",
+      "v911_evidence": "BROWSER_QA_PACKAGE_MISSING: Playwright no disponible en este entorno.",
+      "v911_needs_browser_qa": true,
+      "v911_fix_type": "NO_VISUAL_FIX_WITHOUT_SCREENSHOT",
+      "v911_notes": "No se desbloquea ni se declara resuelto sin captura real de la ruta/dispositivo."
     },
     {
       "id": "V909-011",
@@ -131,8 +191,14 @@
       "gap": "Captura real pendiente.",
       "severity": "medium",
       "safe_fix_type": "WAIT_FOR_SCREENSHOT",
-      "codex_prompt": "Captura y compara /cliente-login contra referencias reales antes de declarar cierre visual.",
-      "status": "BLOCKED_NO_SCREENSHOT"
+      "codex_prompt": "Ejecuta Browser QA real, captura /cliente-login en desktop, compara contra reference_images/client/reference_import_v900_08.png y corrige solo diferencias visibles verificadas.",
+      "status": "BLOCKED_NO_SCREENSHOT",
+      "screenshot_path": "",
+      "v911_status": "BLOCKED_NO_SCREENSHOT",
+      "v911_evidence": "BROWSER_QA_PACKAGE_MISSING: Playwright no disponible en este entorno.",
+      "v911_needs_browser_qa": true,
+      "v911_fix_type": "NO_VISUAL_FIX_WITHOUT_SCREENSHOT",
+      "v911_notes": "No se desbloquea ni se declara resuelto sin captura real de la ruta/dispositivo."
     },
     {
       "id": "V909-012",
@@ -143,8 +209,14 @@
       "gap": "Captura real pendiente.",
       "severity": "high",
       "safe_fix_type": "WAIT_FOR_SCREENSHOT",
-      "codex_prompt": "Captura y compara /live contra referencias reales antes de declarar cierre visual.",
-      "status": "BLOCKED_NO_SCREENSHOT"
+      "codex_prompt": "Ejecuta Browser QA real, captura /live en desktop, compara contra reference_images/live/reference_import_v900_09.png y corrige solo diferencias visibles verificadas.",
+      "status": "BLOCKED_NO_SCREENSHOT",
+      "screenshot_path": "",
+      "v911_status": "BLOCKED_NO_SCREENSHOT",
+      "v911_evidence": "BROWSER_QA_PACKAGE_MISSING: Playwright no disponible en este entorno.",
+      "v911_needs_browser_qa": true,
+      "v911_fix_type": "NO_VISUAL_FIX_WITHOUT_SCREENSHOT",
+      "v911_notes": "No se desbloquea ni se declara resuelto sin captura real de la ruta/dispositivo."
     },
     {
       "id": "V909-013",
@@ -155,8 +227,14 @@
       "gap": "Captura real pendiente.",
       "severity": "high",
       "safe_fix_type": "WAIT_FOR_SCREENSHOT",
-      "codex_prompt": "Captura y compara /picks contra referencias reales antes de declarar cierre visual.",
-      "status": "BLOCKED_NO_SCREENSHOT"
+      "codex_prompt": "Ejecuta Browser QA real, captura /picks en desktop, compara contra reference_images/picks/reference_import_v900_11.png y corrige solo diferencias visibles verificadas.",
+      "status": "BLOCKED_NO_SCREENSHOT",
+      "screenshot_path": "",
+      "v911_status": "BLOCKED_NO_SCREENSHOT",
+      "v911_evidence": "BROWSER_QA_PACKAGE_MISSING: Playwright no disponible en este entorno.",
+      "v911_needs_browser_qa": true,
+      "v911_fix_type": "NO_VISUAL_FIX_WITHOUT_SCREENSHOT",
+      "v911_notes": "No se desbloquea ni se declara resuelto sin captura real de la ruta/dispositivo."
     },
     {
       "id": "V909-014",
@@ -167,8 +245,14 @@
       "gap": "Captura real pendiente.",
       "severity": "medium",
       "safe_fix_type": "WAIT_FOR_SCREENSHOT",
-      "codex_prompt": "Captura y compara /profile contra referencias reales antes de declarar cierre visual.",
-      "status": "BLOCKED_NO_SCREENSHOT"
+      "codex_prompt": "Ejecuta Browser QA real, captura /profile en desktop, compara contra reference_images/profile/reference_import_v900_15.png y corrige solo diferencias visibles verificadas.",
+      "status": "BLOCKED_NO_SCREENSHOT",
+      "screenshot_path": "",
+      "v911_status": "BLOCKED_NO_SCREENSHOT",
+      "v911_evidence": "BROWSER_QA_PACKAGE_MISSING: Playwright no disponible en este entorno.",
+      "v911_needs_browser_qa": true,
+      "v911_fix_type": "NO_VISUAL_FIX_WITHOUT_SCREENSHOT",
+      "v911_notes": "No se desbloquea ni se declara resuelto sin captura real de la ruta/dispositivo."
     },
     {
       "id": "V909-015",
@@ -179,8 +263,14 @@
       "gap": "Captura real pendiente.",
       "severity": "medium",
       "safe_fix_type": "WAIT_FOR_SCREENSHOT",
-      "codex_prompt": "Captura y compara /registro contra referencias reales antes de declarar cierre visual.",
-      "status": "BLOCKED_NO_SCREENSHOT"
+      "codex_prompt": "Ejecuta Browser QA real, captura /registro en desktop, compara contra reference_images/client/reference_import_v900_08.png y corrige solo diferencias visibles verificadas.",
+      "status": "BLOCKED_NO_SCREENSHOT",
+      "screenshot_path": "",
+      "v911_status": "BLOCKED_NO_SCREENSHOT",
+      "v911_evidence": "BROWSER_QA_PACKAGE_MISSING: Playwright no disponible en este entorno.",
+      "v911_needs_browser_qa": true,
+      "v911_fix_type": "NO_VISUAL_FIX_WITHOUT_SCREENSHOT",
+      "v911_notes": "No se desbloquea ni se declara resuelto sin captura real de la ruta/dispositivo."
     },
     {
       "id": "V909-016",
@@ -191,8 +281,14 @@
       "gap": "Captura real pendiente.",
       "severity": "medium",
       "safe_fix_type": "WAIT_FOR_SCREENSHOT",
-      "codex_prompt": "Captura y compara /shark contra referencias reales antes de declarar cierre visual.",
-      "status": "BLOCKED_NO_SCREENSHOT"
+      "codex_prompt": "Ejecuta Browser QA real, captura /shark en desktop, compara contra reference_images/shark/reference_import_v900_12.png y corrige solo diferencias visibles verificadas.",
+      "status": "BLOCKED_NO_SCREENSHOT",
+      "screenshot_path": "",
+      "v911_status": "BLOCKED_NO_SCREENSHOT",
+      "v911_evidence": "BROWSER_QA_PACKAGE_MISSING: Playwright no disponible en este entorno.",
+      "v911_needs_browser_qa": true,
+      "v911_fix_type": "NO_VISUAL_FIX_WITHOUT_SCREENSHOT",
+      "v911_notes": "No se desbloquea ni se declara resuelto sin captura real de la ruta/dispositivo."
     },
     {
       "id": "V909-017",
@@ -203,8 +299,14 @@
       "gap": "Captura real pendiente.",
       "severity": "medium",
       "safe_fix_type": "WAIT_FOR_SCREENSHOT",
-      "codex_prompt": "Captura y compara /support contra referencias reales antes de declarar cierre visual.",
-      "status": "BLOCKED_NO_SCREENSHOT"
+      "codex_prompt": "Ejecuta Browser QA real, captura /support en desktop, compara contra reference_images/client/reference_import_v900_08.png y corrige solo diferencias visibles verificadas.",
+      "status": "BLOCKED_NO_SCREENSHOT",
+      "screenshot_path": "",
+      "v911_status": "BLOCKED_NO_SCREENSHOT",
+      "v911_evidence": "BROWSER_QA_PACKAGE_MISSING: Playwright no disponible en este entorno.",
+      "v911_needs_browser_qa": true,
+      "v911_fix_type": "NO_VISUAL_FIX_WITHOUT_SCREENSHOT",
+      "v911_notes": "No se desbloquea ni se declara resuelto sin captura real de la ruta/dispositivo."
     },
     {
       "id": "V909-018",
@@ -215,12 +317,23 @@
       "gap": "Captura real pendiente.",
       "severity": "medium",
       "safe_fix_type": "WAIT_FOR_SCREENSHOT",
-      "codex_prompt": "Captura y compara /telegram contra referencias reales antes de declarar cierre visual.",
-      "status": "BLOCKED_NO_SCREENSHOT"
+      "codex_prompt": "Ejecuta Browser QA real, captura /telegram en desktop, compara contra reference_images/telegram/reference_import_v900_16.png y corrige solo diferencias visibles verificadas.",
+      "status": "BLOCKED_NO_SCREENSHOT",
+      "screenshot_path": "",
+      "v911_status": "BLOCKED_NO_SCREENSHOT",
+      "v911_evidence": "BROWSER_QA_PACKAGE_MISSING: Playwright no disponible en este entorno.",
+      "v911_needs_browser_qa": true,
+      "v911_fix_type": "NO_VISUAL_FIX_WITHOUT_SCREENSHOT",
+      "v911_notes": "No se desbloquea ni se declara resuelto sin captura real de la ruta/dispositivo."
     }
   ],
   "queue_count": 18,
   "blocked_no_screenshot_count": 18,
   "ready_for_codex_count": 0,
-  "pixel_perfect_claim_allowed": false
+  "pixel_perfect_claim_allowed": false,
+  "v911_visual_queue_items_before": 18,
+  "v911_visual_queue_items_after": 18,
+  "v911_items_unblocked_by_screenshot": 0,
+  "v911_visual_fixes_applied": 0,
+  "browser_qa_required": true
 }

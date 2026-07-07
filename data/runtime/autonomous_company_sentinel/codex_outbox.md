@@ -1371,15 +1371,79 @@ Sin prompts Telegram activos.
 
 ---
 
-- SENT-2026-F824D84D | STALE_NEEDS_REVALIDATION | /api/ruta-inventada-v910 | Ruta devuelve Not Found
-
----
-
 - SENT-2026-7297DAB7 | RESOLVED_BY_RESCAN | /api/ruta-inventada-v910 | Ruta devuelve Not Found
 
 ---
 
 - SENT-2026-6598641D | RESOLVED_BY_RESCAN | /ruta-inventada-v910 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-F824D84D | RESOLVED_BY_RESCAN | /api/ruta-inventada-v910 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-2314023B | RESOLVED_BY_RESCAN | /ruta-inventada-v910 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-403DB3F1 | RESOLVED_BY_RESCAN | /api/ruta-inventada-v910 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-9116D1E9 | RESOLVED_BY_RESCAN | /ruta-inventada-v910 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-A017081E | RESOLVED_BY_RESCAN | /api/ruta-inventada-v910 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-66F1B9ED | RESOLVED_BY_RESCAN | /ruta-inventada-v910 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-B0E20C23 | RESOLVED_BY_RESCAN | /api/ruta-inventada-v910 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-75915ACF | RESOLVED_BY_RESCAN | /ruta-inventada-v911 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-750EC4F5 | RESOLVED_BY_RESCAN | /api/ruta-inventada-v911 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-69948675 | RESOLVED_BY_RESCAN | /ruta-inventada-v911 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-7AECED32 | RESOLVED_BY_RESCAN | /api/ruta-inventada-v911 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-EACDCA74 | RESOLVED_BY_RESCAN | /ruta-inventada-v910 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-61EF47E3 | RESOLVED_BY_RESCAN | /api/ruta-inventada-v910 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-46E0DE80 | RESOLVED_BY_RESCAN | /ruta-inventada-v911 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-EE08EFD2 | RESOLVED_BY_RESCAN | /api/ruta-inventada-v911 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-E4DAE800 | RESOLVED_BY_RESCAN | /ruta-inventada-v910 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-C07CB6C2 | STALE_NEEDS_REVALIDATION | /api/ruta-inventada-v910 | Ruta devuelve Not Found
 
 ---
 

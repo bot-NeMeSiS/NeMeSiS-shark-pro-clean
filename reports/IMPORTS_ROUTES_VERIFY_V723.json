@@ -1,6 +1,6 @@
 {
   "ok": true,
-  "checked_at": "2026-07-07T23:38:35",
+  "checked_at": "2026-07-08T01:08:05",
   "templates_referenced": [
     "404.html",
     "account_center.html",
@@ -139,7 +139,7 @@
   ],
   "missing_static": [],
   "import_ok": true,
-  "version": "V910_FULL_PROJECT_HIDDEN_AUDIT_ROUTE_NOT_FOUND_BROWSER_QA_READY_FINAL",
+  "version": "V911_REAL_BROWSER_SCREENSHOT_VISUAL_FIX_EXECUTION_FINAL",
   "route_count": 595,
   "routes": [
     "/",

@@ -23,12 +23,12 @@
     <article class="ns-stat"><span>Ruta</span><strong>outbox</strong><small>{{ outbox.combined_path or 'Pendiente' }}</small></article>
   </section>
 
-  <section class="ns-admin-card v909-visual-fix-queue-panel" data-v909-visual-fix-queue="true">
+  <section class="ns-admin-card v909-visual-fix-queue-panel v911-visual-fix-queue-panel" data-v909-visual-fix-queue="true" data-v911-visual-fix-queue="true">
     <div class="ns-section-title">
-      <h2>Visual Fix Queue V909</h2>
+      <h2>Visual Fix Queue V909/V911</h2>
       <span class="ns-badge">{{ v909.blocked_no_screenshot_count or 0 }} bloqueados sin screenshot</span>
     </div>
-    <p>La cola convierte capturas reales en prompts Codex. Si no hay capturas, los items quedan como <code>BLOCKED_NO_SCREENSHOT</code> y no se cierran como pixel-perfect.</p>
+    <p>La cola convierte capturas reales en prompts Codex. En V911, si no hay Playwright/capturas, los items quedan como <code>BLOCKED_NO_SCREENSHOT</code> y no se cierran como pixel-perfect.</p>
     <div class="ns-grid ns-grid-3">
       <article class="ns-stat"><span>Items</span><strong>{{ v909.visual_fix_queue_count or 0 }}</strong><small>queue total</small></article>
       <article class="ns-stat"><span>Runner local</span><strong>{{ 'Listo' if v909.local_runner_available else 'Pendiente' }}</strong><small>browser_qa/</small></article>

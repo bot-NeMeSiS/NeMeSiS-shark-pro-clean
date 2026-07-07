@@ -339,7 +339,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V910_FULL_PROJECT_HIDDEN_AUDIT_ROUTE_NOT_FOUND_BROWSER_QA_READY_FINAL'
+APP_VERSION = 'V911_REAL_BROWSER_SCREENSHOT_VISUAL_FIX_EXECUTION_FINAL'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 
@@ -10512,7 +10512,7 @@ def dashboard_data(lane="today", date=None):
 @app.route("/service-worker.js")
 def service_worker():
     body = (
-        "const NEMESIS_CACHE='NEMESIS_CACHE_V910';\n"
+        "const NEMESIS_CACHE='NEMESIS_CACHE_V911';\n"
         "self.addEventListener('install',event=>{self.skipWaiting();});\n"
         "self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==NEMESIS_CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));});\n"
         "self.addEventListener('fetch',event=>{const req=event.request;if(req.mode==='navigate'){event.respondWith(fetch(req).then(res=>{if(res.status===404){return fetch('/');}return res;}).catch(()=>fetch('/')));return;}event.respondWith(fetch(req).then(res=>{if(res.status===404){return res;}return res;}));});\n"
@@ -15126,6 +15126,60 @@ def v910_full_project_audit_runtime_summary() -> dict:
     }
 
 
+def v911_real_browser_screenshot_runtime_summary() -> dict:
+    root = Path(__file__).resolve().parent
+    runtime_dir = root / "data" / "runtime" / "autonomous_company_sentinel"
+    queue_path = runtime_dir / "visual_fix_queue.json"
+    status_path = runtime_dir / "browser_qa_status.json"
+    comparison_path = runtime_dir / "browser_reference_comparison.json"
+    try:
+        queue_payload = json.loads(queue_path.read_text(encoding="utf-8-sig", errors="replace")) if queue_path.exists() else {"items": []}
+    except Exception:
+        queue_payload = {"items": []}
+    try:
+        status_payload = json.loads(status_path.read_text(encoding="utf-8-sig", errors="replace")) if status_path.exists() else {}
+    except Exception:
+        status_payload = {}
+    try:
+        comparison_payload = json.loads(comparison_path.read_text(encoding="utf-8-sig", errors="replace")) if comparison_path.exists() else {}
+    except Exception:
+        comparison_payload = {}
+    items = queue_payload.get("items") if isinstance(queue_payload, dict) else []
+    if not isinstance(items, list):
+        items = []
+    screenshots = int(status_payload.get("screenshots_captured") or status_payload.get("v911_screenshots_captured") or 0)
+    routes = status_payload.get("routes_captured") or status_payload.get("v911_routes_captured") or []
+    if isinstance(routes, int):
+        routes_count = routes
+    elif isinstance(routes, list):
+        routes_count = len(routes)
+    else:
+        routes_count = 0
+    comparisons = comparison_payload.get("comparisons") or comparison_payload.get("items") or []
+    comparisons_count = len(comparisons) if isinstance(comparisons, list) else int(comparison_payload.get("reference_comparisons") or 0)
+    blocked = [item for item in items if isinstance(item, dict) and item.get("status") == "BLOCKED_NO_SCREENSHOT"]
+    unblocked = [
+        item
+        for item in items
+        if isinstance(item, dict)
+        and item.get("status") in {"READY_FOR_CODEX", "FIXABLE_SAFE", "RESOLVED_VISUALLY", "SCREENSHOT_CONFIRMED_GAP"}
+    ]
+    fixed = [item for item in items if isinstance(item, dict) and item.get("fixed_by_v911")]
+    qa_available = bool(status_payload.get("playwright_available") and status_payload.get("can_capture"))
+    return {
+        "v911_browser_qa_available": qa_available,
+        "v911_screenshots_captured": screenshots,
+        "v911_routes_captured": routes_count,
+        "v911_reference_comparisons": comparisons_count,
+        "v911_visual_queue_items_before": int(queue_payload.get("v911_visual_queue_items_before") or queue_payload.get("queue_count") or len(items)),
+        "v911_visual_queue_items_after": len(items),
+        "v911_items_unblocked_by_screenshot": len(unblocked),
+        "v911_visual_fixes_applied": len(fixed),
+        "v911_visual_fixes_pending": len(blocked),
+        "v911_pixel_perfect_claim_allowed": bool(screenshots and comparisons_count and queue_payload.get("pixel_perfect_claim_allowed") is True),
+    }
+
+
 @app.route("/api/runtime-version")
 def api_runtime_version():
     version_txt = ""
@@ -15200,6 +15254,7 @@ def api_runtime_version():
     v908_summary = v908_reference_ui_fix_runtime_summary()
     v909_summary = v909_browser_qa_pipeline_runtime_summary()
     v910_summary = v910_full_project_audit_runtime_summary()
+    v911_summary = v911_real_browser_screenshot_runtime_summary()
     return jsonify(sanitize_runtime_value({
         "ok": True,
         "app": APP_NAME,
@@ -15414,9 +15469,12 @@ def api_runtime_version():
         "has_v909_browser_qa_pipeline": (Path(__file__).resolve().parent / "browser_qa" / "README.md").exists() and "v909_browser_qa_pipeline_runtime_summary" in app_py_text,
         "has_v909_visual_fix_queue": (Path(__file__).resolve().parent / "data" / "runtime" / "autonomous_company_sentinel" / "visual_fix_queue.json").exists(),
         "has_v910_full_hidden_project_audit": "v910_full_project_audit_runtime_summary" in app_py_text and (Path(__file__).resolve().parent / "reports" / "V910_FULL_PROJECT_HIDDEN_TREE_AUDIT.md").exists(),
-        "has_v910_route_not_found_pwa_audit": "NEMESIS_CACHE_V910" in app_py_text and (Path(__file__).resolve().parent / "reports" / "V910_ROUTE_NOT_FOUND_PWA_CACHE_AUDIT.md").exists(),
+        "has_v910_route_not_found_pwa_audit": ("NEMESIS_CACHE_V910" in app_py_text or "NEMESIS_CACHE_V911" in app_py_text) and (Path(__file__).resolve().parent / "reports" / "V910_ROUTE_NOT_FOUND_PWA_CACHE_AUDIT.md").exists(),
         "has_v910_browser_qa_pipeline_audited": (Path(__file__).resolve().parent / "reports" / "V910_BROWSER_QA_PIPELINE_FULL_AUDIT.md").exists(),
         "has_v910_release_tree_cleanliness_audit": (Path(__file__).resolve().parent / "reports" / "V910_RELEASE_ZIP_AND_DEPLOY_ROOT_AUDIT.md").exists(),
+        "has_v911_real_browser_screenshot_visual_fix": "data-v911-shell" in base_template and (Path(__file__).resolve().parent / "reports" / "V911_REAL_BROWSER_SCREENSHOT_VISUAL_FIX_EXECUTION_REPORT.md").exists(),
+        "has_v911_browser_qa_execution": (Path(__file__).resolve().parent / "reports" / "V911_BROWSER_QA_ENVIRONMENT_STATUS.md").exists() and (Path(__file__).resolve().parent / "tools" / "run_browser_reference_qa.py").exists(),
+        "has_v911_visual_queue_unblocker": (Path(__file__).resolve().parent / "reports" / "V911_VISUAL_FIX_QUEUE_UNBLOCK_REPORT.md").exists() and (Path(__file__).resolve().parent / "data" / "runtime" / "autonomous_company_sentinel" / "visual_fix_queue.json").exists(),
         **v902_truth_summary,
         **v904_summary,
         **v906_summary,
@@ -15424,6 +15482,7 @@ def api_runtime_version():
         **v908_summary,
         **v909_summary,
         **v910_summary,
+        **v911_summary,
         "active_errors_count": v903_active_errors_count,
         "fixed_safe_count": v903_archived_count,
         "stale_issues_count": v903_stale_issues_count,

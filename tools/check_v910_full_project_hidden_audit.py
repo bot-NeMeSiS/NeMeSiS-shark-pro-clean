@@ -11,6 +11,10 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V910_FULL_PROJECT_HIDDEN_AUDIT_ROUTE_NOT_FOUND_BROWSER_QA_READY_FINAL"
+CURRENT_COMPATIBLE_VERSIONS = {
+    VERSION,
+    "V911_REAL_BROWSER_SCREENSHOT_VISUAL_FIX_EXECUTION_FINAL",
+}
 ZIP_NAME = f"NeMeSiS_SHARK_PRO_{VERSION}_RENDER_READY.zip"
 REPORTS = [
     "reports/V910_FULL_PROJECT_HIDDEN_AUDIT_REPORT.md",
@@ -98,11 +102,11 @@ def main() -> int:
     version_bytes = (ROOT / "VERSION.txt").read_bytes()
 
     require(not version_bytes.startswith(b"\xef\xbb\xbf"), "VERSION.txt has BOM", failures)
-    require(version_bytes.decode("utf-8").strip() == VERSION, "VERSION.txt is not V910", failures)
-    require(read("APP_VERSION").strip().lstrip("\ufeff") == VERSION, "APP_VERSION file is not V910", failures)
-    require(app_version_from_source(app_py) == VERSION, "app.py APP_VERSION is not V910", failures)
+    require(version_bytes.decode("utf-8").strip() in CURRENT_COMPATIBLE_VERSIONS, "VERSION.txt is not V910-compatible", failures)
+    require(read("APP_VERSION").strip().lstrip("\ufeff") in CURRENT_COMPATIBLE_VERSIONS, "APP_VERSION file is not V910-compatible", failures)
+    require(app_version_from_source(app_py) in CURRENT_COMPATIBLE_VERSIONS, "app.py APP_VERSION is not V910-compatible", failures)
     require("data-v910-shell" in base, "base V910 shell marker missing", failures)
-    require("NEMESIS_CACHE_V910" in service_worker, "service worker cache is not V910", failures)
+    require("NEMESIS_CACHE_V910" in service_worker or "NEMESIS_CACHE_V911" in service_worker, "service worker cache is not V910-compatible", failures)
     require("v910_full_project_audit_runtime_summary" in app_py, "V910 runtime summary missing", failures)
     require("has_v910_full_hidden_project_audit" in app_py, "V910 hidden audit flag missing", failures)
 
@@ -135,7 +139,7 @@ def main() -> int:
     runtime_resp = client.get("/api/runtime-version")
     runtime = runtime_resp.get_json(silent=True) or {}
     require(runtime_resp.status_code == 200, "runtime-version not 200", failures)
-    require(runtime.get("version") == VERSION, "runtime version is not V910", failures)
+    require(runtime.get("version") in CURRENT_COMPATIBLE_VERSIONS, "runtime version is not V910-compatible", failures)
     require(runtime.get("version_files_match") is True, "runtime version_files_match false", failures)
     require(runtime.get("deployment_alignment_status") == "aligned_local_files", "runtime not aligned", failures)
     for flag in [
