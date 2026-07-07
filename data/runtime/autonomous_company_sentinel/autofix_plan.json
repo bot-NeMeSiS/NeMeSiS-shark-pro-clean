@@ -1,126 +1,117 @@
 {
   "autofix_apply_env": "0",
-  "safe_autofix_count": 7,
-  "requires_codex_count": 6,
+  "safe_autofix_count": 0,
+  "requires_codex_count": 12,
   "applied_changes": [],
   "dangerous_actions_executed": false,
   "plans": [
     {
-      "issue_id": "AP-5B710C53C96F",
-      "title": "Pagos pendientes de configuracion",
-      "area": "payments",
+      "issue_id": "REFGAP-9ED7BD46AB",
+      "title": "Gap visual de referencia en /app",
+      "area": "reference_visual",
       "severity": "high",
       "level": "DANGEROUS_REQUIRES_CODEX",
       "may_apply": false,
       "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
     },
     {
-      "issue_id": "AP-EC27D88ACEAE",
-      "title": "Pantalla deportiva sin estado seguro claro",
-      "area": "sports",
+      "issue_id": "REFGAP-DD35B464A5",
+      "title": "Gap visual de referencia en /admin/dashboard",
+      "area": "reference_visual",
       "severity": "high",
       "level": "DANGEROUS_REQUIRES_CODEX",
       "may_apply": false,
       "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
     },
     {
-      "issue_id": "AP-53093D351C7C",
-      "title": "Pantalla deportiva sin estado seguro claro",
-      "area": "sports",
+      "issue_id": "REFGAP-91020397A6",
+      "title": "Gap visual de referencia en /picks",
+      "area": "reference_visual",
       "severity": "high",
       "level": "DANGEROUS_REQUIRES_CODEX",
       "may_apply": false,
       "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
     },
     {
-      "issue_id": "AP-CB5A393FFB9C",
-      "title": "Pantalla deportiva sin estado seguro claro",
-      "area": "sports",
-      "severity": "high",
+      "issue_id": "REFGAP-F243DB0151",
+      "title": "Gap visual de referencia en /live",
+      "area": "reference_visual",
+      "severity": "medium",
       "level": "DANGEROUS_REQUIRES_CODEX",
       "may_apply": false,
       "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
     },
     {
-      "issue_id": "AP-3FFC8C799B34",
-      "title": "Pantalla deportiva sin estado seguro claro",
-      "area": "sports",
-      "severity": "high",
+      "issue_id": "REFGAP-AF28C5F3F0",
+      "title": "Gap visual de referencia en /calendar",
+      "area": "reference_visual",
+      "severity": "medium",
       "level": "DANGEROUS_REQUIRES_CODEX",
       "may_apply": false,
       "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
     },
     {
-      "issue_id": "AP-0A27B99CDA6D",
-      "title": "Pantalla deportiva sin estado seguro claro",
-      "area": "sports",
-      "severity": "high",
+      "issue_id": "REFGAP-53DDCF3EBF",
+      "title": "Gap visual de referencia en /telegram",
+      "area": "reference_visual",
+      "severity": "medium",
       "level": "DANGEROUS_REQUIRES_CODEX",
       "may_apply": false,
       "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
     },
     {
-      "issue_id": "AP-BE15CF323912",
-      "title": "SHARK IA en modo seguro",
-      "area": "shark",
+      "issue_id": "REFGAP-65EFF7C1DF",
+      "title": "Gap visual de referencia en /shark",
+      "area": "reference_visual",
       "severity": "medium",
-      "level": "SAFE_AUTOFIX",
+      "level": "DANGEROUS_REQUIRES_CODEX",
       "may_apply": false,
-      "recommended_action": "Preparar microfix seguro local"
+      "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
     },
     {
-      "issue_id": "AP-8D48F463630F",
-      "title": "Cache de logos en cero",
-      "area": "logos",
+      "issue_id": "REFGAP-20D1BD0C86",
+      "title": "Gap visual de referencia en /membresias",
+      "area": "reference_visual",
       "severity": "medium",
-      "level": "SAFE_AUTOFIX",
+      "level": "DANGEROUS_REQUIRES_CODEX",
       "may_apply": false,
-      "recommended_action": "Preparar microfix seguro local"
+      "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
     },
     {
-      "issue_id": "AP-C79FC4AE2FE2",
-      "title": "Texto tecnico o mojibake visible",
-      "area": "texts",
+      "issue_id": "REFGAP-478B1233BD",
+      "title": "Gap visual de referencia en /profile",
+      "area": "reference_visual",
       "severity": "medium",
-      "level": "SAFE_AUTOFIX",
+      "level": "DANGEROUS_REQUIRES_CODEX",
       "may_apply": false,
-      "recommended_action": "Preparar microfix seguro local"
+      "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
     },
     {
-      "issue_id": "AP-00789718AAAF",
-      "title": "Texto tecnico o mojibake visible",
-      "area": "texts",
+      "issue_id": "REFGAP-DD4D02E36E",
+      "title": "Gap visual de referencia en /track-record",
+      "area": "reference_visual",
       "severity": "medium",
-      "level": "SAFE_AUTOFIX",
+      "level": "DANGEROUS_REQUIRES_CODEX",
       "may_apply": false,
-      "recommended_action": "Preparar microfix seguro local"
+      "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
     },
     {
-      "issue_id": "AP-6660CC69ED67",
-      "title": "Texto tecnico o mojibake visible",
-      "area": "texts",
-      "severity": "medium",
-      "level": "SAFE_AUTOFIX",
+      "issue_id": "REFGAP-093DAC3277",
+      "title": "BROWSER_QA_UNAVAILABLE",
+      "area": "reference_visual",
+      "severity": "low",
+      "level": "DANGEROUS_REQUIRES_CODEX",
       "may_apply": false,
-      "recommended_action": "Preparar microfix seguro local"
+      "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
     },
     {
-      "issue_id": "AP-81E3EC4D665F",
-      "title": "Ruta con error 5xx",
-      "area": "visual",
-      "severity": "medium",
-      "level": "SAFE_AUTOFIX",
+      "issue_id": "REFGAP-5A79B111F3",
+      "title": "REFERENCE_IMAGES_IMPORTED",
+      "area": "reference_visual",
+      "severity": "low",
+      "level": "DANGEROUS_REQUIRES_CODEX",
       "may_apply": false,
-      "recommended_action": "Preparar microfix seguro local"
-    },
-    {
-      "issue_id": "AP-80F52E08F849",
-      "title": "Ruta cliente con estado inesperado",
-      "area": "visual",
-      "severity": "medium",
-      "level": "SAFE_AUTOFIX",
-      "may_apply": false,
-      "recommended_action": "Preparar microfix seguro local"
+      "recommended_action": "Generar prompt Codex y esperar aprobacion humana"
     }
   ],
   "engine_version": "V892_AUTONOMOUS_COMPANY_SENTINEL_REFERENCE_CODEX_WORKFORCE_FINAL",

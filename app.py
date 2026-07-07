@@ -339,7 +339,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V901_ADMIN_CONTINUOUS_SENTINEL_API_LAYOUT_RECOVERY_FINAL'
+APP_VERSION = 'V902_SENTINEL_FULL_ACTIVE_ISSUES_FIX_AND_TRUTH_CLEANUP_FINAL'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 
@@ -10491,7 +10491,7 @@ def dashboard_data(lane="today", date=None):
 @app.route("/service-worker.js")
 def service_worker():
     body = (
-        "const NEMESIS_CACHE='NEMESIS_CACHE_V901';\n"
+        "const NEMESIS_CACHE='NEMESIS_CACHE_V902';\n"
         "self.addEventListener('install',event=>{self.skipWaiting();});\n"
         "self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==NEMESIS_CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));});\n"
         "self.addEventListener('fetch',event=>{const req=event.request;if(req.mode==='navigate'){event.respondWith(fetch(req).then(res=>{if(res.status===404){return fetch('/');}return res;}).catch(()=>fetch('/')));return;}event.respondWith(fetch(req).then(res=>{if(res.status===404){return res;}return res;}));});\n"
@@ -14841,6 +14841,46 @@ def v822_runtime_stability_snapshot():
     }
 
 
+def v902_sentinel_truth_runtime_summary() -> dict:
+    root = Path(__file__).resolve().parent
+    summary_path = root / "data" / "runtime" / "sentinel_truth_v902_summary.json"
+    outbox_path = root / "data" / "runtime" / "autonomous_company_sentinel" / "codex_outbox.md"
+    summary = {}
+    try:
+        if summary_path.exists():
+            summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    except Exception:
+        summary = {}
+    outbox_text = ""
+    try:
+        outbox_text = outbox_path.read_text(encoding="utf-8", errors="replace") if outbox_path.exists() else ""
+    except Exception:
+        outbox_text = ""
+    def _section_count(title: str) -> int:
+        marker = f"## {title}"
+        start = outbox_text.find(marker)
+        if start < 0:
+            return 0
+        next_start = outbox_text.find("\n## ", start + len(marker))
+        section = outbox_text[start: next_start if next_start >= 0 else len(outbox_text)]
+        return section.count("\n# ")
+    return {
+        "sentinel_active_issues_count": int(summary.get("sentinel_active_issues_count") or 0),
+        "sentinel_stale_issues_count": int(summary.get("sentinel_stale_issues_count") or 0),
+        "sentinel_false_positive_count": int(summary.get("sentinel_false_positive_count") or 0),
+        "sentinel_resolved_by_rescan_count": int(summary.get("sentinel_resolved_by_rescan_count") or 0),
+        "sentinel_visual_reference_pending_count": int(summary.get("sentinel_visual_reference_pending_count") or 0),
+        "codex_outbox_active_prompts": _section_count("ACTIVE_FIX_PROMPTS"),
+        "codex_outbox_visual_prompts": _section_count("VISUAL_REFERENCE_PROMPTS"),
+        "codex_outbox_functional_prompts": _section_count("FUNCTIONAL_PROMPTS"),
+        "codex_outbox_admin_prompts": _section_count("ADMIN_PROMPTS"),
+        "codex_outbox_telegram_prompts": _section_count("TELEGRAM_PROMPTS"),
+        "codex_outbox_archived_prompts": outbox_text.count("\n- "),
+        "admin_api_health": "protected_json_403_without_session",
+        "continuous_sentinel_health": "dry_run_safe",
+    }
+
+
 @app.route("/api/runtime-version")
 def api_runtime_version():
     version_txt = ""
@@ -14903,6 +14943,7 @@ def api_runtime_version():
     logo_cache_state = "Cache de logos disponible" if logo_cache_count else "Fallback premium activo"
     version_files_match = bool(version_txt == APP_VERSION and (not app_version_file or app_version_file == APP_VERSION))
     deployment_alignment_status = "aligned_local_files" if version_files_match else "version_file_mismatch"
+    v902_truth_summary = v902_sentinel_truth_runtime_summary()
     return jsonify(sanitize_runtime_value({
         "ok": True,
         "app": APP_NAME,
@@ -15091,10 +15132,12 @@ def api_runtime_version():
         "has_v895_render_v894_deployment_alignment": "V895_RENDER_V894_DEPLOYMENT_ALIGNMENT_FINAL" in app_py_text and "deployment_alignment_status" in app_py_text,
         "has_v896_not_found_route_recovery": "V896_PRODUCTION_NOT_FOUND_ROUTE_RECOVERY_FULL_APP_SMOKE_FINAL" in app_py_text and "client_safe_404" in app_py_text and "/api/admin/not-found-events" in app_py_text,
         "has_v897_truthful_sentinel_route_alias_reference_qa": "V897_SENTINEL_TRUTHFUL_ISSUES_ROUTE_ALIAS_REFERENCE_QA_FIX_FINAL" in app_py_text and "register_alias_if_missing" in app_py_text and "data-v897-shell" in base_template,
-        "has_v898_404_pwa_reference_outbox_truth": "V898_PRODUCTION_404_PWA_REFERENCE_OUTBOX_TRUTH_FINAL" in app_py_text and ("NEMESIS_CACHE_V898" in app_py_text or "NEMESIS_CACHE_V900" in app_py_text or "NEMESIS_CACHE_V901" in app_py_text) and "/admin/not-found-events" in app_py_text,
+        "has_v898_404_pwa_reference_outbox_truth": "V898_PRODUCTION_404_PWA_REFERENCE_OUTBOX_TRUTH_FINAL" in app_py_text and ("NEMESIS_CACHE_V898" in app_py_text or "NEMESIS_CACHE_V900" in app_py_text or "NEMESIS_CACHE_V901" in app_py_text or "NEMESIS_CACHE_V902" in app_py_text) and "/admin/not-found-events" in app_py_text,
         "has_v899_reference_visual_browser_qa_product_gap_worker": "reference_scan" in app_py_text and "product_gap_engine" in app_py_text and "reference_image_manifest_engine" in app_py_text,
         "has_v900_reference_images_import_first_real_visual_gap_audit": "V900_REFERENCE_IMAGES_IMPORT_FIRST_REAL_VISUAL_GAP_AUDIT_FINAL" in app_py_text and "data-v900-shell" in base_template and "product_gap_engine" in app_py_text,
         "has_v901_admin_continuous_sentinel_api_layout_recovery": "V901_ADMIN_CONTINUOUS_SENTINEL_API_LAYOUT_RECOVERY_FINAL" in app_py_text and "data-v901-shell" in base_template and "v901_register_admin_api_issue" in app_py_text,
+        "has_v902_sentinel_full_active_issues_fix": "V902_SENTINEL_FULL_ACTIVE_ISSUES_FIX_AND_TRUTH_CLEANUP_FINAL" in app_py_text and "data-v902-shell" in base_template and "v902_sentinel_truth_runtime_summary" in app_py_text,
+        **v902_truth_summary,
         "has_v837_reference_photo_qa": "data-v837-shell" in base_template and "V837 REFERENCE PHOTO PERFECTION REAL QA START" in css_text,
         "has_v836_autonomous_qa": "data-v836-shell" in base_template and "V836 AUTONOMOUS REFERENCE VISUAL REVIEW FINAL QA START" in css_text,
         "has_v833_visual_completion": "data-v833-shell" in base_template and "V833 REFERENCE ECOSYSTEM VISUAL COMPLETION START" in css_text,

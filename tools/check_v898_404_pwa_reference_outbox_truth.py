@@ -14,6 +14,7 @@ CURRENT_ALLOWED = {
     "V899_REFERENCE_VISUAL_BROWSER_QA_PRODUCT_GAP_WORKER_FINAL",
     "V900_REFERENCE_IMAGES_IMPORT_FIRST_REAL_VISUAL_GAP_AUDIT_FINAL",
     "V901_ADMIN_CONTINUOUS_SENTINEL_API_LAYOUT_RECOVERY_FINAL",
+    "V902_SENTINEL_FULL_ACTIVE_ISSUES_FIX_AND_TRUTH_CLEANUP_FINAL",
 }
 ZIP_PATH = ROOT / "release_output" / f"NeMeSiS_SHARK_PRO_{VERSION}_RENDER_READY.zip"
 
@@ -44,19 +45,19 @@ def main() -> int:
     require(read("VERSION.txt").strip().lstrip("\ufeff") in CURRENT_ALLOWED, "VERSION.txt is not V898/V899/V900/V901", failures)
     require(read("APP_VERSION").strip().lstrip("\ufeff") in CURRENT_ALLOWED, "APP_VERSION file is not V898/V899/V900/V901", failures)
     require(app_version_from_source(app_py) in CURRENT_ALLOWED, "app.py APP_VERSION is not V898/V899/V900/V901", failures)
-    require(("data-v898-shell" in base or "data-v899-shell" in base or "data-v900-shell" in base or "data-v901-shell" in base), "base V898/V899/V900/V901 marker missing", failures)
+    require(("data-v898-shell" in base or "data-v899-shell" in base or "data-v900-shell" in base or "data-v901-shell" in base or "data-v902-shell" in base), "base V898/V899/V900/V901/V902 marker missing", failures)
     require("has_v898_404_pwa_reference_outbox_truth" in app_py, "runtime V898 flag missing", failures)
     require("Ruta solicitada:" in not_found and "{{ path }}" in not_found, "404 does not show safe requested path", failures)
     require("Restablecer app/PWA" in not_found, "PWA reset button missing", failures)
     require("serviceWorker.getRegistrations" in not_found and "caches.keys" in not_found, "PWA reset JS missing", failures)
     require("href=\"#\"" not in not_found and "javascript:void(0)" not in not_found.lower(), "404 has false links", failures)
-    require("NEMESIS_CACHE_V898" in app_py or "NEMESIS_CACHE_V899" in app_py or "NEMESIS_CACHE_V900" in app_py or "NEMESIS_CACHE_V901" in app_py, "service worker cache V898/V899/V900/V901 missing", failures)
+    require("NEMESIS_CACHE_V898" in app_py or "NEMESIS_CACHE_V899" in app_py or "NEMESIS_CACHE_V900" in app_py or "NEMESIS_CACHE_V901" in app_py or "NEMESIS_CACHE_V902" in app_py, "service worker cache V898/V899/V900/V901/V902 missing", failures)
     service_worker_block = app_py[app_py.find("def service_worker"):app_py.find("@app.route(\"/manifest.json\")")]
     require("res.status===404" in app_py and "caches.open" not in service_worker_block, "service worker may cache 404 or use old cache pattern", failures)
     require('"reference_images"' in builder, "build_clean_release does not include reference_images", failures)
     require((ROOT / "reference_images" / "README.md").exists(), "reference_images README missing", failures)
     require((ROOT / "reference_images" / "reference_manifest.json").exists(), "reference manifest missing", failures)
-    require("Prompts archivados / obsoletos" in outbox_engine, "outbox archive section missing", failures)
+    require("Prompts archivados / obsoletos" in outbox_engine or "ARCHIVED_OBSOLETE_PROMPTS" in outbox_engine, "outbox archive section missing", failures)
     require("archived_prompt_count" in outbox_engine, "outbox archived prompt count missing", failures)
     require("active_issues_open" in company_engine and "resolved_by_rescan" in company_engine, "autonomous state active/stale counters missing", failures)
 
@@ -80,7 +81,7 @@ def main() -> int:
 
     sw = client.get("/service-worker.js")
     sw_text = sw.get_data(as_text=True)
-    require(sw.status_code == 200 and ("NEMESIS_CACHE_V898" in sw_text or "NEMESIS_CACHE_V899" in sw_text or "NEMESIS_CACHE_V900" in sw_text or "NEMESIS_CACHE_V901" in sw_text), "service worker V898/V899/V900/V901 unavailable", failures)
+    require(sw.status_code == 200 and ("NEMESIS_CACHE_V898" in sw_text or "NEMESIS_CACHE_V899" in sw_text or "NEMESIS_CACHE_V900" in sw_text or "NEMESIS_CACHE_V901" in sw_text or "NEMESIS_CACHE_V902" in sw_text), "service worker V898/V899/V900/V901/V902 unavailable", failures)
     require("res.status===404" in sw_text and "caches.open" not in sw_text and ".put(" not in sw_text, "service worker caches or serves 404 incorrectly", failures)
     require(client.get("/manifest.json").status_code == 200, "manifest route not 200", failures)
 
@@ -96,7 +97,8 @@ def main() -> int:
     outbox = ROOT / "data" / "runtime" / "autonomous_company_sentinel" / "codex_outbox.md"
     if outbox.exists():
         text = outbox.read_text(encoding="utf-8", errors="replace")
-        active = text.split("## Prompts archivados / obsoletos", 1)[0]
+        archive_marker = "## Prompts archivados / obsoletos" if "## Prompts archivados / obsoletos" in text else "## ARCHIVED_OBSOLETE_PROMPTS"
+        active = text.split(archive_marker, 1)[0]
         for route in ["/partidos", "/calendar", "/live", "/directo", "/picks", "/shark"]:
             require(f"{route} 500" not in active and f"{route}:500" not in active and f"HTTP 500" not in active, f"outbox active section still has obsolete 500 prompt near {route}", failures)
 

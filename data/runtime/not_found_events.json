@@ -1,5 +1,5 @@
 {
-  "version": "V901_ADMIN_CONTINUOUS_SENTINEL_API_LAYOUT_RECOVERY_FINAL",
+  "version": "V902_SENTINEL_FULL_ACTIVE_ISSUES_FIX_AND_TRUTH_CLEANUP_FINAL",
   "events": [
     {
       "path": "/ruta-inventada",
@@ -8,9 +8,9 @@
       "user_agent": "Werkzeug/3.0.3",
       "resolved_alias": "",
       "source": "flask_404",
-      "count": 7,
+      "count": 8,
       "first_seen_madrid": "2026-07-06T10:37:04+02:00",
-      "last_seen_madrid": "2026-07-07T11:05:45+02:00"
+      "last_seen_madrid": "2026-07-07T12:10:51+02:00"
     },
     {
       "path": "/api/ruta-inventada",
@@ -19,20 +19,9 @@
       "user_agent": "Werkzeug/3.0.3",
       "resolved_alias": "",
       "source": "api_404",
-      "count": 7,
+      "count": 8,
       "first_seen_madrid": "2026-07-06T10:37:04+02:00",
-      "last_seen_madrid": "2026-07-07T11:05:45+02:00"
-    },
-    {
-      "path": "/api/ruta-inventada-v898",
-      "method": "GET",
-      "referrer": "",
-      "user_agent": "Werkzeug/3.0.3",
-      "resolved_alias": "",
-      "source": "api_404",
-      "count": 18,
-      "first_seen_madrid": "2026-07-06T11:37:54+02:00",
-      "last_seen_madrid": "2026-07-07T11:05:38+02:00"
+      "last_seen_madrid": "2026-07-07T12:10:51+02:00"
     },
     {
       "path": "/ruta-inventada-v898",
@@ -41,9 +30,20 @@
       "user_agent": "Werkzeug/3.0.3",
       "resolved_alias": "",
       "source": "flask_404",
-      "count": 18,
+      "count": 20,
       "first_seen_madrid": "2026-07-06T11:37:54+02:00",
-      "last_seen_madrid": "2026-07-07T11:05:37+02:00"
+      "last_seen_madrid": "2026-07-07T12:10:20+02:00"
+    },
+    {
+      "path": "/api/ruta-inventada-v898",
+      "method": "GET",
+      "referrer": "",
+      "user_agent": "Werkzeug/3.0.3",
+      "resolved_alias": "",
+      "source": "api_404",
+      "count": 20,
+      "first_seen_madrid": "2026-07-06T11:37:54+02:00",
+      "last_seen_madrid": "2026-07-07T12:10:20+02:00"
     },
     {
       "path": "/ruta-inventada-v896",
@@ -52,9 +52,9 @@
       "user_agent": "Werkzeug/3.0.3",
       "resolved_alias": "",
       "source": "flask_404",
-      "count": 14,
+      "count": 15,
       "first_seen_madrid": "2026-07-05T00:56:22+02:00",
-      "last_seen_madrid": "2026-07-07T11:05:11+02:00"
+      "last_seen_madrid": "2026-07-07T12:09:58+02:00"
     },
     {
       "path": "/api/ruta-inventada-v896",
@@ -63,9 +63,9 @@
       "user_agent": "Werkzeug/3.0.3",
       "resolved_alias": "",
       "source": "api_404",
-      "count": 14,
+      "count": 15,
       "first_seen_madrid": "2026-07-05T00:56:22+02:00",
-      "last_seen_madrid": "2026-07-07T11:05:11+02:00"
+      "last_seen_madrid": "2026-07-07T12:09:58+02:00"
     },
     {
       "path": "/admin-panel",
@@ -74,9 +74,9 @@
       "user_agent": "Werkzeug/3.0.3",
       "resolved_alias": "/admin/dashboard",
       "source": "legacy_alias",
-      "count": 29,
+      "count": 31,
       "first_seen_madrid": "2026-07-05T00:56:22+02:00",
-      "last_seen_madrid": "2026-07-07T11:05:11+02:00"
+      "last_seen_madrid": "2026-07-07T12:09:58+02:00"
     },
     {
       "path": "/directos",
@@ -85,9 +85,9 @@
       "user_agent": "Werkzeug/3.0.3",
       "resolved_alias": "/live",
       "source": "legacy_alias",
-      "count": 16,
+      "count": 17,
       "first_seen_madrid": "2026-07-05T00:56:22+02:00",
-      "last_seen_madrid": "2026-07-07T11:05:11+02:00"
+      "last_seen_madrid": "2026-07-07T12:09:58+02:00"
     },
     {
       "path": "/ruta-inventada-v897",
@@ -96,9 +96,9 @@
       "user_agent": "Werkzeug/3.0.3",
       "resolved_alias": "",
       "source": "flask_404",
-      "count": 13,
+      "count": 14,
       "first_seen_madrid": "2026-07-06T10:34:59+02:00",
-      "last_seen_madrid": "2026-07-07T11:04:27+02:00"
+      "last_seen_madrid": "2026-07-07T12:09:55+02:00"
     },
     {
       "path": "/api/ruta-inventada-v897",
@@ -107,9 +107,9 @@
       "user_agent": "Werkzeug/3.0.3",
       "resolved_alias": "",
       "source": "api_404",
-      "count": 13,
+      "count": 14,
       "first_seen_madrid": "2026-07-06T10:34:59+02:00",
-      "last_seen_madrid": "2026-07-07T11:04:27+02:00"
+      "last_seen_madrid": "2026-07-07T12:09:55+02:00"
     },
     {
       "path": "/dashboard",
@@ -145,5 +145,5 @@
       "last_seen_madrid": "2026-07-05T00:58:55+02:00"
     }
   ],
-  "updated_at_madrid": "2026-07-07T11:05:45+02:00"
+  "updated_at_madrid": "2026-07-07T12:10:51+02:00"
 }

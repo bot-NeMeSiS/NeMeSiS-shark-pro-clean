@@ -15,6 +15,7 @@ CURRENT_ALLOWED = {
     "V899_REFERENCE_VISUAL_BROWSER_QA_PRODUCT_GAP_WORKER_FINAL",
     "V900_REFERENCE_IMAGES_IMPORT_FIRST_REAL_VISUAL_GAP_AUDIT_FINAL",
     "V901_ADMIN_CONTINUOUS_SENTINEL_API_LAYOUT_RECOVERY_FINAL",
+    "V902_SENTINEL_FULL_ACTIVE_ISSUES_FIX_AND_TRUTH_CLEANUP_FINAL",
 }
 
 
@@ -53,7 +54,7 @@ def main() -> int:
     require("javascript:void" not in not_found_template.lower(), "404 template contains javascript:void", failures)
     require("V896 PRODUCTION NOT FOUND ROUTE RECOVERY" in css, "V896 CSS marker missing", failures)
     require("/manifest.json" in app_py and "manifest_json" in app_py, "manifest route missing", failures)
-    require("/service-worker.js" in app_py and ("NEMESIS_CACHE_V896" in app_py or "NEMESIS_CACHE_V897" in app_py or "NEMESIS_CACHE_V898" in app_py or "NEMESIS_CACHE_V899" in app_py or "NEMESIS_CACHE_V900" in app_py or "NEMESIS_CACHE_V901" in app_py), "service worker V896/V897/V898/V899/V900/V901 cache missing", failures)
+    require("/service-worker.js" in app_py and ("NEMESIS_CACHE_V896" in app_py or "NEMESIS_CACHE_V897" in app_py or "NEMESIS_CACHE_V898" in app_py or "NEMESIS_CACHE_V899" in app_py or "NEMESIS_CACHE_V900" in app_py or "NEMESIS_CACHE_V901" in app_py or "NEMESIS_CACHE_V902" in app_py), "service worker V896/V897/V898/V899/V900/V901/V902 cache missing", failures)
     require("data/runtime/not_found_events.json" in app_py or "not_found_events.json" in app_py, "not found memory path missing", failures)
     require("run_sentinel_issues_scan" in app_py and "Ruta devuelve Not Found" in app_py, "Sentinel Not Found integration missing", failures)
     require("V896_PRIMARY_ROUTE_SMOKE" in app_py and "/admin/autonomous-company-sentinel" in app_py, "autonomous route smoke list missing", failures)
@@ -114,7 +115,7 @@ def main() -> int:
 
     sw = client.get("/service-worker.js")
     require(sw.status_code == 200, f"service worker status {sw.status_code}", failures)
-    require("NEMESIS_CACHE_V896" in sw.get_data(as_text=True) or "NEMESIS_CACHE_V897" in sw.get_data(as_text=True) or "NEMESIS_CACHE_V898" in sw.get_data(as_text=True) or "NEMESIS_CACHE_V899" in sw.get_data(as_text=True) or "NEMESIS_CACHE_V900" in sw.get_data(as_text=True) or "NEMESIS_CACHE_V901" in sw.get_data(as_text=True), "service worker does not expose V896/V897/V898/V899/V900/V901 cache", failures)
+    require("NEMESIS_CACHE_V896" in sw.get_data(as_text=True) or "NEMESIS_CACHE_V897" in sw.get_data(as_text=True) or "NEMESIS_CACHE_V898" in sw.get_data(as_text=True) or "NEMESIS_CACHE_V899" in sw.get_data(as_text=True) or "NEMESIS_CACHE_V900" in sw.get_data(as_text=True) or "NEMESIS_CACHE_V901" in sw.get_data(as_text=True) or "NEMESIS_CACHE_V902" in sw.get_data(as_text=True), "service worker does not expose V896/V897/V898/V899/V900/V901/V902 cache", failures)
 
     expected_status = {
         "/": {200},

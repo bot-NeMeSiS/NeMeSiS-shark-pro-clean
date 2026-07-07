@@ -9,6 +9,10 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 VERSION = "V901_ADMIN_CONTINUOUS_SENTINEL_API_LAYOUT_RECOVERY_FINAL"
+CURRENT_ALLOWED = {
+    VERSION,
+    "V902_SENTINEL_FULL_ACTIVE_ISSUES_FIX_AND_TRUTH_CLEANUP_FINAL",
+}
 
 
 def read(rel: str) -> str:
@@ -39,12 +43,12 @@ def main() -> int:
     workflow_tpl = read("templates/admin_sentinel_workflow.html")
     shark_tpl = read("templates/admin_shark_sentinel.html")
 
-    require(read("VERSION.txt").strip().lstrip("\ufeff") == VERSION, "VERSION.txt is not V901", failures)
-    require(read("APP_VERSION").strip().lstrip("\ufeff") == VERSION, "APP_VERSION is not V901", failures)
-    require(app_version_from_source(app_py) == VERSION, "app.py APP_VERSION is not V901", failures)
+    require(read("VERSION.txt").strip().lstrip("\ufeff") in CURRENT_ALLOWED, "VERSION.txt is not V901/V902", failures)
+    require(read("APP_VERSION").strip().lstrip("\ufeff") in CURRENT_ALLOWED, "APP_VERSION is not V901/V902", failures)
+    require(app_version_from_source(app_py) in CURRENT_ALLOWED, "app.py APP_VERSION is not V901/V902", failures)
     require("has_v901_admin_continuous_sentinel_api_layout_recovery" in app_py, "runtime V901 flag missing", failures)
     require('data-v901-shell="true"' in base, "base V901 shell marker missing", failures)
-    require("NEMESIS_CACHE_V901" in app_py, "service worker cache V901 missing", failures)
+    require("NEMESIS_CACHE_V901" in app_py or "NEMESIS_CACHE_V902" in app_py, "service worker cache V901/V902 missing", failures)
 
     require("is_admin_surface = request.path == '/admin-login'" in base, "admin surface detection missing admin-login", failures)
     require("show_mobile_bottom_nav = not is_admin_surface" in base, "admin surface must hide client bottom nav", failures)
@@ -137,7 +141,7 @@ def main() -> int:
             require(resp.is_json, f"{route} should return JSON", failures)
 
     runtime = client.get("/api/runtime-version").get_json() or {}
-    require(runtime.get("app_version") == VERSION, "runtime app_version not V901", failures)
+    require(runtime.get("app_version") in CURRENT_ALLOWED, "runtime app_version not V901/V902", failures)
     require(runtime.get("has_v901_admin_continuous_sentinel_api_layout_recovery") is True, "runtime V901 flag false", failures)
 
     if failures:

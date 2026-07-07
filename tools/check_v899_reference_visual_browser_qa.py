@@ -11,6 +11,7 @@ CURRENT_ALLOWED = {
     VERSION,
     "V900_REFERENCE_IMAGES_IMPORT_FIRST_REAL_VISUAL_GAP_AUDIT_FINAL",
     "V901_ADMIN_CONTINUOUS_SENTINEL_API_LAYOUT_RECOVERY_FINAL",
+    "V902_SENTINEL_FULL_ACTIVE_ISSUES_FIX_AND_TRUTH_CLEANUP_FINAL",
 }
 
 
@@ -61,7 +62,8 @@ def main() -> int:
         require("reference_count" in manifest, "reference manifest count missing", failures)
 
     require("reference_scan" in app_py, "reference_scan mode missing in app.py", failures)
-    require("Prompts visuales / referencia" in read("engines/sentinel_codex_outbox_engine.py"), "visual prompt outbox section missing", failures)
+    outbox_engine_text = read("engines/sentinel_codex_outbox_engine.py")
+    require("Prompts visuales / referencia" in outbox_engine_text or "VISUAL_REFERENCE_PROMPTS" in outbox_engine_text, "visual prompt outbox section missing", failures)
     require("Referencia visual" in read("templates/admin_autonomous_company_sentinel.html"), "admin reference visual section missing", failures)
     require("reference gap" in read("templates/admin_sentinel_issues.html").lower() or "visual gap" in read("templates/admin_sentinel_issues.html").lower(), "admin issues reference filters missing", failures)
     require("Prompts visuales" in read("templates/admin_sentinel_codex_outbox.html"), "admin outbox visual prompts missing", failures)

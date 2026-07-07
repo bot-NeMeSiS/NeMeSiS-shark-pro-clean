@@ -1,11 +1,29 @@
-"""V892 Codex outbox writer for Autonomous Company Sentinel."""
+"""Codex outbox writer for Autonomous Company Sentinel."""
 from __future__ import annotations
 
 from pathlib import Path
 from typing import Any
 
 
-SENTINEL_CODEX_OUTBOX_VERSION = "V900_REFERENCE_IMAGES_IMPORT_FIRST_REAL_VISUAL_GAP_AUDIT_FINAL"
+SENTINEL_CODEX_OUTBOX_VERSION = "V902_SENTINEL_FULL_ACTIVE_ISSUES_FIX_AND_TRUTH_CLEANUP_FINAL"
+
+FALSE_POSITIVE_STATUSES = {
+    "FALSE_POSITIVE",
+    "FALSE_POSITIVE_BY_RESCAN",
+    "IGNORED_FALSE_POSITIVE",
+}
+
+ARCHIVED_STATUSES = {
+    "RESOLVED",
+    "RESOLVED_BY_RESCAN",
+    "ARCHIVED",
+    "STALE_ARCHIVED",
+}
+
+STALE_STATUSES = {
+    "STALE_NEEDS_REVALIDATION",
+    "NEEDS_REVALIDATION",
+}
 
 
 def company_sentinel_outbox_dir(root: str | Path) -> Path:
@@ -45,36 +63,101 @@ def build_codex_prompt(issue: dict[str, Any]) -> str:
     )
 
 
+def _issue_id(issue: dict[str, Any]) -> str:
+    return str(issue.get("id") or issue.get("issue_id") or "SENT-PENDING").replace("/", "-")
+
+
+def _status(issue: dict[str, Any]) -> str:
+    return str(issue.get("status") or "OPEN").upper()
+
+
+def _tags(issue: dict[str, Any]) -> set[str]:
+    raw = issue.get("tags") or []
+    if isinstance(raw, str):
+        raw = [raw]
+    return {str(item).lower() for item in raw}
+
+
+def _area(issue: dict[str, Any]) -> str:
+    return str(issue.get("area") or issue.get("category") or "").lower()
+
+
+def _is_reference_gap(issue: dict[str, Any]) -> bool:
+    issue_id = _issue_id(issue)
+    tags = _tags(issue)
+    area = _area(issue)
+    return "reference_gap" in tags or area in {"reference_visual", "visual_reference"} or issue_id.startswith("REFGAP-")
+
+
+def _bucket_for_issue(issue: dict[str, Any]) -> str:
+    status = _status(issue)
+    area = _area(issue)
+    tags = _tags(issue)
+    if status in FALSE_POSITIVE_STATUSES:
+        return "false_positive"
+    if status in ARCHIVED_STATUSES:
+        return "archived"
+    if _is_reference_gap(issue):
+        return "visual"
+    if status in STALE_STATUSES:
+        return "archived"
+    if area.startswith("admin") or "admin" in tags:
+        return "admin"
+    if "telegram" in area or "telegram" in tags:
+        return "telegram"
+    if area in {"navigation", "copy", "sports_data", "picks_odds", "live", "payments", "logos", "shark_ai", "visual_layout"}:
+        return "functional"
+    return "active"
+
+
+def _archive_line(issue: dict[str, Any]) -> str:
+    return (
+        f"- {_issue_id(issue)} | {_status(issue)} | "
+        f"{issue.get('route') or issue.get('screen') or 'Sin ruta'} | "
+        f"{issue.get('title') or 'Incidencia sin titulo'}"
+    )
+
+
 def write_codex_outbox(root: str | Path, issues: list[dict[str, Any]], archived_issues: list[dict[str, Any]] | None = None) -> dict[str, Any]:
     outbox = company_sentinel_outbox_dir(root)
     outbox.mkdir(parents=True, exist_ok=True)
     prompts = []
     visual_prompts = []
     functional_prompts = []
+    admin_prompts = []
+    telegram_prompts = []
+    false_positive_lines = []
     files = []
     for issue in issues:
-        issue_id = str(issue.get("id") or "SENT-PENDING").replace("/", "-")
+        issue_id = _issue_id(issue)
         prompt = build_codex_prompt(issue)
         path = outbox / f"{issue_id}_codex_prompt.md"
         path.write_text(prompt, encoding="utf-8")
         files.append(str(path))
         block = f"# {issue_id}\n\n{prompt}"
-        prompts.append(block)
-        tags = set(issue.get("tags") or [])
-        area = str(issue.get("area") or "")
-        if "reference_gap" in tags or area == "reference_visual":
+        bucket = _bucket_for_issue(issue)
+        if bucket == "visual":
             visual_prompts.append(block)
-        else:
+            prompts.append(block)
+        elif bucket == "admin":
+            admin_prompts.append(block)
+            prompts.append(block)
+        elif bucket == "telegram":
+            telegram_prompts.append(block)
+            prompts.append(block)
+        elif bucket == "functional":
             functional_prompts.append(block)
+            prompts.append(block)
+        elif bucket == "false_positive":
+            false_positive_lines.append(_archive_line(issue))
+        else:
+            prompts.append(block)
     archived_issues = archived_issues or []
     archived_lines = []
     for issue in archived_issues:
-        tags = set(issue.get("tags") or [])
-        area = str(issue.get("area") or "")
-        status = str(issue.get("status") or "")
-        issue_id = str(issue.get("id") or "SENT-PENDING").replace("/", "-")
-        is_reference_gap = "reference_gap" in tags or area == "reference_visual" or issue_id.startswith("REFGAP-")
-        should_reactivate = is_reference_gap and status in {"STALE_NEEDS_REVALIDATION", "NEEDS_REVALIDATION"}
+        issue_id = _issue_id(issue)
+        status = _status(issue)
+        should_reactivate = _is_reference_gap(issue) and status in STALE_STATUSES
         if should_reactivate:
             prompt = build_codex_prompt(issue)
             path = outbox / f"{issue_id}_codex_prompt.md"
@@ -84,18 +167,24 @@ def write_codex_outbox(root: str | Path, issues: list[dict[str, Any]], archived_
             prompts.append(block)
             visual_prompts.append(block)
             continue
-        archived_lines.append(
-            f"- {issue.get('id') or 'SIN-ID'} | {issue.get('status') or 'ARCHIVED'} | "
-            f"{issue.get('route') or 'Sin ruta'} | {issue.get('title') or 'Incidencia obsoleta'}"
-        )
-    active_section = "\n\n## Prompts activos\n\n" + ("\n\n---\n\n".join(prompts) if prompts else "Sin prompts Codex pendientes.")
-    visual_section = "\n\n## Prompts visuales / referencia\n\n" + ("\n\n---\n\n".join(visual_prompts) if visual_prompts else "Sin prompts visuales activos.")
-    functional_section = "\n\n## Prompts funcionales / producto\n\n" + ("\n\n---\n\n".join(functional_prompts) if functional_prompts else "Sin prompts funcionales activos.")
-    archived_section = (
-        "\n\n## Prompts archivados / obsoletos\n\n" + "\n".join(archived_lines)
-        if archived_lines else "\n\n## Prompts archivados / obsoletos\n\nSin prompts archivados."
+        if status in FALSE_POSITIVE_STATUSES:
+            false_positive_lines.append(_archive_line(issue))
+        else:
+            archived_lines.append(_archive_line(issue))
+
+    sections = [
+        ("ACTIVE_FIX_PROMPTS", prompts, "Sin prompts activos reproducidos."),
+        ("VISUAL_REFERENCE_PROMPTS", visual_prompts, "Sin prompts visuales activos."),
+        ("FUNCTIONAL_PROMPTS", functional_prompts, "Sin prompts funcionales activos."),
+        ("ADMIN_PROMPTS", admin_prompts, "Sin prompts admin activos."),
+        ("TELEGRAM_PROMPTS", telegram_prompts, "Sin prompts Telegram activos."),
+        ("ARCHIVED_OBSOLETE_PROMPTS", archived_lines, "Sin prompts archivados."),
+        ("FALSE_POSITIVE_PROMPTS", false_positive_lines, "Sin falsos positivos pendientes."),
+    ]
+    combined = "\n".join(
+        f"\n\n## {title}\n\n" + ("\n\n---\n\n".join(content) if content else empty)
+        for title, content, empty in sections
     )
-    combined = active_section + visual_section + functional_section + archived_section
     combined_path = outbox / "codex_outbox.md"
     combined_path.write_text(combined, encoding="utf-8")
     runtime_copy = Path(root) / "data" / "runtime" / "autonomous_company_sentinel" / "codex_outbox.md"
@@ -104,9 +193,13 @@ def write_codex_outbox(root: str | Path, issues: list[dict[str, Any]], archived_
     return {
         "engine_version": SENTINEL_CODEX_OUTBOX_VERSION,
         "prompt_count": len(prompts),
+        "active_prompt_count": len(prompts),
         "visual_prompt_count": len(visual_prompts),
         "functional_prompt_count": len(functional_prompts),
+        "admin_prompt_count": len(admin_prompts),
+        "telegram_prompt_count": len(telegram_prompts),
         "archived_prompt_count": len(archived_lines),
+        "false_positive_prompt_count": len(false_positive_lines),
         "files": files,
         "combined_path": str(combined_path),
         "runtime_copy": str(runtime_copy),

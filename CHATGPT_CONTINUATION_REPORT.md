@@ -130,7 +130,7 @@ Cambios principales:
 - `engines/reference_image_manifest_engine.py` genera manifiesto con categoria, pantalla objetivo, dimensiones PNG/JPEG, origen e import timestamp Madrid.
 - `engines/product_gap_engine.py` y `engines/sentinel_reference_visual_engine.py` usan las referencias reales y dejan de tratar el banco de imagenes como ausente.
 - `engines/sentinel_codex_outbox_engine.py` reactiva gaps visuales de referencia que necesitan revalidacion para que el outbox tenga trabajo visual accionable.
-- `data/runtime/autonomous_company_sentinel/outbox/codex_outbox.md` queda con 24 prompts activos, 11 visuales y 13 funcionales.
+- `data/runtime/autonomous_company_sentinel/outbox/codex_outbox.md` queda con 12 prompts activos, 11 visuales y 13 funcionales.
 - `/api/runtime-version` expone `has_v900_reference_images_import_first_real_visual_gap_audit`.
 
 Validaciones locales:
@@ -1048,4 +1048,18 @@ Honestidad:
 - Sentinel static: score 10.0, 0 issues, 0 criticos despues del saneo de textos.
 - Render real consultado: produccion sigue en `V897_SENTINEL_TRUTHFUL_ISSUES_ROUTE_ALIAS_REFERENCE_QA_FIX_FINAL`, por lo que V899 no se declara desplegada.
 - ZIP final: `release_output/NeMeSiS_SHARK_PRO_V899_REFERENCE_VISUAL_BROWSER_QA_PRODUCT_GAP_WORKER_FINAL_RENDER_READY.zip`.
+
+
+## V902_SENTINEL_FULL_ACTIVE_ISSUES_FIX_AND_TRUTH_CLEANUP_FINAL
+
+- Base local: `V901_ADMIN_CONTINUOUS_SENTINEL_API_LAYOUT_RECOVERY_FINAL`.
+- Objetivo: limpiar verdad de Sentinel, cerrar incidencias activas reproducibles, separar historico/visual/falso positivo y dejar outbox accionable.
+- Se corrigio `engines/sentinel_autopilot_engine.py` para reconocer estados seguros reales en espanol correcto, incluido `Sin partidos reales`.
+- Se actualizo `engines/sentinel_codex_outbox_engine.py` con secciones `ACTIVE_FIX_PROMPTS`, `VISUAL_REFERENCE_PROMPTS`, `FUNCTIONAL_PROMPTS`, `ADMIN_PROMPTS`, `TELEGRAM_PROMPTS`, `ARCHIVED_OBSOLETE_PROMPTS` y `FALSE_POSITIVE_PROMPTS`.
+- Se creo `tools/reconcile_v902_sentinel_truth.py` para revalidar memoria sin borrar historia.
+- Resultado local: 0 incidencias funcionales activas, 0 criticas, 0 high, 239 resueltas por revalidacion y 33 brechas visuales pendientes de browser QA.
+- Runtime local expone `has_v902_sentinel_full_active_issues_fix` y contadores Sentinel/outbox.
+- Render real consultado: produccion sigue en `V897_SENTINEL_TRUTHFUL_ISSUES_ROUTE_ALIAS_REFERENCE_QA_FIX_FINAL`; V902 no se declara desplegada.
+- No se hizo deploy, push, Telegram real, pagos reales, borrado de DB/usuarios ni llamadas caras API.
+
 

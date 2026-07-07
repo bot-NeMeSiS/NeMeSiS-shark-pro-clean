@@ -1,18 +1,18 @@
 {
-  "version": "V900_REFERENCE_IMAGES_IMPORT_FIRST_REAL_VISUAL_GAP_AUDIT_FINAL",
+  "version": "V902_SENTINEL_FULL_ACTIVE_ISSUES_FIX_AND_TRUTH_CLEANUP_FINAL",
   "engine_version": "V892_AUTONOMOUS_COMPANY_SENTINEL_REFERENCE_CODEX_WORKFORCE_FINAL",
-  "last_run_id": "ACS-20260706130627",
-  "last_run_madrid": "2026-07-06T13:06:27+02:00",
+  "last_run_id": "ACS-20260707121118",
+  "last_run_madrid": "2026-07-07T12:11:18+02:00",
   "last_mode": "reference_scan",
   "last_runner": "local",
-  "issues_open": 13,
-  "active_issues_open": 13,
-  "stale_issues": 30,
-  "resolved_by_rescan": 167,
-  "archived_prompts": 186,
+  "issues_open": 12,
+  "active_issues_open": 12,
+  "stale_issues": 0,
+  "resolved_by_rescan": 248,
+  "archived_prompts": 248,
   "critical": 0,
-  "high": 6,
+  "high": 3,
   "reference_gaps": 13,
   "browser_qa_available": false,
-  "visual_prompts": 11
+  "visual_prompts": 12
 }

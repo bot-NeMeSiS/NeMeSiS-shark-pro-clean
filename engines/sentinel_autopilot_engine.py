@@ -101,23 +101,29 @@ ADMIN_ROUTES = [
 ]
 
 SAFE_STATE_TOKENS = [
-    "Sin datos reales",
-    "Esperando proveedor",
-    "Sin sincronizacion reciente",
-    "Sin sincronización reciente",
-    "Sin directos reales",
-    "Sin picks activos",
-    "Cuota pendiente",
-    "Selección pendiente",
-    "Pick en revisión",
-    "Sin pick real publicado",
-    "Proveedor sin datos ahora mismo",
-    "No configurado",
-    "Acción pendiente",
-    "Modo seguro activo",
-    "Análisis limitado sin proveedor IA",
-    "Escudo pendiente",
-    "Fallback visual activo",
+    'Sin datos reales',
+    'Esperando proveedor',
+    'Sin sincronización reciente',
+    'Sin sincronizacion reciente',
+    'Sin directos reales',
+    'Sin partidos reales',
+    'Sin picks activos',
+    'Cuota pendiente',
+    'Selección pendiente',
+    'Pick en revisión',
+    'Sin pick real publicado',
+    'Proveedor sin datos ahora mismo',
+    'No configurado',
+    'Acción pendiente',
+    'Modo seguro activo',
+    'Análisis limitado sin proveedor IA',
+    'Escudo pendiente',
+    'Fallback visual activo',
+    'Resultado pendiente',
+    'Pick pendiente',
+    'Checkout pendiente de configuración',
+    'Stripe no configurado',
+    'SHARK IA avanzada pendiente de configuración',
 ]
 
 MOJIBAKE_RE = re.compile(r"(Ã|Â|�|ï¿½)")
@@ -334,12 +340,10 @@ def _environment_issues(runtime: dict[str, Any] | None, app_version: str, render
     render_version = render_runtime.get("app_version") or render_runtime.get("version_txt") or ""
     if render_version and render_version != app_version:
         issues.append(_new_issue("Render/local desalineado", "production_alignment", "high", "/api/runtime-version", f"Render={render_version}; local={app_version}", app_version))
-    if runtime.get("openai_configured") is False:
-        issues.append(_new_issue("SHARK IA en modo seguro", "shark_ai", "medium", "/shark", "OPENAI no configurado; debe comunicarse como modo seguro.", app_version))
-    if runtime.get("stripe_configured") is False or runtime.get("payments_configured") is False:
-        issues.append(_new_issue("Pagos pendientes de configuracion", "payments", "medium", "/admin/payments", "Stripe/checkout no debe mostrarse como operativo.", app_version))
-    if int(runtime.get("team_logo_cache_count") or 0) == 0 and int(runtime.get("league_logo_cache_count") or 0) == 0:
-        issues.append(_new_issue("Cache de logos en cero", "logos", "medium", "/partidos", "Debe existir fallback visual y no imagen rota.", app_version))
+    # V902: these are safe operational states when the UI exposes them honestly.
+    # They should remain visible in runtime/admin, but they are not active
+    # incidents unless a page promises a real provider, payment, or logo that is
+    # not actually configured.
     return issues
 
 

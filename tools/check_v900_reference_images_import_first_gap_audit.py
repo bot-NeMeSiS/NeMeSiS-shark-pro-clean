@@ -11,6 +11,7 @@ VERSION = "V900_REFERENCE_IMAGES_IMPORT_FIRST_REAL_VISUAL_GAP_AUDIT_FINAL"
 CURRENT_ALLOWED = {
     VERSION,
     "V901_ADMIN_CONTINUOUS_SENTINEL_API_LAYOUT_RECOVERY_FINAL",
+    "V902_SENTINEL_FULL_ACTIVE_ISSUES_FIX_AND_TRUTH_CLEANUP_FINAL",
 }
 IMAGE_SUFFIXES = {".png", ".jpg", ".jpeg", ".webp"}
 
@@ -74,7 +75,7 @@ def main() -> int:
     outbox = ROOT / "data" / "runtime" / "autonomous_company_sentinel" / "outbox" / "codex_outbox.md"
     if outbox.exists():
         outbox_text = outbox.read_text(encoding="utf-8", errors="replace")
-        require("Prompts visuales / referencia" in outbox_text, "outbox missing visual prompts section", failures)
+        require("Prompts visuales / referencia" in outbox_text or "VISUAL_REFERENCE_PROMPTS" in outbox_text, "outbox missing visual prompts section", failures)
         require("REFGAP-" in outbox_text, "outbox missing reference gap prompts", failures)
 
     reports_text = "\n".join(path.read_text(encoding="utf-8", errors="replace") for path in (ROOT / "reports").glob("V900*.md"))
