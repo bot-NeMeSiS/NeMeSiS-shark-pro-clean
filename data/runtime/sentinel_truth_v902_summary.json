@@ -1,19 +1,19 @@
 {
   "version": "V902_SENTINEL_FULL_ACTIVE_ISSUES_FIX_AND_TRUTH_CLEANUP_FINAL",
-  "generated_at_madrid": "2026-07-07T13:05:04+02:00",
+  "generated_at_madrid": "2026-07-07T16:03:03+02:00",
   "files": {
     "data\\runtime\\sentinel_issues_memory.json": {
-      "total": 260,
-      "changed": 0,
+      "total": 281,
+      "changed": 24,
       "active_count": 0,
       "critical_active_count": 0,
       "high_active_count": 0,
       "stale_count": 0,
       "false_positive_count": 0,
-      "resolved_by_rescan_count": 239,
+      "resolved_by_rescan_count": 260,
       "visual_reference_pending_count": 21,
       "status_counts": {
-        "RESOLVED_BY_RESCAN": 239,
+        "RESOLVED_BY_RESCAN": 260,
         "VISUAL_REFERENCE_PENDING_BROWSER_QA": 21
       }
     },
@@ -37,7 +37,7 @@
   "sentinel_high_active_count": 0,
   "sentinel_stale_issues_count": 0,
   "sentinel_false_positive_count": 0,
-  "sentinel_resolved_by_rescan_count": 239,
+  "sentinel_resolved_by_rescan_count": 260,
   "sentinel_visual_reference_pending_count": 33,
   "dangerous_actions_executed": false
 }

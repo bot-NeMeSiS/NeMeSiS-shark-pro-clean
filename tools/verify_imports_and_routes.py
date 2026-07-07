@@ -40,7 +40,7 @@ CRITICAL_ROUTES = [
 
 
 def literal_template_names() -> set[str]:
-    tree = ast.parse(APP_PATH.read_text(encoding="utf-8"))
+    tree = ast.parse(APP_PATH.read_text(encoding="utf-8-sig", errors="replace"))
     names: set[str] = set()
     for node in ast.walk(tree):
         if isinstance(node, ast.Call) and getattr(node.func, "id", "") == "render_template" and node.args:

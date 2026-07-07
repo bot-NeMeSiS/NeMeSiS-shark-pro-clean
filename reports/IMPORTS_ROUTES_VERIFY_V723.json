@@ -1,6 +1,6 @@
 {
   "ok": true,
-  "checked_at": "2026-07-06T11:42:07",
+  "checked_at": "2026-07-07T16:05:03",
   "templates_referenced": [
     "404.html",
     "account_center.html",
@@ -139,7 +139,7 @@
   ],
   "missing_static": [],
   "import_ok": true,
-  "version": "V898_PRODUCTION_404_PWA_REFERENCE_OUTBOX_TRUTH_FINAL",
+  "version": "V903_TOTAL_SENTINEL_AUTO_FIX_RENDER_ALIGNMENT_AND_STABILITY_FINAL",
   "route_count": 595,
   "routes": [
     "/",

@@ -47,9 +47,9 @@ def main() -> int:
         "git_branch_hint": git_branch_hint(),
         "has_v902": "V902_SENTINEL_FULL_ACTIVE_ISSUES_FIX_AND_TRUTH_CLEANUP_FINAL" in app_py
         and "data-v902-shell" in base,
-        "has_v902b": "V902B_DEPLOY_ALIGNMENT_AND_AUTOMATION_SECRET_ROTATION_GUARD_FINAL" in app_py
-        and "data-v902b-shell" in base,
-        "service_worker_cache": "V902B" if "NEMESIS_CACHE_V902B" in app_py else "unknown",
+        "has_v902b": "data-v902b-shell" in base and "mask_secret_for_url" in app_py,
+        "has_v903": "data-v903-shell" in base and "has_v903_total_sentinel_auto_fix_render_alignment" in app_py,
+        "service_worker_cache": "V903" if "NEMESIS_CACHE_V903" in app_py else ("V902B" if "NEMESIS_CACHE_V902B" in app_py else "unknown"),
         "secret_policy": "safe_placeholders_only",
     }
     print(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True))

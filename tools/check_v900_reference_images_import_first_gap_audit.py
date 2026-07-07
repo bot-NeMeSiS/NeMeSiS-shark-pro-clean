@@ -12,6 +12,8 @@ CURRENT_ALLOWED = {
     VERSION,
     "V901_ADMIN_CONTINUOUS_SENTINEL_API_LAYOUT_RECOVERY_FINAL",
     "V902_SENTINEL_FULL_ACTIVE_ISSUES_FIX_AND_TRUTH_CLEANUP_FINAL",
+    "V902B_DEPLOY_ALIGNMENT_AND_AUTOMATION_SECRET_ROTATION_GUARD_FINAL",
+    "V903_TOTAL_SENTINEL_AUTO_FIX_RENDER_ALIGNMENT_AND_STABILITY_FINAL",
 }
 IMAGE_SUFFIXES = {".png", ".jpg", ".jpeg", ".webp"}
 
@@ -37,9 +39,9 @@ def main() -> int:
     version_txt = read("VERSION.txt").strip().lstrip("\ufeff")
     app_version_file = read("APP_VERSION").strip().lstrip("\ufeff")
 
-    require(version_txt in CURRENT_ALLOWED, "VERSION.txt is not V900/V901", failures)
-    require(app_version_file in CURRENT_ALLOWED, "APP_VERSION file is not V900/V901", failures)
-    require(app_version_from_source(app_py) in CURRENT_ALLOWED, "app.py APP_VERSION is not V900/V901", failures)
+    require(version_txt in CURRENT_ALLOWED, "VERSION.txt is not an allowed V900+ release", failures)
+    require(app_version_file in CURRENT_ALLOWED, "APP_VERSION file is not an allowed V900+ release", failures)
+    require(app_version_from_source(app_py) in CURRENT_ALLOWED, "app.py APP_VERSION is not an allowed V900+ release", failures)
     require("has_v900_reference_images_import_first_real_visual_gap_audit" in app_py, "runtime V900 flag missing", failures)
     require('data-v900-shell="true"' in base, "base V900 shell marker missing", failures)
 

@@ -11,7 +11,8 @@ if str(ROOT) not in sys.path:
 
 VERSION = "V902_SENTINEL_FULL_ACTIVE_ISSUES_FIX_AND_TRUTH_CLEANUP_FINAL"
 V902B_VERSION = "V902B_DEPLOY_ALIGNMENT_AND_AUTOMATION_SECRET_ROTATION_GUARD_FINAL"
-ALLOWED_VERSIONS = {VERSION, V902B_VERSION}
+V903_VERSION = "V903_TOTAL_SENTINEL_AUTO_FIX_RENDER_ALIGNMENT_AND_STABILITY_FINAL"
+ALLOWED_VERSIONS = {VERSION, V902B_VERSION, V903_VERSION}
 REQUIRED_REPORTS = [
     "reports/V902_SENTINEL_FULL_ACTIVE_ISSUES_FIX_REPORT.md",
     "reports/V902_SENTINEL_ACTIVE_ISSUES_INVENTORY.md",
@@ -49,10 +50,10 @@ def main() -> int:
     base = read("templates/base.html")
     outbox = read("data/runtime/autonomous_company_sentinel/codex_outbox.md")
 
-    require(read("VERSION.txt").strip().lstrip("\ufeff") in ALLOWED_VERSIONS, "VERSION.txt is not V902/V902B", failures)
-    require(read("APP_VERSION").strip().lstrip("\ufeff") in ALLOWED_VERSIONS, "APP_VERSION file is not V902/V902B", failures)
-    require(app_version_from_source(app_py) in ALLOWED_VERSIONS, "app.py APP_VERSION is not V902/V902B", failures)
-    require("NEMESIS_CACHE_V902" in app_py or "NEMESIS_CACHE_V902B" in app_py, "service worker cache V902/V902B missing", failures)
+    require(read("VERSION.txt").strip().lstrip("\ufeff") in ALLOWED_VERSIONS, "VERSION.txt is not an allowed V902+ release", failures)
+    require(read("APP_VERSION").strip().lstrip("\ufeff") in ALLOWED_VERSIONS, "APP_VERSION file is not an allowed V902+ release", failures)
+    require(app_version_from_source(app_py) in ALLOWED_VERSIONS, "app.py APP_VERSION is not an allowed V902+ release", failures)
+    require("NEMESIS_CACHE_V902" in app_py or "NEMESIS_CACHE_V902B" in app_py or "NEMESIS_CACHE_V903" in app_py, "service worker cache V902+ missing", failures)
     require("has_v902_sentinel_full_active_issues_fix" in app_py, "runtime V902 flag missing", failures)
     require('data-v902-shell="true"' in base, "base V902 shell marker missing", failures)
 
@@ -87,7 +88,7 @@ def main() -> int:
     runtime_resp = client.get("/api/runtime-version")
     runtime = runtime_resp.get_json() or {}
     require(runtime_resp.status_code == 200 and runtime_resp.is_json, "runtime-version not JSON 200", failures)
-    require(runtime.get("app_version") in ALLOWED_VERSIONS, "runtime app_version not V902/V902B", failures)
+    require(runtime.get("app_version") in ALLOWED_VERSIONS, "runtime app_version is not an allowed V902+ release", failures)
     require(runtime.get("has_v902_sentinel_full_active_issues_fix") is True, "runtime V902 flag false", failures)
     require(runtime.get("sentinel_active_issues_count") == 0, "runtime active issues not zero", failures)
     require(runtime.get("codex_outbox_visual_prompts", 0) >= 1, "runtime visual outbox count missing", failures)

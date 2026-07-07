@@ -339,7 +339,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V902B_DEPLOY_ALIGNMENT_AND_AUTOMATION_SECRET_ROTATION_GUARD_FINAL'
+APP_VERSION = 'V903_TOTAL_SENTINEL_AUTO_FIX_RENDER_ALIGNMENT_AND_STABILITY_FINAL'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 
@@ -10505,7 +10505,7 @@ def dashboard_data(lane="today", date=None):
 @app.route("/service-worker.js")
 def service_worker():
     body = (
-        "const NEMESIS_CACHE='NEMESIS_CACHE_V902B';\n"
+        "const NEMESIS_CACHE='NEMESIS_CACHE_V903';\n"
         "self.addEventListener('install',event=>{self.skipWaiting();});\n"
         "self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==NEMESIS_CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));});\n"
         "self.addEventListener('fetch',event=>{const req=event.request;if(req.mode==='navigate'){event.respondWith(fetch(req).then(res=>{if(res.status===404){return fetch('/');}return res;}).catch(()=>fetch('/')));return;}event.respondWith(fetch(req).then(res=>{if(res.status===404){return res;}return res;}));});\n"
@@ -14958,6 +14958,11 @@ def api_runtime_version():
     version_files_match = bool(version_txt == APP_VERSION and (not app_version_file or app_version_file == APP_VERSION))
     deployment_alignment_status = "aligned_local_files" if version_files_match else "version_file_mismatch"
     v902_truth_summary = v902_sentinel_truth_runtime_summary()
+    v903_active_errors_count = int(v902_truth_summary.get("sentinel_active_issues_count") or 0)
+    v903_stale_issues_count = int(v902_truth_summary.get("sentinel_stale_issues_count") or 0)
+    v903_false_positive_count = int(v902_truth_summary.get("sentinel_false_positive_count") or 0)
+    v903_archived_count = int(v902_truth_summary.get("sentinel_resolved_by_rescan_count") or 0)
+    v903_dangerous_count = 0
     return jsonify(sanitize_runtime_value({
         "ok": True,
         "app": APP_NAME,
@@ -14969,6 +14974,7 @@ def api_runtime_version():
         "app_version_file": app_version_file,
         "version_files_match": version_files_match,
         "deployment_alignment_status": deployment_alignment_status,
+        "render_alignment_status": deployment_alignment_status,
         "v897_alias_registration": globals().get("V897_ALIAS_REGISTRATION", []),
         "time": now_iso(),
         "generated_at": now_iso(),
@@ -15146,13 +15152,27 @@ def api_runtime_version():
         "has_v895_render_v894_deployment_alignment": "V895_RENDER_V894_DEPLOYMENT_ALIGNMENT_FINAL" in app_py_text and "deployment_alignment_status" in app_py_text,
         "has_v896_not_found_route_recovery": "V896_PRODUCTION_NOT_FOUND_ROUTE_RECOVERY_FULL_APP_SMOKE_FINAL" in app_py_text and "client_safe_404" in app_py_text and "/api/admin/not-found-events" in app_py_text,
         "has_v897_truthful_sentinel_route_alias_reference_qa": "V897_SENTINEL_TRUTHFUL_ISSUES_ROUTE_ALIAS_REFERENCE_QA_FIX_FINAL" in app_py_text and "register_alias_if_missing" in app_py_text and "data-v897-shell" in base_template,
-        "has_v898_404_pwa_reference_outbox_truth": "V898_PRODUCTION_404_PWA_REFERENCE_OUTBOX_TRUTH_FINAL" in app_py_text and ("NEMESIS_CACHE_V898" in app_py_text or "NEMESIS_CACHE_V900" in app_py_text or "NEMESIS_CACHE_V901" in app_py_text or "NEMESIS_CACHE_V902" in app_py_text or "NEMESIS_CACHE_V902B" in app_py_text) and "/admin/not-found-events" in app_py_text,
+        "has_v898_404_pwa_reference_outbox_truth": "V898_PRODUCTION_404_PWA_REFERENCE_OUTBOX_TRUTH_FINAL" in app_py_text and ("NEMESIS_CACHE_V898" in app_py_text or "NEMESIS_CACHE_V900" in app_py_text or "NEMESIS_CACHE_V901" in app_py_text or "NEMESIS_CACHE_V902" in app_py_text or "NEMESIS_CACHE_V903" in app_py_text) and "/admin/not-found-events" in app_py_text,
         "has_v899_reference_visual_browser_qa_product_gap_worker": "reference_scan" in app_py_text and "product_gap_engine" in app_py_text and "reference_image_manifest_engine" in app_py_text,
         "has_v900_reference_images_import_first_real_visual_gap_audit": "V900_REFERENCE_IMAGES_IMPORT_FIRST_REAL_VISUAL_GAP_AUDIT_FINAL" in app_py_text and "data-v900-shell" in base_template and "product_gap_engine" in app_py_text,
         "has_v901_admin_continuous_sentinel_api_layout_recovery": "V901_ADMIN_CONTINUOUS_SENTINEL_API_LAYOUT_RECOVERY_FINAL" in app_py_text and "data-v901-shell" in base_template and "v901_register_admin_api_issue" in app_py_text,
         "has_v902_sentinel_full_active_issues_fix": "V902_SENTINEL_FULL_ACTIVE_ISSUES_FIX_AND_TRUTH_CLEANUP_FINAL" in app_py_text and "data-v902-shell" in base_template and "v902_sentinel_truth_runtime_summary" in app_py_text,
-        "has_v902b_deploy_alignment_secret_rotation_guard": "V902B_DEPLOY_ALIGNMENT_AND_AUTOMATION_SECRET_ROTATION_GUARD_FINAL" in app_py_text and "data-v902b-shell" in base_template and "mask_secret_for_url" in app_py_text,
+        "has_v902b_deploy_alignment_secret_rotation_guard": "data-v902b-shell" in base_template and "mask_secret_for_url" in app_py_text,
+        "has_v903_total_sentinel_auto_fix_render_alignment": "V903_TOTAL_SENTINEL_AUTO_FIX_RENDER_ALIGNMENT_AND_STABILITY_FINAL" in app_py_text and "data-v903-shell" in base_template,
+        "has_v903_secret_rotation_guard": "mask_secret_for_url" in app_py_text and "automation_secret_state" in app_py_text,
+        "has_v903_active_errors_inventory": (Path(__file__).resolve().parent / "reports" / "V903_TOTAL_ACTIVE_ERRORS_INVENTORY.md").exists(),
         **v902_truth_summary,
+        "active_errors_count": v903_active_errors_count,
+        "fixed_safe_count": v903_archived_count,
+        "stale_issues_count": v903_stale_issues_count,
+        "false_positive_count": v903_false_positive_count,
+        "dangerous_requires_approval_count": v903_dangerous_count,
+        "codex_outbox_active_prompts": v902_truth_summary.get("codex_outbox_active_prompts", 0),
+        "codex_outbox_archived_prompts": v902_truth_summary.get("codex_outbox_archived_prompts", 0),
+        "secret_masking_ok": "mask_secret_for_url" in app_py_text and "***hidden***" in (Path(__file__).resolve().parent / "tools" / "render_cron_telegram_tick.py").read_text(encoding="utf-8", errors="replace"),
+        "admin_health": "protected_json_403_without_session",
+        "client_health": "static_smoke_safe",
+        "telegram_dry_run_health": "protected_403_without_secret",
         "has_v837_reference_photo_qa": "data-v837-shell" in base_template and "V837 REFERENCE PHOTO PERFECTION REAL QA START" in css_text,
         "has_v836_autonomous_qa": "data-v836-shell" in base_template and "V836 AUTONOMOUS REFERENCE VISUAL REVIEW FINAL QA START" in css_text,
         "has_v833_visual_completion": "data-v833-shell" in base_template and "V833 REFERENCE ECOSYSTEM VISUAL COMPLETION START" in css_text,

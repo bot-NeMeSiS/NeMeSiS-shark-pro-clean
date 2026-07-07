@@ -2,148 +2,12 @@
 
 ## ACTIVE_FIX_PROMPTS
 
-# REFGAP-9ED7BD46AB
-
-Corrige esta diferencia visual/funcional en NeMeSiS SHARK PRO sin romper nada anterior.  ID: REFGAP-32A5E0C96C  Pantalla: /app  Ruta: /app  Referencia: reference_images/client/reference_import_v900_08.png  Problema detectado: Gap visual de referencia en /app  Por que se aleja de la referencia: Pendiente de captura real; evaluacion limitada a heuristicas.  Objetivo visual: app movil compacta sin overflow y con bottom nav clara  Restricciones: * No inventar datos. * No tocar secretos. * No romper usuarios, sesiones, membresias, pagos, DB_PATH, Madrid Time, Render Cron ni Telegram dedupe. * Mantener cliente/admin separados. * Mantener estados seguros si faltan datos reales. * Mantener responsive movil/PC. * No enviar Telegram real. * No hacer pagos reales.  Que debes hacer: Revisar /app contra la referencia de mobile y corregir solo diferencias visibles reales.  Validaciones: * python -m py_compile app.py * python tools/run_continuous_sentinel_static.py * python tools/run_reference_visual_gap_scan.py --dry-run  Entrega: * resumen; * archivos tocados; * capturas si existen; * checks; * limitaciones honestas.
-
----
-
-# REFGAP-DD35B464A5
-
-Corrige esta diferencia visual/funcional en NeMeSiS SHARK PRO sin romper nada anterior.  ID: REFGAP-DD35B464A5  Pantalla: /admin/dashboard  Ruta: /admin/dashboard  Referencia: reference_images/admin/reference_import_v900_01.png  Problema detectado: Gap visual de referencia en /admin/dashboard  Por que se aleja de la referencia: Pendiente de captura real; evaluacion limitada a heuristicas.  Objetivo visual: command center denso, claro y operativo  Restricciones: * No inventar datos. * No tocar secretos. * No romper usuarios, sesiones, membresias, pagos, DB_PATH, Madrid Time, Render Cron ni Telegram dedupe. * Mantener cliente/admin separados. * Mantener estados seguros si faltan datos reales. * Mantener responsive movil/PC. * No enviar Telegram real. * No hacer pagos reales.  Que debes hacer: Revisar /admin/dashboard contra la referencia de admin y corregir solo diferencias visibles reales.  Validaciones: * python -m py_compile app.py * python tools/run_continuous_sentinel_static.py * python tools/run_reference_visual_gap_scan.py --dry-run  Entrega: * resumen; * archivos tocados; * capturas si existen; * checks; * limitaciones honestas.
-
----
-
-# REFGAP-91020397A6
-
-Corrige esta diferencia visual/funcional en NeMeSiS SHARK PRO sin romper nada anterior.  ID: REFGAP-91020397A6  Pantalla: /picks  Ruta: /picks  Referencia: reference_images/picks/reference_import_v900_11.png  Problema detectado: Gap visual de referencia en /picks  Por que se aleja de la referencia: Pendiente de captura real; evaluacion limitada a heuristicas.  Objetivo visual: picks como producto premium, sin cuota inventada  Restricciones: * No inventar datos. * No tocar secretos. * No romper usuarios, sesiones, membresias, pagos, DB_PATH, Madrid Time, Render Cron ni Telegram dedupe. * Mantener cliente/admin separados. * Mantener estados seguros si faltan datos reales. * Mantener responsive movil/PC. * No enviar Telegram real. * No hacer pagos reales.  Que debes hacer: Revisar /picks contra la referencia de picks y corregir solo diferencias visibles reales.  Validaciones: * python -m py_compile app.py * python tools/run_continuous_sentinel_static.py * python tools/run_reference_visual_gap_scan.py --dry-run  Entrega: * resumen; * archivos tocados; * capturas si existen; * checks; * limitaciones honestas.
-
----
-
-# REFGAP-F243DB0151
-
-Corrige esta diferencia visual/funcional en NeMeSiS SHARK PRO sin romper nada anterior.  ID: REFGAP-F243DB0151  Pantalla: /live  Ruta: /live  Referencia: reference_images/live/reference_import_v900_09.png  Problema detectado: Gap visual de referencia en /live  Por que se aleja de la referencia: Pendiente de captura real; evaluacion limitada a heuristicas.  Objetivo visual: directos claros tipo marcador premium con estados reales  Restricciones: * No inventar datos. * No tocar secretos. * No romper usuarios, sesiones, membresias, pagos, DB_PATH, Madrid Time, Render Cron ni Telegram dedupe. * Mantener cliente/admin separados. * Mantener estados seguros si faltan datos reales. * Mantener responsive movil/PC. * No enviar Telegram real. * No hacer pagos reales.  Que debes hacer: Revisar /live contra la referencia de live y corregir solo diferencias visibles reales.  Validaciones: * python -m py_compile app.py * python tools/run_continuous_sentinel_static.py * python tools/run_reference_visual_gap_scan.py --dry-run  Entrega: * resumen; * archivos tocados; * capturas si existen; * checks; * limitaciones honestas.
-
----
-
-# REFGAP-AF28C5F3F0
-
-Corrige esta diferencia visual/funcional en NeMeSiS SHARK PRO sin romper nada anterior.  ID: REFGAP-AF28C5F3F0  Pantalla: /calendar  Ruta: /calendar  Referencia: reference_images/calendar/reference_import_v900_10.png  Problema detectado: Gap visual de referencia en /calendar  Por que se aleja de la referencia: Pendiente de captura real; evaluacion limitada a heuristicas.  Objetivo visual: calendario denso, filtrable y honesto  Restricciones: * No inventar datos. * No tocar secretos. * No romper usuarios, sesiones, membresias, pagos, DB_PATH, Madrid Time, Render Cron ni Telegram dedupe. * Mantener cliente/admin separados. * Mantener estados seguros si faltan datos reales. * Mantener responsive movil/PC. * No enviar Telegram real. * No hacer pagos reales.  Que debes hacer: Revisar /calendar contra la referencia de calendar y corregir solo diferencias visibles reales.  Validaciones: * python -m py_compile app.py * python tools/run_continuous_sentinel_static.py * python tools/run_reference_visual_gap_scan.py --dry-run  Entrega: * resumen; * archivos tocados; * capturas si existen; * checks; * limitaciones honestas.
-
----
-
-# REFGAP-53DDCF3EBF
-
-Corrige esta diferencia visual/funcional en NeMeSiS SHARK PRO sin romper nada anterior.  ID: REFGAP-53DDCF3EBF  Pantalla: /telegram  Ruta: /telegram  Referencia: reference_images/telegram/reference_import_v900_16.png  Problema detectado: Gap visual de referencia en /telegram  Por que se aleja de la referencia: Pendiente de captura real; evaluacion limitada a heuristicas.  Objetivo visual: Telegram premium sin filler ni envios inventados  Restricciones: * No inventar datos. * No tocar secretos. * No romper usuarios, sesiones, membresias, pagos, DB_PATH, Madrid Time, Render Cron ni Telegram dedupe. * Mantener cliente/admin separados. * Mantener estados seguros si faltan datos reales. * Mantener responsive movil/PC. * No enviar Telegram real. * No hacer pagos reales.  Que debes hacer: Revisar /telegram contra la referencia de telegram y corregir solo diferencias visibles reales.  Validaciones: * python -m py_compile app.py * python tools/run_continuous_sentinel_static.py * python tools/run_reference_visual_gap_scan.py --dry-run  Entrega: * resumen; * archivos tocados; * capturas si existen; * checks; * limitaciones honestas.
-
----
-
-# REFGAP-65EFF7C1DF
-
-Corrige esta diferencia visual/funcional en NeMeSiS SHARK PRO sin romper nada anterior.  ID: REFGAP-65EFF7C1DF  Pantalla: /shark  Ruta: /shark  Referencia: reference_images/shark/reference_import_v900_12.png  Problema detectado: Gap visual de referencia en /shark  Por que se aleja de la referencia: Pendiente de captura real; evaluacion limitada a heuristicas.  Objetivo visual: SHARK como cerebro del producto y modo seguro si falta OpenAI  Restricciones: * No inventar datos. * No tocar secretos. * No romper usuarios, sesiones, membresias, pagos, DB_PATH, Madrid Time, Render Cron ni Telegram dedupe. * Mantener cliente/admin separados. * Mantener estados seguros si faltan datos reales. * Mantener responsive movil/PC. * No enviar Telegram real. * No hacer pagos reales.  Que debes hacer: Revisar /shark contra la referencia de shark y corregir solo diferencias visibles reales.  Validaciones: * python -m py_compile app.py * python tools/run_continuous_sentinel_static.py * python tools/run_reference_visual_gap_scan.py --dry-run  Entrega: * resumen; * archivos tocados; * capturas si existen; * checks; * limitaciones honestas.
-
----
-
-# REFGAP-20D1BD0C86
-
-Corrige esta diferencia visual/funcional en NeMeSiS SHARK PRO sin romper nada anterior.  ID: REFGAP-20D1BD0C86  Pantalla: /membresias  Ruta: /membresias  Referencia: reference_images/memberships/reference_import_v900_14.png  Problema detectado: Gap visual de referencia en /membresias  Por que se aleja de la referencia: Pendiente de captura real; evaluacion limitada a heuristicas.  Objetivo visual: planes diferenciados con valor comercial real  Restricciones: * No inventar datos. * No tocar secretos. * No romper usuarios, sesiones, membresias, pagos, DB_PATH, Madrid Time, Render Cron ni Telegram dedupe. * Mantener cliente/admin separados. * Mantener estados seguros si faltan datos reales. * Mantener responsive movil/PC. * No enviar Telegram real. * No hacer pagos reales.  Que debes hacer: Revisar /membresias contra la referencia de memberships y corregir solo diferencias visibles reales.  Validaciones: * python -m py_compile app.py * python tools/run_continuous_sentinel_static.py * python tools/run_reference_visual_gap_scan.py --dry-run  Entrega: * resumen; * archivos tocados; * capturas si existen; * checks; * limitaciones honestas.
-
----
-
-# REFGAP-478B1233BD
-
-Corrige esta diferencia visual/funcional en NeMeSiS SHARK PRO sin romper nada anterior.  ID: REFGAP-478B1233BD  Pantalla: /profile  Ruta: /profile  Referencia: reference_images/profile/reference_import_v900_15.png  Problema detectado: Gap visual de referencia en /profile  Por que se aleja de la referencia: Pendiente de captura real; evaluacion limitada a heuristicas.  Objetivo visual: perfil claro con plan, Telegram, seguridad y salida visible  Restricciones: * No inventar datos. * No tocar secretos. * No romper usuarios, sesiones, membresias, pagos, DB_PATH, Madrid Time, Render Cron ni Telegram dedupe. * Mantener cliente/admin separados. * Mantener estados seguros si faltan datos reales. * Mantener responsive movil/PC. * No enviar Telegram real. * No hacer pagos reales.  Que debes hacer: Revisar /profile contra la referencia de profile y corregir solo diferencias visibles reales.  Validaciones: * python -m py_compile app.py * python tools/run_continuous_sentinel_static.py * python tools/run_reference_visual_gap_scan.py --dry-run  Entrega: * resumen; * archivos tocados; * capturas si existen; * checks; * limitaciones honestas.
-
----
-
-# REFGAP-DD4D02E36E
-
-Corrige esta diferencia visual/funcional en NeMeSiS SHARK PRO sin romper nada anterior.  ID: REFGAP-DD4D02E36E  Pantalla: /track-record  Ruta: /track-record  Referencia: reference_images/track-record/reference_import_v900_13.png  Problema detectado: Gap visual de referencia en /track-record  Por que se aleja de la referencia: Pendiente de captura real; evaluacion limitada a heuristicas.  Objetivo visual: historico honesto con resultados reales y sin ROI inventado  Restricciones: * No inventar datos. * No tocar secretos. * No romper usuarios, sesiones, membresias, pagos, DB_PATH, Madrid Time, Render Cron ni Telegram dedupe. * Mantener cliente/admin separados. * Mantener estados seguros si faltan datos reales. * Mantener responsive movil/PC. * No enviar Telegram real. * No hacer pagos reales.  Que debes hacer: Revisar /track-record contra la referencia de track-record y corregir solo diferencias visibles reales.  Validaciones: * python -m py_compile app.py * python tools/run_continuous_sentinel_static.py * python tools/run_reference_visual_gap_scan.py --dry-run  Entrega: * resumen; * archivos tocados; * capturas si existen; * checks; * limitaciones honestas.
-
----
-
-# REFGAP-093DAC3277
-
-Corrige esta diferencia visual/funcional en NeMeSiS SHARK PRO sin romper nada anterior.  ID: REFGAP-093DAC3277  Pantalla: Browser QA  Ruta: browser  Referencia: No aplica  Problema detectado: BROWSER_QA_UNAVAILABLE  Por que se aleja de la referencia: Playwright no disponible o capturas no ejecutadas; no se puede comparar con precision visual real.  Objetivo visual: Ejecutar browser QA real antes de afirmar cercania visual.  Restricciones: * No inventar datos. * No tocar secretos. * No romper usuarios, sesiones, membresias, pagos, DB_PATH, Madrid Time, Render Cron ni Telegram dedupe. * Mantener cliente/admin separados. * Mantener estados seguros si faltan datos reales. * Mantener responsive movil/PC. * No enviar Telegram real. * No hacer pagos reales.  Que debes hacer: Instalar Playwright o ejecutar la QA visual en entorno con navegador disponible.  Validaciones: * python -m py_compile app.py * python tools/run_continuous_sentinel_static.py * python tools/run_reference_visual_gap_scan.py --dry-run  Entrega: * resumen; * archivos tocados; * capturas si existen; * checks; * limitaciones honestas.
-
----
-
-# REFGAP-5A79B111F3
-
-Corrige esta diferencia visual/funcional en NeMeSiS SHARK PRO sin romper nada anterior.  ID: REFGAP-5A79B111F3  Pantalla: Banco de referencias  Ruta: reference_images  Referencia: reference_images/  Problema detectado: REFERENCE_IMAGES_IMPORTED  Por que se aleja de la referencia: 16 imagenes reales importadas; categorias: admin, calendar, client, live, memberships, picks, profile, shark, telegram, track-record.  Objetivo visual: Usar referencias reales como base de gap visual.  Restricciones: * No inventar datos. * No tocar secretos. * No romper usuarios, sesiones, membresias, pagos, DB_PATH, Madrid Time, Render Cron ni Telegram dedupe. * Mantener cliente/admin separados. * Mantener estados seguros si faltan datos reales. * Mantener responsive movil/PC. * No enviar Telegram real. * No hacer pagos reales.  Que debes hacer: Comparar rutas objetivo contra referencias importadas y corregir solo diferencias visibles verificables.  Validaciones: * python -m py_compile app.py * python tools/run_continuous_sentinel_static.py * python tools/run_reference_visual_gap_scan.py --dry-run  Entrega: * resumen; * archivos tocados; * capturas si existen; * checks; * limitaciones honestas.
+Sin prompts activos reproducidos.
 
 
 ## VISUAL_REFERENCE_PROMPTS
 
-# REFGAP-9ED7BD46AB
-
-Corrige esta diferencia visual/funcional en NeMeSiS SHARK PRO sin romper nada anterior.  ID: REFGAP-32A5E0C96C  Pantalla: /app  Ruta: /app  Referencia: reference_images/client/reference_import_v900_08.png  Problema detectado: Gap visual de referencia en /app  Por que se aleja de la referencia: Pendiente de captura real; evaluacion limitada a heuristicas.  Objetivo visual: app movil compacta sin overflow y con bottom nav clara  Restricciones: * No inventar datos. * No tocar secretos. * No romper usuarios, sesiones, membresias, pagos, DB_PATH, Madrid Time, Render Cron ni Telegram dedupe. * Mantener cliente/admin separados. * Mantener estados seguros si faltan datos reales. * Mantener responsive movil/PC. * No enviar Telegram real. * No hacer pagos reales.  Que debes hacer: Revisar /app contra la referencia de mobile y corregir solo diferencias visibles reales.  Validaciones: * python -m py_compile app.py * python tools/run_continuous_sentinel_static.py * python tools/run_reference_visual_gap_scan.py --dry-run  Entrega: * resumen; * archivos tocados; * capturas si existen; * checks; * limitaciones honestas.
-
----
-
-# REFGAP-DD35B464A5
-
-Corrige esta diferencia visual/funcional en NeMeSiS SHARK PRO sin romper nada anterior.  ID: REFGAP-DD35B464A5  Pantalla: /admin/dashboard  Ruta: /admin/dashboard  Referencia: reference_images/admin/reference_import_v900_01.png  Problema detectado: Gap visual de referencia en /admin/dashboard  Por que se aleja de la referencia: Pendiente de captura real; evaluacion limitada a heuristicas.  Objetivo visual: command center denso, claro y operativo  Restricciones: * No inventar datos. * No tocar secretos. * No romper usuarios, sesiones, membresias, pagos, DB_PATH, Madrid Time, Render Cron ni Telegram dedupe. * Mantener cliente/admin separados. * Mantener estados seguros si faltan datos reales. * Mantener responsive movil/PC. * No enviar Telegram real. * No hacer pagos reales.  Que debes hacer: Revisar /admin/dashboard contra la referencia de admin y corregir solo diferencias visibles reales.  Validaciones: * python -m py_compile app.py * python tools/run_continuous_sentinel_static.py * python tools/run_reference_visual_gap_scan.py --dry-run  Entrega: * resumen; * archivos tocados; * capturas si existen; * checks; * limitaciones honestas.
-
----
-
-# REFGAP-91020397A6
-
-Corrige esta diferencia visual/funcional en NeMeSiS SHARK PRO sin romper nada anterior.  ID: REFGAP-91020397A6  Pantalla: /picks  Ruta: /picks  Referencia: reference_images/picks/reference_import_v900_11.png  Problema detectado: Gap visual de referencia en /picks  Por que se aleja de la referencia: Pendiente de captura real; evaluacion limitada a heuristicas.  Objetivo visual: picks como producto premium, sin cuota inventada  Restricciones: * No inventar datos. * No tocar secretos. * No romper usuarios, sesiones, membresias, pagos, DB_PATH, Madrid Time, Render Cron ni Telegram dedupe. * Mantener cliente/admin separados. * Mantener estados seguros si faltan datos reales. * Mantener responsive movil/PC. * No enviar Telegram real. * No hacer pagos reales.  Que debes hacer: Revisar /picks contra la referencia de picks y corregir solo diferencias visibles reales.  Validaciones: * python -m py_compile app.py * python tools/run_continuous_sentinel_static.py * python tools/run_reference_visual_gap_scan.py --dry-run  Entrega: * resumen; * archivos tocados; * capturas si existen; * checks; * limitaciones honestas.
-
----
-
-# REFGAP-F243DB0151
-
-Corrige esta diferencia visual/funcional en NeMeSiS SHARK PRO sin romper nada anterior.  ID: REFGAP-F243DB0151  Pantalla: /live  Ruta: /live  Referencia: reference_images/live/reference_import_v900_09.png  Problema detectado: Gap visual de referencia en /live  Por que se aleja de la referencia: Pendiente de captura real; evaluacion limitada a heuristicas.  Objetivo visual: directos claros tipo marcador premium con estados reales  Restricciones: * No inventar datos. * No tocar secretos. * No romper usuarios, sesiones, membresias, pagos, DB_PATH, Madrid Time, Render Cron ni Telegram dedupe. * Mantener cliente/admin separados. * Mantener estados seguros si faltan datos reales. * Mantener responsive movil/PC. * No enviar Telegram real. * No hacer pagos reales.  Que debes hacer: Revisar /live contra la referencia de live y corregir solo diferencias visibles reales.  Validaciones: * python -m py_compile app.py * python tools/run_continuous_sentinel_static.py * python tools/run_reference_visual_gap_scan.py --dry-run  Entrega: * resumen; * archivos tocados; * capturas si existen; * checks; * limitaciones honestas.
-
----
-
-# REFGAP-AF28C5F3F0
-
-Corrige esta diferencia visual/funcional en NeMeSiS SHARK PRO sin romper nada anterior.  ID: REFGAP-AF28C5F3F0  Pantalla: /calendar  Ruta: /calendar  Referencia: reference_images/calendar/reference_import_v900_10.png  Problema detectado: Gap visual de referencia en /calendar  Por que se aleja de la referencia: Pendiente de captura real; evaluacion limitada a heuristicas.  Objetivo visual: calendario denso, filtrable y honesto  Restricciones: * No inventar datos. * No tocar secretos. * No romper usuarios, sesiones, membresias, pagos, DB_PATH, Madrid Time, Render Cron ni Telegram dedupe. * Mantener cliente/admin separados. * Mantener estados seguros si faltan datos reales. * Mantener responsive movil/PC. * No enviar Telegram real. * No hacer pagos reales.  Que debes hacer: Revisar /calendar contra la referencia de calendar y corregir solo diferencias visibles reales.  Validaciones: * python -m py_compile app.py * python tools/run_continuous_sentinel_static.py * python tools/run_reference_visual_gap_scan.py --dry-run  Entrega: * resumen; * archivos tocados; * capturas si existen; * checks; * limitaciones honestas.
-
----
-
-# REFGAP-53DDCF3EBF
-
-Corrige esta diferencia visual/funcional en NeMeSiS SHARK PRO sin romper nada anterior.  ID: REFGAP-53DDCF3EBF  Pantalla: /telegram  Ruta: /telegram  Referencia: reference_images/telegram/reference_import_v900_16.png  Problema detectado: Gap visual de referencia en /telegram  Por que se aleja de la referencia: Pendiente de captura real; evaluacion limitada a heuristicas.  Objetivo visual: Telegram premium sin filler ni envios inventados  Restricciones: * No inventar datos. * No tocar secretos. * No romper usuarios, sesiones, membresias, pagos, DB_PATH, Madrid Time, Render Cron ni Telegram dedupe. * Mantener cliente/admin separados. * Mantener estados seguros si faltan datos reales. * Mantener responsive movil/PC. * No enviar Telegram real. * No hacer pagos reales.  Que debes hacer: Revisar /telegram contra la referencia de telegram y corregir solo diferencias visibles reales.  Validaciones: * python -m py_compile app.py * python tools/run_continuous_sentinel_static.py * python tools/run_reference_visual_gap_scan.py --dry-run  Entrega: * resumen; * archivos tocados; * capturas si existen; * checks; * limitaciones honestas.
-
----
-
-# REFGAP-65EFF7C1DF
-
-Corrige esta diferencia visual/funcional en NeMeSiS SHARK PRO sin romper nada anterior.  ID: REFGAP-65EFF7C1DF  Pantalla: /shark  Ruta: /shark  Referencia: reference_images/shark/reference_import_v900_12.png  Problema detectado: Gap visual de referencia en /shark  Por que se aleja de la referencia: Pendiente de captura real; evaluacion limitada a heuristicas.  Objetivo visual: SHARK como cerebro del producto y modo seguro si falta OpenAI  Restricciones: * No inventar datos. * No tocar secretos. * No romper usuarios, sesiones, membresias, pagos, DB_PATH, Madrid Time, Render Cron ni Telegram dedupe. * Mantener cliente/admin separados. * Mantener estados seguros si faltan datos reales. * Mantener responsive movil/PC. * No enviar Telegram real. * No hacer pagos reales.  Que debes hacer: Revisar /shark contra la referencia de shark y corregir solo diferencias visibles reales.  Validaciones: * python -m py_compile app.py * python tools/run_continuous_sentinel_static.py * python tools/run_reference_visual_gap_scan.py --dry-run  Entrega: * resumen; * archivos tocados; * capturas si existen; * checks; * limitaciones honestas.
-
----
-
-# REFGAP-20D1BD0C86
-
-Corrige esta diferencia visual/funcional en NeMeSiS SHARK PRO sin romper nada anterior.  ID: REFGAP-20D1BD0C86  Pantalla: /membresias  Ruta: /membresias  Referencia: reference_images/memberships/reference_import_v900_14.png  Problema detectado: Gap visual de referencia en /membresias  Por que se aleja de la referencia: Pendiente de captura real; evaluacion limitada a heuristicas.  Objetivo visual: planes diferenciados con valor comercial real  Restricciones: * No inventar datos. * No tocar secretos. * No romper usuarios, sesiones, membresias, pagos, DB_PATH, Madrid Time, Render Cron ni Telegram dedupe. * Mantener cliente/admin separados. * Mantener estados seguros si faltan datos reales. * Mantener responsive movil/PC. * No enviar Telegram real. * No hacer pagos reales.  Que debes hacer: Revisar /membresias contra la referencia de memberships y corregir solo diferencias visibles reales.  Validaciones: * python -m py_compile app.py * python tools/run_continuous_sentinel_static.py * python tools/run_reference_visual_gap_scan.py --dry-run  Entrega: * resumen; * archivos tocados; * capturas si existen; * checks; * limitaciones honestas.
-
----
-
-# REFGAP-478B1233BD
-
-Corrige esta diferencia visual/funcional en NeMeSiS SHARK PRO sin romper nada anterior.  ID: REFGAP-478B1233BD  Pantalla: /profile  Ruta: /profile  Referencia: reference_images/profile/reference_import_v900_15.png  Problema detectado: Gap visual de referencia en /profile  Por que se aleja de la referencia: Pendiente de captura real; evaluacion limitada a heuristicas.  Objetivo visual: perfil claro con plan, Telegram, seguridad y salida visible  Restricciones: * No inventar datos. * No tocar secretos. * No romper usuarios, sesiones, membresias, pagos, DB_PATH, Madrid Time, Render Cron ni Telegram dedupe. * Mantener cliente/admin separados. * Mantener estados seguros si faltan datos reales. * Mantener responsive movil/PC. * No enviar Telegram real. * No hacer pagos reales.  Que debes hacer: Revisar /profile contra la referencia de profile y corregir solo diferencias visibles reales.  Validaciones: * python -m py_compile app.py * python tools/run_continuous_sentinel_static.py * python tools/run_reference_visual_gap_scan.py --dry-run  Entrega: * resumen; * archivos tocados; * capturas si existen; * checks; * limitaciones honestas.
-
----
-
-# REFGAP-DD4D02E36E
-
-Corrige esta diferencia visual/funcional en NeMeSiS SHARK PRO sin romper nada anterior.  ID: REFGAP-DD4D02E36E  Pantalla: /track-record  Ruta: /track-record  Referencia: reference_images/track-record/reference_import_v900_13.png  Problema detectado: Gap visual de referencia en /track-record  Por que se aleja de la referencia: Pendiente de captura real; evaluacion limitada a heuristicas.  Objetivo visual: historico honesto con resultados reales y sin ROI inventado  Restricciones: * No inventar datos. * No tocar secretos. * No romper usuarios, sesiones, membresias, pagos, DB_PATH, Madrid Time, Render Cron ni Telegram dedupe. * Mantener cliente/admin separados. * Mantener estados seguros si faltan datos reales. * Mantener responsive movil/PC. * No enviar Telegram real. * No hacer pagos reales.  Que debes hacer: Revisar /track-record contra la referencia de track-record y corregir solo diferencias visibles reales.  Validaciones: * python -m py_compile app.py * python tools/run_continuous_sentinel_static.py * python tools/run_reference_visual_gap_scan.py --dry-run  Entrega: * resumen; * archivos tocados; * capturas si existen; * checks; * limitaciones honestas.
-
----
-
-# REFGAP-093DAC3277
-
-Corrige esta diferencia visual/funcional en NeMeSiS SHARK PRO sin romper nada anterior.  ID: REFGAP-093DAC3277  Pantalla: Browser QA  Ruta: browser  Referencia: No aplica  Problema detectado: BROWSER_QA_UNAVAILABLE  Por que se aleja de la referencia: Playwright no disponible o capturas no ejecutadas; no se puede comparar con precision visual real.  Objetivo visual: Ejecutar browser QA real antes de afirmar cercania visual.  Restricciones: * No inventar datos. * No tocar secretos. * No romper usuarios, sesiones, membresias, pagos, DB_PATH, Madrid Time, Render Cron ni Telegram dedupe. * Mantener cliente/admin separados. * Mantener estados seguros si faltan datos reales. * Mantener responsive movil/PC. * No enviar Telegram real. * No hacer pagos reales.  Que debes hacer: Instalar Playwright o ejecutar la QA visual en entorno con navegador disponible.  Validaciones: * python -m py_compile app.py * python tools/run_continuous_sentinel_static.py * python tools/run_reference_visual_gap_scan.py --dry-run  Entrega: * resumen; * archivos tocados; * capturas si existen; * checks; * limitaciones honestas.
-
----
-
-# REFGAP-5A79B111F3
-
-Corrige esta diferencia visual/funcional en NeMeSiS SHARK PRO sin romper nada anterior.  ID: REFGAP-5A79B111F3  Pantalla: Banco de referencias  Ruta: reference_images  Referencia: reference_images/  Problema detectado: REFERENCE_IMAGES_IMPORTED  Por que se aleja de la referencia: 16 imagenes reales importadas; categorias: admin, calendar, client, live, memberships, picks, profile, shark, telegram, track-record.  Objetivo visual: Usar referencias reales como base de gap visual.  Restricciones: * No inventar datos. * No tocar secretos. * No romper usuarios, sesiones, membresias, pagos, DB_PATH, Madrid Time, Render Cron ni Telegram dedupe. * Mantener cliente/admin separados. * Mantener estados seguros si faltan datos reales. * Mantener responsive movil/PC. * No enviar Telegram real. * No hacer pagos reales.  Que debes hacer: Comparar rutas objetivo contra referencias importadas y corregir solo diferencias visibles verificables.  Validaciones: * python -m py_compile app.py * python tools/run_continuous_sentinel_static.py * python tools/run_reference_visual_gap_scan.py --dry-run  Entrega: * resumen; * archivos tocados; * capturas si existen; * checks; * limitaciones honestas.
+Sin prompts visuales activos.
 
 
 ## FUNCTIONAL_PROMPTS
@@ -312,6 +176,18 @@ Sin prompts Telegram activos.
 ---
 
 - SENT-2026-B97FFAF1 | RESOLVED_BY_RESCAN | Sin ruta | Render runtime no consultado en este scan
+
+---
+
+- REFGAP-9ED7BD46AB | RESOLVED_BY_RESCAN | /app | Gap visual de referencia en /app
+
+---
+
+- REFGAP-DD35B464A5 | RESOLVED_BY_RESCAN | /admin/dashboard | Gap visual de referencia en /admin/dashboard
+
+---
+
+- REFGAP-91020397A6 | RESOLVED_BY_RESCAN | /picks | Gap visual de referencia en /picks
 
 ---
 
@@ -1027,30 +903,6 @@ Sin prompts Telegram activos.
 
 ---
 
-- REFGAP-54B18580ED | RESOLVED_BY_RESCAN | reference_images | REFERENCE_IMAGES_MISSING
-
----
-
-- REFGAP-0BD2DB29CD | RESOLVED_BY_RESCAN | /live | Gap visual de referencia en /live
-
----
-
-- REFGAP-34A881594C | RESOLVED_BY_RESCAN | /calendar | Gap visual de referencia en /calendar
-
----
-
-- REFGAP-D3CB492BA5 | RESOLVED_BY_RESCAN | /telegram | Gap visual de referencia en /telegram
-
----
-
-- REFGAP-4270E32598 | RESOLVED_BY_RESCAN | /shark | Gap visual de referencia en /shark
-
----
-
-- REFGAP-7B7FE98721 | RESOLVED_BY_RESCAN | /membresias | Gap visual de referencia en /membresias
-
----
-
 - SENT-2026-93FD8BC3 | RESOLVED_BY_RESCAN | /admin-panel | Ruta devuelve Not Found
 
 ---
@@ -1103,11 +955,163 @@ Sin prompts Telegram activos.
 
 ---
 
+- SENT-2026-1046EB91 | RESOLVED_BY_RESCAN | /api/ruta-inventada-v903 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-D136FF70 | RESOLVED_BY_RESCAN | /ruta-inventada-v903 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-BA16DF6E | RESOLVED_BY_RESCAN | /api/ruta-inventada-v903 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-31B7704E | RESOLVED_BY_RESCAN | /ruta-inventada-v903 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-E7CD855F | RESOLVED_BY_RESCAN | /admin-panel | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-F195E80A | RESOLVED_BY_RESCAN | /ruta-inventada-v897 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-F4E717A0 | RESOLVED_BY_RESCAN | /api/ruta-inventada-v897 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-F66F14EA | RESOLVED_BY_RESCAN | /ruta-inventada-v898 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-53195211 | RESOLVED_BY_RESCAN | /api/ruta-inventada-v898 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-9376B04C | RESOLVED_BY_RESCAN | /ruta-inventada-v896 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-399D9D09 | RESOLVED_BY_RESCAN | /api/ruta-inventada-v896 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-A536A8D8 | RESOLVED_BY_RESCAN | /admin-panel | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-160B931B | RESOLVED_BY_RESCAN | /directos | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-656A001A | RESOLVED_BY_RESCAN | /ruta-inventada-v896 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-DF13DE66 | RESOLVED_BY_RESCAN | /api/ruta-inventada-v896 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-A912BA48 | RESOLVED_BY_RESCAN | /admin-panel | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-4B91BA3C | RESOLVED_BY_RESCAN | /api/ruta-inventada-v897 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-EE976145 | RESOLVED_BY_RESCAN | /directos | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-CEFB6C27 | RESOLVED_BY_RESCAN | /admin-panel | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-BD614B45 | RESOLVED_BY_RESCAN | /ruta-inventada-v897 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-C78DD6A8 | RESOLVED_BY_RESCAN | /api/ruta-inventada-v898 | Ruta devuelve Not Found
+
+---
+
+- REFGAP-54B18580ED | RESOLVED_BY_RESCAN | reference_images | REFERENCE_IMAGES_MISSING
+
+---
+
+- REFGAP-0BD2DB29CD | RESOLVED_BY_RESCAN | /live | Gap visual de referencia en /live
+
+---
+
+- REFGAP-34A881594C | RESOLVED_BY_RESCAN | /calendar | Gap visual de referencia en /calendar
+
+---
+
+- REFGAP-D3CB492BA5 | RESOLVED_BY_RESCAN | /telegram | Gap visual de referencia en /telegram
+
+---
+
+- REFGAP-4270E32598 | RESOLVED_BY_RESCAN | /shark | Gap visual de referencia en /shark
+
+---
+
+- REFGAP-7B7FE98721 | RESOLVED_BY_RESCAN | /membresias | Gap visual de referencia en /membresias
+
+---
+
+- SENT-2026-77B91DCB | RESOLVED_BY_RESCAN | /ruta-inventada | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-F4788ABE | RESOLVED_BY_RESCAN | /api/ruta-inventada | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-D4A0EB7E | RESOLVED_BY_RESCAN | /api/ruta-inventada-v903 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-2B19FDA8 | STALE_NEEDS_REVALIDATION | /ruta-inventada-v903 | Ruta devuelve Not Found
+
+---
+
 - SENT-2026-4632ABE7 | RESOLVED_BY_RESCAN | browser | Browser capture unavailable
 
 ---
 
 - SENT-2026-A5A55C7D | RESOLVED_BY_RESCAN | /partidos | Cache de logos en cero con fallback obligatorio
+
+---
+
+- REFGAP-F243DB0151 | RESOLVED_BY_RESCAN | /live | Gap visual de referencia en /live
+
+---
+
+- REFGAP-AF28C5F3F0 | RESOLVED_BY_RESCAN | /calendar | Gap visual de referencia en /calendar
+
+---
+
+- REFGAP-53DDCF3EBF | RESOLVED_BY_RESCAN | /telegram | Gap visual de referencia en /telegram
+
+---
+
+- REFGAP-65EFF7C1DF | RESOLVED_BY_RESCAN | /shark | Gap visual de referencia en /shark
+
+---
+
+- REFGAP-20D1BD0C86 | RESOLVED_BY_RESCAN | /membresias | Gap visual de referencia en /membresias
+
+---
+
+- REFGAP-478B1233BD | RESOLVED_BY_RESCAN | /profile | Gap visual de referencia en /profile
+
+---
+
+- REFGAP-DD4D02E36E | RESOLVED_BY_RESCAN | /track-record | Gap visual de referencia en /track-record
 
 ---
 
@@ -1148,6 +1152,14 @@ Sin prompts Telegram activos.
 ---
 
 - V884-2F503B203B7C | RESOLVED_BY_RESCAN | /live | Pantalla deportiva sin datos reales visibles
+
+---
+
+- REFGAP-093DAC3277 | RESOLVED_BY_RESCAN | browser | BROWSER_QA_UNAVAILABLE
+
+---
+
+- REFGAP-5A79B111F3 | RESOLVED_BY_RESCAN | reference_images | REFERENCE_IMAGES_IMPORTED
 
 ---
 

@@ -15,7 +15,18 @@ CURRENT_ALLOWED = {
     "V900_REFERENCE_IMAGES_IMPORT_FIRST_REAL_VISUAL_GAP_AUDIT_FINAL",
     "V901_ADMIN_CONTINUOUS_SENTINEL_API_LAYOUT_RECOVERY_FINAL",
     "V902_SENTINEL_FULL_ACTIVE_ISSUES_FIX_AND_TRUTH_CLEANUP_FINAL",
+    "V902B_DEPLOY_ALIGNMENT_AND_AUTOMATION_SECRET_ROTATION_GUARD_FINAL",
+    "V903_TOTAL_SENTINEL_AUTO_FIX_RENDER_ALIGNMENT_AND_STABILITY_FINAL",
 }
+CACHE_MARKERS = (
+    "NEMESIS_CACHE_V898",
+    "NEMESIS_CACHE_V899",
+    "NEMESIS_CACHE_V900",
+    "NEMESIS_CACHE_V901",
+    "NEMESIS_CACHE_V902",
+    "NEMESIS_CACHE_V902B",
+    "NEMESIS_CACHE_V903",
+)
 ZIP_PATH = ROOT / "release_output" / f"NeMeSiS_SHARK_PRO_{VERSION}_RENDER_READY.zip"
 
 
@@ -42,16 +53,16 @@ def main() -> int:
     outbox_engine = read("engines/sentinel_codex_outbox_engine.py")
     company_engine = read("engines/autonomous_company_sentinel_engine.py")
 
-    require(read("VERSION.txt").strip().lstrip("\ufeff") in CURRENT_ALLOWED, "VERSION.txt is not V898/V899/V900/V901", failures)
-    require(read("APP_VERSION").strip().lstrip("\ufeff") in CURRENT_ALLOWED, "APP_VERSION file is not V898/V899/V900/V901", failures)
-    require(app_version_from_source(app_py) in CURRENT_ALLOWED, "app.py APP_VERSION is not V898/V899/V900/V901", failures)
+    require(read("VERSION.txt").strip().lstrip("\ufeff") in CURRENT_ALLOWED, "VERSION.txt is not an allowed V898+ release", failures)
+    require(read("APP_VERSION").strip().lstrip("\ufeff") in CURRENT_ALLOWED, "APP_VERSION file is not an allowed V898+ release", failures)
+    require(app_version_from_source(app_py) in CURRENT_ALLOWED, "app.py APP_VERSION is not an allowed V898+ release", failures)
     require(("data-v898-shell" in base or "data-v899-shell" in base or "data-v900-shell" in base or "data-v901-shell" in base or "data-v902-shell" in base), "base V898/V899/V900/V901/V902 marker missing", failures)
     require("has_v898_404_pwa_reference_outbox_truth" in app_py, "runtime V898 flag missing", failures)
     require("Ruta solicitada:" in not_found and "{{ path }}" in not_found, "404 does not show safe requested path", failures)
     require("Restablecer app/PWA" in not_found, "PWA reset button missing", failures)
     require("serviceWorker.getRegistrations" in not_found and "caches.keys" in not_found, "PWA reset JS missing", failures)
     require("href=\"#\"" not in not_found and "javascript:void(0)" not in not_found.lower(), "404 has false links", failures)
-    require("NEMESIS_CACHE_V898" in app_py or "NEMESIS_CACHE_V899" in app_py or "NEMESIS_CACHE_V900" in app_py or "NEMESIS_CACHE_V901" in app_py or "NEMESIS_CACHE_V902" in app_py, "service worker cache V898/V899/V900/V901/V902 missing", failures)
+    require(any(marker in app_py for marker in CACHE_MARKERS), "service worker current cache missing", failures)
     service_worker_block = app_py[app_py.find("def service_worker"):app_py.find("@app.route(\"/manifest.json\")")]
     require("res.status===404" in app_py and "caches.open" not in service_worker_block, "service worker may cache 404 or use old cache pattern", failures)
     require('"reference_images"' in builder, "build_clean_release does not include reference_images", failures)
@@ -81,7 +92,7 @@ def main() -> int:
 
     sw = client.get("/service-worker.js")
     sw_text = sw.get_data(as_text=True)
-    require(sw.status_code == 200 and ("NEMESIS_CACHE_V898" in sw_text or "NEMESIS_CACHE_V899" in sw_text or "NEMESIS_CACHE_V900" in sw_text or "NEMESIS_CACHE_V901" in sw_text or "NEMESIS_CACHE_V902" in sw_text), "service worker V898/V899/V900/V901/V902 unavailable", failures)
+    require(sw.status_code == 200 and any(marker in sw_text for marker in CACHE_MARKERS), "service worker current cache unavailable", failures)
     require("res.status===404" in sw_text and "caches.open" not in sw_text and ".put(" not in sw_text, "service worker caches or serves 404 incorrectly", failures)
     require(client.get("/manifest.json").status_code == 200, "manifest route not 200", failures)
 

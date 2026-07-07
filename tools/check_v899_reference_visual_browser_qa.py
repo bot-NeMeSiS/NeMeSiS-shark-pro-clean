@@ -12,6 +12,8 @@ CURRENT_ALLOWED = {
     "V900_REFERENCE_IMAGES_IMPORT_FIRST_REAL_VISUAL_GAP_AUDIT_FINAL",
     "V901_ADMIN_CONTINUOUS_SENTINEL_API_LAYOUT_RECOVERY_FINAL",
     "V902_SENTINEL_FULL_ACTIVE_ISSUES_FIX_AND_TRUTH_CLEANUP_FINAL",
+    "V902B_DEPLOY_ALIGNMENT_AND_AUTOMATION_SECRET_ROTATION_GUARD_FINAL",
+    "V903_TOTAL_SENTINEL_AUTO_FIX_RENDER_ALIGNMENT_AND_STABILITY_FINAL",
 }
 
 
@@ -34,9 +36,9 @@ def main() -> int:
     base = read("templates/base.html")
     version_txt = read("VERSION.txt").strip().lstrip("\ufeff")
     app_version_file = read("APP_VERSION").strip().lstrip("\ufeff")
-    require(version_txt in CURRENT_ALLOWED, "VERSION.txt is not V899/V900/V901", failures)
-    require(app_version_file in CURRENT_ALLOWED, "APP_VERSION is not V899/V900/V901", failures)
-    require(any((f"APP_VERSION = '{item}'" in app_py or f'APP_VERSION = "{item}"' in app_py) for item in CURRENT_ALLOWED), "app.py APP_VERSION is not V899/V900/V901", failures)
+    require(version_txt in CURRENT_ALLOWED, "VERSION.txt is not an allowed V899+ release", failures)
+    require(app_version_file in CURRENT_ALLOWED, "APP_VERSION is not an allowed V899+ release", failures)
+    require(any((f"APP_VERSION = '{item}'" in app_py or f'APP_VERSION = "{item}"' in app_py) for item in CURRENT_ALLOWED), "app.py APP_VERSION is not an allowed V899+ release", failures)
     require("has_v899_reference_visual_browser_qa_product_gap_worker" in app_py, "runtime flag V899 missing", failures)
     require('data-v899-shell="true"' in base, "base V899 shell marker missing", failures)
 

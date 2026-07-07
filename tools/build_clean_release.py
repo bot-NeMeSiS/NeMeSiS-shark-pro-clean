@@ -233,6 +233,7 @@ EXCLUDE_SUFFIXES = {
 }
 EXCLUDE_NAMES = {".DS_Store", "Thumbs.db"}
 SECRET_NAME_MARKERS = ("secret", "token", "private_key", "id_rsa")
+REPORT_BINARY_SUFFIXES = {".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp", ".svg"}
 
 
 def git_commit() -> str:
@@ -251,6 +252,8 @@ def include(path: Path) -> bool:
         return False
     rel_posix = rel.as_posix()
     if parts[0] == "reports":
+        if path.suffix.lower() in REPORT_BINARY_SUFFIXES:
+            return False
         return (
             rel_posix == "reports/CODEX_DAILY_PROMPT_CURRENT.txt"
             or rel_posix.startswith("reports/v810_telegram_previews/")
