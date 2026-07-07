@@ -11982,3 +11982,107 @@ body.ns-admin .v904-admin-rebuild :is(.bottom-nav-clean, .ns-client-sidebar, .sh
   .v904-client-signal-strip small { font-size: 12px; }
 }
 /* V904 AUTONOMOUS REFERENCE GAPS REBUILD AND SENTINEL WORKFORCE END */
+/* V908 screenshot/reference UI fix */
+[data-v908-shell="true"] .v908-admin-shell,
+[data-v908-shell="true"] .v908-client-dashboard {
+  --v908-panel: rgba(8, 14, 24, 0.86);
+  --v908-line: rgba(94, 234, 212, 0.18);
+  --v908-soft: rgba(148, 163, 184, 0.12);
+}
+
+.v908-admin-shell .ns-admin-card,
+.v908-admin-shell .v794-admin-panel,
+.v908-command-grid .v807-admin-command-main,
+.v908-command-grid .v807-admin-command-side {
+  border: 1px solid var(--v908-line);
+  background: linear-gradient(145deg, rgba(7, 12, 22, 0.94), rgba(11, 18, 32, 0.86));
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.28);
+}
+
+.v908-command-grid .ns-grid,
+.v908-admin-shell .v807-route-cards,
+.v908-admin-shell .v807-action-tiles {
+  gap: clamp(10px, 1.2vw, 16px);
+}
+
+.v908-admin-shell .ns-stat,
+.v908-admin-shell .v807-real-state-list > div,
+.v908-client-dashboard .v812-feature-card,
+.v908-client-dashboard .v812-pick-card,
+.v908-client-dashboard .v799-feature-pick,
+.v908-client-dashboard .v799-pick-card,
+.v908-client-dashboard .v799-live-card,
+.v908-client-dashboard .v799-league-block {
+  border: 1px solid rgba(125, 211, 252, 0.16);
+  background: rgba(5, 10, 18, 0.78);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.24);
+}
+
+.v908-status-chip,
+.v908-admin-shell .ns-chip,
+.v908-client-dashboard .v799-kicker,
+.v908-client-dashboard .v850-live-pill,
+.v908-client-dashboard .v852-pick-state {
+  border: 1px solid rgba(94, 234, 212, 0.22);
+  background: rgba(20, 184, 166, 0.10);
+  color: #c8fff5;
+}
+
+.v908-client-dashboard .v812-main-grid,
+.v908-client-dashboard .v799-live-layout,
+.v908-client-dashboard .v801-calendar-layout {
+  gap: clamp(14px, 1.8vw, 22px);
+  align-items: start;
+}
+
+.v908-match-card .v801-league-block,
+.v908-live-card .v799-live-card,
+.v908-pick-card .v799-pick-card {
+  min-height: auto;
+}
+
+.v908-reference-gap-fixed {
+  outline: 1px solid rgba(94, 234, 212, 0.28);
+  outline-offset: 2px;
+}
+
+.v908-mobile-polish .v799-filterbar,
+.v908-mobile-polish .v812-hero-actions,
+.v908-mobile-polish .v799-appbar-actions {
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.v908-mobile-polish .v799-filterbar::-webkit-scrollbar,
+.v908-mobile-polish .v812-hero-actions::-webkit-scrollbar,
+.v908-mobile-polish .v799-appbar-actions::-webkit-scrollbar {
+  display: none;
+}
+
+@media (max-width: 720px) {
+  .v908-mobile-polish .v812-hero-shell,
+  .v908-mobile-polish .v812-main-grid,
+  .v908-mobile-polish .v799-live-layout,
+  .v908-mobile-polish .v801-calendar-layout,
+  .v908-mobile-polish .v799-telegram-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .v908-mobile-polish .v812-hero-copy h1,
+  .v908-mobile-polish .v799-appbar h1 {
+    font-size: clamp(1.45rem, 7vw, 2.1rem);
+    line-height: 1.05;
+  }
+
+  .v908-mobile-polish .v812-feature-card,
+  .v908-mobile-polish .v799-feature-pick,
+  .v908-mobile-polish .v799-live-feature,
+  .v908-mobile-polish .v799-pick-card {
+    padding: clamp(14px, 4vw, 18px);
+  }
+
+  .v908-mobile-polish .v799-scoreboard,
+  .v908-mobile-polish .v812-match-spotlight {
+    min-width: 0;
+  }
+}

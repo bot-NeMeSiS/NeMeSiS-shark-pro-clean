@@ -1,320 +1,52 @@
-# Codex Outbox - V907 Browser QA
+# Codex Outbox - V908 Screenshot Based Reference UI Fix Pass
 
-pixel_perfect_claim: false
-generated_at_madrid: 2026-07-07T19:06:38+02:00
+version: V908_SCREENSHOT_BASED_REFERENCE_UI_FIX_PASS_FINAL
+browser_qa_status: BROWSER_QA_UNAVAILABLE
 screenshots_captured: 0
-reference_comparisons: 18
-visual_gaps_resolved: 0
-visual_gaps_pending: 18
-
-# V907_BROWSER_QA_FINDINGS
-- Browser QA status: BROWSER_QA_UNAVAILABLE
-- Capturas reales: 0
-- Pendientes: 18
-
-# SCREENSHOT_BASED_VISUAL_PROMPTS
-- Sin prompts activos en esta sección.
-# ADMIN_SCREENSHOT_PROMPTS
-## Ruta /admin-login
-
-- Captura actual: `pendiente`
-- Referencia usada: `reference_images/admin/reference_import_v900_01.png`
-- Clasificación: NEEDS_BROWSER_QA
-- Gap: Captura real pendiente.
-- Archivos probables: `templates/`, `static/app.css`, `templates/partials/`
-- Restricciones: no inventar datos, no tocar secretos, no pagos, no Telegram real.
-- Validaciones: Browser QA, Sentinel, smoke Flask, sin overflow y sin mojibake.
-
-```text
-Captura y compara /admin-login contra referencias reales antes de declarar cierre visual.
-```
-
-## Ruta /admin/autonomous-company-sentinel
-
-- Captura actual: `pendiente`
-- Referencia usada: `reference_images/admin/reference_import_v900_01.png`
-- Clasificación: NEEDS_BROWSER_QA
-- Gap: Captura real pendiente.
-- Archivos probables: `templates/`, `static/app.css`, `templates/partials/`
-- Restricciones: no inventar datos, no tocar secretos, no pagos, no Telegram real.
-- Validaciones: Browser QA, Sentinel, smoke Flask, sin overflow y sin mojibake.
-
-```text
-Captura y compara /admin/autonomous-company-sentinel contra referencias reales antes de declarar cierre visual.
-```
-
-## Ruta /admin/dashboard
-
-- Captura actual: `pendiente`
-- Referencia usada: `reference_images/admin/reference_import_v900_01.png`
-- Clasificación: NEEDS_BROWSER_QA
-- Gap: Captura real pendiente.
-- Archivos probables: `templates/`, `static/app.css`, `templates/partials/`
-- Restricciones: no inventar datos, no tocar secretos, no pagos, no Telegram real.
-- Validaciones: Browser QA, Sentinel, smoke Flask, sin overflow y sin mojibake.
-
-```text
-Captura y compara /admin/dashboard contra referencias reales antes de declarar cierre visual.
-```
-
-## Ruta /admin/not-found-events
-
-- Captura actual: `pendiente`
-- Referencia usada: `reference_images/admin/reference_import_v900_01.png`
-- Clasificación: NEEDS_BROWSER_QA
-- Gap: Captura real pendiente.
-- Archivos probables: `templates/`, `static/app.css`, `templates/partials/`
-- Restricciones: no inventar datos, no tocar secretos, no pagos, no Telegram real.
-- Validaciones: Browser QA, Sentinel, smoke Flask, sin overflow y sin mojibake.
-
-```text
-Captura y compara /admin/not-found-events contra referencias reales antes de declarar cierre visual.
-```
-
-## Ruta /admin/sentinel-codex-outbox
-
-- Captura actual: `pendiente`
-- Referencia usada: `reference_images/admin/reference_import_v900_01.png`
-- Clasificación: NEEDS_BROWSER_QA
-- Gap: Captura real pendiente.
-- Archivos probables: `templates/`, `static/app.css`, `templates/partials/`
-- Restricciones: no inventar datos, no tocar secretos, no pagos, no Telegram real.
-- Validaciones: Browser QA, Sentinel, smoke Flask, sin overflow y sin mojibake.
-
-```text
-Captura y compara /admin/sentinel-codex-outbox contra referencias reales antes de declarar cierre visual.
-```
-
-## Ruta /admin/sentinel-issues
-
-- Captura actual: `pendiente`
-- Referencia usada: `reference_images/admin/reference_import_v900_01.png`
-- Clasificación: NEEDS_BROWSER_QA
-- Gap: Captura real pendiente.
-- Archivos probables: `templates/`, `static/app.css`, `templates/partials/`
-- Restricciones: no inventar datos, no tocar secretos, no pagos, no Telegram real.
-- Validaciones: Browser QA, Sentinel, smoke Flask, sin overflow y sin mojibake.
-
-```text
-Captura y compara /admin/sentinel-issues contra referencias reales antes de declarar cierre visual.
-```
-
-## Ruta /admin/telegram/command-center
-
-- Captura actual: `pendiente`
-- Referencia usada: `reference_images/admin/reference_import_v900_01.png`
-- Clasificación: NEEDS_BROWSER_QA
-- Gap: Captura real pendiente.
-- Archivos probables: `templates/`, `static/app.css`, `templates/partials/`
-- Restricciones: no inventar datos, no tocar secretos, no pagos, no Telegram real.
-- Validaciones: Browser QA, Sentinel, smoke Flask, sin overflow y sin mojibake.
-
-```text
-Captura y compara /admin/telegram/command-center contra referencias reales antes de declarar cierre visual.
-```
-
-# CLIENT_MOBILE_SCREENSHOT_PROMPTS
-- Sin prompts activos en esta sección.
-# PICKS_LIVE_CALENDAR_SCREENSHOT_PROMPTS
-## Ruta /calendar
-
-- Captura actual: `pendiente`
-- Referencia usada: `reference_images/calendar/reference_import_v900_10.png`
-- Clasificación: NEEDS_BROWSER_QA
-- Gap: Captura real pendiente.
-- Archivos probables: `templates/`, `static/app.css`, `templates/partials/`
-- Restricciones: no inventar datos, no tocar secretos, no pagos, no Telegram real.
-- Validaciones: Browser QA, Sentinel, smoke Flask, sin overflow y sin mojibake.
-
-```text
-Captura y compara /calendar contra referencias reales antes de declarar cierre visual.
-```
-
-## Ruta /live
-
-- Captura actual: `pendiente`
-- Referencia usada: `reference_images/live/reference_import_v900_09.png`
-- Clasificación: NEEDS_BROWSER_QA
-- Gap: Captura real pendiente.
-- Archivos probables: `templates/`, `static/app.css`, `templates/partials/`
-- Restricciones: no inventar datos, no tocar secretos, no pagos, no Telegram real.
-- Validaciones: Browser QA, Sentinel, smoke Flask, sin overflow y sin mojibake.
-
-```text
-Captura y compara /live contra referencias reales antes de declarar cierre visual.
-```
-
-## Ruta /picks
-
-- Captura actual: `pendiente`
-- Referencia usada: `reference_images/picks/reference_import_v900_11.png`
-- Clasificación: NEEDS_BROWSER_QA
-- Gap: Captura real pendiente.
-- Archivos probables: `templates/`, `static/app.css`, `templates/partials/`
-- Restricciones: no inventar datos, no tocar secretos, no pagos, no Telegram real.
-- Validaciones: Browser QA, Sentinel, smoke Flask, sin overflow y sin mojibake.
-
-```text
-Captura y compara /picks contra referencias reales antes de declarar cierre visual.
-```
-
-# SHARK_TELEGRAM_SCREENSHOT_PROMPTS
-## Ruta /admin/telegram/command-center
-
-- Captura actual: `pendiente`
-- Referencia usada: `reference_images/admin/reference_import_v900_01.png`
-- Clasificación: NEEDS_BROWSER_QA
-- Gap: Captura real pendiente.
-- Archivos probables: `templates/`, `static/app.css`, `templates/partials/`
-- Restricciones: no inventar datos, no tocar secretos, no pagos, no Telegram real.
-- Validaciones: Browser QA, Sentinel, smoke Flask, sin overflow y sin mojibake.
-
-```text
-Captura y compara /admin/telegram/command-center contra referencias reales antes de declarar cierre visual.
-```
-
-## Ruta /shark
-
-- Captura actual: `pendiente`
-- Referencia usada: `reference_images/shark/reference_import_v900_12.png`
-- Clasificación: NEEDS_BROWSER_QA
-- Gap: Captura real pendiente.
-- Archivos probables: `templates/`, `static/app.css`, `templates/partials/`
-- Restricciones: no inventar datos, no tocar secretos, no pagos, no Telegram real.
-- Validaciones: Browser QA, Sentinel, smoke Flask, sin overflow y sin mojibake.
-
-```text
-Captura y compara /shark contra referencias reales antes de declarar cierre visual.
-```
-
-## Ruta /telegram
-
-- Captura actual: `pendiente`
-- Referencia usada: `reference_images/telegram/reference_import_v900_16.png`
-- Clasificación: NEEDS_BROWSER_QA
-- Gap: Captura real pendiente.
-- Archivos probables: `templates/`, `static/app.css`, `templates/partials/`
-- Restricciones: no inventar datos, no tocar secretos, no pagos, no Telegram real.
-- Validaciones: Browser QA, Sentinel, smoke Flask, sin overflow y sin mojibake.
-
-```text
-Captura y compara /telegram contra referencias reales antes de declarar cierre visual.
-```
-
-# PENDING_BROWSER_QA
-## Ruta /
-
-- Captura actual: `pendiente`
-- Referencia usada: `reference_images/client/reference_import_v900_08.png`
-- Clasificación: NEEDS_BROWSER_QA
-- Gap: Captura real pendiente.
-- Archivos probables: `templates/`, `static/app.css`, `templates/partials/`
-- Restricciones: no inventar datos, no tocar secretos, no pagos, no Telegram real.
-- Validaciones: Browser QA, Sentinel, smoke Flask, sin overflow y sin mojibake.
-
-```text
-Captura y compara / contra referencias reales antes de declarar cierre visual.
-```
-
-## Ruta /admin-login
-
-- Captura actual: `pendiente`
-- Referencia usada: `reference_images/admin/reference_import_v900_01.png`
-- Clasificación: NEEDS_BROWSER_QA
-- Gap: Captura real pendiente.
-- Archivos probables: `templates/`, `static/app.css`, `templates/partials/`
-- Restricciones: no inventar datos, no tocar secretos, no pagos, no Telegram real.
-- Validaciones: Browser QA, Sentinel, smoke Flask, sin overflow y sin mojibake.
-
-```text
-Captura y compara /admin-login contra referencias reales antes de declarar cierre visual.
-```
-
-## Ruta /admin/autonomous-company-sentinel
-
-- Captura actual: `pendiente`
-- Referencia usada: `reference_images/admin/reference_import_v900_01.png`
-- Clasificación: NEEDS_BROWSER_QA
-- Gap: Captura real pendiente.
-- Archivos probables: `templates/`, `static/app.css`, `templates/partials/`
-- Restricciones: no inventar datos, no tocar secretos, no pagos, no Telegram real.
-- Validaciones: Browser QA, Sentinel, smoke Flask, sin overflow y sin mojibake.
-
-```text
-Captura y compara /admin/autonomous-company-sentinel contra referencias reales antes de declarar cierre visual.
-```
-
-## Ruta /admin/dashboard
-
-- Captura actual: `pendiente`
-- Referencia usada: `reference_images/admin/reference_import_v900_01.png`
-- Clasificación: NEEDS_BROWSER_QA
-- Gap: Captura real pendiente.
-- Archivos probables: `templates/`, `static/app.css`, `templates/partials/`
-- Restricciones: no inventar datos, no tocar secretos, no pagos, no Telegram real.
-- Validaciones: Browser QA, Sentinel, smoke Flask, sin overflow y sin mojibake.
-
-```text
-Captura y compara /admin/dashboard contra referencias reales antes de declarar cierre visual.
-```
-
-## Ruta /admin/not-found-events
-
-- Captura actual: `pendiente`
-- Referencia usada: `reference_images/admin/reference_import_v900_01.png`
-- Clasificación: NEEDS_BROWSER_QA
-- Gap: Captura real pendiente.
-- Archivos probables: `templates/`, `static/app.css`, `templates/partials/`
-- Restricciones: no inventar datos, no tocar secretos, no pagos, no Telegram real.
-- Validaciones: Browser QA, Sentinel, smoke Flask, sin overflow y sin mojibake.
-
-```text
-Captura y compara /admin/not-found-events contra referencias reales antes de declarar cierre visual.
-```
-
-## Ruta /admin/sentinel-codex-outbox
-
-- Captura actual: `pendiente`
-- Referencia usada: `reference_images/admin/reference_import_v900_01.png`
-- Clasificación: NEEDS_BROWSER_QA
-- Gap: Captura real pendiente.
-- Archivos probables: `templates/`, `static/app.css`, `templates/partials/`
-- Restricciones: no inventar datos, no tocar secretos, no pagos, no Telegram real.
-- Validaciones: Browser QA, Sentinel, smoke Flask, sin overflow y sin mojibake.
-
-```text
-Captura y compara /admin/sentinel-codex-outbox contra referencias reales antes de declarar cierre visual.
-```
-
-## Ruta /admin/sentinel-issues
-
-- Captura actual: `pendiente`
-- Referencia usada: `reference_images/admin/reference_import_v900_01.png`
-- Clasificación: NEEDS_BROWSER_QA
-- Gap: Captura real pendiente.
-- Archivos probables: `templates/`, `static/app.css`, `templates/partials/`
-- Restricciones: no inventar datos, no tocar secretos, no pagos, no Telegram real.
-- Validaciones: Browser QA, Sentinel, smoke Flask, sin overflow y sin mojibake.
-
-```text
-Captura y compara /admin/sentinel-issues contra referencias reales antes de declarar cierre visual.
-```
-
-## Ruta /admin/telegram/command-center
-
-- Captura actual: `pendiente`
-- Referencia usada: `reference_images/admin/reference_import_v900_01.png`
-- Clasificación: NEEDS_BROWSER_QA
-- Gap: Captura real pendiente.
-- Archivos probables: `templates/`, `static/app.css`, `templates/partials/`
-- Restricciones: no inventar datos, no tocar secretos, no pagos, no Telegram real.
-- Validaciones: Browser QA, Sentinel, smoke Flask, sin overflow y sin mojibake.
-
-```text
-Captura y compara /admin/telegram/command-center contra referencias reales antes de declarar cierre visual.
-```
-
-# PENDING_HUMAN_VISUAL_REVIEW
-- Revisión humana visual requerida para cualquier gap que necesite criterio de referencia/pixel real.
-# ARCHIVED_STATIC_PROMPTS
-- Prompts estáticos anteriores quedan archivados si no tienen captura asociada o si no se reproducen con Browser QA.
+pixel_perfect_claim_allowed: false
+pixel_perfect_claim: false
+note: BROWSER_QA_REQUIRED_BEFORE_PIXEL_CLAIM
+
+## V908_APPLIED_STATIC_FIXES
+- /admin/dashboard: Static safe UI preparation applied; requires Browser QA recheck.
+- /admin/autonomous-company-sentinel: Static safe UI preparation applied; requires Browser QA recheck.
+- /admin/sentinel-issues: Static safe UI preparation applied; requires Browser QA recheck.
+- /admin/sentinel-codex-outbox: Static safe UI preparation applied; requires Browser QA recheck.
+- /admin/not-found-events: Static safe UI preparation applied; requires Browser QA recheck.
+- /admin/telegram/command-center: Static safe UI preparation applied; requires Browser QA recheck.
+- /app: Static safe UI preparation applied; requires Browser QA recheck.
+- /calendar: Static safe UI preparation applied; requires Browser QA recheck.
+- /live: Static safe UI preparation applied; requires Browser QA recheck.
+- /picks: Static safe UI preparation applied; requires Browser QA recheck.
+- /shark: Static safe UI preparation applied; requires Browser QA recheck.
+- /telegram: Static safe UI preparation applied; requires Browser QA recheck.
+- /profile: Static safe UI preparation applied; requires Browser QA recheck.
+
+## V908_SCREENSHOT_BASED_FIXES
+- None. No real screenshots were available in this environment.
+
+## V908_NEEDS_BROWSER_QA
+- /: NEEDS_BROWSER_QA using reference_images/client/reference_import_v900_08.png.
+- /admin-login: NEEDS_BROWSER_QA using reference_images/admin/reference_import_v900_01.png.
+- /admin/autonomous-company-sentinel: IMPROVED_STATICALLY_NEEDS_BROWSER_QA using reference_images/admin/reference_import_v900_01.png.
+- /admin/dashboard: IMPROVED_STATICALLY_NEEDS_BROWSER_QA using reference_images/admin/reference_import_v900_01.png.
+- /admin/not-found-events: IMPROVED_STATICALLY_NEEDS_BROWSER_QA using reference_images/admin/reference_import_v900_01.png.
+- /admin/sentinel-codex-outbox: IMPROVED_STATICALLY_NEEDS_BROWSER_QA using reference_images/admin/reference_import_v900_01.png.
+- /admin/sentinel-issues: IMPROVED_STATICALLY_NEEDS_BROWSER_QA using reference_images/admin/reference_import_v900_01.png.
+- /admin/telegram/command-center: IMPROVED_STATICALLY_NEEDS_BROWSER_QA using reference_images/admin/reference_import_v900_01.png.
+- /app: IMPROVED_STATICALLY_NEEDS_BROWSER_QA using reference_images/client/reference_import_v900_08.png.
+- /calendar: IMPROVED_STATICALLY_NEEDS_BROWSER_QA using reference_images/calendar/reference_import_v900_10.png.
+- /cliente-login: NEEDS_BROWSER_QA using reference_images/client/reference_import_v900_08.png.
+- /live: IMPROVED_STATICALLY_NEEDS_BROWSER_QA using reference_images/live/reference_import_v900_09.png.
+- /picks: IMPROVED_STATICALLY_NEEDS_BROWSER_QA using reference_images/picks/reference_import_v900_11.png.
+- /profile: IMPROVED_STATICALLY_NEEDS_BROWSER_QA using reference_images/profile/reference_import_v900_15.png.
+- /registro: NEEDS_BROWSER_QA using reference_images/client/reference_import_v900_08.png.
+- /shark: IMPROVED_STATICALLY_NEEDS_BROWSER_QA using reference_images/shark/reference_import_v900_12.png.
+- /support: NEEDS_BROWSER_QA using reference_images/client/reference_import_v900_08.png.
+- /telegram: IMPROVED_STATICALLY_NEEDS_BROWSER_QA using reference_images/telegram/reference_import_v900_16.png.
+
+## V908_PENDING_HUMAN_VISUAL_REVIEW
+- Review screenshots after Playwright/Chromium is available and V908 is captured.
+
+## V908_DANGEROUS_REQUIRES_APPROVAL
+- No dangerous automatic changes were applied. Payments, DB, users, Telegram real sends, secrets, and deploy remain untouched.

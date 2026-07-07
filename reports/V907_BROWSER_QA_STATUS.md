@@ -5,7 +5,7 @@
 - Playwright available: False
 - Browsers available: False
 - Screenshots captured: 0
-- Output: `C:/Users/aloha/OneDrive/Escritorio/NeMeSiS shark pro/reports/V907_browser_qa`
+- Output: `C:/Users/aloha/OneDrive/Escritorio/NeMeSiS shark pro/reports/V908_browser_qa`
 - Reason: Playwright no disponible: ModuleNotFoundError
 
 No se declara pixel-perfect sin capturas reales comparadas.

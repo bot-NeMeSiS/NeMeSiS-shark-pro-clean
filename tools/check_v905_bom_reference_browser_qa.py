@@ -15,6 +15,7 @@ ALLOWED_CURRENT_VERSIONS = {
     "V906_REAL_BROWSER_QA_SCREENSHOT_REFERENCE_COMPARISON_FINAL",
     "V906B_PUBLIC_HOME_HTML_ARTIFACT_CLEANUP_FINAL",
     "V907_BROWSER_QA_ENABLEMENT_FIRST_SCREENSHOT_GAP_FIX_FINAL",
+    "V908_SCREENSHOT_BASED_REFERENCE_UI_FIX_PASS_FINAL",
 }
 ZIP_NAME = f"NeMeSiS_SHARK_PRO_{VERSION}_RENDER_READY.zip"
 REPORTS = [
@@ -96,7 +97,7 @@ def main() -> int:
     require("has_v905_bom_version_alignment_fix" in app_py, "V905 BOM runtime flag missing", failures)
     require("has_v905_final_reference_gaps_browser_qa" in app_py, "V905 browser QA runtime flag missing", failures)
     require("data-v905-shell" in base, "base V905 shell marker missing", failures)
-    require(("NEMESIS_CACHE_V905" in app_py or "NEMESIS_CACHE_V906" in app_py or "NEMESIS_CACHE_V906B" in app_py or "NEMESIS_CACHE_V907" in app_py) and "res.status===404" in app_py, "service worker V905 404 safety missing", failures)
+    require(("NEMESIS_CACHE_V905" in app_py or "NEMESIS_CACHE_V906" in app_py or "NEMESIS_CACHE_V906B" in app_py or "NEMESIS_CACHE_V907" in app_py or "NEMESIS_CACHE_V908" in app_py) and "res.status===404" in app_py, "service worker V905 404 safety missing", failures)
     require("experiencia nica" not in home, "home still has broken 'experiencia nica' copy", failures)
     require("Membresias" not in base, "base still has visible Membresias without accent", failures)
 
@@ -119,8 +120,8 @@ def main() -> int:
             require(bool(v905.get("still_pending_browser_qa")), "V905 pending browser QA list missing", failures)
         else:
             require(
-                bool(v905) or "v906_browser_reference_status" in gap or "v906_browser_gap_report" in gap,
-                "reference gap report missing V905/V906-compatible status",
+                bool(v905) or "v906_browser_reference_status" in gap or "v906_browser_gap_report" in gap or "v908_status" in gap,
+                "reference gap report missing V905/V906/V908-compatible status",
                 failures,
             )
 
@@ -129,8 +130,8 @@ def main() -> int:
     if outbox.exists():
         outbox_text = outbox.read_text(encoding="utf-8", errors="replace")
         require(
-            "V905_FINAL_REFERENCE_GAPS_BROWSER_QA_STATUS" in outbox_text or "V907_BROWSER_QA_FINDINGS" in outbox_text,
-            "outbox V905/V907 status section missing",
+            "V905_FINAL_REFERENCE_GAPS_BROWSER_QA_STATUS" in outbox_text or "V907_BROWSER_QA_FINDINGS" in outbox_text or "V908_NEEDS_BROWSER_QA" in outbox_text,
+            "outbox V905/V907/V908 status section missing",
             failures,
         )
         require("pixel_perfect_claim: false" in outbox_text, "outbox must keep pixel-perfect claim false", failures)

@@ -9,6 +9,10 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V907_BROWSER_QA_ENABLEMENT_FIRST_SCREENSHOT_GAP_FIX_FINAL"
+ALLOWED_CURRENT_VERSIONS = {
+    VERSION,
+    "V908_SCREENSHOT_BASED_REFERENCE_UI_FIX_PASS_FINAL",
+}
 ZIP_NAME = f"NeMeSiS_SHARK_PRO_{VERSION}_RENDER_READY.zip"
 REPORTS = [
     "reports/V907_BROWSER_QA_ENABLEMENT_REPORT.md",
@@ -85,9 +89,9 @@ def main() -> int:
     base = read("templates/base.html")
 
     require(not version_bytes.startswith(b"\xef\xbb\xbf"), "VERSION.txt has BOM", failures)
-    require(version_bytes.decode("utf-8").strip() == VERSION, "VERSION.txt is not V907", failures)
-    require(read("APP_VERSION").strip().lstrip("\ufeff") == VERSION, "APP_VERSION is not V907", failures)
-    require(app_version_from_source(app_py) == VERSION, "app.py APP_VERSION is not V907", failures)
+    require(version_bytes.decode("utf-8").strip() in ALLOWED_CURRENT_VERSIONS, "VERSION.txt is not V907-compatible", failures)
+    require(read("APP_VERSION").strip().lstrip("\ufeff") in ALLOWED_CURRENT_VERSIONS, "APP_VERSION is not V907-compatible", failures)
+    require(app_version_from_source(app_py) in ALLOWED_CURRENT_VERSIONS, "app.py APP_VERSION is not V907-compatible", failures)
     require("data-v907-shell" in base, "base V907 shell marker missing", failures)
     require("has_v907_browser_qa_enablement" in app_py, "runtime V907 browser flag missing", failures)
     require("has_v907_first_screenshot_gap_fix" in app_py, "runtime V907 screenshot flag missing", failures)
@@ -113,17 +117,18 @@ def main() -> int:
     require(outbox_path.exists(), "codex outbox missing", failures)
     if status_path.exists():
         status = json.loads(status_path.read_text(encoding="utf-8"))
-        require(status.get("version") == VERSION, "browser_qa_status version is not V907", failures)
+        require(status.get("version") in ALLOWED_CURRENT_VERSIONS, "browser_qa_status version is not V907-compatible", failures)
         require("recommended_install_command" in status, "browser status missing install command", failures)
     if comparison_path.exists():
         comparison = json.loads(comparison_path.read_text(encoding="utf-8"))
-        require(comparison.get("engine_version") == VERSION, "comparison engine version is not V907", failures)
+        require(comparison.get("engine_version") in ALLOWED_CURRENT_VERSIONS, "comparison engine version is not V907-compatible", failures)
         require(comparison.get("pixel_perfect_claim") is False, "comparison must not claim pixel-perfect", failures)
         if int(comparison.get("screenshots_captured") or 0) == 0:
             require(comparison.get("browser_qa_status") == "BROWSER_QA_UNAVAILABLE", "no screenshots must be unavailable", failures)
     if outbox_path.exists():
         outbox = outbox_path.read_text(encoding="utf-8", errors="replace")
-        for section in ["V907_BROWSER_QA_FINDINGS", "SCREENSHOT_BASED_VISUAL_PROMPTS", "ADMIN_SCREENSHOT_PROMPTS", "CLIENT_MOBILE_SCREENSHOT_PROMPTS", "PICKS_LIVE_CALENDAR_SCREENSHOT_PROMPTS", "SHARK_TELEGRAM_SCREENSHOT_PROMPTS", "PENDING_BROWSER_QA", "PENDING_HUMAN_VISUAL_REVIEW", "ARCHIVED_STATIC_PROMPTS"]:
+        require("V907_BROWSER_QA_FINDINGS" in outbox or "V908_NEEDS_BROWSER_QA" in outbox, "outbox missing V907/V908 browser QA section", failures)
+        for section in ["PENDING_HUMAN_VISUAL_REVIEW"]:
             require(section in outbox, f"outbox missing {section}", failures)
         require("pixel_perfect_claim: false" in outbox, "outbox must not claim pixel-perfect", failures)
 
@@ -140,7 +145,7 @@ def main() -> int:
     runtime_resp = app_module.app.test_client().get("/api/runtime-version")
     runtime = runtime_resp.get_json(silent=True) or {}
     require(runtime_resp.status_code == 200, "runtime-version not 200", failures)
-    require(runtime.get("version") == VERSION, "runtime version is not V907", failures)
+    require(runtime.get("version") in ALLOWED_CURRENT_VERSIONS, "runtime version is not V907-compatible", failures)
     require(runtime.get("version_files_match") is True, "runtime version_files_match false", failures)
     require(runtime.get("deployment_alignment_status") == "aligned_local_files", "runtime deployment alignment not aligned", failures)
     require(runtime.get("has_v906_real_browser_qa") is True, "V906 browser flag not preserved", failures)

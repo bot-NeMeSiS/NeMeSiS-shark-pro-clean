@@ -1327,6 +1327,14 @@ Sin prompts Telegram activos.
 
 ---
 
+- SENT-2026-669292F9 | RESOLVED_BY_RESCAN | /ruta-inventada | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-DD82C443 | STALE_NEEDS_REVALIDATION | /api/ruta-inventada | Ruta devuelve Not Found
+
+---
+
 - SENT-2026-4632ABE7 | RESOLVED_BY_RESCAN | browser | Browser capture unavailable
 
 ---

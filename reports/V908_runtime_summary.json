@@ -1,0 +1,31 @@
+{
+  "version": "V908_SCREENSHOT_BASED_REFERENCE_UI_FIX_PASS_FINAL",
+  "generated_at_madrid": "2026-07-07T19:57:44+02:00",
+  "playwright_available": false,
+  "browser_qa_status": "PACKAGE_MISSING",
+  "screenshots_captured": 0,
+  "routes_captured": [],
+  "reference_comparisons": 18,
+  "gaps_before_pending": 18,
+  "gaps_after_pending": 18,
+  "screenshot_based_fixes": 0,
+  "static_safe_fixes": 13,
+  "pixel_perfect_claim_allowed": false,
+  "browser_qa_required": true,
+  "screens_touched": [
+    "/admin/dashboard",
+    "/admin/autonomous-company-sentinel",
+    "/admin/sentinel-issues",
+    "/admin/sentinel-codex-outbox",
+    "/admin/not-found-events",
+    "/admin/telegram/command-center",
+    "/app",
+    "/calendar",
+    "/live",
+    "/picks",
+    "/shark",
+    "/telegram",
+    "/profile"
+  ],
+  "reference_manifest_count": 16
+}

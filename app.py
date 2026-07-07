@@ -339,7 +339,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V907_BROWSER_QA_ENABLEMENT_FIRST_SCREENSHOT_GAP_FIX_FINAL'
+APP_VERSION = 'V908_SCREENSHOT_BASED_REFERENCE_UI_FIX_PASS_FINAL'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 
@@ -10512,7 +10512,7 @@ def dashboard_data(lane="today", date=None):
 @app.route("/service-worker.js")
 def service_worker():
     body = (
-        "const NEMESIS_CACHE='NEMESIS_CACHE_V907';\n"
+        "const NEMESIS_CACHE='NEMESIS_CACHE_V908';\n"
         "self.addEventListener('install',event=>{self.skipWaiting();});\n"
         "self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==NEMESIS_CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));});\n"
         "self.addEventListener('fetch',event=>{const req=event.request;if(req.mode==='navigate'){event.respondWith(fetch(req).then(res=>{if(res.status===404){return fetch('/');}return res;}).catch(()=>fetch('/')));return;}event.respondWith(fetch(req).then(res=>{if(res.status===404){return res;}return res;}));});\n"
@@ -15023,6 +15023,47 @@ def v907_browser_qa_runtime_summary() -> dict:
     return summary
 
 
+def v908_reference_ui_fix_runtime_summary() -> dict:
+    root = Path(__file__).resolve().parent
+    comparison_path = root / "data" / "runtime" / "autonomous_company_sentinel" / "browser_reference_comparison.json"
+    gap_path = root / "data" / "runtime" / "autonomous_company_sentinel" / "reference_gap_report.json"
+    outbox_path = root / "data" / "runtime" / "autonomous_company_sentinel" / "outbox" / "codex_outbox.md"
+    summary = {
+        "v908_screenshots_available": False,
+        "v908_screenshot_prompts_read": 0,
+        "v908_visual_fixes_applied": 0,
+        "v908_visual_fixes_pending": 0,
+        "v908_browser_qa_required": True,
+        "v908_pixel_perfect_claim_allowed": False,
+    }
+    try:
+        if comparison_path.exists():
+            payload = json.loads(comparison_path.read_text(encoding="utf-8-sig", errors="replace"))
+            screenshots = int(payload.get("screenshots_captured") or 0)
+            pending = int(payload.get("visual_gaps_pending") or 0)
+            summary.update({
+                "v908_screenshots_available": screenshots > 0,
+                "v908_visual_fixes_pending": pending,
+                "v908_browser_qa_required": screenshots <= 0,
+                "v908_pixel_perfect_claim_allowed": False,
+            })
+        if gap_path.exists():
+            gap_payload = json.loads(gap_path.read_text(encoding="utf-8-sig", errors="replace"))
+            v908_status = gap_payload.get("v908_status") or {}
+            summary.update({
+                "v908_visual_fixes_applied": int(v908_status.get("visual_fixes_applied") or summary["v908_visual_fixes_applied"]),
+                "v908_visual_fixes_pending": int(v908_status.get("visual_fixes_pending") or summary["v908_visual_fixes_pending"]),
+                "v908_browser_qa_required": bool(v908_status.get("browser_qa_required", summary["v908_browser_qa_required"])),
+                "v908_pixel_perfect_claim_allowed": bool(v908_status.get("pixel_perfect_claim_allowed", False)),
+            })
+        if outbox_path.exists():
+            outbox_text = outbox_path.read_text(encoding="utf-8", errors="replace")
+            summary["v908_screenshot_prompts_read"] = outbox_text.count("## Ruta ")
+    except Exception:
+        pass
+    return summary
+
+
 @app.route("/api/runtime-version")
 def api_runtime_version():
     version_txt = ""
@@ -15094,6 +15135,7 @@ def api_runtime_version():
     v904_summary = v904_reference_workforce_runtime_summary()
     v906_summary = v906_browser_qa_runtime_summary()
     v907_summary = v907_browser_qa_runtime_summary()
+    v908_summary = v908_reference_ui_fix_runtime_summary()
     return jsonify(sanitize_runtime_value({
         "ok": True,
         "app": APP_NAME,
@@ -15283,7 +15325,7 @@ def api_runtime_version():
         "has_v895_render_v894_deployment_alignment": "V895_RENDER_V894_DEPLOYMENT_ALIGNMENT_FINAL" in app_py_text and "deployment_alignment_status" in app_py_text,
         "has_v896_not_found_route_recovery": "V896_PRODUCTION_NOT_FOUND_ROUTE_RECOVERY_FULL_APP_SMOKE_FINAL" in app_py_text and "client_safe_404" in app_py_text and "/api/admin/not-found-events" in app_py_text,
         "has_v897_truthful_sentinel_route_alias_reference_qa": "V897_SENTINEL_TRUTHFUL_ISSUES_ROUTE_ALIAS_REFERENCE_QA_FIX_FINAL" in app_py_text and "register_alias_if_missing" in app_py_text and "data-v897-shell" in base_template,
-        "has_v898_404_pwa_reference_outbox_truth": "V898_PRODUCTION_404_PWA_REFERENCE_OUTBOX_TRUTH_FINAL" in app_py_text and ("NEMESIS_CACHE_V898" in app_py_text or "NEMESIS_CACHE_V900" in app_py_text or "NEMESIS_CACHE_V901" in app_py_text or "NEMESIS_CACHE_V902" in app_py_text or "NEMESIS_CACHE_V903" in app_py_text or "NEMESIS_CACHE_V904" in app_py_text or "NEMESIS_CACHE_V906" in app_py_text) and "/admin/not-found-events" in app_py_text,
+        "has_v898_404_pwa_reference_outbox_truth": "V898_PRODUCTION_404_PWA_REFERENCE_OUTBOX_TRUTH_FINAL" in app_py_text and ("NEMESIS_CACHE_V898" in app_py_text or "NEMESIS_CACHE_V900" in app_py_text or "NEMESIS_CACHE_V901" in app_py_text or "NEMESIS_CACHE_V902" in app_py_text or "NEMESIS_CACHE_V903" in app_py_text or "NEMESIS_CACHE_V904" in app_py_text or "NEMESIS_CACHE_V906" in app_py_text or "NEMESIS_CACHE_V907" in app_py_text or "NEMESIS_CACHE_V908" in app_py_text) and "/admin/not-found-events" in app_py_text,
         "has_v899_reference_visual_browser_qa_product_gap_worker": "reference_scan" in app_py_text and "product_gap_engine" in app_py_text and "reference_image_manifest_engine" in app_py_text,
         "has_v900_reference_images_import_first_real_visual_gap_audit": "V900_REFERENCE_IMAGES_IMPORT_FIRST_REAL_VISUAL_GAP_AUDIT_FINAL" in app_py_text and "data-v900-shell" in base_template and "product_gap_engine" in app_py_text,
         "has_v901_admin_continuous_sentinel_api_layout_recovery": "V901_ADMIN_CONTINUOUS_SENTINEL_API_LAYOUT_RECOVERY_FINAL" in app_py_text and "data-v901-shell" in base_template and "v901_register_admin_api_issue" in app_py_text,
@@ -15303,10 +15345,13 @@ def api_runtime_version():
         "has_v907_browser_qa_enablement": "data-v907-shell" in base_template and (Path(__file__).resolve().parent / "tools" / "check_browser_qa_environment.py").exists(),
         "has_v907_first_screenshot_gap_fix": "data-v907-shell" in base_template and (Path(__file__).resolve().parent / "tools" / "run_browser_reference_qa.py").exists(),
         "has_v907_playwright_readiness": "data-v907-shell" in base_template and (Path(__file__).resolve().parent / "requirements-browser.txt").exists(),
+        "has_v908_screenshot_based_reference_ui_fix": "data-v908-shell" in base_template and "V908 screenshot/reference UI fix" in css_text,
+        "has_v908_reference_ui_safe_fix_pass": "data-v908-shell" in base_template and "v908_reference_ui_fix_runtime_summary" in app_py_text,
         **v902_truth_summary,
         **v904_summary,
         **v906_summary,
         **v907_summary,
+        **v908_summary,
         "active_errors_count": v903_active_errors_count,
         "fixed_safe_count": v903_archived_count,
         "stale_issues_count": v903_stale_issues_count,

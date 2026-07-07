@@ -14,6 +14,7 @@ ALLOWED_CURRENT_VERSIONS = {
     VERSION,
     "V906B_PUBLIC_HOME_HTML_ARTIFACT_CLEANUP_FINAL",
     "V907_BROWSER_QA_ENABLEMENT_FIRST_SCREENSHOT_GAP_FIX_FINAL",
+    "V908_SCREENSHOT_BASED_REFERENCE_UI_FIX_PASS_FINAL",
 }
 ZIP_NAME = f"NeMeSiS_SHARK_PRO_{VERSION}_RENDER_READY.zip"
 REPORTS = [
@@ -96,7 +97,7 @@ def main() -> int:
     require(read("APP_VERSION").strip().lstrip("\ufeff") in ALLOWED_CURRENT_VERSIONS, "APP_VERSION is not V906-compatible", failures)
     require(app_version_from_source(app_py) in ALLOWED_CURRENT_VERSIONS, "app.py APP_VERSION is not V906-compatible", failures)
     require("data-v906-shell" in base, "base V906 shell marker missing", failures)
-    require(any(cache in app_py for cache in ["NEMESIS_CACHE_V906", "NEMESIS_CACHE_V906B", "NEMESIS_CACHE_V907"]), "service worker V906+ cache missing", failures)
+    require(any(cache in app_py for cache in ["NEMESIS_CACHE_V906", "NEMESIS_CACHE_V906B", "NEMESIS_CACHE_V907", "NEMESIS_CACHE_V908"]), "service worker V906+ cache missing", failures)
     require("has_v906_real_browser_qa" in app_py, "runtime V906 browser flag missing", failures)
     require("has_v906_screenshot_reference_comparison" in app_py, "runtime V906 comparison flag missing", failures)
 
@@ -119,7 +120,7 @@ def main() -> int:
     if outbox_path.exists():
         outbox = outbox_path.read_text(encoding="utf-8", errors="replace")
         section_aliases = {
-            "V906_BROWSER_QA_FINDINGS": ["V906_BROWSER_QA_FINDINGS", "V907_BROWSER_QA_FINDINGS"],
+            "V906_BROWSER_QA_FINDINGS": ["V906_BROWSER_QA_FINDINGS", "V907_BROWSER_QA_FINDINGS", "V908_NEEDS_BROWSER_QA"],
             "SCREENSHOT_BASED_VISUAL_PROMPTS": ["SCREENSHOT_BASED_VISUAL_PROMPTS"],
             "ADMIN_VISUAL_PROMPTS": ["ADMIN_VISUAL_PROMPTS", "ADMIN_SCREENSHOT_PROMPTS"],
             "CLIENT_MOBILE_PROMPTS": ["CLIENT_MOBILE_PROMPTS", "CLIENT_MOBILE_SCREENSHOT_PROMPTS"],

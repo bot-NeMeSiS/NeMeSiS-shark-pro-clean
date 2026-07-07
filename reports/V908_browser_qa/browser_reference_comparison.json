@@ -371,20 +371,5 @@
       ],
       "codex_prompt": "Captura y compara /telegram contra referencias reales antes de declarar cierre visual."
     }
-  ],
-  "version": "V908_SCREENSHOT_BASED_REFERENCE_UI_FIX_PASS_FINAL",
-  "v908_status": {
-    "version": "V908_SCREENSHOT_BASED_REFERENCE_UI_FIX_PASS_FINAL",
-    "screenshots_available": false,
-    "screenshots_captured": 0,
-    "routes_captured": [],
-    "screenshot_prompts_read": 18,
-    "visual_fixes_applied": 13,
-    "visual_fixes_pending": 18,
-    "browser_qa_required": true,
-    "pixel_perfect_claim_allowed": false,
-    "fix_type": "STATIC_SAFE_PREP_NO_SCREENSHOTS",
-    "status": "BROWSER_QA_REQUIRED_BEFORE_PIXEL_CLAIM"
-  },
-  "pixel_perfect_claim_allowed": false
+  ]
 }
