@@ -186,6 +186,7 @@ def build_company_sentinel_status(app_version: str, root: str | Path) -> dict[st
     dirs = ensure_company_sentinel_dirs(root)
     latest = _read_json(dirs["base"] / "latest_run.json", {})
     state = _read_json(dirs["base"] / "state.json", {})
+    browser_qa = _read_json(dirs["base"] / "browser_reference_comparison.json", {})
     issues_summary = build_sentinel_issues_summary(app_version, load_sentinel_issues_memory(root))
     return {
         "version": app_version,
@@ -193,6 +194,14 @@ def build_company_sentinel_status(app_version: str, root: str | Path) -> dict[st
         "generated_at_madrid": _now(),
         "state": state,
         "latest_run": latest,
+        "browser_qa": {
+            "status": browser_qa.get("browser_qa_status") or "BROWSER_QA_UNAVAILABLE",
+            "screenshots_captured": int(browser_qa.get("screenshots_captured") or 0),
+            "reference_comparisons": int(browser_qa.get("reference_comparisons") or 0),
+            "visual_gaps_resolved": int(browser_qa.get("visual_gaps_resolved") or 0),
+            "visual_gaps_pending": int(browser_qa.get("visual_gaps_pending") or 0),
+            "pixel_perfect_claim": False,
+        },
         "issues_summary": issues_summary,
         "paths": {name: str(path) for name, path in dirs.items()},
         "cron": {

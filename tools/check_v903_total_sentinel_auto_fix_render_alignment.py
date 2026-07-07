@@ -12,7 +12,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 VERSION = "V903_TOTAL_SENTINEL_AUTO_FIX_RENDER_ALIGNMENT_AND_STABILITY_FINAL"
-CURRENT_VERSION = "V905_FINAL_REFERENCE_GAPS_BROWSER_QA_AND_BOM_FIX_FINAL"
+CURRENT_VERSION = "V906_REAL_BROWSER_QA_SCREENSHOT_REFERENCE_COMPARISON_FINAL"
 V904_VERSION = "V904_AUTONOMOUS_REFERENCE_GAPS_REBUILD_AND_SENTINEL_WORKFORCE_FINAL"
 ALLOWED_VERSIONS = {VERSION, V904_VERSION, CURRENT_VERSION}
 ZIP_NAME = f"NeMeSiS_SHARK_PRO_{VERSION}_RENDER_READY.zip"
@@ -80,7 +80,7 @@ def main() -> int:
     failures: list[str] = []
     app_py = read("app.py")
     base = read("templates/base.html")
-    service_worker_ok = ("NEMESIS_CACHE_V903" in app_py or "NEMESIS_CACHE_V904" in app_py or "NEMESIS_CACHE_V905" in app_py) and "res.status===404" in app_py
+    service_worker_ok = ("NEMESIS_CACHE_V903" in app_py or "NEMESIS_CACHE_V904" in app_py or "NEMESIS_CACHE_V905" in app_py or "NEMESIS_CACHE_V906" in app_py) and "res.status===404" in app_py
 
     require(read("VERSION.txt").strip().lstrip("\ufeff") in ALLOWED_VERSIONS, "VERSION.txt is not V903-compatible", failures)
     require(read("APP_VERSION").strip().lstrip("\ufeff") in ALLOWED_VERSIONS, "APP_VERSION file is not V903-compatible", failures)

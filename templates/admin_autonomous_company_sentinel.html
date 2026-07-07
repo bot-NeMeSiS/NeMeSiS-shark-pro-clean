@@ -30,6 +30,25 @@
     <article class="ns-stat"><span>Prompts Codex</span><strong>{{ (latest.outbox or {}).prompt_count or 0 }}</strong><small>outbox revisable</small></article>
   </section>
 
+  {% set browser = status.browser_qa or {} %}
+  <section class="ns-admin-card v906-browser-qa-panel" data-v906-browser-qa="true">
+    <div class="ns-section-title">
+      <h2>Browser QA V906</h2>
+      <span class="ns-badge">{{ browser.status or 'BROWSER_QA_UNAVAILABLE' }}</span>
+    </div>
+    <div class="ns-grid ns-grid-4">
+      <article class="ns-stat"><span>Capturas</span><strong>{{ browser.screenshots_captured or 0 }}</strong><small>desktop/mobile</small></article>
+      <article class="ns-stat"><span>Comparaciones</span><strong>{{ browser.reference_comparisons or 0 }}</strong><small>reference_images</small></article>
+      <article class="ns-stat"><span>Gaps resueltos</span><strong>{{ browser.visual_gaps_resolved or 0 }}</strong><small>por captura</small></article>
+      <article class="ns-stat"><span>Gaps pendientes</span><strong>{{ browser.visual_gaps_pending or 0 }}</strong><small>requieren browser real</small></article>
+    </div>
+    <p>No se declara pixel-perfect sin capturas reales comparadas contra las referencias.</p>
+    <div class="ns-actions">
+      <a class="ns-button ns-button-secondary" href="/admin/sentinel-codex-outbox">Ver outbox</a>
+      <button class="ns-button ns-button-ghost" type="button" data-v904-fetch="/api/admin/autonomous-company-sentinel/reference-gaps">Ver gaps</button>
+    </div>
+  </section>
+
   <section class="ns-admin-card v904-automation-modes-panel">
     <div class="ns-section-title">
       <h2>Flujo automático permanente V904</h2>

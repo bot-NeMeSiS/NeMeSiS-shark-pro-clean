@@ -10,6 +10,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V905_FINAL_REFERENCE_GAPS_BROWSER_QA_AND_BOM_FIX_FINAL"
+ALLOWED_CURRENT_VERSIONS = {VERSION, "V906_REAL_BROWSER_QA_SCREENSHOT_REFERENCE_COMPARISON_FINAL"}
 ZIP_NAME = f"NeMeSiS_SHARK_PRO_{VERSION}_RENDER_READY.zip"
 REPORTS = [
     "reports/V905_FINAL_REFERENCE_GAPS_BROWSER_QA_AND_BOM_FIX_REPORT.md",
@@ -41,7 +42,7 @@ def assert_no_raw_secrets(failures: list[str]) -> None:
         ROOT / "tools" / "check_v905_bom_reference_browser_qa.py",
     ] + [ROOT / report for report in REPORTS]
     unsafe = re.compile(r"(secret|token|api_key|apikey)=([^\s`'\"&<>)]+)", re.IGNORECASE)
-    allowed = {"hidden", "configured", "missing", "***hidden***", "***missing***", "AUTOMATION_SECRET", "..."}
+    allowed = {"hidden", "configured", "missing", "***hidden***", "***missing***", "AUTOMATION_SECRET", "$AUTOMATION_SECRET", "..."}
     for path in scan_paths:
         if not path.exists():
             continue
@@ -83,14 +84,14 @@ def main() -> int:
     home = read("templates/home.html")
 
     require(not version_bytes.startswith(b"\xef\xbb\xbf"), "VERSION.txt still has UTF-8 BOM", failures)
-    require(version_bytes.decode("utf-8").strip() == VERSION, "VERSION.txt is not exact V905", failures)
-    require(read("APP_VERSION").strip().lstrip("\ufeff") == VERSION, "APP_VERSION is not V905", failures)
-    require(app_version_from_source(app_py) == VERSION, "app.py APP_VERSION is not V905", failures)
+    require(version_bytes.decode("utf-8").strip() in ALLOWED_CURRENT_VERSIONS, "VERSION.txt is not V905/V906 compatible", failures)
+    require(read("APP_VERSION").strip().lstrip("\\ufeff") in ALLOWED_CURRENT_VERSIONS, "APP_VERSION is not V905/V906 compatible", failures)
+    require(app_version_from_source(app_py) in ALLOWED_CURRENT_VERSIONS, "app.py APP_VERSION is not V905/V906 compatible", failures)
     require("clean_version_text" in app_py, "clean_version_text helper missing", failures)
     require("has_v905_bom_version_alignment_fix" in app_py, "V905 BOM runtime flag missing", failures)
     require("has_v905_final_reference_gaps_browser_qa" in app_py, "V905 browser QA runtime flag missing", failures)
     require("data-v905-shell" in base, "base V905 shell marker missing", failures)
-    require("NEMESIS_CACHE_V905" in app_py and "res.status===404" in app_py, "service worker V905 404 safety missing", failures)
+    require(("NEMESIS_CACHE_V905" in app_py or "NEMESIS_CACHE_V906" in app_py) and "res.status===404" in app_py, "service worker V905 404 safety missing", failures)
     require("experiencia nica" not in home, "home still has broken 'experiencia nica' copy", failures)
     require("Membresias" not in base, "base still has visible Membresias without accent", failures)
 
@@ -131,8 +132,8 @@ def main() -> int:
     runtime_resp = client.get("/api/runtime-version")
     runtime = runtime_resp.get_json(silent=True) or {}
     require(runtime_resp.status_code == 200, "runtime-version not 200", failures)
-    require(runtime.get("app_version") == VERSION, "runtime app_version is not V905", failures)
-    require(runtime.get("version_txt") == VERSION, "runtime version_txt is not clean V905", failures)
+    require(runtime.get("app_version") in ALLOWED_CURRENT_VERSIONS, "runtime app_version is not V905/V906 compatible", failures)
+    require(runtime.get("version_txt") in ALLOWED_CURRENT_VERSIONS, "runtime version_txt is not clean V905/V906 compatible", failures)
     require(runtime.get("version_files_match") is True, "runtime version_files_match is not true", failures)
     require(runtime.get("deployment_alignment_status") == "aligned_local_files", "runtime deployment alignment is not aligned", failures)
     require(runtime.get("has_v905_bom_version_alignment_fix") is True, "runtime V905 BOM flag false", failures)

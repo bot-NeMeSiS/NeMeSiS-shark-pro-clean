@@ -1,7 +1,7 @@
 # Verificación de imports, rutas y plantillas V723
 
 - Resultado: OK
-- Versión importada: `V905_FINAL_REFERENCE_GAPS_BROWSER_QA_AND_BOM_FIX_FINAL`
+- Versión importada: `V906_REAL_BROWSER_QA_SCREENSHOT_REFERENCE_COMPARISON_FINAL`
 - Rutas GET: 595
 - Templates referenciados: 130
 - Templates faltantes: 0

@@ -10,7 +10,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V904_AUTONOMOUS_REFERENCE_GAPS_REBUILD_AND_SENTINEL_WORKFORCE_FINAL"
-CURRENT_VERSION = "V905_FINAL_REFERENCE_GAPS_BROWSER_QA_AND_BOM_FIX_FINAL"
+CURRENT_VERSION = "V906_REAL_BROWSER_QA_SCREENSHOT_REFERENCE_COMPARISON_FINAL"
 ZIP_NAME = f"NeMeSiS_SHARK_PRO_{VERSION}_RENDER_READY.zip"
 REPORTS = [
     "reports/V904_AUTONOMOUS_REFERENCE_GAPS_REBUILD_REPORT.md",
@@ -104,7 +104,7 @@ def main() -> int:
     require(app_version_from_source(app_py) in allowed_versions, "app.py APP_VERSION is not V904-compatible", failures)
     require("data-v904-shell" in base, "base V904 shell marker missing", failures)
     require("V904 AUTONOMOUS REFERENCE GAPS REBUILD" in css, "V904 CSS block missing", failures)
-    require(("NEMESIS_CACHE_V904" in app_py or "NEMESIS_CACHE_V905" in app_py) and "res.status===404" in app_py, "service worker V904+ 404 safety missing", failures)
+    require(("NEMESIS_CACHE_V904" in app_py or "NEMESIS_CACHE_V905" in app_py or "NEMESIS_CACHE_V906" in app_py) and "res.status===404" in app_py, "service worker V904+ 404 safety missing", failures)
     require("has_v904_autonomous_reference_gaps_rebuild" in app_py, "runtime V904 main flag missing", failures)
     require("has_v904_sentinel_workforce" in app_py, "runtime V904 workforce flag missing", failures)
     require("has_v904_reference_gaps_addressed" in app_py, "runtime V904 gaps flag missing", failures)
