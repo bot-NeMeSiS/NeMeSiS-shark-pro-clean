@@ -11887,3 +11887,98 @@ body.ns-admin .v894-company-sentinel :is(.bottom-nav-clean, .ns-client-sidebar, 
   .ns-not-found-actions .ns-button { flex: 1 1 42%; min-width: 0; }
 }
 /* V896 PRODUCTION NOT FOUND ROUTE RECOVERY END */
+
+/* V904 AUTONOMOUS REFERENCE GAPS REBUILD AND SENTINEL WORKFORCE START */
+.v904-workforce-strip,
+.v904-client-signal-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin: 14px 0 18px;
+}
+.v904-workforce-strip article,
+.v904-client-signal-strip article,
+.v904-admin-rebuild-panel {
+  border: 1px solid rgba(79, 209, 197, .22);
+  border-radius: 10px;
+  background:
+    radial-gradient(circle at top right, rgba(45, 212, 191, .13), transparent 38%),
+    linear-gradient(145deg, rgba(4, 14, 26, .92), rgba(8, 28, 42, .78));
+  box-shadow: 0 14px 38px rgba(0, 0, 0, .24), inset 0 1px 0 rgba(255, 255, 255, .05);
+  padding: 12px 14px;
+  min-width: 0;
+}
+.v904-workforce-strip span,
+.v904-client-signal-strip span {
+  display: block;
+  color: rgba(182, 240, 255, .72);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.v904-workforce-strip strong,
+.v904-client-signal-strip strong {
+  display: block;
+  margin-top: 4px;
+  color: #f3fcff;
+  font-size: clamp(15px, 1.7vw, 21px);
+}
+.v904-workforce-strip small,
+.v904-client-signal-strip small {
+  display: block;
+  margin-top: 4px;
+  color: rgba(232, 249, 255, .68);
+  line-height: 1.35;
+}
+.v904-admin-rebuild .ns-table-wrap,
+.v904-autonomous-sentinel .ns-table-wrap { overflow-x: auto; }
+.v904-admin-rebuild .ns-admin-card,
+.v904-autonomous-sentinel .ns-admin-card { border-radius: 10px; }
+.v904-safe-api-output {
+  display: block;
+  margin-top: 10px;
+  padding: 10px 12px;
+  border: 1px solid rgba(148, 163, 184, .22);
+  border-radius: 8px;
+  background: rgba(2, 8, 18, .54);
+  color: rgba(232, 249, 255, .72);
+  font-size: 13px;
+}
+.v904-gap-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+.v904-gap-status span {
+  border: 1px solid rgba(79, 209, 197, .24);
+  border-radius: 999px;
+  padding: 6px 9px;
+  color: #b9fff8;
+  background: rgba(79, 209, 197, .08);
+  font-size: 12px;
+  font-weight: 800;
+}
+body.ns-admin .v904-admin-rebuild :is(.bottom-nav-clean, .ns-client-sidebar, .shark-widget, .shark-fab, .v825-public-floating-shark) {
+  display: none !important;
+}
+.v904-client-rebuild :is(.v799-filterbar, .v801-day-rail, .v812-route-steps) {
+  scrollbar-width: thin;
+}
+.v904-client-rebuild .ns-empty,
+.v904-client-rebuild [class*="empty"] {
+  min-height: auto;
+}
+@media (max-width: 920px) {
+  .v904-workforce-strip,
+  .v904-client-signal-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 560px) {
+  .v904-workforce-strip,
+  .v904-client-signal-strip { grid-template-columns: 1fr; margin: 10px 0 14px; }
+  .v904-workforce-strip article,
+  .v904-client-signal-strip article { padding: 10px 11px; }
+  .v904-client-signal-strip small { font-size: 12px; }
+}
+/* V904 AUTONOMOUS REFERENCE GAPS REBUILD AND SENTINEL WORKFORCE END */

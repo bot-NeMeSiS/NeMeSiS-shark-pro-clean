@@ -12,6 +12,8 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 VERSION = "V903_TOTAL_SENTINEL_AUTO_FIX_RENDER_ALIGNMENT_AND_STABILITY_FINAL"
+CURRENT_VERSION = "V904_AUTONOMOUS_REFERENCE_GAPS_REBUILD_AND_SENTINEL_WORKFORCE_FINAL"
+ALLOWED_VERSIONS = {VERSION, CURRENT_VERSION}
 ZIP_NAME = f"NeMeSiS_SHARK_PRO_{VERSION}_RENDER_READY.zip"
 REPORTS = [
     "reports/V903_TOTAL_SENTINEL_AUTO_FIX_RENDER_ALIGNMENT_AND_STABILITY_REPORT.md",
@@ -77,11 +79,11 @@ def main() -> int:
     failures: list[str] = []
     app_py = read("app.py")
     base = read("templates/base.html")
-    service_worker_ok = "NEMESIS_CACHE_V903" in app_py and "res.status===404" in app_py
+    service_worker_ok = ("NEMESIS_CACHE_V903" in app_py or "NEMESIS_CACHE_V904" in app_py) and "res.status===404" in app_py
 
-    require(read("VERSION.txt").strip().lstrip("\ufeff") == VERSION, "VERSION.txt is not V903", failures)
-    require(read("APP_VERSION").strip().lstrip("\ufeff") == VERSION, "APP_VERSION file is not V903", failures)
-    require(app_version_from_source(app_py) == VERSION, "app.py APP_VERSION is not V903", failures)
+    require(read("VERSION.txt").strip().lstrip("\ufeff") in ALLOWED_VERSIONS, "VERSION.txt is not V903-compatible", failures)
+    require(read("APP_VERSION").strip().lstrip("\ufeff") in ALLOWED_VERSIONS, "APP_VERSION file is not V903-compatible", failures)
+    require(app_version_from_source(app_py) in ALLOWED_VERSIONS, "app.py APP_VERSION is not V903-compatible", failures)
     require("data-v903-shell" in base, "base V903 marker missing", failures)
     require("has_v903_total_sentinel_auto_fix_render_alignment" in app_py, "runtime V903 main flag missing", failures)
     require("has_v903_secret_rotation_guard" in app_py, "runtime V903 secret flag missing", failures)
@@ -112,7 +114,7 @@ def main() -> int:
     client = flask_app.test_client()
     runtime_resp = client.get("/api/runtime-version")
     runtime = runtime_resp.get_json() or {}
-    require(runtime_resp.status_code == 200 and runtime.get("app_version") == VERSION, "runtime is not V903", failures)
+    require(runtime_resp.status_code == 200 and runtime.get("app_version") in ALLOWED_VERSIONS, "runtime is not V903-compatible", failures)
     require(runtime.get("has_v903_total_sentinel_auto_fix_render_alignment") is True, "runtime V903 main flag false", failures)
     require(runtime.get("has_v903_secret_rotation_guard") is True, "runtime V903 secret flag false", failures)
     require(runtime.get("secret_masking_ok") is True, "runtime secret masking not OK", failures)

@@ -21,7 +21,7 @@
 {% set picks_count = counts.get('picks', picks|length) %}
 {% set telegram_count = counts.get('alerts', counts.get('telegram', 0)) %}
 {% set lifecycle = data.get('client_lifecycle_sync') or {} %}
-<section class="v812-screen v812-home v815-certified-screen v815-app-screen v816-certified-screen v816-app-screen v817-certified-screen v817-app-screen v819-certified-screen v819-app-screen v820-certified-screen v820-app-screen v823-certified-screen v823-app-screen v824-certified-screen v824-app-screen v825-certified-screen v826-certified-screen v827-certified-screen v828-certified-screen v829-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v830-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v825-app-screen v860-app-shell" data-v815-template="client_app_center" data-v816-template="client_app_center" data-v817-template="client_app_center" data-v819-template="client_app_center" data-v820-template="client_app_center" data-v823-template="client_app_center" data-v824-template="client_app_center" data-v825-template="client_app_center" data-v827-template="client_app_center" data-v828-template="client_app_center" data-v829-template="client_app_center" data-v830-template="client_app_center" data-v832-template="client_app_center" data-v833-template="client_app_center" data-v836-template="client_app_center" data-v837-template="client_app_center" data-v826-template="client_app_center">
+<section class="v812-screen v812-home v815-certified-screen v815-app-screen v816-certified-screen v816-app-screen v817-certified-screen v817-app-screen v819-certified-screen v819-app-screen v820-certified-screen v820-app-screen v823-certified-screen v823-app-screen v824-certified-screen v824-app-screen v825-certified-screen v826-certified-screen v827-certified-screen v828-certified-screen v829-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v830-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v825-app-screen v860-app-shell v904-client-rebuild" data-v815-template="client_app_center" data-v816-template="client_app_center" data-v817-template="client_app_center" data-v819-template="client_app_center" data-v820-template="client_app_center" data-v823-template="client_app_center" data-v824-template="client_app_center" data-v825-template="client_app_center" data-v827-template="client_app_center" data-v828-template="client_app_center" data-v829-template="client_app_center" data-v830-template="client_app_center" data-v832-template="client_app_center" data-v833-template="client_app_center" data-v836-template="client_app_center" data-v837-template="client_app_center" data-v826-template="client_app_center" data-v904-template="client_app_center">
   <section class="v812-hero-shell" aria-label="Inicio cliente estilo app final">
     <div class="v812-hero-bg-shark" aria-hidden="true"><img src="/static/img/shark-logo.svg" alt=""></div>
     <div class="v812-hero-copy">
@@ -50,6 +50,13 @@
       {% endif %}
       <nav><a href="/calendar?lane=today">Hoy</a><a href="/calendar?lane=results">Resultados</a><a href="/shark">AI</a></nav>
     </aside>
+  </section>
+
+  <section class="v904-client-signal-strip" aria-label="Estado de mejora V904">
+    <article><span>Datos reales</span><strong>Sin inventar</strong><small>Partidos, picks y cuotas solo si existen.</small></article>
+    <article><span>Plan</span><strong>{{ plan_name }}</strong><small>Upgrade visible sin bloquear la experiencia base.</small></article>
+    <article><span>SHARK</span><strong>Modo seguro</strong><small>Guía antes de apostar sin prometer certezas.</small></article>
+    <article><span>Referencia</span><strong>Primer pase V904</strong><small>Dashboard más denso y móvil primero.</small></article>
   </section>
 
   <section class="v812-kpi-row v860-kpi-row" aria-label="Resumen real">

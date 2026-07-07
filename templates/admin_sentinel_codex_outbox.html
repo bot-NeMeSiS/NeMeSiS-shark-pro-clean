@@ -1,15 +1,16 @@
 {% extends "base.html" %}
 {% block content %}
-<section class="ns-admin-page v894-company-sentinel">
+<section class="ns-admin-page v894-company-sentinel v904-admin-rebuild v904-codex-outbox" data-v904-template="admin_sentinel_codex_outbox">
   <div class="ns-page-header">
     <span class="ns-chip">Codex Outbox</span>
     <h1>Prompts Codex del Sentinel</h1>
     <p>Prompts listos para revisar y copiar. Este panel no aplica cambios, no hace push, no despliega y no toca secretos.</p>
     <div class="ns-actions">
-      <a class="ns-button ns-button-primary" href="/api/admin/autonomous-company-sentinel/generate-codex-prompts" target="_blank">Regenerar outbox</a>
-      <a class="ns-button ns-button-secondary" href="/api/admin/autonomous-company-sentinel/outbox" target="_blank">Ver JSON</a>
+      <button class="ns-button ns-button-primary" type="button" data-v904-fetch="/api/admin/autonomous-company-sentinel/generate-codex-prompts">Regenerar outbox</button>
+      <button class="ns-button ns-button-secondary" type="button" data-v904-fetch="/api/admin/autonomous-company-sentinel/outbox">Ver JSON seguro</button>
       <a class="ns-button ns-button-ghost" href="/admin/autonomous-company-sentinel">Volver al Sentinel</a>
     </div>
+    <output class="v904-safe-api-output" data-v904-output>Outbox en modo revisión: no aplica cambios, no despliega y no toca secretos.</output>
   </div>
 
   {% set latest = status.latest_run or {} %}
@@ -41,8 +42,8 @@
     <h2>Prompts visuales / funcionales / archivados</h2>
     <p>El outbox combinado separa prompts activos, prompts visuales de referencia, prompts funcionales y prompts archivados u obsoletos. Este panel no ejecuta cambios.</p>
     <div class="ns-actions">
-      <a class="ns-button ns-button-secondary" href="/api/admin/autonomous-company-sentinel/outbox" target="_blank">Abrir outbox JSON</a>
-      <a class="ns-button ns-button-ghost" href="/api/admin/autonomous-company-sentinel/reference-gaps" target="_blank">Ver gaps visuales</a>
+      <button class="ns-button ns-button-secondary" type="button" data-v904-fetch="/api/admin/autonomous-company-sentinel/outbox">Abrir outbox JSON</button>
+      <button class="ns-button ns-button-ghost" type="button" data-v904-fetch="/api/admin/autonomous-company-sentinel/reference-gaps">Ver gaps visuales</button>
     </div>
   </section>
 </section>

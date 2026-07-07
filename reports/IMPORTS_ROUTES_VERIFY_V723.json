@@ -1,6 +1,6 @@
 {
   "ok": true,
-  "checked_at": "2026-07-07T16:05:03",
+  "checked_at": "2026-07-07T16:51:06",
   "templates_referenced": [
     "404.html",
     "account_center.html",
@@ -139,7 +139,7 @@
   ],
   "missing_static": [],
   "import_ok": true,
-  "version": "V903_TOTAL_SENTINEL_AUTO_FIX_RENDER_ALIGNMENT_AND_STABILITY_FINAL",
+  "version": "V904_AUTONOMOUS_REFERENCE_GAPS_REBUILD_AND_SENTINEL_WORKFORCE_FINAL",
   "route_count": 595,
   "routes": [
     "/",

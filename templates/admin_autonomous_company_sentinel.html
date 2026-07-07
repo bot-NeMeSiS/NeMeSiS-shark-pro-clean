@@ -1,17 +1,18 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 {% block content %}
-<section class="ns-admin-page v894-company-sentinel">
+<section class="ns-admin-page v894-company-sentinel v904-admin-rebuild v904-autonomous-sentinel" data-v904-template="admin_autonomous_company_sentinel">
   <div class="ns-page-header">
     <span class="ns-chip">Autonomous Company Sentinel</span>
     <h1>Sentinel Empresa</h1>
     <p>Worker autónomo para revisar cliente, admin, rutas, Telegram, picks, datos reales, referencias visuales, Render y release. Genera incidencias, prompts Codex y plan de autofix seguro sin deploy, push, Telegram real, pagos ni secretos.</p>
     <div class="ns-actions">
-      <a class="ns-button ns-button-primary" href="/api/admin/autonomous-company-sentinel/run?mode=safe_scan&dry_run=1" target="_blank">Ejecutar revisión</a>
+      <button class="ns-button ns-button-primary" type="button" data-v904-fetch="/api/admin/autonomous-company-sentinel/run?mode=safe_scan&amp;dry_run=1">Ejecutar revisión</button>
       <a class="ns-button ns-button-secondary" href="/admin/sentinel-issues">Ver incidencias</a>
       <a class="ns-button ns-button-secondary" href="/admin/sentinel-codex-outbox">Ver outbox Codex</a>
-      <a class="ns-button ns-button-ghost" href="/api/admin/autonomous-company-sentinel/autofix-plan" target="_blank">Plan de autofix</a>
-      <a class="ns-button ns-button-ghost" href="/api/admin/autonomous-company-sentinel/render-alignment" target="_blank">Estado Render</a>
+      <button class="ns-button ns-button-ghost" type="button" data-v904-fetch="/api/admin/autonomous-company-sentinel/autofix-plan">Plan de autofix</button>
+      <button class="ns-button ns-button-ghost" type="button" data-v904-fetch="/api/admin/autonomous-company-sentinel/render-alignment">Estado Render</button>
     </div>
+    <output class="v904-safe-api-output" data-v904-output>Acciones dry-run: no deploy, no push, no Telegram real.</output>
   </div>
 
   {% set latest = status.latest_run or {} %}
@@ -84,7 +85,7 @@
       <p>Prompts generados: <strong>{{ (gap.codex_prompts or [])|length }}</strong></p>
       <p>Score honesto: <strong>{{ gap.score_honest or 'Pendiente' }}</strong></p>
       <div class="ns-actions">
-        <a class="ns-button ns-button-secondary" href="/api/admin/autonomous-company-sentinel/reference-gaps" target="_blank">Ver gaps</a>
+        <button class="ns-button ns-button-secondary" type="button" data-v904-fetch="/api/admin/autonomous-company-sentinel/reference-gaps">Ver gaps</button>
         <a class="ns-button ns-button-ghost" href="/admin/sentinel-codex-outbox">Ver outbox</a>
       </div>
       <p>No se declara equivalencia exacta sin capturas reales comparadas.</p>
@@ -167,3 +168,5 @@
   </section>
 </section>
 {% endblock %}
+
+

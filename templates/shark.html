@@ -1,11 +1,11 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 {% block content %}
 {% set assistant = data.get('shark_assistant') or {} %}
 {% set answer = assistant.get('answer') or {} %}
 {% set context = assistant.get('context') or {} %}
 {% set state = context.get('data_state') or {} %}
 {% set openai_ready = assistant.get('openai_configured') %}
-<section class="v845-shark-screen v825-shark-screen" data-v845-template="shark" data-v844-template="shark">
+<section class="v845-shark-screen v825-shark-screen v904-client-rebuild v904-shark-rebuild" data-v845-template="shark" data-v844-template="shark" data-v904-template="shark">
   <div class="v845-shark-hero">
     <div>
       <span class="v845-kicker">SHARK AI · asistente de producto</span>
@@ -96,3 +96,5 @@
   </section>
 </section>
 {% endblock %}
+
+

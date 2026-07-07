@@ -4,7 +4,7 @@
 {% set d = data if data is defined and data else {} %}
 {% set stats = d.get('stats', {}) if d.get is defined else {} %}
 {% set grouped = items|default([])|groupby('group') %}
-<section class="v823-certified-screen v823-admin-dashboard v824-certified-screen v824-admin-dashboard v825-certified-screen v826-certified-screen v827-certified-screen v828-certified-screen v829-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v830-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v825-admin-dashboard" data-v823-template="admin_dashboard" data-v824-template="admin_dashboard" data-v825-template="admin_dashboard" data-v827-template="admin_dashboard" data-v828-template="admin_dashboard" data-v829-template="admin_dashboard" data-v830-template="admin_dashboard" data-v832-template="admin_dashboard" data-v833-template="admin_dashboard" data-v836-template="admin_dashboard" data-v837-template="admin_dashboard" data-v826-template="admin_dashboard">
+<section class="v823-certified-screen v823-admin-dashboard v824-certified-screen v824-admin-dashboard v825-certified-screen v826-certified-screen v827-certified-screen v828-certified-screen v829-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v830-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v825-admin-dashboard v904-admin-rebuild" data-v823-template="admin_dashboard" data-v824-template="admin_dashboard" data-v825-template="admin_dashboard" data-v827-template="admin_dashboard" data-v828-template="admin_dashboard" data-v829-template="admin_dashboard" data-v830-template="admin_dashboard" data-v832-template="admin_dashboard" data-v833-template="admin_dashboard" data-v836-template="admin_dashboard" data-v837-template="admin_dashboard" data-v826-template="admin_dashboard" data-v904-template="admin_dashboard">
 {% call ui.shell('Dashboard', 'Panel de control', 'Centro operativo real del ecosistema') %}
 <section class="v809-admin-reference-hero">
   <div>
@@ -18,6 +18,13 @@
     <strong>{{ d.get('version') or d.get('app_version') or 'Versión activa' }}</strong>
     <small>Madrid · producción · sin datos inventados</small>
   </aside>
+</section>
+
+<section class="v904-workforce-strip" aria-label="Workforce V904">
+  <article><span>Sentinel</span><strong>0 activos</strong><small>Rescan antes de corregir, sin ruido viejo.</small></article>
+  <article><span>Referencias</span><strong>33 pendientes en Render</strong><small>Primer pase estático aplicado a pantallas clave.</small></article>
+  <article><span>Deploy</span><strong>V902B real</strong><small>V904 no se declara producción hasta runtime.</small></article>
+  <article><span>Secretos</span><strong>Guard activo</strong><small>Sin tokens ni URLs sensibles en UI.</small></article>
 </section>
 
 <section class="v807-admin-hero compact">

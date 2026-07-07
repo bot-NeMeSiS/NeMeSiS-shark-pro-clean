@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
-<section class="ns-admin-page v892-sentinel-issues">
+<section class="ns-admin-page v892-sentinel-issues v904-admin-rebuild v904-sentinel-issues" data-v904-template="admin_sentinel_issues">
   <div class="ns-page-header">
     <span class="ns-chip">V892 Centro de Incidencias</span>
     <h1>Sentinel Issues Command Center</h1>
@@ -15,13 +15,14 @@
       <form method="get" action="/api/admin/sentinel/issues/sync-visual-worker" target="_blank">
         <button class="ns-button ns-button-ghost" type="submit">Sincronizar Visual Worker</button>
       </form>
-      <a class="ns-button ns-button-ghost" href="/api/admin/sentinel/issues/summary" target="_blank">Ver JSON</a>
+      <button class="ns-button ns-button-ghost" type="button" data-v904-fetch="/api/admin/sentinel/issues/summary">Ver JSON seguro</button>
     </div>
+    <output class="v904-safe-api-output" data-v904-output>Los endpoints admin se consultan como JSON protegido; sin sesión deben devolver 403.</output>
   </div>
 
   <section class="ns-grid ns-grid-4">
     <article class="ns-stat"><span>Abiertas</span><strong>{{ summary.counts.open }}</strong><small>incidencias activas</small></article>
-    <article class="ns-stat"><span>Criticas</span><strong>{{ summary.counts.severity.critical }}</strong><small>bloqueo real</small></article>
+    <article class="ns-stat"><span>Críticas</span><strong>{{ summary.counts.severity.critical }}</strong><small>bloqueo real</small></article>
     <article class="ns-stat"><span>Altas</span><strong>{{ summary.counts.severity.high }}</strong><small>prioridad operativa</small></article>
     <article class="ns-stat"><span>Codex Ready</span><strong>{{ summary.codex_ready_issues|length }}</strong><small>prompt preparado</small></article>
   </section>
@@ -32,8 +33,8 @@
       <div class="ns-table-wrap">
         <table class="ns-table">
           <tbody>
-            <tr><th>Ultimo scan</th><td>{{ summary.last_scan_madrid or 'Pendiente' }}</td></tr>
-            <tr><th>Area mas afectada</th><td>{{ summary.top_area }}</td></tr>
+            <tr><th>Último scan</th><td>{{ summary.last_scan_madrid or 'Pendiente' }}</td></tr>
+            <tr><th>Área más afectada</th><td>{{ summary.top_area }}</td></tr>
             <tr><th>Origen principal</th><td>{{ summary.top_source }}</td></tr>
             <tr><th>Reabiertas</th><td>{{ summary.reopened_issues|length }}</td></tr>
           </tbody>
@@ -44,7 +45,7 @@
       <h2>Filtros</h2>
       <div class="ns-actions" data-v892-filters>
         <button class="ns-button ns-button-secondary" type="button" data-filter="all">Todas</button>
-        <button class="ns-button ns-button-secondary" type="button" data-filter="critical">Solo criticas</button>
+        <button class="ns-button ns-button-secondary" type="button" data-filter="critical">Solo críticas</button>
         <button class="ns-button ns-button-secondary" type="button" data-filter="open">Abiertas</button>
         <button class="ns-button ns-button-secondary" type="button" data-filter="codex">Codex Ready</button>
         <button class="ns-button ns-button-secondary" type="button" data-filter="reference">Reference gap</button>
@@ -58,7 +59,7 @@
       <input class="ns-input" id="v892-search" type="search" placeholder="Ruta, area, evidencia o titulo" data-v892-search>
     </article>
     <article class="ns-admin-card">
-      <h2>Politica segura</h2>
+      <h2>Política segura</h2>
       <div class="ns-stack">
         {% for action in summary.forbidden_actions %}
           <span class="ns-chip">{{ action }}</span>
@@ -127,7 +128,7 @@
                 <button class="ns-button ns-button-ghost" type="button" data-issue-status="{{ issue.id }}" data-status="FIXED_PENDING_VALIDATION">Marcar como corregido</button>
                 <button class="ns-button ns-button-ghost" type="button" data-issue-status="{{ issue.id }}" data-status="FALSE_POSITIVE">Falso positivo</button>
                 <button class="ns-button ns-button-ghost" type="button" data-issue-status="{{ issue.id }}" data-status="REOPENED">Reabrir incidencia</button>
-                <a class="ns-button ns-button-ghost" href="/api/admin/sentinel/issues/{{ issue.id }}" target="_blank">Ver JSON</a>
+                <button class="ns-button ns-button-ghost" type="button" data-v904-fetch="/api/admin/sentinel/issues/{{ issue.id }}">Ver JSON</button>
                 {% if issue.route %}
                   <a class="ns-button ns-button-ghost" href="{{ issue.route }}">Ver ruta</a>
                 {% endif %}

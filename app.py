@@ -339,7 +339,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V903_TOTAL_SENTINEL_AUTO_FIX_RENDER_ALIGNMENT_AND_STABILITY_FINAL'
+APP_VERSION = 'V904_AUTONOMOUS_REFERENCE_GAPS_REBUILD_AND_SENTINEL_WORKFORCE_FINAL'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 
@@ -10505,7 +10505,7 @@ def dashboard_data(lane="today", date=None):
 @app.route("/service-worker.js")
 def service_worker():
     body = (
-        "const NEMESIS_CACHE='NEMESIS_CACHE_V903';\n"
+        "const NEMESIS_CACHE='NEMESIS_CACHE_V904';\n"
         "self.addEventListener('install',event=>{self.skipWaiting();});\n"
         "self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==NEMESIS_CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));});\n"
         "self.addEventListener('fetch',event=>{const req=event.request;if(req.mode==='navigate'){event.respondWith(fetch(req).then(res=>{if(res.status===404){return fetch('/');}return res;}).catch(()=>fetch('/')));return;}event.respondWith(fetch(req).then(res=>{if(res.status===404){return res;}return res;}));});\n"
@@ -14895,6 +14895,48 @@ def v902_sentinel_truth_runtime_summary() -> dict:
     }
 
 
+def v904_reference_workforce_runtime_summary() -> dict:
+    root = Path(__file__).resolve().parent
+    gap_path = root / "data" / "runtime" / "autonomous_company_sentinel" / "reference_gap_report.json"
+    outbox_path = root / "data" / "runtime" / "autonomous_company_sentinel" / "outbox" / "codex_outbox.md"
+    gaps_read = 0
+    gaps_addressed = 0
+    gaps_pending = 0
+    browser_qa_status = "BROWSER_QA_UNAVAILABLE"
+    try:
+        payload = json.loads(gap_path.read_text(encoding="utf-8")) if gap_path.exists() else {}
+        issues = payload.get("issues") if isinstance(payload.get("issues"), list) else []
+        review = payload.get("v904_review") if isinstance(payload.get("v904_review"), dict) else {}
+        gaps_read = int(review.get("gaps_read") or len(issues))
+        gaps_addressed = int(review.get("gaps_addressed") or sum(1 for item in issues if item.get("addressed_in_v904")))
+        gaps_pending = int(review.get("gaps_pending") or max(0, gaps_read - gaps_addressed))
+        browser_qa_status = str(review.get("browser_qa_status") or browser_qa_status)
+    except Exception:
+        pass
+    prompts_active = 0
+    try:
+        outbox_text = outbox_path.read_text(encoding="utf-8", errors="replace") if outbox_path.exists() else ""
+        for section in ("ACTIVE_FIX_PROMPTS", "VISUAL_REFERENCE_PROMPTS", "FUNCTIONAL_PROMPTS", "ADMIN_PROMPTS", "TELEGRAM_PROMPTS"):
+            marker = f"## {section}"
+            start = outbox_text.find(marker)
+            if start < 0:
+                continue
+            next_start = outbox_text.find("\n## ", start + len(marker))
+            section_text = outbox_text[start: next_start if next_start >= 0 else len(outbox_text)]
+            prompts_active += section_text.count("\n# ")
+    except Exception:
+        prompts_active = 0
+    return {
+        "v904_gaps_read": gaps_read,
+        "v904_gaps_addressed": gaps_addressed,
+        "v904_gaps_pending": gaps_pending,
+        "v904_prompts_active": prompts_active,
+        "v904_admin_rebuild_status": "static_reference_workforce_pass_applied",
+        "v904_client_rebuild_status": "static_reference_workforce_pass_applied",
+        "v904_browser_qa_status": browser_qa_status,
+    }
+
+
 @app.route("/api/runtime-version")
 def api_runtime_version():
     version_txt = ""
@@ -14963,6 +15005,7 @@ def api_runtime_version():
     v903_false_positive_count = int(v902_truth_summary.get("sentinel_false_positive_count") or 0)
     v903_archived_count = int(v902_truth_summary.get("sentinel_resolved_by_rescan_count") or 0)
     v903_dangerous_count = 0
+    v904_summary = v904_reference_workforce_runtime_summary()
     return jsonify(sanitize_runtime_value({
         "ok": True,
         "app": APP_NAME,
@@ -15152,7 +15195,7 @@ def api_runtime_version():
         "has_v895_render_v894_deployment_alignment": "V895_RENDER_V894_DEPLOYMENT_ALIGNMENT_FINAL" in app_py_text and "deployment_alignment_status" in app_py_text,
         "has_v896_not_found_route_recovery": "V896_PRODUCTION_NOT_FOUND_ROUTE_RECOVERY_FULL_APP_SMOKE_FINAL" in app_py_text and "client_safe_404" in app_py_text and "/api/admin/not-found-events" in app_py_text,
         "has_v897_truthful_sentinel_route_alias_reference_qa": "V897_SENTINEL_TRUTHFUL_ISSUES_ROUTE_ALIAS_REFERENCE_QA_FIX_FINAL" in app_py_text and "register_alias_if_missing" in app_py_text and "data-v897-shell" in base_template,
-        "has_v898_404_pwa_reference_outbox_truth": "V898_PRODUCTION_404_PWA_REFERENCE_OUTBOX_TRUTH_FINAL" in app_py_text and ("NEMESIS_CACHE_V898" in app_py_text or "NEMESIS_CACHE_V900" in app_py_text or "NEMESIS_CACHE_V901" in app_py_text or "NEMESIS_CACHE_V902" in app_py_text or "NEMESIS_CACHE_V903" in app_py_text) and "/admin/not-found-events" in app_py_text,
+        "has_v898_404_pwa_reference_outbox_truth": "V898_PRODUCTION_404_PWA_REFERENCE_OUTBOX_TRUTH_FINAL" in app_py_text and ("NEMESIS_CACHE_V898" in app_py_text or "NEMESIS_CACHE_V900" in app_py_text or "NEMESIS_CACHE_V901" in app_py_text or "NEMESIS_CACHE_V902" in app_py_text or "NEMESIS_CACHE_V903" in app_py_text or "NEMESIS_CACHE_V904" in app_py_text) and "/admin/not-found-events" in app_py_text,
         "has_v899_reference_visual_browser_qa_product_gap_worker": "reference_scan" in app_py_text and "product_gap_engine" in app_py_text and "reference_image_manifest_engine" in app_py_text,
         "has_v900_reference_images_import_first_real_visual_gap_audit": "V900_REFERENCE_IMAGES_IMPORT_FIRST_REAL_VISUAL_GAP_AUDIT_FINAL" in app_py_text and "data-v900-shell" in base_template and "product_gap_engine" in app_py_text,
         "has_v901_admin_continuous_sentinel_api_layout_recovery": "V901_ADMIN_CONTINUOUS_SENTINEL_API_LAYOUT_RECOVERY_FINAL" in app_py_text and "data-v901-shell" in base_template and "v901_register_admin_api_issue" in app_py_text,
@@ -15161,7 +15204,11 @@ def api_runtime_version():
         "has_v903_total_sentinel_auto_fix_render_alignment": "V903_TOTAL_SENTINEL_AUTO_FIX_RENDER_ALIGNMENT_AND_STABILITY_FINAL" in app_py_text and "data-v903-shell" in base_template,
         "has_v903_secret_rotation_guard": "mask_secret_for_url" in app_py_text and "automation_secret_state" in app_py_text,
         "has_v903_active_errors_inventory": (Path(__file__).resolve().parent / "reports" / "V903_TOTAL_ACTIVE_ERRORS_INVENTORY.md").exists(),
+        "has_v904_autonomous_reference_gaps_rebuild": "V904_AUTONOMOUS_REFERENCE_GAPS_REBUILD_AND_SENTINEL_WORKFORCE_FINAL" in app_py_text and "data-v904-shell" in base_template,
+        "has_v904_sentinel_workforce": "v904_reference_workforce_runtime_summary" in app_py_text and "V904 AUTONOMOUS REFERENCE GAPS REBUILD" in css_text,
+        "has_v904_reference_gaps_addressed": bool(v904_summary.get("v904_gaps_addressed")),
         **v902_truth_summary,
+        **v904_summary,
         "active_errors_count": v903_active_errors_count,
         "fixed_safe_count": v903_archived_count,
         "stale_issues_count": v903_stale_issues_count,
