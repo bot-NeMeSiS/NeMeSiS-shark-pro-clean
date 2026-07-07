@@ -1,10 +1,10 @@
 {
   "ok": true,
-  "audited_at": "2026-07-07T16:53:49",
+  "audited_at": "2026-07-07T17:19:10",
   "zip": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\release_output\\NeMeSiS_SHARK_PRO_V904_AUTONOMOUS_REFERENCE_GAPS_REBUILD_AND_SENTINEL_WORKFORCE_FINAL_RENDER_READY.zip",
-  "zip_size_bytes": 27195926,
+  "zip_size_bytes": 27199476,
   "file_count": 2047,
-  "content_size_bytes": 31829871,
+  "content_size_bytes": 31847154,
   "forbidden_count": 0,
   "missing_required_root": [],
   "forbidden": [],
@@ -98,12 +98,12 @@
     },
     {
       "folder": "engines",
-      "size": 1351963,
+      "size": 1363201,
       "files": 123
     },
     {
       "folder": "tools",
-      "size": 1232159,
+      "size": 1234511,
       "files": 470
     },
     {
@@ -123,7 +123,7 @@
     },
     {
       "folder": "templates",
-      "size": 678492,
+      "size": 682185,
       "files": 168
     },
     {

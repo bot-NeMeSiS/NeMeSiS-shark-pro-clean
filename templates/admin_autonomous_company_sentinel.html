@@ -7,6 +7,9 @@
     <p>Worker autónomo para revisar cliente, admin, rutas, Telegram, picks, datos reales, referencias visuales, Render y release. Genera incidencias, prompts Codex y plan de autofix seguro sin deploy, push, Telegram real, pagos ni secretos.</p>
     <div class="ns-actions">
       <button class="ns-button ns-button-primary" type="button" data-v904-fetch="/api/admin/autonomous-company-sentinel/run?mode=safe_scan&amp;dry_run=1">Ejecutar revisión</button>
+      <button class="ns-button ns-button-secondary" type="button" data-v904-fetch="/api/admin/autonomous-company-sentinel/run?mode=reference_scan&amp;dry_run=1">Reference scan</button>
+      <button class="ns-button ns-button-secondary" type="button" data-v904-fetch="/api/admin/autonomous-company-sentinel/run?mode=daily_reference_review&amp;dry_run=1">Revisión diaria</button>
+      <button class="ns-button ns-button-secondary" type="button" data-v904-fetch="/api/admin/autonomous-company-sentinel/run?mode=post_deploy_check&amp;dry_run=1">Post-deploy</button>
       <a class="ns-button ns-button-secondary" href="/admin/sentinel-issues">Ver incidencias</a>
       <a class="ns-button ns-button-secondary" href="/admin/sentinel-codex-outbox">Ver outbox Codex</a>
       <button class="ns-button ns-button-ghost" type="button" data-v904-fetch="/api/admin/autonomous-company-sentinel/autofix-plan">Plan de autofix</button>
@@ -16,6 +19,8 @@
   </div>
 
   {% set latest = status.latest_run or {} %}
+  {% set automation = latest.v904_automation_summary or {} %}
+  {% set policy = latest.action_policy or automation.action_policy or {} %}
   {% set issue_summary = status.issues_summary or {} %}
   {% set counts = issue_summary.counts or {} %}
   <section class="ns-grid ns-grid-4">
@@ -23,6 +28,46 @@
     <article class="ns-stat"><span>Rutas revisadas</span><strong>{{ latest.routes_checked or 0 }}</strong><small>cliente/admin</small></article>
     <article class="ns-stat"><span>Incidencias abiertas</span><strong>{{ counts.open or 0 }}</strong><small>{{ counts.critical or 0 }} críticas · {{ counts.high or 0 }} altas</small></article>
     <article class="ns-stat"><span>Prompts Codex</span><strong>{{ (latest.outbox or {}).prompt_count or 0 }}</strong><small>outbox revisable</small></article>
+  </section>
+
+  <section class="ns-admin-card v904-automation-modes-panel">
+    <div class="ns-section-title">
+      <h2>Flujo automático permanente V904</h2>
+      <span class="ns-badge">dry-run controlado</span>
+    </div>
+    <div class="ns-grid ns-grid-4">
+      <article class="ns-stat"><span>Modo ejecutado</span><strong>{{ automation.mode or latest.mode or 'Pendiente' }}</strong><small>{{ automation.mode_label or 'Sin revisión reciente' }}</small></article>
+      <article class="ns-stat"><span>Gaps leídos</span><strong>{{ automation.gaps_read or status.state.v904_gaps_read or 0 }}</strong><small>{{ automation.gaps_addressed or status.state.v904_gaps_addressed or 0 }} abordados</small></article>
+      <article class="ns-stat"><span>Prompts activos</span><strong>{{ automation.prompts_active or status.state.v904_prompts_active or 0 }}</strong><small>Codex outbox</small></article>
+      <article class="ns-stat"><span>Deploy</span><strong>{{ automation.deploy_status or status.state.v904_deploy_status or 'Pendiente' }}</strong><small>no declara producción</small></article>
+    </div>
+    <div class="ns-grid ns-grid-3">
+      <article class="ns-card ns-card-compact">
+        <h3>SAFE_AUTOFIX</h3>
+        <p>Correcciones seguras planificadas sin datos reales ni secretos.</p>
+        <strong>{{ policy.safe_autofix_count or 0 }}</strong>
+      </article>
+      <article class="ns-card ns-card-compact">
+        <h3>CODEX_PROMPT_REQUIRED</h3>
+        <p>Trabajo que debe pasar por prompt Codex antes de tocar código.</p>
+        <strong>{{ policy.codex_prompt_required_count or 0 }}</strong>
+      </article>
+      <article class="ns-card ns-card-compact">
+        <h3>HUMAN_APPROVAL_REQUIRED</h3>
+        <p>Pagos, secretos, Telegram real, DB, deploy o acciones peligrosas.</p>
+        <strong>{{ policy.human_approval_required_count or 0 }}</strong>
+      </article>
+    </div>
+    <div class="ns-table-wrap">
+      <table class="ns-table">
+        <tbody>
+          <tr><th>Última revisión automática</th><td>{{ status.state.last_run_madrid or latest.last_run_madrid or 'Sin run guardado' }}</td></tr>
+          <tr><th>Estado secret masking</th><td>{{ automation.secret_masking_status or status.state.v904_secret_masking_status or 'masked_configured_missing_only' }}</td></tr>
+          <tr><th>Errores activos</th><td>{{ automation.errors_active or status.state.v904_errors_active or counts.open or 0 }}</td></tr>
+          <tr><th>Próximo paso</th><td>{{ automation.next_recommended_step or status.state.v904_next_step or 'Ejecutar daily_reference_review en dry-run tras desplegar la versión actual.' }}</td></tr>
+        </tbody>
+      </table>
+    </div>
   </section>
 
   <section class="ns-grid ns-grid-2">
@@ -38,7 +83,10 @@
             <tr><th>Ligero</th><td>{{ status.cron.safe_scan }}</td></tr>
             <tr><th>Funcional</th><td>{{ status.cron.functional_scan }}</td></tr>
             <tr><th>Completo</th><td>{{ status.cron.full_scan }}</td></tr>
+            <tr><th>Daily review</th><td><code>{{ status.cron.daily_reference_review_endpoint }}</code></td></tr>
+            <tr><th>Post-deploy</th><td><code>{{ status.cron.post_deploy_check_endpoint }}</code></td></tr>
             <tr><th>Runner</th><td>{{ latest.runner or 'Pendiente' }}</td></tr>
+            <tr><th>Nota UTC</th><td>{{ status.cron.timezone_note }}</td></tr>
           </tbody>
         </table>
       </div>

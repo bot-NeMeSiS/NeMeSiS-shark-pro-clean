@@ -83,10 +83,6 @@ Sin prompts Telegram activos.
 
 ---
 
-- SENT-2026-BD766D7A | RESOLVED_BY_RESCAN | Sin ruta | Pantalla deportiva sin datos reales visibles
-
----
-
 - SENT-2026-AEA73729 | RESOLVED_BY_RESCAN | /api/admin/continuous-sentinel/run | Endpoint admin devolvió error interno
 
 ---
@@ -160,6 +156,10 @@ Sin prompts Telegram activos.
 ---
 
 - AP-F63099368262 | RESOLVED_BY_RESCAN | /shark | 500 en ruta cliente
+
+---
+
+- SENT-2026-BD766D7A | RESOLVED_BY_RESCAN | Sin ruta | Pantalla deportiva sin datos reales visibles
 
 ---
 
@@ -252,50 +252,6 @@ Sin prompts Telegram activos.
 ---
 
 - SENT-2026-88A7957E | RESOLVED_BY_RESCAN | /directos | Ruta devuelve Not Found
-
----
-
-- AP-33190C902467 | RESOLVED_BY_RESCAN | /partidos | Pantalla deportiva sin datos reales visibles
-
----
-
-- AP-79B06E4D8626 | RESOLVED_BY_RESCAN | /calendar | Pantalla deportiva sin datos reales visibles
-
----
-
-- AP-C7DB52036243 | RESOLVED_BY_RESCAN | /live | Pantalla deportiva sin datos reales visibles
-
----
-
-- AP-1DF1484884AA | RESOLVED_BY_RESCAN | Sin ruta | Pantalla deportiva sin datos reales visibles
-
----
-
-- AP-D8881CCD1440 | RESOLVED_BY_RESCAN | /partidos | Texto tecnico o mojibake visible
-
----
-
-- AP-9F4C7FA7D4DE | RESOLVED_BY_RESCAN | /calendar | Texto tecnico o mojibake visible
-
----
-
-- AP-1B6FEB81DD17 | RESOLVED_BY_RESCAN | /live | Texto tecnico o mojibake visible
-
----
-
-- AP-8955C54BDCC7 | RESOLVED_BY_RESCAN | /directo | Texto tecnico o mojibake visible
-
----
-
-- AP-F5801ADD52BD | RESOLVED_BY_RESCAN | /picks | Texto tecnico o mojibake visible
-
----
-
-- AP-C19F434A05CE | RESOLVED_BY_RESCAN | /shark | Texto tecnico o mojibake visible
-
----
-
-- SENT-2026-5FB6DDF2 | RESOLVED_BY_RESCAN | /shark | SHARK IA avanzada pendiente de configuracion
 
 ---
 
@@ -1171,7 +1127,107 @@ Sin prompts Telegram activos.
 
 ---
 
-- SENT-2026-BBA90966 | STALE_NEEDS_REVALIDATION | /ruta-inventada-v903 | Ruta devuelve Not Found
+- SENT-2026-BBA90966 | RESOLVED_BY_RESCAN | /ruta-inventada-v903 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-66CED2A3 | RESOLVED_BY_RESCAN | /api/ruta-inventada-v904 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-B982DCDA | RESOLVED_BY_RESCAN | /ruta-inventada-v904 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-2BEAC929 | RESOLVED_BY_RESCAN | /api/ruta-inventada-v904 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-5F3CEE6E | RESOLVED_BY_RESCAN | /ruta-inventada-v904 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-786B55BF | RESOLVED_BY_RESCAN | /ruta-inventada | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-89AE4CD5 | RESOLVED_BY_RESCAN | /api/ruta-inventada | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-391ACBF3 | RESOLVED_BY_RESCAN | /api/ruta-inventada-v904 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-68746510 | RESOLVED_BY_RESCAN | /ruta-inventada-v904 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-DC46A099 | RESOLVED_BY_RESCAN | /api/ruta-inventada-v904 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-BA7CD068 | RESOLVED_BY_RESCAN | /ruta-inventada-v904 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-CB47B9A6 | RESOLVED_BY_RESCAN | /api/ruta-inventada-v904 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-5A121E07 | RESOLVED_BY_RESCAN | /ruta-inventada-v904 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-263A0B2A | RESOLVED_BY_RESCAN | /api/ruta-inventada-v904 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-2C7DA008 | RESOLVED_BY_RESCAN | /ruta-inventada-v904 | Ruta devuelve Not Found
+
+---
+
+- AP-33190C902467 | RESOLVED_BY_RESCAN | /partidos | Pantalla deportiva sin datos reales visibles
+
+---
+
+- AP-79B06E4D8626 | RESOLVED_BY_RESCAN | /calendar | Pantalla deportiva sin datos reales visibles
+
+---
+
+- AP-C7DB52036243 | RESOLVED_BY_RESCAN | /live | Pantalla deportiva sin datos reales visibles
+
+---
+
+- AP-1DF1484884AA | RESOLVED_BY_RESCAN | Sin ruta | Pantalla deportiva sin datos reales visibles
+
+---
+
+- AP-D8881CCD1440 | RESOLVED_BY_RESCAN | /partidos | Texto tecnico o mojibake visible
+
+---
+
+- AP-9F4C7FA7D4DE | RESOLVED_BY_RESCAN | /calendar | Texto tecnico o mojibake visible
+
+---
+
+- AP-1B6FEB81DD17 | RESOLVED_BY_RESCAN | /live | Texto tecnico o mojibake visible
+
+---
+
+- AP-8955C54BDCC7 | RESOLVED_BY_RESCAN | /directo | Texto tecnico o mojibake visible
+
+---
+
+- AP-F5801ADD52BD | RESOLVED_BY_RESCAN | /picks | Texto tecnico o mojibake visible
+
+---
+
+- AP-C19F434A05CE | RESOLVED_BY_RESCAN | /shark | Texto tecnico o mojibake visible
+
+---
+
+- SENT-2026-5FB6DDF2 | RESOLVED_BY_RESCAN | /shark | SHARK IA avanzada pendiente de configuracion
 
 ---
 
@@ -1267,8 +1323,23 @@ Sin prompts Telegram activos.
 Sin falsos positivos pendientes.
 
 ## V904_REFERENCE_GAPS_WORKFORCE_STATUS
-- addressed_in_v904: /app, /admin/dashboard, /picks, /live, /calendar, /telegram, /shark.
-- still_pending: Browser QA real, capturas desktop/mobile y comparaci?n visual con referencia.
-- dangerous_requires_approval: deploy, push, Telegram real, pagos reales, secrets/env vars y migraciones destructivas.
-- needs_browser_qa: no se declara pixel-perfect ni producci?n V904 hasta validar /api/runtime-version en Render.
-- safe_auto_fix_policy: solo templates/CSS/reportes/checks; no DB real, no usuarios, no pagos, no Telegram real.
+
+- mode: post_deploy_check
+- gaps_read: 13
+- gaps_addressed: 8
+- gaps_pending: 13
+- prompts_active: 0
+- deploy_status: pending_runtime_confirmation
+- secret_masking_status: masked_configured_missing_only
+- next_step: Confirmar /api/runtime-version en Render antes de declarar producción alineada.
+
+### action_policy
+
+- SAFE_AUTOFIX: 0
+- CODEX_PROMPT_REQUIRED: 0
+- HUMAN_APPROVAL_REQUIRED: 0
+
+### dangerous_requires_approval
+
+Pagos, secretos, Telegram real, DB, usuarios, sesiones, deploy, push y llamadas caras quedan fuera del autofix automatico.
+

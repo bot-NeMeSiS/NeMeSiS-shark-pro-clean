@@ -2,19 +2,19 @@
 
 - ZIP: `NeMeSiS_SHARK_PRO_V904_AUTONOMOUS_REFERENCE_GAPS_REBUILD_AND_SENTINEL_WORKFORCE_FINAL_RENDER_READY.zip`
 - Archivos: 2047
-- Tamaño ZIP: 27195926 bytes
+- Tamaño ZIP: 27199476 bytes
 - Prohibidos: 0
 - Resultado: OK
 - Root obligatorio ausente: ninguno
 
 ## Carpetas principales
 - `reference_images`: 24 archivos, 24921842 bytes
-- `engines`: 123 archivos, 1351963 bytes
-- `tools`: 470 archivos, 1232159 bytes
+- `engines`: 123 archivos, 1363201 bytes
+- `tools`: 470 archivos, 1234511 bytes
 - `reports`: 1061 archivos, 1220713 bytes
 - `app.py`: 1 archivos, 966145 bytes
 - `static`: 2 archivos, 923831 bytes
-- `templates`: 168 archivos, 678492 bytes
+- `templates`: 168 archivos, 682185 bytes
 - `V726_PROJECT_TREE_AUDIT.md`: 1 archivos, 96394 bytes
 - `CHATGPT_CONTINUATION_REPORT.md`: 1 archivos, 67783 bytes
 - `docs`: 56 archivos, 45463 bytes

@@ -79,7 +79,130 @@
     }
   ],
   "browser_available": false,
-  "visual_worker_issues": [],
+  "visual_worker_issues": [
+    {
+      "id": "V884-6B1176B0FBC7",
+      "timestamp_madrid": "2026-07-07T17:18:16+02:00",
+      "profile": "CLIENT",
+      "route": "/partidos",
+      "category": "data",
+      "severity": "low",
+      "title": "Pantalla deportiva sin datos reales visibles",
+      "description": "Hay estado seguro, pero no hay filas/cards deportivas reales visibles.",
+      "evidence": "Hay estado seguro, pero no hay filas/cards deportivas reales visibles.",
+      "expected_behavior": "La pantalla debe verse premium, clara, segura y sin datos inventados.",
+      "actual_behavior": "Hay estado seguro, pero no hay filas/cards deportivas reales visibles.",
+      "suggested_fix": "Mantener el estado seguro y crear tarea admin de sync/filtros/cache.",
+      "safe_auto_fix_possible": false,
+      "requires_admin_approval": true,
+      "revalidation_notes": "Revisar ruta, ejecutar Sentinel y validar visual/browser si procede.",
+      "codex_prompt_suggestion": "Actua como equipo completo de NeMeSiS SHARK PRO. Prioridad low. Ruta afectada: /partidos. Categoria: data. Evidencia: Hay estado seguro, pero no hay filas/cards deportivas reales visibles.. Corrige solo el defecto real, preserva V818-V883, DB_PATH, usuarios, pagos, Telegram, SHARK, API-SPORTS y seguridad. No inventes datos, no toques secretos, no hagas deploy automatico. Valida py_compile, compileall, Sentinel, smoke local y ZIP limpio."
+    },
+    {
+      "id": "V884-F33A60811EE0",
+      "timestamp_madrid": "2026-07-07T17:18:17+02:00",
+      "profile": "CLIENT",
+      "route": "/calendar",
+      "category": "data",
+      "severity": "low",
+      "title": "Pantalla deportiva sin datos reales visibles",
+      "description": "Hay estado seguro, pero no hay filas/cards deportivas reales visibles.",
+      "evidence": "Hay estado seguro, pero no hay filas/cards deportivas reales visibles.",
+      "expected_behavior": "La pantalla debe verse premium, clara, segura y sin datos inventados.",
+      "actual_behavior": "Hay estado seguro, pero no hay filas/cards deportivas reales visibles.",
+      "suggested_fix": "Mantener el estado seguro y crear tarea admin de sync/filtros/cache.",
+      "safe_auto_fix_possible": false,
+      "requires_admin_approval": true,
+      "revalidation_notes": "Revisar ruta, ejecutar Sentinel y validar visual/browser si procede.",
+      "codex_prompt_suggestion": "Actua como equipo completo de NeMeSiS SHARK PRO. Prioridad low. Ruta afectada: /calendar. Categoria: data. Evidencia: Hay estado seguro, pero no hay filas/cards deportivas reales visibles.. Corrige solo el defecto real, preserva V818-V883, DB_PATH, usuarios, pagos, Telegram, SHARK, API-SPORTS y seguridad. No inventes datos, no toques secretos, no hagas deploy automatico. Valida py_compile, compileall, Sentinel, smoke local y ZIP limpio."
+    },
+    {
+      "id": "V884-2F503B203B7C",
+      "timestamp_madrid": "2026-07-07T17:18:17+02:00",
+      "profile": "CLIENT",
+      "route": "/live",
+      "category": "data",
+      "severity": "low",
+      "title": "Pantalla deportiva sin datos reales visibles",
+      "description": "Hay estado seguro, pero no hay filas/cards deportivas reales visibles.",
+      "evidence": "Hay estado seguro, pero no hay filas/cards deportivas reales visibles.",
+      "expected_behavior": "La pantalla debe verse premium, clara, segura y sin datos inventados.",
+      "actual_behavior": "Hay estado seguro, pero no hay filas/cards deportivas reales visibles.",
+      "suggested_fix": "Mantener el estado seguro y crear tarea admin de sync/filtros/cache.",
+      "safe_auto_fix_possible": false,
+      "requires_admin_approval": true,
+      "revalidation_notes": "Revisar ruta, ejecutar Sentinel y validar visual/browser si procede.",
+      "codex_prompt_suggestion": "Actua como equipo completo de NeMeSiS SHARK PRO. Prioridad low. Ruta afectada: /live. Categoria: data. Evidencia: Hay estado seguro, pero no hay filas/cards deportivas reales visibles.. Corrige solo el defecto real, preserva V818-V883, DB_PATH, usuarios, pagos, Telegram, SHARK, API-SPORTS y seguridad. No inventes datos, no toques secretos, no hagas deploy automatico. Valida py_compile, compileall, Sentinel, smoke local y ZIP limpio."
+    },
+    {
+      "group_id": "GROUP-73767CFDE3AC",
+      "category": "data",
+      "severity": "low",
+      "title": "Pantalla deportiva sin datos reales visibles",
+      "routes": [
+        "/calendar",
+        "/live",
+        "/partidos"
+      ],
+      "issues": [
+        {
+          "id": "V884-6B1176B0FBC7",
+          "timestamp_madrid": "2026-07-07T17:18:16+02:00",
+          "profile": "CLIENT",
+          "route": "/partidos",
+          "category": "data",
+          "severity": "low",
+          "title": "Pantalla deportiva sin datos reales visibles",
+          "description": "Hay estado seguro, pero no hay filas/cards deportivas reales visibles.",
+          "evidence": "Hay estado seguro, pero no hay filas/cards deportivas reales visibles.",
+          "expected_behavior": "La pantalla debe verse premium, clara, segura y sin datos inventados.",
+          "actual_behavior": "Hay estado seguro, pero no hay filas/cards deportivas reales visibles.",
+          "suggested_fix": "Mantener el estado seguro y crear tarea admin de sync/filtros/cache.",
+          "safe_auto_fix_possible": false,
+          "requires_admin_approval": true,
+          "revalidation_notes": "Revisar ruta, ejecutar Sentinel y validar visual/browser si procede.",
+          "codex_prompt_suggestion": "Actua como equipo completo de NeMeSiS SHARK PRO. Prioridad low. Ruta afectada: /partidos. Categoria: data. Evidencia: Hay estado seguro, pero no hay filas/cards deportivas reales visibles.. Corrige solo el defecto real, preserva V818-V883, DB_PATH, usuarios, pagos, Telegram, SHARK, API-SPORTS y seguridad. No inventes datos, no toques secretos, no hagas deploy automatico. Valida py_compile, compileall, Sentinel, smoke local y ZIP limpio."
+        },
+        {
+          "id": "V884-F33A60811EE0",
+          "timestamp_madrid": "2026-07-07T17:18:17+02:00",
+          "profile": "CLIENT",
+          "route": "/calendar",
+          "category": "data",
+          "severity": "low",
+          "title": "Pantalla deportiva sin datos reales visibles",
+          "description": "Hay estado seguro, pero no hay filas/cards deportivas reales visibles.",
+          "evidence": "Hay estado seguro, pero no hay filas/cards deportivas reales visibles.",
+          "expected_behavior": "La pantalla debe verse premium, clara, segura y sin datos inventados.",
+          "actual_behavior": "Hay estado seguro, pero no hay filas/cards deportivas reales visibles.",
+          "suggested_fix": "Mantener el estado seguro y crear tarea admin de sync/filtros/cache.",
+          "safe_auto_fix_possible": false,
+          "requires_admin_approval": true,
+          "revalidation_notes": "Revisar ruta, ejecutar Sentinel y validar visual/browser si procede.",
+          "codex_prompt_suggestion": "Actua como equipo completo de NeMeSiS SHARK PRO. Prioridad low. Ruta afectada: /calendar. Categoria: data. Evidencia: Hay estado seguro, pero no hay filas/cards deportivas reales visibles.. Corrige solo el defecto real, preserva V818-V883, DB_PATH, usuarios, pagos, Telegram, SHARK, API-SPORTS y seguridad. No inventes datos, no toques secretos, no hagas deploy automatico. Valida py_compile, compileall, Sentinel, smoke local y ZIP limpio."
+        },
+        {
+          "id": "V884-2F503B203B7C",
+          "timestamp_madrid": "2026-07-07T17:18:17+02:00",
+          "profile": "CLIENT",
+          "route": "/live",
+          "category": "data",
+          "severity": "low",
+          "title": "Pantalla deportiva sin datos reales visibles",
+          "description": "Hay estado seguro, pero no hay filas/cards deportivas reales visibles.",
+          "evidence": "Hay estado seguro, pero no hay filas/cards deportivas reales visibles.",
+          "expected_behavior": "La pantalla debe verse premium, clara, segura y sin datos inventados.",
+          "actual_behavior": "Hay estado seguro, pero no hay filas/cards deportivas reales visibles.",
+          "suggested_fix": "Mantener el estado seguro y crear tarea admin de sync/filtros/cache.",
+          "safe_auto_fix_possible": false,
+          "requires_admin_approval": true,
+          "revalidation_notes": "Revisar ruta, ejecutar Sentinel y validar visual/browser si procede.",
+          "codex_prompt_suggestion": "Actua como equipo completo de NeMeSiS SHARK PRO. Prioridad low. Ruta afectada: /live. Categoria: data. Evidencia: Hay estado seguro, pero no hay filas/cards deportivas reales visibles.. Corrige solo el defecto real, preserva V818-V883, DB_PATH, usuarios, pagos, Telegram, SHARK, API-SPORTS y seguridad. No inventes datos, no toques secretos, no hagas deploy automatico. Valida py_compile, compileall, Sentinel, smoke local y ZIP limpio."
+        }
+      ],
+      "priority": 45
+    }
+  ],
   "issues": [
     {
       "title": "Browser capture unavailable",
@@ -96,12 +219,7 @@
       "tags": [
         "visual",
         "browser"
-      ],
-      "addressed_in_v904": false,
-      "still_pending": true,
-      "needs_browser_qa": true,
-      "v904_status": "blocked_by_browser_qa",
-      "dangerous_requires_approval": false
+      ]
     },
     {
       "id": "REFGAP-093DAC3277",
@@ -126,12 +244,7 @@
         "browser_qa"
       ],
       "codex_prompt": "Corrige esta diferencia visual/funcional en NeMeSiS SHARK PRO sin romper nada anterior.\n\nID:\nREFGAP-093DAC3277\n\nPantalla:\nBrowser QA\n\nRuta:\nbrowser\n\nReferencia:\nNo aplica\n\nProblema detectado:\nBROWSER_QA_UNAVAILABLE\n\nPor que se aleja de la referencia:\nPlaywright no disponible o capturas no ejecutadas; no se puede comparar con precision visual real.\n\nObjetivo visual:\nEjecutar browser QA real antes de afirmar cercania visual.\n\nRestricciones:\n* No inventar datos.\n* No tocar secretos.\n* No romper usuarios, sesiones, membresias, pagos, DB_PATH, Madrid Time, Render Cron ni Telegram dedupe.\n* Mantener cliente/admin separados.\n* Mantener estados seguros si faltan datos reales.\n* Mantener responsive movil/PC.\n* No enviar Telegram real.\n* No hacer pagos reales.\n\nQue debes hacer:\nInstalar Playwright o ejecutar la QA visual en entorno con navegador disponible.\n\nValidaciones:\n* python -m py_compile app.py\n* python tools/run_continuous_sentinel_static.py\n* python tools/run_reference_visual_gap_scan.py --dry-run\n\nEntrega:\n* resumen;\n* archivos tocados;\n* capturas si existen;\n* checks;\n* limitaciones honestas.\n",
-      "copy_text": "[LOW] BROWSER_QA_UNAVAILABLE | Playwright no disponible o capturas no ejecutadas; no se puede comparar con precision visual real.",
-      "addressed_in_v904": false,
-      "still_pending": true,
-      "needs_browser_qa": true,
-      "v904_status": "blocked_by_browser_qa",
-      "dangerous_requires_approval": false
+      "copy_text": "[LOW] BROWSER_QA_UNAVAILABLE | Playwright no disponible o capturas no ejecutadas; no se puede comparar con precision visual real."
     },
     {
       "id": "REFGAP-5A79B111F3",
@@ -157,12 +270,7 @@
         "v900_imported"
       ],
       "codex_prompt": "Corrige esta diferencia visual/funcional en NeMeSiS SHARK PRO sin romper nada anterior.\n\nID:\nREFGAP-5A79B111F3\n\nPantalla:\nBanco de referencias\n\nRuta:\nreference_images\n\nReferencia:\nreference_images/\n\nProblema detectado:\nREFERENCE_IMAGES_IMPORTED\n\nPor que se aleja de la referencia:\n16 imagenes reales importadas; categorias: admin, calendar, client, live, memberships, picks, profile, shark, telegram, track-record.\n\nObjetivo visual:\nUsar referencias reales como base de gap visual.\n\nRestricciones:\n* No inventar datos.\n* No tocar secretos.\n* No romper usuarios, sesiones, membresias, pagos, DB_PATH, Madrid Time, Render Cron ni Telegram dedupe.\n* Mantener cliente/admin separados.\n* Mantener estados seguros si faltan datos reales.\n* Mantener responsive movil/PC.\n* No enviar Telegram real.\n* No hacer pagos reales.\n\nQue debes hacer:\nComparar rutas objetivo contra referencias importadas y corregir solo diferencias visibles verificables.\n\nValidaciones:\n* python -m py_compile app.py\n* python tools/run_continuous_sentinel_static.py\n* python tools/run_reference_visual_gap_scan.py --dry-run\n\nEntrega:\n* resumen;\n* archivos tocados;\n* capturas si existen;\n* checks;\n* limitaciones honestas.\n",
-      "copy_text": "[LOW] REFERENCE_IMAGES_IMPORTED | 16 imagenes reales importadas; categorias: admin, calendar, client, live, memberships, picks, profile, shark, telegram, track-record.",
-      "addressed_in_v904": false,
-      "still_pending": true,
-      "needs_browser_qa": true,
-      "v904_status": "blocked_by_browser_qa",
-      "dangerous_requires_approval": false
+      "copy_text": "[LOW] REFERENCE_IMAGES_IMPORTED | 16 imagenes reales importadas; categorias: admin, calendar, client, live, memberships, picks, profile, shark, telegram, track-record."
     },
     {
       "id": "REFGAP-9ED7BD46AB",
@@ -211,13 +319,7 @@
         "Diseno alejado de referencia"
       ],
       "codex_prompt": "Corrige esta diferencia visual/funcional en NeMeSiS SHARK PRO sin romper nada anterior.\n\nID:\nREFGAP-9ED7BD46AB\n\nPantalla:\n/app\n\nRuta:\n/app\n\nReferencia:\nreference_images/client/reference_import_v900_08.png\n\nProblema detectado:\nGap visual de referencia en /app\n\nPor que se aleja de la referencia:\nPendiente de captura real; evaluacion limitada a heuristicas.\n\nObjetivo visual:\ndashboard cliente premium con jerarquia, acciones y datos seguros\n\nRestricciones:\n* No inventar datos.\n* No tocar secretos.\n* No romper usuarios, sesiones, membresias, pagos, DB_PATH, Madrid Time, Render Cron ni Telegram dedupe.\n* Mantener cliente/admin separados.\n* Mantener estados seguros si faltan datos reales.\n* Mantener responsive movil/PC.\n* No enviar Telegram real.\n* No hacer pagos reales.\n\nQue debes hacer:\nRevisar /app contra la referencia de client y corregir solo diferencias visibles reales.\n\nValidaciones:\n* python -m py_compile app.py\n* python tools/run_continuous_sentinel_static.py\n* python tools/run_reference_visual_gap_scan.py --dry-run\n\nEntrega:\n* resumen;\n* archivos tocados;\n* capturas si existen;\n* checks;\n* limitaciones honestas.\n",
-      "copy_text": "[HIGH] Gap visual de referencia en /app | Ruta: /app | Pendiente de captura real; evaluacion limitada a heuristicas.",
-      "addressed_in_v904": true,
-      "v904_status": "addressed_static_structure_needs_browser_qa",
-      "still_pending": true,
-      "needs_browser_qa": true,
-      "dangerous_requires_approval": false,
-      "v904_note": "Primer pase seguro aplicado en template/CSS. Requiere Browser QA real para certificar similitud visual."
+      "copy_text": "[HIGH] Gap visual de referencia en /app | Ruta: /app | Pendiente de captura real; evaluacion limitada a heuristicas."
     },
     {
       "id": "REFGAP-32A5E0C96C",
@@ -266,13 +368,7 @@
         "Diseno alejado de referencia"
       ],
       "codex_prompt": "Corrige esta diferencia visual/funcional en NeMeSiS SHARK PRO sin romper nada anterior.\n\nID:\nREFGAP-32A5E0C96C\n\nPantalla:\n/app\n\nRuta:\n/app\n\nReferencia:\nreference_images/client/reference_import_v900_08.png\n\nProblema detectado:\nGap visual de referencia en /app\n\nPor que se aleja de la referencia:\nPendiente de captura real; evaluacion limitada a heuristicas.\n\nObjetivo visual:\napp movil compacta sin overflow y con bottom nav clara\n\nRestricciones:\n* No inventar datos.\n* No tocar secretos.\n* No romper usuarios, sesiones, membresias, pagos, DB_PATH, Madrid Time, Render Cron ni Telegram dedupe.\n* Mantener cliente/admin separados.\n* Mantener estados seguros si faltan datos reales.\n* Mantener responsive movil/PC.\n* No enviar Telegram real.\n* No hacer pagos reales.\n\nQue debes hacer:\nRevisar /app contra la referencia de mobile y corregir solo diferencias visibles reales.\n\nValidaciones:\n* python -m py_compile app.py\n* python tools/run_continuous_sentinel_static.py\n* python tools/run_reference_visual_gap_scan.py --dry-run\n\nEntrega:\n* resumen;\n* archivos tocados;\n* capturas si existen;\n* checks;\n* limitaciones honestas.\n",
-      "copy_text": "[HIGH] Gap visual de referencia en /app | Ruta: /app | Pendiente de captura real; evaluacion limitada a heuristicas.",
-      "addressed_in_v904": true,
-      "v904_status": "addressed_static_structure_needs_browser_qa",
-      "still_pending": true,
-      "needs_browser_qa": true,
-      "dangerous_requires_approval": false,
-      "v904_note": "Primer pase seguro aplicado en template/CSS. Requiere Browser QA real para certificar similitud visual."
+      "copy_text": "[HIGH] Gap visual de referencia en /app | Ruta: /app | Pendiente de captura real; evaluacion limitada a heuristicas."
     },
     {
       "id": "REFGAP-DD35B464A5",
@@ -321,13 +417,7 @@
         "Diseno alejado de referencia"
       ],
       "codex_prompt": "Corrige esta diferencia visual/funcional en NeMeSiS SHARK PRO sin romper nada anterior.\n\nID:\nREFGAP-DD35B464A5\n\nPantalla:\n/admin/dashboard\n\nRuta:\n/admin/dashboard\n\nReferencia:\nreference_images/admin/reference_import_v900_01.png\n\nProblema detectado:\nGap visual de referencia en /admin/dashboard\n\nPor que se aleja de la referencia:\nPendiente de captura real; evaluacion limitada a heuristicas.\n\nObjetivo visual:\ncommand center denso, claro y operativo\n\nRestricciones:\n* No inventar datos.\n* No tocar secretos.\n* No romper usuarios, sesiones, membresias, pagos, DB_PATH, Madrid Time, Render Cron ni Telegram dedupe.\n* Mantener cliente/admin separados.\n* Mantener estados seguros si faltan datos reales.\n* Mantener responsive movil/PC.\n* No enviar Telegram real.\n* No hacer pagos reales.\n\nQue debes hacer:\nRevisar /admin/dashboard contra la referencia de admin y corregir solo diferencias visibles reales.\n\nValidaciones:\n* python -m py_compile app.py\n* python tools/run_continuous_sentinel_static.py\n* python tools/run_reference_visual_gap_scan.py --dry-run\n\nEntrega:\n* resumen;\n* archivos tocados;\n* capturas si existen;\n* checks;\n* limitaciones honestas.\n",
-      "copy_text": "[HIGH] Gap visual de referencia en /admin/dashboard | Ruta: /admin/dashboard | Pendiente de captura real; evaluacion limitada a heuristicas.",
-      "addressed_in_v904": true,
-      "v904_status": "addressed_static_structure_needs_browser_qa",
-      "still_pending": true,
-      "needs_browser_qa": true,
-      "dangerous_requires_approval": false,
-      "v904_note": "Primer pase seguro aplicado en template/CSS. Requiere Browser QA real para certificar similitud visual."
+      "copy_text": "[HIGH] Gap visual de referencia en /admin/dashboard | Ruta: /admin/dashboard | Pendiente de captura real; evaluacion limitada a heuristicas."
     },
     {
       "id": "REFGAP-91020397A6",
@@ -376,13 +466,7 @@
         "Diseno alejado de referencia"
       ],
       "codex_prompt": "Corrige esta diferencia visual/funcional en NeMeSiS SHARK PRO sin romper nada anterior.\n\nID:\nREFGAP-91020397A6\n\nPantalla:\n/picks\n\nRuta:\n/picks\n\nReferencia:\nreference_images/picks/reference_import_v900_11.png\n\nProblema detectado:\nGap visual de referencia en /picks\n\nPor que se aleja de la referencia:\nPendiente de captura real; evaluacion limitada a heuristicas.\n\nObjetivo visual:\npicks como producto premium, sin cuota inventada\n\nRestricciones:\n* No inventar datos.\n* No tocar secretos.\n* No romper usuarios, sesiones, membresias, pagos, DB_PATH, Madrid Time, Render Cron ni Telegram dedupe.\n* Mantener cliente/admin separados.\n* Mantener estados seguros si faltan datos reales.\n* Mantener responsive movil/PC.\n* No enviar Telegram real.\n* No hacer pagos reales.\n\nQue debes hacer:\nRevisar /picks contra la referencia de picks y corregir solo diferencias visibles reales.\n\nValidaciones:\n* python -m py_compile app.py\n* python tools/run_continuous_sentinel_static.py\n* python tools/run_reference_visual_gap_scan.py --dry-run\n\nEntrega:\n* resumen;\n* archivos tocados;\n* capturas si existen;\n* checks;\n* limitaciones honestas.\n",
-      "copy_text": "[HIGH] Gap visual de referencia en /picks | Ruta: /picks | Pendiente de captura real; evaluacion limitada a heuristicas.",
-      "addressed_in_v904": true,
-      "v904_status": "addressed_static_structure_needs_browser_qa",
-      "still_pending": true,
-      "needs_browser_qa": true,
-      "dangerous_requires_approval": false,
-      "v904_note": "Primer pase seguro aplicado en template/CSS. Requiere Browser QA real para certificar similitud visual."
+      "copy_text": "[HIGH] Gap visual de referencia en /picks | Ruta: /picks | Pendiente de captura real; evaluacion limitada a heuristicas."
     },
     {
       "id": "REFGAP-F243DB0151",
@@ -431,13 +515,7 @@
         "Diseno alejado de referencia"
       ],
       "codex_prompt": "Corrige esta diferencia visual/funcional en NeMeSiS SHARK PRO sin romper nada anterior.\n\nID:\nREFGAP-F243DB0151\n\nPantalla:\n/live\n\nRuta:\n/live\n\nReferencia:\nreference_images/live/reference_import_v900_09.png\n\nProblema detectado:\nGap visual de referencia en /live\n\nPor que se aleja de la referencia:\nPendiente de captura real; evaluacion limitada a heuristicas.\n\nObjetivo visual:\ndirectos claros tipo marcador premium con estados reales\n\nRestricciones:\n* No inventar datos.\n* No tocar secretos.\n* No romper usuarios, sesiones, membresias, pagos, DB_PATH, Madrid Time, Render Cron ni Telegram dedupe.\n* Mantener cliente/admin separados.\n* Mantener estados seguros si faltan datos reales.\n* Mantener responsive movil/PC.\n* No enviar Telegram real.\n* No hacer pagos reales.\n\nQue debes hacer:\nRevisar /live contra la referencia de live y corregir solo diferencias visibles reales.\n\nValidaciones:\n* python -m py_compile app.py\n* python tools/run_continuous_sentinel_static.py\n* python tools/run_reference_visual_gap_scan.py --dry-run\n\nEntrega:\n* resumen;\n* archivos tocados;\n* capturas si existen;\n* checks;\n* limitaciones honestas.\n",
-      "copy_text": "[MEDIUM] Gap visual de referencia en /live | Ruta: /live | Pendiente de captura real; evaluacion limitada a heuristicas.",
-      "addressed_in_v904": true,
-      "v904_status": "addressed_static_structure_needs_browser_qa",
-      "still_pending": true,
-      "needs_browser_qa": true,
-      "dangerous_requires_approval": false,
-      "v904_note": "Primer pase seguro aplicado en template/CSS. Requiere Browser QA real para certificar similitud visual."
+      "copy_text": "[MEDIUM] Gap visual de referencia en /live | Ruta: /live | Pendiente de captura real; evaluacion limitada a heuristicas."
     },
     {
       "id": "REFGAP-AF28C5F3F0",
@@ -486,13 +564,7 @@
         "Diseno alejado de referencia"
       ],
       "codex_prompt": "Corrige esta diferencia visual/funcional en NeMeSiS SHARK PRO sin romper nada anterior.\n\nID:\nREFGAP-AF28C5F3F0\n\nPantalla:\n/calendar\n\nRuta:\n/calendar\n\nReferencia:\nreference_images/calendar/reference_import_v900_10.png\n\nProblema detectado:\nGap visual de referencia en /calendar\n\nPor que se aleja de la referencia:\nPendiente de captura real; evaluacion limitada a heuristicas.\n\nObjetivo visual:\ncalendario denso, filtrable y honesto\n\nRestricciones:\n* No inventar datos.\n* No tocar secretos.\n* No romper usuarios, sesiones, membresias, pagos, DB_PATH, Madrid Time, Render Cron ni Telegram dedupe.\n* Mantener cliente/admin separados.\n* Mantener estados seguros si faltan datos reales.\n* Mantener responsive movil/PC.\n* No enviar Telegram real.\n* No hacer pagos reales.\n\nQue debes hacer:\nRevisar /calendar contra la referencia de calendar y corregir solo diferencias visibles reales.\n\nValidaciones:\n* python -m py_compile app.py\n* python tools/run_continuous_sentinel_static.py\n* python tools/run_reference_visual_gap_scan.py --dry-run\n\nEntrega:\n* resumen;\n* archivos tocados;\n* capturas si existen;\n* checks;\n* limitaciones honestas.\n",
-      "copy_text": "[MEDIUM] Gap visual de referencia en /calendar | Ruta: /calendar | Pendiente de captura real; evaluacion limitada a heuristicas.",
-      "addressed_in_v904": true,
-      "v904_status": "addressed_static_structure_needs_browser_qa",
-      "still_pending": true,
-      "needs_browser_qa": true,
-      "dangerous_requires_approval": false,
-      "v904_note": "Primer pase seguro aplicado en template/CSS. Requiere Browser QA real para certificar similitud visual."
+      "copy_text": "[MEDIUM] Gap visual de referencia en /calendar | Ruta: /calendar | Pendiente de captura real; evaluacion limitada a heuristicas."
     },
     {
       "id": "REFGAP-53DDCF3EBF",
@@ -541,13 +613,7 @@
         "Diseno alejado de referencia"
       ],
       "codex_prompt": "Corrige esta diferencia visual/funcional en NeMeSiS SHARK PRO sin romper nada anterior.\n\nID:\nREFGAP-53DDCF3EBF\n\nPantalla:\n/telegram\n\nRuta:\n/telegram\n\nReferencia:\nreference_images/telegram/reference_import_v900_16.png\n\nProblema detectado:\nGap visual de referencia en /telegram\n\nPor que se aleja de la referencia:\nPendiente de captura real; evaluacion limitada a heuristicas.\n\nObjetivo visual:\nTelegram premium sin filler ni envios inventados\n\nRestricciones:\n* No inventar datos.\n* No tocar secretos.\n* No romper usuarios, sesiones, membresias, pagos, DB_PATH, Madrid Time, Render Cron ni Telegram dedupe.\n* Mantener cliente/admin separados.\n* Mantener estados seguros si faltan datos reales.\n* Mantener responsive movil/PC.\n* No enviar Telegram real.\n* No hacer pagos reales.\n\nQue debes hacer:\nRevisar /telegram contra la referencia de telegram y corregir solo diferencias visibles reales.\n\nValidaciones:\n* python -m py_compile app.py\n* python tools/run_continuous_sentinel_static.py\n* python tools/run_reference_visual_gap_scan.py --dry-run\n\nEntrega:\n* resumen;\n* archivos tocados;\n* capturas si existen;\n* checks;\n* limitaciones honestas.\n",
-      "copy_text": "[MEDIUM] Gap visual de referencia en /telegram | Ruta: /telegram | Pendiente de captura real; evaluacion limitada a heuristicas.",
-      "addressed_in_v904": true,
-      "v904_status": "addressed_static_structure_needs_browser_qa",
-      "still_pending": true,
-      "needs_browser_qa": true,
-      "dangerous_requires_approval": false,
-      "v904_note": "Primer pase seguro aplicado en template/CSS. Requiere Browser QA real para certificar similitud visual."
+      "copy_text": "[MEDIUM] Gap visual de referencia en /telegram | Ruta: /telegram | Pendiente de captura real; evaluacion limitada a heuristicas."
     },
     {
       "id": "REFGAP-65EFF7C1DF",
@@ -596,13 +662,7 @@
         "Diseno alejado de referencia"
       ],
       "codex_prompt": "Corrige esta diferencia visual/funcional en NeMeSiS SHARK PRO sin romper nada anterior.\n\nID:\nREFGAP-65EFF7C1DF\n\nPantalla:\n/shark\n\nRuta:\n/shark\n\nReferencia:\nreference_images/shark/reference_import_v900_12.png\n\nProblema detectado:\nGap visual de referencia en /shark\n\nPor que se aleja de la referencia:\nPendiente de captura real; evaluacion limitada a heuristicas.\n\nObjetivo visual:\nSHARK como cerebro del producto y modo seguro si falta OpenAI\n\nRestricciones:\n* No inventar datos.\n* No tocar secretos.\n* No romper usuarios, sesiones, membresias, pagos, DB_PATH, Madrid Time, Render Cron ni Telegram dedupe.\n* Mantener cliente/admin separados.\n* Mantener estados seguros si faltan datos reales.\n* Mantener responsive movil/PC.\n* No enviar Telegram real.\n* No hacer pagos reales.\n\nQue debes hacer:\nRevisar /shark contra la referencia de shark y corregir solo diferencias visibles reales.\n\nValidaciones:\n* python -m py_compile app.py\n* python tools/run_continuous_sentinel_static.py\n* python tools/run_reference_visual_gap_scan.py --dry-run\n\nEntrega:\n* resumen;\n* archivos tocados;\n* capturas si existen;\n* checks;\n* limitaciones honestas.\n",
-      "copy_text": "[MEDIUM] Gap visual de referencia en /shark | Ruta: /shark | Pendiente de captura real; evaluacion limitada a heuristicas.",
-      "addressed_in_v904": true,
-      "v904_status": "addressed_static_structure_needs_browser_qa",
-      "still_pending": true,
-      "needs_browser_qa": true,
-      "dangerous_requires_approval": false,
-      "v904_note": "Primer pase seguro aplicado en template/CSS. Requiere Browser QA real para certificar similitud visual."
+      "copy_text": "[MEDIUM] Gap visual de referencia en /shark | Ruta: /shark | Pendiente de captura real; evaluacion limitada a heuristicas."
     },
     {
       "id": "REFGAP-20D1BD0C86",
@@ -651,12 +711,7 @@
         "Diseno alejado de referencia"
       ],
       "codex_prompt": "Corrige esta diferencia visual/funcional en NeMeSiS SHARK PRO sin romper nada anterior.\n\nID:\nREFGAP-20D1BD0C86\n\nPantalla:\n/membresias\n\nRuta:\n/membresias\n\nReferencia:\nreference_images/memberships/reference_import_v900_14.png\n\nProblema detectado:\nGap visual de referencia en /membresias\n\nPor que se aleja de la referencia:\nPendiente de captura real; evaluacion limitada a heuristicas.\n\nObjetivo visual:\nplanes diferenciados con valor comercial real\n\nRestricciones:\n* No inventar datos.\n* No tocar secretos.\n* No romper usuarios, sesiones, membresias, pagos, DB_PATH, Madrid Time, Render Cron ni Telegram dedupe.\n* Mantener cliente/admin separados.\n* Mantener estados seguros si faltan datos reales.\n* Mantener responsive movil/PC.\n* No enviar Telegram real.\n* No hacer pagos reales.\n\nQue debes hacer:\nRevisar /membresias contra la referencia de memberships y corregir solo diferencias visibles reales.\n\nValidaciones:\n* python -m py_compile app.py\n* python tools/run_continuous_sentinel_static.py\n* python tools/run_reference_visual_gap_scan.py --dry-run\n\nEntrega:\n* resumen;\n* archivos tocados;\n* capturas si existen;\n* checks;\n* limitaciones honestas.\n",
-      "copy_text": "[MEDIUM] Gap visual de referencia en /membresias | Ruta: /membresias | Pendiente de captura real; evaluacion limitada a heuristicas.",
-      "addressed_in_v904": false,
-      "still_pending": true,
-      "needs_browser_qa": true,
-      "v904_status": "blocked_by_browser_qa",
-      "dangerous_requires_approval": false
+      "copy_text": "[MEDIUM] Gap visual de referencia en /membresias | Ruta: /membresias | Pendiente de captura real; evaluacion limitada a heuristicas."
     },
     {
       "id": "REFGAP-478B1233BD",
@@ -705,12 +760,7 @@
         "Diseno alejado de referencia"
       ],
       "codex_prompt": "Corrige esta diferencia visual/funcional en NeMeSiS SHARK PRO sin romper nada anterior.\n\nID:\nREFGAP-478B1233BD\n\nPantalla:\n/profile\n\nRuta:\n/profile\n\nReferencia:\nreference_images/profile/reference_import_v900_15.png\n\nProblema detectado:\nGap visual de referencia en /profile\n\nPor que se aleja de la referencia:\nPendiente de captura real; evaluacion limitada a heuristicas.\n\nObjetivo visual:\nperfil claro con plan, Telegram, seguridad y salida visible\n\nRestricciones:\n* No inventar datos.\n* No tocar secretos.\n* No romper usuarios, sesiones, membresias, pagos, DB_PATH, Madrid Time, Render Cron ni Telegram dedupe.\n* Mantener cliente/admin separados.\n* Mantener estados seguros si faltan datos reales.\n* Mantener responsive movil/PC.\n* No enviar Telegram real.\n* No hacer pagos reales.\n\nQue debes hacer:\nRevisar /profile contra la referencia de profile y corregir solo diferencias visibles reales.\n\nValidaciones:\n* python -m py_compile app.py\n* python tools/run_continuous_sentinel_static.py\n* python tools/run_reference_visual_gap_scan.py --dry-run\n\nEntrega:\n* resumen;\n* archivos tocados;\n* capturas si existen;\n* checks;\n* limitaciones honestas.\n",
-      "copy_text": "[MEDIUM] Gap visual de referencia en /profile | Ruta: /profile | Pendiente de captura real; evaluacion limitada a heuristicas.",
-      "addressed_in_v904": false,
-      "still_pending": true,
-      "needs_browser_qa": true,
-      "v904_status": "blocked_by_browser_qa",
-      "dangerous_requires_approval": false
+      "copy_text": "[MEDIUM] Gap visual de referencia en /profile | Ruta: /profile | Pendiente de captura real; evaluacion limitada a heuristicas."
     },
     {
       "id": "REFGAP-DD4D02E36E",
@@ -759,12 +809,7 @@
         "Diseno alejado de referencia"
       ],
       "codex_prompt": "Corrige esta diferencia visual/funcional en NeMeSiS SHARK PRO sin romper nada anterior.\n\nID:\nREFGAP-DD4D02E36E\n\nPantalla:\n/track-record\n\nRuta:\n/track-record\n\nReferencia:\nreference_images/track-record/reference_import_v900_13.png\n\nProblema detectado:\nGap visual de referencia en /track-record\n\nPor que se aleja de la referencia:\nPendiente de captura real; evaluacion limitada a heuristicas.\n\nObjetivo visual:\nhistorico honesto con resultados reales y sin ROI inventado\n\nRestricciones:\n* No inventar datos.\n* No tocar secretos.\n* No romper usuarios, sesiones, membresias, pagos, DB_PATH, Madrid Time, Render Cron ni Telegram dedupe.\n* Mantener cliente/admin separados.\n* Mantener estados seguros si faltan datos reales.\n* Mantener responsive movil/PC.\n* No enviar Telegram real.\n* No hacer pagos reales.\n\nQue debes hacer:\nRevisar /track-record contra la referencia de track-record y corregir solo diferencias visibles reales.\n\nValidaciones:\n* python -m py_compile app.py\n* python tools/run_continuous_sentinel_static.py\n* python tools/run_reference_visual_gap_scan.py --dry-run\n\nEntrega:\n* resumen;\n* archivos tocados;\n* capturas si existen;\n* checks;\n* limitaciones honestas.\n",
-      "copy_text": "[MEDIUM] Gap visual de referencia en /track-record | Ruta: /track-record | Pendiente de captura real; evaluacion limitada a heuristicas.",
-      "addressed_in_v904": false,
-      "still_pending": true,
-      "needs_browser_qa": true,
-      "v904_status": "blocked_by_browser_qa",
-      "dangerous_requires_approval": false
+      "copy_text": "[MEDIUM] Gap visual de referencia en /track-record | Ruta: /track-record | Pendiente de captura real; evaluacion limitada a heuristicas."
     }
   ],
   "notes": [
@@ -773,7 +818,7 @@
   ],
   "manifest": {
     "version": "V900_REFERENCE_IMAGES_IMPORT_FIRST_REAL_VISUAL_GAP_AUDIT_FINAL",
-    "generated_at_madrid": "2026-07-07T16:50:23+02:00",
+    "generated_at_madrid": "2026-07-07T17:18:30+02:00",
     "reference_root": "reference_images",
     "reference_count": 16,
     "categories": {
@@ -800,7 +845,7 @@
         "width": 1672,
         "height": 941,
         "source": "reference_images",
-        "imported_at_madrid": "2026-07-07T16:50:23+02:00"
+        "imported_at_madrid": "2026-07-07T17:18:30+02:00"
       },
       {
         "filename": "reference_images/admin/reference_import_v900_02.png",
@@ -813,7 +858,7 @@
         "width": 1672,
         "height": 941,
         "source": "reference_images",
-        "imported_at_madrid": "2026-07-07T16:50:23+02:00"
+        "imported_at_madrid": "2026-07-07T17:18:30+02:00"
       },
       {
         "filename": "reference_images/admin/reference_import_v900_03.png",
@@ -826,7 +871,7 @@
         "width": 1672,
         "height": 941,
         "source": "reference_images",
-        "imported_at_madrid": "2026-07-07T16:50:23+02:00"
+        "imported_at_madrid": "2026-07-07T17:18:30+02:00"
       },
       {
         "filename": "reference_images/admin/reference_import_v900_04.png",
@@ -839,7 +884,7 @@
         "width": 1672,
         "height": 941,
         "source": "reference_images",
-        "imported_at_madrid": "2026-07-07T16:50:23+02:00"
+        "imported_at_madrid": "2026-07-07T17:18:30+02:00"
       },
       {
         "filename": "reference_images/admin/reference_import_v900_05.png",
@@ -852,7 +897,7 @@
         "width": 1672,
         "height": 941,
         "source": "reference_images",
-        "imported_at_madrid": "2026-07-07T16:50:23+02:00"
+        "imported_at_madrid": "2026-07-07T17:18:30+02:00"
       },
       {
         "filename": "reference_images/admin/reference_import_v900_06.png",
@@ -865,7 +910,7 @@
         "width": 1672,
         "height": 941,
         "source": "reference_images",
-        "imported_at_madrid": "2026-07-07T16:50:23+02:00"
+        "imported_at_madrid": "2026-07-07T17:18:30+02:00"
       },
       {
         "filename": "reference_images/admin/reference_import_v900_07.png",
@@ -878,7 +923,7 @@
         "width": 1672,
         "height": 941,
         "source": "reference_images",
-        "imported_at_madrid": "2026-07-07T16:50:23+02:00"
+        "imported_at_madrid": "2026-07-07T17:18:30+02:00"
       },
       {
         "filename": "reference_images/calendar/reference_import_v900_10.png",
@@ -894,7 +939,7 @@
         "width": 1672,
         "height": 941,
         "source": "reference_images",
-        "imported_at_madrid": "2026-07-07T16:50:23+02:00"
+        "imported_at_madrid": "2026-07-07T17:18:30+02:00"
       },
       {
         "filename": "reference_images/client/reference_import_v900_08.png",
@@ -910,7 +955,7 @@
         "width": 1672,
         "height": 941,
         "source": "reference_images",
-        "imported_at_madrid": "2026-07-07T16:50:23+02:00"
+        "imported_at_madrid": "2026-07-07T17:18:30+02:00"
       },
       {
         "filename": "reference_images/live/reference_import_v900_09.png",
@@ -926,7 +971,7 @@
         "width": 1672,
         "height": 941,
         "source": "reference_images",
-        "imported_at_madrid": "2026-07-07T16:50:23+02:00"
+        "imported_at_madrid": "2026-07-07T17:18:30+02:00"
       },
       {
         "filename": "reference_images/memberships/reference_import_v900_14.png",
@@ -942,7 +987,7 @@
         "width": 1672,
         "height": 941,
         "source": "reference_images",
-        "imported_at_madrid": "2026-07-07T16:50:23+02:00"
+        "imported_at_madrid": "2026-07-07T17:18:30+02:00"
       },
       {
         "filename": "reference_images/picks/reference_import_v900_11.png",
@@ -958,7 +1003,7 @@
         "width": 1672,
         "height": 941,
         "source": "reference_images",
-        "imported_at_madrid": "2026-07-07T16:50:23+02:00"
+        "imported_at_madrid": "2026-07-07T17:18:30+02:00"
       },
       {
         "filename": "reference_images/profile/reference_import_v900_15.png",
@@ -974,7 +1019,7 @@
         "width": 1672,
         "height": 941,
         "source": "reference_images",
-        "imported_at_madrid": "2026-07-07T16:50:23+02:00"
+        "imported_at_madrid": "2026-07-07T17:18:30+02:00"
       },
       {
         "filename": "reference_images/shark/reference_import_v900_12.png",
@@ -990,7 +1035,7 @@
         "width": 1672,
         "height": 941,
         "source": "reference_images",
-        "imported_at_madrid": "2026-07-07T16:50:23+02:00"
+        "imported_at_madrid": "2026-07-07T17:18:30+02:00"
       },
       {
         "filename": "reference_images/telegram/reference_import_v900_16.png",
@@ -1006,7 +1051,7 @@
         "width": 1672,
         "height": 941,
         "source": "reference_images",
-        "imported_at_madrid": "2026-07-07T16:50:23+02:00"
+        "imported_at_madrid": "2026-07-07T17:18:30+02:00"
       },
       {
         "filename": "reference_images/track-record/reference_import_v900_13.png",
@@ -1022,7 +1067,7 @@
         "width": 1672,
         "height": 941,
         "source": "reference_images",
-        "imported_at_madrid": "2026-07-07T16:50:23+02:00"
+        "imported_at_madrid": "2026-07-07T17:18:30+02:00"
       }
     ],
     "safe_notes": [
@@ -1034,7 +1079,7 @@
   "reference_manifest_path": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\reference_images\\reference_manifest.json",
   "product_gap_report": {
     "version": "V900_REFERENCE_IMAGES_IMPORT_FIRST_REAL_VISUAL_GAP_AUDIT_FINAL",
-    "generated_at_madrid": "2026-07-07T16:50:23+02:00",
+    "generated_at_madrid": "2026-07-07T17:18:30+02:00",
     "browser_available": false,
     "reference_count": 16,
     "targets_reviewed": [
@@ -3156,32 +3201,63 @@
   "engine_version": "V900_REFERENCE_IMAGES_IMPORT_FIRST_REAL_VISUAL_GAP_AUDIT_FINAL",
   "worker_area": "reference_visual",
   "v904_review": {
-    "version": "V904_AUTONOMOUS_REFERENCE_GAPS_REBUILD_AND_SENTINEL_WORKFORCE_FINAL",
-    "reviewed_at_local": "2026-07-07T16:50:46",
-    "gaps_read": 14,
+    "status": "AUTOMATION_MODE_REVIEWED",
+    "gaps_read": 13,
     "gaps_addressed": 8,
-    "gaps_pending": 6,
     "addressed_routes": [
-      "/admin/dashboard",
       "/app",
       "/calendar",
       "/live",
       "/picks",
       "/shark",
-      "/telegram"
+      "/telegram",
+      "/admin/dashboard",
+      "/admin/autonomous-company-sentinel"
     ],
-    "addressed_ids": [
-      "REFGAP-9ED7BD46AB",
-      "REFGAP-32A5E0C96C",
-      "REFGAP-DD35B464A5",
-      "REFGAP-91020397A6",
-      "REFGAP-F243DB0151",
-      "REFGAP-AF28C5F3F0",
-      "REFGAP-53DDCF3EBF",
-      "REFGAP-65EFF7C1DF"
+    "still_pending": [
+      "/membresias",
+      "/profile",
+      "/track-record",
+      "browser",
+      "reference_images"
     ],
-    "still_pending_policy": "Browser QA real pendiente; no se declara pixel-perfect.",
+    "dangerous_requires_approval": [],
     "browser_qa_status": "BROWSER_QA_UNAVAILABLE",
-    "dangerous_requires_approval": []
+    "notes": [
+      "Los modos automaticos preparan revision, prompts y planes.",
+      "No aplican deploy, push, Telegram real, pagos ni cambios destructivos.",
+      "No se declara pixel-perfect sin Browser QA real."
+    ]
+  },
+  "v904_automation_modes": {
+    "last_mode": "post_deploy_check",
+    "supported_modes": [
+      "reference_scan",
+      "daily_reference_review",
+      "post_deploy_check"
+    ],
+    "addressing_status": {
+      "gaps_read": 13,
+      "gaps_addressed": 8,
+      "gaps_pending": 13,
+      "needs_browser_qa": true
+    },
+    "action_policy": {
+      "mode": "post_deploy_check",
+      "dangerous_actions_executed": false,
+      "SAFE_AUTOFIX": [],
+      "CODEX_PROMPT_REQUIRED": [],
+      "HUMAN_APPROVAL_REQUIRED": [],
+      "safe_autofix_count": 0,
+      "codex_prompt_required_count": 0,
+      "human_approval_required_count": 0,
+      "rules": [
+        "No tocar datos reales destructivamente.",
+        "No enviar Telegram real.",
+        "No gastar APIs caras.",
+        "No exponer secretos.",
+        "No hacer deploy ni push automático."
+      ]
+    }
   }
 }

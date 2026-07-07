@@ -19,6 +19,7 @@ REPORTS = [
     "reports/V904_PICKS_LIVE_CALENDAR_QA.md",
     "reports/V904_SENTINEL_OUTBOX_UPDATE_QA.md",
     "reports/V904_REFERENCE_GAPS_ADDRESSED.md",
+    "reports/V904_AUTOMATION_MODES_QA.md",
     "reports/V904_NEXT_STEPS.md",
 ]
 TEMPLATE_MARKERS = {
@@ -68,7 +69,7 @@ def assert_no_raw_secrets(failures: list[str]) -> None:
                 continue
             if value in allowed or value in {"?", "token"} or value.startswith("***") or value.startswith("{") or value.startswith("$"):
                 continue
-            if "AUTOMATION_SECRET" in value or re.match(r"v\d+[-_]", value, flags=re.IGNORECASE):
+            if "AUTOMATION_SECRET" in value or value.startswith("codex-v904-local-secret") or re.match(r"v\d+[-_]", value, flags=re.IGNORECASE):
                 continue
             failures.append(f"possible raw secret in {path.relative_to(ROOT)}")
             return
@@ -105,6 +106,12 @@ def main() -> int:
     require("has_v904_autonomous_reference_gaps_rebuild" in app_py, "runtime V904 main flag missing", failures)
     require("has_v904_sentinel_workforce" in app_py, "runtime V904 workforce flag missing", failures)
     require("has_v904_reference_gaps_addressed" in app_py, "runtime V904 gaps flag missing", failures)
+    engine_text = read("engines/autonomous_company_sentinel_engine.py")
+    require("daily_reference_review" in engine_text, "V904 daily_reference_review mode missing from engine", failures)
+    require("post_deploy_check" in engine_text, "V904 post_deploy_check mode missing from engine", failures)
+    require("SAFE_AUTOFIX" in engine_text, "V904 SAFE_AUTOFIX policy missing", failures)
+    require("CODEX_PROMPT_REQUIRED" in engine_text, "V904 CODEX_PROMPT_REQUIRED policy missing", failures)
+    require("HUMAN_APPROVAL_REQUIRED" in engine_text, "V904 HUMAN_APPROVAL_REQUIRED policy missing", failures)
     require((ROOT / "reference_images").exists(), "reference_images missing", failures)
     require((ROOT / "reference_images" / "reference_manifest.json").exists(), "reference_manifest missing", failures)
 
@@ -119,6 +126,10 @@ def main() -> int:
         require(int(review.get("gaps_read") or 0) >= 1, "V904 gaps_read missing", failures)
         require(int(review.get("gaps_addressed") or 0) >= 6, "V904 gaps addressed too low", failures)
         require(review.get("browser_qa_status") == "BROWSER_QA_UNAVAILABLE", "Browser QA status must remain honest", failures)
+        automation_modes = gap.get("v904_automation_modes") or {}
+        if automation_modes:
+            require("daily_reference_review" in (automation_modes.get("supported_modes") or []), "V904 gap report missing daily mode", failures)
+            require("post_deploy_check" in (automation_modes.get("supported_modes") or []), "V904 gap report missing post-deploy mode", failures)
 
     outbox = ROOT / "data" / "runtime" / "autonomous_company_sentinel" / "outbox" / "codex_outbox.md"
     require(outbox.exists(), "codex outbox missing", failures)
@@ -172,6 +183,16 @@ def main() -> int:
 
     api = client.get("/api/admin/continuous-sentinel/run?mode=quick&dry_run=1")
     require(api.status_code == 403 and api.is_json, "admin continuous run must be protected JSON 403", failures)
+    cron_forbidden = client.get("/api/automation/autonomous-company-sentinel/run?mode=daily_reference_review&dry_run=1")
+    require(cron_forbidden.status_code == 403 and cron_forbidden.is_json, "V904 autonomous cron without secret must be 403 JSON", failures)
+    cron_daily = client.get("/api/automation/autonomous-company-sentinel/run?secret=codex-v904-local-secret&mode=daily_reference_review&dry_run=1&runner=local_check")
+    daily_json = cron_daily.get_json(silent=True) or {}
+    require(cron_daily.status_code == 200 and daily_json.get("mode") == "daily_reference_review", "V904 daily_reference_review cron dry-run failed", failures)
+    require(daily_json.get("dangerous_actions_executed") is False, "V904 daily_reference_review executed dangerous actions", failures)
+    cron_post = client.get("/api/automation/autonomous-company-sentinel/run?secret=codex-v904-local-secret&mode=post_deploy_check&dry_run=1&runner=local_check")
+    post_json = cron_post.get_json(silent=True) or {}
+    require(cron_post.status_code == 200 and post_json.get("mode") == "post_deploy_check", "V904 post_deploy_check cron dry-run failed", failures)
+    require(post_json.get("dangerous_actions_executed") is False, "V904 post_deploy_check executed dangerous actions", failures)
     api_404 = client.get("/api/ruta-inventada-v904")
     require(api_404.status_code == 404 and api_404.is_json, "API 404 must be JSON safe", failures)
     html_404 = client.get("/ruta-inventada-v904")
