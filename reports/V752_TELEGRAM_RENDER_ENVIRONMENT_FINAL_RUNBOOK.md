@@ -1,12 +1,12 @@
-# V752 Telegram Render Environment Final Runbook
+﻿# V752 Telegram Render Environment Final Runbook
 
 ## Web Service: variables obligatorias
 
 Configurar en el Web Service de Render:
 
 ```env
-AUTOMATION_SECRET=valor_seguro_compartido_con_cron
-TELEGRAM_BOT_TOKEN=token_real_del_bot
+AUTOMATION_SECRET=***hidden***
+TELEGRAM_BOT_TOKEN=***hidden***
 TELEGRAM_CHAT_ID=chat_o_canal_global
 TELEGRAM_BOT_USERNAME=nombre_del_bot
 ENABLE_TELEGRAM_AUTO=true
@@ -27,7 +27,7 @@ Configurar en el Cron Job de Render:
 
 ```env
 PUBLIC_BASE_URL=https://bot-apuestas-crgf.onrender.com
-AUTOMATION_SECRET=igual_que_el_web_service
+AUTOMATION_SECRET=***hidden***
 ```
 
 ## Cron Job recomendado

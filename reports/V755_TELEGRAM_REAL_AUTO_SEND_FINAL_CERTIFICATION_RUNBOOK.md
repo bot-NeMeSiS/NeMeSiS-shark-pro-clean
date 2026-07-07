@@ -1,4 +1,4 @@
-# V755 Telegram Real Auto Send Final Certification Runbook
+﻿# V755 Telegram Real Auto Send Final Certification Runbook
 
 ## Objetivo
 
@@ -35,7 +35,7 @@ Render Web Service no garantiza threads internos vivos durante horas. Para produ
 - Frecuencia: cada 15 minutos
 - URL:
 
-`https://bot-apuestas-crgf.onrender.com/api/automation/telegram/tick?secret=VALOR_REAL_DE_AUTOMATION_SECRET&runner=render_cron`
+`https://bot-apuestas-crgf.onrender.com/api/automation/telegram/tick?secret=***hidden***&runner=render_cron`
 
 ### Daily Automation
 
@@ -43,7 +43,7 @@ Render Web Service no garantiza threads internos vivos durante horas. Para produ
 - Frecuencia: cada hora o diario a las 10:00 Europe/Madrid
 - URL:
 
-`https://bot-apuestas-crgf.onrender.com/api/automation/daily/run?secret=VALOR_REAL_DE_AUTOMATION_SECRET&runner=render_cron`
+`https://bot-apuestas-crgf.onrender.com/api/automation/daily/run?secret=***hidden***&runner=render_cron`
 
 ## Certificación real en Render
 

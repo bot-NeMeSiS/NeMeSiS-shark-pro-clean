@@ -1,4 +1,4 @@
-# V749B Render Cron Simple Runner Setup
+﻿# V749B Render Cron Simple Runner Setup
 
 ## Objetivo
 
@@ -25,7 +25,7 @@ El Cron Job solo necesita estas dos variables:
 
 ```env
 PUBLIC_BASE_URL=https://bot-apuestas-crgf.onrender.com
-AUTOMATION_SECRET=EL_MISMO_VALOR_QUE_EN_EL_WEB_SERVICE
+AUTOMATION_SECRET=***hidden***
 ```
 
 No pongas el secret dentro del Command. No uses `curl`. No pegues la URL larga en el Command.

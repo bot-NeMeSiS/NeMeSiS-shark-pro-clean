@@ -1,4 +1,4 @@
-# V822 Automation V818 Production QA
+﻿# V822 Automation V818 Production QA
 
 ## Conservado
 
@@ -22,8 +22,8 @@
 ## Validacion ejecutada
 
 - `/api/automation/master-tick?dry_run=1`: 403 esperado.
-- `/api/automation/master-tick?secret=v822-secret&dry_run=1`: 200.
-- `/api/automation/health-check?secret=v822-secret`: 200.
+- `/api/automation/master-tick?secret=***hidden***&dry_run=1`: 200.
+- `/api/automation/health-check?secret=***hidden***`: 200.
 - Check V818 daily automation OK.
 - Check V818 Telegram scheduler OK.
 - Check V818 API usage guard OK.

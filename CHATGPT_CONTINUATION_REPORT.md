@@ -1062,4 +1062,16 @@ Honestidad:
 - Render real consultado: produccion sigue en `V897_SENTINEL_TRUTHFUL_ISSUES_ROUTE_ALIAS_REFERENCE_QA_FIX_FINAL`; V902 no se declara desplegada.
 - No se hizo deploy, push, Telegram real, pagos reales, borrado de DB/usuarios ni llamadas caras API.
 
+## V902B_DEPLOY_ALIGNMENT_AND_AUTOMATION_SECRET_ROTATION_GUARD_FINAL
+
+- Base local: `V902_SENTINEL_FULL_ACTIVE_ISSUES_FIX_AND_TRUTH_CLEANUP_FINAL`.
+- Objetivo: no crear producto nuevo; preparar alineacion de deploy y reforzar guardia de secretos porque Render sigue sirviendo codigo antiguo y una URL de Cron con `secret` pudo quedar expuesta.
+- Version local actualizada a `V902B_DEPLOY_ALIGNMENT_AND_AUTOMATION_SECRET_ROTATION_GUARD_FINAL`.
+- `templates/base.html` conserva `data-v902-shell` y añade `data-v902b-shell`; cache CSS pasa a V902B.
+- `/api/runtime-version` añade `has_v902b_deploy_alignment_secret_rotation_guard` y estados seguros de secretos sin exponer valores.
+- `tools/render_cron_telegram_tick.py` ya no muestra los ultimos caracteres del secreto; los targets seguros usan `secret=***hidden***&runner=render_cron`.
+- Se crearon reportes V902B para alineacion Render/GitHub, rotacion de `AUTOMATION_SECRET`, deploy root limpio y siguientes pasos.
+- Render real consultado: produccion sigue en `V897_SENTINEL_TRUTHFUL_ISSUES_ROUTE_ALIAS_REFERENCE_QA_FIX_FINAL`; V902B no se declara desplegada.
+- Siguiente accion manual: subir contenido raiz V902B a GitHub, hacer `Clear build cache & deploy` en Render y rotar `AUTOMATION_SECRET` en Web Service + Cron Job.
+
 

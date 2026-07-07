@@ -31,15 +31,14 @@ def now_labels() -> tuple[str, str]:
 
 
 def mask_secret(secret: str) -> str:
-    if not secret:
-        return "<missing>"
-    tail = secret[-4:] if len(secret) >= 4 else "****"
-    return f"***{tail}"
+    if not str(secret or "").strip():
+        return "***missing***"
+    return "***hidden***"
 
 
 def masked_url(base_url: str, secret: str) -> str:
     base = base_url.rstrip("/")
-    return f"{base}{ENDPOINT}?secret={urllib.parse.quote(mask_secret(secret), safe='')}"
+    return f"{base}{ENDPOINT}?secret={mask_secret(secret)}&runner=render_cron"
 
 
 def target_url(base_url: str, secret: str) -> str:

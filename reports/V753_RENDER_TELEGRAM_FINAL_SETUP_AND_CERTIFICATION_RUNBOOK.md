@@ -1,4 +1,4 @@
-# V753 Render Telegram Final Setup and Certification Runbook
+﻿# V753 Render Telegram Final Setup and Certification Runbook
 
 ## Web Service Environment
 
@@ -25,7 +25,7 @@ Configurar en el Cron Job:
 
 ```env
 PUBLIC_BASE_URL=https://bot-apuestas-crgf.onrender.com
-AUTOMATION_SECRET=igual_que_web_service
+AUTOMATION_SECRET=***hidden***
 ```
 
 ## Cron Command

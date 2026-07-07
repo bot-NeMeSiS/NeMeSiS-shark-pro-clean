@@ -1,4 +1,4 @@
-# V749B_RENDER_CRON_SIMPLE_RUNNER_FINAL_FIX_REPORT
+﻿# V749B_RENDER_CRON_SIMPLE_RUNNER_FINAL_FIX_REPORT
 
 ## Resumen
 
@@ -45,7 +45,7 @@ python tools/render_cron_telegram_tick.py
 
 ```env
 PUBLIC_BASE_URL=https://bot-apuestas-crgf.onrender.com
-AUTOMATION_SECRET=EL_MISMO_VALOR_QUE_EN_EL_WEB_SERVICE
+AUTOMATION_SECRET=***hidden***
 ```
 
 ## Schedule recomendado

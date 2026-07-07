@@ -1,4 +1,4 @@
-# V782 Stripe Render runbook
+﻿# V782 Stripe Render runbook
 
 ## Configuración mínima en Render
 
@@ -6,8 +6,8 @@
 PAYMENTS_ENABLED=true
 PAYMENTS_MODE=stripe_real
 APP_PUBLIC_URL=https://bot-apuestas-crgf.onrender.com
-STRIPE_SECRET_KEY=sk_test_...
-STRIPE_WEBHOOK_SECRET=whsec_...
+STRIPE_SECRET_KEY=***hidden***
+STRIPE_WEBHOOK_SECRET=***hidden***
 STRIPE_PRICE_PRO=price_...
 STRIPE_PRICE_ELITE=price_...
 STRIPE_CUSTOMER_PORTAL_ENABLED=true

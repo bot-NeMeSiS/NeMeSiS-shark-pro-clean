@@ -1,4 +1,4 @@
-# V769 Highlights Render Cron Runbook
+﻿# V769 Highlights Render Cron Runbook
 
 ## Objetivo
 Mantener resúmenes/highlights actualizados automáticamente sin intervención manual.
@@ -14,7 +14,7 @@ python tools/render_cron_highlights_sync.py
 
 ```bash
 PUBLIC_BASE_URL=https://bot-apuestas-crgf.onrender.com
-AUTOMATION_SECRET=<mismo valor que el Web Service>
+AUTOMATION_SECRET=***hidden***
 THESPORTSDB_API_KEY=<en Web Service, no necesariamente en Cron>
 ```
 

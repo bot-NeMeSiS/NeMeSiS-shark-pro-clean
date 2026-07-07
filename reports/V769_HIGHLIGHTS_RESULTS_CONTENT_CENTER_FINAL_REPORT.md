@@ -1,4 +1,4 @@
-# V769 Highlights / Results Content Center Final
+﻿# V769 Highlights / Results Content Center Final
 
 ## Objetivo
 Convertir los highlights/resúmenes en una capa definitiva de producto: útil para cliente, conectada con resultados, partido, calendario, Track Record y admin, sin descargar ni rehostear vídeos.
@@ -49,7 +49,7 @@ Variables necesarias en el Cron:
 
 ```bash
 PUBLIC_BASE_URL=https://bot-apuestas-crgf.onrender.com
-AUTOMATION_SECRET=<igual que Web Service>
+AUTOMATION_SECRET=***hidden***
 HIGHLIGHTS_DAYS_BACK=7
 HIGHLIGHTS_LIMIT=300
 ```

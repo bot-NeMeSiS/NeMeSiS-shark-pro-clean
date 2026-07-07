@@ -1,4 +1,4 @@
-# V749 Render Cron Setup
+﻿# V749 Render Cron Setup
 
 ## Cron oficial Telegram
 
@@ -16,11 +16,11 @@ Método:
 
 URL:
 
-`https://TU_DOMINIO/api/automation/telegram/tick?secret=TU_AUTOMATION_SECRET`
+`https://TU_DOMINIO/api/automation/telegram/tick?secret=***hidden***`
 
 Ejemplo:
 
-`https://bot-apuestas-crgf.onrender.com/api/automation/telegram/tick?secret=VALOR_REAL_DE_AUTOMATION_SECRET`
+`https://bot-apuestas-crgf.onrender.com/api/automation/telegram/tick?secret=***hidden***`
 
 ## Variables Render necesarias
 
@@ -62,7 +62,7 @@ Debe devolver `403`.
 
 Con secret:
 
-`/api/automation/telegram/tick?secret=TU_AUTOMATION_SECRET`
+`/api/automation/telegram/tick?secret=***hidden***`
 
 Debe devolver `200`.
 
