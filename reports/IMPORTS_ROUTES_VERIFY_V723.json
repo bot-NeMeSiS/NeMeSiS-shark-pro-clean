@@ -1,6 +1,6 @@
 {
   "ok": true,
-  "checked_at": "2026-07-08T22:28:21",
+  "checked_at": "2026-07-08T23:21:21",
   "templates_referenced": [
     "404.html",
     "account_center.html",
@@ -140,7 +140,7 @@
   ],
   "missing_static": [],
   "import_ok": true,
-  "version": "V920_BROWSER_QA_ARTIFACTS_CAPTURE_OR_UPLOAD_EXECUTION_FINAL",
+  "version": "V921_AUTOMATED_BROWSER_QA_ARTIFACT_RUN_IMPORT_AND_VISUAL_QUEUE_UNLOCK_FINAL",
   "route_count": 600,
   "routes": [
     "/",

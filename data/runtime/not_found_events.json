@@ -1,28 +1,6 @@
 {
-  "version": "V920_BROWSER_QA_ARTIFACTS_CAPTURE_OR_UPLOAD_EXECUTION_FINAL",
+  "version": "V921_AUTOMATED_BROWSER_QA_ARTIFACT_RUN_IMPORT_AND_VISUAL_QUEUE_UNLOCK_FINAL",
   "events": [
-    {
-      "path": "/ruta-inventada-v910",
-      "method": "GET",
-      "referrer": "",
-      "user_agent": "Werkzeug/3.0.3",
-      "resolved_alias": "",
-      "source": "flask_404",
-      "count": 26,
-      "first_seen_madrid": "2026-07-07T23:33:53+02:00",
-      "last_seen_madrid": "2026-07-08T22:28:26+02:00"
-    },
-    {
-      "path": "/api/ruta-inventada-v910",
-      "method": "GET",
-      "referrer": "",
-      "user_agent": "Werkzeug/3.0.3",
-      "resolved_alias": "",
-      "source": "api_404",
-      "count": 26,
-      "first_seen_madrid": "2026-07-07T23:33:53+02:00",
-      "last_seen_madrid": "2026-07-08T22:28:26+02:00"
-    },
     {
       "path": "/ruta-inventada",
       "method": "GET",
@@ -30,9 +8,9 @@
       "user_agent": "Werkzeug/3.0.3",
       "resolved_alias": "",
       "source": "flask_404",
-      "count": 29,
+      "count": 31,
       "first_seen_madrid": "2026-07-06T10:37:04+02:00",
-      "last_seen_madrid": "2026-07-08T22:28:18+02:00"
+      "last_seen_madrid": "2026-07-08T23:21:34+02:00"
     },
     {
       "path": "/api/ruta-inventada",
@@ -41,9 +19,31 @@
       "user_agent": "Werkzeug/3.0.3",
       "resolved_alias": "",
       "source": "api_404",
-      "count": 29,
+      "count": 31,
       "first_seen_madrid": "2026-07-06T10:37:04+02:00",
-      "last_seen_madrid": "2026-07-08T22:28:18+02:00"
+      "last_seen_madrid": "2026-07-08T23:21:34+02:00"
+    },
+    {
+      "path": "/ruta-inventada-v910",
+      "method": "GET",
+      "referrer": "",
+      "user_agent": "Werkzeug/3.0.3",
+      "resolved_alias": "",
+      "source": "flask_404",
+      "count": 27,
+      "first_seen_madrid": "2026-07-07T23:33:53+02:00",
+      "last_seen_madrid": "2026-07-08T23:21:26+02:00"
+    },
+    {
+      "path": "/api/ruta-inventada-v910",
+      "method": "GET",
+      "referrer": "",
+      "user_agent": "Werkzeug/3.0.3",
+      "resolved_alias": "",
+      "source": "api_404",
+      "count": 27,
+      "first_seen_madrid": "2026-07-07T23:33:53+02:00",
+      "last_seen_madrid": "2026-07-08T23:21:26+02:00"
     },
     {
       "path": "/ruta-inventada-v913",
@@ -299,5 +299,5 @@
       "last_seen_madrid": "2026-07-05T00:58:55+02:00"
     }
   ],
-  "updated_at_madrid": "2026-07-08T22:28:26+02:00"
+  "updated_at_madrid": "2026-07-08T23:21:34+02:00"
 }

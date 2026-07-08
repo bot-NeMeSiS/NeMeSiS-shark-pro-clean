@@ -1,7 +1,7 @@
 {
   "ok": true,
-  "version": "V920_BROWSER_QA_ARTIFACTS_CAPTURE_OR_UPLOAD_EXECUTION_FINAL",
-  "generated_at_madrid": "2026-07-08T22:23:19+02:00",
+  "version": "V921_AUTOMATED_BROWSER_QA_ARTIFACT_RUN_IMPORT_AND_VISUAL_QUEUE_UNLOCK_FINAL",
+  "generated_at_madrid": "2026-07-08T23:17:24+02:00",
   "browser_available": false,
   "playwright_available": false,
   "browsers_available": false,

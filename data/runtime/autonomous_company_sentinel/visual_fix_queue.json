@@ -1,9 +1,9 @@
 {
-  "version": "V920_BROWSER_QA_ARTIFACTS_CAPTURE_OR_UPLOAD_EXECUTION_FINAL",
-  "generated_at_madrid": "2026-07-08T22:25:39+02:00",
+  "version": "V921_AUTOMATED_BROWSER_QA_ARTIFACT_RUN_IMPORT_AND_VISUAL_QUEUE_UNLOCK_FINAL",
+  "generated_at_madrid": "2026-07-08T23:18:29+02:00",
   "items": [
     {
-      "id": "V919-001",
+      "id": "V921-001",
       "route": "/",
       "device": "desktop",
       "screenshot": "",
@@ -16,10 +16,13 @@
       "status": "BLOCKED_NO_SCREENSHOT",
       "v919_status": "BLOCKED_NO_SCREENSHOT",
       "v919_evidence": "Sin screenshot real validado.",
-      "v919_needs_browser_recheck": true
+      "v919_needs_browser_recheck": true,
+      "v921_status": "BLOCKED_NO_SCREENSHOT",
+      "v921_evidence": "Sin screenshot real validado.",
+      "v921_needs_browser_recheck": true
     },
     {
-      "id": "V919-002",
+      "id": "V921-002",
       "route": "/admin-login",
       "device": "desktop",
       "screenshot": "",
@@ -32,10 +35,13 @@
       "status": "BLOCKED_NO_SCREENSHOT",
       "v919_status": "BLOCKED_NO_SCREENSHOT",
       "v919_evidence": "Sin screenshot real validado.",
-      "v919_needs_browser_recheck": true
+      "v919_needs_browser_recheck": true,
+      "v921_status": "BLOCKED_NO_SCREENSHOT",
+      "v921_evidence": "Sin screenshot real validado.",
+      "v921_needs_browser_recheck": true
     },
     {
-      "id": "V919-003",
+      "id": "V921-003",
       "route": "/admin/autonomous-company-sentinel",
       "device": "desktop",
       "screenshot": "",
@@ -48,10 +54,13 @@
       "status": "BLOCKED_NO_SCREENSHOT",
       "v919_status": "BLOCKED_NO_SCREENSHOT",
       "v919_evidence": "Sin screenshot real validado.",
-      "v919_needs_browser_recheck": true
+      "v919_needs_browser_recheck": true,
+      "v921_status": "BLOCKED_NO_SCREENSHOT",
+      "v921_evidence": "Sin screenshot real validado.",
+      "v921_needs_browser_recheck": true
     },
     {
-      "id": "V919-004",
+      "id": "V921-004",
       "route": "/admin/dashboard",
       "device": "desktop",
       "screenshot": "",
@@ -64,10 +73,13 @@
       "status": "BLOCKED_NO_SCREENSHOT",
       "v919_status": "BLOCKED_NO_SCREENSHOT",
       "v919_evidence": "Sin screenshot real validado.",
-      "v919_needs_browser_recheck": true
+      "v919_needs_browser_recheck": true,
+      "v921_status": "BLOCKED_NO_SCREENSHOT",
+      "v921_evidence": "Sin screenshot real validado.",
+      "v921_needs_browser_recheck": true
     },
     {
-      "id": "V919-005",
+      "id": "V921-005",
       "route": "/admin/not-found-events",
       "device": "desktop",
       "screenshot": "",
@@ -80,10 +92,13 @@
       "status": "BLOCKED_NO_SCREENSHOT",
       "v919_status": "BLOCKED_NO_SCREENSHOT",
       "v919_evidence": "Sin screenshot real validado.",
-      "v919_needs_browser_recheck": true
+      "v919_needs_browser_recheck": true,
+      "v921_status": "BLOCKED_NO_SCREENSHOT",
+      "v921_evidence": "Sin screenshot real validado.",
+      "v921_needs_browser_recheck": true
     },
     {
-      "id": "V919-006",
+      "id": "V921-006",
       "route": "/admin/sentinel-codex-outbox",
       "device": "desktop",
       "screenshot": "",
@@ -96,10 +111,13 @@
       "status": "BLOCKED_NO_SCREENSHOT",
       "v919_status": "BLOCKED_NO_SCREENSHOT",
       "v919_evidence": "Sin screenshot real validado.",
-      "v919_needs_browser_recheck": true
+      "v919_needs_browser_recheck": true,
+      "v921_status": "BLOCKED_NO_SCREENSHOT",
+      "v921_evidence": "Sin screenshot real validado.",
+      "v921_needs_browser_recheck": true
     },
     {
-      "id": "V919-007",
+      "id": "V921-007",
       "route": "/admin/sentinel-issues",
       "device": "desktop",
       "screenshot": "",
@@ -112,10 +130,13 @@
       "status": "BLOCKED_NO_SCREENSHOT",
       "v919_status": "BLOCKED_NO_SCREENSHOT",
       "v919_evidence": "Sin screenshot real validado.",
-      "v919_needs_browser_recheck": true
+      "v919_needs_browser_recheck": true,
+      "v921_status": "BLOCKED_NO_SCREENSHOT",
+      "v921_evidence": "Sin screenshot real validado.",
+      "v921_needs_browser_recheck": true
     },
     {
-      "id": "V919-008",
+      "id": "V921-008",
       "route": "/admin/telegram/command-center",
       "device": "desktop",
       "screenshot": "",
@@ -128,10 +149,13 @@
       "status": "BLOCKED_NO_SCREENSHOT",
       "v919_status": "BLOCKED_NO_SCREENSHOT",
       "v919_evidence": "Sin screenshot real validado.",
-      "v919_needs_browser_recheck": true
+      "v919_needs_browser_recheck": true,
+      "v921_status": "BLOCKED_NO_SCREENSHOT",
+      "v921_evidence": "Sin screenshot real validado.",
+      "v921_needs_browser_recheck": true
     },
     {
-      "id": "V919-009",
+      "id": "V921-009",
       "route": "/app",
       "device": "desktop",
       "screenshot": "",
@@ -144,10 +168,13 @@
       "status": "BLOCKED_NO_SCREENSHOT",
       "v919_status": "BLOCKED_NO_SCREENSHOT",
       "v919_evidence": "Sin screenshot real validado.",
-      "v919_needs_browser_recheck": true
+      "v919_needs_browser_recheck": true,
+      "v921_status": "BLOCKED_NO_SCREENSHOT",
+      "v921_evidence": "Sin screenshot real validado.",
+      "v921_needs_browser_recheck": true
     },
     {
-      "id": "V919-010",
+      "id": "V921-010",
       "route": "/calendar",
       "device": "desktop",
       "screenshot": "",
@@ -160,10 +187,13 @@
       "status": "BLOCKED_NO_SCREENSHOT",
       "v919_status": "BLOCKED_NO_SCREENSHOT",
       "v919_evidence": "Sin screenshot real validado.",
-      "v919_needs_browser_recheck": true
+      "v919_needs_browser_recheck": true,
+      "v921_status": "BLOCKED_NO_SCREENSHOT",
+      "v921_evidence": "Sin screenshot real validado.",
+      "v921_needs_browser_recheck": true
     },
     {
-      "id": "V919-011",
+      "id": "V921-011",
       "route": "/cliente-login",
       "device": "desktop",
       "screenshot": "",
@@ -176,10 +206,13 @@
       "status": "BLOCKED_NO_SCREENSHOT",
       "v919_status": "BLOCKED_NO_SCREENSHOT",
       "v919_evidence": "Sin screenshot real validado.",
-      "v919_needs_browser_recheck": true
+      "v919_needs_browser_recheck": true,
+      "v921_status": "BLOCKED_NO_SCREENSHOT",
+      "v921_evidence": "Sin screenshot real validado.",
+      "v921_needs_browser_recheck": true
     },
     {
-      "id": "V919-012",
+      "id": "V921-012",
       "route": "/live",
       "device": "desktop",
       "screenshot": "",
@@ -192,10 +225,13 @@
       "status": "BLOCKED_NO_SCREENSHOT",
       "v919_status": "BLOCKED_NO_SCREENSHOT",
       "v919_evidence": "Sin screenshot real validado.",
-      "v919_needs_browser_recheck": true
+      "v919_needs_browser_recheck": true,
+      "v921_status": "BLOCKED_NO_SCREENSHOT",
+      "v921_evidence": "Sin screenshot real validado.",
+      "v921_needs_browser_recheck": true
     },
     {
-      "id": "V919-013",
+      "id": "V921-013",
       "route": "/picks",
       "device": "desktop",
       "screenshot": "",
@@ -208,10 +244,13 @@
       "status": "BLOCKED_NO_SCREENSHOT",
       "v919_status": "BLOCKED_NO_SCREENSHOT",
       "v919_evidence": "Sin screenshot real validado.",
-      "v919_needs_browser_recheck": true
+      "v919_needs_browser_recheck": true,
+      "v921_status": "BLOCKED_NO_SCREENSHOT",
+      "v921_evidence": "Sin screenshot real validado.",
+      "v921_needs_browser_recheck": true
     },
     {
-      "id": "V919-014",
+      "id": "V921-014",
       "route": "/profile",
       "device": "desktop",
       "screenshot": "",
@@ -224,10 +263,13 @@
       "status": "BLOCKED_NO_SCREENSHOT",
       "v919_status": "BLOCKED_NO_SCREENSHOT",
       "v919_evidence": "Sin screenshot real validado.",
-      "v919_needs_browser_recheck": true
+      "v919_needs_browser_recheck": true,
+      "v921_status": "BLOCKED_NO_SCREENSHOT",
+      "v921_evidence": "Sin screenshot real validado.",
+      "v921_needs_browser_recheck": true
     },
     {
-      "id": "V919-015",
+      "id": "V921-015",
       "route": "/registro",
       "device": "desktop",
       "screenshot": "",
@@ -240,10 +282,13 @@
       "status": "BLOCKED_NO_SCREENSHOT",
       "v919_status": "BLOCKED_NO_SCREENSHOT",
       "v919_evidence": "Sin screenshot real validado.",
-      "v919_needs_browser_recheck": true
+      "v919_needs_browser_recheck": true,
+      "v921_status": "BLOCKED_NO_SCREENSHOT",
+      "v921_evidence": "Sin screenshot real validado.",
+      "v921_needs_browser_recheck": true
     },
     {
-      "id": "V919-016",
+      "id": "V921-016",
       "route": "/shark",
       "device": "desktop",
       "screenshot": "",
@@ -256,10 +301,13 @@
       "status": "BLOCKED_NO_SCREENSHOT",
       "v919_status": "BLOCKED_NO_SCREENSHOT",
       "v919_evidence": "Sin screenshot real validado.",
-      "v919_needs_browser_recheck": true
+      "v919_needs_browser_recheck": true,
+      "v921_status": "BLOCKED_NO_SCREENSHOT",
+      "v921_evidence": "Sin screenshot real validado.",
+      "v921_needs_browser_recheck": true
     },
     {
-      "id": "V919-017",
+      "id": "V921-017",
       "route": "/support",
       "device": "desktop",
       "screenshot": "",
@@ -272,10 +320,13 @@
       "status": "BLOCKED_NO_SCREENSHOT",
       "v919_status": "BLOCKED_NO_SCREENSHOT",
       "v919_evidence": "Sin screenshot real validado.",
-      "v919_needs_browser_recheck": true
+      "v919_needs_browser_recheck": true,
+      "v921_status": "BLOCKED_NO_SCREENSHOT",
+      "v921_evidence": "Sin screenshot real validado.",
+      "v921_needs_browser_recheck": true
     },
     {
-      "id": "V919-018",
+      "id": "V921-018",
       "route": "/telegram",
       "device": "desktop",
       "screenshot": "",
@@ -288,7 +339,10 @@
       "status": "BLOCKED_NO_SCREENSHOT",
       "v919_status": "BLOCKED_NO_SCREENSHOT",
       "v919_evidence": "Sin screenshot real validado.",
-      "v919_needs_browser_recheck": true
+      "v919_needs_browser_recheck": true,
+      "v921_status": "BLOCKED_NO_SCREENSHOT",
+      "v921_evidence": "Sin screenshot real validado.",
+      "v921_needs_browser_recheck": true
     }
   ],
   "queue_count": 18,
@@ -299,5 +353,9 @@
   "v919_visual_queue_total": 18,
   "v919_visual_queue_blocked": 18,
   "v919_visual_queue_ready": 0,
-  "v919_valid_screenshots_count": 0
+  "v919_valid_screenshots_count": 0,
+  "v921_visual_queue_total": 18,
+  "v921_visual_queue_blocked": 18,
+  "v921_visual_queue_ready": 0,
+  "v921_valid_screenshots_count": 0
 }

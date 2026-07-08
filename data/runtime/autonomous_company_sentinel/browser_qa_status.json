@@ -1,7 +1,7 @@
 {
   "ok": true,
-  "version": "V920_BROWSER_QA_ARTIFACTS_CAPTURE_OR_UPLOAD_EXECUTION_FINAL",
-  "generated_at_madrid": "2026-07-08T22:23:19+02:00",
+  "version": "V921_AUTOMATED_BROWSER_QA_ARTIFACT_RUN_IMPORT_AND_VISUAL_QUEUE_UNLOCK_FINAL",
+  "generated_at_madrid": "2026-07-08T23:17:24+02:00",
   "browser_available": false,
   "playwright_available": false,
   "browsers_available": false,
@@ -36,8 +36,12 @@
   "mobile_screenshots_count": 0,
   "v919_import_status": "NO_VALID_SCREENSHOTS_TO_IMPORT",
   "v920_import_status": "NO_VALID_SCREENSHOTS_TO_IMPORT",
+  "v921_import_status": "NO_VALID_SCREENSHOTS_TO_IMPORT",
   "v920_valid_screenshots_count": 0,
   "v920_desktop_screenshots_count": 0,
   "v920_mobile_screenshots_count": 0,
+  "v921_valid_screenshots_count": 0,
+  "v921_desktop_screenshots_count": 0,
+  "v921_mobile_screenshots_count": 0,
   "pixel_perfect_claim_allowed": false
 }

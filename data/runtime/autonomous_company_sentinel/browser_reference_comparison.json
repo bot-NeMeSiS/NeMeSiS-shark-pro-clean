@@ -1,7 +1,7 @@
 {
   "ok": true,
-  "engine_version": "V920_BROWSER_QA_ARTIFACTS_CAPTURE_OR_UPLOAD_EXECUTION_FINAL",
-  "generated_at_madrid": "2026-07-08T22:23:19+02:00",
+  "engine_version": "V921_AUTOMATED_BROWSER_QA_ARTIFACT_RUN_IMPORT_AND_VISUAL_QUEUE_UNLOCK_FINAL",
+  "generated_at_madrid": "2026-07-08T23:17:24+02:00",
   "browser_qa_status": "BROWSER_QA_UNAVAILABLE",
   "reference_manifest_count": 16,
   "screenshots_captured": 0,
@@ -372,7 +372,7 @@
       "codex_prompt": "Captura y compara /telegram contra referencias reales antes de declarar cierre visual."
     }
   ],
-  "version": "V920_BROWSER_QA_ARTIFACTS_CAPTURE_OR_UPLOAD_EXECUTION_FINAL",
+  "version": "V921_AUTOMATED_BROWSER_QA_ARTIFACT_RUN_IMPORT_AND_VISUAL_QUEUE_UNLOCK_FINAL",
   "desktop_screenshots_count": 0,
   "mobile_screenshots_count": 0
 }
