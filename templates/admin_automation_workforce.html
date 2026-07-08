@@ -3,8 +3,9 @@
 {% set summary = workforce.summary or {} %}
 {% set full_run = workforce.full_run or {} %}
 {% set post_deploy = workforce.post_deploy or {} %}
+{% set browser_gate = workforce.browser_gate or {} %}
 {% set latest_run = workforce.latest_run or {} %}
-<section class="ns-admin-page v915-workforce-shell v916-workforce-activation v917-workforce-full-run v918-post-deploy-workforce" data-v915-template="admin_automation_workforce" data-v916-workforce-activation="true" data-v917-full-run="true" data-v918-post-deploy="true">
+<section class="ns-admin-page v915-workforce-shell v916-workforce-activation v917-workforce-full-run v918-post-deploy-workforce v919-browser-qa-gate" data-v915-template="admin_automation_workforce" data-v916-workforce-activation="true" data-v917-full-run="true" data-v918-post-deploy="true" data-v919-browser-qa-gate="true">
   <div class="ns-page-header">
     <span class="ns-chip">V918 Post-deploy Workforce</span>
     <h1>Automation Workforce</h1>
@@ -68,6 +69,22 @@
       <article class="ns-stat"><span>Cola lista</span><strong>{{ post_deploy.v918_visual_queue_ready or 0 }}</strong></article>
     </div>
     <div class="ns-empty ns-empty-compact">Proxima accion: {{ post_deploy.v918_next_required_action or 'run_browser_qa_or_import_results' }}</div>
+  </section>
+
+  <section class="ns-admin-card v919-browser-qa-gate-panel">
+    <div class="ns-section-title">
+      <h2>Browser QA Evidence Gate</h2>
+      <span class="ns-badge">{{ browser_gate.v919_browser_qa_discovery_status or 'NO_RESULTS_FOUND' }}</span>
+    </div>
+    <p>V919 valida que no se desbloquee ningun item visual sin screenshot real. JSON sin imagen no cuenta como evidencia visual.</p>
+    <div class="ns-grid ns-grid-4">
+      <article class="ns-stat"><span>JSON resultados</span><strong>{{ 'si' if browser_gate.v919_results_json_found else 'no' }}</strong></article>
+      <article class="ns-stat"><span>Desktop screenshots</span><strong>{{ browser_gate.v919_desktop_screenshots_count or 0 }}</strong></article>
+      <article class="ns-stat"><span>Mobile screenshots</span><strong>{{ browser_gate.v919_mobile_screenshots_count or 0 }}</strong></article>
+      <article class="ns-stat"><span>Ready invalidos</span><strong>{{ browser_gate.v919_visual_queue_invalid_ready_without_screenshot or 0 }}</strong></article>
+    </div>
+    <div class="ns-empty ns-empty-compact">Import status: {{ browser_gate.v919_import_status or 'NO_VALID_SCREENSHOTS_TO_IMPORT' }}</div>
+    <div class="ns-empty ns-empty-compact">Proxima accion V919: {{ browser_gate.v919_next_required_action or 'run_browser_qa_or_upload_artifacts' }}</div>
   </section>
 
   <section class="ns-grid ns-grid-3 v916-workforce-cards">
@@ -139,7 +156,7 @@
   <section class="ns-admin-card v915-deploy-readiness">
     <div class="ns-section-title">
       <h2>Acciones seguras</h2>
-      <span class="ns-badge">{{ post_deploy.v918_next_required_action or summary.v916_next_required_action or summary.v915_next_required_action }}</span>
+      <span class="ns-badge">{{ browser_gate.v919_next_required_action or post_deploy.v918_next_required_action or summary.v916_next_required_action or summary.v915_next_required_action }}</span>
     </div>
     <p>Estas acciones ejecutan dry-run o lectura de estado. No hacen deploy real, no envian Telegram real y no tocan pagos.</p>
     <div class="ns-actions">
@@ -151,7 +168,7 @@
 
   <section class="ns-admin-card">
     <h2>Proxima accion recomendada</h2>
-    <p>{{ post_deploy.v918_next_required_action or workforce.next_action or 'Ejecutar Browser QA o importar resultados antes de desbloquear la cola visual.' }}</p>
+    <p>{{ browser_gate.v919_next_required_action or post_deploy.v918_next_required_action or workforce.next_action or 'Ejecutar Browser QA o subir artifacts antes de desbloquear la cola visual.' }}</p>
     <div class="ns-empty ns-empty-compact">Produccion solo se declara cuando <code>/api/runtime-version</code> devuelve la version esperada y <code>deployment_alignment_status=aligned_local_files</code>.</div>
   </section>
 </section>

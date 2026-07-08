@@ -4061,5 +4061,166 @@
       "reference": "reference_images/telegram/reference_import_v900_16.png",
       "v913_needs_browser_recheck": true
     }
+  ],
+  "v919_browser_qa_import_status": {
+    "version": "V919_BROWSER_QA_RESULTS_IMPORT_VALIDATION_AND_VISUAL_QUEUE_GATE_FINAL",
+    "updated_at_madrid": "2026-07-08T20:06:03+02:00",
+    "browser_qa_status": "PACKAGE_MISSING",
+    "import_status": "NO_VALID_SCREENSHOTS_TO_IMPORT",
+    "valid_screenshots_count": 0,
+    "desktop_screenshots_count": 0,
+    "mobile_screenshots_count": 0,
+    "reference_comparisons": 18,
+    "visual_queue_total": 18,
+    "visual_queue_blocked": 18,
+    "visual_queue_ready": 0,
+    "pixel_perfect_claim_allowed": false,
+    "classification": "RESULTS_WITHOUT_SCREENSHOTS"
+  },
+  "v919_reference_gap_items": [
+    {
+      "route": "/",
+      "device": "desktop",
+      "status": "BLOCKED_NO_SCREENSHOT",
+      "screenshot_path": "",
+      "reference": "reference_images/client/reference_import_v900_08.png",
+      "v919_needs_browser_recheck": true
+    },
+    {
+      "route": "/admin-login",
+      "device": "desktop",
+      "status": "BLOCKED_NO_SCREENSHOT",
+      "screenshot_path": "",
+      "reference": "reference_images/admin/reference_import_v900_01.png",
+      "v919_needs_browser_recheck": true
+    },
+    {
+      "route": "/admin/autonomous-company-sentinel",
+      "device": "desktop",
+      "status": "BLOCKED_NO_SCREENSHOT",
+      "screenshot_path": "",
+      "reference": "reference_images/admin/reference_import_v900_01.png",
+      "v919_needs_browser_recheck": true
+    },
+    {
+      "route": "/admin/dashboard",
+      "device": "desktop",
+      "status": "BLOCKED_NO_SCREENSHOT",
+      "screenshot_path": "",
+      "reference": "reference_images/admin/reference_import_v900_01.png",
+      "v919_needs_browser_recheck": true
+    },
+    {
+      "route": "/admin/not-found-events",
+      "device": "desktop",
+      "status": "BLOCKED_NO_SCREENSHOT",
+      "screenshot_path": "",
+      "reference": "reference_images/admin/reference_import_v900_01.png",
+      "v919_needs_browser_recheck": true
+    },
+    {
+      "route": "/admin/sentinel-codex-outbox",
+      "device": "desktop",
+      "status": "BLOCKED_NO_SCREENSHOT",
+      "screenshot_path": "",
+      "reference": "reference_images/admin/reference_import_v900_01.png",
+      "v919_needs_browser_recheck": true
+    },
+    {
+      "route": "/admin/sentinel-issues",
+      "device": "desktop",
+      "status": "BLOCKED_NO_SCREENSHOT",
+      "screenshot_path": "",
+      "reference": "reference_images/admin/reference_import_v900_01.png",
+      "v919_needs_browser_recheck": true
+    },
+    {
+      "route": "/admin/telegram/command-center",
+      "device": "desktop",
+      "status": "BLOCKED_NO_SCREENSHOT",
+      "screenshot_path": "",
+      "reference": "reference_images/admin/reference_import_v900_01.png",
+      "v919_needs_browser_recheck": true
+    },
+    {
+      "route": "/app",
+      "device": "desktop",
+      "status": "BLOCKED_NO_SCREENSHOT",
+      "screenshot_path": "",
+      "reference": "reference_images/client/reference_import_v900_08.png",
+      "v919_needs_browser_recheck": true
+    },
+    {
+      "route": "/calendar",
+      "device": "desktop",
+      "status": "BLOCKED_NO_SCREENSHOT",
+      "screenshot_path": "",
+      "reference": "reference_images/calendar/reference_import_v900_10.png",
+      "v919_needs_browser_recheck": true
+    },
+    {
+      "route": "/cliente-login",
+      "device": "desktop",
+      "status": "BLOCKED_NO_SCREENSHOT",
+      "screenshot_path": "",
+      "reference": "reference_images/client/reference_import_v900_08.png",
+      "v919_needs_browser_recheck": true
+    },
+    {
+      "route": "/live",
+      "device": "desktop",
+      "status": "BLOCKED_NO_SCREENSHOT",
+      "screenshot_path": "",
+      "reference": "reference_images/live/reference_import_v900_09.png",
+      "v919_needs_browser_recheck": true
+    },
+    {
+      "route": "/picks",
+      "device": "desktop",
+      "status": "BLOCKED_NO_SCREENSHOT",
+      "screenshot_path": "",
+      "reference": "reference_images/picks/reference_import_v900_11.png",
+      "v919_needs_browser_recheck": true
+    },
+    {
+      "route": "/profile",
+      "device": "desktop",
+      "status": "BLOCKED_NO_SCREENSHOT",
+      "screenshot_path": "",
+      "reference": "reference_images/profile/reference_import_v900_15.png",
+      "v919_needs_browser_recheck": true
+    },
+    {
+      "route": "/registro",
+      "device": "desktop",
+      "status": "BLOCKED_NO_SCREENSHOT",
+      "screenshot_path": "",
+      "reference": "reference_images/client/reference_import_v900_08.png",
+      "v919_needs_browser_recheck": true
+    },
+    {
+      "route": "/shark",
+      "device": "desktop",
+      "status": "BLOCKED_NO_SCREENSHOT",
+      "screenshot_path": "",
+      "reference": "reference_images/shark/reference_import_v900_12.png",
+      "v919_needs_browser_recheck": true
+    },
+    {
+      "route": "/support",
+      "device": "desktop",
+      "status": "BLOCKED_NO_SCREENSHOT",
+      "screenshot_path": "",
+      "reference": "reference_images/client/reference_import_v900_08.png",
+      "v919_needs_browser_recheck": true
+    },
+    {
+      "route": "/telegram",
+      "device": "desktop",
+      "status": "BLOCKED_NO_SCREENSHOT",
+      "screenshot_path": "",
+      "reference": "reference_images/telegram/reference_import_v900_16.png",
+      "v919_needs_browser_recheck": true
+    }
   ]
 }

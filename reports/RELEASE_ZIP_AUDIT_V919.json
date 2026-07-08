@@ -1,0 +1,195 @@
+{
+  "ok": true,
+  "audited_at": "2026-07-08T20:07:14",
+  "zip": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\release_output\\NeMeSiS_SHARK_PRO_V919_BROWSER_QA_RESULTS_IMPORT_VALIDATION_AND_VISUAL_QUEUE_GATE_FINAL_RENDER_READY.zip",
+  "zip_size_bytes": 27461215,
+  "file_count": 2214,
+  "content_size_bytes": 34552916,
+  "forbidden_count": 0,
+  "missing_required_root": [],
+  "forbidden": [],
+  "top_files": [
+    {
+      "path": "reports/V913_reference_scan_validation_output.txt",
+      "size": 2166341
+    },
+    {
+      "path": "reference_images/admin/reference_import_v900_05.png",
+      "size": 1693018
+    },
+    {
+      "path": "reference_images/memberships/reference_import_v900_14.png",
+      "size": 1682129
+    },
+    {
+      "path": "reference_images/shark/reference_import_v900_12.png",
+      "size": 1674388
+    },
+    {
+      "path": "reference_images/picks/reference_import_v900_11.png",
+      "size": 1630836
+    },
+    {
+      "path": "reference_images/admin/reference_import_v900_04.png",
+      "size": 1585209
+    },
+    {
+      "path": "reference_images/admin/reference_import_v900_07.png",
+      "size": 1580901
+    },
+    {
+      "path": "reference_images/track-record/reference_import_v900_13.png",
+      "size": 1577822
+    },
+    {
+      "path": "reference_images/telegram/reference_import_v900_16.png",
+      "size": 1539372
+    },
+    {
+      "path": "reference_images/client/reference_import_v900_08.png",
+      "size": 1532522
+    },
+    {
+      "path": "reference_images/profile/reference_import_v900_15.png",
+      "size": 1511204
+    },
+    {
+      "path": "reference_images/admin/reference_import_v900_02.png",
+      "size": 1502637
+    },
+    {
+      "path": "reference_images/admin/reference_import_v900_03.png",
+      "size": 1498094
+    },
+    {
+      "path": "reference_images/admin/reference_import_v900_01.png",
+      "size": 1491597
+    },
+    {
+      "path": "reference_images/live/reference_import_v900_09.png",
+      "size": 1487807
+    },
+    {
+      "path": "reference_images/calendar/reference_import_v900_10.png",
+      "size": 1468841
+    },
+    {
+      "path": "reference_images/admin/reference_import_v900_06.png",
+      "size": 1455452
+    },
+    {
+      "path": "app.py",
+      "size": 1018984
+    },
+    {
+      "path": "static/app.css",
+      "size": 939483
+    },
+    {
+      "path": "V726_PROJECT_TREE_AUDIT.md",
+      "size": 96394
+    }
+  ],
+  "top_folders": [
+    {
+      "folder": "reference_images",
+      "size": 24921842,
+      "files": 24
+    },
+    {
+      "folder": "reports",
+      "size": 3536539,
+      "files": 1180
+    },
+    {
+      "folder": "tools",
+      "size": 1427287,
+      "files": 490
+    },
+    {
+      "folder": "engines",
+      "size": 1374288,
+      "files": 124
+    },
+    {
+      "folder": "app.py",
+      "size": 1018984,
+      "files": 1
+    },
+    {
+      "folder": "static",
+      "size": 940809,
+      "files": 2
+    },
+    {
+      "folder": "templates",
+      "size": 705118,
+      "files": 169
+    },
+    {
+      "folder": "V726_PROJECT_TREE_AUDIT.md",
+      "size": 96394,
+      "files": 1
+    },
+    {
+      "folder": "CHATGPT_CONTINUATION_REPORT.md",
+      "size": 67783,
+      "files": 1
+    },
+    {
+      "folder": "data",
+      "size": 47922,
+      "files": 4
+    },
+    {
+      "folder": "docs",
+      "size": 45646,
+      "files": 57
+    },
+    {
+      "folder": "automation_workforce",
+      "size": 34009,
+      "files": 12
+    },
+    {
+      "folder": "V726_PURGE_REPORT.md",
+      "size": 26158,
+      "files": 1
+    },
+    {
+      "folder": "tests",
+      "size": 12961,
+      "files": 11
+    },
+    {
+      "folder": "RELEASE_MANIFEST_V919.json",
+      "size": 7574,
+      "files": 1
+    },
+    {
+      "folder": ".github",
+      "size": 7401,
+      "files": 4
+    },
+    {
+      "folder": "services",
+      "size": 7327,
+      "files": 6
+    },
+    {
+      "folder": "RELEASE_MANIFEST_V762.json",
+      "size": 6907,
+      "files": 1
+    },
+    {
+      "folder": "RELEASE_MANIFEST_V761.json",
+      "size": 6873,
+      "files": 1
+    },
+    {
+      "folder": "RELEASE_MANIFEST_V760.json",
+      "size": 6844,
+      "files": 1
+    }
+  ]
+}

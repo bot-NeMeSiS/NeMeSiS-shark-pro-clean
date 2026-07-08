@@ -71,10 +71,11 @@ def main() -> int:
     version_bytes = (ROOT / "VERSION.txt").read_bytes()
 
     require(not version_bytes.startswith(b"\xef\xbb\xbf"), "VERSION.txt has BOM", failures)
-    require(version_bytes.decode("utf-8").strip() == VERSION, "VERSION.txt is not V918", failures)
-    require(read("APP_VERSION").strip().lstrip("\ufeff") == VERSION, "APP_VERSION is not V918", failures)
-    require(app_version(app_py) == VERSION, "app.py APP_VERSION is not V918", failures)
-    require("NEMESIS_CACHE_V918" in app_py, "service worker cache V918 missing", failures)
+    local_version = version_bytes.decode("utf-8").strip()
+    require(local_version == VERSION or local_version.startswith("V919_"), "VERSION.txt is not V918 or compatible successor", failures)
+    require(read("APP_VERSION").strip().lstrip("\ufeff") == local_version, "APP_VERSION mismatch", failures)
+    require(app_version(app_py) == local_version, "app.py APP_VERSION mismatch", failures)
+    require("NEMESIS_CACHE_V918" in app_py or "NEMESIS_CACHE_V919" in app_py, "service worker cache V918/V919 missing", failures)
     for flag in [
         "has_v918_workforce_post_deploy_actions",
         "has_v918_browser_qa_action_router",
@@ -111,7 +112,7 @@ def main() -> int:
     runtime = client.get("/api/runtime-version")
     payload = runtime.get_json(silent=True) or {}
     require(runtime.status_code == 200, "runtime-version not 200", failures)
-    require(payload.get("version") == VERSION, "runtime version is not V918", failures)
+    require(payload.get("version") == local_version, "runtime version mismatch", failures)
     require(payload.get("has_v918_workforce_post_deploy_actions") is True, "runtime V918 post-deploy flag false", failures)
     require(payload.get("has_v918_browser_qa_action_router") is True, "runtime V918 router flag false", failures)
     require(payload.get("has_v918_visual_queue_unlock_status") is True, "runtime V918 queue flag false", failures)

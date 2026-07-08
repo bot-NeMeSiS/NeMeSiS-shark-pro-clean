@@ -1,6 +1,6 @@
 {
   "ok": true,
-  "version": "V913_BROWSER_QA_EXECUTION_STATUS_TRUTH_AND_RUNTIME_CLEANUP_FINAL",
+  "version": "V919_BROWSER_QA_RESULTS_IMPORT_VALIDATION_AND_VISUAL_QUEUE_GATE_FINAL",
   "generated_at_madrid": "2026-07-08T17:16:58+02:00",
   "browser_available": false,
   "playwright_available": false,
@@ -31,5 +31,9 @@
     "reference_comparisons": 18,
     "visual_gaps_resolved": 0,
     "visual_gaps_pending": 18
-  }
+  },
+  "desktop_screenshots_count": 0,
+  "mobile_screenshots_count": 0,
+  "v919_import_status": "NO_VALID_SCREENSHOTS_TO_IMPORT",
+  "pixel_perfect_claim_allowed": false
 }

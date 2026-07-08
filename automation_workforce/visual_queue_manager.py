@@ -10,7 +10,7 @@ if __package__ in {None, ""}:
 from automation_workforce.common import OUTBOX, RUNTIME, VERSION, print_json, read_json, workflow_arg_parser, write_report
 
 
-VALID_STATUSES = {"BLOCKED_NO_SCREENSHOT", "READY_FOR_CODEX", "FIXABLE_SAFE", "NEEDS_HUMAN_VISUAL_REVIEW", "DANGEROUS_REQUIRES_APPROVAL", "FIXED_BY_V913"}
+VALID_STATUSES = {"BLOCKED_NO_SCREENSHOT", "READY_FOR_CODEX", "FIXABLE_SAFE", "NEEDS_HUMAN_VISUAL_REVIEW", "DANGEROUS_REQUIRES_APPROVAL", "FIXED_BY_V913", "FIXED_BY_V919"}
 
 
 def run_visual_queue_manager(dry_run: bool = True) -> dict:
@@ -21,6 +21,13 @@ def run_visual_queue_manager(dry_run: bool = True) -> dict:
     invalid = [status for status in counts if status not in VALID_STATUSES]
     blocked = int(counts.get("BLOCKED_NO_SCREENSHOT", 0))
     ready = int(counts.get("READY_FOR_CODEX", 0) + counts.get("FIXABLE_SAFE", 0))
+    invalid_ready_without_screenshot = [
+        item.get("id") or item.get("route") or "unknown"
+        for item in queue
+        if isinstance(item, dict)
+        and item.get("status") in {"READY_FOR_CODEX", "FIXABLE_SAFE", "FIXED_BY_V919"}
+        and not (item.get("screenshot") or item.get("screenshot_path"))
+    ]
     screenshots = [
         item.get("screenshot") or item.get("screenshot_path")
         for item in queue
@@ -38,16 +45,17 @@ def run_visual_queue_manager(dry_run: bool = True) -> dict:
         "dangerous_requires_approval": int(counts.get("DANGEROUS_REQUIRES_APPROVAL", 0)),
         "status_counts": dict(counts),
         "invalid_statuses": invalid,
+        "invalid_ready_without_screenshot": len(invalid_ready_without_screenshot),
         "next_action": "run_browser_qa_or_import_results" if len(queue) and blocked == len(queue) else "review_ready_visual_queue",
         "status": "blocked_no_screenshot" if len(queue) and blocked == len(queue) else "ready",
         "safe_message": "Visual Queue no marca resuelto nada sin screenshots reales.",
-        "report_path": "reports/V918_VISUAL_QUEUE_UNLOCK_STATUS.md",
+        "report_path": "reports/V919_VISUAL_QUEUE_GATE_QA.md",
         "pixel_perfect_claim_allowed": False,
     }
     if not dry_run:
         OUTBOX.parent.mkdir(parents=True, exist_ok=True)
         OUTBOX.write_text("# Codex Outbox - V915 Visual Queue\n\npixel_perfect_claim_allowed: false\n\n## V915_VISUAL_QUEUE_STATUS\n\n" + "\n".join(f"- {k}: {v}" for k, v in sorted(counts.items())) + "\n", encoding="utf-8")
-    write_report("V918_VISUAL_QUEUE_UNLOCK_STATUS.md", "V918 Visual Queue Unlock Status", payload)
+    write_report("V919_VISUAL_QUEUE_GATE_QA.md", "V919 Visual Queue Gate QA", payload)
     return payload
 
 

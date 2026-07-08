@@ -12457,3 +12457,11 @@ body[data-v912-video-admin-fix="true"].ns-admin :is(
 .v918-post-deploy-panel .ns-stat strong {
   font-size: 1.05rem;
 }
+
+/* V919 Browser QA results import validation and visual queue gate */
+.v919-browser-qa-gate-panel {
+  border-color: rgba(251, 191, 36, 0.34);
+  background:
+    linear-gradient(180deg, rgba(15, 23, 42, 0.97), rgba(2, 6, 23, 0.94)),
+    radial-gradient(circle at 90% 0%, rgba(251, 191, 36, 0.1), transparent 34%);
+}

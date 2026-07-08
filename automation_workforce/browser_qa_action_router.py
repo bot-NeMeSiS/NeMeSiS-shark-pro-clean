@@ -60,7 +60,7 @@ def run_browser_qa_action_router(dry_run: bool = True) -> dict:
     results = _results_available()
     screenshots = _screenshots_available()
 
-    if results:
+    if results and screenshots:
         status = "RESULTS_FOUND_READY_TO_IMPORT"
         action = "import_browser_qa_results"
     elif env["can_capture"]:
@@ -95,9 +95,10 @@ def run_browser_qa_action_router(dry_run: bool = True) -> dict:
         "pixel_perfect_claim_allowed": False,
         "safe_message": "Browser QA Action Router no ejecuta deploy, no usa secretos y no declara pixel-perfect sin capturas.",
         "next_action": action,
-        "report_path": "reports/V918_BROWSER_QA_ACTION_ROUTER_QA.md",
+        "results_without_screenshots": bool(results and not screenshots),
+        "report_path": "reports/V919_BROWSER_QA_ACTION_ROUTER_QA.md",
     }
-    write_report("V918_BROWSER_QA_ACTION_ROUTER_QA.md", "V918 Browser QA Action Router QA", payload)
+    write_report("V919_BROWSER_QA_ACTION_ROUTER_QA.md", "V919 Browser QA Action Router QA", payload)
     return payload
 
 
