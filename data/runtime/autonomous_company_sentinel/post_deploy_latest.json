@@ -1,27 +1,28 @@
 {
   "ok": true,
-  "version": "V917_WORKFORCE_FIRST_FULL_AUTOMATED_RUN_AND_REPORTING_FINAL",
+  "version": "V918_WORKFORCE_POST_DEPLOY_BROWSER_QA_ACTIONS_AND_VISUAL_QUEUE_UNLOCK_FINAL",
   "dry_run": true,
   "network_status": "LOCAL_NETWORK_BLOCKED_PLAN_READY",
   "runtime": {
-    "ok": false,
-    "version": "V917_WORKFORCE_FIRST_FULL_AUTOMATED_RUN_AND_REPORTING_FINAL",
+    "ok": true,
+    "version": "V918_WORKFORCE_POST_DEPLOY_BROWSER_QA_ACTIONS_AND_VISUAL_QUEUE_UNLOCK_FINAL",
     "dry_run": true,
     "runtime_url": "https://bot-apuestas-crgf.onrender.com/api/runtime-version",
     "http_status": 0,
-    "expected_version": "V917_WORKFORCE_FIRST_FULL_AUTOMATED_RUN_AND_REPORTING_FINAL",
+    "expected_version": "V918_WORKFORCE_POST_DEPLOY_BROWSER_QA_ACTIONS_AND_VISUAL_QUEUE_UNLOCK_FINAL",
     "render_version": null,
+    "runtime_error": "<urlopen error [WinError 10013] Intento de acceso a un socket no permitido por sus permisos de acceso>",
     "version_files_match": null,
     "deployment_alignment_status": null,
     "sentinel_active_issues_count": null,
     "secret_masking_ok": null,
     "db_path": null,
     "telegram_configured": null,
-    "alignment_status": "DEPLOY_ALIGNMENT_FAILED",
-    "status": "network_unavailable",
+    "alignment_status": "NETWORK_UNAVAILABLE_FROM_SHELL",
+    "status": "network_unavailable_from_shell",
     "safe_message": "Runtime verifier no expone secretos y no modifica produccion.",
-    "next_action": "retry_from_network_enabled_environment",
-    "report_path": "reports/V917_RUNTIME_VERIFIER_RUN_QA.md"
+    "next_action": "validate_runtime_from_browser_or_github_action",
+    "report_path": "reports/V918_RUNTIME_VERIFIER_RUN_QA.md"
   },
   "routes": [
     {
@@ -96,6 +97,6 @@
   "no_payments_touched": true,
   "status": "ok",
   "safe_message": "Post-deploy Sentinel dry-run no envia Telegram real ni toca pagos.",
-  "next_action": "run_after_deploy_from_network_enabled_environment",
-  "report_path": "reports/V917_POST_DEPLOY_SENTINEL_RUN_QA.md"
+  "next_action": "run_browser_qa_or_import_results",
+  "report_path": "reports/V918_POST_DEPLOY_SENTINEL_QA.md"
 }

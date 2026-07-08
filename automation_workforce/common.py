@@ -14,7 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 REPORTS = ROOT / "reports"
 RUNTIME = ROOT / "data" / "runtime" / "autonomous_company_sentinel"
 OUTBOX = RUNTIME / "outbox" / "codex_outbox.md"
-VERSION = "V917_WORKFORCE_FIRST_FULL_AUTOMATED_RUN_AND_REPORTING_FINAL"
+VERSION = "V918_WORKFORCE_POST_DEPLOY_BROWSER_QA_ACTIONS_AND_VISUAL_QUEUE_UNLOCK_FINAL"
 
 
 def madrid_now_iso() -> str:

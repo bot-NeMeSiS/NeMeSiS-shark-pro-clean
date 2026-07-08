@@ -32,7 +32,7 @@ def run_post_deploy_sentinel(dry_run: bool = True) -> dict:
         item.get("status") == 0 and "socket no permitido" in str(item.get("error", "")).lower()
         for item in route_results
     )
-    runtime_network_blocked = runtime.get("http_status") == 0 and "DEPLOY_ALIGNMENT_FAILED" == runtime.get("alignment_status")
+    runtime_network_blocked = runtime.get("http_status") == 0 and runtime.get("alignment_status") == "NETWORK_UNAVAILABLE_FROM_SHELL"
     ok = all(item.get("ok") for item in route_results) and runtime.get("ok")
     if dry_run and network_blocked and runtime_network_blocked:
         ok = True
@@ -49,11 +49,11 @@ def run_post_deploy_sentinel(dry_run: bool = True) -> dict:
         "no_payments_touched": True,
         "status": "ok" if ok else "action_required",
         "safe_message": "Post-deploy Sentinel dry-run no envia Telegram real ni toca pagos.",
-        "next_action": "run_after_deploy_from_network_enabled_environment" if network_status == "LOCAL_NETWORK_BLOCKED_PLAN_READY" else "review_route_failures",
-        "report_path": "reports/V917_POST_DEPLOY_SENTINEL_RUN_QA.md",
+        "next_action": "run_browser_qa_or_import_results" if network_status == "LOCAL_NETWORK_BLOCKED_PLAN_READY" else "review_route_failures",
+        "report_path": "reports/V918_POST_DEPLOY_SENTINEL_QA.md",
     }
     write_json(RUNTIME / "post_deploy_latest.json", payload)
-    write_report("V917_POST_DEPLOY_SENTINEL_RUN_QA.md", "V917 Post Deploy Sentinel Run QA", payload)
+    write_report("V918_POST_DEPLOY_SENTINEL_QA.md", "V918 Post Deploy Sentinel QA", payload)
     return payload
 
 

@@ -21,7 +21,8 @@ def run_browser_qa_orchestrator(dry_run: bool = True) -> dict:
         queue_items = []
     blocked = sum(1 for item in queue_items if isinstance(item, dict) and item.get("status") == "BLOCKED_NO_SCREENSHOT")
     github_action_available = (ROOT / ".github" / "workflows" / "browser-qa.yml").exists()
-    screenshots_available = any((ROOT / "reports").glob("**/*.png"))
+    screenshot_roots = [ROOT / "reports" / "browser_qa_render", ROOT / "reports" / "V918_browser_qa"]
+    screenshots_available = any(root.exists() and any(root.glob("**/*.png")) for root in screenshot_roots)
     if package_available and browsers_available and not dry_run:
         qa = run_command([py, "tools/run_browser_reference_qa.py", "--base-url", "https://bot-apuestas-crgf.onrender.com", "--output", "reports/browser_qa_render", "--mobile", "--desktop", "--write-json"], timeout=180)
         importer = run_command([py, "tools/import_browser_qa_results.py", "--input", "reports/browser_qa_render", "--update-runtime-data"])
@@ -41,13 +42,13 @@ def run_browser_qa_orchestrator(dry_run: bool = True) -> dict:
         "next_action": "run_browser_qa" if package_available and browsers_available else "install_playwright_or_run_github_action",
         "status": "ok" if package_available and browsers_available else "package_missing",
         "safe_message": "Browser QA orchestrator no declara pixel-perfect sin capturas reales.",
-        "report_path": "reports/V917_BROWSER_QA_ORCHESTRATOR_RUN_QA.md",
+        "report_path": "reports/V918_BROWSER_QA_ORCHESTRATOR_RUN_QA.md",
         "environment_check": env,
         "browser_qa": qa,
         "import_results": importer,
         "pixel_perfect_claim_allowed": False,
     }
-    write_report("V917_BROWSER_QA_ORCHESTRATOR_RUN_QA.md", "V917 Browser QA Orchestrator Run QA", payload)
+    write_report("V918_BROWSER_QA_ORCHESTRATOR_RUN_QA.md", "V918 Browser QA Orchestrator Run QA", payload)
     return payload
 
 

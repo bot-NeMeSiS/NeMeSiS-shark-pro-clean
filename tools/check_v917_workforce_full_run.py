@@ -65,10 +65,11 @@ def main() -> int:
     version_bytes = (ROOT / "VERSION.txt").read_bytes()
 
     require(not version_bytes.startswith(b"\xef\xbb\xbf"), "VERSION.txt has BOM", failures)
-    require(version_bytes.decode("utf-8").strip() == VERSION, "VERSION.txt is not V917", failures)
-    require(read("APP_VERSION").strip().lstrip("\ufeff") == VERSION, "APP_VERSION is not V917", failures)
-    require(app_version(app_py) == VERSION, "app.py APP_VERSION is not V917", failures)
-    require("NEMESIS_CACHE_V917" in app_py, "service worker cache V917 missing", failures)
+    local_version = version_bytes.decode("utf-8").strip()
+    require(local_version == VERSION or local_version.startswith("V918_"), "VERSION.txt is not V917 or compatible successor", failures)
+    require(read("APP_VERSION").strip().lstrip("\ufeff") == local_version, "APP_VERSION mismatch", failures)
+    require(app_version(app_py) == local_version, "app.py APP_VERSION mismatch", failures)
+    require("NEMESIS_CACHE_V917" in app_py or "NEMESIS_CACHE_V918" in app_py, "service worker cache V917/V918 missing", failures)
     require("v917_workforce_full_run_runtime_summary" in app_py, "runtime V917 summary missing", failures)
     for flag in ["has_v917_workforce_first_full_run", "has_v917_workforce_reporting", "has_v917_worker_status_runtime"]:
         require(flag in app_py, f"runtime flag missing: {flag}", failures)
@@ -122,7 +123,7 @@ def main() -> int:
     runtime = client.get("/api/runtime-version")
     payload = runtime.get_json(silent=True) or {}
     require(runtime.status_code == 200, "runtime-version not 200", failures)
-    require(payload.get("version") == VERSION, "runtime version is not V917", failures)
+    require(payload.get("version") == local_version, "runtime version mismatch", failures)
     require(payload.get("has_v917_workforce_first_full_run") is True, "runtime V917 full run flag false", failures)
     require(payload.get("has_v917_workforce_reporting") is True, "runtime V917 reporting flag false", failures)
     require(payload.get("v917_secret_guard_status") in {"ok", "not_run"}, "runtime secret guard unexpected", failures)

@@ -11,6 +11,7 @@ VERSION = "V916_WORKFORCE_ACTIVATION_BROWSER_QA_AND_DEPLOY_AUTOMATION_READY_FINA
 CURRENT_ALLOWED = {
     VERSION,
     "V917_WORKFORCE_FIRST_FULL_AUTOMATED_RUN_AND_REPORTING_FINAL",
+    "V918_WORKFORCE_POST_DEPLOY_BROWSER_QA_ACTIONS_AND_VISUAL_QUEUE_UNLOCK_FINAL",
 }
 ZIP_NAME = f"NeMeSiS_SHARK_PRO_{VERSION}_RENDER_READY.zip"
 REPORTS = [
@@ -77,7 +78,7 @@ def main() -> int:
     require(version_bytes.decode("utf-8").strip() in CURRENT_ALLOWED, "VERSION.txt is not V916 or compatible successor", failures)
     require(read("APP_VERSION").strip().lstrip("\ufeff") in CURRENT_ALLOWED, "APP_VERSION is not V916 or compatible successor", failures)
     require(app_version(app_py) in CURRENT_ALLOWED, "app.py APP_VERSION is not V916 or compatible successor", failures)
-    require("NEMESIS_CACHE_V916" in app_py or "NEMESIS_CACHE_V917" in app_py, "service worker cache is not V916/V917", failures)
+    require(any(cache in app_py for cache in ["NEMESIS_CACHE_V916", "NEMESIS_CACHE_V917", "NEMESIS_CACHE_V918"]), "service worker cache is not V916+", failures)
 
     for flag in [
         "has_v916_workforce_activation",

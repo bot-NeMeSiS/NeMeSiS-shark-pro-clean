@@ -12445,3 +12445,15 @@ body[data-v912-video-admin-fix="true"].ns-admin :is(
     linear-gradient(180deg, rgba(15, 23, 42, 0.96), rgba(2, 6, 23, 0.92)),
     radial-gradient(circle at 10% 0%, rgba(14, 165, 233, 0.14), transparent 38%);
 }
+
+/* V918 workforce post-deploy browser QA actions and visual queue unlock */
+.v918-post-deploy-panel {
+  border-color: rgba(56, 189, 248, 0.34);
+  background:
+    linear-gradient(180deg, rgba(15, 23, 42, 0.97), rgba(2, 6, 23, 0.94)),
+    radial-gradient(circle at 88% 0%, rgba(56, 189, 248, 0.12), transparent 36%);
+}
+
+.v918-post-deploy-panel .ns-stat strong {
+  font-size: 1.05rem;
+}
