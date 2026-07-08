@@ -13,6 +13,7 @@ VERSION = "V911_VIDEO_ADMIN_UI_BINDING_BROWSER_QA_QUEUE_FIX_FINAL"
 CURRENT_COMPATIBLE_VERSIONS = {
     VERSION,
     "V912_VIDEO_ADMIN_UI_COPY_POLISH_BROWSER_QA_QUEUE_FINAL",
+    "V913_BROWSER_QA_EXECUTION_STATUS_TRUTH_AND_RUNTIME_CLEANUP_FINAL",
 }
 ZIP_NAME = f"NeMeSiS_SHARK_PRO_{VERSION}_RENDER_READY.zip"
 
@@ -111,7 +112,7 @@ def main() -> int:
     require("V911 admin observed video fix" in css, "V911 CSS marker missing", failures)
     require("v911-admin-kpi-grid" in css and "v911-kpi-label" in css and "v911-kpi-value" in css and "v911-kpi-hint" in css, "V911 KPI CSS contract missing", failures)
     require("get_safe_runtime_identity_for_admin" in app_py, "safe runtime identity helper missing", failures)
-    require("NEMESIS_CACHE_V911" in app_py or "NEMESIS_CACHE_V912" in app_py, "service worker cache V911/V912 missing", failures)
+    require("NEMESIS_CACHE_V911" in app_py or "NEMESIS_CACHE_V912" in app_py or "NEMESIS_CACHE_V913" in app_py, "service worker cache V911/V912/V913 missing", failures)
 
     assert_no_raw_secrets(failures)
 
@@ -162,7 +163,7 @@ def main() -> int:
     require("v911-admin-kpi-grid" in sentinel_html, "V911 KPI grid not rendered", failures)
 
     sw = client.get("/service-worker.js")
-    require(sw.status_code == 200 and ("NEMESIS_CACHE_V911" in sw.get_data(as_text=True) or "NEMESIS_CACHE_V912" in sw.get_data(as_text=True)), "service worker cache V911/V912 not served", failures)
+    require(sw.status_code == 200 and ("NEMESIS_CACHE_V911" in sw.get_data(as_text=True) or "NEMESIS_CACHE_V912" in sw.get_data(as_text=True) or "NEMESIS_CACHE_V913" in sw.get_data(as_text=True)), "service worker cache V911/V912/V913 not served", failures)
     require("res.status===404" in sw.get_data(as_text=True), "service worker 404 guard missing", failures)
     require(client.get("/ruta-inventada-v911-video").status_code == 404, "HTML 404 not 404", failures)
     api_404 = client.get("/api/ruta-inventada-v911-video")

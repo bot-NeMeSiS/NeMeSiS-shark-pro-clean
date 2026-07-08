@@ -16,6 +16,7 @@ CURRENT_COMPATIBLE_VERSIONS = {
     "V911_REAL_BROWSER_SCREENSHOT_VISUAL_FIX_EXECUTION_FINAL",
     "V911_VIDEO_ADMIN_UI_BINDING_BROWSER_QA_QUEUE_FIX_FINAL",
     "V912_VIDEO_ADMIN_UI_COPY_POLISH_BROWSER_QA_QUEUE_FINAL",
+    "V913_BROWSER_QA_EXECUTION_STATUS_TRUTH_AND_RUNTIME_CLEANUP_FINAL",
 }
 ZIP_NAME = f"NeMeSiS_SHARK_PRO_{VERSION}_RENDER_READY.zip"
 REPORTS = [
@@ -108,7 +109,14 @@ def main() -> int:
     require(read("APP_VERSION").strip().lstrip("\ufeff") in CURRENT_COMPATIBLE_VERSIONS, "APP_VERSION file is not V910-compatible", failures)
     require(app_version_from_source(app_py) in CURRENT_COMPATIBLE_VERSIONS, "app.py APP_VERSION is not V910-compatible", failures)
     require("data-v910-shell" in base, "base V910 shell marker missing", failures)
-    require("NEMESIS_CACHE_V910" in service_worker or "NEMESIS_CACHE_V911" in service_worker, "service worker cache is not V910-compatible", failures)
+    require(
+        "NEMESIS_CACHE_V910" in service_worker
+        or "NEMESIS_CACHE_V911" in service_worker
+        or "NEMESIS_CACHE_V912" in service_worker
+        or "NEMESIS_CACHE_V913" in service_worker,
+        "service worker cache is not V910-compatible",
+        failures,
+    )
     require("v910_full_project_audit_runtime_summary" in app_py, "V910 runtime summary missing", failures)
     require("has_v910_full_hidden_project_audit" in app_py, "V910 hidden audit flag missing", failures)
 

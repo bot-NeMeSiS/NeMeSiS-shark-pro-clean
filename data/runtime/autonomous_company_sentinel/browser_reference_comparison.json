@@ -1,267 +1,376 @@
 {
   "ok": true,
-  "version": "V912_VIDEO_ADMIN_UI_COPY_POLISH_BROWSER_QA_QUEUE_FINAL",
-  "generated_at_madrid": "2026-07-08T01:04:10",
-  "browser_qa_status": "PACKAGE_MISSING",
+  "engine_version": "V913_BROWSER_QA_EXECUTION_STATUS_TRUTH_AND_RUNTIME_CLEANUP_FINAL",
+  "generated_at_madrid": "2026-07-08T12:39:41+02:00",
+  "browser_qa_status": "BROWSER_QA_UNAVAILABLE",
   "reference_manifest_count": 16,
   "screenshots_captured": 0,
   "routes_captured": [],
-  "reference_comparisons": 0,
+  "reference_comparisons": 18,
   "visual_gaps_resolved": 0,
   "visual_gaps_pending": 18,
   "pixel_perfect_claim": false,
   "comparisons": [
     {
       "route": "/",
-      "device": "desktop",
+      "profile": "pending",
       "screenshot_path": "",
       "reference_used": "reference_images/client/reference_import_v900_08.png",
-      "classification": "BLOCKED_NO_SCREENSHOT",
-      "browser_qa_status": "PACKAGE_MISSING",
       "visual_gap_score": 0,
+      "classification": "NEEDS_BROWSER_QA",
+      "browser_qa_status": "BROWSER_QA_UNAVAILABLE",
+      "addressed_by_v904": false,
+      "addressed_by_v905": true,
+      "addressed_by_v906b": true,
+      "needs_v907_followup": true,
       "density": "pending_capture",
       "hierarchy": "pending_capture",
       "navigation": "pending_capture",
-      "v911_status": "BLOCKED_NO_SCREENSHOT",
-      "codex_prompt": "Ejecuta Browser QA real, captura / en desktop, compara contra reference_images/client/reference_import_v900_08.png y corrige solo diferencias visibles verificadas."
+      "notes": [
+        "Captura real pendiente."
+      ],
+      "codex_prompt": "Captura y compara / contra referencias reales antes de declarar cierre visual."
     },
     {
       "route": "/admin-login",
-      "device": "desktop",
+      "profile": "pending",
       "screenshot_path": "",
       "reference_used": "reference_images/admin/reference_import_v900_01.png",
-      "classification": "BLOCKED_NO_SCREENSHOT",
-      "browser_qa_status": "PACKAGE_MISSING",
       "visual_gap_score": 0,
+      "classification": "NEEDS_BROWSER_QA",
+      "browser_qa_status": "BROWSER_QA_UNAVAILABLE",
+      "addressed_by_v904": false,
+      "addressed_by_v905": false,
+      "addressed_by_v906b": false,
+      "needs_v907_followup": true,
       "density": "pending_capture",
       "hierarchy": "pending_capture",
       "navigation": "pending_capture",
-      "v911_status": "BLOCKED_NO_SCREENSHOT",
-      "codex_prompt": "Ejecuta Browser QA real, captura /admin-login en desktop, compara contra reference_images/admin/reference_import_v900_01.png y corrige solo diferencias visibles verificadas."
+      "notes": [
+        "Captura real pendiente."
+      ],
+      "codex_prompt": "Captura y compara /admin-login contra referencias reales antes de declarar cierre visual."
     },
     {
       "route": "/admin/autonomous-company-sentinel",
-      "device": "desktop",
+      "profile": "pending",
       "screenshot_path": "",
       "reference_used": "reference_images/admin/reference_import_v900_01.png",
-      "classification": "BLOCKED_NO_SCREENSHOT",
-      "browser_qa_status": "PACKAGE_MISSING",
       "visual_gap_score": 0,
+      "classification": "NEEDS_BROWSER_QA",
+      "browser_qa_status": "BROWSER_QA_UNAVAILABLE",
+      "addressed_by_v904": false,
+      "addressed_by_v905": false,
+      "addressed_by_v906b": false,
+      "needs_v907_followup": true,
       "density": "pending_capture",
       "hierarchy": "pending_capture",
       "navigation": "pending_capture",
-      "v911_status": "BLOCKED_NO_SCREENSHOT",
-      "codex_prompt": "Ejecuta Browser QA real, captura /admin/autonomous-company-sentinel en desktop, compara contra reference_images/admin/reference_import_v900_01.png y corrige solo diferencias visibles verificadas."
+      "notes": [
+        "Captura real pendiente."
+      ],
+      "codex_prompt": "Captura y compara /admin/autonomous-company-sentinel contra referencias reales antes de declarar cierre visual."
     },
     {
       "route": "/admin/dashboard",
-      "device": "desktop",
+      "profile": "pending",
       "screenshot_path": "",
       "reference_used": "reference_images/admin/reference_import_v900_01.png",
-      "classification": "BLOCKED_NO_SCREENSHOT",
-      "browser_qa_status": "PACKAGE_MISSING",
       "visual_gap_score": 0,
+      "classification": "NEEDS_BROWSER_QA",
+      "browser_qa_status": "BROWSER_QA_UNAVAILABLE",
+      "addressed_by_v904": true,
+      "addressed_by_v905": false,
+      "addressed_by_v906b": false,
+      "needs_v907_followup": true,
       "density": "pending_capture",
       "hierarchy": "pending_capture",
       "navigation": "pending_capture",
-      "v911_status": "BLOCKED_NO_SCREENSHOT",
-      "codex_prompt": "Ejecuta Browser QA real, captura /admin/dashboard en desktop, compara contra reference_images/admin/reference_import_v900_01.png y corrige solo diferencias visibles verificadas."
+      "notes": [
+        "Captura real pendiente."
+      ],
+      "codex_prompt": "Captura y compara /admin/dashboard contra referencias reales antes de declarar cierre visual."
     },
     {
       "route": "/admin/not-found-events",
-      "device": "desktop",
+      "profile": "pending",
       "screenshot_path": "",
       "reference_used": "reference_images/admin/reference_import_v900_01.png",
-      "classification": "BLOCKED_NO_SCREENSHOT",
-      "browser_qa_status": "PACKAGE_MISSING",
       "visual_gap_score": 0,
+      "classification": "NEEDS_BROWSER_QA",
+      "browser_qa_status": "BROWSER_QA_UNAVAILABLE",
+      "addressed_by_v904": false,
+      "addressed_by_v905": false,
+      "addressed_by_v906b": false,
+      "needs_v907_followup": true,
       "density": "pending_capture",
       "hierarchy": "pending_capture",
       "navigation": "pending_capture",
-      "v911_status": "BLOCKED_NO_SCREENSHOT",
-      "codex_prompt": "Ejecuta Browser QA real, captura /admin/not-found-events en desktop, compara contra reference_images/admin/reference_import_v900_01.png y corrige solo diferencias visibles verificadas."
+      "notes": [
+        "Captura real pendiente."
+      ],
+      "codex_prompt": "Captura y compara /admin/not-found-events contra referencias reales antes de declarar cierre visual."
     },
     {
       "route": "/admin/sentinel-codex-outbox",
-      "device": "desktop",
+      "profile": "pending",
       "screenshot_path": "",
       "reference_used": "reference_images/admin/reference_import_v900_01.png",
-      "classification": "BLOCKED_NO_SCREENSHOT",
-      "browser_qa_status": "PACKAGE_MISSING",
       "visual_gap_score": 0,
+      "classification": "NEEDS_BROWSER_QA",
+      "browser_qa_status": "BROWSER_QA_UNAVAILABLE",
+      "addressed_by_v904": false,
+      "addressed_by_v905": false,
+      "addressed_by_v906b": false,
+      "needs_v907_followup": true,
       "density": "pending_capture",
       "hierarchy": "pending_capture",
       "navigation": "pending_capture",
-      "v911_status": "BLOCKED_NO_SCREENSHOT",
-      "codex_prompt": "Ejecuta Browser QA real, captura /admin/sentinel-codex-outbox en desktop, compara contra reference_images/admin/reference_import_v900_01.png y corrige solo diferencias visibles verificadas."
+      "notes": [
+        "Captura real pendiente."
+      ],
+      "codex_prompt": "Captura y compara /admin/sentinel-codex-outbox contra referencias reales antes de declarar cierre visual."
     },
     {
       "route": "/admin/sentinel-issues",
-      "device": "desktop",
+      "profile": "pending",
       "screenshot_path": "",
       "reference_used": "reference_images/admin/reference_import_v900_01.png",
-      "classification": "BLOCKED_NO_SCREENSHOT",
-      "browser_qa_status": "PACKAGE_MISSING",
       "visual_gap_score": 0,
+      "classification": "NEEDS_BROWSER_QA",
+      "browser_qa_status": "BROWSER_QA_UNAVAILABLE",
+      "addressed_by_v904": false,
+      "addressed_by_v905": false,
+      "addressed_by_v906b": false,
+      "needs_v907_followup": true,
       "density": "pending_capture",
       "hierarchy": "pending_capture",
       "navigation": "pending_capture",
-      "v911_status": "BLOCKED_NO_SCREENSHOT",
-      "codex_prompt": "Ejecuta Browser QA real, captura /admin/sentinel-issues en desktop, compara contra reference_images/admin/reference_import_v900_01.png y corrige solo diferencias visibles verificadas."
+      "notes": [
+        "Captura real pendiente."
+      ],
+      "codex_prompt": "Captura y compara /admin/sentinel-issues contra referencias reales antes de declarar cierre visual."
     },
     {
       "route": "/admin/telegram/command-center",
-      "device": "desktop",
+      "profile": "pending",
       "screenshot_path": "",
       "reference_used": "reference_images/admin/reference_import_v900_01.png",
-      "classification": "BLOCKED_NO_SCREENSHOT",
-      "browser_qa_status": "PACKAGE_MISSING",
       "visual_gap_score": 0,
+      "classification": "NEEDS_BROWSER_QA",
+      "browser_qa_status": "BROWSER_QA_UNAVAILABLE",
+      "addressed_by_v904": false,
+      "addressed_by_v905": false,
+      "addressed_by_v906b": false,
+      "needs_v907_followup": true,
       "density": "pending_capture",
       "hierarchy": "pending_capture",
       "navigation": "pending_capture",
-      "v911_status": "BLOCKED_NO_SCREENSHOT",
-      "codex_prompt": "Ejecuta Browser QA real, captura /admin/telegram/command-center en desktop, compara contra reference_images/admin/reference_import_v900_01.png y corrige solo diferencias visibles verificadas."
+      "notes": [
+        "Captura real pendiente."
+      ],
+      "codex_prompt": "Captura y compara /admin/telegram/command-center contra referencias reales antes de declarar cierre visual."
     },
     {
       "route": "/app",
-      "device": "desktop",
+      "profile": "pending",
       "screenshot_path": "",
       "reference_used": "reference_images/client/reference_import_v900_08.png",
-      "classification": "BLOCKED_NO_SCREENSHOT",
-      "browser_qa_status": "PACKAGE_MISSING",
       "visual_gap_score": 0,
+      "classification": "NEEDS_BROWSER_QA",
+      "browser_qa_status": "BROWSER_QA_UNAVAILABLE",
+      "addressed_by_v904": true,
+      "addressed_by_v905": false,
+      "addressed_by_v906b": false,
+      "needs_v907_followup": true,
       "density": "pending_capture",
       "hierarchy": "pending_capture",
       "navigation": "pending_capture",
-      "v911_status": "BLOCKED_NO_SCREENSHOT",
-      "codex_prompt": "Ejecuta Browser QA real, captura /app en desktop, compara contra reference_images/client/reference_import_v900_08.png y corrige solo diferencias visibles verificadas."
+      "notes": [
+        "Captura real pendiente."
+      ],
+      "codex_prompt": "Captura y compara /app contra referencias reales antes de declarar cierre visual."
     },
     {
       "route": "/calendar",
-      "device": "desktop",
+      "profile": "pending",
       "screenshot_path": "",
       "reference_used": "reference_images/calendar/reference_import_v900_10.png",
-      "classification": "BLOCKED_NO_SCREENSHOT",
-      "browser_qa_status": "PACKAGE_MISSING",
       "visual_gap_score": 0,
+      "classification": "NEEDS_BROWSER_QA",
+      "browser_qa_status": "BROWSER_QA_UNAVAILABLE",
+      "addressed_by_v904": true,
+      "addressed_by_v905": false,
+      "addressed_by_v906b": false,
+      "needs_v907_followup": true,
       "density": "pending_capture",
       "hierarchy": "pending_capture",
       "navigation": "pending_capture",
-      "v911_status": "BLOCKED_NO_SCREENSHOT",
-      "codex_prompt": "Ejecuta Browser QA real, captura /calendar en desktop, compara contra reference_images/calendar/reference_import_v900_10.png y corrige solo diferencias visibles verificadas."
+      "notes": [
+        "Captura real pendiente."
+      ],
+      "codex_prompt": "Captura y compara /calendar contra referencias reales antes de declarar cierre visual."
     },
     {
       "route": "/cliente-login",
-      "device": "desktop",
+      "profile": "pending",
       "screenshot_path": "",
       "reference_used": "reference_images/client/reference_import_v900_08.png",
-      "classification": "BLOCKED_NO_SCREENSHOT",
-      "browser_qa_status": "PACKAGE_MISSING",
       "visual_gap_score": 0,
+      "classification": "NEEDS_BROWSER_QA",
+      "browser_qa_status": "BROWSER_QA_UNAVAILABLE",
+      "addressed_by_v904": false,
+      "addressed_by_v905": false,
+      "addressed_by_v906b": false,
+      "needs_v907_followup": true,
       "density": "pending_capture",
       "hierarchy": "pending_capture",
       "navigation": "pending_capture",
-      "v911_status": "BLOCKED_NO_SCREENSHOT",
-      "codex_prompt": "Ejecuta Browser QA real, captura /cliente-login en desktop, compara contra reference_images/client/reference_import_v900_08.png y corrige solo diferencias visibles verificadas."
+      "notes": [
+        "Captura real pendiente."
+      ],
+      "codex_prompt": "Captura y compara /cliente-login contra referencias reales antes de declarar cierre visual."
     },
     {
       "route": "/live",
-      "device": "desktop",
+      "profile": "pending",
       "screenshot_path": "",
       "reference_used": "reference_images/live/reference_import_v900_09.png",
-      "classification": "BLOCKED_NO_SCREENSHOT",
-      "browser_qa_status": "PACKAGE_MISSING",
       "visual_gap_score": 0,
+      "classification": "NEEDS_BROWSER_QA",
+      "browser_qa_status": "BROWSER_QA_UNAVAILABLE",
+      "addressed_by_v904": true,
+      "addressed_by_v905": false,
+      "addressed_by_v906b": false,
+      "needs_v907_followup": true,
       "density": "pending_capture",
       "hierarchy": "pending_capture",
       "navigation": "pending_capture",
-      "v911_status": "BLOCKED_NO_SCREENSHOT",
-      "codex_prompt": "Ejecuta Browser QA real, captura /live en desktop, compara contra reference_images/live/reference_import_v900_09.png y corrige solo diferencias visibles verificadas."
+      "notes": [
+        "Captura real pendiente."
+      ],
+      "codex_prompt": "Captura y compara /live contra referencias reales antes de declarar cierre visual."
     },
     {
       "route": "/picks",
-      "device": "desktop",
+      "profile": "pending",
       "screenshot_path": "",
       "reference_used": "reference_images/picks/reference_import_v900_11.png",
-      "classification": "BLOCKED_NO_SCREENSHOT",
-      "browser_qa_status": "PACKAGE_MISSING",
       "visual_gap_score": 0,
+      "classification": "NEEDS_BROWSER_QA",
+      "browser_qa_status": "BROWSER_QA_UNAVAILABLE",
+      "addressed_by_v904": true,
+      "addressed_by_v905": false,
+      "addressed_by_v906b": false,
+      "needs_v907_followup": true,
       "density": "pending_capture",
       "hierarchy": "pending_capture",
       "navigation": "pending_capture",
-      "v911_status": "BLOCKED_NO_SCREENSHOT",
-      "codex_prompt": "Ejecuta Browser QA real, captura /picks en desktop, compara contra reference_images/picks/reference_import_v900_11.png y corrige solo diferencias visibles verificadas."
+      "notes": [
+        "Captura real pendiente."
+      ],
+      "codex_prompt": "Captura y compara /picks contra referencias reales antes de declarar cierre visual."
     },
     {
       "route": "/profile",
-      "device": "desktop",
+      "profile": "pending",
       "screenshot_path": "",
       "reference_used": "reference_images/profile/reference_import_v900_15.png",
-      "classification": "BLOCKED_NO_SCREENSHOT",
-      "browser_qa_status": "PACKAGE_MISSING",
       "visual_gap_score": 0,
+      "classification": "NEEDS_BROWSER_QA",
+      "browser_qa_status": "BROWSER_QA_UNAVAILABLE",
+      "addressed_by_v904": false,
+      "addressed_by_v905": false,
+      "addressed_by_v906b": false,
+      "needs_v907_followup": true,
       "density": "pending_capture",
       "hierarchy": "pending_capture",
       "navigation": "pending_capture",
-      "v911_status": "BLOCKED_NO_SCREENSHOT",
-      "codex_prompt": "Ejecuta Browser QA real, captura /profile en desktop, compara contra reference_images/profile/reference_import_v900_15.png y corrige solo diferencias visibles verificadas."
+      "notes": [
+        "Captura real pendiente."
+      ],
+      "codex_prompt": "Captura y compara /profile contra referencias reales antes de declarar cierre visual."
     },
     {
       "route": "/registro",
-      "device": "desktop",
+      "profile": "pending",
       "screenshot_path": "",
       "reference_used": "reference_images/client/reference_import_v900_08.png",
-      "classification": "BLOCKED_NO_SCREENSHOT",
-      "browser_qa_status": "PACKAGE_MISSING",
       "visual_gap_score": 0,
+      "classification": "NEEDS_BROWSER_QA",
+      "browser_qa_status": "BROWSER_QA_UNAVAILABLE",
+      "addressed_by_v904": false,
+      "addressed_by_v905": false,
+      "addressed_by_v906b": false,
+      "needs_v907_followup": true,
       "density": "pending_capture",
       "hierarchy": "pending_capture",
       "navigation": "pending_capture",
-      "v911_status": "BLOCKED_NO_SCREENSHOT",
-      "codex_prompt": "Ejecuta Browser QA real, captura /registro en desktop, compara contra reference_images/client/reference_import_v900_08.png y corrige solo diferencias visibles verificadas."
+      "notes": [
+        "Captura real pendiente."
+      ],
+      "codex_prompt": "Captura y compara /registro contra referencias reales antes de declarar cierre visual."
     },
     {
       "route": "/shark",
-      "device": "desktop",
+      "profile": "pending",
       "screenshot_path": "",
       "reference_used": "reference_images/shark/reference_import_v900_12.png",
-      "classification": "BLOCKED_NO_SCREENSHOT",
-      "browser_qa_status": "PACKAGE_MISSING",
       "visual_gap_score": 0,
+      "classification": "NEEDS_BROWSER_QA",
+      "browser_qa_status": "BROWSER_QA_UNAVAILABLE",
+      "addressed_by_v904": true,
+      "addressed_by_v905": false,
+      "addressed_by_v906b": false,
+      "needs_v907_followup": true,
       "density": "pending_capture",
       "hierarchy": "pending_capture",
       "navigation": "pending_capture",
-      "v911_status": "BLOCKED_NO_SCREENSHOT",
-      "codex_prompt": "Ejecuta Browser QA real, captura /shark en desktop, compara contra reference_images/shark/reference_import_v900_12.png y corrige solo diferencias visibles verificadas."
+      "notes": [
+        "Captura real pendiente."
+      ],
+      "codex_prompt": "Captura y compara /shark contra referencias reales antes de declarar cierre visual."
     },
     {
       "route": "/support",
-      "device": "desktop",
+      "profile": "pending",
       "screenshot_path": "",
       "reference_used": "reference_images/client/reference_import_v900_08.png",
-      "classification": "BLOCKED_NO_SCREENSHOT",
-      "browser_qa_status": "PACKAGE_MISSING",
       "visual_gap_score": 0,
+      "classification": "NEEDS_BROWSER_QA",
+      "browser_qa_status": "BROWSER_QA_UNAVAILABLE",
+      "addressed_by_v904": false,
+      "addressed_by_v905": false,
+      "addressed_by_v906b": false,
+      "needs_v907_followup": true,
       "density": "pending_capture",
       "hierarchy": "pending_capture",
       "navigation": "pending_capture",
-      "v911_status": "BLOCKED_NO_SCREENSHOT",
-      "codex_prompt": "Ejecuta Browser QA real, captura /support en desktop, compara contra reference_images/client/reference_import_v900_08.png y corrige solo diferencias visibles verificadas."
+      "notes": [
+        "Captura real pendiente."
+      ],
+      "codex_prompt": "Captura y compara /support contra referencias reales antes de declarar cierre visual."
     },
     {
       "route": "/telegram",
-      "device": "desktop",
+      "profile": "pending",
       "screenshot_path": "",
       "reference_used": "reference_images/telegram/reference_import_v900_16.png",
-      "classification": "BLOCKED_NO_SCREENSHOT",
-      "browser_qa_status": "PACKAGE_MISSING",
       "visual_gap_score": 0,
+      "classification": "NEEDS_BROWSER_QA",
+      "browser_qa_status": "BROWSER_QA_UNAVAILABLE",
+      "addressed_by_v904": true,
+      "addressed_by_v905": false,
+      "addressed_by_v906b": false,
+      "needs_v907_followup": true,
       "density": "pending_capture",
       "hierarchy": "pending_capture",
       "navigation": "pending_capture",
-      "v911_status": "BLOCKED_NO_SCREENSHOT",
-      "codex_prompt": "Ejecuta Browser QA real, captura /telegram en desktop, compara contra reference_images/telegram/reference_import_v900_16.png y corrige solo diferencias visibles verificadas."
+      "notes": [
+        "Captura real pendiente."
+      ],
+      "codex_prompt": "Captura y compara /telegram contra referencias reales antes de declarar cierre visual."
     }
-  ]
+  ],
+  "version": "V913_BROWSER_QA_EXECUTION_STATUS_TRUTH_AND_RUNTIME_CLEANUP_FINAL"
 }

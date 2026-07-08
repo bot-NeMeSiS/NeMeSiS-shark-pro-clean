@@ -1,0 +1,8 @@
+NeMeSiS SHARK PRO: no ADMIN user found and ADMIN_EMAIL/ADMIN_USERNAME/ADMIN_PASSWORD are incomplete.
+{
+  "ok": true,
+  "report": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\reports\\V910_ROUTES_LINKS_AND_ALIASES_AUDIT.md",
+  "routes_registered": 623,
+  "unsafe_smoke_count": 0,
+  "direct_api_hrefs": 25
+}

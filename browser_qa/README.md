@@ -1,6 +1,6 @@
 # Browser QA Pipeline - NeMeSiS SHARK PRO
 
-Version: `V909_BROWSER_QA_EXECUTION_PIPELINE_AND_VISUAL_FIX_QUEUE_FINAL`
+Version: `V913_BROWSER_QA_EXECUTION_STATUS_TRUTH_AND_RUNTIME_CLEANUP_FINAL`
 
 This folder prepares real screenshot QA without storing secrets or touching production data.
 
@@ -13,6 +13,7 @@ pip install -r browser_qa/playwright_requirements.txt
 python -m playwright install chromium
 python tools/check_browser_qa_environment.py
 python tools/run_browser_reference_qa.py --base-url https://bot-apuestas-crgf.onrender.com --output reports/browser_qa_render --mobile --desktop --write-json
+python tools/import_browser_qa_results.py --input reports/browser_qa_render --update-runtime-data
 ```
 
 PowerShell helper:
@@ -45,6 +46,13 @@ The expected output is:
 - `data/runtime/autonomous_company_sentinel/browser_reference_comparison.json`
 - `data/runtime/autonomous_company_sentinel/reference_gap_report.json`
 - `data/runtime/autonomous_company_sentinel/visual_fix_queue.json`
+
+If the capture was executed outside this workspace, place the generated files under
+`reports/browser_qa_render/` and run:
+
+```powershell
+python tools/import_browser_qa_results.py --input reports/browser_qa_render --update-runtime-data
+```
 
 ## Safety
 

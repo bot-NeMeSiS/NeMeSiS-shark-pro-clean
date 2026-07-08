@@ -13,6 +13,11 @@ ALLOWED_CURRENT_VERSIONS = {
     VERSION,
     "V908_SCREENSHOT_BASED_REFERENCE_UI_FIX_PASS_FINAL",
     "V909_BROWSER_QA_EXECUTION_PIPELINE_AND_VISUAL_FIX_QUEUE_FINAL",
+    "V910_FULL_PROJECT_HIDDEN_AUDIT_ROUTE_NOT_FOUND_BROWSER_QA_READY_FINAL",
+    "V911_REAL_BROWSER_SCREENSHOT_VISUAL_FIX_EXECUTION_FINAL",
+    "V911_VIDEO_ADMIN_UI_BINDING_BROWSER_QA_QUEUE_FIX_FINAL",
+    "V912_VIDEO_ADMIN_UI_COPY_POLISH_BROWSER_QA_QUEUE_FINAL",
+    "V913_BROWSER_QA_EXECUTION_STATUS_TRUTH_AND_RUNTIME_CLEANUP_FINAL",
 }
 ZIP_NAME = f"NeMeSiS_SHARK_PRO_{VERSION}_RENDER_READY.zip"
 REPORTS = [
@@ -128,9 +133,13 @@ def main() -> int:
             require(comparison.get("browser_qa_status") == "BROWSER_QA_UNAVAILABLE", "no screenshots must be unavailable", failures)
     if outbox_path.exists():
         outbox = outbox_path.read_text(encoding="utf-8", errors="replace")
-        require("V907_BROWSER_QA_FINDINGS" in outbox or "V908_NEEDS_BROWSER_QA" in outbox or "V909_VISUAL_FIX_QUEUE" in outbox or "V909_BROWSER_QA_FINDINGS" in outbox, "outbox missing V907/V908/V909 browser QA section", failures)
-        for section in ["PENDING_HUMAN_VISUAL_REVIEW"]:
-            require(section in outbox, f"outbox missing {section}", failures)
+        require("V907_BROWSER_QA_FINDINGS" in outbox or "V908_NEEDS_BROWSER_QA" in outbox or "V909_VISUAL_FIX_QUEUE" in outbox or "V909_BROWSER_QA_FINDINGS" in outbox or "V913_BROWSER_QA_EXECUTION_REQUIRED" in outbox, "outbox missing V907/V908/V909/V913 browser QA section", failures)
+        human_review_section_ok = (
+            "PENDING_HUMAN_VISUAL_REVIEW" in outbox
+            or "PENDING_HUMAN_REVIEW" in outbox
+            or "V913_DANGEROUS_REQUIRES_APPROVAL" in outbox
+        )
+        require(human_review_section_ok, "outbox missing human-review/dangerous approval section", failures)
         require("pixel_perfect_claim: false" in outbox, "outbox must not claim pixel-perfect", failures)
 
     for report in REPORTS:

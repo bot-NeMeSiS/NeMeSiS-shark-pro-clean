@@ -15,6 +15,7 @@ CURRENT_COMPATIBLE_VERSIONS = {
     VERSION,
     "V911_VIDEO_ADMIN_UI_BINDING_BROWSER_QA_QUEUE_FIX_FINAL",
     "V912_VIDEO_ADMIN_UI_COPY_POLISH_BROWSER_QA_QUEUE_FINAL",
+    "V913_BROWSER_QA_EXECUTION_STATUS_TRUTH_AND_RUNTIME_CLEANUP_FINAL",
 }
 ZIP_NAME = f"NeMeSiS_SHARK_PRO_{VERSION}_RENDER_READY.zip"
 REPORTS = [
@@ -113,7 +114,7 @@ def main() -> int:
     require(read("APP_VERSION").strip().lstrip("\ufeff") in CURRENT_COMPATIBLE_VERSIONS, "APP_VERSION is not V911-compatible", failures)
     require(app_version_from_source(app_py) in CURRENT_COMPATIBLE_VERSIONS, "app.py APP_VERSION is not V911-compatible", failures)
     require("data-v911-shell" in base, "base V911 shell marker missing", failures)
-    require("NEMESIS_CACHE_V911" in app_py or "NEMESIS_CACHE_V912" in app_py, "service worker cache is not V911/V912", failures)
+    require("NEMESIS_CACHE_V911" in app_py or "NEMESIS_CACHE_V912" in app_py or "NEMESIS_CACHE_V913" in app_py, "service worker cache is not V911/V912/V913", failures)
     require("v911_real_browser_screenshot_runtime_summary" in app_py, "V911 runtime summary missing", failures)
 
     for report in REPORTS:
@@ -142,8 +143,8 @@ def main() -> int:
 
     outbox = read("data/runtime/autonomous_company_sentinel/outbox/codex_outbox.md")
     require(
-        "V911_BLOCKED_NO_SCREENSHOT" in outbox or "V912_VIDEO_ADMIN_UI_COPY_POLISH_FIXES" in outbox,
-        "outbox V911/V912 browser QA section missing",
+        "V911_BLOCKED_NO_SCREENSHOT" in outbox or "V912_VIDEO_ADMIN_UI_COPY_POLISH_FIXES" in outbox or "V913_BROWSER_QA_EXECUTION_REQUIRED" in outbox,
+        "outbox V911/V912/V913 browser QA section missing",
         failures,
     )
 

@@ -12366,3 +12366,27 @@ body[data-v912-video-admin-fix="true"].ns-admin :is(
     min-height: auto;
   }
 }
+
+/* V913 browser QA execution status truth */
+.v913-browser-qa-truth-panel .v912-kpi-card,
+.v913-browser-qa-truth-card {
+  border-color: rgba(56, 189, 248, 0.24);
+}
+
+.v913-browser-qa-truth-card {
+  background:
+    linear-gradient(135deg, rgba(8, 47, 73, 0.34), rgba(15, 23, 42, 0.94)),
+    rgba(2, 6, 23, 0.78);
+}
+
+.v913-browser-qa-truth-panel code {
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: rgba(15, 23, 42, 0.84);
+  color: #bae6fd;
+  border: 1px solid rgba(125, 211, 252, 0.18);
+}
+
+.v913-browser-qa-truth-panel .v912-kpi-hint {
+  color: rgba(186, 230, 253, 0.76);
+}

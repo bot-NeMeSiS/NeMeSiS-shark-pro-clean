@@ -695,7 +695,7 @@
   ],
   "manifest": {
     "version": "V900_REFERENCE_IMAGES_IMPORT_FIRST_REAL_VISUAL_GAP_AUDIT_FINAL",
-    "generated_at_madrid": "2026-07-08T07:01:19+02:00",
+    "generated_at_madrid": "2026-07-08T12:39:53+02:00",
     "reference_root": "reference_images",
     "reference_count": 16,
     "categories": {
@@ -722,7 +722,7 @@
         "width": 1672,
         "height": 941,
         "source": "reference_images",
-        "imported_at_madrid": "2026-07-08T07:01:19+02:00"
+        "imported_at_madrid": "2026-07-08T12:39:53+02:00"
       },
       {
         "filename": "reference_images/admin/reference_import_v900_02.png",
@@ -735,7 +735,7 @@
         "width": 1672,
         "height": 941,
         "source": "reference_images",
-        "imported_at_madrid": "2026-07-08T07:01:19+02:00"
+        "imported_at_madrid": "2026-07-08T12:39:53+02:00"
       },
       {
         "filename": "reference_images/admin/reference_import_v900_03.png",
@@ -748,7 +748,7 @@
         "width": 1672,
         "height": 941,
         "source": "reference_images",
-        "imported_at_madrid": "2026-07-08T07:01:19+02:00"
+        "imported_at_madrid": "2026-07-08T12:39:53+02:00"
       },
       {
         "filename": "reference_images/admin/reference_import_v900_04.png",
@@ -761,7 +761,7 @@
         "width": 1672,
         "height": 941,
         "source": "reference_images",
-        "imported_at_madrid": "2026-07-08T07:01:19+02:00"
+        "imported_at_madrid": "2026-07-08T12:39:53+02:00"
       },
       {
         "filename": "reference_images/admin/reference_import_v900_05.png",
@@ -774,7 +774,7 @@
         "width": 1672,
         "height": 941,
         "source": "reference_images",
-        "imported_at_madrid": "2026-07-08T07:01:19+02:00"
+        "imported_at_madrid": "2026-07-08T12:39:53+02:00"
       },
       {
         "filename": "reference_images/admin/reference_import_v900_06.png",
@@ -787,7 +787,7 @@
         "width": 1672,
         "height": 941,
         "source": "reference_images",
-        "imported_at_madrid": "2026-07-08T07:01:19+02:00"
+        "imported_at_madrid": "2026-07-08T12:39:53+02:00"
       },
       {
         "filename": "reference_images/admin/reference_import_v900_07.png",
@@ -800,7 +800,7 @@
         "width": 1672,
         "height": 941,
         "source": "reference_images",
-        "imported_at_madrid": "2026-07-08T07:01:19+02:00"
+        "imported_at_madrid": "2026-07-08T12:39:53+02:00"
       },
       {
         "filename": "reference_images/calendar/reference_import_v900_10.png",
@@ -816,7 +816,7 @@
         "width": 1672,
         "height": 941,
         "source": "reference_images",
-        "imported_at_madrid": "2026-07-08T07:01:19+02:00"
+        "imported_at_madrid": "2026-07-08T12:39:53+02:00"
       },
       {
         "filename": "reference_images/client/reference_import_v900_08.png",
@@ -832,7 +832,7 @@
         "width": 1672,
         "height": 941,
         "source": "reference_images",
-        "imported_at_madrid": "2026-07-08T07:01:19+02:00"
+        "imported_at_madrid": "2026-07-08T12:39:53+02:00"
       },
       {
         "filename": "reference_images/live/reference_import_v900_09.png",
@@ -848,7 +848,7 @@
         "width": 1672,
         "height": 941,
         "source": "reference_images",
-        "imported_at_madrid": "2026-07-08T07:01:19+02:00"
+        "imported_at_madrid": "2026-07-08T12:39:53+02:00"
       },
       {
         "filename": "reference_images/memberships/reference_import_v900_14.png",
@@ -864,7 +864,7 @@
         "width": 1672,
         "height": 941,
         "source": "reference_images",
-        "imported_at_madrid": "2026-07-08T07:01:19+02:00"
+        "imported_at_madrid": "2026-07-08T12:39:53+02:00"
       },
       {
         "filename": "reference_images/picks/reference_import_v900_11.png",
@@ -880,7 +880,7 @@
         "width": 1672,
         "height": 941,
         "source": "reference_images",
-        "imported_at_madrid": "2026-07-08T07:01:19+02:00"
+        "imported_at_madrid": "2026-07-08T12:39:53+02:00"
       },
       {
         "filename": "reference_images/profile/reference_import_v900_15.png",
@@ -896,7 +896,7 @@
         "width": 1672,
         "height": 941,
         "source": "reference_images",
-        "imported_at_madrid": "2026-07-08T07:01:19+02:00"
+        "imported_at_madrid": "2026-07-08T12:39:53+02:00"
       },
       {
         "filename": "reference_images/shark/reference_import_v900_12.png",
@@ -912,7 +912,7 @@
         "width": 1672,
         "height": 941,
         "source": "reference_images",
-        "imported_at_madrid": "2026-07-08T07:01:19+02:00"
+        "imported_at_madrid": "2026-07-08T12:39:53+02:00"
       },
       {
         "filename": "reference_images/telegram/reference_import_v900_16.png",
@@ -928,7 +928,7 @@
         "width": 1672,
         "height": 941,
         "source": "reference_images",
-        "imported_at_madrid": "2026-07-08T07:01:19+02:00"
+        "imported_at_madrid": "2026-07-08T12:39:53+02:00"
       },
       {
         "filename": "reference_images/track-record/reference_import_v900_13.png",
@@ -944,7 +944,7 @@
         "width": 1672,
         "height": 941,
         "source": "reference_images",
-        "imported_at_madrid": "2026-07-08T07:01:19+02:00"
+        "imported_at_madrid": "2026-07-08T12:39:53+02:00"
       }
     ],
     "safe_notes": [
@@ -956,7 +956,7 @@
   "reference_manifest_path": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\reference_images\\reference_manifest.json",
   "product_gap_report": {
     "version": "V900_REFERENCE_IMAGES_IMPORT_FIRST_REAL_VISUAL_GAP_AUDIT_FINAL",
-    "generated_at_madrid": "2026-07-08T07:01:19+02:00",
+    "generated_at_madrid": "2026-07-08T12:39:53+02:00",
     "browser_available": false,
     "reference_count": 16,
     "targets_reviewed": [
@@ -3136,5 +3136,163 @@
         "No hacer deploy ni push automático."
       ]
     }
-  }
+  },
+  "v913_browser_qa_import_status": {
+    "version": "V913_BROWSER_QA_EXECUTION_STATUS_TRUTH_AND_RUNTIME_CLEANUP_FINAL",
+    "updated_at_madrid": "2026-07-08T12:40:04+02:00",
+    "browser_qa_status": "PACKAGE_MISSING",
+    "screenshots_captured": 0,
+    "reference_comparisons": 18,
+    "visual_queue_total": 18,
+    "visual_queue_blocked": 18,
+    "visual_queue_ready": 0,
+    "pixel_perfect_claim_allowed": false,
+    "classification": "BROWSER_QA_REQUIRED_BEFORE_PIXEL_CLAIM"
+  },
+  "v913_reference_gap_items": [
+    {
+      "route": "/",
+      "device": "desktop",
+      "status": "BLOCKED_NO_SCREENSHOT",
+      "screenshot": "",
+      "reference": "reference_images/client/reference_import_v900_08.png",
+      "v913_needs_browser_recheck": true
+    },
+    {
+      "route": "/admin-login",
+      "device": "desktop",
+      "status": "BLOCKED_NO_SCREENSHOT",
+      "screenshot": "",
+      "reference": "reference_images/admin/reference_import_v900_01.png",
+      "v913_needs_browser_recheck": true
+    },
+    {
+      "route": "/admin/autonomous-company-sentinel",
+      "device": "desktop",
+      "status": "BLOCKED_NO_SCREENSHOT",
+      "screenshot": "",
+      "reference": "reference_images/admin/reference_import_v900_01.png",
+      "v913_needs_browser_recheck": true
+    },
+    {
+      "route": "/admin/dashboard",
+      "device": "desktop",
+      "status": "BLOCKED_NO_SCREENSHOT",
+      "screenshot": "",
+      "reference": "reference_images/admin/reference_import_v900_01.png",
+      "v913_needs_browser_recheck": true
+    },
+    {
+      "route": "/admin/not-found-events",
+      "device": "desktop",
+      "status": "BLOCKED_NO_SCREENSHOT",
+      "screenshot": "",
+      "reference": "reference_images/admin/reference_import_v900_01.png",
+      "v913_needs_browser_recheck": true
+    },
+    {
+      "route": "/admin/sentinel-codex-outbox",
+      "device": "desktop",
+      "status": "BLOCKED_NO_SCREENSHOT",
+      "screenshot": "",
+      "reference": "reference_images/admin/reference_import_v900_01.png",
+      "v913_needs_browser_recheck": true
+    },
+    {
+      "route": "/admin/sentinel-issues",
+      "device": "desktop",
+      "status": "BLOCKED_NO_SCREENSHOT",
+      "screenshot": "",
+      "reference": "reference_images/admin/reference_import_v900_01.png",
+      "v913_needs_browser_recheck": true
+    },
+    {
+      "route": "/admin/telegram/command-center",
+      "device": "desktop",
+      "status": "BLOCKED_NO_SCREENSHOT",
+      "screenshot": "",
+      "reference": "reference_images/admin/reference_import_v900_01.png",
+      "v913_needs_browser_recheck": true
+    },
+    {
+      "route": "/app",
+      "device": "desktop",
+      "status": "BLOCKED_NO_SCREENSHOT",
+      "screenshot": "",
+      "reference": "reference_images/client/reference_import_v900_08.png",
+      "v913_needs_browser_recheck": true
+    },
+    {
+      "route": "/calendar",
+      "device": "desktop",
+      "status": "BLOCKED_NO_SCREENSHOT",
+      "screenshot": "",
+      "reference": "reference_images/calendar/reference_import_v900_10.png",
+      "v913_needs_browser_recheck": true
+    },
+    {
+      "route": "/cliente-login",
+      "device": "desktop",
+      "status": "BLOCKED_NO_SCREENSHOT",
+      "screenshot": "",
+      "reference": "reference_images/client/reference_import_v900_08.png",
+      "v913_needs_browser_recheck": true
+    },
+    {
+      "route": "/live",
+      "device": "desktop",
+      "status": "BLOCKED_NO_SCREENSHOT",
+      "screenshot": "",
+      "reference": "reference_images/live/reference_import_v900_09.png",
+      "v913_needs_browser_recheck": true
+    },
+    {
+      "route": "/picks",
+      "device": "desktop",
+      "status": "BLOCKED_NO_SCREENSHOT",
+      "screenshot": "",
+      "reference": "reference_images/picks/reference_import_v900_11.png",
+      "v913_needs_browser_recheck": true
+    },
+    {
+      "route": "/profile",
+      "device": "desktop",
+      "status": "BLOCKED_NO_SCREENSHOT",
+      "screenshot": "",
+      "reference": "reference_images/profile/reference_import_v900_15.png",
+      "v913_needs_browser_recheck": true
+    },
+    {
+      "route": "/registro",
+      "device": "desktop",
+      "status": "BLOCKED_NO_SCREENSHOT",
+      "screenshot": "",
+      "reference": "reference_images/client/reference_import_v900_08.png",
+      "v913_needs_browser_recheck": true
+    },
+    {
+      "route": "/shark",
+      "device": "desktop",
+      "status": "BLOCKED_NO_SCREENSHOT",
+      "screenshot": "",
+      "reference": "reference_images/shark/reference_import_v900_12.png",
+      "v913_needs_browser_recheck": true
+    },
+    {
+      "route": "/support",
+      "device": "desktop",
+      "status": "BLOCKED_NO_SCREENSHOT",
+      "screenshot": "",
+      "reference": "reference_images/client/reference_import_v900_08.png",
+      "v913_needs_browser_recheck": true
+    },
+    {
+      "route": "/telegram",
+      "device": "desktop",
+      "status": "BLOCKED_NO_SCREENSHOT",
+      "screenshot": "",
+      "reference": "reference_images/telegram/reference_import_v900_16.png",
+      "v913_needs_browser_recheck": true
+    }
+  ]
 }

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
-<section class="ns-admin-page v892-sentinel-issues v904-admin-rebuild v904-sentinel-issues v908-admin-shell v908-command-grid v911-admin-shell v912-admin-shell v912-command-center-polish" data-v904-template="admin_sentinel_issues" data-v908-template="admin_sentinel_issues" data-v911-template="admin_sentinel_issues" data-v912-template="admin_sentinel_issues">
+<section class="ns-admin-page v892-sentinel-issues v904-admin-rebuild v904-sentinel-issues v908-admin-shell v908-command-grid v911-admin-shell v912-admin-shell v912-command-center-polish v913-browser-qa-truth-panel" data-v904-template="admin_sentinel_issues" data-v908-template="admin_sentinel_issues" data-v911-template="admin_sentinel_issues" data-v912-template="admin_sentinel_issues" data-v913-template="admin_sentinel_issues">
   <div class="ns-page-header">
     <span class="ns-chip">V892 Centro de Incidencias</span>
     <h1>Sentinel Issues Command Center</h1>
@@ -22,7 +22,7 @@
 
   <section class="ns-grid ns-grid-4 v911-admin-kpi-grid v912-admin-kpi-grid">
     <article class="ns-stat v912-kpi-card"><span class="v912-kpi-label">Abiertas</span><strong class="v912-kpi-value">{{ summary.counts.open }}</strong><small class="v912-kpi-hint">incidencias activas</small></article>
-    <article class="ns-stat v912-kpi-card"><span class="v912-kpi-label">Cr?ticas</span><strong class="v912-kpi-value">{{ summary.counts.severity.critical }}</strong><small class="v912-kpi-hint">bloqueo real</small></article>
+    <article class="ns-stat v912-kpi-card"><span class="v912-kpi-label">Críticas</span><strong class="v912-kpi-value">{{ summary.counts.severity.critical }}</strong><small class="v912-kpi-hint">bloqueo real</small></article>
     <article class="ns-stat v912-kpi-card"><span class="v912-kpi-label">Altas</span><strong class="v912-kpi-value">{{ summary.counts.severity.high }}</strong><small class="v912-kpi-hint">prioridad operativa</small></article>
     <article class="ns-stat v912-kpi-card"><span class="v912-kpi-label">Codex Ready</span><strong class="v912-kpi-value">{{ summary.codex_ready_issues|length }}</strong><small class="v912-kpi-hint">prompt preparado</small></article>
   </section>

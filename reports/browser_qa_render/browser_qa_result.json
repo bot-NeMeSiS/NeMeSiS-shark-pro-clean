@@ -1,7 +1,7 @@
 {
   "ok": true,
-  "version": "V909_BROWSER_QA_EXECUTION_PIPELINE_AND_VISUAL_FIX_QUEUE_FINAL",
-  "generated_at_madrid": "2026-07-08T01:03:27+02:00",
+  "version": "V913_BROWSER_QA_EXECUTION_STATUS_TRUTH_AND_RUNTIME_CLEANUP_FINAL",
+  "generated_at_madrid": "2026-07-08T12:39:41+02:00",
   "browser_available": false,
   "playwright_available": false,
   "browsers_available": false,

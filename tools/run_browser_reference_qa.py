@@ -13,7 +13,7 @@ from engines.browser_reference_comparison_engine import build_browser_reference_
 from tools.check_browser_qa_environment import detect_browser_qa_environment
 
 
-VERSION = "V909_BROWSER_QA_EXECUTION_PIPELINE_AND_VISUAL_FIX_QUEUE_FINAL"
+VERSION = (ROOT / "VERSION.txt").read_text(encoding="utf-8-sig", errors="replace").strip()
 PUBLIC_ROUTES = ["/", "/cliente-login", "/registro"]
 CLIENT_ROUTES = ["/app", "/calendar", "/live", "/picks", "/shark", "/telegram", "/profile", "/support"]
 ADMIN_SAFE_ROUTES = ["/admin-login"]

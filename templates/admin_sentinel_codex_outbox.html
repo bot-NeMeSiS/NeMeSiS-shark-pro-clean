@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
-<section class="ns-admin-page v894-company-sentinel v904-admin-rebuild v904-codex-outbox v908-admin-shell v908-command-grid v911-admin-shell v912-admin-shell v912-command-center-polish" data-v904-template="admin_sentinel_codex_outbox" data-v908-template="admin_sentinel_codex_outbox" data-v911-template="admin_sentinel_codex_outbox" data-v912-template="admin_sentinel_codex_outbox">
+<section class="ns-admin-page v894-company-sentinel v904-admin-rebuild v904-codex-outbox v908-admin-shell v908-command-grid v911-admin-shell v912-admin-shell v912-command-center-polish v913-browser-qa-truth-panel" data-v904-template="admin_sentinel_codex_outbox" data-v908-template="admin_sentinel_codex_outbox" data-v911-template="admin_sentinel_codex_outbox" data-v912-template="admin_sentinel_codex_outbox" data-v913-template="admin_sentinel_codex_outbox">
   <div class="ns-page-header">
     <span class="ns-chip">Codex Outbox</span>
     <h1>Prompts Codex del Sentinel</h1>
@@ -25,10 +25,10 @@
 
   <section class="ns-admin-card v909-visual-fix-queue-panel v911-visual-fix-queue-panel v912-browser-qa-panel v912-visual-queue-table" data-v909-visual-fix-queue="true" data-v911-visual-fix-queue="true" data-v912-visual-fix-queue="true">
     <div class="ns-section-title">
-      <h2>Visual Fix Queue V909/V912</h2>
+      <h2>Visual Fix Queue V909/V913</h2>
       <span class="ns-badge">{{ v909.blocked_no_screenshot_count or 0 }} bloqueados sin screenshot</span>
     </div>
-    <p>La cola convierte capturas reales en prompts Codex. En V912, si no hay Playwright/capturas, los items quedan como <code>BLOCKED_NO_SCREENSHOT</code> y no se cierran como pixel-perfect.</p>
+    <p>La cola convierte capturas reales en prompts Codex. En V913, si no hay Playwright/capturas importadas, los items quedan como <code>BLOCKED_NO_SCREENSHOT</code> y no se cierran como pixel-perfect.</p>
     <div class="ns-grid ns-grid-3 v911-admin-kpi-grid v912-admin-kpi-grid">
       <article class="ns-stat v911-kpi-card v912-kpi-card"><span class="v911-kpi-label v912-kpi-label">Items</span><strong class="v911-kpi-value v912-kpi-value">{{ v909.visual_fix_queue_count or 0 }}</strong><small class="v911-kpi-hint v912-kpi-hint">queue total</small></article>
       <article class="ns-stat v911-kpi-card v912-kpi-card"><span class="v911-kpi-label v912-kpi-label">Runner local</span><strong class="v911-kpi-value v912-kpi-value">{{ 'Listo' if v909.local_runner_available else 'Pendiente' }}</strong><small class="v911-kpi-hint v912-kpi-hint">browser_qa/</small></article>
@@ -58,7 +58,7 @@
 
   <section class="ns-admin-card v899-outbox-sections">
     <h2>Prompts visuales / funcionales / archivados</h2>
-    <p>El outbox combinado separa prompts activos, prompts visuales de referencia, prompts basados en capturas V907, prompts funcionales y prompts archivados u obsoletos. Este panel no ejecuta cambios.</p>
+    <p>El outbox combinado separa prompts activos, prompts de ejecución Browser QA, prompts basados en capturas reales si existen, prompts funcionales y prompts archivados u obsoletos. Este panel no ejecuta cambios.</p>
     <div class="ns-actions">
       <button class="ns-button ns-button-secondary" type="button" data-v904-fetch="/api/admin/autonomous-company-sentinel/outbox">Abrir outbox JSON</button>
       <button class="ns-button ns-button-ghost" type="button" data-v904-fetch="/api/admin/autonomous-company-sentinel/reference-gaps">Ver gaps visuales</button>
