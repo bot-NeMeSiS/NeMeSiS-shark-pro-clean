@@ -1,15 +1,15 @@
 # Auditoría ZIP V921
 
 - ZIP: `NeMeSiS_SHARK_PRO_V921_AUTOMATED_BROWSER_QA_ARTIFACT_RUN_IMPORT_AND_VISUAL_QUEUE_UNLOCK_FINAL_RENDER_READY.zip`
-- Archivos: 2237
-- Tamaño ZIP: 27484844 bytes
+- Archivos: 2240
+- Tamaño ZIP: 27488105 bytes
 - Prohibidos: 0
 - Resultado: OK
 - Root obligatorio ausente: ninguno
 
 ## Carpetas principales
 - `reference_images`: 24 archivos, 24921842 bytes
-- `reports`: 1201 archivos, 3565206 bytes
+- `reports`: 1204 archivos, 3573634 bytes
 - `tools`: 492 archivos, 1447030 bytes
 - `engines`: 124 archivos, 1374288 bytes
 - `app.py`: 1 archivos, 1027149 bytes

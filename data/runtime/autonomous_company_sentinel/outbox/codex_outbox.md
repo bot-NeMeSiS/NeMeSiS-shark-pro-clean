@@ -4,7 +4,7 @@ compatibility_section: V919_BROWSER_QA_REQUIRED
 compatibility_section: V920_BROWSER_QA_REQUIRED
 
 pixel_perfect_claim: false
-generated_at_madrid: 2026-07-08T23:18:30+02:00
+generated_at_madrid: 2026-07-09T00:18:26+02:00
 browser_qa_status: PACKAGE_MISSING
 v921_import_status: NO_VALID_SCREENSHOTS_TO_IMPORT
 v920_import_status: NO_VALID_SCREENSHOTS_TO_IMPORT

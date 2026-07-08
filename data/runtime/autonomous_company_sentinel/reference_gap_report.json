@@ -4064,7 +4064,7 @@
   ],
   "v919_browser_qa_import_status": {
     "version": "V921_AUTOMATED_BROWSER_QA_ARTIFACT_RUN_IMPORT_AND_VISUAL_QUEUE_UNLOCK_FINAL",
-    "updated_at_madrid": "2026-07-08T23:18:30+02:00",
+    "updated_at_madrid": "2026-07-09T00:18:26+02:00",
     "browser_qa_status": "PACKAGE_MISSING",
     "import_status": "NO_VALID_SCREENSHOTS_TO_IMPORT",
     "valid_screenshots_count": 0,
@@ -4225,7 +4225,7 @@
   ],
   "v921_browser_qa_import_status": {
     "version": "V921_AUTOMATED_BROWSER_QA_ARTIFACT_RUN_IMPORT_AND_VISUAL_QUEUE_UNLOCK_FINAL",
-    "updated_at_madrid": "2026-07-08T23:18:30+02:00",
+    "updated_at_madrid": "2026-07-09T00:18:26+02:00",
     "browser_qa_status": "PACKAGE_MISSING",
     "import_status": "NO_VALID_SCREENSHOTS_TO_IMPORT",
     "valid_screenshots_count": 0,

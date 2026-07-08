@@ -1,10 +1,10 @@
 {
   "ok": true,
-  "audited_at": "2026-07-08T23:20:56",
+  "audited_at": "2026-07-09T00:20:49",
   "zip": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\release_output\\NeMeSiS_SHARK_PRO_V921_AUTOMATED_BROWSER_QA_ARTIFACT_RUN_IMPORT_AND_VISUAL_QUEUE_UNLOCK_FINAL_RENDER_READY.zip",
-  "zip_size_bytes": 27484844,
-  "file_count": 2237,
-  "content_size_bytes": 34618060,
+  "zip_size_bytes": 27488105,
+  "file_count": 2240,
+  "content_size_bytes": 34626488,
   "forbidden_count": 0,
   "missing_required_root": [],
   "forbidden": [],
@@ -98,8 +98,8 @@
     },
     {
       "folder": "reports",
-      "size": 3565206,
-      "files": 1201
+      "size": 3573634,
+      "files": 1204
     },
     {
       "folder": "tools",

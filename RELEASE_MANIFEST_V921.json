@@ -1,12 +1,12 @@
 {
   "version": "V921_AUTOMATED_BROWSER_QA_ARTIFACT_RUN_IMPORT_AND_VISUAL_QUEUE_UNLOCK_FINAL",
-  "created_at": "2026-07-08T23:19:51",
+  "created_at": "2026-07-09T00:19:54",
   "zip": "NeMeSiS_SHARK_PRO_V921_AUTOMATED_BROWSER_QA_ARTIFACT_RUN_IMPORT_AND_VISUAL_QUEUE_UNLOCK_FINAL_RENDER_READY.zip",
   "zip_path": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\release_output\\NeMeSiS_SHARK_PRO_V921_AUTOMATED_BROWSER_QA_ARTIFACT_RUN_IMPORT_AND_VISUAL_QUEUE_UNLOCK_FINAL_RENDER_READY.zip",
   "zip_inside_project_tree": true,
   "output_dir": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\release_output",
   "manifest": "RELEASE_MANIFEST_V921.json",
-  "files": 2237,
+  "files": 2240,
   "internal_zips": [],
   "has_internal_zips": false,
   "forbidden_folders_included": [],
@@ -212,6 +212,6 @@
   ],
   "security_policy": "No incluye .git, .venv, caches, bases de datos locales, logs, ZIPs internos ni secretos reales.",
   "render_ready": true,
-  "zip_size_bytes": 27484844,
-  "zip_file_count": 2237
+  "zip_size_bytes": 27488105,
+  "zip_file_count": 2240
 }
