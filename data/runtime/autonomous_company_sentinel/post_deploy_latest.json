@@ -1,0 +1,92 @@
+{
+  "ok": false,
+  "version": "V915_AUTOMATED_COMPANY_WORKFORCE_RENDER_DEPLOY_PIPELINE_FINAL",
+  "dry_run": true,
+  "runtime": {
+    "ok": false,
+    "version": "V915_AUTOMATED_COMPANY_WORKFORCE_RENDER_DEPLOY_PIPELINE_FINAL",
+    "dry_run": true,
+    "runtime_url": "https://bot-apuestas-crgf.onrender.com/api/runtime-version",
+    "http_status": 0,
+    "expected_version": "V915_AUTOMATED_COMPANY_WORKFORCE_RENDER_DEPLOY_PIPELINE_FINAL",
+    "render_version": null,
+    "version_files_match": null,
+    "deployment_alignment_status": null,
+    "sentinel_active_issues_count": null,
+    "secret_masking_ok": null,
+    "db_path": null,
+    "telegram_configured": null,
+    "alignment_status": "DEPLOY_ALIGNMENT_FAILED"
+  },
+  "routes": [
+    {
+      "route": "/",
+      "status": 0,
+      "ok": false,
+      "error": "<urlopen error [WinError 10013] Intento de acceso a un socket no permitido por sus permisos de acceso>"
+    },
+    {
+      "route": "/cliente-login",
+      "status": 0,
+      "ok": false,
+      "error": "<urlopen error [WinError 10013] Intento de acceso a un socket no permitido por sus permisos de acceso>"
+    },
+    {
+      "route": "/registro",
+      "status": 0,
+      "ok": false,
+      "error": "<urlopen error [WinError 10013] Intento de acceso a un socket no permitido por sus permisos de acceso>"
+    },
+    {
+      "route": "/calendar",
+      "status": 0,
+      "ok": false,
+      "error": "<urlopen error [WinError 10013] Intento de acceso a un socket no permitido por sus permisos de acceso>"
+    },
+    {
+      "route": "/live",
+      "status": 0,
+      "ok": false,
+      "error": "<urlopen error [WinError 10013] Intento de acceso a un socket no permitido por sus permisos de acceso>"
+    },
+    {
+      "route": "/picks",
+      "status": 0,
+      "ok": false,
+      "error": "<urlopen error [WinError 10013] Intento de acceso a un socket no permitido por sus permisos de acceso>"
+    },
+    {
+      "route": "/admin-login",
+      "status": 0,
+      "ok": false,
+      "error": "<urlopen error [WinError 10013] Intento de acceso a un socket no permitido por sus permisos de acceso>"
+    },
+    {
+      "route": "/manifest.json",
+      "status": 0,
+      "ok": false,
+      "error": "<urlopen error [WinError 10013] Intento de acceso a un socket no permitido por sus permisos de acceso>"
+    },
+    {
+      "route": "/service-worker.js",
+      "status": 0,
+      "ok": false,
+      "error": "<urlopen error [WinError 10013] Intento de acceso a un socket no permitido por sus permisos de acceso>"
+    },
+    {
+      "route": "/ruta-inventada",
+      "status": 0,
+      "ok": false,
+      "error": "<urlopen error [WinError 10013] Intento de acceso a un socket no permitido por sus permisos de acceso>"
+    },
+    {
+      "route": "/api/ruta-inventada",
+      "status": 0,
+      "ok": false,
+      "error": "<urlopen error [WinError 10013] Intento de acceso a un socket no permitido por sus permisos de acceso>"
+    }
+  ],
+  "telegram_cron_without_secret_expected": 403,
+  "no_real_telegram": true,
+  "no_payments_touched": true
+}

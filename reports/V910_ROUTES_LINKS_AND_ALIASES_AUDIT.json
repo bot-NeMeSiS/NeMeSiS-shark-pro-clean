@@ -1,7 +1,7 @@
 {
   "version": "V910_FULL_PROJECT_HIDDEN_AUDIT_ROUTE_NOT_FOUND_BROWSER_QA_READY_FINAL",
   "links": {
-    "templates_scanned": 168,
+    "templates_scanned": 169,
     "direct_api_hrefs": [
       {
         "file": "templates/admin_api_sports_audit.html",
@@ -125,7 +125,7 @@
     ]
   },
   "smoke": {
-    "routes_registered": 623,
+    "routes_registered": 633,
     "smoke_results": [
       {
         "path": "/",

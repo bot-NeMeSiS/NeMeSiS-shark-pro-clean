@@ -1,9 +1,9 @@
 # Verificación de imports, rutas y plantillas V723
 
 - Resultado: OK
-- Versión importada: `V913_BROWSER_QA_EXECUTION_STATUS_TRUTH_AND_RUNTIME_CLEANUP_FINAL`
-- Rutas GET: 595
-- Templates referenciados: 130
+- Versión importada: `V915_AUTOMATED_COMPANY_WORKFORCE_RENDER_DEPLOY_PIPELINE_FINAL`
+- Rutas GET: 600
+- Templates referenciados: 131
 - Templates faltantes: 0
 - Static faltantes: 0
 

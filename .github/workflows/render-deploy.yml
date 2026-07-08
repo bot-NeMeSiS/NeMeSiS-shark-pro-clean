@@ -1,0 +1,90 @@
+name: Render Deploy Guard
+
+on:
+  workflow_dispatch:
+    inputs:
+      public_runtime_url:
+        description: "Runtime URL to verify after deploy"
+        required: false
+        default: "https://bot-apuestas-crgf.onrender.com/api/runtime-version"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      PUBLIC_RUNTIME_URL: ${{ inputs.public_runtime_url }}
+      ENABLE_AUTOMATED_RENDER_DEPLOY: "1"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Read expected version
+        id: version
+        shell: bash
+        run: |
+          echo "expected=$(cat VERSION.txt | tr -d '\r\n')" >> "$GITHUB_OUTPUT"
+
+      - name: Validate before deploy
+        run: |
+          python -m py_compile app.py
+          python -m compileall app.py engines tools automation_workforce
+          python tools/check_madrid_times.py
+          python tools/check_v915_automated_company_workforce.py
+
+      - name: Trigger Render deploy hook
+        shell: bash
+        env:
+          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -z "$RENDER_DEPLOY_HOOK_URL" ]; then
+            echo "DEPLOY_NOT_TRIGGERED_MISSING_SECRET: configure RENDER_DEPLOY_HOOK_URL in GitHub secrets."
+            exit 0
+          fi
+          curl -fsS -X POST "$RENDER_DEPLOY_HOOK_URL" >/dev/null
+          echo "Render deploy hook triggered without printing secret."
+
+      - name: Wait for Render
+        run: sleep 75
+
+      - name: Verify runtime version
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json, os, sys, time, urllib.request
+          expected = "${{ steps.version.outputs.expected }}"
+          url = os.environ.get("PUBLIC_RUNTIME_URL")
+          payload = {}
+          for _ in range(8):
+              try:
+                  with urllib.request.urlopen(url, timeout=20) as resp:
+                      payload = json.loads(resp.read().decode("utf-8"))
+                  if payload.get("version") == expected:
+                      break
+              except Exception as exc:
+                  payload = {"error": str(exc)}
+              time.sleep(20)
+          print(json.dumps({
+              "expected": expected,
+              "actual": payload.get("version"),
+              "version_files_match": payload.get("version_files_match"),
+              "deployment_alignment_status": payload.get("deployment_alignment_status"),
+          }, indent=2))
+          if payload.get("version") != expected:
+              sys.exit(1)
+          if payload.get("version_files_match") is not True:
+              sys.exit(1)
+          if payload.get("deployment_alignment_status") != "aligned_local_files":
+              sys.exit(1)
+          PY
+
+      - name: Upload deploy reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: render-deploy-reports
+          path: reports/

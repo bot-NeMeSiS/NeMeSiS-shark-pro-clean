@@ -1,7 +1,7 @@
 # Codex Outbox - V913 Browser QA Truth
 
 pixel_perfect_claim: false
-generated_at_madrid: 2026-07-08T12:40:04+02:00
+generated_at_madrid: 2026-07-08T17:16:58+02:00
 browser_qa_status: PACKAGE_MISSING
 screenshots_captured: 0
 visual_queue_total: 18

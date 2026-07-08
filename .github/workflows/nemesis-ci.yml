@@ -1,0 +1,55 @@
+name: NeMeSiS CI QA
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Core compile checks
+        run: |
+          python -m py_compile app.py
+          python -m compileall app.py engines tools automation_workforce
+
+      - name: Project checks
+        run: |
+          python tools/check_madrid_times.py
+          if [ -f tools/check_v914_total_self_discovered_corrections.py ]; then python tools/check_v914_total_self_discovered_corrections.py; fi
+          python tools/check_v915_automated_company_workforce.py
+          python tools/run_continuous_sentinel_static.py
+          python tools/verify_imports_and_routes.py
+
+      - name: Route link audit
+        run: python tools/audit_all_routes_links.py
+        continue-on-error: false
+
+      - name: Build clean release
+        run: |
+          python tools/build_clean_release.py
+          python tools/audit_release_zip.py
+
+      - name: Upload reports and release output
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nemesis-ci-artifacts
+          path: |
+            reports/
+            release_output/

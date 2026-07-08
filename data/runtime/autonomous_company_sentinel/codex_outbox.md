@@ -1255,46 +1255,6 @@ Sin prompts Telegram activos.
 
 ---
 
-- AP-33190C902467 | RESOLVED_BY_RESCAN | /partidos | Pantalla deportiva sin datos reales visibles
-
----
-
-- AP-79B06E4D8626 | RESOLVED_BY_RESCAN | /calendar | Pantalla deportiva sin datos reales visibles
-
----
-
-- AP-C7DB52036243 | RESOLVED_BY_RESCAN | /live | Pantalla deportiva sin datos reales visibles
-
----
-
-- AP-1DF1484884AA | RESOLVED_BY_RESCAN | Sin ruta | Pantalla deportiva sin datos reales visibles
-
----
-
-- AP-D8881CCD1440 | RESOLVED_BY_RESCAN | /partidos | Texto tecnico o mojibake visible
-
----
-
-- AP-9F4C7FA7D4DE | RESOLVED_BY_RESCAN | /calendar | Texto tecnico o mojibake visible
-
----
-
-- AP-1B6FEB81DD17 | RESOLVED_BY_RESCAN | /live | Texto tecnico o mojibake visible
-
----
-
-- AP-8955C54BDCC7 | RESOLVED_BY_RESCAN | /directo | Texto tecnico o mojibake visible
-
----
-
-- AP-F5801ADD52BD | RESOLVED_BY_RESCAN | /picks | Texto tecnico o mojibake visible
-
----
-
-- AP-C19F434A05CE | RESOLVED_BY_RESCAN | /shark | Texto tecnico o mojibake visible
-
----
-
 - SENT-2026-5FB6DDF2 | RESOLVED_BY_RESCAN | /shark | SHARK IA avanzada pendiente de configuracion
 
 ---
@@ -1755,7 +1715,55 @@ Sin prompts Telegram activos.
 
 ---
 
-- SENT-2026-7B1117BB | STALE_NEEDS_REVALIDATION | /api/ruta-inventada-v912 | Ruta devuelve Not Found
+- SENT-2026-7B1117BB | RESOLVED_BY_RESCAN | /api/ruta-inventada-v912 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-E99E6032 | RESOLVED_BY_RESCAN | /ruta-inventada-v913 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-9406B71E | RESOLVED_BY_RESCAN | /api/ruta-inventada-v913 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-F33E43EC | RESOLVED_BY_RESCAN | /ruta-inventada | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-043B463C | RESOLVED_BY_RESCAN | /api/ruta-inventada | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-7D1C44B4 | RESOLVED_BY_RESCAN | /ruta-inventada-v910 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-E4BC281D | RESOLVED_BY_RESCAN | /ruta-inventada-v913 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-651E3750 | RESOLVED_BY_RESCAN | /api/ruta-inventada-v910 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-776536B9 | RESOLVED_BY_RESCAN | /api/ruta-inventada-v913 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-A25885FE | RESOLVED_BY_RESCAN | /ruta-inventada-v913 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-E054F997 | RESOLVED_BY_RESCAN | /api/ruta-inventada-v913 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-B8B10164 | RESOLVED_BY_RESCAN | /ruta-inventada-v913 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-DC2CB20E | STALE_NEEDS_REVALIDATION | /api/ruta-inventada-v913 | Ruta devuelve Not Found
 
 ---
 
@@ -1792,6 +1800,46 @@ Sin prompts Telegram activos.
 ---
 
 - REFGAP-DD4D02E36E | RESOLVED_BY_RESCAN | /track-record | Gap visual de referencia en /track-record
+
+---
+
+- AP-33190C902467 | RESOLVED_BY_RESCAN | /partidos | Pantalla deportiva sin datos reales visibles
+
+---
+
+- AP-79B06E4D8626 | RESOLVED_BY_RESCAN | /calendar | Pantalla deportiva sin datos reales visibles
+
+---
+
+- AP-C7DB52036243 | RESOLVED_BY_RESCAN | /live | Pantalla deportiva sin datos reales visibles
+
+---
+
+- AP-1DF1484884AA | RESOLVED_BY_RESCAN | Sin ruta | Pantalla deportiva sin datos reales visibles
+
+---
+
+- AP-D8881CCD1440 | RESOLVED_BY_RESCAN | /partidos | Texto tecnico o mojibake visible
+
+---
+
+- AP-9F4C7FA7D4DE | RESOLVED_BY_RESCAN | /calendar | Texto tecnico o mojibake visible
+
+---
+
+- AP-1B6FEB81DD17 | RESOLVED_BY_RESCAN | /live | Texto tecnico o mojibake visible
+
+---
+
+- AP-8955C54BDCC7 | RESOLVED_BY_RESCAN | /directo | Texto tecnico o mojibake visible
+
+---
+
+- AP-F5801ADD52BD | RESOLVED_BY_RESCAN | /picks | Texto tecnico o mojibake visible
+
+---
+
+- AP-C19F434A05CE | RESOLVED_BY_RESCAN | /shark | Texto tecnico o mojibake visible
 
 ---
 
@@ -1852,14 +1900,14 @@ Sin falsos positivos pendientes.
 
 ## V904_REFERENCE_GAPS_WORKFORCE_STATUS
 
-- mode: reference_scan
+- mode: safe_scan
 - gaps_read: 13
 - gaps_addressed: 8
 - gaps_pending: 13
 - prompts_active: 0
 - deploy_status: pending_runtime_confirmation
 - secret_masking_status: masked_configured_missing_only
-- next_step: Revisar gaps visuales y aplicar solo correcciones seguras con Browser QA pendiente.
+- next_step: Revisar incidencias abiertas y ejecutar solo cambios seguros.
 
 ### action_policy
 
