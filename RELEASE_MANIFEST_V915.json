@@ -1,6 +1,6 @@
 {
   "version": "V915_AUTOMATED_COMPANY_WORKFORCE_RENDER_DEPLOY_PIPELINE_FINAL",
-  "created_at": "2026-07-08T17:21:01",
+  "created_at": "2026-07-08T18:02:31",
   "zip": "NeMeSiS_SHARK_PRO_V915_AUTOMATED_COMPANY_WORKFORCE_RENDER_DEPLOY_PIPELINE_FINAL_RENDER_READY.zip",
   "zip_path": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\release_output\\NeMeSiS_SHARK_PRO_V915_AUTOMATED_COMPANY_WORKFORCE_RENDER_DEPLOY_PIPELINE_FINAL_RENDER_READY.zip",
   "zip_inside_project_tree": true,
@@ -212,6 +212,6 @@
   ],
   "security_policy": "No incluye .git, .venv, caches, bases de datos locales, logs, ZIPs internos ni secretos reales.",
   "render_ready": true,
-  "zip_size_bytes": 27313848,
+  "zip_size_bytes": 27313878,
   "zip_file_count": 2124
 }

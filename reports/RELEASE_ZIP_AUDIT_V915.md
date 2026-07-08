@@ -2,14 +2,14 @@
 
 - ZIP: `NeMeSiS_SHARK_PRO_V915_AUTOMATED_COMPANY_WORKFORCE_RENDER_DEPLOY_PIPELINE_FINAL_RENDER_READY.zip`
 - Archivos: 2124
-- Tamaño ZIP: 27313848 bytes
+- Tamaño ZIP: 27313878 bytes
 - Prohibidos: 0
 - Resultado: OK
 - Root obligatorio ausente: ninguno
 
 ## Carpetas principales
 - `reference_images`: 24 archivos, 24921842 bytes
-- `tools`: 486 archivos, 1395517 bytes
+- `tools`: 486 archivos, 1395659 bytes
 - `engines`: 124 archivos, 1374288 bytes
 - `reports`: 1099 archivos, 1291547 bytes
 - `app.py`: 1 archivos, 1005492 bytes

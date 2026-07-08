@@ -1,10 +1,10 @@
 {
   "ok": true,
-  "audited_at": "2026-07-08T17:21:10",
+  "audited_at": "2026-07-08T18:03:17",
   "zip": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\release_output\\NeMeSiS_SHARK_PRO_V915_AUTOMATED_COMPANY_WORKFORCE_RENDER_DEPLOY_PIPELINE_FINAL_RENDER_READY.zip",
-  "zip_size_bytes": 27313848,
+  "zip_size_bytes": 27313878,
   "file_count": 2124,
-  "content_size_bytes": 32192502,
+  "content_size_bytes": 32192644,
   "forbidden_count": 0,
   "missing_required_root": [],
   "forbidden": [],
@@ -98,7 +98,7 @@
     },
     {
       "folder": "tools",
-      "size": 1395517,
+      "size": 1395659,
       "files": 486
     },
     {
