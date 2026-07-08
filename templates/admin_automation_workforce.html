@@ -1,31 +1,69 @@
 {% extends "base.html" %}
 {% block content %}
-<section class="ns-admin-page v915-workforce-shell" data-v915-template="admin_automation_workforce">
+{% set summary = workforce.summary or {} %}
+<section class="ns-admin-page v915-workforce-shell v916-workforce-activation" data-v915-template="admin_automation_workforce" data-v916-workforce-activation="true">
   <div class="ns-page-header">
-    <span class="ns-chip">V915 Workforce</span>
+    <span class="ns-chip">V916 Workforce Activation</span>
     <h1>Automation Workforce</h1>
-    <p>Centro interno para preparar releases, validar producción, revisar Sentinel post-deploy y mantener Browser QA/cola visual sin exponer secretos ni ejecutar deploys sin autorización.</p>
+    <p>Centro interno para validar releases, preparar deploy seguro, revisar Browser QA, controlar la cola visual y ejecutar Sentinel post-deploy sin exponer secretos.</p>
     <div class="ns-actions">
       <button class="ns-button ns-button-primary" type="button" data-v904-fetch="/api/admin/automation-workforce/status">Actualizar estado</button>
       <button class="ns-button ns-button-secondary" type="button" data-v904-fetch="/api/admin/automation-workforce/verify-runtime">Verificar runtime</button>
       <button class="ns-button ns-button-ghost" type="button" data-v904-fetch="/api/admin/automation-workforce/visual-queue-refresh">Refrescar cola visual</button>
     </div>
-    <output class="v904-safe-api-output" data-v904-output>Modo seguro: no despliega, no envía Telegram real, no toca pagos ni DB real.</output>
+    <output class="v904-safe-api-output" data-v904-output>Modo seguro: no despliega, no envia Telegram real, no toca pagos ni DB real.</output>
   </div>
 
-  {% set summary = workforce.summary or {} %}
-  <section class="ns-grid ns-grid-4 v915-workforce-kpis">
-    <article class="ns-stat"><span>Workforce</span><strong>{{ 'Lista' if summary.v915_workforce_ready else 'Pendiente' }}</strong><small>{{ workforce.next_action or 'Revisar estado' }}</small></article>
-    <article class="ns-stat"><span>Deploy automático</span><strong>{{ 'Activo' if summary.v915_automated_deploy_enabled else 'Desactivado' }}</strong><small>{{ summary.v915_render_deploy_worker_status or 'dry-run' }}</small></article>
-    <article class="ns-stat"><span>Browser QA</span><strong>{{ summary.v915_browser_qa_status or 'unknown' }}</strong><small>{{ summary.v915_browser_qa_orchestrator_status or 'pendiente' }}</small></article>
-    <article class="ns-stat"><span>Cola visual</span><strong>{{ summary.v915_visual_queue_items or 0 }}</strong><small>{{ summary.v915_visual_queue_blocked_no_screenshot or 0 }} sin screenshot</small></article>
+  <section class="ns-grid ns-grid-4 v916-workforce-status-grid">
+    <article class="ns-stat v916-status-card">
+      <span>Core Workforce</span>
+      <strong>{{ 'Listo' if summary.v916_workforce_core_ready else 'Revisar' }}</strong>
+      <small>Workers, CI, panel y guards instalados.</small>
+    </article>
+    <article class="ns-stat v916-status-card">
+      <span>Deploy Hook</span>
+      <strong>{{ 'Configurado' if summary.v916_deploy_hook_configured else 'Pendiente' }}</strong>
+      <small>{{ summary.v915_render_deploy_worker_status or 'dry-run' }}</small>
+    </article>
+    <article class="ns-stat v916-status-card">
+      <span>Browser QA</span>
+      <strong>{{ summary.v915_browser_qa_status or 'unknown' }}</strong>
+      <small>{{ 'GitHub Action lista' if summary.v916_browser_qa_github_action_ready else 'Action pendiente' }}</small>
+    </article>
+    <article class="ns-stat v916-status-card">
+      <span>Cola visual</span>
+      <strong>{{ summary.v916_visual_queue_blocked_count or 0 }}</strong>
+      <small>Bloqueados por falta de screenshot.</small>
+    </article>
+  </section>
+
+  <section class="ns-grid ns-grid-3 v916-workforce-cards">
+    <article class="ns-admin-card">
+      <h2>Deploy Automation</h2>
+      <p>El deploy automatico solo se habilita con autorizacion explicita y secretos configurados en GitHub/Render.</p>
+      <div class="ns-chip-row">
+        <span class="ns-badge">enabled={{ summary.v915_automated_deploy_enabled }}</span>
+        <span class="ns-badge">hook={{ summary.v915_deploy_hook_state }}</span>
+        <span class="ns-badge">api={{ summary.v915_render_api_key_state }}</span>
+      </div>
+    </article>
+    <article class="ns-admin-card">
+      <h2>Post-deploy Sentinel</h2>
+      <p>Listo para comprobar runtime, rutas publicas, admin protegido, 404, manifest, service worker y Telegram cron sin secret.</p>
+      <span class="ns-badge">{{ 'ready' if summary.v916_post_deploy_sentinel_ready else 'missing' }}</span>
+    </article>
+    <article class="ns-admin-card">
+      <h2>Security Guard</h2>
+      <p>Busca tokens, hooks, API keys y passwords visibles en codigo, reportes, workflows y docs.</p>
+      <span class="ns-badge">{{ 'ready' if summary.v916_secret_guard_ready else 'missing' }}</span>
+    </article>
   </section>
 
   <section class="ns-grid ns-grid-2 v915-command-grid">
     <article class="ns-admin-card">
       <div class="ns-section-title">
         <h2>Workers</h2>
-        <span class="ns-badge">{{ workforce.workers|length }} módulos</span>
+        <span class="ns-badge">{{ workforce.workers|length }} modulos</span>
       </div>
       <div class="ns-table-wrap">
         <table class="ns-table">
@@ -67,15 +105,10 @@
 
   <section class="ns-admin-card v915-deploy-readiness">
     <div class="ns-section-title">
-      <h2>Deploy seguro</h2>
-      <span class="ns-badge">{{ summary.v915_render_deploy_worker_status }}</span>
+      <h2>Acciones seguras</h2>
+      <span class="ns-badge">{{ summary.v916_next_required_action or summary.v915_next_required_action }}</span>
     </div>
-    <p>El deploy automático solo queda habilitado si existe autorización explícita y las variables de entorno están configuradas. La UI no muestra hooks, tokens ni claves.</p>
-    <div class="ns-grid ns-grid-3">
-      <article class="ns-stat"><span>Deploy hook</span><strong>{{ summary.v915_deploy_hook_state }}</strong><small>mascarado</small></article>
-      <article class="ns-stat"><span>Render API</span><strong>{{ summary.v915_render_api_key_state }}</strong><small>mascarado</small></article>
-      <article class="ns-stat"><span>Service ID</span><strong>{{ summary.v915_render_service_id_state }}</strong><small>mascarado</small></article>
-    </div>
+    <p>Estas acciones ejecutan dry-run o lectura de estado. No hacen deploy real, no envian Telegram real y no tocan pagos.</p>
     <div class="ns-actions">
       <button class="ns-button ns-button-secondary" type="button" data-v904-fetch="/api/admin/automation-workforce/run-checks">Release Manager dry-run</button>
       <button class="ns-button ns-button-secondary" type="button" data-v904-fetch="/api/admin/automation-workforce/post-deploy-sentinel">Post-deploy Sentinel dry-run</button>
@@ -84,9 +117,9 @@
   </section>
 
   <section class="ns-admin-card">
-    <h2>Próxima acción recomendada</h2>
-    <p>{{ workforce.next_action or 'Ejecutar Release Manager dry-run y revisar runtime antes de cualquier deploy.' }}</p>
-    <div class="ns-empty ns-empty-compact">Producción solo se declara cuando <code>/api/runtime-version</code> devuelve la versión esperada y <code>deployment_alignment_status=aligned_local_files</code>.</div>
+    <h2>Proxima accion recomendada</h2>
+    <p>{{ summary.v916_next_required_action or workforce.next_action or 'Ejecutar Release Manager dry-run y revisar runtime antes de cualquier deploy.' }}</p>
+    <div class="ns-empty ns-empty-compact">Produccion solo se declara cuando <code>/api/runtime-version</code> devuelve la version esperada y <code>deployment_alignment_status=aligned_local_files</code>.</div>
   </section>
 </section>
 {% endblock %}

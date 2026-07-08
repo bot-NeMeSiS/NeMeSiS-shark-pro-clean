@@ -12408,3 +12408,32 @@ body[data-v912-video-admin-fix="true"].ns-admin :is(
 .v915-workforce-shell .ns-table td {
   vertical-align: middle;
 }
+
+/* V916 workforce activation browser QA and deploy automation ready */
+.v916-workforce-activation .ns-page-header {
+  border-color: rgba(59, 130, 246, 0.24);
+}
+
+.v916-workforce-status-grid,
+.v916-workforce-cards {
+  align-items: stretch;
+}
+
+.v916-status-card,
+.v916-workforce-cards .ns-admin-card {
+  background:
+    linear-gradient(180deg, rgba(15, 23, 42, 0.96), rgba(2, 6, 23, 0.92)),
+    radial-gradient(circle at 12% 0%, rgba(59, 130, 246, 0.12), transparent 36%);
+}
+
+.v916-workforce-activation .ns-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.v916-workforce-activation .ns-admin-card p,
+.v916-workforce-activation .ns-stat small {
+  overflow-wrap: anywhere;
+}

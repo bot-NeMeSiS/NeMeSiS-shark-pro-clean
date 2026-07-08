@@ -1,6 +1,6 @@
 {
   "ok": true,
-  "checked_at": "2026-07-08T18:01:56",
+  "checked_at": "2026-07-08T18:26:20",
   "templates_referenced": [
     "404.html",
     "account_center.html",
@@ -140,7 +140,7 @@
   ],
   "missing_static": [],
   "import_ok": true,
-  "version": "V915_AUTOMATED_COMPANY_WORKFORCE_RENDER_DEPLOY_PIPELINE_FINAL",
+  "version": "V916_WORKFORCE_ACTIVATION_BROWSER_QA_AND_DEPLOY_AUTOMATION_READY_FINAL",
   "route_count": 600,
   "routes": [
     "/",

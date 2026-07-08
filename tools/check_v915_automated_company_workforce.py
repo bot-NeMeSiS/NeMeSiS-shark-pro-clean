@@ -10,6 +10,10 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V915_AUTOMATED_COMPANY_WORKFORCE_RENDER_DEPLOY_PIPELINE_FINAL"
+CURRENT_ALLOWED = {
+    VERSION,
+    "V916_WORKFORCE_ACTIVATION_BROWSER_QA_AND_DEPLOY_AUTOMATION_READY_FINAL",
+}
 ZIP_NAME = f"NeMeSiS_SHARK_PRO_{VERSION}_RENDER_READY.zip"
 WORKERS = [
     "release_manager.py",
@@ -99,12 +103,12 @@ def main() -> int:
     version_bytes = (ROOT / "VERSION.txt").read_bytes()
 
     require(not version_bytes.startswith(b"\xef\xbb\xbf"), "VERSION.txt has BOM", failures)
-    require(version_bytes.decode("utf-8").strip() == VERSION, "VERSION.txt is not V915", failures)
-    require(read("APP_VERSION").strip().lstrip("\ufeff") == VERSION, "APP_VERSION is not V915", failures)
-    require(app_version_from_source(app_py) == VERSION, "app.py APP_VERSION is not V915", failures)
+    require(version_bytes.decode("utf-8").strip() in CURRENT_ALLOWED, "VERSION.txt is not V915 or a compatible successor", failures)
+    require(read("APP_VERSION").strip().lstrip("\ufeff") in CURRENT_ALLOWED, "APP_VERSION is not V915 or a compatible successor", failures)
+    require(app_version_from_source(app_py) in CURRENT_ALLOWED, "app.py APP_VERSION is not V915 or a compatible successor", failures)
     require("data-v915-workforce-shell" in base, "base V915 marker missing", failures)
     require("V915 automated company workforce render deploy pipeline" in css, "V915 CSS marker missing", failures)
-    require("NEMESIS_CACHE_V915" in app_py, "service worker cache V915 missing", failures)
+    require("NEMESIS_CACHE_V915" in app_py or "NEMESIS_CACHE_V916" in app_py, "service worker cache V915/V916 missing", failures)
 
     for worker in WORKERS:
         require((ROOT / "automation_workforce" / worker).exists(), f"missing worker {worker}", failures)
@@ -134,7 +138,7 @@ def main() -> int:
     runtime_resp = client.get("/api/runtime-version")
     runtime = runtime_resp.get_json(silent=True) or {}
     require(runtime_resp.status_code == 200, "runtime-version not 200", failures)
-    require(runtime.get("version") == VERSION, "runtime version is not V915", failures)
+    require(runtime.get("version") in CURRENT_ALLOWED, "runtime version is not V915 or a compatible successor", failures)
     require(runtime.get("version_files_match") is True, "runtime version_files_match false", failures)
     require(runtime.get("deployment_alignment_status") == "aligned_local_files", "runtime not aligned", failures)
     for flag in [

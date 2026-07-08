@@ -1,14 +1,14 @@
 # V915 Runtime Verification Report
 
-- Generado: `2026-07-08T18:01:26+02:00`
-- Version: `V915_AUTOMATED_COMPANY_WORKFORCE_RENDER_DEPLOY_PIPELINE_FINAL`
+- Generado: `2026-07-08T18:26:04+02:00`
+- Version: `V916_WORKFORCE_ACTIVATION_BROWSER_QA_AND_DEPLOY_AUTOMATION_READY_FINAL`
 
 - ok: `False`
-- version: `V915_AUTOMATED_COMPANY_WORKFORCE_RENDER_DEPLOY_PIPELINE_FINAL`
+- version: `V916_WORKFORCE_ACTIVATION_BROWSER_QA_AND_DEPLOY_AUTOMATION_READY_FINAL`
 - dry_run: `True`
 - runtime_url: `https://bot-apuestas-crgf.onrender.com/api/runtime-version`
 - http_status: `0`
-- expected_version: `V915_AUTOMATED_COMPANY_WORKFORCE_RENDER_DEPLOY_PIPELINE_FINAL`
+- expected_version: `V916_WORKFORCE_ACTIVATION_BROWSER_QA_AND_DEPLOY_AUTOMATION_READY_FINAL`
 - render_version: `None`
 - version_files_match: `None`
 - deployment_alignment_status: `None`
