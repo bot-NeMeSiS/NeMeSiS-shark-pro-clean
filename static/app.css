@@ -12465,3 +12465,11 @@ body[data-v912-video-admin-fix="true"].ns-admin :is(
     linear-gradient(180deg, rgba(15, 23, 42, 0.97), rgba(2, 6, 23, 0.94)),
     radial-gradient(circle at 90% 0%, rgba(251, 191, 36, 0.1), transparent 34%);
 }
+
+/* V920 Browser QA artifact capture/upload execution */
+.v920-browser-qa-artifacts-panel {
+  border-color: rgba(56, 189, 248, 0.28);
+  background:
+    linear-gradient(180deg, rgba(15, 23, 42, 0.97), rgba(2, 6, 23, 0.94)),
+    radial-gradient(circle at 90% 0%, rgba(56, 189, 248, 0.1), transparent 34%);
+}

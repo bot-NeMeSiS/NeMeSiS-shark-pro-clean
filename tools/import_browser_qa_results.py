@@ -8,13 +8,14 @@ from zoneinfo import ZoneInfo
 
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = "V919_BROWSER_QA_RESULTS_IMPORT_VALIDATION_AND_VISUAL_QUEUE_GATE_FINAL"
+VERSION = "V920_BROWSER_QA_ARTIFACTS_CAPTURE_OR_UPLOAD_EXECUTION_FINAL"
 MADRID_TZ = ZoneInfo("Europe/Madrid")
 VALID_QUEUE_STATUSES = {
     "BLOCKED_NO_SCREENSHOT",
     "READY_FOR_CODEX",
     "FIXABLE_SAFE",
     "FIXED_BY_V919",
+    "FIXED_BY_V920",
     "NEEDS_HUMAN_VISUAL_REVIEW",
     "DANGEROUS_REQUIRES_APPROVAL",
 }
@@ -132,12 +133,14 @@ def build_outbox(queue: dict, status: dict) -> str:
     blocked = [item for item in queue.get("items", []) if item.get("status") == "BLOCKED_NO_SCREENSHOT"]
     ready = [item for item in queue.get("items", []) if item.get("status") in {"READY_FOR_CODEX", "FIXABLE_SAFE"}]
     lines = [
-        "# Codex Outbox - V919 Browser QA Evidence Gate",
+        "# Codex Outbox - V920 Browser QA Artifacts Gate",
+        "",
+        "compatibility_section: V919_BROWSER_QA_REQUIRED",
         "",
         "pixel_perfect_claim: false",
         f"generated_at_madrid: {now_madrid()}",
         f"browser_qa_status: {status.get('browser_qa_status') or 'BROWSER_QA_UNAVAILABLE'}",
-        f"v919_import_status: {status.get('v919_import_status')}",
+        f"v920_import_status: {status.get('v920_import_status') or status.get('v919_import_status')}",
         f"valid_screenshots_count: {status.get('screenshots_captured') or 0}",
         f"visual_queue_total: {queue.get('queue_count', 0)}",
         f"visual_queue_blocked: {queue.get('blocked_no_screenshot_count', 0)}",
@@ -145,7 +148,7 @@ def build_outbox(queue: dict, status: dict) -> str:
         "",
     ]
     if ready:
-        lines.append("## V919_SCREENSHOT_CONFIRMED_PROMPTS")
+        lines.append("## V920_SCREENSHOT_CONFIRMED_PROMPTS")
         for item in ready:
             lines.extend([
                 f"- `{item.get('route')}` `{item.get('device')}`",
@@ -154,24 +157,24 @@ def build_outbox(queue: dict, status: dict) -> str:
                 f"  - Prompt: {item.get('codex_prompt')}",
             ])
         lines.append("")
-        lines.append("## V919_READY_FOR_CODEX")
+        lines.append("## V920_READY_FOR_CODEX")
         lines.append("- Items above have screenshot evidence and may be reviewed by Codex.")
     else:
         lines.extend([
-            "## V919_BROWSER_QA_REQUIRED",
+            "## V920_BROWSER_QA_REQUIRED",
             "- No visual item has real screenshot evidence.",
             "- Execute Browser QA locally or through GitHub Actions before visual fixes.",
             "",
-            "## V919_RESULTS_FOUND_BUT_NO_SCREENSHOTS",
+            "## V920_RESULTS_FOUND_BUT_NO_SCREENSHOTS",
             "- Browser QA JSON files exist, but no valid desktop/mobile screenshot files were found.",
             "",
-            "## V919_BLOCKED_NO_SCREENSHOT",
+            "## V920_BLOCKED_NO_SCREENSHOT",
         ])
         for item in blocked:
             lines.append(f"- `{item.get('route')}` `{item.get('device')}` -> {item.get('gap')}")
         lines.extend([
             "",
-            "## V919_NEXT_ACTION_RUN_BROWSER_QA",
+            "## V920_NEXT_ACTION_RUN_BROWSER_QA_OR_UPLOAD_ARTIFACTS",
             "- Run Browser QA and upload/import artifacts containing real screenshots.",
         ])
     lines.extend([
@@ -179,7 +182,7 @@ def build_outbox(queue: dict, status: dict) -> str:
         "## ARCHIVED_OBSOLETE_PROMPTS",
         "- JSON-only visual prompts remain archived until Browser QA screenshots exist.",
         "",
-        "## V919_DANGEROUS_REQUIRES_APPROVAL",
+        "## V920_DANGEROUS_REQUIRES_APPROVAL",
         "- No dangerous automatic action was executed.",
         "- Do not touch payments, DB, users, real Telegram, secrets or deploy without approval.",
     ])
@@ -254,6 +257,10 @@ def import_browser_qa_results(input_dir: Path, update_runtime_data: bool) -> dic
         "desktop_screenshots_count": len(inventory["desktop"]),
         "mobile_screenshots_count": len(inventory["mobile"]),
         "v919_import_status": "VALID_SCREENSHOTS_IMPORTED" if valid_count else "NO_VALID_SCREENSHOTS_TO_IMPORT",
+        "v920_import_status": "VALID_SCREENSHOTS_IMPORTED" if valid_count else "NO_VALID_SCREENSHOTS_TO_IMPORT",
+        "v920_valid_screenshots_count": valid_count,
+        "v920_desktop_screenshots_count": len(inventory["desktop"]),
+        "v920_mobile_screenshots_count": len(inventory["mobile"]),
         "pixel_perfect_claim_allowed": False,
     })
     comparison.update({

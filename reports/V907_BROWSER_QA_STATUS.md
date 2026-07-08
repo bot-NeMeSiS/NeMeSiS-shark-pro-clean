@@ -1,6 +1,6 @@
 # V907 Browser QA Status
 
-- Version: V915_AUTOMATED_COMPANY_WORKFORCE_RENDER_DEPLOY_PIPELINE_FINAL
+- Version: V920_BROWSER_QA_ARTIFACTS_CAPTURE_OR_UPLOAD_EXECUTION_FINAL
 - Status: PACKAGE_MISSING
 - Playwright available: False
 - Browsers available: False

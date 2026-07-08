@@ -1,7 +1,7 @@
 {
   "ok": true,
-  "version": "V915_AUTOMATED_COMPANY_WORKFORCE_RENDER_DEPLOY_PIPELINE_FINAL",
-  "generated_at_madrid": "2026-07-08T17:16:58+02:00",
+  "version": "V920_BROWSER_QA_ARTIFACTS_CAPTURE_OR_UPLOAD_EXECUTION_FINAL",
+  "generated_at_madrid": "2026-07-08T22:23:19+02:00",
   "browser_available": false,
   "playwright_available": false,
   "browsers_available": false,
