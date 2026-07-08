@@ -23,9 +23,13 @@ def run_telegram_dry_run_watcher(dry_run: bool = True) -> dict:
         "dedupe_preserved": "dedupe" in app_py.lower(),
         "no_filler_preserved": "no filler" in app_py.lower() or "no_filler" in app_py.lower(),
         "no_real_telegram": True,
+        "status": "ok" if "QUEUE_SKIPPED" in app_py and "/api/automation/telegram/tick" in app_py else "action_required",
+        "safe_message": "Telegram watcher verifica estructura y mascaras; no envia mensajes reales.",
+        "next_action": "continue" if "QUEUE_SKIPPED" in app_py and "/api/automation/telegram/tick" in app_py else "review_telegram_tick_route",
+        "report_path": "reports/V917_TELEGRAM_DRY_RUN_WATCHER_QA.md",
         "note": "Dry-run watcher avoids legacy exact-version checks and never sends real Telegram.",
     }
-    write_report("V915_TELEGRAM_DRY_RUN_WATCHER_REPORT.md", "V915 Telegram Dry-Run Watcher Report", payload)
+    write_report("V917_TELEGRAM_DRY_RUN_WATCHER_QA.md", "V917 Telegram Dry-Run Watcher QA", payload)
     return payload
 
 

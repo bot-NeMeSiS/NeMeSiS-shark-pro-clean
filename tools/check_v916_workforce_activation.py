@@ -8,6 +8,10 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V916_WORKFORCE_ACTIVATION_BROWSER_QA_AND_DEPLOY_AUTOMATION_READY_FINAL"
+CURRENT_ALLOWED = {
+    VERSION,
+    "V917_WORKFORCE_FIRST_FULL_AUTOMATED_RUN_AND_REPORTING_FINAL",
+}
 ZIP_NAME = f"NeMeSiS_SHARK_PRO_{VERSION}_RENDER_READY.zip"
 REPORTS = [
     "V916_WORKFORCE_ACTIVATION_REPORT.md",
@@ -70,10 +74,10 @@ def main() -> int:
     version_bytes = (ROOT / "VERSION.txt").read_bytes()
 
     require(not version_bytes.startswith(b"\xef\xbb\xbf"), "VERSION.txt has BOM", failures)
-    require(version_bytes.decode("utf-8").strip() == VERSION, "VERSION.txt is not V916", failures)
-    require(read("APP_VERSION").strip().lstrip("\ufeff") == VERSION, "APP_VERSION is not V916", failures)
-    require(app_version(app_py) == VERSION, "app.py APP_VERSION is not V916", failures)
-    require("NEMESIS_CACHE_V916" in app_py, "service worker cache is not V916", failures)
+    require(version_bytes.decode("utf-8").strip() in CURRENT_ALLOWED, "VERSION.txt is not V916 or compatible successor", failures)
+    require(read("APP_VERSION").strip().lstrip("\ufeff") in CURRENT_ALLOWED, "APP_VERSION is not V916 or compatible successor", failures)
+    require(app_version(app_py) in CURRENT_ALLOWED, "app.py APP_VERSION is not V916 or compatible successor", failures)
+    require("NEMESIS_CACHE_V916" in app_py or "NEMESIS_CACHE_V917" in app_py, "service worker cache is not V916/V917", failures)
 
     for flag in [
         "has_v916_workforce_activation",
@@ -117,7 +121,7 @@ def main() -> int:
     runtime = client.get("/api/runtime-version")
     payload = runtime.get_json(silent=True) or {}
     require(runtime.status_code == 200, "runtime-version not 200", failures)
-    require(payload.get("version") == VERSION, "runtime version is not V916", failures)
+    require(payload.get("version") in CURRENT_ALLOWED, "runtime version is not V916 or compatible successor", failures)
     require(payload.get("version_files_match") is True, "runtime version_files_match false", failures)
     require(payload.get("deployment_alignment_status") == "aligned_local_files", "runtime not aligned", failures)
     require(payload.get("has_v916_workforce_activation") is True, "V916 workforce activation flag false", failures)

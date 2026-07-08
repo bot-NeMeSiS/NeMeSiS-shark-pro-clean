@@ -33,12 +33,15 @@ def run_visual_queue_manager(dry_run: bool = True) -> dict:
         "status_counts": dict(counts),
         "invalid_statuses": invalid,
         "next_action": "run_browser_qa" if len(queue) and blocked == len(queue) else "review_ready_visual_queue",
+        "status": "blocked_no_screenshot" if len(queue) and blocked == len(queue) else "ready",
+        "safe_message": "Visual Queue no marca resuelto nada sin screenshots reales.",
+        "report_path": "reports/V917_VISUAL_QUEUE_MANAGER_RUN_QA.md",
         "pixel_perfect_claim_allowed": False,
     }
     if not dry_run:
         OUTBOX.parent.mkdir(parents=True, exist_ok=True)
         OUTBOX.write_text("# Codex Outbox - V915 Visual Queue\n\npixel_perfect_claim_allowed: false\n\n## V915_VISUAL_QUEUE_STATUS\n\n" + "\n".join(f"- {k}: {v}" for k, v in sorted(counts.items())) + "\n", encoding="utf-8")
-    write_report("V916_VISUAL_QUEUE_MANAGER_STATUS_QA.md", "V916 Visual Queue Manager Status QA", payload)
+    write_report("V917_VISUAL_QUEUE_MANAGER_RUN_QA.md", "V917 Visual Queue Manager Run QA", payload)
     return payload
 
 

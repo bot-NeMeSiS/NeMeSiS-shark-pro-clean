@@ -257,6 +257,8 @@ def include(path: Path) -> bool:
     if parts[0] == "reports":
         if path.suffix.lower() in REPORT_BINARY_SUFFIXES:
             return False
+        if "SECRET" in rel_posix.upper():
+            return False
         return (
             rel_posix == "reports/CODEX_DAILY_PROMPT_CURRENT.txt"
             or rel_posix.startswith("reports/v810_telegram_previews/")
@@ -515,7 +517,25 @@ def include(path: Path) -> bool:
             or rel_posix.startswith("reports/V909_")
             or rel_posix.startswith("reports/V910_")
             or rel_posix.startswith("reports/V911_")
+            or rel_posix.startswith("reports/V912_")
+            or rel_posix.startswith("reports/V913_")
+            or rel_posix.startswith("reports/V914_")
+            or rel_posix.startswith("reports/V915_")
+            or rel_posix.startswith("reports/V916_")
+            or rel_posix.startswith("reports/V917_")
+            or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V912")
+            or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V913")
+            or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V914")
+            or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V915")
+            or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V916")
+            or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V917")
         )
+    if rel_posix in {
+        "data/runtime/automation_workforce/latest_run.json",
+        "data/runtime/autonomous_company_sentinel/visual_fix_queue.json",
+        "data/runtime/autonomous_company_sentinel/browser_qa_status.json",
+    }:
+        return True
     if any(part in EXCLUDE_DIRS for part in parts):
         return False
     if path.name in EXCLUDE_NAMES:

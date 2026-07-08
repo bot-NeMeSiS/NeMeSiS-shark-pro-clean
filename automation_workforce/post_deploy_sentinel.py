@@ -36,19 +36,24 @@ def run_post_deploy_sentinel(dry_run: bool = True) -> dict:
     ok = all(item.get("ok") for item in route_results) and runtime.get("ok")
     if dry_run and network_blocked and runtime_network_blocked:
         ok = True
+    network_status = "LOCAL_NETWORK_BLOCKED_PLAN_READY" if dry_run and network_blocked else "CHECKED"
     payload = {
         "ok": ok,
         "version": VERSION,
         "dry_run": dry_run,
-        "network_status": "LOCAL_NETWORK_BLOCKED_PLAN_READY" if dry_run and network_blocked else "CHECKED",
+        "network_status": network_status,
         "runtime": runtime,
         "routes": route_results,
         "telegram_cron_without_secret_expected": 403,
         "no_real_telegram": True,
         "no_payments_touched": True,
+        "status": "ok" if ok else "action_required",
+        "safe_message": "Post-deploy Sentinel dry-run no envia Telegram real ni toca pagos.",
+        "next_action": "run_after_deploy_from_network_enabled_environment" if network_status == "LOCAL_NETWORK_BLOCKED_PLAN_READY" else "review_route_failures",
+        "report_path": "reports/V917_POST_DEPLOY_SENTINEL_RUN_QA.md",
     }
     write_json(RUNTIME / "post_deploy_latest.json", payload)
-    write_report("V916_POST_DEPLOY_SENTINEL_PLAN.md", "V916 Post Deploy Sentinel Plan", payload)
+    write_report("V917_POST_DEPLOY_SENTINEL_RUN_QA.md", "V917 Post Deploy Sentinel Run QA", payload)
     return payload
 
 

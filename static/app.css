@@ -12437,3 +12437,11 @@ body[data-v912-video-admin-fix="true"].ns-admin :is(
 .v916-workforce-activation .ns-stat small {
   overflow-wrap: anywhere;
 }
+
+/* V917 workforce first full automated run and reporting */
+.v917-full-run-panel {
+  border-color: rgba(14, 165, 233, 0.26);
+  background:
+    linear-gradient(180deg, rgba(15, 23, 42, 0.96), rgba(2, 6, 23, 0.92)),
+    radial-gradient(circle at 10% 0%, rgba(14, 165, 233, 0.14), transparent 38%);
+}

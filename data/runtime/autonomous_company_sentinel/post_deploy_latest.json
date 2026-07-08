@@ -1,15 +1,15 @@
 {
   "ok": true,
-  "version": "V916_WORKFORCE_ACTIVATION_BROWSER_QA_AND_DEPLOY_AUTOMATION_READY_FINAL",
+  "version": "V917_WORKFORCE_FIRST_FULL_AUTOMATED_RUN_AND_REPORTING_FINAL",
   "dry_run": true,
   "network_status": "LOCAL_NETWORK_BLOCKED_PLAN_READY",
   "runtime": {
     "ok": false,
-    "version": "V916_WORKFORCE_ACTIVATION_BROWSER_QA_AND_DEPLOY_AUTOMATION_READY_FINAL",
+    "version": "V917_WORKFORCE_FIRST_FULL_AUTOMATED_RUN_AND_REPORTING_FINAL",
     "dry_run": true,
     "runtime_url": "https://bot-apuestas-crgf.onrender.com/api/runtime-version",
     "http_status": 0,
-    "expected_version": "V916_WORKFORCE_ACTIVATION_BROWSER_QA_AND_DEPLOY_AUTOMATION_READY_FINAL",
+    "expected_version": "V917_WORKFORCE_FIRST_FULL_AUTOMATED_RUN_AND_REPORTING_FINAL",
     "render_version": null,
     "version_files_match": null,
     "deployment_alignment_status": null,
@@ -17,7 +17,11 @@
     "secret_masking_ok": null,
     "db_path": null,
     "telegram_configured": null,
-    "alignment_status": "DEPLOY_ALIGNMENT_FAILED"
+    "alignment_status": "DEPLOY_ALIGNMENT_FAILED",
+    "status": "network_unavailable",
+    "safe_message": "Runtime verifier no expone secretos y no modifica produccion.",
+    "next_action": "retry_from_network_enabled_environment",
+    "report_path": "reports/V917_RUNTIME_VERIFIER_RUN_QA.md"
   },
   "routes": [
     {
@@ -89,5 +93,9 @@
   ],
   "telegram_cron_without_secret_expected": 403,
   "no_real_telegram": true,
-  "no_payments_touched": true
+  "no_payments_touched": true,
+  "status": "ok",
+  "safe_message": "Post-deploy Sentinel dry-run no envia Telegram real ni toca pagos.",
+  "next_action": "run_after_deploy_from_network_enabled_environment",
+  "report_path": "reports/V917_POST_DEPLOY_SENTINEL_RUN_QA.md"
 }

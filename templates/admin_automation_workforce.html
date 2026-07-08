@@ -1,7 +1,9 @@
 {% extends "base.html" %}
 {% block content %}
 {% set summary = workforce.summary or {} %}
-<section class="ns-admin-page v915-workforce-shell v916-workforce-activation" data-v915-template="admin_automation_workforce" data-v916-workforce-activation="true">
+{% set full_run = workforce.full_run or {} %}
+{% set latest_run = workforce.latest_run or {} %}
+<section class="ns-admin-page v915-workforce-shell v916-workforce-activation v917-workforce-full-run" data-v915-template="admin_automation_workforce" data-v916-workforce-activation="true" data-v917-full-run="true">
   <div class="ns-page-header">
     <span class="ns-chip">V916 Workforce Activation</span>
     <h1>Automation Workforce</h1>
@@ -35,6 +37,21 @@
       <strong>{{ summary.v916_visual_queue_blocked_count or 0 }}</strong>
       <small>Bloqueados por falta de screenshot.</small>
     </article>
+  </section>
+
+  <section class="ns-admin-card v917-full-run-panel">
+    <div class="ns-section-title">
+      <h2>Ultimo full run</h2>
+      <span class="ns-badge">{{ full_run.v917_workforce_last_run_status or 'not_run' }}</span>
+    </div>
+    <p>{{ latest_run.safe_message or 'Todavia no hay una ejecucion completa consolidada.' }}</p>
+    <div class="ns-grid ns-grid-4">
+      <article class="ns-stat"><span>Release Manager</span><strong>{{ full_run.v917_release_manager_status or 'not_run' }}</strong></article>
+      <article class="ns-stat"><span>Runtime Verifier</span><strong>{{ full_run.v917_runtime_verifier_status or 'not_run' }}</strong></article>
+      <article class="ns-stat"><span>Secret Guard</span><strong>{{ full_run.v917_secret_guard_status or 'not_run' }}</strong></article>
+      <article class="ns-stat"><span>Telegram Dry-run</span><strong>{{ full_run.v917_telegram_dry_run_watcher_status or 'not_run' }}</strong></article>
+    </div>
+    <div class="ns-empty ns-empty-compact">Siguiente accion: {{ full_run.v917_next_required_action or 'run_full_workforce' }}</div>
   </section>
 
   <section class="ns-grid ns-grid-3 v916-workforce-cards">

@@ -46,8 +46,12 @@ def run_runtime_verifier(dry_run: bool = True, expected_version: str | None = No
         "db_path": runtime.get("db_path"),
         "telegram_configured": runtime.get("telegram_configured"),
         "alignment_status": "ALIGNED" if aligned else "DEPLOY_ALIGNMENT_FAILED",
+        "status": "ok" if aligned else ("network_unavailable" if status_code == 0 else "deploy_alignment_failed"),
+        "safe_message": "Runtime verifier no expone secretos y no modifica produccion.",
+        "next_action": "deploy_expected_version" if status_code == 200 and not aligned else ("retry_from_network_enabled_environment" if status_code == 0 else "post_deploy_sentinel"),
+        "report_path": "reports/V917_RUNTIME_VERIFIER_RUN_QA.md",
     }
-    write_report("V915_RUNTIME_VERIFICATION_REPORT.md", "V915 Runtime Verification Report", payload)
+    write_report("V917_RUNTIME_VERIFIER_RUN_QA.md", "V917 Runtime Verifier Run QA", payload)
     return payload
 
 

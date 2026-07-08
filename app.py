@@ -339,7 +339,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V916_WORKFORCE_ACTIVATION_BROWSER_QA_AND_DEPLOY_AUTOMATION_READY_FINAL'
+APP_VERSION = 'V917_WORKFORCE_FIRST_FULL_AUTOMATED_RUN_AND_REPORTING_FINAL'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 
@@ -10512,7 +10512,7 @@ def dashboard_data(lane="today", date=None):
 @app.route("/service-worker.js")
 def service_worker():
     body = (
-        "const NEMESIS_CACHE='NEMESIS_CACHE_V916';\n"
+        "const NEMESIS_CACHE='NEMESIS_CACHE_V917';\n"
         "self.addEventListener('install',event=>{self.skipWaiting();});\n"
         "self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==NEMESIS_CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));});\n"
         "self.addEventListener('fetch',event=>{const req=event.request;if(req.mode==='navigate'){event.respondWith(fetch(req).then(res=>{if(res.status===404){return fetch('/');}return res;}).catch(()=>fetch('/')));return;}event.respondWith(fetch(req).then(res=>{if(res.status===404){return res;}return res;}));});\n"
@@ -13836,7 +13836,13 @@ def admin_sentinel_codex_outbox_page():
 def v915_admin_workforce_status() -> dict:
     """Build the admin-safe V915 workforce status without exposing secrets."""
     summary = v915_automated_workforce_runtime_summary()
+    full_run = v917_workforce_full_run_runtime_summary()
     root = Path(__file__).resolve().parent
+    latest_path = root / "data" / "runtime" / "automation_workforce" / "latest_run.json"
+    try:
+        latest_run = json.loads(latest_path.read_text(encoding="utf-8-sig", errors="replace")) if latest_path.exists() else {}
+    except Exception:
+        latest_run = {}
     workers = [
         {"name": "Release Manager", "file": "release_manager.py", "status": "ready" if (root / "automation_workforce" / "release_manager.py").exists() else "missing"},
         {"name": "Runtime Verification", "file": "runtime_verifier.py", "status": summary.get("v915_runtime_verifier_status")},
@@ -13857,6 +13863,8 @@ def v915_admin_workforce_status() -> dict:
         "version": APP_VERSION,
         "runtime_identity": get_safe_runtime_identity_for_admin(),
         "summary": summary,
+        "full_run": full_run,
+        "latest_run": latest_run,
         "workers": workers,
         "workflows": workflows,
         "next_action": summary.get("v915_next_required_action"),
@@ -15476,6 +15484,27 @@ def v915_automated_workforce_runtime_summary() -> dict:
     }
 
 
+def v917_workforce_full_run_runtime_summary() -> dict:
+    """Runtime-safe summary of the latest full automation workforce run."""
+    root = Path(__file__).resolve().parent
+    latest_path = root / "data" / "runtime" / "automation_workforce" / "latest_run.json"
+    try:
+        latest = json.loads(latest_path.read_text(encoding="utf-8-sig", errors="replace")) if latest_path.exists() else {}
+    except Exception:
+        latest = {}
+    return {
+        "v917_workforce_last_run_status": latest.get("overall_status") or "not_run",
+        "v917_release_manager_status": latest.get("release_manager_status") or "not_run",
+        "v917_runtime_verifier_status": latest.get("runtime_verifier_status") or "not_run",
+        "v917_post_deploy_sentinel_status": latest.get("post_deploy_sentinel_status") or "not_run",
+        "v917_secret_guard_status": latest.get("secret_guard_status") or "not_run",
+        "v917_browser_qa_orchestrator_status": latest.get("browser_qa_orchestrator_status") or "not_run",
+        "v917_visual_queue_manager_status": latest.get("visual_queue_manager_status") or "not_run",
+        "v917_telegram_dry_run_watcher_status": latest.get("telegram_dry_run_watcher_status") or "not_run",
+        "v917_next_required_action": latest.get("next_required_action") or "run_full_workforce",
+    }
+
+
 def get_safe_runtime_identity_for_admin() -> dict:
     """Return local runtime identity for admin panels without external calls or secrets."""
     version_txt = ""
@@ -15579,6 +15608,7 @@ def api_runtime_version():
     v912_summary = v912_video_admin_ui_copy_polish_runtime_summary()
     v913_summary = v913_browser_qa_runtime_truth_summary()
     v915_summary = v915_automated_workforce_runtime_summary()
+    v917_summary = v917_workforce_full_run_runtime_summary()
     return jsonify(sanitize_runtime_value({
         "ok": True,
         "app": APP_NAME,
@@ -15819,6 +15849,9 @@ def api_runtime_version():
         "has_v916_deploy_hook_activation_guide": (Path(__file__).resolve().parent / "reports" / "V916_RENDER_DEPLOY_HOOK_ACTIVATION_GUIDE.md").exists(),
         "has_v916_browser_qa_activation_guide": (Path(__file__).resolve().parent / "reports" / "V916_BROWSER_QA_ACTIVATION_GUIDE.md").exists(),
         "has_v916_workforce_status_truth": "v916_workforce_core_ready" in app_py_text,
+        "has_v917_workforce_first_full_run": (Path(__file__).resolve().parent / "data" / "runtime" / "automation_workforce" / "latest_run.json").exists(),
+        "has_v917_workforce_reporting": (Path(__file__).resolve().parent / "reports" / "V917_WORKER_STATUS_SUMMARY.md").exists(),
+        "has_v917_worker_status_runtime": "v917_workforce_full_run_runtime_summary" in app_py_text,
         **v902_truth_summary,
         **v904_summary,
         **v906_summary,
@@ -15830,6 +15863,7 @@ def api_runtime_version():
         **v912_summary,
         **v913_summary,
         **v915_summary,
+        **v917_summary,
         "active_errors_count": v903_active_errors_count,
         "fixed_safe_count": v903_archived_count,
         "stale_issues_count": v903_stale_issues_count,

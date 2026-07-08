@@ -39,12 +39,15 @@ def run_browser_qa_orchestrator(dry_run: bool = True) -> dict:
         "screenshots_available": screenshots_available,
         "visual_queue_blocked": blocked,
         "next_action": "run_browser_qa" if package_available and browsers_available else "install_playwright_or_run_github_action",
+        "status": "ok" if package_available and browsers_available else "package_missing",
+        "safe_message": "Browser QA orchestrator no declara pixel-perfect sin capturas reales.",
+        "report_path": "reports/V917_BROWSER_QA_ORCHESTRATOR_RUN_QA.md",
         "environment_check": env,
         "browser_qa": qa,
         "import_results": importer,
         "pixel_perfect_claim_allowed": False,
     }
-    write_report("V916_BROWSER_QA_ORCHESTRATOR_STATUS_QA.md", "V916 Browser QA Orchestrator Status QA", payload)
+    write_report("V917_BROWSER_QA_ORCHESTRATOR_RUN_QA.md", "V917 Browser QA Orchestrator Run QA", payload)
     return payload
 
 
