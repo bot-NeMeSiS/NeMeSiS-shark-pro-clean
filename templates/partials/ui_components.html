@@ -8,9 +8,9 @@
 
 {% macro stat_card(title, value, detail='', tone='neutral', href='') -%}
 {% if href %}<a class="ns-card ns-stat v878-ui-current v860-stat-card v864-stat-card v868-pro-stat-card metric-card v860-tone-{{ tone }}" href="{{ href }}">{% else %}<article class="ns-card ns-stat v878-ui-current v860-stat-card v864-stat-card v868-pro-stat-card metric-card v860-tone-{{ tone }}">{% endif %}
-  <span>{{ title }}</span>
-  <strong>{{ value }}</strong>
-  {% if detail %}<small>{{ detail }}</small>{% endif %}
+  <span class="v911-kpi-label">{{ title }}</span>
+  <strong class="v911-kpi-value">{{ value }}</strong>
+  {% if detail %}<small class="v911-kpi-hint">{{ detail }}</small>{% endif %}
 {% if href %}</a>{% else %}</article>{% endif %}
 {%- endmacro %}
 
@@ -24,9 +24,9 @@
 
 {% macro board_card(title, value='', detail='', tone='neutral') -%}
 <article class="ns-card ns-command-card v878-ui-current v860-board-card v864-command-center-card v868-pro-board-card command-center-card v860-tone-{{ tone }}">
-  <span>{{ title }}</span>
-  {% if value %}<strong>{{ value }}</strong>{% endif %}
-  {% if detail %}<small>{{ detail }}</small>{% endif %}
+  <span class="v911-kpi-label">{{ title }}</span>
+  {% if value %}<strong class="v911-kpi-value">{{ value }}</strong>{% endif %}
+  {% if detail %}<small class="v911-kpi-hint">{{ detail }}</small>{% endif %}
 </article>
 {%- endmacro %}
 

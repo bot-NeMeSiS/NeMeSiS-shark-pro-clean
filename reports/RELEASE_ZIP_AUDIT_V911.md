@@ -1,8 +1,8 @@
 # Auditoría ZIP V911
 
-- ZIP: `NeMeSiS_SHARK_PRO_V911_REAL_BROWSER_SCREENSHOT_VISUAL_FIX_EXECUTION_FINAL_RENDER_READY.zip`
-- Archivos: 2099
-- Tamaño ZIP: 27271103 bytes
+- ZIP: `NeMeSiS_SHARK_PRO_V911_VIDEO_ADMIN_UI_BINDING_BROWSER_QA_QUEUE_FIX_FINAL_RENDER_READY.zip`
+- Archivos: 2106
+- Tamaño ZIP: 27280317 bytes
 - Prohibidos: 0
 - Resultado: OK
 - Root obligatorio ausente: ninguno
@@ -10,11 +10,11 @@
 ## Carpetas principales
 - `reference_images`: 24 archivos, 24921842 bytes
 - `engines`: 124 archivos, 1374281 bytes
-- `tools`: 481 archivos, 1339822 bytes
-- `reports`: 1093 archivos, 1285500 bytes
-- `app.py`: 1 archivos, 985614 bytes
-- `static`: 2 archivos, 932353 bytes
-- `templates`: 168 archivos, 689976 bytes
+- `tools`: 482 archivos, 1348694 bytes
+- `reports`: 1099 archivos, 1291549 bytes
+- `app.py`: 1 archivos, 987737 bytes
+- `static`: 2 archivos, 935492 bytes
+- `templates`: 168 archivos, 691823 bytes
 - `V726_PROJECT_TREE_AUDIT.md`: 1 archivos, 96394 bytes
 - `CHATGPT_CONTINUATION_REPORT.md`: 1 archivos, 67783 bytes
 - `docs`: 57 archivos, 45646 bytes

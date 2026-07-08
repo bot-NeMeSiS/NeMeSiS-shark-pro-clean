@@ -1,12 +1,12 @@
 {
-  "version": "V911_REAL_BROWSER_SCREENSHOT_VISUAL_FIX_EXECUTION_FINAL",
-  "created_at": "2026-07-08T01:10:20",
-  "zip": "NeMeSiS_SHARK_PRO_V911_REAL_BROWSER_SCREENSHOT_VISUAL_FIX_EXECUTION_FINAL_RENDER_READY.zip",
-  "zip_path": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\release_output\\NeMeSiS_SHARK_PRO_V911_REAL_BROWSER_SCREENSHOT_VISUAL_FIX_EXECUTION_FINAL_RENDER_READY.zip",
+  "version": "V911_VIDEO_ADMIN_UI_BINDING_BROWSER_QA_QUEUE_FIX_FINAL",
+  "created_at": "2026-07-08T01:31:29",
+  "zip": "NeMeSiS_SHARK_PRO_V911_VIDEO_ADMIN_UI_BINDING_BROWSER_QA_QUEUE_FIX_FINAL_RENDER_READY.zip",
+  "zip_path": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\release_output\\NeMeSiS_SHARK_PRO_V911_VIDEO_ADMIN_UI_BINDING_BROWSER_QA_QUEUE_FIX_FINAL_RENDER_READY.zip",
   "zip_inside_project_tree": true,
   "output_dir": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\release_output",
   "manifest": "RELEASE_MANIFEST_V911.json",
-  "files": 2099,
+  "files": 2106,
   "internal_zips": [],
   "has_internal_zips": false,
   "forbidden_folders_included": [],
@@ -211,6 +211,6 @@
   ],
   "security_policy": "No incluye .git, .venv, caches, bases de datos locales, logs, ZIPs internos ni secretos reales.",
   "render_ready": true,
-  "zip_size_bytes": 27271103,
-  "zip_file_count": 2099
+  "zip_size_bytes": 27280317,
+  "zip_file_count": 2106
 }

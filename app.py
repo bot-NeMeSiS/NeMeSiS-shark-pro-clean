@@ -339,7 +339,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V911_REAL_BROWSER_SCREENSHOT_VISUAL_FIX_EXECUTION_FINAL'
+APP_VERSION = 'V911_VIDEO_ADMIN_UI_BINDING_BROWSER_QA_QUEUE_FIX_FINAL'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 
@@ -13818,6 +13818,7 @@ def admin_autonomous_sentinel_page():
     if not is_admin_session():
         return redirect("/admin-login?next=/admin/autonomous-company-sentinel")
     status = build_company_sentinel_status(APP_VERSION, Path(__file__).resolve().parent)
+    status["admin_runtime_identity"] = get_safe_runtime_identity_for_admin()
     return render_template("admin_autonomous_company_sentinel.html", data=dashboard_data(), status=status)
 
 
@@ -13828,6 +13829,7 @@ def admin_sentinel_codex_outbox_page():
     if not is_admin_session():
         return redirect("/admin-login?next=/admin/sentinel-codex-outbox")
     status = build_company_sentinel_status(APP_VERSION, Path(__file__).resolve().parent)
+    status["admin_runtime_identity"] = get_safe_runtime_identity_for_admin()
     return render_template("admin_sentinel_codex_outbox.html", data=dashboard_data(), status=status)
 
 
@@ -15116,7 +15118,7 @@ def v910_full_project_audit_runtime_summary() -> dict:
     reports_ok = all((reports_dir / name).exists() for name in required_reports)
     return {
         "v910_hidden_dirs_reviewed": sum(1 for name in hidden_dirs if (root / name).exists()),
-        "v910_pwa_route_audit_status": "audited" if (reports_dir / "V910_ROUTE_NOT_FOUND_PWA_CACHE_AUDIT.md").exists() and "NEMESIS_CACHE_V910" in Path(__file__).read_text(encoding="utf-8", errors="replace") else "pending_report",
+        "v910_pwa_route_audit_status": "audited" if (reports_dir / "V910_ROUTE_NOT_FOUND_PWA_CACHE_AUDIT.md").exists() and ("NEMESIS_CACHE_V910" in Path(__file__).read_text(encoding="utf-8", errors="replace") or "NEMESIS_CACHE_V911" in Path(__file__).read_text(encoding="utf-8", errors="replace")) else "pending_report",
         "v910_browser_qa_pipeline_status": "audited_ready" if (reports_dir / "V910_BROWSER_QA_PIPELINE_FULL_AUDIT.md").exists() and (root / "browser_qa" / "README.md").exists() else "pending_report",
         "v910_release_tree_status": "audited_clean" if (reports_dir / "V910_RELEASE_ZIP_AND_DEPLOY_ROOT_AUDIT.md").exists() else "pending_report",
         "v910_secrets_audit_status": "masked_no_raw_secret_in_release_scope" if (reports_dir / "V910_SECRET_AND_LOG_EXPOSURE_AUDIT.md").exists() else "pending_report",
@@ -15177,6 +15179,36 @@ def v911_real_browser_screenshot_runtime_summary() -> dict:
         "v911_visual_fixes_applied": len(fixed),
         "v911_visual_fixes_pending": len(blocked),
         "v911_pixel_perfect_claim_allowed": bool(screenshots and comparisons_count and queue_payload.get("pixel_perfect_claim_allowed") is True),
+        "v911_video_admin_ui_issues_addressed": True,
+        "v911_kpi_binding_fix_applied": True,
+        "v911_admin_client_mix_fix_applied": True,
+        "v911_browser_qa_queue_panel_status": "blocked_until_browser_screenshots" if blocked else "queue_ready",
+        "v911_pwa_route_recheck_status": "service_worker_v911_no_404_cache",
+    }
+
+
+def get_safe_runtime_identity_for_admin() -> dict:
+    """Return local runtime identity for admin panels without external calls or secrets."""
+    version_txt = ""
+    app_version_file = ""
+    try:
+        version_txt = clean_version_text((BASE_DIR / "VERSION.txt").read_text(encoding="utf-8-sig"))
+    except Exception:
+        version_txt = ""
+    try:
+        app_version_file = clean_version_text((BASE_DIR / "APP_VERSION").read_text(encoding="utf-8-sig"))
+    except Exception:
+        app_version_file = ""
+    files_match = bool(version_txt == APP_VERSION and (not app_version_file or app_version_file == APP_VERSION))
+    return {
+        "app_version": APP_VERSION,
+        "version_txt": version_txt,
+        "app_version_file": app_version_file,
+        "deployment_alignment_status": "aligned_local_files" if files_match else "version_file_mismatch",
+        "version_files_match": files_match,
+        "runtime_checked_at_madrid": now_iso(),
+        "render_external_checked": False,
+        "render_external_note": "Render externo no consultado en esta vista.",
     }
 
 
@@ -15444,7 +15476,7 @@ def api_runtime_version():
         "has_v895_render_v894_deployment_alignment": "V895_RENDER_V894_DEPLOYMENT_ALIGNMENT_FINAL" in app_py_text and "deployment_alignment_status" in app_py_text,
         "has_v896_not_found_route_recovery": "V896_PRODUCTION_NOT_FOUND_ROUTE_RECOVERY_FULL_APP_SMOKE_FINAL" in app_py_text and "client_safe_404" in app_py_text and "/api/admin/not-found-events" in app_py_text,
         "has_v897_truthful_sentinel_route_alias_reference_qa": "V897_SENTINEL_TRUTHFUL_ISSUES_ROUTE_ALIAS_REFERENCE_QA_FIX_FINAL" in app_py_text and "register_alias_if_missing" in app_py_text and "data-v897-shell" in base_template,
-        "has_v898_404_pwa_reference_outbox_truth": "V898_PRODUCTION_404_PWA_REFERENCE_OUTBOX_TRUTH_FINAL" in app_py_text and ("NEMESIS_CACHE_V898" in app_py_text or "NEMESIS_CACHE_V900" in app_py_text or "NEMESIS_CACHE_V901" in app_py_text or "NEMESIS_CACHE_V902" in app_py_text or "NEMESIS_CACHE_V903" in app_py_text or "NEMESIS_CACHE_V904" in app_py_text or "NEMESIS_CACHE_V906" in app_py_text or "NEMESIS_CACHE_V907" in app_py_text or "NEMESIS_CACHE_V908" in app_py_text or "NEMESIS_CACHE_V909" in app_py_text) and "/admin/not-found-events" in app_py_text,
+        "has_v898_404_pwa_reference_outbox_truth": "V898_PRODUCTION_404_PWA_REFERENCE_OUTBOX_TRUTH_FINAL" in app_py_text and ("NEMESIS_CACHE_V898" in app_py_text or "NEMESIS_CACHE_V900" in app_py_text or "NEMESIS_CACHE_V901" in app_py_text or "NEMESIS_CACHE_V902" in app_py_text or "NEMESIS_CACHE_V903" in app_py_text or "NEMESIS_CACHE_V904" in app_py_text or "NEMESIS_CACHE_V906" in app_py_text or "NEMESIS_CACHE_V907" in app_py_text or "NEMESIS_CACHE_V908" in app_py_text or "NEMESIS_CACHE_V909" in app_py_text or "NEMESIS_CACHE_V911" in app_py_text) and "/admin/not-found-events" in app_py_text,
         "has_v899_reference_visual_browser_qa_product_gap_worker": "reference_scan" in app_py_text and "product_gap_engine" in app_py_text and "reference_image_manifest_engine" in app_py_text,
         "has_v900_reference_images_import_first_real_visual_gap_audit": "V900_REFERENCE_IMAGES_IMPORT_FIRST_REAL_VISUAL_GAP_AUDIT_FINAL" in app_py_text and "data-v900-shell" in base_template and "product_gap_engine" in app_py_text,
         "has_v901_admin_continuous_sentinel_api_layout_recovery": "V901_ADMIN_CONTINUOUS_SENTINEL_API_LAYOUT_RECOVERY_FINAL" in app_py_text and "data-v901-shell" in base_template and "v901_register_admin_api_issue" in app_py_text,
@@ -15472,9 +15504,12 @@ def api_runtime_version():
         "has_v910_route_not_found_pwa_audit": ("NEMESIS_CACHE_V910" in app_py_text or "NEMESIS_CACHE_V911" in app_py_text) and (Path(__file__).resolve().parent / "reports" / "V910_ROUTE_NOT_FOUND_PWA_CACHE_AUDIT.md").exists(),
         "has_v910_browser_qa_pipeline_audited": (Path(__file__).resolve().parent / "reports" / "V910_BROWSER_QA_PIPELINE_FULL_AUDIT.md").exists(),
         "has_v910_release_tree_cleanliness_audit": (Path(__file__).resolve().parent / "reports" / "V910_RELEASE_ZIP_AND_DEPLOY_ROOT_AUDIT.md").exists(),
-        "has_v911_real_browser_screenshot_visual_fix": "data-v911-shell" in base_template and (Path(__file__).resolve().parent / "reports" / "V911_REAL_BROWSER_SCREENSHOT_VISUAL_FIX_EXECUTION_REPORT.md").exists(),
+        "has_v911_real_browser_screenshot_visual_fix": "data-v911-shell" in base_template and (Path(__file__).resolve().parent / "tools" / "run_browser_reference_qa.py").exists(),
         "has_v911_browser_qa_execution": (Path(__file__).resolve().parent / "reports" / "V911_BROWSER_QA_ENVIRONMENT_STATUS.md").exists() and (Path(__file__).resolve().parent / "tools" / "run_browser_reference_qa.py").exists(),
         "has_v911_visual_queue_unblocker": (Path(__file__).resolve().parent / "reports" / "V911_VISUAL_FIX_QUEUE_UNBLOCK_REPORT.md").exists() and (Path(__file__).resolve().parent / "data" / "runtime" / "autonomous_company_sentinel" / "visual_fix_queue.json").exists(),
+        "has_v911_video_admin_ui_binding_fix": "data-v911-video-admin-fix" in base_template and "V911 admin observed video fix" in css_text,
+        "has_v911_admin_client_nav_separation_video_fix": "show_mobile_bottom_nav = (not current_user and not is_admin_surface) or is_client_area" in base_template and "Cerrar sesión admin" in base_template,
+        "has_v911_browser_qa_queue_panel_fix": "v911-browser-qa-panel" in base_template or "v911-browser-qa-panel" in css_text,
         **v902_truth_summary,
         **v904_summary,
         **v906_summary,

@@ -1443,7 +1443,71 @@ Sin prompts Telegram activos.
 
 ---
 
-- SENT-2026-C07CB6C2 | STALE_NEEDS_REVALIDATION | /api/ruta-inventada-v910 | Ruta devuelve Not Found
+- SENT-2026-C07CB6C2 | RESOLVED_BY_RESCAN | /api/ruta-inventada-v910 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-062EC176 | RESOLVED_BY_RESCAN | /ruta-inventada-v911 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-F72FFA7C | RESOLVED_BY_RESCAN | /api/ruta-inventada-v911 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-36FC1037 | RESOLVED_BY_RESCAN | /ruta-inventada-v911 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-440AA17E | RESOLVED_BY_RESCAN | /api/ruta-inventada-v911 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-306804BE | RESOLVED_BY_RESCAN | /ruta-inventada-v911 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-CA435454 | RESOLVED_BY_RESCAN | /api/ruta-inventada-v911 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-6F156BA7 | RESOLVED_BY_RESCAN | /ruta-inventada-v911 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-333CE76A | RESOLVED_BY_RESCAN | /api/ruta-inventada-v911 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-D5A25197 | RESOLVED_BY_RESCAN | /ruta-inventada-v911 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-B8E7DC9B | RESOLVED_BY_RESCAN | /api/ruta-inventada-v911 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-21E9B0BD | RESOLVED_BY_RESCAN | /ruta-inventada-v911-video | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-C5EF45C8 | RESOLVED_BY_RESCAN | /api/ruta-inventada-v911-video | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-371DCC47 | RESOLVED_BY_RESCAN | /ruta-inventada-v911-video | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-39CC177C | RESOLVED_BY_RESCAN | /api/ruta-inventada-v911-video | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-33D3FD02 | RESOLVED_BY_RESCAN | /ruta-inventada-v910 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-4E2D026A | STALE_NEEDS_REVALIDATION | /api/ruta-inventada-v910 | Ruta devuelve Not Found
 
 ---
 

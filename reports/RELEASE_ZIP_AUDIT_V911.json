@@ -1,10 +1,10 @@
 {
   "ok": true,
-  "audited_at": "2026-07-08T01:10:20",
-  "zip": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\release_output\\NeMeSiS_SHARK_PRO_V911_REAL_BROWSER_SCREENSHOT_VISUAL_FIX_EXECUTION_FINAL_RENDER_READY.zip",
-  "zip_size_bytes": 27271103,
-  "file_count": 2099,
-  "content_size_bytes": 32070099,
+  "audited_at": "2026-07-08T01:31:33",
+  "zip": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\release_output\\NeMeSiS_SHARK_PRO_V911_VIDEO_ADMIN_UI_BINDING_BROWSER_QA_QUEUE_FIX_FINAL_RENDER_READY.zip",
+  "zip_size_bytes": 27280317,
+  "file_count": 2106,
+  "content_size_bytes": 32092122,
   "forbidden_count": 0,
   "missing_required_root": [],
   "forbidden": [],
@@ -75,11 +75,11 @@
     },
     {
       "path": "app.py",
-      "size": 985614
+      "size": 987737
     },
     {
       "path": "static/app.css",
-      "size": 931027
+      "size": 934166
     },
     {
       "path": "V726_PROJECT_TREE_AUDIT.md",
@@ -103,27 +103,27 @@
     },
     {
       "folder": "tools",
-      "size": 1339822,
-      "files": 481
+      "size": 1348694,
+      "files": 482
     },
     {
       "folder": "reports",
-      "size": 1285500,
-      "files": 1093
+      "size": 1291549,
+      "files": 1099
     },
     {
       "folder": "app.py",
-      "size": 985614,
+      "size": 987737,
       "files": 1
     },
     {
       "folder": "static",
-      "size": 932353,
+      "size": 935492,
       "files": 2
     },
     {
       "folder": "templates",
-      "size": 689976,
+      "size": 691823,
       "files": 168
     },
     {
@@ -153,7 +153,7 @@
     },
     {
       "folder": "RELEASE_MANIFEST_V911.json",
-      "size": 7503,
+      "size": 7500,
       "files": 1
     },
     {

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
-<section class="ns-admin-page v892-sentinel-issues v904-admin-rebuild v904-sentinel-issues v908-admin-shell v908-command-grid" data-v904-template="admin_sentinel_issues" data-v908-template="admin_sentinel_issues">
+<section class="ns-admin-page v892-sentinel-issues v904-admin-rebuild v904-sentinel-issues v908-admin-shell v908-command-grid v911-admin-shell" data-v904-template="admin_sentinel_issues" data-v908-template="admin_sentinel_issues" data-v911-template="admin_sentinel_issues">
   <div class="ns-page-header">
     <span class="ns-chip">V892 Centro de Incidencias</span>
     <h1>Sentinel Issues Command Center</h1>
@@ -20,7 +20,7 @@
     <output class="v904-safe-api-output" data-v904-output>Los endpoints admin se consultan como JSON protegido; sin sesión deben devolver 403.</output>
   </div>
 
-  <section class="ns-grid ns-grid-4">
+  <section class="ns-grid ns-grid-4 v911-admin-kpi-grid">
     <article class="ns-stat"><span>Abiertas</span><strong>{{ summary.counts.open }}</strong><small>incidencias activas</small></article>
     <article class="ns-stat"><span>Críticas</span><strong>{{ summary.counts.severity.critical }}</strong><small>bloqueo real</small></article>
     <article class="ns-stat"><span>Altas</span><strong>{{ summary.counts.severity.high }}</strong><small>prioridad operativa</small></article>

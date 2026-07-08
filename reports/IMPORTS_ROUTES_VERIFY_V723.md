@@ -1,7 +1,7 @@
 # Verificación de imports, rutas y plantillas V723
 
 - Resultado: OK
-- Versión importada: `V911_REAL_BROWSER_SCREENSHOT_VISUAL_FIX_EXECUTION_FINAL`
+- Versión importada: `V911_VIDEO_ADMIN_UI_BINDING_BROWSER_QA_QUEUE_FIX_FINAL`
 - Rutas GET: 595
 - Templates referenciados: 130
 - Templates faltantes: 0

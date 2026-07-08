@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
-<section class="ns-admin-page v894-company-sentinel v904-admin-rebuild v904-codex-outbox v908-admin-shell v908-command-grid" data-v904-template="admin_sentinel_codex_outbox" data-v908-template="admin_sentinel_codex_outbox">
+<section class="ns-admin-page v894-company-sentinel v904-admin-rebuild v904-codex-outbox v908-admin-shell v908-command-grid v911-admin-shell" data-v904-template="admin_sentinel_codex_outbox" data-v908-template="admin_sentinel_codex_outbox" data-v911-template="admin_sentinel_codex_outbox">
   <div class="ns-page-header">
     <span class="ns-chip">Codex Outbox</span>
     <h1>Prompts Codex del Sentinel</h1>
@@ -16,11 +16,11 @@
   {% set latest = status.latest_run or {} %}
   {% set outbox = latest.outbox or {} %}
   {% set v909 = status.v909_pipeline or {} %}
-  <section class="ns-grid ns-grid-4">
-    <article class="ns-stat"><span>Prompts</span><strong>{{ outbox.prompt_count or 0 }}</strong><small>generados</small></article>
-    <article class="ns-stat"><span>Visuales</span><strong>{{ outbox.visual_prompt_count or 0 }}</strong><small>reference gap</small></article>
-    <article class="ns-stat"><span>Funcionales</span><strong>{{ outbox.functional_prompt_count or 0 }}</strong><small>producto/rutas</small></article>
-    <article class="ns-stat"><span>Ruta</span><strong>outbox</strong><small>{{ outbox.combined_path or 'Pendiente' }}</small></article>
+  <section class="ns-grid ns-grid-4 v911-admin-kpi-grid">
+    <article class="ns-stat v911-kpi-card"><span class="v911-kpi-label">Prompts</span><strong class="v911-kpi-value">{{ outbox.prompt_count or 0 }}</strong><small class="v911-kpi-hint">generados</small></article>
+    <article class="ns-stat v911-kpi-card"><span class="v911-kpi-label">Visuales</span><strong class="v911-kpi-value">{{ outbox.visual_prompt_count or 0 }}</strong><small class="v911-kpi-hint">reference gap</small></article>
+    <article class="ns-stat v911-kpi-card"><span class="v911-kpi-label">Funcionales</span><strong class="v911-kpi-value">{{ outbox.functional_prompt_count or 0 }}</strong><small class="v911-kpi-hint">producto/rutas</small></article>
+    <article class="ns-stat v911-kpi-card"><span class="v911-kpi-label">Ruta</span><strong class="v911-kpi-value">outbox</strong><small class="v911-kpi-hint">{{ outbox.combined_path or 'Pendiente' }}</small></article>
   </section>
 
   <section class="ns-admin-card v909-visual-fix-queue-panel v911-visual-fix-queue-panel" data-v909-visual-fix-queue="true" data-v911-visual-fix-queue="true">
@@ -29,10 +29,10 @@
       <span class="ns-badge">{{ v909.blocked_no_screenshot_count or 0 }} bloqueados sin screenshot</span>
     </div>
     <p>La cola convierte capturas reales en prompts Codex. En V911, si no hay Playwright/capturas, los items quedan como <code>BLOCKED_NO_SCREENSHOT</code> y no se cierran como pixel-perfect.</p>
-    <div class="ns-grid ns-grid-3">
-      <article class="ns-stat"><span>Items</span><strong>{{ v909.visual_fix_queue_count or 0 }}</strong><small>queue total</small></article>
-      <article class="ns-stat"><span>Runner local</span><strong>{{ 'Listo' if v909.local_runner_available else 'Pendiente' }}</strong><small>browser_qa/</small></article>
-      <article class="ns-stat"><span>Workflow</span><strong>{{ 'Manual' if v909.github_action_available else 'Pendiente' }}</strong><small>GitHub Actions</small></article>
+    <div class="ns-grid ns-grid-3 v911-admin-kpi-grid">
+      <article class="ns-stat v911-kpi-card"><span class="v911-kpi-label">Items</span><strong class="v911-kpi-value">{{ v909.visual_fix_queue_count or 0 }}</strong><small class="v911-kpi-hint">queue total</small></article>
+      <article class="ns-stat v911-kpi-card"><span class="v911-kpi-label">Runner local</span><strong class="v911-kpi-value">{{ 'Listo' if v909.local_runner_available else 'Pendiente' }}</strong><small class="v911-kpi-hint">browser_qa/</small></article>
+      <article class="ns-stat v911-kpi-card"><span class="v911-kpi-label">Workflow</span><strong class="v911-kpi-value">{{ 'Manual' if v909.github_action_available else 'Pendiente' }}</strong><small class="v911-kpi-hint">GitHub Actions</small></article>
     </div>
     <div class="ns-actions">
       <a class="ns-button ns-button-secondary" href="/admin/autonomous-company-sentinel">Ver pipeline</a>
