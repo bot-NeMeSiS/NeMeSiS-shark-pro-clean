@@ -1,15 +1,15 @@
 # Auditoría ZIP V919
 
 - ZIP: `NeMeSiS_SHARK_PRO_V919_BROWSER_QA_RESULTS_IMPORT_VALIDATION_AND_VISUAL_QUEUE_GATE_FINAL_RENDER_READY.zip`
-- Archivos: 2214
-- Tamaño ZIP: 27461215 bytes
+- Archivos: 2217
+- Tamaño ZIP: 27465177 bytes
 - Prohibidos: 0
 - Resultado: OK
 - Root obligatorio ausente: ninguno
 
 ## Carpetas principales
 - `reference_images`: 24 archivos, 24921842 bytes
-- `reports`: 1180 archivos, 3536539 bytes
+- `reports`: 1183 archivos, 3547023 bytes
 - `tools`: 490 archivos, 1427287 bytes
 - `engines`: 124 archivos, 1374288 bytes
 - `app.py`: 1 archivos, 1018984 bytes
