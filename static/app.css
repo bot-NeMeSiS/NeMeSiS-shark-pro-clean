@@ -12243,3 +12243,126 @@ body[data-v911-video-admin-fix="true"].ns-admin .v808-admin-rail-foot a {
     min-height: auto;
   }
 }
+
+/* V912 video admin UI + copy polish */
+body[data-v912-video-admin-fix="true"].ns-admin :is(
+  .ns-client-sidebar,
+  [data-nav-zone="client-sidebar"],
+  [data-nav-zone="client-bottom"],
+  .bottom-nav,
+  .bottom-nav-clean,
+  .mobile-bottom-nav,
+  .shark-widget,
+  .ns-floating-shark,
+  .floating-shark,
+  .v825-public-floating-shark,
+  .v810-big-shark-decoration,
+  .v815-client-shark-backdrop
+) {
+  display: none !important;
+}
+
+.v912-admin-shell .ns-page-header,
+.v912-admin-shell .ns-admin-card,
+.v912-command-center-polish .ns-page-header,
+.v912-command-center-polish .ns-admin-card {
+  border: 1px solid rgba(94, 234, 212, 0.18);
+  background: linear-gradient(145deg, rgba(5, 12, 23, 0.97), rgba(9, 20, 34, 0.9));
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.24);
+}
+
+.v912-admin-kpi-grid {
+  gap: clamp(10px, 1.1vw, 16px);
+  align-items: stretch;
+}
+
+.v912-admin-kpi-grid .ns-stat,
+.v912-kpi-card {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 8px;
+  min-width: 0;
+  min-height: 112px;
+  padding: 16px;
+  border: 1px solid rgba(94, 234, 212, 0.18);
+  border-radius: 14px;
+  background: rgba(2, 8, 23, 0.76);
+}
+
+.v912-kpi-label,
+.v912-admin-kpi-grid .ns-stat > span {
+  display: block;
+  min-width: 0;
+  color: #9fb2c9;
+  font-size: 0.76rem;
+  font-weight: 850;
+  line-height: 1.15;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.v912-kpi-value,
+.v912-admin-kpi-grid .ns-stat > strong {
+  display: block;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  color: #f8fafc;
+  font-size: clamp(1.25rem, 2vw, 1.9rem);
+  line-height: 1.05;
+}
+
+.v912-kpi-hint,
+.v912-admin-kpi-grid .ns-stat > small {
+  display: block;
+  min-width: 0;
+  color: #a8b6c8;
+  font-size: 0.82rem;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.v912-browser-qa-panel {
+  display: grid;
+  gap: 14px;
+}
+
+.v912-browser-qa-panel .ns-table-wrap,
+.v912-visual-queue-table {
+  overflow-x: auto;
+}
+
+.v912-version-status-card {
+  display: grid;
+  gap: 9px;
+}
+
+.v912-version-status-card p {
+  margin: 0;
+}
+
+.v912-version-status-card strong,
+.v912-browser-qa-panel code {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.v912-admin-empty-state {
+  max-width: 760px;
+}
+
+@media (max-width: 900px) {
+  .v912-admin-kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 560px) {
+  .v912-admin-kpi-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .v912-admin-kpi-grid .ns-stat,
+  .v912-kpi-card {
+    min-height: auto;
+  }
+}

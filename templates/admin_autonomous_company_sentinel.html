@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
-<section class="ns-admin-page v894-company-sentinel v904-admin-rebuild v904-autonomous-sentinel v908-admin-shell v908-command-grid v911-admin-shell" data-v904-template="admin_autonomous_company_sentinel" data-v908-template="admin_autonomous_company_sentinel" data-v911-template="admin_autonomous_company_sentinel">
+<section class="ns-admin-page v894-company-sentinel v904-admin-rebuild v904-autonomous-sentinel v908-admin-shell v908-command-grid v911-admin-shell v912-admin-shell v912-command-center-polish" data-v904-template="admin_autonomous_company_sentinel" data-v908-template="admin_autonomous_company_sentinel" data-v911-template="admin_autonomous_company_sentinel" data-v912-template="admin_autonomous_company_sentinel">
   <div class="ns-page-header">
     <span class="ns-chip">Autonomous Company Sentinel</span>
     <h1>Sentinel Empresa</h1>
@@ -23,25 +23,25 @@
   {% set policy = latest.action_policy or automation.action_policy or {} %}
   {% set issue_summary = status.issues_summary or {} %}
   {% set counts = issue_summary.counts or {} %}
-  <section class="ns-grid ns-grid-4 v911-admin-kpi-grid">
-    <article class="ns-stat"><span>Última ejecución</span><strong>{{ status.state.last_mode or 'Pendiente' }}</strong><small>{{ status.state.last_run_madrid or 'Sin run guardado' }}</small></article>
-    <article class="ns-stat"><span>Rutas revisadas</span><strong>{{ latest.routes_checked or 0 }}</strong><small>cliente/admin</small></article>
-    <article class="ns-stat"><span>Incidencias abiertas</span><strong>{{ counts.open or 0 }}</strong><small>{{ counts.critical or 0 }} críticas · {{ counts.high or 0 }} altas</small></article>
-    <article class="ns-stat"><span>Prompts Codex</span><strong>{{ (latest.outbox or {}).prompt_count or 0 }}</strong><small>outbox revisable</small></article>
+  <section class="ns-grid ns-grid-4 v911-admin-kpi-grid v912-admin-kpi-grid">
+    <article class="ns-stat v912-kpi-card"><span class="v912-kpi-label">Última ejecución</span><strong class="v912-kpi-value">{{ status.state.last_mode or 'Pendiente' }}</strong><small class="v912-kpi-hint">{{ status.state.last_run_madrid or 'Sin run guardado' }}</small></article>
+    <article class="ns-stat v912-kpi-card"><span class="v912-kpi-label">Rutas revisadas</span><strong class="v912-kpi-value">{{ latest.routes_checked or 0 }}</strong><small class="v912-kpi-hint">cliente/admin</small></article>
+    <article class="ns-stat v912-kpi-card"><span class="v912-kpi-label">Incidencias abiertas</span><strong class="v912-kpi-value">{{ counts.open or 0 }}</strong><small class="v912-kpi-hint">{{ counts.critical or 0 }} críticas · {{ counts.high or 0 }} altas</small></article>
+    <article class="ns-stat v912-kpi-card"><span class="v912-kpi-label">Prompts Codex</span><strong class="v912-kpi-value">{{ (latest.outbox or {}).prompt_count or 0 }}</strong><small class="v912-kpi-hint">outbox revisable</small></article>
   </section>
 
   {% set browser = status.browser_qa or {} %}
   {% set v909 = status.v909_pipeline or {} %}
-  <section class="ns-admin-card v909-browser-pipeline-panel v911-browser-execution-panel v911-browser-qa-panel" data-v909-browser-qa-pipeline="true" data-v911-browser-execution="true">
+  <section class="ns-admin-card v909-browser-pipeline-panel v911-browser-execution-panel v911-browser-qa-panel v912-browser-qa-panel" data-v909-browser-qa-pipeline="true" data-v911-browser-execution="true" data-v912-browser-qa-panel="true">
     <div class="ns-section-title">
-      <h2>Browser QA Pipeline V909/V911</h2>
+      <h2>Browser QA Pipeline V909/V912</h2>
       <span class="ns-badge">{{ 'Listo' if v909.pipeline_ready else 'Pendiente' }}</span>
     </div>
-    <div class="ns-grid ns-grid-4 v911-admin-kpi-grid">
-      <article class="ns-stat"><span>Runner local</span><strong>{{ 'Listo' if v909.local_runner_available else 'Pendiente' }}</strong><small>PowerShell / bat / sh</small></article>
-      <article class="ns-stat"><span>GitHub Action</span><strong>{{ 'Disponible' if v909.github_action_available else 'Ejemplo pendiente' }}</strong><small>workflow_dispatch</small></article>
-      <article class="ns-stat"><span>Cola visual</span><strong>{{ v909.visual_fix_queue_count or 0 }}</strong><small>{{ v909.blocked_no_screenshot_count or 0 }} sin screenshot</small></article>
-      <article class="ns-stat"><span>Capturas</span><strong>{{ browser.screenshots_captured or 0 }}</strong><small>pixel-perfect bloqueado</small></article>
+    <div class="ns-grid ns-grid-4 v911-admin-kpi-grid v912-admin-kpi-grid">
+      <article class="ns-stat v912-kpi-card"><span class="v912-kpi-label">Runner local</span><strong class="v912-kpi-value">{{ 'Listo' if v909.local_runner_available else 'Pendiente' }}</strong><small class="v912-kpi-hint">PowerShell / bat / sh</small></article>
+      <article class="ns-stat v912-kpi-card"><span class="v912-kpi-label">GitHub Action</span><strong class="v912-kpi-value">{{ 'Disponible' if v909.github_action_available else 'Ejemplo pendiente' }}</strong><small class="v912-kpi-hint">workflow_dispatch</small></article>
+      <article class="ns-stat v912-kpi-card"><span class="v912-kpi-label">Cola visual</span><strong class="v912-kpi-value">{{ v909.visual_fix_queue_count or 0 }}</strong><small class="v912-kpi-hint">{{ v909.blocked_no_screenshot_count or 0 }} sin screenshot</small></article>
+      <article class="ns-stat v912-kpi-card"><span class="v912-kpi-label">Capturas</span><strong class="v912-kpi-value">{{ browser.screenshots_captured or 0 }}</strong><small class="v912-kpi-hint">pixel-perfect bloqueado</small></article>
     </div>
     <div class="ns-table-wrap">
       <table class="ns-table">
@@ -53,19 +53,19 @@
         </tbody>
       </table>
     </div>
-    <p>V911 intenta la ejecución real; si Playwright no está disponible mantiene la cola visual bloqueada por screenshot y no declara pixel-perfect.</p>
+    <p>V912 mantiene Browser QA preparado: si Playwright no está disponible, la cola visual queda bloqueada por screenshot y no se declara pixel-perfect.</p>
   </section>
 
-  <section class="ns-admin-card v906-browser-qa-panel v907-browser-qa-enablement v911-browser-qa-panel" data-v906-browser-qa="true" data-v907-browser-qa="true">
+  <section class="ns-admin-card v906-browser-qa-panel v907-browser-qa-enablement v911-browser-qa-panel v912-browser-qa-panel" data-v906-browser-qa="true" data-v907-browser-qa="true" data-v912-browser-qa-panel="true">
     <div class="ns-section-title">
-      <h2>Browser QA V907</h2>
+      <h2>Browser QA V907/V912</h2>
       <span class="ns-badge">{{ browser.status or browser.browser_qa_status or 'BROWSER_QA_UNAVAILABLE' }}</span>
     </div>
-    <div class="ns-grid ns-grid-4 v911-admin-kpi-grid">
-      <article class="ns-stat"><span>Capturas</span><strong>{{ browser.screenshots_captured or 0 }}</strong><small>desktop/mobile</small></article>
-      <article class="ns-stat"><span>Comparaciones</span><strong>{{ browser.reference_comparisons or 0 }}</strong><small>reference_images</small></article>
-      <article class="ns-stat"><span>Gaps resueltos</span><strong>{{ browser.visual_gaps_resolved or 0 }}</strong><small>por captura</small></article>
-      <article class="ns-stat"><span>Gaps pendientes</span><strong>{{ browser.visual_gaps_pending or 0 }}</strong><small>requieren browser real</small></article>
+    <div class="ns-grid ns-grid-4 v911-admin-kpi-grid v912-admin-kpi-grid">
+      <article class="ns-stat v912-kpi-card"><span class="v912-kpi-label">Capturas</span><strong class="v912-kpi-value">{{ browser.screenshots_captured or 0 }}</strong><small class="v912-kpi-hint">desktop/mobile</small></article>
+      <article class="ns-stat v912-kpi-card"><span class="v912-kpi-label">Comparaciones</span><strong class="v912-kpi-value">{{ browser.reference_comparisons or 0 }}</strong><small class="v912-kpi-hint">reference_images</small></article>
+      <article class="ns-stat v912-kpi-card"><span class="v912-kpi-label">Gaps resueltos</span><strong class="v912-kpi-value">{{ browser.visual_gaps_resolved or 0 }}</strong><small class="v912-kpi-hint">por captura</small></article>
+      <article class="ns-stat v912-kpi-card"><span class="v912-kpi-label">Gaps pendientes</span><strong class="v912-kpi-value">{{ browser.visual_gaps_pending or 0 }}</strong><small class="v912-kpi-hint">requieren browser real</small></article>
     </div>
     <div class="ns-table-wrap">
       <table class="ns-table">
@@ -76,7 +76,7 @@
         </tbody>
       </table>
     </div>
-    <p>No se declara pixel-perfect sin capturas reales comparadas contra las referencias.</p>
+    <p>No pixel-perfect sin capturas reales comparadas contra las referencias.</p>
     <div class="ns-actions">
       <a class="ns-button ns-button-secondary" href="/admin/sentinel-codex-outbox">Ver outbox</a>
       <button class="ns-button ns-button-ghost" type="button" data-v904-fetch="/api/admin/autonomous-company-sentinel/reference-gaps">Ver gaps</button>
@@ -227,7 +227,7 @@
   </section>
 
   <section class="ns-grid ns-grid-2">
-    <article class="ns-admin-card v911-version-status-card">
+    <article class="ns-admin-card v911-version-status-card v912-version-status-card">
       <h2>Runtime y despliegue</h2>
       {% set admin_runtime = status.admin_runtime_identity or {} %}
       {% set render = latest.render_alignment or {} %}
@@ -236,7 +236,7 @@
       <p>Estado local: <span class="ns-chip">{{ admin_runtime.deployment_alignment_status or 'Pendiente' }}</span></p>
       <p>Comprobado Madrid: <strong>{{ admin_runtime.runtime_checked_at_madrid or 'Pendiente' }}</strong></p>
       <p>Render externo: <strong>{{ render.render_version if render.render_version else 'No consultado desde esta vista' }}</strong></p>
-      <small>Render externo no consultado en esta vista. Usa `/api/runtime-version` o el reporte de deploy para certificar produccion.</small>
+      <small>Render externo no consultado en esta vista. Usa `/api/runtime-version` o el reporte de deploy para certificar producción.</small>
       <p><a class="ns-button ns-button-secondary" href="/api/runtime-version">Abrir runtime seguro</a></p>
     </article>
     <article class="ns-admin-card">

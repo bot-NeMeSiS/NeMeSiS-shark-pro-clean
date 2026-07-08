@@ -339,7 +339,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V911_VIDEO_ADMIN_UI_BINDING_BROWSER_QA_QUEUE_FIX_FINAL'
+APP_VERSION = 'V912_VIDEO_ADMIN_UI_COPY_POLISH_BROWSER_QA_QUEUE_FINAL'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 
@@ -10512,7 +10512,7 @@ def dashboard_data(lane="today", date=None):
 @app.route("/service-worker.js")
 def service_worker():
     body = (
-        "const NEMESIS_CACHE='NEMESIS_CACHE_V911';\n"
+        "const NEMESIS_CACHE='NEMESIS_CACHE_V912';\n"
         "self.addEventListener('install',event=>{self.skipWaiting();});\n"
         "self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==NEMESIS_CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));});\n"
         "self.addEventListener('fetch',event=>{const req=event.request;if(req.mode==='navigate'){event.respondWith(fetch(req).then(res=>{if(res.status===404){return fetch('/');}return res;}).catch(()=>fetch('/')));return;}event.respondWith(fetch(req).then(res=>{if(res.status===404){return res;}return res;}));});\n"
@@ -15187,6 +15187,41 @@ def v911_real_browser_screenshot_runtime_summary() -> dict:
     }
 
 
+def v912_video_admin_ui_copy_polish_runtime_summary() -> dict:
+    """Runtime-safe V912 summary for video-observed admin fixes and public copy polish."""
+    v911 = v911_real_browser_screenshot_runtime_summary()
+    root = Path(__file__).resolve().parent
+    base_text = ""
+    home_text = ""
+    css_text = ""
+    try:
+        base_text = (root / "templates" / "base.html").read_text(encoding="utf-8", errors="replace")
+    except Exception:
+        base_text = ""
+    try:
+        home_text = (root / "templates" / "home.html").read_text(encoding="utf-8", errors="replace")
+    except Exception:
+        home_text = ""
+    try:
+        css_text = (root / "static" / "app.css").read_text(encoding="utf-8", errors="replace")
+    except Exception:
+        css_text = ""
+    public_copy_ok = (
+        "La app guía al cliente" in home_text
+        and "Informacion deportiva" not in base_text
+        and "Terminos" not in base_text
+    )
+    return {
+        **v911,
+        "v912_video_admin_ui_fixes_applied": True,
+        "v912_kpi_binding_fix_applied": "v912-kpi-label" in css_text and "v912-kpi-value" in css_text,
+        "v912_admin_client_mix_fix_applied": "data-v912-video-admin-fix" in base_text,
+        "v912_public_copy_polish_status": "polished" if public_copy_ok else "needs_review",
+        "v912_browser_qa_queue_panel_status": v911.get("v911_browser_qa_queue_panel_status") or "blocked_until_browser_screenshots",
+        "v912_pwa_route_recheck_status": "service_worker_v912_no_404_cache" if "NEMESIS_CACHE_V912" in Path(__file__).read_text(encoding="utf-8", errors="replace") else "pending_cache_update",
+    }
+
+
 def get_safe_runtime_identity_for_admin() -> dict:
     """Return local runtime identity for admin panels without external calls or secrets."""
     version_txt = ""
@@ -15287,6 +15322,7 @@ def api_runtime_version():
     v909_summary = v909_browser_qa_pipeline_runtime_summary()
     v910_summary = v910_full_project_audit_runtime_summary()
     v911_summary = v911_real_browser_screenshot_runtime_summary()
+    v912_summary = v912_video_admin_ui_copy_polish_runtime_summary()
     return jsonify(sanitize_runtime_value({
         "ok": True,
         "app": APP_NAME,
@@ -15476,7 +15512,7 @@ def api_runtime_version():
         "has_v895_render_v894_deployment_alignment": "V895_RENDER_V894_DEPLOYMENT_ALIGNMENT_FINAL" in app_py_text and "deployment_alignment_status" in app_py_text,
         "has_v896_not_found_route_recovery": "V896_PRODUCTION_NOT_FOUND_ROUTE_RECOVERY_FULL_APP_SMOKE_FINAL" in app_py_text and "client_safe_404" in app_py_text and "/api/admin/not-found-events" in app_py_text,
         "has_v897_truthful_sentinel_route_alias_reference_qa": "V897_SENTINEL_TRUTHFUL_ISSUES_ROUTE_ALIAS_REFERENCE_QA_FIX_FINAL" in app_py_text and "register_alias_if_missing" in app_py_text and "data-v897-shell" in base_template,
-        "has_v898_404_pwa_reference_outbox_truth": "V898_PRODUCTION_404_PWA_REFERENCE_OUTBOX_TRUTH_FINAL" in app_py_text and ("NEMESIS_CACHE_V898" in app_py_text or "NEMESIS_CACHE_V900" in app_py_text or "NEMESIS_CACHE_V901" in app_py_text or "NEMESIS_CACHE_V902" in app_py_text or "NEMESIS_CACHE_V903" in app_py_text or "NEMESIS_CACHE_V904" in app_py_text or "NEMESIS_CACHE_V906" in app_py_text or "NEMESIS_CACHE_V907" in app_py_text or "NEMESIS_CACHE_V908" in app_py_text or "NEMESIS_CACHE_V909" in app_py_text or "NEMESIS_CACHE_V911" in app_py_text) and "/admin/not-found-events" in app_py_text,
+        "has_v898_404_pwa_reference_outbox_truth": "V898_PRODUCTION_404_PWA_REFERENCE_OUTBOX_TRUTH_FINAL" in app_py_text and ("NEMESIS_CACHE_V898" in app_py_text or "NEMESIS_CACHE_V900" in app_py_text or "NEMESIS_CACHE_V901" in app_py_text or "NEMESIS_CACHE_V902" in app_py_text or "NEMESIS_CACHE_V903" in app_py_text or "NEMESIS_CACHE_V904" in app_py_text or "NEMESIS_CACHE_V906" in app_py_text or "NEMESIS_CACHE_V907" in app_py_text or "NEMESIS_CACHE_V908" in app_py_text or "NEMESIS_CACHE_V909" in app_py_text or "NEMESIS_CACHE_V911" in app_py_text or "NEMESIS_CACHE_V912" in app_py_text) and "/admin/not-found-events" in app_py_text,
         "has_v899_reference_visual_browser_qa_product_gap_worker": "reference_scan" in app_py_text and "product_gap_engine" in app_py_text and "reference_image_manifest_engine" in app_py_text,
         "has_v900_reference_images_import_first_real_visual_gap_audit": "V900_REFERENCE_IMAGES_IMPORT_FIRST_REAL_VISUAL_GAP_AUDIT_FINAL" in app_py_text and "data-v900-shell" in base_template and "product_gap_engine" in app_py_text,
         "has_v901_admin_continuous_sentinel_api_layout_recovery": "V901_ADMIN_CONTINUOUS_SENTINEL_API_LAYOUT_RECOVERY_FINAL" in app_py_text and "data-v901-shell" in base_template and "v901_register_admin_api_issue" in app_py_text,
@@ -15501,7 +15537,7 @@ def api_runtime_version():
         "has_v909_browser_qa_pipeline": (Path(__file__).resolve().parent / "browser_qa" / "README.md").exists() and "v909_browser_qa_pipeline_runtime_summary" in app_py_text,
         "has_v909_visual_fix_queue": (Path(__file__).resolve().parent / "data" / "runtime" / "autonomous_company_sentinel" / "visual_fix_queue.json").exists(),
         "has_v910_full_hidden_project_audit": "v910_full_project_audit_runtime_summary" in app_py_text and (Path(__file__).resolve().parent / "reports" / "V910_FULL_PROJECT_HIDDEN_TREE_AUDIT.md").exists(),
-        "has_v910_route_not_found_pwa_audit": ("NEMESIS_CACHE_V910" in app_py_text or "NEMESIS_CACHE_V911" in app_py_text) and (Path(__file__).resolve().parent / "reports" / "V910_ROUTE_NOT_FOUND_PWA_CACHE_AUDIT.md").exists(),
+        "has_v910_route_not_found_pwa_audit": ("NEMESIS_CACHE_V910" in app_py_text or "NEMESIS_CACHE_V911" in app_py_text or "NEMESIS_CACHE_V912" in app_py_text) and (Path(__file__).resolve().parent / "reports" / "V910_ROUTE_NOT_FOUND_PWA_CACHE_AUDIT.md").exists(),
         "has_v910_browser_qa_pipeline_audited": (Path(__file__).resolve().parent / "reports" / "V910_BROWSER_QA_PIPELINE_FULL_AUDIT.md").exists(),
         "has_v910_release_tree_cleanliness_audit": (Path(__file__).resolve().parent / "reports" / "V910_RELEASE_ZIP_AND_DEPLOY_ROOT_AUDIT.md").exists(),
         "has_v911_real_browser_screenshot_visual_fix": "data-v911-shell" in base_template and (Path(__file__).resolve().parent / "tools" / "run_browser_reference_qa.py").exists(),
@@ -15510,6 +15546,10 @@ def api_runtime_version():
         "has_v911_video_admin_ui_binding_fix": "data-v911-video-admin-fix" in base_template and "V911 admin observed video fix" in css_text,
         "has_v911_admin_client_nav_separation_video_fix": "show_mobile_bottom_nav = (not current_user and not is_admin_surface) or is_client_area" in base_template and "Cerrar sesión admin" in base_template,
         "has_v911_browser_qa_queue_panel_fix": "v911-browser-qa-panel" in base_template or "v911-browser-qa-panel" in css_text,
+        "has_v912_video_admin_ui_copy_polish": "data-v912-video-admin-fix" in base_template and "V912 video admin UI + copy polish" in css_text,
+        "has_v912_admin_client_nav_separation": "show_mobile_bottom_nav = (not current_user and not is_admin_surface) or is_client_area" in base_template and "Cerrar sesión admin" in base_template,
+        "has_v912_browser_qa_queue_panel_polish": "v912-browser-qa-panel" in base_template or "v912-browser-qa-panel" in css_text,
+        "has_v912_public_spanish_copy_polish": "La app guía al cliente" in (base_template + css_text + app_py_text + (Path(__file__).resolve().parent / "templates" / "home.html").read_text(encoding="utf-8", errors="replace")),
         **v902_truth_summary,
         **v904_summary,
         **v906_summary,
@@ -15518,6 +15558,7 @@ def api_runtime_version():
         **v909_summary,
         **v910_summary,
         **v911_summary,
+        **v912_summary,
         "active_errors_count": v903_active_errors_count,
         "fixed_safe_count": v903_archived_count,
         "stale_issues_count": v903_stale_issues_count,

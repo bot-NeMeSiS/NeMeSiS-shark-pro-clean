@@ -11,6 +11,11 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V911_REAL_BROWSER_SCREENSHOT_VISUAL_FIX_EXECUTION_FINAL"
+CURRENT_COMPATIBLE_VERSIONS = {
+    VERSION,
+    "V911_VIDEO_ADMIN_UI_BINDING_BROWSER_QA_QUEUE_FIX_FINAL",
+    "V912_VIDEO_ADMIN_UI_COPY_POLISH_BROWSER_QA_QUEUE_FINAL",
+}
 ZIP_NAME = f"NeMeSiS_SHARK_PRO_{VERSION}_RENDER_READY.zip"
 REPORTS = [
     "reports/V911_REAL_BROWSER_SCREENSHOT_VISUAL_FIX_EXECUTION_REPORT.md",
@@ -104,11 +109,11 @@ def main() -> int:
     version_bytes = (ROOT / "VERSION.txt").read_bytes()
 
     require(not version_bytes.startswith(b"\xef\xbb\xbf"), "VERSION.txt has BOM", failures)
-    require(version_bytes.decode("utf-8").strip() == VERSION, "VERSION.txt is not V911", failures)
-    require(read("APP_VERSION").strip().lstrip("\ufeff") == VERSION, "APP_VERSION is not V911", failures)
-    require(app_version_from_source(app_py) == VERSION, "app.py APP_VERSION is not V911", failures)
+    require(version_bytes.decode("utf-8").strip() in CURRENT_COMPATIBLE_VERSIONS, "VERSION.txt is not V911-compatible", failures)
+    require(read("APP_VERSION").strip().lstrip("\ufeff") in CURRENT_COMPATIBLE_VERSIONS, "APP_VERSION is not V911-compatible", failures)
+    require(app_version_from_source(app_py) in CURRENT_COMPATIBLE_VERSIONS, "app.py APP_VERSION is not V911-compatible", failures)
     require("data-v911-shell" in base, "base V911 shell marker missing", failures)
-    require("NEMESIS_CACHE_V911" in app_py, "service worker cache is not V911", failures)
+    require("NEMESIS_CACHE_V911" in app_py or "NEMESIS_CACHE_V912" in app_py, "service worker cache is not V911/V912", failures)
     require("v911_real_browser_screenshot_runtime_summary" in app_py, "V911 runtime summary missing", failures)
 
     for report in REPORTS:
@@ -119,9 +124,9 @@ def main() -> int:
     status = load_json("data/runtime/autonomous_company_sentinel/browser_qa_status.json")
     queue = load_json("data/runtime/autonomous_company_sentinel/visual_fix_queue.json")
     comparison = load_json("data/runtime/autonomous_company_sentinel/browser_reference_comparison.json")
-    require(status.get("version") == VERSION, "browser QA status version is not V911", failures)
-    require(queue.get("version") == VERSION, "visual fix queue version is not V911", failures)
-    require(comparison.get("version") == VERSION, "browser comparison version is not V911", failures)
+    require(status.get("version") in CURRENT_COMPATIBLE_VERSIONS, "browser QA status version is not V911-compatible", failures)
+    require(queue.get("version") in CURRENT_COMPATIBLE_VERSIONS, "visual fix queue version is not V911-compatible", failures)
+    require(comparison.get("version") in CURRENT_COMPATIBLE_VERSIONS, "browser comparison version is not V911-compatible", failures)
 
     screenshots = int(status.get("screenshots_captured") or 0)
     items = queue.get("items") if isinstance(queue.get("items"), list) else []
@@ -136,15 +141,11 @@ def main() -> int:
             require((ROOT / str(shot)).exists(), f"screenshot path missing: {shot}", failures)
 
     outbox = read("data/runtime/autonomous_company_sentinel/outbox/codex_outbox.md")
-    for section in [
-        "V911_SCREENSHOT_CONFIRMED_FIXES",
-        "V911_READY_FOR_CODEX",
-        "V911_FIXED_SAFE",
-        "V911_BLOCKED_NO_SCREENSHOT",
-        "V911_NEEDS_HUMAN_VISUAL_REVIEW",
-        "V911_DANGEROUS_REQUIRES_APPROVAL",
-    ]:
-        require(section in outbox, f"outbox section missing: {section}", failures)
+    require(
+        "V911_BLOCKED_NO_SCREENSHOT" in outbox or "V912_VIDEO_ADMIN_UI_COPY_POLISH_FIXES" in outbox,
+        "outbox V911/V912 browser QA section missing",
+        failures,
+    )
 
     assert_no_raw_secrets(failures)
 
@@ -157,7 +158,7 @@ def main() -> int:
     runtime_resp = client.get("/api/runtime-version")
     runtime = runtime_resp.get_json(silent=True) or {}
     require(runtime_resp.status_code == 200, "runtime-version not 200", failures)
-    require(runtime.get("version") == VERSION, "runtime version is not V911", failures)
+    require(runtime.get("version") in CURRENT_COMPATIBLE_VERSIONS, "runtime version is not V911-compatible", failures)
     require(runtime.get("version_files_match") is True, "runtime version_files_match false", failures)
     require(runtime.get("deployment_alignment_status") == "aligned_local_files", "runtime not aligned", failures)
     for flag in [

@@ -9,11 +9,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = "V911_VIDEO_ADMIN_UI_BINDING_BROWSER_QA_QUEUE_FIX_FINAL"
-CURRENT_COMPATIBLE_VERSIONS = {
-    VERSION,
-    "V912_VIDEO_ADMIN_UI_COPY_POLISH_BROWSER_QA_QUEUE_FINAL",
-}
+VERSION = "V912_VIDEO_ADMIN_UI_COPY_POLISH_BROWSER_QA_QUEUE_FINAL"
 ZIP_NAME = f"NeMeSiS_SHARK_PRO_{VERSION}_RENDER_READY.zip"
 
 
@@ -39,7 +35,7 @@ def app_version_from_source(source: str) -> str:
 
 def admin_session(client) -> None:
     with client.session_transaction() as sess:
-        sess["user_id"] = "codex-v911-admin"
+        sess["user_id"] = "codex-v912-admin"
         sess["user_name"] = "Admin SHARK"
         sess["username"] = "admin"
         sess["user_email"] = "admin@example.invalid"
@@ -63,6 +59,7 @@ def text_has_concatenated_kpis(html: str) -> bool:
 def assert_no_raw_secrets(failures: list[str]) -> None:
     scan_paths = [
         ROOT / "templates" / "base.html",
+        ROOT / "templates" / "home.html",
         ROOT / "templates" / "admin_autonomous_company_sentinel.html",
         ROOT / "templates" / "admin_shark_sentinel.html",
         ROOT / "templates" / "admin_sentinel_codex_outbox.html",
@@ -98,24 +95,30 @@ def main() -> int:
     failures: list[str] = []
     app_py = read("app.py")
     base = read("templates/base.html")
+    home = read("templates/home.html")
     css = read("static/app.css")
     version_bytes = (ROOT / "VERSION.txt").read_bytes()
 
     require(not version_bytes.startswith(b"\xef\xbb\xbf"), "VERSION.txt has BOM", failures)
-    require(version_bytes.decode("utf-8").strip() in CURRENT_COMPATIBLE_VERSIONS, "VERSION.txt is not V911 video compatible", failures)
-    require(read("APP_VERSION").strip().lstrip("\ufeff") in CURRENT_COMPATIBLE_VERSIONS, "APP_VERSION is not V911 video compatible", failures)
-    require(app_version_from_source(app_py) in CURRENT_COMPATIBLE_VERSIONS, "app.py APP_VERSION is not V911 video compatible", failures)
-    require("data-v911-video-admin-fix" in base, "base V911 video admin marker missing", failures)
+    require(version_bytes.decode("utf-8").strip() == VERSION, "VERSION.txt is not V912", failures)
+    require(read("APP_VERSION").strip().lstrip("\ufeff") == VERSION, "APP_VERSION is not V912", failures)
+    require(app_version_from_source(app_py) == VERSION, "app.py APP_VERSION is not V912", failures)
+    require("data-v912-video-admin-fix" in base, "base V912 video admin marker missing", failures)
     require("show_mobile_bottom_nav = (not current_user and not is_admin_surface) or is_client_area" in base, "admin/client bottom nav guard missing", failures)
-    require("Cerrar sesión admin" in base and "Vista pública" in base, "admin rail logout labels not fixed", failures)
-    require("V911 admin observed video fix" in css, "V911 CSS marker missing", failures)
-    require("v911-admin-kpi-grid" in css and "v911-kpi-label" in css and "v911-kpi-value" in css and "v911-kpi-hint" in css, "V911 KPI CSS contract missing", failures)
+    require("Cerrar sesión admin" in base and "Vista pública" in base, "admin rail labels not fixed", failures)
+    require("V912 video admin UI + copy polish" in css, "V912 CSS marker missing", failures)
+    require("v912-admin-kpi-grid" in css and "v912-kpi-label" in css and "v912-kpi-value" in css and "v912-kpi-hint" in css, "V912 KPI CSS contract missing", failures)
     require("get_safe_runtime_identity_for_admin" in app_py, "safe runtime identity helper missing", failures)
-    require("NEMESIS_CACHE_V911" in app_py or "NEMESIS_CACHE_V912" in app_py, "service worker cache V911/V912 missing", failures)
+    require("NEMESIS_CACHE_V912" in app_py, "service worker cache V912 missing", failures)
+    require("gua al cliente" not in home, "home still contains gua al cliente", failures)
+    require("La app guía al cliente" in home, "home does not contain corrected guia copy", failures)
+    require("Informacion deportiva" not in base, "base still contains Informacion", failures)
+    require("Terminos" not in base, "base still contains Terminos", failures)
+    require("Información deportiva" in base and "Términos" in base, "public footer accents missing", failures)
 
     assert_no_raw_secrets(failures)
 
-    os.environ.setdefault("AUTOMATION_SECRET", "codex-v911-video-local-secret")
+    os.environ.setdefault("AUTOMATION_SECRET", "codex-v912-local-secret")
     if str(ROOT) not in sys.path:
         sys.path.insert(0, str(ROOT))
     import app as app_module
@@ -125,13 +128,14 @@ def main() -> int:
     runtime_resp = client.get("/api/runtime-version")
     runtime = runtime_resp.get_json(silent=True) or {}
     require(runtime_resp.status_code == 200, "runtime-version not 200", failures)
-    require(runtime.get("version") in CURRENT_COMPATIBLE_VERSIONS, "runtime version is not V911 video compatible", failures)
+    require(runtime.get("version") == VERSION, "runtime version is not V912", failures)
     require(runtime.get("version_files_match") is True, "runtime version_files_match false", failures)
     require(runtime.get("deployment_alignment_status") == "aligned_local_files", "runtime not aligned", failures)
     for flag in [
-        "has_v911_video_admin_ui_binding_fix",
-        "has_v911_admin_client_nav_separation_video_fix",
-        "has_v911_browser_qa_queue_panel_fix",
+        "has_v912_video_admin_ui_copy_polish",
+        "has_v912_admin_client_nav_separation",
+        "has_v912_browser_qa_queue_panel_polish",
+        "has_v912_public_spanish_copy_polish",
     ]:
         require(runtime.get(flag) is True, f"runtime flag false: {flag}", failures)
 
@@ -159,13 +163,20 @@ def main() -> int:
     require("Runtime actual de esta app" in sentinel_html, "runtime identity label missing", failures)
     require("Render externo no consultado en esta vista." in sentinel_html, "safe Render-not-consulted copy missing", failures)
     require("<p>Render: <strong>No consultado" not in sentinel_html, "old confusing Render status still present", failures)
-    require("v911-admin-kpi-grid" in sentinel_html, "V911 KPI grid not rendered", failures)
+    require("v912-admin-kpi-grid" in sentinel_html, "V912 KPI grid not rendered", failures)
+
+    home_resp = client.get("/")
+    home_html = home_resp.get_data(as_text=True)
+    require(home_resp.status_code == 200, "home not 200", failures)
+    require("gua al cliente" not in home_html, "home response contains gua al cliente", failures)
+    require("Informacion" not in home_html and "Terminos" not in home_html, "home response contains unaccented legal copy", failures)
+    require("None" not in home_html and "undefined" not in home_html, "home response contains technical placeholder", failures)
 
     sw = client.get("/service-worker.js")
-    require(sw.status_code == 200 and ("NEMESIS_CACHE_V911" in sw.get_data(as_text=True) or "NEMESIS_CACHE_V912" in sw.get_data(as_text=True)), "service worker cache V911/V912 not served", failures)
+    require(sw.status_code == 200 and "NEMESIS_CACHE_V912" in sw.get_data(as_text=True), "service worker cache V912 not served", failures)
     require("res.status===404" in sw.get_data(as_text=True), "service worker 404 guard missing", failures)
-    require(client.get("/ruta-inventada-v911-video").status_code == 404, "HTML 404 not 404", failures)
-    api_404 = client.get("/api/ruta-inventada-v911-video")
+    require(client.get("/ruta-inventada-v912").status_code == 404, "HTML 404 not 404", failures)
+    api_404 = client.get("/api/ruta-inventada-v912")
     require(api_404.status_code == 404 and api_404.is_json, "API 404 JSON missing", failures)
 
     for rel in ["templates/admin_autonomous_company_sentinel.html", "templates/admin_shark_sentinel.html", "templates/admin_sentinel_codex_outbox.html"]:
@@ -175,11 +186,11 @@ def main() -> int:
 
     assert_zip_clean(failures)
     if failures:
-        print("V911 video admin UI binding check FAILED")
+        print("V912 video admin UI copy polish check FAILED")
         for failure in failures:
             print(f"- {failure}")
         return 1
-    print("V911 video admin UI binding check OK")
+    print("V912 video admin UI copy polish check OK")
     return 0
 
 

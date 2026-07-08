@@ -1,12 +1,11 @@
+## V912_VIDEO_ADMIN_UI_COPY_POLISH_FIXES
 
-## V911_VIDEO_ADMIN_UI_BINDING_FIXES
-
-- Correccion segura aplicada: separacion admin/cliente en shell base.
-- Correccion segura aplicada: rail admin con `Vista publica` y `Cerrar sesion admin`.
-- Correccion segura aplicada: KPI cards con label/value/hint separados.
-- Correccion segura aplicada: panel runtime aclara que Render externo no se consulta desde la vista.
+- Correcci?n segura aplicada: separaci?n admin/cliente reforzada en shell base.
+- Correcci?n segura aplicada: rail admin con `Vista p?blica` y `Cerrar sesi?n admin`.
+- Correcci?n segura aplicada: KPI cards con label/value/hint separados en V912.
+- Correcci?n segura aplicada: panel Browser QA / Visual Queue aclara bloqueo por falta de screenshot.
+- Correcci?n segura aplicada: copy p?blico revisado en espa?ol (`gu?a`, `Informaci?n`, `T?rminos`).
 - Browser QA real sigue pendiente hasta instalar Playwright y capturar pantallas.
-
 
 ## ACTIVE_FIX_PROMPTS
 
@@ -1515,7 +1514,135 @@ Sin prompts Telegram activos.
 
 ---
 
-- SENT-2026-4E2D026A | STALE_NEEDS_REVALIDATION | /api/ruta-inventada-v910 | Ruta devuelve Not Found
+- SENT-2026-4E2D026A | RESOLVED_BY_RESCAN | /api/ruta-inventada-v910 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-74CB4565 | RESOLVED_BY_RESCAN | /ruta-inventada-v911-video | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-F10398A5 | RESOLVED_BY_RESCAN | /ruta-inventada-v910 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-D9F6410F | RESOLVED_BY_RESCAN | /api/ruta-inventada-v910 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-9F0C329C | RESOLVED_BY_RESCAN | /ruta-inventada-v911-video | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-A664B1B8 | RESOLVED_BY_RESCAN | /api/ruta-inventada-v911-video | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-99149C26 | RESOLVED_BY_RESCAN | /api/ruta-inventada-v911-video | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-BCEBC295 | RESOLVED_BY_RESCAN | /ruta-inventada-v911-video | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-FA0260EC | RESOLVED_BY_RESCAN | /api/ruta-inventada-v911-video | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-CE69A18E | RESOLVED_BY_RESCAN | /ruta-inventada-v910 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-A14A9CF2 | RESOLVED_BY_RESCAN | /api/ruta-inventada-v910 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-1BDA0714 | RESOLVED_BY_RESCAN | /ruta-inventada-v911-video | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-9802A259 | RESOLVED_BY_RESCAN | /api/ruta-inventada-v911-video | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-0CAF9942 | RESOLVED_BY_RESCAN | /ruta-inventada-v912 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-106E71B8 | RESOLVED_BY_RESCAN | /api/ruta-inventada-v912 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-D3A421FB | RESOLVED_BY_RESCAN | /ruta-inventada-v912 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-9C66F663 | RESOLVED_BY_RESCAN | /api/ruta-inventada-v912 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-92004C32 | RESOLVED_BY_RESCAN | /ruta-inventada-v912 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-35FA6AA4 | RESOLVED_BY_RESCAN | /api/ruta-inventada-v912 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-B69C2E07 | RESOLVED_BY_RESCAN | /ruta-inventada-v910 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-099B6043 | RESOLVED_BY_RESCAN | /api/ruta-inventada-v910 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-C5F6566C | RESOLVED_BY_RESCAN | /ruta-inventada-v911 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-AE000023 | RESOLVED_BY_RESCAN | /api/ruta-inventada-v911 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-F3035FE6 | RESOLVED_BY_RESCAN | /ruta-inventada-v912 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-26529705 | RESOLVED_BY_RESCAN | /api/ruta-inventada-v912 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-BCC13961 | RESOLVED_BY_RESCAN | /ruta-inventada-v910 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-9C3F7D0D | RESOLVED_BY_RESCAN | /api/ruta-inventada-v910 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-9B841221 | RESOLVED_BY_RESCAN | /ruta-inventada-v911 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-19618025 | RESOLVED_BY_RESCAN | /api/ruta-inventada-v911 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-A4FA5CC7 | RESOLVED_BY_RESCAN | /ruta-inventada-v911-video | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-07881434 | RESOLVED_BY_RESCAN | /api/ruta-inventada-v911-video | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-5757C7D0 | RESOLVED_BY_RESCAN | /ruta-inventada-v912 | Ruta devuelve Not Found
+
+---
+
+- SENT-2026-1BB528BC | STALE_NEEDS_REVALIDATION | /api/ruta-inventada-v912 | Ruta devuelve Not Found
 
 ---
 
