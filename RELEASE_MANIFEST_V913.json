@@ -1,6 +1,6 @@
 {
   "version": "V913_BROWSER_QA_EXECUTION_STATUS_TRUTH_AND_RUNTIME_CLEANUP_FINAL",
-  "created_at": "2026-07-08T12:45:02",
+  "created_at": "2026-07-08T13:09:04",
   "zip": "NeMeSiS_SHARK_PRO_V913_BROWSER_QA_EXECUTION_STATUS_TRUTH_AND_RUNTIME_CLEANUP_FINAL_RENDER_READY.zip",
   "zip_path": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\release_output\\NeMeSiS_SHARK_PRO_V913_BROWSER_QA_EXECUTION_STATUS_TRUTH_AND_RUNTIME_CLEANUP_FINAL_RENDER_READY.zip",
   "zip_inside_project_tree": true,
@@ -211,6 +211,6 @@
   ],
   "security_policy": "No incluye .git, .venv, caches, bases de datos locales, logs, ZIPs internos ni secretos reales.",
   "render_ready": true,
-  "zip_size_bytes": 27294398,
+  "zip_size_bytes": 27294657,
   "zip_file_count": 2109
 }

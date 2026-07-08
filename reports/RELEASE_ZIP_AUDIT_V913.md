@@ -2,14 +2,14 @@
 
 - ZIP: `NeMeSiS_SHARK_PRO_V913_BROWSER_QA_EXECUTION_STATUS_TRUTH_AND_RUNTIME_CLEANUP_FINAL_RENDER_READY.zip`
 - Archivos: 2109
-- Tamaño ZIP: 27294398 bytes
+- Tamaño ZIP: 27294657 bytes
 - Prohibidos: 0
 - Resultado: OK
 - Root obligatorio ausente: ninguno
 
 ## Carpetas principales
 - `reference_images`: 24 archivos, 24921842 bytes
-- `tools`: 485 archivos, 1385523 bytes
+- `tools`: 485 archivos, 1386513 bytes
 - `engines`: 124 archivos, 1374288 bytes
 - `reports`: 1099 archivos, 1291547 bytes
 - `app.py`: 1 archivos, 994761 bytes

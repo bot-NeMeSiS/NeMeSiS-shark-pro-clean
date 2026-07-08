@@ -8,7 +8,33 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V889_TELEGRAM_PREMIUM_PICKS_INTELLIGENCE_DELIVERY_FINAL"
-CURRENT_COMPATIBLE_PREFIXES = ("V889_", "V890_", "V891_", "V892_", "V893_", "V894_", "V895_", "V896_")
+CURRENT_COMPATIBLE_PREFIXES = (
+    "V889_",
+    "V890_",
+    "V891_",
+    "V892_",
+    "V893_",
+    "V894_",
+    "V895_",
+    "V896_",
+    "V897_",
+    "V898_",
+    "V899_",
+    "V900_",
+    "V901_",
+    "V902_",
+    "V903_",
+    "V904_",
+    "V905_",
+    "V906_",
+    "V907_",
+    "V908_",
+    "V909_",
+    "V910_",
+    "V911_",
+    "V912_",
+    "V913_",
+)
 sys.path.insert(0, str(ROOT))
 
 
@@ -113,11 +139,15 @@ def main() -> int:
     missing_selection["selection"] = ""
     require(classify_telegram_pick(missing_selection, now=fixed_now)["status"] == SKIP_MISSING_SELECTION, "missing selection not blocked", failures)
 
-    os.environ["DB_PATH"] = ":memory:"
+    temp_db = ROOT / "tmp_v889_telegram_premium_picks_check.sqlite"
+    if temp_db.exists():
+        temp_db.unlink()
+    os.environ["DB_PATH"] = str(temp_db)
     os.environ["AUTOMATION_SECRET"] = "v889-secret"
     os.environ["DISABLE_TELEGRAM_REAL_SEND"] = "1"
     import app  # noqa: WPS433
 
+    app.init_db()
     client = app.app.test_client()
     runtime = client.get("/api/runtime-version")
     require(runtime.status_code == 200, "runtime-version not 200", failures)
@@ -159,6 +189,12 @@ def main() -> int:
         "reports/V889_NEXT_STEPS.md",
     ]:
         require((ROOT / report).exists(), f"report missing: {report}", failures)
+
+    try:
+        if temp_db.exists():
+            temp_db.unlink()
+    except OSError:
+        pass
 
     if failures:
         print("V889 Telegram premium picks check FAILED:")

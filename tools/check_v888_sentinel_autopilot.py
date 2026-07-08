@@ -8,7 +8,34 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V888_SENTINEL_AUTOPILOT_SELF_IMPROVEMENT_ENGINE_FINAL"
-CURRENT_COMPATIBLE_PREFIXES = ("V888_", "V889_", "V890_", "V891_", "V892_", "V893_", "V894_", "V895_", "V896_")
+CURRENT_COMPATIBLE_PREFIXES = (
+    "V888_",
+    "V889_",
+    "V890_",
+    "V891_",
+    "V892_",
+    "V893_",
+    "V894_",
+    "V895_",
+    "V896_",
+    "V897_",
+    "V898_",
+    "V899_",
+    "V900_",
+    "V901_",
+    "V902_",
+    "V903_",
+    "V904_",
+    "V905_",
+    "V906_",
+    "V907_",
+    "V908_",
+    "V909_",
+    "V910_",
+    "V911_",
+    "V912_",
+    "V913_",
+)
 sys.path.insert(0, str(ROOT))
 
 
@@ -121,10 +148,14 @@ def main() -> int:
     require("auto_deploy" in engine and "auto_push" in engine and "send_real_telegram" in engine, "forbidden actions not declared", failures)
     require("QUEUE_SKIPPED" in app_py, "V887 QUEUE_SKIPPED preservation missing", failures)
 
-    os.environ["DB_PATH"] = ":memory:"
+    temp_db = ROOT / "tmp_v888_sentinel_autopilot_check.sqlite"
+    if temp_db.exists():
+        temp_db.unlink()
+    os.environ["DB_PATH"] = str(temp_db)
     os.environ["AUTOMATION_SECRET"] = "v888-autopilot-secret"
     import app  # noqa: WPS433
 
+    app.init_db()
     client = app.app.test_client()
     runtime = client.get("/api/runtime-version")
     require(runtime.status_code == 200, "runtime-version not 200", failures)
@@ -150,6 +181,12 @@ def main() -> int:
     require(cron_json.get("dangerous_actions_executed") is False, "AutoPilot executed dangerous action", failures)
     require(isinstance(cron_json.get("tasks"), list), "AutoPilot cron did not return tasks", failures)
     require(isinstance(cron_json.get("codex_prompts"), list), "AutoPilot cron did not return Codex prompts", failures)
+
+    try:
+        if temp_db.exists():
+            temp_db.unlink()
+    except OSError:
+        pass
 
     if failures:
         print("V888 Sentinel AutoPilot check FAILED:")
