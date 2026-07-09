@@ -1,6 +1,6 @@
 {
   "ok": true,
-  "checked_at": "2026-07-09T20:41:35",
+  "checked_at": "2026-07-09T21:26:42",
   "templates_referenced": [
     "404.html",
     "account_center.html",
@@ -140,7 +140,7 @@
   ],
   "missing_static": [],
   "import_ok": true,
-  "version": "V923_CLIENT_ROUTES_INTERNAL_ERROR_RECOVERY_AFTER_V922_FINAL",
+  "version": "V924_GLOBAL_UI_EMPTY_SPACE_CLIENT_VALUE_SPORTS_DATA_ODDS_FIX_FINAL",
   "route_count": 600,
   "routes": [
     "/",

@@ -12682,3 +12682,181 @@ body[data-v912-video-admin-fix="true"].ns-admin :is(
     grid-template-columns: 1fr;
   }
 }
+
+/* V924 global UI empty-space and product value fix */
+.v924-no-dead-space {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+
+.v924-page-shell,
+.v924-admin-shell,
+.v924-client-shell,
+.v924-public-shell {
+  width: min(1180px, calc(100% - 24px));
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.v924-admin-shell,
+.v924-client-shell {
+  padding-top: 10px !important;
+}
+
+.v924-public-shell,
+.v924-above-fold {
+  margin-top: 10px !important;
+}
+
+.v924-section-compact {
+  margin-top: 10px !important;
+  margin-bottom: 10px !important;
+  padding: clamp(14px, 2vw, 22px) !important;
+}
+
+.v924-kpi-grid,
+.v924-command-grid {
+  gap: 10px !important;
+}
+
+.v924-data-card,
+.v924-sports-card,
+.v924-odds-card,
+.v924-live-card,
+.v924-pick-card,
+.v924-safe-state,
+.v924-next-action {
+  min-height: 0;
+}
+
+.v924-legacy-public-hero-hidden {
+  display: none !important;
+}
+
+.v924-public-shell.v922-home-hero {
+  grid-template-columns: minmax(0, 1.25fr) minmax(230px, 0.75fr);
+  min-height: 0;
+  padding-top: clamp(18px, 3vw, 26px) !important;
+  padding-bottom: clamp(16px, 2.4vw, 24px) !important;
+}
+
+.v924-public-shell h1,
+.v924-client-shell h1,
+.v924-admin-shell h1 {
+  margin-top: 4px;
+  margin-bottom: 8px;
+}
+
+.v924-client-shell .v799-appbar,
+.v924-client-shell .v811-client-appbar,
+.v924-admin-shell .ns-admin-hero,
+.v924-admin-shell .v809-admin-reference-hero,
+.v924-admin-shell .v807-admin-hero {
+  margin-top: 0 !important;
+  margin-bottom: 10px !important;
+  padding-top: 14px !important;
+  padding-bottom: 14px !important;
+  min-height: 0 !important;
+}
+
+.v924-admin-shell .v922-admin-command-center,
+.v924-client-shell .v922-client-dashboard,
+.v924-client-shell .v922-live-shell,
+.v924-client-shell .v922-picks-shell {
+  width: 100%;
+  margin: 10px 0 !important;
+  box-shadow: 0 12px 30px rgba(2, 6, 23, 0.18);
+}
+
+.v924-admin-shell .v922-admin-kpi-grid,
+.v924-client-shell .v922-client-quick-grid,
+.v924-client-shell .v922-pick-quality-strip,
+.v924-public-shell + .v924-kpi-grid {
+  width: 100%;
+  margin: 10px 0 !important;
+}
+
+.v924-admin-shell .ns-grid,
+.v924-client-shell .v904-client-signal-strip,
+.v924-client-shell .v799-kpi-strip,
+.v924-client-shell .v812-kpi-row,
+.v924-client-shell .v800-command-row,
+.v924-client-shell .v801-day-rail,
+.v924-client-shell .v799-filterbar {
+  margin-top: 10px !important;
+  margin-bottom: 10px !important;
+}
+
+.v924-admin-shell .ns-admin-card,
+.v924-admin-shell .v922-admin-system-status,
+.v924-client-shell .v922-client-status-card,
+.v924-client-shell .v922-match-card,
+.v924-client-shell .v922-live-match-card,
+.v924-client-shell .v922-pick-card {
+  padding: 12px !important;
+  min-height: 0 !important;
+}
+
+.v924-client-shell .v922-client-empty-premium,
+.v924-client-shell .v922-live-empty-state,
+.v924-client-shell .v922-no-picks-premium,
+.v924-admin-shell .v922-admin-next-action {
+  margin-top: 10px !important;
+  padding: 12px !important;
+}
+
+.v924-admin-shell .v904-workforce-strip,
+.v924-admin-shell .v807-admin-hero {
+  display: none;
+}
+
+.v924-admin-command-center .v809-admin-reference-hero {
+  grid-template-columns: minmax(0, 1fr) 180px;
+}
+
+.v924-admin-command-center .v809-admin-reference-hero aside {
+  min-height: 0;
+}
+
+.v924-admin-command-center .v809-admin-reference-hero img {
+  max-height: 52px;
+}
+
+.v924-client-shell .v801-calendar-search,
+.v924-client-shell .v801-league-rail,
+.v924-client-shell .v802-league-groups,
+.v924-client-shell .v802-focus-strip,
+.v924-client-shell .v850-live-state,
+.v924-client-shell .v803-live-provider-strip,
+.v924-client-shell .v805-live-quality-board {
+  margin-top: 10px !important;
+  padding: 12px !important;
+}
+
+.v924-client-shell .v799-calendar-layout,
+.v924-client-shell .v799-live-layout,
+.v924-client-shell .v799-pick-grid {
+  margin-top: 12px !important;
+}
+
+@media (max-width: 760px) {
+  .v924-page-shell,
+  .v924-admin-shell,
+  .v924-client-shell,
+  .v924-public-shell {
+    width: min(100% - 18px, 1180px);
+  }
+
+  .v924-public-shell.v922-home-hero,
+  .v924-admin-command-center .v809-admin-reference-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .v924-section-compact,
+  .v924-admin-shell .ns-admin-card,
+  .v924-client-shell .v922-client-dashboard,
+  .v924-client-shell .v922-live-shell,
+  .v924-client-shell .v922-picks-shell {
+    padding: 12px !important;
+  }
+}

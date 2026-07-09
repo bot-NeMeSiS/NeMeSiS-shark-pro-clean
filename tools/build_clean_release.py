@@ -529,6 +529,7 @@ def include(path: Path) -> bool:
             or rel_posix.startswith("reports/V921_")
             or rel_posix.startswith("reports/V922_")
             or rel_posix.startswith("reports/V923_")
+            or rel_posix.startswith("reports/V924_")
             or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V912")
             or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V913")
             or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V914")
@@ -541,6 +542,7 @@ def include(path: Path) -> bool:
             or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V921")
             or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V922")
             or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V923")
+            or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V924")
         )
     if rel_posix in {
         "data/runtime/automation_workforce/latest_run.json",

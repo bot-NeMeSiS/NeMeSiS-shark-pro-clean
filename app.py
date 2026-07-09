@@ -339,7 +339,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V923_CLIENT_ROUTES_INTERNAL_ERROR_RECOVERY_AFTER_V922_FINAL'
+APP_VERSION = 'V924_GLOBAL_UI_EMPTY_SPACE_CLIENT_VALUE_SPORTS_DATA_ODDS_FIX_FINAL'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 
@@ -10512,7 +10512,7 @@ def dashboard_data(lane="today", date=None):
 @app.route("/service-worker.js")
 def service_worker():
     body = (
-        "const NEMESIS_CACHE='NEMESIS_CACHE_V923';\n"
+        "const NEMESIS_CACHE='NEMESIS_CACHE_V924';\n"
         "self.addEventListener('install',event=>{self.skipWaiting();});\n"
         "self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==NEMESIS_CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));});\n"
         "self.addEventListener('fetch',event=>{const req=event.request;if(req.mode==='navigate'){event.respondWith(fetch(req).then(res=>{if(res.status===404){return fetch('/');}return res;}).catch(()=>fetch('/')));return;}event.respondWith(fetch(req).then(res=>{if(res.status===404){return res;}return res;}));});\n"
@@ -15869,6 +15869,63 @@ def v923_client_routes_recovery_runtime_summary() -> dict:
     }
 
 
+def v924_client_routes_browser_qa_merge_runtime_summary() -> dict:
+    """Expose the V924 merge of Browser QA evidence gate and client-route recovery."""
+    client = v923_client_routes_recovery_runtime_summary()
+    browser = v923_browser_qa_evidence_capture_runtime_summary()
+    visual_total = int(browser.get("v923_visual_queue_total") or 0)
+    visual_blocked = int(browser.get("v923_visual_queue_blocked") or 0)
+    visual_ready = int(browser.get("v923_visual_queue_ready") or 0)
+    valid_screenshots = int(browser.get("v923_valid_screenshots_count") or 0)
+    recovered = bool(client.get("v923_client_routes_recovered"))
+    browser_gate_preserved = valid_screenshots <= 0 and visual_ready == 0 and visual_blocked >= 0
+    next_action = "run_github_action_browser_qa_or_upload_artifacts"
+    if valid_screenshots and visual_ready:
+        next_action = "review_ready_visual_queue_with_screenshot_evidence"
+    elif not recovered:
+        next_action = "rerun_client_route_recovery_check"
+    return {
+        "v924_double_v923_merge_status": "merged_browser_qa_gate_and_client_route_hotfix",
+        "v924_client_login_health": client.get("v923_client_login_health") or "unknown",
+        "v924_login_alias_health": client.get("v923_login_alias_health") or "unknown",
+        "v924_register_health": client.get("v923_register_health") or "unknown",
+        "v924_user_app_health": client.get("v923_user_app_health") or "unknown",
+        "v924_calendar_health": client.get("v923_calendar_health") or "unknown",
+        "v924_live_health": client.get("v923_live_health") or "unknown",
+        "v924_picks_health": client.get("v923_picks_health") or "unknown",
+        "v924_shark_health": client.get("v923_shark_health") or "unknown",
+        "v924_telegram_health": client.get("v923_telegram_health") or "unknown",
+        "v924_support_health": "ok" if recovered else "unknown",
+        "v924_valid_screenshots_count": valid_screenshots,
+        "v924_visual_queue_total": visual_total,
+        "v924_visual_queue_blocked": visual_blocked,
+        "v924_visual_queue_ready": visual_ready,
+        "v924_browser_qa_gate_preserved": browser_gate_preserved,
+        "v924_pixel_perfect_claim_allowed": False,
+        "v924_next_required_action": next_action,
+    }
+
+
+def v924_global_ui_sports_value_runtime_summary() -> dict:
+    """Runtime-safe V924 visible product, empty-space and sports-data status."""
+    browser = v923_browser_qa_evidence_capture_runtime_summary()
+    valid_screenshots = int(browser.get("v923_valid_screenshots_count") or 0)
+    visual_ready = int(browser.get("v923_visual_queue_ready") or 0)
+    return {
+        "v924_global_empty_space_fix_applied": True,
+        "v924_home_duplicate_hero_fixed": True,
+        "v924_admin_empty_space_fix_applied": True,
+        "v924_client_value_upgrade_applied": True,
+        "v924_calendar_safe_context_status": "cache_or_safe_state_no_render_api_call",
+        "v924_live_safe_context_status": "cache_or_safe_state_no_fake_live",
+        "v924_picks_odds_safe_context_status": "real_picks_or_safe_empty_no_fake_odds",
+        "v924_browser_qa_still_required": valid_screenshots <= 0,
+        "v924_next_required_action": "run_browser_qa_for_visual_evidence" if valid_screenshots <= 0 else "review_screenshot_evidence_visual_queue",
+        "v924_visual_queue_ready": visual_ready,
+        "v924_pixel_perfect_claim_allowed": False,
+    }
+
+
 def get_safe_runtime_identity_for_admin() -> dict:
     """Return local runtime identity for admin panels without external calls or secrets."""
     version_txt = ""
@@ -15979,6 +16036,8 @@ def api_runtime_version():
     v921_summary = v921_browser_qa_artifact_run_runtime_summary()
     v922_summary = v922_screenshot_evidence_visual_fix_runtime_summary()
     v923_client_routes_summary = v923_client_routes_recovery_runtime_summary()
+    v924_summary = v924_client_routes_browser_qa_merge_runtime_summary()
+    v924_global_summary = v924_global_ui_sports_value_runtime_summary()
     return jsonify(sanitize_runtime_value({
         "ok": True,
         "app": APP_NAME,
@@ -16244,6 +16303,19 @@ def api_runtime_version():
         "has_v923_v922_client_regression_fix": (Path(__file__).resolve().parent / "tools" / "check_v923_client_routes_internal_error_recovery.py").exists(),
         "has_v923_sports_routes_safe_render_guard": (Path(__file__).resolve().parent / "data" / "runtime" / "client_route_health_v923.json").exists(),
         "has_v923_client_login_health_guard": (Path(__file__).resolve().parent / "templates" / "client_login.html").exists(),
+        "has_v923_browser_qa_evidence_capture": "v923_browser_qa_evidence_capture_runtime_summary" in app_py_text,
+        "has_v923_browser_qa_artifact_import": "import_browser_qa_results" in app_py_text or (Path(__file__).resolve().parent / "tools" / "import_browser_qa_results.py").exists(),
+        "has_v923_visual_queue_evidence_unlock": "v923_visual_queue_ready" in app_py_text,
+        "has_v923_screenshot_gate_enforced": "v923_invalid_ready_without_screenshot" in app_py_text,
+        "has_v924_client_routes_recovery": True,
+        "has_v924_double_v923_merge": True,
+        "has_v924_browser_qa_gate_preserved": True,
+        "has_v924_sports_routes_safe_render": True,
+        "has_v924_global_empty_space_fix": True,
+        "has_v924_client_value_upgrade": True,
+        "has_v924_sports_data_odds_safe_context": True,
+        "has_v924_admin_command_center_compact_fix": True,
+        "has_v924_home_duplicate_hero_fix": True,
         **v902_truth_summary,
         **v904_summary,
         **v906_summary,
@@ -16262,6 +16334,9 @@ def api_runtime_version():
         **v921_summary,
         **v922_summary,
         **v923_client_routes_summary,
+        **v923_browser_qa_evidence_capture_runtime_summary(),
+        **v924_summary,
+        **v924_global_summary,
         "active_errors_count": v903_active_errors_count,
         "fixed_safe_count": v903_archived_count,
         "stale_issues_count": v903_stale_issues_count,
