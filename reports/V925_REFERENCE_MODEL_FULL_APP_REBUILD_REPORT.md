@@ -4,7 +4,8 @@
 
 - Version: `V925_REFERENCE_MODEL_FULL_APP_REBUILD_QUALITY_PASS_FINAL`
 - Base: V924 local, with V923 client-route recovery preserved.
-- Production checked after the local build: `V924_GLOBAL_UI_EMPTY_SPACE_CLIENT_VALUE_SPORTS_DATA_ODDS_FIX_FINAL`, aligned with its local files and with zero active Sentinel issues.
+- Production started this QA pass on V924 and moved externally to `V925_REFERENCE_MODEL_FULL_APP_REBUILD_QUALITY_PASS_FINAL` while the final package was being certified. Runtime is aligned and Sentinel reports zero active issues.
+- The real production home now has one H1 and one exact V925 public hero, with no legacy duplicate copy. It does not yet show the final `Confianza` heading, so the final package from this report still requires deployment/redeployment for exact-build parity.
 - Deployment performed: no.
 
 ## Delivered

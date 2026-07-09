@@ -1,20 +1,20 @@
 # Auditoría ZIP V925
 
 - ZIP: `NeMeSiS_SHARK_PRO_V925_REFERENCE_MODEL_FULL_APP_REBUILD_QUALITY_PASS_FINAL_RENDER_READY.zip`
-- Archivos: 2295
-- Tamaño ZIP: 27555905 bytes
+- Archivos: 2297
+- Tamaño ZIP: 27562068 bytes
 - Prohibidos: 0
 - Resultado: OK
 - Root obligatorio ausente: ninguno
 
 ## Carpetas principales
 - `reference_images`: 24 archivos, 24921842 bytes
-- `reports`: 1252 archivos, 3626297 bytes
-- `tools`: 498 archivos, 1516327 bytes
+- `reports`: 1253 archivos, 3631288 bytes
+- `tools`: 499 archivos, 1527214 bytes
 - `engines`: 124 archivos, 1376655 bytes
-- `app.py`: 1 archivos, 1053327 bytes
-- `static`: 2 archivos, 973520 bytes
-- `templates`: 169 archivos, 721078 bytes
+- `app.py`: 1 archivos, 1053319 bytes
+- `static`: 2 archivos, 973684 bytes
+- `templates`: 169 archivos, 721279 bytes
 - `V726_PROJECT_TREE_AUDIT.md`: 1 archivos, 96394 bytes
 - `CHATGPT_CONTINUATION_REPORT.md`: 1 archivos, 67783 bytes
 - `data`: 5 archivos, 67130 bytes

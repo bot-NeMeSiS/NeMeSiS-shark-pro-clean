@@ -1,12 +1,12 @@
 {
   "version": "V925_REFERENCE_MODEL_FULL_APP_REBUILD_QUALITY_PASS_FINAL",
-  "created_at": "2026-07-10T00:04:01",
+  "created_at": "2026-07-10T00:26:02",
   "zip": "NeMeSiS_SHARK_PRO_V925_REFERENCE_MODEL_FULL_APP_REBUILD_QUALITY_PASS_FINAL_RENDER_READY.zip",
   "zip_path": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\release_output\\NeMeSiS_SHARK_PRO_V925_REFERENCE_MODEL_FULL_APP_REBUILD_QUALITY_PASS_FINAL_RENDER_READY.zip",
   "zip_inside_project_tree": true,
   "output_dir": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\release_output",
   "manifest": "RELEASE_MANIFEST_V925.json",
-  "files": 2295,
+  "files": 2297,
   "internal_zips": [],
   "has_internal_zips": false,
   "forbidden_folders_included": [],
@@ -212,6 +212,6 @@
   ],
   "security_policy": "No incluye .git, .venv, caches, bases de datos locales, logs, ZIPs internos ni secretos reales.",
   "render_ready": true,
-  "zip_size_bytes": 27555905,
-  "zip_file_count": 2295
+  "zip_size_bytes": 27562068,
+  "zip_file_count": 2297
 }

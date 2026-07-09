@@ -1,6 +1,6 @@
 {
   "version": "V923_CLIENT_ROUTES_INTERNAL_ERROR_RECOVERY_AFTER_V922_FINAL",
-  "generated_at_madrid": "2026-07-09T23:46:54+02:00",
+  "generated_at_madrid": "2026-07-10T00:15:58+02:00",
   "client_routes_recovered": true,
   "root_cause": "Local V923 no reproduce 500; probable deploy/runtime anterior o contexto de template V922 sin guard en producción.",
   "routes": {

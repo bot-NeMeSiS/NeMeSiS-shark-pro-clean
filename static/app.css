@@ -12466,6 +12466,13 @@ body[data-v911-video-admin-fix="true"].ns-admin :is(
   border-right: 1px solid rgba(126, 155, 191, 0.16);
 }
 
+.v925-trust-band > .v925-trust-heading {
+  grid-column: 1 / -1;
+  border-right: 0;
+  border-bottom: 1px solid rgba(126, 155, 191, 0.16);
+  padding-bottom: 12px;
+}
+
 .v925-trust-band > div:last-child { border-right: 0; }
 .v925-trust-band span { color: var(--v925-muted); }
 

@@ -16128,6 +16128,7 @@ def api_runtime_version():
     css_mtime = ""
     css_text = ""
     app_py_text = ""
+    runtime_outbox_text = ""
     build_generated_at = ""
     git_commit_hint = ""
     try:
@@ -16166,6 +16167,12 @@ def api_runtime_version():
         app_py_text = Path(__file__).read_text(encoding="utf-8", errors="replace")
     except Exception:
         app_py_text = ""
+    try:
+        runtime_outbox_text = (
+            BASE_DIR / "data" / "runtime" / "autonomous_company_sentinel" / "outbox" / "codex_outbox.md"
+        ).read_text(encoding="utf-8", errors="replace")
+    except Exception:
+        runtime_outbox_text = ""
     runtime_stability = sanitize_runtime_value(v822_runtime_stability_snapshot())
     if isinstance(runtime_stability, dict) and runtime_stability.get("last_error"):
         runtime_stability["last_error"] = sanitize_runtime_error_value(runtime_stability.get("last_error"))
@@ -16451,7 +16458,7 @@ def api_runtime_version():
         "has_v918_next_action_truth": "v918_post_deploy_runtime_summary" in app_py_text,
         "has_v919_browser_qa_results_validation": (Path(__file__).resolve().parent / "tools" / "import_browser_qa_results.py").exists() and "NO_VALID_SCREENSHOTS_TO_IMPORT" in (Path(__file__).resolve().parent / "tools" / "import_browser_qa_results.py").read_text(encoding="utf-8", errors="replace"),
         "has_v919_visual_queue_screenshot_gate": "v919_browser_qa_results_gate_runtime_summary" in app_py_text,
-        "has_v919_outbox_evidence_gate": "V919_BROWSER_QA_REQUIRED" in (Path(__file__).resolve().parent / "data" / "runtime" / "autonomous_company_sentinel" / "outbox" / "codex_outbox.md").read_text(encoding="utf-8", errors="replace"),
+        "has_v919_outbox_evidence_gate": "V919_BROWSER_QA_REQUIRED" in runtime_outbox_text,
         "has_v920_browser_qa_artifacts_capture": "v920_browser_qa_artifacts_runtime_summary" in app_py_text and (Path(__file__).resolve().parent / "tools" / "run_browser_reference_qa.py").exists(),
         "has_v920_browser_qa_artifact_import": (Path(__file__).resolve().parent / "tools" / "import_browser_qa_results.py").exists() and "v920_import_status" in (Path(__file__).resolve().parent / "tools" / "import_browser_qa_results.py").read_text(encoding="utf-8", errors="replace"),
         "has_v920_visual_queue_evidence_unlock": (Path(__file__).resolve().parent / "data" / "runtime" / "autonomous_company_sentinel" / "visual_fix_queue.json").exists(),
@@ -16462,7 +16469,7 @@ def api_runtime_version():
         "has_v922_screenshot_evidence_visual_fix": "v922_screenshot_evidence_visual_fix_runtime_summary" in app_py_text,
         "has_v922_browser_qa_results_import": (Path(__file__).resolve().parent / "tools" / "import_browser_qa_results.py").exists() and "v922_import_status" in (Path(__file__).resolve().parent / "tools" / "import_browser_qa_results.py").read_text(encoding="utf-8", errors="replace"),
         "has_v922_visual_queue_evidence_gate": (Path(__file__).resolve().parent / "data" / "runtime" / "autonomous_company_sentinel" / "visual_fix_queue.json").exists(),
-        "has_v922_codex_prompts_with_evidence_gate": "V922_SCREENSHOT_EVIDENCE_PROMPTS" in (Path(__file__).resolve().parent / "data" / "runtime" / "autonomous_company_sentinel" / "outbox" / "codex_outbox.md").read_text(encoding="utf-8", errors="replace"),
+        "has_v922_codex_prompts_with_evidence_gate": "V922_SCREENSHOT_EVIDENCE_PROMPTS" in runtime_outbox_text,
         "has_v923_client_routes_internal_error_recovery": "v923_client_routes_recovery_runtime_summary" in app_py_text,
         "has_v923_v922_client_regression_fix": (Path(__file__).resolve().parent / "tools" / "check_v923_client_routes_internal_error_recovery.py").exists(),
         "has_v923_sports_routes_safe_render_guard": (Path(__file__).resolve().parent / "data" / "runtime" / "client_route_health_v923.json").exists(),

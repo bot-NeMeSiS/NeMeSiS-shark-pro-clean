@@ -1,10 +1,10 @@
 {
   "ok": true,
-  "audited_at": "2026-07-10T00:04:43",
+  "audited_at": "2026-07-10T00:26:25",
   "zip": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\release_output\\NeMeSiS_SHARK_PRO_V925_REFERENCE_MODEL_FULL_APP_REBUILD_QUALITY_PASS_FINAL_RENDER_READY.zip",
-  "zip_size_bytes": 27555905,
-  "file_count": 2295,
-  "content_size_bytes": 34836238,
+  "zip_size_bytes": 27562068,
+  "file_count": 2297,
+  "content_size_bytes": 34852473,
   "forbidden_count": 0,
   "missing_required_root": [],
   "forbidden": [],
@@ -79,11 +79,11 @@
     },
     {
       "path": "app.py",
-      "size": 1053327
+      "size": 1053319
     },
     {
       "path": "static/app.css",
-      "size": 972194
+      "size": 972358
     },
     {
       "path": "V726_PROJECT_TREE_AUDIT.md",
@@ -98,13 +98,13 @@
     },
     {
       "folder": "reports",
-      "size": 3626297,
-      "files": 1252
+      "size": 3631288,
+      "files": 1253
     },
     {
       "folder": "tools",
-      "size": 1516327,
-      "files": 498
+      "size": 1527214,
+      "files": 499
     },
     {
       "folder": "engines",
@@ -113,17 +113,17 @@
     },
     {
       "folder": "app.py",
-      "size": 1053327,
+      "size": 1053319,
       "files": 1
     },
     {
       "folder": "static",
-      "size": 973520,
+      "size": 973684,
       "files": 2
     },
     {
       "folder": "templates",
-      "size": 721078,
+      "size": 721279,
       "files": 169
     },
     {
