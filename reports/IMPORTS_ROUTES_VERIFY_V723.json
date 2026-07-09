@@ -1,6 +1,6 @@
 {
   "ok": true,
-  "checked_at": "2026-07-09T14:00:15",
+  "checked_at": "2026-07-09T14:49:20",
   "templates_referenced": [
     "404.html",
     "account_center.html",
@@ -140,7 +140,7 @@
   ],
   "missing_static": [],
   "import_ok": true,
-  "version": "V922_VISIBLE_PRODUCT_EXPERIENCE_CLIENT_ADMIN_SPORTS_UPGRADE_FINAL",
+  "version": "V923_BROWSER_QA_EVIDENCE_CAPTURE_IMPORT_AND_VISUAL_QUEUE_UNLOCK_FINAL",
   "route_count": 600,
   "routes": [
     "/",

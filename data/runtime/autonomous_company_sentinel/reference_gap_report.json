@@ -4063,8 +4063,8 @@
     }
   ],
   "v919_browser_qa_import_status": {
-    "version": "V921_AUTOMATED_BROWSER_QA_ARTIFACT_RUN_IMPORT_AND_VISUAL_QUEUE_UNLOCK_FINAL",
-    "updated_at_madrid": "2026-07-09T00:18:26+02:00",
+    "version": "V923_BROWSER_QA_EVIDENCE_CAPTURE_IMPORT_AND_VISUAL_QUEUE_UNLOCK_FINAL",
+    "updated_at_madrid": "2026-07-09T14:47:59+02:00",
     "browser_qa_status": "PACKAGE_MISSING",
     "import_status": "NO_VALID_SCREENSHOTS_TO_IMPORT",
     "valid_screenshots_count": 0,
@@ -4224,8 +4224,38 @@
     }
   ],
   "v921_browser_qa_import_status": {
-    "version": "V921_AUTOMATED_BROWSER_QA_ARTIFACT_RUN_IMPORT_AND_VISUAL_QUEUE_UNLOCK_FINAL",
-    "updated_at_madrid": "2026-07-09T00:18:26+02:00",
+    "version": "V923_BROWSER_QA_EVIDENCE_CAPTURE_IMPORT_AND_VISUAL_QUEUE_UNLOCK_FINAL",
+    "updated_at_madrid": "2026-07-09T14:47:59+02:00",
+    "browser_qa_status": "PACKAGE_MISSING",
+    "import_status": "NO_VALID_SCREENSHOTS_TO_IMPORT",
+    "valid_screenshots_count": 0,
+    "desktop_screenshots_count": 0,
+    "mobile_screenshots_count": 0,
+    "reference_comparisons": 18,
+    "visual_queue_total": 18,
+    "visual_queue_blocked": 18,
+    "visual_queue_ready": 0,
+    "pixel_perfect_claim_allowed": false,
+    "classification": "RESULTS_WITHOUT_SCREENSHOTS"
+  },
+  "v922_browser_qa_import_status": {
+    "version": "V923_BROWSER_QA_EVIDENCE_CAPTURE_IMPORT_AND_VISUAL_QUEUE_UNLOCK_FINAL",
+    "updated_at_madrid": "2026-07-09T14:47:59+02:00",
+    "browser_qa_status": "PACKAGE_MISSING",
+    "import_status": "NO_VALID_SCREENSHOTS_TO_IMPORT",
+    "valid_screenshots_count": 0,
+    "desktop_screenshots_count": 0,
+    "mobile_screenshots_count": 0,
+    "reference_comparisons": 18,
+    "visual_queue_total": 18,
+    "visual_queue_blocked": 18,
+    "visual_queue_ready": 0,
+    "pixel_perfect_claim_allowed": false,
+    "classification": "RESULTS_WITHOUT_SCREENSHOTS"
+  },
+  "v923_browser_qa_import_status": {
+    "version": "V923_BROWSER_QA_EVIDENCE_CAPTURE_IMPORT_AND_VISUAL_QUEUE_UNLOCK_FINAL",
+    "updated_at_madrid": "2026-07-09T14:47:59+02:00",
     "browser_qa_status": "PACKAGE_MISSING",
     "import_status": "NO_VALID_SCREENSHOTS_TO_IMPORT",
     "valid_screenshots_count": 0,

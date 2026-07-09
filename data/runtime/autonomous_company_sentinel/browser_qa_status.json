@@ -1,6 +1,6 @@
 {
   "ok": true,
-  "version": "V921_AUTOMATED_BROWSER_QA_ARTIFACT_RUN_IMPORT_AND_VISUAL_QUEUE_UNLOCK_FINAL",
+  "version": "V923_BROWSER_QA_EVIDENCE_CAPTURE_IMPORT_AND_VISUAL_QUEUE_UNLOCK_FINAL",
   "generated_at_madrid": "2026-07-08T23:17:24+02:00",
   "browser_available": false,
   "playwright_available": false,
@@ -37,11 +37,20 @@
   "v919_import_status": "NO_VALID_SCREENSHOTS_TO_IMPORT",
   "v920_import_status": "NO_VALID_SCREENSHOTS_TO_IMPORT",
   "v921_import_status": "NO_VALID_SCREENSHOTS_TO_IMPORT",
+  "v922_import_status": "NO_VALID_SCREENSHOTS_TO_IMPORT",
+  "v923_import_status": "NO_VALID_SCREENSHOTS_TO_IMPORT",
   "v920_valid_screenshots_count": 0,
   "v920_desktop_screenshots_count": 0,
   "v920_mobile_screenshots_count": 0,
   "v921_valid_screenshots_count": 0,
   "v921_desktop_screenshots_count": 0,
   "v921_mobile_screenshots_count": 0,
+  "v922_valid_screenshots_count": 0,
+  "v922_desktop_screenshots_count": 0,
+  "v922_mobile_screenshots_count": 0,
+  "v923_valid_screenshots_count": 0,
+  "v923_desktop_screenshots_count": 0,
+  "v923_mobile_screenshots_count": 0,
+  "v923_browser_qa_environment_status": "PACKAGE_MISSING",
   "pixel_perfect_claim_allowed": false
 }

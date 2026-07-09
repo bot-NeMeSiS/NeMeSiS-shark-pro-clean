@@ -1,11 +1,7 @@
 # V922 Next Steps
 
-1. Desplegar V922 solo cuando Damian lo autorice.
-2. Confirmar en Render /api/runtime-version que devuelve V922.
-3. Ejecutar Browser QA real o GitHub Action Browser QA.
-4. Importar artifacts con capturas validas.
-5. Revisar visual queue y aplicar fixes con evidencia.
-
-Estado actual esperado: static_visible_product_pass.
-
-Pixel-perfect permitido: no, hasta tener capturas reales.
+1. Re-run Browser QA and make sure artifacts include actual image files under reports/browser_qa_render/desktop/ and reports/browser_qa_render/mobile/.
+2. Re-run tools/import_browser_qa_results.py --input reports/browser_qa_render --update-runtime-data.
+3. Confirm v922_valid_screenshots_count is greater than 0.
+4. Review visual_fix_queue.json and apply safe visual fixes only to items with valid screenshot_path.
+5. Do not claim pixel-perfect until screenshots and comparison evidence are sufficient.

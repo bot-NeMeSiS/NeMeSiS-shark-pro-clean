@@ -339,7 +339,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V922_VISIBLE_PRODUCT_EXPERIENCE_CLIENT_ADMIN_SPORTS_UPGRADE_FINAL'
+APP_VERSION = 'V923_BROWSER_QA_EVIDENCE_CAPTURE_IMPORT_AND_VISUAL_QUEUE_UNLOCK_FINAL'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 
@@ -10512,7 +10512,7 @@ def dashboard_data(lane="today", date=None):
 @app.route("/service-worker.js")
 def service_worker():
     body = (
-        "const NEMESIS_CACHE='NEMESIS_CACHE_V922';\n"
+        "const NEMESIS_CACHE='NEMESIS_CACHE_V923';\n"
         "self.addEventListener('install',event=>{self.skipWaiting();});\n"
         "self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==NEMESIS_CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));});\n"
         "self.addEventListener('fetch',event=>{const req=event.request;if(req.mode==='navigate'){event.respondWith(fetch(req).then(res=>{if(res.status===404){return fetch('/');}return res;}).catch(()=>fetch('/')));return;}event.respondWith(fetch(req).then(res=>{if(res.status===404){return res;}return res;}));});\n"
@@ -13841,6 +13841,7 @@ def v915_admin_workforce_status() -> dict:
     browser_gate = v919_browser_qa_results_gate_runtime_summary()
     artifact_gate = v920_browser_qa_artifacts_runtime_summary()
     v921_gate = v921_browser_qa_artifact_run_runtime_summary()
+    v923_gate = v923_browser_qa_evidence_capture_runtime_summary()
     root = Path(__file__).resolve().parent
     latest_path = root / "data" / "runtime" / "automation_workforce" / "latest_run.json"
     try:
@@ -13873,10 +13874,11 @@ def v915_admin_workforce_status() -> dict:
         "browser_gate": browser_gate,
         "artifact_gate": artifact_gate,
         "v921_gate": v921_gate,
+        "v923_gate": v923_gate,
         "latest_run": latest_run,
         "workers": workers,
         "workflows": workflows,
-        "next_action": v921_gate.get("v921_next_required_action") or artifact_gate.get("v920_next_required_action") or browser_gate.get("v919_next_required_action") or post_deploy.get("v918_next_required_action") or summary.get("v915_next_required_action"),
+        "next_action": v923_gate.get("v923_next_required_action") or v921_gate.get("v921_next_required_action") or artifact_gate.get("v920_next_required_action") or browser_gate.get("v919_next_required_action") or post_deploy.get("v918_next_required_action") or summary.get("v915_next_required_action"),
         "policy": {
             "automated_deploy_requires_env": "ENABLE_AUTOMATED_RENDER_DEPLOY=1",
             "secrets_visible": False,
@@ -15719,19 +15721,111 @@ def v921_browser_qa_artifact_run_runtime_summary() -> dict:
     }
 
 
-def v922_visible_product_experience_runtime_summary() -> dict:
-    """Runtime-safe summary for the V922 visible product experience pass."""
-    v921 = v921_browser_qa_artifact_run_runtime_summary()
-    valid_screenshots = int(v921.get("v921_valid_screenshots_count") or 0)
+def v922_screenshot_evidence_visual_fix_runtime_summary() -> dict:
+    """Runtime-safe summary for the V922 screenshot evidence visual fix pass."""
+    root = Path(__file__).resolve().parent
+    runtime_dir = root / "data" / "runtime" / "autonomous_company_sentinel"
+    status_path = runtime_dir / "browser_qa_status.json"
+    queue_path = runtime_dir / "visual_fix_queue.json"
+    try:
+        status = json.loads(status_path.read_text(encoding="utf-8-sig", errors="replace")) if status_path.exists() else {}
+    except Exception:
+        status = {}
+    try:
+        queue_payload = json.loads(queue_path.read_text(encoding="utf-8-sig", errors="replace")) if queue_path.exists() else {"items": []}
+    except Exception:
+        queue_payload = {"items": []}
+    items = queue_payload.get("items") if isinstance(queue_payload, dict) else queue_payload
+    if not isinstance(items, list):
+        items = []
+    valid_screenshots = int(status.get("v922_valid_screenshots_count") or status.get("screenshots_captured") or 0)
+    ready = len([item for item in items if isinstance(item, dict) and item.get("status") in {"READY_FOR_CODEX", "FIXABLE_SAFE"}])
+    blocked = len([item for item in items if isinstance(item, dict) and item.get("status") == "BLOCKED_NO_SCREENSHOT"])
+    invalid_ready = len([
+        item for item in items
+        if isinstance(item, dict)
+        and item.get("status") in {"READY_FOR_CODEX", "FIXABLE_SAFE", "FIXED_BY_V922"}
+        and not (item.get("screenshot_path") or item.get("screenshot"))
+    ])
     browser_qa_required = valid_screenshots <= 0
     return {
-        "v922_visible_home_upgrade": True,
-        "v922_visible_client_upgrade": True,
-        "v922_visible_admin_upgrade": True,
-        "v922_visible_sports_upgrade": True,
+        "v922_browser_qa_import_status": status.get("v922_import_status") or status.get("v921_import_status") or "NO_VALID_SCREENSHOTS_TO_IMPORT",
+        "v922_valid_screenshots_count": valid_screenshots,
+        "v922_desktop_screenshots_count": int(status.get("v922_desktop_screenshots_count") or status.get("desktop_screenshots_count") or 0),
+        "v922_mobile_screenshots_count": int(status.get("v922_mobile_screenshots_count") or status.get("mobile_screenshots_count") or 0),
+        "v922_visual_queue_total": len(items),
+        "v922_visual_queue_blocked": blocked,
+        "v922_visual_queue_ready": ready,
+        "v922_invalid_ready_without_screenshot": invalid_ready,
+        "v922_screenshot_evidence_prompts": ready,
+        "v922_safe_visual_fixes_applied": 0,
+        "v922_pixel_perfect_claim_allowed": False,
         "v922_browser_qa_still_required": browser_qa_required,
-        "v922_visual_changes_summary": "home, client dashboard, calendar, live, picks, shark, telegram, admin command center, workforce",
-        "v922_next_required_action": "run_browser_qa_for_visual_evidence" if browser_qa_required else "review_v922_with_screenshots",
+        "v922_next_required_action": "run_browser_qa_or_upload_artifacts" if browser_qa_required else "review_ready_visual_queue_with_screenshot_evidence",
+    }
+
+
+def v923_browser_qa_evidence_capture_runtime_summary() -> dict:
+    """Runtime-safe V923 gate: only screenshot files unlock visual queue work."""
+    root = Path(__file__).resolve().parent
+    runtime_dir = root / "data" / "runtime" / "autonomous_company_sentinel"
+    status_path = runtime_dir / "browser_qa_status.json"
+    queue_path = runtime_dir / "visual_fix_queue.json"
+    reports_dir = root / "reports"
+    browser_qa_dir = reports_dir / "browser_qa_render"
+    try:
+        status = json.loads(status_path.read_text(encoding="utf-8-sig", errors="replace")) if status_path.exists() else {}
+    except Exception:
+        status = {}
+    try:
+        queue_payload = json.loads(queue_path.read_text(encoding="utf-8-sig", errors="replace")) if queue_path.exists() else {"items": []}
+    except Exception:
+        queue_payload = {"items": []}
+    items = queue_payload.get("items") if isinstance(queue_payload, dict) else queue_payload
+    if not isinstance(items, list):
+        items = []
+    valid_screenshots = int(status.get("v923_valid_screenshots_count") or status.get("screenshots_captured") or 0)
+    desktop_count = int(status.get("v923_desktop_screenshots_count") or status.get("desktop_screenshots_count") or 0)
+    mobile_count = int(status.get("v923_mobile_screenshots_count") or status.get("mobile_screenshots_count") or 0)
+    ready = len([item for item in items if isinstance(item, dict) and item.get("status") in {"READY_FOR_CODEX", "FIXABLE_SAFE"}])
+    fixed_safe = len([item for item in items if isinstance(item, dict) and item.get("status") == "FIXED_BY_V923"])
+    blocked = len([item for item in items if isinstance(item, dict) and item.get("status") == "BLOCKED_NO_SCREENSHOT"])
+    invalid_ready = len([
+        item for item in items
+        if isinstance(item, dict)
+        and item.get("status") in {"READY_FOR_CODEX", "FIXABLE_SAFE", "FIXED_BY_V923"}
+        and not (item.get("screenshot_path") or item.get("screenshot"))
+    ])
+    env_report = reports_dir / "V923_BROWSER_QA_ENVIRONMENT_DECISION.md"
+    install_report = reports_dir / "V923_PLAYWRIGHT_INSTALL_ATTEMPT.md"
+    local_report = reports_dir / "V923_LOCAL_BROWSER_QA_RUN_REPORT.md"
+    github_report = reports_dir / "V923_GITHUB_ACTION_BROWSER_QA_RUN_OR_INSTRUCTIONS.md"
+    local_executed = local_report.exists() and "LOCAL_BROWSER_QA_EXECUTED" in local_report.read_text(encoding="utf-8", errors="replace")
+    github_attempted = github_report.exists() and "GITHUB_ACTION_EXECUTED" in github_report.read_text(encoding="utf-8", errors="replace")
+    github_action_available = (root / ".github" / "workflows" / "browser-qa.yml").exists()
+    artifacts_found = any((browser_qa_dir / name).exists() for name in ("browser_qa_result.json", "reference_comparison.json", "browser_reference_comparison.json"))
+    env_status = status.get("v923_browser_qa_environment_status") or status.get("browser_qa_status") or "PACKAGE_MISSING"
+    import_status = status.get("v923_import_status") or ("IMPORTED_WITH_VALID_SCREENSHOTS" if valid_screenshots else "NO_VALID_SCREENSHOTS_TO_IMPORT")
+    next_action = "review_ready_visual_queue_with_screenshot_evidence" if valid_screenshots and ready else "run_github_action_browser_qa_or_upload_artifacts"
+    return {
+        "v923_base_version_used": "V922_VISIBLE_PRODUCT_EXPERIENCE_CLIENT_ADMIN_SPORTS_UPGRADE_FINAL preserved locally" if (reports_dir / "V922_VISIBLE_PRODUCT_EXPERIENCE_REPORT.md").exists() else "V921_AUTOMATED_BROWSER_QA_ARTIFACT_RUN_IMPORT_AND_VISUAL_QUEUE_UNLOCK_FINAL",
+        "v923_browser_qa_environment_status": env_status,
+        "v923_playwright_install_attempted": bool(install_report.exists()),
+        "v923_local_browser_qa_executed": bool(local_executed),
+        "v923_github_action_attempted": bool(github_attempted),
+        "v923_github_action_status": "GITHUB_ACTION_READY" if github_action_available else "GITHUB_ACTION_MISSING",
+        "v923_artifacts_found": bool(artifacts_found),
+        "v923_valid_screenshots_count": valid_screenshots,
+        "v923_desktop_screenshots_count": desktop_count,
+        "v923_mobile_screenshots_count": mobile_count,
+        "v923_import_status": import_status,
+        "v923_visual_queue_total": len(items),
+        "v923_visual_queue_blocked": blocked,
+        "v923_visual_queue_ready": ready,
+        "v923_visual_queue_fixed_safe": fixed_safe,
+        "v923_invalid_ready_without_screenshot": invalid_ready,
+        "v923_pixel_perfect_claim_allowed": False,
+        "v923_next_required_action": next_action,
     }
 
 
@@ -15843,7 +15937,8 @@ def api_runtime_version():
     v919_summary = v919_browser_qa_results_gate_runtime_summary()
     v920_summary = v920_browser_qa_artifacts_runtime_summary()
     v921_summary = v921_browser_qa_artifact_run_runtime_summary()
-    v922_summary = v922_visible_product_experience_runtime_summary()
+    v922_summary = v922_screenshot_evidence_visual_fix_runtime_summary()
+    v923_summary = v923_browser_qa_evidence_capture_runtime_summary()
     return jsonify(sanitize_runtime_value({
         "ok": True,
         "app": APP_NAME,
@@ -16033,7 +16128,7 @@ def api_runtime_version():
         "has_v895_render_v894_deployment_alignment": "V895_RENDER_V894_DEPLOYMENT_ALIGNMENT_FINAL" in app_py_text and "deployment_alignment_status" in app_py_text,
         "has_v896_not_found_route_recovery": "V896_PRODUCTION_NOT_FOUND_ROUTE_RECOVERY_FULL_APP_SMOKE_FINAL" in app_py_text and "client_safe_404" in app_py_text and "/api/admin/not-found-events" in app_py_text,
         "has_v897_truthful_sentinel_route_alias_reference_qa": "V897_SENTINEL_TRUTHFUL_ISSUES_ROUTE_ALIAS_REFERENCE_QA_FIX_FINAL" in app_py_text and "register_alias_if_missing" in app_py_text and "data-v897-shell" in base_template,
-        "has_v898_404_pwa_reference_outbox_truth": "V898_PRODUCTION_404_PWA_REFERENCE_OUTBOX_TRUTH_FINAL" in app_py_text and ("NEMESIS_CACHE_V898" in app_py_text or "NEMESIS_CACHE_V900" in app_py_text or "NEMESIS_CACHE_V901" in app_py_text or "NEMESIS_CACHE_V902" in app_py_text or "NEMESIS_CACHE_V903" in app_py_text or "NEMESIS_CACHE_V904" in app_py_text or "NEMESIS_CACHE_V906" in app_py_text or "NEMESIS_CACHE_V907" in app_py_text or "NEMESIS_CACHE_V908" in app_py_text or "NEMESIS_CACHE_V909" in app_py_text or "NEMESIS_CACHE_V911" in app_py_text or "NEMESIS_CACHE_V912" in app_py_text or "NEMESIS_CACHE_V913" in app_py_text or "NEMESIS_CACHE_V915" in app_py_text or "NEMESIS_CACHE_V916" in app_py_text or "NEMESIS_CACHE_V917" in app_py_text or "NEMESIS_CACHE_V918" in app_py_text or "NEMESIS_CACHE_V919" in app_py_text or "NEMESIS_CACHE_V920" in app_py_text or "NEMESIS_CACHE_V921" in app_py_text or "NEMESIS_CACHE_V922" in app_py_text) and "/admin/not-found-events" in app_py_text,
+        "has_v898_404_pwa_reference_outbox_truth": "V898_PRODUCTION_404_PWA_REFERENCE_OUTBOX_TRUTH_FINAL" in app_py_text and ("NEMESIS_CACHE_V898" in app_py_text or "NEMESIS_CACHE_V900" in app_py_text or "NEMESIS_CACHE_V901" in app_py_text or "NEMESIS_CACHE_V902" in app_py_text or "NEMESIS_CACHE_V903" in app_py_text or "NEMESIS_CACHE_V904" in app_py_text or "NEMESIS_CACHE_V906" in app_py_text or "NEMESIS_CACHE_V907" in app_py_text or "NEMESIS_CACHE_V908" in app_py_text or "NEMESIS_CACHE_V909" in app_py_text or "NEMESIS_CACHE_V911" in app_py_text or "NEMESIS_CACHE_V912" in app_py_text or "NEMESIS_CACHE_V913" in app_py_text or "NEMESIS_CACHE_V915" in app_py_text or "NEMESIS_CACHE_V916" in app_py_text or "NEMESIS_CACHE_V917" in app_py_text or "NEMESIS_CACHE_V918" in app_py_text or "NEMESIS_CACHE_V919" in app_py_text or "NEMESIS_CACHE_V920" in app_py_text or "NEMESIS_CACHE_V921" in app_py_text or "NEMESIS_CACHE_V922" in app_py_text or "NEMESIS_CACHE_V923" in app_py_text) and "/admin/not-found-events" in app_py_text,
         "has_v899_reference_visual_browser_qa_product_gap_worker": "reference_scan" in app_py_text and "product_gap_engine" in app_py_text and "reference_image_manifest_engine" in app_py_text,
         "has_v900_reference_images_import_first_real_visual_gap_audit": "V900_REFERENCE_IMAGES_IMPORT_FIRST_REAL_VISUAL_GAP_AUDIT_FINAL" in app_py_text and "data-v900-shell" in base_template and "product_gap_engine" in app_py_text,
         "has_v901_admin_continuous_sentinel_api_layout_recovery": "V901_ADMIN_CONTINUOUS_SENTINEL_API_LAYOUT_RECOVERY_FINAL" in app_py_text and "data-v901-shell" in base_template and "v901_register_admin_api_issue" in app_py_text,
@@ -16058,7 +16153,7 @@ def api_runtime_version():
         "has_v909_browser_qa_pipeline": (Path(__file__).resolve().parent / "browser_qa" / "README.md").exists() and "v909_browser_qa_pipeline_runtime_summary" in app_py_text,
         "has_v909_visual_fix_queue": (Path(__file__).resolve().parent / "data" / "runtime" / "autonomous_company_sentinel" / "visual_fix_queue.json").exists(),
         "has_v910_full_hidden_project_audit": "v910_full_project_audit_runtime_summary" in app_py_text and (Path(__file__).resolve().parent / "reports" / "V910_FULL_PROJECT_HIDDEN_TREE_AUDIT.md").exists(),
-        "has_v910_route_not_found_pwa_audit": ("NEMESIS_CACHE_V910" in app_py_text or "NEMESIS_CACHE_V911" in app_py_text or "NEMESIS_CACHE_V912" in app_py_text or "NEMESIS_CACHE_V913" in app_py_text or "NEMESIS_CACHE_V915" in app_py_text or "NEMESIS_CACHE_V916" in app_py_text or "NEMESIS_CACHE_V917" in app_py_text or "NEMESIS_CACHE_V918" in app_py_text or "NEMESIS_CACHE_V919" in app_py_text or "NEMESIS_CACHE_V920" in app_py_text or "NEMESIS_CACHE_V921" in app_py_text or "NEMESIS_CACHE_V922" in app_py_text) and (Path(__file__).resolve().parent / "reports" / "V910_ROUTE_NOT_FOUND_PWA_CACHE_AUDIT.md").exists(),
+        "has_v910_route_not_found_pwa_audit": ("NEMESIS_CACHE_V910" in app_py_text or "NEMESIS_CACHE_V911" in app_py_text or "NEMESIS_CACHE_V912" in app_py_text or "NEMESIS_CACHE_V913" in app_py_text or "NEMESIS_CACHE_V915" in app_py_text or "NEMESIS_CACHE_V916" in app_py_text or "NEMESIS_CACHE_V917" in app_py_text or "NEMESIS_CACHE_V918" in app_py_text or "NEMESIS_CACHE_V919" in app_py_text or "NEMESIS_CACHE_V920" in app_py_text or "NEMESIS_CACHE_V921" in app_py_text or "NEMESIS_CACHE_V922" in app_py_text or "NEMESIS_CACHE_V923" in app_py_text) and (Path(__file__).resolve().parent / "reports" / "V910_ROUTE_NOT_FOUND_PWA_CACHE_AUDIT.md").exists(),
         "has_v910_browser_qa_pipeline_audited": (Path(__file__).resolve().parent / "reports" / "V910_BROWSER_QA_PIPELINE_FULL_AUDIT.md").exists(),
         "has_v910_release_tree_cleanliness_audit": (Path(__file__).resolve().parent / "reports" / "V910_RELEASE_ZIP_AND_DEPLOY_ROOT_AUDIT.md").exists(),
         "has_v911_real_browser_screenshot_visual_fix": "data-v911-shell" in base_template and (Path(__file__).resolve().parent / "tools" / "run_browser_reference_qa.py").exists(),
@@ -16101,11 +16196,14 @@ def api_runtime_version():
         "has_v921_browser_qa_import_execution": (Path(__file__).resolve().parent / "tools" / "import_browser_qa_results.py").exists() and "v921_import_status" in (Path(__file__).resolve().parent / "tools" / "import_browser_qa_results.py").read_text(encoding="utf-8", errors="replace"),
         "has_v921_visual_queue_evidence_unlock": (Path(__file__).resolve().parent / "reports" / "V921_VISUAL_QUEUE_UNLOCK_WITH_EVIDENCE_QA.md").exists(),
         "has_v921_screenshot_evidence_gate": (Path(__file__).resolve().parent / "tools" / "check_v921_browser_qa_artifact_run.py").exists(),
-        "has_v922_visible_product_experience_upgrade": "v922_visible_product_experience_runtime_summary" in app_py_text and "V922 visible product experience upgrade" in css_text,
-        "has_v922_home_visible_premium_upgrade": "v922-home-hero" in (Path(__file__).resolve().parent / "templates" / "home.html").read_text(encoding="utf-8", errors="replace"),
-        "has_v922_client_dashboard_visible_upgrade": "v922-client-dashboard" in (Path(__file__).resolve().parent / "templates" / "client_app_center.html").read_text(encoding="utf-8", errors="replace"),
-        "has_v922_admin_command_center_visible_upgrade": "v922-admin-command-center" in (Path(__file__).resolve().parent / "templates" / "admin_dashboard.html").read_text(encoding="utf-8", errors="replace"),
-        "has_v922_sports_screens_visible_upgrade": all(marker in (Path(__file__).resolve().parent / "templates" / name).read_text(encoding="utf-8", errors="replace") for name, marker in (("calendar.html", "v922-calendar-shell"), ("live.html", "v922-live-shell"), ("picks.html", "v922-picks-shell"))),
+        "has_v922_screenshot_evidence_visual_fix": "v922_screenshot_evidence_visual_fix_runtime_summary" in app_py_text,
+        "has_v922_browser_qa_results_import": (Path(__file__).resolve().parent / "tools" / "import_browser_qa_results.py").exists() and "v922_import_status" in (Path(__file__).resolve().parent / "tools" / "import_browser_qa_results.py").read_text(encoding="utf-8", errors="replace"),
+        "has_v922_visual_queue_evidence_gate": (Path(__file__).resolve().parent / "data" / "runtime" / "autonomous_company_sentinel" / "visual_fix_queue.json").exists(),
+        "has_v922_codex_prompts_with_evidence_gate": "V922_SCREENSHOT_EVIDENCE_PROMPTS" in (Path(__file__).resolve().parent / "data" / "runtime" / "autonomous_company_sentinel" / "outbox" / "codex_outbox.md").read_text(encoding="utf-8", errors="replace"),
+        "has_v923_browser_qa_evidence_capture": "v923_browser_qa_evidence_capture_runtime_summary" in app_py_text,
+        "has_v923_browser_qa_artifact_import": (Path(__file__).resolve().parent / "tools" / "import_browser_qa_results.py").exists() and "v923_import_status" in (Path(__file__).resolve().parent / "tools" / "import_browser_qa_results.py").read_text(encoding="utf-8", errors="replace"),
+        "has_v923_visual_queue_evidence_unlock": (Path(__file__).resolve().parent / "data" / "runtime" / "autonomous_company_sentinel" / "visual_fix_queue.json").exists(),
+        "has_v923_screenshot_gate_enforced": "V923_BROWSER_QA_REQUIRED" in (Path(__file__).resolve().parent / "data" / "runtime" / "autonomous_company_sentinel" / "outbox" / "codex_outbox.md").read_text(encoding="utf-8", errors="replace") or bool(v923_summary.get("v923_valid_screenshots_count")),
         **v902_truth_summary,
         **v904_summary,
         **v906_summary,
@@ -16123,6 +16221,7 @@ def api_runtime_version():
         **v920_summary,
         **v921_summary,
         **v922_summary,
+        **v923_summary,
         "active_errors_count": v903_active_errors_count,
         "fixed_safe_count": v903_archived_count,
         "stale_issues_count": v903_stale_issues_count,

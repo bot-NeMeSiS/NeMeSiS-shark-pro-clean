@@ -1,10 +1,10 @@
 {
   "ok": true,
-  "audited_at": "2026-07-09T14:41:56",
-  "zip": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\release_output\\NeMeSiS_SHARK_PRO_V922_SCREENSHOT_EVIDENCE_VISUAL_FIX_PASS_FINAL_RENDER_READY.zip",
-  "zip_size_bytes": 27506611,
-  "file_count": 2256,
-  "content_size_bytes": 34686478,
+  "audited_at": "2026-07-09T14:55:40",
+  "zip": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\release_output\\NeMeSiS_SHARK_PRO_V923_BROWSER_QA_EVIDENCE_CAPTURE_IMPORT_AND_VISUAL_QUEUE_UNLOCK_FINAL_RENDER_READY.zip",
+  "zip_size_bytes": 27517990,
+  "file_count": 2270,
+  "content_size_bytes": 34720642,
   "forbidden_count": 0,
   "missing_required_root": [],
   "forbidden": [],
@@ -79,7 +79,7 @@
     },
     {
       "path": "app.py",
-      "size": 1030887
+      "size": 1036629
     },
     {
       "path": "static/app.css",
@@ -98,13 +98,13 @@
     },
     {
       "folder": "reports",
-      "size": 3586002,
-      "files": 1218
+      "size": 3597434,
+      "files": 1231
     },
     {
       "folder": "tools",
-      "size": 1466229,
-      "files": 494
+      "size": 1477318,
+      "files": 495
     },
     {
       "folder": "engines",
@@ -113,7 +113,7 @@
     },
     {
       "folder": "app.py",
-      "size": 1030887,
+      "size": 1036629,
       "files": 1
     },
     {
@@ -123,7 +123,7 @@
     },
     {
       "folder": "templates",
-      "size": 727506,
+      "size": 730177,
       "files": 169
     },
     {
@@ -138,7 +138,7 @@
     },
     {
       "folder": "data",
-      "size": 53932,
+      "size": 57047,
       "files": 4
     },
     {
@@ -162,8 +162,8 @@
       "files": 11
     },
     {
-      "folder": "RELEASE_MANIFEST_V922.json",
-      "size": 7505,
+      "folder": "RELEASE_MANIFEST_V923.json",
+      "size": 7574,
       "files": 1
     },
     {
