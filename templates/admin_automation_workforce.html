@@ -20,6 +20,24 @@
     <output class="v904-safe-api-output" data-v904-output>Modo seguro: no despliega, no envia Telegram real, no toca pagos ni DB real.</output>
   </div>
 
+  <section class="v922-admin-command-center v922-workforce-visible-status" aria-label="Workforce visible V922">
+    <div class="v922-section-title">
+      <span>V922 workforce operativo</span>
+      <h2>Estado accionable sin ruido tecnico</h2>
+      <p>El panel separa lo instalado, lo pendiente y lo bloqueado por evidencias. No muestra secretos y no habilita deploy real sin autorizacion.</p>
+    </div>
+    <div class="v922-admin-kpi-grid">
+      <article class="v922-admin-system-status"><span>Core</span><strong>{{ 'Listo' if summary.v916_workforce_core_ready or workforce.workers else 'Revisar' }}</strong><small>Workers y panel disponibles.</small></article>
+      <article class="v922-admin-system-status"><span>Deploy hook</span><strong>{{ 'Configurado' if summary.v916_deploy_hook_configured else 'Pendiente' }}</strong><small>Solo desde secretos de entorno/GitHub.</small></article>
+      <article class="v922-admin-system-status"><span>Browser QA</span><strong>{{ v921_gate.v921_browser_qa_environment_status or artifact_gate.v920_browser_qa_execution_status or 'PACKAGE_MISSING' }}</strong><small>Ejecutar local o GitHub Action.</small></article>
+      <article class="v922-admin-system-status"><span>Cola visual</span><strong>{{ v921_gate.v921_visual_queue_blocked or artifact_gate.v920_visual_queue_blocked or browser_gate.v919_visual_queue_blocked or 0 }} bloqueados</strong><small>Sin screenshot no se desbloquea.</small></article>
+    </div>
+    <div class="v922-admin-next-action">
+      <strong>Proxima accion exacta</strong>
+      <p>Ejecutar Browser QA real, importar artifacts con capturas validas y despues refrescar la cola visual. Pixel-perfect sigue bloqueado sin evidencia.</p>
+    </div>
+  </section>
+
   <section class="ns-grid ns-grid-4 v916-workforce-status-grid">
     <article class="ns-stat v916-status-card">
       <span>Core Workforce</span>

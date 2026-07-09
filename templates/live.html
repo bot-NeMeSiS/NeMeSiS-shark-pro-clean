@@ -26,6 +26,34 @@
 
   {% include "partials/client_flow_bar.html" %}
 
+  <section class="v922-live-shell" aria-label="Directo visible V922">
+    <div class="v922-section-title">
+      <span>Live premium</span>
+      <h2>Marcador real o estado claro</h2>
+      <p>La pantalla deja claro si hay partidos en juego, si el proveedor esta activo y que hacer cuando no hay directo real.</p>
+    </div>
+    <div class="v922-live-filter-row">
+      <a href="/live">En directo <strong>{{ counts.get('live',0) }}</strong></a>
+      <a href="/live?f=finished">Finalizados <strong>{{ counts.get('finished',0) }}</strong></a>
+      <a href="/calendar?lane=today">Agenda hoy</a>
+      <a href="/shark">SHARK</a>
+    </div>
+    {% if featured %}
+    <article class="v922-live-match-card">
+      <span>{{ featured.get('live_status_label') or featured.get('live_clock_label') or 'Estado pendiente' }}</span>
+      <strong>{{ featured.get('safe_home') or featured.get('home_team') or 'Local' }} vs {{ featured.get('safe_away') or featured.get('away_team') or 'Visitante' }}</strong>
+      <small>{{ featured.get('live_competition_display') or featured.get('competition_name') or 'Competicion pendiente' }}</small>
+      <a href="/match/{{ featured.get('id') }}">Abrir partido</a>
+    </article>
+    {% else %}
+    <div class="v922-live-empty-state">
+      <strong>Sin directos reales ahora mismo</strong>
+      <p>La app no inventa minuto, marcador ni eventos. Cuando el proveedor traiga directo real, esta pantalla se activara automaticamente.</p>
+      <a href="/calendar?lane=today">Ver agenda de hoy</a>
+    </div>
+    {% endif %}
+  </section>
+
   <section class="v904-client-signal-strip" aria-label="Directo seguro V904">
     <article><span>Marcador</span><strong>Solo real</strong><small>Sin minuto inventado ni evento simulado.</small></article>
     <article><span>Proveedor</span><strong>{{ 'Activo' if v852_provider_ok else 'Esperando' }}</strong><small>Cache-first y guard anti-gasto.</small></article>

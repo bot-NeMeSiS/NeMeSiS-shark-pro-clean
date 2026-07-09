@@ -11,6 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V920_BROWSER_QA_ARTIFACTS_CAPTURE_OR_UPLOAD_EXECUTION_FINAL"
 COMPATIBLE_SUCCESSORS = {
     "V921_AUTOMATED_BROWSER_QA_ARTIFACT_RUN_IMPORT_AND_VISUAL_QUEUE_UNLOCK_FINAL",
+    "V922_VISIBLE_PRODUCT_EXPERIENCE_CLIENT_ADMIN_SPORTS_UPGRADE_FINAL",
 }
 QUEUE = ROOT / "data" / "runtime" / "autonomous_company_sentinel" / "visual_fix_queue.json"
 ZIP_NAME = f"NeMeSiS_SHARK_PRO_{VERSION}_RENDER_READY.zip"
@@ -89,7 +90,7 @@ def main() -> int:
     require(local_version in allowed_versions, "VERSION.txt is not V920 or compatible successor", failures)
     require(read("APP_VERSION").strip().lstrip("\ufeff") in allowed_versions, "APP_VERSION is not V920 or compatible successor", failures)
     require(app_version(app_py) in allowed_versions, "app.py APP_VERSION is not V920 or compatible successor", failures)
-    require("NEMESIS_CACHE_V920" in app_py or "NEMESIS_CACHE_V921" in app_py, "service worker cache V920/V921 missing", failures)
+    require("NEMESIS_CACHE_V920" in app_py or "NEMESIS_CACHE_V921" in app_py or "NEMESIS_CACHE_V922" in app_py, "service worker cache V920/V921/V922 missing", failures)
     for flag in [
         "has_v920_browser_qa_artifacts_capture",
         "has_v920_browser_qa_artifact_import",

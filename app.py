@@ -339,7 +339,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V921_AUTOMATED_BROWSER_QA_ARTIFACT_RUN_IMPORT_AND_VISUAL_QUEUE_UNLOCK_FINAL'
+APP_VERSION = 'V922_VISIBLE_PRODUCT_EXPERIENCE_CLIENT_ADMIN_SPORTS_UPGRADE_FINAL'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 
@@ -10512,7 +10512,7 @@ def dashboard_data(lane="today", date=None):
 @app.route("/service-worker.js")
 def service_worker():
     body = (
-        "const NEMESIS_CACHE='NEMESIS_CACHE_V921';\n"
+        "const NEMESIS_CACHE='NEMESIS_CACHE_V922';\n"
         "self.addEventListener('install',event=>{self.skipWaiting();});\n"
         "self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==NEMESIS_CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));});\n"
         "self.addEventListener('fetch',event=>{const req=event.request;if(req.mode==='navigate'){event.respondWith(fetch(req).then(res=>{if(res.status===404){return fetch('/');}return res;}).catch(()=>fetch('/')));return;}event.respondWith(fetch(req).then(res=>{if(res.status===404){return res;}return res;}));});\n"
@@ -15233,7 +15233,7 @@ def v910_full_project_audit_runtime_summary() -> dict:
     reports_ok = all((reports_dir / name).exists() for name in required_reports)
     return {
         "v910_hidden_dirs_reviewed": sum(1 for name in hidden_dirs if (root / name).exists()),
-        "v910_pwa_route_audit_status": "audited" if (reports_dir / "V910_ROUTE_NOT_FOUND_PWA_CACHE_AUDIT.md").exists() and any(cache in Path(__file__).read_text(encoding="utf-8", errors="replace") for cache in ("NEMESIS_CACHE_V910", "NEMESIS_CACHE_V911", "NEMESIS_CACHE_V912", "NEMESIS_CACHE_V913", "NEMESIS_CACHE_V915", "NEMESIS_CACHE_V916", "NEMESIS_CACHE_V917", "NEMESIS_CACHE_V918", "NEMESIS_CACHE_V919", "NEMESIS_CACHE_V920", "NEMESIS_CACHE_V921")) else "pending_report",
+        "v910_pwa_route_audit_status": "audited" if (reports_dir / "V910_ROUTE_NOT_FOUND_PWA_CACHE_AUDIT.md").exists() and any(cache in Path(__file__).read_text(encoding="utf-8", errors="replace") for cache in ("NEMESIS_CACHE_V910", "NEMESIS_CACHE_V911", "NEMESIS_CACHE_V912", "NEMESIS_CACHE_V913", "NEMESIS_CACHE_V915", "NEMESIS_CACHE_V916", "NEMESIS_CACHE_V917", "NEMESIS_CACHE_V918", "NEMESIS_CACHE_V919", "NEMESIS_CACHE_V920", "NEMESIS_CACHE_V921", "NEMESIS_CACHE_V922")) else "pending_report",
         "v910_browser_qa_pipeline_status": "audited_ready" if (reports_dir / "V910_BROWSER_QA_PIPELINE_FULL_AUDIT.md").exists() and (root / "browser_qa" / "README.md").exists() else "pending_report",
         "v910_release_tree_status": "audited_clean" if (reports_dir / "V910_RELEASE_ZIP_AND_DEPLOY_ROOT_AUDIT.md").exists() else "pending_report",
         "v910_secrets_audit_status": "masked_no_raw_secret_in_release_scope" if (reports_dir / "V910_SECRET_AND_LOG_EXPOSURE_AUDIT.md").exists() else "pending_report",
@@ -15333,7 +15333,7 @@ def v912_video_admin_ui_copy_polish_runtime_summary() -> dict:
         "v912_admin_client_mix_fix_applied": "data-v912-video-admin-fix" in base_text,
         "v912_public_copy_polish_status": "polished" if public_copy_ok else "needs_review",
         "v912_browser_qa_queue_panel_status": v911.get("v911_browser_qa_queue_panel_status") or "blocked_until_browser_screenshots",
-        "v912_pwa_route_recheck_status": "service_worker_v912_or_newer_no_404_cache" if ("NEMESIS_CACHE_V912" in Path(__file__).read_text(encoding="utf-8", errors="replace") or "NEMESIS_CACHE_V913" in Path(__file__).read_text(encoding="utf-8", errors="replace") or "NEMESIS_CACHE_V915" in Path(__file__).read_text(encoding="utf-8", errors="replace") or "NEMESIS_CACHE_V916" in Path(__file__).read_text(encoding="utf-8", errors="replace") or "NEMESIS_CACHE_V917" in Path(__file__).read_text(encoding="utf-8", errors="replace") or "NEMESIS_CACHE_V918" in Path(__file__).read_text(encoding="utf-8", errors="replace") or "NEMESIS_CACHE_V919" in Path(__file__).read_text(encoding="utf-8", errors="replace") or "NEMESIS_CACHE_V920" in Path(__file__).read_text(encoding="utf-8", errors="replace") or "NEMESIS_CACHE_V921" in Path(__file__).read_text(encoding="utf-8", errors="replace")) else "pending_cache_update",
+        "v912_pwa_route_recheck_status": "service_worker_v912_or_newer_no_404_cache" if ("NEMESIS_CACHE_V912" in Path(__file__).read_text(encoding="utf-8", errors="replace") or "NEMESIS_CACHE_V913" in Path(__file__).read_text(encoding="utf-8", errors="replace") or "NEMESIS_CACHE_V915" in Path(__file__).read_text(encoding="utf-8", errors="replace") or "NEMESIS_CACHE_V916" in Path(__file__).read_text(encoding="utf-8", errors="replace") or "NEMESIS_CACHE_V917" in Path(__file__).read_text(encoding="utf-8", errors="replace") or "NEMESIS_CACHE_V918" in Path(__file__).read_text(encoding="utf-8", errors="replace") or "NEMESIS_CACHE_V919" in Path(__file__).read_text(encoding="utf-8", errors="replace") or "NEMESIS_CACHE_V920" in Path(__file__).read_text(encoding="utf-8", errors="replace") or "NEMESIS_CACHE_V921" in Path(__file__).read_text(encoding="utf-8", errors="replace") or "NEMESIS_CACHE_V922" in Path(__file__).read_text(encoding="utf-8", errors="replace")) else "pending_cache_update",
     }
 
 
@@ -15719,6 +15719,22 @@ def v921_browser_qa_artifact_run_runtime_summary() -> dict:
     }
 
 
+def v922_visible_product_experience_runtime_summary() -> dict:
+    """Runtime-safe summary for the V922 visible product experience pass."""
+    v921 = v921_browser_qa_artifact_run_runtime_summary()
+    valid_screenshots = int(v921.get("v921_valid_screenshots_count") or 0)
+    browser_qa_required = valid_screenshots <= 0
+    return {
+        "v922_visible_home_upgrade": True,
+        "v922_visible_client_upgrade": True,
+        "v922_visible_admin_upgrade": True,
+        "v922_visible_sports_upgrade": True,
+        "v922_browser_qa_still_required": browser_qa_required,
+        "v922_visual_changes_summary": "home, client dashboard, calendar, live, picks, shark, telegram, admin command center, workforce",
+        "v922_next_required_action": "run_browser_qa_for_visual_evidence" if browser_qa_required else "review_v922_with_screenshots",
+    }
+
+
 def get_safe_runtime_identity_for_admin() -> dict:
     """Return local runtime identity for admin panels without external calls or secrets."""
     version_txt = ""
@@ -15827,6 +15843,7 @@ def api_runtime_version():
     v919_summary = v919_browser_qa_results_gate_runtime_summary()
     v920_summary = v920_browser_qa_artifacts_runtime_summary()
     v921_summary = v921_browser_qa_artifact_run_runtime_summary()
+    v922_summary = v922_visible_product_experience_runtime_summary()
     return jsonify(sanitize_runtime_value({
         "ok": True,
         "app": APP_NAME,
@@ -16016,7 +16033,7 @@ def api_runtime_version():
         "has_v895_render_v894_deployment_alignment": "V895_RENDER_V894_DEPLOYMENT_ALIGNMENT_FINAL" in app_py_text and "deployment_alignment_status" in app_py_text,
         "has_v896_not_found_route_recovery": "V896_PRODUCTION_NOT_FOUND_ROUTE_RECOVERY_FULL_APP_SMOKE_FINAL" in app_py_text and "client_safe_404" in app_py_text and "/api/admin/not-found-events" in app_py_text,
         "has_v897_truthful_sentinel_route_alias_reference_qa": "V897_SENTINEL_TRUTHFUL_ISSUES_ROUTE_ALIAS_REFERENCE_QA_FIX_FINAL" in app_py_text and "register_alias_if_missing" in app_py_text and "data-v897-shell" in base_template,
-        "has_v898_404_pwa_reference_outbox_truth": "V898_PRODUCTION_404_PWA_REFERENCE_OUTBOX_TRUTH_FINAL" in app_py_text and ("NEMESIS_CACHE_V898" in app_py_text or "NEMESIS_CACHE_V900" in app_py_text or "NEMESIS_CACHE_V901" in app_py_text or "NEMESIS_CACHE_V902" in app_py_text or "NEMESIS_CACHE_V903" in app_py_text or "NEMESIS_CACHE_V904" in app_py_text or "NEMESIS_CACHE_V906" in app_py_text or "NEMESIS_CACHE_V907" in app_py_text or "NEMESIS_CACHE_V908" in app_py_text or "NEMESIS_CACHE_V909" in app_py_text or "NEMESIS_CACHE_V911" in app_py_text or "NEMESIS_CACHE_V912" in app_py_text or "NEMESIS_CACHE_V913" in app_py_text or "NEMESIS_CACHE_V915" in app_py_text or "NEMESIS_CACHE_V916" in app_py_text or "NEMESIS_CACHE_V917" in app_py_text or "NEMESIS_CACHE_V918" in app_py_text or "NEMESIS_CACHE_V919" in app_py_text or "NEMESIS_CACHE_V920" in app_py_text or "NEMESIS_CACHE_V921" in app_py_text) and "/admin/not-found-events" in app_py_text,
+        "has_v898_404_pwa_reference_outbox_truth": "V898_PRODUCTION_404_PWA_REFERENCE_OUTBOX_TRUTH_FINAL" in app_py_text and ("NEMESIS_CACHE_V898" in app_py_text or "NEMESIS_CACHE_V900" in app_py_text or "NEMESIS_CACHE_V901" in app_py_text or "NEMESIS_CACHE_V902" in app_py_text or "NEMESIS_CACHE_V903" in app_py_text or "NEMESIS_CACHE_V904" in app_py_text or "NEMESIS_CACHE_V906" in app_py_text or "NEMESIS_CACHE_V907" in app_py_text or "NEMESIS_CACHE_V908" in app_py_text or "NEMESIS_CACHE_V909" in app_py_text or "NEMESIS_CACHE_V911" in app_py_text or "NEMESIS_CACHE_V912" in app_py_text or "NEMESIS_CACHE_V913" in app_py_text or "NEMESIS_CACHE_V915" in app_py_text or "NEMESIS_CACHE_V916" in app_py_text or "NEMESIS_CACHE_V917" in app_py_text or "NEMESIS_CACHE_V918" in app_py_text or "NEMESIS_CACHE_V919" in app_py_text or "NEMESIS_CACHE_V920" in app_py_text or "NEMESIS_CACHE_V921" in app_py_text or "NEMESIS_CACHE_V922" in app_py_text) and "/admin/not-found-events" in app_py_text,
         "has_v899_reference_visual_browser_qa_product_gap_worker": "reference_scan" in app_py_text and "product_gap_engine" in app_py_text and "reference_image_manifest_engine" in app_py_text,
         "has_v900_reference_images_import_first_real_visual_gap_audit": "V900_REFERENCE_IMAGES_IMPORT_FIRST_REAL_VISUAL_GAP_AUDIT_FINAL" in app_py_text and "data-v900-shell" in base_template and "product_gap_engine" in app_py_text,
         "has_v901_admin_continuous_sentinel_api_layout_recovery": "V901_ADMIN_CONTINUOUS_SENTINEL_API_LAYOUT_RECOVERY_FINAL" in app_py_text and "data-v901-shell" in base_template and "v901_register_admin_api_issue" in app_py_text,
@@ -16041,7 +16058,7 @@ def api_runtime_version():
         "has_v909_browser_qa_pipeline": (Path(__file__).resolve().parent / "browser_qa" / "README.md").exists() and "v909_browser_qa_pipeline_runtime_summary" in app_py_text,
         "has_v909_visual_fix_queue": (Path(__file__).resolve().parent / "data" / "runtime" / "autonomous_company_sentinel" / "visual_fix_queue.json").exists(),
         "has_v910_full_hidden_project_audit": "v910_full_project_audit_runtime_summary" in app_py_text and (Path(__file__).resolve().parent / "reports" / "V910_FULL_PROJECT_HIDDEN_TREE_AUDIT.md").exists(),
-        "has_v910_route_not_found_pwa_audit": ("NEMESIS_CACHE_V910" in app_py_text or "NEMESIS_CACHE_V911" in app_py_text or "NEMESIS_CACHE_V912" in app_py_text or "NEMESIS_CACHE_V913" in app_py_text or "NEMESIS_CACHE_V915" in app_py_text or "NEMESIS_CACHE_V916" in app_py_text or "NEMESIS_CACHE_V917" in app_py_text or "NEMESIS_CACHE_V918" in app_py_text or "NEMESIS_CACHE_V919" in app_py_text or "NEMESIS_CACHE_V920" in app_py_text or "NEMESIS_CACHE_V921" in app_py_text) and (Path(__file__).resolve().parent / "reports" / "V910_ROUTE_NOT_FOUND_PWA_CACHE_AUDIT.md").exists(),
+        "has_v910_route_not_found_pwa_audit": ("NEMESIS_CACHE_V910" in app_py_text or "NEMESIS_CACHE_V911" in app_py_text or "NEMESIS_CACHE_V912" in app_py_text or "NEMESIS_CACHE_V913" in app_py_text or "NEMESIS_CACHE_V915" in app_py_text or "NEMESIS_CACHE_V916" in app_py_text or "NEMESIS_CACHE_V917" in app_py_text or "NEMESIS_CACHE_V918" in app_py_text or "NEMESIS_CACHE_V919" in app_py_text or "NEMESIS_CACHE_V920" in app_py_text or "NEMESIS_CACHE_V921" in app_py_text or "NEMESIS_CACHE_V922" in app_py_text) and (Path(__file__).resolve().parent / "reports" / "V910_ROUTE_NOT_FOUND_PWA_CACHE_AUDIT.md").exists(),
         "has_v910_browser_qa_pipeline_audited": (Path(__file__).resolve().parent / "reports" / "V910_BROWSER_QA_PIPELINE_FULL_AUDIT.md").exists(),
         "has_v910_release_tree_cleanliness_audit": (Path(__file__).resolve().parent / "reports" / "V910_RELEASE_ZIP_AND_DEPLOY_ROOT_AUDIT.md").exists(),
         "has_v911_real_browser_screenshot_visual_fix": "data-v911-shell" in base_template and (Path(__file__).resolve().parent / "tools" / "run_browser_reference_qa.py").exists(),
@@ -16084,6 +16101,11 @@ def api_runtime_version():
         "has_v921_browser_qa_import_execution": (Path(__file__).resolve().parent / "tools" / "import_browser_qa_results.py").exists() and "v921_import_status" in (Path(__file__).resolve().parent / "tools" / "import_browser_qa_results.py").read_text(encoding="utf-8", errors="replace"),
         "has_v921_visual_queue_evidence_unlock": (Path(__file__).resolve().parent / "reports" / "V921_VISUAL_QUEUE_UNLOCK_WITH_EVIDENCE_QA.md").exists(),
         "has_v921_screenshot_evidence_gate": (Path(__file__).resolve().parent / "tools" / "check_v921_browser_qa_artifact_run.py").exists(),
+        "has_v922_visible_product_experience_upgrade": "v922_visible_product_experience_runtime_summary" in app_py_text and "V922 visible product experience upgrade" in css_text,
+        "has_v922_home_visible_premium_upgrade": "v922-home-hero" in (Path(__file__).resolve().parent / "templates" / "home.html").read_text(encoding="utf-8", errors="replace"),
+        "has_v922_client_dashboard_visible_upgrade": "v922-client-dashboard" in (Path(__file__).resolve().parent / "templates" / "client_app_center.html").read_text(encoding="utf-8", errors="replace"),
+        "has_v922_admin_command_center_visible_upgrade": "v922-admin-command-center" in (Path(__file__).resolve().parent / "templates" / "admin_dashboard.html").read_text(encoding="utf-8", errors="replace"),
+        "has_v922_sports_screens_visible_upgrade": all(marker in (Path(__file__).resolve().parent / "templates" / name).read_text(encoding="utf-8", errors="replace") for name, marker in (("calendar.html", "v922-calendar-shell"), ("live.html", "v922-live-shell"), ("picks.html", "v922-picks-shell"))),
         **v902_truth_summary,
         **v904_summary,
         **v906_summary,
@@ -16100,6 +16122,7 @@ def api_runtime_version():
         **v919_summary,
         **v920_summary,
         **v921_summary,
+        **v922_summary,
         "active_errors_count": v903_active_errors_count,
         "fixed_safe_count": v903_archived_count,
         "stale_issues_count": v903_stale_issues_count,

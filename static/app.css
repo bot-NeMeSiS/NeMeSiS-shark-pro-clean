@@ -12481,3 +12481,204 @@ body[data-v912-video-admin-fix="true"].ns-admin :is(
     linear-gradient(180deg, rgba(15, 23, 42, 0.97), rgba(2, 6, 23, 0.94)),
     radial-gradient(circle at 90% 0%, rgba(74, 222, 128, 0.1), transparent 34%);
 }
+
+/* V922 visible product experience upgrade */
+.v922-home-hero,
+.v922-client-dashboard,
+.v922-live-shell,
+.v922-picks-shell,
+.v922-admin-command-center {
+  margin: 18px auto;
+  width: min(1180px, calc(100% - 28px));
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.96), rgba(2, 6, 23, 0.93));
+  box-shadow: 0 18px 48px rgba(2, 6, 23, 0.22);
+  padding: clamp(18px, 3vw, 30px);
+}
+
+.v922-home-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(260px, 0.65fr);
+  gap: 18px;
+  align-items: stretch;
+}
+
+.v922-eyebrow,
+.v922-section-title span,
+.v922-home-status-card span,
+.v922-home-plan-card span,
+.v922-client-status-card span,
+.v922-match-card span,
+.v922-admin-system-status span {
+  display: inline-flex;
+  color: #38bdf8;
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.v922-home-hero h1,
+.v922-section-title h2 {
+  margin: 8px 0;
+  color: #f8fafc;
+  font-size: clamp(1.45rem, 2.8vw, 2.35rem);
+  line-height: 1.08;
+  letter-spacing: 0;
+}
+
+.v922-home-hero p,
+.v922-section-title p,
+.v922-client-empty-premium p,
+.v922-live-empty-state p,
+.v922-no-picks-premium p,
+.v922-admin-next-action p {
+  color: #cbd5e1;
+  line-height: 1.55;
+}
+
+.v922-action-row,
+.v922-live-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.v922-action-row a,
+.v922-live-filter-row a,
+.v922-client-empty-premium a,
+.v922-live-empty-state a,
+.v922-no-picks-premium a {
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  padding: 0 14px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  color: #e2e8f0;
+  text-decoration: none;
+  font-weight: 800;
+}
+
+.v922-action-row .primary,
+.v922-live-filter-row a:first-child {
+  background: #38bdf8;
+  color: #04111f;
+  border-color: #38bdf8;
+}
+
+.v922-home-grid,
+.v922-client-quick-grid,
+.v922-admin-kpi-grid,
+.v922-pick-quality-strip {
+  width: min(1180px, calc(100% - 28px));
+  margin: 14px auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 12px;
+}
+
+.v922-home-status-card,
+.v922-home-plan-card,
+.v922-client-status-card,
+.v922-match-card,
+.v922-live-match-card,
+.v922-pick-card,
+.v922-pick-quality-strip article,
+.v922-admin-action-card,
+.v922-admin-system-status {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.78);
+  padding: 14px;
+  color: #e2e8f0;
+  text-decoration: none;
+  min-width: 0;
+}
+
+.v922-home-status-card strong,
+.v922-home-plan-card strong,
+.v922-client-status-card strong,
+.v922-match-card strong,
+.v922-live-match-card strong,
+.v922-pick-quality-strip strong,
+.v922-admin-action-card strong,
+.v922-admin-system-status strong {
+  color: #f8fafc;
+  font-size: 1rem;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.v922-home-status-card small,
+.v922-home-plan-card small,
+.v922-client-status-card small,
+.v922-match-card small,
+.v922-live-match-card small,
+.v922-pick-quality-strip small,
+.v922-admin-action-card small,
+.v922-admin-system-status small {
+  color: #94a3b8;
+  line-height: 1.4;
+}
+
+.v922-home-trust-strip {
+  width: min(1180px, calc(100% - 28px));
+  margin: 14px auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 10px;
+}
+
+.v922-home-trust-strip span {
+  border-radius: 8px;
+  border: 1px solid rgba(56, 189, 248, 0.22);
+  background: rgba(8, 47, 73, 0.36);
+  color: #bae6fd;
+  padding: 12px;
+  font-weight: 800;
+}
+
+.v922-client-empty-premium,
+.v922-live-empty-state,
+.v922-no-picks-premium,
+.v922-admin-next-action {
+  margin-top: 14px;
+  border: 1px dashed rgba(251, 191, 36, 0.38);
+  border-radius: 8px;
+  background: rgba(120, 53, 15, 0.14);
+  padding: 14px;
+  color: #f8fafc;
+}
+
+.v922-live-filter-row a {
+  flex: 1 1 160px;
+}
+
+.v922-live-filter-row strong {
+  margin-left: 8px;
+}
+
+.v922-admin-command-center .v922-admin-kpi-grid,
+.v922-client-dashboard .v922-client-quick-grid,
+.v922-picks-shell .v922-pick-quality-strip {
+  width: 100%;
+}
+
+@media (max-width: 760px) {
+  .v922-home-hero {
+    grid-template-columns: 1fr;
+  }
+  .v922-home-grid,
+  .v922-client-quick-grid,
+  .v922-admin-kpi-grid,
+  .v922-pick-quality-strip {
+    grid-template-columns: 1fr;
+  }
+}

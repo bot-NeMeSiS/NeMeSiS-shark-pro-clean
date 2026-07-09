@@ -25,6 +25,20 @@
     </aside>
   </div>
 
+  <section class="v922-client-dashboard v922-shark-safe-mode" aria-label="SHARK visible V922">
+    <div class="v922-section-title">
+      <span>SHARK seguro</span>
+      <h2>Asistente util sin inventar ventaja</h2>
+      <p>SHARK explica partidos y picks con datos reales disponibles. Si faltan cuotas, seleccion, marcador o proveedor IA, lo marca como pendiente.</p>
+    </div>
+    <div class="v922-client-quick-grid">
+      <article class="v922-client-status-card"><span>IA</span><strong>{{ 'Proveedor configurado' if openai_ready else 'Modo seguro activo' }}</strong><small>Sin exponer claves ni prometer IA avanzada si falta proveedor.</small></article>
+      <article class="v922-client-status-card"><span>Picks</span><strong>{{ state.get('pick') or 'Sin pick real publicado' }}</strong><small>Solo explica lo que existe.</small></article>
+      <article class="v922-client-status-card"><span>Cuotas</span><strong>{{ state.get('odds') or 'Cuota pendiente' }}</strong><small>No se fabrican cuotas.</small></article>
+      <article class="v922-client-status-card"><span>Resultado</span><strong>{{ state.get('result') or 'Resultado pendiente' }}</strong><small>Marcador solo si proveedor lo aporta.</small></article>
+    </div>
+  </section>
+
   <section class="v845-shark-grid">
     <article class="v845-answer-card">
       <div class="section-head">

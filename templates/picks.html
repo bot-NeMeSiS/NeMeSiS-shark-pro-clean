@@ -18,6 +18,27 @@
 
   {% include "partials/client_flow_bar.html" %}
 
+  <section class="v922-picks-shell" aria-label="Picks premium visibles V922">
+    <div class="v922-section-title">
+      <span>Control de calidad premium</span>
+      <h2>Solo picks con sentido, nada de relleno</h2>
+      <p>Cada pick debe tener seleccion, cuota, stake, riesgo y motivo real. Si falta algo, queda en revision y no se vende como entrada premium.</p>
+    </div>
+    <div class="v922-pick-quality-strip">
+      <article><span>Listos</span><strong>{{ ready_picks|length }}</strong><small>Con datos suficientes.</small></article>
+      <article><span>Publicados</span><strong>{{ picks|length }}</strong><small>Incluye revision si faltan campos.</small></article>
+      <article><span>Telegram</span><strong>No filler</strong><small>No se envia por enviar.</small></article>
+      <article><span>Riesgo</span><strong>Visible</strong><small>Stake y cautela cuando existan.</small></article>
+    </div>
+    {% if not ready_picks %}
+    <div class="v922-no-picks-premium">
+      <strong>No hay picks premium suficientes</strong>
+      <p>Cuota pendiente, seleccion pendiente o pick en revision. Mejor no publicar nada que mandar un pick malo.</p>
+      <a href="/calendar?lane=today">Revisar partidos reales</a>
+    </div>
+    {% endif %}
+  </section>
+
   <section class="v904-client-signal-strip" aria-label="Control de calidad de picks">
     <article><span>Filtro premium</span><strong>{{ ready_picks|length }} listos</strong><small>Sin cuota o selección pasan a revisión.</small></article>
     <article><span>Cuotas</span><strong>Reales</strong><small>No se muestran cuotas inventadas ni cero falso.</small></article>

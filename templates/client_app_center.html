@@ -52,6 +52,29 @@
     </aside>
   </section>
 
+  <section class="v922-client-dashboard" aria-label="Centro cliente visible V922">
+    <div class="v922-section-title">
+      <span>V922 producto visible</span>
+      <h2>Panel rapido para decidir sin ruido</h2>
+      <p>Agenda, directo, picks, Telegram y SHARK aparecen como tareas claras. Si falta un dato real, se muestra como pendiente y no se inventa.</p>
+    </div>
+    <div class="v922-client-quick-grid">
+      <a class="v922-client-status-card" href="/calendar?lane=today"><span>Hoy</span><strong>{{ today_count if today_count else 'Sin partidos reales cargados ahora mismo' }}</strong><small>Hora Madrid, liga y equipos cuando existan.</small></a>
+      <a class="v922-client-status-card" href="/live"><span>Directo</span><strong>{{ live_count if live_count else 'Sin directos reales ahora mismo' }}</strong><small>Marcador y minuto solo con proveedor real.</small></a>
+      <a class="v922-client-status-card" href="/picks"><span>Picks premium</span><strong>{{ picks_count if picks_count else 'Sin picks premium activos' }}</strong><small>Cuota, seleccion, stake y riesgo si existen.</small></a>
+      <a class="v922-client-status-card" href="/telegram"><span>Telegram</span><strong>{{ telegram_count if telegram_count else 'En revision segura' }}</strong><small>No filler, dedupe y control por plan.</small></a>
+      <a class="v922-client-status-card" href="/shark"><span>SHARK</span><strong>Modo seguro activo</strong><small>Explica, avisa y bloquea datos insuficientes.</small></a>
+      <a class="v922-client-status-card" href="/profile"><span>Plan</span><strong>{{ plan_name }}</strong><small>Experiencia ajustada a membresia real.</small></a>
+    </div>
+    {% if not today_count and not live_count and not picks_count %}
+    <div class="v922-client-empty-premium">
+      <strong>Esperando sincronizacion real</strong>
+      <p>No hay suficientes datos deportivos ahora mismo. La app mantiene estado premium y evita mostrar partidos, picks o cuotas inventadas.</p>
+      <a href="/calendar?lane=week">Ver semana</a>
+    </div>
+    {% endif %}
+  </section>
+
   <section class="v904-client-signal-strip" aria-label="Estado de mejora V904">
     <article><span>Datos reales</span><strong>Sin inventar</strong><small>Partidos, picks y cuotas solo si existen.</small></article>
     <article><span>Plan</span><strong>{{ plan_name }}</strong><small>Upgrade visible sin bloquear la experiencia base.</small></article>

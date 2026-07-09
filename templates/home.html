@@ -35,6 +35,22 @@
 
   {% include "partials/client_flow_bar.html" %}
 
+  <section class="v922-client-dashboard" aria-label="Resumen premium visible V922">
+    <div class="v922-section-title">
+      <span>V922 experiencia visible</span>
+      <h2>Tu centro deportivo premium</h2>
+      <p>Partidos, directos, picks, Telegram y SHARK en una vista accionable. Si falta un dato real, queda marcado como pendiente.</p>
+    </div>
+    <div class="v922-client-quick-grid">
+      <a class="v922-client-status-card" href="/calendar?lane=today"><span>Partidos hoy</span><strong>{{ today_count if today_count else 'Sin partidos reales cargados ahora mismo' }}</strong><small>Hora Madrid y proveedor real.</small></a>
+      <a class="v922-client-status-card" href="/live"><span>Directo</span><strong>{{ live_count if live_count else 'Sin directos reales ahora mismo' }}</strong><small>Minuto y marcador solo si existen.</small></a>
+      <a class="v922-client-status-card" href="/picks"><span>Picks premium</span><strong>{{ picks_count if picks_count else 'Sin picks premium activos' }}</strong><small>Mejor no enviar nada que enviar un pick malo.</small></a>
+      <a class="v922-client-status-card" href="/telegram"><span>Telegram</span><strong>{{ 'Preparado para revisión' if not telegram_count else telegram_count }}</strong><small>Dedupe, no filler y dry-run seguro.</small></a>
+      <a class="v922-client-status-card" href="/shark"><span>SHARK</span><strong>Modo seguro activo</strong><small>Sin inventar análisis ni cuotas.</small></a>
+      <a class="v922-client-status-card" href="/profile"><span>Membresía</span><strong>{{ plan }}</strong><small>FREE, PRO o ELITE según datos reales.</small></a>
+    </div>
+  </section>
+
   <section class="v800-stage v826-certified-screen" data-v826-template="home" aria-label="Panel visual principal con datos reales">
     <article class="v800-stage-main">
       <div class="v800-stage-top"><span>Foco principal</span><a href="/calendar?lane=today">Abrir agenda →</a></div>
@@ -158,6 +174,47 @@
 </section>
 
 {% else %}
+<section class="v922-home-hero" aria-label="NeMeSiS SHARK PRO experiencia premium">
+  <div>
+    <span class="v922-eyebrow">NeMeSiS SHARK PRO</span>
+    <h1>Partidos, directos, picks y análisis premium en español.</h1>
+    <p>Una app deportiva para revisar calendario, directo, picks, SHARK y Telegram sin inventar partidos, cuotas ni resultados.</p>
+    <div class="v922-action-row">
+      <a class="primary" href="/cliente-login">Entrar</a>
+      <a href="/registro">Crear cuenta</a>
+      <a href="/calendar">Ver partidos</a>
+      <a href="/picks">Ver picks</a>
+    </div>
+  </div>
+  <aside class="v922-home-status-card">
+    <span>Hoy en NeMeSiS</span>
+    <strong>Modo seguro activo</strong>
+    <small>Si no hay datos reales suficientes, la app muestra estados seguros y no fuerza picks.</small>
+  </aside>
+</section>
+
+<section class="v922-home-grid" aria-label="Hoy en NeMeSiS">
+  <article class="v922-home-status-card"><span>Partidos</span><strong>{{ today_count if today_count else 'Sin partidos reales cargados ahora mismo' }}</strong><small>Calendario pendiente de sincronización real si no hay filas.</small></article>
+  <article class="v922-home-status-card"><span>Directo</span><strong>{{ live_count if live_count else 'Sin directos reales ahora mismo' }}</strong><small>Marcadores solo con proveedor real.</small></article>
+  <article class="v922-home-status-card"><span>Picks</span><strong>{{ picks_count if picks_count else 'Sin picks premium activos' }}</strong><small>Sin cuota, selección y motivo real no se publica.</small></article>
+  <article class="v922-home-status-card"><span>Telegram</span><strong>Preparado / requiere revisión</strong><small>No filler, dedupe y control de calidad.</small></article>
+  <article class="v922-home-status-card"><span>Membresía</span><strong>FREE / PRO / ELITE</strong><small>Acceso por plan sin prometer datos falsos.</small></article>
+</section>
+
+<section class="v922-home-trust-strip" aria-label="Qué hace la app">
+  <article><strong>Calendario deportivo</strong><span>Partidos reales o estado seguro.</span></article>
+  <article><strong>Live/directo</strong><span>Minuto y marcador reales cuando existan.</span></article>
+  <article><strong>Picks premium</strong><span>Cuota, stake, riesgo y motivo solo si están disponibles.</span></article>
+  <article><strong>SHARK</strong><span>Modo seguro si OpenAI/proveedor no está configurado.</span></article>
+  <article><strong>Telegram</strong><span>Calidad antes que cantidad.</span></article>
+</section>
+
+<section class="v922-home-grid v922-home-plans" aria-label="Planes NeMeSiS">
+  <article class="v922-home-plan-card"><span>FREE</span><strong>Plan base</strong><small>Calendario, directo y estados seguros.</small></article>
+  <article class="v922-home-plan-card"><span>PRO</span><strong>{{ pro.get('price_label') or 'Precio pendiente de configuración' }}</strong><small>Picks, Telegram y análisis en revisión premium.</small></article>
+  <article class="v922-home-plan-card"><span>ELITE</span><strong>{{ elite.get('price_label') or 'Precio pendiente de configuración' }}</strong><small>Experiencia completa cuando los datos reales lo permitan.</small></article>
+</section>
+
 <section class="v783-public-hero v799-public-hero v815-public-hero v816-certified-screen v816-public-hero v817-certified-screen v817-public-hero v819-certified-screen v819-public-hero v820-certified-screen v820-public-hero v826-certified-screen" data-v826-template="home" data-v815-template="home-public" data-v816-template="home-public" data-v817-template="home-public" data-v819-template="home-public" data-v820-template="home-public">
   <div class="v783-public-copy">
     <div class="kicker">NeMeSiS SHARK PRO  app deportiva premium</div>
@@ -166,9 +223,9 @@
     <div class="v783-actions"><a class="btn primary" href="/registro">Crear cuenta gratis</a><a class="btn" href="/cliente-login">Entrar</a><a class="btn" href="/membresias">Planes y precios</a></div>
   </div>
   <aside class="v783-plan-stack" aria-label="Planes visibles">
-    <a class="v783-plan-card free" href="/registro"><span>FREE</span><strong>0€</strong><small>Calendario, directos y resultados reales.</small></a>
-    <a class="v783-plan-card pro" href="/comprar/PRO"><span>PRO</span><strong>{{ pro.get('price_label') or '9,99 €/mes' }}</strong><small>Picks, combis, mercados y Telegram premium.</small></a>
-    <a class="v783-plan-card elite" href="/comprar/ELITE"><span>ELITE</span><strong>{{ elite.get('price_label') or '24,99 €/mes' }}</strong><small>Prioridad SHARK, alertas live y experiencia completa.</small></a>
+    <a class="v783-plan-card free" href="/registro"><span>FREE</span><strong>Plan base</strong><small>Calendario, directos y resultados reales.</small></a>
+    <a class="v783-plan-card pro" href="/comprar/PRO"><span>PRO</span><strong>{{ pro.get('price_label') or 'Precio pendiente de configuración' }}</strong><small>Picks, combis, mercados y Telegram premium.</small></a>
+    <a class="v783-plan-card elite" href="/comprar/ELITE"><span>ELITE</span><strong>{{ elite.get('price_label') or 'Precio pendiente de configuración' }}</strong><small>Prioridad SHARK, alertas live y experiencia completa.</small></a>
   </aside>
 </section>
 <section class="v783-public-value v799-public-value v826-certified-screen" data-v826-template="home">
@@ -188,8 +245,5 @@
 </section>
 {% endif %}
 {% endblock %}
-
-
-
 
 

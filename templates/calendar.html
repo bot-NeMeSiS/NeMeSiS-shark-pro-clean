@@ -18,6 +18,27 @@
 
   {% include "partials/client_flow_bar.html" %}
 
+  <section class="v922-client-dashboard v922-calendar-shell" aria-label="Calendario premium visible V922">
+    <div class="v922-section-title">
+      <span>Calendario accionable</span>
+      <h2>Partidos reales, filtros claros y estado seguro</h2>
+      <p>El usuario ve rapido que hay hoy, que esta en directo, que tiene pick y que queda pendiente de proveedor. No se rellena agenda con partidos falsos.</p>
+    </div>
+    <div class="v922-client-quick-grid">
+      <a class="v922-match-card" href="/calendar?lane=today"><span>Hoy</span><strong>{{ counts.get('today',0) if counts.get('today',0) else 'Sin partidos reales hoy' }}</strong><small>Hora Madrid y competicion visible.</small></a>
+      <a class="v922-match-card" href="/calendar?lane=week"><span>Semana</span><strong>{{ counts.get('week',0) if counts.get('week',0) else 'Semana pendiente' }}</strong><small>Agenda real sincronizada.</small></a>
+      <a class="v922-match-card" href="/live"><span>Directo</span><strong>{{ counts.get('live',0) if counts.get('live',0) else 'Sin directos reales ahora mismo' }}</strong><small>Sin marcador inventado.</small></a>
+      <a class="v922-match-card" href="/calendar?lane=with_pick"><span>Con pick</span><strong>{{ counts.get('picks',0) if counts.get('picks',0) else 'Sin picks asociados' }}</strong><small>Solo senales publicadas.</small></a>
+    </div>
+    {% if not counts.get('visible',0) %}
+    <div class="v922-client-empty-premium">
+      <strong>Partido pendiente de confirmar</strong>
+      <p>Proveedor sin datos suficientes para este filtro. Prueba semana, proximos dias o espera sincronizacion real.</p>
+      <a href="/calendar?lane=week">Abrir semana</a>
+    </div>
+    {% endif %}
+  </section>
+
   <section class="v904-client-signal-strip" aria-label="Calendario premium V904">
     <article><span>Hora Madrid</span><strong>Central</strong><small>El usuario no tiene que interpretar UTC.</small></article>
     <article><span>Filtros</span><strong>Rápidos</strong><small>Día, liga, país y picks primero.</small></article>

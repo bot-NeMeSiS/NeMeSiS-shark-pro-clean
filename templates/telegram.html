@@ -8,6 +8,20 @@
     <div class="v799-appbar-actions"><a href="/mi-cuenta">Mi cuenta</a><a class="primary" href="/picks">Ver picks</a></div>
   </div>
 
+  <section class="v922-client-dashboard v922-telegram-premium" aria-label="Telegram premium visible V922">
+    <div class="v922-section-title">
+      <span>Telegram premium</span>
+      <h2>Mensajes claros, filtrados y por membresia</h2>
+      <p>Telegram no envia relleno: picks sin cuota, seleccion o motivo quedan bloqueados hasta tener datos reales suficientes.</p>
+    </div>
+    <div class="v922-client-quick-grid">
+      <article class="v922-client-status-card"><span>Vinculacion</span><strong>{{ 'Cuenta vinculada' if state.linked else 'Pendiente' }}</strong><small>El usuario controla el enlace al bot.</small></article>
+      <article class="v922-client-status-card"><span>Plan</span><strong>{{ tier }}</strong><small>FREE, PRO y ELITE no deben recibir lo mismo si no corresponde.</small></article>
+      <article class="v922-client-status-card"><span>No filler</span><strong>Activo</strong><small>Mejor no enviar nada que enviar un pick malo.</small></article>
+      <article class="v922-client-status-card"><span>Dedupe</span><strong>Preservado</strong><small>Evita repetir picks o mensajes.</small></article>
+    </div>
+  </section>
+
   <section class="v799-kpi-strip">
     <a class="telegram" href="/telegram"><i>✈</i><span>Bot</span><strong>{{ 'Sí' if state.linked else 'Pendiente' }}</strong><small>vinculación</small></a>
     <a href="/telegram"><i>✈</i><span>Canal</span><strong>{{ 'Activo' if data.telegram.enabled or data.telegram.legacy_enabled else 'Pausa' }}</strong><small>estado</small></a>

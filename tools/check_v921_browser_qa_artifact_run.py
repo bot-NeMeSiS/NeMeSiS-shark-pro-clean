@@ -9,6 +9,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V921_AUTOMATED_BROWSER_QA_ARTIFACT_RUN_IMPORT_AND_VISUAL_QUEUE_UNLOCK_FINAL"
+COMPATIBLE_VERSION_PREFIXES = ("V921_", "V922_")
 QUEUE = ROOT / "data" / "runtime" / "autonomous_company_sentinel" / "visual_fix_queue.json"
 ZIP_NAME = f"NeMeSiS_SHARK_PRO_{VERSION}_RENDER_READY.zip"
 
@@ -83,10 +84,10 @@ def main() -> int:
     local_version = version_bytes.decode("utf-8").strip()
 
     require(not version_bytes.startswith(b"\xef\xbb\xbf"), "VERSION.txt has BOM", failures)
-    require(local_version == VERSION, "VERSION.txt is not V921", failures)
-    require(read("APP_VERSION").strip().lstrip("\ufeff") == VERSION, "APP_VERSION is not V921", failures)
-    require(app_version(app_py) == VERSION, "app.py APP_VERSION is not V921", failures)
-    require("NEMESIS_CACHE_V921" in app_py, "service worker cache V921 missing", failures)
+    require(local_version.startswith(COMPATIBLE_VERSION_PREFIXES), "VERSION.txt is not V921/V922 compatible", failures)
+    require(read("APP_VERSION").strip().lstrip("\ufeff").startswith(COMPATIBLE_VERSION_PREFIXES), "APP_VERSION is not V921/V922 compatible", failures)
+    require(app_version(app_py).startswith(COMPATIBLE_VERSION_PREFIXES), "app.py APP_VERSION is not V921/V922 compatible", failures)
+    require("NEMESIS_CACHE_V921" in app_py or "NEMESIS_CACHE_V922" in app_py, "service worker cache V921/V922 missing", failures)
     for flag in [
         "has_v921_automated_browser_qa_artifact_run",
         "has_v921_browser_qa_import_execution",
@@ -145,7 +146,7 @@ def main() -> int:
     runtime = client.get("/api/runtime-version")
     payload = runtime.get_json(silent=True) or {}
     require(runtime.status_code == 200, "runtime-version not 200", failures)
-    require(payload.get("version") == VERSION, "runtime version is not V921", failures)
+    require(str(payload.get("version") or "").startswith(COMPATIBLE_VERSION_PREFIXES), "runtime version is not V921/V922 compatible", failures)
     require(payload.get("has_v921_automated_browser_qa_artifact_run") is True, "runtime V921 run flag false", failures)
     require(payload.get("has_v921_browser_qa_import_execution") is True, "runtime V921 import flag false", failures)
     require(payload.get("has_v921_visual_queue_evidence_unlock") is True, "runtime V921 unlock flag false", failures)
