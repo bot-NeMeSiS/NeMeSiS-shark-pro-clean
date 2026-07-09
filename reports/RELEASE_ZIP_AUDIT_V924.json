@@ -1,10 +1,10 @@
 {
   "ok": true,
-  "audited_at": "2026-07-09T21:27:39",
+  "audited_at": "2026-07-09T22:01:33",
   "zip": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\release_output\\NeMeSiS_SHARK_PRO_V924_GLOBAL_UI_EMPTY_SPACE_CLIENT_VALUE_SPORTS_DATA_ODDS_FIX_FINAL_RENDER_READY.zip",
-  "zip_size_bytes": 27536225,
-  "file_count": 2282,
-  "content_size_bytes": 34783228,
+  "zip_size_bytes": 27538345,
+  "file_count": 2283,
+  "content_size_bytes": 34788175,
   "forbidden_count": 0,
   "missing_required_root": [],
   "forbidden": [],
@@ -98,12 +98,12 @@
     },
     {
       "folder": "reports",
-      "size": 3608786,
-      "files": 1240
+      "size": 3613469,
+      "files": 1241
     },
     {
       "folder": "tools",
-      "size": 1507204,
+      "size": 1507468,
       "files": 497
     },
     {

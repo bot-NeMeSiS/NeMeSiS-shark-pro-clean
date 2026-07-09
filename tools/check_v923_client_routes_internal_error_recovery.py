@@ -13,6 +13,8 @@ from zoneinfo import ZoneInfo
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V923_CLIENT_ROUTES_INTERNAL_ERROR_RECOVERY_AFTER_V922_FINAL"
+V924_MERGE_VERSION = "V924_GLOBAL_UI_EMPTY_SPACE_CLIENT_VALUE_SPORTS_DATA_ODDS_FIX_FINAL"
+ALLOWED_CONTAINER_VERSIONS = {VERSION, V924_MERGE_VERSION}
 MADRID = ZoneInfo("Europe/Madrid")
 ROUTES = [
     "/",
@@ -263,11 +265,11 @@ def main() -> int:
     local_version = version_bytes.decode("utf-8").strip()
     if version_bytes.startswith(b"\xef\xbb\xbf"):
         failures.append("VERSION.txt has BOM")
-    if local_version != VERSION:
-        failures.append("VERSION.txt is not V923 client route recovery")
-    if read("APP_VERSION").strip().lstrip("\ufeff") != VERSION:
+    if local_version not in ALLOWED_CONTAINER_VERSIONS:
+        failures.append("VERSION.txt is not V923 client route recovery or V924 merged release")
+    if read("APP_VERSION").strip().lstrip("\ufeff") not in ALLOWED_CONTAINER_VERSIONS:
         failures.append("APP_VERSION mismatch")
-    if app_version(app_py) != VERSION:
+    if app_version(app_py) not in ALLOWED_CONTAINER_VERSIONS:
         failures.append("app.py APP_VERSION mismatch")
     for marker in [
         "has_v923_client_routes_internal_error_recovery",
@@ -305,7 +307,7 @@ def main() -> int:
 
     client = app_module.app.test_client()
     payload = client.get("/api/runtime-version").get_json(silent=True) or {}
-    if payload.get("version") != VERSION:
+    if payload.get("version") not in ALLOWED_CONTAINER_VERSIONS:
         failures.append("runtime version mismatch")
     if payload.get("has_v923_client_routes_internal_error_recovery") is not True:
         failures.append("runtime V923 client recovery flag missing")

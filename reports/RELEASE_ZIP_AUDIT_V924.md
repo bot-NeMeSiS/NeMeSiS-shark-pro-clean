@@ -1,16 +1,16 @@
 # Auditoría ZIP V924
 
 - ZIP: `NeMeSiS_SHARK_PRO_V924_GLOBAL_UI_EMPTY_SPACE_CLIENT_VALUE_SPORTS_DATA_ODDS_FIX_FINAL_RENDER_READY.zip`
-- Archivos: 2282
-- Tamaño ZIP: 27536225 bytes
+- Archivos: 2283
+- Tamaño ZIP: 27538345 bytes
 - Prohibidos: 0
 - Resultado: OK
 - Root obligatorio ausente: ninguno
 
 ## Carpetas principales
 - `reference_images`: 24 archivos, 24921842 bytes
-- `reports`: 1240 archivos, 3608786 bytes
-- `tools`: 497 archivos, 1507204 bytes
+- `reports`: 1241 archivos, 3613469 bytes
+- `tools`: 497 archivos, 1507468 bytes
 - `engines`: 124 archivos, 1374288 bytes
 - `app.py`: 1 archivos, 1044407 bytes
 - `static`: 2 archivos, 950046 bytes
