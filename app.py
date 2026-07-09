@@ -339,7 +339,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V923_BROWSER_QA_EVIDENCE_CAPTURE_IMPORT_AND_VISUAL_QUEUE_UNLOCK_FINAL'
+APP_VERSION = 'V923_CLIENT_ROUTES_INTERNAL_ERROR_RECOVERY_AFTER_V922_FINAL'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 
@@ -13841,7 +13841,6 @@ def v915_admin_workforce_status() -> dict:
     browser_gate = v919_browser_qa_results_gate_runtime_summary()
     artifact_gate = v920_browser_qa_artifacts_runtime_summary()
     v921_gate = v921_browser_qa_artifact_run_runtime_summary()
-    v923_gate = v923_browser_qa_evidence_capture_runtime_summary()
     root = Path(__file__).resolve().parent
     latest_path = root / "data" / "runtime" / "automation_workforce" / "latest_run.json"
     try:
@@ -13874,11 +13873,10 @@ def v915_admin_workforce_status() -> dict:
         "browser_gate": browser_gate,
         "artifact_gate": artifact_gate,
         "v921_gate": v921_gate,
-        "v923_gate": v923_gate,
         "latest_run": latest_run,
         "workers": workers,
         "workflows": workflows,
-        "next_action": v923_gate.get("v923_next_required_action") or v921_gate.get("v921_next_required_action") or artifact_gate.get("v920_next_required_action") or browser_gate.get("v919_next_required_action") or post_deploy.get("v918_next_required_action") or summary.get("v915_next_required_action"),
+        "next_action": v921_gate.get("v921_next_required_action") or artifact_gate.get("v920_next_required_action") or browser_gate.get("v919_next_required_action") or post_deploy.get("v918_next_required_action") or summary.get("v915_next_required_action"),
         "policy": {
             "automated_deploy_requires_env": "ENABLE_AUTOMATED_RENDER_DEPLOY=1",
             "secrets_visible": False,
@@ -15829,6 +15827,48 @@ def v923_browser_qa_evidence_capture_runtime_summary() -> dict:
     }
 
 
+def v923_client_routes_recovery_runtime_summary() -> dict:
+    """Expose V923 client route recovery status without external calls or secrets."""
+    root = Path(__file__).resolve().parent
+    health_path = root / "data" / "runtime" / "client_route_health_v923.json"
+    try:
+        payload = json.loads(health_path.read_text(encoding="utf-8-sig", errors="replace")) if health_path.exists() else {}
+    except Exception:
+        payload = {}
+    routes = payload.get("routes") if isinstance(payload, dict) else {}
+    if not isinstance(routes, dict):
+        routes = {}
+
+    def route_health(path: str, allowed_redirect: bool = False) -> str:
+        item = routes.get(path) if isinstance(routes, dict) else {}
+        if not isinstance(item, dict):
+            return "unknown"
+        status = item.get("status")
+        if status == 200:
+            return "ok"
+        if allowed_redirect and status in {301, 302, 303, 307, 308}:
+            return "redirect_safe"
+        if isinstance(status, int) and status < 500:
+            return "controlled"
+        return "needs_check"
+
+    recovered = bool(payload.get("client_routes_recovered"))
+    return {
+        "v923_client_login_health": route_health("/cliente-login"),
+        "v923_login_alias_health": route_health("/login", allowed_redirect=True),
+        "v923_register_health": route_health("/registro"),
+        "v923_user_app_health": route_health("/app", allowed_redirect=True),
+        "v923_calendar_health": route_health("/calendar"),
+        "v923_live_health": route_health("/live"),
+        "v923_picks_health": route_health("/picks"),
+        "v923_shark_health": route_health("/shark", allowed_redirect=True),
+        "v923_telegram_health": route_health("/telegram", allowed_redirect=True),
+        "v923_client_routes_recovered": recovered,
+        "v923_v922_regression_root_cause": payload.get("root_cause") or "local_not_reproduced_production_was_serving_older_runtime_or_context_specific_template_error",
+        "v923_next_required_action": "deploy_v923_and_verify_client_routes" if recovered else "rerun_client_route_recovery_check",
+    }
+
+
 def get_safe_runtime_identity_for_admin() -> dict:
     """Return local runtime identity for admin panels without external calls or secrets."""
     version_txt = ""
@@ -15938,7 +15978,7 @@ def api_runtime_version():
     v920_summary = v920_browser_qa_artifacts_runtime_summary()
     v921_summary = v921_browser_qa_artifact_run_runtime_summary()
     v922_summary = v922_screenshot_evidence_visual_fix_runtime_summary()
-    v923_summary = v923_browser_qa_evidence_capture_runtime_summary()
+    v923_client_routes_summary = v923_client_routes_recovery_runtime_summary()
     return jsonify(sanitize_runtime_value({
         "ok": True,
         "app": APP_NAME,
@@ -16200,10 +16240,10 @@ def api_runtime_version():
         "has_v922_browser_qa_results_import": (Path(__file__).resolve().parent / "tools" / "import_browser_qa_results.py").exists() and "v922_import_status" in (Path(__file__).resolve().parent / "tools" / "import_browser_qa_results.py").read_text(encoding="utf-8", errors="replace"),
         "has_v922_visual_queue_evidence_gate": (Path(__file__).resolve().parent / "data" / "runtime" / "autonomous_company_sentinel" / "visual_fix_queue.json").exists(),
         "has_v922_codex_prompts_with_evidence_gate": "V922_SCREENSHOT_EVIDENCE_PROMPTS" in (Path(__file__).resolve().parent / "data" / "runtime" / "autonomous_company_sentinel" / "outbox" / "codex_outbox.md").read_text(encoding="utf-8", errors="replace"),
-        "has_v923_browser_qa_evidence_capture": "v923_browser_qa_evidence_capture_runtime_summary" in app_py_text,
-        "has_v923_browser_qa_artifact_import": (Path(__file__).resolve().parent / "tools" / "import_browser_qa_results.py").exists() and "v923_import_status" in (Path(__file__).resolve().parent / "tools" / "import_browser_qa_results.py").read_text(encoding="utf-8", errors="replace"),
-        "has_v923_visual_queue_evidence_unlock": (Path(__file__).resolve().parent / "data" / "runtime" / "autonomous_company_sentinel" / "visual_fix_queue.json").exists(),
-        "has_v923_screenshot_gate_enforced": "V923_BROWSER_QA_REQUIRED" in (Path(__file__).resolve().parent / "data" / "runtime" / "autonomous_company_sentinel" / "outbox" / "codex_outbox.md").read_text(encoding="utf-8", errors="replace") or bool(v923_summary.get("v923_valid_screenshots_count")),
+        "has_v923_client_routes_internal_error_recovery": "v923_client_routes_recovery_runtime_summary" in app_py_text,
+        "has_v923_v922_client_regression_fix": (Path(__file__).resolve().parent / "tools" / "check_v923_client_routes_internal_error_recovery.py").exists(),
+        "has_v923_sports_routes_safe_render_guard": (Path(__file__).resolve().parent / "data" / "runtime" / "client_route_health_v923.json").exists(),
+        "has_v923_client_login_health_guard": (Path(__file__).resolve().parent / "templates" / "client_login.html").exists(),
         **v902_truth_summary,
         **v904_summary,
         **v906_summary,
@@ -16221,7 +16261,7 @@ def api_runtime_version():
         **v920_summary,
         **v921_summary,
         **v922_summary,
-        **v923_summary,
+        **v923_client_routes_summary,
         "active_errors_count": v903_active_errors_count,
         "fixed_safe_count": v903_archived_count,
         "stale_issues_count": v903_stale_issues_count,
@@ -17414,6 +17454,32 @@ def client_safe_500(error):
         print("NeMeSiS SHARK PRO 500:", str(error)[:500])
     except Exception:
         pass
+    critical_client_paths = {
+        "/cliente-login", "/login", "/registro", "/app", "/calendar", "/calendario",
+        "/live", "/directo", "/picks", "/shark", "/telegram", "/profile", "/support",
+    }
+    client_issue_created = False
+    if request.path in critical_client_paths:
+        try:
+            issue_path = BASE_DIR / "data" / "runtime" / "sentinel_client_route_issues.json"
+            payload = json.loads(issue_path.read_text(encoding="utf-8-sig", errors="replace")) if issue_path.exists() else {}
+            issues = payload.get("issues") if isinstance(payload, dict) else []
+            if not isinstance(issues, list):
+                issues = []
+            issues.append({
+                "area": "client_routes",
+                "severity": "critical",
+                "route": v896_safe_request_text(request.path, 260),
+                "evidence": type(error).__name__,
+                "safe_message": "Ruta cliente devolvio 500 controlado; revisar template/contexto.",
+                "version": APP_VERSION,
+                "created_at_madrid": now_iso(),
+            })
+            issue_path.parent.mkdir(parents=True, exist_ok=True)
+            issue_path.write_text(json.dumps({"issues": issues[-80:]}, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+            client_issue_created = True
+        except Exception:
+            client_issue_created = False
     if request.path.startswith("/api/"):
         issue_created = False
         if request.path.startswith("/api/admin/"):
@@ -17421,6 +17487,7 @@ def client_safe_500(error):
         return jsonify({
             "ok": False,
             "error": "internal_error",
+            "error_type": type(error).__name__,
             "safe_message": "Se ha producido un error controlado. Se ha registrado la incidencia.",
             "path": v896_safe_request_text(request.path, 260),
             "version": APP_VERSION,
@@ -17439,7 +17506,7 @@ def client_safe_500(error):
             "</main></body></html>"
         ), 500
     try:
-        return render_template("home.html", data=dashboard_data(), controlled_error="Hemos detectado un error temporal y hemos vuelto al inicio de forma segura."), 500
+        return render_template("home.html", data=dashboard_data(), controlled_error="Hemos detectado un error temporal y hemos vuelto al inicio de forma segura.", client_issue_created=client_issue_created), 500
     except Exception:
         return "Error temporal controlado. Revisa logs Render.", 500
 

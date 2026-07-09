@@ -1,5 +1,5 @@
 {
-  "version": "V923_BROWSER_QA_EVIDENCE_CAPTURE_IMPORT_AND_VISUAL_QUEUE_UNLOCK_FINAL",
+  "version": "V923_CLIENT_ROUTES_INTERNAL_ERROR_RECOVERY_AFTER_V922_FINAL",
   "events": [
     {
       "path": "/ruta-inventada",
@@ -8,9 +8,9 @@
       "user_agent": "Werkzeug/3.0.3",
       "resolved_alias": "",
       "source": "flask_404",
-      "count": 39,
+      "count": 46,
       "first_seen_madrid": "2026-07-06T10:37:04+02:00",
-      "last_seen_madrid": "2026-07-09T14:49:43+02:00"
+      "last_seen_madrid": "2026-07-09T20:47:20+02:00"
     },
     {
       "path": "/api/ruta-inventada",
@@ -19,9 +19,9 @@
       "user_agent": "Werkzeug/3.0.3",
       "resolved_alias": "",
       "source": "api_404",
-      "count": 38,
+      "count": 45,
       "first_seen_madrid": "2026-07-06T10:37:04+02:00",
-      "last_seen_madrid": "2026-07-09T14:49:43+02:00"
+      "last_seen_madrid": "2026-07-09T20:47:20+02:00"
     },
     {
       "path": "/ruta-inventada-v910",
@@ -299,5 +299,5 @@
       "last_seen_madrid": "2026-07-05T00:58:55+02:00"
     }
   ],
-  "updated_at_madrid": "2026-07-09T14:49:43+02:00"
+  "updated_at_madrid": "2026-07-09T20:47:20+02:00"
 }

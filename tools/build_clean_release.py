@@ -547,6 +547,7 @@ def include(path: Path) -> bool:
         "data/runtime/autonomous_company_sentinel/visual_fix_queue.json",
         "data/runtime/autonomous_company_sentinel/browser_qa_status.json",
         "data/runtime/autonomous_company_sentinel/browser_reference_comparison.json",
+        "data/runtime/client_route_health_v923.json",
     }:
         return True
     if any(part in EXCLUDE_DIRS for part in parts):

@@ -6,9 +6,8 @@
   {% set browser_gate = workforce.browser_gate or {} %}
   {% set artifact_gate = workforce.artifact_gate or {} %}
   {% set v921_gate = workforce.v921_gate or {} %}
-  {% set v923_gate = workforce.v923_gate or {} %}
   {% set latest_run = workforce.latest_run or {} %}
-<section class="ns-admin-page v915-workforce-shell v916-workforce-activation v917-workforce-full-run v918-post-deploy-workforce v919-browser-qa-gate v920-browser-qa-artifacts v921-browser-qa-artifact-run v923-browser-qa-evidence-capture" data-v915-template="admin_automation_workforce" data-v916-workforce-activation="true" data-v917-full-run="true" data-v918-post-deploy="true" data-v919-browser-qa-gate="true" data-v920-browser-qa-artifacts="true" data-v921-browser-qa-artifact-run="true" data-v923-browser-qa-evidence-capture="true">
+<section class="ns-admin-page v915-workforce-shell v916-workforce-activation v917-workforce-full-run v918-post-deploy-workforce v919-browser-qa-gate v920-browser-qa-artifacts v921-browser-qa-artifact-run" data-v915-template="admin_automation_workforce" data-v916-workforce-activation="true" data-v917-full-run="true" data-v918-post-deploy="true" data-v919-browser-qa-gate="true" data-v920-browser-qa-artifacts="true" data-v921-browser-qa-artifact-run="true">
   <div class="ns-page-header">
     <span class="ns-chip">V918 Post-deploy Workforce</span>
     <h1>Automation Workforce</h1>
@@ -157,33 +156,6 @@
     <div class="ns-empty ns-empty-compact">Proxima accion V921: {{ v921_gate.v921_next_required_action or 'run_github_action_browser_qa_or_upload_artifacts' }}</div>
   </section>
 
-  <section class="ns-admin-card v923-browser-qa-evidence-panel">
-    <div class="ns-section-title">
-      <h2>Browser QA Evidence Capture V923</h2>
-      <span class="ns-badge">{{ v923_gate.v923_import_status or 'NO_VALID_SCREENSHOTS_TO_IMPORT' }}</span>
-    </div>
-    <p>V923 ejecuta o prepara Browser QA y solo desbloquea la cola visual con archivos de captura reales asociados a una ruta y un dispositivo.</p>
-    <div class="ns-grid ns-grid-4">
-      <article class="ns-stat"><span>Entorno local</span><strong>{{ v923_gate.v923_browser_qa_environment_status or 'PACKAGE_MISSING' }}</strong></article>
-      <article class="ns-stat"><span>Local ejecutado</span><strong>{{ 'si' if v923_gate.v923_local_browser_qa_executed else 'no' }}</strong></article>
-      <article class="ns-stat"><span>GitHub Action</span><strong>{{ v923_gate.v923_github_action_status or 'GITHUB_ACTION_READY' }}</strong></article>
-      <article class="ns-stat"><span>Artifacts</span><strong>{{ 'si' if v923_gate.v923_artifacts_found else 'no' }}</strong></article>
-    </div>
-    <div class="ns-grid ns-grid-4">
-      <article class="ns-stat"><span>Capturas validas</span><strong>{{ v923_gate.v923_valid_screenshots_count or 0 }}</strong></article>
-      <article class="ns-stat"><span>Desktop</span><strong>{{ v923_gate.v923_desktop_screenshots_count or 0 }}</strong></article>
-      <article class="ns-stat"><span>Mobile</span><strong>{{ v923_gate.v923_mobile_screenshots_count or 0 }}</strong></article>
-      <article class="ns-stat"><span>Ready invalidos</span><strong>{{ v923_gate.v923_invalid_ready_without_screenshot or 0 }}</strong></article>
-    </div>
-    <div class="ns-grid ns-grid-4">
-      <article class="ns-stat"><span>Cola total</span><strong>{{ v923_gate.v923_visual_queue_total or 0 }}</strong></article>
-      <article class="ns-stat"><span>Bloqueada</span><strong>{{ v923_gate.v923_visual_queue_blocked or 0 }}</strong></article>
-      <article class="ns-stat"><span>Lista/fixable</span><strong>{{ (v923_gate.v923_visual_queue_ready or 0) + (v923_gate.v923_visual_queue_fixed_safe or 0) }}</strong></article>
-      <article class="ns-stat"><span>Pixel-perfect</span><strong>{{ 'permitido' if v923_gate.v923_pixel_perfect_claim_allowed else 'bloqueado' }}</strong></article>
-    </div>
-    <div class="ns-empty ns-empty-compact">Proxima accion V923: {{ v923_gate.v923_next_required_action or 'run_github_action_browser_qa_or_upload_artifacts' }}</div>
-  </section>
-
   <section class="ns-grid ns-grid-3 v916-workforce-cards">
     <article class="ns-admin-card">
       <h2>Deploy Automation</h2>
@@ -253,7 +225,7 @@
   <section class="ns-admin-card v915-deploy-readiness">
     <div class="ns-section-title">
       <h2>Acciones seguras</h2>
-      <span class="ns-badge">{{ v923_gate.v923_next_required_action or v921_gate.v921_next_required_action or artifact_gate.v920_next_required_action or browser_gate.v919_next_required_action or post_deploy.v918_next_required_action or summary.v916_next_required_action or summary.v915_next_required_action }}</span>
+      <span class="ns-badge">{{ v921_gate.v921_next_required_action or artifact_gate.v920_next_required_action or browser_gate.v919_next_required_action or post_deploy.v918_next_required_action or summary.v916_next_required_action or summary.v915_next_required_action }}</span>
     </div>
     <p>Estas acciones ejecutan dry-run o lectura de estado. No hacen deploy real, no envian Telegram real y no tocan pagos.</p>
     <div class="ns-actions">
@@ -265,7 +237,7 @@
 
   <section class="ns-admin-card">
     <h2>Proxima accion recomendada</h2>
-    <p>{{ v923_gate.v923_next_required_action or v921_gate.v921_next_required_action or artifact_gate.v920_next_required_action or browser_gate.v919_next_required_action or post_deploy.v918_next_required_action or workforce.next_action or 'Ejecutar Browser QA o subir artifacts antes de desbloquear la cola visual.' }}</p>
+    <p>{{ v921_gate.v921_next_required_action or artifact_gate.v920_next_required_action or browser_gate.v919_next_required_action or post_deploy.v918_next_required_action or workforce.next_action or 'Ejecutar Browser QA o subir artifacts antes de desbloquear la cola visual.' }}</p>
     <div class="ns-empty ns-empty-compact">Produccion solo se declara cuando <code>/api/runtime-version</code> devuelve la version esperada y <code>deployment_alignment_status=aligned_local_files</code>.</div>
   </section>
 </section>

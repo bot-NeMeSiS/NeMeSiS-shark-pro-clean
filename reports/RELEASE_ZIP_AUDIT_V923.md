@@ -1,23 +1,23 @@
 # Auditoría ZIP V923
 
-- ZIP: `NeMeSiS_SHARK_PRO_V923_BROWSER_QA_EVIDENCE_CAPTURE_IMPORT_AND_VISUAL_QUEUE_UNLOCK_FINAL_RENDER_READY.zip`
-- Archivos: 2270
-- Tamaño ZIP: 27517990 bytes
+- ZIP: `NeMeSiS_SHARK_PRO_V923_CLIENT_ROUTES_INTERNAL_ERROR_RECOVERY_AFTER_V922_FINAL_RENDER_READY.zip`
+- Archivos: 2266
+- Tamaño ZIP: 27518553 bytes
 - Prohibidos: 0
 - Resultado: OK
 - Root obligatorio ausente: ninguno
 
 ## Carpetas principales
 - `reference_images`: 24 archivos, 24921842 bytes
-- `reports`: 1231 archivos, 3597434 bytes
-- `tools`: 495 archivos, 1477318 bytes
+- `reports`: 1226 archivos, 3596187 bytes
+- `tools`: 495 archivos, 1483214 bytes
 - `engines`: 124 archivos, 1374288 bytes
-- `app.py`: 1 archivos, 1036629 bytes
+- `app.py`: 1 archivos, 1039778 bytes
 - `static`: 2 archivos, 945780 bytes
-- `templates`: 169 archivos, 730177 bytes
+- `templates`: 169 archivos, 727506 bytes
 - `V726_PROJECT_TREE_AUDIT.md`: 1 archivos, 96394 bytes
 - `CHATGPT_CONTINUATION_REPORT.md`: 1 archivos, 67783 bytes
-- `data`: 4 archivos, 57047 bytes
+- `data`: 5 archivos, 67130 bytes
 
 ## Archivos pesados
 - `reports/V913_reference_scan_validation_output.txt`: 2166341 bytes
