@@ -530,6 +530,7 @@ def include(path: Path) -> bool:
             or rel_posix.startswith("reports/V922_")
             or rel_posix.startswith("reports/V923_")
             or rel_posix.startswith("reports/V924_")
+            or rel_posix.startswith("reports/V925_")
             or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V912")
             or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V913")
             or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V914")

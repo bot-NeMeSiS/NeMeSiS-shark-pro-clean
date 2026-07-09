@@ -339,7 +339,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V924_GLOBAL_UI_EMPTY_SPACE_CLIENT_VALUE_SPORTS_DATA_ODDS_FIX_FINAL'
+APP_VERSION = 'V925_REFERENCE_MODEL_FULL_APP_REBUILD_QUALITY_PASS_FINAL'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 
@@ -6504,7 +6504,7 @@ def client_home_message(has_real_data):
 
 @app.context_processor
 def inject_session_user():
-    return {"current_user": current_session_user()}
+    return {"current_user": current_session_user(), "app_version": APP_VERSION}
 
 
 def get_user_by_email(email):
@@ -10512,7 +10512,7 @@ def dashboard_data(lane="today", date=None):
 @app.route("/service-worker.js")
 def service_worker():
     body = (
-        "const NEMESIS_CACHE='NEMESIS_CACHE_V924';\n"
+        "const NEMESIS_CACHE='NEMESIS_CACHE_V925';\n"
         "self.addEventListener('install',event=>{self.skipWaiting();});\n"
         "self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==NEMESIS_CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));});\n"
         "self.addEventListener('fetch',event=>{const req=event.request;if(req.mode==='navigate'){event.respondWith(fetch(req).then(res=>{if(res.status===404){return fetch('/');}return res;}).catch(()=>fetch('/')));return;}event.respondWith(fetch(req).then(res=>{if(res.status===404){return res;}return res;}));});\n"
@@ -11824,6 +11824,9 @@ def home():
     data["v765_combis"] = v765_combi_context(data, current_session_user(), 3)
     data["v766_highlights"] = v766_highlights_context(limit=6)
     data["v769_highlights_center"] = v769_highlights_content_center(data, current_session_user(), limit=8)
+    data["v925_calendar"] = get_safe_sports_calendar_context({"matches": data.get("upcoming_matches") or data.get("matches") or []})
+    data["v925_picks"] = get_safe_picks_context(data.get("picks") or [])
+    data["v925_odds"] = get_safe_odds_context(data.get("picks") or [])
     return render_template("home.html", data=data)
 
 
@@ -12362,6 +12365,7 @@ def calendar_page():
     data["v766_calendar_order"] = v766_calendar_order_context(data["calendar"])
     data["v766_highlights"] = v766_highlights_context(limit=8)
     data["v769_highlights_center"] = v769_highlights_content_center(data, current_session_user(), limit=12)
+    data["v925_calendar"] = get_safe_sports_calendar_context(data["calendar"])
     return render_template("calendar.html", data=data)
 
 
@@ -12436,7 +12440,12 @@ def live_page():
     force_refresh = request.args.get("refresh") in {"1", "true", "yes"}
     lifecycle_refresh = ensure_client_match_lifecycle_fresh(force=force_refresh)
     live_refresh = ensure_client_live_fresh(force=force_refresh)
-    api_live_tracker = sync_api_football_live_tracker(DB_PATH, force=force_refresh)
+    if force_refresh:
+        api_live_tracker = sync_api_football_live_tracker(DB_PATH, force=True)
+    else:
+        api_live_tracker = live_tracker_status(DB_PATH)
+        api_live_tracker["matches"] = v850_get_live_matches_cached(DB_PATH, limit=120)
+        api_live_tracker["message"] = "Cache local primero. Usa refresh explicito para sincronizar el proveedor."
     data = dashboard_data("today", request.args.get("date") or today_iso())
     hub = data.get("match_hub") or {}
     source = []
@@ -12462,6 +12471,7 @@ def live_page():
     data["dynamic_mode"] = build_v764_dynamic_competition_mode(data, current_session_user(), "live")
     data["v758_adaptive"] = v758_adaptive_context(data, current_session_user(), "live")
     data["v765_markets"] = v765_markets_context(data, current_session_user())
+    data["v925_live"] = get_safe_live_context(data["live_experience"], data["api_football_live_tracker"])
     return render_template("live.html", data=data)
 
 
@@ -14589,6 +14599,8 @@ def picks_page():
     data["v765_markets"] = v765_markets_context(data, user)
     data["v765_combis"] = v765_combi_context(data, user, 3)
     data["v766_highlights"] = v766_highlights_context(limit=6)
+    data["v925_picks"] = get_safe_picks_context(data["picks"])
+    data["v925_odds"] = get_safe_odds_context(data["picks"])
     record_user_activity("view", "picks", "picks-page", {"count": len(data["picks"]), "candidates": len(data["candidate_matches"])})
     return render_template("picks.html", data=data)
 
@@ -14620,6 +14632,8 @@ def profile_page():
     data["membership"] = v566_membership_ui(user)
     data["sportsdb"] = crest_sync_status()
     data["briefing"] = shark_briefing()
+    data["v925_calendar"] = get_safe_sports_calendar_context({"matches": data.get("matches") or data.get("upcoming_matches") or []})
+    data["v925_picks"] = get_safe_picks_context(data.get("picks") or [])
     return render_template("profile.html", data=data)
 
 
@@ -14699,6 +14713,9 @@ def shark_page():
         "openai_configured": v845_openai_configured(),
         "fallback_mode": not v845_openai_configured(),
     }
+    data["v925_calendar"] = get_safe_sports_calendar_context({"matches": data.get("matches") or data.get("upcoming_matches") or []})
+    data["v925_picks"] = get_safe_picks_context(data.get("picks") or [])
+    data["v925_odds"] = get_safe_odds_context(data.get("picks") or [])
     return render_template("shark.html", data=data)
 
 
@@ -15926,6 +15943,152 @@ def v924_global_ui_sports_value_runtime_summary() -> dict:
     }
 
 
+def get_safe_sports_calendar_context(calendar=None) -> dict:
+    """Build a render-safe calendar summary from local data only."""
+    calendar = calendar if isinstance(calendar, dict) else {}
+    matches = [item for item in (calendar.get("matches") or []) if isinstance(item, dict)]
+    results = []
+    for item in matches:
+        status = str(
+            item.get("calendar_status")
+            or item.get("status")
+            or (item.get("live_depth") or {}).get("badge")
+            or ""
+        ).strip().lower()
+        if status in {"ft", "finished", "finalizado", "finalizados", "resultado"}:
+            results.append(item)
+    source_summary = str(calendar.get("source_summary") or "").strip()
+    has_real_data = bool(matches)
+    return {
+        "matches": matches,
+        "results": results,
+        "provider_status": "data_available" if has_real_data else "waiting_for_real_sync",
+        "last_sync": str(calendar.get("last_sync") or "").strip(),
+        "cache_status": "available" if has_real_data else "empty_safe",
+        "has_real_data": has_real_data,
+        "source": source_summary or ("local_cache_or_database" if has_real_data else "no_real_data_available"),
+        "safe_message": (
+            "Calendario real disponible desde cache o base de datos."
+            if has_real_data
+            else "Sin partidos reales ahora mismo. Requiere sincronizacion real."
+        ),
+        "error_safe": not has_real_data,
+    }
+
+
+def get_safe_live_context(live=None, provider=None) -> dict:
+    """Build a live summary without requiring an external request during render."""
+    live = live if isinstance(live, dict) else {}
+    provider = provider if isinstance(provider, dict) else {}
+    events = [item for item in (live.get("matches") or []) if isinstance(item, dict)]
+    if not events:
+        for day in live.get("day_groups") or []:
+            if not isinstance(day, dict):
+                continue
+            for league in day.get("leagues") or []:
+                if isinstance(league, dict):
+                    events.extend(item for item in (league.get("matches") or []) if isinstance(item, dict))
+    counts = live.get("counts") if isinstance(live.get("counts"), dict) else {}
+    live_events = []
+    upcoming_events = []
+    finished_events = []
+    for item in events:
+        bucket = str(item.get("live_bucket") or item.get("status") or "").strip().lower()
+        if bucket in {"live", "1h", "2h", "ht", "en directo"}:
+            live_events.append(item)
+        elif bucket in {"finished", "ft", "finalizado"}:
+            finished_events.append(item)
+        else:
+            upcoming_events.append(item)
+    has_live_data = bool(live_events)
+    configured = bool(provider.get("configured") or provider.get("enabled"))
+    return {
+        "live_events": live_events,
+        "upcoming_events": upcoming_events,
+        "finished_events": finished_events,
+        "provider_status": "configured" if configured else "safe_cache_mode",
+        "has_live_data": has_live_data,
+        "counts": {
+            "live": int(counts.get("live") or len(live_events)),
+            "upcoming": int(counts.get("upcoming") or len(upcoming_events)),
+            "finished": int(counts.get("finished") or len(finished_events)),
+        },
+        "safe_message": (
+            "Directos reales disponibles."
+            if has_live_data
+            else "Sin directos reales ahora mismo. Marcador y minuto permanecen bloqueados hasta recibir datos."
+        ),
+    }
+
+
+def _v925_pick_has_real_fields(item) -> bool:
+    if not isinstance(item, dict):
+        return False
+    selection = item.get("client_selection_label") or item.get("selection_display") or item.get("selection")
+    market = item.get("market") or item.get("market_name") or item.get("bet_type")
+    odds = item.get("client_odds_label") or item.get("odds") or item.get("price")
+    invalid = {"", "0", "0.0", "none", "null", "undefined", "pendiente", "cuota pendiente"}
+    return (
+        str(selection or "").strip().lower() not in invalid
+        and str(market or "").strip().lower() not in invalid
+        and str(odds or "").strip().lower() not in invalid
+    )
+
+
+def get_safe_picks_context(picks=None) -> dict:
+    """Expose only picks that have a real selection, market and price."""
+    source_picks = [item for item in (picks or []) if isinstance(item, dict)]
+    ready = [item for item in source_picks if _v925_pick_has_real_fields(item)]
+    return {
+        "picks": ready,
+        "blocked_count": max(0, len(source_picks) - len(ready)),
+        "has_real_data": bool(ready),
+        "safe_message": (
+            "Picks con seleccion, mercado y cuota reales disponibles."
+            if ready
+            else "Sin picks premium reales activos ahora mismo. Picks bloqueados por seguridad."
+        ),
+        "source": "published_real_picks" if ready else "no_complete_real_pick",
+    }
+
+
+def get_safe_odds_context(picks=None) -> dict:
+    safe = get_safe_picks_context(picks)
+    odds = []
+    for item in safe.get("picks") or []:
+        odds.append({
+            "pick_id": item.get("id"),
+            "market": item.get("market") or item.get("market_name") or item.get("bet_type"),
+            "selection": item.get("client_selection_label") or item.get("selection_display") or item.get("selection"),
+            "odds": item.get("client_odds_label") or item.get("odds") or item.get("price"),
+            "source": item.get("source") or "published_pick",
+        })
+    return {
+        "odds": odds,
+        "has_real_data": bool(odds),
+        "safe_message": "Cuotas reales disponibles." if odds else "Cuotas pendientes de proveedor real.",
+    }
+
+
+def v925_reference_model_runtime_summary() -> dict:
+    """Expose the visible V925 rebuild while preserving the screenshot evidence gate."""
+    browser = v923_browser_qa_evidence_capture_runtime_summary()
+    valid_screenshots = int(browser.get("v923_valid_screenshots_count") or 0)
+    return {
+        "v925_reference_model_pass_applied": True,
+        "v925_home_rebuild_status": "single_premium_hero_and_compact_value_sections",
+        "v925_client_rebuild_status": "reference_dashboard_safe_data",
+        "v925_calendar_rebuild_status": "cache_first_safe_context",
+        "v925_live_rebuild_status": "cache_first_no_fake_live",
+        "v925_picks_rebuild_status": "selection_market_odds_gate",
+        "v925_admin_rebuild_status": "compact_command_center",
+        "v925_no_fake_data_guard": True,
+        "v925_browser_qa_still_required": valid_screenshots <= 0,
+        "v925_next_required_action": "run_browser_qa_for_evidence" if valid_screenshots <= 0 else "review_screenshot_evidence",
+        "v925_pixel_perfect_claim_allowed": False,
+    }
+
+
 def get_safe_runtime_identity_for_admin() -> dict:
     """Return local runtime identity for admin panels without external calls or secrets."""
     version_txt = ""
@@ -16038,6 +16201,7 @@ def api_runtime_version():
     v923_client_routes_summary = v923_client_routes_recovery_runtime_summary()
     v924_summary = v924_client_routes_browser_qa_merge_runtime_summary()
     v924_global_summary = v924_global_ui_sports_value_runtime_summary()
+    v925_summary = v925_reference_model_runtime_summary()
     return jsonify(sanitize_runtime_value({
         "ok": True,
         "app": APP_NAME,
@@ -16316,6 +16480,12 @@ def api_runtime_version():
         "has_v924_sports_data_odds_safe_context": True,
         "has_v924_admin_command_center_compact_fix": True,
         "has_v924_home_duplicate_hero_fix": True,
+        "has_v925_reference_model_full_app_rebuild": True,
+        "has_v925_home_reference_rebuild": True,
+        "has_v925_client_dashboard_reference_rebuild": True,
+        "has_v925_sports_data_reference_rebuild": True,
+        "has_v925_admin_command_center_reference_rebuild": True,
+        "has_v925_picks_odds_safe_rebuild": True,
         **v902_truth_summary,
         **v904_summary,
         **v906_summary,
@@ -16337,6 +16507,7 @@ def api_runtime_version():
         **v923_browser_qa_evidence_capture_runtime_summary(),
         **v924_summary,
         **v924_global_summary,
+        **v925_summary,
         "active_errors_count": v903_active_errors_count,
         "fixed_safe_count": v903_archived_count,
         "stale_issues_count": v903_stale_issues_count,
@@ -19895,6 +20066,10 @@ def v757_client_app_center_page():
     data["v758_adaptive"] = v758_adaptive_context(data, user, "app_center")
     data["v777_product"] = v777_client_product_context(data, user)
     data["v778_organization"] = v778_client_product_organization_context(data, user) if "v778_client_product_organization_context" in globals() else {}
+    data["v925_calendar"] = get_safe_sports_calendar_context({"matches": data.get("upcoming_matches") or data.get("matches") or []})
+    data["v925_live"] = get_safe_live_context(data.get("live_experience") or {"matches": (data.get("match_hub") or {}).get("live") or []})
+    data["v925_picks"] = get_safe_picks_context(data.get("picks") or [])
+    data["v925_odds"] = get_safe_odds_context(data.get("picks") or [])
     return render_template("client_app_center.html", data=data)
 
 

@@ -9,15 +9,17 @@
 {% set lane = live.get('lane') or 'live' %}
 {% set v850_state = data.get('v850_live_state') or {} %}
 {% set v850_cache = data.get('v850_live_cache') or {} %}
+{% set safe_live = data.get('v925_live') or {} %}
 {% set v852_provider_ok = api_tracker.get('configured') or api_quality.get('configured') %}
 {% set v852_live_count = api_quality.get('fixtures_live', api_tracker.get('fixtures_count',0)) or counts.get('live',0) %}
 {% set ns = namespace(matches=[]) %}
 {% for day in live.get('day_groups') or [] %}{% for league in day.leagues %}{% for m in league.matches %}{% set _ = ns.matches.append(m) %}{% endfor %}{% endfor %}{% endfor %}
 {% set featured = ns.matches[0] if ns.matches else none %}
+<!-- V925 live reference rebuild -->
 <section class="v799-screen v799-live-screen v924-no-dead-space v924-page-shell v924-client-shell v924-live-card v811-client-screen v815-certified-screen v815-live-screen v816-certified-screen v816-live-screen v817-certified-screen v817-live-screen v819-certified-screen v819-live-screen v820-certified-screen v820-live-screen v823-certified-screen v823-live-screen v824-certified-screen v824-live-screen v825-certified-screen v826-certified-screen v827-certified-screen v828-certified-screen v829-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v830-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v825-live-screen v850-live-screen v860-app-shell v904-client-rebuild v904-live-rebuild v908-client-dashboard v908-live-card v908-mobile-polish" data-v815-template="live" data-v816-template="live" data-v817-template="live" data-v819-template="live" data-v820-template="live" data-v823-template="live" data-v824-template="live" data-v825-template="live" data-v827-template="live" data-v828-template="live" data-v829-template="live" data-v830-template="live" data-v832-template="live" data-v833-template="live" data-v836-template="live" data-v837-template="live" data-v826-template="live" data-v850-template="live" data-v904-template="live" data-v908-template="live" data-v924-template="live">
   <div class="v799-appbar v811-client-appbar">
     <div>
-      <span class="v799-kicker">Marcador real · live center</span>
+      <span class="v799-kicker">Marcador real · Hora Madrid</span>
       <h1>Directo</h1>
       <p>Marcador, minuto, estado y acceso al partido. Si no hay directo real, se muestra un estado premium sin inventar datos.</p>
     </div>
@@ -26,11 +28,18 @@
 
   {% include "partials/client_flow_bar.html" %}
 
+  <section class="v925-sports-board" aria-label="Estado seguro del directo">
+    <article><span>En directo</span><strong>{{ safe_live.get('counts', {}).get('live', 0) }}</strong><small>Marcador y minuto confirmados.</small></article>
+    <article><span>Próximos</span><strong>{{ safe_live.get('counts', {}).get('upcoming', 0) }}</strong><small>Desde cache o base de datos.</small></article>
+    <article><span>Finalizados</span><strong>{{ safe_live.get('counts', {}).get('finished', 0) }}</strong><small>Resultados reales.</small></article>
+    <article><span>Proveedor</span><strong>{{ safe_live.get('provider_status') or 'safe_cache_mode' }}</strong><small>Sin llamada externa obligatoria al renderizar.</small></article>
+  </section>
+
   <section class="v922-live-shell v924-section-compact v924-above-fold" aria-label="Directo visible V924">
     <div class="v922-section-title">
-      <span>Live premium</span>
+      <span>Centro de directo</span>
       <h2>Marcador real o estado claro</h2>
-      <p>La pantalla deja claro si hay partidos en juego, si el proveedor esta activo y que hacer cuando no hay directo real.</p>
+      <p>La pantalla deja claro si hay partidos en juego, si el proveedor está activo y qué hacer cuando no hay directo real.</p>
     </div>
     <div class="v922-live-filter-row">
       <a href="/live">En directo <strong>{{ counts.get('live',0) }}</strong></a>

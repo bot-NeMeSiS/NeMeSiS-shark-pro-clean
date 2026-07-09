@@ -6,6 +6,8 @@
 {% set counts = calendar.get('counts') or {} %}
 {% set lane = filters.get('lane') or 'today' %}
 {% set day_groups = calendar.get('day_groups') or calendar.get('groups') or [] %}
+{% set safe_calendar = data.get('v925_calendar') or {} %}
+<!-- V925 calendar reference rebuild -->
 <section class="v799-screen v801-calendar-screen v924-no-dead-space v924-page-shell v924-client-shell v924-sports-card v850-calendar-screen v815-certified-screen v815-calendar-screen v816-certified-screen v816-calendar-screen v817-certified-screen v817-calendar-screen v819-certified-screen v819-calendar-screen v820-certified-screen v820-calendar-screen v823-certified-screen v823-calendar-screen v824-certified-screen v824-calendar-screen v825-certified-screen v826-certified-screen v827-certified-screen v828-certified-screen v829-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v830-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v825-calendar-screen v904-client-rebuild v904-calendar-rebuild v908-client-dashboard v908-match-card v908-mobile-polish" data-v815-template="calendar" data-v816-template="calendar" data-v817-template="calendar" data-v819-template="calendar" data-v820-template="calendar" data-v823-template="calendar" data-v824-template="calendar" data-v825-template="calendar" data-v827-template="calendar" data-v828-template="calendar" data-v829-template="calendar" data-v830-template="calendar" data-v832-template="calendar" data-v833-template="calendar" data-v836-template="calendar" data-v837-template="calendar" data-v826-template="calendar" data-v850-template="calendar" data-v904-template="calendar" data-v908-template="calendar" data-v924-template="calendar">
   <div class="v799-appbar v801-calendar-hero">
     <div>
@@ -18,11 +20,18 @@
 
   {% include "partials/client_flow_bar.html" %}
 
+  <section class="v925-sports-board" aria-label="Estado seguro del calendario">
+    <article><span>Proveedor</span><strong>{{ 'Datos disponibles' if safe_calendar.get('has_real_data') else 'Esperando sincronización' }}</strong><small>Cache y base de datos antes de renderizar.</small></article>
+    <article><span>Fuente</span><strong>{{ safe_calendar.get('source') or 'Sin datos reales' }}</strong><small>No se crean partidos para llenar la agenda.</small></article>
+    <article><span>Partidos visibles</span><strong>{{ counts.get('visible', 0) }}</strong><small>Según los filtros actuales.</small></article>
+    <article><span>Resultados</span><strong>{{ safe_calendar.get('results', [])|length }}</strong><small>Solo marcadores confirmados.</small></article>
+  </section>
+
   <section class="v922-client-dashboard v922-calendar-shell v924-section-compact v924-above-fold" aria-label="Calendario premium visible V924">
     <div class="v922-section-title">
-      <span>Calendario accionable</span>
+      <span>Agenda deportiva</span>
       <h2>Partidos reales, filtros claros y estado seguro</h2>
-      <p>El usuario ve rapido que hay hoy, que esta en directo, que tiene pick y que queda pendiente de proveedor. No se rellena agenda con partidos falsos.</p>
+      <p>Consulta hoy, semana, directo o partidos con pick. La agenda no se rellena con encuentros falsos.</p>
     </div>
     <div class="v922-client-quick-grid">
       <a class="v922-match-card" href="/calendar?lane=today"><span>Hoy</span><strong>{{ counts.get('today',0) if counts.get('today',0) else 'Sin partidos reales hoy' }}</strong><small>Hora Madrid y competicion visible.</small></a>

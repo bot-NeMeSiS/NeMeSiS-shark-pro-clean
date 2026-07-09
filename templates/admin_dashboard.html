@@ -4,13 +4,14 @@
 {% set d = data if data is defined and data else {} %}
 {% set stats = d.get('stats', {}) if d.get is defined else {} %}
 {% set grouped = items|default([])|groupby('group') %}
+<!-- V925 admin command center reference rebuild -->
 <section class="v823-certified-screen v923-admin-dashboard v924-no-dead-space v924-admin-shell v924-page-shell v924-admin-command-center v824-certified-screen v824-admin-dashboard v825-certified-screen v826-certified-screen v827-certified-screen v828-certified-screen v829-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v830-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v825-admin-dashboard v904-admin-rebuild v908-admin-shell v908-command-grid" data-v823-template="admin_dashboard" data-v824-template="admin_dashboard" data-v825-template="admin_dashboard" data-v827-template="admin_dashboard" data-v828-template="admin_dashboard" data-v829-template="admin_dashboard" data-v830-template="admin_dashboard" data-v832-template="admin_dashboard" data-v833-template="admin_dashboard" data-v836-template="admin_dashboard" data-v837-template="admin_dashboard" data-v826-template="admin_dashboard" data-v904-template="admin_dashboard" data-v908-template="admin_dashboard" data-v924-template="admin_dashboard">
 {% call ui.shell('Dashboard', 'Panel de control', 'Centro operativo real del ecosistema') %}
 <section class="v809-admin-reference-hero v924-section-compact v924-above-fold">
   <div>
-    <p class="eyebrow">V809  panel final tipo referencia</p>
-    <h1>Centro de mando limpio, visual y con todos los botones.</h1>
-    <p>Admin debe funcionar como una app de control: accesos visibles, módulos agrupados, vista cliente a un toque y datos reales sin métricas inventadas.</p>
+    <p class="eyebrow">Operación en tiempo real</p>
+    <h1>Centro de mando NeMeSiS</h1>
+    <p>Producto, datos, automatización, Sentinel y deploy en una vista compacta con estados reales.</p>
     <div class="v809-admin-hero-actions"><a class="primary" href="/admin/map">Mapa completo</a><a href="/sports-hub">Vista cliente</a><a href="/admin/matches-sync">Partidos</a><a href="/admin/telegram/command-center">Telegram</a></div>
   </div>
   <aside>
@@ -29,9 +30,9 @@
 
 <section class="v922-admin-command-center v924-section-compact" aria-label="Command center visible V924">
   <div class="v922-section-title">
-    <span>V922 command center</span>
-    <h2>Operacion clara para producto, datos y deploy</h2>
-    <p>Admin muestra el siguiente paso sin exponer secretos: datos deportivos, picks, Telegram, Sentinel, Browser QA y deploy quedan separados.</p>
+    <span>Estado del ecosistema</span>
+    <h2>Producto, datos y deploy sin ruido</h2>
+    <p>Datos deportivos, picks, Telegram, Sentinel, Browser QA y deploy quedan separados y accionables.</p>
   </div>
   <div class="v922-admin-kpi-grid">
     <article class="v922-admin-system-status"><span>Sentinel</span><strong>0 activos</strong><small>Se conserva el estado funcional limpio.</small></article>

@@ -242,6 +242,54 @@ V889_TELEGRAM_PREMIUM_PICK_RULES = [
     "telegram_no_filler_policy_must_win_over_empty_send",
 ]
 
+V925_REFERENCE_PRODUCT_RULES = [
+    "single_public_hero",
+    "no_excessive_top_empty_space",
+    "compact_cards_with_separated_values",
+    "admin_client_navigation_isolated",
+    "visible_copy_without_mojibake",
+    "premium_safe_empty_states",
+    "client_routes_never_500",
+    "sports_routes_cache_first",
+    "browser_qa_requires_real_screenshots",
+    "sports_data_requires_source_and_real_values",
+]
+
+
+def build_v925_visual_product_snapshot(client: Any) -> dict[str, Any]:
+    """Run safe visible-product checks without mutating data or requiring a browser."""
+    routes = ["/", "/calendar", "/live", "/picks", "/shark"]
+    route_status = {}
+    rendered = {}
+    for route in routes:
+        try:
+            response = client.get(route, follow_redirects=False)
+            route_status[route] = int(response.status_code)
+            rendered[route] = response.get_data(as_text=True) if response.status_code == 200 else ""
+        except Exception:
+            route_status[route] = 0
+            rendered[route] = ""
+    home_html = rendered.get("/") or ""
+    visible_copy = " ".join(rendered.values()).lower()
+    broken_tokens = [token for token in ("ãƒ", "â€", "â€”", "none</", "undefined</") if token in visible_copy]
+    sports_safe_state = all(
+        route_status.get(route, 0) < 500
+        and any(marker in (rendered.get(route) or "").lower() for marker in ("sin ", "datos reales", "modo seguro", "proveedor"))
+        for route in ("/calendar", "/live", "/picks")
+    )
+    return {
+        "rules": V925_REFERENCE_PRODUCT_RULES,
+        "route_status": route_status,
+        "client_routes_no_500": all(status and status < 500 for status in route_status.values()),
+        "single_public_hero": home_html.count('class="v925-public-hero v925-above-fold"') == 1,
+        "visible_mojibake_tokens": broken_tokens,
+        "visible_copy_clean": not broken_tokens,
+        "sports_safe_states_present": sports_safe_state,
+        "browser_qa_status": "required_real_screenshots",
+        "pixel_perfect_claim_allowed": False,
+        "no_mutations": True,
+    }
+
 
 def madrid_now() -> str:
     return datetime.now(MADRID_TZ).isoformat(timespec="seconds")
@@ -321,6 +369,7 @@ def build_continuous_sentinel_summary(version: str = "") -> dict[str, Any]:
         "real_errors_sweep_rules_v888": V888_REAL_ERRORS_SWEEP_RULES,
         "sentinel_autopilot_rules_v888": V888_SENTINEL_AUTOPILOT_RULES,
         "telegram_premium_pick_rules_v889": V889_TELEGRAM_PREMIUM_PICK_RULES,
+        "reference_product_rules_v925": V925_REFERENCE_PRODUCT_RULES,
         "sentinel_autopilot_ready": True,
         "visual_company_worker_ready": True,
         "visual_big_leap_ready": True,
@@ -338,6 +387,7 @@ def run_continuous_sentinel_cycle(client: Any, version: str = "", mode: str = "q
     mode = _normalize_mode(mode)
     run_id = make_run_id(mode)
     static_result = run_static_flask_inspection(client, version)
+    v925_visual_snapshot = build_v925_visual_product_snapshot(client)
     static_issues = static_result.get("issues", [])
     safe_data_notes = [
         issue
@@ -419,6 +469,8 @@ def run_continuous_sentinel_cycle(client: Any, version: str = "", mode: str = "q
         "real_errors_sweep_rules_v888": V888_REAL_ERRORS_SWEEP_RULES,
         "sentinel_autopilot_rules_v888": V888_SENTINEL_AUTOPILOT_RULES,
         "telegram_premium_pick_rules_v889": V889_TELEGRAM_PREMIUM_PICK_RULES,
+        "reference_product_rules_v925": V925_REFERENCE_PRODUCT_RULES,
+        "v925_visual_product_snapshot": v925_visual_snapshot,
         "sentinel_autopilot_ready": True,
         "visual_company_worker_v883": visual_worker_result,
         "visual_company_worker_ready": True,

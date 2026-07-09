@@ -85,10 +85,6 @@
       },
       {
         "file": "templates/admin_telegram_command_center.html",
-        "href": "/api/admin/telegram/message-preview"
-      },
-      {
-        "file": "templates/admin_telegram_command_center.html",
         "href": "/api/admin/telegram/dedupe-status"
       },
       {

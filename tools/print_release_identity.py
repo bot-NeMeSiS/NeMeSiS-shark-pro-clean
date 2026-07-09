@@ -20,6 +20,11 @@ def app_version_from_source(app_py: str) -> str:
     return match.group(1) if match else ""
 
 
+def service_worker_cache_from_source(app_py: str) -> str:
+    match = re.search(r"const\s+NEMESIS_CACHE=['\"]NEMESIS_CACHE_(V[0-9]+[A-Z]?)['\"]", app_py)
+    return match.group(1) if match else "unknown"
+
+
 def git_remote_hint() -> str:
     config = read(".git/config")
     match = re.search(r"url\s*=\s*(.+)", config)
@@ -56,7 +61,7 @@ def main() -> int:
         "has_v907": "data-v907-shell" in base and "has_v907_browser_qa_enablement" in app_py,
         "has_v908": "data-v908-shell" in base and "has_v908_screenshot_based_reference_ui_fix" in app_py,
         "has_v909": "data-v909-shell" in base and "has_v909_browser_qa_pipeline" in app_py,
-        "service_worker_cache": "V922" if "NEMESIS_CACHE_V922" in app_py else ("V921" if "NEMESIS_CACHE_V921" in app_py else ("V920" if "NEMESIS_CACHE_V920" in app_py else ("V919" if "NEMESIS_CACHE_V919" in app_py else ("V918" if "NEMESIS_CACHE_V918" in app_py else ("V917" if "NEMESIS_CACHE_V917" in app_py else ("V916" if "NEMESIS_CACHE_V916" in app_py else ("V915" if "NEMESIS_CACHE_V915" in app_py else ("V913" if "NEMESIS_CACHE_V913" in app_py else ("V912" if "NEMESIS_CACHE_V912" in app_py else ("V911" if "NEMESIS_CACHE_V911" in app_py else ("V910" if "NEMESIS_CACHE_V910" in app_py else ("V909" if "NEMESIS_CACHE_V909" in app_py else ("V908" if "NEMESIS_CACHE_V908" in app_py else ("V907" if "NEMESIS_CACHE_V907" in app_py else ("V906B" if "NEMESIS_CACHE_V906B" in app_py else ("V906" if "NEMESIS_CACHE_V906" in app_py else ("V905" if "NEMESIS_CACHE_V905" in app_py else ("V904" if "NEMESIS_CACHE_V904" in app_py else ("V903" if "NEMESIS_CACHE_V903" in app_py else ("V902B" if "NEMESIS_CACHE_V902B" in app_py else "unknown")))))))))))))))))))),
+        "service_worker_cache": service_worker_cache_from_source(app_py),
         "secret_policy": "safe_placeholders_only",
     }
     print(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True))

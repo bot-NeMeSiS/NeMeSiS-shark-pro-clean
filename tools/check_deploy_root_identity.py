@@ -56,6 +56,9 @@ def inspect_tree(path: Path) -> dict:
 
 
 def main() -> int:
+    version_txt = read("VERSION.txt").strip().lstrip("\ufeff")
+    release_tag = version_txt.split("_", 1)[0] if version_txt else ""
+    current_deploy_root = ROOT / "release_output" / f"{release_tag}_DEPLOY_ROOT_CONTENTS"
     zip_candidates = sorted((ROOT / "release_output").glob("NeMeSiS_SHARK_PRO_*_RENDER_READY.zip"), key=lambda p: p.stat().st_mtime, reverse=True)
     zip_info = {"exists": False}
     if zip_candidates:
@@ -75,12 +78,13 @@ def main() -> int:
     payload = {
         "ok": True,
         "root": str(ROOT),
-        "version_txt": read("VERSION.txt").strip().lstrip("\ufeff"),
+        "version_txt": version_txt,
         "app_version_file": read("APP_VERSION").strip().lstrip("\ufeff"),
         "app_py_app_version": app_version_from_source(),
         "git_remote_hint": git_remote_hint(),
         "git_branch_hint": git_branch_hint(),
         "current_root": inspect_tree(ROOT),
+        "current_deploy_root": inspect_tree(current_deploy_root),
         "deploy_root_v902b": inspect_tree(ROOT / "release_output" / "V902B_DEPLOY_ROOT_CONTENTS"),
         "deploy_root_v903": inspect_tree(ROOT / "release_output" / "V903_DEPLOY_ROOT_CONTENTS"),
         "deploy_root_v904": inspect_tree(ROOT / "release_output" / "V904_DEPLOY_ROOT_CONTENTS"),
@@ -100,9 +104,21 @@ def main() -> int:
         "deploy_root_v920": inspect_tree(ROOT / "release_output" / "V920_DEPLOY_ROOT_CONTENTS"),
         "deploy_root_v921": inspect_tree(ROOT / "release_output" / "V921_DEPLOY_ROOT_CONTENTS"),
         "deploy_root_v922": inspect_tree(ROOT / "release_output" / "V922_DEPLOY_ROOT_CONTENTS"),
+        "deploy_root_v923": inspect_tree(ROOT / "release_output" / "V923_DEPLOY_ROOT_CONTENTS"),
+        "deploy_root_v924": inspect_tree(ROOT / "release_output" / "V924_DEPLOY_ROOT_CONTENTS"),
+        "deploy_root_v925": inspect_tree(ROOT / "release_output" / "V925_DEPLOY_ROOT_CONTENTS"),
         "latest_zip": zip_info,
     }
-    payload["ok"] = not payload["current_root"]["missing_required_root"]
+    deploy = payload["current_deploy_root"]
+    payload["ok"] = bool(
+        not payload["current_root"]["missing_required_root"]
+        and deploy["exists"]
+        and not deploy["missing_required_root"]
+        and deploy["forbidden_count"] == 0
+        and zip_info.get("exists")
+        and not zip_info.get("missing_required_root", [])
+        and not zip_info.get("has_nested_project_hint", False)
+    )
     print(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True))
     return 0 if payload["ok"] else 1
 

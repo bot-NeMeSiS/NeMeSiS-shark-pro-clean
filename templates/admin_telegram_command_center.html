@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% import "partials/admin_visual_system.html" as ui %}
 {% block content %}
+<!-- V925 Telegram command center reference rebuild -->
 {% set d = data if data is defined and data.get is defined else {} %}
 {% set channel_label = d.get('channel_label') or d.get('destination_label') or d.get('telegram_chat_label') or d.get('chat_id_masked') or '—' %}
 {% set schedule_items = d.get('schedule_items') or d.get('activity_plan') or [] %}
@@ -54,7 +55,7 @@
       <div class="v797-truth-empty"><strong>Sin preview generado todavía.</strong><span>Usa el dry-run para crear una vista previa con datos reales sin enviar al canal.</span></div>
       {% endif %}
     </article>
-    <article class="v794-admin-panel"><div class="v794-panel-head"><h2>Prueba de envío</h2></div><div class="v794-action-grid" style="grid-template-columns:1fr"><a class="v794-action-card" href="/admin/telegram"><i>✈</i><span><b>Enviar prueba</b><small>sin tocar automatización</small></span><em>›</em></a><a class="v794-action-card" href="/api/admin/telegram/message-preview"><i>▶</i><span><b>Ejecutar dry run</b><small>simular sin entregar</small></span><em>›</em></a></div></article>
+    <article class="v794-admin-panel"><div class="v794-panel-head"><h2>Prueba segura</h2></div><div class="v794-action-grid" style="grid-template-columns:1fr"><a class="v794-action-card" href="/admin/telegram"><i>✈</i><span><b>Abrir consola</b><small>sin enviar automáticamente</small></span><em>›</em></a><button class="v794-action-card" type="button" data-v904-fetch="/api/admin/telegram/message-preview"><i>▶</i><span><b>Generar preview</b><small>dry-run sin entregar</small></span><em>›</em></button></div><output class="v904-safe-api-output" data-v904-output>Preview pendiente.</output></article>
     <article class="v794-admin-panel"><div class="v794-panel-head"><h2>Dedupe status</h2><span>{{ ui.status(d.get('dedupe_status') or 'Esperando dato','info') }}</span></div>{% if d.get('dedupe_rate') or d.get('duplicates_prevented_24h') %}<h2>{{ d.get('dedupe_rate') or '—' }}</h2><p>Duplicados evitados (24h): <strong>{{ d.get('duplicates_prevented_24h') or '—' }}</strong></p>{% else %}<div class="v797-truth-empty"><strong>Sin métricas de dedupe reales todavía.</strong><span>Se rellenará cuando haya entregas de Telegram registradas por Render Cron.</span></div>{% endif %}</article>
     <article class="v794-admin-panel"><div class="v794-panel-head"><h2>Motivos de descarte (24h)</h2></div>{% if discard_reasons %}<div class="v794-admin-list">{% for reason in discard_reasons %}<div class="v794-admin-list-row"><span>{{ reason.count or reason.total or '—' }}</span><div><strong>{{ reason.label or reason.reason or 'Motivo registrado' }}</strong><small>{{ reason.percent or reason.percentage or 'Dato real' }}</small></div></div>{% endfor %}</div>{% else %}<div class="v797-truth-empty"><strong>Sin descartes reales en las Áltimas 24h.</strong><span>No se muestran ejemplos ficticios: solo motivos registrados por la automatización.</span></div>{% endif %}</article>
   </aside>

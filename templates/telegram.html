@@ -2,24 +2,32 @@
 {% block content %}
 {% set state = data.telegram_state or {} %}
 {% set tier = (current_user.membership if current_user else 'FREE')|upper %}
+<!-- V925 Telegram reference rebuild -->
 <section class="v799-screen v799-telegram-screen v924-no-dead-space v924-page-shell v924-client-shell v924-next-action v815-certified-screen v815-telegram-screen v816-certified-screen v816-telegram-screen v817-certified-screen v817-telegram-screen v819-certified-screen v819-telegram-screen v820-certified-screen v820-telegram-screen v824-certified-screen v824-telegram-screen v825-certified-screen v826-certified-screen v827-certified-screen v828-certified-screen v829-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v830-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v825-telegram-screen v904-client-rebuild v904-telegram-rebuild v908-client-dashboard v908-mobile-polish" data-v815-template="telegram" data-v816-template="telegram" data-v817-template="telegram" data-v819-template="telegram" data-v820-template="telegram" data-v824-template="telegram" data-v825-template="telegram" data-v827-template="telegram" data-v828-template="telegram" data-v829-template="telegram" data-v830-template="telegram" data-v832-template="telegram" data-v833-template="telegram" data-v836-template="telegram" data-v837-template="telegram" data-v826-template="telegram" data-v904-template="telegram" data-v908-template="telegram" data-v924-template="telegram">
   <div class="v799-appbar">
-    <div><span class="v799-kicker">Alertas premium  Telegram</span><h1>Telegram</h1><p>Conecta tu cuenta para recibir picks, recordatorios, directo y resúmenes según tu plan.</p></div>
+    <div><span class="v799-kicker">Alertas premium · calidad antes que cantidad</span><h1>Telegram</h1><p>Conecta tu cuenta para recibir picks completos, recordatorios y resúmenes según tu plan.</p></div>
     <div class="v799-appbar-actions"><a href="/mi-cuenta">Mi cuenta</a><a class="primary" href="/picks">Ver picks</a></div>
   </div>
 
   <section class="v922-client-dashboard v922-telegram-premium v924-section-compact v924-above-fold" aria-label="Telegram premium visible V924">
     <div class="v922-section-title">
-      <span>Telegram premium</span>
+      <span>Canal premium</span>
       <h2>Mensajes claros, filtrados y por membresia</h2>
       <p>Telegram no envia relleno: picks sin cuota, seleccion o motivo quedan bloqueados hasta tener datos reales suficientes.</p>
     </div>
     <div class="v922-client-quick-grid">
-      <article class="v922-client-status-card"><span>Vinculacion</span><strong>{{ 'Cuenta vinculada' if state.linked else 'Pendiente' }}</strong><small>El usuario controla el enlace al bot.</small></article>
+      <article class="v922-client-status-card"><span>Vinculación</span><strong>{{ 'Cuenta vinculada' if state.linked else 'Pendiente' }}</strong><small>El usuario controla el enlace al bot.</small></article>
       <article class="v922-client-status-card"><span>Plan</span><strong>{{ tier }}</strong><small>FREE, PRO y ELITE no deben recibir lo mismo si no corresponde.</small></article>
       <article class="v922-client-status-card"><span>No filler</span><strong>Activo</strong><small>Mejor no enviar nada que enviar un pick malo.</small></article>
       <article class="v922-client-status-card"><span>Dedupe</span><strong>Preservado</strong><small>Evita repetir picks o mensajes.</small></article>
     </div>
+  </section>
+
+  <section class="v925-sports-board" aria-label="Calidad de Telegram">
+    <article><span>Estado</span><strong>{{ 'Vinculado' if state.linked else 'Pendiente' }}</strong><small>Sin mostrar identificadores privados.</small></article>
+    <article><span>No filler</span><strong>Activo</strong><small>No se envían picks incompletos.</small></article>
+    <article><span>Dedupe</span><strong>Activo</strong><small>Evita mensajes repetidos.</small></article>
+    <article><span>Envío real</span><strong>Bloqueado aquí</strong><small>Esta vista no dispara Telegram.</small></article>
   </section>
 
   <section class="v799-kpi-strip">

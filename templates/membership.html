@@ -1,15 +1,56 @@
 {% extends "base.html" %}
 {% block content %}
-{% set pay = data.payments_client or {} %}{% set plans = pay.plans or {} %}{% set pro = plans.PRO if plans.PRO else {} %}{% set elite = plans.ELITE if plans.ELITE else {} %}{% set selected = (data.selected_plan or request.args.get('plan') or '')|upper %}{% set checkout_legal = data.checkout_legal or [] %}{% set legal_version = (data.legal_compliance.version if data.legal_compliance else 'V788-LEGAL') %}
-<section class="v793-screen v793-membership-screen">
-  <div class="v793-page-head centered"><div><span class="v793-kicker">Membresías · Stripe seguro</span><h1>Elige tu plan</h1><p>Accede a análisis, alertas y funciones premium con información legal clara.</p></div></div>
-  {% if payment_error or data.payment_error %}<div class="v793-alert warn">{{ payment_error or data.payment_error }}</div>{% endif %}
-  {% if request.args.get('legal_pendiente') %}<div class="v793-alert warn">Antes de abrir Stripe debes aceptar +18, términos, privacidad, no garantía y que NeMeSiS no es casa de apuestas.</div>{% endif %}
-  <section class="v793-plan-grid">
-    <article class="v793-plan-card free"><h2>FREE</h2><strong>0 €<small>/mes</small></strong><p>Ideal para empezar.</p><ul><li>Plan de partidos recomendado</li><li>Picks destacados limitados</li><li>Estadísticas básicas</li><li>Acceso a contenido público</li></ul>{% if current_user %}<a class="v793-button" href="/app">Plan actual</a>{% else %}<a class="v793-button" href="/registro">Crear cuenta</a>{% endif %}</article>
-    <article class="v793-plan-card pro {{ 'selected' if selected == 'PRO' else '' }}"><span class="v793-ribbon">★ Más elegido</span><h2>PRO</h2><strong>{{ pro.price_label if pro else '9,99 €/mes' }}</strong><p>Para usuarios exigentes.</p><ul><li>Plan de partidos recomendado</li><li>Picks destacados</li><li>Alertas Telegram en tiempo real</li><li>Análisis y estadísticas avanzadas</li><li>Histórico completo de picks</li></ul>{% if current_user and pay.checkout_ready and (pro.configured if pro else true) %}<form method="post" action="/pagos/checkout/PRO"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><div class="v793-legal-checks">{% for item in checkout_legal %}<label><input type="checkbox" name="{{ item.key }}" value="1" required> {{ item.label }}</label>{% endfor %}<input type="hidden" name="legal_version" value="{{ legal_version }}"></div><button class="v793-button primary" data-ns-no-loading="1" type="submit">Elegir PRO</button></form>{% elif current_user %}<a class="v793-button primary" href="/membresias?plan=PRO">Elegir PRO</a>{% else %}<a class="v793-button primary" href="/comprar/PRO">Elegir PRO</a>{% endif %}</article>
-    <article class="v793-plan-card elite {{ 'selected' if selected == 'ELITE' else '' }}"><span class="v793-ribbon gold">♛ Máximo nivel</span><h2>ELITE</h2><strong>{{ elite.price_label if elite else '24,99 €/mes' }}</strong><p>Para los que quieren lo mejor.</p><ul><li>Todo lo incluido en PRO</li><li>Picks exclusivos de alto valor</li><li>Alertas ultra prioritarias</li><li>Soporte prioritario</li><li>Acceso anticipado a beta</li></ul>{% if current_user and pay.checkout_ready and (elite.configured if elite else true) %}<form method="post" action="/pagos/checkout/ELITE"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><div class="v793-legal-checks">{% for item in checkout_legal %}<label><input type="checkbox" name="{{ item.key }}" value="1" required> {{ item.label }}</label>{% endfor %}<input type="hidden" name="legal_version" value="{{ legal_version }}"></div><button class="v793-button gold" data-ns-no-loading="1" type="submit">Elegir ELITE</button></form>{% elif current_user %}<a class="v793-button gold" href="/membresias?plan=ELITE">Elegir ELITE</a>{% else %}<a class="v793-button gold" href="/comprar/ELITE">Elegir ELITE</a>{% endif %}</article>
+{% set pay = data.get('payments_client') or {} %}
+{% set plans = pay.get('plans') or {} %}
+{% set pro = plans.get('PRO') or {} %}
+{% set elite = plans.get('ELITE') or {} %}
+{% set selected = (data.get('selected_plan') or request.args.get('plan') or '')|upper %}
+{% set checkout_legal = data.get('checkout_legal') or [] %}
+{% set legal = data.get('legal_compliance') or {} %}
+{% set legal_version = legal.get('version') or 'LEGAL_CURRENT' %}
+{% set current_plan = (current_user.membership if current_user else 'FREE')|upper %}
+<main class="v925-shell v925-page v925-client-shell v925-memberships" data-v925-template="membership">
+  <header class="v925-above-fold v925-membership-hero">
+    <div>
+      <span class="v925-eyebrow">Membresías · Stripe en modo seguro</span>
+      <h1>Elige el plan que necesitas</h1>
+      <p>Compara acceso y límites con claridad. Los precios y el checkout solo aparecen cuando Stripe está configurado de verdad.</p>
+    </div>
+    <span class="v925-status-chip {{ 'is-ok' if pay.get('checkout_ready') else 'is-warning' }}">{{ 'Checkout disponible' if pay.get('checkout_ready') else 'Stripe pendiente de configuración' }}</span>
+  </header>
+
+  {% if payment_error or data.get('payment_error') %}<div class="v925-safe-data-state is-warning">{{ payment_error or data.get('payment_error') }}</div>{% endif %}
+  {% if request.args.get('legal_pendiente') %}<div class="v925-safe-data-state is-warning">Antes de continuar debes aceptar +18, términos, privacidad, no garantía y que NeMeSiS no es casa de apuestas.</div>{% endif %}
+
+  <section class="v925-grid v925-plan-grid" aria-label="Planes disponibles">
+    <article class="v925-premium-card {{ 'is-current' if current_plan == 'FREE' else '' }}">
+      <span>FREE</span><h2>Plan base</h2><strong>Sin checkout</strong>
+      <ul><li>Calendario deportivo</li><li>Directo con datos reales</li><li>Estados seguros</li><li>Acceso a contenido público</li></ul>
+      <a class="v925-card-cta" href="{{ '/app' if current_user else '/registro' }}">{{ 'Plan actual' if current_plan == 'FREE' else 'Crear cuenta' }}</a>
+    </article>
+
+    <article class="v925-premium-card is-pro {{ 'is-selected' if selected == 'PRO' else '' }}">
+      <span>PRO · más elegido</span><h2>{{ pro.get('price_label') or 'Precio no configurado' }}</h2><strong>Para una experiencia completa</strong>
+      <ul><li>Picks completos según datos reales</li><li>Alertas Telegram</li><li>SHARK con contexto disponible</li><li>Histórico cuando exista</li></ul>
+      {% if current_user and pay.get('checkout_ready') and pro.get('configured') %}
+      <form method="post" action="/pagos/checkout/PRO"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">{% for item in checkout_legal %}<label class="v925-legal-check"><input type="checkbox" name="{{ item.key }}" value="1" required> {{ item.label }}</label>{% endfor %}<input type="hidden" name="legal_version" value="{{ legal_version }}"><button class="v925-card-cta" data-ns-no-loading="1" type="submit">Continuar con PRO</button></form>
+      {% else %}<a class="v925-card-cta" href="{{ '/membresias?plan=PRO' if current_user else '/comprar/PRO' }}">{{ 'Configuración pendiente' if current_user and not pay.get('checkout_ready') else 'Elegir PRO' }}</a>{% endif %}
+    </article>
+
+    <article class="v925-premium-card is-elite {{ 'is-selected' if selected == 'ELITE' else '' }}">
+      <span>ELITE · máximo nivel</span><h2>{{ elite.get('price_label') or 'Precio no configurado' }}</h2><strong>Prioridad y acceso avanzado</strong>
+      <ul><li>Todo lo incluido en PRO</li><li>Alertas prioritarias</li><li>Soporte según disponibilidad</li><li>Acceso anticipado a funciones</li></ul>
+      {% if current_user and pay.get('checkout_ready') and elite.get('configured') %}
+      <form method="post" action="/pagos/checkout/ELITE"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">{% for item in checkout_legal %}<label class="v925-legal-check"><input type="checkbox" name="{{ item.key }}" value="1" required> {{ item.label }}</label>{% endfor %}<input type="hidden" name="legal_version" value="{{ legal_version }}"><button class="v925-card-cta" data-ns-no-loading="1" type="submit">Continuar con ELITE</button></form>
+      {% else %}<a class="v925-card-cta" href="{{ '/membresias?plan=ELITE' if current_user else '/comprar/ELITE' }}">{{ 'Configuración pendiente' if current_user and not pay.get('checkout_ready') else 'Elegir ELITE' }}</a>{% endif %}
+    </article>
   </section>
-  <section class="v793-trust-row"><article><b>+18</b><span>Solo mayores de edad</span></article><article><b>Juego responsable</b><span>Promovemos uso responsable</span></article><article><b>Plataforma informativa</b><span>No aceptamos apuestas</span></article><article><b>No garantizamos beneficios</b><span>Sin promesas de rendimiento</span></article></section>
-</section>
+
+  <section class="v925-section v925-trust-band">
+    <div><strong>+18</strong><span>Solo para mayores de edad.</span></div>
+    <div><strong>Juego responsable</strong><span>No garantizamos beneficios.</span></div>
+    <div><strong>Plataforma informativa</strong><span>No aceptamos apuestas.</span></div>
+    <div><strong>Pago seguro</strong><span>Solo se abre Stripe cuando está configurado.</span></div>
+  </section>
+</main>
 {% endblock %}

@@ -5,10 +5,13 @@
 {% set context = assistant.get('context') or {} %}
 {% set state = context.get('data_state') or {} %}
 {% set openai_ready = assistant.get('openai_configured') %}
+{% set safe_picks = (data.get('v925_picks') or {}).get('picks') or [] %}
+{% set safe_calendar = data.get('v925_calendar') or {} %}
+<!-- V925 SHARK reference rebuild -->
 <section class="v845-shark-screen v924-no-dead-space v924-page-shell v924-client-shell v924-safe-state v825-shark-screen v904-client-rebuild v904-shark-rebuild v908-client-dashboard v908-mobile-polish" data-v845-template="shark" data-v844-template="shark" data-v904-template="shark" data-v908-template="shark" data-v924-template="shark">
   <div class="v845-shark-hero">
     <div>
-      <span class="v845-kicker">SHARK AI · asistente de producto</span>
+      <span class="v845-kicker">SHARK · asistente responsable</span>
       <h1>Pregunta a SHARK con datos reales</h1>
       <p>Analiza partidos, explica picks, revisa riesgos y te guía por NeMeSiS sin inventar cuotas, resultados ni estadísticas.</p>
       <div class="v845-action-row">
@@ -27,7 +30,7 @@
 
   <section class="v922-client-dashboard v922-shark-safe-mode v924-section-compact v924-above-fold" aria-label="SHARK visible V924">
     <div class="v922-section-title">
-      <span>SHARK seguro</span>
+      <span>Modo seguro</span>
       <h2>Asistente util sin inventar ventaja</h2>
       <p>SHARK explica partidos y picks con datos reales disponibles. Si faltan cuotas, seleccion, marcador o proveedor IA, lo marca como pendiente.</p>
     </div>
@@ -37,6 +40,13 @@
       <article class="v922-client-status-card"><span>Cuotas</span><strong>{{ state.get('odds') or 'Cuota pendiente' }}</strong><small>No se fabrican cuotas.</small></article>
       <article class="v922-client-status-card"><span>Resultado</span><strong>{{ state.get('result') or 'Resultado pendiente' }}</strong><small>Marcador solo si proveedor lo aporta.</small></article>
     </div>
+  </section>
+
+  <section class="v925-sports-board" aria-label="Capacidades actuales de SHARK">
+    <article><span>Partidos reales</span><strong>{{ safe_calendar.get('matches', [])|length }}</strong><small>Contexto disponible para consulta.</small></article>
+    <article><span>Picks completos</span><strong>{{ safe_picks|length }}</strong><small>Mercado, selección y cuota presentes.</small></article>
+    <article><span>IA avanzada</span><strong>{{ 'Disponible' if openai_ready else 'No configurada' }}</strong><small>El fallback no inventa análisis.</small></article>
+    <article><span>Límite</span><strong>Sin certezas</strong><small>SHARK informa; no garantiza resultados.</small></article>
   </section>
 
   <section class="v845-shark-grid">

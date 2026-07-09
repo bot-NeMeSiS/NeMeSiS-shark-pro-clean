@@ -6,11 +6,11 @@
   <meta name="theme-color" content="#06111f">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="nemesis-version" content="V915_AUTOMATED_COMPANY_WORKFORCE_RENDER_DEPLOY_PIPELINE_FINAL">
+  <meta name="nemesis-version" content="{{ app_version }}">
   <title>{% if title is defined and title %}{{ title }}{% else %}NeMeSiS SHARK PRO{% endif %}</title>
   <link rel="icon" href="{{ url_for('static', filename='img/shark-logo.svg') }}" type="image/svg+xml">
   <link rel="manifest" href="{{ url_for('manifest_json') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}?v=V915_AUTOMATED_COMPANY_WORKFORCE_RENDER_DEPLOY_PIPELINE_FINAL">
+  <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}?v={{ app_version }}">
   <meta name="csrf-token" content="{{ csrf_token() }}">
 </head>
 {% from "partials/brand_logo.html" import nemesis_brand %}
@@ -137,9 +137,12 @@
       {{ nemesis_brand(_brand_href, 'topbar') }}
       <span class="tier-badge tier-badge-{{ _visual_tier }}">{{ _tier_label }}</span>
       {% if show_client_topbar_nav %}
+      <!-- V925 public sports navigation -->
       <nav class="nav nav-clean" data-nav-zone="client-topbar">
-        <a href="/membresias">Membresías</a>
-        <a href="/legal">Confianza</a>
+        <a href="/calendar">Partidos</a>
+        <a href="/live">Directo</a>
+        <a href="/picks">Picks</a>
+        <a href="/membresias">Planes</a>
         <a href="/cliente-login">Entrar</a>
         <a class="nav-cta" href="/registro">Crear cuenta</a>
       </nav>
@@ -241,7 +244,9 @@
       <a href="/shark" data-v775-icon="SHARK">SHARK</a>
     {% else %}
       <a href="/" data-v775-icon="Inicio">Inicio</a>
-      <a href="/membresias" data-v775-icon="Planes">Planes</a>
+      <a href="/calendar" data-v775-icon="Partidos">Partidos</a>
+      <a href="/live" data-v775-icon="Directo">Directo</a>
+      <a href="/picks" data-v775-icon="Picks">Picks</a>
       <a href="/cliente-login" data-v775-icon="Entrar">Entrar</a>
     {% endif %}
   </nav>
