@@ -1,10 +1,10 @@
 # V910 Routes Links And Aliases Audit
 
 - version: `V910_FULL_PROJECT_HIDDEN_AUDIT_ROUTE_NOT_FOUND_BROWSER_QA_READY_FINAL`
-- generated_at: `2026-07-10T19:12:17`
-- routes_registered: `636`
-- templates_scanned: `171`
-- direct_api_hrefs: `22`
+- generated_at: `2026-07-10T23:36:43`
+- routes_registered: `646`
+- templates_scanned: `173`
+- direct_api_hrefs: `21`
 - empty_hash_links: `1`
 - javascript_void_links: `0`
 - forms_without_method_or_safe_action: `2`

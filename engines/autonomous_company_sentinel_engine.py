@@ -297,6 +297,26 @@ def run_autonomous_company_sentinel(
         "openai_configured": bool((render_runtime or {}).get("openai_configured") or ((render_runtime or {}).get("flags") or {}).get("openai_configured")),
     }
     issue_sources = _merge_issue_sources(journey, reference, render_alignment, telegram_watch)
+    navigation_integrity = _read_json(
+        Path(root) / "data" / "runtime" / "navigation_integrity" / "latest_run.json",
+        {},
+    )
+    if int(navigation_integrity.get("broken_links_after") or 0) > 0:
+        issue_sources.append({
+            "id": "V929-NAVIGATION-INTEGRITY",
+            "profile": "ALL",
+            "route": "/admin/navigation-integrity",
+            "category": "navigation_integrity",
+            "severity": "high",
+            "title": "Navegacion interna con destinos rotos",
+            "description": "El Navigation Integrity Worker detecto enlaces o acciones internas rotas.",
+            "evidence": f"broken_links_after={int(navigation_integrity.get('broken_links_after') or 0)}",
+            "expected_behavior": "Cero enlaces internos rotos.",
+            "actual_behavior": str(navigation_integrity.get("status") or "BROKEN"),
+            "suggested_fix": "Abrir el panel de integridad, corregir destinos y repetir Browser QA por clic.",
+            "safe_auto_fix_possible": True,
+            "requires_admin_approval": False,
+        })
     if autopilot_result:
         issue_sources.extend(autopilot_result.get("issues") or [])
     if visual_result:
@@ -393,6 +413,7 @@ def run_autonomous_company_sentinel(
         "local_env_status": local_env_status,
         "render_runtime_status": render_runtime_status,
         "telegram_quality_watch": telegram_watch,
+        "navigation_integrity": navigation_integrity,
         "issues_summary": issues_summary,
         "outbox": outbox,
         "autofix_plan": autofix,

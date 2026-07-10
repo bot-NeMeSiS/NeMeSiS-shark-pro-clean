@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="v928-page-head v929-resource-unavailable" data-v929-navigation-state="resource-unavailable">
+  <div>
+    <span class="v928-eyebrow">Recurso no disponible</span>
+    <h1>{{ resource_title or 'Este contenido ya no está disponible' }}</h1>
+    <p>{{ resource_message or 'El recurso solicitado no existe, ha caducado o ya no forma parte de los datos actuales.' }}</p>
+  </div>
+</section>
+<section class="v928-panel v929-contextual-recovery">
+  <h2>Continúa desde una ruta segura</h2>
+  <p class="v928-muted">No se ha sustituido el recurso ni se han inventado datos.</p>
+  <div class="v928-actions">
+    <a class="v928-button" href="/calendar">Volver a partidos</a>
+    <a class="v928-button" href="/calendar">Ver calendario</a>
+    <a class="v928-button" href="/picks">Ver picks</a>
+    <a class="v928-button is-primary" href="/">Ir al inicio</a>
+  </div>
+</section>
+{% endblock %}

@@ -546,6 +546,44 @@ def run_continuous_sentinel_cycle(client: Any, version: str = "", mode: str = "q
     v926_desktop_snapshot = build_v926_desktop_snapshot(client)
     v927_pc_desktop_snapshot = build_v927_pc_desktop_snapshot(client)
     v928_canonical_snapshot = build_v928_canonical_snapshot(client)
+    navigation_integrity_snapshot: dict[str, Any] = {}
+    navigation_integrity_issues: list[dict[str, Any]] = []
+    try:
+        from engines.navigation_integrity_engine import build_navigation_integrity_snapshot
+
+        root = Path(__file__).resolve().parents[1]
+        flask_app = getattr(client, "application", None)
+        if flask_app is not None:
+            navigation_integrity_snapshot = build_navigation_integrity_snapshot(
+                flask_app,
+                root,
+                aliases=getattr(__import__("app"), "V896_ROUTE_ALIASES", {}),
+                include_smoke=False,
+            )
+            for broken in (navigation_integrity_snapshot.get("broken") or [])[:50]:
+                navigation_integrity_issues.append({
+                    "id": "V929-NAVIGATION-" + sha1(
+                        f"{broken.get('origin_screen')}:{broken.get('generated_url')}".encode("utf-8")
+                    ).hexdigest()[:10].upper(),
+                    "profile": broken.get("authentication") or "UNKNOWN",
+                    "route": broken.get("generated_url") or broken.get("origin_screen") or "",
+                    "category": "navigation_integrity",
+                    "severity": "high",
+                    "title": "Destino interno roto",
+                    "description": broken.get("detail") or broken.get("result") or "Ruta interna no valida.",
+                    "evidence": f"{broken.get('origin_screen')}:{broken.get('line')}",
+                    "expected_behavior": "El clic resuelve una ruta o accion segura.",
+                    "actual_behavior": broken.get("result") or "BROKEN",
+                    "suggested_fix": broken.get("correction") or "Corregir el destino interno.",
+                    "safe_auto_fix_possible": True,
+                    "requires_admin_approval": False,
+                })
+    except Exception as exc:
+        navigation_integrity_snapshot = {
+            "ok": False,
+            "status": "WARNING",
+            "safe_error": f"{exc.__class__.__name__}: navigation scan unavailable",
+        }
     static_issues = static_result.get("issues", [])
     safe_data_notes = [
         issue
@@ -555,6 +593,7 @@ def run_continuous_sentinel_cycle(client: Any, version: str = "", mode: str = "q
         and "estado seguro" in f"{issue.get('description', '')} {issue.get('actual_behavior', '')}".lower()
     ]
     actionable_static_issues = [issue for issue in static_issues if issue not in safe_data_notes]
+    actionable_static_issues.extend(navigation_integrity_issues)
     issues = [_decorate_issue(issue, run_id) for issue in actionable_static_issues]
     visual_worker_result = {}
     if mode in {"visual-worker", "company-worker", "full-company-qa"}:
@@ -635,6 +674,7 @@ def run_continuous_sentinel_cycle(client: Any, version: str = "", mode: str = "q
         "v927_pc_desktop_snapshot": v927_pc_desktop_snapshot,
         "canonical_reference_rules_v928": V928_CANONICAL_REFERENCE_RULES,
         "v928_canonical_snapshot": v928_canonical_snapshot,
+        "v929_navigation_integrity_snapshot": navigation_integrity_snapshot,
         "sentinel_autopilot_ready": True,
         "visual_company_worker_v883": visual_worker_result,
         "visual_company_worker_ready": True,

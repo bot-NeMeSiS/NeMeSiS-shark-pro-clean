@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import shutil
 import subprocess
 import zipfile
 from datetime import datetime
@@ -534,6 +535,7 @@ def include(path: Path) -> bool:
             or rel_posix.startswith("reports/V926_")
             or rel_posix.startswith("reports/V927_")
             or rel_posix.startswith("reports/V928_")
+            or rel_posix.startswith("reports/V929_")
             or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V912")
             or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V913")
             or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V914")
@@ -548,6 +550,7 @@ def include(path: Path) -> bool:
             or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V923")
             or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V924")
             or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V928")
+            or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V929")
         )
     if rel_posix in {
         "data/runtime/automation_workforce/latest_run.json",
@@ -555,6 +558,7 @@ def include(path: Path) -> bool:
         "data/runtime/autonomous_company_sentinel/browser_qa_status.json",
         "data/runtime/autonomous_company_sentinel/browser_reference_comparison.json",
         "data/runtime/client_route_health_v923.json",
+        "data/runtime/navigation_integrity/latest_run.json",
     }:
         return True
     if any(part in EXCLUDE_DIRS for part in parts):
@@ -566,6 +570,8 @@ def include(path: Path) -> bool:
     if any(marker in lower_name for marker in SECRET_NAME_MARKERS) and path.name not in {
         ".env.example",
         ".env.render.clean",
+        "security_secret_guard.py",
+        "check_v902b_deploy_alignment_secret_guard.py",
     }:
         return False
     if any(lower_name.endswith(suffix) for suffix in EXCLUDE_SUFFIXES):
@@ -625,9 +631,20 @@ def main() -> int:
     with zipfile.ZipFile(OUT, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as zf:
         for path in files:
             zf.write(path, path.relative_to(ROOT).as_posix())
+    deploy_parent = (ROOT / "release_output").resolve()
+    deploy_parent.mkdir(parents=True, exist_ok=True)
+    deploy_root = (deploy_parent / f"{VERSION_PREFIX}_DEPLOY_ROOT_CONTENTS").resolve()
+    if deploy_root.parent != deploy_parent or deploy_root.name != f"{VERSION_PREFIX}_DEPLOY_ROOT_CONTENTS":
+        raise RuntimeError("Unsafe deploy root target")
+    if deploy_root.exists():
+        shutil.rmtree(deploy_root)
+    deploy_root.mkdir(parents=True, exist_ok=True)
+    with zipfile.ZipFile(OUT) as zf:
+        zf.extractall(deploy_root)
     manifest = build_manifest(files)
     manifest["zip_size_bytes"] = OUT.stat().st_size
     manifest["zip_file_count"] = len(files)
+    manifest["deploy_root"] = str(deploy_root)
     MANIFEST_PATH.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(manifest, ensure_ascii=False, indent=2))
     return 0

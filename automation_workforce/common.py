@@ -14,7 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 REPORTS = ROOT / "reports"
 RUNTIME = ROOT / "data" / "runtime" / "autonomous_company_sentinel"
 OUTBOX = RUNTIME / "outbox" / "codex_outbox.md"
-VERSION = "V919_BROWSER_QA_RESULTS_IMPORT_VALIDATION_AND_VISUAL_QUEUE_GATE_FINAL"
+VERSION = (ROOT / "VERSION.txt").read_text(encoding="utf-8-sig", errors="replace").strip()
 
 
 def madrid_now_iso() -> str:

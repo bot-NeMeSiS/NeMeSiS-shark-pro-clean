@@ -1,10 +1,10 @@
 {
   "ok": true,
-  "audited_at": "2026-07-10T19:29:57",
+  "audited_at": "2026-07-10T21:04:05",
   "zip": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\release_output\\NeMeSiS_SHARK_PRO_V928_CANONICAL_REFERENCE_FULL_APP_ADMIN_CLIENT_MOBILE_REBUILD_FINAL_RENDER_READY.zip",
-  "zip_size_bytes": 27787961,
-  "file_count": 2366,
-  "content_size_bytes": 36282826,
+  "zip_size_bytes": 27821868,
+  "file_count": 2377,
+  "content_size_bytes": 36971381,
   "forbidden_count": 0,
   "missing_required_root": [],
   "forbidden": [],
@@ -79,7 +79,7 @@
     },
     {
       "path": "app.py",
-      "size": 1067318
+      "size": 1068631
     },
     {
       "path": "static/app.css",
@@ -98,12 +98,12 @@
     },
     {
       "folder": "reports",
-      "size": 4483241,
-      "files": 1298
+      "size": 5169490,
+      "files": 1309
     },
     {
       "folder": "tools",
-      "size": 1589986,
+      "size": 1590470,
       "files": 512
     },
     {
@@ -113,7 +113,7 @@
     },
     {
       "folder": "app.py",
-      "size": 1067318,
+      "size": 1068631,
       "files": 1
     },
     {
@@ -123,7 +123,7 @@
     },
     {
       "folder": "templates",
-      "size": 653537,
+      "size": 654046,
       "files": 171
     },
     {

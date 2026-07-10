@@ -1,7 +1,7 @@
 {
   "version": "V910_FULL_PROJECT_HIDDEN_AUDIT_ROUTE_NOT_FOUND_BROWSER_QA_READY_FINAL",
   "links": {
-    "templates_scanned": 171,
+    "templates_scanned": 173,
     "direct_api_hrefs": [
       {
         "file": "templates/admin_api_sports_audit.html",
@@ -54,10 +54,6 @@
       {
         "file": "templates/admin_highlights_center.html",
         "href": "/api/admin/highlights/status"
-      },
-      {
-        "file": "templates/admin_intelligence_engine.html",
-        "href": "/api/admin/intelligence-status"
       },
       {
         "file": "templates/admin_legal_compliance.html",
@@ -113,7 +109,7 @@
     ]
   },
   "smoke": {
-    "routes_registered": 636,
+    "routes_registered": 646,
     "smoke_results": [
       {
         "path": "/",

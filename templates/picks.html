@@ -12,7 +12,7 @@
   <section class="v928-kpi-grid is-four">
     {{ kpi_card('Picks completos', picks|length, 'Mercado, selección y cuota', 'purple', 'target', '/picks') }}
     {{ kpi_card('Bloqueados', safe.get('blocked_count', 0), 'Datos insuficientes o revisión', 'gold', 'shield', '/picks?filter=blocked') }}
-    {{ kpi_card('Cuota media', stats.get('avg_odds'), 'Solo picks evaluables', 'blue', 'odds', '/picks') }}
+    {{ kpi_card('Cuota media', odds_state.get('average_odds') if odds_state.get('has_real_data') else 'Sin dato', 'Solo picks completos y evaluables', 'blue', 'odds', '/picks') }}
     {{ kpi_card('Cerrados', stats.get('closed') or stats.get('graded'), 'Histórico real', 'green', 'history', '/track-record') }}
   </section>
   <section class="v928-panel">{{ filter_tabs([{'key':'featured','label':'Destacados','href':'/picks?filter=featured'},{'key':'active','label':'Activos','href':'/picks?filter=active'},{'key':'closed','label':'Cerrados','href':'/picks?filter=closed'},{'key':'conservative','label':'Conservadores','href':'/picks?filter=conservative'},{'key':'value','label':'Valor','href':'/picks?filter=value'}], active_filter) }}</section>

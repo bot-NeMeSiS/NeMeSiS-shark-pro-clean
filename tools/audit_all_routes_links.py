@@ -9,9 +9,10 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-REPORT = ROOT / "reports" / "V910_ROUTES_LINKS_AND_ALIASES_AUDIT.md"
-JSON_REPORT = ROOT / "reports" / "V910_ROUTES_LINKS_AND_ALIASES_AUDIT.json"
-VERSION = "V910_FULL_PROJECT_HIDDEN_AUDIT_ROUTE_NOT_FOUND_BROWSER_QA_READY_FINAL"
+VERSION = (ROOT / "VERSION.txt").read_text(encoding="utf-8-sig", errors="replace").strip()
+VERSION_TAG = VERSION.split("_", 1)[0] if VERSION else "DEV"
+REPORT = ROOT / "reports" / f"{VERSION_TAG}_ROUTES_LINKS_AND_ALIASES_AUDIT.md"
+JSON_REPORT = ROOT / "reports" / f"{VERSION_TAG}_ROUTES_LINKS_AND_ALIASES_AUDIT.json"
 
 
 def rel(path: Path) -> str:
@@ -107,7 +108,7 @@ def smoke_routes() -> dict:
 def write_report(payload: dict) -> None:
     REPORT.parent.mkdir(parents=True, exist_ok=True)
     lines = [
-        "# V910 Routes Links And Aliases Audit",
+        f"# {VERSION_TAG} Routes Links And Aliases Audit",
         "",
         f"- version: `{VERSION}`",
         f"- generated_at: `{datetime.now().isoformat(timespec='seconds')}`",

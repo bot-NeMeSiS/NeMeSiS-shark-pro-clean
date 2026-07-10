@@ -8,6 +8,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V928_CANONICAL_REFERENCE_FULL_APP_ADMIN_CLIENT_MOBILE_REBUILD_FINAL"
+V929_VERSION = "V929_NAVIGATION_INTEGRITY_ROUTE_NOT_FOUND_FULL_APP_RECOVERY_FINAL"
+ALLOWED_CONTAINER_VERSIONS = {VERSION, V929_VERSION}
 FORBIDDEN_RELEASE_NAMES = {".git", ".venv", "__pycache__", ".pytest_cache", "release_output"}
 
 
@@ -23,7 +25,9 @@ def add(checks: list[dict], name: str, ok: bool, detail: str = "") -> None:
 
 
 def release_cleanliness(checks: list[dict]) -> None:
-    deploy = ROOT / "release_output" / "V928_DEPLOY_ROOT_CONTENTS"
+    current = read("VERSION.txt").strip().lstrip("\ufeff")
+    deploy_name = "V929_DEPLOY_ROOT_CONTENTS" if current == V929_VERSION else "V928_DEPLOY_ROOT_CONTENTS"
+    deploy = ROOT / "release_output" / deploy_name
     if not deploy.exists():
         add(checks, "deploy_root_pending_build", True, "will be audited after build")
         return
@@ -38,14 +42,17 @@ def release_cleanliness(checks: list[dict]) -> None:
 def base_checks() -> list[dict]:
     checks: list[dict] = []
     version_bytes = (ROOT / "VERSION.txt").read_bytes() if (ROOT / "VERSION.txt").exists() else b""
-    add(checks, "version_v928", version_bytes.decode("utf-8", errors="replace").strip() == VERSION)
+    current_version = version_bytes.decode("utf-8", errors="replace").strip().lstrip("\ufeff")
+    add(checks, "version_v928_or_successor", current_version in ALLOWED_CONTAINER_VERSIONS)
     add(checks, "version_without_bom", not version_bytes.startswith(b"\xef\xbb\xbf"))
     app = read("app.py")
     base = read("templates/base.html")
     css = read("static/v928-canonical.css")
-    add(checks, "app_version_matches", f"APP_VERSION = '{VERSION}'" in app)
+    add(checks, "app_version_matches", f"APP_VERSION = '{current_version}'" in app)
     add(checks, "canonical_css_loaded", "filename='v928-canonical.css'" in base and "?v={{ app_version }}" in base)
-    add(checks, "service_worker_v928", "NEMESIS_CACHE_V928" in app and "cache:'no-store'" in app and "cache:'reload'" in app)
+    cache_tag = "NEMESIS_CACHE_V929" if current_version == V929_VERSION else "NEMESIS_CACHE_V928"
+    add(checks, "service_worker_current", cache_tag in app and "cache:'no-store'" in app and "cache:'reload'" in app)
+    add(checks, "render_cache_only", "page_render_cache_only" in app and 'v928_page_render_external_calls\": False' in app)
     add(checks, "role_shell", "data-v928-shell=\"true\"" in base)
     add(checks, "no_pixel_perfect_claim", "v928_pixel_perfect_claim_allowed\": True" not in app)
     add(checks, "canonical_css_present", len(css) > 10000)
@@ -98,13 +105,16 @@ def run(kind: str) -> dict:
             add(checks, f"no_demo_{token}", token.lower() not in targets.lower())
         add(checks, "publish_gate", "blocked_incomplete_pick" in app and "cuota real válida" in app)
         add(checks, "no_fake_roi_chart", "v793-chart-fake" not in read("templates/track_record.html"))
+        add(checks, "match_form_payload_not_dumped", "{{ detail.get('home_form') or" not in read("templates/match_detail.html"))
+        add(checks, "safe_odds_average", "stats.get('avg_odds')" not in read("templates/picks.html"))
+        add(checks, "membership_cadence_not_duplicated", "'/mes' not in price_label|lower" in read("templates/membership.html"))
     elif kind == "responsive":
         for token in ["overflow-x: auto", "minmax(0, 1fr)", "env(safe-area-inset-bottom)", "max-width: 430px", "max-width: 820px", "min-width: 1600px", "min-width: 1920px"]:
             add(checks, f"responsive_{token}", token in css)
         add(checks, "stable_mobile_nav", "min-height: 62px" in css and "grid-template-columns: repeat(5" in css)
     release_cleanliness(checks)
     ok = all(item["ok"] for item in checks)
-    return {"version": VERSION, "suite": kind, "ok": ok, "checks": checks, "failed": [item for item in checks if not item["ok"]]}
+    return {"version": read("VERSION.txt").strip().lstrip("\ufeff"), "suite": kind, "ok": ok, "checks": checks, "failed": [item for item in checks if not item["ok"]]}
 
 
 def cli(kind: str) -> int:

@@ -1,20 +1,20 @@
 # Auditoría ZIP V928
 
 - ZIP: `NeMeSiS_SHARK_PRO_V928_CANONICAL_REFERENCE_FULL_APP_ADMIN_CLIENT_MOBILE_REBUILD_FINAL_RENDER_READY.zip`
-- Archivos: 2366
-- Tamaño ZIP: 27787961 bytes
+- Archivos: 2377
+- Tamaño ZIP: 27821868 bytes
 - Prohibidos: 0
 - Resultado: OK
 - Root obligatorio ausente: ninguno
 
 ## Carpetas principales
 - `reference_images`: 24 archivos, 24922073 bytes
-- `reports`: 1298 archivos, 4483241 bytes
-- `tools`: 512 archivos, 1589986 bytes
+- `reports`: 1309 archivos, 5169490 bytes
+- `tools`: 512 archivos, 1590470 bytes
 - `engines`: 124 archivos, 1385422 bytes
-- `app.py`: 1 archivos, 1067318 bytes
+- `app.py`: 1 archivos, 1068631 bytes
 - `static`: 3 archivos, 1041237 bytes
-- `templates`: 171 archivos, 653537 bytes
+- `templates`: 171 archivos, 654046 bytes
 - `data`: 5 archivos, 554393 bytes
 - `V726_PROJECT_TREE_AUDIT.md`: 1 archivos, 96394 bytes
 - `CHATGPT_CONTINUATION_REPORT.md`: 1 archivos, 68322 bytes

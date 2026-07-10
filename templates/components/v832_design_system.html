@@ -21,7 +21,7 @@
   </nav>
 {%- endmacro %}
 
-{% macro admin_command_card(title, value, detail='', href='#') -%}
+{% macro admin_command_card(title, value, detail='', href='/admin/dashboard') -%}
   <a class="v832-admin-command card" href="{{ href }}">
     <span>{{ title }}</span>
     <strong>{{ value }}</strong>

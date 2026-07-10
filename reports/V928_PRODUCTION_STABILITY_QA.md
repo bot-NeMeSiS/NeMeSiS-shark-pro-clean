@@ -16,4 +16,4 @@ DB_PATH, Madrid Time, login/sesiones, membresias, Stripe, Telegram dedupe/no-fil
 
 ## Produccion
 
-V928 no se declara en produccion. La consulta externa desde esta sesion no estuvo disponible y no se realizo push ni deploy. Render debe confirmar explicitamente la version V928, la alineacion de archivos y el cache busting antes de cerrar el despliegue.
+Render confirma V928, archivos alineados, cache busting y service worker V928. La certificacion remota posterior encontro sincronizaciones externas durante render, un timeout, 23 respuestas 502 transitorias y tres regresiones de presentacion. Esos fallos quedaron corregidos localmente; la estabilidad final queda pendiente de redesplegar el V928 corregido y repetir la matriz remota.

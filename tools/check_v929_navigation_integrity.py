@@ -1,0 +1,63 @@
+from __future__ import annotations
+
+import zipfile
+from pathlib import PurePosixPath
+
+from v929_check_support import ROOT, VERSION, finish, load_json, prepare_app
+
+
+def main() -> int:
+    app_module = prepare_app()
+    client = app_module.app.test_client()
+    runtime_response = client.get("/api/runtime-version")
+    runtime = runtime_response.get_json(silent=True) or {}
+    matrix = load_json(ROOT / "reports" / "V929_FULL_NAVIGATION_ROUTE_MATRIX.json")
+    click = load_json(ROOT / "reports" / "V929_CLICK_NAVIGATION_MATRIX.json")
+    version_raw = (ROOT / "VERSION.txt").read_bytes()
+    zip_path = ROOT / "release_output" / "NeMeSiS_SHARK_PRO_V929_NAVIGATION_INTEGRITY_ROUTE_NOT_FOUND_FULL_APP_RECOVERY_FINAL_RENDER_READY.zip"
+    zip_clean = True
+    if zip_path.exists():
+        forbidden_parts = {".git", ".venv", "__pycache__", ".pytest_cache", "release_output", "logs"}
+        forbidden_suffixes = {".db", ".sqlite", ".sqlite3", ".log", ".zip"}
+        with zipfile.ZipFile(zip_path) as archive:
+            for name in archive.namelist():
+                path = PurePosixPath(name)
+                if (
+                    set(path.parts) & forbidden_parts
+                    or path.name == ".env"
+                    or any(path.name.lower().endswith(suffix) for suffix in forbidden_suffixes)
+                ):
+                    zip_clean = False
+                    break
+    checks = {
+        "version_exact": version_raw.decode("utf-8") == VERSION + "\n",
+        "version_without_bom": not version_raw.startswith(b"\xef\xbb\xbf"),
+        "app_version": app_module.APP_VERSION == VERSION,
+        "runtime_200": runtime_response.status_code == 200,
+        "runtime_version": runtime.get("version") == VERSION,
+        "version_files_match": runtime.get("version_files_match") is True,
+        "deployment_aligned": runtime.get("deployment_alignment_status") == "aligned_local_files",
+        "flags_v929": all(runtime.get(key) is True for key in (
+            "has_v929_navigation_integrity", "has_v929_route_not_found_video_fix",
+            "has_v929_internal_link_audit", "has_v929_dynamic_route_guard",
+            "has_v929_admin_client_navigation_separation", "has_v929_mobile_navigation_guard",
+            "has_v929_navigation_worker", "has_v929_click_browser_qa",
+        )),
+        "video_route_fixed": client.get("/clientes", follow_redirects=False).status_code in {301, 302, 303, 307, 308},
+        "matrix_clean": int(matrix.get("broken_links") or 0) == 0,
+        "click_matrix_clean": int(click.get("failures_count") or 0) == 0 and int(click.get("clicks_tested") or 0) > 0,
+        "admin_summary_protected": client.get("/api/admin/navigation-integrity/summary").status_code == 403,
+        "admin_run_protected": client.post("/api/admin/navigation-integrity/run").status_code == 403,
+        "engine_exists": (ROOT / "engines" / "navigation_integrity_engine.py").exists(),
+        "worker_exists": (ROOT / "automation_workforce" / "navigation_integrity_worker.py").exists(),
+        "panel_exists": (ROOT / "templates" / "admin_navigation_integrity.html").exists(),
+        "zip_clean_if_present": zip_clean,
+    }
+    return finish("V929 navigation integrity", checks, {
+        "links_audited": matrix.get("links_audited", 0),
+        "clicks_tested": click.get("clicks_tested", 0),
+    })
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

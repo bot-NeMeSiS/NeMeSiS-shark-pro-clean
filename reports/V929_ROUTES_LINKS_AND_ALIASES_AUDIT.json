@@ -1,0 +1,268 @@
+{
+  "version": "V929_NAVIGATION_INTEGRITY_ROUTE_NOT_FOUND_FULL_APP_RECOVERY_FINAL",
+  "links": {
+    "templates_scanned": 173,
+    "direct_api_hrefs": [
+      {
+        "file": "templates/admin_api_sports_audit.html",
+        "href": "/api/admin/api-sports/status"
+      },
+      {
+        "file": "templates/admin_app_experience_quality.html",
+        "href": "/api/admin/app-experience-quality"
+      },
+      {
+        "file": "templates/admin_autonomous_sentinel.html",
+        "href": "/api/admin/autonomous-sentinel/run?mode=safe_scan&dry_run=1"
+      },
+      {
+        "file": "templates/admin_autonomous_sentinel.html",
+        "href": "/api/admin/autonomous-sentinel/outbox"
+      },
+      {
+        "file": "templates/admin_autonomous_sentinel.html",
+        "href": "/api/admin/autonomous-sentinel/autofix-plan"
+      },
+      {
+        "file": "templates/admin_autonomous_sentinel.html",
+        "href": "/api/admin/autonomous-sentinel/generate-codex-prompts"
+      },
+      {
+        "file": "templates/admin_client_screen_audit.html",
+        "href": "/api/admin/client-screen-audit"
+      },
+      {
+        "file": "templates/admin_daily_automation.html",
+        "href": "/api/admin/daily-automation/runs"
+      },
+      {
+        "file": "templates/admin_daily_automation.html",
+        "href": "/api/admin/daily-automation/dry-run"
+      },
+      {
+        "file": "templates/admin_daily_automation.html",
+        "href": "/api/admin/daily-automation/health"
+      },
+      {
+        "file": "templates/admin_data_marketplace.html",
+        "href": "/api/admin/data-marketplace/export/{{ item.get("
+      },
+      {
+        "file": "templates/admin_highlights_center.html",
+        "href": "/api/admin/highlights/sync?force=1&days_back=7&limit=300"
+      },
+      {
+        "file": "templates/admin_highlights_center.html",
+        "href": "/api/admin/highlights/status"
+      },
+      {
+        "file": "templates/admin_legal_compliance.html",
+        "href": "/api/admin/legal-compliance"
+      },
+      {
+        "file": "templates/admin_sentinel_autopilot.html",
+        "href": "/api/admin/sentinel-autopilot/run?dry_run=1"
+      },
+      {
+        "file": "templates/admin_sentinel_autopilot.html",
+        "href": "/api/admin/sentinel-autopilot/generate-prompt"
+      },
+      {
+        "file": "templates/admin_sentinel_autopilot.html",
+        "href": "/api/admin/sentinel-autopilot/summary"
+      },
+      {
+        "file": "templates/admin_shark_center.html",
+        "href": "/api/admin/shark-center"
+      },
+      {
+        "file": "templates/admin_telegram_pro_preview.html",
+        "href": "/api/admin/telegram/pro-preview"
+      },
+      {
+        "file": "templates/admin_visual_worker.html",
+        "href": "/api/admin/visual-worker/run?mode=visual-worker&dry_run=1"
+      },
+      {
+        "file": "templates/admin_visual_worker.html",
+        "href": "/api/admin/visual-worker/run?mode=full-company-qa&dry_run=1"
+      }
+    ],
+    "empty_links": [],
+    "js_void_links": [],
+    "forms_without_action": [
+      {
+        "file": "templates/base.html",
+        "action": "missing",
+        "has_method": false
+      },
+      {
+        "file": "templates/pick_tracking.html",
+        "action": "missing",
+        "has_method": false
+      }
+    ]
+  },
+  "smoke": {
+    "routes_registered": 646,
+    "smoke_results": [
+      {
+        "path": "/",
+        "status": 200,
+        "content_type": "text/html; charset=utf-8",
+        "safe": true
+      },
+      {
+        "path": "/cliente-login",
+        "status": 200,
+        "content_type": "text/html; charset=utf-8",
+        "safe": true
+      },
+      {
+        "path": "/registro",
+        "status": 200,
+        "content_type": "text/html; charset=utf-8",
+        "safe": true
+      },
+      {
+        "path": "/app",
+        "status": 302,
+        "content_type": "text/html; charset=utf-8",
+        "safe": true
+      },
+      {
+        "path": "/calendar",
+        "status": 200,
+        "content_type": "text/html; charset=utf-8",
+        "safe": true
+      },
+      {
+        "path": "/calendario",
+        "status": 200,
+        "content_type": "text/html; charset=utf-8",
+        "safe": true
+      },
+      {
+        "path": "/live",
+        "status": 200,
+        "content_type": "text/html; charset=utf-8",
+        "safe": true
+      },
+      {
+        "path": "/directo",
+        "status": 200,
+        "content_type": "text/html; charset=utf-8",
+        "safe": true
+      },
+      {
+        "path": "/picks",
+        "status": 200,
+        "content_type": "text/html; charset=utf-8",
+        "safe": true
+      },
+      {
+        "path": "/shark",
+        "status": 200,
+        "content_type": "text/html; charset=utf-8",
+        "safe": true
+      },
+      {
+        "path": "/telegram",
+        "status": 302,
+        "content_type": "text/html; charset=utf-8",
+        "safe": true
+      },
+      {
+        "path": "/profile",
+        "status": 302,
+        "content_type": "text/html; charset=utf-8",
+        "safe": true
+      },
+      {
+        "path": "/support",
+        "status": 200,
+        "content_type": "text/html; charset=utf-8",
+        "safe": true
+      },
+      {
+        "path": "/track-record",
+        "status": 200,
+        "content_type": "text/html; charset=utf-8",
+        "safe": true
+      },
+      {
+        "path": "/admin-login",
+        "status": 200,
+        "content_type": "text/html; charset=utf-8",
+        "safe": true
+      },
+      {
+        "path": "/admin/dashboard",
+        "status": 302,
+        "content_type": "text/html; charset=utf-8",
+        "safe": true
+      },
+      {
+        "path": "/admin/autonomous-company-sentinel",
+        "status": 302,
+        "content_type": "text/html; charset=utf-8",
+        "safe": true
+      },
+      {
+        "path": "/admin/sentinel-issues",
+        "status": 302,
+        "content_type": "text/html; charset=utf-8",
+        "safe": true
+      },
+      {
+        "path": "/admin/sentinel-codex-outbox",
+        "status": 302,
+        "content_type": "text/html; charset=utf-8",
+        "safe": true
+      },
+      {
+        "path": "/admin/not-found-events",
+        "status": 302,
+        "content_type": "text/html; charset=utf-8",
+        "safe": true
+      },
+      {
+        "path": "/admin/telegram/command-center",
+        "status": 302,
+        "content_type": "text/html; charset=utf-8",
+        "safe": true
+      },
+      {
+        "path": "/api/runtime-version",
+        "status": 200,
+        "content_type": "application/json",
+        "safe": true
+      },
+      {
+        "path": "/ruta-inventada-v910",
+        "status": 404,
+        "content_type": "text/html; charset=utf-8",
+        "safe": true
+      },
+      {
+        "path": "/api/ruta-inventada-v910",
+        "status": 404,
+        "content_type": "application/json",
+        "safe": true
+      },
+      {
+        "path": "/manifest.json",
+        "status": 200,
+        "content_type": "application/json",
+        "safe": true
+      },
+      {
+        "path": "/service-worker.js",
+        "status": 200,
+        "content_type": "application/javascript; charset=utf-8",
+        "safe": true
+      }
+    ],
+    "unsafe_smoke": []
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "route": "/match/sportsdb-355afc23669c970bab",
+  "results": [
+    {"profile": "desktop_1366x768", "status": 200, "elapsed_ms": 12478, "overflow_x": false},
+    {"profile": "desktop_1440x900", "status": 200, "elapsed_ms": 6516, "overflow_x": false},
+    {"profile": "desktop_1600x900", "status": 200, "elapsed_ms": 7998, "overflow_x": false},
+    {"profile": "desktop_1920x1080", "status": 200, "elapsed_ms": 6223, "overflow_x": false},
+    {"profile": "mobile_390x844", "status": 200, "elapsed_ms": 6945, "overflow_x": false},
+    {"profile": "mobile_430x932", "status": 200, "elapsed_ms": 10037, "overflow_x": false}
+  ]
+}

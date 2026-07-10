@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% from "components/v928_ui.html" import status_chip %}
+{% block content %}
+{% set nav = data.navigation_integrity or {} %}
+{% set route_health = data.route_health or {} %}
+<section class="v928-page-head v928-admin-title" data-v928-template="admin-navigation-integrity" data-v929-navigation-panel="true">
+  <div><span class="v928-eyebrow">Integridad de navegación</span><h1>Rutas, enlaces y aliases</h1><p>Cada destino interno debe resolver, exigir la sesión correcta o explicar por qué está deshabilitado.</p></div>
+  <div class="v928-actions"><button id="v929-run-navigation" class="v928-button is-primary" type="button" data-action="run-navigation-audit">Ejecutar scan seguro</button><a class="v928-button" href="/admin/not-found-events">Ver 404</a></div>
+</section>
+
+<section class="v928-kpi-grid v928-admin-kpis">
+  <article class="v928-kpi"><span>Rutas Flask</span><strong>{{ nav.routes_total or route_health.total_routes or 0 }}</strong><small>registradas</small></article>
+  <article class="v928-kpi"><span>Enlaces auditados</span><strong>{{ nav.links_audited or 0 }}</strong><small>UI y redirects</small></article>
+  <article class="v928-kpi"><span>Rotos</span><strong>{{ nav.broken_links_after or 0 }}</strong><small>después del scan</small></article>
+  <article class="v928-kpi"><span>Loops</span><strong>{{ nav.redirect_loops or 0 }}</strong><small>redirecciones</small></article>
+  <article class="v928-kpi"><span>Sin acción</span><strong>{{ nav.buttons_without_action or 0 }}</strong><small>botones</small></article>
+  <article class="v928-kpi"><span>Estado</span><strong>{{ nav.status or 'PENDIENTE' }}</strong><small>{{ nav.generated_at_madrid or 'Sin scan' }}</small></article>
+</section>
+
+<section class="v928-command-grid v928-admin-command-grid">
+  <article class="v928-panel">
+    <header class="v928-panel-head"><div><span class="v928-eyebrow">Vídeo real</span><h2>Ruta `/clientes`</h2></div>{{ status_chip('Corregida' if nav.video_route_fixed else 'Pendiente', 'success' if nav.video_route_fixed else 'warning') }}</header>
+    <p>El alias resuelve por rol: login público, panel cliente autenticado o usuarios admin.</p>
+  </article>
+  <article class="v928-panel">
+    <header class="v928-panel-head"><div><span class="v928-eyebrow">Siguiente acción</span><h2>{{ nav.next_action or 'Ejecutar scan' }}</h2></div></header>
+    <p>El análisis es local, dry-run y no llama proveedores ni acciones de negocio.</p>
+  </article>
+  <article class="v928-panel">
+    <header class="v928-panel-head"><div><span class="v928-eyebrow">Separación</span><h2>Admin y cliente</h2></div>{{ status_chip('Protegida', 'success') }}</header>
+    <p>Las APIs de navegación devuelven 403 sin sesión admin.</p>
+  </article>
+</section>
+
+<section class="v928-data-layout">
+  <article class="v928-panel v928-main-panel">
+    <header class="v928-panel-head"><div><span class="v928-eyebrow">Últimos eventos</span><h2>Rutas no encontradas</h2></div><a href="/admin/not-found-events">Abrir historial</a></header>
+    <div class="v928-table-shell"><table class="v928-data-table"><thead><tr><th>Ruta</th><th>Método</th><th>Conteo</th><th>Alias</th><th>Última vez</th></tr></thead><tbody>
+      {% for item in data.not_found_events %}<tr><td><code>{{ item.path }}</code></td><td>{{ item.method }}</td><td>{{ item.count }}</td><td>{{ item.resolved_alias or '—' }}</td><td>{{ item.last_seen_madrid or '—' }}</td></tr>{% else %}<tr><td colspan="5">Sin eventos 404 guardados.</td></tr>{% endfor %}
+    </tbody></table></div>
+  </article>
+  <aside class="v928-side-stack">
+    <article class="v928-panel"><h2>Distribución</h2><div class="v928-compact-list">{% for bucket, count in (route_health.bucket_counts or {}).items() %}<div><span>{{ bucket }}</span><strong>{{ count }}</strong></div>{% endfor %}</div></article>
+    <article class="v928-panel"><h2>Accesos</h2><div class="v928-compact-list"><a href="/admin/route-health">Salud de rutas</a><a href="/admin/map">Mapa admin</a><a href="/admin/sentinel-issues">Sentinel Issues</a><a href="/admin/automation-workforce">Workforce</a></div></article>
+  </aside>
+</section>
+
+<p id="v929-navigation-feedback" class="v928-muted" role="status" aria-live="polite"></p>
+<script>
+document.getElementById('v929-run-navigation')?.addEventListener('click', async function(){
+  const feedback=document.getElementById('v929-navigation-feedback');
+  this.disabled=true; feedback.textContent='Ejecutando análisis seguro…';
+  try{
+    const response=await fetch('/api/admin/navigation-integrity/run',{method:'POST',headers:{'X-CSRF-Token':document.querySelector('meta[name="csrf-token"]')?.content||''}});
+    if(!response.ok) throw new Error('status_'+response.status);
+    feedback.textContent='Análisis completado. Actualizando panel…'; window.location.reload();
+  }catch(error){feedback.textContent='No se pudo completar el scan. Revisa Sentinel Issues.'; this.disabled=false;}
+});
+</script>
+{% endblock %}

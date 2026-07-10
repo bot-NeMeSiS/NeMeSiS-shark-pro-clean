@@ -199,6 +199,9 @@ def _inspect_html(profile: str, route: str, status_code: int, html: str) -> list
         "selección pendiente",
         "pick en revisión",
         "sin pick real publicado",
+        "sin pick real publicable",
+        "la lista está vacía",
+        "no se publica ninguna selección",
     ]
     sports_row_markers = [
         "v799-agenda-row",
@@ -208,6 +211,10 @@ def _inspect_html(profile: str, route: str, status_code: int, html: str) -> list
         "v799-pick-card",
         "ns-match-row",
         "ns-pick-card",
+        "v928-match-card",
+        "v928-live-card",
+        "v928-pick-card",
+        "v928-safe-state",
     ]
     if status_code >= 500:
         issues.append(_issue(profile, route, "route", "critical", "Ruta con error 500", "La ruta devuelve error de servidor.", str(status_code), "La pantalla debe cargar o redirigir de forma segura.", f"HTTP {status_code}", f"Revisar handler de {route}.", f"Corrige el 500 detectado en {route}."))

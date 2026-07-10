@@ -1,0 +1,10 @@
+{
+  "route": "/live",
+  "profile": "desktop_1366x768",
+  "status": 200,
+  "elapsed_ms": 17802,
+  "overflow_x": false,
+  "scroll_width": 1366,
+  "inner_width": 1366,
+  "screenshot": "reports/V928_render_real_browser_qa/desktop/live__1366x768.png"
+}

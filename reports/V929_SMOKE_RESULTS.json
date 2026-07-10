@@ -1,0 +1,22 @@
+{
+  "version": "V929_NAVIGATION_INTEGRITY_ROUTE_NOT_FOUND_FULL_APP_RECOVERY_FINAL",
+  "ok": true,
+  "checks": {
+    "routes_no_500": true,
+    "html_404_premium": true,
+    "api_404_safe_json": true,
+    "dynamic_resources_contextual_404": true,
+    "false_login_controlled": true,
+    "admin_apis_403": true
+  },
+  "routes_tested": 58,
+  "failures": [],
+  "protected_api_statuses": {
+    "/api/admin/navigation-integrity/summary": 403,
+    "/api/admin/navigation-integrity/run": 403,
+    "/api/admin/navigation-integrity/issues": 403
+  },
+  "dangerous_actions_executed": false,
+  "database": "temporary",
+  "external_provider_calls": 0
+}

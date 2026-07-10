@@ -30,7 +30,7 @@
 - Telegram real: no enviado.
 - Pagos reales: no ejecutados.
 - DB real: no usada para QA; se trabajó con DB temporal.
-- Push/deploy: no realizado.
+- Push/deploy desde esta sesion: no realizado. Render confirmo posteriormente V928 mediante runtime real.
 
 ## Limitación honesta
 

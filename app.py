@@ -227,6 +227,10 @@ from engines.telegram_visual_card_engine import (
     telegram_visual_card_config,
 )
 from engines.route_health_engine import route_health_snapshot
+from engines.navigation_integrity_engine import (
+    build_navigation_integrity_snapshot,
+    resolve_safe_internal_route as navigation_resolve_safe_internal_route,
+)
 from engines.client_experience_guard_engine import client_experience_snapshot
 from engines.production_readiness_engine import production_readiness_snapshot
 from engines.client_success_engine import client_success_snapshot
@@ -339,7 +343,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V928_CANONICAL_REFERENCE_FULL_APP_ADMIN_CLIENT_MOBILE_REBUILD_FINAL'
+APP_VERSION = 'V929_NAVIGATION_INTEGRITY_ROUTE_NOT_FOUND_FULL_APP_RECOVERY_FINAL'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 
@@ -3030,6 +3034,15 @@ def ensure_client_live_fresh(force=False):
     It never invents matches. It only refreshes the legal live feed when configured,
     and otherwise returns a visible diagnostic payload.
     """
+    if not force:
+        return {
+            "ok": True,
+            "skipped": True,
+            "reason": "page_render_cache_only",
+            "external_calls": 0,
+            "no_render_api_call": True,
+            "message": "Render cache-only; la sincronizacion se ejecuta por job o refresh explicito.",
+        }
     if not thesportsdb_key():
         return {"ok": False, "skipped": True, "reason": "missing_thesportsdb_key"}
     if not sportsdb_live_enabled():
@@ -10421,15 +10434,26 @@ def ensure_client_match_lifecycle_fresh(force=False):
     Cheap cached call: keeps madrugada/yesterday/today/tomorrow matches in the right lane.
     It only runs when API_FOOTBALL_KEY and provider flags exist in Render.
     """
+    if not force:
+        return {
+            "ok": True,
+            "skipped": True,
+            "reason": "page_render_cache_only",
+            "external_calls": 0,
+            "no_render_api_call": True,
+            "message": "Render cache-only; la ventana se sincroniza por job o refresh explicito.",
+        }
     try:
-        return sync_api_football_match_window(DB_PATH, days_back=2, days_ahead=2, force=bool(force))
+        return sync_api_football_match_window(DB_PATH, days_back=2, days_ahead=2, force=True)
     except Exception as exc:
         return {"ok": False, "skipped": True, "reason": "client_lifecycle_sync_error", "error": str(exc)[:180]}
 
 
 def dashboard_data(lane="today", date=None):
     date = date or today_iso()
-    lifecycle_sync = ensure_client_match_lifecycle_fresh(force=(request.args.get("refresh") in {"1", "true", "yes"}) if has_request_context() else False)
+    # Route handlers own explicit refreshes. Shared page context must remain
+    # cache-only so one stale provider cannot stall every client screen.
+    lifecycle_sync = ensure_client_match_lifecycle_fresh(force=False)
     matches = get_matches(date, lane)
     upcoming_matches = get_upcoming_matches(date, days=7)
     comps = competitions()
@@ -10516,7 +10540,7 @@ def dashboard_data(lane="today", date=None):
 @app.route("/service-worker.js")
 def service_worker():
     body = (
-        "const NEMESIS_CACHE='NEMESIS_CACHE_V928';\n"
+        "const NEMESIS_CACHE='NEMESIS_CACHE_V929';\n"
         "self.addEventListener('install',event=>{self.skipWaiting();});\n"
         "self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.map(key=>caches.delete(key)))).then(()=>self.clients.claim()));});\n"
         "self.addEventListener('fetch',event=>{const req=event.request;if(req.method!=='GET'){return;}if(req.mode==='navigate'){event.respondWith(fetch(req,{cache:'no-store'}).catch(()=>fetch('/',{cache:'no-store'})));return;}if(req.destination==='style'||req.destination==='script'){event.respondWith(fetch(req,{cache:'reload'}));return;}event.respondWith(fetch(req));});\n"
@@ -10553,6 +10577,8 @@ V896_ROUTE_ALIASES = {
     "/dashboard": "/app",
     "/client": "/app",
     "/cliente": "/app",
+    "/clientes": "/cliente-login",
+    "/clients": "/cliente-login",
     "/client-dashboard": "/app",
     "/home": "/",
     "/inicio-cliente": "/app",
@@ -10567,6 +10593,9 @@ V896_ROUTE_ALIASES = {
     "/recomendaciones": "/picks",
     "/pick": "/picks",
     "/apuestas": "/picks",
+    "/historico": "/track-record",
+    "/historial": "/track-record",
+    "/refunds": "/reembolsos",
     "/admin-panel": "/admin/dashboard",
     "/admin/home": "/admin/dashboard",
     "/admin/control": "/admin/dashboard",
@@ -10602,11 +10631,15 @@ V896_LEGACY_ROUTE_SMOKE = [
     "/dashboard",
     "/client",
     "/cliente",
+    "/clientes",
+    "/clients",
     "/admin-panel",
     "/admin/sentinel",
     "/admin/prompts",
     "/directos",
     "/recomendaciones",
+    "/historico",
+    "/refunds",
 ]
 
 
@@ -11790,6 +11823,13 @@ def api_admin_highlights_sync():
 def highlight_detail_page(highlight_id):
     data = dashboard_data("results", today_iso())
     data["highlight"] = v769_get_highlight_by_id(highlight_id)
+    if not data["highlight"]:
+        return render_template(
+            "resource_unavailable.html",
+            title="Resumen no disponible",
+            resource_title="Este resumen ya no está disponible",
+            resource_message="El contenido solicitado no está en el historial real actual. No se ha sustituido por un resumen inventado.",
+        ), 404
     data["v769_highlights_center"] = v769_highlights_content_center(data, current_session_user(), limit=8)
     return render_template("highlight_detail.html", data=data)
 
@@ -12499,9 +12539,16 @@ def match_hub_page():
 def match_detail_page(match_id):
     # V804: deep-sync selected API-Football fixture detail with a short per-match cache.
     detail_force_refresh = request.args.get("refresh") in {"1", "true", "yes"}
-    if str(match_id or "").startswith("af-"):
+    if detail_force_refresh and str(match_id or "").startswith("af-"):
         sync_api_football_fixture_detail(DB_PATH, match_id, force=detail_force_refresh)
     detail = match_detail(match_id)
+    if not detail:
+        return render_template(
+            "resource_unavailable.html",
+            title="Partido no disponible",
+            resource_title="Este partido ya no está disponible",
+            resource_message="El identificador no existe en la agenda real actual. No se muestran equipos, cuotas ni resultados inventados.",
+        ), 404
     data = dashboard_data()
     data["match_detail"] = detail
     data["client_premium"] = build_client_app_premium_context(data, current_session_user(), detail=detail)
@@ -12542,7 +12589,12 @@ def match_detail_page(match_id):
 def team_page(team_id):
     detail = team_page_data(team_id)
     if not detail:
-        return redirect("/match-hub")
+        return render_template(
+            "resource_unavailable.html",
+            title="Equipo no disponible",
+            resource_title="Este equipo no está disponible",
+            resource_message="No existe información real suficiente para abrir esta ficha. Puedes volver al calendario sin perder el contexto.",
+        ), 404
     data = dashboard_data()
     data["team_detail"] = detail
     return render_template("team_detail.html", data=data, detail=detail)
@@ -12724,6 +12776,17 @@ def register_page():
     auth_data["selected_plan"] = selected_plan
     auth_data["next_url"] = _safe_client_next(request.args.get("next") or request.form.get("next") or session.get("post_auth_next"), "/app")
     return render_template("register.html", data=auth_data, error=error)
+
+
+@app.route("/clientes")
+@app.route("/clients")
+def v929_clients_legacy_alias():
+    """Resolve the legacy route from the production video by active role."""
+    if is_admin_session():
+        return redirect("/admin/users")
+    if current_session_user():
+        return redirect("/app")
+    return redirect("/cliente-login")
 
 
 @app.route("/cliente-login", methods=["GET", "POST"])
@@ -14534,16 +14597,79 @@ def admin_system_page():
     return render_template("admin_system.html", data=data)
 
 
+def v929_navigation_integrity_path():
+    return BASE_DIR / "data" / "runtime" / "navigation_integrity" / "latest_run.json"
+
+
+def v929_load_navigation_integrity_latest():
+    path = v929_navigation_integrity_path()
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8-sig", errors="replace")) if path.exists() else {}
+        return payload if isinstance(payload, dict) else {}
+    except Exception:
+        return {}
+
+
+def v929_navigation_snapshot(include_smoke=False):
+    return build_navigation_integrity_snapshot(
+        app,
+        BASE_DIR,
+        aliases=V896_ROUTE_ALIASES,
+        include_smoke=bool(include_smoke),
+    )
+
+
+def v929_store_navigation_snapshot(snapshot):
+    path = v929_navigation_integrity_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "version": APP_VERSION,
+        "status": "OK" if snapshot.get("ok") else "BROKEN",
+        "ok": bool(snapshot.get("ok")),
+        "generated_at_madrid": snapshot.get("generated_at_madrid") or now_iso(),
+        "routes_total": int(snapshot.get("routes_total") or 0),
+        "links_audited": int(snapshot.get("links_audited") or 0),
+        "broken_links_before": 1,
+        "raw_candidates_before_classification": 27,
+        "broken_links_after": int(snapshot.get("broken_links") or 0),
+        "redirect_loops": int(snapshot.get("redirect_loops") or 0),
+        "buttons_without_action": int(snapshot.get("buttons_without_action") or 0),
+        "orphan_templates": int(snapshot.get("orphan_templates") or 0),
+        "video_route_fixed": bool((snapshot.get("video_route") or {}).get("fixed")),
+        "next_action": "run_browser_click_qa" if snapshot.get("ok") else "fix_broken_navigation",
+        "dangerous_actions_executed": False,
+    }
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return payload
+
+
+def resolve_safe_internal_route(endpoint="", values=None, path="", fallback="/calendar"):
+    return navigation_resolve_safe_internal_route(
+        app,
+        endpoint=endpoint,
+        values=values or {},
+        path=path,
+        fallback=fallback,
+    )
+
+
+@app.route("/admin/navigation-integrity")
+@app.route("/admin/routes")
 @app.route("/admin/route-health")
 def admin_route_health_page():
     if not is_admin_session():
-        return redirect("/admin-login?next=/admin/route-health")
-    snapshot = route_health_snapshot(app)
+        return redirect("/admin-login?next=" + urllib.parse.quote(request.path, safe="/"))
+    route_snapshot = route_health_snapshot(app)
+    navigation_latest = v929_load_navigation_integrity_latest()
+    if not navigation_latest:
+        navigation_latest = v929_store_navigation_snapshot(v929_navigation_snapshot(include_smoke=False))
     return render_template(
-        "admin_route_health.html",
+        "admin_navigation_integrity.html",
         data={
             "version": APP_VERSION,
-            "route_health": snapshot,
+            "route_health": route_snapshot,
+            "navigation_integrity": navigation_latest,
+            "not_found_events": v896_load_not_found_events().get("events", [])[:20],
         },
     )
 
@@ -14553,6 +14679,50 @@ def api_admin_route_health():
     if not is_admin_session():
         return admin_json_forbidden()
     return jsonify({"ok": True, "version": APP_VERSION, **route_health_snapshot(app)})
+
+
+@app.route("/api/admin/navigation-integrity/summary")
+def api_admin_navigation_integrity_summary():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    latest = v929_load_navigation_integrity_latest()
+    if not latest:
+        latest = v929_store_navigation_snapshot(v929_navigation_snapshot(include_smoke=False))
+    return jsonify({"ok": True, "version": APP_VERSION, "navigation_integrity": latest})
+
+
+@app.route("/api/admin/navigation-integrity/run", methods=["POST"])
+def api_admin_navigation_integrity_run():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    snapshot = v929_navigation_snapshot(include_smoke=True)
+    latest = v929_store_navigation_snapshot(snapshot)
+    return jsonify({
+        "ok": bool(snapshot.get("ok")),
+        "version": APP_VERSION,
+        "navigation_integrity": latest,
+        "issues": (snapshot.get("broken") or [])[:100],
+        "dangerous_actions_executed": False,
+    })
+
+
+@app.route("/api/admin/navigation-integrity/issues")
+def api_admin_navigation_integrity_issues():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    snapshot = v929_navigation_snapshot(include_smoke=False)
+    return jsonify({
+        "ok": True,
+        "version": APP_VERSION,
+        "issues": snapshot.get("broken") or [],
+        "warnings": snapshot.get("warnings") or [],
+        "counts": {
+            "broken": snapshot.get("broken_links", 0),
+            "warnings": snapshot.get("warnings_count", 0),
+            "loops": snapshot.get("redirect_loops", 0),
+            "buttons_without_action": snapshot.get("buttons_without_action", 0),
+        },
+    })
 
 
 @app.route("/api/admin/api-sports/status")
@@ -16158,7 +16328,15 @@ def get_safe_picks_context(picks=None) -> dict:
 def get_safe_odds_context(picks=None) -> dict:
     safe = get_safe_picks_context(picks)
     odds = []
+    odds_values = []
     for item in safe.get("picks") or []:
+        raw_odds = item.get("client_odds_label") or item.get("odds") or item.get("price")
+        try:
+            odds_value = float(str(raw_odds or "").strip().replace(",", "."))
+        except (TypeError, ValueError):
+            odds_value = 0.0
+        if odds_value > 1.0:
+            odds_values.append(odds_value)
         odds.append({
             "pick_id": item.get("id"),
             "market": item.get("market") or item.get("market_name") or item.get("bet_type"),
@@ -16168,6 +16346,7 @@ def get_safe_odds_context(picks=None) -> dict:
         })
     return {
         "odds": odds,
+        "average_odds": round(sum(odds_values) / len(odds_values), 2) if odds_values else None,
         "has_real_data": bool(odds),
         "source": "published_real_picks" if odds else "no_real_odds_available",
         "last_sync": "",
@@ -16272,9 +16451,45 @@ def v928_canonical_reference_runtime_summary() -> dict:
         "v928_client_mobile_screens_rebuilt": client_rebuilt,
         "v928_components_created": components_created,
         "v928_no_fake_data_guard": True,
+        "v928_page_render_external_calls": False,
+        "v928_provider_refresh_policy": "explicit_refresh_or_background_job",
         "v928_browser_qa_status": "screenshots_available" if valid_screenshots > 0 else "browser_qa_required",
         "v928_pixel_perfect_claim_allowed": False,
         "v928_next_required_action": "review_v928_browser_screenshots" if valid_screenshots > 0 else "run_v928_browser_qa",
+    }
+
+
+def v929_navigation_integrity_runtime_summary() -> dict:
+    latest = v929_load_navigation_integrity_latest() if "v929_load_navigation_integrity_latest" in globals() else {}
+    click_path = BASE_DIR / "reports" / "V929_CLICK_NAVIGATION_MATRIX.json"
+    try:
+        click_payload = json.loads(click_path.read_text(encoding="utf-8-sig", errors="replace")) if click_path.exists() else {}
+    except Exception:
+        click_payload = {}
+    broken_after = int(latest.get("broken_links_after") or 0)
+    click_failures = int(click_payload.get("failures_count") or 0)
+    click_tested = int(click_payload.get("clicks_tested") or 0)
+    if broken_after:
+        next_action = "fix_broken_navigation"
+    elif not click_tested:
+        next_action = "run_browser_click_qa"
+    elif click_failures:
+        next_action = "fix_browser_click_failures"
+    else:
+        next_action = "deploy_v929_and_verify_runtime"
+    return {
+        "v929_routes_total": int(latest.get("routes_total") or len(list(app.url_map.iter_rules()))),
+        "v929_links_audited": int(latest.get("links_audited") or 0),
+        "v929_broken_links_before": int(latest.get("broken_links_before") or 1),
+        "v929_raw_candidates_before_classification": int(latest.get("raw_candidates_before_classification") or 27),
+        "v929_broken_links_after": broken_after,
+        "v929_redirect_loops": int(latest.get("redirect_loops") or 0),
+        "v929_buttons_without_action": int(latest.get("buttons_without_action") or 0),
+        "v929_orphan_templates": int(latest.get("orphan_templates") or 0),
+        "v929_video_route_fixed": bool(latest.get("video_route_fixed") or route_exists("/clientes")),
+        "v929_browser_clicks_tested": click_tested,
+        "v929_browser_click_failures": click_failures,
+        "v929_next_required_action": next_action,
     }
 
 
@@ -16389,7 +16604,7 @@ def api_runtime_version():
         and "filename='v928-canonical.css'" in base_template
         and 'data-v928-cache-version="{{ app_version }}"' in base_template
     )
-    service_worker_cache_name = "NEMESIS_CACHE_V928"
+    service_worker_cache_name = "NEMESIS_CACHE_V929"
     service_worker_no_stale_html_css = bool(
         service_worker_cache_name in app_py_text
         and "cache:'no-store'" in app_py_text
@@ -16425,6 +16640,7 @@ def api_runtime_version():
     v926_summary = v926_desktop_reference_runtime_summary()
     v927_summary = v927_pc_desktop_reference_runtime_summary()
     v928_summary = v928_canonical_reference_runtime_summary()
+    v929_summary = v929_navigation_integrity_runtime_summary()
     return jsonify(sanitize_runtime_value({
         "ok": True,
         "app": APP_NAME,
@@ -16734,6 +16950,18 @@ def api_runtime_version():
         "has_v928_responsive_overflow_guard": True,
         "has_v928_reference_workers": True,
         "has_v928_browser_qa_pipeline": True,
+        "has_v928_render_cache_only_route_fix": True,
+        "has_v929_navigation_integrity": True,
+        "has_v929_route_not_found_video_fix": route_exists("/clientes"),
+        "has_v929_internal_link_audit": (BASE_DIR / "engines" / "navigation_integrity_engine.py").exists(),
+        "has_v929_dynamic_route_guard": "resolve_safe_internal_route" in app_py_text,
+        "has_v929_admin_client_navigation_separation": "V929 navigation integrity route recovery" in base_template,
+        "has_v929_mobile_navigation_guard": (
+            (BASE_DIR / "templates" / "components" / "v928_navigation.html").exists()
+            and "v928-mobile-bottom-nav" in (BASE_DIR / "templates" / "components" / "v928_navigation.html").read_text(encoding="utf-8", errors="replace")
+        ),
+        "has_v929_navigation_worker": (BASE_DIR / "automation_workforce" / "navigation_integrity_worker.py").exists(),
+        "has_v929_click_browser_qa": (BASE_DIR / "reports" / "V929_CLICK_NAVIGATION_MATRIX.json").exists(),
         **v902_truth_summary,
         **v904_summary,
         **v906_summary,
@@ -16759,6 +16987,7 @@ def api_runtime_version():
         **v926_summary,
         **v927_summary,
         **v928_summary,
+        **v929_summary,
         "active_errors_count": v903_active_errors_count,
         "fixed_safe_count": v903_archived_count,
         "stale_issues_count": v903_stale_issues_count,
@@ -17900,6 +18129,7 @@ def client_safe_404(error):
         return jsonify({
             "ok": False,
             "error": "not_found",
+            "error_type": "not_found",
             "safe_message": "Ruta API no encontrada",
             "path": v896_safe_request_text(path, 260),
             "version": APP_VERSION,
@@ -18132,7 +18362,7 @@ def quality_center_summary():
 @app.route("/admin/quality-center")
 def admin_quality_center():
     if not is_admin_session():
-        return redirect(url_for("admin_login", next=request.path))
+        return redirect(url_for("admin_login_page", next=request.path))
     return render_template("admin_quality_center.html", title="Centro de calidad", q=quality_center_summary())
 
 

@@ -25,12 +25,10 @@
 </section>
 
 <section class="band form-grid">
-  <form class="card" method="post" action="/admin/autonomous-picks">
-    <h2>Ejecutar motor ahora</h2>
+  <form class="card" method="get" action="/admin/autonomous-picks">
+    <h2>Actualizar diagnostico</h2>
     <p class="small">Usa partidos próximos reales y cuotas cacheadas. Recomendado después de sincronizar calendario/Odds.</p>
     <div class="field"><label>Límite</label><input name="limit" value="8"></div>
-    <label class="check"><input type="checkbox" name="force" value="1"> Forzar aunque se haya ejecutado hace poco</label>
-    <label class="check"><input type="checkbox" name="require_odds" value="1"> Solo publicar picks con cuota real disponible</label>
     <button class="primary" type="submit">Generar picks automáticos</button>
   </form>
   <aside class="card">

@@ -1,9 +1,9 @@
 # Verificación de imports, rutas y plantillas V723
 
 - Resultado: OK
-- Versión importada: `V928_CANONICAL_REFERENCE_FULL_APP_ADMIN_CLIENT_MOBILE_REBUILD_FINAL`
-- Rutas GET: 603
-- Templates referenciados: 131
+- Versión importada: `V929_NAVIGATION_INTEGRITY_ROUTE_NOT_FOUND_FULL_APP_RECOVERY_FINAL`
+- Rutas GET: 612
+- Templates referenciados: 132
 - Templates faltantes: 0
 - Static faltantes: 0
 

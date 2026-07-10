@@ -33,7 +33,7 @@
 {%- endmacro %}
 
 {% macro admin_sidebar() -%}
-{% set links = [('Dashboard','/admin/dashboard','dashboard'),('Telegram','/admin/telegram/command-center','telegram'),('Pagos','/admin/payments','payments'),('Usuarios','/admin/users','users'),('Picks','/admin/picks','target'),('Partidos','/admin/matches-sync','matches'),('Datos','/admin/data-center','database'),('Automatización','/admin/automation-center','automation'),('Lanzamiento real','/admin/real-launch','rocket'),('Auditoría cliente','/admin/app-experience-quality','shield'),('Ajustes','/admin/system','settings')] %}
+{% set links = [('Dashboard','/admin/dashboard','dashboard'),('Telegram','/admin/telegram/command-center','telegram'),('Pagos','/admin/payments','payments'),('Usuarios','/admin/users','users'),('Picks','/admin/picks','target'),('Partidos','/admin/matches-sync','matches'),('Datos','/admin/data-center','database'),('Automatización','/admin/automation-center','automation'),('Rutas','/admin/navigation-integrity','routes'),('Lanzamiento real','/admin/real-launch','rocket'),('Auditoría cliente','/admin/app-experience-quality','shield'),('Ajustes','/admin/system','settings')] %}
 <aside class="v928-admin-sidebar" data-nav-zone="admin-sidebar">
   {{ nemesis_brand('/admin/dashboard', 'admin') }}
   <nav aria-label="Navegación de administración">
