@@ -1,10 +1,10 @@
 {
   "ok": true,
-  "audited_at": "2026-07-10T23:57:01",
+  "audited_at": "2026-07-11T01:09:20",
   "zip": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\release_output\\NeMeSiS_SHARK_PRO_V929_NAVIGATION_INTEGRITY_ROUTE_NOT_FOUND_FULL_APP_RECOVERY_FINAL_RENDER_READY.zip",
-  "zip_size_bytes": 27923985,
-  "file_count": 2413,
-  "content_size_bytes": 37983390,
+  "zip_size_bytes": 27925894,
+  "file_count": 2415,
+  "content_size_bytes": 37989261,
   "forbidden_count": 0,
   "missing_required_root": [],
   "forbidden": [],
@@ -98,8 +98,8 @@
     },
     {
       "folder": "reports",
-      "size": 6074709,
-      "files": 1329
+      "size": 6080580,
+      "files": 1331
     },
     {
       "folder": "tools",

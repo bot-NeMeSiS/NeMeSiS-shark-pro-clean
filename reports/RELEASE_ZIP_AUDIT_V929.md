@@ -1,15 +1,15 @@
 # Auditoría ZIP V929
 
 - ZIP: `NeMeSiS_SHARK_PRO_V929_NAVIGATION_INTEGRITY_ROUTE_NOT_FOUND_FULL_APP_RECOVERY_FINAL_RENDER_READY.zip`
-- Archivos: 2413
-- Tamaño ZIP: 27923985 bytes
+- Archivos: 2415
+- Tamaño ZIP: 27925894 bytes
 - Prohibidos: 0
 - Resultado: OK
 - Root obligatorio ausente: ninguno
 
 ## Carpetas principales
 - `reference_images`: 24 archivos, 24922073 bytes
-- `reports`: 1329 archivos, 6074709 bytes
+- `reports`: 1331 archivos, 6080580 bytes
 - `tools`: 522 archivos, 1642876 bytes
 - `engines`: 125 archivos, 1414742 bytes
 - `app.py`: 1 archivos, 1077534 bytes
