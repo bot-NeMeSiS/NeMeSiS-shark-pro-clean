@@ -13,7 +13,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V925_REFERENCE_MODEL_FULL_APP_REBUILD_QUALITY_PASS_FINAL"
 V926_CONTAINER_VERSION = "V926_DESKTOP_REFERENCE_MODEL_COMMAND_CENTER_AND_SPORTS_VALUE_PASS_FINAL"
-ALLOWED_CONTAINER_VERSIONS = {VERSION, V926_CONTAINER_VERSION}
+V927_CONTAINER_VERSION = "V927_PC_DESKTOP_REFERENCE_PERFECTION_ADMIN_CLIENT_SPORTS_FINAL"
+ALLOWED_CONTAINER_VERSIONS = {VERSION, V926_CONTAINER_VERSION, V927_CONTAINER_VERSION}
 TEMP_DB = Path(tempfile.gettempdir()) / f"nemesis_v925_rendered_home_{os.getpid()}.sqlite"
 sys.dont_write_bytecode = True
 
@@ -166,7 +167,7 @@ def main() -> int:
     if missing_sections:
         failures.append(f"rendered home missing sections: {missing_sections}")
 
-    if home_source.count('class="v925-public-hero v925-above-fold"') != 1:
+    if sum("v925-public-hero" in value.split() for value in re.findall(r'class="([^"]*)"', home_source)) != 1:
         failures.append("home source does not contain exactly one V925 hero")
     if any(marker in home_source for marker in ("v783-public-hero", legacy_secondary_title, legacy_secondary_copy)):
         failures.append("home source still contains a legacy public hero marker")

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import ast
 import json
+import re
 import sys
 import zipfile
 from pathlib import Path
@@ -10,7 +11,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V925_REFERENCE_MODEL_FULL_APP_REBUILD_QUALITY_PASS_FINAL"
 V926_CONTAINER_VERSION = "V926_DESKTOP_REFERENCE_MODEL_COMMAND_CENTER_AND_SPORTS_VALUE_PASS_FINAL"
-ALLOWED_CONTAINER_VERSIONS = {VERSION, V926_CONTAINER_VERSION}
+V927_CONTAINER_VERSION = "V927_PC_DESKTOP_REFERENCE_PERFECTION_ADMIN_CLIENT_SPORTS_FINAL"
+ALLOWED_CONTAINER_VERSIONS = {VERSION, V926_CONTAINER_VERSION, V927_CONTAINER_VERSION}
 ZIP = ROOT / "release_output" / f"NeMeSiS_SHARK_PRO_{V926_CONTAINER_VERSION}_RENDER_READY.zip"
 REQUIRED_ZIP_ROOT = {"app.py", "VERSION.txt", "requirements.txt", "templates", "static", "engines", "tools", "reports"}
 
@@ -106,7 +108,7 @@ def main() -> int:
         if marker not in css:
             failures.append(f"missing CSS marker {marker}")
 
-    if home.count('class="v925-public-hero v925-above-fold"') != 1:
+    if sum("v925-public-hero" in value.split() for value in re.findall(r'class="([^"]*)"', home)) != 1:
         failures.append("home does not contain exactly one V925 public hero")
     if "v783-public-hero" in home:
         failures.append("legacy duplicate public hero still present")

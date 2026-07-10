@@ -2,7 +2,7 @@
 {% block content %}
 <!-- V925 autonomous Sentinel command center rebuild -->
 <section class="ns-admin-page v924-no-dead-space v924-admin-shell v924-page-shell v894-company-sentinel v904-admin-rebuild v904-autonomous-sentinel v908-admin-shell v908-command-grid v911-admin-shell v912-admin-shell v912-command-center-polish v913-browser-qa-truth-panel v926-desktop-shell v926-desktop-command-center v926-admin-desktop" data-v926-template="admin_autonomous_company_sentinel" data-v904-template="admin_autonomous_company_sentinel" data-v908-template="admin_autonomous_company_sentinel" data-v911-template="admin_autonomous_company_sentinel" data-v912-template="admin_autonomous_company_sentinel" data-v913-template="admin_autonomous_company_sentinel" data-v924-template="admin_autonomous_company_sentinel">
-  <div class="ns-page-header">
+  <div class="ns-page-header v927-admin-desktop-shell v927-no-dead-space" data-v927-template="admin_autonomous_company_sentinel">
     <span class="ns-chip">Autonomous Company Sentinel</span>
     <h1>Sentinel Empresa</h1>
     <p>Worker autónomo para revisar cliente, admin, rutas, Telegram, picks, datos reales, referencias visuales, Render y release. Genera incidencias, prompts Codex y plan de autofix seguro sin deploy, push, Telegram real, pagos ni secretos.</p>
@@ -24,7 +24,7 @@
   {% set policy = latest.action_policy or automation.action_policy or {} %}
   {% set issue_summary = status.issues_summary or {} %}
   {% set counts = issue_summary.counts or {} %}
-  <section class="ns-grid ns-grid-4 v911-admin-kpi-grid v912-admin-kpi-grid">
+  <section class="ns-grid ns-grid-4 v911-admin-kpi-grid v912-admin-kpi-grid v927-admin-kpi-deck">
     <article class="ns-stat v912-kpi-card"><span class="v912-kpi-label">Última ejecución</span><strong class="v912-kpi-value">{{ status.state.last_mode or 'Pendiente' }}</strong><small class="v912-kpi-hint">{{ status.state.last_run_madrid or 'Sin run guardado' }}</small></article>
     <article class="ns-stat v912-kpi-card"><span class="v912-kpi-label">Rutas revisadas</span><strong class="v912-kpi-value">{{ latest.routes_checked or 0 }}</strong><small class="v912-kpi-hint">cliente/admin</small></article>
     <article class="ns-stat v912-kpi-card"><span class="v912-kpi-label">Incidencias abiertas</span><strong class="v912-kpi-value">{{ counts.open or 0 }}</strong><small class="v912-kpi-hint">{{ counts.critical or 0 }} críticas · {{ counts.high or 0 }} altas</small></article>
@@ -33,7 +33,7 @@
 
   {% set browser = status.browser_qa or {} %}
   {% set v909 = status.v909_pipeline or {} %}
-  <section class="ns-admin-card v909-browser-pipeline-panel v911-browser-execution-panel v911-browser-qa-panel v912-browser-qa-panel v913-browser-qa-truth-card" data-v909-browser-qa-pipeline="true" data-v911-browser-execution="true" data-v912-browser-qa-panel="true" data-v913-browser-qa-truth="true">
+  <section class="ns-admin-card v909-browser-pipeline-panel v911-browser-execution-panel v911-browser-qa-panel v912-browser-qa-panel v913-browser-qa-truth-card v927-admin-runtime-card v927-compact-section" data-v909-browser-qa-pipeline="true" data-v911-browser-execution="true" data-v912-browser-qa-panel="true" data-v913-browser-qa-truth="true">
     <div class="ns-section-title">
       <h2>Browser QA Pipeline V909/V913</h2>
       <span class="ns-badge">{{ 'Listo' if v909.pipeline_ready else 'Pendiente' }}</span>
@@ -124,7 +124,7 @@
     </div>
   </section>
 
-  <section class="ns-grid ns-grid-2">
+  <section class="ns-grid ns-grid-2 v927-admin-ops-grid">
     <article class="ns-admin-card">
       <div class="ns-section-title">
         <h2>Automatización cron</h2>

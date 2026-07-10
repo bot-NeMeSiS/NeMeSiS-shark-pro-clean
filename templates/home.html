@@ -16,16 +16,16 @@
 
 {% if current_user %}
 {% set display_name = current_user.name or current_user.username or 'Cliente' %}
-<main class="v925-shell v925-page v925-client-shell v925-client-dashboard" data-v925-template="home-client">
-  <header class="v925-above-fold v925-client-hero">
+<main class="v925-shell v925-page v925-client-shell v925-client-dashboard v927-desktop-shell v927-client-desktop-shell v927-no-dead-space" data-v925-template="home-client" data-v927-template="home-client">
+  <header class="v925-above-fold v925-client-hero v927-desktop-above-fold v927-client-hero-row">
     <div>
       <span class="v925-eyebrow">Panel cliente · Hora Madrid</span>
       <h1>Buenos días, {{ display_name }}</h1>
       <p>Tu jornada deportiva en una sola vista: calendario, directo, picks verificados y SHARK en modo seguro.</p>
       <div class="v925-action-row">
-        <a class="is-primary" href="/calendar?lane=today">Ver partidos</a>
-        <a href="/live">Abrir directo</a>
-        <a href="/picks">Revisar picks</a>
+        <a class="is-primary v927-reference-button" href="/calendar?lane=today">Ver partidos</a>
+        <a class="v927-reference-button" href="/live">Abrir directo</a>
+        <a class="v927-reference-button" href="/picks">Revisar picks</a>
       </div>
     </div>
     <div class="v925-client-plan">
@@ -36,25 +36,25 @@
     </div>
   </header>
 
-  <section class="v925-grid v925-kpi-grid" aria-label="Resumen de hoy">
+  <section class="v925-grid v925-kpi-grid v927-kpi-deck" aria-label="Resumen de hoy">
     <a class="v925-kpi-card" href="/calendar?lane=today"><span>Partidos hoy</span><strong>{{ today_count }}</strong><small>{{ 'Agenda real disponible' if today_count else 'Sin partidos reales cargados' }}</small></a>
     <a class="v925-kpi-card is-live" href="/live"><span>En directo</span><strong>{{ live_count }}</strong><small>{{ 'Marcador real disponible' if live_count else 'Sin directos ahora mismo' }}</small></a>
     <a class="v925-kpi-card is-pick" href="/picks"><span>Picks listos</span><strong>{{ safe_picks|length }}</strong><small>Con mercado, selección y cuota</small></a>
     <a class="v925-kpi-card is-telegram" href="/telegram"><span>Telegram</span><strong>Seguro</strong><small>Dedupe y no filler</small></a>
   </section>
 
-  <section class="v925-reference-layout">
-    <div class="v925-section">
+  <section class="v925-reference-layout v927-desktop-grid v927-client-sports-overview">
+    <div class="v925-section v927-desktop-main v927-compact-section">
       <div class="v925-section-head"><div><span>Ruta recomendada</span><h2>Qué hacer ahora</h2></div><a href="/app">Abrir panel completo</a></div>
-      <div class="v925-client-quick-actions">
-        <a href="/calendar?lane=today"><b>1</b><strong>Mira la agenda</strong><small>Hora Madrid y competición real</small></a>
-        <a href="/picks"><b>2</b><strong>Revisa calidad</strong><small>Solo picks completos</small></a>
-        <a href="/shark"><b>3</b><strong>Consulta SHARK</strong><small>Limitaciones visibles</small></a>
-        <a href="/telegram"><b>4</b><strong>Activa alertas</strong><small>Calidad antes que cantidad</small></a>
+      <div class="v925-client-quick-actions v927-client-quick-actions">
+        <a href="/calendar?lane=today"><b class="v927-reference-icon">1</b><strong>Mira la agenda</strong><small>Hora Madrid y competición real</small></a>
+        <a href="/picks"><b class="v927-reference-icon">2</b><strong>Revisa calidad</strong><small>Solo picks completos</small></a>
+        <a href="/shark"><b class="v927-reference-icon">3</b><strong>Consulta SHARK</strong><small>Limitaciones visibles</small></a>
+        <a href="/telegram"><b class="v927-reference-icon">4</b><strong>Activa alertas</strong><small>Calidad antes que cantidad</small></a>
       </div>
     </div>
 
-    <aside class="v925-premium-card v925-next-action">
+    <aside class="v925-premium-card v925-next-action v927-desktop-aside v927-client-next-action">
       <span>Siguiente acción</span>
       {% if upcoming %}
         {% set match = upcoming[0] %}{% set ctx = match|match_madrid_context %}
@@ -88,17 +88,17 @@
   </section>
 </main>
 {% else %}
-<main class="v925-shell v925-public-shell v926-desktop-shell v926-home-desktop" data-v925-template="home-public" data-v926-template="home-public">
-  <div class="v926-home-desktop-overview v926-desktop-grid">
-  <section class="v925-public-hero v925-above-fold" aria-label="NeMeSiS SHARK PRO">
+<main class="v925-shell v925-public-shell v926-desktop-shell v926-home-desktop v927-desktop-shell v927-no-dead-space" data-v925-template="home-public" data-v926-template="home-public" data-v927-template="home-public">
+  <div class="v926-home-desktop-overview v926-desktop-grid v927-desktop-grid v927-desktop-above-fold">
+  <section class="v925-public-hero v925-above-fold v927-desktop-main" aria-label="NeMeSiS SHARK PRO">
     <div class="v925-public-hero-copy">
       <span class="v925-eyebrow">App deportiva premium · Hora Madrid</span>
       <h1>NeMeSiS SHARK PRO</h1>
       <p>Calendario, directo, picks, SHARK y Telegram con datos reales o estados seguros. Nada de partidos, cuotas o resultados inventados.</p>
       <div class="v925-action-row">
-        <a class="is-primary" href="/registro">Crear cuenta</a>
-        <a href="/cliente-login">Entrar</a>
-        <a href="/calendar">Ver partidos</a>
+        <a class="is-primary v927-reference-button" href="/registro">Crear cuenta</a>
+        <a class="v927-reference-button" href="/cliente-login">Entrar</a>
+        <a class="v927-reference-button" href="/calendar">Ver partidos</a>
       </div>
       <div class="v925-hero-trust"><span>Modo seguro activo</span><span>+18</span><span>No somos casa de apuestas</span></div>
     </div>
@@ -109,20 +109,21 @@
     </div>
   </section>
 
-  <section class="v925-section">
+  <section class="v925-section v927-desktop-aside v927-compact-section">
     <div class="v925-section-head"><div><span>Hoy en NeMeSiS</span><h2>Todo lo importante, arriba</h2></div><a href="/calendar?lane=today">Abrir agenda</a></div>
-    <div class="v925-grid v925-kpi-grid">
-      <article class="v925-kpi-card"><span>Partidos</span><strong>{{ today_count }}</strong><small>{{ 'Datos reales disponibles' if today_count else 'Sin datos reales ahora mismo' }}</small></article>
-      <article class="v925-kpi-card is-live"><span>Directo</span><strong>{{ live_count }}</strong><small>{{ 'Live real disponible' if live_count else 'Sin directos ahora mismo' }}</small></article>
-      <article class="v925-kpi-card is-pick"><span>Picks</span><strong>{{ safe_picks|length }}</strong><small>Solo selecciones completas</small></article>
-      <article class="v925-kpi-card is-telegram"><span>Telegram</span><strong>Preparado</strong><small>Calidad, dedupe y no filler</small></article>
+    <div class="v925-grid v925-kpi-grid v927-kpi-deck">
+      <article class="v925-kpi-card v927-kpi-card"><span>Partidos</span><strong>{{ today_count }}</strong><small>{{ 'Datos reales disponibles' if today_count else 'Sin datos reales ahora mismo' }}</small></article>
+      <article class="v925-kpi-card is-live v927-kpi-card"><span>Directo</span><strong>{{ live_count }}</strong><small>{{ 'Live real disponible' if live_count else 'Sin directos ahora mismo' }}</small></article>
+      <article class="v925-kpi-card is-pick v927-kpi-card"><span>Picks</span><strong>{{ safe_picks|length }}</strong><small>Solo selecciones completas</small></article>
+      <article class="v925-kpi-card is-telegram v927-kpi-card"><span>Telegram</span><strong>Preparado</strong><small>Calidad, dedupe y no filler</small></article>
+      <article class="v925-kpi-card v927-kpi-card"><span>SHARK</span><strong>Modo seguro</strong><small>Sin análisis ni ventajas inventadas</small></article>
     </div>
   </section>
   </div>
 
   <section class="v925-section">
     <div class="v925-section-head"><div><span>Producto</span><h2>Qué hace la app</h2></div></div>
-    <div class="v925-grid v925-feature-grid">
+    <div class="v925-grid v925-feature-grid v927-client-value-grid">
       <a class="v925-data-card" href="/calendar"><strong>Calendario deportivo</strong><p>Agenda por día y competición con Hora Madrid.</p></a>
       <a class="v925-data-card" href="/live"><strong>Directo seguro</strong><p>Marcador y minuto solo cuando el proveedor los confirma.</p></a>
       <a class="v925-data-card" href="/picks"><strong>Picks con contexto</strong><p>Mercado, selección y cuota reales antes de publicar.</p></a>
@@ -134,14 +135,14 @@
 
   <section class="v925-section">
     <div class="v925-section-head"><div><span>Membresías</span><h2>Elige cuánto necesitas</h2></div><a href="/membresias">Comparar planes</a></div>
-    <div class="v925-grid v925-plan-grid">
+    <div class="v925-grid v925-plan-grid v927-desktop-grid">
       <article class="v925-premium-card"><span>FREE</span><strong>Plan base</strong><p>Calendario, directo y estados seguros.</p><a href="/registro">Empezar</a></article>
       <article class="v925-premium-card is-pro"><span>PRO</span><strong>{{ pro.get('price_label') or 'Configuración pendiente' }}</strong><p>Picks completos, SHARK y Telegram según disponibilidad real.</p><a href="/comprar/PRO">Ver PRO</a></article>
       <article class="v925-premium-card is-elite"><span>ELITE</span><strong>{{ elite.get('price_label') or 'Configuración pendiente' }}</strong><p>Prioridad y experiencia avanzada sin promesas de rendimiento.</p><a href="/comprar/ELITE">Ver ELITE</a></article>
     </div>
   </section>
 
-  <section class="v925-section v925-trust-band" aria-labelledby="v925-trust-title">
+  <section class="v925-section v925-trust-band v927-status-strip" aria-labelledby="v925-trust-title">
     <div class="v925-trust-heading">
       <span class="v925-eyebrow">Confianza</span>
       <strong id="v925-trust-title">Reglas claras, siempre</strong>

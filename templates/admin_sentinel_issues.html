@@ -2,7 +2,7 @@
 {% block content %}
 <!-- V925 Sentinel issues command center rebuild -->
 <section class="ns-admin-page v924-no-dead-space v924-admin-shell v924-page-shell v892-sentinel-issues v904-admin-rebuild v904-sentinel-issues v908-admin-shell v908-command-grid v911-admin-shell v912-admin-shell v912-command-center-polish v913-browser-qa-truth-panel v926-desktop-shell v926-desktop-command-center v926-admin-desktop" data-v926-template="admin_sentinel_issues" data-v904-template="admin_sentinel_issues" data-v908-template="admin_sentinel_issues" data-v911-template="admin_sentinel_issues" data-v912-template="admin_sentinel_issues" data-v913-template="admin_sentinel_issues" data-v924-template="admin_sentinel_issues">
-  <div class="ns-page-header">
+  <div class="ns-page-header v927-admin-desktop-shell v927-no-dead-space" data-v927-template="admin_sentinel_issues">
     <span class="ns-chip">V892 Centro de Incidencias</span>
     <h1>Sentinel Issues Command Center</h1>
     <p>Incidencias reales de Sentinel, AutoPilot y Visual Worker convertidas en tareas, evidencia y prompts Codex copiables. No ejecuta deploy, Telegram real, pagos ni acciones peligrosas.</p>
@@ -21,14 +21,14 @@
     <output class="v904-safe-api-output" data-v904-output>Los endpoints admin se consultan como JSON protegido; sin sesión deben devolver 403.</output>
   </div>
 
-  <section class="ns-grid ns-grid-4 v911-admin-kpi-grid v912-admin-kpi-grid">
+  <section class="ns-grid ns-grid-4 v911-admin-kpi-grid v912-admin-kpi-grid v927-admin-kpi-deck">
     <article class="ns-stat v912-kpi-card"><span class="v912-kpi-label">Abiertas</span><strong class="v912-kpi-value">{{ summary.counts.open }}</strong><small class="v912-kpi-hint">incidencias activas</small></article>
     <article class="ns-stat v912-kpi-card"><span class="v912-kpi-label">Críticas</span><strong class="v912-kpi-value">{{ summary.counts.severity.critical }}</strong><small class="v912-kpi-hint">bloqueo real</small></article>
     <article class="ns-stat v912-kpi-card"><span class="v912-kpi-label">Altas</span><strong class="v912-kpi-value">{{ summary.counts.severity.high }}</strong><small class="v912-kpi-hint">prioridad operativa</small></article>
     <article class="ns-stat v912-kpi-card"><span class="v912-kpi-label">Codex Ready</span><strong class="v912-kpi-value">{{ summary.codex_ready_issues|length }}</strong><small class="v912-kpi-hint">prompt preparado</small></article>
   </section>
 
-  <section class="ns-grid ns-grid-3">
+  <section class="ns-grid ns-grid-3 v927-admin-ops-grid v927-sports-filters">
     <article class="ns-admin-card">
       <h2>Resumen operativo</h2>
       <div class="ns-table-wrap">
@@ -70,7 +70,7 @@
   </section>
 
   {% if summary.critical_issues or summary.high_issues %}
-  <section class="ns-admin-card">
+  <section class="ns-admin-card v927-admin-table-area v927-table-card">
     <div class="ns-section-title">
       <h2>Prioridad alta</h2>
       <span class="ns-badge">{{ (summary.critical_issues|length) + (summary.high_issues|length) }}</span>

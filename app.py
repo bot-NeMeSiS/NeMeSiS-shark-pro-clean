@@ -339,7 +339,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V926_DESKTOP_REFERENCE_MODEL_COMMAND_CENTER_AND_SPORTS_VALUE_PASS_FINAL'
+APP_VERSION = 'V927_PC_DESKTOP_REFERENCE_PERFECTION_ADMIN_CLIENT_SPORTS_FINAL'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 
@@ -10512,7 +10512,7 @@ def dashboard_data(lane="today", date=None):
 @app.route("/service-worker.js")
 def service_worker():
     body = (
-        "const NEMESIS_CACHE='NEMESIS_CACHE_V926';\n"
+        "const NEMESIS_CACHE='NEMESIS_CACHE_V927';\n"
         "self.addEventListener('install',event=>{self.skipWaiting();});\n"
         "self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==NEMESIS_CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));});\n"
         "self.addEventListener('fetch',event=>{const req=event.request;if(req.mode==='navigate'){event.respondWith(fetch(req).then(res=>{if(res.status===404){return fetch('/');}return res;}).catch(()=>fetch('/')));return;}event.respondWith(fetch(req).then(res=>{if(res.status===404){return res;}return res;}));});\n"
@@ -16124,6 +16124,27 @@ def v926_desktop_reference_runtime_summary() -> dict:
     }
 
 
+def v927_pc_desktop_reference_runtime_summary() -> dict:
+    """Describe the V927 desktop pass while keeping the screenshot gate truthful."""
+    browser = v923_browser_qa_evidence_capture_runtime_summary()
+    valid_screenshots = int(browser.get("v923_valid_screenshots_count") or 0)
+    return {
+        "v927_pc_desktop_pass_applied": True,
+        "v927_admin_pc_status": "dense_three_zone_command_center",
+        "v927_client_pc_status": "above_fold_dashboard_and_next_action",
+        "v927_sports_pc_status": "provider_toolbar_filters_and_compact_boards",
+        "v927_empty_space_guard_status": "desktop_top_gap_guard_active",
+        "v927_button_text_icon_logo_status": "hierarchy_and_fallback_slots_reviewed",
+        "v927_browser_qa_still_required": valid_screenshots <= 0,
+        "v927_next_required_action": (
+            "run_browser_qa_for_evidence"
+            if valid_screenshots <= 0
+            else "review_v927_desktop_screenshot_evidence"
+        ),
+        "v927_pixel_perfect_claim_allowed": False,
+    }
+
+
 def get_safe_runtime_identity_for_admin() -> dict:
     """Return local runtime identity for admin panels without external calls or secrets."""
     version_txt = ""
@@ -16245,6 +16266,7 @@ def api_runtime_version():
     v924_global_summary = v924_global_ui_sports_value_runtime_summary()
     v925_summary = v925_reference_model_runtime_summary()
     v926_summary = v926_desktop_reference_runtime_summary()
+    v927_summary = v927_pc_desktop_reference_runtime_summary()
     return jsonify(sanitize_runtime_value({
         "ok": True,
         "app": APP_NAME,
@@ -16534,6 +16556,11 @@ def api_runtime_version():
         "has_v926_client_desktop_dashboard": True,
         "has_v926_sports_desktop_boards": True,
         "has_v926_desktop_empty_space_fix": True,
+        "has_v927_pc_desktop_reference_perfection": True,
+        "has_v927_admin_pc_command_center_perfection": True,
+        "has_v927_client_pc_dashboard_perfection": True,
+        "has_v927_sports_pc_value_perfection": True,
+        "has_v927_desktop_layout_quality_guard": True,
         **v902_truth_summary,
         **v904_summary,
         **v906_summary,
@@ -16557,6 +16584,7 @@ def api_runtime_version():
         **v924_global_summary,
         **v925_summary,
         **v926_summary,
+        **v927_summary,
         "active_errors_count": v903_active_errors_count,
         "fixed_safe_count": v903_archived_count,
         "stale_issues_count": v903_stale_issues_count,

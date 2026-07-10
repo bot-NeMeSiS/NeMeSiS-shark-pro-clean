@@ -9,7 +9,7 @@
 {% set featured = ready_picks[0] if ready_picks else (picks[0] if picks else none) %}
 <!-- V925 picks and odds safe reference rebuild -->
 <section class="v799-screen v799-picks-screen v924-no-dead-space v924-page-shell v924-client-shell v924-pick-card v815-certified-screen v815-picks-screen v816-certified-screen v816-picks-screen v817-certified-screen v817-picks-screen v819-certified-screen v819-picks-screen v820-certified-screen v820-picks-screen v823-certified-screen v823-picks-screen v824-certified-screen v824-picks-screen v825-certified-screen v826-certified-screen v827-certified-screen v828-certified-screen v829-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v830-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v825-picks-screen v860-app-shell v904-client-rebuild v904-picks-rebuild v908-client-dashboard v908-pick-card v908-mobile-polish v926-desktop-shell v926-desktop-picks-board v926-desktop-odds-board v926-picks-desktop" data-v926-template="picks" data-v815-template="picks" data-v816-template="picks" data-v817-template="picks" data-v819-template="picks" data-v820-template="picks" data-v823-template="picks" data-v824-template="picks" data-v825-template="picks" data-v827-template="picks" data-v828-template="picks" data-v829-template="picks" data-v830-template="picks" data-v832-template="picks" data-v833-template="picks" data-v836-template="picks" data-v837-template="picks" data-v826-template="picks" data-v904-template="picks" data-v908-template="picks" data-v924-template="picks">
-  <div class="v799-appbar">
+  <div class="v799-appbar v927-client-hero-row v927-no-dead-space" data-v927-template="picks">
     <div>
       <span class="v799-kicker">Picks publicados · calidad SHARK · Hora España/Madrid</span>
       <h1>Picks SHARK</h1>
@@ -20,16 +20,16 @@
 
   {% include "partials/client_flow_bar.html" %}
 
-  <section class="v925-sports-board" aria-label="Control seguro de picks y cuotas">
+  <section class="v925-sports-board v927-status-strip v927-kpi-deck" aria-label="Control seguro de picks y cuotas">
     <article><span>Listos</span><strong>{{ ready_picks|length }}</strong><small>Con mercado, selección y cuota.</small></article>
     <article><span>Bloqueados</span><strong>{{ safe_picks_context.get('blocked_count', 0) }}</strong><small>Datos incompletos o en revisión.</small></article>
     <article><span>Cuotas</span><strong>{{ 'Reales' if ready_picks else 'Pendientes' }}</strong><small>Nunca se completa una cuota de forma artificial.</small></article>
     <article><span>Telegram</span><strong>No filler</strong><small>Solo contenido con calidad suficiente.</small></article>
   </section>
 
-  <section class="v926-desktop-only v926-desktop-picks-board" aria-label="Board de picks desktop V926">
-    <nav class="v926-desktop-filter-row" aria-label="Filtros de picks"><a class="active" href="/picks">Todos</a><a href="/picks?view=review">En revision</a><a href="/picks?view=active">Publicables</a><a href="/picks?view=blocked">Bloqueados</a></nav>
-    <div class="v926-desktop-data-table" role="table" aria-label="Picks completos con datos reales">
+  <section class="v926-desktop-only v926-desktop-picks-board v927-sports-desktop-board v927-picks-desktop-grid v927-compact-section" aria-label="Board de picks desktop V927">
+    <nav class="v926-desktop-filter-row v927-filter-tabs v927-sports-filters" aria-label="Filtros de picks"><a class="active" href="/picks">Todos</a><a href="/picks?view=review">En revisión</a><a href="/picks?view=active">Publicables</a><a href="/picks?view=blocked">Bloqueados</a></nav>
+    <div class="v926-desktop-data-table v927-table-card" role="table" aria-label="Picks completos con datos reales">
       <div class="v926-table-row is-head" role="row"><span>Partido</span><span>Mercado</span><span>Seleccion</span><span>Cuota</span><span>Stake</span><span>Confianza</span><span>Riesgo</span><span>Estado</span></div>
       {% for p in ready_picks[:8] %}
       <a class="v926-table-row" role="row" href="{{ p.get('client_match_url') or ('/match/' ~ (p.get('match_id') or p.get('id'))) }}">
@@ -142,7 +142,7 @@
     {% for p in picks if not featured or p.get('id') != featured.get('id') %}
     {% set home_identity = p|team_identity('home') %}
     {% set away_identity = p|team_identity('away') %}
-    <article class="v799-pick-card {{ 'v852-pick-muted' if not p.get('premium_ready') else 'v852-pick-ready' }}">
+    <article class="v799-pick-card v927-odds-desktop-card {{ 'v852-pick-muted' if not p.get('premium_ready') else 'v852-pick-ready' }}">
       <div class="v799-card-top"><span>{{ p.get('client_competition') or (p.get('competition_name') or 'Competición')|competition_es }}</span><em class="v852-pick-state">{{ p.get('app_pick_state') or 'Pick activo' }}</em><button class="fav-star" type="button" data-kind="pick" data-value="{{ p.get('id') }}" data-label="{{ p.get('selection_display') or p.get('selection') or 'Pick' }}">☆</button></div>
       <div class="v799-pick-teams">{{ crest(home_identity, p.get('home_team') or 'Local', 'compact') }}<b>VS</b>{{ crest(away_identity, p.get('away_team') or 'Visitante', 'compact') }}</div>
       <strong>{{ p.get('client_selection_label') or p.get('selection_display') or p.get('selection') or 'Selección pendiente' }}</strong>

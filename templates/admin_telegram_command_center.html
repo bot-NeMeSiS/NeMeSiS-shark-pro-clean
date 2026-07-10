@@ -15,8 +15,8 @@
   {{ ui.kpi('Suscriptores', d.get('subscribers') or d.get('linked_users') or '—', 'Dato real', '♙', 'blue') }}
   {{ ui.kpi('Dedupe', d.get('dedupe_rate') or d.get('dedupe_status') or '—', 'Dato real', '▧', 'green') }}
 </section>
-<section class="v794-admin-grid sidebar v826-certified-screen" data-v826-template="admin_telegram_command_center">
-  <div class="v794-admin-grid">
+<section class="v794-admin-grid sidebar v826-certified-screen v927-admin-desktop-shell v927-admin-ops-grid v927-no-dead-space" data-v927-template="admin_telegram_command_center" data-v826-template="admin_telegram_command_center">
+  <div class="v794-admin-grid v927-desktop-main">
     <article class="v794-admin-panel">
       <div class="v794-panel-head"><h2>Agenda diaria de envíos</h2><span>{{ ui.status('Configurada','info') }}</span></div>
       {% if schedule_items %}
@@ -45,7 +45,7 @@
       </tbody></table>
     </article>
   </div>
-  <aside class="v794-admin-grid">
+  <aside class="v794-admin-grid v927-desktop-aside">
     <article class="v794-admin-panel v794-pulse-card">
       <div class="v794-panel-head"><h2>Vista previa del próximo mensaje</h2><span>{{ ui.status(d.get('preview_time') or 'Preview real','info') }}</span></div>
       {% set preview = d.get('message_preview') or d.get('next_message_preview') or d.get('preview_text') %}

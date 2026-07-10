@@ -7,10 +7,10 @@
 {% set alerts = data.get('client_alerts') or [] %}
 {% set favorites = data.get('favorites') or [] %}
 {% set telegram = data.get('telegram') or {} %}
-<main class="v925-shell v925-page v925-client-shell v925-profile v926-desktop-shell v926-client-dashboard" data-v925-template="profile" data-v926-template="profile">
-  <header class="v925-above-fold v925-profile-hero">
+<main class="v925-shell v925-page v925-client-shell v925-profile v926-desktop-shell v926-client-dashboard v927-desktop-shell v927-client-desktop-shell v927-no-dead-space" data-v925-template="profile" data-v926-template="profile" data-v927-template="profile">
+  <header class="v925-above-fold v925-profile-hero v927-client-hero-row v927-desktop-above-fold">
     <div class="v925-profile-identity">
-      <div class="v925-avatar"><img src="/static/img/shark-logo.svg" alt=""></div>
+      <div class="v925-avatar v927-reference-logo-slot"><img src="/static/img/shark-logo.svg" alt=""></div>
       <div>
         <span class="v925-eyebrow">Mi cuenta</span>
         <h1>{{ user.get('name') or user.get('username') or 'Cliente' }}</h1>
@@ -24,15 +24,15 @@
     </div>
   </header>
 
-  <section class="v925-grid v925-kpi-grid" aria-label="Resumen de cuenta">
+  <section class="v925-grid v925-kpi-grid v927-kpi-deck" aria-label="Resumen de cuenta">
     <article class="v925-kpi-card"><span>Plan actual</span><strong>{{ plan }}</strong><small>Según tu cuenta real.</small></article>
     <article class="v925-kpi-card is-pick"><span>Picks completos</span><strong>{{ safe_picks|length }}</strong><small>Disponibles ahora.</small></article>
     <article class="v925-kpi-card is-live"><span>Partidos</span><strong>{{ safe_calendar.get('matches', [])|length }}</strong><small>En agenda real.</small></article>
     <article class="v925-kpi-card is-telegram"><span>Telegram</span><strong>{{ 'Configurado' if telegram.get('configured') else 'Pendiente' }}</strong><small>Estado oculto y seguro.</small></article>
   </section>
 
-  <section class="v925-reference-layout">
-    <article class="v925-premium-card">
+  <section class="v925-reference-layout v927-desktop-grid v927-client-value-grid">
+    <article class="v925-premium-card v927-action-card">
       <span>Tu membresía</span>
       <h2>{{ plan }}</h2>
       {% if plan == 'FREE' %}
@@ -45,9 +45,9 @@
       <a class="v925-card-cta" href="/membresias">Comparar planes</a>
     </article>
 
-    <article class="v925-command-card">
+    <article class="v925-command-card v927-action-card">
       <div class="v925-section-head"><div><span>Accesos</span><h2>Tu app</h2></div></div>
-      <div class="v925-client-quick-actions compact">
+      <div class="v925-client-quick-actions compact v927-client-quick-actions">
         <a href="/app"><strong>Inicio</strong><small>Centro cliente</small></a>
         <a href="/calendar"><strong>Partidos</strong><small>Agenda real</small></a>
         <a href="/picks"><strong>Picks</strong><small>Control de calidad</small></a>

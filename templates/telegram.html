@@ -4,7 +4,7 @@
 {% set tier = (current_user.membership if current_user else 'FREE')|upper %}
 <!-- V925 Telegram reference rebuild -->
 <section class="v799-screen v799-telegram-screen v924-no-dead-space v924-page-shell v924-client-shell v924-next-action v815-certified-screen v815-telegram-screen v816-certified-screen v816-telegram-screen v817-certified-screen v817-telegram-screen v819-certified-screen v819-telegram-screen v820-certified-screen v820-telegram-screen v824-certified-screen v824-telegram-screen v825-certified-screen v826-certified-screen v827-certified-screen v828-certified-screen v829-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v830-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v825-telegram-screen v904-client-rebuild v904-telegram-rebuild v908-client-dashboard v908-mobile-polish v926-desktop-shell v926-desktop-two-col v926-telegram-desktop" data-v926-template="telegram" data-v815-template="telegram" data-v816-template="telegram" data-v817-template="telegram" data-v819-template="telegram" data-v820-template="telegram" data-v824-template="telegram" data-v825-template="telegram" data-v827-template="telegram" data-v828-template="telegram" data-v829-template="telegram" data-v830-template="telegram" data-v832-template="telegram" data-v833-template="telegram" data-v836-template="telegram" data-v837-template="telegram" data-v826-template="telegram" data-v904-template="telegram" data-v908-template="telegram" data-v924-template="telegram">
-  <div class="v799-appbar">
+  <div class="v799-appbar v927-client-hero-row v927-no-dead-space" data-v927-template="telegram">
     <div><span class="v799-kicker">Alertas premium · calidad antes que cantidad</span><h1>Telegram</h1><p>Conecta tu cuenta para recibir picks completos, recordatorios y resúmenes según tu plan.</p></div>
     <div class="v799-appbar-actions"><a href="/mi-cuenta">Mi cuenta</a><a class="primary" href="/picks">Ver picks</a></div>
   </div>
@@ -23,7 +23,7 @@
     </div>
   </section>
 
-  <section class="v925-sports-board" aria-label="Calidad de Telegram">
+  <section class="v925-sports-board v927-status-strip v927-kpi-deck" aria-label="Calidad de Telegram">
     <article><span>Estado</span><strong>{{ 'Vinculado' if state.linked else 'Pendiente' }}</strong><small>Sin mostrar identificadores privados.</small></article>
     <article><span>No filler</span><strong>Activo</strong><small>No se envían picks incompletos.</small></article>
     <article><span>Dedupe</span><strong>Activo</strong><small>Evita mensajes repetidos.</small></article>
@@ -44,14 +44,14 @@
     <article><span>Secretos</span><strong>Ocultos</strong><small>Token y secret nunca se muestran.</small></article>
   </section>
 
-  <section class="v800-telegram-flow" aria-label="Flujo de conexión Telegram">
+  <section class="v800-telegram-flow v927-pc-command-row v927-compact-section" aria-label="Flujo de conexión Telegram">
     <article class="{{ 'done' if state.linked else '' }}"><b>1</b><span>Vincula el bot</span><strong>{{ 'Completado' if state.linked else 'Pendiente' }}</strong></article>
     <article><b>2</b><span>Revisa tu plan</span><strong>{{ tier }}</strong></article>
     <article><b>3</b><span>Recibe alertas reales</span><strong>{{ 'Activo' if data.telegram.enabled or data.telegram.legacy_enabled else 'En pausa' }}</strong></article>
   </section>
 
-  <section class="v799-telegram-layout">
-    <div class="v799-telegram-main">
+  <section class="v799-telegram-layout v927-desktop-grid v927-client-sports-overview">
+    <div class="v799-telegram-main v927-desktop-main">
       <article class="v799-card"><div class="v799-section-head"><div><span>Qué recibirás</span><h2>Alertas del ecosistema</h2></div><em>{{ tier }}</em></div><div class="v799-benefits-grid"><article><i>Top</i><strong>Picks premium</strong><span>Mercado, cuota, riesgo y explicación.</span></article><article><i>⚡</i><strong>Directo</strong><span>Avisos cuando haya señal real.</span></article><article><i>📊</i><strong>Resultados</strong><span>Cierre de picks publicados.</span></article><article><i>📄</i><strong>Resumen diario</strong><span>Actividad y oportunidades reales.</span></article><article><i>🔔</i><strong>Recordatorios</strong><span>Partidos y oportunidades clave.</span></article></div></article>
       <article class="v799-card" id="codigo"><div class="v799-section-head"><div><span>Conexión</span><h2>{{ 'Cuenta vinculada' if state.linked else 'Código de vinculación' }}</h2></div></div>{% if state.linked %}<p>Cuenta Telegram activa{% if state.username %}: @{{ state.username }}{% endif %}</p><form method="post" action="/telegram/desvincular"><button class="v799-button danger" type="submit">Desvincular</button></form>{% else %}<div class="v799-code">{{ state.code }}</div><p>Envía <strong>{{ state.command }}</strong> al bot para vincular tu cuenta.</p><div class="v799-actions">{% if state.deep_link %}<a class="primary" href="{{ state.deep_link }}" target="_blank" rel="noopener">Conectar Telegram</a>{% endif %}<form method="post" action="/telegram/regenerar-codigo"><button type="submit">Nuevo código</button></form></div>{% endif %}</article>
     </div>

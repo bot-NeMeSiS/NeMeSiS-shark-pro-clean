@@ -17,7 +17,7 @@
 {% set featured = ns.matches[0] if ns.matches else none %}
 <!-- V925 live reference rebuild -->
 <section class="v799-screen v799-live-screen v924-no-dead-space v924-page-shell v924-client-shell v924-live-card v811-client-screen v815-certified-screen v815-live-screen v816-certified-screen v816-live-screen v817-certified-screen v817-live-screen v819-certified-screen v819-live-screen v820-certified-screen v820-live-screen v823-certified-screen v823-live-screen v824-certified-screen v824-live-screen v825-certified-screen v826-certified-screen v827-certified-screen v828-certified-screen v829-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v830-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v825-live-screen v850-live-screen v860-app-shell v904-client-rebuild v904-live-rebuild v908-client-dashboard v908-live-card v908-mobile-polish v926-desktop-shell v926-desktop-live-board v926-live-desktop" data-v926-template="live" data-v815-template="live" data-v816-template="live" data-v817-template="live" data-v819-template="live" data-v820-template="live" data-v823-template="live" data-v824-template="live" data-v825-template="live" data-v827-template="live" data-v828-template="live" data-v829-template="live" data-v830-template="live" data-v832-template="live" data-v833-template="live" data-v836-template="live" data-v837-template="live" data-v826-template="live" data-v850-template="live" data-v904-template="live" data-v908-template="live" data-v924-template="live">
-  <div class="v799-appbar v811-client-appbar">
+  <div class="v799-appbar v811-client-appbar v927-client-hero-row v927-no-dead-space" data-v927-template="live">
     <div>
       <span class="v799-kicker">Marcador real · Hora Madrid</span>
       <h1>Directo</h1>
@@ -28,27 +28,41 @@
 
   {% include "partials/client_flow_bar.html" %}
 
-  <section class="v925-sports-board" aria-label="Estado seguro del directo">
+  <section class="v925-sports-board v927-status-strip v927-kpi-deck" aria-label="Estado seguro del directo">
     <article><span>En directo</span><strong>{{ safe_live.get('counts', {}).get('live', 0) }}</strong><small>Marcador y minuto confirmados.</small></article>
     <article><span>Próximos</span><strong>{{ safe_live.get('counts', {}).get('upcoming', 0) }}</strong><small>Desde cache o base de datos.</small></article>
     <article><span>Finalizados</span><strong>{{ safe_live.get('counts', {}).get('finished', 0) }}</strong><small>Resultados reales.</small></article>
     <article><span>Proveedor</span><strong>{{ safe_live.get('provider_status') or 'safe_cache_mode' }}</strong><small>Sin llamada externa obligatoria al renderizar.</small></article>
   </section>
 
-  <section class="v922-live-shell v924-section-compact v924-above-fold" aria-label="Directo visible V924">
+  <section class="v926-desktop-only v927-data-toolbar v927-sports-filters" aria-label="Filtros y estado del directo en PC">
+    <nav class="v927-filter-tabs" aria-label="Estado de partidos">
+      <a class="{{ 'is-active' if lane == 'live' else '' }}" href="/live">En vivo</a>
+      <a href="/calendar?lane=today">Próximos</a>
+      <a class="{{ 'is-active' if lane == 'finished' else '' }}" href="/live?f=finished">Finalizados</a>
+    </nav>
+    <div class="v927-pc-command-row">
+      <span><b>Fuente</b>{{ safe_live.get('source') or 'Sin datos reales' }}</span>
+      <span><b>Última sync</b>{{ safe_live.get('last_sync') or 'Pendiente' }}</span>
+      <span><b>Proveedor</b>{{ safe_live.get('provider_status') or 'safe_cache_mode' }}</span>
+      <a class="v927-reference-button" href="/calendar?lane=today">Abrir agenda</a>
+    </div>
+  </section>
+
+  <section class="v922-live-shell v924-section-compact v924-above-fold v927-sports-desktop-board v927-compact-section" aria-label="Directo visible V927">
     <div class="v922-section-title">
       <span>Centro de directo</span>
       <h2>Marcador real o estado claro</h2>
       <p>La pantalla deja claro si hay partidos en juego, si el proveedor está activo y qué hacer cuando no hay directo real.</p>
     </div>
-    <div class="v922-live-filter-row">
+    <div class="v922-live-filter-row v927-filter-tabs">
       <a href="/live">En directo <strong>{{ counts.get('live',0) }}</strong></a>
       <a href="/live?f=finished">Finalizados <strong>{{ counts.get('finished',0) }}</strong></a>
       <a href="/calendar?lane=today">Agenda hoy</a>
       <a href="/shark">SHARK</a>
     </div>
     {% if featured %}
-    <article class="v922-live-match-card">
+    <article class="v922-live-match-card v927-live-desktop-card">
       <span>{{ featured.get('live_status_label') or featured.get('live_clock_label') or 'Estado pendiente' }}</span>
       <strong>{{ featured.get('safe_home') or featured.get('home_team') or 'Local' }} vs {{ featured.get('safe_away') or featured.get('away_team') or 'Visitante' }}</strong>
       <small>{{ featured.get('live_competition_display') or featured.get('competition_name') or 'Competicion pendiente' }}</small>
@@ -150,7 +164,7 @@
       <article class="v799-live-feature {{ 'is-live' if featured.get('live_bucket') == 'live' else '' }}">
         <div class="v799-live-league"><strong>{{ (featured.get('live_competition_display') or featured.get('competition_name') or 'Competición')|competition_es }}</strong><span>{{ featured.get('live_status_label') or 'Estado pendiente' }}</span></div>
       {% set v850_featured = featured|v850_live_card %}
-      <a class="v799-scoreboard v850-live-card-enhanced" href="/match/{{ featured.get('id') }}">
+      <a class="v799-scoreboard v850-live-card-enhanced v927-live-desktop-card" href="/match/{{ featured.get('id') }}">
         <span>{{ crest(home_identity, featured.get('safe_home') or featured.get('home_team') or 'Local', 'compact') }}<strong>{{ featured.get('safe_home') or featured.get('home_team') or 'Local' }}</strong></span>
           <b class="v850-score-focus">{{ v850_featured.get('score_label') or featured.get('live_score_label') or 'VS' }}<small>{{ v850_featured.get('minute_label') or featured.get('live_clock_label') or featured.get('calendar_time') or 'Minuto no disponible' }}</small></b>
           <span>{{ crest(away_identity, featured.get('safe_away') or featured.get('away_team') or 'Visitante', 'compact') }}<strong>{{ featured.get('safe_away') or featured.get('away_team') or 'Visitante' }}</strong></span>
@@ -204,7 +218,7 @@
         {% for m in ns.matches[1:13] %}
         {% set home_identity = m.get('home_identity') or {} %}{% set away_identity = m.get('away_identity') or {} %}
         {% set v850_card = m|v850_live_card %}
-        <article class="v799-live-card v850-live-card-enhanced {{ 'is-live' if m.get('live_bucket') == 'live' else 'is-finished' if m.get('live_bucket') == 'finished' else '' }}">
+        <article class="v799-live-card v850-live-card-enhanced v927-live-desktop-card {{ 'is-live' if m.get('live_bucket') == 'live' else 'is-finished' if m.get('live_bucket') == 'finished' else '' }}">
           <div class="v799-live-league"><strong>{{ (m.get('live_competition_display') or m.get('competition_name') or 'Competición')|competition_es }}</strong><span>{{ m.get('live_status_label') or m.get('live_clock_label') or 'Estado pendiente' }}</span></div>
           <a class="v799-scoreboard compact" href="/match/{{ m.get('id') }}"><span>{{ crest(home_identity, m.get('safe_home') or m.get('home_team') or 'Local', 'compact') }}<strong>{{ m.get('safe_home') or m.get('home_team') or 'Local' }}</strong></span><b>{{ v850_card.get('score_label') or m.get('live_score_label') or 'VS' }}<small>{{ v850_card.get('minute_label') or m.get('live_clock_label') or '' }}</small></b><span>{{ crest(away_identity, m.get('safe_away') or m.get('away_team') or 'Visitante', 'compact') }}<strong>{{ m.get('safe_away') or m.get('away_team') or 'Visitante' }}</strong></span></a>
           <div class="v850-state-row"><span class="v850-live-pill {{ 'is-live' if v850_card.get('is_live') else '' }}">{{ v850_card.get('status_label') }}</span><span class="v850-live-pill">{{ v850_card.get('data_state') }}</span></div>

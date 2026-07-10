@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from hashlib import sha1
+import re
 from typing import Any
 from zoneinfo import ZoneInfo
 
@@ -268,6 +269,19 @@ V926_DESKTOP_REFERENCE_RULES = [
     "browser_qa_desktop_requires_real_screenshots",
 ]
 
+PC_DESKTOP_REFERENCE_RULES_V927 = [
+    "important_content_must_start_in_first_desktop_viewport",
+    "desktop_top_empty_space_must_stay_below_known_guard",
+    "primary_cards_need_label_value_hint_and_action_when_applicable",
+    "admin_needs_kpis_operations_next_action_and_compact_tables",
+    "client_needs_dashboard_quick_actions_sports_state_and_next_action",
+    "sports_needs_filters_provider_state_and_safe_empty_state_above_fold",
+    "critical_actions_must_not_be_hidden_below_dead_space",
+    "admin_and_client_navigation_must_remain_isolated",
+    "sports_values_require_real_source_or_explicit_safe_state",
+    "desktop_pixel_perfect_requires_real_browser_screenshots",
+]
+
 
 def build_v925_visual_product_snapshot(client: Any) -> dict[str, Any]:
     """Run safe visible-product checks without mutating data or requiring a browser."""
@@ -294,7 +308,7 @@ def build_v925_visual_product_snapshot(client: Any) -> dict[str, Any]:
         "rules": V925_REFERENCE_PRODUCT_RULES,
         "route_status": route_status,
         "client_routes_no_500": all(status and status < 500 for status in route_status.values()),
-        "single_public_hero": home_html.count('class="v925-public-hero v925-above-fold"') == 1,
+        "single_public_hero": sum("v925-public-hero" in value.split() for value in re.findall(r'class="([^"]*)"', home_html)) == 1,
         "visible_mojibake_tokens": broken_tokens,
         "visible_copy_clean": not broken_tokens,
         "sports_safe_states_present": sports_safe_state,
@@ -331,6 +345,44 @@ def build_v926_desktop_snapshot(client: Any) -> dict[str, Any]:
             for marker in ("v926-desktop-shell", "v926-desktop-data-table", "v926-desktop-sports-board")
         ),
         "browser_qa_status": "desktop_screenshots_required",
+        "pixel_perfect_claim_allowed": False,
+        "no_mutations": True,
+        "no_external_calls": True,
+        "no_fake_data": True,
+    }
+
+
+def build_v927_pc_desktop_snapshot(client: Any) -> dict[str, Any]:
+    """Check V927 PC contracts without external calls or visual overclaims."""
+    routes = ["/", "/app", "/calendar", "/live", "/picks", "/shark", "/telegram"]
+    route_status: dict[str, int] = {}
+    rendered: dict[str, str] = {}
+    for route in routes:
+        try:
+            response = client.get(route, follow_redirects=False)
+            route_status[route] = int(response.status_code)
+            rendered[route] = response.get_data(as_text=True) if response.status_code == 200 else ""
+        except Exception:
+            route_status[route] = 0
+            rendered[route] = ""
+    combined = " ".join(rendered.values())
+    return {
+        "rules": PC_DESKTOP_REFERENCE_RULES_V927,
+        "route_status": route_status,
+        "client_routes_no_500": all(status and status < 500 for status in route_status.values()),
+        "single_public_hero": sum(
+            "v925-public-hero" in value.split()
+            for value in re.findall(r'class="([^"]*)"', rendered.get("/", ""))
+        ) == 1,
+        "home_pc_marker": 'data-v927-template="home-public"' in rendered.get("/", ""),
+        "calendar_toolbar_marker": "v927-data-toolbar" in rendered.get("/calendar", ""),
+        "live_toolbar_marker": "v927-data-toolbar" in rendered.get("/live", ""),
+        "picks_table_marker": "v927-table-card" in rendered.get("/picks", ""),
+        "desktop_contract_markers_present": all(
+            marker in combined
+            for marker in ("v927-desktop-shell", "v927-status-strip", "v927-client-hero-row")
+        ),
+        "browser_qa_status": "real_desktop_screenshots_still_required",
         "pixel_perfect_claim_allowed": False,
         "no_mutations": True,
         "no_external_calls": True,
@@ -418,6 +470,7 @@ def build_continuous_sentinel_summary(version: str = "") -> dict[str, Any]:
         "telegram_premium_pick_rules_v889": V889_TELEGRAM_PREMIUM_PICK_RULES,
         "reference_product_rules_v925": V925_REFERENCE_PRODUCT_RULES,
         "desktop_reference_rules_v926": V926_DESKTOP_REFERENCE_RULES,
+        "pc_desktop_reference_rules_v927": PC_DESKTOP_REFERENCE_RULES_V927,
         "sentinel_autopilot_ready": True,
         "visual_company_worker_ready": True,
         "visual_big_leap_ready": True,
@@ -437,6 +490,7 @@ def run_continuous_sentinel_cycle(client: Any, version: str = "", mode: str = "q
     static_result = run_static_flask_inspection(client, version)
     v925_visual_snapshot = build_v925_visual_product_snapshot(client)
     v926_desktop_snapshot = build_v926_desktop_snapshot(client)
+    v927_pc_desktop_snapshot = build_v927_pc_desktop_snapshot(client)
     static_issues = static_result.get("issues", [])
     safe_data_notes = [
         issue
@@ -522,6 +576,8 @@ def run_continuous_sentinel_cycle(client: Any, version: str = "", mode: str = "q
         "v925_visual_product_snapshot": v925_visual_snapshot,
         "desktop_reference_rules_v926": V926_DESKTOP_REFERENCE_RULES,
         "v926_desktop_snapshot": v926_desktop_snapshot,
+        "pc_desktop_reference_rules_v927": PC_DESKTOP_REFERENCE_RULES_V927,
+        "v927_pc_desktop_snapshot": v927_pc_desktop_snapshot,
         "sentinel_autopilot_ready": True,
         "visual_company_worker_v883": visual_worker_result,
         "visual_company_worker_ready": True,

@@ -9,7 +9,7 @@
 {% set safe_calendar = data.get('v925_calendar') or {} %}
 <!-- V925 SHARK reference rebuild -->
 <section class="v845-shark-screen v924-no-dead-space v924-page-shell v924-client-shell v924-safe-state v825-shark-screen v904-client-rebuild v904-shark-rebuild v908-client-dashboard v908-mobile-polish v926-desktop-shell v926-desktop-two-col v926-shark-desktop" data-v926-template="shark" data-v845-template="shark" data-v844-template="shark" data-v904-template="shark" data-v908-template="shark" data-v924-template="shark">
-  <div class="v845-shark-hero">
+  <div class="v845-shark-hero v927-client-hero-row v927-no-dead-space" data-v927-template="shark">
     <div>
       <span class="v845-kicker">SHARK · asistente responsable</span>
       <h1>Pregunta a SHARK con datos reales</h1>
@@ -42,15 +42,15 @@
     </div>
   </section>
 
-  <section class="v925-sports-board" aria-label="Capacidades actuales de SHARK">
+  <section class="v925-sports-board v927-status-strip v927-kpi-deck" aria-label="Capacidades actuales de SHARK">
     <article><span>Partidos reales</span><strong>{{ safe_calendar.get('matches', [])|length }}</strong><small>Contexto disponible para consulta.</small></article>
     <article><span>Picks completos</span><strong>{{ safe_picks|length }}</strong><small>Mercado, selección y cuota presentes.</small></article>
     <article><span>IA avanzada</span><strong>{{ 'Disponible' if openai_ready else 'No configurada' }}</strong><small>El fallback no inventa análisis.</small></article>
     <article><span>Límite</span><strong>Sin certezas</strong><small>SHARK informa; no garantiza resultados.</small></article>
   </section>
 
-  <section class="v845-shark-grid">
-    <article class="v845-answer-card">
+  <section class="v845-shark-grid v927-desktop-grid v927-client-sports-overview">
+    <article class="v845-answer-card v927-desktop-main">
       <div class="section-head">
         <div>
           <span class="v845-kicker">Respuesta actual</span>
@@ -66,7 +66,7 @@
       </div>
     </article>
 
-    <aside class="v845-data-state">
+    <aside class="v845-data-state v927-desktop-aside v927-client-next-action">
       <h2>Estado de datos</h2>
       <div class="v845-state-grid">
         <span><b>Pick</b>{{ state.get('pick') or 'Sin picks activos' }}</span>
@@ -81,14 +81,14 @@
     </aside>
   </section>
 
-  <section class="v845-quick-panel">
+  <section class="v845-quick-panel v927-compact-section">
     <div class="section-head">
       <div>
         <span class="v845-kicker">Preguntas rápidas</span>
         <h2>Qué puedes pedirle</h2>
       </div>
     </div>
-    <div class="v845-question-grid">
+    <div class="v845-question-grid v927-client-quick-actions">
       <a href="/shark?q=que-ves-en-este-partido">¿Qué ves en este partido?</a>
       <a href="/shark?q=hay-pick">¿Hay pick real?</a>
       <a href="/shark?q=riesgo">¿Qué riesgo tiene?</a>
