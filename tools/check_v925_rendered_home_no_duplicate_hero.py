@@ -14,7 +14,8 @@ ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V925_REFERENCE_MODEL_FULL_APP_REBUILD_QUALITY_PASS_FINAL"
 V926_CONTAINER_VERSION = "V926_DESKTOP_REFERENCE_MODEL_COMMAND_CENTER_AND_SPORTS_VALUE_PASS_FINAL"
 V927_CONTAINER_VERSION = "V927_PC_DESKTOP_REFERENCE_PERFECTION_ADMIN_CLIENT_SPORTS_FINAL"
-ALLOWED_CONTAINER_VERSIONS = {VERSION, V926_CONTAINER_VERSION, V927_CONTAINER_VERSION}
+V928_CONTAINER_VERSION = "V928_CANONICAL_REFERENCE_FULL_APP_ADMIN_CLIENT_MOBILE_REBUILD_FINAL"
+ALLOWED_CONTAINER_VERSIONS = {VERSION, V926_CONTAINER_VERSION, V927_CONTAINER_VERSION, V928_CONTAINER_VERSION}
 TEMP_DB = Path(tempfile.gettempdir()) / f"nemesis_v925_rendered_home_{os.getpid()}.sqlite"
 sys.dont_write_bytecode = True
 
@@ -50,13 +51,13 @@ class RenderedHomeParser(HTMLParser):
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         attr_map = {key: value or "" for key, value in attrs}
         classes = set(attr_map.get("class", "").split())
-        if tag == "main" and "v925-shell" in classes and ({"v925-page", "v925-public-shell"} & classes):
+        if (tag == "main" and "v925-shell" in classes and ({"v925-page", "v925-public-shell"} & classes)) or (tag == "section" and {"v928-page", "v928-home"}.issubset(classes)):
             self.v925_root_depth = len(self.stack)
         elif self.v925_root_depth is not None and len(self.stack) == self.v925_root_depth + 1:
             if self.first_v925_child_classes is None and tag in {"section", "article", "div"}:
                 self.first_v925_child_classes = classes
 
-        if "v925-public-hero" in classes:
+        if "v925-public-hero" in classes or "v928-home-hero" in classes:
             self.hero_count += 1
         self.legacy_classes.update(
             classes.intersection(
@@ -110,8 +111,9 @@ def main() -> int:
     if version_bytes.startswith(b"\xef\xbb\xbf"):
         failures.append("VERSION.txt contains UTF-8 BOM")
     local_version = version_bytes.decode("utf-8").strip()
+    is_v928 = local_version == V928_CONTAINER_VERSION
     if local_version not in ALLOWED_CONTAINER_VERSIONS:
-        failures.append("VERSION.txt is not a supported V925/V926 container")
+        failures.append("VERSION.txt is not a supported V925+ container")
     if source_app_version(app_source) != local_version:
         failures.append("APP_VERSION does not match the local V925/V926 container")
 
@@ -142,6 +144,7 @@ def main() -> int:
         parser.first_v925_child_classes
         and (
             "v925-public-hero" in parser.first_v925_child_classes
+            or "v928-home-hero" in parser.first_v925_child_classes
             or "v926-home-desktop-overview" in parser.first_v925_child_classes
         )
     )
@@ -157,17 +160,20 @@ def main() -> int:
         for phrase in (legacy_primary_copy, legacy_secondary_copy, legacy_secondary_title)
         if phrase.casefold() in rendered_lower
     ]
-    if legacy_secondary_title.casefold() in rendered_lower:
+    if not is_v928 and legacy_secondary_title.casefold() in rendered_lower:
         failures.append("legacy second hero title is visible")
     if legacy_primary_copy.casefold() in rendered_lower and legacy_secondary_copy.casefold() in rendered_lower:
         failures.append("both legacy public hero copies are visible")
 
-    required_sections = ("Hoy en NeMeSiS", "Qué hace la app", "Planes", "Confianza")
+    required_sections = ("Hoy en NeMeSiS", "Qué hace la app", "Membresías", "Datos honestos") if is_v928 else ("Hoy en NeMeSiS", "Qué hace la app", "Planes", "Confianza")
     missing_sections = [section for section in required_sections if section.casefold() not in rendered_lower]
     if missing_sections:
         failures.append(f"rendered home missing sections: {missing_sections}")
 
-    if sum("v925-public-hero" in value.split() for value in re.findall(r'class="([^"]*)"', home_source)) != 1:
+    if is_v928:
+        if 'data-v928-template="home"' not in home_source or "v928-home-hero" not in home_source:
+            failures.append("home source does not contain the V928 canonical hero")
+    elif sum("v925-public-hero" in value.split() for value in re.findall(r'class="([^"]*)"', home_source)) != 1:
         failures.append("home source does not contain exactly one V925 hero")
     if any(marker in home_source for marker in ("v783-public-hero", legacy_secondary_title, legacy_secondary_copy)):
         failures.append("home source still contains a legacy public hero marker")
@@ -215,8 +221,9 @@ def main() -> int:
     for forbidden in ("Salir cliente", "Capturas0", "Comparaciones18"):
         if forbidden in admin_templates:
             failures.append(f"admin template contains forbidden glued/legacy copy: {forbidden}")
-    if "V925 admin command center reference rebuild" not in admin_templates:
-        failures.append("admin command-center V925 marker is missing")
+    admin_marker = 'data-v928-template="admin_dashboard"' if is_v928 else "V925 admin command center reference rebuild"
+    if admin_marker not in admin_templates:
+        failures.append("admin command-center canonical marker is missing")
 
     safe_route_states: dict[str, bool] = {}
     for route in ("/calendar", "/live", "/picks", "/shark"):
@@ -249,13 +256,13 @@ def main() -> int:
                 len(parser.h1_texts) != 1
                 or parser.hero_count != 1
                 or parser.legacy_classes
-                or legacy_secondary_title.casefold() in rendered_lower
+                or (not is_v928 and legacy_secondary_title.casefold() in rendered_lower)
             ),
         },
         "route_status": route_status,
         "safe_route_states": safe_route_states,
         "admin_compact_contract": {
-            "v925_marker": "V925 admin command center reference rebuild" in admin_templates,
+            "v925_marker": admin_marker in admin_templates,
             "client_exit_copy_absent": "Salir cliente" not in admin_templates,
             "glued_values_absent": all(value not in admin_templates for value in ("Capturas0", "Comparaciones18")),
             "compact_css_present": "body.ns-admin .ns-main-shell" in css,

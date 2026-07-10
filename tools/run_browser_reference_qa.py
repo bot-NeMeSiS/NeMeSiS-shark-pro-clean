@@ -15,15 +15,21 @@ from tools.check_browser_qa_environment import detect_browser_qa_environment
 
 VERSION = (ROOT / "VERSION.txt").read_text(encoding="utf-8-sig", errors="replace").strip()
 PUBLIC_ROUTES = ["/", "/cliente-login", "/registro"]
-CLIENT_ROUTES = ["/app", "/calendar", "/live", "/picks", "/shark", "/telegram", "/profile", "/support"]
+CLIENT_ROUTES = ["/app", "/calendar", "/live", "/picks", "/track-record", "/shark", "/telegram", "/profile", "/memberships", "/support"]
 ADMIN_SAFE_ROUTES = ["/admin-login"]
 ADMIN_PROTECTED_ROUTES = [
     "/admin/dashboard",
+    "/admin/telegram/command-center",
+    "/admin/users",
+    "/admin/payments",
+    "/admin/picks",
+    "/admin/data-center",
+    "/admin/automation-workforce",
     "/admin/autonomous-company-sentinel",
     "/admin/sentinel-issues",
     "/admin/sentinel-codex-outbox",
     "/admin/not-found-events",
-    "/admin/telegram/command-center",
+    "/admin/launch-certification",
 ]
 
 
@@ -46,10 +52,11 @@ def _status_paths(output: Path) -> tuple[Path, Path, Path]:
 
 
 def _write_markdown_status(payload: dict, output: Path) -> None:
-    report = ROOT / "reports" / "V907_BROWSER_QA_STATUS.md"
+    report_name = "V928_BROWSER_QA_STATUS.md" if VERSION.startswith("V928_") else "V907_BROWSER_QA_STATUS.md"
+    report = ROOT / "reports" / report_name
     status = payload.get("browser_qa_status") or ("CAPTURED" if payload.get("browser_available") else "BROWSER_QA_UNAVAILABLE")
     lines = [
-        "# V907 Browser QA Status",
+        f"# {VERSION.split('_', 1)[0]} Browser QA Status",
         "",
         f"- Version: {payload.get('version', VERSION)}",
         f"- Status: {status}",
@@ -93,6 +100,9 @@ def _write_reference_gap_status(comparison: dict) -> None:
         "updated_by": "V907 browser QA enablement",
         "updated_at_madrid": _now_label(),
     }
+    if VERSION.startswith("V928_"):
+        existing["v928_browser_reference_status"] = compatibility_status
+        existing["v928_browser_gap_report"] = comparisons
     existing["v906_browser_status"] = compatibility_status
     existing["v906_browser_reference_status"] = compatibility_status
     existing["v906_browser_gap_report"] = comparisons
@@ -134,8 +144,9 @@ def _write_outbox(comparison: dict) -> None:
             ])
         return lines
 
+    release_tag = VERSION.split("_", 1)[0]
     lines = [
-        "# Codex Outbox - V907 Browser QA",
+        f"# Codex Outbox - {release_tag} Browser QA",
         "",
         "pixel_perfect_claim: false",
         f"generated_at_madrid: {_now_label()}",
@@ -144,7 +155,7 @@ def _write_outbox(comparison: dict) -> None:
         f"visual_gaps_resolved: {comparison.get('visual_gaps_resolved', 0)}",
         f"visual_gaps_pending: {comparison.get('visual_gaps_pending', 0)}",
         "",
-        "# V907_BROWSER_QA_FINDINGS",
+        f"# {release_tag}_BROWSER_QA_FINDINGS",
         f"- Browser QA status: {comparison.get('browser_qa_status')}",
         f"- Capturas reales: {len(captured)}",
         f"- Pendientes: {len(pending)}",
@@ -174,6 +185,7 @@ def _write_visual_fix_queue(comparison: dict) -> dict:
     queue_path.parent.mkdir(parents=True, exist_ok=True)
     comparisons = comparison.get("comparisons") or []
     items = []
+    release_tag = VERSION.split("_", 1)[0]
     for index, item in enumerate(comparisons, start=1):
         route = item.get("route") or "unknown"
         device = str(item.get("profile") or item.get("device") or "desktop")
@@ -181,7 +193,7 @@ def _write_visual_fix_queue(comparison: dict) -> dict:
         severity = "high" if route.startswith("/admin") or route in {"/app", "/picks", "/live", "/calendar"} else "medium"
         status = "READY_FOR_CODEX" if has_screenshot else "BLOCKED_NO_SCREENSHOT"
         items.append({
-            "id": f"V909-{index:03d}",
+            "id": f"{release_tag}-{index:03d}",
             "route": route,
             "device": "mobile" if "mobile" in device else "desktop",
             "screenshot": item.get("screenshot_path") or item.get("screenshot") or "",
@@ -277,6 +289,8 @@ def run_browser_reference_qa(
     no_login_required: bool,
     timeout: int,
     write_json: bool = True,
+    v928_matrix: bool = False,
+    safe_mock_sessions: bool = False,
 ) -> dict:
     output.mkdir(parents=True, exist_ok=True)
     env = detect_browser_qa_environment()
@@ -289,12 +303,24 @@ def run_browser_reference_qa(
     routes = list(dict.fromkeys(routes))
 
     devices = []
-    if desktop:
-        devices.append(("desktop", {"width": 1440, "height": 900}))
-    if mobile:
-        devices.append(("mobile", {"width": 390, "height": 844}))
+    if desktop and v928_matrix:
+        devices.extend([
+            ("desktop", "desktop_1366x768", {"width": 1366, "height": 768}),
+            ("desktop", "desktop_1440x900", {"width": 1440, "height": 900}),
+            ("desktop", "desktop_1600x900", {"width": 1600, "height": 900}),
+            ("desktop", "desktop_1920x1080", {"width": 1920, "height": 1080}),
+        ])
+    elif desktop:
+        devices.append(("desktop", "desktop_1440x900", {"width": 1440, "height": 900}))
+    if mobile and v928_matrix:
+        devices.extend([
+            ("mobile", "mobile_390x844", {"width": 390, "height": 844}),
+            ("mobile", "mobile_430x932", {"width": 430, "height": 932}),
+        ])
+    elif mobile:
+        devices.append(("mobile", "mobile_390x844", {"width": 390, "height": 844}))
     if not devices:
-        devices.append(("desktop", {"width": 1440, "height": 900}))
+        devices.append(("desktop", "desktop_1440x900", {"width": 1440, "height": 900}))
 
     captures: list[dict] = []
     try:
@@ -303,22 +329,70 @@ def run_browser_reference_qa(
         with sync_playwright() as p:
             browser = p.chromium.launch()
             try:
-                for device, viewport in devices:
+                signed_sessions = {}
+                local_base = base_url.startswith("http://127.0.0.1") or base_url.startswith("http://localhost")
+                if safe_mock_sessions and local_base:
+                    from app import app as flask_app
+
+                    serializer = flask_app.session_interface.get_signing_serializer(flask_app)
+                    cookie_name = flask_app.config.get("SESSION_COOKIE_NAME", "session")
+                    signed_sessions = {
+                        "cookie_name": cookie_name,
+                        "client": serializer.dumps({
+                            "user_id": "v928-browser-client",
+                            "user_name": "Browser QA Client",
+                            "username": "browser_qa_client",
+                            "user_email": "browser-qa-client@example.invalid",
+                            "user_role": "FREE",
+                            "membership": "FREE",
+                            "user_membership": "FREE",
+                        }),
+                        "admin": serializer.dumps({
+                            "user_id": "v928-browser-admin",
+                            "user_name": "Browser QA Admin",
+                            "username": "browser_qa_admin",
+                            "user_email": "browser-qa-admin@example.invalid",
+                            "user_role": "ADMIN",
+                            "membership": "ADMIN",
+                            "user_membership": "ADMIN",
+                        }),
+                    }
+                for device, profile, viewport in devices:
                     device_dir = output / device
                     device_dir.mkdir(parents=True, exist_ok=True)
-                    page = browser.new_page(viewport=viewport)
+                    contexts = {}
+                    for role in ("public", "client", "admin"):
+                        # Visual evidence must represent the current release assets, not a
+                        # service-worker cache left by an earlier local capture.
+                        context = browser.new_context(viewport=viewport, service_workers="block")
+                        if signed_sessions and role in {"client", "admin"}:
+                            context.add_cookies([{
+                                "name": signed_sessions["cookie_name"],
+                                "value": signed_sessions[role],
+                                "url": base_url.rstrip("/"),
+                                "httpOnly": True,
+                            }])
+                        contexts[role] = (context, context.new_page())
                     for route in routes:
                         safe_name = (route.strip("/") or "home").replace("/", "__").replace("-", "_")
-                        shot = device_dir / f"{safe_name}.png"
+                        shot = device_dir / f"{safe_name}__{viewport['width']}x{viewport['height']}.png"
+                        role = "public"
+                        if signed_sessions and route in CLIENT_ROUTES:
+                            role = "client"
+                        elif signed_sessions and route in ADMIN_PROTECTED_ROUTES:
+                            role = "admin"
+                        page = contexts[role][1]
                         item = {
                             "device": device,
-                            "profile": f"{device}_{viewport['width']}x{viewport['height']}",
+                            "profile": profile,
+                            "session_profile": role,
                             "route": route,
                             "url": base_url.rstrip("/") + route,
                             "screenshot": str(shot.relative_to(ROOT)),
                         }
                         try:
-                            response = page.goto(item["url"], wait_until="networkidle", timeout=timeout)
+                            response = page.goto(item["url"], wait_until="domcontentloaded", timeout=timeout)
+                            page.wait_for_timeout(400)
                             scroll_width = page.evaluate("document.documentElement.scrollWidth")
                             inner_width = page.evaluate("window.innerWidth")
                             body_text = page.locator("body").inner_text(timeout=3000)[:1000]
@@ -333,7 +407,8 @@ def run_browser_reference_qa(
                         except Exception as exc:
                             item["error"] = f"{exc.__class__.__name__}: {str(exc)[:220]}"
                         captures.append(item)
-                    page.close()
+                    for context, _page in contexts.values():
+                        context.close()
             finally:
                 browser.close()
     except Exception as exc:
@@ -354,6 +429,8 @@ def run_browser_reference_qa(
         "desktop_routes": [item["route"] for item in captures if item.get("device") == "desktop"],
         "mobile_routes": [item["route"] for item in captures if item.get("device") == "mobile"],
         "overflow_issues": [item for item in captures if item.get("overflow_x")],
+        "safe_mock_sessions": bool(signed_sessions),
+        "viewport_profiles": [profile for _, profile, _ in devices],
         "note": "Capturas locales; no prueban produccion Render.",
     }
     comparison = build_browser_reference_comparison(ROOT, qa_payload=payload, output_dir=output)
@@ -366,7 +443,7 @@ def run_browser_reference_qa(
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="V907 real browser screenshot/reference QA.")
+    parser = argparse.ArgumentParser(description="Real browser screenshot/reference QA with V928 matrix support.")
     parser.add_argument("--base-url", default="http://127.0.0.1:5000")
     parser.add_argument("--output", default="reports/V907_browser_qa")
     parser.add_argument("--mobile", action="store_true")
@@ -376,6 +453,8 @@ def main() -> int:
     parser.add_argument("--timeout", type=int, default=15000)
     parser.add_argument("--timeout-ms", type=int)
     parser.add_argument("--write-json", action="store_true")
+    parser.add_argument("--v928-matrix", action="store_true")
+    parser.add_argument("--safe-mock-sessions", action="store_true")
     args = parser.parse_args()
     payload = run_browser_reference_qa(
         base_url=args.base_url,
@@ -386,6 +465,8 @@ def main() -> int:
         no_login_required=bool(args.no_login_required),
         timeout=int(args.timeout_ms or args.timeout),
         write_json=True,
+        v928_matrix=bool(args.v928_matrix),
+        safe_mock_sessions=bool(args.safe_mock_sessions),
     )
     print(json.dumps(payload, ensure_ascii=False, indent=2))
     return 0

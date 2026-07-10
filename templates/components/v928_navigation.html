@@ -1,0 +1,59 @@
+{% from "partials/brand_logo.html" import nemesis_brand %}
+
+{% macro public_topbar() -%}
+<header class="v928-public-topbar" data-nav-zone="public-topbar">
+  <div class="v928-topbar-inner">
+    {{ nemesis_brand('/', 'topbar') }}
+    <nav aria-label="Navegación pública">
+      <a href="/calendar">Partidos</a><a href="/live">Directo</a><a href="/picks">Picks</a><a href="/membresias">Planes</a><a href="/cliente-login">Entrar</a><a class="is-primary" href="/registro">Crear cuenta</a>
+    </nav>
+  </div>
+</header>
+<header class="v928-mobile-header" data-nav-zone="public-mobile">
+  {{ nemesis_brand('/', 'topbar', True) }}
+  <a href="/cliente-login" class="v928-mobile-account" aria-label="Entrar"><span class="v928-icon" data-v928-icon="user" aria-hidden="true"></span></a>
+</header>
+{%- endmacro %}
+
+{% macro client_topbar(plan='FREE') -%}
+{% set links = [('Inicio','/app','home'),('Partidos','/calendar','calendar'),('Directo','/live','live'),('Picks','/picks','target'),('Histórico','/track-record','history'),('SHARK','/shark','shark'),('Telegram','/telegram','telegram'),('Cuenta','/profile','user')] %}
+<header class="v928-client-topbar" data-nav-zone="client-desktop">
+  <div class="v928-topbar-inner">
+    {{ nemesis_brand('/app', 'topbar') }}
+    <nav aria-label="Navegación cliente">
+      {% for label, href, icon in links %}{% set active = request.path == href or (href == '/calendar' and request.path in ['/partidos','/calendario']) or (href != '/app' and request.path.startswith(href ~ '/')) %}<a href="{{ href }}" class="{% if active %}is-active{% endif %}"{% if active %} aria-current="page"{% endif %}><span class="v928-icon" data-v928-icon="{{ icon }}" aria-hidden="true"></span>{{ label }}</a>{% endfor %}
+    </nav>
+    <span class="v928-plan-pill">{{ plan }}</span>
+  </div>
+</header>
+<header class="v928-mobile-header" data-nav-zone="client-mobile">
+  {{ nemesis_brand('/app', 'topbar', True) }}
+  <a href="/profile" class="v928-mobile-account" aria-label="Abrir cuenta"><span class="v928-icon" data-v928-icon="user" aria-hidden="true"></span></a>
+</header>
+{%- endmacro %}
+
+{% macro admin_sidebar() -%}
+{% set links = [('Dashboard','/admin/dashboard','dashboard'),('Telegram','/admin/telegram/command-center','telegram'),('Pagos','/admin/payments','payments'),('Usuarios','/admin/users','users'),('Picks','/admin/picks','target'),('Partidos','/admin/matches-sync','matches'),('Datos','/admin/data-center','database'),('Automatización','/admin/automation-center','automation'),('Lanzamiento real','/admin/real-launch','rocket'),('Auditoría cliente','/admin/app-experience-quality','shield'),('Ajustes','/admin/system','settings')] %}
+<aside class="v928-admin-sidebar" data-nav-zone="admin-sidebar">
+  {{ nemesis_brand('/admin/dashboard', 'admin') }}
+  <nav aria-label="Navegación de administración">
+    {% for label, href, icon in links %}{% set active = request.path == href or (href != '/admin/dashboard' and request.path.startswith(href ~ '/')) %}<a href="{{ href }}" class="{% if active %}is-active{% endif %}"{% if active %} aria-current="page"{% endif %}><span class="v928-icon" data-v928-icon="{{ icon }}" aria-hidden="true"></span><span>{{ label }}</span></a>{% endfor %}
+  </nav>
+  <div class="v928-admin-sidebar-status"><i aria-hidden="true"></i><span><strong>Sistema supervisado</strong><small>Estado real en el panel</small></span></div>
+  <a class="v928-admin-logout" href="/logout">Cerrar sesión admin</a>
+</aside>
+{%- endmacro %}
+
+{% macro admin_topbar() -%}
+<header class="v928-admin-topbar" data-nav-zone="admin-topbar">
+  <form action="/admin/map" method="get" role="search"><span class="v928-icon" data-v928-icon="search" aria-hidden="true"></span><input type="search" name="q" placeholder="Buscar en el panel" aria-label="Buscar en el panel"></form>
+  <div><a href="/admin/sentinel-issues" class="v928-topbar-tool">Incidencias</a><a href="/admin/automation-workforce" class="v928-admin-identity"><span class="v928-icon" data-v928-icon="user" aria-hidden="true"></span><span><strong>Administrador</strong><small>Panel protegido</small></span></a></div>
+</header>
+{%- endmacro %}
+
+{% macro mobile_bottom_nav(authenticated=false) -%}
+{% if authenticated %}{% set links = [('Inicio','/app','home'),('Partidos','/calendar','calendar'),('Directo','/live','live'),('Picks','/picks','target'),('Cuenta','/profile','user')] %}{% else %}{% set links = [('Inicio','/','home'),('Partidos','/calendar','calendar'),('Directo','/live','live'),('Picks','/picks','target'),('Entrar','/cliente-login','user')] %}{% endif %}
+<nav class="v928-mobile-bottom-nav" aria-label="Navegación móvil" data-nav-zone="client-bottom">
+  {% for label, href, icon in links %}{% set active = request.path == href or (href == '/calendar' and request.path in ['/partidos','/calendario']) %}<a href="{{ href }}" class="{% if active %}is-active{% endif %}"{% if active %} aria-current="page"{% endif %}><span class="v928-icon" data-v928-icon="{{ icon }}" aria-hidden="true"></span><span>{{ label }}</span></a>{% endfor %}
+</nav>
+{%- endmacro %}

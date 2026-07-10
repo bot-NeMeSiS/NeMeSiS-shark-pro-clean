@@ -1,7 +1,7 @@
 {
   "version": "V910_FULL_PROJECT_HIDDEN_AUDIT_ROUTE_NOT_FOUND_BROWSER_QA_READY_FINAL",
   "links": {
-    "templates_scanned": 169,
+    "templates_scanned": 171,
     "direct_api_hrefs": [
       {
         "file": "templates/admin_api_sports_audit.html",
@@ -10,10 +10,6 @@
       {
         "file": "templates/admin_app_experience_quality.html",
         "href": "/api/admin/app-experience-quality"
-      },
-      {
-        "file": "templates/admin_automation_center.html",
-        "href": "/api/automation/telegram/tick"
       },
       {
         "file": "templates/admin_autonomous_sentinel.html",
@@ -48,6 +44,10 @@
         "href": "/api/admin/daily-automation/health"
       },
       {
+        "file": "templates/admin_data_marketplace.html",
+        "href": "/api/admin/data-marketplace/export/{{ item.get("
+      },
+      {
         "file": "templates/admin_highlights_center.html",
         "href": "/api/admin/highlights/sync?force=1&days_back=7&limit=300"
       },
@@ -64,10 +64,6 @@
         "href": "/api/admin/legal-compliance"
       },
       {
-        "file": "templates/admin_real_launch.html",
-        "href": "/api/admin/real-launch"
-      },
-      {
         "file": "templates/admin_sentinel_autopilot.html",
         "href": "/api/admin/sentinel-autopilot/run?dry_run=1"
       },
@@ -82,10 +78,6 @@
       {
         "file": "templates/admin_shark_center.html",
         "href": "/api/admin/shark-center"
-      },
-      {
-        "file": "templates/admin_telegram_command_center.html",
-        "href": "/api/admin/telegram/dedupe-status"
       },
       {
         "file": "templates/admin_telegram_pro_preview.html",
@@ -121,7 +113,7 @@
     ]
   },
   "smoke": {
-    "routes_registered": 633,
+    "routes_registered": 636,
     "smoke_results": [
       {
         "path": "/",

@@ -13,6 +13,7 @@ from pathlib import Path, PurePosixPath
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V927_PC_DESKTOP_REFERENCE_PERFECTION_ADMIN_CLIENT_SPORTS_FINAL"
+V928_VERSION = "V928_CANONICAL_REFERENCE_FULL_APP_ADMIN_CLIENT_MOBILE_REBUILD_FINAL"
 ZIP = ROOT / "release_output" / f"NeMeSiS_SHARK_PRO_{VERSION}_RENDER_READY.zip"
 REQUIRED_ROOT = {
     "app.py",
@@ -92,9 +93,10 @@ def main() -> int:
 
     if version_bytes.startswith(b"\xef\xbb\xbf"):
         failures.append("VERSION.txt contains UTF-8 BOM")
-    if version_text != VERSION:
+    is_v928 = version_text == V928_VERSION
+    if version_text not in {VERSION, V928_VERSION}:
         failures.append(f"VERSION.txt mismatch: {version_text}")
-    if app_version(source) != VERSION:
+    if app_version(source) != version_text:
         failures.append(f"APP_VERSION mismatch: {app_version(source)}")
 
     flags = (
@@ -171,11 +173,32 @@ def main() -> int:
         "admin_sentinel_codex_outbox": "data-v927-template=\"admin_sentinel_codex_outbox\"",
         "admin_telegram_command_center": "data-v927-template=\"admin_telegram_command_center\"",
     }
+    if is_v928:
+        template_markers = {
+            "home": 'data-v928-template="home"',
+            "client_app_center": 'data-v928-template="client_app_center"',
+            "calendar": 'data-v928-template="calendar"',
+            "live": 'data-v928-template="live"',
+            "picks": 'data-v928-template="picks"',
+            "shark": 'data-v928-template="shark"',
+            "telegram": 'data-v928-template="telegram"',
+            "profile": 'data-v928-template="profile"',
+            "membership": 'data-v928-template="membership"',
+            "admin_dashboard": 'data-v928-template="admin_dashboard"',
+            "admin_automation_workforce": 'data-v928-template="admin_automation_workforce"',
+            "admin_autonomous_company_sentinel": 'data-v928-template="admin_autonomous_company_sentinel"',
+            "admin_sentinel_issues": 'data-v928-template="admin_sentinel_issues"',
+            "admin_sentinel_codex_outbox": 'data-v928-template="admin_sentinel_codex_outbox"',
+            "admin_telegram_command_center": 'data-v928-template="admin_telegram_command_center"',
+        }
     for name, marker in template_markers.items():
         if marker not in templates[name]:
             failures.append(f"{name} missing marker: {marker}")
 
-    if sum("v925-public-hero" in value.split() for value in re.findall(r'class="([^"]*)"', templates["home"])) != 1:
+    if is_v928:
+        if "v928-home-hero" not in templates["home"] or 'data-v928-template="home"' not in templates["home"]:
+            failures.append("home is missing the V928 canonical hero")
+    elif sum("v925-public-hero" in value.split() for value in re.findall(r'class="([^"]*)"', templates["home"])) != 1:
         failures.append("home has a duplicated or missing public hero")
     for helper in (
         "get_safe_sports_calendar_context",
@@ -233,8 +256,8 @@ def main() -> int:
         failures.append("404 contracts are not safe")
 
     runtime = http.get("/api/runtime-version").get_json() or {}
-    if runtime.get("version") != VERSION:
-        failures.append("runtime version is not V927")
+    if runtime.get("version") != version_text:
+        failures.append("runtime version does not match the active V927+ container")
     if runtime.get("version_files_match") is not True:
         failures.append("runtime version files do not match")
     if runtime.get("deployment_alignment_status") != "aligned_local_files":
@@ -261,7 +284,7 @@ def main() -> int:
 
     result = {
         "ok": not failures,
-        "version": VERSION,
+        "version": version_text,
         "failures": failures,
         "smoke": smoke,
         "runtime": {

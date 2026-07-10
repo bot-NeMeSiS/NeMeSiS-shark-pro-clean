@@ -1,72 +1,13 @@
 {% extends "base.html" %}
+{% from "components/v928_ui.html" import page_header, kpi_card, section_header, empty_state, status_chip %}
 {% block content %}
-<section class="hero compact v826-certified-screen v827-certified-screen v828-certified-screen v829-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v830-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen" data-v827-template="admin_matches_sync" data-v828-template="admin_matches_sync" data-v829-template="admin_matches_sync" data-v830-template="admin_matches_sync" data-v832-template="admin_matches_sync" data-v833-template="admin_matches_sync" data-v836-template="admin_matches_sync" data-v837-template="admin_matches_sync" data-v826-template="admin_matches_sync">
-  <div class="kicker">Calendario real</div>
-  <h1>Sincronizar partidos</h1>
-  <p class="lead">Control admin para cargar calendario real desde SportsDB, Odds API o importaciones legales. No inventa partidos si una fuente no devuelve datos.</p>
-  <div class="admin-menu">
-    <a class="btn" href="/admin/data-center">Data Center</a>
-    <a class="btn primary" href="/admin/matches-sync">Partidos</a>
-    <a class="btn" href="/admin/sportsdb-feed">SportsDB Feed</a>
-    <a class="btn" href="/admin/sportsdb-sync">Escudos</a>
-    <a class="btn" href="/admin/import-center">Import Center</a>
-  </div>
-</section>
-<section class="band v826-certified-screen" data-v826-template="admin_matches_sync">
-  <div class="grid compact-grid">
-    <div class="card"><div class="metric">{{ data.matches_diagnostics.total_matches }}</div><div class="muted">partidos guardados</div></div>
-    <div class="card"><div class="metric">{{ data.matches_diagnostics.upcoming_matches }}</div><div class="muted">próximos</div></div>
-    <div class="card"><div class="metric">{{ data.matches_diagnostics.live_matches }}</div><div class="muted">en directo</div></div>
-    <div class="card"><div class="metric">{{ data.matches_diagnostics.total_competitions }}</div><div class="muted">competiciones</div></div>
-  </div>
-</section>
-<section class="band two-col v826-certified-screen" data-v826-template="admin_matches_sync">
-  {% if message %}<div class="notice">{{ message }}</div>{% endif %}
-  <form class="card" method="post" action="/admin/matches-sync">
-    <h2>SportsDB</h2>
-    <p class="small">Próximos eventos por liga y live si la API premium lo permite.</p>
-    <input type="hidden" name="action" value="sportsdb">
-    <div class="field"><label>Límite</label><input name="limit" value="80"></div>
-    <button type="submit">Sincronizar SportsDB</button>
-  </form>
-  <form class="card" method="post" action="/admin/matches-sync">
-    <h2>Odds API</h2>
-    <p class="small">Eventos con cuotas H2H usando cache para no gastar llamadas innecesarias.</p>
-    <input type="hidden" name="action" value="odds">
-    <div class="field"><label>Límite</label><input name="limit" value="80"></div>
-    <button type="submit">Sincronizar Odds</button>
-  </form>
-</section>
-<section class="band two-col v826-certified-screen" data-v826-template="admin_matches_sync">
-  <form class="card" method="post" action="/admin/matches-sync">
-    <h2>Escudos</h2>
-    <p class="small">Refresca escudos para equipos cacheados desde partidos.</p>
-    <input type="hidden" name="action" value="crests">
-    <div class="field"><label>Límite</label><input name="limit" value="40"></div>
-    <button type="submit">Sincronizar equipos/escudos</button>
-  </form>
-  <aside class="card">
-    <h2>Fuentes</h2>
-    <p class="small">Activa: {{ data.matches_diagnostics.active_data_source }}</p>
-    <p class="small">SportsDB key: {{ data.matches_diagnostics.sportsdb_key_masked or 'sin configurar' }}</p>
-    <p class="small">Odds key: {{ data.matches_diagnostics.odds_key_masked or 'sin configurar' }}</p>
-    <p class="small">Última sincronización: {{ (data.matches_diagnostics.latest_sync.started_at or '-')|madrid_datetime_label }}</p>
-  </aside>
-</section>
-<section class="band v826-certified-screen" data-v826-template="admin_matches_sync">
-  <div class="section-head"><h2>Errores recientes</h2><span class="pill">{{ data.matches_diagnostics.errors_recent|length }}</span></div>
-  <div class="stack">
-    {% for error in data.matches_diagnostics.errors_recent %}
-    <div class="list-row"><span>{{ error }}</span><strong>revisar</strong></div>
-    {% else %}
-    <div class="empty">Sin errores recientes.</div>
-    {% endfor %}
-  </div>
+{% set diag = data.get('matches_diagnostics') or {} %}
+{% set feed = data.get('sportsdb_feed') or {} %}
+{% set odds = data.get('odds') or {} %}
+<section class="v928-page v928-admin-command-center" data-v928-template="admin_matches_sync">
+  {{ page_header('Partidos', 'Calendario, resultados, cuotas y proveedores', 'matches', [{'label':'Data Center','href':'/admin/data-center'},{'label':'Ver calendario','href':'/calendar','primary':true}]) }}
+  {% if message %}<div class="v928-inline-safe">{{ message }}</div>{% endif %}
+  <section class="v928-kpi-grid is-four">{{ kpi_card('Partidos guardados', diag.get('total_matches'), 'DB real', 'blue', 'matches') }}{{ kpi_card('Próximos', diag.get('upcoming_matches'), 'Agenda', 'green', 'calendar') }}{{ kpi_card('En directo', diag.get('live_matches'), 'Estado confirmado', 'green', 'live') }}{{ kpi_card('Competiciones', diag.get('total_competitions'), 'Cobertura guardada', 'blue', 'database') }}</section>
+  <section class="v928-layout-main-aside"><div class="v928-stack"><section class="v928-admin-panel"><header><div><h2>Sincronización manual protegida</h2><p>No se ejecuta ninguna API al renderizar esta página</p></div></header><div class="v928-admin-panel-body"><div class="v928-grid is-three">{% for action, title, body in [('sportsdb','SportsDB','Calendario y resultados permitidos'),('odds','Odds','Eventos y cuotas con cache'),('crests','Escudos','Identidades de equipos cacheadas')] %}<form class="v928-fact-card v928-admin-form" method="post" action="/admin/matches-sync"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="action" value="{{ action }}"><span>{{ title }}</span><strong>{{ body }}</strong><label><span>Límite</span><input name="limit" type="number" min="1" max="500" value="{{ 40 if action == 'crests' else 80 }}"></label><button class="v928-button" type="submit">Sincronizar</button></form>{% endfor %}</div></div></section><section class="v928-admin-panel"><header><div><h2>Errores recientes</h2><p>Diagnóstico del calendario</p></div></header><div class="v928-admin-panel-body">{% if diag.get('errors_recent') %}<div class="v928-notes-list">{% for error in diag.get('errors_recent') %}<p>{{ error }}</p>{% endfor %}</div>{% else %}{{ empty_state('Sin errores recientes', 'No hay errores de sincronización registrados.', '', '', 'shield') }}{% endif %}</div></section></div><aside class="v928-stack"><section class="v928-admin-panel"><header><div><h2>Estado de proveedores</h2></div></header><div class="v928-admin-panel-body"><div class="v928-truth-list"><div><span>Fuente activa</span><strong>{{ diag.get('active_data_source') or 'Sin dato' }}</strong></div><div><span>SportsDB</span><strong>{{ diag.get('sportsdb_key_masked') or 'Sin configurar' }}</strong></div><div><span>Odds</span><strong>{{ diag.get('odds_key_masked') or 'Sin configurar' }}</strong></div><div><span>Última sync</span><strong>{{ (diag.get('latest_sync') or {}).get('started_at')|madrid_datetime_label if (diag.get('latest_sync') or {}).get('started_at') else 'Sin dato' }}</strong></div></div></div></section><section class="v928-admin-panel"><header><div><h2>Reglas de verdad</h2></div></header><div class="v928-admin-panel-body"><div class="v928-truth-list"><div><span>Partidos ficticios</span><strong>No</strong></div><div><span>Cuotas ficticias</span><strong>No</strong></div><div><span>Escudos inventados</span><strong>No</strong></div><div><span>Fallback</span><strong>Iniciales seguras</strong></div></div></div></section></aside></section>
 </section>
 {% endblock %}
-
-
-
-
-
-

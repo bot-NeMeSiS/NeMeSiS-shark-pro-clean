@@ -1,74 +1,13 @@
 {% extends "base.html" %}
-{% import "partials/admin_visual_system.html" as ui %}
+{% from "components/v928_ui.html" import page_header, kpi_card, section_header, empty_state, status_chip, data_table %}
 {% block content %}
-{% call ui.shell('Datos', 'Data Marketplace', 'Exportaciones, privacidad y datos comerciales') %}
-<section class="v794-admin-kpi-grid">
-  {{ ui.kpi('Datasets','6','+1 este mes','▤','blue') }}
-  {{ ui.kpi('Exportaciones hoy','—','Dato real','⇧','blue') }}
-  {{ ui.kpi('Clientes analizados','—','Dato real','♙','blue') }}
-  {{ ui.kpi('ROI real','—','Dato real','€','green') }}
-  {{ ui.kpi('Privacidad','98%','Cumplimiento','🛡','green') }}
-  {{ ui.kpi('Último backup','—','Data Vault real','☁','green') }}
+{% set market = data.get('data_marketplace') or {} %}
+{% set counts = market.get('counts') or {} %}
+{% set exports = market.get('exports') or [] %}
+{% set privacy = market.get('privacy') or {} %}
+<section class="v928-page v928-admin-command-center" data-v928-template="admin_data_marketplace">
+  {{ page_header('Data Marketplace', 'Exportaciones, privacidad y datos comerciales reales', 'database', [{'label':'Data Center','href':'/admin/data-center','primary':true}]) }}
+  <section class="v928-kpi-grid">{% for key, label in [('picks','Picks'),('matches','Partidos'),('users','Usuarios'),('payment_webhook_events','Eventos de pago'),('highlights','Highlights')] %}{{ kpi_card(label, counts.get(key), 'Registros en DB', 'blue', 'database') }}{% endfor %}{{ kpi_card('Readiness', (market.get('readiness_score')|string ~ '%') if market.get('readiness_score') is not none else none, 'Privacidad y disponibilidad', 'green', 'shield') }}</section>
+  <section class="v928-layout-wide-aside"><div class="v928-stack"><section class="v928-admin-panel"><header><div><h2>Datasets disponibles</h2><p>Estimaciones reales de filas exportables</p></div></header><div class="v928-admin-panel-body">{% if exports %}{% call data_table(['Dataset','Descripción','Filas estimadas','Estado','Formato']) %}{% for item in exports %}<tr><td>{{ item.get('label') or item.get('title') or item.get('key') }}</td><td>{{ item.get('description') or 'Exportación agregada' }}</td><td>{{ item.get('rows_estimate') if item.get('rows_estimate') is not none else 'Sin dato' }}</td><td>{{ status_chip('Disponible' if item.get('available') else 'Sin datos','success' if item.get('available') else 'warning') }}</td><td>{% if item.get('available') %}<a class="v928-table-action" href="/api/admin/data-marketplace/export/{{ item.get('key') }}?format=csv">CSV</a>{% else %}Pendiente{% endif %}</td></tr>{% endfor %}{% endcall %}{% else %}{{ empty_state('Sin exports disponibles', 'La DB no contiene datasets exportables en este entorno.', '', '', 'database') }}{% endif %}</div></section></div><aside class="v928-stack"><section class="v928-admin-panel"><header><div><h2>Protección de datos</h2><p>Guard de privacidad</p></div>{{ status_chip('Correcto' if privacy.get('last_probe_ok') else 'Revisar','success' if privacy.get('last_probe_ok') else 'warning') }}</header><div class="v928-admin-panel-body"><p class="v928-panel-copy">{{ privacy.get('policy') or 'No salen datos personales ni secretos.' }}</p><div class="v928-chip-cloud">{% for column in privacy.get('protected_columns') or [] %}{{ status_chip(column,'neutral') }}{% endfor %}</div></div></section><section class="v928-admin-panel"><header><div><h2>Advertencias</h2></div></header><div class="v928-admin-panel-body">{% if market.get('warnings') %}<div class="v928-notes-list">{% for warning in market.get('warnings') %}<p>{{ warning }}</p>{% endfor %}</div>{% else %}{{ empty_state('Sin advertencias', 'La capa de exportación no reporta bloqueadores.', '', '', 'shield') }}{% endif %}</div></section></aside></section>
 </section>
-<section class="v794-admin-grid sidebar">
-  <div class="v794-admin-grid">
-    <article class="v794-admin-panel">
-      <div class="v794-panel-head"><h2>Datasets principales</h2></div>
-      <div class="v794-action-grid">
-        {% for name,count in [('Picks cerrados','—'),('Track record','—'),('Usuarios','—'),('Pagos','—'),('Highlights','—'),('Partidos','—')] %}
-        <a class="v794-action-card" href="/admin/data-marketplace"><i>▤</i><span><b>{{ name }}</b><small>{{ count }} registros · actualizado</small></span><em>›</em></a>
-        {% endfor %}
-      </div>
-    </article>
-    <article class="v794-admin-panel">
-      <div class="v794-panel-head"><h2>Acciones de exportación</h2></div>
-      <div class="v794-action-grid">
-        <a class="v794-action-card" href="/admin/data-marketplaceformat=csv"><i>▣</i><span><b>CSV</b><small>Formato comprimido</small></span><em>›</em></a>
-        <a class="v794-action-card" href="/admin/data-marketplaceformat=xlsx"><i>▦</i><span><b>Excel</b><small>.xlsx optimizado</small></span><em>›</em></a>
-        <a class="v794-action-card" href="/admin/data-marketplaceformat=json"><i>{}</i><span><b>JSON</b><small>Formato estructurado</small></span><em>›</em></a>
-        <a class="v794-action-card" href="/admin/data-marketplace?format=api"><i>API</i><span><b>REST</b><small>Webhooks y exportación</small></span><em>›</em></a>
-      </div>
-    </article>
-    <article class="v794-admin-panel">
-      <div class="v794-panel-head"><h2>Exportaciones recientes</h2><a href="/admin/data-marketplace">Ver todas →</a></div>
-      <table class="v794-admin-table">
-        <thead><tr><th>Dataset</th><th>Destino</th><th>Usuario admin</th><th>Fecha</th><th>Estado</th></tr></thead>
-        <tbody>
-          {% for dset in ['Picks cerrados','Track record','Usuarios','Pagos','Partidos','Highlights'] %}
-          <tr><td>{{ dset }}</td><td>Destino real pendiente / {{ dset|lower|replace(' ','_') }}.csv</td><td>Administrador</td><td>—</td><td>{{ ui.status('Completado' if not loop.index==5 else 'Fallido','ok' if not loop.index==5 else 'warn') }}</td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </article>
-  </div>
-  <aside class="v794-admin-grid">
-    <article class="v794-admin-panel">
-      <div class="v794-panel-head"><h2>Protección de datos</h2><span>{{ ui.status('RGPD','ok') }}</span></div>
-      <table class="v794-admin-table">
-        <tbody>
-          <tr><td>Email</td><td>j***@dominio.com</td></tr>
-          <tr><td>Teléfono</td><td>+34 *** *** ***</td></tr>
-          <tr><td>Usuario ID</td><td>usr_************</td></tr>
-          <tr><td>Dirección IP</td><td>***.***.**.**</td></tr>
-          <tr><td>Método de pago</td><td>**** **** **** 4242</td></tr>
-        </tbody>
-      </table>
-      <hr>
-      <div class="v794-admin-list">
-        <div class="v794-admin-list-row"><span>✓</span><div><strong>RGPD / GDPR</strong><small>Cumplimiento activo</small></div></div>
-        <div class="v794-admin-list-row"><span>✓</span><div><strong>Retención de datos</strong><small>90 días</small></div></div>
-        <div class="v794-admin-list-row"><span>✓</span><div><strong>Encriptación</strong><small>AES-256</small></div></div>
-      </div>
-    </article>
-    <article class="v794-admin-panel">
-      <div class="v794-panel-head"><h2>Marketplace insights</h2></div>
-      <div class="v794-admin-chart" style="height:160px"><span class="v794-chart-label">156 exportaciones</span></div>
-      <div class="v794-action-grid" style="grid-template-columns:repeat(2,1fr);margin-top:12px">
-        <a class="v794-action-card" href="/admin/data-marketplacedataset=picks"><i>42%</i><span><b>Picks cerrados</b><small>Más solicitado</small></span></a>
-        <a class="v794-action-card" href="/admin/data-marketplacedataset=track-record"><i>24%</i><span><b>Track record</b><small>Alta demanda</small></span></a>
-      </div>
-    </article>
-  </aside>
-</section>
-{% endcall %}
 {% endblock %}

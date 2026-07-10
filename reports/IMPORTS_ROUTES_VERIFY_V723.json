@@ -1,6 +1,6 @@
 {
   "ok": true,
-  "checked_at": "2026-07-10T09:47:59",
+  "checked_at": "2026-07-10T19:12:08",
   "templates_referenced": [
     "404.html",
     "account_center.html",
@@ -140,8 +140,8 @@
   ],
   "missing_static": [],
   "import_ok": true,
-  "version": "V927_PC_DESKTOP_REFERENCE_PERFECTION_ADMIN_CLIENT_SPORTS_FINAL",
-  "route_count": 600,
+  "version": "V928_CANONICAL_REFERENCE_FULL_APP_ADMIN_CLIENT_MOBILE_REBUILD_FINAL",
+  "route_count": 603,
   "routes": [
     "/",
     "/actividad",
@@ -250,6 +250,7 @@
     "/admin/live-qa",
     "/admin/map",
     "/admin/match-intelligence",
+    "/admin/matches",
     "/admin/matches-sync",
     "/admin/mejora-continua",
     "/admin/mejoras-automaticas",
@@ -294,6 +295,7 @@
     "/admin/sentinel-issues",
     "/admin/sentinel-worker",
     "/admin/sentinel-workflow",
+    "/admin/settings",
     "/admin/shark",
     "/admin/shark-ai",
     "/admin/shark-center",
@@ -658,6 +660,7 @@
     "/match-hub",
     "/match/<match_id>",
     "/membership",
+    "/memberships",
     "/membresias",
     "/membresías",
     "/menu",

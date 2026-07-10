@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
 <!-- V925 Sentinel issues command center rebuild -->
-<section class="ns-admin-page v924-no-dead-space v924-admin-shell v924-page-shell v892-sentinel-issues v904-admin-rebuild v904-sentinel-issues v908-admin-shell v908-command-grid v911-admin-shell v912-admin-shell v912-command-center-polish v913-browser-qa-truth-panel v926-desktop-shell v926-desktop-command-center v926-admin-desktop" data-v926-template="admin_sentinel_issues" data-v904-template="admin_sentinel_issues" data-v908-template="admin_sentinel_issues" data-v911-template="admin_sentinel_issues" data-v912-template="admin_sentinel_issues" data-v913-template="admin_sentinel_issues" data-v924-template="admin_sentinel_issues">
+<section class="ns-admin-page v924-no-dead-space v924-admin-shell v924-page-shell v892-sentinel-issues v904-admin-rebuild v904-sentinel-issues v908-admin-shell v908-command-grid v911-admin-shell v912-admin-shell v912-command-center-polish v913-browser-qa-truth-panel v926-desktop-shell v926-desktop-command-center v926-admin-desktop v928-admin-command-center" data-v928-template="admin_sentinel_issues" data-v926-template="admin_sentinel_issues" data-v904-template="admin_sentinel_issues" data-v908-template="admin_sentinel_issues" data-v911-template="admin_sentinel_issues" data-v912-template="admin_sentinel_issues" data-v913-template="admin_sentinel_issues" data-v924-template="admin_sentinel_issues">
   <div class="ns-page-header v927-admin-desktop-shell v927-no-dead-space" data-v927-template="admin_sentinel_issues">
     <span class="ns-chip">V892 Centro de Incidencias</span>
     <h1>Sentinel Issues Command Center</h1>
@@ -23,7 +23,7 @@
 
   <section class="ns-grid ns-grid-4 v911-admin-kpi-grid v912-admin-kpi-grid v927-admin-kpi-deck">
     <article class="ns-stat v912-kpi-card"><span class="v912-kpi-label">Abiertas</span><strong class="v912-kpi-value">{{ summary.counts.open }}</strong><small class="v912-kpi-hint">incidencias activas</small></article>
-    <article class="ns-stat v912-kpi-card"><span class="v912-kpi-label">Críticas</span><strong class="v912-kpi-value">{{ summary.counts.severity.critical }}</strong><small class="v912-kpi-hint">bloqueo real</small></article>
+    <article class="ns-stat v912-kpi-card"><span class="v912-kpi-label">Críticas</span><strong class="v912-kpi-value">{{ summary.counts.severity.critical }}</strong><small class="v912-kpi-hint">histórico total</small></article>
     <article class="ns-stat v912-kpi-card"><span class="v912-kpi-label">Altas</span><strong class="v912-kpi-value">{{ summary.counts.severity.high }}</strong><small class="v912-kpi-hint">prioridad operativa</small></article>
     <article class="ns-stat v912-kpi-card"><span class="v912-kpi-label">Codex Ready</span><strong class="v912-kpi-value">{{ summary.codex_ready_issues|length }}</strong><small class="v912-kpi-hint">prompt preparado</small></article>
   </section>
@@ -69,14 +69,14 @@
     </article>
   </section>
 
-  {% if summary.critical_issues or summary.high_issues %}
+  {% if summary.display_priority %}
   <section class="ns-admin-card v927-admin-table-area v927-table-card">
     <div class="ns-section-title">
       <h2>Prioridad alta</h2>
-      <span class="ns-badge">{{ (summary.critical_issues|length) + (summary.high_issues|length) }}</span>
+      <span class="ns-badge">{{ summary.display_priority|length }}</span>
     </div>
     <div class="ns-grid ns-grid-2">
-      {% for issue in (summary.critical_issues + summary.high_issues)[:6] %}
+      {% for issue in summary.display_priority %}
       <article class="ns-command-card" data-v892-issue-card data-severity="{{ issue.severity }}" data-status="{{ issue.status }}" data-codex="true">
         <span class="ns-chip ns-chip-{{ issue.severity }}">{{ issue.severity|upper }}</span>
         <h3>{{ issue.title }}</h3>
@@ -95,7 +95,7 @@
   <section class="ns-admin-card">
     <div class="ns-section-title">
       <h2>Lista de incidencias</h2>
-      <span class="ns-badge">{{ summary.issues|length }}</span>
+      <span class="ns-badge">{{ summary.display_issues|length }} visibles · {{ summary.history_hidden_count }} archivadas</span>
     </div>
     <div class="ns-table-wrap">
       <table class="ns-table v892-issues-table">
@@ -111,7 +111,7 @@
           </tr>
         </thead>
         <tbody>
-          {% for issue in summary.issues %}
+          {% for issue in summary.display_issues %}
           <tr data-v892-issue-row data-severity="{{ issue.severity }}" data-status="{{ issue.status }}" data-codex="{{ 'true' if issue.codex_prompt else 'false' }}" data-search="{{ (issue.id ~ ' ' ~ issue.title ~ ' ' ~ issue.area ~ ' ' ~ issue.route ~ ' ' ~ issue.file ~ ' ' ~ issue.evidence)|lower|e }}">
             <td><code>{{ issue.id }}</code><br><small>{{ issue.source }}</small></td>
             <td><span class="ns-chip ns-chip-{{ issue.severity }}">{{ issue.severity }}</span></td>

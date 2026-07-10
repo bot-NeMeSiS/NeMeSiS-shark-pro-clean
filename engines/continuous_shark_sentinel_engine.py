@@ -9,6 +9,8 @@ from __future__ import annotations
 
 from datetime import datetime
 from hashlib import sha1
+import json
+from pathlib import Path
 import re
 from typing import Any
 from zoneinfo import ZoneInfo
@@ -282,6 +284,27 @@ PC_DESKTOP_REFERENCE_RULES_V927 = [
     "desktop_pixel_perfect_requires_real_browser_screenshots",
 ]
 
+V928_CANONICAL_REFERENCE_RULES = [
+    "canonical_shell_per_role",
+    "admin_client_navigation_isolated",
+    "client_desktop_and_mobile_are_distinct",
+    "real_data_or_safe_state_only",
+    "single_public_hero",
+    "responsive_overflow_guard",
+    "browser_evidence_required_for_visual_claims",
+    "pixel_perfect_requires_human_reference_review",
+]
+
+
+def _v928_browser_evidence() -> dict[str, Any]:
+    path = Path(__file__).resolve().parents[1] / "data" / "runtime" / "autonomous_company_sentinel" / "browser_qa_status.json"
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8-sig", errors="replace"))
+    except Exception:
+        payload = {}
+    captured = int(payload.get("screenshots_captured") or 0)
+    return {"status": "screenshots_available" if captured else "browser_qa_required", "screenshots_captured": captured}
+
 
 def build_v925_visual_product_snapshot(client: Any) -> dict[str, Any]:
     """Run safe visible-product checks without mutating data or requiring a browser."""
@@ -308,11 +331,14 @@ def build_v925_visual_product_snapshot(client: Any) -> dict[str, Any]:
         "rules": V925_REFERENCE_PRODUCT_RULES,
         "route_status": route_status,
         "client_routes_no_500": all(status and status < 500 for status in route_status.values()),
-        "single_public_hero": sum("v925-public-hero" in value.split() for value in re.findall(r'class="([^"]*)"', home_html)) == 1,
+        "single_public_hero": sum(
+            bool({"v925-public-hero", "v928-home-hero"} & set(value.split()))
+            for value in re.findall(r'class="([^"]*)"', home_html)
+        ) == 1,
         "visible_mojibake_tokens": broken_tokens,
         "visible_copy_clean": not broken_tokens,
         "sports_safe_states_present": sports_safe_state,
-        "browser_qa_status": "required_real_screenshots",
+        "browser_qa_status": _v928_browser_evidence()["status"],
         "pixel_perfect_claim_allowed": False,
         "no_mutations": True,
     }
@@ -336,15 +362,15 @@ def build_v926_desktop_snapshot(client: Any) -> dict[str, Any]:
         "rules": V926_DESKTOP_REFERENCE_RULES,
         "route_status": route_status,
         "client_routes_no_500": all(status and status < 500 for status in route_status.values()),
-        "home_desktop_marker": 'data-v926-template="home-public"' in rendered.get("/", ""),
-        "calendar_board_marker": "v926-desktop-sports-board" in rendered.get("/calendar", ""),
-        "live_board_marker": "v926-desktop-live-board" in rendered.get("/live", ""),
-        "picks_board_marker": "v926-desktop-picks-board" in rendered.get("/picks", ""),
+        "home_desktop_marker": 'data-v926-template="home-public"' in rendered.get("/", "") or 'data-v928-template="home"' in rendered.get("/", ""),
+        "calendar_board_marker": "v926-desktop-sports-board" in rendered.get("/calendar", "") or "v928-sports-board" in rendered.get("/calendar", ""),
+        "live_board_marker": "v926-desktop-live-board" in rendered.get("/live", "") or "v928-live-board" in rendered.get("/live", ""),
+        "picks_board_marker": "v926-desktop-picks-board" in rendered.get("/picks", "") or "v928-picks-board" in rendered.get("/picks", ""),
         "desktop_contract_markers_present": all(
-            marker in combined
-            for marker in ("v926-desktop-shell", "v926-desktop-data-table", "v926-desktop-sports-board")
+            any(candidate in combined for candidate in alternatives)
+            for alternatives in (("v926-desktop-shell", "v928-page"), ("v926-desktop-data-table", "v928-table-shell", "v928-safe-state"), ("v926-desktop-sports-board", "v928-sports-board"))
         ),
-        "browser_qa_status": "desktop_screenshots_required",
+        "browser_qa_status": _v928_browser_evidence()["status"],
         "pixel_perfect_claim_allowed": False,
         "no_mutations": True,
         "no_external_calls": True,
@@ -371,18 +397,46 @@ def build_v927_pc_desktop_snapshot(client: Any) -> dict[str, Any]:
         "route_status": route_status,
         "client_routes_no_500": all(status and status < 500 for status in route_status.values()),
         "single_public_hero": sum(
-            "v925-public-hero" in value.split()
+            bool({"v925-public-hero", "v928-home-hero"} & set(value.split()))
             for value in re.findall(r'class="([^"]*)"', rendered.get("/", ""))
         ) == 1,
-        "home_pc_marker": 'data-v927-template="home-public"' in rendered.get("/", ""),
-        "calendar_toolbar_marker": "v927-data-toolbar" in rendered.get("/calendar", ""),
-        "live_toolbar_marker": "v927-data-toolbar" in rendered.get("/live", ""),
-        "picks_table_marker": "v927-table-card" in rendered.get("/picks", ""),
+        "home_pc_marker": 'data-v927-template="home-public"' in rendered.get("/", "") or 'data-v928-template="home"' in rendered.get("/", ""),
+        "calendar_toolbar_marker": "v927-data-toolbar" in rendered.get("/calendar", "") or "v928-filter-form" in rendered.get("/calendar", ""),
+        "live_toolbar_marker": "v927-data-toolbar" in rendered.get("/live", "") or "v928-filter-tabs" in rendered.get("/live", ""),
+        "picks_table_marker": "v927-table-card" in rendered.get("/picks", "") or "v928-picks-board" in rendered.get("/picks", ""),
         "desktop_contract_markers_present": all(
-            marker in combined
-            for marker in ("v927-desktop-shell", "v927-status-strip", "v927-client-hero-row")
+            any(candidate in combined for candidate in alternatives)
+            for alternatives in (("v927-desktop-shell", "v928-page"), ("v927-status-strip", "v928-kpi-grid"), ("v927-client-hero-row", "v928-page-header"))
         ),
-        "browser_qa_status": "real_desktop_screenshots_still_required",
+        "browser_qa_status": _v928_browser_evidence()["status"],
+        "pixel_perfect_claim_allowed": False,
+        "no_mutations": True,
+        "no_external_calls": True,
+        "no_fake_data": True,
+    }
+
+
+def build_v928_canonical_snapshot(client: Any) -> dict[str, Any]:
+    """Report the active V928 contracts without mutating data or calling providers."""
+    root = Path(__file__).resolve().parents[1]
+    template_names = ["home.html", "client_app_center.html", "calendar.html", "live.html", "picks.html", "admin_dashboard.html"]
+    template_text = "\n".join((root / "templates" / name).read_text(encoding="utf-8-sig", errors="replace") for name in template_names)
+    css = (root / "static" / "v928-canonical.css").read_text(encoding="utf-8-sig", errors="replace")
+    evidence = _v928_browser_evidence()
+    route_status = {}
+    for route in ("/", "/calendar", "/live", "/picks", "/api/runtime-version"):
+        try:
+            route_status[route] = int(client.get(route, follow_redirects=False).status_code)
+        except Exception:
+            route_status[route] = 0
+    return {
+        "rules": V928_CANONICAL_REFERENCE_RULES,
+        "route_status": route_status,
+        "routes_no_500": all(status and status < 500 for status in route_status.values()),
+        "canonical_template_markers_present": all(marker in template_text for marker in ('data-v928-template="home"', 'data-v928-template="client_app_center"', 'data-v928-template="calendar"', 'data-v928-template="live"', 'data-v928-template="picks"', 'data-v928-template="admin_dashboard"')),
+        "canonical_css_present": "V928 canonical reference system" in css,
+        "browser_qa_status": evidence["status"],
+        "screenshots_captured": evidence["screenshots_captured"],
         "pixel_perfect_claim_allowed": False,
         "no_mutations": True,
         "no_external_calls": True,
@@ -491,6 +545,7 @@ def run_continuous_sentinel_cycle(client: Any, version: str = "", mode: str = "q
     v925_visual_snapshot = build_v925_visual_product_snapshot(client)
     v926_desktop_snapshot = build_v926_desktop_snapshot(client)
     v927_pc_desktop_snapshot = build_v927_pc_desktop_snapshot(client)
+    v928_canonical_snapshot = build_v928_canonical_snapshot(client)
     static_issues = static_result.get("issues", [])
     safe_data_notes = [
         issue
@@ -578,6 +633,8 @@ def run_continuous_sentinel_cycle(client: Any, version: str = "", mode: str = "q
         "v926_desktop_snapshot": v926_desktop_snapshot,
         "pc_desktop_reference_rules_v927": PC_DESKTOP_REFERENCE_RULES_V927,
         "v927_pc_desktop_snapshot": v927_pc_desktop_snapshot,
+        "canonical_reference_rules_v928": V928_CANONICAL_REFERENCE_RULES,
+        "v928_canonical_snapshot": v928_canonical_snapshot,
         "sentinel_autopilot_ready": True,
         "visual_company_worker_v883": visual_worker_result,
         "visual_company_worker_ready": True,

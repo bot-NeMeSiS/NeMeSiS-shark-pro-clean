@@ -339,7 +339,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V927_PC_DESKTOP_REFERENCE_PERFECTION_ADMIN_CLIENT_SPORTS_FINAL'
+APP_VERSION = 'V928_CANONICAL_REFERENCE_FULL_APP_ADMIN_CLIENT_MOBILE_REBUILD_FINAL'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 
@@ -10516,7 +10516,7 @@ def dashboard_data(lane="today", date=None):
 @app.route("/service-worker.js")
 def service_worker():
     body = (
-        "const NEMESIS_CACHE='NEMESIS_CACHE_V927';\n"
+        "const NEMESIS_CACHE='NEMESIS_CACHE_V928';\n"
         "self.addEventListener('install',event=>{self.skipWaiting();});\n"
         "self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.map(key=>caches.delete(key)))).then(()=>self.clients.claim()));});\n"
         "self.addEventListener('fetch',event=>{const req=event.request;if(req.method!=='GET'){return;}if(req.mode==='navigate'){event.respondWith(fetch(req,{cache:'no-store'}).catch(()=>fetch('/',{cache:'no-store'})));return;}if(req.destination==='style'||req.destination==='script'){event.respondWith(fetch(req,{cache:'reload'}));return;}event.respondWith(fetch(req));});\n"
@@ -12970,6 +12970,7 @@ def admin_sportsdb_feed_page():
     return render_template("admin_sportsdb_feed.html", data=data, message=message)
 
 
+@app.route("/admin/matches")
 @app.route("/admin/matches-sync", methods=["GET", "POST"])
 def admin_matches_sync_page():
     if not is_admin_session():
@@ -13561,8 +13562,18 @@ def admin_picks_page():
         action = request.form.get("action") or "create"
         if action in {"create", "publish"}:
             payload = dict(request.form)
-            result = create_or_update_pick(payload, publish=action == "publish")
-            message = "Pick publicado." if action == "publish" else "Pick guardado como borrador."
+            required = {
+                "match_id": str(payload.get("match_id") or "").strip(),
+                "market": str(payload.get("market") or "").strip(),
+                "selection": str(payload.get("selection") or "").strip(),
+                "odds": as_float(payload.get("odds") or payload.get("cuota"), 0.0),
+            }
+            if action == "publish" and (not required["match_id"] or not required["market"] or not required["selection"] or required["odds"] <= 1):
+                result = {"ok": False, "status": "blocked_incomplete_pick", "missing": [key for key, value in required.items() if not value or (key == "odds" and value <= 1)]}
+                message = "Publicación bloqueada: se requiere partido, mercado, selección y cuota real válida."
+            else:
+                result = create_or_update_pick(payload, publish=action == "publish")
+                message = "Pick publicado." if action == "publish" else "Pick guardado como borrador."
         elif action in {"archive", "published", "draft"}:
             result = update_pick_status(request.form.get("pick_id"), "archived" if action == "archive" else action)
             message = "Estado del pick actualizado."
@@ -14124,7 +14135,18 @@ def api_admin_autonomous_sentinel_sync_issues():
 def admin_sentinel_issues_page():
     if not is_admin_session():
         return redirect("/admin-login?next=/admin/sentinel-issues")
-    summary = _v892_sentinel_issues_summary(save_memory=False, mode=request.args.get("mode") or "quick")
+    # Page render stays read-only and fast. Explicit scan endpoints own the expensive workers.
+    memory = load_sentinel_issues_memory(Path(__file__).resolve().parent)
+    summary = build_sentinel_issues_summary(APP_VERSION, memory)
+    inactive_statuses = {"RESOLVED", "RESOLVED_BY_RESCAN", "FALSE_POSITIVE", "IGNORED_SAFE"}
+    all_issues = list(summary.get("issues") or [])
+    actionable = [issue for issue in all_issues if str(issue.get("status") or "OPEN") not in inactive_statuses]
+    recent_history = [issue for issue in all_issues if issue not in actionable][:37]
+    summary["display_issues"] = (actionable + recent_history)[:40]
+    summary["display_priority"] = [
+        issue for issue in actionable if str(issue.get("severity") or "").lower() in {"critical", "high"}
+    ][:6]
+    summary["history_hidden_count"] = max(0, len(all_issues) - len(summary["display_issues"]))
     return render_template("admin_sentinel_issues.html", data=dashboard_data(), summary=summary, statuses=SENTINEL_ISSUE_STATUSES)
 
 
@@ -14492,6 +14514,7 @@ def api_admin_visual_worker_tasks():
     return jsonify({"ok": True, "version": APP_VERSION, "tasks": result.get("suggested_tasks", []), "codex_prompts": result.get("codex_prompts", [])})
 
 
+@app.route("/admin/settings")
 @app.route("/admin/system")
 def admin_system_page():
     if not is_admin_session():
@@ -14641,6 +14664,7 @@ def profile_page():
     data["briefing"] = shark_briefing()
     data["v925_calendar"] = get_safe_sports_calendar_context({"matches": data.get("matches") or data.get("upcoming_matches") or []})
     data["v925_picks"] = get_safe_picks_context(data.get("picks") or [])
+    data["telegram_state"] = telegram_user_state(user)
     return render_template("profile.html", data=data)
 
 
@@ -14691,6 +14715,7 @@ def membership_buy_plan(plan):
 @app.route("/membresias")
 @app.route("/membresías")
 @app.route("/membership")
+@app.route("/memberships")
 def membership_page():
     session_plan = session.pop("pending_checkout_plan", "") if current_session_user() else session.get("pending_checkout_plan", "")
     selected_plan = _selected_paid_plan(request.args.get("plan") or session_plan)
@@ -16214,6 +16239,45 @@ def v927_pc_desktop_reference_runtime_summary() -> dict:
     }
 
 
+def v928_canonical_reference_runtime_summary() -> dict:
+    """Truthful build metadata for the canonical V928 presentation layer."""
+    root = Path(__file__).resolve().parent
+    def read_local(path):
+        try:
+            return path.read_text(encoding="utf-8", errors="replace")
+        except Exception:
+            return ""
+    reference_count = len(list((root / "reference_images").rglob("*.png"))) if (root / "reference_images").exists() else 0
+    admin_templates = [
+        "admin_dashboard.html", "admin_telegram_command_center.html", "admin_payments.html",
+        "admin_memberships.html", "admin_users.html", "admin_picks.html", "admin_matches_sync.html",
+        "admin_data_center.html", "admin_data_marketplace.html", "admin_automation_center.html",
+        "admin_final_certification.html", "admin_real_launch.html",
+    ]
+    client_templates = [
+        "home.html", "client_app_center.html", "calendar.html", "live.html", "picks.html",
+        "match_detail.html", "track_record.html", "membership.html", "profile.html",
+        "telegram.html", "shark.html",
+    ]
+    admin_rebuilt = sum(1 for name in admin_templates if "data-v928-template" in read_local(root / "templates" / name))
+    client_rebuilt = sum(1 for name in client_templates if "data-v928-template" in read_local(root / "templates" / name))
+    component_text = read_local(root / "templates" / "components" / "v928_ui.html") + read_local(root / "templates" / "components" / "v928_navigation.html")
+    components_created = component_text.count("{% macro ")
+    browser = v923_browser_qa_evidence_capture_runtime_summary()
+    valid_screenshots = int(browser.get("v923_valid_screenshots_count") or 0)
+    return {
+        "v928_reference_images_count": reference_count,
+        "v928_admin_screens_rebuilt": admin_rebuilt,
+        "v928_client_desktop_screens_rebuilt": client_rebuilt,
+        "v928_client_mobile_screens_rebuilt": client_rebuilt,
+        "v928_components_created": components_created,
+        "v928_no_fake_data_guard": True,
+        "v928_browser_qa_status": "screenshots_available" if valid_screenshots > 0 else "browser_qa_required",
+        "v928_pixel_perfect_claim_allowed": False,
+        "v928_next_required_action": "review_v928_browser_screenshots" if valid_screenshots > 0 else "run_v928_browser_qa",
+    }
+
+
 def get_safe_runtime_identity_for_admin() -> dict:
     """Return local runtime identity for admin panels without external calls or secrets."""
     version_txt = ""
@@ -16245,6 +16309,7 @@ def api_runtime_version():
     app_version_file = ""
     base_template = ""
     css_path = BASE_DIR / "static" / "app.css"
+    canonical_css_path = BASE_DIR / "static" / "v928-canonical.css"
     base_path = BASE_DIR / "templates" / "base.html"
     manifest_path = BASE_DIR / "RELEASE_MANIFEST_V898.json"
     fallback_manifest_path = BASE_DIR / "RELEASE_MANIFEST_V897.json"
@@ -16252,6 +16317,8 @@ def api_runtime_version():
     css_hash = ""
     css_mtime = ""
     css_text = ""
+    canonical_css_hash = ""
+    canonical_css_size = 0
     app_py_text = ""
     runtime_outbox_text = ""
     build_generated_at = ""
@@ -16289,6 +16356,13 @@ def api_runtime_version():
         css_hash = ""
         css_mtime = ""
     try:
+        canonical_css_bytes = canonical_css_path.read_bytes()
+        canonical_css_hash = hashlib.sha256(canonical_css_bytes).hexdigest()[:16]
+        canonical_css_size = len(canonical_css_bytes)
+    except Exception:
+        canonical_css_hash = ""
+        canonical_css_size = 0
+    try:
         app_py_text = Path(__file__).read_text(encoding="utf-8", errors="replace")
     except Exception:
         app_py_text = ""
@@ -16312,8 +16386,10 @@ def api_runtime_version():
         "filename='app.css'" in base_template
         and "?v={{ app_version }}" in base_template
         and 'data-cache-version="{{ app_version }}"' in base_template
+        and "filename='v928-canonical.css'" in base_template
+        and 'data-v928-cache-version="{{ app_version }}"' in base_template
     )
-    service_worker_cache_name = "NEMESIS_CACHE_V927"
+    service_worker_cache_name = "NEMESIS_CACHE_V928"
     service_worker_no_stale_html_css = bool(
         service_worker_cache_name in app_py_text
         and "cache:'no-store'" in app_py_text
@@ -16348,6 +16424,7 @@ def api_runtime_version():
     v925_summary = v925_reference_model_runtime_summary()
     v926_summary = v926_desktop_reference_runtime_summary()
     v927_summary = v927_pc_desktop_reference_runtime_summary()
+    v928_summary = v928_canonical_reference_runtime_summary()
     return jsonify(sanitize_runtime_value({
         "ok": True,
         "app": APP_NAME,
@@ -16379,6 +16456,8 @@ def api_runtime_version():
         "static_app_css_mtime": css_mtime,
         "static_css_expected_version": APP_VERSION,
         "static_css_expected_query": f"?v={APP_VERSION}",
+        "static_v928_css_hash": canonical_css_hash,
+        "static_v928_css_size": canonical_css_size,
         "service_worker_cache_name": service_worker_cache_name,
         "service_worker_no_stale_html_css": service_worker_no_stale_html_css,
         "has_v816_shell": "data-v816-shell" in base_template and "NEMESIS V816 LIVE REFERENCE VISUAL DIFF ACTIVE" in base_template,
@@ -16646,6 +16725,15 @@ def api_runtime_version():
         "has_v927_client_pc_dashboard_perfection": True,
         "has_v927_sports_pc_value_perfection": True,
         "has_v927_desktop_layout_quality_guard": True,
+        "has_v928_canonical_reference_rebuild": True,
+        "has_v928_admin_reference_rebuild": True,
+        "has_v928_client_desktop_reference_rebuild": True,
+        "has_v928_client_mobile_reference_rebuild": True,
+        "has_v928_component_library": True,
+        "has_v928_real_data_ui_guard": True,
+        "has_v928_responsive_overflow_guard": True,
+        "has_v928_reference_workers": True,
+        "has_v928_browser_qa_pipeline": True,
         **v902_truth_summary,
         **v904_summary,
         **v906_summary,
@@ -16670,6 +16758,7 @@ def api_runtime_version():
         **v925_summary,
         **v926_summary,
         **v927_summary,
+        **v928_summary,
         "active_errors_count": v903_active_errors_count,
         "fixed_safe_count": v903_archived_count,
         "stale_issues_count": v903_stale_issues_count,
@@ -19345,12 +19434,45 @@ def v566_intelligence_hub_page():
     return render_template("unified_intelligence_hub.html", data=data, hub=hub, upcoming=upcoming, picks=picks)
 
 
+def v928_admin_overview(data=None):
+    """Read-only command-center data. It never calls an external provider."""
+    data = data or {}
+    errors = latest_observability_errors(DB_PATH, limit=8)
+    telegram = telegram_diagnostics_safe()
+    automation = v773_automation_center_context()
+    match_hub_data = data.get("match_hub") or {}
+    counts = match_hub_data.get("counts") or {}
+    try:
+        users_total = safe_count("users")
+        users_pro = safe_count("users", "upper(coalesce(membership, role, 'FREE'))='PRO'")
+        users_elite = safe_count("users", "upper(coalesce(membership, role, 'FREE'))='ELITE'")
+        picks_active = safe_count("picks", "lower(coalesce(status,''))='published'")
+    except Exception:
+        users_total = users_pro = users_elite = picks_active = 0
+    return {
+        "users_total": users_total,
+        "users_pro": users_pro,
+        "users_elite": users_elite,
+        "picks_active": picks_active,
+        "matches_today": counts.get("today", len(data.get("matches") or [])),
+        "live_now": counts.get("live", len((match_hub_data.get("live") or []))),
+        "telegram": telegram,
+        "automation": automation,
+        "recent_errors": errors,
+        "global_status": "review" if errors else "ok",
+        "generated_at_madrid": datetime.now(MADRID_TZ).isoformat(timespec="seconds"),
+        "no_render_api_call": True,
+    }
+
+
 @app.route("/admin/control-center")
 @app.route("/admin/dashboard")
 def v566_admin_dashboard_page():
     if not is_admin_session():
         return redirect("/admin-login?next=/admin/control-center")
-    return render_template("admin_dashboard.html", data=dashboard_data(), q=quality_center_summary(), items=v566_admin_items())
+    data = dashboard_data()
+    data["v928_admin"] = v928_admin_overview(data)
+    return render_template("admin_dashboard.html", data=data, q=quality_center_summary(), items=v566_admin_items())
 
 
 @app.route("/api/admin/control-center")

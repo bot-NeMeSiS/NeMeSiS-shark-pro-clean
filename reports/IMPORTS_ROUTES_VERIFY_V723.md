@@ -1,8 +1,8 @@
 # Verificación de imports, rutas y plantillas V723
 
 - Resultado: OK
-- Versión importada: `V927_PC_DESKTOP_REFERENCE_PERFECTION_ADMIN_CLIENT_SPORTS_FINAL`
-- Rutas GET: 600
+- Versión importada: `V928_CANONICAL_REFERENCE_FULL_APP_ADMIN_CLIENT_MOBILE_REBUILD_FINAL`
+- Rutas GET: 603
 - Templates referenciados: 131
 - Templates faltantes: 0
 - Static faltantes: 0

@@ -1,70 +1,12 @@
 {% extends "base.html" %}
+{% from "components/v928_ui.html" import page_header, kpi_card, section_header, empty_state, status_chip %}
 {% block content %}
-<section class="hero compact admin-hero v826-certified-screen v827-certified-screen v828-certified-screen v829-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v830-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen" data-v827-template="admin_users" data-v828-template="admin_users" data-v829-template="admin_users" data-v830-template="admin_users" data-v832-template="admin_users" data-v833-template="admin_users" data-v836-template="admin_users" data-v837-template="admin_users" data-v826-template="admin_users">
-  <div class="kicker">Panel admin  Clientes</div>
-  <h1>Usuarios, roles y regalos por días  Regalar membresía</h1>
-  <p class="lead">Gestiona cuentas reales, cambia membresías y concede PRO/ELITE temporal para amigos, ofertas, betas o promociones sin tocar pagos.</p>
-  <div class="admin-menu compact-admin-menu">
-    <a class="btn primary" href="/admin/control-center">Control</a>
-    <a class="btn" href="/admin/memberships">Membresías</a>
-    <a class="btn" href="/admin/user-import">Importar usuarios</a>
-    <a class="btn" href="/admin/telegram">Telegram</a>
-  </div>
-</section>
-
-{% if message %}<section class="band compact-band v826-certified-screen" data-v826-template="admin_users"><p class="notice">{{ message }}</p></section>{% endif %}
-
-<section class="band compact-band v826-certified-screen" data-v826-template="admin_users">
-  <div class="grid compact-grid metric-row">
-    <article class="card metric-card"><div class="metric">{{ data.users|length }}</div><div class="muted">usuarios</div></article>
-    <article class="card metric-card"><div class="metric">{{ data.membership_admin.active_temporal or 0 }}</div><div class="muted">temporales activos</div></article>
-    <article class="card metric-card"><div class="metric">{{ data.membership_admin.expiring_soon or 0 }}</div><div class="muted">caducan en 7 días</div></article>
-    <article class="card metric-card"><div class="metric">{{ data.membership_admin.expired_today or 0 }}</div><div class="muted">caducadas hoy</div></article>
-  </div>
-  <p class="small">{{ data.membership_admin.note }}</p>
-</section>
-
-<section class="band compact-band v826-certified-screen" data-v826-template="admin_users">
-  <div class="section-head"><h2>{{ data.users|length }} usuarios</h2><span class="pill">ADMIN</span></div>
-  <div class="stack">
-    {% for user in data.users %}
-    <article class="card user-row admin-user-card">
-      <div class="admin-user-main">
-        <div class="name">{{ user.name or user.username }} <span class="pill">@{{ user.username }}</span></div>
-        <p class="small">{{ user.email or 'Sin email' }}  ID: {{ user.id }}</p>
-        <p class="small">Rol: <strong>{{ user.role }}</strong>  Membresa: <strong>{{ user.membership }}</strong></p>
-        <p class="small">Caducidad: <strong>{{ user.membership_expires_label or 'Sin caducidad' }}</strong>  Origen: {{ user.membership_source or 'manual' }}</p>
-        {% if user.membership_note %}<p class="small">Nota admin: {{ user.membership_note }}</p>{% endif %}
-        <p class="small">Alta: {{ (user.created_at or '-')|madrid_datetime_label }}  Último login: {{ (user.last_login or '-')|madrid_datetime_label }}</p>
-      </div>
-      <form method="post" action="/admin/users" class="gift-form">
-        <input type="hidden" name="user_id" value="{{ user.id }}">
-        <label>Membresa / rol</label>
-        <select name="membership">
-          {% for role in ['FREE','PRO','ELITE','ADMIN'] %}
-          <option value="{{ role }}" {% if user.membership == role or user.role == role %}selected{% endif %}>{{ role }}</option>
-          {% endfor %}
-        </select>
-        <label>Duración</label>
-        <select name="membership_days">
-          <option value="0">Sin caducidad</option>
-          {% for days in data.membership_admin.quick_days %}
-          <option value="{{ days }}">{{ days }} día{% if days != 1 %}s{% endif %}</option>
-          {% endfor %}
-        </select>
-        <label>Nota interna</label>
-        <input name="membership_note" maxlength="220" placeholder="Ej: regalo amigo, oferta 7 días, beta...">
-        <button type="submit">Guardar membresía</button>
-      </form>
-    </article>
-    {% else %}
-    <div class="empty">Aún no hay usuarios registrados.</div>
-    {% endfor %}
-  </div>
+{% set users = data.get('users') or [] %}
+{% set admin = data.get('membership_admin') or {} %}
+<section class="v928-page v928-admin-command-center" data-v928-template="admin_users">
+  {{ page_header('Usuarios', 'Cuentas, roles y membresías sin tocar pagos', 'users', [{'label':'Membresías','href':'/admin/memberships'},{'label':'Importar','href':'/admin/user-import','primary':true}]) }}
+  {% if message %}<div class="v928-inline-safe">{{ message }}</div>{% endif %}
+  <section class="v928-kpi-grid is-four">{{ kpi_card('Usuarios', users|length, 'Cuentas reales', 'blue', 'users') }}{{ kpi_card('Temporales', admin.get('active_temporal', 0), 'Membresías con fecha', 'purple', 'plan') }}{{ kpi_card('Caducan pronto', admin.get('expiring_soon', 0), 'Próximos 7 días', 'gold', 'calendar') }}{{ kpi_card('Caducadas hoy', admin.get('expired_today', 0), 'Reglas automáticas', 'blue', 'history') }}</section>
+  <section class="v928-admin-panel"><header><div><h2>Directorio de usuarios</h2><p>{{ admin.get('note') or 'Cambios protegidos por sesión admin.' }}</p></div></header><div class="v928-admin-panel-body"><div class="v928-user-grid">{% for user in users %}<article class="v928-user-card"><header><div><strong>{{ user.get('name') or user.get('username') }}</strong><small>{{ user.get('email') or 'Sin email' }}</small></div>{{ status_chip(user.get('membership') or user.get('role') or 'FREE','success' if user.get('membership') in ['PRO','ELITE'] else 'neutral') }}</header><dl><div><dt>Usuario</dt><dd>@{{ user.get('username') or 'sin_alias' }}</dd></div><div><dt>Caducidad</dt><dd>{{ user.get('membership_expires_label') or 'Sin caducidad' }}</dd></div><div><dt>Origen</dt><dd>{{ user.get('membership_source') or 'manual' }}</dd></div><div><dt>Último login</dt><dd>{{ user.get('last_login')|madrid_datetime_label if user.get('last_login') else 'Sin dato' }}</dd></div></dl><form class="v928-admin-form" method="post" action="/admin/users"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="user_id" value="{{ user.get('id') }}"><div class="v928-form-row"><label><span>Plan</span><select name="membership">{% for role in ['FREE','PRO','ELITE','ADMIN'] %}<option value="{{ role }}"{% if user.get('membership') == role or user.get('role') == role %} selected{% endif %}>{{ role }}</option>{% endfor %}</select></label><label><span>Duración</span><select name="membership_days"><option value="0">Sin caducidad</option>{% for days in admin.get('quick_days') or [] %}<option value="{{ days }}">{{ days }} días</option>{% endfor %}</select></label></div><label><span>Nota interna</span><input name="membership_note" maxlength="220" placeholder="Motivo del cambio"></label><button class="v928-button" type="submit">Guardar membresía</button></form></article>{% else %}{{ empty_state('Sin usuarios registrados', 'El directorio se llenará con cuentas reales.', '', '', 'users') }}{% endfor %}</div></div></section>
 </section>
 {% endblock %}
-
-
-
-
-

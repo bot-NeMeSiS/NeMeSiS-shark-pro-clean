@@ -1,60 +1,12 @@
 {% extends "base.html" %}
-{% from "partials/ui_components.html" import stat_card, empty_state, status_chip, action_button, plan_badge %}
+{% from "components/v928_ui.html" import page_header, kpi_card, section_header, empty_state, status_chip, data_table %}
 {% block content %}
-<section class="app-hero compact-hero admin-hero v826-certified-screen v827-certified-screen v828-certified-screen v829-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v830-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v860-admin-board" data-v827-template="admin_memberships" data-v828-template="admin_memberships" data-v829-template="admin_memberships" data-v830-template="admin_memberships" data-v832-template="admin_memberships" data-v833-template="admin_memberships" data-v836-template="admin_memberships" data-v837-template="admin_memberships" data-v826-template="admin_memberships">
-  <div>
-    <div class="kicker">Admin · Membresías</div>
-    <h1>Centro comercial de membresías.</h1>
-    <p class="lead">Control FREE, PRO y ELITE con regalos por días para amigos, promociones, pruebas y ofertas sin activar pagos reales.</p>
-    <div class="actions">{{ action_button('Regalar por días', '/admin/users', 'brand') }}{{ action_button('Ver landing pública', '/membresias', 'neutral') }}</div>
-  </div>
-  <aside class="hero-panel v860-hero-metric">
-    {{ plan_badge('Conversión', 'brand') }}
-    <div class="big-score">{{ data.membership_revenue.conversion }}%</div>
-    <p class="small">MRR estimado interno: {{ data.membership_revenue.estimated_mrr }} €/mes</p>
-  </aside>
-</section>
-
-<section class="band compact-band v826-certified-screen" data-v826-template="admin_memberships">
-  <div class="section-head"><h2>Regalos, ofertas y caducidades</h2><span class="pill">Nuevo</span></div>
-  <div class="grid compact-grid metric-row v860-kpi-row">
-    {{ stat_card('Temporales activos', data.membership_admin.active_temporal or 0, 'membresías con fecha', 'brand') }}
-    {{ stat_card('Caducan en 7 días', data.membership_admin.expiring_soon or 0, 'seguimiento comercial', 'warning') }}
-    {{ stat_card('Bajadas a FREE hoy', data.membership_admin.expired_today or 0, 'movimiento automático', 'info') }}
-  </div>
-  <div class="card">
-    <h3>Duraciones rápidas</h3>
-    <p class="small">Desde Usuarios puedes conceder PRO o ELITE por días concretos. Al caducar, el sistema lo baja a FREE automáticamente y deja nota interna.</p>
-    <div class="quick-days">
-      {% for days in data.membership_admin.quick_days %}{{ status_chip(days ~ ' día' ~ ('s' if days != 1 else ''), 'info') }}{% endfor %}
-      {{ status_chip('Sin caducidad', 'success') }}
-    </div>
-    <div class="actions"><a class="btn primary" href="/admin/users">Abrir usuarios</a></div>
-  </div>
-</section>
-
-<section class="band compact-band v826-certified-screen" data-v826-template="admin_memberships">
-  <div class="section-head"><h2>Distribución actual</h2><span class="pill">Usuarios</span></div>
-  <div class="grid compact-grid">
-    {% for plan,total in data.membership_revenue.distribution.items() %}
-    <article class="card metric-card v860-plan-card {{ (plan or '')|lower }}"><span class="badge">{{ plan }}</span><h2>{{ total }}</h2><p class="small">Usuarios en este nivel.</p></article>
-    {% endfor %}
-  </div>
-</section>
-
-<section class="band compact-band v826-certified-screen" data-v826-template="admin_memberships">
-  <div class="section-head"><h2>Usuarios con membresía temporal</h2><span class="pill">Seguimiento</span></div>
-  <div class="stack">
-    {% for user in data.users if user.membership_is_temporal %}
-    <div class="list-row"><span>{{ user.name or user.username }}<small>{{ user.email }} · {{ user.membership }} · {{ user.membership_source or 'admin' }}</small></span><strong>{{ user.membership_expires_label }}</strong></div>
-    {% else %}
-    {{ empty_state('No hay regalos ni ofertas temporales activas.', '', '', '', 'muted') }}
-    {% endfor %}
-  </div>
-</section>
-
-<section class="band compact-band v826-certified-screen" data-v826-template="admin_memberships">
-  <div class="section-head"><h2>Recomendaciones comerciales</h2><span class="pill">Roadmap</span></div>
-  <div class="stack">{% for item in data.membership_revenue.recommendations %}<div class="list-row"><span>{{ item }}</span><strong>OK</strong></div>{% endfor %}</div>
+{% set revenue = data.get('membership_revenue') or {} %}
+{% set admin = data.get('membership_admin') or {} %}
+{% set users = data.get('users') or [] %}
+<section class="v928-page v928-admin-command-center" data-v928-template="admin_memberships">
+  {{ page_header('Membresías', 'FREE, PRO y ELITE con caducidad y origen controlados', 'plan', [{'label':'Usuarios','href':'/admin/users'},{'label':'Pagos','href':'/admin/payments','primary':true}]) }}
+  <section class="v928-kpi-grid is-four">{{ kpi_card('Usuarios', users|length, 'Cuentas reales', 'blue', 'users') }}{{ kpi_card('Temporales activos', admin.get('active_temporal', 0), 'Con fecha de fin', 'purple', 'history') }}{{ kpi_card('Caducan pronto', admin.get('expiring_soon', 0), 'Próximos 7 días', 'gold', 'calendar') }}{{ kpi_card('Conversión', (revenue.get('conversion')|string ~ '%') if revenue.get('conversion') is not none else none, 'Según cuentas actuales', 'green', 'plan') }}</section>
+  <section class="v928-layout-wide-aside"><div class="v928-stack"><section class="v928-admin-panel"><header><div><h2>Distribución actual</h2><p>Usuarios por plan</p></div></header><div class="v928-admin-panel-body"><div class="v928-grid is-four">{% for plan, total in (revenue.get('distribution') or {}).items() %}<article class="v928-fact-card"><span>{{ plan }}</span><strong>{{ total }}</strong><small>Usuarios</small></article>{% else %}{{ empty_state('Sin distribución disponible', 'La base no devolvió datos de membresía.', '', '', 'plan') }}{% endfor %}</div></div></section><section class="v928-admin-panel"><header><div><h2>Membresías temporales</h2><p>Regalos, pruebas y ofertas activas</p></div></header><div class="v928-admin-panel-body">{% set temporary = users|selectattr('membership_is_temporal')|list %}{% if temporary %}{% call data_table(['Usuario','Plan','Origen','Caducidad']) %}{% for user in temporary %}<tr><td>{{ user.get('name') or user.get('username') }}<br><small>{{ user.get('email') or 'Sin email' }}</small></td><td>{{ status_chip(user.get('membership') or 'FREE','success') }}</td><td>{{ user.get('membership_source') or 'admin' }}</td><td>{{ user.get('membership_expires_label') or 'Sin caducidad' }}</td></tr>{% endfor %}{% endcall %}{% else %}{{ empty_state('Sin membresías temporales activas', 'No hay regalos ni ofertas con caducidad en este momento.', '', '', 'plan') }}{% endif %}</div></section></div><aside class="v928-stack"><section class="v928-admin-panel"><header><div><h2>Duraciones permitidas</h2><p>Gestión manual protegida</p></div></header><div class="v928-admin-panel-body"><div class="v928-chip-cloud">{% for days in admin.get('quick_days') or [] %}{{ status_chip(days ~ ' días','neutral') }}{% endfor %}{{ status_chip('Sin caducidad','success') }}</div><p class="v928-panel-copy">Los cambios se realizan desde Usuarios y quedan ligados a una cuenta real.</p><a class="v928-button is-primary" href="/admin/users">Gestionar usuarios</a></div></section><section class="v928-admin-panel"><header><div><h2>Recomendaciones</h2></div></header><div class="v928-admin-panel-body">{% if revenue.get('recommendations') %}<div class="v928-notes-list">{% for item in revenue.get('recommendations') %}<p>{{ item }}</p>{% endfor %}</div>{% else %}{{ empty_state('Sin recomendaciones nuevas', 'No hay acciones comerciales adicionales registradas.', '', '', 'plan') }}{% endif %}</div></section></aside></section>
 </section>
 {% endblock %}

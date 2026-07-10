@@ -1,197 +1,58 @@
 {% extends "base.html" %}
-{% from "partials/team_identity.html" import crest %}
+{% from "components/v928_ui.html" import page_header, section_header, status_chip, crest, pick_card, empty_state, provider_status %}
 {% block content %}
 {% if not detail %}
-<section class="v799-screen"><div class="v799-empty hero"><strong>No hemos encontrado este partido.</strong><p>Puede haber cambiado el calendario o faltar sincronización.</p><a class="v799-button primary" href="/calendar">Volver a partidos</a></div></section>
+<section class="v928-page" data-v928-template="match_detail">{{ page_header('Partido no disponible', 'No se encontró un registro real para este identificador', 'matches') }}{{ empty_state('Sin detalle de partido', 'Vuelve al calendario para elegir un encuentro disponible.', 'Volver a partidos', '/calendar', 'calendar') }}</section>
 {% else %}
-{% set m = detail.get('match') or {} %}
-{% set ctx = m|match_madrid_context %}
-{% set state = detail.get('state') or {} %}
-{% set home_identity = m.get('home_identity') or {} %}
-{% set away_identity = m.get('away_identity') or {} %}
-{% set related = detail.get('related_picks') or [] %}
-{% set pick = related[0] if related else none %}
-{% set dq = detail.get('data_quality') or {} %}
-{% set live_tracker = detail.get('api_football_live_tracker') or data.get('api_football_live_tracker') or {} %}
-{% set v850_live = detail.get('v850_live_card') or data.get('v850_live_card') or (m|v850_live_card) %}
-{% set v850_logo = detail.get('v850_logo_state') or data.get('v850_logo_state') or {} %}
-{% set pressure = live_tracker.get('pressure') or {} %}
-{% set live_stat_cards = live_tracker.get('stat_cards') or [] %}
-{% set game_flow = live_tracker.get('game_flow') or {} %}
-{% set tracker_quality = live_tracker.get('quality') or {} %}
-{% set tracker_evidence = tracker_quality.get('evidence') or live_tracker.get('evidence') or [] %}
-<section class="v799-screen v799-match-screen v850-match-screen v815-certified-screen v815-match-screen v816-certified-screen v816-match-screen v817-certified-screen v817-match-screen v819-certified-screen v819-match-screen v820-certified-screen v820-match-screen v823-certified-screen v823-match-screen v824-certified-screen v824-match-screen v825-certified-screen v826-certified-screen v827-certified-screen v828-certified-screen v829-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v830-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v825-match-screen" data-v815-template="match_detail" data-v816-template="match_detail" data-v817-template="match_detail" data-v819-template="match_detail" data-v820-template="match_detail" data-v823-template="match_detail" data-v824-template="match_detail" data-v825-template="match_detail" data-v827-template="match_detail" data-v828-template="match_detail" data-v829-template="match_detail" data-v830-template="match_detail" data-v832-template="match_detail" data-v833-template="match_detail" data-v836-template="match_detail" data-v837-template="match_detail" data-v826-template="match_detail" data-v850-template="match_detail">
-  <div class="v799-match-top">
-    <a class="v799-back" href="/calendar">← Volver a partidos</a>
-    <div class="v799-match-actions"><a href="/shark?match={{ m.get('id') }}">Analizar con SHARK</a><button class="fav-star" type="button" data-kind="match" data-value="{{ m.get('id') }}" data-label="{{ ctx.safe_home }} vs {{ ctx.safe_away }}">☆ Favorito</button></div>
-  </div>
-
-  <section class="v799-match-hero">
-    <div class="v799-big-team">{{ crest(home_identity, ctx.safe_home, 'compact') }}<strong>{{ ctx.safe_home }}</strong><small>Local</small></div>
-    <div class="v799-match-center">
-      <span>{{ ctx.client_competition|competition_es }}</span>
-      <b>{{ v850_live.get('score_label') or ctx.client_score_label or 'VS' }}</b>
-      <small>{{ v850_live.get('minute_label') or ctx.client_full_datetime_label or ctx.client_time_label or 'Hora pendiente' }}</small>
-      <em>{{ v850_live.get('status_label') or ctx.client_status_label or 'Estado pendiente' }}</em>
-    </div>
-    <div class="v799-big-team">{{ crest(away_identity, ctx.safe_away, 'compact') }}<strong>{{ ctx.safe_away }}</strong><small>Visitante</small></div>
+{% set match = detail.get('match') or {} %}
+{% set ctx = match|match_madrid_context %}
+{% set home_identity = match.get('home_identity') or {'name': ctx.safe_home, 'logo': match.get('home_logo') or match.get('home_crest')} %}
+{% set away_identity = match.get('away_identity') or {'name': ctx.safe_away, 'logo': match.get('away_logo') or match.get('away_crest')} %}
+{% set picks = detail.get('related_picks') or [] %}
+{% set pick = picks[0] if picks else none %}
+{% set live = detail.get('api_football_live_tracker') or data.get('api_football_live_tracker') or {} %}
+{% set quality = live.get('quality') or {} %}
+{% set data_quality = detail.get('data_quality') or {} %}
+<section class="v928-page v928-match-detail" data-v928-template="match_detail">
+  {{ page_header('Detalle del partido', 'Contexto deportivo real y hora Madrid', 'matches', [{'label':'Volver a partidos','href':'/calendar'},{'label':'Consultar SHARK','href':'/shark?match=' ~ match.get('id'),'primary':true}]) }}
+  <section class="v928-match-hero">
+    <div class="v928-match-hero-team">{{ crest(home_identity, 'lg') }}<strong>{{ ctx.safe_home }}</strong></div>
+    <div class="v928-match-hero-center"><span>{{ ctx.client_competition or match.get('competition_name') or 'Competición pendiente' }}</span><b>{{ ctx.client_score_label or 'VS' }}</b><time>{{ ctx.client_full_datetime_label or ctx.client_time_label or 'Hora pendiente' }}</time>{{ status_chip(ctx.client_status_label or 'Estado pendiente', 'live' if (ctx.client_status_label or '') == 'En directo' else 'neutral') }}</div>
+    <div class="v928-match-hero-team">{{ crest(away_identity, 'lg') }}<strong>{{ ctx.safe_away }}</strong></div>
   </section>
 
+  <nav class="v928-detail-tabs"><a class="is-active" href="#resumen">Resumen</a><a href="#picks">Picks</a><a href="#datos">Datos</a><a href="#historico">Histórico</a><a href="#shark">SHARK</a></nav>
 
-
-  {% include "partials/client_flow_bar.html" %}
-
-  <section class="v850-live-state" aria-label="Estado V850 del partido">
-    <article><span>Estado real</span><strong>{{ v850_live.get('status_label') or 'Estado pendiente' }}</strong><small>{{ v850_live.get('data_state') or 'Esperando proveedor' }}</small></article>
-    <article><span>Marcador</span><strong>{{ v850_live.get('score_label') or 'Resultado pendiente' }}</strong><small>{{ v850_live.get('minute_label') or 'Minuto no disponible' }}</small></article>
-    <article><span>Escudos</span><strong>{{ (v850_logo.get('label') if v850_logo else '') or 'Fallback premium' }}</strong><small>{{ (v850_logo.get('message') if v850_logo else '') or 'No se inventan escudos oficiales.' }}</small></article>
-  </section>
-
-{% set tracker = data.get('api_football_live_tracker') or detail.get('api_football_live_tracker') or {} %}
-{% set field_state = tracker.get('field_state') or {} %}
-{% if tracker.get('available') %}
-<section class="v811-match-field-summary" id="live-tracker">
-  <div><span>Campo SHARK Live</span><strong>{{ field_state.get('headline') or (tracker.get('pressure') or {}).get('label') or 'Lectura pendiente' }}</strong><small>{{ field_state.get('last_event_label') or 'Sin evento reciente' }}</small></div>
-  <aside>{% for chip in (field_state.get('chips') or [])[:6] %}<b>{{ chip }}</b>{% endfor %}<em>{{ field_state.get('ball_note') or 'Balón exacto no disponible: no se inventa.' }}</em></aside>
-</section>
-{% endif %}
-
-
-  <section class="v802-match-command" aria-label="Flujo del partido">
-    <a href="/calendar?lane=today"><span>Calendario</span><strong>Volver a partidos</strong></a>
-    <a href="/live"><span>Directo</span><strong>Marcador real</strong></a>
-    <a href="/picks"><span>Picks</span><strong>{{ 'Publicado' if pick else 'Sin pick' }}</strong></a>
-    <a href="/shark?match={{ m.get('id') }}"><span>SHARK</span><strong>Analizar</strong></a>
-  </section>
-
-  <section class="v800-match-strip" aria-label="Acciones principales del partido">
-    <a href="#resumen"><span>Resumen</span><strong>{{ ctx.client_status_label or 'Pendiente' }}</strong></a>
-    <a href="#live-tracker"><span>Live tracker</span><strong>{{ tracker_quality.get('label') or ('Activo' if live_tracker.get('available') else 'Pendiente') }}</strong></a>
-    <a href="#picks"><span>Pick</span><strong>{{ 'Publicado' if pick else 'Sin pick' }}</strong></a>
-    <a href="#datos"><span>Datos</span><strong>{{ 'Disponibles' if dq.get('has_time') or dq.get('has_score') else 'Pendientes' }}</strong></a>
-    <a href="/shark?match={{ m.get('id') }}"><span>SHARK</span><strong>Analizar</strong></a>
-  </section>
-
-  <section class="v799-match-meta-grid">
-    <article><span>Competición</span><strong>{{ ctx.client_competition|competition_es }}</strong></article>
-    <article><span>Hora Madrid</span><strong>{{ ctx.client_full_datetime_label or ctx.client_time_label or 'Pendiente' }}</strong></article>
-    <article><span>Estado</span><strong>{{ ctx.client_status_label or 'Pendiente' }}</strong></article>
-    <article><span>Pick</span><strong>{{ 'Publicado' if pick else 'Sin pick' }}</strong></article>
-  </section>
-
-  <nav class="v799-tabs"><a class="active" href="#resumen">Resumen</a><a href="#picks">Pick</a><a href="#datos">Datos</a><a href="#shark">SHARK</a></nav>
-
-  <section class="v803-match-live-tracker {{ 'is-available' if live_tracker.get('available') else 'is-pending' }}" id="live-tracker" aria-label="Live tracker API-Football">
-    <div class="v803-tracker-head">
-      <div><span>Live tracker real</span><h2>Campo, presión y eventos</h2></div>
-      <em>{{ live_tracker.get('source_label') or 'API-Football Pro' }}</em>
-      <a class="v804-detail-refresh" href="/match/{{ m.get('id') }}refresh=1#live-tracker">Actualizar tracker</a>
-    </div>
-    <div class="v803-live-field {{ 'has-pressure' if pressure.get('available') else 'no-pressure' }}">
-      <div class="v803-field-head"><span>Lectura SHARK</span><strong>{{ pressure.get('label') or live_tracker.get('message') or 'Esperando datos avanzados' }}</strong></div>
-      <div class="v805-match-quality-line">
-        <span>{{ tracker_quality.get('label') or 'Marcador básico' }}</span>
-      <strong>{{ tracker_quality.get('message') or 'La pantalla solo enseña evidencias reales del proveedor.' }}</strong>
-      </div>
-      <div class="v803-pitch" style="--home-p: {{ pressure.get('home_pct') or 50 }}%; --away-p: {{ pressure.get('away_pct') or 50 }}%;">
-        <div class="v803-pitch-zone home"><b>{{ ctx.safe_home }}</b></div>
-        <div class="v803-pitch-mid"><span>{{ 'Presión calculada con estadísticas reales' if pressure.get('available') else 'Sin presión avanzada disponible aún' }}</span></div>
-        <div class="v803-pitch-zone away"><b>{{ ctx.safe_away }}</b></div>
-      </div>
-      <div class="v803-live-evidence">
-        <span>{{ 'Eventos reales' if live_tracker.get('has_events') else 'Eventos pendientes' }}</span>
-        <span>{{ 'Estadísticas reales' if live_tracker.get('has_advanced_stats') else 'Estadísticas pendientes' }}</span>
-        <span>{{ game_flow.get('phase') or 'Lectura pendiente' }}</span>
-        <span>{{ 'Ataques peligrosos reales' if live_tracker.get('dangerous_attacks_available') else 'Ataques peligrosos no disponibles' }}</span>
-        <span>{{ 'Balón exacto disponible' if live_tracker.get('ball_position_available') else 'Balón exacto no disponible: no se inventa' }}</span>
-      </div>
-      {% if tracker_evidence %}
-      <div class="v805-evidence-chips" aria-label="Evidencias reales API-Football">
-        {% for ev in tracker_evidence[:8] %}<span>{{ ev }}</span>{% endfor %}
-      </div>
-      {% endif %}
-      {% if live_stat_cards %}
-      <div class="v804-stat-comparison" aria-label="Comparativa live API-Football">
-        <div class="v804-stat-title"><span>Comparativa real</span><strong>{{ game_flow.get('title') or pressure.get('label') or 'Datos live' }}</strong></div>
-        {% for stat in live_stat_cards[:10] %}
-        <article class="leader-{{ stat.get('leader') }}">
-          <b>{{ stat.get('home') }}</b>
-          <span>{{ stat.get('label') }}</span>
-          <strong>{{ stat.get('away') }}</strong>
-        </article>
-        {% endfor %}
-      </div>
-      {% endif %}
-    </div>
-    <div class="v803-tracker-grid">
-      <article><strong>Eventos</strong><span>{% if live_tracker.get('events') %}{{ live_tracker.get('events')|length }} eventos sincronizados{% else %}Pendiente{% endif %}</span></article>
-      <article><strong>Estadísticas</strong><span>{% if (live_tracker.get('stats') or {}).get('available') %}{{ live_tracker.get('stats_count') or (live_tracker.get('stat_cards') or [])|length }} datos API-Football{% else %}Pendientes{% endif %}</span></article>
-      <article><strong>Fase SHARK</strong><span>{{ game_flow.get('phase') or 'Pendiente' }}</span></article>
-      <article><strong>Ataques peligrosos</strong><span>{{ 'Disponibles por API' if live_tracker.get('dangerous_attacks_available') else 'No disponibles en este feed' }}</span></article>
-      <article><strong>Fuente</strong><span>{{ live_tracker.get('source_label') or 'API-Football Pro' }}</span></article>
-      <article><strong>Calidad</strong><span>{{ tracker_quality.get('label') or 'Marcador básico' }}</span></article>
-      <article><strong>Ubicación del balón</strong><span>{{ 'Disponible por proveedor' if live_tracker.get('ball_position_available') else 'No disponible; no se simula' }}</span></article>
-    </div>
-    {% if live_tracker.get('events') %}
-    <div class="v803-event-timeline detail">
-      {% for ev in live_tracker.get('events')[:10] %}
-      <div><b>{{ ev.get('elapsed') }}'</b><span>{{ ev.get('team_name') or 'Equipo' }}</span><strong>{{ ev.get('event_type') or 'Evento' }}</strong><small>{{ ev.get('detail') or ev.get('player_name') or ev.get('comments') or 'Dato real' }}</small></div>
-      {% endfor %}
-    </div>
-    {% endif %}
-  </section>
-
-  <section class="v799-match-layout">
-    <div class="v799-match-main">
-      <article class="v799-card" id="resumen">
-        <div class="v799-section-head"><div><span>Resumen</span><h2>Lectura del partido</h2></div><em>{{ state.get('label') or ctx.client_status_label or 'Estado pendiente' }}</em></div>
-        <div class="v799-gauge-row">
-          <div class="v799-gauge"><b>{% if pick and (pick.get('confidence') or pick.get('quality_score')) %}{{ pick.get('confidence') or pick.get('quality_score') }}%{% else %}—{% endif %}</b><span>Confianza SHARK</span></div>
-          <p>{{ (detail.get('shark_notes') or ['SHARK mostrará contexto cuando haya datos reales suficientes para este partido.'])[0] }}</p>
+  <section class="v928-layout-main-aside" id="resumen">
+    <div class="v928-stack">
+      <section class="v928-panel">
+        {{ section_header('Resumen real', 'La pantalla separa evidencia disponible y datos pendientes') }}
+        <div class="v928-grid is-three">
+          <article class="v928-fact-card"><span>Estado</span><strong>{{ ctx.client_status_label or 'Pendiente' }}</strong><small>{{ quality.get('label') or 'Lectura básica' }}</small></article>
+          <article class="v928-fact-card"><span>Marcador</span><strong>{{ ctx.client_score_label or 'Pendiente' }}</strong><small>{{ live.get('minute_label') or 'Minuto no disponible' }}</small></article>
+          <article class="v928-fact-card"><span>Fuente</span><strong>{{ live.get('source_label') or match.get('source') or 'Cache / DB' }}</strong><small>Sin llamada externa obligatoria</small></article>
         </div>
-        <dl class="v799-card-metrics"><div><dt>Resultado</dt><dd>{{ ctx.client_score_label or 'Pendiente' }}</dd></div><div><dt>Hora</dt><dd>{{ ctx.client_time_label or 'Pendiente' }}</dd></div><div><dt>Estado</dt><dd>{{ ctx.client_status_label or 'Pendiente' }}</dd></div></dl>
-      </article>
+        {% set notes = detail.get('shark_notes') or [] %}
+        {% if notes %}<div class="v928-notes-list">{% for note in notes[:5] %}<p>{{ note }}</p>{% endfor %}</div>{% else %}<p class="v928-inline-safe">SHARK mostrará una lectura ampliada cuando existan datos reales suficientes.</p>{% endif %}
+      </section>
 
-      <article class="v799-card v799-pick-detail" id="picks">
-        <div class="v799-section-head"><div><span>Señal conectada</span><h2>Pick recomendado</h2></div><a href="/picks">Ver picks →</a></div>
-        {% if pick %}
-        <strong class="v799-pick-market">{{ pick.get('selection_display') or pick.get('selection') or 'Selección pendiente' }}</strong>
-        <dl class="v799-pick-metrics"><div><dt>Cuota</dt><dd>{{ pick.get('client_odds_label') or pick.get('odds') or '—' }}</dd></div><div><dt>Stake</dt><dd>{{ pick.get('stake_units') or pick.get('stake') or '—' }}{% if pick.get('stake_units') or pick.get('stake') %}u{% endif %}</dd></div><div><dt>Riesgo</dt><dd>{{ pick.get('risk_level') or '—' }}</dd></div><div><dt>Confianza</dt><dd>{{ pick.get('confidence') or pick.get('quality_score') or '—' }}{% if pick.get('confidence') or pick.get('quality_score') %}%{% endif %}</dd></div></dl>
-        <p>{{ pick.get('reasoning') or pick.get('analysis_summary') or 'Motivo ampliado pendiente en los datos del pick.' }}</p>
-        <div class="v799-actions"><a class="primary" href="/shark?pick={{ pick.get('id') }}">Explicar pick con SHARK</a></div>
-        {% else %}
-        <div class="v799-empty"><strong>Sin pick publicado para este partido.</strong><p>La app no generará una selección falsa. Cuando exista un pick real aparecerá aquí.</p></div>
-        {% endif %}
-      </article>
+      <section class="v928-panel" id="picks">
+        {{ section_header('Pick recomendado', 'Solo aparece como completo con mercado, selección y cuota') }}
+        {% if pick %}{{ pick_card(pick, true) }}{% else %}{{ empty_state('Sin pick publicado para este partido', 'No se fuerza una recomendación cuando faltan datos o revisión editorial.', 'Ver picks', '/picks', 'target') }}{% endif %}
+      </section>
 
-      <article class="v799-card" id="datos">
-        <div class="v799-section-head"><div><span>Datos reales</span><h2>Disponibilidad</h2></div></div>
-        <div class="v799-real-data-grid">
-          <article><strong>Resultado</strong><span>{{ 'Disponible' if dq.get('has_score') else 'Pendiente o no sincronizado' }}</span></article>
-          <article><strong>Hora</strong><span>{{ 'Sincronizada' if dq.get('has_time') else 'Pendiente' }}</span></article>
-          <article><strong>Escudos</strong><span>{{ 'Cargados' if dq.get('has_crests') else 'Fallback seguro' }}</span></article>
-          <article><strong>Pick</strong><span>{{ 'Conectado' if dq.get('has_picks') else 'No publicado' }}</span></article>
-          <article><strong>Forma local</strong><span>{{ detail.get('home_form') or 'Sin forma suficiente guardada' }}</span></article>
-          <article><strong>Forma visitante</strong><span>{{ detail.get('away_form') or 'Sin forma suficiente guardada' }}</span></article>
-          <article><strong>Histórico H2H</strong><span>{% if detail.get('head_to_head') %}{{ detail.get('head_to_head')|length }} cruces guardados{% else %}Sin histórico directo suficiente{% endif %}</span></article>
-          <article><strong>Timeline</strong><span>{% if detail.get('timeline') %}{{ detail.get('timeline')|length }} eventos{% else %}Sin eventos sincronizados{% endif %}</span></article>
-          <article><strong>API-Football live</strong><span>{{ 'Activo' if live_tracker.get('available') else 'Sin tracker para este partido' }}</span></article>
-          <article><strong>Calidad live</strong><span>{{ tracker_quality.get('label') or 'Marcador básico' }}</span></article>
-          <article><strong>Presión</strong><span>{{ pressure.get('label') or 'Pendiente' }}</span></article>
-        </div>
-      </article>
+      <section class="v928-panel" id="datos">
+        {{ section_header('Datos y eventos', 'Información guardada por el proveedor o por la cache') }}
+        <div class="v928-truth-list"><div><span>Hora</span><strong>{{ 'Sincronizada' if data_quality.get('has_time') else 'Pendiente' }}</strong></div><div><span>Resultado</span><strong>{{ 'Disponible' if data_quality.get('has_score') else 'Pendiente' }}</strong></div><div><span>Escudos</span><strong>{{ 'Proveedor real' if data_quality.get('has_crests') else 'Fallback seguro' }}</strong></div><div><span>Live tracker</span><strong>{{ quality.get('label') or ('Activo' if live.get('available') else 'No disponible') }}</strong></div></div>
+        {% if live.get('events') %}<div class="v928-event-list">{% for event in live.get('events')[:12] %}<article><time>{{ event.get('elapsed') }}{% if event.get('elapsed') is not none %}'{% endif %}</time><span>{{ event.get('team_name') or 'Equipo' }}</span><strong>{{ event.get('event_type') or 'Evento' }}</strong><small>{{ event.get('detail') or event.get('player_name') or event.get('comments') or 'Dato del proveedor' }}</small></article>{% endfor %}</div>{% endif %}
+      </section>
     </div>
-
-    <aside class="v799-context-panel">
-      <article class="v799-card v800-side-cta" id="shark"><div class="v799-section-head"><div><span>SHARK</span><h2>Lectura</h2></div><a href="/shark?match={{ m.get('id') }}">Abrir →</a></div><div class="v799-notes-list">{% for note in detail.get('shark_notes') or [] %}<p>{{ note }}</p>{% else %}<p>SHARK mostrará lectura cuando haya datos suficientes.</p>{% endfor %}</div><a class="v799-button primary" href="/shark?match={{ m.get('id') }}">Analizar este partido</a></article>
-      <article class="v799-mobile-preview mini"><div class="v799-phone-top"><span>Partido</span><strong>{{ ctx.client_status_label or 'Estado' }}</strong></div><div class="v799-phone-match"><strong>{{ ctx.safe_home }}</strong><b>{{ ctx.client_score_label or 'VS' }}</b><em>{{ ctx.safe_away }}</em><small>{{ ctx.client_time_label or 'Hora pendiente' }}</small></div><div class="v799-phone-nav"><i>▦</i><i>●</i><i>◆</i><i>◥</i></div></article>
+    <aside class="v928-stack">
+      {{ provider_status(match.get('source') or live.get('source_label'), live.get('available'), live.get('updated_at') or match.get('updated_at'), quality.get('label'), live.get('cache_status'), quality.get('message') or live.get('message')) }}
+      <section class="v928-panel" id="historico">{{ section_header('Forma e histórico', 'Solo datos realmente guardados') }}<div class="v928-truth-list"><div><span>Forma local</span><strong>{{ detail.get('home_form') or 'Sin muestra suficiente' }}</strong></div><div><span>Forma visitante</span><strong>{{ detail.get('away_form') or 'Sin muestra suficiente' }}</strong></div><div><span>H2H</span><strong>{{ (detail.get('head_to_head') or [])|length }} registros</strong></div><div><span>Timeline</span><strong>{{ (detail.get('timeline') or [])|length }} eventos</strong></div></div></section>
+      <section class="v928-panel" id="shark">{{ section_header('SHARK', 'Explicación responsable') }}<p class="v928-panel-copy">SHARK usa únicamente el contexto disponible y marca cualquier dato faltante.</p><a class="v928-button is-primary" href="/shark?match={{ match.get('id') }}">Analizar este partido</a></section>
     </aside>
   </section>
 </section>
 {% endif %}
 {% endblock %}
-
-
-
-
-

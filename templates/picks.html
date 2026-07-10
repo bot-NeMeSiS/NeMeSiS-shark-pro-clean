@@ -1,162 +1,38 @@
 {% extends "base.html" %}
-{% from "partials/team_identity.html" import crest %}
-{% from "partials/ui_components.html" import empty_state, status_chip, stat_card %}
+{% from "components/v928_ui.html" import page_header, kpi_card, section_header, pick_card, filter_tabs, empty_state, provider_status %}
 {% block content %}
 {% set stats = data.get('pick_stats') or {} %}
-{% set safe_picks_context = data.get('v925_picks') or {} %}
-{% set picks = safe_picks_context.get('picks') or [] %}
-{% set ready_picks = picks %}
-{% set featured = ready_picks[0] if ready_picks else (picks[0] if picks else none) %}
-<!-- V925 picks and odds safe reference rebuild -->
-<section class="v799-screen v799-picks-screen v924-no-dead-space v924-page-shell v924-client-shell v924-pick-card v815-certified-screen v815-picks-screen v816-certified-screen v816-picks-screen v817-certified-screen v817-picks-screen v819-certified-screen v819-picks-screen v820-certified-screen v820-picks-screen v823-certified-screen v823-picks-screen v824-certified-screen v824-picks-screen v825-certified-screen v826-certified-screen v827-certified-screen v828-certified-screen v829-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v830-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v825-picks-screen v860-app-shell v904-client-rebuild v904-picks-rebuild v908-client-dashboard v908-pick-card v908-mobile-polish v926-desktop-shell v926-desktop-picks-board v926-desktop-odds-board v926-picks-desktop" data-v926-template="picks" data-v815-template="picks" data-v816-template="picks" data-v817-template="picks" data-v819-template="picks" data-v820-template="picks" data-v823-template="picks" data-v824-template="picks" data-v825-template="picks" data-v827-template="picks" data-v828-template="picks" data-v829-template="picks" data-v830-template="picks" data-v832-template="picks" data-v833-template="picks" data-v836-template="picks" data-v837-template="picks" data-v826-template="picks" data-v904-template="picks" data-v908-template="picks" data-v924-template="picks">
-  <div class="v799-appbar v927-client-hero-row v927-no-dead-space" data-v927-template="picks">
-    <div>
-      <span class="v799-kicker">Picks publicados · calidad SHARK · Hora España/Madrid</span>
-      <h1>Picks SHARK</h1>
-      <p>Qué apostar, partido, hora Madrid, cuota, stake, riesgo y motivo. Sin pick real, no se muestra selección inventada.</p>
-    </div>
-    <div class="v799-appbar-actions"><a href="/combis">Combis</a><a class="primary" href="/shark">Preguntar SHARK</a></div>
-  </div>
-
-  {% include "partials/client_flow_bar.html" %}
-
-  <section class="v925-sports-board v927-status-strip v927-kpi-deck" aria-label="Control seguro de picks y cuotas">
-    <article><span>Listos</span><strong>{{ ready_picks|length }}</strong><small>Con mercado, selección y cuota.</small></article>
-    <article><span>Bloqueados</span><strong>{{ safe_picks_context.get('blocked_count', 0) }}</strong><small>Datos incompletos o en revisión.</small></article>
-    <article><span>Cuotas</span><strong>{{ 'Reales' if ready_picks else 'Pendientes' }}</strong><small>Nunca se completa una cuota de forma artificial.</small></article>
-    <article><span>Telegram</span><strong>No filler</strong><small>Solo contenido con calidad suficiente.</small></article>
+{% set safe = data.get('v925_picks') or {} %}
+{% set odds_state = data.get('v925_odds') or {} %}
+{% set picks = safe.get('picks') or [] %}
+{% set featured = picks[0] if picks else none %}
+{% set active_filter = request.args.get('filtro') or request.args.get('filter') or 'featured' %}
+<section class="v928-page v928-picks-board" data-v928-template="picks">
+  {{ page_header('Picks SHARK', 'Selecciones publicadas con datos reales y control de calidad', 'target', [{'label':'Histórico','href':'/track-record'},{'label':'Consultar SHARK','href':'/shark','primary':true}]) }}
+  <section class="v928-kpi-grid is-four">
+    {{ kpi_card('Picks completos', picks|length, 'Mercado, selección y cuota', 'purple', 'target', '/picks') }}
+    {{ kpi_card('Bloqueados', safe.get('blocked_count', 0), 'Datos insuficientes o revisión', 'gold', 'shield', '/picks?filter=blocked') }}
+    {{ kpi_card('Cuota media', stats.get('avg_odds'), 'Solo picks evaluables', 'blue', 'odds', '/picks') }}
+    {{ kpi_card('Cerrados', stats.get('closed') or stats.get('graded'), 'Histórico real', 'green', 'history', '/track-record') }}
   </section>
+  <section class="v928-panel">{{ filter_tabs([{'key':'featured','label':'Destacados','href':'/picks?filter=featured'},{'key':'active','label':'Activos','href':'/picks?filter=active'},{'key':'closed','label':'Cerrados','href':'/picks?filter=closed'},{'key':'conservative','label':'Conservadores','href':'/picks?filter=conservative'},{'key':'value','label':'Valor','href':'/picks?filter=value'}], active_filter) }}</section>
 
-  <section class="v926-desktop-only v926-desktop-picks-board v927-sports-desktop-board v927-picks-desktop-grid v927-compact-section" aria-label="Board de picks desktop V927">
-    <nav class="v926-desktop-filter-row v927-filter-tabs v927-sports-filters" aria-label="Filtros de picks"><a class="active" href="/picks">Todos</a><a href="/picks?view=review">En revisión</a><a href="/picks?view=active">Publicables</a><a href="/picks?view=blocked">Bloqueados</a></nav>
-    <div class="v926-desktop-data-table v927-table-card" role="table" aria-label="Picks completos con datos reales">
-      <div class="v926-table-row is-head" role="row"><span>Partido</span><span>Mercado</span><span>Seleccion</span><span>Cuota</span><span>Stake</span><span>Confianza</span><span>Riesgo</span><span>Estado</span></div>
-      {% for p in ready_picks[:8] %}
-      <a class="v926-table-row" role="row" href="{{ p.get('client_match_url') or ('/match/' ~ (p.get('match_id') or p.get('id'))) }}">
-        <span>{{ (p.get('home_team') ~ ' vs ' ~ p.get('away_team')) if p.get('home_team') and p.get('away_team') else 'Partido pendiente' }}</span>
-        <span>{{ p.get('market') or p.get('market_name') or 'Mercado pendiente' }}</span>
-        <span>{{ p.get('client_selection_label') or p.get('selection_display') or p.get('selection') or 'Seleccion pendiente' }}</span>
-        <span>{{ p.get('client_odds_label') or p.get('odds') or 'Pendiente' }}</span>
-        <span>{{ p.get('stake_units') or p.get('stake') or '-' }}{% if p.get('stake_units') or p.get('stake') %}u{% endif %}</span>
-        <span>{{ p.get('confidence') or p.get('quality_score') or 'En revision' }}</span>
-        <span>{{ p.get('risk_level') or 'En revision' }}</span>
-        <span>{{ p.get('app_pick_state') or 'Publicable' }}</span>
-      </a>
-      {% else %}
-      <div class="v926-table-empty"><strong>Sin picks reales publicables</strong><span>Los candidatos incompletos siguen bloqueados hasta tener mercado, seleccion y cuota reales.</span></div>
-      {% endfor %}
+  <section class="v928-layout-main-aside">
+    <div class="v928-stack">
+      <section class="v928-panel">
+        {{ section_header('Pick destacado', 'La primera selección completa disponible') }}
+        {% if featured %}{{ pick_card(featured, true) }}<div class="v928-actions"><a class="v928-button is-primary" href="{{ featured.get('client_match_url') or ('/match/' ~ (featured.get('match_id') or featured.get('id'))) }}">Ver análisis completo</a><a class="v928-button" href="/shark?pick={{ featured.get('id') }}">Explicar con SHARK</a></div>
+        {% else %}{{ empty_state('Sin pick real publicable', 'No se publica ninguna selección hasta disponer de partido, mercado, selección y cuota reales.', 'Ver calendario', '/calendar', 'target') }}{% endif %}
+      </section>
+      <section class="v928-panel">
+        {{ section_header('Más picks activos', 'Todos pasan la misma puerta de calidad') }}
+        {% if picks|length > 1 %}<div class="v928-grid is-three">{% for pick in picks[1:13] %}{{ pick_card(pick) }}{% endfor %}</div>{% elif not picks %}{{ empty_state('La lista está vacía', 'Los picks incompletos permanecen bloqueados y no se sustituyen por ejemplos.', '', '', 'target') }}{% endif %}
+      </section>
     </div>
-  </section>
-
-  <section class="v922-picks-shell v924-section-compact v924-above-fold" aria-label="Picks premium visibles V924">
-    <div class="v922-section-title">
-      <span>Selecciones verificadas</span>
-      <h2>Solo picks con sentido, nada de relleno</h2>
-      <p>Cada pick debe tener seleccion, cuota, stake, riesgo y motivo real. Si falta algo, queda en revision y no se vende como entrada premium.</p>
-    </div>
-    <div class="v922-pick-quality-strip">
-      <article><span>Listos</span><strong>{{ ready_picks|length }}</strong><small>Con datos suficientes.</small></article>
-      <article><span>Publicados</span><strong>{{ picks|length }}</strong><small>Incluye revision si faltan campos.</small></article>
-      <article><span>Telegram</span><strong>No filler</strong><small>No se envia por enviar.</small></article>
-      <article><span>Riesgo</span><strong>Visible</strong><small>Stake y cautela cuando existan.</small></article>
-    </div>
-    {% if not ready_picks %}
-    <div class="v922-no-picks-premium">
-      <strong>No hay picks premium suficientes</strong>
-      <p>Cuota pendiente, seleccion pendiente o pick en revision. Mejor no publicar nada que mandar un pick malo.</p>
-      <a href="/calendar?lane=today">Revisar partidos reales</a>
-    </div>
-    {% endif %}
-  </section>
-
-  <section class="v904-client-signal-strip" aria-label="Control de calidad de picks">
-    <article><span>Filtro premium</span><strong>{{ ready_picks|length }} listos</strong><small>Sin cuota o selección pasan a revisión.</small></article>
-    <article><span>Cuotas</span><strong>Reales</strong><small>No se muestran cuotas inventadas ni cero falso.</small></article>
-    <article><span>Riesgo</span><strong>Visible</strong><small>Stake, motivo y cautela cuando existen.</small></article>
-    <article><span>Telegram</span><strong>No filler</strong><small>Mejor no enviar nada que mandar un pick pobre.</small></article>
-  </section>
-
-  <section class="v802-pick-command" aria-label="Cómo leer los picks">
-    <article><span>1</span><strong>Qué apostar</strong><small>selección clara</small></article>
-    <article><span>2</span><strong>Cuota y stake</strong><small>si existen en el pick real</small></article>
-    <article><span>3</span><strong>Riesgo</strong><small>motivo y cuidado</small></article>
-    <article><span>4</span><strong>SHARK</strong><small>pregunta antes de entrar</small></article>
-  </section>
-
-  <section class="v799-kpi-strip v860-kpi-row">
-    {{ stat_card('Activos', ready_picks|length, 'premium', 'warning', '/picks') }}
-    {{ stat_card('Cuota media', stats.get('avg_odds') or '—', 'real', 'info', '/picks') }}
-    {{ stat_card('Confianza', stats.get('avg_confidence') or stats.get('confidence') or '—', 'si existe', 'success', '/track-record') }}
-    {{ stat_card('Combis', stats.get('combis') or '—', 'responsables', 'brand', '/combis') }}
-  </section>
-
-  <nav class="v799-filterbar"><a class="active" href="/picks">Destacados</a><a href="/picks?view=active">Activos</a><a href="/track-record">Cerrados</a><a href="/combis">Combis</a><a href="/mercados">Mercados</a></nav>
-
-  <section class="v800-command-row v800-pick-command" aria-label="Uso rápido de picks">
-    <a href="/picks?view=active"><b>{{ ready_picks|length }}</b><span>Activos</span><small>Con calidad suficiente</small></a>
-    <a href="/calendar?lane=with_pick"><b>▦</b><span>Partidos</span><small>Con señal</small></a>
-    <a href="/combis"><b>♛</b><span>Combis</span><small>Responsables</small></a>
-    <a href="/track-record"><b>↗</b><span>Histórico</span><small>Resultados reales</small></a>
-  </section>
-
-  {% if featured %}
-  {% set home_identity = featured|team_identity('home') %}
-  {% set away_identity = featured|team_identity('away') %}
-  <article class="v799-feature-pick">
-    <div class="v799-feature-pick-left">
-      {{ status_chip(featured.get('app_pick_state') or ('Pick destacado' if featured.get('premium_ready') else 'Pick en revisión'), 'success' if featured.get('premium_ready') else 'warning') }}
-      <h2>{{ featured.get('client_selection_label') or featured.get('selection_display') or featured.get('selection') or 'Selección pendiente' }}</h2>
-      {% if not featured.get('premium_ready') %}<p class="v852-pick-note">{{ featured.get('app_pick_note') or 'Faltan datos reales para mostrarlo como entrada fuerte.' }}</p>{% endif %}
-      <p>{{ featured.get('analysis_summary') or featured.get('reasoning') or 'Motivo pendiente en los datos del pick. Revisa el detalle antes de decidir.' }}</p>
-
-      <div class="v800-decision-grid" aria-label="Lectura rápida del pick">
-        <article><span>Qué apostar</span><strong>{{ featured.get('client_selection_label') or featured.get('selection_display') or featured.get('selection') or 'Selección pendiente' }}</strong><small>{{ featured.get('app_pick_state') or 'Pick activo' }}</small></article>
-        <article><span>Por qué entrar</span><strong>{{ featured.get('analysis_summary') or featured.get('reasoning') or 'Motivo pendiente en el pick real' }}</strong></article>
-        <article><span>Cuidado</span><strong>{{ featured.get('risk_note') or featured.get('risk_level') or 'Riesgo pendiente' }}</strong></article>
-      </div>
-      <div class="v799-feature-actions"><a class="primary" href="{{ featured.get('client_match_url') or ('/match/' ~ (featured.get('match_id') or featured.get('id'))) }}">Ver análisis completo</a><a href="/shark?pick={{ featured.get('id') }}">Explicar pick con SHARK</a></div>
-    </div>
-    <div class="v799-feature-teams">
-      <span>{{ crest(home_identity, featured.get('home_team') or 'Local', 'compact') }}<strong>{{ featured.get('home_team') or 'Local' }}</strong></span>
-      <b>VS</b>
-      <span>{{ crest(away_identity, featured.get('away_team') or 'Visitante', 'compact') }}<strong>{{ featured.get('away_team') or 'Visitante' }}</strong></span>
-      <small>{{ featured.get('client_full_datetime_label') or (featured|match_full_datetime) }}</small>
-    </div>
-    <dl class="v799-feature-metrics">
-      <div><dt>Cuota</dt><dd>{{ featured.get('client_odds_label') or featured.get('odds') or 'Cuotas pendientes' }}</dd></div>
-      <div><dt>Stake</dt><dd>{{ featured.get('stake_units') or featured.get('stake') or '—' }}{% if featured.get('stake_units') or featured.get('stake') %}u{% endif %}</dd></div>
-      <div><dt>Riesgo</dt><dd>{{ featured.get('risk_level') or '—' }}</dd></div>
-      <div><dt>Confianza</dt><dd>{{ featured.get('confidence') or featured.get('quality_score') or 'En revisión' }}{% if featured.get('confidence') or featured.get('quality_score') %}%{% endif %}</dd></div>
-    </dl>
-    <div class="v799-reason-grid">
-      <section><strong>Por qué entrar</strong><p>{{ featured.get('reasoning') or featured.get('analysis_summary') or 'Sin motivo real ampliado todavía.' }}</p></section>
-      <section><strong>Riesgos</strong><p>{{ featured.get('risk_note') or 'Sin nota de riesgo ampliada. Revisa cuota, alineaciones y mercado antes de decidir.' }}</p></section>
-      <section><strong>Conclusión</strong><p>{{ featured.get('conclusion') or 'Valor pendiente de confirmar con datos completos del pick.' }}</p></section>
-    </div>
-  </article>
-  {% else %}
-  {{ empty_state('Sin picks activos ahora mismo.', 'No hay pick real publicado con cuota y selección válidas. Los candidatos quedan como cuota pendiente, selección pendiente o pick en revisión hasta tener datos suficientes.', 'Ver partidos reales', '/calendar?lane=today', 'muted') }}
-  {% endif %}
-
-  <section class="v799-pick-grid" id="activos">
-    {% for p in picks if not featured or p.get('id') != featured.get('id') %}
-    {% set home_identity = p|team_identity('home') %}
-    {% set away_identity = p|team_identity('away') %}
-    <article class="v799-pick-card v927-odds-desktop-card {{ 'v852-pick-muted' if not p.get('premium_ready') else 'v852-pick-ready' }}">
-      <div class="v799-card-top"><span>{{ p.get('client_competition') or (p.get('competition_name') or 'Competición')|competition_es }}</span><em class="v852-pick-state">{{ p.get('app_pick_state') or 'Pick activo' }}</em><button class="fav-star" type="button" data-kind="pick" data-value="{{ p.get('id') }}" data-label="{{ p.get('selection_display') or p.get('selection') or 'Pick' }}">☆</button></div>
-      <div class="v799-pick-teams">{{ crest(home_identity, p.get('home_team') or 'Local', 'compact') }}<b>VS</b>{{ crest(away_identity, p.get('away_team') or 'Visitante', 'compact') }}</div>
-      <strong>{{ p.get('client_selection_label') or p.get('selection_display') or p.get('selection') or 'Selección pendiente' }}</strong>
-      <small>{{ p.get('client_full_datetime_label') or (p|match_full_datetime) }}</small>
-      <dl><div><dt>Cuota</dt><dd>{{ p.get('client_odds_label') or p.get('odds') or 'Cuotas pendientes' }}</dd></div><div><dt>Stake</dt><dd>{{ p.get('stake_units') or p.get('stake') or '—' }}{% if p.get('stake_units') or p.get('stake') %}u{% endif %}</dd></div><div><dt>Riesgo</dt><dd>{{ p.get('risk_level') or 'En revisión' }}</dd></div></dl>
-      <p>{{ p.get('app_pick_note') or p.get('analysis_summary') or p.get('reasoning') or 'Explicación ampliada pendiente en los datos del pick.' }}</p>
-      <div class="v799-actions"><a href="{{ p.get('client_match_url') or ('/match/' ~ (p.get('match_id') or p.get('id'))) }}">Partido</a><a class="primary" href="/shark?pick={{ p.get('id') }}">Explicar con SHARK</a></div>
-    </article>
-    {% endfor %}
+    <aside class="v928-stack">
+      {{ provider_status(odds_state.get('source'), odds_state.get('has_real_data'), odds_state.get('last_sync'), odds_state.get('provider_status'), odds_state.get('cache_status'), odds_state.get('safe_message')) }}
+      <section class="v928-panel">{{ section_header('Regla de publicación', 'Una selección visible debe estar completa') }}<div class="v928-truth-list"><div><span>Partido</span><strong>Obligatorio</strong></div><div><span>Mercado</span><strong>Obligatorio</strong></div><div><span>Selección</span><strong>Obligatoria</strong></div><div><span>Cuota real</span><strong>Obligatoria</strong></div></div></section>
+    </aside>
   </section>
 </section>
 {% endblock %}
-
-
-
-
-

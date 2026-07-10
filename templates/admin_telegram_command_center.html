@@ -1,70 +1,29 @@
 {% extends "base.html" %}
-{% import "partials/admin_visual_system.html" as ui %}
+{% from "components/v928_ui.html" import page_header, kpi_card, section_header, empty_state, status_chip, data_table %}
 {% block content %}
-<!-- V925 Telegram command center reference rebuild -->
-{% set d = data if data is defined and data.get is defined else {} %}
-{% set channel_label = d.get('channel_label') or d.get('destination_label') or d.get('telegram_chat_label') or d.get('chat_id_masked') or '—' %}
-{% set schedule_items = d.get('schedule_items') or d.get('activity_plan') or [] %}
-{% set discard_reasons = d.get('discard_reasons') or d.get('discard_reasons_24h') or [] %}
-{% call ui.shell('Telegram', 'Telegram Command Center', 'Automatización, actividad y entregas') %}
-<section class="v794-admin-kpi-grid v924-no-dead-space v924-admin-shell v924-page-shell v908-admin-shell v908-command-grid v826-certified-screen v827-certified-screen v828-certified-screen v829-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v830-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v926-desktop-shell v926-desktop-command-center v926-admin-desktop" data-v926-template="admin_telegram_command_center" data-v827-template="admin_telegram_command_center" data-v828-template="admin_telegram_command_center" data-v829-template="admin_telegram_command_center" data-v830-template="admin_telegram_command_center" data-v832-template="admin_telegram_command_center" data-v833-template="admin_telegram_command_center" data-v836-template="admin_telegram_command_center" data-v837-template="admin_telegram_command_center" data-v826-template="admin_telegram_command_center" data-v908-template="admin_telegram_command_center" data-v924-template="admin_telegram_command_center">
-  {{ ui.kpi('Canal principal', channel_label, 'Destino configurado en Render', '✈', 'blue') }}
-  {{ ui.kpi('Enviados hoy', d.get('sent_today') or d.get('last_cron_sent_count') or '—', 'Telegram real', '✈', 'blue') }}
-  {{ ui.kpi('Fallidos', d.get('failed_today') or d.get('last_failed_count') or '—', 'Dato real', '!', 'red') }}
-  {{ ui.kpi('Próximo envío', d.get('next_run_label') or d.get('next_window_label') or '—', 'Render Cron', '◷', 'blue') }}
-  {{ ui.kpi('Suscriptores', d.get('subscribers') or d.get('linked_users') or '—', 'Dato real', '♙', 'blue') }}
-  {{ ui.kpi('Dedupe', d.get('dedupe_rate') or d.get('dedupe_status') or '—', 'Dato real', '▧', 'green') }}
+{% set snapshot = data.get('snapshot') or {} %}
+{% set counts = snapshot.get('counts') or {} %}
+{% set limits = snapshot.get('limits') or {} %}
+{% set env = snapshot.get('env') or {} %}
+{% set cron = snapshot.get('cron') or {} %}
+{% set dry = data.get('dry_run') or {} %}
+<section class="v928-page v928-admin-command-center" data-v928-template="admin_telegram_command_center">
+  {{ page_header('Telegram Command Center', 'Automatización, entregas y calidad sin enviar mensajes desde esta vista', 'telegram', [{'label':'Configurar','href':'/admin/telegram'},{'label':'Preview seguro','href':'/admin/telegram/pro-preview','primary':true}]) }}
+  <section class="v928-kpi-grid">
+    {{ kpi_card('Candidatos', counts.get('candidate_picks'), 'Picks publicados revisados', 'blue', 'target') }}
+    {{ kpi_card('Elegibles', counts.get('premium_eligible'), 'Completos y enviables', 'green', 'telegram') }}
+    {{ kpi_card('Enviados hoy', counts.get('sent_today'), 'Registro de cola', 'blue', 'telegram') }}
+    {{ kpi_card('Fallidos hoy', counts.get('failed_today'), 'Entregas registradas', 'red' if counts.get('failed_today') else 'green', 'shield') }}
+    {{ kpi_card('Pendientes', counts.get('pending_queue'), 'Cola real', 'gold', 'history') }}
+    {{ kpi_card('Duplicados evitados', counts.get('duplicates'), 'Dedupe', 'green', 'shield') }}
+  </section>
+  <section class="v928-layout-wide-aside">
+    <div class="v928-stack">
+      <section class="v928-admin-panel"><header><div><h2>Cron y automatización</h2><p>Últimos estados registrados</p></div>{{ status_chip(snapshot.get('diagnosis', {}).get('status') or ('Listo' if snapshot.get('ok') else 'Revisar'), 'success' if snapshot.get('ok') else 'warning') }}</header><div class="v928-admin-panel-body">{% call data_table(['Proceso','Última llamada','Estado','Runner']) %}{% for name, item in [('Telegram',cron.get('last_telegram') or {}),('Daily',cron.get('last_daily') or {}),('Dispatch',cron.get('last_dispatch') or {})] %}<tr><td>{{ name }}</td><td>{{ item.get('called_at') or item.get('created_at') or item.get('started_at') or 'Sin ejecución registrada' }}</td><td>{{ status_chip(item.get('status') or item.get('result') or 'Pendiente','success' if item.get('ok') else 'neutral') }}</td><td>{{ item.get('runner') or item.get('source') or 'Sin dato' }}</td></tr>{% endfor %}{% endcall %}</div></section>
+      <section class="v928-admin-panel"><header><div><h2>Picks elegibles</h2><p>Vista previa sin envío real</p></div><span>{{ status_chip('Dry-run: sin envío','success') }}</span></header><div class="v928-admin-panel-body">{% if snapshot.get('candidates') %}{% call data_table(['Partido','Selección','Cuota','Confianza','Dedupe']) %}{% for item in snapshot.get('candidates')[:20] %}<tr><td>{{ item.get('partido') }}</td><td>{{ item.get('selection') }}</td><td>{{ item.get('odds') }}</td><td>{{ item.get('confidence') if item.get('confidence') is not none else 'Sin dato' }}</td><td>{{ item.get('dedupe_status') or 'Nuevo' }}</td></tr>{% endfor %}{% endcall %}{% else %}{{ empty_state('Sin candidatos enviables', 'No se crea contenido de relleno. Los picks incompletos permanecen descartados.', '', '', 'telegram') }}{% endif %}</div></section>
+      <section class="v928-admin-panel"><header><div><h2>Descartes de calidad</h2><p>Razones reales del filtro</p></div></header><div class="v928-admin-panel-body">{% if snapshot.get('reason_counts') %}<div class="v928-truth-list">{% for reason, total in snapshot.get('reason_counts').items() %}<div><span>{{ reason }}</span><strong>{{ total }}</strong></div>{% endfor %}</div>{% else %}{{ empty_state('Sin descartes registrados', 'No hay razones de descarte en la ejecución consultada.', '', '', 'shield') }}{% endif %}</div></section>
+    </div>
+    <aside class="v928-stack"><section class="v928-admin-panel"><header><div><h2>Configuración segura</h2><p>Solo estados enmascarados</p></div></header><div class="v928-admin-panel-body"><div class="v928-truth-list"><div><span>Bot token</span><strong>{{ 'Configurado' if env.get('bot_token_configured') else 'Falta' }}</strong></div><div><span>Destino</span><strong>{{ 'Configurado' if env.get('chat_id_configured') else 'Falta' }}</strong></div><div><span>Automation secret</span><strong>{{ 'Configurado' if env.get('automation_secret_configured') else 'Falta' }}</strong></div><div><span>Auto send</span><strong>{{ 'Activo' if env.get('auto_send_enabled') else 'Desactivado' }}</strong></div></div></div></section><section class="v928-admin-panel"><header><div><h2>Límites</h2><p>Calibración real</p></div></header><div class="v928-admin-panel-body"><div class="v928-truth-list"><div><span>Por hora</span><strong>{{ limits.get('max_per_hour') if limits.get('max_per_hour') is not none else 'Sin dato' }}</strong></div><div><span>Por día</span><strong>{{ limits.get('max_per_day') if limits.get('max_per_day') is not none else 'Sin dato' }}</strong></div><div><span>Auto picks/día</span><strong>{{ limits.get('max_auto_picks_per_day') if limits.get('max_auto_picks_per_day') is not none else 'Sin dato' }}</strong></div><div><span>Quiet hours</span><strong>{{ 'Activas' if limits.get('quiet_hours_active') else 'No activas' }}</strong></div></div></div></section><section class="v928-admin-panel"><header><div><h2>Dry-run</h2></div></header><div class="v928-admin-panel-body"><p class="v928-panel-copy">{{ dry.get('preview') or dry.get('message') or 'Sin preview generado. No se envió Telegram.' }}</p>{{ status_chip('Envío real: no','success') }}</div></section></aside>
+  </section>
 </section>
-<section class="v794-admin-grid sidebar v826-certified-screen v927-admin-desktop-shell v927-admin-ops-grid v927-no-dead-space" data-v927-template="admin_telegram_command_center" data-v826-template="admin_telegram_command_center">
-  <div class="v794-admin-grid v927-desktop-main">
-    <article class="v794-admin-panel">
-      <div class="v794-panel-head"><h2>Agenda diaria de envíos</h2><span>{{ ui.status('Configurada','info') }}</span></div>
-      {% if schedule_items %}
-      <div class="v794-admin-list">
-        {% for item in schedule_items %}
-        <div class="v794-admin-list-row">
-          <span>{{ item.time or item.slot or item.window or '—' }}</span>
-          <div><strong>{{ item.title or item.module or item.name or 'Mdulo Telegram' }}</strong><small>{{ item.description or item.summary or 'Dato real del plan de actividad' }}</small></div>
-          {{ ui.status(item.status_label or item.status or 'Esperando dato real','info') }}
-        </div>
-        {% endfor %}
-      </div>
-      {% else %}
-      <div class="v797-truth-empty"><strong>Plan de actividad pendiente de datos reales.</strong><span>Cuando el motor V771/V772 publique su plan, se mostrarán módulos, ventanas y estados reales.</span></div>
-      {% endif %}
-    </article>
-    <article class="v794-admin-panel">
-      <div class="v794-panel-head"><h2>Estado del cron runner</h2><span class="v794-live-dot"></span></div>
-      <table class="v794-admin-table"><tbody>
-        <tr><td>Cron real detectado</td><td>{{ d.get('cron_runner_detected') if d.get('cron_runner_detected') is not none else '—' }}</td></tr>
-        <tr><td>Último tick</td><td>{{ d.get('last_tick') or d.get('last_cron_runner_at') or '—' }}</td></tr>
-        <tr><td>Último resultado</td><td>{{ d.get('last_result') or d.get('last_cron_result') or ui.status('Sin dato','info') }}</td></tr>
-        <tr><td>Último delivery_id</td><td>{{ d.get('last_delivery_id') or d.get('last_cron_delivery_id') or '—' }}</td></tr>
-        <tr><td>Runner</td><td>{{ d.get('runner') or d.get('last_cron_runner') or '—' }}</td></tr>
-        <tr><td>Estado</td><td>{{ ui.status(d.get('status_label') or 'Esperando dato real','info') }}</td></tr>
-      </tbody></table>
-    </article>
-  </div>
-  <aside class="v794-admin-grid v927-desktop-aside">
-    <article class="v794-admin-panel v794-pulse-card">
-      <div class="v794-panel-head"><h2>Vista previa del próximo mensaje</h2><span>{{ ui.status(d.get('preview_time') or 'Preview real','info') }}</span></div>
-      {% set preview = d.get('message_preview') or d.get('next_message_preview') or d.get('preview_text') %}
-      {% if preview %}
-      <div style="border:1px solid rgba(24,216,255,.22);border-radius:16px;padding:18px;background:linear-gradient(135deg,rgba(10,123,255,.20),rgba(4,12,24,.88))"><p>{{ preview }}</p><small>Destino: {{ channel_label }}</small></div>
-      {% else %}
-      <div class="v797-truth-empty"><strong>Sin preview generado todavía.</strong><span>Usa el dry-run para crear una vista previa con datos reales sin enviar al canal.</span></div>
-      {% endif %}
-    </article>
-    <article class="v794-admin-panel"><div class="v794-panel-head"><h2>Prueba segura</h2></div><div class="v794-action-grid" style="grid-template-columns:1fr"><a class="v794-action-card" href="/admin/telegram"><i>✈</i><span><b>Abrir consola</b><small>sin enviar automáticamente</small></span><em>›</em></a><button class="v794-action-card" type="button" data-v904-fetch="/api/admin/telegram/message-preview"><i>▶</i><span><b>Generar preview</b><small>dry-run sin entregar</small></span><em>›</em></button></div><output class="v904-safe-api-output" data-v904-output>Preview pendiente.</output></article>
-    <article class="v794-admin-panel"><div class="v794-panel-head"><h2>Dedupe status</h2><span>{{ ui.status(d.get('dedupe_status') or 'Esperando dato','info') }}</span></div>{% if d.get('dedupe_rate') or d.get('duplicates_prevented_24h') %}<h2>{{ d.get('dedupe_rate') or '—' }}</h2><p>Duplicados evitados (24h): <strong>{{ d.get('duplicates_prevented_24h') or '—' }}</strong></p>{% else %}<div class="v797-truth-empty"><strong>Sin métricas de dedupe reales todavía.</strong><span>Se rellenará cuando haya entregas de Telegram registradas por Render Cron.</span></div>{% endif %}</article>
-    <article class="v794-admin-panel"><div class="v794-panel-head"><h2>Motivos de descarte (24h)</h2></div>{% if discard_reasons %}<div class="v794-admin-list">{% for reason in discard_reasons %}<div class="v794-admin-list-row"><span>{{ reason.count or reason.total or '—' }}</span><div><strong>{{ reason.label or reason.reason or 'Motivo registrado' }}</strong><small>{{ reason.percent or reason.percentage or 'Dato real' }}</small></div></div>{% endfor %}</div>{% else %}<div class="v797-truth-empty"><strong>Sin descartes reales en las Áltimas 24h.</strong><span>No se muestran ejemplos ficticios: solo motivos registrados por la automatización.</span></div>{% endif %}</article>
-  </aside>
-</section>
-<section class="v794-admin-panel v826-certified-screen" data-v826-template="admin_telegram_command_center" style="margin-top:16px"><div class="v794-panel-head"><h2>Entregas recientes de Telegram</h2><a href="/api/admin/telegram/dedupe-status">Ver todas</a></div><div class="v797-truth-empty"><strong>Esperando entregas reales.</strong><span>Cuando Render Cron envíe mensajes, aparecerán aquí con delivery_id real.</span></div></section>
-{% endcall %}
 {% endblock %}
-
-
-
-
-

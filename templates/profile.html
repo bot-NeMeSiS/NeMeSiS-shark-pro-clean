@@ -1,73 +1,32 @@
 {% extends "base.html" %}
+{% from "components/v928_ui.html" import page_header, kpi_card, section_header, quick_action, empty_state, status_chip %}
 {% block content %}
-{% set user = data.get('session_user') or {} %}
+{% set user = data.get('session_user') or current_user or {} %}
 {% set plan = (user.get('membership') or 'FREE')|upper %}
-{% set safe_calendar = data.get('v925_calendar') or {} %}
-{% set safe_picks = (data.get('v925_picks') or {}).get('picks') or [] %}
-{% set alerts = data.get('client_alerts') or [] %}
+{% set calendar = data.get('v925_calendar') or {} %}
+{% set picks = (data.get('v925_picks') or {}).get('picks') or [] %}
+{% set telegram = data.get('telegram_state') or {} %}
+{% set activity = data.get('client_activity') or [] %}
 {% set favorites = data.get('favorites') or [] %}
-{% set telegram = data.get('telegram') or {} %}
-<main class="v925-shell v925-page v925-client-shell v925-profile v926-desktop-shell v926-client-dashboard v927-desktop-shell v927-client-desktop-shell v927-no-dead-space" data-v925-template="profile" data-v926-template="profile" data-v927-template="profile">
-  <header class="v925-above-fold v925-profile-hero v927-client-hero-row v927-desktop-above-fold">
-    <div class="v925-profile-identity">
-      <div class="v925-avatar v927-reference-logo-slot"><img src="/static/img/shark-logo.svg" alt=""></div>
-      <div>
-        <span class="v925-eyebrow">Mi cuenta</span>
-        <h1>{{ user.get('name') or user.get('username') or 'Cliente' }}</h1>
-        <div class="v925-chip-row"><span class="v925-status-chip is-info">{{ plan }}</span><span class="v925-status-chip is-ok">Sesión activa</span></div>
-      </div>
-    </div>
-    <div class="v925-action-row">
-      <a class="is-primary" href="/membresias">Gestionar plan</a>
-      <a href="/telegram">Telegram</a>
-      <a href="/logout">Cerrar sesión</a>
-    </div>
-  </header>
-
-  <section class="v925-grid v925-kpi-grid v927-kpi-deck" aria-label="Resumen de cuenta">
-    <article class="v925-kpi-card"><span>Plan actual</span><strong>{{ plan }}</strong><small>Según tu cuenta real.</small></article>
-    <article class="v925-kpi-card is-pick"><span>Picks completos</span><strong>{{ safe_picks|length }}</strong><small>Disponibles ahora.</small></article>
-    <article class="v925-kpi-card is-live"><span>Partidos</span><strong>{{ safe_calendar.get('matches', [])|length }}</strong><small>En agenda real.</small></article>
-    <article class="v925-kpi-card is-telegram"><span>Telegram</span><strong>{{ 'Configurado' if telegram.get('configured') else 'Pendiente' }}</strong><small>Estado oculto y seguro.</small></article>
+<section class="v928-page v928-profile" data-v928-template="profile">
+  {{ page_header('Mi cuenta', 'Tu plan, ajustes y actividad real', 'user', [{'label':'Gestionar plan','href':'/membresias','primary':true}]) }}
+  <section class="v928-profile-hero">
+    <div class="v928-profile-avatar"><img src="/static/img/shark-logo.svg" alt=""></div>
+    <div class="v928-profile-copy"><h2>{{ user.get('name') or user.get('username') or 'Cliente' }}</h2><div>{{ status_chip(plan,'success') }} {{ status_chip('Sesión activa','success') }}</div><p>{% if user.get('created_at') %}Miembro desde {{ user.get('created_at')|madrid_date_label }}{% else %}Cuenta protegida{% endif %}</p></div>
+    <div class="v928-profile-summary"><div><span>Plan actual</span><strong>{{ plan }}</strong></div><div><span>Telegram</span><strong>{{ 'Conectado' if telegram.get('linked') else 'Pendiente' }}</strong></div></div>
   </section>
-
-  <section class="v925-reference-layout v927-desktop-grid v927-client-value-grid">
-    <article class="v925-premium-card v927-action-card">
-      <span>Tu membresía</span>
-      <h2>{{ plan }}</h2>
-      {% if plan == 'FREE' %}
-      <p>Acceso base a calendario, directo y estados seguros. Revisa PRO y ELITE sin iniciar ningún pago desde esta pantalla.</p>
-      {% elif plan == 'PRO' %}
-      <p>Acceso ampliado a picks, SHARK y Telegram según la disponibilidad de datos reales.</p>
-      {% else %}
-      <p>Experiencia avanzada activa, siempre sujeta a la calidad de los datos y al modo seguro.</p>
-      {% endif %}
-      <a class="v925-card-cta" href="/membresias">Comparar planes</a>
-    </article>
-
-    <article class="v925-command-card v927-action-card">
-      <div class="v925-section-head"><div><span>Accesos</span><h2>Tu app</h2></div></div>
-      <div class="v925-client-quick-actions compact v927-client-quick-actions">
-        <a href="/app"><strong>Inicio</strong><small>Centro cliente</small></a>
-        <a href="/calendar"><strong>Partidos</strong><small>Agenda real</small></a>
-        <a href="/picks"><strong>Picks</strong><small>Control de calidad</small></a>
-        <a href="/shark"><strong>SHARK</strong><small>Modo seguro</small></a>
-      </div>
-    </article>
+  <section class="v928-kpi-grid is-four">
+    {{ kpi_card('Partidos', (calendar.get('matches') or [])|length, 'Agenda disponible', 'blue', 'calendar', '/calendar') }}
+    {{ kpi_card('Picks completos', picks|length, 'Visibles para tu plan', 'purple', 'target', '/picks') }}
+    {{ kpi_card('Favoritos', favorites|length, 'Guardados en tu cuenta', 'gold', 'star', '/favorites') }}
+    {{ kpi_card('Actividad', activity|length, 'Eventos recientes', 'green', 'history', '/actividad') }}
   </section>
-
-  <section class="v925-section">
-    <div class="v925-section-head"><div><span>Actividad</span><h2>Alertas y favoritos</h2></div><a href="/favorites">Gestionar favoritos</a></div>
-    <div class="v925-grid v925-profile-grid">
-      <article class="v925-data-card">
-        <strong>Alertas</strong>
-        {% for alert in alerts[:4] %}<a class="v925-list-row" href="{{ alert.get('href') or '/alertas' }}"><span>{{ alert.get('title') or 'Alerta' }}</span><small>{{ alert.get('body') or 'Detalle disponible' }}</small></a>{% else %}<div class="v925-empty-state"><strong>Sin alertas pendientes</strong><p>Se activarán con datos y preferencias reales.</p></div>{% endfor %}
-      </article>
-      <article class="v925-data-card">
-        <strong>Favoritos</strong>
-        {% for favorite in favorites[:5] %}<div class="v925-list-row"><span>{{ favorite.get('label') or 'Favorito' }}</span><small>{{ favorite.get('kind') or 'Elemento guardado' }}</small></div>{% else %}<div class="v925-empty-state"><strong>Sin favoritos</strong><p>Guarda equipos, ligas o partidos desde la agenda.</p></div>{% endfor %}
-      </article>
+  <section class="v928-layout-main-aside">
+    <div class="v928-stack">
+      <section class="v928-panel">{{ section_header('Cuenta y servicios', 'Accesos principales') }}<div class="v928-command-grid">{{ quick_action('Plan actual', plan ~ ' y beneficios disponibles', '/membresias', 'plan', 'gold') }}{{ quick_action('Telegram', 'Vinculación y preferencias', '/telegram', 'telegram') }}{{ quick_action('Favoritos', 'Equipos, ligas y partidos guardados', '/favorites', 'star') }}{{ quick_action('Notificaciones', 'Alertas y preferencias', '/alertas', 'notifications') }}{{ quick_action('Seguridad', 'Contraseña y sesiones', '/password-reset', 'shield') }}{{ quick_action('Soporte', 'Ayuda y contacto', '/support', 'support') }}</div></section>
+      <section class="v928-panel">{{ section_header('Actividad reciente', 'Acciones reales de tu cuenta', 'Ver actividad', '/actividad') }}{% if activity %}<div class="v928-activity-list">{% for item in activity[:10] %}<article><time>{{ item.get('created_at')|madrid_datetime_label if item.get('created_at') else 'Fecha pendiente' }}</time><div><strong>{{ item.get('title') or item.get('action') or 'Actividad' }}</strong><small>{{ item.get('body') or item.get('label') or item.get('kind') or 'Detalle disponible' }}</small></div>{{ status_chip(item.get('status') or 'Registrado','neutral') }}</article>{% endfor %}</div>{% else %}{{ empty_state('Sin actividad reciente', 'Las acciones aparecerán aquí cuando estén registradas de forma segura.', '', '', 'history') }}{% endif %}</section>
     </div>
+    <aside class="v928-stack"><section class="v928-panel">{{ section_header('Seguridad y ajustes', 'Controles de tu cuenta') }}<div class="v928-command-list">{{ quick_action('Cambiar contraseña', 'Actualiza tus credenciales', '/password-reset', 'shield') }}{{ quick_action('Términos', 'Condiciones de uso', '/terminos', 'document') }}{{ quick_action('Privacidad', 'Tratamiento de datos', '/privacidad', 'shield') }}{{ quick_action('Reembolsos', 'Política aplicable', '/reembolsos', 'payments') }}</div></section><a class="v928-button v928-logout-button" href="/logout">Cerrar sesión</a></aside>
   </section>
-</main>
+</section>
 {% endblock %}
