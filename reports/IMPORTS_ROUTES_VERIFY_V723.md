@@ -1,7 +1,7 @@
 # Verificación de imports, rutas y plantillas V723
 
 - Resultado: OK
-- Versión importada: `V925_REFERENCE_MODEL_FULL_APP_REBUILD_QUALITY_PASS_FINAL`
+- Versión importada: `V926_DESKTOP_REFERENCE_MODEL_COMMAND_CENTER_AND_SPORTS_VALUE_PASS_FINAL`
 - Rutas GET: 600
 - Templates referenciados: 131
 - Templates faltantes: 0

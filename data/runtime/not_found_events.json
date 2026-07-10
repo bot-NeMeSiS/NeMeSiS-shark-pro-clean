@@ -1,5 +1,5 @@
 {
-  "version": "V925_REFERENCE_MODEL_FULL_APP_REBUILD_QUALITY_PASS_FINAL",
+  "version": "V926_DESKTOP_REFERENCE_MODEL_COMMAND_CENTER_AND_SPORTS_VALUE_PASS_FINAL",
   "events": [
     {
       "path": "/ruta-inventada",
@@ -8,9 +8,9 @@
       "user_agent": "Werkzeug/3.0.3",
       "resolved_alias": "",
       "source": "flask_404",
-      "count": 67,
+      "count": 75,
       "first_seen_madrid": "2026-07-06T10:37:04+02:00",
-      "last_seen_madrid": "2026-07-10T00:22:27+02:00"
+      "last_seen_madrid": "2026-07-10T01:18:30+02:00"
     },
     {
       "path": "/api/ruta-inventada",
@@ -19,9 +19,9 @@
       "user_agent": "Werkzeug/3.0.3",
       "resolved_alias": "",
       "source": "api_404",
-      "count": 66,
+      "count": 74,
       "first_seen_madrid": "2026-07-06T10:37:04+02:00",
-      "last_seen_madrid": "2026-07-10T00:22:27+02:00"
+      "last_seen_madrid": "2026-07-10T01:18:30+02:00"
     },
     {
       "path": "/ruta-inventada-v910",
@@ -30,9 +30,9 @@
       "user_agent": "Werkzeug/3.0.3",
       "resolved_alias": "",
       "source": "flask_404",
-      "count": 34,
+      "count": 36,
       "first_seen_madrid": "2026-07-07T23:33:53+02:00",
-      "last_seen_madrid": "2026-07-10T00:17:10+02:00"
+      "last_seen_madrid": "2026-07-10T01:15:25+02:00"
     },
     {
       "path": "/api/ruta-inventada-v910",
@@ -41,9 +41,9 @@
       "user_agent": "Werkzeug/3.0.3",
       "resolved_alias": "",
       "source": "api_404",
-      "count": 34,
+      "count": 36,
       "first_seen_madrid": "2026-07-07T23:33:53+02:00",
-      "last_seen_madrid": "2026-07-10T00:17:10+02:00"
+      "last_seen_madrid": "2026-07-10T01:15:25+02:00"
     },
     {
       "path": "/ruta-inventada-v913",
@@ -299,5 +299,5 @@
       "last_seen_madrid": "2026-07-05T00:58:55+02:00"
     }
   ],
-  "updated_at_madrid": "2026-07-10T00:22:27+02:00"
+  "updated_at_madrid": "2026-07-10T01:18:30+02:00"
 }

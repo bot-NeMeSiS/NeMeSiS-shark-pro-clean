@@ -1,7 +1,7 @@
 # V923 Client Routes Internal Error Reproduction
 
 version: V923_CLIENT_ROUTES_INTERNAL_ERROR_RECOVERY_AFTER_V922_FINAL
-generated_at_madrid: 2026-07-10T00:15:58+02:00
+generated_at_madrid: 2026-07-10T01:14:37+02:00
 client_routes_recovered: true
 
 | route | status | redirect | ok | exception | probable_cause | fix_applied |

@@ -255,6 +255,19 @@ V925_REFERENCE_PRODUCT_RULES = [
     "sports_data_requires_source_and_real_values",
 ]
 
+V926_DESKTOP_REFERENCE_RULES = [
+    "desktop_no_empty_top_area",
+    "desktop_hero_compact_above_fold",
+    "desktop_two_or_three_column_layout",
+    "admin_command_center_dense_and_separated",
+    "client_desktop_dashboard_uses_wide_canvas",
+    "sports_filters_and_data_above_fold",
+    "desktop_cards_not_oversized",
+    "admin_client_navigation_isolated",
+    "sports_values_require_real_source",
+    "browser_qa_desktop_requires_real_screenshots",
+]
+
 
 def build_v925_visual_product_snapshot(client: Any) -> dict[str, Any]:
     """Run safe visible-product checks without mutating data or requiring a browser."""
@@ -288,6 +301,40 @@ def build_v925_visual_product_snapshot(client: Any) -> dict[str, Any]:
         "browser_qa_status": "required_real_screenshots",
         "pixel_perfect_claim_allowed": False,
         "no_mutations": True,
+    }
+
+
+def build_v926_desktop_snapshot(client: Any) -> dict[str, Any]:
+    """Check V926 desktop contracts without mutating state or claiming browser evidence."""
+    routes = ["/", "/app", "/calendar", "/live", "/picks", "/shark", "/telegram"]
+    route_status: dict[str, int] = {}
+    rendered: dict[str, str] = {}
+    for route in routes:
+        try:
+            response = client.get(route, follow_redirects=False)
+            route_status[route] = int(response.status_code)
+            rendered[route] = response.get_data(as_text=True) if response.status_code == 200 else ""
+        except Exception:
+            route_status[route] = 0
+            rendered[route] = ""
+    combined = " ".join(rendered.values())
+    return {
+        "rules": V926_DESKTOP_REFERENCE_RULES,
+        "route_status": route_status,
+        "client_routes_no_500": all(status and status < 500 for status in route_status.values()),
+        "home_desktop_marker": 'data-v926-template="home-public"' in rendered.get("/", ""),
+        "calendar_board_marker": "v926-desktop-sports-board" in rendered.get("/calendar", ""),
+        "live_board_marker": "v926-desktop-live-board" in rendered.get("/live", ""),
+        "picks_board_marker": "v926-desktop-picks-board" in rendered.get("/picks", ""),
+        "desktop_contract_markers_present": all(
+            marker in combined
+            for marker in ("v926-desktop-shell", "v926-desktop-data-table", "v926-desktop-sports-board")
+        ),
+        "browser_qa_status": "desktop_screenshots_required",
+        "pixel_perfect_claim_allowed": False,
+        "no_mutations": True,
+        "no_external_calls": True,
+        "no_fake_data": True,
     }
 
 
@@ -370,6 +417,7 @@ def build_continuous_sentinel_summary(version: str = "") -> dict[str, Any]:
         "sentinel_autopilot_rules_v888": V888_SENTINEL_AUTOPILOT_RULES,
         "telegram_premium_pick_rules_v889": V889_TELEGRAM_PREMIUM_PICK_RULES,
         "reference_product_rules_v925": V925_REFERENCE_PRODUCT_RULES,
+        "desktop_reference_rules_v926": V926_DESKTOP_REFERENCE_RULES,
         "sentinel_autopilot_ready": True,
         "visual_company_worker_ready": True,
         "visual_big_leap_ready": True,
@@ -388,6 +436,7 @@ def run_continuous_sentinel_cycle(client: Any, version: str = "", mode: str = "q
     run_id = make_run_id(mode)
     static_result = run_static_flask_inspection(client, version)
     v925_visual_snapshot = build_v925_visual_product_snapshot(client)
+    v926_desktop_snapshot = build_v926_desktop_snapshot(client)
     static_issues = static_result.get("issues", [])
     safe_data_notes = [
         issue
@@ -471,6 +520,8 @@ def run_continuous_sentinel_cycle(client: Any, version: str = "", mode: str = "q
         "telegram_premium_pick_rules_v889": V889_TELEGRAM_PREMIUM_PICK_RULES,
         "reference_product_rules_v925": V925_REFERENCE_PRODUCT_RULES,
         "v925_visual_product_snapshot": v925_visual_snapshot,
+        "desktop_reference_rules_v926": V926_DESKTOP_REFERENCE_RULES,
+        "v926_desktop_snapshot": v926_desktop_snapshot,
         "sentinel_autopilot_ready": True,
         "visual_company_worker_v883": visual_worker_result,
         "visual_company_worker_ready": True,

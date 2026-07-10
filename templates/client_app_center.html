@@ -23,7 +23,7 @@
 {% set telegram_count = counts.get('alerts', counts.get('telegram', 0)) %}
 {% set lifecycle = data.get('client_lifecycle_sync') or {} %}
 <!-- V925 client dashboard reference rebuild -->
-<section class="v812-screen v812-home v924-no-dead-space v924-page-shell v924-client-shell v924-client-dashboard v815-certified-screen v815-app-screen v816-certified-screen v816-app-screen v817-certified-screen v817-app-screen v819-certified-screen v819-app-screen v820-certified-screen v820-app-screen v823-certified-screen v823-app-screen v824-certified-screen v824-app-screen v825-certified-screen v826-certified-screen v827-certified-screen v828-certified-screen v829-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v830-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v825-app-screen v860-app-shell v904-client-rebuild v908-client-dashboard v908-mobile-polish" data-v815-template="client_app_center" data-v816-template="client_app_center" data-v817-template="client_app_center" data-v819-template="client_app_center" data-v820-template="client_app_center" data-v823-template="client_app_center" data-v824-template="client_app_center" data-v825-template="client_app_center" data-v827-template="client_app_center" data-v828-template="client_app_center" data-v829-template="client_app_center" data-v830-template="client_app_center" data-v832-template="client_app_center" data-v833-template="client_app_center" data-v836-template="client_app_center" data-v837-template="client_app_center" data-v826-template="client_app_center" data-v904-template="client_app_center" data-v908-template="client_app_center" data-v924-template="client_app_center">
+<section class="v812-screen v812-home v924-no-dead-space v924-page-shell v924-client-shell v924-client-dashboard v815-certified-screen v815-app-screen v816-certified-screen v816-app-screen v817-certified-screen v817-app-screen v819-certified-screen v819-app-screen v820-certified-screen v820-app-screen v823-certified-screen v823-app-screen v824-certified-screen v824-app-screen v825-certified-screen v826-certified-screen v827-certified-screen v828-certified-screen v829-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v830-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v825-app-screen v860-app-shell v904-client-rebuild v908-client-dashboard v908-mobile-polish v926-desktop-shell v926-client-dashboard" data-v926-template="client_app_center" data-v815-template="client_app_center" data-v816-template="client_app_center" data-v817-template="client_app_center" data-v819-template="client_app_center" data-v820-template="client_app_center" data-v823-template="client_app_center" data-v824-template="client_app_center" data-v825-template="client_app_center" data-v827-template="client_app_center" data-v828-template="client_app_center" data-v829-template="client_app_center" data-v830-template="client_app_center" data-v832-template="client_app_center" data-v833-template="client_app_center" data-v836-template="client_app_center" data-v837-template="client_app_center" data-v826-template="client_app_center" data-v904-template="client_app_center" data-v908-template="client_app_center" data-v924-template="client_app_center">
   <section class="v812-hero-shell" aria-label="Inicio cliente estilo app final">
     <div class="v812-hero-bg-shark" aria-hidden="true"><img src="/static/img/shark-logo.svg" alt=""></div>
     <div class="v812-hero-copy">
@@ -51,6 +51,25 @@
         {{ empty_state('Sin partidos reales ahora mismo', 'Esperando proveedor o sincronización real. No mostramos partidos inventados; puedes revisar semana, resultados o directo.', '', '', 'muted') }}
       {% endif %}
       <nav><a href="/calendar?lane=today">Hoy</a><a href="/calendar?lane=results">Resultados</a><a href="/shark">AI</a></nav>
+    </aside>
+  </section>
+
+  <section class="v926-desktop-only v926-desktop-command-center" aria-label="Centro cliente desktop V926">
+    <div class="v926-desktop-main-panel">
+      <div class="v926-desktop-kpi-row">
+        <a href="/calendar?lane=today"><span>Hoy</span><strong>{{ today_count }}</strong><small>partidos reales</small></a>
+        <a href="/live"><span>Directo</span><strong>{{ live_count }}</strong><small>marcador real</small></a>
+        <a href="/picks"><span>Picks</span><strong>{{ picks_count }}</strong><small>completos</small></a>
+        <a href="/telegram"><span>Telegram</span><strong>{{ telegram_count }}</strong><small>alertas disponibles</small></a>
+        <a href="/shark"><span>SHARK</span><strong>Seguro</strong><small>sin datos inventados</small></a>
+        <a href="/profile"><span>Plan</span><strong>{{ plan_name }}</strong><small>cuenta real</small></a>
+      </div>
+    </div>
+    <aside class="v926-desktop-side-panel">
+      <span>Siguiente acciÃ³n</span>
+      <strong>{{ 'Revisar partidos de hoy' if today_count else 'Esperar sincronizaciÃ³n o revisar la semana' }}</strong>
+      <p>Datos reales disponibles: {{ today_count }} partidos, {{ live_count }} en directo y {{ picks_count }} picks completos.</p>
+      <div class="v926-desktop-sticky-actions"><a href="/calendar?lane=week">Ver semana</a><a href="/shark">Consultar SHARK</a></div>
     </aside>
   </section>
 

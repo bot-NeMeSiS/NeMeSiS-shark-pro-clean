@@ -9,7 +9,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V925_REFERENCE_MODEL_FULL_APP_REBUILD_QUALITY_PASS_FINAL"
-ZIP = ROOT / "release_output" / f"NeMeSiS_SHARK_PRO_{VERSION}_RENDER_READY.zip"
+V926_CONTAINER_VERSION = "V926_DESKTOP_REFERENCE_MODEL_COMMAND_CENTER_AND_SPORTS_VALUE_PASS_FINAL"
+ALLOWED_CONTAINER_VERSIONS = {VERSION, V926_CONTAINER_VERSION}
+ZIP = ROOT / "release_output" / f"NeMeSiS_SHARK_PRO_{V926_CONTAINER_VERSION}_RENDER_READY.zip"
 REQUIRED_ZIP_ROOT = {"app.py", "VERSION.txt", "requirements.txt", "templates", "static", "engines", "tools", "reports"}
 
 
@@ -63,9 +65,10 @@ def main() -> int:
 
     if version_bytes.startswith(b"\xef\xbb\xbf"):
         failures.append("VERSION.txt has UTF-8 BOM")
-    if version_text.strip() != VERSION:
+    local_version = version_text.strip()
+    if local_version not in ALLOWED_CONTAINER_VERSIONS:
         failures.append(f"VERSION.txt mismatch: {version_text.strip()}")
-    if app_version(app_source) != VERSION:
+    if app_version(app_source) != local_version:
         failures.append(f"APP_VERSION mismatch: {app_version(app_source)}")
 
     for marker in (
@@ -160,8 +163,8 @@ def main() -> int:
     if smoke.get("/ruta-inventada") != 404 or smoke.get("/api/ruta-inventada") != 404:
         failures.append("404 contract mismatch")
     runtime = client_http.get("/api/runtime-version").get_json() or {}
-    if runtime.get("version") != VERSION or not runtime.get("version_files_match"):
-        failures.append("runtime identity is not aligned with V925")
+    if runtime.get("version") != local_version or not runtime.get("version_files_match"):
+        failures.append("runtime identity is not aligned with the V925/V926 container")
 
     for template in (ROOT / "templates").glob("*.html"):
         try:
@@ -172,7 +175,7 @@ def main() -> int:
     zip_audit = audit_zip(failures)
     result = {
         "ok": not failures,
-        "version": VERSION,
+        "version": local_version,
         "failures": failures,
         "smoke": smoke,
         "runtime": {

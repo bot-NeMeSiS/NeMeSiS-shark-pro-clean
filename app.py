@@ -339,7 +339,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V925_REFERENCE_MODEL_FULL_APP_REBUILD_QUALITY_PASS_FINAL'
+APP_VERSION = 'V926_DESKTOP_REFERENCE_MODEL_COMMAND_CENTER_AND_SPORTS_VALUE_PASS_FINAL'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 
@@ -10512,7 +10512,7 @@ def dashboard_data(lane="today", date=None):
 @app.route("/service-worker.js")
 def service_worker():
     body = (
-        "const NEMESIS_CACHE='NEMESIS_CACHE_V925';\n"
+        "const NEMESIS_CACHE='NEMESIS_CACHE_V926';\n"
         "self.addEventListener('install',event=>{self.skipWaiting();});\n"
         "self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==NEMESIS_CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));});\n"
         "self.addEventListener('fetch',event=>{const req=event.request;if(req.mode==='navigate'){event.respondWith(fetch(req).then(res=>{if(res.status===404){return fetch('/');}return res;}).catch(()=>fetch('/')));return;}event.respondWith(fetch(req).then(res=>{if(res.status===404){return res;}return res;}));});\n"
@@ -15973,6 +15973,7 @@ def get_safe_sports_calendar_context(calendar=None) -> dict:
             else "Sin partidos reales ahora mismo. Requiere sincronizacion real."
         ),
         "error_safe": not has_real_data,
+        "no_render_api_call": True,
     }
 
 
@@ -16006,6 +16007,9 @@ def get_safe_live_context(live=None, provider=None) -> dict:
         "live_events": live_events,
         "upcoming_events": upcoming_events,
         "finished_events": finished_events,
+        "source": "local_cache_or_database" if events else "no_real_data_available",
+        "last_sync": str(live.get("last_sync") or provider.get("last_sync") or "").strip(),
+        "cache_status": "available" if events else "empty_safe",
         "provider_status": "configured" if configured else "safe_cache_mode",
         "has_live_data": has_live_data,
         "counts": {
@@ -16018,6 +16022,7 @@ def get_safe_live_context(live=None, provider=None) -> dict:
             if has_live_data
             else "Sin directos reales ahora mismo. Marcador y minuto permanecen bloqueados hasta recibir datos."
         ),
+        "no_render_api_call": True,
     }
 
 
@@ -16043,12 +16048,16 @@ def get_safe_picks_context(picks=None) -> dict:
         "picks": ready,
         "blocked_count": max(0, len(source_picks) - len(ready)),
         "has_real_data": bool(ready),
+        "last_sync": "",
+        "provider_status": "data_available" if ready else "waiting_for_real_data",
+        "cache_status": "available" if source_picks else "empty_safe",
         "safe_message": (
             "Picks con seleccion, mercado y cuota reales disponibles."
             if ready
             else "Sin picks premium reales activos ahora mismo. Picks bloqueados por seguridad."
         ),
         "source": "published_real_picks" if ready else "no_complete_real_pick",
+        "no_render_api_call": True,
     }
 
 
@@ -16066,7 +16075,12 @@ def get_safe_odds_context(picks=None) -> dict:
     return {
         "odds": odds,
         "has_real_data": bool(odds),
+        "source": "published_real_picks" if odds else "no_real_odds_available",
+        "last_sync": "",
+        "provider_status": "data_available" if odds else "waiting_for_real_data",
+        "cache_status": "available" if odds else "empty_safe",
         "safe_message": "Cuotas reales disponibles." if odds else "Cuotas pendientes de proveedor real.",
+        "no_render_api_call": True,
     }
 
 
@@ -16086,6 +16100,27 @@ def v925_reference_model_runtime_summary() -> dict:
         "v925_browser_qa_still_required": valid_screenshots <= 0,
         "v925_next_required_action": "run_browser_qa_for_evidence" if valid_screenshots <= 0 else "review_screenshot_evidence",
         "v925_pixel_perfect_claim_allowed": False,
+    }
+
+
+def v926_desktop_reference_runtime_summary() -> dict:
+    """Describe the desktop-only V926 pass without overstating visual evidence."""
+    browser = v923_browser_qa_evidence_capture_runtime_summary()
+    valid_screenshots = int(browser.get("v923_valid_screenshots_count") or 0)
+    return {
+        "v926_desktop_pass_applied": True,
+        "v926_home_desktop_status": "compact_two_column_above_fold",
+        "v926_client_desktop_status": "wide_dashboard_real_data_panels",
+        "v926_admin_desktop_status": "dense_command_center",
+        "v926_sports_desktop_status": "filters_and_boards_above_fold",
+        "v926_no_fake_data_guard": True,
+        "v926_browser_qa_still_required": valid_screenshots <= 0,
+        "v926_next_required_action": (
+            "run_browser_qa_for_desktop_evidence"
+            if valid_screenshots <= 0
+            else "review_desktop_screenshot_evidence"
+        ),
+        "v926_pixel_perfect_claim_allowed": False,
     }
 
 
@@ -16209,6 +16244,7 @@ def api_runtime_version():
     v924_summary = v924_client_routes_browser_qa_merge_runtime_summary()
     v924_global_summary = v924_global_ui_sports_value_runtime_summary()
     v925_summary = v925_reference_model_runtime_summary()
+    v926_summary = v926_desktop_reference_runtime_summary()
     return jsonify(sanitize_runtime_value({
         "ok": True,
         "app": APP_NAME,
@@ -16493,6 +16529,11 @@ def api_runtime_version():
         "has_v925_sports_data_reference_rebuild": True,
         "has_v925_admin_command_center_reference_rebuild": True,
         "has_v925_picks_odds_safe_rebuild": True,
+        "has_v926_desktop_reference_model_pass": True,
+        "has_v926_admin_desktop_command_center": True,
+        "has_v926_client_desktop_dashboard": True,
+        "has_v926_sports_desktop_boards": True,
+        "has_v926_desktop_empty_space_fix": True,
         **v902_truth_summary,
         **v904_summary,
         **v906_summary,
@@ -16515,6 +16556,7 @@ def api_runtime_version():
         **v924_summary,
         **v924_global_summary,
         **v925_summary,
+        **v926_summary,
         "active_errors_count": v903_active_errors_count,
         "fixed_safe_count": v903_archived_count,
         "stale_issues_count": v903_stale_issues_count,
