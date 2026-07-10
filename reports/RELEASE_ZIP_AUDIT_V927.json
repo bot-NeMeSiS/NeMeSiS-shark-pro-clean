@@ -1,10 +1,10 @@
 {
   "ok": true,
-  "audited_at": "2026-07-10T09:22:38",
+  "audited_at": "2026-07-10T09:51:53",
   "zip": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\release_output\\NeMeSiS_SHARK_PRO_V927_PC_DESKTOP_REFERENCE_PERFECTION_ADMIN_CLIENT_SPORTS_FINAL_RENDER_READY.zip",
-  "zip_size_bytes": 27592125,
-  "file_count": 2320,
-  "content_size_bytes": 34944387,
+  "zip_size_bytes": 27599272,
+  "file_count": 2322,
+  "content_size_bytes": 34963065,
   "forbidden_count": 0,
   "missing_required_root": [],
   "forbidden": [],
@@ -79,11 +79,11 @@
     },
     {
       "path": "app.py",
-      "size": 1056859
+      "size": 1060644
     },
     {
       "path": "static/app.css",
-      "size": 997698
+      "size": 997763
     },
     {
       "path": "V726_PROJECT_TREE_AUDIT.md",
@@ -98,13 +98,13 @@
     },
     {
       "folder": "reports",
-      "size": 3646624,
-      "files": 1273
+      "size": 3650817,
+      "files": 1274
     },
     {
       "folder": "tools",
-      "size": 1557436,
-      "files": 502
+      "size": 1567600,
+      "files": 503
     },
     {
       "folder": "engines",
@@ -113,17 +113,17 @@
     },
     {
       "folder": "app.py",
-      "size": 1056859,
+      "size": 1060644,
       "files": 1
     },
     {
       "folder": "static",
-      "size": 999024,
+      "size": 999089,
       "files": 2
     },
     {
       "folder": "templates",
-      "size": 733496,
+      "size": 733967,
       "files": 169
     },
     {

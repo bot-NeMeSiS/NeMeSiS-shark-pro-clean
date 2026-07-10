@@ -4690,6 +4690,8 @@ def membership_allows(user_membership, required):
 
 def normalize_pick_row(pick):
     pick = dict(pick or {})
+    raw_market = pick.get("market") or pick.get("pick_type")
+    pick["market_is_fallback"] = not bool(str(raw_market or "").strip())
     pick["odds"] = as_float(pick.get("odds"), 0.0)
     pick["confidence"] = max(1, min(100, as_int(pick.get("confidence"), 50)))
     pick["stake_units"] = as_float(pick.get("stake_units"), 1.0)
@@ -4697,7 +4699,7 @@ def normalize_pick_row(pick):
     pick["status"] = normalize_pick_status(pick.get("status"))
     pick["risk_level"] = normalize_risk(pick.get("risk_level"))
     pick["membership_required"] = normalize_role(pick.get("membership_required") or "FREE")
-    pick["market"] = pick.get("market") or pick.get("pick_type") or "Principal"
+    pick["market"] = raw_market or "Principal"
     pick["bookmaker"] = pick.get("bookmaker") or ""
     pick["warning_reason"] = pick.get("warning_reason") or "Gestiona stake y evita perseguir pérdidas."
     pick["result_status"] = str(pick.get("result_status") or "pending").lower()
@@ -6343,9 +6345,11 @@ def enrich_pick_client_context(pick):
             match = None
     if match:
         ctx = client_match_display_context(match)
-        for key in ("home_team", "away_team", "competition_name", "league_name", "match_date", "kickoff_time", "match_time", "status", "score", "home_score", "away_score"):
-            if not pick.get(key) and ctx.get(key):
-                pick[key] = ctx.get(key)
+        for key in ("home_team", "away_team", "competition_name", "league_name", "match_date", "kickoff_time", "match_time", "kickoff_iso", "score", "home_score", "away_score"):
+            value = ctx.get(key) or match.get(key)
+            if not pick.get(key) and value:
+                pick[key] = value
+        pick["match_status"] = match.get("status") or ctx.get("status") or ""
         pick["client_match_id"] = match_id
         pick["client_match_url"] = f"/match/{match_id}"
         pick["client_match_label"] = ctx.get("client_teams")
@@ -10514,10 +10518,13 @@ def service_worker():
     body = (
         "const NEMESIS_CACHE='NEMESIS_CACHE_V927';\n"
         "self.addEventListener('install',event=>{self.skipWaiting();});\n"
-        "self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==NEMESIS_CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));});\n"
-        "self.addEventListener('fetch',event=>{const req=event.request;if(req.mode==='navigate'){event.respondWith(fetch(req).then(res=>{if(res.status===404){return fetch('/');}return res;}).catch(()=>fetch('/')));return;}event.respondWith(fetch(req).then(res=>{if(res.status===404){return res;}return res;}));});\n"
+        "self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.map(key=>caches.delete(key)))).then(()=>self.clients.claim()));});\n"
+        "self.addEventListener('fetch',event=>{const req=event.request;if(req.method!=='GET'){return;}if(req.mode==='navigate'){event.respondWith(fetch(req,{cache:'no-store'}).catch(()=>fetch('/',{cache:'no-store'})));return;}if(req.destination==='style'||req.destination==='script'){event.respondWith(fetch(req,{cache:'reload'}));return;}event.respondWith(fetch(req));});\n"
     )
-    return Response(body, mimetype="application/javascript")
+    response = Response(body, mimetype="application/javascript")
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response.headers["Service-Worker-Allowed"] = "/"
+    return response
 
 
 @app.route("/manifest.json")
@@ -10882,10 +10889,7 @@ def home_live_summary_data():
                   OR COALESCE(minute,'')!='')""",
         (today,),
     )
-    picks_count = _home_count_sql(
-        """SELECT COUNT(*) FROM picks
-           WHERE lower(COALESCE(status,'')) IN ('published','won','lost','void')"""
-    )
+    picks_count = 0
     favorites_count = _home_count_sql(
         """SELECT COUNT(*) FROM favorites WHERE user_id=?""",
         (current_user_id() or "",),
@@ -10921,7 +10925,7 @@ def home_live_summary_data():
 
     raw_picks = _home_rows_sql(
         """SELECT * FROM picks
-           WHERE lower(COALESCE(status,'')) IN ('published','won','lost','void')
+           WHERE lower(COALESCE(status,''))='published'
            ORDER BY COALESCE(published_at, updated_at, created_at) DESC, confidence DESC
            LIMIT 12""",
         limit=12,
@@ -10932,6 +10936,9 @@ def home_live_summary_data():
             picks.append(enrich_pick_client_context(normalize_pick_row(pick)))
         except Exception:
             picks.append(pick)
+    safe_pick_context = get_safe_picks_context(picks)
+    picks = safe_pick_context.get("picks") or []
+    picks_count = len(picks)
 
     has_real_data = bool(upcoming or today_count or live_count or picks_count)
     data_status = "DATOS_REALES" if has_real_data else "PENDIENTE_SINCRONIZACION"
@@ -16032,21 +16039,83 @@ def _v925_pick_has_real_fields(item) -> bool:
     selection = item.get("client_selection_label") or item.get("selection_display") or item.get("selection")
     market = item.get("market") or item.get("market_name") or item.get("bet_type")
     odds = item.get("client_odds_label") or item.get("odds") or item.get("price")
-    invalid = {"", "0", "0.0", "none", "null", "undefined", "pendiente", "cuota pendiente"}
-    return (
-        str(selection or "").strip().lower() not in invalid
-        and str(market or "").strip().lower() not in invalid
-        and str(odds or "").strip().lower() not in invalid
+    invalid_selection = {
+        "", "none", "null", "undefined", "pendiente", "seleccion pendiente",
+        "selección pendiente", "por confirmar", "sin seleccion", "sin selección",
+    }
+    invalid_market = {
+        "", "none", "null", "undefined", "pendiente", "mercado pendiente",
+        "por confirmar", "principal", "sin mercado",
+    }
+    selection_ok = str(selection or "").strip().lower() not in invalid_selection
+    market_ok = (
+        not bool(item.get("market_is_fallback"))
+        and str(market or "").strip().lower() not in invalid_market
     )
+    try:
+        odds_value = float(str(odds or "").strip().replace(",", "."))
+    except (TypeError, ValueError):
+        odds_value = 0.0
+    return selection_ok and market_ok and odds_value > 1.0
+
+
+def _v927_pick_truth_block_reason(item) -> str:
+    """Return why a pick cannot be shown as an active real pick on client surfaces."""
+    if not isinstance(item, dict) or not _v925_pick_has_real_fields(item):
+        return "incomplete_market_selection_or_odds"
+    if is_fake_match(item):
+        return "non_real_match_identity"
+    home = str(item.get("home_team") or item.get("client_home") or "").strip()
+    away = str(item.get("away_team") or item.get("client_away") or "").strip()
+    if not (home and away):
+        return "incomplete_match_identity"
+    pick_status = str(item.get("status") or "").strip().lower()
+    if pick_status != "published":
+        return "not_published_active"
+    result_status = str(item.get("result_status") or "pending").strip().lower()
+    if result_status not in {"", "pending", "open", "active", "unsettled"}:
+        return "settled_or_closed"
+    match_status = str(
+        item.get("match_status")
+        or item.get("fixture_status")
+        or item.get("sports_status")
+        or ""
+    ).strip()
+    if is_finished_status_value(match_status):
+        return "match_finished"
+    match_date = str(item.get("match_date") or item.get("date") or "").strip()[:10]
+    kickoff = match_kickoff_madrid_dt(item)
+    if not match_date and not kickoff:
+        return "missing_match_date"
+    if match_date and match_date < today_iso():
+        return "expired_match_date"
+    if kickoff and not is_live_status_value(match_status):
+        elapsed_minutes = int((datetime.now(TZ) - kickoff).total_seconds() // 60)
+        if elapsed_minutes >= 180:
+            return "expired_kickoff_window"
+    source = str(item.get("source") or "").strip().lower()
+    if any(token in source for token in ("fake", "demo", "fixture_test", "placeholder")):
+        return "non_real_source"
+    return ""
 
 
 def get_safe_picks_context(picks=None) -> dict:
-    """Expose only picks that have a real selection, market and price."""
+    """Expose only published, current picks backed by complete real fields."""
     source_picks = [item for item in (picks or []) if isinstance(item, dict)]
-    ready = [item for item in source_picks if _v925_pick_has_real_fields(item)]
+    ready = []
+    blocked_reasons = {}
+    for item in source_picks:
+        reason = _v927_pick_truth_block_reason(item)
+        if reason:
+            blocked_reasons[reason] = int(blocked_reasons.get(reason) or 0) + 1
+            continue
+        ready.append(item)
     return {
         "picks": ready,
         "blocked_count": max(0, len(source_picks) - len(ready)),
+        "active_complete_count": len(ready),
+        "blocked_reasons": blocked_reasons,
+        "truth_gate": "published_current_real_match_market_selection_odds",
         "has_real_data": bool(ready),
         "last_sync": "",
         "provider_status": "data_available" if ready else "waiting_for_real_data",
@@ -16239,6 +16308,18 @@ def api_runtime_version():
     logo_cache_state = "Cache de logos disponible" if logo_cache_count else "Fallback premium activo"
     version_files_match = bool(version_txt == APP_VERSION and (not app_version_file or app_version_file == APP_VERSION))
     deployment_alignment_status = "aligned_local_files" if version_files_match else "version_file_mismatch"
+    static_css_cache_busting = bool(
+        "filename='app.css'" in base_template
+        and "?v={{ app_version }}" in base_template
+        and 'data-cache-version="{{ app_version }}"' in base_template
+    )
+    service_worker_cache_name = "NEMESIS_CACHE_V927"
+    service_worker_no_stale_html_css = bool(
+        service_worker_cache_name in app_py_text
+        and "cache:'no-store'" in app_py_text
+        and "cache:'reload'" in app_py_text
+        and "keys.map(key=>caches.delete(key))" in app_py_text
+    )
     v902_truth_summary = v902_sentinel_truth_runtime_summary()
     v903_active_errors_count = int(v902_truth_summary.get("sentinel_active_issues_count") or 0)
     v903_stale_issues_count = int(v902_truth_summary.get("sentinel_stale_issues_count") or 0)
@@ -16296,6 +16377,10 @@ def api_runtime_version():
         "static_app_css_hash": css_hash,
         "static_app_css_size": css_size,
         "static_app_css_mtime": css_mtime,
+        "static_css_expected_version": APP_VERSION,
+        "static_css_expected_query": f"?v={APP_VERSION}",
+        "service_worker_cache_name": service_worker_cache_name,
+        "service_worker_no_stale_html_css": service_worker_no_stale_html_css,
         "has_v816_shell": "data-v816-shell" in base_template and "NEMESIS V816 LIVE REFERENCE VISUAL DIFF ACTIVE" in base_template,
         "has_v816_css": "V816_RENDER_LIVE_REFERENCE_VISUAL_DIFF_CLIENT_ADMIN_FINAL" in css_text,
         "has_v817_shell": "data-v817-shell" in base_template and "NEMESIS V817 REFERENCE PIXEL POLISH ACTIVE" in base_template,
@@ -16611,7 +16696,7 @@ def api_runtime_version():
         "has_v820_crests": "data-v820-shell" in base_template and "V820 REAL CRESTS REFERENCE VISUAL PIXEL POLISH START" in css_text,
         "has_v819_dedup": "data-v819-shell" in base_template and "V819 REFERENCE UI DEDUP LAYER PURGE START" in css_text,
         "has_v818_automation": "/api/automation/master-tick" in app_py_text and "daily_automation_engine" in app_py_text,
-        "static_css_cache_busting": APP_VERSION in base_template,
+        "static_css_cache_busting": static_css_cache_busting,
         "crest_engine_loaded": runtime_stability.get("crest_engine_loaded"),
         "logo_cache_tables_ok": runtime_stability.get("logo_cache_tables_ok"),
         "team_logo_cache_count": runtime_stability.get("team_logo_cache_count"),

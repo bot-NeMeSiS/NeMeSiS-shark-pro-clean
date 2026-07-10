@@ -4,8 +4,8 @@
 
 - Version local: `V927_PC_DESKTOP_REFERENCE_PERFECTION_ADMIN_CLIENT_SPORTS_FINAL`.
 - Base usada: `V926_DESKTOP_REFERENCE_MODEL_COMMAND_CENTER_AND_SPORTS_VALUE_PASS_FINAL`.
-- Produccion comprobada antes del cierre: V926, alineada y con Sentinel en 0 issues activos.
-- V927 no se declara en produccion hasta que Render la confirme en `/api/runtime-version`.
+- Produccion comprobada antes del cierre CSS/PWA: una compilacion V927 anterior, alineada y con Sentinel en 0 issues activos, pero con `static_css_cache_busting=false`.
+- La entrega V927 definitiva no se considera activa hasta que Render confirme tambien el hash CSS `05d3e9d407cf3b26` y `static_css_cache_busting=true`.
 
 ## Resultado
 
@@ -29,6 +29,13 @@ Se mantienen los guards V923-V926, los contextos deportivos sin llamadas externa
 - Admin: jerarquia KPI -> operaciones -> siguiente accion -> tablas.
 - Perfil y planes: comparacion en tres columnas y estado Stripe honesto.
 
+## Cierre CSS/PWA y picks
+
+- Render ya llego a una compilacion V927 anterior, pero esa compilacion aun reportaba `static_css_cache_busting=false`.
+- La entrega final V927 usa el hash CSS `05d3e9d407cf3b26`, cache `NEMESIS_CACHE_V927` y politica network-first/no-store para HTML y recarga para CSS/JS.
+- El contador de picks de home solo incluye publicados, vigentes y completos. La muestra publica observada de 6 no supero el gate actual; el estado seguro sera 0 mientras no existan picks reales validos.
+- QA detallado: `reports/V927_CSS_PWA_AND_HOME_PICKS_TRUTH_QA.md`.
+
 ## Despliegue
 
-Subir el contenido interno de `release_output/V927_DEPLOY_ROOT_CONTENTS` a la raiz del repositorio. Tras Render, comprobar version, `version_files_match=true`, `deployment_alignment_status=aligned_local_files` y los cinco flags V927.
+Subir el contenido interno de `release_output/V927_DEPLOY_ROOT_CONTENTS` a la raiz del repositorio. Tras Render, comprobar version, `version_files_match=true`, `deployment_alignment_status=aligned_local_files`, `static_css_cache_busting=true`, hash CSS `05d3e9d407cf3b26` y los cinco flags V927.

@@ -1,20 +1,20 @@
 # Auditoría ZIP V927
 
 - ZIP: `NeMeSiS_SHARK_PRO_V927_PC_DESKTOP_REFERENCE_PERFECTION_ADMIN_CLIENT_SPORTS_FINAL_RENDER_READY.zip`
-- Archivos: 2320
-- Tamaño ZIP: 27592125 bytes
+- Archivos: 2322
+- Tamaño ZIP: 27599272 bytes
 - Prohibidos: 0
 - Resultado: OK
 - Root obligatorio ausente: ninguno
 
 ## Carpetas principales
 - `reference_images`: 24 archivos, 24921842 bytes
-- `reports`: 1273 archivos, 3646624 bytes
-- `tools`: 502 archivos, 1557436 bytes
+- `reports`: 1274 archivos, 3650817 bytes
+- `tools`: 503 archivos, 1567600 bytes
 - `engines`: 124 archivos, 1381884 bytes
-- `app.py`: 1 archivos, 1056859 bytes
-- `static`: 2 archivos, 999024 bytes
-- `templates`: 169 archivos, 733496 bytes
+- `app.py`: 1 archivos, 1060644 bytes
+- `static`: 2 archivos, 999089 bytes
+- `templates`: 169 archivos, 733967 bytes
 - `V726_PROJECT_TREE_AUDIT.md`: 1 archivos, 96394 bytes
 - `CHATGPT_CONTINUATION_REPORT.md`: 1 archivos, 67783 bytes
 - `data`: 5 archivos, 67130 bytes

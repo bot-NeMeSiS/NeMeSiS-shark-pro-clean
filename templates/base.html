@@ -10,7 +10,7 @@
   <title>{% if title is defined and title %}{{ title }}{% else %}NeMeSiS SHARK PRO{% endif %}</title>
   <link rel="icon" href="{{ url_for('static', filename='img/shark-logo.svg') }}" type="image/svg+xml">
   <link rel="manifest" href="{{ url_for('manifest_json') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}?v={{ app_version }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}?v={{ app_version }}" data-cache-version="{{ app_version }}">
   <meta name="csrf-token" content="{{ csrf_token() }}">
 </head>
 {% from "partials/brand_logo.html" import nemesis_brand %}
@@ -632,6 +632,16 @@
           .catch(function(){ if(out){ out.textContent='No se pudo completar el dry-run seguro.'; } })
           .finally(function(){ btn.removeAttribute('aria-busy'); });
       });
+    });
+  })();
+  </script>
+  <script>
+  (function v927PwaCacheDelivery(){
+    if(!('serviceWorker' in navigator)) return;
+    window.addEventListener('load', function(){
+      navigator.serviceWorker.register('/service-worker.js?v={{ app_version }}', {updateViaCache:'none'})
+        .then(function(registration){ return registration.update(); })
+        .catch(function(){ /* PWA is optional; the web app remains network-first. */ });
     });
   })();
   </script>
