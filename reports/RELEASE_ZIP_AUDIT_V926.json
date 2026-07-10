@@ -1,10 +1,10 @@
 {
   "ok": true,
-  "audited_at": "2026-07-10T01:18:09",
+  "audited_at": "2026-07-10T08:38:15",
   "zip": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\release_output\\NeMeSiS_SHARK_PRO_V926_DESKTOP_REFERENCE_MODEL_COMMAND_CENTER_AND_SPORTS_VALUE_PASS_FINAL_RENDER_READY.zip",
-  "zip_size_bytes": 27575245,
+  "zip_size_bytes": 27575417,
   "file_count": 2307,
-  "content_size_bytes": 34894518,
+  "content_size_bytes": 34895009,
   "forbidden_count": 0,
   "missing_required_root": [],
   "forbidden": [],
@@ -103,7 +103,7 @@
     },
     {
       "folder": "tools",
-      "size": 1538101,
+      "size": 1538592,
       "files": 500
     },
     {

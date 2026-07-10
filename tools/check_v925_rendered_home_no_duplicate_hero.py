@@ -12,6 +12,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V925_REFERENCE_MODEL_FULL_APP_REBUILD_QUALITY_PASS_FINAL"
+V926_CONTAINER_VERSION = "V926_DESKTOP_REFERENCE_MODEL_COMMAND_CENTER_AND_SPORTS_VALUE_PASS_FINAL"
+ALLOWED_CONTAINER_VERSIONS = {VERSION, V926_CONTAINER_VERSION}
 TEMP_DB = Path(tempfile.gettempdir()) / f"nemesis_v925_rendered_home_{os.getpid()}.sqlite"
 sys.dont_write_bytecode = True
 
@@ -106,10 +108,11 @@ def main() -> int:
 
     if version_bytes.startswith(b"\xef\xbb\xbf"):
         failures.append("VERSION.txt contains UTF-8 BOM")
-    if version_bytes.decode("utf-8").strip() != VERSION:
-        failures.append("VERSION.txt is not V925")
-    if source_app_version(app_source) != VERSION:
-        failures.append("APP_VERSION is not V925")
+    local_version = version_bytes.decode("utf-8").strip()
+    if local_version not in ALLOWED_CONTAINER_VERSIONS:
+        failures.append("VERSION.txt is not a supported V925/V926 container")
+    if source_app_version(app_source) != local_version:
+        failures.append("APP_VERSION does not match the local V925/V926 container")
 
     os.environ["DB_PATH"] = str(TEMP_DB)
     clean_temp_db()
@@ -134,8 +137,15 @@ def main() -> int:
         failures.append(f"rendered home has {parser.hero_count} V925 public heroes")
     if parser.legacy_classes:
         failures.append(f"legacy public hero classes rendered: {sorted(parser.legacy_classes)}")
-    if not parser.first_v925_child_classes or "v925-public-hero" not in parser.first_v925_child_classes:
-        failures.append("V925 hero is not the first structural child of the public V925 page")
+    valid_first_child = bool(
+        parser.first_v925_child_classes
+        and (
+            "v925-public-hero" in parser.first_v925_child_classes
+            or "v926-home-desktop-overview" in parser.first_v925_child_classes
+        )
+    )
+    if not valid_first_child:
+        failures.append("V925 hero or its V926 desktop overview is not the first structural child")
 
     legacy_primary_copy = "Partidos, directos, picks y análisis premium en español"
     legacy_secondary_copy = "Partidos, directos, picks y planes en una pantalla clara"
@@ -218,12 +228,12 @@ def main() -> int:
             failures.append(f"route {route} lacks a visible real-data or safe-state marker")
 
     runtime = client.get("/api/runtime-version").get_json() or {}
-    if runtime.get("version") != VERSION or not runtime.get("version_files_match"):
-        failures.append("local runtime identity is not aligned with V925")
+    if runtime.get("version") != local_version or not runtime.get("version_files_match"):
+        failures.append("local runtime identity is not aligned with the V925/V926 container")
 
     result = {
         "ok": not failures,
-        "version": VERSION,
+        "version": local_version,
         "failures": failures,
         "rendered_home": {
             "status": response.status_code,

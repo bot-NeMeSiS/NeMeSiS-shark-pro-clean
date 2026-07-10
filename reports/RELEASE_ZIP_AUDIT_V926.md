@@ -2,7 +2,7 @@
 
 - ZIP: `NeMeSiS_SHARK_PRO_V926_DESKTOP_REFERENCE_MODEL_COMMAND_CENTER_AND_SPORTS_VALUE_PASS_FINAL_RENDER_READY.zip`
 - Archivos: 2307
-- Tamaño ZIP: 27575245 bytes
+- Tamaño ZIP: 27575417 bytes
 - Prohibidos: 0
 - Resultado: OK
 - Root obligatorio ausente: ninguno
@@ -10,7 +10,7 @@
 ## Carpetas principales
 - `reference_images`: 24 archivos, 24921842 bytes
 - `reports`: 1262 archivos, 3638449 bytes
-- `tools`: 500 archivos, 1538101 bytes
+- `tools`: 500 archivos, 1538592 bytes
 - `engines`: 124 archivos, 1379046 bytes
 - `app.py`: 1 archivos, 1055460 bytes
 - `static`: 2 archivos, 988187 bytes
