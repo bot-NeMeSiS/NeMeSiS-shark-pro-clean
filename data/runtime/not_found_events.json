@@ -1,6 +1,28 @@
 {
-  "version": "V931_PRODUCTION_CLIENT_ROUTES_AND_HOME_DATA_CONSISTENCY_HOTFIX_FINAL",
+  "version": "V932_AUTHENTICATED_PRODUCTION_CLIENT_ADMIN_AND_REAL_SPORTS_VALUE_FINAL",
   "events": [
+    {
+      "path": "/api/ruta-inventada-v910",
+      "method": "GET",
+      "referrer": "",
+      "user_agent": "Werkzeug/3.0.3",
+      "resolved_alias": "",
+      "source": "api_404",
+      "count": 49,
+      "first_seen_madrid": "2026-07-07T23:33:53+02:00",
+      "last_seen_madrid": "2026-07-11T11:59:05+02:00"
+    },
+    {
+      "path": "/ruta-inventada-v910",
+      "method": "GET",
+      "referrer": "",
+      "user_agent": "Werkzeug/3.0.3",
+      "resolved_alias": "",
+      "source": "flask_404",
+      "count": 49,
+      "first_seen_madrid": "2026-07-07T23:33:53+02:00",
+      "last_seen_madrid": "2026-07-11T11:59:04+02:00"
+    },
     {
       "path": "/ruta-inventada",
       "method": "GET",
@@ -22,28 +44,6 @@
       "count": 107,
       "first_seen_madrid": "2026-07-06T10:37:04+02:00",
       "last_seen_madrid": "2026-07-11T09:56:52+02:00"
-    },
-    {
-      "path": "/ruta-inventada-v910",
-      "method": "GET",
-      "referrer": "",
-      "user_agent": "Werkzeug/3.0.3",
-      "resolved_alias": "",
-      "source": "flask_404",
-      "count": 48,
-      "first_seen_madrid": "2026-07-07T23:33:53+02:00",
-      "last_seen_madrid": "2026-07-11T09:52:37+02:00"
-    },
-    {
-      "path": "/api/ruta-inventada-v910",
-      "method": "GET",
-      "referrer": "",
-      "user_agent": "Werkzeug/3.0.3",
-      "resolved_alias": "",
-      "source": "api_404",
-      "count": 48,
-      "first_seen_madrid": "2026-07-07T23:33:53+02:00",
-      "last_seen_madrid": "2026-07-11T09:52:37+02:00"
     },
     {
       "path": "/api/ruta-inventada-v929",
@@ -387,5 +387,5 @@
       "last_seen_madrid": "2026-07-05T00:58:55+02:00"
     }
   ],
-  "updated_at_madrid": "2026-07-11T09:56:52+02:00"
+  "updated_at_madrid": "2026-07-11T11:59:05+02:00"
 }

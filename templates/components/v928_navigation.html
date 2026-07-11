@@ -40,7 +40,7 @@
     {% for label, href, icon in links %}{% set active = request.path == href or (href != '/admin/dashboard' and request.path.startswith(href ~ '/')) %}<a href="{{ href }}" class="{% if active %}is-active{% endif %}"{% if active %} aria-current="page"{% endif %}><span class="v928-icon" data-v928-icon="{{ icon }}" aria-hidden="true"></span><span>{{ label }}</span></a>{% endfor %}
   </nav>
   <div class="v928-admin-sidebar-status"><i aria-hidden="true"></i><span><strong>Sistema supervisado</strong><small>Estado real en el panel</small></span></div>
-  <a class="v928-admin-logout" href="/logout">Cerrar sesión admin</a>
+  <a class="v928-admin-logout" href="/admin/logout">Cerrar sesión admin</a>
 </aside>
 {%- endmacro %}
 

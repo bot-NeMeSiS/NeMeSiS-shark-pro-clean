@@ -343,7 +343,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V931_PRODUCTION_CLIENT_ROUTES_AND_HOME_DATA_CONSISTENCY_HOTFIX_FINAL'
+APP_VERSION = 'V932_AUTHENTICATED_PRODUCTION_CLIENT_ADMIN_AND_REAL_SPORTS_VALUE_FINAL'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 
@@ -2084,6 +2084,13 @@ def ensure_runtime_ready_for_request():
         return None
     if request.endpoint in LIGHT_STARTUP_ENDPOINTS:
         return None
+    authenticated_preflight = globals().get("v932_authenticated_request_preflight")
+    if callable(authenticated_preflight):
+        try:
+            if authenticated_preflight() == "database_locked":
+                return None
+        except Exception:
+            pass
     try:
         initialize_once()
     except Exception as exc:
@@ -6180,6 +6187,8 @@ def current_session_user():
     # If an admin gift or offer has expired, refresh the session once and keep
     # the rest of the app seeing the correct plan immediately.
     try:
+        if has_request_context() and request.environ.get("nemesis.v932.database_locked"):
+            raise sqlite3.OperationalError("database is locked; using authenticated session snapshot")
         if normalize_role(session.get("user_role")) != "ADMIN":
             expire_user_memberships_if_needed(session.get("user_id"))
             fresh = get_user_by_id(session.get("user_id"))
@@ -10545,7 +10554,7 @@ def dashboard_data(lane="today", date=None):
 @app.route("/service-worker.js")
 def service_worker():
     body = (
-        "const NEMESIS_CACHE='NEMESIS_CACHE_V931';\n"
+        "const NEMESIS_CACHE='NEMESIS_CACHE_V932';\n"
         "self.addEventListener('install',event=>{self.skipWaiting();});\n"
         "self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.map(key=>caches.delete(key)))).then(()=>self.clients.claim()));});\n"
         "self.addEventListener('fetch',event=>{const req=event.request;if(req.method!=='GET'){return;}if(req.mode==='navigate'){event.respondWith(fetch(req,{cache:'no-store'}).catch(()=>fetch('/',{cache:'no-store'})));return;}if(req.destination==='style'||req.destination==='script'){event.respondWith(fetch(req,{cache:'reload'}));return;}event.respondWith(fetch(req));});\n"
@@ -11020,6 +11029,39 @@ V931_INVALID_DATA_LABELS = {
     "competicion pendiente", "competición pendiente", "hora pendiente",
     "fecha pendiente", "sin competicion", "sin competición",
 }
+V932_AUTH_CLIENT_PATHS = {
+    "/app", "/calendar", "/calendario", "/live", "/directo", "/picks",
+    "/track-record", "/shark", "/telegram", "/profile", "/memberships",
+    "/favorites", "/favoritos", "/logout",
+}
+V932_AUTH_ADMIN_PATHS = {
+    "/admin/dashboard", "/admin/users", "/admin/memberships", "/admin/payments",
+    "/admin/picks", "/admin/matches", "/admin/data-center",
+    "/admin/telegram/command-center", "/admin/automation-workforce",
+    "/admin/autonomous-company-sentinel", "/admin/navigation-integrity",
+    "/admin/logout",
+}
+
+
+def v932_authenticated_request_preflight():
+    """Detect a locked DB before authenticated routes invoke slower legacy readers."""
+    if not has_request_context() or not session.get("user_id"):
+        return "not_authenticated"
+    if request.path not in V932_AUTH_CLIENT_PATHS | V932_AUTH_ADMIN_PATHS:
+        return "not_target_route"
+    _records, meta = _v932_read_table_rows("matches", 1)
+    status = str(meta.get("status") or "read_unavailable")
+    request.environ["nemesis.v932.database_status"] = status
+    if status == "database_locked":
+        request.environ["nemesis.v932.database_locked"] = True
+        request.environ["nemesis.v931.degraded"] = True
+        v932_record_authenticated_issue(
+            request.path,
+            sqlite3.OperationalError("database is locked"),
+            "admin" if is_admin_session() else "client",
+            "authenticated_route_preflight",
+        )
+    return status
 
 
 def _v931_exception_details(error):
@@ -11077,6 +11119,60 @@ def v931_record_client_route_issue(route, error, cause=""):
         return False
 
 
+def v932_record_authenticated_issue(route, error, scope="client", cause=""):
+    """Record masked authenticated failures without user, cookie or secret data."""
+    try:
+        error_type, message = _v931_exception_details(error)
+        safe_scope = "admin" if str(scope).lower() == "admin" else "client"
+        safe_route = str(route or (request.path if has_request_context() else "unknown"))[:180]
+        category = "authenticated_route_failure"
+        lowered = message.lower()
+        if "locked" in lowered or "busy" in lowered:
+            category = "database_locked"
+        elif "no such column" in lowered or "no such table" in lowered or "schema" in lowered:
+            category = "schema_mismatch"
+        elif "redirect" in str(cause).lower():
+            category = "login_redirect_failure"
+        elif "logout" in str(cause).lower():
+            category = "logout_failure"
+        issue_key = hashlib.sha256(
+            f"{APP_VERSION}|{safe_scope}|{safe_route}|{error_type}|{category}".encode("utf-8")
+        ).hexdigest()[:24]
+        issue_path = BASE_DIR / "data" / "runtime" / "sentinel_authenticated_issues.json"
+        payload = json.loads(issue_path.read_text(encoding="utf-8-sig")) if issue_path.exists() else {}
+        issues = payload.get("issues") if isinstance(payload, dict) else []
+        if not isinstance(issues, list):
+            issues = []
+        existing = next((item for item in issues if item.get("id") == issue_key), None)
+        if existing is None:
+            existing = {
+                "id": issue_key,
+                "scope": safe_scope,
+                "route": safe_route,
+                "exception": error_type,
+                "category": category,
+                "version": APP_VERSION,
+                "count": 0,
+                "created_at_madrid": now_iso(),
+            }
+            issues.append(existing)
+        existing.update({
+            "count": int(existing.get("count") or 0) + 1,
+            "last_seen_madrid": now_iso(),
+            "cause": str(cause or "authenticated_route_guard")[:180],
+            "evidence": message or error_type,
+            "safe_message": "Fallo autenticado protegido y deduplicado; no contiene usuarios ni sesiones.",
+        })
+        issue_path.parent.mkdir(parents=True, exist_ok=True)
+        issue_path.write_text(
+            json.dumps({"version": APP_VERSION, "issues": issues[-80:]}, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        return True
+    except Exception:
+        return False
+
+
 def _v931_read_table_rows(table, limit=600):
     """Read optional production data without migrations, writes or long lock waits."""
     if table not in V931_SAFE_TABLES:
@@ -11109,6 +11205,18 @@ def _v931_read_table_rows(table, limit=600):
                 conn.close()
             except Exception:
                 pass
+
+
+def _v932_read_table_rows(table, limit=600):
+    """Retry one short read on transient locks; never migrate or write on render."""
+    result, meta = _v931_read_table_rows(table, limit)
+    if meta.get("status") != "database_locked":
+        meta["attempts"] = 1
+        return result, meta
+    threading.Event().wait(0.05)
+    result, meta = _v931_read_table_rows(table, limit)
+    meta["attempts"] = 2
+    return result, meta
 
 
 def _v931_match_essentials(match):
@@ -11195,8 +11303,8 @@ def _v931_prepare_pick(pick, matches_by_id):
 def get_public_home_sports_summary():
     """One DB/cache-only truth source for both the home KPI and visible match list."""
     today = today_iso()
-    raw_matches, match_meta = _v931_read_table_rows("matches", 800)
-    raw_picks, pick_meta = _v931_read_table_rows("picks", 300)
+    raw_matches, match_meta = _v932_read_table_rows("matches", 800)
+    raw_picks, pick_meta = _v932_read_table_rows("picks", 300)
     valid_all = []
     incomplete = []
     matches_by_id = {}
@@ -11248,17 +11356,94 @@ def get_public_home_sports_summary():
     return {
         "valid_matches_today": valid_today,
         "valid_matches_today_count": len(valid_today),
+        "valid_matches_total": len(valid_all),
         "valid_upcoming_matches": valid_upcoming,
         "valid_live_events": valid_live,
         "valid_active_picks": active_picks,
         "incomplete_matches": incomplete,
+        "raw_matches_count": len(raw_matches),
         "provider_status": provider_status,
         "last_sync": last_sync,
         "safe_message": safe_message,
         "storage_status": storage_status,
+        "storage_attempts": int(match_meta.get("attempts") or 1),
         "storage_error_type": match_meta.get("error_type") or "",
         "picks_storage_status": pick_meta.get("status") or "",
         "no_render_api_call": True,
+    }
+
+
+def _v932_locked_sports_summary():
+    """Return one coherent empty snapshot after the request preflight found a lock."""
+    return {
+        "valid_matches_today": [],
+        "valid_matches_today_count": 0,
+        "valid_matches_total": 0,
+        "valid_upcoming_matches": [],
+        "valid_live_events": [],
+        "valid_active_picks": [],
+        "incomplete_matches": [],
+        "raw_matches_count": 0,
+        "provider_status": "temporarily_unavailable",
+        "last_sync": "",
+        "safe_message": "La agenda esta ocupada temporalmente. La pagina sigue disponible sin inventar datos.",
+        "storage_status": "database_locked",
+        "storage_attempts": 2,
+        "storage_error_type": "OperationalError",
+        "picks_storage_status": "database_locked",
+        "no_render_api_call": True,
+    }
+
+
+def get_v932_real_sports_value_context(summary=None):
+    """DB/cache-only sports truth for client copy, admin diagnostics and runtime."""
+    summary = dict(summary or get_public_home_sports_summary())
+    provider = {}
+    if summary.get("storage_status") != "database_locked":
+        try:
+            provider = get_api_sports_status(DB_PATH) or {}
+        except Exception as exc:
+            provider = {"ok": False, "last_error": type(exc).__name__}
+    valid_today = list(summary.get("valid_matches_today") or [])
+    valid_upcoming = list(summary.get("valid_upcoming_matches") or [])
+    valid_live = list(summary.get("valid_live_events") or [])
+    valid_picks = list(summary.get("valid_active_picks") or [])
+    incomplete = list(summary.get("incomplete_matches") or [])
+    last_sync = str(summary.get("last_sync") or provider.get("last_sync") or "").strip()
+    real_matches_available = bool(valid_today or valid_upcoming)
+    provider_available = bool(provider.get("api_sports_provider_available"))
+    if real_matches_available:
+        client_message = "Agenda real disponible con fecha, hora, competición y fuente validadas."
+        next_action = "review_real_sports_data"
+    elif summary.get("storage_status") == "database_locked":
+        client_message = "La agenda está ocupada temporalmente. Puedes seguir usando la app y volver en unos minutos."
+        next_action = "retry_safe_cache_read"
+    else:
+        client_message = "No hay partidos completos disponibles ahora. La app no muestra encuentros de ejemplo."
+        next_action = "run_protected_sports_sync" if provider_available else "review_provider_configuration"
+    return {
+        "source": "Datos deportivos",
+        "provider_status": summary.get("provider_status") or "waiting_for_sync",
+        "provider_configured": bool(provider.get("api_sports_configured")),
+        "provider_available": provider_available,
+        "cache_enabled": bool(provider.get("api_sports_cache_enabled", True)),
+        "cache_status": "available" if provider.get("fixtures_cached") or provider.get("live_cached") else "empty",
+        "cached_fixtures": int(provider.get("fixtures_cached") or 0),
+        "cached_live": int(provider.get("live_cached") or 0),
+        "raw_matches_count": int(summary.get("raw_matches_count") or 0),
+        "valid_matches_count": int(summary.get("valid_matches_total") or 0),
+        "valid_matches_today_count": len(valid_today),
+        "incomplete_matches_count": len(incomplete),
+        "real_matches_available": real_matches_available,
+        "real_live_available": bool(valid_live),
+        "real_picks_available": bool(valid_picks),
+        "last_safe_sync": last_sync,
+        "safe_message": client_message,
+        "admin_next_action": next_action,
+        "storage_status": summary.get("storage_status") or "read_unavailable",
+        "storage_attempts": int(summary.get("storage_attempts") or 1),
+        "no_render_api_call": True,
+        "secrets_visible": False,
     }
 
 
@@ -11288,6 +11473,7 @@ def _v931_legacy_home_summary(summary):
         "incomplete_matches": summary.get("incomplete_matches") or [],
         "provider_status": summary.get("provider_status"),
         "last_sync": summary.get("last_sync"),
+        "safe_message": summary.get("safe_message"),
         "no_render_api_call": True,
     }
 
@@ -11350,14 +11536,15 @@ def home_light_data():
 
 
 def _v931_provider_context(summary):
-    has_data = bool(summary.get("valid_matches_today") or summary.get("valid_upcoming_matches"))
+    sports = get_v932_real_sports_value_context(summary)
+    has_data = bool(sports.get("real_matches_available"))
     return {
-        "source": "db_cache_real" if has_data else "db_cache_pending",
+        "source": sports.get("source") or "Datos deportivos",
         "has_real_data": has_data,
-        "last_sync": summary.get("last_sync") or "",
-        "provider_status": summary.get("provider_status") or "waiting_for_sync",
-        "cache_status": "available" if has_data else "empty_safe",
-        "safe_message": summary.get("safe_message") or "Sin datos deportivos completos disponibles.",
+        "last_sync": sports.get("last_safe_sync") or "",
+        "provider_status": sports.get("provider_status") or "waiting_for_sync",
+        "cache_status": sports.get("cache_status") or "empty",
+        "safe_message": sports.get("safe_message") or "Sin datos deportivos completos disponibles.",
         "no_render_api_call": True,
         "matches": list(summary.get("valid_upcoming_matches") or []),
         "counts": {
@@ -11391,8 +11578,8 @@ def _v931_minimal_client_data(summary, lane="today", date_value=""):
         "session_user": current_session_user(),
         "favorites": [],
         "favorite_feed": [],
-        "favorite_bundle": {"matches": []},
-        "favorite_insights": {},
+        "favorite_bundle": {"matches": [], "live": [], "picks": []},
+        "favorite_insights": {"by_kind": {"team": [], "league": [], "match": []}},
         "client_alerts": [],
         "client_activity": [],
         "retention": {},
@@ -11429,6 +11616,7 @@ def _v931_minimal_client_data(summary, lane="today", date_value=""):
         "v925_live": _v931_provider_context(summary),
         "v925_picks": get_safe_picks_context(picks),
         "v925_odds": get_safe_odds_context(picks),
+        "v932_sports_value": get_v932_real_sports_value_context(summary),
         "v931_route_guard": {
             "status": "safe_fallback",
             "provider_status": summary.get("provider_status"),
@@ -11438,12 +11626,18 @@ def _v931_minimal_client_data(summary, lane="today", date_value=""):
 
 
 def v931_safe_dashboard_data(route, lane="today", date_value=None):
-    summary = get_public_home_sports_summary()
+    summary = (
+        _v932_locked_sports_summary()
+        if has_request_context() and request.environ.get("nemesis.v932.database_locked")
+        else get_public_home_sports_summary()
+    )
     if summary.get("storage_status") == "database_locked":
         if has_request_context():
             request.environ["nemesis.v931.degraded"] = True
         error = sqlite3.OperationalError("database is locked")
         v931_record_client_route_issue(route, error, "sqlite_read_timeout_guard")
+        if current_session_user():
+            v932_record_authenticated_issue(route, error, "admin" if is_admin_session() else "client", "sqlite_read_timeout_guard")
         return _v931_minimal_client_data(summary, lane, date_value or today_iso()), summary
     try:
         data = dashboard_data(lane, date_value or today_iso())
@@ -11451,6 +11645,8 @@ def v931_safe_dashboard_data(route, lane="today", date_value=None):
         if has_request_context():
             request.environ["nemesis.v931.degraded"] = True
         v931_record_client_route_issue(route, exc, "dashboard_data_schema_guard")
+        if current_session_user():
+            v932_record_authenticated_issue(route, exc, "admin" if is_admin_session() else "client", "dashboard_data_schema_guard")
         return _v931_minimal_client_data(summary, lane, date_value or today_iso()), summary
     if has_request_context():
         request.environ["nemesis.v931.degraded"] = False
@@ -11477,6 +11673,7 @@ def v931_safe_dashboard_data(route, lane="today", date_value=None):
     data["v925_live"] = _v931_provider_context(summary)
     data["v925_picks"] = get_safe_picks_context(data["picks"])
     data["v925_odds"] = get_safe_odds_context(data["picks"])
+    data["v932_sports_value"] = get_v932_real_sports_value_context(summary)
     data["v931_route_guard"] = {"status": "full_context", "no_render_api_call": True}
     return data, summary
 
@@ -11488,7 +11685,59 @@ def v931_safe_context(route, label, callback, default):
         return callback()
     except Exception as exc:
         v931_record_client_route_issue(route, exc, label)
+        if current_session_user():
+            v932_record_authenticated_issue(route, exc, "admin" if is_admin_session() else "client", label)
         return default
+
+
+def v932_safe_dashboard_data(route, lane="today", date_value=None, scope="client"):
+    data, summary = v931_safe_dashboard_data(route, lane, date_value)
+    data["v932_sports_value"] = get_v932_real_sports_value_context(summary)
+    data["v932_authenticated_scope"] = "admin" if scope == "admin" else "client"
+    return data, summary
+
+
+def v932_safe_context(route, scope, label, callback, default):
+    if has_request_context() and request.environ.get("nemesis.v931.degraded"):
+        return default
+    try:
+        return callback()
+    except Exception as exc:
+        v932_record_authenticated_issue(route, exc, scope, label)
+        return default
+
+
+def v932_admin_sports_diagnostics(sports):
+    sports = dict(sports or {})
+    last_sync = sports.get("last_safe_sync") or ""
+    return {
+        "total_competitions": 0,
+        "total_teams": 0,
+        "total_matches": int(sports.get("raw_matches_count") or 0),
+        "upcoming_matches": int(sports.get("valid_matches_count") or 0),
+        "live_matches": 1 if sports.get("real_live_available") else 0,
+        "finished_matches": 0,
+        "odds_snapshots": 0,
+        "active_data_source": "DB/cache" if sports.get("real_matches_available") else "Pendiente de sincronización",
+        "latest_sync": {"started_at": last_sync} if last_sync else {},
+        "errors_recent": [],
+        "sportsdb_key_masked": "***configured***" if sports.get("provider_configured") else "***missing***",
+        "odds_key_masked": "***hidden***",
+        "incomplete_matches": int(sports.get("incomplete_matches_count") or 0),
+        "storage_status": sports.get("storage_status") or "read_unavailable",
+        "next_action": sports.get("admin_next_action") or "review_provider_configuration",
+        "no_render_api_call": True,
+    }
+
+
+def v932_admin_data_center_fallback(sports):
+    diagnostics = v932_admin_sports_diagnostics(sports)
+    return {
+        **diagnostics,
+        "scheduler": {"enabled": False, "tasks": [], "recent_errors": []},
+        "recent_logs": [],
+        "matches_diagnostics": diagnostics,
+    }
 
 
 def v931_calendar_context(summary, lane="today", date_value=None):
@@ -12964,7 +13213,7 @@ def global_football():
 def calendar_page():
     lane = request.args.get("lane") or "today"
     date_value = request.args.get("date") or today_iso()
-    data, summary = v931_safe_dashboard_data(request.path, "today", date_value)
+    data, summary = v932_safe_dashboard_data(request.path, "today", date_value)
     data["calendar"] = v931_calendar_context(summary, lane, date_value)
     data["matches"] = data["calendar"].get("matches", [])
     data["lane"] = data["calendar"].get("filters", {}).get("lane", "today")
@@ -13049,7 +13298,7 @@ def sports_hub_page():
 def live_page():
     lane = request.args.get("f") or request.args.get("filter") or request.args.get("lane") or "live"
     query = (request.args.get("q") or "").strip()
-    data, summary = v931_safe_dashboard_data(request.path, "today", request.args.get("date") or today_iso())
+    data, summary = v932_safe_dashboard_data(request.path, "today", request.args.get("date") or today_iso())
     data["client_lifecycle_sync"] = {
         "ok": True, "skipped": True, "reason": "page_render_cache_only",
         "external_calls": 0, "no_render_api_call": True,
@@ -13165,7 +13414,8 @@ def favorites_page():
         else:
             add_favorite(request.form.get("kind"), request.form.get("value"), request.form.get("label"))
         return redirect("/favorites")
-    return render_template("favorites.html", data=dashboard_data())
+    data, _summary = v932_safe_dashboard_data(request.path, scope="client")
+    return render_template("favorites.html", data=data)
 
 
 
@@ -13181,6 +13431,16 @@ def _safe_client_next(value: str | None, default: str = "/app") -> str:
     if not raw.startswith("/"):
         return default
     if raw.startswith("/admin"):
+        return default
+    return raw
+
+
+def _safe_admin_next(value: str | None, default: str = "/admin/import-center") -> str:
+    """Keep authenticated admin redirects inside the protected admin surface."""
+    raw = str(value or "").strip()
+    if not raw or raw.startswith(("http://", "https://", "//", "\\")):
+        return default
+    if not raw.startswith("/admin"):
         return default
     return raw
 
@@ -13358,6 +13618,7 @@ def client_login_page():
             user = authenticate_user(identifier, request.form.get("password"))
         except Exception as exc:
             v931_record_client_route_issue(request.path, exc, "client_auth_database_guard")
+            v932_record_authenticated_issue(request.path, exc, "client", "client_auth_database_guard")
             user = None
             auth_backend_error = True
         if user:
@@ -13404,19 +13665,27 @@ def reset_password_page(token):
 @app.route("/admin-login", methods=["GET", "POST"])
 def admin_login_page():
     if is_admin_session():
-        return redirect(request.args.get("next") or "/admin/import-center")
+        return redirect(_safe_admin_next(request.args.get("next")))
     error = ""
+    auth_backend_error = False
     configured = bool(os.getenv("ADMIN_EMAIL") and os.getenv("ADMIN_PASSWORD"))
     if request.method == "POST":
-        user = authenticate_env_admin(request.form.get("login"), request.form.get("password"))
-        if not user:
-            user = authenticate_user(request.form.get("login"), request.form.get("password"), admin_only=True)
+        try:
+            user = authenticate_env_admin(request.form.get("login"), request.form.get("password"))
+            if not user:
+                user = authenticate_user(request.form.get("login"), request.form.get("password"), admin_only=True)
+        except Exception as exc:
+            v932_record_authenticated_issue(request.path, exc, "admin", "admin_auth_database_guard")
+            user = None
+            auth_backend_error = True
         if user:
             security_event_for_auth("login_attempt", True, request.form.get("login"), "admin_login_correcto")
             set_login_session(user)
-            return redirect(request.args.get("next") or "/admin/import-center")
+            return redirect(_safe_admin_next(request.form.get("next") or request.args.get("next")))
         security_event_for_auth("login_attempt", False, request.form.get("login"), "credenciales_admin_invalidas")
         error = "Acceso admin no válido."
+    if auth_backend_error:
+        error = "Acceso admin temporalmente no disponible. Inténtalo de nuevo en unos minutos."
     return render_template("admin_login.html", data=home_light_data(), error=error, configured=configured)
 
 
@@ -13478,6 +13747,12 @@ def admin_bootstrap_page():
 def logout_page():
     session.clear()
     return redirect("/")
+
+
+@app.route("/admin/logout")
+def admin_logout_page():
+    session.clear()
+    return redirect("/admin-login")
 
 
 @app.route("/admin")
@@ -13542,10 +13817,10 @@ def admin_users_page():
             message = f"Membresía actualizada: {public['membership']} · {public.get('membership_expires_label') or 'Sin caducidad'}."
         else:
             message = "No se pudo actualizar ese usuario."
-    data = dashboard_data()
-    data["users"] = list_users()
-    data["membership_admin"] = membership_admin_summary()
-    data["admin_exists"] = admin_exists()
+    data, _summary = v932_safe_dashboard_data(request.path, scope="admin")
+    data["users"] = v932_safe_context(request.path, "admin", "list_users", list_users, [])
+    data["membership_admin"] = v932_safe_context(request.path, "admin", "membership_admin", membership_admin_summary, {})
+    data["admin_exists"] = v932_safe_context(request.path, "admin", "admin_exists", admin_exists, False)
     return render_template("admin_users.html", data=data, message=message)
 
 
@@ -13613,10 +13888,14 @@ def admin_matches_sync_page():
         message = "Sincronizacion ejecutada."
         if result and result.get("errors"):
             message += " Revisa errores recientes."
-    data = dashboard_data()
-    data["matches_diagnostics"] = match_calendar_diagnostics()
-    data["sportsdb_feed"] = sportsdb_feed_status()
-    data["odds"] = odds_diagnostics()
+    data, _summary = v932_safe_dashboard_data(request.path, scope="admin")
+    sports = data.get("v932_sports_value") or {}
+    data["matches_diagnostics"] = v932_safe_context(
+        request.path, "admin", "match_calendar_diagnostics", match_calendar_diagnostics,
+        v932_admin_sports_diagnostics(sports),
+    )
+    data["sportsdb_feed"] = v932_safe_context(request.path, "admin", "sportsdb_feed", sportsdb_feed_status, {})
+    data["odds"] = v932_safe_context(request.path, "admin", "odds_diagnostics", odds_diagnostics, {})
     return render_template("admin_matches_sync.html", data=data, message=message, result=result)
 
 
@@ -13709,19 +13988,21 @@ def admin_telegram_page():
 def admin_telegram_command_center_page():
     if not is_admin_session():
         return redirect("/admin-login?next=/admin/telegram/command-center")
-    snapshot = telegram_reliability_snapshot(limit=80)
-    dry_run = telegram_reliability_dry_run()
-    diagnostics = telegram_diagnostics_safe()
-    activity = v771_telegram_activity_diagnostics()
+    data, _summary = v932_safe_dashboard_data(request.path, scope="admin")
+    snapshot = v932_safe_context(request.path, "admin", "telegram_snapshot", lambda: telegram_reliability_snapshot(limit=80), {})
+    dry_run = v932_safe_context(request.path, "admin", "telegram_dry_run", telegram_reliability_dry_run, {"would_send": False})
+    diagnostics = v932_safe_context(request.path, "admin", "telegram_diagnostics", telegram_diagnostics_safe, {})
+    activity = v932_safe_context(request.path, "admin", "telegram_activity", v771_telegram_activity_diagnostics, {})
+    data.update({
+        "version": APP_VERSION,
+        "snapshot": snapshot,
+        "dry_run": dry_run,
+        "diagnostics": diagnostics,
+        "activity": activity,
+    })
     return render_template(
         "admin_telegram_command_center.html",
-        data={
-            "version": APP_VERSION,
-            "snapshot": snapshot,
-            "dry_run": dry_run,
-            "diagnostics": diagnostics,
-            "activity": activity,
-        },
+        data=data,
     )
 
 
@@ -14202,10 +14483,10 @@ def admin_picks_page():
         elif action in {"archive", "published", "draft"}:
             result = update_pick_status(request.form.get("pick_id"), "archived" if action == "archive" else action)
             message = "Estado del pick actualizado."
-    data = dashboard_data()
-    data["admin_picks"] = get_picks(limit=120, include_admin=True)
-    data["pick_stats"] = pick_stats()
-    data["matches_for_pick"] = get_upcoming_matches(today_iso(), days=21, limit=220)
+    data, _summary = v932_safe_dashboard_data(request.path, scope="admin")
+    data["admin_picks"] = v932_safe_context(request.path, "admin", "admin_picks", lambda: get_picks(limit=120, include_admin=True), [])
+    data["pick_stats"] = v932_safe_context(request.path, "admin", "admin_pick_stats", pick_stats, {})
+    data["matches_for_pick"] = v932_safe_context(request.path, "admin", "matches_for_pick", lambda: get_upcoming_matches(today_iso(), days=21, limit=220), [])
     return render_template("admin_picks.html", data=data, message=message, result=result)
 
 
@@ -14236,8 +14517,16 @@ def admin_data_center_page():
         elif action == "warmup":
             result = run_scheduler_task("warmup", force=True, limit=limit)
         message = "Accion ejecutada desde Data Center."
-    data = dashboard_data()
-    data["data_center"] = data_center_summary()
+    data, _summary = v932_safe_dashboard_data(request.path, scope="admin")
+    sports = data.get("v932_sports_value") or {}
+    data["data_center"] = v932_safe_context(
+        request.path, "admin", "data_center_summary", data_center_summary,
+        v932_admin_data_center_fallback(sports),
+    )
+    data["matches_diagnostics"] = v932_safe_context(
+        request.path, "admin", "match_calendar_diagnostics", match_calendar_diagnostics,
+        v932_admin_sports_diagnostics(sports),
+    )
     return render_template("admin_data_center.html", data=data, message=message, result=result)
 
 
@@ -14470,9 +14759,14 @@ def _v894_run_company_sentinel(mode="safe_scan", runner="local", dry_run=True):
 def admin_autonomous_sentinel_page():
     if not is_admin_session():
         return redirect("/admin-login?next=/admin/autonomous-company-sentinel")
-    status = build_company_sentinel_status(APP_VERSION, Path(__file__).resolve().parent)
+    status = v932_safe_context(
+        request.path, "admin", "sentinel_status",
+        lambda: build_company_sentinel_status(APP_VERSION, Path(__file__).resolve().parent),
+        {"status": "temporarily_unavailable", "issues": [], "next_action": "retry_safe_status_read"},
+    )
     status["admin_runtime_identity"] = get_safe_runtime_identity_for_admin()
-    return render_template("admin_autonomous_company_sentinel.html", data=dashboard_data(), status=status)
+    data, _summary = v932_safe_dashboard_data(request.path, scope="admin")
+    return render_template("admin_autonomous_company_sentinel.html", data=data, status=status)
 
 
 @app.route("/admin/sentinel-codex-outbox")
@@ -14546,7 +14840,12 @@ def v915_admin_workforce_status() -> dict:
 def admin_automation_workforce_page():
     if not is_admin_session():
         return redirect("/admin-login?next=/admin/automation-workforce")
-    return render_template("admin_automation_workforce.html", data=dashboard_data(), workforce=v915_admin_workforce_status())
+    data, _summary = v932_safe_dashboard_data(request.path, scope="admin")
+    workforce = v932_safe_context(
+        request.path, "admin", "workforce_status", v915_admin_workforce_status,
+        {"workers": [], "workflows": [], "next_action": "retry_safe_status_read", "policy": {"secrets_visible": False}},
+    )
+    return render_template("admin_automation_workforce.html", data=data, workforce=workforce)
 
 
 @app.route("/api/admin/automation-workforce/status")
@@ -15347,7 +15646,7 @@ def api_admin_production_readiness():
 
 @app.route("/picks")
 def picks_page():
-    data, summary = v931_safe_dashboard_data(request.path)
+    data, summary = v932_safe_dashboard_data(request.path)
     user = current_session_user() or {"membership": "FREE", "role": "FREE"}
     data["membership"] = v566_membership_ui(user)
     data["picks"] = list(summary.get("valid_active_picks") or [])
@@ -15394,7 +15693,7 @@ def profile_page():
     user = current_session_user()
     if not user:
         return redirect("/cliente-login")
-    data, summary = v931_safe_dashboard_data(request.path)
+    data, summary = v932_safe_dashboard_data(request.path)
     data["session_user"] = user
     data["membership"] = v566_membership_ui(user)
     data["sportsdb"] = v931_safe_context(request.path, "crest_status", crest_sync_status, {})
@@ -15459,7 +15758,7 @@ def membership_page():
     if selected_plan and not current_session_user():
         _store_pending_checkout_plan(selected_plan)
     user = current_session_user() or {"membership": "FREE", "role": "FREE"}
-    data, summary = v931_safe_dashboard_data(request.path)
+    data, summary = v932_safe_dashboard_data(request.path)
     data["membership"] = v566_membership_ui(user)
     data["selected_plan"] = selected_plan
     data["continue_payment"] = str(request.args.get("continuar_pago") or "").lower() in {"1", "true", "yes", "si", "sí"}
@@ -15482,7 +15781,7 @@ def membership_page():
 @app.route("/shark-ai")
 @app.route("/shark")
 def shark_page():
-    data, summary = v931_safe_dashboard_data(request.path)
+    data, summary = v932_safe_dashboard_data(request.path)
     user = current_session_user() or {"membership": "FREE", "role": "FREE"}
     data["membership"] = v566_membership_ui(user)
     data["briefing"] = v931_safe_context(request.path, "briefing", shark_briefing, {})
@@ -15505,11 +15804,13 @@ def telegram_page():
     if not user:
         return redirect("/cliente-login?next=/telegram")
     state = v931_safe_context(request.path, "telegram_state", lambda: telegram_user_state(user), {"linked": False})
+    sports_summary = get_public_home_sports_summary()
     data = {
         "telegram": v931_safe_context(request.path, "telegram_config", telegram_config, {"enabled": False, "legacy_enabled": False}),
         "telegram_state": state,
         "membership": v566_membership_ui(user),
         "session_user": user,
+        "v932_sports_value": get_v932_real_sports_value_context(sports_summary),
     }
     return render_template("telegram.html", data=data)
 
@@ -17247,6 +17548,12 @@ def api_runtime_version():
     v928_summary = v928_canonical_reference_runtime_summary()
     v929_summary = v929_navigation_integrity_runtime_summary()
     v930_summary = v930_visual_parity_runtime_summary()
+    v932_sports_summary = sanitize_runtime_value(get_v932_real_sports_value_context())
+    v932_next_required_action = (
+        "run_protected_sports_sync_then_authorized_browser_qa"
+        if not v932_sports_summary.get("real_matches_available") and v932_sports_summary.get("provider_available")
+        else "run_authorized_authenticated_browser_qa"
+    )
     return jsonify(sanitize_runtime_value({
         "ok": True,
         "app": APP_NAME,
@@ -17579,6 +17886,11 @@ def api_runtime_version():
         "has_v931_home_data_consistency": "get_public_home_sports_summary" in app_py_text,
         "has_v931_schema_drift_guard": "_v931_read_table_rows" in app_py_text,
         "has_v931_safe_error_handler": (BASE_DIR / "templates" / "500.html").exists(),
+        "has_v932_authenticated_client_qa": "check_v932_authenticated_client_admin.py" in " ".join(path.name for path in (BASE_DIR / "tools").glob("check_v932_*.py")),
+        "has_v932_authenticated_admin_qa": "v932_safe_dashboard_data" in app_py_text,
+        "has_v932_sqlite_regression_guard": "_v932_read_table_rows" in app_py_text,
+        "has_v932_real_sports_value_qa": "get_v932_real_sports_value_context" in app_py_text,
+        "has_v932_login_redirect_guard": "_safe_admin_next" in app_py_text and "/admin/logout" in app_py_text,
         **v902_truth_summary,
         **v904_summary,
         **v906_summary,
@@ -17606,6 +17918,14 @@ def api_runtime_version():
         **v928_summary,
         **v929_summary,
         **v930_summary,
+        "v932_client_auth_routes_status": "local_mock_guard_ready_production_session_required",
+        "v932_admin_auth_routes_status": "local_mock_guard_ready_production_session_required",
+        "v932_sqlite_regression_status": "safe_retry_and_schema_fallback_ready",
+        "v932_real_matches_available": bool(v932_sports_summary.get("real_matches_available")),
+        "v932_real_live_available": bool(v932_sports_summary.get("real_live_available")),
+        "v932_real_picks_available": bool(v932_sports_summary.get("real_picks_available")),
+        "v932_last_safe_sync": v932_sports_summary.get("last_safe_sync") or "",
+        "v932_next_required_action": v932_next_required_action,
         "active_errors_count": v903_active_errors_count,
         "fixed_safe_count": v903_archived_count,
         "stale_issues_count": v903_stale_issues_count,
@@ -18807,6 +19127,17 @@ def client_safe_500(error):
             root_error,
             "flask_500_handler",
         )
+    if current_session_user() and (
+        request.path in V932_AUTH_CLIENT_PATHS
+        or request.path in V932_AUTH_ADMIN_PATHS
+        or request.path.startswith("/admin/")
+    ):
+        v932_record_authenticated_issue(
+            request.path,
+            root_error,
+            "admin" if request.path.startswith("/admin") else "client",
+            "flask_500_handler",
+        )
     if request.path.startswith("/api/"):
         issue_created = False
         if request.path.startswith("/api/admin/"):
@@ -19097,10 +19428,10 @@ def account_center_page():
 def admin_memberships_page():
     if not is_admin_session():
         return redirect("/admin-login?next=/admin/memberships")
-    data = dashboard_data()
-    data["membership_revenue"] = membership_revenue_summary()
-    data["membership_admin"] = membership_admin_summary()
-    data["users"] = list_users()
+    data, _summary = v932_safe_dashboard_data(request.path, scope="admin")
+    data["membership_revenue"] = v932_safe_context(request.path, "admin", "membership_revenue", membership_revenue_summary, {})
+    data["membership_admin"] = v932_safe_context(request.path, "admin", "membership_admin", membership_admin_summary, {})
+    data["users"] = v932_safe_context(request.path, "admin", "list_users", list_users, [])
     return render_template("admin_memberships.html", data=data)
 
 
@@ -19312,7 +19643,7 @@ def v742_track_record_context():
 def public_track_record_page():
     user = current_session_user()
     if user:
-        data, _summary = v931_safe_dashboard_data(request.path)
+        data, _summary = v932_safe_dashboard_data(request.path)
     else:
         data = home_light_data()
     data["track_record"] = v931_safe_context(request.path, "track_record", v742_track_record_context, {})
@@ -19417,10 +19748,10 @@ def admin_payments_page():
         action = str(request.form.get("action") or "rules").lower()
         if action == "rules":
             result = apply_subscription_rules(DB_PATH)
-    data = dashboard_data()
-    data["payments"] = payment_readiness_snapshot(DB_PATH)
-    data["stripe"] = stripe_runtime_status(DB_PATH)
-    data["subscriptions"] = subscription_summary(DB_PATH, apply_rules=True)
+    data, _summary = v932_safe_dashboard_data(request.path, scope="admin")
+    data["payments"] = v932_safe_context(request.path, "admin", "payments_readiness", lambda: payment_readiness_snapshot(DB_PATH), {})
+    data["stripe"] = v932_safe_context(request.path, "admin", "stripe_status", lambda: stripe_runtime_status(DB_PATH), {})
+    data["subscriptions"] = v932_safe_context(request.path, "admin", "subscription_summary", lambda: subscription_summary(DB_PATH, apply_rules=False), {})
     data["last_result"] = result
     return render_template("admin_payments.html", data=data)
 
@@ -20308,9 +20639,18 @@ def v928_admin_overview(data=None):
 def v566_admin_dashboard_page():
     if not is_admin_session():
         return redirect("/admin-login?next=/admin/control-center")
-    data = dashboard_data()
-    data["v928_admin"] = v928_admin_overview(data)
-    return render_template("admin_dashboard.html", data=data, q=quality_center_summary(), items=v566_admin_items())
+    data, _summary = v932_safe_dashboard_data(request.path, scope="admin")
+    sports = data.get("v932_sports_value") or {}
+    fallback_overview = {
+        "users_total": 0, "users_pro": 0, "users_elite": 0, "picks_active": 0,
+        "matches_today": int(sports.get("valid_matches_today_count") or 0),
+        "live_now": 1 if sports.get("real_live_available") else 0,
+        "telegram": {}, "automation": {}, "recent_errors": [], "global_status": "review",
+    }
+    data["v928_admin"] = v932_safe_context(request.path, "admin", "admin_overview", lambda: v928_admin_overview(data), fallback_overview)
+    quality = v932_safe_context(request.path, "admin", "quality_center", quality_center_summary, {})
+    items = v932_safe_context(request.path, "admin", "admin_items", v566_admin_items, [])
+    return render_template("admin_dashboard.html", data=data, q=quality, items=items)
 
 
 @app.route("/api/admin/control-center")
@@ -21179,7 +21519,7 @@ def v757_client_app_center_page():
     user = current_session_user()
     if not user:
         return redirect("/cliente-login?next=/app")
-    data, summary = v931_safe_dashboard_data(request.path)
+    data, summary = v932_safe_dashboard_data(request.path)
     data["track_record"] = v931_safe_context(request.path, "track_record", v742_track_record_context, {})
     data["membership"] = v566_membership_ui(user)
     data["client_premium"] = v931_safe_context(request.path, "client_premium", lambda: build_client_app_premium_context(data, user), {})

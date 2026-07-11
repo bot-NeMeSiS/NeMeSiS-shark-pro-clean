@@ -14,6 +14,8 @@ from jinja2 import StrictUndefined
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V931_PRODUCTION_CLIENT_ROUTES_AND_HOME_DATA_CONSISTENCY_HOTFIX_FINAL"
+V932_VERSION = "V932_AUTHENTICATED_PRODUCTION_CLIENT_ADMIN_AND_REAL_SPORTS_VALUE_FINAL"
+ALLOWED_VERSIONS = {VERSION, V932_VERSION}
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
@@ -120,6 +122,7 @@ def switch_db(app_module, path: Path) -> None:
 
 def main() -> int:
     version_bytes = (ROOT / "VERSION.txt").read_bytes()
+    current_version = version_bytes.decode("utf-8").strip().lstrip("\ufeff")
     os.environ["DB_PATH"] = str(Path(tempfile.gettempdir()) / "nemesis_v931_normal.sqlite")
     os.environ.setdefault("SECRET_KEY", "v931-local-check-only")
     os.environ["ENABLE_AUTOMATED_RENDER_DEPLOY"] = "0"
@@ -135,6 +138,7 @@ def main() -> int:
     original_db = app_module.DB_PATH
     original_init = app_module.initialize_once
     original_issue = app_module.v931_record_client_route_issue
+    original_v932_issue = getattr(app_module, "v932_record_authenticated_issue", None)
     original_fetch = app_module.fetch_json_url
     external_calls = {"count": 0}
 
@@ -144,6 +148,8 @@ def main() -> int:
 
     app_module.fetch_json_url = blocked_external
     app_module.v931_record_client_route_issue = lambda *args, **kwargs: True
+    if original_v932_issue is not None:
+        app_module.v932_record_authenticated_issue = lambda *args, **kwargs: True
     results: list[dict] = []
 
     normal_public = app_module.app.test_client()
@@ -197,6 +203,8 @@ def main() -> int:
     app_module.DB_PATH = original_db
     app_module.initialize_once = original_init
     app_module.v931_record_client_route_issue = original_issue
+    if original_v932_issue is not None:
+        app_module.v932_record_authenticated_issue = original_v932_issue
     app_module.fetch_json_url = original_fetch
 
     runtime = app_module.app.test_client().get("/api/runtime-version").get_json(silent=True) or {}
@@ -205,10 +213,10 @@ def main() -> int:
     valid_today = home_summary.get("valid_matches_today") or []
     incomplete = home_summary.get("incomplete_matches") or []
     checks = {
-        "version_v931": version_bytes.decode("utf-8").strip().lstrip("\ufeff") == VERSION,
+        "version_v931_or_successor": current_version in ALLOWED_VERSIONS,
         "version_without_bom": not version_bytes.startswith(b"\xef\xbb\xbf"),
-        "app_version_v931": app_module.APP_VERSION == VERSION,
-        "runtime_v931": runtime.get("version") == VERSION,
+        "app_version_v931_or_successor": app_module.APP_VERSION == current_version,
+        "runtime_v931_or_successor": runtime.get("version") == current_version,
         "runtime_files_match": runtime.get("version_files_match") is True,
         "runtime_aligned": runtime.get("deployment_alignment_status") == "aligned_local_files",
         "routes_no_500": not failures,
@@ -240,7 +248,7 @@ def main() -> int:
     }
     failed_checks = [name for name, ok in checks.items() if not ok]
     payload = {
-        "version": VERSION,
+        "version": current_version,
         "ok": not failed_checks,
         "checks": checks,
         "failed_checks": failed_checks,
