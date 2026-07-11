@@ -9,6 +9,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V930_CANONICAL_REFERENCE_VISUAL_PARITY_ADMIN_CLIENT_MOBILE_FINAL"
+V931_VERSION = "V931_PRODUCTION_CLIENT_ROUTES_AND_HOME_DATA_CONSISTENCY_HOTFIX_FINAL"
+ALLOWED_VERSIONS = {VERSION, V931_VERSION}
 FORBIDDEN_RELEASE_NAMES = {".git", ".venv", "__pycache__", ".pytest_cache", "release_output"}
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
@@ -38,11 +40,12 @@ def _runtime_checks(checks: list[dict]) -> None:
             response = app.test_client().get("/api/runtime-version")
             payload = response.get_json(silent=True) or {}
             add(checks, "runtime_200", response.status_code == 200, str(response.status_code))
-            add(checks, "runtime_version_v930", payload.get("version") == VERSION, str(payload.get("version")))
+            add(checks, "runtime_version_v930_or_successor", payload.get("version") in ALLOWED_VERSIONS, str(payload.get("version")))
             add(checks, "runtime_files_match", payload.get("version_files_match") is True)
             add(checks, "runtime_aligned", payload.get("deployment_alignment_status") == "aligned_local_files")
             add(checks, "runtime_cache_busting", payload.get("static_css_cache_busting") is True)
-            add(checks, "runtime_service_worker", payload.get("service_worker_cache_name") == "NEMESIS_CACHE_V930")
+            expected_cache = f"NEMESIS_CACHE_{str(payload.get('version') or '').split('_', 1)[0]}"
+            add(checks, "runtime_service_worker", payload.get("service_worker_cache_name") == expected_cache)
         except Exception as exc:
             add(checks, "runtime_local", False, f"{exc.__class__.__name__}: {str(exc)[:180]}")
         finally:
@@ -73,11 +76,11 @@ def _base_checks() -> list[dict]:
     app = read("app.py")
     base = read("templates/base.html")
     css = read("static/v930-canonical.css")
-    add(checks, "version_exact", current == VERSION, current)
+    add(checks, "version_v930_or_successor", current in ALLOWED_VERSIONS, current)
     add(checks, "version_without_bom", not version_bytes.startswith(b"\xef\xbb\xbf"))
-    add(checks, "app_version_exact", f"APP_VERSION = '{VERSION}'" in app)
+    add(checks, "app_version_exact", f"APP_VERSION = '{current}'" in app)
     add(checks, "v930_css_loaded", "filename='v930-canonical.css'" in base and "?v={{ app_version }}" in base)
-    add(checks, "service_worker_v930", "NEMESIS_CACHE_V930" in app and "cache:'no-store'" in app and "cache:'reload'" in app)
+    add(checks, "service_worker_v930_or_successor", f"NEMESIS_CACHE_{current.split('_', 1)[0]}" in app and "cache:'no-store'" in app and "cache:'reload'" in app)
     add(checks, "canonical_css_substantial", len(css) > 18000, str(len(css)))
     for flag in (
         "has_v930_canonical_visual_parity",

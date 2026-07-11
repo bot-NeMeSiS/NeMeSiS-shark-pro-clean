@@ -1,9 +1,9 @@
 # Verificación de imports, rutas y plantillas V723
 
 - Resultado: OK
-- Versión importada: `V930_CANONICAL_REFERENCE_VISUAL_PARITY_ADMIN_CLIENT_MOBILE_FINAL`
+- Versión importada: `V931_PRODUCTION_CLIENT_ROUTES_AND_HOME_DATA_CONSISTENCY_HOTFIX_FINAL`
 - Rutas GET: 612
-- Templates referenciados: 132
+- Templates referenciados: 133
 - Templates faltantes: 0
 - Static faltantes: 0
 

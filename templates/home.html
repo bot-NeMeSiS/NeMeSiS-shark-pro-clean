@@ -3,9 +3,9 @@
 {% block content %}
 {% set summary = data.get('home_summary') or {} %}
 {% set counts = summary.get('counts') or {} %}
-{% set matches = data.get('upcoming_matches') or data.get('matches') or [] %}
+{% set matches = summary.get('valid_matches_today') or [] %}
 {% set picks = (data.get('v925_picks') or {}).get('picks') or [] %}
-{% set today_count = counts.get('today', matches|length) or 0 %}
+{% set today_count = matches|length %}
 {% set live_count = counts.get('live', 0) or 0 %}
 <section class="v928-page v928-home v930-page v930-public-page v930-home" data-v928-template="home" data-v930-template="home">
   {% if current_user %}

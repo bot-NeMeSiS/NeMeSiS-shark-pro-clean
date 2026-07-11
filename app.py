@@ -343,7 +343,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V930_CANONICAL_REFERENCE_VISUAL_PARITY_ADMIN_CLIENT_MOBILE_FINAL'
+APP_VERSION = 'V931_PRODUCTION_CLIENT_ROUTES_AND_HOME_DATA_CONSISTENCY_HOTFIX_FINAL'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 
@@ -2044,11 +2044,12 @@ def seed_core():
 
 def rows(query, params=()):
     conn = db()
-    cur = conn.cursor()
-    cur.execute(query, params)
-    out = [dict(r) for r in cur.fetchall()]
-    conn.close()
-    return out
+    try:
+        cur = conn.cursor()
+        cur.execute(query, params)
+        return [dict(r) for r in cur.fetchall()]
+    finally:
+        conn.close()
 
 
 def initialize_once():
@@ -10544,7 +10545,7 @@ def dashboard_data(lane="today", date=None):
 @app.route("/service-worker.js")
 def service_worker():
     body = (
-        "const NEMESIS_CACHE='NEMESIS_CACHE_V930';\n"
+        "const NEMESIS_CACHE='NEMESIS_CACHE_V931';\n"
         "self.addEventListener('install',event=>{self.skipWaiting();});\n"
         "self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.map(key=>caches.delete(key)))).then(()=>self.clients.claim()));});\n"
         "self.addEventListener('fetch',event=>{const req=event.request;if(req.method!=='GET'){return;}if(req.mode==='navigate'){event.respondWith(fetch(req,{cache:'no-store'}).catch(()=>fetch('/',{cache:'no-store'})));return;}if(req.destination==='style'||req.destination==='script'){event.respondWith(fetch(req,{cache:'reload'}));return;}event.respondWith(fetch(req));});\n"
@@ -10867,10 +10868,12 @@ def _home_count_sql(query, params=()):
     """Contador ligero para home: no dispara APIs ni rompe si la DB aún no existe."""
     try:
         conn = db()
-        cur = conn.cursor()
-        cur.execute(query, params)
-        row = cur.fetchone()
-        conn.close()
+        try:
+            cur = conn.cursor()
+            cur.execute(query, params)
+            row = cur.fetchone()
+        finally:
+            conn.close()
         if row is None:
             return 0
         try:
@@ -10885,16 +10888,18 @@ def _home_rows_sql(query, params=(), limit=6):
     """Lectura ligera para home: nunca debe tumbar la landing si faltan tablas o datos."""
     try:
         conn = db()
-        cur = conn.cursor()
-        cur.execute(query, params)
-        items = [dict(r) for r in cur.fetchmany(int(limit))]
-        conn.close()
+        try:
+            cur = conn.cursor()
+            cur.execute(query, params)
+            items = [dict(r) for r in cur.fetchmany(int(limit))]
+        finally:
+            conn.close()
         return items
     except Exception:
         return []
 
 
-def home_live_summary_data():
+def _v930_home_live_summary_data_legacy():
     """Datos reales y ligeros para /.
 
     V739 corrige el panel "Hoy en NeMeSiS": antes usaba home_light_data()
@@ -11004,6 +11009,293 @@ def home_live_summary_data():
     }
 
 
+V931_CRITICAL_CLIENT_PATHS = {
+    "/cliente-login", "/login", "/registro", "/app", "/calendar", "/calendario",
+    "/live", "/directo", "/picks", "/track-record", "/profile", "/telegram",
+    "/shark", "/memberships", "/support",
+}
+V931_SAFE_TABLES = {"matches", "picks", "favorites"}
+V931_INVALID_DATA_LABELS = {
+    "", "none", "null", "undefined", "pendiente", "por confirmar",
+    "competicion pendiente", "competición pendiente", "hora pendiente",
+    "fecha pendiente", "sin competicion", "sin competición",
+}
+
+
+def _v931_exception_details(error):
+    root_error = getattr(error, "original_exception", None) or error
+    error_type = type(root_error).__name__
+    message = str(root_error or "")[:240]
+    message = re.sub(
+        r"(?i)(secret|token|password|api[_-]?key)\s*[=:]\s*[^\s&]+",
+        r"\1=***hidden***",
+        message,
+    )
+    return error_type, message
+
+
+def v931_record_client_route_issue(route, error, cause=""):
+    """Persist one deduplicated, masked issue per route/error/version."""
+    try:
+        error_type, message = _v931_exception_details(error)
+        safe_route = str(route or (request.path if has_request_context() else "unknown"))[:180]
+        issue_key = hashlib.sha256(
+            f"{APP_VERSION}|{safe_route}|{error_type}".encode("utf-8")
+        ).hexdigest()[:24]
+        issue_path = BASE_DIR / "data" / "runtime" / "sentinel_client_route_issues.json"
+        payload = json.loads(issue_path.read_text(encoding="utf-8-sig")) if issue_path.exists() else {}
+        issues = payload.get("issues") if isinstance(payload, dict) else []
+        if not isinstance(issues, list):
+            issues = []
+        existing = next((item for item in issues if item.get("id") == issue_key), None)
+        if existing is None:
+            existing = {
+                "id": issue_key,
+                "area": "client_routes",
+                "severity": "critical",
+                "route": safe_route,
+                "exception": error_type,
+                "version": APP_VERSION,
+                "count": 0,
+                "created_at_madrid": now_iso(),
+            }
+            issues.append(existing)
+        existing.update({
+            "count": int(existing.get("count") or 0) + 1,
+            "last_seen_madrid": now_iso(),
+            "evidence": message or error_type,
+            "cause": str(cause or "route_context_failure")[:240],
+            "safe_message": "Ruta cliente protegida con contexto degradable; revisar DB/migracion.",
+        })
+        issue_path.parent.mkdir(parents=True, exist_ok=True)
+        issue_path.write_text(
+            json.dumps({"version": APP_VERSION, "issues": issues[-80:]}, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        return True
+    except Exception:
+        return False
+
+
+def _v931_read_table_rows(table, limit=600):
+    """Read optional production data without migrations, writes or long lock waits."""
+    if table not in V931_SAFE_TABLES:
+        return [], {"status": "blocked_table", "error_type": "unsafe_table"}
+    db_path = str(DB_PATH or "").strip()
+    if not db_path or db_path == ":memory:" or not Path(db_path).exists():
+        return [], {"status": "missing_database", "error_type": "database_unavailable"}
+    conn = None
+    try:
+        conn = sqlite3.connect(db_path, timeout=0.25, check_same_thread=False)
+        conn.row_factory = sqlite3.Row
+        conn.execute("PRAGMA query_only=ON")
+        conn.execute("PRAGMA busy_timeout=250")
+        exists = conn.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (table,)
+        ).fetchone()
+        if not exists:
+            return [], {"status": "missing_table", "error_type": f"missing_{table}_table"}
+        records = [dict(row) for row in conn.execute(f'SELECT * FROM "{table}" LIMIT ?', (int(limit),)).fetchall()]
+        return records, {"status": "ok", "error_type": ""}
+    except sqlite3.OperationalError as exc:
+        message = str(exc).lower()
+        status = "database_locked" if "locked" in message or "busy" in message else "schema_incomplete"
+        return [], {"status": status, "error_type": type(exc).__name__, "safe_error": str(exc)[:180]}
+    except Exception as exc:
+        return [], {"status": "read_unavailable", "error_type": type(exc).__name__}
+    finally:
+        if conn is not None:
+            try:
+                conn.close()
+            except Exception:
+                pass
+
+
+def _v931_match_essentials(match):
+    item = dict(match or {})
+    display = normalize_kickoff_for_display(item)
+    date_value = str(
+        display.get("madrid_date") or display.get("safe_date") or item.get("match_date") or ""
+    ).strip()[:10]
+    time_value = str(
+        display.get("madrid_time") or item.get("kickoff_time") or item.get("match_time") or ""
+    ).strip()[:5]
+    competition = str(
+        item.get("competition_name") or item.get("league_name") or item.get("competition_key") or ""
+    ).strip()
+    source = str(item.get("source") or "").strip()
+    home = str(item.get("home_team") or "").strip()
+    away = str(item.get("away_team") or "").strip()
+    missing = []
+    if not home or not away or is_fake_match(item):
+        missing.append("teams")
+    if normalized_label(competition) in V931_INVALID_DATA_LABELS:
+        missing.append("competition")
+    try:
+        parsed_date = datetime.fromisoformat(date_value).date() if date_value else None
+    except (TypeError, ValueError):
+        parsed_date = None
+    if parsed_date is None:
+        missing.append("date")
+    valid_time = bool(re.fullmatch(r"\d{2}:\d{2}", time_value))
+    if valid_time:
+        hour, minute = (int(part) for part in time_value.split(":"))
+        valid_time = 0 <= hour <= 23 and 0 <= minute <= 59
+    if not valid_time:
+        missing.append("time")
+    source_key = normalized_label(source)
+    if not source or any(token in source_key for token in ("fake", "demo", "placeholder", "fixture_test", "seed estructural")):
+        missing.append("source")
+    return {
+        "complete": not missing,
+        "missing": missing,
+        "date": date_value,
+        "time": time_value,
+        "competition": competition,
+        "source": source,
+    }
+
+
+def _v931_prepare_complete_match(match, essentials):
+    item = dict(match or {})
+    item["match_date"] = essentials.get("date") or item.get("match_date") or ""
+    item["kickoff_time"] = essentials.get("time") or ""
+    item["match_time"] = item.get("match_time") or item["kickoff_time"]
+    item["competition_name"] = essentials.get("competition") or ""
+    item["source"] = essentials.get("source") or ""
+    item = client_match_display_context(item)
+    item["calendar_competition"] = item.get("client_competition")
+    item["calendar_time"] = item.get("client_time_label")
+    item["calendar_status"] = item.get("client_status_label")
+    item["calendar_score"] = item.get("client_score_label")
+    item["v931_complete"] = True
+    return item
+
+
+def _v931_prepare_pick(pick, matches_by_id):
+    item = dict(pick or {})
+    linked = matches_by_id.get(str(item.get("match_id") or "")) or {}
+    for key in (
+        "match_date", "kickoff_time", "match_time", "kickoff_iso", "competition_name",
+        "league_name", "home_team", "away_team", "status", "source",
+    ):
+        if not item.get(key) and linked.get(key):
+            item[key] = linked.get(key)
+    item["market"] = item.get("market") or item.get("pick_type") or ""
+    item["client_selection_label"] = item.get("selection_display") or item.get("selection") or ""
+    item["selection_display"] = item.get("client_selection_label")
+    item["client_odds_label"] = item.get("odds")
+    item["client_match_label"] = " vs ".join(
+        value for value in (str(item.get("home_team") or "").strip(), str(item.get("away_team") or "").strip()) if value
+    )
+    item["client_match_url"] = f"/match/{item.get('match_id')}" if item.get("match_id") else "/calendar"
+    return item
+
+
+def get_public_home_sports_summary():
+    """One DB/cache-only truth source for both the home KPI and visible match list."""
+    today = today_iso()
+    raw_matches, match_meta = _v931_read_table_rows("matches", 800)
+    raw_picks, pick_meta = _v931_read_table_rows("picks", 300)
+    valid_all = []
+    incomplete = []
+    matches_by_id = {}
+    for raw in raw_matches:
+        essentials = _v931_match_essentials(raw)
+        if not essentials.get("complete"):
+            incomplete.append({
+                "id": raw.get("id"),
+                "home_team": raw.get("home_team") or "",
+                "away_team": raw.get("away_team") or "",
+                "missing": essentials.get("missing") or [],
+            })
+            continue
+        try:
+            item = _v931_prepare_complete_match(raw, essentials)
+        except Exception:
+            incomplete.append({"id": raw.get("id"), "missing": ["normalization"]})
+            continue
+        matches_by_id[str(item.get("id") or "")] = item
+        valid_all.append(item)
+    valid_all.sort(key=lambda item: (
+        item.get("match_date") or "9999-99-99",
+        item.get("kickoff_time") or "99:99",
+        item.get("competition_name") or "",
+    ))
+    valid_today = [item for item in valid_all if item.get("match_date") == today]
+    valid_upcoming = [item for item in valid_all if str(item.get("match_date") or "") >= today]
+    valid_live = [item for item in valid_today if canonical_match_status(item).get("is_live")]
+    prepared_picks = [_v931_prepare_pick(item, matches_by_id) for item in raw_picks]
+    safe_picks = get_safe_picks_context(prepared_picks)
+    active_picks = safe_picks.get("picks") or []
+    last_sync = max(
+        [str(item.get("updated_at") or "") for item in raw_matches + raw_picks if item.get("updated_at")],
+        default="",
+    )
+    storage_status = match_meta.get("status") or "read_unavailable"
+    if storage_status == "ok" and valid_all:
+        provider_status = "data_available"
+        safe_message = "Agenda real validada. El contador y las tarjetas usan el mismo filtro."
+    elif storage_status == "ok" and incomplete:
+        provider_status = "data_incomplete"
+        safe_message = "Hay registros pendientes de completar; no se muestran como partidos validos."
+    elif storage_status == "database_locked":
+        provider_status = "temporarily_unavailable"
+        safe_message = "La agenda esta ocupada temporalmente. La pagina sigue disponible sin inventar datos."
+    else:
+        provider_status = "waiting_for_sync"
+        safe_message = "Sin agenda real completa disponible. Esperando sincronizacion."
+    return {
+        "valid_matches_today": valid_today,
+        "valid_matches_today_count": len(valid_today),
+        "valid_upcoming_matches": valid_upcoming,
+        "valid_live_events": valid_live,
+        "valid_active_picks": active_picks,
+        "incomplete_matches": incomplete,
+        "provider_status": provider_status,
+        "last_sync": last_sync,
+        "safe_message": safe_message,
+        "storage_status": storage_status,
+        "storage_error_type": match_meta.get("error_type") or "",
+        "picks_storage_status": pick_meta.get("status") or "",
+        "no_render_api_call": True,
+    }
+
+
+def _v931_legacy_home_summary(summary):
+    valid_today = summary.get("valid_matches_today") or []
+    upcoming = summary.get("valid_upcoming_matches") or []
+    live = summary.get("valid_live_events") or []
+    picks = summary.get("valid_active_picks") or []
+    has_real_data = bool(valid_today or live or picks)
+    return {
+        "date": today_iso(),
+        "status": "DATOS_REALES" if has_real_data else "PENDIENTE_SINCRONIZACION",
+        "has_real_data": has_real_data,
+        "message": summary.get("safe_message") or client_home_message(has_real_data),
+        "counts": {
+            "today": len(valid_today),
+            "upcoming": len(upcoming),
+            "live": len(live),
+            "picks": len(picks),
+            "favorites": 0,
+            "incomplete": len(summary.get("incomplete_matches") or []),
+        },
+        "valid_matches_today": valid_today,
+        "upcoming_matches": valid_today,
+        "picks": picks,
+        "favorites": [],
+        "incomplete_matches": summary.get("incomplete_matches") or [],
+        "provider_status": summary.get("provider_status"),
+        "last_sync": summary.get("last_sync"),
+        "no_render_api_call": True,
+    }
+
+
+def home_live_summary_data():
+    return _v931_legacy_home_summary(get_public_home_sports_summary())
+
+
 def home_light_data():
     """Datos seguros para / con resumen real de producción cuando exista DB."""
     live = home_live_summary_data()
@@ -11055,6 +11347,275 @@ def home_light_data():
         "readiness": {"calendar": 95, "live_foundation": 92, "shark_ai": 94},
     }
 
+
+
+def _v931_provider_context(summary):
+    has_data = bool(summary.get("valid_matches_today") or summary.get("valid_upcoming_matches"))
+    return {
+        "source": "db_cache_real" if has_data else "db_cache_pending",
+        "has_real_data": has_data,
+        "last_sync": summary.get("last_sync") or "",
+        "provider_status": summary.get("provider_status") or "waiting_for_sync",
+        "cache_status": "available" if has_data else "empty_safe",
+        "safe_message": summary.get("safe_message") or "Sin datos deportivos completos disponibles.",
+        "no_render_api_call": True,
+        "matches": list(summary.get("valid_upcoming_matches") or []),
+        "counts": {
+            "today": len(summary.get("valid_matches_today") or []),
+            "live": len(summary.get("valid_live_events") or []),
+            "picks": len(summary.get("valid_active_picks") or []),
+            "finished": 0,
+        },
+    }
+
+
+def _v931_minimal_client_data(summary, lane="today", date_value=""):
+    today_matches = list(summary.get("valid_matches_today") or [])
+    upcoming = list(summary.get("valid_upcoming_matches") or [])
+    live = list(summary.get("valid_live_events") or [])
+    picks = list(summary.get("valid_active_picks") or [])
+    legacy_home = _v931_legacy_home_summary(summary)
+    return {
+        "app_name": APP_NAME,
+        "version": APP_VERSION,
+        "date": date_value or today_iso(),
+        "lane": lane,
+        "matches": today_matches,
+        "upcoming_matches": upcoming,
+        "groups": {},
+        "competitions": [],
+        "imports": [],
+        "picks": picks,
+        "combis": [],
+        "profile": {},
+        "session_user": current_session_user(),
+        "favorites": [],
+        "favorite_feed": [],
+        "favorite_bundle": {"matches": []},
+        "favorite_insights": {},
+        "client_alerts": [],
+        "client_activity": [],
+        "retention": {},
+        "daily_briefing": {"score": None, "summary": {}},
+        "client_command": {},
+        "match_hub": {
+            "today": today_matches,
+            "live": live,
+            "upcoming": upcoming,
+            "finished": [],
+            "counts": {
+                "today": len(today_matches),
+                "live": len(live),
+                "upcoming": len(upcoming),
+                "with_picks": len(picks),
+            },
+        },
+        "past_results": [],
+        "candidate_matches": [],
+        "smart_picks": [],
+        "live_flow": {"live": live, "scheduled": upcoming, "finished": []},
+        "membership_plans": MEMBERSHIP_PLANS,
+        "telegram": {},
+        "sportsdb": {},
+        "sportsdb_feed": {},
+        "odds": {},
+        "matches_diagnostics": {"status": summary.get("provider_status")},
+        "client_lifecycle_sync": {"ok": True, "skipped": True, "no_render_api_call": True},
+        "client_source_label": "Datos locales disponibles" if upcoming else "Esperando sincronizacion",
+        "data_center": {},
+        "live": {"live": live, "scheduled": upcoming, "finished": []},
+        "home_summary": legacy_home,
+        "v925_calendar": _v931_provider_context(summary),
+        "v925_live": _v931_provider_context(summary),
+        "v925_picks": get_safe_picks_context(picks),
+        "v925_odds": get_safe_odds_context(picks),
+        "v931_route_guard": {
+            "status": "safe_fallback",
+            "provider_status": summary.get("provider_status"),
+            "no_render_api_call": True,
+        },
+    }
+
+
+def v931_safe_dashboard_data(route, lane="today", date_value=None):
+    summary = get_public_home_sports_summary()
+    if summary.get("storage_status") == "database_locked":
+        if has_request_context():
+            request.environ["nemesis.v931.degraded"] = True
+        error = sqlite3.OperationalError("database is locked")
+        v931_record_client_route_issue(route, error, "sqlite_read_timeout_guard")
+        return _v931_minimal_client_data(summary, lane, date_value or today_iso()), summary
+    try:
+        data = dashboard_data(lane, date_value or today_iso())
+    except Exception as exc:
+        if has_request_context():
+            request.environ["nemesis.v931.degraded"] = True
+        v931_record_client_route_issue(route, exc, "dashboard_data_schema_guard")
+        return _v931_minimal_client_data(summary, lane, date_value or today_iso()), summary
+    if has_request_context():
+        request.environ["nemesis.v931.degraded"] = False
+    data["home_summary"] = _v931_legacy_home_summary(summary)
+    data["matches"] = list(summary.get("valid_matches_today") or [])
+    data["upcoming_matches"] = list(summary.get("valid_upcoming_matches") or [])
+    data["picks"] = list(summary.get("valid_active_picks") or [])
+    hub = dict(data.get("match_hub") or {})
+    hub.update({
+        "today": data["matches"],
+        "live": list(summary.get("valid_live_events") or []),
+        "upcoming": data["upcoming_matches"],
+    })
+    counts = dict(hub.get("counts") or {})
+    counts.update({
+        "today": len(data["matches"]),
+        "live": len(hub["live"]),
+        "upcoming": len(data["upcoming_matches"]),
+        "with_picks": len(data["picks"]),
+    })
+    hub["counts"] = counts
+    data["match_hub"] = hub
+    data["v925_calendar"] = _v931_provider_context(summary)
+    data["v925_live"] = _v931_provider_context(summary)
+    data["v925_picks"] = get_safe_picks_context(data["picks"])
+    data["v925_odds"] = get_safe_odds_context(data["picks"])
+    data["v931_route_guard"] = {"status": "full_context", "no_render_api_call": True}
+    return data, summary
+
+
+def v931_safe_context(route, label, callback, default):
+    if has_request_context() and request.environ.get("nemesis.v931.degraded"):
+        return default
+    try:
+        return callback()
+    except Exception as exc:
+        v931_record_client_route_issue(route, exc, label)
+        return default
+
+
+def v931_calendar_context(summary, lane="today", date_value=None):
+    lane = str(lane or "today").strip().lower()
+    selected_date = _safe_date_value(date_value, today_iso())
+    today = today_iso()
+    tomorrow = today_iso(1)
+    week_end = (datetime.fromisoformat(today).date() + timedelta(days=7)).isoformat()
+    matches = list(summary.get("valid_upcoming_matches") or [])
+    pick_ids = {str(item.get("match_id") or "") for item in summary.get("valid_active_picks") or []}
+    if lane == "tomorrow":
+        matches = [item for item in matches if item.get("match_date") == tomorrow]
+    elif lane == "week":
+        matches = [item for item in matches if today <= str(item.get("match_date") or "") <= week_end]
+    elif lane in {"live", "directo"}:
+        matches = list(summary.get("valid_live_events") or [])
+    elif lane in {"with_pick", "picks"}:
+        matches = [item for item in matches if str(item.get("id") or "") in pick_ids]
+    else:
+        matches = [item for item in matches if item.get("match_date") == selected_date]
+    query = normalized_label(request.args.get("q") or "") if has_request_context() else ""
+    league_filter = normalized_label(request.args.get("league") or "") if has_request_context() else ""
+    country_filter = normalized_label(request.args.get("country") or "") if has_request_context() else ""
+    filtered = []
+    for item in matches:
+        text = normalized_label(" ".join(str(item.get(key) or "") for key in (
+            "home_team", "away_team", "competition_name", "league_name", "country"
+        )))
+        if query and query not in text:
+            continue
+        if league_filter and league_filter not in normalized_label(item.get("competition_name") or item.get("league_name") or ""):
+            continue
+        if country_filter and country_filter not in normalized_label(item.get("country") or ""):
+            continue
+        item = dict(item)
+        item["has_pick"] = str(item.get("id") or "") in pick_ids
+        filtered.append(item)
+    by_date = {}
+    for item in filtered:
+        day = item.get("match_date") or selected_date
+        competition = item.get("competition_name") or item.get("league_name")
+        bucket = by_date.setdefault(day, {})
+        bucket.setdefault(competition, []).append(item)
+    day_groups = []
+    for day, leagues in sorted(by_date.items()):
+        day_groups.append({
+            "date": day,
+            "label": jinja_match_date_label({"match_date": day}),
+            "leagues": [
+                {"name": name, "label": name, "matches": items}
+                for name, items in sorted(leagues.items())
+            ],
+        })
+    all_valid = list(summary.get("valid_upcoming_matches") or [])
+    today_valid = list(summary.get("valid_matches_today") or [])
+    leagues = {}
+    countries = {}
+    for item in all_valid:
+        name = item.get("competition_name") or item.get("league_name")
+        country = item.get("country") or "Global"
+        leagues[name] = int(leagues.get(name) or 0) + 1
+        countries[country] = int(countries.get(country) or 0) + 1
+    return {
+        "filters": {
+            "lane": lane,
+            "date": selected_date,
+            "q": request.args.get("q") or "" if has_request_context() else "",
+            "league": request.args.get("league") or "" if has_request_context() else "",
+            "country": request.args.get("country") or "" if has_request_context() else "",
+        },
+        "matches": filtered,
+        "day_groups": day_groups,
+        "groups": day_groups,
+        "counts": {
+            "today": len(today_valid),
+            "week": sum(1 for item in all_valid if today <= str(item.get("match_date") or "") <= week_end),
+            "live": len(summary.get("valid_live_events") or []),
+            "picks": len(pick_ids),
+        },
+        "facets": {
+            "leagues": [{"label": key, "value": key, "count": value} for key, value in sorted(leagues.items())],
+            "countries": [{"label": key, "value": key, "count": value} for key, value in sorted(countries.items())],
+        },
+        "tabs": [
+            {"key": "today", "label": "Hoy", "href": "/calendar?lane=today"},
+            {"key": "tomorrow", "label": "Manana", "href": "/calendar?lane=tomorrow"},
+            {"key": "week", "label": "Semana", "href": "/calendar?lane=week"},
+            {"key": "with_pick", "label": "Con pick", "href": "/calendar?lane=with_pick"},
+        ],
+        "date_chips": [],
+        "source_summary": summary.get("safe_message"),
+        "no_render_api_call": True,
+    }
+
+
+def v931_live_context(summary, lane="live", query=""):
+    lane = str(lane or "live").strip().lower()
+    today_matches = list(summary.get("valid_matches_today") or [])
+    live_matches = list(summary.get("valid_live_events") or [])
+    pick_ids = {str(item.get("match_id") or "") for item in summary.get("valid_active_picks") or []}
+    if lane == "all":
+        selected = today_matches
+    elif lane in {"finished", "finalizados"}:
+        selected = [item for item in today_matches if canonical_match_status(item).get("is_finished")]
+    elif lane in {"break", "halftime", "descanso"}:
+        selected = [item for item in today_matches if "half" in normalized_label(item.get("status")) or normalized_label(item.get("status")) == "ht"]
+    elif lane in {"with_pick", "picks"}:
+        selected = [item for item in today_matches if str(item.get("id") or "") in pick_ids]
+    else:
+        selected = live_matches
+    query_key = normalized_label(query)
+    if query_key:
+        selected = [item for item in selected if query_key in normalized_label(
+            f"{item.get('home_team')} {item.get('away_team')} {item.get('competition_name')}"
+        )]
+    return {
+        "lane": lane,
+        "matches": selected,
+        "day_groups": [],
+        "counts": {
+            "live": len(live_matches),
+            "halftime": sum(1 for item in today_matches if normalized_label(item.get("status")) in {"ht", "half time", "descanso"}),
+            "finished": sum(1 for item in today_matches if canonical_match_status(item).get("is_finished")),
+            "picks": len(pick_ids),
+        },
+        "no_render_api_call": True,
+    }
 
 
 # ===================== V758 ADAPTIVE DESKTOP/MOBILE TOP APP EXPERIENCE =====================
@@ -11866,15 +12427,15 @@ def home():
     if request.method == "HEAD":
         return Response("", status=200)
     data = home_light_data()
-    data["client_premium"] = build_client_app_premium_context(data, current_session_user())
-    data["v757_app"] = build_v757_app_center(data, current_session_user(), track_record=None)
-    data["v758_adaptive"] = v758_adaptive_context(data, current_session_user(), "home")
-    data["world_cup_launch"] = build_v763_world_cup_launch_context(data, current_session_user())
-    data["dynamic_mode"] = build_v764_dynamic_competition_mode(data, current_session_user(), "home")
-    data["v765_markets"] = v765_markets_context(data, current_session_user())
-    data["v765_combis"] = v765_combi_context(data, current_session_user(), 3)
-    data["v766_highlights"] = v766_highlights_context(limit=6)
-    data["v769_highlights_center"] = v769_highlights_content_center(data, current_session_user(), limit=8)
+    data["client_premium"] = v931_safe_context("/", "client_premium", lambda: build_client_app_premium_context(data, current_session_user()), {})
+    data["v757_app"] = v931_safe_context("/", "v757_app", lambda: build_v757_app_center(data, current_session_user(), track_record=None), {})
+    data["v758_adaptive"] = v931_safe_context("/", "v758_adaptive", lambda: v758_adaptive_context(data, current_session_user(), "home"), {})
+    data["world_cup_launch"] = v931_safe_context("/", "world_cup_launch", lambda: build_v763_world_cup_launch_context(data, current_session_user()), {})
+    data["dynamic_mode"] = v931_safe_context("/", "dynamic_mode", lambda: build_v764_dynamic_competition_mode(data, current_session_user(), "home"), {})
+    data["v765_markets"] = v931_safe_context("/", "markets", lambda: v765_markets_context(data, current_session_user()), {})
+    data["v765_combis"] = v931_safe_context("/", "combis", lambda: v765_combi_context(data, current_session_user(), 3), {})
+    data["v766_highlights"] = v931_safe_context("/", "highlights", lambda: v766_highlights_context(limit=6), {})
+    data["v769_highlights_center"] = v931_safe_context("/", "highlights_center", lambda: v769_highlights_content_center(data, current_session_user(), limit=8), {})
     data["v925_calendar"] = get_safe_sports_calendar_context({"matches": data.get("upcoming_matches") or data.get("matches") or []})
     data["v925_picks"] = get_safe_picks_context(data.get("picks") or [])
     data["v925_odds"] = get_safe_odds_context(data.get("picks") or [])
@@ -12401,22 +12962,22 @@ def global_football():
 @app.route("/partidos")
 @app.route("/partidos/calendario")
 def calendar_page():
-    if request.args.get("refresh") in {"1", "true", "yes"}:
-        ensure_client_match_lifecycle_fresh(force=True)
-    data = dashboard_data("today", request.args.get("date") or today_iso())
-    data["calendar"] = calendar_experience_data()
+    lane = request.args.get("lane") or "today"
+    date_value = request.args.get("date") or today_iso()
+    data, summary = v931_safe_dashboard_data(request.path, "today", date_value)
+    data["calendar"] = v931_calendar_context(summary, lane, date_value)
     data["matches"] = data["calendar"].get("matches", [])
     data["lane"] = data["calendar"].get("filters", {}).get("lane", "today")
     data["date"] = data["calendar"].get("filters", {}).get("date", today_iso())
-    data["client_premium"] = build_client_app_premium_context(data, current_session_user())
-    data["v757_app"] = build_v757_app_center(data, current_session_user(), track_record=None)
-    data["dynamic_mode"] = build_v764_dynamic_competition_mode(data, current_session_user(), "calendar")
-    data["v758_adaptive"] = v758_adaptive_context(data, current_session_user(), "calendar")
-    data["v765_markets"] = v765_markets_context(data, current_session_user())
-    data["v766_calendar_order"] = v766_calendar_order_context(data["calendar"])
-    data["v766_highlights"] = v766_highlights_context(limit=8)
-    data["v769_highlights_center"] = v769_highlights_content_center(data, current_session_user(), limit=12)
-    data["v925_calendar"] = get_safe_sports_calendar_context(data["calendar"])
+    data["client_premium"] = v931_safe_context(request.path, "client_premium", lambda: build_client_app_premium_context(data, current_session_user()), {})
+    data["v757_app"] = v931_safe_context(request.path, "v757_app", lambda: build_v757_app_center(data, current_session_user(), track_record=None), {})
+    data["dynamic_mode"] = v931_safe_context(request.path, "dynamic_mode", lambda: build_v764_dynamic_competition_mode(data, current_session_user(), "calendar"), {})
+    data["v758_adaptive"] = v931_safe_context(request.path, "v758_adaptive", lambda: v758_adaptive_context(data, current_session_user(), "calendar"), {})
+    data["v765_markets"] = v931_safe_context(request.path, "markets", lambda: v765_markets_context(data, current_session_user()), {})
+    data["v766_calendar_order"] = v931_safe_context(request.path, "calendar_order", lambda: v766_calendar_order_context(data["calendar"]), {})
+    data["v766_highlights"] = v931_safe_context(request.path, "highlights", lambda: v766_highlights_context(limit=8), {})
+    data["v769_highlights_center"] = v931_safe_context(request.path, "highlights_center", lambda: v769_highlights_content_center(data, current_session_user(), limit=12), {})
+    data["v925_calendar"] = _v931_provider_context(summary)
     return render_template("calendar.html", data=data)
 
 
@@ -12488,41 +13049,30 @@ def sports_hub_page():
 def live_page():
     lane = request.args.get("f") or request.args.get("filter") or request.args.get("lane") or "live"
     query = (request.args.get("q") or "").strip()
-    force_refresh = request.args.get("refresh") in {"1", "true", "yes"}
-    lifecycle_refresh = ensure_client_match_lifecycle_fresh(force=force_refresh)
-    live_refresh = ensure_client_live_fresh(force=force_refresh)
-    if force_refresh:
-        api_live_tracker = sync_api_football_live_tracker(DB_PATH, force=True)
-    else:
-        api_live_tracker = live_tracker_status(DB_PATH)
-        api_live_tracker["matches"] = v850_get_live_matches_cached(DB_PATH, limit=120)
-        api_live_tracker["message"] = "Cache local primero. Usa refresh explicito para sincronizar el proveedor."
-    data = dashboard_data("today", request.args.get("date") or today_iso())
-    hub = data.get("match_hub") or {}
-    source = []
-    # V803: API-Football Pro live tracker first when configured; then existing legal sources.
-    source.extend(api_live_tracker.get("matches") or [])
-    source.extend(live_matches_any_date(limit=180))
-    source.extend(live_matches_from_live_table(limit=180))
-    for key in ("live", "today", "upcoming", "finished"):
-        source.extend(hub.get(key) or [])
-    source = dedupe_matches_list(source)
-    source = v766_enrich_matches_with_highlights(source)
-    data["client_lifecycle_sync"] = lifecycle_refresh
-    data["live_refresh"] = live_refresh
-    data["api_football_live_tracker"] = api_live_tracker
-    data["api_football_live_quality"] = live_tracker_quality_summary(DB_PATH)
-    data["live_experience"] = build_live_experience(source, lane=lane, query=query)
-    data["v850_live_cache"] = v850_live_cache_summary(DB_PATH)
-    data["v850_live_state"] = v850_explain_live_data_state(DB_PATH)
-    data["v850_live_cards"] = [v850_build_live_card_payload(m) for m in (data["live_experience"].get("matches") or [])[:24]]
-    data["v850_api_sports_dry_live"] = v850_get_live_matches_from_api_sports_safe(dry_run=True)
-    data["v766_highlights"] = v766_highlights_context(limit=8)
-    data["v769_highlights_center"] = v769_highlights_content_center(data, current_session_user(), limit=12)
-    data["dynamic_mode"] = build_v764_dynamic_competition_mode(data, current_session_user(), "live")
-    data["v758_adaptive"] = v758_adaptive_context(data, current_session_user(), "live")
-    data["v765_markets"] = v765_markets_context(data, current_session_user())
-    data["v925_live"] = get_safe_live_context(data["live_experience"], data["api_football_live_tracker"])
+    data, summary = v931_safe_dashboard_data(request.path, "today", request.args.get("date") or today_iso())
+    data["client_lifecycle_sync"] = {
+        "ok": True, "skipped": True, "reason": "page_render_cache_only",
+        "external_calls": 0, "no_render_api_call": True,
+    }
+    data["live_refresh"] = dict(data["client_lifecycle_sync"])
+    data["api_football_live_tracker"] = {
+        "status": summary.get("provider_status"),
+        "matches": list(summary.get("valid_live_events") or []),
+        "message": summary.get("safe_message"),
+        "external_calls": 0,
+    }
+    data["api_football_live_quality"] = {}
+    data["live_experience"] = v931_live_context(summary, lane=lane, query=query)
+    data["v850_live_cache"] = {"status": summary.get("provider_status"), "external_calls": 0}
+    data["v850_live_state"] = {"status": summary.get("provider_status"), "message": summary.get("safe_message")}
+    data["v850_live_cards"] = []
+    data["v850_api_sports_dry_live"] = {"ok": True, "dry_run": True, "external_calls": 0}
+    data["v766_highlights"] = v931_safe_context(request.path, "highlights", lambda: v766_highlights_context(limit=8), {})
+    data["v769_highlights_center"] = v931_safe_context(request.path, "highlights_center", lambda: v769_highlights_content_center(data, current_session_user(), limit=12), {})
+    data["dynamic_mode"] = v931_safe_context(request.path, "dynamic_mode", lambda: build_v764_dynamic_competition_mode(data, current_session_user(), "live"), {})
+    data["v758_adaptive"] = v931_safe_context(request.path, "adaptive", lambda: v758_adaptive_context(data, current_session_user(), "live"), {})
+    data["v765_markets"] = v931_safe_context(request.path, "markets", lambda: v765_markets_context(data, current_session_user()), {})
+    data["v925_live"] = _v931_provider_context(summary)
     return render_template("live.html", data=data)
 
 
@@ -12801,15 +13351,23 @@ def client_login_page():
     if current_session_user():
         return _post_auth_redirect("/app")
     error = ""
+    auth_backend_error = False
     if request.method == "POST":
         identifier = request.form.get("login") or request.form.get("email") or request.form.get("username")
-        user = authenticate_user(identifier, request.form.get("password"))
+        try:
+            user = authenticate_user(identifier, request.form.get("password"))
+        except Exception as exc:
+            v931_record_client_route_issue(request.path, exc, "client_auth_database_guard")
+            user = None
+            auth_backend_error = True
         if user:
             security_event_for_auth("login_attempt", True, identifier, "cliente_login_correcto")
             set_login_session(user)
             return _post_auth_redirect("/app")
         security_event_for_auth("login_attempt", False, identifier, "credenciales_cliente_invalidas")
         error = "Email, usuario o contraseña incorrectos."
+    if auth_backend_error:
+        error = "Acceso temporalmente no disponible. Intentalo de nuevo en unos minutos."
     auth_data = home_light_data()
     auth_data["selected_plan"] = selected_plan
     auth_data["next_url"] = _safe_client_next(request.args.get("next") or request.form.get("next") or session.get("post_auth_next"), "/app")
@@ -14789,23 +15347,28 @@ def api_admin_production_readiness():
 
 @app.route("/picks")
 def picks_page():
-    data = dashboard_data()
+    data, summary = v931_safe_dashboard_data(request.path)
     user = current_session_user() or {"membership": "FREE", "role": "FREE"}
     data["membership"] = v566_membership_ui(user)
-    data["picks"] = published_picks_for_user(user, limit=80)
-    data["candidate_matches"] = pick_candidate_matches(limit=80, days=21)
-    data["pick_stats"] = pick_stats()
-    data["smart_picks"] = smart_pick_board(user, limit=24)
-    data["client_premium"] = build_client_app_premium_context(data, user, filter_key=(request.args.get("filtro") or request.args.get("filter") or "all"))
-    data["v757_app"] = build_v757_app_center(data, user, track_record=None)
-    data["dynamic_mode"] = build_v764_dynamic_competition_mode(data, user, "picks")
-    data["v758_adaptive"] = v758_adaptive_context(data, user, "picks")
-    data["v765_markets"] = v765_markets_context(data, user)
-    data["v765_combis"] = v765_combi_context(data, user, 3)
-    data["v766_highlights"] = v766_highlights_context(limit=6)
+    data["picks"] = list(summary.get("valid_active_picks") or [])
+    data["candidate_matches"] = list(summary.get("valid_upcoming_matches") or [])[:80]
+    data["pick_stats"] = v931_safe_context(request.path, "pick_stats", pick_stats, {"closed": 0, "graded": 0})
+    data["smart_picks"] = list(data["picks"][:24])
+    data["client_premium"] = v931_safe_context(request.path, "client_premium", lambda: build_client_app_premium_context(data, user, filter_key=(request.args.get("filtro") or request.args.get("filter") or "all")), {})
+    data["v757_app"] = v931_safe_context(request.path, "v757_app", lambda: build_v757_app_center(data, user, track_record=None), {})
+    data["dynamic_mode"] = v931_safe_context(request.path, "dynamic_mode", lambda: build_v764_dynamic_competition_mode(data, user, "picks"), {})
+    data["v758_adaptive"] = v931_safe_context(request.path, "adaptive", lambda: v758_adaptive_context(data, user, "picks"), {})
+    data["v765_markets"] = v931_safe_context(request.path, "markets", lambda: v765_markets_context(data, user), {})
+    data["v765_combis"] = v931_safe_context(request.path, "combis", lambda: v765_combi_context(data, user, 3), {})
+    data["v766_highlights"] = v931_safe_context(request.path, "highlights", lambda: v766_highlights_context(limit=6), {})
     data["v925_picks"] = get_safe_picks_context(data["picks"])
     data["v925_odds"] = get_safe_odds_context(data["picks"])
-    record_user_activity("view", "picks", "picks-page", {"count": len(data["picks"]), "candidates": len(data["candidate_matches"])})
+    v931_safe_context(
+        request.path,
+        "activity_write",
+        lambda: record_user_activity("view", "picks", "picks-page", {"count": len(data["picks"]), "candidates": len(data["candidate_matches"])}),
+        None,
+    )
     return render_template("picks.html", data=data)
 
 
@@ -14831,14 +15394,14 @@ def profile_page():
     user = current_session_user()
     if not user:
         return redirect("/cliente-login")
-    data = dashboard_data()
+    data, summary = v931_safe_dashboard_data(request.path)
     data["session_user"] = user
     data["membership"] = v566_membership_ui(user)
-    data["sportsdb"] = crest_sync_status()
-    data["briefing"] = shark_briefing()
-    data["v925_calendar"] = get_safe_sports_calendar_context({"matches": data.get("matches") or data.get("upcoming_matches") or []})
+    data["sportsdb"] = v931_safe_context(request.path, "crest_status", crest_sync_status, {})
+    data["briefing"] = v931_safe_context(request.path, "briefing", shark_briefing, {})
+    data["v925_calendar"] = _v931_provider_context(summary)
     data["v925_picks"] = get_safe_picks_context(data.get("picks") or [])
-    data["telegram_state"] = telegram_user_state(user)
+    data["telegram_state"] = v931_safe_context(request.path, "telegram_state", lambda: telegram_user_state(user), {"linked": False})
     return render_template("profile.html", data=data)
 
 
@@ -14896,30 +15459,41 @@ def membership_page():
     if selected_plan and not current_session_user():
         _store_pending_checkout_plan(selected_plan)
     user = current_session_user() or {"membership": "FREE", "role": "FREE"}
-    data = dashboard_data()
+    data, summary = v931_safe_dashboard_data(request.path)
     data["membership"] = v566_membership_ui(user)
     data["selected_plan"] = selected_plan
     data["continue_payment"] = str(request.args.get("continuar_pago") or "").lower() in {"1", "true", "yes", "si", "sí"}
-    data["payments_client"] = client_payments_context(DB_PATH, user) if user.get("id") else {"checkout_ready": False, "plans": stripe_runtime_status(DB_PATH).get("plans", {}), "blockers": []}
-    data["legal_compliance"] = legal_compliance_payload()
-    data["checkout_legal"] = checkout_legal_checklist()
+    if user.get("id"):
+        data["payments_client"] = v931_safe_context(
+            request.path,
+            "payments_client",
+            lambda: client_payments_context(DB_PATH, user),
+            {"checkout_ready": False, "plans": {}, "blockers": ["Datos de pago temporalmente no disponibles"]},
+        )
+    else:
+        stripe_state = v931_safe_context(request.path, "stripe_status", lambda: stripe_runtime_status(DB_PATH), {})
+        data["payments_client"] = {"checkout_ready": False, "plans": stripe_state.get("plans", {}), "blockers": []}
+    data["legal_compliance"] = v931_safe_context(request.path, "legal_compliance", legal_compliance_payload, {})
+    data["checkout_legal"] = v931_safe_context(request.path, "checkout_legal", checkout_legal_checklist, [])
+    data["v925_calendar"] = _v931_provider_context(summary)
     return render_template("membership.html", data=data)
 
 
 @app.route("/shark-ai")
 @app.route("/shark")
 def shark_page():
-    data = dashboard_data()
+    data, summary = v931_safe_dashboard_data(request.path)
     user = current_session_user() or {"membership": "FREE", "role": "FREE"}
     data["membership"] = v566_membership_ui(user)
-    data["briefing"] = shark_briefing()
+    data["briefing"] = v931_safe_context(request.path, "briefing", shark_briefing, {})
+    openai_ready = v845_openai_configured()
     data["shark_assistant"] = {
-        "context": v845_build_product_assistant_context(request.args.get("q") or "resumen", page="/shark"),
-        "answer": shark_answer(request.args.get("q") or "resumen"),
-        "openai_configured": v845_openai_configured(),
-        "fallback_mode": not v845_openai_configured(),
+        "context": v931_safe_context(request.path, "shark_context", lambda: v845_build_product_assistant_context(request.args.get("q") or "resumen", page="/shark"), {"data_state": {}}),
+        "answer": v931_safe_context(request.path, "shark_answer", lambda: shark_answer(request.args.get("q") or "resumen"), {}),
+        "openai_configured": openai_ready,
+        "fallback_mode": not openai_ready,
     }
-    data["v925_calendar"] = get_safe_sports_calendar_context({"matches": data.get("matches") or data.get("upcoming_matches") or []})
+    data["v925_calendar"] = _v931_provider_context(summary)
     data["v925_picks"] = get_safe_picks_context(data.get("picks") or [])
     data["v925_odds"] = get_safe_odds_context(data.get("picks") or [])
     return render_template("shark.html", data=data)
@@ -14930,9 +15504,9 @@ def telegram_page():
     user = current_session_user()
     if not user:
         return redirect("/cliente-login?next=/telegram")
-    state = telegram_user_state(user)
+    state = v931_safe_context(request.path, "telegram_state", lambda: telegram_user_state(user), {"linked": False})
     data = {
-        "telegram": telegram_config(),
+        "telegram": v931_safe_context(request.path, "telegram_config", telegram_config, {"enabled": False, "legacy_enabled": False}),
         "telegram_state": state,
         "membership": v566_membership_ui(user),
         "session_user": user,
@@ -16635,7 +17209,7 @@ def api_runtime_version():
         and "filename='v930-canonical.css'" in base_template
         and 'data-v930-cache-version="{{ app_version }}"' in base_template
     )
-    service_worker_cache_name = "NEMESIS_CACHE_V930"
+    service_worker_cache_name = f"NEMESIS_CACHE_{APP_VERSION.split('_', 1)[0]}"
     service_worker_no_stale_html_css = bool(
         service_worker_cache_name in app_py_text
         and "cache:'no-store'" in app_py_text
@@ -17001,6 +17575,10 @@ def api_runtime_version():
         "has_v930_component_consolidation": (BASE_DIR / "templates" / "components" / "v930_ui.html").exists(),
         "has_v930_real_data_presentation_guard": True,
         "has_v930_second_visual_correction_pass": bool(v930_summary.get("v930_browser_screenshots")),
+        "has_v931_production_client_routes_hotfix": "v931_safe_dashboard_data" in app_py_text,
+        "has_v931_home_data_consistency": "get_public_home_sports_summary" in app_py_text,
+        "has_v931_schema_drift_guard": "_v931_read_table_rows" in app_py_text,
+        "has_v931_safe_error_handler": (BASE_DIR / "templates" / "500.html").exists(),
         **v902_truth_summary,
         **v904_summary,
         **v906_summary,
@@ -18221,32 +18799,14 @@ def client_safe_500(error):
         print("NeMeSiS SHARK PRO 500:", str(error)[:500])
     except Exception:
         pass
-    critical_client_paths = {
-        "/cliente-login", "/login", "/registro", "/app", "/calendar", "/calendario",
-        "/live", "/directo", "/picks", "/shark", "/telegram", "/profile", "/support",
-    }
+    root_error = getattr(error, "original_exception", None) or error
     client_issue_created = False
-    if request.path in critical_client_paths:
-        try:
-            issue_path = BASE_DIR / "data" / "runtime" / "sentinel_client_route_issues.json"
-            payload = json.loads(issue_path.read_text(encoding="utf-8-sig", errors="replace")) if issue_path.exists() else {}
-            issues = payload.get("issues") if isinstance(payload, dict) else []
-            if not isinstance(issues, list):
-                issues = []
-            issues.append({
-                "area": "client_routes",
-                "severity": "critical",
-                "route": v896_safe_request_text(request.path, 260),
-                "evidence": type(error).__name__,
-                "safe_message": "Ruta cliente devolvio 500 controlado; revisar template/contexto.",
-                "version": APP_VERSION,
-                "created_at_madrid": now_iso(),
-            })
-            issue_path.parent.mkdir(parents=True, exist_ok=True)
-            issue_path.write_text(json.dumps({"issues": issues[-80:]}, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-            client_issue_created = True
-        except Exception:
-            client_issue_created = False
+    if request.path in V931_CRITICAL_CLIENT_PATHS:
+        client_issue_created = v931_record_client_route_issue(
+            request.path,
+            root_error,
+            "flask_500_handler",
+        )
     if request.path.startswith("/api/"):
         issue_created = False
         if request.path.startswith("/api/admin/"):
@@ -18254,7 +18814,7 @@ def client_safe_500(error):
         return jsonify({
             "ok": False,
             "error": "internal_error",
-            "error_type": type(error).__name__,
+            "error_type": type(root_error).__name__,
             "safe_message": "Se ha producido un error controlado. Se ha registrado la incidencia.",
             "path": v896_safe_request_text(request.path, 260),
             "version": APP_VERSION,
@@ -18273,7 +18833,12 @@ def client_safe_500(error):
             "</main></body></html>"
         ), 500
     try:
-        return render_template("home.html", data=dashboard_data(), controlled_error="Hemos detectado un error temporal y hemos vuelto al inicio de forma segura.", client_issue_created=client_issue_created), 500
+        return render_template(
+            "500.html",
+            data=home_light_data(),
+            error_type=type(root_error).__name__,
+            client_issue_created=client_issue_created,
+        ), 500
     except Exception:
         return "Error temporal controlado. Revisa logs Render.", 500
 
@@ -18746,13 +19311,16 @@ def v742_track_record_context():
 @app.route("/rendimiento-picks")
 def public_track_record_page():
     user = current_session_user()
-    data = dashboard_data() if user else home_light_data()
-    data["track_record"] = v742_track_record_context()
-    data["certification"] = commercial_launch_snapshot(DB_PATH, APP_VERSION)
-    data["v757_track"] = build_v757_trust_snapshot(data.get("track_record") or {})
-    data["v757_app"] = build_v757_app_center(data, user, track_record=data.get("track_record"))
-    data["v758_adaptive"] = v758_adaptive_context(data, user, "track_record")
-    data["v769_highlights_center"] = v769_highlights_content_center(data, user, limit=8)
+    if user:
+        data, _summary = v931_safe_dashboard_data(request.path)
+    else:
+        data = home_light_data()
+    data["track_record"] = v931_safe_context(request.path, "track_record", v742_track_record_context, {})
+    data["certification"] = v931_safe_context(request.path, "certification", lambda: commercial_launch_snapshot(DB_PATH, APP_VERSION), {})
+    data["v757_track"] = v931_safe_context(request.path, "trust_snapshot", lambda: build_v757_trust_snapshot(data.get("track_record") or {}), {})
+    data["v757_app"] = v931_safe_context(request.path, "v757_app", lambda: build_v757_app_center(data, user, track_record=data.get("track_record")), {})
+    data["v758_adaptive"] = v931_safe_context(request.path, "adaptive", lambda: v758_adaptive_context(data, user, "track_record"), {})
+    data["v769_highlights_center"] = v931_safe_context(request.path, "highlights_center", lambda: v769_highlights_content_center(data, user, limit=8), {})
     return render_template("track_record.html", data=data)
 
 
@@ -20611,17 +21179,17 @@ def v757_client_app_center_page():
     user = current_session_user()
     if not user:
         return redirect("/cliente-login?next=/app")
-    data = dashboard_data()
-    data["track_record"] = v742_track_record_context()
+    data, summary = v931_safe_dashboard_data(request.path)
+    data["track_record"] = v931_safe_context(request.path, "track_record", v742_track_record_context, {})
     data["membership"] = v566_membership_ui(user)
-    data["client_premium"] = build_client_app_premium_context(data, user)
-    data["v757_app"] = build_v757_app_center(data, user, track_record=data.get("track_record"))
-    data["v757_trust"] = build_v757_trust_snapshot(data.get("track_record") or {})
-    data["v758_adaptive"] = v758_adaptive_context(data, user, "app_center")
-    data["v777_product"] = v777_client_product_context(data, user)
-    data["v778_organization"] = v778_client_product_organization_context(data, user) if "v778_client_product_organization_context" in globals() else {}
-    data["v925_calendar"] = get_safe_sports_calendar_context({"matches": data.get("upcoming_matches") or data.get("matches") or []})
-    data["v925_live"] = get_safe_live_context(data.get("live_experience") or {"matches": (data.get("match_hub") or {}).get("live") or []})
+    data["client_premium"] = v931_safe_context(request.path, "client_premium", lambda: build_client_app_premium_context(data, user), {})
+    data["v757_app"] = v931_safe_context(request.path, "v757_app", lambda: build_v757_app_center(data, user, track_record=data.get("track_record")), {})
+    data["v757_trust"] = v931_safe_context(request.path, "v757_trust", lambda: build_v757_trust_snapshot(data.get("track_record") or {}), {})
+    data["v758_adaptive"] = v931_safe_context(request.path, "adaptive", lambda: v758_adaptive_context(data, user, "app_center"), {})
+    data["v777_product"] = v931_safe_context(request.path, "product", lambda: v777_client_product_context(data, user), {})
+    data["v778_organization"] = v931_safe_context(request.path, "organization", lambda: v778_client_product_organization_context(data, user), {}) if "v778_client_product_organization_context" in globals() else {}
+    data["v925_calendar"] = _v931_provider_context(summary)
+    data["v925_live"] = _v931_provider_context(summary)
     data["v925_picks"] = get_safe_picks_context(data.get("picks") or [])
     data["v925_odds"] = get_safe_odds_context(data.get("picks") or [])
     return render_template("client_app_center.html", data=data)

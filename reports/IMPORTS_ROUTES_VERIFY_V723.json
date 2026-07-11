@@ -1,8 +1,9 @@
 {
   "ok": true,
-  "checked_at": "2026-07-11T03:39:14",
+  "checked_at": "2026-07-11T09:52:33",
   "templates_referenced": [
     "404.html",
+    "500.html",
     "account_center.html",
     "activity.html",
     "adaptive_experience.html",
@@ -141,7 +142,7 @@
   ],
   "missing_static": [],
   "import_ok": true,
-  "version": "V930_CANONICAL_REFERENCE_VISUAL_PARITY_ADMIN_CLIENT_MOBILE_FINAL",
+  "version": "V931_PRODUCTION_CLIENT_ROUTES_AND_HOME_DATA_CONSISTENCY_HOTFIX_FINAL",
   "route_count": 612,
   "routes": [
     "/",
