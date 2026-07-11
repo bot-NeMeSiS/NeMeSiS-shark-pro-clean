@@ -9,6 +9,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V933_REFERENCE_PARITY_PRODUCT_DESIGN_SPRINT_SYSTEM_FINAL"
+SUCCESSOR = "V934_REFERENCE_EXACTNESS_REALTIME_SPORTS_PRODUCTION_PERFECTION_FINAL"
+SUPPORTED_VERSIONS = {VERSION, SUCCESSOR}
 FORBIDDEN_RELEASE_PARTS = {".git", ".venv", "__pycache__", ".pytest_cache", "release_output"}
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
@@ -58,10 +60,11 @@ def _runtime_and_smoke(checks: list[dict]) -> None:
             runtime_response = public.get("/api/runtime-version")
             runtime = runtime_response.get_json(silent=True) or {}
             add(checks, "runtime_200", runtime_response.status_code == 200, str(runtime_response.status_code))
-            add(checks, "runtime_v933", runtime.get("version") == VERSION, str(runtime.get("version")))
+            runtime_version = str(runtime.get("version") or "")
+            add(checks, "runtime_v933", runtime_version in SUPPORTED_VERSIONS, runtime_version)
             add(checks, "runtime_files_match", runtime.get("version_files_match") is True)
             add(checks, "runtime_cache_busting", runtime.get("static_css_cache_busting") is True)
-            add(checks, "runtime_service_worker", runtime.get("service_worker_cache_name") == "NEMESIS_CACHE_V933")
+            add(checks, "runtime_service_worker", runtime.get("service_worker_cache_name") == f"NEMESIS_CACHE_{runtime_version.split('_', 1)[0]}")
             flags = [
                 "has_v933_reference_parity", "has_v933_public_ui_rebuild",
                 "has_v933_client_desktop_rebuild", "has_v933_client_mobile_rebuild",
@@ -112,11 +115,11 @@ def base_checks() -> list[dict]:
     version = version_bytes.decode("utf-8", errors="replace").strip().lstrip("\ufeff")
     app = read("app.py")
     base = read("templates/base.html")
-    add(checks, "version_exact", version == VERSION, version)
+    add(checks, "version_exact", version in SUPPORTED_VERSIONS, version)
     add(checks, "version_without_bom", not version_bytes.startswith(b"\xef\xbb\xbf"))
-    add(checks, "app_version_exact", f"APP_VERSION = '{VERSION}'" in app)
+    add(checks, "app_version_exact", f"APP_VERSION = '{version}'" in app)
     add(checks, "v933_css_loaded", all(token in base for token in ("filename='v933_design_tokens.css'", "filename='v933-product.css'", "?v={{ app_version }}")))
-    add(checks, "service_worker_v933", "NEMESIS_CACHE_V933" in app and "cache:'no-store'" in app and "cache:'reload'" in app)
+    add(checks, "service_worker_v933", f"NEMESIS_CACHE_{version.split('_', 1)[0]}" in app and "cache:'no-store'" in app and "cache:'reload'" in app)
     add(checks, "v929_navigation_preserved", '@app.route("/clientes")' in app and (ROOT / "engines" / "navigation_integrity_engine.py").exists())
     add(checks, "v931_data_truth_preserved", "get_public_home_sports_summary" in app and "v931_safe_dashboard_data" in app)
     add(checks, "v932_sqlite_preserved", "_v932_read_table_rows" in app and "v932_authenticated_request_preflight" in app)

@@ -544,6 +544,11 @@ def include(path: Path) -> bool:
                 and len(parts) == 2
                 and path.suffix.lower() == ".md"
             )
+            or (
+                rel_posix.startswith("reports/V934_")
+                and len(parts) == 2
+                and path.suffix.lower() == ".md"
+            )
             or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V912")
             or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V913")
             or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V914")
@@ -572,6 +577,8 @@ def include(path: Path) -> bool:
         "data/runtime/navigation_integrity/latest_run.json",
         "data/runtime/v930_visual_parity.json",
         "data/runtime/v933_reference_parity.json",
+        "data/runtime/v934_reference_exactness.json",
+        "data/runtime/v934_realtime_worker_latest.json",
     }:
         return True
     if any(part in EXCLUDE_DIRS for part in parts):

@@ -1,13 +1,16 @@
 {% extends "base.html" %}
-{% from "components/v933_ui.html" import page_header, kpi_card, section_header, quick_action, empty_state, status_chip, data_table, next_action, icon %}
+{% from "components/v933_ui.html" import page_header, kpi_card, section_header, quick_action, empty_state, status_chip, data_table, next_action, icon, realtime_state_bar %}
 {% block content %}
 {% set overview = data.get('v928_admin') or {} %}
 {% set telegram = overview.get('telegram') or {} %}
 {% set automation = overview.get('automation') or {} %}
 {% set errors = overview.get('recent_errors') or [] %}
+{% set realtime = data.get('v934_realtime') or {} %}
 
 <div class="v933-page v933-admin-command-center v933-admin-dashboard" data-v933-template="admin_dashboard" data-v933-reference="canonical-admin-dashboard">
   {{ page_header('Panel de control', 'Resumen operativo del ecosistema y próximas acciones.', 'dashboard', [{'label':'Workforce','href':'/admin/automation-workforce','icon':'automation'},{'label':'Revisar Sentinel','href':'/admin/autonomous-company-sentinel','primary':true,'icon':'shield'}]) }}
+
+  {{ realtime_state_bar(realtime, 'all', true) }}
 
   <section class="v933-kpi-grid is-six">
     {{ kpi_card('Usuarios', overview.get('users_total'), 'Cuentas en DB', 'blue', 'users', '/admin/users') }}

@@ -1119,3 +1119,17 @@ V928 reconstruye la experiencia completa sobre la base V927 con 16 referencias c
 - Sentinel: 10.0 y 0 incidencias; Secret Guard: 0 hallazgos.
 - No se copiaron cifras deportivas o comerciales de las referencias y no se ejecutaron pagos, Telegram real, push ni deploy.
 - Pixel-perfect no se declara: falta revision humana y QA post-deploy en Render.
+
+## V934 Reference Exactness And Safe Realtime Sports
+
+- Base preservada: `V933_REFERENCE_PARITY_PRODUCT_DESIGN_SPRINT_SYSTEM_FINAL`.
+- Version local: `V934_REFERENCE_EXACTNESS_REALTIME_SPORTS_PRODUCTION_PERFECTION_FINAL`.
+- Se integro tiempo real cache-first en los componentes V933 existentes, sin llamadas a proveedores durante render ni polling.
+- Home, app, calendario, live, picks, detalle de partido, dashboard admin y data center muestran estado real o un vacio seguro; se anadio `/admin/realtime-center`.
+- Politica: live 45 s, idle 180 s, cache local 15 s, live stale 120 s, cuotas fresh 15 min / recorded 60 min / stale despues.
+- Browser QA final: 231 combinaciones de ruta y viewport; 561 capturas generadas entre rondas, 0 errores, 0 redirects de autenticacion y 0 overflow.
+- Segunda pasada: MAJOR `0 -> 0`; MEDIUM `2 -> 0`.
+- QA autenticado local uso sesiones mock seguras; detalle real y autenticacion en Render quedan pendientes.
+- No se inventaron partidos, resultados, minutos, picks, cuotas, usuarios o cifras comerciales.
+- Render consultado el 2026-07-11 identifica V933 dentro de un error controlado `FileNotFoundError` en `/api/runtime-version`; V934 no se declara en produccion.
+- Pixel-perfect permanece deshabilitado hasta revision humana y QA autenticado post-deploy.

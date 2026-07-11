@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "components/v933_ui.html" import icon, status_chip, action_button, section_header, kpi_card, quick_action, empty_state, match_card, pick_card, provider_state %}
+{% from "components/v933_ui.html" import icon, status_chip, action_button, section_header, kpi_card, quick_action, empty_state, match_card, pick_card, provider_state, realtime_state_bar %}
 {% block content %}
 {% set summary = data.get('home_summary') or {} %}
 {% set counts = summary.get('counts') or {} %}
@@ -9,6 +9,7 @@
 {% set live_count = counts.get('live', 0) or 0 %}
 {% set incomplete_count = counts.get('incomplete', 0) or 0 %}
 {% set safe_message = summary.get('safe_message') or summary.get('message') or 'Sin agenda real completa disponible.' %}
+{% set realtime = data.get('v934_realtime') or {} %}
 
 <div class="v933-page v933-home" data-v933-template="home" data-v933-reference="canonical-public-home">
   <section class="v933-public-hero">
@@ -53,6 +54,8 @@
       {% endif %}
     </aside>
   </section>
+
+  {{ realtime_state_bar(realtime, 'all') }}
 
   <section class="v933-kpi-grid">
     {{ kpi_card('Partidos hoy', today_count, 'Mismo filtro que la agenda visible', 'blue', 'calendar', '/calendar') }}

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "components/v933_ui.html" import page_header, kpi_card, section_header, live_card, match_card, filter_tabs, empty_state, provider_state, status_chip, icon %}
+{% from "components/v933_ui.html" import page_header, kpi_card, section_header, live_card, match_card, filter_tabs, empty_state, provider_state, status_chip, icon, realtime_state_bar %}
 {% block content %}
 {% set live = data.get('live_experience') or {} %}
 {% set counts = live.get('counts') or {} %}
@@ -9,9 +9,12 @@
 {% for day in live.get('day_groups') or [] %}{% for league in day.get('leagues') or [] %}{% for match in league.get('matches') or [] %}{% set _ = ns.matches.append(match) %}{% endfor %}{% endfor %}{% endfor %}
 {% if not ns.matches %}{% for match in live.get('matches') or [] %}{% set _ = ns.matches.append(match) %}{% endfor %}{% endif %}
 {% set upcoming = data.get('upcoming_matches') or [] %}
+{% set realtime = data.get('v934_realtime') or {} %}
 
 <div class="v933-page v933-sports-board v933-live-board" data-v933-template="live" data-v933-reference="canonical-live">
   {{ page_header('Directo', 'Marcadores, minutos y eventos únicamente cuando están confirmados.', 'live', [{'label':'Partidos','href':'/calendar'},{'label':'Ver picks','href':'/picks','primary':true,'icon':'target'}]) }}
+
+  {{ realtime_state_bar(realtime, 'live') }}
 
   <section class="v933-kpi-grid">
     {{ kpi_card('En directo', safe.get('counts', {}).get('live', counts.get('live', 0)), 'Marcador confirmado', 'success', 'live', '/live?f=live') }}

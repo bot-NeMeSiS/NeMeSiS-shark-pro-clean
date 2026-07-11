@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "components/v933_ui.html" import page_header, kpi_card, section_header, pick_card, filter_tabs, empty_state, provider_state, status_chip, icon, action_button %}
+{% from "components/v933_ui.html" import page_header, kpi_card, section_header, pick_card, filter_tabs, empty_state, provider_state, status_chip, icon, action_button, realtime_state_bar %}
 {% block content %}
 {% set stats = data.get('pick_stats') or {} %}
 {% set safe = data.get('v925_picks') or {} %}
@@ -7,9 +7,12 @@
 {% set picks = safe.get('picks') or [] %}
 {% set featured = picks[0] if picks else none %}
 {% set active_filter = request.args.get('filtro') or request.args.get('filter') or 'featured' %}
+{% set realtime = data.get('v934_realtime') or {} %}
 
 <div class="v933-page v933-sports-board v933-picks-board" data-v933-template="picks" data-v933-reference="canonical-picks">
   {{ page_header('Picks SHARK', 'Selecciones reales que superan la puerta de calidad de publicación.', 'target', [{'label':'Histórico','href':'/track-record','icon':'history'},{'label':'Consultar SHARK','href':'/shark','primary':true,'icon':'shark'}]) }}
+
+  {{ realtime_state_bar(realtime, 'picks') }}
 
   <section class="v933-kpi-grid">
     {{ kpi_card('Picks completos', picks|length, 'Partido, mercado, selección y cuota', 'cyan', 'target', '/picks') }}

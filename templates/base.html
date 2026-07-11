@@ -16,6 +16,7 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='v933_design_tokens.css') }}?v={{ app_version }}" data-v933-token-version="{{ app_version }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='v933-product.css') }}?v={{ app_version }}" data-v933-product-version="{{ app_version }}">
   <script defer src="{{ url_for('static', filename='v930-icons.js') }}?v={{ app_version }}" data-v930-icon-version="{{ app_version }}"></script>
+  <script defer src="{{ url_for('static', filename='v934-realtime.js') }}?v={{ app_version }}" data-v934-realtime-version="{{ app_version }}"></script>
   <meta name="csrf-token" content="{{ csrf_token() }}">
 </head>
 {% from "partials/brand_logo.html" import nemesis_brand %}
@@ -240,7 +241,7 @@
   {% endif %}
   {% endif %}
 
-  <main class="shell shark-shell ns-main-shell v928-main-shell{% if show_admin_nav %} v930-admin-shell v933-admin-shell{% elif is_client_area %} v930-client-desktop-shell v930-client-mobile-shell v933-client-shell{% else %} v930-public-shell v933-public-shell{% endif %}" data-v933-surface="{% if show_admin_nav %}admin{% elif is_client_area %}client{% else %}public{% endif %}">
+  <main class="shell shark-shell ns-main-shell v928-main-shell{% if show_admin_nav %} v930-admin-shell v933-admin-shell{% elif is_client_area %} v930-client-desktop-shell v930-client-mobile-shell v933-client-shell{% else %} v930-public-shell v933-public-shell{% endif %}" data-v933-surface="{% if show_admin_nav %}admin{% elif is_client_area %}client{% else %}public{% endif %}" data-v934-shell="true">
     {% block content %}{% endblock %}
   </main>
 

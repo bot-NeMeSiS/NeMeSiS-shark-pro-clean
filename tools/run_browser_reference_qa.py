@@ -27,6 +27,7 @@ ADMIN_PROTECTED_ROUTES = [
     "/admin/payments",
     "/admin/picks",
     "/admin/matches-sync",
+    "/admin/realtime-center",
     "/admin/data-center",
     "/admin/automation-center",
     "/admin/daily-automation",
@@ -60,7 +61,9 @@ def _status_paths(output: Path) -> tuple[Path, Path, Path]:
 
 
 def _write_markdown_status(payload: dict, output: Path) -> None:
-    if VERSION.startswith("V930_"):
+    if VERSION.startswith("V934_"):
+        report_name = "V934_BROWSER_REFERENCE_COMPARISON.md"
+    elif VERSION.startswith("V930_"):
         report_name = "V930_BROWSER_QA_COMPARISON.md"
     elif VERSION.startswith("V928_"):
         report_name = "V928_BROWSER_QA_STATUS.md"
@@ -509,7 +512,9 @@ def main() -> int:
     parser.add_argument("--write-json", action="store_true")
     parser.add_argument("--v928-matrix", action="store_true")
     parser.add_argument("--safe-mock-sessions", action="store_true")
+    parser.add_argument("--safe-session-secret", default="")
     args = parser.parse_args()
+    session_key = args.safe_session_secret or os.getenv("BROWSER_QA_SESSION_SECRET", "")
     payload = run_browser_reference_qa(
         base_url=args.base_url,
         output=ROOT / args.output,
@@ -521,7 +526,7 @@ def main() -> int:
         write_json=True,
         v928_matrix=bool(args.v928_matrix),
         safe_mock_sessions=bool(args.safe_mock_sessions),
-        safe_session_secret=os.getenv("BROWSER_QA_SESSION_SECRET", ""),
+        safe_session_secret=session_key,
     )
     # Keep the Windows console path ASCII-safe; reports retain their UTF-8 data.
     print(json.dumps(payload, ensure_ascii=True, indent=2))

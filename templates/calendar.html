@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "components/v933_ui.html" import page_header, kpi_card, section_header, match_card, filter_tabs, empty_state, provider_state, icon, action_button %}
+{% from "components/v933_ui.html" import page_header, kpi_card, section_header, match_card, filter_tabs, empty_state, provider_state, icon, action_button, realtime_state_bar %}
 {% block content %}
 {% set calendar = data.get('calendar') or {} %}
 {% set filters = calendar.get('filters') or {} %}
@@ -7,9 +7,12 @@
 {% set lane = filters.get('lane') or 'today' %}
 {% set day_groups = calendar.get('day_groups') or calendar.get('groups') or [] %}
 {% set safe = data.get('v925_calendar') or {} %}
+{% set realtime = data.get('v934_realtime') or {} %}
 
 <div class="v933-page v933-sports-board v933-calendar-board" data-v933-template="calendar" data-v933-reference="canonical-calendar">
   {{ page_header('Partidos', 'Agenda real ordenada por día y competición, siempre en hora Madrid.', 'calendar', [{'label':'Ir a directo','href':'/live'},{'label':'Ver picks','href':'/picks','primary':true,'icon':'target'}]) }}
+
+  {{ realtime_state_bar(realtime, 'matches') }}
 
   <section class="v933-kpi-grid">
     {{ kpi_card('Hoy', counts.get('today', 0), 'Encuentros completos', 'blue', 'calendar', '/calendar?lane=today') }}

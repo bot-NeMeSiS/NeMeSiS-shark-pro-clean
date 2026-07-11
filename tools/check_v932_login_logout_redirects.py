@@ -11,6 +11,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V932_AUTHENTICATED_PRODUCTION_CLIENT_ADMIN_AND_REAL_SPORTS_VALUE_FINAL"
 SUCCESSOR_VERSION = "V933_REFERENCE_PARITY_PRODUCT_DESIGN_SPRINT_SYSTEM_FINAL"
+V934_VERSION = "V934_REFERENCE_EXACTNESS_REALTIME_SPORTS_PRODUCTION_PERFECTION_FINAL"
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
@@ -88,7 +89,7 @@ def main() -> int:
             app_module.security_event_for_auth = original_security_event
 
     checks = {
-        "version_v932_or_successor": app_module.APP_VERSION in {VERSION, SUCCESSOR_VERSION},
+        "version_v932_or_successor": app_module.APP_VERSION in {VERSION, SUCCESSOR_VERSION, V934_VERSION},
         "client_external_next_blocked": response_client_external.status_code == 302 and response_client_external.headers.get("Location") == "/app",
         "client_internal_next_allowed": response_client_internal.status_code == 302 and response_client_internal.headers.get("Location") == "/calendar",
         "client_logout_safe": response_client_logout.status_code == 302 and response_client_logout.headers.get("Location") == "/" and client_session_cleared,

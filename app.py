@@ -68,6 +68,14 @@ from engines.football_population_engine import (
 )
 from engines.live_engine import build_live_depth, build_live_flow, build_match_detail, fallback_timeline, normalize_live_state, shark_live_alerts, shark_momentum
 from engines.live_experience_engine import build_live_experience, live_experience_snapshot
+from engines.v934_realtime_sports_engine import (
+    LIVE_POLL_SECONDS as V934_LIVE_POLL_SECONDS,
+    IDLE_POLL_SECONDS as V934_IDLE_POLL_SECONDS,
+    build_realtime_snapshot as build_v934_realtime_snapshot,
+    cached_realtime_snapshot as cached_v934_realtime_snapshot,
+    invalidate_realtime_cache as invalidate_v934_realtime_cache,
+    realtime_cache_status as v934_realtime_cache_status,
+)
 from engines.live_match_experience_engine import (
     build_live_card_payload as v850_build_live_card_payload,
     explain_live_data_state as v850_explain_live_data_state,
@@ -343,7 +351,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V933_REFERENCE_PARITY_PRODUCT_DESIGN_SPRINT_SYSTEM_FINAL'
+APP_VERSION = 'V934_REFERENCE_EXACTNESS_REALTIME_SPORTS_PRODUCTION_PERFECTION_FINAL'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 
@@ -10554,7 +10562,7 @@ def dashboard_data(lane="today", date=None):
 @app.route("/service-worker.js")
 def service_worker():
     body = (
-        "const NEMESIS_CACHE='NEMESIS_CACHE_V933';\n"
+        "const NEMESIS_CACHE='NEMESIS_CACHE_V934';\n"
         "self.addEventListener('install',event=>{self.skipWaiting();});\n"
         "self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.map(key=>caches.delete(key)))).then(()=>self.clients.claim()));});\n"
         "self.addEventListener('fetch',event=>{const req=event.request;if(req.method!=='GET'){return;}if(req.mode==='navigate'){event.respondWith(fetch(req,{cache:'no-store'}).catch(()=>fetch('/',{cache:'no-store'})));return;}if(req.destination==='style'||req.destination==='script'){event.respondWith(fetch(req,{cache:'reload'}));return;}event.respondWith(fetch(req));});\n"
@@ -12688,6 +12696,7 @@ def home():
     data["v925_calendar"] = get_safe_sports_calendar_context({"matches": data.get("upcoming_matches") or data.get("matches") or []})
     data["v925_picks"] = get_safe_picks_context(data.get("picks") or [])
     data["v925_odds"] = get_safe_odds_context(data.get("picks") or [])
+    data["v934_realtime"] = get_v934_realtime_context()
     return render_template("home.html", data=data)
 
 
@@ -13227,6 +13236,7 @@ def calendar_page():
     data["v766_highlights"] = v931_safe_context(request.path, "highlights", lambda: v766_highlights_context(limit=8), {})
     data["v769_highlights_center"] = v931_safe_context(request.path, "highlights_center", lambda: v769_highlights_content_center(data, current_session_user(), limit=12), {})
     data["v925_calendar"] = _v931_provider_context(summary)
+    data["v934_realtime"] = get_realtime_safe_matches_context(summary)
     return render_template("calendar.html", data=data)
 
 
@@ -13322,6 +13332,7 @@ def live_page():
     data["v758_adaptive"] = v931_safe_context(request.path, "adaptive", lambda: v758_adaptive_context(data, current_session_user(), "live"), {})
     data["v765_markets"] = v931_safe_context(request.path, "markets", lambda: v765_markets_context(data, current_session_user()), {})
     data["v925_live"] = _v931_provider_context(summary)
+    data["v934_realtime"] = get_realtime_safe_live_context(summary)
     return render_template("live.html", data=data)
 
 
@@ -13340,10 +13351,8 @@ def match_hub_page():
 @app.route("/match/<match_id>")
 @app.route("/partido/<match_id>")
 def match_detail_page(match_id):
-    # V804: deep-sync selected API-Football fixture detail with a short per-match cache.
+    # V934: page render is DB/cache-only. Provider sync belongs to an authorized job.
     detail_force_refresh = request.args.get("refresh") in {"1", "true", "yes"}
-    if detail_force_refresh and str(match_id or "").startswith("af-"):
-        sync_api_football_fixture_detail(DB_PATH, match_id, force=detail_force_refresh)
     detail = match_detail(match_id)
     if not detail:
         return render_template(
@@ -13365,15 +13374,17 @@ def match_detail_page(match_id):
     data["v850_live_card"] = v850_build_live_card_payload((detail or {}).get("match") if detail else {})
     data["v850_live_state"] = v850_explain_live_data_state(DB_PATH)
     data["v850_logo_state"] = v850_explain_logo_state((detail or {}).get("match") if detail else {})
-    if detail and not data["api_football_live_tracker"].get("available"):
-        try:
-            m_for_tracker = detail.get("match") or {}
-            external_id = m_for_tracker.get("external_id") or m_for_tracker.get("fixture_id") or ""
-            if external_id and (m_for_tracker.get("source") == "api_football_live" or str(m_for_tracker.get("id") or "").startswith("af-")):
-                sync_api_football_fixture_detail(DB_PATH, str(external_id), force=detail_force_refresh)
-                data["api_football_live_tracker"] = live_tracker_for_match(DB_PATH, str(external_id))
-        except Exception:
-            pass
+    data["v934_realtime"] = get_v934_realtime_context()
+    data["v934_realtime_match"] = next(
+        (item for item in data["v934_realtime"].get("matches") or [] if str(item.get("id")) == str(match_id)),
+        {},
+    )
+    data["v934_detail_refresh"] = {
+        "requested": bool(detail_force_refresh),
+        "executed": False,
+        "reason": "render_cache_only_authorized_job_required",
+        "external_calls": 0,
+    }
     if detail:
         detail["client_premium"] = data["client_premium"].get("match", {})
         detail["api_football_live_tracker"] = data["api_football_live_tracker"]
@@ -14527,6 +14538,7 @@ def admin_data_center_page():
         request.path, "admin", "match_calendar_diagnostics", match_calendar_diagnostics,
         v932_admin_sports_diagnostics(sports),
     )
+    data["v934_realtime"] = get_v934_realtime_context(_summary)
     return render_template("admin_data_center.html", data=data, message=message, result=result)
 
 
@@ -15665,6 +15677,8 @@ def picks_page():
     data["v766_highlights"] = v931_safe_context(request.path, "highlights", lambda: v766_highlights_context(limit=6), {})
     data["v925_picks"] = get_safe_picks_context(data["picks"])
     data["v925_odds"] = get_safe_odds_context(data["picks"])
+    data["v934_realtime"] = get_realtime_safe_picks_context(summary)
+    data["v934_odds"] = get_realtime_safe_odds_context(summary)
     v931_safe_context(
         request.path,
         "activity_write",
@@ -17240,6 +17254,230 @@ def get_safe_odds_context(picks=None) -> dict:
     }
 
 
+def get_v934_realtime_context(summary=None, force=False) -> dict:
+    """Return one cached, sanitized snapshot without contacting a provider."""
+    cache_key = "v934:sports:" + hashlib.sha256(str(DB_PATH).encode("utf-8")).hexdigest()[:12]
+
+    def _builder():
+        source = summary if isinstance(summary, dict) else get_public_home_sports_summary()
+        return build_v934_realtime_snapshot(source)
+
+    snapshot, cache_state = cached_v934_realtime_snapshot(
+        cache_key,
+        _builder,
+        ttl_seconds=15,
+        force=bool(force),
+    )
+    snapshot["cache_state"] = cache_state
+    snapshot["endpoint"] = "/api/realtime/sports"
+    snapshot["no_render_api_call"] = True
+    return snapshot
+
+
+def get_realtime_safe_matches_context(summary=None) -> dict:
+    snapshot = get_v934_realtime_context(summary)
+    return {
+        **snapshot,
+        "items": list(snapshot.get("matches") or []),
+        "status": snapshot.get("realtime_match_status"),
+    }
+
+
+def get_realtime_safe_live_context(summary=None) -> dict:
+    snapshot = get_v934_realtime_context(summary)
+    return {
+        **snapshot,
+        "items": list(snapshot.get("live") or []),
+        "status": snapshot.get("realtime_live_status"),
+    }
+
+
+def get_realtime_safe_picks_context(summary=None) -> dict:
+    snapshot = get_v934_realtime_context(summary)
+    return {
+        **snapshot,
+        "items": list(snapshot.get("picks") or []),
+        "status": "ready" if snapshot.get("picks") else "waiting_for_real_data",
+    }
+
+
+def get_realtime_safe_odds_context(summary=None) -> dict:
+    snapshot = get_v934_realtime_context(summary)
+    return {
+        "items": [
+            {
+                "pick_id": item.get("id"),
+                "match_id": item.get("match_id"),
+                "odds": item.get("odds"),
+                "source": item.get("source"),
+                "recorded_at": item.get("odds_recorded_at"),
+                "freshness": item.get("odds_freshness"),
+            }
+            for item in snapshot.get("picks") or []
+        ],
+        "status": snapshot.get("odds_freshness_status"),
+        "last_safe_sync": snapshot.get("last_safe_sync"),
+        "cache_state": snapshot.get("cache_state"),
+        "no_render_api_call": True,
+        "no_fake_data": True,
+    }
+
+
+def v934_admin_realtime_status(summary=None) -> dict:
+    snapshot = get_v934_realtime_context(summary)
+    provider = {}
+    try:
+        provider = get_api_sports_status(DB_PATH) or {}
+    except Exception:
+        provider = {}
+    return {
+        "status": "operational" if snapshot.get("matches") or snapshot.get("picks") else "waiting_for_real_data",
+        "generated_at_madrid": snapshot.get("generated_at_madrid"),
+        "last_safe_sync": snapshot.get("last_safe_sync"),
+        "next_poll_seconds": snapshot.get("poll_after_seconds"),
+        "provider_status": snapshot.get("provider_status"),
+        "provider_configured": bool(provider.get("api_sports_configured")),
+        "cache_status": snapshot.get("cache_status"),
+        "cache_state": snapshot.get("cache_state"),
+        "cache_entries": v934_realtime_cache_status().get("entries", 0),
+        "matches": int((snapshot.get("counts") or {}).get("matches") or 0),
+        "live": int((snapshot.get("counts") or {}).get("live") or 0),
+        "stale_live": int((snapshot.get("counts") or {}).get("stale_live") or 0),
+        "picks": int((snapshot.get("counts") or {}).get("picks") or 0),
+        "incomplete": int((snapshot.get("counts") or {}).get("incomplete") or 0),
+        "odds_freshness": snapshot.get("odds_freshness_status"),
+        "polling_policy": {
+            "live_seconds": V934_LIVE_POLL_SECONDS,
+            "idle_seconds": V934_IDLE_POLL_SECONDS,
+            "external_calls_per_client": 0,
+        },
+        "safe_message": snapshot.get("safe_message"),
+        "next_action": "review_realtime_data" if snapshot.get("matches") else "run_protected_sports_sync",
+        "secrets_visible": False,
+        "no_external_calls": True,
+    }
+
+
+@app.route("/api/realtime/sports")
+def api_v934_realtime_sports():
+    scope = str(request.args.get("scope") or "all").strip().lower()
+    if scope not in {"all", "matches", "live", "picks", "odds"}:
+        scope = "all"
+    snapshot = get_v934_realtime_context()
+    payload = {
+        "ok": True,
+        "version": APP_VERSION,
+        "scope": scope,
+        "generated_at_madrid": snapshot.get("generated_at_madrid"),
+        "cache_state": snapshot.get("cache_state"),
+        "provider_status": snapshot.get("provider_status"),
+        "cache_status": snapshot.get("cache_status"),
+        "last_safe_sync": snapshot.get("last_safe_sync"),
+        "safe_message": snapshot.get("safe_message"),
+        "poll_after_seconds": snapshot.get("poll_after_seconds"),
+        "counts": snapshot.get("counts"),
+        "realtime_match_status": snapshot.get("realtime_match_status"),
+        "realtime_live_status": snapshot.get("realtime_live_status"),
+        "odds_freshness_status": snapshot.get("odds_freshness_status"),
+        "no_external_calls": True,
+    }
+    if scope in {"all", "matches"}:
+        payload["matches"] = snapshot.get("matches") or []
+    if scope in {"all", "live"}:
+        payload["live"] = snapshot.get("live") or []
+    if scope in {"all", "picks", "odds"}:
+        payload["picks"] = snapshot.get("picks") or []
+    response = jsonify(payload)
+    response.headers["Cache-Control"] = "no-store, max-age=0"
+    return response
+
+
+@app.route("/api/realtime/match/<match_id>")
+def api_v934_realtime_match(match_id):
+    safe_id = str(match_id or "").strip()[:90]
+    snapshot = get_v934_realtime_context()
+    match = next((item for item in snapshot.get("matches") or [] if str(item.get("id")) == safe_id), None)
+    if not match:
+        return jsonify({
+            "ok": False,
+            "version": APP_VERSION,
+            "error_type": "match_not_found",
+            "safe_message": "El partido no existe en la agenda real cacheada.",
+        }), 404
+    return jsonify({
+        "ok": True,
+        "version": APP_VERSION,
+        "match": match,
+        "poll_after_seconds": snapshot.get("poll_after_seconds"),
+        "cache_state": snapshot.get("cache_state"),
+        "no_external_calls": True,
+    })
+
+
+@app.route("/admin/realtime-center")
+@app.route("/admin/live-operations")
+@app.route("/admin/sports-realtime")
+def admin_v934_realtime_center_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/realtime-center")
+    data, summary = v932_safe_dashboard_data(request.path, scope="admin")
+    data["v934_realtime"] = get_v934_realtime_context(summary)
+    data["v934_admin_realtime"] = v934_admin_realtime_status(summary)
+    return render_template("admin_realtime_center.html", data=data)
+
+
+@app.route("/api/admin/realtime-center/status")
+def api_admin_v934_realtime_status():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "version": APP_VERSION, "realtime": v934_admin_realtime_status()})
+
+
+@app.route("/api/admin/realtime-center/refresh-cache", methods=["POST"])
+def api_admin_v934_refresh_cache():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    invalidated = invalidate_v934_realtime_cache("v934:sports:")
+    snapshot = get_v934_realtime_context(force=True)
+    return jsonify({
+        "ok": True,
+        "version": APP_VERSION,
+        "status": "cache_refreshed_from_local_db",
+        "invalidated_entries": invalidated,
+        "counts": snapshot.get("counts"),
+        "external_calls": 0,
+        "safe_message": "Cache renovado desde DB local. No se contacto ningun proveedor.",
+    })
+
+
+@app.route("/api/admin/realtime-center/dry-run-sync", methods=["POST"])
+def api_admin_v934_dry_run_sync():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({
+        "ok": True,
+        "version": APP_VERSION,
+        "status": "dry_run_ready",
+        "external_calls": 0,
+        "writes": 0,
+        "plan": ["validar proveedor", "revisar creditos", "sincronizar job autorizado", "refrescar cache"],
+        "safe_message": "Plan validado; no se ejecuto una sincronizacion real.",
+    })
+
+
+@app.route("/api/admin/realtime-center/health-check", methods=["POST"])
+def api_admin_v934_realtime_health_check():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({
+        "ok": True,
+        "version": APP_VERSION,
+        "status": v934_admin_realtime_status(),
+        "external_calls": 0,
+        "writes": 0,
+    })
+
+
 def v925_reference_model_runtime_summary() -> dict:
     """Expose the visible V925 rebuild while preserving the screenshot evidence gate."""
     browser = v923_browser_qa_evidence_capture_runtime_summary()
@@ -17441,6 +17679,53 @@ def v933_reference_parity_runtime_summary() -> dict:
     }
 
 
+def v934_reference_exactness_runtime_summary() -> dict:
+    """Expose V934 truth without claiming human-reviewed visual parity."""
+    state_path = BASE_DIR / "data" / "runtime" / "v934_reference_exactness.json"
+    try:
+        state = json.loads(state_path.read_text(encoding="utf-8-sig")) if state_path.exists() else {}
+    except Exception:
+        state = {}
+    try:
+        realtime = v934_admin_realtime_status()
+    except Exception:
+        realtime = {
+            "status": "safe_unavailable",
+            "provider_status": "unavailable",
+            "cache_status": "safe_empty",
+            "last_safe_sync": "",
+            "odds_freshness": "no_real_odds",
+        }
+    screenshots = int(state.get("browser_screenshots") or 0)
+    major_after = int(state.get("major_gaps_after") or 0)
+    medium_after = int(state.get("medium_gaps_after") or 0)
+    human_reviewed = bool(state.get("human_reviewed"))
+    return {
+        "v934_base_version": "V933_REFERENCE_PARITY_PRODUCT_DESIGN_SPRINT_SYSTEM_FINAL",
+        "v934_sprints_completed": int(state.get("sprints_completed") or 0),
+        "v934_reference_screens": 16,
+        "v934_client_routes_updated": int(state.get("client_routes_updated") or 0),
+        "v934_admin_routes_updated": int(state.get("admin_routes_updated") or 0),
+        "v934_mobile_routes_updated": int(state.get("mobile_routes_updated") or 0),
+        "v934_realtime_match_status": realtime.get("status") or "safe_unavailable",
+        "v934_realtime_live_status": "stale" if realtime.get("stale_live") else "live" if realtime.get("live") else "no_live_events",
+        "v934_odds_freshness_status": realtime.get("odds_freshness") or "no_real_odds",
+        "v934_last_safe_sync": realtime.get("last_safe_sync") or "",
+        "v934_provider_status": realtime.get("provider_status") or "unavailable",
+        "v934_cache_status": realtime.get("cache_status") or "safe_empty",
+        "v934_performance_status": state.get("performance_status") or "cache_first_no_provider_calls_in_render",
+        "v934_accessibility_status": state.get("accessibility_status") or "implemented_pending_browser_review",
+        "v934_major_gaps_before": int(state.get("major_gaps_before") or 0),
+        "v934_major_gaps_after": major_after,
+        "v934_medium_gaps_before": int(state.get("medium_gaps_before") or 0),
+        "v934_medium_gaps_after": medium_after,
+        "v934_browser_screenshots": screenshots,
+        "v934_no_fake_data_guard": True,
+        "v934_pixel_perfect_claim_allowed": bool(screenshots and human_reviewed and not major_after and not medium_after),
+        "v934_next_required_action": state.get("next_required_action") or "run_v934_browser_qa_and_human_review",
+    }
+
+
 def get_safe_runtime_identity_for_admin() -> dict:
     """Return local runtime identity for admin panels without external calls or secrets."""
     version_txt = ""
@@ -17613,6 +17898,7 @@ def api_runtime_version():
     v929_summary = v929_navigation_integrity_runtime_summary()
     v930_summary = v930_visual_parity_runtime_summary()
     v933_summary = v933_reference_parity_runtime_summary()
+    v934_summary = v934_reference_exactness_runtime_summary()
     v932_sports_summary = sanitize_runtime_value(get_v932_real_sports_value_context())
     v932_next_required_action = (
         "run_protected_sports_sync_then_authorized_browser_qa"
@@ -17970,6 +18256,17 @@ def api_runtime_version():
         "has_v933_performance_pass": service_worker_no_stale_html_css,
         "has_v933_real_data_guard": "get_public_home_sports_summary" in app_py_text and "no_render_api_call" in app_py_text,
         "has_v933_second_visual_pass": bool(v933_summary.get("v933_browser_screenshots")),
+        "has_v934_reference_exactness": (BASE_DIR / "reports" / "V934_CHECKPOINT_0_BASE.md").exists(),
+        "has_v934_realtime_matches": (BASE_DIR / "engines" / "v934_realtime_sports_engine.py").exists(),
+        "has_v934_realtime_live": "realtime_state_bar(realtime, 'live')" in (BASE_DIR / "templates" / "live.html").read_text(encoding="utf-8", errors="replace"),
+        "has_v934_odds_freshness": "odds_freshness" in app_py_text and (BASE_DIR / "static" / "v934-realtime.js").exists(),
+        "has_v934_authenticated_visual_qa": (BASE_DIR / "tools" / "check_v934_authenticated_visual.py").exists(),
+        "has_v934_admin_realtime_center": (BASE_DIR / "templates" / "admin_realtime_center.html").exists(),
+        "has_v934_component_consolidation": "realtime_state_bar" in (BASE_DIR / "templates" / "components" / "v933_ui.html").read_text(encoding="utf-8", errors="replace"),
+        "has_v934_performance_budget": (BASE_DIR / "tools" / "check_v934_performance_budget.py").exists(),
+        "has_v934_accessibility": (BASE_DIR / "tools" / "check_v934_accessibility.py").exists(),
+        "has_v934_real_data_guard": "no_external_calls" in (BASE_DIR / "engines" / "v934_realtime_sports_engine.py").read_text(encoding="utf-8", errors="replace"),
+        "has_v934_second_correction_pass": bool(v934_summary.get("v934_browser_screenshots")) and not v934_summary.get("v934_major_gaps_after") and not v934_summary.get("v934_medium_gaps_after"),
         **v902_truth_summary,
         **v904_summary,
         **v906_summary,
@@ -17998,6 +18295,7 @@ def api_runtime_version():
         **v929_summary,
         **v930_summary,
         **v933_summary,
+        **v934_summary,
         "v932_client_auth_routes_status": "local_mock_guard_ready_production_session_required",
         "v932_admin_auth_routes_status": "local_mock_guard_ready_production_session_required",
         "v932_sqlite_regression_status": "safe_retry_and_schema_fallback_ready",
@@ -20728,6 +21026,7 @@ def v566_admin_dashboard_page():
         "telegram": {}, "automation": {}, "recent_errors": [], "global_status": "review",
     }
     data["v928_admin"] = v932_safe_context(request.path, "admin", "admin_overview", lambda: v928_admin_overview(data), fallback_overview)
+    data["v934_realtime"] = get_v934_realtime_context(_summary)
     quality = v932_safe_context(request.path, "admin", "quality_center", quality_center_summary, {})
     items = v932_safe_context(request.path, "admin", "admin_items", v566_admin_items, [])
     return render_template("admin_dashboard.html", data=data, q=quality, items=items)
@@ -21612,6 +21911,7 @@ def v757_client_app_center_page():
     data["v925_live"] = _v931_provider_context(summary)
     data["v925_picks"] = get_safe_picks_context(data.get("picks") or [])
     data["v925_odds"] = get_safe_odds_context(data.get("picks") or [])
+    data["v934_realtime"] = get_v934_realtime_context(summary)
     return render_template("client_app_center.html", data=data)
 
 

@@ -1,7 +1,7 @@
 # V929 Full Navigation Route Matrix
 
-- Rutas Flask: `648`
-- Enlaces/acciones auditados: `917`
+- Rutas Flask: `657`
+- Enlaces/acciones auditados: `923`
 - Rotos: `0`
 - Loops: `0`
 - Botones sin acción: `0`
@@ -143,8 +143,8 @@
 | templates/admin_daily_automation.html:50 | D Dry-run Calcula jobs sin enviar Telegram real > | /api/admin/daily-automation/dry-run | api_admin_v818_daily_automation_dry_run | admin | REQUIERE_SESIÓN_ADMIN | — |
 | templates/admin_daily_automation.html:51 | H Health DB, APIs, Telegram y secret > | /api/admin/daily-automation/health | api_admin_v818_daily_automation_health | admin | REQUIERE_SESIÓN_ADMIN | — |
 | templates/admin_daily_automation.html:52 | C Centro legacy Cron anterior conservado > | /admin/automation-center | admin_v773_automation_center_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| templates/admin_dashboard.html:29 | Ver todo {{ icon('arrow') }} | /admin/observability/errors | admin_observability_errors_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| templates/admin_data_center.html:12 | Formulario | /admin/data-center | admin_data_center_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| templates/admin_dashboard.html:32 | Ver todo {{ icon('arrow') }} | /admin/observability/errors | admin_observability_errors_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| templates/admin_data_center.html:14 | Formulario | /admin/data-center | admin_data_center_page | admin | REQUIERE_SESIÓN_ADMIN | — |
 | templates/admin_data_depth.html:45 | Data Center | /admin/data-center | admin_data_center_page | admin | REQUIERE_SESIÓN_ADMIN | — |
 | templates/admin_data_marketplace.html:11 | CSV | /api/admin/data-marketplace/export/{{ item.get('key') }}?format=csv | dynamic_template | admin | WARNING | — |
 | templates/admin_data_vault.html:12 | Data Vault | /admin/data-vault | admin_data_vault_page | admin | REQUIERE_SESIÓN_ADMIN | — |
@@ -246,6 +246,11 @@
 | templates/admin_quality_center.html:37 | Gestionar picks | /admin/picks | admin_picks_page | admin | REQUIERE_SESIÓN_ADMIN | — |
 | templates/admin_quality_center.html:38 | Telegram | /admin/telegram | admin_telegram_page | admin | REQUIERE_SESIÓN_ADMIN | — |
 | templates/admin_quality_center.html:39 | JSON calidad | /api/quality-center/summary | api_quality_center_summary | public | OK | — |
+| templates/admin_realtime_center.html:35 | Abrir partidos {{ icon('arrow') }} | /admin/matches | admin_matches_sync_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| templates/admin_realtime_center.html:42 | Abrir picks {{ icon('arrow') }} | /admin/picks | admin_picks_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| templates/admin_realtime_center.html:53 | Refrescar caché local | — | — | public | WARNING | — |
+| templates/admin_realtime_center.html:54 | Simular sincronización | — | — | public | WARNING | — |
+| templates/admin_realtime_center.html:55 | Comprobar salud | — | — | public | WARNING | — |
 | templates/admin_retention_center.html:37 | Data Center | /admin/data-center | admin_data_center_page | admin | REQUIERE_SESIÓN_ADMIN | — |
 | templates/admin_retention_center.html:38 | Picks | /admin/picks | admin_picks_page | admin | REQUIERE_SESIÓN_ADMIN | — |
 | templates/admin_retention_center.html:39 | Telegram | /admin/telegram | admin_telegram_page | admin | REQUIERE_SESIÓN_ADMIN | — |
@@ -375,61 +380,61 @@
 | templates/autonomous_ecosystem.html:9 | Recomendaciones | /recomendaciones | v566_recommendations_page | public | OK | — |
 | templates/autonomous_ecosystem.html:10 | Picks publicados | /picks | picks_page | public | OK | — |
 | templates/autonomous_ecosystem.html:32 | Detalle | {{ item.detail_url }} | dynamic_template | public | WARNING | — |
-| templates/base.html:158 | Partidos | /calendar | calendar_page | public | OK | — |
-| templates/base.html:159 | Directo | /live | live_page | public | OK | — |
-| templates/base.html:160 | Picks | /picks | picks_page | public | OK | — |
-| templates/base.html:161 | Planes | /membresias | membership_page | public | OK | — |
-| templates/base.html:162 | Entrar | /cliente-login | client_login_page | public | OK | — |
-| templates/base.html:163 | Crear cuenta | /registro | register_page | public | OK | — |
-| templates/base.html:190 | {{ label }} | {{ href }} | dynamic_template | public | WARNING | — |
-| templates/base.html:196 | Salir | /logout | logout_page | public | OK | — |
-| templates/base.html:214 | Panel  Control | /admin/control-center | v566_admin_dashboard_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| templates/base.html:215 | Workers  Empresa OS | /admin/company-os | admin_company_os_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| templates/base.html:216 | Board  Product Board | /admin/company-audit | admin_company_audit_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| templates/base.html:217 | AutoPilot  Self Improve | /admin/sentinel-autopilot | admin_sentinel_autopilot_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| templates/base.html:218 | Visual  Worker | /admin/visual-worker | admin_visual_company_worker_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| templates/base.html:219 | Mejora  Auto OS | /admin/auto-improvement | admin_auto_improvement_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| templates/base.html:220 | Sentinel  QA Bot | /admin/shark-sentinel | admin_continuous_sentinel_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| templates/base.html:221 | Loop  QA Loop | /admin/continuous-sentinel | admin_continuous_sentinel_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| templates/base.html:222 | Workflow  Fix OS | /admin/sentinel-workflow | admin_sentinel_workflow_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| templates/base.html:223 | Mapa  Rutas | /admin/map | admin_v808_navigation_map_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| templates/base.html:224 | Clientes  Usuarios | /admin/users | admin_users_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| templates/base.html:225 | Datos  Centro | /admin/data-center | admin_data_center_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| templates/base.html:226 | API  Sports | /admin/api-sports | admin_api_sports_audit_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| templates/base.html:227 | Partidos  Sync | /admin/matches-sync | admin_matches_sync_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| templates/base.html:228 | Directo  Live | /admin/live-depth | admin_live_depth_alias | admin | REQUIERE_SESIÓN_ADMIN | — |
-| templates/base.html:229 | Picks  Control | /admin/picks | admin_picks_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| templates/base.html:230 | Telegram  Canal | /admin/telegram/command-center | admin_telegram_command_center_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| templates/base.html:231 | Preview  Mensajes | /admin/telegram/pro-preview | admin_v810_telegram_pro_preview_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| templates/base.html:232 | Auto  Jobs | /admin/automation-center | admin_v773_automation_center_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| templates/base.html:233 | Daily  Cron | /admin/daily-automation | admin_v818_daily_automation_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| templates/base.html:234 | OS  Motor | /admin/automation-os | admin_v818_daily_automation_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| templates/base.html:235 | Calidad  QA | /admin/app-experience-quality | admin_v773_app_experience_quality_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| templates/base.html:237 | Vista pública | /sports-hub | sports_hub_page | public | OK | — |
-| templates/base.html:237 | Cerrar sesión admin | /admin/logout | admin_logout_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| templates/base.html:251 | Legal | /legal | v566_legal_page | public | OK | — |
-| templates/base.html:251 | Términos | /terminos | v787_terms_page | public | OK | — |
-| templates/base.html:251 | Privacidad | /privacidad | v787_privacy_page | public | OK | — |
-| templates/base.html:251 | Juego responsable | /juego-responsable | v566_responsible_betting_page | public | OK | — |
-| templates/base.html:251 | Soporte | /support | v724_contact_alias_page | public | OK | — |
-| templates/base.html:258 | Inicio | /app | v757_client_app_center_page | client | REQUIERE_SESIÓN_CLIENTE | — |
-| templates/base.html:259 | Partidos | /partidos | calendar_page | public | OK | — |
-| templates/base.html:260 | Directo | /live | live_page | public | OK | — |
-| templates/base.html:261 | Picks | /picks | picks_page | public | OK | — |
-| templates/base.html:262 | SHARK | /shark | shark_page | public | OK | — |
-| templates/base.html:264 | Inicio | / | home | public | OK | — |
-| templates/base.html:265 | Partidos | /calendar | calendar_page | public | OK | — |
-| templates/base.html:266 | Directo | /live | live_page | public | OK | — |
-| templates/base.html:267 | Picks | /picks | picks_page | public | OK | — |
-| templates/base.html:268 | Entrar | /cliente-login | client_login_page | public | OK | — |
-| templates/base.html:275 | SHARK | — | — | public | WARNING | — |
-| templates/base.html:279 | x | — | — | public | WARNING | — |
-| templates/base.html:300 | Abrir SHARK | /shark | shark_page | public | OK | — |
-| templates/base.html:402 | Arriba | — | — | public | WARNING | — |
-| templates/base.html:328 | Acción JavaScript | /api/shark/ask | api_shark_ask | public | OK | — |
-| templates/base.html:330 | Acción JavaScript | /api/shark/ask?q={{dynamic}} | dynamic_template | public | WARNING | — |
-| templates/base.html:352 | Acción JavaScript | /api/favorites | api_favorites | public | OK | — |
-| templates/base.html:581 | Acción JavaScript | /api/runtime-version | api_runtime_version | public | OK | — |
+| templates/base.html:159 | Partidos | /calendar | calendar_page | public | OK | — |
+| templates/base.html:160 | Directo | /live | live_page | public | OK | — |
+| templates/base.html:161 | Picks | /picks | picks_page | public | OK | — |
+| templates/base.html:162 | Planes | /membresias | membership_page | public | OK | — |
+| templates/base.html:163 | Entrar | /cliente-login | client_login_page | public | OK | — |
+| templates/base.html:164 | Crear cuenta | /registro | register_page | public | OK | — |
+| templates/base.html:191 | {{ label }} | {{ href }} | dynamic_template | public | WARNING | — |
+| templates/base.html:197 | Salir | /logout | logout_page | public | OK | — |
+| templates/base.html:215 | Panel  Control | /admin/control-center | v566_admin_dashboard_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| templates/base.html:216 | Workers  Empresa OS | /admin/company-os | admin_company_os_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| templates/base.html:217 | Board  Product Board | /admin/company-audit | admin_company_audit_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| templates/base.html:218 | AutoPilot  Self Improve | /admin/sentinel-autopilot | admin_sentinel_autopilot_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| templates/base.html:219 | Visual  Worker | /admin/visual-worker | admin_visual_company_worker_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| templates/base.html:220 | Mejora  Auto OS | /admin/auto-improvement | admin_auto_improvement_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| templates/base.html:221 | Sentinel  QA Bot | /admin/shark-sentinel | admin_continuous_sentinel_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| templates/base.html:222 | Loop  QA Loop | /admin/continuous-sentinel | admin_continuous_sentinel_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| templates/base.html:223 | Workflow  Fix OS | /admin/sentinel-workflow | admin_sentinel_workflow_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| templates/base.html:224 | Mapa  Rutas | /admin/map | admin_v808_navigation_map_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| templates/base.html:225 | Clientes  Usuarios | /admin/users | admin_users_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| templates/base.html:226 | Datos  Centro | /admin/data-center | admin_data_center_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| templates/base.html:227 | API  Sports | /admin/api-sports | admin_api_sports_audit_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| templates/base.html:228 | Partidos  Sync | /admin/matches-sync | admin_matches_sync_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| templates/base.html:229 | Directo  Live | /admin/live-depth | admin_live_depth_alias | admin | REQUIERE_SESIÓN_ADMIN | — |
+| templates/base.html:230 | Picks  Control | /admin/picks | admin_picks_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| templates/base.html:231 | Telegram  Canal | /admin/telegram/command-center | admin_telegram_command_center_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| templates/base.html:232 | Preview  Mensajes | /admin/telegram/pro-preview | admin_v810_telegram_pro_preview_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| templates/base.html:233 | Auto  Jobs | /admin/automation-center | admin_v773_automation_center_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| templates/base.html:234 | Daily  Cron | /admin/daily-automation | admin_v818_daily_automation_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| templates/base.html:235 | OS  Motor | /admin/automation-os | admin_v818_daily_automation_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| templates/base.html:236 | Calidad  QA | /admin/app-experience-quality | admin_v773_app_experience_quality_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| templates/base.html:238 | Vista pública | /sports-hub | sports_hub_page | public | OK | — |
+| templates/base.html:238 | Cerrar sesión admin | /admin/logout | admin_logout_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| templates/base.html:252 | Legal | /legal | v566_legal_page | public | OK | — |
+| templates/base.html:252 | Términos | /terminos | v787_terms_page | public | OK | — |
+| templates/base.html:252 | Privacidad | /privacidad | v787_privacy_page | public | OK | — |
+| templates/base.html:252 | Juego responsable | /juego-responsable | v566_responsible_betting_page | public | OK | — |
+| templates/base.html:252 | Soporte | /support | v724_contact_alias_page | public | OK | — |
+| templates/base.html:259 | Inicio | /app | v757_client_app_center_page | client | REQUIERE_SESIÓN_CLIENTE | — |
+| templates/base.html:260 | Partidos | /partidos | calendar_page | public | OK | — |
+| templates/base.html:261 | Directo | /live | live_page | public | OK | — |
+| templates/base.html:262 | Picks | /picks | picks_page | public | OK | — |
+| templates/base.html:263 | SHARK | /shark | shark_page | public | OK | — |
+| templates/base.html:265 | Inicio | / | home | public | OK | — |
+| templates/base.html:266 | Partidos | /calendar | calendar_page | public | OK | — |
+| templates/base.html:267 | Directo | /live | live_page | public | OK | — |
+| templates/base.html:268 | Picks | /picks | picks_page | public | OK | — |
+| templates/base.html:269 | Entrar | /cliente-login | client_login_page | public | OK | — |
+| templates/base.html:276 | SHARK | — | — | public | WARNING | — |
+| templates/base.html:280 | x | — | — | public | WARNING | — |
+| templates/base.html:301 | Abrir SHARK | /shark | shark_page | public | OK | — |
+| templates/base.html:403 | Arriba | — | — | public | WARNING | — |
+| templates/base.html:329 | Acción JavaScript | /api/shark/ask | api_shark_ask | public | OK | — |
+| templates/base.html:331 | Acción JavaScript | /api/shark/ask?q={{dynamic}} | dynamic_template | public | WARNING | — |
+| templates/base.html:353 | Acción JavaScript | /api/favorites | api_favorites | public | OK | — |
+| templates/base.html:582 | Acción JavaScript | /api/runtime-version | api_runtime_version | public | OK | — |
 | templates/beta.html:29 | Formulario | /api/beta/join | — | public | RUTA_SIN_ACCESO_UI | Archivar o reactivar la plantilla antes de exponerla en navegacion. |
 | templates/betting_markets.html:6 | Ver picks | /picks | picks_page | public | OK | — |
 | templates/betting_markets.html:6 | Combis | /combis | combis_page | public | OK | — |
@@ -442,7 +447,7 @@
 | templates/betting_recommendations.html:11 | Admin recomendaciones | /admin/betting-center | admin_v808_betting_center_page | admin | REQUIERE_SESIÓN_ADMIN | — |
 | templates/betting_recommendations.html:26 | Ver partido | /match/{{ r.match_id }} | dynamic_template | public | WARNING | — |
 | templates/betting_recommendations.html:26 | Publicar pick | /api/betting/convert-to-pickid={{ r.id }}&publish=1 | dynamic_template | public | WARNING | — |
-| templates/calendar.html:23 | Formulario | /calendar | calendar_page | public | OK | — |
+| templates/calendar.html:26 | Formulario | /calendar | calendar_page | public | OK | — |
 | templates/client_login.html:11 | Formulario | /cliente-login | client_login_page | public | OK | — |
 | templates/client_login.html:20 | He olvidado mi contraseña | /forgot-password | forgot_password_page | public | OK | — |
 | templates/client_login.html:25 | {{ 'Crear cuenta y seguir' if selected in ['PRO','ELITE'] else 'Crear cuenta' }} | /registro{% if selected in ['PRO','ELITE'] %}?plan={{ selected }}&next={{ next_url\|urlencode }}{% endif %} | dynamic_template | public | WARNING | — |
@@ -559,21 +564,21 @@
 | templates/components/v933_navigation.html:37 | Plan {{ plan }} | /memberships | membership_page | client | REQUIERE_SESIÓN_CLIENTE | — |
 | templates/components/v933_navigation.html:42 | {{ nav_icon('telegram') }} | /telegram | telegram_page | client | REQUIERE_SESIÓN_CLIENTE | — |
 | templates/components/v933_navigation.html:42 | {{ nav_icon('user') }} | /profile | profile_page | client | REQUIERE_SESIÓN_CLIENTE | — |
-| templates/components/v933_navigation.html:68 | {{ nav_icon(icon_name) }} {{ label }} | {{ href }} | dynamic_template | public | WARNING | — |
-| templates/components/v933_navigation.html:72 | {{ nav_icon('lock') }} Cerrar sesión | /admin/logout | admin_logout_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| templates/components/v933_navigation.html:78 | Formulario | /admin/map | admin_v808_navigation_map_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| templates/components/v933_navigation.html:80 | {{ nav_icon('shield') }} Incidencias | /admin/sentinel-issues | admin_sentinel_issues_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| templates/components/v933_navigation.html:81 | {{ nav_icon('user') }} Administrador Acceso protegido | /admin/automation-workforce | admin_automation_workforce_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| templates/components/v933_navigation.html:86 | {{ nav_icon('shield') }} | /admin/sentinel-issues | admin_sentinel_issues_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| templates/components/v933_navigation.html:90 | {{ nav_icon(icon_name) }} {{ label }} | — | — | public | RUTA_INTERNA_NO_DEBE_SER_VISIBLE | — |
-| templates/components/v933_navigation.html:100 | {{ nav_icon(icon_name) }} {{ label }} | {{ href }} | dynamic_template | public | WARNING | — |
+| templates/components/v933_navigation.html:69 | {{ nav_icon(icon_name) }} {{ label }} | {{ href }} | dynamic_template | public | WARNING | — |
+| templates/components/v933_navigation.html:73 | {{ nav_icon('lock') }} Cerrar sesión | /admin/logout | admin_logout_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| templates/components/v933_navigation.html:79 | Formulario | /admin/map | admin_v808_navigation_map_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| templates/components/v933_navigation.html:81 | {{ nav_icon('shield') }} Incidencias | /admin/sentinel-issues | admin_sentinel_issues_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| templates/components/v933_navigation.html:82 | {{ nav_icon('user') }} Administrador Acceso protegido | /admin/automation-workforce | admin_automation_workforce_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| templates/components/v933_navigation.html:87 | {{ nav_icon('shield') }} | /admin/sentinel-issues | admin_sentinel_issues_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| templates/components/v933_navigation.html:91 | {{ nav_icon(icon_name) }} {{ label }} | — | — | public | RUTA_INTERNA_NO_DEBE_SER_VISIBLE | — |
+| templates/components/v933_navigation.html:101 | {{ nav_icon(icon_name) }} {{ label }} | {{ href }} | dynamic_template | public | WARNING | — |
 | templates/components/v933_ui.html:6 | {% if icon_name %}{{ icon(icon_name) }}{% endif %} {{ label }} | {{ href }} | dynamic_template | public | WARNING | — |
 | templates/components/v933_ui.html:6 | {% if icon_name %}{{ icon(icon_name) }}{% endif %} {{ label }} | — | — | public | WARNING | — |
 | templates/components/v933_ui.html:17 | {{ action_label or 'Abrir' }}{{ icon('arrow') }} | {{ action_href }} | dynamic_template | public | WARNING | — |
 | templates/components/v933_ui.html:25 | {{ icon(icon_name) }} {{ title }} {{ body }} {{ icon('arrow') }} | {{ href }} | dynamic_template | public | WARNING | — |
-| templates/components/v933_ui.html:50 | {{ icon('star') }} | — | — | public | WARNING | — |
-| templates/components/v933_ui.html:67 | Ver análisis | /picks | picks_page | public | OK | — |
-| templates/components/v933_ui.html:71 | {{ item.get('label') or item.get('key') }} | {{ item.get('href') or request.path }} | dynamic_template | public | WARNING | — |
+| templates/components/v933_ui.html:51 | {{ icon('star') }} | — | — | public | WARNING | — |
+| templates/components/v933_ui.html:70 | Ver análisis | /picks | picks_page | public | OK | — |
+| templates/components/v933_ui.html:74 | {{ item.get('label') or item.get('key') }} | {{ item.get('href') or request.path }} | dynamic_template | public | WARNING | — |
 | templates/crests.html:9 | Ver partidos | /match-hub | match_hub_page | public | OK | — |
 | templates/crests.html:11 | SportsDB Sync | /admin/sportsdb-sync | admin_sportsdb_sync_page | admin | REQUIERE_SESIÓN_ADMIN | — |
 | templates/crests.html:12 | Import Center | /admin/import-center | import_center | admin | REQUIERE_SESIÓN_ADMIN | — |
@@ -660,11 +665,11 @@
 | templates/live_depth.html:9 | Volver al directo | /live | live_page | public | OK | — |
 | templates/live_depth.html:24 | {{ match.v554_stats.label }} {{ match.minute or '' }}           {{ match.home_team }} vs {{ match.away_team }}           {{ (match.league_name or match.competition_name)\|competitio | /match/{{ match.id }} | dynamic_template | public | WARNING | — |
 | templates/live_depth.html:37 | {{ m.safe_home or m.home_team }} vs {{ m.safe_away or m.away_team }} {{ m.league_name or m.competition_name }} · {{ m\|match_full_datetime }} | /match/{{ m.id }} | dynamic_template | public | WARNING | — |
-| templates/match_detail.html:31 | Resumen | #resumen | fragment | public | OK | — |
-| templates/match_detail.html:31 | Picks | #picks | fragment | public | OK | — |
-| templates/match_detail.html:31 | Datos | #datos | fragment | public | OK | — |
-| templates/match_detail.html:31 | Histórico | #historico | fragment | public | OK | — |
-| templates/match_detail.html:31 | SHARK | #shark | fragment | public | OK | — |
+| templates/match_detail.html:32 | Resumen | #resumen | fragment | public | OK | — |
+| templates/match_detail.html:32 | Picks | #picks | fragment | public | OK | — |
+| templates/match_detail.html:32 | Datos | #datos | fragment | public | OK | — |
+| templates/match_detail.html:32 | Histórico | #historico | fragment | public | OK | — |
+| templates/match_detail.html:32 | SHARK | #shark | fragment | public | OK | — |
 | templates/match_hub.html:8 | Ver directo | /live | live_page | public | OK | — |
 | templates/match_hub.html:8 | Mis favoritos | /favorites | favorites_page | client | REQUIERE_SESIÓN_CLIENTE | — |
 | templates/match_hub.html:12 | Hoy | /match-hub?lane=today | match_hub_page | public | OK | — |
@@ -790,139 +795,140 @@
 | templates/world_cup_launch.html:41 | {{ m.client_date_label or (m\|match_date_label) }} {{ m.client_time_label or (m\|match_time_short) }}         {{ m.v763_title }} {{ m.v763_competition }} · {{ m.v763_status }}        | /match/{{ m.id }} | dynamic_template | public | WARNING | — |
 | templates/world_cup_launch.html:53 | Ver picks | /picks | picks_page | public | OK | — |
 | templates/world_cup_launch.html:56 | {{ p.client_match_label or 'Partido pendiente' }} {{ p.client_competition or 'Competición' }} · {{ p.client_full_datetime_label or (p\|match_full_datetime) }}         {{ p.client_se | {{ p.client_match_url or ('/match/' ~ (p.match_id or p.id)) }} | dynamic_template | public | WARNING | — |
-| app.py:12661 | redirect | /admin-login?next=/admin/highlights-center | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:13409 | redirect | /cliente-login | client_login_page | public | OK | — |
-| app.py:13416 | redirect | /favorites | favorites_page | client | REQUIERE_SESIÓN_CLIENTE | — |
-| app.py:13567 | redirect | /membresias? | membership_page | public | OK | — |
-| app.py:13573 | redirect | /app | v757_client_app_center_page | client | REQUIERE_SESIÓN_CLIENTE | — |
-| app.py:13585 | redirect | /app | v757_client_app_center_page | client | REQUIERE_SESIÓN_CLIENTE | — |
-| app.py:13600 | redirect | /admin/users | admin_users_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:13602 | redirect | /app | v757_client_app_center_page | client | REQUIERE_SESIÓN_CLIENTE | — |
-| app.py:13603 | redirect | /cliente-login | client_login_page | public | OK | — |
-| app.py:13612 | redirect | /app | v757_client_app_center_page | client | REQUIERE_SESIÓN_CLIENTE | — |
-| app.py:13627 | redirect | /app | v757_client_app_center_page | client | REQUIERE_SESIÓN_CLIENTE | — |
-| app.py:13659 | redirect | /cliente-login | client_login_page | public | OK | — |
-| app.py:13713 | redirect | /admin-login | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:13749 | redirect | / | home | public | OK | — |
-| app.py:13755 | redirect | /admin-login | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:13761 | redirect | /admin-login?next=/admin/data-center | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:13762 | redirect | /admin/control-center | v566_admin_dashboard_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:13768 | redirect | /admin-login?next=/admin/intelligence | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:13769 | redirect | /admin/unified-intelligence | v566_admin_unified_intelligence_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:13775 | redirect | /admin-login?next=/admin/observability | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:13782 | redirect | /admin-login?next=/admin/observability/errors | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:13797 | redirect | /admin-login?next=/admin/import-center | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:13804 | redirect | /admin-login?next=/admin/users | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:13830 | redirect | /admin-login?next=/admin/user-import | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:13842 | redirect | /admin-login?next=/admin/sportsdb-sync | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:13860 | redirect | /admin-login?next=/admin/sportsdb-feed | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:13877 | redirect | /admin-login?next=/admin/matches-sync | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:13905 | redirect | /admin-login?next=/admin/telegram | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:13990 | redirect | /admin-login?next=/admin/telegram/command-center | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:14410 | redirect | /admin-login?next=/admin/automation | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:14425 | redirect | /admin-login?next=/admin/backups | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:14454 | redirect | /admin-login?next=/admin/backups | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:14464 | redirect | /admin-login?next=/admin/picks | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:14496 | redirect | /admin-login?next=/admin/data-center | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:14537 | redirect | /admin-login?next=/admin/api-sports | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:14564 | redirect | /admin-login?next=/admin/company-os | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:14583 | redirect | /admin-login?next=/admin/company-audit | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:14602 | redirect | /admin-login?next=/admin/auto-improvement | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:14624 | redirect | /admin-login?next=/admin/continuous-sentinel | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:14634 | redirect | /admin-login?next=/admin/sentinel-workflow | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:14647 | redirect | /admin-login?next=/admin/visual-worker | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:14761 | redirect | /admin-login?next=/admin/autonomous-company-sentinel | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:14777 | redirect | /admin-login?next=/admin/sentinel-codex-outbox | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:14845 | redirect | /admin-login?next=/admin/automation-workforce | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:15064 | redirect | /admin-login?next=/admin/sentinel-issues | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:15175 | redirect | /admin-login?next=/admin/sentinel-autopilot | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:15448 | redirect | /admin-login?next=/admin/system | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:15525 | redirect | /admin-login?next= | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:15609 | redirect | /admin-login?next=/admin/client-experience | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:15632 | redirect | /admin-login?next=/admin/production-readiness | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:15698 | redirect | /cliente-login | client_login_page | public | OK | — |
-| app.py:15713 | redirect | /cliente-login | client_login_page | public | OK | — |
-| app.py:15722 | redirect | /cliente-login | client_login_page | public | OK | — |
-| app.py:15732 | redirect | /cliente-login | client_login_page | public | OK | — |
-| app.py:15747 | redirect | /membresias | membership_page | public | OK | — |
-| app.py:15809 | redirect | /cliente-login?next=/telegram | client_login_page | public | OK | — |
-| app.py:15826 | redirect | /cliente-login?next=/telegram | client_login_page | public | OK | — |
-| app.py:15832 | redirect | /telegram | telegram_page | client | REQUIERE_SESIÓN_CLIENTE | — |
-| app.py:15839 | redirect | /cliente-login?next=/telegram | client_login_page | public | OK | — |
+| app.py:12669 | redirect | /admin-login?next=/admin/highlights-center | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:13420 | redirect | /cliente-login | client_login_page | public | OK | — |
+| app.py:13427 | redirect | /favorites | favorites_page | client | REQUIERE_SESIÓN_CLIENTE | — |
+| app.py:13578 | redirect | /membresias? | membership_page | public | OK | — |
+| app.py:13584 | redirect | /app | v757_client_app_center_page | client | REQUIERE_SESIÓN_CLIENTE | — |
+| app.py:13596 | redirect | /app | v757_client_app_center_page | client | REQUIERE_SESIÓN_CLIENTE | — |
+| app.py:13611 | redirect | /admin/users | admin_users_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:13613 | redirect | /app | v757_client_app_center_page | client | REQUIERE_SESIÓN_CLIENTE | — |
+| app.py:13614 | redirect | /cliente-login | client_login_page | public | OK | — |
+| app.py:13623 | redirect | /app | v757_client_app_center_page | client | REQUIERE_SESIÓN_CLIENTE | — |
+| app.py:13638 | redirect | /app | v757_client_app_center_page | client | REQUIERE_SESIÓN_CLIENTE | — |
+| app.py:13670 | redirect | /cliente-login | client_login_page | public | OK | — |
+| app.py:13724 | redirect | /admin-login | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:13760 | redirect | / | home | public | OK | — |
+| app.py:13766 | redirect | /admin-login | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:13772 | redirect | /admin-login?next=/admin/data-center | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:13773 | redirect | /admin/control-center | v566_admin_dashboard_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:13779 | redirect | /admin-login?next=/admin/intelligence | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:13780 | redirect | /admin/unified-intelligence | v566_admin_unified_intelligence_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:13786 | redirect | /admin-login?next=/admin/observability | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:13793 | redirect | /admin-login?next=/admin/observability/errors | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:13808 | redirect | /admin-login?next=/admin/import-center | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:13815 | redirect | /admin-login?next=/admin/users | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:13841 | redirect | /admin-login?next=/admin/user-import | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:13853 | redirect | /admin-login?next=/admin/sportsdb-sync | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:13871 | redirect | /admin-login?next=/admin/sportsdb-feed | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:13888 | redirect | /admin-login?next=/admin/matches-sync | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:13916 | redirect | /admin-login?next=/admin/telegram | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:14001 | redirect | /admin-login?next=/admin/telegram/command-center | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:14421 | redirect | /admin-login?next=/admin/automation | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:14436 | redirect | /admin-login?next=/admin/backups | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:14465 | redirect | /admin-login?next=/admin/backups | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:14475 | redirect | /admin-login?next=/admin/picks | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:14507 | redirect | /admin-login?next=/admin/data-center | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:14549 | redirect | /admin-login?next=/admin/api-sports | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:14576 | redirect | /admin-login?next=/admin/company-os | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:14595 | redirect | /admin-login?next=/admin/company-audit | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:14614 | redirect | /admin-login?next=/admin/auto-improvement | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:14636 | redirect | /admin-login?next=/admin/continuous-sentinel | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:14646 | redirect | /admin-login?next=/admin/sentinel-workflow | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:14659 | redirect | /admin-login?next=/admin/visual-worker | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:14773 | redirect | /admin-login?next=/admin/autonomous-company-sentinel | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:14789 | redirect | /admin-login?next=/admin/sentinel-codex-outbox | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:14857 | redirect | /admin-login?next=/admin/automation-workforce | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:15076 | redirect | /admin-login?next=/admin/sentinel-issues | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:15187 | redirect | /admin-login?next=/admin/sentinel-autopilot | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:15460 | redirect | /admin-login?next=/admin/system | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:15537 | redirect | /admin-login?next= | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:15621 | redirect | /admin-login?next=/admin/client-experience | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:15644 | redirect | /admin-login?next=/admin/production-readiness | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:15712 | redirect | /cliente-login | client_login_page | public | OK | — |
+| app.py:15727 | redirect | /cliente-login | client_login_page | public | OK | — |
+| app.py:15736 | redirect | /cliente-login | client_login_page | public | OK | — |
+| app.py:15746 | redirect | /cliente-login | client_login_page | public | OK | — |
+| app.py:15761 | redirect | /membresias | membership_page | public | OK | — |
+| app.py:15823 | redirect | /cliente-login?next=/telegram | client_login_page | public | OK | — |
+| app.py:15840 | redirect | /cliente-login?next=/telegram | client_login_page | public | OK | — |
 | app.py:15846 | redirect | /telegram | telegram_page | client | REQUIERE_SESIÓN_CLIENTE | — |
-| app.py:15887 | redirect | /admin-login?next=/admin/telegram/diagnostics | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:15894 | redirect | /admin-login?next=/admin/time-diagnostics | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:15963 | redirect | /perfil | profile_page | client | REQUIERE_SESIÓN_CLIENTE | — |
-| app.py:18480 | redirect | /admin-login?next=/admin/data-memory | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:18489 | redirect | /admin-login?next=/admin/codex-automation | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:18524 | redirect | /admin-login?next=/admin/team-identity | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:19184 | redirect | /admin-login?next=/admin/not-found-events | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:19481 | redirect | /cliente-login | client_login_page | public | OK | — |
-| app.py:19491 | redirect | /cliente-login | client_login_page | public | OK | — |
-| app.py:19510 | redirect | /admin-login?next=/admin/memberships | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:19588 | redirect | /admin-login?next=/admin/client-success | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:19614 | redirect | /admin-login?next=/admin/go-live | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:19646 | redirect | /admin-login?next=/admin/public-launch | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:19746 | redirect | /admin-login?next=/admin/track-record | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:19803 | redirect | /admin-login?next=/admin/final-certification | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:19825 | redirect | /admin-login?next=/admin/payments | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:19911 | redirect | /cliente-login?next=/mi-cuenta | client_login_page | public | OK | — |
-| app.py:19915 | redirect | /mi-cuenta?billing=portal_unavailable | account_center_page | public | OK | — |
-| app.py:19924 | redirect | /cliente-login?next= | client_login_page | public | OK | — |
-| app.py:19934 | redirect | /membresias? | membership_page | public | OK | — |
-| app.py:19939 | redirect | /membresias?pago=cancelado | membership_page | public | OK | — |
-| app.py:20155 | redirect | /admin-login?next=/admin/sports-data-picks | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:20431 | redirect | /app | v757_client_app_center_page | client | REQUIERE_SESIÓN_CLIENTE | — |
-| app.py:20446 | redirect | /cliente-login | client_login_page | public | OK | — |
-| app.py:20460 | redirect | /admin-login?next=/admin/live-depth | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:20461 | redirect | /admin/live-qa | admin_live_experience_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:20559 | redirect | /admin-login?next=/admin/legal-compliance | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:20578 | redirect | /admin-login?next=/admin/real-launch | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:20598 | redirect | /admin-login?next=/admin/client-screen-audit | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:20721 | redirect | /admin-login?next=/admin/control-center | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:20790 | redirect | /admin-login?next=/admin/recommendations | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:20804 | redirect | /admin-login?next=/admin/final-qa | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:20833 | redirect | /admin-login?next=/admin/unified-intelligence | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:20996 | redirect | /cliente-login?next=/shark-core | client_login_page | public | OK | — |
-| app.py:21011 | redirect | /admin-login?next=/admin/shark-ai | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:21054 | redirect | /admin-login?next=/admin/visual-experience | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:21078 | redirect | /admin-login?next=/admin/app-feel | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:21105 | redirect | /admin-login?next=/admin/client-visual-qa | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:21127 | redirect | /admin-login?next=/admin/calendar-experience | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:21154 | redirect | /admin-login?next=/admin/final-release | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:21224 | redirect | /admin-login?next=/admin/live-experience | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:21280 | redirect | /admin-login?next=/admin/sale-ready | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:21320 | redirect | /admin-login?next=/admin/content-rights | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:21459 | redirect | /admin-login?next=/admin/data-vault | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:21525 | redirect | /admin-login?next=/admin/match-intelligence | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:21543 | redirect | /admin-login?next=/admin/video-highlights | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:21560 | redirect | /admin-login?next=/admin/alerts | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:21577 | redirect | /admin-login?next=/admin/top-app-readiness | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:21601 | redirect | /cliente-login?next=/app | client_login_page | public | OK | — |
-| app.py:21651 | redirect | /cliente-login?next=/experiencia | client_login_page | public | OK | — |
-| app.py:21733 | redirect | /admin-login?next=/admin/app-experience-quality | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:21791 | redirect | /admin-login?next=/admin/client-screen-quality | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:21996 | redirect | /admin-login?next=/admin/client-product-quality | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:22131 | redirect | /admin-login?next=/admin/client-organization-quality | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:22140 | redirect | /admin-login?next=/admin/data-marketplace | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:22179 | redirect | /admin-login?next=/admin/automation-center | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:22295 | redirect | /admin-login?next=/admin/map | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:22302 | redirect | /admin-login?next=/admin/support-center | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:22311 | redirect | /admin-login?next=/admin/pick-performance | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:22318 | redirect | /admin-login?next=/admin/betting-center | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:22325 | redirect | /admin-login?next=/admin/intelligence-engine | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:22409 | redirect | /cliente-login?next=/app/mapa | client_login_page | public | OK | — |
-| app.py:22418 | redirect | /forgot-password | forgot_password_page | public | OK | — |
-| app.py:22423 | redirect | /cliente-login?next=/notificaciones | client_login_page | public | OK | — |
-| app.py:22424 | redirect | /telegram | telegram_page | client | REQUIERE_SESIÓN_CLIENTE | — |
-| app.py:22429 | redirect | /admin-login?next=/admin/autonomous-picks | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:22444 | redirect | /admin-login?next=/admin/autopilot-audit | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:22450 | redirect | /admin-login?next=/admin/telegram-audit | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:22458 | redirect | /admin-login?next=/admin/intelligence-center | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:22473 | redirect | /admin-login?next=/admin/launch-center | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:22496 | redirect | /admin-login?next=/admin/retention-center | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:22504 | redirect | /admin-login?next=/admin/beta-center | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:22553 | redirect | /admin-login?next=/admin/telegram/pro-preview | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:22818 | redirect | /admin-login?next=/admin/daily-automation | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
-| app.py:12696 | static | url_for('static') | static | public | OK | — |
-| app.py:19381 | admin_login_page | url_for('admin_login_page') | admin_login_page | public | OK | — |
+| app.py:15853 | redirect | /cliente-login?next=/telegram | client_login_page | public | OK | — |
+| app.py:15860 | redirect | /telegram | telegram_page | client | REQUIERE_SESIÓN_CLIENTE | — |
+| app.py:15901 | redirect | /admin-login?next=/admin/telegram/diagnostics | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:15908 | redirect | /admin-login?next=/admin/time-diagnostics | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:15977 | redirect | /perfil | profile_page | client | REQUIERE_SESIÓN_CLIENTE | — |
+| app.py:17422 | redirect | /admin-login?next=/admin/realtime-center | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:18778 | redirect | /admin-login?next=/admin/data-memory | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:18787 | redirect | /admin-login?next=/admin/codex-automation | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:18822 | redirect | /admin-login?next=/admin/team-identity | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:19482 | redirect | /admin-login?next=/admin/not-found-events | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:19779 | redirect | /cliente-login | client_login_page | public | OK | — |
+| app.py:19789 | redirect | /cliente-login | client_login_page | public | OK | — |
+| app.py:19808 | redirect | /admin-login?next=/admin/memberships | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:19886 | redirect | /admin-login?next=/admin/client-success | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:19912 | redirect | /admin-login?next=/admin/go-live | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:19944 | redirect | /admin-login?next=/admin/public-launch | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:20044 | redirect | /admin-login?next=/admin/track-record | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:20101 | redirect | /admin-login?next=/admin/final-certification | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:20123 | redirect | /admin-login?next=/admin/payments | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:20209 | redirect | /cliente-login?next=/mi-cuenta | client_login_page | public | OK | — |
+| app.py:20213 | redirect | /mi-cuenta?billing=portal_unavailable | account_center_page | public | OK | — |
+| app.py:20222 | redirect | /cliente-login?next= | client_login_page | public | OK | — |
+| app.py:20232 | redirect | /membresias? | membership_page | public | OK | — |
+| app.py:20237 | redirect | /membresias?pago=cancelado | membership_page | public | OK | — |
+| app.py:20453 | redirect | /admin-login?next=/admin/sports-data-picks | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:20729 | redirect | /app | v757_client_app_center_page | client | REQUIERE_SESIÓN_CLIENTE | — |
+| app.py:20744 | redirect | /cliente-login | client_login_page | public | OK | — |
+| app.py:20758 | redirect | /admin-login?next=/admin/live-depth | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:20759 | redirect | /admin/live-qa | admin_live_experience_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:20857 | redirect | /admin-login?next=/admin/legal-compliance | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:20876 | redirect | /admin-login?next=/admin/real-launch | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:20896 | redirect | /admin-login?next=/admin/client-screen-audit | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:21019 | redirect | /admin-login?next=/admin/control-center | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:21089 | redirect | /admin-login?next=/admin/recommendations | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:21103 | redirect | /admin-login?next=/admin/final-qa | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:21132 | redirect | /admin-login?next=/admin/unified-intelligence | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:21295 | redirect | /cliente-login?next=/shark-core | client_login_page | public | OK | — |
+| app.py:21310 | redirect | /admin-login?next=/admin/shark-ai | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:21353 | redirect | /admin-login?next=/admin/visual-experience | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:21377 | redirect | /admin-login?next=/admin/app-feel | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:21404 | redirect | /admin-login?next=/admin/client-visual-qa | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:21426 | redirect | /admin-login?next=/admin/calendar-experience | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:21453 | redirect | /admin-login?next=/admin/final-release | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:21523 | redirect | /admin-login?next=/admin/live-experience | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:21579 | redirect | /admin-login?next=/admin/sale-ready | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:21619 | redirect | /admin-login?next=/admin/content-rights | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:21758 | redirect | /admin-login?next=/admin/data-vault | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:21824 | redirect | /admin-login?next=/admin/match-intelligence | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:21842 | redirect | /admin-login?next=/admin/video-highlights | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:21859 | redirect | /admin-login?next=/admin/alerts | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:21876 | redirect | /admin-login?next=/admin/top-app-readiness | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:21900 | redirect | /cliente-login?next=/app | client_login_page | public | OK | — |
+| app.py:21951 | redirect | /cliente-login?next=/experiencia | client_login_page | public | OK | — |
+| app.py:22033 | redirect | /admin-login?next=/admin/app-experience-quality | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:22091 | redirect | /admin-login?next=/admin/client-screen-quality | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:22296 | redirect | /admin-login?next=/admin/client-product-quality | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:22431 | redirect | /admin-login?next=/admin/client-organization-quality | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:22440 | redirect | /admin-login?next=/admin/data-marketplace | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:22479 | redirect | /admin-login?next=/admin/automation-center | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:22595 | redirect | /admin-login?next=/admin/map | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:22602 | redirect | /admin-login?next=/admin/support-center | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:22611 | redirect | /admin-login?next=/admin/pick-performance | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:22618 | redirect | /admin-login?next=/admin/betting-center | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:22625 | redirect | /admin-login?next=/admin/intelligence-engine | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:22709 | redirect | /cliente-login?next=/app/mapa | client_login_page | public | OK | — |
+| app.py:22718 | redirect | /forgot-password | forgot_password_page | public | OK | — |
+| app.py:22723 | redirect | /cliente-login?next=/notificaciones | client_login_page | public | OK | — |
+| app.py:22724 | redirect | /telegram | telegram_page | client | REQUIERE_SESIÓN_CLIENTE | — |
+| app.py:22729 | redirect | /admin-login?next=/admin/autonomous-picks | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:22744 | redirect | /admin-login?next=/admin/autopilot-audit | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:22750 | redirect | /admin-login?next=/admin/telegram-audit | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:22758 | redirect | /admin-login?next=/admin/intelligence-center | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:22773 | redirect | /admin-login?next=/admin/launch-center | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:22796 | redirect | /admin-login?next=/admin/retention-center | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:22804 | redirect | /admin-login?next=/admin/beta-center | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:22853 | redirect | /admin-login?next=/admin/telegram/pro-preview | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:23118 | redirect | /admin-login?next=/admin/daily-automation | admin_login_page | admin | REQUIERE_SESIÓN_ADMIN | — |
+| app.py:12705 | static | url_for('static') | static | public | OK | — |
+| app.py:19679 | admin_login_page | url_for('admin_login_page') | admin_login_page | public | OK | — |
