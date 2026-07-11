@@ -16,7 +16,11 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-VERSION = "V929_NAVIGATION_INTEGRITY_ROUTE_NOT_FOUND_FULL_APP_RECOVERY_FINAL"
+BASE_VERSION = "V929_NAVIGATION_INTEGRITY_ROUTE_NOT_FOUND_FULL_APP_RECOVERY_FINAL"
+try:
+    VERSION = (ROOT / "VERSION.txt").read_text(encoding="utf-8-sig", errors="replace").strip() or BASE_VERSION
+except Exception:
+    VERSION = BASE_VERSION
 RUNTIME_PATH = ROOT / "data" / "runtime" / "navigation_integrity" / "latest_run.json"
 JSON_MATRIX = ROOT / "reports" / "V929_FULL_NAVIGATION_ROUTE_MATRIX.json"
 MD_MATRIX = ROOT / "reports" / "V929_FULL_NAVIGATION_ROUTE_MATRIX.md"

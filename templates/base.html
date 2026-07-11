@@ -13,11 +13,14 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}?v={{ app_version }}" data-cache-version="{{ app_version }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='v928-canonical.css') }}?v={{ app_version }}" data-v928-cache-version="{{ app_version }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='v930-canonical.css') }}?v={{ app_version }}" data-v930-cache-version="{{ app_version }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='v933_design_tokens.css') }}?v={{ app_version }}" data-v933-token-version="{{ app_version }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='v933-product.css') }}?v={{ app_version }}" data-v933-product-version="{{ app_version }}">
   <script defer src="{{ url_for('static', filename='v930-icons.js') }}?v={{ app_version }}" data-v930-icon-version="{{ app_version }}"></script>
   <meta name="csrf-token" content="{{ csrf_token() }}">
 </head>
 {% from "partials/brand_logo.html" import nemesis_brand %}
-{% from "components/v930_navigation.html" import canonical_public_shell, canonical_client_desktop_shell, canonical_client_mobile_shell, canonical_admin_shell, canonical_mobile_bottom_nav %}
+{% from "components/v933_shells.html" import v933_public_shell, v933_client_shells, v933_admin_shell %}
+{% from "components/v933_navigation.html" import v933_mobile_bottom_nav %}
 {% set _raw_tier = (current_user.membership if current_user else 'FREE')|upper %}
 {% if _raw_tier == 'PRO' %}
   {% set _visual_tier = 'pro' %}
@@ -136,12 +139,11 @@
   <div class="membership-energy-bar" aria-hidden="true"></div>
   <div class="ns-route-glow" aria-hidden="true"></div>
   {% if show_admin_nav %}
-    {{ canonical_admin_shell() }}
+    {{ v933_admin_shell() }}
   {% elif is_client_area %}
-    {{ canonical_client_desktop_shell(_tier_label) }}
-    {{ canonical_client_mobile_shell() }}
+    {{ v933_client_shells(_tier_label) }}
   {% elif not is_admin_surface %}
-    {{ canonical_public_shell() }}
+    {{ v933_public_shell() }}
   {% endif %}
   {% if false %}
   <header class="top ns-topbar">
@@ -238,18 +240,18 @@
   {% endif %}
   {% endif %}
 
-  <main class="shell shark-shell ns-main-shell v928-main-shell{% if show_admin_nav %} v930-admin-shell{% elif is_client_area %} v930-client-desktop-shell v930-client-mobile-shell{% else %} v930-public-shell{% endif %}">
+  <main class="shell shark-shell ns-main-shell v928-main-shell{% if show_admin_nav %} v930-admin-shell v933-admin-shell{% elif is_client_area %} v930-client-desktop-shell v930-client-mobile-shell v933-client-shell{% else %} v930-public-shell v933-public-shell{% endif %}" data-v933-surface="{% if show_admin_nav %}admin{% elif is_client_area %}client{% else %}public{% endif %}">
     {% block content %}{% endblock %}
   </main>
 
 
-  <footer class="v787-legal-footer" aria-label="Aviso legal y responsable">
+  <footer class="v787-legal-footer v933-legal-footer" aria-label="Aviso legal y responsable">
     <strong>+18 - Información deportiva, no casa de apuestas.</strong>
     <span>NeMeSiS SHARK PRO no acepta apuestas, no custodia saldo de juego, no paga premios y no garantiza beneficios.</span>
     <nav><a href="/legal">Legal</a><a href="/terminos">Términos</a><a href="/privacidad">Privacidad</a><a href="/juego-responsable">Juego responsable</a><a href="/support">Soporte</a></nav>
   </footer>
 
-  {% if show_mobile_bottom_nav %}{{ canonical_mobile_bottom_nav(current_user and current_user.role != 'ADMIN') }}{% endif %}
+  {% if show_mobile_bottom_nav %}{{ v933_mobile_bottom_nav(current_user and current_user.role != 'ADMIN') }}{% endif %}
   {% if false and show_mobile_bottom_nav %}
   <nav class="bottom-nav bottom-nav-clean" aria-label="Navegacion rapida" data-nav-zone="client-bottom">
     {% if current_user %}

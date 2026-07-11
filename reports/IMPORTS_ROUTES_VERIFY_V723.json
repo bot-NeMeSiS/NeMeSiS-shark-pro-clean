@@ -1,6 +1,6 @@
 {
   "ok": true,
-  "checked_at": "2026-07-11T11:58:16",
+  "checked_at": "2026-07-11T16:52:56",
   "templates_referenced": [
     "404.html",
     "500.html",
@@ -142,8 +142,8 @@
   ],
   "missing_static": [],
   "import_ok": true,
-  "version": "V932_AUTHENTICATED_PRODUCTION_CLIENT_ADMIN_AND_REAL_SPORTS_VALUE_FINAL",
-  "route_count": 613,
+  "version": "V933_REFERENCE_PARITY_PRODUCT_DESIGN_SPRINT_SYSTEM_FINAL",
+  "route_count": 614,
   "routes": [
     "/",
     "/actividad",
@@ -702,6 +702,7 @@
     "/pick",
     "/picks",
     "/picks-automaticos",
+    "/planes",
     "/planes/<plan>",
     "/privacidad",
     "/privacy",

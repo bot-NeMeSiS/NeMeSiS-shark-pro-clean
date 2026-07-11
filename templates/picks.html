@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "components/v930_ui.html" import page_header, kpi_card, section_header, pick_card, filter_tabs, empty_state, provider_status %}
+{% from "components/v933_ui.html" import page_header, kpi_card, section_header, pick_card, filter_tabs, empty_state, provider_state, status_chip, icon, action_button %}
 {% block content %}
 {% set stats = data.get('pick_stats') or {} %}
 {% set safe = data.get('v925_picks') or {} %}
@@ -7,32 +7,58 @@
 {% set picks = safe.get('picks') or [] %}
 {% set featured = picks[0] if picks else none %}
 {% set active_filter = request.args.get('filtro') or request.args.get('filter') or 'featured' %}
-<section class="v928-page v928-picks-board v930-page v930-client-page v930-sports-page v930-picks-board" data-v928-template="picks" data-v930-template="picks">
-  {{ page_header('Picks SHARK', 'Selecciones publicadas con datos reales y control de calidad', 'target', [{'label':'Histórico','href':'/track-record'},{'label':'Consultar SHARK','href':'/shark','primary':true}]) }}
-  <section class="v928-kpi-grid is-four">
-    {{ kpi_card('Picks completos', picks|length, 'Mercado, selección y cuota', 'purple', 'target', '/picks') }}
-    {{ kpi_card('Bloqueados', safe.get('blocked_count', 0), 'Datos insuficientes o revisión', 'gold', 'shield', '/picks?filter=blocked') }}
-    {{ kpi_card('Cuota media', odds_state.get('average_odds') if odds_state.get('has_real_data') else 'Sin dato', 'Solo picks completos y evaluables', 'blue', 'odds', '/picks') }}
-    {{ kpi_card('Cerrados', stats.get('closed') or stats.get('graded'), 'Histórico real', 'green', 'history', '/track-record') }}
-  </section>
-  <section class="v928-panel">{{ filter_tabs([{'key':'featured','label':'Destacados','href':'/picks?filter=featured'},{'key':'active','label':'Activos','href':'/picks?filter=active'},{'key':'closed','label':'Cerrados','href':'/picks?filter=closed'},{'key':'conservative','label':'Conservadores','href':'/picks?filter=conservative'},{'key':'value','label':'Valor','href':'/picks?filter=value'}], active_filter) }}</section>
 
-  <section class="v928-layout-main-aside">
-    <div class="v928-stack">
-      <section class="v928-panel">
-        {{ section_header('Pick destacado', 'La primera selección completa disponible') }}
-        {% if featured %}{{ pick_card(featured, true) }}<div class="v928-actions"><a class="v928-button is-primary" href="{{ featured.get('client_match_url') or ('/match/' ~ (featured.get('match_id') or featured.get('id'))) }}">Ver análisis completo</a><a class="v928-button" href="/shark?pick={{ featured.get('id') }}">Explicar con SHARK</a></div>
-        {% else %}{{ empty_state('Sin pick real publicable', 'No se publica ninguna selección hasta disponer de partido, mercado, selección y cuota reales.', 'Ver calendario', '/calendar', 'target') }}{% endif %}
+<div class="v933-page v933-sports-board v933-picks-board" data-v933-template="picks" data-v933-reference="canonical-picks">
+  {{ page_header('Picks SHARK', 'Selecciones reales que superan la puerta de calidad de publicación.', 'target', [{'label':'Histórico','href':'/track-record','icon':'history'},{'label':'Consultar SHARK','href':'/shark','primary':true,'icon':'shark'}]) }}
+
+  <section class="v933-kpi-grid">
+    {{ kpi_card('Picks completos', picks|length, 'Partido, mercado, selección y cuota', 'cyan', 'target', '/picks') }}
+    {{ kpi_card('Bloqueados', safe.get('blocked_count', 0), 'Datos insuficientes o revisión', 'warning', 'shield', '/picks?filter=blocked') }}
+    {{ kpi_card('Cuota media', odds_state.get('average_odds') if odds_state.get('has_real_data') else none, 'Solo muestra real evaluable', 'blue', 'odds', '/picks') }}
+    {{ kpi_card('Cerrados', stats.get('closed') or stats.get('graded'), 'Histórico real', 'success', 'history', '/track-record') }}
+  </section>
+
+  <section class="v933-panel v933-filter-panel">
+    {{ filter_tabs([{'key':'featured','label':'Destacados','href':'/picks?filter=featured'},{'key':'active','label':'Activos','href':'/picks?filter=active'},{'key':'closed','label':'Cerrados','href':'/picks?filter=closed'},{'key':'conservative','label':'Conservadores','href':'/picks?filter=conservative'},{'key':'value','label':'Valor','href':'/picks?filter=value'}], active_filter) }}
+  </section>
+
+  <section class="v933-two-col">
+    <div class="v933-main-stack">
+      <section class="v933-panel">
+        {{ section_header('Pick destacado', 'La primera selección completa disponible.') }}
+        {% if featured %}
+          {{ pick_card(featured, true) }}
+          <div class="v933-page-actions v933-inline-actions">
+            {% if featured.get('match_id') %}{{ action_button('Ver partido', featured.get('client_match_url') or ('/match/' ~ featured.get('match_id')), true, 'blue', false, 'matches') }}{% endif %}
+            {{ action_button('Explicar con SHARK', '/shark?pick=' ~ (featured.get('id') or ''), false, 'cyan', false, 'shark') }}
+          </div>
+        {% else %}
+          {{ empty_state('Sin pick real publicable', 'No se publica ninguna selección hasta disponer de partido, mercado, selección y cuota reales.', 'Ver calendario', '/calendar', 'target') }}
+        {% endif %}
       </section>
-      <section class="v928-panel">
-        {{ section_header('Más picks activos', 'Todos pasan la misma puerta de calidad') }}
-        {% if picks|length > 1 %}<div class="v928-grid is-three">{% for pick in picks[1:13] %}{{ pick_card(pick) }}{% endfor %}</div>{% elif not picks %}{{ empty_state('La lista está vacía', 'Los picks incompletos permanecen bloqueados y no se sustituyen por ejemplos.', '', '', 'target') }}{% endif %}
+
+      <section class="v933-panel">
+        {{ section_header('Más picks activos', 'Todos pasan la misma puerta de calidad.') }}
+        {% if picks|length > 1 %}<div class="v933-pick-grid">{% for pick in picks[1:13] %}{{ pick_card(pick) }}{% endfor %}</div>{% elif not picks %}{{ empty_state('La lista está vacía', 'Los picks incompletos permanecen bloqueados y nunca se sustituyen por ejemplos.', '', '', 'target') }}{% else %}<div class="v933-safe-copy">No hay más selecciones completas disponibles ahora.</div>{% endif %}
       </section>
     </div>
-    <aside class="v928-stack">
-      {{ provider_status(odds_state.get('source'), odds_state.get('has_real_data'), odds_state.get('last_sync'), odds_state.get('provider_status'), odds_state.get('cache_status'), odds_state.get('safe_message')) }}
-      <section class="v928-panel">{{ section_header('Regla de publicación', 'Una selección visible debe estar completa') }}<div class="v928-truth-list"><div><span>Partido</span><strong>Obligatorio</strong></div><div><span>Mercado</span><strong>Obligatorio</strong></div><div><span>Selección</span><strong>Obligatoria</strong></div><div><span>Cuota real</span><strong>Obligatoria</strong></div></div></section>
+
+    <aside class="v933-side-stack">
+      {{ provider_state(odds_state.get('has_real_data', false), odds_state.get('last_sync') or '', odds_state.get('safe_message') or 'Las cuotas aparecerán únicamente cuando exista una fuente real confirmada.') }}
+      <section class="v933-panel">
+        {{ section_header('Regla de publicación', 'Una selección visible debe estar completa.') }}
+        <div class="v933-truth-list">
+          <div>{{ icon('matches') }}<span><strong>Partido real</strong><small>Fecha, hora y fuente</small></span>{{ status_chip('Obligatorio','blue') }}</div>
+          <div>{{ icon('target') }}<span><strong>Mercado y selección</strong><small>Definición completa</small></span>{{ status_chip('Obligatorio','blue') }}</div>
+          <div>{{ icon('odds') }}<span><strong>Cuota real</strong><small>Sin estimaciones visibles</small></span>{{ status_chip('Obligatoria','blue') }}</div>
+          <div>{{ icon('shield') }}<span><strong>Riesgo y estado</strong><small>Revisión editorial</small></span>{{ status_chip('Controlado','success') }}</div>
+        </div>
+      </section>
+      <section class="v933-panel">
+        {{ section_header('Juego responsable', 'Información y análisis, no garantías.') }}
+        <p class="v933-safe-copy">NeMeSiS no promete beneficios. Revisa siempre el contexto, el riesgo y tu propio límite.</p>
+      </section>
     </aside>
   </section>
-</section>
+</div>
 {% endblock %}

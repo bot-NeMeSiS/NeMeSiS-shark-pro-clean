@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "components/v930_ui.html" import page_header, kpi_card, section_header, empty_state, status_chip, data_table %}
+{% from "components/v933_ui.html" import page_header, kpi_card, section_header, empty_state, status_chip, data_table, quick_action, icon %}
 {% block content %}
 {% set snapshot = data.get('snapshot') or {} %}
 {% set counts = snapshot.get('counts') or {} %}
@@ -7,23 +7,42 @@
 {% set env = snapshot.get('env') or {} %}
 {% set cron = snapshot.get('cron') or {} %}
 {% set dry = data.get('dry_run') or {} %}
-<section class="v928-page v928-admin-command-center v930-page v930-admin-page v930-admin-telegram" data-v928-template="admin_telegram_command_center" data-v930-template="admin_telegram_command_center">
-  {{ page_header('Telegram Command Center', 'Automatización, entregas y calidad sin enviar mensajes desde esta vista', 'telegram', [{'label':'Configurar','href':'/admin/telegram'},{'label':'Preview seguro','href':'/admin/telegram/pro-preview','primary':true}]) }}
-  <section class="v928-kpi-grid">
+
+<div class="v933-page v933-admin-command-center v933-admin-telegram" data-v933-template="admin_telegram_command_center" data-v933-reference="canonical-admin-telegram">
+  {{ page_header('Telegram Command Center', 'Automatización, entregas y calidad sin enviar mensajes desde esta vista.', 'telegram', [{'label':'Configurar','href':'/admin/telegram','icon':'settings'},{'label':'Preview seguro','href':'/admin/telegram/pro-preview','primary':true,'icon':'telegram'}]) }}
+
+  <section class="v933-kpi-grid is-six">
     {{ kpi_card('Candidatos', counts.get('candidate_picks'), 'Picks publicados revisados', 'blue', 'target') }}
-    {{ kpi_card('Elegibles', counts.get('premium_eligible'), 'Completos y enviables', 'green', 'telegram') }}
-    {{ kpi_card('Enviados hoy', counts.get('sent_today'), 'Registro de cola', 'blue', 'telegram') }}
-    {{ kpi_card('Fallidos hoy', counts.get('failed_today'), 'Entregas registradas', 'red' if counts.get('failed_today') else 'green', 'shield') }}
-    {{ kpi_card('Pendientes', counts.get('pending_queue'), 'Cola real', 'gold', 'history') }}
-    {{ kpi_card('Duplicados evitados', counts.get('duplicates'), 'Dedupe', 'green', 'shield') }}
+    {{ kpi_card('Elegibles', counts.get('premium_eligible'), 'Completos y enviables', 'success', 'telegram') }}
+    {{ kpi_card('Enviados hoy', counts.get('sent_today'), 'Registro de cola', 'cyan', 'send') }}
+    {{ kpi_card('Fallidos hoy', counts.get('failed_today'), 'Entregas registradas', 'warning' if counts.get('failed_today') else 'success', 'alert') }}
+    {{ kpi_card('Pendientes', counts.get('pending_queue'), 'Cola real', 'warning', 'history') }}
+    {{ kpi_card('Dedupe', counts.get('duplicates'), 'Duplicados evitados', 'success', 'shield') }}
   </section>
-  <section class="v928-layout-wide-aside">
-    <div class="v928-stack">
-      <section class="v928-admin-panel"><header><div><h2>Cron y automatización</h2><p>Últimos estados registrados</p></div>{{ status_chip(snapshot.get('diagnosis', {}).get('status') or ('Listo' if snapshot.get('ok') else 'Revisar'), 'success' if snapshot.get('ok') else 'warning') }}</header><div class="v928-admin-panel-body">{% call data_table(['Proceso','Última llamada','Estado','Runner']) %}{% for name, item in [('Telegram',cron.get('last_telegram') or {}),('Daily',cron.get('last_daily') or {}),('Dispatch',cron.get('last_dispatch') or {})] %}<tr><td>{{ name }}</td><td>{{ item.get('called_at') or item.get('created_at') or item.get('started_at') or 'Sin ejecución registrada' }}</td><td>{{ status_chip(item.get('status') or item.get('result') or 'Pendiente','success' if item.get('ok') else 'neutral') }}</td><td>{{ item.get('runner') or item.get('source') or 'Sin dato' }}</td></tr>{% endfor %}{% endcall %}</div></section>
-      <section class="v928-admin-panel"><header><div><h2>Picks elegibles</h2><p>Vista previa sin envío real</p></div><span>{{ status_chip('Dry-run: sin envío','success') }}</span></header><div class="v928-admin-panel-body">{% if snapshot.get('candidates') %}{% call data_table(['Partido','Selección','Cuota','Confianza','Dedupe']) %}{% for item in snapshot.get('candidates')[:20] %}<tr><td>{{ item.get('partido') }}</td><td>{{ item.get('selection') }}</td><td>{{ item.get('odds') }}</td><td>{{ item.get('confidence') if item.get('confidence') is not none else 'Sin dato' }}</td><td>{{ item.get('dedupe_status') or 'Nuevo' }}</td></tr>{% endfor %}{% endcall %}{% else %}{{ empty_state('Sin candidatos enviables', 'No se crea contenido de relleno. Los picks incompletos permanecen descartados.', '', '', 'telegram') }}{% endif %}</div></section>
-      <section class="v928-admin-panel"><header><div><h2>Descartes de calidad</h2><p>Razones reales del filtro</p></div></header><div class="v928-admin-panel-body">{% if snapshot.get('reason_counts') %}<div class="v928-truth-list">{% for reason, total in snapshot.get('reason_counts').items() %}<div><span>{{ reason }}</span><strong>{{ total }}</strong></div>{% endfor %}</div>{% else %}{{ empty_state('Sin descartes registrados', 'No hay razones de descarte en la ejecución consultada.', '', '', 'shield') }}{% endif %}</div></section>
+
+  <section class="v933-admin-layout">
+    <div class="v933-main-stack">
+      <section class="v933-admin-panel">
+        <header><div><h2>Cron y automatización</h2><p>Últimos estados registrados.</p></div>{{ status_chip(snapshot.get('diagnosis', {}).get('status') or ('Listo' if snapshot.get('ok') else 'Revisar'), 'success' if snapshot.get('ok') else 'warning') }}</header>
+        <div class="v933-admin-panel-body">{% call data_table(['Proceso','Última llamada','Estado','Runner']) %}{% for name, item in [('Telegram',cron.get('last_telegram') or {}),('Daily',cron.get('last_daily') or {}),('Dispatch',cron.get('last_dispatch') or {})] %}<tr><td>{{ name }}</td><td>{{ item.get('called_at') or item.get('created_at') or item.get('started_at') or 'Sin ejecución registrada' }}</td><td>{{ status_chip(item.get('status') or item.get('result') or 'Pendiente','success' if item.get('ok') else 'neutral') }}</td><td>{{ item.get('runner') or item.get('source') or 'Sin dato' }}</td></tr>{% endfor %}{% endcall %}</div>
+      </section>
+
+      <section class="v933-admin-panel">
+        <header><div><h2>Picks elegibles</h2><p>Vista previa sin envío real.</p></div>{{ status_chip('Dry-run · sin envío','success') }}</header>
+        <div class="v933-admin-panel-body">{% if snapshot.get('candidates') %}{% call data_table(['Partido','Selección','Cuota','Confianza','Dedupe']) %}{% for item in snapshot.get('candidates')[:20] %}<tr><td>{{ item.get('partido') }}</td><td>{{ item.get('selection') }}</td><td>{{ item.get('odds') }}</td><td>{{ item.get('confidence') if item.get('confidence') is not none else 'Sin dato' }}</td><td>{{ status_chip(item.get('dedupe_status') or 'Nuevo','success') }}</td></tr>{% endfor %}{% endcall %}{% else %}{{ empty_state('Sin candidatos enviables', 'No se crea contenido de relleno. Los picks incompletos permanecen descartados.', '', '', 'telegram') }}{% endif %}</div>
+      </section>
+
+      <section class="v933-admin-panel">
+        <header><div><h2>Descartes de calidad</h2><p>Razones reales del filtro.</p></div></header>
+        <div class="v933-admin-panel-body">{% if snapshot.get('reason_counts') %}<div class="v933-reason-grid">{% for reason, total in snapshot.get('reason_counts').items() %}<article><span>{{ reason }}</span><strong>{{ total }}</strong></article>{% endfor %}</div>{% else %}{{ empty_state('Sin descartes registrados', 'No hay razones de descarte en la ejecución consultada.', '', '', 'shield') }}{% endif %}</div>
+      </section>
     </div>
-    <aside class="v928-stack"><section class="v928-admin-panel"><header><div><h2>Configuración segura</h2><p>Solo estados enmascarados</p></div></header><div class="v928-admin-panel-body"><div class="v928-truth-list"><div><span>Bot token</span><strong>{{ 'Configurado' if env.get('bot_token_configured') else 'Falta' }}</strong></div><div><span>Destino</span><strong>{{ 'Configurado' if env.get('chat_id_configured') else 'Falta' }}</strong></div><div><span>Automation secret</span><strong>{{ 'Configurado' if env.get('automation_secret_configured') else 'Falta' }}</strong></div><div><span>Auto send</span><strong>{{ 'Activo' if env.get('auto_send_enabled') else 'Desactivado' }}</strong></div></div></div></section><section class="v928-admin-panel"><header><div><h2>Límites</h2><p>Calibración real</p></div></header><div class="v928-admin-panel-body"><div class="v928-truth-list"><div><span>Por hora</span><strong>{{ limits.get('max_per_hour') if limits.get('max_per_hour') is not none else 'Sin dato' }}</strong></div><div><span>Por día</span><strong>{{ limits.get('max_per_day') if limits.get('max_per_day') is not none else 'Sin dato' }}</strong></div><div><span>Auto picks/día</span><strong>{{ limits.get('max_auto_picks_per_day') if limits.get('max_auto_picks_per_day') is not none else 'Sin dato' }}</strong></div><div><span>Quiet hours</span><strong>{{ 'Activas' if limits.get('quiet_hours_active') else 'No activas' }}</strong></div></div></div></section><section class="v928-admin-panel"><header><div><h2>Dry-run</h2></div></header><div class="v928-admin-panel-body"><p class="v928-panel-copy">{{ dry.get('preview') or dry.get('message') or 'Sin preview generado. No se envió Telegram.' }}</p>{{ status_chip('Envío real: no','success') }}</div></section></aside>
+
+    <aside class="v933-side-stack">
+      <section class="v933-admin-panel"><header><div><h2>Configuración segura</h2><p>Solo estados enmascarados.</p></div></header><div class="v933-admin-panel-body"><div class="v933-truth-list"><div>{{ icon('telegram') }}<span><strong>Bot</strong><small>{{ 'Configurado' if env.get('bot_token_configured') else 'Falta configurar' }}</small></span>{{ status_chip('OK' if env.get('bot_token_configured') else 'Falta','success' if env.get('bot_token_configured') else 'warning') }}</div><div>{{ icon('send') }}<span><strong>Destino</strong><small>{{ 'Configurado' if env.get('chat_id_configured') else 'Falta configurar' }}</small></span></div><div>{{ icon('lock') }}<span><strong>Automatización</strong><small>{{ 'Autorizada' if env.get('automation_secret_configured') else 'Sin autorización' }}</small></span></div><div>{{ icon('automation') }}<span><strong>Auto send</strong><small>{{ 'Activo' if env.get('auto_send_enabled') else 'Desactivado' }}</small></span>{{ status_chip('Activo' if env.get('auto_send_enabled') else 'Seguro','warning' if env.get('auto_send_enabled') else 'success') }}</div></div></div></section>
+      <section class="v933-admin-panel"><header><div><h2>Límites</h2><p>Calibración real.</p></div></header><div class="v933-admin-panel-body"><div class="v933-truth-list"><div>{{ icon('clock') }}<span><strong>Por hora</strong><small>{{ limits.get('max_per_hour') if limits.get('max_per_hour') is not none else 'Sin dato' }}</small></span></div><div>{{ icon('calendar') }}<span><strong>Por día</strong><small>{{ limits.get('max_per_day') if limits.get('max_per_day') is not none else 'Sin dato' }}</small></span></div><div>{{ icon('target') }}<span><strong>Auto picks/día</strong><small>{{ limits.get('max_auto_picks_per_day') if limits.get('max_auto_picks_per_day') is not none else 'Sin dato' }}</small></span></div><div>{{ icon('pause') }}<span><strong>Quiet hours</strong><small>{{ 'Activas' if limits.get('quiet_hours_active') else 'No activas' }}</small></span></div></div></div></section>
+      <section class="v933-admin-panel"><header><div><h2>Dry-run</h2><p>Simulación protegida.</p></div>{{ status_chip('Envío real: no','success') }}</header><div class="v933-admin-panel-body"><p class="v933-safe-copy">{{ dry.get('preview') or dry.get('message') or 'Sin preview generado. No se envió Telegram.' }}</p><div class="v933-main-stack">{{ quick_action('Abrir preview', 'Revisar formato sin entregar', '/admin/telegram/pro-preview', 'telegram', 'cyan') }}{{ quick_action('Auditar Telegram', 'Calidad, dedupe y motivos', '/admin/telegram-audit', 'shield') }}</div></div></section>
+    </aside>
   </section>
-</section>
+</div>
 {% endblock %}

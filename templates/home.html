@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "components/v930_ui.html" import kpi_card, section_header, quick_action, match_card, pick_card, empty_state, status_chip %}
+{% from "components/v933_ui.html" import icon, status_chip, action_button, section_header, kpi_card, quick_action, empty_state, match_card, pick_card, provider_state %}
 {% block content %}
 {% set summary = data.get('home_summary') or {} %}
 {% set counts = summary.get('counts') or {} %}
@@ -7,22 +7,111 @@
 {% set picks = (data.get('v925_picks') or {}).get('picks') or [] %}
 {% set today_count = matches|length %}
 {% set live_count = counts.get('live', 0) or 0 %}
+{% set incomplete_count = counts.get('incomplete', 0) or 0 %}
 {% set safe_message = summary.get('safe_message') or summary.get('message') or 'Sin agenda real completa disponible.' %}
-<section class="v928-page v928-home v930-page v930-public-page v930-home" data-v928-template="home" data-v930-template="home">
-  {% if current_user %}
-  <section class="v928-home-hero is-client">
-    <div><span class="v928-eyebrow">Panel cliente · Hora Madrid</span><h1>Buenos días, {{ current_user.name or current_user.username or 'Cliente' }}</h1><p>Tu jornada deportiva con agenda, directo, picks completos y SHARK en modo seguro.</p><div class="v928-actions"><a class="v928-button is-primary" href="/app">Abrir mi panel</a><a class="v928-button" href="/calendar">Ver partidos</a><a class="v928-button" href="/picks">Revisar picks</a></div></div><img src="/static/img/shark-logo.svg" alt="" aria-hidden="true">
+
+<div class="v933-page v933-home" data-v933-template="home" data-v933-reference="canonical-public-home">
+  <section class="v933-public-hero">
+    <div>
+      <span class="v933-eyebrow">NeMeSiS SHARK PRO · Hora Madrid</span>
+      {% if current_user %}
+      <h1>Buenos días, <span>{{ current_user.name or current_user.username or 'cliente' }}</span></h1>
+      <p>Tu jornada reúne calendario, directo, picks completos, SHARK y Telegram. Solo verás datos confirmados o estados seguros claramente identificados.</p>
+      <div class="v933-hero-actions">
+        {{ action_button('Abrir mi panel', '/app', true, 'blue', false, 'home') }}
+        {{ action_button('Ver partidos', '/calendar', false, 'blue', false, 'calendar') }}
+      </div>
+      {% else %}
+      <h1>Tu centro deportivo <span>inteligente</span></h1>
+      <p>Partidos, directo, picks, histórico, SHARK y Telegram en una experiencia premium que separa los datos reales de cualquier estado pendiente.</p>
+      <div class="v933-hero-actions">
+        {{ action_button('Crear cuenta', '/registro', true, 'blue', false, 'user') }}
+        {{ action_button('Entrar', '/cliente-login', false, 'blue', false, 'login') }}
+        {{ action_button('Explorar partidos', '/calendar', false, 'cyan', false, 'calendar') }}
+      </div>
+      {% endif %}
+      <div class="v933-hero-proof">
+        <span>{{ icon('check') }} Datos honestos</span>
+        <span>{{ icon('check') }} Modo seguro</span>
+        <span>{{ icon('check') }} +18 y juego responsable</span>
+        <span>{{ icon('check') }} No somos casa de apuestas</span>
+      </div>
+    </div>
+
+    <aside class="v933-today-board" aria-label="Hoy en NeMeSiS">
+      <header><h2>Hoy en NeMeSiS</h2>{{ status_chip('Datos reales' if summary.get('has_real_data') else 'Estado seguro', 'success' if summary.get('has_real_data') else 'warning') }}</header>
+      <div class="v933-today-kpis">
+        <div><span>Partidos hoy</span><strong>{{ today_count }}</strong><small>completos</small></div>
+        <div><span>En directo</span><strong>{{ live_count }}</strong><small>confirmados</small></div>
+        <div><span>Picks</span><strong>{{ picks|length }}</strong><small>publicables</small></div>
+      </div>
+      {% if matches %}
+        {{ match_card(matches[0], true, true) }}
+      {% else %}
+        <div class="v933-safe-copy">{{ safe_message }}</div>
+        {{ action_button('Consultar la agenda', '/calendar', true, 'blue', false, 'calendar') }}
+      {% endif %}
+    </aside>
   </section>
-  {% else %}
-  <section class="v928-home-hero">
-    <div><span class="v928-eyebrow">App deportiva premium · Hora Madrid</span><h1>NeMeSiS SHARK PRO</h1><p>Calendario, directo, picks, SHARK y Telegram con datos reales o estados seguros. Sin partidos, cuotas, resultados ni ROI inventados.</p><div class="v928-actions"><a class="v928-button is-primary" href="/registro">Crear cuenta</a><a class="v928-button" href="/cliente-login">Entrar</a><a class="v928-button" href="/calendar">Ver partidos</a></div><div class="v928-home-trust">{{ status_chip('Modo seguro activo','success') }}{{ status_chip('+18','neutral') }}{{ status_chip('No somos casa de apuestas','neutral') }}</div></div><img src="/static/img/shark-logo.svg" alt="" aria-hidden="true">
+
+  <section class="v933-kpi-grid">
+    {{ kpi_card('Partidos hoy', today_count, 'Mismo filtro que la agenda visible', 'blue', 'calendar', '/calendar') }}
+    {{ kpi_card('En directo', live_count, 'Marcador y minuto solo si son reales', 'success', 'live', '/live') }}
+    {{ kpi_card('Picks completos', picks|length, 'Partido, mercado, selección y cuota', 'cyan', 'target', '/picks') }}
+    {{ kpi_card('SHARK', 'Modo seguro', 'Capacidades y límites transparentes', 'gold', 'shark', '/shark') }}
   </section>
-  {% endif %}
 
-  <section class="v928-kpi-grid is-four">{{ kpi_card('Partidos hoy', today_count, 'Agenda real disponible', 'blue', 'calendar', '/calendar') }}{{ kpi_card('En directo', live_count, 'Marcadores confirmados', 'green', 'live', '/live') }}{{ kpi_card('Picks completos', picks|length, 'Mercado, selección y cuota', 'purple', 'target', '/picks') }}{{ kpi_card('SHARK', 'Modo seguro', 'Sin análisis inventado', 'gold', 'shark', '/shark') }}</section>
+  <section class="v933-two-col">
+    <div class="v933-main-stack">
+      <section class="v933-panel">
+        {{ section_header('Agenda validada de hoy', 'Los registros incompletos nunca se mezclan con los partidos válidos.', 'Abrir agenda', '/calendar') }}
+        {% if matches %}
+        <div class="v933-match-grid">
+          {% for match in matches[:3] %}{{ match_card(match, false, true) }}{% endfor %}
+        </div>
+        {% else %}
+          {{ empty_state('Sin agenda real cargada', safe_message, 'Ver esta semana', '/calendar?lane=week', 'calendar') }}
+        {% endif %}
+      </section>
 
-  <section class="v928-layout-main-aside"><div class="v928-stack"><section class="v928-panel">{{ section_header('Hoy en NeMeSiS', 'Contenido útil visible desde la primera pantalla', 'Abrir agenda', '/calendar') }}{% if matches %}<div class="v928-grid is-three">{% for match in matches[:3] %}{{ match_card(match, true, true) }}{% endfor %}</div>{% elif today_count %}{{ empty_state('Sin próximos partidos para destacar', today_count ~ ' partidos reales constan hoy en la agenda; abre Partidos para ver su estado actual.', 'Abrir agenda', '/calendar', 'calendar') }}{% else %}{{ empty_state('Sin agenda real cargada', safe_message, 'Ver semana', '/calendar?lane=week', 'calendar') }}{% endif %}</section><section class="v928-panel">{{ section_header('Qué hace la app', 'Un flujo claro para cada jornada') }}<div class="v928-command-grid">{{ quick_action('Partidos', 'Agenda por día y competición', '/calendar', 'calendar') }}{{ quick_action('Directo', 'Marcador y minuto si son reales', '/live', 'live', 'green') }}{{ quick_action('Picks', 'Selecciones completas y revisadas', '/picks', 'target') }}{{ quick_action('SHARK', 'Contexto y limitaciones visibles', '/shark', 'shark') }}{{ quick_action('Telegram', 'Alertas sin filler ni duplicados', '/telegram', 'telegram') }}{{ quick_action('Histórico', 'ROI solo con picks cerrados', '/track-record', 'history') }}</div></section></div><aside class="v928-stack"><section class="v928-panel">{{ section_header('Pick destacado', 'Solo si está completo') }}{% if picks %}{{ pick_card(picks[0], true) }}{% else %}{{ empty_state('Sin pick publicable', 'No hay una selección completa para destacar.', 'Ver picks', '/picks', 'target') }}{% endif %}</section><section class="v928-panel">{{ section_header('Membresías', 'Acceso transparente') }}<div class="v928-command-list">{{ quick_action('FREE', 'Calendario y estados seguros', '/membresias', 'plan') }}{{ quick_action('PRO', 'Picks y alertas según datos', '/comprar/PRO', 'plan') }}{{ quick_action('ELITE', 'Prioridad sin garantías', '/comprar/ELITE', 'plan', 'gold') }}</div></section></aside></section>
+      <section class="v933-panel">
+        {{ section_header('Todo lo que necesitas para la jornada', 'Accesos directos con el mismo lenguaje visual en móvil y escritorio.') }}
+        <div class="v933-quick-actions">
+          {{ quick_action('Partidos', 'Agenda por día y competición', '/calendar', 'calendar') }}
+          {{ quick_action('Directo', 'Marcadores y eventos confirmados', '/live', 'live', 'success') }}
+          {{ quick_action('Picks', 'Selecciones que superan el filtro de calidad', '/picks', 'target') }}
+          {{ quick_action('SHARK', 'Contexto deportivo y modo seguro', '/shark', 'shark', 'cyan') }}
+          {{ quick_action('Telegram', 'Alertas sin filler ni duplicados', '/telegram', 'telegram', 'cyan') }}
+          {{ quick_action('Histórico', 'Resultados cerrados y muestra evaluable', '/track-record', 'history') }}
+        </div>
+      </section>
+    </div>
 
-  <section class="v928-panel v928-responsible-band"><div><strong>Datos honestos</strong><span>Sin inventar partidos, cuotas, resultados ni ROI.</span></div><div><strong>Modo seguro</strong><span>Los proveedores ausentes se muestran como pendientes.</span></div><div><strong>Juego responsable</strong><span>Información para mayores de 18 años, sin garantías.</span></div></section>
-</section>
+    <aside class="v933-side-stack">
+      <section class="v933-panel">
+        {{ section_header('Pick destacado', 'Se publica únicamente con evidencia completa.') }}
+        {% if picks %}{{ pick_card(picks[0], true) }}{% else %}{{ empty_state('Sin pick publicable', 'No hay una selección real completa para destacar ahora.', 'Revisar picks', '/picks', 'target') }}{% endif %}
+      </section>
+      {{ provider_state(summary.get('has_real_data', false), summary.get('last_sync') or '', safe_message) }}
+      {% if incomplete_count %}<aside class="v933-provider-state"><header><div>{{ icon('warning') }}<strong>Registros pendientes</strong></div>{{ status_chip(incomplete_count, 'warning') }}</header><p>Estos registros no cuentan como partidos y no aparecen en la agenda principal hasta completar competición, fecha, hora y fuente.</p></aside>{% endif %}
+    </aside>
+  </section>
+
+  <section class="v933-panel">
+    {{ section_header('Elige cómo vivir NeMeSiS', 'Tres niveles claros, sin promesas de beneficios.', 'Comparar planes', '/memberships') }}
+    <div class="v933-three-col">
+      {{ quick_action('FREE', 'Agenda y estados deportivos seguros', '/memberships', 'calendar') }}
+      {{ quick_action('PRO', 'Picks y alertas cuando existen datos reales', '/memberships', 'target', 'cyan') }}
+      {{ quick_action('ELITE', 'Prioridad y funciones avanzadas sin garantías', '/memberships', 'plan', 'gold') }}
+    </div>
+  </section>
+
+  <section class="v933-panel v933-responsible-band">
+    <div class="v933-three-col">
+      <div><strong>Datos reales</strong><p>Sin partidos, cuotas, resultados, ROI ni métricas inventadas.</p></div>
+      <div><strong>Producto responsable</strong><p>Información deportiva para mayores de 18 años. El rendimiento pasado no garantiza resultados.</p></div>
+      <div><strong>Control del cliente</strong><p>Planes claros, navegación separada y estados comprensibles cuando faltan proveedores.</p></div>
+    </div>
+  </section>
+</div>
 {% endblock %}

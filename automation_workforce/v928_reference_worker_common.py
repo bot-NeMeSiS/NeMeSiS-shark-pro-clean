@@ -10,40 +10,40 @@ ROOT = Path(__file__).resolve().parents[1]
 
 WORKERS = {
     "canonical": {
-        "report": "reports/V928_COMPONENT_LIBRARY_QA.md",
-        "files": ["templates/components/v928_ui.html", "templates/components/v928_navigation.html", "static/v928-canonical.css"],
-        "tokens": ["v928-page", "v928-kpi-card", "v928-mobile-bottom-nav", "v928-admin-sidebar"],
+        "report": "reports/V933_COMPONENT_CONSISTENCY_QA.md",
+        "files": ["templates/components/v933_ui.html", "templates/components/v933_navigation.html", "static/v933-product.css"],
+        "tokens": ["v933-page", "macro kpi_card", "v933-mobile-bottom-nav", "v933-admin-sidebar"],
     },
     "admin": {
-        "report": "reports/V928_ADMIN_DESKTOP_REFERENCE_QA.md",
+        "report": "reports/V933_ADMIN_UI_QA.md",
         "files": ["templates/admin_dashboard.html", "templates/admin_telegram_command_center.html", "templates/admin_picks.html"],
-        "tokens": ["data-v928-template", "v928-admin-command-center", "v928-kpi-grid"],
+        "tokens": ["data-v933-template", "v933-admin-command-center", "v933-kpi-grid"],
     },
     "client_desktop": {
-        "report": "reports/V928_CLIENT_DESKTOP_REFERENCE_QA.md",
+        "report": "reports/V933_CLIENT_DESKTOP_QA.md",
         "files": ["templates/client_app_center.html", "templates/calendar.html", "templates/live.html", "templates/picks.html"],
-        "tokens": ["v928-layout-main-aside", "v928-sports-board", "v928-picks-board"],
+        "tokens": ["v933-two-col", "v933-sports-board", "v933-picks-board"],
     },
     "client_mobile": {
-        "report": "reports/V928_CLIENT_MOBILE_REFERENCE_QA.md",
-        "files": ["templates/components/v928_navigation.html", "static/v928-canonical.css"],
-        "tokens": ["v928-mobile-header", "v928-mobile-bottom-nav", "max-width: 820px"],
+        "report": "reports/V933_CLIENT_MOBILE_QA.md",
+        "files": ["templates/components/v933_navigation.html", "static/v933-product.css"],
+        "tokens": ["v933-mobile-header", "v933-mobile-bottom-nav", "max-width: 800px", "safe-area-inset-bottom"],
     },
     "components": {
-        "report": "reports/V928_COMPONENT_LIBRARY_QA.md",
-        "files": ["templates/components/v928_ui.html"],
-        "tokens": ["macro kpi_card", "macro match_card", "macro pick_card", "macro empty_state", "macro provider_status"],
+        "report": "reports/V933_COMPONENT_CONSISTENCY_QA.md",
+        "files": ["templates/components/v933_ui.html"],
+        "tokens": ["macro kpi_card", "macro match_card", "macro pick_card", "macro empty_state", "macro provider_state"],
     },
     "real_data": {
-        "report": "reports/V928_REAL_DATA_UI_GUARD_QA.md",
+        "report": "reports/V933_REAL_DATA_PRESENTATION_QA.md",
         "files": ["templates/admin_picks.html", "templates/admin_automation_center.html", "templates/track_record.html", "templates/home.html"],
         "tokens": ["Sin dato", "Sin pick", "datos reales"],
         "forbidden": ["Arsenal vs Chelsea", "48.732", "125.684", "€18.732", "Real Madrid vs Borussia Dortmund"],
     },
     "responsive": {
-        "report": "reports/V928_RESPONSIVE_OVERFLOW_QA.md",
-        "files": ["static/v928-canonical.css"],
-        "tokens": ["max-width: 430px", "max-width: 820px", "max-width: 980px", "min-width: 1600px", "min-width: 1920px", "overflow-x: auto"],
+        "report": "reports/V933_CLIENT_MOBILE_QA.md",
+        "files": ["static/v933-product.css"],
+        "tokens": ["max-width: 430px", "max-width: 800px", "max-width: 1180px", "safe-area-inset-bottom", "overflow-x: auto"],
     },
 }
 
@@ -98,4 +98,3 @@ def cli(kind: str) -> int:
     result = run_worker(kind)
     print(json.dumps(result, ensure_ascii=True, indent=2))
     return 0 if result["ok"] else 1
-

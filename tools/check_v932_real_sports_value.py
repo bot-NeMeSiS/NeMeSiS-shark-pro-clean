@@ -11,6 +11,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V932_AUTHENTICATED_PRODUCTION_CLIENT_ADMIN_AND_REAL_SPORTS_VALUE_FINAL"
+SUCCESSOR_VERSION = "V933_REFERENCE_PARITY_PRODUCT_DESIGN_SPRINT_SYSTEM_FINAL"
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
@@ -92,7 +93,7 @@ def main() -> int:
     valid_picks = summary.get("valid_active_picks") or []
     incomplete = summary.get("incomplete_matches") or []
     checks = {
-        "version_v932": app_module.APP_VERSION == VERSION,
+        "version_v932_or_successor": app_module.APP_VERSION in {VERSION, SUCCESSOR_VERSION},
         "home_200": home.status_code == 200,
         "today_count_matches_list": summary.get("valid_matches_today_count") == len(valid_today) == 2,
         "complete_matches_only": all(app_module._v931_match_essentials(item).get("complete") for item in valid_today),

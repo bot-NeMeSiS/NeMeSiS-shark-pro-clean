@@ -1,8 +1,8 @@
 # Verificación de imports, rutas y plantillas V723
 
 - Resultado: OK
-- Versión importada: `V932_AUTHENTICATED_PRODUCTION_CLIENT_ADMIN_AND_REAL_SPORTS_VALUE_FINAL`
-- Rutas GET: 613
+- Versión importada: `V933_REFERENCE_PARITY_PRODUCT_DESIGN_SPRINT_SYSTEM_FINAL`
+- Rutas GET: 614
 - Templates referenciados: 133
 - Templates faltantes: 0
 - Static faltantes: 0

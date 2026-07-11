@@ -101,6 +101,7 @@ def is_forbidden(filename: str) -> tuple[bool, str]:
         "V910_SECRET_AND_LOG_EXPOSURE_AUDIT.md",
         "security_secret_guard.py",
         "check_v902b_deploy_alignment_secret_guard.py",
+        "v933_design_tokens.css",
     }
     if any(marker in lower_name for marker in SECRET_MARKERS) and path.name not in allowed_sensitive_names:
         return True, "nombre sensible"

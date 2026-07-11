@@ -1,37 +1,60 @@
 {% extends "base.html" %}
-{% from "components/v930_ui.html" import page_header, kpi_card, section_header, live_card, filter_tabs, empty_state, provider_status %}
+{% from "components/v933_ui.html" import page_header, kpi_card, section_header, live_card, match_card, filter_tabs, empty_state, provider_state, status_chip, icon %}
 {% block content %}
 {% set live = data.get('live_experience') or {} %}
 {% set counts = live.get('counts') or {} %}
-{% set lane = live.get('lane') or 'live' %}
+{% set lane = live.get('lane') or request.args.get('f') or 'live' %}
 {% set safe = data.get('v925_live') or {} %}
-{% set provider = data.get('api_football_live_tracker') or {} %}
 {% set ns = namespace(matches=[]) %}
 {% for day in live.get('day_groups') or [] %}{% for league in day.get('leagues') or [] %}{% for match in league.get('matches') or [] %}{% set _ = ns.matches.append(match) %}{% endfor %}{% endfor %}{% endfor %}
 {% if not ns.matches %}{% for match in live.get('matches') or [] %}{% set _ = ns.matches.append(match) %}{% endfor %}{% endif %}
-<section class="v928-page v928-live-board v930-page v930-client-page v930-sports-page v930-live-board" data-v928-template="live" data-v930-template="live">
-  {{ page_header('Directo', 'Partidos en juego ahora, sin simular marcador ni minuto', 'live', [{'label':'Calendario','href':'/calendar'},{'label':'Actualizar','href':'/live?refresh=1','primary':true}]) }}
-  <section class="v928-kpi-grid is-four">
-    {{ kpi_card('En directo', safe.get('counts', {}).get('live', counts.get('live', 0)), 'Marcador confirmado', 'green', 'live', '/live') }}
-    {{ kpi_card('Descanso', counts.get('halftime', counts.get('break', 0)), 'Estado HT real', 'gold', 'pause', '/live?f=break') }}
+{% set upcoming = data.get('upcoming_matches') or [] %}
+
+<div class="v933-page v933-sports-board v933-live-board" data-v933-template="live" data-v933-reference="canonical-live">
+  {{ page_header('Directo', 'Marcadores, minutos y eventos únicamente cuando están confirmados.', 'live', [{'label':'Partidos','href':'/calendar'},{'label':'Ver picks','href':'/picks','primary':true,'icon':'target'}]) }}
+
+  <section class="v933-kpi-grid">
+    {{ kpi_card('En directo', safe.get('counts', {}).get('live', counts.get('live', 0)), 'Marcador confirmado', 'success', 'live', '/live?f=live') }}
+    {{ kpi_card('Descanso', counts.get('halftime', counts.get('break', 0)), 'Estado real del partido', 'warning', 'pause', '/live?f=break') }}
     {{ kpi_card('Finalizados', safe.get('counts', {}).get('finished', counts.get('finished', 0)), 'Resultados guardados', 'blue', 'history', '/live?f=finished') }}
-    {{ kpi_card('Con pick', counts.get('picks', 0), 'Solo si existe relación real', 'purple', 'target', '/picks') }}
+    {{ kpi_card('Con pick', counts.get('picks', 0), 'Relación validada', 'gold', 'target', '/live?f=with_pick') }}
   </section>
 
-  <section class="v928-panel">{{ filter_tabs([{'key':'all','label':'Todos','href':'/live?f=all'},{'key':'live','label':'En directo','href':'/live?f=live'},{'key':'break','label':'Descanso','href':'/live?f=break'},{'key':'finished','label':'Finalizados','href':'/live?f=finished'},{'key':'with_pick','label':'Con pick','href':'/live?f=with_pick'}], lane) }}</section>
+  <section class="v933-panel v933-filter-panel">
+    {{ filter_tabs([{'key':'all','label':'Todos','href':'/live?f=all'},{'key':'live','label':'En directo','href':'/live?f=live'},{'key':'break','label':'Descanso','href':'/live?f=break'},{'key':'finished','label':'Finalizados','href':'/live?f=finished'},{'key':'with_pick','label':'Con pick','href':'/live?f=with_pick'}], lane) }}
+  </section>
 
-  <section class="v928-layout-wide-aside">
-    <div class="v928-stack">
-      <section class="v928-panel">
-        {{ section_header('Board en vivo', 'Marcadores confirmados sin bloquear la pantalla') }}
-        {% if ns.matches %}<div class="v928-grid is-two">{% for match in ns.matches %}{{ live_card(match) }}{% endfor %}</div>
-        {% else %}{{ empty_state('No hay partidos en directo confirmados', 'No hay encuentros live disponibles ahora mismo. Puedes revisar los próximos partidos sin ver marcadores de ejemplo.', 'Ver próximos partidos', '/calendar', 'live') }}{% endif %}
+  <section class="v933-two-col">
+    <div class="v933-main-stack">
+      <section class="v933-panel">
+        {{ section_header('Board en vivo', 'El contenido se mantiene rápido aunque el proveedor no responda.') }}
+        {% if ns.matches %}
+        <div class="v933-live-grid">{% for match in ns.matches %}{{ live_card(match) }}{% endfor %}</div>
+        {% else %}
+          {{ empty_state('No hay partidos en directo confirmados', 'No se simulan marcadores ni minutos. Puedes consultar la agenda real mientras llega el próximo evento.', 'Ver próximos partidos', '/calendar', 'live') }}
+        {% endif %}
       </section>
+
+      {% if not ns.matches %}
+      <section class="v933-panel">
+        {{ section_header('Próximos encuentros', 'Una alternativa útil cuando no hay directo.', 'Abrir calendario', '/calendar') }}
+        {% if upcoming %}<div class="v933-match-grid">{% for match in upcoming[:3] %}{{ match_card(match, false, true) }}{% endfor %}</div>{% else %}<div class="v933-safe-copy">La próxima agenda completa aparecerá aquí cuando esté sincronizada.</div>{% endif %}
+      </section>
+      {% endif %}
     </div>
-    <aside class="v928-stack">
-      {{ provider_status(safe.get('source'), safe.get('has_real_data'), safe.get('last_sync'), safe.get('provider_status') or provider.get('status'), safe.get('cache_status'), safe.get('safe_message') or provider.get('message')) }}
-      <section class="v928-panel">{{ section_header('Garantías live', 'Qué se muestra y qué queda pendiente') }}<div class="v928-truth-list"><div><span>Marcador</span><strong>Solo si es real</strong></div><div><span>Minuto</span><strong>Solo si llega del proveedor</strong></div><div><span>Eventos</span><strong>Sin simulación</strong></div><div><span>API durante render</span><strong>No</strong></div></div></section>
+
+    <aside class="v933-side-stack">
+      {{ provider_state(safe.get('has_real_data', false), safe.get('last_sync') or '', safe.get('safe_message') or '') }}
+      <section class="v933-panel">
+        {{ section_header('Qué ves en directo', 'Un contrato claro con los datos.') }}
+        <div class="v933-truth-list">
+          <div>{{ icon('score') }}<span><strong>Marcador</strong><small>Solo si es real</small></span>{{ status_chip('Protegido','success') }}</div>
+          <div>{{ icon('clock') }}<span><strong>Minuto</strong><small>Solo si llega del proveedor</small></span>{{ status_chip('Protegido','success') }}</div>
+          <div>{{ icon('live') }}<span><strong>Eventos</strong><small>Sin simulación</small></span>{{ status_chip('Protegido','success') }}</div>
+          <div>{{ icon('database') }}<span><strong>Carga</strong><small>DB y caché durante render</small></span>{{ status_chip('Rápida','blue') }}</div>
+        </div>
+      </section>
     </aside>
   </section>
-</section>
+</div>
 {% endblock %}

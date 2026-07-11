@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
 import sys
+from urllib.parse import urlparse
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -259,7 +261,7 @@ def _write_payload(output: Path, payload: dict, comparison: dict | None = None) 
 def _unavailable_payload(output: Path, reason: str, env: dict | None = None) -> dict:
     output.mkdir(parents=True, exist_ok=True)
     payload = {
-        "ok": True,
+        "ok": False,
         "version": VERSION,
         "generated_at_madrid": _now_label(),
         "browser_available": False,
@@ -329,6 +331,7 @@ def run_browser_reference_qa(
         devices.append(("desktop", "desktop_1440x900", {"width": 1440, "height": 900}))
     if mobile and v928_matrix:
         devices.extend([
+            ("mobile", "mobile_360x800", {"width": 360, "height": 800}),
             ("mobile", "mobile_390x844", {"width": 390, "height": 844}),
             ("mobile", "mobile_430x932", {"width": 430, "height": 932}),
         ])
@@ -452,21 +455,34 @@ def run_browser_reference_qa(
     except Exception as exc:
         return _unavailable_payload(output, f"Playwright instalado, pero navegador no disponible: {exc.__class__.__name__}: {str(exc)[:240]}", env)
 
+    capture_errors = [item for item in captures if item.get("error")]
+    auth_redirect_issues = []
+    for item in captures:
+        final_path = urlparse(str(item.get("final_url") or "")).path
+        role = item.get("session_profile")
+        if role == "client" and final_path in {"/cliente-login", "/login", "/entrar"}:
+            auth_redirect_issues.append(item)
+        elif role == "admin" and final_path in {"/admin-login", "/admin/login"}:
+            auth_redirect_issues.append(item)
+    overflow_issues = [item for item in captures if item.get("overflow_x")]
+    qa_ok = not capture_errors and not auth_redirect_issues and not overflow_issues
     payload = {
-        "ok": True,
+        "ok": qa_ok,
         "version": VERSION,
         "generated_at_madrid": _now_label(),
         "browser_available": True,
         "playwright_available": True,
         "browsers_available": True,
-        "browser_qa_status": "CAPTURED",
+        "browser_qa_status": "CAPTURED" if qa_ok else "CAPTURED_WITH_ISSUES",
         "base_url": base_url,
         "screenshots": captures,
         "screenshots_captured": len([item for item in captures if item.get("screenshot") and not item.get("error")]),
         "routes_captured": sorted({item["route"] for item in captures if item.get("screenshot") and not item.get("error")}),
         "desktop_routes": [item["route"] for item in captures if item.get("device") == "desktop"],
         "mobile_routes": [item["route"] for item in captures if item.get("device") == "mobile"],
-        "overflow_issues": [item for item in captures if item.get("overflow_x")],
+        "capture_errors": capture_errors,
+        "auth_redirect_issues": auth_redirect_issues,
+        "overflow_issues": overflow_issues,
         "safe_mock_sessions": bool(signed_sessions),
         "viewport_profiles": [profile for _, profile, _ in devices],
         "note": "Capturas locales; no prueban produccion Render.",
@@ -505,8 +521,10 @@ def main() -> int:
         write_json=True,
         v928_matrix=bool(args.v928_matrix),
         safe_mock_sessions=bool(args.safe_mock_sessions),
+        safe_session_secret=os.getenv("BROWSER_QA_SESSION_SECRET", ""),
     )
-    print(json.dumps(payload, ensure_ascii=False, indent=2))
+    # Keep the Windows console path ASCII-safe; reports retain their UTF-8 data.
+    print(json.dumps(payload, ensure_ascii=True, indent=2))
     return 0
 
 

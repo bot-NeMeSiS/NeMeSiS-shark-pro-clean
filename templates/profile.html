@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "components/v930_ui.html" import page_header, kpi_card, section_header, quick_action, empty_state, status_chip %}
+{% from "components/v933_ui.html" import page_header, kpi_card, section_header, quick_action, empty_state, status_chip, profile_card, action_button, icon %}
 {% block content %}
 {% set user = data.get('session_user') or current_user or {} %}
 {% set plan = (user.get('membership') or 'FREE')|upper %}
@@ -8,25 +8,62 @@
 {% set telegram = data.get('telegram_state') or {} %}
 {% set activity = data.get('client_activity') or [] %}
 {% set favorites = data.get('favorites') or [] %}
-<section class="v928-page v928-profile v930-page v930-client-page v930-profile-page" data-v928-template="profile" data-v930-template="profile">
-  {{ page_header('Mi cuenta', 'Tu plan, ajustes y actividad real', 'user', [{'label':'Gestionar plan','href':'/membresias','primary':true}]) }}
-  <section class="v928-profile-hero">
-    <div class="v928-profile-avatar"><img src="/static/img/shark-logo.svg" alt=""></div>
-    <div class="v928-profile-copy"><h2>{{ user.get('name') or user.get('username') or 'Cliente' }}</h2><div>{{ status_chip(plan,'success') }} {{ status_chip('Sesión activa','success') }}</div><p>{% if user.get('created_at') %}Miembro desde {{ user.get('created_at')|madrid_date_label }}{% else %}Cuenta protegida{% endif %}</p></div>
-    <div class="v928-profile-summary"><div><span>Plan actual</span><strong>{{ plan }}</strong></div><div><span>Telegram</span><strong>{{ 'Conectado' if telegram.get('linked') else 'Pendiente' }}</strong></div></div>
-  </section>
-  <section class="v928-kpi-grid is-four">
+
+<div class="v933-page v933-profile-page" data-v933-template="profile" data-v933-reference="canonical-profile">
+  {{ page_header('Mi cuenta', 'Tu plan, ajustes y actividad real.', 'user', [{'label':'Gestionar plan','href':'/memberships','primary':true,'icon':'plan'}]) }}
+
+  {{ profile_card(user, plan, 'Sesión activa') }}
+
+  <section class="v933-kpi-grid">
     {{ kpi_card('Partidos', (calendar.get('matches') or [])|length, 'Agenda disponible', 'blue', 'calendar', '/calendar') }}
-    {{ kpi_card('Picks completos', picks|length, 'Visibles para tu plan', 'purple', 'target', '/picks') }}
+    {{ kpi_card('Picks completos', picks|length, 'Visibles según tu plan', 'cyan', 'target', '/picks') }}
     {{ kpi_card('Favoritos', favorites|length, 'Guardados en tu cuenta', 'gold', 'star', '/favorites') }}
-    {{ kpi_card('Actividad', activity|length, 'Eventos recientes', 'green', 'history', '/actividad') }}
+    {{ kpi_card('Actividad', activity|length, 'Eventos recientes', 'success', 'history', '/actividad') }}
   </section>
-  <section class="v928-layout-main-aside">
-    <div class="v928-stack">
-      <section class="v928-panel">{{ section_header('Cuenta y servicios', 'Accesos principales') }}<div class="v928-command-grid">{{ quick_action('Plan actual', plan ~ ' y beneficios disponibles', '/membresias', 'plan', 'gold') }}{{ quick_action('Telegram', 'Vinculación y preferencias', '/telegram', 'telegram') }}{{ quick_action('Favoritos', 'Equipos, ligas y partidos guardados', '/favorites', 'star') }}{{ quick_action('Notificaciones', 'Alertas y preferencias', '/alertas', 'notifications') }}{{ quick_action('Seguridad', 'Contraseña y sesiones', '/password-reset', 'shield') }}{{ quick_action('Soporte', 'Ayuda y contacto', '/support', 'support') }}</div></section>
-      <section class="v928-panel">{{ section_header('Actividad reciente', 'Acciones reales de tu cuenta', 'Ver actividad', '/actividad') }}{% if activity %}<div class="v928-activity-list">{% for item in activity[:10] %}<article><time>{{ item.get('created_at')|madrid_datetime_label if item.get('created_at') else 'Fecha pendiente' }}</time><div><strong>{{ item.get('title') or item.get('action') or 'Actividad' }}</strong><small>{{ item.get('body') or item.get('label') or item.get('kind') or 'Detalle disponible' }}</small></div>{{ status_chip(item.get('status') or 'Registrado','neutral') }}</article>{% endfor %}</div>{% else %}{{ empty_state('Sin actividad reciente', 'Las acciones aparecerán aquí cuando estén registradas de forma segura.', '', '', 'history') }}{% endif %}</section>
+
+  <section class="v933-two-col">
+    <div class="v933-main-stack">
+      <section class="v933-panel">
+        {{ section_header('Cuenta y servicios', 'Accesos principales de tu perfil.') }}
+        <div class="v933-quick-actions">
+          {{ quick_action('Plan actual', plan ~ ' y beneficios disponibles', '/memberships', 'plan', 'gold') }}
+          {{ quick_action('Telegram', 'Vinculación y preferencias', '/telegram', 'telegram', 'cyan') }}
+          {{ quick_action('Favoritos', 'Equipos, ligas y partidos guardados', '/favorites', 'star') }}
+          {{ quick_action('Notificaciones', 'Alertas y preferencias', '/alertas', 'alert') }}
+          {{ quick_action('Seguridad', 'Contraseña y sesiones', '/password-reset', 'shield') }}
+          {{ quick_action('Soporte', 'Ayuda y contacto', '/support', 'support') }}
+        </div>
+      </section>
+
+      <section class="v933-panel">
+        {{ section_header('Actividad reciente', 'Acciones reales de tu cuenta.', 'Ver actividad', '/actividad') }}
+        {% if activity %}
+        <div class="v933-activity-list">{% for item in activity[:10] %}<article><time>{{ item.get('created_at')|madrid_datetime_label if item.get('created_at') else 'Fecha pendiente' }}</time><div><strong>{{ item.get('title') or item.get('action') or 'Actividad' }}</strong><small>{{ item.get('body') or item.get('label') or item.get('kind') or 'Detalle disponible' }}</small></div>{{ status_chip(item.get('status') or 'Registrado','neutral') }}</article>{% endfor %}</div>
+        {% else %}{{ empty_state('Sin actividad reciente', 'Las acciones aparecerán aquí cuando estén registradas de forma segura.', '', '', 'history') }}{% endif %}
+      </section>
     </div>
-    <aside class="v928-stack"><section class="v928-panel">{{ section_header('Seguridad y ajustes', 'Controles de tu cuenta') }}<div class="v928-command-list">{{ quick_action('Cambiar contraseña', 'Actualiza tus credenciales', '/password-reset', 'shield') }}{{ quick_action('Términos', 'Condiciones de uso', '/terminos', 'document') }}{{ quick_action('Privacidad', 'Tratamiento de datos', '/privacidad', 'shield') }}{{ quick_action('Reembolsos', 'Política aplicable', '/reembolsos', 'payments') }}</div></section><a class="v928-button v928-logout-button" href="/logout">Cerrar sesión</a></aside>
+
+    <aside class="v933-side-stack">
+      <section class="v933-panel">
+        {{ section_header('Estado de tu cuenta', 'Información esencial, sin exponer datos privados.') }}
+        <div class="v933-truth-list">
+          <div>{{ icon('plan') }}<span><strong>Plan</strong><small>{{ plan }}</small></span>{{ status_chip('Activo','success') }}</div>
+          <div>{{ icon('telegram') }}<span><strong>Telegram</strong><small>{{ 'Cuenta vinculada' if telegram.get('linked') else 'Pendiente de vincular' }}</small></span>{{ status_chip('Conectado' if telegram.get('linked') else 'Pendiente','success' if telegram.get('linked') else 'warning') }}</div>
+          <div>{{ icon('star') }}<span><strong>Favoritos</strong><small>{{ favorites|length }} guardados</small></span></div>
+          <div>{{ icon('lock') }}<span><strong>Cuenta</strong><small>Sesión protegida</small></span>{{ status_chip('Segura','success') }}</div>
+        </div>
+      </section>
+      <section class="v933-panel">
+        {{ section_header('Seguridad y documentos', 'Controles de tu cuenta.') }}
+        <div class="v933-main-stack">
+          {{ quick_action('Cambiar contraseña', 'Actualiza tus credenciales', '/password-reset', 'shield') }}
+          {{ quick_action('Términos', 'Condiciones de uso', '/terminos', 'document') }}
+          {{ quick_action('Privacidad', 'Tratamiento de datos', '/privacidad', 'lock') }}
+          {{ quick_action('Reembolsos', 'Política aplicable', '/reembolsos', 'payments') }}
+        </div>
+      </section>
+      {{ action_button('Cerrar sesión', '/logout', false, 'danger', false, 'logout') }}
+    </aside>
   </section>
-</section>
+</div>
 {% endblock %}

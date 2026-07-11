@@ -20,7 +20,7 @@ MANIFEST_PATH = ROOT / MANIFEST_NAME
 
 
 def release_output_dir() -> Path:
-    preferred = ROOT.parent / "releases"
+    preferred = ROOT / "release_output"
     try:
         preferred.mkdir(parents=True, exist_ok=True)
         probe = preferred / ".codex_release_probe"
@@ -539,6 +539,11 @@ def include(path: Path) -> bool:
             or rel_posix.startswith("reports/V930_")
             or rel_posix.startswith("reports/V931_")
             or rel_posix.startswith("reports/V932_")
+            or (
+                rel_posix.startswith("reports/V933_")
+                and len(parts) == 2
+                and path.suffix.lower() == ".md"
+            )
             or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V912")
             or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V913")
             or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V914")
@@ -566,6 +571,7 @@ def include(path: Path) -> bool:
         "data/runtime/client_route_health_v923.json",
         "data/runtime/navigation_integrity/latest_run.json",
         "data/runtime/v930_visual_parity.json",
+        "data/runtime/v933_reference_parity.json",
     }:
         return True
     if any(part in EXCLUDE_DIRS for part in parts):
@@ -579,6 +585,7 @@ def include(path: Path) -> bool:
         ".env.render.clean",
         "security_secret_guard.py",
         "check_v902b_deploy_alignment_secret_guard.py",
+        "v933_design_tokens.css",
     }:
         return False
     if any(lower_name.endswith(suffix) for suffix in EXCLUDE_SUFFIXES):

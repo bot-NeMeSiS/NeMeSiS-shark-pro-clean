@@ -1,245 +1,60 @@
 {% extends "base.html" %}
+{% from "components/v933_ui.html" import page_header, kpi_card, status_chip, data_table, empty_state, next_action, icon %}
 {% block content %}
 {% set summary = workforce.summary or {} %}
 {% set full_run = workforce.full_run or {} %}
 {% set post_deploy = workforce.post_deploy or {} %}
-  {% set browser_gate = workforce.browser_gate or {} %}
-  {% set artifact_gate = workforce.artifact_gate or {} %}
-  {% set v921_gate = workforce.v921_gate or {} %}
-  {% set latest_run = workforce.latest_run or {} %}
-<!-- V925 automation workforce command center rebuild -->
-<section class="ns-admin-page v924-no-dead-space v924-admin-shell v924-page-shell v915-workforce-shell v916-workforce-activation v917-workforce-full-run v918-post-deploy-workforce v919-browser-qa-gate v920-browser-qa-artifacts v921-browser-qa-artifact-run v926-desktop-shell v926-desktop-command-center v926-admin-desktop v928-admin-command-center" data-v928-template="admin_automation_workforce" data-v926-template="admin_automation_workforce" data-v915-template="admin_automation_workforce" data-v916-workforce-activation="true" data-v917-full-run="true" data-v918-post-deploy="true" data-v919-browser-qa-gate="true" data-v920-browser-qa-artifacts="true" data-v921-browser-qa-artifact-run="true" data-v924-template="admin_automation_workforce">
-  <div class="ns-page-header v927-admin-desktop-shell v927-no-dead-space" data-v927-template="admin_automation_workforce">
-    <span class="ns-chip">Workforce operativo</span>
-    <h1>Equipo automático</h1>
-    <p>Centro interno para validar releases, preparar deploy seguro, revisar Browser QA, controlar la cola visual y ejecutar Sentinel post-deploy sin exponer secretos.</p>
-    <div class="ns-actions">
-      <button class="ns-button ns-button-primary" type="button" data-v904-fetch="/api/admin/automation-workforce/status">Actualizar estado</button>
-      <button class="ns-button ns-button-secondary" type="button" data-v904-fetch="/api/admin/automation-workforce/verify-runtime">Verificar runtime</button>
-      <button class="ns-button ns-button-ghost" type="button" data-v904-fetch="/api/admin/automation-workforce/visual-queue-refresh">Refrescar cola visual</button>
-    </div>
-    <output class="v904-safe-api-output" data-v904-output>Modo seguro: no despliega, no envia Telegram real, no toca pagos ni DB real.</output>
-  </div>
+{% set browser_gate = workforce.browser_gate or {} %}
+{% set artifact_gate = workforce.artifact_gate or {} %}
+{% set v921_gate = workforce.v921_gate or {} %}
+{% set v933_state = workforce.v933_state or {} %}
+{% set latest_run = workforce.latest_run or {} %}
+{% set queue_total = v921_gate.v921_visual_queue_total or artifact_gate.v920_visual_queue_total or browser_gate.v919_visual_queue_total or 0 %}
+{% set queue_blocked = v921_gate.v921_visual_queue_blocked or artifact_gate.v920_visual_queue_blocked or browser_gate.v919_visual_queue_blocked or 0 %}
+{% set queue_ready = v921_gate.v921_visual_queue_ready or artifact_gate.v920_visual_queue_ready or browser_gate.v919_visual_queue_ready or 0 %}
+{% set screenshots = v933_state.v933_browser_screenshots or v921_gate.v921_valid_screenshots_count or artifact_gate.v920_valid_screenshots_count or browser_gate.v919_valid_screenshots_count or 0 %}
+{% set browser_status = v921_gate.v921_browser_qa_environment_status or artifact_gate.v920_browser_qa_execution_status or browser_gate.v919_browser_qa_discovery_status or 'PACKAGE_MISSING' %}
+{% set next_step = v921_gate.v921_next_required_action or artifact_gate.v920_next_required_action or browser_gate.v919_next_required_action or post_deploy.v918_next_required_action or workforce.next_action or 'run_browser_qa_or_upload_artifacts' %}
 
-  <section class="v922-admin-command-center v922-workforce-visible-status v924-section-compact v924-above-fold v927-admin-command-center v927-desktop-above-fold" aria-label="Workforce visible V927">
-    <div class="v922-section-title">
-      <span>Equipo automático</span>
-      <h2>Estado accionable sin ruido tecnico</h2>
-      <p>El panel separa lo instalado, lo pendiente y lo bloqueado por evidencias. No muestra secretos y no habilita deploy real sin autorizacion.</p>
-    </div>
-    <div class="v922-admin-kpi-grid v927-admin-kpi-deck">
-      <article class="v922-admin-system-status v927-admin-worker-card"><span>Core</span><strong>{{ 'Listo' if summary.v916_workforce_core_ready or workforce.workers else 'Revisar' }}</strong><small>Workers y panel disponibles.</small></article>
-      <article class="v922-admin-system-status v927-admin-worker-card"><span>Deploy hook</span><strong>{{ 'Configurado' if summary.v916_deploy_hook_configured else 'Pendiente' }}</strong><small>Solo desde secretos de entorno/GitHub.</small></article>
-      <article class="v922-admin-system-status v927-admin-worker-card"><span>Browser QA</span><strong>{{ v921_gate.v921_browser_qa_environment_status or artifact_gate.v920_browser_qa_execution_status or 'PACKAGE_MISSING' }}</strong><small>Ejecutar local o GitHub Action.</small></article>
-      <article class="v922-admin-system-status v927-admin-worker-card"><span>Cola visual</span><strong>{{ v921_gate.v921_visual_queue_blocked or artifact_gate.v920_visual_queue_blocked or browser_gate.v919_visual_queue_blocked or 0 }} bloqueados</strong><small>Sin screenshot no se desbloquea.</small></article>
-    </div>
-    <div class="v922-admin-next-action v927-client-next-action">
-      <strong>Proxima accion exacta</strong>
-      <p>Ejecutar Browser QA real, importar artifacts con capturas validas y despues refrescar la cola visual. Pixel-perfect sigue bloqueado sin evidencia.</p>
-    </div>
+<div class="v933-page v933-admin-command-center v933-admin-workforce" data-v933-template="admin_automation_workforce" data-v933-reference="canonical-admin-automation">
+  {{ page_header('Equipo automático', 'Release, deploy seguro, Browser QA, Sentinel y cola visual en un único centro operativo.', 'automation', [{'label':'Sentinel','href':'/admin/autonomous-company-sentinel','icon':'shield'},{'label':'Navegación','href':'/admin/navigation-integrity','primary':true,'icon':'routes'}]) }}
+
+  <section class="v933-kpi-grid is-six">
+    {{ kpi_card('Core Workforce', 'Listo' if summary.v916_workforce_core_ready or workforce.workers else 'Revisar', (workforce.workers|length|string) ~ ' workers detectados', 'success' if summary.v916_workforce_core_ready or workforce.workers else 'warning', 'automation') }}
+    {{ kpi_card('Deploy hook', 'Configurado' if summary.v916_deploy_hook_configured else 'Pendiente', 'Solo desde entorno seguro', 'success' if summary.v916_deploy_hook_configured else 'warning', 'rocket') }}
+    {{ kpi_card('Browser QA', browser_status, (screenshots|string) ~ ' capturas válidas', 'success' if screenshots else 'warning', 'image') }}
+    {{ kpi_card('Cola visual', queue_blocked, 'bloqueados de ' ~ queue_total, 'warning' if queue_blocked else 'success', 'target') }}
+    {{ kpi_card('Ready for Codex', queue_ready, 'Con evidencia asociada', 'cyan', 'check') }}
+    {{ kpi_card('Secret Guard', 'Listo' if summary.v916_secret_guard_ready else 'Revisar', 'Sin secretos visibles', 'success' if summary.v916_secret_guard_ready else 'warning', 'shield') }}
   </section>
 
-  <section class="ns-grid ns-grid-4 v916-workforce-status-grid">
-    <article class="ns-stat v916-status-card">
-      <span>Core Workforce</span>
-      <strong>{{ 'Listo' if summary.v916_workforce_core_ready else 'Revisar' }}</strong>
-      <small>Workers, CI, panel y guards instalados.</small>
-    </article>
-    <article class="ns-stat v916-status-card">
-      <span>Deploy Hook</span>
-      <strong>{{ 'Configurado' if summary.v916_deploy_hook_configured else 'Pendiente' }}</strong>
-      <small>{{ summary.v915_render_deploy_worker_status or 'dry-run' }}</small>
-    </article>
-    <article class="ns-stat v916-status-card">
-      <span>Browser QA</span>
-      <strong>{{ summary.v915_browser_qa_status or 'unknown' }}</strong>
-      <small>{{ 'GitHub Action lista' if summary.v916_browser_qa_github_action_ready else 'Action pendiente' }}</small>
-    </article>
-    <article class="ns-stat v916-status-card">
-      <span>Cola visual</span>
-      <strong>{{ summary.v916_visual_queue_blocked_count or 0 }}</strong>
-      <small>Bloqueados por falta de screenshot.</small>
-    </article>
-  </section>
+  <section class="v933-admin-layout">
+    <div class="v933-main-stack">
+      <section class="v933-admin-panel">
+        <header><div><h2>Estado por worker</h2><p>Última ejecución consolidada, sin exponer secretos.</p></div>{{ status_chip(full_run.v917_workforce_last_run_status or latest_run.overall_status or 'not_run','success' if (full_run.v917_workforce_last_run_status or latest_run.overall_status) == 'ok' else 'warning') }}</header>
+        <div class="v933-admin-panel-body">
+          {% if workforce.workers %}{% call data_table(['Worker','Archivo','Estado']) %}{% for worker in workforce.workers %}<tr><td><strong>{{ worker.name }}</strong></td><td><code>{{ worker.file }}</code></td><td>{{ status_chip(worker.status,'success' if worker.status in ['ok','ready','installed'] else 'warning') }}</td></tr>{% endfor %}{% endcall %}{% else %}{{ empty_state('Sin workers detectados', 'Revisa la instalación de automation_workforce.', '', '', 'automation') }}{% endif %}
+        </div>
+      </section>
 
-  <section class="ns-admin-card v917-full-run-panel">
-    <div class="ns-section-title">
-      <h2>Ultimo full run</h2>
-      <span class="ns-badge">{{ full_run.v917_workforce_last_run_status or 'not_run' }}</span>
-    </div>
-    <p>{{ latest_run.safe_message or 'Todavia no hay una ejecucion completa consolidada.' }}</p>
-    <div class="ns-grid ns-grid-4">
-      <article class="ns-stat"><span>Release Manager</span><strong>{{ full_run.v917_release_manager_status or 'not_run' }}</strong></article>
-      <article class="ns-stat"><span>Runtime Verifier</span><strong>{{ full_run.v917_runtime_verifier_status or 'not_run' }}</strong></article>
-      <article class="ns-stat"><span>Secret Guard</span><strong>{{ full_run.v917_secret_guard_status or 'not_run' }}</strong></article>
-      <article class="ns-stat"><span>Telegram Dry-run</span><strong>{{ full_run.v917_telegram_dry_run_watcher_status or 'not_run' }}</strong></article>
-    </div>
-    <div class="ns-empty ns-empty-compact">Siguiente accion: {{ full_run.v917_next_required_action or 'run_full_workforce' }}</div>
-  </section>
+      <section class="v933-admin-panel">
+        <header><div><h2>GitHub Actions</h2><p>CI, deploy y Browser QA sin secretos en el repositorio.</p></div>{{ status_chip((workforce.workflows|length|string) ~ ' workflows','blue') }}</header>
+        <div class="v933-admin-panel-body">{% if workforce.workflows %}{% call data_table(['Workflow','Ruta','Estado']) %}{% for flow in workforce.workflows %}<tr><td>{{ flow.name }}</td><td><code>{{ flow.path }}</code></td><td>{{ status_chip(flow.status,'success' if flow.status in ['ok','ready','installed'] else 'warning') }}</td></tr>{% endfor %}{% endcall %}{% else %}{{ empty_state('Sin workflows detectados', 'Revisa .github/workflows.', '', '', 'automation') }}{% endif %}</div>
+      </section>
 
-  <section class="ns-admin-card v918-post-deploy-panel">
-    <div class="ns-section-title">
-      <h2>Post-deploy operativo</h2>
-      <span class="ns-badge">{{ 'V917 verificada' if post_deploy.v918_production_verified else 'Verificacion pendiente' }}</span>
+      <section class="v933-admin-panel">
+        <header><div><h2>Acciones seguras</h2><p>Solo lectura o dry-run; no despliegan ni envían Telegram.</p></div>{{ status_chip('Dry-run','success') }}</header>
+        <div class="v933-admin-panel-body"><div class="v933-admin-action-grid"><button class="v933-action is-primary is-blue" type="button" data-v904-fetch="/api/admin/automation-workforce/status">Actualizar estado</button><button class="v933-action is-blue" type="button" data-v904-fetch="/api/admin/automation-workforce/run-checks">Release Manager</button><button class="v933-action is-blue" type="button" data-v904-fetch="/api/admin/automation-workforce/verify-runtime">Verificar runtime</button><button class="v933-action is-blue" type="button" data-v904-fetch="/api/admin/automation-workforce/post-deploy-sentinel">Sentinel post-deploy</button><button class="v933-action is-blue" type="button" data-v904-fetch="/api/admin/automation-workforce/browser-qa-status">Browser QA status</button><button class="v933-action is-blue" type="button" data-v904-fetch="/api/admin/automation-workforce/visual-queue-refresh">Refrescar cola</button></div><output class="v904-safe-api-output v933-workforce-output" data-v904-output>Modo seguro: no despliega, no envía Telegram real, no toca pagos ni DB real.</output></div>
+      </section>
     </div>
-    <p>Estado consolidado despues del deploy: runtime verificado, Browser QA pendiente de capturas y cola visual bloqueada hasta tener evidencia real.</p>
-    <div class="ns-grid ns-grid-4">
-      <article class="ns-stat"><span>Runtime Verifier</span><strong>{{ post_deploy.v918_runtime_verifier_status or 'not_run' }}</strong></article>
-      <article class="ns-stat"><span>Browser QA Router</span><strong>{{ post_deploy.v918_browser_qa_action_status or 'not_run' }}</strong></article>
-      <article class="ns-stat"><span>Cola bloqueada</span><strong>{{ post_deploy.v918_visual_queue_blocked or 0 }}</strong></article>
-      <article class="ns-stat"><span>Cola lista</span><strong>{{ post_deploy.v918_visual_queue_ready or 0 }}</strong></article>
-    </div>
-    <div class="ns-empty ns-empty-compact">Proxima accion: {{ post_deploy.v918_next_required_action or 'run_browser_qa_or_import_results' }}</div>
-  </section>
 
-  <section class="ns-admin-card v919-browser-qa-gate-panel">
-    <div class="ns-section-title">
-      <h2>Browser QA Evidence Gate</h2>
-      <span class="ns-badge">{{ browser_gate.v919_browser_qa_discovery_status or 'NO_RESULTS_FOUND' }}</span>
-    </div>
-    <p>V919 valida que no se desbloquee ningun item visual sin screenshot real. JSON sin imagen no cuenta como evidencia visual.</p>
-    <div class="ns-grid ns-grid-4">
-      <article class="ns-stat"><span>JSON resultados</span><strong>{{ 'si' if browser_gate.v919_results_json_found else 'no' }}</strong></article>
-      <article class="ns-stat"><span>Desktop screenshots</span><strong>{{ browser_gate.v919_desktop_screenshots_count or 0 }}</strong></article>
-      <article class="ns-stat"><span>Mobile screenshots</span><strong>{{ browser_gate.v919_mobile_screenshots_count or 0 }}</strong></article>
-      <article class="ns-stat"><span>Ready invalidos</span><strong>{{ browser_gate.v919_visual_queue_invalid_ready_without_screenshot or 0 }}</strong></article>
-    </div>
-    <div class="ns-empty ns-empty-compact">Import status: {{ browser_gate.v919_import_status or 'NO_VALID_SCREENSHOTS_TO_IMPORT' }}</div>
-    <div class="ns-empty ns-empty-compact">Proxima accion V919: {{ browser_gate.v919_next_required_action or 'run_browser_qa_or_upload_artifacts' }}</div>
-  </section>
+    <aside class="v933-side-stack">
+      <section class="v933-admin-panel"><header><div><h2>Browser QA</h2><p>Evidencia visual real.</p></div>{{ status_chip(browser_status,'success' if screenshots else 'warning') }}</header><div class="v933-admin-panel-body"><div class="v933-truth-list"><div>{{ icon('image') }}<span><strong>Capturas válidas</strong><small>{{ screenshots }}</small></span></div><div>{{ icon('target') }}<span><strong>Cola total</strong><small>{{ queue_total }} items</small></span></div><div>{{ icon('alert') }}<span><strong>Bloqueados</strong><small>{{ queue_blocked }} sin evidencia</small></span></div><div>{{ icon('check') }}<span><strong>Listos</strong><small>{{ queue_ready }} con screenshot</small></span></div></div><p class="v933-safe-copy">Pixel-perfect permanece bloqueado hasta tener capturas reales, comparación humana y cero gaps corregibles.</p></div></section>
 
-  <section class="ns-admin-card v920-browser-qa-artifacts-panel">
-    <div class="ns-section-title">
-      <h2>Browser QA Artifacts</h2>
-      <span class="ns-badge">{{ artifact_gate.v920_browser_qa_execution_status or 'PACKAGE_MISSING' }}</span>
-    </div>
-    <p>V920 intenta capturar o importar artifacts reales. La cola visual solo se desbloquea con imagen valida asociada a ruta.</p>
-    <div class="ns-grid ns-grid-4">
-      <article class="ns-stat"><span>Artifacts</span><strong>{{ 'si' if artifact_gate.v920_artifacts_found else 'no' }}</strong></article>
-      <article class="ns-stat"><span>Capturas validas</span><strong>{{ artifact_gate.v920_valid_screenshots_count or 0 }}</strong></article>
-      <article class="ns-stat"><span>Desktop</span><strong>{{ artifact_gate.v920_desktop_screenshots_count or 0 }}</strong></article>
-      <article class="ns-stat"><span>Mobile</span><strong>{{ artifact_gate.v920_mobile_screenshots_count or 0 }}</strong></article>
-    </div>
-    <div class="ns-grid ns-grid-3">
-      <article class="ns-stat"><span>Cola total</span><strong>{{ artifact_gate.v920_visual_queue_total or 0 }}</strong></article>
-      <article class="ns-stat"><span>Bloqueada</span><strong>{{ artifact_gate.v920_visual_queue_blocked or 0 }}</strong></article>
-      <article class="ns-stat"><span>Lista</span><strong>{{ artifact_gate.v920_visual_queue_ready or 0 }}</strong></article>
-    </div>
-    <div class="ns-empty ns-empty-compact">Import status: {{ artifact_gate.v920_import_status or 'NO_VALID_SCREENSHOTS_TO_IMPORT' }}</div>
-    <div class="ns-empty ns-empty-compact">Proxima accion V920: {{ artifact_gate.v920_next_required_action or 'run_github_action_browser_qa_or_upload_artifacts' }}</div>
-  </section>
+      <section class="v933-admin-panel"><header><div><h2>Deploy y seguridad</h2><p>Estados separados.</p></div></header><div class="v933-admin-panel-body"><div class="v933-truth-list"><div>{{ icon('rocket') }}<span><strong>Deploy automático</strong><small>{{ 'Habilitado' if summary.v915_automated_deploy_enabled else 'Desactivado' }}</small></span>{{ status_chip('Activo' if summary.v915_automated_deploy_enabled else 'Seguro','warning' if summary.v915_automated_deploy_enabled else 'success') }}</div><div>{{ icon('lock') }}<span><strong>Deploy hook</strong><small>{{ 'Configurado' if summary.v916_deploy_hook_configured else 'Pendiente' }}</small></span></div><div>{{ icon('shield') }}<span><strong>Secret Guard</strong><small>{{ 'Listo' if summary.v916_secret_guard_ready else 'Revisar' }}</small></span></div><div>{{ icon('shield') }}<span><strong>Post-deploy Sentinel</strong><small>{{ 'Listo' if summary.v916_post_deploy_sentinel_ready else 'Revisar' }}</small></span></div></div></div></section>
 
-  <section class="ns-admin-card v921-browser-qa-artifact-run-panel">
-    <div class="ns-section-title">
-      <h2>Browser QA Run & Evidence Unlock</h2>
-      <span class="ns-badge">{{ v921_gate.v921_browser_qa_environment_status or 'PACKAGE_MISSING' }}</span>
-    </div>
-    <p>V921 intenta ejecutar Browser QA local, usar GitHub Action o importar artifacts. Ningun item visual pasa a listo sin screenshot real validado.</p>
-    <div class="ns-grid ns-grid-4">
-      <article class="ns-stat"><span>Install intentado</span><strong>{{ 'si' if v921_gate.v921_playwright_install_attempted else 'no' }}</strong></article>
-      <article class="ns-stat"><span>Local ejecutado</span><strong>{{ 'si' if v921_gate.v921_local_browser_qa_executed else 'no' }}</strong></article>
-      <article class="ns-stat"><span>GitHub Action</span><strong>{{ v921_gate.v921_github_action_status or 'GITHUB_ACTION_READY' }}</strong></article>
-      <article class="ns-stat"><span>Artifacts</span><strong>{{ 'si' if v921_gate.v921_artifacts_found else 'no' }}</strong></article>
-    </div>
-    <div class="ns-grid ns-grid-4">
-      <article class="ns-stat"><span>Capturas validas</span><strong>{{ v921_gate.v921_valid_screenshots_count or 0 }}</strong></article>
-      <article class="ns-stat"><span>Desktop</span><strong>{{ v921_gate.v921_desktop_screenshots_count or 0 }}</strong></article>
-      <article class="ns-stat"><span>Mobile</span><strong>{{ v921_gate.v921_mobile_screenshots_count or 0 }}</strong></article>
-      <article class="ns-stat"><span>Ready invalidos</span><strong>{{ v921_gate.v921_invalid_ready_without_screenshot or 0 }}</strong></article>
-    </div>
-    <div class="ns-grid ns-grid-3">
-      <article class="ns-stat"><span>Cola total</span><strong>{{ v921_gate.v921_visual_queue_total or 0 }}</strong></article>
-      <article class="ns-stat"><span>Bloqueada</span><strong>{{ v921_gate.v921_visual_queue_blocked or 0 }}</strong></article>
-      <article class="ns-stat"><span>Lista/fixable</span><strong>{{ (v921_gate.v921_visual_queue_ready or 0) + (v921_gate.v921_visual_queue_fixed_safe or 0) }}</strong></article>
-    </div>
-    <div class="ns-empty ns-empty-compact">Import status: {{ v921_gate.v921_import_status or 'NO_VALID_SCREENSHOTS_TO_IMPORT' }}</div>
-    <div class="ns-empty ns-empty-compact">Pixel-perfect: {{ 'permitido' if v921_gate.v921_pixel_perfect_claim_allowed else 'bloqueado hasta capturas reales' }}</div>
-    <div class="ns-empty ns-empty-compact">Proxima accion V921: {{ v921_gate.v921_next_required_action or 'run_github_action_browser_qa_or_upload_artifacts' }}</div>
+      {{ next_action('Ejecutar la siguiente acción real', next_step|replace('_',' ')|capitalize, '/admin/automation-workforce', 'Mantener estado') }}
+    </aside>
   </section>
-
-  <section class="ns-grid ns-grid-3 v916-workforce-cards v927-admin-ops-grid">
-    <article class="ns-admin-card">
-      <h2>Deploy Automation</h2>
-      <p>El deploy automatico solo se habilita con autorizacion explicita y secretos configurados en GitHub/Render.</p>
-      <div class="ns-chip-row">
-        <span class="ns-badge">enabled={{ summary.v915_automated_deploy_enabled }}</span>
-        <span class="ns-badge">hook={{ summary.v915_deploy_hook_state }}</span>
-        <span class="ns-badge">api={{ summary.v915_render_api_key_state }}</span>
-      </div>
-    </article>
-    <article class="ns-admin-card">
-      <h2>Post-deploy Sentinel</h2>
-      <p>Listo para comprobar runtime, rutas publicas, admin protegido, 404, manifest, service worker y Telegram cron sin secret.</p>
-      <span class="ns-badge">{{ 'ready' if summary.v916_post_deploy_sentinel_ready else 'missing' }}</span>
-    </article>
-    <article class="ns-admin-card">
-      <h2>Security Guard</h2>
-      <p>Busca tokens, hooks, API keys y passwords visibles en codigo, reportes, workflows y docs.</p>
-      <span class="ns-badge">{{ 'ready' if summary.v916_secret_guard_ready else 'missing' }}</span>
-    </article>
-  </section>
-
-  <section class="ns-grid ns-grid-2 v915-command-grid v927-admin-ops-grid">
-    <article class="ns-admin-card">
-      <div class="ns-section-title">
-        <h2>Workers</h2>
-        <span class="ns-badge">{{ workforce.workers|length }} modulos</span>
-      </div>
-      <div class="ns-table-wrap v927-admin-table-area">
-        <table class="ns-table">
-          <thead><tr><th>Worker</th><th>Archivo</th><th>Estado</th></tr></thead>
-          <tbody>
-          {% for worker in workforce.workers %}
-            <tr>
-              <td>{{ worker.name }}</td>
-              <td><code>{{ worker.file }}</code></td>
-              <td><span class="ns-badge">{{ worker.status }}</span></td>
-            </tr>
-          {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </article>
-
-    <article class="ns-admin-card">
-      <div class="ns-section-title">
-        <h2>GitHub Actions</h2>
-        <span class="ns-badge">sin secretos en repo</span>
-      </div>
-      <div class="ns-table-wrap">
-        <table class="ns-table">
-          <thead><tr><th>Workflow</th><th>Ruta</th><th>Estado</th></tr></thead>
-          <tbody>
-          {% for flow in workforce.workflows %}
-            <tr>
-              <td>{{ flow.name }}</td>
-              <td><code>{{ flow.path }}</code></td>
-              <td><span class="ns-badge">{{ flow.status }}</span></td>
-            </tr>
-          {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </article>
-  </section>
-
-  <section class="ns-admin-card v915-deploy-readiness">
-    <div class="ns-section-title">
-      <h2>Acciones seguras</h2>
-      <span class="ns-badge">{{ v921_gate.v921_next_required_action or artifact_gate.v920_next_required_action or browser_gate.v919_next_required_action or post_deploy.v918_next_required_action or summary.v916_next_required_action or summary.v915_next_required_action }}</span>
-    </div>
-    <p>Estas acciones ejecutan dry-run o lectura de estado. No hacen deploy real, no envian Telegram real y no tocan pagos.</p>
-    <div class="ns-actions">
-      <button class="ns-button ns-button-secondary" type="button" data-v904-fetch="/api/admin/automation-workforce/run-checks">Release Manager dry-run</button>
-      <button class="ns-button ns-button-secondary" type="button" data-v904-fetch="/api/admin/automation-workforce/post-deploy-sentinel">Post-deploy Sentinel dry-run</button>
-      <button class="ns-button ns-button-ghost" type="button" data-v904-fetch="/api/admin/automation-workforce/browser-qa-status">Browser QA status</button>
-    </div>
-  </section>
-
-  <section class="ns-admin-card">
-    <h2>Proxima accion recomendada</h2>
-    <p>{{ v921_gate.v921_next_required_action or artifact_gate.v920_next_required_action or browser_gate.v919_next_required_action or post_deploy.v918_next_required_action or workforce.next_action or 'Ejecutar Browser QA o subir artifacts antes de desbloquear la cola visual.' }}</p>
-    <div class="ns-empty ns-empty-compact">Produccion solo se declara cuando <code>/api/runtime-version</code> devuelve la version esperada y <code>deployment_alignment_status=aligned_local_files</code>.</div>
-  </section>
-</section>
+</div>
 {% endblock %}

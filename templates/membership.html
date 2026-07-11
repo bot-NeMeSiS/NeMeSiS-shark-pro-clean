@@ -1,25 +1,46 @@
 {% extends "base.html" %}
-{% from "components/v930_ui.html" import page_header, section_header, status_chip %}
+{% from "components/v933_ui.html" import page_header, section_header, status_chip, icon, action_button %}
 {% block content %}
 {% set pay = data.get('payments_client') or {} %}
 {% set plans = pay.get('plans') or {} %}
 {% set current_plan = (current_user.membership if current_user else 'FREE')|upper %}
 {% set legal_checks = data.get('checkout_legal') or [] %}
 {% set legal_version = (data.get('legal_compliance') or {}).get('version') or 'LEGAL_CURRENT' %}
-<section class="v928-page v928-memberships v930-page v930-client-page v930-memberships-page" data-v928-template="membership" data-v930-template="membership">
-  {{ page_header('Elige tu plan', 'Accede a funciones premium con precios reales de configuración', 'plan', [{'label':'Mi cuenta','href':'/profile'}]) }}
-  {% if payment_error or data.get('payment_error') %}<div class="v928-inline-safe">{{ payment_error or data.get('payment_error') }}</div>{% endif %}
-  <div class="v928-plan-grid">
-    <article class="v928-plan-card is-blue{% if current_plan == 'FREE' %} is-current{% endif %}"><div class="v928-plan-title"><h3>FREE</h3>{% if current_plan == 'FREE' %}{{ status_chip('Plan actual','success') }}{% endif %}</div><strong class="v928-plan-price">0 €<small>/mes</small></strong><p>Base segura para empezar.</p><ul><li>Calendario y estados deportivos</li><li>Directo con datos reales disponibles</li><li>Picks públicos según disponibilidad</li><li>Acceso al contenido informativo</li></ul><a class="v928-button" href="{{ '/app' if current_user else '/registro' }}">{{ 'Plan actual' if current_plan == 'FREE' else 'Crear cuenta' }}</a></article>
+
+<div class="v933-page v933-memberships-page" data-v933-template="membership" data-v933-reference="canonical-memberships">
+  {{ page_header('Elige tu plan', 'Funciones premium con precios procedentes de la configuración real.', 'plan', [{'label':'Mi cuenta','href':'/profile','icon':'user'}]) }}
+  {% if payment_error or data.get('payment_error') %}<div class="v933-safe-copy">{{ payment_error or data.get('payment_error') }}</div>{% endif %}
+
+  <section class="v933-plan-grid">
+    <article class="v933-plan-card is-blue{% if current_plan == 'FREE' %} is-current{% endif %}">
+      <header><div><span>Plan</span><h3>FREE</h3></div>{% if current_plan == 'FREE' %}{{ status_chip('Plan actual','success') }}{% endif %}</header>
+      <strong class="v933-plan-price">0 €<small>/mes</small></strong><p>Base segura para empezar.</p>
+      <ul><li>{{ icon('check') }}<span>Calendario y estados deportivos</span></li><li>{{ icon('check') }}<span>Directo con datos reales disponibles</span></li><li>{{ icon('check') }}<span>Picks públicos según disponibilidad</span></li><li>{{ icon('check') }}<span>Acceso al contenido informativo</span></li></ul>
+      {{ action_button('Plan actual' if current_plan == 'FREE' else 'Crear cuenta', '/app' if current_user else '/registro', current_plan != 'FREE', 'blue', current_plan == 'FREE') }}
+    </article>
+
     {% for key, tone, description, benefits in [('PRO','cyan','Experiencia completa',['Picks completos según datos reales','Alertas Telegram','SHARK con contexto disponible','Histórico cuando exista']),('ELITE','gold','Prioridad y acceso avanzado',['Todo lo incluido en PRO','Alertas prioritarias','Soporte según disponibilidad','Acceso anticipado a funciones'])] %}
-    {% set plan = plans.get(key) or {} %}
-    {% set price_label = plan.get('price_label') or '' %}
-    <article class="v928-plan-card is-{{ tone }}{% if current_plan == key %} is-current{% endif %}"><div class="v928-plan-title"><h3>{{ key }}</h3>{% if current_plan == key %}{{ status_chip('Plan actual','success') }}{% endif %}</div><strong class="v928-plan-price">{{ price_label or 'Precio no configurado' }}{% if price_label and '/mes' not in price_label|lower %}<small>/mes</small>{% endif %}</strong><p>{{ description }}</p><ul>{% for benefit in benefits %}<li>{{ benefit }}</li>{% endfor %}</ul>
-      {% if current_user and pay.get('checkout_ready') and plan.get('configured') and current_plan != key %}<form class="v928-checkout-form" method="post" action="/pagos/checkout/{{ key }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">{% for item in legal_checks %}<label><input type="checkbox" name="{{ item.key }}" value="1" required> <span>{{ item.label }}</span></label>{% endfor %}<input type="hidden" name="legal_version" value="{{ legal_version }}"><button class="v928-button is-primary" data-ns-no-loading="1" type="submit">Elegir {{ key }}</button></form>
-      {% elif current_plan == key %}<a class="v928-button" href="/profile">Plan actual</a>
-      {% else %}<a class="v928-button{% if plan.get('configured') %} is-primary{% endif %}" href="{{ '/membresias?plan=' ~ key if current_user else '/comprar/' ~ key }}">{{ 'Configuración pendiente' if not plan.get('configured') else 'Elegir ' ~ key }}</a>{% endif %}
-    </article>{% endfor %}
-  </div>
-  <section class="v928-panel">{{ section_header('Confianza y responsabilidad', 'Condiciones visibles antes de cualquier checkout') }}<div class="v928-grid is-four"><article class="v928-fact-card"><span>Edad</span><strong>+18</strong><small>Solo mayores de edad</small></article><article class="v928-fact-card"><span>Juego responsable</span><strong>Siempre</strong><small>Sin beneficios garantizados</small></article><article class="v928-fact-card"><span>Plataforma</span><strong>Informativa</strong><small>No somos casa de apuestas</small></article><article class="v928-fact-card"><span>Checkout</span><strong>{{ 'Configurado' if pay.get('checkout_ready') else 'Pendiente' }}</strong><small>Stripe solo cuando está listo</small></article></div></section>
-</section>
+    {% set plan = plans.get(key) or {} %}{% set price_label = plan.get('price_label') or '' %}
+    <article class="v933-plan-card is-{{ tone }}{% if current_plan == key %} is-current{% endif %}">
+      <header><div><span>Plan</span><h3>{{ key }}</h3></div>{% if current_plan == key %}{{ status_chip('Plan actual','success') }}{% elif key == 'PRO' %}{{ status_chip('Más elegido','cyan') }}{% else %}{{ status_chip('Máximo nivel','gold') }}{% endif %}</header>
+      <strong class="v933-plan-price">{{ price_label or 'Precio no configurado' }}{% if price_label and '/mes' not in price_label|lower %}<small>/mes</small>{% endif %}</strong><p>{{ description }}</p>
+      <ul>{% for benefit in benefits %}<li>{{ icon('check') }}<span>{{ benefit }}</span></li>{% endfor %}</ul>
+      {% if current_user and pay.get('checkout_ready') and plan.get('configured') and current_plan != key %}
+      <form class="v933-checkout-form" method="post" action="/pagos/checkout/{{ key }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">{% for item in legal_checks %}<label><input type="checkbox" name="{{ item.key }}" value="1" required><span>{{ item.label }}</span></label>{% endfor %}<input type="hidden" name="legal_version" value="{{ legal_version }}"><button class="v933-action is-primary {{ 'is-gold' if key == 'ELITE' else 'is-blue' }}" data-ns-no-loading="1" type="submit">Elegir {{ key }}</button></form>
+      {% elif current_plan == key %}{{ action_button('Plan actual','/profile',false,'blue',true) }}
+      {% else %}{{ action_button('Configuración pendiente' if not plan.get('configured') else 'Elegir ' ~ key, '/memberships?plan=' ~ key if current_user else '/comprar/' ~ key, plan.get('configured'), 'gold' if key == 'ELITE' else 'blue', not plan.get('configured')) }}{% endif %}
+    </article>
+    {% endfor %}
+  </section>
+
+  <section class="v933-panel">
+    {{ section_header('Confianza y responsabilidad', 'Condiciones visibles antes de cualquier checkout.') }}
+    <div class="v933-four-col v933-feature-grid">
+      <article>{{ icon('shield') }}<strong>+18</strong><p>Solo para mayores de edad.</p></article>
+      <article>{{ icon('check') }}<strong>Juego responsable</strong><p>Sin beneficios garantizados.</p></article>
+      <article>{{ icon('data') }}<strong>Plataforma informativa</strong><p>No somos casa de apuestas.</p></article>
+      <article>{{ icon('payments') }}<strong>Checkout</strong><p>{{ 'Stripe configurado' if pay.get('checkout_ready') else 'Configuración pendiente' }}.</p></article>
+    </div>
+  </section>
+</div>
 {% endblock %}

@@ -1,36 +1,58 @@
 {% extends "base.html" %}
-{% from "components/v930_ui.html" import page_header, kpi_card, section_header, data_table, empty_state, status_chip %}
+{% from "components/v933_ui.html" import page_header, kpi_card, section_header, data_table, empty_state, status_chip, filter_tabs, icon %}
 {% block content %}
 {% set record = data.get('track_record') or {} %}
 {% set recent = record.get('recent_results') or [] %}
 {% set pending = record.get('pending_results') or [] %}
 {% set roi = record.get('roi') %}
 {% set winrate = record.get('winrate') %}
-<section class="v928-page v928-track-record v930-page v930-client-page v930-track-record" data-v928-template="track_record" data-v930-template="track_record">
-  {{ page_header('Histórico', 'Resultados reales y rendimiento calculado únicamente con picks evaluables', 'history', [{'label':'Ver picks','href':'/picks','primary':true}]) }}
-  <section class="v928-kpi-grid is-four">
-    {{ kpi_card('ROI real', (roi|string ~ '%') if roi is not none else none, 'Beneficio sobre stake evaluable', 'green', 'history') }}
-    {{ kpi_card('Winrate', (winrate|string ~ '%') if winrate is not none else none, 'Solo decisiones cerradas', 'purple', 'target') }}
+
+<div class="v933-page v933-track-record" data-v933-template="track_record" data-v933-reference="canonical-track-record">
+  {{ page_header('Histórico', 'Resultados y rendimiento calculados únicamente con picks reales evaluables.', 'history', [{'label':'Ver picks','href':'/picks','primary':true,'icon':'target'}]) }}
+
+  <section class="v933-kpi-grid">
+    {{ kpi_card('ROI real', (roi|string ~ '%') if roi is not none else none, 'Beneficio sobre stake evaluable', 'success', 'history') }}
+    {{ kpi_card('Winrate', (winrate|string ~ '%') if winrate is not none else none, 'Solo decisiones cerradas', 'cyan', 'target') }}
     {{ kpi_card('Picks cerrados', record.get('closed_count') if record.get('closed_count') is not none else record.get('graded_count'), 'Total evaluable', 'blue', 'history') }}
-    {{ kpi_card('Pendientes', pending|length, 'Aún fuera del ROI', 'gold', 'pause') }}
+    {{ kpi_card('Pendientes', pending|length, 'Fuera del ROI', 'warning', 'pause') }}
   </section>
 
-  <section class="v928-layout-main-aside">
-    <div class="v928-stack">
-      <section class="v928-panel">
-        {{ section_header('Evolución real', 'Serie mensual construida con el historial disponible') }}
+  <section class="v933-panel v933-filter-panel">
+    {{ filter_tabs([{'key':'all','label':'Todos','href':'/track-record'},{'key':'won','label':'Ganados','href':'/track-record?result=won'},{'key':'lost','label':'Perdidos','href':'/track-record?result=lost'},{'key':'void','label':'Void','href':'/track-record?result=void'}], request.args.get('result') or 'all') }}
+  </section>
+
+  <section class="v933-two-col">
+    <div class="v933-main-stack">
+      <section class="v933-panel">
+        {{ section_header('Evolución real', 'Serie por periodo construida con el historial disponible.') }}
         {% if record.get('by_month') %}
           {% call data_table(['Periodo','Picks','Resultado','ROI']) %}{% for item in record.get('by_month') %}<tr><td>{{ item.get('month') or item.get('label') or item.get('period') }}</td><td>{{ item.get('count') or item.get('picks') or 0 }}</td><td>{{ item.get('profit') if item.get('profit') is not none else 'Sin dato' }}</td><td>{{ (item.get('roi')|string ~ '%') if item.get('roi') is not none else 'Sin dato' }}</td></tr>{% endfor %}{% endcall %}
-        {% else %}{{ empty_state('Histórico insuficiente para una serie', 'No se dibuja una gráfica decorativa. Se mostrará cuando existan picks cerrados suficientes.', '', '', 'history') }}{% endif %}
+        {% else %}{{ empty_state('Sin muestra evaluable', 'No se dibuja una gráfica decorativa. La evolución aparecerá cuando existan picks cerrados suficientes.', '', '', 'history') }}{% endif %}
       </section>
 
-      <section class="v928-panel">
-        {{ section_header('Picks cerrados recientes', 'Cuota, estado y rentabilidad solo cuando constan en el grading') }}
-        {% if recent %}{% call data_table(['Partido','Selección','Cuota','Estado','Rentabilidad']) %}{% for pick in recent[:30] %}<tr><td><strong>{{ pick.get('match_label') or pick.get('client_match_label') or ((pick.get('home_team') or 'Partido') ~ (' vs ' ~ pick.get('away_team') if pick.get('away_team') else '')) }}</strong></td><td>{{ pick.get('selection_display') or pick.get('selection') or 'Sin selección registrada' }}</td><td>{{ pick.get('odds') if pick.get('odds') is not none else 'Sin dato' }}</td><td>{{ status_chip(pick.get('result') or pick.get('status') or 'Cerrado', 'success' if (pick.get('result') or '')|lower in ['won','ganado','win'] else 'neutral') }}</td><td>{{ pick.get('profit') if pick.get('profit') is not none else (pick.get('profit_units') if pick.get('profit_units') is not none else 'Sin dato') }}</td></tr>{% endfor %}{% endcall %}
+      <section class="v933-panel">
+        {{ section_header('Picks cerrados recientes', 'Cuota, estado y rentabilidad solo cuando constan en el grading.') }}
+        {% if recent %}
+          {% call data_table(['Partido','Selección','Cuota','Estado','Rentabilidad']) %}
+          {% for pick in recent[:30] %}{% set result = (pick.get('result') or pick.get('status') or 'Cerrado') %}{% set result_lower = result|string|lower %}<tr><td><strong>{{ pick.get('match_label') or pick.get('client_match_label') or ((pick.get('home_team') or 'Partido') ~ (' vs ' ~ pick.get('away_team') if pick.get('away_team') else '')) }}</strong></td><td>{{ pick.get('selection_display') or pick.get('selection') or 'Sin selección registrada' }}</td><td>{{ pick.get('odds') if pick.get('odds') is not none else 'Sin dato' }}</td><td>{{ status_chip(result, 'success' if result_lower in ['won','ganado','win'] else ('danger' if result_lower in ['lost','perdido','loss'] else 'neutral')) }}</td><td>{{ pick.get('profit') if pick.get('profit') is not none else (pick.get('profit_units') if pick.get('profit_units') is not none else 'Sin dato') }}</td></tr>{% endfor %}
+          {% endcall %}
         {% else %}{{ empty_state('Aún no hay picks cerrados', 'El rendimiento permanecerá vacío hasta que el motor de grading confirme resultados reales.', 'Ver picks activos', '/picks', 'history') }}{% endif %}
       </section>
     </div>
-    <aside class="v928-stack"><section class="v928-panel">{{ section_header('Regla de confianza', 'Qué entra en el cálculo') }}<div class="v928-truth-list"><div><span>Resultado final</span><strong>Obligatorio</strong></div><div><span>Stake</span><strong>Real y evaluable</strong></div><div><span>Void</span><strong>Sin beneficio ficticio</strong></div><div><span>Pendientes</span><strong>Fuera del ROI</strong></div></div><p class="v928-panel-copy">{{ record.get('commercial_note') or 'Rendimiento calculado solo con picks evaluables.' }}</p></section></aside>
+
+    <aside class="v933-side-stack">
+      <section class="v933-panel">
+        {{ section_header('Regla de confianza', 'Qué entra en el cálculo.') }}
+        <div class="v933-truth-list">
+          <div>{{ icon('check') }}<span><strong>Resultado final</strong><small>Obligatorio</small></span>{{ status_chip('Validado','success') }}</div>
+          <div>{{ icon('odds') }}<span><strong>Stake</strong><small>Real y evaluable</small></span>{{ status_chip('Validado','success') }}</div>
+          <div>{{ icon('pause') }}<span><strong>Void</strong><small>Sin beneficio ficticio</small></span>{{ status_chip('Neutral','neutral') }}</div>
+          <div>{{ icon('clock') }}<span><strong>Pendientes</strong><small>Fuera del ROI</small></span>{{ status_chip('Excluidos','warning') }}</div>
+        </div>
+        <p class="v933-safe-copy">{{ record.get('commercial_note') or 'Rendimiento calculado solo con picks evaluables.' }}</p>
+      </section>
+      <section class="v933-panel">{{ section_header('Transparencia', 'Sin datos inventados.') }}<p class="v933-safe-copy">Cuando la muestra no es suficiente, NeMeSiS muestra “Sin muestra evaluable” en lugar de presentar un 0 % engañoso.</p></section>
+    </aside>
   </section>
-</section>
+</div>
 {% endblock %}

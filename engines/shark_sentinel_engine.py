@@ -214,7 +214,9 @@ def _inspect_html(profile: str, route: str, status_code: int, html: str) -> list
         "v928-match-card",
         "v928-live-card",
         "v928-pick-card",
-        "v928-safe-state",
+        "v933-match-card",
+        "v933-live-card",
+        "v933-pick-card",
     ]
     if status_code >= 500:
         issues.append(_issue(profile, route, "route", "critical", "Ruta con error 500", "La ruta devuelve error de servidor.", str(status_code), "La pantalla debe cargar o redirigir de forma segura.", f"HTTP {status_code}", f"Revisar handler de {route}.", f"Corrige el 500 detectado en {route}."))
@@ -232,7 +234,12 @@ def _inspect_html(profile: str, route: str, status_code: int, html: str) -> list
         issues.append(_issue(profile, route, "visual", "medium", "Pantalla demasiado vacía", "La respuesta HTML es muy corta para una pantalla visible.", f"len={len(html)}", "Pantalla con estructura, estado o redirección clara.", "HTML muy corto.", "Añadir empty state premium o revisar template.", f"Revisa empty state pobre en {route}."))
     if status_code == 200 and route in sports_routes:
         has_sports_rows = any(marker in lower for marker in sports_row_markers)
-        has_safe_explanation = any(state in visible_lower for state in sports_safe_states)
+        has_safe_explanation = (
+            any(state in visible_lower for state in sports_safe_states)
+            or "v928-safe-state" in lower
+            or "v933-empty-state" in lower
+            or "v933-provider-state" in lower
+        )
         if not has_sports_rows and not has_safe_explanation:
             issues.append(_issue(
                 profile,

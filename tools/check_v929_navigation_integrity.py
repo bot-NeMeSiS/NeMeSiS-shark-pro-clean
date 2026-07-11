@@ -9,6 +9,7 @@ from v929_check_support import ROOT, VERSION, finish, load_json, prepare_app
 V930_VERSION = "V930_CANONICAL_REFERENCE_VISUAL_PARITY_ADMIN_CLIENT_MOBILE_FINAL"
 V931_VERSION = "V931_PRODUCTION_CLIENT_ROUTES_AND_HOME_DATA_CONSISTENCY_HOTFIX_FINAL"
 V932_VERSION = "V932_AUTHENTICATED_PRODUCTION_CLIENT_ADMIN_AND_REAL_SPORTS_VALUE_FINAL"
+V933_VERSION = "V933_REFERENCE_PARITY_PRODUCT_DESIGN_SPRINT_SYSTEM_FINAL"
 
 
 def main() -> int:
@@ -36,7 +37,7 @@ def main() -> int:
                     zip_clean = False
                     break
     checks = {
-        "version_v929_or_successor": current_version in {VERSION, V930_VERSION, V931_VERSION, V932_VERSION},
+        "version_v929_or_successor": current_version in {VERSION, V930_VERSION, V931_VERSION, V932_VERSION, V933_VERSION},
         "version_without_bom": not version_raw.startswith(b"\xef\xbb\xbf"),
         "app_version": app_module.APP_VERSION == current_version,
         "runtime_200": runtime_response.status_code == 200,

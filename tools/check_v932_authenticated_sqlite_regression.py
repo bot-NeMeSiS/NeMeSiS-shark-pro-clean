@@ -12,6 +12,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V932_AUTHENTICATED_PRODUCTION_CLIENT_ADMIN_AND_REAL_SPORTS_VALUE_FINAL"
+SUCCESSOR_VERSION = "V933_REFERENCE_PARITY_PRODUCT_DESIGN_SPRINT_SYSTEM_FINAL"
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
@@ -131,7 +132,7 @@ def main() -> int:
     failures = [item for item in results if item["status"] >= 500 or item["locked_visible"]]
     locked_results = [item for item in results if item["profile"] == "locked"]
     checks = {
-        "version_v932": app_module.APP_VERSION == VERSION,
+        "version_v932_or_successor": app_module.APP_VERSION in {VERSION, SUCCESSOR_VERSION},
         "priority_schema_safe": not any(item["profile"] == "modern" for item in failures),
         "legacy_schema_safe": not any(item["profile"] == "legacy" for item in failures),
         "empty_schema_safe": not any(item["profile"] == "empty" for item in failures),

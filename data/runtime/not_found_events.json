@@ -1,6 +1,28 @@
 {
-  "version": "V932_AUTHENTICATED_PRODUCTION_CLIENT_ADMIN_AND_REAL_SPORTS_VALUE_FINAL",
+  "version": "V933_REFERENCE_PARITY_PRODUCT_DESIGN_SPRINT_SYSTEM_FINAL",
   "events": [
+    {
+      "path": "/historico",
+      "method": "GET",
+      "referrer": "",
+      "user_agent": "Werkzeug/3.0.3",
+      "resolved_alias": "/track-record",
+      "source": "legacy_alias",
+      "count": 24,
+      "first_seen_madrid": "2026-07-10T21:56:57+02:00",
+      "last_seen_madrid": "2026-07-11T16:54:08+02:00"
+    },
+    {
+      "path": "/refunds",
+      "method": "GET",
+      "referrer": "",
+      "user_agent": "Werkzeug/3.0.3",
+      "resolved_alias": "/reembolsos",
+      "source": "legacy_alias",
+      "count": 17,
+      "first_seen_madrid": "2026-07-10T21:56:48+02:00",
+      "last_seen_madrid": "2026-07-11T16:53:58+02:00"
+    },
     {
       "path": "/api/ruta-inventada-v910",
       "method": "GET",
@@ -8,9 +30,9 @@
       "user_agent": "Werkzeug/3.0.3",
       "resolved_alias": "",
       "source": "api_404",
-      "count": 49,
+      "count": 50,
       "first_seen_madrid": "2026-07-07T23:33:53+02:00",
-      "last_seen_madrid": "2026-07-11T11:59:05+02:00"
+      "last_seen_madrid": "2026-07-11T16:53:27+02:00"
     },
     {
       "path": "/ruta-inventada-v910",
@@ -19,9 +41,20 @@
       "user_agent": "Werkzeug/3.0.3",
       "resolved_alias": "",
       "source": "flask_404",
-      "count": 49,
+      "count": 50,
       "first_seen_madrid": "2026-07-07T23:33:53+02:00",
-      "last_seen_madrid": "2026-07-11T11:59:04+02:00"
+      "last_seen_madrid": "2026-07-11T16:53:26+02:00"
+    },
+    {
+      "path": "/planes",
+      "method": "GET",
+      "referrer": "",
+      "user_agent": "Werkzeug/3.0.3",
+      "resolved_alias": "",
+      "source": "flask_404",
+      "count": 1,
+      "first_seen_madrid": "2026-07-11T13:47:07+02:00",
+      "last_seen_madrid": "2026-07-11T13:47:07+02:00"
     },
     {
       "path": "/ruta-inventada",
@@ -79,17 +112,6 @@
       "last_seen_madrid": "2026-07-11T08:53:22+02:00"
     },
     {
-      "path": "/historico",
-      "method": "GET",
-      "referrer": "",
-      "user_agent": "Werkzeug/3.0.3",
-      "resolved_alias": "/track-record",
-      "source": "legacy_alias",
-      "count": 20,
-      "first_seen_madrid": "2026-07-10T21:56:57+02:00",
-      "last_seen_madrid": "2026-07-11T08:53:06+02:00"
-    },
-    {
       "path": "/ruta-inventada-v928",
       "method": "GET",
       "referrer": "",
@@ -110,17 +132,6 @@
       "count": 6,
       "first_seen_madrid": "2026-07-10T19:04:13+02:00",
       "last_seen_madrid": "2026-07-11T03:42:54+02:00"
-    },
-    {
-      "path": "/refunds",
-      "method": "GET",
-      "referrer": "",
-      "user_agent": "Werkzeug/3.0.3",
-      "resolved_alias": "/reembolsos",
-      "source": "legacy_alias",
-      "count": 13,
-      "first_seen_madrid": "2026-07-10T21:56:48+02:00",
-      "last_seen_madrid": "2026-07-11T03:39:23+02:00"
     },
     {
       "path": "/memberships",
@@ -387,5 +398,5 @@
       "last_seen_madrid": "2026-07-05T00:58:55+02:00"
     }
   ],
-  "updated_at_madrid": "2026-07-11T11:59:05+02:00"
+  "updated_at_madrid": "2026-07-11T16:54:08+02:00"
 }

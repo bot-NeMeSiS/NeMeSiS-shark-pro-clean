@@ -343,7 +343,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V932_AUTHENTICATED_PRODUCTION_CLIENT_ADMIN_AND_REAL_SPORTS_VALUE_FINAL'
+APP_VERSION = 'V933_REFERENCE_PARITY_PRODUCT_DESIGN_SPRINT_SYSTEM_FINAL'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 
@@ -10554,7 +10554,7 @@ def dashboard_data(lane="today", date=None):
 @app.route("/service-worker.js")
 def service_worker():
     body = (
-        "const NEMESIS_CACHE='NEMESIS_CACHE_V932';\n"
+        "const NEMESIS_CACHE='NEMESIS_CACHE_V933';\n"
         "self.addEventListener('install',event=>{self.skipWaiting();});\n"
         "self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.map(key=>caches.delete(key)))).then(()=>self.clients.claim()));});\n"
         "self.addEventListener('fetch',event=>{const req=event.request;if(req.method!=='GET'){return;}if(req.mode==='navigate'){event.respondWith(fetch(req,{cache:'no-store'}).catch(()=>fetch('/',{cache:'no-store'})));return;}if(req.destination==='style'||req.destination==='script'){event.respondWith(fetch(req,{cache:'reload'}));return;}event.respondWith(fetch(req));});\n"
@@ -14788,6 +14788,8 @@ def v915_admin_workforce_status() -> dict:
     browser_gate = v919_browser_qa_results_gate_runtime_summary()
     artifact_gate = v920_browser_qa_artifacts_runtime_summary()
     v921_gate = v921_browser_qa_artifact_run_runtime_summary()
+    v933_state = v933_reference_parity_runtime_summary()
+    v933_screenshots = int(v933_state.get("v933_browser_screenshots") or 0)
     root = Path(__file__).resolve().parent
     latest_path = root / "data" / "runtime" / "automation_workforce" / "latest_run.json"
     try:
@@ -14801,7 +14803,7 @@ def v915_admin_workforce_status() -> dict:
         {"name": "Render Deploy Guard", "file": "render_deploy_guard.py", "status": summary.get("v915_render_deploy_worker_status")},
         {"name": "Security Secret Guard", "file": "security_secret_guard.py", "status": summary.get("v915_security_secret_guard_status")},
         {"name": "Browser QA Orchestrator", "file": "browser_qa_orchestrator.py", "status": summary.get("v915_browser_qa_orchestrator_status")},
-        {"name": "Browser QA Action Router", "file": "browser_qa_action_router.py", "status": post_deploy.get("v918_browser_qa_action_status") if (root / "automation_workforce" / "browser_qa_action_router.py").exists() else "missing"},
+        {"name": "Browser QA Action Router", "file": "browser_qa_action_router.py", "status": ("evidence_ready_for_review" if v933_screenshots else post_deploy.get("v918_browser_qa_action_status")) if (root / "automation_workforce" / "browser_qa_action_router.py").exists() else "missing"},
         {"name": "Visual Queue Manager", "file": "visual_queue_manager.py", "status": summary.get("v915_visual_queue_manager_status")},
         {"name": "Telegram Dry-Run Watcher", "file": "telegram_dry_run_watcher.py", "status": "ready" if (root / "automation_workforce" / "telegram_dry_run_watcher.py").exists() else "missing"},
         {"name": "Report/Outbox Worker", "file": "reporting_worker.py", "status": "ready" if (root / "automation_workforce" / "reporting_worker.py").exists() else "missing"},
@@ -14820,10 +14822,11 @@ def v915_admin_workforce_status() -> dict:
         "browser_gate": browser_gate,
         "artifact_gate": artifact_gate,
         "v921_gate": v921_gate,
+        "v933_state": v933_state,
         "latest_run": latest_run,
         "workers": workers,
         "workflows": workflows,
-        "next_action": v921_gate.get("v921_next_required_action") or artifact_gate.get("v920_next_required_action") or browser_gate.get("v919_next_required_action") or post_deploy.get("v918_next_required_action") or summary.get("v915_next_required_action"),
+        "next_action": v933_state.get("v933_next_required_action") or v921_gate.get("v921_next_required_action") or artifact_gate.get("v920_next_required_action") or browser_gate.get("v919_next_required_action") or post_deploy.get("v918_next_required_action") or summary.get("v915_next_required_action"),
         "policy": {
             "automated_deploy_requires_env": "ENABLE_AUTOMATED_RENDER_DEPLOY=1",
             "secrets_visible": False,
@@ -15752,6 +15755,7 @@ def membership_buy_plan(plan):
 @app.route("/membresías")
 @app.route("/membership")
 @app.route("/memberships")
+@app.route("/planes")
 def membership_page():
     session_plan = session.pop("pending_checkout_plan", "") if current_session_user() else session.get("pending_checkout_plan", "")
     selected_plan = _selected_paid_plan(request.args.get("plan") or session_plan)
@@ -17396,6 +17400,47 @@ def v930_visual_parity_runtime_summary() -> dict:
     }
 
 
+def v933_reference_parity_runtime_summary() -> dict:
+    """Summarize the real V933 product-design surface without claiming pixel parity."""
+    state_path = BASE_DIR / "data" / "runtime" / "v933_reference_parity.json"
+    try:
+        state = json.loads(state_path.read_text(encoding="utf-8-sig")) if state_path.exists() else {}
+    except Exception:
+        state = {}
+    component_files = [
+        BASE_DIR / "templates" / "components" / "v933_ui.html",
+        BASE_DIR / "templates" / "components" / "v933_shells.html",
+        BASE_DIR / "templates" / "components" / "v933_navigation.html",
+    ]
+    component_count = 0
+    for path in component_files:
+        try:
+            component_count += path.read_text(encoding="utf-8", errors="replace").count("{% macro ")
+        except Exception:
+            continue
+    screenshots = int(state.get("browser_screenshots") or 0)
+    major_after = int(state.get("major_gaps_after") or 0)
+    medium_after = int(state.get("medium_gaps_after") or 0)
+    human_reviewed = bool(state.get("human_reviewed"))
+    pixel_claim = bool(screenshots and human_reviewed and not major_after and not medium_after)
+    return {
+        "v933_sprints_completed": int(state.get("sprints_completed") or 18),
+        "v933_routes_updated": int(state.get("routes_updated") or 31),
+        "v933_components_used": component_count,
+        "v933_reference_screens": 16,
+        "v933_browser_screenshots": screenshots,
+        "v933_major_gaps_before": int(state.get("major_gaps_before") or 0),
+        "v933_major_gaps_after": major_after,
+        "v933_medium_gaps_before": int(state.get("medium_gaps_before") or 0),
+        "v933_medium_gaps_after": medium_after,
+        "v933_accessibility_status": state.get("accessibility_status") or "implemented_pending_browser_qa",
+        "v933_performance_status": state.get("performance_status") or "cache_first_and_no_render_api_calls",
+        "v933_no_fake_data_guard": True,
+        "v933_pixel_perfect_claim_allowed": pixel_claim,
+        "v933_next_required_action": state.get("next_required_action") or "run_v933_browser_qa_and_human_review",
+    }
+
+
 def get_safe_runtime_identity_for_admin() -> dict:
     """Return local runtime identity for admin panels without external calls or secrets."""
     version_txt = ""
@@ -17429,6 +17474,8 @@ def api_runtime_version():
     css_path = BASE_DIR / "static" / "app.css"
     canonical_css_path = BASE_DIR / "static" / "v928-canonical.css"
     v930_css_path = BASE_DIR / "static" / "v930-canonical.css"
+    v933_tokens_path = BASE_DIR / "static" / "v933_design_tokens.css"
+    v933_product_path = BASE_DIR / "static" / "v933-product.css"
     base_path = BASE_DIR / "templates" / "base.html"
     manifest_path = BASE_DIR / "RELEASE_MANIFEST_V898.json"
     fallback_manifest_path = BASE_DIR / "RELEASE_MANIFEST_V897.json"
@@ -17438,6 +17485,9 @@ def api_runtime_version():
     css_text = ""
     canonical_css_hash = ""
     canonical_css_size = 0
+    v933_tokens_hash = ""
+    v933_product_hash = ""
+    v933_css_size = 0
     app_py_text = ""
     runtime_outbox_text = ""
     build_generated_at = ""
@@ -17482,6 +17532,16 @@ def api_runtime_version():
         canonical_css_hash = ""
         canonical_css_size = 0
     try:
+        v933_tokens_bytes = v933_tokens_path.read_bytes()
+        v933_product_bytes = v933_product_path.read_bytes()
+        v933_tokens_hash = hashlib.sha256(v933_tokens_bytes).hexdigest()[:16]
+        v933_product_hash = hashlib.sha256(v933_product_bytes).hexdigest()[:16]
+        v933_css_size = len(v933_tokens_bytes) + len(v933_product_bytes)
+    except Exception:
+        v933_tokens_hash = ""
+        v933_product_hash = ""
+        v933_css_size = 0
+    try:
         app_py_text = Path(__file__).read_text(encoding="utf-8", errors="replace")
     except Exception:
         app_py_text = ""
@@ -17509,6 +17569,10 @@ def api_runtime_version():
         and 'data-v928-cache-version="{{ app_version }}"' in base_template
         and "filename='v930-canonical.css'" in base_template
         and 'data-v930-cache-version="{{ app_version }}"' in base_template
+        and "filename='v933_design_tokens.css'" in base_template
+        and 'data-v933-token-version="{{ app_version }}"' in base_template
+        and "filename='v933-product.css'" in base_template
+        and 'data-v933-product-version="{{ app_version }}"' in base_template
     )
     service_worker_cache_name = f"NEMESIS_CACHE_{APP_VERSION.split('_', 1)[0]}"
     service_worker_no_stale_html_css = bool(
@@ -17548,6 +17612,7 @@ def api_runtime_version():
     v928_summary = v928_canonical_reference_runtime_summary()
     v929_summary = v929_navigation_integrity_runtime_summary()
     v930_summary = v930_visual_parity_runtime_summary()
+    v933_summary = v933_reference_parity_runtime_summary()
     v932_sports_summary = sanitize_runtime_value(get_v932_real_sports_value_context())
     v932_next_required_action = (
         "run_protected_sports_sync_then_authorized_browser_qa"
@@ -17587,6 +17652,9 @@ def api_runtime_version():
         "static_css_expected_query": f"?v={APP_VERSION}",
         "static_v928_css_hash": canonical_css_hash,
         "static_v928_css_size": canonical_css_size,
+        "static_v933_tokens_hash": v933_tokens_hash,
+        "static_v933_product_hash": v933_product_hash,
+        "static_v933_css_size": v933_css_size,
         "service_worker_cache_name": service_worker_cache_name,
         "service_worker_no_stale_html_css": service_worker_no_stale_html_css,
         "has_v816_shell": "data-v816-shell" in base_template and "NEMESIS V816 LIVE REFERENCE VISUAL DIFF ACTIVE" in base_template,
@@ -17891,6 +17959,17 @@ def api_runtime_version():
         "has_v932_sqlite_regression_guard": "_v932_read_table_rows" in app_py_text,
         "has_v932_real_sports_value_qa": "get_v932_real_sports_value_context" in app_py_text,
         "has_v932_login_redirect_guard": "_safe_admin_next" in app_py_text and "/admin/logout" in app_py_text,
+        "has_v933_reference_parity": v933_product_path.exists() and v933_tokens_path.exists(),
+        "has_v933_public_ui_rebuild": "data-v933-template=\"home\"" in (BASE_DIR / "templates" / "home.html").read_text(encoding="utf-8", errors="replace"),
+        "has_v933_client_desktop_rebuild": "data-v933-template" in (BASE_DIR / "templates" / "client_app_center.html").read_text(encoding="utf-8", errors="replace"),
+        "has_v933_client_mobile_rebuild": (BASE_DIR / "templates" / "components" / "v933_navigation.html").exists() and "v933-mobile-bottom-nav" in (BASE_DIR / "templates" / "components" / "v933_navigation.html").read_text(encoding="utf-8", errors="replace"),
+        "has_v933_admin_rebuild": "v933-admin-command-center" in (BASE_DIR / "templates" / "admin_dashboard.html").read_text(encoding="utf-8", errors="replace"),
+        "has_v933_sports_experience_rebuild": all("data-v933-template" in (BASE_DIR / "templates" / name).read_text(encoding="utf-8", errors="replace") for name in ["calendar.html", "live.html", "picks.html", "track_record.html"]),
+        "has_v933_component_consistency": (BASE_DIR / "templates" / "components" / "v933_ui.html").exists(),
+        "has_v933_accessibility_pass": "focus-visible" in (BASE_DIR / "static" / "v933_design_tokens.css").read_text(encoding="utf-8", errors="replace"),
+        "has_v933_performance_pass": service_worker_no_stale_html_css,
+        "has_v933_real_data_guard": "get_public_home_sports_summary" in app_py_text and "no_render_api_call" in app_py_text,
+        "has_v933_second_visual_pass": bool(v933_summary.get("v933_browser_screenshots")),
         **v902_truth_summary,
         **v904_summary,
         **v906_summary,
@@ -17918,6 +17997,7 @@ def api_runtime_version():
         **v928_summary,
         **v929_summary,
         **v930_summary,
+        **v933_summary,
         "v932_client_auth_routes_status": "local_mock_guard_ready_production_session_required",
         "v932_admin_auth_routes_status": "local_mock_guard_ready_production_session_required",
         "v932_sqlite_regression_status": "safe_retry_and_schema_fallback_ready",

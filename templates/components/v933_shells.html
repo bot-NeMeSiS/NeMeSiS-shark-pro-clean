@@ -1,0 +1,13 @@
+{% from "components/v933_navigation.html" import v933_public_navigation, v933_client_navigation, v933_admin_sidebar, v933_admin_topbar %}
+
+{% macro v933_public_shell() -%}
+<div class="v933-shell-chrome v933-public-chrome" data-v933-shell="public">{{ v933_public_navigation() }}</div>
+{%- endmacro %}
+
+{% macro v933_client_shells(plan='FREE') -%}
+<div class="v933-shell-chrome v933-client-chrome" data-v933-shell="client">{{ v933_client_navigation(plan) }}</div>
+{%- endmacro %}
+
+{% macro v933_admin_shell() -%}
+<div class="v933-shell-chrome v933-admin-chrome" data-v933-shell="admin">{{ v933_admin_sidebar() }}{{ v933_admin_topbar() }}</div>
+{%- endmacro %}

@@ -1,26 +1,71 @@
 {% extends "base.html" %}
-{% from "components/v930_ui.html" import page_header, kpi_card, section_header, quick_action, empty_state, status_chip %}
+{% from "components/v933_ui.html" import page_header, kpi_card, section_header, quick_action, status_chip, action_button, icon %}
 {% block content %}
 {% set config = data.get('telegram') or {} %}
 {% set state = data.get('telegram_state') or {} %}
 {% set plan = (data.get('membership') or {}).get('name') or (current_user.membership if current_user else 'FREE') %}
-<section class="v928-page v928-telegram-client v930-page v930-client-page v930-telegram-page" data-v928-template="telegram" data-v930-template="telegram">
-  {{ page_header('Telegram', 'Recibe picks completos, alertas y resúmenes según tu plan', 'telegram', [{'label':'Ver picks','href':'/picks'},{'label':'Mi cuenta','href':'/profile','primary':true}]) }}
-  <section class="v928-kpi-grid is-four">
-    {{ kpi_card('Telegram conectado', 'Sí' if state.get('linked') else 'No', 'Vinculación de tu cuenta', 'green' if state.get('linked') else 'gold', 'telegram') }}
-    {{ kpi_card('Canal activo', 'Sí' if config.get('enabled') or config.get('legacy_enabled') else 'En pausa', 'Preferencias del canal', 'green' if config.get('enabled') or config.get('legacy_enabled') else 'gold', 'live') }}
-    {{ kpi_card('Último envío', config.get('last_sent_at')|madrid_datetime_label if config.get('last_sent_at') else None, 'Hora Madrid', 'blue', 'history') }}
-    {{ kpi_card('Plan', plan|upper, 'Contenido según membresía', 'purple', 'plan', '/membresias') }}
+{% set channel_enabled = config.get('enabled') or config.get('legacy_enabled') %}
+
+<div class="v933-page v933-telegram-page" data-v933-template="telegram" data-v933-reference="canonical-telegram">
+  {{ page_header('Telegram', 'Picks completos, alertas y resúmenes según tu plan.', 'telegram', [{'label':'Ver picks','href':'/picks','icon':'target'},{'label':'Mi cuenta','href':'/profile','primary':true,'icon':'user'}]) }}
+
+  <section class="v933-telegram-hero">
+    <div><span class="v933-eyebrow">Canal NeMeSiS</span><h2>Alertas útiles, no ruido</h2><p>La conexión, el contenido y la calidad se muestran con estados reales. Esta pantalla nunca envía un mensaje por sí sola.</p></div>
+    <span class="v933-telegram-mark">{{ icon('telegram') }}</span>
   </section>
-  <section class="v928-layout-main-aside">
-    <div class="v928-stack">
-      <section class="v928-panel">{{ section_header('Lo que recibirás en tu canal', 'Contenido de calidad, sin mensajes de relleno') }}<div class="v928-grid is-four"><article class="v928-fact-card"><span>Picks premium</span><strong>Completos</strong><small>Mercado, selección, cuota y riesgo</small></article><article class="v928-fact-card"><span>Alertas en directo</span><strong>Con señal real</strong><small>Sin eventos simulados</small></article><article class="v928-fact-card"><span>Resultados</span><strong>Confirmados</strong><small>Cierre de picks publicados</small></article><article class="v928-fact-card"><span>Resúmenes</span><strong>Sin filler</strong><small>Calidad antes que frecuencia</small></article></div></section>
-      <section class="v928-panel" id="vincular">{{ section_header('Conexión de Telegram', 'Vincula o gestiona tu cuenta sin exponer identificadores') }}
-        {% if state.get('linked') %}<div class="v928-linked-state"><div>{{ status_chip('Cuenta vinculada','success') }}<p>{% if state.get('username') %}@{{ state.get('username') }}{% else %}Identidad Telegram protegida{% endif %}</p></div><form method="post" action="/telegram/desvincular"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="v928-button" type="submit">Desvincular</button></form></div>
-        {% else %}<div class="v928-link-code"><span>Código de vinculación</span><strong>{{ state.get('code') or 'Pendiente de generar' }}</strong><p>{{ state.get('command') or 'Genera un código para iniciar la vinculación segura.' }}</p></div><div class="v928-actions">{% if state.get('deep_link') %}<a class="v928-button is-primary" href="{{ state.get('deep_link') }}" target="_blank" rel="noopener">Conectar Telegram</a>{% endif %}<form method="post" action="/telegram/regenerar-codigo"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="v928-button" type="submit">Nuevo código</button></form></div>{% endif %}
+
+  <section class="v933-kpi-grid">
+    {{ kpi_card('Telegram conectado', 'Sí' if state.get('linked') else 'No', 'Vinculación de tu cuenta', 'success' if state.get('linked') else 'warning', 'telegram') }}
+    {{ kpi_card('Canal activo', 'Sí' if channel_enabled else 'En pausa', 'Preferencias del canal', 'success' if channel_enabled else 'warning', 'live') }}
+    {{ kpi_card('Último envío', config.get('last_sent_at')|madrid_datetime_label if config.get('last_sent_at') else none, 'Hora Madrid', 'blue', 'history') }}
+    {{ kpi_card('Plan', plan|upper, 'Contenido según membresía', 'gold', 'plan', '/memberships') }}
+  </section>
+
+  <section class="v933-two-col">
+    <div class="v933-main-stack">
+      <section class="v933-panel">
+        {{ section_header('Lo que recibirás en tu canal', 'Contenido de calidad, sin mensajes de relleno.') }}
+        <div class="v933-four-col v933-feature-grid">
+          <article>{{ icon('target') }}<strong>Picks premium</strong><p>Mercado, selección, cuota y riesgo completos.</p></article>
+          <article>{{ icon('live') }}<strong>Alertas en directo</strong><p>Solo cuando existe una señal real.</p></article>
+          <article>{{ icon('history') }}<strong>Resultados</strong><p>Cierre confirmado de picks publicados.</p></article>
+          <article>{{ icon('data') }}<strong>Resúmenes</strong><p>Calidad antes que frecuencia.</p></article>
+        </div>
+      </section>
+
+      <section class="v933-panel" id="vincular">
+        {{ section_header('Conexión de Telegram', 'Vincula o gestiona tu cuenta sin exponer identificadores.') }}
+        {% if state.get('linked') %}
+        <div class="v933-linked-state">
+          <div>{{ status_chip('Cuenta vinculada','success') }}<p>{% if state.get('username') %}@{{ state.get('username') }}{% else %}Identidad Telegram protegida{% endif %}</p></div>
+          <form method="post" action="/telegram/desvincular"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="v933-action is-danger" type="submit">Desvincular</button></form>
+        </div>
+        {% else %}
+        <div class="v933-link-code"><span>Código de vinculación</span><strong>{{ state.get('code') or 'Pendiente de generar' }}</strong><p>{{ state.get('command') or 'Genera un código para iniciar la vinculación segura.' }}</p></div>
+        <div class="v933-page-actions v933-inline-actions">{% if state.get('deep_link') %}<a class="v933-action is-primary is-cyan" href="{{ state.get('deep_link') }}" target="_blank" rel="noopener">{{ icon('telegram') }}<span>Conectar Telegram</span></a>{% endif %}<form method="post" action="/telegram/regenerar-codigo"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="v933-action is-blue" type="submit">Nuevo código</button></form></div>
+        {% endif %}
       </section>
     </div>
-    <aside class="v928-stack"><section class="v928-panel">{{ section_header('Configurar en 3 pasos', 'Proceso protegido') }}<div class="v928-command-list">{{ quick_action('1. Vincula Telegram', 'Usa el código o enlace seguro', '#vincular', 'telegram') }}{{ quick_action('2. Revisa alertas', 'Comprueba el estado de conexión', '/telegram', 'notifications') }}{{ quick_action('3. Elige tu plan', 'Contenido según membresía', '/membresias', 'plan', 'gold') }}</div></section><section class="v928-panel">{{ section_header('Calidad del canal', 'Protecciones activas') }}<div class="v928-truth-list"><div><span>Sin relleno</span><strong>Activo</strong></div><div><span>Sin duplicados</span><strong>Activo</strong></div><div><span>Envío desde esta vista</span><strong>No</strong></div><div><span>Privacidad</span><strong>Protegida</strong></div></div></section></aside>
+
+    <aside class="v933-side-stack">
+      <section class="v933-panel">
+        {{ section_header('Configurar en 3 pasos', 'Proceso protegido.') }}
+        <div class="v933-main-stack">
+          {{ quick_action('1. Vincula Telegram', 'Usa el código o enlace seguro', '#vincular', 'telegram', 'cyan') }}
+          {{ quick_action('2. Revisa alertas', 'Comprueba el estado de conexión', '/telegram', 'alert') }}
+          {{ quick_action('3. Elige tu plan', 'Contenido según membresía', '/memberships', 'plan', 'gold') }}
+        </div>
+      </section>
+      <section class="v933-panel">
+        {{ section_header('Calidad del canal', 'Protecciones activas.') }}
+        <div class="v933-truth-list">
+          <div>{{ icon('check') }}<span><strong>Sin relleno</strong><small>Solo contenido útil</small></span>{{ status_chip('Activo','success') }}</div>
+          <div>{{ icon('shield') }}<span><strong>Sin duplicados</strong><small>Dedupe habilitado</small></span>{{ status_chip('Activo','success') }}</div>
+          <div>{{ icon('send') }}<span><strong>Envío desde esta vista</strong><small>No se ejecuta</small></span>{{ status_chip('Protegido','blue') }}</div>
+          <div>{{ icon('lock') }}<span><strong>Privacidad</strong><small>Identidad protegida</small></span>{{ status_chip('Activa','success') }}</div>
+        </div>
+      </section>
+    </aside>
   </section>
-</section>
+</div>
 {% endblock %}

@@ -1,8 +1,8 @@
 {% extends "base.html" %}
-{% from "components/v930_ui.html" import page_header, section_header, status_chip, crest, pick_card, empty_state, provider_status %}
+{% from "components/v933_ui.html" import page_header, section_header, status_chip, team_logo, pick_card, empty_state, provider_state, action_button, icon %}
 {% block content %}
 {% if not detail %}
-<section class="v928-page v930-page v930-client-page v930-match-detail" data-v928-template="match_detail" data-v930-template="match_detail">{{ page_header('Partido no disponible', 'No se encontró un registro real para este identificador', 'matches') }}{{ empty_state('Sin detalle de partido', 'Vuelve al calendario para elegir un encuentro disponible.', 'Volver a partidos', '/calendar', 'calendar') }}</section>
+<div class="v933-page v933-match-detail" data-v933-template="match_detail">{{ page_header('Partido no disponible', 'No se encontró un registro real para este identificador.', 'matches') }}{{ empty_state('Sin detalle de partido', 'Vuelve al calendario para elegir un encuentro disponible.', 'Volver a partidos', '/calendar', 'calendar') }}</div>
 {% else %}
 {% set match = detail.get('match') or {} %}
 {% set ctx = match|match_madrid_context %}
@@ -13,46 +13,66 @@
 {% set live = detail.get('api_football_live_tracker') or data.get('api_football_live_tracker') or {} %}
 {% set quality = live.get('quality') or {} %}
 {% set data_quality = detail.get('data_quality') or {} %}
-<section class="v928-page v928-match-detail v930-page v930-client-page v930-match-detail" data-v928-template="match_detail" data-v930-template="match_detail">
-  {{ page_header('Detalle del partido', 'Contexto deportivo real y hora Madrid', 'matches', [{'label':'Volver a partidos','href':'/calendar'},{'label':'Consultar SHARK','href':'/shark?match=' ~ match.get('id'),'primary':true}]) }}
-  <section class="v928-match-hero">
-    <div class="v928-match-hero-team">{{ crest(home_identity, 'lg') }}<strong>{{ ctx.safe_home }}</strong></div>
-    <div class="v928-match-hero-center"><span>{{ ctx.client_competition or match.get('competition_name') or 'Competición pendiente' }}</span><b>{{ ctx.client_score_label or 'VS' }}</b><time>{{ ctx.client_full_datetime_label or ctx.client_time_label or 'Hora pendiente' }}</time>{{ status_chip(ctx.client_status_label or 'Estado pendiente', 'live' if (ctx.client_status_label or '') == 'En directo' else 'neutral') }}</div>
-    <div class="v928-match-hero-team">{{ crest(away_identity, 'lg') }}<strong>{{ ctx.safe_away }}</strong></div>
+
+<div class="v933-page v933-match-detail" data-v933-template="match_detail" data-v933-reference="canonical-match-detail">
+  {{ page_header('Detalle del partido', 'Contexto deportivo real, hora Madrid y estados transparentes.', 'matches', [{'label':'Volver a partidos','href':'/calendar','icon':'arrow'},{'label':'Consultar SHARK','href':'/shark?match=' ~ match.get('id'),'primary':true,'icon':'shark'}]) }}
+
+  <section class="v933-match-hero">
+    <div class="v933-match-hero-team">{{ team_logo(ctx.safe_home, home_identity.get('logo'), 'lg') }}<strong>{{ ctx.safe_home }}</strong></div>
+    <div class="v933-match-hero-center">
+      <span>{{ ctx.client_competition or match.get('competition_name') or 'Competición pendiente' }}</span>
+      <b>{{ ctx.client_score_label or 'VS' }}</b>
+      <time>{{ ctx.client_full_datetime_label or ctx.client_time_label or 'Hora pendiente' }}</time>
+      {{ status_chip(ctx.client_status_label or 'Estado pendiente', 'success' if (ctx.client_status_label or '') == 'En directo' else 'blue') }}
+    </div>
+    <div class="v933-match-hero-team">{{ team_logo(ctx.safe_away, away_identity.get('logo'), 'lg') }}<strong>{{ ctx.safe_away }}</strong></div>
   </section>
 
-  <nav class="v928-detail-tabs"><a class="is-active" href="#resumen">Resumen</a><a href="#picks">Picks</a><a href="#datos">Datos</a><a href="#historico">Histórico</a><a href="#shark">SHARK</a></nav>
+  <nav class="v933-detail-tabs" aria-label="Secciones del partido"><a class="is-active" href="#resumen">Resumen</a><a href="#picks">Picks</a><a href="#datos">Datos</a><a href="#historico">Histórico</a><a href="#shark">SHARK</a></nav>
 
-  <section class="v928-layout-main-aside" id="resumen">
-    <div class="v928-stack">
-      <section class="v928-panel">
-        {{ section_header('Resumen real', 'La pantalla separa evidencia disponible y datos pendientes') }}
-        <div class="v928-grid is-three">
-          <article class="v928-fact-card"><span>Estado</span><strong>{{ ctx.client_status_label or 'Pendiente' }}</strong><small>{{ quality.get('label') or 'Lectura básica' }}</small></article>
-          <article class="v928-fact-card"><span>Marcador</span><strong>{{ ctx.client_score_label or 'Pendiente' }}</strong><small>{{ live.get('minute_label') or 'Minuto no disponible' }}</small></article>
-          <article class="v928-fact-card"><span>Disponibilidad</span><strong>{{ 'Datos en directo' if live.get('available') else 'Contexto guardado' }}</strong><small>La página no se bloquea al actualizar</small></article>
+  <section class="v933-two-col" id="resumen">
+    <div class="v933-main-stack">
+      <section class="v933-panel">
+        {{ section_header('Resumen', 'Evidencia disponible y datos pendientes, claramente separados.') }}
+        <div class="v933-three-col v933-fact-grid">
+          <article><span>Estado</span><strong>{{ ctx.client_status_label or 'Pendiente' }}</strong><small>{{ quality.get('label') or 'Lectura básica' }}</small></article>
+          <article><span>Marcador</span><strong>{{ ctx.client_score_label or 'Pendiente' }}</strong><small>{{ live.get('minute_label') or 'Minuto no disponible' }}</small></article>
+          <article><span>Disponibilidad</span><strong>{{ 'Datos en directo' if live.get('available') else 'Contexto guardado' }}</strong><small>La página no bloquea la actualización</small></article>
         </div>
         {% set notes = detail.get('shark_notes') or [] %}
-        {% if notes %}<div class="v928-notes-list">{% for note in notes[:5] %}<p>{{ note }}</p>{% endfor %}</div>{% else %}<p class="v928-inline-safe">SHARK mostrará una lectura ampliada cuando existan datos reales suficientes.</p>{% endif %}
+        {% if notes %}<div class="v933-notes-list">{% for note in notes[:5] %}<p>{{ icon('check') }}<span>{{ note }}</span></p>{% endfor %}</div>{% else %}<div class="v933-safe-copy">SHARK mostrará una lectura ampliada cuando existan datos reales suficientes.</div>{% endif %}
       </section>
 
-      <section class="v928-panel" id="picks">
-        {{ section_header('Pick recomendado', 'Solo aparece como completo con mercado, selección y cuota') }}
+      <section class="v933-panel" id="picks">
+        {{ section_header('Pick recomendado', 'Solo aparece como completo con partido, mercado, selección y cuota.') }}
         {% if pick %}{{ pick_card(pick, true) }}{% else %}{{ empty_state('Sin pick publicado para este partido', 'No se fuerza una recomendación cuando faltan datos o revisión editorial.', 'Ver picks', '/picks', 'target') }}{% endif %}
       </section>
 
-      <section class="v928-panel" id="datos">
-        {{ section_header('Datos y eventos', 'Información confirmada disponible para este partido') }}
-        <div class="v928-truth-list"><div><span>Hora</span><strong>{{ 'Sincronizada' if data_quality.get('has_time') else 'Pendiente' }}</strong></div><div><span>Resultado</span><strong>{{ 'Disponible' if data_quality.get('has_score') else 'Pendiente' }}</strong></div><div><span>Escudos</span><strong>{{ 'Identidad verificada' if data_quality.get('has_crests') else 'Fallback seguro' }}</strong></div><div><span>Datos en directo</span><strong>{{ quality.get('label') or ('Activos' if live.get('available') else 'No disponibles') }}</strong></div></div>
-        {% if live.get('events') %}<div class="v928-event-list">{% for event in live.get('events')[:12] %}<article><time>{{ event.get('elapsed') }}{% if event.get('elapsed') is not none %}'{% endif %}</time><span>{{ event.get('team_name') or 'Equipo' }}</span><strong>{{ event.get('event_type') or 'Evento' }}</strong><small>{{ event.get('detail') or event.get('player_name') or event.get('comments') or 'Dato del proveedor' }}</small></article>{% endfor %}</div>{% endif %}
+      <section class="v933-panel" id="datos">
+        {{ section_header('Datos y eventos', 'Información confirmada disponible para este partido.') }}
+        <div class="v933-truth-list">
+          <div>{{ icon('clock') }}<span><strong>Hora</strong><small>{{ 'Sincronizada' if data_quality.get('has_time') else 'Pendiente' }}</small></span>{{ status_chip('OK' if data_quality.get('has_time') else 'Pendiente', 'success' if data_quality.get('has_time') else 'warning') }}</div>
+          <div>{{ icon('score') }}<span><strong>Resultado</strong><small>{{ 'Disponible' if data_quality.get('has_score') else 'Pendiente' }}</small></span>{{ status_chip('OK' if data_quality.get('has_score') else 'Pendiente', 'success' if data_quality.get('has_score') else 'warning') }}</div>
+          <div>{{ icon('image') }}<span><strong>Escudos</strong><small>{{ 'Identidad verificada' if data_quality.get('has_crests') else 'Fallback seguro' }}</small></span>{{ status_chip('Real' if data_quality.get('has_crests') else 'Fallback', 'success' if data_quality.get('has_crests') else 'blue') }}</div>
+        </div>
+        {% if live.get('events') %}<div class="v933-event-list">{% for event in live.get('events')[:12] %}<article><time>{{ event.get('elapsed') }}{% if event.get('elapsed') is not none %}'{% endif %}</time><span>{{ event.get('team_name') or 'Equipo' }}</span><strong>{{ event.get('event_type') or 'Evento' }}</strong><small>{{ event.get('detail') or event.get('player_name') or event.get('comments') or 'Dato del proveedor' }}</small></article>{% endfor %}</div>{% endif %}
       </section>
     </div>
-    <aside class="v928-stack">
-      {{ provider_status(match.get('source') or live.get('source_label'), live.get('available'), live.get('updated_at') or match.get('updated_at'), quality.get('label'), live.get('cache_status'), quality.get('message') or live.get('message')) }}
-      <section class="v928-panel" id="historico">{{ section_header('Forma e histórico', 'Solo datos realmente guardados') }}<div class="v928-truth-list"><div><span>Forma local</span><strong>{% if detail.get('home_form') %}{{ detail.get('home_form')|length }} partidos guardados{% else %}Sin muestra suficiente{% endif %}</strong></div><div><span>Forma visitante</span><strong>{% if detail.get('away_form') %}{{ detail.get('away_form')|length }} partidos guardados{% else %}Sin muestra suficiente{% endif %}</strong></div><div><span>H2H</span><strong>{{ (detail.get('head_to_head') or [])|length }} registros</strong></div><div><span>Timeline</span><strong>{{ (detail.get('timeline') or [])|length }} eventos</strong></div></div></section>
-      <section class="v928-panel" id="shark">{{ section_header('SHARK', 'Explicación responsable') }}<p class="v928-panel-copy">SHARK usa únicamente el contexto disponible y marca cualquier dato faltante.</p><a class="v928-button is-primary" href="/shark?match={{ match.get('id') }}">Analizar este partido</a></section>
+
+    <aside class="v933-side-stack">
+      {{ provider_state(live.get('available', false), live.get('updated_at') or match.get('updated_at') or '', quality.get('message') or live.get('message') or 'Contexto deportivo guardado de forma segura.') }}
+      <section class="v933-panel" id="historico">
+        {{ section_header('Forma e histórico', 'Solo datos realmente guardados.') }}
+        <div class="v933-truth-list">
+          <div>{{ icon('history') }}<span><strong>Forma local</strong><small>{% if detail.get('home_form') %}{{ detail.get('home_form')|length }} partidos guardados{% else %}Sin muestra suficiente{% endif %}</small></span></div>
+          <div>{{ icon('history') }}<span><strong>Forma visitante</strong><small>{% if detail.get('away_form') %}{{ detail.get('away_form')|length }} partidos guardados{% else %}Sin muestra suficiente{% endif %}</small></span></div>
+          <div>{{ icon('matches') }}<span><strong>H2H</strong><small>{{ (detail.get('head_to_head') or [])|length }} registros</small></span></div>
+          <div>{{ icon('live') }}<span><strong>Timeline</strong><small>{{ (detail.get('timeline') or [])|length }} eventos</small></span></div>
+        </div>
+      </section>
+      <section class="v933-panel" id="shark">{{ section_header('SHARK', 'Explicación responsable.') }}<p class="v933-safe-copy">SHARK usa únicamente el contexto disponible y marca cualquier dato faltante.</p>{{ action_button('Analizar este partido', '/shark?match=' ~ match.get('id'), true, 'cyan', false, 'shark') }}</section>
     </aside>
   </section>
-</section>
+</div>
 {% endif %}
 {% endblock %}

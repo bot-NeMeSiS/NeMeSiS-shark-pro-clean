@@ -11,6 +11,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V932_AUTHENTICATED_PRODUCTION_CLIENT_ADMIN_AND_REAL_SPORTS_VALUE_FINAL"
+SUCCESSOR_VERSION = "V933_REFERENCE_PARITY_PRODUCT_DESIGN_SPRINT_SYSTEM_FINAL"
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
@@ -98,7 +99,7 @@ def main() -> int:
 
     failures = [item for item in client_results + admin_results if not item["ok"] or item["visible_error"]]
     checks = {
-        "version_v932": app_module.APP_VERSION == VERSION,
+        "version_v932_or_successor": app_module.APP_VERSION in {VERSION, SUCCESSOR_VERSION},
         "login_pages_200": login_status == 200 and admin_login_status == 200,
         "client_mock_routes_200": all(item["ok"] for item in client_results),
         "admin_mock_routes_200": all(item["ok"] for item in admin_results),

@@ -1,279 +1,60 @@
 {% extends "base.html" %}
+{% from "components/v933_ui.html" import page_header, kpi_card, status_chip, data_table, empty_state, next_action, icon %}
 {% block content %}
-<!-- V925 autonomous Sentinel command center rebuild -->
-<section class="ns-admin-page v924-no-dead-space v924-admin-shell v924-page-shell v894-company-sentinel v904-admin-rebuild v904-autonomous-sentinel v908-admin-shell v908-command-grid v911-admin-shell v912-admin-shell v912-command-center-polish v913-browser-qa-truth-panel v926-desktop-shell v926-desktop-command-center v926-admin-desktop v928-admin-command-center" data-v928-template="admin_autonomous_company_sentinel" data-v926-template="admin_autonomous_company_sentinel" data-v904-template="admin_autonomous_company_sentinel" data-v908-template="admin_autonomous_company_sentinel" data-v911-template="admin_autonomous_company_sentinel" data-v912-template="admin_autonomous_company_sentinel" data-v913-template="admin_autonomous_company_sentinel" data-v924-template="admin_autonomous_company_sentinel">
-  <div class="ns-page-header v927-admin-desktop-shell v927-no-dead-space" data-v927-template="admin_autonomous_company_sentinel">
-    <span class="ns-chip">Autonomous Company Sentinel</span>
-    <h1>Sentinel Empresa</h1>
-    <p>Worker autónomo para revisar cliente, admin, rutas, Telegram, picks, datos reales, referencias visuales, Render y release. Genera incidencias, prompts Codex y plan de autofix seguro sin deploy, push, Telegram real, pagos ni secretos.</p>
-    <div class="ns-actions">
-      <button class="ns-button ns-button-primary" type="button" data-v904-fetch="/api/admin/autonomous-company-sentinel/run?mode=safe_scan&amp;dry_run=1">Ejecutar revisión</button>
-      <button class="ns-button ns-button-secondary" type="button" data-v904-fetch="/api/admin/autonomous-company-sentinel/run?mode=reference_scan&amp;dry_run=1">Reference scan</button>
-      <button class="ns-button ns-button-secondary" type="button" data-v904-fetch="/api/admin/autonomous-company-sentinel/run?mode=daily_reference_review&amp;dry_run=1">Revisión diaria</button>
-      <button class="ns-button ns-button-secondary" type="button" data-v904-fetch="/api/admin/autonomous-company-sentinel/run?mode=post_deploy_check&amp;dry_run=1">Post-deploy</button>
-      <a class="ns-button ns-button-secondary" href="/admin/sentinel-issues">Ver incidencias</a>
-      <a class="ns-button ns-button-secondary" href="/admin/sentinel-codex-outbox">Ver outbox Codex</a>
-      <button class="ns-button ns-button-ghost" type="button" data-v904-fetch="/api/admin/autonomous-company-sentinel/autofix-plan">Plan de autofix</button>
-      <button class="ns-button ns-button-ghost" type="button" data-v904-fetch="/api/admin/autonomous-company-sentinel/render-alignment">Estado Render</button>
-    </div>
-    <output class="v904-safe-api-output" data-v904-output>Acciones dry-run: no deploy, no push, no Telegram real.</output>
-  </div>
+{% set latest = status.latest_run or {} %}
+{% set automation = latest.v904_automation_summary or {} %}
+{% set policy = latest.action_policy or automation.action_policy or {} %}
+{% set issue_summary = status.issues_summary or {} %}
+{% set counts = issue_summary.counts or {} %}
+{% set browser = status.browser_qa or {} %}
+{% set pipeline = status.v909_pipeline or {} %}
+{% set admin_runtime = status.admin_runtime_identity or {} %}
+{% set render = latest.render_alignment or {} %}
+{% set reference = latest.reference or {} %}
+{% set gap = reference.product_gap_report or {} %}
 
-  {% set latest = status.latest_run or {} %}
-  {% set automation = latest.v904_automation_summary or {} %}
-  {% set policy = latest.action_policy or automation.action_policy or {} %}
-  {% set issue_summary = status.issues_summary or {} %}
-  {% set counts = issue_summary.counts or {} %}
-  <section class="ns-grid ns-grid-4 v911-admin-kpi-grid v912-admin-kpi-grid v927-admin-kpi-deck">
-    <article class="ns-stat v912-kpi-card"><span class="v912-kpi-label">Última ejecución</span><strong class="v912-kpi-value">{{ status.state.last_mode or 'Pendiente' }}</strong><small class="v912-kpi-hint">{{ status.state.last_run_madrid or 'Sin run guardado' }}</small></article>
-    <article class="ns-stat v912-kpi-card"><span class="v912-kpi-label">Rutas revisadas</span><strong class="v912-kpi-value">{{ latest.routes_checked or 0 }}</strong><small class="v912-kpi-hint">cliente/admin</small></article>
-    <article class="ns-stat v912-kpi-card"><span class="v912-kpi-label">Incidencias abiertas</span><strong class="v912-kpi-value">{{ counts.open or 0 }}</strong><small class="v912-kpi-hint">{{ counts.critical or 0 }} críticas · {{ counts.high or 0 }} altas</small></article>
-    <article class="ns-stat v912-kpi-card"><span class="v912-kpi-label">Prompts Codex</span><strong class="v912-kpi-value">{{ (latest.outbox or {}).prompt_count or 0 }}</strong><small class="v912-kpi-hint">outbox revisable</small></article>
+<div class="v933-page v933-admin-command-center v933-admin-sentinel" data-v933-template="admin_autonomous_company_sentinel" data-v933-reference="canonical-admin-sentinel">
+  {{ page_header('Sentinel Empresa', 'Rutas, datos, seguridad, Browser QA y release con política de acción segura.', 'shield', [{'label':'Incidencias','href':'/admin/sentinel-issues','icon':'alert'},{'label':'Outbox Codex','href':'/admin/sentinel-codex-outbox','primary':true,'icon':'data'}]) }}
+
+  <section class="v933-kpi-grid is-six">
+    {{ kpi_card('Última ejecución', status.state.last_mode or 'Pendiente', status.state.last_run_madrid or 'Sin run guardado', 'blue', 'history') }}
+    {{ kpi_card('Rutas revisadas', latest.routes_checked or 0, 'Cliente y admin', 'cyan', 'routes') }}
+    {{ kpi_card('Incidencias activas', counts.open or 0, ((counts.critical or 0)|string) ~ ' críticas · ' ~ ((counts.high or 0)|string) ~ ' altas', 'warning' if counts.open else 'success', 'alert') }}
+    {{ kpi_card('Prompts Codex', (latest.outbox or {}).prompt_count or 0, 'Outbox revisable', 'blue', 'data') }}
+    {{ kpi_card('Capturas QA', browser.screenshots_captured or 0, 'Desktop y móvil', 'success' if browser.screenshots_captured else 'warning', 'image') }}
+    {{ kpi_card('Gaps pendientes', browser.visual_gaps_pending or (gap.gaps or [])|length, 'Requieren evidencia', 'warning' if browser.visual_gaps_pending or gap.gaps else 'success', 'target') }}
   </section>
 
-  {% set browser = status.browser_qa or {} %}
-  {% set v909 = status.v909_pipeline or {} %}
-  <section class="ns-admin-card v909-browser-pipeline-panel v911-browser-execution-panel v911-browser-qa-panel v912-browser-qa-panel v913-browser-qa-truth-card v927-admin-runtime-card v927-compact-section" data-v909-browser-qa-pipeline="true" data-v911-browser-execution="true" data-v912-browser-qa-panel="true" data-v913-browser-qa-truth="true">
-    <div class="ns-section-title">
-      <h2>Browser QA Pipeline V909/V913</h2>
-      <span class="ns-badge">{{ 'Listo' if v909.pipeline_ready else 'Pendiente' }}</span>
-    </div>
-    <div class="ns-grid ns-grid-4 v911-admin-kpi-grid v912-admin-kpi-grid">
-      <article class="ns-stat v912-kpi-card"><span class="v912-kpi-label">Runner local</span><strong class="v912-kpi-value">{{ 'Listo' if v909.local_runner_available else 'Pendiente' }}</strong><small class="v912-kpi-hint">PowerShell / bat / sh</small></article>
-      <article class="ns-stat v912-kpi-card"><span class="v912-kpi-label">GitHub Action</span><strong class="v912-kpi-value">{{ 'Disponible' if v909.github_action_available else 'Ejemplo pendiente' }}</strong><small class="v912-kpi-hint">workflow_dispatch</small></article>
-      <article class="ns-stat v912-kpi-card"><span class="v912-kpi-label">Cola visual</span><strong class="v912-kpi-value">{{ v909.visual_fix_queue_count or 0 }}</strong><small class="v912-kpi-hint">{{ v909.blocked_no_screenshot_count or 0 }} sin screenshot</small></article>
-      <article class="ns-stat v912-kpi-card"><span class="v912-kpi-label">Capturas</span><strong class="v912-kpi-value">{{ browser.screenshots_captured or 0 }}</strong><small class="v912-kpi-hint">pixel-perfect: false</small></article>
-    </div>
-    <div class="ns-table-wrap">
-      <table class="ns-table">
-        <tbody>
-          <tr><th>Ejecutar local</th><td><code>browser_qa/run_local_browser_qa.ps1</code></td></tr>
-          <tr><th>Base URL Render</th><td><code>https://bot-apuestas-crgf.onrender.com</code></td></tr>
-          <tr><th>Salida</th><td><code>reports/browser_qa_render/</code></td></tr>
-          <tr><th>Queue</th><td><code>data/runtime/autonomous_company_sentinel/visual_fix_queue.json</code></td></tr>
-        </tbody>
-      </table>
-    </div>
-    <p>V913 mantiene Browser QA preparado y veraz: si Playwright no está disponible o no hay importación, la cola visual queda bloqueada por screenshot y no se declara pixel-perfect.</p>
-  </section>
+  <section class="v933-admin-layout">
+    <div class="v933-main-stack">
+      <section class="v933-admin-panel">
+        <header><div><h2>Incidencias activas</h2><p>Hallazgos deduplicados y accionables.</p></div><a class="v933-admin-link" href="/admin/sentinel-issues">Abrir centro {{ icon('arrow') }}</a></header>
+        <div class="v933-admin-panel-body">{% if issue_summary.open_issues %}{% call data_table(['Severidad','Área','Ruta','Problema','Estado']) %}{% for issue in issue_summary.open_issues[:20] %}<tr><td>{{ status_chip(issue.severity,'danger' if issue.severity in ['critical','high'] else 'warning') }}</td><td>{{ issue.area }}</td><td><code>{{ issue.route or '-' }}</code></td><td><strong>{{ issue.title }}</strong><br><small>{{ issue.evidence }}</small></td><td>{{ issue.status }}</td></tr>{% endfor %}{% endcall %}{% else %}{{ empty_state('Sin incidencias activas', 'El último estado guardado no contiene hallazgos abiertos.', '', '', 'shield') }}{% endif %}</div>
+      </section>
 
-  <section class="ns-admin-card v906-browser-qa-panel v907-browser-qa-enablement v911-browser-qa-panel v912-browser-qa-panel" data-v906-browser-qa="true" data-v907-browser-qa="true" data-v912-browser-qa-panel="true">
-    <div class="ns-section-title">
-      <h2>Browser QA V907/V913</h2>
-      <span class="ns-badge">{{ browser.status or browser.browser_qa_status or 'BROWSER_QA_UNAVAILABLE' }}</span>
-    </div>
-    <div class="ns-grid ns-grid-4 v911-admin-kpi-grid v912-admin-kpi-grid">
-      <article class="ns-stat v912-kpi-card"><span class="v912-kpi-label">Capturas</span><strong class="v912-kpi-value">{{ browser.screenshots_captured or 0 }}</strong><small class="v912-kpi-hint">desktop/mobile</small></article>
-      <article class="ns-stat v912-kpi-card"><span class="v912-kpi-label">Comparaciones</span><strong class="v912-kpi-value">{{ browser.reference_comparisons or 0 }}</strong><small class="v912-kpi-hint">reference_images</small></article>
-      <article class="ns-stat v912-kpi-card"><span class="v912-kpi-label">Gaps resueltos</span><strong class="v912-kpi-value">{{ browser.visual_gaps_resolved or 0 }}</strong><small class="v912-kpi-hint">por captura</small></article>
-      <article class="ns-stat v912-kpi-card"><span class="v912-kpi-label">Gaps pendientes</span><strong class="v912-kpi-value">{{ browser.visual_gaps_pending or 0 }}</strong><small class="v912-kpi-hint">requieren browser real</small></article>
-    </div>
-    <div class="ns-table-wrap">
-      <table class="ns-table">
-        <tbody>
-          <tr><th>Playwright</th><td>{{ browser.playwright_status or browser.status or 'Pendiente de detectar' }}</td></tr>
-          <tr><th>Rutas capturadas</th><td>{{ (browser.routes_captured or [])|join(', ') if browser.routes_captured else 'Sin capturas reales todavia' }}</td></tr>
-          <tr><th>Reporte</th><td><code>reports/V907_browser_qa</code></td></tr>
-        </tbody>
-      </table>
-    </div>
-    <p>Próxima acción real: ejecutar Browser QA o importar resultados con <code>tools/import_browser_qa_results.py</code>. No pixel-perfect sin capturas reales comparadas contra las referencias.</p>
-    <div class="ns-actions">
-      <a class="ns-button ns-button-secondary" href="/admin/sentinel-codex-outbox">Ver outbox</a>
-      <button class="ns-button ns-button-ghost" type="button" data-v904-fetch="/api/admin/autonomous-company-sentinel/reference-gaps">Ver gaps</button>
-    </div>
-  </section>
+      <section class="v933-admin-panel">
+        <header><div><h2>Browser QA y referencia</h2><p>Una captura válida es obligatoria para cerrar gaps visuales.</p></div>{{ status_chip(browser.status or browser.browser_qa_status or 'BROWSER_QA_UNAVAILABLE','success' if browser.screenshots_captured else 'warning') }}</header>
+        <div class="v933-admin-panel-body">
+          <div class="v933-four-col v933-fact-grid"><article><span>Pipeline</span><strong>{{ 'Listo' if pipeline.pipeline_ready else 'Pendiente' }}</strong><small>Runner local y GitHub Action</small></article><article><span>Capturas</span><strong>{{ browser.screenshots_captured or 0 }}</strong><small>Reales y válidas</small></article><article><span>Comparaciones</span><strong>{{ browser.reference_comparisons or 0 }}</strong><small>Contra referencias</small></article><article><span>Cola visual</span><strong>{{ pipeline.blocked_no_screenshot_count or 0 }}</strong><small>Bloqueados sin screenshot</small></article></div>
+          <p class="v933-safe-copy">No se declara equivalencia visual exacta ni pixel-perfect sin capturas reales comparadas y revisión humana.</p>
+        </div>
+      </section>
 
-  <section class="ns-admin-card v904-automation-modes-panel">
-    <div class="ns-section-title">
-      <h2>Flujo automático permanente V904</h2>
-      <span class="ns-badge">dry-run controlado</span>
+      <section class="v933-admin-panel">
+        <header><div><h2>Acciones Sentinel</h2><p>Todas se ejecutan en dry-run desde esta vista.</p></div>{{ status_chip('Sin deploy ni envíos','success') }}</header>
+        <div class="v933-admin-panel-body"><div class="v933-admin-action-grid"><button class="v933-action is-primary is-blue" type="button" data-v904-fetch="/api/admin/autonomous-company-sentinel/run?mode=safe_scan&amp;dry_run=1">Revisión segura</button><button class="v933-action is-blue" type="button" data-v904-fetch="/api/admin/autonomous-company-sentinel/run?mode=reference_scan&amp;dry_run=1">Reference scan</button><button class="v933-action is-blue" type="button" data-v904-fetch="/api/admin/autonomous-company-sentinel/run?mode=daily_reference_review&amp;dry_run=1">Revisión diaria</button><button class="v933-action is-blue" type="button" data-v904-fetch="/api/admin/autonomous-company-sentinel/run?mode=post_deploy_check&amp;dry_run=1">Post-deploy</button><button class="v933-action is-blue" type="button" data-v904-fetch="/api/admin/autonomous-company-sentinel/autofix-plan">Plan de autofix</button><button class="v933-action is-blue" type="button" data-v904-fetch="/api/admin/autonomous-company-sentinel/render-alignment">Estado Render</button></div><output class="v904-safe-api-output v933-workforce-output" data-v904-output>Acciones dry-run: no deploy, no push, no Telegram real, no pagos.</output></div>
+      </section>
     </div>
-    <div class="ns-grid ns-grid-4">
-      <article class="ns-stat"><span>Modo ejecutado</span><strong>{{ automation.mode or latest.mode or 'Pendiente' }}</strong><small>{{ automation.mode_label or 'Sin revisión reciente' }}</small></article>
-      <article class="ns-stat"><span>Gaps leídos</span><strong>{{ automation.gaps_read or status.state.v904_gaps_read or 0 }}</strong><small>{{ automation.gaps_addressed or status.state.v904_gaps_addressed or 0 }} abordados</small></article>
-      <article class="ns-stat"><span>Prompts activos</span><strong>{{ automation.prompts_active or status.state.v904_prompts_active or 0 }}</strong><small>Codex outbox</small></article>
-      <article class="ns-stat"><span>Deploy</span><strong>{{ automation.deploy_status or status.state.v904_deploy_status or 'Pendiente' }}</strong><small>no declara producción</small></article>
-    </div>
-    <div class="ns-grid ns-grid-3">
-      <article class="ns-card ns-card-compact">
-        <h3>SAFE_AUTOFIX</h3>
-        <p>Correcciones seguras planificadas sin datos reales ni secretos.</p>
-        <strong>{{ policy.safe_autofix_count or 0 }}</strong>
-      </article>
-      <article class="ns-card ns-card-compact">
-        <h3>CODEX_PROMPT_REQUIRED</h3>
-        <p>Trabajo que debe pasar por prompt Codex antes de tocar código.</p>
-        <strong>{{ policy.codex_prompt_required_count or 0 }}</strong>
-      </article>
-      <article class="ns-card ns-card-compact">
-        <h3>HUMAN_APPROVAL_REQUIRED</h3>
-        <p>Pagos, secretos, Telegram real, DB, deploy o acciones peligrosas.</p>
-        <strong>{{ policy.human_approval_required_count or 0 }}</strong>
-      </article>
-    </div>
-    <div class="ns-table-wrap">
-      <table class="ns-table">
-        <tbody>
-          <tr><th>Última revisión automática</th><td>{{ status.state.last_run_madrid or latest.last_run_madrid or 'Sin run guardado' }}</td></tr>
-          <tr><th>Estado secret masking</th><td>{{ automation.secret_masking_status or status.state.v904_secret_masking_status or 'masked_configured_missing_only' }}</td></tr>
-          <tr><th>Errores activos</th><td>{{ automation.errors_active or status.state.v904_errors_active or counts.open or 0 }}</td></tr>
-          <tr><th>Próximo paso</th><td>{{ automation.next_recommended_step or status.state.v904_next_step or 'Ejecutar daily_reference_review en dry-run tras desplegar la versión actual.' }}</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </section>
 
-  <section class="ns-grid ns-grid-2 v927-admin-ops-grid">
-    <article class="ns-admin-card">
-      <div class="ns-section-title">
-        <h2>Automatización cron</h2>
-        <span class="ns-badge">protegida</span>
-      </div>
-      <div class="ns-table-wrap">
-        <table class="ns-table">
-          <tbody>
-            <tr><th>Endpoint</th><td><code>{{ status.cron.endpoint }}</code></td></tr>
-            <tr><th>Ligero</th><td>{{ status.cron.safe_scan }}</td></tr>
-            <tr><th>Funcional</th><td>{{ status.cron.functional_scan }}</td></tr>
-            <tr><th>Completo</th><td>{{ status.cron.full_scan }}</td></tr>
-            <tr><th>Daily review</th><td><code>{{ status.cron.daily_reference_review_endpoint }}</code></td></tr>
-            <tr><th>Post-deploy</th><td><code>{{ status.cron.post_deploy_check_endpoint }}</code></td></tr>
-            <tr><th>Runner</th><td>{{ latest.runner or 'Pendiente' }}</td></tr>
-            <tr><th>Nota UTC</th><td>{{ status.cron.timezone_note }}</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </article>
+    <aside class="v933-side-stack">
+      <section class="v933-admin-panel"><header><div><h2>Política de acción</h2><p>Qué puede resolver cada nivel.</p></div></header><div class="v933-admin-panel-body"><div class="v933-truth-list"><div>{{ icon('check') }}<span><strong>Safe autofix</strong><small>{{ policy.safe_autofix_count or 0 }} acciones</small></span></div><div>{{ icon('data') }}<span><strong>Prompt Codex</strong><small>{{ policy.codex_prompt_required_count or 0 }} acciones</small></span></div><div>{{ icon('lock') }}<span><strong>Aprobación humana</strong><small>{{ policy.human_approval_required_count or 0 }} acciones</small></span></div><div>{{ icon('shield') }}<span><strong>Secret masking</strong><small>{{ automation.secret_masking_status or status.state.v904_secret_masking_status or 'masked' }}</small></span></div></div></div></section>
 
-    <article class="ns-admin-card">
-      <div class="ns-section-title">
-        <h2>Política segura</h2>
-        <span class="ns-badge">dry-run</span>
-      </div>
-      <div class="ns-stack">
-        {% for note in latest.safe_notes or ['No auto deploy','No auto push','No Telegram real','No pagos reales','No secretos','No datos inventados'] %}
-          <span class="ns-chip">{{ note }}</span>
-        {% endfor %}
-      </div>
-    </article>
-  </section>
+      <section class="v933-admin-panel"><header><div><h2>Runtime y producción</h2><p>Identidad local y verificación externa.</p></div>{{ status_chip(admin_runtime.deployment_alignment_status or 'Pendiente','success' if admin_runtime.deployment_alignment_status == 'aligned_local_files' else 'warning') }}</header><div class="v933-admin-panel-body"><div class="v933-truth-list"><div>{{ icon('data') }}<span><strong>App</strong><small>{{ admin_runtime.app_version or status.version }}</small></span></div><div>{{ icon('document') }}<span><strong>VERSION.txt</strong><small>{{ admin_runtime.version_txt or 'No disponible' }}</small></span></div><div>{{ icon('rocket') }}<span><strong>Render externo</strong><small>{{ render.render_version if render.render_version else 'No consultado' }}</small></span></div><div>{{ icon('clock') }}<span><strong>Comprobado</strong><small>{{ admin_runtime.runtime_checked_at_madrid or 'Pendiente' }}</small></span></div></div><a class="v933-action is-blue" href="/api/runtime-version">Abrir runtime seguro</a></div></section>
 
-  <section class="ns-grid ns-grid-3">
-    <article class="ns-admin-card">
-      <h2>Roles</h2>
-      <div class="ns-stack">
-        {% for role in latest.roles_reviewed or ['anonymous','FREE','PRO','ELITE','ADMIN'] %}
-          <span class="ns-chip">{{ role }}</span>
-        {% endfor %}
-      </div>
-    </article>
-    <article class="ns-admin-card">
-      <h2>Dispositivos</h2>
-      <div class="ns-stack">
-        {% for device in latest.devices_reviewed or ['desktop_1440x900','mobile_390x844'] %}
-          <span class="ns-badge">{{ device }}</span>
-        {% endfor %}
-      </div>
-    </article>
-    <article class="ns-admin-card">
-      <h2>Referencia visual</h2>
-      {% set ref = latest.reference or {} %}
-      {% set gap = ref.product_gap_report or {} %}
-      <p>Referencias detectadas: <strong>{{ (ref.manifest or {}).reference_count or ref.reference_count or 0 }}</strong></p>
-      <p>Pantallas revisadas: <strong>{{ (gap.targets_reviewed or [])|length }}</strong></p>
-      <p>Capturas reales: <strong>{{ 'Disponibles' if ref.browser_available else 'No ejecutadas' }}</strong></p>
-      <p>Gaps altos: <strong>{{ (gap.high_gaps or [])|length }}</strong></p>
-      <p>Prompts generados: <strong>{{ (gap.codex_prompts or [])|length }}</strong></p>
-      <p>Score honesto: <strong>{{ gap.score_honest or 'Pendiente' }}</strong></p>
-      <div class="ns-actions">
-        <button class="ns-button ns-button-secondary" type="button" data-v904-fetch="/api/admin/autonomous-company-sentinel/reference-gaps">Ver gaps</button>
-        <a class="ns-button ns-button-ghost" href="/admin/sentinel-codex-outbox">Ver outbox</a>
-      </div>
-      <p>No se declara equivalencia exacta sin capturas reales comparadas.</p>
-    </article>
-  </section>
+      {{ next_action('Resolver el siguiente bloqueo real', automation.next_recommended_step or status.state.v904_next_step or 'Ejecutar Browser QA y revisar evidencias.', '/admin/automation-workforce', 'Abrir Workforce') }}
 
-  {% set ref = latest.reference or {} %}
-  {% set gap = ref.product_gap_report or {} %}
-  <section class="ns-admin-card v899-reference-visual-panel">
-    <div class="ns-section-title">
-      <h2>Referencia visual V899</h2>
-      <span class="ns-badge">reference gap</span>
-    </div>
-    <div class="ns-grid ns-grid-4">
-      <article class="ns-stat"><span>Referencias</span><strong>{{ (ref.manifest or {}).reference_count or 0 }}</strong><small>reference_images</small></article>
-      <article class="ns-stat"><span>Gaps</span><strong>{{ (gap.gaps or [])|length }}</strong><small>pantalla por pantalla</small></article>
-      <article class="ns-stat"><span>Browser QA</span><strong>{{ 'Disponible' if ref.browser_available else 'No disponible' }}</strong><small>sin afirmar equivalencia exacta</small></article>
-      <article class="ns-stat"><span>Prompts visuales</span><strong>{{ (gap.codex_prompts or [])|length }}</strong><small>Codex outbox</small></article>
-    </div>
-    <div class="ns-table-wrap">
-      <table class="ns-table">
-        <thead><tr><th>Severidad</th><th>Ruta</th><th>Referencia</th><th>Gap</th><th>Accion</th></tr></thead>
-        <tbody>
-        {% for item in (gap.gaps or [])[:8] %}
-          <tr>
-            <td><span class="ns-chip ns-chip-{{ item.severity }}">{{ item.severity }}</span></td>
-            <td><code>{{ item.route }}</code></td>
-            <td>{{ item.reference }}</td>
-            <td>{{ item.evidence }}</td>
-            <td><button class="ns-button ns-button-secondary" type="button" data-copy="{{ item.codex_prompt|e }}">Copiar prompt</button></td>
-          </tr>
-        {% else %}
-          <tr><td colspan="5"><div class="ns-empty ns-empty-compact">Ejecuta mode=reference_scan para poblar gaps visuales accionables.</div></td></tr>
-        {% endfor %}
-        </tbody>
-      </table>
-    </div>
+      <section class="v933-admin-panel"><header><div><h2>Garantías</h2><p>Política de seguridad.</p></div></header><div class="v933-admin-panel-body"><div class="v933-chip-cloud">{% for note in latest.safe_notes or ['No auto deploy','No auto push','No Telegram real','No pagos reales','No secretos','No datos inventados'] %}{{ status_chip(note,'neutral') }}{% endfor %}</div></div></section>
+    </aside>
   </section>
-
-  <section class="ns-grid ns-grid-2">
-    <article class="ns-admin-card v911-version-status-card v912-version-status-card">
-      <h2>Runtime y despliegue</h2>
-      {% set admin_runtime = status.admin_runtime_identity or {} %}
-      {% set render = latest.render_alignment or {} %}
-      <p>Runtime actual de esta app: <strong>{{ admin_runtime.app_version or status.version }}</strong></p>
-      <p>VERSION.txt: <strong>{{ admin_runtime.version_txt or 'No disponible' }}</strong></p>
-      <p>Estado local: <span class="ns-chip">{{ admin_runtime.deployment_alignment_status or 'Pendiente' }}</span></p>
-      <p>Comprobado Madrid: <strong>{{ admin_runtime.runtime_checked_at_madrid or 'Pendiente' }}</strong></p>
-      <p>Render externo: <strong>{{ render.render_version if render.render_version else 'No consultado desde esta vista' }}</strong></p>
-      <small>Render externo no consultado en esta vista. Usa `/api/runtime-version` o el reporte de deploy para certificar producción.</small>
-      <p><a class="ns-button ns-button-secondary" href="/api/runtime-version">Abrir runtime seguro</a></p>
-    </article>
-    <article class="ns-admin-card">
-      <h2>Telegram y picks</h2>
-      {% set tg = latest.telegram_quality_watch or {} %}
-      <p>Configurado: <strong>{{ 'Sí' if tg.configured else 'No confirmado' }}</strong></p>
-      <p>No filler: <strong>{{ 'Activo' if tg.no_filler_policy else 'Pendiente' }}</strong></p>
-      <p>Envío real: <strong>No permitido por este worker</strong></p>
-    </article>
-  </section>
-
-  <section class="ns-admin-card">
-    <div class="ns-section-title">
-      <h2>Incidencias recientes</h2>
-      <a class="ns-button ns-button-secondary" href="/admin/sentinel-issues">Abrir centro</a>
-    </div>
-    <div class="ns-table-wrap">
-      <table class="ns-table">
-        <thead><tr><th>Severidad</th><th>Área</th><th>Ruta</th><th>Problema</th><th>Estado</th></tr></thead>
-        <tbody>
-        {% for issue in (issue_summary.open_issues or [])[:12] %}
-          <tr>
-            <td><span class="ns-chip ns-chip-{{ issue.severity }}">{{ issue.severity }}</span></td>
-            <td>{{ issue.area }}</td>
-            <td><code>{{ issue.route or '-' }}</code></td>
-            <td>{{ issue.title }}<br><small>{{ issue.evidence }}</small></td>
-            <td>{{ issue.status }}</td>
-          </tr>
-        {% else %}
-          <tr><td colspan="5"><div class="ns-empty ns-empty-compact">Sin incidencias abiertas guardadas. El cron poblará esta vista cuando detecte hallazgos accionables.</div></td></tr>
-        {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </section>
-</section>
+</div>
 {% endblock %}
-
-

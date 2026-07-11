@@ -1,34 +1,46 @@
 {% extends "base.html" %}
-{% from "components/v930_ui.html" import page_header, kpi_card, section_header, quick_action, empty_state, status_chip, data_table %}
+{% from "components/v933_ui.html" import page_header, kpi_card, section_header, quick_action, empty_state, status_chip, data_table, next_action, icon %}
 {% block content %}
 {% set overview = data.get('v928_admin') or {} %}
 {% set telegram = overview.get('telegram') or {} %}
 {% set automation = overview.get('automation') or {} %}
 {% set errors = overview.get('recent_errors') or [] %}
-<section class="v928-page v928-admin-command-center v930-page v930-admin-page v930-admin-dashboard" data-v928-template="admin_dashboard" data-v930-template="admin_dashboard">
-  {{ page_header('Panel de control', 'Resumen real del ecosistema y próximas acciones', 'dashboard', [{'label':'Workforce','href':'/admin/automation-workforce'},{'label':'Revisar Sentinel','href':'/admin/autonomous-company-sentinel','primary':true}]) }}
-  <section class="v928-kpi-grid">
+
+<div class="v933-page v933-admin-command-center v933-admin-dashboard" data-v933-template="admin_dashboard" data-v933-reference="canonical-admin-dashboard">
+  {{ page_header('Panel de control', 'Resumen operativo del ecosistema y próximas acciones.', 'dashboard', [{'label':'Workforce','href':'/admin/automation-workforce','icon':'automation'},{'label':'Revisar Sentinel','href':'/admin/autonomous-company-sentinel','primary':true,'icon':'shield'}]) }}
+
+  <section class="v933-kpi-grid is-six">
     {{ kpi_card('Usuarios', overview.get('users_total'), 'Cuentas en DB', 'blue', 'users', '/admin/users') }}
-    {{ kpi_card('Picks activos', overview.get('picks_active'), 'Publicados reales', 'purple', 'target', '/admin/picks') }}
-    {{ kpi_card('Partidos hoy', overview.get('matches_today'), 'Cache / DB', 'blue', 'matches', '/admin/matches-sync') }}
-    {{ kpi_card('En directo', overview.get('live_now'), 'Feed confirmado', 'green', 'live', '/admin/live-depth') }}
-    {{ kpi_card('Telegram pendiente', telegram.get('pending'), 'Cola registrada', 'blue', 'telegram', '/admin/telegram/command-center') }}
-    {{ kpi_card('Errores recientes', errors|length, 'Observabilidad local', 'red' if errors else 'green', 'shield', '/admin/observability/errors') }}
+    {{ kpi_card('Picks activos', overview.get('picks_active'), 'Publicados reales', 'cyan', 'target', '/admin/picks') }}
+    {{ kpi_card('Partidos hoy', overview.get('matches_today'), 'Caché y DB', 'blue', 'matches', '/admin/matches') }}
+    {{ kpi_card('En directo', overview.get('live_now'), 'Feed confirmado', 'success', 'live', '/admin/matches') }}
+    {{ kpi_card('Telegram pendiente', telegram.get('pending'), 'Cola registrada', 'cyan', 'telegram', '/admin/telegram/command-center') }}
+    {{ kpi_card('Errores recientes', errors|length, 'Observabilidad local', 'warning' if errors else 'success', 'shield', '/admin/observability/errors') }}
   </section>
 
-  <section class="v928-layout-wide-aside">
-    <div class="v928-stack">
-      <section class="v928-admin-panel"><header><div><h2>Estado operativo</h2><p>Servicios y datos sin métricas de demostración</p></div>{{ status_chip('Correcto' if overview.get('global_status') == 'ok' else 'Revisar', 'success' if overview.get('global_status') == 'ok' else 'warning') }}</header><div class="v928-admin-panel-body"><div class="v928-grid is-three"><article class="v928-fact-card"><span>Telegram</span><strong>{{ telegram.get('automatic_status') or 'Sin dato' }}</strong><small>{{ telegram.get('last_error') or 'Sin error reportado' }}</small></article><article class="v928-fact-card"><span>Automatización</span><strong>{{ automation.get('jobs_ready', 0) }}/{{ automation.get('jobs_total', 0) }} jobs listos</strong><small>{{ automation.get('generated_at_madrid') or 'Sin ejecución reciente' }}</small></article><article class="v928-fact-card"><span>Datos deportivos</span><strong>{{ overview.get('matches_today', 0) }} hoy</strong><small>Sin llamadas externas durante render</small></article></div></div></section>
+  <section class="v933-admin-layout">
+    <div class="v933-main-stack">
+      <section class="v933-admin-panel">
+        <header><div><h2>Estado operativo</h2><p>Servicios y datos sin métricas de demostración.</p></div>{{ status_chip('Correcto' if overview.get('global_status') == 'ok' else 'Revisar', 'success' if overview.get('global_status') == 'ok' else 'warning') }}</header>
+        <div class="v933-admin-panel-body"><div class="v933-three-col v933-fact-grid"><article><span>Telegram</span><strong>{{ telegram.get('automatic_status') or 'Sin dato' }}</strong><small>{{ telegram.get('last_error') or 'Sin error reportado' }}</small></article><article><span>Automatización</span><strong>{{ automation.get('jobs_ready', 0) }}/{{ automation.get('jobs_total', 0) }} jobs listos</strong><small>{{ automation.get('generated_at_madrid') or 'Sin ejecución reciente' }}</small></article><article><span>Datos deportivos</span><strong>{{ overview.get('matches_today', 0) }} hoy</strong><small>Sin llamadas externas durante render</small></article></div></div>
+      </section>
 
-      <section class="v928-admin-panel"><header><div><h2>Actividad y errores recientes</h2><p>Observabilidad real</p></div><a class="v928-link-action" href="/admin/observability/errors">Ver todo</a></header><div class="v928-admin-panel-body">{% if errors %}{% call data_table(['Hora','Ruta','Severidad','Detalle']) %}{% for item in errors %}<tr><td>{{ item.get('created_at')|madrid_datetime_label if item.get('created_at') else 'Sin fecha' }}</td><td>{{ item.get('path') or item.get('route') or 'Sistema' }}</td><td>{{ status_chip(item.get('severity') or item.get('level') or 'Revisar','danger') }}</td><td>{{ item.get('message') or item.get('error') or 'Error registrado' }}</td></tr>{% endfor %}{% endcall %}{% else %}{{ empty_state('Sin errores recientes', 'La observabilidad no registra incidencias en la ventana consultada.', '', '', 'shield') }}{% endif %}</div></section>
+      <section class="v933-admin-panel">
+        <header><div><h2>Actividad y errores recientes</h2><p>Observabilidad real.</p></div><a class="v933-admin-link" href="/admin/observability/errors">Ver todo {{ icon('arrow') }}</a></header>
+        <div class="v933-admin-panel-body">{% if errors %}{% call data_table(['Hora','Ruta','Severidad','Detalle']) %}{% for item in errors %}<tr><td>{{ item.get('created_at')|madrid_datetime_label if item.get('created_at') else 'Sin fecha' }}</td><td>{{ item.get('path') or item.get('route') or 'Sistema' }}</td><td>{{ status_chip(item.get('severity') or item.get('level') or 'Revisar','danger') }}</td><td>{{ item.get('message') or item.get('error') or 'Error registrado' }}</td></tr>{% endfor %}{% endcall %}{% else %}{{ empty_state('Sin errores recientes', 'La observabilidad no registra incidencias en la ventana consultada.', '', '', 'shield') }}{% endif %}</div>
+      </section>
 
-      <section class="v928-admin-panel"><header><div><h2>Acciones rápidas</h2><p>Áreas operativas principales</p></div></header><div class="v928-admin-panel-body"><div class="v928-command-grid">{{ quick_action('Telegram', 'Cola, dedupe y dry-run', '/admin/telegram/command-center', 'telegram') }}{{ quick_action('Picks y partidos', 'Gestión editorial real', '/admin/picks', 'target') }}{{ quick_action('Sincronizar datos', 'Proveedores y cache', '/admin/data-center', 'database') }}{{ quick_action('Automatización', 'Jobs y configuración', '/admin/automation-center', 'automation') }}{{ quick_action('Pagos', 'Stripe y suscripciones', '/admin/payments', 'payments', 'gold') }}{{ quick_action('Lanzamiento real', 'Bloqueadores y checklist', '/admin/real-launch', 'rocket', 'green') }}</div></div></section>
+      <section class="v933-admin-panel">
+        <header><div><h2>Acciones rápidas</h2><p>Áreas operativas principales.</p></div></header>
+        <div class="v933-admin-panel-body"><div class="v933-quick-actions">{{ quick_action('Telegram', 'Cola, dedupe y dry-run', '/admin/telegram/command-center', 'telegram', 'cyan') }}{{ quick_action('Picks y partidos', 'Gestión editorial real', '/admin/picks', 'target') }}{{ quick_action('Sincronizar datos', 'Proveedores y caché', '/admin/data-center', 'database') }}{{ quick_action('Automatización', 'Jobs y configuración', '/admin/automation-workforce', 'automation') }}{{ quick_action('Pagos', 'Stripe y suscripciones', '/admin/payments', 'payments', 'gold') }}{{ quick_action('Lanzamiento', 'Bloqueadores y checklist', '/admin/launch-certification', 'rocket', 'success') }}</div></div>
+      </section>
     </div>
-    <aside class="v928-stack">
-      <section class="v928-admin-panel"><header><div><h2>Resumen de cuentas</h2><p>Distribución actual</p></div></header><div class="v928-admin-panel-body"><div class="v928-truth-list"><div><span>PRO</span><strong>{{ overview.get('users_pro', 0) }}</strong></div><div><span>ELITE</span><strong>{{ overview.get('users_elite', 0) }}</strong></div><div><span>Total</span><strong>{{ overview.get('users_total', 0) }}</strong></div><div><span>Fuente</span><strong>DB local</strong></div></div></div></section>
-      <section class="v928-admin-panel"><header><div><h2>Siguiente acción</h2><p>Estado honesto del sistema</p></div></header><div class="v928-admin-panel-body"><p class="v928-panel-copy">Revisa Browser QA y la cola visual antes de cerrar mejoras de referencia. Un Sentinel limpio no sustituye capturas reales.</p><a class="v928-button is-primary" href="/admin/automation-workforce">Abrir Workforce</a></div></section>
-      <section class="v928-admin-panel"><header><div><h2>Más módulos</h2></div></header><div class="v928-admin-panel-body"><div class="v928-command-list">{% for item in items[:8] %}<a class="v928-command-card" href="{{ item.get('href') }}"><span class="v928-icon" data-v928-icon="module" aria-hidden="true"></span><span><strong>{{ item.get('title') }}</strong><small>{{ item.get('body') }}</small></span><span class="v928-command-arrow">&rarr;</span></a>{% endfor %}</div></div></section>
+
+    <aside class="v933-side-stack">
+      <section class="v933-admin-panel"><header><div><h2>Resumen de cuentas</h2><p>Distribución actual.</p></div></header><div class="v933-admin-panel-body"><div class="v933-truth-list"><div>{{ icon('users') }}<span><strong>PRO</strong><small>{{ overview.get('users_pro', 0) }} cuentas</small></span></div><div>{{ icon('users') }}<span><strong>ELITE</strong><small>{{ overview.get('users_elite', 0) }} cuentas</small></span></div><div>{{ icon('database') }}<span><strong>Total</strong><small>{{ overview.get('users_total', 0) }} registros en DB</small></span></div></div></div></section>
+      {{ next_action('Revisar evidencia visual', 'Un Sentinel limpio no sustituye Browser QA ni la revisión de capturas.', '/admin/automation-workforce', 'Abrir Workforce') }}
+      <section class="v933-admin-panel"><header><div><h2>Más módulos</h2><p>Acceso directo al ecosistema.</p></div></header><div class="v933-admin-panel-body"><div class="v933-main-stack">{% for item in items[:8] %}{{ quick_action(item.get('title'), item.get('body'), item.get('href'), 'dashboard') }}{% endfor %}</div></div></section>
     </aside>
   </section>
-</section>
+</div>
 {% endblock %}

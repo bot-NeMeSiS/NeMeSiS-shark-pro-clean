@@ -11,7 +11,8 @@ ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V930_CANONICAL_REFERENCE_VISUAL_PARITY_ADMIN_CLIENT_MOBILE_FINAL"
 V931_VERSION = "V931_PRODUCTION_CLIENT_ROUTES_AND_HOME_DATA_CONSISTENCY_HOTFIX_FINAL"
 V932_VERSION = "V932_AUTHENTICATED_PRODUCTION_CLIENT_ADMIN_AND_REAL_SPORTS_VALUE_FINAL"
-ALLOWED_VERSIONS = {VERSION, V931_VERSION, V932_VERSION}
+V933_VERSION = "V933_REFERENCE_PARITY_PRODUCT_DESIGN_SPRINT_SYSTEM_FINAL"
+ALLOWED_VERSIONS = {VERSION, V931_VERSION, V932_VERSION, V933_VERSION}
 FORBIDDEN_RELEASE_NAMES = {".git", ".venv", "__pycache__", ".pytest_cache", "release_output"}
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
@@ -114,7 +115,9 @@ def run(kind: str) -> dict:
         add(checks, "reference_images_16", len(list((ROOT / "reference_images").rglob("*.png"))) == 16)
         add(checks, "four_shells", all(token in nav for token in ("canonical_public_shell", "canonical_client_desktop_shell", "canonical_client_mobile_shell", "canonical_admin_shell")))
         home = read("templates/home.html")
-        add(checks, "single_home_hero", home.count("v928-home-hero") == 2 and "{% if current_user %}" in home and "{% else %}" in home)
+        legacy_single_hero = home.count("v928-home-hero") == 2 and "{% if current_user %}" in home and "{% else %}" in home
+        v933_single_hero = home.count("v933-public-hero") == 1
+        add(checks, "single_home_hero", legacy_single_hero or v933_single_hero)
         add(checks, "desktop_dead_space_guard", "padding: calc(var(--v930-topbar) + 14px)" in css)
     elif kind == "admin":
         for name in admin_files:

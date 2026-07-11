@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "components/v930_ui.html" import page_header, kpi_card, section_header, quick_action, match_card, pick_card, empty_state, provider_status, next_action %}
+{% from "components/v933_ui.html" import icon, status_chip, action_button, section_header, kpi_card, quick_action, empty_state, match_card, pick_card, provider_state, next_action %}
 {% block content %}
 {% set user_name = current_user.name or current_user.username or 'Cliente' %}
 {% set plan_name = (current_user.membership or 'FREE')|upper %}
@@ -10,61 +10,82 @@
 {% set picks = safe_picks.get('picks') or [] %}
 {% set alerts = data.get('client_alerts') or [] %}
 {% set sports_value = data.get('v932_sports_value') or {} %}
-<section class="v928-page v928-client-dashboard v930-page v930-client-page v930-client-dashboard" data-v928-template="client_app_center" data-v930-template="client_app_center">
-  {{ page_header('Buenos días, ' ~ user_name, 'Tu centro de mando deportivo de hoy', 'home', [{'label':'Plan ' ~ plan_name,'href':'/membresias'},{'label':'Ver partidos','href':'/calendar','primary':true}]) }}
+{% set hub_counts = (data.get('match_hub') or {}).get('counts') or {} %}
 
-  <div class="v930-client-context-strip" aria-label="Contexto de la sesión">
-    <span><b>Plan</b><strong>{{ plan_name }}</strong></span>
-    <span><b>Hora Madrid</b><strong>{{ madrid_now }}</strong></span>
-    <span><b>Datos deportivos</b><strong>{{ 'Disponibles' if sports_value.get('real_matches_available') else 'Sin agenda completa' }}</strong></span>
-  </div>
-
-  <section class="v928-kpi-grid is-four" aria-label="Resumen de hoy">
-    {{ kpi_card('Partidos disponibles', matches|length, 'Agenda guardada y sincronizada', 'blue', 'calendar', '/calendar') }}
-    {{ kpi_card('En directo', safe_live.get('counts', {}).get('live', 0), 'Solo marcadores confirmados', 'green', 'live', '/live') }}
-    {{ kpi_card('Picks completos', picks|length, 'Mercado, selección y cuota reales', 'purple', 'target', '/picks') }}
-    {{ kpi_card('Alertas', alerts|length, 'Según tu actividad real', 'blue', 'telegram', '/alertas') }}
+<div class="v933-page v933-client-dashboard" data-v933-template="client_app_center" data-v933-reference="canonical-client-home">
+  <section class="v933-client-hero">
+    <div>
+      <span class="v933-eyebrow">Tu centro de mando de hoy</span>
+      <h1>Buenos días, {{ user_name }}</h1>
+      <p>Hora Madrid · Tu agenda, picks, directo y alertas en un único recorrido.</p>
+      <div class="v933-client-hero-meta">
+        {{ status_chip('Plan ' ~ plan_name, 'gold' if plan_name in ['ELITE','ELITE_PLUS'] else ('cyan' if plan_name == 'PRO' else 'blue')) }}
+        {{ status_chip('Datos disponibles' if sports_value.get('real_matches_available') else 'Sin agenda completa', 'success' if sports_value.get('real_matches_available') else 'warning') }}
+        {{ status_chip(madrid_now or 'Hora Madrid', 'neutral') }}
+      </div>
+    </div>
+    {{ action_button('Ver partidos', '/calendar', true, 'blue', false, 'calendar') }}
   </section>
 
-  <section class="v928-layout-main-aside">
-    <div class="v928-stack">
-      <section class="v928-panel">
-        {{ section_header('Ruta recomendada de hoy', 'Tres pasos claros, sin forzar decisiones') }}
-        <div class="v928-command-grid is-mobile-two">
-          {{ quick_action('Mira partidos', 'Agenda por hora Madrid y competición', '/calendar', 'calendar') }}
-          {{ quick_action('Revisa picks', 'Solo selecciones publicables y completas', '/picks', 'target') }}
-          {{ quick_action('Consulta SHARK', 'Explicación responsable con datos disponibles', '/shark', 'shark') }}
+  <section class="v933-kpi-grid" aria-label="Resumen de la jornada">
+    {{ kpi_card('Partidos disponibles', matches|length, 'Agenda completa y validada', 'blue', 'calendar', '/calendar') }}
+    {{ kpi_card('En directo', hub_counts.get('live', 0) or safe_live.get('counts', {}).get('live', 0) or 0, 'Solo marcadores confirmados', 'success', 'live', '/live') }}
+    {{ kpi_card('Picks completos', picks|length, 'Mercado, selección y cuota reales', 'cyan', 'target', '/picks') }}
+    {{ kpi_card('Alertas', alerts|length, 'Actividad real de tu cuenta', 'gold', 'telegram', '/telegram') }}
+  </section>
+
+  <section class="v933-two-col">
+    <div class="v933-main-stack">
+      <section class="v933-panel">
+        {{ section_header('Ruta recomendada de hoy', 'Un recorrido corto para encontrar valor sin perder contexto.') }}
+        <div class="v933-quick-actions">
+          {{ quick_action('1. Mira partidos', 'Agenda por hora Madrid y competición', '/calendar', 'calendar') }}
+          {{ quick_action('2. Revisa picks', 'Solo selecciones publicables y completas', '/picks', 'target') }}
+          {{ quick_action('3. Consulta SHARK', 'Contexto, riesgos y límites visibles', '/shark', 'shark', 'cyan') }}
         </div>
       </section>
 
-      <section class="v928-panel">
-        {{ section_header('Partidos destacados', 'Próximos encuentros disponibles en tu agenda', 'Ver todos', '/calendar') }}
-        {% if matches %}<div class="v928-grid is-three">{% for match in matches[:6] %}{{ match_card(match, true, true) }}{% endfor %}</div>
-        {% else %}{{ empty_state('No hay partidos sincronizados', sports_value.get('safe_message') or 'La pantalla permanece operativa y no inventa una agenda.', 'Abrir calendario', '/calendar', 'calendar') }}{% endif %}
+      <section class="v933-panel">
+        {{ section_header('Próximos partidos', 'Encuentros completos guardados en tu agenda.', 'Ver todos', '/calendar') }}
+        {% if matches %}
+        <div class="v933-match-grid">
+          {% for match in matches[:6] %}{{ match_card(match, false, true) }}{% endfor %}
+        </div>
+        {% else %}
+          {{ empty_state('No hay partidos sincronizados', sports_value.get('safe_message') or 'La app permanece operativa y no sustituye la agenda por encuentros de ejemplo.', 'Abrir calendario', '/calendar', 'calendar') }}
+        {% endif %}
+      </section>
+
+      <section class="v933-panel">
+        {{ section_header('Tus accesos rápidos', 'Las áreas principales de la experiencia cliente.') }}
+        <div class="v933-quick-actions">
+          {{ quick_action('Calendario', 'Agenda y resultados reales', '/calendar', 'calendar') }}
+          {{ quick_action('Directo', 'Marcadores y eventos confirmados', '/live', 'live', 'success') }}
+          {{ quick_action('Telegram', 'Conexión, calidad y alertas', '/telegram', 'telegram', 'cyan') }}
+          {{ quick_action('Histórico', 'Resultados cerrados y muestra evaluable', '/track-record', 'history') }}
+          {{ quick_action('Mi cuenta', 'Plan, seguridad y favoritos', '/profile', 'user') }}
+          {{ quick_action('Membresías', 'FREE, PRO y ELITE', '/memberships', 'plan', 'gold') }}
+        </div>
       </section>
     </div>
 
-    <aside class="v928-stack">
-      <section class="v928-panel">
-        {{ section_header('Pick destacado', 'Primero calidad, después cantidad') }}
-        {% if picks %}{{ pick_card(picks[0], true) }}<a class="v928-button is-primary" href="/picks">Ver análisis completo</a>
-        {% else %}{{ empty_state('Sin pick completo para destacar', 'Se necesita partido, mercado, selección y cuota real antes de publicar.', 'Revisar picks', '/picks', 'target') }}{% endif %}
+    <aside class="v933-side-stack">
+      <section class="v933-panel">
+        {{ section_header('Pick destacado', 'Primero calidad, después cantidad.') }}
+        {% if picks %}{{ pick_card(picks[0], true) }}{% else %}{{ empty_state('Sin pick completo para destacar', 'Se necesita partido, mercado, selección y cuota real antes de publicar.', 'Revisar picks', '/picks', 'target') }}{% endif %}
       </section>
-      {{ provider_status(safe_calendar.get('source'), safe_calendar.get('has_real_data'), safe_calendar.get('last_sync'), safe_calendar.get('provider_status'), safe_calendar.get('cache_status'), safe_calendar.get('safe_message')) }}
-      {{ next_action('Revisar la agenda', 'Empieza por los partidos disponibles y abre SHARK solo cuando haya contexto suficiente.', '/calendar', 'Continuar') }}
+
+      <section class="v933-panel">
+        {{ section_header('SHARK y Telegram', 'Inteligencia y alertas con controles claros.') }}
+        <div class="v933-main-stack">
+          {{ quick_action('Consultar SHARK', 'Capacidades reales y modo seguro', '/shark', 'shark', 'cyan') }}
+          {{ quick_action('Revisar Telegram', 'Conexión, contenido y calidad', '/telegram', 'telegram', 'cyan') }}
+        </div>
+      </section>
+
+      {{ provider_state(sports_value.get('real_matches_available', false), sports_value.get('last_safe_sync') or '', sports_value.get('safe_message') or '') }}
+      {{ next_action('Revisar la agenda', 'Empieza por los partidos disponibles y abre SHARK cuando exista contexto suficiente.', '/calendar', 'Continuar') }}
     </aside>
   </section>
-
-  <section class="v928-panel">
-    {{ section_header('Accesos rápidos', 'Las áreas principales de tu cuenta') }}
-    <div class="v928-command-grid">
-      {{ quick_action('Calendario', 'Agenda y resultados', '/calendar', 'calendar') }}
-      {{ quick_action('Directo', 'Estado live cache-first', '/live', 'live', 'green') }}
-      {{ quick_action('Telegram', 'Conexión y alertas', '/telegram', 'telegram') }}
-      {{ quick_action('Histórico', 'ROI solo con picks cerrados', '/track-record', 'history') }}
-      {{ quick_action('Mi cuenta', 'Plan, seguridad y favoritos', '/profile', 'user') }}
-      {{ quick_action('Membresías', 'FREE, PRO y ELITE', '/membresias', 'plan', 'gold') }}
-    </div>
-  </section>
-</section>
+</div>
 {% endblock %}
