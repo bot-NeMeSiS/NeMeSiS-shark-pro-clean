@@ -1,12 +1,12 @@
 {% extends "base.html" %}
-{% from "components/v928_ui.html" import page_header, section_header, status_chip %}
+{% from "components/v930_ui.html" import page_header, section_header, status_chip %}
 {% block content %}
 {% set pay = data.get('payments_client') or {} %}
 {% set plans = pay.get('plans') or {} %}
 {% set current_plan = (current_user.membership if current_user else 'FREE')|upper %}
 {% set legal_checks = data.get('checkout_legal') or [] %}
 {% set legal_version = (data.get('legal_compliance') or {}).get('version') or 'LEGAL_CURRENT' %}
-<section class="v928-page v928-memberships" data-v928-template="membership">
+<section class="v928-page v928-memberships v930-page v930-client-page v930-memberships-page" data-v928-template="membership" data-v930-template="membership">
   {{ page_header('Elige tu plan', 'Accede a funciones premium con precios reales de configuración', 'plan', [{'label':'Mi cuenta','href':'/profile'}]) }}
   {% if payment_error or data.get('payment_error') %}<div class="v928-inline-safe">{{ payment_error or data.get('payment_error') }}</div>{% endif %}
   <div class="v928-plan-grid">

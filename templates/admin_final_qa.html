@@ -1,72 +1,27 @@
 {% extends "base.html" %}
+{% from "components/v930_ui.html" import page_header, kpi_card, section_header, quick_action, status_chip, data_table, empty_state %}
 {% block content %}
-<section class="hero compact-hero launch-hero">
-  <div>
-    <p class="eyebrow">ADMIN · LANZAMIENTO</p>
-    <h1>QA final comercial</h1>
-    <p class="muted">Centro único para validar si NeMeSiS SHARK PRO está listo para testers, usuarios reales y evolución comercial.</p>
-  </div>
-  <div class="score-ring big"><strong>{{ qa.score }}%</strong><span>{{ qa.launch_state|upper }}</span></div>
-</section>
-
-<section class="grid stats-grid">
-  <article class="card"><span class="label">Partidos</span><strong>{{ qa.metrics.matches }}</strong><small>Base para calendario, live y recomendaciones</small></article>
-  <article class="card"><span class="label">Picks</span><strong>{{ qa.metrics.picks }}</strong><small>Publicados/gestionables desde admin</small></article>
-  <article class="card"><span class="label">Recomendaciones</span><strong>{{ qa.metrics.recommendations }}</strong><small>Motor SHARK Betting Intelligence</small></article>
-  <article class="card"><span class="label">Telegram cola</span><strong>{{ qa.metrics.telegram_queue }}</strong><small>Mensajes preparados/enviables</small></article>
-</section>
-
-<section class="grid stats-grid">
-  <article class="card"><span class="label">Historical matches</span><strong>{{ qa.metrics.historical_matches }}</strong><small>Resultados y contexto guardado para aprendizaje futuro</small></article>
-  <article class="card"><span class="label">Historical picks</span><strong>{{ qa.metrics.historical_picks }}</strong><small>Picks, cuotas, stake y beneficio persistidos</small></article>
-  <article class="card"><span class="label">Historical recommendations</span><strong>{{ qa.metrics.historical_recommendations }}</strong><small>Señales SHARK guardadas para evolución del motor</small></article>
-</section>
-
-<section class="grid two-cols">
-  <article class="card">
-    <h2>Checklist crítico</h2>
-    <div class="stack-list">
-      {% for c in qa.checks %}
-      <div class="mini-row qa-row {{ 'ok' if c.ok else 'warn' }}">
-        <span class="dot {{ 'good' if c.ok else 'hot' }}"></span>
-        <div><strong>{{ c.name }}</strong><small>{{ c.detail }}</small></div>
-      </div>
-      {% endfor %}
+{% set metrics = qa.metrics or {} %}
+{% set score = qa.score or 0 %}
+<section class="v928-page v928-admin-command-center v930-page v930-admin-page v930-admin-final-qa" data-v930-template="admin_final_qa">
+  {{ page_header('QA final comercial', 'Estado real para testers, usuarios y lanzamiento', 'shield', [{'label':'Certificación','href':'/admin/launch-certification'},{'label':'Lanzamiento','href':'/admin/real-launch','primary':true}]) }}
+  <section class="v928-kpi-grid">
+    {{ kpi_card('Puntuación', (score|string ~ '%') if qa.score is not none else none, qa.launch_state or 'Sin estado', 'green' if score >= 80 else 'gold', 'shield') }}
+    {{ kpi_card('Partidos', metrics.matches, 'Registros actuales', 'blue', 'matches') }}
+    {{ kpi_card('Picks', metrics.picks, 'Registros actuales', 'purple', 'target') }}
+    {{ kpi_card('Recomendaciones', metrics.recommendations, 'Señales guardadas', 'blue', 'shark') }}
+    {{ kpi_card('Cola Telegram', metrics.telegram_queue, 'Registros, sin envío', 'blue', 'telegram') }}
+    {{ kpi_card('Histórico', metrics.historical_picks, 'Picks persistidos', 'green', 'history') }}
+  </section>
+  <section class="v928-layout-wide-aside">
+    <div class="v928-stack">
+      <section class="v928-admin-panel"><header><div><h2>Checklist crítico</h2><p>Comprobaciones registradas por QA</p></div>{{ status_chip(qa.launch_state or 'Revisar', 'success' if score >= 80 else 'warning') }}</header><div class="v928-admin-panel-body">{% if qa.checks %}{% call data_table(['Área','Detalle','Estado']) %}{% for check in qa.checks %}<tr><td><strong>{{ check.name }}</strong></td><td>{{ check.detail }}</td><td>{{ status_chip('Correcto' if check.ok else 'Revisar','success' if check.ok else 'warning') }}</td></tr>{% endfor %}{% endcall %}{% else %}{{ empty_state('Sin checks registrados','Ejecuta la certificación para generar evidencia.', 'Abrir certificación', '/admin/launch-certification', 'shield') }}{% endif %}</div></section>
+      <section class="v928-admin-panel"><header><div><h2>Rutas clave</h2><p>Cliente y admin separadas</p></div></header><div class="v928-admin-panel-body">{% call data_table(['Superficie','Ruta','Estado']) %}{% for route in qa.routes.cliente or [] %}<tr><td>Cliente</td><td>{{ route.path }}</td><td>{{ status_chip(route.status or 'Sin estado','success' if route.status in [200, '200', 'OK', 'ok'] else 'neutral') }}</td></tr>{% endfor %}{% for route in qa.routes.admin or [] %}<tr><td>Admin</td><td>{{ route.path }}</td><td>{{ status_chip(route.status or 'Protegida','success' if route.status in [200, '200', 'OK', 'ok'] else 'neutral') }}</td></tr>{% endfor %}{% endcall %}</div></section>
     </div>
-  </article>
-  <article class="card">
-    <h2>Acciones prioritarias</h2>
-    <div class="stack-list">
-      {% for action in qa.priority_actions %}
-      <div class="mini-row"><span class="dot hot"></span><span>{{ action }}</span></div>
-      {% endfor %}
-    </div>
-    <div class="quick-grid mt">
-      <a class="btn" href="/admin/data-center">Data Center</a>
-      <a class="btn" href="/admin/recommendations">Recomendaciones</a>
-      <a class="btn" href="/admin/picks">Picks</a>
-      <a class="btn" href="/admin/telegram">Telegram</a>
-      <a class="btn ghost" href="/admin/launch-certification">Abrir certificacion</a>
-    </div>
-  </article>
-</section>
-
-<section class="grid two-cols">
-  <article class="card">
-    <h2>Rutas cliente clave</h2>
-    <div class="compact-list">
-      {% for r in qa.routes.cliente %}
-      <div><span>{{ r.path }}</span><em>{{ r.status }}</em></div>
-      {% endfor %}
-    </div>
-  </article>
-  <article class="card">
-    <h2>Rutas admin clave</h2>
-    <div class="compact-list">
-      {% for r in qa.routes.admin %}
-      <div><span>{{ r.path }}</span><em>{{ r.status }}</em></div>
-      {% endfor %}
-    </div>
-  </article>
+    <aside class="v928-stack">
+      <section class="v928-admin-panel"><header><div><h2>Acciones prioritarias</h2></div></header><div class="v928-admin-panel-body">{% if qa.priority_actions %}<ol class="v928-step-list">{% for action in qa.priority_actions %}<li>{{ action }}</li>{% endfor %}</ol>{% else %}{{ empty_state('Sin acciones registradas','No hay una acción prioritaria en el snapshot actual.', '', '', 'shield') }}{% endif %}</div></section>
+      <section class="v928-admin-panel"><header><div><h2>Centros relacionados</h2></div></header><div class="v928-admin-panel-body"><div class="v928-command-list">{{ quick_action('Data Center','Calidad y sincronización','/admin/data-center','database') }}{{ quick_action('Picks','Puerta editorial','/admin/picks','target') }}{{ quick_action('Telegram','Cola y dedupe','/admin/telegram/command-center','telegram') }}{{ quick_action('Rutas','Integridad de navegación','/admin/navigation-integrity','routes') }}</div></div></section>
+    </aside>
+  </section>
 </section>
 {% endblock %}

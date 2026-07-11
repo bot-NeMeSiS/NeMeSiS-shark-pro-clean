@@ -1,10 +1,10 @@
 {% extends "base.html" %}
-{% from "components/v928_ui.html" import page_header, kpi_card, section_header, empty_state, status_chip %}
+{% from "components/v930_ui.html" import page_header, kpi_card, section_header, empty_state, status_chip %}
 {% block content %}
 {% set diag = data.get('matches_diagnostics') or {} %}
 {% set feed = data.get('sportsdb_feed') or {} %}
 {% set odds = data.get('odds') or {} %}
-<section class="v928-page v928-admin-command-center" data-v928-template="admin_matches_sync">
+<section class="v928-page v928-admin-command-center v930-page v930-admin-page v930-admin-matches" data-v928-template="admin_matches_sync" data-v930-template="admin_matches_sync">
   {{ page_header('Partidos', 'Calendario, resultados, cuotas y proveedores', 'matches', [{'label':'Data Center','href':'/admin/data-center'},{'label':'Ver calendario','href':'/calendar','primary':true}]) }}
   {% if message %}<div class="v928-inline-safe">{{ message }}</div>{% endif %}
   <section class="v928-kpi-grid is-four">{{ kpi_card('Partidos guardados', diag.get('total_matches'), 'DB real', 'blue', 'matches') }}{{ kpi_card('Próximos', diag.get('upcoming_matches'), 'Agenda', 'green', 'calendar') }}{{ kpi_card('En directo', diag.get('live_matches'), 'Estado confirmado', 'green', 'live') }}{{ kpi_card('Competiciones', diag.get('total_competitions'), 'Cobertura guardada', 'blue', 'database') }}</section>

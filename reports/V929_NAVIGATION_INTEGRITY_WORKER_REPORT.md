@@ -2,7 +2,7 @@
 
 - Status: `OK`
 - Rutas Flask: `646`
-- Enlaces auditados: `921`
+- Enlaces auditados: `929`
 - Enlaces rotos antes/después: `1/0`
 - Loops: `0`
 - Botones sin acción: `0`

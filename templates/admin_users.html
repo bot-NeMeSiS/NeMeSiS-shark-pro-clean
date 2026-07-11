@@ -1,9 +1,9 @@
 {% extends "base.html" %}
-{% from "components/v928_ui.html" import page_header, kpi_card, section_header, empty_state, status_chip %}
+{% from "components/v930_ui.html" import page_header, kpi_card, section_header, empty_state, status_chip %}
 {% block content %}
 {% set users = data.get('users') or [] %}
 {% set admin = data.get('membership_admin') or {} %}
-<section class="v928-page v928-admin-command-center" data-v928-template="admin_users">
+<section class="v928-page v928-admin-command-center v930-page v930-admin-page v930-admin-users" data-v928-template="admin_users" data-v930-template="admin_users">
   {{ page_header('Usuarios', 'Cuentas, roles y membresías sin tocar pagos', 'users', [{'label':'Membresías','href':'/admin/memberships'},{'label':'Importar','href':'/admin/user-import','primary':true}]) }}
   {% if message %}<div class="v928-inline-safe">{{ message }}</div>{% endif %}
   <section class="v928-kpi-grid is-four">{{ kpi_card('Usuarios', users|length, 'Cuentas reales', 'blue', 'users') }}{{ kpi_card('Temporales', admin.get('active_temporal', 0), 'Membresías con fecha', 'purple', 'plan') }}{{ kpi_card('Caducan pronto', admin.get('expiring_soon', 0), 'Próximos 7 días', 'gold', 'calendar') }}{{ kpi_card('Caducadas hoy', admin.get('expired_today', 0), 'Reglas automáticas', 'blue', 'history') }}</section>

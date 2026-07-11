@@ -1,0 +1,95 @@
+{% from "partials/brand_logo.html" import nemesis_brand %}
+
+{% macro canonical_client_topbar(plan='FREE') -%}
+{% set links = [('Inicio','/app','home'),('Partidos','/calendar','calendar'),('Directo','/live','live'),('Picks','/picks','target'),('Histórico','/track-record','history'),('SHARK','/shark','shark'),('Telegram','/telegram','telegram'),('Cuenta','/profile','user')] %}
+<header class="v930-client-topbar canonical-client-topbar" data-nav-zone="client-desktop">
+  <div class="v930-topbar-inner">
+    {{ nemesis_brand('/app', 'topbar') }}
+    <nav aria-label="Navegación cliente">
+      {% for label, href, icon_name in links %}
+      {% set active = request.path == href or (href == '/calendar' and request.path in ['/partidos','/calendario']) or (href != '/app' and request.path.startswith(href ~ '/')) %}
+      <a href="{{ href }}" class="{% if active %}is-active{% endif %}"{% if active %} aria-current="page"{% endif %}>
+        <span class="v928-icon" data-v928-icon="{{ icon_name }}" aria-hidden="true"></span><span>{{ label }}</span>
+      </a>
+      {% endfor %}
+    </nav>
+    <a class="v930-plan-pill is-{{ plan|lower }}" href="/memberships" aria-label="Abrir planes">{{ plan }}</a>
+  </div>
+</header>
+{%- endmacro %}
+
+{% macro canonical_client_desktop_shell(plan='FREE') -%}
+<div class="v930-client-desktop-chrome canonical-client-desktop-shell">{{ canonical_client_topbar(plan) }}</div>
+{%- endmacro %}
+
+{% macro canonical_client_mobile_shell() -%}
+<header class="v930-mobile-header canonical-client-mobile-shell" data-nav-zone="client-mobile">
+  {{ nemesis_brand('/app', 'topbar', True) }}
+  <a href="/profile" class="v930-mobile-account" aria-label="Abrir cuenta"><span class="v928-icon" data-v928-icon="user" aria-hidden="true"></span></a>
+</header>
+{%- endmacro %}
+
+{% macro canonical_public_shell() -%}
+<header class="v930-public-topbar canonical-public-shell" data-nav-zone="public-topbar">
+  <div class="v930-topbar-inner">
+    {{ nemesis_brand('/', 'topbar') }}
+    <nav aria-label="Navegación pública">
+      <a href="/calendar">Partidos</a><a href="/live">Directo</a><a href="/picks">Picks</a><a href="/memberships">Planes</a><a href="/cliente-login">Entrar</a><a class="is-primary" href="/registro">Crear cuenta</a>
+    </nav>
+  </div>
+</header>
+<header class="v930-mobile-header canonical-public-mobile-shell" data-nav-zone="public-mobile">
+  {{ nemesis_brand('/', 'topbar', True) }}
+  <a href="/cliente-login" class="v930-mobile-account" aria-label="Entrar"><span class="v928-icon" data-v928-icon="user" aria-hidden="true"></span></a>
+</header>
+{%- endmacro %}
+
+{% macro canonical_admin_sidebar() -%}
+{% set links = [('Dashboard','/admin/dashboard','dashboard'),('Telegram','/admin/telegram/command-center','telegram'),('Pagos','/admin/payments','payments'),('Usuarios','/admin/users','users'),('Picks','/admin/picks','target'),('Partidos','/admin/matches-sync','matches'),('Datos','/admin/data-center','database'),('Automatización','/admin/automation-center','automation'),('Sentinel','/admin/autonomous-company-sentinel','shield'),('Rutas','/admin/navigation-integrity','routes'),('Lanzamiento','/admin/launch-certification','rocket'),('Ajustes','/admin/system','settings')] %}
+<aside class="v930-admin-sidebar canonical-admin-sidebar" data-nav-zone="admin-sidebar">
+  <div class="v930-admin-brand">{{ nemesis_brand('/admin/dashboard', 'admin') }}</div>
+  <nav aria-label="Navegación de administración">
+    {% for label, href, icon_name in links %}
+    {% set active = request.path == href or (href != '/admin/dashboard' and request.path.startswith(href ~ '/')) %}
+    <a href="{{ href }}" class="{% if active %}is-active{% endif %}"{% if active %} aria-current="page"{% endif %}><span class="v928-icon" data-v928-icon="{{ icon_name }}" aria-hidden="true"></span><span>{{ label }}</span></a>
+    {% endfor %}
+  </nav>
+  <div class="v930-admin-sidebar-status"><i aria-hidden="true"></i><span><strong>Sistema supervisado</strong><small>Consulta el estado real en el panel</small></span></div>
+  <a class="v930-admin-logout" href="/logout">Cerrar sesión admin</a>
+</aside>
+{%- endmacro %}
+
+{% macro canonical_admin_topbar() -%}
+<header class="v930-admin-topbar canonical-admin-topbar" data-nav-zone="admin-topbar">
+  <form action="/admin/map" method="get" role="search"><span class="v928-icon" data-v928-icon="search" aria-hidden="true"></span><input type="search" name="q" placeholder="Buscar en el panel" aria-label="Buscar en el panel"><kbd>Ctrl K</kbd></form>
+  <div class="v930-admin-tools"><a href="/admin/sentinel-issues" class="v930-topbar-tool"><span class="v928-icon" data-v928-icon="shield" aria-hidden="true"></span><span>Incidencias</span></a><a href="/admin/automation-workforce" class="v930-admin-identity"><span class="v928-icon" data-v928-icon="user" aria-hidden="true"></span><span><strong>Administrador</strong><small>Panel protegido</small></span></a></div>
+</header>
+{%- endmacro %}
+
+{% macro canonical_admin_shell() -%}
+<div class="v930-admin-chrome canonical-admin-shell">{{ canonical_admin_sidebar() }}{{ canonical_admin_topbar() }}</div>
+<header class="v930-admin-mobile-header" data-nav-zone="admin-mobile-header">
+  {{ nemesis_brand('/admin/dashboard', 'topbar', True) }}
+  <div><strong>Administración</strong><small>Acceso protegido</small></div>
+</header>
+{% set mobile_links = [('Panel','/admin/dashboard','dashboard'),('Telegram','/admin/telegram/command-center','telegram'),('Usuarios','/admin/users','users'),('Picks','/admin/picks','target'),('Workforce','/admin/automation-workforce','automation')] %}
+<nav class="v930-admin-mobile-nav" aria-label="Navegación admin móvil" data-nav-zone="admin-mobile">
+  {% for label, href, icon_name in mobile_links %}
+  {% set active = request.path == href or request.path.startswith(href ~ '/') %}
+  <a href="{{ href }}" class="{% if active %}is-active{% endif %}"{% if active %} aria-current="page"{% endif %}><span class="v928-icon" data-v928-icon="{{ icon_name }}" aria-hidden="true"></span><span>{{ label }}</span></a>
+  {% endfor %}
+</nav>
+{%- endmacro %}
+
+{% macro canonical_mobile_bottom_nav(authenticated=false) -%}
+{% if authenticated %}{% set links = [('Inicio','/app','home'),('Partidos','/calendar','calendar'),('Directo','/live','live'),('Picks','/picks','target'),('Cuenta','/profile','user')] %}{% else %}{% set links = [('Inicio','/','home'),('Partidos','/calendar','calendar'),('Directo','/live','live'),('Picks','/picks','target'),('Entrar','/cliente-login','user')] %}{% endif %}
+<nav class="v930-mobile-bottom-nav canonical-mobile-bottom-nav" aria-label="Navegación móvil" data-nav-zone="client-bottom">
+  {% for label, href, icon_name in links %}
+  {% set active = request.path == href or (href == '/calendar' and request.path in ['/partidos','/calendario']) %}
+  <a href="{{ href }}" class="{% if active %}is-active{% endif %}"{% if active %} aria-current="page"{% endif %}><span class="v928-icon" data-v928-icon="{{ icon_name }}" aria-hidden="true"></span><span>{{ label }}</span></a>
+  {% endfor %}
+</nav>
+{%- endmacro %}
+
+{# Named aliases kept explicit for component checks and template reuse. #}
+{% macro canonical_admin_shell_parts() -%}{{ canonical_admin_sidebar() }}{{ canonical_admin_topbar() }}{%- endmacro %}

@@ -1,6 +1,6 @@
 {
   "ok": true,
-  "checked_at": "2026-07-11T00:01:07",
+  "checked_at": "2026-07-11T03:39:14",
   "templates_referenced": [
     "404.html",
     "account_center.html",
@@ -141,7 +141,7 @@
   ],
   "missing_static": [],
   "import_ok": true,
-  "version": "V929_NAVIGATION_INTEGRITY_ROUTE_NOT_FOUND_FULL_APP_RECOVERY_FINAL",
+  "version": "V930_CANONICAL_REFERENCE_VISUAL_PARITY_ADMIN_CLIENT_MOBILE_FINAL",
   "route_count": 612,
   "routes": [
     "/",

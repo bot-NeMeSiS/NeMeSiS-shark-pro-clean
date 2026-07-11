@@ -9,7 +9,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V928_CANONICAL_REFERENCE_FULL_APP_ADMIN_CLIENT_MOBILE_REBUILD_FINAL"
 V929_VERSION = "V929_NAVIGATION_INTEGRITY_ROUTE_NOT_FOUND_FULL_APP_RECOVERY_FINAL"
-ALLOWED_CONTAINER_VERSIONS = {VERSION, V929_VERSION}
+V930_VERSION = "V930_CANONICAL_REFERENCE_VISUAL_PARITY_ADMIN_CLIENT_MOBILE_FINAL"
+ALLOWED_CONTAINER_VERSIONS = {VERSION, V929_VERSION, V930_VERSION}
 FORBIDDEN_RELEASE_NAMES = {".git", ".venv", "__pycache__", ".pytest_cache", "release_output"}
 
 
@@ -26,7 +27,7 @@ def add(checks: list[dict], name: str, ok: bool, detail: str = "") -> None:
 
 def release_cleanliness(checks: list[dict]) -> None:
     current = read("VERSION.txt").strip().lstrip("\ufeff")
-    deploy_name = "V929_DEPLOY_ROOT_CONTENTS" if current == V929_VERSION else "V928_DEPLOY_ROOT_CONTENTS"
+    deploy_name = "V930_DEPLOY_ROOT_CONTENTS" if current == V930_VERSION else ("V929_DEPLOY_ROOT_CONTENTS" if current == V929_VERSION else "V928_DEPLOY_ROOT_CONTENTS")
     deploy = ROOT / "release_output" / deploy_name
     if not deploy.exists():
         add(checks, "deploy_root_pending_build", True, "will be audited after build")
@@ -50,7 +51,7 @@ def base_checks() -> list[dict]:
     css = read("static/v928-canonical.css")
     add(checks, "app_version_matches", f"APP_VERSION = '{current_version}'" in app)
     add(checks, "canonical_css_loaded", "filename='v928-canonical.css'" in base and "?v={{ app_version }}" in base)
-    cache_tag = "NEMESIS_CACHE_V929" if current_version == V929_VERSION else "NEMESIS_CACHE_V928"
+    cache_tag = "NEMESIS_CACHE_V930" if current_version == V930_VERSION else ("NEMESIS_CACHE_V929" if current_version == V929_VERSION else "NEMESIS_CACHE_V928")
     add(checks, "service_worker_current", cache_tag in app and "cache:'no-store'" in app and "cache:'reload'" in app)
     add(checks, "render_cache_only", "page_render_cache_only" in app and 'v928_page_render_external_calls\": False' in app)
     add(checks, "role_shell", "data-v928-shell=\"true\"" in base)

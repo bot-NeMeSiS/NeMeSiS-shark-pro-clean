@@ -12,10 +12,12 @@
   <link rel="manifest" href="{{ url_for('manifest_json') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}?v={{ app_version }}" data-cache-version="{{ app_version }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='v928-canonical.css') }}?v={{ app_version }}" data-v928-cache-version="{{ app_version }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='v930-canonical.css') }}?v={{ app_version }}" data-v930-cache-version="{{ app_version }}">
+  <script defer src="{{ url_for('static', filename='v930-icons.js') }}?v={{ app_version }}" data-v930-icon-version="{{ app_version }}"></script>
   <meta name="csrf-token" content="{{ csrf_token() }}">
 </head>
 {% from "partials/brand_logo.html" import nemesis_brand %}
-{% from "components/v928_navigation.html" import public_topbar, client_topbar, admin_sidebar, admin_topbar, mobile_bottom_nav %}
+{% from "components/v930_navigation.html" import canonical_public_shell, canonical_client_desktop_shell, canonical_client_mobile_shell, canonical_admin_shell, canonical_mobile_bottom_nav %}
 {% set _raw_tier = (current_user.membership if current_user else 'FREE')|upper %}
 {% if _raw_tier == 'PRO' %}
   {% set _visual_tier = 'pro' %}
@@ -134,12 +136,12 @@
   <div class="membership-energy-bar" aria-hidden="true"></div>
   <div class="ns-route-glow" aria-hidden="true"></div>
   {% if show_admin_nav %}
-    {{ admin_sidebar() }}
-    {{ admin_topbar() }}
+    {{ canonical_admin_shell() }}
   {% elif is_client_area %}
-    {{ client_topbar(_tier_label) }}
+    {{ canonical_client_desktop_shell(_tier_label) }}
+    {{ canonical_client_mobile_shell() }}
   {% elif not is_admin_surface %}
-    {{ public_topbar() }}
+    {{ canonical_public_shell() }}
   {% endif %}
   {% if false %}
   <header class="top ns-topbar">
@@ -236,7 +238,7 @@
   {% endif %}
   {% endif %}
 
-  <main class="shell shark-shell ns-main-shell v928-main-shell">
+  <main class="shell shark-shell ns-main-shell v928-main-shell{% if show_admin_nav %} v930-admin-shell{% elif is_client_area %} v930-client-desktop-shell v930-client-mobile-shell{% else %} v930-public-shell{% endif %}">
     {% block content %}{% endblock %}
   </main>
 
@@ -247,7 +249,7 @@
     <nav><a href="/legal">Legal</a><a href="/terminos">Términos</a><a href="/privacidad">Privacidad</a><a href="/juego-responsable">Juego responsable</a><a href="/support">Soporte</a></nav>
   </footer>
 
-  {% if show_mobile_bottom_nav %}{{ mobile_bottom_nav(current_user and current_user.role != 'ADMIN') }}{% endif %}
+  {% if show_mobile_bottom_nav %}{{ canonical_mobile_bottom_nav(current_user and current_user.role != 'ADMIN') }}{% endif %}
   {% if false and show_mobile_bottom_nav %}
   <nav class="bottom-nav bottom-nav-clean" aria-label="Navegacion rapida" data-nav-zone="client-bottom">
     {% if current_user %}

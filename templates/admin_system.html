@@ -1,38 +1,28 @@
 {% extends "base.html" %}
+{% from "components/v930_ui.html" import page_header, kpi_card, section_header, quick_action, status_chip %}
 {% block content %}
-<section class="hero compact">
-  <div class="kicker">Sistema</div>
-  <h1>Estado interno</h1>
-  <p class="lead">Vista privada para revisar que la app esta lista para Render y que los modulos principales siguen conectados.</p>
-  <div class="admin-menu">
-    <a class="btn" href="/admin/users">Usuarios</a>
-    <a class="btn" href="/admin/sportsdb-sync">SportsDB Sync</a>
-    <a class="btn" href="/admin/sportsdb-feed">SportsDB Feed</a>
-    <a class="btn" href="/admin/import-center">Import Center</a>
-    <a class="btn primary" href="/admin/system">Sistema</a>
-    <a class="btn" href="/admin/route-health">Mapa rutas</a>
-  </div>
-</section>
-<section class="band">
-  <div class="grid compact-grid">
-    <div class="card"><div class="metric">OK</div><div class="muted">SQLite</div></div>
-    <div class="card"><div class="metric">{{ data.system.teams }}</div><div class="muted">equipos</div></div>
-    <div class="card"><div class="metric">{{ data.system.matches }}</div><div class="muted">partidos</div></div>
-    <div class="card"><div class="metric">{{ data.system.picks }}</div><div class="muted">picks</div></div>
-    <div class="card"><div class="metric">{{ data.system.users_count }}</div><div class="muted">usuarios</div></div>
-  </div>
-</section>
-<section class="band two-col">
-  <div class="card">
-    <h2>Version</h2>
-    <p class="small">{{ data.system.version }}</p>
-  </div>
-  <div class="card">
-    <h2>Servicios</h2>
-    <p class="small">Telegram: {{ data.system.telegram }}</p>
-    <p class="small">Escudos guardados: {{ data.sportsdb.with_logo }}</p>
-    <p class="small">Admin existe: {% if data.system.admin_exists %}si{% else %}no{% endif %}</p>
-    <p class="small">Partidos SportsDB cacheados: {{ data.system.sportsdb_feed.cached_matches }}</p>
-  </div>
+{% set system = data.get('system') or {} %}
+{% set sportsdb = data.get('sportsdb') or {} %}
+{% set feed = system.get('sportsdb_feed') or {} %}
+<section class="v928-page v928-admin-command-center v930-page v930-admin-page v930-admin-system" data-v930-template="admin_system">
+  {{ page_header('Estado del sistema', 'Runtime, datos y servicios conectados sin exponer configuración sensible', 'settings', [{'label':'Rutas','href':'/admin/navigation-integrity'},{'label':'Data Center','href':'/admin/data-center','primary':true}]) }}
+  <section class="v928-kpi-grid">
+    {{ kpi_card('Base de datos', system.get('sqlite') or 'Sin estado', 'Persistencia local del servicio', 'green' if system.get('sqlite') == 'OK' else 'gold', 'database') }}
+    {{ kpi_card('Equipos', system.get('teams'), 'Registros reales', 'blue', 'users') }}
+    {{ kpi_card('Partidos', system.get('matches'), 'Registros reales', 'blue', 'matches') }}
+    {{ kpi_card('Picks', system.get('picks'), 'Registros reales', 'purple', 'target') }}
+    {{ kpi_card('Usuarios', system.get('users_count'), 'Cuentas registradas', 'blue', 'users') }}
+    {{ kpi_card('Telegram', system.get('telegram'), 'Estado enmascarado', 'green' if system.get('telegram') == 'Listo' else 'gold', 'telegram') }}
+  </section>
+  <section class="v928-layout-wide-aside">
+    <div class="v928-stack">
+      <section class="v928-admin-panel"><header><div><h2>Identidad del runtime</h2><p>Versión activa y módulos conectados</p></div>{{ status_chip('Admin disponible' if system.get('admin_exists') else 'Admin pendiente', 'success' if system.get('admin_exists') else 'warning') }}</header><div class="v928-admin-panel-body"><div class="v928-truth-list"><div><span>Versión</span><strong>{{ system.get('version') or app_version }}</strong></div><div><span>DB</span><strong>{{ system.get('sqlite') or 'Sin dato' }}</strong></div><div><span>Admin</span><strong>{{ 'Existe' if system.get('admin_exists') else 'No creado' }}</strong></div><div><span>Madrid Time</span><strong>{{ madrid_now }}</strong></div></div></div></section>
+      <section class="v928-admin-panel"><header><div><h2>Acciones operativas</h2><p>Navegación segura, sin ejecutar proveedores al abrir la página</p></div></header><div class="v928-admin-panel-body"><div class="v928-command-grid">{{ quick_action('Usuarios','Cuentas y membresías','/admin/users','users') }}{{ quick_action('Partidos','Sincronización controlada','/admin/matches-sync','matches') }}{{ quick_action('Datos','Fuentes, cache y jobs','/admin/data-center','database') }}{{ quick_action('Automatización','Cron y workers','/admin/automation-center','automation') }}{{ quick_action('Rutas','Integridad de navegación','/admin/navigation-integrity','routes') }}{{ quick_action('Sentinel','Incidencias y siguiente acción','/admin/autonomous-company-sentinel','shield') }}</div></div></section>
+    </div>
+    <aside class="v928-stack">
+      <section class="v928-admin-panel"><header><div><h2>SportsDB</h2><p>Identidades y cache guardada</p></div></header><div class="v928-admin-panel-body"><div class="v928-truth-list"><div><span>Escudos guardados</span><strong>{{ sportsdb.get('with_logo') if sportsdb.get('with_logo') is not none else 'Sin dato' }}</strong></div><div><span>Partidos cacheados</span><strong>{{ feed.get('cached_matches') if feed.get('cached_matches') is not none else 'Sin dato' }}</strong></div><div><span>Render externo al abrir</span><strong>No</strong></div></div></div></section>
+      <section class="v928-admin-panel"><header><div><h2>Principios de seguridad</h2></div></header><div class="v928-admin-panel-body"><div class="v928-truth-list"><div><span>Secretos visibles</span><strong>No</strong></div><div><span>Pagos desde esta vista</span><strong>No</strong></div><div><span>Telegram real</span><strong>No</strong></div><div><span>DB destructiva</span><strong>No</strong></div></div></div></section>
+    </aside>
+  </section>
 </section>
 {% endblock %}

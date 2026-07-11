@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "components/v928_ui.html" import page_header, kpi_card, section_header, empty_state, status_chip, data_table %}
+{% from "components/v930_ui.html" import page_header, kpi_card, section_header, empty_state, status_chip, data_table %}
 {% block content %}
 {% set snapshot = data.get('snapshot') or {} %}
 {% set counts = snapshot.get('counts') or {} %}
@@ -7,7 +7,7 @@
 {% set env = snapshot.get('env') or {} %}
 {% set cron = snapshot.get('cron') or {} %}
 {% set dry = data.get('dry_run') or {} %}
-<section class="v928-page v928-admin-command-center" data-v928-template="admin_telegram_command_center">
+<section class="v928-page v928-admin-command-center v930-page v930-admin-page v930-admin-telegram" data-v928-template="admin_telegram_command_center" data-v930-template="admin_telegram_command_center">
   {{ page_header('Telegram Command Center', 'Automatización, entregas y calidad sin enviar mensajes desde esta vista', 'telegram', [{'label':'Configurar','href':'/admin/telegram'},{'label':'Preview seguro','href':'/admin/telegram/pro-preview','primary':true}]) }}
   <section class="v928-kpi-grid">
     {{ kpi_card('Candidatos', counts.get('candidate_picks'), 'Picks publicados revisados', 'blue', 'target') }}

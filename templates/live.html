@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "components/v928_ui.html" import page_header, kpi_card, section_header, live_card, filter_tabs, empty_state, provider_status %}
+{% from "components/v930_ui.html" import page_header, kpi_card, section_header, live_card, filter_tabs, empty_state, provider_status %}
 {% block content %}
 {% set live = data.get('live_experience') or {} %}
 {% set counts = live.get('counts') or {} %}
@@ -9,7 +9,7 @@
 {% set ns = namespace(matches=[]) %}
 {% for day in live.get('day_groups') or [] %}{% for league in day.get('leagues') or [] %}{% for match in league.get('matches') or [] %}{% set _ = ns.matches.append(match) %}{% endfor %}{% endfor %}{% endfor %}
 {% if not ns.matches %}{% for match in live.get('matches') or [] %}{% set _ = ns.matches.append(match) %}{% endfor %}{% endif %}
-<section class="v928-page v928-live-board" data-v928-template="live">
+<section class="v928-page v928-live-board v930-page v930-client-page v930-sports-page v930-live-board" data-v928-template="live" data-v930-template="live">
   {{ page_header('Directo', 'Partidos en juego ahora, sin simular marcador ni minuto', 'live', [{'label':'Calendario','href':'/calendar'},{'label':'Actualizar','href':'/live?refresh=1','primary':true}]) }}
   <section class="v928-kpi-grid is-four">
     {{ kpi_card('En directo', safe.get('counts', {}).get('live', counts.get('live', 0)), 'Marcador confirmado', 'green', 'live', '/live') }}
@@ -23,9 +23,9 @@
   <section class="v928-layout-wide-aside">
     <div class="v928-stack">
       <section class="v928-panel">
-        {{ section_header('Board en vivo', 'Cache-first y sin llamadas externas obligatorias durante el render') }}
+        {{ section_header('Board en vivo', 'Marcadores confirmados sin bloquear la pantalla') }}
         {% if ns.matches %}<div class="v928-grid is-two">{% for match in ns.matches %}{{ live_card(match) }}{% endfor %}</div>
-        {% else %}{{ empty_state('No hay partidos en directo confirmados', 'El proveedor no devuelve directos ahora mismo o la cache está vacía. No se muestran marcadores de ejemplo.', 'Ver próximos partidos', '/calendar', 'live') }}{% endif %}
+        {% else %}{{ empty_state('No hay partidos en directo confirmados', 'No hay encuentros live disponibles ahora mismo. Puedes revisar los próximos partidos sin ver marcadores de ejemplo.', 'Ver próximos partidos', '/calendar', 'live') }}{% endif %}
       </section>
     </div>
     <aside class="v928-stack">

@@ -1,14 +1,14 @@
 {% extends "base.html" %}
-{% from "components/v928_ui.html" import page_header, kpi_card, section_header, quick_action, empty_state, status_chip %}
+{% from "components/v930_ui.html" import page_header, kpi_card, section_header, quick_action, empty_state, status_chip %}
 {% block content %}
 {% set config = data.get('telegram') or {} %}
 {% set state = data.get('telegram_state') or {} %}
 {% set plan = (data.get('membership') or {}).get('name') or (current_user.membership if current_user else 'FREE') %}
-<section class="v928-page v928-telegram-client" data-v928-template="telegram">
+<section class="v928-page v928-telegram-client v930-page v930-client-page v930-telegram-page" data-v928-template="telegram" data-v930-template="telegram">
   {{ page_header('Telegram', 'Recibe picks completos, alertas y resúmenes según tu plan', 'telegram', [{'label':'Ver picks','href':'/picks'},{'label':'Mi cuenta','href':'/profile','primary':true}]) }}
   <section class="v928-kpi-grid is-four">
-    {{ kpi_card('Bot conectado', 'Sí' if state.get('linked') else 'No', 'Estado privado enmascarado', 'green' if state.get('linked') else 'gold', 'telegram') }}
-    {{ kpi_card('Canal activo', 'Sí' if config.get('enabled') or config.get('legacy_enabled') else 'En pausa', 'Configuración real', 'green' if config.get('enabled') or config.get('legacy_enabled') else 'gold', 'live') }}
+    {{ kpi_card('Telegram conectado', 'Sí' if state.get('linked') else 'No', 'Vinculación de tu cuenta', 'green' if state.get('linked') else 'gold', 'telegram') }}
+    {{ kpi_card('Canal activo', 'Sí' if config.get('enabled') or config.get('legacy_enabled') else 'En pausa', 'Preferencias del canal', 'green' if config.get('enabled') or config.get('legacy_enabled') else 'gold', 'live') }}
     {{ kpi_card('Último envío', config.get('last_sent_at')|madrid_datetime_label if config.get('last_sent_at') else None, 'Hora Madrid', 'blue', 'history') }}
     {{ kpi_card('Plan', plan|upper, 'Contenido según membresía', 'purple', 'plan', '/membresias') }}
   </section>
@@ -20,7 +20,7 @@
         {% else %}<div class="v928-link-code"><span>Código de vinculación</span><strong>{{ state.get('code') or 'Pendiente de generar' }}</strong><p>{{ state.get('command') or 'Genera un código para iniciar la vinculación segura.' }}</p></div><div class="v928-actions">{% if state.get('deep_link') %}<a class="v928-button is-primary" href="{{ state.get('deep_link') }}" target="_blank" rel="noopener">Conectar Telegram</a>{% endif %}<form method="post" action="/telegram/regenerar-codigo"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="v928-button" type="submit">Nuevo código</button></form></div>{% endif %}
       </section>
     </div>
-    <aside class="v928-stack"><section class="v928-panel">{{ section_header('Configurar en 3 pasos', 'Proceso protegido') }}<div class="v928-command-list">{{ quick_action('1. Vincula Telegram', 'Usa el código o enlace seguro', '#vincular', 'telegram') }}{{ quick_action('2. Revisa alertas', 'Comprueba el estado de conexión', '/telegram', 'notifications') }}{{ quick_action('3. Elige tu plan', 'Contenido según membresía', '/membresias', 'plan', 'gold') }}</div></section><section class="v928-panel">{{ section_header('Calidad del canal', 'Guardas activas') }}<div class="v928-truth-list"><div><span>No filler</span><strong>Activo</strong></div><div><span>Dedupe</span><strong>Preservado</strong></div><div><span>Envío desde esta vista</span><strong>No</strong></div><div><span>Secretos</span><strong>Ocultos</strong></div></div></section></aside>
+    <aside class="v928-stack"><section class="v928-panel">{{ section_header('Configurar en 3 pasos', 'Proceso protegido') }}<div class="v928-command-list">{{ quick_action('1. Vincula Telegram', 'Usa el código o enlace seguro', '#vincular', 'telegram') }}{{ quick_action('2. Revisa alertas', 'Comprueba el estado de conexión', '/telegram', 'notifications') }}{{ quick_action('3. Elige tu plan', 'Contenido según membresía', '/membresias', 'plan', 'gold') }}</div></section><section class="v928-panel">{{ section_header('Calidad del canal', 'Protecciones activas') }}<div class="v928-truth-list"><div><span>Sin relleno</span><strong>Activo</strong></div><div><span>Sin duplicados</span><strong>Activo</strong></div><div><span>Envío desde esta vista</span><strong>No</strong></div><div><span>Privacidad</span><strong>Protegida</strong></div></div></section></aside>
   </section>
 </section>
 {% endblock %}

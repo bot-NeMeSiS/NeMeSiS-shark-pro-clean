@@ -44,7 +44,8 @@ def _write_outputs(snapshot: dict) -> None:
     click_failures = int(click_payload.get("failures_count") or 0)
     next_action = "fix_broken_navigation"
     if snapshot.get("ok") and clicks_tested and not click_failures:
-        next_action = "deploy_v929_and_verify_runtime"
+        release_tag = VERSION.split("_", 1)[0].lower()
+        next_action = f"deploy_{release_tag}_and_verify_runtime"
     elif snapshot.get("ok"):
         next_action = "browser_click_qa"
     runtime_payload = {

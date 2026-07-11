@@ -1093,3 +1093,15 @@ Honestidad:
 # Continuacion V928 - 2026-07-10
 
 V928 reconstruye la experiencia completa sobre la base V927 con 16 referencias canonicas, 33 componentes reutilizables, 12 pantallas admin y 11 pantallas cliente desktop/movil. Browser QA genero 156 capturas de 26 rutas en seis perfiles principales, sin errores HTTP ni overflow. Los siete workers V928 y sus siete checks finalizaron correctamente; Sentinel mantiene cero issues activos. No se copiaron datos de las referencias y no se declara pixel-perfect ni produccion sin confirmacion real de Render.
+
+## V930 Canonical Reference Visual Parity
+
+- Base preservada: V929 navigation integrity.
+- Versión local: `V930_CANONICAL_REFERENCE_VISUAL_PARITY_ADMIN_CLIENT_MOBILE_FINAL`.
+- Cambios visibles: shells público/cliente/admin, cliente desktop, móvil, deportes, admin command centers, iconos, cards, tablas, botones y copy.
+- Referencias: 16 canónicas.
+- Browser QA: 198 capturas, 33 rutas, 6 viewports, 0 errores y 0 overflow.
+- Segunda corrección: MAJOR `3 -> 0`; MEDIUM `6 -> 0`.
+- Datos inventados: no. Telegram/pagos reales: no. DB de QA: temporal.
+- Pixel-perfect: no declarado; queda revisión humana post-deploy.
+- Producción no se declara V930 hasta confirmación real de Render.

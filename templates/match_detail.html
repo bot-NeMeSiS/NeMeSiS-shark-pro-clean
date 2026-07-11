@@ -1,8 +1,8 @@
 {% extends "base.html" %}
-{% from "components/v928_ui.html" import page_header, section_header, status_chip, crest, pick_card, empty_state, provider_status %}
+{% from "components/v930_ui.html" import page_header, section_header, status_chip, crest, pick_card, empty_state, provider_status %}
 {% block content %}
 {% if not detail %}
-<section class="v928-page" data-v928-template="match_detail">{{ page_header('Partido no disponible', 'No se encontró un registro real para este identificador', 'matches') }}{{ empty_state('Sin detalle de partido', 'Vuelve al calendario para elegir un encuentro disponible.', 'Volver a partidos', '/calendar', 'calendar') }}</section>
+<section class="v928-page v930-page v930-client-page v930-match-detail" data-v928-template="match_detail" data-v930-template="match_detail">{{ page_header('Partido no disponible', 'No se encontró un registro real para este identificador', 'matches') }}{{ empty_state('Sin detalle de partido', 'Vuelve al calendario para elegir un encuentro disponible.', 'Volver a partidos', '/calendar', 'calendar') }}</section>
 {% else %}
 {% set match = detail.get('match') or {} %}
 {% set ctx = match|match_madrid_context %}
@@ -13,7 +13,7 @@
 {% set live = detail.get('api_football_live_tracker') or data.get('api_football_live_tracker') or {} %}
 {% set quality = live.get('quality') or {} %}
 {% set data_quality = detail.get('data_quality') or {} %}
-<section class="v928-page v928-match-detail" data-v928-template="match_detail">
+<section class="v928-page v928-match-detail v930-page v930-client-page v930-match-detail" data-v928-template="match_detail" data-v930-template="match_detail">
   {{ page_header('Detalle del partido', 'Contexto deportivo real y hora Madrid', 'matches', [{'label':'Volver a partidos','href':'/calendar'},{'label':'Consultar SHARK','href':'/shark?match=' ~ match.get('id'),'primary':true}]) }}
   <section class="v928-match-hero">
     <div class="v928-match-hero-team">{{ crest(home_identity, 'lg') }}<strong>{{ ctx.safe_home }}</strong></div>
@@ -30,7 +30,7 @@
         <div class="v928-grid is-three">
           <article class="v928-fact-card"><span>Estado</span><strong>{{ ctx.client_status_label or 'Pendiente' }}</strong><small>{{ quality.get('label') or 'Lectura básica' }}</small></article>
           <article class="v928-fact-card"><span>Marcador</span><strong>{{ ctx.client_score_label or 'Pendiente' }}</strong><small>{{ live.get('minute_label') or 'Minuto no disponible' }}</small></article>
-          <article class="v928-fact-card"><span>Fuente</span><strong>{{ live.get('source_label') or match.get('source') or 'Cache / DB' }}</strong><small>Sin llamada externa obligatoria</small></article>
+          <article class="v928-fact-card"><span>Disponibilidad</span><strong>{{ 'Datos en directo' if live.get('available') else 'Contexto guardado' }}</strong><small>La página no se bloquea al actualizar</small></article>
         </div>
         {% set notes = detail.get('shark_notes') or [] %}
         {% if notes %}<div class="v928-notes-list">{% for note in notes[:5] %}<p>{{ note }}</p>{% endfor %}</div>{% else %}<p class="v928-inline-safe">SHARK mostrará una lectura ampliada cuando existan datos reales suficientes.</p>{% endif %}
@@ -42,8 +42,8 @@
       </section>
 
       <section class="v928-panel" id="datos">
-        {{ section_header('Datos y eventos', 'Información guardada por el proveedor o por la cache') }}
-        <div class="v928-truth-list"><div><span>Hora</span><strong>{{ 'Sincronizada' if data_quality.get('has_time') else 'Pendiente' }}</strong></div><div><span>Resultado</span><strong>{{ 'Disponible' if data_quality.get('has_score') else 'Pendiente' }}</strong></div><div><span>Escudos</span><strong>{{ 'Proveedor real' if data_quality.get('has_crests') else 'Fallback seguro' }}</strong></div><div><span>Live tracker</span><strong>{{ quality.get('label') or ('Activo' if live.get('available') else 'No disponible') }}</strong></div></div>
+        {{ section_header('Datos y eventos', 'Información confirmada disponible para este partido') }}
+        <div class="v928-truth-list"><div><span>Hora</span><strong>{{ 'Sincronizada' if data_quality.get('has_time') else 'Pendiente' }}</strong></div><div><span>Resultado</span><strong>{{ 'Disponible' if data_quality.get('has_score') else 'Pendiente' }}</strong></div><div><span>Escudos</span><strong>{{ 'Identidad verificada' if data_quality.get('has_crests') else 'Fallback seguro' }}</strong></div><div><span>Datos en directo</span><strong>{{ quality.get('label') or ('Activos' if live.get('available') else 'No disponibles') }}</strong></div></div>
         {% if live.get('events') %}<div class="v928-event-list">{% for event in live.get('events')[:12] %}<article><time>{{ event.get('elapsed') }}{% if event.get('elapsed') is not none %}'{% endif %}</time><span>{{ event.get('team_name') or 'Equipo' }}</span><strong>{{ event.get('event_type') or 'Evento' }}</strong><small>{{ event.get('detail') or event.get('player_name') or event.get('comments') or 'Dato del proveedor' }}</small></article>{% endfor %}</div>{% endif %}
       </section>
     </div>

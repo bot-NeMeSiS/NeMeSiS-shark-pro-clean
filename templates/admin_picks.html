@@ -1,10 +1,10 @@
 {% extends "base.html" %}
-{% from "components/v928_ui.html" import page_header, kpi_card, section_header, empty_state, status_chip, data_table %}
+{% from "components/v930_ui.html" import page_header, kpi_card, section_header, empty_state, status_chip, data_table %}
 {% block content %}
 {% set picks = data.get('admin_picks') or [] %}
 {% set stats = data.get('pick_stats') or {} %}
 {% set matches = data.get('matches_for_pick') or [] %}
-<section class="v928-page v928-admin-command-center" data-v928-template="admin_picks">
+<section class="v928-page v928-admin-command-center v930-page v930-admin-page v930-admin-picks" data-v928-template="admin_picks" data-v930-template="admin_picks">
   {{ page_header('Picks y partidos', 'Gestión editorial con puerta de calidad real', 'target', [{'label':'Calendario','href':'/calendar'},{'label':'Track Record','href':'/admin/track-record','primary':true}]) }}
   {% if message %}<div class="v928-inline-safe">{{ message }}</div>{% endif %}
   <section class="v928-kpi-grid">{{ kpi_card('Picks totales', stats.get('total'), 'DB real', 'blue', 'target') }}{{ kpi_card('Publicados', stats.get('published'), 'Visibles según plan', 'green', 'live') }}{{ kpi_card('Borradores', stats.get('draft'), 'Pendientes de revisión', 'gold', 'document') }}{{ kpi_card('Archivados', stats.get('archived'), 'Fuera de publicación', 'blue', 'history') }}{{ kpi_card('Cuota media', stats.get('avg_odds'), 'Solo registros guardados', 'purple', 'odds') }}{{ kpi_card('Winrate', (stats.get('winrate')|string ~ '%') if stats.get('winrate') is not none else none, 'Resultados cerrados', 'green', 'history') }}</section>

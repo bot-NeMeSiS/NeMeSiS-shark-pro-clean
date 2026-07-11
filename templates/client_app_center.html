@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "components/v928_ui.html" import page_header, kpi_card, section_header, quick_action, match_card, pick_card, empty_state, provider_status, next_action %}
+{% from "components/v930_ui.html" import page_header, kpi_card, section_header, quick_action, match_card, pick_card, empty_state, provider_status, next_action %}
 {% block content %}
 {% set user_name = current_user.name or current_user.username or 'Cliente' %}
 {% set plan_name = (current_user.membership or 'FREE')|upper %}
@@ -9,8 +9,14 @@
 {% set safe_picks = data.get('v925_picks') or {} %}
 {% set picks = safe_picks.get('picks') or [] %}
 {% set alerts = data.get('client_alerts') or [] %}
-<section class="v928-page v928-client-dashboard" data-v928-template="client_app_center">
+<section class="v928-page v928-client-dashboard v930-page v930-client-page v930-client-dashboard" data-v928-template="client_app_center" data-v930-template="client_app_center">
   {{ page_header('Buenos días, ' ~ user_name, 'Tu centro de mando deportivo de hoy', 'home', [{'label':'Plan ' ~ plan_name,'href':'/membresias'},{'label':'Ver partidos','href':'/calendar','primary':true}]) }}
+
+  <div class="v930-client-context-strip" aria-label="Contexto de la sesión">
+    <span><b>Plan</b><strong>{{ plan_name }}</strong></span>
+    <span><b>Hora Madrid</b><strong>{{ madrid_now }}</strong></span>
+    <span><b>Datos deportivos</b><strong>{{ 'Disponibles' if safe_calendar.get('has_real_data') else 'Esperando sincronización' }}</strong></span>
+  </div>
 
   <section class="v928-kpi-grid is-four" aria-label="Resumen de hoy">
     {{ kpi_card('Partidos disponibles', matches|length, 'Agenda guardada y sincronizada', 'blue', 'calendar', '/calendar') }}
@@ -31,7 +37,7 @@
       </section>
 
       <section class="v928-panel">
-        {{ section_header('Partidos destacados', 'Próximos encuentros disponibles en cache o DB', 'Ver todos', '/calendar') }}
+        {{ section_header('Partidos destacados', 'Próximos encuentros disponibles en tu agenda', 'Ver todos', '/calendar') }}
         {% if matches %}<div class="v928-grid is-three">{% for match in matches[:6] %}{{ match_card(match, true, true) }}{% endfor %}</div>
         {% else %}{{ empty_state('No hay partidos sincronizados', 'La pantalla permanece operativa y no inventa una agenda. Revisa de nuevo después de la próxima sincronización.', 'Abrir calendario', '/calendar', 'calendar') }}{% endif %}
       </section>

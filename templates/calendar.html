@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "components/v928_ui.html" import page_header, kpi_card, section_header, match_card, filter_tabs, empty_state, provider_status %}
+{% from "components/v930_ui.html" import page_header, kpi_card, section_header, match_card, filter_tabs, empty_state, provider_status %}
 {% block content %}
 {% set calendar = data.get('calendar') or {} %}
 {% set filters = calendar.get('filters') or {} %}
@@ -7,7 +7,7 @@
 {% set lane = filters.get('lane') or 'today' %}
 {% set day_groups = calendar.get('day_groups') or calendar.get('groups') or [] %}
 {% set safe = data.get('v925_calendar') or {} %}
-<section class="v928-page v928-sports-board" data-v928-template="calendar">
+<section class="v928-page v928-sports-board v930-page v930-client-page v930-sports-page v930-calendar-board" data-v928-template="calendar" data-v930-template="calendar">
   {{ page_header('Partidos', 'Agenda ordenada por día y competición, siempre en hora Madrid', 'calendar', [{'label':'Actualizar filtros','href':'#v928-calendar-filters','primary':true}]) }}
 
   <section class="v928-kpi-grid is-four">
@@ -39,7 +39,7 @@
         {% endfor %}
       </section>
       {% else %}
-        {{ empty_state('Sin partidos reales para este filtro', calendar.get('source_summary') or 'Esperando proveedor, cache o próxima sincronización. La app no inventa partidos.', 'Ver la semana', '/calendar?lane=week', 'calendar') }}
+        {{ empty_state('Sin partidos reales para este filtro', 'La agenda se actualizará cuando haya nuevos encuentros confirmados. No se muestran partidos de ejemplo.', 'Ver la semana', '/calendar?lane=week', 'calendar') }}
       {% endfor %}
     </div>
     <aside class="v928-stack">

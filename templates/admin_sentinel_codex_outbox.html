@@ -4,7 +4,7 @@
 <section class="ns-admin-page v924-no-dead-space v924-admin-shell v924-page-shell v894-company-sentinel v904-admin-rebuild v904-codex-outbox v908-admin-shell v908-command-grid v911-admin-shell v912-admin-shell v912-command-center-polish v913-browser-qa-truth-panel v926-desktop-shell v926-desktop-command-center v926-admin-desktop v928-admin-command-center" data-v928-template="admin_sentinel_codex_outbox" data-v926-template="admin_sentinel_codex_outbox" data-v904-template="admin_sentinel_codex_outbox" data-v908-template="admin_sentinel_codex_outbox" data-v911-template="admin_sentinel_codex_outbox" data-v912-template="admin_sentinel_codex_outbox" data-v913-template="admin_sentinel_codex_outbox" data-v924-template="admin_sentinel_codex_outbox">
   <div class="ns-page-header v927-admin-desktop-shell v927-no-dead-space" data-v927-template="admin_sentinel_codex_outbox">
     <span class="ns-chip">Codex Outbox</span>
-    <h1>Prompts Codex del Sentinel</h1>
+    <h1>Tareas Codex del Sentinel</h1>
     <p>Prompts listos para revisar y copiar. Este panel no aplica cambios, no hace push, no despliega y no toca secretos.</p>
     <div class="ns-actions">
       <button class="ns-button ns-button-primary" type="button" data-v904-fetch="/api/admin/autonomous-company-sentinel/generate-codex-prompts">Regenerar outbox</button>
@@ -21,7 +21,7 @@
     <article class="ns-stat v911-kpi-card v912-kpi-card"><span class="v911-kpi-label v912-kpi-label">Prompts</span><strong class="v911-kpi-value v912-kpi-value">{{ outbox.prompt_count or 0 }}</strong><small class="v911-kpi-hint v912-kpi-hint">generados</small></article>
     <article class="ns-stat v911-kpi-card v912-kpi-card"><span class="v911-kpi-label v912-kpi-label">Visuales</span><strong class="v911-kpi-value v912-kpi-value">{{ outbox.visual_prompt_count or 0 }}</strong><small class="v911-kpi-hint v912-kpi-hint">reference gap</small></article>
     <article class="ns-stat v911-kpi-card v912-kpi-card"><span class="v911-kpi-label v912-kpi-label">Funcionales</span><strong class="v911-kpi-value v912-kpi-value">{{ outbox.functional_prompt_count or 0 }}</strong><small class="v911-kpi-hint v912-kpi-hint">producto/rutas</small></article>
-    <article class="ns-stat v911-kpi-card v912-kpi-card"><span class="v911-kpi-label v912-kpi-label">Ruta</span><strong class="v911-kpi-value v912-kpi-value">outbox</strong><small class="v911-kpi-hint v912-kpi-hint">{{ outbox.combined_path or 'Pendiente' }}</small></article>
+    <article class="ns-stat v911-kpi-card v912-kpi-card"><span class="v911-kpi-label v912-kpi-label">Outbox</span><strong class="v911-kpi-value v912-kpi-value">{{ 'Generado' if outbox.combined_path else 'Pendiente' }}</strong><small class="v911-kpi-hint v912-kpi-hint">data/runtime/.../codex_outbox.md</small></article>
   </section>
 
   <section class="ns-admin-card v909-visual-fix-queue-panel v911-visual-fix-queue-panel v912-browser-qa-panel v912-visual-queue-table v927-admin-runtime-card v927-table-card" data-v909-visual-fix-queue="true" data-v911-visual-fix-queue="true" data-v912-visual-fix-queue="true">

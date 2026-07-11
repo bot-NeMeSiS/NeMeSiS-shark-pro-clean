@@ -1,9 +1,9 @@
 {% extends "base.html" %}
-{% from "components/v928_ui.html" import status_chip %}
+{% from "components/v930_ui.html" import status_chip %}
 {% block content %}
 {% set nav = data.navigation_integrity or {} %}
 {% set route_health = data.route_health or {} %}
-<section class="v928-page-head v928-admin-title" data-v928-template="admin-navigation-integrity" data-v929-navigation-panel="true">
+<section class="v928-page-head v928-admin-title v930-page v930-admin-page v930-admin-navigation" data-v928-template="admin-navigation-integrity" data-v929-navigation-panel="true" data-v930-template="admin_navigation_integrity">
   <div><span class="v928-eyebrow">Integridad de navegación</span><h1>Rutas, enlaces y aliases</h1><p>Cada destino interno debe resolver, exigir la sesión correcta o explicar por qué está deshabilitado.</p></div>
   <div class="v928-actions"><button id="v929-run-navigation" class="v928-button is-primary" type="button" data-action="run-navigation-audit">Ejecutar scan seguro</button><a class="v928-button" href="/admin/not-found-events">Ver 404</a></div>
 </section>

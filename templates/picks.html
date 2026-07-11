@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "components/v928_ui.html" import page_header, kpi_card, section_header, pick_card, filter_tabs, empty_state, provider_status %}
+{% from "components/v930_ui.html" import page_header, kpi_card, section_header, pick_card, filter_tabs, empty_state, provider_status %}
 {% block content %}
 {% set stats = data.get('pick_stats') or {} %}
 {% set safe = data.get('v925_picks') or {} %}
@@ -7,7 +7,7 @@
 {% set picks = safe.get('picks') or [] %}
 {% set featured = picks[0] if picks else none %}
 {% set active_filter = request.args.get('filtro') or request.args.get('filter') or 'featured' %}
-<section class="v928-page v928-picks-board" data-v928-template="picks">
+<section class="v928-page v928-picks-board v930-page v930-client-page v930-sports-page v930-picks-board" data-v928-template="picks" data-v930-template="picks">
   {{ page_header('Picks SHARK', 'Selecciones publicadas con datos reales y control de calidad', 'target', [{'label':'Histórico','href':'/track-record'},{'label':'Consultar SHARK','href':'/shark','primary':true}]) }}
   <section class="v928-kpi-grid is-four">
     {{ kpi_card('Picks completos', picks|length, 'Mercado, selección y cuota', 'purple', 'target', '/picks') }}

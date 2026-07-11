@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "components/v928_ui.html" import page_header, kpi_card, section_header, quick_action, empty_state, status_chip, provider_status %}
+{% from "components/v930_ui.html" import page_header, kpi_card, section_header, quick_action, empty_state, status_chip, provider_status %}
 {% block content %}
 {% set assistant = data.get('shark_assistant') or {} %}
 {% set answer = assistant.get('answer') or {} %}
@@ -8,9 +8,9 @@
 {% set openai_ready = assistant.get('openai_configured') %}
 {% set calendar = data.get('v925_calendar') or {} %}
 {% set picks = (data.get('v925_picks') or {}).get('picks') or [] %}
-<section class="v928-page v928-shark" data-v928-template="shark">
+<section class="v928-page v928-shark v930-page v930-client-page v930-shark-page" data-v928-template="shark" data-v930-template="shark">
   {{ page_header('SHARK', 'Asistente responsable con datos reales disponibles', 'shark', [{'label':'Partidos','href':'/calendar'},{'label':'Ver picks','href':'/picks','primary':true}]) }}
-  <section class="v928-shark-hero"><div><span>Modo de operación</span><h2>{{ 'Proveedor IA configurado' if openai_ready else 'Modo seguro activo' }}</h2><p>{{ 'SHARK puede usar el proveedor configurado sin revelar claves.' if openai_ready else 'SHARK no simula una respuesta IA avanzada. Mantiene funciones de navegación y contexto local.' }}</p><div class="v928-actions"><a class="v928-button is-primary" href="/calendar">Explorar partidos</a><a class="v928-button" href="/live">Directo</a><a class="v928-button" href="/picks">Picks</a></div></div><img src="/static/img/shark-logo.svg" alt="" aria-hidden="true"></section>
+  <section class="v928-shark-hero"><div><span>Modo de operación</span><h2>{{ 'Análisis ampliado disponible' if openai_ready else 'Modo seguro activo' }}</h2><p>{{ 'SHARK puede ampliar el contexto disponible sin revelar información privada.' if openai_ready else 'SHARK no simula una respuesta avanzada. Mantiene navegación, contexto deportivo y límites claros.' }}</p><div class="v928-actions"><a class="v928-button is-primary" href="/calendar">Explorar partidos</a><a class="v928-button" href="/live">Directo</a><a class="v928-button" href="/picks">Picks</a></div></div><img src="/static/img/shark-logo.svg" alt="" aria-hidden="true"></section>
   <section class="v928-kpi-grid is-four">
     {{ kpi_card('Partidos disponibles', (calendar.get('matches') or [])|length, 'Contexto cacheado o DB', 'blue', 'calendar', '/calendar') }}
     {{ kpi_card('Picks completos', picks|length, 'Contexto publicable', 'purple', 'target', '/picks') }}
@@ -19,7 +19,7 @@
   </section>
   <section class="v928-layout-main-aside">
     <div class="v928-stack"><section class="v928-panel">{{ section_header('Respuesta actual', (answer.get('focus') or 'resumen')|capitalize) }}{% if answer.get('answer') %}<div class="v928-shark-answer">{{ answer.get('answer') }}</div>{% else %}{{ empty_state('Sin respuesta ampliada', 'Formula una consulta o usa uno de los accesos rápidos. SHARK no rellenará huecos con datos inventados.', '', '', 'shark') }}{% endif %}{% if answer.get('actions') %}<div class="v928-actions">{% for action in answer.get('actions') %}<a class="v928-button" href="{{ action.get('url') }}">{{ action.get('label') }}</a>{% endfor %}</div>{% endif %}</section><section class="v928-panel">{{ section_header('Preguntas rápidas', 'Atajos útiles') }}<div class="v928-command-grid">{{ quick_action('¿Qué partidos hay?', 'Agenda real disponible', '/shark?q=partidos', 'calendar') }}{{ quick_action('¿Hay un pick completo?', 'Valida mercado, selección y cuota', '/shark?q=pick', 'target') }}{{ quick_action('¿Qué riesgo existe?', 'Explicación sin garantías', '/shark?q=riesgo', 'shield') }}{{ quick_action('¿Qué está en directo?', 'Solo estados confirmados', '/shark?q=directo', 'live', 'green') }}{{ quick_action('¿Es apto para Telegram?', 'Control de calidad y dedupe', '/shark?q=telegram', 'telegram') }}{{ quick_action('¿Qué ofrece mi plan?', 'Beneficios configurados', '/shark?q=plan', 'plan', 'gold') }}</div></section></div>
-    <aside class="v928-stack">{{ provider_status(data_state.get('provider'), openai_ready, '', 'configured' if openai_ready else 'safe_mode', 'local_context', 'Si falta un dato real, SHARK lo marca como pendiente.') }}<section class="v928-panel">{{ section_header('Estado del contexto', 'Datos que SHARK puede usar') }}<div class="v928-truth-list"><div><span>Pick</span><strong>{{ data_state.get('pick') or 'Sin pick real publicado' }}</strong></div><div><span>Cuotas</span><strong>{{ data_state.get('odds') or 'Pendientes' }}</strong></div><div><span>Resultado</span><strong>{{ data_state.get('result') or 'Pendiente' }}</strong></div><div><span>Proveedor</span><strong>{{ data_state.get('provider') or 'No configurado' }}</strong></div></div></section></aside>
+    <aside class="v928-stack">{{ provider_status('', openai_ready, '', '', '', 'Si falta un dato real, SHARK lo marca como pendiente.') }}<section class="v928-panel">{{ section_header('Estado del contexto', 'Datos que SHARK puede usar') }}<div class="v928-truth-list"><div><span>Pick</span><strong>{{ data_state.get('pick') or 'Sin pick real publicado' }}</strong></div><div><span>Cuotas</span><strong>{{ data_state.get('odds') or 'Pendientes' }}</strong></div><div><span>Resultado</span><strong>{{ data_state.get('result') or 'Pendiente' }}</strong></div><div><span>Modo</span><strong>{{ 'Análisis ampliado' if openai_ready else 'Contexto seguro' }}</strong></div></div></section></aside>
   </section>
 </section>
 {% endblock %}

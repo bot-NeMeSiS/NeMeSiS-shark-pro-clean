@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "components/v928_ui.html" import kpi_card, section_header, quick_action, match_card, pick_card, empty_state, status_chip %}
+{% from "components/v930_ui.html" import kpi_card, section_header, quick_action, match_card, pick_card, empty_state, status_chip %}
 {% block content %}
 {% set summary = data.get('home_summary') or {} %}
 {% set counts = summary.get('counts') or {} %}
@@ -7,7 +7,7 @@
 {% set picks = (data.get('v925_picks') or {}).get('picks') or [] %}
 {% set today_count = counts.get('today', matches|length) or 0 %}
 {% set live_count = counts.get('live', 0) or 0 %}
-<section class="v928-page v928-home" data-v928-template="home">
+<section class="v928-page v928-home v930-page v930-public-page v930-home" data-v928-template="home" data-v930-template="home">
   {% if current_user %}
   <section class="v928-home-hero is-client">
     <div><span class="v928-eyebrow">Panel cliente · Hora Madrid</span><h1>Buenos días, {{ current_user.name or current_user.username or 'Cliente' }}</h1><p>Tu jornada deportiva con agenda, directo, picks completos y SHARK en modo seguro.</p><div class="v928-actions"><a class="v928-button is-primary" href="/app">Abrir mi panel</a><a class="v928-button" href="/calendar">Ver partidos</a><a class="v928-button" href="/picks">Revisar picks</a></div></div><img src="/static/img/shark-logo.svg" alt="" aria-hidden="true">

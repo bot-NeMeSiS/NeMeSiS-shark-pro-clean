@@ -1,12 +1,12 @@
 {% extends "base.html" %}
-{% from "components/v928_ui.html" import page_header, kpi_card, section_header, data_table, empty_state, status_chip %}
+{% from "components/v930_ui.html" import page_header, kpi_card, section_header, data_table, empty_state, status_chip %}
 {% block content %}
 {% set record = data.get('track_record') or {} %}
 {% set recent = record.get('recent_results') or [] %}
 {% set pending = record.get('pending_results') or [] %}
 {% set roi = record.get('roi') %}
 {% set winrate = record.get('winrate') %}
-<section class="v928-page v928-track-record" data-v928-template="track_record">
+<section class="v928-page v928-track-record v930-page v930-client-page v930-track-record" data-v928-template="track_record" data-v930-template="track_record">
   {{ page_header('Histórico', 'Resultados reales y rendimiento calculado únicamente con picks evaluables', 'history', [{'label':'Ver picks','href':'/picks','primary':true}]) }}
   <section class="v928-kpi-grid is-four">
     {{ kpi_card('ROI real', (roi|string ~ '%') if roi is not none else none, 'Beneficio sobre stake evaluable', 'green', 'history') }}

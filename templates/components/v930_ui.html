@@ -1,0 +1,47 @@
+{# V930 canonical components. Runtime data is passed through; no sample values live here. #}
+{% import "components/v928_ui.html" as legacy %}
+
+{% macro canonical_page_header(title, subtitle='', icon_name='', actions=[]) -%}<div class="v930-component v930-page-header-component">{{ legacy.page_header(title, subtitle, icon_name, actions) }}</div>{%- endmacro %}
+{% macro canonical_section_header(title, subtitle='', action_label='', action_href='', eyebrow='') -%}{{ legacy.section_header(title, subtitle, action_label, action_href, eyebrow) }}{%- endmacro %}
+{% macro canonical_kpi_card(label, value=None, detail='', tone='blue', icon_name='', href='') -%}{{ legacy.kpi_card(label, value, detail, tone, icon_name, href) }}{%- endmacro %}
+{% macro canonical_action_button(label, href='', primary=false, tone='blue', disabled=false) -%}{% if href and not disabled %}<a class="v928-button v930-action-button is-{{ tone }}{% if primary %} is-primary{% endif %}" href="{{ href }}">{{ label }}</a>{% else %}<button class="v928-button v930-action-button is-{{ tone }}" type="button" disabled aria-disabled="true">{{ label }}</button>{% endif %}{%- endmacro %}
+{% macro canonical_status_chip(label, tone='neutral') -%}{{ legacy.status_chip(label, tone) }}{%- endmacro %}
+{% macro canonical_empty_state(title, body, action_label='', action_href='', icon_name='data') -%}{{ legacy.empty_state(title, body, action_label, action_href, icon_name) }}{%- endmacro %}
+{% macro canonical_table_shell(headers) -%}<div class="v928-table-shell v930-canonical-table-shell"><table class="v928-data-table"><thead><tr>{% for header in headers %}<th>{{ header }}</th>{% endfor %}</tr></thead><tbody>{{ caller() }}</tbody></table></div>{%- endmacro %}
+{% macro canonical_filter_tabs(items, active='') -%}{{ legacy.filter_tabs(items, active) }}{%- endmacro %}
+{% macro canonical_match_card(match, compact=false, show_actions=true) -%}{{ legacy.match_card(match, compact, show_actions) }}{%- endmacro %}
+{% macro canonical_live_card(match) -%}{{ legacy.live_card(match) }}{%- endmacro %}
+{% macro canonical_pick_card(pick, featured=false) -%}{{ legacy.pick_card(pick, featured) }}{%- endmacro %}
+{% macro canonical_plan_card(name, price='', cadence='/mes', description='', benefits=[], current=false, href='', tone='blue') -%}{{ legacy.plan_card(name, price, cadence, description, benefits, current, href, tone) }}{%- endmacro %}
+{% macro canonical_profile_card(user, plan='', status='') -%}{{ legacy.profile_card(user, plan, status) }}{%- endmacro %}
+{% macro canonical_provider_state(source='', has_real_data=false, last_sync='', provider_status='', cache_status='', safe_message='') -%}
+<aside class="v930-provider-state" aria-label="Disponibilidad de datos">
+  <div><strong>Disponibilidad de datos</strong>{{ canonical_status_chip('Actualizado' if has_real_data else 'Esperando datos', 'success' if has_real_data else 'warning') }}</div>
+  <p>{{ safe_message or ('La información disponible está lista para consultar.' if has_real_data else 'La pantalla seguirá operativa y se actualizará cuando haya datos confirmados.') }}</p>
+  {% if last_sync %}<small>Última actualización: {{ last_sync }}</small>{% endif %}
+</aside>
+{%- endmacro %}
+{% macro canonical_logo_fallback(team, size='md') -%}{{ legacy.crest(team, size) }}{%- endmacro %}
+
+{% macro canonical_quick_action(title, body, href, icon_name='arrow', tone='blue') -%}{{ legacy.quick_action(title, body, href, icon_name, tone) }}{%- endmacro %}
+{% macro canonical_next_action(title, body, href='', label='Abrir') -%}{{ legacy.next_action(title, body, href, label) }}{%- endmacro %}
+{% macro canonical_odds_block(market='', selection='', odds='', source='') -%}{{ legacy.odds_block(market, selection, odds, source) }}{%- endmacro %}
+{% macro canonical_shark_confidence(score=None, risk='', message='') -%}{{ legacy.shark_confidence(score, risk, message) }}{%- endmacro %}
+{% macro canonical_status_card(label, status, detail='', tone='neutral', icon_name='shield') -%}{{ legacy.status_card(label, status, detail, tone, icon_name) }}{%- endmacro %}
+{% macro canonical_worker_card(name, status, detail='', report_href='') -%}{{ legacy.worker_card(name, status, detail, report_href) }}{%- endmacro %}
+
+{# Compatibility names route every active template through the canonical V930 layer. #}
+{% macro page_header(title, subtitle='', icon_name='', actions=[]) -%}{{ canonical_page_header(title, subtitle, icon_name, actions) }}{%- endmacro %}
+{% macro section_header(title, subtitle='', action_label='', action_href='', eyebrow='') -%}{{ canonical_section_header(title, subtitle, action_label, action_href, eyebrow) }}{%- endmacro %}
+{% macro kpi_card(label, value=None, detail='', tone='blue', icon_name='', href='') -%}{{ canonical_kpi_card(label, value, detail, tone, icon_name, href) }}{%- endmacro %}
+{% macro quick_action(title, body, href, icon_name='arrow', tone='blue') -%}{{ canonical_quick_action(title, body, href, icon_name, tone) }}{%- endmacro %}
+{% macro status_chip(label, tone='neutral') -%}{{ canonical_status_chip(label, tone) }}{%- endmacro %}
+{% macro empty_state(title, body, action_label='', action_href='', icon_name='data') -%}{{ canonical_empty_state(title, body, action_label, action_href, icon_name) }}{%- endmacro %}
+{% macro data_table(headers) -%}<div class="v928-table-shell v930-canonical-table-shell"><table class="v928-data-table"><thead><tr>{% for header in headers %}<th>{{ header }}</th>{% endfor %}</tr></thead><tbody>{{ caller() }}</tbody></table></div>{%- endmacro %}
+{% macro filter_tabs(items, active='') -%}{{ canonical_filter_tabs(items, active) }}{%- endmacro %}
+{% macro match_card(match, compact=false, show_actions=true) -%}{{ canonical_match_card(match, compact, show_actions) }}{%- endmacro %}
+{% macro live_card(match) -%}{{ canonical_live_card(match) }}{%- endmacro %}
+{% macro pick_card(pick, featured=false) -%}{{ canonical_pick_card(pick, featured) }}{%- endmacro %}
+{% macro provider_status(source='', has_real_data=false, last_sync='', provider_status='', cache_status='', safe_message='') -%}{{ canonical_provider_state(source, has_real_data, last_sync, provider_status, cache_status, safe_message) }}{%- endmacro %}
+{% macro next_action(title, body, href='', label='Abrir') -%}{{ canonical_next_action(title, body, href, label) }}{%- endmacro %}
+{% macro crest(team, size='md') -%}{{ canonical_logo_fallback(team, size) }}{%- endmacro %}

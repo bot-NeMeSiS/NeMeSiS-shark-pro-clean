@@ -20,16 +20,22 @@ ADMIN_SAFE_ROUTES = ["/admin-login"]
 ADMIN_PROTECTED_ROUTES = [
     "/admin/dashboard",
     "/admin/telegram/command-center",
+    "/admin/memberships",
     "/admin/users",
     "/admin/payments",
     "/admin/picks",
+    "/admin/matches-sync",
     "/admin/data-center",
+    "/admin/automation-center",
+    "/admin/daily-automation",
     "/admin/automation-workforce",
     "/admin/autonomous-company-sentinel",
     "/admin/sentinel-issues",
     "/admin/sentinel-codex-outbox",
     "/admin/not-found-events",
     "/admin/launch-certification",
+    "/admin/final-certification",
+    "/admin/system",
 ]
 
 
@@ -52,7 +58,12 @@ def _status_paths(output: Path) -> tuple[Path, Path, Path]:
 
 
 def _write_markdown_status(payload: dict, output: Path) -> None:
-    report_name = "V928_BROWSER_QA_STATUS.md" if VERSION.startswith("V928_") else "V907_BROWSER_QA_STATUS.md"
+    if VERSION.startswith("V930_"):
+        report_name = "V930_BROWSER_QA_COMPARISON.md"
+    elif VERSION.startswith("V928_"):
+        report_name = "V928_BROWSER_QA_STATUS.md"
+    else:
+        report_name = "V907_BROWSER_QA_STATUS.md"
     report = ROOT / "reports" / report_name
     status = payload.get("browser_qa_status") or ("CAPTURED" if payload.get("browser_available") else "BROWSER_QA_UNAVAILABLE")
     lines = [
@@ -103,6 +114,9 @@ def _write_reference_gap_status(comparison: dict) -> None:
     if VERSION.startswith("V928_"):
         existing["v928_browser_reference_status"] = compatibility_status
         existing["v928_browser_gap_report"] = comparisons
+    if VERSION.startswith("V930_"):
+        existing["v930_browser_reference_status"] = compatibility_status
+        existing["v930_browser_gap_report"] = comparisons
     existing["v906_browser_status"] = compatibility_status
     existing["v906_browser_reference_status"] = compatibility_status
     existing["v906_browser_gap_report"] = comparisons
@@ -291,6 +305,7 @@ def run_browser_reference_qa(
     write_json: bool = True,
     v928_matrix: bool = False,
     safe_mock_sessions: bool = False,
+    safe_session_secret: str = "",
 ) -> dict:
     output.mkdir(parents=True, exist_ok=True)
     env = detect_browser_qa_environment()
@@ -334,6 +349,8 @@ def run_browser_reference_qa(
                 if safe_mock_sessions and local_base:
                     from app import app as flask_app
 
+                    if safe_session_secret:
+                        flask_app.config["SECRET_KEY"] = safe_session_secret
                     serializer = flask_app.session_interface.get_signing_serializer(flask_app)
                     cookie_name = flask_app.config.get("SESSION_COOKIE_NAME", "session")
                     signed_sessions = {
@@ -393,17 +410,38 @@ def run_browser_reference_qa(
                         try:
                             response = page.goto(item["url"], wait_until="domcontentloaded", timeout=timeout)
                             page.wait_for_timeout(400)
+                            page.evaluate("window.scrollTo(0, 0)")
+                            page.wait_for_timeout(80)
                             scroll_width = page.evaluate("document.documentElement.scrollWidth")
                             inner_width = page.evaluate("window.innerWidth")
+                            geometry = page.evaluate("""
+                                () => {
+                                  const main = document.querySelector('main');
+                                  const first = main && main.firstElementChild;
+                                  const desktopNav = document.querySelector('.v930-client-topbar, .v930-public-topbar, .v930-admin-topbar');
+                                  const rect = (node) => node ? node.getBoundingClientRect() : null;
+                                  const style = main ? getComputedStyle(main) : null;
+                                  return {
+                                    scrollY: window.scrollY,
+                                    mainTop: rect(main)?.top ?? null,
+                                    firstContentTop: rect(first)?.top ?? null,
+                                    navBottom: rect(desktopNav)?.bottom ?? null,
+                                    mainPaddingTop: style?.paddingTop ?? null,
+                                    mainClass: main?.className || '',
+                                  };
+                                }
+                            """)
                             body_text = page.locator("body").inner_text(timeout=3000)[:1000]
                             item.update({
                                 "status": response.status if response else None,
+                                "final_url": page.url,
                                 "overflow_x": bool(scroll_width and inner_width and scroll_width > inner_width + 2),
                                 "scroll_width": scroll_width,
                                 "inner_width": inner_width,
+                                "geometry": geometry,
                                 "body_text_sample": body_text,
                             })
-                            page.screenshot(path=str(shot), full_page=True)
+                            page.screenshot(path=str(shot), full_page=False)
                         except Exception as exc:
                             item["error"] = f"{exc.__class__.__name__}: {str(exc)[:220]}"
                         captures.append(item)

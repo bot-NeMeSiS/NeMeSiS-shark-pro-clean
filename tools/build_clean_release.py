@@ -536,6 +536,7 @@ def include(path: Path) -> bool:
             or rel_posix.startswith("reports/V927_")
             or rel_posix.startswith("reports/V928_")
             or rel_posix.startswith("reports/V929_")
+            or rel_posix.startswith("reports/V930_")
             or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V912")
             or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V913")
             or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V914")
@@ -551,6 +552,7 @@ def include(path: Path) -> bool:
             or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V924")
             or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V928")
             or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V929")
+            or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V930")
         )
     if rel_posix in {
         "data/runtime/automation_workforce/latest_run.json",
@@ -559,6 +561,7 @@ def include(path: Path) -> bool:
         "data/runtime/autonomous_company_sentinel/browser_reference_comparison.json",
         "data/runtime/client_route_health_v923.json",
         "data/runtime/navigation_integrity/latest_run.json",
+        "data/runtime/v930_visual_parity.json",
     }:
         return True
     if any(part in EXCLUDE_DIRS for part in parts):

@@ -6,6 +6,9 @@ from pathlib import PurePosixPath
 from v929_check_support import ROOT, VERSION, finish, load_json, prepare_app
 
 
+V930_VERSION = "V930_CANONICAL_REFERENCE_VISUAL_PARITY_ADMIN_CLIENT_MOBILE_FINAL"
+
+
 def main() -> int:
     app_module = prepare_app()
     client = app_module.app.test_client()
@@ -14,6 +17,7 @@ def main() -> int:
     matrix = load_json(ROOT / "reports" / "V929_FULL_NAVIGATION_ROUTE_MATRIX.json")
     click = load_json(ROOT / "reports" / "V929_CLICK_NAVIGATION_MATRIX.json")
     version_raw = (ROOT / "VERSION.txt").read_bytes()
+    current_version = version_raw.decode("utf-8").strip().lstrip("\ufeff")
     zip_path = ROOT / "release_output" / "NeMeSiS_SHARK_PRO_V929_NAVIGATION_INTEGRITY_ROUTE_NOT_FOUND_FULL_APP_RECOVERY_FINAL_RENDER_READY.zip"
     zip_clean = True
     if zip_path.exists():
@@ -30,11 +34,11 @@ def main() -> int:
                     zip_clean = False
                     break
     checks = {
-        "version_exact": version_raw.decode("utf-8") == VERSION + "\n",
+        "version_v929_or_successor": current_version in {VERSION, V930_VERSION},
         "version_without_bom": not version_raw.startswith(b"\xef\xbb\xbf"),
-        "app_version": app_module.APP_VERSION == VERSION,
+        "app_version": app_module.APP_VERSION == current_version,
         "runtime_200": runtime_response.status_code == 200,
-        "runtime_version": runtime.get("version") == VERSION,
+        "runtime_version": runtime.get("version") == current_version,
         "version_files_match": runtime.get("version_files_match") is True,
         "deployment_aligned": runtime.get("deployment_alignment_status") == "aligned_local_files",
         "flags_v929": all(runtime.get(key) is True for key in (

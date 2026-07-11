@@ -1,0 +1,23 @@
+{
+  "version": "V930_CANONICAL_REFERENCE_VISUAL_PARITY_ADMIN_CLIENT_MOBILE_FINAL",
+  "base_version": "V929_NAVIGATION_INTEGRITY_ROUTE_NOT_FOUND_FULL_APP_RECOVERY_FINAL",
+  "generated_at_madrid": "2026-07-11T03:31:10+02:00",
+  "reference_images_count": 16,
+  "client_routes_updated": 10,
+  "admin_routes_updated": 18,
+  "mobile_routes_updated": 10,
+  "components_used": 23,
+  "major_gaps_before": 3,
+  "major_gaps_after": 0,
+  "medium_gaps_before": 6,
+  "medium_gaps_after": 0,
+  "browser_screenshots": 198,
+  "browser_routes": 33,
+  "browser_viewport_profiles": 6,
+  "browser_overflow_issues": 0,
+  "browser_errors": 0,
+  "no_fake_data_guard": true,
+  "pixel_perfect_claim_allowed": false,
+  "second_visual_correction_pass": true,
+  "next_required_action": "deploy_v930_then_run_render_browser_qa_and_human_visual_review"
+}

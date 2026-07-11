@@ -1,10 +1,10 @@
 {% extends "base.html" %}
-{% from "components/v928_ui.html" import page_header, kpi_card, section_header, empty_state, status_chip, data_table, quick_action %}
+{% from "components/v930_ui.html" import page_header, kpi_card, section_header, empty_state, status_chip, data_table, quick_action %}
 {% block content %}
 {% set center = data.get('data_center') or {} %}
 {% set scheduler = center.get('scheduler') or {} %}
 {% set diagnostics = data.get('matches_diagnostics') or {} %}
-<section class="v928-page v928-admin-command-center" data-v928-template="admin_data_center">
+<section class="v928-page v928-admin-command-center v930-page v930-admin-page v930-admin-data" data-v928-template="admin_data_center" data-v930-template="admin_data_center">
   {{ page_header('Data Center', 'Fuentes, sincronizaciones, cache y calidad de datos', 'database', [{'label':'Partidos','href':'/admin/matches-sync'},{'label':'Data Marketplace','href':'/admin/data-marketplace','primary':true}]) }}
   {% if message %}<div class="v928-inline-safe">{{ message }}</div>{% endif %}
   <section class="v928-kpi-grid">{{ kpi_card('Competiciones', center.get('total_competitions'), 'Guardadas', 'blue', 'matches') }}{{ kpi_card('Equipos', center.get('total_teams'), 'Identidades cacheadas', 'blue', 'users') }}{{ kpi_card('Partidos', center.get('total_matches'), 'Registros reales', 'blue', 'calendar') }}{{ kpi_card('Próximos', center.get('upcoming_matches'), 'Agenda disponible', 'green', 'calendar') }}{{ kpi_card('En directo', center.get('live_matches'), 'Feed actual', 'green', 'live') }}{{ kpi_card('Cuotas', center.get('odds_snapshots'), 'Snapshots reales', 'purple', 'odds') }}</section>
