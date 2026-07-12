@@ -1,10 +1,10 @@
 {
   "ok": true,
-  "audited_at": "2026-07-13T01:20:32",
+  "audited_at": "2026-07-13T01:33:36",
   "zip": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\release_output\\NeMeSiS_SHARK_PRO_V937_PRODUCT_PERFECTION_FULL_ECOSYSTEM_LAUNCH_CLOSEOUT_FINAL_RENDER_READY.zip",
-  "zip_size_bytes": 28348535,
-  "file_count": 2623,
-  "content_size_bytes": 40014389,
+  "zip_size_bytes": 28350206,
+  "file_count": 2625,
+  "content_size_bytes": 40017315,
   "forbidden_count": 0,
   "missing_required_root": [],
   "forbidden": [],
@@ -87,7 +87,7 @@
     },
     {
       "path": "reports/V929_FULL_NAVIGATION_ROUTE_MATRIX.json",
-      "size": 694317
+      "size": 691860
     }
   ],
   "top_folders": [
@@ -98,8 +98,8 @@
     },
     {
       "folder": "reports",
-      "size": 7359273,
-      "files": 1421
+      "size": 7362199,
+      "files": 1423
     },
     {
       "folder": "tools",

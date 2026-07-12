@@ -4,6 +4,8 @@
 
 V937 esta preparada como candidata de lanzamiento controlado. No se declara en produccion, ni pixel-perfect, hasta completar revision humana de las capturas, despliegue autorizado y comprobacion del runtime real.
 
+Render sigue en V936 y su endpoint de runtime presenta un `FileNotFoundError` controlado. El deploy root V937 supera esa misma prueba con 200, identidad exacta y archivos alineados.
+
 La version consolida la base V929-V936 y cambia la percepcion del producto en tres puntos visibles: la home prioriza decisiones, la experiencia deportiva explica calidad y ciclo de vida, y el admin diferencia operacion, evidencia y siguiente accion sin trasladar diagnostico tecnico al cliente.
 
 ## Que ha mejorado
