@@ -13,6 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V932_AUTHENTICATED_PRODUCTION_CLIENT_ADMIN_AND_REAL_SPORTS_VALUE_FINAL"
 SUCCESSOR_VERSION = "V933_REFERENCE_PARITY_PRODUCT_DESIGN_SPRINT_SYSTEM_FINAL"
 V934_VERSION = "V934_REFERENCE_EXACTNESS_REALTIME_SPORTS_PRODUCTION_PERFECTION_FINAL"
+V935_VERSION = "V935_LAUNCH_TRUST_REAL_DATA_LIFECYCLE_PERFORMANCE_REFERENCE_POLISH_FINAL"
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
@@ -93,15 +94,21 @@ def main() -> int:
     valid_today = summary.get("valid_matches_today") or []
     valid_picks = summary.get("valid_active_picks") or []
     incomplete = summary.get("incomplete_matches") or []
+    v935_freshness_guard = app_module.APP_VERSION == V935_VERSION
+    valid_live_count = len(summary.get("valid_live_events") or [])
     checks = {
-        "version_v932_or_successor": app_module.APP_VERSION in {VERSION, SUCCESSOR_VERSION, V934_VERSION},
+        "version_v932_or_successor": app_module.APP_VERSION in {VERSION, SUCCESSOR_VERSION, V934_VERSION, V935_VERSION},
         "home_200": home.status_code == 200,
         "today_count_matches_list": summary.get("valid_matches_today_count") == len(valid_today) == 2,
         "complete_matches_only": all(app_module._v931_match_essentials(item).get("complete") for item in valid_today),
         "incomplete_separated": len(incomplete) == 1 and incomplete[0].get("id") == "incomplete",
-        "live_real_only": len(summary.get("valid_live_events") or []) == 1,
-        "pick_truth_gate": len(valid_picks) == 1 and valid_picks[0].get("id") == "pick-valid",
-        "real_value_truth": value.get("real_matches_available") is True and value.get("real_live_available") is True and value.get("real_picks_available") is True,
+        "live_real_only": valid_live_count == (0 if v935_freshness_guard else 1),
+        "pick_truth_gate": (len(valid_picks) == 0) if v935_freshness_guard else (len(valid_picks) == 1 and valid_picks[0].get("id") == "pick-valid"),
+        "real_value_truth": (
+            value.get("real_matches_available") is True
+            and value.get("real_live_available") is (not v935_freshness_guard)
+            and value.get("real_picks_available") is (not v935_freshness_guard)
+        ),
         "last_safe_sync_present": value.get("last_safe_sync") == "2026-07-11T08:06:00Z",
         "no_external_render_call": external_calls["count"] == 0 and value.get("no_render_api_call") is True,
         "runtime_fields_safe": all(key in runtime for key in (

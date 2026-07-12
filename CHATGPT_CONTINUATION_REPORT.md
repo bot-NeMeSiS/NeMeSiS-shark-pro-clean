@@ -1133,3 +1133,14 @@ V928 reconstruye la experiencia completa sobre la base V927 con 16 referencias c
 - No se inventaron partidos, resultados, minutos, picks, cuotas, usuarios o cifras comerciales.
 - Render consultado el 2026-07-11 identifica V933 dentro de un error controlado `FileNotFoundError` en `/api/runtime-version`; V934 no se declara en produccion.
 - Pixel-perfect permanece deshabilitado hasta revision humana y QA autenticado post-deploy.
+
+## V935 Launch Trust, Data Lifecycle And Performance
+
+- Base preservada: `V934_REFERENCE_EXACTNESS_REALTIME_SPORTS_PRODUCTION_PERFECTION_FINAL`.
+- Version local: `V935_LAUNCH_TRUST_REAL_DATA_LIFECYCLE_PERFORMANCE_REFERENCE_POLISH_FINAL`.
+- Se consolidaron lifecycle canónico de partidos y picks, frescura de cuotas, histórico de solo lectura, cache por petición, ETag/304 y polling compartido con backoff.
+- Se añadió Data Trust Center protegido y confianza comprensible para cliente sin exponer diagnóstico técnico ni secretos.
+- El orquestador V935 ejecutó 12 workers en dry-run, sin llamadas externas, escrituras DB, pagos o Telegram real.
+- Browser QA usa sesiones mock locales seguras en siete viewports; no se declara pixel-perfect sin revisión humana.
+- La DB local no contiene una agenda deportiva evaluable y se mantiene `WAITING_FOR_REAL_DATA`; no se crearon fixtures visibles.
+- No se hizo push ni deploy. Render debe confirmar V935 antes de declararla en producción.

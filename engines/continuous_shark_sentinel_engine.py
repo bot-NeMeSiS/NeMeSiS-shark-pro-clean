@@ -258,6 +258,65 @@ V925_REFERENCE_PRODUCT_RULES = [
     "sports_data_requires_source_and_real_values",
 ]
 
+V935_LAUNCH_TRUST_RULES = [
+    "past_match_in_upcoming",
+    "finished_match_in_live",
+    "result_pending_too_long",
+    "incomplete_match_public",
+    "counter_list_mismatch",
+    "active_pick_for_past_match",
+    "pick_with_invalid_odds",
+    "placeholder_selection",
+    "stale_odds_shown_as_current",
+    "non_evaluable_pick_in_roi",
+    "stale_last_sync",
+    "slow_route_or_timeout",
+    "database_locked_or_unclosed_connection",
+    "client_technical_diagnostic_visible",
+    "visual_or_navigation_regression",
+    "blocked_worker_or_data_trust_blocker",
+]
+
+
+def _v935_launch_trust_issues(version: str) -> list[dict[str, Any]]:
+    """Import deduplicated worker evidence without opening DBs or contacting providers."""
+    if not str(version or "").startswith("V935"):
+        return []
+    root = Path(__file__).resolve().parents[1]
+    evidence_dir = root / "data" / "runtime" / "automation_workforce" / "v935_workers"
+    priority_severity = {"P0": "critical", "P1": "high", "P2": "medium", "P3": "low"}
+    output: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for name in ("match_lifecycle.json", "pick_lifecycle.json", "odds_freshness.json", "data_trust.json", "route_performance.json"):
+        path = evidence_dir / name
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8-sig")) if path.exists() else {}
+        except Exception:
+            payload = {}
+        for finding in payload.get("findings") or []:
+            issue_type = str(finding.get("type") or "v935_data_trust")[:100]
+            routes = [str(item)[:120] for item in (finding.get("routes") or [])]
+            key = f"{issue_type}|{','.join(routes)}"
+            if key in seen:
+                continue
+            seen.add(key)
+            output.append({
+                "id": "V935-" + sha1(key.encode("utf-8")).hexdigest()[:12],
+                "profile": "ADMIN",
+                "route": routes[0] if routes else "/admin/data-trust-center",
+                "category": "data_trust",
+                "severity": priority_severity.get(str(finding.get("priority") or "P2"), "medium"),
+                "title": issue_type.replace("_", " ").title(),
+                "description": str(finding.get("evidence") or "Launch-trust evidence requires review.")[:280],
+                "evidence": str(finding.get("evidence") or "")[:320],
+                "expected_behavior": "Lifecycle, freshness and client surfaces remain internally consistent.",
+                "actual_behavior": str(finding.get("evidence") or "Attention required.")[:280],
+                "suggested_fix": str(finding.get("next_action") or "review_data_trust")[:180],
+                "safe_auto_fix_possible": False,
+                "requires_admin_approval": True,
+            })
+    return output
+
 V926_DESKTOP_REFERENCE_RULES = [
     "desktop_no_empty_top_area",
     "desktop_hero_compact_above_fold",
@@ -594,6 +653,21 @@ def run_continuous_sentinel_cycle(client: Any, version: str = "", mode: str = "q
     ]
     actionable_static_issues = [issue for issue in static_issues if issue not in safe_data_notes]
     actionable_static_issues.extend(navigation_integrity_issues)
+    actionable_static_issues.extend(_v935_launch_trust_issues(version))
+    deduped_issues = []
+    seen_issue_keys = set()
+    for issue in actionable_static_issues:
+        issue_key = (
+            str(issue.get("category") or ""),
+            str(issue.get("route") or ""),
+            str(issue.get("title") or ""),
+            str(issue.get("evidence") or ""),
+        )
+        if issue_key in seen_issue_keys:
+            continue
+        seen_issue_keys.add(issue_key)
+        deduped_issues.append(issue)
+    actionable_static_issues = deduped_issues
     issues = [_decorate_issue(issue, run_id) for issue in actionable_static_issues]
     visual_worker_result = {}
     if mode in {"visual-worker", "company-worker", "full-company-qa"}:

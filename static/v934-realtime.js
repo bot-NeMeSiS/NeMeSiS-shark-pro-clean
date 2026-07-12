@@ -4,6 +4,7 @@
   var bars = Array.prototype.slice.call(document.querySelectorAll('[data-v934-realtime]'));
   var adminButtons = Array.prototype.slice.call(document.querySelectorAll('[data-v934-admin-action]'));
   if (!bars.length && !adminButtons.length) return;
+  var shared = window.__nemesisV935Realtime || (window.__nemesisV935Realtime = { entries: {} });
 
   function number(value) {
     var parsed = Number(value);
@@ -12,6 +13,37 @@
 
   function clampPoll(value) {
     return Math.max(30, Math.min(number(value) || 180, 300));
+  }
+
+  function jitteredPoll(value) {
+    var seconds = clampPoll(value);
+    return Math.max(30, Math.round(seconds * (0.92 + Math.random() * 0.16)));
+  }
+
+  function sharedLoad(endpoint, scope) {
+    var key = endpoint + '?scope=' + encodeURIComponent(scope);
+    var entry = shared.entries[key] || (shared.entries[key] = { payload: null, fetchedAt: 0, etag: '', modified: '', pending: null });
+    if (entry.payload && Date.now() - entry.fetchedAt < 15000) return Promise.resolve(entry.payload);
+    if (entry.pending) return entry.pending;
+    var headers = { Accept: 'application/json' };
+    if (entry.etag) headers['If-None-Match'] = entry.etag;
+    if (entry.modified) headers['If-Modified-Since'] = entry.modified;
+    entry.pending = fetch(key, { headers: headers, cache: 'no-cache' })
+      .then(function (response) {
+        if (response.status === 304 && entry.payload) return entry.payload;
+        if (!response.ok) throw new Error('http_' + response.status);
+        entry.etag = response.headers.get('ETag') || entry.etag;
+        entry.modified = response.headers.get('Last-Modified') || entry.modified;
+        return response.json();
+      })
+      .then(function (payload) {
+        if (!payload || payload.ok !== true) throw new Error('unsafe_payload');
+        entry.payload = payload;
+        entry.fetchedAt = Date.now();
+        return payload;
+      })
+      .finally(function () { entry.pending = null; });
+    return entry.pending;
   }
 
   function setText(root, selector, value) {
@@ -83,7 +115,7 @@
 
     function schedule(seconds) {
       window.clearTimeout(timer);
-      timer = window.setTimeout(load, clampPoll(seconds) * 1000);
+      timer = window.setTimeout(load, jitteredPoll(seconds) * 1000);
     }
 
     function load() {
@@ -91,13 +123,8 @@
         schedule(180);
         return;
       }
-      fetch(endpoint + '?scope=' + encodeURIComponent(scope), { headers: { Accept: 'application/json' }, cache: 'no-store' })
-        .then(function (response) {
-          if (!response.ok) throw new Error('http_' + response.status);
-          return response.json();
-        })
+      sharedLoad(endpoint, scope)
         .then(function (payload) {
-          if (!payload || payload.ok !== true) throw new Error('unsafe_payload');
           failures = 0;
           render(bar, payload);
           schedule(payload.poll_after_seconds);

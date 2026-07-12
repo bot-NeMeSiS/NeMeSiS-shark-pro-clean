@@ -1,0 +1,28 @@
+{
+  "worker": "Realtime Sports Worker",
+  "role": "realtime_sports",
+  "status": "ok",
+  "ok": true,
+  "dry_run": true,
+  "safe_message": "Esperando una sincronizacion real; no se muestran datos de ejemplo.",
+  "next_action": "run_authorized_sports_sync",
+  "findings": [],
+  "metrics": {
+    "counts": {
+      "matches": 0,
+      "live": 0,
+      "finished": 0,
+      "picks": 0,
+      "stale_live": 0,
+      "incomplete": 0
+    },
+    "match_status": "waiting_for_real_data",
+    "live_status": "no_live_events",
+    "data_trust_status": "WAITING_FOR_REAL_DATA"
+  },
+  "external_calls": 0,
+  "database_writes": 0,
+  "secrets_visible": false,
+  "generated_at_madrid": "2026-07-12T02:34:26+02:00",
+  "report_path": "data/runtime/automation_workforce/v935_workers/realtime_sports.md"
+}

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "components/v933_ui.html" import icon, status_chip, action_button, section_header, kpi_card, quick_action, empty_state, match_card, pick_card, provider_state, next_action, realtime_state_bar %}
+{% from "components/v933_ui.html" import icon, status_chip, action_button, section_header, kpi_card, quick_action, empty_state, match_card, pick_card, provider_state, next_action, realtime_state_bar, customer_trust_panel %}
 {% block content %}
 {% set user_name = current_user.name or current_user.username or 'Cliente' %}
 {% set plan_name = (current_user.membership or 'FREE')|upper %}
@@ -12,6 +12,7 @@
 {% set sports_value = data.get('v932_sports_value') or {} %}
 {% set hub_counts = (data.get('match_hub') or {}).get('counts') or {} %}
 {% set realtime = data.get('v934_realtime') or {} %}
+{% set customer_trust = data.get('v935_customer_trust') or {} %}
 
 <div class="v933-page v933-client-dashboard" data-v933-template="client_app_center" data-v933-reference="canonical-client-home">
   <section class="v933-client-hero">
@@ -29,6 +30,7 @@
   </section>
 
   {{ realtime_state_bar(realtime, 'all') }}
+  {{ customer_trust_panel(customer_trust) }}
 
   <section class="v933-kpi-grid" aria-label="Resumen de la jornada">
     {{ kpi_card('Partidos disponibles', matches|length, 'Agenda completa y validada', 'blue', 'calendar', '/calendar') }}

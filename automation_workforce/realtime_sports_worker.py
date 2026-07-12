@@ -15,6 +15,11 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from engines.v934_realtime_sports_engine import build_realtime_snapshot  # noqa: E402
+from engines.v935_launch_trust_engine import (  # noqa: E402
+    build_data_trust_snapshot,
+    enrich_match_lifecycle,
+    enrich_pick_lifecycle,
+)
 
 
 def _db_path(value: str = "") -> Path:
@@ -71,16 +76,24 @@ def collect(db_path: Path) -> dict[str, Any]:
             "worker_status": "db_locked_safe" if locked else "db_read_unavailable_safe",
             "db_available": True,
         }
+    normalized_matches = [enrich_match_lifecycle(item) for item in matches]
+    normalized_picks = [enrich_pick_lifecycle(item) for item in picks]
     summary = {
-        "valid_matches_today": matches,
-        "valid_upcoming_matches": [],
-        "valid_live_events": [item for item in matches if str(item.get("status") or "").lower() in {"live", "1h", "2h", "ht"}],
-        "valid_active_picks": [item for item in picks if str(item.get("status") or "").lower() == "published"],
+        "valid_matches_today": [item for item in normalized_matches if (item.get("v935_surface") or {}).get("home")],
+        "valid_upcoming_matches": [item for item in normalized_matches if item.get("v935_lifecycle") == "UPCOMING"],
+        "valid_live_events": [item for item in normalized_matches if item.get("v935_lifecycle") in {"LIVE", "HALFTIME"}],
+        "valid_active_picks": [item for item in normalized_picks if item.get("v935_publishable")],
         "incomplete_matches": [],
         "provider_status": "local_db_read_only",
         "last_sync": last_sync,
     }
     snapshot = build_realtime_snapshot(summary)
+    snapshot["data_trust"] = build_data_trust_snapshot(
+        normalized_matches,
+        normalized_picks,
+        provider_status="local_db_read_only",
+        last_sync=last_sync,
+    )
     snapshot["worker_status"] = "ok" if snapshot.get("matches") or snapshot.get("picks") else "waiting_for_real_data"
     snapshot["db_available"] = True
     return snapshot
@@ -100,7 +113,7 @@ def main() -> int:
         "dry_run": True,
         "safe_message": snapshot.get("safe_message") or "Estado realtime leído de forma segura.",
         "next_action": "review_realtime_center" if status == "ok" else "run_authorized_sports_sync",
-        "report_path": "reports/V934_REALTIME_MATCHES_LIVE_QA.md",
+        "report_path": "reports/V935_REALTIME_CACHE_QA.md",
         "counts": snapshot.get("counts") or {},
         "realtime_match_status": snapshot.get("realtime_match_status"),
         "realtime_live_status": snapshot.get("realtime_live_status"),
@@ -111,7 +124,7 @@ def main() -> int:
         "secrets_visible": False,
     }
     if args.write_json:
-        output = ROOT / "data" / "runtime" / "v934_realtime_worker_latest.json"
+        output = ROOT / "data" / "runtime" / "automation_workforce" / "v935_workers" / "realtime_sports_worker.json"
         output.parent.mkdir(parents=True, exist_ok=True)
         output.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(result, ensure_ascii=False, indent=2))

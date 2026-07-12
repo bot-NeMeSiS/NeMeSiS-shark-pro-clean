@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "components/v933_ui.html" import page_header, kpi_card, section_header, quick_action, empty_state, status_chip, action_button, icon %}
+{% from "components/v933_ui.html" import page_header, kpi_card, section_header, quick_action, empty_state, status_chip, action_button, icon, customer_trust_panel %}
 {% block content %}
 {% set assistant = data.get('shark_assistant') or {} %}
 {% set answer = assistant.get('answer') or {} %}
@@ -8,6 +8,7 @@
 {% set openai_ready = assistant.get('openai_configured') %}
 {% set calendar = data.get('v925_calendar') or {} %}
 {% set picks = (data.get('v925_picks') or {}).get('picks') or [] %}
+{% set customer_trust = data.get('v935_customer_trust') or {} %}
 
 <div class="v933-page v933-shark-page" data-v933-template="shark" data-v933-reference="canonical-shark">
   {{ page_header('SHARK', 'Inteligencia deportiva responsable sobre los datos que ya existen.', 'shark', [{'label':'Partidos','href':'/calendar','icon':'calendar'},{'label':'Ver picks','href':'/picks','primary':true,'icon':'target'}]) }}
@@ -21,6 +22,7 @@
     </div>
     <img src="/static/img/shark-logo.svg" alt="" aria-hidden="true">
   </section>
+  {{ customer_trust_panel(customer_trust) }}
 
   <section class="v933-kpi-grid">
     {{ kpi_card('Partidos disponibles', (calendar.get('matches') or [])|length, 'Contexto real guardado', 'blue', 'calendar', '/calendar') }}
@@ -67,6 +69,7 @@
           <div>{{ icon('odds') }}<span><strong>Cuotas</strong><small>{{ data_state.get('odds') or 'Pendientes' }}</small></span></div>
           <div>{{ icon('history') }}<span><strong>Resultado</strong><small>{{ data_state.get('result') or 'Pendiente' }}</small></span></div>
           <div>{{ icon('shield') }}<span><strong>Modo</strong><small>{{ 'Análisis ampliado' if openai_ready else 'Contexto seguro' }}</small></span></div>
+          {% if customer_trust.get('no_publish_reason') %}<div>{{ icon('pause') }}<span><strong>No publicar</strong><small>{{ customer_trust.get('no_publish_reason') }}</small></span>{{ status_chip('Protegido','warning') }}</div>{% endif %}
         </div>
       </section>
       <p class="v933-safe-copy">Si falta un dato real, SHARK lo marca como pendiente. No promete resultados ni sustituye la decisión del usuario.</p>

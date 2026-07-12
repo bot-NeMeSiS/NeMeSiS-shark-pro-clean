@@ -1,8 +1,8 @@
 # V929 Navigation Integrity Worker Report
 
 - Status: `OK`
-- Rutas Flask: `657`
-- Enlaces auditados: `923`
+- Rutas Flask: `663`
+- Enlaces auditados: `926`
 - Enlaces rotos antes/después: `1/0`
 - Loops: `0`
 - Botones sin acción: `0`
@@ -11,4 +11,4 @@
 - Proveedores externos llamados: `0`
 - Acciones peligrosas ejecutadas: `false`
 
-Siguiente acción: `deploy_v934_and_verify_runtime`.
+Siguiente acción: `deploy_v935_and_verify_runtime`.

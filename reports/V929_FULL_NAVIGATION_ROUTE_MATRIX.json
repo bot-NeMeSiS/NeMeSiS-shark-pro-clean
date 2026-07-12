@@ -1,8 +1,8 @@
 {
   "ok": true,
-  "generated_at_madrid": "2026-07-11T21:01:52+02:00",
-  "routes_total": 657,
-  "links_audited": 923,
+  "generated_at_madrid": "2026-07-12T02:38:56+02:00",
+  "routes_total": 663,
+  "links_audited": 926,
   "broken_links": 0,
   "broken_404": 0,
   "endpoint_missing": 0,
@@ -10,7 +10,7 @@
   "buttons_without_action": 0,
   "orphan_templates": 0,
   "archived_orphan_templates": 29,
-  "warnings_count": 187,
+  "warnings_count": 188,
   "video_route": {
     "path": "/clientes",
     "fixed": true
@@ -2532,6 +2532,43 @@
       "source_kind": "link",
       "line": 11,
       "detail": "Destino dinámico; se valida al renderizar y en Browser QA."
+    },
+    {
+      "origin_screen": "templates/admin_data_trust_center.html",
+      "visible_text": "Abrir picks {{ icon('arrow') }}",
+      "selector": "a[href=/admin/picks]",
+      "generated_url": "/admin/picks",
+      "flask_endpoint": "admin_picks_page",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "authentication": "admin",
+      "expected_status": "200 admin o 302/403 sin sesión",
+      "obtained_status": "static_route_map",
+      "result": "REQUIERE_SESIÓN_ADMIN",
+      "correction": "",
+      "source_kind": "link",
+      "line": 37,
+      "detail": "Ruta registrada."
+    },
+    {
+      "origin_screen": "templates/admin_data_trust_center.html",
+      "visible_text": "Refrescar caché local",
+      "selector": "button",
+      "generated_url": "",
+      "flask_endpoint": "",
+      "methods": [
+        "GET"
+      ],
+      "authentication": "public",
+      "expected_status": "200/redirect seguro",
+      "obtained_status": "static_route_map",
+      "result": "WARNING",
+      "correction": "",
+      "source_kind": "button",
+      "line": 58,
+      "detail": "Botón sin URL literal; tiene identificador para acción JavaScript y requiere Browser QA."
     },
     {
       "origin_screen": "templates/admin_data_vault.html",
@@ -10152,7 +10189,7 @@
       "result": "WARNING",
       "correction": "",
       "source_kind": "link",
-      "line": 69,
+      "line": 70,
       "detail": "Destino dinámico; se valida al renderizar y en Browser QA."
     },
     {
@@ -10170,7 +10207,7 @@
       "result": "REQUIERE_SESIÓN_ADMIN",
       "correction": "",
       "source_kind": "link",
-      "line": 73,
+      "line": 74,
       "detail": "Ruta registrada."
     },
     {
@@ -10188,7 +10225,7 @@
       "result": "REQUIERE_SESIÓN_ADMIN",
       "correction": "",
       "source_kind": "form",
-      "line": 79,
+      "line": 80,
       "detail": "Ruta registrada."
     },
     {
@@ -10206,7 +10243,7 @@
       "result": "REQUIERE_SESIÓN_ADMIN",
       "correction": "",
       "source_kind": "link",
-      "line": 81,
+      "line": 82,
       "detail": "Ruta registrada."
     },
     {
@@ -10224,7 +10261,7 @@
       "result": "REQUIERE_SESIÓN_ADMIN",
       "correction": "",
       "source_kind": "link",
-      "line": 82,
+      "line": 83,
       "detail": "Ruta registrada."
     },
     {
@@ -10242,7 +10279,7 @@
       "result": "REQUIERE_SESIÓN_ADMIN",
       "correction": "",
       "source_kind": "link",
-      "line": 87,
+      "line": 88,
       "detail": "Ruta registrada."
     },
     {
@@ -10260,7 +10297,7 @@
       "result": "RUTA_INTERNA_NO_DEBE_SER_VISIBLE",
       "correction": "",
       "source_kind": "static_anchor",
-      "line": 91,
+      "line": 92,
       "detail": "Elemento de metrica no interactivo; no genera navegacion."
     },
     {
@@ -10278,7 +10315,7 @@
       "result": "WARNING",
       "correction": "",
       "source_kind": "link",
-      "line": 101,
+      "line": 102,
       "detail": "Destino dinámico; se valida al renderizar y en Browser QA."
     },
     {
@@ -10296,7 +10333,7 @@
       "result": "WARNING",
       "correction": "",
       "source_kind": "link",
-      "line": 6,
+      "line": 19,
       "detail": "Destino dinámico; se valida al renderizar y en Browser QA."
     },
     {
@@ -10314,7 +10351,7 @@
       "result": "WARNING",
       "correction": "",
       "source_kind": "button",
-      "line": 6,
+      "line": 19,
       "detail": "Botón sin URL literal; tiene identificador para acción JavaScript y requiere Browser QA."
     },
     {
@@ -10332,7 +10369,7 @@
       "result": "WARNING",
       "correction": "",
       "source_kind": "link",
-      "line": 17,
+      "line": 30,
       "detail": "Destino dinámico; se valida al renderizar y en Browser QA."
     },
     {
@@ -10350,7 +10387,7 @@
       "result": "WARNING",
       "correction": "",
       "source_kind": "link",
-      "line": 25,
+      "line": 38,
       "detail": "Destino dinámico; se valida al renderizar y en Browser QA."
     },
     {
@@ -10368,7 +10405,7 @@
       "result": "WARNING",
       "correction": "",
       "source_kind": "button",
-      "line": 51,
+      "line": 64,
       "detail": "Botón sin URL literal; tiene identificador para acción JavaScript y requiere Browser QA."
     },
     {
@@ -10386,7 +10423,7 @@
       "result": "OK",
       "correction": "",
       "source_kind": "link",
-      "line": 70,
+      "line": 83,
       "detail": "Ruta registrada."
     },
     {
@@ -10404,7 +10441,7 @@
       "result": "WARNING",
       "correction": "",
       "source_kind": "link",
-      "line": 74,
+      "line": 87,
       "detail": "Destino dinámico; se valida al renderizar y en Browser QA."
     },
     {
@@ -11982,7 +12019,7 @@
       "result": "OK",
       "correction": "",
       "source_kind": "link",
-      "line": 32,
+      "line": 34,
       "detail": "Ancla dentro de la misma pantalla."
     },
     {
@@ -12000,7 +12037,7 @@
       "result": "OK",
       "correction": "",
       "source_kind": "link",
-      "line": 32,
+      "line": 34,
       "detail": "Ancla dentro de la misma pantalla."
     },
     {
@@ -12018,7 +12055,7 @@
       "result": "OK",
       "correction": "",
       "source_kind": "link",
-      "line": 32,
+      "line": 34,
       "detail": "Ancla dentro de la misma pantalla."
     },
     {
@@ -12036,7 +12073,7 @@
       "result": "OK",
       "correction": "",
       "source_kind": "link",
-      "line": 32,
+      "line": 34,
       "detail": "Ancla dentro de la misma pantalla."
     },
     {
@@ -12054,7 +12091,7 @@
       "result": "OK",
       "correction": "",
       "source_kind": "link",
-      "line": 32,
+      "line": 34,
       "detail": "Ancla dentro de la misma pantalla."
     },
     {
@@ -14333,7 +14370,7 @@
       "result": "REQUIERE_SESIÓN_ADMIN",
       "correction": "",
       "source_kind": "redirect",
-      "line": 12669,
+      "line": 12716,
       "detail": "Ruta registrada."
     },
     {
@@ -14352,7 +14389,7 @@
       "result": "OK",
       "correction": "",
       "source_kind": "redirect",
-      "line": 13420,
+      "line": 13475,
       "detail": "Ruta registrada."
     },
     {
@@ -14371,7 +14408,7 @@
       "result": "REQUIERE_SESIÓN_CLIENTE",
       "correction": "",
       "source_kind": "redirect",
-      "line": 13427,
+      "line": 13482,
       "detail": "Ruta registrada."
     },
     {
@@ -14389,7 +14426,7 @@
       "result": "OK",
       "correction": "",
       "source_kind": "redirect",
-      "line": 13578,
+      "line": 13633,
       "detail": "Ruta registrada."
     },
     {
@@ -14407,7 +14444,7 @@
       "result": "REQUIERE_SESIÓN_CLIENTE",
       "correction": "",
       "source_kind": "redirect",
-      "line": 13584,
+      "line": 13639,
       "detail": "Ruta registrada."
     },
     {
@@ -14425,7 +14462,7 @@
       "result": "REQUIERE_SESIÓN_CLIENTE",
       "correction": "",
       "source_kind": "redirect",
-      "line": 13596,
+      "line": 13651,
       "detail": "Ruta registrada."
     },
     {
@@ -14444,7 +14481,7 @@
       "result": "REQUIERE_SESIÓN_ADMIN",
       "correction": "",
       "source_kind": "redirect",
-      "line": 13611,
+      "line": 13666,
       "detail": "Ruta registrada."
     },
     {
@@ -14462,7 +14499,7 @@
       "result": "REQUIERE_SESIÓN_CLIENTE",
       "correction": "",
       "source_kind": "redirect",
-      "line": 13613,
+      "line": 13668,
       "detail": "Ruta registrada."
     },
     {
@@ -14481,7 +14518,7 @@
       "result": "OK",
       "correction": "",
       "source_kind": "redirect",
-      "line": 13614,
+      "line": 13669,
       "detail": "Ruta registrada."
     },
     {
@@ -14499,7 +14536,7 @@
       "result": "REQUIERE_SESIÓN_CLIENTE",
       "correction": "",
       "source_kind": "redirect",
-      "line": 13623,
+      "line": 13678,
       "detail": "Ruta registrada."
     },
     {
@@ -14517,7 +14554,7 @@
       "result": "REQUIERE_SESIÓN_CLIENTE",
       "correction": "",
       "source_kind": "redirect",
-      "line": 13638,
+      "line": 13693,
       "detail": "Ruta registrada."
     },
     {
@@ -14536,7 +14573,7 @@
       "result": "OK",
       "correction": "",
       "source_kind": "redirect",
-      "line": 13670,
+      "line": 13725,
       "detail": "Ruta registrada."
     },
     {
@@ -14544,99 +14581,6 @@
       "visible_text": "redirect",
       "selector": "redirect()",
       "generated_url": "/admin-login",
-      "flask_endpoint": "admin_login_page",
-      "methods": [
-        "GET",
-        "POST"
-      ],
-      "authentication": "admin",
-      "expected_status": "200 admin o 302/403 sin sesión",
-      "obtained_status": "static_route_map",
-      "result": "REQUIERE_SESIÓN_ADMIN",
-      "correction": "",
-      "source_kind": "redirect",
-      "line": 13724,
-      "detail": "Ruta registrada."
-    },
-    {
-      "origin_screen": "app.py",
-      "visible_text": "redirect",
-      "selector": "redirect()",
-      "generated_url": "/",
-      "flask_endpoint": "home",
-      "methods": [
-        "GET"
-      ],
-      "authentication": "public",
-      "expected_status": "200/redirect seguro",
-      "obtained_status": "static_route_map",
-      "result": "OK",
-      "correction": "",
-      "source_kind": "redirect",
-      "line": 13760,
-      "detail": "Ruta registrada."
-    },
-    {
-      "origin_screen": "app.py",
-      "visible_text": "redirect",
-      "selector": "redirect()",
-      "generated_url": "/admin-login",
-      "flask_endpoint": "admin_login_page",
-      "methods": [
-        "GET",
-        "POST"
-      ],
-      "authentication": "admin",
-      "expected_status": "200 admin o 302/403 sin sesión",
-      "obtained_status": "static_route_map",
-      "result": "REQUIERE_SESIÓN_ADMIN",
-      "correction": "",
-      "source_kind": "redirect",
-      "line": 13766,
-      "detail": "Ruta registrada."
-    },
-    {
-      "origin_screen": "app.py",
-      "visible_text": "redirect",
-      "selector": "redirect()",
-      "generated_url": "/admin-login?next=/admin/data-center",
-      "flask_endpoint": "admin_login_page",
-      "methods": [
-        "GET",
-        "POST"
-      ],
-      "authentication": "admin",
-      "expected_status": "200 admin o 302/403 sin sesión",
-      "obtained_status": "static_route_map",
-      "result": "REQUIERE_SESIÓN_ADMIN",
-      "correction": "",
-      "source_kind": "redirect",
-      "line": 13772,
-      "detail": "Ruta registrada."
-    },
-    {
-      "origin_screen": "app.py",
-      "visible_text": "redirect",
-      "selector": "redirect()",
-      "generated_url": "/admin/control-center",
-      "flask_endpoint": "v566_admin_dashboard_page",
-      "methods": [
-        "GET"
-      ],
-      "authentication": "admin",
-      "expected_status": "200 admin o 302/403 sin sesión",
-      "obtained_status": "static_route_map",
-      "result": "REQUIERE_SESIÓN_ADMIN",
-      "correction": "",
-      "source_kind": "redirect",
-      "line": 13773,
-      "detail": "Ruta registrada."
-    },
-    {
-      "origin_screen": "app.py",
-      "visible_text": "redirect",
-      "selector": "redirect()",
-      "generated_url": "/admin-login?next=/admin/intelligence",
       "flask_endpoint": "admin_login_page",
       "methods": [
         "GET",
@@ -14655,91 +14599,15 @@
       "origin_screen": "app.py",
       "visible_text": "redirect",
       "selector": "redirect()",
-      "generated_url": "/admin/unified-intelligence",
-      "flask_endpoint": "v566_admin_unified_intelligence_page",
+      "generated_url": "/",
+      "flask_endpoint": "home",
       "methods": [
         "GET"
       ],
-      "authentication": "admin",
-      "expected_status": "200 admin o 302/403 sin sesión",
+      "authentication": "public",
+      "expected_status": "200/redirect seguro",
       "obtained_status": "static_route_map",
-      "result": "REQUIERE_SESIÓN_ADMIN",
-      "correction": "",
-      "source_kind": "redirect",
-      "line": 13780,
-      "detail": "Ruta registrada."
-    },
-    {
-      "origin_screen": "app.py",
-      "visible_text": "redirect",
-      "selector": "redirect()",
-      "generated_url": "/admin-login?next=/admin/observability",
-      "flask_endpoint": "admin_login_page",
-      "methods": [
-        "GET",
-        "POST"
-      ],
-      "authentication": "admin",
-      "expected_status": "200 admin o 302/403 sin sesión",
-      "obtained_status": "static_route_map",
-      "result": "REQUIERE_SESIÓN_ADMIN",
-      "correction": "",
-      "source_kind": "redirect",
-      "line": 13786,
-      "detail": "Ruta registrada."
-    },
-    {
-      "origin_screen": "app.py",
-      "visible_text": "redirect",
-      "selector": "redirect()",
-      "generated_url": "/admin-login?next=/admin/observability/errors",
-      "flask_endpoint": "admin_login_page",
-      "methods": [
-        "GET",
-        "POST"
-      ],
-      "authentication": "admin",
-      "expected_status": "200 admin o 302/403 sin sesión",
-      "obtained_status": "static_route_map",
-      "result": "REQUIERE_SESIÓN_ADMIN",
-      "correction": "",
-      "source_kind": "redirect",
-      "line": 13793,
-      "detail": "Ruta registrada."
-    },
-    {
-      "origin_screen": "app.py",
-      "visible_text": "redirect",
-      "selector": "redirect()",
-      "generated_url": "/admin-login?next=/admin/import-center",
-      "flask_endpoint": "admin_login_page",
-      "methods": [
-        "GET",
-        "POST"
-      ],
-      "authentication": "admin",
-      "expected_status": "200 admin o 302/403 sin sesión",
-      "obtained_status": "static_route_map",
-      "result": "REQUIERE_SESIÓN_ADMIN",
-      "correction": "",
-      "source_kind": "redirect",
-      "line": 13808,
-      "detail": "Ruta registrada."
-    },
-    {
-      "origin_screen": "app.py",
-      "visible_text": "redirect",
-      "selector": "redirect()",
-      "generated_url": "/admin-login?next=/admin/users",
-      "flask_endpoint": "admin_login_page",
-      "methods": [
-        "GET",
-        "POST"
-      ],
-      "authentication": "admin",
-      "expected_status": "200 admin o 302/403 sin sesión",
-      "obtained_status": "static_route_map",
-      "result": "REQUIERE_SESIÓN_ADMIN",
+      "result": "OK",
       "correction": "",
       "source_kind": "redirect",
       "line": 13815,
@@ -14749,7 +14617,7 @@
       "origin_screen": "app.py",
       "visible_text": "redirect",
       "selector": "redirect()",
-      "generated_url": "/admin-login?next=/admin/user-import",
+      "generated_url": "/admin-login",
       "flask_endpoint": "admin_login_page",
       "methods": [
         "GET",
@@ -14761,178 +14629,7 @@
       "result": "REQUIERE_SESIÓN_ADMIN",
       "correction": "",
       "source_kind": "redirect",
-      "line": 13841,
-      "detail": "Ruta registrada."
-    },
-    {
-      "origin_screen": "app.py",
-      "visible_text": "redirect",
-      "selector": "redirect()",
-      "generated_url": "/admin-login?next=/admin/sportsdb-sync",
-      "flask_endpoint": "admin_login_page",
-      "methods": [
-        "GET",
-        "POST"
-      ],
-      "authentication": "admin",
-      "expected_status": "200 admin o 302/403 sin sesión",
-      "obtained_status": "static_route_map",
-      "result": "REQUIERE_SESIÓN_ADMIN",
-      "correction": "",
-      "source_kind": "redirect",
-      "line": 13853,
-      "detail": "Ruta registrada."
-    },
-    {
-      "origin_screen": "app.py",
-      "visible_text": "redirect",
-      "selector": "redirect()",
-      "generated_url": "/admin-login?next=/admin/sportsdb-feed",
-      "flask_endpoint": "admin_login_page",
-      "methods": [
-        "GET",
-        "POST"
-      ],
-      "authentication": "admin",
-      "expected_status": "200 admin o 302/403 sin sesión",
-      "obtained_status": "static_route_map",
-      "result": "REQUIERE_SESIÓN_ADMIN",
-      "correction": "",
-      "source_kind": "redirect",
-      "line": 13871,
-      "detail": "Ruta registrada."
-    },
-    {
-      "origin_screen": "app.py",
-      "visible_text": "redirect",
-      "selector": "redirect()",
-      "generated_url": "/admin-login?next=/admin/matches-sync",
-      "flask_endpoint": "admin_login_page",
-      "methods": [
-        "GET",
-        "POST"
-      ],
-      "authentication": "admin",
-      "expected_status": "200 admin o 302/403 sin sesión",
-      "obtained_status": "static_route_map",
-      "result": "REQUIERE_SESIÓN_ADMIN",
-      "correction": "",
-      "source_kind": "redirect",
-      "line": 13888,
-      "detail": "Ruta registrada."
-    },
-    {
-      "origin_screen": "app.py",
-      "visible_text": "redirect",
-      "selector": "redirect()",
-      "generated_url": "/admin-login?next=/admin/telegram",
-      "flask_endpoint": "admin_login_page",
-      "methods": [
-        "GET",
-        "POST"
-      ],
-      "authentication": "admin",
-      "expected_status": "200 admin o 302/403 sin sesión",
-      "obtained_status": "static_route_map",
-      "result": "REQUIERE_SESIÓN_ADMIN",
-      "correction": "",
-      "source_kind": "redirect",
-      "line": 13916,
-      "detail": "Ruta registrada."
-    },
-    {
-      "origin_screen": "app.py",
-      "visible_text": "redirect",
-      "selector": "redirect()",
-      "generated_url": "/admin-login?next=/admin/telegram/command-center",
-      "flask_endpoint": "admin_login_page",
-      "methods": [
-        "GET",
-        "POST"
-      ],
-      "authentication": "admin",
-      "expected_status": "200 admin o 302/403 sin sesión",
-      "obtained_status": "static_route_map",
-      "result": "REQUIERE_SESIÓN_ADMIN",
-      "correction": "",
-      "source_kind": "redirect",
-      "line": 14001,
-      "detail": "Ruta registrada."
-    },
-    {
-      "origin_screen": "app.py",
-      "visible_text": "redirect",
-      "selector": "redirect()",
-      "generated_url": "/admin-login?next=/admin/automation",
-      "flask_endpoint": "admin_login_page",
-      "methods": [
-        "GET",
-        "POST"
-      ],
-      "authentication": "admin",
-      "expected_status": "200 admin o 302/403 sin sesión",
-      "obtained_status": "static_route_map",
-      "result": "REQUIERE_SESIÓN_ADMIN",
-      "correction": "",
-      "source_kind": "redirect",
-      "line": 14421,
-      "detail": "Ruta registrada."
-    },
-    {
-      "origin_screen": "app.py",
-      "visible_text": "redirect",
-      "selector": "redirect()",
-      "generated_url": "/admin-login?next=/admin/backups",
-      "flask_endpoint": "admin_login_page",
-      "methods": [
-        "GET",
-        "POST"
-      ],
-      "authentication": "admin",
-      "expected_status": "200 admin o 302/403 sin sesión",
-      "obtained_status": "static_route_map",
-      "result": "REQUIERE_SESIÓN_ADMIN",
-      "correction": "",
-      "source_kind": "redirect",
-      "line": 14436,
-      "detail": "Ruta registrada."
-    },
-    {
-      "origin_screen": "app.py",
-      "visible_text": "redirect",
-      "selector": "redirect()",
-      "generated_url": "/admin-login?next=/admin/backups",
-      "flask_endpoint": "admin_login_page",
-      "methods": [
-        "GET",
-        "POST"
-      ],
-      "authentication": "admin",
-      "expected_status": "200 admin o 302/403 sin sesión",
-      "obtained_status": "static_route_map",
-      "result": "REQUIERE_SESIÓN_ADMIN",
-      "correction": "",
-      "source_kind": "redirect",
-      "line": 14465,
-      "detail": "Ruta registrada."
-    },
-    {
-      "origin_screen": "app.py",
-      "visible_text": "redirect",
-      "selector": "redirect()",
-      "generated_url": "/admin-login?next=/admin/picks",
-      "flask_endpoint": "admin_login_page",
-      "methods": [
-        "GET",
-        "POST"
-      ],
-      "authentication": "admin",
-      "expected_status": "200 admin o 302/403 sin sesión",
-      "obtained_status": "static_route_map",
-      "result": "REQUIERE_SESIÓN_ADMIN",
-      "correction": "",
-      "source_kind": "redirect",
-      "line": 14475,
+      "line": 13821,
       "detail": "Ruta registrada."
     },
     {
@@ -14951,7 +14648,347 @@
       "result": "REQUIERE_SESIÓN_ADMIN",
       "correction": "",
       "source_kind": "redirect",
-      "line": 14507,
+      "line": 13827,
+      "detail": "Ruta registrada."
+    },
+    {
+      "origin_screen": "app.py",
+      "visible_text": "redirect",
+      "selector": "redirect()",
+      "generated_url": "/admin/control-center",
+      "flask_endpoint": "v566_admin_dashboard_page",
+      "methods": [
+        "GET"
+      ],
+      "authentication": "admin",
+      "expected_status": "200 admin o 302/403 sin sesión",
+      "obtained_status": "static_route_map",
+      "result": "REQUIERE_SESIÓN_ADMIN",
+      "correction": "",
+      "source_kind": "redirect",
+      "line": 13828,
+      "detail": "Ruta registrada."
+    },
+    {
+      "origin_screen": "app.py",
+      "visible_text": "redirect",
+      "selector": "redirect()",
+      "generated_url": "/admin-login?next=/admin/intelligence",
+      "flask_endpoint": "admin_login_page",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "authentication": "admin",
+      "expected_status": "200 admin o 302/403 sin sesión",
+      "obtained_status": "static_route_map",
+      "result": "REQUIERE_SESIÓN_ADMIN",
+      "correction": "",
+      "source_kind": "redirect",
+      "line": 13834,
+      "detail": "Ruta registrada."
+    },
+    {
+      "origin_screen": "app.py",
+      "visible_text": "redirect",
+      "selector": "redirect()",
+      "generated_url": "/admin/unified-intelligence",
+      "flask_endpoint": "v566_admin_unified_intelligence_page",
+      "methods": [
+        "GET"
+      ],
+      "authentication": "admin",
+      "expected_status": "200 admin o 302/403 sin sesión",
+      "obtained_status": "static_route_map",
+      "result": "REQUIERE_SESIÓN_ADMIN",
+      "correction": "",
+      "source_kind": "redirect",
+      "line": 13835,
+      "detail": "Ruta registrada."
+    },
+    {
+      "origin_screen": "app.py",
+      "visible_text": "redirect",
+      "selector": "redirect()",
+      "generated_url": "/admin-login?next=/admin/observability",
+      "flask_endpoint": "admin_login_page",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "authentication": "admin",
+      "expected_status": "200 admin o 302/403 sin sesión",
+      "obtained_status": "static_route_map",
+      "result": "REQUIERE_SESIÓN_ADMIN",
+      "correction": "",
+      "source_kind": "redirect",
+      "line": 13841,
+      "detail": "Ruta registrada."
+    },
+    {
+      "origin_screen": "app.py",
+      "visible_text": "redirect",
+      "selector": "redirect()",
+      "generated_url": "/admin-login?next=/admin/observability/errors",
+      "flask_endpoint": "admin_login_page",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "authentication": "admin",
+      "expected_status": "200 admin o 302/403 sin sesión",
+      "obtained_status": "static_route_map",
+      "result": "REQUIERE_SESIÓN_ADMIN",
+      "correction": "",
+      "source_kind": "redirect",
+      "line": 13848,
+      "detail": "Ruta registrada."
+    },
+    {
+      "origin_screen": "app.py",
+      "visible_text": "redirect",
+      "selector": "redirect()",
+      "generated_url": "/admin-login?next=/admin/import-center",
+      "flask_endpoint": "admin_login_page",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "authentication": "admin",
+      "expected_status": "200 admin o 302/403 sin sesión",
+      "obtained_status": "static_route_map",
+      "result": "REQUIERE_SESIÓN_ADMIN",
+      "correction": "",
+      "source_kind": "redirect",
+      "line": 13863,
+      "detail": "Ruta registrada."
+    },
+    {
+      "origin_screen": "app.py",
+      "visible_text": "redirect",
+      "selector": "redirect()",
+      "generated_url": "/admin-login?next=/admin/users",
+      "flask_endpoint": "admin_login_page",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "authentication": "admin",
+      "expected_status": "200 admin o 302/403 sin sesión",
+      "obtained_status": "static_route_map",
+      "result": "REQUIERE_SESIÓN_ADMIN",
+      "correction": "",
+      "source_kind": "redirect",
+      "line": 13870,
+      "detail": "Ruta registrada."
+    },
+    {
+      "origin_screen": "app.py",
+      "visible_text": "redirect",
+      "selector": "redirect()",
+      "generated_url": "/admin-login?next=/admin/user-import",
+      "flask_endpoint": "admin_login_page",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "authentication": "admin",
+      "expected_status": "200 admin o 302/403 sin sesión",
+      "obtained_status": "static_route_map",
+      "result": "REQUIERE_SESIÓN_ADMIN",
+      "correction": "",
+      "source_kind": "redirect",
+      "line": 13896,
+      "detail": "Ruta registrada."
+    },
+    {
+      "origin_screen": "app.py",
+      "visible_text": "redirect",
+      "selector": "redirect()",
+      "generated_url": "/admin-login?next=/admin/sportsdb-sync",
+      "flask_endpoint": "admin_login_page",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "authentication": "admin",
+      "expected_status": "200 admin o 302/403 sin sesión",
+      "obtained_status": "static_route_map",
+      "result": "REQUIERE_SESIÓN_ADMIN",
+      "correction": "",
+      "source_kind": "redirect",
+      "line": 13908,
+      "detail": "Ruta registrada."
+    },
+    {
+      "origin_screen": "app.py",
+      "visible_text": "redirect",
+      "selector": "redirect()",
+      "generated_url": "/admin-login?next=/admin/sportsdb-feed",
+      "flask_endpoint": "admin_login_page",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "authentication": "admin",
+      "expected_status": "200 admin o 302/403 sin sesión",
+      "obtained_status": "static_route_map",
+      "result": "REQUIERE_SESIÓN_ADMIN",
+      "correction": "",
+      "source_kind": "redirect",
+      "line": 13926,
+      "detail": "Ruta registrada."
+    },
+    {
+      "origin_screen": "app.py",
+      "visible_text": "redirect",
+      "selector": "redirect()",
+      "generated_url": "/admin-login?next=/admin/matches-sync",
+      "flask_endpoint": "admin_login_page",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "authentication": "admin",
+      "expected_status": "200 admin o 302/403 sin sesión",
+      "obtained_status": "static_route_map",
+      "result": "REQUIERE_SESIÓN_ADMIN",
+      "correction": "",
+      "source_kind": "redirect",
+      "line": 13943,
+      "detail": "Ruta registrada."
+    },
+    {
+      "origin_screen": "app.py",
+      "visible_text": "redirect",
+      "selector": "redirect()",
+      "generated_url": "/admin-login?next=/admin/telegram",
+      "flask_endpoint": "admin_login_page",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "authentication": "admin",
+      "expected_status": "200 admin o 302/403 sin sesión",
+      "obtained_status": "static_route_map",
+      "result": "REQUIERE_SESIÓN_ADMIN",
+      "correction": "",
+      "source_kind": "redirect",
+      "line": 13971,
+      "detail": "Ruta registrada."
+    },
+    {
+      "origin_screen": "app.py",
+      "visible_text": "redirect",
+      "selector": "redirect()",
+      "generated_url": "/admin-login?next=/admin/telegram/command-center",
+      "flask_endpoint": "admin_login_page",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "authentication": "admin",
+      "expected_status": "200 admin o 302/403 sin sesión",
+      "obtained_status": "static_route_map",
+      "result": "REQUIERE_SESIÓN_ADMIN",
+      "correction": "",
+      "source_kind": "redirect",
+      "line": 14056,
+      "detail": "Ruta registrada."
+    },
+    {
+      "origin_screen": "app.py",
+      "visible_text": "redirect",
+      "selector": "redirect()",
+      "generated_url": "/admin-login?next=/admin/automation",
+      "flask_endpoint": "admin_login_page",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "authentication": "admin",
+      "expected_status": "200 admin o 302/403 sin sesión",
+      "obtained_status": "static_route_map",
+      "result": "REQUIERE_SESIÓN_ADMIN",
+      "correction": "",
+      "source_kind": "redirect",
+      "line": 14476,
+      "detail": "Ruta registrada."
+    },
+    {
+      "origin_screen": "app.py",
+      "visible_text": "redirect",
+      "selector": "redirect()",
+      "generated_url": "/admin-login?next=/admin/backups",
+      "flask_endpoint": "admin_login_page",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "authentication": "admin",
+      "expected_status": "200 admin o 302/403 sin sesión",
+      "obtained_status": "static_route_map",
+      "result": "REQUIERE_SESIÓN_ADMIN",
+      "correction": "",
+      "source_kind": "redirect",
+      "line": 14491,
+      "detail": "Ruta registrada."
+    },
+    {
+      "origin_screen": "app.py",
+      "visible_text": "redirect",
+      "selector": "redirect()",
+      "generated_url": "/admin-login?next=/admin/backups",
+      "flask_endpoint": "admin_login_page",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "authentication": "admin",
+      "expected_status": "200 admin o 302/403 sin sesión",
+      "obtained_status": "static_route_map",
+      "result": "REQUIERE_SESIÓN_ADMIN",
+      "correction": "",
+      "source_kind": "redirect",
+      "line": 14520,
+      "detail": "Ruta registrada."
+    },
+    {
+      "origin_screen": "app.py",
+      "visible_text": "redirect",
+      "selector": "redirect()",
+      "generated_url": "/admin-login?next=/admin/picks",
+      "flask_endpoint": "admin_login_page",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "authentication": "admin",
+      "expected_status": "200 admin o 302/403 sin sesión",
+      "obtained_status": "static_route_map",
+      "result": "REQUIERE_SESIÓN_ADMIN",
+      "correction": "",
+      "source_kind": "redirect",
+      "line": 14530,
+      "detail": "Ruta registrada."
+    },
+    {
+      "origin_screen": "app.py",
+      "visible_text": "redirect",
+      "selector": "redirect()",
+      "generated_url": "/admin-login?next=/admin/data-center",
+      "flask_endpoint": "admin_login_page",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "authentication": "admin",
+      "expected_status": "200 admin o 302/403 sin sesión",
+      "obtained_status": "static_route_map",
+      "result": "REQUIERE_SESIÓN_ADMIN",
+      "correction": "",
+      "source_kind": "redirect",
+      "line": 14562,
       "detail": "Ruta registrada."
     },
     {
@@ -14970,7 +15007,7 @@
       "result": "REQUIERE_SESIÓN_ADMIN",
       "correction": "",
       "source_kind": "redirect",
-      "line": 14549,
+      "line": 14604,
       "detail": "Ruta registrada."
     },
     {
@@ -14989,7 +15026,7 @@
       "result": "REQUIERE_SESIÓN_ADMIN",
       "correction": "",
       "source_kind": "redirect",
-      "line": 14576,
+      "line": 14631,
       "detail": "Ruta registrada."
     },
     {
@@ -15008,7 +15045,7 @@
       "result": "REQUIERE_SESIÓN_ADMIN",
       "correction": "",
       "source_kind": "redirect",
-      "line": 14595,
+      "line": 14650,
       "detail": "Ruta registrada."
     },
     {
@@ -15027,7 +15064,7 @@
       "result": "REQUIERE_SESIÓN_ADMIN",
       "correction": "",
       "source_kind": "redirect",
-      "line": 14614,
+      "line": 14669,
       "detail": "Ruta registrada."
     },
     {
@@ -15046,7 +15083,7 @@
       "result": "REQUIERE_SESIÓN_ADMIN",
       "correction": "",
       "source_kind": "redirect",
-      "line": 14636,
+      "line": 14691,
       "detail": "Ruta registrada."
     },
     {
@@ -15065,7 +15102,7 @@
       "result": "REQUIERE_SESIÓN_ADMIN",
       "correction": "",
       "source_kind": "redirect",
-      "line": 14646,
+      "line": 14701,
       "detail": "Ruta registrada."
     },
     {
@@ -15084,7 +15121,7 @@
       "result": "REQUIERE_SESIÓN_ADMIN",
       "correction": "",
       "source_kind": "redirect",
-      "line": 14659,
+      "line": 14714,
       "detail": "Ruta registrada."
     },
     {
@@ -15103,7 +15140,7 @@
       "result": "REQUIERE_SESIÓN_ADMIN",
       "correction": "",
       "source_kind": "redirect",
-      "line": 14773,
+      "line": 14828,
       "detail": "Ruta registrada."
     },
     {
@@ -15122,7 +15159,7 @@
       "result": "REQUIERE_SESIÓN_ADMIN",
       "correction": "",
       "source_kind": "redirect",
-      "line": 14789,
+      "line": 14844,
       "detail": "Ruta registrada."
     },
     {
@@ -15141,7 +15178,7 @@
       "result": "REQUIERE_SESIÓN_ADMIN",
       "correction": "",
       "source_kind": "redirect",
-      "line": 14857,
+      "line": 14912,
       "detail": "Ruta registrada."
     },
     {
@@ -15160,7 +15197,7 @@
       "result": "REQUIERE_SESIÓN_ADMIN",
       "correction": "",
       "source_kind": "redirect",
-      "line": 15076,
+      "line": 15131,
       "detail": "Ruta registrada."
     },
     {
@@ -15179,7 +15216,7 @@
       "result": "REQUIERE_SESIÓN_ADMIN",
       "correction": "",
       "source_kind": "redirect",
-      "line": 15187,
+      "line": 15242,
       "detail": "Ruta registrada."
     },
     {
@@ -15198,7 +15235,7 @@
       "result": "REQUIERE_SESIÓN_ADMIN",
       "correction": "",
       "source_kind": "redirect",
-      "line": 15460,
+      "line": 15515,
       "detail": "Ruta registrada."
     },
     {
@@ -15217,7 +15254,7 @@
       "result": "REQUIERE_SESIÓN_ADMIN",
       "correction": "",
       "source_kind": "redirect",
-      "line": 15537,
+      "line": 15592,
       "detail": "Ruta registrada."
     },
     {
@@ -15236,7 +15273,7 @@
       "result": "REQUIERE_SESIÓN_ADMIN",
       "correction": "",
       "source_kind": "redirect",
-      "line": 15621,
+      "line": 15676,
       "detail": "Ruta registrada."
     },
     {
@@ -15255,7 +15292,7 @@
       "result": "REQUIERE_SESIÓN_ADMIN",
       "correction": "",
       "source_kind": "redirect",
-      "line": 15644,
+      "line": 15699,
       "detail": "Ruta registrada."
     },
     {
@@ -15274,7 +15311,7 @@
       "result": "OK",
       "correction": "",
       "source_kind": "redirect",
-      "line": 15712,
+      "line": 15768,
       "detail": "Ruta registrada."
     },
     {
@@ -15293,7 +15330,7 @@
       "result": "OK",
       "correction": "",
       "source_kind": "redirect",
-      "line": 15727,
+      "line": 15784,
       "detail": "Ruta registrada."
     },
     {
@@ -15312,7 +15349,7 @@
       "result": "OK",
       "correction": "",
       "source_kind": "redirect",
-      "line": 15736,
+      "line": 15793,
       "detail": "Ruta registrada."
     },
     {
@@ -15331,7 +15368,7 @@
       "result": "OK",
       "correction": "",
       "source_kind": "redirect",
-      "line": 15746,
+      "line": 15803,
       "detail": "Ruta registrada."
     },
     {
@@ -15349,7 +15386,7 @@
       "result": "OK",
       "correction": "",
       "source_kind": "redirect",
-      "line": 15761,
+      "line": 15818,
       "detail": "Ruta registrada."
     },
     {
@@ -15368,7 +15405,7 @@
       "result": "OK",
       "correction": "",
       "source_kind": "redirect",
-      "line": 15823,
+      "line": 15882,
       "detail": "Ruta registrada."
     },
     {
@@ -15387,7 +15424,7 @@
       "result": "OK",
       "correction": "",
       "source_kind": "redirect",
-      "line": 15840,
+      "line": 15900,
       "detail": "Ruta registrada."
     },
     {
@@ -15405,7 +15442,7 @@
       "result": "REQUIERE_SESIÓN_CLIENTE",
       "correction": "",
       "source_kind": "redirect",
-      "line": 15846,
+      "line": 15906,
       "detail": "Ruta registrada."
     },
     {
@@ -15424,7 +15461,7 @@
       "result": "OK",
       "correction": "",
       "source_kind": "redirect",
-      "line": 15853,
+      "line": 15913,
       "detail": "Ruta registrada."
     },
     {
@@ -15442,7 +15479,7 @@
       "result": "REQUIERE_SESIÓN_CLIENTE",
       "correction": "",
       "source_kind": "redirect",
-      "line": 15860,
+      "line": 15920,
       "detail": "Ruta registrada."
     },
     {
@@ -15461,7 +15498,7 @@
       "result": "REQUIERE_SESIÓN_ADMIN",
       "correction": "",
       "source_kind": "redirect",
-      "line": 15901,
+      "line": 15961,
       "detail": "Ruta registrada."
     },
     {
@@ -15480,7 +15517,7 @@
       "result": "REQUIERE_SESIÓN_ADMIN",
       "correction": "",
       "source_kind": "redirect",
-      "line": 15908,
+      "line": 15968,
       "detail": "Ruta registrada."
     },
     {
@@ -15498,7 +15535,7 @@
       "result": "REQUIERE_SESIÓN_CLIENTE",
       "correction": "",
       "source_kind": "redirect",
-      "line": 15977,
+      "line": 16037,
       "detail": "Ruta registrada."
     },
     {
@@ -15517,7 +15554,26 @@
       "result": "REQUIERE_SESIÓN_ADMIN",
       "correction": "",
       "source_kind": "redirect",
-      "line": 17422,
+      "line": 17510,
+      "detail": "Ruta registrada."
+    },
+    {
+      "origin_screen": "app.py",
+      "visible_text": "redirect",
+      "selector": "redirect()",
+      "generated_url": "/admin-login?next=/admin/data-trust-center",
+      "flask_endpoint": "admin_login_page",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "authentication": "admin",
+      "expected_status": "200 admin o 302/403 sin sesión",
+      "obtained_status": "static_route_map",
+      "result": "REQUIERE_SESIÓN_ADMIN",
+      "correction": "",
+      "source_kind": "redirect",
+      "line": 17613,
       "detail": "Ruta registrada."
     },
     {
@@ -15536,7 +15592,7 @@
       "result": "REQUIERE_SESIÓN_ADMIN",
       "correction": "",
       "source_kind": "redirect",
-      "line": 18778,
+      "line": 19037,
       "detail": "Ruta registrada."
     },
     {
@@ -15555,7 +15611,7 @@
       "result": "REQUIERE_SESIÓN_ADMIN",
       "correction": "",
       "source_kind": "redirect",
-      "line": 18787,
+      "line": 19046,
       "detail": "Ruta registrada."
     },
     {
@@ -15574,7 +15630,7 @@
       "result": "REQUIERE_SESIÓN_ADMIN",
       "correction": "",
       "source_kind": "redirect",
-      "line": 18822,
+      "line": 19081,
       "detail": "Ruta registrada."
     },
     {
@@ -15593,7 +15649,7 @@
       "result": "REQUIERE_SESIÓN_ADMIN",
       "correction": "",
       "source_kind": "redirect",
-      "line": 19482,
+      "line": 19741,
       "detail": "Ruta registrada."
     },
     {
@@ -15612,7 +15668,7 @@
       "result": "OK",
       "correction": "",
       "source_kind": "redirect",
-      "line": 19779,
+      "line": 20038,
       "detail": "Ruta registrada."
     },
     {
@@ -15631,7 +15687,7 @@
       "result": "OK",
       "correction": "",
       "source_kind": "redirect",
-      "line": 19789,
+      "line": 20048,
       "detail": "Ruta registrada."
     },
     {
@@ -15650,7 +15706,7 @@
       "result": "REQUIERE_SESIÓN_ADMIN",
       "correction": "",
       "source_kind": "redirect",
-      "line": 19808,
+      "line": 20067,
       "detail": "Ruta registrada."
     },
     {
@@ -15669,7 +15725,7 @@
       "result": "REQUIERE_SESIÓN_ADMIN",
       "correction": "",
       "source_kind": "redirect",
-      "line": 19886,
+      "line": 20145,
       "detail": "Ruta registrada."
     },
     {
@@ -15688,7 +15744,7 @@
       "result": "REQUIERE_SESIÓN_ADMIN",
       "correction": "",
       "source_kind": "redirect",
-      "line": 19912,
+      "line": 20171,
       "detail": "Ruta registrada."
     },
     {
@@ -15707,7 +15763,7 @@
       "result": "REQUIERE_SESIÓN_ADMIN",
       "correction": "",
       "source_kind": "redirect",
-      "line": 19944,
+      "line": 20203,
       "detail": "Ruta registrada."
     },
     {
@@ -15726,7 +15782,7 @@
       "result": "REQUIERE_SESIÓN_ADMIN",
       "correction": "",
       "source_kind": "redirect",
-      "line": 20044,
+      "line": 20308,
       "detail": "Ruta registrada."
     },
     {
@@ -15745,7 +15801,7 @@
       "result": "REQUIERE_SESIÓN_ADMIN",
       "correction": "",
       "source_kind": "redirect",
-      "line": 20101,
+      "line": 20365,
       "detail": "Ruta registrada."
     },
     {
@@ -15764,7 +15820,7 @@
       "result": "REQUIERE_SESIÓN_ADMIN",
       "correction": "",
       "source_kind": "redirect",
-      "line": 20123,
+      "line": 20387,
       "detail": "Ruta registrada."
     },
     {
@@ -15783,7 +15839,7 @@
       "result": "OK",
       "correction": "",
       "source_kind": "redirect",
-      "line": 20209,
+      "line": 20473,
       "detail": "Ruta registrada."
     },
     {
@@ -15801,7 +15857,7 @@
       "result": "OK",
       "correction": "",
       "source_kind": "redirect",
-      "line": 20213,
+      "line": 20477,
       "detail": "Ruta registrada."
     },
     {
@@ -15820,7 +15876,7 @@
       "result": "OK",
       "correction": "",
       "source_kind": "redirect",
-      "line": 20222,
+      "line": 20486,
       "detail": "Ruta registrada."
     },
     {
@@ -15838,7 +15894,7 @@
       "result": "OK",
       "correction": "",
       "source_kind": "redirect",
-      "line": 20232,
+      "line": 20496,
       "detail": "Ruta registrada."
     },
     {
@@ -15856,7 +15912,7 @@
       "result": "OK",
       "correction": "",
       "source_kind": "redirect",
-      "line": 20237,
+      "line": 20501,
       "detail": "Ruta registrada."
     },
     {
@@ -15875,7 +15931,7 @@
       "result": "REQUIERE_SESIÓN_ADMIN",
       "correction": "",
       "source_kind": "redirect",
-      "line": 20453,
+      "line": 20717,
       "detail": "Ruta registrada."
     },
     {
@@ -15893,7 +15949,7 @@
       "result": "REQUIERE_SESIÓN_CLIENTE",
       "correction": "",
       "source_kind": "redirect",
-      "line": 20729,
+      "line": 20993,
       "detail": "Ruta registrada."
     },
     {
@@ -15912,7 +15968,7 @@
       "result": "OK",
       "correction": "",
       "source_kind": "redirect",
-      "line": 20744,
+      "line": 21008,
       "detail": "Ruta registrada."
     },
     {
@@ -15931,7 +15987,7 @@
       "result": "REQUIERE_SESIÓN_ADMIN",
       "correction": "",
       "source_kind": "redirect",
-      "line": 20758,
+      "line": 21022,
       "detail": "Ruta registrada."
     },
     {
@@ -15949,7 +16005,7 @@
       "result": "REQUIERE_SESIÓN_ADMIN",
       "correction": "",
       "source_kind": "redirect",
-      "line": 20759,
+      "line": 21023,
       "detail": "Ruta registrada."
     },
     {
@@ -15968,7 +16024,7 @@
       "result": "REQUIERE_SESIÓN_ADMIN",
       "correction": "",
       "source_kind": "redirect",
-      "line": 20857,
+      "line": 21121,
       "detail": "Ruta registrada."
     },
     {
@@ -15987,7 +16043,7 @@
       "result": "REQUIERE_SESIÓN_ADMIN",
       "correction": "",
       "source_kind": "redirect",
-      "line": 20876,
+      "line": 21140,
       "detail": "Ruta registrada."
     },
     {
@@ -16006,7 +16062,7 @@
       "result": "REQUIERE_SESIÓN_ADMIN",
       "correction": "",
       "source_kind": "redirect",
-      "line": 20896,
+      "line": 21160,
       "detail": "Ruta registrada."
     },
     {
@@ -16025,7 +16081,7 @@
       "result": "REQUIERE_SESIÓN_ADMIN",
       "correction": "",
       "source_kind": "redirect",
-      "line": 21019,
+      "line": 21283,
       "detail": "Ruta registrada."
     },
     {
@@ -16044,7 +16100,7 @@
       "result": "REQUIERE_SESIÓN_ADMIN",
       "correction": "",
       "source_kind": "redirect",
-      "line": 21089,
+      "line": 21353,
       "detail": "Ruta registrada."
     },
     {
@@ -16063,7 +16119,7 @@
       "result": "REQUIERE_SESIÓN_ADMIN",
       "correction": "",
       "source_kind": "redirect",
-      "line": 21103,
+      "line": 21367,
       "detail": "Ruta registrada."
     },
     {
@@ -16082,7 +16138,7 @@
       "result": "REQUIERE_SESIÓN_ADMIN",
       "correction": "",
       "source_kind": "redirect",
-      "line": 21132,
+      "line": 21396,
       "detail": "Ruta registrada."
     },
     {
@@ -16101,7 +16157,7 @@
       "result": "OK",
       "correction": "",
       "source_kind": "redirect",
-      "line": 21295,
+      "line": 21559,
       "detail": "Ruta registrada."
     },
     {
@@ -16120,7 +16176,7 @@
       "result": "REQUIERE_SESIÓN_ADMIN",
       "correction": "",
       "source_kind": "redirect",
-      "line": 21310,
+      "line": 21574,
       "detail": "Ruta registrada."
     },
     {
@@ -16139,7 +16195,7 @@
       "result": "REQUIERE_SESIÓN_ADMIN",
       "correction": "",
       "source_kind": "redirect",
-      "line": 21353,
+      "line": 21617,
       "detail": "Ruta registrada."
     },
     {
@@ -16158,7 +16214,7 @@
       "result": "REQUIERE_SESIÓN_ADMIN",
       "correction": "",
       "source_kind": "redirect",
-      "line": 21377,
+      "line": 21641,
       "detail": "Ruta registrada."
     },
     {
@@ -16177,7 +16233,7 @@
       "result": "REQUIERE_SESIÓN_ADMIN",
       "correction": "",
       "source_kind": "redirect",
-      "line": 21404,
+      "line": 21668,
       "detail": "Ruta registrada."
     },
     {
@@ -16196,7 +16252,7 @@
       "result": "REQUIERE_SESIÓN_ADMIN",
       "correction": "",
       "source_kind": "redirect",
-      "line": 21426,
+      "line": 21690,
       "detail": "Ruta registrada."
     },
     {
@@ -16215,7 +16271,7 @@
       "result": "REQUIERE_SESIÓN_ADMIN",
       "correction": "",
       "source_kind": "redirect",
-      "line": 21453,
+      "line": 21717,
       "detail": "Ruta registrada."
     },
     {
@@ -16234,7 +16290,7 @@
       "result": "REQUIERE_SESIÓN_ADMIN",
       "correction": "",
       "source_kind": "redirect",
-      "line": 21523,
+      "line": 21787,
       "detail": "Ruta registrada."
     },
     {
@@ -16253,7 +16309,7 @@
       "result": "REQUIERE_SESIÓN_ADMIN",
       "correction": "",
       "source_kind": "redirect",
-      "line": 21579,
+      "line": 21843,
       "detail": "Ruta registrada."
     },
     {
@@ -16272,7 +16328,7 @@
       "result": "REQUIERE_SESIÓN_ADMIN",
       "correction": "",
       "source_kind": "redirect",
-      "line": 21619,
+      "line": 21883,
       "detail": "Ruta registrada."
     },
     {
@@ -16291,7 +16347,7 @@
       "result": "REQUIERE_SESIÓN_ADMIN",
       "correction": "",
       "source_kind": "redirect",
-      "line": 21758,
+      "line": 22022,
       "detail": "Ruta registrada."
     },
     {
@@ -16310,7 +16366,7 @@
       "result": "REQUIERE_SESIÓN_ADMIN",
       "correction": "",
       "source_kind": "redirect",
-      "line": 21824,
+      "line": 22088,
       "detail": "Ruta registrada."
     },
     {
@@ -16329,7 +16385,7 @@
       "result": "REQUIERE_SESIÓN_ADMIN",
       "correction": "",
       "source_kind": "redirect",
-      "line": 21842,
+      "line": 22106,
       "detail": "Ruta registrada."
     },
     {
@@ -16348,7 +16404,7 @@
       "result": "REQUIERE_SESIÓN_ADMIN",
       "correction": "",
       "source_kind": "redirect",
-      "line": 21859,
+      "line": 22123,
       "detail": "Ruta registrada."
     },
     {
@@ -16367,7 +16423,7 @@
       "result": "REQUIERE_SESIÓN_ADMIN",
       "correction": "",
       "source_kind": "redirect",
-      "line": 21876,
+      "line": 22140,
       "detail": "Ruta registrada."
     },
     {
@@ -16386,7 +16442,7 @@
       "result": "OK",
       "correction": "",
       "source_kind": "redirect",
-      "line": 21900,
+      "line": 22164,
       "detail": "Ruta registrada."
     },
     {
@@ -16405,7 +16461,7 @@
       "result": "OK",
       "correction": "",
       "source_kind": "redirect",
-      "line": 21951,
+      "line": 22216,
       "detail": "Ruta registrada."
     },
     {
@@ -16424,7 +16480,7 @@
       "result": "REQUIERE_SESIÓN_ADMIN",
       "correction": "",
       "source_kind": "redirect",
-      "line": 22033,
+      "line": 22298,
       "detail": "Ruta registrada."
     },
     {
@@ -16443,7 +16499,7 @@
       "result": "REQUIERE_SESIÓN_ADMIN",
       "correction": "",
       "source_kind": "redirect",
-      "line": 22091,
+      "line": 22356,
       "detail": "Ruta registrada."
     },
     {
@@ -16462,7 +16518,7 @@
       "result": "REQUIERE_SESIÓN_ADMIN",
       "correction": "",
       "source_kind": "redirect",
-      "line": 22296,
+      "line": 22561,
       "detail": "Ruta registrada."
     },
     {
@@ -16481,7 +16537,7 @@
       "result": "REQUIERE_SESIÓN_ADMIN",
       "correction": "",
       "source_kind": "redirect",
-      "line": 22431,
+      "line": 22696,
       "detail": "Ruta registrada."
     },
     {
@@ -16500,7 +16556,7 @@
       "result": "REQUIERE_SESIÓN_ADMIN",
       "correction": "",
       "source_kind": "redirect",
-      "line": 22440,
+      "line": 22705,
       "detail": "Ruta registrada."
     },
     {
@@ -16519,7 +16575,7 @@
       "result": "REQUIERE_SESIÓN_ADMIN",
       "correction": "",
       "source_kind": "redirect",
-      "line": 22479,
+      "line": 22744,
       "detail": "Ruta registrada."
     },
     {
@@ -16538,7 +16594,7 @@
       "result": "REQUIERE_SESIÓN_ADMIN",
       "correction": "",
       "source_kind": "redirect",
-      "line": 22595,
+      "line": 22860,
       "detail": "Ruta registrada."
     },
     {
@@ -16557,7 +16613,7 @@
       "result": "REQUIERE_SESIÓN_ADMIN",
       "correction": "",
       "source_kind": "redirect",
-      "line": 22602,
+      "line": 22867,
       "detail": "Ruta registrada."
     },
     {
@@ -16576,7 +16632,7 @@
       "result": "REQUIERE_SESIÓN_ADMIN",
       "correction": "",
       "source_kind": "redirect",
-      "line": 22611,
+      "line": 22876,
       "detail": "Ruta registrada."
     },
     {
@@ -16595,7 +16651,7 @@
       "result": "REQUIERE_SESIÓN_ADMIN",
       "correction": "",
       "source_kind": "redirect",
-      "line": 22618,
+      "line": 22883,
       "detail": "Ruta registrada."
     },
     {
@@ -16614,7 +16670,7 @@
       "result": "REQUIERE_SESIÓN_ADMIN",
       "correction": "",
       "source_kind": "redirect",
-      "line": 22625,
+      "line": 22890,
       "detail": "Ruta registrada."
     },
     {
@@ -16633,7 +16689,7 @@
       "result": "OK",
       "correction": "",
       "source_kind": "redirect",
-      "line": 22709,
+      "line": 22974,
       "detail": "Ruta registrada."
     },
     {
@@ -16652,7 +16708,7 @@
       "result": "OK",
       "correction": "",
       "source_kind": "redirect",
-      "line": 22718,
+      "line": 22983,
       "detail": "Ruta registrada."
     },
     {
@@ -16671,7 +16727,7 @@
       "result": "OK",
       "correction": "",
       "source_kind": "redirect",
-      "line": 22723,
+      "line": 22988,
       "detail": "Ruta registrada."
     },
     {
@@ -16689,7 +16745,7 @@
       "result": "REQUIERE_SESIÓN_CLIENTE",
       "correction": "",
       "source_kind": "redirect",
-      "line": 22724,
+      "line": 22989,
       "detail": "Ruta registrada."
     },
     {
@@ -16708,7 +16764,7 @@
       "result": "REQUIERE_SESIÓN_ADMIN",
       "correction": "",
       "source_kind": "redirect",
-      "line": 22729,
+      "line": 22994,
       "detail": "Ruta registrada."
     },
     {
@@ -16727,7 +16783,7 @@
       "result": "REQUIERE_SESIÓN_ADMIN",
       "correction": "",
       "source_kind": "redirect",
-      "line": 22744,
+      "line": 23009,
       "detail": "Ruta registrada."
     },
     {
@@ -16746,7 +16802,7 @@
       "result": "REQUIERE_SESIÓN_ADMIN",
       "correction": "",
       "source_kind": "redirect",
-      "line": 22750,
+      "line": 23015,
       "detail": "Ruta registrada."
     },
     {
@@ -16765,7 +16821,7 @@
       "result": "REQUIERE_SESIÓN_ADMIN",
       "correction": "",
       "source_kind": "redirect",
-      "line": 22758,
+      "line": 23023,
       "detail": "Ruta registrada."
     },
     {
@@ -16784,7 +16840,7 @@
       "result": "REQUIERE_SESIÓN_ADMIN",
       "correction": "",
       "source_kind": "redirect",
-      "line": 22773,
+      "line": 23038,
       "detail": "Ruta registrada."
     },
     {
@@ -16803,7 +16859,7 @@
       "result": "REQUIERE_SESIÓN_ADMIN",
       "correction": "",
       "source_kind": "redirect",
-      "line": 22796,
+      "line": 23061,
       "detail": "Ruta registrada."
     },
     {
@@ -16822,7 +16878,7 @@
       "result": "REQUIERE_SESIÓN_ADMIN",
       "correction": "",
       "source_kind": "redirect",
-      "line": 22804,
+      "line": 23069,
       "detail": "Ruta registrada."
     },
     {
@@ -16841,7 +16897,7 @@
       "result": "REQUIERE_SESIÓN_ADMIN",
       "correction": "",
       "source_kind": "redirect",
-      "line": 22853,
+      "line": 23118,
       "detail": "Ruta registrada."
     },
     {
@@ -16860,7 +16916,7 @@
       "result": "REQUIERE_SESIÓN_ADMIN",
       "correction": "",
       "source_kind": "redirect",
-      "line": 23118,
+      "line": 23383,
       "detail": "Ruta registrada."
     },
     {
@@ -16878,7 +16934,7 @@
       "result": "OK",
       "correction": "",
       "source_kind": "url_for",
-      "line": 12705,
+      "line": 12754,
       "detail": "Endpoint url_for registrado."
     },
     {
@@ -16897,7 +16953,7 @@
       "result": "OK",
       "correction": "",
       "source_kind": "url_for",
-      "line": 19679,
+      "line": 19938,
       "detail": "Endpoint url_for registrado."
     }
   ],
@@ -17226,6 +17282,24 @@
       "source_kind": "link",
       "line": 11,
       "detail": "Destino dinámico; se valida al renderizar y en Browser QA."
+    },
+    {
+      "origin_screen": "templates/admin_data_trust_center.html",
+      "visible_text": "Refrescar caché local",
+      "selector": "button",
+      "generated_url": "",
+      "flask_endpoint": "",
+      "methods": [
+        "GET"
+      ],
+      "authentication": "public",
+      "expected_status": "200/redirect seguro",
+      "obtained_status": "static_route_map",
+      "result": "WARNING",
+      "correction": "",
+      "source_kind": "button",
+      "line": 58,
+      "detail": "Botón sin URL literal; tiene identificador para acción JavaScript y requiere Browser QA."
     },
     {
       "origin_screen": "templates/admin_highlights_center.html",
@@ -18898,7 +18972,7 @@
       "result": "WARNING",
       "correction": "",
       "source_kind": "link",
-      "line": 69,
+      "line": 70,
       "detail": "Destino dinámico; se valida al renderizar y en Browser QA."
     },
     {
@@ -18916,7 +18990,7 @@
       "result": "WARNING",
       "correction": "",
       "source_kind": "link",
-      "line": 101,
+      "line": 102,
       "detail": "Destino dinámico; se valida al renderizar y en Browser QA."
     },
     {
@@ -18934,7 +19008,7 @@
       "result": "WARNING",
       "correction": "",
       "source_kind": "link",
-      "line": 6,
+      "line": 19,
       "detail": "Destino dinámico; se valida al renderizar y en Browser QA."
     },
     {
@@ -18952,7 +19026,7 @@
       "result": "WARNING",
       "correction": "",
       "source_kind": "button",
-      "line": 6,
+      "line": 19,
       "detail": "Botón sin URL literal; tiene identificador para acción JavaScript y requiere Browser QA."
     },
     {
@@ -18970,7 +19044,7 @@
       "result": "WARNING",
       "correction": "",
       "source_kind": "link",
-      "line": 17,
+      "line": 30,
       "detail": "Destino dinámico; se valida al renderizar y en Browser QA."
     },
     {
@@ -18988,7 +19062,7 @@
       "result": "WARNING",
       "correction": "",
       "source_kind": "link",
-      "line": 25,
+      "line": 38,
       "detail": "Destino dinámico; se valida al renderizar y en Browser QA."
     },
     {
@@ -19006,7 +19080,7 @@
       "result": "WARNING",
       "correction": "",
       "source_kind": "button",
-      "line": 51,
+      "line": 64,
       "detail": "Botón sin URL literal; tiene identificador para acción JavaScript y requiere Browser QA."
     },
     {
@@ -19024,7 +19098,7 @@
       "result": "WARNING",
       "correction": "",
       "source_kind": "link",
-      "line": 74,
+      "line": 87,
       "detail": "Destino dinámico; se valida al renderizar y en Browser QA."
     },
     {

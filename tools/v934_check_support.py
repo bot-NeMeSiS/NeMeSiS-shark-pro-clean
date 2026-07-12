@@ -14,6 +14,8 @@ from zoneinfo import ZoneInfo
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V934_REFERENCE_EXACTNESS_REALTIME_SPORTS_PRODUCTION_PERFECTION_FINAL"
+SUCCESSOR = "V935_LAUNCH_TRUST_REAL_DATA_LIFECYCLE_PERFORMANCE_REFERENCE_POLISH_FINAL"
+SUPPORTED_VERSIONS = {VERSION, SUCCESSOR}
 MADRID = ZoneInfo("Europe/Madrid")
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
@@ -69,10 +71,10 @@ def _app_checks(checks: list[dict], suite: str) -> None:
                 runtime_response = public.get("/api/runtime-version")
                 runtime = runtime_response.get_json(silent=True) or {}
                 add(checks, "runtime_200", runtime_response.status_code == 200, runtime_response.status_code)
-                add(checks, "runtime_version", runtime.get("version") == VERSION, runtime.get("version"))
+                add(checks, "runtime_version", runtime.get("version") in SUPPORTED_VERSIONS, runtime.get("version"))
                 add(checks, "runtime_files_match", runtime.get("version_files_match") is True)
                 add(checks, "runtime_cache_busting", runtime.get("static_css_cache_busting") is True)
-                add(checks, "runtime_service_worker", runtime.get("service_worker_cache_name") == "NEMESIS_CACHE_V934")
+                add(checks, "runtime_service_worker", runtime.get("service_worker_cache_name") == f"NEMESIS_CACHE_{str(runtime.get('version') or VERSION).split('_', 1)[0]}")
                 required_flags = [
                     "has_v934_reference_exactness", "has_v934_realtime_matches", "has_v934_realtime_live",
                     "has_v934_odds_freshness", "has_v934_admin_realtime_center",
@@ -177,10 +179,10 @@ def _static_checks(checks: list[dict], suite: str) -> None:
     version = read("VERSION.txt").strip()
 
     if suite in {"reference", "component", "accessibility", "performance", "real_data"}:
-        add(checks, "version_exact", version == VERSION, version)
+        add(checks, "version_exact", version in SUPPORTED_VERSIONS, version)
         add(checks, "version_without_bom", not (ROOT / "VERSION.txt").read_bytes().startswith(b"\xef\xbb\xbf"))
-        add(checks, "app_version_exact", f"APP_VERSION = '{VERSION}'" in app)
-        add(checks, "service_worker_v934", "NEMESIS_CACHE_V934" in app and "cache:'no-store'" in app and "cache:'reload'" in app)
+        add(checks, "app_version_exact", f"APP_VERSION = '{version}'" in app)
+        add(checks, "service_worker_v934", f"NEMESIS_CACHE_{version.split('_', 1)[0]}" in app and "cache:'no-store'" in app and "cache:'reload'" in app)
         add(checks, "v929_navigation_preserved", "V929 navigation integrity route recovery" in base)
         add(checks, "v930_visual_preserved", "v930-client-desktop-shell" in base and "v930-admin-shell" in base)
         add(checks, "v931_sqlite_preserved", "_v931_read_table_rows" in app)
@@ -223,6 +225,6 @@ def run_suite(suite: str) -> int:
     _engine_checks(checks, suite)
     _app_checks(checks, suite)
     failed = [item for item in checks if not item["ok"]]
-    payload = {"version": VERSION, "suite": suite, "ok": not failed, "checks": checks, "failed": failed}
+    payload = {"version": read("VERSION.txt").strip() or VERSION, "suite": suite, "ok": not failed, "checks": checks, "failed": failed}
     print(json.dumps(payload, ensure_ascii=False, indent=2))
     return 0 if not failed else 1

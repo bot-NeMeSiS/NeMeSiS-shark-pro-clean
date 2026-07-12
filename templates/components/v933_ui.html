@@ -2,6 +2,19 @@
 
 {% macro status_chip(label, tone='neutral') -%}<span class="v933-status-chip is-{{ tone or 'neutral' }}">{{ label or 'Pendiente' }}</span>{%- endmacro %}
 
+{% macro data_provenance_badge(source='', updated='', state='') -%}
+<span class="v935-provenance" title="Trazabilidad del dato">{{ icon('shield') }}<span><strong>{{ source or 'Fuente pendiente' }}</strong>{% if updated %}<small>{{ updated }}</small>{% elif state %}<small>{{ state }}</small>{% endif %}</span></span>
+{%- endmacro %}
+
+{% macro customer_trust_panel(trust) -%}
+{% set trust = trust or {} %}
+<aside class="v935-customer-trust" aria-label="Confianza de datos">
+  <div class="v935-customer-trust-main">{{ icon('shield') }}<span><strong>{{ trust.get('source_label') or 'Datos deportivos trazables' }}</strong><small>{{ trust.get('freshness_label') or 'Sin sincronización confirmada' }}</small></span></div>
+  <p>{{ trust.get('safe_message') or 'Solo se muestran datos reales o un estado seguro.' }}</p>
+  <div class="v935-customer-trust-rules"><span>{{ icon('target') }} Picks completos</span><span>{{ icon('history') }} Historico evaluable</span><span>{{ icon('shield') }} Sin beneficio garantizado</span></div>
+</aside>
+{%- endmacro %}
+
 {% macro action_button(label, href='', primary=false, tone='blue', disabled=false, icon_name='') -%}
 {% if href and not disabled %}<a class="v933-action{% if primary %} is-primary{% endif %} is-{{ tone }}" href="{{ href }}">{% if icon_name %}{{ icon(icon_name) }}{% endif %}<span>{{ label }}</span></a>{% else %}<button class="v933-action is-{{ tone }}" type="button" disabled aria-disabled="true">{% if icon_name %}{{ icon(icon_name) }}{% endif %}<span>{{ label }}</span></button>{% endif %}
 {%- endmacro %}
@@ -48,7 +61,7 @@
 <article class="v933-match-card{% if compact %} is-compact{% endif %}{% if not complete %} is-incomplete{% endif %}{% if match.get('is_stale') %} is-stale{% endif %}"{% if match_id %} data-v934-match-id="{{ match_id }}"{% endif %} data-v934-match-card="true">
   <header><div><span>{{ competition or 'Pendiente de completar' }}</span>{% if match.get('country') %}<small>{{ match.get('country') }}</small>{% endif %}</div><time>{{ time_label or 'Sin hora confirmada' }}</time></header>
   <div class="v933-match-teams"><div>{{ team_logo(home, home_logo) }}<strong>{{ home or 'Equipo pendiente' }}</strong></div><b data-v934-score>{% if match.get('home_score') is not none and match.get('away_score') is not none %}{{ match.get('home_score') }} - {{ match.get('away_score') }}{% else %}VS{% endif %}</b><div>{{ team_logo(away, away_logo) }}<strong>{{ away or 'Equipo pendiente' }}</strong></div></div>
-  <footer><span class="v934-match-state"><span data-v934-status>{{ status_chip('Pendiente de completar' if not complete else ('Datos retrasados' if match.get('is_stale') else status), 'warning' if not complete or match.get('is_stale') else ('success' if 'live' in status|string|lower or 'directo' in status|string|lower else 'blue')) }}</span>{% if minute is not none %}<small data-v934-minute>Min {{ minute }}</small>{% else %}<small data-v934-minute hidden></small>{% endif %}</span><div>{% if current_user and match_id %}<button class="v933-icon-button fav-star{% if match.get('is_favorite') %} active{% endif %}" type="button" data-kind="match" data-value="{{ match_id }}" data-label="{{ home }} vs {{ away }}" aria-label="Guardar favorito" aria-pressed="{{ 'true' if match.get('is_favorite') else 'false' }}">{{ icon('star') }}</button>{% endif %}{% if show_actions and match_id and complete %}{{ action_button('Ver partido', '/match/' ~ match_id, true, 'blue') }}{% endif %}</div></footer>
+  <footer><span class="v934-match-state"><span data-v934-status>{{ status_chip('Pendiente de completar' if not complete else ('Datos retrasados' if match.get('is_stale') else status), 'warning' if not complete or match.get('is_stale') else ('success' if 'live' in status|string|lower or 'directo' in status|string|lower else 'blue')) }}</span>{% if minute is not none %}<small data-v934-minute>Min {{ minute }}</small>{% else %}<small data-v934-minute hidden></small>{% endif %}{% if complete and match.get('v935_source') %}{{ data_provenance_badge(match.get('v935_source'), (match.get('v935_freshness') or {}).get('label'), match.get('v935_lifecycle')) }}{% endif %}</span><div>{% if current_user and match_id %}<button class="v933-icon-button fav-star{% if match.get('is_favorite') %} active{% endif %}" type="button" data-kind="match" data-value="{{ match_id }}" data-label="{{ home }} vs {{ away }}" aria-label="Guardar favorito" aria-pressed="{{ 'true' if match.get('is_favorite') else 'false' }}">{{ icon('star') }}</button>{% endif %}{% if show_actions and match_id and complete %}{{ action_button('Ver partido', '/match/' ~ match_id, true, 'blue') }}{% endif %}</div></footer>
 </article>
 {%- endmacro %}
 
@@ -60,14 +73,14 @@
 {% set selection = pick.get('client_selection_label') or pick.get('selection_display') or pick.get('selection') or '' %}
 {% set odds = pick.get('client_odds_label') or pick.get('odds') or pick.get('price') or '' %}
 {% set home = pick.get('home_team') or pick.get('client_home') or '' %}{% set away = pick.get('away_team') or pick.get('client_away') or '' %}
-{% set valid = home and away and market and selection and odds and pick.get('status') == 'published' %}
+{% set valid = pick.get('v935_publishable') if pick.get('v935_publishable') is not none else (home and away and market and selection and odds and pick.get('status') == 'published') %}
 {% set match_id = pick.get('match_id') or '' %}
 {% set pick_id = pick.get('id') or '' %}
-{% set freshness = pick.get('odds_freshness') or {} %}
+{% set freshness = pick.get('v935_odds') or pick.get('odds_freshness') or {} %}
 <article class="v933-pick-card{% if featured %} is-featured{% endif %}{% if not valid %} is-incomplete{% endif %}"{% if pick_id %} data-v934-pick-id="{{ pick_id }}"{% endif %} data-v934-pick-card="true">
   <header><span>{{ pick.get('competition_name') or pick.get('league_name') or pick.get('competition') or 'Pick SHARK' }}</span>{{ status_chip('Publicado' if valid else 'Bloqueado', 'success' if valid else 'warning') }}</header>
   <div class="v933-pick-match"><strong>{{ home or 'Partido pendiente' }}{% if away %} <small>vs</small> {{ away }}{% endif %}</strong>{% if pick.get('kickoff_time') %}<time>{{ pick.get('kickoff_time') }} Madrid</time>{% endif %}</div>
-  {% if valid %}<dl><div><dt>Mercado</dt><dd>{{ market }}</dd></div><div><dt>Selección</dt><dd>{{ selection }}</dd></div><div><dt>Cuota</dt><dd data-v934-odds>{{ odds }}</dd>{% if freshness.get('label') %}<small class="v934-odds-freshness is-{{ freshness.get('status') }}" data-v934-odds-freshness>{{ freshness.get('label') }}</small>{% endif %}</div></dl><div class="v933-pick-signals">{% if pick.get('risk') or pick.get('risk_level') %}<span>Riesgo <b>{{ pick.get('risk') or pick.get('risk_level') }}</b></span>{% endif %}{% if pick.get('confidence') is not none or pick.get('score') is not none %}<span>Confianza <b>{{ pick.get('confidence') or pick.get('score') }}{% if (pick.get('confidence') or pick.get('score')) is number %}%{% endif %}</b></span>{% endif %}{% if pick.get('stake') %}<span>Stake <b>{{ pick.get('stake') }}</b></span>{% endif %}</div><footer>{% if match_id %}{{ action_button('Ver partido','/match/' ~ match_id,false,'blue') }}{% endif %}<a class="v933-action is-primary is-blue" href="/picks">Ver análisis</a></footer>{% else %}<p class="v933-safe-copy">No se publica hasta tener partido, mercado, selección y cuota reales.</p>{% endif %}
+  {% if valid %}<dl><div><dt>Mercado</dt><dd>{{ market }}</dd></div><div><dt>Selección</dt><dd>{{ selection }}</dd></div><div><dt>Cuota</dt><dd data-v934-odds>{{ odds }}</dd>{% if freshness.get('label') %}<small class="v934-odds-freshness is-{{ freshness.get('status') }}" data-v934-odds-freshness>{{ freshness.get('label') }}</small>{% endif %}</div></dl>{% if pick.get('source') %}{{ data_provenance_badge(pick.get('source'), freshness.get('label'), freshness.get('status')) }}{% endif %}<div class="v933-pick-signals">{% if pick.get('risk') or pick.get('risk_level') %}<span>Riesgo <b>{{ pick.get('risk') or pick.get('risk_level') }}</b></span>{% endif %}{% if pick.get('confidence') is not none or pick.get('score') is not none %}<span>Confianza <b>{{ pick.get('confidence') or pick.get('score') }}{% if (pick.get('confidence') or pick.get('score')) is number %}%{% endif %}</b></span>{% endif %}{% if pick.get('stake') %}<span>Stake <b>{{ pick.get('stake') }}</b></span>{% endif %}</div><footer>{% if match_id %}{{ action_button('Ver partido','/match/' ~ match_id,false,'blue') }}{% endif %}<a class="v933-action is-primary is-blue" href="/picks">Ver análisis</a></footer>{% else %}<p class="v933-safe-copy">No se publica hasta tener partido, mercado, selección y cuota reales.</p>{% endif %}
 </article>
 {%- endmacro %}
 

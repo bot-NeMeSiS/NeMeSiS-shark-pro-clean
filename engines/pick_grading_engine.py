@@ -12,6 +12,7 @@ import json
 import os
 import sqlite3
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, Dict, Iterable
 
 try:
@@ -403,16 +404,43 @@ def _enrich_recent_result(row: Dict[str, Any]) -> Dict[str, Any]:
     return item
 
 def pick_grading_summary(db_path: str) -> Dict[str, Any]:
-    ensure_pick_grading_schema(db_path)
-    conn = connect(db_path)
+    path = Path(db_path).expanduser().resolve()
+    if not path.exists():
+        return {
+            "schema": "pick_grading_v577", "status": "esperando picks/resultados",
+            "readiness_score": 0, "graded_total": 0, "evaluable_total": 0,
+            "non_evaluable": 0, "auto_validated": 0, "pending_review": 0,
+            "won": 0, "lost": 0, "void": 0, "stake_total": 0.0,
+            "profit": 0.0, "avg_grading_score": 0.0, "recent_results": [],
+            "recent_runs": [], "read_only": True,
+            "note": "Sin muestra evaluable. El resumen no crea tablas durante el render.",
+        }
+    try:
+        conn = sqlite3.connect(f"file:{path.as_posix()}?mode=ro", uri=True, timeout=1.5, check_same_thread=False)
+        conn.row_factory = sqlite3.Row
+        conn.execute("PRAGMA query_only=ON")
+        conn.execute("PRAGMA busy_timeout=1500")
+    except sqlite3.Error:
+        return {
+            "schema": "pick_grading_v577", "status": "lectura temporalmente no disponible",
+            "readiness_score": 0, "graded_total": 0, "evaluable_total": 0,
+            "non_evaluable": 0, "auto_validated": 0, "pending_review": 0,
+            "won": 0, "lost": 0, "void": 0, "stake_total": 0.0,
+            "profit": 0.0, "avg_grading_score": 0.0, "recent_results": [],
+            "recent_runs": [], "read_only": True,
+        }
+    evaluable_where = "result_status IN ('won','lost','void') AND COALESCE(odds,0)>1 AND COALESCE(stake,0)>0"
     total = scalar(conn, "SELECT COUNT(*) FROM pick_grading_results", default=0)
-    auto_validated = scalar(conn, "SELECT COUNT(*) FROM pick_grading_results WHERE auto_validated=1", default=0)
+    evaluable = scalar(conn, f"SELECT COUNT(*) FROM pick_grading_results WHERE {evaluable_where}", default=0)
+    auto_validated = scalar(conn, f"SELECT COUNT(*) FROM pick_grading_results WHERE auto_validated=1 AND {evaluable_where}", default=0)
     pending = scalar(conn, "SELECT COUNT(*) FROM pick_grading_results WHERE result_status='pending'", default=0)
-    won = scalar(conn, "SELECT COUNT(*) FROM pick_grading_results WHERE result_status='won'", default=0)
-    lost = scalar(conn, "SELECT COUNT(*) FROM pick_grading_results WHERE result_status='lost'", default=0)
-    profit = scalar(conn, "SELECT ROUND(SUM(profit),2) FROM pick_grading_results", default=0) or 0
-    avg_score = scalar(conn, "SELECT ROUND(AVG(grading_score),1) FROM pick_grading_results", default=0) or 0
-    recent = [_enrich_recent_result(r) for r in rows(conn, "SELECT * FROM pick_grading_results ORDER BY graded_at DESC LIMIT 10")]
+    won = scalar(conn, "SELECT COUNT(*) FROM pick_grading_results WHERE result_status='won' AND COALESCE(odds,0)>1 AND COALESCE(stake,0)>0", default=0)
+    lost = scalar(conn, "SELECT COUNT(*) FROM pick_grading_results WHERE result_status='lost' AND COALESCE(odds,0)>1 AND COALESCE(stake,0)>0", default=0)
+    voids = scalar(conn, "SELECT COUNT(*) FROM pick_grading_results WHERE result_status='void' AND COALESCE(odds,0)>1 AND COALESCE(stake,0)>0", default=0)
+    stake_total = scalar(conn, f"SELECT ROUND(SUM(stake),2) FROM pick_grading_results WHERE {evaluable_where}", default=0) or 0
+    profit = scalar(conn, f"SELECT ROUND(SUM(profit),2) FROM pick_grading_results WHERE {evaluable_where}", default=0) or 0
+    avg_score = scalar(conn, f"SELECT ROUND(AVG(grading_score),1) FROM pick_grading_results WHERE {evaluable_where}", default=0) or 0
+    recent = [_enrich_recent_result(r) for r in rows(conn, f"SELECT * FROM pick_grading_results WHERE {evaluable_where} ORDER BY graded_at DESC LIMIT 10")]
     runs = rows(conn, "SELECT * FROM pick_grading_runs ORDER BY started_at DESC LIMIT 6")
     checks = [total > 0, auto_validated > 0 or pending > 0, len(runs) > 0, avg_score >= 40]
     readiness = round(100 * sum(1 for x in checks if x) / len(checks))
@@ -422,13 +450,18 @@ def pick_grading_summary(db_path: str) -> Dict[str, Any]:
         "status": "operativo" if readiness >= 50 else "esperando picks/resultados",
         "readiness_score": readiness,
         "graded_total": total,
+        "evaluable_total": evaluable,
+        "non_evaluable": max(0, int(total or 0) - int(evaluable or 0)),
         "auto_validated": auto_validated,
         "pending_review": pending,
         "won": won,
         "lost": lost,
+        "void": voids,
+        "stake_total": float(stake_total or 0),
         "profit": profit,
         "avg_grading_score": avg_score,
         "recent_results": recent,
         "recent_runs": runs,
+        "read_only": True,
         "note": "V577 valida picks con resultados fiables, deja revisión manual cuando el mercado no es seguro y alimenta la memoria SHARK.",
     }

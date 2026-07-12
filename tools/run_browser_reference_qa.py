@@ -28,6 +28,7 @@ ADMIN_PROTECTED_ROUTES = [
     "/admin/picks",
     "/admin/matches-sync",
     "/admin/realtime-center",
+    "/admin/data-trust-center",
     "/admin/data-center",
     "/admin/automation-center",
     "/admin/daily-automation",
@@ -61,7 +62,9 @@ def _status_paths(output: Path) -> tuple[Path, Path, Path]:
 
 
 def _write_markdown_status(payload: dict, output: Path) -> None:
-    if VERSION.startswith("V934_"):
+    if VERSION.startswith("V935_"):
+        report_name = "V935_BROWSER_QA.md"
+    elif VERSION.startswith("V934_"):
         report_name = "V934_BROWSER_REFERENCE_COMPARISON.md"
     elif VERSION.startswith("V930_"):
         report_name = "V930_BROWSER_QA_COMPARISON.md"
@@ -206,6 +209,8 @@ def _write_visual_fix_queue(comparison: dict) -> dict:
     items = []
     release_tag = VERSION.split("_", 1)[0]
     for index, item in enumerate(comparisons, start=1):
+        if item.get("classification") == "RESOLVED_VISUALLY":
+            continue
         route = item.get("route") or "unknown"
         device = str(item.get("profile") or item.get("device") or "desktop")
         has_screenshot = bool(item.get("screenshot_path") or item.get("screenshot"))

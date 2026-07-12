@@ -19,6 +19,7 @@ def main() -> int:
     parser.add_argument("--session-secret", default="v934-browser-qa-local-only")
     args = parser.parse_args()
     os.environ["DB_PATH"] = str(Path(tempfile.gettempdir()) / "nemesis_v934_browser_qa.sqlite")
+    os.environ["SECRET_KEY"] = args.session_secret
     os.environ["FLASK_SECRET_KEY"] = args.session_secret
     os.environ["RUN_STARTUP_SCHEDULER_NOW"] = "0"
     os.environ["TELEGRAM_BOT_TOKEN"] = ""

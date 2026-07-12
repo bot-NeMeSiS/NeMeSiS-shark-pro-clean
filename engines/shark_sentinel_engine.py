@@ -223,8 +223,19 @@ def _inspect_html(profile: str, route: str, status_code: int, html: str) -> list
     mojibake_tokens = [chr(195), chr(194), chr(65533)]
     if any(token in html for token in mojibake_tokens):
         issues.append(_issue(profile, route, "copy", "high", "Mojibake visible", "Hay caracteres rotos visibles en HTML.", "caracteres mojibake", "Texto limpio en español.", "Texto con mojibake.", f"Corregir encoding/textos en {route}.", f"Corrige mojibake detectado en {route}."))
+    claim_scan_text = lower
+    for responsible_copy in [
+        "sin beneficio garantizado",
+        "beneficio no garantizado",
+        "nunca garantizado",
+        "no garantizado",
+        "no se garantizan beneficios",
+        "no garantizamos beneficios",
+        "no garantiza beneficios",
+    ]:
+        claim_scan_text = claim_scan_text.replace(responsible_copy, "")
     for phrase in ["apuesta segura", "garantizado", "apuesta fija", "sin riesgo"]:
-        if phrase in lower:
+        if phrase in claim_scan_text:
             issues.append(_issue(profile, route, "security", "critical", "Claim de apuesta irresponsable", "La pantalla contiene una promesa prohibida.", phrase, "Lenguaje responsable, sin garantías.", f"Contiene {phrase}.", "Sustituir por copy responsable con riesgo.", f"Elimina claim irresponsable '{phrase}' en {route}."))
     if route.startswith("/admin") and ("bottom-nav" in lower or "v825-public-floating-shark" in lower):
         issues.append(_issue(profile, route, "admin", "medium", "Elemento cliente en admin", "La pantalla admin contiene señales de navegación/floating cliente.", "bottom-nav/floating shark", "Admin debe tener shell propio.", "Señal cliente encontrada.", "Revisar CSS/base para ocultar elementos cliente en admin.", f"Elimina navegación cliente visible en admin para {route}."))

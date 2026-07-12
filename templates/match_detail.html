@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "components/v933_ui.html" import page_header, section_header, status_chip, team_logo, pick_card, empty_state, provider_state, action_button, icon, realtime_state_bar %}
+{% from "components/v933_ui.html" import page_header, section_header, status_chip, team_logo, pick_card, empty_state, provider_state, action_button, icon, realtime_state_bar, data_provenance_badge, customer_trust_panel %}
 {% block content %}
 {% if not detail %}
 <div class="v933-page v933-match-detail" data-v933-template="match_detail">{{ page_header('Partido no disponible', 'No se encontró un registro real para este identificador.', 'matches') }}{{ empty_state('Sin detalle de partido', 'Vuelve al calendario para elegir un encuentro disponible.', 'Volver a partidos', '/calendar', 'calendar') }}</div>
@@ -14,6 +14,7 @@
 {% set quality = live.get('quality') or {} %}
 {% set data_quality = detail.get('data_quality') or {} %}
 {% set realtime = data.get('v934_realtime') or {} %}
+{% set customer_trust = data.get('v935_customer_trust') or {} %}
 
 <div class="v933-page v933-match-detail" data-v933-template="match_detail" data-v933-reference="canonical-match-detail">
   {{ page_header('Detalle del partido', 'Contexto deportivo real, hora Madrid y estados transparentes.', 'matches', [{'label':'Volver a partidos','href':'/calendar','icon':'arrow'},{'label':'Consultar SHARK','href':'/shark?match=' ~ match.get('id'),'primary':true,'icon':'shark'}]) }}
@@ -25,6 +26,7 @@
       <b>{{ ctx.client_score_label or 'VS' }}</b>
       <time>{{ ctx.client_full_datetime_label or ctx.client_time_label or 'Hora pendiente' }}</time>
       {{ status_chip(ctx.client_status_label or 'Estado pendiente', 'success' if (ctx.client_status_label or '') == 'En directo' else 'blue') }}
+      {% if match.get('v935_source') %}{{ data_provenance_badge(match.get('v935_source'), (match.get('v935_freshness') or {}).get('label'), match.get('v935_lifecycle')) }}{% endif %}
     </div>
     <div class="v933-match-hero-team">{{ team_logo(ctx.safe_away, away_identity.get('logo'), 'lg') }}<strong>{{ ctx.safe_away }}</strong></div>
   </section>
@@ -32,6 +34,7 @@
   <nav class="v933-detail-tabs" aria-label="Secciones del partido"><a class="is-active" href="#resumen">Resumen</a><a href="#picks">Picks</a><a href="#datos">Datos</a><a href="#historico">Histórico</a><a href="#shark">SHARK</a></nav>
 
   {{ realtime_state_bar(realtime, 'matches') }}
+  {{ customer_trust_panel(customer_trust) }}
 
   <section class="v933-two-col" id="resumen">
     <div class="v933-main-stack">
