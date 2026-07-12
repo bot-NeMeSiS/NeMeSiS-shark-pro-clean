@@ -1,0 +1,98 @@
+{% from "components/v933_ui.html" import icon, status_chip, action_button %}
+
+{% macro customer_decision(title, body, action_label, action_href, tone='blue', eyebrow='Tu siguiente paso', secondary_label='', secondary_href='', proof='') -%}
+<section class="v936-customer-decision is-{{ tone }}" aria-label="{{ eyebrow }}">
+  <div class="v936-decision-icon" aria-hidden="true">{{ icon('arrow') }}</div>
+  <div class="v936-decision-copy">
+    <span class="v936-kicker">{{ eyebrow }}</span>
+    <h2>{{ title }}</h2>
+    <p>{{ body }}</p>
+    {% if proof %}<small>{{ icon('shield') }} {{ proof }}</small>{% endif %}
+  </div>
+  <div class="v936-decision-actions">
+    {{ action_button(action_label, action_href, true, tone if tone in ['blue','cyan','gold'] else 'blue', false, 'arrow') }}
+    {% if secondary_label and secondary_href %}{{ action_button(secondary_label, secondary_href, false, 'blue') }}{% endif %}
+  </div>
+</section>
+{%- endmacro %}
+
+{% macro value_ladder(current_plan='FREE') -%}
+{% set plan = (current_plan or 'FREE')|upper %}
+<section class="v936-value-ladder" aria-label="Recorrido de membresía">
+  <article class="{% if plan == 'FREE' %}is-current{% endif %}">
+    <span>Explorar</span><strong>FREE</strong><p>Agenda, directo y estados deportivos honestos.</p>
+  </article>
+  <i aria-hidden="true">{{ icon('arrow') }}</i>
+  <article class="is-pro{% if plan == 'PRO' %} is-current{% endif %}">
+    <span>Decidir con contexto</span><strong>PRO</strong><p>Picks completos, SHARK y alertas según disponibilidad real.</p>
+  </article>
+  <i aria-hidden="true">{{ icon('arrow') }}</i>
+  <article class="is-elite{% if plan in ['ELITE','ELITE_PLUS'] %} is-current{% endif %}">
+    <span>Prioridad</span><strong>ELITE</strong><p>Acceso avanzado y soporte, sin promesas de rentabilidad.</p>
+  </article>
+</section>
+{%- endmacro %}
+
+{% macro evidence_receipt(title, body, state='Verificado', tone='success', source='Datos reales o estado seguro') -%}
+<article class="v936-evidence-receipt">
+  <div class="v936-evidence-icon" aria-hidden="true">{{ icon('shield') }}</div>
+  <div><span class="v936-kicker">Por qué confiar</span><strong>{{ title }}</strong><p>{{ body }}</p><small>{{ source }}</small></div>
+  {{ status_chip(state, tone) }}
+</article>
+{%- endmacro %}
+
+{% macro intelligence_brief(reason, risk, recommendation, action_label, action_href, blocked=false) -%}
+<section class="v936-intelligence-brief" aria-label="Resumen de inteligencia SHARK">
+  <article><span>Por qué</span><strong>{{ reason }}</strong></article>
+  <article><span>Riesgo</span><strong>{{ risk }}</strong></article>
+  <article><span>Recomendación</span><strong>{{ recommendation }}</strong></article>
+  <div>{{ action_button(action_label, action_href, not blocked, 'cyan', blocked, 'shark') }}</div>
+</section>
+{%- endmacro %}
+
+{% macro executive_focus(title, body, action_label, action_href, status='Acción recomendada', tone='warning', secondary_label='', secondary_href='') -%}
+<section class="v936-executive-focus is-{{ tone }}">
+  <div><span class="v936-kicker">Foco ejecutivo</span><h2>{{ title }}</h2><p>{{ body }}</p></div>
+  <div class="v936-executive-action">{{ status_chip(status, tone) }}{{ action_button(action_label, action_href, true, 'blue', false, 'arrow') }}{% if secondary_label and secondary_href %}{{ action_button(secondary_label, secondary_href, false, 'blue') }}{% endif %}</div>
+</section>
+{%- endmacro %}
+
+{% macro decision_radar(validated_matches=0, live_count=0, publicable_picks=0, pending_count=0) -%}
+<section class="v937-decision-radar" aria-label="Radar de decisión del día">
+  <header>
+    <div>
+      <span class="v936-kicker">Radar de decisión</span>
+      <h2>Lo que merece tu atención ahora</h2>
+      <p>NeMeSiS separa actividad confirmada, oportunidades publicables y registros todavía pendientes de validación.</p>
+    </div>
+    {{ status_chip('Criterio antes que cantidad', 'info') }}
+  </header>
+  <div class="v937-radar-grid">
+    <article class="is-blue"><span>Agenda validada</span><strong>{{ validated_matches }}</strong><small>partidos completos de hoy</small></article>
+    <article class="is-live"><span>Directo confirmado</span><strong>{{ live_count }}</strong><small>sin marcadores simulados</small></article>
+    <article class="is-cyan"><span>Picks publicables</span><strong>{{ publicable_picks }}</strong><small>con mercado, selección y cuota</small></article>
+    <article class="is-muted"><span>Pendientes</span><strong>{{ pending_count }}</strong><small>fuera de la experiencia principal</small></article>
+  </div>
+</section>
+{%- endmacro %}
+
+{% macro data_trust_meter(has_real_data=false, last_sync='', pending_count=0, source_label='DB y caché segura') -%}
+{% set trust_high = has_real_data and last_sync and pending_count == 0 %}
+{% set trust_ready = has_real_data and last_sync %}
+<article class="v937-data-trust{% if trust_high %} is-high{% elif trust_ready %} is-ready{% else %} is-pending{% endif %}" aria-label="Calidad y trazabilidad del dato">
+  <div class="v937-trust-head">
+    <div>
+      <span class="v936-kicker">Índice de confianza del dato</span>
+      <strong>{% if trust_high %}Alta{% elif trust_ready %}Validada con límites{% else %}En espera de evidencia{% endif %}</strong>
+    </div>
+    {{ status_chip('Calidad del dato' if trust_ready else 'Estado seguro', 'success' if trust_high else ('info' if trust_ready else 'warning')) }}
+  </div>
+  <p>No mide la probabilidad de ganar. Resume si la información visible tiene completitud, origen y actualización suficientes.</p>
+  <ul>
+    <li class="{% if has_real_data %}is-ok{% endif %}">{{ icon('check' if has_real_data else 'warning') }} Datos reales disponibles</li>
+    <li class="{% if last_sync %}is-ok{% endif %}">{{ icon('check' if last_sync else 'warning') }} {% if last_sync %}Actualización registrada{% else %}Sin sincronización confirmada{% endif %}</li>
+    <li class="{% if pending_count == 0 %}is-ok{% endif %}">{{ icon('check' if pending_count == 0 else 'warning') }} {{ pending_count }} registros pendientes fuera de KPIs</li>
+    <li class="is-ok">{{ icon('shield') }} {{ source_label }}</li>
+  </ul>
+</article>
+{%- endmacro %}

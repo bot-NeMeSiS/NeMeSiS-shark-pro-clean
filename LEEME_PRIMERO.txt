@@ -1,0 +1,18 @@
+V937 SPRINT 1 — INSTALADOR
+
+1. Descomprime este ZIP en cualquier carpeta.
+2. Haz doble clic en:
+   INSTALAR_V937_SPRINT1.bat
+3. El instalador comprobará la raíz del proyecto:
+   C:\Users\aloha\OneDrive\Escritorio\NeMeSiS shark pro
+4. Hará copia de seguridad de los archivos actuales.
+5. Copiará y verificará los 4 archivos del Sprint 1.
+6. Abre GitHub Desktop.
+7. Confirma que la rama es:
+   chatgpt/v937-product-perfection
+8. Deben aparecer 4 cambios.
+9. Commit:
+   V937 Sprint 1 - Home decision and data trust
+10. Pulsa Push origin.
+
+Este instalador NO toca main, Render, secretos, base de datos, pagos ni Telegram real.
