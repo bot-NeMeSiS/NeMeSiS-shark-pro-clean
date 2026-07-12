@@ -1,6 +1,28 @@
 {
-  "version": "V935_LAUNCH_TRUST_REAL_DATA_LIFECYCLE_PERFORMANCE_REFERENCE_POLISH_FINAL",
+  "version": "V936_COMMERCIAL_PRODUCT_READINESS_REFERENCE_EXCELLENCE_FINAL",
   "events": [
+    {
+      "path": "/ruta-inventada-v910",
+      "method": "GET",
+      "referrer": "",
+      "user_agent": "Werkzeug/3.0.3",
+      "resolved_alias": "",
+      "source": "flask_404",
+      "count": 54,
+      "first_seen_madrid": "2026-07-07T23:33:53+02:00",
+      "last_seen_madrid": "2026-07-12T06:54:09+02:00"
+    },
+    {
+      "path": "/api/ruta-inventada-v910",
+      "method": "GET",
+      "referrer": "",
+      "user_agent": "Werkzeug/3.0.3",
+      "resolved_alias": "",
+      "source": "api_404",
+      "count": 54,
+      "first_seen_madrid": "2026-07-07T23:33:53+02:00",
+      "last_seen_madrid": "2026-07-12T06:54:09+02:00"
+    },
     {
       "path": "/historico",
       "method": "GET",
@@ -22,28 +44,6 @@
       "count": 21,
       "first_seen_madrid": "2026-07-10T21:56:48+02:00",
       "last_seen_madrid": "2026-07-12T02:38:24+02:00"
-    },
-    {
-      "path": "/api/ruta-inventada-v910",
-      "method": "GET",
-      "referrer": "",
-      "user_agent": "Werkzeug/3.0.3",
-      "resolved_alias": "",
-      "source": "api_404",
-      "count": 52,
-      "first_seen_madrid": "2026-07-07T23:33:53+02:00",
-      "last_seen_madrid": "2026-07-12T02:38:21+02:00"
-    },
-    {
-      "path": "/ruta-inventada-v910",
-      "method": "GET",
-      "referrer": "",
-      "user_agent": "Werkzeug/3.0.3",
-      "resolved_alias": "",
-      "source": "flask_404",
-      "count": 52,
-      "first_seen_madrid": "2026-07-07T23:33:53+02:00",
-      "last_seen_madrid": "2026-07-12T02:38:20+02:00"
     },
     {
       "path": "/planes",
@@ -398,5 +398,5 @@
       "last_seen_madrid": "2026-07-05T00:58:55+02:00"
     }
   ],
-  "updated_at_madrid": "2026-07-12T02:38:34+02:00"
+  "updated_at_madrid": "2026-07-12T06:54:09+02:00"
 }

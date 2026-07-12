@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% from "components/v933_ui.html" import page_header, kpi_card, section_header, quick_action, status_chip, action_button, icon %}
+{% from "components/v936_product.html" import customer_decision, evidence_receipt %}
 {% block content %}
 {% set config = data.get('telegram') or {} %}
 {% set state = data.get('telegram_state') or {} %}
@@ -14,6 +15,14 @@
     <span class="v933-telegram-mark">{{ icon('telegram') }}</span>
   </section>
 
+  {% if state.get('linked') and channel_enabled %}
+    {{ customer_decision('Tu canal está preparado para acompañar la jornada', 'Revisa las preferencias y el contenido disponible. Telegram entrega contexto útil; la app conserva el detalle y el histórico.', 'Revisar picks', '/picks', 'cyan', 'Qué hacer aquí', 'Gestionar cuenta', '/profile', 'Dedupe y calidad antes que frecuencia') }}
+  {% elif state.get('linked') %}
+    {{ customer_decision('Activa las alertas que realmente necesitas', 'La cuenta ya está vinculada. Revisa el estado del canal y tu plan antes de habilitar contenido.', 'Revisar conexión', '#vincular', 'cyan', 'Qué hacer aquí', 'Comparar planes', '/memberships', 'Ningún envío se ejecuta desde esta vista') }}
+  {% else %}
+    {{ customer_decision('Vincula Telegram en un flujo protegido', 'Genera un código, abre el enlace seguro y vuelve para comprobar el estado. Nunca se muestran tokens ni identificadores privados.', 'Empezar vinculación', '#vincular', 'cyan', 'Qué hacer aquí', 'Ver qué recibiré', '#v936-telegram-value', 'La conexión no implica envíos automáticos desde esta pantalla') }}
+  {% endif %}
+
   <section class="v933-kpi-grid">
     {{ kpi_card('Telegram conectado', 'Sí' if state.get('linked') else 'No', 'Vinculación de tu cuenta', 'success' if state.get('linked') else 'warning', 'telegram') }}
     {{ kpi_card('Canal activo', 'Sí' if channel_enabled else 'En pausa', 'Preferencias del canal', 'success' if channel_enabled else 'warning', 'live') }}
@@ -23,7 +32,7 @@
 
   <section class="v933-two-col">
     <div class="v933-main-stack">
-      <section class="v933-panel">
+      <section class="v933-panel" id="v936-telegram-value">
         {{ section_header('Lo que recibirás en tu canal', 'Contenido de calidad, sin mensajes de relleno.') }}
         <div class="v933-four-col v933-feature-grid">
           <article>{{ icon('target') }}<strong>Picks premium</strong><p>Mercado, selección, cuota y riesgo completos.</p></article>
@@ -56,6 +65,7 @@
           {{ quick_action('3. Elige tu plan', 'Contenido según membresía', '/memberships', 'plan', 'gold') }}
         </div>
       </section>
+      {{ evidence_receipt('Telegram extiende la app; no la sustituye', 'La alerta lleva a una selección o evento real, mientras el detalle, el riesgo y el histórico permanecen en NeMeSiS.', 'Integrado', 'success', 'Sin filler, sin duplicados y sin envío real desde la vista cliente') }}
       <section class="v933-panel">
         {{ section_header('Calidad del canal', 'Protecciones activas.') }}
         <div class="v933-truth-list">

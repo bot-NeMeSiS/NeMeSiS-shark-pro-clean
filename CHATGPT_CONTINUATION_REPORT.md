@@ -1144,3 +1144,17 @@ V928 reconstruye la experiencia completa sobre la base V927 con 16 referencias c
 - Browser QA usa sesiones mock locales seguras en siete viewports; no se declara pixel-perfect sin revisión humana.
 - La DB local no contiene una agenda deportiva evaluable y se mantiene `WAITING_FOR_REAL_DATA`; no se crearon fixtures visibles.
 - No se hizo push ni deploy. Render debe confirmar V935 antes de declararla en producción.
+
+## V936 Commercial Product Readiness
+
+- Base preservada: `V935_LAUNCH_TRUST_REAL_DATA_LIFECYCLE_PERFORMANCE_REFERENCE_POLISH_FINAL`.
+- Version local: `V936_COMMERCIAL_PRODUCT_READINESS_REFERENCE_EXCELLENCE_FINAL`.
+- Diez pantallas cliente incorporan una decisión contextual, una siguiente acción y pruebas de confianza sin exponer diagnóstico técnico.
+- Ocho centros admin incorporan un foco ejecutivo basado en estado real para separar operación, bloqueo y acción siguiente.
+- SHARK separa evidencia, riesgo y recomendación; membresías explica FREE, PRO y ELITE por necesidad, sin presión ni promesas de rentabilidad.
+- Browser QA final: 238 capturas, 34 rutas, 7 viewports, 0 errores, 0 redirects incorrectos y 0 overflow.
+- Segunda corrección: MAJOR `0 -> 0`; MEDIUM `2 -> 0`.
+- Sentinel: 10.0, 39 rutas, 0 incidencias; Navigation Integrity: 663 rutas, 926 enlaces, 0 rotos y 0 bucles.
+- Datos inventados: no. Pagos, Telegram real, push y deploy: no ejecutados.
+- Preparación comercial: 8.4/10; apta para beta controlada, pendiente de evidencia sostenida de datos reales y certificación post-deploy.
+- No se declara pixel-perfect ni producción sin revisión humana completa y confirmación del runtime real.

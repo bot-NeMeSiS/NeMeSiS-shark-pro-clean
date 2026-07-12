@@ -364,7 +364,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V935_LAUNCH_TRUST_REAL_DATA_LIFECYCLE_PERFORMANCE_REFERENCE_POLISH_FINAL'
+APP_VERSION = 'V936_COMMERCIAL_PRODUCT_READINESS_REFERENCE_EXCELLENCE_FINAL'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 
@@ -6567,8 +6567,9 @@ def client_home_message(has_real_data):
 
 @app.context_processor
 def inject_session_user():
+    user = current_session_user()
     return {
-        "current_user": current_session_user(),
+        "current_user": user,
         "app_version": APP_VERSION,
         "madrid_now": now_madrid_label(),
     }
@@ -10590,7 +10591,7 @@ def dashboard_data(lane="today", date=None):
 @app.route("/service-worker.js")
 def service_worker():
     body = (
-        "const NEMESIS_CACHE='NEMESIS_CACHE_V935';\n"
+        "const NEMESIS_CACHE='NEMESIS_CACHE_V936';\n"
         "self.addEventListener('install',event=>{self.skipWaiting();});\n"
         "self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.map(key=>caches.delete(key)))).then(()=>self.clients.claim()));});\n"
         "self.addEventListener('fetch',event=>{const req=event.request;if(req.method!=='GET'){return;}if(req.mode==='navigate'){event.respondWith(fetch(req,{cache:'no-store'}).catch(()=>fetch('/',{cache:'no-store'})));return;}if(req.destination==='style'||req.destination==='script'){event.respondWith(fetch(req,{cache:'reload'}));return;}event.respondWith(fetch(req));});\n"
@@ -17606,6 +17607,45 @@ def get_v935_customer_trust_context(summary=None) -> dict:
     }
 
 
+def get_v936_commercial_product_context(summary=None, user=None) -> dict:
+    """Translate trusted sports state into one honest customer and launch decision."""
+    summary = dict(summary or get_public_home_sports_summary())
+    matches = list(summary.get("valid_matches_today") or summary.get("valid_upcoming_matches") or [])
+    live = list(summary.get("valid_live_events") or [])
+    picks = list(summary.get("valid_active_picks") or [])
+    trust = get_v935_customer_trust_context(summary)
+    plan = str((user or {}).get("membership") or "FREE").upper()
+    if live:
+        next_action, next_href, next_title = "follow_confirmed_live", "/live", "Seguir el directo con contexto"
+    elif picks:
+        next_action, next_href, next_title = "review_complete_pick", "/picks", "Revisar una selección completa"
+    elif matches:
+        next_action, next_href, next_title = "prepare_matchday", "/calendar", "Preparar la jornada"
+    else:
+        next_action, next_href, next_title = "wait_for_real_data_and_configure_experience", "/telegram", "Preparar la experiencia"
+    commercial_blockers = []
+    if not (matches or live or picks):
+        commercial_blockers.append("real_sports_data_missing")
+    if not trust.get("last_safe_sync"):
+        commercial_blockers.append("last_sync_unconfirmed")
+    return {
+        "status": "value_available" if (matches or live or picks) else "waiting_for_real_data",
+        "plan": plan,
+        "matches_count": len(matches),
+        "live_count": len(live),
+        "picks_count": len(picks),
+        "next_action": next_action,
+        "next_href": next_href,
+        "next_title": next_title,
+        "customer_value": "real_data_and_guided_decision" if (matches or live or picks) else "safe_product_exploration",
+        "commercial_blockers": commercial_blockers,
+        "trust_status": trust.get("status") or "waiting_for_real_data",
+        "last_safe_sync": trust.get("last_safe_sync") or "",
+        "no_fake_data_guard": True,
+        "technical_details_hidden_from_customer": True,
+    }
+
+
 @app.route("/admin/data-trust-center")
 @app.route("/admin/data-quality")
 def admin_v935_data_trust_center_page():
@@ -17977,6 +18017,35 @@ def v935_launch_trust_runtime_summary() -> dict:
     }
 
 
+def v936_commercial_readiness_runtime_summary() -> dict:
+    """Expose commercial readiness without turning missing real data into a false failure."""
+    try:
+        product = get_v936_commercial_product_context()
+    except Exception:
+        product = {
+            "status": "safe_unavailable",
+            "commercial_blockers": ["local_product_context_unavailable"],
+            "next_action": "review_product_state",
+            "last_safe_sync": "",
+        }
+    blockers = list(product.get("commercial_blockers") or [])
+    return {
+        "v936_base_version": "V935_LAUNCH_TRUST_REAL_DATA_LIFECYCLE_PERFORMANCE_REFERENCE_POLISH_FINAL",
+        "v936_product_readiness_status": "commercial_evidence_required" if blockers else "ready_for_release_review",
+        "v936_customer_value_status": product.get("status") or "safe_unavailable",
+        "v936_trust_status": product.get("trust_status") or "waiting_for_real_data",
+        "v936_real_sports_value_available": bool(product.get("matches_count") or product.get("live_count") or product.get("picks_count")),
+        "v936_commercial_blockers": blockers,
+        "v936_last_safe_sync": product.get("last_safe_sync") or "",
+        "v936_no_fake_data_guard": True,
+        "v936_next_required_action": (
+            "run_authorized_real_sports_sync_then_post_deploy_qa"
+            if "real_sports_data_missing" in blockers
+            else "run_browser_qa_human_review_then_deploy"
+        ),
+    }
+
+
 def get_safe_runtime_identity_for_admin() -> dict:
     """Return local runtime identity for admin panels without external calls or secrets."""
     version_txt = ""
@@ -18012,6 +18081,7 @@ def api_runtime_version():
     v930_css_path = BASE_DIR / "static" / "v930-canonical.css"
     v933_tokens_path = BASE_DIR / "static" / "v933_design_tokens.css"
     v933_product_path = BASE_DIR / "static" / "v933-product.css"
+    v936_commercial_path = BASE_DIR / "static" / "v936-commercial.css"
     base_path = BASE_DIR / "templates" / "base.html"
     manifest_path = BASE_DIR / "RELEASE_MANIFEST_V898.json"
     fallback_manifest_path = BASE_DIR / "RELEASE_MANIFEST_V897.json"
@@ -18024,6 +18094,8 @@ def api_runtime_version():
     v933_tokens_hash = ""
     v933_product_hash = ""
     v933_css_size = 0
+    v936_commercial_hash = ""
+    v936_commercial_size = 0
     app_py_text = ""
     runtime_outbox_text = ""
     build_generated_at = ""
@@ -18078,6 +18150,13 @@ def api_runtime_version():
         v933_product_hash = ""
         v933_css_size = 0
     try:
+        v936_commercial_bytes = v936_commercial_path.read_bytes()
+        v936_commercial_hash = hashlib.sha256(v936_commercial_bytes).hexdigest()[:16]
+        v936_commercial_size = len(v936_commercial_bytes)
+    except Exception:
+        v936_commercial_hash = ""
+        v936_commercial_size = 0
+    try:
         app_py_text = Path(__file__).read_text(encoding="utf-8", errors="replace")
     except Exception:
         app_py_text = ""
@@ -18109,6 +18188,8 @@ def api_runtime_version():
         and 'data-v933-token-version="{{ app_version }}"' in base_template
         and "filename='v933-product.css'" in base_template
         and 'data-v933-product-version="{{ app_version }}"' in base_template
+        and "filename='v936-commercial.css'" in base_template
+        and 'data-v936-commercial-version="{{ app_version }}"' in base_template
     )
     service_worker_cache_name = f"NEMESIS_CACHE_{APP_VERSION.split('_', 1)[0]}"
     service_worker_no_stale_html_css = bool(
@@ -18151,6 +18232,7 @@ def api_runtime_version():
     v933_summary = v933_reference_parity_runtime_summary()
     v934_summary = v934_reference_exactness_runtime_summary()
     v935_summary = v935_launch_trust_runtime_summary()
+    v936_summary = v936_commercial_readiness_runtime_summary()
     v932_sports_summary = sanitize_runtime_value(get_v932_real_sports_value_context())
     v932_next_required_action = (
         "run_protected_sports_sync_then_authorized_browser_qa"
@@ -18193,6 +18275,8 @@ def api_runtime_version():
         "static_v933_tokens_hash": v933_tokens_hash,
         "static_v933_product_hash": v933_product_hash,
         "static_v933_css_size": v933_css_size,
+        "static_v936_commercial_hash": v936_commercial_hash,
+        "static_v936_commercial_size": v936_commercial_size,
         "service_worker_cache_name": service_worker_cache_name,
         "service_worker_no_stale_html_css": service_worker_no_stale_html_css,
         "has_v816_shell": "data-v816-shell" in base_template and "NEMESIS V816 LIVE REFERENCE VISUAL DIFF ACTIVE" in base_template,
@@ -18533,6 +18617,12 @@ def api_runtime_version():
         "has_v935_accessibility": (BASE_DIR / "tools" / "check_v935_accessibility.py").exists(),
         "has_v935_launch_readiness": (BASE_DIR / "tools" / "check_v935_launch_readiness.py").exists(),
         "has_v935_company_orchestrator": (BASE_DIR / "automation_workforce" / "v935_launch_orchestrator.py").exists(),
+        "has_v936_commercial_product_readiness": (BASE_DIR / "reports" / "V936_PRODUCT_AUDIT.md").exists(),
+        "has_v936_customer_decision_system": "customer_decision" in (BASE_DIR / "templates" / "components" / "v936_product.html").read_text(encoding="utf-8", errors="replace"),
+        "has_v936_natural_plan_conversion": "value_ladder" in (BASE_DIR / "templates" / "components" / "v936_product.html").read_text(encoding="utf-8", errors="replace"),
+        "has_v936_admin_executive_focus": "executive_focus" in (BASE_DIR / "templates" / "components" / "v936_product.html").read_text(encoding="utf-8", errors="replace"),
+        "has_v936_shark_decision_brief": "intelligence_brief" in (BASE_DIR / "templates" / "components" / "v936_product.html").read_text(encoding="utf-8", errors="replace"),
+        "has_v936_reference_excellence": v936_commercial_hash != "",
         **v902_truth_summary,
         **v904_summary,
         **v906_summary,
@@ -18563,6 +18653,7 @@ def api_runtime_version():
         **v933_summary,
         **v934_summary,
         **v935_summary,
+        **v936_summary,
         "v932_client_auth_routes_status": "local_mock_guard_ready_production_session_required",
         "v932_admin_auth_routes_status": "local_mock_guard_ready_production_session_required",
         "v932_sqlite_regression_status": "safe_retry_and_schema_fallback_ready",

@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% from "components/v933_ui.html" import page_header, kpi_card, section_header, quick_action, empty_state, status_chip, action_button, icon, customer_trust_panel %}
+{% from "components/v936_product.html" import customer_decision, intelligence_brief %}
 {% block content %}
 {% set assistant = data.get('shark_assistant') or {} %}
 {% set answer = assistant.get('answer') or {} %}
@@ -24,6 +25,16 @@
   </section>
   {{ customer_trust_panel(customer_trust) }}
 
+  {% if picks %}
+    {{ intelligence_brief('Existe al menos una selección completa para contextualizar', customer_trust.get('no_publish_reason') or 'Toda selección mantiene riesgo y no garantiza resultado', 'Abrir el pick, revisar la evidencia y decidir con calma', 'Analizar picks', '/picks', false) }}
+  {% elif calendar.get('matches') %}
+    {{ intelligence_brief('Hay partidos completos disponibles', 'Todavía no existe una selección publicable', 'Revisar la agenda antes de buscar una oportunidad', 'Explorar partidos', '/calendar', false) }}
+  {% else %}
+    {{ intelligence_brief('No hay contexto deportivo completo', 'Una respuesta avanzada podría inducir a una conclusión falsa', 'Esperar sincronización o explorar las capacidades seguras', 'Ver calendario', '/calendar', false) }}
+  {% endif %}
+
+  {{ customer_decision('Usa SHARK para entender, no para adivinar', 'Cada respuesta debe separar evidencia, riesgo y recomendación. Si falta contexto, SHARK te dirige a la siguiente fuente útil.', 'Hacer una pregunta rápida', '#v936-shark-questions', 'cyan', 'Cómo obtener valor', 'Ver metodología', '/track-record', 'Las limitaciones permanecen visibles') }}
+
   <section class="v933-kpi-grid">
     {{ kpi_card('Partidos disponibles', (calendar.get('matches') or [])|length, 'Contexto real guardado', 'blue', 'calendar', '/calendar') }}
     {{ kpi_card('Picks completos', picks|length, 'Contexto publicable', 'cyan', 'target', '/picks') }}
@@ -39,7 +50,7 @@
         {% if answer.get('actions') %}<div class="v933-page-actions v933-inline-actions">{% for action in answer.get('actions') %}{{ action_button(action.get('label'), action.get('url'), loop.first, 'blue') }}{% endfor %}</div>{% endif %}
       </section>
 
-      <section class="v933-panel">
+      <section class="v933-panel" id="v936-shark-questions">
         {{ section_header('Preguntas rápidas', 'Atajos útiles para avanzar con contexto.') }}
         <div class="v933-quick-actions">
           {{ quick_action('¿Qué partidos hay?', 'Agenda real disponible', '/shark?q=partidos', 'calendar') }}

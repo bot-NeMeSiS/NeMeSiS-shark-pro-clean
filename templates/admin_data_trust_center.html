@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% from "components/v933_ui.html" import page_header, kpi_card, section_header, status_chip, data_table, empty_state, realtime_state_bar, icon %}
+{% from "components/v936_product.html" import executive_focus %}
 {% block content %}
 {% set trust = data.get('v935_data_trust') or {} %}
 {% set match_counts = trust.get('match_counts') or {} %}
@@ -10,6 +11,15 @@
 <div class="v933-page v933-admin-command-center v935-data-trust-center" data-v933-template="admin_data_trust_center" data-v935-template="data-trust-center">
   {{ page_header('Data Trust Center', 'Ciclo de vida, frescura y trazabilidad de datos deportivos sin tocar proveedores durante el render.', 'shield', [{'label':'Tiempo real','href':'/admin/realtime-center','icon':'live'},{'label':'Data Center','href':'/admin/data-center','primary':true,'icon':'database'}]) }}
   {{ realtime_state_bar(realtime, 'all', true) }}
+
+  {% if issues %}
+    {{ executive_focus('Resolver causas de calidad antes de publicar', 'Las incidencias están deduplicadas por causa. Corrige primero la de mayor impacto y repite la validación segura.', 'Revisar incidencias', '#v936-data-workspace', 'Calidad bloqueada', 'warning', 'Abrir Data Center', '/admin/data-center') }}
+  {% elif not match_counts.get('UPCOMING') and not match_counts.get('LIVE') %}
+    {{ executive_focus('Recuperar una fuente real para demostrar valor', 'El ciclo de vida funciona, pero no hay agenda evaluable. Ejecuta la sincronización únicamente desde el entorno autorizado y valida después.', 'Abrir Data Center', '/admin/data-center', 'Esperando datos', 'warning', 'Validar datos', '#v936-data-workspace') }}
+  {% else %}
+    {{ executive_focus('Mantener frescura y trazabilidad', 'Partidos, picks e histórico tienen estados canónicos. Vigila resultados pendientes y cuotas que pasan a stale.', 'Abrir tiempo real', '/admin/realtime-center', 'Datos operativos', 'success', 'Revisar picks', '/admin/picks') }}
+  {% endif %}
+  <span id="v936-data-workspace"></span>
 
   <section class="v933-kpi-grid is-six">
     {{ kpi_card('Proximos validos', match_counts.get('UPCOMING', 0), 'Fecha, hora, equipos y fuente', 'blue', 'calendar') }}

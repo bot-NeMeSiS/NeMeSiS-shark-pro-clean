@@ -14,7 +14,9 @@ from zoneinfo import ZoneInfo
 
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = "V935_LAUNCH_TRUST_REAL_DATA_LIFECYCLE_PERFORMANCE_REFERENCE_POLISH_FINAL"
+BASE_VERSION = "V935_LAUNCH_TRUST_REAL_DATA_LIFECYCLE_PERFORMANCE_REFERENCE_POLISH_FINAL"
+CURRENT_VERSION = (ROOT / "VERSION.txt").read_text(encoding="utf-8-sig").strip()
+VERSION = CURRENT_VERSION if CURRENT_VERSION.startswith("V936_") else BASE_VERSION
 MADRID = ZoneInfo("Europe/Madrid")
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
@@ -293,7 +295,7 @@ def _app_checks(checks: list[dict], suite: str) -> None:
                 add(checks, "runtime_version", runtime.get("version") == VERSION, runtime.get("version"))
                 add(checks, "runtime_files_match", runtime.get("version_files_match") is True)
                 add(checks, "runtime_cache_busting", runtime.get("static_css_cache_busting") is True)
-                add(checks, "runtime_service_worker", runtime.get("service_worker_cache_name") == "NEMESIS_CACHE_V935")
+                add(checks, "runtime_service_worker", runtime.get("service_worker_cache_name") == f"NEMESIS_CACHE_{VERSION.split('_', 1)[0]}")
         except Exception as exc:
             add(checks, "app_check_exception", False, f"{type(exc).__name__}: {exc}")
 

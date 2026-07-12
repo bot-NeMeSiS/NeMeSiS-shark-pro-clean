@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% from "components/v933_ui.html" import page_header, kpi_card, section_header, match_card, filter_tabs, empty_state, provider_state, icon, action_button, realtime_state_bar %}
+{% from "components/v936_product.html" import customer_decision %}
 {% block content %}
 {% set calendar = data.get('calendar') or {} %}
 {% set filters = calendar.get('filters') or {} %}
@@ -13,6 +14,12 @@
   {{ page_header('Partidos', 'Agenda real ordenada por día y competición, siempre en hora Madrid.', 'calendar', [{'label':'Ir a directo','href':'/live'},{'label':'Ver picks','href':'/picks','primary':true,'icon':'target'}]) }}
 
   {{ realtime_state_bar(realtime, 'matches') }}
+
+  {% if counts.get('today', 0) %}
+    {{ customer_decision('Elige un partido y construye el contexto', 'Abre la previa para revisar horario, competición y estado. Después podrás comprobar si existe pick o análisis SHARK.', 'Ver partidos de hoy', '#v933-calendar-filters', 'blue', 'Qué hacer aquí', 'Ir a picks', '/picks', 'La agenda usa registros completos y hora Madrid') }}
+  {% else %}
+    {{ customer_decision('Amplía el rango sin perder tus filtros', 'No hay una agenda completa para hoy. Revisa la semana o vuelve cuando la siguiente sincronización real esté disponible.', 'Ver la semana', '/calendar?lane=week', 'blue', 'Qué hacer aquí', 'Revisar directo', '/live', 'No se muestran encuentros de demostración') }}
+  {% endif %}
 
   <section class="v933-kpi-grid">
     {{ kpi_card('Hoy', counts.get('today', 0), 'Encuentros completos', 'blue', 'calendar', '/calendar?lane=today') }}

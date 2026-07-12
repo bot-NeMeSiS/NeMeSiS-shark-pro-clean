@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% from "components/v933_ui.html" import page_header, kpi_card, section_header, data_table, empty_state, status_chip, filter_tabs, icon, customer_trust_panel %}
+{% from "components/v936_product.html" import customer_decision, evidence_receipt %}
 {% block content %}
 {% set record = data.get('track_record') or {} %}
 {% set recent = record.get('recent_results') or [] %}
@@ -11,6 +12,12 @@
 <div class="v933-page v933-track-record" data-v933-template="track_record" data-v933-reference="canonical-track-record">
   {{ page_header('Histórico', 'Resultados y rendimiento calculados únicamente con picks reales evaluables.', 'history', [{'label':'Ver picks','href':'/picks','primary':true,'icon':'target'}]) }}
   {{ customer_trust_panel(customer_trust) }}
+
+  {% if recent %}
+    {{ customer_decision('Comprueba la evidencia, no solo el porcentaje', 'Filtra resultados y revisa cuota, estado y rentabilidad de cada pick cerrado antes de interpretar la muestra.', 'Revisar resultados', '#v936-track-results', 'blue', 'Cómo usar el histórico', 'Ver picks activos', '/picks', 'Solo resultados cerrados con grading real') }}
+  {% else %}
+    {{ customer_decision('Todavía no existe una muestra evaluable', 'El histórico no dibuja una curva ni un ROI decorativo. Aparecerá cuando haya decisiones cerradas con resultado, cuota y stake verificables.', 'Ver picks activos', '/picks', 'blue', 'Cómo usar el histórico', 'Entender SHARK', '/shark', 'Ausencia de muestra explicada, no maquillada') }}
+  {% endif %}
 
   <section class="v933-kpi-grid">
     {{ kpi_card('ROI real', (roi|string ~ '%') if roi is not none else none, 'Beneficio sobre stake evaluable', 'success', 'history') }}
@@ -25,7 +32,7 @@
 
   <section class="v933-two-col">
     <div class="v933-main-stack">
-      <section class="v933-panel">
+      <section class="v933-panel" id="v936-track-results">
         {{ section_header('Evolución real', 'Serie por periodo construida con el historial disponible.') }}
         {% if record.get('by_month') %}
           {% call data_table(['Periodo','Picks','Resultado','ROI']) %}{% for item in record.get('by_month') %}<tr><td>{{ item.get('month') or item.get('label') or item.get('period') }}</td><td>{{ item.get('count') or item.get('picks') or 0 }}</td><td>{{ item.get('profit') if item.get('profit') is not none else 'Sin dato' }}</td><td>{{ (item.get('roi')|string ~ '%') if item.get('roi') is not none else 'Sin dato' }}</td></tr>{% endfor %}{% endcall %}
@@ -54,6 +61,7 @@
         <p class="v933-safe-copy">{{ record.get('commercial_note') or 'Rendimiento calculado solo con picks evaluables.' }}</p>
       </section>
       <section class="v933-panel">{{ section_header('Transparencia', 'Sin datos inventados.') }}<p class="v933-safe-copy">Cuando la muestra no es suficiente, NeMeSiS muestra “Sin muestra evaluable” en lugar de presentar un 0 % engañoso.</p></section>
+      {{ evidence_receipt('Cada cifra puede rastrearse hasta un pick cerrado', 'Los pendientes quedan fuera del ROI y los void no crean beneficio ficticio.', 'Metodología activa', 'success', 'Grading local de solo lectura') }}
     </aside>
   </section>
 </div>

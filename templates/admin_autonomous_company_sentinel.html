@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% from "components/v933_ui.html" import page_header, kpi_card, status_chip, data_table, empty_state, next_action, icon %}
+{% from "components/v936_product.html" import executive_focus %}
 {% block content %}
 {% set latest = status.latest_run or {} %}
 {% set automation = latest.v904_automation_summary or {} %}
@@ -15,6 +16,14 @@
 
 <div class="v933-page v933-admin-command-center v933-admin-sentinel" data-v933-template="admin_autonomous_company_sentinel" data-v933-reference="canonical-admin-sentinel">
   {{ page_header('Sentinel Empresa', 'Rutas, datos, seguridad, Browser QA y release con política de acción segura.', 'shield', [{'label':'Incidencias','href':'/admin/sentinel-issues','icon':'alert'},{'label':'Outbox Codex','href':'/admin/sentinel-codex-outbox','primary':true,'icon':'data'}]) }}
+
+  {% if counts.open %}
+    {{ executive_focus('Cerrar la incidencia de mayor severidad', 'Sentinel ha encontrado evidencia activa. No avances el release hasta resolverla y repetir el ciclo.', 'Abrir incidencias', '/admin/sentinel-issues', 'Release bloqueado', 'danger', 'Ver outbox', '/admin/sentinel-codex-outbox') }}
+  {% elif not browser.screenshots_captured %}
+    {{ executive_focus('Sentinel está limpio; falta evidencia visual', 'La salud estática no certifica composición, responsive ni interacción. Ejecuta Browser QA antes del release.', 'Abrir Workforce', '/admin/automation-workforce', 'QA pendiente', 'warning', 'Ver navegación', '/admin/navigation-integrity') }}
+  {% else %}
+    {{ executive_focus('Consolidar runtime y revisión humana', 'Rutas, incidencias y capturas están disponibles. Verifica producción y bloqueadores comerciales antes de autorizar.', 'Abrir lanzamiento', '/admin/launch-certification', 'Revisión final', 'success', 'Ver runtime', '/api/runtime-version') }}
+  {% endif %}
 
   <section class="v933-kpi-grid is-six">
     {{ kpi_card('Última ejecución', status.state.last_mode or 'Pendiente', status.state.last_run_madrid or 'Sin run guardado', 'blue', 'history') }}

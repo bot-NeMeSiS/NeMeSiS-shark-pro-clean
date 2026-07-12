@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% from "components/v933_ui.html" import page_header, kpi_card, section_header, pick_card, filter_tabs, empty_state, provider_state, status_chip, icon, action_button, realtime_state_bar, customer_trust_panel %}
+{% from "components/v936_product.html" import customer_decision, intelligence_brief %}
 {% block content %}
 {% set stats = data.get('pick_stats') or {} %}
 {% set safe = data.get('v925_picks') or {} %}
@@ -16,6 +17,12 @@
   {{ realtime_state_bar(realtime, 'picks') }}
   {{ customer_trust_panel(customer_trust) }}
 
+  {% if featured %}
+    {{ customer_decision('Evalúa la selección antes de guardarla', 'Lee mercado, cuota, riesgo y explicación. El pick es información para decidir, no una promesa de resultado.', 'Revisar pick destacado', '#v936-featured-pick', 'cyan', 'Qué hacer aquí', 'Comprobar histórico', '/track-record', 'Partido, mercado, selección, cuota y fuente completos') }}
+  {% else %}
+    {{ customer_decision('No hay una decisión publicable ahora', 'Consulta la agenda o SHARK. Ninguna selección aparece hasta disponer de todos los campos y una cuota utilizable.', 'Ver calendario', '/calendar', 'blue', 'Qué hacer aquí', 'Consultar SHARK', '/shark', 'Calidad antes que cantidad') }}
+  {% endif %}
+
   <section class="v933-kpi-grid">
     {{ kpi_card('Picks completos', picks|length, 'Partido, mercado, selección y cuota', 'cyan', 'target', '/picks') }}
     {{ kpi_card('Bloqueados', safe.get('blocked_count', 0), 'Datos insuficientes o revisión', 'warning', 'shield', '/picks?filter=blocked') }}
@@ -29,7 +36,7 @@
 
   <section class="v933-two-col">
     <div class="v933-main-stack">
-      <section class="v933-panel">
+      <section class="v933-panel" id="v936-featured-pick">
         {{ section_header('Pick destacado', 'La primera selección completa disponible.') }}
         {% if featured %}
           {{ pick_card(featured, true) }}
@@ -40,6 +47,7 @@
         {% else %}
           {{ empty_state('Sin pick real publicable', 'No se publica ninguna selección hasta disponer de partido, mercado, selección y cuota reales.', 'Ver calendario', '/calendar', 'target') }}
         {% endif %}
+        {{ intelligence_brief('Evidencia completa' if featured else 'Falta una selección completa', 'El rendimiento pasado no predice resultados futuros', 'Revisar contexto y riesgo' if featured else 'Esperar datos o revisar agenda', 'Explicar con SHARK', '/shark?pick=' ~ (featured.get('id') if featured else ''), not featured) }}
       </section>
 
       <section class="v933-panel">

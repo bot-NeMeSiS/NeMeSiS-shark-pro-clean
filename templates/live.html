@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% from "components/v933_ui.html" import page_header, kpi_card, section_header, live_card, match_card, filter_tabs, empty_state, provider_state, status_chip, icon, realtime_state_bar %}
+{% from "components/v936_product.html" import customer_decision %}
 {% block content %}
 {% set live = data.get('live_experience') or {} %}
 {% set counts = live.get('counts') or {} %}
@@ -16,6 +17,12 @@
 
   {{ realtime_state_bar(realtime, 'live') }}
 
+  {% if ns.matches %}
+    {{ customer_decision('Sigue el partido, no el ruido', 'Prioriza marcador, minuto y eventos confirmados. Abre SHARK para interpretar el contexto, nunca para completar datos ausentes.', 'Ver board en vivo', '#v936-live-board', 'cyan', 'Qué hacer aquí', 'Revisar picks', '/picks', 'Actualización condicionada a datos reales') }}
+  {% else %}
+    {{ customer_decision('No hay directo: prepara el próximo encuentro', 'Consulta la agenda y los picks completos disponibles. El board permanecerá vacío antes que simular actividad.', 'Abrir calendario', '/calendar', 'blue', 'Qué hacer aquí', 'Ver picks', '/picks', 'Sin marcador ni minuto ficticios') }}
+  {% endif %}
+
   <section class="v933-kpi-grid">
     {{ kpi_card('En directo', safe.get('counts', {}).get('live', counts.get('live', 0)), 'Marcador confirmado', 'success', 'live', '/live?f=live') }}
     {{ kpi_card('Descanso', counts.get('halftime', counts.get('break', 0)), 'Estado real del partido', 'warning', 'pause', '/live?f=break') }}
@@ -29,7 +36,7 @@
 
   <section class="v933-two-col">
     <div class="v933-main-stack">
-      <section class="v933-panel">
+      <section class="v933-panel" id="v936-live-board">
         {{ section_header('Board en vivo', 'El contenido se mantiene rápido aunque el proveedor no responda.') }}
         {% if ns.matches %}
         <div class="v933-live-grid">{% for match in ns.matches %}{{ live_card(match) }}{% endfor %}</div>

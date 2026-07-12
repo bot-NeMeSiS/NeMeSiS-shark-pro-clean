@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% from "components/v933_ui.html" import page_header, kpi_card, section_header, empty_state, status_chip, data_table, quick_action, icon %}
+{% from "components/v936_product.html" import executive_focus %}
 {% block content %}
 {% set snapshot = data.get('snapshot') or {} %}
 {% set counts = snapshot.get('counts') or {} %}
@@ -10,6 +11,16 @@
 
 <div class="v933-page v933-admin-command-center v933-admin-telegram" data-v933-template="admin_telegram_command_center" data-v933-reference="canonical-admin-telegram">
   {{ page_header('Telegram Command Center', 'Automatización, entregas y calidad sin enviar mensajes desde esta vista.', 'telegram', [{'label':'Configurar','href':'/admin/telegram','icon':'settings'},{'label':'Preview seguro','href':'/admin/telegram/pro-preview','primary':true,'icon':'telegram'}]) }}
+
+  {% if not env.get('bot_token_configured') or not env.get('chat_id_configured') %}
+    {{ executive_focus('Completar la configuración protegida del canal', 'El command center puede auditar calidad y dedupe, pero no debe presentarse como operativo hasta disponer de bot y destino en el entorno seguro.', 'Revisar configuración', '/admin/telegram', 'Configuración pendiente', 'warning', 'Abrir preview', '/admin/telegram/pro-preview') }}
+  {% elif counts.get('failed_today') %}
+    {{ executive_focus('Resolver entregas fallidas antes del próximo ciclo', 'Revisa errores, dedupe y límites. Mantén el envío real desactivado hasta entender la causa.', 'Auditar Telegram', '/admin/telegram-audit', 'Atención', 'danger', 'Ver preview', '/admin/telegram/pro-preview') }}
+  {% elif not counts.get('premium_eligible') %}
+    {{ executive_focus('No hay contenido elegible para entregar', 'La cola permanece limpia antes que enviar filler. Revisa la calidad de picks y la sincronización deportiva.', 'Revisar picks', '/admin/picks', 'Calidad protegida', 'warning', 'Abrir Data Trust', '/admin/data-trust-center') }}
+  {% else %}
+    {{ executive_focus('Validar formato y ventana antes de autorizar', 'Hay candidatos elegibles. Comprueba preview, límites y dedupe en dry-run antes de cualquier envío real.', 'Abrir preview seguro', '/admin/telegram/pro-preview', 'Listo para revisión', 'success', 'Auditar canal', '/admin/telegram-audit') }}
+  {% endif %}
 
   <section class="v933-kpi-grid is-six">
     {{ kpi_card('Candidatos', counts.get('candidate_picks'), 'Picks publicados revisados', 'blue', 'target') }}

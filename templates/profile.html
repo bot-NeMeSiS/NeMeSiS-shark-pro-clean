@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% from "components/v933_ui.html" import page_header, kpi_card, section_header, quick_action, empty_state, status_chip, profile_card, action_button, icon %}
+{% from "components/v936_product.html" import customer_decision, value_ladder %}
 {% block content %}
 {% set user = data.get('session_user') or current_user or {} %}
 {% set plan = (user.get('membership') or 'FREE')|upper %}
@@ -13,6 +14,14 @@
   {{ page_header('Mi cuenta', 'Tu plan, ajustes y actividad real.', 'user', [{'label':'Gestionar plan','href':'/memberships','primary':true,'icon':'plan'}]) }}
 
   {{ profile_card(user, plan, 'Sesión activa') }}
+
+  {% if not telegram.get('linked') %}
+    {{ customer_decision('Completa tu experiencia con Telegram', 'Vincula tu cuenta para recibir el contenido permitido por tu plan sin perder el detalle dentro de NeMeSiS.', 'Vincular Telegram', '/telegram#vincular', 'cyan', 'Siguiente mejora de tu cuenta', 'Revisar plan', '/memberships', 'La vinculación es revocable y protege tu identidad') }}
+  {% elif not favorites %}
+    {{ customer_decision('Personaliza la agenda con tus favoritos', 'Guarda equipos, ligas o partidos para que tu recorrido sea más directo cuando existan datos reales.', 'Gestionar favoritos', '/favorites', 'blue', 'Siguiente mejora de tu cuenta', 'Abrir calendario', '/calendar', 'Tus preferencias permanecen asociadas a tu cuenta') }}
+  {% else %}
+    {{ customer_decision('Tu cuenta está preparada para la jornada', 'Revisa agenda, picks e histórico desde un recorrido personalizado y mantén tus preferencias al día.', 'Abrir mi panel', '/app', 'blue', 'Siguiente acción', 'Ver actividad', '/actividad', 'Plan, Telegram y favoritos visibles en un solo lugar') }}
+  {% endif %}
 
   <section class="v933-kpi-grid">
     {{ kpi_card('Partidos', (calendar.get('matches') or [])|length, 'Agenda disponible', 'blue', 'calendar', '/calendar') }}
@@ -64,6 +73,10 @@
       </section>
       {{ action_button('Cerrar sesión', '/logout', false, 'danger', false, 'logout') }}
     </aside>
+  </section>
+  <section class="v933-panel">
+    {{ section_header('Valor de tu plan', 'Comprueba dónde estás y qué cambia en cada nivel.') }}
+    {{ value_ladder(plan) }}
   </section>
 </div>
 {% endblock %}

@@ -62,7 +62,9 @@ def _status_paths(output: Path) -> tuple[Path, Path, Path]:
 
 
 def _write_markdown_status(payload: dict, output: Path) -> None:
-    if VERSION.startswith("V935_"):
+    if VERSION.startswith("V936_"):
+        report_name = "V936_BROWSER_QA.md"
+    elif VERSION.startswith("V935_"):
         report_name = "V935_BROWSER_QA.md"
     elif VERSION.startswith("V934_"):
         report_name = "V934_BROWSER_REFERENCE_COMPARISON.md"
@@ -125,6 +127,9 @@ def _write_reference_gap_status(comparison: dict) -> None:
     if VERSION.startswith("V930_"):
         existing["v930_browser_reference_status"] = compatibility_status
         existing["v930_browser_gap_report"] = comparisons
+    if VERSION.startswith("V936_"):
+        existing["v936_browser_reference_status"] = compatibility_status
+        existing["v936_browser_gap_report"] = comparisons
     existing["v906_browser_status"] = compatibility_status
     existing["v906_browser_reference_status"] = compatibility_status
     existing["v906_browser_gap_report"] = comparisons

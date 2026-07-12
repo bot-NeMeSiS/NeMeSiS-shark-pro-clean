@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% from "components/v933_ui.html" import icon, status_chip, action_button, section_header, kpi_card, quick_action, empty_state, match_card, pick_card, provider_state, next_action, realtime_state_bar, customer_trust_panel %}
+{% from "components/v936_product.html" import customer_decision, value_ladder %}
 {% block content %}
 {% set user_name = current_user.name or current_user.username or 'Cliente' %}
 {% set plan_name = (current_user.membership or 'FREE')|upper %}
@@ -31,6 +32,16 @@
 
   {{ realtime_state_bar(realtime, 'all') }}
   {{ customer_trust_panel(customer_trust) }}
+
+  {% if hub_counts.get('live', 0) or safe_live.get('counts', {}).get('live', 0) %}
+    {{ customer_decision('Sigue el directo con contexto', 'Hay actividad confirmada. Revisa el marcador real y abre SHARK solo cuando exista contexto suficiente.', 'Abrir directo', '/live', 'cyan', 'Lo importante ahora', 'Ver picks', '/picks', 'Marcador y minuto procedentes de datos confirmados') }}
+  {% elif picks %}
+    {{ customer_decision('Revisa la selección disponible', 'Comprueba el mercado, la cuota, el riesgo y el motivo antes de guardarla o consultar SHARK.', 'Abrir picks', '/picks', 'cyan', 'Lo importante ahora', 'Consultar SHARK', '/shark', 'La selección ha superado la puerta de publicación') }}
+  {% elif matches %}
+    {{ customer_decision('Empieza por la agenda de hoy', 'Tienes encuentros completos disponibles. Abre un partido para reunir horario, estado y contexto antes de buscar valor.', 'Ver partidos', '/calendar', 'blue', 'Lo importante ahora', 'Revisar directo', '/live', 'Solo encuentros completos y con fuente') }}
+  {% else %}
+    {{ customer_decision('Configura tu experiencia mientras llega la agenda', 'Vincula Telegram, guarda tus preferencias y conoce SHARK. NeMeSiS no sustituye la falta de datos reales por ejemplos.', 'Preparar Telegram', '/telegram', 'blue', 'Lo importante ahora', 'Conocer SHARK', '/shark', 'Tu cuenta sigue operativa y protegida') }}
+  {% endif %}
 
   <section class="v933-kpi-grid" aria-label="Resumen de la jornada">
     {{ kpi_card('Partidos disponibles', matches|length, 'Agenda completa y validada', 'blue', 'calendar', '/calendar') }}
@@ -91,6 +102,11 @@
       {{ provider_state(sports_value.get('real_matches_available', false), sports_value.get('last_safe_sync') or '', sports_value.get('safe_message') or '') }}
       {{ next_action('Revisar la agenda', 'Empieza por los partidos disponibles y abre SHARK cuando exista contexto suficiente.', '/calendar', 'Continuar') }}
     </aside>
+  </section>
+
+  <section class="v933-panel">
+    {{ section_header('Tu recorrido de valor', 'El plan acompaña lo que necesitas; no promete resultados.') }}
+    {{ value_ladder(plan_name) }}
   </section>
 </div>
 {% endblock %}

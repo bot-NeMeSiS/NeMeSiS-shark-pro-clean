@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% from "components/v933_ui.html" import page_header, kpi_card, status_chip, data_table, empty_state, next_action, icon %}
+{% from "components/v936_product.html" import executive_focus %}
 {% block content %}
 {% set summary = workforce.summary or {} %}
 {% set full_run = workforce.full_run or {} %}
@@ -18,6 +19,16 @@
 
 <div class="v933-page v933-admin-command-center v933-admin-workforce" data-v933-template="admin_automation_workforce" data-v933-reference="canonical-admin-automation">
   {{ page_header('Equipo automático', 'Release, deploy seguro, Browser QA, Sentinel y cola visual en un único centro operativo.', 'automation', [{'label':'Sentinel','href':'/admin/autonomous-company-sentinel','icon':'shield'},{'label':'Navegación','href':'/admin/navigation-integrity','primary':true,'icon':'routes'}]) }}
+
+  {% if not screenshots %}
+    {{ executive_focus('Obtener evidencia visual antes de certificar', 'Los workers pueden estar instalados y los checks en verde, pero la decisión de release necesita capturas reales revisables.', 'Revisar Browser QA', '#v936-browser-qa', 'Evidencia pendiente', 'warning', 'Abrir Sentinel', '/admin/autonomous-company-sentinel') }}
+  {% elif queue_blocked %}
+    {{ executive_focus('Convertir capturas en una cola accionable', 'Asocia evidencia válida a cada gap y mantén bloqueado cualquier item sin screenshot.', 'Revisar cola visual', '#v936-browser-qa', 'Acción requerida', 'warning', 'Abrir Sentinel', '/admin/autonomous-company-sentinel') }}
+  {% else %}
+    {{ executive_focus('Preparar la decisión de release', 'Workforce, evidencias y cola visual están consolidados. Verifica runtime y Sentinel antes de autorizar deploy.', 'Verificar runtime', '/api/runtime-version', 'Listo para revisión', 'success', 'Abrir lanzamiento', '/admin/launch-certification') }}
+  {% endif %}
+
+  <span id="v936-browser-qa"></span>
 
   <section class="v933-kpi-grid is-six">
     {{ kpi_card('Core Workforce', 'Listo' if summary.v916_workforce_core_ready or workforce.workers else 'Revisar', (workforce.workers|length|string) ~ ' workers detectados', 'success' if summary.v916_workforce_core_ready or workforce.workers else 'warning', 'automation') }}

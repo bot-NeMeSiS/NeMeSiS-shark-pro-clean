@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% from "components/v933_ui.html" import icon, status_chip, action_button, section_header, kpi_card, quick_action, empty_state, match_card, pick_card, provider_state, realtime_state_bar %}
+{% from "components/v936_product.html" import customer_decision, value_ladder, evidence_receipt %}
 {% block content %}
 {% set summary = data.get('home_summary') or {} %}
 {% set counts = summary.get('counts') or {} %}
@@ -55,6 +56,16 @@
     </aside>
   </section>
 
+  {% if live_count %}
+    {{ customer_decision('Hay actividad confirmada en directo', 'Abre el board en vivo para seguir únicamente marcadores, minutos y eventos recibidos de una fuente real.', 'Abrir directo', '/live', 'cyan', 'Ahora en NeMeSiS', 'Ver agenda', '/calendar', 'El directo nunca se simula') }}
+  {% elif picks %}
+    {{ customer_decision('Tienes una selección completa para revisar', 'Consulta mercado, cuota, riesgo y explicación antes de decidir si encaja contigo.', 'Revisar picks', '/picks', 'cyan', 'Ahora en NeMeSiS', 'Preguntar a SHARK', '/shark', 'Solo picks que superan la puerta de calidad') }}
+  {% elif matches %}
+    {{ customer_decision('Prepara la jornada con datos confirmados', 'Empieza por la agenda, abre el contexto de cada partido y revisa después si existe una selección completa.', 'Ver partidos', '/calendar', 'blue', 'Ahora en NeMeSiS', 'Cómo funciona SHARK', '/shark', 'Competición, fecha, hora, equipos y fuente obligatorios') }}
+  {% else %}
+    {{ customer_decision('Explora el producto sin datos de demostración', 'La agenda se mantiene vacía hasta recibir una sincronización real. Puedes conocer SHARK, Telegram, el histórico y los planes sin encontrar cifras inventadas.', 'Conocer SHARK', '/shark', 'blue', 'Estado actual', 'Comparar planes', '/memberships', 'Un estado honesto protege mejor tu decisión') }}
+  {% endif %}
+
   {{ realtime_state_bar(realtime, 'all') }}
 
   <section class="v933-kpi-grid">
@@ -102,11 +113,7 @@
 
   <section class="v933-panel">
     {{ section_header('Elige cómo vivir NeMeSiS', 'Tres niveles claros, sin promesas de beneficios.', 'Comparar planes', '/memberships') }}
-    <div class="v933-three-col">
-      {{ quick_action('FREE', 'Agenda y estados deportivos seguros', '/memberships', 'calendar') }}
-      {{ quick_action('PRO', 'Picks y alertas cuando existen datos reales', '/memberships', 'target', 'cyan') }}
-      {{ quick_action('ELITE', 'Prioridad y funciones avanzadas sin garantías', '/memberships', 'plan', 'gold') }}
-    </div>
+    {{ value_ladder(current_user.membership if current_user else 'FREE') }}
   </section>
 
   <section class="v933-panel v933-responsible-band">
@@ -116,5 +123,6 @@
       <div><strong>Control del cliente</strong><p>Planes claros, navegación separada y estados comprensibles cuando faltan proveedores.</p></div>
     </div>
   </section>
+  {{ evidence_receipt('La ausencia de datos también se explica', 'Partidos, picks, cuotas y resultados solo aparecen cuando existe evidencia completa. Lo pendiente no se disfraza de actividad.', 'Política activa', 'success', 'Mismo criterio en home, cliente, SHARK, Telegram e histórico') }}
 </div>
 {% endblock %}

@@ -1,13 +1,13 @@
-# Codex Outbox - V935 Browser QA
+# Codex Outbox - V936 Browser QA
 
 pixel_perfect_claim: false
-generated_at_madrid: 2026-07-12T02:25:21+02:00
+generated_at_madrid: 2026-07-12T07:25:35+02:00
 screenshots_captured: 238
 reference_comparisons: 238
 visual_gaps_resolved: 238
 visual_gaps_pending: 0
 
-# V935_BROWSER_QA_FINDINGS
+# V936_BROWSER_QA_FINDINGS
 - Browser QA status: CAPTURED
 - Capturas reales: 238
 - Pendientes: 0

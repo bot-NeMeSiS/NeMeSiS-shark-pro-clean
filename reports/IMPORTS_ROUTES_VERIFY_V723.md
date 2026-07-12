@@ -1,7 +1,7 @@
 # Verificación de imports, rutas y plantillas V723
 
 - Resultado: OK
-- Versión importada: `V935_LAUNCH_TRUST_REAL_DATA_LIFECYCLE_PERFORMANCE_REFERENCE_POLISH_FINAL`
+- Versión importada: `V936_COMMERCIAL_PRODUCT_READINESS_REFERENCE_EXCELLENCE_FINAL`
 - Rutas GET: 624
 - Templates referenciados: 135
 - Templates faltantes: 0
