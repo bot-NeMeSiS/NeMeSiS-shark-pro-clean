@@ -1,0 +1,23 @@
+{
+  "worker": "Performance Budget Worker",
+  "role": "performance_budget",
+  "status": "ok",
+  "ok": true,
+  "dry_run": true,
+  "safe_message": "Lectura local completada sin proveedor, envios, pagos ni escrituras DB.",
+  "next_action": "continue_launch_validation",
+  "findings": [],
+  "metrics": {
+    "css_bytes": 68198,
+    "realtime_js_bytes": 7962,
+    "shared_polling": true,
+    "conditional_requests": true,
+    "request_local_summary_cache": true
+  },
+  "database_status": "ok",
+  "external_calls": 0,
+  "database_writes": 0,
+  "secrets_visible": false,
+  "generated_at_madrid": "2026-07-13T00:46:17+02:00",
+  "report_path": "data/runtime/automation_workforce/v935_workers/performance_budget.md"
+}

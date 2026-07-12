@@ -7,7 +7,7 @@ from pathlib import Path
 if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from automation_workforce.common import OUTBOX, RUNTIME, VERSION, print_json, read_json, workflow_arg_parser, write_report
+from automation_workforce.common import OUTBOX, ROOT, RUNTIME, VERSION, print_json, read_json, workflow_arg_parser, write_report
 
 
 VALID_STATUSES = {"BLOCKED_NO_SCREENSHOT", "READY_FOR_CODEX", "FIXABLE_SAFE", "NEEDS_HUMAN_VISUAL_REVIEW", "DANGEROUS_REQUIRES_APPROVAL", "FIXED_BY_V913", "FIXED_BY_V919"}
@@ -33,6 +33,8 @@ def run_visual_queue_manager(dry_run: bool = True) -> dict:
         for item in queue
         if isinstance(item, dict) and (item.get("screenshot") or item.get("screenshot_path"))
     ]
+    evidence_roots = sorted((ROOT / "reports").glob("browser_qa_v*_final"), key=lambda path: path.stat().st_mtime, reverse=True)
+    evidence_screenshots = list(evidence_roots[0].glob("**/*.png")) if evidence_roots else []
     payload = {
         "ok": not invalid,
         "version": VERSION,
@@ -40,14 +42,15 @@ def run_visual_queue_manager(dry_run: bool = True) -> dict:
         "queue_total": len(queue),
         "blocked_no_screenshot": blocked,
         "ready_for_codex": ready,
-        "screenshots_available": bool(screenshots),
+        "screenshots_available": bool(screenshots or evidence_screenshots),
+        "evidence_screenshots_count": len(evidence_screenshots),
         "needs_human_review": int(counts.get("NEEDS_HUMAN_VISUAL_REVIEW", 0)),
         "dangerous_requires_approval": int(counts.get("DANGEROUS_REQUIRES_APPROVAL", 0)),
         "status_counts": dict(counts),
         "invalid_statuses": invalid,
         "invalid_ready_without_screenshot": len(invalid_ready_without_screenshot),
-        "next_action": "run_browser_qa_or_import_results" if len(queue) and blocked == len(queue) else "review_ready_visual_queue",
-        "status": "blocked_no_screenshot" if len(queue) and blocked == len(queue) else "ready",
+        "next_action": "run_browser_qa_or_import_results" if len(queue) and blocked == len(queue) else "human_review_browser_qa" if evidence_screenshots else "review_ready_visual_queue",
+        "status": "blocked_no_screenshot" if len(queue) and blocked == len(queue) else "evidence_ready" if evidence_screenshots else "ready",
         "safe_message": "Visual Queue no marca resuelto nada sin screenshots reales.",
         "report_path": "reports/V919_VISUAL_QUEUE_GATE_QA.md",
         "pixel_perfect_claim_allowed": False,

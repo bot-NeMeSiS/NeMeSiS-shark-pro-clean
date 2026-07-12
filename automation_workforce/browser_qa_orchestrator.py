@@ -9,6 +9,12 @@ if __package__ in {None, ""}:
 from automation_workforce.common import ROOT, RUNTIME, VERSION, print_json, python_executable, read_json, run_command, workflow_arg_parser, write_report
 
 
+def _browser_evidence_roots() -> list[Path]:
+    roots = [ROOT / "reports" / "browser_qa_render", ROOT / "reports" / "V918_browser_qa"]
+    roots.extend(sorted((ROOT / "reports").glob("browser_qa_v*_final"), key=lambda path: path.stat().st_mtime, reverse=True))
+    return list(dict.fromkeys(roots))
+
+
 def run_browser_qa_orchestrator(dry_run: bool = True) -> dict:
     py = python_executable()
     env = run_command([py, "tools/check_browser_qa_environment.py"])
@@ -21,8 +27,10 @@ def run_browser_qa_orchestrator(dry_run: bool = True) -> dict:
         queue_items = []
     blocked = sum(1 for item in queue_items if isinstance(item, dict) and item.get("status") == "BLOCKED_NO_SCREENSHOT")
     github_action_available = (ROOT / ".github" / "workflows" / "browser-qa.yml").exists()
-    screenshot_roots = [ROOT / "reports" / "browser_qa_render", ROOT / "reports" / "V918_browser_qa"]
-    screenshots_available = any(root.exists() and any(root.glob("**/*.png")) for root in screenshot_roots)
+    screenshot_roots = _browser_evidence_roots()
+    evidence_root = next((root for root in screenshot_roots if root.exists() and any(root.glob("**/*.png"))), None)
+    screenshots_count = len(list(evidence_root.glob("**/*.png"))) if evidence_root else 0
+    screenshots_available = screenshots_count > 0
     if package_available and browsers_available and not dry_run:
         qa = run_command([py, "tools/run_browser_reference_qa.py", "--base-url", "https://bot-apuestas-crgf.onrender.com", "--output", "reports/browser_qa_render", "--mobile", "--desktop", "--write-json"], timeout=180)
         importer = run_command([py, "tools/import_browser_qa_results.py", "--input", "reports/browser_qa_render", "--update-runtime-data"])
@@ -39,8 +47,10 @@ def run_browser_qa_orchestrator(dry_run: bool = True) -> dict:
         "github_action_available": github_action_available,
         "screenshots_available": screenshots_available,
         "visual_queue_blocked": blocked,
-        "next_action": "run_browser_qa" if package_available and browsers_available else "install_playwright_or_run_github_action",
-        "status": "ok" if package_available and browsers_available else "package_missing",
+        "evidence_root": str(evidence_root.relative_to(ROOT)).replace("\\", "/") if evidence_root else "",
+        "screenshots_count": screenshots_count,
+        "next_action": "human_review_browser_qa_then_authorized_deploy" if screenshots_available else "run_browser_qa" if package_available and browsers_available else "install_playwright_or_run_github_action",
+        "status": "evidence_ready" if screenshots_available else "ok" if package_available and browsers_available else "package_missing",
         "safe_message": "Browser QA orchestrator no declara pixel-perfect sin capturas reales.",
         "report_path": "reports/V918_BROWSER_QA_ORCHESTRATOR_RUN_QA.md",
         "environment_check": env,

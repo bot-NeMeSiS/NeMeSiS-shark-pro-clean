@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% from "components/v933_ui.html" import page_header, kpi_card, section_header, data_table, empty_state, status_chip, filter_tabs, icon, customer_trust_panel %}
 {% from "components/v936_product.html" import customer_decision, evidence_receipt %}
+{% from "components/v937_sports_lifecycle.html" import data_confidence_badge, learning_receipt %}
 {% block content %}
 {% set record = data.get('track_record') or {} %}
 {% set recent = record.get('recent_results') or [] %}
@@ -42,8 +43,8 @@
       <section class="v933-panel">
         {{ section_header('Picks cerrados recientes', 'Cuota, estado y rentabilidad solo cuando constan en el grading.') }}
         {% if recent %}
-          {% call data_table(['Partido','Selección','Cuota','Estado','Rentabilidad']) %}
-          {% for pick in recent[:30] %}{% set result = (pick.get('result') or pick.get('status') or 'Cerrado') %}{% set result_lower = result|string|lower %}<tr><td><strong>{{ pick.get('match_label') or pick.get('client_match_label') or ((pick.get('home_team') or 'Partido') ~ (' vs ' ~ pick.get('away_team') if pick.get('away_team') else '')) }}</strong></td><td>{{ pick.get('selection_display') or pick.get('selection') or 'Sin selección registrada' }}</td><td>{{ pick.get('odds') if pick.get('odds') is not none else 'Sin dato' }}</td><td>{{ status_chip(result, 'success' if result_lower in ['won','ganado','win'] else ('danger' if result_lower in ['lost','perdido','loss'] else 'neutral')) }}</td><td>{{ pick.get('profit') if pick.get('profit') is not none else (pick.get('profit_units') if pick.get('profit_units') is not none else 'Sin dato') }}</td></tr>{% endfor %}
+          {% call data_table(['Partido','Selección','Cuota','Estado','Aprendizaje','Calidad','Rentabilidad']) %}
+          {% for pick in recent[:30] %}{% set result = (pick.get('result') or pick.get('status') or 'Cerrado') %}{% set result_lower = result|string|lower %}<tr><td><strong>{{ pick.get('match_label') or pick.get('client_match_label') or ((pick.get('home_team') or 'Partido') ~ (' vs ' ~ pick.get('away_team') if pick.get('away_team') else '')) }}</strong></td><td>{{ pick.get('selection_display') or pick.get('selection') or 'Sin selección registrada' }}</td><td>{{ pick.get('odds') if pick.get('odds') is not none else 'Sin dato' }}</td><td>{{ status_chip(result, 'success' if result_lower in ['won','ganado','win'] else ('danger' if result_lower in ['lost','perdido','loss'] else 'neutral')) }}</td><td>{{ learning_receipt(pick) }}</td><td>{{ data_confidence_badge(pick, 'pick') }}</td><td>{{ pick.get('profit') if pick.get('profit') is not none else (pick.get('profit_units') if pick.get('profit_units') is not none else 'Sin dato') }}</td></tr>{% endfor %}
           {% endcall %}
         {% else %}{{ empty_state('Aún no hay picks cerrados', 'El rendimiento permanecerá vacío hasta que el motor de grading confirme resultados reales.', 'Ver picks activos', '/picks', 'history') }}{% endif %}
       </section>

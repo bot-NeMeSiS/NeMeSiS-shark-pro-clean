@@ -15,6 +15,7 @@ CURRENT_ALLOWED = {
     "V916_WORKFORCE_ACTIVATION_BROWSER_QA_AND_DEPLOY_AUTOMATION_READY_FINAL",
     "V917_WORKFORCE_FIRST_FULL_AUTOMATED_RUN_AND_REPORTING_FINAL",
     "V918_WORKFORCE_POST_DEPLOY_BROWSER_QA_ACTIONS_AND_VISUAL_QUEUE_UNLOCK_FINAL",
+    "V937_PRODUCT_PERFECTION_FULL_ECOSYSTEM_LAUNCH_CLOSEOUT_FINAL",
 }
 ZIP_NAME = f"NeMeSiS_SHARK_PRO_{VERSION}_RENDER_READY.zip"
 WORKERS = [
@@ -110,7 +111,7 @@ def main() -> int:
     require(app_version_from_source(app_py) in CURRENT_ALLOWED, "app.py APP_VERSION is not V915 or a compatible successor", failures)
     require("data-v915-workforce-shell" in base, "base V915 marker missing", failures)
     require("V915 automated company workforce render deploy pipeline" in css, "V915 CSS marker missing", failures)
-    require(any(cache in app_py for cache in ["NEMESIS_CACHE_V915", "NEMESIS_CACHE_V916", "NEMESIS_CACHE_V917", "NEMESIS_CACHE_V918"]), "service worker cache V915+ missing", failures)
+    require(any(cache in app_py for cache in ["NEMESIS_CACHE_V915", "NEMESIS_CACHE_V916", "NEMESIS_CACHE_V917", "NEMESIS_CACHE_V918", "NEMESIS_CACHE_V937"]), "service worker cache V915+ missing", failures)
 
     for worker in WORKERS:
         require((ROOT / "automation_workforce" / worker).exists(), f"missing worker {worker}", failures)
@@ -170,7 +171,7 @@ def main() -> int:
     page = client.get("/admin/automation-workforce")
     require(page.status_code == 200, "admin workforce page not 200 with admin session", failures)
     html = page.get_data(as_text=True)
-    require("Automation Workforce" in html, "admin workforce page missing title", failures)
+    require("Automation Workforce" in html or "Equipo automático" in html, "admin workforce page missing title", failures)
     require("TELEGRAM_BOT_TOKEN" not in html and "RENDER_DEPLOY_HOOK_URL" not in html, "admin workforce page leaks secret names", failures)
     require('data-nav-zone="client-bottom"' not in html, "admin workforce leaks client bottom nav", failures)
     require("v825-public-floating-shark" not in html, "admin workforce leaks public floating SHARK", failures)

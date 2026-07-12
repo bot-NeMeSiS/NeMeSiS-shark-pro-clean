@@ -9,14 +9,31 @@ if __package__ in {None, ""}:
 from automation_workforce.common import ROOT, RUNTIME, VERSION, print_json, read_json, run_command, workflow_arg_parser, write_report
 
 
-RESULTS_DIR = ROOT / "reports" / "browser_qa_render"
 VALID_STATUSES = {
     "LOCAL_BROWSER_READY",
     "GITHUB_ACTION_READY",
     "RESULTS_FOUND_READY_TO_IMPORT",
     "BLOCKED_NO_BROWSER_RUNTIME",
     "BLOCKED_NO_SCREENSHOTS",
+    "RESULTS_VALIDATED",
 }
+
+
+def _results_dirs() -> list[Path]:
+    roots = sorted(
+        (ROOT / "reports").glob("browser_qa_v*_final"),
+        key=lambda path: path.stat().st_mtime,
+        reverse=True,
+    )
+    roots.append(ROOT / "reports" / "browser_qa_render")
+    return list(dict.fromkeys(roots))
+
+
+def _results_dir() -> Path:
+    for root in _results_dirs():
+        if root.exists() and ((root / "browser_qa_result.json").exists() or (root / "reference_comparison.json").exists()):
+            return root
+    return ROOT / "reports" / "browser_qa_render"
 
 
 def _browser_env() -> dict:
@@ -33,13 +50,15 @@ def _browser_env() -> dict:
 
 
 def _results_available() -> bool:
-    if not RESULTS_DIR.exists():
+    results_dir = _results_dir()
+    if not results_dir.exists():
         return False
-    return (RESULTS_DIR / "browser_qa_result.json").exists() or (RESULTS_DIR / "reference_comparison.json").exists()
+    return (results_dir / "browser_qa_result.json").exists() or (results_dir / "reference_comparison.json").exists()
 
 
 def _screenshots_available() -> bool:
-    return RESULTS_DIR.exists() and any(RESULTS_DIR.glob("**/*.png"))
+    results_dir = _results_dir()
+    return results_dir.exists() and any(results_dir.glob("**/*.png"))
 
 
 def _queue_stats() -> dict:
@@ -59,10 +78,11 @@ def run_browser_qa_action_router(dry_run: bool = True) -> dict:
     github_action = (ROOT / ".github" / "workflows" / "browser-qa.yml").exists()
     results = _results_available()
     screenshots = _screenshots_available()
+    results_dir = _results_dir()
 
     if results and screenshots:
-        status = "RESULTS_FOUND_READY_TO_IMPORT"
-        action = "import_browser_qa_results"
+        status = "RESULTS_VALIDATED"
+        action = "human_review_browser_qa_then_authorized_deploy"
     elif env["can_capture"]:
         status = "LOCAL_BROWSER_READY"
         action = "run_local_browser_qa"
@@ -88,6 +108,7 @@ def run_browser_qa_action_router(dry_run: bool = True) -> dict:
         "github_action_available": github_action,
         "results_available": results,
         "browser_qa_json_available": results,
+        "results_dir": str(results_dir.relative_to(ROOT)).replace("\\", "/") if results_dir.exists() else "",
         "visual_queue_total": queue["total"],
         "visual_queue_blocked": queue["blocked"],
         "visual_queue_ready": queue["ready"],

@@ -20,6 +20,7 @@
   <script defer src="{{ url_for('static', filename='v934-realtime.js') }}?v={{ app_version }}" data-v934-realtime-version="{{ app_version }}"></script>
   <meta name="csrf-token" content="{{ csrf_token() }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='v937-product-client.css') }}?v={{ app_version }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='v937-sports-lifecycle.css') }}?v={{ app_version }}" data-v937-sports-lifecycle-version="{{ app_version }}">
 </head>
 {% from "partials/brand_logo.html" import nemesis_brand %}
 {% from "components/v933_shells.html" import v933_public_shell, v933_client_shells, v933_admin_shell %}
@@ -667,6 +668,7 @@
   })();
   </script>
   <script src="{{ url_for('static', filename='v937-product-client.js') }}?v={{ app_version }}" defer></script>
+  <script src="{{ url_for('static', filename='v937-sports-lifecycle.js') }}?v={{ app_version }}" defer></script>
 </body>
 </html>
 

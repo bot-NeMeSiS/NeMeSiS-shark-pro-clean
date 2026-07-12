@@ -364,7 +364,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V936_COMMERCIAL_PRODUCT_READINESS_REFERENCE_EXCELLENCE_FINAL'
+APP_VERSION = 'V937_PRODUCT_PERFECTION_FULL_ECOSYSTEM_LAUNCH_CLOSEOUT_FINAL'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 
@@ -6565,6 +6565,150 @@ def client_home_message(has_real_data):
     return "Todavía no hay datos deportivos sincronizados. Cuando haya partidos o picks reales, aparecerán ordenados aquí."
 
 
+def _v937_present(value):
+    return value is not None and str(value).strip() not in {"", "0", "0.0", "None", "null"}
+
+
+def _v937_number(value):
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def get_v937_nemesis_data_confidence(item, entity_type="match"):
+    """Score data quality only; never probability, outcome or betting value."""
+    source = dict(item or {}) if isinstance(item, dict) else {}
+    kind = str(entity_type or "match").strip().lower()
+    factors = []
+
+    def factor(label, points, maximum):
+        safe_points = max(0, min(int(points or 0), int(maximum)))
+        factors.append({"label": label, "points": safe_points, "maximum": int(maximum), "ok": safe_points == int(maximum)})
+
+    if kind == "pick":
+        enriched = v935_enrich_pick_lifecycle(source)
+        teams = bool(_v937_present(enriched.get("home_team")) and _v937_present(enriched.get("away_team")))
+        linked = bool(_v937_present(enriched.get("match_id")) and teams)
+        market = _v937_present(enriched.get("market") or enriched.get("market_name") or enriched.get("pick_type"))
+        selection = _v937_present(enriched.get("client_selection_label") or enriched.get("selection_display") or enriched.get("selection"))
+        odds = _v937_number(enriched.get("client_odds_label") or enriched.get("odds") or enriched.get("price"))
+        odds_state = enriched.get("v935_odds") or {}
+        odds_status = str(odds_state.get("status") or "INVALID").upper()
+        odds_points = 15 if odds is not None and odds > 1 and odds_status == "FRESH" else 10 if odds is not None and odds > 1 and odds_status == "RECORDED" else 0
+        timestamp = enriched.get("odds_updated_at") or enriched.get("updated_at") or enriched.get("published_at") or enriched.get("created_at")
+        data_source = enriched.get("odds_source") or enriched.get("source")
+        lifecycle = str(enriched.get("v935_lifecycle") or "INCOMPLETE")
+        reasoning = enriched.get("reasoning") or enriched.get("reason") or enriched.get("analysis")
+        risk = enriched.get("risk") or enriched.get("risk_level")
+        factor("Partido real identificado", 20 if linked else 0, 20)
+        factor("Mercado y selección", 20 if market and selection else 10 if market or selection else 0, 20)
+        factor("Cuota utilizable y fresca", odds_points, 15)
+        factor("Fuente confirmada", 15 if _v937_present(data_source) else 0, 15)
+        factor("Marca temporal", 10 if _v937_present(timestamp) else 0, 10)
+        factor("Estado canónico", 10 if lifecycle not in {"", "INCOMPLETE"} else 0, 10)
+        factor("Riesgo y explicación", 10 if _v937_present(reasoning) and _v937_present(risk) else 5 if _v937_present(reasoning) or _v937_present(risk) else 0, 10)
+    elif kind == "odds":
+        odds = _v937_number(source.get("odds") or source.get("price") or source.get("client_odds_label"))
+        data_source = source.get("odds_source") or source.get("source")
+        timestamp = source.get("odds_updated_at") or source.get("updated_at") or source.get("recorded_at")
+        state = v935_get_odds_freshness(timestamp, odds=odds, source=data_source, match_lifecycle=str(source.get("v935_match_lifecycle") or "UPCOMING"))
+        freshness = str(state.get("status") or "INVALID")
+        factor("Cuota válida", 25 if odds is not None and odds > 1 else 0, 25)
+        factor("Fuente confirmada", 25 if _v937_present(data_source) else 0, 25)
+        factor("Marca temporal", 25 if _v937_present(timestamp) else 0, 25)
+        factor("Frescura", 25 if freshness == "FRESH" else 15 if freshness == "RECORDED" else 5 if freshness == "STALE" else 0, 25)
+    else:
+        enriched = v935_enrich_match_lifecycle(source)
+        lifecycle = str(enriched.get("v935_lifecycle") or "INCOMPLETE")
+        teams = bool(_v937_present(enriched.get("home_team")) and _v937_present(enriched.get("away_team")))
+        competition = enriched.get("competition_name") or enriched.get("league_name") or enriched.get("competition") or enriched.get("league")
+        kickoff = enriched.get("kickoff_iso") or enriched.get("commence_time") or (f"{enriched.get('match_date')}T{enriched.get('kickoff_time') or enriched.get('match_time')}" if enriched.get("match_date") and (enriched.get("kickoff_time") or enriched.get("match_time")) else "")
+        data_source = enriched.get("v935_source") or enriched.get("source")
+        timestamp = enriched.get("live_updated_at") or enriched.get("provider_updated_at") or enriched.get("updated_at")
+        score_ready = enriched.get("home_score") is not None and enriched.get("away_score") is not None
+        minute_ready = _v937_present(enriched.get("minute") or enriched.get("elapsed") or enriched.get("live_minute"))
+        if lifecycle == "UPCOMING":
+            evidence_points = 15 if _v937_present(kickoff) else 0
+        elif lifecycle in {"LIVE", "HALFTIME"}:
+            evidence_points = (8 if score_ready else 0) + (7 if minute_ready or lifecycle == "HALFTIME" else 0)
+        elif lifecycle in {"FINISHED", "ARCHIVED"}:
+            evidence_points = 15 if score_ready or _v937_present(enriched.get("score") or enriched.get("result")) else 0
+        elif lifecycle in {"RESULT_PENDING", "POSTPONED", "CANCELLED", "ABANDONED"}:
+            evidence_points = 8 if _v937_present(data_source) else 0
+        else:
+            evidence_points = 0
+        factor("Equipos identificados", 20 if teams else 0, 20)
+        factor("Competición confirmada", 15 if _v937_present(competition) else 0, 15)
+        factor("Fecha y hora Madrid", 15 if _v937_present(kickoff) else 0, 15)
+        factor("Fuente confirmada", 15 if _v937_present(data_source) else 0, 15)
+        factor("Marca temporal", 10 if _v937_present(timestamp) else 0, 10)
+        factor("Estado canónico", 10 if lifecycle != "INCOMPLETE" else 0, 10)
+        factor("Evidencia del estado", evidence_points, 15)
+
+    score = int(round(100 * sum(part["points"] for part in factors) / max(1, sum(part["maximum"] for part in factors))))
+    if score >= 85:
+        label, tone = "Alta", "success"
+    elif score >= 70:
+        label, tone = "Sólida", "cyan"
+    elif score >= 50:
+        label, tone = "Limitada", "warning"
+    else:
+        label, tone = "Insuficiente", "danger"
+    missing = [part["label"] for part in factors if not part["ok"]]
+    return {
+        "score": score,
+        "label": label,
+        "tone": tone,
+        "factors": factors,
+        "missing": missing,
+        "summary": "Calidad alta y trazable." if score >= 85 else "Utilizable con límites visibles." if score >= 70 else "Requiere revisar la evidencia disponible." if score >= 50 else "No hay evidencia suficiente para sostener una decisión.",
+        "disclaimer": "Mide calidad del dato, no probabilidad de ganar.",
+    }
+
+
+def get_v937_attention_priority(match):
+    item = v935_enrich_match_lifecycle(dict(match or {})) if isinstance(match, dict) else {}
+    lifecycle = str(item.get("v935_lifecycle") or "INCOMPLETE")
+    has_pick = bool(item.get("has_pick") or item.get("pick_id") or item.get("published_pick"))
+    if lifecycle == "LIVE":
+        level, label = (5, "Atención inmediata") if has_pick else (4, "En directo")
+    elif lifecycle == "HALFTIME":
+        level, label = 4, "Descanso"
+    elif lifecycle == "UPCOMING" and has_pick:
+        level, label = 4, "Con análisis"
+    elif lifecycle == "UPCOMING":
+        level, label = 3, "Próximo"
+    elif lifecycle in {"FINISHED", "ARCHIVED"}:
+        level, label = 2, "Resultado disponible"
+    elif lifecycle == "RESULT_PENDING":
+        level, label = 2, "Resultado pendiente"
+    else:
+        level, label = 1, "Requiere revisión"
+    return {"level": level, "label": label, "lifecycle": lifecycle, "disclaimer": "Prioridad informativa, no valor de apuesta."}
+
+
+def get_v937_pick_learning(pick):
+    item = v935_enrich_pick_lifecycle(dict(pick or {})) if isinstance(pick, dict) else {}
+    lifecycle = str(item.get("v935_lifecycle") or "INCOMPLETE")
+    if lifecycle == "WON":
+        return {"label": "Hipótesis cumplida", "tone": "success", "detail": "El resultado cerró a favor; revisa también cuota y riesgo asumido."}
+    if lifecycle == "LOST":
+        return {"label": "Hipótesis no cumplida", "tone": "danger", "detail": "El resultado no validó la selección; conserva la evidencia para aprendizaje."}
+    if lifecycle == "VOID":
+        return {"label": "Sin evaluación", "tone": "neutral", "detail": "El pick quedó void y no debe alterar el rendimiento."}
+    if lifecycle in {"EXPIRED", "CANCELLED", "ARCHIVED"}:
+        return {"label": "Cierre no evaluable", "tone": "warning", "detail": "El expediente permanece trazable, fuera de ROI si no existe grading válido."}
+    return {"label": "Pendiente", "tone": "warning", "detail": "Todavía no existe un resultado evaluable."}
+
+
+app.jinja_env.globals.update(
+    nemesis_data_confidence=get_v937_nemesis_data_confidence,
+    nemesis_attention_priority=get_v937_attention_priority,
+    nemesis_pick_learning=get_v937_pick_learning,
+)
+
+
 @app.context_processor
 def inject_session_user():
     user = current_session_user()
@@ -6572,6 +6716,9 @@ def inject_session_user():
         "current_user": user,
         "app_version": APP_VERSION,
         "madrid_now": now_madrid_label(),
+        "nemesis_data_confidence": get_v937_nemesis_data_confidence,
+        "nemesis_attention_priority": get_v937_attention_priority,
+        "nemesis_pick_learning": get_v937_pick_learning,
     }
 
 
@@ -10591,7 +10738,7 @@ def dashboard_data(lane="today", date=None):
 @app.route("/service-worker.js")
 def service_worker():
     body = (
-        "const NEMESIS_CACHE='NEMESIS_CACHE_V936';\n"
+        "const NEMESIS_CACHE='NEMESIS_CACHE_V937';\n"
         "self.addEventListener('install',event=>{self.skipWaiting();});\n"
         "self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.map(key=>caches.delete(key)))).then(()=>self.clients.claim()));});\n"
         "self.addEventListener('fetch',event=>{const req=event.request;if(req.method!=='GET'){return;}if(req.mode==='navigate'){event.respondWith(fetch(req,{cache:'no-store'}).catch(()=>fetch('/',{cache:'no-store'})));return;}if(req.destination==='style'||req.destination==='script'){event.respondWith(fetch(req,{cache:'reload'}));return;}event.respondWith(fetch(req));});\n"
@@ -11438,6 +11585,12 @@ def _v932_locked_sports_summary():
         "valid_upcoming_matches": [],
         "valid_live_events": [],
         "valid_active_picks": [],
+        "all_valid_matches": [],
+        "all_picks": [],
+        "finished_matches": [],
+        "result_pending_matches": [],
+        "archived_matches": [],
+        "incident_matches": [],
         "incomplete_matches": [],
         "raw_matches_count": 0,
         "provider_status": "temporarily_unavailable",
@@ -11802,6 +11955,7 @@ def v931_calendar_context(summary, lane="today", date_value=None):
     today = today_iso()
     tomorrow = today_iso(1)
     week_end = (datetime.fromisoformat(today).date() + timedelta(days=7)).isoformat()
+    all_valid = list(summary.get("all_valid_matches") or summary.get("valid_upcoming_matches") or [])
     matches = list(summary.get("valid_upcoming_matches") or [])
     pick_ids = {str(item.get("match_id") or "") for item in summary.get("valid_active_picks") or []}
     if lane == "tomorrow":
@@ -11811,7 +11965,13 @@ def v931_calendar_context(summary, lane="today", date_value=None):
     elif lane in {"live", "directo"}:
         matches = list(summary.get("valid_live_events") or [])
     elif lane in {"with_pick", "picks"}:
-        matches = [item for item in matches if str(item.get("id") or "") in pick_ids]
+        matches = [item for item in all_valid if str(item.get("id") or "") in pick_ids]
+    elif lane in {"favorites", "favourites", "favoritos"}:
+        matches = [item for item in all_valid if item.get("is_favorite")]
+    elif lane in {"finished", "finalizados", "results"}:
+        matches = [item for item in all_valid if item.get("v935_lifecycle") == "FINISHED"]
+    elif lane in {"incidents", "incidencias"}:
+        matches = list(summary.get("incident_matches") or [])
     else:
         matches = [item for item in matches if item.get("match_date") == selected_date]
     query = normalized_label(request.args.get("q") or "") if has_request_context() else ""
@@ -11847,7 +12007,7 @@ def v931_calendar_context(summary, lane="today", date_value=None):
                 for name, items in sorted(leagues.items())
             ],
         })
-    all_valid = list(summary.get("valid_upcoming_matches") or [])
+    upcoming_valid = list(summary.get("valid_upcoming_matches") or [])
     today_valid = list(summary.get("valid_matches_today") or [])
     leagues = {}
     countries = {}
@@ -11869,9 +12029,12 @@ def v931_calendar_context(summary, lane="today", date_value=None):
         "groups": day_groups,
         "counts": {
             "today": len(today_valid),
-            "week": sum(1 for item in all_valid if today <= str(item.get("match_date") or "") <= week_end),
+            "week": sum(1 for item in upcoming_valid if today <= str(item.get("match_date") or "") <= week_end),
             "live": len(summary.get("valid_live_events") or []),
             "picks": len(pick_ids),
+            "favorites": sum(1 for item in all_valid if item.get("is_favorite")),
+            "finished": sum(1 for item in all_valid if item.get("v935_lifecycle") == "FINISHED"),
+            "incidents": len(summary.get("incident_matches") or []),
         },
         "facets": {
             "leagues": [{"label": key, "value": key, "count": value} for key, value in sorted(leagues.items())],
@@ -11879,9 +12042,11 @@ def v931_calendar_context(summary, lane="today", date_value=None):
         },
         "tabs": [
             {"key": "today", "label": "Hoy", "href": "/calendar?lane=today"},
-            {"key": "tomorrow", "label": "Manana", "href": "/calendar?lane=tomorrow"},
+            {"key": "tomorrow", "label": "Mañana", "href": "/calendar?lane=tomorrow"},
             {"key": "week", "label": "Semana", "href": "/calendar?lane=week"},
             {"key": "with_pick", "label": "Con pick", "href": "/calendar?lane=with_pick"},
+            {"key": "favorites", "label": "Favoritos", "href": "/calendar?lane=favorites"},
+            {"key": "finished", "label": "Finalizados", "href": "/calendar?lane=finished"},
         ],
         "date_chips": [],
         "source_summary": summary.get("safe_message"),
@@ -11891,13 +12056,17 @@ def v931_calendar_context(summary, lane="today", date_value=None):
 
 def v931_live_context(summary, lane="live", query=""):
     lane = str(lane or "live").strip().lower()
-    today_matches = list(summary.get("valid_matches_today") or [])
+    today = today_iso()
+    today_matches = [
+        item for item in (summary.get("all_valid_matches") or summary.get("valid_matches_today") or [])
+        if str(item.get("match_date") or "") == today
+    ]
     live_matches = list(summary.get("valid_live_events") or [])
     pick_ids = {str(item.get("match_id") or "") for item in summary.get("valid_active_picks") or []}
     if lane == "all":
         selected = today_matches
     elif lane in {"finished", "finalizados"}:
-        selected = [item for item in today_matches if canonical_match_status(item).get("is_finished")]
+        selected = [item for item in today_matches if item.get("v935_lifecycle") == "FINISHED" or canonical_match_status(item).get("is_finished")]
     elif lane in {"break", "halftime", "descanso"}:
         selected = [item for item in today_matches if "half" in normalized_label(item.get("status")) or normalized_label(item.get("status")) == "ht"]
     elif lane in {"with_pick", "picks"}:
@@ -11916,7 +12085,7 @@ def v931_live_context(summary, lane="live", query=""):
         "counts": {
             "live": len(live_matches),
             "halftime": sum(1 for item in today_matches if normalized_label(item.get("status")) in {"ht", "half time", "descanso"}),
-            "finished": sum(1 for item in today_matches if canonical_match_status(item).get("is_finished")),
+            "finished": sum(1 for item in today_matches if item.get("v935_lifecycle") == "FINISHED" or canonical_match_status(item).get("is_finished")),
             "picks": len(pick_ids),
         },
         "no_render_api_call": True,
@@ -17131,7 +17300,7 @@ def get_safe_sports_calendar_context(calendar=None) -> dict:
         "safe_message": (
             "Calendario real disponible desde cache o base de datos."
             if has_real_data
-            else "Sin partidos reales ahora mismo. Requiere sincronizacion real."
+            else "Sin partidos reales ahora mismo. Requiere sincronización real."
         ),
         "error_safe": not has_real_data,
         "no_render_api_call": True,
@@ -17550,7 +17719,7 @@ def api_admin_v934_dry_run_sync():
         "external_calls": 0,
         "writes": 0,
         "plan": ["validar proveedor", "revisar creditos", "sincronizar job autorizado", "refrescar cache"],
-        "safe_message": "Plan validado; no se ejecuto una sincronizacion real.",
+        "safe_message": "Plan validado; no se ejecutó una sincronización real.",
     })
 
 
@@ -18046,6 +18215,33 @@ def v936_commercial_readiness_runtime_summary() -> dict:
     }
 
 
+def v937_product_perfection_runtime_summary() -> dict:
+    """Expose the V937 closeout without claiming production or visual perfection."""
+    sports_component = BASE_DIR / "templates" / "components" / "v937_sports_lifecycle.html"
+    sports_css = BASE_DIR / "static" / "v937-sports-lifecycle.css"
+    browser_result = BASE_DIR / "reports" / "browser_qa_v937_final" / "browser_qa_result.json"
+    screenshots = 0
+    browser_status = "pending_browser_qa"
+    try:
+        payload = json.loads(browser_result.read_text(encoding="utf-8"))
+        screenshots = int(payload.get("screenshots_count") or payload.get("screenshots_total") or len(payload.get("screenshots") or []))
+        errors = int(payload.get("errors_count") or len(payload.get("errors") or []))
+        browser_status = "passed_pending_human_review" if screenshots and not errors else "action_required"
+    except Exception:
+        pass
+    return {
+        "v937_base_version": "V936_COMMERCIAL_PRODUCT_READINESS_REFERENCE_EXCELLENCE_FINAL",
+        "v937_product_closeout_status": "release_candidate" if sports_component.exists() and sports_css.exists() else "incomplete",
+        "v937_data_confidence_index": "active_quality_not_probability",
+        "v937_sports_lifecycle_status": "active" if sports_component.exists() else "missing",
+        "v937_browser_qa_status": browser_status,
+        "v937_browser_screenshots": screenshots,
+        "v937_no_fake_data_guard": True,
+        "v937_pixel_perfect_claim_allowed": False,
+        "v937_next_required_action": "human_review_browser_qa_then_authorized_deploy",
+    }
+
+
 def get_safe_runtime_identity_for_admin() -> dict:
     """Return local runtime identity for admin panels without external calls or secrets."""
     version_txt = ""
@@ -18082,6 +18278,8 @@ def api_runtime_version():
     v933_tokens_path = BASE_DIR / "static" / "v933_design_tokens.css"
     v933_product_path = BASE_DIR / "static" / "v933-product.css"
     v936_commercial_path = BASE_DIR / "static" / "v936-commercial.css"
+    v937_client_path = BASE_DIR / "static" / "v937-product-client.css"
+    v937_sports_path = BASE_DIR / "static" / "v937-sports-lifecycle.css"
     base_path = BASE_DIR / "templates" / "base.html"
     manifest_path = BASE_DIR / "RELEASE_MANIFEST_V898.json"
     fallback_manifest_path = BASE_DIR / "RELEASE_MANIFEST_V897.json"
@@ -18096,6 +18294,9 @@ def api_runtime_version():
     v933_css_size = 0
     v936_commercial_hash = ""
     v936_commercial_size = 0
+    v937_client_hash = ""
+    v937_sports_hash = ""
+    v937_css_size = 0
     app_py_text = ""
     runtime_outbox_text = ""
     build_generated_at = ""
@@ -18157,6 +18358,16 @@ def api_runtime_version():
         v936_commercial_hash = ""
         v936_commercial_size = 0
     try:
+        v937_client_bytes = v937_client_path.read_bytes()
+        v937_sports_bytes = v937_sports_path.read_bytes()
+        v937_client_hash = hashlib.sha256(v937_client_bytes).hexdigest()[:16]
+        v937_sports_hash = hashlib.sha256(v937_sports_bytes).hexdigest()[:16]
+        v937_css_size = len(v937_client_bytes) + len(v937_sports_bytes)
+    except Exception:
+        v937_client_hash = ""
+        v937_sports_hash = ""
+        v937_css_size = 0
+    try:
         app_py_text = Path(__file__).read_text(encoding="utf-8", errors="replace")
     except Exception:
         app_py_text = ""
@@ -18190,6 +18401,9 @@ def api_runtime_version():
         and 'data-v933-product-version="{{ app_version }}"' in base_template
         and "filename='v936-commercial.css'" in base_template
         and 'data-v936-commercial-version="{{ app_version }}"' in base_template
+        and "filename='v937-product-client.css'" in base_template
+        and "filename='v937-sports-lifecycle.css'" in base_template
+        and 'data-v937-sports-lifecycle-version="{{ app_version }}"' in base_template
     )
     service_worker_cache_name = f"NEMESIS_CACHE_{APP_VERSION.split('_', 1)[0]}"
     service_worker_no_stale_html_css = bool(
@@ -18233,6 +18447,7 @@ def api_runtime_version():
     v934_summary = v934_reference_exactness_runtime_summary()
     v935_summary = v935_launch_trust_runtime_summary()
     v936_summary = v936_commercial_readiness_runtime_summary()
+    v937_summary = v937_product_perfection_runtime_summary()
     v932_sports_summary = sanitize_runtime_value(get_v932_real_sports_value_context())
     v932_next_required_action = (
         "run_protected_sports_sync_then_authorized_browser_qa"
@@ -18277,6 +18492,9 @@ def api_runtime_version():
         "static_v933_css_size": v933_css_size,
         "static_v936_commercial_hash": v936_commercial_hash,
         "static_v936_commercial_size": v936_commercial_size,
+        "static_v937_client_hash": v937_client_hash,
+        "static_v937_sports_hash": v937_sports_hash,
+        "static_v937_css_size": v937_css_size,
         "service_worker_cache_name": service_worker_cache_name,
         "service_worker_no_stale_html_css": service_worker_no_stale_html_css,
         "has_v816_shell": "data-v816-shell" in base_template and "NEMESIS V816 LIVE REFERENCE VISUAL DIFF ACTIVE" in base_template,
@@ -18623,6 +18841,12 @@ def api_runtime_version():
         "has_v936_admin_executive_focus": "executive_focus" in (BASE_DIR / "templates" / "components" / "v936_product.html").read_text(encoding="utf-8", errors="replace"),
         "has_v936_shark_decision_brief": "intelligence_brief" in (BASE_DIR / "templates" / "components" / "v936_product.html").read_text(encoding="utf-8", errors="replace"),
         "has_v936_reference_excellence": v936_commercial_hash != "",
+        "has_v937_product_perfection_closeout": (BASE_DIR / "templates" / "components" / "v937_sports_lifecycle.html").exists(),
+        "has_v937_home_decision_center": "decision_radar" in (BASE_DIR / "templates" / "home.html").read_text(encoding="utf-8", errors="replace"),
+        "has_v937_client_visual_foundation": v937_client_path.exists(),
+        "has_v937_sports_lifecycle": v937_sports_path.exists() and "nemesis_data_confidence" in app_py_text,
+        "has_v937_full_ecosystem_qa": (BASE_DIR / "tools" / "check_v937_sports_lifecycle.py").exists(),
+        "has_v937_launch_closeout": (BASE_DIR / "reports" / "V937_PRODUCT_PERFECTION_MASTER_REPORT.md").exists(),
         **v902_truth_summary,
         **v904_summary,
         **v906_summary,
@@ -18654,6 +18878,7 @@ def api_runtime_version():
         **v934_summary,
         **v935_summary,
         **v936_summary,
+        **v937_summary,
         "v932_client_auth_routes_status": "local_mock_guard_ready_production_session_required",
         "v932_admin_auth_routes_status": "local_mock_guard_ready_production_session_required",
         "v932_sqlite_regression_status": "safe_retry_and_schema_fallback_ready",

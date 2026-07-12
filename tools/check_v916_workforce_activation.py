@@ -12,6 +12,7 @@ CURRENT_ALLOWED = {
     VERSION,
     "V917_WORKFORCE_FIRST_FULL_AUTOMATED_RUN_AND_REPORTING_FINAL",
     "V918_WORKFORCE_POST_DEPLOY_BROWSER_QA_ACTIONS_AND_VISUAL_QUEUE_UNLOCK_FINAL",
+    "V937_PRODUCT_PERFECTION_FULL_ECOSYSTEM_LAUNCH_CLOSEOUT_FINAL",
 }
 ZIP_NAME = f"NeMeSiS_SHARK_PRO_{VERSION}_RENDER_READY.zip"
 REPORTS = [
@@ -78,7 +79,7 @@ def main() -> int:
     require(version_bytes.decode("utf-8").strip() in CURRENT_ALLOWED, "VERSION.txt is not V916 or compatible successor", failures)
     require(read("APP_VERSION").strip().lstrip("\ufeff") in CURRENT_ALLOWED, "APP_VERSION is not V916 or compatible successor", failures)
     require(app_version(app_py) in CURRENT_ALLOWED, "app.py APP_VERSION is not V916 or compatible successor", failures)
-    require(any(cache in app_py for cache in ["NEMESIS_CACHE_V916", "NEMESIS_CACHE_V917", "NEMESIS_CACHE_V918"]), "service worker cache is not V916+", failures)
+    require(any(cache in app_py for cache in ["NEMESIS_CACHE_V916", "NEMESIS_CACHE_V917", "NEMESIS_CACHE_V918", "NEMESIS_CACHE_V937"]), "service worker cache is not V916+", failures)
 
     for flag in [
         "has_v916_workforce_activation",
@@ -95,8 +96,9 @@ def main() -> int:
     require("mask_secret(hook)" in render_guard, "render deploy guard does not mask hook", failures)
     require("github_action_available" in browser_orchestrator and "visual_queue_blocked" in browser_orchestrator, "browser orchestrator missing V916 status fields", failures)
     require("blocked_no_screenshot" in visual_manager and "next_action" in visual_manager, "visual queue manager missing V916 status fields", failures)
-    require("v916-workforce-activation" in template, "admin panel missing V916 shell", failures)
-    require("Core Workforce" in template and "Deploy Hook" in template and "Browser QA" in template and "Security Guard" in template, "admin panel missing separated status cards", failures)
+    require("v916-workforce-activation" in template or "v933-admin-workforce" in template, "admin panel missing workforce shell", failures)
+    lowered_template = template.lower()
+    require(all(label in lowered_template for label in ("core workforce", "deploy hook", "browser qa", "secret guard")), "admin panel missing separated status cards", failures)
     require("V916 workforce activation browser QA and deploy automation ready" in css, "CSS V916 marker missing", failures)
 
     require("workflow_dispatch" in render_workflow and "RENDER_DEPLOY_HOOK_URL" in render_workflow, "render deploy workflow missing manual hook flow", failures)

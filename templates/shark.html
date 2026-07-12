@@ -31,6 +31,7 @@
     {{ intelligence_brief('Hay partidos completos disponibles', 'Todavía no existe una selección publicable', 'Revisar la agenda antes de buscar una oportunidad', 'Explorar partidos', '/calendar', false) }}
   {% else %}
     {{ intelligence_brief('No hay contexto deportivo completo', 'Una respuesta avanzada podría inducir a una conclusión falsa', 'Esperar sincronización o explorar las capacidades seguras', 'Ver calendario', '/calendar', false) }}
+    <aside class="v933-safe-copy"><strong>Decisión SHARK:</strong> no recomiendo una selección hoy porque no existe evidencia completa suficiente. Esperar también es una decisión responsable.</aside>
   {% endif %}
 
   {{ customer_decision('Usa SHARK para entender, no para adivinar', 'Cada respuesta debe separar evidencia, riesgo y recomendación. Si falta contexto, SHARK te dirige a la siguiente fuente útil.', 'Hacer una pregunta rápida', '#v936-shark-questions', 'cyan', 'Cómo obtener valor', 'Ver metodología', '/track-record', 'Las limitaciones permanecen visibles') }}

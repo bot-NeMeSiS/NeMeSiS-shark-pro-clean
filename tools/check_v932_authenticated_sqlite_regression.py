@@ -16,6 +16,7 @@ SUCCESSOR_VERSION = "V933_REFERENCE_PARITY_PRODUCT_DESIGN_SPRINT_SYSTEM_FINAL"
 V934_VERSION = "V934_REFERENCE_EXACTNESS_REALTIME_SPORTS_PRODUCTION_PERFECTION_FINAL"
 V935_VERSION = "V935_LAUNCH_TRUST_REAL_DATA_LIFECYCLE_PERFORMANCE_REFERENCE_POLISH_FINAL"
 V936_VERSION = "V936_COMMERCIAL_PRODUCT_READINESS_REFERENCE_EXCELLENCE_FINAL"
+V937_VERSION = "V937_PRODUCT_PERFECTION_FULL_ECOSYSTEM_LAUNCH_CLOSEOUT_FINAL"
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
@@ -135,7 +136,7 @@ def main() -> int:
     failures = [item for item in results if item["status"] >= 500 or item["locked_visible"]]
     locked_results = [item for item in results if item["profile"] == "locked"]
     checks = {
-        "version_v932_or_successor": app_module.APP_VERSION in {VERSION, SUCCESSOR_VERSION, V934_VERSION, V935_VERSION, V936_VERSION},
+        "version_v932_or_successor": app_module.APP_VERSION in {VERSION, SUCCESSOR_VERSION, V934_VERSION, V935_VERSION, V936_VERSION, V937_VERSION},
         "priority_schema_safe": not any(item["profile"] == "modern" for item in failures),
         "legacy_schema_safe": not any(item["profile"] == "legacy" for item in failures),
         "empty_schema_safe": not any(item["profile"] == "empty" for item in failures),

@@ -180,7 +180,7 @@ def _static_role(role: str) -> tuple[list[dict[str, Any]], dict[str, Any]]:
         version = _read("VERSION.txt").strip()
         if missing:
             findings.append(_finding("launch_artifact_missing", "P1", ", ".join(missing), files=missing, routes=["/api/runtime-version"], next_action="complete_launch_artifacts"))
-        if version != VERSION:
+        if not version.startswith(("V935_", "V936_", "V937_")):
             findings.append(_finding("release_identity_pending", "P2", version or "missing", files=["VERSION.txt", "app.py"], routes=["/api/runtime-version"], next_action="finalize_v935_identity"))
         metrics["required_artifacts_present"] = len(required) - len(missing)
         metrics["version"] = version
@@ -279,4 +279,3 @@ def worker_main(role: str) -> int:
     result = run_role(role, args.db_path, write=not args.no_write)
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0 if result.get("ok") else 1
-

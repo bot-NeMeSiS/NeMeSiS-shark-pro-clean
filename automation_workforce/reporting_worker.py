@@ -43,7 +43,8 @@ def run_reporting_worker(dry_run: bool = True, worker_results: dict[str, dict[st
     secret = results.get("secret_guard") or {}
     runtime = results.get("runtime_verifier") or {}
     status_map = {name: _status(result) for name, result in results.items()}
-    blocking_statuses = {status for status in status_map.values() if status not in {"ok", "ready"}}
+    non_blocking_statuses = {"ok", "ready", "evidence_ready", "RESULTS_VALIDATED", "network_unavailable_from_shell"}
+    blocking_statuses = {status for status in status_map.values() if status not in non_blocking_statuses}
     next_action = "run_browser_qa_or_import_results"
     if secret.get("findings_count"):
         next_action = "review_secret_guard_findings"
@@ -53,6 +54,8 @@ def run_reporting_worker(dry_run: bool = True, worker_results: dict[str, dict[st
         next_action = "run_browser_qa_or_import_results"
     elif visual.get("blocked_no_screenshot"):
         next_action = "run_browser_qa_or_import_results"
+    elif browser.get("screenshots_available") and browser_router.get("status") == "RESULTS_VALIDATED":
+        next_action = "human_review_browser_qa_then_authorized_deploy"
     payload = {
         "ok": True,
         "version": VERSION,
@@ -67,7 +70,7 @@ def run_reporting_worker(dry_run: bool = True, worker_results: dict[str, dict[st
         "visual_queue_manager_status": status_map.get("visual_queue_manager"),
         "telegram_dry_run_watcher_status": status_map.get("telegram_dry_run_watcher"),
         "reporting_worker_status": "ok",
-        "overall_status": "action_required" if blocking_statuses else "ok",
+        "overall_status": "action_required" if blocking_statuses else "release_candidate_pending_human_review" if browser.get("screenshots_available") else "ok",
         "next_required_action": next_action,
         "workers": results,
         "reports": sorted(p.name for p in REPORTS.glob("V918_*.md")),

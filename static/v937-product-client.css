@@ -1,7 +1,7 @@
 :root{--v937-bg:#020914;--v937-panel:#07182b;--v937-line:rgba(95,164,222,.20);--v937-text:#f5f9ff;--v937-muted:#9fb4c8;--v937-blue:#1685ff;--v937-cyan:#20d8f4;--v937-green:#43dc8a;--v937-shadow:0 18px 50px rgba(0,8,24,.30);--v937-radius:12px;--v937-content:1500px}
 html{background:var(--v937-bg)}body:not(.admin-shell):not([data-admin="true"]){background:radial-gradient(circle at 82% -6%,rgba(0,153,255,.11),transparent 28rem),radial-gradient(circle at 8% 58%,rgba(16,93,175,.08),transparent 32rem),linear-gradient(180deg,#020814 0%,#04101f 42%,#020914 100%);color:var(--v937-text);min-height:100vh}
 body:not(.admin-shell):not([data-admin="true"]) main,body:not(.admin-shell):not([data-admin="true"]) .main-content,body:not(.admin-shell):not([data-admin="true"]) .page-content{width:min(100%,var(--v937-content));margin-inline:auto}
-body:not(.admin-shell):not([data-admin="true"]) :is(h1,h2,h3){text-wrap:balance;letter-spacing:-.02em}
+body:not(.admin-shell):not([data-admin="true"]) :is(h1,h2,h3){text-wrap:balance;letter-spacing:0}
 body:not(.admin-shell):not([data-admin="true"]) h1{font-size:clamp(1.8rem,3vw,3rem);line-height:1.04;margin-bottom:.45rem}
 body:not(.admin-shell):not([data-admin="true"]) :is(.card,.panel,.surface,.glass-card,.dashboard-card,.match-card,.pick-card,.ns-card){border:1px solid var(--v937-line);border-radius:var(--v937-radius);background:linear-gradient(145deg,rgba(10,31,54,.94),rgba(4,16,31,.97));box-shadow:var(--v937-shadow);backdrop-filter:blur(12px)}
 body:not(.admin-shell):not([data-admin="true"]) :is(.card,.panel,.surface,.glass-card,.dashboard-card,.match-card,.pick-card,.ns-card):hover{border-color:rgba(31,143,255,.46)}

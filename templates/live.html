@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% from "components/v933_ui.html" import page_header, kpi_card, section_header, live_card, match_card, filter_tabs, empty_state, provider_state, status_chip, icon, realtime_state_bar %}
 {% from "components/v936_product.html" import customer_decision %}
+{% from "components/v937_sports_lifecycle.html" import lifecycle_story %}
 {% block content %}
 {% set live = data.get('live_experience') or {} %}
 {% set counts = live.get('counts') or {} %}
@@ -16,6 +17,7 @@
   {{ page_header('Directo', 'Marcadores, minutos y eventos únicamente cuando están confirmados.', 'live', [{'label':'Partidos','href':'/calendar'},{'label':'Ver picks','href':'/picks','primary':true,'icon':'target'}]) }}
 
   {{ realtime_state_bar(realtime, 'live') }}
+  {{ lifecycle_story({'today': (live.get('matches') or [])|length, 'live': counts.get('live', 0), 'picks': counts.get('picks', 0), 'finished': counts.get('finished', 0), 'incidents': 0}, lane) }}
 
   {% if ns.matches %}
     {{ customer_decision('Sigue el partido, no el ruido', 'Prioriza marcador, minuto y eventos confirmados. Abre SHARK para interpretar el contexto, nunca para completar datos ausentes.', 'Ver board en vivo', '#v936-live-board', 'cyan', 'Qué hacer aquí', 'Revisar picks', '/picks', 'Actualización condicionada a datos reales') }}
@@ -37,11 +39,11 @@
   <section class="v933-two-col">
     <div class="v933-main-stack">
       <section class="v933-panel" id="v936-live-board">
-        {{ section_header('Board en vivo', 'El contenido se mantiene rápido aunque el proveedor no responda.') }}
+        {{ section_header('Board ' ~ ('en vivo' if lane in ['live','directo'] else 'del día'), 'Contexto confirmado, sin simular actividad cuando el proveedor no responde.') }}
         {% if ns.matches %}
         <div class="v933-live-grid">{% for match in ns.matches %}{{ live_card(match) }}{% endfor %}</div>
         {% else %}
-          {{ empty_state('No hay partidos en directo confirmados', 'No se simulan marcadores ni minutos. Puedes consultar la agenda real mientras llega el próximo evento.', 'Ver próximos partidos', '/calendar', 'live') }}
+          {{ empty_state('No hay partidos para este estado', 'No se simulan marcadores ni minutos. Cambia el filtro o consulta la agenda real.', 'Ver próximos partidos', '/calendar', 'live') }}
         {% endif %}
       </section>
 
