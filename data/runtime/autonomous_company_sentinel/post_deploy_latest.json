@@ -1,15 +1,15 @@
 {
   "ok": true,
-  "version": "V918_WORKFORCE_POST_DEPLOY_BROWSER_QA_ACTIONS_AND_VISUAL_QUEUE_UNLOCK_FINAL",
+  "version": "V937_PRODUCT_PERFECTION_FULL_ECOSYSTEM_LAUNCH_CLOSEOUT_FINAL",
   "dry_run": true,
   "network_status": "LOCAL_NETWORK_BLOCKED_PLAN_READY",
   "runtime": {
     "ok": true,
-    "version": "V918_WORKFORCE_POST_DEPLOY_BROWSER_QA_ACTIONS_AND_VISUAL_QUEUE_UNLOCK_FINAL",
+    "version": "V937_PRODUCT_PERFECTION_FULL_ECOSYSTEM_LAUNCH_CLOSEOUT_FINAL",
     "dry_run": true,
     "runtime_url": "https://bot-apuestas-crgf.onrender.com/api/runtime-version",
     "http_status": 0,
-    "expected_version": "V918_WORKFORCE_POST_DEPLOY_BROWSER_QA_ACTIONS_AND_VISUAL_QUEUE_UNLOCK_FINAL",
+    "expected_version": "V937_PRODUCT_PERFECTION_FULL_ECOSYSTEM_LAUNCH_CLOSEOUT_FINAL",
     "render_version": null,
     "runtime_error": "<urlopen error [WinError 10013] Intento de acceso a un socket no permitido por sus permisos de acceso>",
     "version_files_match": null,

@@ -13,6 +13,7 @@ V933_VERSION = "V933_REFERENCE_PARITY_PRODUCT_DESIGN_SPRINT_SYSTEM_FINAL"
 V934_VERSION = "V934_REFERENCE_EXACTNESS_REALTIME_SPORTS_PRODUCTION_PERFECTION_FINAL"
 V935_VERSION = "V935_LAUNCH_TRUST_REAL_DATA_LIFECYCLE_PERFORMANCE_REFERENCE_POLISH_FINAL"
 V936_VERSION = "V936_COMMERCIAL_PRODUCT_READINESS_REFERENCE_EXCELLENCE_FINAL"
+V937_VERSION = "V937_PRODUCT_PERFECTION_FULL_ECOSYSTEM_LAUNCH_CLOSEOUT_FINAL"
 
 
 def main() -> int:
@@ -40,7 +41,7 @@ def main() -> int:
                     zip_clean = False
                     break
     checks = {
-        "version_v929_or_successor": current_version in {VERSION, V930_VERSION, V931_VERSION, V932_VERSION, V933_VERSION, V934_VERSION, V935_VERSION, V936_VERSION},
+        "version_v929_or_successor": current_version in {VERSION, V930_VERSION, V931_VERSION, V932_VERSION, V933_VERSION, V934_VERSION, V935_VERSION, V936_VERSION, V937_VERSION},
         "version_without_bom": not version_raw.startswith(b"\xef\xbb\xbf"),
         "app_version": app_module.APP_VERSION == current_version,
         "runtime_200": runtime_response.status_code == 200,

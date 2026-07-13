@@ -9,12 +9,12 @@
   "findings": [],
   "metrics": {
     "required_artifacts_present": 4,
-    "version": "V935_LAUNCH_TRUST_REAL_DATA_LIFECYCLE_PERFORMANCE_REFERENCE_POLISH_FINAL"
+    "version": "V937_PRODUCT_PERFECTION_FULL_ECOSYSTEM_LAUNCH_CLOSEOUT_FINAL"
   },
   "database_status": "ok",
   "external_calls": 0,
   "database_writes": 0,
   "secrets_visible": false,
-  "generated_at_madrid": "2026-07-12T02:34:26+02:00",
+  "generated_at_madrid": "2026-07-13T00:46:19+02:00",
   "report_path": "data/runtime/automation_workforce/v935_workers/launch_readiness.md"
 }

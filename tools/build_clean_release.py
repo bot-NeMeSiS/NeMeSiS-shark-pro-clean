@@ -559,6 +559,11 @@ def include(path: Path) -> bool:
                 and len(parts) == 2
                 and path.suffix.lower() in {".md", ".json"}
             )
+            or (
+                rel_posix.startswith("reports/V937_")
+                and len(parts) == 2
+                and path.suffix.lower() in {".md", ".json"}
+            )
             or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V912")
             or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V913")
             or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V914")
@@ -574,6 +579,7 @@ def include(path: Path) -> bool:
             or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V924")
             or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V928")
             or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V929")
+            or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V937")
             or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V930")
             or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V931")
             or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V932")

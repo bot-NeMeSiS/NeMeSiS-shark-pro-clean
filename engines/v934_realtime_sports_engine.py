@@ -260,7 +260,7 @@ def build_realtime_snapshot(summary: dict[str, Any], now: datetime | None = None
             if stale_live
             else "Datos reales actualizados desde DB/cache."
             if matches or picks
-            else "Esperando una sincronizacion real; no se muestran datos de ejemplo."
+            else "Esperando una sincronización real; no se muestran datos de ejemplo."
         ),
         "no_external_calls": True,
         "no_fake_data": True,

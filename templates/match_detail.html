@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% from "components/v933_ui.html" import page_header, section_header, status_chip, team_logo, pick_card, empty_state, provider_state, action_button, icon, realtime_state_bar, data_provenance_badge, customer_trust_panel %}
+{% from "components/v937_sports_lifecycle.html" import data_confidence_panel, attention_priority %}
 {% block content %}
 {% if not detail %}
 <div class="v933-page v933-match-detail" data-v933-template="match_detail">{{ page_header('Partido no disponible', 'No se encontró un registro real para este identificador.', 'matches') }}{{ empty_state('Sin detalle de partido', 'Vuelve al calendario para elegir un encuentro disponible.', 'Volver a partidos', '/calendar', 'calendar') }}</div>
@@ -26,6 +27,7 @@
       <b>{{ ctx.client_score_label or 'VS' }}</b>
       <time>{{ ctx.client_full_datetime_label or ctx.client_time_label or 'Hora pendiente' }}</time>
       {{ status_chip(ctx.client_status_label or 'Estado pendiente', 'success' if (ctx.client_status_label or '') == 'En directo' else 'blue') }}
+      {{ attention_priority(match) }}
       {% if match.get('v935_source') %}{{ data_provenance_badge(match.get('v935_source'), (match.get('v935_freshness') or {}).get('label'), match.get('v935_lifecycle')) }}{% endif %}
     </div>
     <div class="v933-match-hero-team">{{ team_logo(ctx.safe_away, away_identity.get('logo'), 'lg') }}<strong>{{ ctx.safe_away }}</strong></div>
@@ -40,6 +42,7 @@
     <div class="v933-main-stack">
       <section class="v933-panel">
         {{ section_header('Resumen', 'Evidencia disponible y datos pendientes, claramente separados.') }}
+        {{ data_confidence_panel(match, 'match') }}
         <div class="v933-three-col v933-fact-grid">
           <article><span>Estado</span><strong>{{ ctx.client_status_label or 'Pendiente' }}</strong><small>{{ quality.get('label') or 'Lectura básica' }}</small></article>
           <article><span>Marcador</span><strong>{{ ctx.client_score_label or 'Pendiente' }}</strong><small>{{ live.get('minute_label') or 'Minuto no disponible' }}</small></article>

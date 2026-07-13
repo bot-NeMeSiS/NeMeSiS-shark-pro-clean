@@ -10,7 +10,9 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = "V936_COMMERCIAL_PRODUCT_READINESS_REFERENCE_EXCELLENCE_FINAL"
+BASE_VERSION = "V936_COMMERCIAL_PRODUCT_READINESS_REFERENCE_EXCELLENCE_FINAL"
+CURRENT_VERSION = (ROOT / "VERSION.txt").read_text(encoding="utf-8-sig").strip()
+VERSION = CURRENT_VERSION if CURRENT_VERSION.startswith("V937_") else BASE_VERSION
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
@@ -48,7 +50,7 @@ def main() -> int:
     add(checks, "version_without_bom", not (ROOT / "VERSION.txt").read_bytes().startswith(b"\xef\xbb\xbf"))
     add(checks, "app_version_exact", f"APP_VERSION = '{VERSION}'" in app_text)
     add(checks, "css_cache_busting", "filename='v936-commercial.css'" in base and 'data-v936-commercial-version="{{ app_version }}"' in base)
-    add(checks, "service_worker_v936", "NEMESIS_CACHE_V936" in app_text)
+    add(checks, "service_worker_v936", f"NEMESIS_CACHE_{VERSION.split('_', 1)[0]}" in app_text)
     add(checks, "commercial_css_present", len(css.encode("utf-8")) > 3000)
 
     macros = ("customer_decision", "value_ladder", "evidence_receipt", "intelligence_brief", "executive_focus")
@@ -95,7 +97,7 @@ def main() -> int:
         runtime = runtime_response.get_json(silent=True) or {}
         add(checks, "runtime_200", runtime_response.status_code == 200)
         add(checks, "runtime_identity", runtime.get("version") == VERSION and runtime.get("version_files_match") is True, runtime.get("version"))
-        add(checks, "runtime_css_and_sw", runtime.get("static_css_cache_busting") is True and runtime.get("service_worker_cache_name") == "NEMESIS_CACHE_V936", {"css": runtime.get("static_css_cache_busting"), "sw": runtime.get("service_worker_cache_name")})
+        add(checks, "runtime_css_and_sw", runtime.get("static_css_cache_busting") is True and runtime.get("service_worker_cache_name") == f"NEMESIS_CACHE_{VERSION.split('_', 1)[0]}", {"css": runtime.get("static_css_cache_busting"), "sw": runtime.get("service_worker_cache_name")})
         flags = ("has_v936_commercial_product_readiness", "has_v936_customer_decision_system", "has_v936_natural_plan_conversion", "has_v936_admin_executive_focus", "has_v936_shark_decision_brief", "has_v936_reference_excellence")
         add(checks, "runtime_flags", all(runtime.get(flag) is True for flag in flags), [flag for flag in flags if runtime.get(flag) is not True])
         add(checks, "no_fake_data_guard", runtime.get("v936_no_fake_data_guard") is True)

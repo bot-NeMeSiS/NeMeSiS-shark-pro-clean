@@ -1,0 +1,1 @@
+(()=>{"use strict";document.documentElement.dataset.v937SportsLifecycle="ready";document.querySelectorAll("[data-v937-confidence-score]").forEach((badge)=>{const score=Number(badge.dataset.v937ConfidenceScore||0);badge.setAttribute("aria-label",`Índice de Confianza del dato: ${score} sobre 100. No mide probabilidad de ganar.`)})})();

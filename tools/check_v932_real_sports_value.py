@@ -15,6 +15,7 @@ SUCCESSOR_VERSION = "V933_REFERENCE_PARITY_PRODUCT_DESIGN_SPRINT_SYSTEM_FINAL"
 V934_VERSION = "V934_REFERENCE_EXACTNESS_REALTIME_SPORTS_PRODUCTION_PERFECTION_FINAL"
 V935_VERSION = "V935_LAUNCH_TRUST_REAL_DATA_LIFECYCLE_PERFORMANCE_REFERENCE_POLISH_FINAL"
 V936_VERSION = "V936_COMMERCIAL_PRODUCT_READINESS_REFERENCE_EXCELLENCE_FINAL"
+V937_VERSION = "V937_PRODUCT_PERFECTION_FULL_ECOSYSTEM_LAUNCH_CLOSEOUT_FINAL"
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
@@ -95,10 +96,10 @@ def main() -> int:
     valid_today = summary.get("valid_matches_today") or []
     valid_picks = summary.get("valid_active_picks") or []
     incomplete = summary.get("incomplete_matches") or []
-    v935_freshness_guard = app_module.APP_VERSION in {V935_VERSION, V936_VERSION}
+    v935_freshness_guard = app_module.APP_VERSION in {V935_VERSION, V936_VERSION, V937_VERSION}
     valid_live_count = len(summary.get("valid_live_events") or [])
     checks = {
-        "version_v932_or_successor": app_module.APP_VERSION in {VERSION, SUCCESSOR_VERSION, V934_VERSION, V935_VERSION, V936_VERSION},
+        "version_v932_or_successor": app_module.APP_VERSION in {VERSION, SUCCESSOR_VERSION, V934_VERSION, V935_VERSION, V936_VERSION, V937_VERSION},
         "home_200": home.status_code == 200,
         "today_count_matches_list": summary.get("valid_matches_today_count") == len(valid_today) == 2,
         "complete_matches_only": all(app_module._v931_match_essentials(item).get("complete") for item in valid_today),

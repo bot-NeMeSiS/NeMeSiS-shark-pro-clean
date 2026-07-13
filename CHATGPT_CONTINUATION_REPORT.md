@@ -1158,3 +1158,14 @@ V928 reconstruye la experiencia completa sobre la base V927 con 16 referencias c
 - Datos inventados: no. Pagos, Telegram real, push y deploy: no ejecutados.
 - Preparación comercial: 8.4/10; apta para beta controlada, pendiente de evidencia sostenida de datos reales y certificación post-deploy.
 - No se declara pixel-perfect ni producción sin revisión humana completa y confirmación del runtime real.
+
+## V937 Product Perfection Full Ecosystem Launch Closeout
+
+- Base consolidada: V929-V936 sobre `chatgpt/v937-product-perfection`; `main` no se modificó.
+- Home y cliente adoptan una jerarquía de decisión; el ciclo deportivo añade prioridad informativa, informe profesional de pick, aprendizaje histórico e Índice de Confianza.
+- El Índice de Confianza mide completitud, actualidad y trazabilidad del dato; nunca probabilidad de ganar.
+- Browser QA final: 238 capturas, 34 rutas, 7 perfiles, 0 errores, 0 redirects inesperados y 0 overflow.
+- Sentinel: 10.0, 0 incidencias. Navegación: 663 rutas, 930 enlaces, 0 rotos y 0 bucles.
+- Workforce, Secret Guard y Telegram dry-run quedan coherentes y sin acciones reales.
+- Estado: candidata de lanzamiento pendiente de revisión humana, deploy autorizado y confirmación del runtime V937 en Render.
+- Pixel-perfect y producción no se declaran.

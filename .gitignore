@@ -52,6 +52,7 @@ temp/
 *_work/
 video_review_frames/
 cron_video_frames/
+reports/browser_qa_v937_final/
 *.mp4
 *.mov
 *.avi

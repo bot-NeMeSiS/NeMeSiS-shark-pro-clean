@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% from "components/v933_ui.html" import page_header, kpi_card, section_header, match_card, filter_tabs, empty_state, provider_state, icon, action_button, realtime_state_bar %}
 {% from "components/v936_product.html" import customer_decision %}
+{% from "components/v937_sports_lifecycle.html" import lifecycle_story %}
 {% block content %}
 {% set calendar = data.get('calendar') or {} %}
 {% set filters = calendar.get('filters') or {} %}
@@ -14,6 +15,7 @@
   {{ page_header('Partidos', 'Agenda real ordenada por día y competición, siempre en hora Madrid.', 'calendar', [{'label':'Ir a directo','href':'/live'},{'label':'Ver picks','href':'/picks','primary':true,'icon':'target'}]) }}
 
   {{ realtime_state_bar(realtime, 'matches') }}
+  {{ lifecycle_story(counts, lane) }}
 
   {% if counts.get('today', 0) %}
     {{ customer_decision('Elige un partido y construye el contexto', 'Abre la previa para revisar horario, competición y estado. Después podrás comprobar si existe pick o análisis SHARK.', 'Ver partidos de hoy', '#v933-calendar-filters', 'blue', 'Qué hacer aquí', 'Ir a picks', '/picks', 'La agenda usa registros completos y hora Madrid') }}
@@ -29,7 +31,7 @@
   </section>
 
   <section class="v933-panel v933-filter-panel" id="v933-calendar-filters">
-    {{ filter_tabs(calendar.get('tabs') or [{'key':'today','label':'Hoy','href':'/calendar?lane=today'},{'key':'tomorrow','label':'Mañana','href':'/calendar?lane=tomorrow'},{'key':'week','label':'Semana','href':'/calendar?lane=week'},{'key':'with_pick','label':'Con pick','href':'/calendar?lane=with_pick'}], lane) }}
+    {{ filter_tabs(calendar.get('tabs') or [{'key':'today','label':'Hoy','href':'/calendar?lane=today'},{'key':'tomorrow','label':'Mañana','href':'/calendar?lane=tomorrow'},{'key':'week','label':'Semana','href':'/calendar?lane=week'},{'key':'with_pick','label':'Con pick','href':'/calendar?lane=with_pick'},{'key':'favorites','label':'Favoritos','href':'/calendar?lane=favorites'},{'key':'finished','label':'Finalizados','href':'/calendar?lane=finished'}], lane) }}
     <form class="v933-filter-form" method="get" action="/calendar">
       <input type="hidden" name="lane" value="{{ lane }}">
       <label class="v933-search">{{ icon('search') }}<span class="sr-only">Buscar</span><input type="search" name="q" value="{{ filters.get('q') or '' }}" placeholder="Equipo, liga o competición"></label>
