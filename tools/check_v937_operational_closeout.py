@@ -283,15 +283,15 @@ def run() -> dict:
         filtered_live_summary = module._v937_live_summary_without_stale(
             {
                 "all_valid_matches": [
-                    {"id": "fresh-live", "match_date": "2026-07-13", "is_stale": True, "status_label": "Datos retrasados"},
+                    {"id": "fresh-live", "match_date": "2026-07-13", "is_stale": True, "status_label": "Datos retrasados", "v935_freshness": {"label": "Datos retrasados"}},
                     {"id": "stale-live", "match_date": "2026-07-13"},
                 ],
                 "valid_matches_today": [
-                    {"id": "fresh-live", "match_date": "2026-07-13", "is_stale": True, "status_label": "Datos retrasados"},
+                    {"id": "fresh-live", "match_date": "2026-07-13", "is_stale": True, "status_label": "Datos retrasados", "v935_freshness": {"label": "Datos retrasados"}},
                     {"id": "stale-live", "match_date": "2026-07-13"},
                 ],
                 "valid_live_events": [
-                    {"id": "fresh-live", "match_date": "2026-07-13", "is_stale": True, "status_label": "Datos retrasados"},
+                    {"id": "fresh-live", "match_date": "2026-07-13", "is_stale": True, "status_label": "Datos retrasados", "v935_freshness": {"label": "Datos retrasados"}},
                     {"id": "stale-live", "match_date": "2026-07-13"},
                 ],
             },
@@ -301,6 +301,7 @@ def run() -> dict:
         require([item["id"] for item in filtered_live_summary["all_valid_matches"]] == ["fresh-live"], "El filtro Todos de /live conserva un evento stale")
         require(filtered_live_summary["valid_live_events"][0]["is_stale"] is False, "El contexto /live conserva una marca stale heredada")
         require(filtered_live_summary["valid_live_events"][0]["status_label"] == "En directo", "El contexto /live conserva una etiqueta stale heredada")
+        require(filtered_live_summary["valid_live_events"][0]["v935_freshness"]["label"] == "Actualizado", "El contexto /live conserva una insignia de frescura stale")
         require(filtered_live_summary["stale_live_excluded"] == 1, "El contexto /live no acredita los stale excluidos")
 
         canonical_route_sources = {

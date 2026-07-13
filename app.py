@@ -12430,6 +12430,12 @@ def _v937_live_summary_without_stale(summary, realtime):
             return item
         merged = dict(item)
         merged.update(fresh_by_id[current_id])
+        merged["v935_freshness"] = {
+            "status": "FRESH",
+            "age_seconds": merged.get("age_seconds"),
+            "is_stale": False,
+            "label": "Actualizado",
+        }
         return merged
 
     filtered = dict(summary)
