@@ -12407,6 +12407,31 @@ def v931_calendar_context(summary, lane="today", date_value=None):
     }
 
 
+def _v937_live_summary_without_stale(summary, realtime):
+    summary = summary if isinstance(summary, dict) else {}
+    realtime = realtime if isinstance(realtime, dict) else {}
+
+    def item_id(item):
+        if not isinstance(item, dict):
+            return ""
+        return str(item.get("id") or item.get("match_id") or item.get("external_id") or "")
+
+    fresh_ids = {item_id(item) for item in realtime.get("live") or [] if item_id(item)}
+    stale_ids = {item_id(item) for item in realtime.get("stale_live") or [] if item_id(item)}
+    filtered = dict(summary)
+    for key in ("all_valid_matches", "valid_matches_today", "valid_upcoming_matches"):
+        source = summary.get(key)
+        if isinstance(source, list):
+            filtered[key] = [item for item in source if item_id(item) not in stale_ids]
+    raw_live = summary.get("valid_live_events") or []
+    filtered["valid_live_events"] = [
+        item for item in raw_live
+        if item_id(item) in fresh_ids and item_id(item) not in stale_ids
+    ]
+    filtered["stale_live_excluded"] = len(stale_ids)
+    return filtered
+
+
 def v931_live_context(summary, lane="live", query=""):
     lane = str(lane or "live").strip().lower()
     today = today_iso()
@@ -13866,9 +13891,11 @@ def live_page():
         request.args.get("date") or today_iso(),
         compact=True,
     )
-    data["live_experience"] = v931_live_context(summary, lane=lane, query=query)
+    realtime = get_realtime_safe_live_context(summary)
+    live_summary = _v937_live_summary_without_stale(summary, realtime)
+    data["live_experience"] = v931_live_context(live_summary, lane=lane, query=query)
     data["v925_live"] = _v931_provider_context(summary)
-    data["v934_realtime"] = get_realtime_safe_live_context(summary)
+    data["v934_realtime"] = realtime
     return render_template("live.html", data=data)
 
 

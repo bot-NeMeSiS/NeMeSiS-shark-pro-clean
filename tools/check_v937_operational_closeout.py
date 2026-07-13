@@ -280,6 +280,26 @@ def run() -> dict:
         require(realtime_snapshot["counts"]["stale_live"] == 1, "El snapshot no separa el live retrasado")
         require([item["id"] for item in realtime_snapshot["live"]] == ["fresh-live"], "El directo publico incluye datos stale")
         require([item["id"] for item in realtime_snapshot["stale_live"]] == ["stale-live"], "La evidencia stale no queda disponible para admin")
+        filtered_live_summary = module._v937_live_summary_without_stale(
+            {
+                "all_valid_matches": [
+                    {"id": "fresh-live", "match_date": "2026-07-13"},
+                    {"id": "stale-live", "match_date": "2026-07-13"},
+                ],
+                "valid_matches_today": [
+                    {"id": "fresh-live", "match_date": "2026-07-13"},
+                    {"id": "stale-live", "match_date": "2026-07-13"},
+                ],
+                "valid_live_events": [
+                    {"id": "fresh-live", "match_date": "2026-07-13"},
+                    {"id": "stale-live", "match_date": "2026-07-13"},
+                ],
+            },
+            realtime_snapshot,
+        )
+        require([item["id"] for item in filtered_live_summary["valid_live_events"]] == ["fresh-live"], "El contexto /live conserva un evento stale")
+        require([item["id"] for item in filtered_live_summary["all_valid_matches"]] == ["fresh-live"], "El filtro Todos de /live conserva un evento stale")
+        require(filtered_live_summary["stale_live_excluded"] == 1, "El contexto /live no acredita los stale excluidos")
 
         canonical_route_sources = {
             "home": inspect.getsource(module.home),
@@ -473,6 +493,7 @@ def run() -> dict:
             "sports_recent_rows_before_limit": "PASS",
             "sports_competition_identity_guard": "PASS",
             "sports_stale_live_exclusion_guard": "PASS",
+            "sports_live_route_stale_exclusion_guard": "PASS",
             "local_db_snapshot": source_db,
             "stripe_checkout_idempotency": "PASS",
             "stripe_sdk_version": sdk_version,
