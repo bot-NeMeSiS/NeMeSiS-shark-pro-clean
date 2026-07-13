@@ -12416,16 +12416,34 @@ def _v937_live_summary_without_stale(summary, realtime):
             return ""
         return str(item.get("id") or item.get("match_id") or item.get("external_id") or "")
 
-    fresh_ids = {item_id(item) for item in realtime.get("live") or [] if item_id(item)}
+    fresh_by_id = {
+        item_id(item): item
+        for item in realtime.get("live") or []
+        if item_id(item)
+    }
+    fresh_ids = set(fresh_by_id)
     stale_ids = {item_id(item) for item in realtime.get("stale_live") or [] if item_id(item)}
+
+    def merge_fresh_state(item):
+        current_id = item_id(item)
+        if current_id not in fresh_by_id:
+            return item
+        merged = dict(item)
+        merged.update(fresh_by_id[current_id])
+        return merged
+
     filtered = dict(summary)
     for key in ("all_valid_matches", "valid_matches_today", "valid_upcoming_matches"):
         source = summary.get(key)
         if isinstance(source, list):
-            filtered[key] = [item for item in source if item_id(item) not in stale_ids]
+            filtered[key] = [
+                merge_fresh_state(item)
+                for item in source
+                if item_id(item) not in stale_ids
+            ]
     raw_live = summary.get("valid_live_events") or []
     filtered["valid_live_events"] = [
-        item for item in raw_live
+        merge_fresh_state(item) for item in raw_live
         if item_id(item) in fresh_ids and item_id(item) not in stale_ids
     ]
     filtered["stale_live_excluded"] = len(stale_ids)
