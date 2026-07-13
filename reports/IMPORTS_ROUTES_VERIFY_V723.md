@@ -1,7 +1,7 @@
 # Verificación de imports, rutas y plantillas V723
 
 - Resultado: OK
-- Versión importada: `V936_COMMERCIAL_PRODUCT_READINESS_REFERENCE_EXCELLENCE_FINAL`
+- Versión importada: `V937_PRODUCT_PERFECTION_FULL_ECOSYSTEM_LAUNCH_CLOSEOUT_FINAL`
 - Rutas GET: 624
 - Templates referenciados: 135
 - Templates faltantes: 0

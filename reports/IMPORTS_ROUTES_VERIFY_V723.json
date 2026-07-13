@@ -1,6 +1,6 @@
 {
   "ok": true,
-  "checked_at": "2026-07-12T06:53:33",
+  "checked_at": "2026-07-13T09:39:36",
   "templates_referenced": [
     "404.html",
     "500.html",
@@ -144,7 +144,7 @@
   ],
   "missing_static": [],
   "import_ok": true,
-  "version": "V936_COMMERCIAL_PRODUCT_READINESS_REFERENCE_EXCELLENCE_FINAL",
+  "version": "V937_PRODUCT_PERFECTION_FULL_ECOSYSTEM_LAUNCH_CLOSEOUT_FINAL",
   "route_count": 624,
   "routes": [
     "/",

@@ -1,10 +1,10 @@
 {
   "ok": true,
-  "audited_at": "2026-07-13T01:33:36",
+  "audited_at": "2026-07-13T09:45:31",
   "zip": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\release_output\\NeMeSiS_SHARK_PRO_V937_PRODUCT_PERFECTION_FULL_ECOSYSTEM_LAUNCH_CLOSEOUT_FINAL_RENDER_READY.zip",
-  "zip_size_bytes": 28350206,
-  "file_count": 2625,
-  "content_size_bytes": 40017315,
+  "zip_size_bytes": 28368507,
+  "file_count": 2640,
+  "content_size_bytes": 40048773,
   "forbidden_count": 0,
   "missing_required_root": [],
   "forbidden": [],
@@ -79,7 +79,7 @@
     },
     {
       "path": "app.py",
-      "size": 1178206
+      "size": 1182262
     },
     {
       "path": "static/app.css",
@@ -93,32 +93,32 @@
   "top_folders": [
     {
       "folder": "reference_images",
-      "size": 24922073,
+      "size": 24922095,
       "files": 24
     },
     {
       "folder": "reports",
-      "size": 7362199,
-      "files": 1423
+      "size": 7381354,
+      "files": 1438
     },
     {
       "folder": "tools",
-      "size": 1773154,
+      "size": 1777287,
       "files": 574
     },
     {
       "folder": "engines",
-      "size": 1453826,
+      "size": 1454164,
       "files": 127
     },
     {
       "folder": "static",
-      "size": 1189378,
+      "size": 1189462,
       "files": 13
     },
     {
       "folder": "app.py",
-      "size": 1178206,
+      "size": 1182262,
       "files": 1
     },
     {
@@ -128,7 +128,7 @@
     },
     {
       "folder": "templates",
-      "size": 746681,
+      "size": 747471,
       "files": 183
     },
     {
@@ -138,12 +138,12 @@
     },
     {
       "folder": "automation_workforce",
-      "size": 79502,
+      "size": 80133,
       "files": 35
     },
     {
       "folder": "CHATGPT_CONTINUATION_REPORT.md",
-      "size": 74531,
+      "size": 76662,
       "files": 1
     },
     {

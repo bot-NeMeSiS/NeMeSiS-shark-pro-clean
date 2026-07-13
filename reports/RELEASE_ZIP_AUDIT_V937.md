@@ -1,23 +1,23 @@
 # Auditoría ZIP V937
 
 - ZIP: `NeMeSiS_SHARK_PRO_V937_PRODUCT_PERFECTION_FULL_ECOSYSTEM_LAUNCH_CLOSEOUT_FINAL_RENDER_READY.zip`
-- Archivos: 2625
-- Tamaño ZIP: 28350206 bytes
+- Archivos: 2640
+- Tamaño ZIP: 28368507 bytes
 - Prohibidos: 0
 - Resultado: OK
 - Root obligatorio ausente: ninguno
 
 ## Carpetas principales
-- `reference_images`: 24 archivos, 24922073 bytes
-- `reports`: 1423 archivos, 7362199 bytes
-- `tools`: 574 archivos, 1773154 bytes
-- `engines`: 127 archivos, 1453826 bytes
-- `static`: 13 archivos, 1189378 bytes
-- `app.py`: 1 archivos, 1178206 bytes
+- `reference_images`: 24 archivos, 24922095 bytes
+- `reports`: 1438 archivos, 7381354 bytes
+- `tools`: 574 archivos, 1777287 bytes
+- `engines`: 127 archivos, 1454164 bytes
+- `static`: 13 archivos, 1189462 bytes
+- `app.py`: 1 archivos, 1182262 bytes
 - `data`: 37 archivos, 759444 bytes
-- `templates`: 183 archivos, 746681 bytes
+- `templates`: 183 archivos, 747471 bytes
 - `V726_PROJECT_TREE_AUDIT.md`: 1 archivos, 96394 bytes
-- `automation_workforce`: 35 archivos, 79502 bytes
+- `automation_workforce`: 35 archivos, 80133 bytes
 
 ## Archivos pesados
 - `reports/V913_reference_scan_validation_output.txt`: 2166341 bytes

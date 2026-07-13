@@ -1,32 +1,26 @@
 # V937 Production Rollback Plan
 
-Prepared: 2026-07-13 07:48 Madrid
+Preparado: 2026-07-13 Madrid
 
-## Baseline before merge
+## Identidad
 
-- Origin main SHA: `6dafad26de43e5217f8b601d449802767c9c23f8`
-- Production runtime observed before deploy: V936 with a controlled `FileNotFoundError` runtime response
-- Candidate branch: `chatgpt/v937-product-perfection`
-- Candidate SHA before certification commit: `2500491262a8bbe246823163f1e361b008bc21d7`
-- Backup branch target: `backup/pre-v937-production`
+- Main pre-V937: `6dafad26de43e5217f8b601d449802767c9c23f8`.
+- Backup remoto: `origin/backup/pre-v937-production` confirmado en ese SHA.
+- Main V937 final: `0cc17b323b5508fe9de7905f3a1307e71deffdc7`.
+- Runtime actual: V937 alineada.
 
-## Rollback rule
+## Procedimiento
 
-Rollback changes application code only. It must never delete, replace, restore or remount the production database or persistent disk.
+1. Confirmar de nuevo el SHA de `origin/backup/pre-v937-production`.
+2. Crear una rama de rollback desde `main`; restaurar el arbol de aplicacion desde `6dafad2` mediante un commit normal.
+3. No force-push. No borrar, copiar ni restaurar la DB.
+4. Push del commit de rollback a `origin/main` y despliegue mediante el servicio Render existente.
+5. Mantener persistent disk, mount path, `DB_PATH`, plan, variables y cron sin cambios.
+6. Verificar runtime, home, login cliente/admin, manifest y service worker.
+7. Comprobar una sesion cliente y una ruta admin con cuenta de prueba autorizada.
 
-## Procedure
+## Disparadores
 
-1. Confirm the backup branch still points to `6dafad26de43e5217f8b601d449802767c9c23f8`.
-2. Create a normal rollback commit on `main` that restores the application tree from that SHA. Do not force-push.
-3. Push the rollback commit to `origin/main` and deploy that commit through the existing Render service.
-4. Keep the persistent disk, mount path, `DB_PATH`, plan and cron jobs unchanged.
-5. Verify `/api/runtime-version`, `/`, `/cliente-login`, `/admin-login`, `/manifest.json` and `/service-worker.js`.
-6. Verify client login and one protected admin route with an authorized test account.
-7. Confirm no user, membership, session or sports record was replaced.
+Rollback ante bucle 5xx, fallo general de login, DB persistente ausente, secreto expuesto, cobro incorrecto, envio Telegram no controlado, pick incompleto publico o datos stale presentados como actuales.
 
-## Stop conditions
-
-Rollback immediately if V937 causes a critical 5xx loop, login failure, missing persistent DB, secret exposure, incorrect charge path, uncontrolled Telegram send, public incomplete pick, or stale data presented as current.
-
-Render service settings, environment presence and disk mount must be read back from Render before final GO. They are not inferred from local files.
-
+El runtime V936 tenia un FileNotFoundError ya conocido. Volver a ese SHA es solo una medida de contencion; debe evaluarse frente al hotfix V937 antes de ejecutarlo.

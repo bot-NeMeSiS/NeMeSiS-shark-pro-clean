@@ -1,7 +1,7 @@
 # V937 Routes Links And Aliases Audit
 
 - version: `V937_PRODUCT_PERFECTION_FULL_ECOSYSTEM_LAUNCH_CLOSEOUT_FINAL`
-- generated_at: `2026-07-13T01:18:07`
+- generated_at: `2026-07-13T09:39:40`
 - routes_registered: `663`
 - templates_scanned: `183`
 - direct_api_hrefs: `21`

@@ -1169,3 +1169,13 @@ V928 reconstruye la experiencia completa sobre la base V927 con 16 referencias c
 - Workforce, Secret Guard y Telegram dry-run quedan coherentes y sin acciones reales.
 - Estado: candidata de lanzamiento pendiente de revisión humana, deploy autorizado y confirmación del runtime V937 en Render.
 - Pixel-perfect y producción no se declaran.
+
+## V937 Production Certification - 2026-07-13
+
+- V937 se fusionó a `main`; SHA final desplegado: `0cc17b323b5508fe9de7905f3a1307e71deffdc7`.
+- Backup remoto pre-V937: `origin/backup/pre-v937-production` en `6dafad26de43e5217f8b601d449802767c9c23f8`.
+- El primer deploy V937 reprodujo el FileNotFoundError: `.gitignore` excluía `static/v933_design_tokens.css` por el patrón `*token*`.
+- El hotfix `90e5935` rastrea ese CSS y protege su lectura. Render confirma V937, archivos alineados, commit final, CSS versionado y `NEMESIS_CACHE_V937`.
+- QA público de producción: 28 capturas nuevas, 0 errores, 0 overflow; Sentinel 10.0 y Secret Guard 0 hallazgos.
+- Decisión ejecutiva: `NO-GO` para usuarios reales hasta certificar sesiones cliente/admin, persistencia tras reinicio, Stripe/webhooks, entrega Telegram autorizada, documentos legales y feed deportivo actual.
+- No se creó V938, no hubo pagos, Telegram real, cambios destructivos de DB ni datos sintéticos.
