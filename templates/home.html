@@ -44,7 +44,7 @@
       <header><h2>Hoy en NeMeSiS</h2>{{ status_chip('Datos reales' if summary.get('has_real_data') else 'Estado seguro', 'success' if summary.get('has_real_data') else 'warning') }}</header>
       <div class="v933-today-kpis">
         <div><span>Partidos hoy</span><strong>{{ today_count }}</strong><small>completos</small></div>
-        <div><span>En directo</span><strong>{{ live_count }}</strong><small>confirmados</small></div>
+        <div><span>En directo</span><strong>{{ live_count }}</strong><small>activos</small></div>
         <div><span>Picks</span><strong>{{ picks|length }}</strong><small>publicables</small></div>
       </div>
       {% if matches %}

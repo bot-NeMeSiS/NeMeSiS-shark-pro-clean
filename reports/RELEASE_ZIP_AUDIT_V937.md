@@ -2,22 +2,22 @@
 
 - ZIP: `NeMeSiS_SHARK_PRO_V937_PRODUCT_PERFECTION_FULL_ECOSYSTEM_LAUNCH_CLOSEOUT_FINAL_RENDER_READY.zip`
 - Archivos: 2643
-- Tamaño ZIP: 28382812 bytes
+- Tamaño ZIP: 28386092 bytes
 - Prohibidos: 0
 - Resultado: OK
 - Root obligatorio ausente: ninguno
 
 ## Carpetas principales
 - `reference_images`: 24 archivos, 24922095 bytes
-- `reports`: 1440 archivos, 7397001 bytes
-- `tools`: 576 archivos, 1799165 bytes
-- `engines`: 127 archivos, 1455460 bytes
-- `app.py`: 1 archivos, 1200641 bytes
-- `static`: 13 archivos, 1190027 bytes
+- `reports`: 1440 archivos, 7397499 bytes
+- `tools`: 576 archivos, 1810732 bytes
+- `engines`: 127 archivos, 1458040 bytes
+- `app.py`: 1 archivos, 1200461 bytes
+- `static`: 13 archivos, 1190627 bytes
 - `data`: 37 archivos, 760290 bytes
-- `templates`: 182 archivos, 743169 bytes
+- `templates`: 182 archivos, 743308 bytes
 - `V726_PROJECT_TREE_AUDIT.md`: 1 archivos, 96394 bytes
-- `automation_workforce`: 35 archivos, 81007 bytes
+- `automation_workforce`: 35 archivos, 81039 bytes
 
 ## Archivos pesados
 - `reports/V913_reference_scan_validation_output.txt`: 2166341 bytes

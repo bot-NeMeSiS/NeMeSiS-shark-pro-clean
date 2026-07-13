@@ -1,10 +1,10 @@
 {
   "ok": true,
-  "audited_at": "2026-07-13T16:32:28",
+  "audited_at": "2026-07-13T23:37:43",
   "zip": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\release_output\\NeMeSiS_SHARK_PRO_V937_PRODUCT_PERFECTION_FULL_ECOSYSTEM_LAUNCH_CLOSEOUT_FINAL_RENDER_READY.zip",
-  "zip_size_bytes": 28382812,
+  "zip_size_bytes": 28386092,
   "file_count": 2643,
-  "content_size_bytes": 40104309,
+  "content_size_bytes": 40120005,
   "forbidden_count": 0,
   "missing_required_root": [],
   "forbidden": [],
@@ -79,7 +79,7 @@
     },
     {
       "path": "app.py",
-      "size": 1200641
+      "size": 1200461
     },
     {
       "path": "static/app.css",
@@ -98,27 +98,27 @@
     },
     {
       "folder": "reports",
-      "size": 7397001,
+      "size": 7397499,
       "files": 1440
     },
     {
       "folder": "tools",
-      "size": 1799165,
+      "size": 1810732,
       "files": 576
     },
     {
       "folder": "engines",
-      "size": 1455460,
+      "size": 1458040,
       "files": 127
     },
     {
       "folder": "app.py",
-      "size": 1200641,
+      "size": 1200461,
       "files": 1
     },
     {
       "folder": "static",
-      "size": 1190027,
+      "size": 1190627,
       "files": 13
     },
     {
@@ -128,7 +128,7 @@
     },
     {
       "folder": "templates",
-      "size": 743169,
+      "size": 743308,
       "files": 182
     },
     {
@@ -138,12 +138,12 @@
     },
     {
       "folder": "automation_workforce",
-      "size": 81007,
+      "size": 81039,
       "files": 35
     },
     {
       "folder": "CHATGPT_CONTINUATION_REPORT.md",
-      "size": 76662,
+      "size": 76674,
       "files": 1
     },
     {
@@ -177,6 +177,11 @@
       "files": 6
     },
     {
+      "folder": ".env.render.clean",
+      "size": 6909,
+      "files": 1
+    },
+    {
       "folder": "RELEASE_MANIFEST_V762.json",
       "size": 6907,
       "files": 1
@@ -184,11 +189,6 @@
     {
       "folder": "RELEASE_MANIFEST_V761.json",
       "size": 6873,
-      "files": 1
-    },
-    {
-      "folder": "RELEASE_MANIFEST_V760.json",
-      "size": 6844,
       "files": 1
     }
   ]
