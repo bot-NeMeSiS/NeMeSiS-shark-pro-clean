@@ -175,6 +175,74 @@ def run() -> dict:
         require(first_summary.get("summary_cache_status") == "refreshed", "Primer resumen no refresco cache")
         require(second_summary.get("summary_cache_status") == "hit", "Segundo resumen no uso cache")
 
+        ordered_db = Path(tmp) / "v937-ordered-sports.db"
+        conn = sqlite3.connect(ordered_db)
+        conn.execute(
+            """
+            CREATE TABLE matches(
+              id TEXT PRIMARY KEY, match_date TEXT, kickoff_time TEXT,
+              kickoff_iso TEXT, competition_name TEXT, home_team TEXT,
+              away_team TEXT, source TEXT, updated_at TEXT
+            )
+            """
+        )
+        conn.executemany(
+            "INSERT INTO matches VALUES(?,?,?,?,?,?,?,?,?)",
+            [
+                (
+                    f"old-{index:04d}", "2025-01-01", "12:00",
+                    "2025-01-01T12:00:00+01:00", "Legacy League",
+                    "Legacy Home", "Legacy Away", "provider", "2025-01-01T12:00:00+01:00",
+                )
+                for index in range(805)
+            ],
+        )
+        conn.execute(
+            "INSERT INTO matches VALUES(?,?,?,?,?,?,?,?,?)",
+            (
+                "recent-current", "2026-07-13", "20:00",
+                "2026-07-13T20:00:00+02:00", "Liga actual",
+                "Equipo A", "Equipo B", "provider", "2026-07-13T19:59:00+02:00",
+            ),
+        )
+        conn.commit()
+        conn.close()
+        module.DB_PATH = str(ordered_db)
+        try:
+            ordered_rows, ordered_meta = module._v931_read_table_rows("matches", 800)
+        finally:
+            module.DB_PATH = str(db_path)
+        require(ordered_rows and ordered_rows[0].get("id") == "recent-current", "El limite deportivo no prioriza registros recientes")
+        require(any(row.get("id") == "recent-current" for row in ordered_rows), "El partido actual queda fuera del limite de lectura")
+        require((ordered_meta.get("ordered_by") or [None])[0] == "updated_at", "La lectura deportiva no acredita orden por frescura")
+
+        require(
+            module.spanish_competition_name("Chilean Copa de la Liga") != "LaLiga EA Sports",
+            "La localizacion confunde Copa de la Liga con LaLiga EA Sports",
+        )
+        with module.app.app_context():
+            normalized_match = module.sportsdb_event_to_match(
+                {
+                    "idEvent": "v937-league-identity",
+                    "idLeague": "5858",
+                    "strSport": "Soccer",
+                    "strHomeTeam": "O'Higgins",
+                    "strAwayTeam": "Nublense",
+                    "strLeague": "La Liga",
+                    "strCountry": "Chile",
+                    "dateEvent": "2026-07-13",
+                    "strTime": "20:00:00",
+                },
+                fallback={
+                    "id": "5858",
+                    "key": "chilean-copa-de-la-liga",
+                    "name": "Chilean Copa de la Liga",
+                    "country": "Chile",
+                },
+            )
+        require(normalized_match.get("competition_key") == "chilean-copa-de-la-liga", "La identidad de competicion no conserva la liga solicitada")
+        require(normalized_match.get("competition_name") != "LaLiga EA Sports", "La competicion queda etiquetada con una liga incorrecta")
+
         canonical_route_sources = {
             "home": inspect.getsource(module.home),
             "calendar": inspect.getsource(module.calendar_page),
@@ -364,6 +432,8 @@ def run() -> dict:
             "route_timings_seconds": route_timings,
             "render_legacy_contexts_removed": True,
             "sports_summary_cache_15s": "PASS",
+            "sports_recent_rows_before_limit": "PASS",
+            "sports_competition_identity_guard": "PASS",
             "local_db_snapshot": source_db,
             "stripe_checkout_idempotency": "PASS",
             "stripe_sdk_version": sdk_version,

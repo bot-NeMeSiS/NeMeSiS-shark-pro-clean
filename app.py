@@ -3198,9 +3198,21 @@ def sportsdb_event_to_match(event, fallback=None):
     raw_home, raw_away = home, away
     home = spanish_team_name(home)
     away = spanish_team_name(away)
-    comp_name = spanish_competition_name(event.get("strLeague") or fallback.get("name") or "TheSportsDB")
-    comp_key = fallback.get("key") or slug(comp_name)
-    comp_id = event.get("idLeague") or fallback.get("id") or ""
+    event_comp_id = str(event.get("idLeague") or "").strip()
+    fallback_comp_id = str(fallback.get("id") or "").strip()
+    fallback_identity_matches = bool(
+        fallback.get("name")
+        and fallback.get("key")
+        and (not event_comp_id or not fallback_comp_id or event_comp_id == fallback_comp_id)
+    )
+    raw_comp_name = (
+        fallback.get("name")
+        if fallback_identity_matches
+        else event.get("strLeague") or fallback.get("name") or "TheSportsDB"
+    )
+    comp_name = spanish_competition_name(raw_comp_name)
+    comp_key = fallback.get("key") if fallback_identity_matches else slug(event.get("strLeague") or comp_name)
+    comp_id = event_comp_id or fallback_comp_id
     status = sportsdb_match_status(event)
     score = sportsdb_score(event.get("intHomeScore"), event.get("intAwayScore"))
     time_values = madrid_values_from_datetime(event.get("strTimestamp") or "", event.get("dateEvent") or today_iso(), sportsdb_event_time(event))
@@ -11661,8 +11673,32 @@ def _v931_read_table_rows(table, limit=600):
         ).fetchone()
         if not exists:
             return [], {"status": "missing_table", "error_type": f"missing_{table}_table"}
-        records = [dict(row) for row in conn.execute(f'SELECT * FROM "{table}" LIMIT ?', (int(limit),)).fetchall()]
-        return records, {"status": "ok", "error_type": ""}
+        columns = {
+            str(row[1])
+            for row in conn.execute(f'PRAGMA table_info("{table}")').fetchall()
+        }
+        preferred_order = {
+            "matches": ("updated_at", "kickoff_iso", "match_date", "created_at", "id"),
+            "picks": ("updated_at", "created_at", "match_date", "id"),
+            "favorites": ("updated_at", "created_at", "id"),
+        }
+        order_columns = [column for column in preferred_order.get(table, ()) if column in columns]
+        order_sql = ""
+        if order_columns:
+            values = ", ".join(f'NULLIF(CAST("{column}" AS TEXT), \'\')' for column in order_columns)
+            order_sql = f" ORDER BY COALESCE({values}) DESC"
+        records = [
+            dict(row)
+            for row in conn.execute(
+                f'SELECT * FROM "{table}"{order_sql} LIMIT ?',
+                (int(limit),),
+            ).fetchall()
+        ]
+        return records, {
+            "status": "ok",
+            "error_type": "",
+            "ordered_by": order_columns,
+        }
     except sqlite3.OperationalError as exc:
         message = str(exc).lower()
         status = "database_locked" if "locked" in message or "busy" in message else "schema_incomplete"

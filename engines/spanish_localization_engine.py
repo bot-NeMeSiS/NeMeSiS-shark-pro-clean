@@ -359,6 +359,9 @@ def spanish_competition_name(value: object) -> str:
     if compact_key in SPANISH_COMPETITION_OVERRIDES:
         return SPANISH_COMPETITION_OVERRIDES[compact_key]
     for needle, translated in SPANISH_COMPETITION_OVERRIDES.items():
+        # "Copa de la Liga" is not Spain's "La Liga". Keep this alias exact-only.
+        if needle in {"la liga", "laliga"}:
+            continue
         if needle and needle in key:
             return translated
     # API keys such as soccer_spain_la_liga should never be displayed raw.
