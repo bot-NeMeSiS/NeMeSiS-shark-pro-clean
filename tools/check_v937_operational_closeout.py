@@ -158,6 +158,23 @@ def run() -> dict:
         module.seed_core()
         client = module.app.test_client()
 
+        summary_builds = []
+        original_summary_builder = module._build_public_home_sports_summary
+        module.invalidate_v934_realtime_cache("v934:sports:public-summary")
+        module._build_public_home_sports_summary = lambda: (
+            summary_builds.append(True)
+            or {"valid_matches_today": [], "valid_active_picks": [], "no_render_api_call": True}
+        )
+        try:
+            first_summary = module.get_public_home_sports_summary()
+            second_summary = module.get_public_home_sports_summary()
+        finally:
+            module._build_public_home_sports_summary = original_summary_builder
+            module.invalidate_v934_realtime_cache("v934:sports:public-summary")
+        require(len(summary_builds) == 1, "El resumen deportivo no reutiliza la cache local de 15 segundos")
+        require(first_summary.get("summary_cache_status") == "refreshed", "Primer resumen no refresco cache")
+        require(second_summary.get("summary_cache_status") == "hit", "Segundo resumen no uso cache")
+
         canonical_route_sources = {
             "home": inspect.getsource(module.home),
             "calendar": inspect.getsource(module.calendar_page),
@@ -346,6 +363,7 @@ def run() -> dict:
             "telegram_cron_dry_run": "PASS_ZERO_SENDS",
             "route_timings_seconds": route_timings,
             "render_legacy_contexts_removed": True,
+            "sports_summary_cache_15s": "PASS",
             "local_db_snapshot": source_db,
             "stripe_checkout_idempotency": "PASS",
             "stripe_sdk_version": sdk_version,

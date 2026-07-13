@@ -11770,10 +11770,8 @@ def _v931_prepare_pick(pick, matches_by_id):
     return item
 
 
-def get_public_home_sports_summary():
-    """One DB/cache-only truth source for both the home KPI and visible match list."""
-    if has_request_context() and getattr(g, "v935_public_sports_summary", None) is not None:
-        return g.v935_public_sports_summary
+def _build_public_home_sports_summary():
+    """Build the canonical sports truth from local DB/cache only."""
     today = today_iso()
     raw_matches, match_meta = _v932_read_table_rows("matches", 800)
     raw_picks, pick_meta = _v932_read_table_rows("picks", 300)
@@ -11857,6 +11855,20 @@ def get_public_home_sports_summary():
         "picks_storage_status": pick_meta.get("status") or "",
         "no_render_api_call": True,
     }
+    return result
+
+
+def get_public_home_sports_summary():
+    """One 15-second cached truth source for the home KPI and visible match list."""
+    if has_request_context() and getattr(g, "v935_public_sports_summary", None) is not None:
+        return g.v935_public_sports_summary
+    db_cache_key = hashlib.sha256(str(Path(DB_PATH).resolve()).encode("utf-8")).hexdigest()[:12]
+    result, cache_status = cached_v934_realtime_snapshot(
+        f"v934:sports:public-summary:{db_cache_key}",
+        _build_public_home_sports_summary,
+        ttl_seconds=15,
+    )
+    result["summary_cache_status"] = cache_status
     if has_request_context():
         g.v935_public_sports_summary = result
     return result
