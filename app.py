@@ -11980,13 +11980,14 @@ def _v931_legacy_home_summary(summary):
     }
 
 
-def home_live_summary_data():
-    return _v931_legacy_home_summary(get_public_home_sports_summary())
+def home_live_summary_data(sports_summary=None):
+    summary = sports_summary if isinstance(sports_summary, dict) else get_public_home_sports_summary()
+    return _v931_legacy_home_summary(summary)
 
 
-def home_light_data():
+def home_light_data(sports_summary=None, include_payments=True):
     """Datos seguros para / con resumen real de producción cuando exista DB."""
-    live = home_live_summary_data()
+    live = home_live_summary_data(sports_summary)
     counts = live.get("counts") or {}
     try:
         client_alerts = build_client_alerts(limit=3) if current_user_id() else []
@@ -11996,15 +11997,16 @@ def home_light_data():
         except Exception:
             pass
         client_alerts = []
-    try:
-        _stripe_public_status = stripe_runtime_status(DB_PATH)
-        _payments_public = {"checkout_ready": bool(_stripe_public_status.get("checkout_ready")), "plans": _stripe_public_status.get("plans", {}), "blockers": _stripe_public_status.get("blockers", [])}
-    except Exception as exc:
+    _payments_public = {"checkout_ready": False, "plans": {}, "blockers": []}
+    if include_payments:
         try:
-            print("[HOME_LIGHT][PAYMENTS_PUBLIC_SKIP]", str(exc)[:200])
-        except Exception:
-            pass
-        _payments_public = {"checkout_ready": False, "plans": {}, "blockers": []}
+            _stripe_public_status = stripe_runtime_status(DB_PATH)
+            _payments_public = {"checkout_ready": bool(_stripe_public_status.get("checkout_ready")), "plans": _stripe_public_status.get("plans", {}), "blockers": _stripe_public_status.get("blockers", [])}
+        except Exception as exc:
+            try:
+                print("[HOME_LIGHT][PAYMENTS_PUBLIC_SKIP]", str(exc)[:200])
+            except Exception:
+                pass
     return {
         "app_name": APP_NAME,
         "version": APP_VERSION,
@@ -13203,22 +13205,10 @@ def api_admin_highlights_status():
 def home():
     if request.method == "HEAD":
         return Response("", status=200)
-    data = home_light_data()
-    data["client_premium"] = v931_safe_context("/", "client_premium", lambda: build_client_app_premium_context(data, current_session_user()), {})
-    data["v757_app"] = v931_safe_context("/", "v757_app", lambda: build_v757_app_center(data, current_session_user(), track_record=None), {})
-    data["v758_adaptive"] = v931_safe_context("/", "v758_adaptive", lambda: v758_adaptive_context(data, current_session_user(), "home"), {})
-    data["world_cup_launch"] = v931_safe_context("/", "world_cup_launch", lambda: build_v763_world_cup_launch_context(data, current_session_user()), {})
-    data["dynamic_mode"] = v931_safe_context("/", "dynamic_mode", lambda: build_v764_dynamic_competition_mode(data, current_session_user(), "home"), {})
-    data["v765_markets"] = v931_safe_context("/", "markets", lambda: v765_markets_context(data, current_session_user()), {})
-    data["v765_combis"] = v931_safe_context("/", "combis", lambda: v765_combi_context(data, current_session_user(), 3), {})
-    data["v766_highlights"] = v931_safe_context("/", "highlights", lambda: v766_highlights_context(limit=6), {})
-    data["v769_highlights_center"] = v931_safe_context("/", "highlights_center", lambda: v769_highlights_content_center(data, current_session_user(), limit=8), {})
     summary = get_public_home_sports_summary()
-    data["v925_calendar"] = get_safe_sports_calendar_context({"matches": data.get("upcoming_matches") or data.get("matches") or []})
+    data = home_light_data(summary, include_payments=False)
     data["v925_picks"] = get_safe_picks_context(data.get("picks") or [])
-    data["v925_odds"] = get_safe_odds_context(data.get("picks") or [])
     data["v934_realtime"] = get_v934_realtime_context(summary)
-    data["v935_customer_trust"] = get_v935_customer_trust_context(summary)
     return render_template("home.html", data=data)
 
 
@@ -13749,17 +13739,8 @@ def calendar_page():
     data["matches"] = data["calendar"].get("matches", [])
     data["lane"] = data["calendar"].get("filters", {}).get("lane", "today")
     data["date"] = data["calendar"].get("filters", {}).get("date", today_iso())
-    data["client_premium"] = v931_safe_context(request.path, "client_premium", lambda: build_client_app_premium_context(data, current_session_user()), {})
-    data["v757_app"] = v931_safe_context(request.path, "v757_app", lambda: build_v757_app_center(data, current_session_user(), track_record=None), {})
-    data["dynamic_mode"] = v931_safe_context(request.path, "dynamic_mode", lambda: build_v764_dynamic_competition_mode(data, current_session_user(), "calendar"), {})
-    data["v758_adaptive"] = v931_safe_context(request.path, "v758_adaptive", lambda: v758_adaptive_context(data, current_session_user(), "calendar"), {})
-    data["v765_markets"] = v931_safe_context(request.path, "markets", lambda: v765_markets_context(data, current_session_user()), {})
-    data["v766_calendar_order"] = v931_safe_context(request.path, "calendar_order", lambda: v766_calendar_order_context(data["calendar"]), {})
-    data["v766_highlights"] = v931_safe_context(request.path, "highlights", lambda: v766_highlights_context(limit=8), {})
-    data["v769_highlights_center"] = v931_safe_context(request.path, "highlights_center", lambda: v769_highlights_content_center(data, current_session_user(), limit=12), {})
     data["v925_calendar"] = _v931_provider_context(summary)
     data["v934_realtime"] = get_realtime_safe_matches_context(summary)
-    data["v935_customer_trust"] = get_v935_customer_trust_context(summary)
     return render_template("calendar.html", data=data)
 
 
@@ -13837,31 +13818,9 @@ def live_page():
         request.args.get("date") or today_iso(),
         compact=True,
     )
-    data["client_lifecycle_sync"] = {
-        "ok": True, "skipped": True, "reason": "page_render_cache_only",
-        "external_calls": 0, "no_render_api_call": True,
-    }
-    data["live_refresh"] = dict(data["client_lifecycle_sync"])
-    data["api_football_live_tracker"] = {
-        "status": summary.get("provider_status"),
-        "matches": list(summary.get("valid_live_events") or []),
-        "message": summary.get("safe_message"),
-        "external_calls": 0,
-    }
-    data["api_football_live_quality"] = {}
     data["live_experience"] = v931_live_context(summary, lane=lane, query=query)
-    data["v850_live_cache"] = {"status": summary.get("provider_status"), "external_calls": 0}
-    data["v850_live_state"] = {"status": summary.get("provider_status"), "message": summary.get("safe_message")}
-    data["v850_live_cards"] = []
-    data["v850_api_sports_dry_live"] = {"ok": True, "dry_run": True, "external_calls": 0}
-    data["v766_highlights"] = v931_safe_context(request.path, "highlights", lambda: v766_highlights_context(limit=8), {})
-    data["v769_highlights_center"] = v931_safe_context(request.path, "highlights_center", lambda: v769_highlights_content_center(data, current_session_user(), limit=12), {})
-    data["dynamic_mode"] = v931_safe_context(request.path, "dynamic_mode", lambda: build_v764_dynamic_competition_mode(data, current_session_user(), "live"), {})
-    data["v758_adaptive"] = v931_safe_context(request.path, "adaptive", lambda: v758_adaptive_context(data, current_session_user(), "live"), {})
-    data["v765_markets"] = v931_safe_context(request.path, "markets", lambda: v765_markets_context(data, current_session_user()), {})
     data["v925_live"] = _v931_provider_context(summary)
     data["v934_realtime"] = get_realtime_safe_live_context(summary)
-    data["v935_customer_trust"] = get_v935_customer_trust_context(summary)
     return render_template("live.html", data=data)
 
 
@@ -16195,30 +16154,13 @@ def api_admin_production_readiness():
 @app.route("/picks")
 def picks_page():
     data, summary = v932_safe_dashboard_data(request.path, compact=True)
-    user = current_session_user() or {"membership": "FREE", "role": "FREE"}
-    data["membership"] = v566_membership_ui(user)
     data["picks"] = list(summary.get("valid_active_picks") or [])
-    data["candidate_matches"] = list(summary.get("valid_upcoming_matches") or [])[:80]
     data["pick_stats"] = v931_safe_context(request.path, "pick_stats", pick_stats, {"closed": 0, "graded": 0})
-    data["smart_picks"] = list(data["picks"][:24])
-    data["client_premium"] = v931_safe_context(request.path, "client_premium", lambda: build_client_app_premium_context(data, user, filter_key=(request.args.get("filtro") or request.args.get("filter") or "all")), {})
-    data["v757_app"] = v931_safe_context(request.path, "v757_app", lambda: build_v757_app_center(data, user, track_record=None), {})
-    data["dynamic_mode"] = v931_safe_context(request.path, "dynamic_mode", lambda: build_v764_dynamic_competition_mode(data, user, "picks"), {})
-    data["v758_adaptive"] = v931_safe_context(request.path, "adaptive", lambda: v758_adaptive_context(data, user, "picks"), {})
-    data["v765_markets"] = v931_safe_context(request.path, "markets", lambda: v765_markets_context(data, user), {})
-    data["v765_combis"] = v931_safe_context(request.path, "combis", lambda: v765_combi_context(data, user, 3), {})
-    data["v766_highlights"] = v931_safe_context(request.path, "highlights", lambda: v766_highlights_context(limit=6), {})
     data["v925_picks"] = get_safe_picks_context(data["picks"])
     data["v925_odds"] = get_safe_odds_context(data["picks"])
     data["v934_realtime"] = get_realtime_safe_picks_context(summary)
     data["v934_odds"] = get_realtime_safe_odds_context(summary)
     data["v935_customer_trust"] = get_v935_customer_trust_context(summary)
-    v931_safe_context(
-        request.path,
-        "activity_write",
-        lambda: record_user_activity("view", "picks", "picks-page", {"count": len(data["picks"]), "candidates": len(data["candidate_matches"])}),
-        None,
-    )
     return render_template("picks.html", data=data)
 
 

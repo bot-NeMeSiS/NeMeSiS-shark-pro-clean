@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib
+import inspect
 import hashlib
 import hmac
 import json
@@ -156,6 +157,17 @@ def run() -> dict:
         module.DB_PATH = str(db_path)
         module.seed_core()
         client = module.app.test_client()
+
+        canonical_route_sources = {
+            "home": inspect.getsource(module.home),
+            "calendar": inspect.getsource(module.calendar_page),
+            "live": inspect.getsource(module.live_page),
+            "picks": inspect.getsource(module.picks_page),
+        }
+        for route_name, route_source in canonical_route_sources.items():
+            require("build_v757_app_center" not in route_source, f"{route_name} reconstruye contexto legado v757")
+            require("v769_highlights_content_center" not in route_source, f"{route_name} reconstruye highlights no usados")
+        require("activity_write" not in canonical_route_sources["picks"], "Picks escribe actividad durante render")
 
         require(client.get("/api/automation/sports/sync").status_code == 403, "Cron sin secreto no devuelve 403")
         module.sync_api_football_match_window = lambda *args, **kwargs: {
@@ -333,6 +345,7 @@ def run() -> dict:
             "telegram_cron_header_guard": "PASS",
             "telegram_cron_dry_run": "PASS_ZERO_SENDS",
             "route_timings_seconds": route_timings,
+            "render_legacy_contexts_removed": True,
             "local_db_snapshot": source_db,
             "stripe_checkout_idempotency": "PASS",
             "stripe_sdk_version": sdk_version,
