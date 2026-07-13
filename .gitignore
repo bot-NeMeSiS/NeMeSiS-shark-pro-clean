@@ -61,6 +61,7 @@ reports/browser_qa_v937_final/
 *.secret
 *secret*
 *token*
+!static/v933_design_tokens.css
 private_key*
 id_rsa*
 # V839 clean project guardrails
