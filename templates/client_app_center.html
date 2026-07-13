@@ -31,7 +31,7 @@
   </section>
 
   {{ realtime_state_bar(realtime, 'all') }}
-  {{ customer_trust_panel(customer_trust) }}
+  {% if customer_trust.get('status') == 'verified_data' %}{{ customer_trust_panel(customer_trust) }}{% endif %}
 
   {% if hub_counts.get('live', 0) or safe_live.get('counts', {}).get('live', 0) %}
     {{ customer_decision('Sigue el directo con contexto', 'Hay actividad confirmada. Revisa el marcador real y abre SHARK solo cuando exista contexto suficiente.', 'Abrir directo', '/live', 'cyan', 'Lo importante ahora', 'Ver picks', '/picks', 'Marcador y minuto procedentes de datos confirmados') }}

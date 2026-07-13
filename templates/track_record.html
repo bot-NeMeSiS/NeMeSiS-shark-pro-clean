@@ -12,7 +12,7 @@
 
 <div class="v933-page v933-track-record" data-v933-template="track_record" data-v933-reference="canonical-track-record">
   {{ page_header('Histórico', 'Resultados y rendimiento calculados únicamente con picks reales evaluables.', 'history', [{'label':'Ver picks','href':'/picks','primary':true,'icon':'target'}]) }}
-  {{ customer_trust_panel(customer_trust) }}
+  {% if recent %}{{ customer_trust_panel(customer_trust) }}{% endif %}
 
   {% if recent %}
     {{ customer_decision('Comprueba la evidencia, no solo el porcentaje', 'Filtra resultados y revisa cuota, estado y rentabilidad de cada pick cerrado antes de interpretar la muestra.', 'Revisar resultados', '#v936-track-results', 'blue', 'Cómo usar el histórico', 'Ver picks activos', '/picks', 'Solo resultados cerrados con grading real') }}

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import gzip
 import json
 import os
 import sqlite3
@@ -145,15 +146,34 @@ def _static_role(role: str) -> tuple[list[dict[str, Any]], dict[str, Any]]:
             findings.append(_finding("visual_contract_missing", "P2", ", ".join(missing), files=["templates/base.html", "templates/components/v933_navigation.html", "static/v933-product.css"], routes=["/app", "/admin/dashboard"], next_action="restore_visual_contract"))
         metrics["visual_tokens_present"] = len(required) - len(missing)
     elif role == "performance_budget":
+        loaded_css_files = [
+            "static/app.css",
+            "static/v928-canonical.css",
+            "static/v930-canonical.css",
+            "static/v933_design_tokens.css",
+            "static/v933-product.css",
+            "static/v936-commercial.css",
+            "static/v937-product-client.css",
+            "static/v937-sports-lifecycle.css",
+        ]
+        loaded_css_payload = b"".join(
+            (ROOT / relative).read_bytes()
+            for relative in loaded_css_files
+            if (ROOT / relative).is_file()
+        )
+        loaded_css_bytes = len(loaded_css_payload)
         metrics = {
-            "css_bytes": len(css.encode("utf-8")),
+            "component_css_bytes": len(css.encode("utf-8")),
+            "loaded_css_bytes": loaded_css_bytes,
+            "loaded_css_gzip_bytes": len(gzip.compress(loaded_css_payload, compresslevel=9)),
+            "loaded_css_files": len(loaded_css_files),
             "realtime_js_bytes": len(js.encode("utf-8")),
             "shared_polling": "__nemesisV935Realtime" in js,
             "conditional_requests": "If-None-Match" in js and "set_etag" in app,
             "request_local_summary_cache": "v935_public_sports_summary" in app,
         }
-        if metrics["css_bytes"] > 130000:
-            findings.append(_finding("css_budget_attention", "P2", f"{metrics['css_bytes']} bytes", files=["static/v933-product.css"], routes=["all"], next_action="remove_dead_or_duplicate_rules"))
+        if loaded_css_bytes > 450000:
+            findings.append(_finding("loaded_css_budget_attention", "P2", f"{loaded_css_bytes} bytes across {len(loaded_css_files)} loaded stylesheets", files=loaded_css_files, routes=["all"], next_action="profile_and_remove_legacy_css_only_after_route_coverage"))
         if not all(metrics[key] for key in ("shared_polling", "conditional_requests", "request_local_summary_cache")):
             findings.append(_finding("cache_or_polling_contract_missing", "P1", json.dumps(metrics), files=["app.py", "static/v934-realtime.js"], routes=["/api/realtime/sports"], next_action="restore_shared_cache_contract"))
     elif role == "accessibility":

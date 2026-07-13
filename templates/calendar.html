@@ -10,12 +10,13 @@
 {% set day_groups = calendar.get('day_groups') or calendar.get('groups') or [] %}
 {% set safe = data.get('v925_calendar') or {} %}
 {% set realtime = data.get('v934_realtime') or {} %}
+{% set lifecycle_total = (counts.get('today', 0)|int) + (counts.get('live', 0)|int) + (counts.get('picks', 0)|int) + (counts.get('finished', 0)|int) + (counts.get('incidents', 0)|int) %}
 
 <div class="v933-page v933-sports-board v933-calendar-board" data-v933-template="calendar" data-v933-reference="canonical-calendar">
   {{ page_header('Partidos', 'Agenda real ordenada por día y competición, siempre en hora Madrid.', 'calendar', [{'label':'Ir a directo','href':'/live'},{'label':'Ver picks','href':'/picks','primary':true,'icon':'target'}]) }}
 
   {{ realtime_state_bar(realtime, 'matches') }}
-  {{ lifecycle_story(counts, lane) }}
+  {% if lifecycle_total %}{{ lifecycle_story(counts, lane) }}{% endif %}
 
   {% if counts.get('today', 0) %}
     {{ customer_decision('Elige un partido y construye el contexto', 'Abre la previa para revisar horario, competición y estado. Después podrás comprobar si existe pick o análisis SHARK.', 'Ver partidos de hoy', '#v933-calendar-filters', 'blue', 'Qué hacer aquí', 'Ir a picks', '/picks', 'La agenda usa registros completos y hora Madrid') }}

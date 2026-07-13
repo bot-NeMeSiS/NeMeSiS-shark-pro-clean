@@ -23,7 +23,7 @@
     </div>
     <img src="/static/img/shark-logo.svg" alt="" aria-hidden="true">
   </section>
-  {{ customer_trust_panel(customer_trust) }}
+  {% if customer_trust.get('status') == 'verified_data' %}{{ customer_trust_panel(customer_trust) }}{% endif %}
 
   {% if picks %}
     {{ intelligence_brief('Existe al menos una selección completa para contextualizar', customer_trust.get('no_publish_reason') or 'Toda selección mantiene riesgo y no garantiza resultado', 'Abrir el pick, revisar la evidencia y decidir con calma', 'Analizar picks', '/picks', false) }}

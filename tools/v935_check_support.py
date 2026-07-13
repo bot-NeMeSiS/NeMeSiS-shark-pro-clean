@@ -1,6 +1,7 @@
 """Focused validation suites for the V935 launch-trust release."""
 from __future__ import annotations
 
+import gzip
 import importlib
 import json
 import os
@@ -153,6 +154,21 @@ def _static_checks(checks: list[dict], suite: str) -> None:
     ui = read("templates/components/v933_ui.html")
     nav = read("templates/components/v933_navigation.html")
     css = read("static/v933-product.css")
+    loaded_css_files = [
+        "static/app.css",
+        "static/v928-canonical.css",
+        "static/v930-canonical.css",
+        "static/v933_design_tokens.css",
+        "static/v933-product.css",
+        "static/v936-commercial.css",
+        "static/v937-product-client.css",
+        "static/v937-sports-lifecycle.css",
+    ]
+    loaded_css_payload = b"".join(
+        (ROOT / relative).read_bytes()
+        for relative in loaded_css_files
+        if (ROOT / relative).is_file()
+    )
     tokens = read("static/v933_design_tokens.css")
     js = read("static/v934-realtime.js")
     engine = read("engines/v935_launch_trust_engine.py")
@@ -197,7 +213,8 @@ def _static_checks(checks: list[dict], suite: str) -> None:
         add(checks, "data_trust_command_center", "v933-admin-command-center" in data_trust_template)
         add(checks, "semantic_actions", "is-primary is-blue" in ui and "is-cyan" in css and "is-gold" in css)
     elif suite == "performance_budget":
-        add(checks, "css_budget", len(css.encode("utf-8")) < 150000, len(css.encode("utf-8")))
+        add(checks, "loaded_css_inventory", len(loaded_css_payload) > len(css.encode("utf-8")), {"files": len(loaded_css_files), "bytes": len(loaded_css_payload)})
+        add(checks, "loaded_css_transfer_budget", len(gzip.compress(loaded_css_payload, compresslevel=9)) < 200000, len(gzip.compress(loaded_css_payload, compresslevel=9)))
         add(checks, "realtime_js_budget", len(js.encode("utf-8")) < 30000, len(js.encode("utf-8")))
         add(checks, "lazy_logos", 'loading="lazy"' in ui)
         add(checks, "no_mandatory_provider_render", "request_local_summary_cache_no_provider_calls" in app)
@@ -282,7 +299,8 @@ def _app_checks(checks: list[dict], suite: str) -> None:
                 add(checks, "data_trust_validation_admin", validation.status_code == 200, validation.status_code)
             elif suite == "customer_trust":
                 pages = {route: client.get(route) for route in ("/app", "/picks", "/track-record", "/shark")}
-                add(checks, "customer_trust_visible", all(b"v935-customer-trust" in response.data for response in pages.values()), {key: value.status_code for key, value in pages.items()})
+                add(checks, "customer_trust_narrative_visible", all(b"v936-customer-decision" in response.data for response in pages.values()), {key: value.status_code for key, value in pages.items()})
+                add(checks, "empty_data_trust_panel_not_duplicated", all(response.data.count(b"v935-customer-trust") <= 1 for response in pages.values()))
                 forbidden = (b"cache hit", b"provider exception", b"AUTOMATION_SECRET", b"DB_PATH")
                 add(checks, "client_technical_details_hidden", all(not any(token in response.data for token in forbidden) for response in pages.values()))
             elif suite == "visual_consistency":

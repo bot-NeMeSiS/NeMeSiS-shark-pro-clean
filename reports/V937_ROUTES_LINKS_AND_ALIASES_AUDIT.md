@@ -1,13 +1,13 @@
 # V937 Routes Links And Aliases Audit
 
 - version: `V937_PRODUCT_PERFECTION_FULL_ECOSYSTEM_LAUNCH_CLOSEOUT_FINAL`
-- generated_at: `2026-07-13T09:39:40`
+- generated_at: `2026-07-13T11:28:17`
 - routes_registered: `663`
-- templates_scanned: `183`
+- templates_scanned: `182`
 - direct_api_hrefs: `21`
 - empty_hash_links: `0`
 - javascript_void_links: `0`
-- forms_without_method_or_safe_action: `2`
+- forms_without_method_or_safe_action: `0`
 - unsafe_smoke_count: `0`
 
 ## Smoke

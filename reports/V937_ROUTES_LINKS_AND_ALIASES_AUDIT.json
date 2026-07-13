@@ -1,7 +1,7 @@
 {
   "version": "V937_PRODUCT_PERFECTION_FULL_ECOSYSTEM_LAUNCH_CLOSEOUT_FINAL",
   "links": {
-    "templates_scanned": 183,
+    "templates_scanned": 182,
     "direct_api_hrefs": [
       {
         "file": "templates/admin_api_sports_audit.html",
@@ -90,18 +90,7 @@
     ],
     "empty_links": [],
     "js_void_links": [],
-    "forms_without_action": [
-      {
-        "file": "templates/base.html",
-        "action": "missing",
-        "has_method": false
-      },
-      {
-        "file": "templates/pick_tracking.html",
-        "action": "missing",
-        "has_method": false
-      }
-    ]
+    "forms_without_action": []
   },
   "smoke": {
     "routes_registered": 663,

@@ -270,6 +270,14 @@
   .v937-radar-grid { grid-template-columns: 1fr; }
   .v937-radar-grid article { min-height: 92px; }
   .v937-trust-head { display: grid; }
+  .v936-customer-decision { gap: 11px; padding: 13px; }
+  .v936-decision-copy h2 { font-size: 1.05rem; }
+  .v936-decision-copy p { font-size: .78rem; }
+  .v936-decision-copy small { font-size: .67rem; line-height: 1.35; }
+  .v936-decision-actions { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 7px; }
+  .v936-decision-actions > * { min-width: 0; width: auto; }
+  .v936-decision-actions .v933-action { min-height: 40px; padding: 7px 9px; line-height: 1.2; white-space: normal; }
+  .v936-decision-actions > :only-child { grid-column: 1 / -1; }
 }
 @media (prefers-reduced-motion: no-preference) {
   .v936-customer-decision,

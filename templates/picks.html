@@ -16,7 +16,7 @@
   {{ page_header('Picks SHARK', 'Selecciones reales que superan la puerta de calidad de publicación.', 'target', [{'label':'Histórico','href':'/track-record','icon':'history'},{'label':'Consultar SHARK','href':'/shark','primary':true,'icon':'shark'}]) }}
 
   {{ realtime_state_bar(realtime, 'picks') }}
-  {{ customer_trust_panel(customer_trust) }}
+  {% if customer_trust.get('status') == 'verified_data' %}{{ customer_trust_panel(customer_trust) }}{% endif %}
 
   {% if featured %}
     {{ customer_decision('Evalúa la selección antes de guardarla', 'Lee mercado, cuota, riesgo y explicación. El pick es información para decidir, no una promesa de resultado.', 'Revisar pick destacado', '#v936-featured-pick', 'cyan', 'Qué hacer aquí', 'Comprobar histórico', '/track-record', 'Partido, mercado, selección, cuota y fuente completos') }}

@@ -1,14 +1,37 @@
 {
   "worker": "Performance Budget Worker",
   "role": "performance_budget",
-  "status": "ok",
+  "status": "attention",
   "ok": true,
   "dry_run": true,
   "safe_message": "Lectura local completada sin proveedor, envios, pagos ni escrituras DB.",
-  "next_action": "continue_launch_validation",
-  "findings": [],
+  "next_action": "profile_and_remove_legacy_css_only_after_route_coverage",
+  "findings": [
+    {
+      "type": "loaded_css_budget_attention",
+      "priority": "P2",
+      "evidence": "1175103 bytes across 8 loaded stylesheets",
+      "files": [
+        "static/app.css",
+        "static/v928-canonical.css",
+        "static/v930-canonical.css",
+        "static/v933_design_tokens.css",
+        "static/v933-product.css",
+        "static/v936-commercial.css",
+        "static/v937-product-client.css",
+        "static/v937-sports-lifecycle.css"
+      ],
+      "routes": [
+        "all"
+      ],
+      "next_action": "profile_and_remove_legacy_css_only_after_route_coverage"
+    }
+  ],
   "metrics": {
-    "css_bytes": 68198,
+    "component_css_bytes": 68198,
+    "loaded_css_bytes": 1175103,
+    "loaded_css_gzip_bytes": 188505,
+    "loaded_css_files": 8,
     "realtime_js_bytes": 7962,
     "shared_polling": true,
     "conditional_requests": true,
@@ -18,6 +41,6 @@
   "external_calls": 0,
   "database_writes": 0,
   "secrets_visible": false,
-  "generated_at_madrid": "2026-07-13T00:46:17+02:00",
+  "generated_at_madrid": "2026-07-13T11:01:19+02:00",
   "report_path": "data/runtime/automation_workforce/v935_workers/performance_budget.md"
 }

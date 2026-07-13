@@ -12,12 +12,13 @@
 {% if not ns.matches %}{% for match in live.get('matches') or [] %}{% set _ = ns.matches.append(match) %}{% endfor %}{% endif %}
 {% set upcoming = data.get('upcoming_matches') or [] %}
 {% set realtime = data.get('v934_realtime') or {} %}
+{% set lifecycle_total = ((live.get('matches') or [])|length) + (counts.get('live', 0)|int) + (counts.get('picks', 0)|int) + (counts.get('finished', 0)|int) %}
 
 <div class="v933-page v933-sports-board v933-live-board" data-v933-template="live" data-v933-reference="canonical-live">
   {{ page_header('Directo', 'Marcadores, minutos y eventos únicamente cuando están confirmados.', 'live', [{'label':'Partidos','href':'/calendar'},{'label':'Ver picks','href':'/picks','primary':true,'icon':'target'}]) }}
 
   {{ realtime_state_bar(realtime, 'live') }}
-  {{ lifecycle_story({'today': (live.get('matches') or [])|length, 'live': counts.get('live', 0), 'picks': counts.get('picks', 0), 'finished': counts.get('finished', 0), 'incidents': 0}, lane) }}
+  {% if lifecycle_total %}{{ lifecycle_story({'today': (live.get('matches') or [])|length, 'live': counts.get('live', 0), 'picks': counts.get('picks', 0), 'finished': counts.get('finished', 0), 'incidents': 0}, lane) }}{% endif %}
 
   {% if ns.matches %}
     {{ customer_decision('Sigue el partido, no el ruido', 'Prioriza marcador, minuto y eventos confirmados. Abre SHARK para interpretar el contexto, nunca para completar datos ausentes.', 'Ver board en vivo', '#v936-live-board', 'cyan', 'Qué hacer aquí', 'Revisar picks', '/picks', 'Actualización condicionada a datos reales') }}
