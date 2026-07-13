@@ -1,0 +1,47 @@
+/* V933 canonical product design tokens. */
+:root {
+  --v933-bg: #020812;
+  --v933-bg-raised: #050e1b;
+  --v933-surface: #071425;
+  --v933-surface-2: #0a1a2e;
+  --v933-surface-3: #0d2037;
+  --v933-border: rgba(132, 171, 213, 0.2);
+  --v933-border-strong: rgba(38, 177, 255, 0.48);
+  --v933-text: #f5f9ff;
+  --v933-text-soft: #c8d5e4;
+  --v933-muted: #91a5ba;
+  --v933-blue: #087cff;
+  --v933-blue-hover: #2795ff;
+  --v933-cyan: #19d5ff;
+  --v933-green: #36dc81;
+  --v933-yellow: #f2bd38;
+  --v933-red: #ff5c70;
+  --v933-gold: #e8b93f;
+  --v933-purple: #9d7aff;
+  --v933-neutral: #8395a8;
+  --v933-radius-xs: 4px;
+  --v933-radius-sm: 6px;
+  --v933-radius: 8px;
+  --v933-shadow-sm: 0 8px 22px rgba(0, 0, 0, 0.2);
+  --v933-shadow: 0 18px 44px rgba(0, 0, 0, 0.34);
+  --v933-space-1: 4px;
+  --v933-space-2: 8px;
+  --v933-space-3: 12px;
+  --v933-space-4: 16px;
+  --v933-space-5: 20px;
+  --v933-space-6: 24px;
+  --v933-space-8: 32px;
+  --v933-topbar: 68px;
+  --v933-sidebar: 236px;
+  --v933-mobile-nav: 68px;
+  --v933-content: 1480px;
+  --v933-font: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+html { color-scheme: dark; }
+body.ns-app { font-family: var(--v933-font); background: var(--v933-bg); color: var(--v933-text); }
+body.ns-app * { box-sizing: border-box; }
+body.ns-app :is(a, button, input, select, textarea) { font: inherit; letter-spacing: 0; }
+body.ns-app :is(a, button, input, select, textarea):focus-visible { outline: 2px solid var(--v933-cyan); outline-offset: 2px; }
+body.ns-app :is(button, a, input, select, textarea):disabled { cursor: not-allowed; }
+.sr-only { position: absolute !important; width: 1px !important; height: 1px !important; padding: 0 !important; margin: -1px !important; overflow: hidden !important; clip: rect(0, 0, 0, 0) !important; white-space: nowrap !important; border: 0 !important; }

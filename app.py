@@ -18290,6 +18290,7 @@ def api_runtime_version():
     canonical_css_hash = ""
     canonical_css_size = 0
     v933_tokens_hash = ""
+    v933_tokens_text = ""
     v933_product_hash = ""
     v933_css_size = 0
     v936_commercial_hash = ""
@@ -18343,11 +18344,13 @@ def api_runtime_version():
     try:
         v933_tokens_bytes = v933_tokens_path.read_bytes()
         v933_product_bytes = v933_product_path.read_bytes()
+        v933_tokens_text = v933_tokens_bytes.decode("utf-8", errors="replace")
         v933_tokens_hash = hashlib.sha256(v933_tokens_bytes).hexdigest()[:16]
         v933_product_hash = hashlib.sha256(v933_product_bytes).hexdigest()[:16]
         v933_css_size = len(v933_tokens_bytes) + len(v933_product_bytes)
     except Exception:
         v933_tokens_hash = ""
+        v933_tokens_text = ""
         v933_product_hash = ""
         v933_css_size = 0
     try:
@@ -18806,7 +18809,7 @@ def api_runtime_version():
         "has_v933_admin_rebuild": "v933-admin-command-center" in (BASE_DIR / "templates" / "admin_dashboard.html").read_text(encoding="utf-8", errors="replace"),
         "has_v933_sports_experience_rebuild": all("data-v933-template" in (BASE_DIR / "templates" / name).read_text(encoding="utf-8", errors="replace") for name in ["calendar.html", "live.html", "picks.html", "track_record.html"]),
         "has_v933_component_consistency": (BASE_DIR / "templates" / "components" / "v933_ui.html").exists(),
-        "has_v933_accessibility_pass": "focus-visible" in (BASE_DIR / "static" / "v933_design_tokens.css").read_text(encoding="utf-8", errors="replace"),
+        "has_v933_accessibility_pass": "focus-visible" in v933_tokens_text,
         "has_v933_performance_pass": service_worker_no_stale_html_css,
         "has_v933_real_data_guard": "get_public_home_sports_summary" in app_py_text and "no_render_api_call" in app_py_text,
         "has_v933_second_visual_pass": bool(v933_summary.get("v933_browser_screenshots")),
