@@ -9,3 +9,14 @@ services:
         value: /data/database.db
       - key: PYTHON_VERSION
         value: 3.11.9
+  - type: cron
+    name: nemesis-sports-sync
+    runtime: python
+    schedule: "*/15 * * * *"
+    buildCommand: pip install -r requirements.txt
+    startCommand: python tools/render_cron_sports_sync.py
+    envVars:
+      - key: PUBLIC_BASE_URL
+        value: https://bot-apuestas-crgf.onrender.com
+      - key: AUTOMATION_SECRET
+        sync: false

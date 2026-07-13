@@ -16,7 +16,6 @@ import json
 import os
 import sys
 import urllib.error
-import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
@@ -30,21 +29,9 @@ def now_labels() -> tuple[str, str]:
     return utc_now.isoformat(timespec="seconds"), madrid_now.isoformat(timespec="seconds")
 
 
-def mask_secret(secret: str) -> str:
-    if not str(secret or "").strip():
-        return "***missing***"
-    return "***hidden***"
-
-
-def masked_url(base_url: str, secret: str) -> str:
+def safe_target_url(base_url: str) -> str:
     base = base_url.rstrip("/")
-    return f"{base}{ENDPOINT}?secret={mask_secret(secret)}&runner=render_cron"
-
-
-def target_url(base_url: str, secret: str) -> str:
-    base = base_url.rstrip("/")
-    query = urllib.parse.urlencode({"secret": secret, "runner": "render_cron"})
-    return f"{base}{ENDPOINT}?{query}"
+    return f"{base}{ENDPOINT}?runner=render_cron"
 
 
 def print_event(payload: dict) -> None:
@@ -94,16 +81,18 @@ def main() -> int:
             "message": "Falta AUTOMATION_SECRET en el Environment del Cron Job.",
             "utc_now": utc_now,
             "madrid_now": madrid_now,
-            "target": masked_url(public_base_url, automation_secret),
+            "target": safe_target_url(public_base_url),
+            "secret_status": "MISSING",
         })
         return 2
 
-    url = target_url(public_base_url, automation_secret)
-    safe_target = masked_url(public_base_url, automation_secret)
+    url = safe_target_url(public_base_url)
+    safe_target = url
     print_event({
         "ok": True,
         "event": "CRON_TICK_START",
         "target": safe_target,
+        "secret_status": "PRESENT_MASKED",
         "utc_now": utc_now,
         "madrid_now": madrid_now,
     })
@@ -113,6 +102,7 @@ def main() -> int:
         headers={
             "User-Agent": "NeMeSiS-SHARK-PRO-Render-Cron/753",
             "X-NeMeSiS-Cron-Runner": "render-cron",
+            "X-Automation-Secret": automation_secret,
             "Accept": "application/json,text/plain,*/*",
         },
         method="GET",
@@ -141,7 +131,6 @@ def main() -> int:
             })
             return 0 if status == 200 else 5
     except urllib.error.HTTPError as exc:
-        body = exc.read(12000).decode("utf-8", errors="replace") if exc.fp else ""
         status = int(exc.code)
         event = {
             "ok": False,
@@ -150,7 +139,6 @@ def main() -> int:
             "target": safe_target,
             "utc_now": utc_now,
             "madrid_now": madrid_now,
-            "body": body,
         }
         if status == 403:
             event["error"] = "AUTOMATION_SECRET_INVALID"

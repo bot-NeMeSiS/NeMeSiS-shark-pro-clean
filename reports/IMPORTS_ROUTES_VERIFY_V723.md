@@ -2,7 +2,7 @@
 
 - Resultado: OK
 - Versión importada: `V937_PRODUCT_PERFECTION_FULL_ECOSYSTEM_LAUNCH_CLOSEOUT_FINAL`
-- Rutas GET: 624
+- Rutas GET: 625
 - Templates referenciados: 135
 - Templates faltantes: 0
 - Static faltantes: 0

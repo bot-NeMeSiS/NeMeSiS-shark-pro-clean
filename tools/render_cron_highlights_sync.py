@@ -32,16 +32,8 @@ def now_labels() -> tuple[str, str]:
     return utc_now.isoformat(timespec="seconds"), madrid_now.isoformat(timespec="seconds")
 
 
-def mask_secret(secret: str) -> str:
-    if not secret:
-        return "<missing>"
-    tail = secret[-4:] if len(secret) >= 4 else "****"
-    return f"***{tail}"
-
-
-def target_url(base_url: str, secret: str) -> str:
+def target_url(base_url: str) -> str:
     query = urllib.parse.urlencode({
-        "secret": secret,
         "days_back": os.environ.get("HIGHLIGHTS_DAYS_BACK", "7"),
         "limit": os.environ.get("HIGHLIGHTS_LIMIT", "300"),
         "runner": "render_cron_highlights",
@@ -49,14 +41,8 @@ def target_url(base_url: str, secret: str) -> str:
     return f"{base_url.rstrip('/')}{ENDPOINT}?{query}"
 
 
-def safe_url(base_url: str, secret: str) -> str:
-    query = urllib.parse.urlencode({
-        "secret": mask_secret(secret),
-        "days_back": os.environ.get("HIGHLIGHTS_DAYS_BACK", "7"),
-        "limit": os.environ.get("HIGHLIGHTS_LIMIT", "300"),
-        "runner": "render_cron_highlights",
-    })
-    return f"{base_url.rstrip('/')}{ENDPOINT}?{query}"
+def safe_url(base_url: str) -> str:
+    return target_url(base_url)
 
 
 def print_event(payload: dict) -> None:
@@ -71,14 +57,15 @@ def main() -> int:
         print_event({"ok": False, "error": "MISSING_PUBLIC_BASE_URL", "utc_now": utc_now, "madrid_now": madrid_now})
         return 2
     if not secret:
-        print_event({"ok": False, "error": "MISSING_AUTOMATION_SECRET", "target": safe_url(base_url, secret), "utc_now": utc_now, "madrid_now": madrid_now})
+        print_event({"ok": False, "error": "MISSING_AUTOMATION_SECRET", "target": safe_url(base_url), "utc_now": utc_now, "madrid_now": madrid_now})
         return 2
-    url = target_url(base_url, secret)
-    safe = safe_url(base_url, secret)
+    url = target_url(base_url)
+    safe = safe_url(base_url)
     print_event({"ok": True, "event": "HIGHLIGHTS_SYNC_START", "target": safe, "utc_now": utc_now, "madrid_now": madrid_now})
     req = urllib.request.Request(url, headers={
         "User-Agent": "NeMeSiS-SHARK-PRO-Highlights-Cron/769",
         "X-NeMeSiS-Cron-Runner": "render-cron-highlights",
+        "X-Automation-Secret": secret,
         "Accept": "application/json,text/plain,*/*",
     }, method="GET")
     try:

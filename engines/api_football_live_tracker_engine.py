@@ -1097,7 +1097,13 @@ def _date_range(days_back: int, days_ahead: int) -> list[str]:
     return [(today + timedelta(days=offset)).isoformat() for offset in range(-back, ahead + 1)]
 
 
-def sync_api_football_match_window(db_path: str, days_back: int = 2, days_ahead: int = 2, force: bool = False) -> dict[str, Any]:
+def sync_api_football_match_window(
+    db_path: str,
+    days_back: int = 2,
+    days_ahead: int = 2,
+    force: bool = False,
+    deep_limit: Optional[int] = None,
+) -> dict[str, Any]:
     """Refresh nearby fixtures/results using API-Football with a conservative cache.
 
     Purpose: a match played at dawn should stop appearing as upcoming and move to
@@ -1105,7 +1111,7 @@ def sync_api_football_match_window(db_path: str, days_back: int = 2, days_ahead:
     and the matches table; it never invents scores.
     """
     ensure_live_tracker_schema(db_path)
-    cache_seconds = _as_int(os.getenv("API_FOOTBALL_MATCH_WINDOW_CACHE_SECONDS", "900"), 900)
+    cache_seconds = _as_int(os.getenv("API_FOOTBALL_MATCH_WINDOW_CACHE_SECONDS", "21600"), 21600)
     conn = _connect(db_path)
     try:
         if not tracker_enabled():
@@ -1133,7 +1139,11 @@ def sync_api_football_match_window(db_path: str, days_back: int = 2, days_ahead:
             fixtures_count = _upsert_snapshots(conn, all_fixtures)
             _upsert_matches(conn, all_fixtures)
         # Deep data only for live/recent finished fixtures to avoid wasting calls.
-        deep_limit = _as_int(os.getenv("API_FOOTBALL_MATCH_WINDOW_DEEP_LIMIT", "10"), 10)
+        deep_limit = (
+            _as_int(os.getenv("API_FOOTBALL_MATCH_WINDOW_DEEP_LIMIT", "10"), 10)
+            if deep_limit is None
+            else max(0, int(deep_limit))
+        )
         deep_done = 0
         for f in all_fixtures:
             if deep_done >= deep_limit:

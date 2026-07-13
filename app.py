@@ -794,10 +794,199 @@ def cron_force_requested():
     )
 
 
+SPORTS_SYNC_LIVE_STATUSES = {
+    "live", "directo", "1h", "2h", "ht", "halftime", "descanso", "et", "p", "bt",
+}
+
+
+def _sports_sync_match_datetime(match):
+    raw_iso = str(match.get("kickoff_iso") or "").strip()
+    if raw_iso:
+        try:
+            parsed = datetime.fromisoformat(raw_iso.replace("Z", "+00:00"))
+            if parsed.tzinfo is None:
+                parsed = parsed.replace(tzinfo=TZ)
+            return parsed.astimezone(TZ)
+        except (TypeError, ValueError):
+            pass
+    raw_date = str(match.get("match_date") or "").strip()[:10]
+    raw_time = str(match.get("match_time") or "").strip()[:5]
+    if not raw_date or not re.match(r"^\d{1,2}:\d{2}$", raw_time):
+        return None
+    try:
+        hour, minute = [int(value) for value in raw_time.split(":", 1)]
+        return datetime.fromisoformat(raw_date).replace(
+            hour=hour,
+            minute=minute,
+            second=0,
+            microsecond=0,
+            tzinfo=TZ,
+        )
+    except (TypeError, ValueError):
+        return None
+
+
+def sports_sync_window_state():
+    """Read DB/cache only and decide whether the live provider deserves a call."""
+    try:
+        matches = rows("SELECT * FROM matches ORDER BY COALESCE(kickoff_iso, match_date, updated_at) DESC LIMIT 600")
+    except Exception:
+        try:
+            matches = rows("SELECT * FROM matches LIMIT 600")
+        except Exception:
+            matches = []
+    now_madrid = datetime.now(TZ)
+    live_count = 0
+    near_kickoff_count = 0
+    complete_count = 0
+    for match in matches:
+        if not v935_is_match_complete(match):
+            continue
+        complete_count += 1
+        status = str(match.get("status") or match.get("status_short") or "").strip().lower()
+        if status in SPORTS_SYNC_LIVE_STATUSES:
+            live_count += 1
+            continue
+        kickoff = _sports_sync_match_datetime(match)
+        if kickoff is not None and -timedelta(hours=3) <= kickoff - now_madrid <= timedelta(hours=3):
+            near_kickoff_count += 1
+    return {
+        "complete_cached_matches": complete_count,
+        "live_cached_matches": live_count,
+        "near_kickoff_matches": near_kickoff_count,
+        "live_refresh_required": bool(live_count or near_kickoff_count),
+        "checked_at_madrid": now_madrid.isoformat(timespec="seconds"),
+        "no_external_calls": True,
+    }
+
+
+def _safe_sports_sync_call(label, callback, *args, **kwargs):
+    try:
+        result = callback(*args, **kwargs)
+        if isinstance(result, dict):
+            return result
+        return {"ok": True, "status": "OK", "processed": 0, "result_type": type(result).__name__}
+    except Exception as exc:
+        return {
+            "ok": False,
+            "status": "ERROR",
+            "error": f"{label}_{type(exc).__name__}",
+            "safe_message": "La sincronizacion fallo de forma controlada. Revisa el diagnostico interno.",
+        }
+
+
+def run_sports_sync_cycle(force=False):
+    """Refresh sports cache without Telegram, payments or render-time provider calls."""
+    started_at = now_iso()
+    before = sports_sync_window_state()
+    fixtures = _safe_sports_sync_call(
+        "api_football_match_window",
+        sync_api_football_match_window,
+        DB_PATH,
+        days_back=1,
+        days_ahead=3,
+        force=force,
+        deep_limit=0,
+    )
+    fallback = {"ok": True, "status": "NOT_REQUIRED", "skipped": True, "processed": 0}
+    if fixtures.get("ok") is False and not fixtures.get("skipped"):
+        fallback = _safe_sports_sync_call("sportsdb_calendar", sync_sportsdb_calendar, limit=180)
+
+    # Reopen the request read snapshot after provider writers committed.
+    if has_request_context():
+        close_request_read_db()
+    after_fixtures = sports_sync_window_state()
+    if after_fixtures.get("live_refresh_required"):
+        live = _safe_sports_sync_call(
+            "api_football_live_tracker",
+            sync_api_football_live_tracker,
+            DB_PATH,
+            force=force,
+            deep_limit=0,
+        )
+    else:
+        live = {
+            "ok": True,
+            "status": "SAFE_SKIP_NO_LIVE_WINDOW",
+            "skipped": True,
+            "external_calls": 0,
+            "fixtures_count": 0,
+            "safe_message": "Sin live ni kickoff cercano: no se consumen creditos.",
+        }
+    odds = _safe_sports_sync_call("odds", sync_odds_events, limit=80, force=force)
+    grading = _safe_sports_sync_call(
+        "pick_grading",
+        run_pick_grading,
+        DB_PATH,
+        limit=500,
+        apply=True,
+    )
+    invalidate_v934_realtime_cache("v934:sports:")
+
+    primary_ok = bool(fixtures.get("ok") or fallback.get("ok"))
+    errors = []
+    for label, result in (("fixtures", fixtures), ("fallback", fallback), ("live", live), ("grading", grading)):
+        if result.get("ok") is False:
+            errors.append(result.get("error") or f"{label}_{result.get('status') or 'unavailable'}")
+    processed = sum(
+        as_int(result.get("processed") or result.get("fixtures_count") or result.get("imported"), 0)
+        for result in (fixtures, fallback, live, odds)
+    )
+    picks_graded = sum(as_int(grading.get(key), 0) for key in ("won", "lost", "voids", "auto_validated"))
+    external_calls = sum(as_int(result.get("external_calls"), 0) for result in (fixtures, live))
+    status = "OK" if primary_ok and not errors else "PARTIAL" if primary_ok else "PROVIDER_UNAVAILABLE"
+    finished_at = now_iso()
+    result = {
+        "ok": primary_ok,
+        "status": status,
+        "processed": processed,
+        "matches_synced": as_int(fixtures.get("fixtures_count"), 0) + as_int(fallback.get("processed"), 0),
+        "live_synced": as_int(live.get("fixtures_count"), 0),
+        "external_calls": external_calls,
+        "fixtures": fixtures,
+        "fallback": fallback,
+        "live": live,
+        "odds": odds,
+        "grading": grading,
+        "picks_checked": as_int(grading.get("picks_checked"), 0),
+        "picks_graded": picks_graded,
+        "window_before": before,
+        "window_after": after_fixtures,
+        "errors": [masked_admin_text(error, 160) for error in errors[:8]],
+        "started_at": started_at,
+        "finished_at": finished_at,
+        "next_action": "wait_for_next_cron_tick" if primary_ok else "review_sports_provider_configuration",
+        "no_telegram": True,
+        "no_payments": True,
+        "no_fake_data": True,
+    }
+    automation_safe_set("sports_sync_operational_state", {
+        "status": status,
+        "ok": primary_ok,
+        "processed": processed,
+        "matches_synced": result["matches_synced"],
+        "live_synced": result["live_synced"],
+        "picks_checked": result["picks_checked"],
+        "picks_graded": result["picks_graded"],
+        "external_calls": external_calls,
+        "started_at": started_at,
+        "finished_at": finished_at,
+        "next_action": result["next_action"],
+        "live_refresh_required": bool(after_fixtures.get("live_refresh_required")),
+        "errors_count": len(errors),
+    })
+    return result
+
+
 def _cron_compact_payload(endpoint, result, called_at, finished_at, force=False):
     result = result or {}
     madrid_now_label = format_telegram_match_time_madrid({"kickoff_iso": finished_at})
-    next_tick = (datetime.now(TZ) + timedelta(minutes=as_int(os.getenv("TELEGRAM_TICK_REVIEW_MINUTES", "15"), 15))).isoformat(timespec="seconds")
+    next_minutes = (
+        as_int(os.getenv("SPORTS_SYNC_CRON_MINUTES", "15"), 15)
+        if endpoint == "sports_sync"
+        else as_int(os.getenv("TELEGRAM_TICK_REVIEW_MINUTES", "15"), 15)
+    )
+    next_tick = (datetime.now(TZ) + timedelta(minutes=max(1, next_minutes))).isoformat(timespec="seconds")
     due_jobs = result.get("due_jobs") or []
     if endpoint == "telegram_tick" and not due_jobs:
         for item in result.get("results") or (result.get("result") or {}).get("results") or []:
@@ -852,6 +1041,20 @@ def _cron_compact_payload(endpoint, result, called_at, finished_at, force=False)
             "picks_generated": as_int(result.get("picks_generated"), 0),
             "picks_sent": as_int(result.get("picks_sent") or result.get("sent"), 0),
             "backups_created": as_int(result.get("backups_created"), 0),
+        })
+    if endpoint == "sports_sync":
+        compact.update({
+            "automation_enabled": True,
+            "matches_synced": as_int(result.get("matches_synced"), 0),
+            "live_synced": as_int(result.get("live_synced"), 0),
+            "picks_checked": as_int(result.get("picks_checked"), 0),
+            "picks_graded": as_int(result.get("picks_graded"), 0),
+            "external_calls": as_int(result.get("external_calls"), 0),
+            "live_refresh_required": bool((result.get("window_after") or {}).get("live_refresh_required")),
+            "no_telegram": True,
+            "no_payments": True,
+            "no_fake_data": True,
+            "next_action": result.get("next_action") or "wait_for_next_cron_tick",
         })
     if result.get("error"):
         compact["error"] = str(result.get("error"))[:120]
@@ -965,6 +1168,46 @@ def telegram_env_should_enable():
 
 def db():
     return sqlite_connect(DB_PATH)
+
+
+def request_read_db():
+    """Reuse one query-only SQLite connection for the lifetime of a GET request."""
+    if not has_request_context():
+        return None
+    connection = getattr(g, "nemesis_request_read_db", None)
+    if connection is not None:
+        return connection
+    db_path = str(DB_PATH or "").strip()
+    if not db_path:
+        return None
+    timeout_ms = max(100, min(as_int(os.getenv("SQLITE_READ_BUSY_TIMEOUT_MS", "750"), 750), 2500))
+    try:
+        if db_path != ":memory:" and Path(db_path).exists():
+            uri = Path(db_path).resolve().as_uri() + "?mode=ro"
+            connection = sqlite3.connect(
+                uri,
+                uri=True,
+                timeout=timeout_ms / 1000,
+                check_same_thread=False,
+            )
+        else:
+            connection = sqlite3.connect(
+                db_path,
+                timeout=timeout_ms / 1000,
+                check_same_thread=False,
+            )
+        connection.row_factory = sqlite3.Row
+        connection.execute("PRAGMA query_only=ON")
+        connection.execute(f"PRAGMA busy_timeout={timeout_ms}")
+        g.nemesis_request_read_db = connection
+        return connection
+    except sqlite3.Error:
+        if connection is not None:
+            try:
+                connection.close()
+            except sqlite3.Error:
+                pass
+        return None
 
 
 def slug(text):
@@ -2064,13 +2307,33 @@ def seed_core():
 
 
 def rows(query, params=()):
-    conn = db()
+    conn = request_read_db()
+    owns_connection = conn is None
+    if owns_connection:
+        conn = db()
     try:
         cur = conn.cursor()
         cur.execute(query, params)
         return [dict(r) for r in cur.fetchall()]
     finally:
-        conn.close()
+        if owns_connection:
+            conn.close()
+
+
+@app.teardown_request
+def close_request_read_db(_error=None):
+    connection = getattr(g, "nemesis_request_read_db", None)
+    if connection is None:
+        return None
+    try:
+        connection.close()
+    except sqlite3.Error:
+        pass
+    try:
+        del g.nemesis_request_read_db
+    except (AttributeError, RuntimeError):
+        pass
+    return None
 
 
 def initialize_once():
@@ -11606,6 +11869,10 @@ def _v932_locked_sports_summary():
 
 def get_v932_real_sports_value_context(summary=None):
     """DB/cache-only sports truth for client copy, admin diagnostics and runtime."""
+    if has_request_context():
+        cached = getattr(g, "v932_real_sports_value_context", None)
+        if cached is not None:
+            return dict(cached)
     summary = dict(summary or get_public_home_sports_summary())
     provider = {}
     if summary.get("storage_status") != "database_locked":
@@ -11630,7 +11897,7 @@ def get_v932_real_sports_value_context(summary=None):
     else:
         client_message = "No hay partidos completos disponibles ahora. La app no muestra encuentros de ejemplo."
         next_action = "run_protected_sports_sync" if provider_available else "review_provider_configuration"
-    return {
+    result = {
         "source": "Datos deportivos",
         "provider_status": summary.get("provider_status") or "waiting_for_sync",
         "provider_configured": bool(provider.get("api_sports_configured")),
@@ -11654,6 +11921,9 @@ def get_v932_real_sports_value_context(summary=None):
         "no_render_api_call": True,
         "secrets_visible": False,
     }
+    if has_request_context():
+        g.v932_real_sports_value_context = result
+    return dict(result)
 
 
 def _v931_legacy_home_summary(summary):
@@ -11834,7 +12104,7 @@ def _v931_minimal_client_data(summary, lane="today", date_value=""):
     }
 
 
-def v931_safe_dashboard_data(route, lane="today", date_value=None):
+def v931_safe_dashboard_data(route, lane="today", date_value=None, compact=False):
     summary = (
         _v932_locked_sports_summary()
         if has_request_context() and request.environ.get("nemesis.v932.database_locked")
@@ -11848,6 +12118,16 @@ def v931_safe_dashboard_data(route, lane="today", date_value=None):
         if current_session_user():
             v932_record_authenticated_issue(route, error, "admin" if is_admin_session() else "client", "sqlite_read_timeout_guard")
         return _v931_minimal_client_data(summary, lane, date_value or today_iso()), summary
+    if compact:
+        data = _v931_minimal_client_data(summary, lane, date_value or today_iso())
+        data["v931_route_guard"] = {
+            "status": "compact_read_only_context",
+            "no_render_api_call": True,
+            "request_scoped_db_connection": True,
+        }
+        if has_request_context():
+            request.environ["nemesis.v931.degraded"] = False
+        return data, summary
     try:
         data = dashboard_data(lane, date_value or today_iso())
     except Exception as exc:
@@ -11899,8 +12179,8 @@ def v931_safe_context(route, label, callback, default):
         return default
 
 
-def v932_safe_dashboard_data(route, lane="today", date_value=None, scope="client"):
-    data, summary = v931_safe_dashboard_data(route, lane, date_value)
+def v932_safe_dashboard_data(route, lane="today", date_value=None, scope="client", compact=False):
+    data, summary = v931_safe_dashboard_data(route, lane, date_value, compact=compact)
     data["v932_sports_value"] = get_v932_real_sports_value_context(summary)
     data["v932_authenticated_scope"] = "admin" if scope == "admin" else "client"
     return data, summary
@@ -13441,7 +13721,7 @@ def global_football():
 def calendar_page():
     lane = request.args.get("lane") or "today"
     date_value = request.args.get("date") or today_iso()
-    data, summary = v932_safe_dashboard_data(request.path, "today", date_value)
+    data, summary = v932_safe_dashboard_data(request.path, "today", date_value, compact=True)
     data["calendar"] = v931_calendar_context(summary, lane, date_value)
     data["matches"] = data["calendar"].get("matches", [])
     data["lane"] = data["calendar"].get("filters", {}).get("lane", "today")
@@ -13528,7 +13808,12 @@ def sports_hub_page():
 def live_page():
     lane = request.args.get("f") or request.args.get("filter") or request.args.get("lane") or "live"
     query = (request.args.get("q") or "").strip()
-    data, summary = v932_safe_dashboard_data(request.path, "today", request.args.get("date") or today_iso())
+    data, summary = v932_safe_dashboard_data(
+        request.path,
+        "today",
+        request.args.get("date") or today_iso(),
+        compact=True,
+    )
     data["client_lifecycle_sync"] = {
         "ok": True, "skipped": True, "reason": "page_render_cache_only",
         "external_calls": 0, "no_render_api_call": True,
@@ -15886,7 +16171,7 @@ def api_admin_production_readiness():
 
 @app.route("/picks")
 def picks_page():
-    data, summary = v932_safe_dashboard_data(request.path)
+    data, summary = v932_safe_dashboard_data(request.path, compact=True)
     user = current_session_user() or {"membership": "FREE", "role": "FREE"}
     data["membership"] = v566_membership_ui(user)
     data["picks"] = list(summary.get("valid_active_picks") or [])
@@ -18239,6 +18524,167 @@ def v937_product_perfection_runtime_summary() -> dict:
         "v937_no_fake_data_guard": True,
         "v937_pixel_perfect_claim_allowed": False,
         "v937_next_required_action": "human_review_browser_qa_then_authorized_deploy",
+        **v937_operational_closeout_runtime_summary(),
+    }
+
+
+def _runtime_age_seconds(value):
+    text = str(value or "").strip()
+    if not text:
+        return None
+    try:
+        parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=TZ)
+        return max(0, int((datetime.now(TZ) - parsed.astimezone(TZ)).total_seconds()))
+    except (TypeError, ValueError):
+        return None
+
+
+def _runtime_state_timestamp(payload):
+    if not isinstance(payload, dict):
+        return ""
+    for key in ("finished_at", "called_at", "time", "generated_at", "started_at", "last_run"):
+        value = str(payload.get(key) or "").strip()
+        if value:
+            return value
+    return ""
+
+
+def _runtime_recency_status(value, maximum_age_seconds):
+    age = _runtime_age_seconds(value)
+    if age is None:
+        return "NOT_RECORDED", None
+    return ("RECENT" if age <= maximum_age_seconds else "STALE"), age
+
+
+def v937_operational_closeout_runtime_summary() -> dict:
+    """Expose P0 operational evidence without provider calls or secret material."""
+    operational = {}
+    last_call = {}
+    telegram_call = {}
+    master_tick = {}
+    match_window = {}
+    live_window = {}
+    pick_grading_lock = {}
+    try:
+        operational = automation_get("sports_sync_operational_state") or {}
+        last_call = automation_get("last_cron_sports_call") or {}
+        telegram_call = automation_get("last_cron_telegram_call") or {}
+        master_tick = automation_get("v818_last_master_tick") or {}
+        match_window = one("SELECT * FROM api_football_live_sync_state WHERE key='match_window'") or {}
+        live_window = one("SELECT * FROM api_football_live_sync_state WHERE key='live'") or {}
+        pick_grading_lock = one("SELECT * FROM scheduler_locks WHERE task_name='pick_grading'") or {}
+    except Exception:
+        pass
+    provider_timestamps = [
+        str(match_window.get("last_sync_at") or "").strip(),
+        str(live_window.get("last_sync_at") or "").strip(),
+    ]
+    provider_timestamps = [value for value in provider_timestamps if value]
+    provider_last_sync = max(provider_timestamps) if provider_timestamps else ""
+    provider_age = _runtime_age_seconds(provider_last_sync)
+    cron_last_tick = str(
+        operational.get("finished_at")
+        or last_call.get("time")
+        or last_call.get("called_at")
+        or ""
+    ).strip()
+    cron_age = _runtime_age_seconds(cron_last_tick)
+    telegram_last_tick = _runtime_state_timestamp(telegram_call)
+    master_last_tick = _runtime_state_timestamp(master_tick)
+    pick_grading_last_tick = str(
+        operational.get("finished_at")
+        if operational.get("picks_checked") is not None
+        else pick_grading_lock.get("last_run")
+        or ""
+    ).strip()
+    telegram_status, telegram_age = _runtime_recency_status(telegram_last_tick, 45 * 60)
+    master_status, master_age = _runtime_recency_status(master_last_tick, 3 * 60 * 60)
+    grading_status, grading_age = _runtime_recency_status(pick_grading_last_tick, 26 * 60 * 60)
+    interval_minutes = max(1, as_int(os.getenv("SPORTS_SYNC_CRON_MINUTES", "15"), 15))
+    next_run = ""
+    if cron_last_tick:
+        try:
+            parsed = datetime.fromisoformat(cron_last_tick.replace("Z", "+00:00"))
+            if parsed.tzinfo is None:
+                parsed = parsed.replace(tzinfo=TZ)
+            next_run = (parsed.astimezone(TZ) + timedelta(minutes=interval_minutes)).isoformat(timespec="seconds")
+        except (TypeError, ValueError):
+            next_run = ""
+    render_text = ""
+    try:
+        render_text = (BASE_DIR / "render.yaml").read_text(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+    cron_configured = (
+        (BASE_DIR / "tools" / "render_cron_sports_sync.py").exists()
+        and "nemesis-sports-sync" in render_text
+        and route_exists("/api/automation/sports/sync")
+    )
+    provider_fresh = provider_age is not None and provider_age <= 21600
+    cron_recent = cron_age is not None and cron_age <= interval_minutes * 60 * 3
+    try:
+        stripe_state = stripe_runtime_status("") or {}
+    except Exception:
+        stripe_state = {}
+    stripe_flags = stripe_state.get("flags") or {}
+    stripe_key = str(os.getenv("STRIPE_SECRET_KEY") or "")
+    live_prefix = "sk_" + "live_"
+    test_prefix = "sk_" + "test_"
+    stripe_mode = "live" if stripe_key.startswith(live_prefix) else "test" if stripe_key.startswith(test_prefix) else "unconfigured"
+    stripe_configured = bool(stripe_state.get("checkout_ready") and stripe_state.get("webhook_ready"))
+    next_action = (
+        "monitor_sports_sync_and_route_latency"
+        if provider_fresh and cron_recent
+        else "deploy_v937_operational_closeout_then_verify_sports_cron_tick"
+        if cron_configured
+        else "configure_protected_sports_cron"
+    )
+    return {
+        "v937_sports_cron_configured": cron_configured,
+        "v937_sports_cron_status": operational.get("status") or "PENDING_FIRST_TICK",
+        "v937_sports_cron_last_tick": cron_last_tick,
+        "v937_sports_cron_last_tick_age_seconds": cron_age,
+        "v937_sports_cron_next_run": next_run,
+        "v937_cron_telegram_status": telegram_status,
+        "v937_cron_telegram_last_tick": telegram_last_tick,
+        "v937_cron_telegram_age_seconds": telegram_age,
+        "v937_cron_master_status": master_status,
+        "v937_cron_master_last_tick": master_last_tick,
+        "v937_cron_master_age_seconds": master_age,
+        "v937_cron_pick_grading_status": grading_status,
+        "v937_cron_pick_grading_last_tick": pick_grading_last_tick,
+        "v937_cron_pick_grading_age_seconds": grading_age,
+        "v937_cron_pick_grading_checked": as_int(operational.get("picks_checked"), 0),
+        "v937_cron_pick_grading_applied": as_int(operational.get("picks_graded"), 0),
+        "v937_cron_evidence_status": (
+            "RECENT_OPERATIONAL_EVIDENCE"
+            if cron_recent and grading_status == "RECENT"
+            else "CONFIGURED_PENDING_PRODUCTION_TICKS"
+            if cron_configured
+            else "MISSING_SPORTS_CRON_CONFIGURATION"
+        ),
+        "v937_sports_provider_last_sync": provider_last_sync,
+        "v937_sports_provider_sync_age_seconds": provider_age,
+        "v937_sports_provider_data_fresh": provider_fresh,
+        "v937_request_scoped_sqlite_reads": True,
+        "v937_render_provider_calls_disabled": True,
+        "v937_stripe_configuration_status": (
+            "CONFIGURED_PENDING_NON_DESTRUCTIVE_PRODUCTION_EVIDENCE"
+            if stripe_configured
+            else "LOCAL_GUARDS_READY_CONFIGURATION_INCOMPLETE"
+        ),
+        "v937_stripe_mode": stripe_mode,
+        "v937_stripe_checkout_ready": bool(stripe_state.get("checkout_ready")),
+        "v937_stripe_webhook_ready": bool(stripe_state.get("webhook_ready")),
+        "v937_stripe_portal_enabled": bool(stripe_flags.get("portal_enabled")),
+        "v937_stripe_pro_price_configured": bool(stripe_flags.get("price_pro")),
+        "v937_stripe_elite_price_configured": bool(stripe_flags.get("price_elite")),
+        "v937_stripe_checkout_idempotency_guard": True,
+        "v937_stripe_webhook_idempotency_guard": True,
+        "v937_stripe_real_charge_executed": False,
+        "v937_next_required_action": next_action,
     }
 
 
@@ -19871,6 +20317,18 @@ def api_automation_daily_run():
         ("last_cron_daily_call", "cron_daily_run_last_call"),
         run_daily_autonomous_system,
         force=force,
+    )
+
+
+@app.route("/api/automation/sports/sync", methods=["POST", "GET"])
+def api_automation_sports_sync():
+    if not automation_cron_access_allowed():
+        return automation_json_forbidden()
+    return automation_cron_result(
+        "sports_sync",
+        ("last_cron_sports_call", "cron_sports_sync_last_call"),
+        run_sports_sync_cycle,
+        force=cron_force_requested(),
     )
 
 

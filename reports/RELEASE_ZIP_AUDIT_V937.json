@@ -1,10 +1,10 @@
 {
   "ok": true,
-  "audited_at": "2026-07-13T09:45:31",
+  "audited_at": "2026-07-13T16:32:28",
   "zip": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\release_output\\NeMeSiS_SHARK_PRO_V937_PRODUCT_PERFECTION_FULL_ECOSYSTEM_LAUNCH_CLOSEOUT_FINAL_RENDER_READY.zip",
-  "zip_size_bytes": 28368507,
-  "file_count": 2640,
-  "content_size_bytes": 40048773,
+  "zip_size_bytes": 28382812,
+  "file_count": 2643,
+  "content_size_bytes": 40104309,
   "forbidden_count": 0,
   "missing_required_root": [],
   "forbidden": [],
@@ -79,7 +79,7 @@
     },
     {
       "path": "app.py",
-      "size": 1182262
+      "size": 1200641
     },
     {
       "path": "static/app.css",
@@ -98,38 +98,38 @@
     },
     {
       "folder": "reports",
-      "size": 7381354,
-      "files": 1438
+      "size": 7397001,
+      "files": 1440
     },
     {
       "folder": "tools",
-      "size": 1777287,
-      "files": 574
+      "size": 1799165,
+      "files": 576
     },
     {
       "folder": "engines",
-      "size": 1454164,
+      "size": 1455460,
       "files": 127
     },
     {
-      "folder": "static",
-      "size": 1189462,
-      "files": 13
-    },
-    {
       "folder": "app.py",
-      "size": 1182262,
+      "size": 1200641,
       "files": 1
     },
     {
+      "folder": "static",
+      "size": 1190027,
+      "files": 13
+    },
+    {
       "folder": "data",
-      "size": 759444,
+      "size": 760290,
       "files": 37
     },
     {
       "folder": "templates",
-      "size": 747471,
-      "files": 183
+      "size": 743169,
+      "files": 182
     },
     {
       "folder": "V726_PROJECT_TREE_AUDIT.md",
@@ -138,7 +138,7 @@
     },
     {
       "folder": "automation_workforce",
-      "size": 80133,
+      "size": 81007,
       "files": 35
     },
     {

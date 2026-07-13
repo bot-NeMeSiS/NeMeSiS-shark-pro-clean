@@ -98,6 +98,13 @@ def stable_id(prefix: str, *parts: Any) -> str:
     return f"{prefix}:{digest}"
 
 
+def checkout_idempotency_key(user_id: str, plan: str, at: Optional[datetime] = None) -> str:
+    """Deduplicate accidental double submits without blocking a later purchase."""
+    current = at or datetime.now(timezone.utc)
+    ten_minute_bucket = int(current.timestamp()) // 600
+    return stable_id("nemesis_checkout", user_id, normalize_plan(plan), ten_minute_bucket)
+
+
 def normalize_plan(plan: Any) -> str:
     value = str(plan or "").strip().upper()
     if value in {"PRO", "PRO_PLUS", "PRO+"}:
@@ -581,7 +588,14 @@ def create_checkout_session(db_path: str, user: Dict[str, Any], plan: str) -> Di
     conn = connect(db_path)
     db_user = user_by_id(conn, user_id) or user
     customer_id = str(db_user.get("stripe_customer_id") or "")
-    metadata = {"user_id": user_id, "plan": plan, "app": "nemesis_shark_pro", "version": "V786"}
+    idempotency_key = checkout_idempotency_key(user_id, plan)
+    metadata = {
+        "user_id": user_id,
+        "plan": plan,
+        "app": "nemesis_shark_pro",
+        "version": "V937",
+        "checkout_attempt": idempotency_key,
+    }
     try:
         kwargs = {
             "mode": "subscription",
@@ -599,7 +613,7 @@ def create_checkout_session(db_path: str, user: Dict[str, Any], plan: str) -> Di
             email = str(db_user.get("email") or user.get("email") or "").strip()
             if email:
                 kwargs["customer_email"] = email
-        session = stripe.checkout.Session.create(**kwargs)
+        session = stripe.checkout.Session.create(**kwargs, idempotency_key=idempotency_key)
         session_id = str(getattr(session, "id", "") or session.get("id"))
         url = str(getattr(session, "url", "") or session.get("url"))
         conn.execute(
@@ -710,6 +724,22 @@ def process_stripe_webhook(db_path: str, payload_bytes: bytes, signature: str) -
         amount = 0.0
     currency = str(obj.get("currency") or "eur")
     conn = connect(db_path)
+    event_id = str(event.get("id") or "").strip()
+    if event_id:
+        existing = conn.execute(
+            "SELECT processed,status FROM payment_webhook_events WHERE event_id=? LIMIT 1",
+            (event_id,),
+        ).fetchone()
+        if existing and int(existing["processed"] or 0) == 1:
+            conn.close()
+            return {
+                "ok": True,
+                "verified": True,
+                "processed": False,
+                "duplicate": True,
+                "event_type": event_type,
+                "status": "idempotent_duplicate",
+            }
     applied: Dict[str, Any] = {"applied": False, "reason": "evento_solo_auditado"}
     status = "verified_stored"
     processed = False
