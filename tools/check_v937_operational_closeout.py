@@ -131,6 +131,7 @@ def run() -> dict:
     require('schedule: "*/15 * * * *"' in render_text, "Frecuencia Cron deportiva incorrecta")
     require("python tools/render_cron_sports_sync.py" in render_text, "Runner Cron no configurado")
     require("/api/automation/sports/sync" in app_text, "Endpoint deportivo protegido ausente")
+    require("telegram_cron_with_sports_sync" in app_text, "Falta fallback deportivo sobre el Cron existente")
     require('"21600"' in engine_text, "Cache conservadora de fixtures no aplicada")
     require('"X-Automation-Secret": automation_secret' in telegram_runner_text, "Telegram Cron no usa cabecera protegida")
     require("urlencode({\"secret\"" not in telegram_runner_text and "?secret=" not in telegram_runner_text, "Telegram Cron expone el secreto en URL")
@@ -186,6 +187,29 @@ def run() -> dict:
         require(int(telegram_payload.get("sent_count", telegram_payload.get("sent", 0)) or 0) == 0, "Telegram dry-run informó un envío real")
         require("v937-local-operational-check" not in telegram_response.get_data(as_text=True), "Telegram Cron expuso el secreto")
 
+        original_telegram_tick = module.telegram_scheduler_tick
+        original_sports_cycle = module.run_sports_sync_cycle
+        shared_trigger = {}
+        module.telegram_scheduler_tick = lambda force=False: {
+            "ok": True, "status": "QUEUE_EMPTY", "sent": 0, "inserted": 0, "processed": 0,
+        }
+        module.run_sports_sync_cycle = lambda force=False, trigger_type="sports_cron": (
+            shared_trigger.update({"force": force, "trigger_type": trigger_type})
+            or {"ok": True, "status": "OK", "no_telegram": True, "no_payments": True}
+        )
+        try:
+            shared_response = client.get(
+                "/api/automation/telegram/tick?runner=render_cron",
+                headers={"X-Automation-Secret": "v937-local-operational-check", "X-NeMeSiS-Cron-Runner": "render-cron"},
+            )
+        finally:
+            module.telegram_scheduler_tick = original_telegram_tick
+            module.run_sports_sync_cycle = original_sports_cycle
+        shared_payload = shared_response.get_json() or {}
+        require(shared_response.status_code == 200, f"Cron compartido -> {shared_response.status_code}")
+        require(int(shared_payload.get("sent_count", shared_payload.get("sent", 0)) or 0) == 0, "Cron compartido informo envio Telegram")
+        require(shared_trigger.get("trigger_type") == "shared_telegram_cron", "Cron compartido no invoco el ciclo deportivo")
+
         client.get("/")
         route_timings = {}
         for route, budget in (("/", 1.0), ("/calendar", 2.0), ("/live", 2.0), ("/picks", 2.0)):
@@ -208,6 +232,8 @@ def run() -> dict:
         runtime = client.get("/api/runtime-version").get_json() or {}
         require(runtime.get("version") == EXPECTED, "Runtime local no es V937")
         require(runtime.get("v937_sports_cron_configured") is True, "Runtime no detecta Cron deportivo")
+        require(runtime.get("v937_sports_cron_shared_runner_enabled") is True, "Runtime no detecta fallback Cron compartido")
+        require(runtime.get("v937_sports_cron_trigger_type") in {"sports_cron", "shared_telegram_cron"}, "Runtime no acredita el trigger deportivo")
         require(runtime.get("v937_request_scoped_sqlite_reads") is True, "Runtime no detecta lecturas SQLite por request")
         require(runtime.get("v937_stripe_checkout_idempotency_guard") is True, "Guard idempotente Checkout ausente")
         require(runtime.get("v937_stripe_webhook_idempotency_guard") is True, "Guard idempotente webhook ausente")

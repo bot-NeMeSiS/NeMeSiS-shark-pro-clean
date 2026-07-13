@@ -875,10 +875,12 @@ def _safe_sports_sync_call(label, callback, *args, **kwargs):
         }
 
 
-def run_sports_sync_cycle(force=False):
+def run_sports_sync_cycle(force=False, trigger_type="sports_cron"):
     """Refresh sports cache without Telegram, payments or render-time provider calls."""
     started_at = now_iso()
     before = sports_sync_window_state()
+    if has_request_context():
+        close_request_read_db()
     fixtures = _safe_sports_sync_call(
         "api_football_match_window",
         sync_api_football_match_window,
@@ -896,6 +898,8 @@ def run_sports_sync_cycle(force=False):
     if has_request_context():
         close_request_read_db()
     after_fixtures = sports_sync_window_state()
+    if has_request_context():
+        close_request_read_db()
     if after_fixtures.get("live_refresh_required"):
         live = _safe_sports_sync_call(
             "api_football_live_tracker",
@@ -956,6 +960,7 @@ def run_sports_sync_cycle(force=False):
         "started_at": started_at,
         "finished_at": finished_at,
         "next_action": "wait_for_next_cron_tick" if primary_ok else "review_sports_provider_configuration",
+        "trigger_type": str(trigger_type or "sports_cron")[:80],
         "no_telegram": True,
         "no_payments": True,
         "no_fake_data": True,
@@ -971,11 +976,29 @@ def run_sports_sync_cycle(force=False):
         "external_calls": external_calls,
         "started_at": started_at,
         "finished_at": finished_at,
+        "trigger_type": str(trigger_type or "sports_cron")[:80],
         "next_action": result["next_action"],
         "live_refresh_required": bool(after_fixtures.get("live_refresh_required")),
         "errors_count": len(errors),
     })
     return result
+
+
+def telegram_cron_with_sports_sync(force=False):
+    """Reuse the proven Telegram Cron trigger without coupling sports to delivery."""
+    try:
+        run_sports_sync_cycle(force=False, trigger_type="shared_telegram_cron")
+    except Exception as exc:
+        automation_safe_set("sports_sync_operational_state", {
+            "status": "CONTROLLED_ERROR",
+            "ok": False,
+            "trigger_type": "shared_telegram_cron",
+            "finished_at": now_iso(),
+            "errors_count": 1,
+            "safe_error": type(exc).__name__,
+            "next_action": "review_sports_sync_logs",
+        })
+    return telegram_scheduler_tick(force=force)
 
 
 def _cron_compact_payload(endpoint, result, called_at, finished_at, force=False):
@@ -18637,13 +18660,17 @@ def v937_operational_closeout_runtime_summary() -> dict:
     next_action = (
         "monitor_sports_sync_and_route_latency"
         if provider_fresh and cron_recent
-        else "deploy_v937_operational_closeout_then_verify_sports_cron_tick"
+        else "review_sports_provider_configuration_or_safe_empty_state"
+        if cron_recent
+        else "verify_sports_cron_tick_or_enable_shared_runner"
         if cron_configured
         else "configure_protected_sports_cron"
     )
     return {
         "v937_sports_cron_configured": cron_configured,
         "v937_sports_cron_status": operational.get("status") or "PENDING_FIRST_TICK",
+        "v937_sports_cron_trigger_type": operational.get("trigger_type") or "NOT_RECORDED",
+        "v937_sports_cron_shared_runner_enabled": True,
         "v937_sports_cron_last_tick": cron_last_tick,
         "v937_sports_cron_last_tick_age_seconds": cron_age,
         "v937_sports_cron_next_run": next_run,
@@ -20337,10 +20364,14 @@ def api_automation_telegram_tick():
     if not automation_cron_access_allowed():
         return automation_json_forbidden()
     force = cron_force_requested()
+    runner_header = str(request.headers.get("X-NeMeSiS-Cron-Runner") or "").lower()
+    runner_query = str(request.args.get("runner") or "").lower()
+    dry_run = str(request.args.get("dry_run") or "").lower() in {"1", "true", "yes", "on"}
+    is_render_cron = runner_header == "render-cron" or runner_query == "render_cron"
     return automation_cron_result(
         "telegram_tick",
         ("last_cron_telegram_call", "cron_telegram_tick_last_call"),
-        telegram_scheduler_tick,
+        telegram_cron_with_sports_sync if is_render_cron and not dry_run else telegram_scheduler_tick,
         force=force,
     )
 
