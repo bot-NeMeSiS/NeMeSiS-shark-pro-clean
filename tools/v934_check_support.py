@@ -16,7 +16,8 @@ ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V934_REFERENCE_EXACTNESS_REALTIME_SPORTS_PRODUCTION_PERFECTION_FINAL"
 SUCCESSOR = "V935_LAUNCH_TRUST_REAL_DATA_LIFECYCLE_PERFORMANCE_REFERENCE_POLISH_FINAL"
 V936_SUCCESSOR = "V936_COMMERCIAL_PRODUCT_READINESS_REFERENCE_EXCELLENCE_FINAL"
-SUPPORTED_VERSIONS = {VERSION, SUCCESSOR, V936_SUCCESSOR}
+V937_SUCCESSOR = "V937_PRODUCT_PERFECTION_FULL_ECOSYSTEM_LAUNCH_CLOSEOUT_FINAL"
+SUPPORTED_VERSIONS = {VERSION, SUCCESSOR, V936_SUCCESSOR, V937_SUCCESSOR}
 MADRID = ZoneInfo("Europe/Madrid")
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
@@ -198,8 +199,14 @@ def _static_checks(checks: list[dict], suite: str) -> None:
     if suite == "performance":
         detail_segment = app[app.find("def match_detail_page"):app.find("def get_safe_calendar_context")]
         add(checks, "no_provider_call_in_detail_render", "sync_api_sports_fixture_detail(" not in detail_segment)
-        polling_fetches = js.count("fetch(endpoint + '?scope='")
-        add(checks, "client_polling_shared", polling_fetches == 1, polling_fetches)
+        polling_fetches = js.count("fetch(key,")
+        shared_polling = all(token in js for token in (
+            "window.__nemesisV935Realtime",
+            "shared.entries[key]",
+            "if (entry.pending) return entry.pending",
+            "Date.now() - entry.fetchedAt < 15000",
+        ))
+        add(checks, "client_polling_shared", polling_fetches == 1 and shared_polling, polling_fetches)
         add(checks, "polling_backoff", "Math.pow(2" in js and "document.hidden" in js)
         add(checks, "js_budget", len(js.encode("utf-8")) < 30000, len(js.encode("utf-8")))
         add(checks, "css_budget", len(css.encode("utf-8")) < 100000, len(css.encode("utf-8")))
