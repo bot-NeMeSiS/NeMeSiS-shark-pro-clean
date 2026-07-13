@@ -243,6 +243,44 @@ def run() -> dict:
         require(normalized_match.get("competition_key") == "chilean-copa-de-la-liga", "La identidad de competicion no conserva la liga solicitada")
         require(normalized_match.get("competition_name") != "LaLiga EA Sports", "La competicion queda etiquetada con una liga incorrecta")
 
+        realtime_now = datetime(2026, 7, 13, 18, 0, tzinfo=timezone.utc)
+        realtime_snapshot = module.build_v934_realtime_snapshot(
+            {
+                "valid_matches_today": [
+                    {
+                        "id": "fresh-live",
+                        "home_team": "Equipo A",
+                        "away_team": "Equipo B",
+                        "competition_name": "Liga real",
+                        "match_date": "2026-07-13",
+                        "kickoff_time": "19:30",
+                        "status": "live",
+                        "source": "provider",
+                        "updated_at": "2026-07-13T17:59:30+00:00",
+                    },
+                    {
+                        "id": "stale-live",
+                        "home_team": "Equipo C",
+                        "away_team": "Equipo D",
+                        "competition_name": "Liga real",
+                        "match_date": "2026-07-13",
+                        "kickoff_time": "18:00",
+                        "status": "live",
+                        "source": "provider",
+                        "updated_at": "2026-07-13T17:50:00+00:00",
+                    },
+                ],
+                "valid_live_events": [{"id": "fresh-live"}, {"id": "stale-live"}],
+                "valid_active_picks": [],
+                "last_sync": "2026-07-13T20:00:00+02:00",
+            },
+            now=realtime_now,
+        )
+        require(realtime_snapshot["counts"]["live"] == 1, "El KPI live cuenta lecturas retrasadas")
+        require(realtime_snapshot["counts"]["stale_live"] == 1, "El snapshot no separa el live retrasado")
+        require([item["id"] for item in realtime_snapshot["live"]] == ["fresh-live"], "El directo publico incluye datos stale")
+        require([item["id"] for item in realtime_snapshot["stale_live"]] == ["stale-live"], "La evidencia stale no queda disponible para admin")
+
         canonical_route_sources = {
             "home": inspect.getsource(module.home),
             "calendar": inspect.getsource(module.calendar_page),
@@ -434,6 +472,7 @@ def run() -> dict:
             "sports_summary_cache_15s": "PASS",
             "sports_recent_rows_before_limit": "PASS",
             "sports_competition_identity_guard": "PASS",
+            "sports_stale_live_exclusion_guard": "PASS",
             "local_db_snapshot": source_db,
             "stripe_checkout_idempotency": "PASS",
             "stripe_sdk_version": sdk_version,

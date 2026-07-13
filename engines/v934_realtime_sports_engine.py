@@ -222,10 +222,11 @@ def build_realtime_snapshot(summary: dict[str, Any], now: datetime | None = None
         if match["id"] in live_ids and match["status"] == "scheduled":
             match.update({"status": "live", "status_label": "En directo", "is_live": True})
     picks = [pick for pick in (normalize_pick(item, now) for item in summary.get("valid_active_picks") or []) if pick]
-    live = [item for item in matches if item["is_live"]]
+    all_live = [item for item in matches if item["is_live"]]
     finished = [item for item in matches if item["is_finished"]]
-    stale_live = [item for item in live if item["is_stale"]]
-    poll_after = LIVE_POLL_SECONDS if live else IDLE_POLL_SECONDS
+    stale_live = [item for item in all_live if item["is_stale"]]
+    live = [item for item in all_live if not item["is_stale"]]
+    poll_after = LIVE_POLL_SECONDS if all_live else IDLE_POLL_SECONDS
     freshness_values = [item["odds_freshness"]["status"] for item in picks]
     odds_status = (
         "fresh"
@@ -238,6 +239,7 @@ def build_realtime_snapshot(summary: dict[str, Any], now: datetime | None = None
         "generated_at_madrid": _iso(now),
         "matches": matches,
         "live": live,
+        "stale_live": stale_live,
         "finished": finished,
         "picks": picks,
         "counts": {
@@ -252,11 +254,13 @@ def build_realtime_snapshot(summary: dict[str, Any], now: datetime | None = None
         "cache_status": "available" if matches or picks else "empty_safe",
         "last_safe_sync": _text(summary.get("last_sync"), 80),
         "realtime_match_status": "live_cached" if live else "schedule_cached" if matches else "waiting_for_real_data",
-        "realtime_live_status": "stale" if stale_live else "live" if live else "no_live_events",
+        "realtime_live_status": "live" if live else "stale" if stale_live else "no_live_events",
         "odds_freshness_status": odds_status,
         "poll_after_seconds": poll_after,
         "safe_message": (
-            "Datos retrasados: se mantiene la ultima lectura segura."
+            f"Datos reales actualizados; {len(stale_live)} lectura(s) retrasada(s) quedan fuera del directo."
+            if live and stale_live
+            else f"No hay directo confirmado; {len(stale_live)} lectura(s) retrasada(s) quedan excluidas."
             if stale_live
             else "Datos reales actualizados desde DB/cache."
             if matches or picks
