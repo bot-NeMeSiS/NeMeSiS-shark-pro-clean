@@ -2,9 +2,9 @@
 
 ## Executive result
 
-**Code gate: PASS. Operational pipeline gate: BLOCKED.**
+**Code gate: PASS. Pipeline gate: PASS for review and normal merge.**
 
-The pipeline defect is repaired and proven by a real green GitHub Actions dry-run. The pipeline is not yet an active production control because PR #1 remains unmerged and GitHub has not confirmed branch/environment protection.
+The pipeline defect is repaired and proven by a real green GitHub Actions dry-run. All PR workflows are green and GitHub confirmed the required branch/environment protections. The pipeline is not active on `main` yet because PR #1 intentionally remains a draft and unmerged.
 
 ## Scope delivered
 
@@ -38,21 +38,23 @@ The pipeline defect is repaired and proven by a real green GitHub Actions dry-ru
 | Cron protected-header regression | PASS |
 | GitHub workflow dry-run | PASS, run `29374356189` |
 | Dry-run external effects | PASS, all zero |
+| Final PR Render Deploy Guard | PASS, run `29376520181` |
+| Final PR CI QA | PASS, run `29376520222` |
+| Final PR Smoke Checks | PASS, run `29376520228` |
 | Current product SHA on Render | PASS in successful 0/+2/+5 certification |
 | Pipeline branch deployed | NO, intentionally |
 | PR merged | NO, intentionally |
-| `main` required check configured | BLOCKED, remote setting pending |
-| Protected `production` environment | BLOCKED, remote setting pending |
+| `main` required checks | PASS: `preflight`, `qa`, `smoke` |
+| Pull-request approval gate | PASS: one approval required |
+| Protected `production` environment | PASS: protected branches only |
 | New reduced visual Browser QA | NOT RUN |
 
 ## Remaining actions before merge
 
 1. Review the draft PR diff.
-2. Configure `main` to require PR review and the `preflight` check.
-3. Disable force pushes and deletion on `main`.
-4. Create/protect the `production` environment; add optional manual approval if desired.
-5. Confirm Render remains linked to repository `main` with Auto-Deploy enabled.
-6. Merge normally, never force push.
-7. Observe `certify-production` through immediate, +2, +5, +15, and +60 minute samples.
+2. Obtain the required approval.
+3. Confirm Render remains linked to repository `main` with Auto-Deploy enabled.
+4. Merge normally, never force push.
+5. Observe `certify-production` through immediate, +2, +5, +15, and +60 minute samples.
 
 No merge or deployment was performed as part of this pipeline repair.

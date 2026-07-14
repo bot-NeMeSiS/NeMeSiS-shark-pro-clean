@@ -17,14 +17,24 @@
 
 ## External security state
 
-At audit time:
+At initial audit time:
 
 - Repository Actions secrets: none.
 - GitHub environments: none.
 - `main` branch protection: none.
 - GitHub deployment records: none.
 
-The workflow declares `environment: production`, but GitHub must still be configured to protect that environment and `main`. Until then, the code gate passes but the operational gate remains blocked.
+After the green PR checks, GitHub was configured and read back successfully:
+
+- strict required checks on `main`: `preflight`, `qa`, `smoke`;
+- one pull-request approval;
+- stale review dismissal and conversation resolution;
+- force pushes disabled;
+- branch deletion disabled;
+- `production` environment limited to protected branches;
+- no environment reviewer, preserving optional manual approval.
+
+No repository secret was added because Render Auto-Deploy does not require one.
 
 ## Rollback
 

@@ -22,15 +22,15 @@ No deploy secret is required for Strategy A. `PUBLIC_BASE_URL` is public configu
 
 If Strategy B is ever selected later, Auto-Deploy must first be disabled and only then may a masked `RENDER_DEPLOY_HOOK_URL` secret be introduced. Both mechanisms must never be active together.
 
-## Required repository controls
+## Repository controls
 
-The audit found no active branch protection and no pre-existing GitHub `production` environment. Before merging PR #1:
+The initial audit found no active branch protection and no pre-existing GitHub `production` environment. They were configured after all three PR workflows passed:
 
-- protect `main`;
-- require the `preflight` status check;
-- require pull-request review;
-- reject force pushes and branch deletion;
-- create/protect the `production` environment;
-- optionally require a human approval for production certification.
+- `main` uses strict required status checks: `preflight`, `qa`, and `smoke`;
+- one pull-request approval is required and stale approvals are dismissed;
+- force pushes and branch deletion are disabled;
+- conversations must be resolved;
+- the `production` environment accepts protected branches only;
+- environment reviewers remain empty, so the additional deployment approval is optional rather than mandatory.
 
-These remote controls are intentionally not represented as completed until GitHub confirms them.
+GitHub confirmed these settings through readback from its API. PR #1 remains a draft and unmerged.
