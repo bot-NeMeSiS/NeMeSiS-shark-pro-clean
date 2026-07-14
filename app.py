@@ -3055,6 +3055,21 @@ def has_real_match_score(match):
     return item.get("home_score") not in {None, ""} and item.get("away_score") not in {None, ""}
 
 
+def has_confirmed_live_evidence(match):
+    """Return true only when live state has provider-backed evidence."""
+    item = match or {}
+    if has_real_match_score(item):
+        return True
+    minute = str(item.get("minute") or item.get("elapsed") or item.get("live_minute") or "").strip()
+    if re.fullmatch(r"\d{1,3}['\u2019]?", minute):
+        return True
+    status = normalized_label(item.get("status") or item.get("match_status") or item.get("fixture_status") or "")
+    return status in {
+        "1h", "2h", "ht", "halftime", "half time", "descanso",
+        "first half", "second half", "1st half", "2nd half", "break",
+    }
+
+
 def match_is_stale_without_result(match, grace_minutes=135):
     """True when kickoff has clearly passed but no provider score/status arrived yet."""
     if is_live_status_value((match or {}).get("status")) or is_finished_status_value((match or {}).get("status")):
@@ -3083,18 +3098,19 @@ def canonical_match_status(match):
     if has_score and (date_value < today_iso() or (elapsed is not None and elapsed >= 105)):
         return {"key": "FT", "label": "Finalizado", "badge": "finished", "is_live": False, "is_finished": True, "is_result_pending": False, "is_upcoming": False}
     if is_live_status_value(status):
+        if not has_confirmed_live_evidence(match):
+            return {"key": "INCOMPLETE", "label": "Estado pendiente", "badge": "incomplete", "is_live": False, "is_finished": False, "is_result_pending": False, "is_upcoming": False}
         if "half" in status_lower or "descanso" in status_lower or status_lower == "ht":
             return {"key": "HT", "label": "Descanso", "badge": "halftime", "is_live": True, "is_finished": False, "is_result_pending": False, "is_upcoming": False}
         return {"key": "LIVE", "label": "En directo", "badge": "live", "is_live": True, "is_finished": False, "is_result_pending": False, "is_upcoming": False}
     if minute and not is_finished_status_value(status):
         return {"key": "LIVE", "label": "En directo", "badge": "live", "is_live": True, "is_finished": False, "is_result_pending": False, "is_upcoming": False}
-    # V812: si la hora de inicio ya pasó, nunca se debe presentar como "Próximo".
-    # Mientras el proveedor no confirme marcador/minuto, se etiqueta como actualización en curso;
-    # cuando supera el margen normal de partido, pasa a Resultado pendiente.
+    # A past kickoff without provider evidence belongs to the incident lane,
+    # never to the public live board.
     if elapsed is not None and elapsed >= 0 and not has_score:
         if elapsed >= 150:
             return {"key": "RESULT_PENDING", "label": "Resultado pendiente", "badge": "result_pending", "is_live": False, "is_finished": True, "is_result_pending": True, "is_upcoming": False}
-        return {"key": "LIVE_PENDING", "label": "En juego · actualizando", "badge": "live_pending", "is_live": True, "is_finished": False, "is_result_pending": False, "is_upcoming": False}
+        return {"key": "INCOMPLETE", "label": "Estado pendiente", "badge": "incomplete", "is_live": False, "is_finished": False, "is_result_pending": False, "is_upcoming": False}
     if match_is_stale_without_result(match):
         return {"key": "RESULT_PENDING", "label": "Resultado pendiente", "badge": "result_pending", "is_live": False, "is_finished": True, "is_result_pending": True, "is_upcoming": False}
     if date_value and date_value < today_iso() and not has_score:
@@ -3321,10 +3337,8 @@ def live_cache_age_seconds(key="client-live-on-demand"):
 
 def active_live_count_cached():
     try:
-        status_clause = "(lower(COALESCE(status,'')) LIKE '%live%' OR lower(COALESCE(status,'')) LIKE '%directo%' OR lower(COALESCE(status,'')) LIKE '%progress%' OR lower(COALESCE(status,'')) IN ('1h','2h','ht','descanso','halftime','inplay','in play') OR COALESCE(minute,'')!='')"
-        matches_count = (one("SELECT COUNT(*) AS total FROM matches WHERE " + status_clause) or {}).get("total", 0)
-        live_table_count = (one("SELECT COUNT(*) AS total FROM live_matches WHERE COALESCE(updated_at,'')>=?", ((datetime.now(TZ)-timedelta(hours=6)).isoformat(timespec="seconds"),)) or {}).get("total", 0)
-        return int(matches_count or 0) + int(live_table_count or 0)
+        confirmed = live_matches_any_date(limit=300) + live_matches_from_live_table(limit=300)
+        return len(dedupe_matches_list(confirmed))
     except Exception:
         return 0
 
@@ -3448,7 +3462,8 @@ def live_matches_from_live_table(limit=120):
         except Exception:
             item.update(apply_match_localization(item))
             item.update(apply_team_identities_to_match(item))
-        data.append(item)
+        if canonical_match_status(item).get("is_live") and has_confirmed_live_evidence(item):
+            data.append(item)
     return dedupe_matches_list(data)
 
 
@@ -3460,11 +3475,14 @@ def live_matches_any_date(limit=160):
         if is_fake_match(item):
             continue
         try:
-            out.append(annotate_match(item))
+            annotated = annotate_match(item)
+            if annotated.get("status_info", {}).get("is_live") and has_confirmed_live_evidence(annotated):
+                out.append(annotated)
         except Exception:
             item.update(apply_match_localization(item))
             item.update(apply_team_identities_to_match(item))
-            out.append(item)
+            if canonical_match_status(item).get("is_live") and has_confirmed_live_evidence(item):
+                out.append(item)
     return dedupe_matches_list(out)
 
 def upsert_sportsdb_matches(match_rows):

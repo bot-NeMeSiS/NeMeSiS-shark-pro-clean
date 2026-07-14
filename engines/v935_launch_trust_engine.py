@@ -140,6 +140,23 @@ def _score_confirmed(item: dict[str, Any]) -> bool:
     return False
 
 
+def _live_evidence_confirmed(item: dict[str, Any], raw_status: str) -> bool:
+    """A generic LIVE label alone is insufficient for public live surfaces."""
+    if _score_confirmed(item):
+        return True
+    minute_text = _text(item.get("minute") or item.get("elapsed") or item.get("live_minute"), 12).strip("'\u2019")
+    try:
+        minute = int(minute_text)
+    except (TypeError, ValueError):
+        minute = None
+    if minute is not None and 0 <= minute <= 130:
+        return True
+    return raw_status in {
+        "1h", "2h", "ht", "halftime", "half time", "break", "descanso",
+        "first half", "second half", "1st half", "2nd half",
+    }
+
+
 def normalize_match_lifecycle(item: dict[str, Any], now: datetime | None = None) -> str:
     if not is_match_complete(item):
         return "INCOMPLETE"
@@ -157,9 +174,9 @@ def normalize_match_lifecycle(item: dict[str, Any], now: datetime | None = None)
     if raw in {"abandoned", "abandono", "abandonado", "interrupted"}:
         return "ABANDONED"
     if raw in {"ht", "halftime", "half time", "break", "descanso"}:
-        return "HALFTIME"
+        return "HALFTIME" if _live_evidence_confirmed(item, raw) else "INCOMPLETE"
     if raw in {"live", "1h", "2h", "in play", "playing", "en directo"}:
-        return "LIVE"
+        return "LIVE" if _live_evidence_confirmed(item, raw) else "INCOMPLETE"
     if raw in {"ft", "aet", "pen", "finished", "final", "finalizado", "terminado"}:
         return "FINISHED" if _score_confirmed(item) else "RESULT_PENDING"
     kickoff = match_kickoff_madrid(item)

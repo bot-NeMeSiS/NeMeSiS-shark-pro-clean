@@ -133,12 +133,14 @@ def normalize_match(item: dict[str, Any], now: datetime | None = None) -> dict[s
     source = _text(item.get("source"), 80)
     if not all((match_id, home, away, competition, match_date, kickoff, source)):
         return None
-    status = _status(
+    raw_status = _text(
         item.get("status")
         or item.get("match_status")
         or item.get("fixture_status")
-        or item.get("calendar_status")
+        or item.get("calendar_status"),
+        50,
     )
+    status = _status(raw_status)
     updated_at = _text(
         item.get("live_updated_at")
         or item.get("provider_updated_at")
@@ -150,6 +152,12 @@ def normalize_match(item: dict[str, Any], now: datetime | None = None) -> dict[s
     home_score = _number(item.get("home_score"))
     away_score = _number(item.get("away_score"))
     score_available = home_score is not None and away_score is not None and (status["is_live"] or status["is_finished"])
+    phase_evidence = raw_status.lower() in {
+        "1h", "2h", "ht", "half time", "halftime", "break", "descanso",
+        "first half", "second half", "1st half", "2nd half",
+    }
+    if status["is_live"] and minute is None and not score_available and not phase_evidence:
+        status = {"key": "pending", "label": "Estado pendiente", "is_live": False, "is_finished": False}
     stale = bool(status["is_live"] and (age is None or age > LIVE_STALE_SECONDS))
     return {
         "id": match_id,
@@ -213,14 +221,6 @@ def build_realtime_snapshot(summary: dict[str, Any], now: datetime | None = None
         if match and match["id"] not in seen:
             seen.add(match["id"])
             matches.append(match)
-    live_ids = {
-        str(item.get("id") or item.get("match_id") or item.get("external_id") or "")
-        for item in summary.get("valid_live_events") or []
-        if isinstance(item, dict)
-    }
-    for match in matches:
-        if match["id"] in live_ids and match["status"] == "scheduled":
-            match.update({"status": "live", "status_label": "En directo", "is_live": True})
     picks = [pick for pick in (normalize_pick(item, now) for item in summary.get("valid_active_picks") or []) if pick]
     all_live = [item for item in matches if item["is_live"]]
     finished = [item for item in matches if item["is_finished"]]

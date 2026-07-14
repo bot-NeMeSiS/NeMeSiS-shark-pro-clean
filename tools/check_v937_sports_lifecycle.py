@@ -11,6 +11,8 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 import app as app_module
+from engines.v934_realtime_sports_engine import build_realtime_snapshot, normalize_match
+from engines.v935_launch_trust_engine import normalize_match_lifecycle
 
 VERSION = "V937_PRODUCT_PERFECTION_FULL_ECOSYSTEM_LAUNCH_CLOSEOUT_FINAL"
 errors = []
@@ -96,6 +98,35 @@ for event, expected in status_cases:
 if app_module.sportsdb_score(0, 1) != "0-1":
     errors.append("sportsdb_zero_score_lost")
 
+generic_live = {
+    "id": "v937-generic-live",
+    "home_team": "Regression Home",
+    "away_team": "Regression Away",
+    "competition_name": "Regression League",
+    "match_date": app_module.today_iso(),
+    "kickoff_time": "20:00",
+    "source": "isolated_test_fixture",
+    "updated_at": app_module.now_iso(),
+    "status": "LIVE",
+}
+if app_module.canonical_match_status(generic_live).get("is_live"):
+    errors.append("generic_live_without_evidence_exposed")
+if app_module.canonical_match_status({**generic_live, "home_score": 0, "away_score": 0}).get("key") != "LIVE":
+    errors.append("confirmed_zero_zero_live_rejected")
+if normalize_match_lifecycle(generic_live) != "INCOMPLETE":
+    errors.append("v935_generic_live_without_evidence_exposed")
+if normalize_match_lifecycle({**generic_live, "home_score": 0, "away_score": 0}) != "LIVE":
+    errors.append("v935_confirmed_zero_zero_live_rejected")
+normalized_generic = normalize_match(generic_live)
+if not normalized_generic or normalized_generic.get("is_live") or normalized_generic.get("status") != "pending":
+    errors.append("v934_generic_live_without_evidence_exposed")
+forced_snapshot = build_realtime_snapshot({
+    "valid_matches_today": [{**generic_live, "status": "NS"}],
+    "valid_live_events": [generic_live],
+})
+if int((forced_snapshot.get("counts") or {}).get("live") or 0) != 0:
+    errors.append("v934_summary_force_live_without_evidence")
+
 if "Force a live status" in app_source:
     errors.append("sportsdb_live_endpoint_forced_status")
 if "DELETE FROM live_matches WHERE match_id=? OR id=?" not in app_source:
@@ -140,6 +171,16 @@ try:
             ).fetchone()[0]
         if live_rows != 0:
             errors.append("sportsdb_finished_match_left_in_live_table")
+
+        match.update({"status": "LIVE", "minute": "", "home_score": "", "away_score": "", "score": ""})
+        app_module.upsert_sportsdb_matches([match])
+        with closing(sqlite3.connect(app_module.DB_PATH)) as conn:
+            live_rows = conn.execute(
+                "SELECT COUNT(*) FROM live_matches WHERE match_id=?",
+                (match["id"],),
+            ).fetchone()[0]
+        if live_rows != 0:
+            errors.append("sportsdb_generic_live_without_evidence_persisted")
 finally:
     app_module.DB_PATH = original_db_path
     app_module._SEEDED_DB_PATH = original_seeded_path
