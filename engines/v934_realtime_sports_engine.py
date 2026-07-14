@@ -215,18 +215,21 @@ def normalize_pick(item: dict[str, Any], now: datetime | None = None) -> dict[st
 def build_realtime_snapshot(summary: dict[str, Any], now: datetime | None = None) -> dict[str, Any]:
     summary = summary if isinstance(summary, dict) else {}
     seen: set[str] = set()
-    matches: list[dict[str, Any]] = []
+    normalized_matches: list[dict[str, Any]] = []
     for raw in list(summary.get("valid_matches_today") or []) + list(summary.get("valid_upcoming_matches") or []):
         match = normalize_match(raw, now)
         if match and match["id"] not in seen:
             seen.add(match["id"])
-            matches.append(match)
+            normalized_matches.append(match)
     picks = [pick for pick in (normalize_pick(item, now) for item in summary.get("valid_active_picks") or []) if pick]
-    all_live = [item for item in matches if item["is_live"]]
-    finished = [item for item in matches if item["is_finished"]]
+    all_live = [item for item in normalized_matches if item["is_live"]]
     stale_live = [item for item in all_live if item["is_stale"]]
     live = [item for item in all_live if not item["is_stale"]]
-    poll_after = LIVE_POLL_SECONDS if all_live else IDLE_POLL_SECONDS
+    # Stale live evidence remains available to protected diagnostics only. It must
+    # not leak into public schedules, cards, counters, or polling decisions.
+    matches = [item for item in normalized_matches if not item["is_stale"]]
+    finished = [item for item in matches if item["is_finished"]]
+    poll_after = LIVE_POLL_SECONDS if live else IDLE_POLL_SECONDS
     freshness_values = [item["odds_freshness"]["status"] for item in picks]
     odds_status = (
         "fresh"
