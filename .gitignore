@@ -63,6 +63,7 @@ reports/browser_qa_v937_diamond_*/
 *secret*
 *token*
 !automation_workforce/security_secret_guard.py
+!reports/V915_SECURITY_SECRET_GUARD_REPORT.md
 !static/v933_design_tokens.css
 private_key*
 id_rsa*
