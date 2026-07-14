@@ -1192,3 +1192,15 @@ V928 reconstruye la experiencia completa sobre la base V927 con 16 referencias c
 - Gates: Product `ACCEPTED`, Operations `GO_CONTROLLED`, Business `READY_FOR_PRIVATE_BETA`.
 - Pendientes honestos: tick maestro Cron, evidencia Stripe externa y revisión legal profesional.
 - No se hizo merge, deploy, pago, Telegram real ni modificación destructiva de DB.
+
+## V937 GitHub Render Deployment Pipeline
+
+- Rama: `hotfix/v937-github-render-deployment-pipeline`; PR en borrador `#1` contra `main`.
+- Causa raiz confirmada en Actions `29365094877`: se importaba `app.py` antes de instalar `requirements.txt`, provocando `ModuleNotFoundError: flask`.
+- El preflight instala dependencias primero y valida imports, compile, Jinja, V937, navegacion, Sentinel, Secret Guard, rutas, enlaces e identidad.
+- Estrategia unica: Render Auto-Deploy desde `main`; no se invoca deploy hook.
+- Dry-run real `29374356189`: preflight y pipeline-dry-run verdes; red, deploy, DB, Telegram y Stripe en cero.
+- Certificador read-only exige version y SHA exactos y observa 0/+2/+5/+15/+60 minutos.
+- La produccion V937 ya observada sirve SHA `261213048fe3f92a58488b1119092922cdfc5db5`, con 0 public stale, 0 falsos live, 0 5xx y Sentinel limpio.
+- Gate de codigo: PASS. Gate operativo: BLOCKED hasta proteger `main`/environment `production`, revisar y fusionar PR #1.
+- No se creo V938, no se hizo merge, deploy, Telegram, Stripe ni escritura DB.
