@@ -1,10 +1,10 @@
 {
   "ok": true,
-  "audited_at": "2026-07-14T03:34:28",
+  "audited_at": "2026-07-14T17:40:23",
   "zip": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\release_output\\NeMeSiS_SHARK_PRO_V937_PRODUCT_PERFECTION_FULL_ECOSYSTEM_LAUNCH_CLOSEOUT_FINAL_RENDER_READY.zip",
-  "zip_size_bytes": 28388050,
-  "file_count": 2643,
-  "content_size_bytes": 40129698,
+  "zip_size_bytes": 28399005,
+  "file_count": 2657,
+  "content_size_bytes": 40144187,
   "forbidden_count": 0,
   "missing_required_root": [],
   "forbidden": [],
@@ -98,17 +98,17 @@
     },
     {
       "folder": "reports",
-      "size": 7397811,
-      "files": 1440
+      "size": 7410700,
+      "files": 1454
     },
     {
       "folder": "tools",
-      "size": 1811195,
+      "size": 1811751,
       "files": 576
     },
     {
       "folder": "engines",
-      "size": 1458040,
+      "size": 1458106,
       "files": 127
     },
     {
@@ -118,7 +118,7 @@
     },
     {
       "folder": "static",
-      "size": 1199280,
+      "size": 1199963,
       "files": 13
     },
     {
@@ -128,7 +128,7 @@
     },
     {
       "folder": "templates",
-      "size": 743559,
+      "size": 742762,
       "files": 182
     },
     {
@@ -143,7 +143,7 @@
     },
     {
       "folder": "CHATGPT_CONTINUATION_REPORT.md",
-      "size": 76674,
+      "size": 77732,
       "files": 1
     },
     {

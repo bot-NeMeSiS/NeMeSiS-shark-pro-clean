@@ -15,7 +15,7 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='v930-canonical.css') }}?v={{ app_version }}" data-v930-cache-version="{{ app_version }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='v933_design_tokens.css') }}?v={{ app_version }}" data-v933-token-version="{{ app_version }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='v933-product.css') }}?v={{ app_version }}-polish-8" data-v933-product-version="{{ app_version }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='v936-commercial.css') }}?v={{ app_version }}" data-v936-commercial-version="{{ app_version }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='v936-commercial.css') }}?v={{ app_version }}&amp;r=diamond-1" data-v936-commercial-version="{{ app_version }}">
   <script defer src="{{ url_for('static', filename='v930-icons.js') }}?v={{ app_version }}" data-v930-icon-version="{{ app_version }}"></script>
   <script defer src="{{ url_for('static', filename='v934-realtime.js') }}?v={{ app_version }}" data-v934-realtime-version="{{ app_version }}"></script>
   <meta name="csrf-token" content="{{ csrf_token() }}">
@@ -129,19 +129,7 @@
   <!-- NEMESIS V910 FULL PROJECT HIDDEN AUDIT ROUTE NOT FOUND BROWSER QA READY ACTIVE -->
   <!-- NEMESIS V911 VIDEO ADMIN UI BINDING BROWSER QA QUEUE FIX ACTIVE -->
   <!-- NEMESIS V912 VIDEO ADMIN UI COPY POLISH BROWSER QA QUEUE ACTIVE -->
-  <div class="ns-ambient" aria-hidden="true"><i></i><i></i><i></i></div>
-  {% if not current_user or current_user.role != 'ADMIN' %}
-  <div class="v825-shark-background" aria-hidden="true">
-    <span class="shark-dot-watermark"></span>
-    <span class="shark-grid-texture"></span>
-    <span class="shark-glow-orb one"></span>
-    <span class="shark-glow-orb two"></span>
-  </div>
-  {% endif %}
-  {% if current_user and current_user.role != 'ADMIN' %}<div class="v815-client-shark-backdrop" aria-hidden="true"><img src="/static/img/shark-logo.svg?v={{ app_version }}-brand-2" alt=""></div>{% endif %}
-  {% if is_client_area %}<div class="v810-big-shark-decoration" aria-hidden="true"><img src="/static/img/shark-logo.svg?v={{ app_version }}-brand-2" alt=""></div>{% endif %}
-  <div class="membership-energy-bar" aria-hidden="true"></div>
-  <div class="ns-route-glow" aria-hidden="true"></div>
+  <!-- V937 Diamond: canonical shell pseudo-elements own ambient and SHARK decoration. -->
   {% if show_admin_nav %}
     {{ v933_admin_shell() }}
   {% elif is_client_area %}

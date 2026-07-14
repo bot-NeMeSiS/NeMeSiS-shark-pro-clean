@@ -79,7 +79,7 @@ PAGES = {
     "terminos": {
         "eyebrow": "Términos de suscripción",
         "title": "Términos y condiciones de uso",
-        "lead": "Borrador operativo para la app. Debe revisarse por un profesional antes de lanzamiento masivo.",
+        "lead": "Texto operativo preparado para revisión legal antes de cualquier lanzamiento público masivo.",
         "cards": [
             {"title": "Servicio", "body": "Acceso a plataforma informativa deportiva y funciones según plan FREE/PRO/ELITE."},
             {"title": "Suscripción", "body": "PRO y ELITE son planes mensuales gestionados por Stripe."},
@@ -95,7 +95,7 @@ PAGES = {
     "privacidad": {
         "eyebrow": "Datos personales",
         "title": "Política de privacidad",
-        "lead": "Resumen claro de datos tratados por la app. Ajustar responsable, NIF/CIF y contacto antes del lanzamiento público real.",
+        "lead": "Cobertura operativa preparada para revisión legal. Los datos del responsable se incorporarán antes de cualquier lanzamiento público real.",
         "cards": [
             {"title": "Cuenta", "body": "Nombre, usuario, email, contraseña cifrada y plan."},
             {"title": "Uso", "body": "Favoritos, actividad, Telegram, pagos y preferencias necesarias para prestar el servicio."},
@@ -139,15 +139,15 @@ PAGES = {
     "aviso": {
         "eyebrow": "Aviso legal",
         "title": "Aviso legal y datos del titular",
-        "lead": "Completar con datos reales antes de lanzamiento público: titular, NIF/CIF, domicilio, email de soporte y jurisdicción.",
+        "lead": "Preparado para revisión legal. Titular, NIF/CIF, domicilio, soporte y jurisdicción se publicarán solo después de su validación.",
         "cards": [
-            {"title": "Titular", "body": "Pendiente de completar por el responsable legal del proyecto."},
-            {"title": "Contacto", "body": "Configurar email de soporte y facturación antes de cobrar en real."},
+            {"title": "Titular", "body": "Datos reservados hasta completar su validación legal y autorizar su publicación."},
+            {"title": "Contacto", "body": "El canal de soporte y facturación se publicará antes de habilitar cobros reales."},
             {"title": "Actividad", "body": "Software de análisis deportivo informativo por suscripción."},
             {"title": "Jurisdicción", "body": "Definir ámbito territorial y condiciones aplicables con revisión profesional."},
         ],
         "sections": [
-            {"title": "Pendiente crítico", "body": "Antes de pagos reales públicos, completar datos legales del titular y revisar textos con asesoría."},
+            {"title": "Revisión requerida", "body": "Antes de pagos reales públicos, validar los datos del titular y todos los textos con asesoría profesional."},
         ],
     },
 }
@@ -189,7 +189,7 @@ def legal_page_payload(page: str = "centro") -> dict:
     data["nav"] = LEGAL_NAV
     data["positioning"] = BUSINESS_POSITIONING
     data["version"] = LEGAL_COMPLIANCE_VERSION
-    data["disclaimer"] = "Contenido informativo y borrador operativo; debe revisarse por asesoría legal antes de lanzamiento público masivo."
+    data["disclaimer"] = "Contenido informativo preparado para revisión legal; no se considera validado por asesoría profesional."
     return data
 
 
