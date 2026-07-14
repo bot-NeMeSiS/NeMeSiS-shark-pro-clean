@@ -33,6 +33,9 @@ The pipeline defect is repaired and proven by a real green GitHub Actions dry-ru
 | Secret Guard | PASS, 0 findings |
 | Route/import audit | PASS |
 | Link audit | PASS |
+| Historical pytest smoke suite | PASS, 29/29 |
+| Exact duplicate route guard | PASS |
+| Cron protected-header regression | PASS |
 | GitHub workflow dry-run | PASS, run `29374356189` |
 | Dry-run external effects | PASS, all zero |
 | Current product SHA on Render | PASS in successful 0/+2/+5 certification |

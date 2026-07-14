@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+from pathlib import Path
+import re
 
-EXPECTED_VERSION = "V717_PRODUCTION_POLISH_COMMERCIAL_LAUNCH_UPGRADE"
+
+EXPECTED_VERSION = (Path(__file__).resolve().parents[1] / "VERSION.txt").read_text(encoding="utf-8-sig").strip()
 
 
 def _login_client_session(client, membership="ELITE"):
@@ -58,7 +61,7 @@ def test_cron_endpoints_require_secret_and_accept_valid_secret(client):
         response = client.get(path)
         assert response.status_code == 403
 
-        response = client.get(path + "?secret=pytest-automation-secret")
+        response = client.get(path, headers={"X-Automation-Secret": "pytest-automation-secret"})
         assert response.status_code == 200
         payload = response.get_json()
         assert payload["cron"] is True
@@ -90,5 +93,7 @@ def test_client_home_does_not_show_internal_version(client):
     response = client.get("/")
     assert response.status_code == 200
     body = response.get_data(as_text=True)
-    assert EXPECTED_VERSION not in body
+    without_code = re.sub(r"<(script|style)\b[^>]*>.*?</\1>", " ", body, flags=re.IGNORECASE | re.DOTALL)
+    visible_text = re.sub(r"<[^>]+>", " ", without_code)
+    assert EXPECTED_VERSION not in visible_text
     assert "Estado app" not in body

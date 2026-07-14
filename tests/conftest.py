@@ -16,6 +16,7 @@ def app_module():
     os.environ.setdefault("SECRET_KEY", "test-secret-key-for-pytest")
     os.environ.setdefault("ADMIN_EMAIL", "admin@example.com")
     os.environ.setdefault("ADMIN_PASSWORD", "admin-password")
+    os.environ.setdefault("AUTOMATION_SECRET", "pytest-automation-secret")
     os.environ.setdefault("BACKGROUND_JOBS_ENABLED", "false")
     os.environ.setdefault("AUTO_GENERATE_PICKS", "false")
     os.environ.setdefault("AUTO_SEND_TELEGRAM_PICKS", "false")

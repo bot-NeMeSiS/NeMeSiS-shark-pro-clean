@@ -44,3 +44,14 @@ Workflow dispatch run: `29374356189`.
 - Stripe actions: `0`.
 
 Evidence URL: https://github.com/bot-NeMeSiS/NeMeSiS-shark-pro-clean/actions/runs/29374356189
+
+## Legacy smoke compatibility
+
+The PR exposed four independent failures in the historical smoke suite. They were corrected without changing product behavior:
+
+- two version assertions frozen at V717/V729 now validate the release identity from `VERSION.txt`;
+- the Cron authorization test now uses `X-Automation-Secret` with a CI-only placeholder instead of a query string;
+- the home test distinguishes visible customer text from the required cache-busting version in asset URLs;
+- the duplicate `/admin/client-screens` registration was removed while preserving the first and already effective destination.
+
+Local result after correction: `29 passed`.

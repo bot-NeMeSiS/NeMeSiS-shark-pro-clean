@@ -1,15 +1,18 @@
 from __future__ import annotations
 
 from pathlib import Path
+import re
 
 ROOT = Path(__file__).resolve().parents[1]
 APP_TEXT = (ROOT / "app.py").read_text(encoding="utf-8", errors="replace")
 BASE_TEXT = (ROOT / "templates" / "base.html").read_text(encoding="utf-8", errors="replace")
 
 
-def test_v729_version_is_declared():
-    assert "V729_SECURITY_STABILITY_VISUAL_QA_FOUNDATION" in (ROOT / "VERSION.txt").read_text(encoding="utf-8-sig")
-    assert 'APP_VERSION = "V729_SECURITY_STABILITY_VISUAL_QA_FOUNDATION"' in APP_TEXT
+def test_current_version_is_declared():
+    version = (ROOT / "VERSION.txt").read_text(encoding="utf-8-sig").strip()
+    assert version
+    assignment = rf"^APP_VERSION\s*=\s*['\"]{re.escape(version)}['\"]"
+    assert re.search(assignment, APP_TEXT, re.MULTILINE)
 
 
 def test_secret_key_uses_secure_helper_not_random_restart_fallback():

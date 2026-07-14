@@ -23236,7 +23236,6 @@ def v774_client_screen_quality_snapshot():
 
 
 @app.route("/admin/client-screen-quality")
-@app.route("/admin/client-screens")
 def admin_client_screen_quality_page():
     if not is_admin_session():
         return redirect("/admin-login?next=/admin/client-screen-quality")

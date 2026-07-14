@@ -1203,4 +1203,5 @@ V928 reconstruye la experiencia completa sobre la base V927 con 16 referencias c
 - Certificador read-only exige version y SHA exactos y observa 0/+2/+5/+15/+60 minutos.
 - La produccion V937 ya observada sirve SHA `261213048fe3f92a58488b1119092922cdfc5db5`, con 0 public stale, 0 falsos live, 0 5xx y Sentinel limpio.
 - Gate de codigo: PASS. Gate operativo: BLOCKED hasta proteger `main`/environment `production`, revisar y fusionar PR #1.
+- El smoke historico quedo actualizado a la identidad V937 y autorizacion Cron por cabecera; `29/29` tests pasan y se elimino el registro duplicado de `/admin/client-screens` sin cambiar su destino efectivo.
 - No se creo V938, no se hizo merge, deploy, Telegram, Stripe ni escritura DB.
