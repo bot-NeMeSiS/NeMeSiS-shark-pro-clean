@@ -1,4 +1,5 @@
 from contextlib import closing
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import sqlite3
 import sys
@@ -126,6 +127,42 @@ forced_snapshot = build_realtime_snapshot({
 })
 if int((forced_snapshot.get("counts") or {}).get("live") or 0) != 0:
     errors.append("v934_summary_force_live_without_evidence")
+
+snapshot_now = datetime(2026, 7, 14, 20, 0, tzinfo=timezone.utc)
+fresh_confirmed_live = {
+    **generic_live,
+    "id": "v937-fresh-confirmed-live",
+    "home_score": 0,
+    "away_score": 0,
+    "updated_at": (snapshot_now - timedelta(seconds=30)).isoformat(),
+}
+stale_confirmed_live = {
+    **generic_live,
+    "id": "v937-stale-confirmed-live",
+    "home_score": 1,
+    "away_score": 0,
+    "updated_at": (snapshot_now - timedelta(seconds=121)).isoformat(),
+}
+evidence_snapshot = build_realtime_snapshot({
+    "valid_matches_today": [fresh_confirmed_live, stale_confirmed_live],
+}, now=snapshot_now)
+public_ids = {item.get("id") for item in evidence_snapshot.get("matches") or []}
+if public_ids != {fresh_confirmed_live["id"]}:
+    errors.append(f"v934_public_matches_stale_live_leak:{sorted(public_ids)}")
+if int((evidence_snapshot.get("counts") or {}).get("live") or 0) != 1:
+    errors.append("v934_fresh_confirmed_live_missing")
+if int((evidence_snapshot.get("counts") or {}).get("stale_live") or 0) != 1:
+    errors.append("v934_stale_live_diagnostic_count_missing")
+if evidence_snapshot.get("poll_after_seconds") != 45:
+    errors.append("v934_fresh_live_polling_interval")
+
+stale_only_snapshot = build_realtime_snapshot({
+    "valid_matches_today": [stale_confirmed_live],
+}, now=snapshot_now)
+if stale_only_snapshot.get("matches") or stale_only_snapshot.get("live"):
+    errors.append("v934_stale_only_snapshot_public_leak")
+if stale_only_snapshot.get("poll_after_seconds") != 180:
+    errors.append("v934_stale_only_snapshot_polling_interval")
 
 if "Force a live status" in app_source:
     errors.append("sportsdb_live_endpoint_forced_status")
