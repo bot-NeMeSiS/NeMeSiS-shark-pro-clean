@@ -53,6 +53,7 @@ temp/
 video_review_frames/
 cron_video_frames/
 reports/browser_qa_v937_final/
+reports/browser_qa_v937_diamond_*/
 *.mp4
 *.mov
 *.avi

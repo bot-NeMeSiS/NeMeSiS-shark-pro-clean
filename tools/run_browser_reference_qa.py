@@ -16,8 +16,32 @@ from tools.check_browser_qa_environment import detect_browser_qa_environment
 
 
 VERSION = (ROOT / "VERSION.txt").read_text(encoding="utf-8-sig", errors="replace").strip()
-PUBLIC_ROUTES = ["/", "/cliente-login", "/registro"]
-CLIENT_ROUTES = ["/app", "/calendar", "/live", "/picks", "/track-record", "/shark", "/telegram", "/profile", "/memberships", "/support"]
+PUBLIC_ROUTES = [
+    "/",
+    "/cliente-login",
+    "/registro",
+    "/support",
+    "/memberships",
+    "/terms",
+    "/privacy",
+    "/responsible-gaming",
+]
+CLIENT_ROUTES = [
+    "/app",
+    "/calendar",
+    "/calendario",
+    "/partidos",
+    "/partidos-hoy",
+    "/live",
+    "/directo",
+    "/picks",
+    "/track-record",
+    "/historico",
+    "/shark",
+    "/telegram",
+    "/profile",
+    "/memberships",
+]
 ADMIN_SAFE_ROUTES = ["/admin-login"]
 ADMIN_PROTECTED_ROUTES = [
     "/admin/dashboard",
@@ -26,6 +50,7 @@ ADMIN_PROTECTED_ROUTES = [
     "/admin/users",
     "/admin/payments",
     "/admin/picks",
+    "/admin/matches",
     "/admin/matches-sync",
     "/admin/realtime-center",
     "/admin/data-trust-center",
@@ -36,9 +61,12 @@ ADMIN_PROTECTED_ROUTES = [
     "/admin/autonomous-company-sentinel",
     "/admin/sentinel-issues",
     "/admin/sentinel-codex-outbox",
+    "/admin/sentinel-autopilot",
+    "/admin/navigation-integrity",
     "/admin/not-found-events",
     "/admin/launch-certification",
     "/admin/final-certification",
+    "/admin/settings",
     "/admin/system",
 ]
 
@@ -347,7 +375,10 @@ def run_browser_reference_qa(
     if mobile and v928_matrix:
         devices.extend([
             ("mobile", "mobile_360x800", {"width": 360, "height": 800}),
+            ("mobile", "mobile_375x812", {"width": 375, "height": 812}),
             ("mobile", "mobile_390x844", {"width": 390, "height": 844}),
+            ("mobile", "mobile_393x852", {"width": 393, "height": 852}),
+            ("mobile", "mobile_412x915", {"width": 412, "height": 915}),
             ("mobile", "mobile_430x932", {"width": 430, "height": 932}),
         ])
     elif mobile:
@@ -355,7 +386,7 @@ def run_browser_reference_qa(
     if tablet:
         devices.extend([
             ("tablet", "tablet_768x1024", {"width": 768, "height": 1024}),
-            ("tablet", "tablet_1024x1366", {"width": 1024, "height": 1366}),
+            ("tablet", "tablet_820x1180", {"width": 820, "height": 1180}),
         ])
     if not devices:
         devices.append(("desktop", "desktop_1440x900", {"width": 1440, "height": 900}))

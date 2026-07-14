@@ -1179,3 +1179,16 @@ V928 reconstruye la experiencia completa sobre la base V927 con 16 referencias c
 - QA público de producción: 28 capturas nuevas, 0 errores, 0 overflow; Sentinel 10.0 y Secret Guard 0 hallazgos.
 - Decisión ejecutiva: `NO-GO` para usuarios reales hasta certificar sesiones cliente/admin, persistencia tras reinicio, Stripe/webhooks, entrega Telegram autorizada, documentos legales y feed deportivo actual.
 - No se creó V938, no hubo pagos, Telegram real, cambios destructivos de DB ni datos sintéticos.
+
+## V937 Diamond Product, Operations And Business
+
+- Rama aislada: `chatgpt/v937-diamond-product-brand-business-final`, basada en `origin/main` SHA `6844f086`.
+- La Home recuperó una firma SHARK de puntos; seis capas heredadas ocultas dejaron de montarse en el DOM.
+- Los textos legales pasan de placeholder visible a `READY_FOR_LEGAL_REVIEW`, sin afirmar validación profesional.
+- Browser QA: 552 capturas BEFORE y 552 AFTER sobre 46 rutas y 12 perfiles; 0 errores, 0 redirects inesperados y 0 overflow.
+- Segunda corrección Home: 12 recapturas; MAJOR `0 -> 0`, MEDIUM `1 -> 0`.
+- Sentinel 10.0; navegación 664 rutas/929 enlaces; Secret Guard 0 hallazgos.
+- Producción observada permanece en V937 SHA `6844f086`, alineada, con datos frescos y rutas críticas dentro de objetivo.
+- Gates: Product `ACCEPTED`, Operations `GO_CONTROLLED`, Business `READY_FOR_PRIVATE_BETA`.
+- Pendientes honestos: tick maestro Cron, evidencia Stripe externa y revisión legal profesional.
+- No se hizo merge, deploy, pago, Telegram real ni modificación destructiva de DB.
