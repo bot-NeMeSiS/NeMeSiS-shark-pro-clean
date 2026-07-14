@@ -92,9 +92,27 @@ def assert_zip_clean(failures: list[str]) -> None:
 def assert_workflow_secret_safe(failures: list[str]) -> None:
     deploy = read(".github/workflows/render-deploy.yml")
     ci = read(".github/workflows/nemesis-ci.yml")
-    require("RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}" in deploy, "deploy workflow does not use GitHub secret placeholder", failures)
-    require('curl -fsS -X POST "$RENDER_DEPLOY_HOOK_URL" >/dev/null' in deploy, "deploy workflow does not hide hook output", failures)
-    require('echo "$RENDER_DEPLOY_HOOK_URL"' not in deploy, "deploy workflow prints deploy hook", failures)
+    hook_strategy = "RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}" in deploy
+    auto_deploy_strategy = all(
+        marker in deploy
+        for marker in [
+            "Render Auto-Deploy from protected main",
+            "certify-production:",
+            "--expected-sha",
+            "permissions:\n  contents: read",
+        ]
+    )
+    require(hook_strategy or auto_deploy_strategy, "deploy workflow has no recognized safe strategy", failures)
+    if hook_strategy:
+        require(
+            'curl -fsS -X POST "$RENDER_DEPLOY_HOOK_URL" >/dev/null' in deploy,
+            "deploy workflow does not hide hook output",
+            failures,
+        )
+        require('echo "$RENDER_DEPLOY_HOOK_URL"' not in deploy, "deploy workflow prints deploy hook", failures)
+    if auto_deploy_strategy:
+        require("RENDER_DEPLOY_HOOK_URL" not in deploy, "Auto-Deploy workflow still references a hook", failures)
+        require("curl -fsS -X POST" not in deploy, "Auto-Deploy workflow still posts to a hook", failures)
     require("secrets." not in ci, "CI workflow should not require secrets", failures)
 
 
