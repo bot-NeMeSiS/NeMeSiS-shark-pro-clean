@@ -1,8 +1,17 @@
+from contextlib import closing
 from pathlib import Path
+import sqlite3
+import sys
+import tempfile
 
 from jinja2 import Environment
 
 ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+import app as app_module
+
 VERSION = "V937_PRODUCT_PERFECTION_FULL_ECOSYSTEM_LAUNCH_CLOSEOUT_FINAL"
 errors = []
 
@@ -69,6 +78,71 @@ for path, marker in template_markers.items():
 
 if "pixel_perfect_claim_allowed\": True" in app_source:
     errors.append("unsafe_pixel_perfect_claim")
+
+status_cases = (
+    ({"strStatus": "Match Finished"}, "FINALIZADO"),
+    ({"strStatus": "Not Started"}, "PROGRAMADO"),
+    ({"strStatus": "Match Not Started"}, "PROGRAMADO"),
+    ({"strStatus": "1H"}, "LIVE"),
+    ({"strProgress": "63"}, "LIVE"),
+    ({"strStatus": "Match Postponed"}, "SUSPENDIDO"),
+    ({}, "PROGRAMADO"),
+)
+for event, expected in status_cases:
+    actual = app_module.sportsdb_match_status(event)
+    if actual != expected:
+        errors.append(f"sportsdb_status:{event}:{actual}!={expected}")
+
+if app_module.sportsdb_score(0, 1) != "0-1":
+    errors.append("sportsdb_zero_score_lost")
+
+if "Force a live status" in app_source:
+    errors.append("sportsdb_live_endpoint_forced_status")
+if "DELETE FROM live_matches WHERE match_id=? OR id=?" not in app_source:
+    errors.append("sportsdb_live_state_cleanup_missing")
+
+original_db_path = app_module.DB_PATH
+original_seeded_path = app_module._SEEDED_DB_PATH
+try:
+    with tempfile.TemporaryDirectory(prefix="nemesis_v937_live_state_") as temp_dir:
+        app_module.DB_PATH = str(Path(temp_dir) / "sports.sqlite")
+        app_module._SEEDED_DB_PATH = ""
+        app_module.init_db()
+        match = {
+            "id": "sportsdb-regression-live",
+            "external_id": "regression-live",
+            "match_date": app_module.today_iso(),
+            "kickoff_time": "20:00",
+            "match_time": "20:00",
+            "competition_name": "Regression League",
+            "league_name": "Regression League",
+            "home_team": "Regression Home",
+            "away_team": "Regression Away",
+            "status": "LIVE",
+            "minute": "63",
+            "source": "TheSportsDB API",
+        }
+        app_module.upsert_sportsdb_matches([match])
+        with closing(sqlite3.connect(app_module.DB_PATH)) as conn:
+            live_rows = conn.execute(
+                "SELECT COUNT(*) FROM live_matches WHERE match_id=?",
+                (match["id"],),
+            ).fetchone()[0]
+        if live_rows != 1:
+            errors.append("sportsdb_confirmed_live_not_persisted")
+
+        match.update({"status": "FINALIZADO", "minute": ""})
+        app_module.upsert_sportsdb_matches([match])
+        with closing(sqlite3.connect(app_module.DB_PATH)) as conn:
+            live_rows = conn.execute(
+                "SELECT COUNT(*) FROM live_matches WHERE match_id=?",
+                (match["id"],),
+            ).fetchone()[0]
+        if live_rows != 0:
+            errors.append("sportsdb_finished_match_left_in_live_table")
+finally:
+    app_module.DB_PATH = original_db_path
+    app_module._SEEDED_DB_PATH = original_seeded_path
 
 environment = Environment()
 for path in sorted((ROOT / "templates").rglob("*.html")):
