@@ -90,8 +90,9 @@ def madrid_template_audit(errors: list[str]) -> dict:
 
 
 def nav_audit(base: str, css: str, errors: list[str]) -> dict:
-    if base.count('class="bottom-nav') != 1:
-        fail(errors, f"bottom nav duplicada o ausente: {base.count('class=\"bottom-nav')}")
+    bottom_nav_count = base.count('class="bottom-nav')
+    if bottom_nav_count != 1:
+        fail(errors, f"bottom nav duplicada o ausente: {bottom_nav_count}")
     if "v777-client-rail" in base:
         fail(errors, "rail V777 duplicado sigue en base.html")
     for token in ('href="/app"', 'href="/calendar?lane=today"', 'href="/live"', 'href="/picks"', 'href="/menu"'):
@@ -100,7 +101,7 @@ def nav_audit(base: str, css: str, errors: list[str]) -> dict:
     for token in ('body[data-v778-shell="true"].ns-authenticated:not(.ns-admin) .v777-client-rail{display:none!important;}', 'bottom-nav-clean'):
         if token not in css:
             fail(errors, f"CSS de navegación consolidada falta {token}")
-    return {"bottom_nav_count": base.count('class="bottom-nav'), "has_v777_rail_in_base": "v777-client-rail" in base}
+    return {"bottom_nav_count": bottom_nav_count, "has_v777_rail_in_base": "v777-client-rail" in base}
 
 
 def product_audit(app: str, errors: list[str]) -> dict:
