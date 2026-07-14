@@ -1,19 +1,28 @@
-<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="NeMeSiS SHARK PRO">
+<svg width="144" height="104" viewBox="0 0 144 104" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="NeMeSiS SHARK PRO">
   <defs>
-    <linearGradient id="g" x1="18" y1="20" x2="106" y2="108" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#24E6FF"/>
-      <stop offset="0.52" stop-color="#0B7CFF"/>
-      <stop offset="1" stop-color="#8B5CF6"/>
+    <linearGradient id="brand" x1="10" y1="38" x2="132" y2="78" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#58EEFF"/>
+      <stop offset="0.54" stop-color="#13B8FF"/>
+      <stop offset="1" stop-color="#167CFF"/>
     </linearGradient>
-    <filter id="glow" x="-30" y="-30" width="188" height="188" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
-      <feGaussianBlur stdDeviation="5" result="blur"/>
-      <feColorMatrix in="blur" type="matrix" values="0 0 0 0 0.078 0 0 0 0 0.78 0 0 0 0 1 0 0 0 .55 0"/>
+    <linearGradient id="body" x1="20" y1="34" x2="116" y2="86" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#20D8F4" stop-opacity="0.3"/>
+      <stop offset="1" stop-color="#087CFF" stop-opacity="0.08"/>
+    </linearGradient>
+    <filter id="soft-glow" x="-20%" y="-30%" width="140%" height="160%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="2.2" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="0 0 0 0 0.08 0 0 0 0 0.72 0 0 0 0 1 0 0 0 .42 0"/>
       <feBlend in="SourceGraphic" mode="screen"/>
     </filter>
   </defs>
-  <rect x="10" y="10" width="108" height="108" rx="28" fill="#06111F" stroke="url(#g)" stroke-width="3"/>
-  <path filter="url(#glow)" d="M23 72C44 42 75 26 111 31C94 38 83 48 80 62C93 62 103 67 112 76C95 73 81 75 69 84C54 95 39 94 26 83C37 83 45 80 51 72C41 74 32 74 23 72Z" fill="url(#g)"/>
-  <path d="M51 72C61 57 74 47 91 42C82 51 78 60 81 70C69 64 59 65 51 72Z" fill="#DFFAFF" fill-opacity=".84"/>
-  <path d="M34 82C44 85 53 84 61 79" stroke="#04111B" stroke-width="4" stroke-linecap="round" opacity=".65"/>
-  <circle cx="83" cy="44" r="3" fill="#03101E"/>
+  <g filter="url(#soft-glow)">
+    <path d="M8 58C21 44 40 36 64 35C73 34 82 36 91 39C103 31 117 25 134 24C127 35 122 45 121 54C129 58 136 64 141 72C130 69 120 70 111 75C118 82 123 91 126 100C111 95 99 88 90 80C72 88 52 90 35 85C20 80 11 71 8 58Z" fill="url(#body)" stroke="url(#brand)" stroke-width="2.7" stroke-linejoin="round"/>
+    <path d="M47 37C55 23 66 13 82 7C77 20 78 30 84 38" stroke="url(#brand)" stroke-width="2.7" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M51 76C63 80 74 88 81 99C68 94 57 87 48 79" stroke="url(#brand)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M18 59C37 52 58 49 82 51C96 52 108 56 121 63" stroke="#BDF7FF" stroke-opacity="0.72" stroke-width="1.7" stroke-linecap="round"/>
+    <path d="M24 70C45 73 66 70 85 62" stroke="#28CEFF" stroke-opacity="0.66" stroke-width="1.5" stroke-linecap="round"/>
+    <path d="M38 54C42 59 42 65 39 70M44 53C48 58 48 64 45 69" stroke="#58EEFF" stroke-opacity="0.82" stroke-width="1.5" stroke-linecap="round"/>
+    <circle cx="27" cy="53" r="2.5" fill="#E9FDFF"/>
+    <circle cx="27" cy="53" r="1" fill="#02101D"/>
+  </g>
 </svg>

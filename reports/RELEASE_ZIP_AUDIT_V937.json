@@ -1,10 +1,10 @@
 {
   "ok": true,
-  "audited_at": "2026-07-13T23:37:43",
+  "audited_at": "2026-07-14T03:34:28",
   "zip": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\release_output\\NeMeSiS_SHARK_PRO_V937_PRODUCT_PERFECTION_FULL_ECOSYSTEM_LAUNCH_CLOSEOUT_FINAL_RENDER_READY.zip",
-  "zip_size_bytes": 28386092,
+  "zip_size_bytes": 28388050,
   "file_count": 2643,
-  "content_size_bytes": 40120005,
+  "content_size_bytes": 40129698,
   "forbidden_count": 0,
   "missing_required_root": [],
   "forbidden": [],
@@ -79,7 +79,7 @@
     },
     {
       "path": "app.py",
-      "size": 1200461
+      "size": 1200475
     },
     {
       "path": "static/app.css",
@@ -98,12 +98,12 @@
     },
     {
       "folder": "reports",
-      "size": 7397499,
+      "size": 7397811,
       "files": 1440
     },
     {
       "folder": "tools",
-      "size": 1810732,
+      "size": 1811195,
       "files": 576
     },
     {
@@ -113,12 +113,12 @@
     },
     {
       "folder": "app.py",
-      "size": 1200461,
+      "size": 1200475,
       "files": 1
     },
     {
       "folder": "static",
-      "size": 1190627,
+      "size": 1199280,
       "files": 13
     },
     {
@@ -128,7 +128,7 @@
     },
     {
       "folder": "templates",
-      "size": 743308,
+      "size": 743559,
       "files": 182
     },
     {

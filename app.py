@@ -11060,7 +11060,7 @@ def manifest_json():
         "background_color": "#06111f",
         "icons": [
             {
-                "src": "/static/img/shark-logo.svg",
+                "src": "/static/img/shark-logo.svg?v=V937-brand-2",
                 "sizes": "any",
                 "type": "image/svg+xml",
                 "purpose": "any maskable",

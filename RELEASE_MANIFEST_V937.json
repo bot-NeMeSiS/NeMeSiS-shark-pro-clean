@@ -1,6 +1,6 @@
 {
   "version": "V937_PRODUCT_PERFECTION_FULL_ECOSYSTEM_LAUNCH_CLOSEOUT_FINAL",
-  "created_at": "2026-07-13T23:36:52",
+  "created_at": "2026-07-14T03:33:52",
   "zip": "NeMeSiS_SHARK_PRO_V937_PRODUCT_PERFECTION_FULL_ECOSYSTEM_LAUNCH_CLOSEOUT_FINAL_RENDER_READY.zip",
   "zip_path": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\release_output\\NeMeSiS_SHARK_PRO_V937_PRODUCT_PERFECTION_FULL_ECOSYSTEM_LAUNCH_CLOSEOUT_FINAL_RENDER_READY.zip",
   "zip_inside_project_tree": true,
@@ -212,7 +212,7 @@
   ],
   "security_policy": "No incluye .git, .venv, caches, bases de datos locales, logs, ZIPs internos ni secretos reales.",
   "render_ready": true,
-  "zip_size_bytes": 28386092,
+  "zip_size_bytes": 28388050,
   "zip_file_count": 2643,
   "deploy_root": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\release_output\\V937_DEPLOY_ROOT_CONTENTS"
 }

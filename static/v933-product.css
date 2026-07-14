@@ -1,6 +1,207 @@
 /* V933 product design sprint system. Loaded last and scoped to active V933 shells. */
 body.ns-app :is(.ns-ambient,.shark-glow-orb,.membership-energy-bar,.ns-route-glow,.v810-big-shark-decoration,.v815-client-shark-backdrop,.v825-shark-background,.v825-public-floating-shark) { display: none !important; }
 
+/* V937 brand unification: one mark, one ambient signature, no legacy orbs. */
+body.ns-app[data-v928-shell="true"] .brand.v808-brand.ns-brand {
+  gap: 10px;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+body.ns-app[data-v928-shell="true"] .brand.v808-brand .ns-brand-mark {
+  width: 52px !important;
+  height: 42px !important;
+  flex: 0 0 52px !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  overflow: visible !important;
+}
+body.ns-app[data-v928-shell="true"] .brand.v808-brand .ns-brand-mark img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain;
+  filter: none;
+}
+body.ns-app[data-v928-shell="true"] .brand.v808-brand .ns-brand-mark::before,
+body.ns-app[data-v928-shell="true"] .brand.v808-brand .ns-brand-mark::after {
+  content: none !important;
+  display: none !important;
+}
+body.ns-app .ns-brand-text { line-height: 1; }
+body.ns-app .ns-brand-name { font-size: 1.08rem; font-weight: 900; }
+body.ns-app .ns-brand-pro { margin-top: 3px; color: var(--v933-cyan); font-size: .65rem; letter-spacing: .08em; }
+
+body.ns-app:not(.ns-admin)::before {
+  content: "";
+  position: fixed;
+  z-index: 0;
+  top: 74px;
+  right: -74px;
+  width: min(660px, 52vw);
+  aspect-ratio: 1.38;
+  pointer-events: none;
+  background: url('/static/img/shark-logo.svg?brand=v937-polish-2') center / contain no-repeat;
+  opacity: .055;
+  filter: drop-shadow(0 0 48px rgba(32, 216, 244, .2));
+}
+@supports ((mask: url('')) or (-webkit-mask: url(''))) {
+  body.ns-app:not(.ns-admin)::before {
+    background: radial-gradient(circle, rgba(82, 232, 255, .78) 0 1px, transparent 1.25px) 0 0 / 15px 15px;
+    -webkit-mask: url('/static/img/shark-logo.svg?brand=v937-polish-2') center / contain no-repeat;
+    mask: url('/static/img/shark-logo.svg?brand=v937-polish-2') center / contain no-repeat;
+    opacity: .13;
+  }
+}
+body.ns-app[data-ns-route="/"]::before { display: none; }
+body.ns-app main.v933-public-shell,
+body.ns-app main.v933-client-shell { position: relative; z-index: 1; }
+
+.v933-admin-sidebar::after {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  right: -96px;
+  bottom: 56px;
+  width: 260px;
+  aspect-ratio: 1.38;
+  pointer-events: none;
+  background: url('/static/img/shark-logo.svg?brand=v937-polish-2') center / contain no-repeat;
+  opacity: .055;
+}
+@supports ((mask: url('')) or (-webkit-mask: url(''))) {
+  .v933-admin-sidebar::after {
+    background: radial-gradient(circle, rgba(82, 232, 255, .68) 0 1px, transparent 1.25px) 0 0 / 13px 13px;
+    -webkit-mask: url('/static/img/shark-logo.svg?brand=v937-polish-2') center / contain no-repeat;
+    mask: url('/static/img/shark-logo.svg?brand=v937-polish-2') center / contain no-repeat;
+    opacity: .11;
+  }
+}
+.v933-admin-sidebar > * { position: relative; z-index: 1; }
+.v933-admin-brand { padding-inline: 4px; }
+body.ns-app .v933-admin-sidebar .ns-brand-admin { width: 100%; }
+body.ns-app[data-v928-shell="true"] .v933-admin-sidebar .brand.v808-brand .ns-brand-mark { width: 58px !important; height: 44px !important; flex-basis: 58px !important; }
+
+.v933-public-hero::after,
+.v933-client-hero::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  background: url('/static/img/shark-logo.svg?brand=v937-polish-2') center / contain no-repeat;
+  filter: drop-shadow(0 0 34px rgba(32, 216, 244, .22));
+}
+.v933-public-hero::after { inset: auto -42px -34px auto; width: 440px; height: 300px; opacity: .2; }
+.v933-client-hero { position: relative; }
+.v933-client-hero::after { inset: -64px 22px auto auto; width: 410px; height: 250px; opacity: .15; }
+.v933-public-hero > *, .v933-client-hero > * { position: relative; z-index: 1; }
+
+body.ns-app:not(.ns-admin) .v933-page-header {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  padding: 12px 10px 14px;
+  background: linear-gradient(90deg, rgba(2, 10, 22, .98), rgba(4, 18, 34, .92));
+}
+body.ns-app:not(.ns-admin) .v933-page-header::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  top: -72px;
+  right: 28px;
+  width: 300px;
+  height: 210px;
+  pointer-events: none;
+  background: url('/static/img/shark-logo.svg?brand=v937-polish-2') center / contain no-repeat;
+  opacity: .075;
+}
+body.ns-app:not(.ns-admin) .v933-page-header h1 { font-size: 2.25rem; }
+body.ns-app:not(.ns-admin) .v933-client-hero h1 { font-size: 2.35rem; }
+body.ns-app:not(.ns-admin) .v933-public-hero h1 { font-size: 3rem; }
+
+@media (max-width: 767px) {
+  body.ns-app:not(.ns-admin) .v933-page-header { padding: 8px 4px 10px; }
+  body.ns-app:not(.ns-admin) .v933-page-header::after { top: -38px; right: -48px; width: 210px; height: 148px; opacity: .055; }
+  body.ns-app:not(.ns-admin) .v933-page-header h1 { font-size: 1.65rem; }
+  body.ns-app:not(.ns-admin) .v933-client-hero h1 { font-size: 2rem; }
+  body.ns-app:not(.ns-admin) .v933-public-hero h1 { font-size: 2.25rem; }
+}
+
+/* V937 recovery surfaces: same identity, calm hierarchy, no duplicate actions. */
+body.ns-app:not(.ns-admin) .ns-not-found-page {
+  min-height: calc(100vh - 190px);
+  display: grid;
+  place-items: center;
+  padding-block: 36px;
+}
+body.ns-app:not(.ns-admin) .ns-not-found-card {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  width: min(100%, 900px);
+  display: grid;
+  justify-items: start;
+  gap: 18px;
+  padding: 42px;
+  text-align: left;
+  background: linear-gradient(130deg, rgba(8, 30, 54, .98), rgba(2, 12, 26, .98));
+}
+body.ns-app:not(.ns-admin) .ns-not-found-card::after,
+body.ns-app:not(.ns-admin) .v931-safe-error::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  pointer-events: none;
+  background: url('/static/img/shark-logo.svg?brand=v937-polish-2') center / contain no-repeat;
+  opacity: .065;
+}
+body.ns-app:not(.ns-admin) .ns-not-found-card::after { top: -78px; right: -52px; width: 400px; height: 290px; }
+body.ns-app:not(.ns-admin) .ns-not-found-card h1 {
+  max-width: 720px;
+  margin: 0;
+  color: #f7fbff;
+  font-size: 2.55rem;
+  line-height: 1.04;
+  text-align: left;
+}
+body.ns-app:not(.ns-admin) .ns-not-found-card > p { max-width: 720px; margin: 0; line-height: 1.55; text-align: left; }
+body.ns-app:not(.ns-admin) .ns-not-found-path { overflow-wrap: anywhere; }
+body.ns-app:not(.ns-admin) .ns-not-found-actions { justify-content: flex-start; }
+
+body.ns-app:not(.ns-admin) .v931-safe-error {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  width: min(100%, 980px);
+  min-height: calc(100vh - 210px);
+  display: grid;
+  align-content: center;
+  gap: 14px;
+  margin-inline: auto;
+}
+body.ns-app:not(.ns-admin) .v931-safe-error::before { top: 54px; right: -26px; width: 360px; height: 250px; }
+body.ns-app:not(.ns-admin) .v931-safe-error .v928-page-header h1 {
+  font-size: 2.15rem !important;
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: none;
+}
+body.ns-app:not(.ns-admin) .v931-safe-error > .v928-panel { padding: 18px; }
+body.ns-app:not(.ns-admin) .v931-safe-error .v928-actions { justify-content: flex-start; margin-top: 12px; }
+
+@media (max-width: 767px) {
+  body.ns-app:not(.ns-admin) .ns-not-found-page { min-height: auto; padding: 18px 4px 92px; }
+  body.ns-app:not(.ns-admin) .ns-not-found-card { gap: 15px; padding: 24px 20px; }
+  body.ns-app:not(.ns-admin) .ns-not-found-card h1 { font-size: 2rem; }
+  body.ns-app:not(.ns-admin) .ns-not-found-actions { display: grid; grid-template-columns: 1fr 1fr; width: 100%; }
+  body.ns-app:not(.ns-admin) .ns-not-found-actions > * { width: 100%; min-width: 0; }
+  body.ns-app:not(.ns-admin) .v931-safe-error { min-height: calc(100vh - 150px); align-content: start; padding-top: 14px; }
+  body.ns-app:not(.ns-admin) .v931-safe-error .v928-page-header h1 { font-size: 1.55rem !important; }
+  body.ns-app:not(.ns-admin) .v931-safe-error .v928-actions { display: grid; grid-template-columns: 1fr 1fr; }
+}
+
 /* V935 launch trust: compact provenance and customer-facing evidence. */
 .v935-provenance {
   max-width: 210px;
@@ -221,6 +422,11 @@ body.ns-admin .v933-legal-footer { width: auto; margin-left: calc(var(--v933-sid
   :root { --v933-topbar: 58px; }
   .v933-topbar,.v933-admin-sidebar,.v933-admin-topbar,.v930-public-topbar,.v930-client-desktop-chrome,.v930-admin-chrome { display: none !important; }
   .v933-mobile-header { position: fixed; inset: 0 0 auto; z-index: 180; height: var(--v933-topbar); display: flex; align-items: center; justify-content: space-between; padding: 0 13px; border-bottom: 1px solid var(--v933-border); background: rgba(2,8,18,.98); backdrop-filter: blur(18px); }
+  body.ns-app[data-v928-shell="true"] .v933-mobile-header .brand.v808-brand .ns-brand-mark { width: 48px !important; height: 36px !important; flex-basis: 48px !important; }
+  body.ns-app .v933-mobile-header .ns-brand-name { font-size: .93rem; }
+  body.ns-app .v933-mobile-header .ns-brand-pro { font-size: .58rem; }
+  body.ns-app:not(.ns-admin)::before { top: 62px; right: -132px; width: 360px; opacity: .045; }
+  @supports ((mask: url('')) or (-webkit-mask: url(''))) { body.ns-app:not(.ns-admin)::before { opacity: .085; } }
   .v933-icon-button { width: 40px; height: 40px; display: grid; place-items: center; border: 1px solid var(--v933-border); border-radius: 50%; color: #eaf5ff; background: rgba(255,255,255,.025); text-decoration: none; }
   .v933-mobile-bottom-nav { position: fixed; inset: auto 0 0; z-index: 185; min-height: calc(var(--v933-mobile-nav) + env(safe-area-inset-bottom,0px)); display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); padding: 6px 6px calc(5px + env(safe-area-inset-bottom,0px)); border-top: 1px solid var(--v933-border); background: rgba(2,8,18,.985); box-shadow: 0 -14px 34px rgba(0,0,0,.42); backdrop-filter: blur(18px); }
   .v933-mobile-bottom-nav a { min-width: 0; min-height: 54px; display: grid; place-items: center; align-content: center; gap: 3px; border-radius: var(--v933-radius-sm); color: #8ea2b7; font-size: .6rem; font-weight: 760; text-decoration: none; }
@@ -449,8 +655,7 @@ body.ns-admin .v933-legal-footer { width: auto; margin-left: calc(var(--v933-sid
 .v933-profile-card small { margin-top: 3px; color: var(--v933-muted); font-size: .64rem; overflow-wrap: anywhere; }
 
 /* Public and client product compositions. */
-.v933-public-hero { position: relative; min-height: 330px; display: grid; grid-template-columns: minmax(0,1.08fr) minmax(340px,.92fr); align-items: center; gap: 24px; overflow: hidden; padding: 34px; border: 1px solid var(--v933-border); border-radius: var(--v933-radius); background: radial-gradient(circle at 82% 30%,rgba(8,124,255,.22),transparent 31%),linear-gradient(135deg,#06172c,#030a14 68%); }
-.v933-public-hero::after { content:""; position:absolute; inset:auto -70px -120px auto; width:420px; height:260px; opacity:.35; background:url('/static/img/shark-logo.svg') center/contain no-repeat; pointer-events:none; }
+.v933-public-hero { position: relative; min-height: 330px; display: grid; grid-template-columns: minmax(0,1.08fr) minmax(340px,.92fr); align-items: center; gap: 24px; overflow: hidden; padding: 34px; border: 1px solid var(--v933-border); border-radius: var(--v933-radius); background: linear-gradient(135deg,#06172c,#030a14 68%); }
 .v933-public-hero > * { position: relative; z-index: 1; }
 .v933-public-hero h1 { max-width: 760px; font-size: clamp(2.3rem,4vw,4.25rem); line-height: .98; letter-spacing: 0; }
 .v933-public-hero h1 span { color: var(--v933-cyan); }
@@ -466,7 +671,7 @@ body.ns-admin .v933-legal-footer { width: auto; margin-left: calc(var(--v933-sid
 .v933-today-kpis div { min-width: 0; padding: 9px; border: 1px solid rgba(132,171,213,.14); border-radius: var(--v933-radius-sm); background: rgba(255,255,255,.02); }
 .v933-today-kpis span,.v933-today-kpis small { display: block; color: var(--v933-muted); font-size: .57rem; }
 .v933-today-kpis strong { display: block; margin: 2px 0; font-size: 1.15rem; }
-.v933-client-hero { min-height: 156px; display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; gap: 20px; padding: 22px; overflow: hidden; border: 1px solid var(--v933-border); border-radius: var(--v933-radius); background: radial-gradient(circle at 82% 50%,rgba(8,124,255,.25),transparent 30%),linear-gradient(145deg,#071a31,#030c18 75%); }
+.v933-client-hero { min-height: 156px; display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; gap: 20px; padding: 22px; overflow: hidden; border: 1px solid var(--v933-border); border-radius: var(--v933-radius); background: linear-gradient(145deg,#071a31,#030c18 75%); }
 .v933-client-hero h1 { font-size: clamp(1.65rem,2.4vw,2.45rem); }
 .v933-client-hero p { margin-top: 5px; color: var(--v933-muted); }
 .v933-client-hero-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 12px; }
@@ -508,12 +713,13 @@ body.ns-admin .v933-legal-footer { width: auto; margin-left: calc(var(--v933-sid
   .v933-profile-avatar { width: 44px; height: 44px; }
   .v933-profile-card .v933-status-chip { justify-self: start; }
   .v933-public-hero { min-height: 0; grid-template-columns: 1fr; gap: 17px; padding: 22px 15px 16px; }
-  .v933-public-hero::after { width: 260px; height: 150px; opacity: .22; }
+  .v933-public-hero::after { right: -54px; bottom: 8px; width: 260px; height: 150px; opacity: .13; }
   .v933-public-hero h1 { font-size: 2.15rem; }
   .v933-public-hero p { font-size: .78rem; }
   .v933-hero-actions .v933-action { flex: 1 1 130px; }
   .v933-today-board { padding: 11px; }
   .v933-client-hero { min-height: 136px; grid-template-columns: 1fr; padding: 17px 14px; }
+  .v933-client-hero::after { right: -76px; top: -18px; width: 250px; height: 150px; opacity: .1; }
   .v933-client-hero h1 { font-size: 1.55rem; }
   .v933-client-hero > .v933-action { display: none; }
 }

@@ -288,6 +288,7 @@ def _unavailable_payload(output: Path, reason: str, env: dict | None = None) -> 
         "screenshots_captured": 0,
         "routes_captured": [],
         "desktop_routes": [],
+        "tablet_routes": [],
         "mobile_routes": [],
         "issues": [{
             "title": "BROWSER_QA_UNAVAILABLE",
@@ -321,6 +322,7 @@ def run_browser_reference_qa(
     v928_matrix: bool = False,
     safe_mock_sessions: bool = False,
     safe_session_secret: str = "",
+    tablet: bool = False,
 ) -> dict:
     output.mkdir(parents=True, exist_ok=True)
     env = detect_browser_qa_environment()
@@ -350,6 +352,11 @@ def run_browser_reference_qa(
         ])
     elif mobile:
         devices.append(("mobile", "mobile_390x844", {"width": 390, "height": 844}))
+    if tablet:
+        devices.extend([
+            ("tablet", "tablet_768x1024", {"width": 768, "height": 1024}),
+            ("tablet", "tablet_1024x1366", {"width": 1024, "height": 1366}),
+        ])
     if not devices:
         devices.append(("desktop", "desktop_1440x900", {"width": 1440, "height": 900}))
 
@@ -492,6 +499,7 @@ def run_browser_reference_qa(
         "screenshots_captured": len([item for item in captures if item.get("screenshot") and not item.get("error")]),
         "routes_captured": sorted({item["route"] for item in captures if item.get("screenshot") and not item.get("error")}),
         "desktop_routes": [item["route"] for item in captures if item.get("device") == "desktop"],
+        "tablet_routes": [item["route"] for item in captures if item.get("device") == "tablet"],
         "mobile_routes": [item["route"] for item in captures if item.get("device") == "mobile"],
         "capture_errors": capture_errors,
         "auth_redirect_issues": auth_redirect_issues,
@@ -515,6 +523,7 @@ def main() -> int:
     parser.add_argument("--output", default="reports/V907_browser_qa")
     parser.add_argument("--mobile", action="store_true")
     parser.add_argument("--desktop", action="store_true")
+    parser.add_argument("--tablet", action="store_true")
     parser.add_argument("--admin-safe", action="store_true")
     parser.add_argument("--no-login-required", action="store_true")
     parser.add_argument("--timeout", type=int, default=15000)
@@ -528,7 +537,7 @@ def main() -> int:
     payload = run_browser_reference_qa(
         base_url=args.base_url,
         output=ROOT / args.output,
-        desktop=bool(args.desktop or not args.mobile),
+        desktop=bool(args.desktop or not (args.mobile or args.tablet)),
         mobile=bool(args.mobile),
         admin_safe=bool(args.admin_safe),
         no_login_required=bool(args.no_login_required),
@@ -537,6 +546,7 @@ def main() -> int:
         v928_matrix=bool(args.v928_matrix),
         safe_mock_sessions=bool(args.safe_mock_sessions),
         safe_session_secret=session_key,
+        tablet=bool(args.tablet),
     )
     # Keep the Windows console path ASCII-safe; reports retain their UTF-8 data.
     print(json.dumps(payload, ensure_ascii=True, indent=2))

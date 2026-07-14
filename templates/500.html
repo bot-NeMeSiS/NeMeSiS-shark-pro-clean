@@ -2,9 +2,9 @@
 {% from "components/v930_ui.html" import page_header, empty_state %}
 {% block content %}
 <section class="v928-page v930-page v930-public-page v931-safe-error" data-v931-template="safe_500">
-  {{ page_header('Servicio temporalmente no disponible', 'La ruta permanece protegida y no muestra detalles tecnicos.', 'shield') }}
+  {{ page_header('Servicio temporalmente no disponible', 'La ruta permanece protegida y no muestra detalles técnicos.', 'shield') }}
   <section class="v928-panel">
-    {{ empty_state('No hemos podido cargar esta pantalla', 'Puedes volver al inicio o entrar de nuevo mientras revisamos el contexto de datos.', 'Volver al inicio', '/', 'shield') }}
+    {{ empty_state('No hemos podido cargar esta pantalla', 'Puedes volver al inicio o entrar de nuevo mientras revisamos el contexto de datos.', '', '', 'shield') }}
     <div class="v928-actions">
       <a class="v928-button is-primary" href="/">Inicio</a>
       <a class="v928-button" href="/cliente-login">Entrar</a>
