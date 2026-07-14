@@ -2952,8 +2952,8 @@ def sync_sportsdb_crests(refresh=False, limit=40):
 
 
 def sportsdb_score(home_score, away_score):
-    home = str(home_score or "").strip()
-    away = str(away_score or "").strip()
+    home = "" if home_score in {None, ""} else str(home_score).strip()
+    away = "" if away_score in {None, ""} else str(away_score).strip()
     if home == "" and away == "":
         return ""
     return f"{home or 0}-{away or 0}"
@@ -2963,15 +2963,20 @@ def sportsdb_match_status(event):
     status = str(event.get("strStatus") or event.get("status") or "").strip()
     progress = str(event.get("strProgress") or event.get("progress") or "").strip()
     status_lower = (status or progress).lower()
-    if status_lower in {"ns", "not started"}:
+    if status_lower == "ns" or "not started" in status_lower:
         return "PROGRAMADO"
-    if status_lower in {"ft", "final", "finished"} or "final" in status_lower:
+    if status_lower in {"ft", "final", "finished", "match finished", "aet", "pen"} or any(
+        token in status_lower for token in ("final", "finished", "full time", "terminado")
+    ):
         return "FINALIZADO"
     if status_lower in {"ht", "halftime", "half time"} or "half" in status_lower:
         return "DESCANSO"
-    if status_lower in {"canc", "pst", "post", "postponed", "cancelled", "suspended", "abd"}:
+    if status_lower in {"canc", "pst", "post", "postponed", "cancelled", "suspended", "abd"} or any(
+        token in status_lower for token in ("postpon", "cancel", "suspend", "abandon")
+    ):
         return "SUSPENDIDO"
-    if status or progress:
+    live_tokens = ("live", "in play", "inplay", "playing", "1h", "2h", "first half", "second half")
+    if any(token in status_lower for token in live_tokens) or re.fullmatch(r"\d{1,3}['\u2019]?", progress):
         return "LIVE"
     return "PROGRAMADO"
 
@@ -3222,8 +3227,10 @@ def sportsdb_event_to_match(event, fallback=None):
     away_badge = event.get("strAwayTeamBadge") or event.get("strAwayTeamLogo") or ""
     home_id = event.get("idHomeTeam") or ""
     away_id = event.get("idAwayTeam") or ""
-    home_score = str(event.get("intHomeScore") or "")
-    away_score = str(event.get("intAwayScore") or "")
+    raw_home_score = event.get("intHomeScore")
+    raw_away_score = event.get("intAwayScore")
+    home_score = "" if raw_home_score in {None, ""} else str(raw_home_score)
+    away_score = "" if raw_away_score in {None, ""} else str(raw_away_score)
     country = spanish_country_name(event.get("strCountry") or fallback.get("country") or "")
     cache_sportsdb_event_team(raw_home, home_id, home_badge, country, comp_name)
     cache_sportsdb_event_team(raw_away, away_id, away_badge, country, comp_name)
@@ -3345,9 +3352,8 @@ def sync_sportsdb_live_scores_only(limit=120):
         try:
             match = sportsdb_event_to_match(event, fallback)
             if match:
-                # Force a live status if it came from the live endpoint and is not explicitly finished.
-                if not is_finished_status_value(match.get("status")):
-                    match["status"] = "LIVE" if not is_live_status_value(match.get("status")) else match.get("status")
+                # The endpoint can include scheduled and recently finished events.
+                # Keep only provider-confirmed status; never infer LIVE from endpoint origin.
                 match_rows.append(match)
         except Exception as exc:
             errors.append(str(exc)[:160])
@@ -3530,6 +3536,11 @@ def upsert_sportsdb_matches(match_rows):
                     item.get("source") or "TheSportsDB API",
                     now_iso(),
                 ),
+            )
+        else:
+            cur.execute(
+                "DELETE FROM live_matches WHERE match_id=? OR id=?",
+                (item["id"], "live-" + item["id"]),
             )
         if exists:
             updated += 1
