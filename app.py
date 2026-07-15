@@ -2467,6 +2467,22 @@ def apply_security_headers_and_csrf(response):
             response.headers.setdefault("X-Nemesis-Route-Budget", "ok" if elapsed_ms < 1200 else "attention")
     except Exception:
         pass
+    try:
+        shark_phases = getattr(g, "v937_shark_phase_metrics", {}) or {}
+        if shark_phases:
+            phase_header = ", ".join(
+                f"shark_{re.sub(r'[^a-z0-9_]', '_', str(name).lower())};dur={float(duration):.1f}"
+                for name, duration in shark_phases.items()
+            )
+            current_timing = str(response.headers.get("Server-Timing") or "").strip()
+            response.headers["Server-Timing"] = ", ".join(filter(None, (current_timing, phase_header)))
+            response.headers["X-Nemesis-Shark-Data"] = "db-cache-only"
+            response.headers["X-Nemesis-Shark-Cache"] = sanitize_http_header_value(
+                getattr(g, "v937_shark_cache_status", "request_cache"),
+                limit=40,
+            )
+    except Exception:
+        pass
     return response
 
 
@@ -7776,7 +7792,13 @@ def _v845_pick_for_match(match_id):
     return normalize_pick_row(pick) if pick else None
 
 
-def v845_build_product_assistant_context(question="", payload=None, page=None):
+def v845_build_product_assistant_context(
+    question="",
+    payload=None,
+    page=None,
+    prebuilt_briefing=None,
+    prebuilt_provider_state=None,
+):
     payload = dict(payload or {})
     args = request.args if has_request_context() else {}
     match_id = payload.get("match_id") or payload.get("match") or args.get("match") or args.get("match_id") or ""
@@ -7804,10 +7826,13 @@ def v845_build_product_assistant_context(question="", payload=None, page=None):
         recent_matches = filter_telegram_candidates(get_matches(today_iso(), "today"), limit=6)
     except Exception:
         recent_matches = []
-    try:
-        briefing = shark_briefing()
-    except Exception:
-        briefing = {"summary": {}, "risk": {}, "legal_policy": ""}
+    if prebuilt_briefing is not None:
+        briefing = prebuilt_briefing
+    else:
+        try:
+            briefing = shark_briefing()
+        except Exception:
+            briefing = {"summary": {}, "risk": {}, "legal_policy": ""}
     context = v845_build_shark_context(
         user,
         match=match,
@@ -7820,10 +7845,13 @@ def v845_build_product_assistant_context(question="", payload=None, page=None):
         openai_configured=v845_openai_configured(),
         question=question,
     )
-    try:
-        context["api_sports_provider"] = explain_api_sports_provider_state(DB_PATH)
-    except Exception:
-        context["api_sports_provider"] = {"label": "Proveedor pendiente", "message": "No se pudo leer el estado API-SPORTS."}
+    if prebuilt_provider_state is not None:
+        context["api_sports_provider"] = prebuilt_provider_state
+    else:
+        try:
+            context["api_sports_provider"] = explain_api_sports_provider_state(DB_PATH)
+        except Exception:
+            context["api_sports_provider"] = {"label": "Proveedor pendiente", "message": "No se pudo leer el estado API-SPORTS."}
     return context
 
 
@@ -12022,6 +12050,7 @@ def get_v932_real_sports_value_context(summary=None):
         "secrets_visible": False,
     }
     if has_request_context():
+        g.v932_api_sports_status = dict(provider)
         g.v932_real_sports_value_context = result
     return dict(result)
 
@@ -16405,14 +16434,69 @@ def membership_page():
 @app.route("/shark-ai")
 @app.route("/shark")
 def shark_page():
-    data, summary = v932_safe_dashboard_data(request.path)
+    phase_metrics = {}
+
+    def timed_phase(name, callback):
+        started = time.perf_counter()
+        try:
+            return callback()
+        finally:
+            phase_metrics[name] = round((time.perf_counter() - started) * 1000.0, 1)
+            g.v937_shark_phase_metrics = dict(phase_metrics)
+
+    data, summary = timed_phase(
+        "sports_context",
+        lambda: v932_safe_dashboard_data(request.path, compact=True),
+    )
     user = current_session_user() or {"membership": "FREE", "role": "FREE"}
     data["membership"] = v566_membership_ui(user)
-    data["briefing"] = v931_safe_context(request.path, "briefing", shark_briefing, {})
+    briefing = timed_phase(
+        "briefing",
+        lambda: v931_safe_context(request.path, "briefing", shark_briefing, {}),
+    )
+    data["briefing"] = briefing
     openai_ready = v845_openai_configured()
+    question = request.args.get("q") or "resumen"
+    provider_status = dict(getattr(g, "v932_api_sports_status", {}) or {})
+    if not provider_status.get("api_sports_configured"):
+        provider_label = "API-SPORTS no configurada"
+        provider_message = "Render debe incluir API_FOOTBALL_KEY o API_SPORTS_KEY para activar fixtures/live reales."
+    elif provider_status.get("last_error"):
+        provider_label = "Esperando proveedor"
+        provider_message = "La clave existe, pero el último estado del proveedor tiene error seguro. Se mantiene caché/fallback."
+    elif provider_status.get("fixtures_cached") or provider_status.get("live_cached"):
+        provider_label = "Proveedor activo con caché"
+        provider_message = "La app tiene datos API-SPORTS/API-Football cacheados y no necesita llamar al proveedor en cada render."
+    else:
+        provider_label = "Proveedor configurado sin caché visible"
+        provider_message = "La clave está configurada, pero aún no hay fixtures/live cacheados en las tablas detectadas."
+    provider_state = {"label": provider_label, "message": provider_message, "status": provider_status}
+    context = timed_phase(
+        "assistant_context",
+        lambda: v931_safe_context(
+            request.path,
+            "shark_context",
+            lambda: v845_build_product_assistant_context(
+                question,
+                page="/shark",
+                prebuilt_briefing=briefing,
+                prebuilt_provider_state=provider_state,
+            ),
+            {"data_state": {}},
+        ),
+    )
+    answer = timed_phase(
+        "assistant_answer",
+        lambda: v931_safe_context(
+            request.path,
+            "shark_answer",
+            lambda: v845_answer_shark_question(question, context),
+            {},
+        ),
+    )
     data["shark_assistant"] = {
-        "context": v931_safe_context(request.path, "shark_context", lambda: v845_build_product_assistant_context(request.args.get("q") or "resumen", page="/shark"), {"data_state": {}}),
-        "answer": v931_safe_context(request.path, "shark_answer", lambda: shark_answer(request.args.get("q") or "resumen"), {}),
+        "context": context,
+        "answer": answer,
         "openai_configured": openai_ready,
         "fallback_mode": not openai_ready,
     }
@@ -16420,7 +16504,8 @@ def shark_page():
     data["v925_picks"] = get_safe_picks_context(data.get("picks") or [])
     data["v925_odds"] = get_safe_odds_context(data.get("picks") or [])
     data["v935_customer_trust"] = get_v935_customer_trust_context(summary)
-    return render_template("shark.html", data=data)
+    g.v937_shark_cache_status = str(summary.get("summary_cache_status") or "request_cache")
+    return timed_phase("template", lambda: render_template("shark.html", data=data))
 
 
 @app.route("/telegram")
