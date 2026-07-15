@@ -33,4 +33,4 @@ The initial audit found no active branch protection and no pre-existing GitHub `
 - the `production` environment accepts protected branches only;
 - environment reviewers remain empty, so the additional deployment approval is optional rather than mandatory.
 
-GitHub confirmed these settings through readback from its API. PR #1 remains a draft and unmerged.
+GitHub confirmed these settings through readback from its API. PR #1 is open, ready for human review, and unmerged.

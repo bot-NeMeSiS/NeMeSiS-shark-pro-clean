@@ -4,12 +4,12 @@
 
 **Code gate: PASS. Pipeline gate: PASS for review and normal merge.**
 
-The pipeline defect is repaired and proven by a real green GitHub Actions dry-run. All PR workflows are green and GitHub confirmed the required branch/environment protections. The pipeline is not active on `main` yet because PR #1 intentionally remains a draft and unmerged.
+The pipeline defect is repaired and proven by a real green GitHub Actions dry-run. All PR workflows are green and GitHub confirmed the required branch/environment protections. The pipeline is not active on `main` yet because PR #1 remains open, ready for human review, and unmerged.
 
 ## Scope delivered
 
 - Branch: `hotfix/v937-github-render-deployment-pipeline`.
-- Draft PR: https://github.com/bot-NeMeSiS/NeMeSiS-shark-pro-clean/pull/1
+- PR: https://github.com/bot-NeMeSiS/NeMeSiS-shark-pro-clean/pull/1
 - Product version remains V937; no V938.
 - Strategy: Render Auto-Deploy from protected `main`.
 - Deploy-hook calls: removed from the primary mechanism.
@@ -41,9 +41,9 @@ The pipeline defect is repaired and proven by a real green GitHub Actions dry-ru
 | SHARK route JavaScript regression | PASS locally; production pending merge/deploy |
 | GitHub workflow dry-run | PASS, run `29374356189` |
 | Dry-run external effects | PASS, all zero |
-| Final PR Render Deploy Guard | PASS, run `29376520181` |
-| Final PR CI QA | PASS, run `29376520222` |
-| Final PR Smoke Checks | PASS, run `29376520228` |
+| Final PR Render Deploy Guard | PASS on final code SHA |
+| Final PR CI QA | PASS on final code SHA |
+| Final PR Smoke Checks | PASS on final code SHA |
 | Current product SHA on Render | PASS in successful 0/+2/+5 certification |
 | Pipeline branch deployed | NO, intentionally |
 | PR merged | NO, intentionally |
@@ -54,7 +54,7 @@ The pipeline defect is repaired and proven by a real green GitHub Actions dry-ru
 
 ## Remaining actions before merge
 
-1. Review the draft PR diff.
+1. Review the open PR diff.
 2. Obtain the required approval.
 3. Confirm Render remains linked to repository `main` with Auto-Deploy enabled.
 4. Merge normally, never force push.
