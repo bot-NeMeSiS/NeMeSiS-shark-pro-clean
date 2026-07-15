@@ -54,4 +54,4 @@ The PR exposed four independent failures in the historical smoke suite. They wer
 - the home test distinguishes visible customer text from the required cache-busting version in asset URLs;
 - the duplicate `/admin/client-screens` registration was removed while preserving the first and already effective destination.
 
-Local result after correction: `29 passed`.
+Local result after correction: `30 passed`. The final added regression prevents the invalid SHARK pathname regular expression found by real Browser QA from returning.

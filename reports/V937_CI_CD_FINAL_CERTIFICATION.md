@@ -33,9 +33,12 @@ The pipeline defect is repaired and proven by a real green GitHub Actions dry-ru
 | Secret Guard | PASS, 0 findings |
 | Route/import audit | PASS |
 | Link audit | PASS |
-| Historical pytest smoke suite | PASS, 29/29 |
+| Historical pytest smoke suite | PASS, 30/30 |
 | Exact duplicate route guard | PASS |
 | Cron protected-header regression | PASS |
+| Reduced production Browser DOM QA | PASS, 8/8 route profiles |
+| Browser screenshot capture | NOT TESTABLE, capture timed out twice |
+| SHARK route JavaScript regression | PASS locally; production pending merge/deploy |
 | GitHub workflow dry-run | PASS, run `29374356189` |
 | Dry-run external effects | PASS, all zero |
 | Final PR Render Deploy Guard | PASS, run `29376520181` |
@@ -47,7 +50,7 @@ The pipeline defect is repaired and proven by a real green GitHub Actions dry-ru
 | `main` required checks | PASS: `preflight`, `qa`, `smoke` |
 | Pull-request approval gate | PASS: one approval required |
 | Protected `production` environment | PASS: protected branches only |
-| New reduced visual Browser QA | NOT RUN |
+| New reduced visual Browser QA | DOM/responsive PASS; screenshots not captured |
 
 ## Remaining actions before merge
 

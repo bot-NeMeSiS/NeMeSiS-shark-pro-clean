@@ -1203,5 +1203,6 @@ V928 reconstruye la experiencia completa sobre la base V927 con 16 referencias c
 - Certificador read-only exige version y SHA exactos y observa 0/+2/+5/+15/+60 minutos.
 - La produccion V937 ya observada sirve SHA `261213048fe3f92a58488b1119092922cdfc5db5`, con 0 public stale, 0 falsos live, 0 5xx y Sentinel limpio.
 - Gate de pipeline: PASS para revision y merge normal. `main` exige `preflight`, `qa`, `smoke` y una aprobacion; force push/borrado estan deshabilitados y `production` acepta solo ramas protegidas.
-- El smoke historico quedo actualizado a la identidad V937 y autorizacion Cron por cabecera; `29/29` tests pasan y se elimino el registro duplicado de `/admin/client-screens` sin cambiar su destino efectivo.
+- El smoke historico quedo actualizado a la identidad V937 y autorizacion Cron por cabecera; `30/30` tests pasan y se elimino el registro duplicado de `/admin/client-screens` sin cambiar su destino efectivo.
+- Browser QA publico en desktop/movil: 8/8 rutas sin overflow ni navegacion mezclada. Se corrigio una regex SHARK invalida demostrada por consola; la captura visual quedo no comprobable porque el capturador integrado agoto tiempo dos veces.
 - No se creo V938, no se hizo merge, deploy, Telegram, Stripe ni escritura DB.

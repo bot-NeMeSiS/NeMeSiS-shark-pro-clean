@@ -45,10 +45,25 @@ The four stale records were excluded from public arrays, counters, cards, badges
 
 On a future `main` push the certifier checks immediately and at +2, +5, +15, and +60 minutes. The deployment wait is bounded to 15 minutes and the job to 90 minutes.
 
+## Reduced production Browser QA
+
+The public V937 deployment was opened in a real browser at `1440x900` and `390x844` for Home, Calendar, Live, and Picks:
+
+- eight route/profile checks rendered the expected page title and H1;
+- desktop navigation was visible only on desktop;
+- mobile header and five-destination bottom navigation were visible only on mobile;
+- global horizontal overflow: `0`;
+- controls clipped outside intentional horizontal scrollers: `0`;
+- visible internal-error states: `0`.
+
+The browser console exposed one real pre-existing defect: an unterminated regular expression in the SHARK route guard inside `templates/base.html`. The branch replaces it with a deterministic pathname comparison and adds a regression test. Local result after the fix: `30 passed`, complete Jinja parse, and Sentinel `10.0` with zero issues. Production will retain the old JavaScript until PR #1 is approved, merged, and deployed.
+
+The in-app browser screenshot command timed out twice, including in a clean tab. Therefore no new screenshot artifact is claimed. DOM/responsive Browser QA is complete; visual screenshot evidence remains `NOT_TESTABLE_IN_CURRENT_BROWSER_CAPTURE`.
+
 ## Honest limitations
 
 - The pipeline branch itself has not been merged or deployed.
 - The successful production deployment duration cannot be attributed to this new workflow because Render had already deployed the product hotfix independently.
 - A later shell recheck was blocked by local network access and is recorded as `network_unavailable_from_shell`, not as a production regression.
-- Reduced HTTP QA passed in the successful observation. A new visual Browser QA screenshot set was not produced by this pipeline task.
+- Reduced HTTP and responsive DOM QA passed. A new visual Browser QA screenshot set was not produced because the browser capture command timed out.
 - `/shark` showed approximately 7-8 second latency in the production sample, above the 5 second warning threshold. It is a residual performance warning, not a CI/deploy integrity failure.

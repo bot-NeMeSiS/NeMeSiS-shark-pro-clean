@@ -363,7 +363,7 @@
     if(widgets.length>1){ widgets.slice(0,-1).forEach(function(el){ try{el.remove();}catch(e){} }); }
     var fabs=[].slice.call(document.querySelectorAll('.shark-fab'));
     if(fabs.length>1){ fabs.slice(0,-1).forEach(function(el){ try{(el.closest('.shark-widget')||el).remove();}catch(e){} }); }
-    if(/^\/shark(:\/|$|-|\)/.test(window.location.pathname + window.location.search)){
+    if(window.location.pathname === '/shark' || window.location.pathname.indexOf('/shark/') === 0){
       var one=document.querySelector('.shark-widget');
       if(one) one.classList.add('is-on-shark-page');
     }
