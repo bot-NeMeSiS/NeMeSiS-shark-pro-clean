@@ -35,6 +35,8 @@ CURRENT_COMPATIBLE_PREFIXES = (
     "V911_",
     "V912_",
     "V913_",
+    "V937_",
+    "V938_",
 )
 sys.path.insert(0, str(ROOT))
 

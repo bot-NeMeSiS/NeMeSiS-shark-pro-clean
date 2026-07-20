@@ -1,0 +1,234 @@
+{
+  "schema_version": "1.0",
+  "audit_name": "NeMeSiS SHARK PRO Company Executive Audit",
+  "generated_at_madrid": "2026-07-19T13:41:09+02:00",
+  "production_modified": false,
+  "version": "V937_PRODUCT_PERFECTION_FULL_ECOSYSTEM_LAUNCH_CLOSEOUT_FINAL",
+  "repository": "bot-NeMeSiS/NeMeSiS-shark-pro-clean",
+  "repository_visibility": "public",
+  "local_branch": "hotfix/v937-shark-performance",
+  "local_commit_sha": "3102618e22c00b0140e8db761adc9b42f1e50b4a",
+  "origin_main_sha": "261213048fe3f92a58488b1119092922cdfc5db5",
+  "scope": [
+    "product and customer experience",
+    "administration and operations",
+    "architecture and dependencies",
+    "sports data lifecycle",
+    "SHARK",
+    "Telegram",
+    "Stripe and memberships",
+    "database and persistence",
+    "security and privacy",
+    "business continuity and incident response",
+    "automation and guardrails",
+    "observability and alerting",
+    "business model and KPIs",
+    "GitHub, CI and Render release flow"
+  ],
+  "evidence_summary": {
+    "flask_rules": 664,
+    "unique_get_routes": 625,
+    "jinja_templates_parsed": 182,
+    "navigation_links_audited": 929,
+    "tracked_files": 8850,
+    "tracked_venv_files": 2017,
+    "historical_browser_qa_screenshots": 238,
+    "sentinel_score": 10.0,
+    "sentinel_active_issues_in_scope": 0,
+    "duplicate_exact_get_routes_found": 1,
+    "unclassified_email_pattern_occurrences": 210,
+    "files_with_sensitive_assignment_patterns": 3
+  },
+  "tests_executed": [
+    {
+      "name": "python py_compile app.py",
+      "result": "PASS",
+      "environment": "local"
+    },
+    {
+      "name": "compileall app.py engines tools automation_workforce",
+      "result": "PASS",
+      "environment": "local"
+    },
+    {
+      "name": "full pytest suite",
+      "result": "NOT_RUN",
+      "reason": "pytest was not installed in available Python runtimes and network installation was unavailable"
+    },
+    {
+      "name": "Jinja parse",
+      "result": "PASS",
+      "details": "182 templates, 0 parse errors"
+    },
+    {
+      "name": "V929 navigation integrity",
+      "result": "PASS"
+    },
+    {
+      "name": "V930 canonical visual parity",
+      "result": "PASS"
+    },
+    {
+      "name": "V931 production client routes hotfix",
+      "result": "PASS",
+      "details": "81 routes and modern, empty, legacy and locked database scenarios"
+    },
+    {
+      "name": "V932 authenticated client/admin",
+      "result": "PASS",
+      "details": "safe mock sessions only"
+    },
+    {
+      "name": "V932 SQLite regression",
+      "result": "PASS",
+      "details": "modern, legacy, empty and locked"
+    },
+    {
+      "name": "V933 reference parity",
+      "result": "PASS"
+    },
+    {
+      "name": "V934 reference exactness",
+      "result": "PASS"
+    },
+    {
+      "name": "V935 launch readiness",
+      "result": "FAIL_STALE_EXPECTATION",
+      "details": "historical fixture expects LIVE from status alone; the newer V937 evidence gate correctly rejects it"
+    },
+    {
+      "name": "V936 commercial product readiness",
+      "result": "PASS"
+    },
+    {
+      "name": "V937 product client update",
+      "result": "PASS"
+    },
+    {
+      "name": "V937 sports lifecycle",
+      "result": "PASS",
+      "details": "false-live and stale exclusions verified locally"
+    },
+    {
+      "name": "Continuous Sentinel static",
+      "result": "PASS",
+      "details": "10.0, 39 diagnostic routes, 0 active issues in its rule scope"
+    },
+    {
+      "name": "imports and routes",
+      "result": "PASS",
+      "details": "625 GET routes and 135 referenced templates"
+    },
+    {
+      "name": "route and link audit",
+      "result": "PASS_WITH_GAP",
+      "details": "929 links passed; separate audit found duplicate GET /admin/client-screens"
+    },
+    {
+      "name": "Secret Guard / V915",
+      "result": "FAIL",
+      "details": "ModuleNotFoundError for automation_workforce.security_secret_guard"
+    },
+    {
+      "name": "temporary database health and protected cron",
+      "result": "PASS_WITH_LIMITS",
+      "details": "health 200; unauthenticated automation endpoints 403; authorized fake test header accepted; no real provider sync"
+    },
+    {
+      "name": "SHARK local candidate benchmark",
+      "result": "PASS_LOCAL_CANDIDATE_ONLY",
+      "details": "12x 200, cold 89.0 ms, median 18.9 ms, p95 40.8 ms, 6 reads, 0 writes, 0 external calls"
+    },
+    {
+      "name": "local SQLite integrity",
+      "result": "PASS_LOCAL_ONLY",
+      "details": "integrity_check ok; not production data"
+    },
+    {
+      "name": "temporary Stripe membership engine",
+      "result": "PASS_LOCAL_ONLY",
+      "details": "active subscription applied PRO; cancellation downgraded to FREE; no Stripe API call"
+    },
+    {
+      "name": "security behavior probes",
+      "result": "FINDINGS",
+      "details": "session hardening incomplete, Telegram webhook origin not authenticated, automation secret accepted outside headers"
+    },
+    {
+      "name": "temporary backup and restore",
+      "result": "PASS_WITH_DEFECT",
+      "details": "legacy backup/restore and checksum passed; Data Vault left a SQLite handle open"
+    },
+    {
+      "name": "production Render read-only certification",
+      "result": "NOT_TESTED",
+      "reason": "production endpoint was not reachable from the audit execution environment"
+    }
+  ],
+  "findings": {
+    "P0": 2,
+    "P1": 12,
+    "P2": 16,
+    "P3": 4,
+    "P4": 3
+  },
+  "top_risks": [
+    "possible personal or sensitive material in a public repository requires classification",
+    "database and backups may share the same failure domain and no off-site restore drill is proven",
+    "Secret Guard is not executable",
+    "Telegram webhook origin authentication is not demonstrated",
+    "automation secret is accepted through URL/form/JSON paths",
+    "session cookie hardening is incomplete",
+    "current Render production state, freshness, SHA and 5xx are not certified by this audit",
+    "Stripe and paid memberships are not certified end-to-end",
+    "legal and privacy readiness is incomplete",
+    "single-person operational dependency remains high"
+  ],
+  "recommendations": [
+    "perform an authorized privacy and secret triage of the public repository before inviting users",
+    "establish encrypted off-site backups and execute an isolated restore drill",
+    "restore the official Secret Guard as a mandatory CI gate",
+    "authenticate Telegram webhooks and accept automation credentials only through protected headers",
+    "harden production session cookies and minimize public runtime diagnostics",
+    "certify Render read-only with runtime SHA, 5xx, DB and sports freshness evidence",
+    "certify Stripe catalog, webhook and membership reconciliation without real charges",
+    "complete legal review, support SLA and privacy rights procedures",
+    "install an external synthetic monitor and dead-man alerts for cron",
+    "run a free private beta before any paid launch"
+  ],
+  "limitations": [
+    "no Git CLI was available to verify working-tree cleanliness",
+    "Render and public production endpoints were unreachable from the audit environment",
+    "no production credentials, cookies or personal records were accessed",
+    "no Telegram message was sent",
+    "no Stripe charge or external Stripe operation was executed",
+    "no production database read or write was performed",
+    "historical Browser QA evidence was sampled rather than fully re-captured",
+    "pytest could not be executed in the available offline runtimes"
+  ],
+  "files_created": [
+    "reports/COMPANY_EXECUTIVE_AUDIT.md",
+    "reports/COMPANY_TECHNOLOGY_AUDIT.md",
+    "reports/COMPANY_OPERATIONS_AUDIT.md",
+    "reports/COMPANY_PRODUCT_AND_CLIENT_AUDIT.md",
+    "reports/COMPANY_BUSINESS_MODEL_AUDIT.md",
+    "reports/COMPANY_FAILURE_CATALOG.md",
+    "reports/COMPANY_INCIDENT_RESPONSE_PLAN.md",
+    "reports/COMPANY_BUSINESS_CONTINUITY_PLAN.md",
+    "reports/COMPANY_SECURITY_PRIVACY_AUDIT.md",
+    "reports/COMPANY_AUTOMATION_GUARDRAILS.md",
+    "reports/COMPANY_OBSERVABILITY_AND_ALERTING.md",
+    "reports/COMPANY_RISK_REGISTER.md",
+    "reports/COMPANY_RACI_MATRIX.md",
+    "reports/COMPANY_KPI_MEASUREMENT_PLAN.md",
+    "reports/COMPANY_30_60_90_DAY_PLAN.md",
+    "reports/COMPANY_CRITICAL_RUNBOOKS.md",
+    "reports/COMPANY_CONFIRMED_VS_UNVERIFIED.md",
+    "reports/COMPANY_FINAL_READINESS_SCORECARD.md",
+    "reports/COMPANY_AUDIT_MANIFEST.json"
+  ],
+  "executive_state": "AMARILLO",
+  "production_state": "NO_CERTIFICADA",
+  "beta_readiness_score": 5.0,
+  "production_readiness_score": 4.0
+}

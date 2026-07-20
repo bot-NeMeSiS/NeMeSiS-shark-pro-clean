@@ -60,7 +60,8 @@ def backup_dir(default_root: str | Path) -> Path:
 
 
 def connect_readonly(db_path: str | Path) -> sqlite3.Connection:
-    conn = sqlite3.connect(str(db_path), timeout=10)
+    path = Path(db_path).resolve()
+    conn = sqlite3.connect(f"file:{path.as_posix()}?mode=ro", uri=True, timeout=10)
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -68,11 +69,15 @@ def connect_readonly(db_path: str | Path) -> sqlite3.Connection:
 def table_names(db_path: str | Path) -> list[str]:
     if not Path(db_path).exists():
         return []
+    conn = None
     try:
-        with connect_readonly(db_path) as conn:
-            return [r["name"] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")]
+        conn = connect_readonly(db_path)
+        return [r["name"] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")]
     except Exception:
         return []
+    finally:
+        if conn is not None:
+            conn.close()
 
 
 def table_count(conn: sqlite3.Connection, table: str) -> int:
@@ -92,19 +97,23 @@ def db_vault_status(db_path: str | Path, root: str | Path, app_version: str = ""
     present = []
     missing = []
     if exists:
+        conn = None
         try:
-            with connect_readonly(path) as conn:
-                for table in CRITICAL_TABLES:
-                    if table in tables:
-                        count = table_count(conn, table)
-                        counts[table] = count
-                        present.append(table)
-                        if count == 0:
-                            empty.append(table)
-                    else:
-                        missing.append(table)
+            conn = connect_readonly(path)
+            for table in CRITICAL_TABLES:
+                if table in tables:
+                    count = table_count(conn, table)
+                    counts[table] = count
+                    present.append(table)
+                    if count == 0:
+                        empty.append(table)
+                else:
+                    missing.append(table)
         except Exception as exc:
             return {"ok": False, "error": str(exc)[:300], "db_path": str(path), "exists": exists}
+        finally:
+            if conn is not None:
+                conn.close()
     bdir = backup_dir(root)
     backups = list_backups(root)
     risk = []
@@ -240,18 +249,22 @@ def export_table_csv(db_path: str | Path, root: str | Path, table: str) -> dict:
     out_dir = Path(root) / "data" / "exports"
     out_dir.mkdir(parents=True, exist_ok=True)
     out = out_dir / f"nemesis_export_{table}_{now_stamp()}.csv"
+    conn = None
     try:
-        with connect_readonly(db_path) as conn:
-            rows = conn.execute(f"SELECT * FROM {table}").fetchall()
-            if not rows:
-                out.write_text("", encoding="utf-8")
-            else:
-                columns = rows[0].keys()
-                with out.open("w", encoding="utf-8", newline="") as fh:
-                    writer = csv.DictWriter(fh, fieldnames=columns)
-                    writer.writeheader()
-                    for row in rows:
-                        writer.writerow(dict(row))
+        conn = connect_readonly(db_path)
+        rows = conn.execute(f"SELECT * FROM {table}").fetchall()
+        if not rows:
+            out.write_text("", encoding="utf-8")
+        else:
+            columns = rows[0].keys()
+            with out.open("w", encoding="utf-8", newline="") as fh:
+                writer = csv.DictWriter(fh, fieldnames=columns)
+                writer.writeheader()
+                for row in rows:
+                    writer.writerow(dict(row))
         return {"ok": True, "file": out.name, "path": str(out), "classification": OWNERSHIP.get(table, "unknown")}
     except Exception as exc:
         return {"ok": False, "error": str(exc)[:300]}
+    finally:
+        if conn is not None:
+            conn.close()

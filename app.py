@@ -352,6 +352,13 @@ from engines.autonomous_company_sentinel_engine import (
     build_company_sentinel_status,
     run_autonomous_company_sentinel,
 )
+from engines.company_operations_center_engine import (
+    build_company_operations_snapshot,
+    generate_operations_codex_prompt,
+    load_operations_reviews,
+    mark_operations_issue_reviewed,
+    save_operations_snapshot,
+)
 
 
 from engines.madrid_time_engine import (
@@ -364,7 +371,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V937_PRODUCT_PERFECTION_FULL_ECOSYSTEM_LAUNCH_CLOSEOUT_FINAL'
+APP_VERSION = 'V938_COMPANY_OPERATIONS_RECOVERY_OBSERVABILITY_CENTER_FINAL'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 
@@ -550,6 +557,31 @@ def env_bool(name, default=False):
     return str(value).strip().lower() in {"1", "true", "yes", "on", "y", "si", "sí"}
 
 
+def configure_session_cookie_security():
+    same_site = str(os.getenv("SESSION_COOKIE_SAMESITE") or "Lax").strip().capitalize()
+    if same_site not in {"Lax", "Strict", "None"}:
+        same_site = "Lax"
+    render_environment = bool(
+        os.getenv("RENDER")
+        or os.getenv("RENDER_SERVICE_NAME")
+        or os.getenv("RENDER_EXTERNAL_HOSTNAME")
+        or str(os.getenv("FLASK_ENV") or "").lower() == "production"
+    )
+    try:
+        lifetime_hours = int(str(os.getenv("SESSION_LIFETIME_HOURS") or "12").strip())
+    except (TypeError, ValueError):
+        lifetime_hours = 12
+    app.config.update(
+        SESSION_COOKIE_HTTPONLY=True,
+        SESSION_COOKIE_SECURE=env_bool("SESSION_COOKIE_SECURE", render_environment),
+        SESSION_COOKIE_SAMESITE=same_site,
+        PERMANENT_SESSION_LIFETIME=timedelta(hours=max(1, min(lifetime_hours, 168))),
+    )
+
+
+configure_session_cookie_security()
+
+
 def env_present(name):
     return bool(str(os.getenv(name) or "").strip())
 
@@ -573,6 +605,7 @@ def csrf_exempt_path(path: str) -> bool:
     path = str(path or "")
     exact = {
         "/telegram/webhook",
+        "/api/automation/operations-center/run",
         "/api/automation/telegram/tick",
         "/api/automation/daily/run",
         "/api/automation/data-backup/run",
@@ -700,6 +733,39 @@ def automation_secret_valid():
     if not expected:
         return False
     return secrets.compare_digest(automation_request_secret(), expected)
+
+
+def automation_header_secret_status():
+    """V938 Cron contract: secrets travel only in an HTTP header."""
+    expected = str(os.getenv("AUTOMATION_SECRET") or "").strip()
+    provided = str(
+        request.headers.get("X-Automation-Secret")
+        or request.headers.get("X-CRON-SECRET")
+        or ""
+    ).strip()
+    if not expected:
+        return {"ok": False, "error": "automation_secret_missing", "configured": False, "provided": bool(provided)}
+    if not provided:
+        return {"ok": False, "error": "automation_header_secret_required", "configured": True, "provided": False}
+    return {
+        "ok": secrets.compare_digest(provided, expected),
+        "error": "" if secrets.compare_digest(provided, expected) else "automation_secret_invalid",
+        "configured": True,
+        "provided": True,
+    }
+
+
+def automation_header_json_forbidden():
+    status = automation_header_secret_status()
+    return jsonify({
+        "ok": False,
+        "version": APP_VERSION,
+        "error": status.get("error") or "automation_header_secret_required",
+        "safe_message": "Endpoint Cron V938 protegido. Usa el header X-Automation-Secret; los secretos por URL no se aceptan aqui.",
+        "automation_secret_configured": bool(status.get("configured")),
+        "automation_secret_provided": bool(status.get("provided")),
+        "query_secret_accepted": False,
+    }), 403
 
 
 def automation_secret_status():
@@ -11093,7 +11159,7 @@ def dashboard_data(lane="today", date=None):
 @app.route("/service-worker.js")
 def service_worker():
     body = (
-        "const NEMESIS_CACHE='NEMESIS_CACHE_V937';\n"
+        "const NEMESIS_CACHE='NEMESIS_CACHE_V938';\n"
         "self.addEventListener('install',event=>{self.skipWaiting();});\n"
         "self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.map(key=>caches.delete(key)))).then(()=>self.clients.claim()));});\n"
         "self.addEventListener('fetch',event=>{const req=event.request;if(req.method!=='GET'){return;}if(req.mode==='navigate'){event.respondWith(fetch(req,{cache:'no-store'}).catch(()=>fetch('/',{cache:'no-store'})));return;}if(req.destination==='style'||req.destination==='script'){event.respondWith(fetch(req,{cache:'reload'}));return;}event.respondWith(fetch(req));});\n"
@@ -16553,10 +16619,48 @@ def telegram_unlink_private():
     return redirect("/telegram")
 
 
+def telegram_webhook_security_status():
+    expected = str(os.getenv("TELEGRAM_WEBHOOK_SECRET") or "").strip()
+    provided = str(request.headers.get("X-Telegram-Bot-Api-Secret-Token") or "").strip()
+    production = bool(
+        os.getenv("RENDER")
+        or os.getenv("RENDER_SERVICE_NAME")
+        or os.getenv("RENDER_EXTERNAL_HOSTNAME")
+        or str(os.getenv("FLASK_ENV") or "").lower() == "production"
+    )
+    if expected:
+        return {
+            "ok": bool(provided and secrets.compare_digest(provided, expected)),
+            "configured": True,
+            "provided": bool(provided),
+            "mode": "signed",
+        }
+    if app.config.get("TESTING") or not production:
+        return {"ok": True, "configured": False, "provided": False, "mode": "local_compatibility"}
+    return {"ok": False, "configured": False, "provided": False, "mode": "production_secret_required"}
+
+
 @app.route("/telegram/webhook", methods=["POST", "GET"])
 def telegram_webhook():
     if request.method == "GET":
-        return jsonify({"ok": True, "version": APP_VERSION, "webhook": "telegram"})
+        return jsonify({
+            "ok": True,
+            "version": APP_VERSION,
+            "webhook": "telegram",
+            "signed_secret_configured": env_present("TELEGRAM_WEBHOOK_SECRET"),
+        })
+    if request.content_length is not None and request.content_length > 1024 * 1024:
+        return jsonify({"ok": False, "version": APP_VERSION, "error": "payload_too_large"}), 413
+    security_status = telegram_webhook_security_status()
+    if not security_status.get("ok"):
+        status_code = 503 if not security_status.get("configured") else 403
+        return jsonify({
+            "ok": False,
+            "version": APP_VERSION,
+            "error": "telegram_webhook_secret_missing" if status_code == 503 else "telegram_webhook_signature_invalid",
+            "safe_message": "Webhook Telegram no autorizado o pendiente de configuracion segura.",
+            "signed_secret_configured": bool(security_status.get("configured")),
+        }), status_code
     update = request.get_json(silent=True) or {}
     message = update.get("message") or update.get("edited_message") or {}
     chat = message.get("chat") or {}
@@ -19478,6 +19582,15 @@ def api_runtime_version():
         "has_v937_sports_lifecycle": v937_sports_path.exists() and "nemesis_data_confidence" in app_py_text,
         "has_v937_full_ecosystem_qa": (BASE_DIR / "tools" / "check_v937_sports_lifecycle.py").exists(),
         "has_v937_launch_closeout": (BASE_DIR / "reports" / "V937_PRODUCT_PERFECTION_MASTER_REPORT.md").exists(),
+        "has_v938_company_operations_recovery_observability_center": (
+            (BASE_DIR / "engines" / "company_operations_center_engine.py").exists()
+            and (BASE_DIR / "templates" / "admin_operations_center.html").exists()
+            and (BASE_DIR / "tools" / "check_v938_company_operations_center.py").exists()
+        ),
+        "v938_operations_center_mode": "read_only_by_default",
+        "v938_production_certification_status": "blocked_by_access_local_build",
+        "v938_secret_transport": "header_required_for_v938_cron_legacy_compatibility_deprecated",
+        "v938_production_modified": False,
         **v902_truth_summary,
         **v904_summary,
         **v906_summary,
@@ -24392,6 +24505,135 @@ def api_admin_v818_daily_automation_health():
     if not is_admin_session():
         return admin_json_forbidden()
     return jsonify({"ok": True, "version": APP_VERSION, "health": v818_system_health(DB_PATH, APP_VERSION, env=dict(os.environ))})
+
+
+def v938_operations_snapshot():
+    return build_company_operations_snapshot(BASE_DIR, DB_PATH, APP_VERSION)
+
+
+@app.route("/admin/operations-center")
+@app.route("/admin/operations")
+@app.route("/admin/company-operations")
+@app.route("/admin/centro-operaciones")
+@app.route("/admin/sala-control")
+def admin_v938_operations_center_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/operations-center")
+    snapshot = v938_operations_snapshot()
+    return render_template(
+        "admin_operations_center.html",
+        data=dashboard_data(),
+        snapshot=snapshot,
+        reviews=load_operations_reviews(BASE_DIR),
+    )
+
+
+@app.route("/api/admin/operations-center/summary")
+def api_admin_v938_operations_summary():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "version": APP_VERSION, "snapshot": v938_operations_snapshot()})
+
+
+@app.route("/api/admin/operations-center/incidents")
+def api_admin_v938_operations_incidents():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    snapshot = v938_operations_snapshot()
+    return jsonify({
+        "ok": True,
+        "version": APP_VERSION,
+        "incidents": snapshot.get("incidents") or [],
+        "counts": snapshot.get("incident_counts") or {},
+        "reviews": load_operations_reviews(BASE_DIR).get("reviews") or [],
+    })
+
+
+@app.route("/api/admin/operations-center/readiness")
+def api_admin_v938_operations_readiness():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    snapshot = v938_operations_snapshot()
+    return jsonify({
+        "ok": True,
+        "version": APP_VERSION,
+        "readiness": snapshot.get("readiness") or {},
+        "scores": snapshot.get("scores") or {},
+        "monitoring": snapshot.get("monitoring") or {},
+        "next_action": snapshot.get("next_action") or "",
+    })
+
+
+@app.route("/api/admin/operations-center/run-safe-scan", methods=["POST"])
+def api_admin_v938_operations_run_safe_scan():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    snapshot = v938_operations_snapshot()
+    path = save_operations_snapshot(BASE_DIR, snapshot)
+    return jsonify({
+        "ok": True,
+        "version": APP_VERSION,
+        "snapshot": snapshot,
+        "saved_to": path.relative_to(BASE_DIR).as_posix(),
+        "dangerous_actions_executed": False,
+        "production_modified": False,
+    })
+
+
+@app.route("/api/admin/operations-center/generate-prompt", methods=["POST"])
+def api_admin_v938_operations_generate_prompt():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    payload = request.get_json(silent=True) or {}
+    snapshot = v938_operations_snapshot()
+    issue_id = str(payload.get("issue_id") or "").strip()
+    issue = next((item for item in snapshot.get("incidents") or [] if item.get("issue_id") == issue_id), {})
+    if not issue and snapshot.get("incidents"):
+        issue = snapshot["incidents"][0]
+    return jsonify({
+        "ok": bool(issue),
+        "version": APP_VERSION,
+        "issue": issue,
+        "prompt": generate_operations_codex_prompt(issue, APP_VERSION),
+        "dangerous_actions_executed": False,
+    }), (200 if issue else 404)
+
+
+@app.route("/api/admin/operations-center/mark-reviewed", methods=["POST"])
+def api_admin_v938_operations_mark_reviewed():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    payload = request.get_json(silent=True) or {}
+    issue_id = str(payload.get("issue_id") or "").strip()
+    known_ids = {item.get("issue_id") for item in v938_operations_snapshot().get("incidents") or []}
+    if issue_id not in known_ids:
+        return jsonify({"ok": False, "version": APP_VERSION, "error": "operations_issue_not_found"}), 404
+    result = mark_operations_issue_reviewed(
+        BASE_DIR,
+        issue_id,
+        note=str(payload.get("note") or ""),
+    )
+    return jsonify({"version": APP_VERSION, **result}), (200 if result.get("ok") else 400)
+
+
+@app.route("/api/automation/operations-center/run", methods=["POST"])
+def api_v938_automation_operations_center_run():
+    status = automation_header_secret_status()
+    if not status.get("ok"):
+        return automation_header_json_forbidden()
+    snapshot = v938_operations_snapshot()
+    path = save_operations_snapshot(BASE_DIR, snapshot)
+    return jsonify({
+        "ok": True,
+        "version": APP_VERSION,
+        "cron": "v938_operations_center",
+        "snapshot": snapshot,
+        "saved_to": path.relative_to(BASE_DIR).as_posix(),
+        "query_secret_accepted": False,
+        "dangerous_actions_executed": False,
+        "production_database_written": False,
+        "external_calls": 0,
+    })
 
 
 V897_ALIAS_REGISTRATION = register_v897_safe_aliases()

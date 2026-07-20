@@ -1,7 +1,9 @@
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = "V937_PRODUCT_PERFECTION_FULL_ECOSYSTEM_LAUNCH_CLOSEOUT_FINAL"
+V937_VERSION = "V937_PRODUCT_PERFECTION_FULL_ECOSYSTEM_LAUNCH_CLOSEOUT_FINAL"
+V938_VERSION = "V938_COMPANY_OPERATIONS_RECOVERY_OBSERVABILITY_CENTER_FINAL"
+SUPPORTED_VERSIONS = {V937_VERSION, V938_VERSION}
 required = [
     ROOT / "static/v933_design_tokens.css",
     ROOT / "static/v937-product-client.css",
@@ -11,9 +13,11 @@ required = [
 missing = [str(path.relative_to(ROOT)) for path in required if not path.exists()]
 base = ROOT / "templates/base.html"
 errors = list(missing)
-if (ROOT / "VERSION.txt").read_text(encoding="utf-8-sig").strip() != VERSION:
+current_version = (ROOT / "VERSION.txt").read_text(encoding="utf-8-sig").strip()
+app_version = (ROOT / "APP_VERSION").read_text(encoding="utf-8-sig").strip()
+if current_version not in SUPPORTED_VERSIONS:
     errors.append("VERSION.txt")
-if (ROOT / "APP_VERSION").read_text(encoding="utf-8-sig").strip() != VERSION:
+if app_version != current_version:
     errors.append("APP_VERSION")
 text = base.read_text(encoding="utf-8", errors="ignore") if base.exists() else ""
 for marker in ("v937-product-client.css", "v937-product-client.js"):

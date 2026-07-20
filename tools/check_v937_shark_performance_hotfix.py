@@ -15,7 +15,9 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-EXPECTED_VERSION = "V937_PRODUCT_PERFECTION_FULL_ECOSYSTEM_LAUNCH_CLOSEOUT_FINAL"
+V937_VERSION = "V937_PRODUCT_PERFECTION_FULL_ECOSYSTEM_LAUNCH_CLOSEOUT_FINAL"
+V938_VERSION = "V938_COMPANY_OPERATIONS_RECOVERY_OBSERVABILITY_CENTER_FINAL"
+SUPPORTED_VERSIONS = {V937_VERSION, V938_VERSION}
 RUNS = 10
 
 
@@ -47,10 +49,8 @@ def load_app(db_path: Path):
 
 
 def run() -> dict:
-    require(
-        (ROOT / "VERSION.txt").read_text(encoding="utf-8-sig").strip() == EXPECTED_VERSION,
-        "VERSION.txt no conserva V937",
-    )
+    current_version = (ROOT / "VERSION.txt").read_text(encoding="utf-8-sig").strip()
+    require(current_version in SUPPORTED_VERSIONS, "VERSION.txt no conserva V937 ni su sucesora V938")
     app_source = (ROOT / "app.py").read_text(encoding="utf-8", errors="replace")
     require("v932_safe_dashboard_data(request.path, compact=True)" in app_source, "SHARK no usa contexto compacto")
     require("prebuilt_briefing=briefing" in app_source, "SHARK reconstruye el briefing")
@@ -150,7 +150,7 @@ def run() -> dict:
 
             return {
                 "ok": True,
-                "version": EXPECTED_VERSION,
+                "version": current_version,
                 "runs": RUNS,
                 "status_codes": sorted({response.status_code for response in responses}),
                 "cold_cache_ms": round(cold_ms, 1),

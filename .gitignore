@@ -75,6 +75,15 @@ reports/archive/
 .env.render
 .env.secret
 
+# V938: safe scanner/guard source and redacted evidence are intentionally versioned.
+!automation_workforce/security_secret_guard.py
+!tools/check_repository_privacy_and_secrets.py
+!reports/V938_REPOSITORY_PRIVACY_SECRET_CLASSIFICATION.md
+!reports/V938_REPOSITORY_PRIVACY_SECRET_CLASSIFICATION.json
+!reports/V938_SECRET_GUARD_RECOVERY_QA.md
+!reports/V938_AUTOMATION_SECRET_TRANSPORT_HARDENING.md
+!reports/V915_SECURITY_SECRET_GUARD_REPORT.md
+
 # V870 PRO MAX workspace purge guardrails
 *.bak
 *.backup
