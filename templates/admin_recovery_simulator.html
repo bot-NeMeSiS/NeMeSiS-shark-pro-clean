@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% from "components/v933_ui.html" import page_header, kpi_card, status_chip, evidence_label, icon %}
+{% block title %}Recovery Simulator | NeMeSiS SHARK PRO{% endblock %}
+{% block content %}
+<div class="v933-page" data-v939-template="admin_recovery_simulator">
+  {{ page_header('Recovery Simulator', 'Tabletop no destructivo. Los objetivos RTO/RPO no equivalen a una restauracion certificada.', 'history', [
+    {'label':'Operaciones','href':'/admin/operations-center','primary':true,'icon':'shield'},
+    {'label':'Direccion','href':'/admin/ceo-dashboard','icon':'dashboard'}
+  ]) }}
+  <section class="v933-kpi-grid">
+    {{ kpi_card('Escenarios', (recovery.counts or {}).total, 'Catalogo controlado', 'blue', 'history') }}
+    {{ kpi_card('Con evidencia local', (recovery.counts or {}).with_local_evidence, 'No certifica produccion', 'cyan', 'data') }}
+    {{ kpi_card('Certificados en produccion', (recovery.counts or {}).production_certified, 'Requiere ejercicio aislado', 'yellow', 'shield') }}
+    {{ kpi_card('Restores ejecutados', 0, 'Simulacion unicamente', 'neutral', 'pause') }}
+  </section>
+  <section class="v933-admin-panel">
+    <header><div><h2>Escenarios operativos</h2><p>Senal, objetivo, pasos y bloqueo visible.</p></div>{{ status_chip(evidence_label(recovery.certification_state or 'NOT_CERTIFIED'),'success' if recovery.certification_state == 'VERIFIED' else 'warning') }}</header>
+    <div class="v933-admin-panel-body">
+      <div class="v933-truth-list">
+        {% for scenario in recovery.scenarios or [] %}
+        <div>{{ icon('history') }}<span><strong>{{ scenario.label }}</strong><small>{{ evidence_label(scenario.certification_state) }} | RTO objetivo {{ scenario.rto_minutes }} min | RPO objetivo {{ scenario.rpo_minutes }} min | {{ scenario.next_action }}</small></span></div>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+  <section class="v933-admin-panel">
+    <header><div><h2>Garantias</h2><p>Limites de esta simulacion.</p></div></header>
+    <div class="v933-admin-panel-body">
+      <div class="v933-chip-cloud">
+        {{ status_chip('Sin restore','success') }}
+        {{ status_chip('Sin escritura DB','success') }}
+        {{ status_chip('Sin llamadas externas','success') }}
+        {{ status_chip('Sin cambios en produccion','success') }}
+      </div>
+    </div>
+  </section>
+</div>
+{% endblock %}

@@ -3,6 +3,21 @@
 
 {% macro status_chip(label, tone='neutral') -%}<span class="v933-status-chip is-{{ tone or 'neutral' }}">{{ label or 'Pendiente' }}</span>{%- endmacro %}
 
+{% macro evidence_label(value) -%}
+{% set code = value or 'NOT_CERTIFIED' %}
+{{- {
+  'VERIFIED': 'Verificado',
+  'PARTIALLY_VERIFIED': 'Verificacion parcial',
+  'NOT_CERTIFIED': 'No certificado',
+  'NOT_CONFIGURED': 'No configurado',
+  'STALE': 'Datos desactualizados',
+  'BLOCKED_BY_ACCESS': 'Bloqueado por acceso',
+  'HYPOTHESIS': 'Hipotesis',
+  'INSUFFICIENT_DATA': 'Sin muestra',
+  'REQUIRES_REVIEW': 'Requiere revision'
+}.get(code, code|replace('_', ' ')|title) -}}
+{%- endmacro %}
+
 {% macro data_provenance_badge(source='', updated='', state='') -%}
 <span class="v935-provenance" title="Trazabilidad del dato">{{ icon('shield') }}<span><strong>{{ source or 'Fuente pendiente' }}</strong>{% if updated %}<small>{{ updated }}</small>{% elif state %}<small>{{ state }}</small>{% endif %}</span></span>
 {%- endmacro %}

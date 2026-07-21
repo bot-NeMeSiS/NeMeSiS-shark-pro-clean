@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% from "components/v933_ui.html" import page_header, kpi_card, status_chip, evidence_label, empty_state, icon %}
+{% block title %}Experimentos | NeMeSiS SHARK PRO{% endblock %}
+{% block content %}
+<div class="v933-page" data-v939-template="admin_experiments">
+  {{ page_header('Experimentos gobernados', 'Hipotesis y medicion bajo revision humana. Esta pantalla no activa variantes.', 'target', [
+    {'label':'Direccion','href':'/admin/ceo-dashboard','primary':true,'icon':'dashboard'}
+  ]) }}
+  <section class="v933-kpi-grid">
+    {{ kpi_card('Propuestas', (experiments.counts or {}).total, 'Catalogo local', 'blue', 'target') }}
+    {{ kpi_card('Validas', (experiments.counts or {}).valid, 'Aun requieren aprobacion', 'cyan', 'check') }}
+    {{ kpi_card('Bloqueadas', (experiments.counts or {}).blocked, 'Incumplen guardrails', 'yellow', 'shield') }}
+    {{ kpi_card('Activas', 0, 'Activacion automatica deshabilitada', 'neutral', 'pause') }}
+  </section>
+  <section class="v933-admin-layout">
+    <div class="v933-admin-main">
+      <section class="v933-admin-panel">
+        <header><div><h2>Catalogo</h2><p>Cada propuesta necesita metrica, muestra, guardrails y condicion de parada.</p></div>{{ status_chip(evidence_label(experiments.certification_state or 'INSUFFICIENT_DATA'),'warning') }}</header>
+        <div class="v933-admin-panel-body">
+          {% if experiments.experiments %}
+          <div class="v933-truth-list">
+            {% for item in experiments.experiments %}
+            <div>{{ icon('target') }}<span><strong>{{ item.experiment.experiment_id or 'Sin identificador' }}</strong><small>{{ item.state }} | {{ item.experiment.hypothesis or 'Hipotesis pendiente' }}</small></span></div>
+            {% endfor %}
+          </div>
+          {% else %}
+            {{ empty_state('No hay experimentos propuestos', 'Es el estado seguro. V939 no crea trafico ni variantes para rellenar el panel.', '', '', 'target') }}
+          {% endif %}
+        </div>
+      </section>
+    </div>
+    <aside class="v933-side-stack">
+      <section class="v933-admin-panel">
+        <header><div><h2>Superficies permitidas</h2><p>Solo experiencia no sensible.</p></div></header>
+        <div class="v933-admin-panel-body"><div class="v933-chip-cloud">{% for item in experiments.safe_surfaces %}{{ status_chip(item|replace('_',' '),'blue') }}{% endfor %}</div></div>
+      </section>
+      <section class="v933-admin-panel">
+        <header><div><h2>Nunca experimentar</h2><p>Bloqueos de producto y seguridad.</p></div></header>
+        <div class="v933-admin-panel-body"><div class="v933-chip-cloud">{% for item in experiments.prohibited_surfaces %}{{ status_chip(item|replace('_',' '),'warning') }}{% endfor %}</div></div>
+      </section>
+    </aside>
+  </section>
+</div>
+{% endblock %}

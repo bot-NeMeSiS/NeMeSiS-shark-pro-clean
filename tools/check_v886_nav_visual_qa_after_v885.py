@@ -128,7 +128,7 @@ def check_runtime_navigation() -> None:
             session["user_id"] = "v886-client"
             session["user_name"] = "Cliente V886"
             session["username"] = "cliente-v886"
-            session["user_email"] = "cliente-v886@example.local"
+            session["user_email"] = "fixture-v886"
             session["user_role"] = "PRO"
             session["user_membership"] = "PRO"
             session["membership"] = "PRO"

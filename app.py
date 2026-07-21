@@ -359,6 +359,24 @@ from engines.company_operations_center_engine import (
     mark_operations_issue_reviewed,
     save_operations_snapshot,
 )
+from engines.company_intelligence_engine import (
+    build_company_intelligence_snapshot,
+    generate_codex_company_prompt,
+    load_company_intelligence_memory,
+    record_company_intelligence_decision,
+    save_company_intelligence_memory,
+)
+from engines.shark_learning_engine import build_v939_shark_learning_snapshot
+from engines.pick_intelligence_pipeline_engine import build_pick_pipeline_snapshot
+from engines.telegram_intelligence_engine import build_telegram_intelligence_snapshot
+from engines.product_analytics_engine import (
+    build_product_analytics_snapshot,
+    build_revenue_analytics_snapshot,
+)
+from engines.experimentation_engine import build_experimentation_snapshot
+from engines.version_regression_engine import build_version_regression_snapshot
+from engines.recovery_simulator_engine import build_recovery_simulator_snapshot
+from engines.autonomous_quality_platform_engine import build_autonomous_quality_snapshot
 
 
 from engines.madrid_time_engine import (
@@ -371,7 +389,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V938_COMPANY_OPERATIONS_RECOVERY_OBSERVABILITY_CENTER_FINAL'
+APP_VERSION = 'V939_AUTONOMOUS_COMPANY_INTELLIGENCE_GROWTH_AND_QUALITY_PLATFORM_FINAL'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 
@@ -606,6 +624,7 @@ def csrf_exempt_path(path: str) -> bool:
     exact = {
         "/telegram/webhook",
         "/api/automation/operations-center/run",
+        "/api/automation/company-intelligence/run",
         "/api/automation/telegram/tick",
         "/api/automation/daily/run",
         "/api/automation/data-backup/run",
@@ -11159,7 +11178,7 @@ def dashboard_data(lane="today", date=None):
 @app.route("/service-worker.js")
 def service_worker():
     body = (
-        "const NEMESIS_CACHE='NEMESIS_CACHE_V938';\n"
+        "const NEMESIS_CACHE='NEMESIS_CACHE_V939';\n"
         "self.addEventListener('install',event=>{self.skipWaiting();});\n"
         "self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.map(key=>caches.delete(key)))).then(()=>self.clients.claim()));});\n"
         "self.addEventListener('fetch',event=>{const req=event.request;if(req.method!=='GET'){return;}if(req.mode==='navigate'){event.respondWith(fetch(req,{cache:'no-store'}).catch(()=>fetch('/',{cache:'no-store'})));return;}if(req.destination==='style'||req.destination==='script'){event.respondWith(fetch(req,{cache:'reload'}));return;}event.respondWith(fetch(req));});\n"
@@ -15284,7 +15303,6 @@ def admin_api_sports_audit_page():
 
 
 @app.route("/admin/company-os")
-@app.route("/admin/empresa")
 @app.route("/admin/operating-system")
 def admin_company_os_page():
     if not is_admin_session():
@@ -19591,6 +19609,20 @@ def api_runtime_version():
         "v938_production_certification_status": "blocked_by_access_local_build",
         "v938_secret_transport": "header_required_for_v938_cron_legacy_compatibility_deprecated",
         "v938_production_modified": False,
+        "has_v939_autonomous_company_intelligence_growth_quality_platform": (
+            (BASE_DIR / "engines" / "company_intelligence_engine.py").exists()
+            and (BASE_DIR / "engines" / "autonomous_quality_platform_engine.py").exists()
+            and (BASE_DIR / "templates" / "admin_ceo_dashboard.html").exists()
+            and (BASE_DIR / "tools" / "check_v939_autonomous_company_intelligence.py").exists()
+        ),
+        "v939_company_intelligence_mode": "evidence_first_read_only_by_default",
+        "v939_learning_mode": "observe_and_recommend_only",
+        "v939_automatic_weight_changes": False,
+        "v939_automatic_push": False,
+        "v939_automatic_deploy": False,
+        "v939_real_telegram_sent": False,
+        "v939_real_payments_executed": False,
+        "v939_production_certification_status": "not_certified_local_build",
         **v902_truth_summary,
         **v904_summary,
         **v906_summary,
@@ -23434,7 +23466,6 @@ def v774_client_screen_quality_snapshot():
 
 
 @app.route("/admin/client-screen-quality")
-@app.route("/admin/client-screens")
 def admin_client_screen_quality_page():
     if not is_admin_session():
         return redirect("/admin-login?next=/admin/client-screen-quality")
@@ -24633,6 +24664,256 @@ def api_v938_automation_operations_center_run():
         "dangerous_actions_executed": False,
         "production_database_written": False,
         "external_calls": 0,
+    })
+
+
+_V939_INTELLIGENCE_CACHE = {"at": 0.0, "bundle": None}
+_V939_INTELLIGENCE_CACHE_LOCK = threading.Lock()
+
+
+def v939_company_intelligence_bundle(force=False):
+    """Build a local evidence bundle without writes or external provider calls."""
+    now = time.monotonic()
+    cached = _V939_INTELLIGENCE_CACHE.get("bundle")
+    if not force and cached and now - float(_V939_INTELLIGENCE_CACHE.get("at") or 0.0) < 15:
+        return cached
+    with _V939_INTELLIGENCE_CACHE_LOCK:
+        now = time.monotonic()
+        cached = _V939_INTELLIGENCE_CACHE.get("bundle")
+        if not force and cached and now - float(_V939_INTELLIGENCE_CACHE.get("at") or 0.0) < 15:
+            return cached
+        environment = "render" if (os.getenv("RENDER") or os.getenv("RENDER_SERVICE_NAME") or os.getenv("RENDER_EXTERNAL_HOSTNAME")) else "local"
+        company = build_company_intelligence_snapshot(BASE_DIR, DB_PATH, APP_VERSION, environment)
+        bundle = {
+            "company": company,
+            "learning": build_v939_shark_learning_snapshot(DB_PATH, APP_VERSION),
+            "picks": build_pick_pipeline_snapshot(DB_PATH, APP_VERSION, environment=environment),
+            "telegram": build_telegram_intelligence_snapshot(DB_PATH, APP_VERSION, environment=environment),
+            "product": build_product_analytics_snapshot(DB_PATH, APP_VERSION, environment),
+            "business": build_revenue_analytics_snapshot(DB_PATH, APP_VERSION, environment),
+            "experiments": build_experimentation_snapshot(BASE_DIR, APP_VERSION, environment),
+            "recovery": build_recovery_simulator_snapshot(BASE_DIR, DB_PATH, APP_VERSION, environment),
+            "regressions": build_version_regression_snapshot(BASE_DIR, APP_VERSION),
+        }
+        bundle["quality"] = build_autonomous_quality_snapshot(
+            BASE_DIR,
+            DB_PATH,
+            APP_VERSION,
+            company,
+            environment,
+        )
+        bundle["memory"] = load_company_intelligence_memory(BASE_DIR)
+        bundle.update({
+            "version": APP_VERSION,
+            "environment": environment,
+            "database_written": False,
+            "external_calls": 0,
+            "production_modified": False,
+        })
+        _V939_INTELLIGENCE_CACHE["at"] = now
+        _V939_INTELLIGENCE_CACHE["bundle"] = bundle
+        return bundle
+
+
+def v939_saved_path_label(path):
+    try:
+        return Path(path).resolve().relative_to(BASE_DIR.resolve()).as_posix()
+    except (OSError, ValueError):
+        return Path(path).name
+
+
+@app.route("/admin/ceo-dashboard")
+@app.route("/admin/executive")
+@app.route("/admin/company-intelligence")
+@app.route("/admin/direccion")
+@app.route("/admin/empresa")
+def admin_v939_ceo_dashboard_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/ceo-dashboard")
+    return render_template(
+        "admin_ceo_dashboard.html",
+        data=dashboard_data(),
+        intelligence=v939_company_intelligence_bundle(),
+    )
+
+
+@app.route("/admin/experiments")
+def admin_v939_experiments_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/experiments")
+    return render_template(
+        "admin_experiments.html",
+        data=dashboard_data(),
+        experiments=v939_company_intelligence_bundle().get("experiments") or {},
+    )
+
+
+@app.route("/admin/recovery-simulator")
+def admin_v939_recovery_simulator_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/recovery-simulator")
+    return render_template(
+        "admin_recovery_simulator.html",
+        data=dashboard_data(),
+        recovery=v939_company_intelligence_bundle().get("recovery") or {},
+    )
+
+
+@app.route("/api/admin/company-intelligence/summary")
+def api_admin_v939_company_intelligence_summary():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    bundle = v939_company_intelligence_bundle()
+    company = bundle.get("company") or {}
+    return jsonify({
+        "ok": True,
+        "version": APP_VERSION,
+        "executive_summary": company.get("executive_summary") or {},
+        "business_health": company.get("business_health") or {},
+        "next_actions": company.get("next_actions") or [],
+        "production_modified": False,
+    })
+
+
+@app.route("/api/admin/company-intelligence/signals")
+def api_admin_v939_company_intelligence_signals():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    company = v939_company_intelligence_bundle().get("company") or {}
+    return jsonify({"ok": True, "version": APP_VERSION, "signals": company.get("signals") or [], "evidence_graph": company.get("evidence_graph") or {}})
+
+
+@app.route("/api/admin/company-intelligence/priorities")
+def api_admin_v939_company_intelligence_priorities():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    company = v939_company_intelligence_bundle().get("company") or {}
+    return jsonify({"ok": True, "version": APP_VERSION, "priorities": company.get("priorities") or [], "next_actions": company.get("next_actions") or []})
+
+
+@app.route("/api/admin/company-intelligence/learning")
+def api_admin_v939_company_intelligence_learning():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "version": APP_VERSION, "learning": v939_company_intelligence_bundle().get("learning") or {}})
+
+
+@app.route("/api/admin/company-intelligence/telegram")
+def api_admin_v939_company_intelligence_telegram():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "version": APP_VERSION, "telegram": v939_company_intelligence_bundle().get("telegram") or {}})
+
+
+@app.route("/api/admin/company-intelligence/product")
+def api_admin_v939_company_intelligence_product():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "version": APP_VERSION, "product": v939_company_intelligence_bundle().get("product") or {}})
+
+
+@app.route("/api/admin/company-intelligence/business")
+def api_admin_v939_company_intelligence_business():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "version": APP_VERSION, "business": v939_company_intelligence_bundle().get("business") or {}})
+
+
+@app.route("/api/admin/company-intelligence/recovery")
+def api_admin_v939_company_intelligence_recovery():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "version": APP_VERSION, "recovery": v939_company_intelligence_bundle().get("recovery") or {}})
+
+
+@app.route("/api/admin/company-intelligence/regressions")
+def api_admin_v939_company_intelligence_regressions():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "version": APP_VERSION, "regressions": v939_company_intelligence_bundle().get("regressions") or {}})
+
+
+@app.route("/api/admin/company-intelligence/run", methods=["POST"])
+def api_admin_v939_company_intelligence_run():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    bundle = v939_company_intelligence_bundle(force=True)
+    path = save_company_intelligence_memory(BASE_DIR, bundle.get("company") or {})
+    return jsonify({
+        "ok": True,
+        "version": APP_VERSION,
+        "snapshot": bundle.get("company") or {},
+        "quality": bundle.get("quality") or {},
+        "saved_to": v939_saved_path_label(path),
+        "dangerous_actions_executed": False,
+        "production_modified": False,
+        "external_calls": 0,
+    })
+
+
+@app.route("/api/admin/company-intelligence/generate-prompt", methods=["POST"])
+def api_admin_v939_company_intelligence_generate_prompt():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    payload = request.get_json(silent=True) or {}
+    company = v939_company_intelligence_bundle().get("company") or {}
+    prompt = generate_codex_company_prompt(company, str(payload.get("priority_id") or ""))
+    return jsonify({"ok": True, "version": APP_VERSION, "prompt": prompt, "action_executed": False})
+
+
+@app.route("/api/admin/company-intelligence/approve-recommendation", methods=["POST"])
+def api_admin_v939_company_intelligence_approve_recommendation():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    payload = request.get_json(silent=True) or {}
+    result = record_company_intelligence_decision(
+        BASE_DIR,
+        str(payload.get("recommendation_id") or ""),
+        "APPROVED",
+        str(payload.get("note") or ""),
+    )
+    return jsonify({"version": APP_VERSION, **result, "recommendation_executed": False}), (200 if result.get("ok") else 400)
+
+
+@app.route("/api/admin/company-intelligence/reject-recommendation", methods=["POST"])
+def api_admin_v939_company_intelligence_reject_recommendation():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    payload = request.get_json(silent=True) or {}
+    result = record_company_intelligence_decision(
+        BASE_DIR,
+        str(payload.get("recommendation_id") or ""),
+        "REJECTED",
+        str(payload.get("note") or ""),
+    )
+    return jsonify({"version": APP_VERSION, **result, "recommendation_executed": False}), (200 if result.get("ok") else 400)
+
+
+@app.route("/api/automation/company-intelligence/run", methods=["POST"])
+def api_v939_automation_company_intelligence_run():
+    status = automation_header_secret_status()
+    if not status.get("ok"):
+        return automation_header_json_forbidden()
+    bundle = v939_company_intelligence_bundle(force=True)
+    path = save_company_intelligence_memory(BASE_DIR, bundle.get("company") or {})
+    company = bundle.get("company") or {}
+    return jsonify({
+        "ok": True,
+        "version": APP_VERSION,
+        "cron": "v939_company_intelligence",
+        "saved_to": v939_saved_path_label(path),
+        "signals": len(company.get("signals") or []),
+        "priorities": len(company.get("priorities") or []),
+        "tasks": len((bundle.get("quality") or {}).get("tasks") or []),
+        "query_secret_accepted": False,
+        "dangerous_actions_executed": False,
+        "production_database_written": False,
+        "external_calls": 0,
+        "telegram_sent": False,
+        "payment_executed": False,
+        "weights_modified": False,
+        "push_executed": False,
+        "deploy_executed": False,
     })
 
 

@@ -12,7 +12,9 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = "V938_COMPANY_OPERATIONS_RECOVERY_OBSERVABILITY_CENTER_FINAL"
+BASE_VERSION = "V938_COMPANY_OPERATIONS_RECOVERY_OBSERVABILITY_CENTER_FINAL"
+VERSION = (ROOT / "VERSION.txt").read_text(encoding="utf-8-sig").strip()
+EXPECTED_CACHE = f"NEMESIS_CACHE_{VERSION.split('_', 1)[0]}"
 REPORTS = [
     "V938_PREFLIGHT_OPERATIONS_CENTER.md",
     "V938_FINDINGS_EVIDENCE_CLASSIFICATION.md",
@@ -83,6 +85,7 @@ def main() -> int:
     version_bytes = (ROOT / "VERSION.txt").read_bytes()
 
     require(not version_bytes.startswith(b"\xef\xbb\xbf"), "VERSION.txt has BOM", failures)
+    require(VERSION in {BASE_VERSION, "V939_AUTONOMOUS_COMPANY_INTELLIGENCE_GROWTH_AND_QUALITY_PLATFORM_FINAL"}, "unsupported successor version", failures)
     require(version_bytes.decode("utf-8").strip() == VERSION, "VERSION.txt mismatch", failures)
     require(read("APP_VERSION").strip() == VERSION, "APP_VERSION file mismatch", failures)
     require(f"APP_VERSION = '{VERSION}'" in app_source, "app.py APP_VERSION mismatch", failures)
@@ -131,7 +134,7 @@ def main() -> int:
     require("data-v938-operations-shell" in base, "base V938 shell marker missing", failures)
     require("/admin/operations-center" in base, "admin navigation link missing", failures)
     require("data-v938-template=\"admin_operations_center\"" in template, "operations template marker missing", failures)
-    require("NEMESIS_CACHE_V938" in app_source, "service worker cache is not V938", failures)
+    require(EXPECTED_CACHE in app_source, "service worker cache does not match active version", failures)
     require("has_v938_company_operations_recovery_observability_center" in app_source, "runtime V938 flag missing", failures)
     require("has_v937_product_perfection_closeout" in app_source, "V937 runtime flag not preserved", failures)
     require("has_v929_navigation_integrity" in app_source and "has_v931_production_client_routes_hotfix" in app_source, "historical navigation/hotfix flags missing", failures)
@@ -174,7 +177,7 @@ def main() -> int:
             require(runtime.get("version_files_match") is True, "runtime files mismatch", failures)
             require(runtime.get("deployment_alignment_status") == "aligned_local_files", "runtime alignment mismatch", failures)
             require(runtime.get("has_v938_company_operations_recovery_observability_center") is True, "runtime V938 flag false", failures)
-            require(runtime.get("service_worker_cache_name") == "NEMESIS_CACHE_V938", "runtime service worker cache mismatch", failures)
+            require(runtime.get("service_worker_cache_name") == EXPECTED_CACHE, "runtime service worker cache mismatch", failures)
 
             admin_gets = [
                 "/api/admin/operations-center/summary",

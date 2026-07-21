@@ -189,7 +189,7 @@ def check_runtime_contract() -> None:
             session["user_id"] = "v888-client"
             session["user_name"] = "Cliente V888"
             session["username"] = "cliente-v888"
-            session["user_email"] = "cliente-v888@example.local"
+            session["user_email"] = "fixture-v888"
             session["user_role"] = "PRO"
             session["user_membership"] = "PRO"
             session["membership"] = "PRO"
