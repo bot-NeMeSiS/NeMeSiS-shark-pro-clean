@@ -6,16 +6,27 @@
 {% macro evidence_label(value) -%}
 {% set code = value or 'NOT_CERTIFIED' %}
 {{- {
-  'VERIFIED': 'Verificado',
-  'PARTIALLY_VERIFIED': 'Verificacion parcial',
+  'VERIFIED': 'Confirmado',
+  'CONFIRMADO': 'Confirmado',
+  'PARTIALLY_VERIFIED': 'Verificación parcial',
   'NOT_CERTIFIED': 'No certificado',
+  'NO_CERTIFICADO': 'No certificado',
   'NOT_CONFIGURED': 'No configurado',
   'STALE': 'Datos desactualizados',
   'BLOCKED_BY_ACCESS': 'Bloqueado por acceso',
-  'HYPOTHESIS': 'Hipotesis',
+  'BLOQUEADO_POR_ACCESO': 'Bloqueado por acceso',
+  'HYPOTHESIS': 'Hipótesis',
+  'HIPOTESIS': 'Hipótesis',
   'INSUFFICIENT_DATA': 'Sin muestra',
-  'REQUIRES_REVIEW': 'Requiere revision'
+  'REQUIRES_REVIEW': 'Requiere revisión',
+  'BLOCKED': 'Bloqueado'
 }.get(code, code|replace('_', ' ')|title) -}}
+{%- endmacro %}
+
+{% macro evidence_chip(value) -%}
+{% set code = value or 'NOT_CERTIFIED' %}
+{% set tone = 'success' if code in ['VERIFIED', 'CONFIRMADO'] else ('danger' if code in ['BLOCKED_BY_ACCESS', 'BLOQUEADO_POR_ACCESO', 'BLOCKED'] else ('blue' if code in ['PARTIALLY_VERIFIED', 'HYPOTHESIS', 'HIPOTESIS'] else ('neutral' if code == 'INSUFFICIENT_DATA' else 'warning'))) %}
+{{- status_chip(evidence_label(code), tone) -}}
 {%- endmacro %}
 
 {% macro data_provenance_badge(source='', updated='', state='') -%}
