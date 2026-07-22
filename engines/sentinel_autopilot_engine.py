@@ -7,6 +7,7 @@ secrets, calls paid APIs, deletes data or invents sports data.
 """
 from __future__ import annotations
 
+import ast
 from datetime import datetime
 from hashlib import sha1
 import json
@@ -25,6 +26,7 @@ CATEGORIES = [
     "telegram",
     "telegram_premium_picks",
     "sports_data",
+    "sports_data_contract",
     "picks_odds",
     "live",
     "navigation",
@@ -58,6 +60,7 @@ REQUIRES_APPROVAL_CATEGORIES = {
     "telegram_premium_picks",
     "payments",
     "security",
+    "sports_data_contract",
     "admin_ops",
     "release_zip",
 }
@@ -99,6 +102,43 @@ ADMIN_ROUTES = [
     "/admin/payments",
     "/admin/memberships",
 ]
+
+SPORTS_CONTRACT_ROUTES = {
+    "/",
+    "/app",
+    "/partidos",
+    "/calendar",
+    "/live",
+    "/directo",
+    "/picks",
+    "/shark",
+    "/telegram",
+}
+
+SPORTS_CONTRACT_ATTRIBUTES = {
+    "sports-contract": "contract",
+    "sports-snapshot": "snapshot_id",
+    "sports-matches-today": "matches_today",
+    "sports-matches-available": "matches_available",
+    "sports-live-confirmed": "live_confirmed",
+    "sports-picks-ready": "picks_ready",
+    "sports-matches-with-picks": "matches_with_picks",
+    "sports-finished-verified": "finished_verified",
+    "sports-matches-synchronized": "matches_synchronized",
+}
+
+SPORTS_CONTRACT_CONSUMERS = {
+    "app.py": [
+        "shark_briefing", "_v931_legacy_home_summary", "_v931_provider_context",
+        "v931_safe_dashboard_data", "v931_calendar_context", "v931_live_context",
+        "v938_operations_snapshot", "v939_company_intelligence_bundle",
+    ],
+    "engines/company_intelligence_engine.py": [
+        "collect_sports_signals", "collect_company_signals", "build_company_intelligence_snapshot",
+    ],
+    "engines/telegram_intelligence_engine.py": ["build_telegram_intelligence_snapshot"],
+}
+
 
 SAFE_STATE_TOKENS = [
     'Sin datos reales',
@@ -241,7 +281,121 @@ def _route_text(response: Any) -> str:
         return ""
 
 
-def _scan_routes(flask_client: Any, app_version: str) -> list[dict[str, Any]]:
+def _data_attribute(html: str, name: str) -> str | None:
+    match = re.search(rf'\bdata-{re.escape(name)}="([^"]*)"', html or "")
+    return match.group(1) if match else None
+
+
+def _rendered_sports_contract_issues(
+    route: str,
+    status: int,
+    html: str,
+    expected: dict[str, Any],
+    app_version: str,
+) -> list[dict[str, Any]]:
+    issues: list[dict[str, Any]] = []
+    if status != 200 or route not in SPORTS_CONTRACT_ROUTES:
+        return issues
+    observed = {
+        contract_key: _data_attribute(html, attribute)
+        for attribute, contract_key in SPORTS_CONTRACT_ATTRIBUTES.items()
+    }
+    if not observed.get("contract") or not observed.get("snapshot_id"):
+        issues.append(_new_issue(
+            "Consumidor sin Sports Data Contract",
+            "sports_data_contract",
+            "high",
+            route,
+            "La pantalla no expone contrato y snapshot canonicos.",
+            app_version,
+        ))
+        return issues
+    if expected:
+        mismatches = []
+        for key in SPORTS_CONTRACT_ATTRIBUTES.values():
+            if str(observed.get(key)) != str(expected.get(key)):
+                mismatches.append(f"{key}:{observed.get(key)}!={expected.get(key)}")
+        if mismatches:
+            issues.append(_new_issue(
+                "Metricas deportivas fuera de contrato",
+                "sports_data_contract",
+                "high",
+                route,
+                "; ".join(mismatches[:9]),
+                app_version,
+            ))
+    card_count = html.count('data-v934-match-card="true"')
+    canonical_card_count = html.count('data-v939-match-card-spec="canonical-v1"')
+    if card_count != canonical_card_count:
+        issues.append(_new_issue(
+            "Match card fuera de especificacion canonica",
+            "sports_data_contract",
+            "high",
+            route,
+            f"cards={card_count}; canonical={canonical_card_count}",
+            app_version,
+        ))
+    return issues
+
+
+def _independent_sports_query_issues(
+    root: str | Path | None,
+    app_version: str,
+) -> list[dict[str, Any]]:
+    if root is None:
+        return []
+    root_path = Path(root)
+    forbidden_calls = {"get_matches", "get_upcoming_matches", "get_picks", "rows", "one"}
+    official_tokens = {
+        "valid_matches_today", "valid_upcoming_matches", "valid_live_events",
+        "valid_active_picks", "finished_matches",
+    }
+    violations = []
+    for relative_path, function_names in SPORTS_CONTRACT_CONSUMERS.items():
+        path = root_path / relative_path
+        try:
+            source = path.read_text(encoding="utf-8", errors="replace")
+            tree = ast.parse(source)
+        except (OSError, SyntaxError):
+            continue
+        functions = {
+            node.name: node
+            for node in ast.walk(tree)
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        }
+        for function_name in function_names:
+            node = functions.get(function_name)
+            if node is None:
+                violations.append(f"{relative_path}:{function_name}:missing")
+                continue
+            for call in (item for item in ast.walk(node) if isinstance(item, ast.Call)):
+                called = call.func.id if isinstance(call.func, ast.Name) else ""
+                if called in forbidden_calls:
+                    violations.append(f"{relative_path}:{function_name}:{called}")
+                if called == "len" and call.args:
+                    argument = ast.unparse(call.args[0]) if hasattr(ast, "unparse") else ""
+                    if any(token in argument for token in official_tokens):
+                        violations.append(f"{relative_path}:{function_name}:len({argument[:48]})")
+            for literal in (item for item in ast.walk(node) if isinstance(item, ast.Constant) and isinstance(item.value, str)):
+                if re.search(r"\bSELECT\s+(?:COUNT|SUM)\b", literal.value, re.IGNORECASE):
+                    violations.append(f"{relative_path}:{function_name}:sql_aggregate")
+    if not violations:
+        return []
+    return [_new_issue(
+        "Consumidor recalcula metricas deportivas",
+        "sports_data_contract",
+        "high",
+        "Sports Data Contract",
+        "; ".join(sorted(set(violations))[:20]),
+        app_version,
+    )]
+
+
+def _scan_routes(
+    flask_client: Any,
+    app_version: str,
+    sports_contract: dict[str, Any] | None = None,
+) -> list[dict[str, Any]]:
     issues: list[dict[str, Any]] = []
     if flask_client is None:
         return issues
@@ -264,6 +418,7 @@ def _scan_routes(flask_client: Any, app_version: str) -> list[dict[str, Any]]:
             issues.append(_new_issue("Pantalla deportiva sin estado seguro claro", "sports_data", "high", route, "No se encontro estado seguro para ausencia de datos reales.", app_version))
         if "v808-admin-rail" in html:
             issues.append(_new_issue("Admin rail aparece en cliente", "navigation", "high", route, "Navegacion admin mezclada en cliente.", app_version))
+        issues.extend(_rendered_sports_contract_issues(route, status, html, dict(sports_contract or {}), app_version))
 
     for route in ADMIN_ROUTES:
         try:
@@ -402,6 +557,7 @@ def run_autopilot_scan(
     sentinel_result: dict[str, Any] | None = None,
     visual_result: dict[str, Any] | None = None,
     render_runtime: dict[str, Any] | None = None,
+    sports_contract: dict[str, Any] | None = None,
     save_memory: bool = False,
     memory_root: str | Path | None = None,
 ) -> dict[str, Any]:
@@ -409,7 +565,8 @@ def run_autopilot_scan(
     issues.extend(_environment_issues(runtime, app_version, render_runtime))
     issues.extend(_issues_from_sentinel(sentinel_result, app_version))
     issues.extend(_issues_from_visual(visual_result, app_version))
-    issues.extend(_scan_routes(flask_client, app_version))
+    issues.extend(_scan_routes(flask_client, app_version, sports_contract))
+    issues.extend(_independent_sports_query_issues(memory_root, app_version))
 
     deduped: dict[str, dict[str, Any]] = {}
     for issue in issues:
@@ -433,6 +590,14 @@ def run_autopilot_scan(
         "safe_actions": [task for task in tasks if not task["safe_fix_plan"]["requires_approval"]],
         "approval_required_actions": [task for task in tasks if task["safe_fix_plan"]["requires_approval"]],
         "dangerous_actions_executed": False,
+        "sports_data_contract_policy": {
+            "contract": (sports_contract or {}).get("contract") or "sports-metrics-v1",
+            "snapshot_id": (sports_contract or {}).get("snapshot_id") or "",
+            "independent_queries_forbidden": True,
+            "canonical_match_card": "canonical-v1",
+            "violation_priority": "P1",
+            "autofix_allowed": False,
+        },
     }
     if save_memory:
         result["memory"] = save_autopilot_memory(result, root=memory_root)

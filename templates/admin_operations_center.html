@@ -1,13 +1,14 @@
 {% extends "base.html" %}
-{% from "components/v933_ui.html" import page_header, kpi_card, status_chip, data_table, empty_state, next_action, icon %}
+{% from "components/v933_ui.html" import page_header, kpi_card, status_chip, data_table, empty_state, next_action, icon, sports_contract_attributes %}
 {% from "components/v936_product.html" import executive_focus %}
 {% block content %}
 {% set counts = snapshot.incident_counts or {} %}
 {% set readiness = snapshot.readiness or {} %}
 {% set scores = snapshot.scores or {} %}
 {% set monitoring = snapshot.monitoring or {} %}
+{% set sports_metrics = snapshot.sports_metrics or {} %}
 
-<div class="v933-page v933-admin-command-center" data-v938-template="admin_operations_center" data-v938-read-only="true">
+<div class="v933-page v933-admin-command-center" data-v938-template="admin_operations_center" data-v938-read-only="true" {{ sports_contract_attributes(sports_metrics) }}>
   {{ page_header('Centro de Operaciones', 'Salud, evidencia, recuperación y siguiente acción en una sola vista. Nada se declara certificado sin prueba.', 'shield', [{'label':'Sentinel','href':'/admin/autonomous-company-sentinel','icon':'shield'},{'label':'Backups','href':'/admin/backups','icon':'data'},{'label':'Runtime','href':'/api/runtime-version','primary':true,'icon':'history'}]) }}
 
   {% if counts.critical %}

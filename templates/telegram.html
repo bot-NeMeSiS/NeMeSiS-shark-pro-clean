@@ -1,13 +1,14 @@
 {% extends "base.html" %}
-{% from "components/v933_ui.html" import page_header, kpi_card, section_header, quick_action, status_chip, action_button, icon %}
+{% from "components/v933_ui.html" import page_header, kpi_card, section_header, quick_action, status_chip, action_button, icon, sports_contract_attributes %}
 {% from "components/v936_product.html" import customer_decision, evidence_receipt %}
 {% block content %}
 {% set config = data.get('telegram') or {} %}
 {% set state = data.get('telegram_state') or {} %}
 {% set plan = (data.get('membership') or {}).get('name') or (current_user.membership if current_user else 'FREE') %}
 {% set channel_enabled = config.get('enabled') or config.get('legacy_enabled') %}
+{% set sports_metrics = data.get('sports_metrics') or {} %}
 
-<div class="v933-page v933-telegram-page" data-v933-template="telegram" data-v933-reference="canonical-telegram">
+<div class="v933-page v933-telegram-page" data-v933-template="telegram" data-v933-reference="canonical-telegram" {{ sports_contract_attributes(sports_metrics) }}>
   {{ page_header('Telegram', 'Picks completos, alertas y resúmenes según tu plan.', 'telegram', [{'label':'Ver picks','href':'/picks','icon':'target'},{'label':'Mi cuenta','href':'/profile','primary':true,'icon':'user'}]) }}
 
   <section class="v933-telegram-hero">

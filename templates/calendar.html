@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "components/v933_ui.html" import page_header, kpi_card, section_header, match_card, filter_tabs, empty_state, provider_state, icon, action_button, realtime_state_bar %}
+{% from "components/v933_ui.html" import page_header, kpi_card, section_header, match_card, filter_tabs, empty_state, provider_state, icon, action_button, realtime_state_bar, sports_contract_attributes %}
 {% from "components/v936_product.html" import customer_decision %}
 {% from "components/v937_sports_lifecycle.html" import lifecycle_story %}
 {% block content %}
@@ -10,9 +10,10 @@
 {% set day_groups = calendar.get('day_groups') or calendar.get('groups') or [] %}
 {% set safe = data.get('v925_calendar') or {} %}
 {% set realtime = data.get('v934_realtime') or {} %}
+{% set sports_metrics = calendar.get('sports_metrics') or data.get('sports_metrics') or {} %}
 {% set lifecycle_total = (counts.get('today', 0)|int) + (counts.get('live', 0)|int) + (counts.get('picks', 0)|int) + (counts.get('finished', 0)|int) + (counts.get('incidents', 0)|int) %}
 
-<div class="v933-page v933-sports-board v933-calendar-board" data-v933-template="calendar" data-v933-reference="canonical-calendar">
+<div class="v933-page v933-sports-board v933-calendar-board" data-v933-template="calendar" data-v933-reference="canonical-calendar" {{ sports_contract_attributes(sports_metrics) }}>
   {{ page_header('Partidos', 'Agenda real ordenada por día y competición, siempre en hora Madrid.', 'calendar', [{'label':'Ir a directo','href':'/live'},{'label':'Ver picks','href':'/picks','primary':true,'icon':'target'}]) }}
 
   {{ realtime_state_bar(realtime, 'matches') }}
@@ -25,10 +26,10 @@
   {% endif %}
 
   <section class="v933-kpi-grid">
-    {{ kpi_card('Hoy', counts.get('today', 0), 'Encuentros completos', 'blue', 'calendar', '/calendar?lane=today') }}
+    {{ kpi_card('Hoy', sports_metrics.get('matches_today', 0), 'Encuentros completos', 'blue', 'calendar', '/calendar?lane=today') }}
     {{ kpi_card('Semana', counts.get('week', 0), 'Próximos sincronizados', 'cyan', 'calendar', '/calendar?lane=week') }}
-    {{ kpi_card('En directo', counts.get('live', 0), 'Marcadores confirmados', 'success', 'live', '/live') }}
-    {{ kpi_card('Con pick', counts.get('picks', 0), 'Selecciones publicadas', 'gold', 'target', '/calendar?lane=with_pick') }}
+    {{ kpi_card('En directo', sports_metrics.get('live_confirmed', 0), 'Marcadores confirmados', 'success', 'live', '/live') }}
+    {{ kpi_card('Con pick', sports_metrics.get('matches_with_picks', 0), 'Selecciones publicadas', 'gold', 'target', '/calendar?lane=with_pick') }}
   </section>
 
   <section class="v933-panel v933-filter-panel" id="v933-calendar-filters">

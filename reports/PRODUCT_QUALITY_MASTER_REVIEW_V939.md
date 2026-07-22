@@ -2,9 +2,9 @@
 
 ## 1. Decisión de esta fase
 
-**Estado:** auditoría terminada; correcciones no iniciadas.
+**Estado:** auditoría terminada; iteración P1 funcional resuelta y validada localmente; P1 de cobertura, P2 y P3 permanecen abiertos.
 
-Este documento convierte el vídeo `NeMeSiS SHARK PRO - Google Chrome 2026-07-22 14-26-39.mp4` en evidencia oficial de producto para el recorrido que realmente contiene. No se ha modificado ningún template, CSS, motor, ruta, dato ni configuración durante esta fase.
+Este documento convierte el vídeo `NeMeSiS SHARK PRO - Google Chrome 2026-07-22 14-26-39.mp4` en evidencia oficial de producto para el recorrido que realmente contiene. Tras cerrar la auditoría se ejecutó exclusivamente la iteración P1 aprobada: contrato deportivo único y componente canónico de partido. No se inició ninguna corrección P2/P3 ni se modificó producción.
 
 La grabación permite auditar con detalle el cliente web de escritorio y la home pública. No contiene vistas móviles ni pantallas de administración. Por tanto, no permite certificar CEO Dashboard, Operations Center, Recovery Simulator, Experiments, Company Intelligence, Sentinel o AutoPilot. Esas áreas quedan expresamente **NO OBSERVABLES EN EL VÍDEO**, no aprobadas ni suspendidas.
 
@@ -116,7 +116,128 @@ La grabación permite auditar con detalle el cliente web de escritorio y la home
 9. El cierre de sesión está visible, separado y contextualizado.
 10. La home pública explica qué hace el producto y ofrece una siguiente acción clara.
 
-## 6. Registro completo de defectos
+## 6. Diseño aprobado para la iteración P1
+
+### P1.1 — Contrato único de métricas deportivas
+
+**Origen actual:** `get_public_home_sports_summary()` ya es la lectura validada y cacheada de DB/caché. Sin embargo, `calendar.html` consume sus conteos de calendario, la barra realtime vuelve a derivar un agregado de hoy más próximos, `live.html` usa la longitud del filtro activo como si fuese el total de hoy y `shark_briefing()` ejecuta una consulta heredada independiente.
+
+**Diferencias demostradas:** `Partidos hoy`, `partidos disponibles`, `live confirmado`, `picks completos` y `finalizados` no comparten nombre, scope ni snapshot. Una cifra válida para un filtro termina presentada como si fuese una métrica global.
+
+**Causa raíz:** existen varios consumidores que vuelven a contar colecciones ya validadas. El dato de origen es común en parte del recorrido, pero no existe un contrato explícito que impida reinterpretarlo.
+
+**Propuesta aprobada:** reutilizar el resumen existente y publicar un único objeto `sports_metrics` por petición con estas definiciones:
+
+- `matches_today`: partidos completos de hoy visibles en la agenda, incluidos los directos con evidencia fresca;
+- `matches_available`: unión deduplicada de partidos completos de hoy y próximos;
+- `live_confirmed`: directos con marcador, minuto o fase real y frescura válida;
+- `picks_ready`: picks completos y publicables;
+- `finished_verified`: resultados finalizados y verificables de hoy;
+- `incomplete_excluded` y `stale_live_excluded`: exclusiones trazables que nunca entran en los KPI públicos;
+- `snapshot_id`, `scope`, `generated_at_madrid`, `last_sync` y `source`: identidad y alcance del contrato.
+
+Calendario, Directo, Picks, SHARK, Dashboard, home y barra realtime deben leer ese mismo objeto. Los filtros pueden cambiar las tarjetas visibles, pero no redefinir una métrica global.
+
+**Impacto esperado:** elimina contradicciones visibles sin relajar la puerta de datos, evita consultas deportivas duplicadas en SHARK y permite que Sentinel compare rutas por identidad de snapshot y definición, no por texto aproximado.
+
+**Riesgo controlado:** no se ocultan partidos válidos; solo quedan fuera los registros incompletos y los live stale ya bloqueados por V937. Los conteos de semana, favoritos y filtros siguen siendo métricas locales claramente etiquetadas.
+
+### P1.2 — Contrato de la tarjeta canónica de partido
+
+**Origen actual:** `match_card()` es compartida, pero el grid fuerza tres columnas incluso dentro del layout con rail. El footer mezcla señales, procedencia, favorito y CTA en una sola fila flexible sin reserva de anchura.
+
+**Diferencias demostradas:** a unos 290 px de ancho lógico se parten estados, procedencia y `Ver partido`; la altura depende del wrapping accidental y la alineación cambia entre filas.
+
+**Causa raíz:** el componente no define zonas internas estables y el grid responde al viewport, no al ancho real disponible.
+
+**Propuesta aprobada:** conservar un único macro y dividirlo en cabecera, equipos y footer con dos zonas explícitas: señales y acciones. Usar tres columnas solo a ancho completo, dos dentro de un layout con rail y una en móvil. CTA, chips y palabras no pueden partirse; la card mantiene filas lógicas iguales y permite que nombres de equipo largos envuelvan de forma natural.
+
+**Impacto esperado:** lectura rápida, CTA estable y altura coherente en Home, Dashboard, Partidos y los próximos de Directo, sin crear variantes visuales desconectadas.
+
+**Riesgo controlado:** el cambio queda limitado al macro canónico y a sus selectores existentes. No modifica el rail, la densidad del calendario, el copy ni otros defectos P2/P3.
+
+### 6.3 — Sports Data Contract oficial (`sports-metrics-v1`)
+
+**Estado normativo:** ACTIVO Y VALIDADO LOCALMENTE. `get_public_home_sports_summary()` es el único origen autorizado de las métricas deportivas compartidas. Cada petición reutiliza el mismo objeto `sports_metrics`; `snapshot_id` identifica el conjunto exacto de partidos y picks, no una consulta aproximada.
+
+**Consumidores autorizados:** Inicio, Dashboard cliente, Partidos, Calendario, Live, Picks, SHARK, Telegram, CEO Dashboard, Operations Center, Company Intelligence, Sentinel y AutoPilot.
+
+| Métrica | Definición funcional | Origen y filtros | Ventana / actualización | Limitaciones y casos borde |
+|---|---|---|---|---|
+| `matches_today` | Partidos completos visibles hoy, incluidos live con evidencia fresca. | Resumen canónico; completos, fuente real, fecha Madrid de hoy, live no stale. | Día actual Europe/Madrid; caché local 15 s. | No incluye incompletos ni live stale. Un finalizado de hoy puede pertenecer también a `finished_verified`. |
+| `matches_available` | Unión deduplicada de partidos completos de hoy y próximos. | Resumen canónico; completos, fuente real, hoy o próximos, dedupe y exclusión stale. | Ventana de agenda presente en DB/caché; 15 s. | Depende de la cobertura sincronizada. Un live ya presente en agenda cuenta una vez. |
+| `live_confirmed` | Directos con marcador, minuto o fase explícita real y frescura válida. | Resumen canónico; evidencia live y antigüedad máxima de 120 s. | Estado live actual; 15 s. | Una etiqueta LIVE genérica no es evidencia. Al quedar stale se excluye, no se transforma en programado ficticio. |
+| `picks_ready` | Picks activos con partido, mercado, selección, cuota y estado publicable válidos. | Resumen canónico; pick completo, publicable, dentro de ventana y partido no stale. | Ventana pública activa; 15 s. | Excluye candidatos, bloqueados, duplicados y cerrados. Varios picks del mismo partido cuentan por separado. |
+| `matches_with_picks` | Partidos únicos vinculados a uno o más picks publicables. | Resumen canónico; `match_id` válido y dedupe por partido. | Ventana pública activa; 15 s. | No equivale al número total de picks. Varios picks de un partido cuentan como un partido. |
+| `finished_verified` | Partidos de hoy finalizados con resultado verificable. | Resumen canónico; completo, fecha Madrid de hoy, lifecycle finalizado y ambos marcadores presentes. | Día actual Europe/Madrid; 15 s. | No es el histórico total. Un resultado pendiente permanece fuera hasta ser verificable. |
+| `matches_synchronized` | Registros deportivos leídos del almacenamiento local para el snapshot. | Resumen canónico; lectura DB/caché local previa a filtros públicos. | Último snapshot local; 15 s. | Es métrica operativa y puede incluir registros excluidos. DB bloqueada devuelve estado seguro, nunca una estimación. |
+| `incomplete_excluded` | Registros sin campos deportivos esenciales apartados de superficies públicas. | Resumen canónico; falta competición, fecha, hora, equipos o fuente real. | Último snapshot local; 15 s. | Solo para CEO, Operations, Company Intelligence, Sentinel y AutoPilot. Reingresa cuando completa todos los campos. |
+| `stale_live_excluded` | Registros live cuya evidencia supera la frescura válida. | Resumen canónico; lifecycle live/descanso y antigüedad superior a 120 s. | Estado live actual; 15 s. | No afirma que haya finalizado. Queda fuera de cards, badges, KPIs, APIs públicas, Telegram y SHARK hasta nueva evidencia. |
+
+#### Invariantes obligatorias
+
+1. Una superficie puede filtrar sus tarjetas, pero no redefinir ninguna métrica del contrato ni reutilizar su etiqueta para contar el filtro local.
+2. Todo consumidor visual expone `data-sports-contract` y `data-sports-snapshot`; los siete conteos públicos deben coincidir con el snapshot recibido.
+3. Ningún consumidor autorizado puede llamar por su cuenta a `get_matches`, `get_upcoming_matches`, `get_picks`, `rows`, `one` ni ejecutar agregados SQL deportivos.
+4. El render no llama proveedores externos ni escribe la DB. El contrato procede exclusivamente de DB/caché y conserva `last_sync`, `generated_at_madrid`, fuente, alcance y exclusiones.
+5. En DB bloqueada o sin datos se entrega un snapshot seguro con cero reales y estado explícito; nunca se estima ni se rellena.
+6. Los conteos locales de semana, mañana, favoritos o resultados de búsqueda siguen permitidos si se etiquetan como filtro local y no sustituyen una métrica oficial.
+
+#### Por qué divergía antes y qué riesgo se elimina
+
+Antes, Calendario consumía el resumen validado, Live contaba el subconjunto filtrado, SHARK consultaba partidos por separado y otras barras agregaban hoy más próximos. El mismo término visible representaba alcances y momentos distintos. El contrato elimina contradicciones de confianza, dobles consultas, falsos live y decisiones de SHARK/Telegram basadas en un conjunto diferente al mostrado al cliente.
+
+#### Sentinel y AutoPilot
+
+- Sentinel compara contrato, `snapshot_id` y valores renderizados en cada ruta; una ausencia o diferencia abre una incidencia `sports_data_contract` de severidad alta/P1.
+- Sentinel analiza el AST de los consumidores autorizados. Si reaparece una consulta o agregado privado, abre P1 aunque la cifra coincida por casualidad.
+- AutoPilot transforma la incidencia en tarea y prompt trazables, siempre `pending_approval`; no puede autoaplicar cambios de datos, rutas o consultas.
+- La política queda expuesta como `independent_queries_forbidden=true`, `violation_priority=P1` y `autofix_allowed=false`.
+
+### 6.4 — Especificación oficial de la tarjeta canónica de partido
+
+**Identidad:** existe un único macro `match_card()` y toda instancia declara `data-v939-match-card-spec="canonical-v1"`. Ninguna pantalla puede crear otra estructura sin una decisión de producto documentada y una nueva prueba visual.
+
+| Aspecto | Especificación obligatoria |
+|---|---|
+| Estructura | `article` canónico con tres zonas: cabecera, equipos y footer. El footer se divide en señales y acciones; no se mezclan en una fila improvisada. |
+| Jerarquía | Competición y hora arriba; equipos/escudos/marcador como foco; estado, prioridad y procedencia antes de favorito/CTA. |
+| Altura mínima | 178 px en escritorio amplio para la variante no compacta. En móvil prevalece el contenido y la zona táctil, sin forzar hueco artificial. |
+| Altura máxima | No se fija un máximo arbitrario: la competencia y cada equipo quedan limitados a dos líneas, y el footer envuelve por bloques. La card nunca recorta una acción. |
+| Wrapping | Competición y nombres admiten como máximo dos líneas naturales. Se prohíben `overflow-wrap:anywhere` y `word-break:break-all`. CTA, estado y prioridad no parten palabras. |
+| Chips y badges | Pueden pasar a la siguiente línea como unidades completas dentro de `signals`; no invaden `actions` ni ensanchan la página. |
+| Botones | `Ver partido` permanece en una línea. A 430 px o menos la zona de acciones ocupa una fila propia y el CTA se expande de forma deliberada. |
+| Desktop | Grid completo: hasta tres columnas. Dentro de `.v933-two-col`: exactamente dos columnas. Las cards de una misma fila se estiran a la misma altura lógica. |
+| Móvil | A 800 px o menos, incluida la variante dentro de `.v933-two-col`, una sola columna. Sin scroll horizontal ni cards estrechas paralelas. |
+| Estados | Completa, incompleta, stale y live conservan la misma estructura; cambia el mensaje/tono, no la geometría básica. Minuto o marcador solo aparecen con evidencia real. |
+| Variantes | `compact` y el wrapper `live_card` pueden reducir densidad, pero reutilizan el mismo macro, zonas, atributos y reglas de wrapping. |
+
+#### Prevención permanente
+
+Sentinel compara el número de cards deportivas con el número de cards `canonical-v1`; cualquier diferencia abre P1. Browser QA comprueba overflow, anchura, altura por fila, footer, CTA, wrapping y límites de descendientes visibles en desktop y móvil. AutoPilot genera una tarea CSS/componente con aprobación y nunca crea automáticamente una variante.
+
+### 6.5 — Evidencia de cierre local de P1
+
+- Regresión específica P1: **8/8 PASS**, incluida la ejecución efectiva del guard dentro del scan de rutas.
+- Suite local completa: **38/38 PASS** usando temporal aislado.
+- Compilación: `py_compile` y `compileall` PASS.
+- Jinja: **186 templates** parseados.
+- Check V939: PASS.
+- Privacy/Secret Guard: **979 archivos**, 0 secretos confirmados, 0 hallazgos de privacidad.
+- Continuous Sentinel: **10.0**, 39 rutas de scan, 0 incidencias; Navigation Integrity: 695 rutas, 944 enlaces, 0 rotos y 0 bucles.
+- AutoPilot diagnóstico: política P1 activa, `snapshot_id` recibido, 0 incidencias `sports_data_contract`; sus hallazgos ajenos a P1 permanecen abiertos y sin modificación.
+- Verificación de imports/rutas: 648 rutas, 0 templates o assets ausentes.
+- Browser QA real local: 10 capturas (`/`, `/calendar`, `/live`, `/picks`, `/shark`) en 1366x768 y 390x844; HTTP 200, un solo snapshot `2d20b0f39d6b4116`, 0 overflow, 0 navegación duplicada y 0 errores de consola.
+- La copia local no contenía partidos válidos; por eso esa pasada certifica métricas y estados vacíos, no la geometría de cards.
+- Arnés visual temporal y aislado: dos cards canónicas con textos largos. Desktop: 390,1 px por card, dos columnas y 240,9 px de altura igual. Móvil: 312 px por card, una columna y 258 px de altura igual. Footer, señales, CTA y palabras permanecen dentro, sin scroll horizontal.
+- Capturas: `browser_qa/V939_P1/desktop_1366x768_canonical-match-card-harness.png` y `browser_qa/V939_P1/mobile_390x844_canonical-match-card-harness.png`, además de las diez rutas reales.
+- La primera pasada del arnés detectó que la especificidad de `.v933-two-col .v933-match-grid` anulaba la media query móvil. Se corrigió en la regla existente y la segunda pasada quedó verde.
+- El check histórico V937 solo falla por exigir literalmente identidad/caché V937 frente a la V939 vigente; no reporta una regresión deportiva.
+- El navegador integrado no pudo iniciarse por ACL del entorno; Playwright local ejecutó la misma validación. Producción no fue tocada ni certificada.
+
+**Comparación con el vídeo:** las condiciones que causaban PQV939-002 ya no se reproducen: el rail usa dos cards de anchura útil en escritorio y móvil fuerza una sola. Los términos de estado, procedencia y `Ver partido` no se fragmentan. PQV939-001 tampoco puede volver a mostrar scopes divergentes mientras los consumidores mantengan el snapshot canónico. Esta confirmación es local; no es una declaración de producción ni de pixel-perfect.
+
+## 7. Registro completo de defectos
 
 ### P0
 
@@ -125,6 +246,8 @@ La grabación permite auditar con detalle el cliente web de escritorio y la home
 ### P1
 
 #### PQV939-001 — Contrato de métricas deportivas incoherente entre pantallas
+
+**Estado:** RESUELTO LOCALMENTE EN ESTA ITERACIÓN P1. Pendiente únicamente de certificación tras despliegue autorizado.
 
 - **Pantallas y timestamps:** Partidos 00:25-02:06; Directo 02:07-02:20; SHARK 03:13-03:19; home pública 04:09-04:20.
 - **Elemento:** contadores “Hoy”, “Partidos”, “Finalizados” y resumen textual de SHARK.
@@ -140,6 +263,8 @@ La grabación permite auditar con detalle el cliente web de escritorio y la home
 
 #### PQV939-002 — Tarjetas de partido ilegibles en el layout real de escritorio
 
+**Estado:** RESUELTO LOCALMENTE EN ESTA ITERACIÓN P1. Segunda pasada Browser QA verde en desktop y móvil.
+
 - **Pantallas y timestamps:** Inicio cliente 00:11-00:18; Partidos 01:31-02:06; home pública 04:13-04:16.
 - **Elemento:** match cards, footer de estado y botón “Ver partido”.
 - **Descripción:** “Programado”, “Próximo”, el proveedor, “Actualizado” y “Ver partido” se parten en dos, tres o cuatro líneas. El CTA se convierte en un bloque alto y estrecho, y el pie de la tarjeta pierde jerarquía.
@@ -153,6 +278,8 @@ La grabación permite auditar con detalle el cliente web de escritorio y la home
 - **Aprendizaje permanente:** Sentinel captura cards con más de dos líneas en CTA o palabras partidas; AutoPilot crea tarea CSS, sin autoaplicar; Company Intelligence asocia el fallo a todas las rutas que usan `match_card`.
 
 #### PQV939-003 — El vídeo no cubre el producto completo que pretende certificar
+
+**Estado:** ABIERTO — BLOQUEADO POR EVIDENCIA. No se ha reclasificado ni corregido en esta iteración.
 
 - **Pantalla/timestamp:** grabación completa 00:00-04:30.
 - **Elemento:** cobertura de referencia.
@@ -344,31 +471,31 @@ La grabación permite auditar con detalle el cliente web de escritorio y la home
 | Severidad | Cantidad | Estado |
 |---|---:|---|
 | P0 | 0 | Ninguno demostrado |
-| P1 | 3 | Dos defectos de producto y un bloqueo de cobertura |
+| P1 | 3 | PQV939-001 y PQV939-002 resueltos localmente; PQV939-003 abierto por cobertura |
 | P2 | 8 | Calidad, densidad, copy, privacidad del artefacto y navegación larga |
 | P3 | 5 | Pulido y consistencia |
-| **Total** | **16** | Todos trazados, ninguno corregido en esta fase |
+| **Total** | **16** | 2 resueltos localmente; 14 permanecen abiertos y no se han iniciado |
 
 ## 8. Matriz pantalla por pantalla
 
 | Pantalla | Layout | Cards | Tipografía/copy | Navegación | Datos/estado | Resultado de vídeo |
 |---|---|---|---|---|---|---|
-| `/app` | Desequilibrio por rail en tramos | Match cards comprimidas | Copy clara; tecnicismo DB/cache | Clara y activa | Estado honesto; indicadores de confianza deformados | **MEJORABLE** |
-| `/calendar` | Rail vacío en lista larga | Defecto crítico de wrapping | Filtros claros | Exceso de scroll; contexto se pierde | Métrica canónica más coherente del recorrido | **MEJORABLE / P1** |
-| `/live` | Estructura clara | Próximos heredan compresión | “Board” y copy técnico | CTA útiles | “Hoy 0” usa scope ambiguo | **MEJORABLE** |
+| `/app` | Desequilibrio por rail en tramos | Vídeo: comprimidas; post-P1: card canónica PASS | Copy clara; tecnicismo DB/cache | Clara y activa | Snapshot canónico; indicadores de confianza P2 abiertos | **MEJORABLE; P1 resuelto localmente** |
+| `/calendar` | Rail vacío en lista larga | Vídeo: wrapping crítico; post-P1: desktop/móvil PASS | Filtros claros | Exceso de scroll; contexto se pierde | Métricas del contrato único | **MEJORABLE; P1 resuelto, P2 abiertos** |
+| `/live` | Estructura clara | Próximos usan card canónica | “Board” y copy técnico | CTA útiles | `live_confirmed` y `matches_today` comparten snapshot | **MEJORABLE; P1 resuelto localmente** |
 | `/picks` | Buena jerarquía | Empty state correcto | Mensaje responsable | Tabs claras | No inventa pick; iconos de reglas deformados | **MUY BUENO con P2** |
 | `/track-record` | Equilibrado | Estados vacíos correctos | Mezcla Winrate/Stake/Void | Clara | No fabrica ROI | **MUY BUENO** |
-| `/shark` | Buena identidad | Módulos claros | Respuesta densa y “Summary” | Buenas siguientes acciones | Resumen numérico no alineado | **MEJORABLE / P1** |
+| `/shark` | Buena identidad | Módulos claros | Respuesta densa y “Summary” | Buenas siguientes acciones | Resumen numérico consume el contrato único | **MEJORABLE; P1 resuelto, P2 abierto** |
 | `/telegram` | Rail produce vacío inferior | Beneficios claros | Copy confiable | Flujo en tres pasos | Estado real; PII de código no se replica en este informe | **MUY BUENO con P2** |
 | `/profile` | Buena estructura | Servicios y plan consistentes | Actividad repetitiva | Logout visible | PII correcta para titular, sensible en vídeo | **MUY BUENO con riesgo de evidencia** |
-| `/` | Hero y jerarquía fuertes | Match cards comprimidas | Propuesta clara | CTA visibles | Estados reales; variación temporal plausible | **MUY BUENO con P1 compartido** |
+| `/` | Hero y jerarquía fuertes | Vídeo: comprimidas; post-P1: card canónica PASS | Propuesta clara | CTA visibles | Estados y métricas del snapshot canónico | **MUY BUENO; P1 resuelto localmente** |
 | Admin | No aparece | No aparece | No aparece | No aparece | No aparece | **NO CERTIFICADO** |
 | Móvil | No aparece | No aparece | No aparece | Bottom nav no aparece | No aparece | **NO CERTIFICADO** |
 
 ## 9. Orden obligatorio de corrección futura
 
-1. **PQV939-001:** contrato único de métricas deportivas.
-2. **PQV939-002:** match cards y grid de colección.
+1. **PQV939-001 — RESUELTO LOCALMENTE:** contrato único de métricas deportivas.
+2. **PQV939-002 — RESUELTO LOCALMENTE:** match cards y grid de colección.
 3. **PQV939-003:** completar evidencia admin y móvil; no es un cambio de código.
 4. **PQV939-005:** selector de iconos de confianza.
 5. **PQV939-006 y PQV939-007:** copy cliente y fecha Madrid.
@@ -410,6 +537,6 @@ No debe iniciarse P2 mientras quede abierto un P1 funcional. Cada corrección de
 
 **AUDITORÍA DEFINITIVA DE TODA LA APLICACIÓN:** BLOQUEADA POR COBERTURA DE VÍDEO.
 
-**CORRECCIONES APLICADAS:** 0.
+**CORRECCIONES APLICADAS:** 2 defectos P1 resueltos y validados localmente; 0 cambios P2/P3.
 
-**SIGUIENTE ACCIÓN ÚNICA:** aprobar la cola P1 y comenzar por el contrato único de métricas deportivas; después corregir el componente de tarjeta de partido. Antes de declarar calidad global, registrar una referencia complementaria de admin y otra móvil.
+**SIGUIENTE ACCIÓN ÚNICA:** revisión humana de las capturas y del contrato P1; no iniciar P2/P3 sin aprobación explícita. PQV939-003 requiere una referencia complementaria de admin y otra móvil.

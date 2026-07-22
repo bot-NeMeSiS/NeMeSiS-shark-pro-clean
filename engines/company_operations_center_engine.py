@@ -304,6 +304,7 @@ def build_company_operations_snapshot(
     db_path: str | Path,
     app_version: str,
     external_runtime: dict[str, Any] | None = None,
+    sports_metrics: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     root_path = Path(root)
     version_txt = _read_version(root_path, "VERSION.txt")
@@ -322,6 +323,7 @@ def build_company_operations_snapshot(
     privacy = _privacy_summary(root_path)
     runtime_aligned = version_txt == app_version and (not app_version_file or app_version_file == app_version)
     external_runtime = external_runtime or {}
+    sports_metrics = dict(sports_metrics or {})
     external_certified = bool(
         external_runtime.get("version") == app_version
         and external_runtime.get("version_files_match") is True
@@ -343,7 +345,7 @@ def build_company_operations_snapshot(
         _system("cron", "Cron y automatizacion", "PASS" if cron_record.get("last_at") else "NOT_CERTIFIED", "CONFIRMADO" if cron_record.get("last_at") else "NO_CERTIFICADO", f"Ultima evidencia: {cron_record.get('last_at')}." if cron_record.get("last_at") else "No se encontro un tick reciente certificable en las tablas locales consultadas.", "DB local read-only", "high", cron_record, "Ejecutar dry-run protegido y certificar ultimo/proximo tick."),
         _system("telegram", "Telegram", "CONFIGURED" if telegram_configured else "NOT_CONFIGURED", "NO_CERTIFICADO", "Variables requeridas detectadas; no se ha enviado nada." if telegram_configured else "Configuracion completa no detectada en este entorno.", "variables enmascaradas y DB local", "high", {"configured": telegram_configured, "latest_record": telegram_record, "webhook_secret_configured": _env_present("TELEGRAM_WEBHOOK_SECRET")}, "Certificar webhook, dry-run, dedupe y destino autorizado sin envio masivo."),
         _system("stripe", "Stripe y membresias", "CONFIGURED" if stripe_configured else "NOT_CONFIGURED", "NO_CERTIFICADO", "Configuracion minima detectada sin contactar Stripe." if stripe_configured else "Checkout/webhook no pueden certificarse con la evidencia local disponible.", "variables enmascaradas", "critical" if not stripe_configured else "high", {"configured": stripe_configured, "payments_enabled": str(os.getenv("PAYMENTS_ENABLED") or "").lower() not in {"0", "false", "off"}}, "Certificar productos, precios y webhook de forma no destructiva."),
-        _system("sports_data", "Datos deportivos", "PASS" if sports_provider and sports_has_evidence else "NOT_CERTIFIED", "CONFIRMADO" if sports_provider and sports_has_evidence else "NO_CERTIFICADO", f"Ultima evidencia local: {sports_record.get('last_at')}." if sports_has_evidence else "No hay timestamp local suficiente para declarar datos frescos.", "DB/cache local y presencia de proveedor", "high", {"provider_configured": sports_provider, "latest_record": sports_record}, "Certificar frescura, completitud, stale y falsos live con timestamps reales."),
+        _system("sports_data", "Datos deportivos", "PASS" if sports_provider and sports_has_evidence else "NOT_CERTIFIED", "CONFIRMADO" if sports_provider and sports_has_evidence else "NO_CERTIFICADO", f"Ultima evidencia local: {sports_record.get('last_at')}." if sports_has_evidence else "No hay timestamp local suficiente para declarar datos frescos.", "Sports Data Contract y evidencia operativa local", "high", {"provider_configured": sports_provider, "latest_record": sports_record, "sports_metrics": sports_metrics}, "Certificar frescura, completitud, stale y falsos live con timestamps reales."),
         _system("shark", "SHARK", "READY", "CONFIRMADO", "Motor y guardas locales presentes; produccion sigue pendiente de medicion externa.", "codigo y benchmark local V937", "medium", {"openai_configured": _env_present("OPENAI_API_KEY"), "production_certified": False}, "Medir produccion y confirmar cero escrituras por GET."),
         _system("sentinel", "Sentinel y AutoPilot", "READY", "CONFIRMADO", "Motores Sentinel, AutoPilot y memoria local disponibles.", "engines y data/runtime", "info", {"autopilot": (root_path / "engines" / "sentinel_autopilot_engine.py").exists(), "memory_present": (root_path / "data" / "runtime" / "sentinel_issues_memory.json").exists()}, "Ejecutar scan seguro y revisar solo incidencias con evidencia."),
         _system("security", "Seguridad y privacidad", "PASS" if secret_guard_present and privacy.get("available") and not privacy.get("secrets") else "REVIEW", "CONFIRMADO" if secret_guard_present and privacy.get("available") else "REQUIERE_REVISION", "Secret Guard y clasificacion disponibles." if secret_guard_present and privacy.get("available") else "El gate de secretos o la clasificacion todavia no aportan evidencia completa.", "scanner local redactor", "critical" if privacy.get("secrets") else "high", {"secret_guard_present": secret_guard_present, **privacy}, "Ejecutar Secret Guard y revisar candidatos de privacidad sin exponer valores."),
@@ -359,6 +361,7 @@ def build_company_operations_snapshot(
         "generated_at_madrid": madrid_now_iso(),
         "mode": "read_only",
         "systems": systems,
+        "sports_metrics": sports_metrics,
         "scores": scores,
         "incidents": incidents,
         "incident_counts": {

@@ -72,6 +72,11 @@
 {% macro team_logo(name, logo='', size='md') -%}
 {% set label = name or 'Equipo' %}<span class="crest v933-team-logo is-{{ size }}" data-fallback="{{ label[:2]|upper }}" title="{{ label }}">{% if logo %}<img src="{{ logo }}" alt="" loading="lazy" referrerpolicy="no-referrer">{% endif %}<em aria-hidden="true">{{ label[:2]|upper }}</em></span>
 {%- endmacro %}
+{% macro sports_contract_attributes(metrics) -%}
+{% set metrics = metrics or {} %}data-sports-contract="{{ metrics.get('contract') or '' }}" data-sports-snapshot="{{ metrics.get('snapshot_id') or '' }}" data-sports-matches-today="{{ metrics.get('matches_today', 0) }}" data-sports-matches-available="{{ metrics.get('matches_available', 0) }}" data-sports-live-confirmed="{{ metrics.get('live_confirmed', 0) }}" data-sports-picks-ready="{{ metrics.get('picks_ready', 0) }}" data-sports-matches-with-picks="{{ metrics.get('matches_with_picks', 0) }}" data-sports-finished-verified="{{ metrics.get('finished_verified', 0) }}" data-sports-matches-synchronized="{{ metrics.get('matches_synchronized', 0) }}"
+{%- endmacro %}
+
+
 
 {% macro match_card(match, compact=false, show_actions=true) -%}
 {% set match = match or {} %}
@@ -85,10 +90,13 @@
 {% set away_logo = match.get('away_logo') or match.get('away_crest') or match.get('away_logo_url') or '' %}
 {% set complete = home and away and competition and time_label and match.get('source') %}
 {% set minute = match.get('minute') or match.get('elapsed') or match.get('live_minute') %}
-<article class="v933-match-card{% if compact %} is-compact{% endif %}{% if not complete %} is-incomplete{% endif %}{% if match.get('is_stale') %} is-stale{% endif %}"{% if match_id %} data-v934-match-id="{{ match_id }}"{% endif %} data-v934-match-card="true">
-  <header><div><span>{{ competition or 'Pendiente de completar' }}</span>{% if match.get('country') %}<small>{{ match.get('country') }}</small>{% endif %}</div><div class="v937-card-trust">{{ data_confidence_badge(match, 'match') }}<time>{{ time_label or 'Sin hora confirmada' }}</time></div></header>
+<article class="v933-match-card{% if compact %} is-compact{% endif %}{% if not complete %} is-incomplete{% endif %}{% if match.get('is_stale') %} is-stale{% endif %}"{% if match_id %} data-v934-match-id="{{ match_id }}"{% endif %} data-v934-match-card="true" data-v939-match-card-spec="canonical-v1">
+  <header class="v933-match-card-header"><div><span>{{ competition or 'Pendiente de completar' }}</span>{% if match.get('country') %}<small>{{ match.get('country') }}</small>{% endif %}</div><div class="v937-card-trust">{{ data_confidence_badge(match, 'match') }}<time>{{ time_label or 'Sin hora confirmada' }}</time></div></header>
   <div class="v933-match-teams"><div>{{ team_logo(home, home_logo) }}<strong>{{ home or 'Equipo pendiente' }}</strong></div><b data-v934-score>{% if match.get('home_score') is not none and match.get('away_score') is not none %}{{ match.get('home_score') }} - {{ match.get('away_score') }}{% else %}VS{% endif %}</b><div>{{ team_logo(away, away_logo) }}<strong>{{ away or 'Equipo pendiente' }}</strong></div></div>
-  <footer><span class="v934-match-state"><span data-v934-status>{{ status_chip('Pendiente de completar' if not complete else ('Datos retrasados' if match.get('is_stale') else status), 'warning' if not complete or match.get('is_stale') else ('success' if 'live' in status|string|lower or 'directo' in status|string|lower else 'blue')) }}</span>{% if minute is not none %}<small data-v934-minute>Min {{ minute }}</small>{% else %}<small data-v934-minute hidden></small>{% endif %}{% if complete %}{{ attention_priority(match) }}{% endif %}{% if complete and match.get('v935_source') %}{{ data_provenance_badge(match.get('v935_source'), (match.get('v935_freshness') or {}).get('label'), match.get('v935_lifecycle')) }}{% endif %}</span><div>{% if current_user and match_id %}<button class="v933-icon-button fav-star{% if match.get('is_favorite') %} active{% endif %}" type="button" data-kind="match" data-value="{{ match_id }}" data-label="{{ home }} vs {{ away }}" aria-label="Guardar favorito" aria-pressed="{{ 'true' if match.get('is_favorite') else 'false' }}">{{ icon('star') }}</button>{% endif %}{% if show_actions and match_id and complete %}{{ action_button('Ver partido', '/match/' ~ match_id, true, 'blue') }}{% endif %}</div></footer>
+  <footer class="v933-match-card-footer">
+    <div class="v934-match-state v933-match-card-signals"><span data-v934-status>{{ status_chip('Pendiente de completar' if not complete else ('Datos retrasados' if match.get('is_stale') else status), 'warning' if not complete or match.get('is_stale') else ('success' if 'live' in status|string|lower or 'directo' in status|string|lower else 'blue')) }}</span>{% if minute is not none %}<small data-v934-minute>Min {{ minute }}</small>{% else %}<small data-v934-minute hidden></small>{% endif %}{% if complete %}{{ attention_priority(match) }}{% endif %}{% if complete and match.get('v935_source') %}{{ data_provenance_badge(match.get('v935_source'), (match.get('v935_freshness') or {}).get('label'), match.get('v935_lifecycle')) }}{% endif %}</div>
+    <div class="v933-match-card-actions">{% if current_user and match_id %}<button class="v933-icon-button fav-star{% if match.get('is_favorite') %} active{% endif %}" type="button" data-kind="match" data-value="{{ match_id }}" data-label="{{ home }} vs {{ away }}" aria-label="Guardar favorito" aria-pressed="{{ 'true' if match.get('is_favorite') else 'false' }}">{{ icon('star') }}</button>{% endif %}{% if show_actions and match_id and complete %}{{ action_button('Ver partido', '/match/' ~ match_id, true, 'blue') }}{% endif %}</div>
+  </footer>
 </article>
 {%- endmacro %}
 

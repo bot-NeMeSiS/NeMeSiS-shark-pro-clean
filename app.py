@@ -7645,12 +7645,13 @@ def default_profile():
     return profile
 
 
-def shark_briefing():
-    today_matches = get_matches(today_iso(), "today")
-    live_state = split_live(today_matches)
-    all_picks = get_picks(limit=24)
+def shark_briefing(sports_summary=None):
+    sports_summary = dict(sports_summary or get_public_home_sports_summary())
+    sports_metrics = build_sports_metrics_contract(sports_summary)
+    today_matches = list(sports_summary.get("valid_matches_today") or [])
+    all_picks = list(sports_summary.get("all_picks") or [])
     quality_groups = split_picks_by_quality(all_picks)
-    picks = quality_groups.get("ready", [])[:8]
+    picks = list(sports_summary.get("valid_active_picks") or [])[:8]
     profile = default_profile()
     imported_real = [m for m in today_matches if "seed" not in str(m.get("source") or "").lower()]
     explained = []
@@ -7676,19 +7677,23 @@ def shark_briefing():
     context["live_state"] = real_time_global_state()
     context["favorite_leagues"] = [f for f in get_favorites("league")]
     context["quality_groups"] = {k: len(v or []) for k, v in quality_groups.items()}
-    ready_count = len(quality_groups.get("ready", []))
+    ready_count = sports_metrics["picks_ready"]
     study_count = len(quality_groups.get("study", []))
     return {
         "time": now_iso(),
         "profile": profile,
         "context": context,
         "summary": {
-            "matches_today": len(today_matches),
+            "matches_today": sports_metrics["matches_today"],
+            "matches_available": sports_metrics["matches_available"],
             "real_or_imported_matches": len(imported_real),
-            "live_now": len(live_state["live"]),
-            "picks_ready": ready_count,
+            "live_now": sports_metrics["live_confirmed"],
+            "picks_ready": sports_metrics["picks_ready"],
             "picks_study": study_count,
             "coverage": "football-first",
+            "snapshot_id": sports_metrics["snapshot_id"],
+            "scope": sports_metrics["scope"],
+            "generated_at_madrid": sports_metrics["generated_at_madrid"],
         },
         "risk": {
             "level": "CONTROLADO" if ready_count <= 3 else "MEDIO",
@@ -11948,6 +11953,221 @@ def _v931_prepare_pick(pick, matches_by_id):
     return item
 
 
+SPORTS_METRICS_CONTRACT = "sports-metrics-v1"
+
+SPORTS_METRIC_CONSUMERS = [
+    "home",
+    "dashboard",
+    "calendar",
+    "live",
+    "picks",
+    "shark",
+    "telegram",
+    "ceo_dashboard",
+    "operations_center",
+    "company_intelligence",
+    "sentinel",
+    "autopilot",
+]
+
+SPORTS_METRIC_DEFINITIONS = {
+    "matches_today": {
+        "label": "Partidos de hoy",
+        "functional_definition": "Partidos completos visibles hoy, incluidos live con evidencia fresca.",
+        "origin": "get_public_home_sports_summary",
+        "filters": ["complete", "real_source", "madrid_date_today", "not_stale_live"],
+        "time_window": "Europe/Madrid current day",
+        "authorized_consumers": SPORTS_METRIC_CONSUMERS,
+        "refresh_seconds": 15,
+        "limitations": ["No incluye incompletos, incidencias ni live stale."],
+        "edge_cases": ["Un partido que finaliza conserva la metrica finished separada."],
+    },
+    "matches_available": {
+        "label": "Partidos disponibles",
+        "functional_definition": "Union deduplicada de partidos completos de hoy y proximos.",
+        "origin": "get_public_home_sports_summary",
+        "filters": ["complete", "real_source", "today_or_upcoming", "deduped", "not_stale_live"],
+        "time_window": "Canonical DB/cache schedule window",
+        "authorized_consumers": SPORTS_METRIC_CONSUMERS,
+        "refresh_seconds": 15,
+        "limitations": ["La ventana depende de la agenda local sincronizada."],
+        "edge_cases": ["Un live de hoy se cuenta una sola vez aunque tambien estuviera en agenda."],
+    },
+    "live_confirmed": {
+        "label": "Partidos en directo",
+        "functional_definition": "Directos con marcador, minuto o fase explicita real y frescura valida.",
+        "origin": "get_public_home_sports_summary",
+        "filters": ["complete", "live_evidence", "fresh_le_120_seconds", "not_stale"],
+        "time_window": "Current live state",
+        "authorized_consumers": SPORTS_METRIC_CONSUMERS,
+        "refresh_seconds": 15,
+        "limitations": ["Una etiqueta LIVE generica no constituye evidencia."],
+        "edge_cases": ["Un live stale pasa a excluido, nunca a programado ficticio."],
+    },
+    "picks_ready": {
+        "label": "Picks publicables",
+        "functional_definition": "Picks activos con partido, mercado, seleccion, cuota y estado publicable validos.",
+        "origin": "get_public_home_sports_summary",
+        "filters": ["complete_pick", "publishable", "active_window", "match_not_stale"],
+        "time_window": "Active public pick window",
+        "authorized_consumers": SPORTS_METRIC_CONSUMERS,
+        "refresh_seconds": 15,
+        "limitations": ["No incluye candidatos, bloqueados, duplicados ni picks cerrados."],
+        "edge_cases": ["Varios picks del mismo partido cuentan por separado aqui y una vez en matches_with_picks."],
+    },
+    "matches_with_picks": {
+        "label": "Partidos con picks",
+        "functional_definition": "Partidos unicos vinculados a uno o mas picks completos publicables.",
+        "origin": "get_public_home_sports_summary",
+        "filters": ["valid_match_id", "publishable_pick", "deduped_by_match"],
+        "time_window": "Active public pick window",
+        "authorized_consumers": SPORTS_METRIC_CONSUMERS,
+        "refresh_seconds": 15,
+        "limitations": ["No equivale al numero total de picks."],
+        "edge_cases": ["Varios picks del mismo partido cuentan como un partido."],
+    },
+    "finished_verified": {
+        "label": "Partidos finalizados",
+        "functional_definition": "Partidos de hoy finalizados con resultado verificable.",
+        "origin": "get_public_home_sports_summary",
+        "filters": ["complete", "madrid_date_today", "finished", "verified_score"],
+        "time_window": "Europe/Madrid current day",
+        "authorized_consumers": SPORTS_METRIC_CONSUMERS,
+        "refresh_seconds": 15,
+        "limitations": ["No representa el historico completo."],
+        "edge_cases": ["Resultado pendiente se mantiene fuera hasta ser verificable."],
+    },
+    "matches_synchronized": {
+        "label": "Partidos sincronizados",
+        "functional_definition": "Registros deportivos leidos del almacenamiento local en el snapshot.",
+        "origin": "get_public_home_sports_summary",
+        "filters": ["local_db_or_cache_read"],
+        "time_window": "Latest local snapshot",
+        "authorized_consumers": ["ceo_dashboard", "operations_center", "company_intelligence", "sentinel", "autopilot"],
+        "refresh_seconds": 15,
+        "limitations": ["Incluye registros que pueden quedar excluidos de superficies publicas."],
+        "edge_cases": ["DB bloqueada devuelve cero y estado seguro, no una cifra estimada."],
+    },
+    "incomplete_excluded": {
+        "label": "Registros incompletos excluidos",
+        "functional_definition": "Registros sin competicion, fecha, hora, equipos o fuente real apartados de superficies publicas.",
+        "origin": "get_public_home_sports_summary",
+        "filters": ["missing_required_field"],
+        "time_window": "Latest local snapshot",
+        "authorized_consumers": ["ceo_dashboard", "operations_center", "company_intelligence", "sentinel", "autopilot"],
+        "refresh_seconds": 15,
+        "limitations": ["Es un contador operativo, no una agenda publica."],
+        "edge_cases": ["Un registro vuelve a las metricas publicas solo cuando completa todos los campos obligatorios."],
+    },
+    "stale_live_excluded": {
+        "label": "Directos stale excluidos",
+        "functional_definition": "Registros marcados live cuya evidencia supera la ventana de frescura valida.",
+        "origin": "get_public_home_sports_summary",
+        "filters": ["live_or_halftime", "freshness_over_120_seconds"],
+        "time_window": "Current live state",
+        "authorized_consumers": ["ceo_dashboard", "operations_center", "company_intelligence", "sentinel", "autopilot"],
+        "refresh_seconds": 15,
+        "limitations": ["No implica que el partido haya terminado; solo que no puede mostrarse como live confirmado."],
+        "edge_cases": ["Permanece fuera de cards, badges, KPIs, APIs publicas, Telegram y SHARK hasta nueva evidencia."],
+    },
+}
+
+
+def _sports_match_key(item):
+    item = item if isinstance(item, dict) else {}
+    return str(item.get("id") or item.get("match_id") or item.get("external_id") or "").strip()
+
+
+def _dedupe_sports_matches(items):
+    result = []
+    seen = set()
+    for item in items or []:
+        if not isinstance(item, dict):
+            continue
+        key = _sports_match_key(item)
+        if not key or key in seen:
+            continue
+        seen.add(key)
+        result.append(item)
+    return result
+
+
+def _sports_match_has_verified_score(item):
+    item = item if isinstance(item, dict) else {}
+    home_score = item.get("home_score")
+    away_score = item.get("away_score")
+    if home_score is None:
+        home_score = item.get("score_home")
+    if away_score is None:
+        away_score = item.get("score_away")
+    return home_score is not None and away_score is not None
+
+
+def build_sports_metrics_contract(summary):
+    """Canonical public counts shared by every sports product surface."""
+    summary = summary if isinstance(summary, dict) else {}
+    today_matches = _dedupe_sports_matches(summary.get("valid_matches_today") or [])
+    upcoming_matches = _dedupe_sports_matches(summary.get("valid_upcoming_matches") or [])
+    available_matches = _dedupe_sports_matches(today_matches + upcoming_matches)
+    live_matches = _dedupe_sports_matches(summary.get("valid_live_events") or [])
+    picks = [item for item in summary.get("valid_active_picks") or [] if isinstance(item, dict)]
+    pick_match_ids = sorted({
+        str(item.get("match_id") or "").strip()
+        for item in picks if str(item.get("match_id") or "").strip()
+    })
+    finished_today = [
+        item for item in summary.get("finished_matches") or []
+        if isinstance(item, dict) and str(item.get("match_date") or "")[:10] == today_iso()
+        and _sports_match_has_verified_score(item)
+    ]
+    generated_at = str(summary.get("metrics_generated_at_madrid") or now_iso())
+    last_sync = str(summary.get("last_sync") or "")
+    identity = {
+        "contract": SPORTS_METRICS_CONTRACT,
+        "date": today_iso(),
+        "last_sync": last_sync,
+        "today_ids": [_sports_match_key(item) for item in today_matches],
+        "available_ids": [_sports_match_key(item) for item in available_matches],
+        "live_ids": [_sports_match_key(item) for item in live_matches],
+        "pick_ids": [str(item.get("id") or "") for item in picks],
+        "pick_match_ids": pick_match_ids,
+        "synchronized_count": int(summary.get("raw_matches_count") or 0),
+        "finished_ids": [_sports_match_key(item) for item in finished_today],
+    }
+    snapshot_id = hashlib.sha256(
+        json.dumps(identity, ensure_ascii=True, sort_keys=True).encode("utf-8")
+    ).hexdigest()[:16]
+    return {
+        "contract": SPORTS_METRICS_CONTRACT,
+        "snapshot_id": snapshot_id,
+        "scope": "public_complete_real_data",
+        "source": "get_public_home_sports_summary",
+        "generated_at_madrid": generated_at,
+        "last_sync": last_sync,
+        "matches_today": len(today_matches),
+        "matches_available": len(available_matches),
+        "live_confirmed": len(live_matches),
+        "picks_ready": len(picks),
+        "matches_with_picks": len(pick_match_ids),
+        "matches_synchronized": int(summary.get("raw_matches_count") or 0),
+        "finished_verified": len(finished_today),
+        "incomplete_excluded": len(summary.get("incomplete_matches") or []),
+        "stale_live_excluded": int(summary.get("stale_live_excluded") or 0),
+        "definitions": SPORTS_METRIC_DEFINITIONS,
+        "no_render_api_call": True,
+    }
+
+
+
+def get_sports_metrics_contract(summary):
+    """Return the exact canonical snapshot already attached to a sports summary."""
+    summary = summary if isinstance(summary, dict) else {}
+    existing = summary.get("sports_metrics")
+    if isinstance(existing, dict) and existing.get("contract") == SPORTS_METRICS_CONTRACT:
+        return existing
+    return build_sports_metrics_contract(summary)
+
+
 def _build_public_home_sports_summary():
     """Build the canonical sports truth from local DB/cache only."""
     today = today_iso()
@@ -11979,6 +12199,13 @@ def _build_public_home_sports_summary():
         item.get("kickoff_time") or "99:99",
         item.get("competition_name") or "",
     ))
+    stale_live = [
+        item for item in valid_all
+        if item.get("v935_lifecycle") in {"LIVE", "HALFTIME"}
+        and bool((item.get("v935_freshness") or {}).get("is_stale"))
+    ]
+    stale_live_ids = {_sports_match_key(item) for item in stale_live if _sports_match_key(item)}
+    valid_all = [item for item in valid_all if _sports_match_key(item) not in stale_live_ids]
     valid_today = [item for item in valid_all if (item.get("v935_surface") or {}).get("home")]
     valid_upcoming = [item for item in valid_all if (item.get("v935_surface") or {}).get("calendar")]
     valid_live = [item for item in valid_all if (item.get("v935_surface") or {}).get("live")]
@@ -11991,7 +12218,10 @@ def _build_public_home_sports_summary():
     ]
     prepared_picks = [v935_enrich_pick_lifecycle(_v931_prepare_pick(item, matches_by_id)) for item in raw_picks]
     safe_picks = get_safe_picks_context(prepared_picks)
-    active_picks = safe_picks.get("picks") or []
+    active_picks = [
+        item for item in safe_picks.get("picks") or []
+        if str(item.get("match_id") or "") not in stale_live_ids
+    ]
     last_sync = max(
         [str(item.get("updated_at") or "") for item in raw_matches + raw_picks if item.get("updated_at")],
         default="",
@@ -12014,6 +12244,7 @@ def _build_public_home_sports_summary():
         "valid_matches_today_count": len(valid_today),
         "valid_matches_total": len(valid_all),
         "valid_upcoming_matches": valid_upcoming,
+        "valid_matches_available": _dedupe_sports_matches(valid_today + valid_upcoming),
         "valid_live_events": valid_live,
         "valid_active_picks": active_picks,
         "all_valid_matches": valid_all,
@@ -12031,8 +12262,11 @@ def _build_public_home_sports_summary():
         "storage_attempts": int(match_meta.get("attempts") or 1),
         "storage_error_type": match_meta.get("error_type") or "",
         "picks_storage_status": pick_meta.get("status") or "",
+        "stale_live_excluded": len(stale_live_ids),
+        "metrics_generated_at_madrid": now_iso(),
         "no_render_api_call": True,
     }
+    result["sports_metrics"] = build_sports_metrics_contract(result)
     return result
 
 
@@ -12054,12 +12288,13 @@ def get_public_home_sports_summary():
 
 def _v932_locked_sports_summary():
     """Return one coherent empty snapshot after the request preflight found a lock."""
-    return {
+    result = {
         "valid_matches_today": [],
         "valid_matches_today_count": 0,
         "valid_matches_total": 0,
         "valid_upcoming_matches": [],
         "valid_live_events": [],
+        "valid_matches_available": [],
         "valid_active_picks": [],
         "all_valid_matches": [],
         "all_picks": [],
@@ -12076,8 +12311,12 @@ def _v932_locked_sports_summary():
         "storage_attempts": 2,
         "storage_error_type": "OperationalError",
         "picks_storage_status": "database_locked",
+        "stale_live_excluded": 0,
+        "metrics_generated_at_madrid": now_iso(),
         "no_render_api_call": True,
     }
+    result["sports_metrics"] = build_sports_metrics_contract(result)
+    return result
 
 
 def get_v932_real_sports_value_context(summary=None):
@@ -12146,27 +12385,31 @@ def _v931_legacy_home_summary(summary):
     live = summary.get("valid_live_events") or []
     picks = summary.get("valid_active_picks") or []
     has_real_data = bool(valid_today or live or picks)
+    sports_metrics = get_sports_metrics_contract(summary)
     return {
         "date": today_iso(),
         "status": "DATOS_REALES" if has_real_data else "PENDIENTE_SINCRONIZACION",
         "has_real_data": has_real_data,
         "message": summary.get("safe_message") or client_home_message(has_real_data),
         "counts": {
-            "today": len(valid_today),
-            "upcoming": len(upcoming),
-            "live": len(live),
-            "picks": len(picks),
+            "today": sports_metrics["matches_today"],
+            "upcoming": sports_metrics["matches_available"],
+            "live": sports_metrics["live_confirmed"],
+            "picks": sports_metrics["picks_ready"],
+            "finished": sports_metrics["finished_verified"],
             "favorites": 0,
-            "incomplete": len(summary.get("incomplete_matches") or []),
+            "incomplete": sports_metrics["incomplete_excluded"],
         },
         "valid_matches_today": valid_today,
         "upcoming_matches": valid_today,
+        "valid_matches_available": summary.get("valid_matches_available") or _dedupe_sports_matches(valid_today + upcoming),
         "picks": picks,
         "favorites": [],
         "incomplete_matches": summary.get("incomplete_matches") or [],
         "provider_status": summary.get("provider_status"),
         "last_sync": summary.get("last_sync"),
         "safe_message": summary.get("safe_message"),
+        "sports_metrics": sports_metrics,
         "no_render_api_call": True,
     }
 
@@ -12198,11 +12441,13 @@ def home_light_data(sports_summary=None, include_payments=True):
                 print("[HOME_LIGHT][PAYMENTS_PUBLIC_SKIP]", str(exc)[:200])
             except Exception:
                 pass
+    sports_metrics = get_sports_metrics_contract(sports_summary or get_public_home_sports_summary())
     return {
         "app_name": APP_NAME,
         "version": APP_VERSION,
         "date": today_iso(),
         "client_alerts": client_alerts,
+        "available_matches": live.get("valid_matches_available", []),
         "match_hub": {
             "counts": {
                 "upcoming": counts.get("upcoming", 0),
@@ -12215,11 +12460,13 @@ def home_light_data(sports_summary=None, include_payments=True):
             "today": [],
             "live": [],
             "upcoming": live.get("upcoming_matches", []),
+            "available": live.get("valid_matches_available", []),
             "data_status": live.get("status"),
             "data_message": live.get("message"),
             "has_real_data": live.get("has_real_data"),
         },
         "home_summary": live,
+        "sports_metrics": sports_metrics,
         "picks": live.get("picks", []),
         "favorites": live.get("favorites", []),
         "upcoming_matches": live.get("upcoming_matches", []),
@@ -12232,6 +12479,7 @@ def home_light_data(sports_summary=None, include_payments=True):
 
 def _v931_provider_context(summary):
     sports = get_v932_real_sports_value_context(summary)
+    sports_metrics = get_sports_metrics_contract(summary)
     has_data = bool(sports.get("real_matches_available"))
     return {
         "source": sports.get("source") or "Datos deportivos",
@@ -12241,12 +12489,13 @@ def _v931_provider_context(summary):
         "cache_status": sports.get("cache_status") or "empty",
         "safe_message": sports.get("safe_message") or "Sin datos deportivos completos disponibles.",
         "no_render_api_call": True,
-        "matches": list(summary.get("valid_upcoming_matches") or []),
+        "matches": list(summary.get("valid_matches_available") or []),
+        "sports_metrics": sports_metrics,
         "counts": {
-            "today": len(summary.get("valid_matches_today") or []),
-            "live": len(summary.get("valid_live_events") or []),
-            "picks": len(summary.get("valid_active_picks") or []),
-            "finished": 0,
+            "today": sports_metrics["matches_today"],
+            "live": sports_metrics["live_confirmed"],
+            "picks": sports_metrics["matches_with_picks"],
+            "finished": sports_metrics["finished_verified"],
         },
     }
 
@@ -12257,6 +12506,7 @@ def _v931_minimal_client_data(summary, lane="today", date_value=""):
     live = list(summary.get("valid_live_events") or [])
     picks = list(summary.get("valid_active_picks") or [])
     legacy_home = _v931_legacy_home_summary(summary)
+    sports_metrics = get_sports_metrics_contract(summary)
     return {
         "app_name": APP_NAME,
         "version": APP_VERSION,
@@ -12264,6 +12514,7 @@ def _v931_minimal_client_data(summary, lane="today", date_value=""):
         "lane": lane,
         "matches": today_matches,
         "upcoming_matches": upcoming,
+        "available_matches": list(summary.get("valid_matches_available") or _dedupe_sports_matches(today_matches + upcoming)),
         "groups": {},
         "competitions": [],
         "imports": [],
@@ -12286,10 +12537,11 @@ def _v931_minimal_client_data(summary, lane="today", date_value=""):
             "upcoming": upcoming,
             "finished": [],
             "counts": {
-                "today": len(today_matches),
-                "live": len(live),
-                "upcoming": len(upcoming),
-                "with_picks": len(picks),
+                "today": sports_metrics["matches_today"],
+                "live": sports_metrics["live_confirmed"],
+                "upcoming": sports_metrics["matches_available"],
+                "with_picks": sports_metrics["matches_with_picks"],
+                "finished": sports_metrics["finished_verified"],
             },
         },
         "past_results": [],
@@ -12307,6 +12559,7 @@ def _v931_minimal_client_data(summary, lane="today", date_value=""):
         "data_center": {},
         "live": {"live": live, "scheduled": upcoming, "finished": []},
         "home_summary": legacy_home,
+        "sports_metrics": sports_metrics,
         "v925_calendar": _v931_provider_context(summary),
         "v925_live": _v931_provider_context(summary),
         "v925_picks": get_safe_picks_context(picks),
@@ -12320,11 +12573,15 @@ def _v931_minimal_client_data(summary, lane="today", date_value=""):
     }
 
 
-def v931_safe_dashboard_data(route, lane="today", date_value=None, compact=False):
+def v931_safe_dashboard_data(route, lane="today", date_value=None, compact=False, sports_summary=None):
     summary = (
         _v932_locked_sports_summary()
         if has_request_context() and request.environ.get("nemesis.v932.database_locked")
-        else get_public_home_sports_summary()
+        else (
+            sports_summary
+            if isinstance(sports_summary, dict)
+            else get_public_home_sports_summary()
+        )
     )
     if summary.get("storage_status") == "database_locked":
         if has_request_context():
@@ -12336,6 +12593,7 @@ def v931_safe_dashboard_data(route, lane="today", date_value=None, compact=False
         return _v931_minimal_client_data(summary, lane, date_value or today_iso()), summary
     if compact:
         data = _v931_minimal_client_data(summary, lane, date_value or today_iso())
+        data["available_matches"] = list(summary.get("valid_matches_available") or _dedupe_sports_matches(data["matches"] + data["upcoming_matches"]))
         data["v931_route_guard"] = {
             "status": "compact_read_only_context",
             "no_render_api_call": True,
@@ -12358,6 +12616,7 @@ def v931_safe_dashboard_data(route, lane="today", date_value=None, compact=False
     data["home_summary"] = _v931_legacy_home_summary(summary)
     data["matches"] = list(summary.get("valid_matches_today") or [])
     data["upcoming_matches"] = list(summary.get("valid_upcoming_matches") or [])
+    data["available_matches"] = list(summary.get("valid_matches_available") or _dedupe_sports_matches(data["matches"] + data["upcoming_matches"]))
     data["picks"] = list(summary.get("valid_active_picks") or [])
     hub = dict(data.get("match_hub") or {})
     hub.update({
@@ -12366,11 +12625,13 @@ def v931_safe_dashboard_data(route, lane="today", date_value=None, compact=False
         "upcoming": data["upcoming_matches"],
     })
     counts = dict(hub.get("counts") or {})
+    sports_metrics = get_sports_metrics_contract(summary)
     counts.update({
-        "today": len(data["matches"]),
-        "live": len(hub["live"]),
-        "upcoming": len(data["upcoming_matches"]),
-        "with_picks": len(data["picks"]),
+        "today": sports_metrics["matches_today"],
+        "live": sports_metrics["live_confirmed"],
+        "upcoming": sports_metrics["matches_available"],
+        "with_picks": sports_metrics["matches_with_picks"],
+        "finished": sports_metrics["finished_verified"],
     })
     hub["counts"] = counts
     data["match_hub"] = hub
@@ -12379,6 +12640,7 @@ def v931_safe_dashboard_data(route, lane="today", date_value=None, compact=False
     data["v925_picks"] = get_safe_picks_context(data["picks"])
     data["v925_odds"] = get_safe_odds_context(data["picks"])
     data["v932_sports_value"] = get_v932_real_sports_value_context(summary)
+    data["sports_metrics"] = sports_metrics
     data["v931_route_guard"] = {"status": "full_context", "no_render_api_call": True}
     return data, summary
 
@@ -12395,9 +12657,17 @@ def v931_safe_context(route, label, callback, default):
         return default
 
 
-def v932_safe_dashboard_data(route, lane="today", date_value=None, scope="client", compact=False):
-    data, summary = v931_safe_dashboard_data(route, lane, date_value, compact=compact)
+def v932_safe_dashboard_data(
+    route,
+    lane="today",
+    date_value=None,
+    scope="client",
+    compact=False,
+    sports_summary=None,
+):
+    data, summary = v931_safe_dashboard_data(route, lane, date_value, compact=compact, sports_summary=sports_summary)
     data["v932_sports_value"] = get_v932_real_sports_value_context(summary)
+    data["sports_metrics"] = get_sports_metrics_contract(summary)
     data["v932_authenticated_scope"] = "admin" if scope == "admin" else "client"
     return data, summary
 
@@ -12451,6 +12721,7 @@ def v931_calendar_context(summary, lane="today", date_value=None):
     today = today_iso()
     tomorrow = today_iso(1)
     week_end = (datetime.fromisoformat(today).date() + timedelta(days=7)).isoformat()
+    sports_metrics = get_sports_metrics_contract(summary)
     all_valid = list(summary.get("all_valid_matches") or summary.get("valid_upcoming_matches") or [])
     matches = list(summary.get("valid_upcoming_matches") or [])
     pick_ids = {str(item.get("match_id") or "") for item in summary.get("valid_active_picks") or []}
@@ -12469,7 +12740,8 @@ def v931_calendar_context(summary, lane="today", date_value=None):
     elif lane in {"incidents", "incidencias"}:
         matches = list(summary.get("incident_matches") or [])
     else:
-        matches = [item for item in matches if item.get("match_date") == selected_date]
+        source_matches = summary.get("valid_matches_today") or [] if selected_date == today else matches
+        matches = [item for item in source_matches if item.get("match_date") == selected_date]
     query = normalized_label(request.args.get("q") or "") if has_request_context() else ""
     league_filter = normalized_label(request.args.get("league") or "") if has_request_context() else ""
     country_filter = normalized_label(request.args.get("country") or "") if has_request_context() else ""
@@ -12524,14 +12796,15 @@ def v931_calendar_context(summary, lane="today", date_value=None):
         "day_groups": day_groups,
         "groups": day_groups,
         "counts": {
-            "today": len(today_valid),
+            "today": sports_metrics["matches_today"],
             "week": sum(1 for item in upcoming_valid if today <= str(item.get("match_date") or "") <= week_end),
-            "live": len(summary.get("valid_live_events") or []),
-            "picks": len(pick_ids),
+            "live": sports_metrics["live_confirmed"],
+            "picks": sports_metrics["matches_with_picks"],
             "favorites": sum(1 for item in all_valid if item.get("is_favorite")),
-            "finished": sum(1 for item in all_valid if item.get("v935_lifecycle") == "FINISHED"),
+            "finished": sports_metrics["finished_verified"],
             "incidents": len(summary.get("incident_matches") or []),
         },
+        "sports_metrics": sports_metrics,
         "facets": {
             "leagues": [{"label": key, "value": key, "count": value} for key, value in sorted(leagues.items())],
             "countries": [{"label": key, "value": key, "count": value} for key, value in sorted(countries.items())],
@@ -12602,6 +12875,7 @@ def _v937_live_summary_without_stale(summary, realtime):
 def v931_live_context(summary, lane="live", query=""):
     lane = str(lane or "live").strip().lower()
     today = today_iso()
+    sports_metrics = get_sports_metrics_contract(summary)
     today_matches = [
         item for item in (summary.get("all_valid_matches") or summary.get("valid_matches_today") or [])
         if str(item.get("match_date") or "") == today
@@ -12628,11 +12902,13 @@ def v931_live_context(summary, lane="live", query=""):
         "matches": selected,
         "day_groups": [],
         "counts": {
-            "live": len(live_matches),
+            "today": sports_metrics["matches_today"],
+            "live": sports_metrics["live_confirmed"],
             "halftime": sum(1 for item in today_matches if normalized_label(item.get("status")) in {"ht", "half time", "descanso"}),
-            "finished": sum(1 for item in today_matches if item.get("v935_lifecycle") == "FINISHED" or canonical_match_status(item).get("is_finished")),
-            "picks": len(pick_ids),
+            "finished": sports_metrics["finished_verified"],
+            "picks": sports_metrics["matches_with_picks"],
         },
+        "sports_metrics": sports_metrics,
         "no_render_api_call": True,
     }
 
@@ -15422,12 +15698,14 @@ def _v888_runtime_autopilot_state():
 def _v888_build_autopilot_scan(save_memory=False, mode="quick"):
     sentinel_run = run_continuous_sentinel_cycle(app.test_client(), APP_VERSION, mode="workflow", dry_run=True)
     visual_run = run_visual_company_worker(app.test_client(), APP_VERSION, mode=mode or "quick", dry_run=True)
+    sports_metrics = get_sports_metrics_contract(get_public_home_sports_summary())
     return run_autopilot_scan(
         flask_client=app.test_client(),
         app_version=APP_VERSION,
         runtime=_v888_runtime_autopilot_state(),
         sentinel_result=sentinel_run,
         visual_result=visual_run,
+        sports_contract=sports_metrics,
         save_memory=save_memory,
         memory_root=Path(__file__).resolve().parent,
     )
@@ -16536,7 +16814,7 @@ def shark_page():
     data["membership"] = v566_membership_ui(user)
     briefing = timed_phase(
         "briefing",
-        lambda: v931_safe_context(request.path, "briefing", shark_briefing, {}),
+        lambda: v931_safe_context(request.path, "briefing", lambda: shark_briefing(summary), {}),
     )
     data["briefing"] = briefing
     openai_ready = v845_openai_configured()
@@ -16606,6 +16884,7 @@ def telegram_page():
         "session_user": user,
         "v932_sports_value": get_v932_real_sports_value_context(sports_summary),
         "v935_customer_trust": get_v935_customer_trust_context(sports_summary),
+        "sports_metrics": get_sports_metrics_contract(sports_summary),
     }
     return render_template("telegram.html", data=data)
 
@@ -18085,7 +18364,23 @@ def get_v934_realtime_context(summary=None, force=False) -> dict:
 
     def _builder():
         source = summary if isinstance(summary, dict) else get_public_home_sports_summary()
-        return build_v934_realtime_snapshot(source)
+        snapshot = build_v934_realtime_snapshot(source)
+        sports_metrics = get_sports_metrics_contract(source)
+        counts = dict(snapshot.get("counts") or {})
+        counts.update({
+            "matches": sports_metrics["matches_available"],
+            "today": sports_metrics["matches_today"],
+            "live": sports_metrics["live_confirmed"],
+            "finished": sports_metrics["finished_verified"],
+            "picks": sports_metrics["picks_ready"],
+            "incomplete": sports_metrics["incomplete_excluded"],
+            "stale_live": sports_metrics["stale_live_excluded"],
+            "matches_with_picks": sports_metrics["matches_with_picks"],
+            "synchronized": sports_metrics["matches_synchronized"],
+        })
+        snapshot["counts"] = counts
+        snapshot["sports_metrics"] = sports_metrics
+        return snapshot
 
     snapshot, cache_state = cached_v934_realtime_snapshot(
         cache_key,
@@ -24539,7 +24834,9 @@ def api_admin_v818_daily_automation_health():
 
 
 def v938_operations_snapshot():
-    return build_company_operations_snapshot(BASE_DIR, DB_PATH, APP_VERSION)
+    summary = get_public_home_sports_summary()
+    sports_metrics = get_sports_metrics_contract(summary)
+    return build_company_operations_snapshot(BASE_DIR, DB_PATH, APP_VERSION, sports_metrics=sports_metrics)
 
 
 @app.route("/admin/operations-center")
@@ -24683,12 +24980,15 @@ def v939_company_intelligence_bundle(force=False):
         if not force and cached and now - float(_V939_INTELLIGENCE_CACHE.get("at") or 0.0) < 15:
             return cached
         environment = "render" if (os.getenv("RENDER") or os.getenv("RENDER_SERVICE_NAME") or os.getenv("RENDER_EXTERNAL_HOSTNAME")) else "local"
-        company = build_company_intelligence_snapshot(BASE_DIR, DB_PATH, APP_VERSION, environment)
+        sports_summary = get_public_home_sports_summary()
+        sports_metrics = get_sports_metrics_contract(sports_summary)
+        company = build_company_intelligence_snapshot(BASE_DIR, DB_PATH, APP_VERSION, environment, sports_metrics=sports_metrics)
         bundle = {
             "company": company,
             "learning": build_v939_shark_learning_snapshot(DB_PATH, APP_VERSION),
             "picks": build_pick_pipeline_snapshot(DB_PATH, APP_VERSION, environment=environment),
-            "telegram": build_telegram_intelligence_snapshot(DB_PATH, APP_VERSION, environment=environment),
+            "telegram": build_telegram_intelligence_snapshot(DB_PATH, APP_VERSION, environment=environment, sports_metrics=sports_metrics),
+            "sports_metrics": sports_metrics,
             "product": build_product_analytics_snapshot(DB_PATH, APP_VERSION, environment),
             "business": build_revenue_analytics_snapshot(DB_PATH, APP_VERSION, environment),
             "experiments": build_experimentation_snapshot(BASE_DIR, APP_VERSION, environment),

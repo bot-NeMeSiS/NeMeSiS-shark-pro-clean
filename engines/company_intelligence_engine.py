@@ -199,60 +199,53 @@ def _complete_match(row: dict[str, Any]) -> bool:
     )
 
 
-def collect_sports_signals(db_path: str | Path, app_version: str, environment: str = "local") -> list[dict[str, Any]]:
-    conn = readonly_connection(db_path)
-    if conn is None:
-        return [signal(
-            "sports_database",
-            "sqlite",
-            "database",
-            app_version,
-            environment,
-            "NOT_CONFIGURED",
-            {"database_accessible": False},
-            limitations=["No se pudo abrir una DB local en modo read-only."],
-        )]
-    try:
-        match_rows = safe_rows(conn, "matches", 2000)
-        valid_matches = [row for row in match_rows if _complete_match(row)]
-        incomplete = len(match_rows) - len(valid_matches)
-        sync_rows = safe_rows(conn, "api_sync_runs", 500)
-        sync_values = [
-            _first_value(row, ("finished_at", "completed_at", "updated_at", "created_at", "started_at"))
-            for row in sync_rows
-        ]
-        parsed_syncs = [(value, _parse_datetime(value)) for value in sync_values]
-        parsed_syncs = [item for item in parsed_syncs if item[1] is not None]
-        latest_sync = max(parsed_syncs, key=lambda item: item[1])[0] if parsed_syncs else ""
-        freshness = classify_freshness(latest_sync, fresh_minutes=60, stale_minutes=360)
-        if not match_rows and not sync_rows:
-            state = "INSUFFICIENT_DATA"
-        elif freshness.get("state") == "STALE":
+def collect_sports_signals(
+    db_path: str | Path,
+    app_version: str,
+    environment: str = "local",
+    sports_metrics: dict[str, Any] | None = None,
+) -> list[dict[str, Any]]:
+    metrics = dict(sports_metrics or {})
+    if metrics.get("contract") == "sports-metrics-v1":
+        freshness = classify_freshness(metrics.get("last_sync"), fresh_minutes=60, stale_minutes=360)
+        if freshness.get("state") == "STALE":
             state = "STALE"
-        elif valid_matches:
-            state = "PARTIALLY_VERIFIED" if incomplete else "VERIFIED"
+        elif int(metrics.get("matches_synchronized") or 0) or metrics.get("last_sync"):
+            state = "VERIFIED"
         else:
             state = "INSUFFICIENT_DATA"
         return [signal(
             "sports_data",
-            "matches, api_sync_runs",
-            "sqlite_read_only",
+            "sports-metrics-v1",
+            "canonical_snapshot",
             app_version,
             environment,
             state,
             {
-                "records_total": len(match_rows),
-                "records_complete": len(valid_matches),
-                "records_incomplete": incomplete,
-                "last_safe_sync": latest_sync,
+                "sports_metrics": metrics,
+                "records_total": int(metrics.get("matches_synchronized") or 0),
+                "records_complete": int(metrics.get("matches_available") or 0),
+                "records_incomplete": int(metrics.get("incomplete_excluded") or 0),
+                "last_safe_sync": metrics.get("last_sync") or "",
                 "external_calls": 0,
             },
             freshness=freshness,
-            confidence=1.0 if state == "VERIFIED" else (0.6 if state == "PARTIALLY_VERIFIED" else None),
-            limitations=["La presencia local no certifica frescura ni disponibilidad de proveedores en produccion."],
+            confidence=1.0 if state == "VERIFIED" else None,
+            limitations=["La presencia local no certifica disponibilidad del proveedor en produccion."],
         )]
-    finally:
-        conn.close()
+    return [signal(
+        "sports_data",
+        "sports-metrics-v1",
+        "contract_required",
+        app_version,
+        environment,
+        "NOT_CERTIFIED",
+        {"contract_received": False, "external_calls": 0},
+        confidence=None,
+        limitations=[
+            "Sports Data Contract ausente; Company Intelligence no recalcula metricas por su cuenta."
+        ],
+    )]
 
 
 def collect_product_signals(db_path: str | Path, app_version: str, environment: str = "local") -> list[dict[str, Any]]:
@@ -315,10 +308,17 @@ def collect_pick_signals(db_path: str | Path, app_version: str, environment: str
     )]
 
 
-def collect_telegram_signals(db_path: str | Path, app_version: str, environment: str = "local") -> list[dict[str, Any]]:
+def collect_telegram_signals(
+    db_path: str | Path,
+    app_version: str,
+    environment: str = "local",
+    sports_metrics: dict[str, Any] | None = None,
+) -> list[dict[str, Any]]:
     from engines.telegram_intelligence_engine import build_telegram_intelligence_snapshot
 
-    snapshot = build_telegram_intelligence_snapshot(str(db_path), app_version, environment=environment)
+    snapshot = build_telegram_intelligence_snapshot(
+        str(db_path), app_version, environment=environment, sports_metrics=sports_metrics
+    )
     return [signal(
         "telegram_intelligence",
         "telegram_intelligence_engine",
@@ -333,15 +333,22 @@ def collect_telegram_signals(db_path: str | Path, app_version: str, environment:
     )]
 
 
-def collect_operations_signals(root: str | Path, db_path: str | Path, app_version: str, environment: str = "local") -> list[dict[str, Any]]:
+def collect_operations_signals(
+    root: str | Path,
+    db_path: str | Path,
+    app_version: str,
+    environment: str = "local",
+    sports_metrics: dict[str, Any] | None = None,
+) -> list[dict[str, Any]]:
     try:
         from engines.company_operations_center_engine import build_company_operations_snapshot
 
-        snapshot = build_company_operations_snapshot(root, db_path, app_version)
+        snapshot = build_company_operations_snapshot(root, db_path, app_version, sports_metrics=sports_metrics)
         gate = str((snapshot.get("readiness") or {}).get("local_gate") or "NOT_CERTIFIED")
         state = "VERIFIED" if gate == "PASS" else "REQUIRES_REVIEW"
         evidence = {
             "readiness": snapshot.get("readiness", {}),
+            "sports_metrics": snapshot.get("sports_metrics", {}),
             "incident_counts": snapshot.get("incident_counts", {}),
             "next_action": snapshot.get("next_action", ""),
             "mode": snapshot.get("mode", "read_only"),
@@ -379,14 +386,20 @@ def collect_recovery_signals(root: str | Path, db_path: str | Path, app_version:
     )]
 
 
-def collect_company_signals(root: str | Path, db_path: str | Path, app_version: str, environment: str = "local") -> list[dict[str, Any]]:
+def collect_company_signals(
+    root: str | Path,
+    db_path: str | Path,
+    app_version: str,
+    environment: str = "local",
+    sports_metrics: dict[str, Any] | None = None,
+) -> list[dict[str, Any]]:
     groups = (
         collect_product_signals(db_path, app_version, environment),
-        collect_sports_signals(db_path, app_version, environment),
+        collect_sports_signals(db_path, app_version, environment, sports_metrics),
         collect_pick_signals(db_path, app_version, environment),
-        collect_telegram_signals(db_path, app_version, environment),
+        collect_telegram_signals(db_path, app_version, environment, sports_metrics),
         collect_revenue_signals(db_path, app_version, environment),
-        collect_operations_signals(root, db_path, app_version, environment),
+        collect_operations_signals(root, db_path, app_version, environment, sports_metrics),
         collect_recovery_signals(root, db_path, app_version, environment),
     )
     return [item for group in groups for item in group]
@@ -521,14 +534,16 @@ def build_company_intelligence_snapshot(
     db_path: str | Path,
     app_version: str,
     environment: str = "local",
+    sports_metrics: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    signals = collect_company_signals(root, db_path, app_version, environment)
+    signals = collect_company_signals(root, db_path, app_version, environment, sports_metrics)
     priorities = build_priority_portfolio(signals)
     snapshot: dict[str, Any] = {
         "ok": True,
         "version": app_version,
         "environment": environment,
         "generated_at_madrid": madrid_now_iso(),
+        "sports_metrics": dict(sports_metrics or {}),
         "mode": "read_only",
         "signals": signals,
         "evidence_graph": build_evidence_graph(signals),

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "components/v933_ui.html" import page_header, kpi_card, section_header, quick_action, empty_state, status_chip, action_button, icon, customer_trust_panel %}
+{% from "components/v933_ui.html" import page_header, kpi_card, section_header, quick_action, empty_state, status_chip, action_button, icon, customer_trust_panel, sports_contract_attributes %}
 {% from "components/v936_product.html" import customer_decision, intelligence_brief %}
 {% block content %}
 {% set assistant = data.get('shark_assistant') or {} %}
@@ -10,8 +10,9 @@
 {% set calendar = data.get('v925_calendar') or {} %}
 {% set picks = (data.get('v925_picks') or {}).get('picks') or [] %}
 {% set customer_trust = data.get('v935_customer_trust') or {} %}
+{% set sports_metrics = data.get('sports_metrics') or {} %}
 
-<div class="v933-page v933-shark-page" data-v933-template="shark" data-v933-reference="canonical-shark">
+<div class="v933-page v933-shark-page" data-v933-template="shark" data-v933-reference="canonical-shark" {{ sports_contract_attributes(sports_metrics) }}>
   {{ page_header('SHARK', 'Inteligencia deportiva responsable sobre los datos que ya existen.', 'shark', [{'label':'Partidos','href':'/calendar','icon':'calendar'},{'label':'Ver picks','href':'/picks','primary':true,'icon':'target'}]) }}
 
   <section class="v933-shark-hero">
@@ -37,8 +38,8 @@
   {{ customer_decision('Usa SHARK para entender, no para adivinar', 'Cada respuesta debe separar evidencia, riesgo y recomendación. Si falta contexto, SHARK te dirige a la siguiente fuente útil.', 'Hacer una pregunta rápida', '#v936-shark-questions', 'cyan', 'Cómo obtener valor', 'Ver metodología', '/track-record', 'Las limitaciones permanecen visibles') }}
 
   <section class="v933-kpi-grid">
-    {{ kpi_card('Partidos disponibles', (calendar.get('matches') or [])|length, 'Contexto real guardado', 'blue', 'calendar', '/calendar') }}
-    {{ kpi_card('Picks completos', picks|length, 'Contexto publicable', 'cyan', 'target', '/picks') }}
+    {{ kpi_card('Partidos disponibles', sports_metrics.get('matches_available', 0), 'Contexto real guardado', 'blue', 'calendar', '/calendar') }}
+    {{ kpi_card('Picks completos', sports_metrics.get('picks_ready', 0), 'Contexto publicable', 'cyan', 'target', '/picks') }}
     {{ kpi_card('IA avanzada', 'Disponible' if openai_ready else 'No configurada', 'Estado transparente', 'success' if openai_ready else 'warning', 'shark') }}
     {{ kpi_card('Garantía de resultado', 'No', 'Herramienta informativa', 'gold', 'shield') }}
   </section>

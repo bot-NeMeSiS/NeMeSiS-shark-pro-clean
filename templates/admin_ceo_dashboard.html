@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "components/v933_ui.html" import page_header, kpi_card, status_chip, evidence_label, evidence_chip, empty_state, next_action, icon %}
+{% from "components/v933_ui.html" import page_header, kpi_card, status_chip, evidence_label, evidence_chip, empty_state, next_action, icon, sports_contract_attributes %}
 {% block title %}Dirección | NeMeSiS SHARK PRO{% endblock %}
 {% block content %}
 {% set company = intelligence.company or {} %}
@@ -12,6 +12,7 @@
 {% set learning = intelligence.learning or {} %}
 {% set recovery = intelligence.recovery or {} %}
 {% set quality = intelligence.quality or {} %}
+{% set sports_metrics = intelligence.sports_metrics or company.sports_metrics or {} %}
 {% set area_labels = {
   'recovery':'Recuperación',
   'pick_pipeline':'Flujo de picks',
@@ -20,7 +21,7 @@
   'sports_data':'Datos deportivos',
   'telegram_intelligence':'Inteligencia de Telegram'
 } %}
-<div class="v933-page" data-v939-template="admin_ceo_dashboard">
+<div class="v933-page" data-v939-template="admin_ceo_dashboard" {{ sports_contract_attributes(sports_metrics) }}>
   {{ page_header('Dirección de empresa', 'Una vista de evidencia, decisiones y límites. Ninguna cifra ausente se estima.', 'dashboard', [
     {'label':'Actualizar evidencia','href':'#v939-actions','primary':true,'icon':'refresh'},
     {'label':'Operaciones','href':'/admin/operations-center','icon':'shield'}

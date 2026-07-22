@@ -587,6 +587,7 @@ body.ns-admin .v933-legal-footer { width: auto; margin-left: calc(var(--v933-sid
 
 .v933-match-grid,.v933-pick-grid,.v933-live-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 10px; }
 .v933-live-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+.v933-two-col .v933-match-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
 .v933-match-card,.v933-pick-card {
   min-width: 0;
   display: grid;
@@ -597,20 +598,26 @@ body.ns-admin .v933-legal-footer { width: auto; margin-left: calc(var(--v933-sid
   background: linear-gradient(145deg,rgba(8,24,43,.98),rgba(4,14,27,.98));
   box-shadow: var(--v933-shadow-sm);
 }
+.v933-match-card { grid-template-rows: auto minmax(78px,1fr) auto; }
 .v933-match-card:hover,.v933-pick-card:hover { border-color: rgba(39,149,255,.42); }
 .v933-match-card.is-incomplete,.v933-pick-card.is-incomplete { border-style: dashed; border-color: rgba(242,189,56,.28); }
-.v933-match-card > header,.v933-pick-card > header,.v933-match-card > footer,.v933-pick-card > footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.v933-match-card > header span,.v933-pick-card > header > span { color: #d7e7f7; font-size: .66rem; font-weight: 850; }
-.v933-match-card > header > div:first-child { min-width: 0; display: grid; gap: 2px; }
-.v933-match-card > header small,.v933-match-card > header time { color: var(--v933-muted); font-size: .61rem; }
+.v933-match-card > .v933-match-card-header,.v933-pick-card > header,.v933-pick-card > footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.v933-match-card > .v933-match-card-header span,.v933-pick-card > header > span { color: #d7e7f7; font-size: .66rem; font-weight: 850; }
+.v933-match-card > .v933-match-card-header > div:first-child { min-width: 0; display: grid; gap: 2px; }
+.v933-match-card > .v933-match-card-header > div:first-child > span { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-height: 1.25; }
+.v933-match-card > .v933-match-card-header small,.v933-match-card > .v933-match-card-header time { color: var(--v933-muted); font-size: .61rem; }
 .v933-match-teams { display: grid; grid-template-columns: minmax(0,1fr) auto minmax(0,1fr); align-items: center; gap: 7px; }
 .v933-match-teams > div { min-width: 0; display: grid; justify-items: center; gap: 6px; text-align: center; }
-.v933-match-teams strong { max-width: 100%; font-size: .72rem; line-height: 1.2; overflow-wrap: anywhere; }
+.v933-match-teams strong { max-width: 100%; display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; font-size: .72rem; line-height: 1.2; overflow-wrap: normal; word-break: normal; hyphens: auto; }
 .v933-match-teams > b { color: #9fb0c2; font-size: .82rem; }
 .v933-team-logo { position: relative; width: 40px; height: 40px; display: grid; place-items: center; overflow: hidden; border: 1px solid rgba(132,171,213,.22); border-radius: 50%; color: #9bc4e6; background: rgba(8,124,255,.08); }
 .v933-team-logo img { position: relative; z-index: 2; width: 78%; height: 78%; object-fit: contain; }
 .v933-team-logo em { position: absolute; z-index: 1; font-size: .65rem; font-style: normal; font-weight: 900; }
-.v933-match-card > footer > div { display: flex; align-items: center; gap: 6px; }
+.v933-match-card-footer { min-width: 0; display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; gap: 8px; }
+.v933-match-card-signals { min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 5px; }
+.v933-match-card-actions { display: flex; flex: 0 0 auto; align-items: center; justify-content: flex-end; gap: 6px; }
+.v933-match-card :is(.v933-status-chip,.v937-attention-priority,.v933-action) { overflow-wrap: normal; word-break: normal; white-space: nowrap; }
+.v933-match-card .v933-action { min-width: 0; }
 .v933-icon-button { width: 34px; height: 34px; display: inline-grid; place-items: center; border: 1px solid var(--v933-border); border-radius: var(--v933-radius-sm); color: #9fb2c5; background: rgba(255,255,255,.02); }
 .v933-icon-button.active { color: var(--v933-gold); border-color: rgba(232,185,63,.35); background: rgba(232,185,63,.08); }
 
@@ -696,7 +703,7 @@ body.ns-admin .v933-legal-footer { width: auto; margin-left: calc(var(--v933-sid
   .v933-kpi strong { font-size: 1rem; }
   .v933-kpi span,.v933-kpi small { font-size: .58rem; }
   .v933-two-col,.v933-three-col,.v933-four-col,.v933-plan-grid,.v933-live-grid { grid-template-columns: 1fr; }
-  .v933-match-grid,.v933-pick-grid { grid-template-columns: 1fr; }
+  .v933-match-grid,.v933-two-col .v933-match-grid,.v933-pick-grid { grid-template-columns: 1fr; }
   .v933-quick-actions { grid-template-columns: 1fr 1fr; gap: 7px; }
   .v933-quick-action { min-height: 61px; grid-template-columns: 26px minmax(0,1fr); padding: 8px 9px; }
   .v933-quick-action > .v933-icon:last-child { display: none; }
@@ -706,7 +713,7 @@ body.ns-admin .v933-legal-footer { width: auto; margin-left: calc(var(--v933-sid
   .v933-filter-bar { align-items: stretch; flex-direction: column; }
   .v933-search { min-width: 0; width: 100%; }
   .v933-match-card,.v933-pick-card { padding: 11px; }
-  .v933-match-card > footer { align-items: flex-end; }
+  .v933-match-card-footer { align-items: end; }
   .v933-pick-card dl { grid-template-columns: 1fr 1fr .65fr; }
   .v933-plan-card { padding: 14px; }
   .v933-profile-card { grid-template-columns: 46px minmax(0,1fr); gap: 9px; }
@@ -949,6 +956,9 @@ body.ns-admin .v933-legal-footer { width: auto; margin-left: calc(var(--v933-sid
 
 @media (max-width: 430px) {
   .v933-admin-command-center .ns-grid-2,.v933-admin-command-center .ns-grid-3,.v933-admin-command-center .ns-grid-4,.v933-admin-command-center .v928-grid.is-three,.v933-admin-command-center .v928-grid.is-four { grid-template-columns: 1fr; }
+  .v933-match-card-footer { grid-template-columns: 1fr; }
+  .v933-match-card-actions { justify-content: stretch; }
+  .v933-match-card-actions .v933-action { flex: 1 1 auto; justify-content: center; }
   .v933-reason-grid { grid-template-columns: 1fr; }
 }
 

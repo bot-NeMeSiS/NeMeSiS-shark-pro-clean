@@ -280,7 +280,9 @@ def build_telegram_intelligence_snapshot(
     *,
     environment: str = "local",
     daily_limit: int = 3,
+    sports_metrics: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
+    sports_metrics = dict(sports_metrics or {})
     pipeline = build_pick_pipeline_snapshot(db_path, app_version, environment=environment)
     conn = readonly_connection(db_path)
     if conn is None:
@@ -304,6 +306,8 @@ def build_telegram_intelligence_snapshot(
         "environment": environment,
         "certification_state": state,
         "confidence": 0.7 if state == "PARTIALLY_VERIFIED" else None,
+        "sports_metrics": sports_metrics,
+        "public_picks_ready": sports_metrics.get("picks_ready"),
         "freshness": classify_freshness(delivery.get("last_delivery_at"), fresh_minutes=1440, stale_minutes=10080),
         "candidate_count": pipeline.get("candidate_count", 0),
         "preview_ready_count": len(queue.get("queue") or []),
