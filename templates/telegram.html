@@ -31,7 +31,7 @@
     {{ kpi_card('Plan', plan|upper, 'Contenido según membresía', 'gold', 'plan', '/memberships') }}
   </section>
 
-  <section class="v933-two-col">
+  <section class="v933-two-col" data-v939-layout-contract="bounded-rail">
     <div class="v933-main-stack">
       <section class="v933-panel" id="v936-telegram-value">
         {{ section_header('Lo que recibirás en tu canal', 'Contenido de calidad, sin mensajes de relleno.') }}
@@ -66,17 +66,20 @@
           {{ quick_action('3. Elige tu plan', 'Contenido según membresía', '/memberships', 'plan', 'gold') }}
         </div>
       </section>
-      {{ evidence_receipt('Telegram extiende la app; no la sustituye', 'La alerta lleva a una selección o evento real, mientras el detalle, el riesgo y el histórico permanecen en NeMeSiS.', 'Integrado', 'success', 'Sin filler, sin duplicados y sin envío real desde la vista cliente') }}
-      <section class="v933-panel">
-        {{ section_header('Calidad del canal', 'Protecciones activas.') }}
-        <div class="v933-truth-list">
-          <div>{{ icon('check') }}<span><strong>Sin relleno</strong><small>Solo contenido útil</small></span>{{ status_chip('Activo','success') }}</div>
-          <div>{{ icon('shield') }}<span><strong>Sin duplicados</strong><small>Dedupe habilitado</small></span>{{ status_chip('Activo','success') }}</div>
-          <div>{{ icon('send') }}<span><strong>Envío desde esta vista</strong><small>No se ejecuta</small></span>{{ status_chip('Protegido','blue') }}</div>
-          <div>{{ icon('lock') }}<span><strong>Privacidad</strong><small>Identidad protegida</small></span>{{ status_chip('Activa','success') }}</div>
-        </div>
-      </section>
     </aside>
+  </section>
+
+  <section class="v933-two-col is-balanced" data-v939-layout-contract="balanced-pair">
+    {{ evidence_receipt('Telegram extiende la app; no la sustituye', 'La alerta lleva a una selección o evento real, mientras el detalle, el riesgo y el histórico permanecen en NeMeSiS.', 'Integrado', 'success', 'Sin filler, sin duplicados y sin envío real desde la vista cliente') }}
+    <section class="v933-panel">
+      {{ section_header('Calidad del canal', 'Protecciones activas.') }}
+      <div class="v933-truth-list">
+        <div>{{ icon('check') }}<span><strong>Sin relleno</strong><small>Solo contenido útil</small></span>{{ status_chip('Activo','success') }}</div>
+        <div>{{ icon('shield') }}<span><strong>Sin duplicados</strong><small>Dedupe habilitado</small></span>{{ status_chip('Activo','success') }}</div>
+        <div>{{ icon('send') }}<span><strong>Envío desde esta vista</strong><small>No se ejecuta</small></span>{{ status_chip('Protegido','blue') }}</div>
+        <div>{{ icon('lock') }}<span><strong>Privacidad</strong><small>Identidad protegida</small></span>{{ status_chip('Activa','success') }}</div>
+      </div>
+    </section>
   </section>
 </div>
 {% endblock %}

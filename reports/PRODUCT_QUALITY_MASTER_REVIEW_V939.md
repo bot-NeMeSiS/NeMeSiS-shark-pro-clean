@@ -311,6 +311,16 @@ Sentinel compara el número de cards deportivas con el número de cards `canonic
 - **Complejidad:** media; requiere delimitar el tramo de rail sin duplicar contenido ni introducir una segunda implementación del layout.
 - **Riesgo:** medio; una separación incorrecta podría alterar el orden de lectura, la relación contexto/acción o el responsive. La corrección debe conservar DOM semántico, rutas, datos y apilado móvil.
 
+**Contrato oficial de rail contextual acotado:**
+
+- **Rail acotado:** `.v933-two-col` solo puede agrupar contenido principal y lateral cuya altura útil sea comparable; no puede encerrar una colección repetitiva que continúe más de una altura de viewport tras terminar la otra columna.
+- **Continuación a ancho completo:** listas de partidos y bloques repetitivos extensos deben vivir fuera del rail y declarar `data-v939-layout-contract="full-width-continuation"`.
+- **Franja contextual:** proveedor, fecha y siguiente acción pueden anteceder a una colección mediante el grid compartido y `data-v939-layout-contract="context-strip"`; no duplican ni recalculan contenido.
+- **Par equilibrado:** dos bloques finales de alcance equivalente pueden reutilizar `.v933-two-col.is-balanced`; no se considera rail y ambas columnas tienen el mismo ancho.
+- **Responsive:** el orden fuente prioriza la tarea principal en móvil; cualquier reordenación de contexto solo se permite en escritorio y debe conservar lectura, foco y rutas.
+- **Invariante medible:** ningún consumidor puede dejar sin uso más del 25% del viewport durante más de una altura de pantalla mientras sigue existiendo contenido principal abundante.
+
+
 
 - **Pantallas y timestamps:** Partidos 01:31-02:06; Inicio 00:17-00:19; Telegram 03:33-03:46.
 - **Elemento:** layout de dos columnas.

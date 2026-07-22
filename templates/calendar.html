@@ -43,8 +43,8 @@
     </form>
   </section>
 
-  <section class="v933-two-col">
-    <div class="v933-main-stack">
+  <div class="v933-rail-flow" data-v939-layout-contract="reclaim-flow">
+    <div class="v933-main-stack" data-v939-layout-contract="full-width-continuation">
       {% for day in day_groups %}
       <section class="v933-panel v933-calendar-day">
         {{ section_header(day.get('label') or day.get('date_label') or day.get('date') or 'Jornada', day.get('subtitle') or '') }}
@@ -60,11 +60,11 @@
         {{ empty_state('Sin partidos reales para este filtro', 'La agenda se actualizará cuando haya nuevos encuentros confirmados. No se muestran partidos de ejemplo.', 'Ver la semana', '/calendar?lane=week', 'calendar') }}
       {% endfor %}
     </div>
-    <aside class="v933-side-stack">
+    <section class="v933-three-col" data-v939-layout-contract="context-strip">
       {{ provider_state(safe.get('has_real_data', false), safe.get('last_sync') or '', safe.get('safe_message') or calendar.get('source_summary') or '') }}
       <section class="v933-panel">{{ section_header('Cambiar fecha', 'Navega sin perder tus filtros.') }}{{ filter_tabs(calendar.get('date_chips') or [], filters.get('date')) }}</section>
       <section class="v933-panel">{{ section_header('Siguiente paso', 'Pasa del calendario al contexto del partido.') }}<div class="v933-main-stack">{{ action_button('Abrir directo', '/live', true, 'blue', false, 'live') }}{{ action_button('Revisar picks', '/picks', false, 'blue', false, 'target') }}</div></section>
-    </aside>
-  </section>
+    </section>
+  </div>
 </div>
 {% endblock %}

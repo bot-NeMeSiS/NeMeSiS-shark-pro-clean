@@ -51,7 +51,7 @@
     {{ kpi_card('Alertas', alerts|length, 'Actividad real de tu cuenta', 'gold', 'telegram', '/telegram') }}
   </section>
 
-  <section class="v933-two-col">
+  <section class="v933-two-col" data-v939-layout-contract="bounded-rail">
     <div class="v933-main-stack">
       <section class="v933-panel">
         {{ section_header('Ruta recomendada de hoy', 'Un recorrido corto para encontrar valor sin perder contexto.') }}
@@ -73,17 +73,6 @@
         {% endif %}
       </section>
 
-      <section class="v933-panel">
-        {{ section_header('Tus accesos rápidos', 'Las áreas principales de la experiencia cliente.') }}
-        <div class="v933-quick-actions">
-          {{ quick_action('Calendario', 'Agenda y resultados reales', '/calendar', 'calendar') }}
-          {{ quick_action('Directo', 'Marcadores y eventos confirmados', '/live', 'live', 'success') }}
-          {{ quick_action('Telegram', 'Conexión, calidad y alertas', '/telegram', 'telegram', 'cyan') }}
-          {{ quick_action('Histórico', 'Resultados cerrados y muestra evaluable', '/track-record', 'history') }}
-          {{ quick_action('Mi cuenta', 'Plan, seguridad y favoritos', '/profile', 'user') }}
-          {{ quick_action('Membresías', 'FREE, PRO y ELITE', '/memberships', 'plan', 'gold') }}
-        </div>
-      </section>
     </div>
 
     <aside class="v933-side-stack">
@@ -105,6 +94,18 @@
     </aside>
   </section>
 
+
+  <section class="v933-panel" data-v939-layout-contract="full-width-continuation">
+    {{ section_header('Tus accesos rápidos', 'Las áreas principales de la experiencia cliente.') }}
+    <div class="v933-quick-actions">
+      {{ quick_action('Calendario', 'Agenda y resultados reales', '/calendar', 'calendar') }}
+      {{ quick_action('Directo', 'Marcadores y eventos confirmados', '/live', 'live', 'success') }}
+      {{ quick_action('Telegram', 'Conexión, calidad y alertas', '/telegram', 'telegram', 'cyan') }}
+      {{ quick_action('Histórico', 'Resultados cerrados y muestra evaluable', '/track-record', 'history') }}
+      {{ quick_action('Mi cuenta', 'Plan, seguridad y favoritos', '/profile', 'user') }}
+      {{ quick_action('Membresías', 'FREE, PRO y ELITE', '/memberships', 'plan', 'gold') }}
+    </div>
+  </section>
   <section class="v933-panel">
     {{ section_header('Tu recorrido de valor', 'El plan acompaña lo que necesitas; no promete resultados.') }}
     {{ value_ladder(plan_name) }}
