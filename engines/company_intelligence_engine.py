@@ -536,11 +536,14 @@ def build_company_intelligence_snapshot(
     environment: str = "local",
     sports_metrics: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    from engines.sentinel_autopilot_engine import build_customer_trust_icon_contract_snapshot
+    from engines.sentinel_autopilot_engine import (
+        build_client_copy_audience_contract_snapshot,
+        build_customer_trust_icon_contract_snapshot,
+    )
 
     signals = collect_company_signals(root, db_path, app_version, environment, sports_metrics)
     priorities = build_priority_portfolio(signals)
-    product_quality_learning = build_customer_trust_icon_contract_snapshot(root, app_version)
+    product_quality_learning = [build_customer_trust_icon_contract_snapshot(root, app_version), build_client_copy_audience_contract_snapshot(root, app_version)]
     snapshot: dict[str, Any] = {
         "ok": True,
         "version": app_version,
@@ -554,7 +557,7 @@ def build_company_intelligence_snapshot(
         "business_health": calculate_business_health(signals),
         "priorities": priorities,
         "next_actions": build_company_next_actions(priorities),
-        "product_quality_learning": [product_quality_learning],
+        "product_quality_learning": product_quality_learning,
         "production_modified": False,
         "external_calls": 0,
         "database_written": False,

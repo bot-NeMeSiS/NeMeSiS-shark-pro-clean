@@ -4,6 +4,10 @@ import re
 from pathlib import Path
 
 from jinja2 import Environment
+from engines.v934_realtime_sports_engine import (
+    cached_realtime_snapshot,
+    invalidate_realtime_cache,
+)
 from engines.company_intelligence_engine import (
     build_company_intelligence_snapshot,
     load_company_intelligence_memory,
@@ -11,6 +15,7 @@ from engines.company_intelligence_engine import (
 )
 from engines.continuous_shark_sentinel_engine import run_continuous_sentinel_cycle
 from engines.sentinel_autopilot_engine import (
+    build_client_copy_audience_contract_snapshot,
     build_customer_trust_icon_contract_snapshot,
     create_autopilot_task,
     detect_product_quality_contract_issues,
@@ -91,8 +96,7 @@ def test_pqv939_004_templates_remain_valid_jinja():
 
 
 def _write_trust_contract_fixture(tmp_path: Path, css: str) -> Path:
-    (tmp_path / "static").mkdir(parents=True)
-    (tmp_path / "templates" / "components").mkdir(parents=True)
+    _write_copy_contract_fixture(tmp_path)
     (tmp_path / "static" / "v933-product.css").write_text(css, encoding="utf-8")
     (tmp_path / "templates" / "components" / "v933_ui.html").write_text(
         _read("templates/components/v933_ui.html"), encoding="utf-8"
@@ -182,3 +186,160 @@ def test_pqv939_005_company_intelligence_persists_learning_only_when_explicit(ap
     assert stored_learning["cause"] == learning["cause"]
     assert stored_learning["solution"] == learning["solution"]
     assert stored_learning["preventive_rule"] == learning["preventive_rule"]
+
+
+def _write_copy_contract_fixture(tmp_path: Path, *, reintroduce_live_technical_copy: bool = False) -> Path:
+    paths = (
+        "static/v933-product.css",
+        "static/v934-realtime.js",
+        "templates/components/v933_ui.html",
+        "templates/home.html",
+        "templates/client_app_center.html",
+        "templates/calendar.html",
+        "templates/live.html",
+        "templates/picks.html",
+        "templates/shark.html",
+        "templates/admin_dashboard.html",
+        "templates/admin_data_center.html",
+        "templates/admin_data_trust_center.html",
+        "templates/admin_realtime_center.html",
+        "engines/v934_realtime_sports_engine.py",
+    )
+    for path in paths:
+        target = tmp_path / path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        content = _read(path)
+        if path == "templates/live.html" and reintroduce_live_technical_copy:
+            content = content.replace(
+                "Los últimos datos confirmados siguen accesibles",
+                "DB y caché durante render",
+            )
+        target.write_text(content, encoding="utf-8")
+    return tmp_path
+
+
+def test_pqv939_006_client_copy_contract_separates_client_and_admin_audiences():
+    snapshot = build_client_copy_audience_contract_snapshot(ROOT, "V939")
+    engine = _read("engines/v934_realtime_sports_engine.py")
+    shared_template = _read("templates/components/v933_ui.html")
+    polling = _read("static/v934-realtime.js")
+    live_template = _read("templates/live.html")
+
+    assert snapshot["validation_result"] == "PASS"
+    assert snapshot["evidence"]["client_visible_hits"] == {}
+    assert snapshot["evidence"]["admin_contract"] is True
+    assert "Datos confirmados disponibles. La información se mantiene accesible entre actualizaciones." in engine
+    assert "Actualización temporalmente no disponible. Se conserva la última información confirmada." in engine
+    assert "se conserva el ultimo cache seguro" not in engine
+    assert "technical_message if technical else client_message" in shared_template
+    assert "var message = technical" in polling
+    assert "DB y caché durante render" not in live_template
+    assert "Los últimos datos confirmados siguen accesibles" in live_template
+    assert detect_product_quality_contract_issues(ROOT, "V939") == []
+
+
+def test_pqv939_006_realtime_exception_fallback_remains_client_safe():
+    cache_key = "pqv939-006-client-copy-fallback"
+    invalidate_realtime_cache(cache_key)
+    cached_realtime_snapshot(
+        cache_key,
+        lambda: {"safe_message": "Lectura confirmada", "counts": {}},
+        force=True,
+    )
+
+    def fail_builder():
+        raise RuntimeError("expected_local_test_failure")
+
+    try:
+        fallback, cache_state = cached_realtime_snapshot(cache_key, fail_builder, force=True)
+        assert cache_state == "stale_fallback"
+        assert fallback["safe_message"] == (
+            "Actualización temporalmente no disponible. Se conserva la última información confirmada."
+        )
+        assert "cache" not in fallback["safe_message"].casefold()
+        assert "render" not in fallback["safe_message"].casefold()
+    finally:
+        invalidate_realtime_cache(cache_key)
+
+
+def test_pqv939_006_regression_opens_p2_and_requires_human_approval(tmp_path):
+    fixture_root = _write_copy_contract_fixture(tmp_path, reintroduce_live_technical_copy=True)
+    issues = detect_product_quality_contract_issues(fixture_root, "V939")
+    issue = next(item for item in issues if item["id"] == "PQV939-006-CLIENT-COPY-AUDIENCE-CONTRACT")
+
+    assert issue["severity"] == "medium"
+    assert issue["route"] == "/live"
+    assert "technical_terms_visible_in_client_templates" in issue["product_quality_contract"]["evidence"]["violations"]
+    task = create_autopilot_task(issue)
+    assert task["status"] == "pending_approval"
+    assert task["safe_fix_plan"]["requires_approval"] is True
+    assert "templates/live.html" in task["likely_files"]
+
+    autopilot = run_autopilot_scan(app_version="V939", project_root=fixture_root)
+    assert autopilot["score"] < 10
+    assert any(item["id"] == issue["id"] for item in autopilot["issues"])
+    assert autopilot["dangerous_actions_executed"] is False
+
+
+def test_pqv939_006_continuous_sentinel_score_reflects_copy_regression(client, app_module, tmp_path):
+    fixture_root = _write_copy_contract_fixture(tmp_path, reintroduce_live_technical_copy=True)
+    result = run_continuous_sentinel_cycle(
+        client,
+        app_module.APP_VERSION,
+        mode="quick",
+        dry_run=True,
+        product_quality_root=fixture_root,
+    )
+
+    assert result["score"] < 10
+    assert any(
+        issue["issue_id"] == "PQV939-006-CLIENT-COPY-AUDIENCE-CONTRACT"
+        for issue in result["issues"]
+    )
+    assert result["no_code_writes"] is True
+    assert result["no_deploy"] is True
+    assert result["no_external_calls"] is True
+
+
+def test_pqv939_006_company_intelligence_preserves_audience_learning(app_module, tmp_path):
+    snapshot = build_company_intelligence_snapshot(
+        ROOT,
+        tmp_path / "company-intelligence.sqlite",
+        app_module.APP_VERSION,
+        environment="test",
+    )
+    learning_by_id = {
+        item["issue_id"]: item
+        for item in snapshot["product_quality_learning"]
+    }
+    learning = learning_by_id["PQV939-006"]
+
+    assert learning["validation_result"] == "PASS"
+    assert learning["evidence"]["client_visible_hits"] == {}
+    assert learning["evidence"]["admin_contract"] is True
+    assert learning["production_certified"] is False
+    assert snapshot["database_written"] is False
+
+    save_company_intelligence_memory(tmp_path, snapshot)
+    stored = load_company_intelligence_memory(tmp_path)
+    stored_learning = {
+        item["issue_id"]: item
+        for item in stored["snapshots"][-1]["product_quality_learning"]
+    }["PQV939-006"]
+    assert stored_learning["cause"] == learning["cause"]
+    assert stored_learning["solution"] == learning["solution"]
+    assert stored_learning["preventive_rule"] == learning["preventive_rule"]
+
+
+def test_pqv939_006_affected_templates_remain_valid_jinja():
+    environment = Environment()
+    for path in (
+        "templates/components/v933_ui.html",
+        "templates/home.html",
+        "templates/client_app_center.html",
+        "templates/calendar.html",
+        "templates/live.html",
+        "templates/picks.html",
+        "templates/shark.html",
+    ):
+        environment.parse(_read(path))

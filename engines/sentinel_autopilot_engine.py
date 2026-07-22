@@ -199,6 +199,8 @@ def classify_autopilot_issue(issue: dict[str, Any]) -> dict[str, Any]:
         severity = "high"
     elif category in {"navigation", "mobile", "shark_ai", "payments", "logos"}:
         severity = "medium"
+    elif category == "copy" and str(issue.get("priority") or "").upper() == "P2":
+        severity = "medium"
     elif category == "copy":
         severity = "low"
 
@@ -523,44 +525,192 @@ def build_customer_trust_icon_contract_snapshot(
     }
 
 
+def build_client_copy_audience_contract_snapshot(
+    root: str | Path | None = None,
+    app_version: str = "",
+) -> dict[str, Any]:
+    """Inspect the PQV939-006 client/admin copy boundary without writes."""
+    project_root = Path(root) if root is not None else Path(__file__).resolve().parents[1]
+
+    def _read(relative_path: str) -> str:
+        try:
+            return (project_root / relative_path).read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            return ""
+
+    client_templates = (
+        "templates/home.html",
+        "templates/client_app_center.html",
+        "templates/calendar.html",
+        "templates/live.html",
+        "templates/picks.html",
+        "templates/shark.html",
+    )
+    admin_templates = (
+        "templates/admin_dashboard.html",
+        "templates/admin_data_center.html",
+        "templates/admin_data_trust_center.html",
+        "templates/admin_realtime_center.html",
+    )
+    forbidden = re.compile(r"\bDB\b|\bDB/cache\b|\bcach(?:e|é)\b|\brender\b", re.IGNORECASE)
+    client_hits = {
+        path: sorted({match.group(0) for match in forbidden.finditer(_read(path))})
+        for path in client_templates
+    }
+    client_hits = {path: matches for path, matches in client_hits.items() if matches}
+
+    shared_template = _read("templates/components/v933_ui.html")
+    polling_js = _read("static/v934-realtime.js")
+    realtime_engine = _read("engines/v934_realtime_sports_engine.py")
+    live_template = _read("templates/live.html")
+    client_message = "Datos confirmados disponibles. La información se mantiene accesible entre actualizaciones."
+    client_fallback = "La información confirmada sigue disponible entre actualizaciones."
+    client_engine_fallback = "Actualización temporalmente no disponible. Se conserva la última información confirmada."
+
+    snapshot_message_contract = (
+        client_message in realtime_engine
+        and client_engine_fallback in realtime_engine
+        and "Datos reales actualizados desde DB/cache." not in realtime_engine
+        and "se conserva el ultimo cache seguro" not in realtime_engine
+    )
+    shared_macro_contract = (
+        client_fallback in shared_template
+        and "technical_message if technical else client_message" in shared_template
+        and "DB/caché:" in shared_template
+    )
+    polling_contract = (
+        client_fallback in polling_js
+        and "var message = technical" in polling_js
+        and "DB/caché:" in polling_js
+        and "La vista se mantiene operativa con DB y caché." not in polling_js
+    )
+    live_contract = (
+        "Los últimos datos confirmados siguen accesibles" in live_template
+        and "DB y caché durante render" not in live_template
+    )
+    admin_contract = all(
+        re.search(r"realtime_state_bar\([^\n]*true\)", _read(path))
+        for path in admin_templates
+    )
+
+    violations = []
+    if client_hits:
+        violations.append("technical_terms_visible_in_client_templates")
+    if not snapshot_message_contract:
+        violations.append("realtime_snapshot_client_message_not_safe")
+    if not shared_macro_contract:
+        violations.append("shared_realtime_macro_missing_audience_split")
+    if not polling_contract:
+        violations.append("polling_can_restore_technical_client_copy")
+    if not live_contract:
+        violations.append("live_contract_exposes_implementation_detail")
+    if not admin_contract:
+        violations.append("admin_realtime_diagnostics_not_explicitly_technical")
+
+    passed = not violations
+    return {
+        "issue_id": "PQV939-006",
+        "version": app_version,
+        "component": "realtime_copy_audience_contract",
+        "affected_routes": ["/", "/app", "/calendar", "/live", "/picks"],
+        "cause": "A shared realtime safe_message and a fixed Live label exposed DB/cache/render details to clients.",
+        "solution": "Use outcome-focused client copy while retaining explicit technical diagnostics in admin mode.",
+        "evidence": {
+            "client_visible_hits": client_hits,
+            "snapshot_message_contract": snapshot_message_contract,
+            "shared_macro_contract": shared_macro_contract,
+            "polling_contract": polling_contract,
+            "live_contract": live_contract,
+            "admin_contract": admin_contract,
+            "violations": violations,
+        },
+        "preventive_rule": "Client copy explains availability and freshness; DB/cache/render terminology remains admin-only.",
+        "validation_result": "PASS" if passed else "REGRESSION",
+        "certification_state": "VERIFIED" if passed else "REQUIRES_REVIEW",
+        "autofix_allowed": False,
+        "approval_required": True,
+        "production_certified": False,
+    }
+
+
 def detect_product_quality_contract_issues(
     root: str | Path | None = None,
     app_version: str = "",
 ) -> list[dict[str, Any]]:
+    issues: list[dict[str, Any]] = []
     snapshot = build_customer_trust_icon_contract_snapshot(root, app_version)
-    if snapshot["validation_result"] == "PASS":
-        return []
-    issue = _new_issue(
-        "Iconos de confianza heredan la caja del chip",
-        "visual_layout",
-        "medium",
-        "/app",
-        "PQV939-005; rutas=/app,/picks,/shark,/track-record,/partido/<id>; "
-        + ",".join(snapshot["evidence"]["violations"]),
-        app_version,
-    )
-    issue.update({
-        "id": "PQV939-005-CUSTOMER-TRUST-ICON-CONTRACT",
-        "profile": "CLIENT",
-        "description": "Los iconos internos reciben estilos de chip y pueden mostrarse como cajas vacias.",
-        "expected_behavior": "Cada SVG conserva 14 x 14 px sin padding, borde ni fondo heredados.",
-        "actual_behavior": "El contrato CSS del componente no aisla correctamente el icono interno.",
-        "suggested_fix": "Limitar los estilos del chip a .v935-customer-trust-rules > span y repetir Browser QA.",
-        "safe_auto_fix_possible": False,
-        "requires_admin_approval": True,
-        "requires_approval": True,
-        "likely_files": [
-            "static/v933-product.css",
-            "templates/components/v933_ui.html",
-        ],
-        "codex_prompt_suggestion": (
-            "Revisar PQV939-005 en el panel de confianza, corregir solo el selector compartido y "
-            "validar desktop/movil. No autoaplicar CSS ni DOM."
-        ),
-        "product_quality_contract": snapshot,
-    })
-    issue["codex_prompt"] = issue["codex_prompt_suggestion"]
-    return [classify_autopilot_issue(issue)]
+    if snapshot["validation_result"] != "PASS":
+        issue = _new_issue(
+            "Iconos de confianza heredan la caja del chip",
+            "visual_layout",
+            "medium",
+            "/app",
+            "PQV939-005; rutas=/app,/picks,/shark,/track-record,/partido/<id>; "
+            + ",".join(snapshot["evidence"]["violations"]),
+            app_version,
+        )
+        issue.update({
+            "id": "PQV939-005-CUSTOMER-TRUST-ICON-CONTRACT",
+            "profile": "CLIENT",
+            "description": "Los iconos internos reciben estilos de chip y pueden mostrarse como cajas vacias.",
+            "expected_behavior": "Cada SVG conserva 14 x 14 px sin padding, borde ni fondo heredados.",
+            "actual_behavior": "El contrato CSS del componente no aisla correctamente el icono interno.",
+            "suggested_fix": "Limitar los estilos del chip a .v935-customer-trust-rules > span y repetir Browser QA.",
+            "safe_auto_fix_possible": False,
+            "requires_admin_approval": True,
+            "requires_approval": True,
+            "likely_files": [
+                "static/v933-product.css",
+                "templates/components/v933_ui.html",
+            ],
+            "codex_prompt_suggestion": (
+                "Revisar PQV939-005 en el panel de confianza, corregir solo el selector compartido y "
+                "validar desktop/movil. No autoaplicar CSS ni DOM."
+            ),
+            "product_quality_contract": snapshot,
+        })
+        issue["codex_prompt"] = issue["codex_prompt_suggestion"]
+        issues.append(classify_autopilot_issue(issue))
+
+    copy_snapshot = build_client_copy_audience_contract_snapshot(root, app_version)
+    if copy_snapshot["validation_result"] != "PASS":
+        issue = _new_issue(
+            "Lenguaje tecnico interno visible al cliente",
+            "copy",
+            "medium",
+            "/live",
+            "PQV939-006; rutas=/,/app,/calendar,/live,/picks; "
+            + ",".join(copy_snapshot["evidence"]["violations"]),
+            app_version,
+        )
+        issue.update({
+            "id": "PQV939-006-CLIENT-COPY-AUDIENCE-CONTRACT",
+            "priority": "P2",
+            "profile": "CLIENT",
+            "description": "El cliente recibe terminos de implementacion en mensajes de disponibilidad deportiva.",
+            "expected_behavior": "El cliente entiende disponibilidad y frescura; el diagnostico tecnico permanece en admin.",
+            "actual_behavior": "El contrato de audiencia permite mostrar DB, cache o render en copy cliente.",
+            "suggested_fix": "Separar copy cliente/admin en el macro compartido y repetir Browser QA con polling.",
+            "safe_auto_fix_possible": False,
+            "requires_admin_approval": True,
+            "requires_approval": True,
+            "likely_files": [
+                "engines/v934_realtime_sports_engine.py",
+                "templates/components/v933_ui.html",
+                "static/v934-realtime.js",
+                "templates/live.html",
+            ],
+            "codex_prompt_suggestion": (
+                "Revisar PQV939-006, mantener diagnostico tecnico solo en admin y validar render inicial "
+                "y polling cliente. No cambiar datos, APIs externas ni arquitectura."
+            ),
+            "product_quality_contract": copy_snapshot,
+        })
+        issue["codex_prompt"] = issue["codex_prompt_suggestion"]
+        issues.append(classify_autopilot_issue(issue))
+    return issues
+
+
 def _issues_from_sentinel(sentinel_result: dict[str, Any] | None, app_version: str) -> list[dict[str, Any]]:
     if not sentinel_result:
         return []
@@ -706,6 +856,7 @@ def run_autopilot_scan(
             "autofix_allowed": False,
         },
         "product_quality_contract": build_customer_trust_icon_contract_snapshot(project_root, app_version),
+        "client_copy_audience_contract": build_client_copy_audience_contract_snapshot(project_root, app_version),
     }
     if save_memory:
         result["memory"] = save_autopilot_memory(result, root=memory_root)

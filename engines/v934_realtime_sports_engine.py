@@ -265,7 +265,7 @@ def build_realtime_snapshot(summary: dict[str, Any], now: datetime | None = None
             if live and stale_live
             else f"No hay directo confirmado; {len(stale_live)} lectura(s) retrasada(s) quedan excluidas."
             if stale_live
-            else "Datos reales actualizados desde DB/cache."
+            else "Datos confirmados disponibles. La información se mantiene accesible entre actualizaciones."
             if matches or picks
             else "Esperando una sincronización real; no se muestran datos de ejemplo."
         ),
@@ -295,7 +295,7 @@ def cached_realtime_snapshot(
             if stale:
                 fallback = copy.deepcopy(stale["payload"])
                 fallback["cache_status"] = "stale_fallback"
-                fallback["safe_message"] = "Lectura temporalmente no disponible; se conserva el ultimo cache seguro."
+                fallback["safe_message"] = "Actualización temporalmente no disponible. Se conserva la última información confirmada."
                 return fallback, "stale_fallback"
         return build_realtime_snapshot({}), "safe_empty"
     with _CACHE_LOCK:

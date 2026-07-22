@@ -93,9 +93,12 @@
     });
     var hasLive = number(counts.live) > 0;
     var hasData = number(counts.matches) > 0 || number(counts.picks) > 0;
-    setText(bar, '[data-v934-realtime-title]', hasLive ? 'Actualización en directo' : hasData ? 'Datos deportivos sincronizados' : 'Esperando datos reales');
-    setText(bar, '[data-v934-realtime-message]', payload.safe_message || 'La vista se mantiene operativa con DB y caché.');
     var technical = bar.getAttribute('data-v934-technical') === 'true';
+    var message = technical
+      ? 'DB/caché: ' + (payload.cache_state || payload.cache_status || 'estado seguro') + '. Render sin llamada directa al proveedor.'
+      : (payload.safe_message || 'La información confirmada sigue disponible entre actualizaciones.');
+    setText(bar, '[data-v934-realtime-title]', hasLive ? 'Actualización en directo' : hasData ? 'Datos deportivos sincronizados' : 'Esperando datos reales');
+    setText(bar, '[data-v934-realtime-message]', message);
     setText(bar, '[data-v934-cache-state]', technical ? (payload.cache_state || payload.cache_status || 'cache seguro') : 'Actualización segura');
     setText(bar, '[data-v934-last-sync]', payload.last_safe_sync || 'Sin sincronización confirmada');
     setText(bar, '[data-v934-next-refresh]', 'Próxima revisión en ' + clampPoll(payload.poll_after_seconds) + ' s');

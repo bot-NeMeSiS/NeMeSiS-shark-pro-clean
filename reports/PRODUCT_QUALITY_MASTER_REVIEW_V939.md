@@ -365,18 +365,26 @@ Sentinel compara el número de cards deportivas con el número de cards `canonic
 - **Evidencia:** `reports/PQV939_005_BROWSER_QA.md` y `browser_qa/V939_P2_PQV939_005/after/`.
 - **Producción:** no modificada ni certificada por este cierre local.
 
-#### PQV939-006 — Lenguaje técnico interno visible al cliente
+#### PQV939-006 — Lenguaje técnico interno visible al cliente — RESUELTO LOCALMENTE
 
 - **Pantallas y timestamps:** repetido en Inicio, Partidos, Live, Picks y SHARK; especialmente 00:00, 02:07 y 02:13.
 - **Elemento:** mensajes de sincronización y contrato de Live.
 - **Descripción:** aparecen textos como “actualizados desde DB/cache” y “DB y caché durante render”. Son útiles para operaciones, pero no para una experiencia cliente premium.
 - **Impacto:** hace que el producto parezca un panel técnico y obliga al usuario a interpretar implementación.
-- **Causa raíz:** **CONFIRMADA EN CÓDIGO.** el macro compartido de realtime consume `safe_message` técnico y `live.html` incluye literalmente “DB y caché durante render”.
-- **Solución:** traducir a resultado de usuario: “Datos guardados y disponibles sin depender del proveedor en este momento”. Mantener DB/cache/render solo en admin.
+- **Causa raíz:** **CONFIRMADA EN CÓDIGO.** el snapshot realtime compartía `safe_message` técnico con el render inicial y el polling; el macro cliente lo imprimía sin contrato de audiencia y `live.html` añadía literalmente “DB y caché durante render”. El fallback de excepción conservaba además la frase “cache seguro”.
+- **Solución aplicada:** el snapshot y su fallback de excepción usan copy orientado a disponibilidad; el macro y el JavaScript separan explícitamente audiencia cliente/admin mediante `technical`; Live comunica disponibilidad; los cuatro consumidores admin conservan diagnóstico de DB, caché y render.
 - **Complejidad:** baja.
 - **Riesgo de corregir:** bajo si no se elimina la transparencia sobre frescura.
-- **Check futuro:** lista de términos técnicos prohibidos en templates cliente, con whitelist para nombres de fuente cuando aporten trazabilidad.
-- **Aprendizaje permanente:** Sentinel clasifica copy técnico por audiencia; Company Intelligence conserva el detalle técnico en evidencia admin.
+- **Check futuro:** lista de términos técnicos prohibidos en templates cliente, snapshot y polling, con whitelist para nombres de fuente cuando aporten trazabilidad.
+- **Browser QA:** 12/12 rutas PASS en 1366x768 y 390x844 sobre `/`, `/app`, `/calendar`, `/live`, `/picks` y `/shark`; 10 ciclos reales de polling, 0 términos prohibidos antes/después, 0 overflow, 0 errores de consola, 0 errores 5xx, 0 peticiones externas y servidor local cerrado.
+- **Regresión:** 23/23 pruebas P1/P2 PASS; el fallback de excepción conserva la última información confirmada sin mencionar caché o render; Jinja afectado parsea correctamente.
+- **Sentinel:** `client_copy_audience_contract` inspecciona templates cliente, snapshot, macro, polling, Live y uso técnico explícito en admin. Una mutación abre `PQV939-006-CLIENT-COPY-AUDIENCE-CONTRACT` como P2 y reduce el score.
+- **AutoPilot:** genera una tarea con archivos probables y aprobación humana obligatoria; no escribe código, no despliega y no llama servicios externos.
+- **Company Intelligence:** conserva causa, solución, evidencia, versión, regla preventiva y validación solo cuando se persiste explícitamente un snapshot protegido.
+- **Aprendizaje permanente:** cliente explica disponibilidad, frescura y siguiente acción; DB, caché, render, TTL y diagnóstico permanecen en admin. SHARK no se modificó porque el Browser QA confirmó que su contexto técnico interno no se renderiza.
+- **Evidencia:** `reports/PQV939_006_BROWSER_QA.md` y `browser_qa/V939_P2_PQV939_006/after/`.
+- **Producción:** no modificada ni certificada por este cierre local.
+- **Estado:** `RESUELTO LOCALMENTE`.
 
 #### PQV939-007 — Fecha de sincronización en formato ISO crudo
 
@@ -516,25 +524,25 @@ Sentinel compara el número de cards deportivas con el número de cards `canonic
 |---|---:|---|
 | P0 | 0 | Ninguno demostrado |
 | P1 | 3 | PQV939-001 y PQV939-002 resueltos localmente; PQV939-003 abierto por cobertura |
-| P2 | 8 | PQV939-004 y PQV939-005 resueltos localmente; 6 permanecen abiertos |
+| P2 | 8 | PQV939-004, PQV939-005 y PQV939-006 resueltos localmente; 5 permanecen abiertos |
 | P3 | 5 | Pulido y consistencia |
-| **Total** | **16** | 4 resueltos localmente; 12 permanecen abiertos |
+| **Total** | **16** | 5 resueltos localmente; 11 permanecen abiertos |
 
 ## 8. Matriz pantalla por pantalla
 
 | Pantalla | Layout | Cards | Tipografía/copy | Navegación | Datos/estado | Resultado de vídeo |
 |---|---|---|---|---|---|---|
-| `/app` | Rail acotado; accesos continúan a ancho completo | Vídeo: comprimidas; post-P1: card canónica PASS | Copy clara; tecnicismo DB/cache | Clara y activa | Snapshot canónico; iconos de confianza PASS | **MUY BUENO; PQV939-004/005 resueltos localmente** |
+| `/app` | Rail acotado; accesos continúan a ancho completo | Vídeo: comprimidas; post-P1: card canónica PASS | Copy cliente sin internals técnicos | Clara y activa | Snapshot canónico; iconos de confianza PASS | **MUY BUENO; PQV939-004/005/006 resueltos localmente** |
 | `/calendar` | Colección a ancho completo tras franja contextual | Vídeo: wrapping crítico; post-P1: desktop/móvil PASS | Filtros claros | Exceso de scroll sigue abierto como PQV939-010 | Métricas del contrato único | **MUY BUENO; PQV939-004 resuelto, otros P2 abiertos** |
-| `/live` | Estructura clara | Próximos usan card canónica | “Board” y copy técnico | CTA útiles | `live_confirmed` y `matches_today` comparten snapshot | **MEJORABLE; P1 resuelto localmente** |
-| `/picks` | Buena jerarquía | Empty state correcto | Mensaje responsable | Tabs claras | No inventa pick; iconos de reglas PASS | **MUY BUENO; PQV939-005 resuelto localmente** |
+| `/live` | Estructura clara | Próximos usan card canónica | Copy técnico resuelto; “Board” queda fuera de este P2 | CTA útiles | `live_confirmed` y `matches_today` comparten snapshot | **MUY BUENO; PQV939-006 resuelto localmente** |
+| `/picks` | Buena jerarquía | Empty state correcto | Mensaje responsable y sin internals | Tabs claras | No inventa pick; iconos de reglas PASS | **MUY BUENO; PQV939-005/006 resueltos localmente** |
 | `/track-record` | Equilibrado | Estados vacíos correctos | Mezcla Winrate/Stake/Void | Clara | No fabrica ROI | **MUY BUENO** |
-| `/shark` | Buena identidad | Módulos claros | Respuesta densa y “Summary” | Buenas siguientes acciones | Resumen numérico consume el contrato único | **MEJORABLE; P1 resuelto, P2 abierto** |
+| `/shark` | Buena identidad | Módulos claros | Sin internals técnicos; respuesta densa y “Summary” siguen en PQV939-009 | Buenas siguientes acciones | Resumen numérico consume el contrato único | **MEJORABLE; PQV939-006 resuelto, PQV939-009 abierto** |
 | `/telegram` | Rail acotado y cierre equilibrado | Beneficios claros | Copy confiable | Flujo en tres pasos | Estado real; PII de código no se replica en este informe | **MUY BUENO; PQV939-004 resuelto localmente** |
 | `/profile` | Buena estructura | Servicios y plan consistentes | Actividad repetitiva | Logout visible | PII correcta para titular, sensible en vídeo | **MUY BUENO con riesgo de evidencia** |
-| `/` | Hero y jerarquía fuertes | Vídeo: comprimidas; post-P1: card canónica PASS | Propuesta clara | CTA visibles | Estados y métricas del snapshot canónico | **MUY BUENO; P1 resuelto localmente** |
+| `/` | Hero y jerarquía fuertes | Vídeo: comprimidas; post-P1: card canónica PASS | Propuesta clara y copy realtime por audiencia | CTA visibles | Estados y métricas del snapshot canónico | **MUY BUENO; P1 y PQV939-006 resueltos localmente** |
 | Admin | No aparece | No aparece | No aparece | No aparece | No aparece | **NO CERTIFICADO** |
-| Móvil | No aparece | No aparece | No aparece | Bottom nav no aparece | No aparece | **NO CERTIFICADO** |
+| Móvil | Alcance PQV939-006 sin overflow | Sin regresión en el componente afectado | Copy cliente PASS | Navegación no auditada globalmente | Estado seguro sin datos inventados | **PQV939-006 PASS LOCAL; global NO CERTIFICADO** |
 
 ## 9. Orden obligatorio de corrección futura
 
@@ -543,11 +551,12 @@ Sentinel compara el número de cards deportivas con el número de cards `canonic
 3. **PQV939-003:** completar evidencia admin y móvil; no es un cambio de código.
 4. **PQV939-004 — RESUELTO LOCALMENTE:** rail contextual acotado y continuidad a ancho completo.
 5. **PQV939-005 — RESUELTO LOCALMENTE:** selector e iconos de confianza.
-6. **PQV939-006 y PQV939-007:** copy cliente y fecha Madrid.
-7. **PQV939-008 y PQV939-010:** densidad y navegación de agenda.
-8. **PQV939-009:** estructura de respuesta SHARK.
-9. **PQV939-011:** copia redactada del vídeo.
-10. **PQV939-012 a PQV939-016:** pulido P3.
+6. **PQV939-006 — RESUELTO LOCALMENTE:** copy cliente separado del diagnóstico técnico admin.
+7. **PQV939-007:** fecha Madrid legible para cliente.
+8. **PQV939-008 y PQV939-010:** densidad y navegación de agenda.
+9. **PQV939-009:** estructura de respuesta SHARK.
+10. **PQV939-011:** copia redactada del vídeo.
+11. **PQV939-012 a PQV939-016:** pulido P3.
 
 P1 funcional está cerrado. Los P2 avanzan uno por uno y cada cierre exige captura antes/después en el mismo timestamp o estado equivalente; PQV939-003 permanece como bloqueo de evidencia global, no como defecto funcional.
 
@@ -569,10 +578,10 @@ P1 funcional está cerrado. Los P2 avanzan uno por uno y cada cierre exige captu
 ## 11. Límites de esta auditoría
 
 - No se han pulsado todos los botones; su destino no queda certificado solo por ser visible.
-- El vídeo original no abre la consola; el Browser QA posterior de las tres rutas afectadas sí la monitoriza y registra 0 errores.
+- El vídeo original no abre la consola; el Browser QA posterior de PQV939-006 sí la monitoriza en 12 casos y registra 0 errores.
 - No se mide rendimiento de red ni backend con el vídeo.
 - No se certifican datos de producción; solo se audita lo presentado visualmente.
-- No se certifica globalmente móvil, tablet, admin, formularios, modales, membresías, soporte, login, registro, 404 o 500. Para el alcance aislado de PQV939-005 sí quedan validados en móvil `/app`, `/picks`, `/shark`, detalle y `/track-record`.
+- No se certifica globalmente móvil, tablet, admin, formularios, modales, membresías, soporte, login, registro, 404 o 500. Los alcances aislados de PQV939-005 y PQV939-006 sí tienen Browser QA móvil local.
 - No se declara pixel-perfect.
 - No se ha usado el sitio externo mostrado al final como evidencia de NeMeSiS.
 
@@ -582,6 +591,6 @@ P1 funcional está cerrado. Los P2 avanzan uno por uno y cada cierre exige captu
 
 **AUDITORÍA DEFINITIVA DE TODA LA APLICACIÓN:** BLOQUEADA POR COBERTURA DE VÍDEO.
 
-**CORRECCIONES APLICADAS:** 2 defectos P1 y PQV939-004/PQV939-005 resueltos y validados localmente; los otros 6 P2 y los 5 P3 no se han modificado.
+**CORRECCIONES APLICADAS:** 2 defectos P1 y PQV939-004/PQV939-005/PQV939-006 resueltos y validados localmente; los otros 5 P2 y los 5 P3 no se han modificado.
 
-**SIGUIENTE ACCIÓN ÚNICA:** revisión humana de las capturas desktop/móvil de PQV939-005; después, y solo con aprobación explícita, seleccionar PQV939-006 como siguiente P2. PQV939-003 requiere una referencia complementaria de admin y otra móvil.
+**SIGUIENTE ACCIÓN ÚNICA:** revisión humana de las capturas desktop/móvil de PQV939-006; después, y solo con aprobación explícita, seleccionar PQV939-007 como siguiente P2. PQV939-003 requiere una referencia complementaria de admin y otra móvil.
