@@ -6,12 +6,12 @@
     "console_errors": 0,
     "page_errors": 0,
     "external_attempts": 0,
-    "bounded_height_violations": [
-      "mobile_390x844:/app"
-    ],
+    "bounded_height_violations": [],
     "full_width_failures": [],
     "mobile_order_failures": [],
-    "none_tokens": 0
+    "none_tokens": 0,
+    "mobile_stacked_height_differences_ignored": true,
+    "occupancy_rule": "Only horizontal desktop columns can create a lateral void."
   },
   "results": [
     {
@@ -60,7 +60,9 @@
               }
             ],
             "difference": 114,
-            "exceeds_viewport": false
+            "exceeds_viewport": false,
+            "horizontal_layout": true,
+            "occupancy_violation": false
           }
         ],
         "mobile_calendar_main_before_context": null,
@@ -161,7 +163,9 @@
               }
             ],
             "difference": 145,
-            "exceeds_viewport": false
+            "exceeds_viewport": false,
+            "horizontal_layout": true,
+            "occupancy_violation": false
           }
         ],
         "mobile_calendar_main_before_context": null,
@@ -216,7 +220,9 @@
               }
             ],
             "difference": 1163,
-            "exceeds_viewport": true
+            "exceeds_viewport": true,
+            "horizontal_layout": false,
+            "occupancy_violation": false
           }
         ],
         "mobile_calendar_main_before_context": null,
@@ -317,7 +323,9 @@
               }
             ],
             "difference": 236,
-            "exceeds_viewport": false
+            "exceeds_viewport": false,
+            "horizontal_layout": false,
+            "occupancy_violation": false
           }
         ],
         "mobile_calendar_main_before_context": null,
