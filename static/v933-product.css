@@ -237,7 +237,7 @@ body.ns-app:not(.ns-admin) .v931-safe-error .v928-actions { justify-content: fle
 .v935-customer-trust-main small,.v935-customer-trust p { color: var(--v933-text-soft); font-size: .72rem; }
 .v935-customer-trust p { margin: 0; line-height: 1.45; }
 .v935-customer-trust-rules { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
-.v935-customer-trust-rules span { min-height: 28px; display: inline-flex; align-items: center; gap: 5px; padding: 5px 8px; border: 1px solid rgba(39,149,255,.2); border-radius: 5px; background: rgba(8,124,255,.07); color: #cfe4f7; font-size: .66rem; white-space: nowrap; }
+.v935-customer-trust-rules > span { min-height: 28px; display: inline-flex; align-items: center; gap: 5px; padding: 5px 8px; border: 1px solid rgba(39,149,255,.2); border-radius: 5px; background: rgba(8,124,255,.07); color: #cfe4f7; font-size: .66rem; white-space: nowrap; }
 .v935-customer-trust-rules .v933-icon { width: 14px; height: 14px; color: var(--v933-blue-bright); }
 .v935-data-trust-center .v933-fact-grid article { min-height: 92px; }
 
@@ -249,7 +249,7 @@ body.ns-app:not(.ns-admin) .v931-safe-error .v928-actions { justify-content: fle
 @media (max-width: 560px) {
   .v935-customer-trust { padding: 11px 12px; }
   .v935-customer-trust-rules { display: grid; grid-template-columns: 1fr 1fr; }
-  .v935-customer-trust-rules span:last-child { grid-column: 1 / -1; }
+  .v935-customer-trust-rules > span:last-child { grid-column: 1 / -1; }
   .v934-match-state .v935-provenance { display: none; }
 }
 

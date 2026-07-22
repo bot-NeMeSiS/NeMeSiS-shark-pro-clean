@@ -268,6 +268,7 @@ def create_autopilot_task(issue: dict[str, Any]) -> dict[str, Any]:
         "severity": issue["severity"],
         "status": "pending_approval" if issue["requires_approval"] else "ready_for_safe_review",
         "route": issue.get("route") or "",
+        "likely_files": list(issue.get("likely_files") or []),
         "suggested_fix": issue.get("suggested_fix") or plan["recommended_step"],
         "codex_prompt": prompt,
         "safe_fix_plan": plan,
@@ -456,6 +457,110 @@ def _new_issue(title: str, category: str, severity: str, route: str, evidence: s
     return classify_autopilot_issue(issue)
 
 
+def build_customer_trust_icon_contract_snapshot(
+    root: str | Path | None = None,
+    app_version: str = "",
+) -> dict[str, Any]:
+    """Inspect the PQV939-005 visual contract without rendering or writes."""
+    project_root = Path(root) if root is not None else Path(__file__).resolve().parents[1]
+    css_path = project_root / "static" / "v933-product.css"
+    template_path = project_root / "templates" / "components" / "v933_ui.html"
+    try:
+        css = css_path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        css = ""
+    try:
+        template = template_path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        template = ""
+
+    direct_chip = bool(re.search(r"\.v935-customer-trust-rules\s*>\s*span\s*\{", css))
+    descendant_chip = bool(re.search(r"\.v935-customer-trust-rules\s+span\s*\{", css))
+    direct_last_chip = bool(re.search(r"\.v935-customer-trust-rules\s*>\s*span:last-child\s*\{", css))
+    icon_rule = bool(re.search(
+        r"\.v935-customer-trust-rules\s+\.v933-icon\s*\{[^}]*width:\s*14px;[^}]*height:\s*14px;",
+        css,
+    ))
+    macro_contract = (
+        "{% macro customer_trust_panel(trust)" in template
+        and template.count("{{ icon('target') }} Picks completos") == 1
+        and template.count("{{ icon('history') }} Hist") == 1
+        and template.count("{{ icon('shield') }} Sin beneficio garantizado") == 1
+    )
+
+    violations = []
+    if not direct_chip or descendant_chip:
+        violations.append("chip_selector_must_target_direct_children")
+    if not direct_last_chip:
+        violations.append("mobile_last_chip_selector_must_target_direct_child")
+    if not icon_rule:
+        violations.append("icon_size_rule_missing")
+    if not macro_contract:
+        violations.append("customer_trust_macro_contract_missing")
+
+    passed = not violations
+    return {
+        "issue_id": "PQV939-005",
+        "version": app_version,
+        "component": "customer_trust_panel",
+        "affected_routes": ["/app", "/picks", "/shark", "/track-record", "/partido/<id>"],
+        "cause": "A descendant span selector applied chip padding, border and background to the nested icon span.",
+        "solution": "Scope chip styles to direct children and preserve the dedicated icon rule.",
+        "evidence": {
+            "direct_chip_selector": direct_chip,
+            "descendant_chip_selector": descendant_chip,
+            "direct_mobile_last_chip_selector": direct_last_chip,
+            "icon_rule": icon_rule,
+            "macro_contract": macro_contract,
+            "violations": violations,
+        },
+        "preventive_rule": "Nested trust icons must never inherit chip padding, border or background.",
+        "validation_result": "PASS" if passed else "REGRESSION",
+        "certification_state": "VERIFIED" if passed else "REQUIRES_REVIEW",
+        "autofix_allowed": False,
+        "approval_required": True,
+        "production_certified": False,
+    }
+
+
+def detect_product_quality_contract_issues(
+    root: str | Path | None = None,
+    app_version: str = "",
+) -> list[dict[str, Any]]:
+    snapshot = build_customer_trust_icon_contract_snapshot(root, app_version)
+    if snapshot["validation_result"] == "PASS":
+        return []
+    issue = _new_issue(
+        "Iconos de confianza heredan la caja del chip",
+        "visual_layout",
+        "medium",
+        "/app",
+        "PQV939-005; rutas=/app,/picks,/shark,/track-record,/partido/<id>; "
+        + ",".join(snapshot["evidence"]["violations"]),
+        app_version,
+    )
+    issue.update({
+        "id": "PQV939-005-CUSTOMER-TRUST-ICON-CONTRACT",
+        "profile": "CLIENT",
+        "description": "Los iconos internos reciben estilos de chip y pueden mostrarse como cajas vacias.",
+        "expected_behavior": "Cada SVG conserva 14 x 14 px sin padding, borde ni fondo heredados.",
+        "actual_behavior": "El contrato CSS del componente no aisla correctamente el icono interno.",
+        "suggested_fix": "Limitar los estilos del chip a .v935-customer-trust-rules > span y repetir Browser QA.",
+        "safe_auto_fix_possible": False,
+        "requires_admin_approval": True,
+        "requires_approval": True,
+        "likely_files": [
+            "static/v933-product.css",
+            "templates/components/v933_ui.html",
+        ],
+        "codex_prompt_suggestion": (
+            "Revisar PQV939-005 en el panel de confianza, corregir solo el selector compartido y "
+            "validar desktop/movil. No autoaplicar CSS ni DOM."
+        ),
+        "product_quality_contract": snapshot,
+    })
+    issue["codex_prompt"] = issue["codex_prompt_suggestion"]
+    return [classify_autopilot_issue(issue)]
 def _issues_from_sentinel(sentinel_result: dict[str, Any] | None, app_version: str) -> list[dict[str, Any]]:
     if not sentinel_result:
         return []
@@ -560,6 +665,7 @@ def run_autopilot_scan(
     sports_contract: dict[str, Any] | None = None,
     save_memory: bool = False,
     memory_root: str | Path | None = None,
+    project_root: str | Path | None = None,
 ) -> dict[str, Any]:
     issues = []
     issues.extend(_environment_issues(runtime, app_version, render_runtime))
@@ -567,6 +673,7 @@ def run_autopilot_scan(
     issues.extend(_issues_from_visual(visual_result, app_version))
     issues.extend(_scan_routes(flask_client, app_version, sports_contract))
     issues.extend(_independent_sports_query_issues(memory_root, app_version))
+    issues.extend(detect_product_quality_contract_issues(project_root, app_version))
 
     deduped: dict[str, dict[str, Any]] = {}
     for issue in issues:
@@ -598,6 +705,7 @@ def run_autopilot_scan(
             "violation_priority": "P1",
             "autofix_allowed": False,
         },
+        "product_quality_contract": build_customer_trust_icon_contract_snapshot(project_root, app_version),
     }
     if save_memory:
         result["memory"] = save_autopilot_memory(result, root=memory_root)

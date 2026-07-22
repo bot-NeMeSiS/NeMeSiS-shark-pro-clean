@@ -2,9 +2,9 @@
 
 ## 1. Decisión de esta fase
 
-**Estado:** auditoría terminada; P1 funcional y primer sprint P2 resueltos y validados localmente. PQV939-003 continúa bloqueado por cobertura; los demás P2 y todos los P3 permanecen abiertos.
+**Estado:** auditoría terminada; P1 funcional y los dos primeros sprints P2 resueltos y validados localmente. PQV939-003 continúa bloqueado por cobertura; los demás P2 y todos los P3 permanecen abiertos.
 
-Este documento convierte el vídeo `NeMeSiS SHARK PRO - Google Chrome 2026-07-22 14-26-39.mp4` en evidencia oficial de producto para el recorrido que realmente contiene. Tras cerrar P1 se ejecutó exclusivamente PQV939-004: contrato de rail acotado y recuperación del ancho útil en Partidos, Inicio y Telegram. No se inició ningún otro P2/P3; este sprint no ejecutó deploy ni certificó producción.
+Este documento convierte el vídeo `NeMeSiS SHARK PRO - Google Chrome 2026-07-22 14-26-39.mp4` en evidencia oficial de producto para el recorrido que realmente contiene. Tras cerrar P1 se ejecutaron, uno por uno, PQV939-004 y PQV939-005. El segundo sprint P2 corrigió exclusivamente el contrato visual de los iconos de confianza; no se inició ningún otro P2/P3, no se ejecutó deploy y no se certificó producción.
 
 La grabación permite auditar con detalle el cliente web de escritorio y la home pública. No contiene vistas móviles ni pantallas de administración. Por tanto, no permite certificar CEO Dashboard, Operations Center, Recovery Simulator, Experiments, Company Intelligence, Sentinel o AutoPilot. Esas áreas quedan expresamente **NO OBSERVABLES EN EL VÍDEO**, no aprobadas ni suspendidas.
 
@@ -345,18 +345,25 @@ Sentinel compara el número de cards deportivas con el número de cards `canonic
 - **Check:** `tests/test_v939_product_perfection_p2.py` valida contrato, orden móvil, par equilibrado, CSS responsive y parseo Jinja. Resultado: 5/5; card canónica P1: 1/1.
 
 
-#### PQV939-005 — Iconos de reglas de confianza se convierten en cajas vacías
+#### PQV939-005 — Iconos de reglas de confianza se convierten en cajas vacías — RESUELTO LOCALMENTE
 
 - **Pantallas y timestamps:** Inicio 00:00-00:12; Picks 02:20-02:40; SHARK 03:00-03:13.
 - **Elemento:** reglas “Picks completos”, “Histórico evaluable”, “Sin beneficio garantizado”.
 - **Descripción:** el icono aparece como un rectángulo vacío antes de cada etiqueta, mientras el icono principal del mismo panel sí se renderiza correctamente.
 - **Impacto:** parece un asset roto o un checkbox sin estado.
 - **Causa raíz:** **CONFIRMADA EN CÓDIGO.** `.v935-customer-trust-rules span` aplica el estilo de chip también al `span` interno que contiene el icono. El selector debe dirigirse al hijo directo.
-- **Solución:** limitar el selector a `.v935-customer-trust-rules > span` y mantener una regla específica para `.v933-icon`.
+- **Solución aplicada:** los selectores desktop y móvil se limitaron a `.v935-customer-trust-rules > span`; el `span.v933-icon` interno conserva su regla canónica y deja de heredar el chip.
 - **Complejidad:** baja.
 - **Riesgo de corregir:** bajo.
 - **Check futuro:** los tres SVG deben tener tamaño visible y ningún icono debe heredar padding/borde de su chip padre.
-- **Aprendizaje permanente:** Sentinel detecta iconos con caja mayor que su SVG o sin trazo visible; AutoPilot puede sugerir el selector, no aplicarlo sin QA.
+- **Browser QA:** 10/10 casos PASS en 1366x768 y 390x844 sobre `/app`, `/picks`, `/shark`, detalle y `/track-record`; 0 overflow, 0 errores de consola, 0 llamadas externas, 0 respuestas fallidas y 0 errores 500. Los tres SVG son visibles donde el panel está presente, con padding/borde interno a cero y texto contenido.
+- **Regresión:** 17/17 pruebas P1/P2 PASS; V939, Jinja, privacidad, navegación y enlaces PASS.
+- **Sentinel:** el contrato directo se evalúa en cada ciclo; una mutación abre `PQV939-005-CUSTOMER-TRUST-ICON-CONTRACT` como P2 y reduce el score. El estado corregido mantiene 10/10 y 0 incidencias.
+- **AutoPilot:** genera una tarea con archivos probables y aprobación humana obligatoria; no escribe código, no despliega y no llama servicios externos.
+- **Company Intelligence:** conserva causa, solución, evidencia, versión, regla preventiva y resultado de validación solo cuando se persiste explícitamente un snapshot protegido.
+- **Aprendizaje permanente:** un icono anidado nunca puede heredar padding, borde o fondo del chip padre; AutoPilot puede sugerir el selector directo, pero no autoaplicarlo sin Browser QA.
+- **Evidencia:** `reports/PQV939_005_BROWSER_QA.md` y `browser_qa/V939_P2_PQV939_005/after/`.
+- **Producción:** no modificada ni certificada por este cierre local.
 
 #### PQV939-006 — Lenguaje técnico interno visible al cliente
 
@@ -509,18 +516,18 @@ Sentinel compara el número de cards deportivas con el número de cards `canonic
 |---|---:|---|
 | P0 | 0 | Ninguno demostrado |
 | P1 | 3 | PQV939-001 y PQV939-002 resueltos localmente; PQV939-003 abierto por cobertura |
-| P2 | 8 | PQV939-004 resuelto localmente; 7 permanecen abiertos |
+| P2 | 8 | PQV939-004 y PQV939-005 resueltos localmente; 6 permanecen abiertos |
 | P3 | 5 | Pulido y consistencia |
-| **Total** | **16** | 3 resueltos localmente; 13 permanecen abiertos |
+| **Total** | **16** | 4 resueltos localmente; 12 permanecen abiertos |
 
 ## 8. Matriz pantalla por pantalla
 
 | Pantalla | Layout | Cards | Tipografía/copy | Navegación | Datos/estado | Resultado de vídeo |
 |---|---|---|---|---|---|---|
-| `/app` | Rail acotado; accesos continúan a ancho completo | Vídeo: comprimidas; post-P1: card canónica PASS | Copy clara; tecnicismo DB/cache | Clara y activa | Snapshot canónico; indicadores de confianza P2 abiertos | **MUY BUENO; PQV939-004 resuelto localmente** |
+| `/app` | Rail acotado; accesos continúan a ancho completo | Vídeo: comprimidas; post-P1: card canónica PASS | Copy clara; tecnicismo DB/cache | Clara y activa | Snapshot canónico; iconos de confianza PASS | **MUY BUENO; PQV939-004/005 resueltos localmente** |
 | `/calendar` | Colección a ancho completo tras franja contextual | Vídeo: wrapping crítico; post-P1: desktop/móvil PASS | Filtros claros | Exceso de scroll sigue abierto como PQV939-010 | Métricas del contrato único | **MUY BUENO; PQV939-004 resuelto, otros P2 abiertos** |
 | `/live` | Estructura clara | Próximos usan card canónica | “Board” y copy técnico | CTA útiles | `live_confirmed` y `matches_today` comparten snapshot | **MEJORABLE; P1 resuelto localmente** |
-| `/picks` | Buena jerarquía | Empty state correcto | Mensaje responsable | Tabs claras | No inventa pick; iconos de reglas deformados | **MUY BUENO con P2** |
+| `/picks` | Buena jerarquía | Empty state correcto | Mensaje responsable | Tabs claras | No inventa pick; iconos de reglas PASS | **MUY BUENO; PQV939-005 resuelto localmente** |
 | `/track-record` | Equilibrado | Estados vacíos correctos | Mezcla Winrate/Stake/Void | Clara | No fabrica ROI | **MUY BUENO** |
 | `/shark` | Buena identidad | Módulos claros | Respuesta densa y “Summary” | Buenas siguientes acciones | Resumen numérico consume el contrato único | **MEJORABLE; P1 resuelto, P2 abierto** |
 | `/telegram` | Rail acotado y cierre equilibrado | Beneficios claros | Copy confiable | Flujo en tres pasos | Estado real; PII de código no se replica en este informe | **MUY BUENO; PQV939-004 resuelto localmente** |
@@ -535,7 +542,7 @@ Sentinel compara el número de cards deportivas con el número de cards `canonic
 2. **PQV939-002 — RESUELTO LOCALMENTE:** match cards y grid de colección.
 3. **PQV939-003:** completar evidencia admin y móvil; no es un cambio de código.
 4. **PQV939-004 — RESUELTO LOCALMENTE:** rail contextual acotado y continuidad a ancho completo.
-5. **PQV939-005:** selector de iconos de confianza.
+5. **PQV939-005 — RESUELTO LOCALMENTE:** selector e iconos de confianza.
 6. **PQV939-006 y PQV939-007:** copy cliente y fecha Madrid.
 7. **PQV939-008 y PQV939-010:** densidad y navegación de agenda.
 8. **PQV939-009:** estructura de respuesta SHARK.
@@ -565,7 +572,7 @@ P1 funcional está cerrado. Los P2 avanzan uno por uno y cada cierre exige captu
 - El vídeo original no abre la consola; el Browser QA posterior de las tres rutas afectadas sí la monitoriza y registra 0 errores.
 - No se mide rendimiento de red ni backend con el vídeo.
 - No se certifican datos de producción; solo se audita lo presentado visualmente.
-- No se certifica globalmente móvil, tablet, admin, formularios, modales, detalle de partido, membresías, soporte, login, registro, 404 o 500. Solo `/app`, `/calendar` y `/telegram` quedan validados en móvil para PQV939-004.
+- No se certifica globalmente móvil, tablet, admin, formularios, modales, membresías, soporte, login, registro, 404 o 500. Para el alcance aislado de PQV939-005 sí quedan validados en móvil `/app`, `/picks`, `/shark`, detalle y `/track-record`.
 - No se declara pixel-perfect.
 - No se ha usado el sitio externo mostrado al final como evidencia de NeMeSiS.
 
@@ -575,6 +582,6 @@ P1 funcional está cerrado. Los P2 avanzan uno por uno y cada cierre exige captu
 
 **AUDITORÍA DEFINITIVA DE TODA LA APLICACIÓN:** BLOQUEADA POR COBERTURA DE VÍDEO.
 
-**CORRECCIONES APLICADAS:** 2 defectos P1 y PQV939-004 resueltos y validados localmente; los otros 7 P2 y los 5 P3 no se han modificado.
+**CORRECCIONES APLICADAS:** 2 defectos P1 y PQV939-004/PQV939-005 resueltos y validados localmente; los otros 6 P2 y los 5 P3 no se han modificado.
 
-**SIGUIENTE ACCIÓN ÚNICA:** revisión humana de las seis capturas de PQV939-004; después, y solo con aprobación explícita, seleccionar PQV939-005 como siguiente P2. PQV939-003 requiere una referencia complementaria de admin y otra móvil.
+**SIGUIENTE ACCIÓN ÚNICA:** revisión humana de las capturas desktop/móvil de PQV939-005; después, y solo con aprobación explícita, seleccionar PQV939-006 como siguiente P2. PQV939-003 requiere una referencia complementaria de admin y otra móvil.
