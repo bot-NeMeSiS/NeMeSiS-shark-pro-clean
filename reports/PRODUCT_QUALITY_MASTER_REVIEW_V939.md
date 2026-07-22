@@ -297,6 +297,21 @@ Sentinel compara el número de cards deportivas con el número de cards `canonic
 
 #### PQV939-004 — Rail lateral rígido deja grandes áreas muertas
 
+**Estado del sprint P2.1:** EN CURSO — alcance exclusivo; ninguna otra incidencia P2/P3 forma parte de esta iteración.
+
+**Expediente previo obligatorio (antes de código):**
+
+- **Descripción:** el rail contextual y la colección principal comparten una rejilla que conserva ambas columnas durante toda su altura. Cuando el rail termina, la colección continúa estrecha y deja sin uso una franja lateral sostenida.
+- **Evidencia:** vídeo oficial en Partidos `01:31-02:06`, Inicio `00:17-00:19` y Telegram `03:33-03:46`; el patrón coincide con la definición estática de `.v933-two-col`.
+- **Pantallas:** `/calendar`, `/app` y `/telegram`, exclusivamente en los tramos demostrados.
+- **Componente:** layout compartido `.v933-two-col` y la delimitación DOM entre contenido contextual, rail y colecciones largas.
+- **Impacto:** desperdicia más del 25% del viewport durante contenido abundante, reduce densidad útil y debilita la jerarquía al hacer parecer incompleto el lateral derecho.
+- **Causa raíz:** la rejilla `minmax(0,1.65fr) minmax(280px,.72fr)` modela dos columnas rígidas, pero sus consumidores la utilizan también como contenedor de colecciones que deberían continuar a ancho completo tras el contexto lateral.
+- **Consumidores afectados:** calendario de partidos, inicio cliente y Telegram cliente. No se autoriza extender el cambio a otras rutas sin evidencia propia.
+- **Complejidad:** media; requiere delimitar el tramo de rail sin duplicar contenido ni introducir una segunda implementación del layout.
+- **Riesgo:** medio; una separación incorrecta podría alterar el orden de lectura, la relación contexto/acción o el responsive. La corrección debe conservar DOM semántico, rutas, datos y apilado móvil.
+
+
 - **Pantallas y timestamps:** Partidos 01:31-02:06; Inicio 00:17-00:19; Telegram 03:33-03:46.
 - **Elemento:** layout de dos columnas.
 - **Descripción:** cuando el rail termina, la columna principal sigue limitada a aproximadamente dos tercios del ancho. En la lista larga de Partidos queda una franja vacía sostenida a la derecha; también aparece desequilibrio en accesos rápidos y la parte inferior de Telegram.
