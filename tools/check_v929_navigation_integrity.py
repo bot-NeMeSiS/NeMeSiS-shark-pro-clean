@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import zipfile
 from pathlib import PurePosixPath
 
@@ -43,7 +44,7 @@ def main() -> int:
                     zip_clean = False
                     break
     checks = {
-        "version_v929_or_successor": current_version in {VERSION, V930_VERSION, V931_VERSION, V932_VERSION, V933_VERSION, V934_VERSION, V935_VERSION, V936_VERSION, V937_VERSION, V938_VERSION, V939_VERSION},
+        "version_v929_or_successor": bool(re.match(r"^V(\d+)", current_version) and int(re.match(r"^V(\d+)", current_version).group(1)) >= 929),
         "version_without_bom": not version_raw.startswith(b"\xef\xbb\xbf"),
         "app_version": app_module.APP_VERSION == current_version,
         "runtime_200": runtime_response.status_code == 200,

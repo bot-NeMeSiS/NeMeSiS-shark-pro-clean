@@ -540,6 +540,7 @@ def build_company_intelligence_snapshot(
         build_client_copy_audience_contract_snapshot,
         build_customer_trust_icon_contract_snapshot,
         build_madrid_timestamp_presentation_contract_snapshot,
+        build_v940_calendar_experience_contract_snapshot,
     )
 
     signals = collect_company_signals(root, db_path, app_version, environment, sports_metrics)
@@ -548,6 +549,7 @@ def build_company_intelligence_snapshot(
         build_customer_trust_icon_contract_snapshot(root, app_version),
         build_client_copy_audience_contract_snapshot(root, app_version),
         build_madrid_timestamp_presentation_contract_snapshot(root, app_version),
+        build_v940_calendar_experience_contract_snapshot(root, app_version),
     ]
     snapshot: dict[str, Any] = {
         "ok": True,

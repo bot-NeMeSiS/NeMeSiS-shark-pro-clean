@@ -745,6 +745,148 @@ def build_madrid_timestamp_presentation_contract_snapshot(
     }
 
 
+def build_v940_calendar_experience_contract_snapshot(
+    root: str | Path | None = None,
+    app_version: str = "",
+) -> dict[str, Any]:
+    """Inspect the V940 Calendar contract without rendering, writes or calls."""
+    project_root = Path(root) if root is not None else Path(__file__).resolve().parents[1]
+
+    def _read(relative_path: str) -> str:
+        try:
+            return (project_root / relative_path).read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            return ""
+
+    application = _read("app.py")
+    template = _read("templates/calendar.html")
+    css = _read("static/v933-product.css")
+    javascript = _read("static/v940-calendar.js")
+
+    call_names: dict[str, set[str]] = {}
+    context_source = ""
+    try:
+        tree = ast.parse(application)
+        for node in ast.walk(tree):
+            if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                continue
+            if node.name in {"calendar_page", "api_calendar"}:
+                call_names[node.name] = {
+                    call.func.id
+                    for call in ast.walk(node)
+                    if isinstance(call, ast.Call) and isinstance(call.func, ast.Name)
+                }
+            elif node.name == "v940_calendar_context":
+                context_source = ast.get_source_segment(application, node) or ""
+    except (SyntaxError, ValueError):
+        pass
+
+    page_calls = call_names.get("calendar_page", set())
+    api_calls = call_names.get("api_calendar", set())
+    shared_snapshot_contract = (
+        {"v932_safe_dashboard_data", "v940_calendar_context"} <= page_calls
+        and {"v932_safe_dashboard_data", "v940_calendar_context"} <= api_calls
+        and "calendar_experience_data" not in api_calls
+        and "get_sports_metrics_contract" in context_source
+    )
+    source_safety_contract = (
+        '"database_written": False' in context_source
+        and '"external_calls": 0' in context_source
+        and not re.search(
+            r"\b(?:requests|get_db|execute|executemany|commit|provider|sync_api|ensure_client_live_fresh)\s*\(",
+            context_source,
+        )
+    )
+    state_contract = all(
+        marker in application
+        for marker in (
+            "V940_CALENDAR_STATE_KEYS",
+            "def _v940_calendar_href",
+            "def _v940_calendar_active_filters",
+            "def _v940_calendar_group_navigation",
+            '"contract": "v940-calendar-history-layers-v1"',
+        )
+    )
+    template_contract = all(
+        marker in template
+        for marker in (
+            'data-v940-calendar-experience="history-layers-v1"',
+            "data-v940-calendar-command",
+            "data-v940-calendar-context",
+            "data-v940-calendar-index",
+            "data-v940-calendar-collection",
+            "data-v940-calendar-filters-active",
+            'name="date"',
+            "Limpiar capas",
+        )
+    )
+    canonical_card_contract = (
+        template.count("{{ match_card(match, false, true) }}") == 1
+        and template.count("v933-match-grid") == 1
+        and "data-v934-match-card" not in template
+    )
+    responsive_contract = all(
+        marker in css
+        for marker in (
+            ".v940-calendar-context {",
+            "position: sticky;",
+            ".v940-calendar-index",
+            ".v940-calendar-day",
+            ".v940-calendar-league > .v933-match-grid",
+            "@media (max-width: 800px)",
+            "@media (prefers-reduced-motion: reduce)",
+        )
+    )
+    local_navigation_contract = all(
+        marker in javascript
+        for marker in (
+            "window.sessionStorage",
+            'navigationType() !== "back_forward"',
+            "IntersectionObserver",
+            'window.addEventListener("pagehide", savePosition)',
+            'event.key !== "/"',
+        )
+    )
+    no_client_network = not re.search(
+        r"\b(?:fetch|XMLHttpRequest|WebSocket|sendBeacon)\s*\(",
+        javascript,
+    )
+
+    checks = {
+        "shared_snapshot_contract": shared_snapshot_contract,
+        "source_safety_contract": source_safety_contract,
+        "state_contract": state_contract,
+        "template_contract": template_contract,
+        "canonical_card_contract": canonical_card_contract,
+        "responsive_contract": responsive_contract,
+        "local_navigation_contract": local_navigation_contract,
+        "no_client_network": no_client_network,
+    }
+    violations = [name for name, passed in checks.items() if not passed]
+    passed = not violations
+    return {
+        "issue_id": "V940-CALENDAR-EXPERIENCE-CONTRACT",
+        "version": app_version,
+        "component": "calendar_discovery_experience",
+        "affected_routes": ["/calendar", "/calendario", "/partidos", "/api/calendar"],
+        "cause": "Calendar context can regress when a consumer recalculates data or drops persistent navigation layers.",
+        "impact": "Users lose date, filter or scroll context and need more effort to locate a match.",
+        "solution": "Keep page and API on one V940 snapshot, one canonical match card and local-only context restoration.",
+        "evidence": {**checks, "violations": violations},
+        "preventive_rule": (
+            "Calendar consumers use v940_calendar_context over sports-metrics-v1; "
+            "navigation layers and the canonical match card remain present."
+        ),
+        "qa_result": "PASS" if passed else "REGRESSION",
+        "validation_result": "PASS" if passed else "REGRESSION",
+        "certification_state": "VERIFIED" if passed else "REQUIRES_REVIEW",
+        "status": "RESOLVED_LOCALLY" if passed else "OPEN",
+        "evaluated_at_madrid": _now(),
+        "autofix_allowed": False,
+        "approval_required": True,
+        "production_certified": False,
+    }
+
 def detect_product_quality_contract_issues(
     root: str | Path | None = None,
     app_version: str = "",
@@ -856,6 +998,52 @@ def detect_product_quality_contract_issues(
                 "la etiqueta Madrid cliente. Validar desktop, móvil y polling. No autoaplicar código."
             ),
             "product_quality_contract": timestamp_snapshot,
+        })
+        issue["codex_prompt"] = issue["codex_prompt_suggestion"]
+        issues.append(classify_autopilot_issue(issue))
+    version_match = re.match(r"^V(\d+)", str(app_version or ""))
+    calendar_contract_required = bool(version_match and int(version_match.group(1)) >= 940)
+    calendar_snapshot = (
+        build_v940_calendar_experience_contract_snapshot(root, app_version)
+        if calendar_contract_required
+        else None
+    )
+    if calendar_snapshot and calendar_snapshot["validation_result"] != "PASS":
+        issue = _new_issue(
+            "El Calendario pierde su contrato de descubrimiento",
+            "navigation",
+            "medium",
+            "/calendar",
+            "V940 Calendar; " + ",".join(calendar_snapshot["evidence"]["violations"]),
+            app_version,
+        )
+        issue.update({
+            "id": "V940-CALENDAR-EXPERIENCE-CONTRACT",
+            "priority": "P1",
+            "profile": "CLIENT",
+            "component": "calendar_discovery_experience",
+            "description": "El Calendario deja de conservar una fuente, capas o contexto canonicos.",
+            "expected_behavior": (
+                "Pagina y API comparten snapshot, filtros reversibles, indices y match_card canonica."
+            ),
+            "actual_behavior": "Una o mas garantias del contrato V940 no se pueden demostrar.",
+            "suggested_fix": (
+                "Restaurar solo el contrato incumplido y repetir tests y Browser QA desktop/movil."
+            ),
+            "safe_auto_fix_possible": False,
+            "requires_admin_approval": True,
+            "requires_approval": True,
+            "likely_files": [
+                "app.py",
+                "templates/calendar.html",
+                "static/v933-product.css",
+                "static/v940-calendar.js",
+            ],
+            "codex_prompt_suggestion": (
+                "Revisar el contrato V940 del Calendario con la evidencia indicada. "
+                "No autoaplicar DOM, CSS, datos ni rutas; preservar sports-metrics-v1 y match_card()."
+            ),
+            "product_quality_contract": calendar_snapshot,
         })
         issue["codex_prompt"] = issue["codex_prompt_suggestion"]
         issues.append(classify_autopilot_issue(issue))

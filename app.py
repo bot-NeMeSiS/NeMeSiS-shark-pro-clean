@@ -390,7 +390,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V939_AUTONOMOUS_COMPANY_INTELLIGENCE_GROWTH_AND_QUALITY_PLATFORM_FINAL'
+APP_VERSION = 'V940_NEMESIS_SPORTS_EXPERIENCE_PHASE_1_FOUNDATION_FINAL'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 
@@ -11190,7 +11190,7 @@ def dashboard_data(lane="today", date=None):
 @app.route("/service-worker.js")
 def service_worker():
     body = (
-        "const NEMESIS_CACHE='NEMESIS_CACHE_V939';\n"
+        "const NEMESIS_CACHE='NEMESIS_CACHE_V940';\n"
         "self.addEventListener('install',event=>{self.skipWaiting();});\n"
         "self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.map(key=>caches.delete(key)))).then(()=>self.clients.claim()));});\n"
         "self.addEventListener('fetch',event=>{const req=event.request;if(req.method!=='GET'){return;}if(req.mode==='navigate'){event.respondWith(fetch(req,{cache:'no-store'}).catch(()=>fetch('/',{cache:'no-store'})));return;}if(req.destination==='style'||req.destination==='script'){event.respondWith(fetch(req,{cache:'reload'}));return;}event.respondWith(fetch(req));});\n"
@@ -11214,7 +11214,7 @@ def manifest_json():
         "background_color": "#06111f",
         "icons": [
             {
-                "src": "/static/img/shark-logo.svg?v=V937-brand-2",
+                "src": "/static/img/shark-logo.svg?v=V940-brand-2",
                 "sizes": "any",
                 "type": "image/svg+xml",
                 "purpose": "any maskable",
@@ -14161,6 +14161,377 @@ def _calendar_source_summary(filters, counts):
     return "Esperando sincronización real de SportsDB, Odds API o importación legal."
 
 
+V940_CALENDAR_STATE_KEYS = (
+    "lane",
+    "date",
+    "q",
+    "league",
+    "team",
+    "country",
+    "status",
+    "sort",
+    "with_pick",
+)
+
+V940_CALENDAR_FILTER_LABELS = {
+    "q": "Búsqueda",
+    "league": "Competición",
+    "team": "Equipo",
+    "country": "País",
+    "status": "Estado",
+    "sort": "Orden",
+    "with_pick": "Con pick",
+}
+
+
+def _v940_calendar_filters(lane="today", date_value=None):
+    aliases = {
+        "directo": "live",
+        "favoritos": "favorites",
+        "favourites": "favorites",
+        "finalizados": "finished",
+        "incidencias": "incidents",
+    }
+    raw_lane = _safe_query_value(lane or "today", 32).lower() or "today"
+    selected_lane = aliases.get(raw_lane, raw_lane)
+    allowed = set(CALENDAR_LANE_LABELS) | {"incidents"}
+    if selected_lane not in allowed:
+        selected_lane = "today"
+    args = request.args if has_request_context() else {}
+    fallback_date = today_iso(1) if selected_lane == "tomorrow" else today_iso()
+    selected_date = _safe_date_value(date_value or args.get("date"), fallback_date)
+    sort_key = _safe_query_value(args.get("sort") or "time", 40).lower()
+    if sort_key not in {"time", "league", "picks", "importance"}:
+        sort_key = "time"
+    return {
+        "lane": selected_lane,
+        "date": selected_date,
+        "q": _safe_query_value(args.get("q"), 90),
+        "league": _safe_query_value(args.get("league"), 80),
+        "team": _safe_query_value(args.get("team"), 80),
+        "country": _safe_query_value(args.get("country"), 60),
+        "status": _safe_query_value(args.get("status"), 40),
+        "sort": sort_key,
+        "with_pick": "1" if args.get("with_pick") in {"1", "true", "yes"} else "",
+    }
+
+
+def _v940_calendar_href(filters=None, **overrides):
+    state = {
+        key: (filters or {}).get(key)
+        for key in V940_CALENDAR_STATE_KEYS
+    }
+    state.update(overrides)
+    clean = {}
+    for key in V940_CALENDAR_STATE_KEYS:
+        value = state.get(key)
+        if value in (None, ""):
+            continue
+        if key == "sort" and value == "time":
+            continue
+        clean[key] = value
+    return "/calendar" + ("?" + urllib.parse.urlencode(clean) if clean else "")
+
+
+def _v940_calendar_prepare_match(raw, pick_ids, favorites):
+    item = dict(raw or {})
+    match_id = str(item.get("id") or item.get("match_id") or "").strip()
+    competition = (
+        item.get("client_competition")
+        or item.get("calendar_competition")
+        or item.get("competition_name")
+        or item.get("league_name")
+        or "Competición"
+    )
+    country = item.get("country") or item.get("safe_country") or "Global"
+    home = item.get("client_home") or item.get("safe_home") or item.get("home_team") or ""
+    away = item.get("client_away") or item.get("safe_away") or item.get("away_team") or ""
+    favorite_matches = favorites.get("match") or set()
+    favorite_leagues = favorites.get("league") or set()
+    favorite_teams = favorites.get("team") or set()
+    item["has_pick"] = match_id in pick_ids
+    item["is_favorite"] = bool(
+        item.get("is_favorite")
+        or match_id.lower() in favorite_matches
+        or str(item.get("competition_key") or "").lower() in favorite_leagues
+        or str(competition).lower() in favorite_leagues
+        or str(home).lower() in favorite_teams
+        or str(away).lower() in favorite_teams
+    )
+    item["safe_home"] = home
+    item["safe_away"] = away
+    item["calendar_competition"] = competition
+    item["calendar_country"] = country
+    item["calendar_date_label"] = item.get("client_date_label") or jinja_match_date_label(item)
+    item["calendar_time"] = item.get("client_time_label") or jinja_match_time_short(item)
+    item["calendar_status"] = (
+        item.get("client_status_label")
+        or item.get("status_label")
+        or item.get("display_status")
+        or item.get("status")
+        or "Próximo"
+    )
+    item["calendar_rank"] = int(item.get("calendar_rank") or 80)
+    item["calendar_text"] = _calendar_match_text(item)
+    return item
+
+
+def _v940_calendar_source_matches(summary, filters, prepared_all, prepared_by_id):
+    lane = filters["lane"]
+    selected_date = filters["date"]
+    today = today_iso()
+    week_end = (datetime.fromisoformat(today).date() + timedelta(days=7)).isoformat()
+
+    def prepared_items(key):
+        items = []
+        for raw in summary.get(key) or []:
+            match_id = _sports_match_key(raw)
+            if match_id and match_id in prepared_by_id:
+                items.append(prepared_by_id[match_id])
+        return _dedupe_sports_matches(items)
+
+    if lane == "week":
+        return [
+            item for item in prepared_all
+            if today <= str(item.get("match_date") or "") <= week_end
+        ]
+    if lane == "upcoming":
+        return prepared_items("valid_upcoming_matches")
+    if lane == "live":
+        return prepared_items("valid_live_events")
+    if lane in {"with_pick", "picks"}:
+        return [item for item in prepared_all if item.get("has_pick")]
+    if lane == "favorites":
+        return [item for item in prepared_all if item.get("is_favorite")]
+    if lane in {"finished", "results"}:
+        return prepared_items("finished_matches")
+    if lane == "incidents":
+        return prepared_items("incident_matches")
+    if lane in {"top", "spain", "andalucia", "international", "uefa", "national", "world"}:
+        return [item for item in prepared_all if match_lane_filter(item, lane)]
+    return [
+        item for item in prepared_all
+        if str(item.get("match_date") or "") == selected_date
+    ]
+
+
+def _v940_calendar_group_navigation(day_groups):
+    day_navigation = []
+    for day_index, day in enumerate(day_groups):
+        date_key = str(day.get("date") or day.get("date_key") or day_index)
+        day_anchor = f"v940-day-{slug(date_key) or day_index}"
+        day["anchor_id"] = day_anchor
+        day["context_label"] = day.get("label") or day.get("date_label") or date_key
+        day_navigation.append({
+            "label": day["context_label"],
+            "href": f"#{day_anchor}",
+            "count": int(day.get("matches_count") or day.get("total") or 0),
+        })
+        league_navigation = []
+        for league_index, league in enumerate(day.get("leagues") or []):
+            league_name = league.get("label") or league.get("name") or "Competición"
+            league_anchor = f"{day_anchor}-league-{league_index}-{slug(league_name) or 'competition'}"
+            league["anchor_id"] = league_anchor
+            league["context_label"] = f"{day['context_label']} · {league_name}"
+            league_navigation.append({
+                "label": league_name,
+                "href": f"#{league_anchor}",
+                "count": len(league.get("matches") or []),
+            })
+        day["league_navigation"] = league_navigation
+    return day_navigation
+
+
+def _v940_calendar_active_filters(filters):
+    sort_labels = {
+        "importance": "Prioridad",
+        "league": "Competición",
+        "picks": "Picks primero",
+        "time": "Hora",
+    }
+    active = []
+    for key in ("q", "league", "team", "country", "status", "with_pick", "sort"):
+        value = filters.get(key)
+        if not value or (key == "sort" and value == "time"):
+            continue
+        display_value = "Sí" if key == "with_pick" else sort_labels.get(str(value), value)
+        active.append({
+            "key": key,
+            "label": V940_CALENDAR_FILTER_LABELS[key],
+            "value": display_value,
+            "remove_href": _v940_calendar_href(filters, **{key: None}),
+        })
+    return active
+
+
+def _v940_calendar_tabs(filters, counts):
+    entries = (
+        ("today", "Hoy", today_iso(), counts.get("today", 0)),
+        ("tomorrow", "Mañana", today_iso(1), counts.get("tomorrow", 0)),
+        ("week", "Semana", today_iso(), counts.get("week", 0)),
+        ("live", "Directo", today_iso(), counts.get("live", 0)),
+        ("with_pick", "Con pick", today_iso(), counts.get("picks", 0)),
+        ("favorites", "Favoritos", filters.get("date"), counts.get("favorites", 0)),
+        ("finished", "Finalizados", filters.get("date"), counts.get("finished", 0)),
+    )
+    return [
+        {
+            "key": key,
+            "label": label,
+            "count": count,
+            "href": _v940_calendar_href(filters, lane=key, date=date_value),
+        }
+        for key, label, date_value, count in entries
+    ]
+
+
+def _v940_calendar_date_chips(filters, date_counts):
+    selected_date = filters.get("date") or today_iso()
+    dates = [today_iso(offset) for offset in range(7)]
+    if selected_date not in dates:
+        dates.append(selected_date)
+        dates.sort()
+    chips = []
+    for date_value in dates:
+        label = date_display_label(date_value)
+        count = int(date_counts.get(date_value) or 0)
+        chips.append({
+            "key": date_value,
+            "date": date_value,
+            "label": f"{label} · {count}",
+            "count": count,
+            "active": date_value == selected_date and filters.get("lane") not in {
+                "week", "upcoming", "live", "favorites", "with_pick", "picks", "finished", "results"
+            },
+            "href": _v940_calendar_href(filters, lane="today", date=date_value),
+        })
+    return chips
+
+
+def v940_calendar_context(summary, lane="today", date_value=None):
+    """One request-local Calendar view over sports-metrics-v1 and canonical matches."""
+    summary = summary if isinstance(summary, dict) else {}
+    filters = _v940_calendar_filters(lane, date_value)
+    sports_metrics = get_sports_metrics_contract(summary)
+    pick_ids = {
+        str(item.get("match_id") or "").strip()
+        for item in summary.get("valid_active_picks") or []
+        if str(item.get("match_id") or "").strip()
+    }
+    favorites = (
+        favorite_sets()
+        if has_request_context() and current_session_user()
+        else {"team": set(), "league": set(), "match": set(), "all": []}
+    )
+    prepared_all = [
+        _v940_calendar_prepare_match(item, pick_ids, favorites)
+        for item in _dedupe_sports_matches(
+            summary.get("all_valid_matches")
+            or summary.get("valid_upcoming_matches")
+            or []
+        )
+    ]
+    prepared_by_id = {
+        _sports_match_key(item): item
+        for item in prepared_all
+        if _sports_match_key(item)
+    }
+    source_matches = _v940_calendar_source_matches(
+        summary,
+        filters,
+        prepared_all,
+        prepared_by_id,
+    )
+    filtered = _calendar_apply_filters(source_matches, filters)
+    sorted_matches = _calendar_sort(filtered, filters.get("sort"))
+    day_groups = _calendar_group(sorted_matches)
+    day_navigation = _v940_calendar_group_navigation(day_groups)
+    facets = _calendar_facets(source_matches)
+
+    today = today_iso()
+    tomorrow = today_iso(1)
+    week_end = (datetime.fromisoformat(today).date() + timedelta(days=7)).isoformat()
+    date_counts = {}
+    for item in prepared_all:
+        match_date = str(item.get("match_date") or "")
+        if match_date:
+            date_counts[match_date] = int(date_counts.get(match_date) or 0) + 1
+    league_count = len({
+        normalized_label(
+            item.get("calendar_competition")
+            or item.get("competition_name")
+            or item.get("league_name")
+            or ""
+        )
+        for item in sorted_matches
+        if item.get("calendar_competition") or item.get("competition_name") or item.get("league_name")
+    })
+    counts = {
+        "all": len(source_matches),
+        "visible": len(sorted_matches),
+        "days": len(day_groups),
+        "leagues": league_count,
+        "today": sports_metrics["matches_today"],
+        "tomorrow": int(date_counts.get(tomorrow) or 0),
+        "week": sum(
+            1 for item in prepared_all
+            if today <= str(item.get("match_date") or "") <= week_end
+        ),
+        "live": sports_metrics["live_confirmed"],
+        "picks": sports_metrics["matches_with_picks"],
+        "favorites": sum(1 for item in prepared_all if item.get("is_favorite")),
+        "finished": sports_metrics["finished_verified"],
+        "incidents": len(summary.get("incident_matches") or []),
+    }
+    active_filters = _v940_calendar_active_filters(filters)
+    selected_label = CALENDAR_LANE_LABELS.get(filters["lane"], "Calendario")
+    selected_date_label = date_display_label(filters["date"])
+    selected_summary = {
+        "label": selected_label,
+        "title": selected_date_label if filters["lane"] in {"today", "tomorrow"} else selected_label,
+        "visible": counts["visible"],
+        "total": counts["all"],
+        "source": "Datos reales confirmados" if counts["visible"] else "Sin partidos confirmados para estas capas",
+    }
+    default_context = selected_summary["title"]
+    if day_groups:
+        first_day = day_groups[0]
+        first_league = (first_day.get("leagues") or [{}])[0]
+        default_context = first_league.get("context_label") or first_day.get("context_label") or default_context
+    if counts["visible"]:
+        source_summary = "Agenda confirmada y ordenada por día, competición y hora Madrid."
+    elif counts["all"]:
+        source_summary = "Ningún partido confirmado coincide con todas las capas activas."
+    else:
+        source_summary = summary.get("safe_message") or "Sin agenda real completa disponible."
+
+    return {
+        "version": APP_VERSION,
+        "contract": "v940-calendar-history-layers-v1",
+        "filters": filters,
+        "matches": sorted_matches,
+        "day_groups": day_groups,
+        "groups": day_groups,
+        "counts": counts,
+        "sports_metrics": sports_metrics,
+        "facets": facets,
+        "tabs": _v940_calendar_tabs(filters, counts),
+        "date_chips": _v940_calendar_date_chips(filters, date_counts),
+        "day_navigation": day_navigation,
+        "active_filters": active_filters,
+        "has_filters": bool(active_filters),
+        "reset_href": _v940_calendar_href(
+            {"lane": filters["lane"], "date": filters["date"], "sort": "time"}
+        ),
+        "selected_summary": selected_summary,
+        "default_context": default_context,
+        "source_summary": source_summary,
+        "no_render_api_call": True,
+        "database_written": False,
+        "external_calls": 0,
+    }
+
+
 def calendar_experience_data():
     lane = _safe_query_value(request.args.get("lane") or "today", 32).lower() or "today"
     if lane == "andalucia":
@@ -14256,9 +14627,9 @@ def global_football():
 @app.route("/partidos/calendario")
 def calendar_page():
     lane = request.args.get("lane") or "today"
-    date_value = request.args.get("date") or today_iso()
+    date_value = request.args.get("date") or (today_iso(1) if lane == "tomorrow" else today_iso())
     data, summary = v932_safe_dashboard_data(request.path, "today", date_value, compact=True)
-    data["calendar"] = v931_calendar_context(summary, lane, date_value)
+    data["calendar"] = v940_calendar_context(summary, lane, date_value)
     data["matches"] = data["calendar"].get("matches", [])
     data["lane"] = data["calendar"].get("filters", {}).get("lane", "today")
     data["date"] = data["calendar"].get("filters", {}).get("date", today_iso())
@@ -19926,6 +20297,14 @@ def api_runtime_version():
         "v939_real_telegram_sent": False,
         "v939_real_payments_executed": False,
         "v939_production_certification_status": "not_certified_local_build",
+        "has_v940_nemesis_sports_experience_phase_1_foundation": (
+            "data-v940-calendar-experience=\"history-layers-v1\"" in (BASE_DIR / "templates" / "calendar.html").read_text(encoding="utf-8", errors="replace")
+            and (BASE_DIR / "static" / "v940-calendar.js").exists()
+            and (BASE_DIR / "tools" / "check_v940_calendar_sports_experience.py").exists()
+        ),
+        "v940_calendar_contract": "v940-calendar-history-layers-v1",
+        "v940_scope": "calendar_only",
+        "v940_production_certification_status": "not_certified_local_build",
         **v902_truth_summary,
         **v904_summary,
         **v906_summary,
@@ -20194,7 +20573,10 @@ def api_live_diagnostics():
 
 @app.route("/api/calendar")
 def api_calendar():
-    calendar = calendar_experience_data()
+    lane = request.args.get("lane") or "today"
+    date_value = request.args.get("date") or (today_iso(1) if lane == "tomorrow" else today_iso())
+    _data, summary = v932_safe_dashboard_data("/api/calendar", "today", date_value, compact=True)
+    calendar = v940_calendar_context(summary, lane, date_value)
     return jsonify({"ok": True, "version": APP_VERSION, "calendar": calendar, "matches": calendar.get("matches", [])})
 
 
