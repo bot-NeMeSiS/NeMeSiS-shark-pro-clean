@@ -887,6 +887,148 @@ def build_v940_calendar_experience_contract_snapshot(
         "production_certified": False,
     }
 
+def build_v944_match_center_foundation_contract_snapshot(
+    root: str | Path | None = None,
+    app_version: str = "",
+) -> dict[str, Any]:
+    """Inspect the V944 Match Center foundation without rendering or writes."""
+    project_root = Path(root) if root is not None else Path(__file__).resolve().parents[1]
+
+    def _read(relative_path: str) -> str:
+        try:
+            return (project_root / relative_path).read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            return ""
+
+    application = _read("app.py")
+    engine = _read("engines/match_context_engine.py")
+    template = _read("templates/match_detail.html")
+    components = _read("templates/components/v944_match_center.html")
+    css = _read("static/v933-product.css")
+
+    route_source = ""
+    detail_source = ""
+    try:
+        tree = ast.parse(application)
+        for node in ast.walk(tree):
+            if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                continue
+            if node.name == "match_detail_page":
+                route_source = ast.get_source_segment(application, node) or ""
+            elif node.name == "match_detail":
+                detail_source = ast.get_source_segment(application, node) or ""
+    except (SyntaxError, ValueError):
+        pass
+
+    expected_components = (
+        "MatchHeader", "ScoreWidget", "MatchStory", "Timeline", "StatsPanel",
+        "SharkPanel", "TelegramPanel", "BankrollPanel", "CompetitionPanel", "QuickActions",
+    )
+    expected_states = (
+        "loading", "ready", "partial", "finished", "error", "offline", "unknown",
+    )
+    source_contract = all(marker in engine for marker in (
+        'MATCH_CENTER_CONTRACT = "MATCH-CENTER-LIFECYCLE-STORY-V1"',
+        "class MatchContext:",
+        "def build_match_context(",
+        '"builder_database_queries": 0',
+        '"builder_database_writes": 0',
+        '"external_calls": 0',
+        '"single_snapshot": True',
+    ))
+    pure_builder_contract = not re.search(
+        r"\b(?:sqlite3|requests|urllib|flask|commit|execute|executemany)\b",
+        engine,
+        flags=re.IGNORECASE,
+    )
+    single_load_contract = all((
+        detail_source.count("annotate_match(") == 1,
+        detail_source.count("related_picks_for_match(") == 1,
+        "include_depth=False" in route_source,
+        "build_match_context(" in route_source,
+        "dashboard_data(" not in route_source,
+        "get_public_home_sports_summary(" not in route_source,
+    ))
+    get_side_effect_contract = not re.search(
+        r"\b(?:record_user_activity|commit|execute|save_|insert_|update_|delete_)\s*\(",
+        route_source,
+        flags=re.IGNORECASE,
+    )
+    state_contract = all(f'"{state}"' in engine for state in expected_states)
+    component_contract = all(
+        name in engine
+        and (
+            f'data-match-component="{name}"' in components
+            or f"panel_start('{name}'" in components
+        )
+        for name in expected_components
+    )
+    shell_contract = all(marker in template for marker in (
+        'data-v944-match-center-foundation="phase-1"',
+        "data-match-contract=",
+        "match_header(match_context)",
+        "score_widget(match_context)",
+        "match_story(match_context)",
+        "timeline(match_context)",
+        "stats_panel(match_context)",
+        "shark_panel(match_context)",
+        "telegram_panel(match_context)",
+        "bankroll_panel(match_context)",
+        "competition_panel(match_context)",
+        "quick_actions(match_context)",
+    ))
+    safe_fallback_contract = (
+        "No disponible todavía." in components
+        and "El marcador aparecerá únicamente" in components
+        and "datos confirmados" in engine
+    )
+    responsive_contract = all(marker in css for marker in (
+        "V944 MATCH CENTER FOUNDATION",
+        ".v944-match-anchor {",
+        ".v944-match-layout {",
+        "@media (max-width: 1080px)",
+        "@media (max-width: 800px)",
+        "@media (prefers-reduced-motion: reduce)",
+    ))
+    no_foundation_javascript = not (project_root / "static/v944-match-center.js").exists()
+
+    checks = {
+        "source_contract": source_contract,
+        "pure_builder_contract": pure_builder_contract,
+        "single_load_contract": single_load_contract,
+        "get_side_effect_contract": get_side_effect_contract,
+        "state_contract": state_contract,
+        "component_contract": component_contract,
+        "shell_contract": shell_contract,
+        "safe_fallback_contract": safe_fallback_contract,
+        "responsive_contract": responsive_contract,
+        "no_foundation_javascript": no_foundation_javascript,
+    }
+    violations = [name for name, passed in checks.items() if not passed]
+    passed = not violations
+    return {
+        "issue_id": "V944-MATCH-CENTER-FOUNDATION-CONTRACT",
+        "version": app_version,
+        "component": "match_center_foundation",
+        "affected_routes": ["/match/<id>", "/partido/<id>"],
+        "cause": "The Match Center can regress if a component reloads facts, loses a canonical state or introduces a GET side effect.",
+        "impact": "Users can see contradictory match facts, unstable fallbacks or a broken responsive shell.",
+        "solution": "Keep every region on one pure MatchContext and the approved component/state contracts.",
+        "evidence": {**checks, "violations": violations},
+        "preventive_rule": (
+            "All Match Center regions consume MATCH-CENTER-LIFECYCLE-STORY-V1 through one MatchContext; "
+            "GET rendering has no writes or external calls."
+        ),
+        "qa_result": "PASS" if passed else "REGRESSION",
+        "validation_result": "PASS" if passed else "REGRESSION",
+        "certification_state": "VERIFIED" if passed else "REQUIRES_REVIEW",
+        "status": "RESOLVED_LOCALLY" if passed else "OPEN",
+        "evaluated_at_madrid": _now(),
+        "autofix_allowed": False,
+        "approval_required": True,
+        "production_certified": False,
+    }
+
 def detect_product_quality_contract_issues(
     root: str | Path | None = None,
     app_version: str = "",
@@ -1044,6 +1186,52 @@ def detect_product_quality_contract_issues(
                 "No autoaplicar DOM, CSS, datos ni rutas; preservar sports-metrics-v1 y match_card()."
             ),
             "product_quality_contract": calendar_snapshot,
+        })
+        issue["codex_prompt"] = issue["codex_prompt_suggestion"]
+        issues.append(classify_autopilot_issue(issue))
+    match_center_root = Path(root) if root is not None else Path(__file__).resolve().parents[1]
+    match_center_present = (
+        (match_center_root / "engines/match_context_engine.py").exists()
+        or (match_center_root / "templates/components/v944_match_center.html").exists()
+    )
+    match_center_snapshot = (
+        build_v944_match_center_foundation_contract_snapshot(root, app_version)
+        if match_center_present
+        else None
+    )
+    if match_center_snapshot and match_center_snapshot["validation_result"] != "PASS":
+        issue = _new_issue(
+            "El Match Center pierde su contrato de contexto único",
+            "sports_data_contract",
+            "high",
+            "/match/<id>",
+            "V944 Match Center; " + ",".join(match_center_snapshot["evidence"]["violations"]),
+            app_version,
+        )
+        issue.update({
+            "id": "V944-MATCH-CENTER-FOUNDATION-CONTRACT",
+            "priority": "P1",
+            "profile": "CLIENT",
+            "component": "match_center_foundation",
+            "description": "Una región del partido ha dejado de compartir contexto, estado o fallback canónico.",
+            "expected_behavior": "Diez componentes consumen un MatchContext puro, responsive y sin efectos laterales.",
+            "actual_behavior": "Una o más garantías de MATCH-CENTER-LIFECYCLE-STORY-V1 no se pueden demostrar.",
+            "suggested_fix": "Restaurar solo el contrato incumplido y repetir tests y Browser QA en tres viewports.",
+            "safe_auto_fix_possible": False,
+            "requires_admin_approval": True,
+            "requires_approval": True,
+            "likely_files": [
+                "engines/match_context_engine.py",
+                "app.py",
+                "templates/match_detail.html",
+                "templates/components/v944_match_center.html",
+                "static/v933-product.css",
+            ],
+            "codex_prompt_suggestion": (
+                "Revisar el contrato V944 del Match Center usando la evidencia indicada. "
+                "No autoaplicar Python, Jinja, CSS, datos ni rutas; conservar la API y MATCH-CENTER-LIFECYCLE-STORY-V1."
+            ),
+            "product_quality_contract": match_center_snapshot,
         })
         issue["codex_prompt"] = issue["codex_prompt_suggestion"]
         issues.append(classify_autopilot_issue(issue))

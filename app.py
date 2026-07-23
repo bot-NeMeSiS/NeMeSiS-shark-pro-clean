@@ -68,6 +68,7 @@ from engines.football_population_engine import (
     team_payload,
 )
 from engines.live_engine import build_live_depth, build_live_flow, build_match_detail, fallback_timeline, normalize_live_state, shark_live_alerts, shark_momentum
+from engines.match_context_engine import build_match_context
 from engines.live_experience_engine import build_live_experience, live_experience_snapshot
 from engines.v934_realtime_sports_engine import (
     LIVE_POLL_SECONDS as V934_LIVE_POLL_SECONDS,
@@ -6096,17 +6097,44 @@ def head_to_head_matches(home_team, away_team, limit=5):
     return found
 
 
-def match_depth_payload(match):
-    """Build V540 match intelligence using persisted legal data only."""
-    annotated = annotate_match(match)
+def _match_data_quality(match, related_picks=None):
+    home_identity = match.get("home_identity") or {}
+    away_identity = match.get("away_identity") or {}
+    score_fields_ready = (
+        match.get("home_score") not in {None, ""}
+        and match.get("away_score") not in {None, ""}
+    )
+    return {
+        "has_score": score_fields_ready or bool(str(match.get("score") or "").strip()),
+        "has_time": bool(match.get("kickoff_time") or match.get("kickoff_iso")),
+        "has_crests": bool(
+            (home_identity.get("crest_url") or home_identity.get("logo"))
+            and (away_identity.get("crest_url") or away_identity.get("logo"))
+        ),
+        "has_picks": bool(related_picks),
+        "has_h2h": False,
+    }
+
+
+def match_depth_payload(match, *, preannotated=False, timeline=None, related_picks=None):
+    """Build the legacy depth payload without reloading shared match facts."""
+    annotated = match if preannotated else annotate_match(match)
     home = annotated.get("home_team") or ""
     away = annotated.get("away_team") or ""
     home_form = recent_team_form(home)
     away_form = recent_team_form(away)
     h2h = head_to_head_matches(home, away)
     live_depth = annotated.get("live_depth") or build_live_depth(annotated)
-    timeline = match_timeline(annotated) or fallback_timeline(annotated)
-    picks = related_picks_for_match(annotated)
+    timeline_items = (
+        timeline
+        if timeline is not None
+        else annotated.get("timeline") or match_timeline(annotated)
+    )
+    picks = (
+        related_picks
+        if related_picks is not None
+        else related_picks_for_match(annotated)
+    )
     shark_notes = []
     if h2h:
         shark_notes.append(f"Hay {len(h2h)} enfrentamientos directos guardados para comparar contexto.")
@@ -6122,36 +6150,51 @@ def match_depth_payload(match):
         shark_notes.append("Partido finalizado: útil para histórico, forma y aprendizaje futuro.")
     else:
         shark_notes.append("Partido próximo: contexto preparado para picks, favoritos y alertas.")
+    quality = _match_data_quality(annotated, picks)
+    quality["has_h2h"] = bool(h2h)
     return {
         "match": annotated,
         "live_depth": live_depth,
-        "timeline": timeline,
+        "timeline": timeline_items,
         "home_form": home_form,
         "away_form": away_form,
         "head_to_head": h2h,
         "related_picks": picks,
         "shark_notes": shark_notes,
-        "data_quality": {
-            "has_score": bool(annotated.get("score")),
-            "has_time": bool(annotated.get("kickoff_time") or annotated.get("kickoff_iso")),
-            "has_crests": bool((annotated.get("home_identity") or {}).get("crest_url") and (annotated.get("away_identity") or {}).get("crest_url")),
-            "has_picks": bool(picks),
-            "has_h2h": bool(h2h),
-        },
+        "data_quality": quality,
     }
 
-def match_detail(match_id):
+
+def match_detail(match_id, *, include_depth=True):
+    """Load one canonical match snapshot; optional depth reuses its facts."""
     match = one("SELECT * FROM matches WHERE id=?", (match_id,))
     if not match:
         return None
     annotated = annotate_match(match)
+    timeline = annotated.get("timeline") or fallback_timeline(annotated)
+    related_picks = related_picks_for_match(annotated)
     base = build_match_detail(
         annotated,
-        timeline=match_timeline(annotated),
-        related_picks=related_picks_for_match(annotated),
+        timeline=timeline,
+        related_picks=related_picks,
         favorite=annotated.get("is_favorite"),
     )
-    depth = match_depth_payload(annotated)
+    base["data_quality"] = _match_data_quality(annotated, related_picks)
+    if not include_depth:
+        base.update({
+            "home_form": [],
+            "away_form": [],
+            "head_to_head": [],
+            "shark_notes": [],
+        })
+        return base
+
+    depth = match_depth_payload(
+        annotated,
+        preannotated=True,
+        timeline=timeline,
+        related_picks=related_picks,
+    )
     base["v540_depth"] = depth
     base["home_form"] = depth["home_form"]
     base["away_form"] = depth["away_form"]
@@ -6159,7 +6202,6 @@ def match_detail(match_id):
     base["shark_notes"] = depth["shark_notes"]
     base["data_quality"] = depth["data_quality"]
     return base
-
 
 def match_lane_filter(match, lane):
     lane = str(lane or "today").lower()
@@ -14735,9 +14777,9 @@ def match_hub_page():
 @app.route("/match/<match_id>")
 @app.route("/partido/<match_id>")
 def match_detail_page(match_id):
-    # V934: page render is DB/cache-only. Provider sync belongs to an authorized job.
+    # The foundation render is local-store only and has no GET side effects.
     detail_force_refresh = request.args.get("refresh") in {"1", "true", "yes"}
-    detail = match_detail(match_id)
+    detail = match_detail(match_id, include_depth=False)
     if not detail:
         return render_template(
             "resource_unavailable.html",
@@ -14745,45 +14787,31 @@ def match_detail_page(match_id):
             resource_title="Este partido ya no está disponible",
             resource_message="El identificador no existe en la agenda real actual. No se muestran equipos, cuotas ni resultados inventados.",
         ), 404
+
     if isinstance(detail.get("match"), dict):
         detail["match"] = v935_enrich_match_lifecycle(detail["match"])
-    summary = get_public_home_sports_summary()
-    data = dashboard_data()
-    data["match_detail"] = detail
-    data["client_premium"] = build_client_app_premium_context(data, current_session_user(), detail=detail)
-    data["dynamic_mode"] = build_v764_dynamic_competition_mode(data, current_session_user(), "match")
-    data["v758_adaptive"] = v758_adaptive_context(data, current_session_user(), "match")
-    data["v765_markets"] = v765_markets_context(data, current_session_user())
-    data["v766_highlights"] = sportsdb_highlights_for_match(DB_PATH, match_id) if detail else {"highlights": [], "summary_text": ""}
-    data["v769_match_highlights"] = [v769_highlight_card_from_row(h) for h in ((data.get("v766_highlights") or {}).get("highlights") or [])]
-    data["api_football_live_tracker"] = live_tracker_for_match(DB_PATH, match_id)
-    data["api_football_live_quality"] = live_tracker_quality_summary(DB_PATH)
-    data["v850_live_card"] = v850_build_live_card_payload((detail or {}).get("match") if detail else {})
-    data["v850_live_state"] = v850_explain_live_data_state(DB_PATH)
-    data["v850_logo_state"] = v850_explain_logo_state((detail or {}).get("match") if detail else {})
-    data["v934_realtime"] = get_v934_realtime_context(summary)
-    data["v935_customer_trust"] = get_v935_customer_trust_context(summary)
-    data["v934_realtime_match"] = next(
-        (item for item in data["v934_realtime"].get("matches") or [] if str(item.get("id")) == str(match_id)),
-        {},
+    live_context = live_tracker_for_match(DB_PATH, match_id) or {}
+    detail["api_football_live_tracker"] = live_context
+    match_context = build_match_context(
+        detail,
+        madrid_context=client_match_display_context(detail.get("match") or {}),
+        live_context=live_context,
     )
-    data["v934_detail_refresh"] = {
-        "requested": bool(detail_force_refresh),
-        "executed": False,
-        "reason": "render_cache_only_authorized_job_required",
-        "external_calls": 0,
+    data = {
+        "match_detail": detail,
+        "v934_detail_refresh": {
+            "requested": bool(detail_force_refresh),
+            "executed": False,
+            "reason": "render_cache_only_authorized_job_required",
+            "external_calls": 0,
+        },
     }
-    if detail:
-        detail["client_premium"] = data["client_premium"].get("match", {})
-        detail["api_football_live_tracker"] = data["api_football_live_tracker"]
-        detail["v850_live_card"] = data["v850_live_card"]
-        detail["v850_logo_state"] = data["v850_logo_state"]
-        try:
-            record_user_activity("view", "match", str(match_id), {"label": f"{(detail.get('match') or {}).get('home_team') or ''} vs {(detail.get('match') or {}).get('away_team') or ''}"})
-        except Exception:
-            pass
-    return render_template("match_detail.html", data=data, detail=detail)
-
+    return render_template(
+        "match_detail.html",
+        data=data,
+        detail=detail,
+        match_context=match_context,
+    )
 
 
 @app.route("/team/<team_id>")

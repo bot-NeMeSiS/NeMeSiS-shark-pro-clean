@@ -1,0 +1,215 @@
+{% from "components/v933_ui.html" import action_button, icon, status_chip, team_logo %}
+
+{% macro canonical_state(value) -%}
+{%- set states = ['loading', 'ready', 'partial', 'finished', 'error', 'offline', 'unknown'] -%}
+{{- value if value in states else 'unknown' -}}
+{%- endmacro %}
+
+{% macro state_label(value) -%}
+{%- if value == 'loading' -%}Cargando
+{%- elif value == 'ready' -%}Disponible
+{%- elif value == 'partial' -%}Parcial
+{%- elif value == 'finished' -%}Finalizado
+{%- elif value == 'error' -%}No disponible
+{%- elif value == 'offline' -%}Sin conexión
+{%- else -%}Pendiente
+{%- endif -%}
+{%- endmacro %}
+
+{% macro state_notice(component, fallback='No disponible todavía.') -%}
+{% set state = canonical_state(component.get('state') or 'unknown')|trim %}
+{% if state not in ['ready', 'finished'] %}
+<div class="v944-state-notice is-{{ state }}" role="status">
+  {{ icon('info') }}
+  <span>{{ component.get('message') or fallback }}</span>
+</div>
+{% endif %}
+{%- endmacro %}
+
+{% macro panel_start(name, component, title, subtitle='', region='') -%}
+{% set state = canonical_state(component.get('state') or 'unknown')|trim %}
+{% set eyebrow = {
+  'MatchStory': 'Historia',
+  'Timeline': 'Hechos',
+  'StatsPanel': 'Datos',
+  'SharkPanel': 'Criterio',
+  'TelegramPanel': 'Continuidad',
+  'BankrollPanel': 'Responsabilidad',
+  'CompetitionPanel': 'Contexto',
+  'QuickActions': 'Acciones'
+}.get(name, 'Partido') %}
+<section class="v944-match-panel v944-match-panel--{{ name|lower }}"
+         data-match-component="{{ name }}"
+         data-component-state="{{ state }}"
+         {% if region %}data-match-region="{{ region }}"{% endif %}>
+  <header class="v944-match-panel__header">
+    <div>
+      <span class="v944-match-panel__eyebrow">{{ eyebrow }}</span>
+      <h2>{{ title }}</h2>
+      {% if subtitle %}<p>{{ subtitle }}</p>{% endif %}
+    </div>
+    <span class="v944-component-state is-{{ state }}">{{ state_label(state) }}</span>
+  </header>
+{%- endmacro %}
+
+{% macro match_header(context) -%}
+{% set component = context.get('components', {}).get('MatchHeader') or {} %}
+{% set state = canonical_state(component.get('state') or 'unknown')|trim %}
+{% set teams = context.get('teams') or {} %}
+{% set home = teams.get('home') or {} %}
+{% set away = teams.get('away') or {} %}
+{% set lifecycle = context.get('lifecycle') or {} %}
+<header class="v944-match-header"
+        data-match-component="MatchHeader"
+        data-component-state="{{ state }}"
+        data-match-region="header">
+  <div class="v944-match-header__meta">
+    <a href="/calendar" class="v944-back-link">{{ icon('arrow') }}<span>Calendario</span></a>
+    <span>{{ context.get('competition', {}).get('name') or 'Competición pendiente' }}</span>
+    {% if context.get('favorite') %}{{ status_chip('Favorito', 'gold') }}{% endif %}
+  </div>
+  <div class="v944-match-header__identity">
+    <div class="v944-match-team">
+      {{ team_logo(home.get('name'), home.get('logo'), 'lg') }}
+      <strong>{{ home.get('name') or 'Equipo local pendiente' }}</strong>
+      <small>Local</small>
+    </div>
+    <div class="v944-match-header__status">
+      <span>{{ lifecycle.get('label') or 'Estado pendiente' }}</span>
+      <time datetime="{{ context.get('madrid_time', {}).get('iso') or '' }}">
+        {{ context.get('madrid_time', {}).get('label') or 'Hora Madrid pendiente' }}
+      </time>
+    </div>
+    <div class="v944-match-team is-away">
+      {{ team_logo(away.get('name'), away.get('logo'), 'lg') }}
+      <strong>{{ away.get('name') or 'Equipo visitante pendiente' }}</strong>
+      <small>Visitante</small>
+    </div>
+  </div>
+  {{ state_notice(component, 'La identidad del partido está incompleta.') }}
+</header>
+{%- endmacro %}
+
+{% macro score_widget(context) -%}
+{% set component = context.get('components', {}).get('ScoreWidget') or {} %}
+{% set state = canonical_state(component.get('state') or 'unknown')|trim %}
+{% set score = context.get('score') or {} %}
+{% set lifecycle = context.get('lifecycle') or {} %}
+<section class="v944-score-widget"
+         data-match-component="ScoreWidget"
+         data-component-state="{{ state }}"
+         data-match-region="score"
+         aria-label="Marcador y estado del partido">
+  <span class="v944-score-widget__phase">{{ lifecycle.get('label') or 'Estado pendiente' }}</span>
+  <strong>{{ score.get('label') or 'VS' }}</strong>
+  {% if lifecycle.get('minute') %}<small>{{ lifecycle.get('minute') }}</small>{% endif %}
+  {% if not score.get('confirmed') %}
+  <p>El marcador aparecerá únicamente cuando exista evidencia confirmada.</p>
+  {% endif %}
+</section>
+{%- endmacro %}
+
+{% macro match_story(context) -%}
+{% set component = context.get('components', {}).get('MatchStory') or {} %}
+{% set story = context.get('story') or {} %}
+{{ panel_start('MatchStory', component, story.get('phase') or 'Historia del partido', 'Una lectura única del momento actual.', 'story') }}
+  <p class="v944-match-story__summary">{{ story.get('summary') or 'No disponible todavía.' }}</p>
+  {% if context.get('limitations') %}
+  <ul class="v944-limitations" aria-label="Limitaciones de los datos">
+    {% for limitation in context.get('limitations')[:4] %}<li>{{ limitation }}</li>{% endfor %}
+  </ul>
+  {% endif %}
+  {{ state_notice(component) }}
+</section>
+{%- endmacro %}
+
+{% macro timeline(context) -%}
+{% set component = context.get('components', {}).get('Timeline') or {} %}
+{% set event_summary = context.get('event_summary') or {} %}
+{{ panel_start('Timeline', component, 'Cronología', 'Hechos ordenados sin completar huecos con datos inventados.', 'timeline') }}
+  {% if event_summary.get('available') %}
+  <ol class="v944-timeline">
+    {% for event in (event_summary.get('items') or [])[:6] %}
+    <li>
+      <time>{{ event.get('minute') or event.get('elapsed') or '—' }}{% if event.get('elapsed') is not none and event.get('elapsed') != '' %}'{% endif %}</time>
+      <span>
+        <strong>{{ event.get('title') or event.get('event_type') or event.get('type') or 'Hecho del partido' }}</strong>
+        <small>{{ event.get('detail') or event.get('description') or event.get('player_name') or event.get('team_name') or 'Sin detalle adicional' }}</small>
+      </span>
+    </li>
+    {% endfor %}
+  </ol>
+  {% else %}
+  {{ state_notice(component) }}
+  {% endif %}
+</section>
+{%- endmacro %}
+
+{% macro stats_panel(context) -%}
+{% set component = context.get('components', {}).get('StatsPanel') or {} %}
+{% set statistics = context.get('statistics') or {} %}
+{{ panel_start('StatsPanel', component, 'Estadísticas', 'Disponibilidad confirmada; la profundidad llegará en su Sprint.', 'stats') }}
+  {% if statistics.get('available') %}
+  <div class="v944-availability">
+    {{ icon('check') }}
+    <span><strong>Cobertura disponible</strong><small>{{ statistics.get('item_count') }} bloques preparados para lectura posterior.</small></span>
+  </div>
+  {% else %}
+  {{ state_notice(component) }}
+  {% endif %}
+</section>
+{%- endmacro %}
+
+{% macro shark_panel(context) -%}
+{% set component = context.get('components', {}).get('SharkPanel') or {} %}
+{{ panel_start('SharkPanel', component, 'SHARK', 'Criterio condicionado por evidencia.', 'shark') }}
+  {{ state_notice(component) }}
+  <p class="v944-safe-copy">El Match Center no anticipa una recomendación ni completa análisis que todavía no existen.</p>
+  {{ action_button('Abrir SHARK', '/shark?match=' ~ (context.get('match', {}).get('id') or ''), false, 'cyan', false, 'shark') }}
+</section>
+{%- endmacro %}
+
+{% macro telegram_panel(context) -%}
+{% set component = context.get('components', {}).get('TelegramPanel') or {} %}
+{{ panel_start('TelegramPanel', component, 'Telegram', 'Continuidad del partido con permiso y sin mensajes de relleno.', 'telegram') }}
+  {{ state_notice(component) }}
+</section>
+{%- endmacro %}
+
+{% macro bankroll_panel(context) -%}
+{% set component = context.get('components', {}).get('BankrollPanel') or {} %}
+{{ panel_start('BankrollPanel', component, 'Bankroll', 'Exposición voluntaria y juego responsable.', 'bankroll') }}
+  {{ state_notice(component) }}
+  <p class="v944-safe-copy">Ninguna cifra de gestión se calcula sin una selección y una cuota reales.</p>
+</section>
+{%- endmacro %}
+
+{% macro competition_panel(context) -%}
+{% set component = context.get('components', {}).get('CompetitionPanel') or {} %}
+{% set competition = context.get('competition') or {} %}
+{% set teams = context.get('teams') or {} %}
+{{ panel_start('CompetitionPanel', component, 'Contexto relacionado', 'Competición y participantes del mismo partido.', 'competition') }}
+  <dl class="v944-context-list">
+    <div><dt>Competición</dt><dd>{{ competition.get('name') or 'Pendiente' }}</dd></div>
+    {% if competition.get('round') %}<div><dt>Jornada o fase</dt><dd>{{ competition.get('round') }}</dd></div>{% endif %}
+    {% if competition.get('country') %}<div><dt>País</dt><dd>{{ competition.get('country') }}</dd></div>{% endif %}
+  </dl>
+  <div class="v944-related-teams" data-match-region="related-teams">
+    <span>Equipos relacionados</span>
+    <strong>{{ teams.get('home', {}).get('name') or 'Local pendiente' }}</strong>
+    <strong>{{ teams.get('away', {}).get('name') or 'Visitante pendiente' }}</strong>
+  </div>
+  {{ state_notice(component) }}
+</section>
+{%- endmacro %}
+
+{% macro quick_actions(context) -%}
+{% set component = context.get('components', {}).get('QuickActions') or {} %}
+{{ panel_start('QuickActions', component, 'Continuar', 'Acciones claras, sin destinos duplicados.', 'quick-actions') }}
+  <div class="v944-quick-actions">
+    {{ action_button('Volver al calendario', '/calendar', true, 'cyan', false, 'calendar') }}
+    {{ action_button('Consultar picks', '/picks', false, 'blue', false, 'target') }}
+
+  </div>
+</section>
+{%- endmacro %}
