@@ -3,8 +3,10 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from jinja2 import Environment
+from jinja2 import Environment, FileSystemLoader
+from engines.madrid_time_engine import format_madrid_sync_label
 from engines.v934_realtime_sports_engine import (
+    build_realtime_snapshot,
     cached_realtime_snapshot,
     invalidate_realtime_cache,
 )
@@ -17,6 +19,7 @@ from engines.continuous_shark_sentinel_engine import run_continuous_sentinel_cyc
 from engines.sentinel_autopilot_engine import (
     build_client_copy_audience_contract_snapshot,
     build_customer_trust_icon_contract_snapshot,
+    build_madrid_timestamp_presentation_contract_snapshot,
     create_autopilot_task,
     detect_product_quality_contract_issues,
     run_autopilot_scan,
@@ -190,6 +193,7 @@ def test_pqv939_005_company_intelligence_persists_learning_only_when_explicit(ap
 
 def _write_copy_contract_fixture(tmp_path: Path, *, reintroduce_live_technical_copy: bool = False) -> Path:
     paths = (
+        "app.py",
         "static/v933-product.css",
         "static/v934-realtime.js",
         "templates/components/v933_ui.html",
@@ -199,10 +203,12 @@ def _write_copy_contract_fixture(tmp_path: Path, *, reintroduce_live_technical_c
         "templates/live.html",
         "templates/picks.html",
         "templates/shark.html",
+        "templates/match_detail.html",
         "templates/admin_dashboard.html",
         "templates/admin_data_center.html",
         "templates/admin_data_trust_center.html",
         "templates/admin_realtime_center.html",
+        "engines/madrid_time_engine.py",
         "engines/v934_realtime_sports_engine.py",
     )
     for path in paths:
@@ -341,5 +347,195 @@ def test_pqv939_006_affected_templates_remain_valid_jinja():
         "templates/live.html",
         "templates/picks.html",
         "templates/shark.html",
+    ):
+        environment.parse(_read(path))
+
+
+def _visible_text(html: str) -> str:
+    return re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", html)).strip()
+
+
+def _timestamp_contract_environment() -> Environment:
+    environment = Environment(loader=FileSystemLoader(str(ROOT / "templates")), autoescape=True)
+    environment.filters["sync_madrid_label"] = format_madrid_sync_label
+    return environment
+
+
+def _write_timestamp_contract_fixture(tmp_path: Path, *, raw_client_timestamp: bool = False) -> Path:
+    paths = (
+        "app.py",
+        "engines/madrid_time_engine.py",
+        "engines/v934_realtime_sports_engine.py",
+        "static/v934-realtime.js",
+        "templates/components/v933_ui.html",
+        "templates/home.html",
+        "templates/client_app_center.html",
+        "templates/calendar.html",
+        "templates/live.html",
+        "templates/picks.html",
+        "templates/match_detail.html",
+    )
+    for path in paths:
+        target = tmp_path / path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        content = _read(path)
+        if path == "templates/components/v933_ui.html" and raw_client_timestamp:
+            content = content.replace(
+                "{{ raw_sync if technical else client_sync }}",
+                "{{ raw_sync }}",
+            )
+        target.write_text(content, encoding="utf-8")
+    return tmp_path
+
+
+def test_pqv939_007_formatter_and_snapshot_keep_label_and_machine_value_separate():
+    raw = "2026-07-22T12:25:21Z"
+    label = "22 jul 2026, 14:25 · Madrid"
+
+    assert format_madrid_sync_label(raw) == label
+    assert format_madrid_sync_label("2026-07-22T14:25:21+02:00") == label
+    assert format_madrid_sync_label("invalid") == "Sin sincronización confirmada"
+
+    snapshot = build_realtime_snapshot({"last_sync": raw})
+    assert snapshot["last_safe_sync"] == raw
+    assert snapshot["last_safe_sync_label"] == label
+    assert snapshot["no_fake_data"] is True
+
+
+def test_pqv939_007_shared_macros_render_client_label_and_keep_admin_iso():
+    raw = "2026-07-22T14:25:21+02:00"
+    label = "22 jul 2026, 14:25 · Madrid"
+    module = _timestamp_contract_environment().get_template("components/v933_ui.html").module
+    payload = {
+        "last_safe_sync": raw,
+        "last_safe_sync_label": label,
+        "counts": {},
+        "poll_after_seconds": 180,
+    }
+
+    client_html = str(module.realtime_state_bar(payload, "all", False))
+    admin_html = str(module.realtime_state_bar(payload, "all", True))
+    provider_html = str(module.provider_state(True, raw, "Datos confirmados"))
+
+    assert raw not in _visible_text(client_html)
+    assert raw not in _visible_text(provider_html)
+    assert label in _visible_text(client_html)
+    assert label in _visible_text(provider_html)
+    assert raw in _visible_text(admin_html)
+    assert f'datetime="{raw}"' in client_html
+    assert f'data-v934-last-sync-raw="{raw}"' in client_html
+    assert f'data-v939-sync-raw="{raw}"' in provider_html
+
+
+def test_pqv939_007_api_exposes_label_without_replacing_iso(client, app_module, monkeypatch):
+    raw = "2026-07-22T14:25:21+02:00"
+    label = format_madrid_sync_label(raw)
+    snapshot = build_realtime_snapshot({"last_sync": raw})
+    snapshot["cache_state"] = "test"
+    monkeypatch.setattr(app_module, "get_v934_realtime_context", lambda: snapshot)
+
+    response = client.get("/api/realtime/sports")
+    payload = response.get_json()
+
+    assert response.status_code == 200
+    assert payload["last_safe_sync"] == raw
+    assert payload["last_safe_sync_label"] == label
+    assert payload["no_external_calls"] is True
+
+
+def test_pqv939_007_contract_is_green_and_polling_cannot_restore_raw_iso():
+    snapshot = build_madrid_timestamp_presentation_contract_snapshot(ROOT, "V939")
+
+    assert snapshot["validation_result"] == "PASS"
+    assert snapshot["status"] == "RESOLVED_LOCALLY"
+    assert snapshot["evidence"]["violations"] == []
+    assert snapshot["production_certified"] is False
+    assert detect_product_quality_contract_issues(ROOT, "V939") == []
+
+
+def test_pqv939_007_regression_opens_p2_and_requires_human_approval(tmp_path):
+    fixture_root = _write_timestamp_contract_fixture(tmp_path, raw_client_timestamp=True)
+    issues = detect_product_quality_contract_issues(fixture_root, "V939")
+    issue = next(item for item in issues if item["id"] == "PQV939-007-MADRID-TIMESTAMP-PRESENTATION-CONTRACT")
+
+    assert issue["priority"] == "P2"
+    assert issue["severity"] == "medium"
+    assert issue["route"] == "/"
+    assert issue["component"] == "madrid_sync_timestamp_presentation"
+    assert "realtime_bar_can_print_raw_iso_to_client" in issue["product_quality_contract"]["evidence"]["violations"]
+
+    task = create_autopilot_task(issue)
+    assert task["status"] == "pending_approval"
+    assert task["safe_fix_plan"]["requires_approval"] is True
+    assert "templates/components/v933_ui.html" in task["likely_files"]
+
+    autopilot = run_autopilot_scan(app_version="V939", project_root=fixture_root)
+    assert autopilot["score"] < 10
+    assert any(item["id"] == issue["id"] for item in autopilot["issues"])
+    assert autopilot["dangerous_actions_executed"] is False
+
+
+def test_pqv939_007_continuous_sentinel_detects_raw_client_iso(client, app_module, tmp_path):
+    fixture_root = _write_timestamp_contract_fixture(tmp_path, raw_client_timestamp=True)
+    result = run_continuous_sentinel_cycle(
+        client,
+        app_module.APP_VERSION,
+        mode="quick",
+        dry_run=True,
+        product_quality_root=fixture_root,
+    )
+
+    assert result["score"] < 10
+    assert any(
+        issue["issue_id"] == "PQV939-007-MADRID-TIMESTAMP-PRESENTATION-CONTRACT"
+        for issue in result["issues"]
+    )
+    assert result["no_code_writes"] is True
+    assert result["no_deploy"] is True
+    assert result["no_external_calls"] is True
+
+
+def test_pqv939_007_company_intelligence_preserves_local_learning(app_module, tmp_path):
+    snapshot = build_company_intelligence_snapshot(
+        ROOT,
+        tmp_path / "company-intelligence.sqlite",
+        app_module.APP_VERSION,
+        environment="test",
+    )
+    learning = {
+        item["issue_id"]: item
+        for item in snapshot["product_quality_learning"]
+    }["PQV939-007"]
+
+    assert learning["status"] == "RESOLVED_LOCALLY"
+    assert learning["qa_result"] == "PASS"
+    assert learning["impact"]
+    assert learning["evaluated_at_madrid"]
+    assert learning["version"] == app_module.APP_VERSION
+    assert learning["production_certified"] is False
+    assert snapshot["database_written"] is False
+
+    save_company_intelligence_memory(tmp_path, snapshot)
+    stored = load_company_intelligence_memory(tmp_path)
+    stored_learning = {
+        item["issue_id"]: item
+        for item in stored["snapshots"][-1]["product_quality_learning"]
+    }["PQV939-007"]
+    assert stored_learning["cause"] == learning["cause"]
+    assert stored_learning["solution"] == learning["solution"]
+    assert stored_learning["preventive_rule"] == learning["preventive_rule"]
+
+
+def test_pqv939_007_affected_templates_remain_valid_jinja():
+    environment = Environment()
+    for path in (
+        "templates/components/v933_ui.html",
+        "templates/home.html",
+        "templates/client_app_center.html",
+        "templates/calendar.html",
+        "templates/live.html",
+        "templates/picks.html",
+        "templates/match_detail.html",
+        "templates/admin_realtime_center.html",
     ):
         environment.parse(_read(path))

@@ -2,9 +2,9 @@
 
 ## 1. Decisión de esta fase
 
-**Estado:** auditoría terminada; P1 funcional y los dos primeros sprints P2 resueltos y validados localmente. PQV939-003 continúa bloqueado por cobertura; los demás P2 y todos los P3 permanecen abiertos.
+**Estado:** auditoría terminada; P1 funcional y cuatro sprints P2 resueltos y validados localmente. PQV939-003 continúa bloqueado por cobertura; cuatro P2 y todos los P3 permanecen abiertos.
 
-Este documento convierte el vídeo `NeMeSiS SHARK PRO - Google Chrome 2026-07-22 14-26-39.mp4` en evidencia oficial de producto para el recorrido que realmente contiene. Tras cerrar P1 se ejecutaron, uno por uno, PQV939-004 y PQV939-005. El segundo sprint P2 corrigió exclusivamente el contrato visual de los iconos de confianza; no se inició ningún otro P2/P3, no se ejecutó deploy y no se certificó producción.
+Este documento convierte el vídeo `NeMeSiS SHARK PRO - Google Chrome 2026-07-22 14-26-39.mp4` en evidencia oficial de producto para el recorrido que realmente contiene. Tras cerrar P1 se ejecutaron, uno por uno, PQV939-004, PQV939-005, PQV939-006 y PQV939-007. El cuarto sprint P2 corrigió exclusivamente el contrato de presentación de marcas de sincronización; no se inició ningún otro P2/P3, no se ejecutó deploy y no se certificó producción.
 
 La grabación permite auditar con detalle el cliente web de escritorio y la home pública. No contiene vistas móviles ni pantallas de administración. Por tanto, no permite certificar CEO Dashboard, Operations Center, Recovery Simulator, Experiments, Company Intelligence, Sentinel o AutoPilot. Esas áreas quedan expresamente **NO OBSERVABLES EN EL VÍDEO**, no aprobadas ni suspendidas.
 
@@ -398,6 +398,17 @@ Sentinel compara el número de cards deportivas con el número de cards `canonic
 - **Riesgo de corregir:** bajo, siempre que el valor original permanezca disponible para máquinas.
 - **Check futuro:** ningún timestamp ISO crudo en HTML cliente; zona Madrid explícita.
 - **Aprendizaje permanente:** Sentinel inspecciona texto visible con patrón ISO; AutoPilot propone filtro compartido.
+- **Causa raíz de cierre:** el render Jinja y el polling JavaScript trataban el ISO técnico como texto de interfaz. No existía una etiqueta derivada común ni separación por audiencia.
+- **Archivos modificados:** `engines/madrid_time_engine.py`, `engines/v934_realtime_sports_engine.py`, `app.py`, `templates/components/v933_ui.html`, `static/v934-realtime.js`, `engines/sentinel_autopilot_engine.py`, `engines/continuous_shark_sentinel_engine.py`, `engines/company_intelligence_engine.py` y `tests/test_v939_product_perfection_p2.py`.
+- **Corrección:** un único formateador Madrid genera la etiqueta cliente; el snapshot y la API entregan etiqueta e ISO; Jinja y polling usan la etiqueta fuera del modo técnico; admin, `datetime` y `data-v939-sync-raw` conservan la evidencia exacta.
+- **Browser QA:** PASS local en 16 combinaciones de ruta/viewport y 2 comprobaciones de polling; 0 overflow, consola, errores de página, 5xx, navegación duplicada, mezcla cliente/admin, controles cortados o llamadas externas.
+- **Tests:** 31 pruebas P1/P2 PASS; V939 PASS; 186 plantillas Jinja PASS; navegación 926 enlaces/245 clics PASS; auditoría global 695 rutas PASS; Privacy/Secret Guard PASS.
+- **Sentinel:** contrato sano y mutación regresiva detectada como P2; score estático 10/10, 0 incidencias, 0 enlaces rotos y 0 bucles.
+- **AutoPilot:** genera una tarea específica con ruta, componente, evidencia, archivos probables y validaciones; exige aprobación humana y no modifica código, DOM, CSS, datos, Git ni producción.
+- **Company Intelligence:** conserva incidencia, causa, impacto, corrección, regla preventiva, QA, versión, fecha Madrid y estado local solo mediante persistencia explícita y protegida.
+- **Limitaciones:** Browser QA local con DB temporal; producción no abierta ni certificada. En móvil, la marca secundaria puede permanecer visualmente oculta por la densidad responsive existente, pero el ISO nunca se expone como texto cliente.
+- **Evidencia:** `reports/PQV939_007_SCOPE_AND_EVIDENCE.md`, `reports/PQV939_007_BROWSER_QA.md` y `browser_qa/V939_P2_PQV939_007/after/`.
+- **Estado:** `RESUELTO LOCALMENTE`.
 
 #### PQV939-008 — La lista de 108 partidos exige un recorrido excesivo
 
@@ -552,7 +563,7 @@ Sentinel compara el número de cards deportivas con el número de cards `canonic
 4. **PQV939-004 — RESUELTO LOCALMENTE:** rail contextual acotado y continuidad a ancho completo.
 5. **PQV939-005 — RESUELTO LOCALMENTE:** selector e iconos de confianza.
 6. **PQV939-006 — RESUELTO LOCALMENTE:** copy cliente separado del diagnóstico técnico admin.
-7. **PQV939-007:** fecha Madrid legible para cliente.
+7. **PQV939-007 — RESUELTO LOCALMENTE:** fecha Madrid legible para cliente, con ISO preservado para admin y máquinas.
 8. **PQV939-008 y PQV939-010:** densidad y navegación de agenda.
 9. **PQV939-009:** estructura de respuesta SHARK.
 10. **PQV939-011:** copia redactada del vídeo.
@@ -591,6 +602,6 @@ P1 funcional está cerrado. Los P2 avanzan uno por uno y cada cierre exige captu
 
 **AUDITORÍA DEFINITIVA DE TODA LA APLICACIÓN:** BLOQUEADA POR COBERTURA DE VÍDEO.
 
-**CORRECCIONES APLICADAS:** 2 defectos P1 y PQV939-004/PQV939-005/PQV939-006 resueltos y validados localmente; los otros 5 P2 y los 5 P3 no se han modificado.
+**CORRECCIONES APLICADAS:** 2 defectos P1 y PQV939-004/PQV939-005/PQV939-006/PQV939-007 resueltos y validados localmente; los otros 4 P2 y los 5 P3 no se han modificado.
 
-**SIGUIENTE ACCIÓN ÚNICA:** revisión humana de las capturas desktop/móvil de PQV939-006; después, y solo con aprobación explícita, seleccionar PQV939-007 como siguiente P2. PQV939-003 requiere una referencia complementaria de admin y otra móvil.
+**SIGUIENTE ACCIÓN ÚNICA:** revisión humana de las capturas desktop/móvil de PQV939-007; después, y solo con aprobación explícita, seleccionar PQV939-008 como siguiente P2. PQV939-003 requiere una referencia complementaria de admin y otra móvil.

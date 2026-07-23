@@ -28,6 +28,7 @@ from engines.sentinel_improvement_workflow_engine import build_workflow_from_sen
 from engines.sentinel_autopilot_engine import (
     build_client_copy_audience_contract_snapshot,
     build_customer_trust_icon_contract_snapshot,
+    build_madrid_timestamp_presentation_contract_snapshot,
     detect_product_quality_contract_issues,
 )
 from engines.visual_company_worker_engine import run_visual_company_worker
@@ -768,6 +769,7 @@ def run_continuous_sentinel_cycle(
         "v929_navigation_integrity_snapshot": navigation_integrity_snapshot,
         "v939_product_quality_contract": build_customer_trust_icon_contract_snapshot(project_root, version),
         "v939_client_copy_audience_contract": build_client_copy_audience_contract_snapshot(project_root, version),
+        "v939_madrid_timestamp_presentation_contract": build_madrid_timestamp_presentation_contract_snapshot(project_root, version),
         "sentinel_autopilot_ready": True,
         "visual_company_worker_v883": visual_worker_result,
         "visual_company_worker_ready": True,

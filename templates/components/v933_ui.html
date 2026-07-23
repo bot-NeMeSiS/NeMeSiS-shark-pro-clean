@@ -123,16 +123,20 @@
 
 {% macro data_table(headers) -%}<div class="v933-table-shell"><table class="v933-data-table"><thead><tr>{% for header in headers %}<th scope="col">{{ header }}</th>{% endfor %}</tr></thead><tbody>{{ caller() }}</tbody></table></div>{%- endmacro %}
 
-{% macro provider_state(has_real_data=false, last_sync='', safe_message='') -%}<aside class="v933-provider-state"><header><div>{{ icon('database') }}<strong>Datos deportivos</strong></div>{{ status_chip('Actualizados' if has_real_data else 'Esperando datos', 'success' if has_real_data else 'warning') }}</header><p>{{ safe_message or ('Datos reales disponibles.' if has_real_data else 'La app seguirá operativa y se actualizará cuando haya información confirmada.') }}</p>{% if last_sync %}<small>Última actualización segura: {{ last_sync }}</small>{% endif %}</aside>{%- endmacro %}
+{% macro provider_state(has_real_data=false, last_sync='', safe_message='') -%}
+<aside class="v933-provider-state"><header><div>{{ icon('database') }}<strong>Datos deportivos</strong></div>{{ status_chip('Actualizados' if has_real_data else 'Esperando datos', 'success' if has_real_data else 'warning') }}</header><p>{{ safe_message or ('Datos reales disponibles.' if has_real_data else 'La app seguirá operativa y se actualizará cuando haya información confirmada.') }}</p>{% if last_sync %}<small>Última actualización segura: <time datetime="{{ last_sync }}" data-v939-sync-timestamp data-v939-sync-raw="{{ last_sync }}">{{ last_sync|sync_madrid_label }}</time></small>{% endif %}</aside>
+{%- endmacro %}
 
 {% macro realtime_state_bar(realtime, scope='all', technical=false) -%}
 {% set realtime = realtime or {} %}{% set counts = realtime.get('counts') or {} %}
+{% set raw_sync = realtime.get('last_safe_sync') or '' %}
+{% set client_sync = realtime.get('last_safe_sync_label') or (raw_sync|sync_madrid_label) %}
 {% set client_message = realtime.get('safe_message') or 'La información confirmada sigue disponible entre actualizaciones.' %}
 {% set technical_message = 'DB/caché: ' ~ (realtime.get('cache_state') or realtime.get('cache_status') or 'estado seguro') ~ '. Render sin llamada directa al proveedor.' %}
 <aside class="v934-realtime-state{% if realtime.get('realtime_live_status') == 'stale' %} is-stale{% endif %}" data-v934-realtime="{{ scope }}" data-v934-technical="{{ 'true' if technical else 'false' }}" data-v934-endpoint="{{ realtime.get('endpoint') or '/api/realtime/sports' }}" data-v934-poll="{{ realtime.get('poll_after_seconds') or 180 }}">
   <div class="v934-realtime-primary"><i aria-hidden="true"></i><span><strong data-v934-realtime-title>{{ 'Actualización en directo' if counts.get('live') else 'Datos deportivos sincronizados' if counts.get('matches') or counts.get('picks') else 'Esperando datos reales' }}</strong><small data-v934-realtime-message>{{ technical_message if technical else client_message }}</small></span></div>
   <dl><div><dt>Partidos</dt><dd data-v934-count="matches">{{ counts.get('matches', 0) }}</dd></div><div><dt>En directo</dt><dd data-v934-count="live">{{ counts.get('live', 0) }}</dd></div><div><dt>Picks</dt><dd data-v934-count="picks">{{ counts.get('picks', 0) }}</dd></div></dl>
-  <div class="v934-realtime-meta"><span data-v934-cache-state>{{ (realtime.get('cache_state') or realtime.get('cache_status') or 'cache seguro') if technical else 'Actualización segura' }}</span>{% if realtime.get('last_safe_sync') %}<time data-v934-last-sync>{{ realtime.get('last_safe_sync') }}</time>{% endif %}<small data-v934-next-refresh>Próxima revisión en {{ realtime.get('poll_after_seconds') or 180 }} s</small></div>
+  <div class="v934-realtime-meta"><span data-v934-cache-state>{{ (realtime.get('cache_state') or realtime.get('cache_status') or 'cache seguro') if technical else 'Actualización segura' }}</span>{% if raw_sync %}<time datetime="{{ raw_sync }}" data-v934-last-sync data-v934-last-sync-raw="{{ raw_sync }}">{{ raw_sync if technical else client_sync }}</time>{% endif %}<small data-v934-next-refresh>Próxima revisión en {{ realtime.get('poll_after_seconds') or 180 }} s</small></div>
 </aside>
 {%- endmacro %}
 

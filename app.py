@@ -383,6 +383,7 @@ from engines.madrid_time_engine import (
     format_telegram_match_time_madrid,
     format_madrid_match_time,
     format_madrid_short_time,
+    format_madrid_sync_label,
     madrid_conversion_selftest,
     madrid_time_diagnostics,
     normalize_kickoff_for_display,
@@ -6748,6 +6749,12 @@ def jinja_madrid_datetime_label(value):
     except Exception:
         pass
     return "Hora Madrid pendiente"
+
+
+@app.template_filter("sync_madrid_label")
+def jinja_sync_madrid_label(value):
+    """Client-safe label while the original ISO remains machine-readable."""
+    return format_madrid_sync_label(value)
 
 
 # ===================== V762 CLIENT CLARITY / MADRID TIME / ADMIN NOISE POLISH =====================
@@ -18493,6 +18500,7 @@ def api_v934_realtime_sports():
         "provider_status": snapshot.get("provider_status"),
         "cache_status": snapshot.get("cache_status"),
         "last_safe_sync": snapshot.get("last_safe_sync"),
+        "last_safe_sync_label": snapshot.get("last_safe_sync_label"),
         "safe_message": snapshot.get("safe_message"),
         "poll_after_seconds": snapshot.get("poll_after_seconds"),
         "counts": snapshot.get("counts"),

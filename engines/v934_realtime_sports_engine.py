@@ -8,6 +8,8 @@ from datetime import datetime
 from typing import Any, Callable
 from zoneinfo import ZoneInfo
 
+from engines.madrid_time_engine import format_madrid_sync_label
+
 
 MADRID_TZ = ZoneInfo("Europe/Madrid")
 LIVE_POLL_SECONDS = 45
@@ -238,6 +240,7 @@ def build_realtime_snapshot(summary: dict[str, Any], now: datetime | None = None
         if freshness_values
         else "no_real_odds"
     )
+    last_safe_sync = _text(summary.get("last_sync"), 80)
     return {
         "generated_at_madrid": _iso(now),
         "matches": matches,
@@ -255,7 +258,8 @@ def build_realtime_snapshot(summary: dict[str, Any], now: datetime | None = None
         },
         "provider_status": _text(summary.get("provider_status") or "waiting_for_sync", 60),
         "cache_status": "available" if matches or picks else "empty_safe",
-        "last_safe_sync": _text(summary.get("last_sync"), 80),
+        "last_safe_sync": last_safe_sync,
+        "last_safe_sync_label": format_madrid_sync_label(last_safe_sync),
         "realtime_match_status": "live_cached" if live else "schedule_cached" if matches else "waiting_for_real_data",
         "realtime_live_status": "live" if live else "stale" if stale_live else "no_live_events",
         "odds_freshness_status": odds_status,

@@ -633,6 +633,118 @@ def build_client_copy_audience_contract_snapshot(
     }
 
 
+def build_madrid_timestamp_presentation_contract_snapshot(
+    root: str | Path | None = None,
+    app_version: str = "",
+) -> dict[str, Any]:
+    """Inspect PQV939-007 without rendering, writing or external calls."""
+    project_root = Path(root) if root is not None else Path(__file__).resolve().parents[1]
+
+    def _read(relative_path: str) -> str:
+        try:
+            return (project_root / relative_path).read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            return ""
+
+    madrid_engine = _read("engines/madrid_time_engine.py")
+    realtime_engine = _read("engines/v934_realtime_sports_engine.py")
+    application = _read("app.py")
+    shared_template = _read("templates/components/v933_ui.html")
+    polling_js = _read("static/v934-realtime.js")
+    client_templates = (
+        "templates/home.html",
+        "templates/client_app_center.html",
+        "templates/calendar.html",
+        "templates/live.html",
+        "templates/picks.html",
+        "templates/match_detail.html",
+    )
+    raw_iso = re.compile(r"\b\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2})?(?:Z|[+-]\d{2}:?\d{2})\b")
+    client_literal_hits = {
+        path: sorted(set(raw_iso.findall(_read(path))))
+        for path in client_templates
+        if raw_iso.search(_read(path))
+    }
+
+    formatter_contract = (
+        "def format_madrid_sync_label" in madrid_engine
+        and "MONTHS_ES_SHORT" in madrid_engine
+        and "· Madrid" in madrid_engine
+        and "Sin sincronización confirmada" in madrid_engine
+    )
+    snapshot_contract = (
+        '"last_safe_sync": last_safe_sync' in realtime_engine
+        and '"last_safe_sync_label": format_madrid_sync_label(last_safe_sync)' in realtime_engine
+    )
+    filter_and_api_contract = (
+        '@app.template_filter("sync_madrid_label")' in application
+        and '"last_safe_sync_label": snapshot.get("last_safe_sync_label")' in application
+    )
+    provider_contract = (
+        "last_sync|sync_madrid_label" in shared_template
+        and 'datetime="{{ last_sync }}"' in shared_template
+        and 'data-v939-sync-raw="{{ last_sync }}"' in shared_template
+    )
+    realtime_contract = (
+        "raw_sync if technical else client_sync" in shared_template
+        and 'datetime="{{ raw_sync }}"' in shared_template
+        and 'data-v934-last-sync-raw="{{ raw_sync }}"' in shared_template
+    )
+    polling_contract = (
+        "function updateSyncTimestamp" in polling_js
+        and "node.textContent = technical" in polling_js
+        and "payload.last_safe_sync_label" in polling_js
+        and "data-v934-last-sync-raw" in polling_js
+        and "setText(bar, '[data-v934-last-sync]', payload.last_safe_sync" not in polling_js
+    )
+
+    violations: list[str] = []
+    if client_literal_hits:
+        violations.append("raw_iso_literal_visible_in_client_template")
+    if not formatter_contract:
+        violations.append("canonical_madrid_sync_formatter_missing")
+    if not snapshot_contract:
+        violations.append("realtime_snapshot_missing_client_sync_label")
+    if not filter_and_api_contract:
+        violations.append("jinja_or_api_sync_label_contract_missing")
+    if not provider_contract:
+        violations.append("provider_state_can_print_raw_iso")
+    if not realtime_contract:
+        violations.append("realtime_bar_can_print_raw_iso_to_client")
+    if not polling_contract:
+        violations.append("polling_can_restore_raw_iso_to_client")
+
+    passed = not violations
+    return {
+        "issue_id": "PQV939-007",
+        "version": app_version,
+        "component": "madrid_sync_timestamp_presentation",
+        "affected_routes": ["/", "/app", "/calendar", "/live", "/picks", "/match/<id>"],
+        "cause": "Machine ISO timestamps were reused as client-facing copy by shared macros and polling.",
+        "impact": "Raw technical dates reduce readability and weaken the explicit Madrid-time promise.",
+        "solution": "Derive one Madrid label while preserving the original ISO in APIs, datetime attributes and technical admin mode.",
+        "evidence": {
+            "client_literal_hits": client_literal_hits,
+            "formatter_contract": formatter_contract,
+            "snapshot_contract": snapshot_contract,
+            "filter_and_api_contract": filter_and_api_contract,
+            "provider_contract": provider_contract,
+            "realtime_contract": realtime_contract,
+            "polling_contract": polling_contract,
+            "violations": violations,
+        },
+        "preventive_rule": "Client sync dates use the canonical Madrid label; raw ISO remains machine/admin evidence only.",
+        "qa_result": "PASS" if passed else "REGRESSION",
+        "validation_result": "PASS" if passed else "REGRESSION",
+        "certification_state": "VERIFIED" if passed else "REQUIRES_REVIEW",
+        "status": "RESOLVED_LOCALLY" if passed else "OPEN",
+        "evaluated_at_madrid": _now(),
+        "autofix_allowed": False,
+        "approval_required": True,
+        "production_certified": False,
+    }
+
+
 def detect_product_quality_contract_issues(
     root: str | Path | None = None,
     app_version: str = "",
@@ -705,6 +817,45 @@ def detect_product_quality_contract_issues(
                 "y polling cliente. No cambiar datos, APIs externas ni arquitectura."
             ),
             "product_quality_contract": copy_snapshot,
+        })
+        issue["codex_prompt"] = issue["codex_prompt_suggestion"]
+        issues.append(classify_autopilot_issue(issue))
+
+    timestamp_snapshot = build_madrid_timestamp_presentation_contract_snapshot(root, app_version)
+    if timestamp_snapshot["validation_result"] != "PASS":
+        issue = _new_issue(
+            "Fecha de sincronización ISO visible al cliente",
+            "copy",
+            "medium",
+            "/",
+            "PQV939-007; rutas=/,/app,/calendar,/live,/picks,/match/<id>; "
+            + ",".join(timestamp_snapshot["evidence"]["violations"]),
+            app_version,
+        )
+        issue.update({
+            "id": "PQV939-007-MADRID-TIMESTAMP-PRESENTATION-CONTRACT",
+            "priority": "P2",
+            "profile": "CLIENT",
+            "component": "madrid_sync_timestamp_presentation",
+            "description": "Una marca ISO de máquina puede volver a mostrarse como texto visible al cliente.",
+            "expected_behavior": "El cliente ve una fecha Madrid legible y el ISO permanece disponible solo como evidencia técnica.",
+            "actual_behavior": "El contrato de presentación de fecha Madrid está incompleto o fue modificado.",
+            "suggested_fix": "Restaurar el formateador compartido y validar render inicial, polling y modo admin técnico.",
+            "safe_auto_fix_possible": False,
+            "requires_admin_approval": True,
+            "requires_approval": True,
+            "likely_files": [
+                "engines/madrid_time_engine.py",
+                "engines/v934_realtime_sports_engine.py",
+                "app.py",
+                "templates/components/v933_ui.html",
+                "static/v934-realtime.js",
+            ],
+            "codex_prompt_suggestion": (
+                "Revisar PQV939-007, mantener el ISO solo como evidencia de máquina/admin y restaurar "
+                "la etiqueta Madrid cliente. Validar desktop, móvil y polling. No autoaplicar código."
+            ),
+            "product_quality_contract": timestamp_snapshot,
         })
         issue["codex_prompt"] = issue["codex_prompt_suggestion"]
         issues.append(classify_autopilot_issue(issue))
@@ -857,6 +1008,7 @@ def run_autopilot_scan(
         },
         "product_quality_contract": build_customer_trust_icon_contract_snapshot(project_root, app_version),
         "client_copy_audience_contract": build_client_copy_audience_contract_snapshot(project_root, app_version),
+        "madrid_timestamp_presentation_contract": build_madrid_timestamp_presentation_contract_snapshot(project_root, app_version),
     }
     if save_memory:
         result["memory"] = save_autopilot_memory(result, root=memory_root)

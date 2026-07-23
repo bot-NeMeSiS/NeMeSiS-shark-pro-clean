@@ -51,6 +51,22 @@
     if (node && value !== undefined && value !== null) node.textContent = String(value);
   }
 
+  function updateSyncTimestamp(bar, payload, technical) {
+    var node = bar.querySelector('[data-v934-last-sync]');
+    if (!node) return;
+    var rawSync = String(payload.last_safe_sync || '').trim();
+    if (rawSync) {
+      node.setAttribute('datetime', rawSync);
+      node.setAttribute('data-v934-last-sync-raw', rawSync);
+    } else {
+      node.removeAttribute('datetime');
+      node.removeAttribute('data-v934-last-sync-raw');
+    }
+    node.textContent = technical
+      ? (rawSync || 'Sin sincronización confirmada')
+      : (payload.last_safe_sync_label || 'Sin sincronización confirmada');
+  }
+
   function updateMatch(match) {
     if (!match || !match.id) return;
     document.querySelectorAll('[data-v934-match-id="' + CSS.escape(String(match.id)) + '"]').forEach(function (card) {
@@ -100,7 +116,7 @@
     setText(bar, '[data-v934-realtime-title]', hasLive ? 'Actualización en directo' : hasData ? 'Datos deportivos sincronizados' : 'Esperando datos reales');
     setText(bar, '[data-v934-realtime-message]', message);
     setText(bar, '[data-v934-cache-state]', technical ? (payload.cache_state || payload.cache_status || 'cache seguro') : 'Actualización segura');
-    setText(bar, '[data-v934-last-sync]', payload.last_safe_sync || 'Sin sincronización confirmada');
+    updateSyncTimestamp(bar, payload, technical);
     setText(bar, '[data-v934-next-refresh]', 'Próxima revisión en ' + clampPoll(payload.poll_after_seconds) + ' s');
     bar.classList.toggle('is-live', hasLive);
     bar.classList.toggle('is-stale', payload.realtime_live_status === 'stale');

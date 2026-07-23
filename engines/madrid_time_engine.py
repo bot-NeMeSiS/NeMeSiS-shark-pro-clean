@@ -16,6 +16,7 @@ MADRID_TZ = ZoneInfo("Europe/Madrid")
 UTC_TZ = ZoneInfo("UTC")
 
 WEEKDAYS_ES = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
+MONTHS_ES_SHORT = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"]
 LIVE_STATUSES = {"live", "inplay", "in_play", "1h", "2h", "et", "pen", "en directo"}
 HALFTIME_STATUSES = {"ht", "halftime", "descanso"}
 FINISHED_STATUSES = {"ft", "finished", "final", "finalizado", "aet"}
@@ -131,6 +132,14 @@ def to_madrid_time(value: object) -> datetime | None:
 def format_madrid_short_time(value: object) -> str:
     dt = to_madrid_time(value)
     return dt.strftime("%H:%M") if dt else ""
+
+
+def format_madrid_sync_label(value: object) -> str:
+    """Return the canonical client label for an operational timestamp."""
+    dt = to_madrid_time(value)
+    if not dt:
+        return "Sin sincronización confirmada"
+    return f"{dt.day:02d} {MONTHS_ES_SHORT[dt.month - 1]} {dt.year}, {dt:%H:%M} · Madrid"
 
 
 def is_today_madrid(value: object) -> bool:
