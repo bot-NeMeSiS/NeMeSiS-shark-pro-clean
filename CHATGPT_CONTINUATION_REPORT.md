@@ -1206,3 +1206,12 @@ V928 reconstruye la experiencia completa sobre la base V927 con 16 referencias c
 - El smoke historico quedo actualizado a la identidad V937 y autorizacion Cron por cabecera; `30/30` tests pasan y se elimino el registro duplicado de `/admin/client-screens` sin cambiar su destino efectivo.
 - Browser QA publico en desktop/movil: 8/8 rutas sin overflow ni navegacion mezclada. Se corrigio una regex SHARK invalida demostrada por consola; la captura visual quedo no comprobable porque el capturador integrado agoto tiempo dos veces.
 - No se creo V938, no se hizo merge, deploy, Telegram, Stripe ni escritura DB.
+## V940 Total Consolidation And Sports Core Foundation
+
+- `main` local consolidado mediante merge normal en `7b86f584f48203ce201f962f869ae88802b5aece`; `origin/main` permanece en `935e8b767e8522691968bbe180da177e9e926d3b`.
+- Ramas locales: `17 -> 1`; quedan `main` y dos tags de rollback. Las ramas remotas se conservan hasta publicar y certificar.
+- SHARK y Telegram raiz son adaptadores hacia motores canonicos; duplicacion exacta de fuente: 0.
+- Sports Core declara Live Center y los contratos Team/Competition/Player sin crear pantallas ni datos.
+- QA local: 84/84 tests, 188/188 Jinja, 703 rutas, 949 enlaces, Sentinel 10/10, Secret/Privacy Guard 0 y Browser QA 16/16 escenarios.
+- Match Center conserva el Indice de Confianza V937. Render incorpora health check, sin deploy ni cambio de secretos.
+- Produccion y GitHub remoto no estan certificados para este arbol; el siguiente paso es una publicacion controlada con PR y QA post-deploy.
