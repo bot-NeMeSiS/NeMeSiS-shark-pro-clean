@@ -1,7 +1,7 @@
-"""Safe contracts for the next NeMeSiS sports platform integrations.
+﻿"""Safe contracts for the next NeMeSiS sports platform integrations.
 
 This module prepares boundaries only. It does not fetch provider data, persist
-memory, publish Telegram messages, call SHARK, or create sports entities.
+memory, publish Telegram messages, call SHARK, or mutate sports entities.
 """
 
 from __future__ import annotations
@@ -218,6 +218,13 @@ def build_sports_platform_contract_registry(project_root: str | Path) -> dict[st
 
     capabilities = [
         {
+            "key": "sports_domain_model",
+            "name": "Unified Sports Domain Model",
+            "contract": "SPORTS-CORE-UNIFIED-DOMAIN-MODEL-V1",
+            "state": "INTEGRATED" if exists("engines/sports_domain_model_engine.py") else "PENDING",
+            "implementation": "engines/sports_domain_model_engine.py",
+        },
+        {
             "key": "sports_metrics",
             "name": "Sports Data Contract",
             "contract": "sports-metrics-v1",
@@ -343,5 +350,6 @@ def build_sports_platform_contract_registry(project_root: str | Path) -> dict[st
             "automatic_deploy": False,
         },
         "future_entities": ["team", "player", "competition", "market", "user"],
+        "canonical_entities": ["match", "team", "competition", "player", "timeline_event", "evidence", "freshness"],
         "evidence_states": list(EVIDENCE_STATES),
     }

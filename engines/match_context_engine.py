@@ -1,4 +1,4 @@
-"""Canonical Match Center context for MATCH-CENTER-LIFECYCLE-STORY-V1.
+﻿"""Canonical Match Center context for MATCH-CENTER-LIFECYCLE-STORY-V1.
 
 The builder is deliberately pure: callers provide data already loaded from the
 local store and this module performs no database, network, session or provider
@@ -17,6 +17,10 @@ from engines.match_intelligence_engine import (
     build_shark_match_intelligence_state,
 )
 from engines.match_live_story_engine import build_match_live_story
+from engines.sports_domain_model_engine import (
+    build_telegram_readonly_contract,
+    build_unified_domain_snapshot,
+)
 
 
 MATCH_CENTER_CONTRACT = "MATCH-CENTER-LIFECYCLE-STORY-V1"
@@ -367,6 +371,9 @@ class MatchContext:
     navigation: dict[str, Any]
     story: dict[str, Any]
     live_story: dict[str, Any]
+    domain_model: dict[str, Any]
+    sports_graph: dict[str, Any]
+    telegram_readonly_contract: dict[str, Any]
     components: dict[str, dict[str, Any]]
     evidence: dict[str, Any]
     limitations: list[str]
@@ -418,6 +425,19 @@ def build_match_context(
     statistics = _real_statistics(live, lifecycle)
 
     related_picks = _items(detail_data.get("related_picks"))
+    domain_model = build_unified_domain_snapshot(
+        match,
+        live_context=live,
+        timeline_events=raw_timeline,
+        picks=related_picks,
+        now_madrid=(
+            display.get("client_full_datetime_label")
+            or live.get("updated_at")
+            or match.get("updated_at")
+        ),
+    )
+    canonical_match = _mapping(domain_model.get("match"))
+    canonical_timeline = _items(canonical_match.get("events"))
     picks = {
         "available": bool(related_picks),
         "count": len(related_picks),
@@ -493,6 +513,8 @@ def build_match_context(
         statistics=statistics,
         tracker=live,
         competition=competition,
+        canonical_match=canonical_match,
+        canonical_timeline=canonical_timeline,
         observed_at_madrid=(
             madrid_time.get("iso")
             or live.get("updated_at")
@@ -500,6 +522,13 @@ def build_match_context(
         ),
     )
     shark_context = build_shark_match_intelligence_state(intelligence)
+    telegram_readonly_contract = build_telegram_readonly_contract(
+        match_entity=canonical_match,
+        match_intelligence=intelligence,
+        timeline_events=canonical_timeline,
+        evidence=intelligence.get("evidence"),
+        freshness=canonical_match.get("freshness"),
+    )
 
     limitations: list[str] = []
     if not competition["available"]:
@@ -610,6 +639,9 @@ def build_match_context(
         navigation=navigation,
         story=story,
         live_story=live_story,
+        domain_model=domain_model,
+        sports_graph=_mapping(domain_model.get("sports_graph")),
+        telegram_readonly_contract=telegram_readonly_contract,
         components=components,
         evidence={
             "source": _text(match.get("source") or match.get("v935_source"))
@@ -627,6 +659,9 @@ def build_match_context(
             "single_snapshot": True,
             "match_intelligence_contract": intelligence.get("contract"),
             "match_intelligence_reused_by_shark": True,
+            "sports_domain_model_contract": domain_model.get("contract"),
+            "sports_graph_write_authorized": False,
+            "telegram_readonly_contract": telegram_readonly_contract.get("contract"),
             "component_contracts": list(MATCH_CENTER_COMPONENTS),
             "canonical_states": list(CANONICAL_COMPONENT_STATES),
         },

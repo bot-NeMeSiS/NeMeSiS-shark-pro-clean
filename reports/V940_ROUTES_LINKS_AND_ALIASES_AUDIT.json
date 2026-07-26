@@ -93,7 +93,7 @@
     "forms_without_action": []
   },
   "smoke": {
-    "routes_registered": 703,
+    "routes_registered": 707,
     "smoke_results": [
       {
         "path": "/",

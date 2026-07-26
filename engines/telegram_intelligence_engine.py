@@ -1,4 +1,4 @@
-"""Telegram decision support for V939. This module never sends messages."""
+﻿"""Telegram decision support for V939. This module never sends messages."""
 
 from __future__ import annotations
 
@@ -10,6 +10,7 @@ from typing import Any, Iterable
 from engines.company_intelligence_engine import MADRID_TZ, classify_freshness, readonly_connection, safe_rows, table_exists
 from engines.pick_intelligence_pipeline_engine import build_pick_pipeline_snapshot
 from engines.sports_platform_contracts import build_assistant_context
+from engines.sports_domain_model_engine import build_telegram_readonly_contract
 
 
 def _first(row: dict[str, Any], *keys: str) -> Any:
@@ -304,6 +305,16 @@ def build_telegram_intelligence_snapshot(
         membership="PRO",
     )
     state = "PARTIALLY_VERIFIED" if delivery.get("records") or pipeline.get("candidate_count") else "INSUFFICIENT_DATA"
+    domain_model = (match_context or {}).get("domain_model") if isinstance(match_context, dict) else {}
+    if not isinstance(domain_model, dict):
+        domain_model = {}
+    domain_match = domain_model.get("match") if isinstance(domain_model.get("match"), dict) else {}
+    telegram_readonly_contract = build_telegram_readonly_contract(
+        match_entity=domain_match,
+        match_intelligence=match_intelligence,
+        timeline_events=domain_match.get("events") if isinstance(domain_match, dict) else [],
+        freshness=domain_match.get("freshness") if isinstance(domain_match, dict) else {},
+    )
     assistant_context = build_assistant_context(
         "telegram",
         match_context=match_context,
@@ -319,6 +330,7 @@ def build_telegram_intelligence_snapshot(
         "confidence": 0.7 if state == "PARTIALLY_VERIFIED" else None,
         "sports_metrics": sports_metrics,
         "assistant_context": assistant_context.to_dict(),
+        "telegram_readonly_contract": telegram_readonly_contract,
         "match_intelligence_contract": (
             (match_intelligence or {}).get("contract")
             if isinstance(match_intelligence, dict)
@@ -340,4 +352,3 @@ def build_telegram_intelligence_snapshot(
             "No se ejecuta envio real, ni siquiera cuando existe un preview listo.",
         ],
     }
-

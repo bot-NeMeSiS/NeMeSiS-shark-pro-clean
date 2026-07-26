@@ -1,4 +1,4 @@
-"""Canonical evidence-backed intelligence for one sports match.
+﻿"""Canonical evidence-backed intelligence for one sports match.
 
 The engine is pure and deterministic. It receives facts already loaded by the
 caller and never reads a database, calls a provider, sends a message, or
@@ -152,6 +152,56 @@ def _key_event_payload(event: Mapping[str, Any]) -> dict[str, Any]:
         "source": _text(event.get("source") or event.get("provider"), 80),
     }
 
+
+def _legacy_event_from_canonical(event: Mapping[str, Any]) -> dict[str, Any]:
+    item = _mapping(event)
+    minute = item.get("minute")
+    added = item.get("added_time") or 0
+    minute_label = ""
+    if minute is not None:
+        minute_label = f"{minute}+{added}'" if added else f"{minute}'"
+    return {
+        "id": _text(item.get("canonical_event_id"), 120),
+        "type": _text(item.get("event_type"), 60),
+        "label": _text(item.get("event_type"), 60).replace("_", " ").title(),
+        "minute": minute,
+        "minute_label": minute_label,
+        "team": _text(item.get("team_name"), 120),
+        "player_id": _text(item.get("player_id"), 120),
+        "player": _text(item.get("player_name"), 120),
+        "related_player_id": _text(item.get("related_player_id"), 120),
+        "related_player": _text(item.get("related_player_name"), 120),
+        "source": _text(item.get("source"), 80),
+        "is_key_event": item.get("event_type") in {"goal", "own_goal", "penalty_goal", "missed_penalty", "var", "red_card", "second_yellow"},
+        "canonical_event": item,
+    }
+
+
+def _legacy_match_from_canonical(match: Mapping[str, Any]) -> dict[str, Any]:
+    item = _mapping(match)
+    home = _mapping(item.get("home_team"))
+    away = _mapping(item.get("away_team"))
+    competition = _mapping(item.get("competition"))
+    score = _mapping(item.get("score"))
+    return {
+        "id": item.get("canonical_match_id"),
+        "match_id": item.get("canonical_match_id"),
+        "home_team_id": home.get("canonical_team_id"),
+        "away_team_id": away.get("canonical_team_id"),
+        "home_team": home.get("display_name"),
+        "away_team": away.get("display_name"),
+        "competition_id": competition.get("canonical_competition_id"),
+        "competition_name": competition.get("display_name"),
+        "status": item.get("phase") or item.get("status"),
+        "minute": item.get("minute"),
+        "home_score": score.get("home"),
+        "away_score": score.get("away"),
+        "score": score.get("label"),
+        "source": item.get("source"),
+        "updated_at": _mapping(item.get("freshness")).get("source_timestamp"),
+        "is_stale": _mapping(item.get("freshness")).get("state") == "stale",
+        "canonical": item,
+    }
 
 def _entity_context(
     match: Mapping[str, Any],
@@ -412,11 +462,21 @@ def build_match_intelligence(
     tracker: Mapping[str, Any] | None = None,
     historical: Iterable[Mapping[str, Any]] | None = None,
     competition: Mapping[str, Any] | None = None,
+    canonical_match: Mapping[str, Any] | None = None,
+    canonical_timeline: Iterable[Mapping[str, Any]] | None = None,
     observed_at_madrid: Any = "",
 ) -> dict[str, Any]:
     """Build one reusable structured snapshot from supplied factual inputs."""
 
     match_data = _mapping(match)
+    canonical_match_data = _mapping(canonical_match)
+    canonical_timeline_data = _items(canonical_timeline)
+    if canonical_match_data and not match_data:
+        match_data = _legacy_match_from_canonical(canonical_match_data)
+    elif canonical_match_data:
+        match_data.setdefault("canonical", canonical_match_data)
+        match_data.setdefault("id", canonical_match_data.get("canonical_match_id"))
+        match_data.setdefault("match_id", canonical_match_data.get("canonical_match_id"))
     picks_data = _items(picks)
     lifecycle_data = _mapping(lifecycle)
     score_data = _mapping(score)
@@ -429,6 +489,8 @@ def build_match_intelligence(
     historical_data = [
         dict(item) for item in (historical or []) if isinstance(item, Mapping)
     ]
+    if canonical_timeline_data and not timeline_data:
+        timeline_data = [_legacy_event_from_canonical(item) for item in canonical_timeline_data]
 
     if not lifecycle_data:
         lifecycle_data = {
@@ -928,6 +990,12 @@ def build_match_intelligence(
         "missing_information": missing_information,
         "limitations": limitations,
         "entity_context": entity_context,
+        "domain_model": {
+            "contract": (canonical_match_data or {}).get("contract"),
+            "canonical_match": canonical_match_data,
+            "canonical_timeline_count": len(canonical_timeline_data),
+            "single_domain_entity_source": bool(canonical_match_data),
+        },
         "consumer_contracts": {
             consumer: {
                 "contract": MATCH_INTELLIGENCE_CONTRACT,

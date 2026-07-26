@@ -1,4 +1,4 @@
-"""Build an honest Match Center story from provider-confirmed events only.
+﻿"""Build an honest Match Center story from provider-confirmed events only.
 
 The engine is independent from Flask and the database. Callers pass a
 normalized match plus provider/cache events and receive a deterministic story.
@@ -10,6 +10,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Iterable
+
+from engines.sports_domain_model_engine import (
+    TIMELINE_EVENT_CONTRACT,
+    normalize_timeline_event_entity,
+)
 
 
 _EVENT_TYPES = {
@@ -191,6 +196,15 @@ def normalize_story_event(
     provider = _text(raw.get("source") or raw.get("provider"), 80)
     if not event_id or not provider:
         return None
+    canonical_event = normalize_timeline_event_entity(
+        raw,
+        match_id=match.get("id") or match.get("match_id"),
+        home_team=match.get("home_team"),
+        away_team=match.get("away_team"),
+        provider=provider,
+    )
+    if not canonical_event:
+        return None
 
     label, importance = _EVENT_TYPES[event_type]
     team = _safe_team(raw.get("team") or raw.get("team_name"), match)
@@ -239,6 +253,8 @@ def normalize_story_event(
         "importance": importance,
         "is_key_event": importance >= 80,
         "source": provider,
+        "canonical_event_id": canonical_event.get("canonical_event_id"),
+        "canonical_event": canonical_event,
     }
 
 

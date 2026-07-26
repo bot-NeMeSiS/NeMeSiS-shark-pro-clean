@@ -1,4 +1,4 @@
-"""Static and pure-runtime gate for MATCH-INTELLIGENCE-EVIDENCE-V1."""
+﻿"""Static and pure-runtime gate for MATCH-INTELLIGENCE-EVIDENCE-V1."""
 
 from __future__ import annotations
 
@@ -24,6 +24,11 @@ from engines.sentinel_autopilot_engine import (
 from engines.sports_platform_contracts import (
     build_sports_platform_contract_registry,
 )
+from engines.sports_domain_model_engine import (
+    SPORTS_DOMAIN_MODEL_CONTRACT,
+    build_unified_domain_snapshot,
+    sports_domain_model_snapshot,
+)
 
 
 def main() -> int:
@@ -36,6 +41,8 @@ def main() -> int:
     contract = match_intelligence_snapshot()
     empty = build_match_intelligence()
     registry = build_sports_platform_contract_registry(ROOT)
+    domain_contract = sports_domain_model_snapshot()
+    domain_empty = build_unified_domain_snapshot()
     sentinel = build_v944_match_center_foundation_contract_snapshot(ROOT, "")
     capabilities = {
         item["key"]: item for item in registry.get("capabilities") or []
@@ -76,11 +83,17 @@ def main() -> int:
         == "INTEGRATED",
         "platform_registry",
     )
+    require(
+        (capabilities.get("sports_domain_model") or {}).get("state")
+        == "INTEGRATED",
+        "sports_domain_model_registry",
+    )
     require(sentinel.get("validation_result") == "PASS", "sentinel_contract")
 
     result = {
         "ok": not failures,
         "contract": MATCH_INTELLIGENCE_CONTRACT,
+        "domain_contract": domain_contract.get("contract"),
         "consumers": list(MATCH_INTELLIGENCE_CONSUMERS),
         "empty_state": empty.get("certification_state"),
         "sentinel": sentinel.get("validation_result"),

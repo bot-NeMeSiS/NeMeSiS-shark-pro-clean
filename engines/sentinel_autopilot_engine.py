@@ -1,4 +1,4 @@
-"""V888 Sentinel AutoPilot self-improvement engine.
+﻿"""V888 Sentinel AutoPilot self-improvement engine.
 
 Safe internal operations layer for NeMeSiS SHARK PRO. It converts Sentinel,
 Visual Worker and local route signals into issues, tasks and Codex prompts.
@@ -910,6 +910,7 @@ def build_v944_match_center_foundation_contract_snapshot(
     shark_adapter = _read("engines/shark_context_presentation_engine.py")
     telegram_adapter = _read("engines/telegram_intelligence_engine.py")
     platform_contracts = _read("engines/sports_platform_contracts.py")
+    domain_model_engine = _read("engines/sports_domain_model_engine.py")
 
     route_source = ""
     detail_source = ""
@@ -1036,6 +1037,27 @@ def build_v944_match_center_foundation_contract_snapshot(
         "match_intelligence=match_intelligence" in telegram_adapter,
         "match_intelligence: dict[str, Any]" in platform_contracts,
     ))
+    unified_domain_model_contract = all((
+        "SPORTS_DOMAIN_MODEL_CONTRACT" in domain_model_engine,
+        "def normalize_match_entity(" in domain_model_engine,
+        "def normalize_team_entity(" in domain_model_engine,
+        "def normalize_competition_entity(" in domain_model_engine,
+        "def normalize_player_entity(" in domain_model_engine,
+        "def normalize_timeline_event_entity(" in domain_model_engine,
+        "def normalize_evidence_entity(" in domain_model_engine,
+        "def build_freshness_entity(" in domain_model_engine,
+        "def build_sports_graph_foundation(" in domain_model_engine,
+        "def build_telegram_readonly_contract(" in domain_model_engine,
+        '"database_writes": 0' in domain_model_engine,
+        '"external_calls": 0' in domain_model_engine,
+        '"send_executed": False' in domain_model_engine,
+        "domain_model: dict[str, Any]" in engine,
+        "canonical_match=canonical_match" in engine,
+        "canonical_timeline=canonical_timeline" in engine,
+        "telegram_readonly_contract" in engine,
+        "sports_domain_model" in platform_contracts,
+        "build_telegram_readonly_contract" in telegram_adapter,
+    ))
     entity_route_contract = all(marker in application for marker in (
         '@app.route("/team/<team_id>")',
         '@app.route("/competition/<competition_id>")',
@@ -1062,6 +1084,7 @@ def build_v944_match_center_foundation_contract_snapshot(
         "read_only_tracker_contract": read_only_tracker_contract,
         "intelligence_contract": intelligence_contract,
         "match_intelligence_core_contract": match_intelligence_core_contract,
+        "unified_domain_model_contract": unified_domain_model_contract,
         "entity_route_contract": entity_route_contract,
         "state_contract": state_contract,
         "component_contract": component_contract,
@@ -1078,8 +1101,8 @@ def build_v944_match_center_foundation_contract_snapshot(
         "component": "match_center_foundation",
         "affected_routes": ["/match/<id>", "/partido/<id>"],
         "cause": "The Match Center can regress if a component reloads facts, loses a canonical state or introduces a GET side effect.",
-        "impact": "Users can see contradictory match facts, unstable fallbacks or a broken responsive shell.",
-        "solution": "Keep every region on one pure MatchContext and one MATCH-INTELLIGENCE-EVIDENCE-V1 snapshot.",
+        "impact": "Users can see contradictory match facts, unstable fallbacks, duplicated sports identities or a broken responsive shell.",
+        "solution": "Keep every region on one pure MatchContext, one SPORTS-CORE-UNIFIED-DOMAIN-MODEL-V1 entity graph and one MATCH-INTELLIGENCE-EVIDENCE-V1 snapshot.",
         "evidence": {**checks, "violations": violations},
         "preventive_rule": (
             "All Match Center regions consume MATCH-CENTER-LIFECYCLE-STORY-V1 through one MatchContext; "

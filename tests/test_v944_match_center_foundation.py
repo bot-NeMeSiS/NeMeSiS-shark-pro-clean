@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import shutil
 from pathlib import Path
@@ -97,16 +97,18 @@ def test_match_context_is_one_pure_snapshot_for_all_foundation_components():
         component["state"] in CANONICAL_COMPONENT_STATES
         for component in context["components"].values()
     )
-    assert context["diagnostics"] == {
-        "builder_database_queries": 0,
-        "builder_database_writes": 0,
-        "external_calls": 0,
-        "single_snapshot": True,
-        "match_intelligence_contract": "MATCH-INTELLIGENCE-EVIDENCE-V1",
-        "match_intelligence_reused_by_shark": True,
-        "component_contracts": list(MATCH_CENTER_COMPONENTS),
-        "canonical_states": list(CANONICAL_COMPONENT_STATES),
-    }
+    diagnostics = context["diagnostics"]
+    assert diagnostics["builder_database_queries"] == 0
+    assert diagnostics["builder_database_writes"] == 0
+    assert diagnostics["external_calls"] == 0
+    assert diagnostics["single_snapshot"] is True
+    assert diagnostics["match_intelligence_contract"] == "MATCH-INTELLIGENCE-EVIDENCE-V1"
+    assert diagnostics["match_intelligence_reused_by_shark"] is True
+    assert diagnostics["component_contracts"] == list(MATCH_CENTER_COMPONENTS)
+    assert diagnostics["canonical_states"] == list(CANONICAL_COMPONENT_STATES)
+    assert diagnostics["sports_domain_model_contract"] == "SPORTS-CORE-UNIFIED-DOMAIN-MODEL-V1"
+    assert diagnostics["sports_graph_write_authorized"] is False
+    assert diagnostics["telegram_readonly_contract"] == "SPORTS-CORE-TELEGRAM-READONLY-V1"
     assert context["picks"]["count"] == 0
     assert context["statistics"]["available"] is False
     assert context["statistics"]["item_count"] == 0
@@ -274,7 +276,12 @@ def _sentinel_fixture(tmp_path: Path, *, break_shell: bool = False) -> Path:
     for relative in (
         "app.py",
         "engines/match_context_engine.py",
+        "engines/sports_domain_model_engine.py",
         "engines/api_football_live_tracker_engine.py",
+        "engines/match_intelligence_engine.py",
+        "engines/shark_context_presentation_engine.py",
+        "engines/sports_platform_contracts.py",
+        "engines/telegram_intelligence_engine.py",
         "templates/match_detail.html",
         "templates/components/v944_match_center.html",
         "static/v933-product.css",

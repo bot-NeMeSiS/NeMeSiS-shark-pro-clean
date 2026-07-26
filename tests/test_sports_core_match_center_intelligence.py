@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import hashlib
 import json
@@ -277,7 +277,12 @@ def test_sentinel_and_autopilot_detect_match_intelligence_regression(tmp_path):
     for relative in (
         "app.py",
         "engines/match_context_engine.py",
+        "engines/sports_domain_model_engine.py",
         "engines/api_football_live_tracker_engine.py",
+        "engines/match_intelligence_engine.py",
+        "engines/shark_context_presentation_engine.py",
+        "engines/sports_platform_contracts.py",
+        "engines/telegram_intelligence_engine.py",
         "templates/match_detail.html",
         "templates/components/v944_match_center.html",
         "static/v933-product.css",

@@ -1,6 +1,6 @@
 {
   "ok": true,
-  "checked_at": "2026-07-26T13:59:40",
+  "checked_at": "2026-07-26T23:42:39",
   "templates_referenced": [
     "404.html",
     "500.html",
@@ -149,7 +149,7 @@
   "missing_static": [],
   "import_ok": true,
   "version": "V940_NEMESIS_SPORTS_EXPERIENCE_PHASE_1_FOUNDATION_FINAL",
-  "route_count": 654,
+  "route_count": 658,
   "routes": [
     "/",
     "/actividad",
@@ -671,8 +671,10 @@
     "/clientes",
     "/clients",
     "/combis",
+    "/competicion/<competition_id>",
     "/competiciones",
     "/competition-mode",
+    "/competition/<competition_id>",
     "/comprar/<plan>",
     "/confianza",
     "/contact",
@@ -704,6 +706,7 @@
     "/inteligencia",
     "/intelligence-hub",
     "/juego-responsable",
+    "/jugador/<player_id>",
     "/legal",
     "/live",
     "/live-center",
@@ -750,6 +753,7 @@
     "/picks-automaticos",
     "/planes",
     "/planes/<plan>",
+    "/player/<player_id>",
     "/privacidad",
     "/privacy",
     "/profile",

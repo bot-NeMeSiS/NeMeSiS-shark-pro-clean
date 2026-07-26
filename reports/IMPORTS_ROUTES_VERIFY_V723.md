@@ -2,7 +2,7 @@
 
 - Resultado: OK
 - Versión importada: `V940_NEMESIS_SPORTS_EXPERIENCE_PHASE_1_FOUNDATION_FINAL`
-- Rutas GET: 654
+- Rutas GET: 658
 - Templates referenciados: 139
 - Templates faltantes: 0
 - Static faltantes: 0

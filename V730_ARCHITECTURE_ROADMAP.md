@@ -32,3 +32,11 @@ No extraer todo `app.py` de una vez. El proyecto tiene muchas rutas críticas y 
 - Detecta templates faltantes antes del ZIP.
 - Clasifica rutas por admin, cliente, API, cron, público y Telegram.
 - Prepara una migración gradual sin riesgo innecesario.
+
+## Sports Core Domain Foundation
+
+Contrato local: SPORTS-CORE-UNIFIED-DOMAIN-MODEL-V1.
+
+La arquitectura deportiva debe avanzar hacia una sola capa canonica para Match, Team, Competition, Player, Timeline Event, Evidence y Freshness. MatchContext mantiene compatibilidad legacy, pero los nuevos modulos deportivos deben consumir el modelo canonico antes de renderizar UI, alimentar SHARK, preparar Telegram o construir Sports Graph.
+
+No se autoriza persistencia nueva del grafo deportivo ni llamadas a proveedores durante renderizado sin aprobacion humana y pruebas especificas.
