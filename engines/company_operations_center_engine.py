@@ -164,7 +164,8 @@ def _latest_operational_record(connection: sqlite3.Connection | None, tables: li
         selected = [name for name in [date_col, status_col] if name]
         order = f' ORDER BY "{date_col}" DESC' if date_col else " ORDER BY rowid DESC"
         try:
-            row = connection.execute(f'SELECT {", ".join(f"\"{name}\"" for name in selected)} FROM "{table}"{order} LIMIT 1').fetchone()
+            selected_sql = ", ".join(f'"{name}"' for name in selected)
+            row = connection.execute(f'SELECT {selected_sql} FROM "{table}"{order} LIMIT 1').fetchone()
             if row:
                 data = dict(row)
                 return {
