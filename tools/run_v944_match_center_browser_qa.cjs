@@ -125,6 +125,11 @@ async function inspectPage(page) {
           "[data-v944-match-center-foundation]"
         ).length,
         contract: root?.getAttribute("data-match-contract") || "",
+        match_intelligence_contract:
+          root?.getAttribute("data-match-intelligence-contract") || "",
+        intelligence_marker_count: document.querySelectorAll(
+          '[data-sports-core-match-center="intelligence-phase-1"]'
+        ).length,
         shell_state: root?.getAttribute("data-match-state") || "",
         component_count: componentNodes.length,
         component_names: names,
@@ -132,6 +137,20 @@ async function inspectPage(page) {
         missing_components: components.filter((name) => !names.includes(name)),
         invalid_states: stateValues.filter((state) => !states.includes(state)),
         region_count: document.querySelectorAll("[data-match-region]").length,
+        timeline_event_count: (root || document).querySelectorAll(".v944-timeline > li").length,
+        stat_source:
+          (root || document).querySelector("[data-stat-source]")?.getAttribute("data-stat-source") || "",
+        stat_row_count: (root || document).querySelectorAll(".v944-stats__row").length,
+        shark_evidence:
+          (root || document).querySelector("[data-shark-evidence]")?.getAttribute("data-shark-evidence") || "",
+        shark_intelligence_contract:
+          (root || document).querySelector("[data-match-intelligence-consumer='shark']")?.getAttribute("data-match-intelligence-contract") || "",
+        shark_intelligence_consumer_count:
+          (root || document).querySelectorAll("[data-match-intelligence-consumer='shark']").length,
+        explainability_marker_count:
+          (root || document).querySelectorAll("[data-match-intelligence-explainability='evidence']").length,
+        entity_link_count: (root || document).querySelectorAll("[data-entity-contract]").length,
+        unavailable_count: (visibleText.match(/No disponible/g) || []).length,
         horizontal_overflow:
           document.documentElement.scrollWidth > window.innerWidth + 1,
         document_width: document.documentElement.scrollWidth,
@@ -148,7 +167,8 @@ async function inspectPage(page) {
         ).length,
         unsafe_literal_visible: /\b(?:None|null|undefined)\b/.test(visibleText),
         technical_state_visible:
-          /\b(?:READY|PARTIAL|UNKNOWN|OFFLINE|LOADING)\b/.test(visibleText),
+          /\b(?:READY|PARTIAL|UNKNOWN|OFFLINE|LOADING|VERIFIED|PARTIALLY_VERIFIED|INSUFFICIENT_DATA|STALE)\b/.test(visibleText),
+        mojibake_visible: /(?:Ã.|Â.|â.|ðŸ|�)/.test(visibleText),
         visible_text_length: visibleText.length,
         small_targets: smallTargets,
         clipped_text: clippedText,
@@ -238,6 +258,12 @@ async function main() {
         if (metrics.contract !== "MATCH-CENTER-LIFECYCLE-STORY-V1") {
           failures.push("match_center_contract_missing");
         }
+        if (metrics.match_intelligence_contract !== "MATCH-INTELLIGENCE-EVIDENCE-V1") {
+          failures.push("match_intelligence_contract_missing");
+        }
+        if (metrics.intelligence_marker_count !== 1) {
+          failures.push("sports_core_intelligence_marker_missing");
+        }
         if (metrics.component_count !== COMPONENTS.length) {
           failures.push("component_count_mismatch");
         }
@@ -269,6 +295,31 @@ async function main() {
         if (metrics.technical_state_visible) {
           failures.push("technical_state_visible");
         }
+        if (metrics.mojibake_visible) {
+          failures.push("mojibake_visible");
+        }
+        if (scenario === "ready") {
+          if (metrics.timeline_event_count < 1) failures.push("confirmed_timeline_missing");
+          if (metrics.stat_source !== "api_football" || metrics.stat_row_count < 1) {
+            failures.push("confirmed_provider_statistics_missing");
+          }
+          if (metrics.shark_evidence !== "confirmed") {
+            failures.push("confirmed_shark_context_missing");
+          }
+          if (
+            metrics.shark_intelligence_contract !== "MATCH-INTELLIGENCE-EVIDENCE-V1" ||
+            metrics.shark_intelligence_consumer_count !== 1 ||
+            metrics.explainability_marker_count !== 1
+          ) {
+            failures.push("shark_not_reusing_match_intelligence");
+          }
+          if (metrics.entity_link_count < 5) failures.push("entity_navigation_incomplete");
+        }
+        if (scenario === "partial") {
+          if (metrics.stat_source || metrics.stat_row_count) failures.push("partial_statistics_invented");
+          if (metrics.shark_evidence) failures.push("partial_shark_context_invented");
+          if (metrics.unavailable_count < 1) failures.push("partial_fallback_missing");
+        }
         if (metrics.clipped_text.length) failures.push("clipped_text");
         if (metrics.cls > 0.05) failures.push("layout_shift_over_budget");
         if (profile.isMobile && metrics.small_targets.length) {
@@ -279,6 +330,9 @@ async function main() {
         if (serverErrors.length) failures.push("server_5xx");
         if (providerRequests.length) {
           failures.push("provider_call_during_render");
+        }
+        if (externalRequests.length) {
+          failures.push("external_call_during_render");
         }
 
         results.push({
@@ -316,7 +370,7 @@ async function main() {
       failures: item.failures,
     }));
   const payload = {
-    sprint: "V944_MATCH_CENTER_FOUNDATION_PHASE_1_FINAL",
+    sprint: "SPORTS_CORE_MATCH_INTELLIGENCE_ENGINE_PHASE_2",
     runtime_modified: false,
     generated_at_madrid: madridNow(),
     base_url: baseUrl,

@@ -57,6 +57,10 @@ def test_developer_snapshot_has_one_evidence_backed_source():
     assert snapshot["sports_platform"]["guardrails"]["telegram_sends"] is False
     capabilities = {item["key"]: item for item in snapshot["sports_platform"]["capabilities"]}
     assert capabilities["live_center"]["state"] == "FOUNDATION_READY"
+    assert capabilities["match_center_intelligence"]["state"] == "INTEGRATED"
+    assert capabilities["match_center_intelligence"]["contract"] == "MATCH-CENTER-LIFECYCLE-STORY-V1"
+    assert capabilities["match_intelligence_core"]["state"] == "INTEGRATED"
+    assert capabilities["match_intelligence_core"]["contract"] == "MATCH-INTELLIGENCE-EVIDENCE-V1"
     for key in ("team_center", "competition_center", "player_center"):
         assert capabilities[key]["state"] == "CONTRACT_READY"
 
@@ -66,6 +70,9 @@ def test_company_board_uses_shared_roadmap_and_reports_git_truth():
 
     assert company["contract"] == "NEMESIS-COMPANY-DEVELOPER-OS-V1"
     assert company["roadmap"]["contract"] == "NEMESIS-PRODUCT-ROADMAP-V1"
+    roadmap = {item["name"]: item for item in company["roadmap"]["modules"]}
+    assert roadmap["Match Center intelligence"]["state"] == "COMPLETED"
+    assert roadmap["Match Intelligence Engine"]["state"] == "COMPLETED"
     assert company["areas"]
     assert all(area["evidence"] and area["next_action"] for area in company["areas"])
     assert company["git"]["state"] in {"CONFIRMED", "REQUIRES_REVIEW", "BLOCKED_BY_ACCESS"}

@@ -15,12 +15,20 @@ def explain_pick_risk(pick):
     }
 
 
-def build_shark_context(match=None, league=None, favorites=None, picks=None, profile=None):
+def build_shark_context(
+    match=None,
+    league=None,
+    favorites=None,
+    picks=None,
+    profile=None,
+    match_intelligence=None,
+):
     favorites = favorites or []
     picks = picks or []
     profile = profile or {}
     return {
         "match": match or {},
+        "match_intelligence": dict(match_intelligence or {}),
         "league": league or ((match or {}).get("competition_name") if match else ""),
         "favorites": favorites[:20],
         "recent_picks": picks[:12],

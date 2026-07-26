@@ -534,6 +534,35 @@ def build_product_roadmap(project_root: str | Path) -> dict[str, Any]:
             "evidence": "MatchContext y componentes canónicos",
         },
         {
+            "name": "Match Center intelligence",
+            "state": "COMPLETED"
+            if complete(
+                "engines/match_context_engine.py",
+                "engines/match_live_story_engine.py",
+                "engines/api_football_live_tracker_engine.py",
+                "templates/components/v944_match_center.html",
+                "tests/test_sports_core_match_center_intelligence.py",
+            )
+            else "PENDING",
+            "evidence": "Datos persistidos, cronología deduplicada, estadísticas reales y contexto SHARK con evidencia",
+        },
+        {
+            "name": "Match Intelligence Engine",
+            "state": "COMPLETED"
+            if complete(
+                "engines/match_intelligence_engine.py",
+                "engines/match_context_engine.py",
+                "engines/shark_context_presentation_engine.py",
+                "engines/telegram_intelligence_engine.py",
+                "tests/test_sports_core_match_intelligence_engine.py",
+            )
+            else "PENDING",
+            "evidence": (
+                "Contrato MATCH-INTELLIGENCE-EVIDENCE-V1 reutilizado por "
+                "Match Center, SHARK y Telegram sin acciones externas"
+            ),
+        },
+        {
             "name": "Live Story Engine",
             "state": "COMPLETED" if complete("engines/match_live_story_engine.py") else "PENDING",
             "evidence": "Eventos confirmados y contrato lifecycle story",

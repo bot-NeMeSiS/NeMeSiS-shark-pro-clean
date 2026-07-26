@@ -283,6 +283,7 @@ def build_telegram_intelligence_snapshot(
     daily_limit: int = 3,
     sports_metrics: dict[str, Any] | None = None,
     match_context: dict[str, Any] | None = None,
+    match_intelligence: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     sports_metrics = dict(sports_metrics or {})
     pipeline = build_pick_pipeline_snapshot(db_path, app_version, environment=environment)
@@ -306,6 +307,7 @@ def build_telegram_intelligence_snapshot(
     assistant_context = build_assistant_context(
         "telegram",
         match_context=match_context,
+        match_intelligence=match_intelligence,
         sports_metrics=sports_metrics,
         evidence_state=state,
         limitations=["El envelope no autoriza envíos ni escrituras."],
@@ -317,6 +319,11 @@ def build_telegram_intelligence_snapshot(
         "confidence": 0.7 if state == "PARTIALLY_VERIFIED" else None,
         "sports_metrics": sports_metrics,
         "assistant_context": assistant_context.to_dict(),
+        "match_intelligence_contract": (
+            (match_intelligence or {}).get("contract")
+            if isinstance(match_intelligence, dict)
+            else None
+        ),
         "public_picks_ready": sports_metrics.get("picks_ready"),
         "freshness": classify_freshness(delivery.get("last_delivery_at"), fresh_minutes=1440, stale_minutes=10080),
         "candidate_count": pipeline.get("candidate_count", 0),

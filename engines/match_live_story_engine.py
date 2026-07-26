@@ -15,12 +15,17 @@ from typing import Any, Iterable
 _EVENT_TYPES = {
     "goal": ("Gol", 100),
     "penalty_goal": ("Gol de penalti", 100),
+    "penalty_shootout_goal": ("Gol en la tanda", 100),
     "own_goal": ("Gol en propia puerta", 100),
     "red_card": ("Tarjeta roja", 90),
     "var": ("Revisión VAR", 85),
     "missed_penalty": ("Penalti fallado", 85),
+    "penalty_shootout_miss": ("Penalti fallado en la tanda", 85),
     "yellow_red_card": ("Segunda amarilla", 80),
     "period_start": ("Comienza el periodo", 75),
+    "halftime": ("Descanso", 75),
+    "extra_time_start": ("Comienza la prórroga", 75),
+    "penalty_shootout_start": ("Comienza la tanda de penaltis", 75),
     "period_end": ("Final del periodo", 75),
     "substitution": ("Cambio", 45),
     "yellow_card": ("Tarjeta amarilla", 40),
@@ -32,6 +37,8 @@ _TYPE_ALIASES = {
     "goal": "goal",
     "penalty goal": "penalty_goal",
     "gol de penalti": "penalty_goal",
+    "penalty shootout goal": "penalty_shootout_goal",
+    "shootout goal": "penalty_shootout_goal",
     "own goal": "own_goal",
     "autogol": "own_goal",
     "red": "red_card",
@@ -40,20 +47,33 @@ _TYPE_ALIASES = {
     "var": "var",
     "missed penalty": "missed_penalty",
     "penalti fallado": "missed_penalty",
+    "penalty shootout miss": "penalty_shootout_miss",
+    "shootout miss": "penalty_shootout_miss",
     "yellow red": "yellow_red_card",
     "second yellow": "yellow_red_card",
     "segunda amarilla": "yellow_red_card",
     "substitution": "substitution",
+    "subst": "substitution",
     "cambio": "substitution",
     "yellow": "yellow_card",
     "yellow card": "yellow_card",
     "tarjeta amarilla": "yellow_card",
     "kickoff": "period_start",
+    "kick off": "period_start",
+    "match start": "period_start",
     "period start": "period_start",
     "half start": "period_start",
+    "second half": "period_start",
+    "second half start": "period_start",
+    "half time": "halftime",
+    "halftime": "halftime",
+    "extra time": "extra_time_start",
+    "extra time start": "extra_time_start",
+    "penalty shootout": "penalty_shootout_start",
+    "penalties": "penalty_shootout_start",
     "period end": "period_end",
-    "half time": "period_end",
     "full time": "period_end",
+    "match finished": "period_end",
 }
 
 
@@ -89,12 +109,40 @@ def _event_minute(value: Any) -> EventMinute:
     return EventMinute(base, added, label, base * 100 + added)
 
 
-def _canonical_type(value: Any) -> str:
-    raw = _text(value, 80).lower().replace("_", "-").replace("-", " ")
+def _canonical_type(value: Any, detail: Any = "") -> str:
+    raw = _text(value, 80).lower().replace("_", " ").replace("-", " ")
+    detail_text = _text(detail, 120).lower().replace("_", " ").replace("-", " ")
+    combined = f"{raw} {detail_text}".strip()
+
+    if raw in {"card", "tarjeta"}:
+        if "second yellow" in detail_text or "yellow red" in detail_text:
+            return "yellow_red_card"
+        if "red" in detail_text or "roja" in detail_text:
+            return "red_card"
+        if "yellow" in detail_text or "amarilla" in detail_text:
+            return "yellow_card"
+    if raw in {"goal", "gol"}:
+        if "missed" in detail_text or "fallado" in detail_text:
+            return "missed_penalty"
+        if "own goal" in detail_text or "autogol" in detail_text:
+            return "own_goal"
+        if "shootout" in detail_text or "tanda" in detail_text:
+            return "penalty_shootout_goal"
+        if "penalty" in detail_text or "penalti" in detail_text:
+            return "penalty_goal"
+        return "goal"
+    if raw in {"subst", "substitution", "cambio"}:
+        return "substitution"
+    if raw == "var":
+        return "var"
+
     candidate = raw.replace(" ", "_")
     return _TYPE_ALIASES.get(
-        raw,
-        candidate if candidate in _EVENT_TYPES else "unknown",
+        combined,
+        _TYPE_ALIASES.get(
+            raw,
+            candidate if candidate in _EVENT_TYPES else "unknown",
+        ),
     )
 
 
@@ -102,8 +150,15 @@ def _safe_team(value: Any, match: dict[str, Any]) -> str:
     team = _text(value, 120)
     if not team:
         return ""
-    known = {_text(match.get("home_team"), 120), _text(match.get("away_team"), 120)}
-    return team if team in known else ""
+    known = {
+        _text(match.get("home_team"), 120).casefold(): _text(
+            match.get("home_team"), 120
+        ),
+        _text(match.get("away_team"), 120).casefold(): _text(
+            match.get("away_team"), 120
+        ),
+    }
+    return known.get(team.casefold(), "")
 
 
 def normalize_story_event(
@@ -114,12 +169,21 @@ def normalize_story_event(
 
     if not isinstance(raw, dict):
         return None
+    raw_detail = (
+        raw.get("detail")
+        or raw.get("description")
+        or raw.get("reason")
+        or raw.get("comments")
+    )
     event_type = _canonical_type(
-        raw.get("type") or raw.get("event_type") or raw.get("kind")
+        raw.get("type") or raw.get("event_type") or raw.get("kind"),
+        raw_detail,
     )
-    minute = _event_minute(
-        raw.get("minute") or raw.get("elapsed") or raw.get("time")
-    )
+    minute_value = raw.get("minute") or raw.get("elapsed") or raw.get("time")
+    extra = _text(raw.get("extra"), 8)
+    if extra.isdigit() and int(extra) > 0 and "+" not in str(minute_value or ""):
+        minute_value = f"{minute_value}+{extra}"
+    minute = _event_minute(minute_value)
     event_id = _text(
         raw.get("id") or raw.get("event_id") or raw.get("external_id"),
         100,
@@ -132,13 +196,13 @@ def normalize_story_event(
     team = _safe_team(raw.get("team") or raw.get("team_name"), match)
     player = _text(raw.get("player") or raw.get("player_name"), 120)
     related_player = _text(
-        raw.get("related_player") or raw.get("assist") or raw.get("player_out"),
+        raw.get("related_player")
+        or raw.get("assist")
+        or raw.get("assist_name")
+        or raw.get("player_out"),
         120,
     )
-    detail = _text(
-        raw.get("detail") or raw.get("description") or raw.get("reason"),
-        220,
-    )
+    detail = _text(raw_detail, 220)
     headline_parts = [label]
     if player:
         headline_parts.append(player)
@@ -155,7 +219,21 @@ def normalize_story_event(
         "minute_label": minute.label,
         "sort_value": minute.sort_value,
         "team": team,
+        "side": (
+            "home"
+            if team and team == _text(match.get("home_team"), 120)
+            else "away"
+            if team and team == _text(match.get("away_team"), 120)
+            else ""
+        ),
+        "player_id": _text(raw.get("player_id"), 100),
         "player": player,
+        "related_player_id": _text(
+            raw.get("related_player_id")
+            or raw.get("assist_id")
+            or raw.get("player_out_id"),
+            100,
+        ),
         "related_player": related_player,
         "detail": detail,
         "importance": importance,
@@ -170,30 +248,45 @@ def normalize_story_events(
 ) -> list[dict[str, Any]]:
     """Return unique, provider-confirmed events in chronological order."""
 
-    seen: set[str] = set()
+    seen_ids: set[str] = set()
+    seen_facts: set[tuple[Any, ...]] = set()
     normalized: list[dict[str, Any]] = []
     for raw in events or []:
         event = normalize_story_event(raw, match)
-        if event and event["id"] not in seen:
-            seen.add(event["id"])
-            normalized.append(event)
+        if not event or event["id"] in seen_ids:
+            continue
+        fact_key = (
+            event["type"],
+            event["minute"],
+            event["added_time"],
+            event["team"].casefold(),
+            event["player"].casefold(),
+            event["related_player"].casefold(),
+            event["detail"].casefold(),
+        )
+        if fact_key in seen_facts:
+            continue
+        seen_ids.add(event["id"])
+        seen_facts.add(fact_key)
+        normalized.append(event)
     return sorted(
         normalized,
         key=lambda item: (item["sort_value"], item["id"]),
     )
 
 
-def _phase_for_minute(minute: int | None, match_status: Any) -> str:
+def _phase_for_minute(minute: Any, match_status: Any) -> str:
     status = _text(match_status, 40).lower()
     if status in {"finished", "finalizado", "ft", "aet", "pen"}:
         return "finished"
     if status in {"halftime", "descanso", "ht"}:
         return "halftime"
-    if minute is None:
+    normalized_minute = _event_minute(minute).base
+    if normalized_minute is None:
         return "unknown"
-    if minute <= 45:
+    if normalized_minute <= 45:
         return "first_half"
-    if minute <= 90:
+    if normalized_minute <= 90:
         return "second_half"
     return "extra_time"
 

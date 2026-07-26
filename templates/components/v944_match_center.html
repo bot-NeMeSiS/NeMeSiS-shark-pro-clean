@@ -59,34 +59,39 @@
 {% set home = teams.get('home') or {} %}
 {% set away = teams.get('away') or {} %}
 {% set lifecycle = context.get('lifecycle') or {} %}
+{% set competition = context.get('competition') or {} %}
 <header class="v944-match-header"
         data-match-component="MatchHeader"
         data-component-state="{{ state }}"
         data-match-region="header">
   <div class="v944-match-header__meta">
     <a href="/calendar" class="v944-back-link">{{ icon('arrow') }}<span>Calendario</span></a>
-    <span>{{ context.get('competition', {}).get('name') or 'Competición pendiente' }}</span>
+    {% if competition.get('href') %}
+    <a class="v944-match-header__competition" href="{{ competition.get('href') }}">{{ competition.get('name') or 'No disponible' }}</a>
+    {% else %}
+    <span>{{ competition.get('name') or 'No disponible' }}</span>
+    {% endif %}
     {% if context.get('favorite') %}{{ status_chip('Favorito', 'gold') }}{% endif %}
   </div>
   <div class="v944-match-header__identity">
-    <div class="v944-match-team">
+    <a class="v944-match-team v944-entity-link" href="{{ home.get('href') or '/calendar' }}" data-entity-contract="team">
       {{ team_logo(home.get('name'), home.get('logo'), 'lg') }}
-      <strong>{{ home.get('name') or 'Equipo local pendiente' }}</strong>
-      <small>Local</small>
-    </div>
+      <strong>{{ home.get('name') or 'No disponible' }}</strong>
+      <small>{% if home.get('flag') %}<span aria-hidden="true">{{ home.get('flag') }}</span>{% endif %} Local</small>
+    </a>
     <div class="v944-match-header__status">
-      <span>{{ lifecycle.get('label') or 'Estado pendiente' }}</span>
+      <span>{{ lifecycle.get('label') or 'No disponible' }}</span>
       <time datetime="{{ context.get('madrid_time', {}).get('iso') or '' }}">
-        {{ context.get('madrid_time', {}).get('label') or 'Hora Madrid pendiente' }}
+        {{ context.get('madrid_time', {}).get('label') or 'No disponible' }}
       </time>
     </div>
-    <div class="v944-match-team is-away">
+    <a class="v944-match-team v944-match-team--away is-away v944-entity-link" href="{{ away.get('href') or '/calendar' }}" data-entity-contract="team">
       {{ team_logo(away.get('name'), away.get('logo'), 'lg') }}
-      <strong>{{ away.get('name') or 'Equipo visitante pendiente' }}</strong>
-      <small>Visitante</small>
-    </div>
+      <strong>{{ away.get('name') or 'No disponible' }}</strong>
+      <small>{% if away.get('flag') %}<span aria-hidden="true">{{ away.get('flag') }}</span>{% endif %} Visitante</small>
+    </a>
   </div>
-  {{ state_notice(component, 'La identidad del partido está incompleta.') }}
+  {{ state_notice(component, 'La identidad del partido no está disponible.') }}
 </header>
 {%- endmacro %}
 
@@ -126,21 +131,27 @@
 {% macro timeline(context) -%}
 {% set component = context.get('components', {}).get('Timeline') or {} %}
 {% set event_summary = context.get('event_summary') or {} %}
-{{ panel_start('Timeline', component, 'Cronología', 'Hechos ordenados sin completar huecos con datos inventados.', 'timeline') }}
+{{ panel_start('Timeline', component, 'Cronología', 'Hechos confirmados, ordenados y sin duplicados.', 'timeline') }}
   {% if event_summary.get('available') %}
-  <ol class="v944-timeline">
-    {% for event in (event_summary.get('items') or [])[:6] %}
-    <li>
-      <time>{{ event.get('minute_label') or event.get('minute') or event.get('elapsed') or '—' }}</time>
+  <ol class="v944-timeline" data-event-source="{{ event_summary.get('source') or '' }}">
+    {% for event in event_summary.get('items') or [] %}
+    <li class="is-{{ event.get('type') or 'unknown' }}" data-event-id="{{ event.get('id') or '' }}">
+      <time>{{ event.get('minute_label') or 'No disponible' }}</time>
       <span>
-        <strong>{{ event.get('headline') or event.get('title') or event.get('event_type') or event.get('type') or 'Hecho del partido' }}</strong>
-        <small>{{ event.get('detail') or event.get('description') or event.get('player_name') or event.get('team_name') or 'Sin detalle adicional' }}</small>
+        <strong>{{ event.get('label') or 'Evento confirmado' }}{% if event.get('team') %} · {{ event.get('team') }}{% endif %}</strong>
+        <small>
+          {% if event.get('player') %}{% if event.get('player_href') %}<a href="{{ event.get('player_href') }}" data-entity-contract="player">{{ event.get('player') }}</a>{% else %}{{ event.get('player') }}{% endif %}{% endif %}
+          {% if event.get('related_player') %}<span> · {{ event.get('related_player') }}</span>{% endif %}
+          {% if event.get('detail') %}<span> · {{ event.get('detail') }}</span>{% endif %}
+          {% if not event.get('player') and not event.get('related_player') and not event.get('detail') %}No disponible{% endif %}
+        </small>
       </span>
     </li>
     {% endfor %}
   </ol>
+  <p class="v944-panel-footnote">{{ event_summary.get('count') }} eventos confirmados{% if event_summary.get('excluded_without_evidence') %} · {{ event_summary.get('excluded_without_evidence') }} excluidos sin evidencia suficiente{% endif %}</p>
   {% else %}
-  {{ state_notice(component) }}
+  {{ state_notice(component, 'No disponible.') }}
   {% endif %}
 </section>
 {%- endmacro %}
@@ -148,23 +159,53 @@
 {% macro stats_panel(context) -%}
 {% set component = context.get('components', {}).get('StatsPanel') or {} %}
 {% set statistics = context.get('statistics') or {} %}
-{{ panel_start('StatsPanel', component, 'Estadísticas', 'Disponibilidad confirmada; la profundidad llegará en su Sprint.', 'stats') }}
+{% set teams = context.get('teams') or {} %}
+{{ panel_start('StatsPanel', component, 'Estadísticas reales', 'Comparativa disponible en el caché confirmado del proveedor.', 'stats') }}
   {% if statistics.get('available') %}
-  <div class="v944-availability">
-    {{ icon('check') }}
-    <span><strong>Cobertura disponible</strong><small>{{ statistics.get('item_count') }} bloques preparados para lectura posterior.</small></span>
+  <div class="v944-stats" role="table" aria-label="Estadísticas del partido" data-stat-source="{{ statistics.get('source') or '' }}">
+    <div class="v944-stats__header" role="row">
+      <strong role="columnheader">{{ teams.get('home', {}).get('name') or 'Local' }}</strong>
+      <span role="columnheader">Dato</span>
+      <strong role="columnheader">{{ teams.get('away', {}).get('name') or 'Visitante' }}</strong>
+    </div>
+    {% for stat in statistics.get('items') or [] %}
+    <div class="v944-stats__row is-{{ stat.get('leader') or 'even' }}" role="row">
+      <span role="cell">{{ stat.get('home') or 'No disponible' }}</span>
+      <strong role="rowheader">{{ stat.get('label') }}</strong>
+      <span role="cell">{{ stat.get('away') or 'No disponible' }}</span>
+    </div>
+    {% endfor %}
   </div>
   {% else %}
-  {{ state_notice(component) }}
+  {{ state_notice(component, 'No disponible.') }}
   {% endif %}
 </section>
 {%- endmacro %}
 
 {% macro shark_panel(context) -%}
 {% set component = context.get('components', {}).get('SharkPanel') or {} %}
-{{ panel_start('SharkPanel', component, 'SHARK', 'Criterio condicionado por evidencia.', 'shark') }}
-  {{ state_notice(component) }}
-  <p class="v944-safe-copy">El Match Center no anticipa una recomendación ni completa análisis que todavía no existen.</p>
+{% set shark = context.get('shark_context') or {} %}
+{{ panel_start('SharkPanel', component, 'Contexto SHARK', 'Lectura deportiva condicionada por evidencia real.', 'shark') }}
+  {% if shark.get('available') %}
+  <div class="v944-shark-context"
+       data-shark-evidence="confirmed"
+       data-match-intelligence-consumer="shark"
+       data-match-intelligence-contract="{{ shark.get('contract') or '' }}">
+    <strong>{{ shark.get('headline') or 'Contexto disponible' }}</strong>
+    {% if shark.get('phase') %}<p>{{ shark.get('phase') }}</p>{% endif %}
+    {% if shark.get('dominant_team') %}<p>Dominio observado: {{ shark.get('dominant_team') }}</p>{% endif %}
+    {% if shark.get('signals') %}
+    <ul>{% for signal in shark.get('signals') %}<li>{{ signal }}</li>{% endfor %}</ul>
+    {% endif %}
+    <small data-match-intelligence-explainability="evidence">
+      {{ shark.get('quality_label') or 'Evidencia parcial' }}
+      {% if shark.get('evidence') %} · {{ shark.get('evidence')|join(', ') }}{% endif %}
+    </small>
+  </div>
+  {% else %}
+  {{ state_notice(component, 'No disponible.') }}
+  {% endif %}
+  <p class="v944-safe-copy">SHARK no completa conclusiones, riesgos ni recomendaciones cuando faltan datos suficientes.</p>
   {{ action_button('Abrir SHARK', '/shark?match=' ~ (context.get('match', {}).get('id') or ''), false, 'cyan', false, 'shark') }}
 </section>
 {%- endmacro %}
@@ -188,16 +229,21 @@
 {% set component = context.get('components', {}).get('CompetitionPanel') or {} %}
 {% set competition = context.get('competition') or {} %}
 {% set teams = context.get('teams') or {} %}
-{{ panel_start('CompetitionPanel', component, 'Contexto relacionado', 'Competición y participantes del mismo partido.', 'competition') }}
+{% set facts = context.get('facts') or {} %}
+{{ panel_start('CompetitionPanel', component, 'Ficha del encuentro', 'Competición, sede y responsables confirmados.', 'competition') }}
   <dl class="v944-context-list">
-    <div><dt>Competición</dt><dd>{{ competition.get('name') or 'Pendiente' }}</dd></div>
-    {% if competition.get('round') %}<div><dt>Jornada o fase</dt><dd>{{ competition.get('round') }}</dd></div>{% endif %}
-    {% if competition.get('country') %}<div><dt>País</dt><dd>{{ competition.get('country') }}</dd></div>{% endif %}
+    <div><dt>Competición</dt><dd>{% if competition.get('href') %}<a href="{{ competition.get('href') }}" data-entity-contract="competition">{{ competition.get('name') or 'No disponible' }}</a>{% else %}{{ competition.get('name') or 'No disponible' }}{% endif %}</dd></div>
+    <div><dt>Jornada o fase</dt><dd>{{ competition.get('round') or 'No disponible' }}</dd></div>
+    <div><dt>País</dt><dd>{{ competition.get('country') or 'No disponible' }}</dd></div>
+    <div><dt>Temporada</dt><dd>{{ facts.get('season') or 'No disponible' }}</dd></div>
+    <div><dt>Estadio</dt><dd>{{ facts.get('stadium') or 'No disponible' }}</dd></div>
+    <div><dt>Ciudad</dt><dd>{{ facts.get('city') or 'No disponible' }}</dd></div>
+    <div><dt>Árbitro</dt><dd>{{ facts.get('referee') or 'No disponible' }}</dd></div>
   </dl>
   <div class="v944-related-teams" data-match-region="related-teams">
     <span>Equipos relacionados</span>
-    <strong>{{ teams.get('home', {}).get('name') or 'Local pendiente' }}</strong>
-    <strong>{{ teams.get('away', {}).get('name') or 'Visitante pendiente' }}</strong>
+    <a href="{{ teams.get('home', {}).get('href') or '/calendar' }}" data-entity-contract="team">{{ teams.get('home', {}).get('name') or 'No disponible' }}</a>
+    <a href="{{ teams.get('away', {}).get('href') or '/calendar' }}" data-entity-contract="team">{{ teams.get('away', {}).get('name') or 'No disponible' }}</a>
   </div>
   {{ state_notice(component) }}
 </section>

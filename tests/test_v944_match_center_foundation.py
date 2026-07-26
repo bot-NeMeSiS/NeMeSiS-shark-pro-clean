@@ -102,6 +102,8 @@ def test_match_context_is_one_pure_snapshot_for_all_foundation_components():
         "builder_database_writes": 0,
         "external_calls": 0,
         "single_snapshot": True,
+        "match_intelligence_contract": "MATCH-INTELLIGENCE-EVIDENCE-V1",
+        "match_intelligence_reused_by_shark": True,
         "component_contracts": list(MATCH_CENTER_COMPONENTS),
         "canonical_states": list(CANONICAL_COMPONENT_STATES),
     }
@@ -272,6 +274,7 @@ def _sentinel_fixture(tmp_path: Path, *, break_shell: bool = False) -> Path:
     for relative in (
         "app.py",
         "engines/match_context_engine.py",
+        "engines/api_football_live_tracker_engine.py",
         "templates/match_detail.html",
         "templates/components/v944_match_center.html",
         "static/v933-product.css",

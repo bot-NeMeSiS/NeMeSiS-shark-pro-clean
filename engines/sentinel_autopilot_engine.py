@@ -905,9 +905,15 @@ def build_v944_match_center_foundation_contract_snapshot(
     template = _read("templates/match_detail.html")
     components = _read("templates/components/v944_match_center.html")
     css = _read("static/v933-product.css")
+    tracker = _read("engines/api_football_live_tracker_engine.py")
+    intelligence_engine = _read("engines/match_intelligence_engine.py")
+    shark_adapter = _read("engines/shark_context_presentation_engine.py")
+    telegram_adapter = _read("engines/telegram_intelligence_engine.py")
+    platform_contracts = _read("engines/sports_platform_contracts.py")
 
     route_source = ""
     detail_source = ""
+    api_detail_source = ""
     try:
         tree = ast.parse(application)
         for node in ast.walk(tree):
@@ -917,6 +923,8 @@ def build_v944_match_center_foundation_contract_snapshot(
                 route_source = ast.get_source_segment(application, node) or ""
             elif node.name == "match_detail":
                 detail_source = ast.get_source_segment(application, node) or ""
+            elif node.name == "api_match_detail":
+                api_detail_source = ast.get_source_segment(application, node) or ""
     except (SyntaxError, ValueError):
         pass
 
@@ -935,9 +943,14 @@ def build_v944_match_center_foundation_contract_snapshot(
         '"builder_database_writes": 0',
         '"external_calls": 0',
         '"single_snapshot": True',
+        "def _real_statistics(",
+        "build_match_intelligence(",
+        "build_shark_match_intelligence_state(",
+        "intelligence: dict[str, Any]",
+        '"SPORTS-ENTITY-CENTER-CONTEXT-V1"',
     ))
     pure_builder_contract = not re.search(
-        r"\b(?:sqlite3|requests|urllib|flask|commit|execute|executemany)\b",
+        r"\b(?:sqlite3|requests|urllib\.request|flask|commit|execute|executemany)\b",
         engine,
         flags=re.IGNORECASE,
     )
@@ -954,6 +967,19 @@ def build_v944_match_center_foundation_contract_snapshot(
         route_source,
         flags=re.IGNORECASE,
     )
+    tracker_reader_source = ""
+    if "def live_tracker_for_match" in tracker and "def sync_api_football_fixture_detail" in tracker:
+        tracker_reader_source = tracker.split("def live_tracker_for_match", 1)[1].split(
+            "def sync_api_football_fixture_detail", 1
+        )[0]
+    read_only_tracker_contract = all((
+        "def _connect_readonly" in tracker,
+        "mode=ro" in tracker,
+        "_connect_readonly" in tracker_reader_source,
+        "ensure_live_tracker_schema" not in tracker_reader_source,
+        "_api_get(" not in tracker_reader_source,
+    ))
+    api_get_side_effect_contract = bool(api_detail_source) and "save_shark_context(" not in api_detail_source
     state_contract = all(f'"{state}"' in engine for state in expected_states)
     component_contract = all(
         name in engine
@@ -976,16 +1002,51 @@ def build_v944_match_center_foundation_contract_snapshot(
         "bankroll_panel(match_context)",
         "competition_panel(match_context)",
         "quick_actions(match_context)",
+        'data-sports-core-match-center="intelligence-phase-1"',
     ))
     safe_fallback_contract = (
-        "No disponible todavía." in components
+        "No disponible." in components
         and "El marcador aparecerá únicamente" in components
         and "datos confirmados" in engine
     )
+    intelligence_contract = all((
+        'data-stat-source=' in components,
+        'data-shark-evidence=' in components,
+        'data-entity-contract=' in components,
+        'data-match-intelligence-consumer="shark"' in components,
+        'data-match-intelligence-contract=' in template,
+        "tracker=live" in engine,
+        "statistics=statistics" in engine,
+        "timeline=timeline" in engine,
+        '"field_state": field_state' in tracker,
+        '"broken_links_allowed": False' in engine,
+    ))
+    match_intelligence_core_contract = all((
+        'MATCH_INTELLIGENCE_CONTRACT = "MATCH-INTELLIGENCE-EVIDENCE-V1"'
+        in intelligence_engine,
+        "def build_match_intelligence(" in intelligence_engine,
+        "def build_match_intelligence_consumer_view(" in intelligence_engine,
+        "def build_shark_match_intelligence_state(" in intelligence_engine,
+        '"database_writes": 0' in intelligence_engine,
+        '"external_calls": 0' in intelligence_engine,
+        '"generative_ai_calls": 0' in intelligence_engine,
+        '"numeric_confidence_score": None' in intelligence_engine,
+        '"sports_graph_write_authorized": False' in intelligence_engine,
+        "match_intelligence=context.get(" in shark_adapter,
+        "match_intelligence=match_intelligence" in telegram_adapter,
+        "match_intelligence: dict[str, Any]" in platform_contracts,
+    ))
+    entity_route_contract = all(marker in application for marker in (
+        '@app.route("/team/<team_id>")',
+        '@app.route("/competition/<competition_id>")',
+        '@app.route("/player/<player_id>")',
+    ))
     responsive_contract = all(marker in css for marker in (
         "V944 MATCH CENTER FOUNDATION",
         ".v944-match-anchor {",
         ".v944-match-layout {",
+        ".v944-stats {",
+        ".v944-shark-context {",
         "@media (max-width: 1080px)",
         "@media (max-width: 800px)",
         "@media (prefers-reduced-motion: reduce)",
@@ -997,6 +1058,11 @@ def build_v944_match_center_foundation_contract_snapshot(
         "pure_builder_contract": pure_builder_contract,
         "single_load_contract": single_load_contract,
         "get_side_effect_contract": get_side_effect_contract,
+        "api_get_side_effect_contract": api_get_side_effect_contract,
+        "read_only_tracker_contract": read_only_tracker_contract,
+        "intelligence_contract": intelligence_contract,
+        "match_intelligence_core_contract": match_intelligence_core_contract,
+        "entity_route_contract": entity_route_contract,
         "state_contract": state_contract,
         "component_contract": component_contract,
         "shell_contract": shell_contract,
@@ -1013,11 +1079,12 @@ def build_v944_match_center_foundation_contract_snapshot(
         "affected_routes": ["/match/<id>", "/partido/<id>"],
         "cause": "The Match Center can regress if a component reloads facts, loses a canonical state or introduces a GET side effect.",
         "impact": "Users can see contradictory match facts, unstable fallbacks or a broken responsive shell.",
-        "solution": "Keep every region on one pure MatchContext and the approved component/state contracts.",
+        "solution": "Keep every region on one pure MatchContext and one MATCH-INTELLIGENCE-EVIDENCE-V1 snapshot.",
         "evidence": {**checks, "violations": violations},
         "preventive_rule": (
             "All Match Center regions consume MATCH-CENTER-LIFECYCLE-STORY-V1 through one MatchContext; "
-            "GET rendering has no writes or external calls."
+            "provider facts remain cached, all consumers reuse MATCH-INTELLIGENCE-EVIDENCE-V1, "
+            "and GET rendering has no writes or external calls."
         ),
         "qa_result": "PASS" if passed else "REGRESSION",
         "validation_result": "PASS" if passed else "REGRESSION",
@@ -1222,6 +1289,9 @@ def detect_product_quality_contract_issues(
             "requires_approval": True,
             "likely_files": [
                 "engines/match_context_engine.py",
+                "engines/match_intelligence_engine.py",
+                "engines/shark_context_presentation_engine.py",
+                "engines/telegram_intelligence_engine.py",
                 "app.py",
                 "templates/match_detail.html",
                 "templates/components/v944_match_center.html",

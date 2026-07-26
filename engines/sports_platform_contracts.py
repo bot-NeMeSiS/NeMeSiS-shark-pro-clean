@@ -94,6 +94,7 @@ class SportsGraphEdge:
 class AssistantContextEnvelope:
     consumer: str
     match_context: dict[str, Any]
+    match_intelligence: dict[str, Any]
     sports_metrics: dict[str, Any]
     evidence_state: str
     limitations: tuple[str, ...]
@@ -181,6 +182,7 @@ def build_assistant_context(
     consumer: Any,
     *,
     match_context: Mapping[str, Any] | None = None,
+    match_intelligence: Mapping[str, Any] | None = None,
     sports_metrics: Mapping[str, Any] | None = None,
     evidence_state: Any = "REQUIRES_REVIEW",
     limitations: list[str] | tuple[str, ...] | None = None,
@@ -191,13 +193,15 @@ def build_assistant_context(
     if normalized_consumer not in {"shark", "telegram"}:
         raise ValueError("unsupported_consumer")
     context = _mapping(match_context)
+    intelligence = _mapping(match_intelligence)
     metrics = _mapping(sports_metrics)
     state = _state(evidence_state)
-    if not context and not metrics:
+    if not context and not intelligence and not metrics:
         state = "INSUFFICIENT_DATA"
     return AssistantContextEnvelope(
         consumer=normalized_consumer,
         match_context=context,
+        match_intelligence=intelligence,
         sports_metrics=metrics,
         evidence_state=state,
         limitations=tuple(_text(item) for item in (limitations or []) if _text(item)),
@@ -228,11 +232,45 @@ def build_sports_platform_contract_registry(project_root: str | Path) -> dict[st
             "implementation": "engines/match_context_engine.py",
         },
         {
+            "key": "match_intelligence_core",
+            "name": "Match Intelligence Engine",
+            "contract": "MATCH-INTELLIGENCE-EVIDENCE-V1",
+            "state": "INTEGRATED"
+            if exists("engines/match_intelligence_engine.py")
+            and exists("engines/match_context_engine.py")
+            else "PENDING",
+            "implementation": (
+                "engines/match_intelligence_engine.py + "
+                "engines/match_context_engine.py"
+            ),
+        },
+        {
             "key": "live_story",
             "name": "Live Story Engine",
             "contract": "MATCH-CENTER-LIFECYCLE-STORY-V1",
             "state": "INTEGRATED" if exists("engines/match_live_story_engine.py") else "PENDING",
             "implementation": "engines/match_live_story_engine.py",
+        },
+        {
+            "key": "match_center_intelligence",
+            "name": "Match Center Intelligence",
+            "contract": "MATCH-CENTER-LIFECYCLE-STORY-V1",
+            "state": "INTEGRATED"
+            if all(
+                exists(path)
+                for path in (
+                    "engines/match_context_engine.py",
+                    "engines/match_live_story_engine.py",
+                    "engines/api_football_live_tracker_engine.py",
+                    "templates/components/v944_match_center.html",
+                    "tests/test_sports_core_match_center_intelligence.py",
+                )
+            )
+            else "PENDING",
+            "implementation": (
+                "engines/match_context_engine.py + engines/match_live_story_engine.py + "
+                "engines/api_football_live_tracker_engine.py"
+            ),
         },
         {
             "key": "live_center",

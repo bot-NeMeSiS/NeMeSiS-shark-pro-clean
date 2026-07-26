@@ -97,6 +97,7 @@ def build_shark_context(user: Dict[str, Any] | None, match: Dict[str, Any] | Non
             "membership": membership,
         },
         "match": match or {},
+        "match_intelligence": extra.get("match_intelligence") or {},
         "pick": pick or {},
         "page": _text(page, "shark"),
         "recent_picks": list(extra.get("recent_picks") or [])[:8],
@@ -131,6 +132,46 @@ def explain_match(match: Dict[str, Any] | None) -> str:
         parts.append("Marcador: Resultado pendiente")
     parts.append("Lectura SHARK: reviso solo datos disponibles. Si faltan cuota, minuto o estadísticas, no los invento.")
     return "\n".join(parts)
+
+
+def explain_match_intelligence(
+    intelligence: Dict[str, Any] | None,
+) -> str:
+    snapshot = intelligence or {}
+    if snapshot.get("contract") != "MATCH-INTELLIGENCE-EVIDENCE-V1":
+        return ""
+    conclusions = snapshot.get("conclusions") or {}
+    lines = ["Contexto Match Intelligence:"]
+    for key, label in (
+        ("fase", "Fase"),
+        ("presion", "Presion"),
+        ("dominador", "Dominio observado"),
+        ("cambios_recientes", "Cambios recientes"),
+    ):
+        conclusion = conclusions.get(key) or {}
+        if conclusion.get("state") not in {"VERIFIED", "PARTIALLY_VERIFIED"}:
+            continue
+        value = conclusion.get("value") or {}
+        if key == "fase":
+            rendered = _first(value.get("label"), value.get("key"))
+        elif key == "presion":
+            rendered = _first(value.get("label"))
+        elif key == "dominador":
+            rendered = _first(value.get("team"))
+        else:
+            rendered = (
+                str(value.get("count"))
+                if value.get("count") is not None
+                else ""
+            )
+        if rendered:
+            lines.append(f"{label}: {rendered}")
+    if len(lines) == 1:
+        return "Contexto Match Intelligence: evidencia insuficiente."
+    lines.append(
+        "Cada lectura conserva evidencia y limitaciones; no es una prediccion."
+    )
+    return "\n".join(lines)
 
 
 def explain_pick(pick: Dict[str, Any] | None) -> str:
@@ -272,6 +313,7 @@ def answer_shark_question(question: str, context: Dict[str, Any]) -> Dict[str, A
     question = _text(question, "resumen")
     intent = _intent(question)
     match = context.get("match") or {}
+    match_intelligence = context.get("match_intelligence") or {}
     pick = context.get("pick") or {}
     membership = (context.get("user") or {}).get("membership", "FREE")
     body_parts: List[str] = ["🦈 SHARK responde con datos reales."]
@@ -292,6 +334,9 @@ def answer_shark_question(question: str, context: Dict[str, Any]) -> Dict[str, A
             body_parts.append("Telegram solo debe enviar contenido top: fútbol relevante, picks reales y sin relleno.")
     elif intent == "match":
         body_parts.append(explain_match(match))
+        intelligence_reading = explain_match_intelligence(match_intelligence)
+        if intelligence_reading:
+            body_parts.append(intelligence_reading)
         if pick:
             body_parts.append("Pick relacionado:\n" + explain_pick(pick))
         else:
@@ -312,6 +357,9 @@ def answer_shark_question(question: str, context: Dict[str, Any]) -> Dict[str, A
             body_parts.append("Pick principal:\n" + explain_pick(pick))
         elif match:
             body_parts.append("Partido seleccionado:\n" + explain_match(match))
+            intelligence_reading = explain_match_intelligence(match_intelligence)
+            if intelligence_reading:
+                body_parts.append(intelligence_reading)
         else:
             body_parts.append("No hay contexto específico seleccionado. Puedes abrir un partido o un pick y pedirme una lectura concreta.")
     body_parts.append(_membership_note(membership))

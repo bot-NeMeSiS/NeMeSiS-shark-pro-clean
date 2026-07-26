@@ -7972,10 +7972,19 @@ def v845_build_product_assistant_context(
             briefing = shark_briefing()
         except Exception:
             briefing = {"summary": {}, "risk": {}, "legal_policy": ""}
+    match_intelligence = (
+        cached_match_intelligence_for_consumer(
+            match,
+            [pick] if pick else [],
+        )
+        if match
+        else {}
+    )
     context = v845_build_shark_context(
         user,
         match=match,
         pick=pick,
+        match_intelligence=match_intelligence,
         page=page or (request.path if has_request_context() else "shark"),
         recent_picks=recent_picks,
         recent_matches=recent_matches,
@@ -14774,6 +14783,30 @@ def match_hub_page():
 
 
 
+def cached_match_intelligence_for_consumer(match, picks=None):
+    """Build the shared intelligence from cached local facts only."""
+    match_data = dict(match or {})
+    related_picks = [dict(item) for item in (picks or []) if isinstance(item, dict)]
+    if not match_data:
+        return build_match_intelligence({}, related_picks)
+    try:
+        live_context = live_tracker_for_match(
+            DB_PATH,
+            match_data.get("id") or match_data.get("match_id"),
+        ) or {}
+    except Exception:
+        live_context = {}
+    try:
+        madrid_context = client_match_display_context(match_data)
+    except Exception:
+        madrid_context = {}
+    return build_match_context(
+        {"match": match_data, "related_picks": related_picks},
+        madrid_context=madrid_context,
+        live_context=live_context,
+    ).get("intelligence") or {}
+
+
 @app.route("/match/<match_id>")
 @app.route("/partido/<match_id>")
 def match_detail_page(match_id):
@@ -14828,6 +14861,36 @@ def team_page(team_id):
     data = dashboard_data()
     data["team_detail"] = detail
     return render_template("team_detail.html", data=data, detail=detail)
+
+
+@app.route("/competition/<competition_id>")
+@app.route("/competicion/<competition_id>")
+def competition_center_contract_page(competition_id):
+    return render_template(
+        "resource_unavailable.html",
+        title="Competition Center",
+        resource_title="Centro de competición preparado",
+        resource_message=(
+            "No disponible: todavía no existe información real suficiente para "
+            "abrir este centro. El contrato de navegación queda preparado sin "
+            "inventar clasificaciones, jornadas ni resultados."
+        ),
+    )
+
+
+@app.route("/player/<player_id>")
+@app.route("/jugador/<player_id>")
+def player_center_contract_page(player_id):
+    return render_template(
+        "resource_unavailable.html",
+        title="Player Center",
+        resource_title="Centro de jugador preparado",
+        resource_message=(
+            "No disponible: todavía no existe una ficha real suficiente para "
+            "este jugador. El acceso permanece seguro y sin datos inventados."
+        ),
+    )
+
 
 @app.route("/favoritos", methods=["GET", "POST"])
 @app.route("/favorites", methods=["GET", "POST"])
@@ -20713,9 +20776,26 @@ def api_match_detail(match_id):
     detail = match_detail(match_id)
     if not detail:
         return jsonify({"ok": False, "version": APP_VERSION, "error": "Partido no encontrado"}), 404
-    context = build_shark_context(match=detail["match"], league=detail["match"].get("competition_name"), favorites=get_favorites(), picks=detail["related_picks"], profile=default_profile())
-    save_shark_context("match_detail", match_id, context)
-    return jsonify({"ok": True, "version": APP_VERSION, "detail": detail, "shark_context": context})
+    match_intelligence = cached_match_intelligence_for_consumer(
+        detail["match"],
+        detail["related_picks"],
+    )
+    context = build_shark_context(
+        match=detail["match"],
+        league=detail["match"].get("competition_name"),
+        favorites=get_favorites(),
+        picks=detail["related_picks"],
+        profile=default_profile(),
+        match_intelligence=match_intelligence,
+    )
+    return jsonify({
+        "ok": True,
+        "version": APP_VERSION,
+        "detail": detail,
+        "match_intelligence": match_intelligence,
+        "shark_context": context,
+        "side_effects": {"database_writes": 0, "external_calls": 0},
+    })
 
 
 @app.route("/api/matches/<match_id>/depth")
@@ -21238,7 +21318,18 @@ def api_shark_ask():
 def api_shark_context():
     match_id = request.args.get("match_id") or ""
     match = one("SELECT * FROM matches WHERE id=?", (match_id,)) if match_id else None
-    context = build_shark_context(match=match, league=(match or {}).get("competition_name") if match else request.args.get("league"), favorites=get_favorites(), picks=get_picks(limit=12), profile=default_profile())
+    picks = get_picks(limit=12)
+    match_intelligence = (
+        cached_match_intelligence_for_consumer(match, picks) if match else {}
+    )
+    context = build_shark_context(
+        match=match,
+        league=(match or {}).get("competition_name") if match else request.args.get("league"),
+        favorites=get_favorites(),
+        picks=picks,
+        profile=default_profile(),
+        match_intelligence=match_intelligence,
+    )
     snapshot_id = save_shark_context("context", match_id or context.get("league") or "global", context)
     return jsonify({"ok": True, "version": APP_VERSION, "snapshot_id": snapshot_id, "context": context})
 

@@ -7,9 +7,15 @@ work. That keeps every Match Center component on one factual snapshot.
 
 from __future__ import annotations
 
+import json
 from dataclasses import asdict, dataclass
 from typing import Any, Mapping
+from urllib.parse import quote
 
+from engines.match_intelligence_engine import (
+    build_match_intelligence,
+    build_shark_match_intelligence_state,
+)
 from engines.match_live_story_engine import build_match_live_story
 
 
@@ -56,6 +62,149 @@ def _text(value: Any) -> str:
 
 def _present(value: Any) -> bool:
     return value not in (None, "")
+
+
+def _json_mapping(value: Any) -> dict[str, Any]:
+    if isinstance(value, Mapping):
+        return dict(value)
+    if not isinstance(value, str) or not value.strip():
+        return {}
+    try:
+        parsed = json.loads(value)
+    except (TypeError, ValueError, json.JSONDecodeError):
+        return {}
+    return dict(parsed) if isinstance(parsed, Mapping) else {}
+
+
+def _first_text(*values: Any) -> str:
+    for value in values:
+        candidate = _text(value)
+        if candidate:
+            return candidate
+    return ""
+
+
+def _entity_href(entity_type: str, entity_id: Any, label: Any = "") -> str:
+    identifier = _text(entity_id)
+    display = _text(label)
+    if entity_type == "team" and display:
+        return f"/team/{quote(display, safe='')}"
+    if entity_type == "competition" and identifier:
+        return f"/competition/{quote(identifier, safe='')}"
+    if entity_type == "player" and identifier:
+        return f"/player/{quote(identifier, safe='')}"
+    return ""
+
+
+def _match_facts(match: Mapping[str, Any]) -> dict[str, Any]:
+    payload = _json_mapping(match.get("raw_json") or match.get("payload_json"))
+    fixture = _mapping(payload.get("fixture"))
+    venue = _mapping(fixture.get("venue"))
+    league = _mapping(payload.get("league"))
+    stadium = _first_text(
+        match.get("venue"),
+        venue.get("name"),
+        payload.get("strVenue"),
+        payload.get("stadium"),
+    )
+    referee = _first_text(
+        match.get("referee"),
+        fixture.get("referee"),
+        payload.get("strReferee"),
+    )
+    city = _first_text(venue.get("city"), payload.get("strCity"))
+    season = _first_text(
+        match.get("season"),
+        league.get("season"),
+        payload.get("strSeason"),
+    )
+    competition_flag = _first_text(
+        league.get("flag"),
+        payload.get("strCountryBadge"),
+    )
+    available_count = sum(bool(item) for item in (stadium, referee, city, season))
+    return {
+        "stadium": stadium or None,
+        "referee": referee or None,
+        "city": city or None,
+        "season": season or None,
+        "competition_flag": competition_flag or None,
+        "available": bool(available_count),
+        "available_count": available_count,
+    }
+
+
+def _stat_value(value: Any) -> str | None:
+    candidate = _text(value)
+    if candidate in {"", "-", "—", "None", "null"}:
+        return None
+    return candidate
+
+
+def _real_statistics(
+    live: Mapping[str, Any], lifecycle: Mapping[str, Any]
+) -> dict[str, Any]:
+    provider = _text(live.get("provider"))
+    stale = bool(lifecycle.get("is_stale") or live.get("is_stale"))
+    rows: list[dict[str, Any]] = []
+    for raw in _items(live.get("stat_cards")):
+        label = _text(raw.get("label"))
+        home = _stat_value(raw.get("home"))
+        away = _stat_value(raw.get("away"))
+        if not label or (home is None and away is None):
+            continue
+        rows.append({
+            "key": _text(raw.get("key")) or label.lower().replace(" ", "_"),
+            "label": label,
+            "home": home or "No disponible",
+            "away": away or "No disponible",
+            "leader": _text(raw.get("leader")) or "even",
+        })
+    available = bool(provider and rows and not stale)
+    return {
+        "available": available,
+        "item_count": len(rows) if available else 0,
+        "items": rows if available else [],
+        "status": "available" if available else "stale" if stale and rows else "not_available",
+        "source": provider or None,
+        "updated_at": live.get("updated_at"),
+    }
+
+
+
+def _navigation(
+    teams: Mapping[str, Any],
+    competition: Mapping[str, Any],
+    timeline: list[dict[str, Any]],
+) -> dict[str, Any]:
+    players: list[dict[str, Any]] = []
+    seen_players: set[str] = set()
+    for event in timeline:
+        for id_key, name_key, href_key in (
+            ("player_id", "player", "player_href"),
+            ("related_player_id", "related_player", "related_player_href"),
+        ):
+            player_id = _text(event.get(id_key))
+            player_name = _text(event.get(name_key))
+            href = _entity_href("player", player_id, player_name)
+            event[href_key] = href
+            if player_id and player_id not in seen_players:
+                seen_players.add(player_id)
+                players.append({
+                    "id": player_id,
+                    "name": player_name or "Jugador confirmado",
+                    "href": href,
+                })
+    return {
+        "contract": "SPORTS-ENTITY-CENTER-CONTEXT-V1",
+        "teams": [
+            dict(teams.get("home") or {}),
+            dict(teams.get("away") or {}),
+        ],
+        "competition": dict(competition),
+        "players": players,
+        "broken_links_allowed": False,
+    }
 
 
 def _score(match: Mapping[str, Any], display: Mapping[str, Any]) -> dict[str, Any]:
@@ -212,6 +361,10 @@ class MatchContext:
     picks: dict[str, Any]
     event_summary: dict[str, Any]
     statistics: dict[str, Any]
+    facts: dict[str, Any]
+    intelligence: dict[str, Any]
+    shark_context: dict[str, Any]
+    navigation: dict[str, Any]
     story: dict[str, Any]
     live_story: dict[str, Any]
     components: dict[str, dict[str, Any]]
@@ -240,9 +393,15 @@ def build_match_context(
     score = _score(match, display)
     shell_state = _shell_state(match, lifecycle, offline=offline)
 
-    raw_timeline = _items(live.get("events")) or _items(
-        detail_data.get("timeline") or detail_data.get("events")
-    )
+    live_events = _items(live.get("events"))
+    if live_events:
+        provider = _text(live.get("provider"))
+        raw_timeline = [
+            {**event, "source": _text(event.get("source")) or provider}
+            for event in live_events
+        ]
+    else:
+        raw_timeline = _items(detail_data.get("timeline") or detail_data.get("events"))
     live_story = build_match_live_story(match, raw_timeline)
     timeline = _items(live_story.get("timeline"))
     latest_event = _mapping(live_story.get("latest_event"))
@@ -253,18 +412,10 @@ def build_match_context(
         "items": timeline,
         "raw_count": len(raw_timeline),
         "excluded_without_evidence": max(0, len(raw_timeline) - len(timeline)),
+        "source": _text(live.get("provider")) or None,
     }
 
-    raw_stats = _mapping(detail_data.get("statistics"))
-    live_state = _mapping(detail_data.get("state"))
-    stats_available = bool(
-        _mapping(live_state.get("shark_momentum")).get("stats_available")
-    )
-    statistics = {
-        "available": stats_available,
-        "item_count": len(_items(raw_stats.get("items"))) if stats_available else 0,
-        "status": "available" if stats_available else "not_available",
-    }
+    statistics = _real_statistics(live, lifecycle)
 
     related_picks = _items(detail_data.get("related_picks"))
     picks = {
@@ -275,35 +426,47 @@ def build_match_context(
 
     home_identity = _mapping(match.get("home_identity"))
     away_identity = _mapping(match.get("away_identity"))
+    home_name = _text(match.get("home_team")) or "Equipo local pendiente"
+    away_name = _text(match.get("away_team")) or "Equipo visitante pendiente"
     teams = {
         "home": {
             "id": match.get("home_team_id"),
-            "name": _text(match.get("home_team")) or "Equipo local pendiente",
+            "name": home_name,
             "logo": home_identity.get("logo")
             or home_identity.get("crest_url")
             or match.get("home_logo")
             or match.get("home_crest"),
+            "flag": home_identity.get("country_flag")
+            or home_identity.get("flag_emoji"),
+            "href": _entity_href("team", match.get("home_team_id"), home_name),
         },
         "away": {
             "id": match.get("away_team_id"),
-            "name": _text(match.get("away_team")) or "Equipo visitante pendiente",
+            "name": away_name,
             "logo": away_identity.get("logo")
             or away_identity.get("crest_url")
             or match.get("away_logo")
             or match.get("away_crest"),
+            "flag": away_identity.get("country_flag")
+            or away_identity.get("flag_emoji"),
+            "href": _entity_href("team", match.get("away_team_id"), away_name),
         },
     }
 
+    facts = _match_facts(match)
     competition_name = _text(
         display.get("client_competition")
         or match.get("competition_name")
         or match.get("league_name")
     )
+    competition_id = match.get("competition_id") or match.get("competition_key")
     competition = {
-        "id": match.get("competition_id") or match.get("competition_key"),
+        "id": competition_id,
         "name": competition_name or "Competición pendiente",
         "round": _text(match.get("round") or match.get("stage")),
         "country": _text(match.get("country")),
+        "flag": facts.get("competition_flag"),
+        "href": _entity_href("competition", competition_id, competition_name),
         "available": bool(competition_name),
     }
 
@@ -318,6 +481,25 @@ def build_match_context(
         "time": _text(display.get("client_time_label") or match.get("kickoff_time")),
         "iso": match.get("kickoff_iso") or match.get("commence_time"),
     }
+
+    navigation = _navigation(teams, competition, timeline)
+    event_summary["items"] = timeline
+    intelligence = build_match_intelligence(
+        match,
+        related_picks,
+        lifecycle=lifecycle,
+        score=score,
+        timeline=timeline,
+        statistics=statistics,
+        tracker=live,
+        competition=competition,
+        observed_at_madrid=(
+            madrid_time.get("iso")
+            or live.get("updated_at")
+            or match.get("updated_at")
+        ),
+    )
+    shark_context = build_shark_match_intelligence_state(intelligence)
 
     limitations: list[str] = []
     if not competition["available"]:
@@ -372,15 +554,17 @@ def build_match_context(
         ),
         "StatsPanel": _component(
             stats_state,
-            "Cobertura estadística detectada."
+            "Estadísticas reales del proveedor disponibles."
             if statistics["available"]
-            else "No disponible todavía.",
+            else "No disponible: la última instantánea está fuera de la ventana de frescura."
+            if statistics["status"] == "stale"
+            else "No disponible.",
             available=statistics["available"],
         ),
         "SharkPanel": _component(
-            "partial",
-            "La integración completa de SHARK llegará en una fase posterior.",
-            available=False,
+            "ready" if shark_context["available"] else "partial",
+            shark_context["message"],
+            available=shark_context["available"],
         ),
         "TelegramPanel": _component(
             "partial",
@@ -420,6 +604,10 @@ def build_match_context(
         picks=picks,
         event_summary=event_summary,
         statistics=statistics,
+        facts=facts,
+        intelligence=intelligence,
+        shark_context=shark_context,
+        navigation=navigation,
         story=story,
         live_story=live_story,
         components=components,
@@ -437,6 +625,8 @@ def build_match_context(
             "builder_database_writes": 0,
             "external_calls": 0,
             "single_snapshot": True,
+            "match_intelligence_contract": intelligence.get("contract"),
+            "match_intelligence_reused_by_shark": True,
             "component_contracts": list(MATCH_CENTER_COMPONENTS),
             "canonical_states": list(CANONICAL_COMPONENT_STATES),
         },

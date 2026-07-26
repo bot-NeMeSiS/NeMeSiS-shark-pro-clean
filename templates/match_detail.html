@@ -12,7 +12,9 @@
 <div class="v933-page v944-match-center"
      data-v933-template="match_detail"
      data-v944-match-center-foundation="phase-1"
+     data-sports-core-match-center="intelligence-phase-1"
      data-match-contract="{{ match_context.get('contract') }}"
+     data-match-intelligence-contract="{{ match_context.get('intelligence', {}).get('contract') }}"
      data-match-state="{{ match_context.get('state') }}"
      data-match-id="{{ match_context.get('match', {}).get('id') or '' }}">
   <div class="v944-match-anchor">

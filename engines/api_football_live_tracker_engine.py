@@ -17,6 +17,7 @@ import sqlite3
 import urllib.parse
 import urllib.request
 from datetime import datetime, timezone, timedelta
+from pathlib import Path
 from typing import Any, Iterable, Mapping, Optional
 
 API_FOOTBALL_BASE_URL = "https://v3.football.api-sports.io"
@@ -44,6 +45,17 @@ def _json(value: Any) -> str:
 def _connect(db_path: str) -> sqlite3.Connection:
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
+    return conn
+
+
+def _connect_readonly(db_path: str) -> sqlite3.Connection:
+    path = Path(db_path).expanduser().resolve()
+    if not path.is_file():
+        raise sqlite3.OperationalError("database_not_available")
+    conn = sqlite3.connect(f"{path.as_uri()}?mode=ro", uri=True)
+    conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA query_only=ON")
+    conn.execute("PRAGMA busy_timeout=300")
     return conn
 
 
@@ -854,11 +866,13 @@ def _build_tracker_payload(row: Mapping[str, Any], stats: Mapping[str, Any], eve
         "provider": "api_football",
         "source_label": "API-Football Pro",
         "fixture_id": row.get("fixture_id"),
+        "updated_at": row.get("last_synced_at"),
         "stats": stats,
         "events": events,
         "pressure": pressure,
         "stat_cards": cards,
         "game_flow": flow,
+        "field_state": field_state,
         "quality": quality,
         "quality_label": quality.get("label"),
         "quality_level": quality.get("level"),
@@ -984,27 +998,51 @@ def live_tracker_matches(db_path: str, limit: int = 80) -> list[dict[str, Any]]:
 
 
 def live_tracker_for_match(db_path: str, match_id: str) -> dict[str, Any]:
-    ensure_live_tracker_schema(db_path)
-    conn = _connect(db_path)
+    """Read one persisted tracker snapshot without schema writes or provider calls."""
+    text = str(match_id or "")
+    fixture_id = text[3:] if text.startswith("af-") else text
     try:
-        text = str(match_id or "")
-        fixture_id = text[3:] if text.startswith("af-") else text
-        row = conn.execute(
-            "SELECT * FROM api_football_live_snapshots WHERE match_id=? OR fixture_id=? LIMIT 1",
-            (text, fixture_id),
-        ).fetchone()
+        conn = _connect_readonly(db_path)
+    except (OSError, sqlite3.Error):
+        return {
+            "available": False,
+            "provider": "api_football",
+            "message": "No disponible: el caché local del tracker no está accesible.",
+            "read_only": True,
+        }
+    try:
+        try:
+            row = conn.execute(
+                "SELECT * FROM api_football_live_snapshots WHERE match_id=? OR fixture_id=? LIMIT 1",
+                (text, fixture_id),
+            ).fetchone()
+        except sqlite3.OperationalError:
+            return {
+                "available": False,
+                "provider": "api_football",
+                "message": "No disponible: el tracker aún no tiene una instantánea local.",
+                "read_only": True,
+            }
         if not row:
-            return {"available": False, "provider": "api_football", "message": "Sin live tracker API-Football para este partido."}
+            return {
+                "available": False,
+                "provider": "api_football",
+                "message": "No disponible: no existe tracker para este partido.",
+                "read_only": True,
+            }
         r = _rowdict(row)
         stats = _stats_for_fixture(conn, str(r.get("fixture_id") or ""))
         events = _events_for_fixture(conn, str(r.get("fixture_id") or ""), limit=18)
-        pressure = _pressure_from_stats(stats, r.get("home_team") or "", r.get("away_team") or "")
+        pressure = _pressure_from_stats(
+            stats,
+            r.get("home_team") or "",
+            r.get("away_team") or "",
+        )
         tracker = _build_tracker_payload(r, stats, events, pressure)
-        tracker["available"] = True
+        tracker.update({"available": True, "read_only": True})
         return tracker
     finally:
         conn.close()
-
 
 
 def sync_api_football_fixture_detail(db_path: str, match_id: str, force: bool = False) -> dict[str, Any]:

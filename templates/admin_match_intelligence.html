@@ -16,7 +16,7 @@
   <div class="scoreboard-kpis">
     <div><strong>{{ mi.counts.matches or 0 }}</strong><span>Partidos</span></div>
     <div><strong>{{ mi.counts.picks or 0 }}</strong><span>Picks</span></div>
-    <div><strong>{{ intel.related_picks|length if intel.related_picks else 0 }}</strong><span>Relacionados</span></div>
+    <div><strong>{{ intel.quality.supported_conclusions if intel.quality else 0 }}</strong><span>Lecturas con evidencia</span></div>
     <div><strong>{{ 'Sí' if intel.no_fake_data else 'No' }}</strong><span>Sin inventar</span></div>
   </div>
 </section>
@@ -27,7 +27,8 @@
     <article class="card">
       <h3>Resumen</h3>
       <p class="small">{{ intel.summary or 'Pendiente de datos sincronizados.' }}</p>
-      <p class="small">{{ intel.shark_context or '' }}</p>
+      <p class="small">{{ intel.shark_context.message if intel.shark_context else 'Evidencia insuficiente.' }}</p>
+      <p class="small">Contrato: {{ intel.contract or 'No certificado' }} · Estado: {{ intel.certification_state or 'INSUFFICIENT_DATA' }}</p>
     </article>
     <article class="card">
       <h3>Señales</h3>

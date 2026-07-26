@@ -1697,6 +1697,121 @@ body.ns-app .v934-realtime-state { border-radius: 7px !important; }
 .v944-related-teams strong { color: #dceafb; font-size: .68rem; overflow-wrap: anywhere; }
 .v944-quick-actions { display: grid; gap: 8px; }
 .v944-quick-actions .v933-action { width: 100%; justify-content: center; }
+.v944-entity-link,
+.v944-match-header__competition,
+.v944-context-list a,
+.v944-related-teams a,
+.v944-timeline a {
+  color: inherit;
+  text-decoration: none;
+}
+.v944-entity-link:hover strong,
+.v944-match-header__competition:hover,
+.v944-context-list a:hover,
+.v944-related-teams a:hover,
+.v944-timeline a:hover { color: #fff; }
+.v944-entity-link:focus-visible,
+.v944-match-header__competition:focus-visible,
+.v944-context-list a:focus-visible,
+.v944-related-teams a:focus-visible,
+.v944-timeline a:focus-visible {
+  outline: 2px solid var(--v933-cyan);
+  outline-offset: 3px;
+}
+.v944-match-header__competition {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--v944-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.v944-panel-footnote {
+  margin: 10px 0 0;
+  padding-top: 9px;
+  border-top: 1px solid var(--v944-line);
+  color: var(--v944-muted);
+  font-size: .6rem;
+  line-height: 1.4;
+}
+.v944-timeline li { position: relative; }
+.v944-timeline li::before {
+  content: "";
+  position: absolute;
+  top: 14px;
+  left: 35px;
+  width: 6px;
+  height: 6px;
+  border: 1px solid rgba(157, 176, 194, .55);
+  border-radius: 50%;
+  background: var(--v944-surface);
+}
+.v944-timeline li.is-goal::before,
+.v944-timeline li.is-penalty_goal::before,
+.v944-timeline li.is-penalty_shootout_goal::before { border-color: #4acd91; background: #4acd91; }
+.v944-timeline li.is-red_card::before,
+.v944-timeline li.is-yellow_red_card::before { border-color: #ef6b6b; background: #ef6b6b; }
+.v944-timeline li.is-yellow_card::before { border-color: #e8b93f; background: #e8b93f; }
+.v944-timeline li.is-var::before { border-color: var(--v933-cyan); background: var(--v933-cyan); }
+.v944-timeline a,
+.v944-context-list a,
+.v944-related-teams a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+}
+.v944-stats {
+  display: grid;
+  min-width: 0;
+  border-top: 1px solid var(--v944-line);
+}
+.v944-stats__header,
+.v944-stats__row {
+  display: grid;
+  grid-template-columns: minmax(72px, .75fr) minmax(118px, 1fr) minmax(72px, .75fr);
+  gap: 10px;
+  align-items: center;
+  min-width: 0;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--v944-line);
+  text-align: center;
+}
+.v944-stats__header { color: var(--v944-muted); font-size: .59rem; }
+.v944-stats__header strong { min-width: 0; overflow-wrap: anywhere; }
+.v944-stats__row > span { color: #fff; font-size: .72rem; font-weight: 850; }
+.v944-stats__row > strong { color: var(--v944-muted); font-size: .62rem; line-height: 1.35; }
+.v944-stats__row.is-home > span:first-child,
+.v944-stats__row.is-away > span:last-child { color: var(--v933-cyan); }
+.v944-shark-context {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid rgba(73, 190, 231, .22);
+  border-radius: 6px;
+  background: rgba(73, 190, 231, .045);
+}
+.v944-shark-context > strong { color: #fff; font-size: .76rem; line-height: 1.35; }
+.v944-shark-context > p,
+.v944-shark-context > small { margin: 0; color: var(--v944-muted); font-size: .63rem; line-height: 1.45; }
+.v944-shark-context ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.v944-shark-context li {
+  padding: 5px 7px;
+  border: 1px solid var(--v944-line);
+  border-radius: 5px;
+  color: #dceafb;
+  font-size: .58rem;
+}
+.v944-context-list dd a { justify-content: flex-end; text-align: right; }
+.v944-related-teams a { color: #dceafb; font-size: .68rem; font-weight: 750; overflow-wrap: anywhere; }
 .v944-match-evidence {
   display: flex;
   flex-wrap: wrap;
@@ -1737,6 +1852,11 @@ body.ns-app .v934-realtime-state { border-radius: 7px !important; }
   .v944-match-panel { padding: 13px; }
   .v944-match-panel__header { gap: 9px; }
   .v944-component-state { max-width: 92px; text-align: center; }
+  .v944-stats__header,
+  .v944-stats__row { grid-template-columns: minmax(62px, .7fr) minmax(100px, 1fr) minmax(62px, .7fr); gap: 7px; }
+  .v944-stats__header { font-size: .54rem; }
+  .v944-stats__row > span { font-size: .66rem; }
+  .v944-stats__row > strong { font-size: .57rem; }
   .v944-match-evidence { display: grid; gap: 5px; }
 }
 @media (max-width: 420px) {

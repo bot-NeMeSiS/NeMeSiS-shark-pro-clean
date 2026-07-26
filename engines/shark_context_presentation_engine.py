@@ -14,6 +14,7 @@ def build_shark_context_state(context: dict[str, Any] | None = None) -> dict[str
     envelope = build_assistant_context(
         "shark",
         match_context=context.get("match_context"),
+        match_intelligence=context.get("match_intelligence"),
         sports_metrics=context.get("sports_metrics"),
         evidence_state=context.get("evidence_state") or "REQUIRES_REVIEW",
         limitations=context.get("limitations") or [],
