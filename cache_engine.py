@@ -1,6 +1,3 @@
-def cache_health(items):
-    return {
-        "items": len(items or []),
-        "status": "READY",
-        "policy": "SQLite persistent cache with short TTL for live surfaces.",
-    }
+"""Compatibility adapter. Canonical implementation: engines.cache_engine."""
+
+from engines.cache_engine import *  # noqa: F401,F403

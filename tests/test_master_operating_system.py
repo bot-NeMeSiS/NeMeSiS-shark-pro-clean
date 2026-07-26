@@ -189,6 +189,10 @@ def test_live_story_is_provider_confirmed_and_reused_by_match_context():
 def test_root_duplicates_are_compatibility_adapters():
     adapters = {
         "api_exploitation_engine.py": "engines.api_exploitation_engine",
+        "cache_engine.py": "engines.cache_engine",
+        "football_population_engine.py": "engines.football_population_engine",
+        "match_engine.py": "engines.match_engine",
+        "match_sync_engine.py": "engines.match_sync_engine",
         "architecture.py": "blueprints.architecture",
         "backup_service.py": "services.backup_service",
         "live_engine.py": "engines.live_engine",
