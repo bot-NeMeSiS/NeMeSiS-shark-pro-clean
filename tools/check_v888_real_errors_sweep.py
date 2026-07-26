@@ -11,7 +11,9 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = "V888_REAL_ERRORS_SWEEP_TELEGRAM_MATCHES_PICKS_NAV_SENTINEL_FINAL"
+V888_VERSION = "V888_REAL_ERRORS_SWEEP_TELEGRAM_MATCHES_PICKS_NAV_SENTINEL_FINAL"
+V938_VERSION = "V938_COMPANY_OPERATIONS_RECOVERY_OBSERVABILITY_CENTER_FINAL"
+SUPPORTED_VERSIONS = {V888_VERSION, V938_VERSION}
 REPORTS = [
     "V888_PREFLIGHT_REAL_ERRORS_SWEEP.md",
     "V888_TELEGRAM_CRON_REAL_ERROR_SWEEP.md",
@@ -88,9 +90,10 @@ def check_static_contract() -> None:
     admin_real_launch = read("templates/admin_real_launch.html")
     sentinel = read("engines/continuous_shark_sentinel_engine.py")
 
-    require(read("VERSION.txt").strip() == VERSION, "VERSION.txt is not V888")
-    require(read("APP_VERSION").strip() == VERSION, "APP_VERSION file is not V888")
-    require(f"APP_VERSION = '{VERSION}'" in app_py, "app.py APP_VERSION is not V888")
+    current_version = read("VERSION.txt").strip()
+    require(current_version in SUPPORTED_VERSIONS, "VERSION.txt is not V888 or its supported V938 successor")
+    require(read("APP_VERSION").strip() == current_version, "APP_VERSION file does not match VERSION.txt")
+    require(f"APP_VERSION = '{current_version}'" in app_py, "app.py APP_VERSION does not match VERSION.txt")
     require("data-v888-shell" in base, "base.html missing data-v888-shell")
     require("has_v888_real_errors_sweep" in app_py, "runtime V888 flag missing")
     require("has_v887_telegram_queue_skipped_hotfix" in app_py, "runtime V887 flag not preserved")
@@ -101,13 +104,26 @@ def check_static_contract() -> None:
     require("r.ok ? r.json() : null" in base, "runtime heartbeat JS typo not fixed")
     require("?plan={{ selected }}" in login and "?plan={{ selected }}" in register, "plan continuation links missing query separator")
     require("volverás" in login and "membresías" in register, "login/register Spanish copy not cleaned")
-    require("Stripe','No configurado'" in admin_real_launch or "Stripe','No configurado" in admin_real_launch, "admin real launch still risks Stripe false operational claim")
+    safe_stripe_copy = (
+        "Stripe','No configurado'" in admin_real_launch
+        or "Stripe','No configurado" in admin_real_launch
+        or "<span>Cobros desde panel</span><strong>No</strong>" in admin_real_launch
+    )
+    require(safe_stripe_copy, "admin real launch still risks Stripe false operational claim")
     require("Pagos operativos" not in admin_real_launch and "Stripe','Listo'" not in admin_real_launch, "admin real launch claims Stripe operational")
     require("V888_REAL_ERRORS_SWEEP_RULES" in sentinel and "telegram_cron_nameerror_or_internal_error_must_fail" in sentinel, "Sentinel V888 rules missing")
     require("ns-client-sidebar" in base and "bottom-nav-clean" in base and "v808-admin-rail" in base, "nav contracts missing")
     require("Modo seguro activo" in read("templates/shark.html"), "SHARK safe mode copy missing")
     require("Escudo pendiente" in app_py or "Fallback premium activo" in app_py, "logo fallback state missing")
-    require("No configurado" in read("templates/admin_payments.html"), "payments safe state missing")
+    payments_template = read("templates/admin_payments.html")
+    payments_safe_state = (
+        "No configurado" in payments_template
+        or (
+            "Esta vista no ejecuta cobros" in payments_template
+            and "Stripe no ha registrado webhooks reales" in payments_template
+        )
+    )
+    require(payments_safe_state, "payments safe state missing")
     require("Sin picks activos" in app_py or "Pick en revisión" in app_py or "Cuota pendiente" in app_py, "picks safe states missing")
     require("Sin directos reales" in app_py or "Proveedor sin datos ahora mismo" in app_py, "live safe states missing")
     require("apuesta segura" not in (app_py + base).lower() and "garantizado" not in (app_py + base).lower(), "unsafe betting promise found")
@@ -153,8 +169,9 @@ def check_runtime_contract() -> None:
         runtime = client.get("/api/runtime-version")
         require(runtime.status_code == 200, f"runtime status {runtime.status_code}")
         runtime_json = runtime.get_json() or {}
-        require(runtime_json.get("app_version") == VERSION, "runtime app_version is not V888")
-        require(runtime_json.get("version_txt") == VERSION, "runtime version_txt is not V888")
+        current_version = read("VERSION.txt").strip()
+        require(runtime_json.get("app_version") == current_version, "runtime app_version does not match VERSION.txt")
+        require(runtime_json.get("version_txt") == current_version, "runtime version_txt does not match VERSION.txt")
         require(runtime_json.get("has_v888_real_errors_sweep") is True, "runtime V888 flag false")
         require(runtime_json.get("has_v887_telegram_queue_skipped_hotfix") is True, "runtime V887 flag false")
         require(runtime_json.get("openai_state") or runtime_json.get("shark_ai_mode"), "runtime OpenAI safe state missing")
@@ -172,7 +189,7 @@ def check_runtime_contract() -> None:
             session["user_id"] = "v888-client"
             session["user_name"] = "Cliente V888"
             session["username"] = "cliente-v888"
-            session["user_email"] = "cliente-v888@example.local"
+            session["user_email"] = "fixture-v888"
             session["user_role"] = "PRO"
             session["user_membership"] = "PRO"
             session["membership"] = "PRO"

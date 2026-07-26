@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+{% from "components/v933_ui.html" import page_header, kpi_card, status_chip, data_table, empty_state, next_action, icon %}
+{% block content %}
+{% set stats = snapshot.file_stats or {} %}
+{% set quality = snapshot.quality or {} %}
+{% set git = snapshot.git or {} %}
+{% set render = snapshot.render or {} %}
+{% set roadmap = snapshot.roadmap or {} %}
+{% set state_labels = {'CONFIRMED':'CONFIRMADO','PARTIALLY_VERIFIED':'PARCIAL','REQUIRES_REVIEW':'REVISAR','BLOCKED_BY_ACCESS':'SIN ACCESO','NOT_CERTIFIED':'NO CERT.','NOT_CONFIGURED':'SIN CONFIG.','STALE':'OBSOLETO','HYPOTHESIS':'HIPÓTESIS','INSUFFICIENT_DATA':'SIN DATOS','CONTROLLED':'CONTROLADO','BLOCKED':'BLOQUEADO','COMPLETED':'COMPLETO','CONTRACT_READY':'CONTRATO','INTEGRATED':'INTEGRADO','PLANNED':'PLANIFICADO','PENDING':'PENDIENTE','BLOCKED_BY_CERTIFICATION':'SIN CERT.'} %}
+
+<div class="v933-page v933-admin-command-center"
+     data-developer-center="NEMESIS-COMPANY-DEVELOPER-OS-V1"
+     data-build-state="{{ build_state }}">
+  {{ page_header(
+    'Developer Center',
+    'Arquitectura, calidad, dependencias y exportación segura del código fuente. Sin acceso a datos de clientes ni acciones de producción.',
+    'data',
+    [
+      {'label':'Company Board','href':'/admin/company-board','icon':'chart'},
+      {'label':'Arquitectura','href':'/admin/architecture','icon':'data'},
+      {'label':'Operaciones','href':'/admin/operations-center','icon':'shield'},
+      {'label':'Runtime','href':'/api/runtime-version','primary':true,'icon':'history'}
+    ]
+  ) }}
+
+  {% if build_state == 'ready' %}
+    {{ next_action('Código fuente preparado', 'NeMeSiS_DEV_SOURCE.zip ha superado la lista de exclusión y ya puede descargarse.', '/admin/developer-center/source', 'Descargar ZIP') }}
+  {% elif build_state == 'failed' %}
+    {{ next_action('Build detenido', 'La exportación no superó una validación. No se ha sustituido ningún archivo de producto.', '#developer-quality', 'Revisar calidad') }}
+  {% elif git.state != 'CONFIRMED' %}
+    {{ next_action('Reconciliar la fuente de verdad', git.summary, '#developer-project', 'Ver estado Git') }}
+  {% else %}
+    {{ next_action('Mantener el proyecto verificable', roadmap.current_sprint, '#developer-roadmap', 'Ver roadmap') }}
+  {% endif %}
+
+  <section class="v933-kpi-grid is-six" aria-label="Dimensión del proyecto">
+    {{ kpi_card('Archivos fuente', stats.source_files, ((stats.source_bytes or 0) / 1048576)|round(1)|string ~ ' MB', 'blue', 'document') }}
+    {{ kpi_card('Motores', stats.engines, 'Implementaciones en engines/', 'cyan', 'data') }}
+    {{ kpi_card('Templates', stats.templates, 'Vistas Jinja activas', 'blue', 'document') }}
+    {{ kpi_card('Rutas runtime', snapshot.registered_routes.count, snapshot.registered_routes.state, 'success' if snapshot.registered_routes.state == 'CONFIRMED' else 'warning', 'navigation') }}
+    {{ kpi_card('Duplicados exactos', snapshot.summary.exact_duplicate_groups, 'Confirmados por SHA-256', 'success' if not snapshot.summary.exact_duplicate_groups else 'warning', 'shield') }}
+    {{ kpi_card('CSS cruzado', snapshot.summary.css_cross_file_selectors, 'Requiere QA antes de consolidar', 'warning' if snapshot.summary.css_cross_file_selectors else 'success', 'chart') }}
+  </section>
+
+  <section class="v933-admin-layout">
+    <div class="v933-main-stack">
+      <section class="v933-admin-panel">
+        <header>
+          <div><h2>Arquitectura por dominio</h2><p>Mapa derivado de los módulos reales; no representa servicios externos no certificados.</p></div>
+          {{ status_chip('LECTURA LOCAL', 'success') }}
+        </header>
+        <div class="v933-admin-panel-body">
+          {% call data_table(['Dominio','Módulos','Estado','Ejemplos']) %}
+          {% for domain in snapshot.domains %}
+          <tr>
+            <td><strong>{{ domain.name }}</strong></td>
+            <td>{{ domain.modules }}</td>
+            <td>{{ status_chip(state_labels.get(domain.state, domain.state), 'success' if domain.state == 'CONFIRMED' else 'warning') }}</td>
+            <td><small>{{ domain.examples|join(', ') if domain.examples else 'Sin módulos clasificados' }}</small></td>
+          </tr>
+          {% endfor %}
+          {% endcall %}
+        </div>
+      </section>
+
+      <section class="v933-admin-panel" id="developer-quality">
+        <header>
+          <div><h2>Puerta de calidad estructural</h2><p>Separa duplicados demostrados de posibles solapamientos que requieren Browser QA.</p></div>
+          {{ status_chip('SIN PURGA AUTOMÁTICA', 'success') }}
+        </header>
+        <div class="v933-admin-panel-body">
+          {% call data_table(['Control','Resultado','Clasificación','Siguiente acción']) %}
+          <tr>
+            <td><strong>Archivos exactos</strong></td>
+            <td>{{ quality.exact_source_duplicates|length }} grupos</td>
+            <td>{{ status_chip('CONFIRMADO' if quality.exact_source_duplicates else 'LIMPIO', 'warning' if quality.exact_source_duplicates else 'success') }}</td>
+            <td>Conservar una implementación canónica y compatibilidad mínima.</td>
+          </tr>
+          <tr>
+            <td><strong>Rutas estáticas</strong></td>
+            <td>{{ snapshot.routes.duplicates|length }} duplicadas</td>
+            <td>{{ status_chip('REVISAR' if snapshot.routes.duplicates else 'LIMPIO', 'warning' if snapshot.routes.duplicates else 'success') }}</td>
+            <td>Comparar con el mapa runtime antes de cambiar una regla.</td>
+          </tr>
+          <tr>
+            <td><strong>CSS</strong></td>
+            <td>{{ quality.css.cross_file_selectors }} selectores cruzados</td>
+            <td>{{ status_chip(state_labels.get(quality.css.state, quality.css.state), 'warning' if quality.css.state != 'CONFIRMED' else 'success') }}</td>
+            <td>Consolidar por componente, nunca mediante una purga masiva.</td>
+          </tr>
+          <tr>
+            <td><strong>JavaScript</strong></td>
+            <td>{{ quality.js.duplicate_named_functions|length }} nombres cruzados</td>
+            <td>{{ status_chip(state_labels.get(quality.js.state, quality.js.state), 'warning' if quality.js.state != 'CONFIRMED' else 'success') }}</td>
+            <td>Verificar ámbito y consumidor antes de unir.</td>
+          </tr>
+          <tr>
+            <td><strong>HTML</strong></td>
+            <td>{{ quality.templates.exact_duplicate_groups|length }} grupos exactos</td>
+            <td>{{ status_chip(state_labels.get(quality.templates.state, quality.templates.state), 'warning' if quality.templates.state != 'CONFIRMED' else 'success') }}</td>
+            <td>Reutilizar macro o partial cuando la equivalencia sea real.</td>
+          </tr>
+          {% endcall %}
+        </div>
+      </section>
+
+      <section class="v933-admin-panel">
+        <header>
+          <div><h2>Contratos de plataforma deportiva</h2><p>Preparan futuras integraciones sin datos inventados ni efectos automáticos.</p></div>
+          {{ status_chip('CONTRATOS V1', 'neutral') }}
+        </header>
+        <div class="v933-admin-panel-body">
+          {% call data_table(['Capacidad','Contrato','Estado','Implementación']) %}
+          {% for capability in snapshot.sports_platform.capabilities %}
+          <tr>
+            <td><strong>{{ capability.name }}</strong></td>
+            <td><code>{{ capability.contract }}</code></td>
+            <td>{{ status_chip(state_labels.get(capability.state, capability.state), 'success' if capability.state == 'INTEGRATED' else ('neutral' if capability.state == 'CONTRACT_READY' else 'warning')) }}</td>
+            <td><small>{{ capability.implementation }}</small></td>
+          </tr>
+          {% endfor %}
+          {% endcall %}
+        </div>
+      </section>
+
+      <section class="v933-admin-panel" id="developer-roadmap">
+        <header>
+          <div><h2>Product Roadmap vivo</h2><p>El estado se deriva de contratos y archivos actuales, no de una cifra manual.</p></div>
+          {{ status_chip('ROADMAP ACTIVO', 'blue') }}
+        </header>
+        <div class="v933-admin-panel-body">
+          {% call data_table(['Módulo','Estado','Evidencia']) %}
+          {% for module in roadmap.modules %}
+          <tr>
+            <td><strong>{{ module.name }}</strong></td>
+            <td>{{ status_chip(state_labels.get(module.state, module.state), 'success' if module.state == 'COMPLETED' else ('neutral' if module.state == 'CONTRACT_READY' else 'warning')) }}</td>
+            <td>{{ module.evidence }}</td>
+          </tr>
+          {% endfor %}
+          {% endcall %}
+        </div>
+      </section>
+    </div>
+
+    <aside class="v933-side-stack">
+      <section class="v933-admin-panel" id="developer-project">
+        <header><div><h2>Proyecto</h2><p>Fuente de verdad y runtime.</p></div></header>
+        <div class="v933-admin-panel-body">
+          <div class="v933-truth-list is-no-icon">
+            <div><span>Versión</span><strong title="{{ snapshot.version }}">{{ snapshot.version.split('_', 1)[0] }}</strong></div>
+            <div><span>Rama</span><strong title="{{ git.branch or 'No disponible' }}">{{ (git.branch[:16] ~ '…') if git.branch and git.branch|length > 16 else (git.branch or 'No disponible') }}</strong></div>
+            <div><span>HEAD</span><strong>{{ git.head_sha[:12] if git.head_sha else 'No disponible' }}</strong></div>
+            <div><span>Main</span><strong>{{ git.main_sha[:12] if git.main_sha else 'No disponible' }}</strong></div>
+            <div><span>Estado Git</span>{{ status_chip(state_labels.get(git.state, git.state), 'success' if git.state == 'CONFIRMED' else 'warning') }}</div>
+            <div><span>Render</span>{{ status_chip(state_labels.get(render.state, render.state), 'success' if render.state == 'CONFIRMED' else 'warning') }}</div>
+            <div><span>Runtime</span>{{ status_chip(state_labels.get(snapshot.runtime.state, snapshot.runtime.state), 'success' if snapshot.runtime.state == 'CONFIRMED' else 'warning') }}</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="v933-admin-panel">
+        <header><div><h2>Dependencias</h2><p>Configuración comprobable.</p></div></header>
+        <div class="v933-admin-panel-body">
+          <div class="v933-truth-list is-no-icon">
+            <div><span>Python</span><strong>{{ snapshot.dependencies.python_count }}</strong></div>
+            <div><span>Workflows</span><strong>{{ snapshot.dependencies.workflows|length }}</strong></div>
+            <div><span>Render YAML</span><strong>{{ 'Presente' if snapshot.dependencies.render_configured else 'Ausente' }}</strong></div>
+            <div><span>Procfile</span><strong>{{ 'Presente' if snapshot.dependencies.procfile_configured else 'Ausente' }}</strong></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="v933-admin-panel">
+        <header><div><h2>Build de código fuente</h2><p>Allowlist de código; excluye datos, evidencias, caches, medios y secretos por nombre.</p></div></header>
+        <div class="v933-admin-panel-body">
+          <form method="post" action="/admin/developer-center/build">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="v933-action is-primary is-blue" type="submit">{{ icon('document') }}<span>Crear NeMeSiS_DEV_SOURCE.zip</span></button>
+          </form>
+          {% if snapshot.build.available %}
+          <div class="v933-truth-list is-no-icon">
+            <div><span>Tamaño</span><strong>{{ (snapshot.build.bytes / 1048576)|round(2) }} MB</strong></div>
+            <div><span>SHA-256</span><strong>{{ snapshot.build.sha256[:16] }}…</strong></div>
+          </div>
+          <a class="v933-action is-blue" href="/admin/developer-center/source">{{ icon('document') }}<span>Descargar código</span></a>
+          {% else %}
+            {{ empty_state('Build aún no generado', 'Solo se crea por acción administrativa explícita.', '', '', 'document') }}
+          {% endif %}
+        </div>
+      </section>
+
+      <section class="v933-admin-panel">
+        <header><div><h2>Innovation Lab</h2><p>Innovación con control humano.</p></div>{{ status_chip(state_labels.get(roadmap.innovation_lab.state, roadmap.innovation_lab.state), 'success') }}</header>
+        <div class="v933-admin-panel-body">
+          <p class="v933-safe-copy">{{ roadmap.innovation_lab.purpose }}</p>
+          <p class="v933-safe-copy"><strong>Automático</strong><br>{{ roadmap.innovation_lab.automatic_actions|join(', ') }}</p>
+          <p class="v933-safe-copy"><strong>Requiere aprobación</strong><br>{{ roadmap.innovation_lab.approval_required|join(', ') }}</p>
+        </div>
+      </section>
+    </aside>
+  </section>
+</div>
+{% endblock %}

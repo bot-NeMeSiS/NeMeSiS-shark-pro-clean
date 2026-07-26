@@ -459,3 +459,197 @@ def apply_shark_learning_adjustment(pick_or_recommendation: Dict[str, Any], db_p
     item["learning_signals"] = signals
     item["learning_explanation"] = " ".join(dict.fromkeys(signal["message"] for signal in signals))
     return item
+
+
+# V939 governance layer. The legacy V585 functions above remain available for
+# compatibility, but this path is deliberately read-only and never applies a
+# recommendation to production weights.
+V939_MIN_GLOBAL_SAMPLE = 30
+V939_MIN_SEGMENT_SAMPLE = 20
+V939_ALLOWED_DEFAULT_LEVELS = ("OBSERVE", "RECOMMEND")
+
+
+def _v939_first(item: Dict[str, Any], *keys: str) -> Any:
+    for key in keys:
+        if item.get(key) not in (None, ""):
+            return item.get(key)
+    return None
+
+
+def _v939_closed_rows(db_path: str, limit: int = 5000) -> list[Dict[str, Any]]:
+    from engines.company_intelligence_engine import readonly_connection, safe_rows
+
+    conn = readonly_connection(db_path)
+    if conn is None:
+        return []
+    try:
+        source = safe_rows(conn, "historical_picks", limit)
+        if not source:
+            source = safe_rows(conn, "picks", limit)
+    finally:
+        conn.close()
+    closed = []
+    for row in source:
+        status = normalize_status(_v939_first(row, "result_status", "outcome", "status"))
+        if status not in {"won", "lost", "void"}:
+            continue
+        odds = as_float(_v939_first(row, "odds", "odds_value", "price"), 0.0)
+        stake = as_float(_v939_first(row, "stake", "stake_units"), 0.0)
+        explicit_profit = _v939_first(row, "profit", "profit_units", "benefit_units")
+        profit_value = as_float(explicit_profit, 0.0) if explicit_profit not in (None, "") else None
+        closed.append({
+            "pick_id": str(_v939_first(row, "pick_id", "id") or ""),
+            "match_id": str(_v939_first(row, "match_id", "fixture_id") or ""),
+            "competition": str(_v939_first(row, "competition_name", "league_name", "competition") or "unclassified"),
+            "market": str(_v939_first(row, "market", "pick_type", "market_name") or "unclassified"),
+            "selection": str(_v939_first(row, "selection", "tip") or ""),
+            "odds": odds if odds > 1.0 else None,
+            "closing_odds": as_float(_v939_first(row, "closing_odds", "close_odds"), 0.0) or None,
+            "stake": stake if stake > 0 else None,
+            "risk": str(_v939_first(row, "risk", "risk_level") or "unclassified"),
+            "confidence": as_float(_v939_first(row, "confidence", "shark_score", "score"), 0.0) or None,
+            "estimated_value": as_float(_v939_first(row, "value", "estimated_value", "expected_value"), 0.0) or None,
+            "result": status,
+            "profit": profit_value,
+            "profit_certified": profit_value is not None,
+            "reason": str(_v939_first(row, "reason", "reasoning", "rationale") or "")[:1000],
+            "risks": str(_v939_first(row, "risks", "risk_notes", "counterargument") or "")[:1000],
+            "sent_at": str(_v939_first(row, "sent_at", "published_at", "created_at") or ""),
+            "kickoff_at": str(_v939_first(row, "kickoff_at", "match_date", "event_date") or ""),
+            "provider": str(_v939_first(row, "provider", "source", "data_source") or "unclassified"),
+            "membership": str(_v939_first(row, "membership", "membership_required", "audience") or "unclassified"),
+            "telegram_format": str(_v939_first(row, "telegram_format", "message_format") or "unclassified"),
+            "engine_version": str(_v939_first(row, "engine_version", "version", "app_version") or "unknown"),
+        })
+    return closed
+
+
+def _v939_segment_key(item: Dict[str, Any], dimension: str) -> str:
+    if dimension == "odds_range":
+        return odds_range(item.get("odds"))
+    if dimension == "stake_range":
+        stake = as_float(item.get("stake"), 0.0)
+        if stake <= 0:
+            return "unclassified"
+        if stake <= 1:
+            return "0-1"
+        if stake <= 2:
+            return "1-2"
+        return "2+"
+    if dimension == "hour":
+        text = str(item.get("sent_at") or "")
+        try:
+            return f"{datetime.fromisoformat(text.replace('Z', '+00:00')).hour:02d}:00"
+        except (TypeError, ValueError):
+            return "unclassified"
+    return str(item.get(dimension) or "unclassified")
+
+
+def _v939_observed_stats(items: list[Dict[str, Any]], minimum_sample: int) -> Dict[str, Any]:
+    wins = sum(1 for item in items if item.get("result") == "won")
+    losses = sum(1 for item in items if item.get("result") == "lost")
+    voids = sum(1 for item in items if item.get("result") == "void")
+    evaluable = wins + losses
+    profit_rows = [item for item in items if item.get("profit_certified") and item.get("stake")]
+    stake_total = sum(float(item["stake"]) for item in profit_rows)
+    profit_total = sum(float(item["profit"]) for item in profit_rows)
+    sufficient = evaluable >= minimum_sample
+    return {
+        "sample_size": len(items),
+        "evaluable": evaluable,
+        "wins": wins,
+        "losses": losses,
+        "voids": voids,
+        "winrate": round((wins / evaluable) * 100, 2) if sufficient and evaluable else None,
+        "roi": round((profit_total / stake_total) * 100, 2) if sufficient and len(profit_rows) >= minimum_sample and stake_total > 0 else None,
+        "profit_sample_size": len(profit_rows),
+        "sample_state": "PARTIALLY_VERIFIED" if sufficient else "INSUFFICIENT_DATA",
+        "minimum_sample": minimum_sample,
+        "metrics_not_available_are_null": True,
+    }
+
+
+def _v939_grouped_performance(rows: list[Dict[str, Any]], dimension: str) -> list[Dict[str, Any]]:
+    groups: dict[str, list[Dict[str, Any]]] = {}
+    for item in rows:
+        groups.setdefault(_v939_segment_key(item, dimension), []).append(item)
+    return [
+        {"segment": key, **_v939_observed_stats(items, V939_MIN_SEGMENT_SAMPLE)}
+        for key, items in sorted(groups.items())
+    ]
+
+
+def _v939_calibration(rows: list[Dict[str, Any]]) -> dict[str, Any]:
+    with_confidence = [item for item in rows if item.get("confidence") is not None and item.get("result") in {"won", "lost"}]
+    if len(with_confidence) < V939_MIN_GLOBAL_SAMPLE:
+        return {
+            "state": "INSUFFICIENT_DATA",
+            "sample_size": len(with_confidence),
+            "minimum_sample": V939_MIN_GLOBAL_SAMPLE,
+            "confidence_bias": None,
+        }
+    expected = sum(float(item["confidence"]) for item in with_confidence) / len(with_confidence)
+    observed = sum(1 for item in with_confidence if item.get("result") == "won") / len(with_confidence) * 100.0
+    return {
+        "state": "PARTIALLY_VERIFIED",
+        "sample_size": len(with_confidence),
+        "average_recorded_confidence": round(expected, 2),
+        "observed_winrate": round(observed, 2),
+        "confidence_bias": round(expected - observed, 2),
+        "not_a_causal_claim": True,
+    }
+
+
+def build_v939_shark_learning_snapshot(
+    db_path: str,
+    app_version: str,
+    *,
+    limit: int = 5000,
+    minimum_global_sample: int = V939_MIN_GLOBAL_SAMPLE,
+) -> Dict[str, Any]:
+    closed = _v939_closed_rows(db_path, limit)
+    global_stats = _v939_observed_stats(closed, minimum_global_sample)
+    state = global_stats["sample_state"]
+    dimensions = ("market", "competition", "odds_range", "risk", "stake_range", "hour", "provider")
+    performance = {dimension: _v939_grouped_performance(closed, dimension) for dimension in dimensions}
+    calibration = _v939_calibration(closed)
+    recommendations: list[dict[str, Any]] = []
+    if state != "INSUFFICIENT_DATA":
+        for dimension, segments in performance.items():
+            for segment in segments:
+                if segment.get("sample_state") != "PARTIALLY_VERIFIED" or segment.get("roi") is None:
+                    continue
+                if abs(float(segment["roi"])) < 10:
+                    continue
+                recommendations.append({
+                    "recommendation_id": stable_id("v939", dimension, segment.get("segment")),
+                    "level": "RECOMMEND",
+                    "dimension": dimension,
+                    "segment": segment.get("segment"),
+                    "observation": "Rendimiento observado por encima del umbral." if float(segment["roi"]) > 0 else "Rendimiento observado por debajo del umbral.",
+                    "evidence": segment,
+                    "proposed_weight_change": None,
+                    "requires_explicit_approval": True,
+                })
+    return {
+        "ok": True,
+        "version": app_version,
+        "mode": "OBSERVE",
+        "allowed_default_levels": list(V939_ALLOWED_DEFAULT_LEVELS),
+        "approved_change_available_only_after_explicit_approval": True,
+        "automatic_weight_changes": False,
+        "database_written": False,
+        "external_calls": 0,
+        "certification_state": state,
+        "global": global_stats,
+        "performance": performance,
+        "calibration": calibration,
+        "recommendations": recommendations,
+        "winning_patterns": [item for item in recommendations if "encima" in item.get("observation", "")],
+        "losing_patterns": [item for item in recommendations if "debajo" in item.get("observation", "")],
+        "limitations": [
+            "Asociacion historica no implica causalidad ni garantiza resultados futuros.",
+            "ROI solo aparece cuando beneficio y stake reales alcanzan la muestra minima.",
+            "Ninguna recomendacion modifica pesos, picks, Telegram o produccion.",
+        ],
+    }

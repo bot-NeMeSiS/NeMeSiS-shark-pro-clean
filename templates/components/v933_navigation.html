@@ -45,7 +45,7 @@
 
 {% macro v933_admin_sidebar() -%}
 {% set links = [
-  ('Dashboard','/admin/dashboard','dashboard'),
+  ('Panel de control','/admin/dashboard','dashboard'),
   ('Telegram','/admin/telegram/command-center','telegram'),
   ('Usuarios','/admin/users','users'),
   ('Membresías','/admin/memberships','star'),
@@ -53,10 +53,10 @@
   ('Picks','/admin/picks','target'),
   ('Partidos','/admin/matches','matches'),
   ('Tiempo real','/admin/realtime-center','live'),
-  ('Data Trust','/admin/data-trust-center','shield'),
+  ('Confianza de datos','/admin/data-trust-center','shield'),
   ('Datos','/admin/data-center','database'),
   ('Automatización','/admin/automation-center','automation'),
-  ('Workforce','/admin/automation-workforce','automation'),
+  ('Equipo operativo','/admin/automation-workforce','automation'),
   ('Sentinel','/admin/autonomous-company-sentinel','shield'),
   ('Navegación','/admin/navigation-integrity','routes'),
   ('Lanzamiento','/admin/launch-certification','rocket'),
@@ -88,7 +88,7 @@
   <a class="v933-icon-button" href="/admin/sentinel-issues" aria-label="Incidencias" title="Incidencias">{{ nav_icon('shield') }}</a>
 </header>
 <nav class="v933-admin-mobile-nav" aria-label="Navegación admin móvil">
-  {% for label, href, icon_name in [('Panel','/admin/dashboard','dashboard'),('Telegram','/admin/telegram/command-center','telegram'),('Usuarios','/admin/users','users'),('Picks','/admin/picks','target'),('Workforce','/admin/automation-workforce','automation')] %}
+  {% for label, href, icon_name in [('Panel','/admin/dashboard','dashboard'),('Telegram','/admin/telegram/command-center','telegram'),('Usuarios','/admin/users','users'),('Picks','/admin/picks','target'),('Equipo','/admin/automation-workforce','automation')] %}
   <a href="{{ href }}"{% if request.path == href or request.path.startswith(href ~ '/') %} class="is-active" aria-current="page"{% endif %}>{{ nav_icon(icon_name) }}<span>{{ label }}</span></a>
   {% endfor %}
 </nav>

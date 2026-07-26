@@ -9,15 +9,12 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = "V915_AUTOMATED_COMPANY_WORKFORCE_RENDER_DEPLOY_PIPELINE_FINAL"
-CURRENT_ALLOWED = {
-    VERSION,
-    "V916_WORKFORCE_ACTIVATION_BROWSER_QA_AND_DEPLOY_AUTOMATION_READY_FINAL",
-    "V917_WORKFORCE_FIRST_FULL_AUTOMATED_RUN_AND_REPORTING_FINAL",
-    "V918_WORKFORCE_POST_DEPLOY_BROWSER_QA_ACTIONS_AND_VISUAL_QUEUE_UNLOCK_FINAL",
-    "V937_PRODUCT_PERFECTION_FULL_ECOSYSTEM_LAUNCH_CLOSEOUT_FINAL",
-}
-ZIP_NAME = f"NeMeSiS_SHARK_PRO_{VERSION}_RENDER_READY.zip"
+LEGACY_VERSION = "V915_AUTOMATED_COMPANY_WORKFORCE_RENDER_DEPLOY_PIPELINE_FINAL"
+ACTIVE_VERSION = (ROOT / "VERSION.txt").read_text(encoding="utf-8-sig").strip()
+ACTIVE_VERSION_MATCH = re.fullmatch(r"V(\d+)(?:_[A-Z0-9]+)*", ACTIVE_VERSION)
+ACTIVE_VERSION_IS_SUCCESSOR = bool(ACTIVE_VERSION_MATCH and int(ACTIVE_VERSION_MATCH.group(1)) >= 915)
+ACTIVE_CACHE = f"NEMESIS_CACHE_{ACTIVE_VERSION.split('_', 1)[0]}"
+ZIP_NAME = f"NeMeSiS_SHARK_PRO_{LEGACY_VERSION}_RENDER_READY.zip"
 WORKERS = [
     "release_manager.py",
     "runtime_verifier.py",
@@ -92,9 +89,27 @@ def assert_zip_clean(failures: list[str]) -> None:
 def assert_workflow_secret_safe(failures: list[str]) -> None:
     deploy = read(".github/workflows/render-deploy.yml")
     ci = read(".github/workflows/nemesis-ci.yml")
-    require("RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}" in deploy, "deploy workflow does not use GitHub secret placeholder", failures)
-    require('curl -fsS -X POST "$RENDER_DEPLOY_HOOK_URL" >/dev/null' in deploy, "deploy workflow does not hide hook output", failures)
-    require('echo "$RENDER_DEPLOY_HOOK_URL"' not in deploy, "deploy workflow prints deploy hook", failures)
+    hook_strategy = "RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}" in deploy
+    auto_deploy_strategy = all(
+        marker in deploy
+        for marker in [
+            "Render Auto-Deploy from protected main",
+            "certify-production:",
+            "--expected-sha",
+            "permissions:\n  contents: read",
+        ]
+    )
+    require(hook_strategy or auto_deploy_strategy, "deploy workflow has no recognized safe strategy", failures)
+    if hook_strategy:
+        require(
+            'curl -fsS -X POST "$RENDER_DEPLOY_HOOK_URL" >/dev/null' in deploy,
+            "deploy workflow does not hide hook output",
+            failures,
+        )
+        require('echo "$RENDER_DEPLOY_HOOK_URL"' not in deploy, "deploy workflow prints deploy hook", failures)
+    if auto_deploy_strategy:
+        require("RENDER_DEPLOY_HOOK_URL" not in deploy, "Auto-Deploy workflow still references a hook", failures)
+        require("curl -fsS -X POST" not in deploy, "Auto-Deploy workflow still posts to a hook", failures)
     require("secrets." not in ci, "CI workflow should not require secrets", failures)
 
 
@@ -106,12 +121,13 @@ def main() -> int:
     version_bytes = (ROOT / "VERSION.txt").read_bytes()
 
     require(not version_bytes.startswith(b"\xef\xbb\xbf"), "VERSION.txt has BOM", failures)
-    require(version_bytes.decode("utf-8").strip() in CURRENT_ALLOWED, "VERSION.txt is not V915 or a compatible successor", failures)
-    require(read("APP_VERSION").strip().lstrip("\ufeff") in CURRENT_ALLOWED, "APP_VERSION is not V915 or a compatible successor", failures)
-    require(app_version_from_source(app_py) in CURRENT_ALLOWED, "app.py APP_VERSION is not V915 or a compatible successor", failures)
+    require(ACTIVE_VERSION_IS_SUCCESSOR, "VERSION.txt is not a canonical V915+ release identity", failures)
+    require(version_bytes.decode("utf-8").strip() == ACTIVE_VERSION, "VERSION.txt active identity mismatch", failures)
+    require(read("APP_VERSION").strip().lstrip("\ufeff") == ACTIVE_VERSION, "APP_VERSION does not match VERSION.txt", failures)
+    require(app_version_from_source(app_py) == ACTIVE_VERSION, "app.py APP_VERSION does not match VERSION.txt", failures)
     require("data-v915-workforce-shell" in base, "base V915 marker missing", failures)
     require("V915 automated company workforce render deploy pipeline" in css, "V915 CSS marker missing", failures)
-    require(any(cache in app_py for cache in ["NEMESIS_CACHE_V915", "NEMESIS_CACHE_V916", "NEMESIS_CACHE_V917", "NEMESIS_CACHE_V918", "NEMESIS_CACHE_V937"]), "service worker cache V915+ missing", failures)
+    require(ACTIVE_CACHE in app_py, "service worker cache does not match active release", failures)
 
     for worker in WORKERS:
         require((ROOT / "automation_workforce" / worker).exists(), f"missing worker {worker}", failures)
@@ -141,7 +157,7 @@ def main() -> int:
     runtime_resp = client.get("/api/runtime-version")
     runtime = runtime_resp.get_json(silent=True) or {}
     require(runtime_resp.status_code == 200, "runtime-version not 200", failures)
-    require(runtime.get("version") in CURRENT_ALLOWED, "runtime version is not V915 or a compatible successor", failures)
+    require(runtime.get("version") == ACTIVE_VERSION, "runtime version does not match VERSION.txt", failures)
     require(runtime.get("version_files_match") is True, "runtime version_files_match false", failures)
     require(runtime.get("deployment_alignment_status") == "aligned_local_files", "runtime not aligned", failures)
     for flag in [

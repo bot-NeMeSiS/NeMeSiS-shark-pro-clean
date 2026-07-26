@@ -1,0 +1,338 @@
+{
+  "summary": {
+    "routes": 6,
+    "status_ok": true,
+    "overflow_issues": [],
+    "console_errors": 0,
+    "page_errors": 0,
+    "external_attempts": 0,
+    "bounded_height_violations": [],
+    "full_width_failures": [],
+    "mobile_order_failures": [],
+    "none_tokens": 0,
+    "mobile_stacked_height_differences_ignored": true,
+    "occupancy_rule": "Only horizontal desktop columns can create a lateral void."
+  },
+  "results": [
+    {
+      "profile": "desktop_1366x768",
+      "route": "/app",
+      "status": 200,
+      "final_url": "http://127.0.0.1:55819/app",
+      "console_errors": [],
+      "page_errors": [],
+      "external_attempts": [],
+      "metrics": {
+        "body_overflow": false,
+        "scroll_width": 1366,
+        "client_width": 1366,
+        "none_tokens": [],
+        "contracts": [
+          {
+            "contract": "bounded-rail",
+            "x": 23,
+            "y": 743,
+            "width": 1320,
+            "height": 919,
+            "page_ratio": 1
+          },
+          {
+            "contract": "full-width-continuation",
+            "x": 23,
+            "y": 1677,
+            "width": 1320,
+            "height": 238,
+            "page_ratio": 1
+          }
+        ],
+        "bounded": [
+          {
+            "children": [
+              {
+                "width": 909,
+                "height": 919,
+                "y": 743
+              },
+              {
+                "width": 397,
+                "height": 805,
+                "y": 743
+              }
+            ],
+            "difference": 114,
+            "exceeds_viewport": false,
+            "horizontal_layout": true,
+            "occupancy_violation": false
+          }
+        ],
+        "mobile_calendar_main_before_context": null,
+        "visible_desktop_navs": 1,
+        "visible_mobile_navs": 0
+      },
+      "screenshot": "browser_qa\\V939_P2_PQV939_004\\after\\desktop_1366x768_app.png"
+    },
+    {
+      "profile": "desktop_1366x768",
+      "route": "/calendar",
+      "status": 200,
+      "final_url": "http://127.0.0.1:55819/calendar",
+      "console_errors": [],
+      "page_errors": [],
+      "external_attempts": [],
+      "metrics": {
+        "body_overflow": false,
+        "scroll_width": 1366,
+        "client_width": 1366,
+        "none_tokens": [],
+        "contracts": [
+          {
+            "contract": "reclaim-flow",
+            "x": 23,
+            "y": 823,
+            "width": 1320,
+            "height": 3551,
+            "page_ratio": 1
+          },
+          {
+            "contract": "full-width-continuation",
+            "x": 23,
+            "y": 1012,
+            "width": 1320,
+            "height": 3362,
+            "page_ratio": 1
+          },
+          {
+            "contract": "context-strip",
+            "x": 23,
+            "y": 823,
+            "width": 1320,
+            "height": 177,
+            "page_ratio": 1
+          }
+        ],
+        "bounded": [],
+        "mobile_calendar_main_before_context": false,
+        "visible_desktop_navs": 1,
+        "visible_mobile_navs": 0
+      },
+      "screenshot": "browser_qa\\V939_P2_PQV939_004\\after\\desktop_1366x768_calendar.png"
+    },
+    {
+      "profile": "desktop_1366x768",
+      "route": "/telegram",
+      "status": 200,
+      "final_url": "http://127.0.0.1:55819/telegram",
+      "console_errors": [],
+      "page_errors": [],
+      "external_attempts": [],
+      "metrics": {
+        "body_overflow": false,
+        "scroll_width": 1366,
+        "client_width": 1366,
+        "none_tokens": [],
+        "contracts": [
+          {
+            "contract": "bounded-rail",
+            "x": 23,
+            "y": 702,
+            "width": 1320,
+            "height": 468,
+            "page_ratio": 1
+          },
+          {
+            "contract": "balanced-pair",
+            "x": 23,
+            "y": 1186,
+            "width": 1320,
+            "height": 297,
+            "page_ratio": 1
+          }
+        ],
+        "bounded": [
+          {
+            "children": [
+              {
+                "width": 909,
+                "height": 468,
+                "y": 702
+              },
+              {
+                "width": 397,
+                "height": 323,
+                "y": 702
+              }
+            ],
+            "difference": 145,
+            "exceeds_viewport": false,
+            "horizontal_layout": true,
+            "occupancy_violation": false
+          }
+        ],
+        "mobile_calendar_main_before_context": null,
+        "visible_desktop_navs": 1,
+        "visible_mobile_navs": 0
+      },
+      "screenshot": "browser_qa\\V939_P2_PQV939_004\\after\\desktop_1366x768_telegram.png"
+    },
+    {
+      "profile": "mobile_390x844",
+      "route": "/app",
+      "status": 200,
+      "final_url": "http://127.0.0.1:55819/app",
+      "console_errors": [],
+      "page_errors": [],
+      "external_attempts": [],
+      "metrics": {
+        "body_overflow": false,
+        "scroll_width": 390,
+        "client_width": 390,
+        "none_tokens": [],
+        "contracts": [
+          {
+            "contract": "bounded-rail",
+            "x": 12,
+            "y": 1049,
+            "width": 366,
+            "height": 2781,
+            "page_ratio": 1
+          },
+          {
+            "contract": "full-width-continuation",
+            "x": 12,
+            "y": 3841,
+            "width": 366,
+            "height": 393,
+            "page_ratio": 1
+          }
+        ],
+        "bounded": [
+          {
+            "children": [
+              {
+                "width": 366,
+                "height": 1965,
+                "y": 1049
+              },
+              {
+                "width": 366,
+                "height": 802,
+                "y": 3029
+              }
+            ],
+            "difference": 1163,
+            "exceeds_viewport": true,
+            "horizontal_layout": false,
+            "occupancy_violation": false
+          }
+        ],
+        "mobile_calendar_main_before_context": null,
+        "visible_desktop_navs": 0,
+        "visible_mobile_navs": 1
+      },
+      "screenshot": "browser_qa\\V939_P2_PQV939_004\\after\\mobile_390x844_app.png"
+    },
+    {
+      "profile": "mobile_390x844",
+      "route": "/calendar",
+      "status": 200,
+      "final_url": "http://127.0.0.1:55819/calendar",
+      "console_errors": [],
+      "page_errors": [],
+      "external_attempts": [],
+      "metrics": {
+        "body_overflow": false,
+        "scroll_width": 390,
+        "client_width": 390,
+        "none_tokens": [],
+        "contracts": [
+          {
+            "contract": "reclaim-flow",
+            "x": 12,
+            "y": 1110,
+            "width": 366,
+            "height": 8544,
+            "page_ratio": 1
+          },
+          {
+            "contract": "full-width-continuation",
+            "x": 12,
+            "y": 1110,
+            "width": 366,
+            "height": 8089,
+            "page_ratio": 1
+          },
+          {
+            "contract": "context-strip",
+            "x": 12,
+            "y": 9211,
+            "width": 366,
+            "height": 443,
+            "page_ratio": 1
+          }
+        ],
+        "bounded": [],
+        "mobile_calendar_main_before_context": true,
+        "visible_desktop_navs": 0,
+        "visible_mobile_navs": 1
+      },
+      "screenshot": "browser_qa\\V939_P2_PQV939_004\\after\\mobile_390x844_calendar.png"
+    },
+    {
+      "profile": "mobile_390x844",
+      "route": "/telegram",
+      "status": 200,
+      "final_url": "http://127.0.0.1:55819/telegram",
+      "console_errors": [],
+      "page_errors": [],
+      "external_attempts": [],
+      "metrics": {
+        "body_overflow": false,
+        "scroll_width": 390,
+        "client_width": 390,
+        "none_tokens": [],
+        "contracts": [
+          {
+            "contract": "bounded-rail",
+            "x": 12,
+            "y": 804,
+            "width": 366,
+            "height": 827,
+            "page_ratio": 1
+          },
+          {
+            "contract": "balanced-pair",
+            "x": 12,
+            "y": 1642,
+            "width": 366,
+            "height": 584,
+            "page_ratio": 1
+          }
+        ],
+        "bounded": [
+          {
+            "children": [
+              {
+                "width": 366,
+                "height": 525,
+                "y": 804
+              },
+              {
+                "width": 366,
+                "height": 289,
+                "y": 1343
+              }
+            ],
+            "difference": 236,
+            "exceeds_viewport": false,
+            "horizontal_layout": false,
+            "occupancy_violation": false
+          }
+        ],
+        "mobile_calendar_main_before_context": null,
+        "visible_desktop_navs": 0,
+        "visible_mobile_navs": 1
+      },
+      "screenshot": "browser_qa\\V939_P2_PQV939_004\\after\\mobile_390x844_telegram.png"
+    }
+  ]
+}

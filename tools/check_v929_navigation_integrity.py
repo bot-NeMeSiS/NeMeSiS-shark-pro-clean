@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import zipfile
 from pathlib import PurePosixPath
 
@@ -14,6 +15,8 @@ V934_VERSION = "V934_REFERENCE_EXACTNESS_REALTIME_SPORTS_PRODUCTION_PERFECTION_F
 V935_VERSION = "V935_LAUNCH_TRUST_REAL_DATA_LIFECYCLE_PERFORMANCE_REFERENCE_POLISH_FINAL"
 V936_VERSION = "V936_COMMERCIAL_PRODUCT_READINESS_REFERENCE_EXCELLENCE_FINAL"
 V937_VERSION = "V937_PRODUCT_PERFECTION_FULL_ECOSYSTEM_LAUNCH_CLOSEOUT_FINAL"
+V938_VERSION = "V938_COMPANY_OPERATIONS_RECOVERY_OBSERVABILITY_CENTER_FINAL"
+V939_VERSION = "V939_AUTONOMOUS_COMPANY_INTELLIGENCE_GROWTH_AND_QUALITY_PLATFORM_FINAL"
 
 
 def main() -> int:
@@ -41,7 +44,7 @@ def main() -> int:
                     zip_clean = False
                     break
     checks = {
-        "version_v929_or_successor": current_version in {VERSION, V930_VERSION, V931_VERSION, V932_VERSION, V933_VERSION, V934_VERSION, V935_VERSION, V936_VERSION, V937_VERSION},
+        "version_v929_or_successor": bool(re.match(r"^V(\d+)", current_version) and int(re.match(r"^V(\d+)", current_version).group(1)) >= 929),
         "version_without_bom": not version_raw.startswith(b"\xef\xbb\xbf"),
         "app_version": app_module.APP_VERSION == current_version,
         "runtime_200": runtime_response.status_code == 200,

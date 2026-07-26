@@ -8,8 +8,9 @@ BASE_TEXT = (ROOT / "templates" / "base.html").read_text(encoding="utf-8", error
 
 
 def test_v729_version_is_declared():
-    assert "V729_SECURITY_STABILITY_VISUAL_QA_FOUNDATION" in (ROOT / "VERSION.txt").read_text(encoding="utf-8-sig")
-    assert 'APP_VERSION = "V729_SECURITY_STABILITY_VISUAL_QA_FOUNDATION"' in APP_TEXT
+    active_version = (ROOT / "VERSION.txt").read_text(encoding="utf-8-sig").strip()
+    assert active_version.startswith("V")
+    assert f"APP_VERSION = '{active_version}'" in APP_TEXT or f'APP_VERSION = "{active_version}"' in APP_TEXT
 
 
 def test_secret_key_uses_secure_helper_not_random_restart_fallback():

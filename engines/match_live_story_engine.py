@@ -1,11 +1,10 @@
 """Build an honest Match Center story from provider-confirmed events only.
 
-The engine is deliberately independent from Flask and the database. Callers pass a
-normalized match plus raw provider/cache events and receive a deterministic story
-payload suitable for web, API, Telegram previews, or diagnostics.
-
-No event, score, momentum, probability, or sporting consequence is invented here.
+The engine is independent from Flask and the database. Callers pass a
+normalized match plus provider/cache events and receive a deterministic story.
+No event, score, momentum, probability, or sporting consequence is invented.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -92,7 +91,11 @@ def _event_minute(value: Any) -> EventMinute:
 
 def _canonical_type(value: Any) -> str:
     raw = _text(value, 80).lower().replace("_", "-").replace("-", " ")
-    return _TYPE_ALIASES.get(raw, raw.replace(" ", "_") if raw.replace(" ", "_") in _EVENT_TYPES else "unknown")
+    candidate = raw.replace(" ", "_")
+    return _TYPE_ALIASES.get(
+        raw,
+        candidate if candidate in _EVENT_TYPES else "unknown",
+    )
 
 
 def _safe_team(value: Any, match: dict[str, Any]) -> str:
@@ -103,13 +106,24 @@ def _safe_team(value: Any, match: dict[str, Any]) -> str:
     return team if team in known else ""
 
 
-def normalize_story_event(raw: dict[str, Any], match: dict[str, Any]) -> dict[str, Any] | None:
-    """Normalize one provider/cache event without manufacturing missing facts."""
+def normalize_story_event(
+    raw: dict[str, Any],
+    match: dict[str, Any],
+) -> dict[str, Any] | None:
+    """Normalize one event without manufacturing its identity or source."""
+
     if not isinstance(raw, dict):
         return None
-    event_type = _canonical_type(raw.get("type") or raw.get("event_type") or raw.get("kind"))
-    minute = _event_minute(raw.get("minute") or raw.get("elapsed") or raw.get("time"))
-    event_id = _text(raw.get("id") or raw.get("event_id") or raw.get("external_id"), 100)
+    event_type = _canonical_type(
+        raw.get("type") or raw.get("event_type") or raw.get("kind")
+    )
+    minute = _event_minute(
+        raw.get("minute") or raw.get("elapsed") or raw.get("time")
+    )
+    event_id = _text(
+        raw.get("id") or raw.get("event_id") or raw.get("external_id"),
+        100,
+    )
     provider = _text(raw.get("source") or raw.get("provider"), 80)
     if not event_id or not provider:
         return None
@@ -117,9 +131,14 @@ def normalize_story_event(raw: dict[str, Any], match: dict[str, Any]) -> dict[st
     label, importance = _EVENT_TYPES[event_type]
     team = _safe_team(raw.get("team") or raw.get("team_name"), match)
     player = _text(raw.get("player") or raw.get("player_name"), 120)
-    related_player = _text(raw.get("related_player") or raw.get("assist") or raw.get("player_out"), 120)
-    detail = _text(raw.get("detail") or raw.get("description") or raw.get("reason"), 220)
-
+    related_player = _text(
+        raw.get("related_player") or raw.get("assist") or raw.get("player_out"),
+        120,
+    )
+    detail = _text(
+        raw.get("detail") or raw.get("description") or raw.get("reason"),
+        220,
+    )
     headline_parts = [label]
     if player:
         headline_parts.append(player)
@@ -149,7 +168,8 @@ def normalize_story_events(
     events: Iterable[dict[str, Any]] | None,
     match: dict[str, Any],
 ) -> list[dict[str, Any]]:
-    """Return unique confirmed events in chronological order."""
+    """Return unique, provider-confirmed events in chronological order."""
+
     seen: set[str] = set()
     normalized: list[dict[str, Any]] = []
     for raw in events or []:
@@ -157,10 +177,13 @@ def normalize_story_events(
         if event and event["id"] not in seen:
             seen.add(event["id"])
             normalized.append(event)
-    return sorted(normalized, key=lambda item: (item["sort_value"], item["id"]))
+    return sorted(
+        normalized,
+        key=lambda item: (item["sort_value"], item["id"]),
+    )
 
 
-def _phase_for_minute(minute: int | None, match_status: str) -> str:
+def _phase_for_minute(minute: int | None, match_status: Any) -> str:
     status = _text(match_status, 40).lower()
     if status in {"finished", "finalizado", "ft", "aet", "pen"}:
         return "finished"
@@ -176,7 +199,6 @@ def _phase_for_minute(minute: int | None, match_status: str) -> str:
 
 
 def _build_cycles(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Group nearby events into readable match cycles without inferring causality."""
     cycles: list[list[dict[str, Any]]] = []
     for event in events:
         if not cycles:
@@ -195,17 +217,25 @@ def _build_cycles(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
     payload: list[dict[str, Any]] = []
     for index, items in enumerate(cycles, start=1):
-        key_event = max(items, key=lambda item: (item["importance"], -item["sort_value"]))
-        payload.append({
-            "id": f"cycle-{index}",
-            "start_minute": items[0]["minute"],
-            "end_minute": items[-1]["minute"],
-            "minute_label": items[0]["minute_label"] if len(items) == 1 else f"{items[0]['minute_label']}–{items[-1]['minute_label']}",
-            "headline": key_event["headline"],
-            "importance": key_event["importance"],
-            "event_count": len(items),
-            "events": items,
-        })
+        key_event = max(
+            items,
+            key=lambda item: (item["importance"], -item["sort_value"]),
+        )
+        minute_label = items[0]["minute_label"]
+        if len(items) > 1:
+            minute_label = f"{items[0]['minute_label']}–{items[-1]['minute_label']}"
+        payload.append(
+            {
+                "id": f"cycle-{index}",
+                "start_minute": items[0]["minute"],
+                "end_minute": items[-1]["minute"],
+                "minute_label": minute_label,
+                "headline": key_event["headline"],
+                "importance": key_event["importance"],
+                "event_count": len(items),
+                "events": items,
+            }
+        )
     return payload
 
 
@@ -215,7 +245,8 @@ def build_match_live_story(
     *,
     generated_at: datetime | None = None,
 ) -> dict[str, Any]:
-    """Build a complete, safe story payload for one Match Center."""
+    """Build a complete safe story payload for one Match Center."""
+
     match = match if isinstance(match, dict) else {}
     match_id = _text(match.get("id") or match.get("match_id"), 100)
     home = _text(match.get("home_team"), 120)
@@ -224,10 +255,11 @@ def build_match_live_story(
     cycles = _build_cycles(normalized)
     latest = normalized[-1] if normalized else None
     key_events = [item for item in normalized if item["is_key_event"]]
-    phase = _phase_for_minute(match.get("minute") or (latest or {}).get("minute"), match.get("status"))
+    minute = match.get("minute") or (latest or {}).get("minute")
+    phase = _phase_for_minute(minute, match.get("status"))
 
-    is_valid_match = bool(match_id and home and away)
-    if not is_valid_match:
+    valid_match = bool(match_id and home and away)
+    if not valid_match:
         state = "invalid_match_context"
         message = "No hay contexto de partido suficiente para construir la historia."
     elif not normalized:
@@ -253,7 +285,9 @@ def build_match_live_story(
             "cycles": len(cycles),
             "key_events": len(key_events),
         },
-        "generated_at": generated_at.isoformat(timespec="seconds") if generated_at else "",
+        "generated_at": (
+            generated_at.isoformat(timespec="seconds") if generated_at else ""
+        ),
         "no_external_calls": True,
         "no_database_writes": True,
         "no_fake_data": True,

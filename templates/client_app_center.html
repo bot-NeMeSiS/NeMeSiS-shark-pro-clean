@@ -1,10 +1,10 @@
 {% extends "base.html" %}
-{% from "components/v933_ui.html" import icon, status_chip, action_button, section_header, kpi_card, quick_action, empty_state, match_card, pick_card, provider_state, next_action, realtime_state_bar, customer_trust_panel %}
+{% from "components/v933_ui.html" import icon, status_chip, action_button, section_header, kpi_card, quick_action, empty_state, match_card, pick_card, provider_state, next_action, realtime_state_bar, customer_trust_panel, sports_contract_attributes %}
 {% from "components/v936_product.html" import customer_decision, value_ladder %}
 {% block content %}
 {% set user_name = current_user.name or current_user.username or 'Cliente' %}
 {% set plan_name = (current_user.membership or 'FREE')|upper %}
-{% set matches = data.get('upcoming_matches') or data.get('matches') or [] %}
+{% set matches = data.get('available_matches') or [] %}
 {% set safe_calendar = data.get('v925_calendar') or {} %}
 {% set safe_live = data.get('v925_live') or {} %}
 {% set safe_picks = data.get('v925_picks') or {} %}
@@ -14,8 +14,9 @@
 {% set hub_counts = (data.get('match_hub') or {}).get('counts') or {} %}
 {% set realtime = data.get('v934_realtime') or {} %}
 {% set customer_trust = data.get('v935_customer_trust') or {} %}
+{% set sports_metrics = data.get('sports_metrics') or {} %}
 
-<div class="v933-page v933-client-dashboard" data-v933-template="client_app_center" data-v933-reference="canonical-client-home">
+<div class="v933-page v933-client-dashboard" data-v933-template="client_app_center" data-v933-reference="canonical-client-home" {{ sports_contract_attributes(sports_metrics) }}>
   <section class="v933-client-hero">
     <div>
       <span class="v933-eyebrow">Tu centro de mando de hoy</span>
@@ -33,7 +34,7 @@
   {{ realtime_state_bar(realtime, 'all') }}
   {% if customer_trust.get('status') == 'verified_data' %}{{ customer_trust_panel(customer_trust) }}{% endif %}
 
-  {% if hub_counts.get('live', 0) or safe_live.get('counts', {}).get('live', 0) %}
+  {% if sports_metrics.get('live_confirmed', 0) %}
     {{ customer_decision('Sigue el directo con contexto', 'Hay actividad confirmada. Revisa el marcador real y abre SHARK solo cuando exista contexto suficiente.', 'Abrir directo', '/live', 'cyan', 'Lo importante ahora', 'Ver picks', '/picks', 'Marcador y minuto procedentes de datos confirmados') }}
   {% elif picks %}
     {{ customer_decision('Revisa la selección disponible', 'Comprueba el mercado, la cuota, el riesgo y el motivo antes de guardarla o consultar SHARK.', 'Abrir picks', '/picks', 'cyan', 'Lo importante ahora', 'Consultar SHARK', '/shark', 'La selección ha superado la puerta de publicación') }}
@@ -44,13 +45,13 @@
   {% endif %}
 
   <section class="v933-kpi-grid" aria-label="Resumen de la jornada">
-    {{ kpi_card('Partidos disponibles', matches|length, 'Agenda completa y validada', 'blue', 'calendar', '/calendar') }}
-    {{ kpi_card('En directo', hub_counts.get('live', 0) or safe_live.get('counts', {}).get('live', 0) or 0, 'Solo marcadores confirmados', 'success', 'live', '/live') }}
-    {{ kpi_card('Picks completos', picks|length, 'Mercado, selección y cuota reales', 'cyan', 'target', '/picks') }}
+    {{ kpi_card('Partidos disponibles', sports_metrics.get('matches_available', 0), 'Agenda completa y validada', 'blue', 'calendar', '/calendar') }}
+    {{ kpi_card('En directo', sports_metrics.get('live_confirmed', 0), 'Solo marcadores confirmados', 'success', 'live', '/live') }}
+    {{ kpi_card('Picks completos', sports_metrics.get('picks_ready', 0), 'Mercado, selección y cuota reales', 'cyan', 'target', '/picks') }}
     {{ kpi_card('Alertas', alerts|length, 'Actividad real de tu cuenta', 'gold', 'telegram', '/telegram') }}
   </section>
 
-  <section class="v933-two-col">
+  <section class="v933-two-col" data-v939-layout-contract="bounded-rail">
     <div class="v933-main-stack">
       <section class="v933-panel">
         {{ section_header('Ruta recomendada de hoy', 'Un recorrido corto para encontrar valor sin perder contexto.') }}
@@ -72,17 +73,6 @@
         {% endif %}
       </section>
 
-      <section class="v933-panel">
-        {{ section_header('Tus accesos rápidos', 'Las áreas principales de la experiencia cliente.') }}
-        <div class="v933-quick-actions">
-          {{ quick_action('Calendario', 'Agenda y resultados reales', '/calendar', 'calendar') }}
-          {{ quick_action('Directo', 'Marcadores y eventos confirmados', '/live', 'live', 'success') }}
-          {{ quick_action('Telegram', 'Conexión, calidad y alertas', '/telegram', 'telegram', 'cyan') }}
-          {{ quick_action('Histórico', 'Resultados cerrados y muestra evaluable', '/track-record', 'history') }}
-          {{ quick_action('Mi cuenta', 'Plan, seguridad y favoritos', '/profile', 'user') }}
-          {{ quick_action('Membresías', 'FREE, PRO y ELITE', '/memberships', 'plan', 'gold') }}
-        </div>
-      </section>
     </div>
 
     <aside class="v933-side-stack">
@@ -104,6 +94,18 @@
     </aside>
   </section>
 
+
+  <section class="v933-panel" data-v939-layout-contract="full-width-continuation">
+    {{ section_header('Tus accesos rápidos', 'Las áreas principales de la experiencia cliente.') }}
+    <div class="v933-quick-actions">
+      {{ quick_action('Calendario', 'Agenda y resultados reales', '/calendar', 'calendar') }}
+      {{ quick_action('Directo', 'Marcadores y eventos confirmados', '/live', 'live', 'success') }}
+      {{ quick_action('Telegram', 'Conexión, calidad y alertas', '/telegram', 'telegram', 'cyan') }}
+      {{ quick_action('Histórico', 'Resultados cerrados y muestra evaluable', '/track-record', 'history') }}
+      {{ quick_action('Mi cuenta', 'Plan, seguridad y favoritos', '/profile', 'user') }}
+      {{ quick_action('Membresías', 'FREE, PRO y ELITE', '/memberships', 'plan', 'gold') }}
+    </div>
+  </section>
   <section class="v933-panel">
     {{ section_header('Tu recorrido de valor', 'El plan acompaña lo que necesitas; no promete resultados.') }}
     {{ value_ladder(plan_name) }}

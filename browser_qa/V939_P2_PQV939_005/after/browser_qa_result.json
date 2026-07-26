@@ -1,0 +1,1005 @@
+{
+  "issue": "PQV939-005",
+  "base_url": "http://127.0.0.1:5095",
+  "database": "isolated_temporary_fixture",
+  "external_services_enabled": false,
+  "routes_total": 10,
+  "routes_passed": 10,
+  "routes_failed": 0,
+  "overflow_failures": 0,
+  "console_errors": 0,
+  "page_errors": 0,
+  "external_attempts": 0,
+  "failed_responses": 0,
+  "trust_icon_failures": 0,
+  "results": [
+    {
+      "viewport": "desktop_1366x768",
+      "route": "/app",
+      "status": 200,
+      "final_url": "http://127.0.0.1:5095/app",
+      "login_ok": true,
+      "trust_expected": true,
+      "console_errors": [],
+      "console_warnings": [],
+      "page_errors": [],
+      "external_attempts": [],
+      "failed_responses": [],
+      "metrics": {
+        "title": "NeMeSiS SHARK PRO",
+        "overflow_x": false,
+        "document_width": 1366,
+        "scroll_width": 1366,
+        "trust_panels": 1,
+        "chips": [
+          {
+            "text": "Picks completos",
+            "width": 115.67,
+            "client_width": 114,
+            "scroll_width": 114,
+            "contained": true
+          },
+          {
+            "text": "Histórico evaluable",
+            "width": 129.64,
+            "client_width": 128,
+            "scroll_width": 128,
+            "contained": true
+          },
+          {
+            "text": "Sin beneficio garantizado",
+            "width": 158.95,
+            "client_width": 157,
+            "scroll_width": 157,
+            "contained": true
+          }
+        ],
+        "icons": [
+          {
+            "width": 18,
+            "height": 14,
+            "padding": [
+              "0px",
+              "0px",
+              "0px",
+              "0px"
+            ],
+            "border": [
+              "0px",
+              "0px",
+              "0px",
+              "0px"
+            ],
+            "background": "rgba(0, 0, 0, 0)",
+            "svg": true,
+            "svg_width": 18,
+            "svg_height": 14,
+            "visible": true
+          },
+          {
+            "width": 18,
+            "height": 14,
+            "padding": [
+              "0px",
+              "0px",
+              "0px",
+              "0px"
+            ],
+            "border": [
+              "0px",
+              "0px",
+              "0px",
+              "0px"
+            ],
+            "background": "rgba(0, 0, 0, 0)",
+            "svg": true,
+            "svg_width": 18,
+            "svg_height": 14,
+            "visible": true
+          },
+          {
+            "width": 18,
+            "height": 14,
+            "padding": [
+              "0px",
+              "0px",
+              "0px",
+              "0px"
+            ],
+            "border": [
+              "0px",
+              "0px",
+              "0px",
+              "0px"
+            ],
+            "background": "rgba(0, 0, 0, 0)",
+            "svg": true,
+            "svg_width": 18,
+            "svg_height": 14,
+            "visible": true
+          }
+        ],
+        "trust_icons_valid": true,
+        "chip_text_contained": true,
+        "client_nav_count": 0,
+        "admin_nav_visible": false,
+        "bottom_nav_visible": 0,
+        "forbidden_visible_tokens": []
+      },
+      "screenshot": "browser_qa/V939_P2_PQV939_005/after/desktop_1366x768_app.png",
+      "pass": true
+    },
+    {
+      "viewport": "desktop_1366x768",
+      "route": "/picks",
+      "status": 200,
+      "final_url": "http://127.0.0.1:5095/picks",
+      "login_ok": true,
+      "trust_expected": true,
+      "console_errors": [],
+      "console_warnings": [],
+      "page_errors": [],
+      "external_attempts": [],
+      "failed_responses": [],
+      "metrics": {
+        "title": "NeMeSiS SHARK PRO",
+        "overflow_x": false,
+        "document_width": 1366,
+        "scroll_width": 1366,
+        "trust_panels": 1,
+        "chips": [
+          {
+            "text": "Picks completos",
+            "width": 115.67,
+            "client_width": 114,
+            "scroll_width": 114,
+            "contained": true
+          },
+          {
+            "text": "Histórico evaluable",
+            "width": 129.64,
+            "client_width": 128,
+            "scroll_width": 128,
+            "contained": true
+          },
+          {
+            "text": "Sin beneficio garantizado",
+            "width": 158.95,
+            "client_width": 157,
+            "scroll_width": 157,
+            "contained": true
+          }
+        ],
+        "icons": [
+          {
+            "width": 18,
+            "height": 14,
+            "padding": [
+              "0px",
+              "0px",
+              "0px",
+              "0px"
+            ],
+            "border": [
+              "0px",
+              "0px",
+              "0px",
+              "0px"
+            ],
+            "background": "rgba(0, 0, 0, 0)",
+            "svg": true,
+            "svg_width": 18,
+            "svg_height": 14,
+            "visible": true
+          },
+          {
+            "width": 18,
+            "height": 14,
+            "padding": [
+              "0px",
+              "0px",
+              "0px",
+              "0px"
+            ],
+            "border": [
+              "0px",
+              "0px",
+              "0px",
+              "0px"
+            ],
+            "background": "rgba(0, 0, 0, 0)",
+            "svg": true,
+            "svg_width": 18,
+            "svg_height": 14,
+            "visible": true
+          },
+          {
+            "width": 18,
+            "height": 14,
+            "padding": [
+              "0px",
+              "0px",
+              "0px",
+              "0px"
+            ],
+            "border": [
+              "0px",
+              "0px",
+              "0px",
+              "0px"
+            ],
+            "background": "rgba(0, 0, 0, 0)",
+            "svg": true,
+            "svg_width": 18,
+            "svg_height": 14,
+            "visible": true
+          }
+        ],
+        "trust_icons_valid": true,
+        "chip_text_contained": true,
+        "client_nav_count": 0,
+        "admin_nav_visible": false,
+        "bottom_nav_visible": 0,
+        "forbidden_visible_tokens": []
+      },
+      "screenshot": "browser_qa/V939_P2_PQV939_005/after/desktop_1366x768_picks.png",
+      "pass": true
+    },
+    {
+      "viewport": "desktop_1366x768",
+      "route": "/shark",
+      "status": 200,
+      "final_url": "http://127.0.0.1:5095/shark",
+      "login_ok": true,
+      "trust_expected": true,
+      "console_errors": [],
+      "console_warnings": [],
+      "page_errors": [],
+      "external_attempts": [],
+      "failed_responses": [],
+      "metrics": {
+        "title": "NeMeSiS SHARK PRO",
+        "overflow_x": false,
+        "document_width": 1366,
+        "scroll_width": 1366,
+        "trust_panels": 1,
+        "chips": [
+          {
+            "text": "Picks completos",
+            "width": 115.67,
+            "client_width": 114,
+            "scroll_width": 114,
+            "contained": true
+          },
+          {
+            "text": "Histórico evaluable",
+            "width": 129.64,
+            "client_width": 128,
+            "scroll_width": 128,
+            "contained": true
+          },
+          {
+            "text": "Sin beneficio garantizado",
+            "width": 158.95,
+            "client_width": 157,
+            "scroll_width": 157,
+            "contained": true
+          }
+        ],
+        "icons": [
+          {
+            "width": 18,
+            "height": 14,
+            "padding": [
+              "0px",
+              "0px",
+              "0px",
+              "0px"
+            ],
+            "border": [
+              "0px",
+              "0px",
+              "0px",
+              "0px"
+            ],
+            "background": "rgba(0, 0, 0, 0)",
+            "svg": true,
+            "svg_width": 18,
+            "svg_height": 14,
+            "visible": true
+          },
+          {
+            "width": 18,
+            "height": 14,
+            "padding": [
+              "0px",
+              "0px",
+              "0px",
+              "0px"
+            ],
+            "border": [
+              "0px",
+              "0px",
+              "0px",
+              "0px"
+            ],
+            "background": "rgba(0, 0, 0, 0)",
+            "svg": true,
+            "svg_width": 18,
+            "svg_height": 14,
+            "visible": true
+          },
+          {
+            "width": 18,
+            "height": 14,
+            "padding": [
+              "0px",
+              "0px",
+              "0px",
+              "0px"
+            ],
+            "border": [
+              "0px",
+              "0px",
+              "0px",
+              "0px"
+            ],
+            "background": "rgba(0, 0, 0, 0)",
+            "svg": true,
+            "svg_width": 18,
+            "svg_height": 14,
+            "visible": true
+          }
+        ],
+        "trust_icons_valid": true,
+        "chip_text_contained": true,
+        "client_nav_count": 0,
+        "admin_nav_visible": false,
+        "bottom_nav_visible": 0,
+        "forbidden_visible_tokens": []
+      },
+      "screenshot": "browser_qa/V939_P2_PQV939_005/after/desktop_1366x768_shark.png",
+      "pass": true
+    },
+    {
+      "viewport": "desktop_1366x768",
+      "route": "/match/pqv939005-match",
+      "status": 200,
+      "final_url": "http://127.0.0.1:5095/match/pqv939005-match",
+      "login_ok": true,
+      "trust_expected": true,
+      "console_errors": [],
+      "console_warnings": [],
+      "page_errors": [],
+      "external_attempts": [],
+      "failed_responses": [],
+      "metrics": {
+        "title": "NeMeSiS SHARK PRO",
+        "overflow_x": false,
+        "document_width": 1366,
+        "scroll_width": 1366,
+        "trust_panels": 1,
+        "chips": [
+          {
+            "text": "Picks completos",
+            "width": 115.67,
+            "client_width": 114,
+            "scroll_width": 114,
+            "contained": true
+          },
+          {
+            "text": "Histórico evaluable",
+            "width": 129.64,
+            "client_width": 128,
+            "scroll_width": 128,
+            "contained": true
+          },
+          {
+            "text": "Sin beneficio garantizado",
+            "width": 158.95,
+            "client_width": 157,
+            "scroll_width": 157,
+            "contained": true
+          }
+        ],
+        "icons": [
+          {
+            "width": 18,
+            "height": 14,
+            "padding": [
+              "0px",
+              "0px",
+              "0px",
+              "0px"
+            ],
+            "border": [
+              "0px",
+              "0px",
+              "0px",
+              "0px"
+            ],
+            "background": "rgba(0, 0, 0, 0)",
+            "svg": true,
+            "svg_width": 18,
+            "svg_height": 14,
+            "visible": true
+          },
+          {
+            "width": 18,
+            "height": 14,
+            "padding": [
+              "0px",
+              "0px",
+              "0px",
+              "0px"
+            ],
+            "border": [
+              "0px",
+              "0px",
+              "0px",
+              "0px"
+            ],
+            "background": "rgba(0, 0, 0, 0)",
+            "svg": true,
+            "svg_width": 18,
+            "svg_height": 14,
+            "visible": true
+          },
+          {
+            "width": 18,
+            "height": 14,
+            "padding": [
+              "0px",
+              "0px",
+              "0px",
+              "0px"
+            ],
+            "border": [
+              "0px",
+              "0px",
+              "0px",
+              "0px"
+            ],
+            "background": "rgba(0, 0, 0, 0)",
+            "svg": true,
+            "svg_width": 18,
+            "svg_height": 14,
+            "visible": true
+          }
+        ],
+        "trust_icons_valid": true,
+        "chip_text_contained": true,
+        "client_nav_count": 0,
+        "admin_nav_visible": false,
+        "bottom_nav_visible": 0,
+        "forbidden_visible_tokens": []
+      },
+      "screenshot": "browser_qa/V939_P2_PQV939_005/after/desktop_1366x768_match.png",
+      "pass": true
+    },
+    {
+      "viewport": "desktop_1366x768",
+      "route": "/track-record",
+      "status": 200,
+      "final_url": "http://127.0.0.1:5095/track-record",
+      "login_ok": true,
+      "trust_expected": false,
+      "console_errors": [],
+      "console_warnings": [],
+      "page_errors": [],
+      "external_attempts": [],
+      "failed_responses": [],
+      "metrics": {
+        "title": "NeMeSiS SHARK PRO",
+        "overflow_x": false,
+        "document_width": 1366,
+        "scroll_width": 1366,
+        "trust_panels": 0,
+        "chips": [],
+        "icons": [],
+        "trust_icons_valid": false,
+        "chip_text_contained": true,
+        "client_nav_count": 0,
+        "admin_nav_visible": false,
+        "bottom_nav_visible": 0,
+        "forbidden_visible_tokens": []
+      },
+      "screenshot": "browser_qa/V939_P2_PQV939_005/after/desktop_1366x768_track-record.png",
+      "pass": true
+    },
+    {
+      "viewport": "mobile_390x844",
+      "route": "/app",
+      "status": 200,
+      "final_url": "http://127.0.0.1:5095/app",
+      "login_ok": true,
+      "trust_expected": true,
+      "console_errors": [],
+      "console_warnings": [],
+      "page_errors": [],
+      "external_attempts": [],
+      "failed_responses": [],
+      "metrics": {
+        "title": "NeMeSiS SHARK PRO",
+        "overflow_x": false,
+        "document_width": 390,
+        "scroll_width": 390,
+        "trust_panels": 1,
+        "chips": [
+          {
+            "text": "Picks completos",
+            "width": 167,
+            "client_width": 165,
+            "scroll_width": 165,
+            "contained": true
+          },
+          {
+            "text": "Histórico evaluable",
+            "width": 167,
+            "client_width": 165,
+            "scroll_width": 165,
+            "contained": true
+          },
+          {
+            "text": "Sin beneficio garantizado",
+            "width": 340,
+            "client_width": 338,
+            "scroll_width": 338,
+            "contained": true
+          }
+        ],
+        "icons": [
+          {
+            "width": 18,
+            "height": 14,
+            "padding": [
+              "0px",
+              "0px",
+              "0px",
+              "0px"
+            ],
+            "border": [
+              "0px",
+              "0px",
+              "0px",
+              "0px"
+            ],
+            "background": "rgba(0, 0, 0, 0)",
+            "svg": true,
+            "svg_width": 18,
+            "svg_height": 14,
+            "visible": true
+          },
+          {
+            "width": 18,
+            "height": 14,
+            "padding": [
+              "0px",
+              "0px",
+              "0px",
+              "0px"
+            ],
+            "border": [
+              "0px",
+              "0px",
+              "0px",
+              "0px"
+            ],
+            "background": "rgba(0, 0, 0, 0)",
+            "svg": true,
+            "svg_width": 18,
+            "svg_height": 14,
+            "visible": true
+          },
+          {
+            "width": 18,
+            "height": 14,
+            "padding": [
+              "0px",
+              "0px",
+              "0px",
+              "0px"
+            ],
+            "border": [
+              "0px",
+              "0px",
+              "0px",
+              "0px"
+            ],
+            "background": "rgba(0, 0, 0, 0)",
+            "svg": true,
+            "svg_width": 18,
+            "svg_height": 14,
+            "visible": true
+          }
+        ],
+        "trust_icons_valid": true,
+        "chip_text_contained": true,
+        "client_nav_count": 0,
+        "admin_nav_visible": false,
+        "bottom_nav_visible": 0,
+        "forbidden_visible_tokens": []
+      },
+      "screenshot": "browser_qa/V939_P2_PQV939_005/after/mobile_390x844_app.png",
+      "pass": true
+    },
+    {
+      "viewport": "mobile_390x844",
+      "route": "/picks",
+      "status": 200,
+      "final_url": "http://127.0.0.1:5095/picks",
+      "login_ok": true,
+      "trust_expected": true,
+      "console_errors": [],
+      "console_warnings": [],
+      "page_errors": [],
+      "external_attempts": [],
+      "failed_responses": [],
+      "metrics": {
+        "title": "NeMeSiS SHARK PRO",
+        "overflow_x": false,
+        "document_width": 390,
+        "scroll_width": 390,
+        "trust_panels": 1,
+        "chips": [
+          {
+            "text": "Picks completos",
+            "width": 167,
+            "client_width": 165,
+            "scroll_width": 165,
+            "contained": true
+          },
+          {
+            "text": "Histórico evaluable",
+            "width": 167,
+            "client_width": 165,
+            "scroll_width": 165,
+            "contained": true
+          },
+          {
+            "text": "Sin beneficio garantizado",
+            "width": 340,
+            "client_width": 338,
+            "scroll_width": 338,
+            "contained": true
+          }
+        ],
+        "icons": [
+          {
+            "width": 18,
+            "height": 14,
+            "padding": [
+              "0px",
+              "0px",
+              "0px",
+              "0px"
+            ],
+            "border": [
+              "0px",
+              "0px",
+              "0px",
+              "0px"
+            ],
+            "background": "rgba(0, 0, 0, 0)",
+            "svg": true,
+            "svg_width": 18,
+            "svg_height": 14,
+            "visible": true
+          },
+          {
+            "width": 18,
+            "height": 14,
+            "padding": [
+              "0px",
+              "0px",
+              "0px",
+              "0px"
+            ],
+            "border": [
+              "0px",
+              "0px",
+              "0px",
+              "0px"
+            ],
+            "background": "rgba(0, 0, 0, 0)",
+            "svg": true,
+            "svg_width": 18,
+            "svg_height": 14,
+            "visible": true
+          },
+          {
+            "width": 18,
+            "height": 14,
+            "padding": [
+              "0px",
+              "0px",
+              "0px",
+              "0px"
+            ],
+            "border": [
+              "0px",
+              "0px",
+              "0px",
+              "0px"
+            ],
+            "background": "rgba(0, 0, 0, 0)",
+            "svg": true,
+            "svg_width": 18,
+            "svg_height": 14,
+            "visible": true
+          }
+        ],
+        "trust_icons_valid": true,
+        "chip_text_contained": true,
+        "client_nav_count": 0,
+        "admin_nav_visible": false,
+        "bottom_nav_visible": 0,
+        "forbidden_visible_tokens": []
+      },
+      "screenshot": "browser_qa/V939_P2_PQV939_005/after/mobile_390x844_picks.png",
+      "pass": true
+    },
+    {
+      "viewport": "mobile_390x844",
+      "route": "/shark",
+      "status": 200,
+      "final_url": "http://127.0.0.1:5095/shark",
+      "login_ok": true,
+      "trust_expected": true,
+      "console_errors": [],
+      "console_warnings": [],
+      "page_errors": [],
+      "external_attempts": [],
+      "failed_responses": [],
+      "metrics": {
+        "title": "NeMeSiS SHARK PRO",
+        "overflow_x": false,
+        "document_width": 390,
+        "scroll_width": 390,
+        "trust_panels": 1,
+        "chips": [
+          {
+            "text": "Picks completos",
+            "width": 167,
+            "client_width": 165,
+            "scroll_width": 165,
+            "contained": true
+          },
+          {
+            "text": "Histórico evaluable",
+            "width": 167,
+            "client_width": 165,
+            "scroll_width": 165,
+            "contained": true
+          },
+          {
+            "text": "Sin beneficio garantizado",
+            "width": 340,
+            "client_width": 338,
+            "scroll_width": 338,
+            "contained": true
+          }
+        ],
+        "icons": [
+          {
+            "width": 18,
+            "height": 14,
+            "padding": [
+              "0px",
+              "0px",
+              "0px",
+              "0px"
+            ],
+            "border": [
+              "0px",
+              "0px",
+              "0px",
+              "0px"
+            ],
+            "background": "rgba(0, 0, 0, 0)",
+            "svg": true,
+            "svg_width": 18,
+            "svg_height": 14,
+            "visible": true
+          },
+          {
+            "width": 18,
+            "height": 14,
+            "padding": [
+              "0px",
+              "0px",
+              "0px",
+              "0px"
+            ],
+            "border": [
+              "0px",
+              "0px",
+              "0px",
+              "0px"
+            ],
+            "background": "rgba(0, 0, 0, 0)",
+            "svg": true,
+            "svg_width": 18,
+            "svg_height": 14,
+            "visible": true
+          },
+          {
+            "width": 18,
+            "height": 14,
+            "padding": [
+              "0px",
+              "0px",
+              "0px",
+              "0px"
+            ],
+            "border": [
+              "0px",
+              "0px",
+              "0px",
+              "0px"
+            ],
+            "background": "rgba(0, 0, 0, 0)",
+            "svg": true,
+            "svg_width": 18,
+            "svg_height": 14,
+            "visible": true
+          }
+        ],
+        "trust_icons_valid": true,
+        "chip_text_contained": true,
+        "client_nav_count": 0,
+        "admin_nav_visible": false,
+        "bottom_nav_visible": 0,
+        "forbidden_visible_tokens": []
+      },
+      "screenshot": "browser_qa/V939_P2_PQV939_005/after/mobile_390x844_shark.png",
+      "pass": true
+    },
+    {
+      "viewport": "mobile_390x844",
+      "route": "/match/pqv939005-match",
+      "status": 200,
+      "final_url": "http://127.0.0.1:5095/match/pqv939005-match",
+      "login_ok": true,
+      "trust_expected": true,
+      "console_errors": [],
+      "console_warnings": [],
+      "page_errors": [],
+      "external_attempts": [],
+      "failed_responses": [],
+      "metrics": {
+        "title": "NeMeSiS SHARK PRO",
+        "overflow_x": false,
+        "document_width": 390,
+        "scroll_width": 390,
+        "trust_panels": 1,
+        "chips": [
+          {
+            "text": "Picks completos",
+            "width": 167,
+            "client_width": 165,
+            "scroll_width": 165,
+            "contained": true
+          },
+          {
+            "text": "Histórico evaluable",
+            "width": 167,
+            "client_width": 165,
+            "scroll_width": 165,
+            "contained": true
+          },
+          {
+            "text": "Sin beneficio garantizado",
+            "width": 340,
+            "client_width": 338,
+            "scroll_width": 338,
+            "contained": true
+          }
+        ],
+        "icons": [
+          {
+            "width": 18,
+            "height": 14,
+            "padding": [
+              "0px",
+              "0px",
+              "0px",
+              "0px"
+            ],
+            "border": [
+              "0px",
+              "0px",
+              "0px",
+              "0px"
+            ],
+            "background": "rgba(0, 0, 0, 0)",
+            "svg": true,
+            "svg_width": 18,
+            "svg_height": 14,
+            "visible": true
+          },
+          {
+            "width": 18,
+            "height": 14,
+            "padding": [
+              "0px",
+              "0px",
+              "0px",
+              "0px"
+            ],
+            "border": [
+              "0px",
+              "0px",
+              "0px",
+              "0px"
+            ],
+            "background": "rgba(0, 0, 0, 0)",
+            "svg": true,
+            "svg_width": 18,
+            "svg_height": 14,
+            "visible": true
+          },
+          {
+            "width": 18,
+            "height": 14,
+            "padding": [
+              "0px",
+              "0px",
+              "0px",
+              "0px"
+            ],
+            "border": [
+              "0px",
+              "0px",
+              "0px",
+              "0px"
+            ],
+            "background": "rgba(0, 0, 0, 0)",
+            "svg": true,
+            "svg_width": 18,
+            "svg_height": 14,
+            "visible": true
+          }
+        ],
+        "trust_icons_valid": true,
+        "chip_text_contained": true,
+        "client_nav_count": 0,
+        "admin_nav_visible": false,
+        "bottom_nav_visible": 0,
+        "forbidden_visible_tokens": []
+      },
+      "screenshot": "browser_qa/V939_P2_PQV939_005/after/mobile_390x844_match.png",
+      "pass": true
+    },
+    {
+      "viewport": "mobile_390x844",
+      "route": "/track-record",
+      "status": 200,
+      "final_url": "http://127.0.0.1:5095/track-record",
+      "login_ok": true,
+      "trust_expected": false,
+      "console_errors": [],
+      "console_warnings": [],
+      "page_errors": [],
+      "external_attempts": [],
+      "failed_responses": [],
+      "metrics": {
+        "title": "NeMeSiS SHARK PRO",
+        "overflow_x": false,
+        "document_width": 390,
+        "scroll_width": 390,
+        "trust_panels": 0,
+        "chips": [],
+        "icons": [],
+        "trust_icons_valid": false,
+        "chip_text_contained": true,
+        "client_nav_count": 0,
+        "admin_nav_visible": false,
+        "bottom_nav_visible": 0,
+        "forbidden_visible_tokens": []
+      },
+      "screenshot": "browser_qa/V939_P2_PQV939_005/after/mobile_390x844_track-record.png",
+      "pass": true
+    }
+  ]
+}

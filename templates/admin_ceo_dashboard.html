@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+{% from "components/v933_ui.html" import page_header, kpi_card, status_chip, evidence_label, evidence_chip, empty_state, next_action, icon, sports_contract_attributes %}
+{% block title %}Dirección | NeMeSiS SHARK PRO{% endblock %}
+{% block content %}
+{% set company = intelligence.company or {} %}
+{% set summary = company.executive_summary or {} %}
+{% set health = company.business_health or {} %}
+{% set product = intelligence.product or {} %}
+{% set business = intelligence.business or {} %}
+{% set picks = intelligence.picks or {} %}
+{% set telegram = intelligence.telegram or {} %}
+{% set learning = intelligence.learning or {} %}
+{% set recovery = intelligence.recovery or {} %}
+{% set quality = intelligence.quality or {} %}
+{% set sports_metrics = intelligence.sports_metrics or company.sports_metrics or {} %}
+{% set area_labels = {
+  'recovery':'Recuperación',
+  'pick_pipeline':'Flujo de picks',
+  'product_analytics':'Analítica de producto',
+  'revenue':'Ingresos',
+  'sports_data':'Datos deportivos',
+  'telegram_intelligence':'Inteligencia de Telegram'
+} %}
+<div class="v933-page" data-v939-template="admin_ceo_dashboard" {{ sports_contract_attributes(sports_metrics) }}>
+  {{ page_header('Dirección de empresa', 'Una vista de evidencia, decisiones y límites. Ninguna cifra ausente se estima.', 'dashboard', [
+    {'label':'Actualizar evidencia','href':'#v939-actions','primary':true,'icon':'refresh'},
+    {'label':'Operaciones','href':'/admin/operations-center','icon':'shield'}
+  ]) }}
+
+  <section class="v933-kpi-grid" aria-label="Estado ejecutivo">
+    {{ kpi_card('Estado de evidencia', evidence_label(summary.certification_state), summary.safe_message, 'blue', 'shield') }}
+    {{ kpi_card('Cobertura', health.evidence_coverage_score, 'Índice de cobertura, no probabilidad comercial', 'cyan', 'data') }}
+    {{ kpi_card('Prioridades', summary.priority_count, 'Áreas que requieren evidencia o revisión', 'yellow', 'alert') }}
+    {{ kpi_card('Producción V939', 'No certificada', 'Compilación local; no se ha desplegado', 'neutral', 'rocket') }}
+  </section>
+
+  <section class="v933-admin-layout">
+    <div class="v933-admin-main">
+      <section class="v933-admin-panel">
+        <header><div><h2>Producto y clientes</h2><p>Señales agregadas con privacidad minimizada.</p></div>{{ evidence_chip(product.certification_state or 'INSUFFICIENT_DATA') }}</header>
+        <div class="v933-admin-panel-body">
+          {% set funnel = product.funnel or {} %}
+          <div class="v933-kpi-grid">
+            {{ kpi_card('Registrados', funnel.registered, 'Solo registros persistidos', 'blue', 'users') }}
+            {{ kpi_card('Activos observados', funnel.active, 'Solo eventos disponibles', 'cyan', 'activity') }}
+            {{ kpi_card('Interés PRO', funnel.pro_interest, 'Sin inferir intención', 'blue', 'target') }}
+            {{ kpi_card('Proceso de compra iniciado', funnel.checkout_started, 'Sin afirmar compra', 'yellow', 'card') }}
+          </div>
+          <p class="v933-safe-copy">Retención: {{ evidence_label((product.retention or {}).state or 'INSUFFICIENT_DATA') }}. Bajas: {{ evidence_label((product.churn or {}).state or 'INSUFFICIENT_DATA') }}. V939 no guarda nuevos datos personales ni usa rastreo invasivo.</p>
+        </div>
+      </section>
+
+      <section class="v933-admin-panel">
+        <header><div><h2>Negocio</h2><p>Membresías y pagos observables, sin ejecutar Stripe.</p></div>{{ evidence_chip(business.certification_state or 'NOT_CERTIFIED') }}</header>
+        <div class="v933-admin-panel-body">
+          {% set memberships = business.memberships or {} %}
+          <div class="v933-kpi-grid">
+            {{ kpi_card('FREE', memberships.get('FREE'), 'Cuentas persistidas', 'blue', 'users') }}
+            {{ kpi_card('PRO', memberships.get('PRO'), 'Cuentas persistidas', 'cyan', 'star') }}
+            {{ kpi_card('ELITE', (memberships.get('ELITE', 0) + memberships.get('ELITE+', 0)) if memberships else none, 'Cuentas persistidas', 'gold', 'award') }}
+            {{ kpi_card('MRR', business.mrr, 'Solo calculable con importes y ciclos certificados', 'neutral', 'chart') }}
+          </div>
+        </div>
+      </section>
+
+      <section class="v933-admin-panel">
+        <header><div><h2>Deporte, picks y SHARK</h2><p>Calidad del dato y aprendizaje observacional.</p></div>{{ evidence_chip(learning.certification_state or 'INSUFFICIENT_DATA') }}</header>
+        <div class="v933-admin-panel-body">
+          <div class="v933-kpi-grid">
+            {{ kpi_card('Candidatos', picks.candidate_count, 'Picks reales leídos', 'blue', 'target') }}
+            {{ kpi_card('Preparados para premium', picks.premium_ready_count, 'Con datos y cuota reciente', 'cyan', 'check') }}
+            {{ kpi_card('Bloqueados', picks.blocked_count, 'Motivo auditable', 'yellow', 'shield') }}
+            {{ kpi_card('Muestra SHARK', (learning.global or {}).sample_size, 'Picks cerrados reales', 'neutral', 'history') }}
+          </div>
+          <p class="v933-safe-copy">Modo SHARK: {{ 'Observación' if (learning.mode or 'OBSERVE') == 'OBSERVE' else (learning.mode or 'Observación') }}. Cambios automáticos de pesos: no. ROI y tasa de acierto permanecen vacíos cuando la muestra no cumple las reglas.</p>
+        </div>
+      </section>
+
+      <section class="v933-admin-panel">
+        <header><div><h2>Telegram</h2><p>Calidad antes que volumen; esta vista no envía.</p></div>{{ evidence_chip(telegram.certification_state or 'INSUFFICIENT_DATA') }}</header>
+        <div class="v933-admin-panel-body">
+          <div class="v933-kpi-grid">
+            {{ kpi_card('Candidatos', telegram.candidate_count, 'Proceden del pipeline', 'cyan', 'send') }}
+            {{ kpi_card('Vistas previas listas', telegram.preview_ready_count, 'Sin envío automático', 'blue', 'eye') }}
+            {{ kpi_card('Bloqueados', telegram.blocked_count, 'Calidad, antigüedad, duplicado o límite', 'yellow', 'shield') }}
+            {{ kpi_card('Entregas observadas', (telegram.delivery or {}).records, 'Solo registros locales', 'neutral', 'history') }}
+          </div>
+        </div>
+      </section>
+
+      <section class="v933-admin-panel">
+        <header><div><h2>Prioridades empresariales</h2><p>Ordenadas por evidencia, no por intuición.</p></div></header>
+        <div class="v933-admin-panel-body">
+          {% if company.priorities %}
+          <div class="v933-truth-list">
+            {% for item in company.priorities[:10] %}
+            <div>{{ icon('alert') }}<span><strong>{{ item.priority }} | {{ area_labels.get(item.area, item.area|replace('_',' ')|title) }}</strong><small>{{ evidence_label(item.state) }} · {{ item.action }}</small></span></div>
+            {% endfor %}
+          </div>
+          {% else %}
+            {{ empty_state('Sin prioridades locales abiertas', 'Esto no certifica producción; indica que la captura local no encontró una brecha demostrada.', '', '', 'check') }}
+          {% endif %}
+        </div>
+      </section>
+    </div>
+
+    <aside class="v933-side-stack">
+      <section class="v933-admin-panel">
+        <header><div><h2>Operaciones</h2><p>Capas coordinadas.</p></div></header>
+        <div class="v933-admin-panel-body">
+          <div class="v933-truth-list">
+            <div>{{ icon('shield') }}<span><strong>Recuperación</strong><small>{{ evidence_label(recovery.certification_state or 'NOT_CERTIFIED') }}</small></span></div>
+            <div>{{ icon('history') }}<span><strong>Regresiones</strong><small>{{ evidence_label((intelligence.regressions or {}).certification_state or 'NOT_CERTIFIED') }}</small></span></div>
+            <div>{{ icon('check') }}<span><strong>Tareas de calidad</strong><small>{{ quality.task_count or 0 }}</small></span></div>
+            <div>{{ icon('rocket') }}<span><strong>Despliegue</strong><small>No ejecutado</small></span></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="v933-admin-panel">
+        <header><div><h2>Estados de evidencia</h2><p>Lectura común para todas las decisiones.</p></div></header>
+        <div class="v933-admin-panel-body"><div class="v933-chip-cloud">
+          {{ evidence_chip('CONFIRMADO') }}
+          {{ evidence_chip('NOT_CERTIFIED') }}
+          {{ evidence_chip('HYPOTHESIS') }}
+          {{ evidence_chip('BLOCKED_BY_ACCESS') }}
+        </div></div>
+      </section>
+
+      <section class="v933-admin-panel" id="v939-actions">
+        <header><div><h2>Acciones seguras</h2><p>Guardan evidencia o preparan una tarea.</p></div></header>
+        <div class="v933-admin-panel-body">
+          <div class="v933-page-actions">
+            <button class="v933-action is-primary is-blue" type="button" data-v939-action="run">{{ icon('refresh') }}<span>Guardar snapshot</span></button>
+            <button class="v933-action is-blue" type="button" data-v939-action="prompt">{{ icon('code') }}<span>Preparar prompt</span></button>
+          </div>
+          <output class="v904-safe-api-output" data-v939-output>No se ejecutan correcciones, publicación, despliegue, Telegram, pagos ni cambios de pesos.</output>
+        </div>
+      </section>
+
+      {{ next_action('Revisar la primera prioridad', (company.next_actions[0].action if company.next_actions else 'Certificar producción solo tras un despliegue autorizado.'), '/admin/operations-center', 'Abrir Operaciones') }}
+    </aside>
+  </section>
+</div>
+<script>
+(function v939CompanyActions(){
+  const output=document.querySelector('[data-v939-output]');
+  async function post(url,body){
+    const response=await fetch(url,{method:'POST',headers:window.nemesisJsonHeaders(),cache:'no-store',body:JSON.stringify(body||{})});
+    const payload=await response.json().catch(function(){return {ok:false,error:'invalid_json'};});
+    if(!response.ok) throw new Error(payload.safe_message||payload.error||('HTTP '+response.status));
+    return payload;
+  }
+  document.querySelectorAll('[data-v939-action]').forEach(function(button){
+    button.addEventListener('click',async function(){
+      button.disabled=true; button.setAttribute('aria-busy','true');
+      try{
+        const kind=button.getAttribute('data-v939-action');
+        const payload=kind==='prompt'
+          ? await post('/api/admin/company-intelligence/generate-prompt',{})
+          : await post('/api/admin/company-intelligence/run',{});
+        output.textContent=kind==='prompt' ? payload.prompt : 'Evidencia guardada. No se ejecutó ninguna acción externa.';
+      }catch(error){ output.textContent='No se completó la acción: '+error.message; }
+      finally{ button.disabled=false; button.removeAttribute('aria-busy'); }
+    });
+  });
+})();
+</script>
+{% endblock %}

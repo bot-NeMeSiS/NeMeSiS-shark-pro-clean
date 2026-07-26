@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "components/v933_ui.html" import page_header, kpi_card, section_header, pick_card, filter_tabs, empty_state, provider_state, status_chip, icon, action_button, realtime_state_bar, customer_trust_panel %}
+{% from "components/v933_ui.html" import page_header, kpi_card, section_header, pick_card, filter_tabs, empty_state, provider_state, status_chip, icon, action_button, realtime_state_bar, customer_trust_panel, sports_contract_attributes %}
 {% from "components/v936_product.html" import customer_decision, intelligence_brief %}
 {% from "components/v937_sports_lifecycle.html" import data_confidence_panel %}
 {% block content %}
@@ -11,8 +11,9 @@
 {% set active_filter = request.args.get('filtro') or request.args.get('filter') or 'featured' %}
 {% set realtime = data.get('v934_realtime') or {} %}
 {% set customer_trust = data.get('v935_customer_trust') or {} %}
+{% set sports_metrics = data.get('sports_metrics') or {} %}
 
-<div class="v933-page v933-sports-board v933-picks-board" data-v933-template="picks" data-v933-reference="canonical-picks">
+<div class="v933-page v933-sports-board v933-picks-board" data-v933-template="picks" data-v933-reference="canonical-picks" {{ sports_contract_attributes(sports_metrics) }}>
   {{ page_header('Picks SHARK', 'Selecciones reales que superan la puerta de calidad de publicación.', 'target', [{'label':'Histórico','href':'/track-record','icon':'history'},{'label':'Consultar SHARK','href':'/shark','primary':true,'icon':'shark'}]) }}
 
   {{ realtime_state_bar(realtime, 'picks') }}
@@ -25,7 +26,7 @@
   {% endif %}
 
   <section class="v933-kpi-grid">
-    {{ kpi_card('Picks completos', picks|length, 'Partido, mercado, selección y cuota', 'cyan', 'target', '/picks') }}
+    {{ kpi_card('Picks completos', sports_metrics.get('picks_ready', 0), 'Partido, mercado, selección y cuota', 'cyan', 'target', '/picks') }}
     {{ kpi_card('Bloqueados', safe.get('blocked_count', 0), 'Datos insuficientes o revisión', 'warning', 'shield', '/picks?filter=blocked') }}
     {{ kpi_card('Cuota media', odds_state.get('average_odds') if odds_state.get('has_real_data') else none, 'Solo muestra real evaluable', 'blue', 'odds', '/picks') }}
     {{ kpi_card('Cerrados', stats.get('closed') or stats.get('graded'), 'Histórico real', 'success', 'history', '/track-record') }}

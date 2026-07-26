@@ -3,6 +3,32 @@
 
 {% macro status_chip(label, tone='neutral') -%}<span class="v933-status-chip is-{{ tone or 'neutral' }}">{{ label or 'Pendiente' }}</span>{%- endmacro %}
 
+{% macro evidence_label(value) -%}
+{% set code = value or 'NOT_CERTIFIED' %}
+{{- {
+  'VERIFIED': 'Confirmado',
+  'CONFIRMADO': 'Confirmado',
+  'PARTIALLY_VERIFIED': 'Verificación parcial',
+  'NOT_CERTIFIED': 'No certificado',
+  'NO_CERTIFICADO': 'No certificado',
+  'NOT_CONFIGURED': 'No configurado',
+  'STALE': 'Datos desactualizados',
+  'BLOCKED_BY_ACCESS': 'Bloqueado por acceso',
+  'BLOQUEADO_POR_ACCESO': 'Bloqueado por acceso',
+  'HYPOTHESIS': 'Hipótesis',
+  'HIPOTESIS': 'Hipótesis',
+  'INSUFFICIENT_DATA': 'Sin muestra',
+  'REQUIRES_REVIEW': 'Requiere revisión',
+  'BLOCKED': 'Bloqueado'
+}.get(code, code|replace('_', ' ')|title) -}}
+{%- endmacro %}
+
+{% macro evidence_chip(value) -%}
+{% set code = value or 'NOT_CERTIFIED' %}
+{% set tone = 'success' if code in ['VERIFIED', 'CONFIRMADO'] else ('danger' if code in ['BLOCKED_BY_ACCESS', 'BLOQUEADO_POR_ACCESO', 'BLOCKED'] else ('blue' if code in ['PARTIALLY_VERIFIED', 'HYPOTHESIS', 'HIPOTESIS'] else ('neutral' if code == 'INSUFFICIENT_DATA' else 'warning'))) %}
+{{- status_chip(evidence_label(code), tone) -}}
+{%- endmacro %}
+
 {% macro data_provenance_badge(source='', updated='', state='') -%}
 <span class="v935-provenance" title="Trazabilidad del dato">{{ icon('shield') }}<span><strong>{{ source or 'Fuente pendiente' }}</strong>{% if updated %}<small>{{ updated }}</small>{% elif state %}<small>{{ state }}</small>{% endif %}</span></span>
 {%- endmacro %}
@@ -46,6 +72,11 @@
 {% macro team_logo(name, logo='', size='md') -%}
 {% set label = name or 'Equipo' %}<span class="crest v933-team-logo is-{{ size }}" data-fallback="{{ label[:2]|upper }}" title="{{ label }}">{% if logo %}<img src="{{ logo }}" alt="" loading="lazy" referrerpolicy="no-referrer">{% endif %}<em aria-hidden="true">{{ label[:2]|upper }}</em></span>
 {%- endmacro %}
+{% macro sports_contract_attributes(metrics) -%}
+{% set metrics = metrics or {} %}data-sports-contract="{{ metrics.get('contract') or '' }}" data-sports-snapshot="{{ metrics.get('snapshot_id') or '' }}" data-sports-matches-today="{{ metrics.get('matches_today', 0) }}" data-sports-matches-available="{{ metrics.get('matches_available', 0) }}" data-sports-live-confirmed="{{ metrics.get('live_confirmed', 0) }}" data-sports-picks-ready="{{ metrics.get('picks_ready', 0) }}" data-sports-matches-with-picks="{{ metrics.get('matches_with_picks', 0) }}" data-sports-finished-verified="{{ metrics.get('finished_verified', 0) }}" data-sports-matches-synchronized="{{ metrics.get('matches_synchronized', 0) }}"
+{%- endmacro %}
+
+
 
 {% macro match_card(match, compact=false, show_actions=true) -%}
 {% set match = match or {} %}
@@ -59,10 +90,13 @@
 {% set away_logo = match.get('away_logo') or match.get('away_crest') or match.get('away_logo_url') or '' %}
 {% set complete = home and away and competition and time_label and match.get('source') %}
 {% set minute = match.get('minute') or match.get('elapsed') or match.get('live_minute') %}
-<article class="v933-match-card{% if compact %} is-compact{% endif %}{% if not complete %} is-incomplete{% endif %}{% if match.get('is_stale') %} is-stale{% endif %}"{% if match_id %} data-v934-match-id="{{ match_id }}"{% endif %} data-v934-match-card="true">
-  <header><div><span>{{ competition or 'Pendiente de completar' }}</span>{% if match.get('country') %}<small>{{ match.get('country') }}</small>{% endif %}</div><div class="v937-card-trust">{{ data_confidence_badge(match, 'match') }}<time>{{ time_label or 'Sin hora confirmada' }}</time></div></header>
+<article class="v933-match-card{% if compact %} is-compact{% endif %}{% if not complete %} is-incomplete{% endif %}{% if match.get('is_stale') %} is-stale{% endif %}"{% if match_id %} data-v934-match-id="{{ match_id }}"{% endif %} data-v934-match-card="true" data-v939-match-card-spec="canonical-v1">
+  <header class="v933-match-card-header"><div><span>{{ competition or 'Pendiente de completar' }}</span>{% if match.get('country') %}<small>{{ match.get('country') }}</small>{% endif %}</div><div class="v937-card-trust">{{ data_confidence_badge(match, 'match') }}<time>{{ time_label or 'Sin hora confirmada' }}</time></div></header>
   <div class="v933-match-teams"><div>{{ team_logo(home, home_logo) }}<strong>{{ home or 'Equipo pendiente' }}</strong></div><b data-v934-score>{% if match.get('home_score') is not none and match.get('away_score') is not none %}{{ match.get('home_score') }} - {{ match.get('away_score') }}{% else %}VS{% endif %}</b><div>{{ team_logo(away, away_logo) }}<strong>{{ away or 'Equipo pendiente' }}</strong></div></div>
-  <footer><span class="v934-match-state"><span data-v934-status>{{ status_chip('Pendiente de completar' if not complete else ('Datos retrasados' if match.get('is_stale') else status), 'warning' if not complete or match.get('is_stale') else ('success' if 'live' in status|string|lower or 'directo' in status|string|lower else 'blue')) }}</span>{% if minute is not none %}<small data-v934-minute>Min {{ minute }}</small>{% else %}<small data-v934-minute hidden></small>{% endif %}{% if complete %}{{ attention_priority(match) }}{% endif %}{% if complete and match.get('v935_source') %}{{ data_provenance_badge(match.get('v935_source'), (match.get('v935_freshness') or {}).get('label'), match.get('v935_lifecycle')) }}{% endif %}</span><div>{% if current_user and match_id %}<button class="v933-icon-button fav-star{% if match.get('is_favorite') %} active{% endif %}" type="button" data-kind="match" data-value="{{ match_id }}" data-label="{{ home }} vs {{ away }}" aria-label="Guardar favorito" aria-pressed="{{ 'true' if match.get('is_favorite') else 'false' }}">{{ icon('star') }}</button>{% endif %}{% if show_actions and match_id and complete %}{{ action_button('Ver partido', '/match/' ~ match_id, true, 'blue') }}{% endif %}</div></footer>
+  <footer class="v933-match-card-footer">
+    <div class="v934-match-state v933-match-card-signals"><span data-v934-status>{{ status_chip('Pendiente de completar' if not complete else ('Datos retrasados' if match.get('is_stale') else status), 'warning' if not complete or match.get('is_stale') else ('success' if 'live' in status|string|lower or 'directo' in status|string|lower else 'blue')) }}</span>{% if minute is not none %}<small data-v934-minute>Min {{ minute }}</small>{% else %}<small data-v934-minute hidden></small>{% endif %}{% if complete %}{{ attention_priority(match) }}{% endif %}{% if complete and match.get('v935_source') %}{{ data_provenance_badge(match.get('v935_source'), (match.get('v935_freshness') or {}).get('label'), match.get('v935_lifecycle')) }}{% endif %}</div>
+    <div class="v933-match-card-actions">{% if current_user and match_id %}<button class="v933-icon-button fav-star{% if match.get('is_favorite') %} active{% endif %}" type="button" data-kind="match" data-value="{{ match_id }}" data-label="{{ home }} vs {{ away }}" aria-label="Guardar favorito" aria-pressed="{{ 'true' if match.get('is_favorite') else 'false' }}">{{ icon('star') }}</button>{% endif %}{% if show_actions and match_id and complete %}{{ action_button('Ver partido', '/match/' ~ match_id, true, 'blue') }}{% endif %}</div>
+  </footer>
 </article>
 {%- endmacro %}
 
@@ -89,14 +123,20 @@
 
 {% macro data_table(headers) -%}<div class="v933-table-shell"><table class="v933-data-table"><thead><tr>{% for header in headers %}<th scope="col">{{ header }}</th>{% endfor %}</tr></thead><tbody>{{ caller() }}</tbody></table></div>{%- endmacro %}
 
-{% macro provider_state(has_real_data=false, last_sync='', safe_message='') -%}<aside class="v933-provider-state"><header><div>{{ icon('database') }}<strong>Datos deportivos</strong></div>{{ status_chip('Actualizados' if has_real_data else 'Esperando datos', 'success' if has_real_data else 'warning') }}</header><p>{{ safe_message or ('Datos reales disponibles.' if has_real_data else 'La app seguirá operativa y se actualizará cuando haya información confirmada.') }}</p>{% if last_sync %}<small>Última actualización segura: {{ last_sync }}</small>{% endif %}</aside>{%- endmacro %}
+{% macro provider_state(has_real_data=false, last_sync='', safe_message='') -%}
+<aside class="v933-provider-state"><header><div>{{ icon('database') }}<strong>Datos deportivos</strong></div>{{ status_chip('Actualizados' if has_real_data else 'Esperando datos', 'success' if has_real_data else 'warning') }}</header><p>{{ safe_message or ('Datos reales disponibles.' if has_real_data else 'La app seguirá operativa y se actualizará cuando haya información confirmada.') }}</p>{% if last_sync %}<small>Última actualización segura: <time datetime="{{ last_sync }}" data-v939-sync-timestamp data-v939-sync-raw="{{ last_sync }}">{{ last_sync|sync_madrid_label }}</time></small>{% endif %}</aside>
+{%- endmacro %}
 
 {% macro realtime_state_bar(realtime, scope='all', technical=false) -%}
 {% set realtime = realtime or {} %}{% set counts = realtime.get('counts') or {} %}
+{% set raw_sync = realtime.get('last_safe_sync') or '' %}
+{% set client_sync = realtime.get('last_safe_sync_label') or (raw_sync|sync_madrid_label) %}
+{% set client_message = realtime.get('safe_message') or 'La información confirmada sigue disponible entre actualizaciones.' %}
+{% set technical_message = 'DB/caché: ' ~ (realtime.get('cache_state') or realtime.get('cache_status') or 'estado seguro') ~ '. Render sin llamada directa al proveedor.' %}
 <aside class="v934-realtime-state{% if realtime.get('realtime_live_status') == 'stale' %} is-stale{% endif %}" data-v934-realtime="{{ scope }}" data-v934-technical="{{ 'true' if technical else 'false' }}" data-v934-endpoint="{{ realtime.get('endpoint') or '/api/realtime/sports' }}" data-v934-poll="{{ realtime.get('poll_after_seconds') or 180 }}">
-  <div class="v934-realtime-primary"><i aria-hidden="true"></i><span><strong data-v934-realtime-title>{{ 'Actualización en directo' if counts.get('live') else 'Datos deportivos sincronizados' if counts.get('matches') or counts.get('picks') else 'Esperando datos reales' }}</strong><small data-v934-realtime-message>{{ realtime.get('safe_message') or 'La vista se mantiene operativa con DB y caché.' }}</small></span></div>
+  <div class="v934-realtime-primary"><i aria-hidden="true"></i><span><strong data-v934-realtime-title>{{ 'Actualización en directo' if counts.get('live') else 'Datos deportivos sincronizados' if counts.get('matches') or counts.get('picks') else 'Esperando datos reales' }}</strong><small data-v934-realtime-message>{{ technical_message if technical else client_message }}</small></span></div>
   <dl><div><dt>Partidos</dt><dd data-v934-count="matches">{{ counts.get('matches', 0) }}</dd></div><div><dt>En directo</dt><dd data-v934-count="live">{{ counts.get('live', 0) }}</dd></div><div><dt>Picks</dt><dd data-v934-count="picks">{{ counts.get('picks', 0) }}</dd></div></dl>
-  <div class="v934-realtime-meta"><span data-v934-cache-state>{{ (realtime.get('cache_state') or realtime.get('cache_status') or 'cache seguro') if technical else 'Actualización segura' }}</span>{% if realtime.get('last_safe_sync') %}<time data-v934-last-sync>{{ realtime.get('last_safe_sync') }}</time>{% endif %}<small data-v934-next-refresh>Próxima revisión en {{ realtime.get('poll_after_seconds') or 180 }} s</small></div>
+  <div class="v934-realtime-meta"><span data-v934-cache-state>{{ (realtime.get('cache_state') or realtime.get('cache_status') or 'cache seguro') if technical else 'Actualización segura' }}</span>{% if raw_sync %}<time datetime="{{ raw_sync }}" data-v934-last-sync data-v934-last-sync-raw="{{ raw_sync }}">{{ raw_sync if technical else client_sync }}</time>{% endif %}<small data-v934-next-refresh>Próxima revisión en {{ realtime.get('poll_after_seconds') or 180 }} s</small></div>
 </aside>
 {%- endmacro %}
 

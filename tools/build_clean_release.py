@@ -238,15 +238,52 @@ EXCLUDE_SUFFIXES = {
 EXCLUDE_NAMES = {".DS_Store", "Thumbs.db"}
 SECRET_NAME_MARKERS = ("secret", "token", "private_key", "id_rsa")
 REPORT_BINARY_SUFFIXES = {".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp", ".svg"}
+SAFE_SENSITIVE_NAMES = {
+    ".env.example",
+    ".env.render.clean",
+    "security_secret_guard.py",
+    "check_repository_privacy_and_secrets.py",
+    "check_v902b_deploy_alignment_secret_guard.py",
+    "v933_design_tokens.css",
+    "V938_REPOSITORY_PRIVACY_SECRET_CLASSIFICATION.md",
+    "V938_REPOSITORY_PRIVACY_SECRET_CLASSIFICATION.json",
+    "V938_SECRET_GUARD_RECOVERY_QA.md",
+    "V938_AUTOMATION_SECRET_TRANSPORT_HARDENING.md",
+    "V915_SECURITY_SECRET_GUARD_REPORT.md",
+}
 
 
 def git_commit() -> str:
     try:
         return subprocess.check_output(
-            ["git", "rev-parse", "--short", "HEAD"], cwd=ROOT, text=True, stderr=subprocess.DEVNULL
+            ["git", "rev-parse", "HEAD"], cwd=ROOT, text=True, stderr=subprocess.DEVNULL
         ).strip()
     except Exception:
-        return "unavailable"
+        pass
+
+    git_dir = ROOT / ".git"
+    try:
+        if git_dir.is_file():
+            pointer = git_dir.read_text(encoding="utf-8", errors="replace").strip()
+            if pointer.lower().startswith("gitdir:"):
+                git_dir = (ROOT / pointer.split(":", 1)[1].strip()).resolve()
+        head = (git_dir / "HEAD").read_text(encoding="utf-8", errors="replace").strip()
+        if not head.startswith("ref:"):
+            return head
+        ref_name = head.split(":", 1)[1].strip()
+        ref_path = git_dir / Path(ref_name)
+        if ref_path.exists():
+            return ref_path.read_text(encoding="utf-8", errors="replace").strip()
+        packed_refs = git_dir / "packed-refs"
+        if packed_refs.exists():
+            for line in packed_refs.read_text(encoding="utf-8", errors="replace").splitlines():
+                if line and not line.startswith(("#", "^")):
+                    commit, name = line.split(" ", 1)
+                    if name.strip() == ref_name:
+                        return commit.strip()
+    except (OSError, ValueError):
+        pass
+    return "unavailable"
 
 
 def include(path: Path) -> bool:
@@ -258,7 +295,7 @@ def include(path: Path) -> bool:
     if parts[0] == "reports":
         if path.suffix.lower() in REPORT_BINARY_SUFFIXES:
             return False
-        if "SECRET" in rel_posix.upper():
+        if "SECRET" in rel_posix.upper() and path.name not in SAFE_SENSITIVE_NAMES:
             return False
         return (
             rel_posix == "reports/CODEX_DAILY_PROMPT_CURRENT.txt"
@@ -564,6 +601,16 @@ def include(path: Path) -> bool:
                 and len(parts) == 2
                 and path.suffix.lower() in {".md", ".json"}
             )
+            or (
+                rel_posix.startswith("reports/V938_")
+                and len(parts) == 2
+                and path.suffix.lower() in {".md", ".json"}
+            )
+            or (
+                rel_posix.startswith("reports/V939_")
+                and len(parts) == 2
+                and path.suffix.lower() in {".md", ".json"}
+            )
             or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V912")
             or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V913")
             or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V914")
@@ -608,13 +655,7 @@ def include(path: Path) -> bool:
         return False
     lower_name = path.name.lower()
     lower_rel = rel.as_posix().lower()
-    if any(marker in lower_name for marker in SECRET_NAME_MARKERS) and path.name not in {
-        ".env.example",
-        ".env.render.clean",
-        "security_secret_guard.py",
-        "check_v902b_deploy_alignment_secret_guard.py",
-        "v933_design_tokens.css",
-    }:
+    if any(marker in lower_name for marker in SECRET_NAME_MARKERS) and path.name not in SAFE_SENSITIVE_NAMES:
         return False
     if any(lower_name.endswith(suffix) for suffix in EXCLUDE_SUFFIXES):
         return False

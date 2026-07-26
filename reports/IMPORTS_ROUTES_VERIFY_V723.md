@@ -1,9 +1,9 @@
 # Verificación de imports, rutas y plantillas V723
 
 - Resultado: OK
-- Versión importada: `V937_PRODUCT_PERFECTION_FULL_ECOSYSTEM_LAUNCH_CLOSEOUT_FINAL`
-- Rutas GET: 625
-- Templates referenciados: 135
+- Versión importada: `V940_NEMESIS_SPORTS_EXPERIENCE_PHASE_1_FOUNDATION_FINAL`
+- Rutas GET: 654
+- Templates referenciados: 139
 - Templates faltantes: 0
 - Static faltantes: 0
 

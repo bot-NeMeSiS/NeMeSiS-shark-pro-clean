@@ -1,18 +1,20 @@
 {% extends "base.html" %}
-{% from "components/v933_ui.html" import icon, status_chip, action_button, section_header, kpi_card, quick_action, empty_state, match_card, pick_card, provider_state, realtime_state_bar %}
+{% from "components/v933_ui.html" import icon, status_chip, action_button, section_header, kpi_card, quick_action, empty_state, match_card, pick_card, provider_state, realtime_state_bar, sports_contract_attributes %}
 {% from "components/v936_product.html" import customer_decision, value_ladder, evidence_receipt, decision_radar, data_trust_meter %}
 {% block content %}
 {% set summary = data.get('home_summary') or {} %}
 {% set counts = summary.get('counts') or {} %}
 {% set matches = summary.get('valid_matches_today') or [] %}
 {% set picks = (data.get('v925_picks') or {}).get('picks') or [] %}
-{% set today_count = matches|length %}
-{% set live_count = counts.get('live', 0) or 0 %}
+{% set sports_metrics = data.get('sports_metrics') or summary.get('sports_metrics') or {} %}
+{% set today_count = sports_metrics.get('matches_today', 0) %}
+{% set live_count = sports_metrics.get('live_confirmed', 0) %}
+{% set pick_count = sports_metrics.get('picks_ready', 0) %}
 {% set incomplete_count = counts.get('incomplete', 0) or 0 %}
 {% set safe_message = summary.get('safe_message') or summary.get('message') or 'Sin agenda real completa disponible.' %}
 {% set realtime = data.get('v934_realtime') or {} %}
 
-<div class="v933-page v933-home v937-home" data-v933-template="home" data-v933-reference="canonical-public-home" data-v937-product-sprint="home-decision-center">
+<div class="v933-page v933-home v937-home" data-v933-template="home" data-v933-reference="canonical-public-home" data-v937-product-sprint="home-decision-center" {{ sports_contract_attributes(sports_metrics) }}>
   <section class="v933-public-hero">
     <div>
       <span class="v933-eyebrow">NeMeSiS SHARK PRO · Hora Madrid</span>
@@ -45,7 +47,7 @@
       <div class="v933-today-kpis">
         <div><span>Partidos hoy</span><strong>{{ today_count }}</strong><small>completos</small></div>
         <div><span>En directo</span><strong>{{ live_count }}</strong><small>activos</small></div>
-        <div><span>Picks</span><strong>{{ picks|length }}</strong><small>publicables</small></div>
+        <div><span>Picks</span><strong>{{ pick_count }}</strong><small>publicables</small></div>
       </div>
       {% if matches %}
         {{ match_card(matches[0], true, true) }}
@@ -67,7 +69,7 @@
   {% endif %}
 
   {{ realtime_state_bar(realtime, 'all') }}
-  {{ decision_radar(today_count, live_count, picks|length, incomplete_count) }}
+  {{ decision_radar(today_count, live_count, pick_count, incomplete_count) }}
 
   <section class="v933-two-col">
     <div class="v933-main-stack">

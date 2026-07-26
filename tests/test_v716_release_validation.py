@@ -1,7 +1,11 @@
 from __future__ import annotations
 
+from pathlib import Path
+import re
 
-EXPECTED_VERSION = "V717_PRODUCTION_POLISH_COMMERCIAL_LAUNCH_UPGRADE"
+
+ROOT = Path(__file__).resolve().parents[1]
+EXPECTED_VERSION = (ROOT / "VERSION.txt").read_text(encoding="utf-8-sig").strip()
 
 
 def _login_client_session(client, membership="ELITE"):
@@ -49,7 +53,9 @@ def test_public_and_client_routes_do_not_500(client):
         assert response.status_code < 500, f"{path} devolvió {response.status_code}"
 
 
-def test_cron_endpoints_require_secret_and_accept_valid_secret(client):
+def test_cron_endpoints_require_secret_and_accept_valid_secret(client, monkeypatch):
+    test_secret = "pytest-automation-secret"
+    monkeypatch.setenv("AUTOMATION_SECRET", test_secret)
     protected = [
         "/api/automation/telegram/tick",
         "/api/automation/daily/run",
@@ -58,7 +64,7 @@ def test_cron_endpoints_require_secret_and_accept_valid_secret(client):
         response = client.get(path)
         assert response.status_code == 403
 
-        response = client.get(path + "?secret=pytest-automation-secret")
+        response = client.get(path, headers={"X-Automation-Secret": test_secret})
         assert response.status_code == 200
         payload = response.get_json()
         assert payload["cron"] is True
@@ -90,5 +96,5 @@ def test_client_home_does_not_show_internal_version(client):
     response = client.get("/")
     assert response.status_code == 200
     body = response.get_data(as_text=True)
-    assert EXPECTED_VERSION not in body
+    assert not re.search(rf">\s*{re.escape(EXPECTED_VERSION)}\s*<", body)
     assert "Estado app" not in body

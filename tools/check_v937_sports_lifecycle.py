@@ -15,7 +15,6 @@ import app as app_module
 from engines.v934_realtime_sports_engine import build_realtime_snapshot, normalize_match
 from engines.v935_launch_trust_engine import normalize_match_lifecycle
 
-VERSION = "V937_PRODUCT_PERFECTION_FULL_ECOSYSTEM_LAUNCH_CLOSEOUT_FINAL"
 errors = []
 
 
@@ -29,7 +28,10 @@ def text(relative):
 
 if (ROOT / "VERSION.txt").read_bytes().startswith(b"\xef\xbb\xbf"):
     errors.append("VERSION.txt:BOM")
-if text("VERSION.txt").strip() != VERSION or text("APP_VERSION").strip() != VERSION:
+current_version = text("VERSION.txt").strip()
+release_prefix = current_version.split("_", 1)[0]
+release_number = release_prefix[1:] if release_prefix.startswith("V") else ""
+if not release_number.isdigit() or int(release_number) < 937 or text("APP_VERSION").strip() != current_version:
     errors.append("version_identity")
 
 app_source = text("app.py")
@@ -42,10 +44,13 @@ for marker in (
     "get_v937_attention_priority",
     "get_v937_pick_learning",
     "Mide calidad del dato, no probabilidad de ganar",
-    "NEMESIS_CACHE_V937",
 ):
     if marker not in app_source:
         errors.append(f"app:{marker}")
+
+expected_cache = f"NEMESIS_CACHE_{release_prefix}"
+if expected_cache not in app_source:
+    errors.append(f"app:{expected_cache}")
 
 for marker in (
     "data_confidence_badge",

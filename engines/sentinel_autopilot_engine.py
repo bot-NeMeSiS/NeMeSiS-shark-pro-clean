@@ -7,6 +7,7 @@ secrets, calls paid APIs, deletes data or invents sports data.
 """
 from __future__ import annotations
 
+import ast
 from datetime import datetime
 from hashlib import sha1
 import json
@@ -25,6 +26,7 @@ CATEGORIES = [
     "telegram",
     "telegram_premium_picks",
     "sports_data",
+    "sports_data_contract",
     "picks_odds",
     "live",
     "navigation",
@@ -58,6 +60,7 @@ REQUIRES_APPROVAL_CATEGORIES = {
     "telegram_premium_picks",
     "payments",
     "security",
+    "sports_data_contract",
     "admin_ops",
     "release_zip",
 }
@@ -99,6 +102,43 @@ ADMIN_ROUTES = [
     "/admin/payments",
     "/admin/memberships",
 ]
+
+SPORTS_CONTRACT_ROUTES = {
+    "/",
+    "/app",
+    "/partidos",
+    "/calendar",
+    "/live",
+    "/directo",
+    "/picks",
+    "/shark",
+    "/telegram",
+}
+
+SPORTS_CONTRACT_ATTRIBUTES = {
+    "sports-contract": "contract",
+    "sports-snapshot": "snapshot_id",
+    "sports-matches-today": "matches_today",
+    "sports-matches-available": "matches_available",
+    "sports-live-confirmed": "live_confirmed",
+    "sports-picks-ready": "picks_ready",
+    "sports-matches-with-picks": "matches_with_picks",
+    "sports-finished-verified": "finished_verified",
+    "sports-matches-synchronized": "matches_synchronized",
+}
+
+SPORTS_CONTRACT_CONSUMERS = {
+    "app.py": [
+        "shark_briefing", "_v931_legacy_home_summary", "_v931_provider_context",
+        "v931_safe_dashboard_data", "v931_calendar_context", "v931_live_context",
+        "v938_operations_snapshot", "v939_company_intelligence_bundle",
+    ],
+    "engines/company_intelligence_engine.py": [
+        "collect_sports_signals", "collect_company_signals", "build_company_intelligence_snapshot",
+    ],
+    "engines/telegram_intelligence_engine.py": ["build_telegram_intelligence_snapshot"],
+}
+
 
 SAFE_STATE_TOKENS = [
     'Sin datos reales',
@@ -158,6 +198,8 @@ def classify_autopilot_issue(issue: dict[str, Any]) -> dict[str, Any]:
     elif category == "production_alignment" or any(token in text for token in ["render/local", "telegram cron", "login roto", "fake pick"]):
         severity = "high"
     elif category in {"navigation", "mobile", "shark_ai", "payments", "logos"}:
+        severity = "medium"
+    elif category == "copy" and str(issue.get("priority") or "").upper() == "P2":
         severity = "medium"
     elif category == "copy":
         severity = "low"
@@ -228,6 +270,7 @@ def create_autopilot_task(issue: dict[str, Any]) -> dict[str, Any]:
         "severity": issue["severity"],
         "status": "pending_approval" if issue["requires_approval"] else "ready_for_safe_review",
         "route": issue.get("route") or "",
+        "likely_files": list(issue.get("likely_files") or []),
         "suggested_fix": issue.get("suggested_fix") or plan["recommended_step"],
         "codex_prompt": prompt,
         "safe_fix_plan": plan,
@@ -241,7 +284,121 @@ def _route_text(response: Any) -> str:
         return ""
 
 
-def _scan_routes(flask_client: Any, app_version: str) -> list[dict[str, Any]]:
+def _data_attribute(html: str, name: str) -> str | None:
+    match = re.search(rf'\bdata-{re.escape(name)}="([^"]*)"', html or "")
+    return match.group(1) if match else None
+
+
+def _rendered_sports_contract_issues(
+    route: str,
+    status: int,
+    html: str,
+    expected: dict[str, Any],
+    app_version: str,
+) -> list[dict[str, Any]]:
+    issues: list[dict[str, Any]] = []
+    if status != 200 or route not in SPORTS_CONTRACT_ROUTES:
+        return issues
+    observed = {
+        contract_key: _data_attribute(html, attribute)
+        for attribute, contract_key in SPORTS_CONTRACT_ATTRIBUTES.items()
+    }
+    if not observed.get("contract") or not observed.get("snapshot_id"):
+        issues.append(_new_issue(
+            "Consumidor sin Sports Data Contract",
+            "sports_data_contract",
+            "high",
+            route,
+            "La pantalla no expone contrato y snapshot canonicos.",
+            app_version,
+        ))
+        return issues
+    if expected:
+        mismatches = []
+        for key in SPORTS_CONTRACT_ATTRIBUTES.values():
+            if str(observed.get(key)) != str(expected.get(key)):
+                mismatches.append(f"{key}:{observed.get(key)}!={expected.get(key)}")
+        if mismatches:
+            issues.append(_new_issue(
+                "Metricas deportivas fuera de contrato",
+                "sports_data_contract",
+                "high",
+                route,
+                "; ".join(mismatches[:9]),
+                app_version,
+            ))
+    card_count = html.count('data-v934-match-card="true"')
+    canonical_card_count = html.count('data-v939-match-card-spec="canonical-v1"')
+    if card_count != canonical_card_count:
+        issues.append(_new_issue(
+            "Match card fuera de especificacion canonica",
+            "sports_data_contract",
+            "high",
+            route,
+            f"cards={card_count}; canonical={canonical_card_count}",
+            app_version,
+        ))
+    return issues
+
+
+def _independent_sports_query_issues(
+    root: str | Path | None,
+    app_version: str,
+) -> list[dict[str, Any]]:
+    if root is None:
+        return []
+    root_path = Path(root)
+    forbidden_calls = {"get_matches", "get_upcoming_matches", "get_picks", "rows", "one"}
+    official_tokens = {
+        "valid_matches_today", "valid_upcoming_matches", "valid_live_events",
+        "valid_active_picks", "finished_matches",
+    }
+    violations = []
+    for relative_path, function_names in SPORTS_CONTRACT_CONSUMERS.items():
+        path = root_path / relative_path
+        try:
+            source = path.read_text(encoding="utf-8", errors="replace")
+            tree = ast.parse(source)
+        except (OSError, SyntaxError):
+            continue
+        functions = {
+            node.name: node
+            for node in ast.walk(tree)
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        }
+        for function_name in function_names:
+            node = functions.get(function_name)
+            if node is None:
+                violations.append(f"{relative_path}:{function_name}:missing")
+                continue
+            for call in (item for item in ast.walk(node) if isinstance(item, ast.Call)):
+                called = call.func.id if isinstance(call.func, ast.Name) else ""
+                if called in forbidden_calls:
+                    violations.append(f"{relative_path}:{function_name}:{called}")
+                if called == "len" and call.args:
+                    argument = ast.unparse(call.args[0]) if hasattr(ast, "unparse") else ""
+                    if any(token in argument for token in official_tokens):
+                        violations.append(f"{relative_path}:{function_name}:len({argument[:48]})")
+            for literal in (item for item in ast.walk(node) if isinstance(item, ast.Constant) and isinstance(item.value, str)):
+                if re.search(r"\bSELECT\s+(?:COUNT|SUM)\b", literal.value, re.IGNORECASE):
+                    violations.append(f"{relative_path}:{function_name}:sql_aggregate")
+    if not violations:
+        return []
+    return [_new_issue(
+        "Consumidor recalcula metricas deportivas",
+        "sports_data_contract",
+        "high",
+        "Sports Data Contract",
+        "; ".join(sorted(set(violations))[:20]),
+        app_version,
+    )]
+
+
+def _scan_routes(
+    flask_client: Any,
+    app_version: str,
+    sports_contract: dict[str, Any] | None = None,
+) -> list[dict[str, Any]]:
     issues: list[dict[str, Any]] = []
     if flask_client is None:
         return issues
@@ -264,6 +421,7 @@ def _scan_routes(flask_client: Any, app_version: str) -> list[dict[str, Any]]:
             issues.append(_new_issue("Pantalla deportiva sin estado seguro claro", "sports_data", "high", route, "No se encontro estado seguro para ausencia de datos reales.", app_version))
         if "v808-admin-rail" in html:
             issues.append(_new_issue("Admin rail aparece en cliente", "navigation", "high", route, "Navegacion admin mezclada en cliente.", app_version))
+        issues.extend(_rendered_sports_contract_issues(route, status, html, dict(sports_contract or {}), app_version))
 
     for route in ADMIN_ROUTES:
         try:
@@ -299,6 +457,785 @@ def _new_issue(title: str, category: str, severity: str, route: str, evidence: s
     }
     issue["codex_prompt"] = generate_codex_prompt_for_issue(issue)
     return classify_autopilot_issue(issue)
+
+
+def build_customer_trust_icon_contract_snapshot(
+    root: str | Path | None = None,
+    app_version: str = "",
+) -> dict[str, Any]:
+    """Inspect the PQV939-005 visual contract without rendering or writes."""
+    project_root = Path(root) if root is not None else Path(__file__).resolve().parents[1]
+    css_path = project_root / "static" / "v933-product.css"
+    template_path = project_root / "templates" / "components" / "v933_ui.html"
+    try:
+        css = css_path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        css = ""
+    try:
+        template = template_path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        template = ""
+
+    direct_chip = bool(re.search(r"\.v935-customer-trust-rules\s*>\s*span\s*\{", css))
+    descendant_chip = bool(re.search(r"\.v935-customer-trust-rules\s+span\s*\{", css))
+    direct_last_chip = bool(re.search(r"\.v935-customer-trust-rules\s*>\s*span:last-child\s*\{", css))
+    icon_rule = bool(re.search(
+        r"\.v935-customer-trust-rules\s+\.v933-icon\s*\{[^}]*width:\s*14px;[^}]*height:\s*14px;",
+        css,
+    ))
+    macro_contract = (
+        "{% macro customer_trust_panel(trust)" in template
+        and template.count("{{ icon('target') }} Picks completos") == 1
+        and template.count("{{ icon('history') }} Hist") == 1
+        and template.count("{{ icon('shield') }} Sin beneficio garantizado") == 1
+    )
+
+    violations = []
+    if not direct_chip or descendant_chip:
+        violations.append("chip_selector_must_target_direct_children")
+    if not direct_last_chip:
+        violations.append("mobile_last_chip_selector_must_target_direct_child")
+    if not icon_rule:
+        violations.append("icon_size_rule_missing")
+    if not macro_contract:
+        violations.append("customer_trust_macro_contract_missing")
+
+    passed = not violations
+    return {
+        "issue_id": "PQV939-005",
+        "version": app_version,
+        "component": "customer_trust_panel",
+        "affected_routes": ["/app", "/picks", "/shark", "/track-record", "/partido/<id>"],
+        "cause": "A descendant span selector applied chip padding, border and background to the nested icon span.",
+        "solution": "Scope chip styles to direct children and preserve the dedicated icon rule.",
+        "evidence": {
+            "direct_chip_selector": direct_chip,
+            "descendant_chip_selector": descendant_chip,
+            "direct_mobile_last_chip_selector": direct_last_chip,
+            "icon_rule": icon_rule,
+            "macro_contract": macro_contract,
+            "violations": violations,
+        },
+        "preventive_rule": "Nested trust icons must never inherit chip padding, border or background.",
+        "validation_result": "PASS" if passed else "REGRESSION",
+        "certification_state": "VERIFIED" if passed else "REQUIRES_REVIEW",
+        "autofix_allowed": False,
+        "approval_required": True,
+        "production_certified": False,
+    }
+
+
+def build_client_copy_audience_contract_snapshot(
+    root: str | Path | None = None,
+    app_version: str = "",
+) -> dict[str, Any]:
+    """Inspect the PQV939-006 client/admin copy boundary without writes."""
+    project_root = Path(root) if root is not None else Path(__file__).resolve().parents[1]
+
+    def _read(relative_path: str) -> str:
+        try:
+            return (project_root / relative_path).read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            return ""
+
+    client_templates = (
+        "templates/home.html",
+        "templates/client_app_center.html",
+        "templates/calendar.html",
+        "templates/live.html",
+        "templates/picks.html",
+        "templates/shark.html",
+    )
+    admin_templates = (
+        "templates/admin_dashboard.html",
+        "templates/admin_data_center.html",
+        "templates/admin_data_trust_center.html",
+        "templates/admin_realtime_center.html",
+    )
+    forbidden = re.compile(r"\bDB\b|\bDB/cache\b|\bcach(?:e|é)\b|\brender\b", re.IGNORECASE)
+    client_hits = {
+        path: sorted({match.group(0) for match in forbidden.finditer(_read(path))})
+        for path in client_templates
+    }
+    client_hits = {path: matches for path, matches in client_hits.items() if matches}
+
+    shared_template = _read("templates/components/v933_ui.html")
+    polling_js = _read("static/v934-realtime.js")
+    realtime_engine = _read("engines/v934_realtime_sports_engine.py")
+    live_template = _read("templates/live.html")
+    client_message = "Datos confirmados disponibles. La información se mantiene accesible entre actualizaciones."
+    client_fallback = "La información confirmada sigue disponible entre actualizaciones."
+    client_engine_fallback = "Actualización temporalmente no disponible. Se conserva la última información confirmada."
+
+    snapshot_message_contract = (
+        client_message in realtime_engine
+        and client_engine_fallback in realtime_engine
+        and "Datos reales actualizados desde DB/cache." not in realtime_engine
+        and "se conserva el ultimo cache seguro" not in realtime_engine
+    )
+    shared_macro_contract = (
+        client_fallback in shared_template
+        and "technical_message if technical else client_message" in shared_template
+        and "DB/caché:" in shared_template
+    )
+    polling_contract = (
+        client_fallback in polling_js
+        and "var message = technical" in polling_js
+        and "DB/caché:" in polling_js
+        and "La vista se mantiene operativa con DB y caché." not in polling_js
+    )
+    live_contract = (
+        "Los últimos datos confirmados siguen accesibles" in live_template
+        and "DB y caché durante render" not in live_template
+    )
+    admin_contract = all(
+        re.search(r"realtime_state_bar\([^\n]*true\)", _read(path))
+        for path in admin_templates
+    )
+
+    violations = []
+    if client_hits:
+        violations.append("technical_terms_visible_in_client_templates")
+    if not snapshot_message_contract:
+        violations.append("realtime_snapshot_client_message_not_safe")
+    if not shared_macro_contract:
+        violations.append("shared_realtime_macro_missing_audience_split")
+    if not polling_contract:
+        violations.append("polling_can_restore_technical_client_copy")
+    if not live_contract:
+        violations.append("live_contract_exposes_implementation_detail")
+    if not admin_contract:
+        violations.append("admin_realtime_diagnostics_not_explicitly_technical")
+
+    passed = not violations
+    return {
+        "issue_id": "PQV939-006",
+        "version": app_version,
+        "component": "realtime_copy_audience_contract",
+        "affected_routes": ["/", "/app", "/calendar", "/live", "/picks"],
+        "cause": "A shared realtime safe_message and a fixed Live label exposed DB/cache/render details to clients.",
+        "solution": "Use outcome-focused client copy while retaining explicit technical diagnostics in admin mode.",
+        "evidence": {
+            "client_visible_hits": client_hits,
+            "snapshot_message_contract": snapshot_message_contract,
+            "shared_macro_contract": shared_macro_contract,
+            "polling_contract": polling_contract,
+            "live_contract": live_contract,
+            "admin_contract": admin_contract,
+            "violations": violations,
+        },
+        "preventive_rule": "Client copy explains availability and freshness; DB/cache/render terminology remains admin-only.",
+        "validation_result": "PASS" if passed else "REGRESSION",
+        "certification_state": "VERIFIED" if passed else "REQUIRES_REVIEW",
+        "autofix_allowed": False,
+        "approval_required": True,
+        "production_certified": False,
+    }
+
+
+def build_madrid_timestamp_presentation_contract_snapshot(
+    root: str | Path | None = None,
+    app_version: str = "",
+) -> dict[str, Any]:
+    """Inspect PQV939-007 without rendering, writing or external calls."""
+    project_root = Path(root) if root is not None else Path(__file__).resolve().parents[1]
+
+    def _read(relative_path: str) -> str:
+        try:
+            return (project_root / relative_path).read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            return ""
+
+    madrid_engine = _read("engines/madrid_time_engine.py")
+    realtime_engine = _read("engines/v934_realtime_sports_engine.py")
+    application = _read("app.py")
+    shared_template = _read("templates/components/v933_ui.html")
+    polling_js = _read("static/v934-realtime.js")
+    client_templates = (
+        "templates/home.html",
+        "templates/client_app_center.html",
+        "templates/calendar.html",
+        "templates/live.html",
+        "templates/picks.html",
+        "templates/match_detail.html",
+    )
+    raw_iso = re.compile(r"\b\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2})?(?:Z|[+-]\d{2}:?\d{2})\b")
+    client_literal_hits = {
+        path: sorted(set(raw_iso.findall(_read(path))))
+        for path in client_templates
+        if raw_iso.search(_read(path))
+    }
+
+    formatter_contract = (
+        "def format_madrid_sync_label" in madrid_engine
+        and "MONTHS_ES_SHORT" in madrid_engine
+        and "· Madrid" in madrid_engine
+        and "Sin sincronización confirmada" in madrid_engine
+    )
+    snapshot_contract = (
+        '"last_safe_sync": last_safe_sync' in realtime_engine
+        and '"last_safe_sync_label": format_madrid_sync_label(last_safe_sync)' in realtime_engine
+    )
+    filter_and_api_contract = (
+        '@app.template_filter("sync_madrid_label")' in application
+        and '"last_safe_sync_label": snapshot.get("last_safe_sync_label")' in application
+    )
+    provider_contract = (
+        "last_sync|sync_madrid_label" in shared_template
+        and 'datetime="{{ last_sync }}"' in shared_template
+        and 'data-v939-sync-raw="{{ last_sync }}"' in shared_template
+    )
+    realtime_contract = (
+        "raw_sync if technical else client_sync" in shared_template
+        and 'datetime="{{ raw_sync }}"' in shared_template
+        and 'data-v934-last-sync-raw="{{ raw_sync }}"' in shared_template
+    )
+    polling_contract = (
+        "function updateSyncTimestamp" in polling_js
+        and "node.textContent = technical" in polling_js
+        and "payload.last_safe_sync_label" in polling_js
+        and "data-v934-last-sync-raw" in polling_js
+        and "setText(bar, '[data-v934-last-sync]', payload.last_safe_sync" not in polling_js
+    )
+
+    violations: list[str] = []
+    if client_literal_hits:
+        violations.append("raw_iso_literal_visible_in_client_template")
+    if not formatter_contract:
+        violations.append("canonical_madrid_sync_formatter_missing")
+    if not snapshot_contract:
+        violations.append("realtime_snapshot_missing_client_sync_label")
+    if not filter_and_api_contract:
+        violations.append("jinja_or_api_sync_label_contract_missing")
+    if not provider_contract:
+        violations.append("provider_state_can_print_raw_iso")
+    if not realtime_contract:
+        violations.append("realtime_bar_can_print_raw_iso_to_client")
+    if not polling_contract:
+        violations.append("polling_can_restore_raw_iso_to_client")
+
+    passed = not violations
+    return {
+        "issue_id": "PQV939-007",
+        "version": app_version,
+        "component": "madrid_sync_timestamp_presentation",
+        "affected_routes": ["/", "/app", "/calendar", "/live", "/picks", "/match/<id>"],
+        "cause": "Machine ISO timestamps were reused as client-facing copy by shared macros and polling.",
+        "impact": "Raw technical dates reduce readability and weaken the explicit Madrid-time promise.",
+        "solution": "Derive one Madrid label while preserving the original ISO in APIs, datetime attributes and technical admin mode.",
+        "evidence": {
+            "client_literal_hits": client_literal_hits,
+            "formatter_contract": formatter_contract,
+            "snapshot_contract": snapshot_contract,
+            "filter_and_api_contract": filter_and_api_contract,
+            "provider_contract": provider_contract,
+            "realtime_contract": realtime_contract,
+            "polling_contract": polling_contract,
+            "violations": violations,
+        },
+        "preventive_rule": "Client sync dates use the canonical Madrid label; raw ISO remains machine/admin evidence only.",
+        "qa_result": "PASS" if passed else "REGRESSION",
+        "validation_result": "PASS" if passed else "REGRESSION",
+        "certification_state": "VERIFIED" if passed else "REQUIRES_REVIEW",
+        "status": "RESOLVED_LOCALLY" if passed else "OPEN",
+        "evaluated_at_madrid": _now(),
+        "autofix_allowed": False,
+        "approval_required": True,
+        "production_certified": False,
+    }
+
+
+def build_v940_calendar_experience_contract_snapshot(
+    root: str | Path | None = None,
+    app_version: str = "",
+) -> dict[str, Any]:
+    """Inspect the V940 Calendar contract without rendering, writes or calls."""
+    project_root = Path(root) if root is not None else Path(__file__).resolve().parents[1]
+
+    def _read(relative_path: str) -> str:
+        try:
+            return (project_root / relative_path).read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            return ""
+
+    application = _read("app.py")
+    template = _read("templates/calendar.html")
+    css = _read("static/v933-product.css")
+    javascript = _read("static/v940-calendar.js")
+
+    call_names: dict[str, set[str]] = {}
+    context_source = ""
+    try:
+        tree = ast.parse(application)
+        for node in ast.walk(tree):
+            if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                continue
+            if node.name in {"calendar_page", "api_calendar"}:
+                call_names[node.name] = {
+                    call.func.id
+                    for call in ast.walk(node)
+                    if isinstance(call, ast.Call) and isinstance(call.func, ast.Name)
+                }
+            elif node.name == "v940_calendar_context":
+                context_source = ast.get_source_segment(application, node) or ""
+    except (SyntaxError, ValueError):
+        pass
+
+    page_calls = call_names.get("calendar_page", set())
+    api_calls = call_names.get("api_calendar", set())
+    shared_snapshot_contract = (
+        {"v932_safe_dashboard_data", "v940_calendar_context"} <= page_calls
+        and {"v932_safe_dashboard_data", "v940_calendar_context"} <= api_calls
+        and "calendar_experience_data" not in api_calls
+        and "get_sports_metrics_contract" in context_source
+    )
+    source_safety_contract = (
+        '"database_written": False' in context_source
+        and '"external_calls": 0' in context_source
+        and not re.search(
+            r"\b(?:requests|get_db|execute|executemany|commit|provider|sync_api|ensure_client_live_fresh)\s*\(",
+            context_source,
+        )
+    )
+    state_contract = all(
+        marker in application
+        for marker in (
+            "V940_CALENDAR_STATE_KEYS",
+            "def _v940_calendar_href",
+            "def _v940_calendar_active_filters",
+            "def _v940_calendar_group_navigation",
+            '"contract": "v940-calendar-history-layers-v1"',
+        )
+    )
+    template_contract = all(
+        marker in template
+        for marker in (
+            'data-v940-calendar-experience="history-layers-v1"',
+            "data-v940-calendar-command",
+            "data-v940-calendar-context",
+            "data-v940-calendar-index",
+            "data-v940-calendar-collection",
+            "data-v940-calendar-filters-active",
+            'name="date"',
+            "Limpiar capas",
+        )
+    )
+    canonical_card_contract = (
+        template.count("{{ match_card(match, false, true) }}") == 1
+        and template.count("v933-match-grid") == 1
+        and "data-v934-match-card" not in template
+    )
+    responsive_contract = all(
+        marker in css
+        for marker in (
+            ".v940-calendar-context {",
+            "position: sticky;",
+            ".v940-calendar-index",
+            ".v940-calendar-day",
+            ".v940-calendar-league > .v933-match-grid",
+            "@media (max-width: 800px)",
+            "@media (prefers-reduced-motion: reduce)",
+        )
+    )
+    local_navigation_contract = all(
+        marker in javascript
+        for marker in (
+            "window.sessionStorage",
+            'navigationType() !== "back_forward"',
+            "IntersectionObserver",
+            'window.addEventListener("pagehide", savePosition)',
+            'event.key !== "/"',
+        )
+    )
+    no_client_network = not re.search(
+        r"\b(?:fetch|XMLHttpRequest|WebSocket|sendBeacon)\s*\(",
+        javascript,
+    )
+
+    checks = {
+        "shared_snapshot_contract": shared_snapshot_contract,
+        "source_safety_contract": source_safety_contract,
+        "state_contract": state_contract,
+        "template_contract": template_contract,
+        "canonical_card_contract": canonical_card_contract,
+        "responsive_contract": responsive_contract,
+        "local_navigation_contract": local_navigation_contract,
+        "no_client_network": no_client_network,
+    }
+    violations = [name for name, passed in checks.items() if not passed]
+    passed = not violations
+    return {
+        "issue_id": "V940-CALENDAR-EXPERIENCE-CONTRACT",
+        "version": app_version,
+        "component": "calendar_discovery_experience",
+        "affected_routes": ["/calendar", "/calendario", "/partidos", "/api/calendar"],
+        "cause": "Calendar context can regress when a consumer recalculates data or drops persistent navigation layers.",
+        "impact": "Users lose date, filter or scroll context and need more effort to locate a match.",
+        "solution": "Keep page and API on one V940 snapshot, one canonical match card and local-only context restoration.",
+        "evidence": {**checks, "violations": violations},
+        "preventive_rule": (
+            "Calendar consumers use v940_calendar_context over sports-metrics-v1; "
+            "navigation layers and the canonical match card remain present."
+        ),
+        "qa_result": "PASS" if passed else "REGRESSION",
+        "validation_result": "PASS" if passed else "REGRESSION",
+        "certification_state": "VERIFIED" if passed else "REQUIRES_REVIEW",
+        "status": "RESOLVED_LOCALLY" if passed else "OPEN",
+        "evaluated_at_madrid": _now(),
+        "autofix_allowed": False,
+        "approval_required": True,
+        "production_certified": False,
+    }
+
+def build_v944_match_center_foundation_contract_snapshot(
+    root: str | Path | None = None,
+    app_version: str = "",
+) -> dict[str, Any]:
+    """Inspect the V944 Match Center foundation without rendering or writes."""
+    project_root = Path(root) if root is not None else Path(__file__).resolve().parents[1]
+
+    def _read(relative_path: str) -> str:
+        try:
+            return (project_root / relative_path).read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            return ""
+
+    application = _read("app.py")
+    engine = _read("engines/match_context_engine.py")
+    template = _read("templates/match_detail.html")
+    components = _read("templates/components/v944_match_center.html")
+    css = _read("static/v933-product.css")
+
+    route_source = ""
+    detail_source = ""
+    try:
+        tree = ast.parse(application)
+        for node in ast.walk(tree):
+            if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                continue
+            if node.name == "match_detail_page":
+                route_source = ast.get_source_segment(application, node) or ""
+            elif node.name == "match_detail":
+                detail_source = ast.get_source_segment(application, node) or ""
+    except (SyntaxError, ValueError):
+        pass
+
+    expected_components = (
+        "MatchHeader", "ScoreWidget", "MatchStory", "Timeline", "StatsPanel",
+        "SharkPanel", "TelegramPanel", "BankrollPanel", "CompetitionPanel", "QuickActions",
+    )
+    expected_states = (
+        "loading", "ready", "partial", "finished", "error", "offline", "unknown",
+    )
+    source_contract = all(marker in engine for marker in (
+        'MATCH_CENTER_CONTRACT = "MATCH-CENTER-LIFECYCLE-STORY-V1"',
+        "class MatchContext:",
+        "def build_match_context(",
+        '"builder_database_queries": 0',
+        '"builder_database_writes": 0',
+        '"external_calls": 0',
+        '"single_snapshot": True',
+    ))
+    pure_builder_contract = not re.search(
+        r"\b(?:sqlite3|requests|urllib|flask|commit|execute|executemany)\b",
+        engine,
+        flags=re.IGNORECASE,
+    )
+    single_load_contract = all((
+        detail_source.count("annotate_match(") == 1,
+        detail_source.count("related_picks_for_match(") == 1,
+        "include_depth=False" in route_source,
+        "build_match_context(" in route_source,
+        "dashboard_data(" not in route_source,
+        "get_public_home_sports_summary(" not in route_source,
+    ))
+    get_side_effect_contract = not re.search(
+        r"\b(?:record_user_activity|commit|execute|save_|insert_|update_|delete_)\s*\(",
+        route_source,
+        flags=re.IGNORECASE,
+    )
+    state_contract = all(f'"{state}"' in engine for state in expected_states)
+    component_contract = all(
+        name in engine
+        and (
+            f'data-match-component="{name}"' in components
+            or f"panel_start('{name}'" in components
+        )
+        for name in expected_components
+    )
+    shell_contract = all(marker in template for marker in (
+        'data-v944-match-center-foundation="phase-1"',
+        "data-match-contract=",
+        "match_header(match_context)",
+        "score_widget(match_context)",
+        "match_story(match_context)",
+        "timeline(match_context)",
+        "stats_panel(match_context)",
+        "shark_panel(match_context)",
+        "telegram_panel(match_context)",
+        "bankroll_panel(match_context)",
+        "competition_panel(match_context)",
+        "quick_actions(match_context)",
+    ))
+    safe_fallback_contract = (
+        "No disponible todavía." in components
+        and "El marcador aparecerá únicamente" in components
+        and "datos confirmados" in engine
+    )
+    responsive_contract = all(marker in css for marker in (
+        "V944 MATCH CENTER FOUNDATION",
+        ".v944-match-anchor {",
+        ".v944-match-layout {",
+        "@media (max-width: 1080px)",
+        "@media (max-width: 800px)",
+        "@media (prefers-reduced-motion: reduce)",
+    ))
+    no_foundation_javascript = not (project_root / "static/v944-match-center.js").exists()
+
+    checks = {
+        "source_contract": source_contract,
+        "pure_builder_contract": pure_builder_contract,
+        "single_load_contract": single_load_contract,
+        "get_side_effect_contract": get_side_effect_contract,
+        "state_contract": state_contract,
+        "component_contract": component_contract,
+        "shell_contract": shell_contract,
+        "safe_fallback_contract": safe_fallback_contract,
+        "responsive_contract": responsive_contract,
+        "no_foundation_javascript": no_foundation_javascript,
+    }
+    violations = [name for name, passed in checks.items() if not passed]
+    passed = not violations
+    return {
+        "issue_id": "V944-MATCH-CENTER-FOUNDATION-CONTRACT",
+        "version": app_version,
+        "component": "match_center_foundation",
+        "affected_routes": ["/match/<id>", "/partido/<id>"],
+        "cause": "The Match Center can regress if a component reloads facts, loses a canonical state or introduces a GET side effect.",
+        "impact": "Users can see contradictory match facts, unstable fallbacks or a broken responsive shell.",
+        "solution": "Keep every region on one pure MatchContext and the approved component/state contracts.",
+        "evidence": {**checks, "violations": violations},
+        "preventive_rule": (
+            "All Match Center regions consume MATCH-CENTER-LIFECYCLE-STORY-V1 through one MatchContext; "
+            "GET rendering has no writes or external calls."
+        ),
+        "qa_result": "PASS" if passed else "REGRESSION",
+        "validation_result": "PASS" if passed else "REGRESSION",
+        "certification_state": "VERIFIED" if passed else "REQUIRES_REVIEW",
+        "status": "RESOLVED_LOCALLY" if passed else "OPEN",
+        "evaluated_at_madrid": _now(),
+        "autofix_allowed": False,
+        "approval_required": True,
+        "production_certified": False,
+    }
+
+def detect_product_quality_contract_issues(
+    root: str | Path | None = None,
+    app_version: str = "",
+) -> list[dict[str, Any]]:
+    issues: list[dict[str, Any]] = []
+    snapshot = build_customer_trust_icon_contract_snapshot(root, app_version)
+    if snapshot["validation_result"] != "PASS":
+        issue = _new_issue(
+            "Iconos de confianza heredan la caja del chip",
+            "visual_layout",
+            "medium",
+            "/app",
+            "PQV939-005; rutas=/app,/picks,/shark,/track-record,/partido/<id>; "
+            + ",".join(snapshot["evidence"]["violations"]),
+            app_version,
+        )
+        issue.update({
+            "id": "PQV939-005-CUSTOMER-TRUST-ICON-CONTRACT",
+            "profile": "CLIENT",
+            "description": "Los iconos internos reciben estilos de chip y pueden mostrarse como cajas vacias.",
+            "expected_behavior": "Cada SVG conserva 14 x 14 px sin padding, borde ni fondo heredados.",
+            "actual_behavior": "El contrato CSS del componente no aisla correctamente el icono interno.",
+            "suggested_fix": "Limitar los estilos del chip a .v935-customer-trust-rules > span y repetir Browser QA.",
+            "safe_auto_fix_possible": False,
+            "requires_admin_approval": True,
+            "requires_approval": True,
+            "likely_files": [
+                "static/v933-product.css",
+                "templates/components/v933_ui.html",
+            ],
+            "codex_prompt_suggestion": (
+                "Revisar PQV939-005 en el panel de confianza, corregir solo el selector compartido y "
+                "validar desktop/movil. No autoaplicar CSS ni DOM."
+            ),
+            "product_quality_contract": snapshot,
+        })
+        issue["codex_prompt"] = issue["codex_prompt_suggestion"]
+        issues.append(classify_autopilot_issue(issue))
+
+    copy_snapshot = build_client_copy_audience_contract_snapshot(root, app_version)
+    if copy_snapshot["validation_result"] != "PASS":
+        issue = _new_issue(
+            "Lenguaje tecnico interno visible al cliente",
+            "copy",
+            "medium",
+            "/live",
+            "PQV939-006; rutas=/,/app,/calendar,/live,/picks; "
+            + ",".join(copy_snapshot["evidence"]["violations"]),
+            app_version,
+        )
+        issue.update({
+            "id": "PQV939-006-CLIENT-COPY-AUDIENCE-CONTRACT",
+            "priority": "P2",
+            "profile": "CLIENT",
+            "description": "El cliente recibe terminos de implementacion en mensajes de disponibilidad deportiva.",
+            "expected_behavior": "El cliente entiende disponibilidad y frescura; el diagnostico tecnico permanece en admin.",
+            "actual_behavior": "El contrato de audiencia permite mostrar DB, cache o render en copy cliente.",
+            "suggested_fix": "Separar copy cliente/admin en el macro compartido y repetir Browser QA con polling.",
+            "safe_auto_fix_possible": False,
+            "requires_admin_approval": True,
+            "requires_approval": True,
+            "likely_files": [
+                "engines/v934_realtime_sports_engine.py",
+                "templates/components/v933_ui.html",
+                "static/v934-realtime.js",
+                "templates/live.html",
+            ],
+            "codex_prompt_suggestion": (
+                "Revisar PQV939-006, mantener diagnostico tecnico solo en admin y validar render inicial "
+                "y polling cliente. No cambiar datos, APIs externas ni arquitectura."
+            ),
+            "product_quality_contract": copy_snapshot,
+        })
+        issue["codex_prompt"] = issue["codex_prompt_suggestion"]
+        issues.append(classify_autopilot_issue(issue))
+
+    timestamp_snapshot = build_madrid_timestamp_presentation_contract_snapshot(root, app_version)
+    if timestamp_snapshot["validation_result"] != "PASS":
+        issue = _new_issue(
+            "Fecha de sincronización ISO visible al cliente",
+            "copy",
+            "medium",
+            "/",
+            "PQV939-007; rutas=/,/app,/calendar,/live,/picks,/match/<id>; "
+            + ",".join(timestamp_snapshot["evidence"]["violations"]),
+            app_version,
+        )
+        issue.update({
+            "id": "PQV939-007-MADRID-TIMESTAMP-PRESENTATION-CONTRACT",
+            "priority": "P2",
+            "profile": "CLIENT",
+            "component": "madrid_sync_timestamp_presentation",
+            "description": "Una marca ISO de máquina puede volver a mostrarse como texto visible al cliente.",
+            "expected_behavior": "El cliente ve una fecha Madrid legible y el ISO permanece disponible solo como evidencia técnica.",
+            "actual_behavior": "El contrato de presentación de fecha Madrid está incompleto o fue modificado.",
+            "suggested_fix": "Restaurar el formateador compartido y validar render inicial, polling y modo admin técnico.",
+            "safe_auto_fix_possible": False,
+            "requires_admin_approval": True,
+            "requires_approval": True,
+            "likely_files": [
+                "engines/madrid_time_engine.py",
+                "engines/v934_realtime_sports_engine.py",
+                "app.py",
+                "templates/components/v933_ui.html",
+                "static/v934-realtime.js",
+            ],
+            "codex_prompt_suggestion": (
+                "Revisar PQV939-007, mantener el ISO solo como evidencia de máquina/admin y restaurar "
+                "la etiqueta Madrid cliente. Validar desktop, móvil y polling. No autoaplicar código."
+            ),
+            "product_quality_contract": timestamp_snapshot,
+        })
+        issue["codex_prompt"] = issue["codex_prompt_suggestion"]
+        issues.append(classify_autopilot_issue(issue))
+    version_match = re.match(r"^V(\d+)", str(app_version or ""))
+    calendar_contract_required = bool(version_match and int(version_match.group(1)) >= 940)
+    calendar_snapshot = (
+        build_v940_calendar_experience_contract_snapshot(root, app_version)
+        if calendar_contract_required
+        else None
+    )
+    if calendar_snapshot and calendar_snapshot["validation_result"] != "PASS":
+        issue = _new_issue(
+            "El Calendario pierde su contrato de descubrimiento",
+            "navigation",
+            "medium",
+            "/calendar",
+            "V940 Calendar; " + ",".join(calendar_snapshot["evidence"]["violations"]),
+            app_version,
+        )
+        issue.update({
+            "id": "V940-CALENDAR-EXPERIENCE-CONTRACT",
+            "priority": "P1",
+            "profile": "CLIENT",
+            "component": "calendar_discovery_experience",
+            "description": "El Calendario deja de conservar una fuente, capas o contexto canonicos.",
+            "expected_behavior": (
+                "Pagina y API comparten snapshot, filtros reversibles, indices y match_card canonica."
+            ),
+            "actual_behavior": "Una o mas garantias del contrato V940 no se pueden demostrar.",
+            "suggested_fix": (
+                "Restaurar solo el contrato incumplido y repetir tests y Browser QA desktop/movil."
+            ),
+            "safe_auto_fix_possible": False,
+            "requires_admin_approval": True,
+            "requires_approval": True,
+            "likely_files": [
+                "app.py",
+                "templates/calendar.html",
+                "static/v933-product.css",
+                "static/v940-calendar.js",
+            ],
+            "codex_prompt_suggestion": (
+                "Revisar el contrato V940 del Calendario con la evidencia indicada. "
+                "No autoaplicar DOM, CSS, datos ni rutas; preservar sports-metrics-v1 y match_card()."
+            ),
+            "product_quality_contract": calendar_snapshot,
+        })
+        issue["codex_prompt"] = issue["codex_prompt_suggestion"]
+        issues.append(classify_autopilot_issue(issue))
+    match_center_root = Path(root) if root is not None else Path(__file__).resolve().parents[1]
+    match_center_present = (
+        (match_center_root / "engines/match_context_engine.py").exists()
+        or (match_center_root / "templates/components/v944_match_center.html").exists()
+    )
+    match_center_snapshot = (
+        build_v944_match_center_foundation_contract_snapshot(root, app_version)
+        if match_center_present
+        else None
+    )
+    if match_center_snapshot and match_center_snapshot["validation_result"] != "PASS":
+        issue = _new_issue(
+            "El Match Center pierde su contrato de contexto único",
+            "sports_data_contract",
+            "high",
+            "/match/<id>",
+            "V944 Match Center; " + ",".join(match_center_snapshot["evidence"]["violations"]),
+            app_version,
+        )
+        issue.update({
+            "id": "V944-MATCH-CENTER-FOUNDATION-CONTRACT",
+            "priority": "P1",
+            "profile": "CLIENT",
+            "component": "match_center_foundation",
+            "description": "Una región del partido ha dejado de compartir contexto, estado o fallback canónico.",
+            "expected_behavior": "Diez componentes consumen un MatchContext puro, responsive y sin efectos laterales.",
+            "actual_behavior": "Una o más garantías de MATCH-CENTER-LIFECYCLE-STORY-V1 no se pueden demostrar.",
+            "suggested_fix": "Restaurar solo el contrato incumplido y repetir tests y Browser QA en tres viewports.",
+            "safe_auto_fix_possible": False,
+            "requires_admin_approval": True,
+            "requires_approval": True,
+            "likely_files": [
+                "engines/match_context_engine.py",
+                "app.py",
+                "templates/match_detail.html",
+                "templates/components/v944_match_center.html",
+                "static/v933-product.css",
+            ],
+            "codex_prompt_suggestion": (
+                "Revisar el contrato V944 del Match Center usando la evidencia indicada. "
+                "No autoaplicar Python, Jinja, CSS, datos ni rutas; conservar la API y MATCH-CENTER-LIFECYCLE-STORY-V1."
+            ),
+            "product_quality_contract": match_center_snapshot,
+        })
+        issue["codex_prompt"] = issue["codex_prompt_suggestion"]
+        issues.append(classify_autopilot_issue(issue))
+    return issues
 
 
 def _issues_from_sentinel(sentinel_result: dict[str, Any] | None, app_version: str) -> list[dict[str, Any]]:
@@ -402,14 +1339,18 @@ def run_autopilot_scan(
     sentinel_result: dict[str, Any] | None = None,
     visual_result: dict[str, Any] | None = None,
     render_runtime: dict[str, Any] | None = None,
+    sports_contract: dict[str, Any] | None = None,
     save_memory: bool = False,
     memory_root: str | Path | None = None,
+    project_root: str | Path | None = None,
 ) -> dict[str, Any]:
     issues = []
     issues.extend(_environment_issues(runtime, app_version, render_runtime))
     issues.extend(_issues_from_sentinel(sentinel_result, app_version))
     issues.extend(_issues_from_visual(visual_result, app_version))
-    issues.extend(_scan_routes(flask_client, app_version))
+    issues.extend(_scan_routes(flask_client, app_version, sports_contract))
+    issues.extend(_independent_sports_query_issues(memory_root, app_version))
+    issues.extend(detect_product_quality_contract_issues(project_root, app_version))
 
     deduped: dict[str, dict[str, Any]] = {}
     for issue in issues:
@@ -433,6 +1374,17 @@ def run_autopilot_scan(
         "safe_actions": [task for task in tasks if not task["safe_fix_plan"]["requires_approval"]],
         "approval_required_actions": [task for task in tasks if task["safe_fix_plan"]["requires_approval"]],
         "dangerous_actions_executed": False,
+        "sports_data_contract_policy": {
+            "contract": (sports_contract or {}).get("contract") or "sports-metrics-v1",
+            "snapshot_id": (sports_contract or {}).get("snapshot_id") or "",
+            "independent_queries_forbidden": True,
+            "canonical_match_card": "canonical-v1",
+            "violation_priority": "P1",
+            "autofix_allowed": False,
+        },
+        "product_quality_contract": build_customer_trust_icon_contract_snapshot(project_root, app_version),
+        "client_copy_audience_contract": build_client_copy_audience_contract_snapshot(project_root, app_version),
+        "madrid_timestamp_presentation_contract": build_madrid_timestamp_presentation_contract_snapshot(project_root, app_version),
     }
     if save_memory:
         result["memory"] = save_autopilot_memory(result, root=memory_root)

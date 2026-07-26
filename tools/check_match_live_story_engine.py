@@ -2,6 +2,12 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from pathlib import Path
+import sys
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 from engines.match_live_story_engine import build_match_live_story, normalize_story_events
 
@@ -37,7 +43,7 @@ events = [
         "minute": "14+1",
         "team": "Real Betis",
         "source": "provider-cache",
-        "detail": "Revisión confirmada por el proveedor",
+        "detail": "Revision confirmada por el proveedor",
     },
     {
         "id": "event-2",
