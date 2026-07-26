@@ -55,6 +55,10 @@ def test_developer_snapshot_has_one_evidence_backed_source():
     assert snapshot["summary"]["route_duplicates"] == 0
     assert snapshot["registered_routes"]["state"] == "CONFIRMED"
     assert snapshot["sports_platform"]["guardrails"]["telegram_sends"] is False
+    capabilities = {item["key"]: item for item in snapshot["sports_platform"]["capabilities"]}
+    assert capabilities["live_center"]["state"] == "FOUNDATION_READY"
+    for key in ("team_center", "competition_center", "player_center"):
+        assert capabilities[key]["state"] == "CONTRACT_READY"
 
 
 def test_company_board_uses_shared_roadmap_and_reports_git_truth():
@@ -188,7 +192,12 @@ def test_root_duplicates_are_compatibility_adapters():
         "architecture.py": "blueprints.architecture",
         "backup_service.py": "services.backup_service",
         "live_engine.py": "engines.live_engine",
+        "shark_engine.py": "engines.shark_engine",
+        "shark_learning_engine.py": "engines.shark_learning_engine",
         "shark_service.py": "services.shark_service",
+        "telegram_autonomous_delivery_engine.py": "engines.telegram_autonomous_delivery_engine",
+        "telegram_delivery_engine.py": "engines.telegram_delivery_engine",
+        "telegram_engine.py": "engines.telegram_engine",
         "telegram_service.py": "services.telegram_service",
     }
     for relative, canonical in adapters.items():

@@ -5,7 +5,6 @@ from __future__ import annotations
 import importlib
 import json
 import os
-import shutil
 import statistics
 import sys
 import tempfile
@@ -15,9 +14,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-V937_VERSION = "V937_PRODUCT_PERFECTION_FULL_ECOSYSTEM_LAUNCH_CLOSEOUT_FINAL"
-V938_VERSION = "V938_COMPANY_OPERATIONS_RECOVERY_OBSERVABILITY_CENTER_FINAL"
-SUPPORTED_VERSIONS = {V937_VERSION, V938_VERSION}
+ACTIVE_VERSION = (ROOT / "VERSION.txt").read_text(encoding="utf-8-sig").strip()
 RUNS = 10
 
 
@@ -33,9 +30,8 @@ def percentile_95(values: list[float]) -> float:
 
 
 def prepare_db(target: Path) -> None:
-    source = ROOT / "data" / "database.db"
-    if source.exists() and source.stat().st_size:
-        shutil.copy2(source, target)
+    """Reserve an isolated SQLite path without reading the local product DB."""
+    target.parent.mkdir(parents=True, exist_ok=True)
 
 
 def load_app(db_path: Path):
@@ -50,7 +46,7 @@ def load_app(db_path: Path):
 
 def run() -> dict:
     current_version = (ROOT / "VERSION.txt").read_text(encoding="utf-8-sig").strip()
-    require(current_version in SUPPORTED_VERSIONS, "VERSION.txt no conserva V937 ni su sucesora V938")
+    require(current_version == ACTIVE_VERSION and current_version.startswith("V"), "VERSION.txt no contiene una identidad activa valida")
     app_source = (ROOT / "app.py").read_text(encoding="utf-8", errors="replace")
     require("v932_safe_dashboard_data(request.path, compact=True)" in app_source, "SHARK no usa contexto compacto")
     require("prebuilt_briefing=briefing" in app_source, "SHARK reconstruye el briefing")

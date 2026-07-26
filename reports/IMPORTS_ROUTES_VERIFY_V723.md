@@ -1,9 +1,9 @@
 # Verificación de imports, rutas y plantillas V723
 
 - Resultado: OK
-- Versión importada: `V938_COMPANY_OPERATIONS_RECOVERY_OBSERVABILITY_CENTER_FINAL`
-- Rutas GET: 633
-- Templates referenciados: 136
+- Versión importada: `V940_NEMESIS_SPORTS_EXPERIENCE_PHASE_1_FOUNDATION_FINAL`
+- Rutas GET: 654
+- Templates referenciados: 139
 - Templates faltantes: 0
 - Static faltantes: 0
 

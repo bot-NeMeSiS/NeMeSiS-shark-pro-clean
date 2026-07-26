@@ -1,9 +1,7 @@
 from pathlib import Path
+import re
 
 ROOT = Path(__file__).resolve().parents[1]
-V937_VERSION = "V937_PRODUCT_PERFECTION_FULL_ECOSYSTEM_LAUNCH_CLOSEOUT_FINAL"
-V938_VERSION = "V938_COMPANY_OPERATIONS_RECOVERY_OBSERVABILITY_CENTER_FINAL"
-SUPPORTED_VERSIONS = {V937_VERSION, V938_VERSION}
 required = [
     ROOT / "static/v933_design_tokens.css",
     ROOT / "static/v937-product-client.css",
@@ -15,7 +13,8 @@ base = ROOT / "templates/base.html"
 errors = list(missing)
 current_version = (ROOT / "VERSION.txt").read_text(encoding="utf-8-sig").strip()
 app_version = (ROOT / "APP_VERSION").read_text(encoding="utf-8-sig").strip()
-if current_version not in SUPPORTED_VERSIONS:
+version_match = re.fullmatch(r"V(\d+)(?:_[A-Z0-9]+)*", current_version)
+if not version_match or int(version_match.group(1)) < 937:
     errors.append("VERSION.txt")
 if app_version != current_version:
     errors.append("APP_VERSION")

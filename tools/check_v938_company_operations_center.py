@@ -12,8 +12,8 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-BASE_VERSION = "V938_COMPANY_OPERATIONS_RECOVERY_OBSERVABILITY_CENTER_FINAL"
 VERSION = (ROOT / "VERSION.txt").read_text(encoding="utf-8-sig").strip()
+VERSION_MATCH = re.fullmatch(r"V(\d+)(?:_[A-Z0-9]+)*", VERSION)
 EXPECTED_CACHE = f"NEMESIS_CACHE_{VERSION.split('_', 1)[0]}"
 REPORTS = [
     "V938_PREFLIGHT_OPERATIONS_CENTER.md",
@@ -85,7 +85,7 @@ def main() -> int:
     version_bytes = (ROOT / "VERSION.txt").read_bytes()
 
     require(not version_bytes.startswith(b"\xef\xbb\xbf"), "VERSION.txt has BOM", failures)
-    require(VERSION in {BASE_VERSION, "V939_AUTONOMOUS_COMPANY_INTELLIGENCE_GROWTH_AND_QUALITY_PLATFORM_FINAL"}, "unsupported successor version", failures)
+    require(bool(VERSION_MATCH and int(VERSION_MATCH.group(1)) >= 938), "unsupported successor version", failures)
     require(version_bytes.decode("utf-8").strip() == VERSION, "VERSION.txt mismatch", failures)
     require(read("APP_VERSION").strip() == VERSION, "APP_VERSION file mismatch", failures)
     require(f"APP_VERSION = '{VERSION}'" in app_source, "app.py APP_VERSION mismatch", failures)

@@ -235,6 +235,15 @@ def build_sports_platform_contract_registry(project_root: str | Path) -> dict[st
             "implementation": "engines/match_live_story_engine.py",
         },
         {
+            "key": "live_center",
+            "name": "Live Center Foundation",
+            "contract": "LIVE-CENTER-CONTEXT-V1",
+            "state": "FOUNDATION_READY"
+            if exists("engines/match_context_engine.py") and exists("engines/match_live_story_engine.py")
+            else "PENDING",
+            "implementation": "engines/match_context_engine.py + engines/match_live_story_engine.py",
+        },
+        {
             "key": "shark_context",
             "name": "SHARK Context",
             "contract": "SHARK-CONTEXT-ENVELOPE-V1",
@@ -247,6 +256,27 @@ def build_sports_platform_contract_registry(project_root: str | Path) -> dict[st
             "contract": "TELEGRAM-ASSISTANT-CONTEXT-V1",
             "state": "CONTRACT_READY" if exists("engines/telegram_intelligence_engine.py") else "PENDING",
             "implementation": "engines/telegram_intelligence_engine.py",
+        },
+        {
+            "key": "team_center",
+            "name": "Team Center Foundation",
+            "contract": "SPORTS-ENTITY-CENTER-CONTEXT-V1",
+            "state": "CONTRACT_READY",
+            "implementation": "engines/sports_platform_contracts.py",
+        },
+        {
+            "key": "competition_center",
+            "name": "Competition Center Foundation",
+            "contract": "SPORTS-ENTITY-CENTER-CONTEXT-V1",
+            "state": "CONTRACT_READY",
+            "implementation": "engines/sports_platform_contracts.py",
+        },
+        {
+            "key": "player_center",
+            "name": "Player Center Foundation",
+            "contract": "SPORTS-ENTITY-CENTER-CONTEXT-V1",
+            "state": "CONTRACT_READY",
+            "implementation": "engines/sports_platform_contracts.py",
         },
         {
             "key": "sports_memory",

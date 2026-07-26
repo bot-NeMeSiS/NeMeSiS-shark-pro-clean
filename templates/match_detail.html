@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% from "components/v933_ui.html" import empty_state, page_header %}
 {% from "components/v944_match_center.html" import match_header, score_widget, match_story, timeline, stats_panel, shark_panel, telegram_panel, bankroll_panel, competition_panel, quick_actions %}
+{% from "components/v937_sports_lifecycle.html" import data_confidence_panel %}
 {% block content %}
 {% if not detail or not match_context %}
 <div class="v933-page v933-match-detail" data-v933-template="match_detail">
@@ -29,6 +30,7 @@
 
     <aside class="v944-match-rail" aria-label="Contexto y continuidad del partido">
       {{ quick_actions(match_context) }}
+      {{ data_confidence_panel(match_context.get('match', {}), 'match') }}
       {{ shark_panel(match_context) }}
       {{ telegram_panel(match_context) }}
       {{ bankroll_panel(match_context) }}

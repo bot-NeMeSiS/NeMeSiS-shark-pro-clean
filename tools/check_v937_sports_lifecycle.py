@@ -15,9 +15,6 @@ import app as app_module
 from engines.v934_realtime_sports_engine import build_realtime_snapshot, normalize_match
 from engines.v935_launch_trust_engine import normalize_match_lifecycle
 
-V937_VERSION = "V937_PRODUCT_PERFECTION_FULL_ECOSYSTEM_LAUNCH_CLOSEOUT_FINAL"
-V938_VERSION = "V938_COMPANY_OPERATIONS_RECOVERY_OBSERVABILITY_CENTER_FINAL"
-SUPPORTED_VERSIONS = {V937_VERSION, V938_VERSION}
 errors = []
 
 
@@ -32,7 +29,9 @@ def text(relative):
 if (ROOT / "VERSION.txt").read_bytes().startswith(b"\xef\xbb\xbf"):
     errors.append("VERSION.txt:BOM")
 current_version = text("VERSION.txt").strip()
-if current_version not in SUPPORTED_VERSIONS or text("APP_VERSION").strip() != current_version:
+release_prefix = current_version.split("_", 1)[0]
+release_number = release_prefix[1:] if release_prefix.startswith("V") else ""
+if not release_number.isdigit() or int(release_number) < 937 or text("APP_VERSION").strip() != current_version:
     errors.append("version_identity")
 
 app_source = text("app.py")
@@ -49,7 +48,7 @@ for marker in (
     if marker not in app_source:
         errors.append(f"app:{marker}")
 
-expected_cache = "NEMESIS_CACHE_V938" if current_version == V938_VERSION else "NEMESIS_CACHE_V937"
+expected_cache = f"NEMESIS_CACHE_{release_prefix}"
 if expected_cache not in app_source:
     errors.append(f"app:{expected_cache}")
 

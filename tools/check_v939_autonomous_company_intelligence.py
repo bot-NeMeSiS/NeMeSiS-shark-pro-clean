@@ -17,7 +17,9 @@ from zoneinfo import ZoneInfo
 
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = "V939_AUTONOMOUS_COMPANY_INTELLIGENCE_GROWTH_AND_QUALITY_PLATFORM_FINAL"
+VERSION = (ROOT / "VERSION.txt").read_text(encoding="utf-8-sig").strip()
+VERSION_MATCH = re.fullmatch(r"V(\d+)(?:_[A-Z0-9]+)*", VERSION)
+EXPECTED_CACHE = f"NEMESIS_CACHE_{VERSION.split('_', 1)[0]}"
 MADRID = ZoneInfo("Europe/Madrid")
 REQUIRED_ENGINES = [
     "company_intelligence_engine.py",
@@ -151,10 +153,11 @@ def main() -> int:
     base_source = read("templates/base.html")
     version_bytes = (ROOT / "VERSION.txt").read_bytes()
     require(not version_bytes.startswith(b"\xef\xbb\xbf"), "VERSION.txt has BOM", failures)
+    require(bool(VERSION_MATCH and int(VERSION_MATCH.group(1)) >= 939), "VERSION.txt is not a canonical V939+ release", failures)
     require(version_bytes.decode("utf-8").strip() == VERSION, "VERSION.txt mismatch", failures)
     require(read("APP_VERSION").strip() == VERSION, "APP_VERSION file mismatch", failures)
     require(f"APP_VERSION = '{VERSION}'" in app_source, "app.py version mismatch", failures)
-    require("NEMESIS_CACHE_V939" in app_source, "service worker cache is not V939", failures)
+    require(EXPECTED_CACHE in app_source, "service worker cache does not match active release", failures)
     require("has_v939_autonomous_company_intelligence_growth_quality_platform" in app_source, "runtime V939 flag missing", failures)
     require("has_v938_company_operations_recovery_observability_center" in app_source, "V938 flag not preserved", failures)
     require("V890_" not in version_bytes.decode("utf-8"), "downgrade identity detected", failures)
@@ -261,7 +264,7 @@ def main() -> int:
             require(runtime.get("version") == VERSION, "runtime version mismatch", failures)
             require(runtime.get("version_files_match") is True, "runtime files mismatch", failures)
             require(runtime.get("deployment_alignment_status") == "aligned_local_files", "runtime alignment mismatch", failures)
-            require(runtime.get("service_worker_cache_name") == "NEMESIS_CACHE_V939", "runtime cache mismatch", failures)
+            require(runtime.get("service_worker_cache_name") == EXPECTED_CACHE, "runtime cache mismatch", failures)
             require(runtime.get("has_v939_autonomous_company_intelligence_growth_quality_platform") is True, "runtime V939 flag false", failures)
             require(runtime.get("has_v938_company_operations_recovery_observability_center") is True, "runtime V938 flag false", failures)
 
