@@ -131,9 +131,9 @@
   <ol class="v944-timeline">
     {% for event in (event_summary.get('items') or [])[:6] %}
     <li>
-      <time>{{ event.get('minute') or event.get('elapsed') or '—' }}{% if event.get('elapsed') is not none and event.get('elapsed') != '' %}'{% endif %}</time>
+      <time>{{ event.get('minute_label') or event.get('minute') or event.get('elapsed') or '—' }}</time>
       <span>
-        <strong>{{ event.get('title') or event.get('event_type') or event.get('type') or 'Hecho del partido' }}</strong>
+        <strong>{{ event.get('headline') or event.get('title') or event.get('event_type') or event.get('type') or 'Hecho del partido' }}</strong>
         <small>{{ event.get('detail') or event.get('description') or event.get('player_name') or event.get('team_name') or 'Sin detalle adicional' }}</small>
       </span>
     </li>

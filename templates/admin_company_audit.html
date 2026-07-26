@@ -1,76 +1,154 @@
 {% extends "base.html" %}
-{% from "partials/ui_components.html" import stat_card, empty_state, status_chip, action_button %}
+{% from "components/v933_ui.html" import page_header, kpi_card, status_chip, data_table, empty_state, next_action, icon %}
 {% block content %}
-<section class="v859-company-audit v860-admin-board">
-  <header class="v859-audit-hero">
-    <span>Company Audit Board</span>
-    <h1>Product Board NeMeSiS SHARK PRO</h1>
-    <p>Auditoría global de producto, negocio, cliente, admin, membresías, datos reales, SHARK, Telegram, arquitectura, visual y release. No ejecuta acciones peligrosas ni llama proveedores.</p>
-    <div class="v859-audit-actions">
-      {{ action_button('Empresa OS', '/admin/company-os', 'neutral') }}
-      {{ action_button('Mejora continua', '/admin/auto-improvement', 'brand') }}
-      {{ action_button('Dashboard', '/admin/dashboard', 'neutral') }}
-      {{ action_button('Datos', '/admin/data-center', 'neutral') }}
-      {{ action_button('Telegram', '/admin/telegram/command-center', 'neutral') }}
-      {{ action_button('SHARK', '/admin/shark-ai', 'neutral') }}
-      {{ action_button('Runtime', '/api/runtime-version', 'success') }}
-    </div>
-  </header>
+{% set company = summary.company_board or {} %}
+{% set roadmap = company.roadmap or {} %}
+{% set confirmed_areas = company.areas|selectattr('state', 'equalto', 'CONFIRMED')|list %}
+{% set state_labels = {'CONFIRMED':'CONFIRMADO','PARTIALLY_VERIFIED':'PARCIAL','REQUIRES_REVIEW':'REVISAR','BLOCKED_BY_ACCESS':'SIN ACCESO','NOT_CERTIFIED':'NO CERT.','NOT_CONFIGURED':'SIN CONFIG.','STALE':'OBSOLETO','HYPOTHESIS':'HIPÓTESIS','INSUFFICIENT_DATA':'SIN DATOS','CONTROLLED':'CONTROLADO','BLOCKED':'BLOQUEADO','COMPLETED':'COMPLETO','CONTRACT_READY':'CONTRATO','INTEGRATED':'INTEGRADO','PLANNED':'PLANIFICADO','PENDING':'PENDIENTE','BLOCKED_BY_CERTIFICATION':'SIN CERT.'} %}
 
-  <section class="v859-audit-summary v860-kpi-row">
-    {{ stat_card('Score global', summary.global_score ~ '/10', summary.global_status|replace('_', ' '), 'brand') }}
-    {{ stat_card('Boards', summary.audit_boards|length, 'Producto completo revisado', 'info') }}
-    {{ stat_card('Bloqueos reales', summary.blocked_by_real_world_validation|length, 'Dependen de Render/API/Telegram/pagos reales', 'warning') }}
-    {{ stat_card('Seguridad', 'Sin secretos' if not summary.secrets_exposed else 'Revisar', 'Sin llamadas externas desde el board', 'success') }}
+<div class="v933-page v933-admin-command-center" data-company-board="NEMESIS-COMPANY-DEVELOPER-OS-V1">
+  {{ page_header(
+    'Company Board',
+    'Dirección de producto, arquitectura, experiencia, inteligencia y operación en una única fuente de verdad. Sin cifras comerciales inventadas.',
+    'chart',
+    [
+      {'label':'Developer','href':'/admin/developer-center','icon':'data'},
+      {'label':'Operaciones','href':'/admin/operations-center','icon':'shield'},
+      {'label':'CEO','href':'/admin/ceo-dashboard','icon':'users'},
+      {'label':'Sentinel','href':'/admin/sentinel-autopilot','primary':true,'icon':'target'}
+    ]
+  ) }}
+
+  {% if company.blockers %}
+    {{ next_action('Resolver el primer bloqueo confirmado', company.next_priority, '#company-risks', 'Abrir riesgos') }}
+  {% else %}
+    {{ next_action('Continuar el roadmap controlado', company.next_priority, '#company-roadmap', 'Abrir roadmap') }}
+  {% endif %}
+
+  <section class="v933-kpi-grid is-six" aria-label="Estado de la empresa">
+    {{ kpi_card('Estado', 'ALERTA' if company.state == 'BLOCKED' else state_labels.get(company.state, company.state), 'Derivado de riesgos confirmados', 'success' if company.state == 'CONTROLLED' else 'warning', 'shield') }}
+    {{ kpi_card('Áreas confirmadas', confirmed_areas|length, (company.areas|length)|string ~ ' áreas evaluadas', 'blue', 'chart') }}
+    {{ kpi_card('Riesgos', company.risks|length, 'Clasificados con evidencia', 'warning' if company.risks else 'success', 'alert') }}
+    {{ kpi_card('Bloqueos', company.blockers|length, 'P0/P1 abiertos', 'warning' if company.blockers else 'success', 'target') }}
+    {{ kpi_card('Completados', roadmap.completed|length, 'Módulos del roadmap', 'cyan', 'history') }}
+    {{ kpi_card('Git', state_labels.get(company.git.state, company.git.state), company.git.branch or 'Metadatos no disponibles', 'success' if company.git.state == 'CONFIRMED' else 'warning', 'data') }}
   </section>
 
-  <section class="v859-board-grid">
-    {% for board in summary.audit_boards %}
-    <article class="v859-board-card v860-board-card status-{{ board.status }}">
-      <div class="v859-board-head">
-        <div>
-          {{ status_chip(board.status|replace('_', ' '), 'warning' if board.status != 'ready' else 'success') }}
-          <h2>{{ board.area }}</h2>
+  <section class="v933-admin-layout">
+    <div class="v933-main-stack">
+      <section class="v933-admin-panel">
+        <header><div><h2>Empresa por área</h2><p>Cada estado indica qué puede afirmarse con la evidencia disponible.</p></div>{{ status_chip(state_labels.get(company.state, company.state), 'success' if company.state == 'CONTROLLED' else 'warning') }}</header>
+        <div class="v933-admin-panel-body">
+          {% call data_table(['Área','Estado','Evidencia','Siguiente acción']) %}
+          {% for area in company.areas %}
+          <tr>
+            <td><a class="v933-admin-link" href="{{ area.href }}"><strong>{{ area.name }}</strong> {{ icon('arrow') }}</a></td>
+            <td>{{ status_chip(state_labels.get(area.state, area.state), 'success' if area.state == 'CONFIRMED' else ('neutral' if area.state == 'PARTIALLY_VERIFIED' else 'warning')) }}</td>
+            <td>{{ area.evidence }}</td>
+            <td>{{ area.next_action }}</td>
+          </tr>
+          {% endfor %}
+          {% endcall %}
         </div>
-        <strong>{{ board.score }}/10</strong>
-      </div>
-      <h3>Hallazgos</h3>
-      <ul>
-        {% for item in board.findings %}
-        <li>{{ item }}</li>
-        {% endfor %}
-      </ul>
-      <h3>Riesgos</h3>
-      <ul>
-        {% for risk in board.risks %}
-        <li>{{ risk }}</li>
-        {% endfor %}
-      </ul>
-      <p><strong>Próximo foco:</strong> {{ board.next_version_focus }}</p>
-      <a href="{{ board.href }}">Abrir área</a>
-    </article>
-    {% else %}
-    {{ empty_state('Sin boards visibles', 'No hay boards cargados en este resumen.', '', '', 'muted') }}
-    {% endfor %}
-  </section>
+      </section>
 
-  <section class="v859-roadmap">
-    <article>
-      <h2>Prioridad recomendada</h2>
-      <ol>
-        {% for item in summary.priority_roadmap %}
-        <li>{{ item }}</li>
-        {% endfor %}
-      </ol>
-    </article>
-    <article>
-      <h2>Riesgos principales</h2>
-      <ul>
-        {% for risk in summary.top_risks %}
-        <li>{{ risk }}</li>
-        {% endfor %}
-      </ul>
-    </article>
+      <section class="v933-admin-panel" id="company-risks">
+        <header><div><h2>Riesgos y bloqueos</h2><p>No certificado no significa caído; cada riesgo conserva su evidencia y siguiente acción.</p></div></header>
+        <div class="v933-admin-panel-body">
+          {% if company.risks %}
+          {% call data_table(['Prioridad','Área','Riesgo','Evidencia','Acción']) %}
+          {% for risk in company.risks %}
+          <tr>
+            <td>{{ status_chip(risk.priority, 'danger' if risk.priority == 'P0' else ('warning' if risk.priority in ['P1','P2'] else 'neutral')) }}</td>
+            <td>{{ risk.area }}</td>
+            <td><strong>{{ risk.title }}</strong></td>
+            <td>{{ risk.evidence }}</td>
+            <td>{{ risk.next_action }}</td>
+          </tr>
+          {% endfor %}
+          {% endcall %}
+          {% else %}
+            {{ empty_state('Sin riesgos estructurales abiertos', 'Mantener Sentinel, Browser QA y verificación de producción.', '', '', 'shield') }}
+          {% endif %}
+        </div>
+      </section>
+
+      <section class="v933-admin-panel" id="company-roadmap">
+        <header><div><h2>Product Roadmap permanente</h2><p>Orden estratégico derivado de capacidades presentes y certificaciones pendientes.</p></div>{{ status_chip('ROADMAP ACTIVO', 'blue') }}</header>
+        <div class="v933-admin-panel-body">
+          {% call data_table(['Módulo','Estado','Evidencia']) %}
+          {% for module in roadmap.modules %}
+          <tr>
+            <td><strong>{{ module.name }}</strong></td>
+            <td>{{ status_chip(state_labels.get(module.state, module.state), 'success' if module.state == 'COMPLETED' else ('neutral' if module.state == 'CONTRACT_READY' else 'warning')) }}</td>
+            <td>{{ module.evidence }}</td>
+          </tr>
+          {% endfor %}
+          {% endcall %}
+        </div>
+      </section>
+
+      <section class="v933-admin-panel">
+        <header><div><h2>Plataforma deportiva</h2><p>Integraciones actuales y contratos preparados sin crear datos ni acciones externas.</p></div>{{ status_chip('CONTRATOS V1', 'neutral') }}</header>
+        <div class="v933-admin-panel-body">
+          {% call data_table(['Capacidad','Contrato','Estado']) %}
+          {% for capability in company.sports_platform.capabilities %}
+          <tr>
+            <td><strong>{{ capability.name }}</strong></td>
+            <td><code>{{ capability.contract }}</code></td>
+            <td>{{ status_chip(state_labels.get(capability.state, capability.state), 'success' if capability.state == 'INTEGRATED' else ('neutral' if capability.state == 'CONTRACT_READY' else 'warning')) }}</td>
+          </tr>
+          {% endfor %}
+          {% endcall %}
+        </div>
+      </section>
+    </div>
+
+    <aside class="v933-side-stack">
+      <section class="v933-admin-panel">
+        <header><div><h2>Prioridad</h2><p>Una única acción ejecutiva.</p></div></header>
+        <div class="v933-admin-panel-body"><p class="v933-safe-copy"><strong>{{ company.next_priority }}</strong></p></div>
+      </section>
+
+      <section class="v933-admin-panel">
+        <header><div><h2>Fuente de verdad</h2><p>Git, runtime y Render se clasifican por acceso.</p></div></header>
+        <div class="v933-admin-panel-body">
+          <div class="v933-truth-list is-no-icon">
+            <div><span>Versión</span><strong title="{{ company.version }}">{{ company.version.split('_', 1)[0] }}</strong></div>
+            <div><span>Rama</span><strong title="{{ company.git.branch or 'No disponible' }}">{{ (company.git.branch[:16] ~ '…') if company.git.branch and company.git.branch|length > 16 else (company.git.branch or 'No disponible') }}</strong></div>
+            <div><span>HEAD</span><strong>{{ company.git.head_sha[:12] if company.git.head_sha else 'No disponible' }}</strong></div>
+            <div><span>Main</span><strong>{{ company.git.main_sha[:12] if company.git.main_sha else 'No disponible' }}</strong></div>
+            <div><span>Git</span>{{ status_chip(state_labels.get(company.git.state, company.git.state), 'success' if company.git.state == 'CONFIRMED' else 'warning') }}</div>
+            <div><span>Render</span>{{ status_chip(state_labels.get(company.render.state, company.render.state), 'success' if company.render.state == 'CONFIRMED' else 'warning') }}</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="v933-admin-panel">
+        <header><div><h2>Calidad estructural</h2><p>Resumen compartido con Developer Center.</p></div></header>
+        <div class="v933-admin-panel-body">
+          <div class="v933-truth-list is-no-icon">
+            <div><span>Duplicados exactos</span><strong>{{ company.developer_summary.exact_duplicate_groups }}</strong></div>
+            <div><span>Rutas duplicadas</span><strong>{{ company.developer_summary.route_duplicates }}</strong></div>
+            <div><span>CSS cruzado</span><strong>{{ company.developer_summary.css_cross_file_selectors }}</strong></div>
+            <div><span>HTML exacto</span><strong>{{ company.developer_summary.html_duplicate_groups }}</strong></div>
+          </div>
+          <a class="v933-action is-blue" href="/admin/developer-center">Abrir Developer Center</a>
+        </div>
+      </section>
+
+      <section class="v933-admin-panel">
+        <header><div><h2>Guardrails</h2><p>Acciones que este board nunca ejecuta.</p></div>{{ status_chip('READ ONLY', 'success') }}</header>
+        <div class="v933-admin-panel-body">
+          <div class="v933-truth-list is-no-icon">
+            <div><span>Proveedores</span><strong>No</strong></div>
+            <div><span>DB producto</span><strong>No</strong></div>
+            <div><span>Telegram</span><strong>No</strong></div>
+            <div><span>Push / deploy</span><strong>No</strong></div>
+          </div>
+        </div>
+      </section>
+    </aside>
   </section>
-</section>
+</div>
 {% endblock %}

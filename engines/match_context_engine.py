@@ -10,6 +10,8 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 from typing import Any, Mapping
 
+from engines.match_live_story_engine import build_match_live_story
+
 
 MATCH_CENTER_CONTRACT = "MATCH-CENTER-LIFECYCLE-STORY-V1"
 MATCH_CENTER_FOUNDATION = "V944_MATCH_CENTER_FOUNDATION_PHASE_1_FINAL"
@@ -211,6 +213,7 @@ class MatchContext:
     event_summary: dict[str, Any]
     statistics: dict[str, Any]
     story: dict[str, Any]
+    live_story: dict[str, Any]
     components: dict[str, dict[str, Any]]
     evidence: dict[str, Any]
     limitations: list[str]
@@ -237,15 +240,19 @@ def build_match_context(
     score = _score(match, display)
     shell_state = _shell_state(match, lifecycle, offline=offline)
 
-    timeline = _items(live.get("events")) or _items(
+    raw_timeline = _items(live.get("events")) or _items(
         detail_data.get("timeline") or detail_data.get("events")
     )
-    latest_event = timeline[0] if timeline else {}
+    live_story = build_match_live_story(match, raw_timeline)
+    timeline = _items(live_story.get("timeline"))
+    latest_event = _mapping(live_story.get("latest_event"))
     event_summary = {
         "available": bool(timeline),
         "count": len(timeline),
         "latest": latest_event,
         "items": timeline,
+        "raw_count": len(raw_timeline),
+        "excluded_without_evidence": max(0, len(raw_timeline) - len(timeline)),
     }
 
     raw_stats = _mapping(detail_data.get("statistics"))
@@ -414,6 +421,7 @@ def build_match_context(
         event_summary=event_summary,
         statistics=statistics,
         story=story,
+        live_story=live_story,
         components=components,
         evidence={
             "source": _text(match.get("source") or match.get("v935_source"))

@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="es">
 <head>
   <meta charset="utf-8">
@@ -192,7 +192,7 @@
 
   {% if show_admin_nav %}
   {% set v808_admin_groups = [
-    ('Centro', [('Panel','/admin/control-center'),('Direccion','/admin/ceo-dashboard'),('Operaciones','/admin/operations-center'),('Recovery','/admin/recovery-simulator'),('Experimentos','/admin/experiments'),('Empresa OS','/admin/company-os'),('Product Board','/admin/company-audit'),('AutoPilot','/admin/sentinel-autopilot'),('Visual Worker','/admin/visual-worker'),('Mejora continua','/admin/auto-improvement'),('Sentinel','/admin/shark-sentinel'),('Loop','/admin/continuous-sentinel'),('Workflow','/admin/sentinel-workflow'),('Mapa','/admin/map'),('Sistema','/admin/system'),('Rutas','/admin/route-health')]),
+    ('Centro', [('Panel','/admin/control-center'),('Direccion','/admin/ceo-dashboard'),('Operaciones','/admin/operations-center'),('Recovery','/admin/recovery-simulator'),('Experimentos','/admin/experiments'),('Empresa OS','/admin/company-os'),('Company Board','/admin/company-board'),('Developer','/admin/developer-center'),('AutoPilot','/admin/sentinel-autopilot'),('Visual Worker','/admin/visual-worker'),('Mejora continua','/admin/auto-improvement'),('Sentinel','/admin/shark-sentinel'),('Loop','/admin/continuous-sentinel'),('Workflow','/admin/sentinel-workflow'),('Mapa','/admin/map'),('Sistema','/admin/system'),('Rutas','/admin/route-health')]),
     ('Clientes', [('Usuarios','/admin/users'),('Membresías','/admin/memberships'),('Importar','/admin/user-import'),('Soporte','/admin/support-center')]),
     ('Datos', [('Data Center','/admin/data-center'),('API-SPORTS','/admin/api-sports'),('Partidos','/admin/matches-sync'),('SportsDB','/admin/sportsdb-sync'),('Data Memory','/admin/data-memory')]),
     ('Live / SHARK', [('Live','/admin/live-depth'),('Match IQ','/admin/match-intelligence'),('SHARK','/admin/shark-center'),('Visual','/admin/visual-experience')]),
@@ -209,7 +209,8 @@
       <a href="/admin/recovery-simulator">Recovery <span>Simulador</span></a>
       <a href="/admin/experiments">Experimentos <span>Gobernados</span></a>
       <a href="/admin/company-os">Workers <span>Empresa OS</span></a>
-      <a href="/admin/company-audit">Board <span>Product Board</span></a>
+      <a href="/admin/company-board">Board <span>Company Board</span></a>
+      <a href="/admin/developer-center">Developer <span>Arquitectura</span></a>
       <a href="/admin/sentinel-autopilot">AutoPilot <span>Self Improve</span></a>
       <a href="/admin/visual-worker">Visual <span>Worker</span></a>
       <a href="/admin/auto-improvement">Mejora <span>Auto OS</span></a>

@@ -16003,6 +16003,7 @@ def api_admin_company_os_summary():
 
 
 @app.route("/admin/company-audit")
+@app.route("/admin/company-board")
 @app.route("/admin/auditoria-empresa")
 @app.route("/admin/product-board")
 def admin_company_audit_page():
@@ -16014,6 +16015,7 @@ def admin_company_audit_page():
 
 
 @app.route("/api/admin/company-audit/summary")
+@app.route("/api/admin/company-board/summary")
 def api_admin_company_audit_summary():
     if not is_admin_session():
         return admin_json_forbidden()
@@ -24077,6 +24079,17 @@ def register_optional_blueprints():
         if "architecture" not in app.blueprints:
             from blueprints.architecture import create_architecture_blueprint
             app.register_blueprint(create_architecture_blueprint(APP_VERSION, DB_PATH, is_admin_session))
+        if "developer_center" not in app.blueprints:
+            from blueprints.developer_center import create_developer_center_blueprint
+            app.register_blueprint(
+                create_developer_center_blueprint(
+                    APP_VERSION,
+                    BASE_DIR,
+                    is_admin_session,
+                    v822_runtime_stability_snapshot,
+                    dashboard_data,
+                )
+            )
     except Exception as exc:
         try:
             print("[BLUEPRINT_REGISTER_SKIP]", str(exc)[:300])

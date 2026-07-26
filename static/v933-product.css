@@ -504,6 +504,7 @@ body.ns-admin .v933-legal-footer { width: auto; margin-left: calc(var(--v933-sid
   font-size: .62rem;
   font-weight: 850;
   line-height: 1.2;
+  white-space: nowrap;
 }
 .v933-status-chip.is-blue { color: #80caff; border-color: rgba(8,124,255,.3); background: rgba(8,124,255,.12); }
 .v933-status-chip.is-success { color: #72efa8; border-color: rgba(54,220,129,.26); background: rgba(54,220,129,.1); }
@@ -642,6 +643,7 @@ body.ns-admin .v933-legal-footer { width: auto; margin-left: calc(var(--v933-sid
 
 .v933-table-shell { width: 100%; overflow-x: auto; border: 1px solid var(--v933-border); border-radius: var(--v933-radius); background: rgba(4,14,27,.94); }
 .v933-data-table { width: 100%; min-width: 720px; border-collapse: collapse; }
+.v933-data-table th:first-child,.v933-data-table td:first-child { min-width: 110px; }
 .v933-data-table th,.v933-data-table td { padding: 9px 11px; border-bottom: 1px solid rgba(132,171,213,.12); text-align: left; vertical-align: middle; }
 .v933-data-table th { color: #8da2b7; font-size: .59rem; font-weight: 850; text-transform: uppercase; }
 .v933-data-table td { color: #d7e3ef; font-size: .68rem; }
