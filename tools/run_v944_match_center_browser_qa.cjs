@@ -130,6 +130,11 @@ async function inspectPage(page) {
         intelligence_marker_count: document.querySelectorAll(
           '[data-sports-core-match-center="intelligence-phase-1"]'
         ).length,
+        sports_domain_marker_count: document.querySelectorAll(
+          '[data-sports-domain-model="unified-v1"], [data-sports-domain-model="SPORTS-CORE-UNIFIED-DOMAIN-MODEL-V1"]'
+        ).length,
+        transparency_count: (root || document).querySelectorAll("[data-match-transparency]").length,
+        quality_panel_count: (root || document).querySelectorAll("[data-match-region='evidence-quality']").length,
         shell_state: root?.getAttribute("data-match-state") || "",
         component_count: componentNodes.length,
         component_names: names,
@@ -138,6 +143,8 @@ async function inspectPage(page) {
         invalid_states: stateValues.filter((state) => !states.includes(state)),
         region_count: document.querySelectorAll("[data-match-region]").length,
         timeline_event_count: (root || document).querySelectorAll(".v944-timeline > li").length,
+        timeline_event_contract: (root || document).querySelector("[data-timeline-event-contract]")?.getAttribute("data-timeline-event-contract") || "",
+        canonical_timeline_event_count: (root || document).querySelectorAll('[data-canonical-timeline-event="SPORTS-CORE-TIMELINE-EVENT-V1"]').length,
         stat_source:
           (root || document).querySelector("[data-stat-source]")?.getAttribute("data-stat-source") || "",
         stat_row_count: (root || document).querySelectorAll(".v944-stats__row").length,
@@ -264,6 +271,15 @@ async function main() {
         if (metrics.intelligence_marker_count !== 1) {
           failures.push("sports_core_intelligence_marker_missing");
         }
+        if (metrics.sports_domain_marker_count < 1) {
+          failures.push("sports_domain_model_marker_missing");
+        }
+        if (metrics.transparency_count < 5) {
+          failures.push("match_transparency_missing");
+        }
+        if (metrics.quality_panel_count !== 1) {
+          failures.push("data_quality_panel_missing");
+        }
         if (metrics.component_count !== COMPONENTS.length) {
           failures.push("component_count_mismatch");
         }
@@ -300,6 +316,12 @@ async function main() {
         }
         if (scenario === "ready") {
           if (metrics.timeline_event_count < 1) failures.push("confirmed_timeline_missing");
+          if (metrics.timeline_event_contract !== "SPORTS-CORE-TIMELINE-EVENT-V1") {
+            failures.push("timeline_event_contract_missing");
+          }
+          if (metrics.canonical_timeline_event_count !== metrics.timeline_event_count) {
+            failures.push("canonical_timeline_event_contract_missing");
+          }
           if (metrics.stat_source !== "api_football" || metrics.stat_row_count < 1) {
             failures.push("confirmed_provider_statistics_missing");
           }

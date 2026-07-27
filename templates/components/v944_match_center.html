@@ -26,13 +26,28 @@
 {% endif %}
 {%- endmacro %}
 
+{% macro transparency_meta(context, key) -%}
+{% set item = (context.get('transparency') or {}).get(key) or {} %}
+<div class="v944-transparency" data-match-transparency="{{ key }}">
+  <span><b>Procedencia</b>{{ item.get('source') or 'Fuente no identificada' }}</span>
+  <span><b>Evidencia</b>{{ item.get('evidence') or 'No certificado' }}</span>
+  <span><b>Frescura</b>{{ item.get('freshness') or 'No disponible' }}</span>
+  <span><b>Confianza</b>{{ item.get('confidence') or 'No probabilística' }}</span>
+</div>
+{% if item.get('limitations') %}
+<ul class="v944-limitations is-compact" aria-label="Limitaciones de {{ key }}">
+  {% for limitation in item.get('limitations')[:2] %}<li>{{ limitation }}</li>{% endfor %}
+</ul>
+{% endif %}
+{%- endmacro %}
+
 {% macro panel_start(name, component, title, subtitle='', region='') -%}
 {% set state = canonical_state(component.get('state') or 'unknown')|trim %}
 {% set eyebrow = {
-  'MatchStory': 'Historia',
+  'MatchStory': 'Resumen',
   'Timeline': 'Hechos',
   'StatsPanel': 'Datos',
-  'SharkPanel': 'Criterio',
+  'SharkPanel': 'Inteligencia',
   'TelegramPanel': 'Continuidad',
   'BankrollPanel': 'Responsabilidad',
   'CompetitionPanel': 'Contexto',
@@ -111,14 +126,35 @@
   {% if not score.get('confirmed') %}
   <p>El marcador aparecerá únicamente cuando exista evidencia confirmada.</p>
   {% endif %}
+  {{ transparency_meta(context, 'score') }}
 </section>
 {%- endmacro %}
 
 {% macro match_story(context) -%}
 {% set component = context.get('components', {}).get('MatchStory') or {} %}
 {% set story = context.get('story') or {} %}
-{{ panel_start('MatchStory', component, story.get('phase') or 'Historia del partido', 'Una lectura única del momento actual.', 'story') }}
-  <p class="v944-match-story__summary">{{ story.get('summary') or 'No disponible todavía.' }}</p>
+{% set conclusions = (context.get('intelligence') or {}).get('conclusions') or {} %}
+{% set risk = conclusions.get('riesgo') or {} %}
+{% set risk_value = risk.get('value') or {} %}
+{{ panel_start('MatchStory', component, 'Resumen del partido', 'Estado, inteligencia y riesgo desde el Sports Core.', 'story') }}
+  <div class="v944-experience-grid" data-sports-domain-model="unified-v1">
+    <article>
+      <span>Estado actual</span>
+      <strong>{{ story.get('phase') or 'Cobertura parcial' }}</strong>
+      <p>{{ story.get('summary') or 'No disponible todavía.' }}</p>
+    </article>
+    <article>
+      <span>Inteligencia</span>
+      <strong>{{ 'Disponible' if (context.get('shark_context') or {}).get('available') else 'Parcial' }}</strong>
+      <p>{{ (context.get('shark_context') or {}).get('headline') or 'No hay lectura suficiente para ampliar el contexto.' }}</p>
+    </article>
+    <article>
+      <span>Riesgos</span>
+      <strong>{{ 'Riesgo confirmado' if risk_value.get('flags') else 'Sin riesgo confirmado' }}</strong>
+      <p>{{ 'Se muestran solo señales con evidencia.' if risk_value.get('flags') else 'No hay riesgo deportivo confirmado con los datos actuales.' }}</p>
+    </article>
+  </div>
+  {{ transparency_meta(context, 'summary') }}
   {% if context.get('limitations') %}
   <ul class="v944-limitations" aria-label="Limitaciones de los datos">
     {% for limitation in context.get('limitations')[:4] %}<li>{{ limitation }}</li>{% endfor %}
@@ -131,11 +167,11 @@
 {% macro timeline(context) -%}
 {% set component = context.get('components', {}).get('Timeline') or {} %}
 {% set event_summary = context.get('event_summary') or {} %}
-{{ panel_start('Timeline', component, 'Cronología', 'Hechos confirmados, ordenados y sin duplicados.', 'timeline') }}
+{{ panel_start('Timeline', component, 'Cronología', 'Hechos confirmados desde Timeline Event Entity.', 'timeline') }}
   {% if event_summary.get('available') %}
-  <ol class="v944-timeline" data-event-source="{{ event_summary.get('source') or '' }}">
+  <ol class="v944-timeline" data-event-source="{{ event_summary.get('source') or '' }}" data-timeline-event-contract="{{ event_summary.get('contract') or '' }}">
     {% for event in event_summary.get('items') or [] %}
-    <li class="is-{{ event.get('type') or 'unknown' }}" data-event-id="{{ event.get('id') or '' }}">
+    <li class="is-{{ event.get('type') or 'unknown' }}" data-event-id="{{ event.get('id') or '' }}" data-canonical-timeline-event="{{ event.get('timeline_event_contract') or '' }}">
       <time>{{ event.get('minute_label') or 'No disponible' }}</time>
       <span>
         <strong>{{ event.get('label') or 'Evento confirmado' }}{% if event.get('team') %} · {{ event.get('team') }}{% endif %}</strong>
@@ -153,6 +189,7 @@
   {% else %}
   {{ state_notice(component, 'No disponible.') }}
   {% endif %}
+  {{ transparency_meta(context, 'timeline') }}
 </section>
 {%- endmacro %}
 
@@ -160,7 +197,7 @@
 {% set component = context.get('components', {}).get('StatsPanel') or {} %}
 {% set statistics = context.get('statistics') or {} %}
 {% set teams = context.get('teams') or {} %}
-{{ panel_start('StatsPanel', component, 'Estadísticas reales', 'Comparativa disponible en el caché confirmado del proveedor.', 'stats') }}
+{{ panel_start('StatsPanel', component, 'Estadísticas disponibles', 'Comparativa disponible en el caché confirmado del proveedor.', 'stats') }}
   {% if statistics.get('available') %}
   <div class="v944-stats" role="table" aria-label="Estadísticas del partido" data-stat-source="{{ statistics.get('source') or '' }}">
     <div class="v944-stats__header" role="row">
@@ -179,13 +216,14 @@
   {% else %}
   {{ state_notice(component, 'No disponible.') }}
   {% endif %}
+  {{ transparency_meta(context, 'statistics') }}
 </section>
 {%- endmacro %}
 
 {% macro shark_panel(context) -%}
 {% set component = context.get('components', {}).get('SharkPanel') or {} %}
 {% set shark = context.get('shark_context') or {} %}
-{{ panel_start('SharkPanel', component, 'Contexto SHARK', 'Lectura deportiva condicionada por evidencia real.', 'shark') }}
+{{ panel_start('SharkPanel', component, 'Inteligencia', 'Match Intelligence y SHARK reutilizan el mismo snapshot.', 'shark') }}
   {% if shark.get('available') %}
   <div class="v944-shark-context"
        data-shark-evidence="confirmed"
@@ -205,6 +243,7 @@
   {% else %}
   {{ state_notice(component, 'No disponible.') }}
   {% endif %}
+  {{ transparency_meta(context, 'intelligence') }}
   <p class="v944-safe-copy">SHARK no completa conclusiones, riesgos ni recomendaciones cuando faltan datos suficientes.</p>
   {{ action_button('Abrir SHARK', '/shark?match=' ~ (context.get('match', {}).get('id') or ''), false, 'cyan', false, 'shark') }}
 </section>
@@ -212,8 +251,9 @@
 
 {% macro telegram_panel(context) -%}
 {% set component = context.get('components', {}).get('TelegramPanel') or {} %}
-{{ panel_start('TelegramPanel', component, 'Telegram', 'Continuidad del partido con permiso y sin mensajes de relleno.', 'telegram') }}
+{{ panel_start('TelegramPanel', component, 'Telegram', 'Contrato preparado en solo lectura, sin envío real.', 'telegram') }}
   {{ state_notice(component) }}
+  <p class="v944-safe-copy">Telegram podrá reutilizar este partido, timeline e inteligencia sin recalcular datos.</p>
 </section>
 {%- endmacro %}
 
@@ -230,7 +270,7 @@
 {% set competition = context.get('competition') or {} %}
 {% set teams = context.get('teams') or {} %}
 {% set facts = context.get('facts') or {} %}
-{{ panel_start('CompetitionPanel', component, 'Ficha del encuentro', 'Competición, sede y responsables confirmados.', 'competition') }}
+{{ panel_start('CompetitionPanel', component, 'Contexto', 'Competición, sede, equipos y responsables confirmados.', 'competition') }}
   <dl class="v944-context-list">
     <div><dt>Competición</dt><dd>{% if competition.get('href') %}<a href="{{ competition.get('href') }}" data-entity-contract="competition">{{ competition.get('name') or 'No disponible' }}</a>{% else %}{{ competition.get('name') or 'No disponible' }}{% endif %}</dd></div>
     <div><dt>Jornada o fase</dt><dd>{{ competition.get('round') or 'No disponible' }}</dd></div>
@@ -240,6 +280,7 @@
     <div><dt>Ciudad</dt><dd>{{ facts.get('city') or 'No disponible' }}</dd></div>
     <div><dt>Árbitro</dt><dd>{{ facts.get('referee') or 'No disponible' }}</dd></div>
   </dl>
+  {{ transparency_meta(context, 'data_quality') }}
   <div class="v944-related-teams" data-match-region="related-teams">
     <span>Equipos relacionados</span>
     <a href="{{ teams.get('home', {}).get('href') or '/calendar' }}" data-entity-contract="team">{{ teams.get('home', {}).get('name') or 'No disponible' }}</a>
@@ -255,7 +296,37 @@
   <div class="v944-quick-actions">
     {{ action_button('Volver al calendario', '/calendar', true, 'cyan', false, 'calendar') }}
     {{ action_button('Consultar picks', '/picks', false, 'blue', false, 'target') }}
+  </div>
+</section>
+{%- endmacro %}
 
+{% macro data_quality_panel(context) -%}
+{% set freshness = (context.get('domain_model') or {}).get('freshness') or {} %}
+<section class="v944-match-panel v944-domain-quality" data-match-region="evidence-quality" data-sports-domain-model="unified-v1">
+  <header class="v944-match-panel__header">
+    <div>
+      <span class="v944-match-panel__eyebrow">Evidencia</span>
+      <h2>Calidad, frescura e información ausente</h2>
+      <p>Todo lo que el Match Center sabe, no sabe y deja pendiente.</p>
+    </div>
+  </header>
+  <div class="v944-quality-grid">
+    <span><b>Fuente</b>{{ (context.get('evidence') or {}).get('source') or 'Fuente no identificada' }}</span>
+    <span><b>Actualización</b>{{ (context.get('evidence') or {}).get('updated_at')|sync_madrid_label }}</span>
+    <span><b>Frescura</b>{{ ((context.get('transparency') or {}).get('data_quality') or {}).get('freshness') or 'No disponible' }}</span>
+    <span><b>Grafo</b>{{ (context.get('sports_graph') or {}).get('edge_count') or 0 }} relaciones preparadas</span>
+  </div>
+  {% if context.get('absent_information') %}
+  <ul class="v944-limitations" aria-label="Información ausente">
+    {% for item in context.get('absent_information')[:5] %}<li>{{ item }}</li>{% endfor %}
+  </ul>
+  {% else %}
+  <p class="v944-safe-copy">No hay información ausente crítica en este snapshot.</p>
+  {% endif %}
+  <div class="v944-integration-strip" aria-label="Integraciones preparadas">
+    {% for item in context.get('prepared_integrations') or [] %}
+    <span><b>{{ item.get('name') }}</b>{{ item.get('state') }}</span>
+    {% endfor %}
   </div>
 </section>
 {%- endmacro %}

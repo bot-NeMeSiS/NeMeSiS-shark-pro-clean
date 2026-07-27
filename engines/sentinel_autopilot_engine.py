@@ -1,4 +1,4 @@
-﻿"""V888 Sentinel AutoPilot self-improvement engine.
+"""V888 Sentinel AutoPilot self-improvement engine.
 
 Safe internal operations layer for NeMeSiS SHARK PRO. It converts Sentinel,
 Visual Worker and local route signals into issues, tasks and Codex prompts.
@@ -911,6 +911,7 @@ def build_v944_match_center_foundation_contract_snapshot(
     telegram_adapter = _read("engines/telegram_intelligence_engine.py")
     platform_contracts = _read("engines/sports_platform_contracts.py")
     domain_model_engine = _read("engines/sports_domain_model_engine.py")
+    knowledge_layer = _read("engines/sports_knowledge_layer_engine.py")
 
     route_source = ""
     detail_source = ""
@@ -1003,6 +1004,8 @@ def build_v944_match_center_foundation_contract_snapshot(
         "bankroll_panel(match_context)",
         "competition_panel(match_context)",
         "quick_actions(match_context)",
+        "data_quality_panel(match_context)",
+        "data-sports-domain-model=",
         'data-sports-core-match-center="intelligence-phase-1"',
     ))
     safe_fallback_contract = (
@@ -1058,6 +1061,47 @@ def build_v944_match_center_foundation_contract_snapshot(
         "sports_domain_model" in platform_contracts,
         "build_telegram_readonly_contract" in telegram_adapter,
     ))
+    sports_knowledge_layer_contract = all((
+        'SPORTS_KNOWLEDGE_LAYER_CONTRACT = "SPORTS-KNOWLEDGE-LAYER-V1"'
+        in knowledge_layer,
+        "def build_sports_knowledge_snapshot(" in knowledge_layer,
+        "def build_team_knowledge(" in knowledge_layer,
+        "def build_competition_knowledge(" in knowledge_layer,
+        "def build_match_knowledge(" in knowledge_layer,
+        "def build_season_knowledge(" in knowledge_layer,
+        '"database_writes": 0' in knowledge_layer,
+        '"external_calls": 0' in knowledge_layer,
+        '"telegram_sends": 0' in knowledge_layer,
+        '"stripe_calls": 0' in knowledge_layer,
+        "build_sports_knowledge_snapshot(" in engine,
+        "sports_knowledge: dict[str, Any]" in engine,
+        '"sports_knowledge_contract": sports_knowledge.get("contract")'
+        in engine,
+        '"sports_knowledge_database_writes":' in engine,
+        '"sports_knowledge_external_calls":' in engine,
+        '"name": "Sports Knowledge"' in engine,
+    )) and not re.search(
+        r"\b(?:sqlite3|requests|urllib\.request|flask|commit|execute|executemany)\b",
+        knowledge_layer,
+        flags=re.IGNORECASE,
+    )
+
+    match_center_2_contract = all((
+        "legacy_event_from_entity" in engine,
+        "legacy_match_from_entity" in engine,
+        "def _timeline_from_domain(" in engine,
+        "transparency: dict[str, dict[str, Any]]" in engine,
+        "experience_blocks: list[dict[str, Any]]" in engine,
+        '"timeline_event_contract": event_summary.get("contract")' in engine,
+        '"match_center_2_transparency": True' in engine,
+        'data-match-transparency="{{ key }}"' in components,
+        'data-canonical-timeline-event=' in components,
+        'data-timeline-event-contract=' in components,
+        'data-sports-domain-model="unified-v1"' in components,
+        "data_quality_panel(match_context)" in template,
+        ".v944-transparency {" in css,
+        ".v944-domain-quality" in css,
+    ))
     entity_route_contract = all(marker in application for marker in (
         '@app.route("/team/<team_id>")',
         '@app.route("/competition/<competition_id>")',
@@ -1085,6 +1129,8 @@ def build_v944_match_center_foundation_contract_snapshot(
         "intelligence_contract": intelligence_contract,
         "match_intelligence_core_contract": match_intelligence_core_contract,
         "unified_domain_model_contract": unified_domain_model_contract,
+        "sports_knowledge_layer_contract": sports_knowledge_layer_contract,
+        "match_center_2_contract": match_center_2_contract,
         "entity_route_contract": entity_route_contract,
         "state_contract": state_contract,
         "component_contract": component_contract,
@@ -1100,13 +1146,14 @@ def build_v944_match_center_foundation_contract_snapshot(
         "version": app_version,
         "component": "match_center_foundation",
         "affected_routes": ["/match/<id>", "/partido/<id>"],
-        "cause": "The Match Center can regress if a component reloads facts, loses a canonical state or introduces a GET side effect.",
-        "impact": "Users can see contradictory match facts, unstable fallbacks, duplicated sports identities or a broken responsive shell.",
-        "solution": "Keep every region on one pure MatchContext, one SPORTS-CORE-UNIFIED-DOMAIN-MODEL-V1 entity graph and one MATCH-INTELLIGENCE-EVIDENCE-V1 snapshot.",
+        "cause": "The Match Center can regress if a component reloads facts, loses a canonical state, bypasses SPORTS-CORE-UNIFIED-DOMAIN-MODEL-V1 or hides evidence/freshness from the user.",
+        "impact": "Users can see contradictory match facts, unstable fallbacks, duplicated sports identities, hidden data limitations or a broken responsive shell.",
+        "solution": "Keep every region on one pure MatchContext, one SPORTS-CORE-UNIFIED-DOMAIN-MODEL-V1 entity graph, one SPORTS-CORE-TIMELINE-EVENT-V1 timeline and one transparent MATCH-INTELLIGENCE-EVIDENCE-V1 snapshot.",
         "evidence": {**checks, "violations": violations},
         "preventive_rule": (
             "All Match Center regions consume MATCH-CENTER-LIFECYCLE-STORY-V1 through one MatchContext; "
             "provider facts remain cached, all consumers reuse MATCH-INTELLIGENCE-EVIDENCE-V1, "
+            "timeline events stay canonical, every block exposes evidence/freshness, "
             "and GET rendering has no writes or external calls."
         ),
         "qa_result": "PASS" if passed else "REGRESSION",

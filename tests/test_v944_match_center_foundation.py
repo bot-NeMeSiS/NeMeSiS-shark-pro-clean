@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import shutil
 from pathlib import Path
@@ -108,7 +108,22 @@ def test_match_context_is_one_pure_snapshot_for_all_foundation_components():
     assert diagnostics["canonical_states"] == list(CANONICAL_COMPONENT_STATES)
     assert diagnostics["sports_domain_model_contract"] == "SPORTS-CORE-UNIFIED-DOMAIN-MODEL-V1"
     assert diagnostics["sports_graph_write_authorized"] is False
+    assert diagnostics["sports_knowledge_contract"] == "SPORTS-KNOWLEDGE-LAYER-V1"
+    assert diagnostics["sports_knowledge_database_writes"] == 0
+    assert diagnostics["sports_knowledge_external_calls"] == 0
     assert diagnostics["telegram_readonly_contract"] == "SPORTS-CORE-TELEGRAM-READONLY-V1"
+    assert diagnostics["timeline_event_contract"] == "SPORTS-CORE-TIMELINE-EVENT-V1"
+    assert diagnostics["match_center_2_transparency"] is True
+    assert "data_quality" in diagnostics["experience_blocks"]
+    assert context["event_summary"]["contract"] == "SPORTS-CORE-TIMELINE-EVENT-V1"
+    assert all(
+        item["timeline_event_contract"] == "SPORTS-CORE-TIMELINE-EVENT-V1"
+        for item in context["event_summary"]["items"]
+    )
+    assert {"summary", "score", "timeline", "intelligence", "statistics", "data_quality"}.issubset(context["transparency"])
+    assert context["absent_information"]
+    assert {item["name"] for item in context["prepared_integrations"]} >= {"Team Center", "Competition Center", "Player Center", "Sports Graph", "Sports Knowledge", "SHARK", "Telegram"}
+    assert all(item["write_authorized"] is False for item in context["prepared_integrations"])
     assert context["picks"]["count"] == 0
     assert context["statistics"]["available"] is False
     assert context["statistics"]["item_count"] == 0
@@ -177,6 +192,9 @@ def test_match_detail_page_uses_one_detail_load_and_no_legacy_side_effects(
     assert calls == {"detail": 1, "live": 1}
     assert 'data-match-contract="MATCH-CENTER-LIFECYCLE-STORY-V1"' in html
     assert 'data-v944-match-center-foundation="phase-1"' in html
+    assert 'data-sports-domain-model="SPORTS-CORE-UNIFIED-DOMAIN-MODEL-V1"' in html
+    assert 'data-match-region="evidence-quality"' in html
+    assert 'data-match-transparency="score"' in html
     assert html.count("data-match-component=") == len(MATCH_CENTER_COMPONENTS)
     assert "v933-match-hero" not in html
     assert "v933-detail-tabs" not in html
@@ -264,6 +282,12 @@ def test_v944_jinja_contracts_are_valid_and_responsive():
 
     assert template.count("match_header(match_context)") == 1
     assert template.count("score_widget(match_context)") == 1
+    assert template.count("data_quality_panel(match_context)") == 1
+    assert 'data-sports-domain-model=' in template
+    assert 'data-match-transparency="{{ key }}"' in components
+    assert 'data-canonical-timeline-event=' in components
+    assert 'data-timeline-event-contract=' in components
+    assert 'data-sports-domain-model="unified-v1"' in components
     assert all(name in components for name in MATCH_CENTER_COMPONENTS)
     assert all(f"'{state}'" in components for state in CANONICAL_COMPONENT_STATES)
     assert "@media (max-width: 1080px)" in css
@@ -272,11 +296,17 @@ def test_v944_jinja_contracts_are_valid_and_responsive():
     assert not (ROOT / "static/v944-match-center.js").exists()
 
 
-def _sentinel_fixture(tmp_path: Path, *, break_shell: bool = False) -> Path:
+def _sentinel_fixture(
+    tmp_path: Path,
+    *,
+    break_shell: bool = False,
+    break_transparency: bool = False,
+) -> Path:
     for relative in (
         "app.py",
         "engines/match_context_engine.py",
         "engines/sports_domain_model_engine.py",
+        "engines/sports_knowledge_layer_engine.py",
         "engines/api_football_live_tracker_engine.py",
         "engines/match_intelligence_engine.py",
         "engines/shark_context_presentation_engine.py",
@@ -300,6 +330,13 @@ def _sentinel_fixture(tmp_path: Path, *, break_shell: bool = False) -> Path:
             ),
             encoding="utf-8",
         )
+    if break_transparency:
+        component = tmp_path / "templates/components/v944_match_center.html"
+        text = component.read_text(encoding="utf-8")
+        component.write_text(
+            text.replace('data-match-transparency="{{ key }}"', 'data-match-transparency-removed="{{ key }}"'),
+            encoding="utf-8",
+        )
     return tmp_path
 
 
@@ -315,6 +352,14 @@ def test_v944_sentinel_detects_mutation_and_autopilot_requires_approval(tmp_path
     )
     assert broken["validation_result"] == "REGRESSION"
     assert "shell_contract" in broken["evidence"]["violations"]
+
+    broken_transparency_root = _sentinel_fixture(tmp_path / "transparency", break_transparency=True)
+    broken_transparency = build_v944_match_center_foundation_contract_snapshot(
+        broken_transparency_root,
+        SPRINT,
+    )
+    assert broken_transparency["validation_result"] == "REGRESSION"
+    assert "match_center_2_contract" in broken_transparency["evidence"]["violations"]
 
     issues = detect_product_quality_contract_issues(broken_root, SPRINT)
     issue = next(

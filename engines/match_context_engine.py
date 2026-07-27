@@ -1,4 +1,4 @@
-﻿"""Canonical Match Center context for MATCH-CENTER-LIFECYCLE-STORY-V1.
+"""Canonical Match Center context for MATCH-CENTER-LIFECYCLE-STORY-V1.
 
 The builder is deliberately pure: callers provide data already loaded from the
 local store and this module performs no database, network, session or provider
@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import asdict, dataclass
-from typing import Any, Mapping
+from typing import Any, Iterable, Mapping
 from urllib.parse import quote
 
 from engines.match_intelligence_engine import (
@@ -20,7 +20,10 @@ from engines.match_live_story_engine import build_match_live_story
 from engines.sports_domain_model_engine import (
     build_telegram_readonly_contract,
     build_unified_domain_snapshot,
+    legacy_event_from_entity,
+    legacy_match_from_entity,
 )
+from engines.sports_knowledge_layer_engine import build_sports_knowledge_snapshot
 
 
 MATCH_CENTER_CONTRACT = "MATCH-CENTER-LIFECYCLE-STORY-V1"
@@ -88,15 +91,22 @@ def _first_text(*values: Any) -> str:
     return ""
 
 
+def _public_entity_route_id(entity_type: str, identifier: str) -> str:
+    marker = f":{entity_type}:"
+    if entity_type in {"competition", "player"} and marker in identifier:
+        return identifier.rsplit(marker, 1)[-1] or identifier
+    return identifier
+
+
 def _entity_href(entity_type: str, entity_id: Any, label: Any = "") -> str:
     identifier = _text(entity_id)
     display = _text(label)
     if entity_type == "team" and display:
         return f"/team/{quote(display, safe='')}"
     if entity_type == "competition" and identifier:
-        return f"/competition/{quote(identifier, safe='')}"
+        return f"/competition/{quote(_public_entity_route_id(entity_type, identifier), safe='')}"
     if entity_type == "player" and identifier:
-        return f"/player/{quote(identifier, safe='')}"
+        return f"/player/{quote(_public_entity_route_id(entity_type, identifier), safe='')}"
     return ""
 
 
@@ -176,6 +186,238 @@ def _real_statistics(
 
 
 
+
+def _phase_label(status: Any, phase: Any) -> str:
+    key = _text(phase or status).lower()
+    return {
+        "scheduled": "Programado",
+        "pre_match": "Previa",
+        "live": "En directo",
+        "halftime": "Descanso",
+        "second_half": "Segundo tiempo",
+        "extra_time": "Prórroga",
+        "penalties": "Penaltis",
+        "postponed": "Aplazado",
+        "suspended": "Suspendido",
+        "cancelled": "Cancelado",
+        "finished": "Finalizado",
+    }.get(key, "Estado pendiente")
+
+
+def _explicit_stale_flag(
+    raw_match: Mapping[str, Any] | None = None,
+    live: Mapping[str, Any] | None = None,
+) -> bool:
+    match = _mapping(raw_match)
+    tracker = _mapping(live)
+    match_freshness = _mapping(match.get("v935_freshness") or match.get("freshness"))
+    tracker_freshness = _mapping(tracker.get("v935_freshness") or tracker.get("freshness"))
+    return bool(
+        match.get("is_stale")
+        or match.get("stale")
+        or match_freshness.get("is_stale")
+        or tracker.get("is_stale")
+        or tracker.get("stale")
+        or tracker_freshness.get("is_stale")
+    )
+
+
+def _lifecycle_from_domain(
+    canonical_match: Mapping[str, Any],
+    *,
+    raw_match: Mapping[str, Any] | None = None,
+    live: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    match = _mapping(canonical_match)
+    freshness = _mapping(match.get("freshness"))
+    status = _text(match.get("status")).lower()
+    phase = _text(match.get("phase")).lower()
+    minute = match.get("minute")
+    is_finished = status == "finished" or phase == "finished"
+    is_live = status in {"live", "halftime"} or phase in {
+        "live",
+        "halftime",
+        "second_half",
+        "extra_time",
+        "penalties",
+    }
+    explicit_stale = _explicit_stale_flag(raw_match, live)
+    derived_stale_without_confirmed_live = (
+        freshness.get("state") == "stale" and not _mapping(live).get("available")
+    )
+    return {
+        "key": (phase or status or "unknown").upper(),
+        "label": _phase_label(status, phase),
+        "is_finished": is_finished,
+        "is_live": is_live and not is_finished,
+        "is_stale": explicit_stale or derived_stale_without_confirmed_live,
+        "minute": minute,
+        "phase": phase or status or "unknown",
+        "source": match.get("source"),
+        "evidence_state": match.get("data_quality") or "INSUFFICIENT_DATA",
+    }
+
+
+def _score_from_domain(canonical_match: Mapping[str, Any], display: Mapping[str, Any]) -> dict[str, Any]:
+    score = _mapping(_mapping(canonical_match).get("score"))
+    if score.get("confirmed"):
+        return {
+            "home": score.get("home"),
+            "away": score.get("away"),
+            "label": score.get("label") or f"{score.get('home')}-{score.get('away')}",
+            "confirmed": True,
+        }
+    label = _text(display.get("client_score_label"))
+    if label.lower() in {"", "-", "vs", "pendiente"}:
+        label = "VS"
+    return {"home": None, "away": None, "label": label or "VS", "confirmed": False}
+
+
+def _team_view_from_domain(entity: Mapping[str, Any], *, side: str) -> dict[str, Any]:
+    team = _mapping(entity)
+    name = _text(team.get("display_name") or team.get("official_name")) or (
+        "Equipo local pendiente" if side == "home" else "Equipo visitante pendiente"
+    )
+    return {
+        "id": team.get("canonical_team_id"),
+        "name": name,
+        "logo": team.get("crest"),
+        "flag": team.get("country_flag") or team.get("flag"),
+        "href": _entity_href("team", team.get("canonical_team_id"), name),
+        "source": team.get("source"),
+        "data_quality": team.get("data_quality"),
+        "limitations": list(team.get("limitations") or []),
+    }
+
+
+def _teams_from_domain(canonical_match: Mapping[str, Any]) -> dict[str, Any]:
+    match = _mapping(canonical_match)
+    return {
+        "home": _team_view_from_domain(_mapping(match.get("home_team")), side="home"),
+        "away": _team_view_from_domain(_mapping(match.get("away_team")), side="away"),
+    }
+
+
+def _competition_from_domain(canonical_match: Mapping[str, Any]) -> dict[str, Any]:
+    competition = _mapping(_mapping(canonical_match).get("competition"))
+    name = _text(competition.get("display_name") or competition.get("official_name"))
+    identifier = competition.get("canonical_competition_id")
+    available = bool(name and competition.get("data_quality") != "INSUFFICIENT_DATA")
+    return {
+        "id": identifier,
+        "name": name or "Competición pendiente",
+        "round": _text(_mapping(canonical_match).get("round") or competition.get("stage")),
+        "country": _text(competition.get("country")),
+        "flag": competition.get("logo"),
+        "href": _entity_href("competition", identifier, name) if identifier else "",
+        "available": available,
+        "source": competition.get("source"),
+        "data_quality": competition.get("data_quality"),
+        "limitations": list(competition.get("limitations") or []),
+    }
+
+
+def _timeline_from_domain(canonical_events: Iterable[Mapping[str, Any]]) -> list[dict[str, Any]]:
+    timeline: list[dict[str, Any]] = []
+    for event in canonical_events or []:
+        item = legacy_event_from_entity(event)
+        if not item:
+            continue
+        entity = _mapping(event)
+        if entity.get("provider_event_id"):
+            item["id"] = entity.get("provider_event_id")
+        item["canonical_event_id"] = entity.get("canonical_event_id")
+        item["timeline_event_contract"] = entity.get("contract")
+        item["canonical_event"] = dict(event)
+        timeline.append(item)
+    return timeline
+
+
+def _freshness_label(freshness: Mapping[str, Any]) -> str:
+    state = _text(_mapping(freshness).get("state")).lower()
+    return {
+        "fresh": "Fresco",
+        "aging": "Válido con antigüedad",
+        "stale": "Desactualizado",
+        "unknown": "Frescura desconocida",
+        "unavailable": "No disponible",
+    }.get(state, "No disponible")
+
+
+def _evidence_label(value: Any) -> str:
+    key = _text(value).upper()
+    return {
+        "VERIFIED": "Confirmado",
+        "PARTIALLY_VERIFIED": "Parcial",
+        "NOT_CERTIFIED": "No certificado",
+        "NOT_CONFIGURED": "No configurado",
+        "STALE": "Desactualizado",
+        "BLOCKED_BY_ACCESS": "Bloqueado por acceso",
+        "HYPOTHESIS": "Hipótesis",
+        "INSUFFICIENT_DATA": "Datos insuficientes",
+        "REQUIRES_REVIEW": "Requiere revisión",
+        "AVAILABLE": "Disponible",
+        "PARTIAL": "Parcial",
+    }.get(key, "No certificado")
+
+
+
+def _public_limitation(value: Any) -> str:
+    text = _text(value)[:180]
+    lower = text.lower()
+    if not text:
+        return "Información pendiente."
+    if "source timestamp" in lower or "marca temporal" in lower:
+        return "No hay marca temporal confirmada."
+    if "outside the freshness" in lower or "stale" in lower:
+        return "La información está fuera de la ventana de frescura."
+    if "team crest" in lower or "crest" in lower:
+        return "Escudo no disponible."
+    if "competition logo" in lower or "logo" in lower:
+        return "Logo no disponible."
+    if "team name" in lower:
+        return "Nombre de equipo pendiente."
+    if "competition name" in lower:
+        return "Nombre de competición pendiente."
+    if "player photo" in lower:
+        return "Foto de jugador no disponible."
+    if "player name" in lower:
+        return "Nombre de jugador pendiente."
+    if "fallback id" in lower or "stable visible facts" in lower:
+        return "Identificador derivado de datos visibles, pendiente de confirmación oficial."
+    if "multiple provider" in lower or "explicit mapping" in lower:
+        return "Hay identificadores de proveedor que requieren revisión."
+    if "no safe identifier" in lower:
+        return "No existe identificador seguro confirmado."
+    if "fresh_provider_statistics" in lower:
+        return "Faltan estadísticas frescas del proveedor."
+    if "canonical_match_status" in lower or "match_status" in lower:
+        return "Estado del partido pendiente."
+    return text
+
+def _source_label(value: Any) -> str:
+    source = _text(value).replace("_", " ")
+    return source.title() if source else "Fuente no identificada"
+
+
+def _transparency_block(
+    *,
+    source: Any,
+    evidence_state: Any,
+    freshness: Mapping[str, Any] | None,
+    limitations: Iterable[Any] = (),
+    confidence: Any = None,
+) -> dict[str, Any]:
+    fresh = _mapping(freshness)
+    clean_limitations = [_public_limitation(item) for item in limitations if _text(item)]
+    return {
+        "source": _source_label(source),
+        "evidence": _evidence_label(evidence_state),
+        "freshness": _freshness_label(fresh),
+        "confidence": confidence if confidence not in (None, "") else "No probabilística",
+        "limitations": clean_limitations[:3],
+    }
+
 def _navigation(
     teams: Mapping[str, Any],
     competition: Mapping[str, Any],
@@ -208,66 +450,6 @@ def _navigation(
         "competition": dict(competition),
         "players": players,
         "broken_links_allowed": False,
-    }
-
-
-def _score(match: Mapping[str, Any], display: Mapping[str, Any]) -> dict[str, Any]:
-    home = match.get("home_score")
-    away = match.get("away_score")
-    confirmed = _present(home) and _present(away)
-    label = _text(display.get("client_score_label"))
-    if confirmed:
-        label = f"{home}-{away}"
-    elif label.lower() in {"", "-", "vs", "pendiente"}:
-        label = "VS"
-    return {
-        "home": home if confirmed else None,
-        "away": away if confirmed else None,
-        "label": label,
-        "confirmed": confirmed,
-    }
-
-
-def _lifecycle(match: Mapping[str, Any], detail: Mapping[str, Any]) -> dict[str, Any]:
-    status_info = _mapping(match.get("status_info"))
-    live_depth = _mapping(match.get("live_depth") or detail.get("state"))
-    key = _text(
-        match.get("v935_lifecycle")
-        or status_info.get("key")
-        or live_depth.get("state")
-        or match.get("status")
-    ).upper()
-    label = _text(
-        status_info.get("label")
-        or live_depth.get("label")
-        or match.get("client_status_label")
-        or match.get("status")
-    )
-    is_finished = bool(status_info.get("is_finished")) or key in {
-        "FT",
-        "FINISHED",
-        "FINAL",
-        "FINALIZADO",
-    }
-    is_live = bool(status_info.get("is_live")) or key in {
-        "LIVE",
-        "HT",
-        "1H",
-        "2H",
-        "EN DIRECTO",
-    }
-    is_stale = bool(
-        match.get("is_stale")
-        or match.get("stale")
-        or _mapping(match.get("v935_freshness")).get("is_stale")
-    )
-    return {
-        "key": key or "UNKNOWN",
-        "label": label or "Estado pendiente",
-        "is_finished": is_finished,
-        "is_live": is_live and not is_finished,
-        "is_stale": is_stale,
-        "minute": match.get("minute") or live_depth.get("minute"),
     }
 
 
@@ -373,7 +555,12 @@ class MatchContext:
     live_story: dict[str, Any]
     domain_model: dict[str, Any]
     sports_graph: dict[str, Any]
+    sports_knowledge: dict[str, Any]
     telegram_readonly_contract: dict[str, Any]
+    transparency: dict[str, dict[str, Any]]
+    experience_blocks: list[dict[str, Any]]
+    absent_information: list[str]
+    prepared_integrations: list[dict[str, Any]]
     components: dict[str, dict[str, Any]]
     evidence: dict[str, Any]
     limitations: list[str]
@@ -396,11 +583,8 @@ def build_match_context(
     match = _mapping(detail_data.get("match"))
     display = _mapping(madrid_context)
     live = _mapping(live_context or detail_data.get("api_football_live_tracker"))
-    lifecycle = _lifecycle(match, detail_data)
-    score = _score(match, display)
-    shell_state = _shell_state(match, lifecycle, offline=offline)
-
     live_events = _items(live.get("events"))
+    raw_timeline_total = len(live_events)
     if live_events:
         provider = _text(live.get("provider"))
         raw_timeline = [
@@ -408,21 +592,13 @@ def build_match_context(
             for event in live_events
         ]
     else:
-        raw_timeline = _items(detail_data.get("timeline") or detail_data.get("events"))
-    live_story = build_match_live_story(match, raw_timeline)
-    timeline = _items(live_story.get("timeline"))
-    latest_event = _mapping(live_story.get("latest_event"))
-    event_summary = {
-        "available": bool(timeline),
-        "count": len(timeline),
-        "latest": latest_event,
-        "items": timeline,
-        "raw_count": len(raw_timeline),
-        "excluded_without_evidence": max(0, len(raw_timeline) - len(timeline)),
-        "source": _text(live.get("provider")) or None,
-    }
-
-    statistics = _real_statistics(live, lifecycle)
+        raw_timeline_source = _items(detail_data.get("timeline") or detail_data.get("events"))
+        raw_timeline_total = len(raw_timeline_source)
+        raw_timeline = [
+            event
+            for event in raw_timeline_source
+            if _text(event.get("source") or event.get("provider"))
+        ]
 
     related_picks = _items(detail_data.get("related_picks"))
     domain_model = build_unified_domain_snapshot(
@@ -437,59 +613,41 @@ def build_match_context(
         ),
     )
     canonical_match = _mapping(domain_model.get("match"))
-    canonical_timeline = _items(canonical_match.get("events"))
+    canonical_timeline = _items(
+        domain_model.get("timeline_events") or canonical_match.get("events")
+    )
+    timeline = _timeline_from_domain(canonical_timeline)
+    live_story = build_match_live_story(match, raw_timeline)
+    latest_event = timeline[-1] if timeline else {}
+    event_summary = {
+        "contract": "SPORTS-CORE-TIMELINE-EVENT-V1",
+        "available": bool(timeline),
+        "count": len(timeline),
+        "latest": latest_event,
+        "items": timeline,
+        "raw_count": raw_timeline_total,
+        "excluded_without_evidence": max(0, raw_timeline_total - len(canonical_timeline)),
+        "source": _text(canonical_match.get("source") or live.get("provider")) or None,
+    }
+
+    lifecycle = _lifecycle_from_domain(canonical_match, raw_match=match, live=live)
+    score = _score_from_domain(canonical_match, display)
+    shell_identity = {
+        "id": canonical_match.get("canonical_match_id") or match.get("id"),
+        "home_team": _mapping(canonical_match.get("home_team")).get("display_name") or match.get("home_team"),
+        "away_team": _mapping(canonical_match.get("away_team")).get("display_name") or match.get("away_team"),
+    }
+    shell_state = _shell_state(shell_identity, lifecycle, offline=offline)
+    statistics = _real_statistics(live, lifecycle)
     picks = {
         "available": bool(related_picks),
         "count": len(related_picks),
         "items": related_picks,
     }
 
-    home_identity = _mapping(match.get("home_identity"))
-    away_identity = _mapping(match.get("away_identity"))
-    home_name = _text(match.get("home_team")) or "Equipo local pendiente"
-    away_name = _text(match.get("away_team")) or "Equipo visitante pendiente"
-    teams = {
-        "home": {
-            "id": match.get("home_team_id"),
-            "name": home_name,
-            "logo": home_identity.get("logo")
-            or home_identity.get("crest_url")
-            or match.get("home_logo")
-            or match.get("home_crest"),
-            "flag": home_identity.get("country_flag")
-            or home_identity.get("flag_emoji"),
-            "href": _entity_href("team", match.get("home_team_id"), home_name),
-        },
-        "away": {
-            "id": match.get("away_team_id"),
-            "name": away_name,
-            "logo": away_identity.get("logo")
-            or away_identity.get("crest_url")
-            or match.get("away_logo")
-            or match.get("away_crest"),
-            "flag": away_identity.get("country_flag")
-            or away_identity.get("flag_emoji"),
-            "href": _entity_href("team", match.get("away_team_id"), away_name),
-        },
-    }
-
+    teams = _teams_from_domain(canonical_match)
     facts = _match_facts(match)
-    competition_name = _text(
-        display.get("client_competition")
-        or match.get("competition_name")
-        or match.get("league_name")
-    )
-    competition_id = match.get("competition_id") or match.get("competition_key")
-    competition = {
-        "id": competition_id,
-        "name": competition_name or "Competición pendiente",
-        "round": _text(match.get("round") or match.get("stage")),
-        "country": _text(match.get("country")),
-        "flag": facts.get("competition_flag"),
-        "href": _entity_href("competition", competition_id, competition_name),
-        "available": bool(competition_name),
-    }
-
+    competition = _competition_from_domain(canonical_match)
     madrid_time = {
         "label": _text(
             display.get("client_full_datetime_label")
@@ -528,6 +686,17 @@ def build_match_context(
         timeline_events=canonical_timeline,
         evidence=intelligence.get("evidence"),
         freshness=canonical_match.get("freshness"),
+    )
+    sports_knowledge = build_sports_knowledge_snapshot(
+        domain_model=domain_model,
+        match_intelligence=intelligence,
+        timeline_events=canonical_timeline,
+        related_picks=related_picks,
+        now_madrid=(
+            madrid_time.get("iso")
+            or live.get("updated_at")
+            or match.get("updated_at")
+        ),
     )
 
     limitations: list[str] = []
@@ -619,6 +788,99 @@ def build_match_context(
         ),
     }
 
+    freshness = _mapping(canonical_match.get("freshness"))
+    intelligence_quality = _mapping(intelligence.get("quality"))
+    intelligence_state = intelligence.get("certification_state") or canonical_match.get("data_quality")
+    match_limitations = list(canonical_match.get("limitations") or [])
+    missing_from_conclusions = sorted({
+        _text(item)
+        for conclusion in _mapping(intelligence.get("conclusions")).values()
+        if isinstance(conclusion, Mapping)
+        for item in (conclusion.get("missing_information") or [])
+        if _text(item)
+    })
+    absent_information = sorted({
+        item
+        for item in (limitations + match_limitations + missing_from_conclusions)
+        if _text(item)
+    })
+    risk_conclusion = _mapping(_mapping(intelligence.get("conclusions")).get("riesgo"))
+    risk_value = _mapping(risk_conclusion.get("value"))
+    risk_flags = _items(risk_value.get("flags"))
+    risk_limitations = list(risk_conclusion.get("limitations") or [])
+    if not risk_flags and not risk_limitations:
+        risk_limitations = ["No hay riesgos deportivos confirmados con la evidencia actual."]
+
+    transparency = {
+        "summary": _transparency_block(
+            source=canonical_match.get("source"),
+            evidence_state=canonical_match.get("data_quality"),
+            freshness=freshness,
+            limitations=match_limitations,
+        ),
+        "status": _transparency_block(
+            source=lifecycle.get("source") or canonical_match.get("source"),
+            evidence_state=lifecycle.get("evidence_state"),
+            freshness=freshness,
+            limitations=match_limitations,
+        ),
+        "score": _transparency_block(
+            source=canonical_match.get("source"),
+            evidence_state="VERIFIED" if score.get("confirmed") else "INSUFFICIENT_DATA",
+            freshness=freshness,
+            limitations=[] if score.get("confirmed") else ["Marcador no confirmado."],
+        ),
+        "timeline": _transparency_block(
+            source=event_summary.get("source"),
+            evidence_state="VERIFIED" if event_summary.get("available") else "INSUFFICIENT_DATA",
+            freshness=freshness,
+            limitations=[] if event_summary.get("available") else ["Sin eventos confirmados."],
+        ),
+        "intelligence": _transparency_block(
+            source=canonical_match.get("source"),
+            evidence_state=intelligence_state,
+            freshness=freshness,
+            confidence=intelligence_quality.get("quality_label") or intelligence_quality.get("numeric_confidence_score"),
+            limitations=intelligence.get("limitations") or missing_from_conclusions,
+        ),
+        "statistics": _transparency_block(
+            source=statistics.get("source"),
+            evidence_state="VERIFIED" if statistics.get("available") else "INSUFFICIENT_DATA",
+            freshness=freshness,
+            limitations=[] if statistics.get("available") else ["Sin estadísticas confirmadas."],
+        ),
+        "data_quality": _transparency_block(
+            source=canonical_match.get("source"),
+            evidence_state=canonical_match.get("data_quality"),
+            freshness=freshness,
+            limitations=absent_information,
+        ),
+    }
+    experience_blocks = [
+        {"id": "summary", "label": "Resumen del partido", "available": True},
+        {"id": "status", "label": "Estado actual", "available": lifecycle.get("key") != "UNKNOWN"},
+        {"id": "score", "label": "Marcador", "available": score.get("confirmed")},
+        {"id": "timeline", "label": "Cronología", "available": event_summary.get("available")},
+        {"id": "intelligence", "label": "Inteligencia", "available": shark_context.get("available")},
+        {"id": "evidence", "label": "Evidencia", "available": bool(intelligence.get("evidence"))},
+        {"id": "context", "label": "Contexto", "available": competition.get("available")},
+        {"id": "teams", "label": "Equipos", "available": bool(teams.get("home") and teams.get("away"))},
+        {"id": "competition", "label": "Competición", "available": competition.get("available")},
+        {"id": "statistics", "label": "Estadísticas disponibles", "available": statistics.get("available")},
+        {"id": "risks", "label": "Riesgos", "available": bool(risk_flags)},
+        {"id": "data_quality", "label": "Calidad de datos", "available": True},
+        {"id": "freshness", "label": "Frescura", "available": bool(freshness)},
+        {"id": "missing", "label": "Información ausente", "available": bool(absent_information)},
+    ]
+    prepared_integrations = [
+        {"name": "Team Center", "state": "Preparado", "contract": navigation.get("contract"), "write_authorized": False},
+        {"name": "Competition Center", "state": "Preparado", "contract": navigation.get("contract"), "write_authorized": False},
+        {"name": "Player Center", "state": "Preparado", "contract": navigation.get("contract"), "write_authorized": False},
+        {"name": "Sports Graph", "state": "Preparado", "contract": _mapping(domain_model.get("sports_graph")).get("contract"), "write_authorized": False},
+        {"name": "Sports Knowledge", "state": "Preparado", "contract": sports_knowledge.get("contract"), "write_authorized": False},
+        {"name": "SHARK", "state": "Conectado", "contract": intelligence.get("contract"), "write_authorized": False},
+        {"name": "Telegram", "state": "Solo lectura", "contract": telegram_readonly_contract.get("contract"), "write_authorized": False},
+    ]
     context = MatchContext(
         contract=MATCH_CENTER_CONTRACT,
         foundation=MATCH_CENTER_FOUNDATION,
@@ -641,15 +903,18 @@ def build_match_context(
         live_story=live_story,
         domain_model=domain_model,
         sports_graph=_mapping(domain_model.get("sports_graph")),
+        sports_knowledge=sports_knowledge,
         telegram_readonly_contract=telegram_readonly_contract,
+        transparency=transparency,
+        experience_blocks=experience_blocks,
+        absent_information=absent_information,
+        prepared_integrations=prepared_integrations,
         components=components,
         evidence={
-            "source": _text(match.get("source") or match.get("v935_source"))
-            or "Fuente no identificada",
-            "updated_at": match.get("updated_at"),
-            "certification_state": _text(match.get("certification_state"))
-            or ("PARTIAL" if limitations else "AVAILABLE"),
-            "match_id": match.get("id") or detail_data.get("id"),
+            "source": _source_label(canonical_match.get("source") or match.get("source") or match.get("v935_source")),
+            "updated_at": canonical_match.get("source_timestamp") or match.get("updated_at"),
+            "certification_state": _evidence_label(canonical_match.get("data_quality") or ("PARTIAL" if limitations else "AVAILABLE")),
+            "match_id": canonical_match.get("canonical_match_id") or match.get("id") or detail_data.get("id"),
         },
         limitations=limitations,
         diagnostics={
@@ -661,9 +926,16 @@ def build_match_context(
             "match_intelligence_reused_by_shark": True,
             "sports_domain_model_contract": domain_model.get("contract"),
             "sports_graph_write_authorized": False,
+            "sports_knowledge_contract": sports_knowledge.get("contract"),
+            "sports_knowledge_single_domain_snapshot": _mapping(sports_knowledge.get("diagnostics")).get("single_domain_snapshot"),
+            "sports_knowledge_database_writes": _mapping(sports_knowledge.get("diagnostics")).get("database_writes"),
+            "sports_knowledge_external_calls": _mapping(sports_knowledge.get("diagnostics")).get("external_calls"),
             "telegram_readonly_contract": telegram_readonly_contract.get("contract"),
             "component_contracts": list(MATCH_CENTER_COMPONENTS),
             "canonical_states": list(CANONICAL_COMPONENT_STATES),
+            "timeline_event_contract": event_summary.get("contract"),
+            "match_center_2_transparency": True,
+            "experience_blocks": [item["id"] for item in experience_blocks],
         },
     )
     return context.to_dict()

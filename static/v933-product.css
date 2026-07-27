@@ -1635,6 +1635,83 @@ body.ns-app .v934-realtime-state { border-radius: 7px !important; }
   border-radius: 50%;
   background: #e8b93f;
 }
+.v944-experience-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  min-width: 0;
+}
+.v944-experience-grid article {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--v944-line);
+  border-radius: 6px;
+  background: var(--v944-surface-soft);
+}
+.v944-experience-grid span,
+.v944-quality-grid span,
+.v944-integration-strip span {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  color: var(--v944-muted);
+  font-size: .6rem;
+  line-height: 1.35;
+}
+.v944-experience-grid strong,
+.v944-quality-grid b,
+.v944-integration-strip b {
+  min-width: 0;
+  color: #fff;
+  font-size: .7rem;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+.v944-experience-grid p {
+  margin: 7px 0 0;
+  color: var(--v944-muted);
+  font-size: .64rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+.v944-transparency {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 7px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--v944-line);
+}
+.v944-transparency span,
+.v944-quality-grid span,
+.v944-integration-strip span {
+  padding: 8px;
+  border: 1px solid rgba(145, 177, 211, .14);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, .024);
+  overflow-wrap: anywhere;
+}
+.v944-limitations.is-compact {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 9px;
+}
+.v944-domain-quality {
+  border-color: rgba(73, 190, 231, .24);
+  background: linear-gradient(180deg, rgba(73, 190, 231, .055), rgba(6, 18, 32, .94));
+}
+.v944-quality-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  min-width: 0;
+}
+.v944-integration-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+  min-width: 0;
+}
 .v944-timeline {
   display: grid;
   gap: 0;
@@ -1857,6 +1934,11 @@ body.ns-app .v934-realtime-state { border-radius: 7px !important; }
   .v944-stats__header { font-size: .54rem; }
   .v944-stats__row > span { font-size: .66rem; }
   .v944-stats__row > strong { font-size: .57rem; }
+  .v944-experience-grid,
+  .v944-quality-grid,
+  .v944-integration-strip { grid-template-columns: minmax(0, 1fr); }
+  .v944-transparency { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .v944-limitations.is-compact { grid-template-columns: minmax(0, 1fr); }
   .v944-match-evidence { display: grid; gap: 5px; }
 }
 @media (max-width: 420px) {
@@ -1865,6 +1947,7 @@ body.ns-app .v934-realtime-state { border-radius: 7px !important; }
   .v944-match-team .v933-team-logo { width: 42px; height: 42px; }
   .v944-match-panel__header { align-items: flex-start; }
   .v944-component-state { padding-inline: 6px; font-size: .51rem; }
+  .v944-transparency { grid-template-columns: minmax(0, 1fr); }
 }
 @media (prefers-reduced-motion: reduce) {
   .v944-match-center *,

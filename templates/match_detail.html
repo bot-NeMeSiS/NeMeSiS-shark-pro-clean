@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% from "components/v933_ui.html" import empty_state, page_header %}
-{% from "components/v944_match_center.html" import match_header, score_widget, match_story, timeline, stats_panel, shark_panel, telegram_panel, bankroll_panel, competition_panel, quick_actions %}
+{% from "components/v944_match_center.html" import match_header, score_widget, match_story, timeline, stats_panel, shark_panel, telegram_panel, bankroll_panel, competition_panel, quick_actions, data_quality_panel %}
 {% from "components/v937_sports_lifecycle.html" import data_confidence_panel %}
 {% block content %}
 {% if not detail or not match_context %}
@@ -15,6 +15,7 @@
      data-sports-core-match-center="intelligence-phase-1"
      data-match-contract="{{ match_context.get('contract') }}"
      data-match-intelligence-contract="{{ match_context.get('intelligence', {}).get('contract') }}"
+     data-sports-domain-model="{{ match_context.get('domain_model', {}).get('contract') }}"
      data-match-state="{{ match_context.get('state') }}"
      data-match-id="{{ match_context.get('match', {}).get('id') or '' }}">
   <div class="v944-match-anchor">
@@ -28,6 +29,7 @@
       {{ timeline(match_context) }}
       {{ stats_panel(match_context) }}
       {{ competition_panel(match_context) }}
+      {{ data_quality_panel(match_context) }}
     </section>
 
     <aside class="v944-match-rail" aria-label="Contexto y continuidad del partido">
