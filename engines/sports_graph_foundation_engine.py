@@ -65,6 +65,7 @@ def _entity(entity_type: str, entity_id: Any, label: Any, *, source: Any, state:
 def build_sports_graph_relationships(
     *,
     team_entity: Mapping[str, Any] | None = None,
+    team_entities: Iterable[Mapping[str, Any]] | None = None,
     match_entities: Iterable[Mapping[str, Any]] | None = None,
     competition_entities: Iterable[Mapping[str, Any]] | None = None,
     timeline_events: Iterable[Mapping[str, Any]] | None = None,
@@ -75,10 +76,14 @@ def build_sports_graph_relationships(
     telegram_context: Mapping[str, Any] | None = None,
     shark_context: Mapping[str, Any] | None = None,
     observed_at_madrid: Any = "",
+    center: str = "team_center",
 ) -> dict[str, Any]:
     """Build canonical relationship edges without persistence."""
 
     team = _mapping(team_entity)
+    team_items = _items(team_entities)
+    if team:
+        team_items.insert(0, team)
     matches = _items(match_entities)
     competitions = _items(competition_entities)
     events = _items(timeline_events)
@@ -88,7 +93,7 @@ def build_sports_graph_relationships(
     odd_items = _items(odds)
     telegram = _mapping(telegram_context)
     shark = _mapping(shark_context)
-    source = team.get("source") or "sports_core"
+    source = team.get("source") or (team_items[0].get("source") if team_items else "") or "sports_core"
     edges: list[dict[str, Any]] = []
     skipped: list[dict[str, Any]] = []
 
@@ -110,13 +115,31 @@ def build_sports_graph_relationships(
                 "target": getattr(target_ref, "entity_id", ""),
             })
 
-    team_ref = _entity(
-        "team",
-        team.get("canonical_team_id") or team.get("id") or team.get("key"),
-        team.get("display_name") or team.get("name"),
-        source=source,
-        state=team.get("data_quality") or "PARTIALLY_VERIFIED",
-    )
+    team_refs: dict[str, Any] = {}
+    for item in team_items:
+        team_ref_item = _entity(
+            "team",
+            item.get("canonical_team_id") or item.get("id") or item.get("key"),
+            item.get("display_name") or item.get("official_name") or item.get("name"),
+            source=item.get("source") or source,
+            state=item.get("data_quality") or "PARTIALLY_VERIFIED",
+        )
+        for alias in (
+            team_ref_item.entity_id,
+            item.get("canonical_team_id"),
+            item.get("id"),
+            item.get("key"),
+            item.get("display_name"),
+            item.get("official_name"),
+            item.get("name"),
+        ):
+            normalized_alias = _text(alias, 160)
+            if normalized_alias:
+                team_refs[normalized_alias] = team_ref_item
+                team_refs[normalized_alias.casefold()] = team_ref_item
+                if ":" in normalized_alias:
+                    team_refs[normalized_alias.rsplit(":", 1)[-1]] = team_ref_item
+    team_ref = next(iter(team_refs.values()), None)
     match_refs = []
     match_ref_aliases: dict[str, Any] = {}
     competition_refs: dict[str, Any] = {}
@@ -168,8 +191,26 @@ def build_sports_graph_relationships(
             state=match.get("data_quality") or "PARTIALLY_VERIFIED",
             reference=match_id,
         )
-        add(match_ref, "match_has_team", team_ref, ev)
-        add(team_ref, "team_has_match", match_ref, ev)
+        match_teams = [
+            _mapping(match.get("home_team")),
+            _mapping(match.get("away_team")),
+        ]
+        related_team_refs = []
+        for match_team in match_teams:
+            for alias in (
+                match_team.get("canonical_team_id"),
+                match_team.get("display_name"),
+                match_team.get("official_name"),
+            ):
+                normalized_alias = _text(alias, 160)
+                related_ref = team_refs.get(normalized_alias) or team_refs.get(normalized_alias.casefold())
+                if related_ref and related_ref not in related_team_refs:
+                    related_team_refs.append(related_ref)
+        if not related_team_refs and team_ref is not None:
+            related_team_refs.append(team_ref)
+        for related_team_ref in related_team_refs:
+            add(match_ref, "match_has_team", related_team_ref, ev)
+            add(related_team_ref, "team_has_match", match_ref, ev)
         comp = _mapping(match.get("competition"))
         comp_id = comp.get("canonical_competition_id") or match.get("competition_id")
         if comp_id and str(comp_id) not in competition_refs:
@@ -184,8 +225,9 @@ def build_sports_graph_relationships(
         if comp_ref:
             add(match_ref, "match_belongs_to_competition", comp_ref, ev)
             add(comp_ref, "competition_has_match", match_ref, ev)
-            add(team_ref, "team_competes_in_competition", comp_ref, ev)
-            add(comp_ref, "competition_has_team", team_ref, ev)
+            for related_team_ref in related_team_refs:
+                add(related_team_ref, "team_competes_in_competition", comp_ref, ev)
+                add(comp_ref, "competition_has_team", related_team_ref, ev)
         season = match.get("season") or comp.get("season")
         if season:
             season_ref = season_refs.setdefault(
@@ -231,7 +273,8 @@ def build_sports_graph_relationships(
             )
             add(player_ref, "player_appears_in_event", event_ref, ev)
             add(event_ref, "event_has_player", player_ref, ev)
-            add(player_ref, "player_linked_to_team", team_ref, ev)
+            if team_ref is not None:
+                add(player_ref, "player_linked_to_team", team_ref, ev)
 
     for item in evidence:
         evidence_id = item.get("evidence_id") or item.get("id")
@@ -283,7 +326,7 @@ def build_sports_graph_relationships(
     return {
         "ok": True,
         "contract": SPORTS_GRAPH_FOUNDATION_CONTRACT,
-        "center": "team_center",
+        "center": _text(center, 80) or "team_center",
         "edge_count": len(edges),
         "edges": edges,
         "relationships": relations,

@@ -1,14 +1,22 @@
-﻿# Sports Core Foundation Next Steps
+# Sports Core Foundation Next Steps
 
 ## Immediate
 
 1. Run full repository QA: py_compile, compileall, full pytest, Jinja, route/link audit, Sentinel, Secret/Privacy Guard and Browser QA.
-2. Review Browser QA screenshots for Match Center, Live, Calendar, Picks and SHARK.
+2. Review Browser QA screenshots for Match Center, Team Center, Competition Center, Live, Calendar, Picks and SHARK.
 3. Confirm no runtime route exposes raw provider JSON or debug-only domain internals.
+
+## Current Sports Core State
+
+- Match Center 2.0: PASS local, not production certified in this sprint.
+- Sports Knowledge Layer: PASS local.
+- Sports Graph Foundation: PASS local.
+- Team Center Premium Experience: PASS local.
+- Competition Center Premium League Intelligence: PASS local.
 
 ## Next Sports Core Sprint
 
-Implement the next approved Match Center increment using the canonical domain model as the only input language.
+Implement Player Center only after Competition Center closure is accepted. It must consume Player Entity and Sports Graph relationships without creating a parallel model.
 
 ## Team Center Foundation
 
@@ -16,7 +24,7 @@ Use Team Entity and Sports Graph relationships. Do not normalize team names agai
 
 ## Competition Center Foundation
 
-Use Competition Entity and Sports Graph relationships. Do not merge competitions by display name.
+Implemented locally as Competition Center Premium League Intelligence. It consumes Competition Entity, Team Entity, Match Entity, Sports Knowledge and Sports Graph; it does not merge competitions by display name and does not invent standings.
 
 ## Player Center Foundation
 

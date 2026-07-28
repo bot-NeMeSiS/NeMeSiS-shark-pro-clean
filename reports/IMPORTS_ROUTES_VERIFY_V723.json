@@ -1,6 +1,6 @@
 {
   "ok": true,
-  "checked_at": "2026-07-28T07:27:23",
+  "checked_at": "2026-07-28T09:52:27",
   "templates_referenced": [
     "404.html",
     "500.html",
@@ -108,6 +108,7 @@
     "client_overview.html",
     "client_success.html",
     "combis.html",
+    "competition_detail.html",
     "crests.html",
     "daily_briefing.html",
     "dynamic_mode.html",
@@ -149,7 +150,7 @@
   "missing_static": [],
   "import_ok": true,
   "version": "V940_NEMESIS_SPORTS_EXPERIENCE_PHASE_1_FOUNDATION_FINAL",
-  "route_count": 658,
+  "route_count": 659,
   "routes": [
     "/",
     "/actividad",
@@ -554,6 +555,7 @@
     "/api/client/world-cup-snapshot",
     "/api/combis",
     "/api/competitions",
+    "/api/competitions/<competition_id>/detail",
     "/api/crest-diagnostics",
     "/api/data-center/summary",
     "/api/data-center/warmup",

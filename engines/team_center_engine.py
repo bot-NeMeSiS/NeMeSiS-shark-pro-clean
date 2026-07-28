@@ -52,6 +52,20 @@ def _score_number(value: Any) -> int | None:
         return None
 
 
+def _competition_route_id(competition: Mapping[str, Any]) -> str:
+    providers = _mapping(competition.get("provider_competition_ids"))
+    for value in providers.values():
+        if _text(value, 160):
+            return _text(value, 160)
+    return _text(
+        competition.get("display_name")
+        or competition.get("official_name")
+        or competition.get("name")
+        or competition.get("canonical_competition_id"),
+        160,
+    )
+
+
 def _team_side(match: Mapping[str, Any], team_name: str) -> str:
     name = team_name.lower()
     if _text(match.get("home_team"), 160).lower() == name or _text(match.get("safe_home"), 160).lower() == name:
@@ -357,7 +371,7 @@ def build_team_center_context(
             "limitations": sorted(set((knowledge.get("limitations") or []) + missing)),
         },
         "links": {
-            "competition_center": "/competition/" + _text(competitions[0].get("canonical_competition_id") if competitions else "", 160) if competitions else "",
+            "competition_center": "/competition/" + _competition_route_id(competitions[0]) if competitions and _competition_route_id(competitions[0]) else "",
             "player_center": "",
             "match_center": "/match/" + _text(matches[0].get("id"), 160) if matches else "",
             "sports_graph": "",

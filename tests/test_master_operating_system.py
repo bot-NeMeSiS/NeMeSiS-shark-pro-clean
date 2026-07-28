@@ -65,8 +65,9 @@ def test_developer_snapshot_has_one_evidence_backed_source():
     assert capabilities["team_center"]["contract"] == "TEAM-CENTER-PREMIUM-CLUB-EXPERIENCE-V1"
     assert capabilities["sports_graph"]["state"] == "INTEGRATED"
     assert capabilities["sports_graph"]["contract"] == "SPORTS-GRAPH-FOUNDATION-RELATIONSHIPS-V1"
-    for key in ("competition_center", "player_center"):
-        assert capabilities[key]["state"] == "CONTRACT_READY"
+    assert capabilities["competition_center"]["state"] == "INTEGRATED"
+    assert capabilities["competition_center"]["contract"] == "COMPETITION-CENTER-LEAGUE-INTELLIGENCE-PLATFORM-V1"
+    assert capabilities["player_center"]["state"] == "CONTRACT_READY"
 
 
 def test_company_board_uses_shared_roadmap_and_reports_git_truth():

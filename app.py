@@ -133,6 +133,7 @@ from engines.match_intelligence_engine import build_match_intelligence, match_in
 from engines.video_highlights_engine import video_highlights_snapshot
 from engines.team_form_engine import team_form_snapshot
 from engines.team_center_engine import build_team_center_context
+from engines.competition_center_engine import build_competition_center_context
 from engines.standings_experience_engine import standings_snapshot
 from engines.alerts_engine import alerts_foundation_snapshot
 from engines.match_engine import hub_sections, real_time_state, sync_plan
@@ -6008,6 +6009,173 @@ def team_page_data(team_id, limit=80):
         "shark_context": shark_context_summary({"team": name, "upcoming": upcoming[:5], "picks": related[:5]}),
     }
     detail["team_center"] = build_team_center_context(
+        detail,
+        observed_at_madrid=today_iso(),
+    )
+    return detail
+
+
+
+def _competition_route_candidates(competition_id):
+    raw = str(competition_id or "").strip()
+    candidates = []
+    for value in (raw, slug(raw), spanish_competition_name(raw)):
+        value = str(value or "").strip()
+        if value and value not in candidates:
+            candidates.append(value)
+    return candidates
+
+
+def competition_lookup(competition_id):
+    candidates = _competition_route_candidates(competition_id)
+    for candidate in candidates:
+        comp = one(
+            """SELECT * FROM competitions
+               WHERE key=? OR external_id=? OR lower(name)=lower(?)
+               LIMIT 1""",
+            (candidate, candidate, candidate),
+        )
+        if comp:
+            comp["name"] = spanish_competition_name(comp.get("name")) or comp.get("name")
+            comp["country"] = spanish_country_name(comp.get("country")) or comp.get("country")
+            comp["region"] = spanish_country_name(comp.get("region")) or comp.get("region")
+            return comp
+    for candidate in candidates:
+        sample = one(
+            """SELECT
+                   COALESCE(competition_key, league_name, competition_name) AS key,
+                   COALESCE(competition_name, league_name, competition_key) AS name,
+                   country,
+                   competition_id AS external_id,
+                   source,
+                   updated_at
+               FROM matches
+               WHERE lower(COALESCE(competition_key,''))=lower(?)
+                  OR lower(COALESCE(league_name,''))=lower(?)
+                  OR lower(COALESCE(competition_name,''))=lower(?)
+               LIMIT 1""",
+            (candidate, candidate, candidate),
+        )
+        if sample:
+            sample["key"] = sample.get("key") or slug(sample.get("name") or candidate)
+            sample["name"] = spanish_competition_name(sample.get("name")) or sample.get("name")
+            sample["country"] = spanish_country_name(sample.get("country")) or sample.get("country")
+            sample["source"] = sample.get("source") or "matches"
+            return sample
+    return None
+
+
+def _competition_matches_for(competition, competition_id, limit=260):
+    candidates = _competition_route_candidates(competition_id)
+    for value in (
+        (competition or {}).get("key"),
+        (competition or {}).get("external_id"),
+        (competition or {}).get("name"),
+    ):
+        value = str(value or "").strip()
+        if value and value not in candidates:
+            candidates.append(value)
+    if not candidates:
+        return []
+    placeholders = ",".join(["?"] * len(candidates))
+    params = [str(item).lower() for item in candidates]
+    query = f"""SELECT * FROM matches
+                WHERE lower(COALESCE(competition_key,'')) IN ({placeholders})
+                   OR lower(COALESCE(league_name,'')) IN ({placeholders})
+                   OR lower(COALESCE(competition_name,'')) IN ({placeholders})
+                ORDER BY match_date DESC, kickoff_time DESC
+                LIMIT ?"""
+    result = rows(query, tuple(params + params + params + [int(limit)]))
+    return [annotate_match(match) for match in result if not is_fake_match(match)]
+
+
+def _competition_teams_for(matches, competition):
+    seen = {}
+    competition_name = (competition or {}).get("name") or ""
+    country = (competition or {}).get("country") or ""
+    for match in matches:
+        for side in ("home", "away"):
+            name = match.get(f"{side}_team")
+            if not name:
+                continue
+            key = canonical_team_key(name)
+            if key not in seen:
+                team = team_lookup(key) or team_lookup(name) or {"key": key, "name": name}
+                seen[key] = dict(team)
+                seen[key]["key"] = team.get("key") or key
+                seen[key]["name"] = team.get("name") or name
+                seen[key].setdefault("league", competition_name)
+                seen[key].setdefault("country", country)
+            logo_key = f"{side}_logo"
+            if match.get(logo_key) and not seen[key].get("logo_url"):
+                seen[key]["logo_url"] = match.get(logo_key)
+    return sorted(seen.values(), key=lambda item: str(item.get("name") or "").lower())
+
+
+def _competition_standings_for(competition, competition_id, limit=40):
+    if not db_table_exists("api_football_standings_deep"):
+        return []
+    candidates = _competition_route_candidates(competition_id)
+    for value in (
+        (competition or {}).get("key"),
+        (competition or {}).get("external_id"),
+        (competition or {}).get("name"),
+    ):
+        value = str(value or "").strip()
+        if value and value not in candidates:
+            candidates.append(value)
+    if not candidates:
+        return []
+    placeholders = ",".join(["?"] * len(candidates))
+    params = [str(item).lower() for item in candidates]
+    return rows(
+        f"""SELECT * FROM api_football_standings_deep
+            WHERE lower(COALESCE(league_id,'')) IN ({placeholders})
+               OR lower(COALESCE(league_name,'')) IN ({placeholders})
+            ORDER BY CAST(rank AS INTEGER), team_name
+            LIMIT ?""",
+        tuple(params + params + [int(limit)]),
+    )
+
+
+def _competition_picks_for(competition, matches, limit=30):
+    names = {
+        str((competition or {}).get("name") or "").lower(),
+        str((competition or {}).get("key") or "").lower(),
+        str((competition or {}).get("external_id") or "").lower(),
+    }
+    match_ids = {str(match.get("id") or match.get("external_id") or "") for match in matches}
+    related = []
+    for pick in get_picks(limit=160):
+        pick_competition = str(pick.get("competition_name") or pick.get("league_name") or pick.get("competition_key") or "").lower()
+        pick_match_id = str(pick.get("match_id") or pick.get("id") or "")
+        if (pick_competition and pick_competition in names) or (pick_match_id and pick_match_id in match_ids):
+            related.append(pick)
+    return related[: int(limit)]
+
+
+def competition_page_data(competition_id, limit=260):
+    competition = competition_lookup(competition_id)
+    if not competition:
+        return None
+    matches = _competition_matches_for(competition, competition_id, limit=limit)
+    teams = _competition_teams_for(matches, competition)
+    standings = _competition_standings_for(competition, competition_id)
+    picks = _competition_picks_for(competition, matches)
+    detail = {
+        "competition": competition,
+        "matches": matches,
+        "teams": teams,
+        "standings": standings,
+        "picks": picks,
+        "stats": {
+            "matches": len(matches),
+            "teams": len(teams),
+            "standings": len(standings),
+            "picks": len(picks),
+        },
+    }
+    detail["competition_center"] = build_competition_center_context(
         detail,
         observed_at_madrid=today_iso(),
     )
@@ -14871,17 +15039,27 @@ def team_page(team_id):
 @app.route("/competition/<competition_id>")
 @app.route("/competicion/<competition_id>")
 def competition_center_contract_page(competition_id):
-    return render_template(
-        "resource_unavailable.html",
-        title="Competition Center",
-        resource_title="Centro de competición preparado",
-        resource_message=(
-            "No disponible: todavía no existe información real suficiente para "
-            "abrir este centro. El contrato de navegación queda preparado sin "
-            "inventar clasificaciones, jornadas ni resultados."
-        ),
-    )
-
+    detail = competition_page_data(competition_id)
+    if not detail:
+        detail = {
+            "competition": {
+                "key": str(competition_id or ""),
+                "name": "No disponible",
+                "source": "route_fallback",
+            },
+            "matches": [],
+            "teams": [],
+            "standings": [],
+            "picks": [],
+            "stats": {"matches": 0, "teams": 0, "standings": 0, "picks": 0},
+        }
+        detail["competition_center"] = build_competition_center_context(
+            detail,
+            observed_at_madrid=today_iso(),
+        )
+    data = dashboard_data()
+    data["competition_detail"] = detail
+    return render_template("competition_detail.html", data=data, detail=detail)
 
 @app.route("/player/<player_id>")
 @app.route("/jugador/<player_id>")
@@ -21012,6 +21190,13 @@ def api_team_detail(team_id):
     if not detail:
         return jsonify({"ok": False, "error": "Equipo no encontrado"}), 404
     return jsonify({"ok": True, "team": detail})
+
+@app.route("/api/competitions/<competition_id>/detail")
+def api_competition_detail(competition_id):
+    detail = competition_page_data(competition_id)
+    if not detail:
+        return jsonify({"ok": False, "error": "Competicion no encontrada"}), 404
+    return jsonify({"ok": True, "competition": detail})
 
 @app.route("/api/import-teams", methods=["POST"])
 def api_import_teams():

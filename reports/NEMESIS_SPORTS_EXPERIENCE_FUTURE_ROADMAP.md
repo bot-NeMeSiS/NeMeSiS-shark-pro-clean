@@ -15,3 +15,13 @@ Contrato: SPORTS-CORE-UNIFIED-DOMAIN-MODEL-V1.
 Impacto: Match Center, Live Story, Match Intelligence, SHARK y Telegram read-only ya pueden hablar el mismo idioma para partidos, equipos, competiciones, jugadores, eventos, evidencia y frescura.
 
 Regla para siguientes sprints: Team Center, Competition Center y Player Center deben consumir estas entidades canonicas. No deben volver a normalizar nombres, estados o eventos por su cuenta.
+
+## Competition Center Premium League Intelligence
+
+Estado local: integrado y certificado con Browser QA desktop/tablet/mobile en DB temporal, sin deploy.
+
+Contrato: COMPETITION-CENTER-LEAGUE-INTELLIGENCE-PLATFORM-V1.
+
+Impacto: la competicion ya dispone de una experiencia premium que consume Sports Core, Sports Knowledge Layer y Sports Graph. Muestra cabecera, clasificacion real cuando existe, calendario, equipos enlazados, contexto SHARK basado en evidencia, transparencia, frescura y limitaciones sin crear datos ficticios.
+
+Siguiente modulo visible: Player Center. No comenzar antes de aceptar el cierre local del Competition Center.

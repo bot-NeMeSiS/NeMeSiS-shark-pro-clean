@@ -1,7 +1,7 @@
 {
   "version": "V892_SENTINEL_ISSUES_COMMAND_CENTER_COPY_FIX_PROMPTS_FINAL",
   "created_at_madrid": "2026-07-04T23:43:44+02:00",
-  "updated_at_madrid": "2026-07-28T07:27:25+02:00",
+  "updated_at_madrid": "2026-07-28T09:52:26+02:00",
   "issues": [
     {
       "title": "Texto tecnico visible",
@@ -1674,7 +1674,7 @@
       "status": "RESOLVED_BY_RESCAN",
       "source": "sentinel_autopilot",
       "detected_at_madrid": "2026-07-03T22:52:55+02:00",
-      "updated_at_madrid": "2026-07-28T07:27:25+02:00",
+      "updated_at_madrid": "2026-07-28T09:52:26+02:00",
       "route": "/partidos",
       "screen": "/partidos",
       "file": "",
@@ -1693,30 +1693,6 @@
       ],
       "resolved_at_madrid": null,
       "history": [
-        {
-          "at_madrid": "2026-07-11T21:01:24+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-11T21:01:33+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-12T02:38:20+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-12T02:38:21+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
         {
           "at_madrid": "2026-07-12T02:38:24+02:00",
           "event": "seen_again",
@@ -1812,10 +1788,34 @@
           "event": "seen_again",
           "source": "sentinel_autopilot",
           "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:47+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:48+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:25+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:26+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
         }
       ],
-      "occurrences": 777,
-      "last_seen_madrid": "2026-07-28T07:27:25+02:00",
+      "occurrences": 781,
+      "last_seen_madrid": "2026-07-28T09:52:26+02:00",
       "fingerprint": "da2623e31f944550",
       "id": "AP-3C673A27B2AB",
       "codex_prompt": "Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: Ruta con error 500 Categoria: route Ruta/pantalla: /partidos Evidencia: 500  Reglas sagradas: no tocar secretos, no enviar Telegram real, no inventar partidos/picks/cuotas/resultados, no tocar pagos reales, no borrar DB/usuarios, no hacer push/deploy automatico y preservar V818+.  Tarea: localizar la causa real, proponer un fix seguro, aplicar solo cambios controlados si son necesarios, ejecutar checks locales y documentar resultado, bloqueadores y siguiente accion.",
@@ -1833,7 +1833,7 @@
       "status": "RESOLVED_BY_RESCAN",
       "source": "sentinel_autopilot",
       "detected_at_madrid": "2026-07-03T22:52:55+02:00",
-      "updated_at_madrid": "2026-07-28T07:27:25+02:00",
+      "updated_at_madrid": "2026-07-28T09:52:26+02:00",
       "route": "/calendar",
       "screen": "/calendar",
       "file": "",
@@ -1852,30 +1852,6 @@
       ],
       "resolved_at_madrid": null,
       "history": [
-        {
-          "at_madrid": "2026-07-11T21:01:24+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-11T21:01:33+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-12T02:38:20+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-12T02:38:21+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
         {
           "at_madrid": "2026-07-12T02:38:24+02:00",
           "event": "seen_again",
@@ -1971,10 +1947,34 @@
           "event": "seen_again",
           "source": "sentinel_autopilot",
           "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:47+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:48+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:25+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:26+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
         }
       ],
-      "occurrences": 777,
-      "last_seen_madrid": "2026-07-28T07:27:25+02:00",
+      "occurrences": 781,
+      "last_seen_madrid": "2026-07-28T09:52:26+02:00",
       "fingerprint": "3feba2a3c7ad93bc",
       "id": "AP-CA5965DC1A4B",
       "codex_prompt": "Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: Ruta con error 500 Categoria: route Ruta/pantalla: /calendar Evidencia: 500  Reglas sagradas: no tocar secretos, no enviar Telegram real, no inventar partidos/picks/cuotas/resultados, no tocar pagos reales, no borrar DB/usuarios, no hacer push/deploy automatico y preservar V818+.  Tarea: localizar la causa real, proponer un fix seguro, aplicar solo cambios controlados si son necesarios, ejecutar checks locales y documentar resultado, bloqueadores y siguiente accion.",
@@ -1992,7 +1992,7 @@
       "status": "RESOLVED_BY_RESCAN",
       "source": "sentinel_autopilot",
       "detected_at_madrid": "2026-07-03T22:52:55+02:00",
-      "updated_at_madrid": "2026-07-28T07:27:25+02:00",
+      "updated_at_madrid": "2026-07-28T09:52:26+02:00",
       "route": "/live",
       "screen": "/live",
       "file": "",
@@ -2011,30 +2011,6 @@
       ],
       "resolved_at_madrid": null,
       "history": [
-        {
-          "at_madrid": "2026-07-11T21:01:24+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-11T21:01:33+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-12T02:38:20+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-12T02:38:21+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
         {
           "at_madrid": "2026-07-12T02:38:24+02:00",
           "event": "seen_again",
@@ -2130,10 +2106,34 @@
           "event": "seen_again",
           "source": "sentinel_autopilot",
           "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:47+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:48+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:25+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:26+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
         }
       ],
-      "occurrences": 777,
-      "last_seen_madrid": "2026-07-28T07:27:25+02:00",
+      "occurrences": 781,
+      "last_seen_madrid": "2026-07-28T09:52:26+02:00",
       "fingerprint": "07dd94f5bd383108",
       "id": "AP-BE9581754C93",
       "codex_prompt": "Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: Ruta con error 500 Categoria: route Ruta/pantalla: /live Evidencia: 500  Reglas sagradas: no tocar secretos, no enviar Telegram real, no inventar partidos/picks/cuotas/resultados, no tocar pagos reales, no borrar DB/usuarios, no hacer push/deploy automatico y preservar V818+.  Tarea: localizar la causa real, proponer un fix seguro, aplicar solo cambios controlados si son necesarios, ejecutar checks locales y documentar resultado, bloqueadores y siguiente accion.",
@@ -2151,7 +2151,7 @@
       "status": "RESOLVED_BY_RESCAN",
       "source": "sentinel_autopilot",
       "detected_at_madrid": "2026-07-03T22:52:55+02:00",
-      "updated_at_madrid": "2026-07-28T07:27:25+02:00",
+      "updated_at_madrid": "2026-07-28T09:52:26+02:00",
       "route": "/directo",
       "screen": "/directo",
       "file": "",
@@ -2170,30 +2170,6 @@
       ],
       "resolved_at_madrid": null,
       "history": [
-        {
-          "at_madrid": "2026-07-11T21:01:24+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-11T21:01:33+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-12T02:38:20+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-12T02:38:21+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
         {
           "at_madrid": "2026-07-12T02:38:24+02:00",
           "event": "seen_again",
@@ -2289,10 +2265,34 @@
           "event": "seen_again",
           "source": "sentinel_autopilot",
           "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:47+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:48+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:25+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:26+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
         }
       ],
-      "occurrences": 777,
-      "last_seen_madrid": "2026-07-28T07:27:25+02:00",
+      "occurrences": 781,
+      "last_seen_madrid": "2026-07-28T09:52:26+02:00",
       "fingerprint": "40256627ee676aab",
       "id": "AP-C6D8FD182771",
       "codex_prompt": "Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: Ruta con error 500 Categoria: route Ruta/pantalla: /directo Evidencia: 500  Reglas sagradas: no tocar secretos, no enviar Telegram real, no inventar partidos/picks/cuotas/resultados, no tocar pagos reales, no borrar DB/usuarios, no hacer push/deploy automatico y preservar V818+.  Tarea: localizar la causa real, proponer un fix seguro, aplicar solo cambios controlados si son necesarios, ejecutar checks locales y documentar resultado, bloqueadores y siguiente accion.",
@@ -2310,7 +2310,7 @@
       "status": "RESOLVED_BY_RESCAN",
       "source": "sentinel_autopilot",
       "detected_at_madrid": "2026-07-03T22:52:55+02:00",
-      "updated_at_madrid": "2026-07-28T07:27:25+02:00",
+      "updated_at_madrid": "2026-07-28T09:52:26+02:00",
       "route": "/picks",
       "screen": "/picks",
       "file": "",
@@ -2330,30 +2330,6 @@
       "resolved_at_madrid": null,
       "history": [
         {
-          "at_madrid": "2026-07-11T21:01:24+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-11T21:01:33+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-12T02:38:20+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-12T02:38:21+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
           "at_madrid": "2026-07-12T02:38:24+02:00",
           "event": "seen_again",
           "source": "sentinel_autopilot",
@@ -2448,10 +2424,34 @@
           "event": "seen_again",
           "source": "sentinel_autopilot",
           "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:47+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:48+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:25+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:26+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
         }
       ],
-      "occurrences": 777,
-      "last_seen_madrid": "2026-07-28T07:27:25+02:00",
+      "occurrences": 781,
+      "last_seen_madrid": "2026-07-28T09:52:26+02:00",
       "fingerprint": "44301282a17f55bc",
       "id": "AP-D089823FEA9F",
       "codex_prompt": "Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: Ruta con error 500 Categoria: route Ruta/pantalla: /picks Evidencia: 500  Reglas sagradas: no tocar secretos, no enviar Telegram real, no inventar partidos/picks/cuotas/resultados, no tocar pagos reales, no borrar DB/usuarios, no hacer push/deploy automatico y preservar V818+.  Tarea: localizar la causa real, proponer un fix seguro, aplicar solo cambios controlados si son necesarios, ejecutar checks locales y documentar resultado, bloqueadores y siguiente accion.",
@@ -2469,7 +2469,7 @@
       "status": "RESOLVED_BY_RESCAN",
       "source": "sentinel_autopilot",
       "detected_at_madrid": "2026-07-03T22:52:55+02:00",
-      "updated_at_madrid": "2026-07-28T07:27:25+02:00",
+      "updated_at_madrid": "2026-07-28T09:52:26+02:00",
       "route": "/shark",
       "screen": "/shark",
       "file": "",
@@ -2489,30 +2489,6 @@
       "resolved_at_madrid": null,
       "history": [
         {
-          "at_madrid": "2026-07-11T21:01:24+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-11T21:01:33+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-12T02:38:20+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-12T02:38:21+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
           "at_madrid": "2026-07-12T02:38:24+02:00",
           "event": "seen_again",
           "source": "sentinel_autopilot",
@@ -2607,10 +2583,34 @@
           "event": "seen_again",
           "source": "sentinel_autopilot",
           "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:47+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:48+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:25+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:26+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
         }
       ],
-      "occurrences": 777,
-      "last_seen_madrid": "2026-07-28T07:27:25+02:00",
+      "occurrences": 781,
+      "last_seen_madrid": "2026-07-28T09:52:26+02:00",
       "fingerprint": "f54bdfcb68646c44",
       "id": "AP-7DBD262A2E0B",
       "codex_prompt": "Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: Ruta con error 500 Categoria: route Ruta/pantalla: /shark Evidencia: 500  Reglas sagradas: no tocar secretos, no enviar Telegram real, no inventar partidos/picks/cuotas/resultados, no tocar pagos reales, no borrar DB/usuarios, no hacer push/deploy automatico y preservar V818+.  Tarea: localizar la causa real, proponer un fix seguro, aplicar solo cambios controlados si son necesarios, ejecutar checks locales y documentar resultado, bloqueadores y siguiente accion.",
@@ -2628,7 +2628,7 @@
       "status": "RESOLVED_BY_RESCAN",
       "source": "sentinel_autopilot",
       "detected_at_madrid": "2026-07-03T22:52:55+02:00",
-      "updated_at_madrid": "2026-07-28T07:27:25+02:00",
+      "updated_at_madrid": "2026-07-28T09:52:26+02:00",
       "route": "/partidos",
       "screen": "/partidos",
       "file": "",
@@ -2647,30 +2647,6 @@
       ],
       "resolved_at_madrid": null,
       "history": [
-        {
-          "at_madrid": "2026-07-11T21:01:24+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-11T21:01:33+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-12T02:38:20+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-12T02:38:21+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
         {
           "at_madrid": "2026-07-12T02:38:24+02:00",
           "event": "seen_again",
@@ -2766,10 +2742,34 @@
           "event": "seen_again",
           "source": "sentinel_autopilot",
           "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:47+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:48+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:25+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:26+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
         }
       ],
-      "occurrences": 777,
-      "last_seen_madrid": "2026-07-28T07:27:25+02:00",
+      "occurrences": 781,
+      "last_seen_madrid": "2026-07-28T09:52:26+02:00",
       "fingerprint": "61adc180293f3664",
       "id": "AP-9A2158F9BD47",
       "codex_prompt": "Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: Ruta con error 5xx Categoria: visual_layout Ruta/pantalla: /partidos Evidencia: HTTP 500  Reglas sagradas: no tocar secretos, no enviar Telegram real, no inventar partidos/picks/cuotas/resultados, no tocar pagos reales, no borrar DB/usuarios, no hacer push/deploy automatico y preservar V818+.  Tarea: localizar la causa real, proponer un fix seguro, aplicar solo cambios controlados si son necesarios, ejecutar checks locales y documentar resultado, bloqueadores y siguiente accion.",
@@ -2787,7 +2787,7 @@
       "status": "RESOLVED_BY_RESCAN",
       "source": "sentinel_autopilot",
       "detected_at_madrid": "2026-07-03T22:52:55+02:00",
-      "updated_at_madrid": "2026-07-28T07:27:25+02:00",
+      "updated_at_madrid": "2026-07-28T09:52:26+02:00",
       "route": "/partidos",
       "screen": "/partidos",
       "file": "",
@@ -2806,30 +2806,6 @@
       ],
       "resolved_at_madrid": null,
       "history": [
-        {
-          "at_madrid": "2026-07-11T21:01:24+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-11T21:01:33+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-12T02:38:20+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-12T02:38:21+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
         {
           "at_madrid": "2026-07-12T02:38:24+02:00",
           "event": "seen_again",
@@ -2925,10 +2901,34 @@
           "event": "seen_again",
           "source": "sentinel_autopilot",
           "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:47+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:48+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:25+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:26+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
         }
       ],
-      "occurrences": 777,
-      "last_seen_madrid": "2026-07-28T07:27:25+02:00",
+      "occurrences": 781,
+      "last_seen_madrid": "2026-07-28T09:52:26+02:00",
       "fingerprint": "7fcff6b03b2bc3df",
       "id": "AP-0A4A87FF0A33",
       "codex_prompt": "Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: Ruta cliente con estado inesperado Categoria: visual_layout Ruta/pantalla: /partidos Evidencia: HTTP 500  Reglas sagradas: no tocar secretos, no enviar Telegram real, no inventar partidos/picks/cuotas/resultados, no tocar pagos reales, no borrar DB/usuarios, no hacer push/deploy automatico y preservar V818+.  Tarea: localizar la causa real, proponer un fix seguro, aplicar solo cambios controlados si son necesarios, ejecutar checks locales y documentar resultado, bloqueadores y siguiente accion.",
@@ -2946,7 +2946,7 @@
       "status": "RESOLVED_BY_RESCAN",
       "source": "sentinel_autopilot",
       "detected_at_madrid": "2026-07-03T22:52:55+02:00",
-      "updated_at_madrid": "2026-07-28T07:27:25+02:00",
+      "updated_at_madrid": "2026-07-28T09:52:26+02:00",
       "route": "/calendar",
       "screen": "/calendar",
       "file": "",
@@ -2965,30 +2965,6 @@
       ],
       "resolved_at_madrid": null,
       "history": [
-        {
-          "at_madrid": "2026-07-11T21:01:24+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-11T21:01:33+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-12T02:38:20+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-12T02:38:21+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
         {
           "at_madrid": "2026-07-12T02:38:24+02:00",
           "event": "seen_again",
@@ -3084,10 +3060,34 @@
           "event": "seen_again",
           "source": "sentinel_autopilot",
           "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:47+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:48+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:25+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:26+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
         }
       ],
-      "occurrences": 777,
-      "last_seen_madrid": "2026-07-28T07:27:25+02:00",
+      "occurrences": 781,
+      "last_seen_madrid": "2026-07-28T09:52:26+02:00",
       "fingerprint": "535308433c08688e",
       "id": "AP-C17F5C4145A6",
       "codex_prompt": "Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: Ruta con error 5xx Categoria: visual_layout Ruta/pantalla: /calendar Evidencia: HTTP 500  Reglas sagradas: no tocar secretos, no enviar Telegram real, no inventar partidos/picks/cuotas/resultados, no tocar pagos reales, no borrar DB/usuarios, no hacer push/deploy automatico y preservar V818+.  Tarea: localizar la causa real, proponer un fix seguro, aplicar solo cambios controlados si son necesarios, ejecutar checks locales y documentar resultado, bloqueadores y siguiente accion.",
@@ -3105,7 +3105,7 @@
       "status": "RESOLVED_BY_RESCAN",
       "source": "sentinel_autopilot",
       "detected_at_madrid": "2026-07-03T22:52:55+02:00",
-      "updated_at_madrid": "2026-07-28T07:27:25+02:00",
+      "updated_at_madrid": "2026-07-28T09:52:26+02:00",
       "route": "/calendar",
       "screen": "/calendar",
       "file": "",
@@ -3125,30 +3125,6 @@
       "resolved_at_madrid": null,
       "history": [
         {
-          "at_madrid": "2026-07-11T21:01:24+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-11T21:01:33+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-12T02:38:20+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-12T02:38:21+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
           "at_madrid": "2026-07-12T02:38:24+02:00",
           "event": "seen_again",
           "source": "sentinel_autopilot",
@@ -3243,10 +3219,34 @@
           "event": "seen_again",
           "source": "sentinel_autopilot",
           "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:47+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:48+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:25+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:26+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
         }
       ],
-      "occurrences": 777,
-      "last_seen_madrid": "2026-07-28T07:27:25+02:00",
+      "occurrences": 781,
+      "last_seen_madrid": "2026-07-28T09:52:26+02:00",
       "fingerprint": "fe33dd8e324c1bc8",
       "id": "AP-F84E77682758",
       "codex_prompt": "Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: Ruta cliente con estado inesperado Categoria: visual_layout Ruta/pantalla: /calendar Evidencia: HTTP 500  Reglas sagradas: no tocar secretos, no enviar Telegram real, no inventar partidos/picks/cuotas/resultados, no tocar pagos reales, no borrar DB/usuarios, no hacer push/deploy automatico y preservar V818+.  Tarea: localizar la causa real, proponer un fix seguro, aplicar solo cambios controlados si son necesarios, ejecutar checks locales y documentar resultado, bloqueadores y siguiente accion.",
@@ -3264,7 +3264,7 @@
       "status": "RESOLVED_BY_RESCAN",
       "source": "sentinel_autopilot",
       "detected_at_madrid": "2026-07-03T22:52:55+02:00",
-      "updated_at_madrid": "2026-07-28T07:27:25+02:00",
+      "updated_at_madrid": "2026-07-28T09:52:26+02:00",
       "route": "/live",
       "screen": "/live",
       "file": "",
@@ -3283,30 +3283,6 @@
       ],
       "resolved_at_madrid": null,
       "history": [
-        {
-          "at_madrid": "2026-07-11T21:01:24+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-11T21:01:33+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-12T02:38:20+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-12T02:38:21+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
         {
           "at_madrid": "2026-07-12T02:38:24+02:00",
           "event": "seen_again",
@@ -3402,10 +3378,34 @@
           "event": "seen_again",
           "source": "sentinel_autopilot",
           "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:47+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:48+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:25+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:26+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
         }
       ],
-      "occurrences": 777,
-      "last_seen_madrid": "2026-07-28T07:27:25+02:00",
+      "occurrences": 781,
+      "last_seen_madrid": "2026-07-28T09:52:26+02:00",
       "fingerprint": "02d413a291347dd3",
       "id": "AP-CEC758DF0429",
       "codex_prompt": "Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: Ruta con error 5xx Categoria: visual_layout Ruta/pantalla: /live Evidencia: HTTP 500  Reglas sagradas: no tocar secretos, no enviar Telegram real, no inventar partidos/picks/cuotas/resultados, no tocar pagos reales, no borrar DB/usuarios, no hacer push/deploy automatico y preservar V818+.  Tarea: localizar la causa real, proponer un fix seguro, aplicar solo cambios controlados si son necesarios, ejecutar checks locales y documentar resultado, bloqueadores y siguiente accion.",
@@ -3423,7 +3423,7 @@
       "status": "RESOLVED_BY_RESCAN",
       "source": "sentinel_autopilot",
       "detected_at_madrid": "2026-07-03T22:52:55+02:00",
-      "updated_at_madrid": "2026-07-28T07:27:25+02:00",
+      "updated_at_madrid": "2026-07-28T09:52:26+02:00",
       "route": "/live",
       "screen": "/live",
       "file": "",
@@ -3442,30 +3442,6 @@
       ],
       "resolved_at_madrid": null,
       "history": [
-        {
-          "at_madrid": "2026-07-11T21:01:24+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-11T21:01:33+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-12T02:38:20+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-12T02:38:21+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
         {
           "at_madrid": "2026-07-12T02:38:24+02:00",
           "event": "seen_again",
@@ -3561,10 +3537,34 @@
           "event": "seen_again",
           "source": "sentinel_autopilot",
           "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:47+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:48+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:25+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:26+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
         }
       ],
-      "occurrences": 777,
-      "last_seen_madrid": "2026-07-28T07:27:25+02:00",
+      "occurrences": 781,
+      "last_seen_madrid": "2026-07-28T09:52:26+02:00",
       "fingerprint": "09105a9511e56b1b",
       "id": "AP-BBB9F4335CA3",
       "codex_prompt": "Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: Ruta cliente con estado inesperado Categoria: visual_layout Ruta/pantalla: /live Evidencia: HTTP 500  Reglas sagradas: no tocar secretos, no enviar Telegram real, no inventar partidos/picks/cuotas/resultados, no tocar pagos reales, no borrar DB/usuarios, no hacer push/deploy automatico y preservar V818+.  Tarea: localizar la causa real, proponer un fix seguro, aplicar solo cambios controlados si son necesarios, ejecutar checks locales y documentar resultado, bloqueadores y siguiente accion.",
@@ -3582,7 +3582,7 @@
       "status": "RESOLVED_BY_RESCAN",
       "source": "sentinel_autopilot",
       "detected_at_madrid": "2026-07-03T22:52:55+02:00",
-      "updated_at_madrid": "2026-07-28T07:27:25+02:00",
+      "updated_at_madrid": "2026-07-28T09:52:26+02:00",
       "route": "/partidos",
       "screen": "/partidos",
       "file": "",
@@ -3602,30 +3602,6 @@
       "resolved_at_madrid": null,
       "history": [
         {
-          "at_madrid": "2026-07-11T21:01:24+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-11T21:01:33+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-12T02:38:20+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-12T02:38:21+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
           "at_madrid": "2026-07-12T02:38:24+02:00",
           "event": "seen_again",
           "source": "sentinel_autopilot",
@@ -3720,10 +3696,34 @@
           "event": "seen_again",
           "source": "sentinel_autopilot",
           "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:47+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:48+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:25+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:26+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
         }
       ],
-      "occurrences": 777,
-      "last_seen_madrid": "2026-07-28T07:27:25+02:00",
+      "occurrences": 781,
+      "last_seen_madrid": "2026-07-28T09:52:26+02:00",
       "fingerprint": "f042a39b107c5950",
       "id": "AP-FD12300B29F1",
       "codex_prompt": "Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: 500 en ruta cliente Categoria: navigation Ruta/pantalla: /partidos Evidencia: HTTP 500  Reglas sagradas: no tocar secretos, no enviar Telegram real, no inventar partidos/picks/cuotas/resultados, no tocar pagos reales, no borrar DB/usuarios, no hacer push/deploy automatico y preservar V818+.  Tarea: localizar la causa real, proponer un fix seguro, aplicar solo cambios controlados si son necesarios, ejecutar checks locales y documentar resultado, bloqueadores y siguiente accion.",
@@ -3741,7 +3741,7 @@
       "status": "RESOLVED_BY_RESCAN",
       "source": "sentinel_autopilot",
       "detected_at_madrid": "2026-07-03T22:52:55+02:00",
-      "updated_at_madrid": "2026-07-28T07:27:25+02:00",
+      "updated_at_madrid": "2026-07-28T09:52:26+02:00",
       "route": "/calendar",
       "screen": "/calendar",
       "file": "",
@@ -3761,30 +3761,6 @@
       "resolved_at_madrid": null,
       "history": [
         {
-          "at_madrid": "2026-07-11T21:01:24+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-11T21:01:33+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-12T02:38:20+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-12T02:38:21+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
           "at_madrid": "2026-07-12T02:38:24+02:00",
           "event": "seen_again",
           "source": "sentinel_autopilot",
@@ -3879,10 +3855,34 @@
           "event": "seen_again",
           "source": "sentinel_autopilot",
           "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:47+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:48+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:25+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:26+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
         }
       ],
-      "occurrences": 777,
-      "last_seen_madrid": "2026-07-28T07:27:25+02:00",
+      "occurrences": 781,
+      "last_seen_madrid": "2026-07-28T09:52:26+02:00",
       "fingerprint": "46ccd501ea76873e",
       "id": "AP-48F4A8C1D841",
       "codex_prompt": "Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: 500 en ruta cliente Categoria: navigation Ruta/pantalla: /calendar Evidencia: HTTP 500  Reglas sagradas: no tocar secretos, no enviar Telegram real, no inventar partidos/picks/cuotas/resultados, no tocar pagos reales, no borrar DB/usuarios, no hacer push/deploy automatico y preservar V818+.  Tarea: localizar la causa real, proponer un fix seguro, aplicar solo cambios controlados si son necesarios, ejecutar checks locales y documentar resultado, bloqueadores y siguiente accion.",
@@ -3900,7 +3900,7 @@
       "status": "RESOLVED_BY_RESCAN",
       "source": "sentinel_autopilot",
       "detected_at_madrid": "2026-07-03T22:52:55+02:00",
-      "updated_at_madrid": "2026-07-28T07:27:25+02:00",
+      "updated_at_madrid": "2026-07-28T09:52:26+02:00",
       "route": "/live",
       "screen": "/live",
       "file": "",
@@ -3920,30 +3920,6 @@
       "resolved_at_madrid": null,
       "history": [
         {
-          "at_madrid": "2026-07-11T21:01:24+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-11T21:01:33+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-12T02:38:20+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-12T02:38:21+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
           "at_madrid": "2026-07-12T02:38:24+02:00",
           "event": "seen_again",
           "source": "sentinel_autopilot",
@@ -4038,10 +4014,34 @@
           "event": "seen_again",
           "source": "sentinel_autopilot",
           "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:47+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:48+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:25+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:26+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
         }
       ],
-      "occurrences": 777,
-      "last_seen_madrid": "2026-07-28T07:27:25+02:00",
+      "occurrences": 781,
+      "last_seen_madrid": "2026-07-28T09:52:26+02:00",
       "fingerprint": "afc7ae8197bb35b2",
       "id": "AP-41122B9C703C",
       "codex_prompt": "Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: 500 en ruta cliente Categoria: navigation Ruta/pantalla: /live Evidencia: HTTP 500  Reglas sagradas: no tocar secretos, no enviar Telegram real, no inventar partidos/picks/cuotas/resultados, no tocar pagos reales, no borrar DB/usuarios, no hacer push/deploy automatico y preservar V818+.  Tarea: localizar la causa real, proponer un fix seguro, aplicar solo cambios controlados si son necesarios, ejecutar checks locales y documentar resultado, bloqueadores y siguiente accion.",
@@ -4059,7 +4059,7 @@
       "status": "RESOLVED_BY_RESCAN",
       "source": "sentinel_autopilot",
       "detected_at_madrid": "2026-07-03T22:52:55+02:00",
-      "updated_at_madrid": "2026-07-28T07:27:25+02:00",
+      "updated_at_madrid": "2026-07-28T09:52:26+02:00",
       "route": "/directo",
       "screen": "/directo",
       "file": "",
@@ -4079,30 +4079,6 @@
       "resolved_at_madrid": null,
       "history": [
         {
-          "at_madrid": "2026-07-11T21:01:24+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-11T21:01:33+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-12T02:38:20+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-12T02:38:21+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
           "at_madrid": "2026-07-12T02:38:24+02:00",
           "event": "seen_again",
           "source": "sentinel_autopilot",
@@ -4197,10 +4173,34 @@
           "event": "seen_again",
           "source": "sentinel_autopilot",
           "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:47+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:48+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:25+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:26+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
         }
       ],
-      "occurrences": 777,
-      "last_seen_madrid": "2026-07-28T07:27:25+02:00",
+      "occurrences": 781,
+      "last_seen_madrid": "2026-07-28T09:52:26+02:00",
       "fingerprint": "0aabaf1ebcad7a81",
       "id": "AP-7F8F8A4345FC",
       "codex_prompt": "Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: 500 en ruta cliente Categoria: navigation Ruta/pantalla: /directo Evidencia: HTTP 500  Reglas sagradas: no tocar secretos, no enviar Telegram real, no inventar partidos/picks/cuotas/resultados, no tocar pagos reales, no borrar DB/usuarios, no hacer push/deploy automatico y preservar V818+.  Tarea: localizar la causa real, proponer un fix seguro, aplicar solo cambios controlados si son necesarios, ejecutar checks locales y documentar resultado, bloqueadores y siguiente accion.",
@@ -4218,7 +4218,7 @@
       "status": "RESOLVED_BY_RESCAN",
       "source": "sentinel_autopilot",
       "detected_at_madrid": "2026-07-03T22:52:55+02:00",
-      "updated_at_madrid": "2026-07-28T07:27:25+02:00",
+      "updated_at_madrid": "2026-07-28T09:52:26+02:00",
       "route": "/picks",
       "screen": "/picks",
       "file": "",
@@ -4238,30 +4238,6 @@
       "resolved_at_madrid": null,
       "history": [
         {
-          "at_madrid": "2026-07-11T21:01:24+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-11T21:01:33+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-12T02:38:20+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-12T02:38:21+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
           "at_madrid": "2026-07-12T02:38:24+02:00",
           "event": "seen_again",
           "source": "sentinel_autopilot",
@@ -4356,10 +4332,34 @@
           "event": "seen_again",
           "source": "sentinel_autopilot",
           "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:47+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:48+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:25+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:26+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
         }
       ],
-      "occurrences": 777,
-      "last_seen_madrid": "2026-07-28T07:27:25+02:00",
+      "occurrences": 781,
+      "last_seen_madrid": "2026-07-28T09:52:26+02:00",
       "fingerprint": "7695fff084470d3e",
       "id": "AP-56016D4BB833",
       "codex_prompt": "Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: 500 en ruta cliente Categoria: navigation Ruta/pantalla: /picks Evidencia: HTTP 500  Reglas sagradas: no tocar secretos, no enviar Telegram real, no inventar partidos/picks/cuotas/resultados, no tocar pagos reales, no borrar DB/usuarios, no hacer push/deploy automatico y preservar V818+.  Tarea: localizar la causa real, proponer un fix seguro, aplicar solo cambios controlados si son necesarios, ejecutar checks locales y documentar resultado, bloqueadores y siguiente accion.",
@@ -4377,7 +4377,7 @@
       "status": "RESOLVED_BY_RESCAN",
       "source": "sentinel_autopilot",
       "detected_at_madrid": "2026-07-03T22:52:55+02:00",
-      "updated_at_madrid": "2026-07-28T07:27:25+02:00",
+      "updated_at_madrid": "2026-07-28T09:52:26+02:00",
       "route": "/shark",
       "screen": "/shark",
       "file": "",
@@ -4397,30 +4397,6 @@
       "resolved_at_madrid": null,
       "history": [
         {
-          "at_madrid": "2026-07-11T21:01:24+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-11T21:01:33+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-12T02:38:20+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-12T02:38:21+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
           "at_madrid": "2026-07-12T02:38:24+02:00",
           "event": "seen_again",
           "source": "sentinel_autopilot",
@@ -4515,10 +4491,34 @@
           "event": "seen_again",
           "source": "sentinel_autopilot",
           "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:47+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:48+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:25+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:26+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
         }
       ],
-      "occurrences": 777,
-      "last_seen_madrid": "2026-07-28T07:27:25+02:00",
+      "occurrences": 781,
+      "last_seen_madrid": "2026-07-28T09:52:26+02:00",
       "fingerprint": "84dfc0b5568c212e",
       "id": "AP-F63099368262",
       "codex_prompt": "Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: 500 en ruta cliente Categoria: navigation Ruta/pantalla: /shark Evidencia: HTTP 500  Reglas sagradas: no tocar secretos, no enviar Telegram real, no inventar partidos/picks/cuotas/resultados, no tocar pagos reales, no borrar DB/usuarios, no hacer push/deploy automatico y preservar V818+.  Tarea: localizar la causa real, proponer un fix seguro, aplicar solo cambios controlados si son necesarios, ejecutar checks locales y documentar resultado, bloqueadores y siguiente accion.",
@@ -5616,7 +5616,7 @@
       "status": "RESOLVED_BY_RESCAN",
       "source": "sentinel_autopilot",
       "detected_at_madrid": "2026-07-04T23:43:39+02:00",
-      "updated_at_madrid": "2026-07-28T07:27:25+02:00",
+      "updated_at_madrid": "2026-07-28T09:52:26+02:00",
       "route": "/admin/payments",
       "screen": "/admin/payments",
       "file": "",
@@ -5636,30 +5636,6 @@
       "resolved_at_madrid": null,
       "history": [
         {
-          "at_madrid": "2026-07-11T21:01:24+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-11T21:01:33+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-12T02:38:20+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-12T02:38:21+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
           "at_madrid": "2026-07-12T02:38:24+02:00",
           "event": "seen_again",
           "source": "sentinel_autopilot",
@@ -5754,10 +5730,34 @@
           "event": "seen_again",
           "source": "sentinel_autopilot",
           "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:47+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:48+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:25+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:26+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
         }
       ],
-      "occurrences": 858,
-      "last_seen_madrid": "2026-07-28T07:27:25+02:00",
+      "occurrences": 862,
+      "last_seen_madrid": "2026-07-28T09:52:26+02:00",
       "fingerprint": "d161021f5d81b25a",
       "id": "AP-5B710C53C96F",
       "codex_prompt": "Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: Pagos pendientes de configuracion Categoria: payments Ruta/pantalla: /admin/payments Evidencia: Stripe/checkout no debe mostrarse como operativo.  Reglas sagradas: no tocar secretos, no enviar Telegram real, no inventar partidos/picks/cuotas/resultados, no tocar pagos reales, no borrar DB/usuarios, no hacer push/deploy automatico y preservar V818+.  Tarea: localizar la causa real, proponer un fix seguro, aplicar solo cambios controlados si son necesarios, ejecutar checks locales y documentar resultado, bloqueadores y siguiente accion.",
@@ -5775,7 +5775,7 @@
       "status": "RESOLVED_BY_RESCAN",
       "source": "sentinel_autopilot",
       "detected_at_madrid": "2026-07-04T23:43:40+02:00",
-      "updated_at_madrid": "2026-07-28T07:27:25+02:00",
+      "updated_at_madrid": "2026-07-28T09:52:26+02:00",
       "route": "/partidos",
       "screen": "/partidos",
       "file": "",
@@ -5795,30 +5795,6 @@
       "resolved_at_madrid": null,
       "history": [
         {
-          "at_madrid": "2026-07-11T21:01:24+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-11T21:01:33+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-12T02:38:20+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-12T02:38:21+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
           "at_madrid": "2026-07-12T02:38:24+02:00",
           "event": "seen_again",
           "source": "sentinel_autopilot",
@@ -5913,10 +5889,34 @@
           "event": "seen_again",
           "source": "sentinel_autopilot",
           "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:47+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:48+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:25+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:26+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
         }
       ],
-      "occurrences": 858,
-      "last_seen_madrid": "2026-07-28T07:27:25+02:00",
+      "occurrences": 862,
+      "last_seen_madrid": "2026-07-28T09:52:26+02:00",
       "fingerprint": "eb4ee58840ff46df",
       "id": "AP-EC27D88ACEAE",
       "codex_prompt": "Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: Pantalla deportiva sin estado seguro claro Categoria: sports_data Ruta/pantalla: /partidos Evidencia: No se encontro estado seguro para ausencia de datos reales.  Reglas sagradas: no tocar secretos, no enviar Telegram real, no inventar partidos/picks/cuotas/resultados, no tocar pagos reales, no borrar DB/usuarios, no hacer push/deploy automatico y preservar V818+.  Tarea: localizar la causa real, proponer un fix seguro, aplicar solo cambios controlados si son necesarios, ejecutar checks locales y documentar resultado, bloqueadores y siguiente accion.",
@@ -5934,7 +5934,7 @@
       "status": "RESOLVED_BY_RESCAN",
       "source": "sentinel_autopilot",
       "detected_at_madrid": "2026-07-04T23:43:40+02:00",
-      "updated_at_madrid": "2026-07-28T07:27:25+02:00",
+      "updated_at_madrid": "2026-07-28T09:52:26+02:00",
       "route": "/calendar",
       "screen": "/calendar",
       "file": "",
@@ -5954,30 +5954,6 @@
       "resolved_at_madrid": null,
       "history": [
         {
-          "at_madrid": "2026-07-11T21:01:24+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-11T21:01:33+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-12T02:38:20+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-12T02:38:21+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
           "at_madrid": "2026-07-12T02:38:24+02:00",
           "event": "seen_again",
           "source": "sentinel_autopilot",
@@ -6072,10 +6048,34 @@
           "event": "seen_again",
           "source": "sentinel_autopilot",
           "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:47+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:48+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:25+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:26+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
         }
       ],
-      "occurrences": 858,
-      "last_seen_madrid": "2026-07-28T07:27:25+02:00",
+      "occurrences": 862,
+      "last_seen_madrid": "2026-07-28T09:52:26+02:00",
       "fingerprint": "a22de434666216f3",
       "id": "AP-53093D351C7C",
       "codex_prompt": "Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: Pantalla deportiva sin estado seguro claro Categoria: sports_data Ruta/pantalla: /calendar Evidencia: No se encontro estado seguro para ausencia de datos reales.  Reglas sagradas: no tocar secretos, no enviar Telegram real, no inventar partidos/picks/cuotas/resultados, no tocar pagos reales, no borrar DB/usuarios, no hacer push/deploy automatico y preservar V818+.  Tarea: localizar la causa real, proponer un fix seguro, aplicar solo cambios controlados si son necesarios, ejecutar checks locales y documentar resultado, bloqueadores y siguiente accion.",
@@ -6093,7 +6093,7 @@
       "status": "RESOLVED_BY_RESCAN",
       "source": "sentinel_autopilot",
       "detected_at_madrid": "2026-07-03T22:52:55+02:00",
-      "updated_at_madrid": "2026-07-28T07:27:25+02:00",
+      "updated_at_madrid": "2026-07-28T09:52:26+02:00",
       "route": "/live",
       "screen": "/live",
       "file": "",
@@ -6113,30 +6113,6 @@
       "resolved_at_madrid": null,
       "history": [
         {
-          "at_madrid": "2026-07-11T21:01:24+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-11T21:01:33+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-12T02:38:20+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-12T02:38:21+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
           "at_madrid": "2026-07-12T02:38:24+02:00",
           "event": "seen_again",
           "source": "sentinel_autopilot",
@@ -6231,10 +6207,34 @@
           "event": "seen_again",
           "source": "sentinel_autopilot",
           "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:47+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:48+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:25+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:26+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
         }
       ],
-      "occurrences": 834,
-      "last_seen_madrid": "2026-07-28T07:27:25+02:00",
+      "occurrences": 838,
+      "last_seen_madrid": "2026-07-28T09:52:26+02:00",
       "fingerprint": "16058ebafcde2936",
       "id": "AP-CB5A393FFB9C",
       "codex_prompt": "Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: Pantalla deportiva sin estado seguro claro Categoria: sports_data Ruta/pantalla: /live Evidencia: No se encontro estado seguro para ausencia de datos reales.  Reglas sagradas: no tocar secretos, no enviar Telegram real, no inventar partidos/picks/cuotas/resultados, no tocar pagos reales, no borrar DB/usuarios, no hacer push/deploy automatico y preservar V818+.  Tarea: localizar la causa real, proponer un fix seguro, aplicar solo cambios controlados si son necesarios, ejecutar checks locales y documentar resultado, bloqueadores y siguiente accion.",
@@ -6252,7 +6252,7 @@
       "status": "RESOLVED_BY_RESCAN",
       "source": "sentinel_autopilot",
       "detected_at_madrid": "2026-07-03T22:52:55+02:00",
-      "updated_at_madrid": "2026-07-28T07:27:25+02:00",
+      "updated_at_madrid": "2026-07-28T09:52:26+02:00",
       "route": "/directo",
       "screen": "/directo",
       "file": "",
@@ -6272,30 +6272,6 @@
       "resolved_at_madrid": null,
       "history": [
         {
-          "at_madrid": "2026-07-11T21:01:24+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-11T21:01:33+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-12T02:38:20+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-12T02:38:21+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
           "at_madrid": "2026-07-12T02:38:24+02:00",
           "event": "seen_again",
           "source": "sentinel_autopilot",
@@ -6390,10 +6366,34 @@
           "event": "seen_again",
           "source": "sentinel_autopilot",
           "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:47+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:48+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:25+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:26+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
         }
       ],
-      "occurrences": 834,
-      "last_seen_madrid": "2026-07-28T07:27:25+02:00",
+      "occurrences": 838,
+      "last_seen_madrid": "2026-07-28T09:52:26+02:00",
       "fingerprint": "f426e1bb12184377",
       "id": "AP-3FFC8C799B34",
       "codex_prompt": "Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: Pantalla deportiva sin estado seguro claro Categoria: sports_data Ruta/pantalla: /directo Evidencia: No se encontro estado seguro para ausencia de datos reales.  Reglas sagradas: no tocar secretos, no enviar Telegram real, no inventar partidos/picks/cuotas/resultados, no tocar pagos reales, no borrar DB/usuarios, no hacer push/deploy automatico y preservar V818+.  Tarea: localizar la causa real, proponer un fix seguro, aplicar solo cambios controlados si son necesarios, ejecutar checks locales y documentar resultado, bloqueadores y siguiente accion.",
@@ -6411,7 +6411,7 @@
       "status": "RESOLVED_BY_RESCAN",
       "source": "sentinel_autopilot",
       "detected_at_madrid": "2026-07-03T22:52:55+02:00",
-      "updated_at_madrid": "2026-07-28T07:27:25+02:00",
+      "updated_at_madrid": "2026-07-28T09:52:26+02:00",
       "route": "/picks",
       "screen": "/picks",
       "file": "",
@@ -6431,30 +6431,6 @@
       "resolved_at_madrid": null,
       "history": [
         {
-          "at_madrid": "2026-07-11T21:01:24+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-11T21:01:33+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-12T02:38:20+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-12T02:38:21+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
           "at_madrid": "2026-07-12T02:38:24+02:00",
           "event": "seen_again",
           "source": "sentinel_autopilot",
@@ -6549,10 +6525,34 @@
           "event": "seen_again",
           "source": "sentinel_autopilot",
           "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:47+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:48+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:25+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:26+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
         }
       ],
-      "occurrences": 834,
-      "last_seen_madrid": "2026-07-28T07:27:25+02:00",
+      "occurrences": 838,
+      "last_seen_madrid": "2026-07-28T09:52:26+02:00",
       "fingerprint": "939fb1d4d76b7231",
       "id": "AP-0A27B99CDA6D",
       "codex_prompt": "Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: Pantalla deportiva sin estado seguro claro Categoria: sports_data Ruta/pantalla: /picks Evidencia: No se encontro estado seguro para ausencia de datos reales.  Reglas sagradas: no tocar secretos, no enviar Telegram real, no inventar partidos/picks/cuotas/resultados, no tocar pagos reales, no borrar DB/usuarios, no hacer push/deploy automatico y preservar V818+.  Tarea: localizar la causa real, proponer un fix seguro, aplicar solo cambios controlados si son necesarios, ejecutar checks locales y documentar resultado, bloqueadores y siguiente accion.",
@@ -50160,54 +50160,6 @@
       "title": "Ruta devuelve Not Found",
       "area": "buttons_routes",
       "severity": "medium",
-      "status": "STALE_NEEDS_REVALIDATION",
-      "source": "sentinel",
-      "detected_at_madrid": "2026-07-28T06:13:44+02:00",
-      "updated_at_madrid": "2026-07-28T07:27:25+02:00",
-      "route": "/api/ruta-inventada-v910",
-      "screen": "/api/ruta-inventada-v910",
-      "file": "",
-      "function": "",
-      "evidence": "path=/api/ruta-inventada-v910 count=58 referrer=sin referrer",
-      "impact": "Puede dejar al usuario en una pantalla seca si llega desde PWA, enlace viejo o acceso directo.",
-      "risk": "Revisar antes de dar por resuelto.",
-      "recommendation": "Crear alias o corregir enlace de origen y revalidar smoke de rutas.",
-      "validation": [
-        "python -m py_compile app.py",
-        "python tools/check_v896_not_found_route_recovery.py"
-      ],
-      "tags": [
-        "navigation",
-        "not_found",
-        "v896"
-      ],
-      "resolved_at_madrid": null,
-      "history": [
-        {
-          "at_madrid": "2026-07-28T07:27:25+02:00",
-          "event": "not_reproduced_needs_revalidation",
-          "missed_scans": 1,
-          "note": "El scan actual no reprodujo esta incidencia."
-        },
-        {
-          "at_madrid": "2026-07-28T07:27:25+02:00",
-          "event": "not_reproduced_needs_revalidation",
-          "missed_scans": 2,
-          "note": "El scan actual no reprodujo esta incidencia."
-        }
-      ],
-      "occurrences": 1,
-      "last_seen_madrid": "2026-07-28T06:13:44+02:00",
-      "fingerprint": "5f614cd120c0a3e0",
-      "id": "SENT-2026-5F614CD1",
-      "codex_prompt": "Corrige esta incidencia en NeMeSiS SHARK PRO sin romper nada anterior.\n\nID:\nSENT-2026-5F614CD1\n\nArea:\nbuttons_routes\n\nSeveridad:\nmedium\n\nProblema:\nRuta devuelve Not Found\n\nRuta afectada:\n/api/ruta-inventada-v910\n\nArchivo probable:\nPor determinar\n\nEvidencia:\npath=/api/ruta-inventada-v910 count=58 referrer=sin referrer\n\nImpacto:\nPuede dejar al usuario en una pantalla seca si llega desde PWA, enlace viejo o acceso directo.\n\nReglas:\n\n* No inventar datos.\n* No tocar secretos.\n* No romper usuarios, sesiones, membresias, pagos, DB_PATH, Madrid Time, Render Cron ni Telegram dedupe.\n* Mantener navegacion cliente/admin separada.\n* Mantener estados seguros si faltan datos reales.\n\nQue debes hacer:\nCrear alias o corregir enlace de origen y revalidar smoke de rutas.\n\nValidaciones obligatorias:\n* python -m py_compile app.py\n* python tools/check_v896_not_found_route_recovery.py\n\nEntrega:\n\n* resumen de cambios;\n* archivos tocados;\n* validaciones pasadas;\n* limitaciones honestas;\n* ZIP limpio si corresponde.\n",
-      "copy_text": "[MEDIUM] [buttons_routes] Ruta devuelve Not Found\nRuta: /api/ruta-inventada-v910\nArchivo probable: Por determinar\nEvidencia: path=/api/ruta-inventada-v910 count=58 referrer=sin referrer\nImpacto: Puede dejar al usuario en una pantalla seca si llega desde PWA, enlace viejo o acceso directo.\nRecomendacion: Crear alias o corregir enlace de origen y revalidar smoke de rutas.",
-      "missed_scans": 2
-    },
-    {
-      "title": "Ruta devuelve Not Found",
-      "area": "buttons_routes",
-      "severity": "medium",
       "status": "RESOLVED_BY_RESCAN",
       "source": "sentinel",
       "detected_at_madrid": "2026-07-26T23:42:41+02:00",
@@ -50313,13 +50265,354 @@
       "missed_scans": 3
     },
     {
+      "title": "Ruta devuelve Not Found",
+      "area": "buttons_routes",
+      "severity": "medium",
+      "status": "RESOLVED_BY_RESCAN",
+      "source": "sentinel",
+      "detected_at_madrid": "2026-07-28T06:13:44+02:00",
+      "updated_at_madrid": "2026-07-28T09:48:47+02:00",
+      "route": "/api/ruta-inventada-v910",
+      "screen": "/api/ruta-inventada-v910",
+      "file": "",
+      "function": "",
+      "evidence": "path=/api/ruta-inventada-v910 count=58 referrer=sin referrer",
+      "impact": "Puede dejar al usuario en una pantalla seca si llega desde PWA, enlace viejo o acceso directo.",
+      "risk": "Revisar antes de dar por resuelto.",
+      "recommendation": "Crear alias o corregir enlace de origen y revalidar smoke de rutas.",
+      "validation": [
+        "python -m py_compile app.py",
+        "python tools/check_v896_not_found_route_recovery.py"
+      ],
+      "tags": [
+        "navigation",
+        "not_found",
+        "v896"
+      ],
+      "resolved_at_madrid": "2026-07-28T09:48:47+02:00",
+      "history": [
+        {
+          "at_madrid": "2026-07-28T07:27:25+02:00",
+          "event": "not_reproduced_needs_revalidation",
+          "missed_scans": 1,
+          "note": "El scan actual no reprodujo esta incidencia."
+        },
+        {
+          "at_madrid": "2026-07-28T07:27:25+02:00",
+          "event": "not_reproduced_needs_revalidation",
+          "missed_scans": 2,
+          "note": "El scan actual no reprodujo esta incidencia."
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:47+02:00",
+          "event": "resolved_by_rescan",
+          "missed_scans": 3,
+          "note": "El scan actual no reprodujo esta incidencia."
+        }
+      ],
+      "occurrences": 1,
+      "last_seen_madrid": "2026-07-28T06:13:44+02:00",
+      "fingerprint": "5f614cd120c0a3e0",
+      "id": "SENT-2026-5F614CD1",
+      "codex_prompt": "Corrige esta incidencia en NeMeSiS SHARK PRO sin romper nada anterior.\n\nID:\nSENT-2026-5F614CD1\n\nArea:\nbuttons_routes\n\nSeveridad:\nmedium\n\nProblema:\nRuta devuelve Not Found\n\nRuta afectada:\n/api/ruta-inventada-v910\n\nArchivo probable:\nPor determinar\n\nEvidencia:\npath=/api/ruta-inventada-v910 count=58 referrer=sin referrer\n\nImpacto:\nPuede dejar al usuario en una pantalla seca si llega desde PWA, enlace viejo o acceso directo.\n\nReglas:\n\n* No inventar datos.\n* No tocar secretos.\n* No romper usuarios, sesiones, membresias, pagos, DB_PATH, Madrid Time, Render Cron ni Telegram dedupe.\n* Mantener navegacion cliente/admin separada.\n* Mantener estados seguros si faltan datos reales.\n\nQue debes hacer:\nCrear alias o corregir enlace de origen y revalidar smoke de rutas.\n\nValidaciones obligatorias:\n* python -m py_compile app.py\n* python tools/check_v896_not_found_route_recovery.py\n\nEntrega:\n\n* resumen de cambios;\n* archivos tocados;\n* validaciones pasadas;\n* limitaciones honestas;\n* ZIP limpio si corresponde.\n",
+      "copy_text": "[MEDIUM] [buttons_routes] Ruta devuelve Not Found\nRuta: /api/ruta-inventada-v910\nArchivo probable: Por determinar\nEvidencia: path=/api/ruta-inventada-v910 count=58 referrer=sin referrer\nImpacto: Puede dejar al usuario en una pantalla seca si llega desde PWA, enlace viejo o acceso directo.\nRecomendacion: Crear alias o corregir enlace de origen y revalidar smoke de rutas.",
+      "missed_scans": 3
+    },
+    {
+      "title": "Ruta devuelve Not Found",
+      "area": "buttons_routes",
+      "severity": "medium",
+      "status": "RESOLVED_BY_RESCAN",
+      "source": "sentinel",
+      "detected_at_madrid": "2026-07-28T07:27:25+02:00",
+      "updated_at_madrid": "2026-07-28T09:48:48+02:00",
+      "route": "/ruta-inventada-v910",
+      "screen": "/ruta-inventada-v910",
+      "file": "",
+      "function": "",
+      "evidence": "path=/ruta-inventada-v910 count=59 referrer=sin referrer",
+      "impact": "Puede dejar al usuario en una pantalla seca si llega desde PWA, enlace viejo o acceso directo.",
+      "risk": "Revisar antes de dar por resuelto.",
+      "recommendation": "Crear alias o corregir enlace de origen y revalidar smoke de rutas.",
+      "validation": [
+        "python -m py_compile app.py",
+        "python tools/check_v896_not_found_route_recovery.py"
+      ],
+      "tags": [
+        "navigation",
+        "not_found",
+        "v896"
+      ],
+      "resolved_at_madrid": "2026-07-28T09:48:48+02:00",
+      "history": [
+        {
+          "at_madrid": "2026-07-28T07:27:25+02:00",
+          "event": "not_reproduced_needs_revalidation",
+          "missed_scans": 1,
+          "note": "El scan actual no reprodujo esta incidencia."
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:47+02:00",
+          "event": "not_reproduced_needs_revalidation",
+          "missed_scans": 2,
+          "note": "El scan actual no reprodujo esta incidencia."
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:48+02:00",
+          "event": "resolved_by_rescan",
+          "missed_scans": 3,
+          "note": "El scan actual no reprodujo esta incidencia."
+        }
+      ],
+      "occurrences": 1,
+      "last_seen_madrid": "2026-07-28T07:27:25+02:00",
+      "fingerprint": "6871406ff4ada473",
+      "id": "SENT-2026-6871406F",
+      "codex_prompt": "Corrige esta incidencia en NeMeSiS SHARK PRO sin romper nada anterior.\n\nID:\nSENT-2026-6871406F\n\nArea:\nbuttons_routes\n\nSeveridad:\nmedium\n\nProblema:\nRuta devuelve Not Found\n\nRuta afectada:\n/ruta-inventada-v910\n\nArchivo probable:\nPor determinar\n\nEvidencia:\npath=/ruta-inventada-v910 count=59 referrer=sin referrer\n\nImpacto:\nPuede dejar al usuario en una pantalla seca si llega desde PWA, enlace viejo o acceso directo.\n\nReglas:\n\n* No inventar datos.\n* No tocar secretos.\n* No romper usuarios, sesiones, membresias, pagos, DB_PATH, Madrid Time, Render Cron ni Telegram dedupe.\n* Mantener navegacion cliente/admin separada.\n* Mantener estados seguros si faltan datos reales.\n\nQue debes hacer:\nCrear alias o corregir enlace de origen y revalidar smoke de rutas.\n\nValidaciones obligatorias:\n* python -m py_compile app.py\n* python tools/check_v896_not_found_route_recovery.py\n\nEntrega:\n\n* resumen de cambios;\n* archivos tocados;\n* validaciones pasadas;\n* limitaciones honestas;\n* ZIP limpio si corresponde.\n",
+      "copy_text": "[MEDIUM] [buttons_routes] Ruta devuelve Not Found\nRuta: /ruta-inventada-v910\nArchivo probable: Por determinar\nEvidencia: path=/ruta-inventada-v910 count=59 referrer=sin referrer\nImpacto: Puede dejar al usuario en una pantalla seca si llega desde PWA, enlace viejo o acceso directo.\nRecomendacion: Crear alias o corregir enlace de origen y revalidar smoke de rutas.",
+      "missed_scans": 3
+    },
+    {
+      "title": "Ruta devuelve Not Found",
+      "area": "buttons_routes",
+      "severity": "medium",
+      "status": "RESOLVED_BY_RESCAN",
+      "source": "sentinel",
+      "detected_at_madrid": "2026-07-28T07:27:25+02:00",
+      "updated_at_madrid": "2026-07-28T09:52:25+02:00",
+      "route": "/api/ruta-inventada-v910",
+      "screen": "/api/ruta-inventada-v910",
+      "file": "",
+      "function": "",
+      "evidence": "path=/api/ruta-inventada-v910 count=59 referrer=sin referrer",
+      "impact": "Puede dejar al usuario en una pantalla seca si llega desde PWA, enlace viejo o acceso directo.",
+      "risk": "Revisar antes de dar por resuelto.",
+      "recommendation": "Crear alias o corregir enlace de origen y revalidar smoke de rutas.",
+      "validation": [
+        "python -m py_compile app.py",
+        "python tools/check_v896_not_found_route_recovery.py"
+      ],
+      "tags": [
+        "navigation",
+        "not_found",
+        "v896"
+      ],
+      "resolved_at_madrid": "2026-07-28T09:52:25+02:00",
+      "history": [
+        {
+          "at_madrid": "2026-07-28T09:48:47+02:00",
+          "event": "not_reproduced_needs_revalidation",
+          "missed_scans": 1,
+          "note": "El scan actual no reprodujo esta incidencia."
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:48+02:00",
+          "event": "not_reproduced_needs_revalidation",
+          "missed_scans": 2,
+          "note": "El scan actual no reprodujo esta incidencia."
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:25+02:00",
+          "event": "resolved_by_rescan",
+          "missed_scans": 3,
+          "note": "El scan actual no reprodujo esta incidencia."
+        }
+      ],
+      "occurrences": 1,
+      "last_seen_madrid": "2026-07-28T07:27:25+02:00",
+      "fingerprint": "9a5cf2252106c19b",
+      "id": "SENT-2026-9A5CF225",
+      "codex_prompt": "Corrige esta incidencia en NeMeSiS SHARK PRO sin romper nada anterior.\n\nID:\nSENT-2026-9A5CF225\n\nArea:\nbuttons_routes\n\nSeveridad:\nmedium\n\nProblema:\nRuta devuelve Not Found\n\nRuta afectada:\n/api/ruta-inventada-v910\n\nArchivo probable:\nPor determinar\n\nEvidencia:\npath=/api/ruta-inventada-v910 count=59 referrer=sin referrer\n\nImpacto:\nPuede dejar al usuario en una pantalla seca si llega desde PWA, enlace viejo o acceso directo.\n\nReglas:\n\n* No inventar datos.\n* No tocar secretos.\n* No romper usuarios, sesiones, membresias, pagos, DB_PATH, Madrid Time, Render Cron ni Telegram dedupe.\n* Mantener navegacion cliente/admin separada.\n* Mantener estados seguros si faltan datos reales.\n\nQue debes hacer:\nCrear alias o corregir enlace de origen y revalidar smoke de rutas.\n\nValidaciones obligatorias:\n* python -m py_compile app.py\n* python tools/check_v896_not_found_route_recovery.py\n\nEntrega:\n\n* resumen de cambios;\n* archivos tocados;\n* validaciones pasadas;\n* limitaciones honestas;\n* ZIP limpio si corresponde.\n",
+      "copy_text": "[MEDIUM] [buttons_routes] Ruta devuelve Not Found\nRuta: /api/ruta-inventada-v910\nArchivo probable: Por determinar\nEvidencia: path=/api/ruta-inventada-v910 count=59 referrer=sin referrer\nImpacto: Puede dejar al usuario en una pantalla seca si llega desde PWA, enlace viejo o acceso directo.\nRecomendacion: Crear alias o corregir enlace de origen y revalidar smoke de rutas.",
+      "missed_scans": 3
+    },
+    {
+      "title": "Ruta devuelve Not Found",
+      "area": "buttons_routes",
+      "severity": "medium",
+      "status": "RESOLVED_BY_RESCAN",
+      "source": "sentinel",
+      "detected_at_madrid": "2026-07-28T09:48:47+02:00",
+      "updated_at_madrid": "2026-07-28T09:52:26+02:00",
+      "route": "/refunds",
+      "screen": "/refunds",
+      "file": "",
+      "function": "",
+      "evidence": "path=/refunds count=22 referrer=sin referrer",
+      "impact": "Puede dejar al usuario en una pantalla seca si llega desde PWA, enlace viejo o acceso directo.",
+      "risk": "Revisar antes de dar por resuelto.",
+      "recommendation": "Crear alias o corregir enlace de origen y revalidar smoke de rutas.",
+      "validation": [
+        "python -m py_compile app.py",
+        "python tools/check_v896_not_found_route_recovery.py"
+      ],
+      "tags": [
+        "navigation",
+        "not_found",
+        "v896"
+      ],
+      "resolved_at_madrid": "2026-07-28T09:52:26+02:00",
+      "history": [
+        {
+          "at_madrid": "2026-07-28T09:48:48+02:00",
+          "event": "not_reproduced_needs_revalidation",
+          "missed_scans": 1,
+          "note": "El scan actual no reprodujo esta incidencia."
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:25+02:00",
+          "event": "not_reproduced_needs_revalidation",
+          "missed_scans": 2,
+          "note": "El scan actual no reprodujo esta incidencia."
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:26+02:00",
+          "event": "resolved_by_rescan",
+          "missed_scans": 3,
+          "note": "El scan actual no reprodujo esta incidencia."
+        }
+      ],
+      "occurrences": 1,
+      "last_seen_madrid": "2026-07-28T09:48:47+02:00",
+      "fingerprint": "f4e839771f808aab",
+      "id": "SENT-2026-F4E83977",
+      "codex_prompt": "Corrige esta incidencia en NeMeSiS SHARK PRO sin romper nada anterior.\n\nID:\nSENT-2026-F4E83977\n\nArea:\nbuttons_routes\n\nSeveridad:\nmedium\n\nProblema:\nRuta devuelve Not Found\n\nRuta afectada:\n/refunds\n\nArchivo probable:\nPor determinar\n\nEvidencia:\npath=/refunds count=22 referrer=sin referrer\n\nImpacto:\nPuede dejar al usuario en una pantalla seca si llega desde PWA, enlace viejo o acceso directo.\n\nReglas:\n\n* No inventar datos.\n* No tocar secretos.\n* No romper usuarios, sesiones, membresias, pagos, DB_PATH, Madrid Time, Render Cron ni Telegram dedupe.\n* Mantener navegacion cliente/admin separada.\n* Mantener estados seguros si faltan datos reales.\n\nQue debes hacer:\nCrear alias o corregir enlace de origen y revalidar smoke de rutas.\n\nValidaciones obligatorias:\n* python -m py_compile app.py\n* python tools/check_v896_not_found_route_recovery.py\n\nEntrega:\n\n* resumen de cambios;\n* archivos tocados;\n* validaciones pasadas;\n* limitaciones honestas;\n* ZIP limpio si corresponde.\n",
+      "copy_text": "[MEDIUM] [buttons_routes] Ruta devuelve Not Found\nRuta: /refunds\nArchivo probable: Por determinar\nEvidencia: path=/refunds count=22 referrer=sin referrer\nImpacto: Puede dejar al usuario en una pantalla seca si llega desde PWA, enlace viejo o acceso directo.\nRecomendacion: Crear alias o corregir enlace de origen y revalidar smoke de rutas.",
+      "missed_scans": 3
+    },
+    {
+      "title": "Ruta devuelve Not Found",
+      "area": "buttons_routes",
+      "severity": "medium",
+      "status": "STALE_NEEDS_REVALIDATION",
+      "source": "sentinel",
+      "detected_at_madrid": "2026-07-28T09:48:48+02:00",
+      "updated_at_madrid": "2026-07-28T09:52:26+02:00",
+      "route": "/historico",
+      "screen": "/historico",
+      "file": "",
+      "function": "",
+      "evidence": "path=/historico count=29 referrer=sin referrer",
+      "impact": "Puede dejar al usuario en una pantalla seca si llega desde PWA, enlace viejo o acceso directo.",
+      "risk": "Revisar antes de dar por resuelto.",
+      "recommendation": "Crear alias o corregir enlace de origen y revalidar smoke de rutas.",
+      "validation": [
+        "python -m py_compile app.py",
+        "python tools/check_v896_not_found_route_recovery.py"
+      ],
+      "tags": [
+        "navigation",
+        "not_found",
+        "v896"
+      ],
+      "resolved_at_madrid": null,
+      "history": [
+        {
+          "at_madrid": "2026-07-28T09:52:25+02:00",
+          "event": "not_reproduced_needs_revalidation",
+          "missed_scans": 1,
+          "note": "El scan actual no reprodujo esta incidencia."
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:26+02:00",
+          "event": "not_reproduced_needs_revalidation",
+          "missed_scans": 2,
+          "note": "El scan actual no reprodujo esta incidencia."
+        }
+      ],
+      "occurrences": 1,
+      "last_seen_madrid": "2026-07-28T09:48:48+02:00",
+      "fingerprint": "e697f5a4e8c32ef0",
+      "id": "SENT-2026-E697F5A4",
+      "codex_prompt": "Corrige esta incidencia en NeMeSiS SHARK PRO sin romper nada anterior.\n\nID:\nSENT-2026-E697F5A4\n\nArea:\nbuttons_routes\n\nSeveridad:\nmedium\n\nProblema:\nRuta devuelve Not Found\n\nRuta afectada:\n/historico\n\nArchivo probable:\nPor determinar\n\nEvidencia:\npath=/historico count=29 referrer=sin referrer\n\nImpacto:\nPuede dejar al usuario en una pantalla seca si llega desde PWA, enlace viejo o acceso directo.\n\nReglas:\n\n* No inventar datos.\n* No tocar secretos.\n* No romper usuarios, sesiones, membresias, pagos, DB_PATH, Madrid Time, Render Cron ni Telegram dedupe.\n* Mantener navegacion cliente/admin separada.\n* Mantener estados seguros si faltan datos reales.\n\nQue debes hacer:\nCrear alias o corregir enlace de origen y revalidar smoke de rutas.\n\nValidaciones obligatorias:\n* python -m py_compile app.py\n* python tools/check_v896_not_found_route_recovery.py\n\nEntrega:\n\n* resumen de cambios;\n* archivos tocados;\n* validaciones pasadas;\n* limitaciones honestas;\n* ZIP limpio si corresponde.\n",
+      "copy_text": "[MEDIUM] [buttons_routes] Ruta devuelve Not Found\nRuta: /historico\nArchivo probable: Por determinar\nEvidencia: path=/historico count=29 referrer=sin referrer\nImpacto: Puede dejar al usuario en una pantalla seca si llega desde PWA, enlace viejo o acceso directo.\nRecomendacion: Crear alias o corregir enlace de origen y revalidar smoke de rutas.",
+      "missed_scans": 2
+    },
+    {
+      "title": "Ruta devuelve Not Found",
+      "area": "buttons_routes",
+      "severity": "medium",
+      "status": "STALE_NEEDS_REVALIDATION",
+      "source": "sentinel",
+      "detected_at_madrid": "2026-07-28T09:52:25+02:00",
+      "updated_at_madrid": "2026-07-28T09:52:26+02:00",
+      "route": "/ruta-inventada-v910",
+      "screen": "/ruta-inventada-v910",
+      "file": "",
+      "function": "",
+      "evidence": "path=/ruta-inventada-v910 count=60 referrer=sin referrer",
+      "impact": "Puede dejar al usuario en una pantalla seca si llega desde PWA, enlace viejo o acceso directo.",
+      "risk": "Revisar antes de dar por resuelto.",
+      "recommendation": "Crear alias o corregir enlace de origen y revalidar smoke de rutas.",
+      "validation": [
+        "python -m py_compile app.py",
+        "python tools/check_v896_not_found_route_recovery.py"
+      ],
+      "tags": [
+        "navigation",
+        "not_found",
+        "v896"
+      ],
+      "resolved_at_madrid": null,
+      "history": [
+        {
+          "at_madrid": "2026-07-28T09:52:26+02:00",
+          "event": "not_reproduced_needs_revalidation",
+          "missed_scans": 1,
+          "note": "El scan actual no reprodujo esta incidencia."
+        }
+      ],
+      "occurrences": 1,
+      "last_seen_madrid": "2026-07-28T09:52:25+02:00",
+      "fingerprint": "3a91521609aef7ab",
+      "id": "SENT-2026-3A915216",
+      "codex_prompt": "Corrige esta incidencia en NeMeSiS SHARK PRO sin romper nada anterior.\n\nID:\nSENT-2026-3A915216\n\nArea:\nbuttons_routes\n\nSeveridad:\nmedium\n\nProblema:\nRuta devuelve Not Found\n\nRuta afectada:\n/ruta-inventada-v910\n\nArchivo probable:\nPor determinar\n\nEvidencia:\npath=/ruta-inventada-v910 count=60 referrer=sin referrer\n\nImpacto:\nPuede dejar al usuario en una pantalla seca si llega desde PWA, enlace viejo o acceso directo.\n\nReglas:\n\n* No inventar datos.\n* No tocar secretos.\n* No romper usuarios, sesiones, membresias, pagos, DB_PATH, Madrid Time, Render Cron ni Telegram dedupe.\n* Mantener navegacion cliente/admin separada.\n* Mantener estados seguros si faltan datos reales.\n\nQue debes hacer:\nCrear alias o corregir enlace de origen y revalidar smoke de rutas.\n\nValidaciones obligatorias:\n* python -m py_compile app.py\n* python tools/check_v896_not_found_route_recovery.py\n\nEntrega:\n\n* resumen de cambios;\n* archivos tocados;\n* validaciones pasadas;\n* limitaciones honestas;\n* ZIP limpio si corresponde.\n",
+      "copy_text": "[MEDIUM] [buttons_routes] Ruta devuelve Not Found\nRuta: /ruta-inventada-v910\nArchivo probable: Por determinar\nEvidencia: path=/ruta-inventada-v910 count=60 referrer=sin referrer\nImpacto: Puede dejar al usuario en una pantalla seca si llega desde PWA, enlace viejo o acceso directo.\nRecomendacion: Crear alias o corregir enlace de origen y revalidar smoke de rutas.",
+      "missed_scans": 1
+    },
+    {
+      "title": "Ruta devuelve Not Found",
+      "area": "buttons_routes",
+      "severity": "medium",
+      "status": "OPEN",
+      "source": "sentinel",
+      "detected_at_madrid": "2026-07-28T09:52:25+02:00",
+      "updated_at_madrid": "2026-07-28T09:52:25+02:00",
+      "route": "/api/ruta-inventada-v910",
+      "screen": "/api/ruta-inventada-v910",
+      "file": "",
+      "function": "",
+      "evidence": "path=/api/ruta-inventada-v910 count=60 referrer=sin referrer",
+      "impact": "Puede dejar al usuario en una pantalla seca si llega desde PWA, enlace viejo o acceso directo.",
+      "risk": "Revisar antes de dar por resuelto.",
+      "recommendation": "Crear alias o corregir enlace de origen y revalidar smoke de rutas.",
+      "validation": [
+        "python -m py_compile app.py",
+        "python tools/check_v896_not_found_route_recovery.py"
+      ],
+      "tags": [
+        "navigation",
+        "not_found",
+        "v896"
+      ],
+      "resolved_at_madrid": null,
+      "history": [],
+      "occurrences": 1,
+      "last_seen_madrid": "2026-07-28T09:52:25+02:00",
+      "fingerprint": "8d9ed81854eb0a7c",
+      "id": "SENT-2026-8D9ED818",
+      "codex_prompt": "Corrige esta incidencia en NeMeSiS SHARK PRO sin romper nada anterior.\n\nID:\nSENT-2026-8D9ED818\n\nArea:\nbuttons_routes\n\nSeveridad:\nmedium\n\nProblema:\nRuta devuelve Not Found\n\nRuta afectada:\n/api/ruta-inventada-v910\n\nArchivo probable:\nPor determinar\n\nEvidencia:\npath=/api/ruta-inventada-v910 count=60 referrer=sin referrer\n\nImpacto:\nPuede dejar al usuario en una pantalla seca si llega desde PWA, enlace viejo o acceso directo.\n\nReglas:\n\n* No inventar datos.\n* No tocar secretos.\n* No romper usuarios, sesiones, membresias, pagos, DB_PATH, Madrid Time, Render Cron ni Telegram dedupe.\n* Mantener navegacion cliente/admin separada.\n* Mantener estados seguros si faltan datos reales.\n\nQue debes hacer:\nCrear alias o corregir enlace de origen y revalidar smoke de rutas.\n\nValidaciones obligatorias:\n* python -m py_compile app.py\n* python tools/check_v896_not_found_route_recovery.py\n\nEntrega:\n\n* resumen de cambios;\n* archivos tocados;\n* validaciones pasadas;\n* limitaciones honestas;\n* ZIP limpio si corresponde.\n",
+      "copy_text": "[MEDIUM] [buttons_routes] Ruta devuelve Not Found\nRuta: /api/ruta-inventada-v910\nArchivo probable: Por determinar\nEvidencia: path=/api/ruta-inventada-v910 count=60 referrer=sin referrer\nImpacto: Puede dejar al usuario en una pantalla seca si llega desde PWA, enlace viejo o acceso directo.\nRecomendacion: Crear alias o corregir enlace de origen y revalidar smoke de rutas.",
+      "missed_scans": 0
+    },
+    {
       "title": "SHARK IA en modo seguro",
       "area": "shark",
       "severity": "medium",
       "status": "RESOLVED_BY_RESCAN",
       "source": "sentinel_autopilot",
       "detected_at_madrid": "2026-07-04T23:43:39+02:00",
-      "updated_at_madrid": "2026-07-28T07:27:25+02:00",
+      "updated_at_madrid": "2026-07-28T09:52:26+02:00",
       "route": "/shark",
       "screen": "/shark",
       "file": "",
@@ -50339,30 +50632,6 @@
       "resolved_at_madrid": null,
       "history": [
         {
-          "at_madrid": "2026-07-11T21:01:24+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-11T21:01:33+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-12T02:38:20+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-12T02:38:21+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
           "at_madrid": "2026-07-12T02:38:24+02:00",
           "event": "seen_again",
           "source": "sentinel_autopilot",
@@ -50457,10 +50726,34 @@
           "event": "seen_again",
           "source": "sentinel_autopilot",
           "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:47+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:48+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:25+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:26+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
         }
       ],
-      "occurrences": 858,
-      "last_seen_madrid": "2026-07-28T07:27:25+02:00",
+      "occurrences": 862,
+      "last_seen_madrid": "2026-07-28T09:52:26+02:00",
       "fingerprint": "441e5b1812a44ae0",
       "id": "AP-BE15CF323912",
       "codex_prompt": "Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: SHARK IA en modo seguro Categoria: shark_ai Ruta/pantalla: /shark Evidencia: OPENAI no configurado; debe comunicarse como modo seguro.  Reglas sagradas: no tocar secretos, no enviar Telegram real, no inventar partidos/picks/cuotas/resultados, no tocar pagos reales, no borrar DB/usuarios, no hacer push/deploy automatico y preservar V818+.  Tarea: localizar la causa real, proponer un fix seguro, aplicar solo cambios controlados si son necesarios, ejecutar checks locales y documentar resultado, bloqueadores y siguiente accion.",
@@ -50478,7 +50771,7 @@
       "status": "RESOLVED_BY_RESCAN",
       "source": "sentinel_autopilot",
       "detected_at_madrid": "2026-07-04T23:43:39+02:00",
-      "updated_at_madrid": "2026-07-28T07:27:25+02:00",
+      "updated_at_madrid": "2026-07-28T09:52:26+02:00",
       "route": "/partidos",
       "screen": "/partidos",
       "file": "",
@@ -50498,30 +50791,6 @@
       "resolved_at_madrid": null,
       "history": [
         {
-          "at_madrid": "2026-07-11T21:01:24+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-11T21:01:33+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-12T02:38:20+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-12T02:38:21+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
           "at_madrid": "2026-07-12T02:38:24+02:00",
           "event": "seen_again",
           "source": "sentinel_autopilot",
@@ -50616,10 +50885,34 @@
           "event": "seen_again",
           "source": "sentinel_autopilot",
           "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:47+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:48+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:25+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:26+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
         }
       ],
-      "occurrences": 858,
-      "last_seen_madrid": "2026-07-28T07:27:25+02:00",
+      "occurrences": 862,
+      "last_seen_madrid": "2026-07-28T09:52:26+02:00",
       "fingerprint": "542c341cef05eb34",
       "id": "AP-8D48F463630F",
       "codex_prompt": "Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: Cache de logos en cero Categoria: logos Ruta/pantalla: /partidos Evidencia: Debe existir fallback visual y no imagen rota.  Reglas sagradas: no tocar secretos, no enviar Telegram real, no inventar partidos/picks/cuotas/resultados, no tocar pagos reales, no borrar DB/usuarios, no hacer push/deploy automatico y preservar V818+.  Tarea: localizar la causa real, proponer un fix seguro, aplicar solo cambios controlados si son necesarios, ejecutar checks locales y documentar resultado, bloqueadores y siguiente accion.",
@@ -50637,7 +50930,7 @@
       "status": "RESOLVED_BY_RESCAN",
       "source": "sentinel_autopilot",
       "detected_at_madrid": "2026-07-04T23:43:39+02:00",
-      "updated_at_madrid": "2026-07-28T07:27:25+02:00",
+      "updated_at_madrid": "2026-07-28T09:52:26+02:00",
       "route": "/partidos",
       "screen": "/partidos",
       "file": "",
@@ -50657,30 +50950,6 @@
       "resolved_at_madrid": "2026-07-06T10:34:59+02:00",
       "history": [
         {
-          "at_madrid": "2026-07-11T21:01:24+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-11T21:01:33+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-12T02:38:20+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-12T02:38:21+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
           "at_madrid": "2026-07-12T02:38:24+02:00",
           "event": "seen_again",
           "source": "sentinel_autopilot",
@@ -50775,10 +51044,34 @@
           "event": "seen_again",
           "source": "sentinel_autopilot",
           "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:47+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:48+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:25+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:26+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
         }
       ],
-      "occurrences": 422,
-      "last_seen_madrid": "2026-07-28T07:27:25+02:00",
+      "occurrences": 426,
+      "last_seen_madrid": "2026-07-28T09:52:26+02:00",
       "fingerprint": "8240aae6e779f7d9",
       "id": "AP-33190C902467",
       "codex_prompt": "Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: Pantalla deportiva sin datos reales visibles Categoria: visual_layout Ruta/pantalla: /partidos Evidencia: Hay estado seguro, pero no hay filas/cards deportivas reales visibles.  Reglas sagradas: no tocar secretos, no enviar Telegram real, no inventar partidos/picks/cuotas/resultados, no tocar pagos reales, no borrar DB/usuarios, no hacer push/deploy automatico y preservar V818+.  Tarea: localizar la causa real, proponer un fix seguro, aplicar solo cambios controlados si son necesarios, ejecutar checks locales y documentar resultado, bloqueadores y siguiente accion.",
@@ -50796,7 +51089,7 @@
       "status": "RESOLVED_BY_RESCAN",
       "source": "sentinel_autopilot",
       "detected_at_madrid": "2026-07-04T23:43:40+02:00",
-      "updated_at_madrid": "2026-07-28T07:27:25+02:00",
+      "updated_at_madrid": "2026-07-28T09:52:26+02:00",
       "route": "/",
       "screen": "/",
       "file": "",
@@ -50816,30 +51109,6 @@
       "resolved_at_madrid": null,
       "history": [
         {
-          "at_madrid": "2026-07-11T21:01:24+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-11T21:01:33+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-12T02:38:20+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-12T02:38:21+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
           "at_madrid": "2026-07-12T02:38:24+02:00",
           "event": "seen_again",
           "source": "sentinel_autopilot",
@@ -50934,10 +51203,34 @@
           "event": "seen_again",
           "source": "sentinel_autopilot",
           "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:47+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:48+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:25+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:26+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
         }
       ],
-      "occurrences": 886,
-      "last_seen_madrid": "2026-07-28T07:27:25+02:00",
+      "occurrences": 890,
+      "last_seen_madrid": "2026-07-28T09:52:26+02:00",
       "fingerprint": "57972b3b793790ac",
       "id": "AP-C79FC4AE2FE2",
       "codex_prompt": "Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: Texto tecnico o mojibake visible Categoria: copy Ruta/pantalla: / Evidencia: Mojibake/None/null/undefined detectado en HTML visible.  Reglas sagradas: no tocar secretos, no enviar Telegram real, no inventar partidos/picks/cuotas/resultados, no tocar pagos reales, no borrar DB/usuarios, no hacer push/deploy automatico y preservar V818+.  Tarea: localizar la causa real, proponer un fix seguro, aplicar solo cambios controlados si son necesarios, ejecutar checks locales y documentar resultado, bloqueadores y siguiente accion.",
@@ -50955,7 +51248,7 @@
       "status": "RESOLVED_BY_RESCAN",
       "source": "sentinel_autopilot",
       "detected_at_madrid": "2026-07-04T23:43:42+02:00",
-      "updated_at_madrid": "2026-07-28T07:27:25+02:00",
+      "updated_at_madrid": "2026-07-28T09:52:26+02:00",
       "route": "/track-record",
       "screen": "/track-record",
       "file": "",
@@ -50975,30 +51268,6 @@
       "resolved_at_madrid": null,
       "history": [
         {
-          "at_madrid": "2026-07-11T21:01:24+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-11T21:01:33+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-12T02:38:20+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-12T02:38:21+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
           "at_madrid": "2026-07-12T02:38:24+02:00",
           "event": "seen_again",
           "source": "sentinel_autopilot",
@@ -51093,10 +51362,34 @@
           "event": "seen_again",
           "source": "sentinel_autopilot",
           "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:47+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:48+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:25+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:26+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
         }
       ],
-      "occurrences": 886,
-      "last_seen_madrid": "2026-07-28T07:27:25+02:00",
+      "occurrences": 890,
+      "last_seen_madrid": "2026-07-28T09:52:26+02:00",
       "fingerprint": "078cfa9ff03fba9d",
       "id": "AP-00789718AAAF",
       "codex_prompt": "Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: Texto tecnico o mojibake visible Categoria: copy Ruta/pantalla: /track-record Evidencia: Mojibake/None/null/undefined detectado en HTML visible.  Reglas sagradas: no tocar secretos, no enviar Telegram real, no inventar partidos/picks/cuotas/resultados, no tocar pagos reales, no borrar DB/usuarios, no hacer push/deploy automatico y preservar V818+.  Tarea: localizar la causa real, proponer un fix seguro, aplicar solo cambios controlados si son necesarios, ejecutar checks locales y documentar resultado, bloqueadores y siguiente accion.",
@@ -51114,7 +51407,7 @@
       "status": "RESOLVED_BY_RESCAN",
       "source": "sentinel_autopilot",
       "detected_at_madrid": "2026-07-04T23:43:42+02:00",
-      "updated_at_madrid": "2026-07-28T07:27:25+02:00",
+      "updated_at_madrid": "2026-07-28T09:52:26+02:00",
       "route": "/support",
       "screen": "/support",
       "file": "",
@@ -51134,30 +51427,6 @@
       "resolved_at_madrid": null,
       "history": [
         {
-          "at_madrid": "2026-07-11T21:01:24+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-11T21:01:33+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-12T02:38:20+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-12T02:38:21+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
           "at_madrid": "2026-07-12T02:38:24+02:00",
           "event": "seen_again",
           "source": "sentinel_autopilot",
@@ -51252,10 +51521,34 @@
           "event": "seen_again",
           "source": "sentinel_autopilot",
           "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:47+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:48+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:25+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:26+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
         }
       ],
-      "occurrences": 886,
-      "last_seen_madrid": "2026-07-28T07:27:25+02:00",
+      "occurrences": 890,
+      "last_seen_madrid": "2026-07-28T09:52:26+02:00",
       "fingerprint": "21e9aa3a05d34813",
       "id": "AP-6660CC69ED67",
       "codex_prompt": "Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: Texto tecnico o mojibake visible Categoria: copy Ruta/pantalla: /support Evidencia: Mojibake/None/null/undefined detectado en HTML visible.  Reglas sagradas: no tocar secretos, no enviar Telegram real, no inventar partidos/picks/cuotas/resultados, no tocar pagos reales, no borrar DB/usuarios, no hacer push/deploy automatico y preservar V818+.  Tarea: localizar la causa real, proponer un fix seguro, aplicar solo cambios controlados si son necesarios, ejecutar checks locales y documentar resultado, bloqueadores y siguiente accion.",
@@ -51273,7 +51566,7 @@
       "status": "RESOLVED_BY_RESCAN",
       "source": "sentinel_autopilot",
       "detected_at_madrid": "2026-07-03T22:52:55+02:00",
-      "updated_at_madrid": "2026-07-28T07:27:25+02:00",
+      "updated_at_madrid": "2026-07-28T09:52:26+02:00",
       "route": "",
       "screen": "",
       "file": "",
@@ -51293,30 +51586,6 @@
       "resolved_at_madrid": null,
       "history": [
         {
-          "at_madrid": "2026-07-11T21:01:24+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-11T21:01:33+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-12T02:38:20+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-12T02:38:21+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
           "at_madrid": "2026-07-12T02:38:24+02:00",
           "event": "seen_again",
           "source": "sentinel_autopilot",
@@ -51411,10 +51680,34 @@
           "event": "seen_again",
           "source": "sentinel_autopilot",
           "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:47+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:48+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:25+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:26+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
         }
       ],
-      "occurrences": 834,
-      "last_seen_madrid": "2026-07-28T07:27:25+02:00",
+      "occurrences": 838,
+      "last_seen_madrid": "2026-07-28T09:52:26+02:00",
       "fingerprint": "bd44e66c7d705843",
       "id": "AP-81E3EC4D665F",
       "codex_prompt": "Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: Ruta con error 5xx Categoria: visual_layout Ruta/pantalla: sin ruta concreta Evidencia: Sin evidencia textual adicional.  Reglas sagradas: no tocar secretos, no enviar Telegram real, no inventar partidos/picks/cuotas/resultados, no tocar pagos reales, no borrar DB/usuarios, no hacer push/deploy automatico y preservar V818+.  Tarea: localizar la causa real, proponer un fix seguro, aplicar solo cambios controlados si son necesarios, ejecutar checks locales y documentar resultado, bloqueadores y siguiente accion.",
@@ -51432,7 +51725,7 @@
       "status": "RESOLVED_BY_RESCAN",
       "source": "sentinel_autopilot",
       "detected_at_madrid": "2026-07-03T22:52:55+02:00",
-      "updated_at_madrid": "2026-07-28T07:27:25+02:00",
+      "updated_at_madrid": "2026-07-28T09:52:26+02:00",
       "route": "",
       "screen": "",
       "file": "",
@@ -51452,30 +51745,6 @@
       "resolved_at_madrid": null,
       "history": [
         {
-          "at_madrid": "2026-07-11T21:01:24+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-11T21:01:33+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-12T02:38:20+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-12T02:38:21+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
           "at_madrid": "2026-07-12T02:38:24+02:00",
           "event": "seen_again",
           "source": "sentinel_autopilot",
@@ -51570,10 +51839,34 @@
           "event": "seen_again",
           "source": "sentinel_autopilot",
           "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:47+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:48+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:25+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:26+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
         }
       ],
-      "occurrences": 834,
-      "last_seen_madrid": "2026-07-28T07:27:25+02:00",
+      "occurrences": 838,
+      "last_seen_madrid": "2026-07-28T09:52:26+02:00",
       "fingerprint": "c709f300fd686e6a",
       "id": "AP-80F52E08F849",
       "codex_prompt": "Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: Ruta cliente con estado inesperado Categoria: visual_layout Ruta/pantalla: sin ruta concreta Evidencia: Sin evidencia textual adicional.  Reglas sagradas: no tocar secretos, no enviar Telegram real, no inventar partidos/picks/cuotas/resultados, no tocar pagos reales, no borrar DB/usuarios, no hacer push/deploy automatico y preservar V818+.  Tarea: localizar la causa real, proponer un fix seguro, aplicar solo cambios controlados si son necesarios, ejecutar checks locales y documentar resultado, bloqueadores y siguiente accion.",
@@ -51591,7 +51884,7 @@
       "status": "RESOLVED_BY_RESCAN",
       "source": "sentinel_autopilot",
       "detected_at_madrid": "2026-07-04T23:43:39+02:00",
-      "updated_at_madrid": "2026-07-28T07:27:25+02:00",
+      "updated_at_madrid": "2026-07-28T09:52:26+02:00",
       "route": "/calendar",
       "screen": "/calendar",
       "file": "",
@@ -51611,30 +51904,6 @@
       "resolved_at_madrid": "2026-07-06T10:34:59+02:00",
       "history": [
         {
-          "at_madrid": "2026-07-11T21:01:24+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-11T21:01:33+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-12T02:38:20+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-12T02:38:21+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
           "at_madrid": "2026-07-12T02:38:24+02:00",
           "event": "seen_again",
           "source": "sentinel_autopilot",
@@ -51729,10 +51998,34 @@
           "event": "seen_again",
           "source": "sentinel_autopilot",
           "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:47+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:48+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:25+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:26+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
         }
       ],
-      "occurrences": 422,
-      "last_seen_madrid": "2026-07-28T07:27:25+02:00",
+      "occurrences": 426,
+      "last_seen_madrid": "2026-07-28T09:52:26+02:00",
       "fingerprint": "9754aa8f80fd3b86",
       "id": "AP-79B06E4D8626",
       "codex_prompt": "Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: Pantalla deportiva sin datos reales visibles Categoria: visual_layout Ruta/pantalla: /calendar Evidencia: Hay estado seguro, pero no hay filas/cards deportivas reales visibles.  Reglas sagradas: no tocar secretos, no enviar Telegram real, no inventar partidos/picks/cuotas/resultados, no tocar pagos reales, no borrar DB/usuarios, no hacer push/deploy automatico y preservar V818+.  Tarea: localizar la causa real, proponer un fix seguro, aplicar solo cambios controlados si son necesarios, ejecutar checks locales y documentar resultado, bloqueadores y siguiente accion.",
@@ -51750,7 +52043,7 @@
       "status": "RESOLVED_BY_RESCAN",
       "source": "sentinel_autopilot",
       "detected_at_madrid": "2026-07-04T23:43:39+02:00",
-      "updated_at_madrid": "2026-07-28T07:27:25+02:00",
+      "updated_at_madrid": "2026-07-28T09:52:26+02:00",
       "route": "/live",
       "screen": "/live",
       "file": "",
@@ -51770,30 +52063,6 @@
       "resolved_at_madrid": "2026-07-06T10:34:59+02:00",
       "history": [
         {
-          "at_madrid": "2026-07-11T21:01:24+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-11T21:01:33+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-12T02:38:20+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-12T02:38:21+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
           "at_madrid": "2026-07-12T02:38:24+02:00",
           "event": "seen_again",
           "source": "sentinel_autopilot",
@@ -51888,10 +52157,34 @@
           "event": "seen_again",
           "source": "sentinel_autopilot",
           "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:47+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:48+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:25+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:26+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
         }
       ],
-      "occurrences": 422,
-      "last_seen_madrid": "2026-07-28T07:27:25+02:00",
+      "occurrences": 426,
+      "last_seen_madrid": "2026-07-28T09:52:26+02:00",
       "fingerprint": "70dfecf5542d35b9",
       "id": "AP-C7DB52036243",
       "codex_prompt": "Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: Pantalla deportiva sin datos reales visibles Categoria: visual_layout Ruta/pantalla: /live Evidencia: Hay estado seguro, pero no hay filas/cards deportivas reales visibles.  Reglas sagradas: no tocar secretos, no enviar Telegram real, no inventar partidos/picks/cuotas/resultados, no tocar pagos reales, no borrar DB/usuarios, no hacer push/deploy automatico y preservar V818+.  Tarea: localizar la causa real, proponer un fix seguro, aplicar solo cambios controlados si son necesarios, ejecutar checks locales y documentar resultado, bloqueadores y siguiente accion.",
@@ -51909,7 +52202,7 @@
       "status": "RESOLVED_BY_RESCAN",
       "source": "sentinel_autopilot",
       "detected_at_madrid": "2026-07-04T23:43:39+02:00",
-      "updated_at_madrid": "2026-07-28T07:27:25+02:00",
+      "updated_at_madrid": "2026-07-28T09:52:26+02:00",
       "route": "",
       "screen": "",
       "file": "",
@@ -51929,30 +52222,6 @@
       "resolved_at_madrid": "2026-07-06T10:34:59+02:00",
       "history": [
         {
-          "at_madrid": "2026-07-11T21:01:24+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-11T21:01:33+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-12T02:38:20+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-12T02:38:21+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
           "at_madrid": "2026-07-12T02:38:24+02:00",
           "event": "seen_again",
           "source": "sentinel_autopilot",
@@ -52047,10 +52316,34 @@
           "event": "seen_again",
           "source": "sentinel_autopilot",
           "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:47+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:48+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:25+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:26+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
         }
       ],
-      "occurrences": 422,
-      "last_seen_madrid": "2026-07-28T07:27:25+02:00",
+      "occurrences": 426,
+      "last_seen_madrid": "2026-07-28T09:52:26+02:00",
       "fingerprint": "b47750627f7bfba0",
       "id": "AP-1DF1484884AA",
       "codex_prompt": "Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: Pantalla deportiva sin datos reales visibles Categoria: visual_layout Ruta/pantalla: sin ruta concreta Evidencia: Sin evidencia textual adicional.  Reglas sagradas: no tocar secretos, no enviar Telegram real, no inventar partidos/picks/cuotas/resultados, no tocar pagos reales, no borrar DB/usuarios, no hacer push/deploy automatico y preservar V818+.  Tarea: localizar la causa real, proponer un fix seguro, aplicar solo cambios controlados si son necesarios, ejecutar checks locales y documentar resultado, bloqueadores y siguiente accion.",
@@ -52068,7 +52361,7 @@
       "status": "RESOLVED_BY_RESCAN",
       "source": "sentinel_autopilot",
       "detected_at_madrid": "2026-07-04T23:43:40+02:00",
-      "updated_at_madrid": "2026-07-28T07:27:25+02:00",
+      "updated_at_madrid": "2026-07-28T09:52:26+02:00",
       "route": "/partidos",
       "screen": "/partidos",
       "file": "",
@@ -52088,30 +52381,6 @@
       "resolved_at_madrid": "2026-07-06T10:34:59+02:00",
       "history": [
         {
-          "at_madrid": "2026-07-11T21:01:24+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-11T21:01:33+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-12T02:38:20+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-12T02:38:21+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
           "at_madrid": "2026-07-12T02:38:24+02:00",
           "event": "seen_again",
           "source": "sentinel_autopilot",
@@ -52206,10 +52475,34 @@
           "event": "seen_again",
           "source": "sentinel_autopilot",
           "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:47+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:48+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:25+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:26+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
         }
       ],
-      "occurrences": 422,
-      "last_seen_madrid": "2026-07-28T07:27:25+02:00",
+      "occurrences": 426,
+      "last_seen_madrid": "2026-07-28T09:52:26+02:00",
       "fingerprint": "57e754629f524884",
       "id": "AP-D8881CCD1440",
       "codex_prompt": "Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: Texto tecnico o mojibake visible Categoria: copy Ruta/pantalla: /partidos Evidencia: Mojibake/None/null/undefined detectado en HTML visible.  Reglas sagradas: no tocar secretos, no enviar Telegram real, no inventar partidos/picks/cuotas/resultados, no tocar pagos reales, no borrar DB/usuarios, no hacer push/deploy automatico y preservar V818+.  Tarea: localizar la causa real, proponer un fix seguro, aplicar solo cambios controlados si son necesarios, ejecutar checks locales y documentar resultado, bloqueadores y siguiente accion.",
@@ -52227,7 +52520,7 @@
       "status": "RESOLVED_BY_RESCAN",
       "source": "sentinel_autopilot",
       "detected_at_madrid": "2026-07-04T23:43:40+02:00",
-      "updated_at_madrid": "2026-07-28T07:27:25+02:00",
+      "updated_at_madrid": "2026-07-28T09:52:26+02:00",
       "route": "/calendar",
       "screen": "/calendar",
       "file": "",
@@ -52247,30 +52540,6 @@
       "resolved_at_madrid": "2026-07-06T10:34:59+02:00",
       "history": [
         {
-          "at_madrid": "2026-07-11T21:01:24+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-11T21:01:33+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-12T02:38:20+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-12T02:38:21+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
           "at_madrid": "2026-07-12T02:38:24+02:00",
           "event": "seen_again",
           "source": "sentinel_autopilot",
@@ -52365,10 +52634,34 @@
           "event": "seen_again",
           "source": "sentinel_autopilot",
           "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:47+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:48+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:25+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:26+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
         }
       ],
-      "occurrences": 422,
-      "last_seen_madrid": "2026-07-28T07:27:25+02:00",
+      "occurrences": 426,
+      "last_seen_madrid": "2026-07-28T09:52:26+02:00",
       "fingerprint": "c82fddd4f4f091b8",
       "id": "AP-9F4C7FA7D4DE",
       "codex_prompt": "Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: Texto tecnico o mojibake visible Categoria: copy Ruta/pantalla: /calendar Evidencia: Mojibake/None/null/undefined detectado en HTML visible.  Reglas sagradas: no tocar secretos, no enviar Telegram real, no inventar partidos/picks/cuotas/resultados, no tocar pagos reales, no borrar DB/usuarios, no hacer push/deploy automatico y preservar V818+.  Tarea: localizar la causa real, proponer un fix seguro, aplicar solo cambios controlados si son necesarios, ejecutar checks locales y documentar resultado, bloqueadores y siguiente accion.",
@@ -52386,7 +52679,7 @@
       "status": "RESOLVED_BY_RESCAN",
       "source": "sentinel_autopilot",
       "detected_at_madrid": "2026-07-04T23:43:41+02:00",
-      "updated_at_madrid": "2026-07-28T07:27:25+02:00",
+      "updated_at_madrid": "2026-07-28T09:52:26+02:00",
       "route": "/live",
       "screen": "/live",
       "file": "",
@@ -52406,30 +52699,6 @@
       "resolved_at_madrid": "2026-07-06T10:34:59+02:00",
       "history": [
         {
-          "at_madrid": "2026-07-11T21:01:24+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-11T21:01:33+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-12T02:38:20+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-12T02:38:21+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
           "at_madrid": "2026-07-12T02:38:24+02:00",
           "event": "seen_again",
           "source": "sentinel_autopilot",
@@ -52524,10 +52793,34 @@
           "event": "seen_again",
           "source": "sentinel_autopilot",
           "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:47+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:48+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:25+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:26+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
         }
       ],
-      "occurrences": 422,
-      "last_seen_madrid": "2026-07-28T07:27:25+02:00",
+      "occurrences": 426,
+      "last_seen_madrid": "2026-07-28T09:52:26+02:00",
       "fingerprint": "68120e314844cac1",
       "id": "AP-1B6FEB81DD17",
       "codex_prompt": "Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: Texto tecnico o mojibake visible Categoria: copy Ruta/pantalla: /live Evidencia: Mojibake/None/null/undefined detectado en HTML visible.  Reglas sagradas: no tocar secretos, no enviar Telegram real, no inventar partidos/picks/cuotas/resultados, no tocar pagos reales, no borrar DB/usuarios, no hacer push/deploy automatico y preservar V818+.  Tarea: localizar la causa real, proponer un fix seguro, aplicar solo cambios controlados si son necesarios, ejecutar checks locales y documentar resultado, bloqueadores y siguiente accion.",
@@ -52545,7 +52838,7 @@
       "status": "RESOLVED_BY_RESCAN",
       "source": "sentinel_autopilot",
       "detected_at_madrid": "2026-07-04T23:43:41+02:00",
-      "updated_at_madrid": "2026-07-28T07:27:25+02:00",
+      "updated_at_madrid": "2026-07-28T09:52:26+02:00",
       "route": "/directo",
       "screen": "/directo",
       "file": "",
@@ -52565,30 +52858,6 @@
       "resolved_at_madrid": "2026-07-06T10:34:59+02:00",
       "history": [
         {
-          "at_madrid": "2026-07-11T21:01:24+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-11T21:01:33+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-12T02:38:20+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-12T02:38:21+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
           "at_madrid": "2026-07-12T02:38:24+02:00",
           "event": "seen_again",
           "source": "sentinel_autopilot",
@@ -52683,10 +52952,34 @@
           "event": "seen_again",
           "source": "sentinel_autopilot",
           "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:47+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:48+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:25+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:26+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
         }
       ],
-      "occurrences": 422,
-      "last_seen_madrid": "2026-07-28T07:27:25+02:00",
+      "occurrences": 426,
+      "last_seen_madrid": "2026-07-28T09:52:26+02:00",
       "fingerprint": "2fd294c35b98aa84",
       "id": "AP-8955C54BDCC7",
       "codex_prompt": "Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: Texto tecnico o mojibake visible Categoria: copy Ruta/pantalla: /directo Evidencia: Mojibake/None/null/undefined detectado en HTML visible.  Reglas sagradas: no tocar secretos, no enviar Telegram real, no inventar partidos/picks/cuotas/resultados, no tocar pagos reales, no borrar DB/usuarios, no hacer push/deploy automatico y preservar V818+.  Tarea: localizar la causa real, proponer un fix seguro, aplicar solo cambios controlados si son necesarios, ejecutar checks locales y documentar resultado, bloqueadores y siguiente accion.",
@@ -52704,7 +52997,7 @@
       "status": "RESOLVED_BY_RESCAN",
       "source": "sentinel_autopilot",
       "detected_at_madrid": "2026-07-04T23:43:42+02:00",
-      "updated_at_madrid": "2026-07-28T07:27:25+02:00",
+      "updated_at_madrid": "2026-07-28T09:52:26+02:00",
       "route": "/picks",
       "screen": "/picks",
       "file": "",
@@ -52724,30 +53017,6 @@
       "resolved_at_madrid": "2026-07-06T10:34:59+02:00",
       "history": [
         {
-          "at_madrid": "2026-07-11T21:01:24+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-11T21:01:33+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-12T02:38:20+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-12T02:38:21+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
           "at_madrid": "2026-07-12T02:38:24+02:00",
           "event": "seen_again",
           "source": "sentinel_autopilot",
@@ -52842,10 +53111,34 @@
           "event": "seen_again",
           "source": "sentinel_autopilot",
           "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:47+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:48+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:25+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:26+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
         }
       ],
-      "occurrences": 422,
-      "last_seen_madrid": "2026-07-28T07:27:25+02:00",
+      "occurrences": 426,
+      "last_seen_madrid": "2026-07-28T09:52:26+02:00",
       "fingerprint": "062d5820282de582",
       "id": "AP-F5801ADD52BD",
       "codex_prompt": "Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: Texto tecnico o mojibake visible Categoria: copy Ruta/pantalla: /picks Evidencia: Mojibake/None/null/undefined detectado en HTML visible.  Reglas sagradas: no tocar secretos, no enviar Telegram real, no inventar partidos/picks/cuotas/resultados, no tocar pagos reales, no borrar DB/usuarios, no hacer push/deploy automatico y preservar V818+.  Tarea: localizar la causa real, proponer un fix seguro, aplicar solo cambios controlados si son necesarios, ejecutar checks locales y documentar resultado, bloqueadores y siguiente accion.",
@@ -52863,7 +53156,7 @@
       "status": "RESOLVED_BY_RESCAN",
       "source": "sentinel_autopilot",
       "detected_at_madrid": "2026-07-04T23:43:42+02:00",
-      "updated_at_madrid": "2026-07-28T07:27:25+02:00",
+      "updated_at_madrid": "2026-07-28T09:52:26+02:00",
       "route": "/shark",
       "screen": "/shark",
       "file": "",
@@ -52883,30 +53176,6 @@
       "resolved_at_madrid": "2026-07-06T10:34:59+02:00",
       "history": [
         {
-          "at_madrid": "2026-07-11T21:01:24+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-11T21:01:33+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-12T02:38:20+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
-          "at_madrid": "2026-07-12T02:38:21+02:00",
-          "event": "seen_again",
-          "source": "sentinel_autopilot",
-          "status_before": "RESOLVED_BY_RESCAN"
-        },
-        {
           "at_madrid": "2026-07-12T02:38:24+02:00",
           "event": "seen_again",
           "source": "sentinel_autopilot",
@@ -53001,10 +53270,34 @@
           "event": "seen_again",
           "source": "sentinel_autopilot",
           "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:47+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:48+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:25+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:26+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "RESOLVED_BY_RESCAN"
         }
       ],
-      "occurrences": 422,
-      "last_seen_madrid": "2026-07-28T07:27:25+02:00",
+      "occurrences": 426,
+      "last_seen_madrid": "2026-07-28T09:52:26+02:00",
       "fingerprint": "423ffddc1726aa0d",
       "id": "AP-C19F434A05CE",
       "codex_prompt": "Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: Texto tecnico o mojibake visible Categoria: copy Ruta/pantalla: /shark Evidencia: Mojibake/None/null/undefined detectado en HTML visible.  Reglas sagradas: no tocar secretos, no enviar Telegram real, no inventar partidos/picks/cuotas/resultados, no tocar pagos reales, no borrar DB/usuarios, no hacer push/deploy automatico y preservar V818+.  Tarea: localizar la causa real, proponer un fix seguro, aplicar solo cambios controlados si son necesarios, ejecutar checks locales y documentar resultado, bloqueadores y siguiente accion.",
@@ -53022,7 +53315,7 @@
       "status": "OPEN",
       "source": "sentinel_autopilot",
       "detected_at_madrid": "2026-07-20T02:42:43+02:00",
-      "updated_at_madrid": "2026-07-28T07:27:25+02:00",
+      "updated_at_madrid": "2026-07-28T09:52:26+02:00",
       "route": "/partidos",
       "screen": "/partidos",
       "file": "",
@@ -53082,10 +53375,34 @@
           "event": "seen_again",
           "source": "sentinel_autopilot",
           "status_before": "OPEN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:47+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "OPEN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:48+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "OPEN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:25+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "OPEN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:26+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "OPEN"
         }
       ],
-      "occurrences": 8,
-      "last_seen_madrid": "2026-07-28T07:27:25+02:00",
+      "occurrences": 12,
+      "last_seen_madrid": "2026-07-28T09:52:26+02:00",
       "fingerprint": "ed7aa6b7ae73b8d6",
       "id": "AP-3C9B63B86178",
       "codex_prompt": "Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: Pantalla deportiva vacia sin estado seguro Categoria: visual_layout Ruta/pantalla: /partidos Evidencia: No hay filas/cards ni estado seguro visible.  Reglas sagradas: no tocar secretos, no enviar Telegram real, no inventar partidos/picks/cuotas/resultados, no tocar pagos reales, no borrar DB/usuarios, no hacer push/deploy automatico y preservar V818+.  Tarea: localizar la causa real, proponer un fix seguro, aplicar solo cambios controlados si son necesarios, ejecutar checks locales y documentar resultado, bloqueadores y siguiente accion.",
@@ -53099,7 +53416,7 @@
       "status": "OPEN",
       "source": "sentinel_autopilot",
       "detected_at_madrid": "2026-07-20T02:42:43+02:00",
-      "updated_at_madrid": "2026-07-28T07:27:25+02:00",
+      "updated_at_madrid": "2026-07-28T09:52:26+02:00",
       "route": "/calendar",
       "screen": "/calendar",
       "file": "",
@@ -53159,10 +53476,34 @@
           "event": "seen_again",
           "source": "sentinel_autopilot",
           "status_before": "OPEN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:47+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "OPEN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:48+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "OPEN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:25+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "OPEN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:26+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "OPEN"
         }
       ],
-      "occurrences": 8,
-      "last_seen_madrid": "2026-07-28T07:27:25+02:00",
+      "occurrences": 12,
+      "last_seen_madrid": "2026-07-28T09:52:26+02:00",
       "fingerprint": "4c76e023f5f41986",
       "id": "AP-47C5EA5B0DA0",
       "codex_prompt": "Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: Pantalla deportiva vacia sin estado seguro Categoria: visual_layout Ruta/pantalla: /calendar Evidencia: No hay filas/cards ni estado seguro visible.  Reglas sagradas: no tocar secretos, no enviar Telegram real, no inventar partidos/picks/cuotas/resultados, no tocar pagos reales, no borrar DB/usuarios, no hacer push/deploy automatico y preservar V818+.  Tarea: localizar la causa real, proponer un fix seguro, aplicar solo cambios controlados si son necesarios, ejecutar checks locales y documentar resultado, bloqueadores y siguiente accion.",
@@ -53176,7 +53517,7 @@
       "status": "OPEN",
       "source": "sentinel_autopilot",
       "detected_at_madrid": "2026-07-20T02:42:43+02:00",
-      "updated_at_madrid": "2026-07-28T07:27:25+02:00",
+      "updated_at_madrid": "2026-07-28T09:52:26+02:00",
       "route": "/live",
       "screen": "/live",
       "file": "",
@@ -53236,10 +53577,34 @@
           "event": "seen_again",
           "source": "sentinel_autopilot",
           "status_before": "OPEN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:47+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "OPEN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:48+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "OPEN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:25+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "OPEN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:26+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "OPEN"
         }
       ],
-      "occurrences": 8,
-      "last_seen_madrid": "2026-07-28T07:27:25+02:00",
+      "occurrences": 12,
+      "last_seen_madrid": "2026-07-28T09:52:26+02:00",
       "fingerprint": "6cfe8cedf348f386",
       "id": "AP-C1DF641BE45B",
       "codex_prompt": "Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: Pantalla deportiva vacia sin estado seguro Categoria: visual_layout Ruta/pantalla: /live Evidencia: No hay filas/cards ni estado seguro visible.  Reglas sagradas: no tocar secretos, no enviar Telegram real, no inventar partidos/picks/cuotas/resultados, no tocar pagos reales, no borrar DB/usuarios, no hacer push/deploy automatico y preservar V818+.  Tarea: localizar la causa real, proponer un fix seguro, aplicar solo cambios controlados si son necesarios, ejecutar checks locales y documentar resultado, bloqueadores y siguiente accion.",
@@ -53253,7 +53618,7 @@
       "status": "OPEN",
       "source": "sentinel_autopilot",
       "detected_at_madrid": "2026-07-20T02:42:43+02:00",
-      "updated_at_madrid": "2026-07-28T07:27:25+02:00",
+      "updated_at_madrid": "2026-07-28T09:52:26+02:00",
       "route": "",
       "screen": "",
       "file": "",
@@ -53313,91 +53678,38 @@
           "event": "seen_again",
           "source": "sentinel_autopilot",
           "status_before": "OPEN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:47+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "OPEN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:48:48+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "OPEN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:25+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "OPEN"
+        },
+        {
+          "at_madrid": "2026-07-28T09:52:26+02:00",
+          "event": "seen_again",
+          "source": "sentinel_autopilot",
+          "status_before": "OPEN"
         }
       ],
-      "occurrences": 8,
-      "last_seen_madrid": "2026-07-28T07:27:25+02:00",
+      "occurrences": 12,
+      "last_seen_madrid": "2026-07-28T09:52:26+02:00",
       "fingerprint": "5df80b6153b7600c",
       "id": "AP-FA70A516C4F9",
       "codex_prompt": "Estoy trabajando en NeMeSiS SHARK PRO.  Incidencia AutoPilot: Pantalla deportiva vacia sin estado seguro Categoria: visual_layout Ruta/pantalla: sin ruta concreta Evidencia: Sin evidencia textual adicional.  Reglas sagradas: no tocar secretos, no enviar Telegram real, no inventar partidos/picks/cuotas/resultados, no tocar pagos reales, no borrar DB/usuarios, no hacer push/deploy automatico y preservar V818+.  Tarea: localizar la causa real, proponer un fix seguro, aplicar solo cambios controlados si son necesarios, ejecutar checks locales y documentar resultado, bloqueadores y siguiente accion.",
       "copy_text": "[MEDIUM] [visual] Pantalla deportiva vacia sin estado seguro\nRuta: Sin ruta concreta\nArchivo probable: Por determinar\nEvidencia: Sin evidencia adicional\nImpacto: Afecta a claridad, operacion o confianza del producto si permanece activo.\nRecomendacion: Revisar la evidencia y aplicar solo una correccion segura.",
-      "missed_scans": 0
-    },
-    {
-      "title": "Ruta devuelve Not Found",
-      "area": "buttons_routes",
-      "severity": "medium",
-      "status": "STALE_NEEDS_REVALIDATION",
-      "source": "sentinel",
-      "detected_at_madrid": "2026-07-28T07:27:25+02:00",
-      "updated_at_madrid": "2026-07-28T07:27:25+02:00",
-      "route": "/ruta-inventada-v910",
-      "screen": "/ruta-inventada-v910",
-      "file": "",
-      "function": "",
-      "evidence": "path=/ruta-inventada-v910 count=59 referrer=sin referrer",
-      "impact": "Puede dejar al usuario en una pantalla seca si llega desde PWA, enlace viejo o acceso directo.",
-      "risk": "Revisar antes de dar por resuelto.",
-      "recommendation": "Crear alias o corregir enlace de origen y revalidar smoke de rutas.",
-      "validation": [
-        "python -m py_compile app.py",
-        "python tools/check_v896_not_found_route_recovery.py"
-      ],
-      "tags": [
-        "navigation",
-        "not_found",
-        "v896"
-      ],
-      "resolved_at_madrid": null,
-      "history": [
-        {
-          "at_madrid": "2026-07-28T07:27:25+02:00",
-          "event": "not_reproduced_needs_revalidation",
-          "missed_scans": 1,
-          "note": "El scan actual no reprodujo esta incidencia."
-        }
-      ],
-      "occurrences": 1,
-      "last_seen_madrid": "2026-07-28T07:27:25+02:00",
-      "fingerprint": "6871406ff4ada473",
-      "id": "SENT-2026-6871406F",
-      "codex_prompt": "Corrige esta incidencia en NeMeSiS SHARK PRO sin romper nada anterior.\n\nID:\nSENT-2026-6871406F\n\nArea:\nbuttons_routes\n\nSeveridad:\nmedium\n\nProblema:\nRuta devuelve Not Found\n\nRuta afectada:\n/ruta-inventada-v910\n\nArchivo probable:\nPor determinar\n\nEvidencia:\npath=/ruta-inventada-v910 count=59 referrer=sin referrer\n\nImpacto:\nPuede dejar al usuario en una pantalla seca si llega desde PWA, enlace viejo o acceso directo.\n\nReglas:\n\n* No inventar datos.\n* No tocar secretos.\n* No romper usuarios, sesiones, membresias, pagos, DB_PATH, Madrid Time, Render Cron ni Telegram dedupe.\n* Mantener navegacion cliente/admin separada.\n* Mantener estados seguros si faltan datos reales.\n\nQue debes hacer:\nCrear alias o corregir enlace de origen y revalidar smoke de rutas.\n\nValidaciones obligatorias:\n* python -m py_compile app.py\n* python tools/check_v896_not_found_route_recovery.py\n\nEntrega:\n\n* resumen de cambios;\n* archivos tocados;\n* validaciones pasadas;\n* limitaciones honestas;\n* ZIP limpio si corresponde.\n",
-      "copy_text": "[MEDIUM] [buttons_routes] Ruta devuelve Not Found\nRuta: /ruta-inventada-v910\nArchivo probable: Por determinar\nEvidencia: path=/ruta-inventada-v910 count=59 referrer=sin referrer\nImpacto: Puede dejar al usuario en una pantalla seca si llega desde PWA, enlace viejo o acceso directo.\nRecomendacion: Crear alias o corregir enlace de origen y revalidar smoke de rutas.",
-      "missed_scans": 1
-    },
-    {
-      "title": "Ruta devuelve Not Found",
-      "area": "buttons_routes",
-      "severity": "medium",
-      "status": "OPEN",
-      "source": "sentinel",
-      "detected_at_madrid": "2026-07-28T07:27:25+02:00",
-      "updated_at_madrid": "2026-07-28T07:27:25+02:00",
-      "route": "/api/ruta-inventada-v910",
-      "screen": "/api/ruta-inventada-v910",
-      "file": "",
-      "function": "",
-      "evidence": "path=/api/ruta-inventada-v910 count=59 referrer=sin referrer",
-      "impact": "Puede dejar al usuario en una pantalla seca si llega desde PWA, enlace viejo o acceso directo.",
-      "risk": "Revisar antes de dar por resuelto.",
-      "recommendation": "Crear alias o corregir enlace de origen y revalidar smoke de rutas.",
-      "validation": [
-        "python -m py_compile app.py",
-        "python tools/check_v896_not_found_route_recovery.py"
-      ],
-      "tags": [
-        "navigation",
-        "not_found",
-        "v896"
-      ],
-      "resolved_at_madrid": null,
-      "history": [],
-      "occurrences": 1,
-      "last_seen_madrid": "2026-07-28T07:27:25+02:00",
-      "fingerprint": "9a5cf2252106c19b",
-      "id": "SENT-2026-9A5CF225",
-      "codex_prompt": "Corrige esta incidencia en NeMeSiS SHARK PRO sin romper nada anterior.\n\nID:\nSENT-2026-9A5CF225\n\nArea:\nbuttons_routes\n\nSeveridad:\nmedium\n\nProblema:\nRuta devuelve Not Found\n\nRuta afectada:\n/api/ruta-inventada-v910\n\nArchivo probable:\nPor determinar\n\nEvidencia:\npath=/api/ruta-inventada-v910 count=59 referrer=sin referrer\n\nImpacto:\nPuede dejar al usuario en una pantalla seca si llega desde PWA, enlace viejo o acceso directo.\n\nReglas:\n\n* No inventar datos.\n* No tocar secretos.\n* No romper usuarios, sesiones, membresias, pagos, DB_PATH, Madrid Time, Render Cron ni Telegram dedupe.\n* Mantener navegacion cliente/admin separada.\n* Mantener estados seguros si faltan datos reales.\n\nQue debes hacer:\nCrear alias o corregir enlace de origen y revalidar smoke de rutas.\n\nValidaciones obligatorias:\n* python -m py_compile app.py\n* python tools/check_v896_not_found_route_recovery.py\n\nEntrega:\n\n* resumen de cambios;\n* archivos tocados;\n* validaciones pasadas;\n* limitaciones honestas;\n* ZIP limpio si corresponde.\n",
-      "copy_text": "[MEDIUM] [buttons_routes] Ruta devuelve Not Found\nRuta: /api/ruta-inventada-v910\nArchivo probable: Por determinar\nEvidencia: path=/api/ruta-inventada-v910 count=59 referrer=sin referrer\nImpacto: Puede dejar al usuario en una pantalla seca si llega desde PWA, enlace viejo o acceso directo.\nRecomendacion: Crear alias o corregir enlace de origen y revalidar smoke de rutas.",
       "missed_scans": 0
     },
     {
@@ -54356,30 +54668,6 @@
   ],
   "events": [
     {
-      "at_madrid": "2026-07-11T03:42:33+02:00",
-      "event": "scan",
-      "candidate_count": 42,
-      "issue_count": 784
-    },
-    {
-      "at_madrid": "2026-07-11T03:42:54+02:00",
-      "event": "scan",
-      "candidate_count": 42,
-      "issue_count": 785
-    },
-    {
-      "at_madrid": "2026-07-11T03:42:54+02:00",
-      "event": "scan",
-      "candidate_count": 42,
-      "issue_count": 786
-    },
-    {
-      "at_madrid": "2026-07-11T08:53:06+02:00",
-      "event": "scan",
-      "candidate_count": 42,
-      "issue_count": 787
-    },
-    {
       "at_madrid": "2026-07-11T08:53:22+02:00",
       "event": "scan",
       "candidate_count": 42,
@@ -54654,9 +54942,33 @@
       "event": "scan",
       "candidate_count": 46,
       "issue_count": 837
+    },
+    {
+      "at_madrid": "2026-07-28T09:48:47+02:00",
+      "event": "scan",
+      "candidate_count": 46,
+      "issue_count": 838
+    },
+    {
+      "at_madrid": "2026-07-28T09:48:48+02:00",
+      "event": "scan",
+      "candidate_count": 46,
+      "issue_count": 839
+    },
+    {
+      "at_madrid": "2026-07-28T09:52:25+02:00",
+      "event": "scan",
+      "candidate_count": 46,
+      "issue_count": 840
+    },
+    {
+      "at_madrid": "2026-07-28T09:52:26+02:00",
+      "event": "scan",
+      "candidate_count": 46,
+      "issue_count": 841
     }
   ],
-  "last_scan_madrid": "2026-07-28T07:27:25+02:00",
+  "last_scan_madrid": "2026-07-28T09:52:26+02:00",
   "app_version": "V940_NEMESIS_SPORTS_EXPERIENCE_PHASE_1_FOUNDATION_FINAL",
   "v902_truth_cleanup": {
     "total": 281,

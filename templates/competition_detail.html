@@ -1,0 +1,204 @@
+{% extends "base.html" %}
+{% from "components/v933_ui.html" import match_card %}
+{% block content %}
+{% set detail = detail or {} %}
+{% set center = detail.competition_center or {} %}
+{% set competition = center.competition or {} %}
+{% set metrics = center.metrics or {} %}
+{% set data_quality = center.data_quality or {} %}
+{% set standings = center.standings or {} %}
+{% set calendar = center.calendar or {} %}
+{% set teams = center.teams or [] %}
+{% set links = center.links or {} %}
+
+<section class="competition-center-v1" data-competition-center-contract="{{ center.contract or '' }}" data-sports-domain-model="{{ center.source_domain_contract or '' }}" data-sports-knowledge-contract="{{ center.sports_knowledge_contract or '' }}" data-sports-graph-contract="{{ center.sports_graph_contract or '' }}">
+  <header class="competition-center-hero" data-competition-center-section="header">
+    <div class="competition-center-identity">
+      <div class="competition-center-logo" aria-label="Logo de competicion">
+        {% if competition.logo %}
+          <img src="{{ competition.logo }}" alt="{{ competition.name or 'Competicion' }}" loading="lazy">
+        {% else %}
+          <span>{{ (competition.name or 'NC')[:2] }}</span>
+        {% endif %}
+      </div>
+      <div class="competition-center-title-block">
+        <div class="competition-center-kicker">Competition Center · {{ competition.country or 'No disponible' }}</div>
+        <h1>{{ competition.official_name or competition.name or 'Competicion no disponible' }}</h1>
+        <p>Centro de inteligencia de competicion construido sobre Sports Core, Sports Knowledge Layer y Sports Graph. No crea clasificaciones, fases ni contexto sin evidencia real.</p>
+        <div class="competition-center-tags" aria-label="Estado de la competicion">
+          <span>{{ competition.state or 'No disponible' }}</span>
+          <span>{{ competition.season or 'No disponible' }}</span>
+          <span>{{ data_quality.certification_state or 'REQUIRES_REVIEW' }}</span>
+        </div>
+      </div>
+    </div>
+    <aside class="competition-center-status-card" aria-label="Resumen operativo">
+      <div><span>Frescura</span><strong>{{ data_quality.freshness.label if data_quality.freshness else 'No disponible' }}</strong></div>
+      <div><span>Procedencia</span><strong>{{ data_quality.source or 'No disponible' }}</strong></div>
+      <nav class="competition-center-actions" aria-label="Acciones rapidas">
+        <a href="{{ links.calendar or '/calendar' }}">Calendario</a>
+        {% if links.match_center %}<a href="{{ links.match_center }}">Partido relacionado</a>{% endif %}
+        {% if links.team_center %}<a href="{{ links.team_center }}">Equipo relacionado</a>{% endif %}
+      </nav>
+    </aside>
+  </header>
+
+  <section class="competition-center-meta-grid" data-competition-center-section="identity-facts" aria-label="Datos de competicion">
+    <article><span>Pais</span><strong>{{ competition.country or 'No disponible' }}</strong></article>
+    <article><span>Temporada</span><strong>{{ competition.season or 'No disponible' }}</strong></article>
+    <article><span>Tipo</span><strong>{{ competition.type or 'No disponible' }}</strong></article>
+    <article><span>Jornada / fase</span><strong>{{ competition.stage or calendar.current_round or 'No disponible' }}</strong></article>
+  </section>
+
+  <section class="competition-center-scoreboard" data-competition-center-section="metrics" aria-label="Resumen deportivo">
+    <article><span>Equipos</span><strong>{{ metrics.teams or 0 }}</strong><small>relacionados</small></article>
+    <article><span>Partidos</span><strong>{{ metrics.matches or 0 }}</strong><small>en Sports Core</small></article>
+    <article><span>Proximos</span><strong>{{ metrics.upcoming or 0 }}</strong><small>calendario confirmado</small></article>
+    <article><span>Resultados</span><strong>{{ metrics.recent or 0 }}</strong><small>cerrados o recientes</small></article>
+    <article><span>Graph</span><strong>{{ metrics.graph_edges or 0 }}</strong><small>relaciones</small></article>
+  </section>
+
+  <main class="competition-center-layout">
+    <section class="competition-center-panel competition-center-wide" data-competition-center-section="standings">
+      <div class="competition-center-section-head"><span>Clasificacion</span><strong>{{ standings.rows|length if standings.rows else 0 }}</strong></div>
+      {% if standings.rows %}
+      <div class="competition-center-table-wrap">
+        <table class="competition-center-table">
+          <thead>
+            <tr>
+              <th>Pos</th>
+              <th>Equipo</th>
+              <th>PJ</th>
+              <th>DG</th>
+              <th>Pts</th>
+              <th>Forma</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in standings.rows[:24] %}
+            <tr data-competition-standings-row>
+              <td>{{ row.position or 'No disponible' }}</td>
+              <td><a href="/team/{{ row.team_route_id|urlencode }}">{{ row.team_name or 'No disponible' }}</a></td>
+              <td>{{ row.played if row.played is not none else 'No disponible' }}</td>
+              <td>{{ row.goal_difference if row.goal_difference is not none else 'No disponible' }}</td>
+              <td>{{ row.points if row.points is not none else 'No disponible' }}</td>
+              <td>{{ row.form or 'No disponible' }}</td>
+              <td><span class="competition-center-state">{{ row.state or 'Confirmado' }}</span></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <p class="competition-center-empty">No disponible. Ninguna fuente confirma una clasificacion sincronizada para esta competicion.</p>
+      {% endif %}
+    </section>
+
+    <section class="competition-center-match-section competition-center-wide" data-competition-center-section="calendar">
+      <div class="competition-center-section-head"><span>Calendario de competicion</span><strong>{{ calendar.current_round or 'No disponible' }}</strong></div>
+      <div class="competition-center-split">
+        <div>
+          <h2>Proxima jornada</h2>
+          {% if calendar.upcoming %}
+          <div class="competition-center-match-grid">
+            {% for match in calendar.upcoming[:6] %}{{ match_card(match, true, true) }}{% endfor %}
+          </div>
+          {% else %}
+          <p class="competition-center-empty">No disponible. No hay proximos partidos confirmados.</p>
+          {% endif %}
+        </div>
+        <div>
+          <h2>Ultimos resultados</h2>
+          {% if calendar.recent %}
+          <div class="competition-center-match-grid">
+            {% for match in calendar.recent[:6] %}{{ match_card(match, true, true) }}{% endfor %}
+          </div>
+          {% else %}
+          <p class="competition-center-empty">No disponible. No hay resultados recientes confirmados.</p>
+          {% endif %}
+        </div>
+      </div>
+    </section>
+
+    <section class="competition-center-panel competition-center-wide" data-competition-center-section="teams">
+      <div class="competition-center-section-head"><span>Equipos</span><strong>{{ teams|length }}</strong></div>
+      {% if teams %}
+      <div class="competition-center-team-grid">
+        {% for team in teams[:32] %}
+        <a class="competition-center-team-card" href="/team/{{ team.route_id|urlencode }}" data-competition-team-card>
+          <span>{{ team.name or 'No disponible' }}</span>
+          <strong>{{ team.form.trend if team.form else 'No disponible' }}</strong>
+          <small>{{ team.matches or 0 }} partidos · {{ team.data_quality or 'PARTIALLY_VERIFIED' }}</small>
+        </a>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="competition-center-empty">No disponible. No hay equipos relacionados confirmados.</p>
+      {% endif %}
+    </section>
+
+    <section class="competition-center-panel" data-competition-center-section="sports-knowledge">
+      <div class="competition-center-section-head"><span>Sports Knowledge</span><strong>{{ center.competition_knowledge.certification_state or 'PARTIALLY_VERIFIED' }}</strong></div>
+      <dl class="competition-center-data-list">
+        <div><dt>Competition Knowledge</dt><dd>{{ center.competition_knowledge_contract or 'No disponible' }}</dd></div>
+        <div><dt>Season Knowledge</dt><dd>{{ center.season_knowledge_contract or 'No disponible' }}</dd></div>
+        <div><dt>Sports Core</dt><dd>{{ center.source_domain_contract or 'No disponible' }}</dd></div>
+      </dl>
+      {% if center.competition_knowledge.limitations %}
+      <ul class="competition-center-evidence-list">{% for item in center.competition_knowledge.limitations[:5] %}<li>{{ item }}</li>{% endfor %}</ul>
+      {% endif %}
+    </section>
+
+    <section class="competition-center-panel" data-competition-center-section="shark-context">
+      <div class="competition-center-section-head"><span>Contexto SHARK</span><strong>{{ center.shark_context.state or 'INSUFFICIENT_DATA' }}</strong></div>
+      <p>{{ center.shark_context.summary or 'No hay suficiente informacion para construir contexto SHARK de competicion.' }}</p>
+      {% if center.shark_context.evidence %}
+      <ul class="competition-center-evidence-list">{% for item in center.shark_context.evidence[:4] %}<li>{{ item }}</li>{% endfor %}</ul>
+      {% endif %}
+    </section>
+
+    <section class="competition-center-panel" data-competition-center-section="data-quality">
+      <div class="competition-center-section-head"><span>Transparencia</span><strong>{{ data_quality.certification_state or 'REQUIRES_REVIEW' }}</strong></div>
+      <dl class="competition-center-data-list">
+        <div><dt>Procedencia</dt><dd>{{ data_quality.source or 'No disponible' }}</dd></div>
+        <div><dt>Frescura</dt><dd>{{ data_quality.freshness.label if data_quality.freshness else 'No disponible' }}</dd></div>
+        <div><dt>Evidencia</dt><dd>{{ standings.source or 'No disponible' }}</dd></div>
+        <div><dt>Limitaciones</dt><dd>{{ data_quality.limitations|length if data_quality.limitations else 0 }}</dd></div>
+      </dl>
+      {% if data_quality.limitations %}
+      <ul class="competition-center-evidence-list">{% for item in data_quality.limitations[:6] %}<li>{{ item }}</li>{% endfor %}</ul>
+      {% else %}
+      <p class="competition-center-empty">Sin limitaciones relevantes en la muestra disponible.</p>
+      {% endif %}
+    </section>
+
+    <section class="competition-center-panel" data-competition-center-section="sports-graph">
+      <div class="competition-center-section-head"><span>Sports Graph</span><strong>{{ metrics.graph_edges or 0 }}</strong></div>
+      <p>Relaciones internas preparadas sin crear un grafo persistente ni relaciones artificiales.</p>
+      {% if center.sports_graph.relationships %}
+      <ul class="competition-center-evidence-list">{% for item in center.sports_graph.relationships[:8] %}<li>{{ item }}</li>{% endfor %}</ul>
+      {% else %}
+      <p class="competition-center-empty">Informacion pendiente.</p>
+      {% endif %}
+    </section>
+
+    <section class="competition-center-panel" data-competition-center-section="information-state">
+      <div class="competition-center-section-head"><span>Informacion disponible</span><strong>{{ center.available_information|length }}</strong></div>
+      {% if center.available_information %}<ul class="competition-center-evidence-list">{% for item in center.available_information %}<li>{{ item }}</li>{% endfor %}</ul>{% else %}<p class="competition-center-empty">No disponible.</p>{% endif %}
+      <div class="competition-center-section-head is-sub"><span>Informacion ausente</span><strong>{{ center.missing_information|length }}</strong></div>
+      {% if center.missing_information %}<ul class="competition-center-evidence-list">{% for item in center.missing_information %}<li>{{ item }}</li>{% endfor %}</ul>{% else %}<p class="competition-center-empty">Sin ausencias relevantes detectadas.</p>{% endif %}
+    </section>
+
+    <section class="competition-center-panel" data-competition-center-section="future-links">
+      <div class="competition-center-section-head"><span>Conexiones preparadas</span><strong>Sports Core</strong></div>
+      <nav class="competition-center-link-grid" aria-label="Centros deportivos preparados">
+        {% if links.team_center %}<a href="{{ links.team_center }}">Team Center</a>{% else %}<span>Team Center · No disponible</span>{% endif %}
+        {% if links.match_center %}<a href="{{ links.match_center }}">Match Center</a>{% else %}<span>Match Center · No disponible</span>{% endif %}
+        <span>Player Center · Informacion pendiente</span>
+        <span>Sports Graph · Contrato interno</span>
+      </nav>
+    </section>
+  </main>
+</section>
+{% endblock %}

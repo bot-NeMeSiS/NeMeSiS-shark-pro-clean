@@ -313,10 +313,12 @@ def build_sports_platform_contract_registry(project_root: str | Path) -> dict[st
         },
         {
             "key": "competition_center",
-            "name": "Competition Center Foundation",
-            "contract": "SPORTS-ENTITY-CENTER-CONTEXT-V1",
-            "state": "CONTRACT_READY",
-            "implementation": "engines/sports_platform_contracts.py",
+            "name": "Competition Center Premium League Intelligence",
+            "contract": "COMPETITION-CENTER-LEAGUE-INTELLIGENCE-PLATFORM-V1",
+            "state": "INTEGRATED"
+            if exists("engines/competition_center_engine.py") and exists("templates/competition_detail.html")
+            else "CONTRACT_READY",
+            "implementation": "engines/competition_center_engine.py + templates/competition_detail.html",
         },
         {
             "key": "player_center",
