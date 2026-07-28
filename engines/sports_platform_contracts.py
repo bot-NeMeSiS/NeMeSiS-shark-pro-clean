@@ -320,7 +320,17 @@ def build_sports_platform_contract_registry(project_root: str | Path) -> dict[st
                 "engines/user_intelligence_platform_engine.py + "
                 "templates/user_intelligence_center.html"
             ),
-        },        {
+        },
+        {
+            "key": "sports_intelligence_gateway",
+            "name": "Sports Intelligence Gateway",
+            "contract": "SPORTS-INTELLIGENCE-GATEWAY-V1",
+            "state": "INTEGRATED"
+            if exists("engines/sports_intelligence_gateway_engine.py")
+            else "CONTRACT_READY",
+            "implementation": "engines/sports_intelligence_gateway_engine.py",
+        },
+        {
             "key": "telegram_assistant",
             "name": "Telegram Assistant",
             "contract": "TELEGRAM-ASSISTANT-CONTEXT-V1",

@@ -16,10 +16,11 @@
 - SHARK Intelligence Platform: PASS local; centro trazable sin IA generativa, sin Telegram, sin Stripe y sin llamadas externas.
 - User Intelligence Platform: PASS local; privacidad USER-PRIVACY-CONTROLS-V1 y personalizacion preparada sin aplicar Home automaticamente.
 - Player Center Premium Sports Identity: PASS local con QA completa; consume Sports Core, Sports Knowledge, Sports Graph, SHARK Intelligence y User Intelligence.
+- Sports Intelligence Gateway: PASS local inicial; registra fuentes, evalua compliance, salud y evidencia sin conectar proveedores ni usar scraping.
 
 ## Next Sports Core Sprint
 
-Cerrar Player Center con revision Git controlada antes de iniciar Telegram Intelligence, Sports Intelligence Gateway u otro modulo visible.
+Cerrar Sports Intelligence Gateway con revision Git controlada antes de integrar fuentes reales, Telegram Intelligence u otro modulo visible.
 
 ## Team Center Foundation
 
@@ -52,3 +53,9 @@ Implemented locally as SHARK Intelligence Platform. It consumes Sports Core, Spo
 Estado: PASS local pendiente de cierre Git.
 
 La plataforma de inteligencia de usuario queda preparada para entender uso propio de NeMeSiS con consentimiento y control del usuario. Player Center solo prepara la personalizacion futura; no modifica automaticamente la Home.
+
+## Sports Intelligence Gateway
+
+Estado: PASS local pendiente de cierre Git.
+
+El Gateway queda como puerta legal unica para fuentes deportivas futuras. Antes de cualquier uso, una fuente debe estar registrada, revisada por compliance, evaluada en salud y envuelta con procedencia, frescura, evidencia, calidad y limitaciones. No conecta proveedores, no ejecuta scraping, no usa paywalls, no copia articulos ni reutiliza imagenes protegidas.

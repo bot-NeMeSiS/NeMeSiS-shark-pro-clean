@@ -69,6 +69,8 @@ def test_developer_snapshot_has_one_evidence_backed_source():
     assert capabilities["competition_center"]["contract"] == "COMPETITION-CENTER-LEAGUE-INTELLIGENCE-PLATFORM-V1"
     assert capabilities["player_center"]["state"] == "INTEGRATED"
     assert capabilities["player_center"]["contract"] == "PLAYER-CENTER-PREMIUM-SPORTS-IDENTITY-PLATFORM-V1"
+    assert capabilities["sports_intelligence_gateway"]["state"] == "INTEGRATED"
+    assert capabilities["sports_intelligence_gateway"]["contract"] == "SPORTS-INTELLIGENCE-GATEWAY-V1"
 
 
 def test_company_board_uses_shared_roadmap_and_reports_git_truth():

@@ -597,7 +597,19 @@ def build_product_roadmap(project_root: str | Path) -> dict[str, Any]:
             )
             else "PENDING",
             "evidence": "Perfil deportivo interno transparente; consentimiento, exportacion, reset, borrado y desactivacion sin IA generativa ni datos de terceros.",
-        },        {
+        },
+        {
+            "name": "Sports Intelligence Gateway",
+            "state": "COMPLETED"
+            if complete(
+                "engines/sports_intelligence_gateway_engine.py",
+                "tests/test_sports_intelligence_gateway.py",
+                "tools/check_sports_intelligence_gateway.py",
+            )
+            else "PENDING",
+            "evidence": "Puerta legal de fuentes deportivas: registro, compliance, salud y evidencia antes de cualquier uso o conexion.",
+        },
+        {
             "name": "Telegram asistente",
             "state": "CONTRACT_READY" if complete("engines/sports_platform_contracts.py", "engines/telegram_intelligence_engine.py") else "PENDING",
             "evidence": "Context envelope sin envíos automáticos",

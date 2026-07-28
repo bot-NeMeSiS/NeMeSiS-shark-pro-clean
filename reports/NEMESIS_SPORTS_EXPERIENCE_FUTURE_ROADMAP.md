@@ -50,3 +50,11 @@ Siguiente modulo visible completado localmente: Player Center Premium Sports Ide
 - Transparencia: fotografia, posicion, dorsal, lesiones, equipo, competicion o eventos ausentes permanecen como `No disponible` o informacion pendiente; no se inventan datos.
 - Navegacion: conecta con Match Center, Team Center y Competition Center cuando existen entidades canonicas; los enlaces futuros se muestran como estados honestos.
 - Produccion: no certificada; no hubo push ni deploy.
+
+## Sports Intelligence Gateway
+
+- Estado local: infraestructura implementada y validada localmente, sin deploy.
+- Contrato: `SPORTS-INTELLIGENCE-GATEWAY-V1`.
+- Impacto: toda fuente deportiva futura debe entrar por registro, compliance, health monitor y evidence registry antes de poder alimentar Sports Core, SHARK, Telegram, Team Center, Competition Center, Player Center o futuros modulos.
+- Legal: no scraping masivo, no robots bypass, no paywall bypass, no copia de articulos, no reutilizacion de imagenes protegidas y no uso comercial sin aprobacion.
+- Produccion: no certificada; no hubo push ni deploy.

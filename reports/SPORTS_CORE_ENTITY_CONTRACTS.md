@@ -82,3 +82,29 @@ Guardrails:
 - cero terceros;
 - cero IA generativa;
 - cero personalizacion automatica de Home en esta fase.
+
+## Sports Intelligence Gateway Contract
+
+Contract: SPORTS-INTELLIGENCE-GATEWAY-V1
+
+Subcontracts:
+
+- SOURCE-REGISTRY-V1
+- SOURCE-COMPLIANCE-SYSTEM-V1
+- SOURCE-HEALTH-MONITOR-V1
+- SOURCE-EVIDENCE-REGISTRY-V1
+
+Every future sports source must declare license, provenance, type, API/RSS/Open Data/official web channel when applicable, status, coverage, quality, latency, last sync, commercial-use permission and attribution requirements.
+
+Rule: a source can only move from registered to usable after human approval. Registration never connects a provider by itself.
+
+Legal guardrails:
+
+- no mass scraping;
+- no robots bypass;
+- no paywall bypass;
+- no article copying;
+- no protected image reuse;
+- no unlicensed commercial reuse.
+
+Data guardrails: every future data point must expose provenance, freshness, evidence, quality and limitations before it can feed Sports Core, SHARK, Telegram or any visible sports center.

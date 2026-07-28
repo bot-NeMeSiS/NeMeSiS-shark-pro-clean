@@ -1848,6 +1848,104 @@ def build_user_intelligence_platform_contract_snapshot(
         "production_certified": False,
     }
 
+def build_sports_intelligence_gateway_contract_snapshot(
+    root: str | Path | None = None,
+    app_version: str = "",
+) -> dict[str, Any]:
+    """Inspect the Sports Intelligence Gateway contract without writes."""
+    project_root = Path(root) if root is not None else Path(__file__).resolve().parents[1]
+
+    def _read(relative_path: str) -> str:
+        try:
+            return (project_root / relative_path).read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            return ""
+
+    engine = _read("engines/sports_intelligence_gateway_engine.py")
+    platform_contracts = _read("engines/sports_platform_contracts.py")
+    operating_system = _read("engines/project_operating_system_engine.py")
+
+    engine_contract = all(marker in engine for marker in (
+        'SPORTS_INTELLIGENCE_GATEWAY_CONTRACT = "SPORTS-INTELLIGENCE-GATEWAY-V1"',
+        'SOURCE_REGISTRY_CONTRACT = "SOURCE-REGISTRY-V1"',
+        'SOURCE_COMPLIANCE_CONTRACT = "SOURCE-COMPLIANCE-SYSTEM-V1"',
+        'SOURCE_HEALTH_CONTRACT = "SOURCE-HEALTH-MONITOR-V1"',
+        'SOURCE_EVIDENCE_CONTRACT = "SOURCE-EVIDENCE-REGISTRY-V1"',
+        "register_source(",
+        "evaluate_source_compliance(",
+        "build_source_health(",
+        "build_source_evidence_record(",
+        "build_sports_intelligence_gateway_snapshot(",
+        '"must_register_before_use": True',
+        '"must_approve_before_use": True',
+        '"mass_scraping_allowed": False',
+        '"robots_bypass_allowed": False',
+        '"paywall_bypass_allowed": False',
+        '"article_copying_allowed": False',
+        '"protected_image_reuse_allowed": False',
+        '"unlicensed_content_reuse_allowed": False',
+        '"provenance_required": True',
+        '"freshness_required": True',
+        '"evidence_required": True',
+        '"quality_required": True',
+        '"limitations_required": True',
+        '"external_calls": 0',
+        '"database_writes": 0',
+        '"telegram_sends": 0',
+        '"stripe_calls": 0',
+        '"provider_connections_enabled": 0',
+        '"automatic_source_approval": 0',
+    ))
+    pure_engine_contract = not re.search(
+        r"^\s*(?:import|from)\s+(?:sqlite3|requests|urllib\.request|flask|stripe|openai|bs4|selenium|playwright)\b|\b(?:commit|execute|executemany|urlopen|Session)\s*\(",
+        engine,
+        flags=re.IGNORECASE | re.MULTILINE,
+    )
+    registry_contract = all(marker in platform_contracts for marker in (
+        '"key": "sports_intelligence_gateway"',
+        '"contract": "SPORTS-INTELLIGENCE-GATEWAY-V1"',
+        '"implementation": "engines/sports_intelligence_gateway_engine.py"',
+    ))
+    roadmap_contract = all(marker in operating_system for marker in (
+        '"name": "Sports Intelligence Gateway"',
+        '"engines/sports_intelligence_gateway_engine.py"',
+        '"tools/check_sports_intelligence_gateway.py"',
+    ))
+
+    violations: list[str] = []
+    if not engine_contract:
+        violations.append("sports_intelligence_gateway_contract_missing")
+    if not pure_engine_contract:
+        violations.append("sports_intelligence_gateway_has_side_effect_imports_or_calls")
+    if not registry_contract:
+        violations.append("sports_platform_registry_not_updated_for_gateway")
+    if not roadmap_contract:
+        violations.append("company_roadmap_not_updated_for_gateway")
+
+    passed = not violations
+    return {
+        "issue_id": "SPORTS-INTELLIGENCE-GATEWAY-CONTRACT",
+        "version": app_version,
+        "component": "sports_intelligence_gateway",
+        "affected_routes": ["/admin/developer-center", "/admin/company-board", "/admin/company-os"],
+        "cause": "Sports data sources must enter NeMeSiS through a legal registry, compliance review, health state and evidence envelope before any use.",
+        "solution": "Keep the Gateway read-only, require registration and approval before connection, and block scraping, paywall bypasses, article copying and protected image reuse.",
+        "evidence": {
+            "engine_contract": engine_contract,
+            "pure_engine_contract": pure_engine_contract,
+            "registry_contract": registry_contract,
+            "roadmap_contract": roadmap_contract,
+            "violations": violations,
+        },
+        "preventive_rule": "No sports source may be connected, scraped or commercially reused until registered, compliance-approved, attribution-reviewed and wrapped with provenance, freshness, evidence, quality and limitations.",
+        "validation_result": "PASS" if passed else "REGRESSION",
+        "certification_state": "VERIFIED" if passed else "REQUIRES_REVIEW",
+        "status": "RESOLVED_LOCALLY" if passed else "OPEN",
+        "evaluated_at_madrid": _now(),
+        "autofix_allowed": False,
+        "approval_required": True,
+        "production_certified": False,
+    }
 def detect_product_quality_contract_issues(
     root: str | Path | None = None,
     app_version: str = "",
@@ -2291,6 +2389,48 @@ def detect_product_quality_contract_issues(
         })
         issue["codex_prompt"] = issue["codex_prompt_suggestion"]
         issues.append(classify_autopilot_issue(issue))
+    gateway_root = Path(root) if root is not None else Path(__file__).resolve().parents[1]
+    gateway_present = (gateway_root / "engines/sports_intelligence_gateway_engine.py").exists()
+    gateway_snapshot = (
+        build_sports_intelligence_gateway_contract_snapshot(root, app_version)
+        if gateway_present
+        else None
+    )
+    if gateway_snapshot and gateway_snapshot["validation_result"] != "PASS":
+        issue = _new_issue(
+            "Sports Intelligence Gateway pierde su contrato legal de fuentes",
+            "sports_data_contract",
+            "high",
+            "/admin/developer-center",
+            "Sports Intelligence Gateway; " + ",".join(gateway_snapshot["evidence"]["violations"]),
+            app_version,
+        )
+        issue.update({
+            "id": "SPORTS-INTELLIGENCE-GATEWAY-CONTRACT",
+            "priority": "P1",
+            "profile": "ADMIN",
+            "component": "sports_intelligence_gateway",
+            "description": "Una fuente deportiva podria usarse sin registro, compliance, salud o evidencia legal suficiente.",
+            "expected_behavior": "Toda fuente se registra, revisa legalmente, permanece desconectada hasta aprobacion y expone procedencia, frescura, evidencia, calidad y limitaciones.",
+            "actual_behavior": "Una o mas garantias del contrato Gateway no se pueden demostrar.",
+            "suggested_fix": "Restaurar solo el contrato incumplido y repetir Source Compliance, Secret/Privacy Guard y Sentinel.",
+            "safe_auto_fix_possible": False,
+            "requires_admin_approval": True,
+            "requires_approval": True,
+            "likely_files": [
+                "engines/sports_intelligence_gateway_engine.py",
+                "engines/sports_platform_contracts.py",
+                "engines/project_operating_system_engine.py",
+                "tools/check_sports_intelligence_gateway.py",
+            ],
+            "codex_prompt_suggestion": (
+                "Revisar Sports Intelligence Gateway con la evidencia indicada. No conectar fuentes, no hacer scraping, "
+                "no llamar APIs, no copiar articulos ni imagenes protegidas y conservar aprobacion humana obligatoria."
+            ),
+            "product_quality_contract": gateway_snapshot,
+        })
+        issue["codex_prompt"] = issue["codex_prompt_suggestion"]
+        issues.append(classify_autopilot_issue(issue))
     return issues
 
 def _issues_from_sentinel(sentinel_result: dict[str, Any] | None, app_version: str) -> list[dict[str, Any]]:
@@ -2445,6 +2585,7 @@ def run_autopilot_scan(
         "player_center_experience_contract": build_player_center_experience_contract_snapshot(project_root, app_version),
         "shark_intelligence_platform_contract": build_shark_intelligence_platform_contract_snapshot(project_root, app_version),
         "user_intelligence_platform_contract": build_user_intelligence_platform_contract_snapshot(project_root, app_version),
+        "sports_intelligence_gateway_contract": build_sports_intelligence_gateway_contract_snapshot(project_root, app_version),
     }
     if save_memory:
         result["memory"] = save_autopilot_memory(result, root=memory_root)
