@@ -1946,6 +1946,206 @@ def build_sports_intelligence_gateway_contract_snapshot(
         "approval_required": True,
         "production_certified": False,
     }
+def build_decision_engine_contract_snapshot(
+    root: str | Path | None = None,
+    app_version: str = "",
+) -> dict[str, Any]:
+    """Inspect the Decision Engine evidence-first contract without writes."""
+    project_root = Path(root) if root is not None else Path(__file__).resolve().parents[1]
+
+    def _read(relative_path: str) -> str:
+        try:
+            return (project_root / relative_path).read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            return ""
+
+    engine = _read("engines/decision_engine.py")
+    platform_contracts = _read("engines/sports_platform_contracts.py")
+    operating_system = _read("engines/project_operating_system_engine.py")
+
+    engine_contract = all(marker in engine for marker in (
+        'DECISION_ENGINE_CONTRACT = "NEMESIS-DECISION-ENGINE-EVIDENCE-FIRST-V1"',
+        'DECISION_EVIDENCE_CONTRACT = "NEMESIS-DECISION-EVIDENCE-ITEM-V1"',
+        'DECISION_QUESTION_CONTRACT = "NEMESIS-DECISION-QUESTION-ANSWER-V1"',
+        "SPORTS_DOMAIN_MODEL_CONTRACT",
+        "SPORTS_KNOWLEDGE_LAYER_CONTRACT",
+        "SPORTS_GRAPH_FOUNDATION_CONTRACT",
+        "MATCH_INTELLIGENCE_CONTRACT",
+        "SHARK_INTELLIGENCE_PLATFORM_CONTRACT",
+        "SPORTS_INTELLIGENCE_GATEWAY_CONTRACT",
+        "USER_INTELLIGENCE_PLATFORM_CONTRACT",
+        "build_decision_engine_snapshot(",
+        "collect_decision_evidence(",
+        "compare_source_claims(",
+        '"what_we_know"',
+        '"what_we_do_not_know"',
+        '"what_evidence_exists"',
+        '"what_evidence_is_missing"',
+        '"what_changed"',
+        '"which_sources_align"',
+        '"which_sources_disagree"',
+        '"data_quality"',
+        '"confidence"',
+        '"external_calls": 0',
+        '"database_writes": 0',
+        '"telegram_sends": 0',
+        '"stripe_calls": 0',
+        '"generative_ai_calls": 0',
+        '"picks_created": 0',
+        '"predictions_created": 0',
+        '"automatic_actions": 0',
+        '"fake_data_created": 0',
+    ))
+    pure_engine_contract = not re.search(
+        r"^\s*(?:import|from)\s+(?:sqlite3|requests|urllib\.request|flask|stripe|openai|bs4|selenium|playwright)\b|\b(?:commit|execute|executemany|urlopen|Session)\s*\(",
+        engine,
+        flags=re.IGNORECASE | re.MULTILINE,
+    )
+    registry_contract = all(marker in platform_contracts for marker in (
+        '"key": "decision_engine"',
+        '"contract": "NEMESIS-DECISION-ENGINE-EVIDENCE-FIRST-V1"',
+        '"implementation": "engines/decision_engine.py"',
+    ))
+    roadmap_contract = all(marker in operating_system for marker in (
+        '"name": "Decision Engine"',
+        '"engines/decision_engine.py"',
+        '"tools/check_decision_engine.py"',
+    ))
+
+    violations: list[str] = []
+    if not engine_contract:
+        violations.append("decision_engine_contract_missing")
+    if not pure_engine_contract:
+        violations.append("decision_engine_has_side_effect_imports_or_calls")
+    if not registry_contract:
+        violations.append("sports_platform_registry_not_updated_for_decision_engine")
+    if not roadmap_contract:
+        violations.append("company_roadmap_not_updated_for_decision_engine")
+
+    passed = not violations
+    return {
+        "issue_id": "NEMESIS-DECISION-ENGINE-CONTRACT",
+        "version": app_version,
+        "component": "decision_engine",
+        "affected_routes": ["/admin/developer-center", "/admin/company-board", "/admin/company-os"],
+        "cause": "Decision Engine must organize evidence from canonical NeMeSiS contracts without becoming AI, a pick engine or a parallel data source.",
+        "solution": "Consume Sports Core, Sports Knowledge, Sports Graph, Match Intelligence, SHARK, Gateway and User Intelligence, preserving provenance, evidence, freshness, quality and limitations for every answer.",
+        "evidence": {
+            "engine_contract": engine_contract,
+            "pure_engine_contract": pure_engine_contract,
+            "registry_contract": registry_contract,
+            "roadmap_contract": roadmap_contract,
+            "violations": violations,
+        },
+        "preventive_rule": "Decision Engine cannot invent facts, create picks, predict outcomes, call AI/providers or hide uncertainty; every answer must remain evidence-backed and approval-gated for future consumers.",
+        "validation_result": "PASS" if passed else "REGRESSION",
+        "certification_state": "VERIFIED" if passed else "REQUIRES_REVIEW",
+        "status": "RESOLVED_LOCALLY" if passed else "OPEN",
+        "evaluated_at_madrid": _now(),
+        "autofix_allowed": False,
+        "approval_required": True,
+        "production_certified": False,
+    }
+def build_experience_platform_contract_snapshot(
+    root: str | Path | None = None,
+    app_version: str = "",
+) -> dict[str, Any]:
+    """Inspect the Experience Platform contract without writes."""
+    project_root = Path(root) if root is not None else Path(__file__).resolve().parents[1]
+
+    def _read(relative_path: str) -> str:
+        try:
+            return (project_root / relative_path).read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            return ""
+
+    engine = _read("engines/experience_platform_engine.py")
+    platform_contracts = _read("engines/sports_platform_contracts.py")
+    operating_system = _read("engines/project_operating_system_engine.py")
+    tool = _read("tools/check_experience_platform.py")
+
+    engine_contract = all(marker in engine for marker in (
+        'EXPERIENCE_PLATFORM_CONTRACT = "NEMESIS-EXPERIENCE-PLATFORM-V1"',
+        'EXPERIENCE_AUDITOR_CONTRACT = "NEMESIS-EXPERIENCE-AUDITOR-V1"',
+        'PRODUCT_POLISH_CONTRACT = "NEMESIS-PRODUCT-POLISH-ENGINE-V1"',
+        'UX_CONSISTENCY_CONTRACT = "NEMESIS-UX-CONSISTENCY-CHECKER-V1"',
+        'NAVIGATION_INTEGRITY_CONTRACT = "NEMESIS-NAVIGATION-INTEGRITY-CHECKER-V1"',
+        'VISUAL_DENSITY_CONTRACT = "NEMESIS-VISUAL-DENSITY-AUDITOR-V1"',
+        "collect_screen_inventory(",
+        "run_navigation_integrity_checker(",
+        "run_ux_consistency_checker(",
+        "run_visual_density_auditor(",
+        "build_product_polish_portfolio(",
+        "build_experience_platform_snapshot(",
+        '"external_calls": 0',
+        '"database_writes": 0',
+        '"telegram_sends": 0',
+        '"stripe_calls": 0',
+        '"generative_ai_calls": 0',
+        '"automatic_ui_changes": 0',
+        '"sports_core_changes": 0',
+        '"shark_logic_changes": 0',
+        '"new_api_routes": 0',
+    ))
+    pure_engine_contract = not re.search(
+        r"^\s*(?:import|from)\s+(?:sqlite3|requests|urllib\.request|flask|stripe|openai|bs4|selenium|playwright|subprocess)\b|\b(?:commit|execute|executemany|urlopen|Session)\s*\(",
+        engine,
+        flags=re.IGNORECASE | re.MULTILINE,
+    )
+    registry_contract = all(marker in platform_contracts for marker in (
+        '"key": "experience_platform"',
+        '"contract": "NEMESIS-EXPERIENCE-PLATFORM-V1"',
+        '"implementation": "engines/experience_platform_engine.py + tools/check_experience_platform.py"',
+    ))
+    roadmap_contract = all(marker in operating_system for marker in (
+        '"name": "Experience Platform"',
+        '"engines/experience_platform_engine.py"',
+        '"tools/check_experience_platform.py"',
+    ))
+    report_contract = all(marker in tool for marker in (
+        "EXPERIENCE_PLATFORM_REPORT.md",
+        "PRODUCT_POLISH_REPORT.md",
+        "UX_CONSISTENCY_REPORT.md",
+        "VISUAL_AUDIT_REPORT.md",
+    ))
+
+    violations: list[str] = []
+    if not engine_contract:
+        violations.append("experience_platform_contract_missing")
+    if not pure_engine_contract:
+        violations.append("experience_platform_has_side_effect_imports_or_calls")
+    if not registry_contract:
+        violations.append("sports_platform_registry_not_updated_for_experience_platform")
+    if not roadmap_contract:
+        violations.append("company_roadmap_not_updated_for_experience_platform")
+    if not report_contract:
+        violations.append("experience_reports_not_declared")
+
+    passed = not violations
+    return {
+        "issue_id": "NEMESIS-EXPERIENCE-PLATFORM-CONTRACT",
+        "version": app_version,
+        "component": "experience_platform",
+        "affected_routes": ["/admin/developer-center", "/admin/company-board", "/app", "/calendario", "/shark-intelligence", "/user-intelligence"],
+        "cause": "NeMeSiS needs a permanent product-experience audit layer that improves UX without creating new product logic, APIs, AI or data sources.",
+        "solution": "Keep Experience Auditor, Product Polish, UX Consistency, Navigation Integrity and Visual Density checks read-only, evidence-based and approval-gated before any UI change.",
+        "evidence": {
+            "engine_contract": engine_contract,
+            "pure_engine_contract": pure_engine_contract,
+            "registry_contract": registry_contract,
+            "roadmap_contract": roadmap_contract,
+            "report_contract": report_contract,
+            "violations": violations,
+        },
+        "preventive_rule": "No polish change may bypass Browser QA, Sentinel and human approval; the Experience Platform cannot mutate Sports Core, SHARK, DB, Telegram, Stripe, routes or APIs.",
+        "validation_result": "PASS" if passed else "REGRESSION",
+        "certification_state": "VERIFIED" if passed else "REQUIRES_REVIEW",
+        "status": "RESOLVED_LOCALLY" if passed else "OPEN",
+        "evaluated_at_madrid": _now(),
+        "autofix_allowed": False,
+        "approval_required": True,
+        "production_certified": False,
+    }
 def detect_product_quality_contract_issues(
     root: str | Path | None = None,
     app_version: str = "",
@@ -2431,6 +2631,90 @@ def detect_product_quality_contract_issues(
         })
         issue["codex_prompt"] = issue["codex_prompt_suggestion"]
         issues.append(classify_autopilot_issue(issue))
+    decision_root = Path(root) if root is not None else Path(__file__).resolve().parents[1]
+    decision_present = (decision_root / "engines/decision_engine.py").exists()
+    decision_snapshot = (
+        build_decision_engine_contract_snapshot(root, app_version)
+        if decision_present
+        else None
+    )
+    if decision_snapshot and decision_snapshot["validation_result"] != "PASS":
+        issue = _new_issue(
+            "Decision Engine pierde su contrato evidence-first",
+            "sports_data_contract",
+            "high",
+            "/admin/developer-center",
+            "Decision Engine; " + ",".join(decision_snapshot["evidence"]["violations"]),
+            app_version,
+        )
+        issue.update({
+            "id": "NEMESIS-DECISION-ENGINE-CONTRACT",
+            "priority": "P1",
+            "profile": "ADMIN",
+            "component": "decision_engine",
+            "description": "El motor de decisiones podria inventar datos, ocultar incertidumbre, crear picks o convertirse en fuente paralela.",
+            "expected_behavior": "Organiza evidencia canonica y responde que se sabe, que falta, cambios, coincidencias, discrepancias, calidad y confianza sin IA ni predicciones.",
+            "actual_behavior": "Una o mas garantias del contrato Decision Engine no se pueden demostrar.",
+            "suggested_fix": "Restaurar solo el contrato incumplido y repetir Decision Engine check, Sentinel y Privacy Guard.",
+            "safe_auto_fix_possible": False,
+            "requires_admin_approval": True,
+            "requires_approval": True,
+            "likely_files": [
+                "engines/decision_engine.py",
+                "engines/sports_platform_contracts.py",
+                "engines/project_operating_system_engine.py",
+                "tools/check_decision_engine.py",
+            ],
+            "codex_prompt_suggestion": (
+                "Revisar Decision Engine con la evidencia indicada. No crear IA, predicciones, picks, llamadas externas "
+                "ni datos nuevos; conservar procedencia, evidencia, frescura, calidad y limitaciones en cada respuesta."
+            ),
+            "product_quality_contract": decision_snapshot,
+        })
+        issue["codex_prompt"] = issue["codex_prompt_suggestion"]
+        issues.append(classify_autopilot_issue(issue))
+    experience_root = Path(root) if root is not None else Path(__file__).resolve().parents[1]
+    experience_present = (experience_root / "engines/experience_platform_engine.py").exists()
+    experience_snapshot = (
+        build_experience_platform_contract_snapshot(root, app_version)
+        if experience_present
+        else None
+    )
+    if experience_snapshot and experience_snapshot["validation_result"] != "PASS":
+        issue = _new_issue(
+            "Experience Platform pierde su contrato de pulido UX seguro",
+            "visual_layout",
+            "medium",
+            "/admin/developer-center",
+            "Experience Platform; " + ",".join(experience_snapshot["evidence"]["violations"]),
+            app_version,
+        )
+        issue.update({
+            "id": "NEMESIS-EXPERIENCE-PLATFORM-CONTRACT",
+            "priority": "P2",
+            "profile": "CLIENT_ADMIN",
+            "component": "experience_platform",
+            "description": "La capa de experiencia podria dejar de auditar UX, navegacion o densidad de forma segura y read-only.",
+            "expected_behavior": "Auditoria de pantallas, consistencia UX, navegacion y densidad visual sin cambiar logica, Sports Core, SHARK, DB, Telegram, Stripe, rutas ni APIs.",
+            "actual_behavior": "Una o mas garantias del contrato Experience Platform no se pueden demostrar.",
+            "suggested_fix": "Restaurar solo el contrato incumplido y repetir Experience Platform check, Browser QA, Sentinel y Privacy Guard.",
+            "safe_auto_fix_possible": False,
+            "requires_admin_approval": True,
+            "requires_approval": True,
+            "likely_files": [
+                "engines/experience_platform_engine.py",
+                "engines/sports_platform_contracts.py",
+                "engines/project_operating_system_engine.py",
+                "tools/check_experience_platform.py",
+            ],
+            "codex_prompt_suggestion": (
+                "Revisar Experience Platform con la evidencia indicada. No crear nuevas APIs, IA ni motores deportivos; "
+                "no modificar Sports Core, SHARK, DB, Telegram, Stripe o produccion; conservar Browser QA y aprobacion humana."
+            ),
+            "product_quality_contract": experience_snapshot,
+        })
+        issue["codex_prompt"] = issue["codex_prompt_suggestion"]
+        issues.append(classify_autopilot_issue(issue))
     return issues
 
 def _issues_from_sentinel(sentinel_result: dict[str, Any] | None, app_version: str) -> list[dict[str, Any]]:
@@ -2586,6 +2870,8 @@ def run_autopilot_scan(
         "shark_intelligence_platform_contract": build_shark_intelligence_platform_contract_snapshot(project_root, app_version),
         "user_intelligence_platform_contract": build_user_intelligence_platform_contract_snapshot(project_root, app_version),
         "sports_intelligence_gateway_contract": build_sports_intelligence_gateway_contract_snapshot(project_root, app_version),
+        "decision_engine_contract": build_decision_engine_contract_snapshot(project_root, app_version),
+        "experience_platform_contract": build_experience_platform_contract_snapshot(project_root, app_version),
     }
     if save_memory:
         result["memory"] = save_autopilot_memory(result, root=memory_root)

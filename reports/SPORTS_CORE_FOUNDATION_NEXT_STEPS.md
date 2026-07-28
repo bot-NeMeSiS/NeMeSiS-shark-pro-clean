@@ -17,10 +17,11 @@
 - User Intelligence Platform: PASS local; privacidad USER-PRIVACY-CONTROLS-V1 y personalizacion preparada sin aplicar Home automaticamente.
 - Player Center Premium Sports Identity: PASS local con QA completa; consume Sports Core, Sports Knowledge, Sports Graph, SHARK Intelligence y User Intelligence.
 - Sports Intelligence Gateway: PASS local inicial; registra fuentes, evalua compliance, salud y evidencia sin conectar proveedores ni usar scraping.
+- Decision Engine: PASS local inicial; organiza evidencia, faltantes, cambios, coincidencias, discrepancias, calidad y confianza sin IA, picks ni predicciones.
 
 ## Next Sports Core Sprint
 
-Cerrar Sports Intelligence Gateway con revision Git controlada antes de integrar fuentes reales, Telegram Intelligence u otro modulo visible.
+Cerrar Decision Engine con revision Git controlada antes de integrar fuentes reales, Telegram Intelligence, Bankroll u otro modulo visible.
 
 ## Team Center Foundation
 
@@ -59,3 +60,13 @@ La plataforma de inteligencia de usuario queda preparada para entender uso propi
 Estado: PASS local pendiente de cierre Git.
 
 El Gateway queda como puerta legal unica para fuentes deportivas futuras. Antes de cualquier uso, una fuente debe estar registrada, revisada por compliance, evaluada en salud y envuelta con procedencia, frescura, evidencia, calidad y limitaciones. No conecta proveedores, no ejecuta scraping, no usa paywalls, no copia articulos ni reutiliza imagenes protegidas.
+## Decision Engine
+
+Estado: PASS local pendiente de cierre Git.
+
+Decision Engine queda como motor evidence-first para organizar lo que NeMeSiS sabe, lo que no sabe, la evidencia existente, la evidencia faltante, cambios, coincidencias, discrepancias, calidad y confianza. Consume Sports Core, Sports Knowledge, Sports Graph, Match Intelligence, SHARK, Sports Intelligence Gateway y User Intelligence. No hace IA, no predice, no crea picks, no llama proveedores y no ejecuta acciones automaticas.
+## Experience Platform
+
+Estado local: PASS inicial.
+
+La Experience Platform introduce una auditoria read-only de experiencia, consistencia UX, navegacion y densidad visual. No cambia Sports Core, SHARK, APIs, DB, Telegram, Stripe ni produccion. Cualquier pulido visual derivado exige evidencia, aprobacion humana, Browser QA desktop/tablet/mobile y Sentinel limpio.

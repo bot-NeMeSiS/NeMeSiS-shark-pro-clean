@@ -108,3 +108,48 @@ Legal guardrails:
 - no unlicensed commercial reuse.
 
 Data guardrails: every future data point must expose provenance, freshness, evidence, quality and limitations before it can feed Sports Core, SHARK, Telegram or any visible sports center.
+## Decision Engine Contract
+
+Contract: NEMESIS-DECISION-ENGINE-EVIDENCE-FIRST-V1
+
+Subcontracts:
+
+- NEMESIS-DECISION-EVIDENCE-ITEM-V1
+- NEMESIS-DECISION-QUESTION-ANSWER-V1
+
+Consumes:
+
+- SPORTS-CORE-UNIFIED-DOMAIN-MODEL-V1
+- SPORTS-KNOWLEDGE-LAYER-V1
+- SPORTS-GRAPH-FOUNDATION-RELATIONSHIPS-V1
+- MATCH-INTELLIGENCE-EVIDENCE-V1
+- SHARK-INTELLIGENCE-PLATFORM-V1
+- SPORTS-INTELLIGENCE-GATEWAY-V1
+- USER-INTELLIGENCE-PLATFORM-V1
+
+The engine answers:
+
+- what we know;
+- what we do not know;
+- what evidence exists;
+- what evidence is missing;
+- what changed;
+- which sources align;
+- which sources disagree;
+- what quality each datum has;
+- what confidence the evidence has.
+
+Rule: Decision Engine organizes evidence only. It never creates AI output, predictions, picks, Telegram sends, provider calls, DB writes, payment actions or hidden certainty. Every answer must retain provenance, evidence, freshness, quality and limitations.
+## Experience Platform Contract
+
+Contrato: `NEMESIS-EXPERIENCE-PLATFORM-V1`.
+
+Auditores asociados:
+
+- `NEMESIS-EXPERIENCE-AUDITOR-V1`
+- `NEMESIS-PRODUCT-POLISH-ENGINE-V1`
+- `NEMESIS-UX-CONSISTENCY-CHECKER-V1`
+- `NEMESIS-NAVIGATION-INTEGRITY-CHECKER-V1`
+- `NEMESIS-VISUAL-DENSITY-AUDITOR-V1`
+
+Regla: la plataforma solo organiza evidencia de UX y recomendaciones. No modifica logica deportiva, SHARK, rutas, APIs, DB, Telegram, Stripe ni produccion. Todo cambio visual derivado requiere Browser QA y aprobacion humana.

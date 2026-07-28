@@ -610,6 +610,27 @@ def build_product_roadmap(project_root: str | Path) -> dict[str, Any]:
             "evidence": "Puerta legal de fuentes deportivas: registro, compliance, salud y evidencia antes de cualquier uso o conexion.",
         },
         {
+            "name": "Decision Engine",
+            "state": "COMPLETED"
+            if complete(
+                "engines/decision_engine.py",
+                "tests/test_decision_engine.py",
+                "tools/check_decision_engine.py",
+            )
+            else "PENDING",
+            "evidence": "Motor evidence-first que organiza lo que sabemos, lo que falta, cambios, coincidencias, discrepancias, calidad y confianza sin IA, picks ni predicciones.",
+        },        {
+            "name": "Experience Platform",
+            "state": "COMPLETED"
+            if complete(
+                "engines/experience_platform_engine.py",
+                "tests/test_experience_platform.py",
+                "tools/check_experience_platform.py",
+            )
+            else "PENDING",
+            "evidence": "Auditoria read-only de experiencia, consistencia UX, navegacion y densidad visual para convertir la arquitectura existente en una experiencia mas clara sin tocar logica ni produccion.",
+        },
+        {
             "name": "Telegram asistente",
             "state": "CONTRACT_READY" if complete("engines/sports_platform_contracts.py", "engines/telegram_intelligence_engine.py") else "PENDING",
             "evidence": "Context envelope sin envíos automáticos",

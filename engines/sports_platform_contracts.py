@@ -331,6 +331,24 @@ def build_sports_platform_contract_registry(project_root: str | Path) -> dict[st
             "implementation": "engines/sports_intelligence_gateway_engine.py",
         },
         {
+            "key": "decision_engine",
+            "name": "NeMeSiS Decision Engine",
+            "contract": "NEMESIS-DECISION-ENGINE-EVIDENCE-FIRST-V1",
+            "state": "INTEGRATED"
+            if exists("engines/decision_engine.py")
+            else "CONTRACT_READY",
+            "implementation": "engines/decision_engine.py",
+        },        {
+            "key": "experience_platform",
+            "name": "NeMeSiS Experience Platform",
+            "contract": "NEMESIS-EXPERIENCE-PLATFORM-V1",
+            "state": "INTEGRATED"
+            if exists("engines/experience_platform_engine.py")
+            and exists("tools/check_experience_platform.py")
+            else "CONTRACT_READY",
+            "implementation": "engines/experience_platform_engine.py + tools/check_experience_platform.py",
+        },
+        {
             "key": "telegram_assistant",
             "name": "Telegram Assistant",
             "contract": "TELEGRAM-ASSISTANT-CONTEXT-V1",

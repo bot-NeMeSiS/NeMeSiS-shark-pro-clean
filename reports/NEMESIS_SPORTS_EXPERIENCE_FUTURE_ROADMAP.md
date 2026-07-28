@@ -58,3 +58,14 @@ Siguiente modulo visible completado localmente: Player Center Premium Sports Ide
 - Impacto: toda fuente deportiva futura debe entrar por registro, compliance, health monitor y evidence registry antes de poder alimentar Sports Core, SHARK, Telegram, Team Center, Competition Center, Player Center o futuros modulos.
 - Legal: no scraping masivo, no robots bypass, no paywall bypass, no copia de articulos, no reutilizacion de imagenes protegidas y no uso comercial sin aprobacion.
 - Produccion: no certificada; no hubo push ni deploy.
+## Decision Engine
+
+- Estado local: infraestructura implementada y validada localmente, sin deploy.
+- Contrato: `NEMESIS-DECISION-ENGINE-EVIDENCE-FIRST-V1`.
+- Impacto: NeMeSiS dispone de una capa unica para organizar evidencia antes de que Telegram, Bankroll, Company OS, Match Center, Team Center, Competition Center o Player Center tomen decisiones visibles.
+- Alcance: responde que sabemos, que no sabemos, que evidencia existe, que falta, que cambio, que fuentes coinciden, que fuentes discrepan, que calidad tiene cada dato y que confianza tiene la evidencia.
+- Guardrails: no IA generativa, no predicciones, no picks, no llamadas externas, no escritura DB, no Telegram, no Stripe y no acciones automaticas.
+- Produccion: no certificada; no hubo push ni deploy.
+## Experience Platform
+
+La experiencia deportiva pasa a tener una capa transversal de auditoria: exceso de scroll, espacios vacios, botones inconsistentes, textos tecnicos, estados vacios, navegacion incoherente y baja densidad se convierten en hallazgos priorizados antes de cualquier cambio visual. No aplica cambios automaticos.

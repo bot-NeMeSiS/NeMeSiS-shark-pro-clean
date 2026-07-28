@@ -71,6 +71,10 @@ def test_developer_snapshot_has_one_evidence_backed_source():
     assert capabilities["player_center"]["contract"] == "PLAYER-CENTER-PREMIUM-SPORTS-IDENTITY-PLATFORM-V1"
     assert capabilities["sports_intelligence_gateway"]["state"] == "INTEGRATED"
     assert capabilities["sports_intelligence_gateway"]["contract"] == "SPORTS-INTELLIGENCE-GATEWAY-V1"
+    assert capabilities["decision_engine"]["state"] == "INTEGRATED"
+    assert capabilities["decision_engine"]["contract"] == "NEMESIS-DECISION-ENGINE-EVIDENCE-FIRST-V1"
+    assert capabilities["experience_platform"]["state"] == "INTEGRATED"
+    assert capabilities["experience_platform"]["contract"] == "NEMESIS-EXPERIENCE-PLATFORM-V1"
 
 
 def test_company_board_uses_shared_roadmap_and_reports_git_truth():
@@ -81,6 +85,7 @@ def test_company_board_uses_shared_roadmap_and_reports_git_truth():
     roadmap = {item["name"]: item for item in company["roadmap"]["modules"]}
     assert roadmap["Match Center intelligence"]["state"] == "COMPLETED"
     assert roadmap["Match Intelligence Engine"]["state"] == "COMPLETED"
+    assert roadmap["Experience Platform"]["state"] == "COMPLETED"
     assert company["areas"]
     assert all(area["evidence"] and area["next_action"] for area in company["areas"])
     assert company["git"]["state"] in {"CONFIRMED", "REQUIRES_REVIEW", "BLOCKED_BY_ACCESS"}
