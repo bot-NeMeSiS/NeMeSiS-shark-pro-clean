@@ -1166,6 +1166,142 @@ def build_v944_match_center_foundation_contract_snapshot(
         "production_certified": False,
     }
 
+def build_team_center_experience_contract_snapshot(
+    root: str | Path | None = None,
+    app_version: str = "",
+) -> dict[str, Any]:
+    """Inspect the Team Center premium experience contract without writes."""
+    project_root = Path(root) if root is not None else Path(__file__).resolve().parents[1]
+
+    def _read(relative_path: str) -> str:
+        try:
+            return (project_root / relative_path).read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            return ""
+
+    application = _read("app.py")
+    engine = _read("engines/team_center_engine.py")
+    graph_engine = _read("engines/sports_graph_foundation_engine.py")
+    template = _read("templates/team_detail.html")
+    css = _read("static/v933-product.css")
+    platform_contracts = _read("engines/sports_platform_contracts.py")
+
+    engine_contract = all(marker in engine for marker in (
+        'TEAM_CENTER_CONTRACT = "TEAM-CENTER-PREMIUM-CLUB-EXPERIENCE-V1"',
+        "build_unified_domain_snapshot(",
+        "normalize_team_entity(",
+        "build_team_knowledge(",
+        "build_sports_knowledge_snapshot(",
+        "build_sports_graph_relationships(",
+        '"database_writes": 0',
+        '"external_calls": 0',
+        '"telegram_sends": 0',
+        '"stripe_calls": 0',
+        '"no_fake_data": True',
+    ))
+    graph_contract = all(marker in graph_engine for marker in (
+        'SPORTS_GRAPH_FOUNDATION_CONTRACT = "SPORTS-GRAPH-FOUNDATION-RELATIONSHIPS-V1"',
+        "match_has_team",
+        "team_has_match",
+        "match_belongs_to_competition",
+        "team_competes_in_competition",
+        "match_belongs_to_season",
+        "match_has_timeline_event",
+        "pick_references_match",
+        "odds_prices_match",
+        "telegram_context_mentions_match",
+        "shark_context_analyzes_match",
+        '"database_writes": 0',
+        '"external_calls": 0',
+    ))
+    pure_engine_contract = not re.search(
+        r"^\s*(?:import|from)\s+(?:sqlite3|requests|urllib\.request|flask|stripe)\b|\b(?:commit|execute|executemany)\s*\(",
+        engine + graph_engine,
+        flags=re.IGNORECASE | re.MULTILINE,
+    )
+    app_contract = all(marker in application for marker in (
+        "from engines.team_center_engine import build_team_center_context",
+        'detail["team_center"] = build_team_center_context(',
+        '@app.route("/team/<team_id>")',
+        '@app.route("/equipo/<team_id>")',
+        '@app.route("/api/teams/<team_id>/detail")',
+    ))
+    template_contract = all(marker in template for marker in (
+        'data-team-center-contract=',
+        'data-sports-domain-model=',
+        'data-sports-knowledge-contract=',
+        'data-sports-graph-contract=',
+        'data-team-center-section="header"',
+        'data-team-center-section="recent-form"',
+        'data-team-center-section="upcoming-matches"',
+        'data-team-center-section="recent-results"',
+        'data-team-center-section="data-quality"',
+        'data-team-center-section="sports-graph"',
+        'match_card(match, true, true)',
+        'No disponible',
+        'Ninguna fuente lo confirma',
+        'Información pendiente',
+    ))
+    visual_contract = all(marker in css for marker in (
+        "TEAM CENTER PREMIUM CLUB EXPERIENCE V1",
+        ".team-center-v1",
+        ".team-center-hero",
+        ".team-center-layout",
+        ".team-center-match-grid",
+        "@media (max-width: 1080px)",
+        "@media (max-width: 760px)",
+    ))
+    registry_contract = all(marker in platform_contracts for marker in (
+        '"key": "team_center"',
+        '"contract": "TEAM-CENTER-PREMIUM-CLUB-EXPERIENCE-V1"',
+        '"key": "sports_graph"',
+        '"contract": "SPORTS-GRAPH-FOUNDATION-RELATIONSHIPS-V1"',
+    ))
+
+    violations: list[str] = []
+    if not engine_contract:
+        violations.append("team_center_engine_not_using_sports_core_contracts")
+    if not graph_contract:
+        violations.append("sports_graph_foundation_relationships_missing")
+    if not pure_engine_contract:
+        violations.append("team_center_or_graph_engine_has_side_effect_imports")
+    if not app_contract:
+        violations.append("team_center_route_or_api_not_integrated")
+    if not template_contract:
+        violations.append("team_center_template_contract_missing")
+    if not visual_contract:
+        violations.append("team_center_responsive_visual_contract_missing")
+    if not registry_contract:
+        violations.append("sports_platform_registry_not_updated")
+
+    passed = not violations
+    return {
+        "issue_id": "TEAM-CENTER-PREMIUM-EXPERIENCE",
+        "version": app_version,
+        "component": "team_center_premium_club_experience",
+        "affected_routes": ["/team/<id>", "/equipo/<id>", "/api/teams/<id>/detail"],
+        "cause": "Team Center must remain a Sports Core consumer, not an isolated team page.",
+        "solution": "Use Team Center context, Sports Knowledge Layer, Sports Graph and canonical match_card() with honest fallbacks.",
+        "evidence": {
+            "engine_contract": engine_contract,
+            "graph_contract": graph_contract,
+            "pure_engine_contract": pure_engine_contract,
+            "app_contract": app_contract,
+            "template_contract": template_contract,
+            "visual_contract": visual_contract,
+            "registry_contract": registry_contract,
+            "violations": violations,
+        },
+        "preventive_rule": "Team Center cannot calculate a parallel model or render custom match cards; it consumes Sports Core contracts only.",
+        "validation_result": "PASS" if passed else "REGRESSION",
+        "certification_state": "VERIFIED" if passed else "REQUIRES_REVIEW",
+        "status": "RESOLVED_LOCALLY" if passed else "OPEN",
+        "evaluated_at_madrid": _now(),
+        "autofix_allowed": False,
+        "approval_required": True,
+        "production_certified": False,
+    }
+
 def detect_product_quality_contract_issues(
     root: str | Path | None = None,
     app_version: str = "",
@@ -1375,6 +1511,53 @@ def detect_product_quality_contract_issues(
         })
         issue["codex_prompt"] = issue["codex_prompt_suggestion"]
         issues.append(classify_autopilot_issue(issue))
+    team_center_root = Path(root) if root is not None else Path(__file__).resolve().parents[1]
+    team_center_present = (
+        (team_center_root / "engines/team_center_engine.py").exists()
+        or (team_center_root / "templates/team_detail.html").exists()
+    )
+    team_center_snapshot = (
+        build_team_center_experience_contract_snapshot(root, app_version)
+        if team_center_present
+        else None
+    )
+    if team_center_snapshot and team_center_snapshot["validation_result"] != "PASS":
+        issue = _new_issue(
+            "El Team Center pierde su contrato Sports Core",
+            "sports_data_contract",
+            "high",
+            "/team/<id>",
+            "Team Center; " + ",".join(team_center_snapshot["evidence"]["violations"]),
+            app_version,
+        )
+        issue.update({
+            "id": "TEAM-CENTER-PREMIUM-EXPERIENCE-CONTRACT",
+            "priority": "P1",
+            "profile": "CLIENT",
+            "component": "team_center_premium_club_experience",
+            "description": "El Team Center deja de consumir Sports Core, Sports Knowledge, Sports Graph o match_card canonica.",
+            "expected_behavior": "Una unica experiencia premium del club basada en contratos canonicos, datos reales y fallbacks honestos.",
+            "actual_behavior": "Una o mas garantias del contrato Team Center no se pueden demostrar.",
+            "suggested_fix": "Restaurar solo el contrato incumplido y repetir Browser QA desktop/tablet/mobile.",
+            "safe_auto_fix_possible": False,
+            "requires_admin_approval": True,
+            "requires_approval": True,
+            "likely_files": [
+                "engines/team_center_engine.py",
+                "engines/sports_graph_foundation_engine.py",
+                "app.py",
+                "templates/team_detail.html",
+                "static/v933-product.css",
+                "engines/sports_platform_contracts.py",
+            ],
+            "codex_prompt_suggestion": (
+                "Revisar Team Center con la evidencia indicada. No autoaplicar Python, Jinja, CSS, datos ni rutas; "
+                "preservar Sports Core, Sports Knowledge Layer, Sports Graph y match_card()."
+            ),
+            "product_quality_contract": team_center_snapshot,
+        })
+        issue["codex_prompt"] = issue["codex_prompt_suggestion"]
+        issues.append(classify_autopilot_issue(issue))
     return issues
 
 
@@ -1525,6 +1708,7 @@ def run_autopilot_scan(
         "product_quality_contract": build_customer_trust_icon_contract_snapshot(project_root, app_version),
         "client_copy_audience_contract": build_client_copy_audience_contract_snapshot(project_root, app_version),
         "madrid_timestamp_presentation_contract": build_madrid_timestamp_presentation_contract_snapshot(project_root, app_version),
+        "team_center_experience_contract": build_team_center_experience_contract_snapshot(project_root, app_version),
     }
     if save_memory:
         result["memory"] = save_autopilot_memory(result, root=memory_root)

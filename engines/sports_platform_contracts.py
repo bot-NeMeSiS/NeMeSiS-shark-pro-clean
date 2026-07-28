@@ -1,4 +1,4 @@
-﻿"""Safe contracts for the next NeMeSiS sports platform integrations.
+"""Safe contracts for the next NeMeSiS sports platform integrations.
 
 This module prepares boundaries only. It does not fetch provider data, persist
 memory, publish Telegram messages, call SHARK, or mutate sports entities.
@@ -304,10 +304,12 @@ def build_sports_platform_contract_registry(project_root: str | Path) -> dict[st
         },
         {
             "key": "team_center",
-            "name": "Team Center Foundation",
-            "contract": "SPORTS-ENTITY-CENTER-CONTEXT-V1",
-            "state": "CONTRACT_READY",
-            "implementation": "engines/sports_platform_contracts.py",
+            "name": "Team Center Premium Club Experience",
+            "contract": "TEAM-CENTER-PREMIUM-CLUB-EXPERIENCE-V1",
+            "state": "INTEGRATED"
+            if exists("engines/team_center_engine.py") and exists("templates/team_detail.html")
+            else "CONTRACT_READY",
+            "implementation": "engines/team_center_engine.py + templates/team_detail.html",
         },
         {
             "key": "competition_center",
@@ -332,10 +334,10 @@ def build_sports_platform_contract_registry(project_root: str | Path) -> dict[st
         },
         {
             "key": "sports_graph",
-            "name": "Sports Graph",
-            "contract": "SPORTS-GRAPH-EDGE-V1",
-            "state": "CONTRACT_READY",
-            "implementation": "engines/sports_platform_contracts.py",
+            "name": "Sports Graph Foundation",
+            "contract": "SPORTS-GRAPH-FOUNDATION-RELATIONSHIPS-V1",
+            "state": "INTEGRATED" if exists("engines/sports_graph_foundation_engine.py") else "CONTRACT_READY",
+            "implementation": "engines/sports_graph_foundation_engine.py",
         },
     ]
     return {

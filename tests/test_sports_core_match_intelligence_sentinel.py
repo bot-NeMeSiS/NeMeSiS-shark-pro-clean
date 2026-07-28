@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import shutil
 from pathlib import Path
@@ -20,6 +20,7 @@ def _copy_contract(tmp_path: Path) -> None:
         "engines/api_football_live_tracker_engine.py",
         "engines/match_context_engine.py",
         "engines/sports_domain_model_engine.py",
+        "engines/sports_knowledge_layer_engine.py",
         "engines/match_intelligence_engine.py",
         "engines/shark_context_presentation_engine.py",
         "engines/sports_platform_contracts.py",

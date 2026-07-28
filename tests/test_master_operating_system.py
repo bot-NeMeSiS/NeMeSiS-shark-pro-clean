@@ -61,7 +61,11 @@ def test_developer_snapshot_has_one_evidence_backed_source():
     assert capabilities["match_center_intelligence"]["contract"] == "MATCH-CENTER-LIFECYCLE-STORY-V1"
     assert capabilities["match_intelligence_core"]["state"] == "INTEGRATED"
     assert capabilities["match_intelligence_core"]["contract"] == "MATCH-INTELLIGENCE-EVIDENCE-V1"
-    for key in ("team_center", "competition_center", "player_center"):
+    assert capabilities["team_center"]["state"] == "INTEGRATED"
+    assert capabilities["team_center"]["contract"] == "TEAM-CENTER-PREMIUM-CLUB-EXPERIENCE-V1"
+    assert capabilities["sports_graph"]["state"] == "INTEGRATED"
+    assert capabilities["sports_graph"]["contract"] == "SPORTS-GRAPH-FOUNDATION-RELATIONSHIPS-V1"
+    for key in ("competition_center", "player_center"):
         assert capabilities[key]["state"] == "CONTRACT_READY"
 
 

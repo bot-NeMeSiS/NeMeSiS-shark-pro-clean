@@ -217,9 +217,9 @@ def build_team_knowledge(
         )
     limitations = list(team.get("limitations") or [])
     if not team_events:
-        limitations.append("No confirmed team-specific events are available in the supplied timeline.")
+        limitations.append("No hay eventos específicos del equipo confirmados en la cronología disponible.")
     if not related_picks:
-        limitations.append("No related pick knowledge is available for this team.")
+        limitations.append("No hay conocimiento de picks relacionado disponible para este equipo.")
     return _contract(
         contract=TEAM_KNOWLEDGE_CONTRACT,
         subject_type="team",
@@ -343,7 +343,7 @@ def build_match_knowledge(
     if not events:
         limitations.append("No confirmed timeline events are available.")
     if not picks:
-        limitations.append("No related picks are available in the supplied snapshot.")
+        limitations.append("No hay picks relacionados disponibles en el snapshot suministrado.")
     return _contract(
         contract=MATCH_KNOWLEDGE_CONTRACT,
         subject_type="match",

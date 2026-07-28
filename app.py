@@ -132,6 +132,7 @@ from engines.data_vault_engine import create_sqlite_backup, db_vault_status, exp
 from engines.match_intelligence_engine import build_match_intelligence, match_intelligence_snapshot
 from engines.video_highlights_engine import video_highlights_snapshot
 from engines.team_form_engine import team_form_snapshot
+from engines.team_center_engine import build_team_center_context
 from engines.standings_experience_engine import standings_snapshot
 from engines.alerts_engine import alerts_foundation_snapshot
 from engines.match_engine import hub_sections, real_time_state, sync_plan
@@ -5988,7 +5989,7 @@ def team_page_data(team_id, limit=80):
             related.append(pick)
     favorites = favorite_sets()
     is_favorite = name.lower() in favorites.get("team", set()) or key.lower() in favorites.get("team", set())
-    return {
+    detail = {
         "team": team,
         "key": key,
         "name": name,
@@ -6006,7 +6007,11 @@ def team_page_data(team_id, limit=80):
         },
         "shark_context": shark_context_summary({"team": name, "upcoming": upcoming[:5], "picks": related[:5]}),
     }
-
+    detail["team_center"] = build_team_center_context(
+        detail,
+        observed_at_madrid=today_iso(),
+    )
+    return detail
 
 def shark_context_summary(context):
     team = context.get("team") or "este equipo"
@@ -14856,7 +14861,7 @@ def team_page(team_id):
             "resource_unavailable.html",
             title="Equipo no disponible",
             resource_title="Este equipo no está disponible",
-            resource_message="No existe información real suficiente para abrir esta ficha. Puedes volver al calendario sin perder el contexto.",
+            resource_message="No disponible: no existe información real suficiente para abrir esta ficha. Puedes volver al calendario sin perder el contexto.",
         ), 404
     data = dashboard_data()
     data["team_detail"] = detail
