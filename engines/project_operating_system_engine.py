@@ -578,6 +578,26 @@ def build_product_roadmap(project_root: str | Path) -> dict[str, Any]:
             "evidence": "Context envelope sin llamadas automáticas",
         },
         {
+            "name": "SHARK Intelligence Platform",
+            "state": "COMPLETED"
+            if complete(
+                "engines/shark_intelligence_platform_engine.py",
+                "templates/shark_intelligence_center.html",
+                "tests/test_shark_intelligence_platform.py",
+            )
+            else "PENDING",
+            "evidence": "Centro de inteligencia deportiva trazable; consume Sports Core, Sports Knowledge, Sports Graph y Match Intelligence sin IA generativa.",
+        },        {
+            "name": "User Intelligence Platform",
+            "state": "COMPLETED"
+            if complete(
+                "engines/user_intelligence_platform_engine.py",
+                "templates/user_intelligence_center.html",
+                "tests/test_user_intelligence_platform.py",
+            )
+            else "PENDING",
+            "evidence": "Perfil deportivo interno transparente; consentimiento, exportacion, reset, borrado y desactivacion sin IA generativa ni datos de terceros.",
+        },        {
             "name": "Telegram asistente",
             "state": "CONTRACT_READY" if complete("engines/sports_platform_contracts.py", "engines/telegram_intelligence_engine.py") else "PENDING",
             "evidence": "Context envelope sin envíos automáticos",
@@ -588,11 +608,20 @@ def build_product_roadmap(project_root: str | Path) -> dict[str, Any]:
             "evidence": "Referencias, memoria y aristas con evidencia",
         },
         {
-            "name": "Team, Competition y Player Centers",
-            "state": "PENDING",
-            "evidence": "No implementados; dependen del Sports Entity Model",
+            "name": "Team Center",
+            "state": "COMPLETED" if complete("engines/team_center_engine.py", "templates/team_detail.html") else "PENDING",
+            "evidence": "Team Center Premium Club Experience consume Sports Knowledge y Sports Graph.",
         },
         {
+            "name": "Competition Center",
+            "state": "COMPLETED" if complete("engines/competition_center_engine.py", "templates/competition_detail.html") else "PENDING",
+            "evidence": "Competition Center Premium League Intelligence consume Sports Knowledge y Sports Graph.",
+        },
+        {
+            "name": "Player Center",
+            "state": "PENDING",
+            "evidence": "Pendiente; debe reutilizar Sports Graph y Sports Knowledge sin modelo paralelo.",
+        },        {
             "name": "Beta privada",
             "state": "BLOCKED_BY_CERTIFICATION",
             "evidence": "Requiere integración Git, Render y QA real autorizada",

@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% block content %}
+{% set s = intelligence or data.shark_intelligence or {} %}
+{% set summary = s.summary or {} %}
+{% set transparency = s.transparency or {} %}
+{% set graph = s.sports_graph or {} %}
+
+<section class="shark-intelligence-v1"
+         data-shark-intelligence-contract="{{ s.contract or '' }}"
+         data-sports-domain-model="{{ s.source_contracts.sports_domain_model if s.source_contracts else '' }}"
+         data-sports-knowledge-contract="{{ s.source_contracts.sports_knowledge if s.source_contracts else '' }}"
+         data-sports-graph-contract="{{ s.source_contracts.sports_graph if s.source_contracts else '' }}"
+         data-match-intelligence-contract="{{ s.source_contracts.match_intelligence if s.source_contracts else '' }}">
+  <header class="shark-intelligence-hero" data-shark-intelligence-section="header">
+    <div class="shark-intelligence-title">
+      <span>SHARK Intelligence Platform</span>
+      <h1>El cerebro deportivo de NeMeSiS</h1>
+      <p>{{ summary.body or 'SHARK organiza el contexto deportivo disponible sin inventar datos, predicciones ni opiniones.' }} No inventa hechos.</p>
+      <div class="shark-intelligence-tags" aria-label="Estado SHARK">
+        <span>{{ s.certification_state or 'REQUIRES_REVIEW' }}</span>
+        <span>{{ summary.headline or 'Contexto pendiente' }}</span>
+        <span>{{ s.observed_at_madrid or 'No disponible' }}</span>
+      </div>
+    </div>
+    <aside class="shark-intelligence-status">
+      <div><span>Afirmaciones</span><strong>{{ s.claims|length if s.claims else 0 }}</strong></div>
+      <div><span>Trazabilidad</span><strong>{{ 'Completa' if transparency.all_claims_traceable else 'Revisar' }}</strong></div>
+      <div><span>Graph</span><strong>{{ graph.edge_count or 0 }}</strong></div>
+      <nav class="shark-intelligence-actions" aria-label="Acciones SHARK">
+        <a href="/calendar">Calendario</a>
+        <a href="/picks">Picks</a>
+        <a href="/shark">SHARK</a>
+      </nav>
+    </aside>
+  </header>
+
+  <section class="shark-intelligence-metrics" data-shark-intelligence-section="metrics">
+    <article><span>Fuentes</span><strong>{{ s.source_contracts|length if s.source_contracts else 0 }}</strong><small>contratos reutilizados</small></article>
+    <article><span>Claims</span><strong>{{ transparency.claim_count or 0 }}</strong><small>con fuente y evidencia</small></article>
+    <article><span>Modulos</span><strong>{{ s.modules|length if s.modules else 0 }}</strong><small>contexto conectado</small></article>
+    <article><span>Acciones auto</span><strong>{{ s.diagnostics.automatic_actions if s.diagnostics else 0 }}</strong><small>bloqueadas</small></article>
+  </section>
+
+  <main class="shark-intelligence-layout">
+    <section class="shark-intelligence-panel shark-intelligence-wide" data-shark-intelligence-section="claims">
+      <div class="shark-intelligence-section-head"><span>Que sabe SHARK ahora</span><strong>{{ s.claims|length if s.claims else 0 }}</strong></div>
+      <div class="shark-intelligence-claim-grid">
+        {% for claim in s.claims %}
+        <article class="shark-intelligence-claim" data-shark-intelligence-claim data-shark-claim>
+          <header>
+            <span>{{ claim.certification_state or 'REQUIRES_REVIEW' }}</span>
+            <strong>{{ claim.title or 'Sin titulo' }}</strong>
+          </header>
+          <p>{{ claim.body or 'No disponible' }}</p>
+          <dl>
+            <div><dt>Fuente / Procedencia</dt><dd>{{ claim.source or 'No disponible' }}</dd></div>
+            <div><dt>Frescura</dt><dd>{{ claim.freshness.label if claim.freshness else 'No disponible' }}</dd></div>
+            <div><dt>Calidad</dt><dd>{{ claim.quality.label if claim.quality else 'No disponible' }}</dd></div>
+          </dl>
+{% if claim.evidence %}
+          <strong class="shark-intelligence-evidence-title">Evidencia</strong>
+          <ul>{% for item in claim.evidence[:4] %}<li>{{ item }}</li>{% endfor %}</ul>
+          {% endif %}
+          {% if claim.limitations %}
+          <p class="shark-intelligence-limit">Limite: {{ claim.limitations[0] }}</p>
+          {% else %}
+          <p class="shark-intelligence-limit">Limite: sin limitaciones adicionales en el snapshot.</p>
+          {% endif %}
+          {% if claim.link %}<a href="{{ claim.link }}">Abrir contexto</a>{% endif %}
+        </article>
+        {% else %}
+        <p class="shark-intelligence-empty">No disponible. Ningun snapshot aporta una afirmacion trazable.</p>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="shark-intelligence-panel" data-shark-intelligence-section="modules">
+      <div class="shark-intelligence-section-head"><span>Donde hay mas contexto</span><strong>{{ s.modules|length if s.modules else 0 }}</strong></div>
+      <div class="shark-intelligence-module-list">
+        {% for module in s.modules %}
+          {% if module.link %}
+            <a href="{{ module.link }}" data-shark-intelligence-module data-shark-module>
+              <span>{{ module.name }}</span>
+              <strong>{{ module.state or 'No disponible' }}</strong>
+              <small>{{ module.evidence or module.contract or 'Informacion pendiente' }}</small>
+            </a>
+          {% else %}
+            <div data-shark-intelligence-module data-shark-module>
+              <span>{{ module.name }}</span>
+              <strong>{{ module.state or 'No disponible' }}</strong>
+              <small>{{ module.evidence or module.contract or 'Informacion pendiente' }}</small>
+            </div>
+          {% endif %}
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="shark-intelligence-panel" data-shark-intelligence-section="sports-graph">
+      <div class="shark-intelligence-section-head"><span>Sports Graph</span><strong>{{ graph.edge_count or 0 }}</strong></div>
+      <p>SHARK consume relaciones existentes. No persiste un grafo nuevo ni crea relaciones artificiales.</p>
+      {% if graph.relationships %}
+      <ul class="shark-intelligence-evidence-list">{% for item in graph.relationships[:8] %}<li>{{ item }}</li>{% endfor %}</ul>
+      {% else %}
+      <p class="shark-intelligence-empty">No disponible. El snapshot actual no aporta relaciones suficientes.</p>
+      {% endif %}
+    </section>
+
+    <section class="shark-intelligence-panel" data-shark-intelligence-section="missing">
+      <div class="shark-intelligence-section-head"><span>Que falta</span><strong>{{ s.missing_information|length if s.missing_information else 0 }}</strong></div>
+      {% if s.missing_information %}
+      <ul class="shark-intelligence-evidence-list">{% for item in s.missing_information[:10] %}<li>{{ item }}</li>{% endfor %}</ul>
+      {% else %}
+      <p class="shark-intelligence-empty">No hay ausencias relevantes en el snapshot actual.</p>
+      {% endif %}
+    </section>
+
+    <section class="shark-intelligence-panel" data-shark-intelligence-section="transparency">
+      <div class="shark-intelligence-section-head"><span>Transparencia</span><strong>{{ 'PASS' if transparency.all_claims_traceable else 'REVISAR' }}</strong></div>
+      <dl class="shark-intelligence-data-list">
+        <div><dt>Con fuente</dt><dd>{{ transparency.claims_with_source or 0 }}</dd></div>
+        <div><dt>Con evidencia</dt><dd>{{ transparency.claims_with_evidence or 0 }}</dd></div>
+        <div><dt>Con frescura</dt><dd>{{ transparency.claims_with_freshness or 0 }}</dd></div>
+        <div><dt>Con calidad</dt><dd>{{ transparency.claims_with_quality or 0 }}</dd></div>
+      </dl>
+    </section>
+
+    <section class="shark-intelligence-panel" data-shark-intelligence-section="assistant-preparation">
+      <div class="shark-intelligence-section-head"><span>Asistente futuro</span><strong>{{ 'Preparado' if s.assistant_preparation.future_assistant_ready else 'Pendiente' }}</strong></div>
+      <p>No hay conversacion IA en esta fase. La infraestructura queda lista para explicar evidencia existente con aprobacion futura.</p>
+      <ul class="shark-intelligence-evidence-list">
+        {% for item in s.assistant_preparation.blocked_actions or [] %}<li>Bloqueado: {{ item }}</li>{% endfor %}
+      </ul>
+    </section>
+  </main>
+</section>
+{% endblock %}

@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% block content %}
+{% set u = intelligence or data.user_intelligence or {} %}
+{% set summary = u.summary or {} %}
+{% set privacy = u.privacy or {} %}
+{% set prefs = u.preferences or {} %}
+{% set signals = u.signals or {} %}
+{% set metrics = u.metrics or {} %}
+
+<section class="user-intelligence-v1"
+         data-user-intelligence-contract="{{ u.contract or '' }}"
+         data-user-privacy-contract="{{ u.privacy_contract or '' }}"
+         data-sports-domain-model="{{ u.source_contracts.sports_domain_model if u.source_contracts else '' }}"
+         data-sports-knowledge-contract="{{ u.source_contracts.sports_knowledge if u.source_contracts else '' }}"
+         data-sports-graph-contract="{{ u.source_contracts.sports_graph if u.source_contracts else '' }}"
+         data-shark-intelligence-contract="{{ u.source_contracts.shark_intelligence if u.source_contracts else '' }}">
+  <header class="user-intelligence-hero" data-user-intelligence-section="header">
+    <div class="user-intelligence-title">
+      <span>User Intelligence Platform</span>
+      <h1>Tu experiencia deportiva bajo tu control</h1>
+      <p>{{ summary.body or 'NeMeSiS prepara personalizacion solo con uso propio observado, sin IA generativa y sin vender datos.' }}</p>
+      <div class="user-intelligence-tags" aria-label="Estado de personalizacion">
+        <span>{{ u.certification_state or 'REQUIRES_REVIEW' }}</span>
+        <span>{{ privacy.consent_state or 'NOT_GRANTED' }}</span>
+        <span>{{ u.observed_at_madrid or 'No disponible' }}</span>
+      </div>
+    </div>
+    <aside class="user-intelligence-status">
+      <div><span>Eventos</span><strong>{{ metrics.activity_events or 0 }}</strong></div>
+      <div><span>Favoritos</span><strong>{{ metrics.favorites or 0 }}</strong></div>
+      <div><span>Preparadas</span><strong>{{ metrics.recommendations_prepared or 0 }}</strong></div>
+      <nav class="user-intelligence-actions" aria-label="Acciones de privacidad">
+        <a href="/api/user-intelligence/export">Exportar</a>
+        <a href="/favorites">Favoritos</a>
+        <a href="/profile">Perfil</a>
+      </nav>
+    </aside>
+  </header>
+
+  <section class="user-intelligence-metrics" data-user-intelligence-section="metrics">
+    <article><span>Equipos</span><strong>{{ metrics.teams_observed or 0 }}</strong><small>observados</small></article>
+    <article><span>Competiciones</span><strong>{{ metrics.competitions_observed or 0 }}</strong><small>observadas</small></article>
+    <article><span>Pantallas</span><strong>{{ metrics.modules_observed or 0 }}</strong><small>usadas</small></article>
+    <article><span>Aplicacion auto</span><strong>{{ 'No' if not u.personalization.automatic_home_personalization else 'Si' }}</strong><small>Home intacta</small></article>
+  </section>
+
+  <main class="user-intelligence-layout">
+    <section class="user-intelligence-panel user-intelligence-wide" data-user-intelligence-section="profile">
+      <div class="user-intelligence-section-head">
+        <span>Perfil deportivo observado</span>
+        <strong>{{ u.confidence.label if u.confidence else 'Sin muestra' }}</strong>
+      </div>
+      <div class="user-intelligence-signal-grid">
+        {% for group_key, title in [('teams','Equipos consultados'),('competitions','Competiciones consultadas'),('matches','Partidos abiertos'),('modules','Pantallas mas usadas'),('filters','Filtros utilizados'),('hours','Horarios habituales'),('markets','Mercados consultados'),('ignored_content','Contenido sin uso reciente')] %}
+        <article data-user-intelligence-signal="{{ group_key }}">
+          <header><span>{{ title }}</span><strong>{{ signals[group_key]|length if signals[group_key] else 0 }}</strong></header>
+          {% if signals[group_key] %}
+          <ul>
+            {% for item in signals[group_key][:5] %}
+              <li><b>{{ item.label }}</b><small>{{ item.count }} senal(es) · {{ item.source }}</small></li>
+            {% endfor %}
+          </ul>
+          {% else %}
+          <p class="user-intelligence-empty">No disponible. No existe evidencia propia suficiente.</p>
+          {% endif %}
+        </article>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="user-intelligence-panel" data-user-intelligence-section="privacy">
+      <div class="user-intelligence-section-head"><span>Privacidad</span><strong>{{ privacy.consent_state or 'NOT_GRANTED' }}</strong></div>
+      <dl class="user-intelligence-data-list">
+        <div><dt>Personalizacion</dt><dd>{{ 'Activada' if privacy.personalization_enabled else 'Desactivada' }}</dd></div>
+        <div><dt>Datos salen de NeMeSiS</dt><dd>{{ 'No' if not privacy.data_leaves_nemesis else 'Revisar' }}</dd></div>
+        <div><dt>Venta de datos</dt><dd>{{ 'No' if not privacy.third_party_sale else 'Revisar' }}</dd></div>
+        <div><dt>IA generativa</dt><dd>{{ 'No' if not privacy.generative_ai_used else 'Revisar' }}</dd></div>
+      </dl>
+      <div class="user-intelligence-form-grid">
+        <form method="post" action="/user-intelligence/privacy">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="action" value="enable">
+          <button data-user-privacy-control="enable" type="submit">Activar</button>
+        </form>
+        <form method="post" action="/user-intelligence/privacy">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="action" value="disable">
+          <button data-user-privacy-control="disable" type="submit">Desactivar</button>
+        </form>
+        <form method="post" action="/user-intelligence/privacy">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="action" value="reset">
+          <button data-user-privacy-control="reset" type="submit">Resetear preferencias</button>
+        </form>
+        <form method="post" action="/user-intelligence/privacy">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="action" value="delete">
+          <button class="danger" data-user-privacy-control="delete" type="submit">Borrar perfil</button>
+        </form>
+      </div>
+    </section>
+
+    <section class="user-intelligence-panel" data-user-intelligence-section="future-personalization">
+      <div class="user-intelligence-section-head"><span>Personalizacion preparada</span><strong>{{ 'Controlada' if u.personalization.prepared_only else 'Revisar' }}</strong></div>
+      <p>No cambia la Home automaticamente. Solo deja preparada la infraestructura para futuras decisiones con consentimiento.</p>
+      <ul class="user-intelligence-evidence-list">
+        {% for item in u.personalization.future_uses or [] %}<li>{{ item }}</li>{% endfor %}
+      </ul>
+    </section>
+
+    <section class="user-intelligence-panel" data-user-intelligence-section="recommendations">
+      <div class="user-intelligence-section-head"><span>Siguientes usos posibles</span><strong>{{ u.recommendations|length if u.recommendations else 0 }}</strong></div>
+      {% if u.recommendations %}
+      <div class="user-intelligence-module-list">
+        {% for item in u.recommendations %}
+        <div data-user-intelligence-recommendation>
+          <span>{{ item.title }}</span>
+          <strong>{{ item.state }}</strong>
+          <small>{{ item.evidence|join(', ') if item.evidence else 'Sin evidencia suficiente' }}</small>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="user-intelligence-empty">No disponible. Aun no hay muestra suficiente o consentimiento activo.</p>
+      {% endif %}
+    </section>
+
+    <section class="user-intelligence-panel" data-user-intelligence-section="contracts">
+      <div class="user-intelligence-section-head"><span>Contratos reutilizados</span><strong>{{ u.source_contracts|length if u.source_contracts else 0 }}</strong></div>
+      <dl class="user-intelligence-data-list">
+        {% for key, value in u.source_contracts.items() %}
+        <div><dt>{{ key }}</dt><dd>{{ value }}</dd></div>
+        {% endfor %}
+      </dl>
+    </section>
+
+    <section class="user-intelligence-panel" data-user-intelligence-section="missing">
+      <div class="user-intelligence-section-head"><span>Informacion ausente</span><strong>{{ u.missing_information|length if u.missing_information else 0 }}</strong></div>
+      {% if u.missing_information %}
+      <ul class="user-intelligence-evidence-list">{% for item in u.missing_information %}<li>{{ item }}</li>{% endfor %}</ul>
+      {% else %}
+      <p class="user-intelligence-empty">No hay ausencias criticas en el snapshot actual.</p>
+      {% endif %}
+    </section>
+  </main>
+</section>
+{% endblock %}

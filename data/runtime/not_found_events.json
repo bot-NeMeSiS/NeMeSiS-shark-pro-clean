@@ -8,9 +8,9 @@
       "user_agent": "Werkzeug/3.0.3",
       "resolved_alias": "",
       "source": "flask_404",
-      "count": 60,
+      "count": 62,
       "first_seen_madrid": "2026-07-07T23:33:53+02:00",
-      "last_seen_madrid": "2026-07-28T09:52:25+02:00"
+      "last_seen_madrid": "2026-07-28T12:50:32+02:00"
     },
     {
       "path": "/api/ruta-inventada-v910",
@@ -19,9 +19,9 @@
       "user_agent": "Werkzeug/3.0.3",
       "resolved_alias": "",
       "source": "api_404",
-      "count": 60,
+      "count": 62,
       "first_seen_madrid": "2026-07-07T23:33:53+02:00",
-      "last_seen_madrid": "2026-07-28T09:52:25+02:00"
+      "last_seen_madrid": "2026-07-28T12:50:32+02:00"
     },
     {
       "path": "/historico",
@@ -30,9 +30,9 @@
       "user_agent": "Werkzeug/3.0.3",
       "resolved_alias": "/track-record",
       "source": "legacy_alias",
-      "count": 29,
+      "count": 30,
       "first_seen_madrid": "2026-07-10T21:56:57+02:00",
-      "last_seen_madrid": "2026-07-28T09:48:48+02:00"
+      "last_seen_madrid": "2026-07-28T12:12:43+02:00"
     },
     {
       "path": "/refunds",
@@ -41,9 +41,9 @@
       "user_agent": "Werkzeug/3.0.3",
       "resolved_alias": "/reembolsos",
       "source": "legacy_alias",
-      "count": 22,
+      "count": 23,
       "first_seen_madrid": "2026-07-10T21:56:48+02:00",
-      "last_seen_madrid": "2026-07-28T09:48:47+02:00"
+      "last_seen_madrid": "2026-07-28T12:12:42+02:00"
     },
     {
       "path": "/planes",
@@ -398,5 +398,5 @@
       "last_seen_madrid": "2026-07-05T00:58:55+02:00"
     }
   ],
-  "updated_at_madrid": "2026-07-28T09:52:25+02:00"
+  "updated_at_madrid": "2026-07-28T12:50:32+02:00"
 }

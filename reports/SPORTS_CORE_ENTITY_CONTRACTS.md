@@ -1,4 +1,4 @@
-﻿# Sports Core Entity Contracts
+# Sports Core Entity Contracts
 
 ## Match Entity
 
@@ -59,3 +59,26 @@ Contract: SPORTS-CORE-FRESHNESS-V1
 States: fresh, aging, stale, unknown, unavailable.
 
 Rule: stale data cannot become apparent live intelligence.
+
+## SHARK Intelligence Platform Contract
+
+Contract: SHARK-INTELLIGENCE-PLATFORM-V1
+
+Consumes: SPORTS-CORE-UNIFIED-DOMAIN-MODEL-V1, SPORTS-KNOWLEDGE-LAYER-V1, SPORTS-GRAPH-FOUNDATION-RELATIONSHIPS-V1, MATCH-INTELLIGENCE-EVIDENCE-V1, Team Center and Competition Center contracts.
+
+Rule: each SHARK claim must expose source, evidence, freshness, quality and limitations. The platform is read-only in this phase: no generative AI, no Telegram sends, no Stripe calls, no DB writes, no provider calls and no automatic actions.
+## USER-INTELLIGENCE-PLATFORM-V1
+
+Contrato de perfil deportivo interno basado solo en senales first-party: actividad propia, favoritos, filtros, modulos usados, idioma/preferencia visual y contexto deportivo ya validado por Sports Core.
+
+Guardrails:
+
+- consentimiento explicito para aplicar personalizacion;
+- exportacion de preferencias;
+- reset de preferencias;
+- borrado de perfil e historial de personalizacion;
+- desactivacion completa;
+- cero venta de datos;
+- cero terceros;
+- cero IA generativa;
+- cero personalizacion automatica de Home en esta fase.

@@ -296,6 +296,31 @@ def build_sports_platform_contract_registry(project_root: str | Path) -> dict[st
             "implementation": "engines/shark_context_presentation_engine.py",
         },
         {
+            "key": "shark_intelligence_platform",
+            "name": "SHARK Intelligence Platform",
+            "contract": "SHARK-INTELLIGENCE-PLATFORM-V1",
+            "state": "INTEGRATED"
+            if exists("engines/shark_intelligence_platform_engine.py")
+            and exists("templates/shark_intelligence_center.html")
+            else "CONTRACT_READY",
+            "implementation": (
+                "engines/shark_intelligence_platform_engine.py + "
+                "templates/shark_intelligence_center.html"
+            ),
+        },
+        {
+            "key": "user_intelligence_platform",
+            "name": "User Intelligence Platform",
+            "contract": "USER-INTELLIGENCE-PLATFORM-V1",
+            "state": "INTEGRATED"
+            if exists("engines/user_intelligence_platform_engine.py")
+            and exists("templates/user_intelligence_center.html")
+            else "CONTRACT_READY",
+            "implementation": (
+                "engines/user_intelligence_platform_engine.py + "
+                "templates/user_intelligence_center.html"
+            ),
+        },        {
             "key": "telegram_assistant",
             "name": "Telegram Assistant",
             "contract": "TELEGRAM-ASSISTANT-CONTEXT-V1",

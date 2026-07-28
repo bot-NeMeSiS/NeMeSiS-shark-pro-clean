@@ -134,6 +134,12 @@ from engines.video_highlights_engine import video_highlights_snapshot
 from engines.team_form_engine import team_form_snapshot
 from engines.team_center_engine import build_team_center_context
 from engines.competition_center_engine import build_competition_center_context
+from engines.shark_intelligence_platform_engine import build_shark_intelligence_platform_snapshot
+from engines.user_intelligence_platform_engine import (
+    build_user_intelligence_platform_snapshot,
+    sanitize_user_intelligence_preferences,
+    user_intelligence_platform_snapshot,
+)
 from engines.standings_experience_engine import standings_snapshot
 from engines.alerts_engine import alerts_foundation_snapshot
 from engines.match_engine import hub_sections, real_time_state, sync_plan
@@ -17524,6 +17530,332 @@ def shark_page():
     return timed_phase("template", lambda: render_template("shark.html", data=data))
 
 
+
+def _shark_intelligence_anchor_match(summary):
+    seen = set()
+    for key in ("valid_live_events", "valid_matches_today", "valid_upcoming_matches", "finished_matches"):
+        for item in summary.get(key) or []:
+            if not isinstance(item, dict):
+                continue
+            match_id = str(item.get("id") or item.get("match_id") or "").strip()
+            if not match_id or match_id in seen:
+                continue
+            seen.add(match_id)
+            return dict(item)
+    return {}
+
+
+def _shark_intelligence_pick_subset(summary, match_id):
+    match_key = str(match_id or "").strip()
+    picks = []
+    for item in summary.get("valid_active_picks") or summary.get("all_picks") or []:
+        if not isinstance(item, dict):
+            continue
+        if match_key and str(item.get("match_id") or "") != match_key:
+            continue
+        picks.append(dict(item))
+        if len(picks) >= 8:
+            break
+    return picks
+
+
+def build_shark_intelligence_page_context():
+    """Build SHARK Intelligence Center from existing local Sports Core facts."""
+    summary = get_public_home_sports_summary()
+    metrics = get_sports_metrics_contract(summary)
+    anchor = _shark_intelligence_anchor_match(summary)
+    match_id = str(anchor.get("id") or anchor.get("match_id") or "").strip()
+    related_picks = _shark_intelligence_pick_subset(summary, match_id)
+    match_context = {}
+    team_center = {}
+    competition_center = {}
+    links = {
+        "calendar": "/calendar",
+        "picks": "/picks",
+        "telegram": "/telegram",
+        "sports_graph": "",
+    }
+    if match_id:
+        detail = match_detail(match_id, include_depth=False) or {
+            "match": anchor,
+            "timeline": anchor.get("timeline") or [],
+            "related_picks": related_picks,
+        }
+        detail["related_picks"] = detail.get("related_picks") or related_picks
+        live_context = v931_safe_context(
+            "/shark-intelligence",
+            "live_tracker",
+            lambda: live_tracker_for_match(DB_PATH, match_id) or {},
+            {},
+        )
+        match_context = build_match_context(
+            detail,
+            madrid_context=client_match_display_context(detail.get("match") or anchor),
+            live_context=live_context,
+        )
+        links["match_center"] = "/match/" + urllib.parse.quote(match_id, safe="")
+    team_name = str(anchor.get("home_team") or anchor.get("safe_home") or "").strip()
+    if team_name:
+        team_detail = v931_safe_context(
+            "/shark-intelligence",
+            "team_center",
+            lambda: team_page_data(team_name) or {},
+            {},
+        )
+        team_center = dict((team_detail or {}).get("team_center") or {})
+        links["team_center"] = "/team/" + urllib.parse.quote(canonical_team_key(team_name), safe="")
+    competition_id = str(
+        anchor.get("competition_id")
+        or anchor.get("competition_key")
+        or anchor.get("competition_name")
+        or anchor.get("league_name")
+        or ""
+    ).strip()
+    if competition_id:
+        competition_detail = v931_safe_context(
+            "/shark-intelligence",
+            "competition_center",
+            lambda: competition_page_data(competition_id) or {},
+            {},
+        )
+        competition_center = dict((competition_detail or {}).get("competition_center") or {})
+        links["competition_center"] = "/competition/" + urllib.parse.quote(competition_id, safe="")
+    return build_shark_intelligence_platform_snapshot(
+        sports_summary=summary,
+        sports_metrics=metrics,
+        match_context=match_context,
+        team_center=team_center,
+        competition_center=competition_center,
+        observed_at_madrid=now_iso(),
+        navigation_links=links,
+    )
+
+
+@app.route("/shark-intelligence")
+@app.route("/shark-intelligence-center")
+@app.route("/inteligencia-shark")
+def shark_intelligence_center_page():
+    intelligence = build_shark_intelligence_page_context()
+    data = {
+        "shark_intelligence": intelligence,
+        "sports_metrics": get_sports_metrics_contract(get_public_home_sports_summary()),
+        "session_user": current_session_user(),
+    }
+    return render_template("shark_intelligence_center.html", data=data, intelligence=intelligence)
+
+
+@app.route("/api/shark/intelligence")
+def api_shark_intelligence_platform():
+    return jsonify({
+        "ok": True,
+        "version": APP_VERSION,
+        "shark_intelligence": build_shark_intelligence_page_context(),
+    })
+
+USER_INTELLIGENCE_PROFILE_PREFIX = "user-intelligence:"
+
+
+def _user_intelligence_profile_id(user_id):
+    raw = str(user_id or "").strip()
+    if not raw:
+        return ""
+    digest = hashlib.sha256(raw.encode("utf-8")).hexdigest()[:18]
+    return USER_INTELLIGENCE_PROFILE_PREFIX + digest
+
+
+def _load_user_intelligence_preferences(user_id):
+    profile_id = _user_intelligence_profile_id(user_id)
+    if not profile_id:
+        return {}
+    profile = one("SELECT * FROM client_profiles WHERE id=?", (profile_id,))
+    if not profile:
+        return {}
+    return parse_payload_json(profile.get("preferences_json"), {})
+
+
+def _save_user_intelligence_preferences(user, preferences, action="update"):
+    user = dict(user or {})
+    profile_id = _user_intelligence_profile_id(user.get("id"))
+    if not profile_id:
+        return {"ok": False, "error": "Login requerido."}
+    current = one("SELECT created_at FROM client_profiles WHERE id=?", (profile_id,))
+    created_at = (current or {}).get("created_at") or now_iso()
+    conn = db()
+    conn.execute(
+        """INSERT OR REPLACE INTO client_profiles
+           (id,name,membership_plan,favorite_teams_json,favorite_competitions_json,telegram_chat_id,preferences_json,created_at,updated_at)
+           VALUES (?,?,?,?,?,?,?,?,?)""",
+        (
+            profile_id,
+            "User Intelligence Profile",
+            normalize_role(user.get("membership") or user.get("role") or "FREE"),
+            json.dumps([], ensure_ascii=False),
+            json.dumps([], ensure_ascii=False),
+            "",
+            json.dumps(preferences or {}, ensure_ascii=False),
+            created_at,
+            now_iso(),
+        ),
+    )
+    conn.commit()
+    conn.close()
+    return {"ok": True, "profile_id": profile_id, "action": action, "preferences": preferences}
+
+
+def _delete_user_intelligence_profile(user_id, clear_history=False):
+    profile_id = _user_intelligence_profile_id(user_id)
+    if not profile_id:
+        return {"ok": False, "error": "Login requerido."}
+    conn = db()
+    cur = conn.cursor()
+    cur.execute("DELETE FROM client_profiles WHERE id=?", (profile_id,))
+    profile_removed = cur.rowcount
+    history_removed = 0
+    if clear_history:
+        cur.execute("DELETE FROM user_activity WHERE user_id=?", (user_id,))
+        history_removed = cur.rowcount
+    conn.commit()
+    conn.close()
+    return {
+        "ok": True,
+        "profile_deleted": bool(profile_removed),
+        "history_deleted": bool(clear_history),
+        "history_events_removed": int(history_removed or 0),
+    }
+
+
+def _user_intelligence_export_payload(user):
+    user = dict(user or {})
+    user_id = user.get("id") or ""
+    favorites = get_favorites(user_id=user_id) if user_id else []
+    activity = client_activity_feed(limit=200, user_id=user_id) if user_id else []
+    preferences = _load_user_intelligence_preferences(user_id)
+    shark_context = build_shark_intelligence_page_context()
+    snapshot = build_user_intelligence_platform_snapshot(
+        user=user,
+        activity=activity,
+        favorites=favorites,
+        preferences=preferences,
+        sports_contracts=user_intelligence_platform_snapshot(),
+        shark_intelligence=shark_context,
+        observed_at_madrid=now_iso(),
+    )
+    return {
+        "contract": snapshot.get("contract"),
+        "generated_at_madrid": now_iso(),
+        "session_user": {
+            "id_present": bool(user_id),
+            "membership": user.get("membership") or user.get("role") or "FREE",
+            "email_included": False,
+            "name_included": False,
+        },
+        "preferences": preferences,
+        "favorites": [
+            {"kind": item.get("kind"), "value": item.get("value"), "label": item.get("label"), "created_at": item.get("created_at")}
+            for item in favorites
+        ],
+        "activity": [
+            {"activity_type": item.get("activity_type"), "target_type": item.get("target_type"), "target_id": item.get("target_id"), "created_at": item.get("created_at")}
+            for item in activity
+        ],
+        "snapshot": snapshot,
+        "not_exported": ["email", "password_hash", "tokens", "payment_cards", "telegram_chat_id", "full_ip_address"],
+    }
+
+
+def build_user_intelligence_page_context(user=None):
+    user = user or current_session_user() or {}
+    user_id = user.get("id") or ""
+    favorites = get_favorites(user_id=user_id) if user_id else []
+    activity = client_activity_feed(limit=200, user_id=user_id) if user_id else []
+    preferences = _load_user_intelligence_preferences(user_id)
+    shark_context = build_shark_intelligence_page_context()
+    return build_user_intelligence_platform_snapshot(
+        user=user,
+        activity=activity,
+        favorites=favorites,
+        preferences=preferences,
+        sports_contracts=user_intelligence_platform_snapshot(),
+        shark_intelligence=shark_context,
+        observed_at_madrid=now_iso(),
+    )
+
+
+@app.route("/user-intelligence")
+@app.route("/inteligencia-usuario")
+def user_intelligence_center_page():
+    user = current_session_user()
+    if not user:
+        return redirect("/cliente-login?next=/user-intelligence")
+    intelligence = build_user_intelligence_page_context(user)
+    data = {
+        "session_user": user,
+        "user_intelligence": intelligence,
+    }
+    return render_template("user_intelligence_center.html", data=data, intelligence=intelligence)
+
+
+@app.route("/user-intelligence/privacy", methods=["POST"])
+def user_intelligence_privacy_action():
+    user = current_session_user()
+    if not user:
+        return redirect("/cliente-login?next=/user-intelligence")
+    if not validate_csrf(session, request_csrf_token()):
+        abort(403)
+    action = str(request.form.get("action") or "update").lower()
+    if action == "delete":
+        _delete_user_intelligence_profile(user.get("id"), clear_history=True)
+        return redirect("/user-intelligence")
+    current = _load_user_intelligence_preferences(user.get("id"))
+    preferences = sanitize_user_intelligence_preferences(
+        current,
+        dict(request.form or {}),
+        action=action,
+        observed_at_madrid=now_iso(),
+    )
+    _save_user_intelligence_preferences(user, preferences, action=action)
+    return redirect("/user-intelligence")
+
+
+@app.route("/api/user-intelligence/summary")
+def api_user_intelligence_summary():
+    user = current_session_user()
+    if not user:
+        return jsonify({"ok": False, "version": APP_VERSION, "error": "Login requerido."}), 401
+    return jsonify({"ok": True, "version": APP_VERSION, "user_intelligence": build_user_intelligence_page_context(user)})
+
+
+@app.route("/api/user-intelligence/export")
+def api_user_intelligence_export():
+    user = current_session_user()
+    if not user:
+        return jsonify({"ok": False, "version": APP_VERSION, "error": "Login requerido."}), 401
+    return jsonify({"ok": True, "version": APP_VERSION, "export": _user_intelligence_export_payload(user)})
+
+
+@app.route("/api/user-intelligence/preferences", methods=["POST"])
+def api_user_intelligence_preferences():
+    user = current_session_user()
+    if not user:
+        return jsonify({"ok": False, "version": APP_VERSION, "error": "Login requerido."}), 401
+    payload = request.get_json(silent=True) or dict(request.form or {})
+    action = str(payload.get("action") or "update").lower()
+    current = _load_user_intelligence_preferences(user.get("id"))
+    preferences = sanitize_user_intelligence_preferences(current, payload, action=action, observed_at_madrid=now_iso())
+    saved = _save_user_intelligence_preferences(user, preferences, action=action)
+    return jsonify({"ok": True, "version": APP_VERSION, "result": saved, "user_intelligence": build_user_intelligence_page_context(user)})
+
+
+@app.route("/api/user-intelligence/profile", methods=["DELETE", "POST"])
+def api_user_intelligence_profile_delete():
+    user = current_session_user()
+    if not user:
+        return jsonify({"ok": False, "version": APP_VERSION, "error": "Login requerido."}), 401
+    payload = request.get_json(silent=True) or dict(request.form or {})
+    clear_history = str(payload.get("clear_history") or "1").lower() in {"1", "true", "yes", "on"}
+    result = _delete_user_intelligence_profile(user.get("id"), clear_history=clear_history)
+    return jsonify({"version": APP_VERSION, **result})
+
 @app.route("/telegram")
 def telegram_page():
     user = current_session_user()
@@ -25934,7 +26266,3 @@ V897_ALIAS_REGISTRATION = register_v897_safe_aliases()
 if __name__ == "__main__":
     seed_core()
     app.run(host="0.0.0.0", port=int(os.getenv("PORT", "5000")), debug=os.getenv("FLASK_DEBUG") == "1")
-
-
-
-

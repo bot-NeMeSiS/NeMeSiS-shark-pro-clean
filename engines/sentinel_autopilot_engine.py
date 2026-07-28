@@ -1441,6 +1441,265 @@ def build_competition_center_experience_contract_snapshot(
         "production_certified": False,
     }
 
+def build_shark_intelligence_platform_contract_snapshot(
+    root: str | Path | None = None,
+    app_version: str = "",
+) -> dict[str, Any]:
+    """Inspect the SHARK Intelligence Platform contract without writes."""
+    project_root = Path(root) if root is not None else Path(__file__).resolve().parents[1]
+
+    def _read(relative_path: str) -> str:
+        try:
+            return (project_root / relative_path).read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            return ""
+
+    application = _read("app.py")
+    engine = _read("engines/shark_intelligence_platform_engine.py")
+    template = _read("templates/shark_intelligence_center.html")
+    css = _read("static/v933-product.css")
+    platform_contracts = _read("engines/sports_platform_contracts.py")
+
+    engine_contract = all(marker in engine for marker in (
+        'SHARK_INTELLIGENCE_PLATFORM_CONTRACT = "SHARK-INTELLIGENCE-PLATFORM-V1"',
+        "build_match_intelligence_consumer_view(",
+        "SPORTS_DOMAIN_MODEL_CONTRACT",
+        "SPORTS_KNOWLEDGE_LAYER_CONTRACT",
+        "SPORTS_GRAPH_FOUNDATION_CONTRACT",
+        '"database_writes": 0',
+        '"external_calls": 0',
+        '"telegram_sends": 0',
+        '"stripe_calls": 0',
+        '"generative_ai_calls": 0',
+        '"no_fake_data": True',
+        '"no_predictions": True',
+    ))
+    pure_engine_contract = not re.search(
+        r"^\s*(?:import|from)\s+(?:sqlite3|requests|urllib\.request|flask|stripe)\b|\b(?:commit|execute|executemany)\s*\(",
+        engine,
+        flags=re.IGNORECASE | re.MULTILINE,
+    )
+    app_contract = all(marker in application for marker in (
+        "from engines.shark_intelligence_platform_engine import build_shark_intelligence_platform_snapshot",
+        "def build_shark_intelligence_page_context(",
+        "build_shark_intelligence_platform_snapshot(",
+        '@app.route("/shark-intelligence")',
+        '@app.route("/shark-intelligence-center")',
+        '@app.route("/api/shark/intelligence")',
+    ))
+    template_contract = all(marker in template for marker in (
+        'data-shark-intelligence-contract=',
+        'data-sports-domain-model=',
+        'data-sports-knowledge-contract=',
+        'data-sports-graph-contract=',
+        'data-match-intelligence-contract=',
+        'data-shark-intelligence-section="claims"',
+        'data-shark-intelligence-section="modules"',
+        'data-shark-intelligence-section="sports-graph"',
+        'data-shark-intelligence-section="transparency"',
+        'No hay conversacion IA',
+        'No disponible',
+    ))
+    visual_contract = all(marker in css for marker in (
+        "SHARK INTELLIGENCE PLATFORM V1",
+        ".shark-intelligence-v1",
+        ".shark-intelligence-hero",
+        ".shark-intelligence-layout",
+        ".shark-intelligence-claim-grid",
+        ".shark-intelligence-module-list",
+        "@media (max-width: 980px)",
+        "@media (max-width: 640px)",
+    ))
+    registry_contract = all(marker in platform_contracts for marker in (
+        '"key": "shark_intelligence_platform"',
+        '"contract": "SHARK-INTELLIGENCE-PLATFORM-V1"',
+        '"key": "sports_graph"',
+        '"contract": "SPORTS-GRAPH-FOUNDATION-RELATIONSHIPS-V1"',
+    ))
+
+    violations: list[str] = []
+    if not engine_contract:
+        violations.append("shark_intelligence_engine_not_using_sports_core_contracts")
+    if not pure_engine_contract:
+        violations.append("shark_intelligence_engine_has_side_effect_imports")
+    if not app_contract:
+        violations.append("shark_intelligence_route_or_api_not_integrated")
+    if not template_contract:
+        violations.append("shark_intelligence_template_contract_missing")
+    if not visual_contract:
+        violations.append("shark_intelligence_responsive_visual_contract_missing")
+    if not registry_contract:
+        violations.append("sports_platform_registry_not_updated_for_shark_intelligence")
+
+    passed = not violations
+    return {
+        "issue_id": "SHARK-INTELLIGENCE-PLATFORM-CONTRACT",
+        "version": app_version,
+        "component": "shark_intelligence_platform",
+        "affected_routes": ["/shark-intelligence", "/shark-intelligence-center", "/api/shark/intelligence"],
+        "cause": "SHARK Intelligence must remain a Sports Core consumer, not a chatbot or an isolated analysis page.",
+        "solution": "Use Sports Core, Sports Knowledge, Sports Graph and Match Intelligence with traceable claims and no generative actions.",
+        "evidence": {
+            "engine_contract": engine_contract,
+            "pure_engine_contract": pure_engine_contract,
+            "app_contract": app_contract,
+            "template_contract": template_contract,
+            "visual_contract": visual_contract,
+            "registry_contract": registry_contract,
+            "violations": violations,
+        },
+        "preventive_rule": "SHARK Intelligence cannot invent facts, predict without evidence or recalculate Sports Core context; every claim must expose source, evidence, freshness, quality and limitations.",
+        "validation_result": "PASS" if passed else "REGRESSION",
+        "certification_state": "VERIFIED" if passed else "REQUIRES_REVIEW",
+        "status": "RESOLVED_LOCALLY" if passed else "OPEN",
+        "evaluated_at_madrid": _now(),
+        "autofix_allowed": False,
+        "approval_required": True,
+        "production_certified": False,
+    }
+def build_user_intelligence_platform_contract_snapshot(
+    root: str | Path | None = None,
+    app_version: str = "",
+) -> dict[str, Any]:
+    """Inspect the User Intelligence Platform contract without writes."""
+    project_root = Path(root) if root is not None else Path(__file__).resolve().parents[1]
+
+    def _read(relative_path: str) -> str:
+        try:
+            return (project_root / relative_path).read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            return ""
+
+    application = _read("app.py")
+    engine = _read("engines/user_intelligence_platform_engine.py")
+    template = _read("templates/user_intelligence_center.html")
+    css = _read("static/v933-product.css")
+    platform_contracts = _read("engines/sports_platform_contracts.py")
+
+    engine_contract = all(marker in engine for marker in (
+        'USER_INTELLIGENCE_PLATFORM_CONTRACT = "USER-INTELLIGENCE-PLATFORM-V1"',
+        'USER_INTELLIGENCE_PRIVACY_CONTRACT = "USER-PRIVACY-CONTROLS-V1"',
+        "sanitize_user_intelligence_preferences(",
+        "build_user_privacy_state(",
+        "build_user_intelligence_platform_snapshot(",
+        "SPORTS_DOMAIN_MODEL_CONTRACT",
+        "SPORTS_KNOWLEDGE_LAYER_CONTRACT",
+        "SPORTS_GRAPH_FOUNDATION_CONTRACT",
+        "MATCH_INTELLIGENCE_CONTRACT",
+        "SHARK_INTELLIGENCE_PLATFORM_CONTRACT",
+        '"database_writes_by_get": 0',
+        '"external_calls": 0',
+        '"telegram_sends": 0',
+        '"stripe_calls": 0',
+        '"generative_ai_calls": 0',
+        '"third_party_exports": 0',
+        '"fake_data_created": 0',
+        '"no_generative_ai": True',
+        '"user_controlled": True',
+    ))
+    pure_engine_contract = not re.search(
+        r"^\s*(?:import|from)\s+(?:sqlite3|requests|urllib\.request|flask|stripe|openai)\b|\b(?:commit|execute|executemany)\s*\(",
+        engine,
+        flags=re.IGNORECASE | re.MULTILINE,
+    )
+    app_contract = all(marker in application for marker in (
+        "from engines.user_intelligence_platform_engine import (",
+        "def build_user_intelligence_page_context(",
+        "_load_user_intelligence_preferences(",
+        "_save_user_intelligence_preferences(",
+        "_delete_user_intelligence_profile(",
+        "build_user_intelligence_platform_snapshot(",
+        '@app.route("/user-intelligence")',
+        '@app.route("/api/user-intelligence/summary")',
+        '@app.route("/api/user-intelligence/export")',
+        '@app.route("/api/user-intelligence/preferences", methods=["POST"])',
+        '@app.route("/api/user-intelligence/profile", methods=["DELETE", "POST"])',
+    ))
+    template_contract = all(marker in template for marker in (
+        'data-user-intelligence-contract=',
+        'data-user-privacy-contract=',
+        'data-sports-domain-model=',
+        'data-sports-knowledge-contract=',
+        'data-sports-graph-contract=',
+        'data-shark-intelligence-contract=',
+        'data-user-intelligence-section="privacy"',
+        'data-user-intelligence-section="profile"',
+        'data-user-intelligence-section="future-personalization"',
+        'Activar',
+        'Desactivar',
+        'Resetear preferencias',
+        'Borrar perfil',
+        'data-user-privacy-control="enable"',
+        'data-user-privacy-control="disable"',
+        'data-user-privacy-control="reset"',
+        'data-user-privacy-control="delete"',
+        'No cambia la Home automaticamente',
+    ))
+    visual_contract = all(marker in css for marker in (
+        "USER INTELLIGENCE PLATFORM V1",
+        ".user-intelligence-v1",
+        ".user-intelligence-hero",
+        ".user-intelligence-layout",
+        ".user-intelligence-signal-grid",
+        ".user-intelligence-form-grid",
+        "@media (max-width: 980px)",
+        "@media (max-width: 640px)",
+    ))
+    registry_contract = all(marker in platform_contracts for marker in (
+        '"key": "user_intelligence_platform"',
+        '"contract": "USER-INTELLIGENCE-PLATFORM-V1"',
+        '"key": "shark_intelligence_platform"',
+        '"contract": "SHARK-INTELLIGENCE-PLATFORM-V1"',
+    ))
+
+    violations: list[str] = []
+    if not engine_contract:
+        violations.append("user_intelligence_engine_contract_missing")
+    if not pure_engine_contract:
+        violations.append("user_intelligence_engine_has_side_effect_imports")
+    if not app_contract:
+        violations.append("user_intelligence_routes_or_privacy_actions_missing")
+    if not template_contract:
+        violations.append("user_intelligence_template_privacy_contract_missing")
+    if not visual_contract:
+        violations.append("user_intelligence_responsive_visual_contract_missing")
+    if not registry_contract:
+        violations.append("sports_platform_registry_not_updated_for_user_intelligence")
+
+    passed = not violations
+    return {
+        "issue_id": "USER-INTELLIGENCE-PLATFORM-CONTRACT",
+        "version": app_version,
+        "component": "user_intelligence_platform",
+        "affected_routes": [
+            "/user-intelligence",
+            "/inteligencia-usuario",
+            "/api/user-intelligence/summary",
+            "/api/user-intelligence/export",
+            "/api/user-intelligence/preferences",
+            "/api/user-intelligence/profile",
+        ],
+        "cause": "User Intelligence must remain transparent, consent-based and first-party only.",
+        "solution": "Consume existing sports contracts and user-owned activity/favorites, expose privacy controls, and avoid generative AI, third-party exports or automatic product changes.",
+        "evidence": {
+            "engine_contract": engine_contract,
+            "pure_engine_contract": pure_engine_contract,
+            "app_contract": app_contract,
+            "template_contract": template_contract,
+            "visual_contract": visual_contract,
+            "registry_contract": registry_contract,
+            "violations": violations,
+        },
+        "preventive_rule": "User Intelligence cannot infer unsupported preferences, export data to third parties, use generative AI, personalize automatically without consent, or hide disable/reset/delete/export controls.",
+        "validation_result": "PASS" if passed else "REGRESSION",
+        "certification_state": "VERIFIED" if passed else "REQUIRES_REVIEW",
+        "status": "RESOLVED_LOCALLY" if passed else "OPEN",
+        "evaluated_at_madrid": _now(),
+        "autofix_allowed": False,
+        "approval_required": True,
+        "production_certified": False,
+    }
+
 def detect_product_quality_contract_issues(
     root: str | Path | None = None,
     app_version: str = "",
@@ -1744,8 +2003,99 @@ def detect_product_quality_contract_issues(
         })
         issue["codex_prompt"] = issue["codex_prompt_suggestion"]
         issues.append(classify_autopilot_issue(issue))
+    shark_intelligence_root = Path(root) if root is not None else Path(__file__).resolve().parents[1]
+    shark_intelligence_present = (
+        (shark_intelligence_root / "engines/shark_intelligence_platform_engine.py").exists()
+        or (shark_intelligence_root / "templates/shark_intelligence_center.html").exists()
+    )
+    shark_intelligence_snapshot = (
+        build_shark_intelligence_platform_contract_snapshot(root, app_version)
+        if shark_intelligence_present
+        else None
+    )
+    if shark_intelligence_snapshot and shark_intelligence_snapshot["validation_result"] != "PASS":
+        issue = _new_issue(
+            "SHARK Intelligence pierde su contrato Sports Core",
+            "sports_data_contract",
+            "medium",
+            "/shark-intelligence",
+            "SHARK Intelligence; " + ",".join(shark_intelligence_snapshot["evidence"]["violations"]),
+            app_version,
+        )
+        issue.update({
+            "id": "SHARK-INTELLIGENCE-PLATFORM-CONTRACT",
+            "priority": "P2",
+            "profile": "CLIENT",
+            "component": "shark_intelligence_platform",
+            "description": "SHARK Intelligence deja de consumir contratos canonicos o pierde trazabilidad por afirmacion.",
+            "expected_behavior": "Centro de inteligencia deportiva basado en Sports Core, Sports Knowledge, Sports Graph y Match Intelligence, sin IA generativa ni datos inventados.",
+            "actual_behavior": "Una o mas garantias del contrato SHARK Intelligence no se pueden demostrar.",
+            "suggested_fix": "Restaurar solo el contrato incumplido y repetir Browser QA desktop/tablet/mobile.",
+            "safe_auto_fix_possible": False,
+            "requires_admin_approval": True,
+            "requires_approval": True,
+            "likely_files": [
+                "engines/shark_intelligence_platform_engine.py",
+                "app.py",
+                "templates/shark_intelligence_center.html",
+                "static/v933-product.css",
+                "engines/sports_platform_contracts.py",
+            ],
+            "codex_prompt_suggestion": (
+                "Revisar SHARK Intelligence Platform con la evidencia indicada. No autoaplicar Python, Jinja, CSS, datos ni rutas; "
+                "preservar Sports Core, Sports Knowledge, Sports Graph y Match Intelligence sin IA generativa."
+            ),
+            "product_quality_contract": shark_intelligence_snapshot,
+        })
+        issue["codex_prompt"] = issue["codex_prompt_suggestion"]
+        issues.append(classify_autopilot_issue(issue))
+    user_intelligence_root = Path(root) if root is not None else Path(__file__).resolve().parents[1]
+    user_intelligence_present = (
+        (user_intelligence_root / "engines/user_intelligence_platform_engine.py").exists()
+        or (user_intelligence_root / "templates/user_intelligence_center.html").exists()
+    )
+    user_intelligence_snapshot = (
+        build_user_intelligence_platform_contract_snapshot(root, app_version)
+        if user_intelligence_present
+        else None
+    )
+    if user_intelligence_snapshot and user_intelligence_snapshot["validation_result"] != "PASS":
+        issue = _new_issue(
+            "User Intelligence pierde controles de privacidad",
+            "privacy_contract",
+            "medium",
+            "/user-intelligence",
+            "User Intelligence; " + ",".join(user_intelligence_snapshot["evidence"]["violations"]),
+            app_version,
+        )
+        issue.update({
+            "id": "USER-INTELLIGENCE-PLATFORM-CONTRACT",
+            "priority": "P2",
+            "profile": "CLIENT",
+            "component": "user_intelligence_platform",
+            "description": "User Intelligence deja de ser transparente, consent-based o first-party only.",
+            "expected_behavior": "Perfil deportivo interno con consentimiento, exportacion, reset, borrado, desactivacion y cero terceros/IA generativa.",
+            "actual_behavior": "Una o mas garantias del contrato User Intelligence no se pueden demostrar.",
+            "suggested_fix": "Restaurar solo el contrato incumplido y repetir Privacy Guard y Browser QA desktop/tablet/mobile.",
+            "safe_auto_fix_possible": False,
+            "requires_admin_approval": True,
+            "requires_approval": True,
+            "likely_files": [
+                "engines/user_intelligence_platform_engine.py",
+                "app.py",
+                "templates/user_intelligence_center.html",
+                "static/v933-product.css",
+                "engines/sports_platform_contracts.py",
+            ],
+            "codex_prompt_suggestion": (
+                "Revisar User Intelligence Platform con la evidencia indicada. No autoaplicar Python, Jinja, CSS, datos ni rutas; "
+                "preservar consentimiento, exportacion, reset, borrado, desactivacion y cero terceros/IA generativa."
+            ),
+            "product_quality_contract": user_intelligence_snapshot,
+        })
+        issue["codex_prompt"] = issue["codex_prompt_suggestion"]
+        issues.append(classify_autopilot_issue(issue))
     return issues
-
 
 def _issues_from_sentinel(sentinel_result: dict[str, Any] | None, app_version: str) -> list[dict[str, Any]]:
     if not sentinel_result:
@@ -1895,7 +2245,9 @@ def run_autopilot_scan(
         "client_copy_audience_contract": build_client_copy_audience_contract_snapshot(project_root, app_version),
         "madrid_timestamp_presentation_contract": build_madrid_timestamp_presentation_contract_snapshot(project_root, app_version),
         "team_center_experience_contract": build_team_center_experience_contract_snapshot(project_root, app_version),
-        "competition_center_experience_contract": build_competition_center_experience_contract_snapshot(project_root, app_version),
+                "competition_center_experience_contract": build_competition_center_experience_contract_snapshot(project_root, app_version),
+        "shark_intelligence_platform_contract": build_shark_intelligence_platform_contract_snapshot(project_root, app_version),
+        "user_intelligence_platform_contract": build_user_intelligence_platform_contract_snapshot(project_root, app_version),
     }
     if save_memory:
         result["memory"] = save_autopilot_memory(result, root=memory_root)

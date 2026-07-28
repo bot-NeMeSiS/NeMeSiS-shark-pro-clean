@@ -25,3 +25,20 @@ Contrato: COMPETITION-CENTER-LEAGUE-INTELLIGENCE-PLATFORM-V1.
 Impacto: la competicion ya dispone de una experiencia premium que consume Sports Core, Sports Knowledge Layer y Sports Graph. Muestra cabecera, clasificacion real cuando existe, calendario, equipos enlazados, contexto SHARK basado en evidencia, transparencia, frescura y limitaciones sin crear datos ficticios.
 
 Siguiente modulo visible: Player Center. No comenzar antes de aceptar el cierre local del Competition Center.
+
+## SHARK Intelligence Platform
+
+Estado local: integrado y validado con Browser QA desktop/tablet/mobile en DB temporal, sin deploy.
+
+Contrato: SHARK-INTELLIGENCE-PLATFORM-V1.
+
+Impacto: SHARK deja de ser solo una entrada aislada y pasa a funcionar como centro de inteligencia deportiva trazable. Consume Sports Core, Sports Knowledge Layer, Sports Graph Foundation, Match Intelligence, Team Center y Competition Center. Cada afirmacion expone fuente, evidencia, frescura, calidad y limitaciones. No hay conversacion IA generativa en esta fase, no se inventan datos y no se generan predicciones.
+
+Siguiente modulo visible: Player Center. No comenzar antes de cerrar localmente SHARK Intelligence Platform.
+## User Intelligence Platform — PASS local pendiente de cierre Git
+
+- Estado local: implementado sobre Sports Core, Sports Knowledge, Sports Graph, Match Intelligence y SHARK Intelligence.
+- Contrato: `USER-INTELLIGENCE-PLATFORM-V1`.
+- Privacidad: `USER-PRIVACY-CONTROLS-V1` con consulta, exportacion, reset, borrado y desactivacion.
+- Alcance: prepara personalizacion futura; no cambia Home automaticamente, no usa IA generativa, no envia datos a terceros.
+- Produccion: no certificada; no hubo push ni deploy.

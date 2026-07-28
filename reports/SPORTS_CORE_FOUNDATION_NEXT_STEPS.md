@@ -12,11 +12,11 @@
 - Sports Knowledge Layer: PASS local.
 - Sports Graph Foundation: PASS local.
 - Team Center Premium Experience: PASS local.
-- Competition Center Premium League Intelligence: PASS local.
+- Competition Center Premium League Intelligence: PASS local.`r`n- SHARK Intelligence Platform: PASS local; centro trazable sin IA generativa, sin Telegram, sin Stripe y sin llamadas externas.
 
 ## Next Sports Core Sprint
 
-Implement Player Center only after Competition Center closure is accepted. It must consume Player Entity and Sports Graph relationships without creating a parallel model.
+Implement Player Center only after SHARK Intelligence Platform closure is accepted. It must consume Player Entity and Sports Graph relationships without creating a parallel model.
 
 ## Team Center Foundation
 
@@ -40,3 +40,12 @@ Move provider adapters toward canonical output gradually while retaining legacy 
 - Any Telegram message generated from the new contract.
 - Any provider call added to page render.
 - Any removal of legacy adapters.
+
+## SHARK Intelligence Foundation
+
+Implemented locally as SHARK Intelligence Platform. It consumes Sports Core, Sports Knowledge, Sports Graph, Match Intelligence, Team Center and Competition Center. It must not recalculate context, call providers, use generative AI, send Telegram, mutate picks or invent facts.
+## User Intelligence Platform
+
+Estado: PASS local pendiente de cierre Git.
+
+La plataforma de inteligencia de usuario queda preparada para entender uso propio de NeMeSiS con consentimiento y control del usuario. El siguiente paso operativo es cierre Git controlado del sprint actual antes de iniciar Player Center u otro modulo visible.
