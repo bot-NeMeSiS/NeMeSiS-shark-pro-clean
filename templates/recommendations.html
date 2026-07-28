@@ -4,7 +4,7 @@
   <div class="kicker">Recomendaciones SHARK</div>
   <h1>Oportunidades explicadas por membresía</h1>
   <p class="lead">FREE recibe una vista limitada. PRO ve confianza, riesgo y value básico. ELITE desbloquea value avanzado, Auto Picks y mejores oportunidades.</p>
-  <div class="actions"><a class="btn primary" href="/picks">Picks publicados</a><a class="btn" href="/membresías">{{ data.membership.next_cta }}</a></div>
+  <div class="actions"><a class="btn primary" href="/picks">Picks publicados</a><a class="btn" href="/memberships">{{ data.membership.next_cta }}</a></div>
 </section>
 
 <section class="band compact-band">
@@ -37,7 +37,7 @@
 
 {% if data.locked_recommendations %}
 <section class="band compact-band">
-  <div class="section-head"><h2>Premium bloqueado</h2><a class="pill" href="/membresías">Ver planes</a></div>
+  <div class="section-head"><h2>Premium bloqueado</h2><a class="pill" href="/memberships">Ver planes</a></div>
   <div class="grid dense-grid">
   {% for item in data.locked_recommendations %}
     <article class="card locked-feature"><span class="badge {{ item.badge.class }}">Disponible en {{ item.required }}</span><h3>{{ item.label }}</h3><p class="small">{{ item.message }}</p></article>

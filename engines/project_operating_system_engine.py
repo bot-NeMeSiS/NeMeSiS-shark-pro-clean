@@ -619,8 +619,14 @@ def build_product_roadmap(project_root: str | Path) -> dict[str, Any]:
         },
         {
             "name": "Player Center",
-            "state": "PENDING",
-            "evidence": "Pendiente; debe reutilizar Sports Graph y Sports Knowledge sin modelo paralelo.",
+            "state": "COMPLETED"
+            if complete(
+                "engines/player_center_engine.py",
+                "templates/player_detail.html",
+                "tests/test_player_center_premium_experience.py",
+            )
+            else "PENDING",
+            "evidence": "Player Center Premium Sports Identity consume Sports Core, Sports Knowledge, Sports Graph, SHARK Intelligence y User Intelligence sin modelo paralelo.",
         },        {
             "name": "Beta privada",
             "state": "BLOCKED_BY_CERTIFICATION",

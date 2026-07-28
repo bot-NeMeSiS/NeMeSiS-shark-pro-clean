@@ -21,6 +21,7 @@ from engines.sports_domain_model_engine import (
 SPORTS_KNOWLEDGE_LAYER_CONTRACT = "SPORTS-KNOWLEDGE-LAYER-V1"
 TEAM_KNOWLEDGE_CONTRACT = "SPORTS-KNOWLEDGE-TEAM-V1"
 COMPETITION_KNOWLEDGE_CONTRACT = "SPORTS-KNOWLEDGE-COMPETITION-V1"
+PLAYER_KNOWLEDGE_CONTRACT = "SPORTS-KNOWLEDGE-PLAYER-V1"
 MATCH_KNOWLEDGE_CONTRACT = "SPORTS-KNOWLEDGE-MATCH-V1"
 SEASON_KNOWLEDGE_CONTRACT = "SPORTS-KNOWLEDGE-SEASON-V1"
 RIVALRY_KNOWLEDGE_CONTRACT = "SPORTS-KNOWLEDGE-RIVALRY-V1"
@@ -241,6 +242,111 @@ def build_team_knowledge(
     )
 
 
+def build_player_knowledge(
+    player_entity: Mapping[str, Any] | None,
+    *,
+    match_entity: Mapping[str, Any] | None = None,
+    timeline_events: Iterable[Mapping[str, Any]] | None = None,
+    picks: Iterable[Mapping[str, Any]] | None = None,
+    lineups: Iterable[Mapping[str, Any]] | None = None,
+    injuries: Iterable[Mapping[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """Build read-only knowledge for one player from canonical inputs."""
+
+    player = _mapping(player_entity)
+    match = _mapping(match_entity)
+    events = _items(timeline_events)
+    lineup_items = _items(lineups)
+    injury_items = _items(injuries)
+    canonical_id = player.get("canonical_player_id")
+    player_name = _text(player.get("display_name") or player.get("official_name"), 160)
+    player_events = [
+        item
+        for item in events
+        if _text(item.get("player_id"), 180) == _text(canonical_id, 180)
+        or (player_name and _text(item.get("player_name"), 180) == player_name)
+        or _text(item.get("related_player_id"), 180) == _text(canonical_id, 180)
+        or (player_name and _text(item.get("related_player_name"), 180) == player_name)
+    ]
+    related_picks = [
+        item
+        for item in _items(picks)
+        if player_name and player_name.casefold() in _text(item.get("selection") or item.get("selection_display") or item.get("reason"), 240).casefold()
+    ]
+    evidence = []
+    if canonical_id or player_name:
+        evidence.append(
+            _evidence_item(
+                f"player:{canonical_id or player_name}",
+                kind="canonical_player_identity",
+                source=player.get("source") or match.get("source"),
+                state=player.get("data_quality") or "PARTIALLY_VERIFIED",
+                value={
+                    "name": player_name or None,
+                    "team_id": player.get("team_id"),
+                    "position": player.get("position"),
+                    "shirt_number": player.get("shirt_number"),
+                },
+                limitations=player.get("limitations") or (),
+            )
+        )
+    if player_events:
+        evidence.append(
+            _evidence_item(
+                f"player-events:{canonical_id or player_name}",
+                kind="canonical_timeline_events_for_player",
+                source=match.get("source") or player.get("source"),
+                state="VERIFIED",
+                value={"count": len(player_events)},
+            )
+        )
+    if lineup_items:
+        evidence.append(
+            _evidence_item(
+                f"player-lineups:{canonical_id or player_name}",
+                kind="lineup_participation_records",
+                source=lineup_items[0].get("source") or player.get("source"),
+                state="PARTIALLY_VERIFIED",
+                value={"count": len(lineup_items)},
+            )
+        )
+    if injury_items:
+        evidence.append(
+            _evidence_item(
+                f"player-injuries:{canonical_id or player_name}",
+                kind="injury_records",
+                source=injury_items[0].get("source") or player.get("source"),
+                state="PARTIALLY_VERIFIED",
+                value={"count": len(injury_items)},
+            )
+        )
+    limitations = list(player.get("limitations") or [])
+    if not player_events:
+        limitations.append("No hay eventos especificos del jugador confirmados en la cronologia disponible.")
+    if not lineup_items:
+        limitations.append("No hay registros de alineacion confirmados para este jugador.")
+    if not related_picks:
+        limitations.append("No hay conocimiento de picks relacionado disponible para este jugador.")
+    return _contract(
+        contract=PLAYER_KNOWLEDGE_CONTRACT,
+        subject_type="player",
+        subject_id=canonical_id,
+        source=player.get("source") or match.get("source"),
+        evidence=evidence,
+        freshness=_freshness(match),
+        limitations=limitations,
+        quality_state=player.get("data_quality") or ("PARTIALLY_VERIFIED" if evidence else "INSUFFICIENT_DATA"),
+        facts={
+            "display_name": player_name or None,
+            "team_id": player.get("team_id"),
+            "position": player.get("position"),
+            "shirt_number": player.get("shirt_number"),
+            "timeline_event_count": len(player_events),
+            "lineup_record_count": len(lineup_items),
+            "injury_record_count": len(injury_items),
+            "related_pick_count": len(related_picks),
+        },
+    )
 def build_competition_knowledge(
     competition_entity: Mapping[str, Any] | None,
     *,
@@ -675,6 +781,7 @@ def sports_knowledge_layer_snapshot() -> dict[str, Any]:
         "knowledge_contracts": [
             TEAM_KNOWLEDGE_CONTRACT,
             COMPETITION_KNOWLEDGE_CONTRACT,
+            PLAYER_KNOWLEDGE_CONTRACT,
             MATCH_KNOWLEDGE_CONTRACT,
             SEASON_KNOWLEDGE_CONTRACT,
             RIVALRY_KNOWLEDGE_CONTRACT,

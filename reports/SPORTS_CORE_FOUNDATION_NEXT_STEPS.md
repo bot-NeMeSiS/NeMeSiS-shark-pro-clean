@@ -12,11 +12,14 @@
 - Sports Knowledge Layer: PASS local.
 - Sports Graph Foundation: PASS local.
 - Team Center Premium Experience: PASS local.
-- Competition Center Premium League Intelligence: PASS local.`r`n- SHARK Intelligence Platform: PASS local; centro trazable sin IA generativa, sin Telegram, sin Stripe y sin llamadas externas.
+- Competition Center Premium League Intelligence: PASS local.
+- SHARK Intelligence Platform: PASS local; centro trazable sin IA generativa, sin Telegram, sin Stripe y sin llamadas externas.
+- User Intelligence Platform: PASS local; privacidad USER-PRIVACY-CONTROLS-V1 y personalizacion preparada sin aplicar Home automaticamente.
+- Player Center Premium Sports Identity: PASS local con QA completa; consume Sports Core, Sports Knowledge, Sports Graph, SHARK Intelligence y User Intelligence.
 
 ## Next Sports Core Sprint
 
-Implement Player Center only after SHARK Intelligence Platform closure is accepted. It must consume Player Entity and Sports Graph relationships without creating a parallel model.
+Cerrar Player Center con revision Git controlada antes de iniciar Telegram Intelligence, Sports Intelligence Gateway u otro modulo visible.
 
 ## Team Center Foundation
 
@@ -28,7 +31,7 @@ Implemented locally as Competition Center Premium League Intelligence. It consum
 
 ## Player Center Foundation
 
-Use Player Entity as partial-first. Missing photo, injury or position data must remain unavailable.
+Implementado localmente como centro de identidad deportiva. Usa Player Entity como partial-first; fotografia, lesion, posicion o dorsal ausentes permanecen como "No disponible" si ninguna fuente real los confirma.
 
 ## Future Migration
 
@@ -48,4 +51,4 @@ Implemented locally as SHARK Intelligence Platform. It consumes Sports Core, Spo
 
 Estado: PASS local pendiente de cierre Git.
 
-La plataforma de inteligencia de usuario queda preparada para entender uso propio de NeMeSiS con consentimiento y control del usuario. El siguiente paso operativo es cierre Git controlado del sprint actual antes de iniciar Player Center u otro modulo visible.
+La plataforma de inteligencia de usuario queda preparada para entender uso propio de NeMeSiS con consentimiento y control del usuario. Player Center solo prepara la personalizacion futura; no modifica automaticamente la Home.

@@ -150,7 +150,7 @@ SAFE_STATE_TOKENS = [
     'Sin picks activos',
     'Cuota pendiente',
     'Selección pendiente',
-    'Pick en revisión',
+    'Pick en revisiÃ³n',
     'Sin pick real publicado',
     'Proveedor sin datos ahora mismo',
     'No configurado',
@@ -161,12 +161,12 @@ SAFE_STATE_TOKENS = [
     'Fallback visual activo',
     'Resultado pendiente',
     'Pick pendiente',
-    'Checkout pendiente de configuración',
+    'Checkout pendiente de configuraciÃ³n',
     'Stripe no configurado',
-    'SHARK IA avanzada pendiente de configuración',
+    'SHARK IA avanzada pendiente de configuraciÃ³n',
 ]
 
-MOJIBAKE_RE = re.compile(r"(Ã|Â|�|ï¿½)")
+MOJIBAKE_RE = re.compile(r"(Ãƒ|Ã‚|ï¿½|Ã¯Â¿Â½)")
 TECHNICAL_RE = re.compile(r"\b(None|null|undefined|Traceback|sqlite3\.|werkzeug\.)\b", re.I)
 BAD_HREF_RE = re.compile(r"href=[\"'](?:#|javascript:void\(0\)|javascript:;|)[\"']", re.I)
 
@@ -582,11 +582,11 @@ def build_client_copy_audience_contract_snapshot(
         client_fallback in polling_js
         and "var message = technical" in polling_js
         and "DB/caché:" in polling_js
-        and "La vista se mantiene operativa con DB y caché." not in polling_js
+        and "La vista se mantiene operativa con DB y cachÃ©." not in polling_js
     )
     live_contract = (
         "Los últimos datos confirmados siguen accesibles" in live_template
-        and "DB y caché durante render" not in live_template
+        and "DB y cachÃ© durante render" not in live_template
     )
     admin_contract = all(
         re.search(r"realtime_state_bar\([^\n]*true\)", _read(path))
@@ -1441,6 +1441,154 @@ def build_competition_center_experience_contract_snapshot(
         "production_certified": False,
     }
 
+def build_player_center_experience_contract_snapshot(
+    root: str | Path | None = None,
+    app_version: str = "",
+) -> dict[str, Any]:
+    """Inspect the Player Center premium experience contract without writes."""
+    project_root = Path(root) if root is not None else Path(__file__).resolve().parents[1]
+
+    def _read(relative_path: str) -> str:
+        try:
+            return (project_root / relative_path).read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            return ""
+
+    application = _read("app.py")
+    engine = _read("engines/player_center_engine.py")
+    graph_engine = _read("engines/sports_graph_foundation_engine.py")
+    knowledge_engine = _read("engines/sports_knowledge_layer_engine.py")
+    template = _read("templates/player_detail.html")
+    css = _read("static/v933-product.css")
+    platform_contracts = _read("engines/sports_platform_contracts.py")
+
+    engine_contract = all(marker in engine for marker in (
+        'PLAYER_CENTER_CONTRACT = "PLAYER-CENTER-PREMIUM-SPORTS-IDENTITY-PLATFORM-V1"',
+        "build_unified_domain_snapshot(",
+        "normalize_player_entity(",
+        "build_player_knowledge(",
+        "build_sports_knowledge_snapshot(",
+        "build_sports_graph_relationships(",
+        "SHARK_INTELLIGENCE_PLATFORM_CONTRACT",
+        "USER_INTELLIGENCE_PLATFORM_CONTRACT",
+        '"database_writes": 0',
+        '"external_calls": 0',
+        '"telegram_sends": 0',
+        '"stripe_calls": 0',
+        '"generative_ai_calls": 0',
+        '"no_fake_data": True',
+    ))
+    graph_contract = all(marker in graph_engine for marker in (
+        'SPORTS_GRAPH_FOUNDATION_CONTRACT = "SPORTS-GRAPH-FOUNDATION-RELATIONSHIPS-V1"',
+        "player_has_match",
+        "match_has_player",
+        "player_appears_in_event",
+        "event_has_player",
+        "player_linked_to_team",
+        "team_has_player",
+        "player_competes_in_competition",
+        "shark_context_mentions_player",
+        "user_intelligence_observes_player",
+        '"database_writes": 0',
+        '"external_calls": 0',
+    ))
+    knowledge_contract = all(marker in knowledge_engine for marker in (
+        'PLAYER_KNOWLEDGE_CONTRACT = "SPORTS-KNOWLEDGE-PLAYER-V1"',
+        "def build_player_knowledge(",
+        "canonical_player_identity",
+        "canonical_timeline_events_for_player",
+    ))
+    pure_engine_contract = not re.search(
+        r"^\s*(?:import|from)\s+(?:sqlite3|requests|urllib\.request|flask|stripe|openai)\b|\b(?:commit|execute|executemany)\s*\(",
+        engine + graph_engine,
+        flags=re.IGNORECASE | re.MULTILINE,
+    )
+    app_contract = all(marker in application for marker in (
+        "from engines.player_center_engine import build_player_center_context",
+        'detail["player_center"] = build_player_center_context(',
+        '@app.route("/player/<player_id>")',
+        '@app.route("/jugador/<player_id>")',
+        '@app.route("/api/players/<player_id>/detail")',
+    ))
+    template_contract = all(marker in template for marker in (
+        'data-player-center-contract=',
+        'data-sports-domain-model=',
+        'data-sports-knowledge-contract=',
+        'data-player-knowledge-contract=',
+        'data-sports-graph-contract=',
+        'data-shark-intelligence-contract=',
+        'data-user-intelligence-contract=',
+        'data-player-center-section="header"',
+        'data-player-center-section="participation"',
+        'data-player-center-section="timeline"',
+        'data-player-center-section="data-quality"',
+        'data-player-center-section="sports-graph"',
+        'match_card(match, true, true)',
+        'No disponible',
+        'Ninguna fuente confirma',
+    ))
+    visual_contract = all(marker in css for marker in (
+        "PLAYER CENTER PREMIUM SPORTS IDENTITY PLATFORM V1",
+        ".player-center-v1",
+        ".player-center-hero",
+        ".player-center-layout",
+        ".player-center-match-grid",
+        "@media (max-width: 980px)",
+        "@media (max-width: 640px)",
+    ))
+    registry_contract = all(marker in platform_contracts for marker in (
+        '"key": "player_center"',
+        '"contract": "PLAYER-CENTER-PREMIUM-SPORTS-IDENTITY-PLATFORM-V1"',
+        '"key": "sports_graph"',
+        '"contract": "SPORTS-GRAPH-FOUNDATION-RELATIONSHIPS-V1"',
+    ))
+
+    violations: list[str] = []
+    if not engine_contract:
+        violations.append("player_center_engine_not_using_sports_core_contracts")
+    if not graph_contract:
+        violations.append("sports_graph_foundation_player_relationships_missing")
+    if not knowledge_contract:
+        violations.append("player_knowledge_contract_missing")
+    if not pure_engine_contract:
+        violations.append("player_center_or_graph_engine_has_side_effect_imports")
+    if not app_contract:
+        violations.append("player_center_route_or_api_not_integrated")
+    if not template_contract:
+        violations.append("player_center_template_contract_missing")
+    if not visual_contract:
+        violations.append("player_center_responsive_visual_contract_missing")
+    if not registry_contract:
+        violations.append("sports_platform_registry_not_updated_for_player_center")
+
+    passed = not violations
+    return {
+        "issue_id": "PLAYER-CENTER-PREMIUM-EXPERIENCE",
+        "version": app_version,
+        "component": "player_center_premium_sports_identity",
+        "affected_routes": ["/player/<id>", "/jugador/<id>", "/api/players/<id>/detail"],
+        "cause": "Player Center must remain a Sports Core consumer, not an isolated player profile.",
+        "solution": "Use Player Center context, Player Knowledge, Sports Graph, SHARK Intelligence and User Intelligence with honest fallbacks.",
+        "evidence": {
+            "engine_contract": engine_contract,
+            "graph_contract": graph_contract,
+            "knowledge_contract": knowledge_contract,
+            "pure_engine_contract": pure_engine_contract,
+            "app_contract": app_contract,
+            "template_contract": template_contract,
+            "visual_contract": visual_contract,
+            "registry_contract": registry_contract,
+            "violations": violations,
+        },
+        "preventive_rule": "Player Center cannot calculate a parallel model, use generative AI or invent player facts; it consumes Sports Core contracts only.",
+        "validation_result": "PASS" if passed else "REGRESSION",
+        "certification_state": "VERIFIED" if passed else "REQUIRES_REVIEW",
+        "status": "RESOLVED_LOCALLY" if passed else "OPEN",
+        "evaluated_at_madrid": _now(),
+        "autofix_allowed": False,
+        "approval_required": True,
+        "production_certified": False,
+    }
 def build_shark_intelligence_platform_contract_snapshot(
     root: str | Path | None = None,
     app_version: str = "",
@@ -1792,10 +1940,10 @@ def detect_product_quality_contract_issues(
             "priority": "P2",
             "profile": "CLIENT",
             "component": "madrid_sync_timestamp_presentation",
-            "description": "Una marca ISO de máquina puede volver a mostrarse como texto visible al cliente.",
-            "expected_behavior": "El cliente ve una fecha Madrid legible y el ISO permanece disponible solo como evidencia técnica.",
-            "actual_behavior": "El contrato de presentación de fecha Madrid está incompleto o fue modificado.",
-            "suggested_fix": "Restaurar el formateador compartido y validar render inicial, polling y modo admin técnico.",
+            "description": "Una marca ISO de mÃ¡quina puede volver a mostrarse como texto visible al cliente.",
+            "expected_behavior": "El cliente ve una fecha Madrid legible y el ISO permanece disponible solo como evidencia tÃ©cnica.",
+            "actual_behavior": "El contrato de presentaciÃ³n de fecha Madrid está incompleto o fue modificado.",
+            "suggested_fix": "Restaurar el formateador compartido y validar render inicial, polling y modo admin tÃ©cnico.",
             "safe_auto_fix_possible": False,
             "requires_admin_approval": True,
             "requires_approval": True,
@@ -1807,8 +1955,8 @@ def detect_product_quality_contract_issues(
                 "static/v934-realtime.js",
             ],
             "codex_prompt_suggestion": (
-                "Revisar PQV939-007, mantener el ISO solo como evidencia de máquina/admin y restaurar "
-                "la etiqueta Madrid cliente. Validar desktop, móvil y polling. No autoaplicar código."
+                "Revisar PQV939-007, mantener el ISO solo como evidencia de mÃ¡quina/admin y restaurar "
+                "la etiqueta Madrid cliente. Validar desktop, mÃ³vil y polling. No autoaplicar cÃ³digo."
             ),
             "product_quality_contract": timestamp_snapshot,
         })
@@ -1872,7 +2020,7 @@ def detect_product_quality_contract_issues(
     )
     if match_center_snapshot and match_center_snapshot["validation_result"] != "PASS":
         issue = _new_issue(
-            "El Match Center pierde su contrato de contexto único",
+            "El Match Center pierde su contrato de contexto Ãºnico",
             "sports_data_contract",
             "high",
             "/match/<id>",
@@ -1884,9 +2032,9 @@ def detect_product_quality_contract_issues(
             "priority": "P1",
             "profile": "CLIENT",
             "component": "match_center_foundation",
-            "description": "Una región del partido ha dejado de compartir contexto, estado o fallback canónico.",
+            "description": "Una regiÃ³n del partido ha dejado de compartir contexto, estado o fallback canÃ³nico.",
             "expected_behavior": "Diez componentes consumen un MatchContext puro, responsive y sin efectos laterales.",
-            "actual_behavior": "Una o más garantías de MATCH-CENTER-LIFECYCLE-STORY-V1 no se pueden demostrar.",
+            "actual_behavior": "Una o mÃ¡s garantÃ­as de MATCH-CENTER-LIFECYCLE-STORY-V1 no se pueden demostrar.",
             "suggested_fix": "Restaurar solo el contrato incumplido y repetir tests y Browser QA en tres viewports.",
             "safe_auto_fix_possible": False,
             "requires_admin_approval": True,
@@ -2000,6 +2148,54 @@ def detect_product_quality_contract_issues(
                 "preservar Sports Core, Sports Knowledge Layer, Sports Graph y match_card()."
             ),
             "product_quality_contract": competition_center_snapshot,
+        })
+        issue["codex_prompt"] = issue["codex_prompt_suggestion"]
+        issues.append(classify_autopilot_issue(issue))
+    player_center_root = Path(root) if root is not None else Path(__file__).resolve().parents[1]
+    player_center_present = (
+        (player_center_root / "engines/player_center_engine.py").exists()
+        or (player_center_root / "templates/player_detail.html").exists()
+    )
+    player_center_snapshot = (
+        build_player_center_experience_contract_snapshot(root, app_version)
+        if player_center_present
+        else None
+    )
+    if player_center_snapshot and player_center_snapshot["validation_result"] != "PASS":
+        issue = _new_issue(
+            "El Player Center pierde su contrato Sports Core",
+            "sports_data_contract",
+            "high",
+            "/player/<id>",
+            "Player Center; " + ",".join(player_center_snapshot["evidence"]["violations"]),
+            app_version,
+        )
+        issue.update({
+            "id": "PLAYER-CENTER-PREMIUM-EXPERIENCE-CONTRACT",
+            "priority": "P1",
+            "profile": "CLIENT",
+            "component": "player_center_premium_sports_identity",
+            "description": "El Player Center deja de consumir Sports Core, Sports Knowledge, Sports Graph, SHARK Intelligence o User Intelligence.",
+            "expected_behavior": "Una unica experiencia premium del jugador basada en contratos canonicos, datos reales y fallbacks honestos.",
+            "actual_behavior": "Una o mas garantias del contrato Player Center no se pueden demostrar.",
+            "suggested_fix": "Restaurar solo el contrato incumplido y repetir Browser QA desktop/tablet/mobile.",
+            "safe_auto_fix_possible": False,
+            "requires_admin_approval": True,
+            "requires_approval": True,
+            "likely_files": [
+                "engines/player_center_engine.py",
+                "engines/sports_knowledge_layer_engine.py",
+                "engines/sports_graph_foundation_engine.py",
+                "app.py",
+                "templates/player_detail.html",
+                "static/v933-product.css",
+                "engines/sports_platform_contracts.py",
+            ],
+            "codex_prompt_suggestion": (
+                "Revisar Player Center con la evidencia indicada. No autoaplicar Python, Jinja, CSS, datos ni rutas; "
+                "preservar Sports Core, Sports Knowledge Layer, Sports Graph, SHARK Intelligence y User Intelligence."
+            ),
+            "product_quality_contract": player_center_snapshot,
         })
         issue["codex_prompt"] = issue["codex_prompt_suggestion"]
         issues.append(classify_autopilot_issue(issue))
@@ -2245,7 +2441,8 @@ def run_autopilot_scan(
         "client_copy_audience_contract": build_client_copy_audience_contract_snapshot(project_root, app_version),
         "madrid_timestamp_presentation_contract": build_madrid_timestamp_presentation_contract_snapshot(project_root, app_version),
         "team_center_experience_contract": build_team_center_experience_contract_snapshot(project_root, app_version),
-                "competition_center_experience_contract": build_competition_center_experience_contract_snapshot(project_root, app_version),
+        "competition_center_experience_contract": build_competition_center_experience_contract_snapshot(project_root, app_version),
+        "player_center_experience_contract": build_player_center_experience_contract_snapshot(project_root, app_version),
         "shark_intelligence_platform_contract": build_shark_intelligence_platform_contract_snapshot(project_root, app_version),
         "user_intelligence_platform_contract": build_user_intelligence_platform_contract_snapshot(project_root, app_version),
     }

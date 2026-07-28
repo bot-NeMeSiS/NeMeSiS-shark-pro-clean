@@ -66,6 +66,8 @@ def build_sports_graph_relationships(
     *,
     team_entity: Mapping[str, Any] | None = None,
     team_entities: Iterable[Mapping[str, Any]] | None = None,
+    player_entity: Mapping[str, Any] | None = None,
+    player_entities: Iterable[Mapping[str, Any]] | None = None,
     match_entities: Iterable[Mapping[str, Any]] | None = None,
     competition_entities: Iterable[Mapping[str, Any]] | None = None,
     timeline_events: Iterable[Mapping[str, Any]] | None = None,
@@ -75,6 +77,7 @@ def build_sports_graph_relationships(
     odds: Iterable[Mapping[str, Any]] | None = None,
     telegram_context: Mapping[str, Any] | None = None,
     shark_context: Mapping[str, Any] | None = None,
+    user_intelligence_context: Mapping[str, Any] | None = None,
     observed_at_madrid: Any = "",
     center: str = "team_center",
 ) -> dict[str, Any]:
@@ -82,8 +85,12 @@ def build_sports_graph_relationships(
 
     team = _mapping(team_entity)
     team_items = _items(team_entities)
+    player = _mapping(player_entity)
+    player_items = _items(player_entities)
     if team:
         team_items.insert(0, team)
+    if player:
+        player_items.insert(0, player)
     matches = _items(match_entities)
     competitions = _items(competition_entities)
     events = _items(timeline_events)
@@ -93,7 +100,8 @@ def build_sports_graph_relationships(
     odd_items = _items(odds)
     telegram = _mapping(telegram_context)
     shark = _mapping(shark_context)
-    source = team.get("source") or (team_items[0].get("source") if team_items else "") or "sports_core"
+    user_intelligence = _mapping(user_intelligence_context)
+    source = team.get("source") or player.get("source") or (team_items[0].get("source") if team_items else "") or (player_items[0].get("source") if player_items else "") or "sports_core"
     edges: list[dict[str, Any]] = []
     skipped: list[dict[str, Any]] = []
 
@@ -139,6 +147,32 @@ def build_sports_graph_relationships(
                 team_refs[normalized_alias.casefold()] = team_ref_item
                 if ":" in normalized_alias:
                     team_refs[normalized_alias.rsplit(":", 1)[-1]] = team_ref_item
+    player_refs: dict[str, Any] = {}
+    for item in player_items:
+        player_ref_item = _entity(
+            "player",
+            item.get("canonical_player_id") or item.get("id") or item.get("player_id"),
+            item.get("display_name") or item.get("official_name") or item.get("player_name") or item.get("name"),
+            source=item.get("source") or source,
+            state=item.get("data_quality") or "PARTIALLY_VERIFIED",
+        )
+        for alias in (
+            player_ref_item.entity_id,
+            item.get("canonical_player_id"),
+            item.get("id"),
+            item.get("player_id"),
+            item.get("display_name"),
+            item.get("official_name"),
+            item.get("player_name"),
+            item.get("name"),
+        ):
+            normalized_alias = _text(alias, 180)
+            if normalized_alias:
+                player_refs[normalized_alias] = player_ref_item
+                player_refs[normalized_alias.casefold()] = player_ref_item
+                if ":" in normalized_alias:
+                    player_refs[normalized_alias.rsplit(":", 1)[-1]] = player_ref_item
+    player_ref = next(iter(player_refs.values()), None)
     team_ref = next(iter(team_refs.values()), None)
     match_refs = []
     match_ref_aliases: dict[str, Any] = {}
@@ -211,6 +245,12 @@ def build_sports_graph_relationships(
         for related_team_ref in related_team_refs:
             add(match_ref, "match_has_team", related_team_ref, ev)
             add(related_team_ref, "team_has_match", match_ref, ev)
+            if player_ref is not None:
+                add(player_ref, "player_linked_to_team", related_team_ref, ev)
+                add(related_team_ref, "team_has_player", player_ref, ev)
+        if player_ref is not None:
+            add(player_ref, "player_has_match", match_ref, ev)
+            add(match_ref, "match_has_player", player_ref, ev)
         comp = _mapping(match.get("competition"))
         comp_id = comp.get("canonical_competition_id") or match.get("competition_id")
         if comp_id and str(comp_id) not in competition_refs:
@@ -228,6 +268,9 @@ def build_sports_graph_relationships(
             for related_team_ref in related_team_refs:
                 add(related_team_ref, "team_competes_in_competition", comp_ref, ev)
                 add(comp_ref, "competition_has_team", related_team_ref, ev)
+            if player_ref is not None:
+                add(player_ref, "player_competes_in_competition", comp_ref, ev)
+                add(comp_ref, "competition_has_player", player_ref, ev)
         season = match.get("season") or comp.get("season")
         if season:
             season_ref = season_refs.setdefault(
@@ -264,17 +307,18 @@ def build_sports_graph_relationships(
         add(event_ref, "timeline_event_belongs_to_match", match_ref, ev)
         player_id = event.get("player_id")
         if player_id:
-            player_ref = _entity(
+            event_player_key = _text(player_id, 180)
+            event_player_ref = player_refs.get(event_player_key) or player_refs.get(event_player_key.casefold()) or _entity(
                 "player",
                 player_id,
                 event.get("player_name") or event.get("player") or "Jugador",
                 source=event.get("source") or source,
                 state="PARTIALLY_VERIFIED",
             )
-            add(player_ref, "player_appears_in_event", event_ref, ev)
-            add(event_ref, "event_has_player", player_ref, ev)
+            add(event_player_ref, "player_appears_in_event", event_ref, ev)
+            add(event_ref, "event_has_player", event_player_ref, ev)
             if team_ref is not None:
-                add(player_ref, "player_linked_to_team", team_ref, ev)
+                add(event_player_ref, "player_linked_to_team", team_ref, ev)
 
     for item in evidence:
         evidence_id = item.get("evidence_id") or item.get("id")
@@ -296,6 +340,9 @@ def build_sports_graph_relationships(
         for match_ref in match_refs[:1]:
             add(match_ref, "match_has_match_intelligence", intelligence_ref, ev)
             add(intelligence_ref, "match_intelligence_describes_match", match_ref, ev)
+        if player_ref is not None:
+            add(player_ref, "player_context_uses_match_intelligence", intelligence_ref, ev)
+            add(intelligence_ref, "match_intelligence_has_player_context", player_ref, ev)
 
     for pick in pick_items:
         match_id = _text(pick.get("match_id"), 120)
@@ -321,6 +368,11 @@ def build_sports_graph_relationships(
     if shark and match_refs:
         shark_ref = _entity("shark_context", shark.get("id") or "shark-context", "SHARK Context", source="shark", state=shark.get("certification_state") or "PARTIALLY_VERIFIED")
         add(shark_ref, "shark_context_analyzes_match", match_refs[0], _evidence(source="shark", source_type="shark_context", observed_at_madrid=observed_at_madrid, state=shark.get("certification_state") or "PARTIALLY_VERIFIED", reference=shark.get("contract") or "shark_context"))
+        if player_ref is not None:
+            add(shark_ref, "shark_context_mentions_player", player_ref, _evidence(source="shark", source_type="shark_context", observed_at_madrid=observed_at_madrid, state=shark.get("certification_state") or "PARTIALLY_VERIFIED", reference=shark.get("contract") or "shark_context"))
+    if user_intelligence and player_ref is not None:
+        user_ref = _entity("user_intelligence_context", user_intelligence.get("id") or "user-intelligence-context", "User Intelligence Context", source="user_intelligence", state=user_intelligence.get("certification_state") or "NOT_CONFIGURED")
+        add(user_ref, "user_intelligence_observes_player", player_ref, _evidence(source="user_intelligence", source_type="user_intelligence_context", observed_at_madrid=observed_at_madrid, state=user_intelligence.get("certification_state") or "NOT_CONFIGURED", reference=user_intelligence.get("contract") or "USER-INTELLIGENCE-PLATFORM-V1"))
 
     relations = sorted({edge["relationship"] for edge in edges})
     return {

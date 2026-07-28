@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+{% from "components/v933_ui.html" import match_card %}
+{% block content %}
+{% set detail = detail or {} %}
+{% set center = detail.player_center or {} %}
+{% set player = center.player or {} %}
+{% set metrics = center.metrics or {} %}
+{% set participation = center.participation or {} %}
+{% set data_quality = center.data_quality or {} %}
+{% set links = center.links or {} %}
+
+<section class="player-center-v1" data-player-center-contract="{{ center.contract or '' }}" data-sports-domain-model="{{ center.source_domain_contract or '' }}" data-sports-knowledge-contract="{{ center.sports_knowledge_contract or '' }}" data-player-knowledge-contract="{{ center.player_knowledge_contract or '' }}" data-sports-graph-contract="{{ center.sports_graph_contract or '' }}" data-shark-intelligence-contract="{{ center.shark_intelligence_contract or '' }}" data-user-intelligence-contract="{{ center.user_intelligence_contract or '' }}">
+  <header class="player-center-hero" data-player-center-section="header">
+    <div class="player-center-identity">
+      <div class="player-center-photo" aria-label="Foto del jugador">
+        {% if player.photo %}
+          <img src="{{ player.photo }}" alt="{{ player.display_name or 'Jugador' }}" loading="lazy">
+        {% else %}
+          <span>{{ (player.display_name or player.name or 'ND')[:2] }}</span>
+        {% endif %}
+      </div>
+      <div class="player-center-title-block">
+        <div class="player-center-kicker">Player Center · {{ player.team or 'No disponible' }}</div>
+        <h1>{{ player.display_name or player.official_name or 'Jugador no disponible' }}</h1>
+        <p>Centro de identidad deportiva construido con Sports Core, Sports Knowledge, Sports Graph, SHARK Intelligence y User Intelligence. No crea datos sin evidencia.</p>
+        <div class="player-center-tags" aria-label="Estado del jugador">
+          <span>{{ player.state or 'Informacion parcial' }}</span>
+          <span>{{ player.position or 'No disponible' }}</span>
+          <span>{{ data_quality.certification_state or 'REQUIRES_REVIEW' }}</span>
+        </div>
+      </div>
+    </div>
+    <aside class="player-center-status-card" aria-label="Resumen del jugador">
+      <div><span>Frescura</span><strong>{{ data_quality.freshness.label if data_quality.freshness else 'No disponible' }}</strong></div>
+      <div><span>Procedencia</span><strong>{{ data_quality.source or 'No disponible' }}</strong></div>
+      <nav class="player-center-actions" aria-label="Acciones rapidas">
+        {% if links.match_center %}<a href="{{ links.match_center }}">Match Center</a>{% endif %}
+        {% if links.team_center %}<a href="{{ links.team_center }}">Team Center</a>{% endif %}
+        {% if links.competition_center %}<a href="{{ links.competition_center }}">Competition Center</a>{% endif %}
+      </nav>
+    </aside>
+  </header>
+
+  <section class="player-center-meta-grid" data-player-center-section="identity-facts" aria-label="Datos del jugador">
+    <article><span>Equipo</span><strong>{{ player.team or 'No disponible' }}</strong></article>
+    <article><span>Competicion</span><strong>{{ player.competition or 'No disponible' }}</strong></article>
+    <article><span>Pais</span><strong>{{ player.country or 'No disponible' }}</strong></article>
+    <article><span>Dorsal</span><strong>{{ player.shirt_number or 'No disponible' }}</strong></article>
+  </section>
+
+  <section class="player-center-scoreboard" data-player-center-section="metrics" aria-label="Resumen deportivo">
+    <article><span>Partidos</span><strong>{{ metrics.matches or 0 }}</strong><small>relacionados</small></article>
+    <article><span>Eventos</span><strong>{{ metrics.events or 0 }}</strong><small>registrados</small></article>
+    <article><span>Alineaciones</span><strong>{{ metrics.lineups or 0 }}</strong><small>confirmadas</small></article>
+    <article><span>Picks</span><strong>{{ metrics.picks or 0 }}</strong><small>relacionados</small></article>
+    <article><span>Graph</span><strong>{{ metrics.graph_edges or 0 }}</strong><small>relaciones</small></article>
+  </section>
+
+  <main class="player-center-layout">
+    <section class="player-center-panel" data-player-center-section="basic-information">
+      <div class="player-center-section-head"><span>Informacion basica</span><strong>{{ player.official_name or 'No disponible' }}</strong></div>
+      <dl class="player-center-data-list">
+        <div><dt>Nombre oficial</dt><dd>{{ player.official_name or 'No disponible' }}</dd></div>
+        <div><dt>Nombre visible</dt><dd>{{ player.display_name or 'No disponible' }}</dd></div>
+        <div><dt>Posicion</dt><dd>{{ player.position or 'No disponible' }}</dd></div>
+        <div><dt>Estado</dt><dd>{{ player.state or 'No disponible' }}</dd></div>
+      </dl>
+    </section>
+
+    <section class="player-center-panel" data-player-center-section="participation">
+      <div class="player-center-section-head"><span>Participacion reciente</span><strong>{{ participation.matches or 0 }} partidos</strong></div>
+      <div class="player-center-mini-metrics">
+        <div><span>Goles</span><strong>{{ participation.goals or 0 }}</strong></div>
+        <div><span>Tarjetas</span><strong>{{ participation.cards or 0 }}</strong></div>
+        <div><span>Cambios</span><strong>{{ participation.substitutions or 0 }}</strong></div>
+        <div><span>Titular</span><strong>{{ participation.starts or 0 }}</strong></div>
+      </div>
+      {% if participation.limitations %}<ul class="player-center-evidence-list">{% for item in participation.limitations[:4] %}<li>{{ item }}</li>{% endfor %}</ul>{% endif %}
+    </section>
+
+    <section class="player-center-panel" data-player-center-section="shark-context">
+      <div class="player-center-section-head"><span>Contexto SHARK</span><strong>{{ center.shark_context.state or 'INSUFFICIENT_DATA' }}</strong></div>
+      <p>{{ center.shark_context.summary or 'No hay suficiente informacion para construir contexto SHARK del jugador.' }}</p>
+      {% if center.shark_context.evidence %}<ul class="player-center-evidence-list">{% for item in center.shark_context.evidence[:4] %}<li>{{ item }}</li>{% endfor %}</ul>{% endif %}
+      {% if center.shark_context.limitations %}<ul class="player-center-evidence-list">{% for item in center.shark_context.limitations[:3] %}<li>{{ item }}</li>{% endfor %}</ul>{% endif %}
+    </section>
+
+    <section class="player-center-match-section player-center-wide" data-player-center-section="matches">
+      <div class="player-center-section-head"><span>Partidos relacionados</span><strong>{{ center.matches|length }}</strong></div>
+      {% if center.matches %}
+      <div class="player-center-match-grid">
+        {% for match in center.matches[:8] %}{{ match_card(match, true, true) }}{% endfor %}
+      </div>
+      {% else %}
+      <p class="player-center-empty">No disponible. Ninguna fuente confirma partidos asociados a este jugador.</p>
+      {% endif %}
+    </section>
+
+    <section class="player-center-panel player-center-wide" data-player-center-section="timeline">
+      <div class="player-center-section-head"><span>Timeline personal</span><strong>{{ center.timeline|length }}</strong></div>
+      {% if center.timeline %}
+      <ol class="player-center-timeline">
+        {% for item in center.timeline[:12] %}
+        <li>
+          <span>{{ item.minute or 'No disponible' }}</span>
+          <strong>{{ item.event_type or 'No disponible' }}</strong>
+          <small>{{ item.match_label or 'No disponible' }} · {{ item.detail or 'No disponible' }}</small>
+        </li>
+        {% endfor %}
+      </ol>
+      {% else %}
+      <p class="player-center-empty">No disponible. No hay eventos personales confirmados.</p>
+      {% endif %}
+    </section>
+
+    <section class="player-center-panel" data-player-center-section="sports-knowledge">
+      <div class="player-center-section-head"><span>Sports Knowledge</span><strong>{{ center.player_knowledge.certification_state or 'PARTIALLY_VERIFIED' }}</strong></div>
+      <dl class="player-center-data-list">
+        <div><dt>Player Knowledge</dt><dd>{{ center.player_knowledge_contract or 'No disponible' }}</dd></div>
+        <div><dt>Sports Core</dt><dd>{{ center.source_domain_contract or 'No disponible' }}</dd></div>
+        <div><dt>Knowledge Layer</dt><dd>{{ center.sports_knowledge_contract or 'No disponible' }}</dd></div>
+      </dl>
+      {% if center.player_knowledge.limitations %}<ul class="player-center-evidence-list">{% for item in center.player_knowledge.limitations[:5] %}<li>{{ item }}</li>{% endfor %}</ul>{% endif %}
+    </section>
+
+    <section class="player-center-panel" data-player-center-section="sports-graph">
+      <div class="player-center-section-head"><span>Sports Graph</span><strong>{{ metrics.graph_edges or 0 }}</strong></div>
+      <p>Relaciones internas preparadas sin persistir grafo ni crear datos ficticios.</p>
+      {% if center.sports_graph.relationships %}<ul class="player-center-evidence-list">{% for item in center.sports_graph.relationships[:9] %}<li>{{ item }}</li>{% endfor %}</ul>{% else %}<p class="player-center-empty">Informacion pendiente.</p>{% endif %}
+    </section>
+
+    <section class="player-center-panel" data-player-center-section="user-intelligence">
+      <div class="player-center-section-head"><span>User Intelligence</span><strong>{{ center.user_intelligence.state or 'PREPARED_NOT_APPLIED' }}</strong></div>
+      <p>{{ center.user_intelligence.summary or 'Preparado, no aplicado automaticamente.' }}</p>
+      {% if center.user_intelligence.limitations %}<ul class="player-center-evidence-list">{% for item in center.user_intelligence.limitations[:3] %}<li>{{ item }}</li>{% endfor %}</ul>{% endif %}
+    </section>
+
+    <section class="player-center-panel" data-player-center-section="data-quality">
+      <div class="player-center-section-head"><span>Transparencia</span><strong>{{ data_quality.certification_state or 'REQUIRES_REVIEW' }}</strong></div>
+      <dl class="player-center-data-list">
+        <div><dt>Procedencia</dt><dd>{{ data_quality.source or 'No disponible' }}</dd></div>
+        <div><dt>Frescura</dt><dd>{{ data_quality.freshness.label if data_quality.freshness else 'No disponible' }}</dd></div>
+        <div><dt>Foto</dt><dd>{{ player.photo_source or 'No disponible' }}</dd></div>
+        <div><dt>Limitaciones</dt><dd>{{ data_quality.limitations|length if data_quality.limitations else 0 }}</dd></div>
+      </dl>
+      {% if data_quality.limitations %}<ul class="player-center-evidence-list">{% for item in data_quality.limitations[:6] %}<li>{{ item }}</li>{% endfor %}</ul>{% else %}<p class="player-center-empty">Sin limitaciones relevantes en la muestra disponible.</p>{% endif %}
+    </section>
+
+    <section class="player-center-panel" data-player-center-section="information-state">
+      <div class="player-center-section-head"><span>Informacion disponible</span><strong>{{ center.available_information|length }}</strong></div>
+      {% if center.available_information %}<ul class="player-center-evidence-list">{% for item in center.available_information %}<li>{{ item }}</li>{% endfor %}</ul>{% else %}<p class="player-center-empty">No disponible.</p>{% endif %}
+      <div class="player-center-section-head is-sub"><span>Informacion ausente</span><strong>{{ center.missing_information|length }}</strong></div>
+      {% if center.missing_information %}<ul class="player-center-evidence-list">{% for item in center.missing_information %}<li>{{ item }}</li>{% endfor %}</ul>{% else %}<p class="player-center-empty">Sin ausencias relevantes detectadas.</p>{% endif %}
+    </section>
+
+    <section class="player-center-panel" data-player-center-section="future-links">
+      <div class="player-center-section-head"><span>Conexiones</span><strong>Sports Core</strong></div>
+      <nav class="player-center-link-grid" aria-label="Centros deportivos relacionados">
+        {% if links.match_center %}<a href="{{ links.match_center }}">Match Center</a>{% else %}<span>Match Center · No disponible</span>{% endif %}
+        {% if links.team_center %}<a href="{{ links.team_center }}">Team Center</a>{% else %}<span>Team Center · No disponible</span>{% endif %}
+        {% if links.competition_center %}<a href="{{ links.competition_center }}">Competition Center</a>{% else %}<span>Competition Center · No disponible</span>{% endif %}
+        <a href="{{ links.user_intelligence or '/user-intelligence' }}">User Intelligence</a>
+        <span>Sports Graph · Contrato interno</span>
+      </nav>
+    </section>
+  </main>
+</section>
+{% endblock %}
+

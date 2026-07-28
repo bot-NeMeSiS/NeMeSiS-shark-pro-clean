@@ -64,7 +64,7 @@ Rule: stale data cannot become apparent live intelligence.
 
 Contract: SHARK-INTELLIGENCE-PLATFORM-V1
 
-Consumes: SPORTS-CORE-UNIFIED-DOMAIN-MODEL-V1, SPORTS-KNOWLEDGE-LAYER-V1, SPORTS-GRAPH-FOUNDATION-RELATIONSHIPS-V1, MATCH-INTELLIGENCE-EVIDENCE-V1, Team Center and Competition Center contracts.
+Consumes: SPORTS-CORE-UNIFIED-DOMAIN-MODEL-V1, SPORTS-KNOWLEDGE-LAYER-V1, SPORTS-GRAPH-FOUNDATION-RELATIONSHIPS-V1, MATCH-INTELLIGENCE-EVIDENCE-V1, Team Center, Competition Center and Player Center contracts.
 
 Rule: each SHARK claim must expose source, evidence, freshness, quality and limitations. The platform is read-only in this phase: no generative AI, no Telegram sends, no Stripe calls, no DB writes, no provider calls and no automatic actions.
 ## USER-INTELLIGENCE-PLATFORM-V1

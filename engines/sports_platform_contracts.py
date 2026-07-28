@@ -347,10 +347,12 @@ def build_sports_platform_contract_registry(project_root: str | Path) -> dict[st
         },
         {
             "key": "player_center",
-            "name": "Player Center Foundation",
-            "contract": "SPORTS-ENTITY-CENTER-CONTEXT-V1",
-            "state": "CONTRACT_READY",
-            "implementation": "engines/sports_platform_contracts.py",
+            "name": "Player Center Premium Sports Identity",
+            "contract": "PLAYER-CENTER-PREMIUM-SPORTS-IDENTITY-PLATFORM-V1",
+            "state": "INTEGRATED"
+            if exists("engines/player_center_engine.py") and exists("templates/player_detail.html")
+            else "CONTRACT_READY",
+            "implementation": "engines/player_center_engine.py + templates/player_detail.html",
         },
         {
             "key": "sports_memory",
